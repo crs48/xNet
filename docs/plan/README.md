@@ -85,6 +85,7 @@ graph TB
 | 14 | [Notifications & Integrations](./14-notifications-integrations.md) | Push notifications, calendar sync, n8n workflows |
 | 15 | [Enterprise Scale](./15-enterprise-scale.md) | Tiered architecture, event streaming, Tesla-scale planning |
 | 16 | [Global Data Network](./16-global-data-network.md) | Long-term vision: planetary P2P data layer, economics, federation |
+| 17 | [Foundation Requirements](./17-foundation-requirements.md) | Critical foundations needed NOW: content addressing, snapshots, signed updates |
 
 **Related Documentation:**
 - [Persistence & Durability Architecture](../PERSISTENCE_ARCHITECTURE.md)
