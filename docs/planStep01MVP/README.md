@@ -18,7 +18,7 @@ Execute these documents in order. Each builds on the previous.
 | 07 | [@xnet/query](./07-xnet-query.md) | Local + federated queries | 2 weeks | ✅ |
 | 08 | [@xnet/react](./08-xnet-react.md) | React hooks | 2 weeks | ✅ |
 | 09 | [@xnet/sdk](./09-xnet-sdk.md) | Unified SDK bundle | 1 week | ✅ |
-| 10 | [Platform: Electron](./10-platform-electron.md) | macOS desktop app | 2 weeks | |
+| 10 | [Platform: Electron](./10-platform-electron.md) | macOS desktop app | 2 weeks | ✅ |
 | 11 | [Platform: Expo](./11-platform-expo.md) | iOS mobile app | 2 weeks | |
 | 12 | [Platform: Web](./12-platform-web.md) | TanStack PWA | 2 weeks | |
 | 13 | [xNotes Features](./13-xnotes-features.md) | Wiki, tasks, editor | 6 weeks | |
@@ -57,7 +57,7 @@ Before proceeding to the next phase, verify:
 - **Total: 238 tests**
 
 ### After Platform POCs
-- [ ] Electron app launches on macOS
+- [x] Electron app launches on macOS
 - [ ] Expo app runs on iOS simulator
 - [ ] PWA loads in browser
 - [ ] Data persists across restarts
