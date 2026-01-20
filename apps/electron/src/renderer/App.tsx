@@ -32,12 +32,13 @@ export function App() {
     init()
 
     return () => {
-      window.xnet.stop()
+      window.xnet?.stop()
     }
   }, [])
 
   // Listen for new page menu command
   useEffect(() => {
+    if (!window.xnet) return
     return window.xnet.onNewPage(() => {
       createDoc()
     })
