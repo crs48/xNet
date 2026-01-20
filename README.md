@@ -68,6 +68,66 @@ const results = await client.query({
 })
 ```
 
+## React Hooks
+
+```tsx
+import { XNetProvider, useDocument, useQuery, useSync, useIdentity } from '@xnet/react'
+import { IndexedDBAdapter } from '@xnet/sdk'
+
+// Wrap your app with XNetProvider
+function App() {
+  return (
+    <XNetProvider config={{ storage: new IndexedDBAdapter() }}>
+      <NotesApp />
+    </XNetProvider>
+  )
+}
+
+// Load and edit a document
+function Editor({ docId }: { docId: string }) {
+  const { data: doc, loading, update } = useDocument(docId)
+
+  if (loading) return <div>Loading...</div>
+
+  return (
+    <input
+      value={doc?.metadata?.title || ''}
+      onChange={(e) => update((d) => {
+        if (d.metadata) d.metadata.title = e.target.value
+      })}
+    />
+  )
+}
+
+// Query documents with pagination
+function DocumentList() {
+  const { data: docs, loading, hasMore, fetchMore } = useQuery({
+    type: 'page',
+    sort: [{ field: 'updated', direction: 'desc' }],
+    limit: 20
+  })
+
+  return (
+    <ul>
+      {docs.map((doc) => <li key={doc.id}>{doc.title}</li>)}
+      {hasMore && <button onClick={fetchMore}>Load more</button>}
+    </ul>
+  )
+}
+
+// Show sync status
+function SyncStatus() {
+  const { status, peerCount } = useSync()
+  return <span>{status} ({peerCount} peers)</span>
+}
+
+// Access current identity
+function Profile() {
+  const { identity } = useIdentity()
+  return <code>{identity?.did}</code>
+}
+```
+
 ## Documentation
 
 See [docs/planStep01MVP](./docs/planStep01MVP) for implementation details.
