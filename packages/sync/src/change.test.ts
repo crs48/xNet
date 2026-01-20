@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { generateSigningKeyPair } from '@xnet/crypto'
-import type { DID, ContentId, VectorClock } from '@xnet/core'
+import type { DID } from '@xnet/core'
 import {
   createUnsignedChange,
   computeChangeHash,
@@ -9,10 +9,11 @@ import {
   verifyChangeHash,
   createChangeId
 } from './change'
+import type { LamportTimestamp } from './clock'
 
 describe('Change', () => {
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
-  const testClock: VectorClock = { [testDID]: 1 }
+  const testLamport: LamportTimestamp = { time: 1, author: testDID }
 
   describe('createUnsignedChange', () => {
     it('creates an unsigned change with provided values', () => {
@@ -22,8 +23,8 @@ describe('Change', () => {
         payload: { data: 'hello' },
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       expect(unsigned.id).toBe('test-1')
@@ -31,11 +32,11 @@ describe('Change', () => {
       expect(unsigned.payload).toEqual({ data: 'hello' })
       expect(unsigned.parentHash).toBeNull()
       expect(unsigned.authorDID).toBe(testDID)
-      expect(unsigned.vectorClock).toEqual(testClock)
-      expect(unsigned.timestamp).toBe(1000)
+      expect(unsigned.lamport).toEqual(testLamport)
+      expect(unsigned.wallTime).toBe(1000)
     })
 
-    it('uses current timestamp when not provided', () => {
+    it('uses current timestamp when wallTime not provided', () => {
       const before = Date.now()
       const unsigned = createUnsignedChange({
         id: 'test-2',
@@ -43,12 +44,12 @@ describe('Change', () => {
         payload: {},
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock
+        lamport: testLamport
       })
       const after = Date.now()
 
-      expect(unsigned.timestamp).toBeGreaterThanOrEqual(before)
-      expect(unsigned.timestamp).toBeLessThanOrEqual(after)
+      expect(unsigned.wallTime).toBeGreaterThanOrEqual(before)
+      expect(unsigned.wallTime).toBeLessThanOrEqual(after)
     })
   })
 
@@ -60,8 +61,8 @@ describe('Change', () => {
         payload: { value: 42 },
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const hash1 = computeChangeHash(unsigned)
@@ -78,8 +79,8 @@ describe('Change', () => {
         payload: { value: 1 },
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const unsigned2 = createUnsignedChange({
@@ -88,8 +89,8 @@ describe('Change', () => {
         payload: { value: 2 },
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const hash1 = computeChangeHash(unsigned1)
@@ -108,8 +109,8 @@ describe('Change', () => {
         payload: { data: 'sign me' },
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const signed = signChange(unsigned, keyPair.privateKey)
@@ -132,8 +133,8 @@ describe('Change', () => {
         payload: { data: 'verify me' },
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const signed = signChange(unsigned, keyPair.privateKey)
@@ -152,8 +153,8 @@ describe('Change', () => {
         payload: {},
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const signed = signChange(unsigned, keyPair1.privateKey)
@@ -170,8 +171,8 @@ describe('Change', () => {
         payload: {},
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const signed = signChange(unsigned, keyPair.privateKey)
@@ -191,8 +192,8 @@ describe('Change', () => {
         payload: { value: 123 },
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const signed = signChange(unsigned, keyPair.privateKey)
@@ -207,8 +208,8 @@ describe('Change', () => {
         payload: { value: 'original' },
         parentHash: null,
         authorDID: testDID,
-        vectorClock: testClock,
-        timestamp: 1000
+        lamport: testLamport,
+        wallTime: 1000
       })
 
       const signed = signChange(unsigned, keyPair.privateKey)
@@ -245,8 +246,8 @@ describe('Change', () => {
           payload: { seq: 1 },
           parentHash: null,
           authorDID: testDID,
-          vectorClock: { [testDID]: 1 },
-          timestamp: 1000
+          lamport: { time: 1, author: testDID },
+          wallTime: 1000
         }),
         keyPair.privateKey
       )
@@ -259,14 +260,36 @@ describe('Change', () => {
           payload: { seq: 2 },
           parentHash: change1.hash,
           authorDID: testDID,
-          vectorClock: { [testDID]: 2 },
-          timestamp: 2000
+          lamport: { time: 2, author: testDID },
+          wallTime: 2000
         }),
         keyPair.privateKey
       )
 
       expect(change1.parentHash).toBeNull()
       expect(change2.parentHash).toBe(change1.hash)
+    })
+  })
+
+  describe('Lamport timestamp ordering', () => {
+    it('changes include Lamport timestamp for ordering', () => {
+      const keyPair = generateSigningKeyPair()
+
+      const change = signChange(
+        createUnsignedChange({
+          id: 'test-lamport',
+          type: 'test',
+          payload: {},
+          parentHash: null,
+          authorDID: testDID,
+          lamport: { time: 42, author: testDID },
+          wallTime: 1000
+        }),
+        keyPair.privateKey
+      )
+
+      expect(change.lamport.time).toBe(42)
+      expect(change.lamport.author).toBe(testDID)
     })
   })
 })

@@ -2,20 +2,19 @@
 
 > Unified sync primitives for both Yjs and event-sourcing
 
-**Duration:** 1 week
-**Risk Level:** Low
-**Dependencies:** None (foundational)
+**Status:** COMPLETE
+**Tests:** 78 passing
 
 ## Overview
 
-Create a new `@xnet/sync` package that provides the base abstractions for all sync changes. Both `@xnet/data` (Yjs) and `@xnet/records` (event-sourcing) will import from this package.
+The `@xnet/sync` package provides base abstractions for all sync operations. Both `@xnet/data` (Yjs) and `@xnet/records` (event-sourcing) import from this package.
 
 ```mermaid
 flowchart TD
-    subgraph sync["@xnet/sync (NEW)"]
+    subgraph sync["@xnet/sync"]
         OP["Change&lt;T&gt;"]
-        CHAIN["ChainManager"]
-        CLOCK["VectorClock utils"]
+        CHAIN["Chain utilities"]
+        CLOCK["Lamport clock"]
         PROVIDER["SyncProvider interface"]
     end
 
@@ -36,17 +35,44 @@ packages/sync/
 │   ├── index.ts           # Public exports
 │   ├── change.ts          # Change<T> type and helpers
 │   ├── chain.ts           # Hash chain management
-│   ├── clock.ts           # Vector clock utilities
-│   ├── provider.ts        # SyncProvider interface
-│   └── verification.ts    # Signature and hash verification
+│   ├── clock.ts           # Lamport clock utilities
+│   └── provider.ts        # SyncProvider interface
 ├── test/
 │   ├── change.test.ts
 │   ├── chain.test.ts
 │   ├── clock.test.ts
-│   └── verification.test.ts
+│   └── provider.test.ts
 ├── package.json
 └── tsconfig.json
 ```
+
+## Key Design Decision: Lamport Timestamps
+
+We use **Lamport timestamps** instead of vector clocks for ordering changes:
+
+```typescript
+interface LamportTimestamp {
+  time: number // Logical time (increments on each change)
+  author: DID // For deterministic tie-breaking
+}
+```
+
+**Why Lamport over Vector Clocks:**
+
+| Aspect     | Vector Clock                     | Lamport Timestamp              |
+| ---------- | -------------------------------- | ------------------------------ |
+| Size       | Grows with participants          | Constant (1 integer)           |
+| Merge      | `max()` per participant          | `max(local, received)`         |
+| Ordering   | Partial (can detect concurrency) | Total (with tie-breaker)       |
+| Complexity | High                             | Low                            |
+| CRDT needs | Can detect "concurrent"          | Just needs deterministic order |
+
+For CRDTs, we don't need to detect whether events were concurrent - we just need a **deterministic total order** so all nodes converge to the same state.
+
+**Ordering rule:**
+
+1. Compare by `time` (lower = earlier)
+2. Tie-break by `author` DID string comparison
 
 ## Implementation
 
@@ -55,7 +81,8 @@ packages/sync/
 ```typescript
 // packages/sync/src/change.ts
 
-import type { ContentId, DID, VectorClock } from '@xnet/core'
+import type { ContentId, DID } from '@xnet/core'
+import type { LamportTimestamp } from './clock'
 
 /**
  * Base change type for all sync mechanisms.
@@ -83,135 +110,79 @@ export interface Change<T = unknown> {
   /** Ed25519 signature of the hash */
   signature: Uint8Array
 
-  /** Unix timestamp (milliseconds) */
-  timestamp: number
+  /** Wall clock timestamp (ms) - for display only, not ordering */
+  wallTime: number
 
-  /** Vector clock for causal ordering */
-  vectorClock: VectorClock
-}
-
-/**
- * Create a change without hash/signature (for building)
- */
-export interface UnsignedChange<T = unknown> {
-  id: string
-  type: string
-  payload: T
-  parentHash: ContentId | null
-  authorDID: DID
-  timestamp: number
-  vectorClock: VectorClock
-}
-
-/**
- * Create a signed change from an unsigned one
- */
-export async function signChange<T>(
-  unsigned: UnsignedChange<T>,
-  signingKey: Uint8Array
-): Promise<Change<T>> {
-  // Implementation uses @xnet/crypto
-  const { hashHex, sign } = await import('@xnet/crypto')
-
-  // Hash the change (excluding hash and signature)
-  const hashInput = JSON.stringify(unsigned)
-  const hash = `cid:blake3:${hashHex(new TextEncoder().encode(hashInput))}` as ContentId
-
-  // Sign the hash
-  const signature = sign(new TextEncoder().encode(hash), signingKey)
-
-  return {
-    ...unsigned,
-    hash,
-    signature
-  }
-}
-
-/**
- * Verify a change's signature
- */
-export async function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): Promise<boolean> {
-  const { verify } = await import('@xnet/crypto')
-
-  return verify(new TextEncoder().encode(change.hash), change.signature, publicKey)
+  /** Lamport timestamp for ordering */
+  lamport: LamportTimestamp
 }
 ```
 
-### Vector Clock Utilities
+### Lamport Clock Utilities
 
 ```typescript
 // packages/sync/src/clock.ts
 
-import type { DID, VectorClock } from '@xnet/core'
+import type { DID } from '@xnet/core'
 
 /**
- * Create a new vector clock with initial value for this node
+ * A Lamport timestamp with author for deterministic tie-breaking.
  */
-export function createVectorClock(nodeId: DID): VectorClock {
-  return { [nodeId]: 1 }
+export interface LamportTimestamp {
+  time: number
+  author: DID
 }
 
 /**
- * Increment the clock for a specific node
+ * A Lamport clock that tracks the current logical time.
  */
-export function incrementVectorClock(clock: VectorClock, nodeId: DID): VectorClock {
-  return {
-    ...clock,
-    [nodeId]: (clock[nodeId] || 0) + 1
-  }
+export interface LamportClock {
+  time: number
+  author: DID
 }
 
 /**
- * Merge two vector clocks (take max of each entry)
+ * Create a new Lamport clock for an author.
+ * Starts at time 0; first tick will produce time 1.
  */
-export function mergeVectorClocks(a: VectorClock, b: VectorClock): VectorClock {
-  const result: VectorClock = { ...a }
-
-  for (const [nodeId, value] of Object.entries(b)) {
-    result[nodeId] = Math.max(result[nodeId] || 0, value)
-  }
-
-  return result
+export function createLamportClock(author: DID): LamportClock {
+  return { time: 0, author }
 }
 
 /**
- * Compare two vector clocks
- * Returns:
- *   -1 if a < b (a happened before b)
- *    0 if a || b (concurrent)
- *    1 if a > b (a happened after b)
+ * Tick the clock and return a new timestamp.
  */
-export function compareVectorClocks(a: VectorClock, b: VectorClock): -1 | 0 | 1 {
-  let aGreater = false
-  let bGreater = false
-
-  const allKeys = new Set([...Object.keys(a), ...Object.keys(b)])
-
-  for (const key of allKeys) {
-    const aVal = a[key] || 0
-    const bVal = b[key] || 0
-
-    if (aVal > bVal) aGreater = true
-    if (bVal > aVal) bGreater = true
-  }
-
-  if (aGreater && !bGreater) return 1
-  if (bGreater && !aGreater) return -1
-  return 0
+export function tick(clock: LamportClock): [LamportClock, LamportTimestamp] {
+  const newTime = clock.time + 1
+  return [
+    { ...clock, time: newTime },
+    { time: newTime, author: clock.author }
+  ]
 }
 
 /**
- * Check if clock a happened before clock b
+ * Update the clock after receiving a change from another node.
  */
-export function happenedBefore(a: VectorClock, b: VectorClock): boolean {
-  return compareVectorClocks(a, b) === -1
+export function receive(clock: LamportClock, receivedTime: number): LamportClock {
+  return { ...clock, time: Math.max(clock.time, receivedTime) }
 }
 
 /**
- * Check if two clocks are concurrent (neither happened before the other)
+ * Compare two Lamport timestamps for total ordering.
  */
-export function areConcurrent(a: VectorClock, b: VectorClock): boolean {
-  return compareVectorClocks(a, b) === 0
+export function compareLamportTimestamps(a: LamportTimestamp, b: LamportTimestamp): -1 | 0 | 1 {
+  if (a.time < b.time) return -1
+  if (a.time > b.time) return 1
+  const cmp = a.author.localeCompare(b.author)
+  return cmp < 0 ? -1 : cmp > 0 ? 1 : 0
+}
+
+/**
+ * Serialize a Lamport timestamp for storage/sorting.
+ * Format: {time-padded-16-digits}-{author}
+ */
+export function serializeTimestamp(ts: LamportTimestamp): string {
+  return `${ts.time.toString().padStart(16, '0')}-${ts.author}`
 }
 ```
 
@@ -222,10 +193,8 @@ export function areConcurrent(a: VectorClock, b: VectorClock): boolean {
 
 import type { ContentId } from '@xnet/core'
 import type { Change } from './change'
+import { compareLamportTimestamps } from './clock'
 
-/**
- * Result of validating a chain
- */
 export interface ChainValidationResult {
   valid: boolean
   error?: string
@@ -233,73 +202,24 @@ export interface ChainValidationResult {
   forkPoint?: ContentId
 }
 
-/**
- * Validate that changes form a valid hash chain
- */
-export function validateChain<T>(changes: Change<T>[]): ChainValidationResult {
-  if (changes.length === 0) {
-    return { valid: true }
-  }
-
-  // Sort by timestamp for validation
-  const sorted = [...changes].sort((a, b) => a.timestamp - b.timestamp)
-
-  // Build hash -> change map
-  const byHash = new Map<ContentId, Change<T>>()
-  for (const change of sorted) {
-    byHash.set(change.hash, change)
-  }
-
-  // Validate chain linkage
-  for (const change of sorted) {
-    if (change.parentHash !== null && !byHash.has(change.parentHash)) {
-      // Parent not in our set - could be valid if we don't have full history
-      // This is not an error, just incomplete data
-      continue
-    }
-  }
-
-  return { valid: true }
+export interface Fork<T = unknown> {
+  commonAncestor: ContentId
+  branch1: Change<T>[]
+  branch2: Change<T>[]
 }
 
-/**
- * Detect if there's a fork in the chain (two changes with same parent)
- */
-export function detectFork<T>(changes: Change<T>[]): {
-  hasFork: boolean
-  forkPoints: ContentId[]
-} {
-  const childrenByParent = new Map<ContentId | null, Change<T>[]>()
-
-  for (const change of changes) {
-    const children = childrenByParent.get(change.parentHash) || []
-    children.push(change)
-    childrenByParent.set(change.parentHash, children)
-  }
-
-  const forkPoints: ContentId[] = []
-  for (const [parent, children] of childrenByParent) {
-    if (children.length > 1 && parent !== null) {
-      forkPoints.push(parent)
-    }
-  }
-
-  return {
-    hasFork: forkPoints.length > 0,
-    forkPoints
-  }
-}
-
-/**
- * Get the latest change(s) in the chain (heads)
- */
-export function getChainHeads<T>(changes: Change<T>[]): Change<T>[] {
-  const allHashes = new Set(changes.map((change) => change.hash))
-  const parentHashes = new Set(changes.map((change) => change.parentHash).filter(Boolean))
-
-  // Heads are changes whose hash is not a parent of any other change
-  return changes.filter((change) => !parentHashes.has(change.hash))
-}
+export function validateChain<T>(changes: Change<T>[]): ChainValidationResult
+export function detectFork<T>(changes: Change<T>[]): { hasFork: boolean; forkPoints: ContentId[] }
+export function getChainHeads<T>(changes: Change<T>[]): Change<T>[]
+export function getChainRoots<T>(changes: Change<T>[]): Change<T>[]
+export function getAncestry<T>(change: Change<T>, allChanges: Change<T>[]): Change<T>[]
+export function findCommonAncestor<T>(
+  a: Change<T>,
+  b: Change<T>,
+  allChanges: Change<T>[]
+): Change<T> | null
+export function getForks<T>(changes: Change<T>[]): Fork<T>[]
+export function topologicalSort<T>(changes: Change<T>[]): Change<T>[]
 ```
 
 ### Sync Provider Interface
@@ -309,14 +229,8 @@ export function getChainHeads<T>(changes: Change<T>[]): Change<T>[] {
 
 import type { Change } from './change'
 
-/**
- * Status of sync connection
- */
 export type SyncStatus = 'disconnected' | 'connecting' | 'synced' | 'syncing' | 'error'
 
-/**
- * Events emitted by sync providers
- */
 export interface SyncProviderEvents<T> {
   'status-change': (status: SyncStatus) => void
   'change-received': (change: Change<T>) => void
@@ -326,315 +240,86 @@ export interface SyncProviderEvents<T> {
   error: (error: Error) => void
 }
 
-/**
- * Base interface for all sync providers
- */
 export interface SyncProvider<T = unknown> {
-  /** Current sync status */
   readonly status: SyncStatus
-
-  /** Connected peer IDs */
   readonly peers: string[]
-
-  /** Connect to sync network */
   connect(): Promise<void>
-
-  /** Disconnect from sync network */
   disconnect(): Promise<void>
-
-  /** Broadcast a change to peers */
   broadcast(change: Change<T>): Promise<void>
-
-  /** Request changes from a specific peer */
   requestChanges(peerId: string, since?: string): Promise<Change<T>[]>
-
-  /** Subscribe to events */
   on<E extends keyof SyncProviderEvents<T>>(event: E, listener: SyncProviderEvents<T>[E]): void
-
-  /** Unsubscribe from events */
   off<E extends keyof SyncProviderEvents<T>>(event: E, listener: SyncProviderEvents<T>[E]): void
 }
 ```
 
-### Package Configuration
-
-```json
-// packages/sync/package.json
-{
-  "name": "@xnet/sync",
-  "version": "0.0.1",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
-  },
-  "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*"
-  },
-  "devDependencies": {
-    "tsup": "^8.0.0",
-    "typescript": "^5.4.0",
-    "vitest": "^1.3.0"
-  }
-}
-```
-
-## Migration Plan
-
-### Phase 1: Create Package (Day 1-2)
-
-1. Create `packages/sync/` directory
-2. Implement core types (Change, VectorClock utils)
-3. Add comprehensive tests
-4. Build and verify
-
-### Phase 2: Update @xnet/core (Day 3)
-
-1. Re-export from @xnet/sync (backward compatibility)
-2. Deprecate old locations
-3. Verify all tests pass
+## Usage Example
 
 ```typescript
-// packages/core/src/index.ts
-
-// Re-export from @xnet/sync for backward compatibility
-export {
-  type Change,
-  type UnsignedChange,
+import {
+  createLamportClock,
+  tick,
+  receive,
+  createUnsignedChange,
   signChange,
-  verifyChange,
-  createVectorClock,
-  incrementVectorClock,
-  mergeVectorClocks,
-  compareVectorClocks
+  compareLamportTimestamps
 } from '@xnet/sync'
 
-// Mark old exports as deprecated
-/** @deprecated Use import from '@xnet/sync' instead */
-export type { SignedUpdate } from './updates'
-```
+// Create a clock for this author
+let clock = createLamportClock('did:key:z6MkAuthor...')
 
-### Phase 3: Update @xnet/data (Day 4)
+// Create a change
+let lamport: LamportTimestamp
+;[clock, lamport] = tick(clock)
 
-1. Import Change from @xnet/sync
-2. Define `YjsUpdate` payload type
-3. Update SignedUpdate to use Change<YjsUpdate>
-4. Verify tests pass
+const unsigned = createUnsignedChange({
+  id: 'change-1',
+  type: 'set-property',
+  payload: { property: 'title', value: 'Hello' },
+  parentHash: null,
+  authorDID: 'did:key:z6MkAuthor...',
+  lamport
+})
 
-```typescript
-// packages/data/src/updates.ts
+const signed = signChange(unsigned, signingKey)
 
-import { Change, signChange } from '@xnet/sync'
+// When receiving a change from another node
+clock = receive(clock, receivedChange.lamport.time)
 
-/** Yjs-specific update payload */
-export interface YjsUpdate {
-  /** Encoded Yjs update */
-  update: Uint8Array
-  /** Document ID */
-  documentId: string
-}
-
-/** SignedUpdate is now an alias for Change<YjsUpdate> */
-export type SignedUpdate = Change<YjsUpdate>
-
-// Rest of implementation uses signChange from @xnet/sync
-```
-
-### Phase 4: Update @xnet/records (Day 5)
-
-1. Import Change from @xnet/sync
-2. Define record change payload types
-3. Update RecordChange to use Change<RecordPayload>
-4. Verify tests pass
-
-```typescript
-// packages/records/src/sync/types.ts
-
-import { Change } from '@xnet/sync'
-
-/** Record change payloads */
-export type RecordPayload =
-  | CreateItemPayload
-  | UpdateItemPayload
-  | DeleteItemPayload
-  | CreateDatabasePayload
-  | UpdateDatabasePayload
-
-export interface CreateItemPayload {
-  type: 'create-item'
-  itemId: ItemId
-  databaseId: DatabaseId
-  properties: Record<PropertyId, PropertyValue>
-}
-
-// ... other payload types
-
-/** RecordChange is now an alias for Change<RecordPayload> */
-export type RecordChange = Change<RecordPayload>
+// Sort changes by Lamport timestamp
+changes.sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
 ```
 
 ## Tests
 
-```typescript
-// packages/sync/test/change.test.ts
+78 tests across 4 test files:
 
-import { describe, it, expect } from 'vitest'
-import { signChange, verifyChange } from '../src/change'
-import { generateKeyPair } from '@xnet/crypto'
+- **clock.test.ts**: Lamport clock operations, timestamp comparison, serialization
+- **change.test.ts**: Change creation, signing, verification
+- **chain.test.ts**: Chain validation, fork detection, topological sort
+- **provider.test.ts**: SyncProvider interface, BaseSyncProvider
 
-describe('Change', () => {
-  it('signs and verifies changes', async () => {
-    const keyPair = await generateKeyPair()
+Run tests:
 
-    const unsigned = {
-      id: 'change-1',
-      type: 'test',
-      payload: { data: 'hello' },
-      parentHash: null,
-      authorDID: 'did:key:z6Mk...' as DID,
-      timestamp: Date.now(),
-      vectorClock: { 'did:key:z6Mk...': 1 }
-    }
-
-    const signed = await signChange(unsigned, keyPair.privateKey)
-
-    expect(signed.hash).toMatch(/^cid:blake3:/)
-    expect(signed.signature).toBeInstanceOf(Uint8Array)
-
-    const valid = await verifyChange(signed, keyPair.publicKey)
-    expect(valid).toBe(true)
-  })
-
-  it('detects tampered changes', async () => {
-    const keyPair = await generateKeyPair()
-    const otherKeyPair = await generateKeyPair()
-
-    const unsigned = {
-      id: 'change-1',
-      type: 'test',
-      payload: { data: 'hello' },
-      parentHash: null,
-      authorDID: 'did:key:z6Mk...' as DID,
-      timestamp: Date.now(),
-      vectorClock: {}
-    }
-
-    const signed = await signChange(unsigned, keyPair.privateKey)
-
-    // Verify with wrong key should fail
-    const valid = await verifyChange(signed, otherKeyPair.publicKey)
-    expect(valid).toBe(false)
-  })
-})
+```bash
+pnpm --filter @xnet/sync test
 ```
 
+## Migration from Vector Clocks
+
+If you have existing code using vector clocks:
+
 ```typescript
-// packages/sync/test/clock.test.ts
+// OLD (vector clock)
+const clock: VectorClock = { [nodeA]: 3, [nodeB]: 2 }
+const newClock = incrementVectorClock(clock, nodeA)
 
-import { describe, it, expect } from 'vitest'
-import {
-  createVectorClock,
-  incrementVectorClock,
-  mergeVectorClocks,
-  compareVectorClocks,
-  happenedBefore
-} from '../src/clock'
-
-describe('VectorClock', () => {
-  const nodeA = 'did:key:nodeA' as DID
-  const nodeB = 'did:key:nodeB' as DID
-
-  it('creates initial clock', () => {
-    const clock = createVectorClock(nodeA)
-    expect(clock).toEqual({ [nodeA]: 1 })
-  })
-
-  it('increments clock', () => {
-    const clock = createVectorClock(nodeA)
-    const incremented = incrementVectorClock(clock, nodeA)
-    expect(incremented[nodeA]).toBe(2)
-  })
-
-  it('merges clocks', () => {
-    const clockA = { [nodeA]: 3, [nodeB]: 1 }
-    const clockB = { [nodeA]: 2, [nodeB]: 4 }
-    const merged = mergeVectorClocks(clockA, clockB)
-    expect(merged).toEqual({ [nodeA]: 3, [nodeB]: 4 })
-  })
-
-  it('compares clocks correctly', () => {
-    const earlier = { [nodeA]: 1 }
-    const later = { [nodeA]: 2 }
-    const concurrent = { [nodeB]: 1 }
-
-    expect(compareVectorClocks(earlier, later)).toBe(-1)
-    expect(compareVectorClocks(later, earlier)).toBe(1)
-    expect(compareVectorClocks(earlier, concurrent)).toBe(0)
-  })
-
-  it('detects happened-before relationship', () => {
-    const earlier = { [nodeA]: 1 }
-    const later = { [nodeA]: 1, [nodeB]: 1 }
-
-    expect(happenedBefore(earlier, later)).toBe(true)
-    expect(happenedBefore(later, earlier)).toBe(false)
-  })
-})
+// NEW (Lamport)
+let clock = createLamportClock(nodeA)
+let ts: LamportTimestamp
+;[clock, ts] = tick(clock) // ts.time = 1, ts.author = nodeA
 ```
 
-## Checklist
-
-### Day 1-2: Package Setup
-
-- [ ] Create `packages/sync/` directory structure
-- [ ] Implement `Change<T>` type
-- [ ] Implement `signChange` and `verifyChange`
-- [ ] Implement vector clock utilities
-- [ ] Implement chain utilities
-- [ ] Implement SyncProvider interface
-- [ ] Write comprehensive tests
-- [ ] Add package.json and tsconfig.json
-
-### Day 3: Update @xnet/core
-
-- [ ] Add @xnet/sync as dependency
-- [ ] Re-export types from @xnet/sync
-- [ ] Mark old exports as deprecated
-- [ ] Verify all @xnet/core tests pass
-- [ ] Update CLAUDE.md
-
-### Day 4: Update @xnet/data
-
-- [ ] Import from @xnet/sync
-- [ ] Define YjsUpdate payload type
-- [ ] Update SignedUpdate type
-- [ ] Verify all @xnet/data tests pass
-
-### Day 5: Update @xnet/records
-
-- [ ] Import from @xnet/sync
-- [ ] Define RecordPayload types
-- [ ] Update RecordChange type
-- [ ] Verify all @xnet/records tests pass
-
-### Day 6-7: Documentation & Cleanup
-
-- [ ] Update package READMEs
-- [ ] Update CLAUDE.md with new package
-- [ ] Remove deprecated code (if safe)
-- [ ] Final test run across all packages
+The key difference is that Lamport clocks are **per-author** and produce a **total order**, while vector clocks are **shared** and produce a **partial order**.
 
 ---
 

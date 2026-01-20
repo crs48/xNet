@@ -1,234 +1,235 @@
 import { describe, it, expect } from 'vitest'
-import type { DID, VectorClock } from '@xnet/core'
+import type { DID } from '@xnet/core'
 import {
-  createVectorClock,
-  incrementVectorClock,
-  mergeVectorClocks,
-  compareVectorClocks,
-  happenedBefore,
-  happenedAfter,
-  areConcurrent,
-  areEqual,
-  isValidProgression,
-  getMaxTime,
-  getNodes
+  createLamportClock,
+  tick,
+  receive,
+  compareLamportTimestamps,
+  isBefore,
+  isAfter,
+  serializeTimestamp,
+  parseTimestamp,
+  maxTime
 } from './clock'
+import type { LamportTimestamp } from './clock'
 
-describe('VectorClock', () => {
-  const nodeA = 'did:key:z6MkNodeA' as DID
-  const nodeB = 'did:key:z6MkNodeB' as DID
-  const nodeC = 'did:key:z6MkNodeC' as DID
+describe('LamportClock', () => {
+  const authorA = 'did:key:z6MkAuthorA' as DID
+  const authorB = 'did:key:z6MkAuthorB' as DID
 
-  describe('createVectorClock', () => {
-    it('creates a clock with initial value of 1', () => {
-      const clock = createVectorClock(nodeA)
-      expect(clock).toEqual({ [nodeA]: 1 })
+  describe('createLamportClock', () => {
+    it('creates a clock starting at time 0', () => {
+      const clock = createLamportClock(authorA)
+      expect(clock.time).toBe(0)
+      expect(clock.author).toBe(authorA)
     })
   })
 
-  describe('incrementVectorClock', () => {
-    it('increments existing node', () => {
-      const clock = { [nodeA]: 5 }
-      const incremented = incrementVectorClock(clock, nodeA)
-      expect(incremented[nodeA]).toBe(6)
+  describe('tick', () => {
+    it('increments the clock and returns a timestamp', () => {
+      const clock = createLamportClock(authorA)
+      const [newClock, ts] = tick(clock)
+
+      expect(newClock.time).toBe(1)
+      expect(ts.time).toBe(1)
+      expect(ts.author).toBe(authorA)
     })
 
-    it('initializes and increments new node', () => {
-      const clock = { [nodeA]: 3 }
-      const incremented = incrementVectorClock(clock, nodeB)
-      expect(incremented).toEqual({ [nodeA]: 3, [nodeB]: 1 })
+    it('does not mutate the original clock', () => {
+      const clock = createLamportClock(authorA)
+      tick(clock)
+      expect(clock.time).toBe(0)
     })
 
-    it('does not mutate original clock', () => {
-      const clock = { [nodeA]: 1 }
-      incrementVectorClock(clock, nodeA)
-      expect(clock[nodeA]).toBe(1)
-    })
-  })
-
-  describe('mergeVectorClocks', () => {
-    it('takes max of each entry', () => {
-      const clockA: VectorClock = { [nodeA]: 3, [nodeB]: 1 }
-      const clockB: VectorClock = { [nodeA]: 2, [nodeB]: 4 }
-      const merged = mergeVectorClocks(clockA, clockB)
-      expect(merged).toEqual({ [nodeA]: 3, [nodeB]: 4 })
-    })
-
-    it('includes entries from both clocks', () => {
-      const clockA: VectorClock = { [nodeA]: 1 }
-      const clockB: VectorClock = { [nodeB]: 2 }
-      const merged = mergeVectorClocks(clockA, clockB)
-      expect(merged).toEqual({ [nodeA]: 1, [nodeB]: 2 })
-    })
-
-    it('handles empty clocks', () => {
-      const clockA: VectorClock = { [nodeA]: 1 }
-      const empty: VectorClock = {}
-      expect(mergeVectorClocks(clockA, empty)).toEqual({ [nodeA]: 1 })
-      expect(mergeVectorClocks(empty, clockA)).toEqual({ [nodeA]: 1 })
+    it('increments sequentially', () => {
+      let clock = createLamportClock(authorA)
+      let ts: LamportTimestamp
+      ;[clock, ts] = tick(clock)
+      expect(ts.time).toBe(1)
+      ;[clock, ts] = tick(clock)
+      expect(ts.time).toBe(2)
+      ;[clock, ts] = tick(clock)
+      expect(ts.time).toBe(3)
     })
   })
 
-  describe('compareVectorClocks', () => {
-    it('returns -1 when a < b (a happened before b)', () => {
-      const earlier: VectorClock = { [nodeA]: 1 }
-      const later: VectorClock = { [nodeA]: 2 }
-      expect(compareVectorClocks(earlier, later)).toBe(-1)
+  describe('receive', () => {
+    it('updates clock to max of local and received time', () => {
+      const clock = createLamportClock(authorA)
+      const updated = receive(clock, 10)
+
+      expect(updated.time).toBe(10)
+      expect(updated.author).toBe(authorA)
     })
 
-    it('returns 1 when a > b (a happened after b)', () => {
-      const earlier: VectorClock = { [nodeA]: 1 }
-      const later: VectorClock = { [nodeA]: 2 }
-      expect(compareVectorClocks(later, earlier)).toBe(1)
+    it('keeps local time if greater', () => {
+      let clock = createLamportClock(authorA)
+      ;[clock] = tick(clock) // time = 1
+      ;[clock] = tick(clock) // time = 2
+      ;[clock] = tick(clock) // time = 3
+
+      const updated = receive(clock, 2)
+      expect(updated.time).toBe(3)
     })
 
-    it('returns 0 for concurrent clocks', () => {
-      const clockA: VectorClock = { [nodeA]: 1 }
-      const clockB: VectorClock = { [nodeB]: 1 }
-      expect(compareVectorClocks(clockA, clockB)).toBe(0)
-    })
-
-    it('returns 0 for equal clocks', () => {
-      const clock: VectorClock = { [nodeA]: 1, [nodeB]: 2 }
-      expect(compareVectorClocks(clock, { ...clock })).toBe(0)
-    })
-
-    it('handles complex concurrent case', () => {
-      // A knows about nodeA:2, nodeB:1
-      // B knows about nodeA:1, nodeB:2
-      // These are concurrent - neither happened before the other
-      const clockA: VectorClock = { [nodeA]: 2, [nodeB]: 1 }
-      const clockB: VectorClock = { [nodeA]: 1, [nodeB]: 2 }
-      expect(compareVectorClocks(clockA, clockB)).toBe(0)
+    it('does not mutate the original clock', () => {
+      const clock = createLamportClock(authorA)
+      receive(clock, 10)
+      expect(clock.time).toBe(0)
     })
   })
 
-  describe('happenedBefore', () => {
+  describe('compareLamportTimestamps', () => {
+    it('returns -1 when a.time < b.time', () => {
+      const a: LamportTimestamp = { time: 1, author: authorA }
+      const b: LamportTimestamp = { time: 2, author: authorA }
+      expect(compareLamportTimestamps(a, b)).toBe(-1)
+    })
+
+    it('returns 1 when a.time > b.time', () => {
+      const a: LamportTimestamp = { time: 3, author: authorA }
+      const b: LamportTimestamp = { time: 2, author: authorA }
+      expect(compareLamportTimestamps(a, b)).toBe(1)
+    })
+
+    it('uses author as tie-breaker when times are equal', () => {
+      const a: LamportTimestamp = { time: 5, author: authorA }
+      const b: LamportTimestamp = { time: 5, author: authorB }
+
+      // authorA < authorB lexicographically
+      expect(compareLamportTimestamps(a, b)).toBe(-1)
+      expect(compareLamportTimestamps(b, a)).toBe(1)
+    })
+
+    it('returns 0 for identical timestamps', () => {
+      const a: LamportTimestamp = { time: 5, author: authorA }
+      const b: LamportTimestamp = { time: 5, author: authorA }
+      expect(compareLamportTimestamps(a, b)).toBe(0)
+    })
+  })
+
+  describe('isBefore', () => {
     it('returns true when a < b', () => {
-      const earlier: VectorClock = { [nodeA]: 1 }
-      const later: VectorClock = { [nodeA]: 1, [nodeB]: 1 }
-      expect(happenedBefore(earlier, later)).toBe(true)
+      const a: LamportTimestamp = { time: 1, author: authorA }
+      const b: LamportTimestamp = { time: 2, author: authorA }
+      expect(isBefore(a, b)).toBe(true)
     })
 
-    it('returns false when a > b', () => {
-      const earlier: VectorClock = { [nodeA]: 1 }
-      const later: VectorClock = { [nodeA]: 2 }
-      expect(happenedBefore(later, earlier)).toBe(false)
-    })
-
-    it('returns false for concurrent', () => {
-      const clockA: VectorClock = { [nodeA]: 1 }
-      const clockB: VectorClock = { [nodeB]: 1 }
-      expect(happenedBefore(clockA, clockB)).toBe(false)
+    it('returns false when a >= b', () => {
+      const a: LamportTimestamp = { time: 2, author: authorA }
+      const b: LamportTimestamp = { time: 1, author: authorA }
+      expect(isBefore(a, b)).toBe(false)
     })
   })
 
-  describe('happenedAfter', () => {
+  describe('isAfter', () => {
     it('returns true when a > b', () => {
-      const earlier: VectorClock = { [nodeA]: 1 }
-      const later: VectorClock = { [nodeA]: 2 }
-      expect(happenedAfter(later, earlier)).toBe(true)
+      const a: LamportTimestamp = { time: 3, author: authorA }
+      const b: LamportTimestamp = { time: 2, author: authorA }
+      expect(isAfter(a, b)).toBe(true)
     })
 
-    it('returns false when a < b', () => {
-      const earlier: VectorClock = { [nodeA]: 1 }
-      const later: VectorClock = { [nodeA]: 2 }
-      expect(happenedAfter(earlier, later)).toBe(false)
-    })
-  })
-
-  describe('areConcurrent', () => {
-    it('returns true for concurrent clocks', () => {
-      const clockA: VectorClock = { [nodeA]: 2, [nodeB]: 1 }
-      const clockB: VectorClock = { [nodeA]: 1, [nodeB]: 2 }
-      expect(areConcurrent(clockA, clockB)).toBe(true)
-    })
-
-    it('returns false for causally related clocks', () => {
-      const earlier: VectorClock = { [nodeA]: 1 }
-      const later: VectorClock = { [nodeA]: 2 }
-      expect(areConcurrent(earlier, later)).toBe(false)
-    })
-
-    it('returns false for equal clocks', () => {
-      const clock: VectorClock = { [nodeA]: 1 }
-      expect(areConcurrent(clock, { ...clock })).toBe(false)
+    it('returns false when a <= b', () => {
+      const a: LamportTimestamp = { time: 1, author: authorA }
+      const b: LamportTimestamp = { time: 2, author: authorA }
+      expect(isAfter(a, b)).toBe(false)
     })
   })
 
-  describe('areEqual', () => {
-    it('returns true for equal clocks', () => {
-      const clock: VectorClock = { [nodeA]: 1, [nodeB]: 2 }
-      expect(areEqual(clock, { [nodeA]: 1, [nodeB]: 2 })).toBe(true)
+  describe('serializeTimestamp', () => {
+    it('serializes with zero-padded time', () => {
+      const ts: LamportTimestamp = { time: 42, author: authorA }
+      const serialized = serializeTimestamp(ts)
+      expect(serialized).toBe(`0000000000000042-${authorA}`)
     })
 
-    it('returns false for different clocks', () => {
-      const clockA: VectorClock = { [nodeA]: 1 }
-      const clockB: VectorClock = { [nodeA]: 2 }
-      expect(areEqual(clockA, clockB)).toBe(false)
-    })
+    it('produces lexicographically sortable strings', () => {
+      const ts1: LamportTimestamp = { time: 1, author: authorA }
+      const ts2: LamportTimestamp = { time: 10, author: authorA }
+      const ts3: LamportTimestamp = { time: 100, author: authorA }
 
-    it('handles missing keys as 0', () => {
-      const clockA: VectorClock = { [nodeA]: 0 }
-      const clockB: VectorClock = {}
-      expect(areEqual(clockA, clockB)).toBe(true)
-    })
-  })
+      const s1 = serializeTimestamp(ts1)
+      const s2 = serializeTimestamp(ts2)
+      const s3 = serializeTimestamp(ts3)
 
-  describe('isValidProgression', () => {
-    it('returns true for valid progression', () => {
-      const prev: VectorClock = { [nodeA]: 1 }
-      const next: VectorClock = { [nodeA]: 2 }
-      expect(isValidProgression(prev, next, nodeA)).toBe(true)
-    })
-
-    it('returns false if author clock increases by more than 1', () => {
-      const prev: VectorClock = { [nodeA]: 1 }
-      const next: VectorClock = { [nodeA]: 3 }
-      expect(isValidProgression(prev, next, nodeA)).toBe(false)
-    })
-
-    it('returns false if author clock stays same', () => {
-      const prev: VectorClock = { [nodeA]: 1 }
-      const next: VectorClock = { [nodeA]: 1 }
-      expect(isValidProgression(prev, next, nodeA)).toBe(false)
-    })
-
-    it('returns false if other clock decreases', () => {
-      const prev: VectorClock = { [nodeA]: 1, [nodeB]: 3 }
-      const next: VectorClock = { [nodeA]: 2, [nodeB]: 2 }
-      expect(isValidProgression(prev, next, nodeA)).toBe(false)
-    })
-
-    it('allows other clocks to increase (from merge)', () => {
-      const prev: VectorClock = { [nodeA]: 1, [nodeB]: 1 }
-      const next: VectorClock = { [nodeA]: 2, [nodeB]: 5 }
-      expect(isValidProgression(prev, next, nodeA)).toBe(true)
+      expect(s1 < s2).toBe(true)
+      expect(s2 < s3).toBe(true)
     })
   })
 
-  describe('getMaxTime', () => {
-    it('returns max value across all nodes', () => {
-      const clock: VectorClock = { [nodeA]: 3, [nodeB]: 7, [nodeC]: 2 }
-      expect(getMaxTime(clock)).toBe(7)
+  describe('parseTimestamp', () => {
+    it('parses a serialized timestamp', () => {
+      const original: LamportTimestamp = { time: 12345, author: authorA }
+      const serialized = serializeTimestamp(original)
+      const parsed = parseTimestamp(serialized)
+
+      expect(parsed.time).toBe(12345)
+      expect(parsed.author).toBe(authorA)
     })
 
-    it('returns 0 for empty clock', () => {
-      expect(getMaxTime({})).toBe(0)
+    it('throws on invalid format', () => {
+      expect(() => parseTimestamp('invalid')).toThrow()
+    })
+
+    it('roundtrips correctly', () => {
+      const ts: LamportTimestamp = { time: 999999, author: authorB }
+      expect(parseTimestamp(serializeTimestamp(ts))).toEqual(ts)
     })
   })
 
-  describe('getNodes', () => {
-    it('returns all node IDs in the clock', () => {
-      const clock: VectorClock = { [nodeA]: 1, [nodeB]: 2 }
-      const nodes = getNodes(clock)
-      expect(nodes).toHaveLength(2)
-      expect(nodes).toContain(nodeA)
-      expect(nodes).toContain(nodeB)
+  describe('maxTime', () => {
+    it('returns the maximum time from timestamps', () => {
+      const timestamps: LamportTimestamp[] = [
+        { time: 5, author: authorA },
+        { time: 10, author: authorB },
+        { time: 3, author: authorA }
+      ]
+      expect(maxTime(timestamps)).toBe(10)
     })
 
-    it('returns empty array for empty clock', () => {
-      expect(getNodes({})).toEqual([])
+    it('returns 0 for empty array', () => {
+      expect(maxTime([])).toBe(0)
+    })
+  })
+
+  describe('distributed scenario', () => {
+    it('maintains total ordering across two authors', () => {
+      // Author A creates some changes
+      let clockA = createLamportClock(authorA)
+      let tsA1: LamportTimestamp
+      let tsA2: LamportTimestamp
+      ;[clockA, tsA1] = tick(clockA) // time=1
+      ;[clockA, tsA2] = tick(clockA) // time=2
+
+      // Author B receives A's changes and creates their own
+      let clockB = createLamportClock(authorB)
+      clockB = receive(clockB, tsA2.time) // sync to A's time
+      let tsB1: LamportTimestamp
+      ;[clockB, tsB1] = tick(clockB) // time=3 (after A's changes)
+
+      // All timestamps are totally ordered
+      expect(isBefore(tsA1, tsA2)).toBe(true)
+      expect(isBefore(tsA2, tsB1)).toBe(true)
+      expect(isBefore(tsA1, tsB1)).toBe(true)
+    })
+
+    it('handles concurrent changes with deterministic tie-breaking', () => {
+      // Both authors create changes at the "same" logical time
+      // (they haven't synced yet)
+      let clockA = createLamportClock(authorA)
+      let clockB = createLamportClock(authorB)
+
+      let tsA: LamportTimestamp
+      let tsB: LamportTimestamp
+      ;[clockA, tsA] = tick(clockA) // time=1
+      ;[clockB, tsB] = tick(clockB) // time=1
+
+      // Same time, but author provides deterministic ordering
+      expect(tsA.time).toBe(tsB.time)
+
+      // authorA < authorB lexicographically, so tsA < tsB
+      expect(isBefore(tsA, tsB)).toBe(true)
+      expect(isAfter(tsB, tsA)).toBe(true)
     })
   })
 })
