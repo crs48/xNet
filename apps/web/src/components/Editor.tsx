@@ -1,35 +1,23 @@
 /**
  * Document editor component
+ *
+ * Uses the shared @xnet/editor package for rich text editing.
  */
-import { useEditor } from '@xnet/react'
+import { RichTextEditor } from '@xnet/editor/react'
 import type { XDocument } from '@xnet/sdk'
 
 interface Props {
   document: XDocument
+  onNavigate?: (docId: string) => void
 }
 
-export function Editor({ document }: Props) {
-  const {
-    content,
-    handleChange,
-    handleSelect,
-    handleFocus,
-    handleBlur
-  } = useEditor({
-    ydoc: document.ydoc,
-    field: 'content',
-    placeholder: 'Start typing...'
-  })
-
+export function Editor({ document, onNavigate }: Props) {
   return (
-    <textarea
-      className="content-editor"
-      value={content}
-      onChange={handleChange}
-      onSelect={handleSelect}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      placeholder="Start typing..."
+    <RichTextEditor
+      ydoc={document.ydoc}
+      field="content"
+      placeholder="Start writing..."
+      onNavigate={onNavigate}
     />
   )
 }

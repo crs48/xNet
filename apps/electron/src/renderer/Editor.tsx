@@ -2,7 +2,7 @@
  * Editor component using shared @xnet/editor
  */
 import React, { useEffect, useState } from 'react'
-import { createEditor, type Editor as EditorCore } from '@xnet/editor'
+import { RichTextEditor } from '@xnet/editor/react'
 import * as Y from 'yjs'
 
 interface Props {
@@ -11,17 +11,19 @@ interface Props {
 }
 
 export function Editor({ docId, style }: Props) {
-  const [editor, setEditor] = useState<EditorCore | null>(null)
-  const [content, setContent] = useState('')
   const [ydoc, setYdoc] = useState<Y.Doc | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load document and create editor
+  // Load document
   useEffect(() => {
     let mounted = true
-    let currentEditor: EditorCore | null = null
 
     async function loadDocument() {
       try {
+        setLoading(true)
+        setError(null)
+
         const data = await window.xnetStorage.getDocument(docId)
         if (!mounted) return
 
@@ -32,28 +34,32 @@ export function Editor({ docId, style }: Props) {
         if (data?.content && data.content.length > 0) {
           const state = new Uint8Array(data.content)
           Y.applyUpdate(doc, state)
-        } else {
-          // Initialize content field for new documents
-          doc.getText('content')
         }
 
         setYdoc(doc)
+        setLoading(false)
 
-        // Create editor instance
-        currentEditor = createEditor({
-          ydoc: doc,
-          field: 'content',
-          onChange: (newContent) => {
-            if (mounted) {
-              setContent(newContent)
-            }
-          }
+        // Set up auto-save on changes
+        doc.on('update', async () => {
+          if (!mounted) return
+          const state = Y.encodeStateAsUpdate(doc)
+          await window.xnetStorage.saveDocument(docId, {
+            id: docId,
+            content: Array.from(state),
+            metadata: {
+              created: Date.now(),
+              updated: Date.now(),
+              type: 'page'
+            },
+            version: 1
+          })
         })
-
-        setEditor(currentEditor)
-        setContent(currentEditor.getContent())
       } catch (err) {
         console.error('Failed to load document:', err)
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load document')
+          setLoading(false)
+        }
       }
     }
 
@@ -61,27 +67,32 @@ export function Editor({ docId, style }: Props) {
 
     return () => {
       mounted = false
-      currentEditor?.destroy()
+      if (ydoc) {
+        ydoc.destroy()
+      }
     }
   }, [docId])
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    if (!editor) return
+  if (loading) {
+    return <div style={style}>Loading...</div>
+  }
 
-    const newValue = e.target.value
-    const oldValue = editor.getContent()
+  if (error) {
+    return <div style={style}>Error: {error}</div>
+  }
 
-    if (newValue !== oldValue) {
-      editor.applyDelta(oldValue, newValue, e.target.selectionStart ?? 0)
-    }
+  if (!ydoc) {
+    return <div style={style}>No document</div>
   }
 
   return (
-    <textarea
-      style={style}
-      value={content}
-      onChange={handleChange}
-      placeholder="Start typing..."
-    />
+    <div style={style}>
+      <RichTextEditor
+        ydoc={ydoc}
+        field="content"
+        placeholder="Start typing..."
+        showToolbar={true}
+      />
+    </div>
   )
 }

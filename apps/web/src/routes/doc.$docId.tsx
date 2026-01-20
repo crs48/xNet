@@ -2,9 +2,10 @@
  * Document page - editor
  */
 import { useEffect, useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useDocument, usePresence, useXNet } from '@xnet/react'
 import { Editor } from '../components/Editor'
+import { BacklinksPanel } from '../components/BacklinksPanel'
 
 export const Route = createFileRoute('/doc/$docId')({
   component: DocumentPage
@@ -12,10 +13,16 @@ export const Route = createFileRoute('/doc/$docId')({
 
 function DocumentPage() {
   const { docId } = Route.useParams()
+  const navigate = useNavigate()
   const { store } = useXNet()
   const { data: document, loading, error, update } = useDocument(docId)
   const { remotePresences } = usePresence(docId)
   const [creating, setCreating] = useState(false)
+
+  // Handle wikilink navigation
+  const handleNavigate = (targetDocId: string) => {
+    navigate({ to: '/doc/$docId', params: { docId: targetDocId } })
+  }
 
   // Auto-create document if it doesn't exist
   useEffect(() => {
@@ -68,7 +75,9 @@ function DocumentPage() {
         )}
       </div>
 
-      <Editor document={document} />
+      <Editor document={document} onNavigate={handleNavigate} />
+
+      <BacklinksPanel docId={docId} />
     </div>
   )
 }
