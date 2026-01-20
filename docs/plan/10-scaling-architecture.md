@@ -13,9 +13,11 @@
 This document covers how to scale xNotes from personal use to global infrastructure:
 
 - **Pure P2P** - Works with just user devices, no servers
+- **P2P Mesh Scaling** - GossipSub, super-peers, and circuit relays for unlimited scale
 - **Optional Tiers** - Add infrastructure only when needed
 - **Global Schema Registry** - Namespaced attributes across the network
-- **Infinite Canvas** - Virtualized rendering with auto-layout
+- **Unified Graph & Canvas** - Procedural edges, user edges, and virtualized rendering
+- **Edge Performance** - Hybrid storage strategies, indexing, and optimization
 - **Backup & Recovery** - Multi-layer redundancy strategies
 
 ---
@@ -92,6 +94,250 @@ graph TB
 | Compliance/Audit | Manual export | Manual | Built-in | Built-in |
 | Global search | Local only | Workspace | Company | Global |
 | AI embeddings | On-device | On-device | Company models | Global models |
+
+---
+
+## P2P Mesh Scaling
+
+Full mesh P2P topologies hit practical limits at 4-6 direct connections. This section explains why and how xNet scales beyond this without central servers.
+
+### Why the 4-6 Connection Limit?
+
+This is a **practical limit, not a hard technical limit**. The constraints arise from:
+
+| Factor | Impact | Details |
+|--------|--------|---------|
+| **Bandwidth** | O(N) upload | Each peer uploads to N-1 others. 5 Mbps upstream ÷ 1 Mbps/peer = 5 connections max |
+| **CPU** | O(N) processing | Each WebRTC connection requires encryption, DTLS, SCTP overhead |
+| **Memory** | O(N) buffers | Connection state, send/receive buffers per peer |
+| **Network** | O(N²) total | Full mesh of 10 peers = 45 connections; 20 peers = 190 connections |
+
+**Yjs/y-webrtc specifics:**
+- No hard limit in the library
+- Creates full mesh between all peers
+- Practical limit: 4-8 users for real-time collaboration
+- Beyond 8: Performance degrades rapidly
+
+### Solution: GossipSub + Super-Peers
+
+Instead of full mesh, xNet uses a **partial mesh with gossip propagation**.
+
+```mermaid
+graph TB
+    subgraph "GossipSub Mesh (6-12 peers each)"
+        SP1[Super-peer A<br/>Desktop, public IP]
+        SP2[Super-peer B<br/>Server, high bandwidth]
+        SP3[Super-peer C<br/>Desktop, public IP]
+        SP4[Super-peer D<br/>Always-on device]
+
+        SP1 <-->|GossipSub| SP2
+        SP2 <-->|GossipSub| SP3
+        SP3 <-->|GossipSub| SP4
+        SP4 <-->|GossipSub| SP1
+        SP1 <-->|GossipSub| SP3
+        SP2 <-->|GossipSub| SP4
+    end
+
+    subgraph "Regular Peers (1-2 connections each)"
+        P1[Phone]
+        P2[Laptop]
+        P3[Browser]
+        P4[Tablet]
+        P5[Phone]
+        P6[Laptop]
+    end
+
+    P1 --> SP1
+    P2 --> SP1
+    P3 --> SP2
+    P4 --> SP2
+    P5 --> SP3
+    P6 --> SP4
+
+    style SP1 fill:#fff3e0
+    style SP2 fill:#fff3e0
+    style SP3 fill:#fff3e0
+    style SP4 fill:#fff3e0
+    style P1 fill:#e3f2fd
+    style P2 fill:#e3f2fd
+    style P3 fill:#e3f2fd
+    style P4 fill:#e3f2fd
+    style P5 fill:#e3f2fd
+    style P6 fill:#e3f2fd
+```
+
+### How GossipSub Works
+
+libp2p's GossipSub maintains a partial mesh with intelligent message propagation:
+
+```typescript
+interface GossipSubConfig {
+  // Mesh parameters (per topic)
+  D: 6;          // Target mesh degree (connections per topic)
+  D_low: 4;      // Minimum mesh peers before grafting
+  D_high: 12;    // Maximum mesh peers before pruning
+  D_lazy: 6;     // Gossip-only peers (metadata, not full messages)
+
+  // Heartbeat
+  heartbeatInterval: 1000;  // ms - check mesh health
+
+  // Message propagation
+  mcacheLength: 5;          // History windows to remember
+  mcacheGossip: 3;          // History windows to gossip about
+}
+
+// Message flow:
+// 1. Peer A publishes message to topic
+// 2. A sends FULL message to D mesh peers (6 peers)
+// 3. A sends IHAVE (message ID only) to D_lazy peers (6 more)
+// 4. Peers receiving IHAVE can request full message via IWANT
+// 5. Each mesh peer repeats, creating exponential propagation
+```
+
+**Key insight**: Message reaches all peers in O(log N) hops, not O(N) connections.
+
+### Super-Peer Selection
+
+Super-peers are regular peers that volunteer to handle more connections. **No central authority assigns them.**
+
+```typescript
+interface PeerCapabilities {
+  // Self-reported capabilities
+  bandwidth: {
+    upload: number;      // Mbps
+    download: number;
+  };
+  availability: {
+    uptime: number;      // Percentage online (rolling 7 days)
+    publicIP: boolean;   // Can accept incoming connections
+    natType: 'none' | 'full-cone' | 'symmetric';
+  };
+  resources: {
+    canRelay: boolean;   // Willing to relay for others
+    maxRelayConns: number;
+  };
+}
+
+// Super-peer eligibility (all must be true):
+const canBeSuperPeer = (peer: PeerCapabilities): boolean =>
+  peer.bandwidth.upload >= 10 &&           // 10+ Mbps upload
+  peer.availability.uptime >= 0.8 &&       // 80%+ uptime
+  peer.availability.publicIP &&            // Reachable directly
+  peer.availability.natType !== 'symmetric' && // Can hole-punch
+  peer.resources.canRelay;                 // Willing to help
+
+// Selection methods (decentralized):
+type SuperPeerSelection =
+  | 'capability-based'    // Peers with best scores volunteer
+  | 'dht-proximity'       // Peers closest to topic hash
+  | 'stake-weighted'      // Peers with tokens locked (optional)
+  | 'reputation'          // Peers with good history
+```
+
+### Circuit Relay (P2P Hubs)
+
+When direct connection fails (symmetric NAT, firewalls), peers connect via relay:
+
+```typescript
+// Relay is just another peer - no central server
+// Any peer can be a relay if it has:
+// 1. Public IP or full-cone NAT
+// 2. Spare bandwidth
+// 3. Willingness to relay
+
+// Example relay address:
+// /p2p/QmRelayPeer.../p2p-circuit/p2p/QmTargetPeer...
+//      ↑ relay node              ↑ destination through relay
+
+class CircuitRelay {
+  // Reserve a slot on a relay
+  async reserveSlot(relayPeerId: string): Promise<Reservation> {
+    // Relay grants time-limited slot (e.g., 1 hour)
+    // Renewable while in use
+  }
+
+  // Advertise our relay address to DHT
+  async advertiseRelayedAddress(reservation: Reservation): Promise<void> {
+    const relayedAddr = `/p2p/${reservation.relayId}/p2p-circuit/p2p/${this.peerId}`;
+    await this.dht.provide(this.peerId, relayedAddr);
+  }
+}
+```
+
+**NAT traversal success rates:**
+
+| NAT Type | Direct Connection | With Relay |
+|----------|-------------------|------------|
+| None (public IP) | 100% | N/A |
+| Full-cone NAT | ~90% | 100% |
+| Restricted NAT | ~70% | 100% |
+| Symmetric NAT | ~10% | 100% |
+
+### Scaling Recommendations
+
+| Scenario | Topology | Max Peers | Notes |
+|----------|----------|-----------|-------|
+| **Personal devices** | Full mesh | 3-5 | Your own phone, laptop, desktop |
+| **Small team** | Full mesh | 6-8 | Real-time collaboration |
+| **Large team** | Super-peer | 20-50 | 2-3 super-peers, others connect to them |
+| **Organization** | GossipSub | 100-1000 | Tiered topology, workspace hubs |
+| **Global** | GossipSub + DHT | Unlimited | Full libp2p stack |
+
+### Yjs Integration
+
+For Yjs, the recommended approach is a **hybrid** where super-peers bridge WebSocket and libp2p:
+
+```typescript
+// Super-peer bridges y-websocket clients to GossipSub
+class YjsSuperPeer {
+  private ydocs = new Map<string, Y.Doc>();
+  private wsClients = new Map<string, WebSocket[]>();
+  private libp2p: Libp2p;
+
+  constructor() {
+    // WebSocket server for regular peers
+    this.wss = new WebSocketServer({ port: 4444 });
+    this.wss.on('connection', this.handleWsClient);
+
+    // libp2p for super-peer mesh
+    this.libp2p = await createLibp2p({
+      services: {
+        pubsub: gossipsub(),
+      },
+    });
+  }
+
+  // Bridge: WebSocket → GossipSub
+  private handleYjsUpdate = (docId: string, update: Uint8Array) => {
+    // Broadcast to local WebSocket clients
+    for (const ws of this.wsClients.get(docId) ?? []) {
+      ws.send(update);
+    }
+
+    // Broadcast to GossipSub mesh
+    this.libp2p.services.pubsub.publish(
+      `yjs/${docId}`,
+      update
+    );
+  };
+
+  // Bridge: GossipSub → WebSocket
+  private handleGossipMessage = (msg: Message) => {
+    const docId = msg.topic.replace('yjs/', '');
+    const update = msg.data;
+
+    // Apply to local doc
+    Y.applyUpdate(this.ydocs.get(docId)!, update, 'gossipsub');
+
+    // Forward to WebSocket clients
+    for (const ws of this.wsClients.get(docId) ?? []) {
+      ws.send(update);
+    }
+  };
+}
+```
+
+**Result**: Regular peers (phones, browsers) connect to 1-2 super-peers via WebSocket. Super-peers form GossipSub mesh. Unlimited scale, no central servers.
 
 ---
 
@@ -1534,6 +1780,231 @@ function EditableNode({ node, onMove, onEdit }: EditableNodeProps) {
 | Layout computation | <500ms for 1000 nodes | ELK with Web Workers |
 | Content edit latency | <50ms | DOM overlay for focused node |
 | Memory usage | <500MB for 10k nodes | LOD + lazy loading |
+
+### Edge Performance & Storage
+
+Block-level granularity creates 10-100x more edges than document-level. This section covers performance implications and mitigation strategies.
+
+#### Storage Overhead
+
+| Granularity | Example | Edges | Storage | Memory |
+|-------------|---------|-------|---------|--------|
+| **Document-level** | 1,000 docs × 10 links | 10,000 | ~640 KB | ~50 MB |
+| **Block-level** | 1,000 docs × 50 blocks × 2 links | 100,000 | ~6.4 MB | ~200 MB |
+| **Cell-level** | + database cells | 500,000+ | ~32 MB | ~500 MB |
+
+**Per-edge overhead:**
+- Neo4j: 33 bytes/edge on disk, 9 bytes/node
+- SQLite with indexes: ~64 bytes/edge
+- In-memory adjacency list: ~100 bytes/edge (with metadata)
+
+#### Query Performance
+
+| Operation | With Index | Without Index | Notes |
+|-----------|------------|---------------|-------|
+| Find edges for 1 node | <1ms (cached), 5-50ms (disk) | 100-500ms | B-tree essential |
+| 1-hop traversal | 1-30ms | 50-200ms | Fast |
+| 2-hop traversal | 15-150ms | 200-1000ms | Graph DB advantage |
+| 3-hop traversal | 150ms-3s | 1-10s | Combinatorial explosion |
+| 4+ hops | Often impractical | Very slow | Use background job |
+
+**Real-world benchmarks:**
+- Adding index to 120k edges: 150ms → 6ms (25x improvement)
+- Branching factor matters more than edge count
+- Supernodes (10k+ edges) are performance killers
+
+#### Comparison with Existing Systems
+
+| System | Database | Degrades At | Severe Issues |
+|--------|----------|-------------|---------------|
+| **Notion** | PostgreSQL + Redis | 1,000+ blocks/page | 10k+ DB entries |
+| **Roam** | Datomic | 5k-10k blocks | 100k+ (users split graphs) |
+| **Obsidian** | In-memory index | 25k-30k notes (graph view) | Core app stays fast |
+| **LogSeq** | DataScript → SQLite | Similar to Obsidian | Slow startup |
+
+**Key insight**: Graph **rendering** is the bottleneck, not storage or querying. All systems can query fast with proper indexes, but visualizing thousands of nodes in a UI is where they struggle.
+
+#### Hybrid Edge Strategy
+
+xNotes uses different strategies for different edge types:
+
+```typescript
+interface EdgeStorageStrategy {
+  // User edges: always persisted (they're user data)
+  userEdges: {
+    storage: 'sqlite';
+    indexed: true;
+    synced: true;  // Via CRDT
+  };
+
+  // Procedural edges: computed with caching
+  proceduralEdges: {
+    wikilinks: {
+      strategy: 'computed-cached';
+      cache: 'in-memory';
+      ttl: '5 minutes';
+      invalidateOn: 'content-change';
+    };
+    backlinks: {
+      strategy: 'computed-cached';  // Reverse of wikilinks
+      cache: 'in-memory';
+      ttl: '5 minutes';
+    };
+    tags: {
+      strategy: 'computed-cached';
+      cache: 'in-memory';
+      ttl: '5 minutes';
+    };
+    sharedAttributes: {
+      strategy: 'computed-lazy';  // Expensive, compute on demand
+      cache: 'lru';
+      maxSize: '10000 edges';
+    };
+    dbRelations: {
+      strategy: 'stored';  // Part of database schema
+      indexed: true;
+    };
+  };
+}
+```
+
+**Trade-offs:**
+
+| Strategy | Pros | Cons | Best For |
+|----------|------|------|----------|
+| **Stored** | Fast reads, predictable | Storage cost, sync overhead | User edges, DB relations |
+| **Computed-cached** | Always fresh, low storage | Cache invalidation, memory | Wikilinks, tags |
+| **Computed-lazy** | Minimal resources | Slow first query | Expensive computations |
+
+#### Index Strategy
+
+```sql
+-- Primary edge table (for user edges and stored procedural edges)
+CREATE TABLE edges (
+  id TEXT PRIMARY KEY,
+  edge_type TEXT NOT NULL,           -- 'user' | 'procedural'
+  source_type TEXT NOT NULL,         -- 'page' | 'block' | 'row' | 'cell'
+  source_id TEXT NOT NULL,
+  source_block_id TEXT,              -- For block/cell references
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  target_block_id TEXT,
+  procedural_kind TEXT,              -- 'wikilink' | 'tag' | etc.
+  user_label TEXT,
+  user_color TEXT,
+  created_at TEXT NOT NULL,
+  created_by TEXT NOT NULL
+);
+
+-- Critical indexes
+CREATE INDEX idx_edges_source ON edges(source_id, source_block_id);
+CREATE INDEX idx_edges_target ON edges(target_id, target_block_id);  -- For backlinks
+CREATE INDEX idx_edges_type ON edges(edge_type, procedural_kind);
+
+-- For efficient "find all edges in document"
+CREATE INDEX idx_edges_source_doc ON edges(source_id) WHERE source_block_id IS NOT NULL;
+```
+
+#### Graph View Optimization
+
+```typescript
+class GraphViewOptimizer {
+  // Don't render everything - start with local neighborhood
+  private readonly DEFAULT_SCOPE = 2;  // 2-hop from current node
+  private readonly MAX_VISIBLE_NODES = 500;
+  private readonly MAX_VISIBLE_EDGES = 2000;
+
+  async getVisibleGraph(
+    centerNodeId: string,
+    filters: EdgeFilterConfig
+  ): Promise<VisibleGraph> {
+    // 1. Get nodes within N hops
+    const nodes = await this.getNodesWithinHops(
+      centerNodeId,
+      this.DEFAULT_SCOPE,
+      this.MAX_VISIBLE_NODES
+    );
+
+    // 2. Get edges between visible nodes only
+    const edges = await this.getEdgesBetweenNodes(
+      nodes.map(n => n.id),
+      filters
+    );
+
+    // 3. Apply LOD based on distance from center
+    for (const node of nodes) {
+      node.renderMode = this.getLOD(node, centerNodeId);
+    }
+
+    // 4. Warn about supernodes
+    const supernodes = nodes.filter(n => n.edgeCount > 1000);
+    if (supernodes.length > 0) {
+      console.warn('Supernodes detected, may impact performance:', supernodes);
+    }
+
+    return { nodes, edges };
+  }
+
+  // Pagination for high-degree nodes
+  async getEdgesForNode(
+    nodeId: string,
+    options: { limit: number; offset: number; type?: string }
+  ): Promise<{ edges: Edge[]; total: number; hasMore: boolean }> {
+    // Don't load all 10k edges at once
+    const edges = await this.db.query(`
+      SELECT * FROM edges
+      WHERE source_id = ? OR target_id = ?
+      ${options.type ? 'AND procedural_kind = ?' : ''}
+      LIMIT ? OFFSET ?
+    `, [nodeId, nodeId, options.type, options.limit, options.offset]);
+
+    const total = await this.db.queryOne(`
+      SELECT COUNT(*) FROM edges
+      WHERE source_id = ? OR target_id = ?
+    `, [nodeId, nodeId]);
+
+    return {
+      edges,
+      total,
+      hasMore: options.offset + options.limit < total,
+    };
+  }
+}
+```
+
+#### Scaling Thresholds
+
+| Scale | Storage | Recommendation |
+|-------|---------|----------------|
+| **<10k blocks** (<50k edges) | SQLite | In-memory cache, single file |
+| **10k-100k blocks** (50k-500k edges) | SQLite + indexes | LRU cache (50-200 MB), background reindex |
+| **>100k blocks** (>500k edges) | Consider PostgreSQL | Selective sync, pagination, graph DB for queries |
+
+#### Memory Budget
+
+```typescript
+interface MemoryBudget {
+  // Allocate memory by component
+  edgeCache: {
+    max: '100MB';
+    eviction: 'lru';
+    priority: ['user-edges', 'wikilinks', 'tags', 'shared-attributes'];
+  };
+
+  graphView: {
+    max: '200MB';
+    nodeLimit: 500;
+    edgeLimit: 2000;
+  };
+
+  spatialIndex: {
+    max: '50MB';  // R-tree for visible viewport
+  };
+
+  // Total: ~350MB for graph/canvas features
+  // Leaves headroom for document editing, sync, etc.
+}
+```
 
 ---
 
