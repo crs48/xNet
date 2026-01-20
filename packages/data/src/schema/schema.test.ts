@@ -287,14 +287,24 @@ describe('Schema System', () => {
     it('createNodeId generates unique IDs', () => {
       const ids = new Set<string>()
       for (let i = 0; i < 100; i++) {
-        ids.add(createNodeId('Task'))
+        ids.add(createNodeId())
       }
       expect(ids.size).toBe(100)
     })
 
-    it('createNodeId includes schema prefix', () => {
-      const id = createNodeId('Task')
-      expect(id).toMatch(/^task-/)
+    it('createNodeId generates URL-safe nanoid', () => {
+      const id = createNodeId()
+      // Default nanoid is 21 chars, URL-safe
+      expect(id.length).toBe(21)
+      expect(id).toMatch(/^[A-Za-z0-9_-]+$/)
+    })
+
+    it('createNodeId supports custom length', () => {
+      const shortId = createNodeId(10)
+      expect(shortId.length).toBe(10)
+
+      const longId = createNodeId(32)
+      expect(longId.length).toBe(32)
     })
   })
 })
