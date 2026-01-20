@@ -497,6 +497,34 @@ a:hover {
   border-bottom-style: solid;
 }
 
+/* Live Preview - Markdown Syntax (Obsidian-style) */
+.md-syntax {
+  color: var(--color-text-secondary);
+  font-family: 'SF Mono', Monaco, Consolas, monospace;
+  font-size: 0.9em;
+  opacity: 0.6;
+  user-select: none;
+  pointer-events: none;
+}
+
+.md-syntax-open {
+  margin-right: 1px;
+}
+
+.md-syntax-close {
+  margin-left: 1px;
+}
+
+/* Animate syntax appearing */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 0.6; }
+}
+
+.md-syntax {
+  animation: fadeIn 0.15s ease-in-out;
+}
+
 /* Backlinks Panel */
 .backlinks-panel {
   margin-top: 32px;

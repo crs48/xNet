@@ -53,9 +53,14 @@ function DocumentPage() {
           type="text"
           className="title-input"
           value={document.metadata?.title || ''}
-          onChange={(e) => update((d) => {
-            if (d.metadata) d.metadata.title = e.target.value
-          })}
+          onChange={(e) => {
+            const newTitle = e.target.value
+            update((d) => {
+              if (d.metadata) d.metadata.title = newTitle
+              // Also update Yjs metadata map for persistence
+              d.ydoc.getMap('metadata').set('title', newTitle)
+            })
+          }}
           placeholder="Untitled"
         />
 

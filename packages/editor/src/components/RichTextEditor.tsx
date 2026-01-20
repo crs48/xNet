@@ -11,7 +11,7 @@ import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
 import Typography from '@tiptap/extension-typography'
 import type * as Y from 'yjs'
-import { Wikilink } from '../extensions'
+import { Wikilink, LivePreview } from '../extensions'
 import { EditorToolbar } from './EditorToolbar'
 
 export interface RichTextEditorProps {
@@ -116,6 +116,8 @@ export function RichTextEditor({
       Wikilink.configure({
         onNavigate: onNavigate || (() => {}),
       }),
+      // Obsidian-style live preview - shows markdown syntax when cursor is on formatted text
+      LivePreview,
     ],
     editorProps: {
       attributes: {
