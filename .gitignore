@@ -1,4 +1,28 @@
+# IDE
 .clj-kondo/
 .lsp/
 .history/
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+dist/
+*.tsbuildinfo
+.turbo/
+
+# Dependencies
+node_modules/
+
+# Test
+coverage/
+
+# OS
+.DS_Store
 tmp/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

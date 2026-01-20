@@ -1,0 +1,32 @@
+{
+  "name": "@xnet/sdk",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xnet/core": "workspace:*",
+    "@xnet/crypto": "workspace:*",
+    "@xnet/identity": "workspace:*",
+    "@xnet/storage": "workspace:*",
+    "@xnet/data": "workspace:*",
+    "@xnet/network": "workspace:*",
+    "@xnet/query": "workspace:*",
+    "@xnet/vectors": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0"
+  }
+}
