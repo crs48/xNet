@@ -88,6 +88,50 @@ export { fileProperty, formatFileSize, getFileExtension, isImageType } from './p
 export { createdProperty, updatedProperty, createdByProperty } from './properties/auto'
 
 // ============================================================================
+// Schema Operations
+// ============================================================================
+
+export { createDatabase, updateDatabase, cloneDatabase, validateDatabase } from './schema/database'
+export type { CreateDatabaseOptions, UpdateDatabaseOptions } from './schema/database'
+
+export {
+  createProperty,
+  updateProperty,
+  deleteProperty,
+  moveProperty,
+  addSelectOption,
+  updateSelectOption,
+  deleteSelectOption
+} from './schema/property'
+export type { CreatePropertyOptions, UpdatePropertyOptions } from './schema/property'
+
+export {
+  createView,
+  updateView,
+  deleteView,
+  duplicateView,
+  moveView,
+  setDefaultView,
+  togglePropertyInView,
+  reorderPropertiesInView
+} from './schema/view'
+export type { CreateViewOptions, UpdateViewOptions } from './schema/view'
+
+// ============================================================================
+// Item Operations
+// ============================================================================
+
+export {
+  createItem,
+  updateItem,
+  validateItem,
+  queryItems,
+  getFormattedValue,
+  groupItemsByProperty
+} from './operations/items'
+export type { CreateItemOptions, UpdateItemOptions, QueryItemsOptions } from './operations/items'
+
+// ============================================================================
 // Utilities
 // ============================================================================
 
