@@ -8,7 +8,7 @@ This document outlines the long-term vision for xNet beyond the MVP. These featu
 
 ```mermaid
 flowchart TD
-    subgraph "MVP (planV2)"
+    subgraph "MVP (planStep01MVP)"
         MVP["xNotes MVP<br/>Months 1-12"]
     end
 
@@ -1013,7 +1013,7 @@ Recommended order after MVP:
 ## Resources
 
 ### Detailed Specifications
-- [docs/plan/04-phase-2-database-ui.md](../plan/04-phase-2-database-ui.md) - Database UI details
+- [planStep02DatabasePlatform](../planStep02DatabasePlatform/README.md) - Database UI implementation guide
 - [docs/plan/05-phase-3-erp.md](../plan/05-phase-3-erp.md) - ERP platform
 - [docs/plan/10-scaling-architecture.md](../plan/10-scaling-architecture.md) - Federation & scaling
 - [docs/plan/15-enterprise-scale.md](../plan/15-enterprise-scale.md) - Enterprise architecture

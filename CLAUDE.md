@@ -36,7 +36,7 @@ apps/
 
 ## Implementation Order
 
-See `docs/planV2/` for detailed specs. Order:
+See `docs/planStep01MVP/` for detailed specs. Order:
 
 1. **Phase 0** (foundations): Content addressing, snapshots, signed updates, DID resolution
 2. **Core packages**: crypto → identity → storage → data → network → query → react → sdk
