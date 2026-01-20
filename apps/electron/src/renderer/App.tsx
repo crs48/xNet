@@ -2,6 +2,7 @@
  * Main App component
  */
 import React, { useEffect, useState, useCallback } from 'react'
+import { Editor } from './Editor'
 
 interface Document {
   id: string
@@ -148,12 +149,7 @@ export function App() {
         <section style={styles.content}>
           {selectedDoc ? (
             <div style={styles.editor}>
-              <textarea
-                style={styles.textarea}
-                value={docContent}
-                onChange={(e) => setDocContent(e.target.value)}
-                placeholder="Start typing..."
-              />
+              <Editor docId={selectedDoc} style={styles.textarea} />
             </div>
           ) : (
             <div style={styles.placeholder}>

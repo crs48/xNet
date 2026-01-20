@@ -19,6 +19,7 @@
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
+    "@xnet/editor": "workspace:*",
     "@xnet/identity": "workspace:*",
     "@xnet/network": "workspace:*",
     "@xnet/query": "workspace:*",

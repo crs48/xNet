@@ -12,6 +12,7 @@
     "dist": "npm run build && electron-builder"
   },
   "dependencies": {
+    "@xnet/react": "workspace:*",
     "@xnet/sdk": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "electron-store": "^10.0.0"

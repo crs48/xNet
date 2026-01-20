@@ -26,6 +26,14 @@ contextBridge.exposeInMainWorld('xnet', {
   }
 })
 
+// Expose storage API for @xnet/react integration
+contextBridge.exposeInMainWorld('xnetStorage', {
+  getDocument: (id: string) => ipcRenderer.invoke('xnet:storage:getDocument', id),
+  setDocument: (id: string, data: unknown) => ipcRenderer.invoke('xnet:storage:setDocument', id, data),
+  deleteDocument: (id: string) => ipcRenderer.invoke('xnet:storage:deleteDocument', id),
+  listDocuments: (prefix?: string) => ipcRenderer.invoke('xnet:storage:listDocuments', prefix)
+})
+
 // Type declaration for renderer
 export interface XNetAPI {
   init(): Promise<{ did: string }>
@@ -50,8 +58,28 @@ export interface XNetAPI {
   onNewPage(callback: () => void): () => void
 }
 
+export interface DocumentData {
+  id: string
+  content: Uint8Array
+  metadata: {
+    created: number
+    updated: number
+    type?: string
+    workspace?: string
+  }
+  version: number
+}
+
+export interface XNetStorageAPI {
+  getDocument(id: string): Promise<DocumentData | null>
+  setDocument(id: string, data: DocumentData): Promise<void>
+  deleteDocument(id: string): Promise<void>
+  listDocuments(prefix?: string): Promise<string[]>
+}
+
 declare global {
   interface Window {
     xnet: XNetAPI
+    xnetStorage: XNetStorageAPI
   }
 }

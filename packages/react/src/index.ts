@@ -40,6 +40,12 @@ export {
   type UseIdentityResult
 } from './hooks/useIdentity'
 
+export {
+  useEditor,
+  type UseEditorOptions,
+  type UseEditorResult
+} from './hooks/useEditor'
+
 // Store
 export {
   createXNetStore,
