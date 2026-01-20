@@ -41,6 +41,9 @@ importers:
 
   apps/electron:
     dependencies:
+      '@xnet/react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@xnet/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -96,6 +99,9 @@ importers:
       '@react-navigation/native-stack':
         specifier: ^6.9.0
         version: 6.11.0(@react-navigation/native@6.1.18(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native-safe-area-context@4.12.0(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native-screens@4.4.0(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)
+      '@xnet/react':
+        specifier: workspace:*
+        version: link:../../packages/react
       '@xnet/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -255,6 +261,25 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/editor:
+    dependencies:
+      '@xnet/data':
+        specifier: workspace:*
+        version: link:../data
+      yjs:
+        specifier: ^13.6.24
+        version: 13.6.29
+    devDependencies:
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.30)(jsdom@26.1.0)(lightningcss@1.27.0)(terser@5.46.0)
+
   packages/identity:
     dependencies:
       '@xnet/core':
@@ -377,6 +402,9 @@ importers:
       '@xnet/data':
         specifier: workspace:*
         version: link:../data
+      '@xnet/editor':
+        specifier: workspace:*
+        version: link:../editor
       '@xnet/identity':
         specifier: workspace:*
         version: link:../identity

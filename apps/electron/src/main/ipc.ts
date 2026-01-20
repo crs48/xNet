@@ -91,4 +91,44 @@ export function setupIPC() {
       client = null
     }
   })
+
+  // Storage operations for renderer-side @xnet/react
+  ipcMain.handle('xnet:storage:getDocument', async (_, id) => {
+    if (!client) throw new Error('Client not initialized')
+    // Access storage directly through the client
+    // This returns the raw document data with Yjs state
+    const doc = await client.getDocument(id)
+    if (!doc) return null
+
+    // Return document data in the format expected by StorageAdapter
+    const state = await import('yjs').then(Y => Y.encodeStateAsUpdate(doc.ydoc))
+    return {
+      id: doc.id,
+      content: Array.from(state), // Convert Uint8Array to array for IPC
+      metadata: {
+        created: doc.metadata.created,
+        updated: doc.metadata.updated,
+        type: doc.type,
+        workspace: doc.workspace
+      },
+      version: 1
+    }
+  })
+
+  ipcMain.handle('xnet:storage:setDocument', async (_, id, data) => {
+    if (!client) throw new Error('Client not initialized')
+    // This would need to update the storage directly
+    // For now, we'll skip this as the renderer uses createDocument instead
+    console.log('Storage setDocument called for:', id)
+  })
+
+  ipcMain.handle('xnet:storage:deleteDocument', async (_, id) => {
+    if (!client) throw new Error('Client not initialized')
+    await client.deleteDocument(id)
+  })
+
+  ipcMain.handle('xnet:storage:listDocuments', async (_, prefix) => {
+    if (!client) throw new Error('Client not initialized')
+    return client.listDocuments(prefix)
+  })
 }

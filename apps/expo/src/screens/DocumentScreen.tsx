@@ -1,5 +1,5 @@
 /**
- * Document screen - editor
+ * Document screen - editor using shared @xnet/editor
  */
 import React, { useState, useEffect } from 'react'
 import {
@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native'
+import { useEditor } from '@xnet/react'
 import { useDocument } from '../hooks/useDocument'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RouteProp } from '@react-navigation/native'
@@ -26,12 +27,20 @@ export function DocumentScreen({ navigation, route }: Props) {
   const { docId } = route.params
   const { document, loading, error } = useDocument(docId)
   const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
+
+  // Use the shared editor hook
+  const {
+    content,
+    handleChange
+  } = useEditor({
+    ydoc: document?.ydoc ?? null,
+    field: 'content',
+    placeholder: 'Start typing...'
+  })
 
   useEffect(() => {
     if (document) {
       setTitle(document.metadata.title)
-      setContent(document.ydoc.getText('content').toString())
       navigation.setOptions({ title: document.metadata.title })
     }
   }, [document, navigation])
@@ -44,13 +53,12 @@ export function DocumentScreen({ navigation, route }: Props) {
     }
   }
 
+  // Adapter for React Native TextInput
   const handleContentChange = (text: string) => {
-    setContent(text)
-    if (document) {
-      const ytext = document.ydoc.getText('content')
-      ytext.delete(0, ytext.length)
-      ytext.insert(0, text)
-    }
+    // Create a synthetic event for the useEditor hook
+    handleChange({
+      target: { value: text, selectionStart: text.length }
+    } as React.ChangeEvent<HTMLInputElement>)
   }
 
   if (error) {
