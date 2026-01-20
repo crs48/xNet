@@ -4,6 +4,8 @@
  * A Node has only 4 universal fields. Everything else is defined by its schema.
  */
 
+import { nanoid } from 'nanoid'
+
 /**
  * Schema IRI - globally unique identifier for a schema.
  * Format: xnet://<authority>/<name>
@@ -64,12 +66,17 @@ export function isNode(value: unknown): value is Node {
 }
 
 /**
- * Create a new node ID.
- * Format: {schema-short-name}-{timestamp}-{random}
+ * Create a new node ID using nanoid.
+ *
+ * Node IDs are just unique identifiers - they don't need to be sortable
+ * (sorting is done by Lamport timestamps in the Change log).
+ *
+ * Default length is 21 characters, providing ~126 bits of randomness.
+ * URL-safe characters: A-Za-z0-9_-
+ *
+ * @param length - Optional length (default 21)
+ * @returns A unique node ID
  */
-export function createNodeId(schemaName?: string): string {
-  const prefix = schemaName?.toLowerCase().slice(0, 8) || 'node'
-  const timestamp = Date.now().toString(36)
-  const random = Math.random().toString(36).substring(2, 8)
-  return `${prefix}-${timestamp}-${random}`
+export function createNodeId(length?: number): string {
+  return nanoid(length)
 }
