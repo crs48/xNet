@@ -62,6 +62,9 @@ Execute these documents in order. Each builds on the previous.
 | 06  | [Package Naming](./06-package-naming-proposal.md)                     | Merge @xnet/records into @xnet/data | 3 days    | Medium |
 | 07  | [Naming Research](./07-naming-research.md)                            | Research on "Document" alternatives | Reference | -      |
 | 08  | [JSON-LD Integration](./08-jsonld-integration.md)                     | Add JSON-LD semantic web support    | 4 days    | Low    |
+| 09  | [Schema-First Architecture](./09-schema-first-architecture.md)        | Everything is a schema-defined Node | Reference | -      |
+| 10  | [Schema + TypeScript](./10-schema-first-with-typescript.md)           | Generated types from schemas        | 1 week    | Medium |
+| 11  | [Global Namespacing](./11-global-schema-namespacing.md)               | Global schema namespace via IRIs    | Reference | -      |
 
 ## Validation Gates
 
@@ -163,17 +166,35 @@ This consolidation explicitly does NOT:
 - [ ] Export/import preserves semantic information
 - [ ] Property types have JSON-LD schema definitions
 
+### After Schema-First Implementation
+
+- [ ] `Node` is the universal base type (replaces Document)
+- [ ] `Schema` defines what a Node is (properties, behaviors)
+- [ ] Built-in schemas: Page, Database, Item, Canvas, Task
+- [ ] Schemas are Nodes (self-describing system)
+- [ ] TypeScript types generated from schemas via codegen
+- [ ] User-defined schemas work at runtime
+
+### After Global Namespacing
+
+- [ ] Schema IRIs follow `xnet://<authority>/<path>` pattern
+- [ ] Built-in schemas use `xnet://xnet.dev/` namespace
+- [ ] User schemas use `xnet://did:key:.../` namespace
+- [ ] Schema.org mappings via `sameAs` property
+- [ ] Well-known URL resolution for domain-based schemas
+
 ## Success Criteria
 
 After completing this plan:
 
-1. **Single mental model** for "how data syncs" (Change<T>)
-2. **Unified data package** - All data types in @xnet/data
-3. **JSON-friendly types** everywhere (no Date objects in storage)
-4. **JSON-LD support** for interoperability and semantic web
-5. **No code duplication** for hashing, vector clocks, or chains
-6. **All tests pass** with same or better coverage
-7. **Documentation accurate** - CLAUDE.md reflects reality
+1. **Single mental model** - Everything is a Node with a Schema
+2. **Schema-first architecture** - Types defined as JSON-LD schemas
+3. **TypeScript safety** - Generated types for built-in/plugin schemas
+4. **Global namespace** - Schemas identified by globally unique IRIs
+5. **JSON-LD native** - Schemas ARE JSON-LD type definitions
+6. **No code duplication** - Unified sync, hash, and data primitives
+7. **All tests pass** with same or better coverage
+8. **Documentation accurate** - CLAUDE.md reflects reality
 
 ---
 
