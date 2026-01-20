@@ -1,7 +1,7 @@
-# xNotes Implementation Plan
-## A Decentralized Collaborative Productivity Platform
+# xNet & xNotes Implementation Plan
+## Building the Decentralized Internet and Its Flagship Productivity App
 
-**Version**: 1.0
+**Version**: 2.0
 **Date**: January 2026
 **Document Type**: Technical Implementation Plan
 
@@ -10,12 +10,14 @@
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [Phase 1: Core Wiki & Task Manager (Months 0-12)](#phase-1-core-wiki--task-manager-months-0-12)
-3. [Phase 2: Full Database UI (Months 12-24)](#phase-2-full-database-ui-months-12-24)
-4. [Phase 3: Open-Source ERP Platform (Months 24+)](#phase-3-open-source-erp-platform-months-24)
-5. [Engineering Best Practices](#engineering-best-practices)
-6. [Monetization & Adoption Strategy](#monetization--adoption-strategy)
-7. [Appendix](#appendix)
+2. [xNet Core Platform](#xnet-core-platform)
+3. [Development Tracks & Timeline](#development-tracks--timeline)
+4. [Phase 1: Core Wiki & Task Manager (Months 0-12)](#phase-1-core-wiki--task-manager-months-0-12)
+5. [Phase 2: Full Database UI (Months 12-24)](#phase-2-full-database-ui-months-12-24)
+6. [Phase 3: Open-Source ERP Platform (Months 24+)](#phase-3-open-source-erp-platform-months-24)
+7. [Engineering Best Practices](#engineering-best-practices)
+8. [Monetization & Adoption Strategy](#monetization--adoption-strategy)
+9. [Appendix](#appendix)
 
 ---
 
@@ -23,7 +25,63 @@
 
 ### Vision Statement
 
-xNotes is the flagship application of the xNet decentralized internet ecosystem—a local-first, peer-to-peer collaborative productivity platform that evolves from a simple wiki and task manager into a fully customizable ERP system. By eliminating central servers, xNotes gives users complete ownership of their data while enabling real-time collaboration through CRDT-based synchronization.
+**xNet** is a fully decentralized internet architecture designed for mass adoption—enabling applications where data is local-first, stored on user devices, with P2P syncing and no central servers.
+
+**xNotes** is the flagship application built on xNet—a local-first, peer-to-peer collaborative productivity platform that evolves from a simple wiki and task manager into a fully customizable ERP system.
+
+This document covers the **parallel development** of both:
+- **xNet Core**: The foundational SDK and infrastructure
+- **xNotes App**: The productivity application that drives and validates xNet
+
+```mermaid
+graph TB
+    subgraph "xNotes Application"
+        APP[xNotes App]
+        WIKI[Wiki Module]
+        TASKS[Task Manager]
+        DB[Database UI]
+        ERP[ERP Modules]
+        APP --> WIKI
+        APP --> TASKS
+        APP --> DB
+        APP --> ERP
+    end
+
+    subgraph "xNet Core Platform"
+        SDK[xNet SDK]
+        DATA[@xnet/data]
+        NET[@xnet/network]
+        ID[@xnet/identity]
+        STORE[@xnet/storage]
+        CRYPTO[@xnet/crypto]
+        QUERY[@xnet/query]
+        SDK --> DATA
+        SDK --> NET
+        SDK --> ID
+        SDK --> STORE
+        SDK --> CRYPTO
+        SDK --> QUERY
+    end
+
+    subgraph "Infrastructure"
+        SIGNAL[Signaling Servers]
+        RELAY[Relay Nodes]
+        BOOT[Bootstrap Nodes]
+        DEPIN[DePIN Storage Network]
+    end
+
+    APP --> SDK
+    NET --> SIGNAL
+    NET --> RELAY
+    NET --> BOOT
+    STORE --> DEPIN
+
+    style APP fill:#e1f5fe
+    style SDK fill:#fff3e0
+    style SIGNAL fill:#f3e5f5
+    style RELAY fill:#f3e5f5
+    style BOOT fill:#f3e5f5
+```
 
 ### Strategic Positioning
 
@@ -38,32 +96,64 @@ xNotes is the flagship application of the xNet decentralized internet ecosystem�
 
 ### Technology Stack Rationale
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        APPLICATION LAYER                        │
-├─────────────────────────────────────────────────────────────────┤
-│  React 18+ │ TypeScript 5+ │ TailwindCSS │ Radix UI Primitives │
-├─────────────────────────────────────────────────────────────────┤
-│                         STATE & EDITORS                         │
-├─────────────────────────────────────────────────────────────────┤
-│    Zustand (State)    │   Tiptap/ProseMirror   │   React DnD   │
-├─────────────────────────────────────────────────────────────────┤
-│                          DATA LAYER                             │
-├─────────────────────────────────────────────────────────────────┤
-│   Yjs (CRDT)   │   IndexedDB   │   JSON-LD Schema   │   Lunr   │
-├─────────────────────────────────────────────────────────────────┤
-│                        NETWORK LAYER                            │
-├─────────────────────────────────────────────────────────────────┤
-│     libp2p     │     WebRTC     │    y-webrtc    │   y-indexeddb│
-├─────────────────────────────────────────────────────────────────┤
-│                        SECURITY LAYER                           │
-├─────────────────────────────────────────────────────────────────┤
-│   DID/SSI    │   libsodium   │   zk-SNARKs (future)   │  UCAN   │
-├─────────────────────────────────────────────────────────────────┤
-│                       DEPLOYMENT TARGETS                        │
-├─────────────────────────────────────────────────────────────────┤
-│       PWA (Web)       │       Electron       │      Tauri      │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+block-beta
+    columns 1
+
+    block:APP["APPLICATION LAYER"]
+        columns 4
+        React["React 18+"]
+        TS["TypeScript 5+"]
+        Tailwind["TailwindCSS"]
+        Radix["Radix UI"]
+    end
+
+    block:STATE["STATE & EDITORS"]
+        columns 3
+        Zustand["Zustand"]
+        Tiptap["Tiptap/ProseMirror"]
+        DnD["React DnD"]
+    end
+
+    block:DATA["DATA LAYER"]
+        columns 4
+        Yjs["Yjs (CRDT)"]
+        IDB["IndexedDB"]
+        JSONLD["JSON-LD Schema"]
+        Lunr["Lunr.js"]
+    end
+
+    block:NET["NETWORK LAYER"]
+        columns 4
+        libp2p["libp2p"]
+        WebRTC["WebRTC"]
+        ywebrtc["y-webrtc"]
+        yidb["y-indexeddb"]
+    end
+
+    block:SEC["SECURITY LAYER"]
+        columns 4
+        DID["DID/SSI"]
+        sodium["libsodium"]
+        zk["zk-SNARKs"]
+        UCAN["UCAN"]
+    end
+
+    block:DEPLOY["DEPLOYMENT TARGETS"]
+        columns 3
+        PWA["PWA (Web)"]
+        Electron["Electron"]
+        Tauri["Tauri"]
+    end
+
+    APP --> STATE --> DATA --> NET --> SEC --> DEPLOY
+
+    style APP fill:#e3f2fd
+    style STATE fill:#e8f5e9
+    style DATA fill:#fff3e0
+    style NET fill:#f3e5f5
+    style SEC fill:#ffebee
+    style DEPLOY fill:#e0f2f1
 ```
 
 **Why These Choices:**
@@ -106,6 +196,505 @@ xNotes is the flagship application of the xNet decentralized internet ecosystem�
 | 1 | Monthly Active Users | 50,000 |
 | 2 | Daily Active Users | 100,000 |
 | 3 | Enterprise Deployments | 500+ |
+
+---
+
+## xNet Core Platform
+
+xNet is the foundational infrastructure that powers xNotes and future decentralized applications. It must be developed **in parallel** with xNotes, with xNotes serving as the primary driver and validator of xNet's capabilities.
+
+### Platform Architecture
+
+```mermaid
+graph LR
+    subgraph "Application Layer"
+        A1[xNotes]
+        A2[Future Apps]
+    end
+
+    subgraph "xNet SDK Layer"
+        S1["@xnet/sdk<br/>(Unified API)"]
+    end
+
+    subgraph "Core Modules"
+        C1["@xnet/data<br/>CRDT Engine"]
+        C2["@xnet/network<br/>P2P Networking"]
+        C3["@xnet/identity<br/>DID/SSI"]
+        C4["@xnet/storage<br/>Persistence"]
+        C5["@xnet/crypto<br/>Encryption"]
+        C6["@xnet/query<br/>Query Engine"]
+    end
+
+    subgraph "Transport Layer"
+        T1[libp2p]
+        T2[WebRTC]
+        T3[WebSocket]
+    end
+
+    subgraph "Storage Backends"
+        B1[IndexedDB]
+        B2[File System]
+        B3[DePIN Network]
+    end
+
+    A1 --> S1
+    A2 --> S1
+    S1 --> C1
+    S1 --> C2
+    S1 --> C3
+    S1 --> C4
+    S1 --> C5
+    S1 --> C6
+    C2 --> T1
+    C2 --> T2
+    C2 --> T3
+    C4 --> B1
+    C4 --> B2
+    C4 --> B3
+```
+
+### Package Structure
+
+```
+xnet/
+├── packages/
+│   ├── sdk/                      # @xnet/sdk - Unified API
+│   │   ├── src/
+│   │   │   ├── client.ts         # Main XNet client
+│   │   │   ├── workspace.ts      # Workspace management
+│   │   │   └── index.ts
+│   │   └── package.json
+│   │
+│   ├── data/                     # @xnet/data - CRDT & Data Model
+│   │   ├── src/
+│   │   │   ├── document.ts       # CRDT document wrapper
+│   │   │   ├── schema.ts         # JSON-LD schema definitions
+│   │   │   ├── types.ts          # Block types (Page, Task, etc.)
+│   │   │   ├── operations.ts     # CRDT operations
+│   │   │   └── validation.ts     # Schema validation
+│   │   └── package.json
+│   │
+│   ├── network/                  # @xnet/network - P2P Layer
+│   │   ├── src/
+│   │   │   ├── node.ts           # libp2p node setup
+│   │   │   ├── protocols/        # Custom protocols
+│   │   │   │   ├── sync.ts       # Document sync protocol
+│   │   │   │   ├── presence.ts   # Presence/awareness
+│   │   │   │   └── discovery.ts  # Peer discovery
+│   │   │   ├── transports/       # Transport adapters
+│   │   │   │   ├── webrtc.ts
+│   │   │   │   ├── websocket.ts
+│   │   │   │   └── webtransport.ts
+│   │   │   └── relay.ts          # Relay node support
+│   │   └── package.json
+│   │
+│   ├── identity/                 # @xnet/identity - DID/Auth
+│   │   ├── src/
+│   │   │   ├── did.ts            # DID generation/resolution
+│   │   │   ├── keys.ts           # Key management
+│   │   │   ├── ucan.ts           # UCAN tokens
+│   │   │   ├── session.ts        # Session management
+│   │   │   └── recovery.ts       # Key recovery
+│   │   └── package.json
+│   │
+│   ├── storage/                  # @xnet/storage - Persistence
+│   │   ├── src/
+│   │   │   ├── adapters/
+│   │   │   │   ├── indexeddb.ts  # Browser storage
+│   │   │   │   ├── sqlite.ts     # Desktop/mobile
+│   │   │   │   └── memory.ts     # Testing
+│   │   │   ├── blob.ts           # Binary blob storage
+│   │   │   ├── backup.ts         # Export/import
+│   │   │   └── sync.ts           # Storage sync
+│   │   └── package.json
+│   │
+│   ├── crypto/                   # @xnet/crypto - Security
+│   │   ├── src/
+│   │   │   ├── symmetric.ts      # AES-GCM encryption
+│   │   │   ├── asymmetric.ts     # X25519/Ed25519
+│   │   │   ├── signing.ts        # Digital signatures
+│   │   │   ├── hashing.ts        # Content addressing
+│   │   │   └── zk.ts             # zk-SNARK helpers (future)
+│   │   └── package.json
+│   │
+│   ├── query/                    # @xnet/query - Query Engine
+│   │   ├── src/
+│   │   │   ├── parser.ts         # SQL-like query parser
+│   │   │   ├── executor.ts       # Local query execution
+│   │   │   ├── federation.ts     # Distributed queries
+│   │   │   ├── indexing.ts       # Index management
+│   │   │   └── fulltext.ts       # Full-text search
+│   │   └── package.json
+│   │
+│   └── vectors/                  # @xnet/vectors - AI/Embeddings
+│       ├── src/
+│       │   ├── index.ts          # HNSW vector index
+│       │   ├── embeddings.ts     # On-device embeddings
+│       │   └── similarity.ts     # Similarity search
+│       └── package.json
+│
+├── infrastructure/
+│   ├── signaling-server/         # WebRTC signaling
+│   ├── relay-node/               # libp2p relay
+│   ├── bootstrap-node/           # DHT bootstrap
+│   └── storage-node/             # DePIN storage node
+│
+└── tools/
+    ├── cli/                      # xnet CLI tool
+    └── devtools/                 # Browser devtools extension
+```
+
+### Core Module Specifications
+
+#### @xnet/data - CRDT Engine
+
+```mermaid
+classDiagram
+    class XNetDocument {
+        +string id
+        +string workspaceId
+        +YDoc ydoc
+        +Map~string,Block~ blocks
+        +create(type, data) Block
+        +update(id, changes) void
+        +delete(id) void
+        +query(filter) Block[]
+        +subscribe(callback) Unsubscribe
+    }
+
+    class Block {
+        +string id
+        +string type
+        +string parentId
+        +string[] childIds
+        +any content
+        +Permissions permissions
+        +number version
+        +toJSON() object
+    }
+
+    class Schema {
+        +validate(block) boolean
+        +getType(name) TypeDefinition
+        +register(type) void
+    }
+
+    class SyncEngine {
+        +sync(doc, peers) void
+        +merge(local, remote) void
+        +getStateVector() Uint8Array
+        +applyUpdate(update) void
+    }
+
+    XNetDocument --> Block
+    XNetDocument --> Schema
+    XNetDocument --> SyncEngine
+```
+
+#### @xnet/network - P2P Layer
+
+```mermaid
+sequenceDiagram
+    participant A as Peer A
+    participant S as Signaling Server
+    participant B as Peer B
+
+    A->>S: Register (PeerID, WorkspaceID)
+    B->>S: Register (PeerID, WorkspaceID)
+    S->>A: Peer discovered: B
+    S->>B: Peer discovered: A
+
+    A->>S: SDP Offer for B
+    S->>B: Forward SDP Offer
+    B->>S: SDP Answer for A
+    S->>A: Forward SDP Answer
+
+    A->>B: ICE Candidates (direct)
+    B->>A: ICE Candidates (direct)
+
+    Note over A,B: WebRTC Connection Established
+
+    A->>B: Sync Request (StateVector)
+    B->>A: Sync Response (Updates)
+    A->>B: Awareness Update (Cursor, Presence)
+    B->>A: Awareness Update (Cursor, Presence)
+
+    Note over A,B: Real-time Collaboration Active
+```
+
+#### @xnet/identity - Self-Sovereign Identity
+
+```mermaid
+flowchart TD
+    subgraph "Key Generation"
+        A[Generate Ed25519 Keypair] --> B[Derive DID:key]
+        B --> C[Store in Secure Storage]
+    end
+
+    subgraph "Authentication"
+        D[Create Challenge] --> E[Sign with Private Key]
+        E --> F[Verify Signature]
+        F --> G{Valid?}
+        G -->|Yes| H[Issue UCAN Token]
+        G -->|No| I[Reject]
+    end
+
+    subgraph "Authorization (UCAN)"
+        H --> J[Encode Capabilities]
+        J --> K[Set Expiration]
+        K --> L[Sign Token]
+        L --> M[Delegate to Peer]
+    end
+
+    subgraph "Key Recovery"
+        N[Social Recovery] --> O[Shamir Secret Sharing]
+        P[Mnemonic Backup] --> Q[BIP39 Seed Phrase]
+    end
+
+    C --> D
+    M --> R[Access Resource]
+```
+
+### Infrastructure Components
+
+```mermaid
+graph TB
+    subgraph "User Devices"
+        U1[Browser PWA]
+        U2[Desktop App]
+        U3[Mobile App]
+    end
+
+    subgraph "Signaling Layer"
+        S1[Signaling Server 1]
+        S2[Signaling Server 2]
+        S3[Signaling Server N]
+    end
+
+    subgraph "Relay Layer"
+        R1[Relay Node 1]
+        R2[Relay Node 2]
+        R3[Relay Node N]
+    end
+
+    subgraph "Bootstrap Layer"
+        B1[Bootstrap Node 1]
+        B2[Bootstrap Node 2]
+    end
+
+    subgraph "Storage Layer (DePIN)"
+        D1[Storage Node 1]
+        D2[Storage Node 2]
+        D3[Storage Node N]
+    end
+
+    U1 <--> S1
+    U2 <--> S2
+    U3 <--> S3
+
+    U1 <-.-> R1
+    U2 <-.-> R2
+
+    U1 --> B1
+    U2 --> B2
+
+    U1 -.-> D1
+    U2 -.-> D2
+    U3 -.-> D3
+
+    S1 <--> S2
+    S2 <--> S3
+    R1 <--> R2
+    R2 <--> R3
+    D1 <--> D2
+    D2 <--> D3
+```
+
+### xNet SDK Usage Example
+
+```typescript
+import { XNet } from '@xnet/sdk';
+
+// Initialize xNet client
+const xnet = new XNet({
+  identity: await XNet.createIdentity(), // or load existing
+  storage: 'indexeddb',
+  signaling: ['wss://signal1.xnet.io', 'wss://signal2.xnet.io'],
+});
+
+// Create or join a workspace
+const workspace = await xnet.workspace.create({
+  name: 'My Team Workspace',
+  encryption: 'e2e', // end-to-end encrypted
+});
+
+// Create a document
+const doc = await workspace.document.create({
+  type: 'Page',
+  content: {
+    title: 'Welcome',
+    body: { type: 'doc', content: [] },
+  },
+});
+
+// Subscribe to real-time updates
+doc.subscribe((changes) => {
+  console.log('Document updated:', changes);
+});
+
+// Invite collaborators
+const invite = await workspace.createInvite({
+  permissions: ['read', 'write'],
+  expiresIn: '7d',
+});
+console.log('Share this link:', invite.url);
+
+// Query documents
+const pages = await workspace.query({
+  type: 'Page',
+  where: { 'content.title': { $contains: 'Welcome' } },
+  orderBy: { updatedAt: 'desc' },
+  limit: 10,
+});
+```
+
+---
+
+## Development Tracks & Timeline
+
+xNet and xNotes are developed in parallel with dependencies mapped carefully.
+
+### Parallel Development Tracks
+
+```mermaid
+gantt
+    title xNet & xNotes Development Timeline
+    dateFormat  YYYY-MM
+    axisFormat  %b %Y
+
+    section xNet Core
+    @xnet/crypto (encryption)       :xc1, 2026-01, 2M
+    @xnet/identity (DID/UCAN)       :xc2, 2026-01, 3M
+    @xnet/storage (IndexedDB)       :xc3, 2026-02, 2M
+    @xnet/data (CRDT engine)        :xc4, 2026-02, 4M
+    @xnet/network (libp2p basic)    :xc5, 2026-03, 3M
+    @xnet/query (local queries)     :xc6, 2026-05, 2M
+    @xnet/sdk v1.0                  :milestone, 2026-06, 0d
+    @xnet/network (relay/NAT)       :xc7, 2026-06, 3M
+    @xnet/vectors (embeddings)      :xc8, 2026-08, 2M
+    @xnet/query (federation)        :xc9, 2026-09, 3M
+    @xnet/sdk v2.0                  :milestone, 2026-12, 0d
+
+    section Infrastructure
+    Signaling server v1             :xi1, 2026-03, 2M
+    Bootstrap nodes                 :xi2, 2026-04, 1M
+    Relay nodes                     :xi3, 2026-06, 2M
+    DePIN storage nodes             :xi4, 2026-10, 4M
+
+    section xNotes App
+    Project setup & design system   :xn1, 2026-01, 2M
+    Rich text editor                :xn2, 2026-02, 3M
+    Basic wiki (pages, links)       :xn3, 2026-03, 3M
+    Offline & local persistence     :xn4, 2026-04, 2M
+    P2P sync integration            :xn5, 2026-05, 2M
+    Real-time collaboration         :xn6, 2026-06, 2M
+    xNotes MVP                      :milestone, 2026-07, 0d
+    Task manager                    :xn7, 2026-07, 3M
+    Search & backlinks              :xn8, 2026-08, 2M
+    Version history                 :xn9, 2026-09, 2M
+    xNotes v1.0                     :milestone, 2026-12, 0d
+    Database views                  :xn10, 2027-01, 4M
+    Formulas & rollups              :xn11, 2027-04, 3M
+    xNotes v2.0 (Notion parity)     :milestone, 2027-06, 0d
+```
+
+### Dependency Map
+
+```mermaid
+flowchart LR
+    subgraph "Month 1-2"
+        C[crypto]
+        I[identity]
+        S[storage]
+    end
+
+    subgraph "Month 2-4"
+        D[data/CRDT]
+    end
+
+    subgraph "Month 3-5"
+        N1[network/basic]
+    end
+
+    subgraph "Month 5-6"
+        Q1[query/local]
+        SDK1[SDK v1.0]
+    end
+
+    subgraph "Month 6+"
+        N2[network/relay]
+        V[vectors]
+        Q2[query/federation]
+        SDK2[SDK v2.0]
+    end
+
+    C --> I
+    C --> D
+    I --> D
+    S --> D
+    D --> N1
+    D --> Q1
+    N1 --> SDK1
+    Q1 --> SDK1
+    SDK1 --> N2
+    SDK1 --> V
+    N2 --> Q2
+    V --> Q2
+    Q2 --> SDK2
+
+    subgraph "xNotes Dependencies"
+        XN1[Editor] --> XN2[Wiki]
+        SDK1 --> XN3[P2P Sync]
+        XN2 --> XN3
+        XN3 --> XN4[Collaboration]
+        XN4 --> XN5[MVP]
+    end
+
+    style SDK1 fill:#4caf50,color:#fff
+    style SDK2 fill:#4caf50,color:#fff
+    style XN5 fill:#2196f3,color:#fff
+```
+
+### Team Allocation
+
+```mermaid
+pie title Team Allocation by Track (Phase 1)
+    "xNet Core (Platform)" : 40
+    "xNotes App (Product)" : 45
+    "Infrastructure" : 10
+    "DevOps & Security" : 5
+```
+
+| Track | Engineers | Focus |
+|-------|-----------|-------|
+| xNet Core | 3-4 | SDK packages, protocols, cryptography |
+| xNotes App | 4-5 | UI components, features, UX |
+| Infrastructure | 1 | Signaling, relay, bootstrap nodes |
+| DevOps/Security | 1 | CI/CD, audits, monitoring |
+
+### Integration Milestones
+
+| Milestone | xNet Dependency | xNotes Feature | Target |
+|-----------|-----------------|----------------|--------|
+| M1 | @xnet/storage | Offline persistence | Month 3 |
+| M2 | @xnet/data | CRDT-based documents | Month 4 |
+| M3 | @xnet/identity | User accounts, workspaces | Month 4 |
+| M4 | @xnet/network | P2P document sync | Month 5 |
+| M5 | @xnet/crypto | E2E encryption | Month 6 |
+| M6 | @xnet/sdk v1.0 | **xNotes MVP** | Month 7 |
+| M7 | @xnet/query | Full-text search | Month 8 |
+| M8 | @xnet/vectors | Semantic search | Month 10 |
+| M9 | @xnet/sdk v2.0 | **xNotes v1.0** | Month 12 |
 
 ---
 
@@ -2112,35 +2701,50 @@ Sprint 47-48:  Performance optimization, caching
 
 ### 3.1 Module Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            xNotes ERP Platform                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                              CORE FRAMEWORK                                 │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │   Module    │ │   Workflow  │ │  Dashboard  │ │    Plugin   │           │
-│  │   System    │ │   Engine    │ │   Builder   │ │   Runtime   │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                            BUSINESS MODULES                                 │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │     CRM     │ │     HRM     │ │  Inventory  │ │   Finance   │           │
-│  │ Contacts    │ │ Employees   │ │ Products    │ │ Invoicing   │           │
-│  │ Deals       │ │ Recruiting  │ │ Warehouses  │ │ Expenses    │           │
-│  │ Campaigns   │ │ Payroll     │ │ Orders      │ │ Budgets     │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │   Project   │ │Supply Chain │ │  Analytics  │ │   Custom    │           │
-│  │ Management  │ │ Procurement │ │ Dashboards  │ │  Modules    │           │
-│  │ Resources   │ │ Suppliers   │ │ Reports     │ │  (Plugins)  │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                          INTEGRATION LAYER                                  │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │  REST API   │ │  Webhooks   │ │   OAuth     │ │   Legacy    │           │
-│  │  Gateway    │ │   System    │ │   Bridge    │ │   Adapter   │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+graph TB
+    subgraph Platform["xNotes ERP Platform"]
+
+        subgraph Core["CORE FRAMEWORK"]
+            direction LR
+            ModSys[Module System]
+            Workflow[Workflow Engine]
+            DashBuilder[Dashboard Builder]
+            PluginRT[Plugin Runtime]
+        end
+
+        subgraph Business["BUSINESS MODULES"]
+            subgraph Row1[" "]
+                direction LR
+                CRM["CRM<br/>• Contacts<br/>• Deals<br/>• Campaigns"]
+                HRM["HRM<br/>• Employees<br/>• Recruiting<br/>• Payroll"]
+                INV["Inventory<br/>• Products<br/>• Warehouses<br/>• Orders"]
+                FIN["Finance<br/>• Invoicing<br/>• Expenses<br/>• Budgets"]
+            end
+            subgraph Row2[" "]
+                direction LR
+                PM["Project Mgmt<br/>• Resources"]
+                SCM["Supply Chain<br/>• Procurement<br/>• Suppliers"]
+                Analytics["Analytics<br/>• Dashboards<br/>• Reports"]
+                Custom["Custom<br/>• Plugins"]
+            end
+        end
+
+        subgraph Integration["INTEGRATION LAYER"]
+            direction LR
+            REST[REST API Gateway]
+            Webhooks[Webhooks System]
+            OAuth[OAuth Bridge]
+            Legacy[Legacy Adapter]
+        end
+    end
+
+    Core --> Business
+    Business --> Integration
+
+    style Core fill:#e8f5e9
+    style Business fill:#e3f2fd
+    style Integration fill:#fff3e0
 ```
 
 ### 3.2 Module System
@@ -3483,54 +4087,58 @@ $XNOTES Token Utility:
 
 ### Adoption Funnel
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        AWARENESS                                │
-│  • Developer content (blog, YouTube, podcasts)                  │
-│  • Open source community engagement                             │
-│  • Privacy-focused publications                                 │
-│  • Comparison content (vs Notion/Asana/Monday)                  │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                       ACQUISITION                               │
-│  • Free tier with full functionality                            │
-│  • One-click templates (personal wiki, team tasks)              │
-│  • Import from Notion/Roam/Obsidian                             │
-│  • Browser extension for quick capture                          │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                       ACTIVATION                                │
-│  • Interactive onboarding tour                                  │
-│  • Pre-populated sample workspace                               │
-│  • Quick wins (create first page in <2 min)                     │
-│  • Keyboard shortcut tutorial                                   │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                        RETENTION                                │
-│  • Daily digest / notifications                                 │
-│  • Graph view gamification                                      │
-│  • Weekly "workspace insights"                                  │
-│  • Community templates & showcases                              │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                        REFERRAL                                 │
-│  • Easy workspace sharing                                       │
-│  • Referral rewards (extended storage)                          │
-│  • Team conversion incentives                                   │
-│  • Public workspace showcase                                    │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                        REVENUE                                  │
-│  • Team tier upsell at 4+ members                               │
-│  • Enterprise for compliance needs                              │
-│  • Marketplace revenue share                                    │
-│  • Token ecosystem                                              │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph A["AWARENESS"]
+        A1["• Developer content (blog, YouTube, podcasts)"]
+        A2["• Open source community engagement"]
+        A3["• Privacy-focused publications"]
+        A4["• Comparison content (vs Notion/Asana/Monday)"]
+    end
+
+    subgraph B["ACQUISITION"]
+        B1["• Free tier with full functionality"]
+        B2["• One-click templates (personal wiki, team tasks)"]
+        B3["• Import from Notion/Roam/Obsidian"]
+        B4["• Browser extension for quick capture"]
+    end
+
+    subgraph C["ACTIVATION"]
+        C1["• Interactive onboarding tour"]
+        C2["• Pre-populated sample workspace"]
+        C3["• Quick wins (create first page in <2 min)"]
+        C4["• Keyboard shortcut tutorial"]
+    end
+
+    subgraph D["RETENTION"]
+        D1["• Daily digest / notifications"]
+        D2["• Graph view gamification"]
+        D3["• Weekly workspace insights"]
+        D4["• Community templates & showcases"]
+    end
+
+    subgraph E["REFERRAL"]
+        E1["• Easy workspace sharing"]
+        E2["• Referral rewards (extended storage)"]
+        E3["• Team conversion incentives"]
+        E4["• Public workspace showcase"]
+    end
+
+    subgraph F["REVENUE"]
+        F1["• Team tier upsell at 4+ members"]
+        F2["• Enterprise for compliance needs"]
+        F3["• Marketplace revenue share"]
+        F4["• Token ecosystem"]
+    end
+
+    A --> B --> C --> D --> E --> F
+
+    style A fill:#e3f2fd
+    style B fill:#e8f5e9
+    style C fill:#fff3e0
+    style D fill:#f3e5f5
+    style E fill:#e0f2f1
+    style F fill:#fce4ec
 ```
 
 ### Community Building
@@ -3721,120 +4329,126 @@ interface SignalingChannel {
 
 #### Data Flow
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              USER INTERACTION                               │
-│                                    │                                        │
-│                                    ▼                                        │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                         REACT COMPONENTS                             │   │
-│  │   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐           │   │
-│  │   │  Editor  │  │  Tasks   │  │ Database │  │ Dashboard│           │   │
-│  │   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘           │   │
-│  └────────┼─────────────┼─────────────┼─────────────┼───────────────────┘   │
-│           │             │             │             │                       │
-│           └─────────────┴──────┬──────┴─────────────┘                       │
-│                                │                                            │
-│                                ▼                                            │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                          ZUSTAND STORES                              │   │
-│  │   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐             │   │
-│  │   │ WorkspaceStore│  │  PageStore   │  │  TaskStore   │             │   │
-│  │   └───────┬──────┘  └───────┬──────┘  └───────┬──────┘             │   │
-│  └───────────┼─────────────────┼─────────────────┼───────────────────────┘   │
-│              │                 │                 │                          │
-│              └─────────────────┴────────┬────────┘                          │
-│                                         │                                   │
-│                                         ▼                                   │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                         YJS DOCUMENT (CRDT)                          │   │
-│  │   ┌──────────────────────────────────────────────────────────────┐  │   │
-│  │   │  Y.Doc                                                        │  │   │
-│  │   │  ├── Y.Map('blocks')     ◄──── All block data                 │  │   │
-│  │   │  ├── Y.Map('pages')      ◄──── Page metadata                  │  │   │
-│  │   │  ├── Y.Map('tasks')      ◄──── Task metadata                  │  │   │
-│  │   │  └── Y.XmlFragment(*)    ◄──── Rich text per page             │  │   │
-│  │   └──────────────────────────────────────────────────────────────┘  │   │
-│  └──────────────────────────────────┬──────────────────────────────────┘   │
-│                                     │                                      │
-│              ┌──────────────────────┴──────────────────────┐               │
-│              │                                              │               │
-│              ▼                                              ▼               │
-│  ┌───────────────────────┐                    ┌───────────────────────┐    │
-│  │    y-indexeddb        │                    │      y-webrtc         │    │
-│  │  (Local Persistence)  │                    │    (P2P Sync)         │    │
-│  └───────────┬───────────┘                    └───────────┬───────────┘    │
-│              │                                            │                │
-│              ▼                                            ▼                │
-│  ┌───────────────────────┐                    ┌───────────────────────┐    │
-│  │      IndexedDB        │                    │     WebRTC Peers      │    │
-│  │   (Browser Storage)   │                    │   (Other Devices)     │    │
-│  └───────────────────────┘                    └───────────────────────┘    │
-│                                                                            │
-└────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph UI["User Interaction"]
+        direction TB
+        subgraph Components["React Components"]
+            Editor[Editor]
+            Tasks[Tasks]
+            Database[Database]
+            Dashboard[Dashboard]
+        end
+    end
+
+    subgraph State["Zustand Stores"]
+        WorkspaceStore[WorkspaceStore]
+        PageStore[PageStore]
+        TaskStore[TaskStore]
+    end
+
+    subgraph CRDT["YJS Document (CRDT)"]
+        YDoc[Y.Doc]
+        Blocks["Y.Map('blocks')"]
+        Pages["Y.Map('pages')"]
+        TasksMap["Y.Map('tasks')"]
+        XmlFrag["Y.XmlFragment(*)"]
+        YDoc --> Blocks
+        YDoc --> Pages
+        YDoc --> TasksMap
+        YDoc --> XmlFrag
+    end
+
+    subgraph Persistence["Persistence Layer"]
+        direction LR
+        IndexedDBProvider[y-indexeddb]
+        WebRTCProvider[y-webrtc]
+    end
+
+    subgraph Storage["Storage"]
+        direction LR
+        IDB[(IndexedDB)]
+        Peers[WebRTC Peers]
+    end
+
+    Editor --> WorkspaceStore
+    Tasks --> TaskStore
+    Database --> PageStore
+    Dashboard --> WorkspaceStore
+
+    WorkspaceStore --> YDoc
+    PageStore --> YDoc
+    TaskStore --> YDoc
+
+    CRDT --> IndexedDBProvider
+    CRDT --> WebRTCProvider
+
+    IndexedDBProvider --> IDB
+    WebRTCProvider --> Peers
+
+    style UI fill:#e3f2fd
+    style State fill:#fff3e0
+    style CRDT fill:#e8f5e9
+    style Storage fill:#fce4ec
 ```
 
 #### Module System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            MODULE REGISTRY                                  │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                         Core Modules                                 │   │
-│  │   ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────────┐  │   │
-│  │   │  Wiki   │  │  Tasks  │  │Database │  │Dashboard│  │ Search  │  │   │
-│  │   └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘  └────┬────┘  │   │
-│  └────────┼────────────┼────────────┼────────────┼────────────┼────────┘   │
-│           │            │            │            │            │            │
-│           └────────────┴────────────┴─────┬──────┴────────────┘            │
-│                                           │                                │
-│                                           ▼                                │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                        MODULE LOADER                                 │   │
-│  │  • Resolves dependencies                                             │   │
-│  │  • Validates manifests                                               │   │
-│  │  • Manages lifecycle hooks                                           │   │
-│  │  • Handles permissions                                               │   │
-│  └──────────────────────────────┬──────────────────────────────────────┘   │
-│                                 │                                          │
-│                                 ▼                                          │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                      EXTENSION POINTS                                │   │
-│  │                                                                       │   │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │   │
-│  │  │   Schema     │  │  Components  │  │   Workflows  │               │   │
-│  │  │  Extensions  │  │  Extensions  │  │  Extensions  │               │   │
-│  │  │              │  │              │  │              │               │   │
-│  │  │ • Properties │  │ • Pages      │  │ • Triggers   │               │   │
-│  │  │ • Databases  │  │ • Widgets    │  │ • Actions    │               │   │
-│  │  │ • Relations  │  │ • Actions    │  │ • Conditions │               │   │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘               │   │
-│  │                                                                       │   │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐               │   │
-│  │  │     API      │  │  Commands    │  │   Settings   │               │   │
-│  │  │  Extensions  │  │  Extensions  │  │  Extensions  │               │   │
-│  │  │              │  │              │  │              │               │   │
-│  │  │ • Endpoints  │  │ • Shortcuts  │  │ • Module     │               │   │
-│  │  │ • Webhooks   │  │ • Palette    │  │   config     │               │   │
-│  │  │ • Middleware │  │ • Context    │  │ • User prefs │               │   │
-│  │  └──────────────┘  └──────────────┘  └──────────────┘               │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                            │
-│                    ┌───────────────────────────────┐                       │
-│                    │       BUSINESS MODULES        │                       │
-│                    │                               │                       │
-│                    │  ┌─────┐ ┌─────┐ ┌─────┐    │                       │
-│                    │  │ CRM │ │ HRM │ │ INV │ ...│                       │
-│                    │  └─────┘ └─────┘ └─────┘    │                       │
-│                    │                               │                       │
-│                    │       THIRD-PARTY PLUGINS     │                       │
-│                    │                               │                       │
-│                    │  ┌─────┐ ┌─────┐ ┌─────┐    │                       │
-│                    │  │ AI  │ │Chart│ │ Git │ ...│                       │
-│                    │  └─────┘ └─────┘ └─────┘    │                       │
-│                    └───────────────────────────────┘                       │
-│                                                                            │
-└────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Registry["MODULE REGISTRY"]
+        subgraph Core["Core Modules"]
+            Wiki[Wiki]
+            TasksMod[Tasks]
+            DatabaseMod[Database]
+            DashboardMod[Dashboard]
+            SearchMod[Search]
+        end
+    end
+
+    subgraph Loader["MODULE LOADER"]
+        L1[Resolves dependencies]
+        L2[Validates manifests]
+        L3[Manages lifecycle hooks]
+        L4[Handles permissions]
+    end
+
+    subgraph Extensions["EXTENSION POINTS"]
+        subgraph Row1[" "]
+            direction LR
+            Schema["Schema Extensions<br/>• Properties<br/>• Databases<br/>• Relations"]
+            Components["Component Extensions<br/>• Pages<br/>• Widgets<br/>• Actions"]
+            Workflows["Workflow Extensions<br/>• Triggers<br/>• Actions<br/>• Conditions"]
+        end
+        subgraph Row2[" "]
+            direction LR
+            API["API Extensions<br/>• Endpoints<br/>• Webhooks<br/>• Middleware"]
+            Commands["Command Extensions<br/>• Shortcuts<br/>• Palette<br/>• Context"]
+            Settings["Settings Extensions<br/>• Module config<br/>• User prefs"]
+        end
+    end
+
+    subgraph Plugins["INSTALLED MODULES"]
+        subgraph Business["Business Modules"]
+            CRM[CRM]
+            HRM[HRM]
+            INV[Inventory]
+        end
+        subgraph ThirdParty["Third-Party Plugins"]
+            AI[AI]
+            Charts[Charts]
+            Git[Git]
+        end
+    end
+
+    Core --> Loader
+    Loader --> Extensions
+    Extensions --> Plugins
+
+    style Registry fill:#e8f5e9
+    style Loader fill:#fff3e0
+    style Extensions fill:#e3f2fd
+    style Plugins fill:#fce4ec
 ```
 
 ### C. Wireframe Pseudocode
