@@ -145,8 +145,8 @@ export function createXNetStore(config: StoreConfig): XNetStore {
       meta.set('createdBy', '')
       meta.set('archived', false)
 
-      // Initialize content text for the Editor
-      ydoc.getText('content')
+      // Initialize content fragment for the Editor (Tiptap uses XmlFragment)
+      ydoc.getXmlFragment('content')
 
       const doc: XDocument = {
         id,
