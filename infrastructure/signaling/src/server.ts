@@ -1,39 +1,61 @@
 /**
  * xNet Signaling Server
  *
- * WebSocket server for WebRTC signaling (SDP exchange).
- * Peers connect to rooms to discover and signal each other.
+ * WebSocket server for WebRTC signaling compatible with y-webrtc.
+ * Uses the y-webrtc pub/sub protocol for peer discovery and signaling.
+ *
+ * Protocol:
+ * - Client sends: { type: 'subscribe', topics: ['room1', 'room2'] }
+ * - Client sends: { type: 'unsubscribe', topics: ['room1'] }
+ * - Client sends: { type: 'publish', topic: 'room1', data: {...} }
+ * - Server sends: { type: 'publish', topic: 'room1', data: {...} }
+ * - Client sends: { type: 'ping' }
+ * - Server sends: { type: 'pong' }
  */
 import { WebSocketServer, WebSocket } from 'ws'
 import { createServer, IncomingMessage, ServerResponse } from 'http'
 
 // Types
-interface Room {
-  clients: Map<string, WebSocket>
+interface Topic {
+  subscribers: Set<WebSocket>
 }
 
 interface SignalMessage {
-  type: 'join' | 'leave' | 'signal' | 'peers' | 'ping' | 'pong'
-  room?: string
-  peerId?: string
-  targetPeerId?: string
-  signal?: unknown
+  type: 'subscribe' | 'unsubscribe' | 'publish' | 'ping' | 'pong'
+  topics?: string[]
+  topic?: string
+  data?: unknown
 }
 
 // State
-const rooms = new Map<string, Room>()
+const topics = new Map<string, Topic>()
+
+// Track subscriptions per client for cleanup
+const clientSubscriptions = new WeakMap<WebSocket, Set<string>>()
 
 // Create HTTP server for health checks
 const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
+  // Handle CORS preflight
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204)
+    res.end()
+    return
+  }
+
   if (req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({
-      status: 'healthy',
-      uptime: process.uptime(),
-      rooms: rooms.size,
-      connections: getTotalConnections(),
-      version: process.env.VERSION || '0.0.1'
-    }))
+    res.end(
+      JSON.stringify({
+        status: 'healthy',
+        uptime: process.uptime(),
+        topics: topics.size,
+        connections: getTotalConnections(),
+        version: process.env.VERSION || '0.0.1'
+      })
+    )
     return
   }
 
@@ -51,35 +73,27 @@ const httpServer = createServer((req: IncomingMessage, res: ServerResponse) => {
 const wss = new WebSocketServer({ server: httpServer })
 
 wss.on('connection', (ws, req) => {
-  let currentRoom: string | null = null
-  let currentPeerId: string | null = null
+  // Initialize client's subscription set
+  clientSubscriptions.set(ws, new Set())
 
   console.log(`New connection from ${req.socket.remoteAddress}`)
 
-  ws.on('message', (data) => {
+  ws.on('message', (rawData) => {
     try {
-      const message: SignalMessage = JSON.parse(data.toString())
+      const message: SignalMessage = JSON.parse(rawData.toString())
 
       switch (message.type) {
-        case 'join':
-          if (message.room && message.peerId) {
-            handleJoin(ws, message.room, message.peerId)
-            currentRoom = message.room
-            currentPeerId = message.peerId
-          }
+        case 'subscribe':
+          handleSubscribe(ws, message.topics || [])
           break
 
-        case 'signal':
-          if (message.room && message.peerId && message.targetPeerId && message.signal) {
-            handleSignal(message.room, message.peerId, message.targetPeerId, message.signal)
-          }
+        case 'unsubscribe':
+          handleUnsubscribe(ws, message.topics || [])
           break
 
-        case 'leave':
-          if (currentRoom && currentPeerId) {
-            handleLeave(currentRoom, currentPeerId)
-            currentRoom = null
-            currentPeerId = null
+        case 'publish':
+          if (message.topic) {
+            handlePublish(ws, message.topic, message.data)
           }
           break
 
@@ -93,10 +107,12 @@ wss.on('connection', (ws, req) => {
   })
 
   ws.on('close', () => {
-    if (currentRoom && currentPeerId) {
-      handleLeave(currentRoom, currentPeerId)
+    // Unsubscribe from all topics
+    const subs = clientSubscriptions.get(ws)
+    if (subs) {
+      handleUnsubscribe(ws, Array.from(subs))
     }
-    console.log(`Connection closed: ${currentPeerId || 'unknown'}`)
+    console.log('Connection closed')
   })
 
   ws.on('error', (err) => {
@@ -105,93 +121,74 @@ wss.on('connection', (ws, req) => {
 })
 
 /**
- * Handle peer joining a room
+ * Handle client subscribing to topics
  */
-function handleJoin(ws: WebSocket, room: string, peerId: string) {
-  if (!rooms.has(room)) {
-    rooms.set(room, { clients: new Map() })
-  }
+function handleSubscribe(ws: WebSocket, topicNames: string[]) {
+  const subs = clientSubscriptions.get(ws)!
 
-  const roomData = rooms.get(room)!
-  roomData.clients.set(peerId, ws)
-
-  // Notify new peer of existing peers
-  const existingPeers = Array.from(roomData.clients.keys()).filter(id => id !== peerId)
-  ws.send(JSON.stringify({
-    type: 'peers',
-    room,
-    peers: existingPeers
-  }))
-
-  // Notify existing peers of new peer
-  roomData.clients.forEach((client, id) => {
-    if (id !== peerId && client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({
-        type: 'join',
-        room,
-        peerId
-      }))
+  for (const topicName of topicNames) {
+    if (!topics.has(topicName)) {
+      topics.set(topicName, { subscribers: new Set() })
     }
-  })
 
-  console.log(`Peer ${peerId} joined room ${room} (${roomData.clients.size} peers)`)
-}
+    const topic = topics.get(topicName)!
+    topic.subscribers.add(ws)
+    subs.add(topicName)
 
-/**
- * Handle signaling message relay
- */
-function handleSignal(room: string, peerId: string, targetPeerId: string, signal: unknown) {
-  const roomData = rooms.get(room)
-  if (!roomData) return
-
-  const targetClient = roomData.clients.get(targetPeerId)
-  if (targetClient && targetClient.readyState === WebSocket.OPEN) {
-    targetClient.send(JSON.stringify({
-      type: 'signal',
-      room,
-      peerId, // Sender
-      signal
-    }))
+    console.log(`Client subscribed to ${topicName} (${topic.subscribers.size} subscribers)`)
   }
 }
 
 /**
- * Handle peer leaving a room
+ * Handle client unsubscribing from topics
  */
-function handleLeave(room: string, peerId: string) {
-  const roomData = rooms.get(room)
-  if (!roomData) return
+function handleUnsubscribe(ws: WebSocket, topicNames: string[]) {
+  const subs = clientSubscriptions.get(ws)
 
-  roomData.clients.delete(peerId)
+  for (const topicName of topicNames) {
+    const topic = topics.get(topicName)
+    if (topic) {
+      topic.subscribers.delete(ws)
+      subs?.delete(topicName)
 
-  // Notify remaining peers
-  roomData.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({
-        type: 'leave',
-        room,
-        peerId
-      }))
+      // Clean up empty topics
+      if (topic.subscribers.size === 0) {
+        topics.delete(topicName)
+        console.log(`Topic ${topicName} removed (no subscribers)`)
+      }
+    }
+  }
+}
+
+/**
+ * Handle publish message - broadcast to all subscribers except sender
+ */
+function handlePublish(sender: WebSocket, topicName: string, data: unknown) {
+  const topic = topics.get(topicName)
+  if (!topic) return
+
+  const message = JSON.stringify({
+    type: 'publish',
+    topic: topicName,
+    data
+  })
+
+  let sent = 0
+  topic.subscribers.forEach((client) => {
+    if (client !== sender && client.readyState === WebSocket.OPEN) {
+      client.send(message)
+      sent++
     }
   })
 
-  // Clean up empty rooms
-  if (roomData.clients.size === 0) {
-    rooms.delete(room)
-  }
-
-  console.log(`Peer ${peerId} left room ${room}`)
+  console.log(`Published to ${topicName}: ${sent} recipients`)
 }
 
 /**
  * Get total number of connections
  */
 function getTotalConnections(): number {
-  let total = 0
-  rooms.forEach(room => {
-    total += room.clients.size
-  })
-  return total
+  return wss.clients.size
 }
 
 /**
@@ -199,14 +196,23 @@ function getTotalConnections(): number {
  */
 function getPrometheusMetrics(): string {
   const connections = getTotalConnections()
+  let totalSubscriptions = 0
+  topics.forEach((topic) => {
+    totalSubscriptions += topic.subscribers.size
+  })
+
   return `
-# HELP xnet_signaling_rooms_total Total number of active rooms
-# TYPE xnet_signaling_rooms_total gauge
-xnet_signaling_rooms_total ${rooms.size}
+# HELP xnet_signaling_topics_total Total number of active topics
+# TYPE xnet_signaling_topics_total gauge
+xnet_signaling_topics_total ${topics.size}
 
 # HELP xnet_signaling_connections_total Total number of active connections
 # TYPE xnet_signaling_connections_total gauge
 xnet_signaling_connections_total ${connections}
+
+# HELP xnet_signaling_subscriptions_total Total number of active subscriptions
+# TYPE xnet_signaling_subscriptions_total gauge
+xnet_signaling_subscriptions_total ${totalSubscriptions}
 
 # HELP xnet_signaling_uptime_seconds Server uptime in seconds
 # TYPE xnet_signaling_uptime_seconds gauge
@@ -220,6 +226,10 @@ httpServer.listen(PORT, () => {
   console.log(`xNet Signaling Server running on port ${PORT}`)
   console.log(`Health check: http://localhost:${PORT}/health`)
   console.log(`Metrics: http://localhost:${PORT}/metrics`)
+  console.log('')
+  console.log('y-webrtc compatible protocol:')
+  console.log('  subscribe: { type: "subscribe", topics: ["room1"] }')
+  console.log('  publish:   { type: "publish", topic: "room1", data: {...} }')
 })
 
 // Graceful shutdown
