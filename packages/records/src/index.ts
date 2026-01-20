@@ -170,3 +170,12 @@ export type { RecordStorageAdapter, OperationOptions } from './sync/store'
 
 // Adapters
 export { MemoryRecordAdapter } from './sync/memory-adapter'
+
+// P2P Sync Provider
+export { RecordSyncProvider, createRecordSyncProvider } from './sync/provider'
+export type {
+  RecordSyncProviderOptions,
+  PeerState,
+  SyncStatus,
+  RecordSyncEvents
+} from './sync/provider'

@@ -12,33 +12,15 @@ export {
 } from './context'
 
 // Hooks
-export {
-  useDocument,
-  type UseDocumentOptions,
-  type UseDocumentResult
-} from './hooks/useDocument'
+export { useDocument, type UseDocumentOptions, type UseDocumentResult } from './hooks/useDocument'
 
-export {
-  useQuery,
-  type UseQueryOptions,
-  type UseQueryResult
-} from './hooks/useQuery'
+export { useQuery, type UseQueryOptions, type UseQueryResult } from './hooks/useQuery'
 
-export {
-  useSync,
-  type UseSyncResult
-} from './hooks/useSync'
+export { useSync, type UseSyncResult } from './hooks/useSync'
 
-export {
-  usePresence,
-  type UsePresenceResult,
-  type UserPresence
-} from './hooks/usePresence'
+export { usePresence, type UsePresenceResult, type UserPresence } from './hooks/usePresence'
 
-export {
-  useIdentity,
-  type UseIdentityResult
-} from './hooks/useIdentity'
+export { useIdentity, type UseIdentityResult } from './hooks/useIdentity'
 
 export {
   useDocumentSync,
@@ -46,11 +28,13 @@ export {
   type UseDocumentSyncResult
 } from './hooks/useDocumentSync'
 
+export { useEditor, type UseEditorOptions, type UseEditorResult } from './hooks/useEditor'
+
 export {
-  useEditor,
-  type UseEditorOptions,
-  type UseEditorResult
-} from './hooks/useEditor'
+  useRecordSync,
+  type UseRecordSyncOptions,
+  type UseRecordSyncResult
+} from './hooks/useRecordSync'
 
 // Store
 export {
