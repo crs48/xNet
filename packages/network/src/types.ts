@@ -61,13 +61,42 @@ export interface NetworkConfig {
 }
 
 /**
- * Default network configuration
+ * Production network configuration
+ *
+ * Use these settings for deployed applications.
  */
-export const DEFAULT_CONFIG: NetworkConfig = {
-  bootstrapPeers: [
-    // Placeholder - add real bootstrap peers at deployment
+export const PRODUCTION_CONFIG: NetworkConfig = {
+  signalingServers: [
+    'wss://signal-us-west.xnet.io',
+    'wss://signal-us-east.xnet.io',
+    'wss://signal-eu.xnet.io'
   ],
-  signalingServers: ['wss://signaling.xnet.io'],
+  bootstrapPeers: [
+    // Add peer IDs after deploying bootstrap nodes
+    // '/dns4/bootstrap-us-west.xnet.io/tcp/4001/p2p/12D3KooW...',
+    // '/dns4/bootstrap-us-east.xnet.io/tcp/4001/p2p/12D3KooW...',
+    // '/dns4/bootstrap-eu.xnet.io/tcp/4001/p2p/12D3KooW...'
+  ],
   enableDHT: true,
   enableRelay: true
 }
+
+/**
+ * Development network configuration
+ *
+ * Use these settings for local development.
+ */
+export const DEVELOPMENT_CONFIG: NetworkConfig = {
+  signalingServers: ['ws://localhost:4000'],
+  bootstrapPeers: [],
+  enableDHT: false,
+  enableRelay: false
+}
+
+/**
+ * Default network configuration
+ *
+ * Uses development config in development, production config otherwise.
+ */
+export const DEFAULT_CONFIG: NetworkConfig =
+  process.env.NODE_ENV === 'production' ? PRODUCTION_CONFIG : DEVELOPMENT_CONFIG

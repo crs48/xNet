@@ -11,7 +11,7 @@ export type {
   SyncMessage,
   NetworkConfig
 } from './types'
-export { DEFAULT_CONFIG } from './types'
+export { DEFAULT_CONFIG, PRODUCTION_CONFIG, DEVELOPMENT_CONFIG } from './types'
 
 // Node operations
 export {

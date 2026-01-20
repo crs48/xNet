@@ -5,6 +5,7 @@ import { createRootRoute, Outlet, Link } from '@tanstack/react-router'
 import { useSync, useIdentity } from '@xnet/react'
 import { Sidebar } from '../components/Sidebar'
 import { SyncIndicator } from '../components/SyncIndicator'
+import { GlobalSearch } from '../components/GlobalSearch'
 
 export const Route = createRootRoute({
   component: RootLayout
@@ -20,6 +21,7 @@ function RootLayout() {
         <Link to="/" className="logo">
           xNotes
         </Link>
+        <GlobalSearch />
         <div className="header-right">
           <SyncIndicator status={status} peerCount={peerCount} />
           {identity && (
