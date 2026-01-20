@@ -12,22 +12,30 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --external react",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
+    "@xnet/identity": "workspace:*",
+    "@xnet/network": "workspace:*",
     "@xnet/query": "workspace:*",
-    "@xnet/network": "workspace:*"
+    "@xnet/storage": "workspace:*",
+    "zustand": "^5.0.4"
   },
   "peerDependencies": {
-    "react": "^18.0.0"
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.2.0",
     "@types/react": "^18.2.0",
+    "jsdom": "^26.0.0",
     "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0"
   }
 }
