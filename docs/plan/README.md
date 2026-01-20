@@ -30,13 +30,13 @@ graph TB
     end
 
     subgraph "xNet Core Platform"
-        SDK[xNet SDK]
-        DATA[@xnet/data]
-        NET[@xnet/network]
-        ID[@xnet/identity]
-        STORE[@xnet/storage]
-        CRYPTO[@xnet/crypto]
-        QUERY[@xnet/query]
+        SDK["xNet SDK"]
+        DATA["@xnet/data"]
+        NET["@xnet/network"]
+        ID["@xnet/identity"]
+        STORE["@xnet/storage"]
+        CRYPTO["@xnet/crypto"]
+        QUERY["@xnet/query"]
         SDK --> DATA
         SDK --> NET
         SDK --> ID

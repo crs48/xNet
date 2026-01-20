@@ -150,7 +150,7 @@ flowchart LR
     end
 
     subgraph Conditions["CONDITIONS"]
-        If[If/Else]
+        If["If/Else"]
         Filter[Filter]
         Switch[Switch]
     end
