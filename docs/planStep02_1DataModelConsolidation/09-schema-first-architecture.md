@@ -44,24 +44,13 @@ interface Item extends DocumentBase {
 ### Schema-First Approach
 
 ```typescript
-// One universal type
+// Minimal universal type - schema defines everything else
 interface Node {
-  id: string
+  id: string // Unique identifier
   schemaId: SchemaId // What schema defines this node?
-  properties: PropertyBag // Schema-defined properties
-  content?: Y.Doc // Optional rich content
-  children?: NodeId[] // Optional child nodes
 
-  // Metadata
-  created: number
-  updated: number
-  createdBy: DID
-  workspaceId: string
-
-  // JSON-LD
-  '@context'?: JsonLdContext
-  '@type'?: string // Derived from schema
-  '@id'?: string
+  // Everything else is schema-defined (no hardcoded fields)
+  [key: string]: unknown
 }
 
 // Schema defines what a node IS
@@ -506,23 +495,23 @@ class SchemaRegistry {
 
 ```typescript
 // packages/data/src/types/node.ts
+
+// Minimal universal container - everything else is schema-defined
 interface Node {
-  id: string
-  schemaId: SchemaId
-  properties: Record<PropertyId, PropertyValue>
-  content?: Y.Doc
-  children?: NodeId[]
-  parentId?: NodeId
+  id: string // Unique identifier
+  schemaId: SchemaId // What type is this?
 
-  created: number
-  updated: number
-  createdBy: DID
-  workspaceId: string
+  [key: string]: unknown // All other fields come from schema
+}
 
-  // JSON-LD (populated on export)
-  '@context'?: JsonLdContext
-  '@type'?: string
-  '@id'?: string
+// Example: A Task node (fields defined by TaskSchema)
+const task: Node = {
+  id: 'task-123',
+  schemaId: 'xnet://xnet.dev/Task',
+  title: 'Fix the bug',
+  status: 'in-progress',
+  createdAt: 1737500000000, // Optional metadata, schema-defined
+  createdBy: 'did:key:z6Mk...'
 }
 ```
 

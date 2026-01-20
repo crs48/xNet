@@ -165,33 +165,59 @@ flowchart TD
 
 ## Core Concepts
 
-### Node: The Universal Container
+### Node: The Minimal Universal Container
+
+A Node has only 4 universal fields - everything else is schema-defined:
 
 ```typescript
 interface Node {
-  // Identity
-  id: string
-  schemaId: SchemaIRI // What type of node is this?
+  // Identity (required)
+  id: string // Unique identifier
+  schemaId: string // What type? e.g., 'xnet://xnet.dev/Task'
 
-  // Data
-  properties: Record<string, PropertyValue>
-  content?: Y.Doc // Optional rich text (Yjs)
-  children?: string[] // Optional child node IDs
+  // Provenance (required - set once at creation)
+  createdAt: number // Unix timestamp (ms)
+  createdBy: string // DID of creator
 
-  // Metadata
-  workspaceId: string
-  parentId?: string
-  created: number
-  updated: number
-  createdBy: DID
-  updatedBy: DID
-
-  // JSON-LD (populated on export)
-  '@context'?: JsonLdContext
-  '@type'?: string
-  '@id'?: string
+  // Everything else is schema-defined
+  [key: string]: unknown
 }
 ```
+
+**Why these 4 fields?**
+
+- `id` + `schemaId`: Required for identity and type
+- `createdAt` + `createdBy`: Essential for sync, attribution, and debugging in P2P systems
+
+**What's NOT universal:**
+
+- `updatedAt`/`updatedBy`: Can be derived from Change history, or added by schemas that need it
+- `workspaceId`/`parentId`: Not all nodes have these relationships
+- `deleted`: Soft-delete is an application concern
+- `content`/`children`: Schema-defined capabilities, not universal
+
+**Example: A Task Node**
+
+```typescript
+{
+  id: 'task-abc123',
+  schemaId: 'xnet://xnet.dev/Task',
+  createdAt: 1737500000000,
+  createdBy: 'did:key:z6Mk...',
+
+  // Schema-defined fields:
+  title: 'Fix the bug',
+  status: 'in-progress',
+  assignee: 'did:key:z6Mk...',
+  dueDate: '2026-01-25'
+}
+```
+
+**Why minimal?**
+
+- Schemas define ALL domain-specific structure
+- JSON-LD fields (`@context`, `@type`) added only on export, not stored
+- Content (Yjs doc) and children are schema-defined capabilities
 
 ### Schema: The Type Definition
 

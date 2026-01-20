@@ -45,16 +45,17 @@ export const TaskSchema = defineSchema({
 // TypeScript type is INFERRED from the schema definition!
 type Task = InferNode<typeof TaskSchema>
 //   ^? {
+//        id: string,
 //        schemaId: 'xnet://xnet.dev/Task',
-//        properties: {
-//          title: string,
-//          status: 'todo' | 'in-progress' | 'done',
-//          dueDate?: number,
-//          assignee?: string,
-//          priority?: 'low' | 'medium' | 'high'
-//        },
-//        content?: Y.Doc
+//        title: string,                              // Required, at root
+//        status: 'todo' | 'in-progress' | 'done',   // Required, at root
+//        dueDate?: number,                          // Optional
+//        assignee?: string,                         // Optional
+//        priority?: 'low' | 'medium' | 'high'       // Optional
 //      }
+//
+// Note: Properties are flat on the node, not nested under `properties`.
+// Content (Yjs) is a runtime capability, not part of the type.
 ```
 
 ## The Schema Builder API
@@ -262,7 +263,7 @@ The key insight: TypeScript can infer the node type FROM the schema definition:
 // Infer the property type from a property builder
 type InferPropertyType<B> = B extends { _type: infer T } ? T : never
 
-// Infer all properties from a schema's property builders
+// Infer all properties from a schema's property builders (flat, not nested)
 type InferProperties<P extends Record<string, PropertyBuilder>> = {
   [K in keyof P as P[K]['definition']['required'] extends true ? K : never]: InferPropertyType<P[K]>
 } & {
@@ -272,14 +273,21 @@ type InferProperties<P extends Record<string, PropertyBuilder>> = {
 }
 
 // Infer the full node type from a defined schema
+// Properties are FLAT on the node (not nested under `properties`)
 type InferNode<S extends DefinedSchema<any>> = {
   id: string
   schemaId: S['_schemaId']
-  properties: InferProperties<S['_properties']>
-  content?: S['schema']['hasContent'] extends true ? Y.Doc : never
-  children?: S['schema']['hasChildren'] extends true ? string[] : never
-  // ... metadata
-}
+} & InferProperties<S['_properties']>
+
+// Example result for TaskSchema:
+// {
+//   id: string,
+//   schemaId: 'xnet://xnet.dev/Task',
+//   title: string,
+//   status: 'todo' | 'in-progress' | 'done',
+//   dueDate?: number,
+//   ...
+// }
 ```
 
 ## Full Example: Task Schema with Validation
@@ -348,7 +356,8 @@ const task = TaskSchema.create({
 
 // Type guard
 if (TaskSchema.is(someNode)) {
-  someNode.properties.status // TypeScript knows this is 'todo' | 'in-progress' | 'done'
+  someNode.status // TypeScript knows this is 'todo' | 'in-progress' | 'done'
+  // Properties are flat on the node, not nested under `properties`
 }
 
 // Validation at runtime
@@ -376,12 +385,12 @@ export type Task = InferNode<typeof TaskSchema>
 import { TaskSchema, type Task } from './schema'
 
 export function TaskView({ task }: { task: Task }) {
-  // Full type safety!
+  // Full type safety! Properties are flat on the node.
   return (
     <div>
-      <h1>{task.properties.title}</h1>
-      <Badge color={getStatusColor(task.properties.status)}>
-        {task.properties.status}
+      <h1>{task.title}</h1>
+      <Badge color={getStatusColor(task.status)}>
+        {task.status}
       </Badge>
     </div>
   )
