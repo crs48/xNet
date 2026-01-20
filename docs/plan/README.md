@@ -82,6 +82,7 @@ graph TB
 | 11 | [Versioning Strategy](./11-versioning-strategy.md) | Forward-compatibility, no-migration design |
 | 12 | [React Integration](./12-react-integration.md) | @xnet/react hooks, reactive queries, reducing Zustand |
 | 13 | [Identity & Authentication](./13-identity-authentication.md) | Passkeys, DID:key, zero-friction onboarding |
+| 14 | [Notifications & Integrations](./14-notifications-integrations.md) | Push notifications, calendar sync, external services |
 
 **Related Documentation:**
 - [Persistence & Durability Architecture](../PERSISTENCE_ARCHITECTURE.md)
