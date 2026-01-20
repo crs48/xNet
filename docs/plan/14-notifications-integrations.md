@@ -600,6 +600,447 @@ notifications.schedule({
 
 ---
 
+## Workflow Automation (n8n, Make, Zapier)
+
+The real power comes from connecting xNet to the broader automation ecosystem. Since n8n is self-hosted, it fits perfectly with xNet's philosophy.
+
+### Architecture: xNet + n8n
+
+```mermaid
+graph TB
+    subgraph "Your Infrastructure"
+        XNET[xNet Desktop/Server Node]
+        N8N[n8n Server]
+    end
+
+    subgraph "xNet Network"
+        PEER1[Phone]
+        PEER2[Laptop]
+        PEER3[Tablet]
+    end
+
+    subgraph "External Services"
+        GMAIL[Gmail]
+        SLACK[Slack]
+        GITHUB[GitHub]
+        NOTION[Notion]
+        SHEETS[Google Sheets]
+        CRM[CRM]
+    end
+
+    PEER1 <-->|P2P Sync| XNET
+    PEER2 <-->|P2P Sync| XNET
+    PEER3 <-->|P2P Sync| XNET
+
+    XNET <-->|Local API| N8N
+
+    N8N <--> GMAIL
+    N8N <--> SLACK
+    N8N <--> GITHUB
+    N8N <--> NOTION
+    N8N <--> SHEETS
+    N8N <--> CRM
+
+    style XNET fill:#4CAF50,color:#fff
+    style N8N fill:#ff6d5a,color:#fff
+```
+
+**How it works:**
+1. Run an always-on xNet node (desktop app or server)
+2. xNet exposes a local HTTP API
+3. n8n connects to that API on localhost or local network
+4. n8n handles all external service connections
+
+### xNet Local API
+
+xNet exposes a REST/GraphQL API for automation tools:
+
+```typescript
+// Local API server (runs alongside xNet)
+interface XNetLocalAPI {
+  // Base URL: http://localhost:3741 or http://xnet.local:3741
+
+  // Authentication
+  // Uses UCAN tokens - n8n stores token in credentials
+  headers: {
+    'Authorization': 'Bearer <UCAN token>'
+  }
+}
+```
+
+#### API Endpoints
+
+```yaml
+# Tasks
+GET    /api/tasks                    # List tasks
+GET    /api/tasks/:id                # Get task
+POST   /api/tasks                    # Create task
+PATCH  /api/tasks/:id                # Update task
+DELETE /api/tasks/:id                # Delete task
+
+# Pages
+GET    /api/pages                    # List pages
+GET    /api/pages/:id                # Get page (markdown)
+POST   /api/pages                    # Create page
+PATCH  /api/pages/:id                # Update page
+DELETE /api/pages/:id                # Delete page
+
+# Databases
+GET    /api/databases                # List databases
+GET    /api/databases/:id/query      # Query database
+POST   /api/databases/:id/rows       # Create row
+PATCH  /api/databases/:id/rows/:row  # Update row
+
+# Events (for webhooks)
+GET    /api/events                   # Poll for events
+POST   /api/webhooks                 # Register webhook callback
+DELETE /api/webhooks/:id             # Unregister webhook
+
+# Search
+GET    /api/search?q=...             # Full-text search
+```
+
+#### Webhook Events (Outbound)
+
+xNet can notify n8n when things happen:
+
+```typescript
+interface XNetEvent {
+  id: string
+  type: 'task.created' | 'task.updated' | 'task.completed' |
+        'page.created' | 'page.updated' |
+        'database.row.created' | 'database.row.updated' |
+        'comment.created' | 'mention'
+  timestamp: number
+  data: any
+  workspace: string
+}
+
+// n8n registers a webhook
+POST /api/webhooks
+{
+  "url": "http://localhost:5678/webhook/xnet",
+  "events": ["task.created", "task.completed"],
+  "secret": "shared-secret-for-verification"
+}
+
+// xNet POSTs to n8n when events occur
+POST http://localhost:5678/webhook/xnet
+{
+  "event": "task.completed",
+  "data": { "id": "task-123", "title": "Review PR" },
+  "signature": "hmac-sha256-signature"
+}
+```
+
+### n8n Workflow Examples
+
+#### 1. Email to Task
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Gmail     │───▶│    n8n      │───▶│   xNet      │
+│  (trigger)  │    │ (transform) │    │ (create)    │
+└─────────────┘    └─────────────┘    └─────────────┘
+
+Trigger: New email with label "todo"
+Action: Create task in xNet with email subject as title
+```
+
+```json
+// n8n workflow JSON
+{
+  "nodes": [
+    {
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "parameters": {
+        "filters": { "labelIds": ["Label_todo"] }
+      }
+    },
+    {
+      "name": "Create xNet Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3741/api/tasks",
+        "body": {
+          "title": "={{ $json.subject }}",
+          "description": "={{ $json.snippet }}",
+          "metadata": { "emailId": "={{ $json.id }}" }
+        }
+      }
+    }
+  ]
+}
+```
+
+#### 2. Task Completed → Slack Notification
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   xNet      │───▶│    n8n      │───▶│   Slack     │
+│  (webhook)  │    │  (format)   │    │  (post)     │
+└─────────────┘    └─────────────┘    └─────────────┘
+
+Trigger: Task marked complete in xNet
+Action: Post to #team-updates Slack channel
+```
+
+#### 3. GitHub Issue → xNet Task (Two-way Sync)
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   GitHub    │◀──▶│    n8n      │◀──▶│   xNet      │
+│   Issues    │    │   (sync)    │    │   Tasks     │
+└─────────────┘    └─────────────┘    └─────────────┘
+
+- New GitHub issue → Create xNet task
+- xNet task completed → Close GitHub issue
+- Comment on either → Sync to other
+```
+
+#### 4. Daily Digest Email
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   Cron      │───▶│   xNet      │───▶│   Email     │
+│  (8am)      │    │  (query)    │    │  (send)     │
+└─────────────┘    └─────────────┘    └─────────────┘
+
+- Query xNet for tasks due today
+- Query for overdue tasks
+- Format and send email digest
+```
+
+#### 5. CRM Integration
+
+```
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   xNet      │◀──▶│    n8n      │◀──▶│  Salesforce │
+│  Database   │    │   (sync)    │    │  Contacts   │
+└─────────────┘    └─────────────┘    └─────────────┘
+
+- Sync contacts between xNet database and CRM
+- Update xNet when deal closes in CRM
+- Create CRM activity when task completed in xNet
+```
+
+### xNet n8n Node (Custom)
+
+For better DX, we can publish a custom n8n node:
+
+```typescript
+// @xnet/n8n-node
+// Installable in n8n as community node
+
+export class XNetNode implements INodeType {
+  description: INodeTypeDescription = {
+    displayName: 'xNet',
+    name: 'xnet',
+    icon: 'file:xnet.svg',
+    group: ['transform'],
+    version: 1,
+    description: 'Interact with xNet',
+    inputs: ['main'],
+    outputs: ['main'],
+    credentials: [
+      {
+        name: 'xnetApi',
+        required: true,
+      },
+    ],
+    properties: [
+      {
+        displayName: 'Operation',
+        name: 'operation',
+        type: 'options',
+        options: [
+          { name: 'Create Task', value: 'createTask' },
+          { name: 'Update Task', value: 'updateTask' },
+          { name: 'Query Database', value: 'queryDatabase' },
+          { name: 'Create Page', value: 'createPage' },
+          { name: 'Search', value: 'search' },
+        ],
+      },
+      // ... operation-specific fields
+    ],
+  }
+
+  async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+    const operation = this.getNodeParameter('operation', 0)
+    const credentials = await this.getCredentials('xnetApi')
+
+    // Execute operation against xNet local API
+    // ...
+  }
+}
+```
+
+### Deployment Options
+
+#### Option 1: Same Machine (Simplest)
+
+```
+┌────────────────────────────────────────┐
+│            Your Computer               │
+│  ┌──────────────┐  ┌──────────────┐   │
+│  │ xNet Desktop │◀─▶│   n8n        │   │
+│  │ :3741        │  │   :5678      │   │
+│  └──────────────┘  └──────────────┘   │
+└────────────────────────────────────────┘
+```
+
+Both run on your laptop/desktop. Simple localhost communication.
+
+#### Option 2: Home Server / NAS
+
+```
+┌────────────────────────────────────────┐
+│         Home Server / NAS              │
+│  ┌──────────────┐  ┌──────────────┐   │
+│  │ xNet Server  │◀─▶│   n8n        │   │
+│  │  (Docker)    │  │  (Docker)    │   │
+│  └──────────────┘  └──────────────┘   │
+└────────────────────────────────────────┘
+        ▲
+        │ P2P sync
+        ▼
+┌──────────────┐
+│ Your Devices │
+└──────────────┘
+```
+
+Run both on a Synology NAS, Raspberry Pi, or home server.
+
+#### Option 3: Cloud VPS (Self-Hosted)
+
+```
+┌────────────────────────────────────────┐
+│         VPS (DigitalOcean, etc.)       │
+│  ┌──────────────┐  ┌──────────────┐   │
+│  │ xNet Server  │◀─▶│   n8n        │   │
+│  └──────────────┘  └──────────────┘   │
+└────────────────────────────────────────┘
+        ▲
+        │ P2P sync (encrypted)
+        ▼
+┌──────────────┐
+│ Your Devices │
+└──────────────┘
+```
+
+Always-on node in the cloud. You control the server.
+
+### Docker Compose Setup
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  xnet:
+    image: xnet/server:latest
+    ports:
+      - "3741:3741"      # Local API
+      - "4001:4001"      # libp2p
+    volumes:
+      - xnet-data:/data
+    environment:
+      - XNET_API_ENABLED=true
+      - XNET_API_TOKEN=${XNET_API_TOKEN}
+
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n-data:/home/node/.n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_USER}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD}
+    depends_on:
+      - xnet
+
+volumes:
+  xnet-data:
+  n8n-data:
+```
+
+### Security Considerations
+
+| Concern | Mitigation |
+|---------|------------|
+| API exposed to network | Bind to localhost by default; require explicit config for network access |
+| Unauthorized access | UCAN token authentication required |
+| n8n credentials | Stored encrypted in n8n; never touch xNet |
+| Webhook spoofing | HMAC signature verification |
+| Data in transit | TLS for any non-localhost connections |
+
+### Alternative: Make.com / Zapier
+
+For users who don't want to self-host n8n:
+
+```mermaid
+graph TB
+    subgraph "xNet"
+        XNET[xNet + Bridge]
+    end
+
+    subgraph "Cloud Automation"
+        MAKE[Make.com]
+        ZAPIER[Zapier]
+    end
+
+    subgraph "Services"
+        SERVICES[Gmail, Slack, etc.]
+    end
+
+    XNET <-->|Via Bridge| MAKE
+    XNET <-->|Via Bridge| ZAPIER
+    MAKE <--> SERVICES
+    ZAPIER <--> SERVICES
+```
+
+The Integration Bridge (from earlier section) can expose xNet to cloud automation platforms. Less private than n8n, but more convenient for some users.
+
+### Comparison
+
+| Platform | Self-Hosted | Privacy | Ease of Use | Cost |
+|----------|-------------|---------|-------------|------|
+| **n8n** | Yes | High | Medium | Free |
+| **Make.com** | No | Medium | High | Freemium |
+| **Zapier** | No | Medium | High | Paid |
+| **Node-RED** | Yes | High | Low | Free |
+| **Activepieces** | Yes | High | High | Free |
+
+**Recommendation:** Promote n8n as primary option (self-hosted, matches xNet philosophy), but support cloud platforms via bridge for convenience.
+
+### Implementation Phases
+
+#### Phase 1: Local API
+- REST API on localhost
+- UCAN authentication
+- Basic CRUD operations
+
+#### Phase 2: Webhooks
+- Outbound webhook notifications
+- Event subscriptions
+- HMAC verification
+
+#### Phase 3: n8n Node
+- Custom n8n community node
+- Credentials management
+- Pre-built operations
+
+#### Phase 4: Templates
+- Workflow templates for common patterns
+- One-click import to n8n
+- Documentation and tutorials
+
+---
+
 ## Summary
 
 | Component | Server Required? | PWA Support |
@@ -610,8 +1051,9 @@ notifications.schedule({
 | Calendar view | No | Yes |
 | Google Calendar sync | No (native) / Yes (PWA) | Limited |
 | Webhook integrations | Yes (bridge) | Yes |
+| n8n / Workflow automation | No (local API) | N/A (desktop) |
 
-**Key takeaway:** Native apps get the full experience. PWA users should be encouraged to install the native app for notifications and calendar sync.
+**Key takeaway:** Native apps get the full experience. PWA users should be encouraged to install the native app for notifications and calendar sync. For workflow automation, run xNet desktop + n8n on the same machine or a home server.
 
 ---
 
