@@ -30,11 +30,11 @@ flowchart TD
 
 ### Primary Goal: Single Mental Model
 
-Create a unified `Operation<T>` type that both sync mechanisms use:
+Create a unified `Change<T>` type that both sync mechanisms use:
 
 ```typescript
 // One type to rule them all
-interface Operation<T = unknown> {
+interface Change<T = unknown> {
   id: string
   type: string
   payload: T
@@ -46,8 +46,8 @@ interface Operation<T = unknown> {
   vectorClock: VectorClock
 }
 
-// @xnet/data uses: Operation<YjsUpdate>
-// @xnet/records uses: Operation<CreateItem | UpdateItem | DeleteItem>
+// @xnet/data uses: Change<YjsUpdate>
+// @xnet/records uses: Change<CreateItem | UpdateItem | DeleteItem>
 ```
 
 ### Secondary Goal: JSON-Friendly Types
@@ -90,12 +90,12 @@ This consolidation explicitly does NOT:
 
 ### Measurable Outcomes
 
-| Criterion        | Measurement              | Target           |
-| ---------------- | ------------------------ | ---------------- |
-| Test pass rate   | `pnpm test`              | 100%             |
-| Test coverage    | `pnpm test:coverage`     | >80%             |
-| Type duplication | Grep for duplicate types | 0                |
-| Mental models    | Types to learn for sync  | 1 (Operation<T>) |
+| Criterion        | Measurement              | Target        |
+| ---------------- | ------------------------ | ------------- |
+| Test pass rate   | `pnpm test`              | 100%          |
+| Test coverage    | `pnpm test:coverage`     | >80%          |
+| Type duplication | Grep for duplicate types | 0             |
+| Mental models    | Types to learn for sync  | 1 (Change<T>) |
 
 ### Qualitative Outcomes
 
@@ -134,7 +134,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph sync["@xnet/sync (NEW)"]
-        OP["Operation&lt;T&gt;"]
+        OP["Change&lt;T&gt;"]
         CHAIN["Hash chain utils"]
         CLOCK["VectorClock utils"]
         VERIFY["Verification"]
@@ -151,12 +151,12 @@ flowchart TD
 
     subgraph data["@xnet/data"]
         YJS["Yjs wrapper"]
-        YOPS["uses Operation&lt;YjsUpdate&gt;"]
+        YOPS["uses Change&lt;YjsUpdate&gt;"]
     end
 
     subgraph records["@xnet/records"]
         STORE["RecordStore"]
-        ROPS["uses Operation&lt;RecordOp&gt;"]
+        ROPS["uses Change&lt;RecordChange&gt;"]
     end
 
     crypto --> sync
@@ -180,7 +180,7 @@ flowchart TD
 
 ### Phase 1: Create @xnet/sync (Low Risk)
 
-1. Create new package with unified types
+1. Create new package with unified types (`Change<T>`)
 2. Both @xnet/data and @xnet/records import from it
 3. Old types remain for backward compatibility
 4. No behavior changes

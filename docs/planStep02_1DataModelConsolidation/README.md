@@ -65,7 +65,7 @@ Execute these documents in order. Each builds on the previous.
 ### After @xnet/sync
 
 - [ ] Both @xnet/data and @xnet/records import from @xnet/sync
-- [ ] Single Operation<T> type used everywhere
+- [ ] Single Change<T> type used everywhere
 - [ ] Vector clock utils in one place
 - [ ] All existing tests still pass
 
@@ -100,13 +100,13 @@ flowchart LR
     subgraph before["Before"]
         direction TB
         B1["@xnet/data<br/>SignedUpdate"]
-        B2["@xnet/records<br/>RecordOperation"]
+        B2["@xnet/records<br/>RecordChange"]
         B3["Separate hash logic"]
     end
 
     subgraph after["After"]
         direction TB
-        A1["@xnet/sync<br/>Operation&lt;T&gt;"]
+        A1["@xnet/sync<br/>Change&lt;T&gt;"]
         A2["@xnet/data imports sync"]
         A3["@xnet/records imports sync"]
         A4["Unified hash in crypto"]
@@ -148,7 +148,7 @@ This consolidation explicitly does NOT:
 
 After completing this plan:
 
-1. **Single mental model** for "how data syncs" (Operation<T>)
+1. **Single mental model** for "how data syncs" (Change<T>)
 2. **JSON-friendly types** everywhere (no Date objects in storage)
 3. **No code duplication** for hashing, vector clocks, or chains
 4. **All tests pass** with same or better coverage

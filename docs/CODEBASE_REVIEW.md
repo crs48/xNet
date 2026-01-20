@@ -73,11 +73,11 @@ flowchart TD
         direction LR
         subgraph RichText["Rich Text Path"]
             DATA["@xnet/data<br/>(Yjs CRDT)"]
-            SIGNED["SignedUpdate<br/>(hash chain)"]
+            SIGNED["SignedChange<br/>(hash chain)"]
         end
         subgraph Tabular["Tabular Data Path"]
             RECORDS["@xnet/records<br/>(Event-sourced)"]
-            RECOP["RecordOperation<br/>(hash chain)"]
+            RECOP["RecordChange<br/>(hash chain)"]
         end
     end
 
@@ -104,7 +104,7 @@ flowchart LR
     subgraph yjs["Yjs-based (Rich Text)"]
         direction TB
         Y1["@xnet/data wraps Yjs"]
-        Y2["SignedUpdate + vector clocks"]
+        Y2["SignedChange + vector clocks"]
         Y3["y-webrtc sync"]
         Y4["Character-level CRDT merge"]
         Y1 --> Y2 --> Y3 --> Y4
@@ -112,8 +112,8 @@ flowchart LR
 
     subgraph eventsource["Event-sourced (Records)"]
         direction TB
-        E1["@xnet/records operation log"]
-        E2["RecordOperation + LWW"]
+        E1["@xnet/records change log"]
+        E2["RecordChange + LWW"]
         E3["RecordSyncProvider"]
         E4["Field-level last-writer-wins"]
         E1 --> E2 --> E3 --> E4
@@ -122,19 +122,19 @@ flowchart LR
 
 1. **Yjs-based (for rich text):**
    - `@xnet/data` wraps Yjs
-   - Uses `SignedUpdate` with vector clocks
+   - Uses `SignedChange` with vector clocks
    - Syncs via y-webrtc
    - Character-level CRDT merge
 
 2. **Event-sourcing (for records):**
-   - `@xnet/records` implements its own operation log
-   - Uses `RecordOperation` with LWW per-field
+   - `@xnet/records` implements its own change log
+   - Uses `RecordChange` with LWW per-field
    - Has its own `RecordSyncProvider`
    - Field-level last-writer-wins
 
 **This is documented as intentional** (see `TRADEOFFS.md`), but creates:
 
-- Two sets of types to learn (`SignedUpdate` vs `RecordOperation`)
+- Two sets of types to learn (`SignedUpdate` vs `RecordChange`)
 - Two sync providers to maintain
 - Conceptual overhead when reasoning about "how does data sync?"
 
@@ -142,14 +142,14 @@ flowchart LR
 
 Several concepts are defined in multiple places:
 
-| Concept           | Defined In                                       | Notes                |
-| ----------------- | ------------------------------------------------ | -------------------- |
-| `VectorClock`     | `@xnet/core`                                     | Good - single source |
-| `SignedUpdate`    | `@xnet/core`                                     | For Yjs              |
-| `RecordOperation` | `@xnet/records/sync/types`                       | Parallel structure   |
-| `ContentId`       | `@xnet/core`                                     | Good - single source |
-| Hash verification | Both `@xnet/core` and `@xnet/records/sync/store` | Duplicated           |
-| DID type          | `@xnet/core`                                     | Good - re-exported   |
+| Concept           | Defined In                                       | Notes                                        |
+| ----------------- | ------------------------------------------------ | -------------------------------------------- |
+| `VectorClock`     | `@xnet/core`                                     | Good - single source                         |
+| `SignedUpdate`    | `@xnet/core`                                     | For Yjs (→ Change<YjsUpdate>)                |
+| `RecordChange`    | `@xnet/records/sync/types`                       | Parallel structure (→ Change<RecordPayload>) |
+| `ContentId`       | `@xnet/core`                                     | Good - single source                         |
+| Hash verification | Both `@xnet/core` and `@xnet/records/sync/store` | Duplicated                                   |
+| DID type          | `@xnet/core`                                     | Good - re-exported                           |
 
 ---
 
@@ -162,7 +162,7 @@ Create a unified sync abstraction that both Yjs and event-sourcing use:
 ```mermaid
 flowchart LR
     subgraph sync["@xnet/sync (NEW)"]
-        OP["operation.ts<br/>Base operation type"]
+        OP["change.ts<br/>Base change type"]
         CHAIN["chain.ts<br/>Hash chain linkage"]
         CLOCK["clock.ts<br/>Vector clock utils"]
         PROV["provider.ts<br/>Sync provider interface"]
@@ -170,8 +170,8 @@ flowchart LR
     end
 
     subgraph consumers["Consumers"]
-        DATA["@xnet/data<br/>Operation&lt;YjsUpdate&gt;"]
-        RECORDS["@xnet/records<br/>Operation&lt;RecordOp&gt;"]
+        DATA["@xnet/data<br/>Change&lt;YjsUpdate&gt;"]
+        RECORDS["@xnet/records<br/>Change&lt;RecordPayload&gt;"]
     end
 
     sync --> DATA
@@ -181,8 +181,8 @@ flowchart LR
 Then `@xnet/data` and `@xnet/records` both import from `@xnet/sync`:
 
 ```typescript
-// @xnet/sync/operation.ts
-export interface Operation<T = unknown> {
+// @xnet/sync/change.ts
+export interface Change<T = unknown> {
   id: string
   type: string
   payload: T
@@ -194,8 +194,8 @@ export interface Operation<T = unknown> {
   vectorClock: VectorClock
 }
 
-// @xnet/data uses: Operation<YjsUpdate>
-// @xnet/records uses: Operation<CreateItem | UpdateItem | ...>
+// @xnet/data uses: Change<YjsUpdate>
+// @xnet/records uses: Change<CreateItem | UpdateItem | ...>
 ```
 
 **Benefit:** Single mental model for "how data syncs"
@@ -426,7 +426,7 @@ interface ItemState {
   properties: Record<PropertyId, PropertyValue>
   // Remove propertyTimestamps - derive from operation log when needed
   deleted: boolean
-  latestOperationHash: ContentId // Link to operation log
+  latestChangeHash: ContentId // Link to change log
 }
 ```
 
@@ -485,7 +485,7 @@ flowchart TD
     subgraph Foundation["Foundation Layer"]
         CRYPTO["@xnet/crypto<br/>(primitives)"]
         CORE["@xnet/core<br/>(types, CIDs)"]
-        SYNC["@xnet/sync<br/>(NEW: operation chains)"]
+        SYNC["@xnet/sync<br/>(NEW: change chains)"]
     end
 
     subgraph Auth["Auth Layer"]

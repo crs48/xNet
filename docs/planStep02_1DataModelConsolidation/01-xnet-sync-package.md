@@ -8,20 +8,20 @@
 
 ## Overview
 
-Create a new `@xnet/sync` package that provides the base abstractions for all sync operations. Both `@xnet/data` (Yjs) and `@xnet/records` (event-sourcing) will import from this package.
+Create a new `@xnet/sync` package that provides the base abstractions for all sync changes. Both `@xnet/data` (Yjs) and `@xnet/records` (event-sourcing) will import from this package.
 
 ```mermaid
 flowchart TD
     subgraph sync["@xnet/sync (NEW)"]
-        OP["Operation&lt;T&gt;"]
+        OP["Change&lt;T&gt;"]
         CHAIN["ChainManager"]
         CLOCK["VectorClock utils"]
         PROVIDER["SyncProvider interface"]
     end
 
     subgraph consumers["Consumers"]
-        DATA["@xnet/data<br/>Operation&lt;YjsUpdate&gt;"]
-        RECORDS["@xnet/records<br/>Operation&lt;RecordOp&gt;"]
+        DATA["@xnet/data<br/>Change&lt;YjsUpdate&gt;"]
+        RECORDS["@xnet/records<br/>Change&lt;RecordChange&gt;"]
     end
 
     sync --> DATA
@@ -34,13 +34,13 @@ flowchart TD
 packages/sync/
 ├── src/
 │   ├── index.ts           # Public exports
-│   ├── operation.ts       # Operation<T> type and helpers
+│   ├── change.ts          # Change<T> type and helpers
 │   ├── chain.ts           # Hash chain management
 │   ├── clock.ts           # Vector clock utilities
 │   ├── provider.ts        # SyncProvider interface
 │   └── verification.ts    # Signature and hash verification
 ├── test/
-│   ├── operation.test.ts
+│   ├── change.test.ts
 │   ├── chain.test.ts
 │   ├── clock.test.ts
 │   └── verification.test.ts
@@ -50,31 +50,31 @@ packages/sync/
 
 ## Implementation
 
-### Operation Type
+### Change Type
 
 ```typescript
-// packages/sync/src/operation.ts
+// packages/sync/src/change.ts
 
 import type { ContentId, DID, VectorClock } from '@xnet/core'
 
 /**
- * Base operation type for all sync mechanisms.
+ * Base change type for all sync mechanisms.
  * Generic T allows different payload types for different use cases.
  */
-export interface Operation<T = unknown> {
-  /** Unique operation ID */
+export interface Change<T = unknown> {
+  /** Unique change ID */
   id: string
 
-  /** Operation type (e.g., 'yjs-update', 'create-item', 'update-item') */
+  /** Change type (e.g., 'yjs-update', 'create-item', 'update-item') */
   type: string
 
-  /** The actual operation data */
+  /** The actual change data */
   payload: T
 
-  /** Content-addressed hash of this operation */
+  /** Content-addressed hash of this change */
   hash: ContentId
 
-  /** Hash of the previous operation in the chain (null for first) */
+  /** Hash of the previous change in the chain (null for first) */
   parentHash: ContentId | null
 
   /** DID of the author */
@@ -91,9 +91,9 @@ export interface Operation<T = unknown> {
 }
 
 /**
- * Create an operation without hash/signature (for building)
+ * Create a change without hash/signature (for building)
  */
-export interface UnsignedOperation<T = unknown> {
+export interface UnsignedChange<T = unknown> {
   id: string
   type: string
   payload: T
@@ -104,16 +104,16 @@ export interface UnsignedOperation<T = unknown> {
 }
 
 /**
- * Create a signed operation from an unsigned one
+ * Create a signed change from an unsigned one
  */
-export async function signOperation<T>(
-  unsigned: UnsignedOperation<T>,
+export async function signChange<T>(
+  unsigned: UnsignedChange<T>,
   signingKey: Uint8Array
-): Promise<Operation<T>> {
+): Promise<Change<T>> {
   // Implementation uses @xnet/crypto
   const { hashHex, sign } = await import('@xnet/crypto')
 
-  // Hash the operation (excluding hash and signature)
+  // Hash the change (excluding hash and signature)
   const hashInput = JSON.stringify(unsigned)
   const hash = `cid:blake3:${hashHex(new TextEncoder().encode(hashInput))}` as ContentId
 
@@ -128,15 +128,12 @@ export async function signOperation<T>(
 }
 
 /**
- * Verify an operation's signature
+ * Verify a change's signature
  */
-export async function verifyOperation<T>(
-  operation: Operation<T>,
-  publicKey: Uint8Array
-): Promise<boolean> {
+export async function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): Promise<boolean> {
   const { verify } = await import('@xnet/crypto')
 
-  return verify(new TextEncoder().encode(operation.hash), operation.signature, publicKey)
+  return verify(new TextEncoder().encode(change.hash), change.signature, publicKey)
 }
 ```
 
@@ -224,7 +221,7 @@ export function areConcurrent(a: VectorClock, b: VectorClock): boolean {
 // packages/sync/src/chain.ts
 
 import type { ContentId } from '@xnet/core'
-import type { Operation } from './operation'
+import type { Change } from './change'
 
 /**
  * Result of validating a chain
@@ -237,25 +234,25 @@ export interface ChainValidationResult {
 }
 
 /**
- * Validate that operations form a valid hash chain
+ * Validate that changes form a valid hash chain
  */
-export function validateChain<T>(operations: Operation<T>[]): ChainValidationResult {
-  if (operations.length === 0) {
+export function validateChain<T>(changes: Change<T>[]): ChainValidationResult {
+  if (changes.length === 0) {
     return { valid: true }
   }
 
   // Sort by timestamp for validation
-  const sorted = [...operations].sort((a, b) => a.timestamp - b.timestamp)
+  const sorted = [...changes].sort((a, b) => a.timestamp - b.timestamp)
 
-  // Build hash -> operation map
-  const byHash = new Map<ContentId, Operation<T>>()
-  for (const op of sorted) {
-    byHash.set(op.hash, op)
+  // Build hash -> change map
+  const byHash = new Map<ContentId, Change<T>>()
+  for (const change of sorted) {
+    byHash.set(change.hash, change)
   }
 
   // Validate chain linkage
-  for (const op of sorted) {
-    if (op.parentHash !== null && !byHash.has(op.parentHash)) {
+  for (const change of sorted) {
+    if (change.parentHash !== null && !byHash.has(change.parentHash)) {
       // Parent not in our set - could be valid if we don't have full history
       // This is not an error, just incomplete data
       continue
@@ -266,18 +263,18 @@ export function validateChain<T>(operations: Operation<T>[]): ChainValidationRes
 }
 
 /**
- * Detect if there's a fork in the chain (two operations with same parent)
+ * Detect if there's a fork in the chain (two changes with same parent)
  */
-export function detectFork<T>(operations: Operation<T>[]): {
+export function detectFork<T>(changes: Change<T>[]): {
   hasFork: boolean
   forkPoints: ContentId[]
 } {
-  const childrenByParent = new Map<ContentId | null, Operation<T>[]>()
+  const childrenByParent = new Map<ContentId | null, Change<T>[]>()
 
-  for (const op of operations) {
-    const children = childrenByParent.get(op.parentHash) || []
-    children.push(op)
-    childrenByParent.set(op.parentHash, children)
+  for (const change of changes) {
+    const children = childrenByParent.get(change.parentHash) || []
+    children.push(change)
+    childrenByParent.set(change.parentHash, children)
   }
 
   const forkPoints: ContentId[] = []
@@ -294,14 +291,14 @@ export function detectFork<T>(operations: Operation<T>[]): {
 }
 
 /**
- * Get the latest operation(s) in the chain (heads)
+ * Get the latest change(s) in the chain (heads)
  */
-export function getChainHeads<T>(operations: Operation<T>[]): Operation<T>[] {
-  const allHashes = new Set(operations.map((op) => op.hash))
-  const parentHashes = new Set(operations.map((op) => op.parentHash).filter(Boolean))
+export function getChainHeads<T>(changes: Change<T>[]): Change<T>[] {
+  const allHashes = new Set(changes.map((change) => change.hash))
+  const parentHashes = new Set(changes.map((change) => change.parentHash).filter(Boolean))
 
-  // Heads are operations whose hash is not a parent of any other operation
-  return operations.filter((op) => !parentHashes.has(op.hash))
+  // Heads are changes whose hash is not a parent of any other change
+  return changes.filter((change) => !parentHashes.has(change.hash))
 }
 ```
 
@@ -310,20 +307,20 @@ export function getChainHeads<T>(operations: Operation<T>[]): Operation<T>[] {
 ```typescript
 // packages/sync/src/provider.ts
 
-import type { Operation } from './operation'
+import type { Change } from './change'
 
 /**
  * Status of sync connection
  */
-export type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'syncing' | 'error'
+export type SyncStatus = 'disconnected' | 'connecting' | 'synced' | 'syncing' | 'error'
 
 /**
  * Events emitted by sync providers
  */
 export interface SyncProviderEvents<T> {
   'status-change': (status: SyncStatus) => void
-  'operation-received': (operation: Operation<T>) => void
-  'operations-synced': (operations: Operation<T>[]) => void
+  'change-received': (change: Change<T>) => void
+  'changes-synced': (changes: Change<T>[]) => void
   'peer-connected': (peerId: string) => void
   'peer-disconnected': (peerId: string) => void
   error: (error: Error) => void
@@ -345,11 +342,11 @@ export interface SyncProvider<T = unknown> {
   /** Disconnect from sync network */
   disconnect(): Promise<void>
 
-  /** Broadcast an operation to peers */
-  broadcast(operation: Operation<T>): Promise<void>
+  /** Broadcast a change to peers */
+  broadcast(change: Change<T>): Promise<void>
 
-  /** Request operations from a specific peer */
-  requestOperations(peerId: string, since?: string): Promise<Operation<T>[]>
+  /** Request changes from a specific peer */
+  requestChanges(peerId: string, since?: string): Promise<Change<T>[]>
 
   /** Subscribe to events */
   on<E extends keyof SyncProviderEvents<T>>(event: E, listener: SyncProviderEvents<T>[E]): void
@@ -399,7 +396,7 @@ export interface SyncProvider<T = unknown> {
 ### Phase 1: Create Package (Day 1-2)
 
 1. Create `packages/sync/` directory
-2. Implement core types (Operation, VectorClock utils)
+2. Implement core types (Change, VectorClock utils)
 3. Add comprehensive tests
 4. Build and verify
 
@@ -414,10 +411,10 @@ export interface SyncProvider<T = unknown> {
 
 // Re-export from @xnet/sync for backward compatibility
 export {
-  type Operation,
-  type UnsignedOperation,
-  signOperation,
-  verifyOperation,
+  type Change,
+  type UnsignedChange,
+  signChange,
+  verifyChange,
   createVectorClock,
   incrementVectorClock,
   mergeVectorClocks,
@@ -431,15 +428,15 @@ export type { SignedUpdate } from './updates'
 
 ### Phase 3: Update @xnet/data (Day 4)
 
-1. Import Operation from @xnet/sync
+1. Import Change from @xnet/sync
 2. Define `YjsUpdate` payload type
-3. Update SignedUpdate to use Operation<YjsUpdate>
+3. Update SignedUpdate to use Change<YjsUpdate>
 4. Verify tests pass
 
 ```typescript
 // packages/data/src/updates.ts
 
-import { Operation, signOperation } from '@xnet/sync'
+import { Change, signChange } from '@xnet/sync'
 
 /** Yjs-specific update payload */
 export interface YjsUpdate {
@@ -449,25 +446,25 @@ export interface YjsUpdate {
   documentId: string
 }
 
-/** SignedUpdate is now an alias for Operation<YjsUpdate> */
-export type SignedUpdate = Operation<YjsUpdate>
+/** SignedUpdate is now an alias for Change<YjsUpdate> */
+export type SignedUpdate = Change<YjsUpdate>
 
-// Rest of implementation uses signOperation from @xnet/sync
+// Rest of implementation uses signChange from @xnet/sync
 ```
 
 ### Phase 4: Update @xnet/records (Day 5)
 
-1. Import Operation from @xnet/sync
-2. Define record operation payload types
-3. Update RecordOperation to use Operation<RecordPayload>
+1. Import Change from @xnet/sync
+2. Define record change payload types
+3. Update RecordChange to use Change<RecordPayload>
 4. Verify tests pass
 
 ```typescript
 // packages/records/src/sync/types.ts
 
-import { Operation } from '@xnet/sync'
+import { Change } from '@xnet/sync'
 
-/** Record operation payloads */
+/** Record change payloads */
 export type RecordPayload =
   | CreateItemPayload
   | UpdateItemPayload
@@ -484,25 +481,25 @@ export interface CreateItemPayload {
 
 // ... other payload types
 
-/** RecordOperation is now an alias for Operation<RecordPayload> */
-export type RecordOperation = Operation<RecordPayload>
+/** RecordChange is now an alias for Change<RecordPayload> */
+export type RecordChange = Change<RecordPayload>
 ```
 
 ## Tests
 
 ```typescript
-// packages/sync/test/operation.test.ts
+// packages/sync/test/change.test.ts
 
 import { describe, it, expect } from 'vitest'
-import { signOperation, verifyOperation } from '../src/operation'
+import { signChange, verifyChange } from '../src/change'
 import { generateKeyPair } from '@xnet/crypto'
 
-describe('Operation', () => {
-  it('signs and verifies operations', async () => {
+describe('Change', () => {
+  it('signs and verifies changes', async () => {
     const keyPair = await generateKeyPair()
 
     const unsigned = {
-      id: 'op-1',
+      id: 'change-1',
       type: 'test',
       payload: { data: 'hello' },
       parentHash: null,
@@ -511,21 +508,21 @@ describe('Operation', () => {
       vectorClock: { 'did:key:z6Mk...': 1 }
     }
 
-    const signed = await signOperation(unsigned, keyPair.privateKey)
+    const signed = await signChange(unsigned, keyPair.privateKey)
 
     expect(signed.hash).toMatch(/^cid:blake3:/)
     expect(signed.signature).toBeInstanceOf(Uint8Array)
 
-    const valid = await verifyOperation(signed, keyPair.publicKey)
+    const valid = await verifyChange(signed, keyPair.publicKey)
     expect(valid).toBe(true)
   })
 
-  it('detects tampered operations', async () => {
+  it('detects tampered changes', async () => {
     const keyPair = await generateKeyPair()
     const otherKeyPair = await generateKeyPair()
 
     const unsigned = {
-      id: 'op-1',
+      id: 'change-1',
       type: 'test',
       payload: { data: 'hello' },
       parentHash: null,
@@ -534,10 +531,10 @@ describe('Operation', () => {
       vectorClock: {}
     }
 
-    const signed = await signOperation(unsigned, keyPair.privateKey)
+    const signed = await signChange(unsigned, keyPair.privateKey)
 
     // Verify with wrong key should fail
-    const valid = await verifyOperation(signed, otherKeyPair.publicKey)
+    const valid = await verifyChange(signed, otherKeyPair.publicKey)
     expect(valid).toBe(false)
   })
 })
@@ -602,8 +599,8 @@ describe('VectorClock', () => {
 ### Day 1-2: Package Setup
 
 - [ ] Create `packages/sync/` directory structure
-- [ ] Implement `Operation<T>` type
-- [ ] Implement `signOperation` and `verifyOperation`
+- [ ] Implement `Change<T>` type
+- [ ] Implement `signChange` and `verifyChange`
 - [ ] Implement vector clock utilities
 - [ ] Implement chain utilities
 - [ ] Implement SyncProvider interface
@@ -629,7 +626,7 @@ describe('VectorClock', () => {
 
 - [ ] Import from @xnet/sync
 - [ ] Define RecordPayload types
-- [ ] Update RecordOperation type
+- [ ] Update RecordChange type
 - [ ] Verify all @xnet/records tests pass
 
 ### Day 6-7: Documentation & Cleanup
