@@ -7,15 +7,17 @@
 
 ## Current Status
 
-| Component        | Code        | Deployment Config     | Deployed |
-| ---------------- | ----------- | --------------------- | -------- |
-| Signaling Server | Complete    | Complete (fly.toml)   | No       |
-| Bootstrap Node   | Complete    | Partial (no fly.toml) | No       |
-| Relay Node       | Not started | No                    | No       |
+| Component        | Code        | Tests   | Deployment Config     | Deployed |
+| ---------------- | ----------- | ------- | --------------------- | -------- |
+| Signaling Server | Complete    | 7 tests | Complete (fly.toml)   | No       |
+| Bootstrap Node   | Complete    | -       | Partial (no fly.toml) | No       |
+| Relay Node       | Not started | -       | No                    | No       |
 
-**For local development**: Run `cd infrastructure/signaling && npm run dev` to start the signaling server on `ws://localhost:4000`.
+**For local development**: Run `cd infrastructure/signaling && pnpm dev` to start the signaling server on `ws://localhost:4000`.
 
 **For production P2P**: Deploy signaling servers, then bootstrap nodes, then relay nodes.
+
+**Note**: The signaling server uses the y-webrtc pub/sub protocol (subscribe/publish/unsubscribe) for compatibility with both Yjs document sync and custom record sync.
 
 ## Overview
 
@@ -30,7 +32,22 @@ Infrastructure components enable P2P connections. These are optional for local d
 
 ## Component 1: Signaling Server
 
-WebSocket server for WebRTC signaling (SDP exchange).
+WebSocket server implementing the y-webrtc pub/sub protocol for WebRTC signaling. This protocol is used by both:
+
+- **Yjs document sync** (via y-webrtc) for rich text collaboration
+- **Record sync** (via RecordSyncProvider) for event-sourced tabular data
+
+### Protocol
+
+The server implements a simple pub/sub pattern:
+
+| Message Type  | Direction       | Purpose                        |
+| ------------- | --------------- | ------------------------------ |
+| `subscribe`   | Client → Server | Join topics (rooms)            |
+| `unsubscribe` | Client → Server | Leave topics                   |
+| `publish`     | Client → Server | Broadcast to topic subscribers |
+| `publish`     | Server → Client | Relay message to subscribers   |
+| `ping/pong`   | Both            | Keep-alive                     |
 
 ### Implementation
 
@@ -39,138 +56,94 @@ WebSocket server for WebRTC signaling (SDP exchange).
 import { WebSocketServer, WebSocket } from 'ws'
 import { createServer } from 'http'
 
-interface Room {
-  clients: Map<string, WebSocket>
-}
+// Topic -> Set of subscribed clients
+const topics = new Map<string, Set<WebSocket>>()
+// Client -> Set of subscribed topics (for cleanup)
+const clientTopics = new Map<WebSocket, Set<string>>()
 
-interface SignalMessage {
-  type: 'join' | 'leave' | 'signal' | 'peers'
-  room: string
-  peerId: string
-  targetPeerId?: string
-  signal?: unknown
-}
+const httpServer = createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(
+      JSON.stringify({
+        status: 'healthy',
+        topics: topics.size,
+        clients: clientTopics.size
+      })
+    )
+    return
+  }
+  res.writeHead(404)
+  res.end()
+})
 
-const rooms = new Map<string, Room>()
-
-const httpServer = createServer()
 const wss = new WebSocketServer({ server: httpServer })
 
 wss.on('connection', (ws) => {
-  let currentRoom: string | null = null
-  let currentPeerId: string | null = null
+  clientTopics.set(ws, new Set())
 
   ws.on('message', (data) => {
     try {
-      const message: SignalMessage = JSON.parse(data.toString())
+      const message = JSON.parse(data.toString())
 
       switch (message.type) {
-        case 'join':
-          handleJoin(ws, message)
-          currentRoom = message.room
-          currentPeerId = message.peerId
+        case 'subscribe':
+          handleSubscribe(ws, message.topics || [])
           break
-
-        case 'signal':
-          handleSignal(message)
+        case 'unsubscribe':
+          handleUnsubscribe(ws, message.topics || [])
           break
-
-        case 'leave':
-          handleLeave(message)
+        case 'publish':
+          handlePublish(ws, message.topic, message.data)
+          break
+        case 'ping':
+          ws.send(JSON.stringify({ type: 'pong' }))
           break
       }
     } catch (e) {
-      console.error('Invalid message:', e)
+      // Ignore invalid messages
     }
   })
 
   ws.on('close', () => {
-    if (currentRoom && currentPeerId) {
-      handleLeave({ type: 'leave', room: currentRoom, peerId: currentPeerId })
-    }
+    // Unsubscribe from all topics
+    const myTopics = clientTopics.get(ws) || new Set()
+    handleUnsubscribe(ws, Array.from(myTopics))
+    clientTopics.delete(ws)
   })
 })
 
-function handleJoin(ws: WebSocket, message: SignalMessage) {
-  const { room, peerId } = message
-
-  if (!rooms.has(room)) {
-    rooms.set(room, { clients: new Map() })
-  }
-
-  const roomData = rooms.get(room)!
-  roomData.clients.set(peerId, ws)
-
-  // Notify new peer of existing peers
-  const existingPeers = Array.from(roomData.clients.keys()).filter((id) => id !== peerId)
-  ws.send(
-    JSON.stringify({
-      type: 'peers',
-      room,
-      peers: existingPeers
-    })
-  )
-
-  // Notify existing peers of new peer
-  roomData.clients.forEach((client, id) => {
-    if (id !== peerId && client.readyState === WebSocket.OPEN) {
-      client.send(
-        JSON.stringify({
-          type: 'join',
-          room,
-          peerId
-        })
-      )
+function handleSubscribe(ws: WebSocket, topicNames: string[]) {
+  for (const topic of topicNames) {
+    if (!topics.has(topic)) {
+      topics.set(topic, new Set())
     }
-  })
-
-  console.log(`Peer ${peerId} joined room ${room} (${roomData.clients.size} peers)`)
-}
-
-function handleSignal(message: SignalMessage) {
-  const { room, peerId, targetPeerId, signal } = message
-  const roomData = rooms.get(room)
-  if (!roomData || !targetPeerId) return
-
-  const targetClient = roomData.clients.get(targetPeerId)
-  if (targetClient && targetClient.readyState === WebSocket.OPEN) {
-    targetClient.send(
-      JSON.stringify({
-        type: 'signal',
-        room,
-        peerId, // Sender
-        signal
-      })
-    )
+    topics.get(topic)!.add(ws)
+    clientTopics.get(ws)?.add(topic)
   }
 }
 
-function handleLeave(message: SignalMessage) {
-  const { room, peerId } = message
-  const roomData = rooms.get(room)
-  if (!roomData) return
-
-  roomData.clients.delete(peerId)
-
-  // Notify remaining peers
-  roomData.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN) {
-      client.send(
-        JSON.stringify({
-          type: 'leave',
-          room,
-          peerId
-        })
-      )
+function handleUnsubscribe(ws: WebSocket, topicNames: string[]) {
+  for (const topic of topicNames) {
+    topics.get(topic)?.delete(ws)
+    if (topics.get(topic)?.size === 0) {
+      topics.delete(topic)
     }
-  })
-
-  // Clean up empty rooms
-  if (roomData.clients.size === 0) {
-    rooms.delete(room)
+    clientTopics.get(ws)?.delete(topic)
   }
+}
 
-  console.log(`Peer ${peerId} left room ${room}`)
+function handlePublish(sender: WebSocket, topic: string, data: unknown) {
+  const subscribers = topics.get(topic)
+  if (!subscribers) return
+
+  const message = JSON.stringify({ type: 'publish', topic, data })
+
+  for (const client of subscribers) {
+    if (client !== sender && client.readyState === WebSocket.OPEN) {
+      client.send(message)
+    }
+  }
 }
 
 const PORT = process.env.PORT || 4000
@@ -178,6 +151,22 @@ httpServer.listen(PORT, () => {
   console.log(`Signaling server running on port ${PORT}`)
 })
 ```
+
+### Testing
+
+The signaling server has 7 unit tests covering:
+
+- Subscribe/unsubscribe
+- Publish/broadcast
+- Ping/pong keep-alive
+- Client cleanup on disconnect
+- Health endpoint
+
+Run tests: `cd infrastructure/signaling && pnpm test`
+
+### Browser Demo
+
+A sync demo is available at `infrastructure/signaling/test/sync-demo.html` that demonstrates real-time Yjs document sync between browser tabs.
 
 ### Dockerfile
 
@@ -394,11 +383,14 @@ main().catch(console.error)
 ### Signaling Servers
 
 - [x] Implement server code (`infrastructure/signaling/src/server.ts`)
+- [x] Implement y-webrtc pub/sub protocol (subscribe/publish/unsubscribe)
+- [x] Add unit tests (7 tests)
+- [x] Add browser sync demo
 - [x] Create Dockerfile
 - [x] Create fly.toml deployment config
+- [x] Add health check endpoint (`/health`)
 - [ ] Deploy to 3 regions (US-West, US-East, Europe)
 - [ ] Configure TLS certificates
-- [ ] Set up health checks
 - [ ] Monitor WebSocket connections
 - [ ] Set up auto-scaling
 

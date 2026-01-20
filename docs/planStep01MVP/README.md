@@ -49,15 +49,16 @@ Before proceeding to the next phase, verify:
 **Test Summary:**
 
 - @xnet/core: 42 tests
-- @xnet/crypto: 71 tests
+- @xnet/crypto: 29 tests
 - @xnet/identity: 30 tests
 - @xnet/storage: 22 tests
 - @xnet/data: 16 tests
 - @xnet/network: 5 tests
 - @xnet/query: 23 tests
-- @xnet/react: 16 tests
+- @xnet/records: 168 tests (schema, properties, sync)
 - @xnet/sdk: 13 tests
-- **Total: 238 tests**
+- infrastructure/signaling: 7 tests
+- **Total: 352+ tests**
 
 ### After Platform POCs
 
@@ -65,7 +66,8 @@ Before proceeding to the next phase, verify:
 - [x] Expo app runs on iOS simulator
 - [x] PWA loads in browser
 - [x] Data persists across restarts
-- [ ] Basic P2P sync works (requires signaling server deployment)
+- [x] Basic P2P sync works locally (signaling server + useDocumentSync/useRecordSync)
+- [ ] Production P2P sync (requires signaling server deployment)
 
 ### After Features
 
@@ -73,7 +75,8 @@ Before proceeding to the next phase, verify:
 - [x] Can link pages (wikilinks)
 - [x] Can create tasks (basic checkboxes)
 - [x] Search returns results (Cmd+K, full-text)
-- [ ] Sync works between devices (requires infrastructure deployment)
+- [x] Local P2P sync works (documents via Yjs/y-webrtc, records via event sourcing)
+- [ ] Cross-device sync (requires infrastructure deployment)
 
 ## Quick Reference
 
