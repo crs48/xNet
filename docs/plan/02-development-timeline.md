@@ -10,6 +10,8 @@
 
 xNet and xNotes are developed in parallel with carefully mapped dependencies. The xNet SDK provides the foundation, while xNotes drives requirements and validates capabilities.
 
+**Critical:** Phase 0 (Foundations) must complete before Phase 1 implementation begins. This 4-week investment prevents 9+ months of rework later. See [Foundation Requirements](./17-foundation-requirements.md).
+
 ---
 
 ## Parallel Development Tracks
@@ -20,81 +22,105 @@ gantt
     dateFormat  YYYY-MM
     axisFormat  %b %Y
 
+    section Phase 0: Foundations
+    Content addressing spec         :f1, 2026-01, 2w
+    Signed updates + snapshots      :f2, after f1, 2w
+    DID resolution protocol         :f3, after f2, 1w
+    Query federation + permissions  :f4, after f3, 1w
+    Foundation validation           :milestone, 2026-02, 0d
+
     section xNet Core
-    @xnet/crypto (encryption)       :xc1, 2026-01, 2M
-    @xnet/identity (DID/UCAN)       :xc2, 2026-01, 3M
-    @xnet/storage (IndexedDB)       :xc3, 2026-02, 2M
-    @xnet/data (CRDT engine)        :xc4, 2026-02, 4M
-    @xnet/network (libp2p basic)    :xc5, 2026-03, 3M
-    @xnet/query (local queries)     :xc6, 2026-05, 2M
-    @xnet/sdk v1.0                  :milestone, 2026-06, 0d
-    @xnet/network (relay/NAT)       :xc7, 2026-06, 3M
-    @xnet/vectors (embeddings)      :xc8, 2026-08, 2M
-    @xnet/query (federation)        :xc9, 2026-09, 3M
-    @xnet/sdk v2.0                  :milestone, 2026-12, 0d
+    @xnet/crypto (encryption)       :xc1, 2026-02, 2M
+    @xnet/identity (DID/UCAN)       :xc2, 2026-02, 3M
+    @xnet/storage (snapshots)       :xc3, 2026-03, 2M
+    @xnet/data (CRDT + signing)     :xc4, 2026-03, 4M
+    @xnet/network (libp2p basic)    :xc5, 2026-04, 3M
+    @xnet/query (local queries)     :xc6, 2026-06, 2M
+    @xnet/sdk v1.0                  :milestone, 2026-07, 0d
+    @xnet/network (relay/NAT)       :xc7, 2026-07, 3M
+    @xnet/vectors (embeddings)      :xc8, 2026-09, 2M
+    @xnet/query (federation)        :xc9, 2026-10, 3M
+    @xnet/sdk v2.0                  :milestone, 2027-01, 0d
 
     section Infrastructure
-    Signaling server v1             :xi1, 2026-03, 2M
-    Bootstrap nodes                 :xi2, 2026-04, 1M
-    Relay nodes                     :xi3, 2026-06, 2M
-    DePIN storage nodes             :xi4, 2026-10, 4M
+    Signaling server v1             :xi1, 2026-04, 2M
+    Bootstrap nodes                 :xi2, 2026-05, 1M
+    Relay nodes                     :xi3, 2026-07, 2M
+    DePIN storage nodes             :xi4, 2026-11, 4M
 
     section xNotes App
-    Project setup & design system   :xn1, 2026-01, 2M
-    Rich text editor                :xn2, 2026-02, 3M
-    Basic wiki (pages, links)       :xn3, 2026-03, 3M
-    Offline & local persistence     :xn4, 2026-04, 2M
-    P2P sync integration            :xn5, 2026-05, 2M
-    Real-time collaboration         :xn6, 2026-06, 2M
-    xNotes MVP                      :milestone, 2026-07, 0d
-    Task manager                    :xn7, 2026-07, 3M
-    Search & backlinks              :xn8, 2026-08, 2M
-    Version history                 :xn9, 2026-09, 2M
-    xNotes v1.0                     :milestone, 2026-12, 0d
-    Database views                  :xn10, 2027-01, 4M
-    Formulas & rollups              :xn11, 2027-04, 2M
-    xNotes v2.0 (Notion parity)     :milestone, 2027-06, 0d
-    Canvas: spatial indexing        :xn12, 2027-06, 2M
-    Canvas: node rendering          :xn13, 2027-07, 2M
-    Canvas: auto-layout             :xn14, 2027-08, 2M
-    Canvas: embedded editing        :xn15, 2027-09, 2M
-    xNotes v2.5 (Canvas)            :milestone, 2027-10, 0d
+    Project setup & design system   :xn1, 2026-02, 2M
+    Rich text editor                :xn2, 2026-03, 3M
+    Basic wiki (pages, links)       :xn3, 2026-04, 3M
+    Offline & local persistence     :xn4, 2026-05, 2M
+    P2P sync integration            :xn5, 2026-06, 2M
+    Real-time collaboration         :xn6, 2026-07, 2M
+    xNotes MVP                      :milestone, 2026-08, 0d
+    Task manager                    :xn7, 2026-08, 3M
+    Search & backlinks              :xn8, 2026-09, 2M
+    Version history                 :xn9, 2026-10, 2M
+    xNotes v1.0                     :milestone, 2027-01, 0d
+    Database views                  :xn10, 2027-02, 4M
+    Formulas & rollups              :xn11, 2027-05, 2M
+    xNotes v2.0 (Notion parity)     :milestone, 2027-07, 0d
+    Canvas: spatial indexing        :xn12, 2027-07, 2M
+    Canvas: node rendering          :xn13, 2027-08, 2M
+    Canvas: auto-layout             :xn14, 2027-09, 2M
+    Canvas: embedded editing        :xn15, 2027-10, 2M
+    xNotes v2.5 (Canvas)            :milestone, 2027-11, 0d
 ```
 
 ---
 
 ## Dependency Map
 
-Understanding dependencies is critical for parallel development. Teams can work simultaneously, but integration points must be coordinated.
+Understanding dependencies is critical for parallel development. **Phase 0 foundations must complete before any package implementation begins.**
 
 ```mermaid
-flowchart LR
-    subgraph "Month 1-2"
+flowchart TB
+    subgraph "Phase 0: Foundations (Month 1)"
+        F1[Content Addressing]
+        F2[Signed Updates]
+        F3[Snapshots]
+        F4[DID Resolution]
+        F5[Query Federation Spec]
+        F6[Role Permissions]
+        F1 --> F2
+        F2 --> F3
+        F3 --> F4
+        F4 --> F5
+        F5 --> F6
+    end
+
+    subgraph "Month 2-3"
         C[crypto]
         I[identity]
         S[storage]
     end
 
-    subgraph "Month 2-4"
+    subgraph "Month 3-5"
         D["data/CRDT"]
     end
 
-    subgraph "Month 3-5"
+    subgraph "Month 4-6"
         N1["network/basic"]
     end
 
-    subgraph "Month 5-6"
+    subgraph "Month 6-7"
         Q1["query/local"]
         SDK1["SDK v1.0"]
     end
 
-    subgraph "Month 6+"
+    subgraph "Month 7+"
         N2["network/relay"]
         V[vectors]
         Q2["query/federation"]
         SDK2["SDK v2.0"]
     end
 
+    F6 --> C
+    F6 --> I
+    F6 --> S
     C --> I
     C --> D
     I --> D
@@ -117,6 +143,8 @@ flowchart LR
         XN4 --> XN5[MVP]
     end
 
+    style F1 fill:#ff9800,color:#fff
+    style F6 fill:#ff9800,color:#fff
     style SDK1 fill:#4caf50,color:#fff
     style SDK2 fill:#4caf50,color:#fff
     style XN5 fill:#2196f3,color:#fff
@@ -124,12 +152,14 @@ flowchart LR
 
 ### Dependency Rules
 
-1. **@xnet/crypto** has no dependencies - start immediately
-2. **@xnet/identity** depends on crypto for key operations
-3. **@xnet/data** depends on crypto, identity, and storage
-4. **@xnet/network** depends on data for sync protocol
-5. **@xnet/query** depends on data for local indexing
-6. **@xnet/sdk** bundles everything for v1.0 release
+0. **Phase 0 Foundations** - Must complete before any package work begins (see [Foundation Requirements](./17-foundation-requirements.md))
+1. **@xnet/crypto** depends on content addressing spec from Phase 0
+2. **@xnet/identity** depends on crypto + DID resolution spec
+3. **@xnet/storage** depends on snapshot spec from Phase 0
+4. **@xnet/data** depends on crypto, identity, storage, and signed update spec
+5. **@xnet/network** depends on data for sync protocol
+6. **@xnet/query** depends on data + query federation spec
+7. **@xnet/sdk** bundles everything for v1.0 release
 
 ---
 
@@ -166,54 +196,65 @@ Critical checkpoints where xNet capabilities enable xNotes features.
 
 | Milestone | xNet Dependency | xNotes Feature | Target |
 |-----------|-----------------|----------------|--------|
-| **M1** | @xnet/storage | Offline persistence | Month 3 |
-| **M2** | @xnet/data | CRDT-based documents | Month 4 |
-| **M3** | @xnet/identity | User accounts, workspaces | Month 4 |
-| **M4** | @xnet/network | P2P document sync | Month 5 |
-| **M5** | @xnet/crypto | E2E encryption | Month 6 |
-| **M6** | @xnet/sdk v1.0 | **xNotes MVP** | Month 7 |
-| **M7** | @xnet/query | Full-text search | Month 8 |
-| **M8** | @xnet/vectors | Semantic search | Month 10 |
-| **M9** | @xnet/sdk v2.0 | **xNotes v1.0** | Month 12 |
-| **M10** | @xnet/data | Database views, formulas | Month 18 |
-| **M11** | @xnet/sdk v2.1 | **xNotes v2.0** (Notion parity) | Month 18 |
-| **M12** | @xnet/canvas | Spatial indexing, auto-layout | Month 20 |
-| **M13** | @xnet/sdk v2.5 | **xNotes v2.5** (Infinite Canvas) | Month 22 |
+| **M0** | Phase 0 Foundations | Specs validated, ready to build | Month 1 |
+| **M1** | @xnet/storage | Offline persistence | Month 4 |
+| **M2** | @xnet/data | CRDT-based documents | Month 5 |
+| **M3** | @xnet/identity | User accounts, workspaces | Month 5 |
+| **M4** | @xnet/network | P2P document sync | Month 6 |
+| **M5** | @xnet/crypto | E2E encryption | Month 7 |
+| **M6** | @xnet/sdk v1.0 | **xNotes MVP** | Month 8 |
+| **M7** | @xnet/query | Full-text search | Month 9 |
+| **M8** | @xnet/vectors | Semantic search | Month 11 |
+| **M9** | @xnet/sdk v2.0 | **xNotes v1.0** | Month 13 |
+| **M10** | @xnet/data | Database views, formulas | Month 19 |
+| **M11** | @xnet/sdk v2.1 | **xNotes v2.0** (Notion parity) | Month 19 |
+| **M12** | @xnet/canvas | Spatial indexing, auto-layout | Month 21 |
+| **M13** | @xnet/sdk v2.5 | **xNotes v2.5** (Infinite Canvas) | Month 23 |
 
 ---
 
-## Sprint Breakdown (Phase 1)
+## Sprint Breakdown
 
 2-week sprint cadence with clear deliverables.
 
-### xNet Core Sprints
+### Phase 0: Foundation Sprints (Weeks 1-4)
+
+| Sprint | Duration | Focus | Deliverable |
+|--------|----------|-------|-------------|
+| 0-1 | Weeks 1-2 | Content Addressing | BLAKE3 hashing, Merkle trees, CID format |
+| 0-2 | Weeks 3-4 | Signed Updates + Snapshots | SignedUpdate type, snapshot strategy, compaction |
+| - | Week 4 | **Foundation Validation** | All specs validated, ready for implementation |
+
+> **Gate:** Phase 0 must pass validation criteria in [Foundation Requirements](./17-foundation-requirements.md) before Phase 1 begins.
+
+### Phase 1: xNet Core Sprints (Weeks 5-40)
 
 | Sprint | Duration | Package | Deliverable |
 |--------|----------|---------|-------------|
-| 1-2 | Weeks 1-4 | @xnet/crypto | Symmetric/asymmetric encryption, signing |
-| 3-4 | Weeks 5-8 | @xnet/identity | DID generation, key management |
-| 5-6 | Weeks 9-12 | @xnet/storage | IndexedDB adapter, blob storage |
-| 7-10 | Weeks 13-20 | @xnet/data | CRDT engine, schema validation |
-| 11-14 | Weeks 21-28 | @xnet/network | libp2p node, WebRTC transport |
-| 15-16 | Weeks 29-32 | @xnet/query | Local query engine, FTS |
-| 17-18 | Weeks 33-36 | @xnet/sdk | SDK v1.0 integration |
+| 1-2 | Weeks 5-8 | @xnet/crypto | Symmetric/asymmetric encryption, signing |
+| 3-4 | Weeks 9-12 | @xnet/identity | DID generation, key management |
+| 5-6 | Weeks 13-16 | @xnet/storage | IndexedDB adapter, blob storage |
+| 7-10 | Weeks 17-24 | @xnet/data | CRDT engine, schema validation |
+| 11-14 | Weeks 25-32 | @xnet/network | libp2p node, WebRTC transport |
+| 15-16 | Weeks 33-36 | @xnet/query | Local query engine, FTS |
+| 17-18 | Weeks 37-40 | @xnet/sdk | SDK v1.0 integration |
 
-### xNotes App Sprints
+### Phase 1: xNotes App Sprints (Weeks 5-52)
 
 | Sprint | Duration | Feature | Deliverable |
 |--------|----------|---------|-------------|
-| 1-2 | Weeks 1-4 | Setup | Project structure, design system |
-| 3-5 | Weeks 5-10 | Editor | Rich text with Tiptap, markdown |
-| 6-8 | Weeks 11-16 | Wiki | Page hierarchy, wikilinks, backlinks |
-| 9-10 | Weeks 17-20 | Offline | Local persistence integration |
-| 11-12 | Weeks 21-24 | Sync | P2P sync integration |
-| 13-14 | Weeks 25-28 | Collab | Real-time collaboration, presence |
-| - | Week 28 | **MVP** | Internal release |
-| 15-17 | Weeks 29-34 | Tasks | Task manager, Kanban boards |
-| 18-19 | Weeks 35-38 | Search | Full-text search, backlinks panel |
-| 20-22 | Weeks 39-44 | History | Version history, restore |
-| 23-24 | Weeks 45-48 | Polish | Bug fixes, performance, testing |
-| - | Week 48 | **v1.0** | Public release |
+| 1-2 | Weeks 5-8 | Setup | Project structure, design system |
+| 3-5 | Weeks 9-14 | Editor | Rich text with Tiptap, markdown |
+| 6-8 | Weeks 15-20 | Wiki | Page hierarchy, wikilinks, backlinks |
+| 9-10 | Weeks 21-24 | Offline | Local persistence integration |
+| 11-12 | Weeks 25-28 | Sync | P2P sync integration |
+| 13-14 | Weeks 29-32 | Collab | Real-time collaboration, presence |
+| - | Week 32 | **MVP** | Internal release |
+| 15-17 | Weeks 33-38 | Tasks | Task manager, Kanban boards |
+| 18-19 | Weeks 39-42 | Search | Full-text search, backlinks panel |
+| 20-22 | Weeks 43-48 | History | Version history, restore |
+| 23-24 | Weeks 49-52 | Polish | Bug fixes, performance, testing |
+| - | Week 52 | **v1.0** | Public release |
 
 ---
 
@@ -221,10 +262,10 @@ Critical checkpoints where xNet capabilities enable xNotes features.
 
 | Component | Start | Duration | Priority |
 |-----------|-------|----------|----------|
-| Signaling Server v1 | Month 3 | 2 months | Critical (P0) |
-| Bootstrap Nodes | Month 4 | 1 month | Critical (P0) |
-| Relay Nodes | Month 6 | 2 months | High (P1) |
-| DePIN Storage | Month 10 | 4 months | Medium (P2) |
+| Signaling Server v1 | Month 4 | 2 months | Critical (P0) |
+| Bootstrap Nodes | Month 5 | 1 month | Critical (P0) |
+| Relay Nodes | Month 7 | 2 months | High (P1) |
+| DePIN Storage | Month 11 | 4 months | Medium (P2) |
 
 ### Signaling Server Requirements
 
@@ -239,20 +280,22 @@ Critical checkpoints where xNet capabilities enable xNotes features.
 
 | Month | Checkpoint | Risk Assessment |
 |-------|------------|-----------------|
-| 2 | Crypto + Identity | Can we generate/manage keys securely? |
-| 4 | CRDT Engine | Does Yjs meet our performance needs? |
-| 5 | P2P Networking | Can we establish connections reliably? |
-| 6 | SDK v1.0 | Is the API usable for xNotes? |
-| 7 | MVP | Does the core experience work offline? |
-| 10 | Sync at Scale | How does P2P perform with 10+ peers? |
-| 12 | v1.0 Release | Are we production-ready? |
+| 1 | **Foundation Validation** | Do specs meet all validation criteria? See [17-foundation-requirements.md](./17-foundation-requirements.md) |
+| 3 | Crypto + Identity | Can we generate/manage keys securely? |
+| 5 | CRDT Engine | Does Yjs meet our performance needs? |
+| 6 | P2P Networking | Can we establish connections reliably? |
+| 7 | SDK v1.0 | Is the API usable for xNotes? |
+| 8 | MVP | Does the core experience work offline? |
+| 11 | Sync at Scale | How does P2P perform with 10+ peers? |
+| 13 | v1.0 Release | Are we production-ready? |
 
 ---
 
 ## Next Steps
 
-- [Phase 1: Wiki & Tasks](./03-phase-1-wiki-tasks.md) - Detailed Phase 1 implementation
-- [Engineering Practices](./06-engineering-practices.md) - Sprint processes and CI/CD
+1. **Complete Phase 0 Foundations** - See [Foundation Requirements](./17-foundation-requirements.md)
+2. [Phase 1: Wiki & Tasks](./03-phase-1-wiki-tasks.md) - Detailed Phase 1 implementation
+3. [Engineering Practices](./06-engineering-practices.md) - Sprint processes and CI/CD
 
 ---
 
