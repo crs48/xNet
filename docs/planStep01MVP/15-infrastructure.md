@@ -5,16 +5,28 @@
 **Duration:** 3 weeks (can be deferred until P2P features needed)
 **Dependencies:** @xnet/network working
 
+## Current Status
+
+| Component        | Code        | Deployment Config     | Deployed |
+| ---------------- | ----------- | --------------------- | -------- |
+| Signaling Server | Complete    | Complete (fly.toml)   | No       |
+| Bootstrap Node   | Complete    | Partial (no fly.toml) | No       |
+| Relay Node       | Not started | No                    | No       |
+
+**For local development**: Run `cd infrastructure/signaling && npm run dev` to start the signaling server on `ws://localhost:4000`.
+
+**For production P2P**: Deploy signaling servers, then bootstrap nodes, then relay nodes.
+
 ## Overview
 
 Infrastructure components enable P2P connections. These are optional for local development but required for production P2P sync.
 
-| Component | Purpose | Priority |
-|-----------|---------|----------|
+| Component        | Purpose                         | Priority      |
+| ---------------- | ------------------------------- | ------------- |
 | Signaling Server | WebRTC connection establishment | P0 (Critical) |
-| Bootstrap Nodes | Initial peer discovery | P0 (Critical) |
-| Relay Nodes | NAT traversal fallback | P1 (High) |
-| DePIN Storage | Decentralized backup | P2 (Future) |
+| Bootstrap Nodes  | Initial peer discovery          | P0 (Critical) |
+| Relay Nodes      | NAT traversal fallback          | P1 (High)     |
+| DePIN Storage    | Decentralized backup            | P2 (Future)   |
 
 ## Component 1: Signaling Server
 
@@ -90,21 +102,25 @@ function handleJoin(ws: WebSocket, message: SignalMessage) {
   roomData.clients.set(peerId, ws)
 
   // Notify new peer of existing peers
-  const existingPeers = Array.from(roomData.clients.keys()).filter(id => id !== peerId)
-  ws.send(JSON.stringify({
-    type: 'peers',
-    room,
-    peers: existingPeers
-  }))
+  const existingPeers = Array.from(roomData.clients.keys()).filter((id) => id !== peerId)
+  ws.send(
+    JSON.stringify({
+      type: 'peers',
+      room,
+      peers: existingPeers
+    })
+  )
 
   // Notify existing peers of new peer
   roomData.clients.forEach((client, id) => {
     if (id !== peerId && client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({
-        type: 'join',
-        room,
-        peerId
-      }))
+      client.send(
+        JSON.stringify({
+          type: 'join',
+          room,
+          peerId
+        })
+      )
     }
   })
 
@@ -118,12 +134,14 @@ function handleSignal(message: SignalMessage) {
 
   const targetClient = roomData.clients.get(targetPeerId)
   if (targetClient && targetClient.readyState === WebSocket.OPEN) {
-    targetClient.send(JSON.stringify({
-      type: 'signal',
-      room,
-      peerId, // Sender
-      signal
-    }))
+    targetClient.send(
+      JSON.stringify({
+        type: 'signal',
+        room,
+        peerId, // Sender
+        signal
+      })
+    )
   }
 }
 
@@ -137,11 +155,13 @@ function handleLeave(message: SignalMessage) {
   // Notify remaining peers
   roomData.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({
-        type: 'leave',
-        room,
-        peerId
-      }))
+      client.send(
+        JSON.stringify({
+          type: 'leave',
+          room,
+          peerId
+        })
+      )
     }
   })
 
@@ -232,20 +252,12 @@ async function main() {
 
   const node = await createLibp2p({
     addresses: {
-      listen: [
-        '/ip4/0.0.0.0/tcp/4001',
-        '/ip4/0.0.0.0/tcp/4002/ws'
-      ]
+      listen: ['/ip4/0.0.0.0/tcp/4001', '/ip4/0.0.0.0/tcp/4002/ws']
     },
-    transports: [
-      tcp(),
-      webSockets()
-    ],
+    transports: [tcp(), webSockets()],
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
-    peerDiscovery: otherBootstrapPeers.length > 0
-      ? [bootstrap({ list: otherBootstrapPeers })]
-      : [],
+    peerDiscovery: otherBootstrapPeers.length > 0 ? [bootstrap({ list: otherBootstrapPeers })] : [],
     services: {
       identify: identify(),
       dht: kadDHT({
@@ -314,15 +326,9 @@ import { identify } from '@libp2p/identify'
 async function main() {
   const node = await createLibp2p({
     addresses: {
-      listen: [
-        '/ip4/0.0.0.0/tcp/4001',
-        '/ip4/0.0.0.0/tcp/4002/ws'
-      ]
+      listen: ['/ip4/0.0.0.0/tcp/4001', '/ip4/0.0.0.0/tcp/4002/ws']
     },
-    transports: [
-      tcp(),
-      webSockets()
-    ],
+    transports: [tcp(), webSockets()],
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
     services: {
@@ -386,6 +392,10 @@ main().catch(console.error)
 ## Deployment Checklist
 
 ### Signaling Servers
+
+- [x] Implement server code (`infrastructure/signaling/src/server.ts`)
+- [x] Create Dockerfile
+- [x] Create fly.toml deployment config
 - [ ] Deploy to 3 regions (US-West, US-East, Europe)
 - [ ] Configure TLS certificates
 - [ ] Set up health checks
@@ -393,6 +403,10 @@ main().catch(console.error)
 - [ ] Set up auto-scaling
 
 ### Bootstrap Nodes
+
+- [x] Implement node code (`infrastructure/bootstrap/src/node.ts`)
+- [x] Create Dockerfile
+- [ ] Create fly.toml deployment config
 - [ ] Deploy to 3 regions
 - [ ] Configure peer IDs (stable across restarts)
 - [ ] Add peers to client config
@@ -400,6 +414,10 @@ main().catch(console.error)
 - [ ] Set up alerting
 
 ### Relay Nodes
+
+- [ ] Implement relay node code
+- [ ] Create Dockerfile
+- [ ] Create fly.toml deployment config
 - [ ] Deploy to 3 regions
 - [ ] Configure reservation limits
 - [ ] Monitor bandwidth usage
@@ -438,13 +456,13 @@ export const DEVELOPMENT_CONFIG = {
 
 ### Metrics to Track
 
-| Metric | Alert Threshold |
-|--------|-----------------|
+| Metric                | Alert Threshold  |
+| --------------------- | ---------------- |
 | Signaling connections | < 1000 available |
-| Bootstrap DHT peers | < 100 peers |
-| Relay bandwidth | > 80% capacity |
-| P99 latency | > 500ms |
-| Error rate | > 1% |
+| Bootstrap DHT peers   | < 100 peers      |
+| Relay bandwidth       | > 80% capacity   |
+| P99 latency           | > 500ms          |
+| Error rate            | > 1%             |
 
 ### Health Check Endpoints
 
@@ -467,14 +485,14 @@ app.get('/metrics', (req, res) => {
 
 ## Cost Estimates
 
-| Component | Provider | Specs | Monthly Cost |
-|-----------|----------|-------|--------------|
-| Signaling (x3) | fly.io | shared-cpu-1x, 256MB | $15 |
-| Bootstrap (x3) | fly.io | dedicated-cpu-1x, 1GB | $45 |
-| Relay (x3) | fly.io | dedicated-cpu-2x, 2GB | $90 |
-| **Total** | | | **$150/month** |
+| Component      | Provider | Specs                 | Monthly Cost   |
+| -------------- | -------- | --------------------- | -------------- |
+| Signaling (x3) | fly.io   | shared-cpu-1x, 256MB  | $15            |
+| Bootstrap (x3) | fly.io   | dedicated-cpu-1x, 1GB | $45            |
+| Relay (x3)     | fly.io   | dedicated-cpu-2x, 2GB | $90            |
+| **Total**      |          |                       | **$150/month** |
 
-*Costs scale with usage. Above estimates for ~10k users.*
+_Costs scale with usage. Above estimates for ~10k users._
 
 ## Future: DePIN Storage
 

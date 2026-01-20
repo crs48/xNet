@@ -53,19 +53,19 @@ export function Editor({ document, onChange, onCursorChange }: EditorProps) {
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        history: false, // Disabled - using Yjs history
+        history: false // Disabled - using Yjs history
       }),
       Placeholder.configure({
-        placeholder: 'Start writing...',
+        placeholder: 'Start writing...'
       }),
       Collaboration.configure({
-        fragment,
+        fragment
       }),
       CollaborationCursor.configure({
-        provider: null, // Would be y-webrtc provider
+        provider: null // Would be y-webrtc provider
       }),
       Wikilink,
-      TaskItem,
+      TaskItem
     ],
     onUpdate: () => {
       onChange?.()
@@ -184,10 +184,10 @@ export const Wikilink = Mark.create<WikilinkOptions>({
   addAttributes() {
     return {
       href: {
-        default: null,
+        default: null
       },
       title: {
-        default: null,
+        default: null
       }
     }
   },
@@ -195,7 +195,7 @@ export const Wikilink = Mark.create<WikilinkOptions>({
   parseHTML() {
     return [
       {
-        tag: 'a[data-wikilink]',
+        tag: 'a[data-wikilink]'
       }
     ]
   },
@@ -260,10 +260,12 @@ export const wikilinkInputRule = new InputRule({
 
     commands.insertContentAt(range, {
       type: 'text',
-      marks: [{
-        type: 'wikilink',
-        attrs: { href: pageId, title }
-      }],
+      marks: [
+        {
+          type: 'wikilink',
+          attrs: { href: pageId, title }
+        }
+      ],
       text: title
     })
   }
@@ -433,24 +435,32 @@ export const TaskItem = Node.create({
       dueDate: {
         default: null,
         parseHTML: (el) => el.getAttribute('data-due-date'),
-        renderHTML: (attrs) => attrs.dueDate ? {
-          'data-due-date': attrs.dueDate
-        } : {}
+        renderHTML: (attrs) =>
+          attrs.dueDate
+            ? {
+                'data-due-date': attrs.dueDate
+              }
+            : {}
       },
       priority: {
         default: null,
         parseHTML: (el) => el.getAttribute('data-priority'),
-        renderHTML: (attrs) => attrs.priority ? {
-          'data-priority': attrs.priority
-        } : {}
+        renderHTML: (attrs) =>
+          attrs.priority
+            ? {
+                'data-priority': attrs.priority
+              }
+            : {}
       }
     }
   },
 
   parseHTML() {
-    return [{
-      tag: `li[data-type="${this.name}"]`
-    }]
+    return [
+      {
+        tag: `li[data-type="${this.name}"]`
+      }
+    ]
   },
 
   renderHTML({ node, HTMLAttributes }) {
@@ -459,11 +469,7 @@ export const TaskItem = Node.create({
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-type': this.name
       }),
-      [
-        'label',
-        ['input', { type: 'checkbox', checked: node.attrs.checked }],
-        ['span']
-      ],
+      ['label', ['input', { type: 'checkbox', checked: node.attrs.checked }], ['span']],
       ['div', 0]
     ]
   },
@@ -519,21 +525,18 @@ export function TaskListView() {
       ) : (
         <ul className="task-list">
           {tasks.map((task) => (
-            <li
-              key={task.id}
-              className={`task-item priority-${task.priority || 'none'}`}
-            >
+            <li key={task.id} className={`task-item priority-${task.priority || 'none'}`}>
               <input
                 type="checkbox"
                 checked={task.checked}
-                onChange={() => {/* Toggle task */}}
+                onChange={() => {
+                  /* Toggle task */
+                }}
               />
               <Link to="/doc/$docId" params={{ docId: task.docId }}>
                 <span className="task-text">{task.text}</span>
                 {task.dueDate && (
-                  <span className="task-due">
-                    {new Date(task.dueDate).toLocaleDateString()}
-                  </span>
+                  <span className="task-due">{new Date(task.dueDate).toLocaleDateString()}</span>
                 )}
               </Link>
             </li>
@@ -613,10 +616,7 @@ export function GlobalSearch() {
 
   if (!isOpen) {
     return (
-      <button
-        className="search-trigger"
-        onClick={() => setIsOpen(true)}
-      >
+      <button className="search-trigger" onClick={() => setIsOpen(true)}>
         Search... <kbd>⌘K</kbd>
       </button>
     )
@@ -663,34 +663,39 @@ export function GlobalSearch() {
 ## Validation Checklist
 
 ### Editor
-- [ ] Bold, italic, headings work
-- [ ] Bullet and numbered lists work
-- [ ] Code blocks work
-- [ ] Undo/redo work (via Yjs)
-- [ ] Cursor position syncs
+
+- [x] Bold, italic, headings work
+- [x] Bullet and numbered lists work
+- [x] Code blocks work
+- [x] Undo/redo work (via Yjs)
+- [ ] Cursor position syncs (CollaborationCursor configured but no provider connected)
 
 ### Wikilinks
-- [ ] `[[text]]` creates wikilink
-- [ ] Clicking wikilink navigates
-- [ ] Non-existent pages show create option
-- [ ] Link suggestions appear while typing
+
+- [x] `[[text]]` creates wikilink
+- [x] Clicking wikilink navigates
+- [x] Non-existent pages show create option (auto-create on navigation)
+- [ ] Link suggestions appear while typing (NOT IMPLEMENTED)
 
 ### Backlinks
-- [ ] Backlinks panel shows linking pages
-- [ ] Context snippets are accurate
-- [ ] Clicking backlink navigates
+
+- [x] Backlinks panel shows linking pages (web app only)
+- [x] Context snippets are accurate
+- [x] Clicking backlink navigates
 
 ### Tasks
-- [ ] Checkbox toggles work
-- [ ] Due dates can be set
-- [ ] Priority can be set
-- [ ] Task list view filters correctly
+
+- [x] Checkbox toggles work
+- [ ] Due dates can be set (NOT IMPLEMENTED)
+- [ ] Priority can be set (NOT IMPLEMENTED)
+- [ ] Task list view filters correctly (TaskListView NOT IMPLEMENTED)
 
 ### Search
-- [ ] Cmd+K opens search
-- [ ] Results appear while typing
-- [ ] Clicking result navigates
-- [ ] Search is fast (<100ms)
+
+- [x] Cmd+K opens search
+- [x] Results appear while typing (debounced 200ms)
+- [x] Clicking result navigates
+- [x] Search is fast (<100ms)
 
 ## Next Step
 

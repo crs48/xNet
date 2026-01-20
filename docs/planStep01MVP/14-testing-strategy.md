@@ -2,9 +2,28 @@
 
 > Fast unit tests for core, manual testing for UI
 
+## Current Status
+
+**Total Tests: 238** across all packages
+
+| Package        | Tests | Status          |
+| -------------- | ----- | --------------- |
+| @xnet/core     | 42    | Good            |
+| @xnet/crypto   | 71    | Good            |
+| @xnet/identity | 30    | Good            |
+| @xnet/storage  | 22    | Adequate        |
+| @xnet/data     | 16    | Needs expansion |
+| @xnet/network  | 5     | Needs expansion |
+| @xnet/query    | 23    | Adequate        |
+| @xnet/react    | 16    | Good            |
+| @xnet/sdk      | 13    | Needs expansion |
+| @xnet/vectors  | 0     | Not implemented |
+
+**Infrastructure**: Root `vitest.config.ts` and CI pipeline (`.github/workflows/ci.yml`) are implemented and match the spec.
+
 ## Philosophy
 
-1. **Fast unit tests** for all @xnet/* packages (>80% coverage)
+1. **Fast unit tests** for all @xnet/\* packages (>80% coverage)
 2. **Integration tests** for cross-package functionality
 3. **Manual testing** for UI - avoid expensive E2E tests
 4. **Modularize** code to test functionality without UI
@@ -26,12 +45,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        '**/node_modules/**',
-        '**/dist/**',
-        '**/*.test.ts',
-        '**/index.ts'
-      ],
+      exclude: ['**/node_modules/**', '**/dist/**', '**/*.test.ts', '**/index.ts'],
       thresholds: {
         statements: 80,
         branches: 75,
@@ -54,12 +68,15 @@ Each package can override:
 import { defineConfig, mergeConfig } from 'vitest/config'
 import rootConfig from '../../vitest.config'
 
-export default mergeConfig(rootConfig, defineConfig({
-  test: {
-    environment: 'node',
-    testTimeout: 30000, // Network tests need more time
-  }
-}))
+export default mergeConfig(
+  rootConfig,
+  defineConfig({
+    test: {
+      environment: 'node',
+      testTimeout: 30000 // Network tests need more time
+    }
+  })
+)
 ```
 
 ## Test Categories
@@ -385,6 +402,7 @@ jobs:
 For UI features, use this manual checklist:
 
 ### Editor
+
 - [ ] Create new page, type text
 - [ ] Bold/italic with keyboard shortcuts
 - [ ] Create headings (H1, H2, H3)
@@ -394,18 +412,21 @@ For UI features, use this manual checklist:
 - [ ] Undo/redo works
 
 ### Navigation
+
 - [ ] Sidebar shows documents
 - [ ] Clicking document opens it
 - [ ] Back/forward buttons work
 - [ ] Cmd+K opens search
 
 ### Sync
+
 - [ ] Open same document in two browsers
 - [ ] Type in one, changes appear in other
 - [ ] Cursor positions sync
 - [ ] Offline edits sync when reconnected
 
 ### Tasks
+
 - [ ] Create task with checkbox
 - [ ] Check/uncheck task
 - [ ] Set due date
@@ -413,17 +434,17 @@ For UI features, use this manual checklist:
 
 ## Coverage Requirements
 
-| Package | Statement | Branch | Function |
-|---------|-----------|--------|----------|
-| @xnet/core | 90% | 85% | 90% |
-| @xnet/crypto | 95% | 90% | 95% |
-| @xnet/identity | 85% | 80% | 85% |
-| @xnet/storage | 80% | 75% | 80% |
-| @xnet/data | 80% | 75% | 80% |
-| @xnet/network | 70% | 65% | 70% |
-| @xnet/query | 85% | 80% | 85% |
-| @xnet/react | 75% | 70% | 75% |
-| @xnet/sdk | 80% | 75% | 80% |
+| Package        | Statement | Branch | Function |
+| -------------- | --------- | ------ | -------- |
+| @xnet/core     | 90%       | 85%    | 90%      |
+| @xnet/crypto   | 95%       | 90%    | 95%      |
+| @xnet/identity | 85%       | 80%    | 85%      |
+| @xnet/storage  | 80%       | 75%    | 80%      |
+| @xnet/data     | 80%       | 75%    | 80%      |
+| @xnet/network  | 70%       | 65%    | 70%      |
+| @xnet/query    | 85%       | 80%    | 85%      |
+| @xnet/react    | 75%       | 70%    | 75%      |
+| @xnet/sdk      | 80%       | 75%    | 80%      |
 
 ## Next Step
 
