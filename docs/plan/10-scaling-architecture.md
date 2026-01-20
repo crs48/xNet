@@ -619,129 +619,560 @@ interface BackupDashboard {
 
 ---
 
-## Infinite Canvas
+## Unified Graph & Canvas
+
+xNotes unifies **graph visualization** and **infinite canvas** into a single system where:
+
+- **Graph View ("ALL")** - Procedurally generated from all content with computed edges
+- **Canvas Views** - User-curated subsets with manual positioning and custom edges
+- **Universal Edges** - Any content can link to any other content at any granularity
 
 ### Architecture
 
 ```mermaid
 flowchart TB
-    subgraph DataLayer["Data Layer (CRDTs)"]
-        Nodes["Canvas Nodes<br/>(position, size, type)"]
-        Edges["Canvas Edges<br/>(connections)"]
-        Content["Embedded Content<br/>(pages, tables)"]
+    subgraph ContentLayer["Addressable Content"]
+        Pages["Pages"]
+        Blocks["Blocks within Pages"]
+        DBs["Databases"]
+        Rows["Database Rows"]
+        Cells["Database Cells"]
+    end
+
+    subgraph EdgeLayer["Edge System"]
+        Procedural["Procedural Edges<br/>(auto-computed)"]
+        UserEdges["User Edges<br/>(manually created)"]
+    end
+
+    subgraph Views["View Types"]
+        AllView["ALL View (Graph)<br/>Everything + filters"]
+        CanvasViews["User Canvases<br/>Subset + manual layout"]
     end
 
     subgraph SpatialIndex["Spatial Indexing"]
         RTree["R-Tree Index"]
-        Quadtree["Quadtree (LOD)"]
     end
 
     subgraph LayoutEngine["Layout Engine"]
+        Auto["Auto Layout (ELK/Force)"]
         Manual["Manual Positioning"]
-        Auto["Auto Layout (ELK)"]
-        Force["Force-Directed"]
-        Hierarchical["Dagre"]
     end
 
     subgraph Renderer["Virtualized Renderer"]
         Viewport["Viewport Calculator"]
         LOD["Level of Detail"]
-        Canvas["WebGL Layer"]
+        WebGL["WebGL Layer"]
         DOM["DOM Layer (editing)"]
     end
 
-    DataLayer --> SpatialIndex
+    ContentLayer --> EdgeLayer
+    EdgeLayer --> Views
+    Views --> SpatialIndex
     SpatialIndex --> Viewport
-    LayoutEngine --> Nodes
+    LayoutEngine --> Views
     Viewport --> LOD
-    LOD --> Canvas
+    LOD --> WebGL
     LOD --> DOM
 
-    style DataLayer fill:#e3f2fd
-    style SpatialIndex fill:#e8f5e9
-    style LayoutEngine fill:#fff3e0
+    style ContentLayer fill:#e3f2fd
+    style EdgeLayer fill:#fff3e0
+    style Views fill:#e8f5e9
     style Renderer fill:#f3e5f5
 ```
+
+### Core Concepts
+
+| Concept | Description |
+|---------|-------------|
+| **Addressable Content** | Every page, block, database, row, and cell has a stable ID |
+| **Procedural Edges** | Auto-computed from wikilinks, tags, shared attributes, DB relations |
+| **User Edges** | Manually created links between any two pieces of content |
+| **ALL View** | Graph of everything with filters for edge types |
+| **Canvas View** | User-curated subset with manual XY positioning |
+
+---
+
+### Addressable Content Reference
+
+All content in xNotes is addressable, allowing edges to target any level of granularity.
+
+```typescript
+/**
+ * Universal reference to any content in xNotes.
+ * Enables edges between pages, blocks, databases, rows, and cells.
+ */
+interface ContentRef {
+  // Top-level content type
+  type: 'page' | 'block' | 'database' | 'row' | 'cell';
+
+  // Primary ID (page ID or database ID)
+  id: string;
+
+  // Sub-document targeting
+  blockId?: string;        // Specific block within a page
+  rowId?: string;          // Specific row within a database
+  propertyId?: string;     // Combined with rowId = specific cell
+
+  // Optional: specific version/snapshot
+  version?: number;
+}
+
+// Examples:
+const pageRef: ContentRef = {
+  type: 'page',
+  id: 'page-123'
+};
+
+const blockRef: ContentRef = {
+  type: 'block',
+  id: 'page-123',
+  blockId: 'block-456'
+};
+
+const cellRef: ContentRef = {
+  type: 'cell',
+  id: 'db-789',
+  rowId: 'row-abc',
+  propertyId: 'prop-def'
+};
+```
+
+---
+
+### Edge System
+
+Edges connect any two pieces of addressable content. They come in two types:
+
+```typescript
+/**
+ * Edge connecting two pieces of content.
+ * Can be procedural (auto-computed) or user-created.
+ */
+interface Edge {
+  id: string;
+
+  // Edge classification
+  edgeType: 'procedural' | 'user';
+
+  // Source and target can be ANY addressable content
+  source: ContentRef;
+  target: ContentRef;
+
+  // Procedural edge metadata (computed, read-only in UI)
+  procedural?: {
+    kind: ProceduralEdgeKind;
+    // Additional context for the edge
+    attribute?: string;      // e.g., tag name, property name
+    bidirectional?: boolean; // e.g., shared tags are bidirectional
+  };
+
+  // User edge metadata (editable)
+  user?: {
+    label?: string;
+    description?: string;
+    color?: string;
+    style?: 'solid' | 'dashed' | 'dotted' | 'arrow';
+  };
+
+  // Visual properties (for canvas rendering)
+  routing?: 'straight' | 'orthogonal' | 'curved';
+  points?: Point[];          // Manual routing waypoints
+
+  // Metadata
+  createdAt: string;
+  createdBy: string;         // DID
+}
+
+type ProceduralEdgeKind =
+  | 'wikilink'          // [[Page Name]] reference
+  | 'backlink'          // Reverse of wikilink
+  | 'tag'               // Shared tag between items
+  | 'shared-attribute'  // Same value in a property (e.g., same author)
+  | 'db-relation'       // Database relation property
+  | 'parent-child'      // Page hierarchy
+  | 'block-reference';  // Block embed/transclusion
+```
+
+#### Procedural Edge Computation
+
+```typescript
+/**
+ * Computes procedural edges from content metadata.
+ * Runs incrementally as content changes.
+ */
+class ProceduralEdgeComputer {
+
+  // Compute wikilink edges from page content
+  computeWikilinks(page: Page): Edge[] {
+    const edges: Edge[] = [];
+    const links = this.extractWikilinks(page.body);
+
+    for (const link of links) {
+      const targetPage = this.resolvePageByTitle(link.title);
+      if (targetPage) {
+        edges.push({
+          id: `wikilink:${page.id}:${targetPage.id}`,
+          edgeType: 'procedural',
+          source: { type: 'page', id: page.id },
+          target: { type: 'page', id: targetPage.id },
+          procedural: { kind: 'wikilink' },
+          createdAt: new Date().toISOString(),
+          createdBy: 'system',
+        });
+      }
+    }
+    return edges;
+  }
+
+  // Compute tag edges (bidirectional between items with same tag)
+  computeTagEdges(items: (Page | DatabaseItem)[]): Edge[] {
+    const tagMap = new Map<string, ContentRef[]>();
+
+    // Group items by tag
+    for (const item of items) {
+      for (const tag of item.tags ?? []) {
+        if (!tagMap.has(tag)) tagMap.set(tag, []);
+        tagMap.get(tag)!.push(this.toContentRef(item));
+      }
+    }
+
+    // Create edges between items with same tag
+    const edges: Edge[] = [];
+    for (const [tag, refs] of tagMap) {
+      for (let i = 0; i < refs.length; i++) {
+        for (let j = i + 1; j < refs.length; j++) {
+          edges.push({
+            id: `tag:${tag}:${refs[i].id}:${refs[j].id}`,
+            edgeType: 'procedural',
+            source: refs[i],
+            target: refs[j],
+            procedural: {
+              kind: 'tag',
+              attribute: tag,
+              bidirectional: true,
+            },
+            createdAt: new Date().toISOString(),
+            createdBy: 'system',
+          });
+        }
+      }
+    }
+    return edges;
+  }
+
+  // Compute shared attribute edges
+  computeSharedAttributeEdges(
+    items: DatabaseItem[],
+    propertyId: string
+  ): Edge[] {
+    const valueMap = new Map<string, ContentRef[]>();
+
+    for (const item of items) {
+      const value = item.properties[propertyId];
+      if (value != null) {
+        const key = JSON.stringify(value);
+        if (!valueMap.has(key)) valueMap.set(key, []);
+        valueMap.get(key)!.push({ type: 'row', id: item.databaseId, rowId: item.id });
+      }
+    }
+
+    const edges: Edge[] = [];
+    for (const [_, refs] of valueMap) {
+      if (refs.length < 2) continue;
+      for (let i = 0; i < refs.length; i++) {
+        for (let j = i + 1; j < refs.length; j++) {
+          edges.push({
+            id: `shared:${propertyId}:${refs[i].rowId}:${refs[j].rowId}`,
+            edgeType: 'procedural',
+            source: refs[i],
+            target: refs[j],
+            procedural: {
+              kind: 'shared-attribute',
+              attribute: propertyId,
+              bidirectional: true,
+            },
+            createdAt: new Date().toISOString(),
+            createdBy: 'system',
+          });
+        }
+      }
+    }
+    return edges;
+  }
+}
+```
+
+---
 
 ### Canvas Data Model
 
 ```typescript
+/**
+ * A canvas view - either the ALL view or a user-created canvas.
+ */
 interface CanvasDocument {
   id: string;
   name: string;
 
-  // Spatial data
+  // Special flag for the ALL view
+  isAllView: boolean;
+
+  // For user canvases: which content is included
+  // For ALL view: this is computed from all content
   nodes: Map<string, CanvasNode>;
-  edges: Map<string, CanvasEdge>;
+
+  // User-created edges (procedural edges computed on-demand)
+  userEdges: Map<string, Edge>;
+
+  // Edge visibility filters
+  edgeFilters: EdgeFilterConfig;
+
+  // Layout mode
+  layout: LayoutConfig;
 
   // View state (not synced)
   viewport: Viewport;
-
-  // Layout settings
-  layout: LayoutConfig;
 }
 
+/**
+ * A node on the canvas representing content or a shape.
+ */
 interface CanvasNode {
   id: string;
 
-  // Position (absolute coordinates)
+  // Position (for user canvases; computed for ALL view)
   x: number;
   y: number;
   width: number;
   height: number;
 
-  // Type determines rendering
-  type: 'page' | 'database' | 'table' | 'image' | 'embed' | 'shape' | 'group' | 'text';
+  // What this node represents
+  type: 'content' | 'shape' | 'group' | 'text';
 
-  // Reference to content (for page/database/table)
-  contentRef?: {
-    type: 'page' | 'database';
-    id: string;
-    viewConfig?: any;          // e.g., which database view
-  };
+  // Reference to actual content (for content nodes)
+  contentRef?: ContentRef;
 
-  // Inline content (for shape/text)
+  // Inline content (for shape/text nodes)
   content?: {
     text?: string;
     shape?: 'rect' | 'ellipse' | 'diamond' | 'parallelogram';
     style?: ShapeStyle;
   };
 
+  // Display options
+  displayMode?: 'full' | 'compact' | 'icon';  // How much to show
+  collapsed?: boolean;
+
   // Grouping
-  parentId?: string;           // For groups
-  collapsed?: boolean;         // For LOD
+  parentId?: string;
 
   // Styling
   style: NodeStyle;
 
   // Metadata
-  createdAt: Date;
-  updatedAt: Date;
-  createdBy: string;           // DID
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
 }
 
-interface CanvasEdge {
-  id: string;
+/**
+ * Configuration for which edge types to display.
+ */
+interface EdgeFilterConfig {
+  // Procedural edge visibility
+  procedural: {
+    wikilinks: boolean;
+    backlinks: boolean;
+    tags: boolean;
+    sharedAttributes: boolean;
+    dbRelations: boolean;
+    parentChild: boolean;
+    blockReferences: boolean;
+  };
 
-  // Connections
-  source: string;              // Node ID
-  target: string;              // Node ID
-  sourceAnchor?: Anchor;       // Where on source node
-  targetAnchor?: Anchor;       // Where on target node
+  // User edge visibility
+  userEdges: boolean;
 
-  // Routing
-  points?: Point[];            // Intermediate points
-  routing: 'straight' | 'orthogonal' | 'curved' | 'step';
+  // Filter by specific values
+  filterByTag?: string[];           // Only show edges for these tags
+  filterByAttribute?: string[];     // Only show edges for these attributes
+  filterByDatabase?: string[];      // Only show edges from these DBs
+}
 
-  // Labels
-  label?: string;
-  labelPosition?: number;      // 0-1 along edge
+interface LayoutConfig {
+  // Layout algorithm
+  algorithm: 'manual' | 'force' | 'layered' | 'radial' | 'grid';
 
-  // Styling
-  style: EdgeStyle;
+  // Spacing
+  nodeSpacing: number;
+  edgeSpacing: number;
+  layerSpacing: number;
+
+  // Edge routing
+  edgeRouting: 'orthogonal' | 'spline' | 'polyline';
+  minimizeCrossings: boolean;
+
+  // Direction (for layered layout)
+  direction: 'right' | 'down' | 'left' | 'up';
+
+  // Animation
+  animate: boolean;
+  animationDuration: number;
 }
 
 type Anchor = 'top' | 'right' | 'bottom' | 'left' | 'center' | { x: number; y: number };
+```
+
+---
+
+### ALL View vs User Canvas
+
+```typescript
+/**
+ * The ALL View is a special canvas that shows everything.
+ */
+class AllViewCanvas {
+  private edgeComputer: ProceduralEdgeComputer;
+  private spatialIndex: SpatialIndex;
+  private layoutEngine: AutoLayoutEngine;
+
+  constructor(
+    private pages: Map<string, Page>,
+    private databases: Map<string, Database>,
+    private items: Map<string, DatabaseItem>
+  ) {
+    this.edgeComputer = new ProceduralEdgeComputer();
+    this.layoutEngine = new AutoLayoutEngine();
+  }
+
+  /**
+   * Generate the ALL view with current filters.
+   */
+  generate(filters: EdgeFilterConfig, layout: LayoutConfig): CanvasDocument {
+    // Create nodes for all content
+    const nodes = new Map<string, CanvasNode>();
+
+    for (const page of this.pages.values()) {
+      nodes.set(page.id, this.pageToNode(page));
+    }
+
+    for (const db of this.databases.values()) {
+      nodes.set(db.id, this.databaseToNode(db));
+    }
+
+    // Compute visible edges based on filters
+    const visibleEdges = this.computeVisibleEdges(filters);
+
+    // Auto-layout if not manual
+    if (layout.algorithm !== 'manual') {
+      const positions = this.layoutEngine.layout(
+        Array.from(nodes.values()),
+        visibleEdges,
+        layout
+      );
+      for (const [id, pos] of positions) {
+        const node = nodes.get(id);
+        if (node) {
+          node.x = pos.x;
+          node.y = pos.y;
+        }
+      }
+    }
+
+    return {
+      id: 'all-view',
+      name: 'All Notes & Databases',
+      isAllView: true,
+      nodes,
+      userEdges: new Map(),
+      edgeFilters: filters,
+      layout,
+      viewport: { x: 0, y: 0, width: 1200, height: 800, zoom: 1 },
+    };
+  }
+
+  private computeVisibleEdges(filters: EdgeFilterConfig): Edge[] {
+    const edges: Edge[] = [];
+
+    if (filters.procedural.wikilinks) {
+      for (const page of this.pages.values()) {
+        edges.push(...this.edgeComputer.computeWikilinks(page));
+      }
+    }
+
+    if (filters.procedural.tags) {
+      const allItems = [
+        ...this.pages.values(),
+        ...this.items.values(),
+      ];
+      edges.push(...this.edgeComputer.computeTagEdges(allItems));
+    }
+
+    // ... compute other edge types based on filters
+
+    return edges;
+  }
+}
+
+/**
+ * User-created canvas with manual positioning and custom edges.
+ */
+class UserCanvas {
+  constructor(private canvas: CanvasDocument) {}
+
+  /**
+   * Add content to the canvas at a position.
+   */
+  addContent(ref: ContentRef, x: number, y: number): void {
+    const node: CanvasNode = {
+      id: crypto.randomUUID(),
+      x, y,
+      width: 200,
+      height: 150,
+      type: 'content',
+      contentRef: ref,
+      style: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: getCurrentUserDID(),
+    };
+    this.canvas.nodes.set(node.id, node);
+  }
+
+  /**
+   * Create a user edge between two pieces of content.
+   */
+  createEdge(source: ContentRef, target: ContentRef, options?: {
+    label?: string;
+    color?: string;
+  }): void {
+    const edge: Edge = {
+      id: crypto.randomUUID(),
+      edgeType: 'user',
+      source,
+      target,
+      user: {
+        label: options?.label,
+        color: options?.color,
+      },
+      createdAt: new Date().toISOString(),
+      createdBy: getCurrentUserDID(),
+    };
+    this.canvas.userEdges.set(edge.id, edge);
+  }
+
+  /**
+   * Move a node to a new position.
+   */
+  moveNode(nodeId: string, x: number, y: number): void {
+    const node = this.canvas.nodes.get(nodeId);
+    if (node) {
+      node.x = x;
+      node.y = y;
+      node.updatedAt = new Date().toISOString();
+    }
+  }
+}
 ```
 
 ### Spatial Indexing
