@@ -77,6 +77,7 @@ graph TB
 | 6 | [Engineering Practices](./06-engineering-practices.md) | Security, testing, CI/CD, contributing |
 | 7 | [Monetization & Adoption](./07-monetization-adoption.md) | Revenue model, growth strategy |
 | 8 | [Appendix: Code Samples](./08-appendix-code-samples.md) | Reference implementations |
+| 9 | [AI & MCP Interface](./09-ai-mcp-interface.md) | MCP tools for AI agent access, export/import |
 
 **Related Documentation:**
 - [Persistence & Durability Architecture](../PERSISTENCE_ARCHITECTURE.md)

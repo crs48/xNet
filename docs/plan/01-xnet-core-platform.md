@@ -16,9 +16,18 @@ xNet is the foundational infrastructure that powers xNotes and future decentrali
 
 ```mermaid
 graph LR
+    subgraph "AI Agents"
+        AI1[Claude Code]
+        AI2[Other MCP Clients]
+    end
+
     subgraph "Application Layer"
         A1[xNotes]
         A2[Future Apps]
+    end
+
+    subgraph "MCP Interface"
+        M1["@xnotes/mcp<br/>AI Access Layer"]
     end
 
     subgraph "xNet SDK Layer"
@@ -46,6 +55,9 @@ graph LR
         B3[DePIN Network]
     end
 
+    AI1 --> M1
+    AI2 --> M1
+    M1 --> S1
     A1 --> S1
     A2 --> S1
     S1 --> C1
@@ -142,6 +154,22 @@ xnet/
 │       │   ├── index.ts          # HNSW vector index
 │       │   ├── embeddings.ts     # On-device embeddings
 │       │   └── similarity.ts     # Similarity search
+│       └── package.json
+│
+├── apps/
+│   └── mcp/                      # @xnotes/mcp - AI Access Layer
+│       ├── src/
+│       │   ├── index.ts          # MCP server entry point
+│       │   ├── server.ts         # MCP server setup
+│       │   ├── tools/
+│       │   │   ├── pages.ts      # Page CRUD operations
+│       │   │   ├── databases.ts  # Database queries
+│       │   │   ├── tasks.ts      # Task operations
+│       │   │   ├── search.ts     # Search tools
+│       │   │   └── export.ts     # Export/import
+│       │   └── converters/
+│       │       ├── markdown.ts   # ProseMirror ↔ Markdown
+│       │       └── json.ts       # Export formatting
 │       └── package.json
 │
 ├── infrastructure/
@@ -349,6 +377,59 @@ On-device vector search for semantic capabilities.
 | Vector Index | HNSW algorithm |
 | Embeddings | TensorFlow.js / MiniLM |
 | Similarity | Cosine distance |
+
+---
+
+### @xnotes/mcp - AI Access Layer
+
+MCP (Model Context Protocol) server enabling AI agents to interact with xNotes data.
+
+```mermaid
+flowchart TB
+    subgraph Agents["AI Agents"]
+        Claude["Claude Code"]
+        Other["Other MCP Clients"]
+    end
+
+    subgraph MCP["MCP Server"]
+        subgraph Tools["Tool Categories"]
+            Pages["Page Tools"]
+            DBTools["Database Tools"]
+            Tasks["Task Tools"]
+            Export["Export/Import"]
+            Search["Search Tools"]
+        end
+    end
+
+    subgraph Storage["Internal Storage"]
+        SQLite["SQLite Database"]
+        CRDT["Yjs CRDT Layer"]
+    end
+
+    Claude --> MCP
+    Other --> MCP
+    MCP --> Storage
+
+    style Agents fill:#e3f2fd
+    style MCP fill:#fff3e0
+    style Storage fill:#e8f5e9
+```
+
+| Tool Category | Operations | Use Case |
+|---------------|------------|----------|
+| **Pages** | list, get, create, update, delete | Wiki page management |
+| **Databases** | schema, query, create_record, update | Structured data access |
+| **Tasks** | list, create, update | Task management |
+| **Search** | search, get_backlinks | Content discovery |
+| **Export** | export_workspace, import_file | Backup and interop |
+
+**Key Design Decisions:**
+- **MCP-only access**: AI interacts via tools, not files
+- **Markdown content**: Page content exposed as Markdown for AI readability
+- **Export for portability**: On-demand export to Markdown/JSON for backups
+- **Local-first**: MCP server runs locally, no auth needed for single-user
+
+**See also:** [AI & MCP Interface](./09-ai-mcp-interface.md) for full tool specifications.
 
 ---
 
