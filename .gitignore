@@ -6,6 +6,7 @@
 .vscode/
 *.swp
 *.swo
+.playwright-mcp/
 
 # Build artifacts
 dist/
