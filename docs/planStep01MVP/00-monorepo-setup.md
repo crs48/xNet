@@ -35,7 +35,7 @@ xnet/
 │   ├── expo/                 # Expo iOS
 │   └── web/                  # TanStack PWA
 └── docs/
-    └── planV2/               # This documentation
+    └── planStep01MVP/        # This documentation
 ```
 
 ## Implementation Steps
