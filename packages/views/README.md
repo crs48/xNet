@@ -34,7 +34,7 @@ src/
 - @tanstack/react-table - Table virtualization
 - @tanstack/react-virtual - Virtual scrolling
 - @dnd-kit/core - Drag and drop
-- @xnet/database - Property types and data
+- @xnet/records - Property types and data
 
 ## Installation
 
