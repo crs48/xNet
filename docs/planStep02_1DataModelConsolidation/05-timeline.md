@@ -44,7 +44,7 @@ gantt
 | --- | ------------------------------------------ | ----- | ------ |
 | Mon | Create @xnet/sync package structure        | -     | -      |
 | Mon | Hash consolidation (parallel)              | -     | -      |
-| Tue | Implement Operation<T> type                | -     | -      |
+| Tue | Implement Change<T> type                   | -     | -      |
 | Tue | Export bytesToHex from @xnet/crypto        | -     | -      |
 | Wed | Implement vector clock utils in @xnet/sync | -     | -      |
 | Wed | Update @xnet/core to use @xnet/crypto      | -     | -      |
@@ -53,7 +53,7 @@ gantt
 | Fri | Update @xnet/data to use @xnet/sync        | -     | -      |
 | Fri | Update @xnet/records to use @xnet/sync     | -     | -      |
 
-**Milestone: Types Unified** - Single Operation<T> type used by both sync mechanisms
+**Milestone: Types Unified** - Single Change<T> type used by both sync mechanisms
 
 ### Week 2: Simplification
 
@@ -157,7 +157,7 @@ flowchart LR
 
 ### Qualitative
 
-- [ ] Single `Operation<T>` type documented in CLAUDE.md
+- [ ] Single `Change<T>` type documented in CLAUDE.md
 - [ ] "Where Things Live" table accurate
 - [ ] No "which function do I use?" confusion
 - [ ] New developers can understand sync in <30 min

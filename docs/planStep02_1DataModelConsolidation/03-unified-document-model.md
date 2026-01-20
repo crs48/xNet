@@ -67,10 +67,10 @@ flowchart TD
     end
 
     subgraph types["Type Determines Shape"]
-        PAGE["type: 'page'<br/>✓ content<br/>✗ properties<br/>✗ schema"]
-        DATABASE["type: 'database'<br/>✗ content<br/>✗ properties<br/>✓ schema"]
-        ITEM["type: 'item'<br/>✓ content (optional)<br/>✓ properties<br/>✗ schema"]
-        CANVAS["type: 'canvas'<br/>✓ content (spatial)<br/>✗ properties<br/>✗ schema"]
+        PAGE["Page<br/>✓ content<br/>✗ properties<br/>✗ schema"]
+        DATABASE["Database<br/>✗ content<br/>✗ properties<br/>✓ schema"]
+        ITEM["Item<br/>✓ content (optional)<br/>✓ properties<br/>✗ schema"]
+        CANVAS["Canvas<br/>✓ content (spatial)<br/>✗ properties<br/>✗ schema"]
     end
 
     DOC --> PAGE
@@ -138,9 +138,9 @@ export interface DocumentBase {
 }
 
 /**
- * Page document - rich text content
+ * Page - rich text content
  */
-export interface PageDocument extends DocumentBase {
+export interface Page extends DocumentBase {
   type: 'page'
 
   /** Yjs document for rich text content */
@@ -148,9 +148,9 @@ export interface PageDocument extends DocumentBase {
 }
 
 /**
- * Database document - schema definition (items stored separately)
+ * Database - schema definition (items stored separately)
  */
-export interface DatabaseDocument extends DocumentBase {
+export interface Database extends DocumentBase {
   type: 'database'
 
   /** Property schema */
@@ -164,9 +164,9 @@ export interface DatabaseDocument extends DocumentBase {
 }
 
 /**
- * Item document - row in a database
+ * Item - row in a database
  */
-export interface ItemDocument extends DocumentBase {
+export interface Item extends DocumentBase {
   type: 'item'
 
   /** Parent database ID */
@@ -180,9 +180,9 @@ export interface ItemDocument extends DocumentBase {
 }
 
 /**
- * Canvas document - spatial layout
+ * Canvas - spatial layout
  */
-export interface CanvasDocument extends DocumentBase {
+export interface Canvas extends DocumentBase {
   type: 'canvas'
 
   /** Yjs document for spatial data */
@@ -192,33 +192,33 @@ export interface CanvasDocument extends DocumentBase {
 /**
  * Union of all document types
  */
-export type Document = PageDocument | DatabaseDocument | ItemDocument | CanvasDocument
+export type Document = Page | Database | Item | Canvas
 
 /**
  * Type guard for page documents
  */
-export function isPageDocument(doc: Document): doc is PageDocument {
+export function isPage(doc: Document): doc is Page {
   return doc.type === 'page'
 }
 
 /**
  * Type guard for database documents
  */
-export function isDatabaseDocument(doc: Document): doc is DatabaseDocument {
+export function isDatabase(doc: Document): doc is Database {
   return doc.type === 'database'
 }
 
 /**
  * Type guard for item documents
  */
-export function isItemDocument(doc: Document): doc is ItemDocument {
+export function isItem(doc: Document): doc is Item {
   return doc.type === 'item'
 }
 
 /**
  * Type guard for canvas documents
  */
-export function isCanvasDocument(doc: Document): doc is CanvasDocument {
+export function isCanvas(doc: Document): doc is Canvas {
   return doc.type === 'canvas'
 }
 ```
@@ -230,13 +230,13 @@ Maintain existing APIs while transitioning:
 ```typescript
 // packages/data/src/document.ts
 
-import type { Document, PageDocument } from '@xnet/core'
+import type { Document, Page } from '@xnet/core'
 
 /**
  * @deprecated Use Document from @xnet/core instead
- * XDocument is now an alias for PageDocument
+ * XDocument is now an alias for Page
  */
-export type XDocument = PageDocument
+export type XDocument = Page
 
 /**
  * Create a page document (backward compatible)
@@ -247,7 +247,7 @@ export function createDocument(options: {
   title?: string
   createdBy: DID
   signingKey: Uint8Array
-}): PageDocument {
+}): Page {
   const id = options.id || generateId()
 
   return {
@@ -268,17 +268,12 @@ export function createDocument(options: {
 ```typescript
 // packages/records/src/types.ts
 
-import type { Document, ItemDocument, DatabaseDocument } from '@xnet/core'
+import type { Document, Item, Database } from '@xnet/core'
 
 /**
- * @deprecated Use ItemDocument from @xnet/core instead
+ * @deprecated Use Item from @xnet/core instead
  */
-export type DatabaseItem = ItemDocument
-
-/**
- * @deprecated Use DatabaseDocument from @xnet/core instead
- */
-export type Database = DatabaseDocument
+export type DatabaseItem = Item
 ```
 
 ### Storage Adapter Updates
@@ -336,7 +331,7 @@ export interface DocumentAdapter {
 ```typescript
 // packages/react/src/hooks/useDocument.ts
 
-import type { Document, DocumentType } from '@xnet/core'
+import type { Document, DocumentType, Page, Database, Item } from '@xnet/core'
 
 interface UseDocumentOptions {
   /** Enable real-time sync */
@@ -375,21 +370,21 @@ export function useDocument<T extends Document = Document>(
  * Convenience hook for page documents
  */
 export function usePage(id: string, options?: UseDocumentOptions) {
-  return useDocument<PageDocument>(id, options)
+  return useDocument<Page>(id, options)
 }
 
 /**
  * Convenience hook for database documents
  */
 export function useDatabase(id: string, options?: UseDocumentOptions) {
-  return useDocument<DatabaseDocument>(id, options)
+  return useDocument<Database>(id, options)
 }
 
 /**
  * Convenience hook for item documents
  */
 export function useItem(id: string, options?: UseDocumentOptions) {
-  return useDocument<ItemDocument>(id, options)
+  return useDocument<Item>(id, options)
 }
 ```
 
@@ -478,12 +473,7 @@ export function queryDocuments(query: DocumentQuery): Promise<Document[]> {
 // packages/core/test/document.test.ts
 
 import { describe, it, expect } from 'vitest'
-import {
-  isPageDocument,
-  isDatabaseDocument,
-  isItemDocument,
-  isCanvasDocument
-} from '../src/document'
+import { isPage, isDatabase, isItem, isCanvas } from '../src/document'
 
 describe('Document type guards', () => {
   const pageDoc = {
@@ -514,13 +504,13 @@ describe('Document type guards', () => {
   }
 
   it('correctly identifies page documents', () => {
-    expect(isPageDocument(pageDoc)).toBe(true)
-    expect(isPageDocument(itemDoc)).toBe(false)
+    expect(isPage(pageDoc)).toBe(true)
+    expect(isPage(itemDoc)).toBe(false)
   })
 
   it('correctly identifies item documents', () => {
-    expect(isItemDocument(itemDoc)).toBe(true)
-    expect(isItemDocument(pageDoc)).toBe(false)
+    expect(isItem(itemDoc)).toBe(true)
+    expect(isItem(pageDoc)).toBe(false)
   })
 })
 ```
@@ -571,16 +561,16 @@ describe('useDocument', () => {
 ### Day 1-2: Core Types
 
 - [ ] Define `DocumentBase` interface
-- [ ] Define `PageDocument`, `DatabaseDocument`, `ItemDocument`, `CanvasDocument`
+- [ ] Define `Page`, `Database`, `Item`, `Canvas`
 - [ ] Create `Document` union type
-- [ ] Add type guards
+- [ ] Add type guards (`isPage`, `isDatabase`, `isItem`, `isCanvas`)
 - [ ] Add to @xnet/core exports
 - [ ] Write type tests
 
 ### Day 3: Backward Compatibility
 
-- [ ] Create `XDocument` alias in @xnet/data
-- [ ] Create `DatabaseItem` alias in @xnet/records
+- [ ] Create `XDocument` alias in @xnet/data (maps to `Page`)
+- [ ] Create `DatabaseItem` alias in @xnet/records (maps to `Item`)
 - [ ] Add deprecation notices
 - [ ] Verify existing code compiles
 
