@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@xnet/core": "workspace:*",
+    "@xnet/crypto": "workspace:*",
     "@xnet/data": "workspace:*",
     "@xnet/identity": "workspace:*",
     "@xnet/storage": "workspace:*",
