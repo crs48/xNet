@@ -538,6 +538,9 @@ importers:
       '@xnet/query':
         specifier: workspace:*
         version: link:../query
+      '@xnet/records':
+        specifier: workspace:*
+        version: link:../records
       '@xnet/storage':
         specifier: workspace:*
         version: link:../storage
