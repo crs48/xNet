@@ -41,6 +41,7 @@ export interface XNetActions {
   loadDocument: (id: string) => Promise<XDocument | null>
   createDocument: (id: string, options?: CreateDocumentOptions) => Promise<XDocument>
   updateDocument: (id: string, updater: (doc: XDocument) => void) => void
+  saveDocument: (id: string) => Promise<void>
   setDocument: (id: string, doc: XDocument) => void
   setSyncStatus: (status: XNetState['syncStatus']) => void
   setPeers: (peers: string[]) => void
@@ -56,12 +57,40 @@ export type XNetStore = UseBoundStore<StoreApi<XNetState & XNetActions>>
  */
 export interface StoreConfig {
   storage: StorageAdapter
+  /** Auto-save debounce delay in ms (default: 1000) */
+  autoSaveDelay?: number
 }
+
+// Track pending save timeouts per document
+const saveTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 /**
  * Create an XNet store instance
  */
 export function createXNetStore(config: StoreConfig): XNetStore {
+  const autoSaveDelay = config.autoSaveDelay ?? 1000
+
+  // Helper to schedule auto-save
+  const scheduleAutoSave = (id: string, get: () => XNetState & XNetActions) => {
+    // Clear existing timeout
+    const existing = saveTimeouts.get(id)
+    if (existing) clearTimeout(existing)
+
+    // Schedule new save
+    const timeout = setTimeout(() => {
+      saveTimeouts.delete(id)
+      get().saveDocument(id)
+    }, autoSaveDelay)
+    saveTimeouts.set(id, timeout)
+  }
+
+  // Setup Yjs observer for auto-save
+  const setupYjsObserver = (doc: XDocument, get: () => XNetState & XNetActions) => {
+    doc.ydoc.on('update', () => {
+      scheduleAutoSave(doc.id, get)
+    })
+  }
+
   return create<XNetState & XNetActions>((set, get) => ({
     documents: new Map(),
     syncStatus: 'offline',
@@ -112,6 +141,9 @@ export function createXNetStore(config: StoreConfig): XNetStore {
             archived: false
           }
         }
+
+        // Setup auto-save on Yjs updates
+        setupYjsObserver(doc, get)
 
         set((state) => {
           const docs = new Map(state.documents)
@@ -175,6 +207,9 @@ export function createXNetStore(config: StoreConfig): XNetStore {
         version: 1
       })
 
+      // Setup auto-save on Yjs updates
+      setupYjsObserver(doc, get)
+
       // Update store
       set((state) => {
         const docs = new Map(state.documents)
@@ -183,6 +218,38 @@ export function createXNetStore(config: StoreConfig): XNetStore {
       })
 
       return doc
+    },
+
+    async saveDocument(id: string): Promise<void> {
+      const state = get().documents.get(id)
+      if (!state?.doc) return
+
+      const doc = state.doc
+      const now = Date.now()
+
+      try {
+        await config.storage.setDocument(id, {
+          id,
+          content: Y.encodeStateAsUpdate(doc.ydoc),
+          metadata: {
+            created: doc.metadata.created,
+            updated: now,
+            type: doc.type,
+            workspace: doc.workspace
+          },
+          version: 1
+        })
+
+        // Update metadata and clear dirty flag
+        doc.metadata.updated = now
+        set((s) => {
+          const docs = new Map(s.documents)
+          docs.set(id, { ...state, dirty: false })
+          return { documents: docs }
+        })
+      } catch (error) {
+        console.error('Failed to save document:', id, error)
+      }
     },
 
     updateDocument(id: string, updater: (doc: XDocument) => void): void {

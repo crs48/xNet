@@ -22,8 +22,8 @@ Execute these documents in order. Each builds on the previous.
 | 11 | [Platform: Expo](./11-platform-expo.md) | iOS mobile app | 2 weeks | ✅ |
 | 12 | [Platform: Web](./12-platform-web.md) | TanStack PWA | 2 weeks | ✅ |
 | 13 | [xNotes Features](./13-xnotes-features.md) | Wiki, tasks, editor | 6 weeks | |
-| 14 | [Testing Strategy](./14-testing-strategy.md) | Unit tests, integration | Reference | |
-| 15 | [Infrastructure](./15-infrastructure.md) | Signaling, relay, bootstrap | 3 weeks | |
+| 14 | [Testing Strategy](./14-testing-strategy.md) | Unit tests, integration | Reference | 🔶 |
+| 15 | [Infrastructure](./15-infrastructure.md) | Signaling, relay, bootstrap | 3 weeks | 🔶 |
 | 16 | [Timeline](./16-timeline.md) | Development timeline, schedules, milestones | Reference | |
 | 17 | [Next Steps](./17-next-steps.md) | Future vision: Database UI, ERP, Federation, Tokens | Reference | |
 
@@ -60,12 +60,12 @@ Before proceeding to the next phase, verify:
 - [x] Electron app launches on macOS
 - [x] Expo app runs on iOS simulator
 - [x] PWA loads in browser
-- [ ] Data persists across restarts
-- [ ] Basic P2P sync works
+- [x] Data persists across restarts
+- [ ] Basic P2P sync works (requires signaling server deployment)
 
 ### After Features
-- [ ] Can create/edit pages
-- [ ] Can link pages (wikilinks)
+- [x] Can create/edit pages
+- [x] Can link pages (wikilinks)
 - [ ] Can create tasks
 - [ ] Search returns results
 - [ ] Sync works between devices
