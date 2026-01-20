@@ -191,6 +191,7 @@ gantt
     xNotes MVP              :milestone, 2026-07, 0d
     xNotes v1.0             :milestone, 2026-12, 0d
     xNotes v2.0 (Notion)    :milestone, 2027-06, 0d
+    xNotes v2.5 (Canvas)    :milestone, 2027-09, 0d
     xNotes v3.0 (ERP)       :milestone, 2028-01, 0d
 
     section xNet Core
@@ -199,14 +200,16 @@ gantt
 
     section xNotes
     Phase 1: Wiki & Tasks   :2026-01, 12M
-    Phase 2: Database UI    :2027-01, 12M
+    Phase 2: Database UI    :2027-01, 6M
+    Phase 2.5: Canvas       :2027-07, 6M
     Phase 3: ERP Platform   :2028-01, 12M
 ```
 
 | Phase | Duration | Goal | Key Deliverable |
 |-------|----------|------|-----------------|
 | **Phase 1** | Months 0-12 | Core productivity | Wiki + Task Manager |
-| **Phase 2** | Months 12-24 | Database platform | Notion-like UI |
+| **Phase 2** | Months 12-18 | Database platform | Notion-like UI |
+| **Phase 2.5** | Months 18-24 | Visual workspace | Infinite Canvas |
 | **Phase 3** | Months 24+ | Enterprise platform | Open-source ERP |
 
 ---
@@ -264,6 +267,78 @@ pie title Team Allocation (Phase 1)
 - **Offline Capability**: 100% features available offline
 - **Sync Latency**: <500ms for real-time collaboration
 - **Data Durability**: Zero data loss incidents
+
+---
+
+## Performance Specifications
+
+### Expected Metrics
+
+| Metric | Target | Notes |
+|--------|--------|-------|
+| **Local read latency** | <10ms | Near-instant, no network |
+| **Local write latency** | <50ms | CRDT update + IndexedDB |
+| **P2P sync latency** | 50-300ms | Depends on network, peer location |
+| **Offline capability** | 100% | All features work offline |
+| **Time to interactive** | <2s | With cached data |
+
+### System Limits
+
+| Resource | Limit | Constraint |
+|----------|-------|------------|
+| **Max local storage** | 10GB (browser) | Firefox: min(10% disk, 10GB); persistent mode: 50% disk up to 8TB |
+| **Max local storage** | Unlimited (desktop) | Tauri/Electron use native filesystem |
+| **Max single document** | ~100k words | ProseMirror performance degrades beyond this |
+| **Max blob size** | 100MB recommended | Larger files should use streaming |
+| **Max concurrent editors** | 20-30 (P2P mesh) | y-webrtc limit; use relay for more |
+| **Max P2P connections** | 4-6 direct | Mesh topology limit; beyond this use hub |
+| **Max canvas nodes** | 100,000+ | With R-tree spatial indexing and LOD |
+
+### Local-First Performance Advantages
+
+| Scenario | Traditional SaaS | xNotes (Local-First) |
+|----------|------------------|----------------------|
+| **Read latency** | 100-500ms | <10ms |
+| **Write latency** | 200-1000ms | <50ms |
+| **Offline editing** | Not possible | Full functionality |
+| **Search** | 200-500ms | <50ms (local index) |
+| **Page load** | 1-3s | <500ms (cached) |
+| **Server cost (10k users)** | $500-2000/mo | $80/mo (sync only) |
+
+### Potential Performance Issues
+
+| Issue | Cause | Mitigation |
+|-------|-------|------------|
+| **CRDT tombstone accumulation** | Deleted content leaves markers | Periodic garbage collection when all peers sync |
+| **Large document lag** | ProseMirror DOM overhead | Pagination, lazy loading of sections |
+| **IndexedDB write slowness** | Transaction overhead (~2s for 1k writes) | Batch writes, use OPFS for 4x speedup |
+| **Memory pressure (browser)** | Large Yjs documents in memory | Unload inactive documents, use persistence |
+| **WebRTC connection storms** | Many peers joining simultaneously | Staggered connection, connection pooling |
+| **Symmetric NAT failures** | ~10% of connections need relay | Auto-fallback to circuit relay peers |
+| **Chrome large doc slowdown** | Browser rendering, not JS | Virtualize long documents, collapse sections |
+| **Sync conflicts on reconnect** | Large offline edit sets | Progressive sync, conflict UI for major changes |
+
+### Architecture Performance Benefits
+
+| Benefit | How It Works |
+|---------|--------------|
+| **Zero loading spinners** | Data already local; UI renders immediately |
+| **Instant search** | Lunr.js index stored locally; no network round-trip |
+| **Resilient to backend outages** | Network not on critical path; sync when available |
+| **Low server costs** | Server only coordinates; doesn't store/compute |
+| **Geographic latency eliminated** | No round-trip to distant datacenter |
+| **Scales with device power** | Modern phones/laptops are powerful; use them |
+
+### Benchmarks to Track
+
+| Benchmark | Method | Target |
+|-----------|--------|--------|
+| **Document open time** | Cold start to interactive | <500ms for 10k word doc |
+| **Typing latency** | Keypress to render | <16ms (60fps) |
+| **Sync throughput** | Updates per second | >100 ops/sec |
+| **Search performance** | Query to results | <100ms for 10k docs |
+| **Canvas pan/zoom** | Frame time | <16ms (60fps) |
+| **Memory per document** | Heap size | <50MB for 10k word doc |
 
 ---
 

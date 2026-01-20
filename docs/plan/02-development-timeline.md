@@ -52,8 +52,13 @@ gantt
     Version history                 :xn9, 2026-09, 2M
     xNotes v1.0                     :milestone, 2026-12, 0d
     Database views                  :xn10, 2027-01, 4M
-    Formulas & rollups              :xn11, 2027-04, 3M
+    Formulas & rollups              :xn11, 2027-04, 2M
     xNotes v2.0 (Notion parity)     :milestone, 2027-06, 0d
+    Canvas: spatial indexing        :xn12, 2027-06, 2M
+    Canvas: node rendering          :xn13, 2027-07, 2M
+    Canvas: auto-layout             :xn14, 2027-08, 2M
+    Canvas: embedded editing        :xn15, 2027-09, 2M
+    xNotes v2.5 (Canvas)            :milestone, 2027-10, 0d
 ```
 
 ---
@@ -170,6 +175,10 @@ Critical checkpoints where xNet capabilities enable xNotes features.
 | **M7** | @xnet/query | Full-text search | Month 8 |
 | **M8** | @xnet/vectors | Semantic search | Month 10 |
 | **M9** | @xnet/sdk v2.0 | **xNotes v1.0** | Month 12 |
+| **M10** | @xnet/data | Database views, formulas | Month 18 |
+| **M11** | @xnet/sdk v2.1 | **xNotes v2.0** (Notion parity) | Month 18 |
+| **M12** | @xnet/canvas | Spatial indexing, auto-layout | Month 20 |
+| **M13** | @xnet/sdk v2.5 | **xNotes v2.5** (Infinite Canvas) | Month 22 |
 
 ---
 
