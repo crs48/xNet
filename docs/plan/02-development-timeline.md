@@ -71,23 +71,23 @@ flowchart LR
     end
 
     subgraph "Month 2-4"
-        D[data/CRDT]
+        D["data/CRDT"]
     end
 
     subgraph "Month 3-5"
-        N1[network/basic]
+        N1["network/basic"]
     end
 
     subgraph "Month 5-6"
-        Q1[query/local]
-        SDK1[SDK v1.0]
+        Q1["query/local"]
+        SDK1["SDK v1.0"]
     end
 
     subgraph "Month 6+"
-        N2[network/relay]
+        N2["network/relay"]
         V[vectors]
-        Q2[query/federation]
-        SDK2[SDK v2.0]
+        Q2["query/federation"]
+        SDK2["SDK v2.0"]
     end
 
     C --> I
