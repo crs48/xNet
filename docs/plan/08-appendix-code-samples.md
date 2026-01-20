@@ -14,13 +14,47 @@ This appendix contains detailed code samples, architecture diagrams, and technic
 
 ## Block Schema
 
-Core data model for all content in xNotes.
+Core data model for all content in xNotes. Designed for forward-compatibility with versioning built in from day 1.
+
+**See also**: [Versioning Strategy](./11-versioning-strategy.md) for design principles.
 
 ```typescript
 // packages/core/src/schema/block.ts
 
 import { z } from 'zod';
 
+// ============================================
+// PERMISSION SCHEMA (Extensible from day 1)
+// ============================================
+// Supports future: roles, conditions, time-limits
+export const PermissionEntrySchema = z.object({
+  principalId: z.string(),
+  principalType: z.enum(['user', 'role', 'group', 'anyone']),
+  capabilities: z.array(z.enum(['read', 'write', 'admin', 'share'])),
+
+  // Reserved for future conditions (time-limited, IP-based, etc.)
+  conditions: z.object({
+    expiresAt: z.string().datetime().optional(),
+  }).passthrough().optional(),
+
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const PermissionsSchema = z.object({
+  version: z.number().default(1),
+  entries: z.array(PermissionEntrySchema),
+
+  // Legacy format support (for migration from v0)
+  __legacyFormat: z.object({
+    read: z.array(z.string()),
+    write: z.array(z.string()),
+    admin: z.array(z.string()),
+  }).optional(),
+});
+
+// ============================================
+// BLOCK SCHEMA (Core, versioned)
+// ============================================
 export const BlockSchema = z.object({
   '@id': z.string().uuid(),
   '@type': z.string(),
@@ -33,15 +67,28 @@ export const BlockSchema = z.object({
   parent: z.string().uuid().nullable(),
   children: z.array(z.string().uuid()),
 
-  permissions: z.object({
-    read: z.array(z.string()),  // DIDs or 'workspace'
-    write: z.array(z.string()),
-    admin: z.array(z.string()),
-  }),
+  permissions: PermissionsSchema,
 
   version: z.number(),
-});
 
+  // ============================================
+  // VERSIONING FIELDS (Required from day 1)
+  // ============================================
+  __schemaVersion: z.number().default(1),
+
+  // Reserved for future extensions (plugins, custom fields)
+  __extensions: z.record(z.unknown()).optional(),
+
+  // Track deprecated fields during migrations
+  __deprecated: z.record(z.unknown()).optional(),
+
+  // Feature flags for progressive rollout
+  __features: z.array(z.string()).optional(),
+}).passthrough();  // Allow unknown fields to pass through
+
+// ============================================
+// PAGE SCHEMA
+// ============================================
 export const PageSchema = BlockSchema.extend({
   '@type': z.literal('Page'),
 
@@ -60,6 +107,9 @@ export const PageSchema = BlockSchema.extend({
   }),
 });
 
+// ============================================
+// TASK SCHEMA
+// ============================================
 export const TaskSchema = BlockSchema.extend({
   '@type': z.literal('Task'),
 
@@ -87,6 +137,32 @@ export const TaskSchema = BlockSchema.extend({
 export type Block = z.infer<typeof BlockSchema>;
 export type Page = z.infer<typeof PageSchema>;
 export type Task = z.infer<typeof TaskSchema>;
+
+// ============================================
+// DOCUMENT METADATA (Required in every Y.Doc)
+// ============================================
+export interface DocumentMetadata {
+  schemaVersion: number;
+  formatVersion: string;
+  createdAt: string;
+  migrations: Array<{
+    from: number;
+    to: number;
+    appliedAt: string;
+    appliedBy: string;
+  }>;
+  features: string[];
+  minClientVersion?: string;
+}
+
+export function initializeDocument(ydoc: Y.Doc): void {
+  const meta = ydoc.getMap('__meta');
+  meta.set('schemaVersion', 1);
+  meta.set('formatVersion', '1.0.0');
+  meta.set('createdAt', new Date().toISOString());
+  meta.set('migrations', []);
+  meta.set('features', []);
+}
 ```
 
 ---

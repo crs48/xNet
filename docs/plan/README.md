@@ -79,6 +79,7 @@ graph TB
 | 8 | [Appendix: Code Samples](./08-appendix-code-samples.md) | Reference implementations |
 | 9 | [AI & MCP Interface](./09-ai-mcp-interface.md) | MCP tools for AI agent access, export/import |
 | 10 | [Scaling Architecture](./10-scaling-architecture.md) | Federation, global namespaces, canvas, backups |
+| 11 | [Versioning Strategy](./11-versioning-strategy.md) | Forward-compatibility, no-migration design |
 
 **Related Documentation:**
 - [Persistence & Durability Architecture](../PERSISTENCE_ARCHITECTURE.md)
