@@ -375,6 +375,7 @@ import { bootstrap } from '@libp2p/bootstrap';
 import { kadDHT } from '@libp2p/kad-dht';
 import { gossipsub } from '@chainsafe/libp2p-gossipsub';
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2';
+import { identify } from '@libp2p/identify';
 
 export async function createNode(config: NodeConfig) {
   const node = await createLibp2p({
@@ -387,7 +388,7 @@ export async function createNode(config: NodeConfig) {
       webRTCDirect(),
       circuitRelayTransport(),
     ],
-    connectionEncryption: [noise()],
+    connectionEncrypters: [noise()],  // Note: plural form in libp2p v3.0.0+
     streamMuxers: [yamux()],
     peerDiscovery: [
       bootstrap({
@@ -395,6 +396,7 @@ export async function createNode(config: NodeConfig) {
       }),
     ],
     services: {
+      identify: identify(),  // Required for GossipSub and DHT
       dht: kadDHT({
         clientMode: true,
       }),
@@ -1513,7 +1515,7 @@ interface SearchResult {
 | typescript | ^5.4.0 | Type safety |
 | yjs | ^13.6.0 | CRDT implementation |
 | @tiptap/core | ^2.4.0 | Rich text editor |
-| libp2p | ^1.3.0 | P2P networking |
+| libp2p | ^3.0.0 | P2P networking (note: v3.0 has breaking changes from v1.x) |
 | @tanstack/react-table | ^8.15.0 | Table/grid component |
 | @tanstack/react-virtual | ^3.2.0 | Virtual scrolling |
 | @dnd-kit/core | ^6.1.0 | Drag and drop |
