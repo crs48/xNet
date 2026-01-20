@@ -288,12 +288,12 @@ importers:
       '@xnet/query':
         specifier: workspace:*
         version: link:../query
+      '@xnet/react':
+        specifier: workspace:*
+        version: link:../react
       '@xnet/storage':
         specifier: workspace:*
         version: link:../storage
-      '@xnet/vectors':
-        specifier: workspace:*
-        version: link:../vectors
     devDependencies:
       tsup:
         specifier: ^8.0.0
@@ -301,6 +301,9 @@ importers:
       typescript:
         specifier: ^5.4.0
         version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@20.19.30)(jsdom@26.1.0)(terser@5.46.0)
 
   packages/storage:
     dependencies:
