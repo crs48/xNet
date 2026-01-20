@@ -7,6 +7,17 @@
 
 ## Data Model (Critical)
 
+> **Architecture Update in Progress:** See `docs/planStep02_1DataModelConsolidation/README.md`
+>
+> We are moving to a **schema-first, Node-based architecture** where:
+>
+> - Everything is a `Node` (universal container)
+> - A `Schema` defines what the Node is (Page, Database, Item, Task, etc.)
+> - Schemas are defined in code via `defineSchema()` with TypeScript inference
+> - Schemas use globally unique IRIs: `xnet://xnet.dev/Page`, `xnet://did:key:.../Recipe`
+
+### Current State (Being Consolidated)
+
 Two sync strategies for different data types:
 
 | Data Type              | Package         | Sync Mechanism    | Conflict Resolution   |
@@ -15,6 +26,29 @@ Two sync strategies for different data types:
 | Tabular (databases)    | `@xnet/records` | Event-sourced ops | Field-level LWW       |
 
 This is intentional (see `docs/TRADEOFFS.md`). Rich text needs fine-grained CRDT; tables work better with last-writer-wins per field.
+
+### Target State (After Consolidation)
+
+```typescript
+// Everything is a Node with a Schema
+const task = TaskSchema.create({
+  title: 'Fix the bug',
+  status: 'todo'
+})
+
+// Schemas defined in code with full TypeScript inference
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://xnet.dev/',
+  properties: {
+    title: text({ required: true }),
+    status: select({ options: [...] as const })
+  },
+  hasContent: true
+})
+
+type Task = InferNode<typeof TaskSchema>  // Fully typed!
+```
 
 ## Package Map
 
@@ -144,4 +178,5 @@ apps/
 - `docs/PERSISTENCE_ARCHITECTURE.md` - Storage durability tiers
 - `docs/planStep01MVP/01-phase0-foundations.md` - Core architecture
 - `docs/planStep02DatabasePlatform/01-property-types.md` - Property system
+- `docs/planStep02_1DataModelConsolidation/README.md` - **Schema-first architecture plan**
 - `docs/plan/12-react-integration.md` - React hooks design

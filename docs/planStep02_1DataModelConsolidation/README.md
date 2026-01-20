@@ -1,204 +1,366 @@
 # xNet Implementation Plan - Step 02.1: Data Model Consolidation
 
-> AI-agent-actionable implementation guide for reducing conceptual overhead
+> Unifying xNet around a schema-first, Node-based architecture with JSON-LD support
 
-## Purpose
+## Executive Summary
 
-This plan addresses findings from the [Codebase Review](../CODEBASE_REVIEW.md). The goal is to **reduce conceptual surface area** without major rewrites - creating unified abstractions while preserving the working hybrid sync implementation.
+This plan consolidates xNet's data model around a single, powerful abstraction:
 
-## Prerequisites
+**Everything is a Node. A Schema defines what the Node is.**
 
-Before starting this phase, ensure:
+```typescript
+// The entire data model in one concept
+const task = TaskSchema.create({
+  title: 'Fix the bug',
+  status: 'todo',
+  priority: 'high'
+})
 
-- [x] planStep01MVP complete
-- [x] planStep02DatabasePlatform property types working (@xnet/records)
-- [x] Dual sync operational (Yjs for docs, event-sourcing for records)
-- [x] > 80% test coverage on core packages
+// TaskSchema is defined in code with full TypeScript inference
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://xnet.dev/',
+  properties: {
+    title: text({ required: true }),
+    status: select({ options: STATUS_OPTIONS }),
+    priority: select({ options: PRIORITY_OPTIONS })
+  },
+  hasContent: true
+})
 
-## Problem Statement
+type Task = InferNode<typeof TaskSchema> // Fully typed!
+```
 
-The codebase currently has:
+## Architecture Decisions (Ratified)
+
+| Decision              | Choice                            | Rationale                                                    |
+| --------------------- | --------------------------------- | ------------------------------------------------------------ |
+| **Base type**         | `Node`                            | Universal container, graph-native, no conflict with subtypes |
+| **Type system**       | Schema-defined                    | Flexible, user-extensible, JSON-LD native                    |
+| **Schema definition** | Code-first via `defineSchema()`   | TypeScript inference, co-located validation                  |
+| **TypeScript**        | Inferred from schema              | No codegen for dev schemas, full type safety                 |
+| **Global namespace**  | IRIs: `xnet://<authority>/<path>` | No collisions, federation-ready                              |
+| **Package structure** | Unified `@xnet/data`              | Single mental model for "where data lives"                   |
+| **Sync primitives**   | `Change<T>` in `@xnet/sync`       | Unified across Yjs and event-sourcing                        |
+
+## Target Architecture
 
 ```mermaid
 flowchart TD
-    subgraph current["Current: Two Mental Models"]
-        DATA["@xnet/data<br/>SignedUpdate, Yjs"]
-        RECORDS["@xnet/records<br/>RecordOperation, LWW"]
+    subgraph data["@xnet/data"]
+        subgraph schema["Schema System"]
+            DS["defineSchema()"]
+            PH["Property Helpers<br/>text(), select(), date()..."]
+            SR["Schema Registry"]
+            VAL["Validation"]
+        end
+
+        subgraph types["Node Types"]
+            NODE["Node (base)"]
+            PAGE["Page"]
+            DB["Database"]
+            ITEM["Item"]
+            CANVAS["Canvas"]
+        end
+
+        subgraph builtin["Built-in Schemas"]
+            PS["PageSchema"]
+            DBS["DatabaseSchema"]
+            IS["ItemSchema"]
+            CS["CanvasSchema"]
+            TS["TaskSchema"]
+        end
     end
 
-    subgraph types["Duplicated Concepts"]
-        T1["VectorClock (shared)"]
-        T2["Hash chains (duplicated)"]
-        T3["Sync providers (separate)"]
+    subgraph sync["@xnet/sync"]
+        CHANGE["Change&lt;T&gt;"]
+        CLOCK["VectorClock"]
+        CHAIN["Hash Chain"]
+        PROV["SyncProvider"]
     end
 
-    DATA --> T1
-    DATA --> T2
-    DATA --> T3
-    RECORDS --> T1
-    RECORDS --> T2
-    RECORDS --> T3
+    DS --> PH
+    DS --> VAL
+    DS --> builtin
+    builtin --> types
+    NODE --> PAGE
+    NODE --> DB
+    NODE --> ITEM
+    NODE --> CANVAS
+
+    sync --> data
 ```
 
-This creates:
+## Implementation Phases
 
-- Two sets of types to learn
-- Duplicated hash/verify logic
-- Complex PropertyValue union type
-- Separate Document vs Item concepts
+### Phase 1: Foundation (Week 1-2)
 
-## Implementation Order
+| Task | Document                                                                     | Description                                         |
+| ---- | ---------------------------------------------------------------------------- | --------------------------------------------------- |
+| 1.1  | [01-xnet-sync-package.md](./01-xnet-sync-package.md)                         | Create `@xnet/sync` with `Change<T>`, vector clocks |
+| 1.2  | [04-hash-function-consolidation.md](./04-hash-function-consolidation.md)     | Single source for hashing in `@xnet/crypto`         |
+| 1.3  | [02-property-value-simplification.md](./02-property-value-simplification.md) | JSON-only PropertyValue types                       |
 
-Execute these documents in order. Each builds on the previous.
+**Validation Gate:**
 
-| #   | Document                                                              | Description                         | Est. Time | Risk   |
-| --- | --------------------------------------------------------------------- | ----------------------------------- | --------- | ------ |
-| 00  | [Overview](./00-overview.md)                                          | Goals, non-goals, success criteria  | Reference | -      |
-| 01  | [@xnet/sync Package](./01-xnet-sync-package.md)                       | Unified sync primitives             | 1 week    | Low    |
-| 02  | [PropertyValue Simplification](./02-property-value-simplification.md) | JSON-only property values           | 3 days    | Low    |
-| 03  | [Unified Document Model](./03-unified-document-model.md)              | Merge XDocument and DatabaseItem    | 1 week    | Medium |
-| 04  | [Hash Consolidation](./04-hash-function-consolidation.md)             | Single source for hashing           | 2 days    | Low    |
-| 05  | [Timeline](./05-timeline.md)                                          | Schedule and milestones             | Reference | -      |
-| 06  | [Package Naming](./06-package-naming-proposal.md)                     | Merge @xnet/records into @xnet/data | 3 days    | Medium |
-| 07  | [Naming Research](./07-naming-research.md)                            | Research on "Document" alternatives | Reference | -      |
-| 08  | [JSON-LD Integration](./08-jsonld-integration.md)                     | Add JSON-LD semantic web support    | 4 days    | Low    |
-| 09  | [Schema-First Architecture](./09-schema-first-architecture.md)        | Everything is a schema-defined Node | Reference | -      |
-| 10  | [Schema + TypeScript](./10-schema-first-with-typescript.md)           | Generated types from schemas        | 1 week    | Medium |
-| 11  | [Global Namespacing](./11-global-schema-namespacing.md)               | Global schema namespace via IRIs    | Reference | -      |
-| 12  | [Code-First Schemas](./12-code-first-schemas.md)                      | defineSchema() with inferred types  | 1 week    | Medium |
-
-## Validation Gates
-
-### After @xnet/sync
-
-- [ ] Both @xnet/data and @xnet/records import from @xnet/sync
-- [ ] Single Change<T> type used everywhere
-- [ ] Vector clock utils in one place
-- [ ] All existing tests still pass
-
-### After PropertyValue Simplification
-
+- [ ] `Change<T>` replaces `SignedUpdate` and `RecordOperation`
+- [ ] All hash functions come from `@xnet/crypto`
 - [ ] PropertyValue is JSON-serializable
-- [ ] Date stored as number (timestamp)
-- [ ] DateRange stored as `{ start: number, end: number }`
-- [ ] No special serialization needed
-- [ ] All property type tests pass
+- [ ] All existing tests pass
 
-### After Unified Document Model
+### Phase 2: Schema System (Week 2-3)
 
-- [ ] Single Document interface covers all types
-- [ ] Type field determines shape (page, database, item, canvas)
-- [ ] Existing APIs still work (backward compatible)
-- [ ] React hooks work with unified model
+| Task | Document                                                             | Description                                |
+| ---- | -------------------------------------------------------------------- | ------------------------------------------ |
+| 2.1  | [12-code-first-schemas.md](./12-code-first-schemas.md)               | `defineSchema()` API with property helpers |
+| 2.2  | [09-schema-first-architecture.md](./09-schema-first-architecture.md) | `Node` base type, `Schema` as Node         |
+| 2.3  | [11-global-schema-namespacing.md](./11-global-schema-namespacing.md) | IRI-based schema identifiers               |
 
-### After Hash Consolidation
+**Validation Gate:**
 
-- [ ] @xnet/crypto is single source for raw hashing
-- [ ] @xnet/core only does CID formatting
-- [ ] No duplicate bytesToHex implementations
-- [ ] All crypto tests pass
+- [ ] `defineSchema()` works with TypeScript inference
+- [ ] Property helpers: `text()`, `select()`, `date()`, `relation()`, etc.
+- [ ] `Node` is the universal base type
+- [ ] Schemas are Nodes (self-describing)
+- [ ] Schema IRIs: `xnet://xnet.dev/Page`, `xnet://did:key:.../Recipe`
 
-## Quick Reference
+### Phase 3: Package Consolidation (Week 3-4)
 
-### Current vs. Target Architecture
+| Task | Document                                                         | Description                               |
+| ---- | ---------------------------------------------------------------- | ----------------------------------------- |
+| 3.1  | [06-package-naming-proposal.md](./06-package-naming-proposal.md) | Merge `@xnet/records` into `@xnet/data`   |
+| 3.2  | [03-unified-document-model.md](./03-unified-document-model.md)   | Migrate to Node-based model               |
+| 3.3  | -                                                                | Update React hooks for schema-aware usage |
 
-```mermaid
-flowchart LR
-    subgraph before["Before"]
-        direction TB
-        B1["@xnet/data<br/>SignedUpdate"]
-        B2["@xnet/records<br/>RecordChange"]
-        B3["Separate hash logic"]
-    end
+**Validation Gate:**
 
-    subgraph after["After"]
-        direction TB
-        A1["@xnet/sync<br/>Change&lt;T&gt;"]
-        A2["@xnet/data imports sync"]
-        A3["@xnet/records imports sync"]
-        A4["Unified hash in crypto"]
-    end
-
-    before --> after
-```
-
-### Package Changes
-
-| Package         | Change                      | Impact                             |
-| --------------- | --------------------------- | ---------------------------------- |
-| `@xnet/sync`    | **NEW**                     | Unified sync primitives            |
-| `@xnet/core`    | Slim down                   | Remove sync types, keep CID        |
-| `@xnet/crypto`  | No change                   | Already correct                    |
-| `@xnet/data`    | **Absorb @xnet/records**    | Unified data package with subpaths |
-| `@xnet/records` | **Deprecated** → @xnet/data | Re-exports for backward compat     |
-
-### Test Commands
-
-```bash
-pnpm test                        # All tests
-pnpm --filter @xnet/sync test    # New sync package
-pnpm --filter @xnet/data test    # Verify still works
-pnpm --filter @xnet/records test # Verify still works
-pnpm test:coverage               # Ensure >80%
-```
-
-## Non-Goals
-
-This consolidation explicitly does NOT:
-
-1. ~~**Merge @xnet/data and @xnet/records**~~ - **UPDATED:** Now merging into unified @xnet/data
-2. **Change sync mechanisms** - Yjs stays Yjs, event-sourcing stays event-sourcing
-3. **Rewrite working code** - Refactor, don't rebuild
-4. **Break existing APIs** - All changes must be backward compatible
-
-## Validation Gates (Continued)
-
-### After Package Merge
-
-- [ ] `@xnet/data` contains both document and record functionality
-- [ ] Subpath imports work: `@xnet/data/document`, `@xnet/data/record`
-- [ ] `@xnet/records` re-exports from `@xnet/data` for backward compat
-- [ ] All tests pass with new structure
-
-### After JSON-LD Integration
-
-- [ ] `XNET_CONTEXT` defined with all type mappings
-- [ ] `toJsonLd()` and `fromJsonLd()` work for all document types
-- [ ] Export/import preserves semantic information
-- [ ] Property types have JSON-LD schema definitions
-
-### After Schema-First Implementation
-
-- [ ] `Node` is the universal base type (replaces Document)
-- [ ] `Schema` defines what a Node is (properties, behaviors)
+- [ ] `@xnet/data` contains all data functionality
+- [ ] `@xnet/records` re-exports for backward compatibility
 - [ ] Built-in schemas: Page, Database, Item, Canvas, Task
-- [ ] Schemas are Nodes (self-describing system)
-- [ ] `defineSchema()` API with TypeScript type inference
-- [ ] Property helpers: `text()`, `select()`, `date()`, etc.
-- [ ] Validation co-located with schema definition
-- [ ] User-defined schemas work at runtime
+- [ ] React hooks work with Node/Schema model
 
-### After Global Namespacing
+### Phase 4: JSON-LD & Polish (Week 4-5)
 
-- [ ] Schema IRIs follow `xnet://<authority>/<path>` pattern
-- [ ] Built-in schemas use `xnet://xnet.dev/` namespace
-- [ ] User schemas use `xnet://did:key:.../` namespace
+| Task | Document                                               | Description                     |
+| ---- | ------------------------------------------------------ | ------------------------------- |
+| 4.1  | [08-jsonld-integration.md](./08-jsonld-integration.md) | JSON-LD context, export/import  |
+| 4.2  | -                                                      | Schema.org mappings for interop |
+| 4.3  | -                                                      | Update CLAUDE.md, documentation |
+
+**Validation Gate:**
+
+- [ ] `toJsonLd()` / `fromJsonLd()` work for all Node types
 - [ ] Schema.org mappings via `sameAs` property
-- [ ] Well-known URL resolution for domain-based schemas
+- [ ] Export produces valid JSON-LD
+- [ ] Documentation reflects new architecture
+
+## Reference Documents
+
+| #   | Document                                                    | Purpose                                        |
+| --- | ----------------------------------------------------------- | ---------------------------------------------- |
+| 00  | [Overview](./00-overview.md)                                | Original goals (now superseded by this README) |
+| 05  | [Timeline](./05-timeline.md)                                | Original timeline (to be updated)              |
+| 07  | [Naming Research](./07-naming-research.md)                  | Research on Node vs Document naming            |
+| 10  | [Schema + TypeScript](./10-schema-first-with-typescript.md) | Codegen approach (superseded by code-first)    |
+
+## Core Concepts
+
+### Node: The Universal Container
+
+```typescript
+interface Node {
+  // Identity
+  id: string
+  schemaId: SchemaIRI // What type of node is this?
+
+  // Data
+  properties: Record<string, PropertyValue>
+  content?: Y.Doc // Optional rich text (Yjs)
+  children?: string[] // Optional child node IDs
+
+  // Metadata
+  workspaceId: string
+  parentId?: string
+  created: number
+  updated: number
+  createdBy: DID
+  updatedBy: DID
+
+  // JSON-LD (populated on export)
+  '@context'?: JsonLdContext
+  '@type'?: string
+  '@id'?: string
+}
+```
+
+### Schema: The Type Definition
+
+```typescript
+interface Schema {
+  // JSON-LD identity
+  '@id': SchemaIRI // e.g., 'xnet://xnet.dev/Task'
+  '@type': 'xnet://xnet.dev/Schema'
+
+  // Definition
+  name: string
+  namespace: string
+  properties: PropertyDefinition[]
+  extends?: SchemaIRI
+
+  // Behavior flags
+  hasContent: boolean // Has Y.Doc body?
+  hasChildren: boolean // Can contain child nodes?
+  isCollection: boolean // Is a "database"?
+
+  // UI hints
+  icon?: string
+  color?: string
+}
+```
+
+### defineSchema(): Code-First Definition
+
+```typescript
+import { defineSchema, text, select, date, person } from '@xnet/data/schema'
+
+export const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://xnet.dev/',
+
+  properties: {
+    title: text({ required: true, maxLength: 500 }),
+    status: select({
+      options: [
+        { id: 'todo', name: 'To Do', color: 'gray' },
+        { id: 'in-progress', name: 'In Progress', color: 'blue' },
+        { id: 'done', name: 'Done', color: 'green' }
+      ] as const,
+      default: 'todo'
+    }),
+    dueDate: date({ includeTime: false }),
+    assignee: person({ multiple: false })
+  },
+
+  hasContent: true,
+  icon: '✅'
+})
+
+// Type is INFERRED from the schema definition
+export type Task = InferNode<typeof TaskSchema>
+
+// Full API
+TaskSchema.create({ title: 'Fix bug', status: 'todo' }) // Create node
+TaskSchema.validate(unknownData) // Runtime validation
+TaskSchema.is(someNode) // Type guard
+TaskSchema.schema // JSON-LD export
+```
+
+### Global Schema Namespace
+
+```
+xnet://xnet.dev/Page              # Built-in (ships with xNet)
+xnet://xnet.dev/Task              # Built-in task type
+xnet://schema.org/Person          # Web standard mapping
+xnet://acme-corp.com/Project      # Organization schema
+xnet://did:key:z6Mk.../Recipe     # Personal schema
+```
+
+## Package Structure (Target)
+
+```
+packages/
+├── sync/                         # NEW: Unified sync primitives
+│   └── src/
+│       ├── change.ts             # Change<T> type
+│       ├── clock.ts              # Vector clock utils
+│       ├── chain.ts              # Hash chain utils
+│       └── provider.ts           # SyncProvider interface
+│
+├── data/                         # EXPANDED: All data types
+│   └── src/
+│       ├── schema/               # Schema system
+│       │   ├── define.ts         # defineSchema()
+│       │   ├── registry.ts       # Schema registry
+│       │   ├── validation.ts     # Runtime validation
+│       │   └── properties/       # Property helpers
+│       │       ├── text.ts
+│       │       ├── select.ts
+│       │       ├── date.ts
+│       │       └── ...
+│       │
+│       ├── schemas/              # Built-in schemas
+│       │   ├── page.ts
+│       │   ├── database.ts
+│       │   ├── item.ts
+│       │   ├── canvas.ts
+│       │   └── task.ts
+│       │
+│       ├── types/                # Core types
+│       │   ├── node.ts           # Node interface
+│       │   └── schema.ts         # Schema interface
+│       │
+│       ├── sync/                 # Sync implementations
+│       │   ├── yjs.ts            # Yjs adapter
+│       │   └── event.ts          # Event-sourced adapter
+│       │
+│       └── jsonld/               # JSON-LD support
+│           ├── context.ts
+│           ├── export.ts
+│           └── import.ts
+│
+├── records/                      # DEPRECATED: Re-exports from @xnet/data
+│   └── src/
+│       └── index.ts              # export * from '@xnet/data/record'
+```
 
 ## Success Criteria
 
 After completing this plan:
 
 1. **Single mental model** - Everything is a Node with a Schema
-2. **Schema-first architecture** - Types defined as JSON-LD schemas
-3. **TypeScript safety** - Generated types for built-in/plugin schemas
-4. **Global namespace** - Schemas identified by globally unique IRIs
+2. **Code-first schemas** - `defineSchema()` with TypeScript inference
+3. **Co-located validation** - Property helpers include validators
+4. **Global namespace** - Schemas identified by unique IRIs
 5. **JSON-LD native** - Schemas ARE JSON-LD type definitions
-6. **No code duplication** - Unified sync, hash, and data primitives
-7. **All tests pass** with same or better coverage
-8. **Documentation accurate** - CLAUDE.md reflects reality
+6. **Unified sync** - `Change<T>` for all sync mechanisms
+7. **Single data package** - `@xnet/data` contains everything
+8. **All tests pass** - >80% coverage maintained
+9. **Documentation accurate** - CLAUDE.md reflects new architecture
+
+## Migration Notes
+
+### For Existing Code
+
+```typescript
+// Before
+import { XDocument } from '@xnet/data'
+import { DatabaseItem, Database } from '@xnet/records'
+
+// After
+import { Node, Page, Item, Database } from '@xnet/data'
+import { PageSchema, ItemSchema, DatabaseSchema } from '@xnet/data/schemas'
+
+// Type guards
+if (PageSchema.is(node)) {
+  // TypeScript knows this is a Page
+}
+```
+
+### Backward Compatibility
+
+- `@xnet/records` will re-export from `@xnet/data` for 1-2 versions
+- Old type names (`XDocument`, `DatabaseItem`) will be deprecated aliases
+- Sync mechanisms (Yjs, event-sourcing) unchanged internally
 
 ---
 
-[Back to planStep02DatabasePlatform](../planStep02DatabasePlatform/README.md) | [Start with Overview →](./00-overview.md)
+## Quick Start for Implementation
+
+1. **Start with Phase 1.1** - Create `@xnet/sync` package
+2. **Run tests after each change** - `pnpm test`
+3. **Update one package at a time** - Don't refactor everything at once
+4. **Keep backward compat** - Add aliases before removing old exports
+
+---
+
+[Back to planStep02DatabasePlatform](../planStep02DatabasePlatform/README.md) | [Start Implementation →](./01-xnet-sync-package.md)
