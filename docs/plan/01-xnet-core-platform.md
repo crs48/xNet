@@ -15,80 +15,110 @@ xNet is the foundational infrastructure that powers xNotes and future decentrali
 ## Platform Architecture
 
 ```mermaid
-graph LR
-    subgraph "AI Agents"
-        AI1[Claude Code]
-        AI2[Other MCP Clients]
+graph TB
+    subgraph "What Developers Use"
+        direction TB
+        R1["<b>@xnet/react</b><br/>npm install @xnet/react<br/><i>Primary entry point</i>"]
+        M1["@xnotes/mcp<br/><i>AI agents</i>"]
     end
 
-    subgraph "Application Layer"
+    subgraph "Applications"
         A1[xNotes]
-        A2[Future Apps]
+        A2[Your App]
+        AI1[Claude Code]
     end
 
-    subgraph "MCP Interface"
-        M1["@xnotes/mcp<br/>AI Access Layer"]
+    subgraph "@xnet/core (internal)"
+        C0["@xnet/core<br/><i>Re-exports all modules</i>"]
+        C1["data"]
+        C2["network"]
+        C3["identity"]
+        C4["storage"]
+        C5["crypto"]
+        C6["query"]
     end
 
-    subgraph "xNet SDK Layer"
-        S1["@xnet/sdk<br/>(Unified API)"]
+    subgraph "Infrastructure"
+        T1[libp2p / WebRTC]
+        B1[SQLite / IndexedDB]
     end
 
-    subgraph "Core Modules"
-        C1["@xnet/data<br/>CRDT Engine"]
-        C2["@xnet/network<br/>P2P Networking"]
-        C3["@xnet/identity<br/>DID/SSI"]
-        C4["@xnet/storage<br/>Persistence"]
-        C5["@xnet/crypto<br/>Encryption"]
-        C6["@xnet/query<br/>Query Engine"]
-    end
-
-    subgraph "Transport Layer"
-        T1[libp2p]
-        T2[WebRTC]
-        T3[WebSocket]
-    end
-
-    subgraph "Storage Backends"
-        B1[IndexedDB]
-        B2[File System]
-        B3[DePIN Network]
-    end
-
+    A1 --> R1
+    A2 --> R1
     AI1 --> M1
-    AI2 --> M1
-    M1 --> S1
-    A1 --> S1
-    A2 --> S1
-    S1 --> C1
-    S1 --> C2
-    S1 --> C3
-    S1 --> C4
-    S1 --> C5
-    S1 --> C6
+    R1 --> C0
+    M1 --> C0
+    C0 --> C1
+    C0 --> C2
+    C0 --> C3
+    C0 --> C4
+    C0 --> C5
+    C0 --> C6
     C2 --> T1
-    C2 --> T2
-    C2 --> T3
     C4 --> B1
-    C4 --> B2
-    C4 --> B3
+
+    style R1 fill:#4CAF50,color:#fff
+    style A1 fill:#e3f2fd
+    style A2 fill:#e3f2fd
+```
+
+**Key insight:** `@xnet/react` is the primary interface. It provides reactive hooks that replace data fetching libraries (like TanStack Query) and handle persistent/synced state. Use `useState` or a small Zustand store for ephemeral UI state. Most apps just need:
+
+```bash
+npm install @xnet/react
 ```
 
 ---
 
 ## Package Structure
 
+### Primary Packages (What Users Install)
+
+| Package | Use Case | Install |
+|---------|----------|---------|
+| **@xnet/react** | React apps (recommended) | `npm install @xnet/react` |
+| **@xnet/core** | Non-React apps, Node.js, custom integrations | `npm install @xnet/core` |
+
+Most developers only need `@xnet/react`. It includes everything.
+
 ```
 xnet/
 ├── packages/
-│   ├── sdk/                      # @xnet/sdk - Unified API
+│   │
+│   │  ┌─────────────────────────────────────────────────────────┐
+│   │  │  PRIMARY INTERFACE - Most users only need this         │
+│   │  └─────────────────────────────────────────────────────────┘
+│   │
+│   ├── react/                    # @xnet/react - THE entry point for React
 │   │   ├── src/
-│   │   │   ├── client.ts         # Main XNet client
+│   │   │   ├── provider.tsx      # <XNetProvider> - wrap your app
+│   │   │   ├── hooks/
+│   │   │   │   ├── useQuery.ts   # Reactive queries (replaces data fetching)
+│   │   │   │   ├── useDocument.ts # Single doc subscription
+│   │   │   │   ├── useMutation.ts # Write operations (replaces setState)
+│   │   │   │   ├── useSync.ts    # Sync status
+│   │   │   │   └── usePresence.ts # Real-time awareness
+│   │   │   ├── cache.ts          # Query cache + invalidation
+│   │   │   └── subscriptions.ts  # Reactive subscription manager
+│   │   └── package.json          # depends on @xnet/core
+│   │
+│   │  ┌─────────────────────────────────────────────────────────┐
+│   │  │  CORE - Internal modules (bundled into @xnet/core)     │
+│   │  └─────────────────────────────────────────────────────────┘
+│   │
+│   ├── core/                     # @xnet/core - Unified core (re-exports all)
+│   │   ├── src/
+│   │   │   ├── client.ts         # XNetClient class
+│   │   │   ├── database.ts       # Database operations
 │   │   │   ├── workspace.ts      # Workspace management
-│   │   │   └── index.ts
+│   │   │   └── index.ts          # Re-exports everything
 │   │   └── package.json
 │   │
-│   ├── data/                     # @xnet/data - CRDT & Data Model
+│   │  ┌─────────────────────────────────────────────────────────┐
+│   │  │  INTERNAL MODULES - Implementation details             │
+│   │  └─────────────────────────────────────────────────────────┘
+│   │
+│   ├── data/                     # CRDT & Data Model
 │   │   ├── src/
 │   │   │   ├── document.ts       # CRDT document wrapper
 │   │   │   ├── schema.ts         # JSON-LD schema definitions
@@ -97,7 +127,7 @@ xnet/
 │   │   │   └── validation.ts     # Schema validation
 │   │   └── package.json
 │   │
-│   ├── network/                  # @xnet/network - P2P Layer
+│   ├── network/                  # P2P Layer
 │   │   ├── src/
 │   │   │   ├── node.ts           # libp2p node setup
 │   │   │   ├── protocols/        # Custom protocols
@@ -111,7 +141,7 @@ xnet/
 │   │   │   └── relay.ts          # Relay node support
 │   │   └── package.json
 │   │
-│   ├── identity/                 # @xnet/identity - DID/Auth
+│   ├── identity/                 # DID/Auth
 │   │   ├── src/
 │   │   │   ├── did.ts            # DID generation/resolution
 │   │   │   ├── keys.ts           # Key management
@@ -120,7 +150,7 @@ xnet/
 │   │   │   └── recovery.ts       # Key recovery
 │   │   └── package.json
 │   │
-│   ├── storage/                  # @xnet/storage - Persistence
+│   ├── storage/                  # Persistence
 │   │   ├── src/
 │   │   │   ├── adapters/
 │   │   │   │   ├── indexeddb.ts  # Browser storage
@@ -131,7 +161,7 @@ xnet/
 │   │   │   └── sync.ts           # Storage sync
 │   │   └── package.json
 │   │
-│   ├── crypto/                   # @xnet/crypto - Security
+│   ├── crypto/                   # Security
 │   │   ├── src/
 │   │   │   ├── symmetric.ts      # AES-GCM encryption
 │   │   │   ├── asymmetric.ts     # X25519/Ed25519
@@ -140,7 +170,7 @@ xnet/
 │   │   │   └── zk.ts             # zk-SNARK helpers (future)
 │   │   └── package.json
 │   │
-│   ├── query/                    # @xnet/query - Query Engine
+│   ├── query/                    # Query Engine
 │   │   ├── src/
 │   │   │   ├── parser.ts         # SQL-like query parser
 │   │   │   ├── executor.ts       # Local query execution
@@ -149,7 +179,7 @@ xnet/
 │   │   │   └── fulltext.ts       # Full-text search
 │   │   └── package.json
 │   │
-│   └── vectors/                  # @xnet/vectors - AI/Embeddings
+│   └── vectors/                  # AI/Embeddings (optional)
 │       ├── src/
 │       │   ├── index.ts          # HNSW vector index
 │       │   ├── embeddings.ts     # On-device embeddings

@@ -80,6 +80,7 @@ graph TB
 | 9 | [AI & MCP Interface](./09-ai-mcp-interface.md) | MCP tools for AI agent access, export/import |
 | 10 | [Scaling Architecture](./10-scaling-architecture.md) | Federation, global namespaces, canvas, backups |
 | 11 | [Versioning Strategy](./11-versioning-strategy.md) | Forward-compatibility, no-migration design |
+| 12 | [React Integration](./12-react-integration.md) | @xnet/react hooks, reactive queries, replacing Zustand |
 
 **Related Documentation:**
 - [Persistence & Durability Architecture](../PERSISTENCE_ARCHITECTURE.md)
@@ -121,7 +122,7 @@ block-beta
 
     block:STATE["STATE & EDITORS"]
         columns 3
-        Zustand["Zustand"]
+        XNetReact["@xnet/react"]
         Tiptap["Tiptap/ProseMirror"]
         DnD["React DnD"]
     end
@@ -170,7 +171,7 @@ block-beta
 | Choice | Rationale |
 |--------|-----------|
 | **React + TypeScript** | Industry standard, massive ecosystem, strong typing |
-| **Zustand** | Simpler than Redux, better TypeScript support, React 18 compatible |
+| **@xnet/react** | Reactive hooks for data + sync; handles persistent state (Zustand for UI only) |
 | **Tiptap/ProseMirror** | Battle-tested, excellent Yjs integration, rich plugins |
 | **Yjs** | Best CRDT for text, mature WebRTC integration, small bundle |
 | **libp2p** | Standard for decentralized networking (IPFS/Filecoin) |
