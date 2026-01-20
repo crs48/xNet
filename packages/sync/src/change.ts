@@ -6,17 +6,18 @@
  * with a single, generic type.
  */
 
-import type { DID, ContentId, VectorClock } from '@xnet/core'
+import type { DID, ContentId } from '@xnet/core'
 import { hashHex, sign, verify } from '@xnet/crypto'
+import type { LamportTimestamp } from './clock'
 
 /**
- * A signed change with chain linkage and causal ordering.
+ * A signed change with chain linkage and Lamport ordering.
  * Generic T allows different payload types for different use cases:
  * - YjsUpdate for rich text documents
  * - RecordPayload for database operations
  */
 export interface Change<T = unknown> {
-  /** Unique change ID */
+  /** Unique change ID (nanoid) */
   id: string
 
   /** Change type (e.g., 'yjs-update', 'create-item', 'update-item') */
@@ -37,11 +38,11 @@ export interface Change<T = unknown> {
   /** Ed25519 signature of the hash */
   signature: Uint8Array
 
-  /** Unix timestamp (milliseconds) */
-  timestamp: number
+  /** Wall clock timestamp (milliseconds) - for display, not ordering */
+  wallTime: number
 
-  /** Vector clock for causal ordering */
-  vectorClock: VectorClock
+  /** Lamport timestamp for ordering */
+  lamport: LamportTimestamp
 }
 
 /**
@@ -54,8 +55,8 @@ export interface UnsignedChange<T = unknown> {
   payload: T
   parentHash: ContentId | null
   authorDID: DID
-  timestamp: number
-  vectorClock: VectorClock
+  wallTime: number
+  lamport: LamportTimestamp
 }
 
 /**
@@ -67,8 +68,8 @@ export interface CreateChangeOptions<T> {
   payload: T
   parentHash: ContentId | null
   authorDID: DID
-  vectorClock: VectorClock
-  timestamp?: number
+  lamport: LamportTimestamp
+  wallTime?: number
 }
 
 /**
@@ -81,8 +82,8 @@ export function createUnsignedChange<T>(options: CreateChangeOptions<T>): Unsign
     payload: options.payload,
     parentHash: options.parentHash,
     authorDID: options.authorDID,
-    timestamp: options.timestamp ?? Date.now(),
-    vectorClock: options.vectorClock
+    wallTime: options.wallTime ?? Date.now(),
+    lamport: options.lamport
   }
 }
 
@@ -162,8 +163,8 @@ export function verifyChangeHash<T>(change: Change<T>): boolean {
     payload: change.payload,
     parentHash: change.parentHash,
     authorDID: change.authorDID,
-    timestamp: change.timestamp,
-    vectorClock: change.vectorClock
+    wallTime: change.wallTime,
+    lamport: change.lamport
   }
   const computedHash = computeChangeHash(unsigned)
   return computedHash === change.hash
@@ -171,7 +172,8 @@ export function verifyChangeHash<T>(change: Change<T>): boolean {
 
 /**
  * Create a unique change ID.
- * Format: {timestamp}-{random}
+ * Uses timestamp + random for rough ordering and uniqueness.
+ * Note: For production, consider using nanoid.
  */
 export function createChangeId(): string {
   const timestamp = Date.now().toString(36)

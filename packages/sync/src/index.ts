@@ -8,7 +8,7 @@
  *
  * Core concepts:
  * - Change<T>: Universal unit of sync, replaces SignedUpdate and RecordOperation
- * - VectorClock: Causal ordering of distributed events
+ * - LamportTimestamp: Simple total ordering with DID tie-breaker
  * - Hash chains: Integrity verification and fork detection
  * - SyncProvider: Abstract interface for sync transports
  */
@@ -24,20 +24,18 @@ export {
   createChangeId
 } from './change'
 
-// Vector clock utilities
-export type { VectorClock } from './clock'
+// Lamport clock utilities
+export type { LamportTimestamp, LamportClock } from './clock'
 export {
-  createVectorClock,
-  incrementVectorClock,
-  mergeVectorClocks,
-  compareVectorClocks,
-  happenedBefore,
-  happenedAfter,
-  areConcurrent,
-  areEqual,
-  isValidProgression,
-  getMaxTime,
-  getNodes
+  createLamportClock,
+  tick,
+  receive,
+  compareLamportTimestamps,
+  isBefore,
+  isAfter,
+  serializeTimestamp,
+  parseTimestamp,
+  maxTime
 } from './clock'
 
 // Hash chain utilities

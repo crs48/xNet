@@ -11,6 +11,7 @@
 import type { ContentId } from '@xnet/core'
 import type { Change } from './change'
 import { verifyChangeHash } from './change'
+import { compareLamportTimestamps } from './clock'
 
 /**
  * Result of validating a chain of changes
@@ -32,9 +33,9 @@ export interface ChainValidationResult {
 export interface Fork<T = unknown> {
   /** The common ancestor hash where the fork occurred */
   commonAncestor: ContentId
-  /** Changes in the first branch (by timestamp) */
+  /** Changes in the first branch (by Lamport timestamp) */
   branch1: Change<T>[]
-  /** Changes in the second branch (by timestamp) */
+  /** Changes in the second branch (by Lamport timestamp) */
   branch2: Change<T>[]
 }
 
@@ -129,7 +130,6 @@ export function detectFork<T>(changes: Change<T>[]): {
  * @returns Array of head changes
  */
 export function getChainHeads<T>(changes: Change<T>[]): Change<T>[] {
-  const allHashes = new Set(changes.map((c) => c.hash))
   const parentHashes = new Set(
     changes.map((c) => c.parentHash).filter((h): h is ContentId => h !== null)
   )
@@ -236,8 +236,8 @@ export function getForks<T>(changes: Change<T>[]): Fork<T>[] {
     const children = changes.filter((c) => c.parentHash === forkPoint)
 
     if (children.length >= 2) {
-      // Sort by timestamp
-      children.sort((a, b) => a.timestamp - b.timestamp)
+      // Sort by Lamport timestamp (deterministic ordering)
+      children.sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
 
       forks.push({
         commonAncestor: forkPoint,
@@ -252,6 +252,7 @@ export function getForks<T>(changes: Change<T>[]): Fork<T>[] {
 
 /**
  * Sort changes in topological order (parents before children).
+ * Within the same level, sort by Lamport timestamp.
  *
  * @param changes - The changes to sort
  * @returns Sorted changes array
@@ -287,7 +288,10 @@ export function topologicalSort<T>(changes: Change<T>[]): Change<T>[] {
     sorted.push(change)
   }
 
-  for (const change of changes) {
+  // Sort input by Lamport timestamp for deterministic output
+  const sortedInput = [...changes].sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
+
+  for (const change of sortedInput) {
     visit(change)
   }
 

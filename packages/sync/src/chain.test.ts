@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { generateSigningKeyPair } from '@xnet/crypto'
-import type { DID, ContentId, VectorClock } from '@xnet/core'
+import type { DID, ContentId } from '@xnet/core'
 import { signChange, createUnsignedChange } from './change'
 import type { Change } from './change'
+import type { LamportTimestamp } from './clock'
 import {
   validateChain,
   detectFork,
@@ -21,17 +22,18 @@ describe('Chain', () => {
   function createTestChange(
     id: string,
     parentHash: ContentId | null,
-    clockValue: number
+    lamportTime: number
   ): Change<{ seq: number }> {
+    const lamport: LamportTimestamp = { time: lamportTime, author: testDID }
     return signChange(
       createUnsignedChange({
         id,
         type: 'test',
-        payload: { seq: clockValue },
+        payload: { seq: lamportTime },
         parentHash,
         authorDID: testDID,
-        vectorClock: { [testDID]: clockValue },
-        timestamp: clockValue * 1000
+        lamport,
+        wallTime: lamportTime * 1000
       }),
       keyPair.privateKey
     )
