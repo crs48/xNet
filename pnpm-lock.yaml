@@ -104,6 +104,9 @@ importers:
       '@xnet/crypto':
         specifier: workspace:*
         version: link:../crypto
+      multiformats:
+        specifier: ^13.4.2
+        version: 13.4.2
     devDependencies:
       tsup:
         specifier: ^8.0.0
@@ -1312,6 +1315,9 @@ packages:
 
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
+
+  multiformats@13.4.2:
+    resolution: {integrity: sha512-eh6eHCrRi1+POZ3dA+Dq1C6jhP1GNtr9CRINMb67OKzqW9I5DUuZM/3jLPlzhgpGeiNUlEGEbkCYChXMCc/8DQ==}
 
   mz@2.7.0:
     resolution: {integrity: sha512-z81GNO7nnYMEhrGh9LeymoE4+Yr0Wn5McHIZMK5cfQCl+NDX08sCZgUc9/6MHni9IWuFLm1Z3HTCXu2z9fN62Q==}
@@ -2726,6 +2732,8 @@ snapshots:
       ufo: 1.6.3
 
   ms@2.1.3: {}
+
+  multiformats@13.4.2: {}
 
   mz@2.7.0:
     dependencies:

@@ -12,12 +12,14 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*"
+    "@xnet/crypto": "workspace:*",
+    "multiformats": "^13.4.2"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
