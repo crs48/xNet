@@ -2,6 +2,9 @@
   "permissions": {
     "deny": [
       "Bash(gemini -p:*)"
+    ],
+    "allow": [
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" pnpm test:*)"
     ]
   }
 }
