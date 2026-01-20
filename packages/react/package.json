@@ -23,6 +23,7 @@
     "@xnet/network": "workspace:*",
     "@xnet/query": "workspace:*",
     "@xnet/storage": "workspace:*",
+    "yjs": "^13.6.24",
     "zustand": "^5.0.4"
   },
   "peerDependencies": {

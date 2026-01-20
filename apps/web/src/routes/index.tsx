@@ -1,9 +1,8 @@
 /**
  * Home page - document list
  */
-import { createRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery, useXNet } from '@xnet/react'
-import { Route as RootRoute } from './__root'
 
 // Document type for query results
 interface QueryDocument {
@@ -12,9 +11,7 @@ interface QueryDocument {
   updated: number
 }
 
-export const Route = createRoute({
-  getParentRoute: () => RootRoute,
-  path: '/',
+export const Route = createFileRoute('/')({
   component: HomePage
 })
 

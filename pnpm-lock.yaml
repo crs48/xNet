@@ -389,6 +389,9 @@ importers:
       '@xnet/storage':
         specifier: workspace:*
         version: link:../storage
+      yjs:
+        specifier: ^13.6.24
+        version: 13.6.29
       zustand:
         specifier: ^5.0.4
         version: 5.0.10(@types/react@18.3.27)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
@@ -438,9 +441,6 @@ importers:
       '@xnet/query':
         specifier: workspace:*
         version: link:../query
-      '@xnet/react':
-        specifier: workspace:*
-        version: link:../react
       '@xnet/storage':
         specifier: workspace:*
         version: link:../storage

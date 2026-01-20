@@ -1,23 +1,33 @@
 /**
  * Document page - editor
  */
-import { createRoute } from '@tanstack/react-router'
-import { useDocument, usePresence } from '@xnet/react'
+import { useEffect, useState } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
+import { useDocument, usePresence, useXNet } from '@xnet/react'
 import { Editor } from '../components/Editor'
-import { Route as RootRoute } from './__root'
 
-export const Route = createRoute({
-  getParentRoute: () => RootRoute,
-  path: '/doc/$docId',
+export const Route = createFileRoute('/doc/$docId')({
   component: DocumentPage
 })
 
 function DocumentPage() {
   const { docId } = Route.useParams()
+  const { store } = useXNet()
   const { data: document, loading, error, update } = useDocument(docId)
   const { remotePresences } = usePresence(docId)
+  const [creating, setCreating] = useState(false)
 
-  if (loading) {
+  // Auto-create document if it doesn't exist
+  useEffect(() => {
+    if (!loading && !document && !error && !creating) {
+      setCreating(true)
+      store.getState().createDocument(docId).finally(() => {
+        setCreating(false)
+      })
+    }
+  }, [loading, document, error, creating, docId, store])
+
+  if (loading || creating) {
     return <div className="loading">Loading document...</div>
   }
 
@@ -26,7 +36,7 @@ function DocumentPage() {
   }
 
   if (!document) {
-    return <div className="not-found">Document not found</div>
+    return <div className="loading">Creating document...</div>
   }
 
   return (

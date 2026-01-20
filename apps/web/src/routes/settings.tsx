@@ -1,13 +1,10 @@
 /**
  * Settings page
  */
-import { createRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useIdentity, useSync } from '@xnet/react'
-import { Route as RootRoute } from './__root'
 
-export const Route = createRoute({
-  getParentRoute: () => RootRoute,
-  path: '/settings',
+export const Route = createFileRoute('/settings')({
   component: SettingsPage
 })
 

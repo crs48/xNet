@@ -23,7 +23,6 @@
     "@xnet/identity": "workspace:*",
     "@xnet/network": "workspace:*",
     "@xnet/query": "workspace:*",
-    "@xnet/react": "workspace:*",
     "@xnet/storage": "workspace:*"
   },
   "devDependencies": {
