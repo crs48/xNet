@@ -84,6 +84,7 @@ graph TB
 | 13 | [Identity & Authentication](./13-identity-authentication.md) | Passkeys, DID:key, zero-friction onboarding |
 | 14 | [Notifications & Integrations](./14-notifications-integrations.md) | Push notifications, calendar sync, n8n workflows |
 | 15 | [Enterprise Scale](./15-enterprise-scale.md) | Tiered architecture, event streaming, Tesla-scale planning |
+| 16 | [Global Data Network](./16-global-data-network.md) | Long-term vision: planetary P2P data layer, economics, federation |
 
 **Related Documentation:**
 - [Persistence & Durability Architecture](../PERSISTENCE_ARCHITECTURE.md)
