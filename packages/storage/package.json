@@ -12,15 +12,19 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/crypto": "workspace:*",
-    "@xnet/identity": "workspace:*"
+    "idb": "^8.0.2",
+    "pako": "^2.1.0"
   },
   "devDependencies": {
+    "@types/pako": "^2.0.3",
+    "fake-indexeddb": "^6.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0"
   }
