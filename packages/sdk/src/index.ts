@@ -29,5 +29,7 @@ export { createSearchIndex, createLocalQueryEngine } from '@xnet/query'
 export { MemoryAdapter, IndexedDBAdapter } from '@xnet/storage'
 export { hashContent, createContentId, verifyContent } from '@xnet/core'
 
-// Re-export React integration
-export * from '@xnet/react'
+// Note: Framework bindings are in separate packages
+// - @xnet/react for React
+// - @xnet/vue for Vue (future)
+// - @xnet/svelte for Svelte (future)

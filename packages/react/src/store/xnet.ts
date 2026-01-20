@@ -2,6 +2,7 @@
  * Zustand store for xNet state management
  */
 import { create, type StoreApi, type UseBoundStore } from 'zustand'
+import * as Y from 'yjs'
 import type { XDocument } from '@xnet/data'
 import type { StorageAdapter } from '@xnet/storage'
 
@@ -25,10 +26,20 @@ export interface XNetState {
 }
 
 /**
+ * Options for creating a document
+ */
+export interface CreateDocumentOptions {
+  workspace?: string
+  type?: 'page' | 'task' | 'database' | 'canvas'
+  title?: string
+}
+
+/**
  * XNet store actions
  */
 export interface XNetActions {
   loadDocument: (id: string) => Promise<XDocument | null>
+  createDocument: (id: string, options?: CreateDocumentOptions) => Promise<XDocument>
   updateDocument: (id: string, updater: (doc: XDocument) => void) => void
   setDocument: (id: string, doc: XDocument) => void
   setSyncStatus: (status: XNetState['syncStatus']) => void
@@ -73,29 +84,34 @@ export function createXNetStore(config: StoreConfig): XNetStore {
         // Load from storage
         const stored = await config.storage.getDocument(id)
         if (!stored) {
+          // Mark as not found (loading: false, doc: null) to prevent infinite loops
           set((state) => {
             const docs = new Map(state.documents)
-            docs.delete(id)
+            docs.set(id, { doc: null, loading: false, dirty: false })
             return { documents: docs }
           })
           return null
         }
 
-        // Create placeholder XDocument from stored data
-        // In real implementation, would reconstruct full Yjs doc
-        const doc = {
+        // Create Yjs document and load state
+        const ydoc = new Y.Doc({ guid: id })
+        if (stored.content && stored.content.length > 0) {
+          Y.applyUpdate(ydoc, stored.content)
+        }
+
+        const doc: XDocument = {
           id,
-          ydoc: null,
+          ydoc,
           workspace: stored.metadata.workspace ?? '',
           type: stored.metadata.type as 'page' | 'task' | 'database' | 'canvas',
           metadata: {
-            title: 'Untitled',
+            title: (ydoc.getMap('metadata').get('title') as string) ?? 'Untitled',
             created: stored.metadata.created,
             updated: stored.metadata.updated,
             createdBy: '',
             archived: false
           }
-        } as unknown as XDocument
+        }
 
         set((state) => {
           const docs = new Map(state.documents)
@@ -112,6 +128,61 @@ export function createXNetStore(config: StoreConfig): XNetStore {
         })
         return null
       }
+    },
+
+    async createDocument(id: string, options: CreateDocumentOptions = {}): Promise<XDocument> {
+      const { workspace = 'default', type = 'page', title = 'Untitled' } = options
+      const now = Date.now()
+
+      // Create a real Yjs document
+      const ydoc = new Y.Doc({ guid: id })
+
+      // Initialize metadata
+      const meta = ydoc.getMap('metadata')
+      meta.set('title', title)
+      meta.set('created', now)
+      meta.set('updated', now)
+      meta.set('createdBy', '')
+      meta.set('archived', false)
+
+      // Initialize content text for the Editor
+      ydoc.getText('content')
+
+      const doc: XDocument = {
+        id,
+        ydoc,
+        workspace,
+        type,
+        metadata: {
+          title,
+          created: now,
+          updated: now,
+          createdBy: '',
+          archived: false
+        }
+      }
+
+      // Save to storage
+      await config.storage.setDocument(id, {
+        id,
+        content: Y.encodeStateAsUpdate(ydoc),
+        metadata: {
+          created: now,
+          updated: now,
+          type,
+          workspace
+        },
+        version: 1
+      })
+
+      // Update store
+      set((state) => {
+        const docs = new Map(state.documents)
+        docs.set(id, { doc, loading: false, dirty: false })
+        return { documents: docs }
+      })
+
+      return doc
     },
 
     updateDocument(id: string, updater: (doc: XDocument) => void): void {
