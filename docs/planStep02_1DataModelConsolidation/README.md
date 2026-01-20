@@ -51,14 +51,17 @@ This creates:
 
 Execute these documents in order. Each builds on the previous.
 
-| #   | Document                                                              | Description                        | Est. Time | Risk   |
-| --- | --------------------------------------------------------------------- | ---------------------------------- | --------- | ------ |
-| 00  | [Overview](./00-overview.md)                                          | Goals, non-goals, success criteria | Reference | -      |
-| 01  | [@xnet/sync Package](./01-xnet-sync-package.md)                       | Unified sync primitives            | 1 week    | Low    |
-| 02  | [PropertyValue Simplification](./02-property-value-simplification.md) | JSON-only property values          | 3 days    | Low    |
-| 03  | [Unified Document Model](./03-unified-document-model.md)              | Merge XDocument and DatabaseItem   | 1 week    | Medium |
-| 04  | [Hash Consolidation](./04-hash-function-consolidation.md)             | Single source for hashing          | 2 days    | Low    |
-| 05  | [Timeline](./05-timeline.md)                                          | Schedule and milestones            | Reference | -      |
+| #   | Document                                                              | Description                         | Est. Time | Risk   |
+| --- | --------------------------------------------------------------------- | ----------------------------------- | --------- | ------ |
+| 00  | [Overview](./00-overview.md)                                          | Goals, non-goals, success criteria  | Reference | -      |
+| 01  | [@xnet/sync Package](./01-xnet-sync-package.md)                       | Unified sync primitives             | 1 week    | Low    |
+| 02  | [PropertyValue Simplification](./02-property-value-simplification.md) | JSON-only property values           | 3 days    | Low    |
+| 03  | [Unified Document Model](./03-unified-document-model.md)              | Merge XDocument and DatabaseItem    | 1 week    | Medium |
+| 04  | [Hash Consolidation](./04-hash-function-consolidation.md)             | Single source for hashing           | 2 days    | Low    |
+| 05  | [Timeline](./05-timeline.md)                                          | Schedule and milestones             | Reference | -      |
+| 06  | [Package Naming](./06-package-naming-proposal.md)                     | Merge @xnet/records into @xnet/data | 3 days    | Medium |
+| 07  | [Naming Research](./07-naming-research.md)                            | Research on "Document" alternatives | Reference | -      |
+| 08  | [JSON-LD Integration](./08-jsonld-integration.md)                     | Add JSON-LD semantic web support    | 4 days    | Low    |
 
 ## Validation Gates
 
@@ -117,13 +120,13 @@ flowchart LR
 
 ### Package Changes
 
-| Package         | Change           | Impact                      |
-| --------------- | ---------------- | --------------------------- |
-| `@xnet/sync`    | **NEW**          | Unified sync primitives     |
-| `@xnet/core`    | Slim down        | Remove sync types, keep CID |
-| `@xnet/crypto`  | No change        | Already correct             |
-| `@xnet/data`    | Import from sync | Minimal changes             |
-| `@xnet/records` | Import from sync | Minimal changes             |
+| Package         | Change                      | Impact                             |
+| --------------- | --------------------------- | ---------------------------------- |
+| `@xnet/sync`    | **NEW**                     | Unified sync primitives            |
+| `@xnet/core`    | Slim down                   | Remove sync types, keep CID        |
+| `@xnet/crypto`  | No change                   | Already correct                    |
+| `@xnet/data`    | **Absorb @xnet/records**    | Unified data package with subpaths |
+| `@xnet/records` | **Deprecated** → @xnet/data | Re-exports for backward compat     |
 
 ### Test Commands
 
@@ -139,20 +142,38 @@ pnpm test:coverage               # Ensure >80%
 
 This consolidation explicitly does NOT:
 
-1. **Merge @xnet/data and @xnet/records** - Keep separate packages, unify abstractions only
+1. ~~**Merge @xnet/data and @xnet/records**~~ - **UPDATED:** Now merging into unified @xnet/data
 2. **Change sync mechanisms** - Yjs stays Yjs, event-sourcing stays event-sourcing
 3. **Rewrite working code** - Refactor, don't rebuild
 4. **Break existing APIs** - All changes must be backward compatible
+
+## Validation Gates (Continued)
+
+### After Package Merge
+
+- [ ] `@xnet/data` contains both document and record functionality
+- [ ] Subpath imports work: `@xnet/data/document`, `@xnet/data/record`
+- [ ] `@xnet/records` re-exports from `@xnet/data` for backward compat
+- [ ] All tests pass with new structure
+
+### After JSON-LD Integration
+
+- [ ] `XNET_CONTEXT` defined with all type mappings
+- [ ] `toJsonLd()` and `fromJsonLd()` work for all document types
+- [ ] Export/import preserves semantic information
+- [ ] Property types have JSON-LD schema definitions
 
 ## Success Criteria
 
 After completing this plan:
 
 1. **Single mental model** for "how data syncs" (Change<T>)
-2. **JSON-friendly types** everywhere (no Date objects in storage)
-3. **No code duplication** for hashing, vector clocks, or chains
-4. **All tests pass** with same or better coverage
-5. **Documentation accurate** - CLAUDE.md reflects reality
+2. **Unified data package** - All data types in @xnet/data
+3. **JSON-friendly types** everywhere (no Date objects in storage)
+4. **JSON-LD support** for interoperability and semantic web
+5. **No code duplication** for hashing, vector clocks, or chains
+6. **All tests pass** with same or better coverage
+7. **Documentation accurate** - CLAUDE.md reflects reality
 
 ---
 
