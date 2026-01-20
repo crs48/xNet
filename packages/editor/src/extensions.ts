@@ -111,7 +111,7 @@ export const Wikilink = Mark.create<WikilinkOptions>({
 /**
  * Mark syntax definitions - maps mark names to their markdown delimiters
  */
-const MARK_SYNTAX: Record<string, { open: string; close: string }> = {
+export const MARK_SYNTAX: Record<string, { open: string; close: string }> = {
   bold: { open: '**', close: '**' },
   italic: { open: '*', close: '*' },
   strike: { open: '~~', close: '~~' },

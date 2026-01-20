@@ -41,6 +41,12 @@ export {
 } from './hooks/useIdentity'
 
 export {
+  useDocumentSync,
+  type UseDocumentSyncOptions,
+  type UseDocumentSyncResult
+} from './hooks/useDocumentSync'
+
+export {
   useEditor,
   type UseEditorOptions,
   type UseEditorResult

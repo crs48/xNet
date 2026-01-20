@@ -3,9 +3,12 @@
  */
 import { useEffect, useState } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useDocument, usePresence, useXNet } from '@xnet/react'
+import { useDocument, usePresence, useXNet, useDocumentSync } from '@xnet/react'
 import { Editor } from '../components/Editor'
 import { BacklinksPanel } from '../components/BacklinksPanel'
+
+// Signaling servers - use local server for development
+const SIGNALING_SERVERS = import.meta.env.VITE_SIGNALING_SERVERS?.split(',') || ['ws://localhost:4000']
 
 export const Route = createFileRoute('/doc/$docId')({
   component: DocumentPage
@@ -18,6 +21,13 @@ function DocumentPage() {
   const { data: document, loading, error, update } = useDocument(docId)
   const { remotePresences } = usePresence(docId)
   const [creating, setCreating] = useState(false)
+
+  // Enable P2P sync for this document
+  const { connected, peerCount } = useDocumentSync({
+    document,
+    signalingServers: SIGNALING_SERVERS,
+    enabled: !!document
+  })
 
   // Handle wikilink navigation
   const handleNavigate = (targetDocId: string) => {
@@ -63,6 +73,12 @@ function DocumentPage() {
           }}
           placeholder="Untitled"
         />
+
+        {/* Sync status indicator */}
+        <div className="sync-status" title={connected ? `Connected (${peerCount} peers)` : 'Offline'}>
+          <span className={`sync-dot ${connected ? 'connected' : 'offline'}`} />
+          {peerCount > 0 && <span className="peer-count">{peerCount}</span>}
+        </div>
 
         {remotePresences.length > 0 && (
           <div className="presence-avatars">
