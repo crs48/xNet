@@ -8,11 +8,13 @@
 
 ## Overview
 
-This document covers the architecture needed to scale xNotes from personal use to global infrastructure:
+**Core Principle**: xNet works with **zero infrastructure**—just laptops and phones. Higher tiers are **optional optimizations** for institutions with specific needs.
 
-- **Federated Sync** - Hybrid ElectricSQL + Yjs for different tiers
+This document covers how to scale xNotes from personal use to global infrastructure:
+
+- **Pure P2P** - Works with just user devices, no servers
+- **Optional Tiers** - Add infrastructure only when needed
 - **Global Schema Registry** - Namespaced attributes across the network
-- **Tiered Storage** - Local → Workspace → Enterprise → Global
 - **Infinite Canvas** - Virtualized rendering with auto-layout
 - **Backup & Recovery** - Multi-layer redundancy strategies
 
@@ -22,7 +24,7 @@ This document covers the architecture needed to scale xNotes from personal use t
 
 ```mermaid
 graph TB
-    subgraph "Tier 1: Local Devices"
+    subgraph "Tier 1: Local Devices (REQUIRED)"
         L1[Phone]
         L2[Laptop]
         L3[Desktop]
@@ -30,54 +32,66 @@ graph TB
         L2 <-.->|P2P Sync| L3
     end
 
-    subgraph "Tier 2: Workspace Hubs"
+    subgraph "Tier 2: Workspace Hubs (OPTIONAL)"
         W1[Team Hub A]
         W2[Team Hub B]
     end
 
-    subgraph "Tier 3: Enterprise Datacenters"
+    subgraph "Tier 3: Enterprise Datacenters (OPTIONAL)"
         E1[Company DC - West]
         E2[Company DC - East]
         E1 <-->|Replication| E2
     end
 
-    subgraph "Tier 4: Global Infrastructure"
+    subgraph "Tier 4: Global Infrastructure (OPTIONAL)"
         G1[Schema Registry]
         G2[Global Search Index]
         G3[AI Embedding Service]
         G4[DePIN Storage Network]
     end
 
-    L2 -->|Async Sync| W1
-    L3 -->|Async Sync| W1
-    W1 -->|Batch Sync| E1
-    W2 -->|Batch Sync| E2
-    E1 --> G1
-    E1 --> G2
-    E2 --> G3
+    L2 -.->|Optional| W1
+    L3 -.->|Optional| W1
+    W1 -.->|Optional| E1
+    W2 -.->|Optional| E2
+    E1 -.-> G1
+    E1 -.-> G2
+    E2 -.-> G3
     E1 -.->|Backup| G4
 
     style L1 fill:#e3f2fd
     style L2 fill:#e3f2fd
     style L3 fill:#e3f2fd
-    style W1 fill:#e8f5e9
-    style W2 fill:#e8f5e9
-    style E1 fill:#fff3e0
-    style E2 fill:#fff3e0
-    style G1 fill:#f3e5f5
-    style G2 fill:#f3e5f5
-    style G3 fill:#f3e5f5
-    style G4 fill:#f3e5f5
+    style W1 fill:#e8f5e9,stroke-dasharray: 5 5
+    style W2 fill:#e8f5e9,stroke-dasharray: 5 5
+    style E1 fill:#fff3e0,stroke-dasharray: 5 5
+    style E2 fill:#fff3e0,stroke-dasharray: 5 5
+    style G1 fill:#f3e5f5,stroke-dasharray: 5 5
+    style G2 fill:#f3e5f5,stroke-dasharray: 5 5
+    style G3 fill:#f3e5f5,stroke-dasharray: 5 5
+    style G4 fill:#f3e5f5,stroke-dasharray: 5 5
 ```
 
 ### Tier Characteristics
 
-| Tier | Sync Technology | Latency | Capacity | Redundancy |
-|------|-----------------|---------|----------|------------|
-| **Local** | Yjs (P2P CRDTs) | <10ms | 1-100GB | Device count |
-| **Workspace** | Yjs + WebSocket relay | <100ms | 1TB | Hub replicas |
-| **Enterprise** | ElectricSQL (Postgres) | <500ms | 100TB+ | Multi-region |
-| **Global** | IPFS/DePIN | 1-5s | Unlimited | Network-wide |
+| Tier | Required? | Sync Technology | Latency | Who Needs It |
+|------|-----------|-----------------|---------|--------------|
+| **Local** | **Yes** | Yjs (P2P CRDTs) | <10ms | Everyone |
+| **Workspace** | No | Yjs + relay | <100ms | Teams wanting always-on sync |
+| **Enterprise** | No | ElectricSQL | <500ms | Companies with 100TB+ or compliance |
+| **Global** | No | IPFS/DePIN | 1-5s | Global search, AI embeddings |
+
+### What Works at Each Level
+
+| Capability | Tier 1 Only | + Tier 2 | + Tier 3 | + Tier 4 |
+|------------|-------------|----------|----------|----------|
+| Offline editing | Yes | Yes | Yes | Yes |
+| Real-time collaboration | Yes (when online) | Yes (24/7) | Yes | Yes |
+| Cross-internet sync | Yes (via peers) | Faster | Faster | Fastest |
+| Data capacity | Device storage | 1TB shared | 100TB+ | Unlimited |
+| Compliance/Audit | Manual export | Manual | Built-in | Built-in |
+| Global search | Local only | Workspace | Company | Global |
+| AI embeddings | On-device | On-device | Company models | Global models |
 
 ---
 

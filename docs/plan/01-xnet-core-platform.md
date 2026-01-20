@@ -433,69 +433,235 @@ flowchart TB
 
 ---
 
-## Infrastructure Components
+## Infrastructure: Fully P2P by Design
+
+**Core Principle**: xNet requires **zero central infrastructure**. Laptops and smartphones are sufficient. Datacenters are optional optimizations for institutions with scale needs.
+
+### Pure P2P Mode (No Servers)
 
 ```mermaid
 graph TB
-    subgraph "User Devices"
+    subgraph "Peer Network"
+        P1["Alice's Laptop<br/>📍 Signaling + Relay + Storage"]
+        P2["Bob's Phone<br/>📍 Storage"]
+        P3["Carol's Desktop<br/>📍 Signaling + Relay + Storage"]
+        P4["Dave's Tablet<br/>📍 Storage"]
+    end
+
+    P1 <-->|Direct P2P| P2
+    P1 <-->|Direct P2P| P3
+    P2 <-->|Relayed via P1| P4
+    P3 <-->|Direct P2P| P4
+    P2 <-.->|mDNS Local| P3
+
+    style P1 fill:#e3f2fd
+    style P2 fill:#e8f5e9
+    style P3 fill:#e3f2fd
+    style P4 fill:#e8f5e9
+```
+
+Every peer can serve infrastructure roles:
+
+| Role | Any Peer Can Do It | How |
+|------|-------------------|-----|
+| **Signaling** | Yes | Relay SDP offers through DHT or other peers |
+| **Bootstrap** | Yes | Cache known peers, share peer lists |
+| **Relay** | Yes | libp2p circuit relay (any peer with public IP) |
+| **Storage** | Yes | Local storage is primary; peers backup each other |
+
+### How Each Layer Works Without Servers
+
+#### 1. Discovery (No Bootstrap Server Needed)
+
+```typescript
+interface PeerDiscovery {
+  // Local network - works immediately, no internet needed
+  mdns: {
+    enabled: true;
+    serviceName: '_xnet._tcp.local';
+  };
+
+  // Cached peers from previous sessions
+  cachedPeers: PeerInfo[];
+
+  // Manual peer exchange (QR code, link, paste)
+  manualAdd(multiaddr: string): Promise<void>;
+
+  // DHT - once connected to ANY peer, find more
+  dht: {
+    enabled: true;
+    // No hardcoded bootstrap - use cached or discovered peers
+    bootstrap: 'from-cache' | 'from-mdns' | 'manual';
+  };
+
+  // Pubsub for workspace announcements
+  pubsub: {
+    topic: `xnet/workspace/${workspaceId}`;
+  };
+}
+```
+
+**Discovery flow**:
+1. Check local network (mDNS) → instant for same WiFi
+2. Try cached peers from last session
+3. If no cached peers, user shares a peer address (QR/link)
+4. Once connected to 1 peer, DHT finds more
+
+#### 2. Signaling (No Signaling Server Needed)
+
+Traditional WebRTC needs a server to exchange SDP offers. xNet alternatives:
+
+```typescript
+interface P2PSignaling {
+  // Option 1: DHT-based signaling
+  dht: {
+    // Store SDP offer at DHT key derived from peer IDs
+    putOffer(targetPeerId: string, sdp: RTCSessionDescription): Promise<void>;
+    getOffer(fromPeerId: string): Promise<RTCSessionDescription | null>;
+  };
+
+  // Option 2: Relay through mutual peer
+  relay: {
+    // Ask a connected peer to forward signaling messages
+    sendVia(relayPeer: PeerId, target: PeerId, message: SignalingMessage): Promise<void>;
+  };
+
+  // Option 3: Out-of-band (QR code, copy-paste)
+  outOfBand: {
+    exportOffer(): string;    // Base64 encoded SDP
+    importAnswer(answer: string): Promise<void>;
+  };
+
+  // Option 4: Local network broadcast
+  localBroadcast: {
+    announceOffer(workspaceId: string, sdp: RTCSessionDescription): void;
+  };
+}
+```
+
+#### 3. NAT Traversal (No TURN Server Needed)
+
+```typescript
+interface NATTraversal {
+  // Most connections work with STUN (free, stateless)
+  stun: {
+    servers: [
+      'stun:stun.l.google.com:19302',  // Public STUN (free)
+      'stun:stun.cloudflare.com:3478',
+    ];
+  };
+
+  // For symmetric NAT: any peer with public IP can relay
+  circuitRelay: {
+    // Peers automatically volunteer if they have public IP
+    autoRelay: true;
+    // Limit relay bandwidth per peer
+    maxRelayBandwidth: '1MB/s';
+  };
+
+  // Hole punching success rate by NAT type
+  // Full Cone: 95%+
+  // Restricted: 80%+
+  // Port Restricted: 60%+
+  // Symmetric: 10% (needs relay)
+}
+```
+
+#### 4. Storage (Local-First, Peer Backup)
+
+```typescript
+interface P2PStorage {
+  // Primary: local device
+  local: {
+    adapter: 'sqlite' | 'indexeddb' | 'opfs';
+    quota: 'unlimited';  // User's device
+  };
+
+  // Secondary: replicate to peers
+  peerBackup: {
+    enabled: true;
+    replicationFactor: 3;  // Store on 3 peers minimum
+    encryption: 'e2e';     // Peers can't read your data
+  };
+
+  // Optional: cloud/DePIN for institutions
+  cloud?: CloudBackupConfig;
+}
+```
+
+### Hybrid Mode (Optional Infrastructure)
+
+Institutions can add infrastructure for performance, not for functionality:
+
+```mermaid
+graph TB
+    subgraph "User Devices (Required)"
         U1[Browser PWA]
         U2[Desktop App]
         U3[Mobile App]
     end
 
-    subgraph "Signaling Layer"
-        S1[Signaling Server 1]
-        S2[Signaling Server 2]
-        S3[Signaling Server N]
+    subgraph "Optional: Community Infrastructure"
+        S1["Signaling Hub<br/>(faster discovery)"]
+        R1["Public Relay<br/>(helps symmetric NAT)"]
     end
 
-    subgraph "Relay Layer"
-        R1[Relay Node 1]
-        R2[Relay Node 2]
-        R3[Relay Node N]
+    subgraph "Optional: Enterprise Infrastructure"
+        E1["Company Hub<br/>(always-on peer)"]
+        E2["Postgres Cluster<br/>(compliance/scale)"]
     end
 
-    subgraph "Bootstrap Layer"
-        B1[Bootstrap Node 1]
-        B2[Bootstrap Node 2]
+    subgraph "Optional: Global Infrastructure"
+        G1["Public DHT Nodes<br/>(faster bootstrap)"]
+        G2["DePIN Storage<br/>(cold backup)"]
     end
 
-    subgraph "Storage Layer (DePIN)"
-        D1[Storage Node 1]
-        D2[Storage Node 2]
-        D3[Storage Node N]
-    end
+    U1 <-->|P2P| U2
+    U2 <-->|P2P| U3
+    U1 <-->|P2P| U3
 
-    U1 <--> S1
-    U2 <--> S2
-    U3 <--> S3
+    U1 -.->|Optional| S1
+    U2 -.->|Optional| R1
+    U3 -.->|Optional| E1
+    E1 -.->|Optional| E2
 
-    U1 <-.-> R1
-    U2 <-.-> R2
+    U1 -.->|Optional| G1
+    E1 -.->|Optional| G2
 
-    U1 --> B1
-    U2 --> B2
-
-    U1 -.-> D1
-    U2 -.-> D2
-    U3 -.-> D3
-
-    S1 <--> S2
-    S2 <--> S3
-    R1 <--> R2
-    R2 <--> R3
-    D1 <--> D2
-    D2 <--> D3
+    style U1 fill:#e3f2fd
+    style U2 fill:#e3f2fd
+    style U3 fill:#e3f2fd
+    style S1 fill:#f5f5f5,stroke-dasharray: 5 5
+    style R1 fill:#f5f5f5,stroke-dasharray: 5 5
+    style E1 fill:#fff3e0,stroke-dasharray: 5 5
+    style E2 fill:#fff3e0,stroke-dasharray: 5 5
+    style G1 fill:#f3e5f5,stroke-dasharray: 5 5
+    style G2 fill:#f3e5f5,stroke-dasharray: 5 5
 ```
 
-### Component Descriptions
+### When to Add Infrastructure
 
-| Component | Purpose | Technology |
-|-----------|---------|------------|
-| **Signaling Server** | WebRTC connection establishment | Node.js + WebSocket |
-| **Relay Node** | NAT traversal for restricted networks | libp2p circuit relay |
-| **Bootstrap Node** | Initial peer discovery | libp2p Kademlia DHT |
-| **Storage Node** | Blob storage and backup (DePIN) | IPFS-compatible |
+| Scenario | Pure P2P Works? | Optional Infra Helps? |
+|----------|-----------------|----------------------|
+| Same WiFi collaboration | Yes (mDNS) | No |
+| Friends across internet | Yes (cached peers) | Signaling hub (faster) |
+| Team with mixed NAT types | Mostly (hole punch) | Relay node (reliability) |
+| Enterprise compliance | Yes | Postgres (audit logs) |
+| Always-available sync | Needs 1 peer online | Company hub (24/7 peer) |
+| 100TB+ datasets | No | Datacenter storage |
+| Global search | No | Search index cluster |
+
+### Component Roles
+
+| Component | Required? | Who Runs It | Purpose |
+|-----------|-----------|-------------|---------|
+| **User Device** | Yes | Everyone | Primary node, storage, can relay |
+| **Signaling Hub** | No | Community/Company | Faster WebRTC handshake |
+| **Relay Node** | No | Volunteers/Company | Help symmetric NAT users |
+| **Always-On Peer** | No | Company | 24/7 availability |
+| **Postgres Cluster** | No | Enterprise | Compliance, scale |
+| **Search Index** | No | Large orgs | Cross-workspace search |
+| **DePIN Storage** | No | Network | Immutable backups |
 
 ---
 
