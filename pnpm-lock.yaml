@@ -578,6 +578,9 @@ importers:
       '@xnet/core':
         specifier: workspace:*
         version: link:../core
+      '@xnet/crypto':
+        specifier: workspace:*
+        version: link:../crypto
       '@xnet/data':
         specifier: workspace:*
         version: link:../data

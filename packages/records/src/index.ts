@@ -142,3 +142,31 @@ export {
   generateItemId,
   generateOptionId
 } from './utils'
+
+// ============================================================================
+// Sync (Event Sourcing)
+// ============================================================================
+
+// Types
+export type {
+  RecordOperation,
+  RecordOperationType,
+  CreateItemOperation,
+  UpdateItemOperation,
+  DeleteItemOperation,
+  ItemState,
+  DatabaseState,
+  TimestampedValue,
+  SyncRequest,
+  SyncResponse,
+  SyncMessage,
+  ApplyResult,
+  Conflict
+} from './sync/types'
+
+// Store
+export { RecordStore, RECORD_SCHEMA_SQL } from './sync/store'
+export type { RecordStorageAdapter, OperationOptions } from './sync/store'
+
+// Adapters
+export { MemoryRecordAdapter } from './sync/memory-adapter'
