@@ -12,6 +12,7 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
@@ -19,7 +20,10 @@
     "@xnet/core": "workspace:*",
     "@xnet/crypto": "workspace:*",
     "@xnet/identity": "workspace:*",
-    "@xnet/storage": "workspace:*"
+    "@xnet/storage": "workspace:*",
+    "lib0": "^0.2.102",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.24"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
