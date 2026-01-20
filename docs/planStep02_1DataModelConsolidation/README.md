@@ -65,6 +65,7 @@ Execute these documents in order. Each builds on the previous.
 | 09  | [Schema-First Architecture](./09-schema-first-architecture.md)        | Everything is a schema-defined Node | Reference | -      |
 | 10  | [Schema + TypeScript](./10-schema-first-with-typescript.md)           | Generated types from schemas        | 1 week    | Medium |
 | 11  | [Global Namespacing](./11-global-schema-namespacing.md)               | Global schema namespace via IRIs    | Reference | -      |
+| 12  | [Code-First Schemas](./12-code-first-schemas.md)                      | defineSchema() with inferred types  | 1 week    | Medium |
 
 ## Validation Gates
 
@@ -172,7 +173,9 @@ This consolidation explicitly does NOT:
 - [ ] `Schema` defines what a Node is (properties, behaviors)
 - [ ] Built-in schemas: Page, Database, Item, Canvas, Task
 - [ ] Schemas are Nodes (self-describing system)
-- [ ] TypeScript types generated from schemas via codegen
+- [ ] `defineSchema()` API with TypeScript type inference
+- [ ] Property helpers: `text()`, `select()`, `date()`, etc.
+- [ ] Validation co-located with schema definition
 - [ ] User-defined schemas work at runtime
 
 ### After Global Namespacing
