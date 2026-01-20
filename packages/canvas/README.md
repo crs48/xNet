@@ -30,7 +30,7 @@ src/
 
 - rbush - Spatial indexing
 - elkjs - Graph layout algorithms
-- @xnet/database - Document/item data
+- @xnet/records - Record/item data
 
 ## Installation
 
