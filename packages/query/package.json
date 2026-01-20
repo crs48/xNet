@@ -12,13 +12,17 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
-    "@xnet/network": "workspace:*"
+    "@xnet/identity": "workspace:*",
+    "@xnet/network": "workspace:*",
+    "@xnet/storage": "workspace:*",
+    "minisearch": "^7.1.2"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
