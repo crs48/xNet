@@ -1,115 +1,271 @@
 /**
- * useQuery hook for querying documents
+ * useQuery - Unified read hook for Nodes
+ *
+ * A single hook for all read operations:
+ * - List all nodes of a schema
+ * - Get a single node by ID
+ * - Query with filters
+ *
+ * @example
+ * ```tsx
+ * // List all tasks
+ * const { data: tasks } = useQuery(TaskSchema)
+ *
+ * // Get single task by ID
+ * const { data: task } = useQuery(TaskSchema, taskId)
+ *
+ * // Query with filters
+ * const { data: urgent } = useQuery(TaskSchema, {
+ *   where: { status: 'urgent' }
+ * })
+ * ```
  */
-import { useEffect, useState, useCallback, useRef } from 'react'
-import { useXNet } from '../context'
-import { createLocalQueryEngine, type Query, type QueryResult } from '@xnet/query'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import type {
+  DefinedSchema,
+  PropertyBuilder,
+  InferCreateProps,
+  NodeState,
+  NodeChangeEvent
+} from '@xnet/data'
+import { useNodeStore } from './useNodeStore'
+
+// =============================================================================
+// Types
+// =============================================================================
 
 /**
- * Options for useQuery hook
+ * A typed node state that matches the schema's properties
  */
-export interface UseQueryOptions {
-  enabled?: boolean
-  refetchInterval?: number
+export interface TypedNode<P extends Record<string, PropertyBuilder>> extends NodeState {
+  properties: InferCreateProps<P>
 }
 
 /**
- * Result from useQuery hook
+ * Query filter options
  */
-export interface UseQueryResult<T> {
-  data: T[]
+export interface QueryFilter {
+  /** Filter conditions (property: value) */
+  where?: Record<string, unknown>
+  /** Include soft-deleted nodes */
+  includeDeleted?: boolean
+  /** Limit results */
+  limit?: number
+  /** Offset for pagination */
+  offset?: number
+}
+
+/**
+ * Result when querying a list of nodes
+ */
+export interface QueryListResult<P extends Record<string, PropertyBuilder>> {
+  /** The queried nodes */
+  data: TypedNode<P>[]
+  /** Whether currently loading */
   loading: boolean
-  error?: Error
-  total: number
-  hasMore: boolean
-  refetch: () => Promise<void>
-  fetchMore: () => Promise<void>
-}
-
-interface QueryState<T> {
-  data: T[]
-  loading: boolean
-  error?: Error
-  total: number
-  hasMore: boolean
-  cursor?: string
+  /** Any error that occurred */
+  error: Error | null
+  /** Reload the query */
+  reload: () => Promise<void>
 }
 
 /**
- * Hook for querying documents
+ * Result when querying a single node
  */
-export function useQuery<T = unknown>(
-  query: Query,
-  options: UseQueryOptions = {}
-): UseQueryResult<T> {
-  const { enabled = true, refetchInterval } = options
-  const { storage, isReady } = useXNet()
+export interface QuerySingleResult<P extends Record<string, PropertyBuilder>> {
+  /** The queried node (null if not found) */
+  data: TypedNode<P> | null
+  /** Whether currently loading */
+  loading: boolean
+  /** Any error that occurred */
+  error: Error | null
+  /** Reload the query */
+  reload: () => Promise<void>
+}
 
-  const [state, setState] = useState<QueryState<T>>({
-    data: [],
-    loading: true,
-    total: 0,
-    hasMore: false
-  })
+// =============================================================================
+// Hook Overloads
+// =============================================================================
 
-  // Track cursor in ref to avoid dependency issues
-  const cursorRef = useRef<string | undefined>(undefined)
+/**
+ * Query all nodes of a schema
+ */
+export function useQuery<P extends Record<string, PropertyBuilder>>(
+  schema: DefinedSchema<P>
+): QueryListResult<P>
 
-  // Serialize query for dependency comparison
-  const queryKey = JSON.stringify(query)
+/**
+ * Query a single node by ID
+ */
+export function useQuery<P extends Record<string, PropertyBuilder>>(
+  schema: DefinedSchema<P>,
+  id: string
+): QuerySingleResult<P>
 
-  const execute = useCallback(async (append = false) => {
-    if (!isReady || !enabled) return
+/**
+ * Query nodes with filters
+ */
+export function useQuery<P extends Record<string, PropertyBuilder>>(
+  schema: DefinedSchema<P>,
+  filter: QueryFilter
+): QueryListResult<P>
 
-    setState(s => ({ ...s, loading: true, error: undefined }))
+/**
+ * Query nodes - implementation
+ */
+export function useQuery<P extends Record<string, PropertyBuilder>>(
+  schema: DefinedSchema<P>,
+  idOrFilter?: string | QueryFilter
+): QueryListResult<P> | QuerySingleResult<P> {
+  const { store, isReady } = useNodeStore()
+  const schemaId = schema._schemaId
+
+  // Determine query mode
+  const isSingleQuery = typeof idOrFilter === 'string'
+  const filter: QueryFilter = typeof idOrFilter === 'object' ? idOrFilter : {}
+  const nodeId = isSingleQuery ? idOrFilter : null
+
+  // State
+  const [data, setData] = useState<TypedNode<P>[] | TypedNode<P> | null>(isSingleQuery ? null : [])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
+
+  // Track if we've loaded to prevent re-fetching
+  const hasLoadedRef = useRef(false)
+
+  // Load data
+  const loadData = useCallback(async () => {
+    if (!store) {
+      setData(isSingleQuery ? null : [])
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    setError(null)
 
     try {
-      const engine = createLocalQueryEngine(storage, async () => null)
-      const queryWithCursor = append && cursorRef.current
-        ? { ...query, offset: parseInt(cursorRef.current) }
-        : query
+      if (isSingleQuery && nodeId) {
+        // Single node query
+        const node = await store.get(nodeId)
+        if (node && node.schemaId === schemaId && !node.deleted) {
+          setData(node as TypedNode<P>)
+        } else {
+          setData(null)
+        }
+      } else {
+        // List query
+        const nodes = await store.list({
+          schemaId,
+          includeDeleted: filter.includeDeleted,
+          limit: filter.limit,
+          offset: filter.offset
+        })
 
-      const result: QueryResult<T> = await engine.query<T>(queryWithCursor)
+        // Apply where filter if present
+        let filtered = nodes as TypedNode<P>[]
+        if (filter.where) {
+          filtered = filtered.filter((node) => {
+            for (const [key, value] of Object.entries(filter.where!)) {
+              if ((node.properties as Record<string, unknown>)[key] !== value) {
+                return false
+              }
+            }
+            return true
+          })
+        }
 
-      cursorRef.current = result.cursor
-
-      setState(s => ({
-        data: append ? [...s.data, ...result.items] : result.items,
-        loading: false,
-        total: result.total,
-        hasMore: result.hasMore,
-        cursor: result.cursor
-      }))
-    } catch (error) {
-      setState(s => ({ ...s, loading: false, error: error as Error }))
+        setData(filtered)
+      }
+      hasLoadedRef.current = true
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)))
+      setData(isSingleQuery ? null : [])
+    } finally {
+      setLoading(false)
     }
-  }, [isReady, enabled, storage, queryKey])
+  }, [
+    store,
+    schemaId,
+    nodeId,
+    isSingleQuery,
+    filter.includeDeleted,
+    filter.limit,
+    filter.offset,
+    JSON.stringify(filter.where)
+  ])
 
-  // Initial fetch
+  // Auto-load on mount
   useEffect(() => {
-    if (isReady && enabled) {
-      execute(false)
+    if (isReady && !hasLoadedRef.current) {
+      loadData()
     }
-  }, [isReady, enabled, queryKey])
+  }, [isReady, loadData])
 
-  // Refetch interval
+  // Subscribe to store changes
   useEffect(() => {
-    if (refetchInterval && refetchInterval > 0 && isReady && enabled) {
-      const interval = setInterval(() => execute(false), refetchInterval)
-      return () => clearInterval(interval)
-    }
-  }, [refetchInterval, isReady, enabled, execute])
+    if (!store) return
 
-  const refetch = useCallback(() => execute(false), [execute])
-  const fetchMore = useCallback(() => execute(true), [execute])
+    const unsubscribe = store.subscribe((event: NodeChangeEvent) => {
+      const { node } = event
+
+      if (isSingleQuery && nodeId) {
+        // Single node subscription
+        if (event.change.payload.nodeId !== nodeId) return
+
+        if (node && node.schemaId === schemaId && !node.deleted) {
+          setData(node as TypedNode<P>)
+        } else {
+          setData(null)
+        }
+      } else {
+        // List subscription
+        if (node && node.schemaId !== schemaId) return
+
+        setData((prev) => {
+          const prevList = (prev as TypedNode<P>[]) || []
+
+          if (!node) return prevList
+
+          // Check if node passes filter
+          let passesFilter = true
+          if (filter.where) {
+            for (const [key, value] of Object.entries(filter.where)) {
+              if ((node.properties as Record<string, unknown>)[key] !== value) {
+                passesFilter = false
+                break
+              }
+            }
+          }
+
+          const existingIndex = prevList.findIndex((n) => n.id === node.id)
+
+          if (existingIndex >= 0) {
+            // Update existing
+            if (node.deleted && !filter.includeDeleted) {
+              return prevList.filter((n) => n.id !== node.id)
+            }
+            if (!passesFilter) {
+              return prevList.filter((n) => n.id !== node.id)
+            }
+            return prevList.map((n) => (n.id === node.id ? (node as TypedNode<P>) : n))
+          } else if (!node.deleted && passesFilter) {
+            // Add new
+            return [...prevList, node as TypedNode<P>]
+          }
+
+          return prevList
+        })
+      }
+    })
+
+    return unsubscribe
+  }, [store, schemaId, nodeId, isSingleQuery, filter.includeDeleted, JSON.stringify(filter.where)])
 
   return {
-    data: state.data,
-    loading: state.loading,
-    error: state.error,
-    total: state.total,
-    hasMore: state.hasMore,
-    refetch,
-    fetchMore
-  }
+    data,
+    loading,
+    error,
+    reload: loadData
+  } as QueryListResult<P> | QuerySingleResult<P>
 }
