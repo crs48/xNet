@@ -53,6 +53,17 @@ export {
   type UseNodesResult
 } from './hooks/useNode'
 
+// Schema-aware hooks (recommended)
+export {
+  useSchema,
+  useSingleNode,
+  type TypedNodeState,
+  type UseSchemaOptions,
+  type UseSchemaResult,
+  type UseSingleNodeResult,
+  type TypedTransactionOp
+} from './hooks/useSchema'
+
 // Store
 export {
   createXNetStore,

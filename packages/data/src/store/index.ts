@@ -43,7 +43,11 @@ export type {
   MergeConflict,
   NodeStoreOptions,
   CreateNodeOptions,
-  UpdateNodeOptions
+  UpdateNodeOptions,
+  TransactionOperation,
+  TransactionResult,
+  NodeChangeEvent,
+  NodeChangeListener
 } from './types'
 
 // NodeStore

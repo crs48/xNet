@@ -162,7 +162,11 @@ export {
   type MergeConflict,
   type NodeStoreOptions,
   type CreateNodeOptions as CreateNodeStoreOptions,
-  type UpdateNodeOptions
+  type UpdateNodeOptions,
+  type TransactionOperation,
+  type TransactionResult,
+  type NodeChangeEvent,
+  type NodeChangeListener
 } from './store'
 
 // Re-export Yjs for convenience
