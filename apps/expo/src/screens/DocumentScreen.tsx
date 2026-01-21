@@ -1,7 +1,7 @@
 /**
- * Document screen - editor using shared @xnet/editor
+ * Document screen - rich text editor using WebView
  */
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
   Text,
@@ -12,8 +12,8 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native'
-import { useEditor } from '@xnet/react'
 import { useDocument } from '../hooks/useDocument'
+import { WebViewEditor } from '../components/WebViewEditor'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RouteProp } from '@react-navigation/native'
 import type { RootStackParamList } from '../navigation/types'
@@ -25,23 +25,18 @@ interface Props {
 
 export function DocumentScreen({ navigation, route }: Props) {
   const { docId } = route.params
-  const { document, loading, error } = useDocument(docId)
+  const { document, loading, error, updateContent } = useDocument(docId)
   const [title, setTitle] = useState('')
-
-  // Use the shared editor hook
-  const {
-    content,
-    handleChange
-  } = useEditor({
-    ydoc: document?.ydoc ?? null,
-    field: 'content',
-    placeholder: 'Start typing...'
-  })
+  const [initialContent, setInitialContent] = useState('')
 
   useEffect(() => {
     if (document) {
       setTitle(document.metadata.title)
       navigation.setOptions({ title: document.metadata.title })
+
+      // Get initial HTML content from Y.Doc
+      const content = document.ydoc.getText('content')
+      setInitialContent(content.toString())
     }
   }, [document, navigation])
 
@@ -53,13 +48,24 @@ export function DocumentScreen({ navigation, route }: Props) {
     }
   }
 
-  // Adapter for React Native TextInput
-  const handleContentChange = (text: string) => {
-    // Create a synthetic event for the useEditor hook
-    handleChange({
-      target: { value: text, selectionStart: text.length }
-    } as React.ChangeEvent<HTMLInputElement>)
-  }
+  const handleContentChange = useCallback(
+    (html: string) => {
+      // Update Y.Doc with new content
+      if (document) {
+        const text = document.ydoc.getText('content')
+        text.delete(0, text.length)
+        text.insert(0, html)
+      }
+    },
+    [document]
+  )
+
+  const handleNavigate = useCallback(
+    (targetDocId: string) => {
+      navigation.push('Document', { docId: targetDocId })
+    },
+    [navigation]
+  )
 
   if (error) {
     return (
@@ -94,15 +100,14 @@ export function DocumentScreen({ navigation, route }: Props) {
           placeholder="Title"
           placeholderTextColor="#999"
         />
-        <TextInput
-          style={styles.contentInput}
-          value={content}
-          onChangeText={handleContentChange}
-          placeholder="Start typing..."
-          placeholderTextColor="#999"
-          multiline
-          textAlignVertical="top"
-        />
+        <View style={styles.editorContainer}>
+          <WebViewEditor
+            initialContent={initialContent}
+            placeholder="Start writing..."
+            onContentChange={handleContentChange}
+            onNavigate={handleNavigate}
+          />
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   )
@@ -128,13 +133,10 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
     color: '#1a1a1a'
   },
-  contentInput: {
+  editorContainer: {
     flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
-    padding: 16,
-    paddingTop: 0,
-    color: '#1a1a1a'
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5'
   },
   errorText: {
     color: '#ff3b30',
