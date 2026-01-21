@@ -3,8 +3,13 @@
 > Invoicing, expense management, budgets, and financial reporting
 
 **Package:** `modules/@xnet/finance`
-**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`
+**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`, `@xnet/data`
 **Estimated Time:** 3 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - Finance entities (Invoice, Expense, Budget) defined as Schemas
+> - All finance data stored as Nodes in NodeStore
 
 ## Goals
 
@@ -29,7 +34,7 @@ export const FinanceModule: ModuleDefinition = {
 
   dependencies: {
     core: '3.0.0',
-    modules: ['mod:crm']  // Optional: for customer invoicing
+    modules: ['mod:crm'] // Optional: for customer invoicing
   },
 
   schema: {
@@ -64,7 +69,11 @@ export const FinanceModule: ModuleDefinition = {
       { id: 'revenue', name: 'Revenue', component: 'RevenueWidget' },
       { id: 'expenses-summary', name: 'Expenses Summary', component: 'ExpensesSummaryWidget' },
       { id: 'cash-flow', name: 'Cash Flow', component: 'CashFlowWidget' },
-      { id: 'outstanding-invoices', name: 'Outstanding Invoices', component: 'OutstandingInvoicesWidget' },
+      {
+        id: 'outstanding-invoices',
+        name: 'Outstanding Invoices',
+        component: 'OutstandingInvoicesWidget'
+      },
       { id: 'budget-status', name: 'Budget Status', component: 'BudgetStatusWidget' }
     ],
     actions: [
@@ -155,15 +164,20 @@ export const invoicesDatabase: DatabaseTemplate = {
     { id: 'contactId', name: 'Contact', type: 'relation', target: 'crm:contacts' },
 
     // Status
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'draft', name: 'Draft', color: 'gray' },
-      { id: 'sent', name: 'Sent', color: 'blue' },
-      { id: 'viewed', name: 'Viewed', color: 'yellow' },
-      { id: 'partial', name: 'Partially Paid', color: 'orange' },
-      { id: 'paid', name: 'Paid', color: 'green' },
-      { id: 'overdue', name: 'Overdue', color: 'red' },
-      { id: 'cancelled', name: 'Cancelled', color: 'gray' }
-    ]},
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'draft', name: 'Draft', color: 'gray' },
+        { id: 'sent', name: 'Sent', color: 'blue' },
+        { id: 'viewed', name: 'Viewed', color: 'yellow' },
+        { id: 'partial', name: 'Partially Paid', color: 'orange' },
+        { id: 'paid', name: 'Paid', color: 'green' },
+        { id: 'overdue', name: 'Overdue', color: 'red' },
+        { id: 'cancelled', name: 'Cancelled', color: 'gray' }
+      ]
+    },
 
     // Dates
     { id: 'issueDate', name: 'Issue Date', type: 'date' },
@@ -177,15 +191,30 @@ export const invoicesDatabase: DatabaseTemplate = {
     { id: 'total', name: 'Total', type: 'formula', formula: 'subtotal + taxAmount - discount' },
     { id: 'amountPaid', name: 'Amount Paid', type: 'number', format: 'currency', default: 0 },
     { id: 'balanceDue', name: 'Balance Due', type: 'formula', formula: 'total - amountPaid' },
-    { id: 'currency', name: 'Currency', type: 'select', options: [
-      { id: 'USD', name: 'USD' },
-      { id: 'EUR', name: 'EUR' },
-      { id: 'GBP', name: 'GBP' }
-    ]},
+    {
+      id: 'currency',
+      name: 'Currency',
+      type: 'select',
+      options: [
+        { id: 'USD', name: 'USD' },
+        { id: 'EUR', name: 'EUR' },
+        { id: 'GBP', name: 'GBP' }
+      ]
+    },
 
     // Calculations
-    { id: 'isOverdue', name: 'Is Overdue', type: 'formula', formula: 'status != "paid" && status != "cancelled" && dueDate < now()' },
-    { id: 'daysOverdue', name: 'Days Overdue', type: 'formula', formula: 'isOverdue ? dateDiff(dueDate, now(), "days") : 0' },
+    {
+      id: 'isOverdue',
+      name: 'Is Overdue',
+      type: 'formula',
+      formula: 'status != "paid" && status != "cancelled" && dueDate < now()'
+    },
+    {
+      id: 'daysOverdue',
+      name: 'Days Overdue',
+      type: 'formula',
+      formula: 'isOverdue ? dateDiff(dueDate, now(), "days") : 0'
+    },
 
     // Details
     { id: 'billingAddress', name: 'Billing Address', type: 'text' },
@@ -207,7 +236,14 @@ export const invoicesDatabase: DatabaseTemplate = {
       name: 'All Invoices',
       type: 'table',
       config: {
-        visibleProperties: ['invoiceNumber', 'customerId', 'status', 'total', 'balanceDue', 'dueDate'],
+        visibleProperties: [
+          'invoiceNumber',
+          'customerId',
+          'status',
+          'total',
+          'balanceDue',
+          'dueDate'
+        ],
         sorts: [{ property: 'issueDate', direction: 'desc' }]
       }
     },
@@ -216,7 +252,11 @@ export const invoicesDatabase: DatabaseTemplate = {
       name: 'Unpaid',
       type: 'table',
       config: {
-        filter: { property: 'status', operator: 'in', value: ['sent', 'viewed', 'partial', 'overdue'] },
+        filter: {
+          property: 'status',
+          operator: 'in',
+          value: ['sent', 'viewed', 'partial', 'overdue']
+        },
         sorts: [{ property: 'dueDate', direction: 'asc' }]
       }
     },
@@ -250,20 +290,30 @@ export const expensesDatabase: DatabaseTemplate = {
     { id: 'description', name: 'Description', type: 'title' },
     { id: 'categoryId', name: 'Category', type: 'relation', target: 'finance:expenseCategories' },
     { id: 'amount', name: 'Amount', type: 'number', format: 'currency' },
-    { id: 'currency', name: 'Currency', type: 'select', options: [
-      { id: 'USD', name: 'USD' },
-      { id: 'EUR', name: 'EUR' },
-      { id: 'GBP', name: 'GBP' }
-    ]},
+    {
+      id: 'currency',
+      name: 'Currency',
+      type: 'select',
+      options: [
+        { id: 'USD', name: 'USD' },
+        { id: 'EUR', name: 'EUR' },
+        { id: 'GBP', name: 'GBP' }
+      ]
+    },
     { id: 'date', name: 'Date', type: 'date' },
 
     // Status
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'pending', name: 'Pending Approval', color: 'yellow' },
-      { id: 'approved', name: 'Approved', color: 'green' },
-      { id: 'rejected', name: 'Rejected', color: 'red' },
-      { id: 'reimbursed', name: 'Reimbursed', color: 'blue' }
-    ]},
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'pending', name: 'Pending Approval', color: 'yellow' },
+        { id: 'approved', name: 'Approved', color: 'green' },
+        { id: 'rejected', name: 'Rejected', color: 'red' },
+        { id: 'reimbursed', name: 'Reimbursed', color: 'blue' }
+      ]
+    },
 
     // People
     { id: 'submittedBy', name: 'Submitted By', type: 'person' },
@@ -272,13 +322,18 @@ export const expensesDatabase: DatabaseTemplate = {
 
     // Details
     { id: 'vendor', name: 'Vendor', type: 'text' },
-    { id: 'paymentMethod', name: 'Payment Method', type: 'select', options: [
-      { id: 'cash', name: 'Cash' },
-      { id: 'credit_card', name: 'Credit Card' },
-      { id: 'debit_card', name: 'Debit Card' },
-      { id: 'bank_transfer', name: 'Bank Transfer' },
-      { id: 'reimbursable', name: 'Reimbursable' }
-    ]},
+    {
+      id: 'paymentMethod',
+      name: 'Payment Method',
+      type: 'select',
+      options: [
+        { id: 'cash', name: 'Cash' },
+        { id: 'credit_card', name: 'Credit Card' },
+        { id: 'debit_card', name: 'Debit Card' },
+        { id: 'bank_transfer', name: 'Bank Transfer' },
+        { id: 'reimbursable', name: 'Reimbursable' }
+      ]
+    },
     { id: 'receipt', name: 'Receipt', type: 'file', fileTypes: ['image', 'pdf'] },
     { id: 'notes', name: 'Notes', type: 'text' },
 
@@ -336,28 +391,48 @@ export const budgetsDatabase: DatabaseTemplate = {
   properties: [
     { id: 'name', name: 'Name', type: 'title' },
     { id: 'categoryId', name: 'Category', type: 'relation', target: 'finance:expenseCategories' },
-    { id: 'period', name: 'Period', type: 'select', options: [
-      { id: 'monthly', name: 'Monthly' },
-      { id: 'quarterly', name: 'Quarterly' },
-      { id: 'annual', name: 'Annual' }
-    ]},
+    {
+      id: 'period',
+      name: 'Period',
+      type: 'select',
+      options: [
+        { id: 'monthly', name: 'Monthly' },
+        { id: 'quarterly', name: 'Quarterly' },
+        { id: 'annual', name: 'Annual' }
+      ]
+    },
     { id: 'year', name: 'Year', type: 'number' },
-    { id: 'month', name: 'Month', type: 'number' },  // 1-12, null for annual
-    { id: 'quarter', name: 'Quarter', type: 'number' },  // 1-4, null for monthly/annual
+    { id: 'month', name: 'Month', type: 'number' }, // 1-12, null for annual
+    { id: 'quarter', name: 'Quarter', type: 'number' }, // 1-4, null for monthly/annual
 
     // Amounts
     { id: 'budgetAmount', name: 'Budget', type: 'number', format: 'currency' },
     { id: 'spentAmount', name: 'Spent', type: 'number', format: 'currency', default: 0 },
-    { id: 'remainingAmount', name: 'Remaining', type: 'formula', formula: 'budgetAmount - spentAmount' },
-    { id: 'percentUsed', name: '% Used', type: 'formula', formula: 'budgetAmount > 0 ? (spentAmount / budgetAmount * 100) : 0' },
+    {
+      id: 'remainingAmount',
+      name: 'Remaining',
+      type: 'formula',
+      formula: 'budgetAmount - spentAmount'
+    },
+    {
+      id: 'percentUsed',
+      name: '% Used',
+      type: 'formula',
+      formula: 'budgetAmount > 0 ? (spentAmount / budgetAmount * 100) : 0'
+    },
 
     // Status
-    { id: 'status', name: 'Status', type: 'formula', formula: `
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'formula',
+      formula: `
       percentUsed >= 100 ? "overspent" :
       percentUsed >= 90 ? "warning" :
       percentUsed >= 75 ? "on-track" :
       "under-budget"
-    ` },
+    `
+    },
 
     // Alerts
     { id: 'alertThreshold', name: 'Alert Threshold %', type: 'number', default: 90 },
@@ -424,9 +499,7 @@ export class InvoiceService {
     const invoiceNumber = await this.generateInvoiceNumber()
 
     // Calculate totals
-    const subtotal = params.items.reduce((sum, item) =>
-      sum + (item.quantity * item.unitPrice), 0
-    )
+    const subtotal = params.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
     const taxAmount = subtotal * (settings.taxRate / 100)
 
     // Create invoice
@@ -435,7 +508,7 @@ export class InvoiceService {
       customerId: params.customerId,
       status: 'draft',
       issueDate: params.issueDate || Date.now(),
-      dueDate: params.dueDate || Date.now() + (settings.paymentTerms * 24 * 60 * 60 * 1000),
+      dueDate: params.dueDate || Date.now() + settings.paymentTerms * 24 * 60 * 60 * 1000,
       subtotal,
       taxAmount,
       discount: 0,
@@ -462,11 +535,14 @@ export class InvoiceService {
   }
 
   // Send invoice to customer
-  async sendInvoice(invoiceId: string, options?: {
-    to?: string[]
-    cc?: string[]
-    message?: string
-  }): Promise<void> {
+  async sendInvoice(
+    invoiceId: string,
+    options?: {
+      to?: string[]
+      cc?: string[]
+      message?: string
+    }
+  ): Promise<void> {
     const invoices = await this.databaseManager.getDatabase('finance:invoices')
     const invoice = await invoices.getRecord(invoiceId)
 
@@ -487,10 +563,12 @@ export class InvoiceService {
       cc: options?.cc,
       subject: `Invoice ${invoice.invoiceNumber} from ${this.getCompanyName()}`,
       body: options?.message || this.getDefaultEmailBody(invoice),
-      attachments: [{
-        filename: `${invoice.invoiceNumber}.pdf`,
-        content: pdfBlob
-      }]
+      attachments: [
+        {
+          filename: `${invoice.invoiceNumber}.pdf`,
+          content: pdfBlob
+        }
+      ]
     })
 
     // Update invoice status
@@ -546,7 +624,8 @@ export class InvoiceService {
     const items = await this.databaseManager.getDatabase('finance:invoiceItems')
 
     const invoice = await invoices.getRecord(invoiceId)
-    const lineItems = await items.query()
+    const lineItems = await items
+      .query()
       .filter({ property: 'invoiceId', operator: 'equals', value: invoiceId })
       .execute()
 
@@ -565,7 +644,8 @@ export class InvoiceService {
   async checkOverdueInvoices(): Promise<Invoice[]> {
     const invoices = await this.databaseManager.getDatabase('finance:invoices')
 
-    const overdue = await invoices.query()
+    const overdue = await invoices
+      .query()
       .filter({
         and: [
           { property: 'status', operator: 'in', value: ['sent', 'viewed', 'partial'] },
@@ -589,10 +669,7 @@ export class InvoiceService {
     const invoices = await this.databaseManager.getDatabase('finance:invoices')
 
     // Get latest invoice number
-    const latest = await invoices.query()
-      .sort('invoiceNumber', 'desc')
-      .limit(1)
-      .first()
+    const latest = await invoices.query().sort('invoiceNumber', 'desc').limit(1).first()
 
     const lastNumber = latest
       ? parseInt(latest.invoiceNumber.replace(settings.invoicePrefix, '')) || 0
@@ -765,7 +842,7 @@ export const invoiceOverdueWorkflow: WorkflowTemplate = {
   trigger: {
     type: 'schedule',
     config: {
-      cron: '0 9 * * *'  // Daily at 9 AM
+      cron: '0 9 * * *' // Daily at 9 AM
     }
   },
 
@@ -807,7 +884,8 @@ export const invoiceOverdueWorkflow: WorkflowTemplate = {
             config: {
               role: 'finance',
               title: 'Invoice Overdue',
-              message: 'Invoice {{item.invoiceNumber}} is {{item.daysOverdue}} days overdue ({{item.balanceDue | currency}})'
+              message:
+                'Invoice {{item.invoiceNumber}} is {{item.daysOverdue}} days overdue ({{item.balanceDue | currency}})'
             }
           },
           // Send reminder email (if configured)
@@ -851,9 +929,7 @@ export const expenseApprovalWorkflow: WorkflowTemplate = {
     }
   },
 
-  conditions: [
-    { field: 'record.status', operator: 'equals', value: 'pending' }
-  ],
+  conditions: [{ field: 'record.status', operator: 'equals', value: 'pending' }],
 
   actions: [
     // Determine approver based on amount
@@ -881,7 +957,8 @@ export const expenseApprovalWorkflow: WorkflowTemplate = {
       config: {
         userId: '{{approverInfo.approver}}',
         title: 'Expense Approval Required',
-        message: '{{record.submittedBy.name}} submitted an expense for {{record.amount | currency}}',
+        message:
+          '{{record.submittedBy.name}} submitted an expense for {{record.amount | currency}}',
         actions: [
           { label: 'Approve', action: 'approve_expense', data: { id: '{{record.id}}' } },
           { label: 'Reject', action: 'reject_expense', data: { id: '{{record.id}}' } }
@@ -910,7 +987,11 @@ export const budgetAlertWorkflow: WorkflowTemplate = {
     {
       type: 'and',
       conditions: [
-        { field: 'record.percentUsed', operator: 'greater_than_or_equal', value: '{{record.alertThreshold}}' },
+        {
+          field: 'record.percentUsed',
+          operator: 'greater_than_or_equal',
+          value: '{{record.alertThreshold}}'
+        },
         { field: 'record.alertSent', operator: 'equals', value: false }
       ]
     }
@@ -934,7 +1015,8 @@ export const budgetAlertWorkflow: WorkflowTemplate = {
       config: {
         userId: '{{record.owner}}',
         title: 'Budget Alert',
-        message: '{{record.name}} has reached {{record.percentUsed | round}}% of budget ({{record.remainingAmount | currency}} remaining)',
+        message:
+          '{{record.name}} has reached {{record.percentUsed | round}}% of budget ({{record.remainingAmount | currency}} remaining)',
         priority: 'high'
       }
     }
@@ -1002,6 +1084,7 @@ modules/finance/
 ## Finance Module Validation
 
 ### Invoices
+
 - [ ] Create invoice with line items
 - [ ] Calculate totals correctly
 - [ ] Generate PDF invoice
@@ -1011,6 +1094,7 @@ modules/finance/
 - [ ] Mark as overdue automatically
 
 ### Expenses
+
 - [ ] Submit expense with receipt
 - [ ] Approval workflow triggers
 - [ ] Approve/reject expense
@@ -1018,6 +1102,7 @@ modules/finance/
 - [ ] Link expense to project
 
 ### Budgets
+
 - [ ] Create budget for category
 - [ ] Track spending against budget
 - [ ] Budget alert at threshold
@@ -1025,12 +1110,14 @@ modules/finance/
 - [ ] Monthly/quarterly/annual budgets
 
 ### Transactions
+
 - [ ] Record income transaction
 - [ ] Record expense transaction
 - [ ] View transaction history
 - [ ] Account balances correct
 
 ### Reports
+
 - [ ] Revenue report
 - [ ] Expense report by category
 - [ ] Cash flow report
@@ -1038,6 +1125,7 @@ modules/finance/
 - [ ] Budget vs actual report
 
 ### Workflows
+
 - [ ] Overdue invoice notifications
 - [ ] Expense approval routing
 - [ ] Budget threshold alerts

@@ -3,8 +3,14 @@
 > Widget-based dashboard system with drag-drop layout and live data binding
 
 **Package:** `@xnet/dashboard`
-**Dependencies:** `@xnet/modules`, `@xnet/views`, `@xnet/database`
+**Dependencies:** `@xnet/modules`, `@xnet/views`, `@xnet/data`
 **Estimated Time:** 3 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → `@xnet/data`
+> - Widgets query Nodes via `useNodes()` hook
+> - Dashboard configs stored as Nodes
 
 ## Goals
 
@@ -53,9 +59,9 @@ export interface DashboardDefinition {
 
 export interface DashboardLayout {
   type: 'grid' | 'freeform'
-  columns: number           // Grid columns (default 12)
-  rowHeight: number         // Row height in pixels
-  gap: number              // Gap between widgets
+  columns: number // Grid columns (default 12)
+  rowHeight: number // Row height in pixels
+  gap: number // Gap between widgets
   breakpoints?: Breakpoint[]
 }
 
@@ -110,7 +116,7 @@ export type WidgetType =
 export interface WidgetConfig {
   title?: string
   showTitle: boolean
-  refreshInterval?: number  // Seconds, 0 = manual only
+  refreshInterval?: number // Seconds, 0 = manual only
 
   // Type-specific config
   [key: string]: unknown
@@ -191,7 +197,7 @@ export interface GlobalFilter {
 
 export interface DashboardSettings {
   autoRefresh: boolean
-  refreshInterval: number   // Seconds
+  refreshInterval: number // Seconds
   allowExport: boolean
   allowFullscreen: boolean
   theme?: 'light' | 'dark' | 'system'
@@ -723,10 +729,7 @@ export class DataProvider {
   }
 
   // Subscribe to data changes
-  subscribe(
-    dataSource: DataSource,
-    callback: (data: WidgetData) => void
-  ): () => void {
+  subscribe(dataSource: DataSource, callback: (data: WidgetData) => void): () => void {
     const key = this.getSubscriptionKey(dataSource)
 
     if (!this.subscriptions.has(key)) {
@@ -793,10 +796,7 @@ export class DataProvider {
     // Apply aggregations if needed
     let aggregations: Record<string, number> | undefined
     if (source.query?.aggregations?.length) {
-      aggregations = await this.computeAggregations(
-        results.records,
-        source.query.aggregations
-      )
+      aggregations = await this.computeAggregations(results.records, source.query.aggregations)
     }
 
     return {
@@ -817,7 +817,7 @@ export class DataProvider {
 
     for (const agg of aggregations) {
       const values = records
-        .map(r => r[agg.field])
+        .map((r) => r[agg.field])
         .filter((v): v is number => typeof v === 'number')
 
       switch (agg.function) {
@@ -828,9 +828,7 @@ export class DataProvider {
           result[agg.alias] = values.reduce((a, b) => a + b, 0)
           break
         case 'avg':
-          result[agg.alias] = values.length
-            ? values.reduce((a, b) => a + b, 0) / values.length
-            : 0
+          result[agg.alias] = values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0
           break
         case 'min':
           result[agg.alias] = Math.min(...values)
@@ -839,7 +837,7 @@ export class DataProvider {
           result[agg.alias] = Math.max(...values)
           break
         case 'distinct':
-          result[agg.alias] = new Set(records.map(r => r[agg.field])).size
+          result[agg.alias] = new Set(records.map((r) => r[agg.field])).size
           break
       }
     }
@@ -853,10 +851,10 @@ export class DataProvider {
     for (const transform of transforms) {
       switch (transform.type) {
         case 'map':
-          records = records.map(r => this.mapRecord(r, transform.config))
+          records = records.map((r) => this.mapRecord(r, transform.config))
           break
         case 'filter':
-          records = records.filter(r => this.filterRecord(r, transform.config))
+          records = records.filter((r) => this.filterRecord(r, transform.config))
           break
         case 'sort':
           records = this.sortRecords(records, transform.config)
@@ -1143,7 +1141,9 @@ export class DashboardStore {
   }
 
   // Create dashboard
-  async create(definition: Omit<DashboardDefinition, 'id' | 'createdAt' | 'updatedAt'>): Promise<DashboardDefinition> {
+  async create(
+    definition: Omit<DashboardDefinition, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<DashboardDefinition> {
     const id = `dash:${generateId()}` as DashboardId
     const now = Date.now()
 
@@ -1170,7 +1170,10 @@ export class DashboardStore {
   }
 
   // Update dashboard
-  async update(id: DashboardId, updates: Partial<DashboardDefinition>): Promise<DashboardDefinition> {
+  async update(
+    id: DashboardId,
+    updates: Partial<DashboardDefinition>
+  ): Promise<DashboardDefinition> {
     const existing = await this.get(id)
     if (!existing) {
       throw new Error(`Dashboard not found: ${id}`)
@@ -1211,7 +1214,7 @@ export class DashboardStore {
     }
 
     const results = await query.execute()
-    return results.records.map(r => this.deserializeDashboard(r))
+    return results.records.map((r) => this.deserializeDashboard(r))
   }
 
   // Duplicate dashboard
@@ -1224,7 +1227,7 @@ export class DashboardStore {
     return this.create({
       ...original,
       name: newName || `${original.name} (Copy)`,
-      widgets: original.widgets.map(w => ({
+      widgets: original.widgets.map((w) => ({
         ...w,
         id: `widget:${generateId()}` as WidgetId
       }))
@@ -1292,10 +1295,7 @@ export class DashboardExporter {
   }
 
   // Export as PDF
-  async exportAsPdf(
-    dashboardElement: HTMLElement,
-    options: PdfOptions = {}
-  ): Promise<Blob> {
+  async exportAsPdf(dashboardElement: HTMLElement, options: PdfOptions = {}): Promise<Blob> {
     const html2canvas = await import('html2canvas')
     const { jsPDF } = await import('jspdf')
 
@@ -1319,14 +1319,16 @@ export class DashboardExporter {
   // Export data as CSV
   exportDataAsCsv(data: WidgetData, columns: string[]): string {
     const headers = columns.join(',')
-    const rows = data.records.map(record =>
-      columns.map(col => {
-        const value = record[col]
-        if (typeof value === 'string' && value.includes(',')) {
-          return `"${value.replace(/"/g, '""')}"`
-        }
-        return String(value ?? '')
-      }).join(',')
+    const rows = data.records.map((record) =>
+      columns
+        .map((col) => {
+          const value = record[col]
+          if (typeof value === 'string' && value.includes(',')) {
+            return `"${value.replace(/"/g, '""')}"`
+          }
+          return String(value ?? '')
+        })
+        .join(',')
     )
 
     return [headers, ...rows].join('\n')
@@ -1341,7 +1343,7 @@ export class DashboardExporter {
     const XLSX = await import('xlsx')
 
     const worksheet = XLSX.utils.json_to_sheet(
-      data.records.map(r => {
+      data.records.map((r) => {
         const row: Record<string, unknown> = {}
         for (const col of columns) {
           row[col] = r[col]
@@ -1423,6 +1425,7 @@ packages/dashboard/
 ## Dashboard Builder Validation
 
 ### Builder UI
+
 - [ ] Widget palette displays all widget types
 - [ ] Drag from palette to grid works
 - [ ] Widget selection shows property panel
@@ -1431,12 +1434,14 @@ packages/dashboard/
 - [ ] Undo/redo works
 
 ### Grid Layout
+
 - [ ] Widgets snap to grid
 - [ ] Widgets don't overlap
 - [ ] Responsive breakpoints work
 - [ ] Grid overlay shows in edit mode
 
 ### Widgets
+
 - [ ] Metric widget renders values
 - [ ] Chart widget renders charts
 - [ ] Table widget renders data
@@ -1444,6 +1449,7 @@ packages/dashboard/
 - [ ] Custom widgets can be registered
 
 ### Data Binding
+
 - [ ] Database source works
 - [ ] View source works
 - [ ] Aggregations compute correctly
@@ -1451,24 +1457,28 @@ packages/dashboard/
 - [ ] Auto-refresh works
 
 ### Filtering
+
 - [ ] Global filters apply to widgets
 - [ ] Cross-filtering between widgets works
 - [ ] Filter reset works
 - [ ] Filters persist in URL
 
 ### Persistence
+
 - [ ] Dashboard saves correctly
 - [ ] Dashboard loads correctly
 - [ ] Dashboard duplicate works
 - [ ] Dashboard delete works
 
 ### Export
+
 - [ ] PNG export works
 - [ ] PDF export works
 - [ ] CSV export works
 - [ ] Excel export works
 
 ### Performance
+
 - [ ] Dashboard with 20 widgets loads <1s
 - [ ] Data refresh is smooth
 - [ ] No memory leaks on navigation

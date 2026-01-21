@@ -3,8 +3,13 @@
 > Sandboxed third-party code execution with permission-based API access
 
 **Package:** `@xnet/plugins`
-**Dependencies:** `@xnet/modules`
+**Dependencies:** `@xnet/modules`, `@xnet/data`
 **Estimated Time:** 3 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - Plugins access data via NodeStore API
+> - Permissions: `read:nodes`, `write:nodes` instead of `read:databases`
 
 ## Goals
 
@@ -47,9 +52,9 @@ export interface PluginManifest {
   permissions: PluginPermission[]
 
   // Entry points
-  main: string              // Main JS bundle
-  styles?: string           // Optional CSS bundle
-  worker?: string           // Optional Web Worker
+  main: string // Main JS bundle
+  styles?: string // Optional CSS bundle
+  worker?: string // Optional Web Worker
 
   // UI Extensions
   ui?: {
@@ -71,7 +76,7 @@ export interface PluginManifest {
   settings?: PluginSetting[]
 
   // Assets
-  assets?: string[]         // Static assets to include
+  assets?: string[] // Static assets to include
 
   // Marketplace
   marketplace?: {
@@ -85,19 +90,19 @@ export interface PluginManifest {
 // Permissions
 
 export type PluginPermission =
-  | 'read:databases'        // Read any database
-  | 'write:databases'       // Write to any database
-  | 'read:records'          // Read specific records
-  | 'write:records'         // Write specific records
-  | 'read:settings'         // Read plugin settings
-  | 'write:settings'        // Write plugin settings
-  | 'notifications'         // Show notifications
-  | 'clipboard'             // Access clipboard
-  | 'network'               // Make network requests
-  | 'storage'               // Local storage access
-  | 'background'            // Run in background
-  | `database:${string}`    // Specific database access
-  | `module:${string}`      // Specific module access
+  | 'read:databases' // Read any database
+  | 'write:databases' // Write to any database
+  | 'read:records' // Read specific records
+  | 'write:records' // Write specific records
+  | 'read:settings' // Read plugin settings
+  | 'write:settings' // Write plugin settings
+  | 'notifications' // Show notifications
+  | 'clipboard' // Access clipboard
+  | 'network' // Make network requests
+  | 'storage' // Local storage access
+  | 'background' // Run in background
+  | `database:${string}` // Specific database access
+  | `module:${string}` // Specific module access
 
 export interface PermissionRequest {
   permission: PluginPermission
@@ -111,7 +116,7 @@ export interface WidgetExtension {
   id: string
   name: string
   description: string
-  component: string         // Component export name
+  component: string // Component export name
   defaultConfig: Record<string, unknown>
   configSchema: ConfigSchema
 }
@@ -121,7 +126,7 @@ export interface ActionExtension {
   name: string
   icon?: string
   context: ('record' | 'database' | 'global')[]
-  handler: string           // Handler function name
+  handler: string // Handler function name
 }
 
 export interface PanelExtension {
@@ -185,10 +190,13 @@ export interface PluginState {
 export class PluginSandbox {
   private iframe: HTMLIFrameElement | null = null
   private messageHandlers = new Map<string, (data: unknown) => void>()
-  private pendingRequests = new Map<string, {
-    resolve: (value: unknown) => void
-    reject: (error: Error) => void
-  }>()
+  private pendingRequests = new Map<
+    string,
+    {
+      resolve: (value: unknown) => void
+      reject: (error: Error) => void
+    }
+  >()
 
   constructor(
     private pluginId: PluginId,
@@ -202,7 +210,7 @@ export class PluginSandbox {
     this.iframe = document.createElement('iframe')
     this.iframe.sandbox.add(
       'allow-scripts',
-      'allow-same-origin'  // Needed for postMessage
+      'allow-same-origin' // Needed for postMessage
     )
 
     // Don't allow:
@@ -491,10 +499,7 @@ export class PluginSandbox {
     } else if (type === 'xnet-plugin-request') {
       // API request from plugin
       this.handleApiRequest(event.data)
-    } else if (
-      type === 'xnet-plugin-execute-result' ||
-      type === 'xnet-plugin-call-result'
-    ) {
+    } else if (type === 'xnet-plugin-execute-result' || type === 'xnet-plugin-call-result') {
       const pending = this.pendingRequests.get(id)
       if (pending) {
         this.pendingRequests.delete(id)
@@ -520,17 +525,23 @@ export class PluginSandbox {
         this.permissions
       )
 
-      this.iframe?.contentWindow?.postMessage({
-        type: 'xnet-plugin-response',
-        id: request.id,
-        result
-      }, '*')
+      this.iframe?.contentWindow?.postMessage(
+        {
+          type: 'xnet-plugin-response',
+          id: request.id,
+          result
+        },
+        '*'
+      )
     } catch (error) {
-      this.iframe?.contentWindow?.postMessage({
-        type: 'xnet-plugin-response',
-        id: request.id,
-        error: error instanceof Error ? error.message : String(error)
-      }, '*')
+      this.iframe?.contentWindow?.postMessage(
+        {
+          type: 'xnet-plugin-response',
+          id: request.id,
+          error: error instanceof Error ? error.message : String(error)
+        },
+        '*'
+      )
     }
   }
 
@@ -539,11 +550,14 @@ export class PluginSandbox {
       const id = `${Date.now()}-${Math.random()}`
       this.pendingRequests.set(id, { resolve, reject })
 
-      this.iframe?.contentWindow?.postMessage({
-        type: `xnet-plugin-${type}`,
-        id,
-        ...data
-      }, '*')
+      this.iframe?.contentWindow?.postMessage(
+        {
+          type: `xnet-plugin-${type}`,
+          id,
+          ...data
+        },
+        '*'
+      )
 
       // Timeout after 30 seconds
       setTimeout(() => {
@@ -625,7 +639,10 @@ export class PluginBridge {
 
       case 'query': {
         const db = await this.databaseManager.getDatabase(p.databaseId as string)
-        return db.query().filter(p.query as FilterGroup).execute()
+        return db
+          .query()
+          .filter(p.query as FilterGroup)
+          .execute()
       }
 
       case 'createRecord': {
@@ -669,10 +686,7 @@ export class PluginBridge {
         if (!permissions.includes('notifications')) {
           throw new Error('Permission denied: notifications')
         }
-        return this.notificationService.show(
-          p.message as string,
-          p.options as NotificationOptions
-        )
+        return this.notificationService.show(p.message as string, p.options as NotificationOptions)
 
       case 'showModal':
         // Modals always allowed for plugin UI
@@ -827,18 +841,11 @@ export class PluginManager {
     private databaseManager: DatabaseManager,
     private storage: PluginStorage
   ) {
-    this.bridge = new PluginBridge(
-      databaseManager,
-      new NotificationService(),
-      storage
-    )
+    this.bridge = new PluginBridge(databaseManager, new NotificationService(), storage)
   }
 
   // Install plugin
-  async install(
-    manifest: PluginManifest,
-    bundleUrl: string
-  ): Promise<PluginState> {
+  async install(manifest: PluginManifest, bundleUrl: string): Promise<PluginState> {
     // Validate manifest
     this.validateManifest(manifest)
 
@@ -915,11 +922,7 @@ export class PluginManager {
     }
 
     // Create sandbox
-    const sandbox = new PluginSandbox(
-      pluginId,
-      state.manifest.permissions,
-      this.bridge
-    )
+    const sandbox = new PluginSandbox(pluginId, state.manifest.permissions, this.bridge)
 
     await sandbox.initialize()
 
@@ -972,11 +975,7 @@ export class PluginManager {
   }
 
   // Call plugin function
-  async call(
-    pluginId: PluginId,
-    functionName: string,
-    args: unknown[] = []
-  ): Promise<unknown> {
+  async call(pluginId: PluginId, functionName: string, args: unknown[] = []): Promise<unknown> {
     const sandbox = this.sandboxes.get(pluginId)
     if (!sandbox) {
       throw new Error(`Plugin not active: ${pluginId}`)
@@ -996,10 +995,7 @@ export class PluginManager {
   }
 
   // Update plugin settings
-  async updateSettings(
-    pluginId: PluginId,
-    settings: Record<string, unknown>
-  ): Promise<void> {
+  async updateSettings(pluginId: PluginId, settings: Record<string, unknown>): Promise<void> {
     const state = this.plugins.get(pluginId)
     if (!state) {
       throw new Error(`Plugin not found: ${pluginId}`)
@@ -1197,10 +1193,12 @@ export class Marketplace {
   }
 
   // Get categories
-  async getCategories(): Promise<{
-    category: PluginCategory
-    count: number
-  }[]> {
+  async getCategories(): Promise<
+    {
+      category: PluginCategory
+      count: number
+    }[]
+  > {
     const response = await fetch(`${this.apiBaseUrl}/categories`)
     return response.json()
   }
@@ -1223,9 +1221,7 @@ export class Marketplace {
     if (options?.page) params.set('page', String(options.page))
     if (options?.limit) params.set('limit', String(options.limit))
 
-    const response = await fetch(
-      `${this.apiBaseUrl}/plugins/${pluginId}/reviews?${params}`
-    )
+    const response = await fetch(`${this.apiBaseUrl}/plugins/${pluginId}/reviews?${params}`)
     return response.json()
   }
 
@@ -1242,14 +1238,14 @@ export class Marketplace {
   }
 
   // Check for updates
-  async checkUpdates(
-    installed: { id: PluginId; version: PluginVersion }[]
-  ): Promise<{
-    id: PluginId
-    currentVersion: PluginVersion
-    latestVersion: PluginVersion
-    changelog: string
-  }[]> {
+  async checkUpdates(installed: { id: PluginId; version: PluginVersion }[]): Promise<
+    {
+      id: PluginId
+      currentVersion: PluginVersion
+      latestVersion: PluginVersion
+      changelog: string
+    }[]
+  > {
     const response = await fetch(`${this.apiBaseUrl}/plugins/updates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1446,6 +1442,7 @@ packages/plugins/
 ## Plugin System Validation
 
 ### Sandbox Security
+
 - [ ] Plugin cannot access parent DOM
 - [ ] Plugin cannot make unauthorized network requests
 - [ ] Plugin cannot access localStorage directly
@@ -1455,12 +1452,14 @@ packages/plugins/
 - [ ] CPU limits enforced (timeout)
 
 ### Permissions
+
 - [ ] Permission dialog shows all requested permissions
 - [ ] Denied permissions block API access
 - [ ] Permissions persist across sessions
 - [ ] Permission revocation works
 
 ### Plugin Lifecycle
+
 - [ ] Install downloads and stores bundle
 - [ ] Activate creates sandbox
 - [ ] Deactivate destroys sandbox
@@ -1468,6 +1467,7 @@ packages/plugins/
 - [ ] Hooks fire at correct times
 
 ### API Bridge
+
 - [ ] Database read works
 - [ ] Database write works (with permission)
 - [ ] Notifications work (with permission)
@@ -1476,12 +1476,14 @@ packages/plugins/
 - [ ] Clipboard works (with permission)
 
 ### Extensions
+
 - [ ] Widgets register and render
 - [ ] Actions appear in context menus
 - [ ] Commands work with shortcuts
 - [ ] Extensions unregister on deactivate
 
 ### Marketplace
+
 - [ ] Search returns relevant results
 - [ ] Categories filter correctly
 - [ ] Plugin details load
@@ -1489,6 +1491,7 @@ packages/plugins/
 - [ ] Update checking works
 
 ### Developer Experience
+
 - [ ] SDK types are complete
 - [ ] Hot reload works in dev mode
 - [ ] Error messages are helpful

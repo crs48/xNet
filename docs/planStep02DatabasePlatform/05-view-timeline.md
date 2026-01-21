@@ -5,9 +5,17 @@
 **Duration:** 2 weeks
 **Dependencies:** 01-property-types.md
 
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `DatabaseItem` → `Node`
+> - `Database` → `Schema`
+> - Import types from `@xnet/data`, hooks from `@xnet/react`
+
 ## Overview
 
-The timeline (Gantt) view displays items as bars on a horizontal timeline. Features:
+The timeline (Gantt) view displays Nodes as bars on a horizontal timeline. Features:
+
 - Date range visualization
 - Zoom levels (day, week, month, quarter)
 - Dependencies between items
@@ -50,9 +58,9 @@ flowchart TD
 
 export interface TimelineConfig {
   startDatePropertyId: string
-  endDatePropertyId?: string    // Optional, uses startDate if not set
+  endDatePropertyId?: string // Optional, uses startDate if not set
   titlePropertyId?: string
-  colorPropertyId?: string      // Select property for bar color
+  colorPropertyId?: string // Select property for bar color
   showDependencies: boolean
   defaultZoom: ZoomLevel
 }
@@ -66,29 +74,29 @@ export interface TimelineRange {
 
 export const ZOOM_CONFIG = {
   day: {
-    unitWidth: 40,      // pixels per day
+    unitWidth: 40, // pixels per day
     headerFormat: 'MMM D',
     subHeaderFormat: 'ddd',
-    gridInterval: 1,    // days
+    gridInterval: 1 // days
   },
   week: {
-    unitWidth: 120,     // pixels per week
+    unitWidth: 120, // pixels per week
     headerFormat: 'MMM YYYY',
     subHeaderFormat: 'Week W',
-    gridInterval: 7,
+    gridInterval: 7
   },
   month: {
-    unitWidth: 100,     // pixels per month
+    unitWidth: 100, // pixels per month
     headerFormat: 'YYYY',
     subHeaderFormat: 'MMM',
-    gridInterval: 30,
+    gridInterval: 30
   },
   quarter: {
-    unitWidth: 150,     // pixels per quarter
+    unitWidth: 150, // pixels per quarter
     headerFormat: 'YYYY',
     subHeaderFormat: 'Q#',
-    gridInterval: 90,
-  },
+    gridInterval: 90
+  }
 }
 ```
 
@@ -108,7 +116,7 @@ export interface TimelineItem {
   startDate: Date
   endDate: Date
   color: string
-  dependencies: string[]  // IDs of items this depends on
+  dependencies: string[] // IDs of items this depends on
 }
 
 export interface UseTimelineStateOptions {
@@ -118,37 +126,32 @@ export interface UseTimelineStateOptions {
   onUpdateItem: (itemId: string, changes: Record<string, unknown>) => void
 }
 
-export function useTimelineState({
-  database,
-  view,
-  items,
-  onUpdateItem,
-}: UseTimelineStateOptions) {
+export function useTimelineState({ database, view, items, onUpdateItem }: UseTimelineStateOptions) {
   const config = view.config as TimelineConfig
 
   const [zoom, setZoom] = useState<ZoomLevel>(config.defaultZoom)
   const [scrollLeft, setScrollLeft] = useState(0)
 
   // Get property definitions
-  const startDateProp = database.properties.find(p => p.id === config.startDatePropertyId)
+  const startDateProp = database.properties.find((p) => p.id === config.startDatePropertyId)
   const endDateProp = config.endDatePropertyId
-    ? database.properties.find(p => p.id === config.endDatePropertyId)
+    ? database.properties.find((p) => p.id === config.endDatePropertyId)
     : null
   const titleProp = config.titlePropertyId
-    ? database.properties.find(p => p.id === config.titlePropertyId)
-    : database.properties.find(p => p.type === 'text')
+    ? database.properties.find((p) => p.id === config.titlePropertyId)
+    : database.properties.find((p) => p.type === 'text')
   const colorProp = config.colorPropertyId
-    ? database.properties.find(p => p.id === config.colorPropertyId)
+    ? database.properties.find((p) => p.id === config.colorPropertyId)
     : null
 
   // Process items into timeline items
   const timelineItems = useMemo<TimelineItem[]>(() => {
     return items
-      .filter(item => {
+      .filter((item) => {
         const startDate = item.properties[config.startDatePropertyId]
         return startDate != null
       })
-      .map(item => {
+      .map((item) => {
         const startTimestamp = item.properties[config.startDatePropertyId] as number
         const endTimestamp = config.endDatePropertyId
           ? (item.properties[config.endDatePropertyId] as number)
@@ -162,7 +165,7 @@ export function useTimelineState({
         let color = '#4a90d9'
         if (colorProp && colorProp.type === 'select') {
           const optionId = item.properties[colorProp.id] as string
-          const option = colorProp.config.options?.find(o => o.id === optionId)
+          const option = colorProp.config.options?.find((o) => o.id === optionId)
           if (option) color = option.color
         }
 
@@ -173,7 +176,7 @@ export function useTimelineState({
           startDate: new Date(startTimestamp),
           endDate: new Date(endTimestamp),
           color,
-          dependencies: [], // TODO: implement dependencies
+          dependencies: [] // TODO: implement dependencies
         }
       })
       .sort((a, b) => a.startDate.getTime() - b.startDate.getTime())
@@ -185,39 +188,39 @@ export function useTimelineState({
       const today = new Date()
       return {
         start: new Date(today.getTime() - 7 * 86400000),
-        end: new Date(today.getTime() + 30 * 86400000),
+        end: new Date(today.getTime() + 30 * 86400000)
       }
     }
 
-    const minDate = Math.min(...timelineItems.map(i => i.startDate.getTime()))
-    const maxDate = Math.max(...timelineItems.map(i => i.endDate.getTime()))
+    const minDate = Math.min(...timelineItems.map((i) => i.startDate.getTime()))
+    const maxDate = Math.max(...timelineItems.map((i) => i.endDate.getTime()))
 
     // Add padding
     const padding = 7 * 86400000 // 7 days
     return {
       start: new Date(minDate - padding),
-      end: new Date(maxDate + padding),
+      end: new Date(maxDate + padding)
     }
   }, [timelineItems])
 
   // Calculate timeline dimensions
   const zoomConfig = ZOOM_CONFIG[zoom]
   const totalDays = Math.ceil((range.end.getTime() - range.start.getTime()) / 86400000)
-  const totalWidth = totalDays * (zoomConfig.unitWidth / zoomConfig.gridInterval) * zoomConfig.gridInterval
+  const totalWidth =
+    totalDays * (zoomConfig.unitWidth / zoomConfig.gridInterval) * zoomConfig.gridInterval
 
   // Update item dates
-  const updateItemDates = useCallback((
-    itemId: string,
-    newStart: Date,
-    newEnd: Date
-  ) => {
-    onUpdateItem(itemId, {
-      [config.startDatePropertyId]: newStart.getTime(),
-      ...(config.endDatePropertyId && {
-        [config.endDatePropertyId]: newEnd.getTime(),
-      }),
-    })
-  }, [onUpdateItem, config])
+  const updateItemDates = useCallback(
+    (itemId: string, newStart: Date, newEnd: Date) => {
+      onUpdateItem(itemId, {
+        [config.startDatePropertyId]: newStart.getTime(),
+        ...(config.endDatePropertyId && {
+          [config.endDatePropertyId]: newEnd.getTime()
+        })
+      })
+    },
+    [onUpdateItem, config]
+  )
 
   return {
     config,
@@ -229,7 +232,7 @@ export function useTimelineState({
     range,
     totalWidth,
     zoomConfig,
-    updateItemDates,
+    updateItemDates
   }
 }
 ```
@@ -686,6 +689,7 @@ export function TimelineBar({
 ## Checklist
 
 ### Week 1: Core Timeline
+
 - [ ] useTimelineState hook
 - [ ] TimelineView component
 - [ ] TimelineHeader with date labels
@@ -695,6 +699,7 @@ export function TimelineBar({
 - [ ] Today marker
 
 ### Week 2: Interactions
+
 - [ ] Drag bar to move dates
 - [ ] Resize bar edges
 - [ ] Scroll to today

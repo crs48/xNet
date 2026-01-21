@@ -3,8 +3,14 @@
 > Automated business process execution with n8n integration
 
 **Package:** `@xnet/workflows`
-**Dependencies:** `@xnet/modules`, `@xnet/database`
+**Dependencies:** `@xnet/modules`, `@xnet/data`
 **Estimated Time:** 4 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → `@xnet/data`
+> - Workflow triggers use Node events (create, update, delete)
+> - Workflow state stored as Nodes
 
 ## n8n Integration
 
@@ -74,10 +80,13 @@ export class LocalAPIServer {
 
   private setupMiddleware(): void {
     // CORS for local development
-    this.app.use('*', cors({
-      origin: ['http://localhost:5678', 'http://127.0.0.1:5678'],  // n8n default
-      credentials: true
-    }))
+    this.app.use(
+      '*',
+      cors({
+        origin: ['http://localhost:5678', 'http://127.0.0.1:5678'], // n8n default
+        credentials: true
+      })
+    )
 
     // Authentication
     this.app.use('/api/*', async (c, next) => {
@@ -296,14 +305,12 @@ export class WebhookDispatcher {
 
   // Get events since timestamp (for polling)
   getEventsSince(timestamp: number): XNetEvent[] {
-    return this.eventQueue.filter(e => e.timestamp > timestamp)
+    return this.eventQueue.filter((e) => e.timestamp > timestamp)
   }
 
   private async sendToWebhook(webhook: WebhookRegistration, event: XNetEvent): Promise<void> {
     const payload = JSON.stringify(event)
-    const signature = createHmac('sha256', webhook.secret)
-      .update(payload)
-      .digest('hex')
+    const signature = createHmac('sha256', webhook.secret).update(payload).digest('hex')
 
     try {
       await fetch(webhook.url, {
@@ -324,10 +331,17 @@ export class WebhookDispatcher {
 
 interface XNetEvent {
   id: string
-  type: 'task.created' | 'task.updated' | 'task.completed' |
-        'page.created' | 'page.updated' |
-        'database.row.created' | 'database.row.updated' |
-        'workflow.completed' | 'comment.created' | 'mention'
+  type:
+    | 'task.created'
+    | 'task.updated'
+    | 'task.completed'
+    | 'page.created'
+    | 'page.updated'
+    | 'database.row.created'
+    | 'database.row.updated'
+    | 'workflow.completed'
+    | 'comment.created'
+    | 'mention'
   timestamp: number
   data: unknown
   workspace: string
@@ -344,8 +358,8 @@ services:
   xnet:
     image: xnet/server:latest
     ports:
-      - "3741:3741"      # Local API
-      - "4001:4001"      # libp2p
+      - '3741:3741' # Local API
+      - '4001:4001' # libp2p
     volumes:
       - xnet-data:/data
     environment:
@@ -355,7 +369,7 @@ services:
   n8n:
     image: n8nio/n8n
     ports:
-      - "5678:5678"
+      - '5678:5678'
     volumes:
       - n8n-data:/home/node/.n8n
     environment:
@@ -382,7 +396,7 @@ import {
   IExecuteFunctions,
   INodeExecutionData,
   INodeType,
-  INodeTypeDescription,
+  INodeTypeDescription
 } from 'n8n-workflow'
 
 export class XNetNode implements INodeType {
@@ -398,8 +412,8 @@ export class XNetNode implements INodeType {
     credentials: [
       {
         name: 'xnetApi',
-        required: true,
-      },
+        required: true
+      }
     ],
     properties: [
       {
@@ -415,9 +429,9 @@ export class XNetNode implements INodeType {
           { name: 'Query Database', value: 'queryDatabase' },
           { name: 'Create Record', value: 'createRecord' },
           { name: 'Update Record', value: 'updateRecord' },
-          { name: 'Search', value: 'search' },
+          { name: 'Search', value: 'search' }
         ],
-        default: 'createTask',
+        default: 'createTask'
       },
       // Task fields
       {
@@ -426,14 +440,14 @@ export class XNetNode implements INodeType {
         type: 'string',
         default: '',
         displayOptions: { show: { operation: ['createTask'] } },
-        required: true,
+        required: true
       },
       {
         displayName: 'Task Description',
         name: 'taskDescription',
         type: 'string',
         default: '',
-        displayOptions: { show: { operation: ['createTask'] } },
+        displayOptions: { show: { operation: ['createTask'] } }
       },
       {
         displayName: 'Task ID',
@@ -441,7 +455,7 @@ export class XNetNode implements INodeType {
         type: 'string',
         default: '',
         displayOptions: { show: { operation: ['updateTask', 'getTask'] } },
-        required: true,
+        required: true
       },
       // Database fields
       {
@@ -450,14 +464,14 @@ export class XNetNode implements INodeType {
         type: 'string',
         default: '',
         displayOptions: { show: { operation: ['queryDatabase', 'createRecord', 'updateRecord'] } },
-        required: true,
+        required: true
       },
       {
         displayName: 'Record Data',
         name: 'recordData',
         type: 'json',
         default: '{}',
-        displayOptions: { show: { operation: ['createRecord', 'updateRecord'] } },
+        displayOptions: { show: { operation: ['createRecord', 'updateRecord'] } }
       },
       // Search
       {
@@ -466,9 +480,9 @@ export class XNetNode implements INodeType {
         type: 'string',
         default: '',
         displayOptions: { show: { operation: ['search'] } },
-        required: true,
-      },
-    ],
+        required: true
+      }
+    ]
   }
 
   async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
@@ -489,7 +503,7 @@ export class XNetNode implements INodeType {
           const description = this.getNodeParameter('taskDescription', i) as string
           response = await this.apiRequest(baseUrl, token, 'POST', '/api/tasks', {
             title,
-            description,
+            description
           })
           break
         }
@@ -514,20 +528,36 @@ export class XNetNode implements INodeType {
 
         case 'queryDatabase': {
           const databaseId = this.getNodeParameter('databaseId', i) as string
-          response = await this.apiRequest(baseUrl, token, 'GET', `/api/databases/${databaseId}/query`)
+          response = await this.apiRequest(
+            baseUrl,
+            token,
+            'GET',
+            `/api/databases/${databaseId}/query`
+          )
           break
         }
 
         case 'createRecord': {
           const databaseId = this.getNodeParameter('databaseId', i) as string
           const recordData = JSON.parse(this.getNodeParameter('recordData', i) as string)
-          response = await this.apiRequest(baseUrl, token, 'POST', `/api/databases/${databaseId}/rows`, recordData)
+          response = await this.apiRequest(
+            baseUrl,
+            token,
+            'POST',
+            `/api/databases/${databaseId}/rows`,
+            recordData
+          )
           break
         }
 
         case 'search': {
           const query = this.getNodeParameter('searchQuery', i) as string
-          response = await this.apiRequest(baseUrl, token, 'GET', `/api/search?q=${encodeURIComponent(query)}`)
+          response = await this.apiRequest(
+            baseUrl,
+            token,
+            'GET',
+            `/api/search?q=${encodeURIComponent(query)}`
+          )
           break
         }
       }
@@ -548,10 +578,10 @@ export class XNetNode implements INodeType {
     const response = await fetch(`${baseUrl}${path}`, {
       method,
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(body) : undefined
     })
 
     if (!response.ok) {
@@ -566,6 +596,7 @@ export class XNetNode implements INodeType {
 ### n8n Workflow Examples
 
 #### Email to Task
+
 ```json
 {
   "nodes": [
@@ -590,6 +621,7 @@ export class XNetNode implements INodeType {
 ```
 
 #### Task Completed → Slack
+
 ```json
 {
   "nodes": [
@@ -606,10 +638,12 @@ export class XNetNode implements INodeType {
       "type": "n8n-nodes-base.if",
       "parameters": {
         "conditions": {
-          "string": [{
-            "value1": "={{ $json.type }}",
-            "value2": "task.completed"
-          }]
+          "string": [
+            {
+              "value1": "={{ $json.type }}",
+              "value2": "task.completed"
+            }
+          ]
         }
       }
     },
@@ -712,10 +746,10 @@ export interface WorkflowDefinition {
 }
 
 export interface ExecutionSettings {
-  timeout: number          // Max execution time (ms), default 30000
-  retries: number          // Retry count on failure, default 0
-  retryDelay: number       // Delay between retries (ms), default 1000
-  concurrent: boolean      // Allow concurrent executions, default false
+  timeout: number // Max execution time (ms), default 30000
+  retries: number // Retry count on failure, default 0
+  retryDelay: number // Delay between retries (ms), default 1000
+  concurrent: boolean // Allow concurrent executions, default false
   logLevel: 'error' | 'warn' | 'info' | 'debug'
 }
 
@@ -738,8 +772,8 @@ export interface ManualTrigger {
 export interface ScheduleTrigger {
   type: 'schedule'
   config: {
-    cron: string           // Cron expression
-    timezone?: string      // IANA timezone
+    cron: string // Cron expression
+    timezone?: string // IANA timezone
   }
 }
 
@@ -748,7 +782,7 @@ export interface PropertyChangeTrigger {
   config: {
     databaseId: string
     propertyId: string
-    fromValue?: unknown    // Optional: only trigger on specific transition
+    fromValue?: unknown // Optional: only trigger on specific transition
     toValue?: unknown
   }
 }
@@ -757,16 +791,16 @@ export interface RecordTrigger {
   type: 'record_create' | 'record_update' | 'record_delete'
   config: {
     databaseId: string
-    filter?: FilterGroup   // Optional: only trigger for matching records
+    filter?: FilterGroup // Optional: only trigger for matching records
   }
 }
 
 export interface WebhookTrigger {
   type: 'webhook'
   config: {
-    path: string           // URL path for webhook
+    path: string // URL path for webhook
     method: 'GET' | 'POST' | 'PUT'
-    secret?: string        // Optional: for signature verification
+    secret?: string // Optional: for signature verification
   }
 }
 ```
@@ -786,16 +820,16 @@ export type WorkflowCondition =
 export interface PropertyCondition {
   type: 'property'
   config: {
-    property: string       // Property path or template
+    property: string // Property path or template
     operator: ConditionOperator
-    value: unknown | string  // Can be template like "{{trigger.oldValue}}"
+    value: unknown | string // Can be template like "{{trigger.oldValue}}"
   }
 }
 
 export interface FormulaCondition {
   type: 'formula'
   config: {
-    expression: string     // Formula expression returning boolean
+    expression: string // Formula expression returning boolean
   }
 }
 
@@ -848,9 +882,9 @@ export type WorkflowAction =
 export interface UpdateRecordAction {
   type: 'update_record'
   config: {
-    recordId: string       // Template: "{{trigger.recordId}}"
+    recordId: string // Template: "{{trigger.recordId}}"
     databaseId: string
-    updates: Record<string, unknown | string>  // Property updates (templates)
+    updates: Record<string, unknown | string> // Property updates (templates)
   }
 }
 
@@ -859,7 +893,7 @@ export interface CreateRecordAction {
   config: {
     databaseId: string
     data: Record<string, unknown | string>
-    outputKey?: string     // Store created record in context
+    outputKey?: string // Store created record in context
   }
 }
 
@@ -874,20 +908,20 @@ export interface DeleteRecordAction {
 export interface SendEmailAction {
   type: 'send_email'
   config: {
-    to: string | string[]  // Templates supported
+    to: string | string[] // Templates supported
     subject: string
-    body: string           // Supports HTML
-    template?: string      // Optional: use email template
+    body: string // Supports HTML
+    template?: string // Optional: use email template
   }
 }
 
 export interface SendNotificationAction {
   type: 'send_notification'
   config: {
-    to: string | string[]  // User DIDs or "{{record.assignee}}"
+    to: string | string[] // User DIDs or "{{record.assignee}}"
     title: string
     body: string
-    link?: string          // Optional: deep link
+    link?: string // Optional: deep link
   }
 }
 
@@ -898,24 +932,24 @@ export interface CallWebhookAction {
     method: 'GET' | 'POST' | 'PUT' | 'DELETE'
     headers?: Record<string, string>
     body?: unknown | string
-    outputKey?: string     // Store response in context
+    outputKey?: string // Store response in context
   }
 }
 
 export interface RunScriptAction {
   type: 'run_script'
   config: {
-    code: string           // JavaScript code
-    timeout?: number       // Script timeout (ms)
+    code: string // JavaScript code
+    timeout?: number // Script timeout (ms)
   }
 }
 
 export interface DelayAction {
   type: 'delay'
   config: {
-    duration: number       // Milliseconds
+    duration: number // Milliseconds
     // or
-    until?: string         // ISO date string or template
+    until?: string // ISO date string or template
   }
 }
 
@@ -931,8 +965,8 @@ export interface BranchAction {
 export interface LoopAction {
   type: 'loop'
   config: {
-    items: string          // Template: "{{query.results}}"
-    itemKey: string        // Variable name for current item
+    items: string // Template: "{{query.results}}"
+    itemKey: string // Variable name for current item
     actions: WorkflowAction[]
     maxIterations?: number // Safety limit
   }
@@ -1005,10 +1039,7 @@ export class WorkflowEngine {
   }
 
   // Manually trigger a workflow
-  async trigger(
-    workflowId: WorkflowId,
-    triggerData: unknown = {}
-  ): Promise<ExecutionId> {
+  async trigger(workflowId: WorkflowId, triggerData: unknown = {}): Promise<ExecutionId> {
     const workflow = this.workflows.get(workflowId)
     if (!workflow) {
       throw new Error(`Workflow ${workflowId} not found`)
@@ -1034,10 +1065,10 @@ export class WorkflowEngine {
       status: 'pending',
       trigger: {
         type: workflow.trigger.type,
-        data: triggerData,
+        data: triggerData
       },
       context: { trigger: triggerData },
-      logs: [],
+      logs: []
     }
 
     this.executions.set(executionId, execution)
@@ -1097,17 +1128,11 @@ export class WorkflowEngine {
     try {
       // Set timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(
-          () => reject(new Error('Workflow timeout')),
-          workflow.settings.timeout
-        )
+        setTimeout(() => reject(new Error('Workflow timeout')), workflow.settings.timeout)
       })
 
       // Execute with timeout
-      await Promise.race([
-        this.executeWorkflow(workflow, execution),
-        timeoutPromise,
-      ])
+      await Promise.race([this.executeWorkflow(workflow, execution), timeoutPromise])
 
       execution.status = 'completed'
       this.log(execution, 'info', 'Workflow completed successfully')
@@ -1131,10 +1156,7 @@ export class WorkflowEngine {
   ): Promise<void> {
     // Evaluate conditions
     if (workflow.conditions) {
-      const passes = await this.conditionEvaluator.evaluate(
-        workflow.conditions,
-        execution.context
-      )
+      const passes = await this.conditionEvaluator.evaluate(workflow.conditions, execution.context)
       if (!passes) {
         this.log(execution, 'info', 'Conditions not met, skipping workflow')
         return
@@ -1167,14 +1189,9 @@ export class WorkflowEngine {
     failedExecution: WorkflowExecution
   ): Promise<void> {
     // Simple retry - in production would track retry count
-    await new Promise(resolve =>
-      setTimeout(resolve, workflow.settings.retryDelay)
-    )
+    await new Promise((resolve) => setTimeout(resolve, workflow.settings.retryDelay))
 
-    const retryId = await this.trigger(
-      workflow.id,
-      failedExecution.trigger.data
-    )
+    const retryId = await this.trigger(workflow.id, failedExecution.trigger.data)
     this.log(failedExecution, 'info', `Retrying as ${retryId}`)
   }
 
@@ -1204,10 +1221,7 @@ export class WorkflowEngine {
     // Clean up any listeners or scheduled jobs
   }
 
-  private setupScheduleTrigger(
-    workflow: WorkflowDefinition,
-    trigger: ScheduleTrigger
-  ): void {
+  private setupScheduleTrigger(workflow: WorkflowDefinition, trigger: ScheduleTrigger): void {
     // Use a cron library to schedule execution
     // In production: node-cron or similar
   }
@@ -1217,57 +1231,40 @@ export class WorkflowEngine {
     trigger: PropertyChangeTrigger
   ): void {
     // Subscribe to database change events
-    this.database.subscribe(
-      trigger.config.databaseId,
-      async (event) => {
-        if (
-          event.type === 'update' &&
-          event.changes[trigger.config.propertyId]
-        ) {
-          const { oldValue, newValue } = event.changes[trigger.config.propertyId]
+    this.database.subscribe(trigger.config.databaseId, async (event) => {
+      if (event.type === 'update' && event.changes[trigger.config.propertyId]) {
+        const { oldValue, newValue } = event.changes[trigger.config.propertyId]
 
-          // Check value filters
-          if (trigger.config.fromValue !== undefined &&
-              oldValue !== trigger.config.fromValue) {
-            return
-          }
-          if (trigger.config.toValue !== undefined &&
-              newValue !== trigger.config.toValue) {
-            return
-          }
-
-          await this.trigger(workflow.id, {
-            recordId: event.recordId,
-            propertyId: trigger.config.propertyId,
-            oldValue,
-            newValue,
-            record: event.record,
-          })
+        // Check value filters
+        if (trigger.config.fromValue !== undefined && oldValue !== trigger.config.fromValue) {
+          return
         }
+        if (trigger.config.toValue !== undefined && newValue !== trigger.config.toValue) {
+          return
+        }
+
+        await this.trigger(workflow.id, {
+          recordId: event.recordId,
+          propertyId: trigger.config.propertyId,
+          oldValue,
+          newValue,
+          record: event.record
+        })
       }
-    )
+    })
   }
 
-  private setupRecordTrigger(
-    workflow: WorkflowDefinition,
-    trigger: RecordTrigger
-  ): void {
+  private setupRecordTrigger(workflow: WorkflowDefinition, trigger: RecordTrigger): void {
     // Subscribe to database events
   }
 
-  private setupWebhookTrigger(
-    workflow: WorkflowDefinition,
-    trigger: WebhookTrigger
-  ): void {
+  private setupWebhookTrigger(workflow: WorkflowDefinition, trigger: WebhookTrigger): void {
     // Register webhook endpoint with API gateway
   }
 
   private findRunningExecution(workflowId: WorkflowId): WorkflowExecution | undefined {
     for (const execution of this.executions.values()) {
-      if (
-        execution.workflowId === workflowId &&
-        execution.status === 'running'
-      ) {
+      if (execution.workflowId === workflowId && execution.status === 'running') {
         return execution
       }
     }
@@ -1284,7 +1281,7 @@ export class WorkflowEngine {
       timestamp: Date.now(),
       level,
       message,
-      data,
+      data
     })
   }
 }
@@ -1461,7 +1458,7 @@ describe('WorkflowEngine', () => {
       getRecord: vi.fn(),
       updateRecord: vi.fn(),
       createRecord: vi.fn(),
-      subscribe: vi.fn(),
+      subscribe: vi.fn()
     }
     mockNotifications = { send: vi.fn() }
     mockEmail = { send: vi.fn() }
@@ -1480,17 +1477,17 @@ describe('WorkflowEngine', () => {
         config: {
           recordId: '{{trigger.recordId}}',
           databaseId: 'db:test',
-          updates: { status: 'processed' },
-        },
-      },
+          updates: { status: 'processed' }
+        }
+      }
     ],
     settings: {
       timeout: 5000,
       retries: 0,
       retryDelay: 1000,
       concurrent: false,
-      logLevel: 'info',
-    },
+      logLevel: 'info'
+    }
   }
 
   it('registers and triggers a workflow', async () => {
@@ -1501,7 +1498,7 @@ describe('WorkflowEngine', () => {
     expect(executionId).toMatch(/^exec:/)
 
     // Wait for execution
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
     const execution = engine.getExecution(executionId)
     expect(execution?.status).toBe('completed')
@@ -1511,13 +1508,11 @@ describe('WorkflowEngine', () => {
     engine.register(testWorkflow)
     await engine.trigger('wf:test', { recordId: 'rec:123' })
 
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
 
-    expect(mockDatabase.updateRecord).toHaveBeenCalledWith(
-      'db:test',
-      'rec:123',
-      { status: 'processed' }
-    )
+    expect(mockDatabase.updateRecord).toHaveBeenCalledWith('db:test', 'rec:123', {
+      status: 'processed'
+    })
   })
 
   it('prevents concurrent execution when disabled', async () => {
@@ -1526,7 +1521,7 @@ describe('WorkflowEngine', () => {
     // Modify to take longer
     const slowWorkflow = {
       ...testWorkflow,
-      actions: [{ type: 'delay', config: { duration: 1000 } }],
+      actions: [{ type: 'delay', config: { duration: 1000 } }]
     }
     engine.register(slowWorkflow)
 
@@ -1543,20 +1538,20 @@ describe('WorkflowEngine', () => {
         config: {
           property: 'trigger.value',
           operator: 'greater_than',
-          value: 100,
-        },
-      },
+          value: 100
+        }
+      }
     }
     engine.register(conditionalWorkflow)
 
     // Should skip - value too low
     await engine.trigger('wf:test', { value: 50 })
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
     expect(mockDatabase.updateRecord).not.toHaveBeenCalled()
 
     // Should execute - value high enough
     await engine.trigger('wf:test', { value: 150, recordId: 'rec:1' })
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 100))
     expect(mockDatabase.updateRecord).toHaveBeenCalled()
   })
 })
@@ -1565,12 +1560,14 @@ describe('WorkflowEngine', () => {
 ## Checklist
 
 ### Week 1: Core Engine
+
 - [ ] Workflow types and definitions
 - [ ] WorkflowEngine class
 - [ ] Execution queue and processor
 - [ ] Template resolver
 
 ### Week 2: Triggers
+
 - [ ] Manual trigger
 - [ ] Schedule trigger (cron)
 - [ ] Property change trigger
@@ -1578,6 +1575,7 @@ describe('WorkflowEngine', () => {
 - [ ] Webhook trigger
 
 ### Week 3: Actions
+
 - [ ] Update/create/delete record actions
 - [ ] Send email action
 - [ ] Send notification action
@@ -1586,6 +1584,7 @@ describe('WorkflowEngine', () => {
 - [ ] Branch and loop actions
 
 ### Week 4: Script Sandbox & Integration
+
 - [ ] Script runner with Web Worker
 - [ ] Condition evaluator
 - [ ] Integration with database events

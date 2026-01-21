@@ -5,9 +5,17 @@
 **Duration:** 2 weeks
 **Dependencies:** 01-property-types.md, 02-view-table.md
 
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `DatabaseItem` → `Node`
+> - `Database` → `Schema`
+> - Import types from `@xnet/data`, hooks from `@xnet/react`
+
 ## Overview
 
-The board (Kanban) view displays items as cards grouped by a select or multi-select property. Features:
+The board (Kanban) view displays Nodes as cards grouped by a select or multi-select property. Features:
+
 - Drag-and-drop between columns
 - Card customization
 - Column collapsing
@@ -83,9 +91,9 @@ export interface UseBoardStateOptions {
 
 export interface BoardConfig {
   groupByPropertyId: string
-  cardProperties: string[]  // Properties to show on card
+  cardProperties: string[] // Properties to show on card
   showEmptyColumns: boolean
-  columnOrder?: string[]    // Custom column order
+  columnOrder?: string[] // Custom column order
 }
 
 export function useBoardState({
@@ -93,14 +101,12 @@ export function useBoardState({
   view,
   items,
   onUpdateItem,
-  onUpdateView,
+  onUpdateView
 }: UseBoardStateOptions) {
   const config = view.config as BoardConfig
 
   // Get the group-by property
-  const groupByProperty = database.properties.find(
-    p => p.id === config.groupByPropertyId
-  )
+  const groupByProperty = database.properties.find((p) => p.id === config.groupByPropertyId)
 
   if (!groupByProperty || !['select', 'multiSelect'].includes(groupByProperty.type)) {
     throw new Error('Board view requires a select or multi-select property for grouping')
@@ -120,7 +126,7 @@ export function useBoardState({
     const columnMap = new Map<string, DatabaseItem[]>()
 
     // Initialize columns from options
-    options.forEach(opt => {
+    options.forEach((opt) => {
       columnMap.set(opt.id, [])
     })
 
@@ -128,7 +134,7 @@ export function useBoardState({
     columnMap.set('__none__', [])
 
     // Group items
-    items.forEach(item => {
+    items.forEach((item) => {
       const value = item.properties[config.groupByPropertyId]
 
       if (groupByProperty.type === 'multiSelect' && Array.isArray(value)) {
@@ -136,7 +142,7 @@ export function useBoardState({
         if (value.length === 0) {
           columnMap.get('__none__')?.push(item)
         } else {
-          value.forEach(v => {
+          value.forEach((v) => {
             columnMap.get(v)?.push(item)
           })
         }
@@ -158,16 +164,16 @@ export function useBoardState({
         name: 'No value',
         color: '#e0e0e0',
         items: noValueItems,
-        collapsed: collapsedColumns.has('__none__'),
+        collapsed: collapsedColumns.has('__none__')
       })
     }
 
     // Add option columns
     const orderedOptions = config.columnOrder
-      ? config.columnOrder.map(id => options.find(o => o.id === id)).filter(Boolean)
+      ? config.columnOrder.map((id) => options.find((o) => o.id === id)).filter(Boolean)
       : options
 
-    orderedOptions.forEach(opt => {
+    orderedOptions.forEach((opt) => {
       if (!opt) return
       const colItems = columnMap.get(opt.id) || []
       if (colItems.length > 0 || config.showEmptyColumns) {
@@ -176,7 +182,7 @@ export function useBoardState({
           name: opt.name,
           color: opt.color,
           items: colItems,
-          collapsed: collapsedColumns.has(opt.id),
+          collapsed: collapsedColumns.has(opt.id)
         })
       }
     })
@@ -185,37 +191,35 @@ export function useBoardState({
   }, [items, options, config, collapsedColumns, groupByProperty.type])
 
   // Handle card move between columns
-  const moveCard = useCallback((
-    itemId: string,
-    fromColumnId: string,
-    toColumnId: string,
-    newIndex: number
-  ) => {
-    const newValue = toColumnId === '__none__' ? null : toColumnId
+  const moveCard = useCallback(
+    (itemId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
+      const newValue = toColumnId === '__none__' ? null : toColumnId
 
-    if (groupByProperty.type === 'multiSelect') {
-      // For multi-select, update the array
-      const item = items.find(i => i.id === itemId)
-      if (!item) return
+      if (groupByProperty.type === 'multiSelect') {
+        // For multi-select, update the array
+        const item = items.find((i) => i.id === itemId)
+        if (!item) return
 
-      const currentValues = (item.properties[config.groupByPropertyId] as string[]) || []
+        const currentValues = (item.properties[config.groupByPropertyId] as string[]) || []
 
-      // Remove from old column, add to new
-      let newValues = currentValues.filter(v => v !== fromColumnId)
-      if (newValue) {
-        newValues = [...newValues, newValue]
+        // Remove from old column, add to new
+        let newValues = currentValues.filter((v) => v !== fromColumnId)
+        if (newValue) {
+          newValues = [...newValues, newValue]
+        }
+
+        onUpdateItem(itemId, { [config.groupByPropertyId]: newValues })
+      } else {
+        // Single select: just set the new value
+        onUpdateItem(itemId, { [config.groupByPropertyId]: newValue })
       }
-
-      onUpdateItem(itemId, { [config.groupByPropertyId]: newValues })
-    } else {
-      // Single select: just set the new value
-      onUpdateItem(itemId, { [config.groupByPropertyId]: newValue })
-    }
-  }, [groupByProperty.type, config.groupByPropertyId, items, onUpdateItem])
+    },
+    [groupByProperty.type, config.groupByPropertyId, items, onUpdateItem]
+  )
 
   // Toggle column collapse
   const toggleColumnCollapse = useCallback((columnId: string) => {
-    setCollapsedColumns(prev => {
+    setCollapsedColumns((prev) => {
       const next = new Set(prev)
       if (next.has(columnId)) {
         next.delete(columnId)
@@ -231,7 +235,7 @@ export function useBoardState({
     groupByProperty,
     config,
     moveCard,
-    toggleColumnCollapse,
+    toggleColumnCollapse
   }
 }
 ```
@@ -667,7 +671,9 @@ export function BoardCard({
   padding: 12px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   cursor: grab;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
 }
 
 .board-card:hover {
@@ -827,6 +833,7 @@ describe('BoardView', () => {
 ## Checklist
 
 ### Week 1: Core Board
+
 - [ ] useBoardState hook
 - [ ] BoardView with DndContext
 - [ ] BoardColumn component
@@ -836,6 +843,7 @@ describe('BoardView', () => {
 - [ ] Styling
 
 ### Week 2: Features & Polish
+
 - [ ] Multi-select grouping (item in multiple columns)
 - [ ] Column collapse/expand
 - [ ] Column reorder

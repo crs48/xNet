@@ -3,8 +3,13 @@
 > Human Resource Management with employees, recruiting, time tracking, and payroll
 
 **Package:** `modules/@xnet/hrm`
-**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`
+**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`, `@xnet/data`
 **Estimated Time:** 3 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - HRM entities (Employee, Applicant, TimeOff) defined as Schemas via `defineSchema()`
+> - All HRM data stored as Nodes in NodeStore
 
 ## Goals
 
@@ -69,7 +74,11 @@ export const HRMModule: ModuleDefinition = {
       { id: 'hiring-pipeline', name: 'Hiring Pipeline', component: 'HiringPipelineWidget' },
       { id: 'time-off-calendar', name: 'Time Off Calendar', component: 'TimeOffCalendarWidget' },
       { id: 'anniversaries', name: 'Work Anniversaries', component: 'AnniversariesWidget' },
-      { id: 'department-breakdown', name: 'Department Breakdown', component: 'DepartmentBreakdownWidget' }
+      {
+        id: 'department-breakdown',
+        name: 'Department Breakdown',
+        component: 'DepartmentBreakdownWidget'
+      }
     ],
     actions: [
       { id: 'add-employee', name: 'Add Employee', handler: 'addEmployee' },
@@ -176,31 +185,57 @@ export const employeesDatabase: DatabaseTemplate = {
     { id: 'departmentId', name: 'Department', type: 'relation', target: 'hrm:departments' },
     { id: 'positionId', name: 'Position', type: 'relation', target: 'hrm:positions' },
     { id: 'managerId', name: 'Manager', type: 'relation', target: 'hrm:employees' },
-    { id: 'directReports', name: 'Direct Reports', type: 'rollup', target: 'hrm:employees', function: 'count' },
+    {
+      id: 'directReports',
+      name: 'Direct Reports',
+      type: 'rollup',
+      target: 'hrm:employees',
+      function: 'count'
+    },
 
     // Employment
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'active', name: 'Active', color: 'green' },
-      { id: 'onboarding', name: 'Onboarding', color: 'blue' },
-      { id: 'on-leave', name: 'On Leave', color: 'yellow' },
-      { id: 'terminated', name: 'Terminated', color: 'red' }
-    ]},
-    { id: 'employmentType', name: 'Employment Type', type: 'select', options: [
-      { id: 'full-time', name: 'Full-time' },
-      { id: 'part-time', name: 'Part-time' },
-      { id: 'contractor', name: 'Contractor' },
-      { id: 'intern', name: 'Intern' }
-    ]},
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'active', name: 'Active', color: 'green' },
+        { id: 'onboarding', name: 'Onboarding', color: 'blue' },
+        { id: 'on-leave', name: 'On Leave', color: 'yellow' },
+        { id: 'terminated', name: 'Terminated', color: 'red' }
+      ]
+    },
+    {
+      id: 'employmentType',
+      name: 'Employment Type',
+      type: 'select',
+      options: [
+        { id: 'full-time', name: 'Full-time' },
+        { id: 'part-time', name: 'Part-time' },
+        { id: 'contractor', name: 'Contractor' },
+        { id: 'intern', name: 'Intern' }
+      ]
+    },
     { id: 'startDate', name: 'Start Date', type: 'date' },
     { id: 'endDate', name: 'End Date', type: 'date' },
-    { id: 'tenure', name: 'Tenure', type: 'formula', formula: 'dateDiff(startDate, now(), "years")' },
+    {
+      id: 'tenure',
+      name: 'Tenure',
+      type: 'formula',
+      formula: 'dateDiff(startDate, now(), "years")'
+    },
 
     // Location
-    { id: 'location', name: 'Location', type: 'select', options: [
-      { id: 'remote', name: 'Remote' },
-      { id: 'office', name: 'Office' },
-      { id: 'hybrid', name: 'Hybrid' }
-    ]},
+    {
+      id: 'location',
+      name: 'Location',
+      type: 'select',
+      options: [
+        { id: 'remote', name: 'Remote' },
+        { id: 'office', name: 'Office' },
+        { id: 'hybrid', name: 'Hybrid' }
+      ]
+    },
     { id: 'office', name: 'Office Location', type: 'text' },
     { id: 'timezone', name: 'Timezone', type: 'text' },
 
@@ -211,11 +246,17 @@ export const employeesDatabase: DatabaseTemplate = {
 
     // Compensation (restricted access)
     { id: 'salary', name: 'Salary', type: 'number', format: 'currency', restricted: true },
-    { id: 'salaryFrequency', name: 'Pay Frequency', type: 'select', options: [
-      { id: 'annual', name: 'Annual' },
-      { id: 'monthly', name: 'Monthly' },
-      { id: 'hourly', name: 'Hourly' }
-    ], restricted: true },
+    {
+      id: 'salaryFrequency',
+      name: 'Pay Frequency',
+      type: 'select',
+      options: [
+        { id: 'annual', name: 'Annual' },
+        { id: 'monthly', name: 'Monthly' },
+        { id: 'hourly', name: 'Hourly' }
+      ],
+      restricted: true
+    },
 
     // Time off balances
     { id: 'vacationBalance', name: 'Vacation Balance', type: 'number' },
@@ -242,7 +283,14 @@ export const employeesDatabase: DatabaseTemplate = {
       name: 'All Employees',
       type: 'table',
       config: {
-        visibleProperties: ['name', 'departmentId', 'positionId', 'managerId', 'status', 'startDate']
+        visibleProperties: [
+          'name',
+          'departmentId',
+          'positionId',
+          'managerId',
+          'status',
+          'startDate'
+        ]
       }
     },
     {
@@ -277,24 +325,34 @@ export const applicantsDatabase: DatabaseTemplate = {
     { id: 'email', name: 'Email', type: 'email' },
     { id: 'phone', name: 'Phone', type: 'phone' },
     { id: 'jobPostingId', name: 'Position', type: 'relation', target: 'hrm:jobPostings' },
-    { id: 'stage', name: 'Stage', type: 'select', options: [
-      { id: 'applied', name: 'Applied', color: 'gray' },
-      { id: 'screening', name: 'Screening', color: 'blue' },
-      { id: 'phone-interview', name: 'Phone Interview', color: 'yellow' },
-      { id: 'on-site', name: 'On-site Interview', color: 'orange' },
-      { id: 'offer', name: 'Offer', color: 'purple' },
-      { id: 'hired', name: 'Hired', color: 'green' },
-      { id: 'rejected', name: 'Rejected', color: 'red' },
-      { id: 'withdrawn', name: 'Withdrawn', color: 'gray' }
-    ]},
-    { id: 'source', name: 'Source', type: 'select', options: [
-      { id: 'linkedin', name: 'LinkedIn' },
-      { id: 'indeed', name: 'Indeed' },
-      { id: 'referral', name: 'Referral' },
-      { id: 'website', name: 'Company Website' },
-      { id: 'agency', name: 'Recruitment Agency' },
-      { id: 'other', name: 'Other' }
-    ]},
+    {
+      id: 'stage',
+      name: 'Stage',
+      type: 'select',
+      options: [
+        { id: 'applied', name: 'Applied', color: 'gray' },
+        { id: 'screening', name: 'Screening', color: 'blue' },
+        { id: 'phone-interview', name: 'Phone Interview', color: 'yellow' },
+        { id: 'on-site', name: 'On-site Interview', color: 'orange' },
+        { id: 'offer', name: 'Offer', color: 'purple' },
+        { id: 'hired', name: 'Hired', color: 'green' },
+        { id: 'rejected', name: 'Rejected', color: 'red' },
+        { id: 'withdrawn', name: 'Withdrawn', color: 'gray' }
+      ]
+    },
+    {
+      id: 'source',
+      name: 'Source',
+      type: 'select',
+      options: [
+        { id: 'linkedin', name: 'LinkedIn' },
+        { id: 'indeed', name: 'Indeed' },
+        { id: 'referral', name: 'Referral' },
+        { id: 'website', name: 'Company Website' },
+        { id: 'agency', name: 'Recruitment Agency' },
+        { id: 'other', name: 'Other' }
+      ]
+    },
     { id: 'referredBy', name: 'Referred By', type: 'relation', target: 'hrm:employees' },
     { id: 'resume', name: 'Resume', type: 'file' },
     { id: 'coverLetter', name: 'Cover Letter', type: 'file' },
@@ -310,14 +368,19 @@ export const applicantsDatabase: DatabaseTemplate = {
     { id: 'interviews', name: 'Interviews', type: 'json' },
     { id: 'feedback', name: 'Feedback', type: 'rich_text' },
     { id: 'notes', name: 'Notes', type: 'rich_text' },
-    { id: 'rejectionReason', name: 'Rejection Reason', type: 'select', options: [
-      { id: 'not-qualified', name: 'Not Qualified' },
-      { id: 'culture-fit', name: 'Culture Fit' },
-      { id: 'salary', name: 'Salary Mismatch' },
-      { id: 'other-candidate', name: 'Another Candidate Selected' },
-      { id: 'position-filled', name: 'Position Filled' },
-      { id: 'position-closed', name: 'Position Closed' }
-    ]}
+    {
+      id: 'rejectionReason',
+      name: 'Rejection Reason',
+      type: 'select',
+      options: [
+        { id: 'not-qualified', name: 'Not Qualified' },
+        { id: 'culture-fit', name: 'Culture Fit' },
+        { id: 'salary', name: 'Salary Mismatch' },
+        { id: 'other-candidate', name: 'Another Candidate Selected' },
+        { id: 'position-filled', name: 'Position Filled' },
+        { id: 'position-closed', name: 'Position Closed' }
+      ]
+    }
   ],
   views: [
     {
@@ -357,24 +420,34 @@ export const timeOffDatabase: DatabaseTemplate = {
   properties: [
     { id: 'title', name: 'Title', type: 'formula', formula: 'concat(employee.name, " - ", type)' },
     { id: 'employeeId', name: 'Employee', type: 'relation', target: 'hrm:employees' },
-    { id: 'type', name: 'Type', type: 'select', options: [
-      { id: 'vacation', name: 'Vacation', color: 'green' },
-      { id: 'sick', name: 'Sick Leave', color: 'red' },
-      { id: 'personal', name: 'Personal', color: 'blue' },
-      { id: 'bereavement', name: 'Bereavement', color: 'gray' },
-      { id: 'parental', name: 'Parental Leave', color: 'purple' },
-      { id: 'unpaid', name: 'Unpaid Leave', color: 'yellow' }
-    ]},
+    {
+      id: 'type',
+      name: 'Type',
+      type: 'select',
+      options: [
+        { id: 'vacation', name: 'Vacation', color: 'green' },
+        { id: 'sick', name: 'Sick Leave', color: 'red' },
+        { id: 'personal', name: 'Personal', color: 'blue' },
+        { id: 'bereavement', name: 'Bereavement', color: 'gray' },
+        { id: 'parental', name: 'Parental Leave', color: 'purple' },
+        { id: 'unpaid', name: 'Unpaid Leave', color: 'yellow' }
+      ]
+    },
     { id: 'startDate', name: 'Start Date', type: 'date' },
     { id: 'endDate', name: 'End Date', type: 'date' },
     { id: 'days', name: 'Days', type: 'formula', formula: 'workDays(startDate, endDate)' },
     { id: 'halfDay', name: 'Half Day', type: 'checkbox' },
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'pending', name: 'Pending', color: 'yellow' },
-      { id: 'approved', name: 'Approved', color: 'green' },
-      { id: 'rejected', name: 'Rejected', color: 'red' },
-      { id: 'cancelled', name: 'Cancelled', color: 'gray' }
-    ]},
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'pending', name: 'Pending', color: 'yellow' },
+        { id: 'approved', name: 'Approved', color: 'green' },
+        { id: 'rejected', name: 'Rejected', color: 'red' },
+        { id: 'cancelled', name: 'Cancelled', color: 'gray' }
+      ]
+    },
     { id: 'approver', name: 'Approver', type: 'person' },
     { id: 'approvedAt', name: 'Approved At', type: 'date' },
     { id: 'reason', name: 'Reason', type: 'text' },
@@ -419,30 +492,50 @@ export const performanceReviewsDatabase: DatabaseTemplate = {
   name: 'Performance Reviews',
   icon: 'trending-up',
   properties: [
-    { id: 'title', name: 'Title', type: 'formula', formula: 'concat(employee.name, " - ", period)' },
+    {
+      id: 'title',
+      name: 'Title',
+      type: 'formula',
+      formula: 'concat(employee.name, " - ", period)'
+    },
     { id: 'employeeId', name: 'Employee', type: 'relation', target: 'hrm:employees' },
     { id: 'reviewerId', name: 'Reviewer', type: 'relation', target: 'hrm:employees' },
     { id: 'period', name: 'Review Period', type: 'text' },
-    { id: 'type', name: 'Type', type: 'select', options: [
-      { id: 'annual', name: 'Annual Review' },
-      { id: 'probation', name: 'Probation Review' },
-      { id: 'mid-year', name: 'Mid-Year Review' },
-      { id: 'project', name: 'Project Review' }
-    ]},
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'draft', name: 'Draft', color: 'gray' },
-      { id: 'self-review', name: 'Self Review', color: 'blue' },
-      { id: 'manager-review', name: 'Manager Review', color: 'yellow' },
-      { id: 'calibration', name: 'Calibration', color: 'orange' },
-      { id: 'completed', name: 'Completed', color: 'green' }
-    ]},
-    { id: 'overallRating', name: 'Overall Rating', type: 'select', options: [
-      { id: 'exceptional', name: 'Exceptional', color: 'green' },
-      { id: 'exceeds', name: 'Exceeds Expectations', color: 'blue' },
-      { id: 'meets', name: 'Meets Expectations', color: 'yellow' },
-      { id: 'needs-improvement', name: 'Needs Improvement', color: 'orange' },
-      { id: 'unsatisfactory', name: 'Unsatisfactory', color: 'red' }
-    ]},
+    {
+      id: 'type',
+      name: 'Type',
+      type: 'select',
+      options: [
+        { id: 'annual', name: 'Annual Review' },
+        { id: 'probation', name: 'Probation Review' },
+        { id: 'mid-year', name: 'Mid-Year Review' },
+        { id: 'project', name: 'Project Review' }
+      ]
+    },
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'draft', name: 'Draft', color: 'gray' },
+        { id: 'self-review', name: 'Self Review', color: 'blue' },
+        { id: 'manager-review', name: 'Manager Review', color: 'yellow' },
+        { id: 'calibration', name: 'Calibration', color: 'orange' },
+        { id: 'completed', name: 'Completed', color: 'green' }
+      ]
+    },
+    {
+      id: 'overallRating',
+      name: 'Overall Rating',
+      type: 'select',
+      options: [
+        { id: 'exceptional', name: 'Exceptional', color: 'green' },
+        { id: 'exceeds', name: 'Exceeds Expectations', color: 'blue' },
+        { id: 'meets', name: 'Meets Expectations', color: 'yellow' },
+        { id: 'needs-improvement', name: 'Needs Improvement', color: 'orange' },
+        { id: 'unsatisfactory', name: 'Unsatisfactory', color: 'red' }
+      ]
+    },
     { id: 'selfAssessment', name: 'Self Assessment', type: 'rich_text' },
     { id: 'managerAssessment', name: 'Manager Assessment', type: 'rich_text' },
     { id: 'achievements', name: 'Key Achievements', type: 'rich_text' },
@@ -696,9 +789,7 @@ export const newHireOnboardingWorkflow: WorkflowTemplate = {
     }
   },
 
-  conditions: [
-    { field: 'record.status', operator: 'equals', value: 'onboarding' }
-  ],
+  conditions: [{ field: 'record.status', operator: 'equals', value: 'onboarding' }],
 
   actions: [
     // Notify HR
@@ -794,9 +885,7 @@ export const timeOffApprovalWorkflow: WorkflowTemplate = {
     }
   },
 
-  conditions: [
-    { field: 'record.status', operator: 'equals', value: 'pending' }
-  ],
+  conditions: [{ field: 'record.status', operator: 'equals', value: 'pending' }],
 
   actions: [
     // Get employee's manager
@@ -957,6 +1046,7 @@ modules/hrm/
 ## HRM Module Validation
 
 ### Employees
+
 - [ ] Create employee with all fields
 - [ ] Edit employee profile
 - [ ] Deactivate employee
@@ -965,12 +1055,14 @@ modules/hrm/
 - [ ] Filter by department/status
 
 ### Org Chart
+
 - [ ] Org chart renders correctly
 - [ ] Expand/collapse nodes works
 - [ ] Manager relationships correct
 - [ ] Navigate to employee profile
 
 ### Recruiting
+
 - [ ] Create job posting
 - [ ] Add applicant to job
 - [ ] Move applicant through stages
@@ -978,6 +1070,7 @@ modules/hrm/
 - [ ] Hire workflow creates employee
 
 ### Time Off
+
 - [ ] Submit time off request
 - [ ] Manager approval notification
 - [ ] Approve/reject works
@@ -985,6 +1078,7 @@ modules/hrm/
 - [ ] Calendar shows approved time off
 
 ### Performance
+
 - [ ] Review cycle creates reviews
 - [ ] Self-assessment submission
 - [ ] Manager assessment submission
@@ -992,12 +1086,14 @@ modules/hrm/
 - [ ] Goal tracking
 
 ### Workflows
+
 - [ ] New hire onboarding tasks created
 - [ ] Time off approval routing
 - [ ] Review cycle initiation
 - [ ] Anniversary reminders
 
 ### Reports
+
 - [ ] Headcount report
 - [ ] Turnover report
 - [ ] Time off utilization

@@ -3,8 +3,13 @@
 > Product catalog, warehouse management, and stock tracking
 
 **Package:** `modules/@xnet/inventory`
-**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`
+**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`, `@xnet/data`
 **Estimated Time:** 3 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - Inventory entities (Product, Warehouse, StockMovement) defined as Schemas
+> - All inventory data stored as Nodes in NodeStore
 
 ## Goals
 
@@ -60,7 +65,12 @@ export const InventoryModule: ModuleDefinition = {
       { id: 'warehouses', name: 'Warehouses', component: 'WarehousesPage', icon: 'home' },
       { id: 'movements', name: 'Movements', component: 'MovementsPage', icon: 'truck' },
       { id: 'suppliers', name: 'Suppliers', component: 'SuppliersPage', icon: 'users' },
-      { id: 'orders', name: 'Purchase Orders', component: 'PurchaseOrdersPage', icon: 'shopping-cart' },
+      {
+        id: 'orders',
+        name: 'Purchase Orders',
+        component: 'PurchaseOrdersPage',
+        icon: 'shopping-cart'
+      },
       { id: 'reports', name: 'Reports', component: 'InventoryReportsPage', icon: 'bar-chart' }
     ],
     widgets: [
@@ -68,7 +78,11 @@ export const InventoryModule: ModuleDefinition = {
       { id: 'low-stock', name: 'Low Stock Alerts', component: 'LowStockWidget' },
       { id: 'stock-movement', name: 'Stock Movement', component: 'StockMovementWidget' },
       { id: 'top-products', name: 'Top Products', component: 'TopProductsWidget' },
-      { id: 'warehouse-utilization', name: 'Warehouse Utilization', component: 'WarehouseUtilizationWidget' }
+      {
+        id: 'warehouse-utilization',
+        name: 'Warehouse Utilization',
+        component: 'WarehouseUtilizationWidget'
+      }
     ],
     actions: [
       { id: 'add-product', name: 'Add Product', handler: 'addProduct' },
@@ -164,11 +178,23 @@ export const productsDatabase: DatabaseTemplate = {
     // Pricing
     { id: 'costPrice', name: 'Cost Price', type: 'number', format: 'currency' },
     { id: 'sellingPrice', name: 'Selling Price', type: 'number', format: 'currency' },
-    { id: 'margin', name: 'Margin', type: 'formula', formula: '(sellingPrice - costPrice) / sellingPrice * 100' },
+    {
+      id: 'margin',
+      name: 'Margin',
+      type: 'formula',
+      formula: '(sellingPrice - costPrice) / sellingPrice * 100'
+    },
 
     // Inventory
     { id: 'trackInventory', name: 'Track Inventory', type: 'checkbox', default: true },
-    { id: 'totalStock', name: 'Total Stock', type: 'rollup', target: 'inventory:stockLevels', property: 'quantity', function: 'sum' },
+    {
+      id: 'totalStock',
+      name: 'Total Stock',
+      type: 'rollup',
+      target: 'inventory:stockLevels',
+      property: 'quantity',
+      function: 'sum'
+    },
     { id: 'reorderPoint', name: 'Reorder Point', type: 'number' },
     { id: 'reorderQuantity', name: 'Reorder Quantity', type: 'number' },
 
@@ -180,15 +206,25 @@ export const productsDatabase: DatabaseTemplate = {
 
     // Variants
     { id: 'hasVariants', name: 'Has Variants', type: 'checkbox' },
-    { id: 'variantOptions', name: 'Variant Options', type: 'json' },  // e.g., { size: ['S', 'M', 'L'], color: ['Red', 'Blue'] }
-    { id: 'parentProductId', name: 'Parent Product', type: 'relation', target: 'inventory:products' },
+    { id: 'variantOptions', name: 'Variant Options', type: 'json' }, // e.g., { size: ['S', 'M', 'L'], color: ['Red', 'Blue'] }
+    {
+      id: 'parentProductId',
+      name: 'Parent Product',
+      type: 'relation',
+      target: 'inventory:products'
+    },
 
     // Status
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'active', name: 'Active', color: 'green' },
-      { id: 'draft', name: 'Draft', color: 'gray' },
-      { id: 'discontinued', name: 'Discontinued', color: 'red' }
-    ]},
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'active', name: 'Active', color: 'green' },
+        { id: 'draft', name: 'Draft', color: 'gray' },
+        { id: 'discontinued', name: 'Discontinued', color: 'red' }
+      ]
+    },
     { id: 'isLowStock', name: 'Low Stock', type: 'formula', formula: 'totalStock <= reorderPoint' },
 
     // Metadata
@@ -201,7 +237,15 @@ export const productsDatabase: DatabaseTemplate = {
       name: 'All Products',
       type: 'table',
       config: {
-        visibleProperties: ['name', 'sku', 'categoryId', 'totalStock', 'costPrice', 'sellingPrice', 'status']
+        visibleProperties: [
+          'name',
+          'sku',
+          'categoryId',
+          'totalStock',
+          'costPrice',
+          'sellingPrice',
+          'status'
+        ]
       }
     },
     {
@@ -254,14 +298,33 @@ export const warehousesDatabase: DatabaseTemplate = {
 
     // Capacity
     { id: 'capacity', name: 'Capacity (units)', type: 'number' },
-    { id: 'currentStock', name: 'Current Stock', type: 'rollup', target: 'inventory:stockLevels', property: 'quantity', function: 'sum' },
-    { id: 'utilization', name: 'Utilization %', type: 'formula', formula: 'capacity > 0 ? (currentStock / capacity * 100) : 0' },
+    {
+      id: 'currentStock',
+      name: 'Current Stock',
+      type: 'rollup',
+      target: 'inventory:stockLevels',
+      property: 'quantity',
+      function: 'sum'
+    },
+    {
+      id: 'utilization',
+      name: 'Utilization %',
+      type: 'formula',
+      formula: 'capacity > 0 ? (currentStock / capacity * 100) : 0'
+    },
 
     // Value
-    { id: 'stockValue', name: 'Stock Value', type: 'rollup', target: 'inventory:stockLevels', property: 'value', function: 'sum' },
+    {
+      id: 'stockValue',
+      name: 'Stock Value',
+      type: 'rollup',
+      target: 'inventory:stockLevels',
+      property: 'value',
+      function: 'sum'
+    },
 
     // Zones (for larger warehouses)
-    { id: 'zones', name: 'Zones', type: 'json' }  // e.g., [{ name: 'A', rows: 10, shelves: 5 }]
+    { id: 'zones', name: 'Zones', type: 'json' } // e.g., [{ name: 'A', rows: 10, shelves: 5 }]
   ]
 }
 
@@ -276,7 +339,12 @@ export const stockLevelsDatabase: DatabaseTemplate = {
     { id: 'warehouseId', name: 'Warehouse', type: 'relation', target: 'inventory:warehouses' },
     { id: 'quantity', name: 'Quantity', type: 'number' },
     { id: 'reservedQuantity', name: 'Reserved', type: 'number', default: 0 },
-    { id: 'availableQuantity', name: 'Available', type: 'formula', formula: 'quantity - reservedQuantity' },
+    {
+      id: 'availableQuantity',
+      name: 'Available',
+      type: 'formula',
+      formula: 'quantity - reservedQuantity'
+    },
     { id: 'value', name: 'Value', type: 'formula', formula: 'quantity * productId.costPrice' },
 
     // Location
@@ -338,37 +406,57 @@ export const stockMovementsDatabase: DatabaseTemplate = {
   icon: 'truck',
   properties: [
     { id: 'reference', name: 'Reference', type: 'title' },
-    { id: 'type', name: 'Type', type: 'select', options: [
-      { id: 'receipt', name: 'Receipt', color: 'green' },
-      { id: 'shipment', name: 'Shipment', color: 'blue' },
-      { id: 'transfer', name: 'Transfer', color: 'purple' },
-      { id: 'adjustment', name: 'Adjustment', color: 'yellow' },
-      { id: 'return', name: 'Return', color: 'orange' },
-      { id: 'damage', name: 'Damage', color: 'red' }
-    ]},
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'draft', name: 'Draft', color: 'gray' },
-      { id: 'pending', name: 'Pending', color: 'yellow' },
-      { id: 'in-progress', name: 'In Progress', color: 'blue' },
-      { id: 'completed', name: 'Completed', color: 'green' },
-      { id: 'cancelled', name: 'Cancelled', color: 'red' }
-    ]},
+    {
+      id: 'type',
+      name: 'Type',
+      type: 'select',
+      options: [
+        { id: 'receipt', name: 'Receipt', color: 'green' },
+        { id: 'shipment', name: 'Shipment', color: 'blue' },
+        { id: 'transfer', name: 'Transfer', color: 'purple' },
+        { id: 'adjustment', name: 'Adjustment', color: 'yellow' },
+        { id: 'return', name: 'Return', color: 'orange' },
+        { id: 'damage', name: 'Damage', color: 'red' }
+      ]
+    },
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'draft', name: 'Draft', color: 'gray' },
+        { id: 'pending', name: 'Pending', color: 'yellow' },
+        { id: 'in-progress', name: 'In Progress', color: 'blue' },
+        { id: 'completed', name: 'Completed', color: 'green' },
+        { id: 'cancelled', name: 'Cancelled', color: 'red' }
+      ]
+    },
     { id: 'productId', name: 'Product', type: 'relation', target: 'inventory:products' },
     { id: 'quantity', name: 'Quantity', type: 'number' },
 
     // Locations
-    { id: 'fromWarehouseId', name: 'From Warehouse', type: 'relation', target: 'inventory:warehouses' },
+    {
+      id: 'fromWarehouseId',
+      name: 'From Warehouse',
+      type: 'relation',
+      target: 'inventory:warehouses'
+    },
     { id: 'toWarehouseId', name: 'To Warehouse', type: 'relation', target: 'inventory:warehouses' },
     { id: 'fromLocation', name: 'From Location', type: 'text' },
     { id: 'toLocation', name: 'To Location', type: 'text' },
 
     // Source documents
-    { id: 'sourceType', name: 'Source Type', type: 'select', options: [
-      { id: 'purchase_order', name: 'Purchase Order' },
-      { id: 'sales_order', name: 'Sales Order' },
-      { id: 'manual', name: 'Manual' },
-      { id: 'inventory_count', name: 'Inventory Count' }
-    ]},
+    {
+      id: 'sourceType',
+      name: 'Source Type',
+      type: 'select',
+      options: [
+        { id: 'purchase_order', name: 'Purchase Order' },
+        { id: 'sales_order', name: 'Sales Order' },
+        { id: 'manual', name: 'Manual' },
+        { id: 'inventory_count', name: 'Inventory Count' }
+      ]
+    },
     { id: 'sourceId', name: 'Source Reference', type: 'text' },
 
     // Batch/Serial
@@ -429,17 +517,22 @@ export const purchaseOrdersDatabase: DatabaseTemplate = {
   properties: [
     { id: 'poNumber', name: 'PO Number', type: 'title' },
     { id: 'supplierId', name: 'Supplier', type: 'relation', target: 'inventory:suppliers' },
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'draft', name: 'Draft', color: 'gray' },
-      { id: 'sent', name: 'Sent', color: 'blue' },
-      { id: 'confirmed', name: 'Confirmed', color: 'yellow' },
-      { id: 'partial', name: 'Partially Received', color: 'orange' },
-      { id: 'received', name: 'Received', color: 'green' },
-      { id: 'cancelled', name: 'Cancelled', color: 'red' }
-    ]},
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'draft', name: 'Draft', color: 'gray' },
+        { id: 'sent', name: 'Sent', color: 'blue' },
+        { id: 'confirmed', name: 'Confirmed', color: 'yellow' },
+        { id: 'partial', name: 'Partially Received', color: 'orange' },
+        { id: 'received', name: 'Received', color: 'green' },
+        { id: 'cancelled', name: 'Cancelled', color: 'red' }
+      ]
+    },
 
     // Items
-    { id: 'items', name: 'Items', type: 'json' },  // Array of { productId, quantity, unitPrice, received }
+    { id: 'items', name: 'Items', type: 'json' }, // Array of { productId, quantity, unitPrice, received }
     { id: 'itemCount', name: 'Item Count', type: 'formula', formula: 'length(items)' },
 
     // Totals
@@ -483,7 +576,7 @@ export class StockService {
   async adjustStock(params: {
     productId: string
     warehouseId: string
-    quantity: number  // Positive or negative
+    quantity: number // Positive or negative
     reason: string
     lotNumber?: string
     location?: { zone?: string; row?: string; shelf?: string; bin?: string }
@@ -492,12 +585,15 @@ export class StockService {
     const movements = await this.databaseManager.getDatabase('inventory:stockMovements')
 
     // Find or create stock level record
-    let stockLevel = await stockLevels.query()
-      .filter({ and: [
-        { property: 'productId', operator: 'equals', value: params.productId },
-        { property: 'warehouseId', operator: 'equals', value: params.warehouseId },
-        { property: 'lotNumber', operator: 'equals', value: params.lotNumber || null }
-      ]})
+    let stockLevel = await stockLevels
+      .query()
+      .filter({
+        and: [
+          { property: 'productId', operator: 'equals', value: params.productId },
+          { property: 'warehouseId', operator: 'equals', value: params.warehouseId },
+          { property: 'lotNumber', operator: 'equals', value: params.lotNumber || null }
+        ]
+      })
       .first()
 
     if (!stockLevel) {
@@ -518,7 +614,9 @@ export class StockService {
     const newQuantity = stockLevel.quantity + params.quantity
     const settings = await this.getSettings()
     if (newQuantity < 0 && !settings.allowNegativeStock) {
-      throw new Error(`Insufficient stock. Available: ${stockLevel.quantity}, Requested: ${Math.abs(params.quantity)}`)
+      throw new Error(
+        `Insufficient stock. Available: ${stockLevel.quantity}, Requested: ${Math.abs(params.quantity)}`
+      )
     }
 
     // Update stock level
@@ -661,7 +759,8 @@ export class StockService {
   // Get stock across all warehouses for a product
   async getStockSummary(productId: string): Promise<StockSummary> {
     const stockLevels = await this.databaseManager.getDatabase('inventory:stockLevels')
-    const levels = await stockLevels.query()
+    const levels = await stockLevels
+      .query()
       .filter({ property: 'productId', operator: 'equals', value: productId })
       .execute()
 
@@ -688,14 +787,17 @@ export class StockService {
   }
 
   // Check for low stock products
-  async getLowStockProducts(): Promise<Array<{
-    product: Product
-    currentStock: number
-    reorderPoint: number
-    reorderQuantity: number
-  }>> {
+  async getLowStockProducts(): Promise<
+    Array<{
+      product: Product
+      currentStock: number
+      reorderPoint: number
+      reorderQuantity: number
+    }>
+  > {
     const products = await this.databaseManager.getDatabase('inventory:products')
-    const lowStock = await products.query()
+    const lowStock = await products
+      .query()
       .filter({
         and: [
           { property: 'trackInventory', operator: 'equals', value: true },
@@ -705,7 +807,7 @@ export class StockService {
       })
       .execute()
 
-    return lowStock.records.map(product => ({
+    return lowStock.records.map((product) => ({
       product,
       currentStock: product.totalStock,
       reorderPoint: product.reorderPoint,
@@ -755,11 +857,14 @@ export class StockService {
 
       // Update last counted date
       const stockLevels = await this.databaseManager.getDatabase('inventory:stockLevels')
-      const level = await stockLevels.query()
-        .filter({ and: [
-          { property: 'productId', operator: 'equals', value: count.productId },
-          { property: 'warehouseId', operator: 'equals', value: params.warehouseId }
-        ]})
+      const level = await stockLevels
+        .query()
+        .filter({
+          and: [
+            { property: 'productId', operator: 'equals', value: count.productId },
+            { property: 'warehouseId', operator: 'equals', value: params.warehouseId }
+          ]
+        })
         .first()
 
       if (level) {
@@ -1030,7 +1135,11 @@ export const reorderPointWorkflow: WorkflowTemplate = {
         filter: {
           and: [
             { property: 'status', operator: 'in', value: ['draft', 'sent', 'confirmed'] },
-            { property: 'items', operator: 'contains', value: { productId: '{{record.productId.id}}' } }
+            {
+              property: 'items',
+              operator: 'contains',
+              value: { productId: '{{record.productId.id}}' }
+            }
           ]
         }
       },
@@ -1051,11 +1160,13 @@ export const reorderPointWorkflow: WorkflowTemplate = {
                 poNumber: 'AUTO-{{now | date: "YYYYMMDDHHmmss"}}',
                 supplierId: '{{record.productId.preferredSupplierId}}',
                 status: 'draft',
-                items: [{
-                  productId: '{{record.productId.id}}',
-                  quantity: '{{record.productId.reorderQuantity}}',
-                  unitPrice: '{{record.productId.costPrice}}'
-                }],
+                items: [
+                  {
+                    productId: '{{record.productId.id}}',
+                    quantity: '{{record.productId.reorderQuantity}}',
+                    unitPrice: '{{record.productId.costPrice}}'
+                  }
+                ],
                 warehouseId: '{{record.warehouseId}}',
                 orderDate: '{{now}}'
               }
@@ -1130,6 +1241,7 @@ modules/inventory/
 ## Inventory Module Validation
 
 ### Products
+
 - [ ] Create product with all fields
 - [ ] Create product variants
 - [ ] Upload product images
@@ -1137,6 +1249,7 @@ modules/inventory/
 - [ ] Product gallery view works
 
 ### Stock Levels
+
 - [ ] View stock by product
 - [ ] View stock by warehouse
 - [ ] Stock value calculates correctly
@@ -1144,18 +1257,21 @@ modules/inventory/
 - [ ] Expiry date tracking works
 
 ### Stock Movements
+
 - [ ] Adjust stock (add/remove)
 - [ ] Transfer between warehouses
 - [ ] Movement history tracks correctly
 - [ ] Negative stock prevention works (if enabled)
 
 ### Barcode Scanning
+
 - [ ] USB barcode scanner works
 - [ ] Camera scanning works (mobile)
 - [ ] Product lookup by barcode/SKU
 - [ ] Unknown barcode handling
 
 ### Purchase Orders
+
 - [ ] Create purchase order
 - [ ] Add items to PO
 - [ ] Send PO to supplier
@@ -1163,17 +1279,20 @@ modules/inventory/
 - [ ] Stock updates on receipt
 
 ### Warehouses
+
 - [ ] Create warehouse
 - [ ] Set default warehouse
 - [ ] Utilization tracking
 - [ ] Zone/location management
 
 ### Workflows
+
 - [ ] Low stock alert fires
 - [ ] Auto-reorder creates PO
 - [ ] Stock receipt workflow works
 
 ### Reports
+
 - [ ] Stock valuation report
 - [ ] Movement history report
 - [ ] Low stock report

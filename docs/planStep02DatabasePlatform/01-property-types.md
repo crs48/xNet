@@ -1,19 +1,22 @@
 # 01: Property Types
 
-> Implementing all 17 database property types
+> Implementing all 16 property types (COMPLETE - see @xnet/data)
 
-**Duration:** 3 weeks
-**Dependencies:** @xnet/data, @xnet/storage from MVP
+**Status:** COMPLETE - implemented in `@xnet/data/schema/properties/`
+**Duration:** 3 weeks (completed)
+**Dependencies:** @xnet/sync (Lamport timestamps), @xnet/storage
 
 ## Overview
 
-The property type system is the foundation of the database platform. Each property type has:
-- Storage format (how data is persisted)
-- Validation rules
-- Display component
-- Editor component
-- Filter operators
-- Sort behavior
+The property type system is implemented in `@xnet/data`. Each property type has:
+
+- Schema definition helper (e.g., `text()`, `select()`)
+- TypeScript type inference
+- Validation rules (at create/update time)
+- Default values
+
+> **Note:** Display/Editor components and Filter/Sort UI are part of `@xnet/views` (Phase 2).
+> This document describes the reference implementation for those components.
 
 ## Property Type Categories
 
@@ -59,12 +62,50 @@ flowchart TD
     end
 ```
 
-## Implementation
+## Current Implementation
+
+Properties are defined in `@xnet/data/schema/properties/` using helper functions:
+
+```typescript
+// packages/data/src/schema/properties/index.ts
+export {
+  text,
+  number,
+  checkbox, // Basic
+  date,
+  dateRange, // Temporal
+  select,
+  multiSelect, // Selection
+  person,
+  relation, // References
+  url,
+  email,
+  phone,
+  file, // Rich
+  created,
+  updated,
+  createdBy // Auto
+}
+
+// Usage in schema definition
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://xnet.dev/',
+  properties: {
+    title: text({ required: true }),
+    status: select({ options: ['todo', 'in-progress', 'done'] as const })
+  }
+})
+```
+
+## View Layer Interface (Phase 2)
+
+For `@xnet/views`, each property type needs display/editor components:
 
 ### Base Interface
 
 ```typescript
-// packages/database/src/properties/types.ts
+// packages/views/src/properties/types.ts (TO BUILD)
 
 export interface PropertyHandler<T = unknown> {
   type: PropertyType
@@ -107,10 +148,10 @@ export interface ValidationResult {
 }
 ```
 
-### Property Registry
+### Property Handler Registry
 
 ```typescript
-// packages/database/src/properties/registry.ts
+// packages/views/src/properties/registry.ts (TO BUILD)
 
 import { textProperty } from './text'
 import { numberProperty } from './number'
@@ -127,7 +168,7 @@ const propertyRegistry = new Map<PropertyType, PropertyHandler>([
   ['multiSelect', multiSelectProperty],
   ['person', personProperty],
   ['relation', relationProperty],
-  ['rollup', rollupProperty],
+  // Note: rollup removed - compute at query time, don't store
   ['formula', formulaProperty],
   ['url', urlProperty],
   ['email', emailProperty],
@@ -135,7 +176,7 @@ const propertyRegistry = new Map<PropertyType, PropertyHandler>([
   ['file', fileProperty],
   ['created', createdProperty],
   ['updated', updatedProperty],
-  ['createdBy', createdByProperty],
+  ['createdBy', createdByProperty]
 ])
 
 export function getPropertyHandler(type: PropertyType): PropertyHandler {
@@ -154,7 +195,7 @@ export function getPropertyHandler(type: PropertyType): PropertyHandler {
 ### 1. Text Property
 
 ```typescript
-// packages/database/src/properties/text.ts
+// packages/views/src/properties/text.ts (TO BUILD)
 
 export interface TextConfig {
   maxLength?: number
@@ -232,7 +273,7 @@ export const textProperty: PropertyHandler<string> = {
 ### 2. Number Property
 
 ```typescript
-// packages/database/src/properties/number.ts
+// packages/views/src/properties/number.ts (TO BUILD)
 
 export interface NumberConfig {
   format: 'number' | 'percent' | 'currency' | 'progress'
@@ -347,7 +388,7 @@ export const numberProperty: PropertyHandler<number> = {
 ### 3. Checkbox Property
 
 ```typescript
-// packages/database/src/properties/checkbox.ts
+// packages/views/src/properties/checkbox.ts (TO BUILD)
 
 export const checkboxProperty: PropertyHandler<boolean> = {
   type: 'checkbox',
@@ -403,7 +444,7 @@ export const checkboxProperty: PropertyHandler<boolean> = {
 ### 4. Date Property
 
 ```typescript
-// packages/database/src/properties/date.ts
+// packages/views/src/properties/date.ts (TO BUILD)
 
 export interface DateConfig {
   includeTime: boolean
@@ -529,7 +570,7 @@ function endOfDay(ts: number): number {
 ### 5. Select Property
 
 ```typescript
-// packages/database/src/properties/select.ts
+// packages/views/src/properties/select.ts (TO BUILD)
 
 export interface SelectOption {
   id: string
@@ -615,7 +656,7 @@ export const selectProperty: PropertyHandler<string> = {
 ### 6. Multi-Select Property
 
 ```typescript
-// packages/database/src/properties/multi-select.ts
+// packages/views/src/properties/multi-select.ts (TO BUILD)
 
 export const multiSelectProperty: PropertyHandler<string[]> = {
   type: 'multiSelect',
@@ -706,7 +747,7 @@ export const multiSelectProperty: PropertyHandler<string[]> = {
 ### 7. Person Property
 
 ```typescript
-// packages/database/src/properties/person.ts
+// packages/views/src/properties/person.ts (TO BUILD)
 
 export interface PersonConfig {
   allowMultiple: boolean
@@ -788,7 +829,7 @@ export const personProperty: PropertyHandler<string[]> = {
 ### 8. Relation Property
 
 ```typescript
-// packages/database/src/properties/relation.ts
+// packages/views/src/properties/relation.ts (TO BUILD)
 
 export interface RelationConfig {
   targetDatabaseId: string
@@ -864,100 +905,41 @@ export const relationProperty: PropertyHandler<string[]> = {
 }
 ```
 
-### 9. Rollup Property
+### 9. Rollup (Computed at Query Time)
+
+> **Note:** Rollup values are NOT stored - they are computed at read time by the query layer.
+> This avoids storing derived data and keeps the data model clean.
+
+Rollup aggregations are handled by `@xnet/query` when displaying views:
 
 ```typescript
-// packages/database/src/properties/rollup.ts
-
-export interface RollupConfig {
-  relationPropertyId: string
-  targetPropertyId: string
-  aggregation: 'count' | 'countAll' | 'countValues' | 'countUnique'
-    | 'sum' | 'average' | 'min' | 'max' | 'median' | 'range'
-    | 'showOriginal' | 'showUnique' | 'allTrue' | 'anyTrue' | 'noneTrue'
-}
-
-// Rollup is computed, not stored
-export const rollupProperty: PropertyHandler<unknown> = {
-  type: 'rollup',
-
-  validate() {
-    return { valid: true }  // Always valid, computed value
-  },
-
-  coerce(value) {
-    return value  // Passthrough, computed by engine
-  },
-
-  format(value, config: RollupConfig) {
-    if (value === null || value === undefined) return ''
-
-    switch (config.aggregation) {
-      case 'count':
-      case 'countAll':
-      case 'countValues':
-      case 'countUnique':
-        return String(value)
-      case 'sum':
-      case 'average':
-      case 'min':
-      case 'max':
-      case 'median':
-      case 'range':
-        return typeof value === 'number' ? value.toFixed(2) : String(value)
-      case 'showOriginal':
-      case 'showUnique':
-        return Array.isArray(value) ? value.join(', ') : String(value)
-      case 'allTrue':
-      case 'anyTrue':
-      case 'noneTrue':
-        return value ? 'Yes' : 'No'
-      default:
-        return String(value)
-    }
-  },
-
-  render(value, config) {
-    return <span className="property-rollup">{this.format(value, config)}</span>
-  },
-
-  Editor: () => (
-    <span className="property-computed">Computed value</span>
-  ),
-
-  filterOperators: ['equals', 'notEquals', 'greaterThan', 'lessThan'],
-
-  applyFilter(value, operator, filterValue) {
-    // Depends on aggregation type
-    const f = Number(filterValue)
-    const v = Number(value)
-
-    switch (operator) {
-      case 'equals': return v === f
-      case 'notEquals': return v !== f
-      case 'greaterThan': return v > f
-      case 'lessThan': return v < f
-      default: return true
-    }
-  },
-
-  compare(a, b) {
-    const numA = Number(a) || 0
-    const numB = Number(b) || 0
-    return numA - numB
-  },
-
-  serialize(value) { return value },
-  deserialize(data) { return data },
-}
+// Rollup computed in view layer, not stored in NodeStore
+type RollupAggregation =
+  | 'count'
+  | 'countAll'
+  | 'countValues'
+  | 'countUnique'
+  | 'sum'
+  | 'average'
+  | 'min'
+  | 'max'
+  | 'median'
+  | 'range'
+  | 'showOriginal'
+  | 'showUnique'
+  | 'allTrue'
+  | 'anyTrue'
+  | 'noneTrue'
 ```
 
 ### 10. Formula Property
 
 See [07-formula-engine.md](./07-formula-engine.md) for full formula implementation.
 
+> **Note:** Like rollup, formula values are computed at read time, not stored.
+
 ```typescript
-// packages/database/src/properties/formula.ts
+// packages/views/src/properties/formula.ts (TO BUILD)
 
 export interface FormulaConfig {
   expression: string
@@ -1026,7 +1008,7 @@ export const formulaProperty: PropertyHandler<unknown> = {
 ### 11-14. URL, Email, Phone, File Properties
 
 ```typescript
-// packages/database/src/properties/url.ts
+// packages/views/src/properties/url.ts (TO BUILD)
 
 export const urlProperty: PropertyHandler<string> = {
   type: 'url',
@@ -1099,10 +1081,13 @@ export const urlProperty: PropertyHandler<string> = {
 // File property requires blob storage integration
 ```
 
-### 15-17. Auto Properties (Created, Updated, CreatedBy)
+### 15-16. Auto Properties (Created, Updated, CreatedBy)
+
+> **Note:** Auto properties are handled by NodeStore automatically.
+> `created`, `updated`, and `createdBy` are set on the Node metadata.
 
 ```typescript
-// packages/database/src/properties/auto.ts
+// packages/views/src/properties/auto.ts (TO BUILD - display only)
 
 export const createdProperty: PropertyHandler<number> = {
   type: 'created',
@@ -1161,7 +1146,7 @@ export const createdProperty: PropertyHandler<number> = {
 ## Tests
 
 ```typescript
-// packages/database/test/properties/text.test.ts
+// packages/views/test/properties/text.test.ts (TO BUILD)
 
 import { describe, it, expect } from 'vitest'
 import { textProperty } from '../../src/properties/text'
@@ -1213,36 +1198,40 @@ describe('textProperty', () => {
 
 ## Checklist
 
-### Week 1: Basic + Temporal + Selection
-- [ ] Text property with validation and editor
+### Schema Layer (COMPLETE - @xnet/data)
+
+- [x] `text()` helper with required/maxLength options
+- [x] `number()` helper with format options
+- [x] `checkbox()` helper
+- [x] `date()` helper with includeTime option
+- [x] `dateRange()` helper
+- [x] `select()` helper with typed options
+- [x] `multiSelect()` helper with typed options
+- [x] `person()` helper
+- [x] `relation()` helper with target schema
+- [x] `url()`, `email()`, `phone()`, `file()` helpers
+- [x] `created()`, `updated()`, `createdBy()` auto helpers
+- [x] TypeScript inference for all property types
+- [x] Unit tests (62 tests in @xnet/data)
+
+### View Layer (TO BUILD - @xnet/views)
+
+- [ ] PropertyHandler interface for display/edit
+- [ ] Text property editor
 - [ ] Number property with formats (number, percent, currency, progress)
-- [ ] Checkbox property
-- [ ] Date property with time option
-- [ ] Date range property
-- [ ] Select property with color options
-- [ ] Multi-select property
-- [ ] Unit tests for all above (>90% coverage)
-
-### Week 2: Reference + Computed + Rich
-- [ ] Person property with avatar display
-- [ ] Relation property with bidirectional support
-- [ ] Rollup property with all aggregations
-- [ ] Formula property (stub, full impl in 07)
-- [ ] URL property with validation
-- [ ] Email property with validation
-- [ ] Phone property with validation
-- [ ] File property with blob storage
-- [ ] Unit tests for all above
-
-### Week 3: Auto + Integration
-- [ ] Created time (auto)
-- [ ] Updated time (auto)
-- [ ] Created by (auto)
-- [ ] Property registry complete
-- [ ] CRDT integration tested
+- [ ] Checkbox property editor
+- [ ] Date picker component
+- [ ] Date range picker component
+- [ ] Select dropdown with color options
+- [ ] Multi-select dropdown
+- [ ] Person picker with avatar display
+- [ ] Relation picker with search
+- [ ] URL/Email/Phone editors with validation
+- [ ] File upload with blob storage
+- [ ] Auto property display (read-only)
 - [ ] Filter builder integration
 - [ ] Sort system integration
-- [ ] All tests pass (>80% coverage)
+- [ ] Unit tests (>80% coverage)
 
 ---
 

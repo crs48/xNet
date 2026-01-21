@@ -8,6 +8,7 @@
 ## Overview
 
 The table view is the foundational view for databases. It provides a spreadsheet-like interface with:
+
 - Column resize and reorder
 - Virtual scrolling for large datasets
 - Inline cell editing
@@ -78,65 +79,68 @@ import {
   ColumnFiltersState,
   VisibilityState,
   ColumnOrderState,
-  ColumnSizingState,
+  ColumnSizingState
 } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import { Database, View, DatabaseItem, PropertyDefinition } from '@xnet/database'
-import { getPropertyHandler } from '@xnet/database/properties'
+import { Node, Schema } from '@xnet/data'
+import { useNodes } from '@xnet/react'
+import { getPropertyHandler } from '@xnet/views/properties'
+
+// Note: "Database" is now just a Schema; "DatabaseItem" is now "Node"
 
 export interface UseTableStateOptions {
-  database: Database
+  schema: Schema
   view: View
-  items: DatabaseItem[]
-  onUpdateItem: (itemId: string, changes: Record<string, unknown>) => void
+  nodes: Node[]
+  onUpdateNode: (nodeId: string, changes: Record<string, unknown>) => void
   onUpdateView: (changes: Partial<View>) => void
 }
 
 export function useTableState({
-  database,
+  schema,
   view,
-  items,
-  onUpdateItem,
-  onUpdateView,
+  nodes,
+  onUpdateNode,
+  onUpdateView
 }: UseTableStateOptions) {
   // Table state
   const [sorting, setSorting] = useState<SortingState>(() =>
-    view.sorts.map(s => ({ id: s.propertyId, desc: s.direction === 'desc' }))
+    view.sorts.map((s) => ({ id: s.propertyId, desc: s.direction === 'desc' }))
   )
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>(() => {
     const visibility: VisibilityState = {}
-    database.properties.forEach(prop => {
-      visibility[prop.id] = view.visibleProperties.includes(prop.id)
+    Object.keys(schema.properties).forEach(propId => {
+      visibility[propId] = view.visibleProperties.includes(propId)
     })
     return visibility
   })
+    return visibility
+  })
 
-  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(
-    view.visibleProperties
-  )
+  const [columnOrder, setColumnOrder] = useState<ColumnOrderState>(view.visibleProperties)
 
-  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(
-    view.propertyWidths || {}
-  )
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(view.propertyWidths || {})
 
-  // Generate columns from property definitions
-  const columns = useMemo<ColumnDef<DatabaseItem>[]>(() => {
-    return database.properties.map(prop => createColumn(prop, onUpdateItem))
-  }, [database.properties, onUpdateItem])
+  // Generate columns from schema properties
+  const columns = useMemo<ColumnDef<Node>[]>(() => {
+    return Object.entries(schema.properties).map(([id, prop]) =>
+      createColumn({ id, ...prop }, onUpdateNode)
+    )
+  }, [schema.properties, onUpdateNode])
 
   // Create table instance
   const table = useReactTable({
-    data: items,
+    data: nodes,
     columns,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       columnOrder,
-      columnSizing,
+      columnSizing
     },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
@@ -145,16 +149,14 @@ export function useTableState({
     onColumnSizingChange: (updater) => {
       setColumnSizing(updater)
       // Persist to view config
-      const newSizing = typeof updater === 'function'
-        ? updater(columnSizing)
-        : updater
+      const newSizing = typeof updater === 'function' ? updater(columnSizing) : updater
       onUpdateView({ propertyWidths: newSizing })
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     columnResizeMode: 'onChange',
-    enableColumnResizing: true,
+    enableColumnResizing: true
   })
 
   return {
@@ -167,15 +169,15 @@ export function useTableState({
     setColumnVisibility,
     columnOrder,
     setColumnOrder,
-    columnSizing,
+    columnSizing
   }
 }
 
 // Helper to create column definition from property
 function createColumn(
-  property: PropertyDefinition,
-  onUpdateItem: (itemId: string, changes: Record<string, unknown>) => void
-): ColumnDef<DatabaseItem> {
+  property: { id: string } & PropertyDefinition,
+  onUpdateNode: (nodeId: string, changes: Record<string, unknown>) => void
+): ColumnDef<Node> {
   const handler = getPropertyHandler(property.type)
 
   return {
@@ -211,9 +213,9 @@ function createColumn(
       property,
       handler,
       onUpdate: (rowId: string, value: unknown) => {
-        onUpdateItem(rowId, { [property.id]: value })
-      },
-    },
+        onUpdateNode(rowId, { [property.id]: value })
+      }
+    }
   }
 }
 ```
@@ -292,7 +294,7 @@ export function TableView({ className, ...options }: TableViewProps) {
 
       {/* Footer with row count */}
       <div className="table-footer">
-        {rows.length} items
+        {rows.length} nodes
       </div>
     </div>
   )
@@ -306,10 +308,10 @@ export function TableView({ className, ...options }: TableViewProps) {
 
 import React from 'react'
 import { Table, flexRender, Header } from '@tanstack/react-table'
-import { DatabaseItem } from '@xnet/database'
+import { Node } from '@xnet/data'
 
 interface TableHeaderProps {
-  table: Table<DatabaseItem>
+  table: Table<Node>
 }
 
 export function TableHeader({ table }: TableHeaderProps) {
@@ -332,8 +334,8 @@ export function TableHeader({ table }: TableHeaderProps) {
 }
 
 interface HeaderCellProps {
-  header: Header<DatabaseItem, unknown>
-  table: Table<DatabaseItem>
+  header: Header<Node, unknown>
+  table: Table<Node>
 }
 
 function HeaderCell({ header, table }: HeaderCellProps) {
@@ -375,7 +377,7 @@ function HeaderCell({ header, table }: HeaderCellProps) {
   )
 }
 
-function ColumnMenu({ header }: { header: Header<DatabaseItem, unknown> }) {
+function ColumnMenu({ header }: { header: Header<Node, unknown> }) {
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -412,10 +414,11 @@ function ColumnMenu({ header }: { header: Header<DatabaseItem, unknown> }) {
 
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Cell, flexRender } from '@tanstack/react-table'
-import { DatabaseItem, PropertyHandler } from '@xnet/database'
+import { Node } from '@xnet/data'
+import { PropertyHandler } from '@xnet/views/properties'
 
 interface TableCellProps {
-  cell: Cell<DatabaseItem, unknown>
+  cell: Cell<Node, unknown>
 }
 
 export function TableCell({ cell }: TableCellProps) {
@@ -491,24 +494,26 @@ export function TableCell({ cell }: TableCellProps) {
 // packages/views/src/shared/FilterBuilder.tsx
 
 import React from 'react'
-import { Database, PropertyDefinition, FilterGroup, Filter } from '@xnet/database'
-import { getPropertyHandler } from '@xnet/database/properties'
+import { Schema, FilterGroup, Filter } from '@xnet/data'
+import { getPropertyHandler } from '@xnet/views/properties'
 
 interface FilterBuilderProps {
-  database: Database
+  schema: Schema
   filter: FilterGroup | null
   onChange: (filter: FilterGroup | null) => void
 }
 
-export function FilterBuilder({ database, filter, onChange }: FilterBuilderProps) {
+export function FilterBuilder({ schema, filter, onChange }: FilterBuilderProps) {
   const addFilter = () => {
-    const firstProp = database.properties[0]
+    const propEntries = Object.entries(schema.properties)
+    const firstProp = propEntries[0]
     if (!firstProp) return
+    const [propId, propDef] = firstProp
 
-    const handler = getPropertyHandler(firstProp.type)
+    const handler = getPropertyHandler(propDef.type)
     const newFilter: Filter = {
       id: crypto.randomUUID(),
-      propertyId: firstProp.id,
+      propertyId: propId,
       operator: handler.filterOperators[0],
       value: null,
     }
@@ -807,7 +812,7 @@ const rowVirtualizer = useVirtualizer({
   count: rows.length,
   getScrollElement: () => containerRef.current,
   estimateSize: () => 36,
-  overscan: 10, // Render 10 extra rows above/below viewport
+  overscan: 10 // Render 10 extra rows above/below viewport
 })
 ```
 
@@ -816,7 +821,7 @@ const rowVirtualizer = useVirtualizer({
 ```typescript
 // Memoize expensive computations
 const columns = useMemo(() => {
-  return database.properties.map(prop => createColumn(prop, onUpdateItem))
+  return database.properties.map((prop) => createColumn(prop, onUpdateItem))
 }, [database.properties, onUpdateItem])
 
 // Memoize row data
@@ -948,6 +953,7 @@ describe('TableView', () => {
 ## Checklist
 
 ### Week 1: Core Table
+
 - [ ] useTableState hook with TanStack Table
 - [ ] TableView component
 - [ ] TableHeader with sort indicators
@@ -957,6 +963,7 @@ describe('TableView', () => {
 - [ ] Basic styling
 
 ### Week 2: Editing & Features
+
 - [ ] Inline cell editing for all property types
 - [ ] Column reorder (drag-drop)
 - [ ] Column visibility toggle

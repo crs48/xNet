@@ -5,9 +5,17 @@
 **Duration:** 1 week
 **Dependencies:** 01-property-types.md
 
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `DatabaseItem` → `Node`
+> - `Database` → `Schema`
+> - Import types from `@xnet/data`, hooks from `@xnet/react`
+
 ## Overview
 
-The gallery view displays items as visual cards in a grid layout. Features:
+The gallery view displays Nodes as visual cards in a grid layout. Features:
+
 - Cover image from file property
 - Customizable card size
 - Property display on cards
@@ -42,9 +50,9 @@ flowchart TD
 // packages/views/src/gallery/types.ts
 
 export interface GalleryConfig {
-  coverPropertyId?: string    // File property for cover image
+  coverPropertyId?: string // File property for cover image
   cardSize: 'small' | 'medium' | 'large'
-  cardProperties: string[]    // Properties to show on card
+  cardProperties: string[] // Properties to show on card
   fitImage: 'cover' | 'contain'
   showTitle: boolean
 }
@@ -52,7 +60,7 @@ export interface GalleryConfig {
 export const CARD_SIZES = {
   small: { width: 180, height: 200 },
   medium: { width: 240, height: 280 },
-  large: { width: 320, height: 360 },
+  large: { width: 320, height: 360 }
 }
 ```
 
@@ -71,25 +79,21 @@ export interface UseGalleryStateOptions {
   items: DatabaseItem[]
 }
 
-export function useGalleryState({
-  database,
-  view,
-  items,
-}: UseGalleryStateOptions) {
+export function useGalleryState({ database, view, items }: UseGalleryStateOptions) {
   const config = view.config as GalleryConfig
 
   // Get cover property
   const coverProperty = config.coverPropertyId
-    ? database.properties.find(p => p.id === config.coverPropertyId)
+    ? database.properties.find((p) => p.id === config.coverPropertyId)
     : null
 
   // Get title property (first text property)
-  const titleProperty = database.properties.find(p => p.type === 'text')
+  const titleProperty = database.properties.find((p) => p.type === 'text')
 
   // Get display properties
   const displayProperties = useMemo(() => {
     return config.cardProperties
-      .map(id => database.properties.find(p => p.id === id))
+      .map((id) => database.properties.find((p) => p.id === id))
       .filter(Boolean)
   }, [config.cardProperties, database.properties])
 
@@ -102,7 +106,7 @@ export function useGalleryState({
     titleProperty,
     displayProperties,
     cardDimensions,
-    items,
+    items
   }
 }
 ```
@@ -313,7 +317,9 @@ function getCoverUrl(value: unknown): string | null {
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
 }
 
 .gallery-card:hover {
@@ -392,7 +398,9 @@ function getCoverUrl(value: unknown): string | null {
   color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
 }
 
 .gallery-add-card:hover {

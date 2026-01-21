@@ -6,11 +6,23 @@
 
 Before starting this phase, ensure planStep01MVP is complete:
 
-- [ ] All @xnet/\* core packages working
-- [ ] Platform POCs functional (Electron, Expo, Web)
-- [ ] Basic wiki/editor features working
-- [ ] P2P sync operational
-- [ ] > 80% test coverage on core packages
+- [x] All @xnet/\* core packages working
+- [x] Platform POCs functional (Electron, Expo, Web)
+- [x] Basic wiki/editor features working
+- [x] P2P sync operational (Lamport timestamps, LWW conflict resolution)
+- [x] > 80% test coverage on core packages
+- [x] Schema-first Node architecture implemented (`@xnet/data`)
+
+## Architecture Update
+
+> **Note:** The schema-first architecture has been implemented. See `docs/planStep02_1DataModelConsolidation/HANDOFF.md`.
+>
+> Key changes:
+>
+> - Everything is a **Node** with a **Schema**
+> - `@xnet/records` has been removed - all functionality is now in `@xnet/data`
+> - Sync uses **Lamport timestamps** (not vector clocks) with LWW per property
+> - 16 property types (rollup/formula are computed at read time, not stored)
 
 ## Implementation Order
 
@@ -19,7 +31,7 @@ Execute these documents in order. Each builds on the previous.
 | #   | Document                                   | Description                          | Est. Time |
 | --- | ------------------------------------------ | ------------------------------------ | --------- |
 | 00  | [Overview](./00-overview.md)               | Architecture, prerequisites, goals   | Reference |
-| 01  | [Property Types](./01-property-types.md)   | 17 property types system             | 3 weeks   |
+| 01  | [Property Types](./01-property-types.md)   | 16 property types system             | 3 weeks   |
 | 02  | [Table View](./02-view-table.md)           | Spreadsheet view with TanStack Table | 2 weeks   |
 | 03  | [Board View](./03-view-board.md)           | Kanban board with drag-drop          | 2 weeks   |
 | 04  | [Gallery View](./04-view-gallery.md)       | Card-based gallery layout            | 1 week    |
@@ -34,9 +46,9 @@ Execute these documents in order. Each builds on the previous.
 
 ### After Property Types
 
-- [x] All 18 property types functional
-- [x] Property validation works
-- [ ] CRDT sync for properties works
+- [x] All 16 property types functional (in `@xnet/data/schema/properties/`)
+- [x] Property validation works (via `defineSchema()`)
+- [x] LWW sync for properties works (via `NodeStore`)
 - [x] Tests pass (>80% coverage)
 
 ### After Core Views (Table + Board)
@@ -75,53 +87,52 @@ Execute these documents in order. Each builds on the previous.
 
 ## Quick Reference
 
-### Package Dependencies (New)
+### Package Dependencies
 
 ```
-@xnet/database ──> @xnet/data, @xnet/storage
-@xnet/views ────> @xnet/database, @xnet/react
-@xnet/formula ──> @xnet/database
-@xnet/vectors ──> @xnet/storage (already in MVP)
-@xnet/canvas ───> @xnet/database, @xnet/vectors
+@xnet/data ──────> @xnet/core, @xnet/sync, @xnet/crypto
+@xnet/views ─────> @xnet/data, @xnet/react
+@xnet/formula ───> @xnet/data
+@xnet/vectors ───> @xnet/storage
+@xnet/canvas ────> @xnet/data, @xnet/vectors
 ```
 
 ### Key Types
 
 ```typescript
-// Database
-DatabaseId = `db:${string}`
-PropertyId = `prop:${string}`
-ViewId = `view:${string}`
+// Node-based architecture
+type SchemaIRI = `xnet://${string}/${string}` // e.g., 'xnet://xnet.dev/Task'
+type NodeId = string // NanoID (21 chars)
+type PropertyKey = string
 
-// Property Types
-PropertyType =
-  'text' |
-  'number' |
-  'date' |
-  'select' |
-  'multi-select' |
-  'person' |
-  'relation' |
-  'formula' |
-  'rollup' |
-  'checkbox' |
-  'url' |
-  'email' |
-  'phone' |
-  'file' |
-  'created' |
-  'updated' |
-  'createdBy'
+// Property Types (16 total)
+type PropertyType =
+  | 'text'
+  | 'number'
+  | 'checkbox' // Basic
+  | 'date'
+  | 'dateRange' // Temporal
+  | 'select'
+  | 'multiSelect' // Selection
+  | 'person'
+  | 'relation' // References
+  | 'url'
+  | 'email'
+  | 'phone'
+  | 'file' // Rich
+  | 'created'
+  | 'updated'
+  | 'createdBy' // Auto
 
 // View Types
-ViewType = 'table' | 'board' | 'gallery' | 'timeline' | 'calendar' | 'list'
+type ViewType = 'table' | 'board' | 'gallery' | 'timeline' | 'calendar' | 'list'
 ```
 
 ### Test Commands
 
 ```bash
 pnpm test                           # All tests
-pnpm --filter @xnet/database test   # Database package
+pnpm vitest run packages/data       # Data package (62 tests)
 pnpm --filter @xnet/views test      # Views package
 pnpm --filter @xnet/formula test    # Formula engine
 pnpm test:coverage                  # With coverage
@@ -131,8 +142,8 @@ pnpm test:coverage                  # With coverage
 
 ```mermaid
 flowchart TD
-    subgraph "Database Layer"
-        DB["@xnet/database"]
+    subgraph "Data Layer"
+        DATA["@xnet/data<br/>Schema, NodeStore, Properties"]
         FORMULA["@xnet/formula"]
     end
 
@@ -145,17 +156,17 @@ flowchart TD
         VECTORS["@xnet/vectors"]
     end
 
-    subgraph "From MVP"
-        DATA["@xnet/data"]
+    subgraph "Core Infrastructure"
+        SYNC["@xnet/sync<br/>Lamport, Change<T>"]
         STORAGE["@xnet/storage"]
-        REACT["@xnet/react"]
+        REACT["@xnet/react<br/>useNode, useNodes"]
     end
 
-    DATA --> DB
-    STORAGE --> DB
-    DB --> FORMULA
-    DB --> VIEWS
-    DB --> CANVAS
+    SYNC --> DATA
+    STORAGE --> DATA
+    DATA --> FORMULA
+    DATA --> VIEWS
+    DATA --> CANVAS
     REACT --> VIEWS
     REACT --> CANVAS
     STORAGE --> VECTORS
