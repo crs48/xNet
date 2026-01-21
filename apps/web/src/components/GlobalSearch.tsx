@@ -91,7 +91,8 @@ export function GlobalSearch() {
           if (matchIndex >= 0) {
             const start = Math.max(0, matchIndex - 40)
             const end = Math.min(text.length, matchIndex + queryLower.length + 40)
-            snippet = (start > 0 ? '...' : '') + text.slice(start, end) + (end < text.length ? '...' : '')
+            snippet =
+              (start > 0 ? '...' : '') + text.slice(start, end) + (end < text.length ? '...' : '')
           } else {
             snippet = text.slice(0, 80) + (text.length > 80 ? '...' : '')
           }
@@ -100,7 +101,7 @@ export function GlobalSearch() {
             id,
             title,
             snippet,
-            score,
+            score
           })
         }
       }
@@ -161,21 +162,28 @@ export function GlobalSearch() {
   if (!isOpen) {
     return (
       <button
-        className="search-trigger"
+        className="px-4 py-2 border border-border bg-bg-secondary rounded-md cursor-pointer text-sm text-text-secondary flex items-center gap-3 hover:border-text-secondary transition-colors"
         onClick={() => {
           setIsOpen(true)
           setTimeout(() => inputRef.current?.focus(), 10)
         }}
         type="button"
       >
-        Search... <kbd>&#8984;K</kbd>
+        Search...{' '}
+        <kbd className="text-xs px-1.5 py-0.5 bg-bg rounded border border-border">&#8984;K</kbd>
       </button>
     )
   }
 
   return (
-    <div className="search-modal-overlay" onClick={() => setIsOpen(false)}>
-      <div className="search-modal" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-start justify-center pt-24 z-50"
+      onClick={() => setIsOpen(false)}
+    >
+      <div
+        className="w-full max-w-xl bg-bg rounded-xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         <input
           ref={inputRef}
           type="text"
@@ -183,33 +191,39 @@ export function GlobalSearch() {
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          className="search-input"
+          className="w-full px-5 py-4 border-none text-lg outline-none bg-transparent text-text placeholder:text-text-secondary"
           autoComplete="off"
         />
 
-        {loading && <div className="search-loading">Searching...</div>}
+        {loading && (
+          <div className="px-5 py-4 text-sm text-text-secondary border-t border-border">
+            Searching...
+          </div>
+        )}
 
         {results.length > 0 && (
-          <ul className="search-results">
+          <ul className="list-none max-h-96 overflow-y-auto border-t border-border">
             {results.map((result, index) => (
               <li
                 key={result.id}
-                className={`search-result ${index === selectedIndex ? 'selected' : ''}`}
+                className={`px-5 py-3 cursor-pointer border-b border-border last:border-b-0 transition-colors ${
+                  index === selectedIndex ? 'bg-bg-secondary' : 'hover:bg-bg-secondary'
+                }`}
                 onClick={() => handleSelect(result)}
                 onMouseEnter={() => setSelectedIndex(index)}
               >
-                <strong className="result-title">{result.title}</strong>
-                <p className="result-snippet">{result.snippet}</p>
+                <strong className="block font-medium mb-1">{result.title}</strong>
+                <p className="text-sm text-text-secondary m-0 truncate">{result.snippet}</p>
               </li>
             ))}
           </ul>
         )}
 
         {query && !loading && results.length === 0 && (
-          <div className="search-empty">
-            <p>No results found</p>
+          <div className="px-5 py-6 text-center border-t border-border">
+            <p className="text-text-secondary mb-3">No results found</p>
             <button
-              className="create-button"
+              className="px-4 py-2 bg-primary text-white border-none rounded-md cursor-pointer text-sm hover:bg-primary-hover transition-colors"
               onClick={handleCreate}
               type="button"
             >
@@ -218,10 +232,28 @@ export function GlobalSearch() {
           </div>
         )}
 
-        <div className="search-footer">
-          <span><kbd>&uarr;</kbd><kbd>&darr;</kbd> to navigate</span>
-          <span><kbd>Enter</kbd> to select</span>
-          <span><kbd>Esc</kbd> to close</span>
+        <div className="flex gap-4 justify-center px-5 py-3 border-t border-border text-xs text-text-secondary">
+          <span>
+            <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded border border-border mr-1">
+              &uarr;
+            </kbd>
+            <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded border border-border mr-1">
+              &darr;
+            </kbd>
+            to navigate
+          </span>
+          <span>
+            <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded border border-border mr-1">
+              Enter
+            </kbd>
+            to select
+          </span>
+          <span>
+            <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded border border-border mr-1">
+              Esc
+            </kbd>
+            to close
+          </span>
         </div>
       </div>
     </div>
@@ -232,5 +264,8 @@ export function GlobalSearch() {
  * Extract plain text from XML fragment string
  */
 function extractPlainText(xmlStr: string): string {
-  return xmlStr.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  return xmlStr
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }

@@ -13,6 +13,7 @@ import Typography from '@tiptap/extension-typography'
 import type * as Y from 'yjs'
 import { Wikilink, LivePreview } from '../extensions'
 import { EditorToolbar } from './EditorToolbar'
+import { cn } from '../utils'
 
 export interface RichTextEditorProps {
   /** The Yjs document to bind to */
@@ -84,7 +85,7 @@ export function RichTextEditor({
   showToolbar = true,
   onNavigate,
   className,
-  readOnly = false,
+  readOnly = false
 }: RichTextEditorProps): JSX.Element {
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -98,33 +99,33 @@ export function RichTextEditor({
       // Typography for smart quotes, em-dashes, ellipsis
       Typography,
       Placeholder.configure({
-        placeholder,
+        placeholder
       }),
       Collaboration.configure({
-        fragment,
+        fragment
       }),
       TaskList,
       TaskItem.configure({
-        nested: true,
+        nested: true
       }),
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'editor-link',
-        },
+          class: 'text-primary hover:underline cursor-pointer'
+        }
       }),
       Wikilink.configure({
-        onNavigate: onNavigate || (() => {}),
+        onNavigate: onNavigate || (() => {})
       }),
       // Obsidian-style live preview - shows markdown syntax when cursor is on formatted text
-      LivePreview,
+      LivePreview
     ],
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none',
-      },
+        class: 'prose prose-sm max-w-none focus:outline-none min-h-[380px]'
+      }
     },
-    editable: !readOnly,
+    editable: !readOnly
   })
 
   // Update editable state when readOnly changes
@@ -142,9 +143,9 @@ export function RichTextEditor({
   }, [editor])
 
   return (
-    <div className={`editor-container ${className || ''}`}>
+    <div className={cn('border border-border rounded-lg overflow-hidden bg-bg', className)}>
       {showToolbar && <EditorToolbar editor={editor} />}
-      <EditorContent editor={editor} className="editor-content" />
+      <EditorContent editor={editor} className="p-4 min-h-[400px]" />
     </div>
   )
 }

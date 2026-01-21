@@ -7,25 +7,25 @@ interface Props {
 }
 
 export function SyncIndicator({ status, peerCount }: Props) {
-  const statusColors = {
-    offline: '#ff4444',
-    connecting: '#ffaa00',
-    synced: '#44bb44'
+  const statusColors: Record<string, string> = {
+    offline: 'bg-red-500',
+    connecting: 'bg-yellow-500',
+    synced: 'bg-green-500'
   }
 
-  const statusLabels = {
+  const statusLabels: Record<string, string> = {
     offline: 'Offline',
     connecting: 'Connecting...',
     synced: `${peerCount} peer${peerCount !== 1 ? 's' : ''}`
   }
 
   return (
-    <div className="sync-indicator" title={`${status} - ${peerCount} peers`}>
-      <span
-        className="status-dot"
-        style={{ backgroundColor: statusColors[status] }}
-      />
-      <span className="status-text">{statusLabels[status]}</span>
+    <div
+      className="flex items-center gap-1.5 text-xs text-text-secondary"
+      title={`${status} - ${peerCount} peers`}
+    >
+      <span className={`w-2 h-2 rounded-full ${statusColors[status]}`} />
+      <span>{statusLabels[status]}</span>
     </div>
   )
 }

@@ -41,25 +41,33 @@ function DocumentPage() {
   }, [loading, page, error, creating, docId, create])
 
   if (loading || creating) {
-    return <div className="loading">Loading document...</div>
+    return (
+      <div className="flex items-center justify-center h-full text-text-secondary">
+        Loading document...
+      </div>
+    )
   }
 
   if (error) {
-    return <div className="error">Error: {error.message}</div>
+    return <div className="text-center p-6 text-danger">Error: {error.message}</div>
   }
 
   if (!page || !doc) {
-    return <div className="loading">Creating document...</div>
+    return (
+      <div className="flex items-center justify-center h-full text-text-secondary">
+        Creating document...
+      </div>
+    )
   }
 
   const connected = syncStatus === 'connected'
 
   return (
-    <div className="document-page">
-      <div className="document-header">
+    <div className="max-w-3xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
         <input
           type="text"
-          className="title-input"
+          className="text-3xl font-semibold border-none bg-transparent text-text w-full outline-none placeholder:text-text-secondary"
           value={(page.properties.title as string) || ''}
           onChange={(e) => {
             const newTitle = e.target.value
@@ -70,19 +78,23 @@ function DocumentPage() {
 
         {/* Sync status indicator */}
         <div
-          className="sync-status"
+          className="flex items-center gap-1.5 text-xs text-text-secondary"
           title={connected ? `Connected (${peerCount} peers)` : syncStatus}
         >
-          <span className={`sync-dot ${connected ? 'connected' : 'offline'}`} />
-          {peerCount > 0 && <span className="peer-count">{peerCount}</span>}
+          <span
+            className={`w-2 h-2 rounded-full transition-colors ${
+              connected ? 'bg-success' : 'bg-text-secondary'
+            }`}
+          />
+          {peerCount > 0 && <span className="text-xs font-medium">{peerCount}</span>}
         </div>
 
         {remotePresences.length > 0 && (
-          <div className="presence-avatars">
+          <div className="flex -space-x-2">
             {remotePresences.map((p) => (
               <span
                 key={p.name}
-                className="avatar"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white border-2 border-bg"
                 style={{ backgroundColor: p.color }}
                 title={p.name}
               >
