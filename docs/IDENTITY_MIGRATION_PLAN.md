@@ -202,30 +202,181 @@ quadrantChart
 | **Implementation complexity** | Simple           | Medium        | Medium        |
 | **Ecosystem support**         | Excellent        | Growing       | Growing       |
 
-### Mitigation Strategies
+### Mitigation Strategies: Session Keys + Batch Signing
 
-To reduce Phase 2/3 overhead:
+The naive approach (ML-DSA signature per change) is impractical. Instead, we use two complementary strategies:
 
-| Strategy                  | Savings                       | Tradeoff             |
-| ------------------------- | ----------------------------- | -------------------- |
-| **Signature aggregation** | Batch N changes, 1 signature  | Latency (must batch) |
-| **Lazy verification**     | Skip verify until needed      | Trust assumption     |
-| **Identity caching**      | Avoid repeated resolution     | Stale data risk      |
-| **Compression**           | ~50% on signatures            | CPU cost             |
-| **Single-algorithm mode** | Skip Ed25519 in Phase 3       | Lose backward compat |
-| **Checkpoint snapshots**  | Verify snapshot, not full log | Complexity           |
+```mermaid
+graph TD
+    subgraph "Online Mode: Session Keys"
+        O1[Open Doc] --> O2[Generate Ed25519<br/>Session Key]
+        O2 --> O3[ML-DSA signs UCAN<br/>delegation 3.4 KB once]
+        O3 --> O4[Edit]
+        O4 --> O5[Ed25519 signs change<br/>64 bytes each]
+        O5 --> O6[Sync immediately]
+        O6 --> O4
+    end
+
+    subgraph "Offline Mode: Batch Signing"
+        F1[Work offline] --> F2[Queue changes locally]
+        F2 --> F1
+        F2 --> F3[Come online]
+        F3 --> F4[ML-DSA signs batch<br/>Merkle root 3.4 KB total]
+        F4 --> F5[Sync batch to peers]
+    end
+```
+
+#### Strategy 1: Session Keys (Real-Time Collaboration)
+
+Use short-lived Ed25519 keys delegated from the ML-DSA master key:
+
+```typescript
+// On session start (once)
+interface SessionDelegation {
+  // UCAN: ML-DSA master key grants Ed25519 session key
+  ucan: string // ~4 KB (includes ML-DSA signature)
+  sessionPublicKey: string // 32 bytes
+  sessionKeyId: string // Fingerprint
+  expiresAt: number // e.g., 24 hours
+  scope: string[] // What this session can sign for
+}
+
+// Each change during session
+interface Change<T> {
+  // ... payload ...
+  authorId: string // 60 bytes - identity reference
+  sessionKeyId: string // 32 bytes - which session key
+  signature: string // 64 bytes - Ed25519 signature
+}
+
+// Verification
+// 1. Lookup session delegation (cached)
+// 2. Verify UCAN chain: ML-DSA → Ed25519 session key
+// 3. Verify change signature with Ed25519 (fast)
+```
+
+**Benefits:**
+
+- Per-change overhead: **~156 bytes** (same as Phase 1)
+- Signing speed: Ed25519 fast (~50,000/sec)
+- Quantum safety: Master key is ML-DSA (only used for delegation)
+- Compromise scope: Session key breach only affects that session (max 24h)
+
+#### Strategy 2: Batch Signing (Offline/Bulk Sync)
+
+Sign accumulated changes with one ML-DSA signature over a Merkle root:
+
+```typescript
+interface ChangeBatch {
+  // All changes in the batch
+  changes: Change<unknown>[]
+
+  // Merkle tree for efficient proofs
+  merkleRoot: string // 32 bytes
+
+  // One signature covers entire batch
+  batchSignature: {
+    keyId: string // ML-DSA key ID
+    signature: string // 3.4 KB (amortized over N changes)
+  }
+}
+
+// Individual change includes Merkle proof
+interface Change<T> {
+  // ... payload ...
+  authorId: string // 60 bytes
+  merkleProof?: string[] // ~log2(N) * 32 bytes for batch verification
+}
+```
+
+```mermaid
+graph TD
+    subgraph "Merkle Batch Structure"
+        Sig["ML-DSA Signature<br/>3.4 KB"]
+        Root["Merkle Root<br/>32 bytes"]
+        H01["Hash 0-1"]
+        H23["Hash 2-3"]
+        C0["Change 0"]
+        C1["Change 1"]
+        C2["Change 2"]
+        C3["Change 3"]
+
+        Sig --> Root
+        Root --> H01
+        Root --> H23
+        H01 --> C0
+        H01 --> C1
+        H23 --> C2
+        H23 --> C3
+    end
+```
+
+**Benefits:**
+
+- Batch of 100 changes: **3.4 KB + proofs** vs 340 KB (naive)
+- Works offline: Queue changes, sign when syncing
+- Efficient verification: Verify root once, spot-check individual changes
+
+#### Hybrid Protocol
+
+Peers accept changes if ANY of these conditions are met:
+
+```typescript
+type ChangeVerification =
+  | { type: 'session'; delegation: SessionDelegation; signature: Ed25519Sig }
+  | { type: 'batch'; batchRoot: string; merkleProof: string[]; batchSig: MLDSASig }
+  | { type: 'direct'; signature: MLDSASig } // Fallback: direct ML-DSA per change
+```
+
+#### Cost Comparison (Revised)
+
+| Scenario         | Changes | Naive Phase 2 | Session Keys  | Batch Signing |
+| ---------------- | ------- | ------------- | ------------- | ------------- |
+| Real-time typing | 100     | 340 KB        | **~19 KB**    | N/A           |
+| Offline edits    | 100     | 340 KB        | N/A           | **~13 KB**    |
+| Bulk import      | 10,000  | 34 MB         | N/A           | **~170 KB**   |
+| Mixed session    | 100     | 340 KB        | **~15-20 KB** | **~15-20 KB** |
+
+**Reduction: 20-200x** from naive approach.
+
+#### Overhead Breakdown
+
+**Session Keys (100 changes):**
+| Component | Size |
+|-----------|------|
+| Session delegation UCAN | ~4 KB (once) |
+| 100 × (authorId + sessionKeyId + Ed25519 sig) | 100 × 156 = 15.6 KB |
+| **Total** | **~19.6 KB** |
+
+**Batch Signing (100 changes):**
+| Component | Size |
+|-----------|------|
+| ML-DSA batch signature | 3.4 KB (once) |
+| Merkle root | 32 bytes |
+| 100 × (authorId + merkle proof ~7 hashes) | 100 × (60 + 224) = 28.4 KB |
+| **Total** | **~32 KB** |
+| Without proofs (trust batch) | **~9.4 KB** |
+
+### Other Mitigation Strategies
+
+| Strategy                 | Savings                       | Tradeoff                  |
+| ------------------------ | ----------------------------- | ------------------------- |
+| **Identity caching**     | Avoid repeated resolution     | Stale data risk (use TTL) |
+| **Lazy verification**    | Skip verify until needed      | Trust assumption          |
+| **Compression**          | ~50% on ML-DSA signatures     | CPU cost                  |
+| **Checkpoint snapshots** | Verify snapshot, not full log | Complexity                |
 
 ### Recommendations
 
-1. **Phase 1 → Phase 2 trigger**: When quantum computers reach 1000+ logical qubits, or when enterprise customers require key rotation.
+1. **Default to session keys** for interactive editing. Generate on document open, refresh every 24h.
 
-2. **Batch changes**: In Phase 2+, batch multiple changes under one signature where possible (e.g., typing sessions, bulk imports).
+2. **Use batch signing** for offline sync, bulk imports, and background sync.
 
-3. **Cache aggressively**: Identity documents change rarely; cache with TTL of hours/days.
+3. **Cache session delegations** - they're valid for hours; don't re-fetch.
 
-4. **Compress on wire**: Signatures compress well; use compression for sync.
+4. **Compress batches on wire** - ML-DSA signatures compress ~50%.
 
-5. **Progressive verification**: For large imports, verify lazily or in background.
+5. **Phase 1 → Phase 2 trigger**: When enterprise customers require key rotation, or quantum threat becomes credible.
 
 ---
 
@@ -478,101 +629,225 @@ async function resolveIdentity(id: string): Promise<IdentityDocument> {
 
 ### 2.4 Hybrid Signatures
 
-Changes can be signed with multiple algorithms for quantum-safe transition:
+Rather than signing every change with ML-DSA (3.4 KB each), we use two efficient strategies:
+
+1. **Session Keys** - For real-time collaboration (online)
+2. **Batch Signing** - For offline edits and bulk sync
 
 ```mermaid
-graph LR
-    subgraph "Change Signing"
-        Change["Change<T>"]
+graph TD
+    subgraph "Signing Strategies"
+        Master["ML-DSA Master Key<br/>(in Identity Doc)"]
 
-        Ed["Ed25519 Key"]
-        PQ["ML-DSA Key"]
+        subgraph "Strategy 1: Session Keys"
+            Session["Ed25519 Session Key<br/>(ephemeral, 24h)"]
+            UCAN["UCAN Delegation<br/>(3.4 KB once)"]
+            Changes1["Changes<br/>(64 byte sigs)"]
 
-        Ed -->|"sign"| SigA["Signature A"]
-        PQ -->|"sign"| SigB["Signature B"]
+            Master -->|"delegates via"| UCAN
+            UCAN -->|"authorizes"| Session
+            Session -->|"signs each"| Changes1
+        end
 
-        SigA --> Sigs["signatures[]"]
-        SigB --> Sigs
+        subgraph "Strategy 2: Batch Signing"
+            Batch["Change Batch"]
+            Root["Merkle Root"]
+            BatchSig["ML-DSA Signature<br/>(3.4 KB total)"]
 
-        Sigs --> Change
-    end
-
-    subgraph "Verification (OR logic)"
-        V["Verifier"]
-        V -->|"valid?"| SigA
-        V -->|"valid?"| SigB
-
-        SigA -->|"YES"| Valid["Change Valid"]
-        SigB -->|"YES"| Valid
+            Batch -->|"hashed to"| Root
+            Master -->|"signs"| Root
+            Root --> BatchSig
+        end
     end
 ```
 
+#### Session Keys (Real-Time)
+
 ```typescript
+// Session delegation - created once when opening a document
+interface SessionDelegation {
+  // UCAN token: ML-DSA master key grants Ed25519 session key
+  ucan: string                    // ~4 KB (includes ML-DSA signature)
+  sessionPublicKey: string        // 32 bytes (Ed25519)
+  sessionKeyId: string            // Fingerprint of session key
+  expiresAt: number               // e.g., 24 hours from creation
+  scope: {
+    identityId: string            // Which identity this is for
+    capabilities: string[]        // What the session can do
+  }
+}
+
+// Change signed with session key (small!)
 interface Change<T> {
-  // ... existing fields ...
+  // ... payload fields ...
 
-  // Legacy (single signature) - keep for backward compat
-  authorDID: string
-  signature: string
+  // Legacy (Phase 1 compat)
+  authorDID?: string
+  signature?: string
 
-  // New (Phase 2) - multiple signatures, identity reference
-  authorId?: string // xnet:id:... (preferred over authorDID)
-  signatures?: SignatureEntry[]
+  // Session-signed (Phase 2 preferred for real-time)
+  authorId: string                // xnet:id:... (60 bytes)
+  sessionKeyId: string            // Which session key (32 bytes)
+  sessionSignature: string        // Ed25519 signature (64 bytes)
 }
 
-interface SignatureEntry {
-  keyId: string // Which key signed (fingerprint)
-  algorithm: string // Ed25519, ML-DSA-65, etc.
-  signature: string // Base64 encoded
-}
-
-// Signing: Add both Ed25519 and ML-DSA signatures
-async function signChange<T>(
-  change: Change<T>,
+// Create session on document open
+async function createSession(
   identity: IdentityDocument,
-  keys: Map<string, Uint8Array> // keyId -> privateKey
+  masterPrivateKey: Uint8Array,
+  ttlMs: number = 24 * 60 * 60 * 1000
+): Promise<{ delegation: SessionDelegation; sessionPrivateKey: Uint8Array }> {
+  // Generate ephemeral Ed25519 keypair
+  const { publicKey, privateKey } = await generateEd25519Keypair()
+  const sessionKeyId = await fingerprintKey(publicKey)
+
+  // Create UCAN: ML-DSA delegates to Ed25519 session key
+  const ucan = await createUCAN({
+    issuer: identity.id,
+    audience: `did:key:${base58Encode(publicKey)}`,
+    capabilities: [{ with: identity.id, can: 'sign-changes' }],
+    expiration: Date.now() + ttlMs,
+    signature: await signMLDSA(masterPrivateKey, ...)
+  })
+
+  return {
+    delegation: {
+      ucan,
+      sessionPublicKey: base58Encode(publicKey),
+      sessionKeyId,
+      expiresAt: Date.now() + ttlMs,
+      scope: { identityId: identity.id, capabilities: ['sign-changes'] }
+    },
+    sessionPrivateKey: privateKey
+  }
+}
+
+// Sign change with session key (fast, small)
+async function signWithSession<T>(
+  change: Change<T>,
+  sessionKeyId: string,
+  sessionPrivateKey: Uint8Array
 ): Promise<Change<T>> {
   const payload = canonicalize(change)
-  const signatures: SignatureEntry[] = []
-
-  for (const key of identity.keys) {
-    if (!key.purposes.includes('sign')) continue
-    const privateKey = keys.get(key.id)
-    if (!privateKey) continue
-
-    signatures.push({
-      keyId: key.id,
-      algorithm: key.algorithm,
-      signature: await sign(payload, privateKey, key.algorithm)
-    })
-  }
+  const signature = await signEd25519(sessionPrivateKey, payload)
 
   return {
     ...change,
-    authorId: identity.id,
-    signatures
+    sessionKeyId,
+    sessionSignature: base64Encode(signature)  // 64 bytes
+  }
+}
+```
+
+#### Batch Signing (Offline/Bulk)
+
+```typescript
+// Batch of changes with single ML-DSA signature
+interface ChangeBatch {
+  changes: Change<unknown>[]
+
+  // Merkle tree root of all change hashes
+  merkleRoot: string // 32 bytes
+
+  // Single ML-DSA signature over the root
+  batchSignature: {
+    authorId: string // Identity that signed
+    keyId: string // ML-DSA key ID
+    signature: string // 3.4 KB (amortized)
   }
 }
 
-// Verification: Accept if ANY valid signature from an active key
-async function verifyChange<T>(change: Change<T>, identity: IdentityDocument): Promise<boolean> {
-  const payload = canonicalize(change)
+// Change with Merkle proof (for individual verification)
+interface BatchedChange<T> extends Change<T> {
+  batchId: string // Which batch this belongs to
+  merkleProof: string[] // Proof path (log2(N) × 32 bytes)
+  leafIndex: number // Position in the tree
+}
 
-  // Legacy: single signature (Phase 1 compatibility)
-  if (!change.signatures || change.signatures.length === 0) {
-    const key = identity.keys.find((k) => k.algorithm === 'Ed25519' && !isRevoked(k.id, identity))
-    if (!key) return false
-    return verify(payload, change.signature, key.publicKey, 'Ed25519')
+// Create batch from offline changes
+async function createBatch(
+  changes: Change<unknown>[],
+  identity: IdentityDocument,
+  masterPrivateKey: Uint8Array
+): Promise<ChangeBatch> {
+  // Build Merkle tree
+  const leaves = changes.map((c) => blake3(canonicalize(c)))
+  const tree = buildMerkleTree(leaves)
+  const merkleRoot = tree.root
+
+  // Sign root with ML-DSA
+  const signature = await signMLDSA(masterPrivateKey, merkleRoot)
+
+  // Attach proofs to each change
+  const batchedChanges = changes.map((change, i) => ({
+    ...change,
+    batchId: merkleRoot,
+    merkleProof: tree.getProof(i),
+    leafIndex: i
+  }))
+
+  return {
+    changes: batchedChanges,
+    merkleRoot,
+    batchSignature: {
+      authorId: identity.id,
+      keyId: identity.keys.find((k) => k.algorithm.startsWith('ML-DSA'))!.id,
+      signature: base64Encode(signature)
+    }
+  }
+}
+```
+
+#### Unified Verification
+
+```typescript
+// Verify a change using any valid method
+async function verifyChange<T>(
+  change: Change<T>,
+  context: {
+    identityCache: Map<string, IdentityDocument>
+    sessionCache: Map<string, SessionDelegation>
+    batchCache: Map<string, ChangeBatch>
+  }
+): Promise<boolean> {
+  const identity = await resolveIdentity(change.authorId, context.identityCache)
+
+  // Method 1: Session signature (real-time)
+  if (change.sessionKeyId && change.sessionSignature) {
+    const delegation = context.sessionCache.get(change.sessionKeyId)
+    if (!delegation) return false
+    if (Date.now() > delegation.expiresAt) return false
+
+    // Verify UCAN chain (ML-DSA → Ed25519 delegation)
+    if (!(await verifyUCAN(delegation.ucan, identity))) return false
+
+    // Verify Ed25519 signature
+    const payload = canonicalize(change)
+    return verifyEd25519(delegation.sessionPublicKey, payload, change.sessionSignature)
   }
 
-  // Modern: any valid signature from active key
-  for (const sig of change.signatures) {
-    const key = identity.keys.find((k) => k.id === sig.keyId)
-    if (!key) continue
-    if (isRevoked(key.id, identity)) continue
+  // Method 2: Batch signature (offline sync)
+  if (change.batchId && change.merkleProof) {
+    const batch = context.batchCache.get(change.batchId)
+    if (!batch) return false
 
-    const valid = await verify(payload, sig.signature, key.publicKey, sig.algorithm)
-    if (valid) return true
+    // Verify Merkle proof
+    const leaf = blake3(canonicalize(change))
+    if (!verifyMerkleProof(leaf, change.merkleProof, batch.merkleRoot)) return false
+
+    // Verify ML-DSA signature on root (cached after first verify)
+    return verifyMLDSA(
+      identity.keys.find((k) => k.id === batch.batchSignature.keyId)!.publicKey,
+      batch.merkleRoot,
+      batch.batchSignature.signature
+    )
+  }
+
+  // Method 3: Legacy Phase 1 (direct Ed25519)
+  if (change.authorDID && change.signature) {
+    const key = identity.keys.find((k) => k.algorithm === 'Ed25519')
+    if (!key) return false
+    return verifyEd25519(key.publicKey, canonicalize(change), change.signature)
   }
 
   return false
