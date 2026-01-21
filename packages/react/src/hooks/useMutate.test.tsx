@@ -77,7 +77,7 @@ describe('useMutate', () => {
         expect(result.current.query.loading).toBe(false)
       })
 
-      let created: Awaited<ReturnType<typeof result.current.mutate.create>>
+      let created: Awaited<ReturnType<typeof result.current.mutate.create>> | null = null
       await act(async () => {
         created = await result.current.mutate.create(TaskSchema, {
           title: 'New Task',
@@ -86,8 +86,8 @@ describe('useMutate', () => {
       })
 
       expect(created).not.toBeNull()
-      expect(created?.properties.title).toBe('New Task')
-      expect(created?.properties.status).toBe('todo')
+      expect(created!.properties.title).toBe('New Task')
+      expect(created!.properties.status).toBe('todo')
 
       // Verify via reload
       await act(async () => {
@@ -247,7 +247,7 @@ describe('useMutate', () => {
       })
 
       // Create across schemas in one transaction
-      let txResult: Awaited<ReturnType<typeof result.current.mutate.mutate>>
+      let txResult: Awaited<ReturnType<typeof result.current.mutate.mutate>> | null = null
       await act(async () => {
         txResult = await result.current.mutate.mutate([
           { type: 'create', schema: TaskSchema, data: { title: 'Task 1', status: 'todo' } },
@@ -257,7 +257,7 @@ describe('useMutate', () => {
       })
 
       expect(txResult).not.toBeNull()
-      expect(txResult?.changes).toHaveLength(3)
+      expect(txResult!.changes).toHaveLength(3)
 
       await act(async () => {
         await result.current.tasks.reload()
@@ -315,7 +315,7 @@ describe('useMutate', () => {
       // Should have 2 tasks (task1 updated, task2 deleted, task3 new)
       expect(result.current.tasks.data).toHaveLength(2)
 
-      const task1 = result.current.tasks.data.find((t) => t.id === task1Id)
+      const task1 = result.current.tasks.data.find((t: { id: string }) => t.id === task1Id)
       expect(task1?.properties.status).toBe('done')
     })
   })

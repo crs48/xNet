@@ -1,109 +1,237 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { renderHook } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { renderHook, waitFor } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
-import { XNetProvider, type XNetConfig } from '../context'
+import { NodeStoreProvider } from './useNodeStore'
 import { useDocument } from './useDocument'
-import type { StorageAdapter, DocumentData } from '@xnet/storage'
+import { PageSchema, MemoryNodeStorageAdapter, NodeStore, type DID } from '@xnet/data'
 
-// Mock storage adapter
-function createMockStorage(): StorageAdapter {
-  const documents = new Map<string, DocumentData>()
+// Mock y-webrtc to avoid WebRTC in tests
+vi.mock('y-webrtc', () => ({
+  WebrtcProvider: vi.fn().mockImplementation(() => ({
+    on: vi.fn(),
+    off: vi.fn(),
+    destroy: vi.fn()
+  }))
+}))
 
-  return {
-    async open() {},
-    async close() {},
-    async clear() {},
-    async getDocument(id: string) {
-      return documents.get(id) ?? null
-    },
-    async setDocument(id: string, data: DocumentData) {
-      documents.set(id, data)
-    },
-    async deleteDocument(id: string) {
-      documents.delete(id)
-    },
-    async listDocuments() {
-      return Array.from(documents.keys())
-    },
-    async appendUpdate() {},
-    async getUpdates() {
-      return []
-    },
-    async getUpdateCount() {
-      return 0
-    },
-    async getSnapshot() {
-      return null
-    },
-    async setSnapshot() {},
-    async getBlob() {
-      return null
-    },
-    async setBlob() {},
-    async hasBlob() {
-      return false
-    }
-  }
+// Test DID and signing key
+const TEST_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as const
+const TEST_SIGNING_KEY = new Uint8Array(32).fill(1)
+
+interface WrapperConfig {
+  storage: MemoryNodeStorageAdapter
+  authorDID: DID
+  signingKey: Uint8Array
 }
 
-function createWrapper(config: XNetConfig) {
+function createWrapper(config: WrapperConfig) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return React.createElement(XNetProvider, { config, children })
+    return React.createElement(NodeStoreProvider, {
+      storage: config.storage,
+      authorDID: config.authorDID,
+      signingKey: config.signingKey,
+      children
+    })
   }
 }
 
 describe('useDocument', () => {
-  let mockStorage: StorageAdapter
+  let storage: MemoryNodeStorageAdapter
+  let store: NodeStore
 
-  beforeEach(() => {
-    mockStorage = createMockStorage()
+  beforeEach(async () => {
+    storage = new MemoryNodeStorageAdapter()
+    store = new NodeStore({
+      storage,
+      authorDID: TEST_DID,
+      signingKey: TEST_SIGNING_KEY
+    })
+    await store.initialize()
   })
 
-  it('should return loading state for document', () => {
-    const { result } = renderHook(
-      () => useDocument('doc-1'),
-      { wrapper: createWrapper({ storage: mockStorage }) }
-    )
+  it('should return loading state initially', () => {
+    const { result } = renderHook(() => useDocument(PageSchema, 'test-id'), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
 
-    // Initially either loading or not
     expect(typeof result.current.loading).toBe('boolean')
   })
 
-  it('should return null data for null docId', () => {
-    const { result } = renderHook(
-      () => useDocument(null),
-      { wrapper: createWrapper({ storage: mockStorage }) }
-    )
+  it('should return null data for null id', async () => {
+    const { result } = renderHook(() => useDocument(PageSchema, null), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
 
     expect(result.current.data).toBeNull()
-    expect(result.current.loading).toBe(false)
+    expect(result.current.doc).toBeNull()
   })
 
-  it('should not autoload when autoLoad is false', () => {
-    const { result } = renderHook(
-      () => useDocument('doc-1', { autoLoad: false }),
-      { wrapper: createWrapper({ storage: mockStorage }) }
+  it('should load node data when id is provided', async () => {
+    // Create a node first
+    const page = await store.create({
+      schemaId: PageSchema._schemaId,
+      properties: { title: 'Test Page' }
+    })
+
+    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    // Wait for both loading to complete and data to be available
+    await waitFor(
+      () => {
+        expect(result.current.loading).toBe(false)
+        expect(result.current.data).not.toBeNull()
+      },
+      { timeout: 2000 }
     )
 
-    expect(result.current.loading).toBe(false)
+    expect(result.current.data?.properties.title).toBe('Test Page')
+  })
+
+  it('should create Y.Doc for schemas with document type', async () => {
+    // PageSchema has document: 'yjs'
+    const page = await store.create({
+      schemaId: PageSchema._schemaId,
+      properties: { title: 'Test Page' }
+    })
+
+    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    await waitFor(
+      () => {
+        expect(result.current.loading).toBe(false)
+        expect(result.current.doc).not.toBeNull()
+      },
+      { timeout: 2000 }
+    )
+
+    // Y.Doc should have a guid matching the node id
+    expect(result.current.doc?.guid).toBe(page.id)
+  })
+
+  it('should provide save function', async () => {
+    const page = await store.create({
+      schemaId: PageSchema._schemaId,
+      properties: { title: 'Test Page' }
+    })
+
+    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(typeof result.current.save).toBe('function')
+  })
+
+  it('should provide reload function', async () => {
+    const page = await store.create({
+      schemaId: PageSchema._schemaId,
+      properties: { title: 'Test Page' }
+    })
+
+    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    expect(typeof result.current.reload).toBe('function')
+  })
+
+  it('should track dirty state', async () => {
+    const page = await store.create({
+      schemaId: PageSchema._schemaId,
+      properties: { title: 'Test Page' }
+    })
+
+    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    // Initially not dirty
+    expect(result.current.isDirty).toBe(false)
+  })
+
+  it('should track sync status', async () => {
+    const page = await store.create({
+      schemaId: PageSchema._schemaId,
+      properties: { title: 'Test Page' }
+    })
+
+    const { result } = renderHook(() => useDocument(PageSchema, page.id, { disableSync: true }), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
+    // With sync disabled, should be offline
+    expect(result.current.syncStatus).toBe('offline')
+  })
+
+  it('should return null for non-existent node', async () => {
+    const { result } = renderHook(() => useDocument(PageSchema, 'non-existent-id'), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+    })
+
     expect(result.current.data).toBeNull()
-  })
-
-  it('should provide update function', () => {
-    const { result } = renderHook(
-      () => useDocument('doc-1', { autoLoad: false }),
-      { wrapper: createWrapper({ storage: mockStorage }) }
-    )
-
-    expect(typeof result.current.update).toBe('function')
-  })
-
-  it('should provide refresh function', () => {
-    const { result } = renderHook(
-      () => useDocument('doc-1', { autoLoad: false }),
-      { wrapper: createWrapper({ storage: mockStorage }) }
-    )
-
-    expect(typeof result.current.refresh).toBe('function')
+    expect(result.current.doc).toBeNull()
   })
 })

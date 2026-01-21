@@ -98,6 +98,13 @@ export interface NodeState {
   /** Last update metadata */
   updatedAt: number
   updatedBy: DID
+
+  /**
+   * Serialized CRDT document content (for nodes with document type).
+   * For Yjs: Uint8Array from Y.encodeStateAsUpdate()
+   * Use Y.applyUpdate(ydoc, documentContent) to hydrate.
+   */
+  documentContent?: Uint8Array
 }
 
 // ============================================================================
@@ -128,6 +135,10 @@ export interface NodeStorageAdapter {
   // Sync state
   getLastLamportTime(): Promise<number>
   setLastLamportTime(time: number): Promise<void>
+
+  // Document content operations (for nodes with CRDT document)
+  getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null>
+  setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>
 }
 
 export interface ListNodesOptions {

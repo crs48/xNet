@@ -22,6 +22,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   private changes = new Map<NodeId, NodeChange[]>()
   private changesByHash = new Map<ContentId, NodeChange>()
   private nodes = new Map<NodeId, NodeState>()
+  private documentContentStore = new Map<NodeId, Uint8Array>()
   private lastLamportTime = 0
 
   // ==========================================================================
@@ -132,6 +133,18 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   // ==========================================================================
+  // Document Content Operations (for nodes with CRDT document)
+  // ==========================================================================
+
+  async getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null> {
+    return this.documentContentStore.get(nodeId) ?? null
+  }
+
+  async setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void> {
+    this.documentContentStore.set(nodeId, content)
+  }
+
+  // ==========================================================================
   // Utility Methods (for testing)
   // ==========================================================================
 
@@ -142,6 +155,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.changes.clear()
     this.changesByHash.clear()
     this.nodes.clear()
+    this.documentContentStore.clear()
     this.lastLamportTime = 0
   }
 

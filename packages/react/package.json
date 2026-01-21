@@ -25,6 +25,7 @@
     "@xnet/query": "workspace:*",
     "@xnet/storage": "workspace:*",
     "@xnet/sync": "workspace:*",
+    "y-webrtc": "^10.3.0",
     "yjs": "^13.6.24",
     "zustand": "^5.0.4"
   },
