@@ -56,6 +56,16 @@ export interface FilterGroup {
 }
 
 /**
+ * Gallery card size options
+ */
+export type GalleryCardSize = 'small' | 'medium' | 'large'
+
+/**
+ * Gallery image fit options
+ */
+export type GalleryImageFit = 'cover' | 'contain'
+
+/**
  * View configuration stored with the database
  */
 export interface ViewConfig {
@@ -80,6 +90,15 @@ export interface ViewConfig {
 
   /** Gallery view: property for cover image */
   coverProperty?: string
+
+  /** Gallery view: card size */
+  galleryCardSize?: GalleryCardSize
+
+  /** Gallery view: image fit mode */
+  galleryImageFit?: GalleryImageFit
+
+  /** Gallery view: show title on cards */
+  galleryShowTitle?: boolean
 
   /** Timeline/Calendar: date property to use */
   dateProperty?: string
