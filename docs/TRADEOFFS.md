@@ -438,6 +438,10 @@ const publicKey = extractPublicKey(did)
 - Key compromise = identity compromise (no rotation without new identity)
 - Mitigation: UCAN delegation allows revoking sub-keys
 
+### Future: Decoupled Identity
+
+A migration path to decoupled identity (stable ID that references keys) is planned. This will enable key rotation, post-quantum migration, and enterprise features. See [IDENTITY_MIGRATION_PLAN.md](./IDENTITY_MIGRATION_PLAN.md) for details.
+
 ---
 
 ## 12. Authorization: UCAN over JWT/OAuth
@@ -536,6 +540,16 @@ const valid = verify(hash, signature, publicKey)
 
 - Not NIST/FIPS approved (matters for some compliance)
 - Single algorithm (no "algorithm agility")
+- **Quantum vulnerability** - Ed25519 is broken by Shor's algorithm
+
+### Future: Post-Quantum Migration
+
+A phased migration to ML-DSA (Dilithium) is planned:
+
+1. Phase 2: Hybrid signatures (Ed25519 + ML-DSA)
+2. Phase 3: ML-DSA primary, Ed25519 legacy
+
+See [IDENTITY_MIGRATION_PLAN.md](./IDENTITY_MIGRATION_PLAN.md) for the full timeline and implementation details.
 
 ---
 
