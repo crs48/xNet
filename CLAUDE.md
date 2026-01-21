@@ -2,10 +2,11 @@
 
 ## What This Is
 
-**xNet** = Decentralized data infrastructure for the internet. Local-first, P2P-synced, user-owned data.  
-**xNotes** = Notion-like productivity app built on xNet. The interface that seeds the global namespace.
+**xNet** = Decentralized data infrastructure AND application. Local-first, P2P-synced, user-owned data.
 
-> **The Big Picture**: xNet is not just an SDK — it's infrastructure for a new internet where data is user-owned, globally addressable, and works from personal notes to planetary-scale indexes (decentralized search, federated social, etc.). See `docs/VISION.md` for the full vision.
+xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more. Think "one app to rule them all" but decentralized.
+
+> **The Big Picture**: xNet is infrastructure for a new internet where data is user-owned, globally addressable, and works from personal notes to planetary-scale indexes (decentralized search, federated social, etc.). See `docs/VISION.md` for the full vision.
 
 ## Data Model (Current)
 
