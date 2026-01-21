@@ -99,3 +99,29 @@ export {
   type UseTimelineStateOptions as UseTimelineStateOptions,
   type UseTimelineStateResult as UseTimelineStateResult
 } from './timeline/index.js'
+
+// Calendar view
+export {
+  CalendarView,
+  CalendarMonthView,
+  CalendarWeekView,
+  CalendarDayView,
+  useCalendarState,
+  isSameDay,
+  getWeekStart,
+  getMonthWeeks,
+  getDayNames,
+  formatCurrentDate,
+  getHours,
+  formatHour,
+  type CalendarViewProps,
+  type CalendarMonthViewProps,
+  type CalendarWeekViewProps,
+  type CalendarDayViewProps,
+  type CalendarRow,
+  type CalendarEvent,
+  type CalendarViewMode,
+  type WeekStartDay,
+  type UseCalendarStateOptions,
+  type UseCalendarStateResult
+} from './calendar/index.js'
