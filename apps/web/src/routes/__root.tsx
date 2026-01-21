@@ -16,25 +16,25 @@ function RootLayout() {
   const { identity } = useIdentity()
 
   return (
-    <div className="app-layout">
-      <header className="app-header">
-        <Link to="/" className="logo">
+    <div className="flex flex-col h-screen">
+      <header className="h-[52px] flex items-center justify-between px-4 border-b border-border bg-bg">
+        <Link to="/" className="text-lg font-semibold text-text no-underline hover:no-underline">
           xNotes
         </Link>
         <GlobalSearch />
-        <div className="header-right">
+        <div className="flex items-center gap-4">
           <SyncIndicator status={status} peerCount={peerCount} />
           {identity && (
-            <span className="identity" title={identity.did}>
+            <span className="text-xs text-text-secondary font-mono" title={identity.did}>
               {identity.did.slice(0, 16)}...
             </span>
           )}
         </div>
       </header>
 
-      <div className="app-body">
+      <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="app-content">
+        <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
       </div>

@@ -1,8 +1,12 @@
 /**
- * Main App component
+ * Electron App - Main component
+ *
+ * Uses IPC to communicate with main process for document operations,
+ * and @xnet/editor/react for the rich text editor.
  */
 import React, { useEffect, useState, useCallback } from 'react'
-import { Editor } from './Editor'
+import { RichTextEditor } from '@xnet/editor/react'
+import * as Y from 'yjs'
 
 interface Document {
   id: string
@@ -12,8 +16,8 @@ interface Document {
 export function App() {
   const [identity, setIdentity] = useState<string | null>(null)
   const [documents, setDocuments] = useState<Document[]>([])
-  const [selectedDoc, setSelectedDoc] = useState<string | null>(null)
-  const [docContent, setDocContent] = useState<string>('')
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
+  const [ydoc, setYdoc] = useState<Y.Doc | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,241 +69,162 @@ export function App() {
         title: 'Untitled'
       })
       await refreshDocuments()
-      setSelectedDoc(doc.id)
+      selectDoc(doc.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create document')
     }
   }, [])
 
   const selectDoc = async (id: string) => {
-    setSelectedDoc(id)
-    const doc = await window.xnet.getDocument(id)
-    if (doc) {
-      setDocContent(doc.content)
+    // Clean up previous ydoc
+    if (ydoc) {
+      ydoc.destroy()
+    }
+
+    setSelectedDocId(id)
+
+    try {
+      const data = await window.xnetStorage.getDocument(id)
+
+      // Create new Y.Doc
+      const doc = new Y.Doc({ guid: id })
+
+      // Apply stored state if exists
+      if (data?.content && data.content.length > 0) {
+        const state = new Uint8Array(data.content)
+        Y.applyUpdate(doc, state)
+      }
+
+      // Auto-save on changes
+      doc.on('update', async () => {
+        const state = Y.encodeStateAsUpdate(doc)
+        await window.xnetStorage.setDocument(id, {
+          id,
+          content: Array.from(state),
+          metadata: {
+            created: data?.metadata?.created ?? Date.now(),
+            updated: Date.now(),
+            type: 'page'
+          },
+          version: 1
+        })
+      })
+
+      setYdoc(doc)
+    } catch (err) {
+      console.error('Failed to load document:', err)
     }
   }
 
   const deleteDoc = async (id: string) => {
     await window.xnet.deleteDocument(id)
     await refreshDocuments()
-    if (selectedDoc === id) {
-      setSelectedDoc(null)
-      setDocContent('')
+    if (selectedDocId === id) {
+      setSelectedDocId(null)
+      if (ydoc) {
+        ydoc.destroy()
+        setYdoc(null)
+      }
     }
   }
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (ydoc) {
+        ydoc.destroy()
+      }
+    }
+  }, [ydoc])
+
   if (isLoading) {
     return (
-      <div style={styles.loading}>
-        <p>Loading xNotes...</p>
+      <div className="flex flex-col items-center justify-center h-full">
+        <p className="text-text-secondary">Loading xNet...</p>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div style={styles.error}>
-        <p>Error: {error}</p>
-        <button onClick={() => window.location.reload()}>Retry</button>
+      <div className="flex flex-col items-center justify-center h-full">
+        <p className="text-red-500 mb-4">Error: {error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover"
+        >
+          Retry
+        </button>
       </div>
     )
   }
 
   return (
-    <div style={styles.app}>
-      <header style={styles.titlebar}>
-        <div style={styles.titlebarDrag} />
-        <h1 style={styles.title}>xNotes</h1>
-        <span style={styles.identity}>
+    <div className="flex flex-col h-screen bg-bg-primary">
+      {/* Titlebar */}
+      <header className="h-[38px] bg-bg-secondary flex items-center justify-between px-4 pr-20 border-b border-border relative">
+        <div className="absolute inset-0 titlebar-drag" />
+        <h1 className="text-sm font-semibold z-10">xNet</h1>
+        <span className="text-xs text-text-secondary z-10">
           {identity ? `${identity.slice(0, 20)}...` : ''}
         </span>
       </header>
-      <main style={styles.main}>
-        <aside style={styles.sidebar}>
-          <button style={styles.newButton} onClick={createDoc}>
+
+      {/* Main content */}
+      <main className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-[250px] bg-bg-secondary border-r border-border flex flex-col p-4">
+          <button
+            onClick={createDoc}
+            className="w-full bg-primary text-white border-none px-4 py-2 rounded-md cursor-pointer text-sm mb-4 hover:bg-primary-hover transition-colors"
+          >
             + New Page
           </button>
-          <ul style={styles.docList}>
-            {documents.map(doc => (
+
+          <ul className="list-none p-0 m-0 flex-1 overflow-auto">
+            {documents.map((doc) => (
               <li
                 key={doc.id}
-                style={{
-                  ...styles.docItem,
-                  ...(selectedDoc === doc.id ? styles.docItemSelected : {})
-                }}
                 onClick={() => selectDoc(doc.id)}
+                className={`px-3 py-2 rounded-md cursor-pointer mb-1 flex justify-between items-center group transition-colors ${
+                  selectedDocId === doc.id ? 'bg-bg-tertiary' : 'hover:bg-bg-tertiary/50'
+                }`}
               >
-                <span style={styles.docTitle}>{doc.title}</span>
+                <span className="text-sm truncate">{doc.title}</span>
                 <button
-                  style={styles.deleteButton}
                   onClick={(e) => {
                     e.stopPropagation()
                     deleteDoc(doc.id)
                   }}
+                  className="bg-transparent border-none text-text-secondary cursor-pointer p-1 text-base opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity"
                 >
-                  x
+                  ×
                 </button>
               </li>
             ))}
           </ul>
+
           {documents.length === 0 && (
-            <p style={styles.emptyMessage}>No documents yet</p>
+            <p className="text-text-secondary text-sm text-center mt-5">No documents yet</p>
           )}
         </aside>
-        <section style={styles.content}>
-          {selectedDoc ? (
-            <div style={styles.editor}>
-              <Editor docId={selectedDoc} style={styles.textarea} />
-            </div>
+
+        {/* Editor area */}
+        <section className="flex-1 flex flex-col p-6 overflow-auto">
+          {selectedDocId && ydoc ? (
+            <RichTextEditor
+              ydoc={ydoc}
+              field="content"
+              placeholder="Start typing..."
+              showToolbar={true}
+            />
           ) : (
-            <div style={styles.placeholder}>
-              <p>Select a document or create a new one</p>
+            <div className="flex flex-col items-center justify-center h-full">
+              <p className="text-text-secondary">Select a document or create a new one</p>
             </div>
           )}
         </section>
       </main>
     </div>
   )
-}
-
-const styles: Record<string, React.CSSProperties> = {
-  app: {
-    display: 'flex',
-    flexDirection: 'column',
-    height: '100vh',
-    background: 'var(--bg-primary)'
-  },
-  titlebar: {
-    height: 'var(--titlebar-height)',
-    background: 'var(--bg-secondary)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 80px 0 16px',
-    borderBottom: '1px solid var(--border)',
-    position: 'relative'
-  },
-  titlebarDrag: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    WebkitAppRegion: 'drag'
-  } as React.CSSProperties,
-  title: {
-    fontSize: '14px',
-    fontWeight: 600,
-    zIndex: 1
-  },
-  identity: {
-    fontSize: '12px',
-    color: 'var(--text-secondary)',
-    zIndex: 1
-  },
-  main: {
-    flex: 1,
-    display: 'flex',
-    overflow: 'hidden'
-  },
-  sidebar: {
-    width: '250px',
-    background: 'var(--bg-secondary)',
-    borderRight: '1px solid var(--border)',
-    display: 'flex',
-    flexDirection: 'column',
-    padding: '16px'
-  },
-  newButton: {
-    background: 'var(--accent)',
-    color: 'white',
-    border: 'none',
-    padding: '8px 16px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    marginBottom: '16px'
-  },
-  docList: {
-    listStyle: 'none',
-    flex: 1,
-    overflow: 'auto'
-  },
-  docItem: {
-    padding: '8px 12px',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    marginBottom: '4px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center'
-  },
-  docItemSelected: {
-    background: 'var(--bg-tertiary)'
-  },
-  docTitle: {
-    fontSize: '14px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap'
-  },
-  deleteButton: {
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--text-secondary)',
-    cursor: 'pointer',
-    padding: '4px 8px',
-    borderRadius: '4px',
-    opacity: 0.5
-  },
-  emptyMessage: {
-    color: 'var(--text-secondary)',
-    fontSize: '14px',
-    textAlign: 'center',
-    marginTop: '20px'
-  },
-  content: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  editor: {
-    flex: 1,
-    padding: '24px'
-  },
-  textarea: {
-    width: '100%',
-    height: '100%',
-    background: 'transparent',
-    border: 'none',
-    color: 'var(--text-primary)',
-    fontSize: '16px',
-    lineHeight: 1.6,
-    resize: 'none',
-    outline: 'none',
-    fontFamily: 'inherit'
-  },
-  placeholder: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: 'var(--text-secondary)'
-  },
-  loading: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    color: 'var(--text-secondary)'
-  },
-  error: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    color: '#ff6b6b',
-    gap: '16px'
-  }
 }

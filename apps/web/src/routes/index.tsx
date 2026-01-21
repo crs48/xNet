@@ -21,29 +21,42 @@ function HomePage() {
   }
 
   if (!isReady || loading) {
-    return <div className="loading">Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-full text-text-secondary">Loading...</div>
+    )
   }
 
   return (
-    <div className="home-page">
-      <div className="page-header">
-        <h1>All Pages</h1>
-        <button onClick={createDocument} className="btn-primary">
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">All Pages</h1>
+        <button
+          onClick={createDocument}
+          className="bg-primary text-white border-none px-4 py-2 rounded-md cursor-pointer text-sm font-medium hover:bg-primary-hover transition-colors"
+        >
           + New Page
         </button>
       </div>
 
       {pages.length === 0 ? (
-        <div className="empty-state">
+        <div className="text-center py-12 text-text-secondary">
           <p>No documents yet. Create your first page!</p>
         </div>
       ) : (
-        <ul className="document-list">
+        <ul className="list-none">
           {pages.map((page) => (
-            <li key={page.id}>
-              <Link to="/doc/$docId" params={{ docId: page.id }}>
-                <span className="doc-title">{(page.properties.title as string) || 'Untitled'}</span>
-                <span className="doc-date">{new Date(page.updatedAt).toLocaleDateString()}</span>
+            <li key={page.id} className="border-b border-border last:border-b-0">
+              <Link
+                to="/doc/$docId"
+                params={{ docId: page.id }}
+                className="flex justify-between items-center py-4 text-text no-underline hover:no-underline"
+              >
+                <span className="font-medium">
+                  {(page.properties.title as string) || 'Untitled'}
+                </span>
+                <span className="text-xs text-text-secondary">
+                  {new Date(page.updatedAt).toLocaleDateString()}
+                </span>
               </Link>
             </li>
           ))}
