@@ -198,6 +198,11 @@ apps/
   web/        # PWA (TanStack Router)
 ```
 
+## Do
+
+- Use Mermaid diagrams in markdown files to visualize architecture, data flows, and sequences
+- Prefer diagrams over walls of text for system relationships and processes
+
 ## Don't
 
 - Don't add features beyond what's requested
