@@ -8,7 +8,9 @@
  * - Radial layout
  */
 
-import ELK, { type ElkNode, type ElkExtendedEdge, type LayoutOptions } from 'elkjs'
+// Use bundled version to avoid web-worker dependency issues in Electron
+import ELK from 'elkjs/lib/elk.bundled.js'
+import type { ElkNode, ElkExtendedEdge, LayoutOptions } from 'elkjs'
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, Rect } from '../types'
 
 /**

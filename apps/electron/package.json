@@ -12,11 +12,17 @@
     "dist": "npm run build && electron-builder"
   },
   "dependencies": {
+    "@tanstack/react-router": "^1.45.0",
+    "@xnet/canvas": "workspace:*",
     "@xnet/editor": "workspace:*",
     "@xnet/react": "workspace:*",
     "@xnet/sdk": "workspace:*",
+    "@xnet/ui": "workspace:*",
+    "@xnet/views": "workspace:*",
     "better-sqlite3": "^11.0.0",
-    "electron-store": "^10.0.0"
+    "electron-store": "^10.0.0",
+    "lucide-react": "^0.400.0",
+    "yjs": "^13.6.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
