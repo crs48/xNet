@@ -21,7 +21,8 @@ export {
   signChange,
   verifyChange,
   verifyChangeHash,
-  createChangeId
+  createChangeId,
+  createBatchId
 } from './change'
 
 // Lamport clock utilities

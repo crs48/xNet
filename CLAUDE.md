@@ -116,6 +116,16 @@ const task = await store.create({
   properties: { title: 'My Task', status: 'todo' }
 })
 await store.update(task.id, { properties: { status: 'done' } })
+
+// Transaction: multiple operations as one atomic batch
+const result = await store.transaction([
+  {
+    type: 'create',
+    options: { schemaId: 'xnet://xnet.dev/Task', properties: { title: 'Task 1' } }
+  },
+  { type: 'update', nodeId: task.id, options: { properties: { status: 'archived' } } }
+])
+// result.batchId groups all changes for undo/audit
 ```
 
 ### Create a document (rich text)

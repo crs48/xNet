@@ -194,6 +194,70 @@ interface UpdateItemOperation {
 
 ---
 
+## 6. Transaction Batching: Logical Atomicity via Batch Metadata
+
+**Date:** January 2026  
+**Decision:** Add optional batch fields to Change<T> for grouping related changes
+
+### Options Considered
+
+| Option               | Description                         | Pros                        | Cons                                    |
+| -------------------- | ----------------------------------- | --------------------------- | --------------------------------------- |
+| **No transactions**  | Each change is independent          | Simplest                    | Multi-node operations have no atomicity |
+| **Nested CRDTs**     | Use Yjs transactions                | Native CRDT support         | Doesn't work for event-sourced data     |
+| **Batch metadata**   | Add batchId/index/size to Change<T> | Backward compatible, simple | Not true ACID (eventual consistency)    |
+| **Blockchain-style** | Merkle root of batch                | Cryptographically atomic    | Complex, overkill for now               |
+
+### Decision: Batch Metadata
+
+```typescript
+interface Change<T> {
+  // ... existing fields ...
+
+  // Optional batch metadata
+  batchId?: string // Groups changes together
+  batchIndex?: number // Order within batch (0, 1, 2...)
+  batchSize?: number // Total changes in batch
+}
+```
+
+### Rationale
+
+1. **Backward compatible** - Old changes without batch fields still work
+2. **Undo/redo friendly** - Group related changes for atomic undo
+3. **Audit trail clarity** - "User moved task" is one batch, not 3 separate changes
+4. **Blockchain-ready** - Batches map naturally to transactions when we add consensus
+
+### Usage
+
+```typescript
+// Move task between projects (3 related changes as one transaction)
+const result = await store.transaction([
+  { type: 'update', nodeId: task.id, options: { properties: { projectId: newProject.id } } },
+  { type: 'update', nodeId: oldProject.id, options: { properties: { taskIds: [...] } } },
+  { type: 'update', nodeId: newProject.id, options: { properties: { taskIds: [...] } } },
+])
+
+// All changes share same batchId and Lamport timestamp
+console.log(result.batchId) // "batch-m3x7k-a9b2c"
+console.log(result.changes.map(c => c.batchIndex)) // [0, 1, 2]
+```
+
+### Semantics
+
+- **Same Lamport timestamp** - All changes in a batch share one timestamp
+- **Ordered** - batchIndex defines order within the batch
+- **Logical atomicity** - UI/undo treats batch as single operation
+- **Eventual consistency** - Not ACID; peers may see partial batches temporarily
+
+### Future Considerations
+
+- Receivers could wait for all batchSize changes before committing
+- Blockchain integration: batch hash becomes transaction ID
+- Conflict resolution could consider batch boundaries
+
+---
+
 ## Template for Future Decisions
 
 ```markdown
