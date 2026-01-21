@@ -22,6 +22,7 @@ export type {
   PropertyDefinition,
   PropertyBuilder,
   Schema,
+  DocumentType,
   DefinedSchema,
   ValidationResult,
   ValidationError,

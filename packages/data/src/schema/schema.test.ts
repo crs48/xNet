@@ -39,22 +39,17 @@ describe('Schema System', () => {
       expect(TaskSchema.schema.properties[1].required).toBe(false)
     })
 
-    it('sets behavior flags correctly', () => {
+    it('sets document type correctly', () => {
       const PageSchema = defineSchema({
         name: 'Page',
         namespace: 'xnet://xnet.dev/',
         properties: {
           title: text({ required: true })
         },
-        hasContent: true,
-        hasChildren: true,
-        icon: '📄'
+        document: 'yjs'
       })
 
-      expect(PageSchema.schema.hasContent).toBe(true)
-      expect(PageSchema.schema.hasChildren).toBe(true)
-      expect(PageSchema.schema.isCollection).toBe(false)
-      expect(PageSchema.schema.icon).toBe('📄')
+      expect(PageSchema.schema.document).toBe('yjs')
     })
   })
 

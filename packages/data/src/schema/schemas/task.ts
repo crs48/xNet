@@ -50,10 +50,7 @@ export const TaskSchema = defineSchema({
     /** Parent task (for subtasks) */
     parent: relation({ target: 'xnet://xnet.dev/Task' as const })
   },
-  hasContent: true, // Tasks can have rich text description
-  hasChildren: true, // Can have subtasks
-  isCollection: false,
-  icon: '✅'
+  document: 'yjs' // Collaborative Y.Doc for description
 })
 
 /**

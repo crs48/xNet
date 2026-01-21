@@ -6,6 +6,7 @@ import type { SchemaIRI, DID, Node } from './node'
 import { createNodeId } from './node'
 import type {
   Schema,
+  DocumentType,
   PropertyBuilder,
   PropertyDefinition,
   DefinedSchema,
@@ -28,16 +29,13 @@ export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> 
   properties: P
   /** Parent schema to extend */
   extends?: DefinedSchema<Record<string, PropertyBuilder>>
-  /** Whether nodes can have rich text content */
-  hasContent?: boolean
-  /** Whether nodes can have child nodes */
-  hasChildren?: boolean
-  /** Whether this is a collection type */
-  isCollection?: boolean
-  /** Icon for UI */
-  icon?: string
-  /** Color for UI */
-  color?: string
+  /**
+   * CRDT document type for collaborative content.
+   * - 'yjs': Yjs Y.Doc for rich text, canvas, etc.
+   * - 'automerge': Automerge document (future)
+   * - undefined: No document, properties only
+   */
+  document?: DocumentType
 }
 
 /**
@@ -53,7 +51,7 @@ export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> 
  *     status: select({ options: ['todo', 'done'] as const }),
  *     dueDate: date({})
  *   },
- *   hasContent: true
+ *   document: 'yjs'  // Enable collaborative Y.Doc
  * })
  *
  * type Task = InferNode<typeof TaskSchema['_properties']>
@@ -81,11 +79,7 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
     namespace: options.namespace,
     properties,
     extends: options.extends?.schema['@id'],
-    hasContent: options.hasContent ?? false,
-    hasChildren: options.hasChildren ?? false,
-    isCollection: options.isCollection ?? false,
-    icon: options.icon,
-    color: options.color
+    document: options.document
   }
 
   // Validation function

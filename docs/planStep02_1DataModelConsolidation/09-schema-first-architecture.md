@@ -65,15 +65,8 @@ interface Schema {
   // What properties does this type have?
   properties: PropertyDefinition[]
 
-  // Behavioral flags
-  hasContent: boolean // Does it have a Y.Doc body?
-  hasChildren: boolean // Can it contain other nodes?
-  isCollection: boolean // Is it a "database" (contains items)?
-
-  // UI hints
-  icon?: string
-  color?: string
-  defaultView?: ViewType
+  // CRDT document type for rich content
+  document?: 'yjs' | 'automerge'
 }
 ```
 
@@ -93,10 +86,7 @@ export const PAGE_SCHEMA: Schema = {
     { id: 'prop:icon', name: 'Icon', type: 'text' },
     { id: 'prop:cover', name: 'Cover', type: 'file' }
   ],
-  hasContent: true, // Pages have rich text
-  hasChildren: true, // Pages can have subpages
-  isCollection: false, // Pages aren't databases
-  icon: '📄'
+  document: 'yjs' // Pages have rich text
 }
 
 export const DATABASE_SCHEMA: Schema = {
@@ -108,12 +98,8 @@ export const DATABASE_SCHEMA: Schema = {
     { id: 'prop:icon', name: 'Icon', type: 'text' },
     // Schema properties are stored as a special property
     { id: 'prop:schema', name: 'Schema', type: 'schema', hidden: true }
-  ],
-  hasContent: false, // Databases don't have body text
-  hasChildren: true, // Databases contain items
-  isCollection: true, // This IS a collection
-  icon: '🗃️',
-  defaultView: 'table'
+  ]
+  // No document - databases don't have body text
 }
 
 export const ITEM_SCHEMA: Schema = {
@@ -121,10 +107,7 @@ export const ITEM_SCHEMA: Schema = {
   name: 'Item',
   '@type': 'xnet:Item',
   properties: [], // Inherited from parent database
-  hasContent: true, // Items can have body content
-  hasChildren: false, // Items don't have children
-  isCollection: false,
-  icon: '📋'
+  document: 'yjs' // Items can have body content
 }
 
 export const CANVAS_SCHEMA: Schema = {
@@ -132,10 +115,7 @@ export const CANVAS_SCHEMA: Schema = {
   name: 'Canvas',
   '@type': 'xnet:Canvas',
   properties: [{ id: 'prop:title', name: 'Title', type: 'text', required: true }],
-  hasContent: true, // Canvas uses Y.Doc for spatial data
-  hasChildren: false,
-  isCollection: false,
-  icon: '🎨'
+  document: 'yjs' // Canvas uses Y.Doc for spatial data
 }
 
 // Common user-facing schemas
@@ -172,10 +152,7 @@ export const TASK_SCHEMA: Schema = {
       }
     }
   ],
-  hasContent: true,
-  hasChildren: false,
-  isCollection: false,
-  icon: '✅'
+  document: 'yjs' // Tasks can have rich description
 }
 
 export const BUILTIN_SCHEMAS = {
@@ -270,8 +247,7 @@ const BUG_SCHEMA: Schema = {
       }
     },
     { id: 'prop:reproduction', name: 'Steps to Reproduce', type: 'text' }
-  ],
-  icon: '🐛'
+  ]
 }
 ```
 
@@ -473,11 +449,8 @@ interface Schema {
   name: string
   '@type': string
   properties: PropertyDefinition[]
-  hasContent: boolean
-  hasChildren: boolean
-  isCollection: boolean
+  document?: 'yjs' | 'automerge' // CRDT document type
   extends?: SchemaId
-  behaviors?: SchemaBehaviors
 }
 
 // packages/data/src/schema/registry.ts

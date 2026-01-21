@@ -38,11 +38,8 @@ export const DatabaseSchema = defineSchema({
 
     // Note: The property schema for items is stored separately
     // in the database's schema definition, not as a property value.
-  },
-  hasContent: false, // Databases don't have rich text content
-  hasChildren: true, // Contains items
-  isCollection: true, // Is a collection type
-  icon: '🗃️'
+  }
+  // No document - databases don't have rich text content
 })
 
 /**

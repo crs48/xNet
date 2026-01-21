@@ -176,11 +176,7 @@ interface SchemaOptions<P extends Record<string, PropertyBuilder>> {
   namespace: string
   properties: P
   extends?: Schema
-  hasContent?: boolean
-  hasChildren?: boolean
-  isCollection?: boolean
-  icon?: string
-  color?: string
+  document?: 'yjs' | 'automerge' // CRDT document type
 }
 
 type PropertyBuilder = ReturnType<typeof text> | ReturnType<typeof select> | /* ... */
@@ -224,11 +220,7 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
       namespace: options.namespace,
       properties,
       extends: options.extends?.['@id'],
-      hasContent: options.hasContent ?? false,
-      hasChildren: options.hasChildren ?? false,
-      isCollection: options.isCollection ?? false,
-      icon: options.icon,
-      color: options.color
+      document: options.document
     },
 
     // Runtime validation
@@ -587,9 +579,7 @@ export const PageSchema = defineSchema({
     cover: file({ accept: ['image/*'] })
   },
 
-  hasContent: true,
-  hasChildren: true,
-  icon: '📄'
+  document: 'yjs' // Rich content
 })
 
 export type Page = InferNode<typeof PageSchema>
@@ -615,10 +605,7 @@ export const ContactSchema = defineSchema({
     phone: phone({}),
     company: relation({ schema: CompanySchema }),
     notes: text({ maxLength: 5000 })
-  },
-
-  hasContent: true, // Rich text notes
-  icon: '👤'
+  }
 })
 
 export type Contact = InferNode<typeof ContactSchema>
@@ -638,8 +625,7 @@ const userRecipeSchema = createSchemaNode({
     { name: 'ingredients', type: 'text' },
     { name: 'cookTime', type: 'number' }
   ],
-  hasContent: true,
-  icon: '🍳'
+  document: 'yjs'
 })
 
 // Creates a schema node that the registry can load

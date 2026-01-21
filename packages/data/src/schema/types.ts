@@ -59,6 +59,18 @@ export interface PropertyBuilder<T = unknown> {
 }
 
 /**
+ * CRDT document type for collaborative content.
+ *
+ * When a schema specifies a document type, nodes of that schema
+ * have an associated CRDT document that syncs via the CRDT's
+ * native protocol (e.g., y-webrtc for Yjs).
+ *
+ * - 'yjs': Yjs Y.Doc for collaborative rich text, canvas, etc.
+ * - 'automerge': Automerge document (future support)
+ */
+export type DocumentType = 'yjs' | 'automerge'
+
+/**
  * Schema definition stored as JSON-LD.
  */
 export interface Schema {
@@ -74,16 +86,12 @@ export interface Schema {
   properties: PropertyDefinition[]
   /** Parent schema IRI (for inheritance) */
   extends?: SchemaIRI
-  /** Whether nodes of this type can have rich text content (Yjs) */
-  hasContent: boolean
-  /** Whether nodes of this type can have child nodes */
-  hasChildren: boolean
-  /** Whether this is a collection type (like Database) */
-  isCollection: boolean
-  /** Icon for UI */
-  icon?: string
-  /** Color for UI */
-  color?: string
+  /**
+   * CRDT document type for collaborative content.
+   * When set, nodes of this schema have an associated CRDT document
+   * that syncs separately from properties (which use LWW).
+   */
+  document?: DocumentType
 }
 
 /**
