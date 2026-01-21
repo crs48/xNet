@@ -25,38 +25,6 @@ The xNet data model uses a **schema-first, Node-based architecture**:
 
 Rich text uses Yjs CRDT for fine-grained character merging. Structured data (Nodes) uses event-sourced changes with Lamport timestamps and last-writer-wins per property.
 
-### Example Usage
-
-```typescript
-// Define a schema
-const TaskSchema = defineSchema({
-  name: 'Task',
-  namespace: 'xnet://xnet.dev/',
-  properties: {
-    title: text({ required: true }),
-    status: select({ options: ['todo', 'in-progress', 'done'] as const })
-  },
-  hasContent: true
-})
-
-// Use NodeStore for persistence
-const store = new NodeStore({
-  storage: new MemoryNodeStorageAdapter(),
-  authorDID: 'did:key:z6Mk...',
-  signingKey: privateKey
-})
-await store.initialize()
-
-const task = await store.create({
-  schemaId: 'xnet://xnet.dev/Task',
-  properties: { title: 'Fix bug', status: 'todo' }
-})
-
-// React hooks
-const { node, update } = useNode(task.id)
-const { nodes } = useNodes({ schemaId: 'xnet://xnet.dev/Task' })
-```
-
 ## Package Map
 
 ```
@@ -87,108 +55,6 @@ crypto ──> identity ──> storage ──> sync ──> data ──> networ
                                       └──────────────> react ──> sdk
 ```
 
-## ID Formats
-
-```typescript
-type DID = `did:key:z6Mk...` // User identity
-type ContentId = `cid:blake3:${hex}` // Content-addressed hash
-type SchemaIRI = `xnet://${string}/${string}` // Schema identifier
-type NodeId = string // NanoID (21 chars)
-type DocumentPath = `xnet://${DID}/workspace/${id}/doc/${id}`
-```
-
-## Common Operations
-
-### Create a Node (structured data)
-
-```typescript
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
-
-const store = new NodeStore({
-  storage: new MemoryNodeStorageAdapter(),
-  authorDID: did,
-  signingKey: key
-})
-await store.initialize()
-
-const task = await store.create({
-  schemaId: 'xnet://xnet.dev/Task',
-  properties: { title: 'My Task', status: 'todo' }
-})
-await store.update(task.id, { properties: { status: 'done' } })
-
-// Transaction: multiple operations as one atomic batch
-const result = await store.transaction([
-  {
-    type: 'create',
-    options: { schemaId: 'xnet://xnet.dev/Task', properties: { title: 'Task 1' } }
-  },
-  { type: 'update', nodeId: task.id, options: { properties: { status: 'archived' } } }
-])
-// result.batchId groups all changes for undo/audit
-```
-
-### Create a document (rich text)
-
-```typescript
-import { createDocument, loadDocument } from '@xnet/data'
-const doc = createDocument({ id, workspace, type: 'page', title, createdBy: did, signingKey })
-```
-
-### React hooks
-
-```typescript
-import {
-  NodeStoreProvider, useNode, useNodes, useNodeSync,
-  useDocument, useQuery, useSync
-} from '@xnet/react'
-
-// Wrap app with provider
-<NodeStoreProvider authorDID={did} signingKey={key}>
-  <App />
-</NodeStoreProvider>
-
-// Use hooks
-const { node, update, remove } = useNode(nodeId)
-const { nodes, create } = useNodes({ schemaId: 'xnet://xnet.dev/Task' })
-const { status, peers, broadcastChanges } = useNodeSync({ store, peerId })
-```
-
-## Property Types (16 total)
-
-Basic: `text`, `number`, `checkbox`  
-Temporal: `date`, `dateRange`  
-Selection: `select`, `multiSelect`  
-References: `person`, `relation`  
-Rich: `url`, `email`, `phone`, `file`  
-Auto: `created`, `updated`, `createdBy`
-
-## Where Things Live
-
-| Need to...         | Look in                            |
-| ------------------ | ---------------------------------- |
-| Hash data          | `@xnet/crypto/hashing.ts`          |
-| Sign/verify        | `@xnet/crypto/signing.ts`          |
-| Create DID         | `@xnet/identity/did.ts`            |
-| Create UCAN        | `@xnet/identity/ucan.ts`           |
-| Lamport timestamps | `@xnet/sync/clock.ts`              |
-| Change<T> type     | `@xnet/sync/change.ts`             |
-| Define schema      | `@xnet/data/schema/define.ts`      |
-| NodeStore          | `@xnet/data/store/store.ts`        |
-| Property helpers   | `@xnet/data/schema/properties/`    |
-| Yjs document ops   | `@xnet/data/document.ts`           |
-| P2P connection     | `@xnet/network/node.ts`            |
-| React Node hooks   | `@xnet/react/hooks/useNode.ts`     |
-| React sync hooks   | `@xnet/react/hooks/useNodeSync.ts` |
-
-## Testing
-
-```bash
-pnpm vitest run packages/sync packages/data  # Core tests (140 total)
-pnpm --filter @xnet/data test                # Single package
-pnpm test:coverage                           # With coverage (>80% required)
-```
-
 ## Apps
 
 ```
@@ -196,6 +62,14 @@ apps/
   electron/   # Desktop (macOS)
   expo/       # Mobile (iOS)
   web/        # PWA (TanStack Router)
+```
+
+## Testing
+
+```bash
+pnpm vitest run packages/sync packages/data  # Core tests (140 total)
+pnpm --filter @xnet/data test                # Single package
+pnpm test:coverage                           # With coverage (>80% required)
 ```
 
 ## Do
