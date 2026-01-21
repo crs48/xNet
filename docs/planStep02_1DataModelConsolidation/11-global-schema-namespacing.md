@@ -99,8 +99,7 @@ const PAGE_SCHEMA: Schema = {
     }
   ],
 
-  hasContent: true,
-  hasChildren: true
+  document: 'yjs' // Has rich content
 }
 
 // User-defined schema

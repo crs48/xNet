@@ -192,8 +192,7 @@ export interface ${interfaceName} extends NodeBase {
   properties: {
 ${properties}
   }
-  ${schema.hasContent ? '\n  content: Y.Doc' : ''}
-  ${schema.hasChildren ? '\n  children?: string[]' : ''}
+  ${schema.document ? '\n  content: Y.Doc' : ''}
 }
 
 export function is${interfaceName}(node: Node): node is ${interfaceName} {
@@ -388,15 +387,9 @@ const META_SCHEMA: Schema = {
     { id: 'prop:jsonld-type', name: 'JSON-LD Type', type: 'text', required: true },
     { id: 'prop:properties', name: 'Properties', type: 'json', required: true },
     { id: 'prop:has-content', name: 'Has Content', type: 'checkbox' },
-    { id: 'prop:has-children', name: 'Has Children', type: 'checkbox' },
-    { id: 'prop:is-collection', name: 'Is Collection', type: 'checkbox' },
-    { id: 'prop:extends', name: 'Extends', type: 'relation' },
-    { id: 'prop:icon', name: 'Icon', type: 'text' },
-    { id: 'prop:color', name: 'Color', type: 'text' }
-  ],
-  hasContent: false,
-  hasChildren: false,
-  isCollection: false
+    { id: 'prop:document', name: 'Document Type', type: 'select' },
+    { id: 'prop:extends', name: 'Extends', type: 'relation' }
+  ]
 }
 ```
 
@@ -414,8 +407,7 @@ const recipeSchemaNode: Node = {
       { id: 'prop:ingredients', name: 'Ingredients', type: 'text' },
       { id: 'prop:cook-time', name: 'Cook Time', type: 'number' }
     ],
-    'prop:has-content': true,
-    'prop:icon': '🍳'
+    'prop:document': 'yjs'
   },
   createdBy: 'did:key:user...',
   workspaceId: 'ws-123'

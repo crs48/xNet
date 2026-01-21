@@ -232,15 +232,7 @@ interface Schema {
   namespace: string
   properties: PropertyDefinition[]
   extends?: SchemaIRI
-
-  // Behavior flags
-  hasContent: boolean // Has Y.Doc body?
-  hasChildren: boolean // Can contain child nodes?
-  isCollection: boolean // Is a "database"?
-
-  // UI hints
-  icon?: string
-  color?: string
+  document?: 'yjs' | 'automerge' // CRDT document type for rich content
 }
 ```
 
@@ -267,8 +259,7 @@ export const TaskSchema = defineSchema({
     assignee: person({ multiple: false })
   },
 
-  hasContent: true,
-  icon: '✅'
+  document: 'yjs' // Enable collaborative Y.Doc for rich content
 })
 
 // Type is INFERRED from the schema definition

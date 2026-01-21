@@ -24,10 +24,7 @@ export const PageSchema = defineSchema({
     /** Cover image */
     cover: file({ accept: ['image/*'] })
   },
-  hasContent: true, // Has Yjs rich text content
-  hasChildren: true, // Can have child pages
-  isCollection: false,
-  icon: '📄'
+  document: 'yjs' // Collaborative Y.Doc for rich text
 })
 
 /**
