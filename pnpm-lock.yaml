@@ -245,6 +245,9 @@ importers:
       rbush:
         specifier: ^4.0.1
         version: 4.0.1
+      yjs:
+        specifier: ^13.6.0
+        version: 13.6.29
     devDependencies:
       '@testing-library/react':
         specifier: ^16.2.0
