@@ -59,7 +59,7 @@ interface Change<T> {
 }
 ```
 
-## Implementation Status
+## Implementation Status - ALL PHASES COMPLETE
 
 ### Phase 1: Foundation - COMPLETE
 
@@ -88,46 +88,45 @@ packages/data/src/schema/
 ├── index.ts           # Main exports
 ├── schema.test.ts     # Tests (22 passing)
 ├── properties/        # 16 property helpers
-│   ├── index.ts
-│   ├── text.ts
-│   ├── number.ts
-│   ├── checkbox.ts
-│   ├── select.ts
-│   ├── multiSelect.ts
-│   ├── date.ts
-│   ├── dateRange.ts
-│   ├── person.ts
-│   ├── relation.ts
-│   ├── url.ts
-│   ├── email.ts
-│   ├── phone.ts
-│   ├── file.ts
-│   ├── created.ts      # Auto-populated
-│   ├── updated.ts      # Auto-populated
-│   └── createdBy.ts    # Auto-populated
-└── schemas/           # Built-in schemas
-    ├── index.ts
-    ├── page.ts        # PageSchema
-    ├── database.ts    # DatabaseSchema
-    └── task.ts        # TaskSchema
+└── schemas/           # Built-in schemas (Page, Database, Task)
 ```
 
-**Tests:** 62 passing (22 schema + 8 document + 8 updates + 24 store)
+### Phase 3: NodeStore - COMPLETE
 
-## What's Exported from @xnet/data
+```bash
+packages/data/src/store/
+├── types.ts           # NodePayload, NodeState, NodeStorageAdapter
+├── store.ts           # NodeStore class (CRUD, LWW, sync support)
+├── memory-adapter.ts  # In-memory storage adapter
+├── store.test.ts      # 24 tests passing
+└── index.ts           # Exports
+```
+
+**@xnet/records package REMOVED** (not published, no backward compat needed)
+
+### Phase 4: React Integration - COMPLETE
+
+```bash
+packages/react/src/hooks/
+├── useNodeStore.ts    # NodeStoreProvider context, useNodeStore hook
+├── useNodeSync.ts     # P2P sync for NodeStore (replaces useRecordSync)
+└── useNode.ts         # useNode and useNodes hooks for CRUD
+```
+
+**Total Tests:** 140 passing (78 sync + 62 data)
+
+## What's Exported
+
+### From @xnet/data
 
 ```typescript
-// Schema system
 import {
-  // Node type
+  // Schema system
+  defineSchema,
   Node,
   SchemaIRI,
-  DID,
   isNode,
   createNodeId,
-
-  // Schema definition
-  defineSchema,
 
   // Property helpers (16 total)
   text,
@@ -149,34 +148,42 @@ import {
 
   // Built-in schemas
   PageSchema,
-  Page,
   DatabaseSchema,
-  Database,
   TaskSchema,
-  Task,
 
-  // Schema registry
-  SchemaRegistry,
-  schemaRegistry
+  // NodeStore
+  NodeStore,
+  MemoryNodeStorageAdapter,
+  type NodeState,
+  type NodeChange,
+  type NodeStorageAdapter
 } from '@xnet/data'
 ```
 
-## Usage Example
+### From @xnet/react
 
 ```typescript
-import { defineSchema, text, select, date, person, TaskSchema } from '@xnet/data'
+import {
+  // NodeStore context
+  NodeStoreProvider,
+  useNodeStore,
 
-// Use built-in schema
-const task = TaskSchema.create(
-  {
-    title: 'Fix the bug',
-    status: 'in-progress',
-    priority: 'high'
-  },
-  { createdBy: 'did:key:z6Mk...' }
-)
+  // Node hooks
+  useNode, // Single node CRUD
+  useNodes, // List nodes with schema filtering
 
-// Or define your own
+  // Sync
+  useNodeSync // P2P sync for NodeStore
+} from '@xnet/react'
+```
+
+## Usage Examples
+
+### Define a Schema
+
+```typescript
+import { defineSchema, text, select, number } from '@xnet/data'
+
 const RecipeSchema = defineSchema({
   name: 'Recipe',
   namespace: 'xnet://did:key:z6Mk.../',
@@ -189,84 +196,76 @@ const RecipeSchema = defineSchema({
         { id: 'hard', name: 'Hard' }
       ] as const
     }),
-    prepTime: number({ min: 0 }),
-    author: person({})
-  },
-  hasContent: true, // Rich text instructions
-  hasChildren: false,
-  isCollection: false,
-  icon: '🍳'
+    prepTime: number({ min: 0 })
+  }
 })
-
-type Recipe = InferNode<(typeof RecipeSchema)['_properties']>
 ```
 
-## What's Next: Phase 3-4
-
-### Phase 3: NodeStore Implementation - COMPLETE
-
-Fresh implementation of `NodeStore` using `@xnet/sync` primitives (not porting `@xnet/records`):
-
-```bash
-packages/data/src/store/
-├── types.ts           # NodePayload, NodeState, NodeStorageAdapter
-├── store.ts           # NodeStore class (CRUD, LWW, sync support)
-├── memory-adapter.ts  # In-memory storage adapter
-├── store.test.ts      # 24 tests passing
-└── index.ts           # Exports
-```
-
-**Key design:**
-
-- `NodeChange = Change<NodePayload>` - uses @xnet/sync primitives
-- Sparse updates (only changed properties stored in payload)
-- LWW conflict resolution using `compareLamportTimestamps()`
-- Simple CRUD API that creates Changes under the hood
-
-**Usage:**
+### Use NodeStore
 
 ```typescript
 import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
 
-const adapter = new MemoryNodeStorageAdapter()
 const store = new NodeStore({
-  storage: adapter,
+  storage: new MemoryNodeStorageAdapter(),
   authorDID: 'did:key:z6Mk...',
   signingKey: privateKey
 })
-
 await store.initialize()
 
-// Create a node
+// Create
 const task = await store.create({
   schemaId: 'xnet://xnet.dev/Task',
   properties: { title: 'My Task', status: 'todo' }
 })
 
-// Update (sparse - only changed properties)
+// Update (sparse)
 await store.update(task.id, { properties: { status: 'done' } })
 
 // List with filtering
 const tasks = await store.list({ schemaId: 'xnet://xnet.dev/Task' })
-
-// Sync support
-const changes = await store.getAllChanges()
-await store.applyRemoteChanges(remoteChanges)
 ```
 
-### Phase 4: React Integration - PARTIALLY COMPLETE
+### React Hooks
 
-**Completed:**
+```tsx
+import { NodeStoreProvider, useNode, useNodes, useNodeSync } from '@xnet/react'
 
-- `useNodeSync` hook - P2P sync for NodeStore (replaces `useRecordSync`)
+// Wrap app with provider
+;<NodeStoreProvider authorDID={did} signingKey={key}>
+  <App />
+</NodeStoreProvider>
 
-**Remaining:**
+// Use hooks
+function TaskList() {
+  const { nodes, create } = useNodes({ schemaId: 'xnet://xnet.dev/Task' })
 
-1. Add `useNode` hook for schema-typed nodes
-2. Update `useQuery` to filter by schema
-3. Update `useDocument` hook to work with Node types
+  return (
+    <div>
+      {nodes.map((task) => (
+        <TaskItem key={task.id} taskId={task.id} />
+      ))}
+      <button onClick={() => create('xnet://xnet.dev/Task', { title: 'New' })}>Add Task</button>
+    </div>
+  )
+}
 
-### Future: CRDT Extensibility
+function TaskItem({ taskId }) {
+  const { node, update, remove } = useNode(taskId)
+
+  return (
+    <div>
+      <span>{node?.properties.title}</span>
+      <button onClick={() => update({ status: 'done' })}>Done</button>
+      <button onClick={remove}>Delete</button>
+    </div>
+  )
+}
+```
+
+## Future Work
+
+### CRDT Extensibility (Automerge Support)
 
 The Node system should support multiple CRDT backends for rich content:
 
@@ -284,53 +283,39 @@ This allows users to choose between:
 - **Automerge** - Alternative CRDT with different tradeoffs
 - **LWW** - Simple last-writer-wins for basic properties (already implemented)
 
-## Key Documents
-
-Read these in order for full context:
-
-1. `docs/planStep02_1DataModelConsolidation/README.md` - **Master plan with phases**
-2. `docs/planStep02_1DataModelConsolidation/12-code-first-schemas.md` - **defineSchema() API design**
-3. `docs/planStep02_1DataModelConsolidation/09-schema-first-architecture.md` - Node/Schema concepts
-4. `docs/planStep02_1DataModelConsolidation/11-global-schema-namespacing.md` - IRI namespace design
-5. `docs/planStep02_1DataModelConsolidation/01-xnet-sync-package.md` - Change<T> sync primitives
-
 ## Test Commands
 
 ```bash
-pnpm test                        # All tests
-pnpm --filter @xnet/sync test    # Sync package (78 tests)
-pnpm vitest run packages/data    # Data package (62 tests)
-pnpm test:coverage               # Coverage check
+pnpm vitest run packages/sync packages/data  # Run 140 tests
+pnpm --filter @xnet/react build              # Build React package
 ```
 
-## Commits Made
+## Commits
 
 ```
+0bbe4fb Add useNode and useNodes hooks for React
+027d896 Add NodeStore and remove @xnet/records package
+75bc0c7 Update HANDOFF.md with completed Phase 1-2 status
 d03083c Complete schema system with built-in schemas and registry
 5b670b6 Refactor @xnet/sync to use Lamport timestamps instead of vector clocks
 b54d49e Add schema system with defineSchema() and property helpers
-c34a476 Update docs: minimal Node interface and append-only architecture
-0b830af Add @xnet/sync package with Change<T>, vector clocks, and SyncProvider
-fab5baf Ratify schema-first, Node-based architecture
 ```
 
 ## Prompt to Continue
 
 ```
-I'm implementing the schema-first architecture for xNet. Read the handoff document at docs/planStep02_1DataModelConsolidation/HANDOFF.md.
+The schema-first architecture for xNet is COMPLETE. Read docs/planStep02_1DataModelConsolidation/HANDOFF.md.
 
-Phases 1-3 are COMPLETE:
+Completed:
 - @xnet/sync: Lamport timestamps, Change<T>, hash chains (78 tests)
-- @xnet/data schema system: defineSchema(), 16 property helpers, 3 built-in schemas (22 tests)
-- @xnet/data NodeStore: Event-sourced storage with LWW conflict resolution (24 tests)
-- @xnet/records: REMOVED (no backward compatibility needed)
-- @xnet/react: useNodeSync hook replaces useRecordSync
+- @xnet/data: Schema system + NodeStore with LWW conflict resolution (62 tests)
+- @xnet/react: NodeStoreProvider, useNode, useNodes, useNodeSync hooks
+- @xnet/records: REMOVED
 
-Total tests: 140 (78 sync + 62 data)
+Total: 140 tests passing
 
-Next steps:
-1. Phase 4: React Integration - Add useNode hook for schema-typed nodes, update useQuery
-2. Future: Add Automerge support for pluggable CRDT content
+Future work:
+- Add Automerge support for pluggable CRDT content
 ```
 
 ---
