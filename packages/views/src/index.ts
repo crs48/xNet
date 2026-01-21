@@ -3,7 +3,7 @@
  *
  * This package provides view components for rendering database content:
  * - TableView: Spreadsheet-like table with virtual scrolling
- * - BoardView: Kanban board (coming soon)
+ * - BoardView: Kanban board with drag-and-drop
  * - GalleryView: Card gallery (coming soon)
  * - TimelineView: Gantt timeline (coming soon)
  * - CalendarView: Calendar (coming soon)
@@ -50,3 +50,18 @@ export {
   type UseTableStateOptions,
   type UseTableStateResult
 } from './table/index.js'
+
+// Board view
+export {
+  BoardView,
+  BoardColumn,
+  BoardCard,
+  useBoardState,
+  type BoardViewProps,
+  type BoardColumnProps,
+  type BoardCardProps,
+  type BoardRow,
+  type BoardColumnType,
+  type UseBoardStateOptions,
+  type UseBoardStateResult
+} from './board/index.js'
