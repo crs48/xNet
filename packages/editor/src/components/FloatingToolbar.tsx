@@ -1,0 +1,456 @@
+/**
+ * FloatingToolbar - Obsidian-style floating toolbar for the editor
+ *
+ * Desktop: Bubble menu that floats near cursor/selection
+ * Mobile: Fixed at bottom, above keyboard, horizontally scrollable
+ */
+import { useState, useEffect, useRef, type JSX } from 'react'
+import { BubbleMenu, type Editor } from '@tiptap/react'
+import { cn } from '../utils'
+
+export interface FloatingToolbarProps {
+  /** The Tiptap editor instance */
+  editor: Editor | null
+  /** Additional CSS class */
+  className?: string
+  /** Force mobile mode (for testing) */
+  forceMobile?: boolean
+}
+
+// Check if we're on a mobile device
+function useIsMobile(forceMobile?: boolean): boolean {
+  const [isMobile, setIsMobile] = useState(forceMobile ?? false)
+
+  useEffect(() => {
+    if (forceMobile !== undefined) {
+      setIsMobile(forceMobile)
+      return
+    }
+
+    const checkMobile = () => {
+      // Check for touch device or narrow viewport
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+      const isNarrow = window.innerWidth < 768
+      setIsMobile(hasTouch || isNarrow)
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [forceMobile])
+
+  return isMobile
+}
+
+// Track keyboard visibility on mobile
+function useKeyboardVisible(): boolean {
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    // Use visualViewport API if available (modern browsers)
+    const viewport = window.visualViewport
+    if (!viewport) return
+
+    const handleResize = () => {
+      // If viewport height is significantly less than window height, keyboard is likely open
+      const keyboardOpen = viewport.height < window.innerHeight * 0.75
+      setIsVisible(keyboardOpen)
+    }
+
+    viewport.addEventListener('resize', handleResize)
+    return () => viewport.removeEventListener('resize', handleResize)
+  }, [])
+
+  return isVisible
+}
+
+interface ToolbarButtonProps {
+  onClick: () => void
+  active?: boolean
+  title: string
+  children: React.ReactNode
+  mobileOnly?: boolean
+  isMobile: boolean
+}
+
+function ToolbarButton({
+  onClick,
+  active,
+  title,
+  children,
+  mobileOnly,
+  isMobile
+}: ToolbarButtonProps): JSX.Element | null {
+  if (mobileOnly && !isMobile) return null
+
+  return (
+    <button
+      onClick={(e) => {
+        e.preventDefault()
+        onClick()
+      }}
+      onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
+      className={cn(
+        'flex-shrink-0 flex items-center justify-center rounded text-sm font-medium transition-colors',
+        'touch-manipulation select-none', // Better touch handling
+        isMobile ? 'w-9 h-9' : 'w-7 h-7', // Smaller on desktop
+        active
+          ? 'bg-primary text-white'
+          : 'bg-transparent text-text-primary hover:bg-bg-tertiary active:bg-bg-tertiary'
+      )}
+      title={title}
+      type="button"
+    >
+      {children}
+    </button>
+  )
+}
+
+function ToolbarDivider({ isMobile }: { isMobile: boolean }): JSX.Element {
+  return (
+    <span className={cn('flex-shrink-0 w-px bg-border', isMobile ? 'h-6 mx-1' : 'h-4 mx-0.5')} />
+  )
+}
+
+interface ToolbarContentProps {
+  editor: Editor
+  isMobile: boolean
+}
+
+function ToolbarContent({ editor, isMobile }: ToolbarContentProps): JSX.Element {
+  return (
+    <>
+      {/* Text formatting */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        active={editor.isActive('bold')}
+        title="Bold"
+        isMobile={isMobile}
+      >
+        <strong>B</strong>
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        active={editor.isActive('italic')}
+        title="Italic"
+        isMobile={isMobile}
+      >
+        <em>I</em>
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        active={editor.isActive('strike')}
+        title="Strikethrough"
+        isMobile={isMobile}
+      >
+        <s>S</s>
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleCode().run()}
+        active={editor.isActive('code')}
+        title="Code"
+        isMobile={isMobile}
+      >
+        {'</>'}
+      </ToolbarButton>
+
+      <ToolbarDivider isMobile={isMobile} />
+
+      {/* Headings */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+        active={editor.isActive('heading', { level: 1 })}
+        title="Heading 1"
+        isMobile={isMobile}
+      >
+        H1
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+        active={editor.isActive('heading', { level: 2 })}
+        title="Heading 2"
+        isMobile={isMobile}
+      >
+        H2
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        active={editor.isActive('heading', { level: 3 })}
+        title="Heading 3"
+        isMobile={isMobile}
+      >
+        H3
+      </ToolbarButton>
+
+      <ToolbarDivider isMobile={isMobile} />
+
+      {/* Lists */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        active={editor.isActive('bulletList')}
+        title="Bullet List"
+        isMobile={isMobile}
+      >
+        •
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        active={editor.isActive('orderedList')}
+        title="Numbered List"
+        isMobile={isMobile}
+      >
+        1.
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleTaskList().run()}
+        active={editor.isActive('taskList')}
+        title="Task List"
+        isMobile={isMobile}
+      >
+        ☐
+      </ToolbarButton>
+
+      <ToolbarDivider isMobile={isMobile} />
+
+      {/* Blocks */}
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+        active={editor.isActive('blockquote')}
+        title="Quote"
+        isMobile={isMobile}
+      >
+        "
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+        active={editor.isActive('codeBlock')}
+        title="Code Block"
+        isMobile={isMobile}
+      >
+        {'{}'}
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+        active={false}
+        title="Divider"
+        isMobile={isMobile}
+      >
+        —
+      </ToolbarButton>
+
+      {/* Mobile-only buttons */}
+      {isMobile && <ToolbarDivider isMobile={isMobile} />}
+
+      {/* Indent/Outdent - mobile only */}
+      <ToolbarButton
+        onClick={() => {
+          if (editor.can().liftListItem('listItem')) {
+            editor.chain().focus().liftListItem('listItem').run()
+          } else if (editor.can().liftListItem('taskItem')) {
+            editor.chain().focus().liftListItem('taskItem').run()
+          }
+        }}
+        active={false}
+        title="Outdent"
+        mobileOnly
+        isMobile={isMobile}
+      >
+        ←
+      </ToolbarButton>
+      <ToolbarButton
+        onClick={() => {
+          if (editor.can().sinkListItem('listItem')) {
+            editor.chain().focus().sinkListItem('listItem').run()
+          } else if (editor.can().sinkListItem('taskItem')) {
+            editor.chain().focus().sinkListItem('taskItem').run()
+          }
+        }}
+        active={false}
+        title="Indent"
+        mobileOnly
+        isMobile={isMobile}
+      >
+        →
+      </ToolbarButton>
+
+      {/* Quick heading toggle - mobile only */}
+      <ToolbarButton
+        onClick={() => {
+          // Cycle through: paragraph -> h1 -> h2 -> h3 -> paragraph
+          if (editor.isActive('heading', { level: 3 })) {
+            editor.chain().focus().setParagraph().run()
+          } else if (editor.isActive('heading', { level: 2 })) {
+            editor.chain().focus().toggleHeading({ level: 3 }).run()
+          } else if (editor.isActive('heading', { level: 1 })) {
+            editor.chain().focus().toggleHeading({ level: 2 }).run()
+          } else {
+            editor.chain().focus().toggleHeading({ level: 1 }).run()
+          }
+        }}
+        active={editor.isActive('heading')}
+        title="Toggle Heading"
+        mobileOnly
+        isMobile={isMobile}
+      >
+        #
+      </ToolbarButton>
+
+      {/* Mention/Link - mobile only (placeholder for future) */}
+      <ToolbarButton
+        onClick={() => {
+          // TODO: Open mention picker
+          editor.chain().focus().insertContent('@').run()
+        }}
+        active={false}
+        title="Mention"
+        mobileOnly
+        isMobile={isMobile}
+      >
+        @
+      </ToolbarButton>
+    </>
+  )
+}
+
+/**
+ * Mobile toolbar - fixed at bottom, horizontally scrollable
+ */
+function MobileToolbar({
+  editor,
+  className
+}: {
+  editor: Editor
+  className?: string
+}): JSX.Element | null {
+  const keyboardVisible = useKeyboardVisible()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [isFocused, setIsFocused] = useState(false)
+
+  // Track editor focus state
+  useEffect(() => {
+    const handleFocus = () => setIsFocused(true)
+    const handleBlur = () => {
+      // Delay blur check to allow toolbar clicks
+      setTimeout(() => {
+        if (!editor.isFocused) setIsFocused(false)
+      }, 150)
+    }
+
+    editor.on('focus', handleFocus)
+    editor.on('blur', handleBlur)
+
+    // Check initial state
+    if (editor.isFocused) setIsFocused(true)
+
+    return () => {
+      editor.off('focus', handleFocus)
+      editor.off('blur', handleBlur)
+    }
+  }, [editor])
+
+  // Only show when editor is focused
+  if (!isFocused) return null
+
+  return (
+    <div
+      className={cn(
+        'fixed left-0 right-0 z-50 bg-bg-primary border-t border-border shadow-lg',
+        'bottom-0',
+        className
+      )}
+      style={{
+        // Use env() for safe area on iOS
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }}
+    >
+      <div
+        ref={scrollRef}
+        className="flex items-center gap-1 px-2 py-2 overflow-x-auto"
+        style={{
+          // Hide scrollbar but allow scrolling
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
+        <ToolbarContent editor={editor} isMobile={true} />
+      </div>
+      {/* Hide webkit scrollbar */}
+      <style>{`
+        .overflow-x-auto::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </div>
+  )
+}
+
+/**
+ * Desktop toolbar - bubble menu floating near cursor
+ */
+function DesktopToolbar({
+  editor,
+  className
+}: {
+  editor: Editor
+  className?: string
+}): JSX.Element {
+  return (
+    <BubbleMenu
+      editor={editor}
+      tippyOptions={{
+        duration: 150,
+        placement: 'top',
+        // Show even without selection (on cursor position)
+        getReferenceClientRect: () => {
+          const { state } = editor
+          const { from, to } = state.selection
+
+          // If there's a selection, use it
+          if (from !== to) {
+            return editor.view.coordsAtPos(from)
+          }
+
+          // Otherwise use cursor position
+          const coords = editor.view.coordsAtPos(from)
+          return new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
+        }
+      }}
+      // Always show when editor is focused (not just on selection)
+      shouldShow={({ editor, state }) => {
+        // Don't show in code blocks
+        if (editor.isActive('codeBlock')) return false
+        // Show when focused
+        return editor.isFocused
+      }}
+      className={cn(
+        'flex items-center gap-0.5 px-1.5 py-1 bg-bg-primary border border-border rounded-lg shadow-lg',
+        className
+      )}
+    >
+      <ToolbarContent editor={editor} isMobile={false} />
+    </BubbleMenu>
+  )
+}
+
+/**
+ * Floating toolbar component - Obsidian-style
+ *
+ * On desktop: Bubble menu floating near cursor/selection
+ * On mobile: Fixed at bottom, horizontally scrollable, with extra mobile buttons
+ */
+export function FloatingToolbar({
+  editor,
+  className,
+  forceMobile
+}: FloatingToolbarProps): JSX.Element | null {
+  const isMobile = useIsMobile(forceMobile)
+
+  if (!editor) return null
+
+  if (isMobile) {
+    return <MobileToolbar editor={editor} className={className} />
+  }
+
+  return <DesktopToolbar editor={editor} className={className} />
+}
