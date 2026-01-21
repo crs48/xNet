@@ -1,26 +1,51 @@
 /**
  * @xnet/react - React hooks for xNet
+ *
+ * Simplified API:
+ * - useQuery: All read operations (list, single, filtered)
+ * - useMutate: All write operations (create, update, remove, transactions)
  */
 
-// Context
+// =============================================================================
+// Core Data Hooks (Recommended)
+// =============================================================================
+
+// Reads
 export {
-  XNetProvider,
-  useXNet,
-  type XNetConfig,
-  type XNetContextValue,
-  type XNetProviderProps
-} from './context'
+  useQuery,
+  type TypedNode,
+  type QueryFilter,
+  type QueryListResult,
+  type QuerySingleResult
+} from './hooks/useQuery'
 
-// Hooks
+// Writes
+export {
+  useMutate,
+  type UseMutateResult,
+  type MutateOp,
+  type MutateCreate,
+  type MutateUpdate,
+  type MutateDelete,
+  type MutateRestore
+} from './hooks/useMutate'
+
+// =============================================================================
+// Store Provider
+// =============================================================================
+
+export {
+  NodeStoreProvider,
+  useNodeStore,
+  type NodeStoreContextValue,
+  type NodeStoreProviderProps
+} from './hooks/useNodeStore'
+
+// =============================================================================
+// Document Hooks (Rich Text / Yjs)
+// =============================================================================
+
 export { useDocument, type UseDocumentOptions, type UseDocumentResult } from './hooks/useDocument'
-
-export { useQuery, type UseQueryOptions, type UseQueryResult } from './hooks/useQuery'
-
-export { useSync, type UseSyncResult } from './hooks/useSync'
-
-export { usePresence, type UsePresenceResult, type UserPresence } from './hooks/usePresence'
-
-export { useIdentity, type UseIdentityResult } from './hooks/useIdentity'
 
 export {
   useDocumentSync,
@@ -30,6 +55,14 @@ export {
 
 export { useEditor, type UseEditorOptions, type UseEditorResult } from './hooks/useEditor'
 
+// =============================================================================
+// Sync & Presence
+// =============================================================================
+
+export { useSync, type UseSyncResult } from './hooks/useSync'
+
+export { usePresence, type UsePresenceResult, type UserPresence } from './hooks/usePresence'
+
 export {
   useNodeSync,
   type UseNodeSyncOptions,
@@ -37,47 +70,28 @@ export {
   type NodePeerState
 } from './hooks/useNodeSync'
 
-export {
-  NodeStoreProvider,
-  useNodeStore,
-  type NodeStoreContextValue,
-  type NodeStoreProviderProps
-} from './hooks/useNodeStore'
+// =============================================================================
+// Identity
+// =============================================================================
+
+export { useIdentity, type UseIdentityResult } from './hooks/useIdentity'
+
+// =============================================================================
+// Legacy Context (for XNetProvider users)
+// =============================================================================
 
 export {
-  useNode,
-  useNodes,
-  type UseNodeOptions,
-  type UseNodeResult,
-  type UseNodesOptions,
-  type UseNodesResult
-} from './hooks/useNode'
+  XNetProvider,
+  useXNet,
+  type XNetConfig,
+  type XNetContextValue,
+  type XNetProviderProps
+} from './context'
 
-// Schema-aware hooks (recommended)
-export {
-  useSchema,
-  useSingleNode,
-  type TypedNodeState,
-  type UseSchemaOptions,
-  type UseSchemaResult,
-  type UseSingleNodeResult,
-  type TypedTransactionOp
-} from './hooks/useSchema'
+// =============================================================================
+// Store (Zustand)
+// =============================================================================
 
-// Transactions
-export {
-  useTransact,
-  createOp,
-  type UseTransactResult,
-  type TransactOp,
-  type TransactCreate,
-  type TransactCreateTyped,
-  type TransactUpdate,
-  type TransactDelete,
-  type TransactRestore
-} from './hooks/useTransact'
-
-// Store
 export {
   createXNetStore,
   type XNetStore,
