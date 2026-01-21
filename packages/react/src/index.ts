@@ -31,10 +31,11 @@ export {
 export { useEditor, type UseEditorOptions, type UseEditorResult } from './hooks/useEditor'
 
 export {
-  useRecordSync,
-  type UseRecordSyncOptions,
-  type UseRecordSyncResult
-} from './hooks/useRecordSync'
+  useNodeSync,
+  type UseNodeSyncOptions,
+  type UseNodeSyncResult,
+  type NodePeerState
+} from './hooks/useNodeSync'
 
 // Store
 export {

@@ -1,11 +1,11 @@
 /**
- * @xnet/data - Yjs CRDT engine, signed updates, document management
+ * @xnet/data - Unified data layer for xNet
  *
  * This package provides:
- * - Yjs CRDT document management
- * - Schema system for typed nodes
+ * - Schema system for typed Nodes (defineSchema, property helpers)
+ * - NodeStore for event-sourced Node persistence with LWW conflict resolution
+ * - Yjs CRDT document management (for rich text content)
  * - Built-in schemas (Page, Database, Task)
- * - Property helpers for schema definitions
  */
 
 // Schema system
@@ -144,6 +144,26 @@ export {
   type CursorPosition,
   type SelectionRange
 } from './sync/awareness'
+
+// NodeStore - Event-sourced storage for Nodes
+export {
+  NodeStore,
+  MemoryNodeStorageAdapter,
+  type NodeId,
+  type PropertyKey,
+  type NodePayload,
+  type NodeChange,
+  type PropertyTimestamp,
+  type NodeState,
+  type NodeStorageAdapter,
+  type ListNodesOptions,
+  type CountNodesOptions,
+  type ConflictResult,
+  type MergeConflict,
+  type NodeStoreOptions,
+  type CreateNodeOptions as CreateNodeStoreOptions,
+  type UpdateNodeOptions
+} from './store'
 
 // Re-export Yjs for convenience
 export {

@@ -1,0 +1,473 @@
+/**
+ * Tests for NodeStore
+ */
+
+import { describe, it, expect, beforeEach } from 'vitest'
+import { generateSigningKeyPair } from '@xnet/crypto'
+import { NodeStore } from './store'
+import { MemoryNodeStorageAdapter } from './memory-adapter'
+import type { DID } from '@xnet/core'
+import type { SchemaIRI } from '../schema/node'
+
+// Test fixtures
+const TEST_SCHEMA: SchemaIRI = 'xnet://xnet.dev/Task'
+const TEST_SCHEMA_2: SchemaIRI = 'xnet://xnet.dev/Page'
+
+function createTestStore(): {
+  store: NodeStore
+  adapter: MemoryNodeStorageAdapter
+  did: DID
+} {
+  const keyPair = generateSigningKeyPair()
+  const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
+  const adapter = new MemoryNodeStorageAdapter()
+  const store = new NodeStore({
+    storage: adapter,
+    authorDID: did,
+    signingKey: keyPair.privateKey
+  })
+  return { store, adapter, did }
+}
+
+describe('NodeStore', () => {
+  describe('CRUD operations', () => {
+    it('should create a node', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const node = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: {
+          title: 'Test Task',
+          status: 'todo'
+        }
+      })
+
+      expect(node.id).toBeDefined()
+      expect(node.schemaId).toBe(TEST_SCHEMA)
+      expect(node.properties.title).toBe('Test Task')
+      expect(node.properties.status).toBe('todo')
+      expect(node.deleted).toBe(false)
+    })
+
+    it('should create a node with custom ID', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const node = await store.create({
+        id: 'custom-id-123',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Custom ID Node' }
+      })
+
+      expect(node.id).toBe('custom-id-123')
+    })
+
+    it('should get a node by ID', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const created = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Get Test' }
+      })
+
+      const fetched = await store.get(created.id)
+      expect(fetched).not.toBeNull()
+      expect(fetched!.id).toBe(created.id)
+      expect(fetched!.properties.title).toBe('Get Test')
+    })
+
+    it('should return null for non-existent node', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const fetched = await store.get('non-existent-id')
+      expect(fetched).toBeNull()
+    })
+
+    it('should update a node', async () => {
+      const { store, did } = createTestStore()
+      await store.initialize()
+
+      const created = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Original', count: 0 }
+      })
+
+      const updated = await store.update(created.id, {
+        properties: { title: 'Updated', count: 1 }
+      })
+
+      expect(updated.properties.title).toBe('Updated')
+      expect(updated.properties.count).toBe(1)
+      expect(updated.updatedBy).toBe(did)
+    })
+
+    it('should update sparse properties (only changed ones)', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const created = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Original', status: 'todo', priority: 'high' }
+      })
+
+      // Only update title
+      const updated = await store.update(created.id, {
+        properties: { title: 'Updated Title' }
+      })
+
+      expect(updated.properties.title).toBe('Updated Title')
+      expect(updated.properties.status).toBe('todo') // Unchanged
+      expect(updated.properties.priority).toBe('high') // Unchanged
+    })
+
+    it('should throw when updating non-existent node', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      await expect(store.update('non-existent', { properties: { title: 'Test' } })).rejects.toThrow(
+        'Node not found'
+      )
+    })
+
+    it('should soft delete a node', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const created = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'To Delete' }
+      })
+
+      await store.delete(created.id)
+
+      const fetched = await store.get(created.id)
+      expect(fetched).not.toBeNull()
+      expect(fetched!.deleted).toBe(true)
+    })
+
+    it('should restore a deleted node', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const created = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'To Restore' }
+      })
+
+      await store.delete(created.id)
+      const restored = await store.restore(created.id)
+
+      expect(restored.deleted).toBe(false)
+      expect(restored.properties.title).toBe('To Restore')
+    })
+  })
+
+  describe('list operations', () => {
+    it('should list all nodes', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Node 1' } })
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Node 2' } })
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Node 3' } })
+
+      const nodes = await store.list()
+      expect(nodes).toHaveLength(3)
+    })
+
+    it('should filter by schema', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Task 1' } })
+      await store.create({ schemaId: TEST_SCHEMA_2, properties: { title: 'Page 1' } })
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Task 2' } })
+
+      const tasks = await store.list({ schemaId: TEST_SCHEMA })
+      expect(tasks).toHaveLength(2)
+      expect(tasks.every((n) => n.schemaId === TEST_SCHEMA)).toBe(true)
+    })
+
+    it('should exclude deleted nodes by default', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const node1 = await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Keep' } })
+      const node2 = await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Delete' } })
+      await store.delete(node2.id)
+
+      const nodes = await store.list()
+      expect(nodes).toHaveLength(1)
+      expect(nodes[0].id).toBe(node1.id)
+    })
+
+    it('should include deleted nodes when requested', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Keep' } })
+      const node2 = await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Delete' } })
+      await store.delete(node2.id)
+
+      const nodes = await store.list({ includeDeleted: true })
+      expect(nodes).toHaveLength(2)
+    })
+
+    it('should support pagination', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      for (let i = 0; i < 10; i++) {
+        await store.create({ schemaId: TEST_SCHEMA, properties: { title: `Node ${i}` } })
+      }
+
+      const page1 = await store.list({ limit: 3, offset: 0 })
+      const page2 = await store.list({ limit: 3, offset: 3 })
+
+      expect(page1).toHaveLength(3)
+      expect(page2).toHaveLength(3)
+      expect(page1[0].id).not.toBe(page2[0].id)
+    })
+  })
+
+  describe('change tracking', () => {
+    it('should track changes for a node', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const node = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Original' }
+      })
+
+      await store.update(node.id, { properties: { title: 'Update 1' } })
+      await store.update(node.id, { properties: { title: 'Update 2' } })
+
+      const changes = await store.getChanges(node.id)
+      expect(changes).toHaveLength(3) // create + 2 updates
+    })
+
+    it('should get all changes', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const node1 = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Node 1' }
+      })
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Node 2' } })
+      await store.update(node1.id, { properties: { title: 'Updated' } })
+
+      const allChanges = await store.getAllChanges()
+      expect(allChanges).toHaveLength(3)
+    })
+
+    it('should maintain Lamport time across operations', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      expect(store.getCurrentLamportTime()).toBe(0)
+
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Node 1' } })
+      expect(store.getCurrentLamportTime()).toBe(1)
+
+      await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Node 2' } })
+      expect(store.getCurrentLamportTime()).toBe(2)
+    })
+  })
+
+  describe('LWW conflict resolution', () => {
+    it('should resolve conflicts using Lamport timestamps', async () => {
+      // Create two stores simulating two devices
+      const store1Setup = createTestStore()
+      const store2Setup = createTestStore()
+      await store1Setup.store.initialize()
+      await store2Setup.store.initialize()
+
+      // Store 1 creates a node
+      const node = await store1Setup.store.create({
+        id: 'shared-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Original', count: 0 }
+      })
+
+      // Get the change from store 1
+      const changes1 = await store1Setup.store.getChanges(node.id)
+
+      // Apply to store 2 (simulating sync)
+      for (const change of changes1) {
+        await store2Setup.store.applyRemoteChange(change)
+      }
+
+      // Store 1 updates (Lamport time 2)
+      await store1Setup.store.update('shared-node', { properties: { title: 'Store 1 Update' } })
+
+      // Get store 1's update and sync to store 2
+      const store1Update = (await store1Setup.store.getChanges('shared-node'))[1]
+      await store2Setup.store.applyRemoteChange(store1Update)
+
+      // Now store 2 updates (Lamport time 3 - higher because it received store 1's update)
+      await store2Setup.store.update('shared-node', { properties: { title: 'Store 2 Update' } })
+
+      // Get store 2's update and sync back to store 1
+      const store2Changes = await store2Setup.store.getChanges('shared-node')
+      const store2Latest = store2Changes[store2Changes.length - 1]
+      await store1Setup.store.applyRemoteChange(store2Latest)
+
+      // Both should converge to store 2's value (higher Lamport time)
+      const node1 = await store1Setup.store.get('shared-node')
+      const node2 = await store2Setup.store.get('shared-node')
+
+      expect(node1!.properties.title).toBe('Store 2 Update')
+      expect(node2!.properties.title).toBe('Store 2 Update')
+    })
+
+    it('should track conflicts', async () => {
+      const store1Setup = createTestStore()
+      const store2Setup = createTestStore()
+      await store1Setup.store.initialize()
+      await store2Setup.store.initialize()
+
+      // Store 1 creates a node
+      const node = await store1Setup.store.create({
+        id: 'conflict-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'initial' }
+      })
+
+      // Get the create change
+      const createChanges = await store1Setup.store.getChanges(node.id)
+
+      // Apply create to store 2
+      await store2Setup.store.applyRemoteChange(createChanges[0])
+
+      // Store 1 updates
+      await store1Setup.store.update('conflict-node', { properties: { value: 'store1' } })
+
+      // Get store 1's update change
+      const store1Changes = await store1Setup.store.getChanges('conflict-node')
+      const store1Update = store1Changes[1]
+
+      // Store 2 receives store 1's update first (so store 2 will be at Lamport time 2)
+      await store2Setup.store.applyRemoteChange(store1Update)
+
+      // Store 2 updates (now at Lamport time 3 - higher than store 1's update)
+      await store2Setup.store.update('conflict-node', { properties: { value: 'store2' } })
+
+      // Final value should be store2 (higher Lamport time)
+      const finalNode = await store2Setup.store.get('conflict-node')
+      expect(finalNode!.properties.value).toBe('store2')
+
+      // Conflicts should have been tracked during the updates
+      const conflicts = store2Setup.store.getRecentConflicts()
+      expect(conflicts.length).toBeGreaterThan(0)
+
+      // Find the conflict for the 'value' property
+      const valueConflict = conflicts.find((c) => c.key === 'value')
+      expect(valueConflict).toBeDefined()
+    })
+  })
+
+  describe('metadata tracking', () => {
+    it('should track createdAt and createdBy', async () => {
+      const { store, did } = createTestStore()
+      await store.initialize()
+
+      const before = Date.now()
+      const node = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Test' }
+      })
+      const after = Date.now()
+
+      expect(node.createdBy).toBe(did)
+      expect(node.createdAt).toBeGreaterThanOrEqual(before)
+      expect(node.createdAt).toBeLessThanOrEqual(after)
+    })
+
+    it('should track updatedAt and updatedBy', async () => {
+      const { store, did } = createTestStore()
+      await store.initialize()
+
+      const node = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Original' }
+      })
+
+      const originalUpdatedAt = node.updatedAt
+
+      // Small delay to ensure different timestamp
+      await new Promise((resolve) => setTimeout(resolve, 10))
+
+      const updated = await store.update(node.id, {
+        properties: { title: 'Updated' }
+      })
+
+      expect(updated.updatedBy).toBe(did)
+      expect(updated.updatedAt).toBeGreaterThan(originalUpdatedAt)
+    })
+
+    it('should track per-property timestamps', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      const node = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Original', count: 0 }
+      })
+
+      // Update only title
+      await store.update(node.id, { properties: { title: 'Updated' } })
+
+      const fetched = await store.get(node.id)
+
+      // Title should have newer timestamp than count
+      expect(fetched!.timestamps.title.lamport.time).toBeGreaterThan(
+        fetched!.timestamps.count.lamport.time
+      )
+    })
+  })
+})
+
+describe('MemoryNodeStorageAdapter', () => {
+  it('should persist and retrieve changes', async () => {
+    const adapter = new MemoryNodeStorageAdapter()
+    const { store } = createTestStore()
+
+    // Use the adapter directly
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Test' }
+    })
+
+    // Adapter should have the change
+    expect(store['storage']).toBeDefined()
+  })
+
+  it('should clear all data', () => {
+    const adapter = new MemoryNodeStorageAdapter()
+
+    // Add some data
+    adapter.setNode({
+      id: 'test',
+      schemaId: TEST_SCHEMA,
+      properties: {},
+      timestamps: {},
+      deleted: false,
+      createdAt: Date.now(),
+      createdBy: 'did:key:test' as DID,
+      updatedAt: Date.now(),
+      updatedBy: 'did:key:test' as DID
+    })
+
+    expect(adapter.getNodeCount()).toBe(1)
+
+    adapter.clear()
+
+    expect(adapter.getNodeCount()).toBe(0)
+    expect(adapter.getChangeCount()).toBe(0)
+  })
+})

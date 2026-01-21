@@ -21,6 +21,7 @@
     "@xnet/crypto": "workspace:*",
     "@xnet/identity": "workspace:*",
     "@xnet/storage": "workspace:*",
+    "@xnet/sync": "workspace:*",
     "lib0": "^0.2.102",
     "nanoid": "^5.1.6",
     "y-protocols": "^1.0.6",
