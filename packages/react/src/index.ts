@@ -37,6 +37,22 @@ export {
   type NodePeerState
 } from './hooks/useNodeSync'
 
+export {
+  NodeStoreProvider,
+  useNodeStore,
+  type NodeStoreContextValue,
+  type NodeStoreProviderProps
+} from './hooks/useNodeStore'
+
+export {
+  useNode,
+  useNodes,
+  type UseNodeOptions,
+  type UseNodeResult,
+  type UseNodesOptions,
+  type UseNodesResult
+} from './hooks/useNode'
+
 // Store
 export {
   createXNetStore,
