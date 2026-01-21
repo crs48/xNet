@@ -369,6 +369,9 @@ export class NodeStore {
 
       changes.push(change)
       results.push(result)
+
+      // Emit change event for subscribers
+      this.emit(change, result, false)
     }
 
     return { batchId, results, changes }
