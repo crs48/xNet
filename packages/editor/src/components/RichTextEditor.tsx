@@ -12,7 +12,7 @@ import Link from '@tiptap/extension-link'
 import Typography from '@tiptap/extension-typography'
 import type * as Y from 'yjs'
 import { Wikilink, LivePreview } from '../extensions'
-import { EditorToolbar } from './EditorToolbar'
+import { FloatingToolbar } from './FloatingToolbar'
 import { cn } from '../utils'
 
 export interface RichTextEditorProps {
@@ -146,9 +146,9 @@ export function RichTextEditor({
   }, [editor])
 
   return (
-    <div className={cn('border border-border rounded-lg overflow-hidden bg-bg', className)}>
-      {showToolbar && <EditorToolbar editor={editor} />}
-      <EditorContent editor={editor} className="p-4 min-h-[400px]" />
+    <div className={cn('relative', className)}>
+      <EditorContent editor={editor} className="p-4 min-h-[400px] focus:outline-none" />
+      {showToolbar && <FloatingToolbar editor={editor} />}
     </div>
   )
 }

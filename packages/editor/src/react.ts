@@ -19,6 +19,8 @@
  * ```
  */
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
+export { FloatingToolbar, type FloatingToolbarProps } from './components/FloatingToolbar'
+// Legacy toolbar export (deprecated, use FloatingToolbar)
 export { EditorToolbar, type EditorToolbarProps } from './components/EditorToolbar'
 
 // Re-export hooks from @tiptap/react for convenience
