@@ -3,8 +3,13 @@
 > REST API, webhooks, and OAuth bridge for external integrations
 
 **Package:** `@xnet/api`
-**Dependencies:** `@xnet/modules`, `@xnet/identity`, `@xnet/workflows`
+**Dependencies:** `@xnet/modules`, `@xnet/identity`, `@xnet/workflows`, `@xnet/data`
 **Estimated Time:** 2 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - API exposes Nodes via REST endpoints
+> - CRUD operations map to NodeStore methods
 
 ## Goals
 
@@ -84,8 +89,8 @@ export interface CORSConfig {
 }
 
 export interface RateLimitConfig {
-  windowMs: number       // Time window in ms
-  maxRequests: number    // Max requests per window
+  windowMs: number // Time window in ms
+  maxRequests: number // Max requests per window
   keyGenerator: 'ip' | 'apiKey' | 'user'
 }
 
@@ -124,8 +129,8 @@ export interface WebhookConfig {
 export interface APIKey {
   id: string
   name: string
-  key: string           // hashed
-  prefix: string        // first 8 chars for identification
+  key: string // hashed
+  prefix: string // first 8 chars for identification
   permissions: APIPermission[]
   rateLimit?: number
   expiresAt?: number
@@ -142,7 +147,7 @@ export type APIPermission =
   | 'read:users'
   | 'execute:workflows'
   | 'manage:webhooks'
-  | '*'  // Full access
+  | '*' // Full access
 ```
 
 ## API Gateway Server
@@ -191,12 +196,15 @@ export class APIGateway {
     this.app.use('*', secureHeaders())
 
     // CORS
-    this.app.use('*', cors({
-      origin: this.config.cors.origins,
-      allowMethods: this.config.cors.methods,
-      allowHeaders: this.config.cors.headers,
-      credentials: this.config.cors.credentials
-    }))
+    this.app.use(
+      '*',
+      cors({
+        origin: this.config.cors.origins,
+        allowMethods: this.config.cors.methods,
+        allowHeaders: this.config.cors.headers,
+        credentials: this.config.cors.credentials
+      })
+    )
 
     // Rate limiting
     this.app.use('/api/*', async (c, next) => {
@@ -204,10 +212,13 @@ export class APIGateway {
       const allowed = await this.rateLimiter.check(key)
 
       if (!allowed) {
-        return c.json({
-          error: 'Rate limit exceeded',
-          retryAfter: this.rateLimiter.getRetryAfter(key)
-        }, 429)
+        return c.json(
+          {
+            error: 'Rate limit exceeded',
+            retryAfter: this.rateLimiter.getRetryAfter(key)
+          },
+          429
+        )
       }
 
       await next()
@@ -379,12 +390,14 @@ export class APIGateway {
     // List modules
     router.get('/', async (c) => {
       const modules = this.moduleRegistry.getActiveModules()
-      return c.json({ modules: modules.map(m => ({
-        id: m.id,
-        name: m.name,
-        version: m.version,
-        description: m.description
-      }))})
+      return c.json({
+        modules: modules.map((m) => ({
+          id: m.id,
+          name: m.name,
+          version: m.version,
+          description: m.description
+        }))
+      })
     })
 
     // Get module details
@@ -508,14 +521,16 @@ export class APIGateway {
     // List API keys
     router.get('/', async (c) => {
       const keys = await this.getAPIKeys(c.get('auth').userId)
-      return c.json({ keys: keys.map(k => ({
-        id: k.id,
-        name: k.name,
-        prefix: k.prefix,
-        permissions: k.permissions,
-        createdAt: k.createdAt,
-        lastUsedAt: k.lastUsedAt
-      }))})
+      return c.json({
+        keys: keys.map((k) => ({
+          id: k.id,
+          name: k.name,
+          prefix: k.prefix,
+          permissions: k.permissions,
+          createdAt: k.createdAt,
+          lastUsedAt: k.lastUsedAt
+        }))
+      })
     })
 
     // Create API key
@@ -529,16 +544,19 @@ export class APIGateway {
       })
 
       // Return full key only once
-      return c.json({
-        key,  // Full key - only shown once
-        apiKey: {
-          id: apiKey.id,
-          name: apiKey.name,
-          prefix: apiKey.prefix,
-          permissions: apiKey.permissions,
-          createdAt: apiKey.createdAt
-        }
-      }, 201)
+      return c.json(
+        {
+          key, // Full key - only shown once
+          apiKey: {
+            id: apiKey.id,
+            name: apiKey.name,
+            prefix: apiKey.prefix,
+            permissions: apiKey.permissions,
+            createdAt: apiKey.createdAt
+          }
+        },
+        201
+      )
     })
 
     // Revoke API key
@@ -591,7 +609,7 @@ export class APIGateway {
           authenticated: true,
           method: 'oauth',
           userId: oauth.userId,
-          permissions: ['*']  // Full access for OAuth users
+          permissions: ['*'] // Full access for OAuth users
         }
       }
     }
@@ -713,36 +731,35 @@ export class OAuthBridge {
 
   constructor(private providers: OAuthProvider[]) {
     for (const provider of providers) {
-      this.clients.set(provider.id, new OAuth2Client(
-        provider.clientId,
-        provider.authorizationUrl,
-        provider.tokenUrl,
-        { redirectUri: this.getRedirectUri(provider.id) }
-      ))
+      this.clients.set(
+        provider.id,
+        new OAuth2Client(provider.clientId, provider.authorizationUrl, provider.tokenUrl, {
+          redirectUri: this.getRedirectUri(provider.id)
+        })
+      )
     }
   }
 
   // Generate authorization URL
   getAuthorizationUrl(providerId: string, state: string): string {
-    const provider = this.providers.find(p => p.id === providerId)
+    const provider = this.providers.find((p) => p.id === providerId)
     const client = this.clients.get(providerId)
 
     if (!provider || !client) {
       throw new Error(`Unknown provider: ${providerId}`)
     }
 
-    return client.createAuthorizationUrl({
-      state,
-      scopes: provider.scopes
-    }).toString()
+    return client
+      .createAuthorizationUrl({
+        state,
+        scopes: provider.scopes
+      })
+      .toString()
   }
 
   // Exchange code for tokens
-  async exchangeCode(
-    providerId: string,
-    code: string
-  ): Promise<OAuthTokens> {
-    const provider = this.providers.find(p => p.id === providerId)
+  async exchangeCode(providerId: string, code: string): Promise<OAuthTokens> {
+    const provider = this.providers.find((p) => p.id === providerId)
     const client = this.clients.get(providerId)
 
     if (!provider || !client) {
@@ -762,11 +779,8 @@ export class OAuthBridge {
   }
 
   // Get user info
-  async getUserInfo(
-    providerId: string,
-    accessToken: string
-  ): Promise<OAuthUserInfo> {
-    const provider = this.providers.find(p => p.id === providerId)
+  async getUserInfo(providerId: string, accessToken: string): Promise<OAuthUserInfo> {
+    const provider = this.providers.find((p) => p.id === providerId)
 
     if (!provider?.userInfoUrl) {
       throw new Error(`User info not supported for: ${providerId}`)
@@ -837,10 +851,7 @@ export class OpenAPIGenerator {
           description: 'Local API'
         }
       ],
-      security: [
-        { apiKey: [] },
-        { bearerAuth: [] }
-      ],
+      security: [{ apiKey: [] }, { bearerAuth: [] }],
       paths: {
         '/api/databases': {
           get: {
@@ -1080,6 +1091,7 @@ packages/api/
 ## API Gateway Validation
 
 ### Authentication
+
 - [ ] API key authentication works
 - [ ] OAuth flow completes
 - [ ] UCAN validation works
@@ -1087,6 +1099,7 @@ packages/api/
 - [ ] Permissions enforced
 
 ### Database Endpoints
+
 - [ ] List databases
 - [ ] Get database schema
 - [ ] Query with filters
@@ -1097,11 +1110,13 @@ packages/api/
 - [ ] Delete record
 
 ### Rate Limiting
+
 - [ ] Rate limits enforced
 - [ ] Retry-After header set
 - [ ] Different limits per key tier
 
 ### Webhooks
+
 - [ ] Create webhook
 - [ ] List webhooks
 - [ ] Delete webhook
@@ -1110,17 +1125,20 @@ packages/api/
 - [ ] Retry on failure
 
 ### API Keys
+
 - [ ] Create API key
 - [ ] List API keys
 - [ ] Revoke API key
 - [ ] Permissions respected
 
 ### Documentation
+
 - [ ] Swagger UI accessible
 - [ ] OpenAPI spec generated
 - [ ] Examples provided
 
 ### Security
+
 - [ ] CORS configured correctly
 - [ ] Security headers set
 - [ ] Input validation

@@ -3,11 +3,17 @@
 > Spatial graph visualization with auto-layout
 
 **Duration:** 4 weeks
-**Dependencies:** @xnet/database, @xnet/vectors
+**Dependencies:** @xnet/data, @xnet/vectors
+
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - Canvas nodes reference `Node` IDs from NodeStore
 
 ## Overview
 
 The infinite canvas provides a spatial workspace for visualizing document relationships. Features:
+
 - Pan and zoom navigation
 - R-tree spatial indexing
 - Auto-layout algorithms (force, hierarchical)
@@ -53,7 +59,7 @@ flowchart TD
 
 export interface CanvasNode {
   id: string
-  documentId?: string      // Link to xnet document
+  documentId?: string // Link to xnet document
   type: 'document' | 'group' | 'text' | 'image'
 
   // Position and size
@@ -69,13 +75,13 @@ export interface CanvasNode {
   collapsed?: boolean
 
   // For groups
-  children?: string[]      // Child node IDs
+  children?: string[] // Child node IDs
 }
 
 export interface CanvasEdge {
   id: string
-  source: string           // Source node ID
-  target: string           // Target node ID
+  source: string // Source node ID
+  target: string // Target node ID
   type: EdgeType
 
   // Visual properties
@@ -88,12 +94,12 @@ export interface CanvasEdge {
 }
 
 export type EdgeType =
-  | 'wikilink'           // [[page]] references
-  | 'tag'                // Shared #tag
-  | 'relation'           // Database relation
-  | 'temporal'           // Date proximity
-  | 'semantic'           // Vector similarity
-  | 'manual'             // User-created
+  | 'wikilink' // [[page]] references
+  | 'tag' // Shared #tag
+  | 'relation' // Database relation
+  | 'temporal' // Date proximity
+  | 'semantic' // Vector similarity
+  | 'manual' // User-created
 
 export interface Point {
   x: number
@@ -101,9 +107,9 @@ export interface Point {
 }
 
 export interface Viewport {
-  x: number      // Camera position
+  x: number // Camera position
   y: number
-  zoom: number   // 0.1 to 5
+  zoom: number // 0.1 to 5
 }
 
 export interface CanvasState {
@@ -145,7 +151,7 @@ export class SpatialIndex {
       minX: node.x,
       minY: node.y,
       maxX: node.x + node.width,
-      maxY: node.y + node.height,
+      maxY: node.y + node.height
     })
   }
 
@@ -155,7 +161,7 @@ export class SpatialIndex {
       minX: node.x,
       minY: node.y,
       maxX: node.x + node.width,
-      maxY: node.y + node.height,
+      maxY: node.y + node.height
     }
     this.tree.remove(item, (a, b) => a.id === b.id)
   }
@@ -172,10 +178,10 @@ export class SpatialIndex {
       minX: viewport.x,
       minY: viewport.y,
       maxX: viewport.x + canvasWidth * scale,
-      maxY: viewport.y + canvasHeight * scale,
+      maxY: viewport.y + canvasHeight * scale
     }
 
-    return this.tree.search(bbox).map(item => item.id)
+    return this.tree.search(bbox).map((item) => item.id)
   }
 
   // Find node at point
@@ -184,7 +190,7 @@ export class SpatialIndex {
       minX: x,
       minY: y,
       maxX: x,
-      maxY: y,
+      maxY: y
     })
 
     // Return topmost (last added)
@@ -193,17 +199,19 @@ export class SpatialIndex {
 
   // Find nodes in selection rectangle
   queryRect(rect: BBox): string[] {
-    return this.tree.search(rect).map(item => item.id)
+    return this.tree.search(rect).map((item) => item.id)
   }
 
   // Find nearby nodes for snapping
   findNearest(x: number, y: number, radius: number): string[] {
-    return this.tree.search({
-      minX: x - radius,
-      minY: y - radius,
-      maxX: x + radius,
-      maxY: y + radius,
-    }).map(item => item.id)
+    return this.tree
+      .search({
+        minX: x - radius,
+        minY: y - radius,
+        maxX: x + radius,
+        maxY: y + radius
+      })
+      .map((item) => item.id)
   }
 
   clear(): void {
@@ -211,13 +219,15 @@ export class SpatialIndex {
   }
 
   bulk(nodes: CanvasNode[]): void {
-    this.tree.load(nodes.map(node => ({
-      id: node.id,
-      minX: node.x,
-      minY: node.y,
-      maxX: node.x + node.width,
-      maxY: node.y + node.height,
-    })))
+    this.tree.load(
+      nodes.map((node) => ({
+        id: node.id,
+        minX: node.x,
+        minY: node.y,
+        maxX: node.x + node.width,
+        maxY: node.y + node.height
+      }))
+    )
   }
 }
 ```
@@ -261,18 +271,18 @@ export class LayoutEngine {
         'elk.direction': options.direction || 'DOWN',
         'elk.spacing.nodeNode': String(options.nodeSpacing || 50),
         'elk.spacing.edgeEdge': String(options.edgeSpacing || 20),
-        'elk.layered.spacing.baseValue': String(options.layerSpacing || 100),
+        'elk.layered.spacing.baseValue': String(options.layerSpacing || 100)
       },
-      children: nodes.map(node => ({
+      children: nodes.map((node) => ({
         id: node.id,
         width: node.width,
-        height: node.height,
+        height: node.height
       })),
-      edges: edges.map(edge => ({
+      edges: edges.map((edge) => ({
         id: edge.id,
         sources: [edge.source],
-        targets: [edge.target],
-      })),
+        targets: [edge.target]
+      }))
     }
 
     const layoutedGraph = await this.elk.layout(elkGraph)
@@ -280,21 +290,21 @@ export class LayoutEngine {
     const nodePositions = new Map<string, { x: number; y: number }>()
     const edgePoints = new Map<string, { points: Point[] }>()
 
-    layoutedGraph.children?.forEach(child => {
+    layoutedGraph.children?.forEach((child) => {
       nodePositions.set(child.id, {
         x: child.x || 0,
-        y: child.y || 0,
+        y: child.y || 0
       })
     })
 
-    layoutedGraph.edges?.forEach(edge => {
+    layoutedGraph.edges?.forEach((edge) => {
       const elkEdge = edge as ElkExtendedEdge
       const sections = elkEdge.sections || []
       const points: Point[] = []
 
-      sections.forEach(section => {
+      sections.forEach((section) => {
         points.push({ x: section.startPoint.x, y: section.startPoint.y })
-        section.bendPoints?.forEach(bp => {
+        section.bendPoints?.forEach((bp) => {
           points.push({ x: bp.x, y: bp.y })
         })
         points.push({ x: section.endPoint.x, y: section.endPoint.y })
@@ -317,17 +327,24 @@ export class ForceLayout {
     onTick: (positions: Map<string, { x: number; y: number }>) => void
   ): void {
     // Using d3-force
-    const d3Nodes = nodes.map(n => ({ id: n.id, x: n.x, y: n.y }))
-    const d3Links = edges.map(e => ({ source: e.source, target: e.target }))
+    const d3Nodes = nodes.map((n) => ({ id: n.id, x: n.x, y: n.y }))
+    const d3Links = edges.map((e) => ({ source: e.source, target: e.target }))
 
-    this.simulation = d3.forceSimulation(d3Nodes)
-      .force('link', d3.forceLink(d3Links).id((d: any) => d.id).distance(150))
+    this.simulation = d3
+      .forceSimulation(d3Nodes)
+      .force(
+        'link',
+        d3
+          .forceLink(d3Links)
+          .id((d: any) => d.id)
+          .distance(150)
+      )
       .force('charge', d3.forceManyBody().strength(-300))
       .force('center', d3.forceCenter(0, 0))
       .force('collision', d3.forceCollide().radius(100))
       .on('tick', () => {
         const positions = new Map<string, { x: number; y: number }>()
-        d3Nodes.forEach(n => {
+        d3Nodes.forEach((n) => {
           positions.set(n.id, { x: n.x, y: n.y })
         })
         onTick(positions)
@@ -600,8 +617,8 @@ import { CanvasState, CanvasNode, CanvasEdge, Viewport } from '../types'
 import { SpatialIndex } from '../spatial/rtree'
 
 export function useCanvas(initialNodes: CanvasNode[], initialEdges: CanvasEdge[]) {
-  const [nodes, setNodes] = useState(new Map(initialNodes.map(n => [n.id, n])))
-  const [edges, setEdges] = useState(new Map(initialEdges.map(e => [e.id, e])))
+  const [nodes, setNodes] = useState(new Map(initialNodes.map((n) => [n.id, n])))
+  const [edges, setEdges] = useState(new Map(initialEdges.map((e) => [e.id, e])))
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 })
   const [selection, setSelection] = useState<Set<string>>(new Set())
 
@@ -612,7 +629,7 @@ export function useCanvas(initialNodes: CanvasNode[], initialEdges: CanvasEdge[]
   }, [nodes])
 
   const moveNode = useCallback((nodeId: string, x: number, y: number) => {
-    setNodes(prev => {
+    setNodes((prev) => {
       const node = prev.get(nodeId)
       if (!node) return prev
 
@@ -623,16 +640,16 @@ export function useCanvas(initialNodes: CanvasNode[], initialEdges: CanvasEdge[]
   }, [])
 
   const addNode = useCallback((node: CanvasNode) => {
-    setNodes(prev => new Map(prev).set(node.id, node))
+    setNodes((prev) => new Map(prev).set(node.id, node))
   }, [])
 
   const removeNode = useCallback((nodeId: string) => {
-    setNodes(prev => {
+    setNodes((prev) => {
       const next = new Map(prev)
       next.delete(nodeId)
       return next
     })
-    setEdges(prev => {
+    setEdges((prev) => {
       const next = new Map(prev)
       prev.forEach((edge, id) => {
         if (edge.source === nodeId || edge.target === nodeId) {
@@ -647,7 +664,7 @@ export function useCanvas(initialNodes: CanvasNode[], initialEdges: CanvasEdge[]
     nodes,
     edges,
     viewport,
-    selection,
+    selection
   }
 
   return {
@@ -657,7 +674,7 @@ export function useCanvas(initialNodes: CanvasNode[], initialEdges: CanvasEdge[]
     setSelection,
     moveNode,
     addNode,
-    removeNode,
+    removeNode
   }
 }
 ```
@@ -665,6 +682,7 @@ export function useCanvas(initialNodes: CanvasNode[], initialEdges: CanvasEdge[]
 ## Checklist
 
 ### Week 1: Core Canvas
+
 - [ ] Canvas types and state
 - [ ] R-tree spatial index
 - [ ] Basic canvas rendering
@@ -672,6 +690,7 @@ export function useCanvas(initialNodes: CanvasNode[], initialEdges: CanvasEdge[]
 - [ ] Node rendering
 
 ### Week 2: Interactions
+
 - [ ] Node selection (single, multi)
 - [ ] Node dragging
 - [ ] Edge rendering
@@ -679,12 +698,14 @@ export function useCanvas(initialNodes: CanvasNode[], initialEdges: CanvasEdge[]
 - [ ] Minimap
 
 ### Week 3: Layout
+
 - [ ] ELK integration
 - [ ] Force-directed layout
 - [ ] Layout algorithms (layered, radial, tree)
 - [ ] Animated transitions
 
 ### Week 4: Features
+
 - [ ] Procedural edge generation
 - [ ] Group/frame nodes
 - [ ] Node collapse/expand

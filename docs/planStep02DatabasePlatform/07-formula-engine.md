@@ -5,9 +5,13 @@
 **Duration:** 3 weeks
 **Dependencies:** 01-property-types.md
 
+> **Note:** Formula values are computed at read time, not stored in NodeStore.
+> This keeps the data model clean and avoids storing derived data.
+
 ## Overview
 
 The formula engine enables computed properties with Notion-compatible syntax. Components:
+
 - Lexer (tokenizer)
 - Parser (AST builder)
 - Evaluator (expression execution)
@@ -153,7 +157,7 @@ export class Lexer {
     return {
       type: 'NUMBER',
       value: parseFloat(this.input.slice(start, this.position)),
-      position: start,
+      position: start
     }
   }
 
@@ -183,13 +187,20 @@ export class Lexer {
   private readEscapeSequence(): string {
     const char = this.input[this.position++]
     switch (char) {
-      case 'n': return '\n'
-      case 't': return '\t'
-      case 'r': return '\r'
-      case '\\': return '\\'
-      case '"': return '"'
-      case "'": return "'"
-      default: return char
+      case 'n':
+        return '\n'
+      case 't':
+        return '\t'
+      case 'r':
+        return '\r'
+      case '\\':
+        return '\\'
+      case '"':
+        return '"'
+      case "'":
+        return "'"
+      default:
+        return char
     }
   }
 
@@ -349,7 +360,10 @@ export class Parser {
   private parseEquality(): ASTNode {
     let left = this.parseComparison()
 
-    while (this.current().type === 'OPERATOR' && ['==', '!='].includes(this.current().value as string)) {
+    while (
+      this.current().type === 'OPERATOR' &&
+      ['==', '!='].includes(this.current().value as string)
+    ) {
       const operator = this.consume('OPERATOR').value as string
       const right = this.parseComparison()
       left = { type: 'BinaryExpression', operator, left, right }
@@ -361,7 +375,10 @@ export class Parser {
   private parseComparison(): ASTNode {
     let left = this.parseAdditive()
 
-    while (this.current().type === 'OPERATOR' && ['<', '>', '<=', '>='].includes(this.current().value as string)) {
+    while (
+      this.current().type === 'OPERATOR' &&
+      ['<', '>', '<=', '>='].includes(this.current().value as string)
+    ) {
       const operator = this.consume('OPERATOR').value as string
       const right = this.parseAdditive()
       left = { type: 'BinaryExpression', operator, left, right }
@@ -373,7 +390,10 @@ export class Parser {
   private parseAdditive(): ASTNode {
     let left = this.parseMultiplicative()
 
-    while (this.current().type === 'OPERATOR' && ['+', '-'].includes(this.current().value as string)) {
+    while (
+      this.current().type === 'OPERATOR' &&
+      ['+', '-'].includes(this.current().value as string)
+    ) {
       const operator = this.consume('OPERATOR').value as string
       const right = this.parseMultiplicative()
       left = { type: 'BinaryExpression', operator, left, right }
@@ -385,7 +405,10 @@ export class Parser {
   private parseMultiplicative(): ASTNode {
     let left = this.parseUnary()
 
-    while (this.current().type === 'OPERATOR' && ['*', '/', '%'].includes(this.current().value as string)) {
+    while (
+      this.current().type === 'OPERATOR' &&
+      ['*', '/', '%'].includes(this.current().value as string)
+    ) {
       const operator = this.consume('OPERATOR').value as string
       const right = this.parseUnary()
       left = { type: 'BinaryExpression', operator, left, right }
@@ -519,22 +542,34 @@ export class Evaluator {
           return String(left) + String(right)
         }
         return (left as number) + (right as number)
-      case '-': return (left as number) - (right as number)
-      case '*': return (left as number) * (right as number)
-      case '/': return (left as number) / (right as number)
-      case '%': return (left as number) % (right as number)
+      case '-':
+        return (left as number) - (right as number)
+      case '*':
+        return (left as number) * (right as number)
+      case '/':
+        return (left as number) / (right as number)
+      case '%':
+        return (left as number) % (right as number)
 
       // Comparison
-      case '==': return left === right
-      case '!=': return left !== right
-      case '<': return (left as number) < (right as number)
-      case '>': return (left as number) > (right as number)
-      case '<=': return (left as number) <= (right as number)
-      case '>=': return (left as number) >= (right as number)
+      case '==':
+        return left === right
+      case '!=':
+        return left !== right
+      case '<':
+        return (left as number) < (right as number)
+      case '>':
+        return (left as number) > (right as number)
+      case '<=':
+        return (left as number) <= (right as number)
+      case '>=':
+        return (left as number) >= (right as number)
 
       // Logical
-      case '&&': return Boolean(left) && Boolean(right)
-      case '||': return Boolean(left) || Boolean(right)
+      case '&&':
+        return Boolean(left) && Boolean(right)
+      case '||':
+        return Boolean(left) || Boolean(right)
 
       default:
         throw new Error(`Unknown operator: ${node.operator}`)
@@ -545,8 +580,10 @@ export class Evaluator {
     const arg = this.evaluate(node.argument)
 
     switch (node.operator) {
-      case '-': return -(arg as number)
-      case '!': return !arg
+      case '-':
+        return -(arg as number)
+      case '!':
+        return !arg
       default:
         throw new Error(`Unknown unary operator: ${node.operator}`)
     }
@@ -558,7 +595,7 @@ export class Evaluator {
       throw new Error(`Unknown function: ${node.callee}`)
     }
 
-    const args = node.arguments.map(arg => this.evaluate(arg))
+    const args = node.arguments.map((arg) => this.evaluate(arg))
     return fn(args, this.context)
   }
 }
@@ -619,10 +656,18 @@ export const functions: Record<string, FormulaFunction> = {
     const amount = args[1] as number
     const unit = args[2] as string
     switch (unit) {
-      case 'days': date.setDate(date.getDate() + amount); break
-      case 'weeks': date.setDate(date.getDate() + amount * 7); break
-      case 'months': date.setMonth(date.getMonth() + amount); break
-      case 'years': date.setFullYear(date.getFullYear() + amount); break
+      case 'days':
+        date.setDate(date.getDate() + amount)
+        break
+      case 'weeks':
+        date.setDate(date.getDate() + amount * 7)
+        break
+      case 'months':
+        date.setMonth(date.getMonth() + amount)
+        break
+      case 'years':
+        date.setFullYear(date.getFullYear() + amount)
+        break
     }
     return date.getTime()
   },
@@ -632,11 +677,16 @@ export const functions: Record<string, FormulaFunction> = {
     const unit = args[2] as string
     const diff = date1.getTime() - date2.getTime()
     switch (unit) {
-      case 'days': return Math.floor(diff / 86400000)
-      case 'weeks': return Math.floor(diff / 604800000)
-      case 'months': return Math.floor(diff / 2592000000)
-      case 'years': return Math.floor(diff / 31536000000)
-      default: return diff
+      case 'days':
+        return Math.floor(diff / 86400000)
+      case 'weeks':
+        return Math.floor(diff / 604800000)
+      case 'months':
+        return Math.floor(diff / 2592000000)
+      case 'years':
+        return Math.floor(diff / 31536000000)
+      default:
+        return diff
     }
   },
   year: (args) => new Date(args[0] as number).getFullYear(),
@@ -648,16 +698,17 @@ export const functions: Record<string, FormulaFunction> = {
   },
 
   // Logic functions
-  if: (args) => args[0] ? args[1] : args[2],
+  if: (args) => (args[0] ? args[1] : args[2]),
   and: (args) => args.every(Boolean),
   or: (args) => args.some(Boolean),
   not: (args) => !args[0],
-  empty: (args) => args[0] == null || args[0] === '' || (Array.isArray(args[0]) && args[0].length === 0),
+  empty: (args) =>
+    args[0] == null || args[0] === '' || (Array.isArray(args[0]) && args[0].length === 0),
   test: (args) => new RegExp(String(args[1])).test(String(args[0])),
 
   // Type conversion
   toNumber: (args) => Number(args[0]),
-  toString: (args) => String(args[0]),
+  toString: (args) => String(args[0])
 }
 ```
 
@@ -731,7 +782,9 @@ describe('Formula Engine', () => {
       expect(ast).toEqual({
         type: 'CallExpression',
         callee: 'abs',
-        arguments: [{ type: 'UnaryExpression', operator: '-', argument: { type: 'NumberLiteral', value: 5 } }]
+        arguments: [
+          { type: 'UnaryExpression', operator: '-', argument: { type: 'NumberLiteral', value: 5 } }
+        ]
       })
     })
   })
@@ -765,7 +818,9 @@ describe('Formula Engine', () => {
 
     it('evaluates conditionals', () => {
       expect(evaluateFormula('if(true, "yes", "no")', context)).toBe('yes')
-      expect(evaluateFormula('if(prop("price") > 50, "expensive", "cheap")', context)).toBe('expensive')
+      expect(evaluateFormula('if(prop("price") > 50, "expensive", "cheap")', context)).toBe(
+        'expensive'
+      )
     })
   })
 
@@ -786,6 +841,7 @@ describe('Formula Engine', () => {
 ## Checklist
 
 ### Week 1: Lexer & Parser
+
 - [ ] Lexer with all token types
 - [ ] Parser with operator precedence
 - [ ] AST types
@@ -794,6 +850,7 @@ describe('Formula Engine', () => {
 - [ ] Syntax validation
 
 ### Week 2: Evaluator & Functions
+
 - [ ] Evaluator with context
 - [ ] Math functions (15)
 - [ ] String functions (10)
@@ -802,6 +859,7 @@ describe('Formula Engine', () => {
 - [ ] prop() function
 
 ### Week 3: Integration & Edge Cases
+
 - [ ] Circular reference detection
 - [ ] Error messages with position
 - [ ] Performance optimization

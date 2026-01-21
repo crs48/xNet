@@ -5,9 +5,17 @@
 **Duration:** 2 weeks
 **Dependencies:** 01-property-types.md
 
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `DatabaseItem` → `Node`
+> - `Database` → `Schema`
+> - Import types from `@xnet/data`, hooks from `@xnet/react`
+
 ## Overview
 
-The calendar view displays items on a calendar grid based on date properties. Features:
+The calendar view displays Nodes on a calendar grid based on date properties. Features:
+
 - Month, week, and day views
 - Drag to create events
 - Drag to reschedule
@@ -23,11 +31,11 @@ The calendar view displays items on a calendar grid based on date properties. Fe
 
 export interface CalendarConfig {
   datePropertyId: string
-  endDatePropertyId?: string  // For multi-day events
+  endDatePropertyId?: string // For multi-day events
   titlePropertyId?: string
   colorPropertyId?: string
   defaultView: CalendarViewMode
-  weekStartsOn: 0 | 1 | 6     // Sunday, Monday, Saturday
+  weekStartsOn: 0 | 1 | 6 // Sunday, Monday, Saturday
 }
 
 export type CalendarViewMode = 'month' | 'week' | 'day'
@@ -429,6 +437,7 @@ function isSameDay(a: Date, b: Date): boolean {
 ## Checklist
 
 ### Week 1: Month View
+
 - [ ] CalendarView with toolbar
 - [ ] MonthView component
 - [ ] Day cell with events
@@ -438,6 +447,7 @@ function isSameDay(a: Date, b: Date): boolean {
 - [ ] Other month days styling
 
 ### Week 2: Week/Day Views + Interactions
+
 - [ ] WeekView component
 - [ ] DayView component with time slots
 - [ ] Drag to reschedule events

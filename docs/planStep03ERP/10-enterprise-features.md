@@ -3,8 +3,14 @@
 > SSO, audit logging, RBAC, and multi-tenant isolation
 
 **Package:** `@xnet/enterprise`
-**Dependencies:** `@xnet/identity`, `@xnet/modules`, `@xnet/database`
+**Dependencies:** `@xnet/identity`, `@xnet/modules`, `@xnet/data`
 **Estimated Time:** 3 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → `@xnet/data`
+> - Audit logs stored as Nodes with AuditEntry schema
+> - RBAC permissions apply to Node operations
 
 ## Goals
 
@@ -60,7 +66,7 @@ export interface SSOConfig {
   // Auto-provisioning
   autoProvision: boolean
   defaultRole?: string
-  groupMapping?: Record<string, string[]>  // IDP group -> xNet roles
+  groupMapping?: Record<string, string[]> // IDP group -> xNet roles
 }
 
 // Audit Log
@@ -142,14 +148,14 @@ export interface Role {
   name: string
   description: string
   permissions: Permission[]
-  isSystem: boolean   // Cannot be deleted
+  isSystem: boolean // Cannot be deleted
   createdAt: number
 }
 
 export interface Permission {
-  resource: string    // e.g., 'database', 'workflow', 'user'
-  action: string      // e.g., 'read', 'write', 'delete', 'manage'
-  scope?: string      // e.g., 'own', 'team', 'workspace'
+  resource: string // e.g., 'database', 'workflow', 'user'
+  action: string // e.g., 'read', 'write', 'delete', 'manage'
+  scope?: string // e.g., 'own', 'team', 'workspace'
   conditions?: PermissionCondition[]
 }
 
@@ -178,7 +184,7 @@ export interface TenantSettings {
   security: {
     mfaRequired: boolean
     passwordPolicy: PasswordPolicy
-    sessionTimeout: number      // Minutes
+    sessionTimeout: number // Minutes
     allowedIPs?: string[]
   }
   features: {
@@ -200,8 +206,8 @@ export interface PasswordPolicy {
   requireLowercase: boolean
   requireNumbers: boolean
   requireSpecial: boolean
-  maxAge?: number           // Days
-  preventReuse?: number     // Number of previous passwords
+  maxAge?: number // Days
+  preventReuse?: number // Number of previous passwords
 }
 ```
 
@@ -260,7 +266,7 @@ export class SSOService {
     }
 
     const tenant = await this.tenantService.getTenant(tenantId)
-    const config = tenant.settings.sso?.find(s => s.id === configId)
+    const config = tenant.settings.sso?.find((s) => s.id === configId)
     if (!config) {
       throw new Error('SSO config not found')
     }
@@ -293,7 +299,7 @@ export class SSOService {
   // OIDC login
   async getOIDCLoginUrl(tenantId: string, configId: string, state: string): Promise<string> {
     const tenant = await this.tenantService.getTenant(tenantId)
-    const config = tenant.settings.sso?.find(s => s.id === configId)
+    const config = tenant.settings.sso?.find((s) => s.id === configId)
 
     if (!config?.oidc) {
       throw new Error('OIDC not configured')
@@ -311,13 +317,9 @@ export class SSOService {
   }
 
   // Handle OIDC callback
-  async handleOIDCCallback(
-    tenantId: string,
-    configId: string,
-    code: string
-  ): Promise<SSOUser> {
+  async handleOIDCCallback(tenantId: string, configId: string, code: string): Promise<SSOUser> {
     const tenant = await this.tenantService.getTenant(tenantId)
-    const config = tenant.settings.sso?.find(s => s.id === configId)
+    const config = tenant.settings.sso?.find((s) => s.id === configId)
 
     if (!config?.oidc) {
       throw new Error('OIDC not configured')
@@ -402,7 +404,7 @@ export class SSOService {
     for (const group of groups) {
       const mappedRoles = mapping[group]
       if (mappedRoles) {
-        mappedRoles.forEach(r => roles.add(r))
+        mappedRoles.forEach((r) => roles.add(r))
       }
     }
     return Array.from(roles)
@@ -413,7 +415,7 @@ export class SSOService {
   }
 
   private getAttribute(profile: Record<string, unknown>, path: string): string {
-    return profile[path] as string || ''
+    return (profile[path] as string) || ''
   }
 
   private getArrayAttribute(profile: Record<string, unknown>, path: string): string[] {
@@ -550,7 +552,8 @@ export class AuditService {
     total: number
   }> {
     const db = await this.databaseManager.getDatabase('audit_logs')
-    let query = db.query()
+    let query = db
+      .query()
       .filter({ property: 'workspaceId', operator: 'equals', value: params.workspaceId })
 
     if (params.filters) {
@@ -644,8 +647,16 @@ export class AuditService {
   }
 
   private toCSV(events: AuditEvent[]): Blob {
-    const headers = ['timestamp', 'action', 'actor_id', 'actor_type', 'resource_type', 'resource_id', 'outcome']
-    const rows = events.map(e => [
+    const headers = [
+      'timestamp',
+      'action',
+      'actor_id',
+      'actor_type',
+      'resource_type',
+      'resource_id',
+      'outcome'
+    ]
+    const rows = events.map((e) => [
       new Date(e.timestamp).toISOString(),
       e.action,
       e.actor.id,
@@ -655,13 +666,13 @@ export class AuditService {
       e.outcome
     ])
 
-    const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
+    const csv = [headers, ...rows].map((row) => row.join(',')).join('\n')
     return new Blob([csv], { type: 'text/csv' })
   }
 
   destroy(): void {
     clearInterval(this.flushInterval)
-    this.flush()  // Final flush
+    this.flush() // Final flush
   }
 }
 ```
@@ -853,13 +864,13 @@ export class RBACService {
 
   private deduplicatePermissions(permissions: Permission[]): Permission[] {
     // If any permission is *, return just that
-    if (permissions.some(p => p.resource === '*' && p.action === '*')) {
+    if (permissions.some((p) => p.resource === '*' && p.action === '*')) {
       return [{ resource: '*', action: '*' }]
     }
 
     // Deduplicate by resource+action
     const seen = new Set<string>()
-    return permissions.filter(p => {
+    return permissions.filter((p) => {
       const key = `${p.resource}:${p.action}:${p.scope || ''}`
       if (seen.has(key)) return false
       seen.add(key)
@@ -904,7 +915,7 @@ export class TenantService {
             requireNumbers: true,
             requireSpecial: false
           },
-          sessionTimeout: 480  // 8 hours
+          sessionTimeout: 480 // 8 hours
         },
         features: {
           auditLog: params.plan !== 'free',
@@ -957,7 +968,8 @@ export class TenantService {
   // Get tenant by domain
   async getTenantByDomain(domain: string): Promise<Tenant | null> {
     const db = await this.databaseManager.getDatabase('tenants')
-    const result = await db.query()
+    const result = await db
+      .query()
       .filter({ property: 'domain', operator: 'equals', value: domain })
       .first()
 
@@ -965,10 +977,7 @@ export class TenantService {
   }
 
   // Update tenant settings
-  async updateSettings(
-    tenantId: string,
-    settings: Partial<TenantSettings>
-  ): Promise<Tenant> {
+  async updateSettings(tenantId: string, settings: Partial<TenantSettings>): Promise<Tenant> {
     const tenant = await this.getTenant(tenantId)
     const updatedSettings = { ...tenant.settings, ...settings }
 
@@ -1074,6 +1083,7 @@ packages/enterprise/
 ## Enterprise Features Validation
 
 ### SSO
+
 - [ ] SAML login flow works
 - [ ] OIDC login flow works
 - [ ] Attribute mapping works
@@ -1082,6 +1092,7 @@ packages/enterprise/
 - [ ] SSO-only enforcement works
 
 ### Audit Logging
+
 - [ ] Auth events logged
 - [ ] Data access events logged
 - [ ] Workflow events logged
@@ -1092,6 +1103,7 @@ packages/enterprise/
 - [ ] Export to CSV works
 
 ### RBAC
+
 - [ ] Default roles created
 - [ ] Custom roles can be created
 - [ ] Permission checks work
@@ -1101,6 +1113,7 @@ packages/enterprise/
 - [ ] Role assignment works
 
 ### Multi-tenancy
+
 - [ ] Tenant creation works
 - [ ] Tenant isolation enforced
 - [ ] Domain-based routing works
@@ -1109,6 +1122,7 @@ packages/enterprise/
 - [ ] Subscription plans work
 
 ### Compliance
+
 - [ ] Data export works
 - [ ] Data deletion works
 - [ ] Retention policies work

@@ -3,8 +3,14 @@
 > Customer Relationship Management with contacts, companies, deals, and pipeline
 
 **Package:** `modules/@xnet/crm`
-**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`
+**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`, `@xnet/data`
 **Estimated Time:** 3 weeks
+
+> **Architecture Update (Jan 2026):**
+>
+> - CRM entities (Contact, Company, Deal) defined as Schemas via `defineSchema()`
+> - All CRM data stored as Nodes in NodeStore
+> - Use `useNodes({ schemaId: 'xnet://crm/Contact' })` for queries
 
 ## Goals
 
@@ -73,12 +79,7 @@ export const CRMModule: ModuleDefinition = {
     ]
   },
 
-  workflows: [
-    dealStageChangeWorkflow,
-    newLeadWorkflow,
-    activityReminderWorkflow,
-    dealWonWorkflow
-  ],
+  workflows: [dealStageChangeWorkflow, newLeadWorkflow, activityReminderWorkflow, dealWonWorkflow],
 
   settings: [
     {
@@ -139,20 +140,30 @@ export const contactsDatabase: DatabaseTemplate = {
     { id: 'phone', name: 'Phone', type: 'phone' },
     { id: 'companyId', name: 'Company', type: 'relation', target: 'crm:companies' },
     { id: 'title', name: 'Job Title', type: 'text' },
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'lead', name: 'Lead', color: 'blue' },
-      { id: 'prospect', name: 'Prospect', color: 'yellow' },
-      { id: 'customer', name: 'Customer', color: 'green' },
-      { id: 'churned', name: 'Churned', color: 'red' }
-    ]},
-    { id: 'source', name: 'Source', type: 'select', options: [
-      { id: 'website', name: 'Website' },
-      { id: 'referral', name: 'Referral' },
-      { id: 'linkedin', name: 'LinkedIn' },
-      { id: 'cold-outreach', name: 'Cold Outreach' },
-      { id: 'event', name: 'Event' },
-      { id: 'other', name: 'Other' }
-    ]},
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'lead', name: 'Lead', color: 'blue' },
+        { id: 'prospect', name: 'Prospect', color: 'yellow' },
+        { id: 'customer', name: 'Customer', color: 'green' },
+        { id: 'churned', name: 'Churned', color: 'red' }
+      ]
+    },
+    {
+      id: 'source',
+      name: 'Source',
+      type: 'select',
+      options: [
+        { id: 'website', name: 'Website' },
+        { id: 'referral', name: 'Referral' },
+        { id: 'linkedin', name: 'LinkedIn' },
+        { id: 'cold-outreach', name: 'Cold Outreach' },
+        { id: 'event', name: 'Event' },
+        { id: 'other', name: 'Other' }
+      ]
+    },
     { id: 'owner', name: 'Owner', type: 'person' },
     { id: 'tags', name: 'Tags', type: 'multi_select' },
     { id: 'lastActivity', name: 'Last Activity', type: 'date' },
@@ -200,37 +211,59 @@ export const companiesDatabase: DatabaseTemplate = {
   properties: [
     { id: 'name', name: 'Name', type: 'title' },
     { id: 'domain', name: 'Domain', type: 'url' },
-    { id: 'industry', name: 'Industry', type: 'select', options: [
-      { id: 'technology', name: 'Technology' },
-      { id: 'finance', name: 'Finance' },
-      { id: 'healthcare', name: 'Healthcare' },
-      { id: 'retail', name: 'Retail' },
-      { id: 'manufacturing', name: 'Manufacturing' },
-      { id: 'services', name: 'Services' },
-      { id: 'other', name: 'Other' }
-    ]},
-    { id: 'size', name: 'Company Size', type: 'select', options: [
-      { id: '1-10', name: '1-10' },
-      { id: '11-50', name: '11-50' },
-      { id: '51-200', name: '51-200' },
-      { id: '201-500', name: '201-500' },
-      { id: '501-1000', name: '501-1000' },
-      { id: '1000+', name: '1000+' }
-    ]},
+    {
+      id: 'industry',
+      name: 'Industry',
+      type: 'select',
+      options: [
+        { id: 'technology', name: 'Technology' },
+        { id: 'finance', name: 'Finance' },
+        { id: 'healthcare', name: 'Healthcare' },
+        { id: 'retail', name: 'Retail' },
+        { id: 'manufacturing', name: 'Manufacturing' },
+        { id: 'services', name: 'Services' },
+        { id: 'other', name: 'Other' }
+      ]
+    },
+    {
+      id: 'size',
+      name: 'Company Size',
+      type: 'select',
+      options: [
+        { id: '1-10', name: '1-10' },
+        { id: '11-50', name: '11-50' },
+        { id: '51-200', name: '51-200' },
+        { id: '201-500', name: '201-500' },
+        { id: '501-1000', name: '501-1000' },
+        { id: '1000+', name: '1000+' }
+      ]
+    },
     { id: 'revenue', name: 'Annual Revenue', type: 'number', format: 'currency' },
     { id: 'address', name: 'Address', type: 'text' },
     { id: 'city', name: 'City', type: 'text' },
     { id: 'country', name: 'Country', type: 'text' },
     { id: 'owner', name: 'Account Owner', type: 'person' },
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'prospect', name: 'Prospect', color: 'blue' },
-      { id: 'customer', name: 'Customer', color: 'green' },
-      { id: 'partner', name: 'Partner', color: 'purple' },
-      { id: 'churned', name: 'Churned', color: 'red' }
-    ]},
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'prospect', name: 'Prospect', color: 'blue' },
+        { id: 'customer', name: 'Customer', color: 'green' },
+        { id: 'partner', name: 'Partner', color: 'purple' },
+        { id: 'churned', name: 'Churned', color: 'red' }
+      ]
+    },
     { id: 'contacts', name: 'Contacts', type: 'rollup', target: 'crm:contacts', function: 'count' },
     { id: 'deals', name: 'Deals', type: 'rollup', target: 'crm:deals', function: 'count' },
-    { id: 'totalValue', name: 'Total Value', type: 'rollup', target: 'crm:deals', property: 'value', function: 'sum' },
+    {
+      id: 'totalValue',
+      name: 'Total Value',
+      type: 'rollup',
+      target: 'crm:deals',
+      property: 'value',
+      function: 'sum'
+    },
     { id: 'logo', name: 'Logo', type: 'file', fileTypes: ['image'] },
     { id: 'description', name: 'Description', type: 'rich_text' }
   ]
@@ -246,26 +279,47 @@ export const dealsDatabase: DatabaseTemplate = {
     { id: 'name', name: 'Deal Name', type: 'title' },
     { id: 'value', name: 'Value', type: 'number', format: 'currency' },
     { id: 'pipelineId', name: 'Pipeline', type: 'relation', target: 'crm:pipelines' },
-    { id: 'stage', name: 'Stage', type: 'select' },  // Options set from pipeline
+    { id: 'stage', name: 'Stage', type: 'select' }, // Options set from pipeline
     { id: 'probability', name: 'Probability', type: 'number', format: 'percent' },
-    { id: 'expectedValue', name: 'Expected Value', type: 'formula', formula: 'value * probability / 100' },
+    {
+      id: 'expectedValue',
+      name: 'Expected Value',
+      type: 'formula',
+      formula: 'value * probability / 100'
+    },
     { id: 'contactId', name: 'Contact', type: 'relation', target: 'crm:contacts' },
     { id: 'companyId', name: 'Company', type: 'relation', target: 'crm:companies' },
     { id: 'owner', name: 'Owner', type: 'person' },
     { id: 'closeDate', name: 'Expected Close', type: 'date' },
     { id: 'actualCloseDate', name: 'Actual Close', type: 'date' },
     { id: 'source', name: 'Source', type: 'select' },
-    { id: 'lostReason', name: 'Lost Reason', type: 'select', options: [
-      { id: 'price', name: 'Price' },
-      { id: 'competitor', name: 'Lost to Competitor' },
-      { id: 'no-budget', name: 'No Budget' },
-      { id: 'no-decision', name: 'No Decision' },
-      { id: 'timing', name: 'Bad Timing' },
-      { id: 'other', name: 'Other' }
-    ]},
-    { id: 'activities', name: 'Activities', type: 'rollup', target: 'crm:activities', function: 'count' },
+    {
+      id: 'lostReason',
+      name: 'Lost Reason',
+      type: 'select',
+      options: [
+        { id: 'price', name: 'Price' },
+        { id: 'competitor', name: 'Lost to Competitor' },
+        { id: 'no-budget', name: 'No Budget' },
+        { id: 'no-decision', name: 'No Decision' },
+        { id: 'timing', name: 'Bad Timing' },
+        { id: 'other', name: 'Other' }
+      ]
+    },
+    {
+      id: 'activities',
+      name: 'Activities',
+      type: 'rollup',
+      target: 'crm:activities',
+      function: 'count'
+    },
     { id: 'lastActivity', name: 'Last Activity', type: 'date' },
-    { id: 'daysInStage', name: 'Days in Stage', type: 'formula', formula: 'dateDiff(stageChangedAt, now(), "days")' },
+    {
+      id: 'daysInStage',
+      name: 'Days in Stage',
+      type: 'formula',
+      formula: 'dateDiff(stageChangedAt, now(), "days")'
+    },
     { id: 'stageChangedAt', name: 'Stage Changed', type: 'date' },
     { id: 'isRotting', name: 'Rotting', type: 'formula', formula: 'daysInStage > 14' },
     { id: 'notes', name: 'Notes', type: 'rich_text' },
@@ -318,18 +372,28 @@ export const activitiesDatabase: DatabaseTemplate = {
   icon: 'activity',
   properties: [
     { id: 'title', name: 'Title', type: 'title' },
-    { id: 'type', name: 'Type', type: 'select', options: [
-      { id: 'call', name: 'Call', color: 'blue', icon: 'phone' },
-      { id: 'email', name: 'Email', color: 'green', icon: 'mail' },
-      { id: 'meeting', name: 'Meeting', color: 'purple', icon: 'calendar' },
-      { id: 'task', name: 'Task', color: 'yellow', icon: 'check-square' },
-      { id: 'note', name: 'Note', color: 'gray', icon: 'file-text' }
-    ]},
-    { id: 'status', name: 'Status', type: 'select', options: [
-      { id: 'planned', name: 'Planned', color: 'blue' },
-      { id: 'completed', name: 'Completed', color: 'green' },
-      { id: 'cancelled', name: 'Cancelled', color: 'red' }
-    ]},
+    {
+      id: 'type',
+      name: 'Type',
+      type: 'select',
+      options: [
+        { id: 'call', name: 'Call', color: 'blue', icon: 'phone' },
+        { id: 'email', name: 'Email', color: 'green', icon: 'mail' },
+        { id: 'meeting', name: 'Meeting', color: 'purple', icon: 'calendar' },
+        { id: 'task', name: 'Task', color: 'yellow', icon: 'check-square' },
+        { id: 'note', name: 'Note', color: 'gray', icon: 'file-text' }
+      ]
+    },
+    {
+      id: 'status',
+      name: 'Status',
+      type: 'select',
+      options: [
+        { id: 'planned', name: 'Planned', color: 'blue' },
+        { id: 'completed', name: 'Completed', color: 'green' },
+        { id: 'cancelled', name: 'Cancelled', color: 'red' }
+      ]
+    },
     { id: 'contactId', name: 'Contact', type: 'relation', target: 'crm:contacts' },
     { id: 'dealId', name: 'Deal', type: 'relation', target: 'crm:deals' },
     { id: 'companyId', name: 'Company', type: 'relation', target: 'crm:companies' },
@@ -347,10 +411,12 @@ export const activitiesDatabase: DatabaseTemplate = {
       name: 'Upcoming',
       type: 'list',
       config: {
-        filter: { and: [
-          { property: 'status', operator: 'equals', value: 'planned' },
-          { property: 'dueDate', operator: 'is_after', value: 'now' }
-        ]},
+        filter: {
+          and: [
+            { property: 'status', operator: 'equals', value: 'planned' },
+            { property: 'dueDate', operator: 'is_after', value: 'now' }
+          ]
+        },
         sorts: [{ property: 'dueDate', direction: 'asc' }]
       }
     },
@@ -385,7 +451,14 @@ export const pipelinesDatabase: DatabaseTemplate = {
     { id: 'stages', name: 'Stages', type: 'json' },
     { id: 'isDefault', name: 'Default', type: 'checkbox' },
     { id: 'dealCount', name: 'Deals', type: 'rollup', target: 'crm:deals', function: 'count' },
-    { id: 'totalValue', name: 'Total Value', type: 'rollup', target: 'crm:deals', property: 'value', function: 'sum' }
+    {
+      id: 'totalValue',
+      name: 'Total Value',
+      type: 'rollup',
+      target: 'crm:deals',
+      property: 'value',
+      function: 'sum'
+    }
   ]
 }
 ```
@@ -663,9 +736,7 @@ export const dealStageChangeWorkflow: WorkflowTemplate = {
   // Additional actions for specific stages
   branches: [
     {
-      conditions: [
-        { field: 'record.stage', operator: 'equals', value: 'won' }
-      ],
+      conditions: [{ field: 'record.stage', operator: 'equals', value: 'won' }],
       actions: [
         {
           id: 'update-contact-status',
@@ -697,9 +768,7 @@ export const dealStageChangeWorkflow: WorkflowTemplate = {
       ]
     },
     {
-      conditions: [
-        { field: 'record.stage', operator: 'equals', value: 'lost' }
-      ],
+      conditions: [{ field: 'record.stage', operator: 'equals', value: 'lost' }],
       actions: [
         {
           id: 'request-lost-reason',
@@ -727,7 +796,7 @@ export const activityReminderWorkflow: WorkflowTemplate = {
   trigger: {
     type: 'schedule',
     config: {
-      cron: '0 9 * * *'  // Daily at 9 AM
+      cron: '0 9 * * *' // Daily at 9 AM
     }
   },
 
@@ -984,6 +1053,7 @@ modules/crm/
 ## CRM Module Validation
 
 ### Contacts
+
 - [ ] Create contact with all fields
 - [ ] Edit contact
 - [ ] Delete contact
@@ -993,6 +1063,7 @@ modules/crm/
 - [ ] Filter by status/owner/tags
 
 ### Companies
+
 - [ ] Create company
 - [ ] View linked contacts
 - [ ] View linked deals
@@ -1000,6 +1071,7 @@ modules/crm/
 - [ ] Company enrichment works
 
 ### Deals
+
 - [ ] Create deal in pipeline
 - [ ] Drag deal between stages
 - [ ] Stage change updates probability
@@ -1008,6 +1080,7 @@ modules/crm/
 - [ ] Close date calendar works
 
 ### Pipeline
+
 - [ ] Pipeline board renders
 - [ ] Stage totals calculate
 - [ ] Weighted values calculate
@@ -1015,6 +1088,7 @@ modules/crm/
 - [ ] Pipeline settings work
 
 ### Activities
+
 - [ ] Create all activity types
 - [ ] Mark activity complete
 - [ ] Activity reminders work
@@ -1022,12 +1096,14 @@ modules/crm/
 - [ ] Activities link to deals/contacts
 
 ### Workflows
+
 - [ ] Deal stage change workflow fires
 - [ ] Activity reminder workflow fires
 - [ ] Deal won workflow fires
 - [ ] Contact status updates on win
 
 ### Dashboards
+
 - [ ] Deal value widget works
 - [ ] Pipeline funnel widget works
 - [ ] Conversion rate widget works

@@ -3,7 +3,13 @@
 > Self-contained business function packages
 
 **Duration:** 3 weeks
-**Dependencies:** @xnet/database, @xnet/storage
+**Dependencies:** @xnet/data, @xnet/storage
+
+> **Architecture Update (Jan 2026):**
+>
+> - `@xnet/database` → `@xnet/data` (Schema system + NodeStore)
+> - Modules define their data using `defineSchema()` from `@xnet/data`
+> - Module data stored as Nodes via NodeStore
 
 ## Overview
 
@@ -82,7 +88,7 @@ export interface ModuleDependencies {
   // Other modules this depends on
   modules: Array<{
     id: ModuleId
-    version: string  // Semver range
+    version: string // Semver range
   }>
 
   // External libraries (bundled)
@@ -185,7 +191,7 @@ export interface RelationTemplate {
 
   // Target database template (can be from another module)
   to: {
-    module?: ModuleId  // If cross-module
+    module?: ModuleId // If cross-module
     database: string
   }
 
@@ -213,7 +219,7 @@ export interface InstalledModule {
   installedAt: number
   installedVersion: ModuleVersion
   enabled: boolean
-  databases: string[]  // Created database IDs
+  databases: string[] // Created database IDs
 }
 
 export class ModuleRegistry {
@@ -264,7 +270,7 @@ export class ModuleRegistry {
       installedAt: Date.now(),
       installedVersion: definition.version,
       enabled: true,
-      databases,
+      databases
     }
 
     this.modules.set(moduleId, installed)
@@ -283,9 +289,7 @@ export class ModuleRegistry {
     // Check for dependents
     const dependents = this.findDependents(moduleId)
     if (dependents.length > 0) {
-      throw new Error(
-        `Cannot uninstall ${moduleId}: required by ${dependents.join(', ')}`
-      )
+      throw new Error(`Cannot uninstall ${moduleId}: required by ${dependents.join(', ')}`)
     }
 
     // Deactivate first
@@ -438,17 +442,14 @@ export class ModuleRegistry {
     const dependents: ModuleId[] = []
     for (const [id, installed] of this.modules) {
       const deps = installed.definition.dependencies.modules
-      if (deps.some(d => d.id === moduleId)) {
+      if (deps.some((d) => d.id === moduleId)) {
         dependents.push(id)
       }
     }
     return dependents
   }
 
-  private async installSchema(
-    schema: ModuleSchema,
-    context: ModuleContext
-  ): Promise<string[]> {
+  private async installSchema(schema: ModuleSchema, context: ModuleContext): Promise<string[]> {
     const createdDatabases: string[] = []
 
     for (const template of schema.databases) {
@@ -457,7 +458,7 @@ export class ModuleRegistry {
         id: dbId,
         name: template.name,
         properties: template.properties,
-        views: template.views,
+        views: template.views
       })
       createdDatabases.push(dbId)
 
@@ -485,7 +486,7 @@ export class ModuleRegistry {
     // Compare schemas and apply migrations
     // This is a complex topic - simplified here
     for (const newDb of newSchema.databases) {
-      const oldDb = oldSchema.databases.find(d => d.templateId === newDb.templateId)
+      const oldDb = oldSchema.databases.find((d) => d.templateId === newDb.templateId)
       if (!oldDb) {
         // New database - create it
         await this.installSchema({ databases: [newDb], relations: [] }, context)
@@ -513,7 +514,7 @@ export class ModuleRegistry {
       workspaceId: 'default', // TODO: Get from context
       storage: this.storage,
       database: null as any, // Injected
-      identity: null as any, // Injected
+      identity: null as any // Injected
     }
   }
 
@@ -699,21 +700,21 @@ describe('ModuleRegistry', () => {
     license: 'MIT',
     dependencies: {
       platform: '1.0.0',
-      modules: [],
+      modules: []
     },
     schema: {
       databases: [],
-      relations: [],
+      relations: []
     },
     components: {
       pages: [],
       widgets: [],
       actions: [],
-      navigation: [],
+      navigation: []
     },
     workflows: [],
     settings: [],
-    hooks: {},
+    hooks: {}
   }
 
   beforeEach(async () => {
@@ -732,9 +733,7 @@ describe('ModuleRegistry', () => {
   it('prevents duplicate installation', async () => {
     await registry.install(testModule)
 
-    await expect(registry.install(testModule)).rejects.toThrow(
-      'already installed'
-    )
+    await expect(registry.install(testModule)).rejects.toThrow('already installed')
   })
 
   it('uninstalls a module', async () => {
@@ -752,14 +751,12 @@ describe('ModuleRegistry', () => {
       id: 'mod:dependent',
       dependencies: {
         platform: '1.0.0',
-        modules: [{ id: 'mod:test', version: '1.0.0' }],
-      },
+        modules: [{ id: 'mod:test', version: '1.0.0' }]
+      }
     }
     await registry.install(dependentModule)
 
-    await expect(registry.uninstall('mod:test')).rejects.toThrow(
-      'required by'
-    )
+    await expect(registry.uninstall('mod:test')).rejects.toThrow('required by')
   })
 
   it('upgrades a module', async () => {
@@ -767,7 +764,7 @@ describe('ModuleRegistry', () => {
 
     const upgradedModule: ModuleDefinition = {
       ...testModule,
-      version: '2.0.0',
+      version: '2.0.0'
     }
     await registry.upgrade('mod:test', upgradedModule)
 
@@ -780,6 +777,7 @@ describe('ModuleRegistry', () => {
 ## Checklist
 
 ### Week 1: Core Registry
+
 - [ ] ModuleDefinition types
 - [ ] ModuleRegistry class
 - [ ] Install/uninstall functionality
@@ -787,6 +785,7 @@ describe('ModuleRegistry', () => {
 - [ ] Storage persistence
 
 ### Week 2: Lifecycle & Schema
+
 - [ ] Module lifecycle hooks
 - [ ] Schema installation
 - [ ] Schema migration on upgrade
@@ -794,6 +793,7 @@ describe('ModuleRegistry', () => {
 - [ ] Component registration
 
 ### Week 3: Loader & Integration
+
 - [ ] ModuleLoader with validation
 - [ ] Hot reload for development
 - [ ] Integration with database service
