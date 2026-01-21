@@ -2,14 +2,8 @@
  * Home page - document list
  */
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useQuery, useXNet } from '@xnet/react'
-
-// Document type for query results
-interface QueryDocument {
-  id: string
-  title: string
-  updated: number
-}
+import { useQuery, useNodeStore } from '@xnet/react'
+import { PageSchema } from '@xnet/data'
 
 export const Route = createFileRoute('/')({
   component: HomePage
@@ -17,18 +11,12 @@ export const Route = createFileRoute('/')({
 
 function HomePage() {
   const navigate = useNavigate()
-  const { isReady } = useXNet()
-  const { data: documents, loading } = useQuery<QueryDocument>({
-    type: 'page',
-    filters: [],
-    sort: [{ field: 'updated', direction: 'desc' }],
-    limit: 50
-  })
+  const { isReady } = useNodeStore()
+  const { data: pages, loading } = useQuery(PageSchema, { limit: 50 })
 
   const createDocument = async () => {
-    // Note: In a real implementation, this would use the SDK client
-    // For now, we'll just navigate to a new page
-    const id = `default/${Math.random().toString(36).substring(2, 15)}`
+    // Navigate to a new page with a random ID
+    const id = Math.random().toString(36).substring(2, 15)
     navigate({ to: '/doc/$docId', params: { docId: id } })
   }
 
@@ -45,19 +33,17 @@ function HomePage() {
         </button>
       </div>
 
-      {documents.length === 0 ? (
+      {pages.length === 0 ? (
         <div className="empty-state">
           <p>No documents yet. Create your first page!</p>
         </div>
       ) : (
         <ul className="document-list">
-          {documents.map((doc) => (
-            <li key={doc.id}>
-              <Link to="/doc/$docId" params={{ docId: doc.id }}>
-                <span className="doc-title">{doc.title || 'Untitled'}</span>
-                <span className="doc-date">
-                  {new Date(doc.updated).toLocaleDateString()}
-                </span>
+          {pages.map((page) => (
+            <li key={page.id}>
+              <Link to="/doc/$docId" params={{ docId: page.id }}>
+                <span className="doc-title">{(page.properties.title as string) || 'Untitled'}</span>
+                <span className="doc-date">{new Date(page.updatedAt).toLocaleDateString()}</span>
               </Link>
             </li>
           ))}

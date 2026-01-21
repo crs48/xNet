@@ -92,10 +92,12 @@ export interface UseMutateResult {
   /**
    * Create a new node.
    * Requires a schema to know what type to create.
+   * Optionally specify a custom ID (otherwise auto-generated).
    */
   create: <P extends Record<string, PropertyBuilder>>(
     schema: DefinedSchema<P>,
-    data: InferCreateProps<P>
+    data: InferCreateProps<P>,
+    id?: string
   ) => Promise<TypedNode<P> | null>
 
   /**
@@ -143,11 +145,13 @@ export function useMutate(): UseMutateResult {
   const create = useCallback(
     async <P extends Record<string, PropertyBuilder>>(
       schema: DefinedSchema<P>,
-      data: InferCreateProps<P>
+      data: InferCreateProps<P>,
+      id?: string
     ): Promise<TypedNode<P> | null> => {
       if (!store || !isReady) return null
 
       const node = await store.create({
+        id,
         schemaId: schema._schemaId,
         properties: data as Record<string, unknown>
       })
