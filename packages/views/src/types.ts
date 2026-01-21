@@ -1,0 +1,150 @@
+/**
+ * @xnet/views - Types for database views
+ */
+
+import type { PropertyType, PropertyDefinition } from '@xnet/data'
+
+/**
+ * View type identifiers
+ */
+export type ViewType = 'table' | 'board' | 'gallery' | 'timeline' | 'calendar' | 'list'
+
+/**
+ * Sort configuration
+ */
+export interface SortConfig {
+  propertyId: string
+  direction: 'asc' | 'desc'
+}
+
+/**
+ * Filter operator types
+ */
+export type FilterOperator =
+  | 'equals'
+  | 'notEquals'
+  | 'contains'
+  | 'notContains'
+  | 'startsWith'
+  | 'endsWith'
+  | 'greaterThan'
+  | 'lessThan'
+  | 'greaterOrEqual'
+  | 'lessOrEqual'
+  | 'isEmpty'
+  | 'isNotEmpty'
+  | 'before'
+  | 'after'
+  | 'between'
+
+/**
+ * A single filter condition
+ */
+export interface Filter {
+  id: string
+  propertyId: string
+  operator: FilterOperator
+  value: unknown
+}
+
+/**
+ * A group of filters with AND/OR logic
+ */
+export interface FilterGroup {
+  type: 'and' | 'or'
+  filters: Filter[]
+}
+
+/**
+ * View configuration stored with the database
+ */
+export interface ViewConfig {
+  id: string
+  name: string
+  type: ViewType
+
+  /** Which properties are visible (ordered) */
+  visibleProperties: string[]
+
+  /** Property widths for table view */
+  propertyWidths?: Record<string, number>
+
+  /** Active sorts */
+  sorts: SortConfig[]
+
+  /** Active filter group */
+  filter?: FilterGroup
+
+  /** Board view: property to group by */
+  groupByProperty?: string
+
+  /** Gallery view: property for cover image */
+  coverProperty?: string
+
+  /** Timeline/Calendar: date property to use */
+  dateProperty?: string
+
+  /** Timeline: end date property for ranges */
+  endDateProperty?: string
+}
+
+/**
+ * Property handler interface for rendering and editing
+ */
+export interface PropertyHandler<T = unknown> {
+  /** Property type this handler is for */
+  type: PropertyType
+
+  /** Render display value */
+  render(value: T | null | undefined, config?: Record<string, unknown>): React.ReactNode
+
+  /** Compare two values for sorting */
+  compare(
+    a: T | null | undefined,
+    b: T | null | undefined,
+    config?: Record<string, unknown>
+  ): number
+
+  /** Available filter operators for this type */
+  filterOperators: FilterOperator[]
+
+  /** Apply a filter to a value */
+  applyFilter(value: T | null | undefined, operator: FilterOperator, filterValue: unknown): boolean
+
+  /** Editor component for inline editing */
+  Editor: React.ComponentType<PropertyEditorProps<T>>
+
+  /** Filter value input component */
+  FilterInput?: React.ComponentType<FilterInputProps<T>>
+}
+
+/**
+ * Props for property editor components
+ */
+export interface PropertyEditorProps<T = unknown> {
+  value: T | null | undefined
+  config?: Record<string, unknown>
+  onChange: (value: T | null) => void
+  onBlur?: () => void
+  autoFocus?: boolean
+  disabled?: boolean
+}
+
+/**
+ * Props for filter value input components
+ */
+export interface FilterInputProps<T = unknown> {
+  value: T | null | undefined
+  config?: Record<string, unknown>
+  operator: FilterOperator
+  onChange: (value: T | null) => void
+}
+
+/**
+ * Column meta for TanStack Table
+ */
+export interface ColumnMeta {
+  property: PropertyDefinition
+  handler: PropertyHandler
+  onUpdate: (rowId: string, value: unknown) => void
+}
