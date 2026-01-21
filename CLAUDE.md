@@ -77,6 +77,7 @@ pnpm test:coverage                           # With coverage (>80% required)
 
 - Use Mermaid diagrams in markdown files to visualize architecture, data flows, and sequences
 - Prefer diagrams over walls of text for system relationships and processes
+- Err on the side of reading too much code. It's better to fullyg understand the codebase than to make wrong assumptions
 
 ## Don't
 
@@ -85,6 +86,7 @@ pnpm test:coverage                           # With coverage (>80% required)
 - Don't skip unit tests for core packages
 - Don't use heavyweight frameworks
 - Don't store computed property values (rollup, formula) - compute at read time
+- Don't make assumptions when you can grep
 
 ## Key Docs
 
