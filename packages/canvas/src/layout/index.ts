@@ -8,9 +8,29 @@
  * - Radial layout
  */
 
-// Use bundled version to avoid web-worker dependency issues in Electron
-import ELK from 'elkjs/lib/elk.bundled.js'
+// Use dynamic import for elkjs to handle both ESM and CJS environments
 import type { ElkNode, ElkExtendedEdge, LayoutOptions } from 'elkjs'
+
+// Lazy-loaded ELK instance
+let elkInstance: any = null
+
+async function getELK(): Promise<any> {
+  if (elkInstance) return elkInstance
+
+  // Try bundled version first (works in Electron without web-worker)
+  try {
+    const ELKModule = await import('elkjs/lib/elk.bundled.js')
+    const ELK = ELKModule.default || ELKModule
+    elkInstance = new ELK()
+    return elkInstance
+  } catch {
+    // Fall back to regular elkjs
+    const ELKModule = await import('elkjs')
+    const ELK = ELKModule.default || ELKModule
+    elkInstance = new ELK()
+    return elkInstance
+  }
+}
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, Rect } from '../types'
 
 /**
@@ -78,10 +98,16 @@ export interface LayoutResult {
  * Layout Engine for automatic graph layout
  */
 export class LayoutEngine {
-  private elk: InstanceType<typeof ELK>
+  private elk: any = null
 
-  constructor() {
-    this.elk = new ELK()
+  /**
+   * Ensure ELK is loaded
+   */
+  private async ensureELK(): Promise<any> {
+    if (!this.elk) {
+      this.elk = await getELK()
+    }
+    return this.elk
   }
 
   /**
@@ -92,6 +118,7 @@ export class LayoutEngine {
     edges: CanvasEdge[],
     config: LayoutConfig = {}
   ): Promise<LayoutResult> {
+    const elk = await this.ensureELK()
     const startTime = performance.now()
     const options = { ...DEFAULT_LAYOUT_CONFIG, ...config }
 
@@ -99,7 +126,7 @@ export class LayoutEngine {
     const elkGraph = this.toElkGraph(nodes, edges, options)
 
     // Run layout
-    const result = await this.elk.layout(elkGraph)
+    const result = await elk.layout(elkGraph)
 
     // Extract positions
     const positions = this.extractPositions(result, nodes)
