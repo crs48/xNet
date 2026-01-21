@@ -136,7 +136,7 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
   // Create function
   function create(props: InferCreateProps<P>, createOptions: CreateNodeOptions): InferNode<P> {
     const now = createOptions.createdAt ?? Date.now()
-    const id = createOptions.id ?? createNodeId(options.name)
+    const id = createOptions.id ?? createNodeId()
 
     // Start with base node fields
     const node: Record<string, unknown> = {

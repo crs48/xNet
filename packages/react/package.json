@@ -23,8 +23,8 @@
     "@xnet/identity": "workspace:*",
     "@xnet/network": "workspace:*",
     "@xnet/query": "workspace:*",
-    "@xnet/records": "workspace:*",
     "@xnet/storage": "workspace:*",
+    "@xnet/sync": "workspace:*",
     "yjs": "^13.6.24",
     "zustand": "^5.0.4"
   },

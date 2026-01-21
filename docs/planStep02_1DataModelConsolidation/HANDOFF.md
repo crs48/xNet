@@ -112,7 +112,7 @@ packages/data/src/schema/
     └── task.ts        # TaskSchema
 ```
 
-**Tests:** 38 passing (22 schema + 8 document + 8 updates)
+**Tests:** 62 passing (22 schema + 8 document + 8 updates + 24 store)
 
 ## What's Exported from @xnet/data
 
@@ -203,18 +203,86 @@ type Recipe = InferNode<(typeof RecipeSchema)['_properties']>
 
 ## What's Next: Phase 3-4
 
-### Phase 3: Package Consolidation
+### Phase 3: NodeStore Implementation - COMPLETE
 
-1. Move `@xnet/records` code into `@xnet/data/record/`
-2. Update imports across codebase
-3. Create re-exports in `@xnet/records` for backward compat
-4. Update React hooks
+Fresh implementation of `NodeStore` using `@xnet/sync` primitives (not porting `@xnet/records`):
 
-### Phase 4: React Integration
+```bash
+packages/data/src/store/
+├── types.ts           # NodePayload, NodeState, NodeStorageAdapter
+├── store.ts           # NodeStore class (CRUD, LWW, sync support)
+├── memory-adapter.ts  # In-memory storage adapter
+├── store.test.ts      # 24 tests passing
+└── index.ts           # Exports
+```
 
-1. Update `useDocument` hook to work with Node types
-2. Add `useNode` hook for schema-typed nodes
-3. Update `useQuery` to filter by schema
+**Key design:**
+
+- `NodeChange = Change<NodePayload>` - uses @xnet/sync primitives
+- Sparse updates (only changed properties stored in payload)
+- LWW conflict resolution using `compareLamportTimestamps()`
+- Simple CRUD API that creates Changes under the hood
+
+**Usage:**
+
+```typescript
+import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+
+const adapter = new MemoryNodeStorageAdapter()
+const store = new NodeStore({
+  storage: adapter,
+  authorDID: 'did:key:z6Mk...',
+  signingKey: privateKey
+})
+
+await store.initialize()
+
+// Create a node
+const task = await store.create({
+  schemaId: 'xnet://xnet.dev/Task',
+  properties: { title: 'My Task', status: 'todo' }
+})
+
+// Update (sparse - only changed properties)
+await store.update(task.id, { properties: { status: 'done' } })
+
+// List with filtering
+const tasks = await store.list({ schemaId: 'xnet://xnet.dev/Task' })
+
+// Sync support
+const changes = await store.getAllChanges()
+await store.applyRemoteChanges(remoteChanges)
+```
+
+### Phase 4: React Integration - PARTIALLY COMPLETE
+
+**Completed:**
+
+- `useNodeSync` hook - P2P sync for NodeStore (replaces `useRecordSync`)
+
+**Remaining:**
+
+1. Add `useNode` hook for schema-typed nodes
+2. Update `useQuery` to filter by schema
+3. Update `useDocument` hook to work with Node types
+
+### Future: CRDT Extensibility
+
+The Node system should support multiple CRDT backends for rich content:
+
+```typescript
+const DocSchema = defineSchema({
+  name: 'Doc',
+  properties: { title: text() },
+  content: 'automerge' // or 'yjs' - pluggable CRDT
+})
+```
+
+This allows users to choose between:
+
+- **Yjs** - Current default, great for rich text
+- **Automerge** - Alternative CRDT with different tradeoffs
+- **LWW** - Simple last-writer-wins for basic properties (already implemented)
 
 ## Key Documents
 
@@ -231,7 +299,7 @@ Read these in order for full context:
 ```bash
 pnpm test                        # All tests
 pnpm --filter @xnet/sync test    # Sync package (78 tests)
-pnpm vitest run packages/data    # Data package (38 tests)
+pnpm vitest run packages/data    # Data package (62 tests)
 pnpm test:coverage               # Coverage check
 ```
 
@@ -251,13 +319,18 @@ fab5baf Ratify schema-first, Node-based architecture
 ```
 I'm implementing the schema-first architecture for xNet. Read the handoff document at docs/planStep02_1DataModelConsolidation/HANDOFF.md.
 
-Phase 1 (@xnet/sync) and Phase 2 (schema system) are COMPLETE.
-
-Current state:
+Phases 1-3 are COMPLETE:
 - @xnet/sync: Lamport timestamps, Change<T>, hash chains (78 tests)
-- @xnet/data schema system: defineSchema(), 16 property helpers, 3 built-in schemas, registry (38 tests)
+- @xnet/data schema system: defineSchema(), 16 property helpers, 3 built-in schemas (22 tests)
+- @xnet/data NodeStore: Event-sourced storage with LWW conflict resolution (24 tests)
+- @xnet/records: REMOVED (no backward compatibility needed)
+- @xnet/react: useNodeSync hook replaces useRecordSync
 
-Next: Phase 3 - Package consolidation (merge @xnet/records into @xnet/data)
+Total tests: 140 (78 sync + 62 data)
+
+Next steps:
+1. Phase 4: React Integration - Add useNode hook for schema-typed nodes, update useQuery
+2. Future: Add Automerge support for pluggable CRDT content
 ```
 
 ---
