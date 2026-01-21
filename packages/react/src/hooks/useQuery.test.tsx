@@ -148,7 +148,7 @@ describe('useQuery', () => {
       })
 
       expect(queryResult.current.data).not.toBeNull()
-      expect(queryResult.current.data?.properties.title).toBe('Test Task')
+      expect(queryResult.current.data?.title).toBe('Test Task')
     })
   })
 

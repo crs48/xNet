@@ -1,29 +1,41 @@
 /**
- * useDocument - Load a Node with its CRDT document
+ * useDocument - The unified hook for working with a single Node
  *
- * This hook loads a Node's properties (via NodeStore) and its
- * associated Yjs document (if the schema specifies document: 'yjs').
- *
- * Features:
+ * This is the primary hook for editing documents. It provides:
+ * - Node properties (flattened for ergonomic access)
+ * - Y.Doc for collaborative rich text (if schema specifies document: 'yjs')
  * - Auto-sync via y-webrtc
- * - Debounced persistence
- * - Dirty state tracking
- * - Last saved timestamp
+ * - Type-safe mutations (update, remove)
+ * - Presence awareness (remote users)
+ * - Auto-create with createIfMissing
  *
  * @example
  * ```tsx
- * const { data, doc, isDirty, lastSavedAt, syncStatus } = useDocument(PageSchema, pageId)
+ * const {
+ *   data,           // FlatNode - access data.title directly!
+ *   doc,            // Y.Doc for rich text
+ *   update,         // Type-safe update function
+ *   remove,         // Soft delete
+ *   syncStatus,     // 'offline' | 'connecting' | 'connected'
+ *   peerCount,      // Number of connected peers
+ *   remoteUsers,    // Users currently viewing
+ *   loading,
+ *   error
+ * } = useDocument(PageSchema, pageId, {
+ *   createIfMissing: { title: 'Untitled' }
+ * })
  *
- * // data.properties.title - LWW synced metadata
- * // doc - Y.Doc instance for collaborative editing
+ * // Update is type-safe!
+ * update({ title: 'New Title' })  // OK
+ * update({ typo: 'x' })           // Type error!
  * ```
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import * as Y from 'yjs'
 import { WebrtcProvider } from 'y-webrtc'
-import type { DefinedSchema, PropertyBuilder, NodeState } from '@xnet/data'
+import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
 import { useNodeStore } from './useNodeStore'
-import type { TypedNode } from './useQuery'
+import { flattenNode, type FlatNode } from '../utils/flattenNode'
 
 // =============================================================================
 // Types
@@ -35,25 +47,65 @@ import type { TypedNode } from './useQuery'
 export type SyncStatus = 'offline' | 'connecting' | 'connected'
 
 /**
+ * Remote user presence
+ */
+export interface RemoteUser {
+  /** Client ID */
+  id: number
+  /** Display name */
+  name: string
+  /** User color for cursors/selections */
+  color: string
+  /** Whether currently active */
+  isActive: boolean
+}
+
+/**
  * Options for useDocument
  */
-export interface UseDocumentOptions {
+export interface UseDocumentOptions<P extends Record<string, PropertyBuilder>> {
   /** Signaling servers for y-webrtc (default: localhost for dev) */
   signalingServers?: string[]
   /** Disable auto-sync (default: false) */
   disableSync?: boolean
   /** Debounce persistence delay in ms (default: 1000) */
   persistDebounce?: number
+  /**
+   * Auto-create the node if it doesn't exist.
+   * Provide the default properties to use for creation.
+   */
+  createIfMissing?: InferCreateProps<P>
+  /**
+   * User info for presence (optional)
+   */
+  user?: {
+    name: string
+    color?: string
+  }
 }
 
 /**
  * Result from useDocument hook
  */
 export interface UseDocumentResult<P extends Record<string, PropertyBuilder>> {
-  /** Node properties (LWW synced) */
-  data: TypedNode<P> | null
+  // === Data ===
+  /** Node properties (flattened - access directly: data.title) */
+  data: FlatNode<P> | null
   /** Yjs document instance (null if schema has no document type) */
   doc: Y.Doc | null
+
+  // === Mutations ===
+  /**
+   * Update node properties (type-safe).
+   * Only properties defined in the schema are allowed.
+   */
+  update: (properties: Partial<InferCreateProps<P>>) => Promise<void>
+  /**
+   * Soft-delete the node.
+   */
+  remove: () => Promise<void>
+
+  // === State ===
   /** Whether currently loading */
   loading: boolean
   /** Any error that occurred */
@@ -62,10 +114,20 @@ export interface UseDocumentResult<P extends Record<string, PropertyBuilder>> {
   isDirty: boolean
   /** Last persistence timestamp */
   lastSavedAt: number | null
+  /** Whether the node was auto-created (via createIfMissing) */
+  wasCreated: boolean
+
+  // === Sync ===
   /** Sync connection status */
   syncStatus: SyncStatus
   /** Connected peer count */
   peerCount: number
+
+  // === Presence ===
+  /** Remote users currently viewing this document */
+  remoteUsers: RemoteUser[]
+
+  // === Actions ===
   /** Manually trigger save */
   save: () => Promise<void>
   /** Reload from storage */
@@ -78,6 +140,18 @@ const DEFAULT_SIGNALING_SERVERS = ['ws://localhost:4444']
 // Default debounce delay for persistence
 const DEFAULT_PERSIST_DEBOUNCE = 1000
 
+/**
+ * Generate a consistent color from a string
+ */
+function generateColor(seed: string): string {
+  let hash = 0
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = Math.abs(hash % 360)
+  return `hsl(${hue}, 70%, 50%)`
+}
+
 // =============================================================================
 // Hook Implementation
 // =============================================================================
@@ -85,18 +159,23 @@ const DEFAULT_PERSIST_DEBOUNCE = 1000
 /**
  * Load a Node with its CRDT document.
  *
- * This is the primary hook for editing content that has rich text
- * or other collaborative CRDT data.
+ * This is the primary hook for editing content. It combines:
+ * - Data loading (with FlatNode for ergonomic access)
+ * - Y.Doc for collaborative rich text
+ * - Type-safe mutations
+ * - Real-time sync and presence
  */
 export function useDocument<P extends Record<string, PropertyBuilder>>(
   schema: DefinedSchema<P>,
   id: string | null,
-  options: UseDocumentOptions = {}
+  options: UseDocumentOptions<P> = {}
 ): UseDocumentResult<P> {
   const {
     signalingServers = DEFAULT_SIGNALING_SERVERS,
     disableSync = false,
-    persistDebounce = DEFAULT_PERSIST_DEBOUNCE
+    persistDebounce = DEFAULT_PERSIST_DEBOUNCE,
+    createIfMissing,
+    user
   } = options
 
   const { store, isReady } = useNodeStore()
@@ -104,7 +183,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   const hasDocument = schema.schema.document === 'yjs'
 
   // State
-  const [data, setData] = useState<TypedNode<P> | null>(null)
+  const [data, setData] = useState<FlatNode<P> | null>(null)
   const [doc, setDoc] = useState<Y.Doc | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -112,11 +191,14 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('offline')
   const [peerCount, setPeerCount] = useState(0)
+  const [wasCreated, setWasCreated] = useState(false)
+  const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
 
   // Refs
   const providerRef = useRef<WebrtcProvider | null>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const docRef = useRef<Y.Doc | null>(null)
+  const creatingRef = useRef(false)
 
   // Load node and document
   const load = useCallback(async () => {
@@ -129,10 +211,26 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
 
     setLoading(true)
     setError(null)
+    setWasCreated(false)
 
     try {
       // Load node properties
-      const node = await store.get(id)
+      let node = await store.get(id)
+
+      // Auto-create if not found and createIfMissing is provided
+      if (!node && createIfMissing && !creatingRef.current) {
+        creatingRef.current = true
+        try {
+          node = await store.create({
+            id,
+            schemaId,
+            properties: createIfMissing as Record<string, unknown>
+          })
+          setWasCreated(true)
+        } finally {
+          creatingRef.current = false
+        }
+      }
 
       if (!node || node.schemaId !== schemaId) {
         setData(null)
@@ -141,7 +239,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
         return
       }
 
-      setData(node as TypedNode<P>)
+      setData(flattenNode<P>(node))
 
       // Load document if schema has one
       if (hasDocument) {
@@ -162,7 +260,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     } finally {
       setLoading(false)
     }
-  }, [store, isReady, id, schemaId, hasDocument])
+  }, [store, isReady, id, schemaId, hasDocument, createIfMissing])
 
   // Save document content
   const save = useCallback(async () => {
@@ -191,12 +289,43 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     }, persistDebounce)
   }, [save, persistDebounce])
 
+  // === Mutations ===
+
+  // Type-safe update
+  const update = useCallback(
+    async (properties: Partial<InferCreateProps<P>>): Promise<void> => {
+      if (!store || !isReady || !id) return
+
+      try {
+        const node = await store.update(id, {
+          properties: properties as Record<string, unknown>
+        })
+        setData(flattenNode<P>(node))
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error(String(err)))
+      }
+    },
+    [store, isReady, id]
+  )
+
+  // Soft delete
+  const remove = useCallback(async (): Promise<void> => {
+    if (!store || !isReady || !id) return
+
+    try {
+      await store.delete(id)
+      setData(null)
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)))
+    }
+  }, [store, isReady, id])
+
   // Initial load
   useEffect(() => {
     load()
   }, [load])
 
-  // Set up Y.Doc update listener and y-webrtc provider
+  // Set up Y.Doc update listener, y-webrtc provider, and presence
   useEffect(() => {
     if (!doc || !id || !hasDocument) return
 
@@ -219,6 +348,40 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       })
       providerRef.current = provider
 
+      // Set up presence if user info provided
+      if (user) {
+        const awareness = provider.awareness
+        awareness.setLocalState({
+          user: {
+            name: user.name,
+            color: user.color || generateColor(user.name)
+          }
+        })
+
+        // Track remote users
+        const awarenessHandler = () => {
+          const states = awareness.getStates()
+          const remote: RemoteUser[] = []
+
+          states.forEach((state, clientId) => {
+            if (clientId === awareness.clientID) return
+            if (state?.user) {
+              remote.push({
+                id: clientId,
+                name: state.user.name || 'Anonymous',
+                color: state.user.color || generateColor(String(clientId)),
+                isActive: true
+              })
+            }
+          })
+
+          setRemoteUsers(remote)
+        }
+
+        awareness.on('change', awarenessHandler)
+        awarenessHandler() // Initial sync
+      }
+
       // Track connection status
       const statusHandler = (event: { connected: boolean }) => {
         setSyncStatus(event.connected ? 'connected' : 'connecting')
@@ -235,17 +398,21 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
         doc.off('update', updateHandler)
         provider.off('status', statusHandler)
         provider.off('peers', peersHandler)
+        if (user) {
+          provider.awareness.off('change', () => {})
+        }
         provider.destroy()
         providerRef.current = null
         setSyncStatus('offline')
         setPeerCount(0)
+        setRemoteUsers([])
       }
     }
 
     return () => {
       doc.off('update', updateHandler)
     }
-  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave])
+  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, user])
 
   // Cleanup on unmount - save any pending changes
   useEffect(() => {
@@ -270,7 +437,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     const unsubscribe = store.subscribe((event) => {
       if (event.change.payload.nodeId !== id) return
       if (event.node && event.node.schemaId === schemaId) {
-        setData(event.node as TypedNode<P>)
+        setData(flattenNode<P>(event.node))
       }
     })
 
@@ -278,14 +445,29 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   }, [store, id, schemaId])
 
   return {
+    // Data
     data,
     doc,
+
+    // Mutations
+    update,
+    remove,
+
+    // State
     loading,
     error,
     isDirty,
     lastSavedAt,
+    wasCreated,
+
+    // Sync
     syncStatus,
     peerCount,
+
+    // Presence
+    remoteUsers,
+
+    // Actions
     save,
     reload: load
   }
