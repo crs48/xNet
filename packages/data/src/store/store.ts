@@ -18,6 +18,7 @@ import {
   compareLamportTimestamps,
   signChange,
   createUnsignedChange,
+  createBatchId,
   type LamportClock,
   type LamportTimestamp,
   type Change
@@ -35,7 +36,10 @@ import type {
   UpdateNodeOptions,
   PropertyTimestamp,
   MergeConflict,
-  ListNodesOptions
+  ListNodesOptions,
+  TransactionOperation,
+  TransactionResult,
+  NodeChangeListener
 } from './types'
 
 /**
@@ -47,6 +51,7 @@ export class NodeStore {
   private signingKey: Uint8Array
   private clock: LamportClock
   private conflicts: MergeConflict[] = []
+  private listeners: Set<NodeChangeListener> = new Set()
 
   constructor(options: NodeStoreOptions) {
     this.storage = options.storage
@@ -95,6 +100,10 @@ export class NodeStore {
     if (!node) {
       throw new Error(`Failed to create node: ${id}`)
     }
+
+    // Emit change event
+    this.emit(change, node, false)
+
     return node
   }
 
@@ -135,6 +144,10 @@ export class NodeStore {
     if (!node) {
       throw new Error(`Failed to update node: ${id}`)
     }
+
+    // Emit change event
+    this.emit(change, node, false)
+
     return node
   }
 
@@ -164,6 +177,10 @@ export class NodeStore {
 
     // Apply and persist
     await this.applyChange(change)
+
+    // Emit change event
+    const deletedNode = await this.storage.getNode(id)
+    this.emit(change, deletedNode, false)
   }
 
   /**
@@ -197,6 +214,10 @@ export class NodeStore {
     if (!node) {
       throw new Error(`Failed to restore node: ${id}`)
     }
+
+    // Emit change event
+    this.emit(change, node, false)
+
     return node
   }
 
@@ -205,6 +226,152 @@ export class NodeStore {
    */
   async list(options?: ListNodesOptions): Promise<NodeState[]> {
     return this.storage.listNodes(options)
+  }
+
+  // ==========================================================================
+  // Transaction Support
+  // ==========================================================================
+
+  /**
+   * Execute multiple operations as a single atomic transaction.
+   *
+   * All changes created in the transaction share the same batchId and Lamport
+   * timestamp, making them logically atomic. This is useful for:
+   * - Multi-node operations (move task between projects)
+   * - Undo/redo grouping
+   * - Audit trails ("user did X" as a single action)
+   * - Future blockchain integration (batch = transaction)
+   *
+   * @example
+   * ```typescript
+   * const result = await store.transaction([
+   *   { type: 'update', nodeId: task.id, options: { properties: { projectId: newProject.id } } },
+   *   { type: 'update', nodeId: oldProject.id, options: { properties: { taskIds: [...] } } },
+   *   { type: 'update', nodeId: newProject.id, options: { properties: { taskIds: [...] } } },
+   * ])
+   * console.log(`Batch ${result.batchId} applied ${result.changes.length} changes`)
+   * ```
+   */
+  async transaction(operations: TransactionOperation[]): Promise<TransactionResult> {
+    if (operations.length === 0) {
+      return { batchId: '', results: [], changes: [] }
+    }
+
+    const batchId = createBatchId()
+    const batchSize = operations.length
+    const now = Date.now()
+
+    // Tick the clock once for the entire batch
+    const [newClock, lamport] = tick(this.clock)
+    this.clock = newClock
+
+    const results: (NodeState | null)[] = []
+    const changes: NodeChange[] = []
+
+    for (let i = 0; i < operations.length; i++) {
+      const op = operations[i]
+      let change: NodeChange
+      let result: NodeState | null = null
+
+      switch (op.type) {
+        case 'create': {
+          const id = op.options.id ?? createNodeId()
+          const payload: NodePayload = {
+            nodeId: id,
+            schemaId: op.options.schemaId,
+            properties: op.options.properties
+          }
+          change = await this.createBatchedChange(
+            'node-change',
+            payload,
+            lamport,
+            now,
+            batchId,
+            i,
+            batchSize
+          )
+          await this.applyChange(change)
+          result = await this.storage.getNode(id)
+          break
+        }
+
+        case 'update': {
+          const existing = await this.storage.getNode(op.nodeId)
+          if (!existing) {
+            throw new Error(`Node not found: ${op.nodeId}`)
+          }
+          const payload: NodePayload = {
+            nodeId: op.nodeId,
+            properties: op.options.properties
+          }
+          change = await this.createBatchedChange(
+            'node-change',
+            payload,
+            lamport,
+            now,
+            batchId,
+            i,
+            batchSize
+          )
+          await this.applyChange(change)
+          result = await this.storage.getNode(op.nodeId)
+          break
+        }
+
+        case 'delete': {
+          const existing = await this.storage.getNode(op.nodeId)
+          if (!existing) {
+            throw new Error(`Node not found: ${op.nodeId}`)
+          }
+          const payload: NodePayload = {
+            nodeId: op.nodeId,
+            properties: {},
+            deleted: true
+          }
+          change = await this.createBatchedChange(
+            'node-change',
+            payload,
+            lamport,
+            now,
+            batchId,
+            i,
+            batchSize
+          )
+          await this.applyChange(change)
+          result = null
+          break
+        }
+
+        case 'restore': {
+          const existing = await this.storage.getNode(op.nodeId)
+          if (!existing) {
+            throw new Error(`Node not found: ${op.nodeId}`)
+          }
+          const payload: NodePayload = {
+            nodeId: op.nodeId,
+            properties: {},
+            deleted: false
+          }
+          change = await this.createBatchedChange(
+            'node-change',
+            payload,
+            lamport,
+            now,
+            batchId,
+            i,
+            batchSize
+          )
+          await this.applyChange(change)
+          result = await this.storage.getNode(op.nodeId)
+          break
+        }
+      }
+
+      changes.push(change)
+      results.push(result)
+    }
+
+    return { batchId, results, changes }
   }
 
   // ==========================================================================
@@ -221,6 +388,10 @@ export class NodeStore {
 
     // Apply the change
     await this.applyChange(change)
+
+    // Emit change event (marked as remote)
+    const node = await this.storage.getNode(change.payload.nodeId)
+    this.emit(change, node, true)
   }
 
   /**
@@ -271,6 +442,45 @@ export class NodeStore {
   }
 
   // ==========================================================================
+  // Subscription Support
+  // ==========================================================================
+
+  /**
+   * Subscribe to node changes.
+   *
+   * @param listener - Callback invoked when nodes change
+   * @returns Unsubscribe function
+   *
+   * @example
+   * ```ts
+   * const unsubscribe = store.subscribe((event) => {
+   *   console.log('Node changed:', event.node?.id, event.isRemote)
+   * })
+   * // Later: unsubscribe()
+   * ```
+   */
+  subscribe(listener: NodeChangeListener): () => void {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
+
+  /**
+   * Emit a change event to all listeners.
+   */
+  private emit(change: NodeChange, node: NodeState | null, isRemote: boolean): void {
+    const event = { change, node, isRemote }
+    for (const listener of this.listeners) {
+      try {
+        listener(event)
+      } catch (err) {
+        console.error('Error in NodeStore listener:', err)
+      }
+    }
+  }
+
+  // ==========================================================================
   // Internal Methods
   // ==========================================================================
 
@@ -296,6 +506,41 @@ export class NodeStore {
       authorDID: this.authorDID,
       lamport,
       wallTime
+    })
+
+    return signChange(unsigned, this.signingKey)
+  }
+
+  /**
+   * Create a signed change with batch metadata.
+   * Used for transaction support - all changes in a batch share the same
+   * batchId, Lamport timestamp, and wallTime.
+   */
+  private async createBatchedChange(
+    type: string,
+    payload: NodePayload,
+    lamport: LamportTimestamp,
+    wallTime: number,
+    batchId: string,
+    batchIndex: number,
+    batchSize: number
+  ): Promise<NodeChange> {
+    // Get parent hash (last change for this node)
+    const lastChange = await this.storage.getLastChange(payload.nodeId)
+    const parentHash = lastChange?.hash ?? null
+
+    // Create and sign the change with batch metadata
+    const unsigned = createUnsignedChange({
+      id: createNodeId(),
+      type,
+      payload,
+      parentHash,
+      authorDID: this.authorDID,
+      lamport,
+      wallTime,
+      batchId,
+      batchIndex,
+      batchSize
     })
 
     return signChange(unsigned, this.signingKey)

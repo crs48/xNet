@@ -15,6 +15,13 @@ import type { LamportTimestamp } from './clock'
  * Generic T allows different payload types for different use cases:
  * - YjsUpdate for rich text documents
  * - RecordPayload for database operations
+ *
+ * Changes can optionally be part of a transaction batch, which groups
+ * related changes that should be applied atomically. This is important for:
+ * - Multi-node operations (move task between projects)
+ * - Undo/redo grouping
+ * - Audit trails ("user did X" as a single action)
+ * - Future blockchain integration (batch = transaction)
  */
 export interface Change<T = unknown> {
   /** Unique change ID (nanoid) */
@@ -43,6 +50,27 @@ export interface Change<T = unknown> {
 
   /** Lamport timestamp for ordering */
   lamport: LamportTimestamp
+
+  // === Transaction Batch Support (optional) ===
+
+  /**
+   * Groups changes that should be treated as a single atomic operation.
+   * All changes with the same batchId were created in one transaction.
+   * For undo/redo, the entire batch should be undone/redone together.
+   */
+  batchId?: string
+
+  /**
+   * Position of this change within the batch (0-indexed).
+   * Ensures deterministic ordering when replaying.
+   */
+  batchIndex?: number
+
+  /**
+   * Total number of changes in the batch.
+   * Receivers can wait for all changes before committing.
+   */
+  batchSize?: number
 }
 
 /**
@@ -57,6 +85,11 @@ export interface UnsignedChange<T = unknown> {
   authorDID: DID
   wallTime: number
   lamport: LamportTimestamp
+
+  // Batch fields (optional)
+  batchId?: string
+  batchIndex?: number
+  batchSize?: number
 }
 
 /**
@@ -70,13 +103,18 @@ export interface CreateChangeOptions<T> {
   authorDID: DID
   lamport: LamportTimestamp
   wallTime?: number
+
+  // Batch fields (optional) - for transaction support
+  batchId?: string
+  batchIndex?: number
+  batchSize?: number
 }
 
 /**
  * Create an unsigned change from options
  */
 export function createUnsignedChange<T>(options: CreateChangeOptions<T>): UnsignedChange<T> {
-  return {
+  const unsigned: UnsignedChange<T> = {
     id: options.id,
     type: options.type,
     payload: options.payload,
@@ -85,6 +123,24 @@ export function createUnsignedChange<T>(options: CreateChangeOptions<T>): Unsign
     wallTime: options.wallTime ?? Date.now(),
     lamport: options.lamport
   }
+
+  // Add batch fields if provided
+  if (options.batchId !== undefined) {
+    unsigned.batchId = options.batchId
+    unsigned.batchIndex = options.batchIndex
+    unsigned.batchSize = options.batchSize
+  }
+
+  return unsigned
+}
+
+/**
+ * Generate a unique batch ID for grouping changes in a transaction.
+ */
+export function createBatchId(): string {
+  const timestamp = Date.now().toString(36)
+  const random = Math.random().toString(36).substring(2, 10)
+  return `batch-${timestamp}-${random}`
 }
 
 /**
@@ -166,6 +222,14 @@ export function verifyChangeHash<T>(change: Change<T>): boolean {
     wallTime: change.wallTime,
     lamport: change.lamport
   }
+
+  // Include batch fields if present (they're part of the signed data)
+  if (change.batchId !== undefined) {
+    unsigned.batchId = change.batchId
+    unsigned.batchIndex = change.batchIndex
+    unsigned.batchSize = change.batchSize
+  }
+
   const computedHash = computeChangeHash(unsigned)
   return computedHash === change.hash
 }

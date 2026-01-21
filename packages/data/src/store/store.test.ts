@@ -432,6 +432,129 @@ describe('NodeStore', () => {
   })
 })
 
+describe('transaction support', () => {
+  it('should execute multiple operations in a single transaction', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    // Create a node first
+    const existingNode = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Existing', status: 'active' }
+    })
+
+    // Execute transaction with multiple operations
+    const result = await store.transaction([
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'New Task 1' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'New Task 2' } } },
+      { type: 'update', nodeId: existingNode.id, options: { properties: { status: 'completed' } } }
+    ])
+
+    // Verify results
+    expect(result.batchId).toBeDefined()
+    expect(result.batchId).toMatch(/^batch-/)
+    expect(result.results).toHaveLength(3)
+    expect(result.changes).toHaveLength(3)
+
+    // Verify all changes share the same batchId
+    for (const change of result.changes) {
+      expect(change.batchId).toBe(result.batchId)
+    }
+
+    // Verify batch indices
+    expect(result.changes[0].batchIndex).toBe(0)
+    expect(result.changes[1].batchIndex).toBe(1)
+    expect(result.changes[2].batchIndex).toBe(2)
+
+    // Verify batch size
+    for (const change of result.changes) {
+      expect(change.batchSize).toBe(3)
+    }
+  })
+
+  it('should use the same Lamport timestamp for all operations in a batch', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const result = await store.transaction([
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 1' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 2' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 3' } } }
+    ])
+
+    // All changes should have the same Lamport time
+    const lamportTime = result.changes[0].lamport.time
+    for (const change of result.changes) {
+      expect(change.lamport.time).toBe(lamportTime)
+    }
+  })
+
+  it('should handle delete and restore in transaction', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    // Create nodes first
+    const node1 = await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Node 1' } })
+    const node2 = await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'Node 2' } })
+    await store.delete(node2.id)
+
+    // Transaction with delete and restore
+    const result = await store.transaction([
+      { type: 'delete', nodeId: node1.id },
+      { type: 'restore', nodeId: node2.id }
+    ])
+
+    expect(result.results).toHaveLength(2)
+    expect(result.results[0]).toBeNull() // delete returns null
+    expect(result.results[1]?.deleted).toBe(false) // restore returns restored node
+
+    // Verify actual state
+    const fetchedNode1 = await store.get(node1.id)
+    const fetchedNode2 = await store.get(node2.id)
+
+    expect(fetchedNode1?.deleted).toBe(true)
+    expect(fetchedNode2?.deleted).toBe(false)
+  })
+
+  it('should return empty result for empty transaction', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const result = await store.transaction([])
+
+    expect(result.batchId).toBe('')
+    expect(result.results).toHaveLength(0)
+    expect(result.changes).toHaveLength(0)
+  })
+
+  it('should throw if updating non-existent node in transaction', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    await expect(
+      store.transaction([
+        { type: 'update', nodeId: 'non-existent', options: { properties: { title: 'Test' } } }
+      ])
+    ).rejects.toThrow('Node not found')
+  })
+
+  it('should increment Lamport time only once for entire transaction', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const timeBefore = store.getCurrentLamportTime()
+
+    await store.transaction([
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 1' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 2' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 3' } } }
+    ])
+
+    // Only one tick for the entire transaction
+    expect(store.getCurrentLamportTime()).toBe(timeBefore + 1)
+  })
+})
+
 describe('MemoryNodeStorageAdapter', () => {
   it('should persist and retrieve changes', async () => {
     const adapter = new MemoryNodeStorageAdapter()

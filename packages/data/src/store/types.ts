@@ -214,3 +214,50 @@ export interface UpdateNodeOptions {
   /** Changed properties (sparse) */
   properties: Record<PropertyKey, unknown>
 }
+
+// ============================================================================
+// Transaction Support
+// ============================================================================
+
+/**
+ * A single operation within a transaction.
+ */
+export type TransactionOperation =
+  | { type: 'create'; options: CreateNodeOptions }
+  | { type: 'update'; nodeId: NodeId; options: UpdateNodeOptions }
+  | { type: 'delete'; nodeId: NodeId }
+  | { type: 'restore'; nodeId: NodeId }
+
+/**
+ * Result of a transaction execution.
+ * Returns the affected nodes in the same order as operations.
+ */
+export interface TransactionResult {
+  /** The batch ID shared by all changes */
+  batchId: string
+  /** Results for each operation (NodeState or null for delete) */
+  results: (NodeState | null)[]
+  /** All changes created in this transaction */
+  changes: NodeChange[]
+}
+
+// ============================================================================
+// Change Events
+// ============================================================================
+
+/**
+ * Event emitted when a Node changes.
+ */
+export interface NodeChangeEvent {
+  /** The change that was applied */
+  change: NodeChange
+  /** The resulting Node state */
+  node: NodeState | null
+  /** Whether this was a remote change (from sync) */
+  isRemote: boolean
+}
+
+/**
+ * Listener for Node change events.
+ */
+export type NodeChangeListener = (event: NodeChangeEvent) => void
