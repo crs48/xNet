@@ -1,187 +1,247 @@
 # @xnet/editor
 
-Framework-agnostic collaborative text editor for xNet, built on [Yjs](https://yjs.dev/).
+Collaborative rich text editor for xNet, built on [TipTap](https://tiptap.dev/) and [Yjs](https://yjs.dev/).
 
 ## Features
 
-- **Framework agnostic** - Works with vanilla JS, React, Vue, Svelte, or any framework
-- **Real-time collaboration** - Built on Yjs CRDT for conflict-free sync
-- **Simple API** - Easy to integrate with any text input or rich text editor
-- **TypeScript** - Full type definitions included
+- **Collaborative editing** - Real-time sync via Yjs CRDT
+- **Notion-like shortcuts** - Markdown-style formatting as you type
+- **Wikilinks** - `[[page name]]` syntax with navigation callbacks
+- **Live preview** - Obsidian-style reveal of markdown syntax
+- **Task lists** - Checkbox items with nesting support
+- **React components** - Ready-to-use `RichTextEditor` and `EditorToolbar`
 
 ## Installation
 
 ```bash
-pnpm add @xnet/editor
+pnpm add @xnet/editor @xnet/react @xnet/data
 ```
 
-## Usage
+## Quick Start with React
 
-### Vanilla JavaScript
+The recommended way to use `@xnet/editor` is with the `useDocument` hook from `@xnet/react`:
+
+```tsx
+import { useDocument } from '@xnet/react'
+import { RichTextEditor } from '@xnet/editor/react'
+import { defineSchema, text } from '@xnet/data'
+
+// Define a schema with document support
+const PageSchema = defineSchema({
+  name: 'Page',
+  namespace: 'myapp://',
+  properties: {
+    title: text({ required: true })
+  },
+  document: 'yjs' // Enable Y.Doc for rich text
+})
+
+function DocumentEditor({ pageId }: { pageId: string }) {
+  const {
+    data: page,
+    doc, // Y.Doc for rich text
+    loading,
+    error,
+    syncStatus, // 'offline' | 'connecting' | 'connected'
+    peerCount // Connected peers
+  } = useDocument(PageSchema, pageId, {
+    createIfMissing: { title: 'Untitled' }
+  })
+
+  if (loading) return <p>Loading...</p>
+  if (error) return <p>Error: {error.message}</p>
+  if (!doc) return <p>Not found</p>
+
+  return (
+    <div>
+      <h1>{page?.title}</h1>
+      <span>
+        {syncStatus === 'connected' ? 'Synced' : 'Offline'} ({peerCount} peers)
+      </span>
+
+      <RichTextEditor
+        ydoc={doc}
+        field="content"
+        placeholder="Start writing..."
+        onNavigate={(docId) => {
+          // Handle wikilink navigation
+          window.location.href = `/doc/${docId}`
+        }}
+      />
+    </div>
+  )
+}
+```
+
+## React Components
+
+### `RichTextEditor`
+
+Full-featured rich text editor with toolbar and Yjs collaboration.
+
+```tsx
+import { RichTextEditor } from '@xnet/editor/react'
+
+;<RichTextEditor
+  ydoc={doc}
+  field="content"
+  placeholder="Start writing..."
+  showToolbar={true}
+  readOnly={false}
+  onNavigate={(docId) => navigate(`/doc/${docId}`)}
+  className="my-editor"
+/>
+```
+
+**Props:**
+
+| Prop          | Type                      | Default              | Description                 |
+| ------------- | ------------------------- | -------------------- | --------------------------- |
+| `ydoc`        | `Y.Doc`                   | required             | The Yjs document to bind to |
+| `field`       | `string`                  | `'content'`          | Y.XmlFragment field name    |
+| `placeholder` | `string`                  | `'Start writing...'` | Placeholder text            |
+| `showToolbar` | `boolean`                 | `true`               | Show formatting toolbar     |
+| `readOnly`    | `boolean`                 | `false`              | Disable editing             |
+| `onNavigate`  | `(docId: string) => void` | -                    | Wikilink click handler      |
+| `className`   | `string`                  | -                    | Additional CSS class        |
+
+### `EditorToolbar`
+
+Standalone toolbar component (used internally by RichTextEditor).
+
+```tsx
+import { EditorToolbar, useEditor } from '@xnet/editor/react'
+
+function CustomEditor({ doc }) {
+  const editor = useEditor({
+    extensions: [
+      /* ... */
+    ]
+  })
+
+  return (
+    <div>
+      <EditorToolbar editor={editor} />
+      <EditorContent editor={editor} />
+    </div>
+  )
+}
+```
+
+**Props:**
+
+| Prop        | Type             | Description            |
+| ----------- | ---------------- | ---------------------- |
+| `editor`    | `Editor \| null` | TipTap editor instance |
+| `className` | `string`         | Additional CSS class   |
+
+## Keyboard Shortcuts
+
+The editor supports Notion-style Markdown shortcuts:
+
+**Text Formatting:**
+
+- `**text**` or `Cmd+B` → **bold**
+- `*text*` or `_text_` or `Cmd+I` → _italic_
+- `~~text~~` → ~~strikethrough~~
+- `` `code` `` → `inline code`
+
+**Headings:**
+
+- `# ` → Heading 1
+- `## ` → Heading 2
+- `### ` → Heading 3
+
+**Lists:**
+
+- `- ` or `* ` → Bullet list
+- `1. ` → Numbered list
+- `[] ` → Task list (checkbox)
+
+**Blocks:**
+
+- `> ` → Blockquote
+- `---` → Horizontal rule
+- ` ``` ` → Code block
+
+**Links:**
+
+- `[[page name]]` → Wikilink (triggers `onNavigate`)
+
+## Vanilla JavaScript
+
+For non-React usage, use the core `createEditor` function:
 
 ```ts
 import { createEditor } from '@xnet/editor'
 import * as Y from 'yjs'
 
-// Create a Yjs document
 const ydoc = new Y.Doc()
 
-// Create the editor
 const editor = createEditor({
   ydoc,
-  field: 'content', // Y.Text field name
+  field: 'content',
   onChange: (content) => {
     console.log('Content changed:', content)
   }
 })
 
-// Get content
+// Get/set content
 const content = editor.getContent()
-
-// Set content
 editor.setContent('Hello, world!')
 
-// Insert at position
+// Insert/delete
 editor.insert(5, ' beautiful')
-
-// Delete range
 editor.delete(0, 6)
 
-// Clean up when done
+// Clean up
 editor.destroy()
 ```
 
-### With React (@xnet/react)
+### Core API
 
-```tsx
-import { useEditor } from '@xnet/react'
-import { useDocument } from '@xnet/react'
+**`createEditor(config)`**
 
-function Editor({ docId }: { docId: string }) {
-  const { data: document } = useDocument(docId)
+| Option              | Type                             | Default     | Description               |
+| ------------------- | -------------------------------- | ----------- | ------------------------- |
+| `ydoc`              | `Y.Doc`                          | required    | Yjs document              |
+| `field`             | `string`                         | `'content'` | Y.Text field name         |
+| `placeholder`       | `string`                         | `''`        | Placeholder text          |
+| `readOnly`          | `boolean`                        | `false`     | Disable editing           |
+| `onChange`          | `(content: string) => void`      | -           | Content change callback   |
+| `onSelectionChange` | `(selection: Selection) => void` | -           | Selection change callback |
 
-  const {
-    content,
-    handleChange,
-    handleSelect,
-    handleFocus,
-    handleBlur
-  } = useEditor({
-    ydoc: document?.ydoc ?? null,
-    field: 'content',
-    placeholder: 'Start typing...'
-  })
+**Editor Methods:**
 
-  return (
-    <textarea
-      value={content}
-      onChange={handleChange}
-      onSelect={handleSelect}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      placeholder="Start typing..."
-    />
-  )
-}
-```
+| Method                         | Description           |
+| ------------------------------ | --------------------- |
+| `getContent()`                 | Get content as string |
+| `setContent(content)`          | Replace all content   |
+| `insert(index, text)`          | Insert at position    |
+| `delete(index, length)`        | Delete range          |
+| `applyDelta(old, new, cursor)` | Apply text change     |
+| `getYText()`                   | Get Y.Text instance   |
+| `getYDoc()`                    | Get Y.Doc instance    |
+| `destroy()`                    | Clean up              |
 
-### With Vue (example)
-
-```vue
-<script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
-import { createEditor } from '@xnet/editor'
-import * as Y from 'yjs'
-
-const props = defineProps<{ ydoc: Y.Doc }>()
-const content = ref('')
-
-const editor = createEditor({
-  ydoc: props.ydoc,
-  field: 'content',
-  onChange: (newContent) => {
-    content.value = newContent
-  }
-})
-
-function handleInput(e: Event) {
-  const target = e.target as HTMLTextAreaElement
-  editor.applyDelta(content.value, target.value, target.selectionStart)
-}
-
-onUnmounted(() => editor.destroy())
-</script>
-
-<template>
-  <textarea :value="content" @input="handleInput" />
-</template>
-```
-
-## API
-
-### `createEditor(config)`
-
-Creates a new editor instance.
-
-**Config options:**
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `ydoc` | `Y.Doc` | required | The Yjs document to bind to |
-| `field` | `string` | `'content'` | The Y.Text field name |
-| `placeholder` | `string` | `''` | Placeholder text |
-| `readOnly` | `boolean` | `false` | Whether editing is disabled |
-| `onChange` | `(content: string) => void` | - | Called when content changes |
-| `onSelectionChange` | `(selection: Selection) => void` | - | Called when selection changes |
-
-### Editor Methods
-
-| Method | Description |
-|--------|-------------|
-| `getContent()` | Get current content as string |
-| `setContent(content)` | Replace all content |
-| `insert(index, text)` | Insert text at position |
-| `delete(index, length)` | Delete text at range |
-| `applyDelta(oldText, newText, selectionStart)` | Apply a text change (for input handling) |
-| `getYText()` | Get the underlying Y.Text instance |
-| `getYDoc()` | Get the underlying Y.Doc instance |
-| `on(event, handler)` | Add event listener (returns unsubscribe fn) |
-| `off(event, handler)` | Remove event listener |
-| `destroy()` | Clean up and remove observers |
-
-### Events
-
-| Event | Data | Description |
-|-------|------|-------------|
-| `change` | `string` | Content changed (local or remote) |
-| `remote-update` | `string` | Content changed from remote peer |
-| `selection` | `Selection` | Selection changed |
-| `focus` | `undefined` | Editor focused |
-| `blur` | `undefined` | Editor blurred |
-
-## Integration with Rich Text Editors
-
-The editor core can be integrated with rich text editors like ProseMirror, TipTap, or Slate by:
-
-1. Using `getYText()` to access the underlying Y.Text
-2. Using Yjs bindings for your editor (e.g., `y-prosemirror`, `y-tiptap`)
+## Exports
 
 ```ts
+// React components (recommended)
+import { RichTextEditor, EditorToolbar } from '@xnet/editor/react'
+
+// Re-exported from @tiptap/react for advanced usage
+import { useEditor, EditorContent, Editor } from '@xnet/editor/react'
+
+// Vanilla JS
 import { createEditor } from '@xnet/editor'
-import { yTextToSlateElement } from '@slate-yjs/core'
-
-const editor = createEditor({ ydoc, field: 'content' })
-const ytext = editor.getYText()
-
-// Use with Slate
-const slateValue = yTextToSlateElement(ytext)
 ```
 
 ## Related Packages
 
-- `@xnet/data` - Yjs document management and CRDT operations
-- `@xnet/react` - React hooks including `useEditor`
-- `@xnet/sdk` - Full xNet SDK
+- `@xnet/react` - React hooks (`useDocument`, `useQuery`, `useMutate`)
+- `@xnet/data` - Schema system and NodeStore
+- `@xnet/storage` - IndexedDB storage adapter
 
 ## License
 

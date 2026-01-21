@@ -30,7 +30,7 @@
  * update({ typo: 'x' })           // Type error!
  * ```
  */
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import * as Y from 'yjs'
 import { WebrtcProvider } from 'y-webrtc'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
@@ -177,6 +177,11 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     createIfMissing,
     user
   } = options
+
+  // Memoize user info to prevent unnecessary effect re-runs
+  // (user object is a new reference on each render)
+  const userName = user?.name
+  const userColor = user?.color
 
   const { store, isReady } = useNodeStore()
   const schemaId = schema._schemaId
@@ -362,12 +367,12 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
 
       // Set up presence if user info provided
       let awarenessHandler: (() => void) | null = null
-      if (user) {
+      if (userName) {
         const awareness = provider.awareness
         awareness.setLocalState({
           user: {
-            name: user.name,
-            color: user.color || generateColor(user.name)
+            name: userName,
+            color: userColor || generateColor(userName)
           }
         })
 
@@ -413,7 +418,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     return () => {
       doc.off('update', updateHandler)
     }
-  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, user])
+  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, userName, userColor])
 
   // Cleanup on unmount - save any pending changes
   useEffect(() => {
