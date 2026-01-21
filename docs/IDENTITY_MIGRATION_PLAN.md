@@ -42,6 +42,193 @@ graph LR
 
 ---
 
+## Performance & Size Costs
+
+This section enumerates the concrete costs of each phase to inform architecture decisions.
+
+### Cryptographic Algorithm Comparison
+
+```mermaid
+graph LR
+    subgraph "Key Sizes"
+        E1["Ed25519<br/>32 bytes"]
+        M1["ML-DSA-65<br/>1,952 bytes"]
+        M2["ML-DSA-87<br/>2,592 bytes"]
+    end
+
+    subgraph "Signature Sizes"
+        E2["Ed25519<br/>64 bytes"]
+        M3["ML-DSA-65<br/>3,293 bytes"]
+        M4["ML-DSA-87<br/>4,595 bytes"]
+    end
+
+    E1 -.->|"61x larger"| M1
+    E2 -.->|"51x larger"| M3
+```
+
+#### Raw Algorithm Costs
+
+| Metric             | Ed25519           | ML-DSA-65       | ML-DSA-87       | Hybrid (Ed25519 + ML-DSA-65) |
+| ------------------ | ----------------- | --------------- | --------------- | ---------------------------- |
+| **Public Key**     | 32 bytes          | 1,952 bytes     | 2,592 bytes     | 1,984 bytes                  |
+| **Private Key**    | 64 bytes          | 4,032 bytes     | 4,896 bytes     | 4,096 bytes                  |
+| **Signature**      | 64 bytes          | 3,293 bytes     | 4,595 bytes     | 3,357 bytes                  |
+| **Sign ops/sec**   | ~50,000           | ~10,000         | ~6,000          | ~8,000                       |
+| **Verify ops/sec** | ~20,000           | ~30,000         | ~20,000         | ~12,000                      |
+| **Security Level** | 128-bit classical | 128-bit quantum | 192-bit quantum | 128-bit quantum              |
+
+### Per-Change Overhead
+
+Every `Change<T>` in the sync log includes identity and signature data:
+
+| Field                       | Phase 1 (Ed25519) | Phase 2 (Hybrid) | Phase 3 (ML-DSA only) |
+| --------------------------- | ----------------- | ---------------- | --------------------- |
+| `authorDID`                 | 56 bytes          | 56 bytes         | -                     |
+| `authorId`                  | -                 | 60 bytes         | 60 bytes              |
+| `signature`                 | 64 bytes          | -                | -                     |
+| `signatures[]`              | -                 | ~3,450 bytes     | ~3,380 bytes          |
+| **Total identity overhead** | **120 bytes**     | **3,566 bytes**  | **3,440 bytes**       |
+| **Overhead multiplier**     | 1x                | **30x**          | **29x**               |
+
+#### Impact on Sync Volume
+
+| Scenario                        | Changes | Phase 1 Size | Phase 2 Size | Phase 3 Size |
+| ------------------------------- | ------- | ------------ | ------------ | ------------ |
+| Single document edit            | 1       | 120 B        | 3.5 KB       | 3.4 KB       |
+| Typing session (100 changes)    | 100     | 12 KB        | 350 KB       | 340 KB       |
+| Database with 1K records        | 1,000   | 120 KB       | 3.5 MB       | 3.4 MB       |
+| Database with 10K records       | 10,000  | 1.2 MB       | 35 MB        | 34 MB        |
+| Active workspace (100K changes) | 100,000 | 12 MB        | 350 MB       | 340 MB       |
+
+### Identity Document Sizes
+
+| Component                     | Phase 1 | Phase 2 (1 key)  | Phase 2 (3 keys) | Phase 3 (5 keys + history) |
+| ----------------------------- | ------- | ---------------- | ---------------- | -------------------------- |
+| Base document                 | -       | ~200 bytes       | ~200 bytes       | ~300 bytes                 |
+| Ed25519 key entry             | -       | ~150 bytes       | ~150 bytes       | ~150 bytes                 |
+| ML-DSA-65 key entry           | -       | ~2,100 bytes     | ~2,100 bytes     | ~2,100 bytes               |
+| Revoked key entry             | -       | -                | ~100 bytes       | ~100 bytes                 |
+| Document signature            | -       | ~3,400 bytes     | ~3,400 bytes     | ~3,400 bytes               |
+| **Total per version**         | **0**   | **~5,850 bytes** | **~8,200 bytes** | **~14,000 bytes**          |
+| Version history (10 versions) | -       | -                | -                | ~100 KB                    |
+
+### Storage Costs by Phase
+
+| Storage Type               | Phase 1 | Phase 2  | Phase 3    |
+| -------------------------- | ------- | -------- | ---------- |
+| **Per user identity**      | 0       | ~6-15 KB | ~50-150 KB |
+| **Per change (signature)** | 64 B    | 3.4 KB   | 3.4 KB     |
+| **Per UCAN token**         | ~500 B  | ~4 KB    | ~4 KB      |
+| **Key storage (private)**  | 64 B    | 4.1 KB   | 4.1 KB     |
+
+### Network/Bandwidth Costs
+
+| Operation                 | Phase 1             | Phase 2         | Phase 3          |
+| ------------------------- | ------------------- | --------------- | ---------------- |
+| **Identity resolution**   | 0 (embedded in DID) | 1 fetch (~6 KB) | 1 fetch (~15 KB) |
+| **Sync 1 change**         | 120 B               | 3.5 KB          | 3.4 KB           |
+| **Sync 100 changes**      | 12 KB               | 350 KB          | 340 KB           |
+| **UCAN delegation**       | ~500 B              | ~4 KB           | ~4 KB            |
+| **Initial identity sync** | 0                   | ~6 KB           | ~50 KB           |
+
+### CPU/Memory Costs
+
+| Operation               | Phase 1    | Phase 2 | Phase 3 |
+| ----------------------- | ---------- | ------- | ------- |
+| **Key generation**      | <1ms       | ~10ms   | ~10ms   |
+| **Sign (per change)**   | ~0.02ms    | ~0.15ms | ~0.1ms  |
+| **Verify (per change)** | ~0.05ms    | ~0.12ms | ~0.03ms |
+| **Memory per keypair**  | ~100 B     | ~6 KB   | ~5 KB   |
+| **WASM module size**    | 0 (native) | +200 KB | +200 KB |
+
+### Verification Latency
+
+```mermaid
+graph TD
+    subgraph "Phase 1: Direct Verification"
+        C1["Change"] --> V1["Extract DID"]
+        V1 --> V2["Verify Ed25519"]
+        V2 --> R1["Result"]
+
+        style R1 fill:#90EE90
+    end
+
+    subgraph "Phase 2/3: Resolved Verification"
+        C2["Change"] --> V3["Extract authorId"]
+        V3 --> V4["Resolve Identity Doc"]
+        V4 --> V5["Find active key"]
+        V5 --> V6["Verify signature"]
+        V6 --> R2["Result"]
+
+        style V4 fill:#FFE4B5
+        style R2 fill:#90EE90
+    end
+```
+
+| Step             | Phase 1        | Phase 2/3 (cached) | Phase 2/3 (uncached) |
+| ---------------- | -------------- | ------------------ | -------------------- |
+| Parse change     | 0.01ms         | 0.01ms             | 0.01ms               |
+| Resolve identity | 0 (embedded)   | 0.1ms (cache hit)  | 10-100ms (network)   |
+| Find signing key | 0 (single key) | 0.01ms             | 0.01ms               |
+| Verify signature | 0.05ms         | 0.12ms             | 0.12ms               |
+| **Total**        | **~0.06ms**    | **~0.24ms**        | **10-100ms**         |
+
+### Tradeoff Summary
+
+```mermaid
+quadrantChart
+    title Phase Comparison: Security vs Efficiency
+    x-axis Low Efficiency --> High Efficiency
+    y-axis Low Security --> High Security
+    quadrant-1 Ideal (if possible)
+    quadrant-2 Secure but costly
+    quadrant-3 Avoid
+    quadrant-4 Fast but risky
+
+    Phase 1 Ed25519: [0.85, 0.35]
+    Phase 2 Hybrid: [0.4, 0.75]
+    Phase 3 ML-DSA: [0.45, 0.85]
+```
+
+| Aspect                        | Phase 1          | Phase 2       | Phase 3       |
+| ----------------------------- | ---------------- | ------------- | ------------- |
+| **Signature size**            | Excellent (64 B) | Poor (3.4 KB) | Poor (3.4 KB) |
+| **Sign speed**                | Excellent        | Good          | Good          |
+| **Verify speed**              | Good             | Good          | Excellent     |
+| **Quantum resistance**        | None             | Yes           | Yes           |
+| **Key rotation**              | No               | Yes           | Yes           |
+| **Storage cost**              | Low              | High (30x)    | High (29x)    |
+| **Bandwidth cost**            | Low              | High (30x)    | High (29x)    |
+| **Implementation complexity** | Simple           | Medium        | Medium        |
+| **Ecosystem support**         | Excellent        | Growing       | Growing       |
+
+### Mitigation Strategies
+
+To reduce Phase 2/3 overhead:
+
+| Strategy                  | Savings                       | Tradeoff             |
+| ------------------------- | ----------------------------- | -------------------- |
+| **Signature aggregation** | Batch N changes, 1 signature  | Latency (must batch) |
+| **Lazy verification**     | Skip verify until needed      | Trust assumption     |
+| **Identity caching**      | Avoid repeated resolution     | Stale data risk      |
+| **Compression**           | ~50% on signatures            | CPU cost             |
+| **Single-algorithm mode** | Skip Ed25519 in Phase 3       | Lose backward compat |
+| **Checkpoint snapshots**  | Verify snapshot, not full log | Complexity           |
+
+### Recommendations
+
+1. **Phase 1 → Phase 2 trigger**: When quantum computers reach 1000+ logical qubits, or when enterprise customers require key rotation.
+
+2. **Batch changes**: In Phase 2+, batch multiple changes under one signature where possible (e.g., typing sessions, bulk imports).
+
+3. **Cache aggressively**: Identity documents change rarely; cache with TTL of hours/days.
+
+4. **Compress on wire**: Signatures compress well; use compression for sync.
+
+5. **Progressive verification**: For large imports, verify lazily or in background.
+
+---
+
 ## Phase 1: Current State (Ship Now)
 
 ### Architecture
