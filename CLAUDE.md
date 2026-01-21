@@ -5,64 +5,69 @@
 **xNet** = Decentralized data infrastructure SDK. Local-first, P2P-synced, user-owned data.  
 **xNotes** = Notion-like productivity app built on xNet. Wiki + databases + tasks.
 
-## Data Model (Critical)
+## Data Model (Current)
 
-> **Architecture Update in Progress:** See `docs/planStep02_1DataModelConsolidation/README.md`
->
-> We are moving to a **schema-first, Node-based architecture** where:
->
-> - Everything is a `Node` (universal container)
-> - A `Schema` defines what the Node is (Page, Database, Item, Task, etc.)
-> - Schemas are defined in code via `defineSchema()` with TypeScript inference
-> - Schemas use globally unique IRIs: `xnet://xnet.dev/Page`, `xnet://did:key:.../Recipe`
+The xNet data model uses a **schema-first, Node-based architecture**:
 
-### Current State (Being Consolidated)
+- Everything is a `Node` (universal container)
+- A `Schema` defines what the Node is (Page, Database, Task, etc.)
+- Schemas are defined in code via `defineSchema()` with TypeScript inference
+- Schemas use globally unique IRIs: `xnet://xnet.dev/Page`, `xnet://did:key:.../Recipe`
 
-Two sync strategies for different data types:
+### Sync Strategies
 
-| Data Type              | Package         | Sync Mechanism    | Conflict Resolution   |
-| ---------------------- | --------------- | ----------------- | --------------------- |
-| Rich text (wiki pages) | `@xnet/data`    | Yjs CRDT          | Character-level merge |
-| Tabular (databases)    | `@xnet/records` | Event-sourced ops | Field-level LWW       |
+| Data Type              | Package      | Sync Mechanism      | Conflict Resolution   |
+| ---------------------- | ------------ | ------------------- | --------------------- |
+| Rich text (wiki pages) | `@xnet/data` | Yjs CRDT            | Character-level merge |
+| Structured data        | `@xnet/data` | NodeStore + Lamport | Field-level LWW       |
 
-This is intentional (see `docs/TRADEOFFS.md`). Rich text needs fine-grained CRDT; tables work better with last-writer-wins per field.
+Rich text uses Yjs CRDT for fine-grained character merging. Structured data (Nodes) uses event-sourced changes with Lamport timestamps and last-writer-wins per property.
 
-### Target State (After Consolidation)
+### Example Usage
 
 ```typescript
-// Everything is a Node with a Schema
-const task = TaskSchema.create({
-  title: 'Fix the bug',
-  status: 'todo'
-})
-
-// Schemas defined in code with full TypeScript inference
+// Define a schema
 const TaskSchema = defineSchema({
   name: 'Task',
   namespace: 'xnet://xnet.dev/',
   properties: {
     title: text({ required: true }),
-    status: select({ options: [...] as const })
+    status: select({ options: ['todo', 'in-progress', 'done'] as const })
   },
   hasContent: true
 })
 
-type Task = InferNode<typeof TaskSchema>  // Fully typed!
+// Use NodeStore for persistence
+const store = new NodeStore({
+  storage: new MemoryNodeStorageAdapter(),
+  authorDID: 'did:key:z6Mk...',
+  signingKey: privateKey
+})
+await store.initialize()
+
+const task = await store.create({
+  schemaId: 'xnet://xnet.dev/Task',
+  properties: { title: 'Fix bug', status: 'todo' }
+})
+
+// React hooks
+const { node, update } = useNode(task.id)
+const { nodes } = useNodes({ schemaId: 'xnet://xnet.dev/Task' })
 ```
 
 ## Package Map
 
 ```
 packages/
-  core/       # Types, content addressing (CIDs), vector clocks, permissions
+  core/       # Types, content addressing (CIDs), permissions
   crypto/     # BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption
   identity/   # DID:key generation, UCAN tokens, key management
   storage/    # IndexedDB adapter, snapshot management
-  data/       # Yjs CRDT wrapper, signed updates, document operations
-  records/    # Database schema, 18 property types, event-sourced sync
+  sync/       # Lamport timestamps, Change<T>, hash chains, SyncProvider
+  data/       # Schema system, NodeStore, Yjs CRDT, document operations
   network/    # libp2p node, y-webrtc provider, DID resolution
   query/      # Local query engine, full-text search (Lunr.js)
-  react/      # useDocument, useQuery, useSync, useRecordSync hooks
+  react/      # useNode, useNodes, useNodeSync, useDocument hooks
   sdk/        # Unified client, browser/node presets
   editor/     # TipTap-based collaborative editor
   ui/         # Shared components
@@ -75,11 +80,9 @@ packages/
 ## Key Relationships
 
 ```
-crypto ──> identity ──> storage ──> data ──────> network ──> query
-                │           │           │
-                │           └───────────┴──> records (parallel sync)
-                │
-                └──────────────────────────────> react ──> sdk
+crypto ──> identity ──> storage ──> sync ──> data ──> network ──> query
+                                      │
+                                      └──────────────> react ──> sdk
 ```
 
 ## ID Formats
@@ -87,72 +90,91 @@ crypto ──> identity ──> storage ──> data ──────> network
 ```typescript
 type DID = `did:key:z6Mk...` // User identity
 type ContentId = `cid:blake3:${hex}` // Content-addressed hash
-type DatabaseId = `db:${uuid}` // Database
-type ItemId = `item:${uuid}` // Database row
-type PropertyId = `prop:${uuid}` // Database column
+type SchemaIRI = `xnet://${string}/${string}` // Schema identifier
+type NodeId = string // NanoID (21 chars)
 type DocumentPath = `xnet://${DID}/workspace/${id}/doc/${id}`
 ```
 
 ## Common Operations
 
-### Create/load a document (rich text)
+### Create a Node (structured data)
+
+```typescript
+import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+
+const store = new NodeStore({
+  storage: new MemoryNodeStorageAdapter(),
+  authorDID: did,
+  signingKey: key
+})
+await store.initialize()
+
+const task = await store.create({
+  schemaId: 'xnet://xnet.dev/Task',
+  properties: { title: 'My Task', status: 'todo' }
+})
+await store.update(task.id, { properties: { status: 'done' } })
+```
+
+### Create a document (rich text)
 
 ```typescript
 import { createDocument, loadDocument } from '@xnet/data'
 const doc = createDocument({ id, workspace, type: 'page', title, createdBy: did, signingKey })
 ```
 
-### Create a database record
-
-```typescript
-import { RecordStore } from '@xnet/records'
-const store = new RecordStore(adapter, { authorDID, signingKey })
-const db = await store.createDatabase('Tasks', [{ name: 'Title', type: 'text', ... }])
-const item = await store.createItem(db.id, { [propId]: 'My Task' })
-```
-
 ### React hooks
 
 ```typescript
-import { useDocument, useQuery, useSync, useRecordSync } from '@xnet/react'
-const { data, update } = useDocument(docId)           // Rich text
-const { status, peers } = useSync()                   // Sync status
-const { results } = useQuery({ type: 'page', ... })   // Query docs
+import {
+  NodeStoreProvider, useNode, useNodes, useNodeSync,
+  useDocument, useQuery, useSync
+} from '@xnet/react'
+
+// Wrap app with provider
+<NodeStoreProvider authorDID={did} signingKey={key}>
+  <App />
+</NodeStoreProvider>
+
+// Use hooks
+const { node, update, remove } = useNode(nodeId)
+const { nodes, create } = useNodes({ schemaId: 'xnet://xnet.dev/Task' })
+const { status, peers, broadcastChanges } = useNodeSync({ store, peerId })
 ```
 
-## Property Types (18 total)
+## Property Types (16 total)
 
 Basic: `text`, `number`, `checkbox`  
 Temporal: `date`, `dateRange`  
 Selection: `select`, `multiSelect`  
-References: `person`, `relation`, `rollup`  
-Computed: `formula`  
+References: `person`, `relation`  
 Rich: `url`, `email`, `phone`, `file`  
 Auto: `created`, `updated`, `createdBy`
 
 ## Where Things Live
 
-| Need to...         | Look in                              |
-| ------------------ | ------------------------------------ |
-| Hash data          | `@xnet/crypto/hashing.ts`            |
-| Sign/verify        | `@xnet/crypto/signing.ts`            |
-| Create DID         | `@xnet/identity/did.ts`              |
-| Create UCAN        | `@xnet/identity/ucan.ts`             |
-| Store documents    | `@xnet/storage/adapters/`            |
-| Wrap Yjs doc       | `@xnet/data/document.ts`             |
-| Database schema    | `@xnet/records/schema/`              |
-| Property handlers  | `@xnet/records/properties/`          |
-| Event-sourced sync | `@xnet/records/sync/store.ts`        |
-| P2P connection     | `@xnet/network/node.ts`              |
-| y-webrtc setup     | `@xnet/network/providers/ywebrtc.ts` |
-| React hooks        | `@xnet/react/hooks/`                 |
+| Need to...         | Look in                            |
+| ------------------ | ---------------------------------- |
+| Hash data          | `@xnet/crypto/hashing.ts`          |
+| Sign/verify        | `@xnet/crypto/signing.ts`          |
+| Create DID         | `@xnet/identity/did.ts`            |
+| Create UCAN        | `@xnet/identity/ucan.ts`           |
+| Lamport timestamps | `@xnet/sync/clock.ts`              |
+| Change<T> type     | `@xnet/sync/change.ts`             |
+| Define schema      | `@xnet/data/schema/define.ts`      |
+| NodeStore          | `@xnet/data/store/store.ts`        |
+| Property helpers   | `@xnet/data/schema/properties/`    |
+| Yjs document ops   | `@xnet/data/document.ts`           |
+| P2P connection     | `@xnet/network/node.ts`            |
+| React Node hooks   | `@xnet/react/hooks/useNode.ts`     |
+| React sync hooks   | `@xnet/react/hooks/useNodeSync.ts` |
 
 ## Testing
 
 ```bash
-pnpm test                          # All tests (352+ total)
-pnpm --filter @xnet/records test   # Single package
-pnpm test:coverage                 # With coverage (>80% required)
+pnpm vitest run packages/sync packages/data  # Core tests (140 total)
+pnpm --filter @xnet/data test                # Single package
+pnpm test:coverage                           # With coverage (>80% required)
 ```
 
 ## Apps
@@ -174,9 +196,7 @@ apps/
 
 ## Key Docs
 
+- `docs/planStep02_1DataModelConsolidation/HANDOFF.md` - **Implementation status and examples**
+- `docs/planStep02_1DataModelConsolidation/README.md` - Schema-first architecture plan
 - `docs/TRADEOFFS.md` - Why hybrid sync (Yjs + event-sourcing)
 - `docs/PERSISTENCE_ARCHITECTURE.md` - Storage durability tiers
-- `docs/planStep01MVP/01-phase0-foundations.md` - Core architecture
-- `docs/planStep02DatabasePlatform/01-property-types.md` - Property system
-- `docs/planStep02_1DataModelConsolidation/README.md` - **Schema-first architecture plan**
-- `docs/plan/12-react-integration.md` - React hooks design
