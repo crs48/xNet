@@ -16,12 +16,8 @@ describe('EditorToolbar', () => {
   beforeEach(() => {
     editor = new Editor({
       element: document.createElement('div'),
-      extensions: [
-        StarterKit,
-        TaskList,
-        TaskItem,
-      ],
-      content: '<p>Test content</p>',
+      extensions: [StarterKit, TaskList, TaskItem],
+      content: '<p>Test content</p>'
     })
   })
 
@@ -36,8 +32,11 @@ describe('EditorToolbar', () => {
     })
 
     it('should render toolbar when editor is provided', () => {
-      render(<EditorToolbar editor={editor} />)
-      expect(document.querySelector('.editor-toolbar')).toBeInTheDocument()
+      const { container } = render(<EditorToolbar editor={editor} />)
+      // Toolbar should render a div with flex layout (Tailwind classes)
+      const toolbar = container.firstChild as HTMLElement
+      expect(toolbar).toBeInTheDocument()
+      expect(toolbar.tagName).toBe('DIV')
     })
 
     it('should apply custom className', () => {
@@ -45,10 +44,12 @@ describe('EditorToolbar', () => {
       expect(document.querySelector('.my-toolbar')).toBeInTheDocument()
     })
 
-    it('should preserve editor-toolbar class with custom className', () => {
-      render(<EditorToolbar editor={editor} className="my-toolbar" />)
-      const toolbar = document.querySelector('.my-toolbar')
-      expect(toolbar?.classList.contains('editor-toolbar')).toBe(true)
+    it('should merge custom className with default classes', () => {
+      const { container } = render(<EditorToolbar editor={editor} className="my-toolbar" />)
+      const toolbar = container.firstChild as HTMLElement
+      expect(toolbar.classList.contains('my-toolbar')).toBe(true)
+      // Should also have flex from Tailwind
+      expect(toolbar.classList.contains('flex')).toBe(true)
     })
   })
 
@@ -127,9 +128,9 @@ describe('EditorToolbar', () => {
 
   describe('dividers', () => {
     it('should render toolbar dividers', () => {
-      render(<EditorToolbar editor={editor} />)
-
-      const dividers = document.querySelectorAll('.toolbar-divider')
+      const { container } = render(<EditorToolbar editor={editor} />)
+      // Dividers are now spans with w-px h-6 bg-border classes
+      const dividers = container.querySelectorAll('span.w-px')
       expect(dividers.length).toBe(3)
     })
   })
@@ -192,49 +193,53 @@ describe('EditorToolbar', () => {
   })
 
   describe('active state', () => {
-    it('should show active class when bold is active', () => {
+    it('should show active styling when bold is active', () => {
       editor.commands.selectAll()
       editor.commands.toggleBold()
 
       render(<EditorToolbar editor={editor} />)
 
       const boldButton = screen.getByTitle('Bold (Cmd+B)')
-      expect(boldButton).toHaveClass('active')
+      // Active buttons have bg-primary and text-white classes
+      expect(boldButton).toHaveClass('bg-primary')
+      expect(boldButton).toHaveClass('text-white')
     })
 
-    it('should show active class when italic is active', () => {
+    it('should show active styling when italic is active', () => {
       editor.commands.selectAll()
       editor.commands.toggleItalic()
 
       render(<EditorToolbar editor={editor} />)
 
       const italicButton = screen.getByTitle('Italic (Cmd+I)')
-      expect(italicButton).toHaveClass('active')
+      expect(italicButton).toHaveClass('bg-primary')
+      expect(italicButton).toHaveClass('text-white')
     })
 
-    it('should show active class when heading is active', () => {
+    it('should show active styling when heading is active', () => {
       editor.commands.toggleHeading({ level: 2 })
 
       render(<EditorToolbar editor={editor} />)
 
       const h2Button = screen.getByTitle('Heading 2')
-      expect(h2Button).toHaveClass('active')
+      expect(h2Button).toHaveClass('bg-primary')
+      expect(h2Button).toHaveClass('text-white')
     })
 
-    it('should not show active class when format is not active', () => {
+    it('should not show active styling when format is not active', () => {
       render(<EditorToolbar editor={editor} />)
 
       const boldButton = screen.getByTitle('Bold (Cmd+B)')
-      expect(boldButton).not.toHaveClass('active')
+      expect(boldButton).not.toHaveClass('bg-primary')
     })
   })
 
   describe('button types', () => {
     it('should have type="button" on all buttons to prevent form submission', () => {
-      render(<EditorToolbar editor={editor} />)
+      const { container } = render(<EditorToolbar editor={editor} />)
 
-      const buttons = document.querySelectorAll('.editor-toolbar button')
-      buttons.forEach(button => {
+      const buttons = container.querySelectorAll('button')
+      buttons.forEach((button) => {
         expect(button.getAttribute('type')).toBe('button')
       })
     })

@@ -20,19 +20,23 @@ describe('RichTextEditor', () => {
 
   describe('initialization', () => {
     it('should render editor container', async () => {
-      render(<RichTextEditor ydoc={ydoc} />)
+      const { container } = render(<RichTextEditor ydoc={ydoc} />)
 
-      // The editor container should be rendered
+      // The editor container should be rendered with Tailwind border class
       await waitFor(() => {
-        expect(document.querySelector('.editor-container')).toBeInTheDocument()
+        const editorContainer = container.firstChild as HTMLElement
+        expect(editorContainer).toBeInTheDocument()
+        expect(editorContainer.classList.contains('border')).toBe(true)
       })
     })
 
     it('should render editor content area', async () => {
-      render(<RichTextEditor ydoc={ydoc} />)
+      const { container } = render(<RichTextEditor ydoc={ydoc} />)
 
       await waitFor(() => {
-        expect(document.querySelector('.editor-content')).toBeInTheDocument()
+        // EditorContent component renders inside the container
+        const editorContent = container.querySelector('.p-4')
+        expect(editorContent).toBeInTheDocument()
       })
     })
 
@@ -65,21 +69,25 @@ describe('RichTextEditor', () => {
 
   describe('toolbar visibility', () => {
     it('should render toolbar by default', async () => {
-      render(<RichTextEditor ydoc={ydoc} />)
+      const { container } = render(<RichTextEditor ydoc={ydoc} />)
 
       await waitFor(() => {
-        expect(document.querySelector('.editor-toolbar')).toBeInTheDocument()
+        // Toolbar has flex and bg-bg-secondary classes
+        const toolbar = container.querySelector('.flex.items-center.gap-1')
+        expect(toolbar).toBeInTheDocument()
       })
     })
 
     it('should hide toolbar when showToolbar is false', async () => {
-      render(<RichTextEditor ydoc={ydoc} showToolbar={false} />)
+      const { container } = render(<RichTextEditor ydoc={ydoc} showToolbar={false} />)
 
       await waitFor(() => {
-        expect(document.querySelector('.editor-container')).toBeInTheDocument()
+        const editorContainer = container.firstChild
+        expect(editorContainer).toBeInTheDocument()
       })
 
-      expect(document.querySelector('.editor-toolbar')).not.toBeInTheDocument()
+      // There should be no toolbar buttons
+      expect(screen.queryByTitle('Bold (Cmd+B)')).not.toBeInTheDocument()
     })
   })
 
@@ -92,12 +100,14 @@ describe('RichTextEditor', () => {
       })
     })
 
-    it('should preserve editor-container class', async () => {
-      render(<RichTextEditor ydoc={ydoc} className="my-custom-editor" />)
+    it('should merge custom className with default Tailwind classes', async () => {
+      const { container } = render(<RichTextEditor ydoc={ydoc} className="my-custom-editor" />)
 
       await waitFor(() => {
-        const container = document.querySelector('.my-custom-editor')
-        expect(container?.classList.contains('editor-container')).toBe(true)
+        const editorContainer = container.querySelector('.my-custom-editor') as HTMLElement
+        expect(editorContainer).toBeInTheDocument()
+        // Should have both custom class and border class from Tailwind
+        expect(editorContainer.classList.contains('border')).toBe(true)
       })
     })
   })
@@ -222,10 +232,11 @@ describe('RichTextEditor toolbar integration', () => {
   })
 
   it('should render toolbar dividers', async () => {
-    render(<RichTextEditor ydoc={ydoc} />)
+    const { container } = render(<RichTextEditor ydoc={ydoc} />)
 
     await waitFor(() => {
-      const dividers = document.querySelectorAll('.toolbar-divider')
+      // Dividers are spans with w-px class
+      const dividers = container.querySelectorAll('span.w-px')
       expect(dividers.length).toBe(3)
     })
   })
