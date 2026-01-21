@@ -1,157 +1,117 @@
 /**
  * Electron App - Main component
  *
- * Uses IPC to communicate with main process for document operations,
- * and @xnet/editor/react for the rich text editor.
+ * Integrates xNet packages:
+ * - @xnet/editor for rich text editing
+ * - @xnet/views for table/board views
+ * - @xnet/canvas for infinite canvas
  */
-import React, { useEffect, useState, useCallback } from 'react'
-import { RichTextEditor } from '@xnet/editor/react'
-import * as Y from 'yjs'
 
-interface Document {
-  id: string
-  title: string
-}
+import React, { useEffect, useCallback } from 'react'
+import { Sidebar } from './components/Sidebar'
+import { PageView } from './components/PageView'
+import { DatabaseView } from './components/DatabaseView'
+import { CanvasView } from './components/CanvasView'
+import { useAppState } from './hooks/useAppState'
+import { useYDoc } from './hooks/useYDoc'
+import type { Document } from './lib/types'
 
 export function App() {
-  const [identity, setIdentity] = useState<string | null>(null)
-  const [documents, setDocuments] = useState<Document[]>([])
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
-  const [ydoc, setYdoc] = useState<Y.Doc | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { identity, documents, isLoading, error, createDocument, deleteDocument } = useAppState()
 
-  // Initialize xNet client
-  useEffect(() => {
-    async function init() {
-      try {
-        const { did } = await window.xnet.init()
-        setIdentity(did)
-        await refreshDocuments()
-        setIsLoading(false)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to initialize')
-        setIsLoading(false)
-      }
-    }
-    init()
+  const [selectedDocId, setSelectedDocId] = React.useState<string | null>(null)
+  const [selectedDocType, setSelectedDocType] = React.useState<Document['type']>('page')
 
-    return () => {
-      window.xnet?.stop()
-    }
-  }, [])
+  const { ydoc, isLoading: docLoading } = useYDoc(selectedDocId)
 
   // Listen for new page menu command
   useEffect(() => {
     if (!window.xnet) return
     return window.xnet.onNewPage(() => {
-      createDoc()
+      handleCreate('page')
     })
   }, [])
 
-  const refreshDocuments = async () => {
-    const docIds = await window.xnet.listDocuments()
-    const docs: Document[] = []
-    for (const id of docIds) {
-      const doc = await window.xnet.getDocument(id)
+  // Handle document selection
+  const handleSelect = useCallback(
+    (id: string) => {
+      const doc = documents.find((d) => d.id === id)
       if (doc) {
-        docs.push({ id: doc.id, title: doc.title })
+        setSelectedDocId(id)
+        setSelectedDocType(doc.type || 'page')
       }
-    }
-    setDocuments(docs)
-  }
+    },
+    [documents]
+  )
 
-  const createDoc = useCallback(async () => {
-    try {
-      const doc = await window.xnet.createDocument({
-        workspace: 'default',
-        type: 'page',
-        title: 'Untitled'
-      })
-      await refreshDocuments()
-      selectDoc(doc.id)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create document')
-    }
-  }, [])
-
-  const selectDoc = async (id: string) => {
-    // Clean up previous ydoc
-    if (ydoc) {
-      ydoc.destroy()
-    }
-
-    setSelectedDocId(id)
-
-    try {
-      const data = await window.xnetStorage.getDocument(id)
-
-      // Create new Y.Doc
-      const doc = new Y.Doc({ guid: id })
-
-      // Apply stored state if exists
-      if (data?.content && data.content.length > 0) {
-        const state = new Uint8Array(data.content)
-        Y.applyUpdate(doc, state)
+  // Handle document creation
+  const handleCreate = useCallback(
+    async (type: Document['type']) => {
+      const titleMap: Record<Document['type'], string> = {
+        page: 'Untitled Page',
+        database: 'Untitled Database',
+        canvas: 'Untitled Canvas'
       }
+      const id = await createDocument(type, titleMap[type])
+      if (id) {
+        setSelectedDocId(id)
+        setSelectedDocType(type)
+      }
+    },
+    [createDocument]
+  )
 
-      // Auto-save on changes
-      doc.on('update', async () => {
-        const state = Y.encodeStateAsUpdate(doc)
-        await window.xnetStorage.setDocument(id, {
-          id,
-          content: Array.from(state),
-          metadata: {
-            created: data?.metadata?.created ?? Date.now(),
-            updated: Date.now(),
-            type: 'page'
-          },
-          version: 1
-        })
-      })
+  // Handle document deletion
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteDocument(id)
+      if (selectedDocId === id) {
+        setSelectedDocId(null)
+      }
+    },
+    [deleteDocument, selectedDocId]
+  )
 
-      setYdoc(doc)
-    } catch (err) {
-      console.error('Failed to load document:', err)
+  // Render content based on document type
+  const renderContent = () => {
+    if (!selectedDocId) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-text-secondary">
+          <p className="text-lg mb-2">Welcome to xNet</p>
+          <p className="text-sm">Select a document or create a new one</p>
+        </div>
+      )
+    }
+
+    switch (selectedDocType) {
+      case 'page':
+        return ydoc ? <PageView ydoc={ydoc} isLoading={docLoading} /> : null
+      case 'database':
+        return <DatabaseView docId={selectedDocId} ydoc={ydoc} isLoading={docLoading} />
+      case 'canvas':
+        return <CanvasView docId={selectedDocId} ydoc={ydoc} isLoading={docLoading} />
+      default:
+        return null
     }
   }
-
-  const deleteDoc = async (id: string) => {
-    await window.xnet.deleteDocument(id)
-    await refreshDocuments()
-    if (selectedDocId === id) {
-      setSelectedDocId(null)
-      if (ydoc) {
-        ydoc.destroy()
-        setYdoc(null)
-      }
-    }
-  }
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (ydoc) {
-        ydoc.destroy()
-      }
-    }
-  }, [ydoc])
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
-        <p className="text-text-secondary">Loading xNet...</p>
+      <div className="flex flex-col items-center justify-center h-full bg-bg-primary">
+        <div className="animate-pulse">
+          <p className="text-text-secondary">Loading xNet...</p>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full">
+      <div className="flex flex-col items-center justify-center h-full bg-bg-primary">
         <p className="text-red-500 mb-4">Error: {error}</p>
         <button
           onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover"
+          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover transition-colors"
         >
           Retry
         </button>
@@ -173,57 +133,16 @@ export function App() {
       {/* Main content */}
       <main className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-[250px] bg-bg-secondary border-r border-border flex flex-col p-4">
-          <button
-            onClick={createDoc}
-            className="w-full bg-primary text-white border-none px-4 py-2 rounded-md cursor-pointer text-sm mb-4 hover:bg-primary-hover transition-colors"
-          >
-            + New Page
-          </button>
+        <Sidebar
+          documents={documents}
+          selectedId={selectedDocId}
+          onSelect={handleSelect}
+          onDelete={handleDelete}
+          onCreate={handleCreate}
+        />
 
-          <ul className="list-none p-0 m-0 flex-1 overflow-auto">
-            {documents.map((doc) => (
-              <li
-                key={doc.id}
-                onClick={() => selectDoc(doc.id)}
-                className={`px-3 py-2 rounded-md cursor-pointer mb-1 flex justify-between items-center group transition-colors ${
-                  selectedDocId === doc.id ? 'bg-bg-tertiary' : 'hover:bg-bg-tertiary/50'
-                }`}
-              >
-                <span className="text-sm truncate">{doc.title}</span>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    deleteDoc(doc.id)
-                  }}
-                  className="bg-transparent border-none text-text-secondary cursor-pointer p-1 text-base opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity"
-                >
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {documents.length === 0 && (
-            <p className="text-text-secondary text-sm text-center mt-5">No documents yet</p>
-          )}
-        </aside>
-
-        {/* Editor area */}
-        <section className="flex-1 flex flex-col p-6 overflow-auto">
-          {selectedDocId && ydoc ? (
-            <RichTextEditor
-              ydoc={ydoc}
-              field="content"
-              placeholder="Start typing..."
-              showToolbar={true}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full">
-              <p className="text-text-secondary">Select a document or create a new one</p>
-            </div>
-          )}
-        </section>
+        {/* Content area */}
+        <section className="flex-1 flex flex-col overflow-hidden">{renderContent()}</section>
       </main>
     </div>
   )
