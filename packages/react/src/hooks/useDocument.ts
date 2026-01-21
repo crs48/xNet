@@ -348,7 +348,20 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       })
       providerRef.current = provider
 
+      // Track connection status
+      const statusHandler = (event: { connected: boolean }) => {
+        setSyncStatus(event.connected ? 'connected' : 'connecting')
+      }
+      provider.on('status', statusHandler)
+
+      // Track peers
+      const peersHandler = (event: { webrtcPeers: string[] }) => {
+        setPeerCount(event.webrtcPeers?.length ?? 0)
+      }
+      provider.on('peers', peersHandler)
+
       // Set up presence if user info provided
+      let awarenessHandler: (() => void) | null = null
       if (user) {
         const awareness = provider.awareness
         awareness.setLocalState({
@@ -359,7 +372,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
         })
 
         // Track remote users
-        const awarenessHandler = () => {
+        awarenessHandler = () => {
           const states = awareness.getStates()
           const remote: RemoteUser[] = []
 
@@ -382,24 +395,12 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
         awarenessHandler() // Initial sync
       }
 
-      // Track connection status
-      const statusHandler = (event: { connected: boolean }) => {
-        setSyncStatus(event.connected ? 'connected' : 'connecting')
-      }
-      provider.on('status', statusHandler)
-
-      // Track peers
-      const peersHandler = (event: { webrtcPeers: string[] }) => {
-        setPeerCount(event.webrtcPeers?.length ?? 0)
-      }
-      provider.on('peers', peersHandler)
-
       return () => {
         doc.off('update', updateHandler)
         provider.off('status', statusHandler)
         provider.off('peers', peersHandler)
-        if (user) {
-          provider.awareness.off('change', () => {})
+        if (awarenessHandler) {
+          provider.awareness.off('change', awarenessHandler)
         }
         provider.destroy()
         providerRef.current = null

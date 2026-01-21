@@ -2,9 +2,8 @@
  * Root layout
  */
 import { createRootRoute, Outlet, Link } from '@tanstack/react-router'
-import { useSync, useIdentity } from '@xnet/react'
+import { useIdentity } from '@xnet/react'
 import { Sidebar } from '../components/Sidebar'
-import { SyncIndicator } from '../components/SyncIndicator'
 import { GlobalSearch } from '../components/GlobalSearch'
 
 export const Route = createRootRoute({
@@ -12,7 +11,6 @@ export const Route = createRootRoute({
 })
 
 function RootLayout() {
-  const { status, peerCount } = useSync()
   const { identity } = useIdentity()
 
   return (
@@ -23,7 +21,6 @@ function RootLayout() {
         </Link>
         <GlobalSearch />
         <div className="flex items-center gap-4">
-          <SyncIndicator status={status} peerCount={peerCount} />
           {identity && (
             <span className="text-xs text-text-secondary font-mono" title={identity.did}>
               {identity.did.slice(0, 16)}...

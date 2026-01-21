@@ -11,30 +11,77 @@ pnpm add @xnet/react
 ## Usage
 
 ```tsx
-import { XNetProvider, useDocument, useQuery, useSync } from '@xnet/react'
-import { IndexedDBAdapter } from '@xnet/storage'
+import { NodeStoreProvider, useQuery, useMutate, useDocument } from '@xnet/react'
+import { MemoryNodeStorageAdapter } from '@xnet/data'
 
-// Wrap app
+// Wrap app with provider
 function App() {
   return (
-    <XNetProvider config={{ storage: new IndexedDBAdapter() }}>
+    <NodeStoreProvider
+      storage={new MemoryNodeStorageAdapter()}
+      authorDID={identity.did}
+      signingKey={privateKey}
+    >
       <MyApp />
-    </XNetProvider>
+    </NodeStoreProvider>
   )
 }
 
-// Use hooks
-function MyComponent() {
-  const { data, loading, update } = useDocument(docId)
-  const { data: docs } = useQuery({ type: 'page' })
-  const { status, peerCount } = useSync()
+// Read data
+function TaskList() {
+  const { data: tasks, loading } = useQuery(TaskSchema)
+
+  if (loading) return <p>Loading...</p>
+
+  return (
+    <ul>
+      {tasks.map(task => (
+        <li key={task.id}>{task.title}</li>  {/* Direct property access */}
+      ))}
+    </ul>
+  )
+}
+
+// Write data
+function CreateTask() {
+  const { create, isPending } = useMutate()
+
+  return (
+    <button
+      disabled={isPending}
+      onClick={() => create(TaskSchema, { title: 'New Task', status: 'todo' })}
+    >
+      Create Task
+    </button>
+  )
+}
+
+// Edit documents with Y.Doc
+function DocumentEditor({ pageId }) {
+  const { data, doc, update, syncStatus, remoteUsers } = useDocument(PageSchema, pageId, {
+    createIfMissing: { title: 'Untitled' }
+  })
+
+  if (!data) return <p>Loading...</p>
+
+  return (
+    <div>
+      <input value={data.title} onChange={e => update({ title: e.target.value })} />
+      <Editor doc={doc} />
+    </div>
+  )
 }
 ```
 
-## Hooks
+## Core Hooks
 
-- `useDocument` - Load and edit documents
-- `useQuery` - Query documents with pagination
-- `useSync` - Sync status
-- `usePresence` - Collaborative presence
-- `useIdentity` - Current identity
+| Hook          | Purpose                                            |
+| ------------- | -------------------------------------------------- |
+| `useQuery`    | Read nodes (list, single by ID, filtered)          |
+| `useMutate`   | Write nodes (create, update, delete, transactions) |
+| `useDocument` | Y.Doc for rich text + sync + presence              |
+
+## Additional Hooks
+
+- `useIdentity` - Current user identity
+- `useNodeStore` - Direct access to NodeStore (escape hatch)
