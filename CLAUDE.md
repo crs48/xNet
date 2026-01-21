@@ -211,5 +211,7 @@ apps/
 - `docs/VISION.md` - **The big picture: micro-to-macro data sovereignty**
 - `docs/planStep02_1DataModelConsolidation/HANDOFF.md` - **Implementation status and examples**
 - `docs/planStep02_1DataModelConsolidation/README.md` - Schema-first architecture plan
+- `docs/planStep03_1TelemetryAndNetworkSecurity/README.md` - **Telemetry & network security plan**
+- `docs/TELEMETRY_DESIGN.md` - Full telemetry design exploration with research
 - `docs/TRADEOFFS.md` - Why hybrid sync (Yjs + event-sourcing)
 - `docs/PERSISTENCE_ARCHITECTURE.md` - Storage durability tiers
