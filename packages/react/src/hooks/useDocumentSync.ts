@@ -1,5 +1,21 @@
 /**
  * useDocumentSync hook for P2P document sync via y-webrtc
+ *
+ * @deprecated Use `useDocument` instead, which includes built-in sync support.
+ *
+ * @example
+ * ```tsx
+ * // OLD (deprecated):
+ * const { data: document } = useDocument(docId)
+ * const { connected } = useDocumentSync({ document })
+ *
+ * // NEW (recommended):
+ * const { data, doc, syncStatus, peerCount } = useDocument(PageSchema, pageId)
+ * // - data: Node properties (LWW synced)
+ * // - doc: Y.Doc instance (auto-synced via y-webrtc)
+ * // - syncStatus: 'offline' | 'connecting' | 'connected'
+ * // - peerCount: number of connected peers
+ * ```
  */
 import { useEffect, useState, useRef } from 'react'
 import { createYWebRTCProvider, type YWebRTCProvider } from '@xnet/network'

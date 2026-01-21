@@ -45,8 +45,16 @@ export {
 // Document Hooks (Rich Text / Yjs)
 // =============================================================================
 
-export { useDocument, type UseDocumentOptions, type UseDocumentResult } from './hooks/useDocument'
+export {
+  useDocument,
+  type UseDocumentOptions,
+  type UseDocumentResult,
+  type SyncStatus
+} from './hooks/useDocument'
 
+/**
+ * @deprecated Use `useDocument` instead, which includes built-in sync support.
+ */
 export {
   useDocumentSync,
   type UseDocumentSyncOptions,

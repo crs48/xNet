@@ -445,6 +445,26 @@ export class NodeStore {
   }
 
   // ==========================================================================
+  // Document Content Operations
+  // ==========================================================================
+
+  /**
+   * Get CRDT document content for a node.
+   * Returns null if no document content exists.
+   */
+  async getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null> {
+    return this.storage.getDocumentContent(nodeId)
+  }
+
+  /**
+   * Set CRDT document content for a node.
+   * Used to persist serialized Y.Doc or other CRDT state.
+   */
+  async setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void> {
+    await this.storage.setDocumentContent(nodeId, content)
+  }
+
+  // ==========================================================================
   // Subscription Support
   // ==========================================================================
 
