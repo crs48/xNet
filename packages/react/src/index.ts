@@ -64,6 +64,19 @@ export {
   type TypedTransactionOp
 } from './hooks/useSchema'
 
+// Transactions
+export {
+  useTransact,
+  createOp,
+  type UseTransactResult,
+  type TransactOp,
+  type TransactCreate,
+  type TransactCreateTyped,
+  type TransactUpdate,
+  type TransactDelete,
+  type TransactRestore
+} from './hooks/useTransact'
+
 // Store
 export {
   createXNetStore,

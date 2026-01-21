@@ -365,7 +365,7 @@ export function useSchema<P extends Record<string, PropertyBuilder>>(
     if (!store) return
 
     const unsubscribe = store.subscribe((event: NodeChangeEvent) => {
-      const { change, node } = event
+      const { node } = event
 
       // Only handle changes for our schema
       if (node && node.schemaId !== schemaId) return

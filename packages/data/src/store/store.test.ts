@@ -553,6 +553,33 @@ describe('transaction support', () => {
     // Only one tick for the entire transaction
     expect(store.getCurrentLamportTime()).toBe(timeBefore + 1)
   })
+
+  it('should emit events for each operation in transaction', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const events: { nodeId: string; title: unknown }[] = []
+    const unsubscribe = store.subscribe((event) => {
+      events.push({
+        nodeId: event.change.payload.nodeId,
+        title: event.node?.properties.title
+      })
+    })
+
+    await store.transaction([
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 1' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 2' } } },
+      { type: 'create', options: { schemaId: TEST_SCHEMA, properties: { title: 'Task 3' } } }
+    ])
+
+    unsubscribe()
+
+    // Should emit 3 events, one per operation
+    expect(events).toHaveLength(3)
+    expect(events[0].title).toBe('Task 1')
+    expect(events[1].title).toBe('Task 2')
+    expect(events[2].title).toBe('Task 3')
+  })
 })
 
 describe('MemoryNodeStorageAdapter', () => {
