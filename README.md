@@ -70,55 +70,118 @@ const results = await client.query({
 
 ## React Hooks
 
-```tsx
-import { XNetProvider, useDocument, useQuery, useSync, useIdentity } from '@xnet/react'
-import { IndexedDBAdapter } from '@xnet/sdk'
+Two hooks for all data operations:
 
-// Wrap your app with XNetProvider
+- **`useQuery`** - All reads (list, single, filtered)
+- **`useMutate`** - All writes (create, update, remove, transactions)
+
+```tsx
+import { NodeStoreProvider, useQuery, useMutate, useSync, useIdentity } from '@xnet/react'
+import { defineSchema, text, select, MemoryNodeStorageAdapter } from '@xnet/data'
+
+// Define a schema (fully typed)
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://myapp/',
+  properties: {
+    title: text({ required: true }),
+    status: select({
+      options: [
+        { id: 'todo', name: 'To Do' },
+        { id: 'done', name: 'Done' }
+      ] as const
+    })
+  }
+})
+
+// Wrap your app with NodeStoreProvider
 function App() {
   return (
-    <XNetProvider config={{ storage: new IndexedDBAdapter() }}>
-      <NotesApp />
-    </XNetProvider>
+    <NodeStoreProvider
+      storage={new MemoryNodeStorageAdapter()}
+      authorDID={identity.did}
+      signingKey={identity.signingKey}
+    >
+      <TaskApp />
+    </NodeStoreProvider>
   )
 }
 
-// Load and edit a document
-function Editor({ docId }: { docId: string }) {
-  const { data: doc, loading, update } = useDocument(docId)
+// List all tasks
+function TaskList() {
+  const { data: tasks, loading } = useQuery(TaskSchema)
+  const { create } = useMutate()
 
   if (loading) return <div>Loading...</div>
 
   return (
-    <input
-      value={doc?.metadata?.title || ''}
-      onChange={(e) => update((d) => {
-        if (d.metadata) d.metadata.title = e.target.value
-      })}
-    />
+    <div>
+      <ul>
+        {tasks.map((task) => (
+          <li key={task.id}>{task.properties.title}</li>
+        ))}
+      </ul>
+      <button onClick={() => create(TaskSchema, { title: 'New Task', status: 'todo' })}>
+        Add Task
+      </button>
+    </div>
   )
 }
 
-// Query documents with pagination
-function DocumentList() {
-  const { data: docs, loading, hasMore, fetchMore } = useQuery({
-    type: 'page',
-    sort: [{ field: 'updated', direction: 'desc' }],
-    limit: 20
-  })
+// Get single task by ID
+function TaskDetail({ taskId }: { taskId: string }) {
+  const { data: task, loading } = useQuery(TaskSchema, taskId)
+  const { update, remove } = useMutate()
+
+  if (loading) return <div>Loading...</div>
+  if (!task) return <div>Not found</div>
 
   return (
-    <ul>
-      {docs.map((doc) => <li key={doc.id}>{doc.title}</li>)}
-      {hasMore && <button onClick={fetchMore}>Load more</button>}
-    </ul>
+    <div>
+      <h1>{task.properties.title}</h1>
+      <select
+        value={task.properties.status}
+        onChange={(e) => update(taskId, { status: e.target.value })}
+      >
+        <option value="todo">To Do</option>
+        <option value="done">Done</option>
+      </select>
+      <button onClick={() => remove(taskId)}>Delete</button>
+    </div>
   )
+}
+
+// Query with filters
+function DoneTasks() {
+  const { data: doneTasks } = useQuery(TaskSchema, {
+    where: { status: 'done' }
+  })
+
+  return <div>{doneTasks.length} completed</div>
+}
+
+// Atomic transactions (multiple operations)
+function BatchOperations() {
+  const { mutate } = useMutate()
+
+  const handleBatchCreate = async () => {
+    await mutate([
+      { type: 'create', schema: TaskSchema, data: { title: 'Task 1', status: 'todo' } },
+      { type: 'create', schema: TaskSchema, data: { title: 'Task 2', status: 'todo' } }
+    ])
+  }
+
+  return <button onClick={handleBatchCreate}>Create Multiple</button>
 }
 
 // Show sync status
 function SyncStatus() {
   const { status, peerCount } = useSync()
-  return <span>{status} ({peerCount} peers)</span>
+  return (
+    <span>
+      {status} ({peerCount} peers)
+    </span>
+  )
 }
 
 // Access current identity
