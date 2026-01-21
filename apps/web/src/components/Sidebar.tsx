@@ -38,7 +38,7 @@ export function Sidebar() {
                         : 'text-text hover:bg-border'
                     }`}
                   >
-                    {(page.properties.title as string) || 'Untitled'}
+                    {page.title || 'Untitled'}
                   </Link>
                 </li>
               ))}

@@ -62,10 +62,6 @@ export interface XNetProviderProps {
   children: ReactNode
 }
 
-// Default DID and signing key for development (should be overridden in production)
-const DEFAULT_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as const
-const DEFAULT_SIGNING_KEY = new Uint8Array(32).fill(1)
-
 /**
  * XNet provider component
  *
@@ -88,8 +84,19 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
     // Initialize NodeStore
     const nodeStorageAdapter = config.nodeStorage ?? new MemoryNodeStorageAdapter()
-    const authorDID = config.authorDID ?? (config.identity?.did as DID | undefined) ?? DEFAULT_DID
-    const signingKey = config.signingKey ?? DEFAULT_SIGNING_KEY
+    const authorDID = config.authorDID ?? (config.identity?.did as DID | undefined)
+    const signingKey = config.signingKey
+
+    // Skip NodeStore initialization if credentials not provided
+    if (!authorDID || !signingKey) {
+      console.warn(
+        'XNetProvider: authorDID and signingKey not provided. NodeStore will not be initialized. ' +
+          'Provide these via config.authorDID/config.signingKey or config.identity.'
+      )
+      return () => {
+        config.storage.close()
+      }
+    }
 
     const ns = new NodeStore({
       storage: nodeStorageAdapter,
