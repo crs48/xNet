@@ -20,7 +20,9 @@ export type {
   PropertyHandler,
   PropertyEditorProps,
   FilterInputProps,
-  ColumnMeta
+  ColumnMeta,
+  GalleryCardSize,
+  GalleryImageFit
 } from './types.js'
 
 // Property handlers
@@ -65,3 +67,16 @@ export {
   type UseBoardStateOptions,
   type UseBoardStateResult
 } from './board/index.js'
+
+// Gallery view
+export {
+  GalleryView,
+  GalleryCard,
+  useGalleryState,
+  CARD_SIZES,
+  type GalleryViewProps,
+  type GalleryCardProps,
+  type GalleryRow,
+  type UseGalleryStateOptions,
+  type UseGalleryStateResult
+} from './gallery/index.js'
