@@ -12,7 +12,10 @@ export const Route = createFileRoute('/')({
 function HomePage() {
   const navigate = useNavigate()
   const { isReady } = useNodeStore()
-  const { data: pages, loading } = useQuery(PageSchema, { limit: 50 })
+  const { data: pages, loading } = useQuery(PageSchema, {
+    orderBy: { updatedAt: 'desc' },
+    limit: 50
+  })
 
   const createDocument = async () => {
     // Navigate to a new page with a random ID
@@ -51,9 +54,7 @@ function HomePage() {
                 params={{ docId: page.id }}
                 className="flex justify-between items-center py-4 text-text no-underline hover:no-underline"
               >
-                <span className="font-medium">
-                  {(page.properties.title as string) || 'Untitled'}
-                </span>
+                <span className="font-medium">{page.title || 'Untitled'}</span>
                 <span className="text-xs text-text-secondary">
                   {new Date(page.updatedAt).toLocaleDateString()}
                 </span>

@@ -102,7 +102,7 @@ describe('useDocument', () => {
       { timeout: 2000 }
     )
 
-    expect(result.current.data?.properties.title).toBe('Test Page')
+    expect(result.current.data?.title).toBe('Test Page')
   })
 
   it('should create Y.Doc for schemas with document type', async () => {

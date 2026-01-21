@@ -86,8 +86,8 @@ describe('useMutate', () => {
       })
 
       expect(created).not.toBeNull()
-      expect(created!.properties.title).toBe('New Task')
-      expect(created!.properties.status).toBe('todo')
+      expect(created!.title).toBe('New Task')
+      expect(created!.status).toBe('todo')
 
       // Verify via reload
       await act(async () => {
@@ -134,7 +134,7 @@ describe('useMutate', () => {
         await result.current.query.reload()
       })
 
-      expect(result.current.query.data[0].properties.status).toBe('done')
+      expect(result.current.query.data[0].status).toBe('done')
     })
   })
 
@@ -316,7 +316,7 @@ describe('useMutate', () => {
       expect(result.current.tasks.data).toHaveLength(2)
 
       const task1 = result.current.tasks.data.find((t: { id: string }) => t.id === task1Id)
-      expect(task1?.properties.status).toBe('done')
+      expect(task1?.status).toBe('done')
     })
   })
 })
