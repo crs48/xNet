@@ -95,7 +95,10 @@ export function RichTextEditor({
       // StarterKit includes: Bold, Italic, Strike, Code, Heading, Blockquote,
       // BulletList, OrderedList, ListItem, CodeBlock, HardBreak, HorizontalRule
       // All with Markdown shortcuts enabled (e.g., **bold**, *italic*, # Heading)
-      StarterKit,
+      // NOTE: Disable history - Collaboration has its own undo/redo via Yjs
+      StarterKit.configure({
+        history: false
+      }),
       // Typography for smart quotes, em-dashes, ellipsis
       Typography,
       Placeholder.configure({

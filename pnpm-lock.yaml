@@ -47,6 +47,9 @@ importers:
       '@xnet/canvas':
         specifier: workspace:*
         version: link:../../packages/canvas
+      '@xnet/data':
+        specifier: workspace:*
+        version: link:../../packages/data
       '@xnet/editor':
         specifier: workspace:*
         version: link:../../packages/editor
