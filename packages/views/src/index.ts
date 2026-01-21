@@ -80,3 +80,22 @@ export {
   type UseGalleryStateOptions,
   type UseGalleryStateResult
 } from './gallery/index.js'
+
+// Timeline view
+export {
+  TimelineView,
+  TimelineBar,
+  useTimelineState,
+  getDatePosition,
+  getDateWidth,
+  ZOOM_CONFIGS,
+  type TimelineViewProps,
+  type TimelineBarProps,
+  type TimelineRow,
+  type TimelineItem,
+  type TimelineRange,
+  type ZoomLevel,
+  type ZoomConfig,
+  type UseTimelineStateOptions as UseTimelineStateOptions,
+  type UseTimelineStateResult as UseTimelineStateResult
+} from './timeline/index.js'
