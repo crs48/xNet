@@ -55,3 +55,7 @@ export { NodeStore } from './store'
 
 // Adapters
 export { MemoryNodeStorageAdapter } from './memory-adapter'
+export {
+  IndexedDBNodeStorageAdapter,
+  type IndexedDBNodeStorageAdapterOptions
+} from './indexeddb-adapter'

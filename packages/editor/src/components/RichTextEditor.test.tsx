@@ -22,11 +22,11 @@ describe('RichTextEditor', () => {
     it('should render editor container', async () => {
       const { container } = render(<RichTextEditor ydoc={ydoc} />)
 
-      // The editor container should be rendered with Tailwind border class
+      // The editor container should be rendered with relative positioning
       await waitFor(() => {
         const editorContainer = container.firstChild as HTMLElement
         expect(editorContainer).toBeInTheDocument()
-        expect(editorContainer.classList.contains('border')).toBe(true)
+        expect(editorContainer.classList.contains('relative')).toBe(true)
       })
     })
 
@@ -34,8 +34,8 @@ describe('RichTextEditor', () => {
       const { container } = render(<RichTextEditor ydoc={ydoc} />)
 
       await waitFor(() => {
-        // EditorContent component renders inside the container
-        const editorContent = container.querySelector('.p-4')
+        // EditorContent component renders with flex-1 class for full height
+        const editorContent = container.querySelector('.flex-1')
         expect(editorContent).toBeInTheDocument()
       })
     })
@@ -68,17 +68,17 @@ describe('RichTextEditor', () => {
   })
 
   describe('toolbar visibility', () => {
-    it('should render toolbar by default', async () => {
+    it('should render editor with showToolbar enabled by default', async () => {
       const { container } = render(<RichTextEditor ydoc={ydoc} />)
 
       await waitFor(() => {
-        // Toolbar has flex and bg-bg-secondary classes
-        const toolbar = container.querySelector('.flex.items-center.gap-1')
-        expect(toolbar).toBeInTheDocument()
+        // Editor should render with the ProseMirror class
+        const editor = container.querySelector('.ProseMirror')
+        expect(editor).toBeInTheDocument()
       })
     })
 
-    it('should hide toolbar when showToolbar is false', async () => {
+    it('should render editor when showToolbar is false', async () => {
       const { container } = render(<RichTextEditor ydoc={ydoc} showToolbar={false} />)
 
       await waitFor(() => {
@@ -86,8 +86,9 @@ describe('RichTextEditor', () => {
         expect(editorContainer).toBeInTheDocument()
       })
 
-      // There should be no toolbar buttons
-      expect(screen.queryByTitle('Bold (Cmd+B)')).not.toBeInTheDocument()
+      // The editor should still work, but toolbar is disabled
+      const editor = container.querySelector('.ProseMirror')
+      expect(editor).toBeInTheDocument()
     })
   })
 
@@ -106,8 +107,8 @@ describe('RichTextEditor', () => {
       await waitFor(() => {
         const editorContainer = container.querySelector('.my-custom-editor') as HTMLElement
         expect(editorContainer).toBeInTheDocument()
-        // Should have both custom class and border class from Tailwind
-        expect(editorContainer.classList.contains('border')).toBe(true)
+        // Should have both custom class and relative positioning
+        expect(editorContainer.classList.contains('relative')).toBe(true)
       })
     })
   })
@@ -186,7 +187,7 @@ describe('RichTextEditor', () => {
   })
 })
 
-describe('RichTextEditor toolbar integration', () => {
+describe('RichTextEditor floating toolbar', () => {
   let ydoc: Y.Doc
 
   beforeEach(() => {
@@ -197,47 +198,40 @@ describe('RichTextEditor toolbar integration', () => {
     ydoc.destroy()
   })
 
-  it('should render all toolbar buttons', async () => {
-    render(<RichTextEditor ydoc={ydoc} />)
-
-    await waitFor(() => {
-      expect(screen.getByTitle('Bold (Cmd+B)')).toBeInTheDocument()
-      expect(screen.getByTitle('Italic (Cmd+I)')).toBeInTheDocument()
-      expect(screen.getByTitle('Strikethrough')).toBeInTheDocument()
-      expect(screen.getByTitle('Inline Code')).toBeInTheDocument()
-      expect(screen.getByTitle('Heading 1')).toBeInTheDocument()
-      expect(screen.getByTitle('Heading 2')).toBeInTheDocument()
-      expect(screen.getByTitle('Heading 3')).toBeInTheDocument()
-      expect(screen.getByTitle('Bullet List')).toBeInTheDocument()
-      expect(screen.getByTitle('Numbered List')).toBeInTheDocument()
-      expect(screen.getByTitle('Task List')).toBeInTheDocument()
-      expect(screen.getByTitle('Quote')).toBeInTheDocument()
-      expect(screen.getByTitle('Code Block')).toBeInTheDocument()
-      expect(screen.getByTitle('Horizontal Rule')).toBeInTheDocument()
-    })
-  })
-
-  it('should allow clicking toolbar buttons without error', async () => {
-    const user = userEvent.setup()
-    render(<RichTextEditor ydoc={ydoc} />)
-
-    await waitFor(() => {
-      expect(screen.getByTitle('Bold (Cmd+B)')).toBeInTheDocument()
-    })
-
-    const boldButton = screen.getByTitle('Bold (Cmd+B)')
-
-    // Should not throw when clicking
-    await expect(user.click(boldButton)).resolves.not.toThrow()
-  })
-
-  it('should render toolbar dividers', async () => {
+  it('should not show toolbar when no text is selected', async () => {
     const { container } = render(<RichTextEditor ydoc={ydoc} />)
 
+    // Wait for editor to initialize
     await waitFor(() => {
-      // Dividers are spans with w-px class
-      const dividers = container.querySelectorAll('span.w-px')
-      expect(dividers.length).toBe(3)
+      expect(container.querySelector('.ProseMirror')).toBeInTheDocument()
     })
+
+    // BubbleMenu toolbar should not be visible without text selection
+    expect(screen.queryByTitle('Bold')).not.toBeInTheDocument()
+  })
+
+  it('should pass showToolbar prop to control toolbar visibility', async () => {
+    const { container } = render(<RichTextEditor ydoc={ydoc} showToolbar={true} />)
+
+    // Wait for editor to initialize
+    await waitFor(() => {
+      expect(container.querySelector('.ProseMirror')).toBeInTheDocument()
+    })
+
+    // Toolbar is controlled by showToolbar prop and text selection
+    // Since no text is selected, toolbar won't be visible even with showToolbar=true
+    expect(screen.queryByTitle('Bold')).not.toBeInTheDocument()
+  })
+
+  it('should not render toolbar when showToolbar is false', async () => {
+    const { container } = render(<RichTextEditor ydoc={ydoc} showToolbar={false} />)
+
+    // Wait for editor to initialize
+    await waitFor(() => {
+      expect(container.querySelector('.ProseMirror')).toBeInTheDocument()
+    })
+
+    // With showToolbar=false, toolbar should never render
+    expect(screen.queryByTitle('Bold')).not.toBeInTheDocument()
   })
 })

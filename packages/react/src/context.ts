@@ -98,19 +98,32 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       }
     }
 
-    const ns = new NodeStore({
-      storage: nodeStorageAdapter,
-      authorDID,
-      signingKey
-    })
+    // Initialize the node storage adapter if it has an open() method
+    const initializeNodeStore = async () => {
+      // Open adapter if needed (e.g., IndexedDBNodeStorageAdapter)
+      if ('open' in nodeStorageAdapter && typeof nodeStorageAdapter.open === 'function') {
+        await nodeStorageAdapter.open()
+      }
 
-    ns.initialize().then(() => {
+      const ns = new NodeStore({
+        storage: nodeStorageAdapter,
+        authorDID,
+        signingKey
+      })
+
+      await ns.initialize()
       setNodeStore(ns)
       setNodeStoreReady(true)
-    })
+    }
+
+    initializeNodeStore()
 
     return () => {
       config.storage.close()
+      // Close node storage adapter if it has a close() method
+      if ('close' in nodeStorageAdapter && typeof nodeStorageAdapter.close === 'function') {
+        nodeStorageAdapter.close()
+      }
     }
   }, [
     config.storage,

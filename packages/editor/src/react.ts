@@ -19,7 +19,11 @@
  * ```
  */
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
-export { FloatingToolbar, type FloatingToolbarProps } from './components/FloatingToolbar'
+export {
+  FloatingToolbar,
+  type FloatingToolbarProps,
+  type ToolbarMode
+} from './components/FloatingToolbar'
 // Legacy toolbar export (deprecated, use FloatingToolbar)
 export { EditorToolbar, type EditorToolbarProps } from './components/EditorToolbar'
 

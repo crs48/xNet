@@ -6,7 +6,7 @@ import ReactDOM from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { XNetProvider } from '@xnet/react'
 import { IndexedDBAdapter } from '@xnet/storage'
-import { MemoryNodeStorageAdapter } from '@xnet/data'
+import { IndexedDBNodeStorageAdapter } from '@xnet/data'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -20,9 +20,9 @@ declare module '@tanstack/react-router' {
   }
 }
 
-// Storage adapters
+// Storage adapters - IndexedDB for persistent browser storage
 const storage = new IndexedDBAdapter()
-const nodeStorage = new MemoryNodeStorageAdapter()
+const nodeStorage = new IndexedDBNodeStorageAdapter()
 
 // TODO: In production, generate/load identity from secure storage
 const AUTHOR_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as const

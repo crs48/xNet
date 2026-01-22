@@ -118,6 +118,12 @@ export interface NodeState {
  * The adapter stores Changes and materialized NodeState.
  */
 export interface NodeStorageAdapter {
+  // Lifecycle (optional - for adapters that need initialization)
+  /** Open/initialize the storage connection */
+  open?(): Promise<void>
+  /** Close the storage connection */
+  close?(): Promise<void>
+
   // Change log operations
   appendChange(change: NodeChange): Promise<void>
   getChanges(nodeId: NodeId): Promise<NodeChange[]>
