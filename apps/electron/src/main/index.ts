@@ -9,7 +9,15 @@ import { createMenu } from './menu'
 // Profile support for running multiple instances with separate data
 // Usage: XNET_PROFILE=user2 pnpm dev:electron
 export const profile = process.env.XNET_PROFILE || 'default'
-export const dataPath = join(app.getPath('userData'), `xnet-data-${profile}`)
+
+// Set separate user data path for each profile BEFORE app is ready
+// This isolates IndexedDB, localStorage, cookies, etc. between profiles
+if (profile !== 'default') {
+  const userDataPath = join(app.getPath('userData'), '..', `xnet-desktop-${profile}`)
+  app.setPath('userData', userDataPath)
+}
+
+export const dataPath = join(app.getPath('userData'), 'xnet-data')
 
 let mainWindow: BrowserWindow | null = null
 
@@ -35,7 +43,8 @@ async function createWindow() {
 
   // Load the app
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5173')
+    const port = process.env.VITE_PORT || '5173'
+    mainWindow.loadURL(`http://localhost:${port}`)
     mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
