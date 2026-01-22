@@ -5,12 +5,10 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
+  getProfile: () => ipcRenderer.invoke('xnet:getProfile'),
   init: () => ipcRenderer.invoke('xnet:init'),
-  createDocument: (options: {
-    workspace: string
-    type: string
-    title: string
-  }) => ipcRenderer.invoke('xnet:createDocument', options),
+  createDocument: (options: { workspace: string; type: string; title: string }) =>
+    ipcRenderer.invoke('xnet:createDocument', options),
   getDocument: (id: string) => ipcRenderer.invoke('xnet:getDocument', id),
   listDocuments: (workspace?: string) => ipcRenderer.invoke('xnet:listDocuments', workspace),
   deleteDocument: (id: string) => ipcRenderer.invoke('xnet:deleteDocument', id),
@@ -29,13 +27,15 @@ contextBridge.exposeInMainWorld('xnet', {
 // Expose storage API for @xnet/react integration
 contextBridge.exposeInMainWorld('xnetStorage', {
   getDocument: (id: string) => ipcRenderer.invoke('xnet:storage:getDocument', id),
-  setDocument: (id: string, data: unknown) => ipcRenderer.invoke('xnet:storage:setDocument', id, data),
+  setDocument: (id: string, data: unknown) =>
+    ipcRenderer.invoke('xnet:storage:setDocument', id, data),
   deleteDocument: (id: string) => ipcRenderer.invoke('xnet:storage:deleteDocument', id),
   listDocuments: (prefix?: string) => ipcRenderer.invoke('xnet:storage:listDocuments', prefix)
 })
 
 // Type declaration for renderer
 export interface XNetAPI {
+  getProfile(): Promise<string>
   init(): Promise<{ did: string }>
   createDocument(options: {
     workspace: string

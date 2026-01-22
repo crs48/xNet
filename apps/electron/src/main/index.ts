@@ -8,7 +8,7 @@ import { createMenu } from './menu'
 
 // Profile support for running multiple instances with separate data
 // Usage: XNET_PROFILE=user2 pnpm dev:electron
-const profile = process.env.XNET_PROFILE || 'default'
+export const profile = process.env.XNET_PROFILE || 'default'
 export const dataPath = join(app.getPath('userData'), `xnet-data-${profile}`)
 
 let mainWindow: BrowserWindow | null = null
