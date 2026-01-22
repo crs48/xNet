@@ -122,8 +122,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     loading,
     update
   } = useDocument(DatabaseSchema, docId, {
-    createIfMissing: { title: 'Untitled Database' },
-    disableSync: true // Disable y-webrtc until signaling server is available
+    createIfMissing: { title: 'Untitled Database' }
+    // Sync enabled - signaling server runs via `pnpm dev`
   })
 
   const [viewMode, setViewMode] = useState<ViewMode>('table')

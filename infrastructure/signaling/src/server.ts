@@ -221,7 +221,7 @@ xnet_signaling_uptime_seconds ${process.uptime()}
 }
 
 // Start server
-const PORT = parseInt(process.env.PORT || '4000', 10)
+const PORT = parseInt(process.env.PORT || '4444', 10)
 httpServer.listen(PORT, () => {
   console.log(`xNet Signaling Server running on port ${PORT}`)
   console.log(`Health check: http://localhost:${PORT}/health`)

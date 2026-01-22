@@ -18,8 +18,8 @@ export function PageView({ docId }: PageViewProps) {
     loading,
     update
   } = useDocument(PageSchema, docId, {
-    createIfMissing: { title: 'Untitled Page' },
-    disableSync: true // Disable y-webrtc until signaling server is available
+    createIfMissing: { title: 'Untitled Page' }
+    // Sync enabled - signaling server runs via `pnpm dev`
   })
 
   if (loading || !doc) {

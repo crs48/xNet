@@ -5,7 +5,9 @@
   "main": "./out/main/index.js",
   "type": "module",
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "concurrently -k -n signal,electron -c blue,green \"pnpm run dev:signaling\" \"pnpm run dev:electron\"",
+    "dev:electron": "electron-vite dev",
+    "dev:signaling": "pnpm --filter @xnet/signaling-server dev",
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
     "preview": "electron-vite preview",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
+    "concurrently": "^8.2.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
