@@ -1,7 +1,7 @@
 /**
  * Built-in schemas for xNet.
  *
- * These are the core schema types that come with xNet/xNotes.
+ * These are the core schema types that come with xNet.
  * Users can create their own schemas using defineSchema().
  */
 

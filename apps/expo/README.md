@@ -1,6 +1,6 @@
-# xNotes Mobile
+# xNet Mobile
 
-Expo/React Native app for iOS.
+Expo/React Native app for iOS and Android.
 
 ## Development
 

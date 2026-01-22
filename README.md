@@ -30,9 +30,9 @@ packages/           # Core SDK packages
   @xnet/sdk/        # Unified SDK bundle
 
 apps/               # Platform applications
-  electron/         # macOS desktop (xNotes)
-  expo/             # iOS mobile (xNotes)
-  web/              # Web PWA (xNotes)
+  electron/         # macOS/Windows/Linux desktop
+  expo/             # iOS/Android mobile
+  web/              # Web PWA
 ```
 
 ## Key Technologies

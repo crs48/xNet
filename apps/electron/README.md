@@ -1,6 +1,6 @@
-# xNotes Desktop
+# xNet Desktop
 
-Electron desktop app for macOS.
+Electron desktop app for macOS, Windows, and Linux.
 
 ## Development
 

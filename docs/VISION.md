@@ -86,9 +86,9 @@ graph TB
 
 ## The Strategic Play
 
-### xNotes: The Trojan Horse
+### xNet: The Trojan Horse
 
-xNotes is not the end goal — it's the beginning. It's the interface that gets people to:
+xNet is not the end goal — it's the beginning. It's the interface that gets people to:
 
 1. **Create personal namespaces** — their notes, tasks, projects
 2. **Learn the mental model** — Nodes, Schemas, local-first sync
@@ -97,7 +97,7 @@ xNotes is not the end goal — it's the beginning. It's the interface that gets 
 ```mermaid
 flowchart LR
     subgraph PHASE1["Phase 1: Seed"]
-        XNOTES["xNotes App"]
+        XNOTES["xNet App"]
         PERSONAL["Personal Data"]
         TEAMS["Team Workspaces"]
     end
@@ -421,7 +421,7 @@ graph LR
 Phase 1 (MVP): ████████████████████ 95% Complete
 ├── Core packages (@xnet/crypto, identity, storage, data, network)
 ├── Platform POCs (Electron, Expo, Web)
-├── Basic xNotes features (wiki, tasks, editor)
+├── Basic xNet features (wiki, tasks, editor)
 └── Local P2P sync
 
 Phase 2 (Database Platform): ████░░░░░░░░░░░░░░░░ 20% In Progress
@@ -452,10 +452,10 @@ gantt
     Phase 2.1 Data Model     :active, 2026-01, 2026-03
 
     section Application
-    xNotes v1.0              :2026-06, 2026-07
-    xNotes v2.0 (Notion)     :2026-07, 2027-01
-    xNotes v2.5 (Canvas)     :2027-01, 2027-06
-    xNotes v3.0 (ERP)        :2027-06, 2028-01
+    xNet v1.0              :2026-06, 2026-07
+    xNet v2.0 (Notion)     :2026-07, 2027-01
+    xNet v2.5 (Canvas)     :2027-01, 2027-06
+    xNet v3.0 (ERP)        :2027-06, 2028-01
 
     section Infrastructure
     Federation               :2027-01, 2027-06
@@ -531,7 +531,7 @@ npm install @xnet/react
 
 ### For Organizations
 
-Deploy xNotes as your knowledge base. Own your data. No SaaS fees. Full compliance.
+Deploy xNet as your knowledge base. Own your data. No SaaS fees. Full compliance.
 
 ### For the Future
 

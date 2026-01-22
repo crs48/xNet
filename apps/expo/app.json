@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "xNotes",
-    "slug": "xnotes",
+    "name": "xNet",
+    "slug": "xnet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,22 +13,19 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "io.xnet.xnotes"
+      "bundleIdentifier": "io.xnet.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "io.xnet.xnotes"
+      "package": "io.xnet.app"
     },
     "web": {
       "bundler": "metro"
     },
-    "plugins": [
-      "expo-sqlite",
-      "expo-secure-store"
-    ],
+    "plugins": ["expo-sqlite", "expo-secure-store"],
     "newArchEnabled": true
   }
 }

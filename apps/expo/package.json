@@ -1,7 +1,7 @@
 {
-  "name": "xnotes-mobile",
+  "name": "xnet-mobile",
   "version": "0.0.1",
-  "description": "xNotes Mobile - A local-first notes app for iOS",
+  "description": "xNet Mobile - Local-first data platform for iOS/Android",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",

@@ -70,8 +70,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icons/*.png'],
       manifest: {
-        name: 'xNotes',
-        short_name: 'xNotes',
+        name: 'xNet',
+        short_name: 'xNet',
         description: 'Collaborative notes powered by xNet',
         theme_color: '#ffffff',
         background_color: '#ffffff',
@@ -166,7 +166,7 @@ function RootLayout() {
     <div className="app-layout">
       <header className="app-header">
         <Link to="/" className="logo">
-          xNotes
+          xNet
         </Link>
         <div className="header-right">
           <SyncIndicator status={status} peerCount={peerCount} />
@@ -517,8 +517,8 @@ body {
 
 ```json
 {
-  "name": "xNotes",
-  "short_name": "xNotes",
+  "name": "xNet",
+  "short_name": "xNet",
   "description": "Collaborative notes powered by xNet",
   "start_url": "/",
   "display": "standalone",
@@ -552,4 +552,4 @@ body {
 
 ## Next Step
 
-Proceed to [13-xnotes-features.md](./13-xnotes-features.md)
+Proceed to [13-xnet-features.md](./13-xnet-features.md)

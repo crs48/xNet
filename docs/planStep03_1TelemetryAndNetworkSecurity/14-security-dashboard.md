@@ -410,7 +410,7 @@ export function useNetworkSecurity(): NetworkSecurityState & {
 - [ ] Create useNetworkSecurity hook
 - [ ] Add styles
 - [ ] Test components
-- [ ] Integrate with xNotes settings
+- [ ] Integrate with xNet settings
 
 ---
 

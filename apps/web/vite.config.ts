@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icons/*.png'],
       manifest: {
-        name: 'xNotes',
-        short_name: 'xNotes',
-        description: 'Collaborative notes powered by xNet',
+        name: 'xNet',
+        short_name: 'xNet',
+        description: 'Local-first data platform',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',

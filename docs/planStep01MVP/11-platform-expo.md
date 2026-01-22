@@ -373,7 +373,7 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>xNotes</Text>
+        <Text style={styles.title}>xNet</Text>
         <Text style={styles.identity}>{identity?.slice(0, 16)}...</Text>
       </View>
 
@@ -486,8 +486,8 @@ export default function App() {
 ```json
 {
   "expo": {
-    "name": "xNotes",
-    "slug": "xnotes",
+    "name": "xNet",
+    "slug": "xnet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -499,7 +499,7 @@ export default function App() {
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "io.xnet.xnotes"
+      "bundleIdentifier": "io.xnet.xnet"
     },
     "plugins": [
       "expo-sqlite"

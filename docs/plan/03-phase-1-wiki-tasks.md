@@ -8,7 +8,7 @@
 
 ## Overview
 
-Phase 1 delivers the core xNotes MVP: a decentralized wiki with real-time collaboration and a task manager with Kanban boards. This phase validates xNet's capabilities and establishes product-market fit.
+Phase 1 delivers the core xNet MVP: a decentralized wiki with real-time collaboration and a task manager with Kanban boards. This phase validates xNet's capabilities and establishes product-market fit.
 
 **Goal**: 50,000 Monthly Active Users
 
@@ -101,7 +101,7 @@ Phase 1 delivers the core xNotes MVP: a decentralized wiki with real-time collab
 ### Project Structure
 
 ```
-xnotes/
+xnet/
 ├── packages/
 │   ├── core/                    # Shared data models, utilities
 │   │   └── src/
@@ -162,7 +162,7 @@ xnotes/
 
 ### Data Model
 
-All content in xNotes is represented as **Blocks** using JSON-LD schemas:
+All content in xNet is represented as **Blocks** using JSON-LD schemas:
 
 ```mermaid
 classDiagram

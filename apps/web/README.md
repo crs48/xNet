@@ -1,4 +1,4 @@
-# xNotes Web
+# xNet Web
 
 Progressive Web App built with TanStack Router.
 

@@ -389,7 +389,7 @@ export function App() {
   return (
     <div className="app">
       <header className="titlebar">
-        <h1>xNotes</h1>
+        <h1>xNet</h1>
         <span className="identity">{identity?.slice(0, 20)}...</span>
       </header>
       <main>
@@ -413,8 +413,8 @@ export function App() {
 ### Build Configuration (electron-builder.yml)
 
 ```yaml
-appId: io.xnet.xnotes
-productName: xNotes
+appId: io.xnet.xnet
+productName: xNet
 directories:
   buildResources: resources
   output: dist

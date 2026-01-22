@@ -1,7 +1,7 @@
 {
-  "name": "xNotes",
-  "short_name": "xNotes",
-  "description": "Collaborative notes powered by xNet",
+  "name": "xNet",
+  "short_name": "xNet",
+  "description": "Local-first data platform",
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#ffffff",

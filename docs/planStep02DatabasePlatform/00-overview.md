@@ -7,7 +7,7 @@
 
 ## Goals
 
-Transform xNotes from a wiki/task manager into a full-featured database platform comparable to Notion.
+Transform xNet from a wiki/task manager into a full-featured database platform comparable to Notion.
 
 | Milestone       | Target   | Key Features                                    |
 | --------------- | -------- | ----------------------------------------------- |

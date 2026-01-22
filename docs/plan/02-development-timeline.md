@@ -8,7 +8,7 @@
 
 ## Overview
 
-xNet and xNotes are developed in parallel with carefully mapped dependencies. The xNet SDK provides the foundation, while xNotes drives requirements and validates capabilities.
+xNet and xNet are developed in parallel with carefully mapped dependencies. The xNet SDK provides the foundation, while xNet drives requirements and validates capabilities.
 
 **Critical:** Phase 0 (Foundations) must complete before Phase 1 implementation begins. This 4-week investment prevents 9+ months of rework later. See [Foundation Requirements](./17-foundation-requirements.md).
 
@@ -18,7 +18,7 @@ xNet and xNotes are developed in parallel with carefully mapped dependencies. Th
 
 ```mermaid
 gantt
-    title xNet & xNotes Development Timeline
+    title xNet & xNet Development Timeline
     dateFormat  YYYY-MM
     axisFormat  %b %Y
 
@@ -48,26 +48,26 @@ gantt
     Relay nodes                     :xi3, 2026-07, 2M
     DePIN storage nodes             :xi4, 2026-11, 4M
 
-    section xNotes App
+    section xNet App
     Project setup & design system   :xn1, 2026-02, 2M
     Rich text editor                :xn2, 2026-03, 3M
     Basic wiki (pages, links)       :xn3, 2026-04, 3M
     Offline & local persistence     :xn4, 2026-05, 2M
     P2P sync integration            :xn5, 2026-06, 2M
     Real-time collaboration         :xn6, 2026-07, 2M
-    xNotes MVP                      :milestone, 2026-08, 0d
+    xNet MVP                      :milestone, 2026-08, 0d
     Task manager                    :xn7, 2026-08, 3M
     Search & backlinks              :xn8, 2026-09, 2M
     Version history                 :xn9, 2026-10, 2M
-    xNotes v1.0                     :milestone, 2027-01, 0d
+    xNet v1.0                     :milestone, 2027-01, 0d
     Database views                  :xn10, 2027-02, 4M
     Formulas & rollups              :xn11, 2027-05, 2M
-    xNotes v2.0 (Notion parity)     :milestone, 2027-07, 0d
+    xNet v2.0 (Notion parity)     :milestone, 2027-07, 0d
     Canvas: spatial indexing        :xn12, 2027-07, 2M
     Canvas: node rendering          :xn13, 2027-08, 2M
     Canvas: auto-layout             :xn14, 2027-09, 2M
     Canvas: embedded editing        :xn15, 2027-10, 2M
-    xNotes v2.5 (Canvas)            :milestone, 2027-11, 0d
+    xNet v2.5 (Canvas)            :milestone, 2027-11, 0d
 ```
 
 ---
@@ -135,7 +135,7 @@ flowchart TB
     V --> Q2
     Q2 --> SDK2
 
-    subgraph "xNotes Dependencies"
+    subgraph "xNet Dependencies"
         XN1[Editor] --> XN2[Wiki]
         SDK1 --> XN3[P2P Sync]
         XN2 --> XN3
@@ -168,7 +168,7 @@ flowchart TB
 ```mermaid
 pie title Team Allocation by Track (Phase 1)
     "xNet Core (Platform)" : 40
-    "xNotes App (Product)" : 45
+    "xNet App (Product)" : 45
     "Infrastructure" : 10
     "DevOps & Security" : 5
 ```
@@ -176,13 +176,13 @@ pie title Team Allocation by Track (Phase 1)
 | Track | Engineers | Focus |
 |-------|-----------|-------|
 | **xNet Core** | 3-4 | SDK packages, protocols, cryptography |
-| **xNotes App** | 4-5 | UI components, features, UX |
+| **xNet App** | 4-5 | UI components, features, UX |
 | **Infrastructure** | 1 | Signaling, relay, bootstrap nodes |
 | **DevOps/Security** | 1 | CI/CD, audits, monitoring |
 
 ### Team Structure by Phase
 
-| Phase | Total Team | xNet | xNotes | Infra | DevOps |
+| Phase | Total Team | xNet | xNet | Infra | DevOps |
 |-------|------------|------|--------|-------|--------|
 | 1 (0-12 mo) | 8-10 | 3-4 | 4-5 | 1 | 1 |
 | 2 (12-24 mo) | 12-15 | 3-4 | 7-9 | 1 | 1 |
@@ -192,9 +192,9 @@ pie title Team Allocation by Track (Phase 1)
 
 ## Integration Milestones
 
-Critical checkpoints where xNet capabilities enable xNotes features.
+Critical checkpoints where xNet capabilities enable xNet features.
 
-| Milestone | xNet Dependency | xNotes Feature | Target |
+| Milestone | xNet Dependency | xNet Feature | Target |
 |-----------|-----------------|----------------|--------|
 | **M0** | Phase 0 Foundations | Specs validated, ready to build | Month 1 |
 | **M1** | @xnet/storage | Offline persistence | Month 4 |
@@ -202,14 +202,14 @@ Critical checkpoints where xNet capabilities enable xNotes features.
 | **M3** | @xnet/identity | User accounts, workspaces | Month 5 |
 | **M4** | @xnet/network | P2P document sync | Month 6 |
 | **M5** | @xnet/crypto | E2E encryption | Month 7 |
-| **M6** | @xnet/sdk v1.0 | **xNotes MVP** | Month 8 |
+| **M6** | @xnet/sdk v1.0 | **xNet MVP** | Month 8 |
 | **M7** | @xnet/query | Full-text search | Month 9 |
 | **M8** | @xnet/vectors | Semantic search | Month 11 |
-| **M9** | @xnet/sdk v2.0 | **xNotes v1.0** | Month 13 |
+| **M9** | @xnet/sdk v2.0 | **xNet v1.0** | Month 13 |
 | **M10** | @xnet/data | Database views, formulas | Month 19 |
-| **M11** | @xnet/sdk v2.1 | **xNotes v2.0** (Notion parity) | Month 19 |
+| **M11** | @xnet/sdk v2.1 | **xNet v2.0** (Notion parity) | Month 19 |
 | **M12** | @xnet/canvas | Spatial indexing, auto-layout | Month 21 |
-| **M13** | @xnet/sdk v2.5 | **xNotes v2.5** (Infinite Canvas) | Month 23 |
+| **M13** | @xnet/sdk v2.5 | **xNet v2.5** (Infinite Canvas) | Month 23 |
 
 ---
 
@@ -239,7 +239,7 @@ Critical checkpoints where xNet capabilities enable xNotes features.
 | 15-16 | Weeks 33-36 | @xnet/query | Local query engine, FTS |
 | 17-18 | Weeks 37-40 | @xnet/sdk | SDK v1.0 integration |
 
-### Phase 1: xNotes App Sprints (Weeks 5-52)
+### Phase 1: xNet App Sprints (Weeks 5-52)
 
 | Sprint | Duration | Feature | Deliverable |
 |--------|----------|---------|-------------|
@@ -284,7 +284,7 @@ Critical checkpoints where xNet capabilities enable xNotes features.
 | 3 | Crypto + Identity | Can we generate/manage keys securely? |
 | 5 | CRDT Engine | Does Yjs meet our performance needs? |
 | 6 | P2P Networking | Can we establish connections reliably? |
-| 7 | SDK v1.0 | Is the API usable for xNotes? |
+| 7 | SDK v1.0 | Is the API usable for xNet? |
 | 8 | MVP | Does the core experience work offline? |
 | 11 | Sync at Scale | How does P2P perform with 10+ peers? |
 | 13 | v1.0 Release | Are we production-ready? |

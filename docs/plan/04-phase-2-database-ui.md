@@ -8,7 +8,7 @@
 
 ## Overview
 
-Phase 2 transforms xNotes from a wiki/task manager into a full-featured database platform comparable to Notion. Users can create custom databases with various property types, multiple views, formulas, and relations.
+Phase 2 transforms xNet from a wiki/task manager into a full-featured database platform comparable to Notion. Users can create custom databases with various property types, multiple views, formulas, and relations.
 
 **Goal**: 100,000 Daily Active Users
 

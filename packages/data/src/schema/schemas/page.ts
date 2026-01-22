@@ -1,7 +1,7 @@
 /**
  * PageSchema - Rich text document with collaborative editing.
  *
- * Pages are the primary content type in xNet/xNotes. They support:
+ * Pages are the primary content type in xNet. They support:
  * - Rich text content (via Yjs CRDT)
  * - Nested child pages
  * - Icons and cover images

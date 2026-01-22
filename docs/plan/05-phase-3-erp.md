@@ -8,7 +8,7 @@
 
 ## Overview
 
-Phase 3 evolves xNotes into a fully customizable ERP platform, similar to Tesla's Warp Drive. The modular architecture allows businesses to build complete operational systems using the database and workflow foundations from Phase 2.
+Phase 3 evolves xNet into a fully customizable ERP platform, similar to Tesla's Warp Drive. The modular architecture allows businesses to build complete operational systems using the database and workflow foundations from Phase 2.
 
 **Goal**: 500+ Enterprise Deployments
 
@@ -18,7 +18,7 @@ Phase 3 evolves xNotes into a fully customizable ERP platform, similar to Tesla'
 
 ```mermaid
 graph TB
-    subgraph Platform["xNotes ERP Platform"]
+    subgraph Platform["xNet ERP Platform"]
 
         subgraph Core["CORE FRAMEWORK"]
             direction LR
@@ -284,7 +284,7 @@ flowchart TB
 
 ## Plugin System
 
-Third-party developers can extend xNotes with plugins.
+Third-party developers can extend xNet with plugins.
 
 ### Plugin Manifest
 
