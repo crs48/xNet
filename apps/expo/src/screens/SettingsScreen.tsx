@@ -8,12 +8,14 @@ import {
   StyleSheet,
   SafeAreaView,
   ScrollView,
-  TouchableOpacity
+  TouchableOpacity,
+  useColorScheme
 } from 'react-native'
 import { useXNet } from '../hooks/useXNet'
 
 export function SettingsScreen() {
   const { identity, client } = useXNet()
+  const colorScheme = useColorScheme()
 
   const handleClearData = async () => {
     // Would show confirmation dialog and clear data
@@ -37,15 +39,19 @@ export function SettingsScreen() {
           <Text style={styles.sectionTitle}>Sync</Text>
           <View style={styles.card}>
             <Text style={styles.label}>Status</Text>
-            <Text style={styles.value}>
-              {client?.syncStatus || 'offline'}
-            </Text>
+            <Text style={styles.value}>{client?.syncStatus || 'offline'}</Text>
           </View>
           <View style={styles.card}>
             <Text style={styles.label}>Connected Peers</Text>
-            <Text style={styles.value}>
-              {client?.peers.length || 0}
-            </Text>
+            <Text style={styles.value}>{client?.peers.length || 0}</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <View style={styles.card}>
+            <Text style={styles.label}>Theme</Text>
+            <Text style={styles.value}>{colorScheme === 'dark' ? 'Dark' : 'Light'} (System)</Text>
           </View>
         </View>
 
