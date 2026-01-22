@@ -69,7 +69,7 @@ flowchart TB
 
 | Component           | Status          | Location                                      |
 | ------------------- | --------------- | --------------------------------------------- |
-| Signaling Server    | **Implemented** | `infrastructure/signaling/`                   |
+| Signaling Server    | **Implemented** | `infrastructure/signaling/` (temporary)       |
 | y-webrtc Provider   | **Implemented** | `packages/network/src/providers/`             |
 | useDocument sync    | **Implemented** | `packages/react/src/hooks/useDocument.ts`     |
 | Electron dev script | **Implemented** | `apps/electron/package.json` (runs signaling) |
@@ -83,6 +83,36 @@ pnpm dev
 # Signaling server runs on ws://localhost:4444
 # Health check: http://localhost:4444/health
 ```
+
+### Directory Structure Note
+
+The signaling server currently lives in `infrastructure/signaling/`. However, since xNet is designed as local-first P2P software, **all runtime code should be embeddable in client apps**.
+
+**Current structure (temporary):**
+
+```
+infrastructure/
+  signaling/     # Standalone server for dev/testing
+```
+
+**Target structure (after Phase 2):**
+
+```
+packages/
+  signaling/     # @xnet/signaling - embeddable in Electron main process
+```
+
+The `infrastructure/` directory should only contain things that **cannot** run on user devices:
+
+- Hosted signaling servers for WAN sync (enterprise/cloud deployment)
+- TURN relay servers for NAT traversal
+- Admin dashboards and monitoring
+
+**Action item:** After completing Phase 2 (Embedded Signaling), move the signaling code to `packages/signaling/` and delete `infrastructure/signaling/`. The same code can then be:
+
+1. Embedded in Electron's main process (default)
+2. Run standalone for development/testing
+3. Deployed to cloud for enterprise WAN sync
 
 ## Implementation Phases
 
