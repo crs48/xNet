@@ -50,7 +50,7 @@ export function TagInput({
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center gap-1 min-h-[38px] p-1.5 border border-gray-300 rounded-md bg-white focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500',
+        'flex flex-wrap items-center gap-1 min-h-[38px] p-1.5 border border-input rounded-md bg-transparent focus-within:ring-1 focus-within:ring-ring',
         className
       )}
       onClick={() => inputRef.current?.focus()}
@@ -58,8 +58,7 @@ export function TagInput({
       {value.map((tag, index) => (
         <Badge
           key={`${tag}-${index}`}
-          variant="primary"
-          size="sm"
+          variant="secondary"
           removable
           onRemove={() => removeTag(index)}
         >

@@ -29,17 +29,17 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
           <SelectPrimitive.Trigger
             ref={ref}
             className={cn(
-              'flex h-10 w-full items-center justify-between rounded-md border bg-white px-3 py-2 text-sm',
-              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
+              'flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',
+              'focus:outline-none focus:ring-1 focus:ring-ring',
               'disabled:cursor-not-allowed disabled:opacity-50',
-              error ? 'border-red-500' : 'border-gray-300',
-              'placeholder:text-gray-400'
+              error ? 'border-destructive' : '',
+              'placeholder:text-muted-foreground'
             )}
           >
             <SelectPrimitive.Value placeholder={placeholder} />
             <SelectPrimitive.Icon>
               <svg
-                className="h-4 w-4 text-gray-400"
+                className="h-4 w-4 text-muted-foreground"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -56,7 +56,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
           <SelectPrimitive.Portal>
             <SelectPrimitive.Content
               className={cn(
-                'relative z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white shadow-md',
+                'relative z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md',
                 'data-[state=open]:animate-in data-[state=closed]:animate-out',
                 'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
                 'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -73,7 +73,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
                     disabled={option.disabled}
                     className={cn(
                       'relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none',
-                      'focus:bg-gray-100 focus:text-gray-900',
+                      'focus:bg-accent focus:text-accent-foreground',
                       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50'
                     )}
                   >
@@ -101,7 +101,7 @@ export const Select = forwardRef<HTMLButtonElement, SelectProps>(
             </SelectPrimitive.Content>
           </SelectPrimitive.Portal>
         </SelectPrimitive.Root>
-        {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
       </div>
     )
   }

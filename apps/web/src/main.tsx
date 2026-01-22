@@ -7,7 +7,9 @@ import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { XNetProvider } from '@xnet/react'
 import { IndexedDBAdapter } from '@xnet/storage'
 import { IndexedDBNodeStorageAdapter } from '@xnet/data'
+import { ThemeProvider } from '@xnet/ui'
 import { routeTree } from './routeTree.gen'
+import '@xnet/ui/tokens.css'
 import './styles/globals.css'
 
 // Create router instance
@@ -30,15 +32,17 @@ const SIGNING_KEY = new Uint8Array(32).fill(1)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <XNetProvider
-      config={{
-        storage,
-        nodeStorage,
-        authorDID: AUTHOR_DID,
-        signingKey: SIGNING_KEY
-      }}
-    >
-      <RouterProvider router={router} />
-    </XNetProvider>
+    <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
+      <XNetProvider
+        config={{
+          storage,
+          nodeStorage,
+          authorDID: AUTHOR_DID,
+          signingKey: SIGNING_KEY
+        }}
+      >
+        <RouterProvider router={router} />
+      </XNetProvider>
+    </ThemeProvider>
   </React.StrictMode>
 )

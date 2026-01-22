@@ -14,7 +14,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
           <svg
-            className="h-4 w-4 text-gray-400"
+            className="h-4 w-4 text-muted-foreground"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -32,14 +32,18 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           type="search"
           value={value}
           className={cn(
-            'block w-full rounded-md border border-gray-300 bg-white pl-10 pr-10 py-2 text-sm placeholder-gray-400 shadow-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500',
+            'flex h-9 w-full rounded-md border border-input bg-transparent pl-10 pr-10 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
             className
           )}
           {...props}
         />
         {loading && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-            <svg className="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+            <svg
+              className="animate-spin h-4 w-4 text-muted-foreground"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
               <circle
                 className="opacity-25"
                 cx="12"
@@ -60,7 +64,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
           <button
             type="button"
             onClick={onClear}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
           >
             <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
               <path

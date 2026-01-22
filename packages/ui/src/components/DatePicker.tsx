@@ -99,7 +99,7 @@ export function DatePicker({
     return (
       <div className="grid grid-cols-7 gap-1">
         {DAYS.map((day) => (
-          <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+          <div key={day} className="text-center text-xs font-medium text-muted-foreground py-1">
             {day}
           </div>
         ))}
@@ -121,10 +121,10 @@ export function DatePicker({
               disabled={isDisabled}
               className={cn(
                 'p-1 text-sm rounded-md',
-                isSelected && 'bg-blue-600 text-white',
-                !isSelected && isToday && 'border border-blue-600',
-                !isSelected && !isToday && 'hover:bg-gray-100',
-                isDisabled && 'text-gray-300 cursor-not-allowed'
+                isSelected && 'bg-primary text-primary-foreground',
+                !isSelected && isToday && 'border border-primary',
+                !isSelected && !isToday && 'hover:bg-accent',
+                isDisabled && 'text-muted-foreground/50 cursor-not-allowed'
               )}
             >
               {day}
@@ -146,23 +146,15 @@ export function DatePicker({
         className="cursor-pointer"
       />
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded-md border border-gray-200 bg-white p-3 shadow-lg">
+        <div className="absolute top-full left-0 z-50 mt-1 w-64 rounded-md border bg-popover p-3 text-popover-foreground shadow-lg">
           <div className="flex items-center justify-between mb-3">
-            <button
-              type="button"
-              onClick={handlePrevMonth}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
+            <button type="button" onClick={handlePrevMonth} className="p-1 hover:bg-accent rounded">
               &lt;
             </button>
-            <span className="font-medium">
+            <span className="font-medium text-foreground">
               {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
             </span>
-            <button
-              type="button"
-              onClick={handleNextMonth}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
+            <button type="button" onClick={handleNextMonth} className="p-1 hover:bg-accent rounded">
               &gt;
             </button>
           </div>
@@ -174,7 +166,7 @@ export function DatePicker({
                 onChange(null)
                 setIsOpen(false)
               }}
-              className="mt-2 w-full text-sm text-gray-500 hover:text-gray-700"
+              className="mt-2 w-full text-sm text-muted-foreground hover:text-foreground"
             >
               Clear
             </button>
