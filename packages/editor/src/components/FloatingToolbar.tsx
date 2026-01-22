@@ -5,30 +5,44 @@
  * Mobile: Fixed at bottom, above keyboard, horizontally scrollable
  */
 import { useState, useEffect, useRef, type JSX } from 'react'
-import { BubbleMenu, type Editor } from '@tiptap/react'
+import type { Editor } from '@tiptap/react'
+import { BubbleMenu } from '@tiptap/react/menus'
 import { cn } from '../utils'
+
+/** Toolbar display mode */
+export type ToolbarMode = 'auto' | 'desktop' | 'mobile'
 
 export interface FloatingToolbarProps {
   /** The Tiptap editor instance */
   editor: Editor | null
   /** Additional CSS class */
   className?: string
-  /** Force mobile mode (for testing) */
-  forceMobile?: boolean
+  /**
+   * Force a specific toolbar mode instead of auto-detecting
+   * - 'auto': Detect based on device/viewport (default)
+   * - 'desktop': Always show floating bubble menu (for Electron)
+   * - 'mobile': Always show fixed bottom toolbar (for mobile apps)
+   */
+  mode?: ToolbarMode
 }
 
 // Check if we're on a mobile device
-function useIsMobile(forceMobile?: boolean): boolean {
-  const [isMobile, setIsMobile] = useState(forceMobile ?? false)
+function useIsMobile(mode?: ToolbarMode): boolean {
+  const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
-    if (forceMobile !== undefined) {
-      setIsMobile(forceMobile)
+    // If mode is explicitly set, don't auto-detect
+    if (mode === 'desktop') {
+      setIsMobile(false)
+      return
+    }
+    if (mode === 'mobile') {
+      setIsMobile(true)
       return
     }
 
+    // Auto-detect based on device/viewport
     const checkMobile = () => {
-      // Check for touch device or narrow viewport
       const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
       const isNarrow = window.innerWidth < 768
       setIsMobile(hasTouch || isNarrow)
@@ -37,7 +51,7 @@ function useIsMobile(forceMobile?: boolean): boolean {
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
-  }, [forceMobile])
+  }, [mode])
 
   return isMobile
 }
@@ -91,12 +105,13 @@ function ToolbarButton({
       }}
       onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
       className={cn(
-        'flex-shrink-0 flex items-center justify-center rounded text-sm font-medium transition-colors',
-        'touch-manipulation select-none', // Better touch handling
-        isMobile ? 'w-9 h-9' : 'w-7 h-7', // Smaller on desktop
+        'flex-shrink-0 flex items-center justify-center rounded text-sm font-medium',
+        'transition-colors duration-100',
+        'touch-manipulation select-none',
+        isMobile ? 'w-10 h-10' : 'w-8 h-8',
         active
-          ? 'bg-primary text-white'
-          : 'bg-transparent text-text-primary hover:bg-bg-tertiary active:bg-bg-tertiary'
+          ? 'bg-primary/15 text-primary'
+          : 'text-text-secondary hover:text-text hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/15'
       )}
       title={title}
       type="button"
@@ -108,7 +123,7 @@ function ToolbarButton({
 
 function ToolbarDivider({ isMobile }: { isMobile: boolean }): JSX.Element {
   return (
-    <span className={cn('flex-shrink-0 w-px bg-border', isMobile ? 'h-6 mx-1' : 'h-4 mx-0.5')} />
+    <span className={cn('flex-shrink-0 w-px bg-border/60', isMobile ? 'h-6 mx-1.5' : 'h-5 mx-1')} />
   )
 }
 
@@ -354,7 +369,9 @@ function MobileToolbar({
   return (
     <div
       className={cn(
-        'fixed left-0 right-0 z-50 bg-bg-primary border-t border-border shadow-lg',
+        'fixed left-0 right-0 z-50',
+        'bg-bg/95 backdrop-blur-sm border-t border-border',
+        'shadow-[0_-4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]',
         'bottom-0',
         className
       )}
@@ -365,7 +382,7 @@ function MobileToolbar({
     >
       <div
         ref={scrollRef}
-        className="flex items-center gap-1 px-2 py-2 overflow-x-auto"
+        className="flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-none"
         style={{
           // Hide scrollbar but allow scrolling
           scrollbarWidth: 'none',
@@ -375,12 +392,6 @@ function MobileToolbar({
       >
         <ToolbarContent editor={editor} isMobile={true} />
       </div>
-      {/* Hide webkit scrollbar */}
-      <style>{`
-        .overflow-x-auto::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   )
 }
@@ -398,33 +409,22 @@ function DesktopToolbar({
   return (
     <BubbleMenu
       editor={editor}
-      tippyOptions={{
-        duration: 150,
+      options={{
         placement: 'top',
-        // Show even without selection (on cursor position)
-        getReferenceClientRect: () => {
-          const { state } = editor
-          const { from, to } = state.selection
-
-          // If there's a selection, use it
-          if (from !== to) {
-            return editor.view.coordsAtPos(from)
-          }
-
-          // Otherwise use cursor position
-          const coords = editor.view.coordsAtPos(from)
-          return new DOMRect(coords.left, coords.top, 0, coords.bottom - coords.top)
-        }
+        offset: 8
       }}
-      // Always show when editor is focused (not just on selection)
-      shouldShow={({ editor, state }) => {
+      // Only show when there's a text selection (not on empty cursor)
+      shouldShow={({ editor, from, to }) => {
         // Don't show in code blocks
         if (editor.isActive('codeBlock')) return false
-        // Show when focused
-        return editor.isFocused
+        // Only show when there's actual text selected
+        return from !== to
       }}
       className={cn(
-        'flex items-center gap-0.5 px-1.5 py-1 bg-bg-primary border border-border rounded-lg shadow-lg',
+        'flex items-center gap-0.5 px-1 py-1',
+        'bg-bg rounded-lg',
+        'shadow-xl shadow-black/15 dark:shadow-black/40',
+        'border border-border/50',
         className
       )}
     >
@@ -442,9 +442,9 @@ function DesktopToolbar({
 export function FloatingToolbar({
   editor,
   className,
-  forceMobile
+  mode = 'auto'
 }: FloatingToolbarProps): JSX.Element | null {
-  const isMobile = useIsMobile(forceMobile)
+  const isMobile = useIsMobile(mode)
 
   if (!editor) return null
 

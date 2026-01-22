@@ -12,7 +12,7 @@ import Link from '@tiptap/extension-link'
 import Typography from '@tiptap/extension-typography'
 import type * as Y from 'yjs'
 import { Wikilink, LivePreview } from '../extensions'
-import { FloatingToolbar } from './FloatingToolbar'
+import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
 import { cn } from '../utils'
 
 export interface RichTextEditorProps {
@@ -24,6 +24,13 @@ export interface RichTextEditorProps {
   placeholder?: string
   /** Whether to show the toolbar (default: true) */
   showToolbar?: boolean
+  /**
+   * Toolbar display mode
+   * - 'auto': Detect based on device (default)
+   * - 'desktop': Always floating bubble menu (Electron)
+   * - 'mobile': Always fixed bottom bar (Expo)
+   */
+  toolbarMode?: ToolbarMode
   /** Callback when a wikilink is clicked */
   onNavigate?: (docId: string) => void
   /** Additional CSS class for the container */
@@ -83,6 +90,7 @@ export function RichTextEditor({
   field = 'content',
   placeholder = 'Start writing...',
   showToolbar = true,
+  toolbarMode = 'auto',
   onNavigate,
   className,
   readOnly = false
@@ -95,14 +103,14 @@ export function RichTextEditor({
       // StarterKit includes: Bold, Italic, Strike, Code, Heading, Blockquote,
       // BulletList, OrderedList, ListItem, CodeBlock, HardBreak, HorizontalRule
       // All with Markdown shortcuts enabled (e.g., **bold**, *italic*, # Heading)
-      // NOTE: Disable history - Collaboration has its own undo/redo via Yjs
-      StarterKit.configure({
-        history: false
-      }),
+      // Note: Tiptap v3 StarterKit doesn't include history - Collaboration uses Yjs undo/redo
+      StarterKit,
       // Typography for smart quotes, em-dashes, ellipsis
       Typography,
       Placeholder.configure({
-        placeholder
+        placeholder,
+        emptyEditorClass: 'is-editor-empty',
+        emptyNodeClass: 'is-empty'
       }),
       Collaboration.configure({
         fragment
@@ -125,7 +133,8 @@ export function RichTextEditor({
     ],
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none focus:outline-none min-h-[380px]'
+        // Full height, no outline on focus, proper typography
+        class: 'outline-none h-full min-h-full'
       }
     },
     editable: !readOnly
@@ -146,9 +155,26 @@ export function RichTextEditor({
   }, [editor])
 
   return (
-    <div className={cn('relative', className)}>
-      <EditorContent editor={editor} className="p-4 min-h-[400px] focus:outline-none" />
-      {showToolbar && <FloatingToolbar editor={editor} />}
+    <div className={cn('relative h-full flex flex-col', className)}>
+      <EditorContent
+        editor={editor}
+        className={cn(
+          'flex-1 h-full',
+          // ProseMirror sizing
+          '[&_.ProseMirror]:h-full [&_.ProseMirror]:px-1',
+          // Remove all focus outlines
+          '[&_.ProseMirror]:outline-none [&_.ProseMirror:focus]:outline-none',
+          '[&_.tiptap]:outline-none [&_.tiptap:focus]:outline-none',
+          '[&_[contenteditable]]:outline-none [&_[contenteditable]:focus]:outline-none',
+          // Placeholder styling
+          '[&_.ProseMirror_.is-empty]:before:content-[attr(data-placeholder)]',
+          '[&_.ProseMirror_.is-empty]:before:text-text-secondary',
+          '[&_.ProseMirror_.is-empty]:before:float-left',
+          '[&_.ProseMirror_.is-empty]:before:pointer-events-none',
+          '[&_.ProseMirror_.is-empty]:before:h-0'
+        )}
+      />
+      {showToolbar && <FloatingToolbar editor={editor} mode={toolbarMode} />}
     </div>
   )
 }
