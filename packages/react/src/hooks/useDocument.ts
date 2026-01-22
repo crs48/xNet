@@ -263,8 +263,34 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
           Y.applyUpdate(ydoc, storedContent)
         }
 
+        // Initialize meta map with node properties (for sync)
+        // Only set if meta is empty (don't overwrite synced values)
+        const metaMap = ydoc.getMap('meta')
+        let lastUpdated = node.updatedAt
+
+        if (metaMap.size === 0 && node.properties) {
+          ydoc.transact(() => {
+            for (const [key, value] of Object.entries(node.properties)) {
+              metaMap.set(key, value)
+            }
+          })
+        } else if (metaMap.size > 0) {
+          // Meta map has synced values - apply them to node
+          const syncedProps: Record<string, unknown> = {}
+          metaMap.forEach((value, key) => {
+            syncedProps[key] = value
+          })
+          if (Object.keys(syncedProps).length > 0) {
+            const updatedNode = await store.update(id, { properties: syncedProps })
+            if (updatedNode) {
+              setData(flattenNode<P>(updatedNode))
+              lastUpdated = updatedNode.updatedAt
+            }
+          }
+        }
+
         setDoc(ydoc)
-        setLastSavedAt(node.updatedAt)
+        setLastSavedAt(lastUpdated)
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
@@ -306,6 +332,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   // === Mutations ===
 
   // Type-safe update
+  // Updates both local NodeStore AND Y.Doc meta map for sync
   const update = useCallback(
     async (properties: Partial<InferCreateProps<P>>): Promise<void> => {
       if (!store || !isReady || !id) return
@@ -315,6 +342,16 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
           properties: properties as Record<string, unknown>
         })
         setData(flattenNode<P>(node))
+
+        // Also update Y.Doc meta map so properties sync via y-webrtc
+        if (docRef.current) {
+          const metaMap = docRef.current.getMap('meta')
+          docRef.current.transact(() => {
+            for (const [key, value] of Object.entries(properties)) {
+              metaMap.set(key, value)
+            }
+          })
+        }
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)))
       }
@@ -374,6 +411,29 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       }
       provider.on('peers', peersHandler)
 
+      // Listen for remote meta changes (synced properties)
+      const metaMap = doc.getMap('meta')
+      const metaObserver = (event: Y.YMapEvent<unknown>) => {
+        // Only process remote changes
+        if (event.transaction.origin === provider) {
+          const changes: Record<string, unknown> = {}
+          event.keysChanged.forEach((key) => {
+            changes[key] = metaMap.get(key)
+          })
+
+          // Update local NodeStore with synced properties
+          if (Object.keys(changes).length > 0 && store && id) {
+            store
+              .update(id, { properties: changes })
+              .then((node) => {
+                if (node) setData(flattenNode<P>(node))
+              })
+              .catch((err) => console.error('Failed to apply synced properties:', err))
+          }
+        }
+      }
+      metaMap.observe(metaObserver)
+
       // Set up presence if user info provided
       let awarenessHandler: (() => void) | null = null
       if (userName) {
@@ -411,6 +471,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
 
       return () => {
         doc.off('update', updateHandler)
+        metaMap.unobserve(metaObserver)
         provider.off('status', statusHandler)
         provider.off('peers', peersHandler)
         if (awarenessHandler) {
@@ -427,7 +488,17 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     return () => {
       doc.off('update', updateHandler)
     }
-  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, userName, userColor])
+  }, [
+    doc,
+    id,
+    store,
+    hasDocument,
+    disableSync,
+    signalingServers,
+    scheduleSave,
+    userName,
+    userColor
+  ])
 
   // Cleanup on unmount - save any pending changes
   // Note: We use saveTimeoutRef.current as the indicator of pending saves
