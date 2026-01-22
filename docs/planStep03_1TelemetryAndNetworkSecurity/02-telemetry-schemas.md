@@ -14,11 +14,30 @@ Telemetry data is stored as Nodes using xNet's schema system. This means telemet
 - **Queryable** - Standard Node queries work on telemetry
 - **Syncable** - Can use existing sync infrastructure when sharing
 
+### OpenTelemetry Semantic Convention Alignment
+
+Field names are aligned with [OTel semantic conventions](https://opentelemetry.io/docs/specs/semconv/) where applicable, using camelCase versions of the dot-separated OTel attribute names. This provides:
+
+- Naming consistency with the broader observability ecosystem
+- Easier future bridging to OTel backends if needed
+- Familiar patterns for developers
+
+| OTel Attribute         | Schema Field                                   | Used In       |
+| ---------------------- | ---------------------------------------------- | ------------- |
+| `exception.type`       | `exceptionType`                                | CrashReport   |
+| `exception.message`    | `exceptionMessage`                             | CrashReport   |
+| `exception.stacktrace` | `exceptionStacktrace`                          | CrashReport   |
+| `code.namespace`       | `codeNamespace`                                | CrashReport   |
+| `service.version`      | `serviceVersion`                               | All schemas   |
+| `os.type`              | `osType`                                       | All schemas   |
+| `event.name`           | `eventName`                                    | SecurityEvent |
+| N/A (xNet-specific)    | `consentTier`, `privacyBucketed`, `peerIdHash` | Various       |
+
 ## Schemas
 
 ### CrashReport Schema
 
-For capturing application errors and crashes.
+For capturing application errors and crashes. Field names align with OTel's [exception semantic conventions](https://opentelemetry.io/docs/specs/semconv/registry/attributes/exception/).
 
 ```typescript
 // packages/telemetry/src/schemas/crash.ts
@@ -30,34 +49,46 @@ export const CrashReportSchema = defineSchema({
   namespace: 'xnet://xnet.dev/telemetry/',
 
   properties: {
-    // Error information
-    errorType: text({
+    // Exception info (OTel: exception.*)
+    exceptionType: text({
       required: true,
       description: 'Error constructor name (e.g., RangeError, TypeError)'
+      // OTel: exception.type
     }),
-    errorMessage: text({
+    exceptionMessage: text({
       required: true,
       description: 'Error message (auto-scrubbed for PII)'
+      // OTel: exception.message
     }),
-    stackTrace: text({
+    exceptionStacktrace: text({
       description: 'Stack trace with file paths scrubbed'
+      // OTel: exception.stacktrace
     }),
 
-    // Component context
-    component: text({
+    // Code context (OTel: code.*)
+    codeNamespace: text({
       description: 'Component or module where error occurred'
+      // OTel: code.namespace
     }),
-    action: text({
+    codeFunction: text({
+      description: 'Function name where error occurred'
+      // OTel: code.function
+    }),
+
+    // User action (xNet-specific, no OTel equivalent)
+    userAction: text({
       description: 'User action that triggered the error'
     }),
 
-    // Environment
-    appVersion: text({
+    // Environment (OTel: service.*, os.*)
+    serviceVersion: text({
       description: 'Application version (e.g., 1.2.3)'
+      // OTel: service.version
     }),
-    platform: select({
+    osType: select({
       options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const,
       description: 'Operating system / platform'
+      // OTel: os.type
     }),
 
     // Timing (bucketed)
@@ -65,14 +96,14 @@ export const CrashReportSchema = defineSchema({
       description: 'When the error occurred (rounded to hour)'
     }),
 
-    // Status
+    // Status (xNet-specific)
     status: select({
       options: ['local', 'pending', 'shared', 'dismissed'] as const,
       default: 'local',
       description: 'Sharing status of this report'
     }),
 
-    // User notes (optional)
+    // User notes (optional, xNet-specific)
     userNotes: text({
       description: 'Optional notes from user about what they were doing'
     })
@@ -89,7 +120,7 @@ export type CrashReport = InferNode<typeof CrashReportSchema>
 
 ### UsageMetric Schema
 
-For anonymous usage statistics (P3A-style bucketed values).
+For anonymous usage statistics (P3A-style bucketed values). Uses OTel [metrics naming conventions](https://opentelemetry.io/docs/specs/semconv/general/metrics/) for the metric name format.
 
 ```typescript
 // packages/telemetry/src/schemas/usage.ts
@@ -101,30 +132,36 @@ export const UsageMetricSchema = defineSchema({
   namespace: 'xnet://xnet.dev/telemetry/',
 
   properties: {
-    // What's being measured
-    metric: text({
+    // What's being measured (OTel metric naming: dot-separated, lowercase)
+    metricName: text({
       required: true,
-      description: 'Metric name (e.g., pages_created, sync_events)'
+      description: 'Metric name using OTel convention (e.g., xnet.pages.created, xnet.sync.events)'
+      // Follows OTel metric naming: <namespace>.<noun>.<verb/adjective>
     }),
 
-    // Bucketed value (never exact counts)
-    bucket: select({
+    // Bucketed value (never exact counts — xNet privacy-specific)
+    metricBucket: select({
       options: ['none', '1-5', '6-20', '21-100', '100+'] as const,
       required: true,
       description: 'Value bucket (exact values never stored)'
     }),
 
-    // Time period
+    // Time period (xNet-specific)
     period: select({
       options: ['daily', 'weekly', 'monthly'] as const,
       required: true,
       description: 'Measurement period'
     }),
 
-    // Environment
-    appVersion: text(),
-    platform: select({
-      options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const
+    // Environment (OTel: service.version, os.type)
+    serviceVersion: text({
+      description: 'Application version'
+      // OTel: service.version
+    }),
+    osType: select({
+      options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const,
+      description: 'Operating system / platform'
+      // OTel: os.type
     }),
 
     // When measured (bucketed)
@@ -132,7 +169,7 @@ export const UsageMetricSchema = defineSchema({
       description: 'When metric was recorded (rounded to day)'
     }),
 
-    // Status
+    // Status (xNet-specific)
     status: select({
       options: ['local', 'pending', 'shared'] as const,
       default: 'local'
@@ -148,7 +185,7 @@ export type UsageMetric = InferNode<typeof UsageMetricSchema>
 
 ### SecurityEvent Schema
 
-For logging security-relevant events (used by network security layer).
+For logging security-relevant events (used by network security layer). Uses OTel [event conventions](https://opentelemetry.io/docs/specs/semconv/general/events/) and [security rule attributes](https://opentelemetry.io/docs/specs/semconv/registry/attributes/security-rule/) where applicable.
 
 ```typescript
 // packages/telemetry/src/schemas/security.ts
@@ -160,44 +197,47 @@ export const SecurityEventSchema = defineSchema({
   namespace: 'xnet://xnet.dev/telemetry/',
 
   properties: {
-    // Event classification
-    eventType: select({
+    // Event classification (OTel: event.name pattern)
+    eventName: select({
       options: [
-        'invalid_signature',
-        'rate_limit_exceeded',
-        'connection_flood',
-        'stream_exhaustion',
-        'invalid_data',
-        'peer_score_drop',
-        'peer_blocked',
-        'peer_unblocked',
-        'anomaly_detected'
+        'xnet.security.invalid_signature',
+        'xnet.security.rate_limit_exceeded',
+        'xnet.security.connection_flood',
+        'xnet.security.stream_exhaustion',
+        'xnet.security.invalid_data',
+        'xnet.security.peer_score_drop',
+        'xnet.security.peer_blocked',
+        'xnet.security.peer_unblocked',
+        'xnet.security.anomaly_detected'
       ] as const,
       required: true,
-      description: 'Type of security event'
+      description:
+        'Type of security event (OTel event.name convention: <namespace>.<category>.<event>)'
+      // OTel: event.name
     }),
 
-    severity: select({
+    eventSeverity: select({
       options: ['low', 'medium', 'high', 'critical'] as const,
       required: true,
-      description: 'Event severity'
+      description: 'Event severity level'
+      // Loosely aligns with OTel log severity levels
     }),
 
-    // Peer info (anonymized)
+    // Peer info (anonymized — xNet-specific, no OTel equivalent)
     peerIdHash: text({
       description: 'SHA256 hash of peer ID (not the actual ID)'
     }),
     peerScoreBucket: select({
       options: ['very_low', 'low', 'neutral', 'good', 'excellent'] as const,
-      description: 'Peer score at time of event'
+      description: 'Peer score at time of event (bucketed)'
     }),
 
     // Event details
-    details: text({
+    eventDetails: text({
       description: 'JSON details (scrubbed for PII)'
     }),
 
-    // Response
+    // Response (xNet-specific)
     actionTaken: select({
       options: ['none', 'logged', 'warned', 'throttled', 'blocked', 'reported'] as const,
       required: true,
@@ -210,7 +250,7 @@ export const SecurityEventSchema = defineSchema({
       description: 'When event occurred (rounded to minute for security events)'
     }),
 
-    // Status
+    // Status (xNet-specific)
     status: select({
       options: ['local', 'pending', 'shared'] as const,
       default: 'local'
@@ -226,7 +266,7 @@ export type SecurityEvent = InferNode<typeof SecurityEventSchema>
 
 ### PerformanceMetric Schema
 
-For tracking performance (optional, for debugging).
+For tracking performance (optional, for debugging). Uses OTel [metrics naming](https://opentelemetry.io/docs/specs/semconv/general/metrics/) and [code attributes](https://opentelemetry.io/docs/specs/semconv/registry/attributes/code/).
 
 ```typescript
 // packages/telemetry/src/schemas/performance.ts
@@ -238,34 +278,42 @@ export const PerformanceMetricSchema = defineSchema({
   namespace: 'xnet://xnet.dev/telemetry/',
 
   properties: {
-    // What's being measured
-    metric: text({
+    // What's being measured (OTel metric naming convention)
+    metricName: text({
       required: true,
-      description: 'Metric name (e.g., sync_latency, render_time)'
+      description:
+        'Metric name using OTel convention (e.g., xnet.sync.duration, xnet.render.duration)'
+      // Follows OTel: <namespace>.<noun>.<unit_or_adjective>
     }),
 
-    // Bucketed value (milliseconds)
-    bucket: select({
+    // Bucketed value in milliseconds (xNet privacy-specific)
+    durationBucket: select({
       options: ['<10ms', '10-50ms', '50-200ms', '200-1000ms', '>1000ms'] as const,
       required: true,
-      description: 'Latency bucket'
+      description: 'Duration bucket (exact values never stored)'
     }),
 
-    // Context
-    context: text({
+    // Code context (OTel: code.namespace)
+    codeNamespace: text({
       description: 'Where measurement was taken (e.g., component name)'
+      // OTel: code.namespace
     }),
 
-    // Environment
-    appVersion: text(),
-    platform: select({
-      options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const
+    // Environment (OTel: service.version, os.type)
+    serviceVersion: text({
+      description: 'Application version'
+      // OTel: service.version
+    }),
+    osType: select({
+      options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const,
+      description: 'Operating system / platform'
+      // OTel: os.type
     }),
 
     // Timing
     measuredAt: date(),
 
-    // Status
+    // Status (xNet-specific)
     status: select({
       options: ['local', 'pending', 'shared'] as const,
       default: 'local'
@@ -325,16 +373,16 @@ These fields are explicitly **never** included in telemetry:
 
 ### Bucketing Strategy
 
-All numeric values are bucketed to prevent unique fingerprinting:
+All numeric values are bucketed to prevent unique fingerprinting. This is xNet-specific — OTel reports exact values, but our privacy-first design requires ranges:
 
 ```typescript
-// Count buckets (for usage metrics)
+// Count buckets (for usage metrics — metricBucket field)
 type CountBucket = 'none' | '1-5' | '6-20' | '21-100' | '100+'
 
-// Latency buckets (for performance)
-type LatencyBucket = '<10ms' | '10-50ms' | '50-200ms' | '200-1000ms' | '>1000ms'
+// Duration buckets (for performance — durationBucket field)
+type DurationBucket = '<10ms' | '10-50ms' | '50-200ms' | '200-1000ms' | '>1000ms'
 
-// Score buckets (for peer scores)
+// Score buckets (for peer scores — peerScoreBucket field)
 type ScoreBucket = 'very_low' | 'low' | 'neutral' | 'good' | 'excellent'
 ```
 
@@ -357,6 +405,7 @@ import {
   CrashReportSchema,
   UsageMetricSchema,
   SecurityEventSchema,
+  PerformanceMetricSchema,
   TelemetrySchemaIRIs
 } from '../src/schemas'
 
@@ -365,22 +414,43 @@ describe('CrashReportSchema', () => {
     expect(CrashReportSchema.iri).toBe('xnet://xnet.dev/telemetry/CrashReport')
   })
 
-  it('should require errorType and errorMessage', () => {
+  it('should require exceptionType and exceptionMessage (OTel-aligned)', () => {
     const props = CrashReportSchema.properties
-    expect(props.errorType.required).toBe(true)
-    expect(props.errorMessage.required).toBe(true)
+    expect(props.exceptionType.required).toBe(true)
+    expect(props.exceptionMessage.required).toBe(true)
   })
 
-  it('should validate platform options', () => {
-    const platforms = CrashReportSchema.properties.platform.options
+  it('should use OTel-aligned field names', () => {
+    const props = CrashReportSchema.properties
+    // OTel: exception.* → exceptionType, exceptionMessage, exceptionStacktrace
+    expect(props.exceptionType).toBeDefined()
+    expect(props.exceptionMessage).toBeDefined()
+    expect(props.exceptionStacktrace).toBeDefined()
+    // OTel: code.* → codeNamespace, codeFunction
+    expect(props.codeNamespace).toBeDefined()
+    expect(props.codeFunction).toBeDefined()
+    // OTel: service.version → serviceVersion
+    expect(props.serviceVersion).toBeDefined()
+    // OTel: os.type → osType
+    expect(props.osType).toBeDefined()
+  })
+
+  it('should validate osType options', () => {
+    const platforms = CrashReportSchema.properties.osType.options
     expect(platforms).toContain('macos')
     expect(platforms).toContain('web')
   })
 })
 
 describe('UsageMetricSchema', () => {
+  it('should use OTel metric naming convention', () => {
+    const props = UsageMetricSchema.properties
+    expect(props.metricName).toBeDefined()
+    expect(props.metricName.description).toContain('OTel convention')
+  })
+
   it('should have bucketed values only', () => {
-    const buckets = UsageMetricSchema.properties.bucket.options
+    const buckets = UsageMetricSchema.properties.metricBucket.options
     expect(buckets).toEqual(['none', '1-5', '6-20', '21-100', '100+'])
   })
 
@@ -392,12 +462,36 @@ describe('UsageMetricSchema', () => {
 })
 
 describe('SecurityEventSchema', () => {
+  it('should use OTel event.name convention for event names', () => {
+    const props = SecurityEventSchema.properties
+    expect(props.eventName).toBeDefined()
+    // All event names should follow <namespace>.<category>.<event> pattern
+    const options = props.eventName.options
+    for (const opt of options) {
+      expect(opt).toMatch(/^xnet\.security\..+/)
+    }
+  })
+
   it('should anonymize peer IDs', () => {
     const props = SecurityEventSchema.properties
     expect(props.peerIdHash).toBeDefined()
     expect(props.peerIdHash.description).toContain('hash')
     // Should NOT have raw peerId field
-    expect(props.peerId).toBeUndefined()
+    expect((props as any).peerId).toBeUndefined()
+  })
+})
+
+describe('PerformanceMetricSchema', () => {
+  it('should use OTel metric naming and code.namespace', () => {
+    const props = PerformanceMetricSchema.properties
+    expect(props.metricName).toBeDefined()
+    expect(props.codeNamespace).toBeDefined()
+  })
+
+  it('should have duration buckets', () => {
+    const buckets = PerformanceMetricSchema.properties.durationBucket.options
+    expect(buckets).toContain('<10ms')
+    expect(buckets).toContain('>1000ms')
   })
 })
 

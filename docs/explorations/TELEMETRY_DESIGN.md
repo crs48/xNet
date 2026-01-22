@@ -139,20 +139,23 @@ flowchart TB
 
 ### Core Concept: Telemetry as Nodes
 
+Field names are aligned with [OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/) (Option C from [OPENTELEMETRY_EVALUATION.md](./OPENTELEMETRY_EVALUATION.md)). We use OTel's naming patterns without adopting its SDK or export pipeline.
+
 ```typescript
-// Telemetry is just another schema
+// Telemetry is just another schema — with OTel-aligned field names
 const CrashReportSchema = defineSchema({
   name: 'CrashReport',
   namespace: 'xnet://xnet.dev/telemetry/',
   properties: {
-    // What happened
-    errorType: text({ required: true }),
-    errorMessage: text({ required: true }),
-    stackTrace: text({ scrubPaths: true }), // Auto-scrub file paths
+    // OTel: exception.* conventions
+    exceptionType: text({ required: true }), // exception.type
+    exceptionMessage: text({ required: true }), // exception.message
+    exceptionStacktrace: text({ scrubPaths: true }), // exception.stacktrace
 
-    // Context (all optional, user-controlled)
-    appVersion: text(),
-    platform: select({ options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const }),
+    // OTel: code.*, service.*, os.*
+    codeNamespace: text(), // code.namespace
+    serviceVersion: text(), // service.version
+    osType: select({ options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const }), // os.type
 
     // Timestamps (bucketed, not exact)
     occurredAt: date() // Rounded to nearest hour
@@ -166,14 +169,15 @@ const UsageMetricSchema = defineSchema({
   name: 'UsageMetric',
   namespace: 'xnet://xnet.dev/telemetry/',
   properties: {
-    metric: text({ required: true }), // e.g., 'pages_created'
-    bucket: select({
-      options: ['none', 'light', 'moderate', 'heavy'] as const,
+    // OTel metric naming: <namespace>.<noun>.<verb>
+    metricName: text({ required: true }), // e.g., 'xnet.pages.created'
+    metricBucket: select({
+      options: ['none', '1-5', '6-20', '21-100', '100+'] as const,
       required: true
     }),
     period: select({ options: ['daily', 'weekly', 'monthly'] as const }),
-    appVersion: text(),
-    platform: select({ options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const })
+    serviceVersion: text(), // OTel: service.version
+    osType: select({ options: ['macos', 'windows', 'linux', 'ios', 'android', 'web'] as const }) // OTel: os.type
   }
 })
 ```

@@ -24,13 +24,26 @@ telemetry.setConsent({ tier: 'crashes', reviewBeforeSend: true })
 
 ## Design Principles
 
-| Principle                | Implementation                                          |
-| ------------------------ | ------------------------------------------------------- |
-| **User sovereignty**     | Opt-in tiers, inspectable schemas, instant deletion     |
-| **Local-first**          | All telemetry stored locally first; sharing is separate |
-| **No silent collection** | Zero telemetry without explicit consent                 |
-| **Privacy-preserving**   | Bucketed values, no persistent IDs, scrubbed PII        |
-| **Future-proof**         | Infrastructure enables Web of Trust, AI detection later |
+| Principle                | Implementation                                           |
+| ------------------------ | -------------------------------------------------------- |
+| **User sovereignty**     | Opt-in tiers, inspectable schemas, instant deletion      |
+| **Local-first**          | All telemetry stored locally first; sharing is separate  |
+| **No silent collection** | Zero telemetry without explicit consent                  |
+| **Privacy-preserving**   | Bucketed values, no persistent IDs, scrubbed PII         |
+| **OTel-aligned naming**  | Adopt OpenTelemetry semantic conventions for field names |
+| **Future-proof**         | Infrastructure enables Web of Trust, AI detection later  |
+
+### OpenTelemetry Semantic Convention Alignment
+
+We adopt [OpenTelemetry semantic conventions](https://opentelemetry.io/docs/specs/semconv/) for field naming while keeping our custom privacy-first pipeline. This gives us:
+
+- Standardized naming (e.g., `exception.type` instead of ad-hoc `errorType`)
+- Future interoperability if we ever bridge to OTel backends
+- Familiar patterns for developers coming from OTel-instrumented systems
+
+We do NOT adopt the OTel SDK, Collector, or export pipeline — those assume centralized, always-on telemetry which conflicts with our local-first, consent-gated architecture. See [OPENTELEMETRY_EVALUATION.md](../explorations/OPENTELEMETRY_EVALUATION.md) for the full analysis.
+
+**Convention**: Schema field names use camelCase versions of OTel's dot-separated attribute names (e.g., `exception.type` → `exceptionType`). xNet-specific fields use the `xnet` prefix conceptually but no dot notation in property keys.
 
 ## Architecture Overview
 
@@ -202,6 +215,16 @@ type TelemetryTier =
   | 'anonymous'     // + anonymous usage metrics
   | 'identified'    // + stable identifier (beta testers)
 
+// Crash report (OTel-aligned field names)
+interface CrashReport {
+  exceptionType: string            // OTel: exception.type
+  exceptionMessage: string         // OTel: exception.message
+  exceptionStacktrace?: string     // OTel: exception.stacktrace
+  codeNamespace?: string           // OTel: code.namespace
+  serviceVersion?: string          // OTel: service.version
+  osType?: string                  // OTel: os.type
+}
+
 // Peer score (GossipSub-inspired)
 interface PeerScore {
   peerId: PeerId
@@ -212,11 +235,11 @@ interface PeerScore {
   lastUpdated: Date
 }
 
-// Security event (fail2ban compatible)
+// Security event (fail2ban compatible, OTel-aligned)
 interface SecurityEvent {
   eventType: 'invalid_signature' | 'rate_limit_exceeded' | 'connection_flood' | ...
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  peerIdHash: string               // Anonymized
+  eventSeverity: 'low' | 'medium' | 'high' | 'critical'  // OTel: event.severity
+  peerIdHash: string               // Anonymized (no OTel equiv — xNet-specific)
   actionTaken: 'none' | 'warned' | 'throttled' | 'blocked'
   timestamp: Date
 }
@@ -267,7 +290,9 @@ The current plan focuses on **local-first foundations** that make these future e
 
 ## Reference Documents
 
-- [TELEMETRY_DESIGN.md](../TELEMETRY_DESIGN.md) - Full design exploration with research
+- [TELEMETRY_DESIGN.md](../explorations/TELEMETRY_DESIGN.md) - Full design exploration with research
+- [OPENTELEMETRY_EVALUATION.md](../explorations/OPENTELEMETRY_EVALUATION.md) - OTel integration analysis (Option C: semantic conventions only)
+- [OpenTelemetry Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) - Field naming reference
 - [libp2p DoS Mitigation](https://docs.libp2p.io/concepts/security/dos-mitigation/) - Connection limits, fail2ban
 - [Brave P3A](https://brave.com/privacy-preserving-product-analytics-p3a/) - Privacy-preserving analytics
 
