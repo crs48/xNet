@@ -84,6 +84,12 @@ flowchart TB
 | Bubble menu               | Basic                         | Polished with animations           |
 | Drag handles              | None                          | Block reordering                   |
 | Mobile toolbar            | Basic fixed bar               | Enhanced with more actions         |
+| Images                    | None                          | Upload, paste, resize, alignment   |
+| File attachments          | None                          | Upload, preview, download          |
+| Embeds                    | None                          | YouTube, Spotify, Twitter, Figma   |
+| Database views            | None                          | Inline table/board from xNet DB    |
+| Callouts                  | None                          | Info/warning/tip boxes             |
+| Toggles                   | None                          | Collapsible sections               |
 
 ## Implementation Phases
 
@@ -186,6 +192,29 @@ flowchart TB
 - [ ] Editor handles 10k+ words without lag
 - [ ] Full test coverage
 
+### Phase 7: Media & Rich Blocks (Week 5-6)
+
+| Task | Document                                                 | Status |
+| ---- | -------------------------------------------------------- | ------ |
+| 7.1  | [21-blob-infrastructure.md](./21-blob-infrastructure.md) | [ ]    |
+| 7.2  | [22-image-upload.md](./22-image-upload.md)               | [ ]    |
+| 7.3  | [23-file-attachments.md](./23-file-attachments.md)       | [ ]    |
+| 7.4  | [24-media-embeds.md](./24-media-embeds.md)               | [ ]    |
+| 7.5  | [25-database-embed.md](./25-database-embed.md)           | [ ]    |
+| 7.6  | [26-callouts.md](./26-callouts.md)                       | [ ]    |
+| 7.7  | [27-toggles.md](./27-toggles.md)                         | [ ]    |
+
+**Validation Gate:**
+
+- [ ] BlobService handles upload, retrieval, and chunking
+- [ ] Images can be pasted, dropped, and resized
+- [ ] File attachments show preview and download
+- [ ] YouTube, Spotify, Twitter embeds work
+- [ ] Database views render inline with live data
+- [ ] Callouts support info/warning/tip types
+- [ ] Toggles expand/collapse smoothly
+- [ ] All media syncs via eager blob sync
+
 ## Package Structure
 
 ```
@@ -195,6 +224,12 @@ packages/editor/
 │   │   ├── live-preview/        # LivePreview extension + plugins
 │   │   ├── slash-command/       # SlashCommand extension
 │   │   ├── drag-handle/         # DragHandle extension
+│   │   ├── image/               # Image upload, resize, alignment
+│   │   ├── file/                # File attachments
+│   │   ├── embed/               # External media embeds
+│   │   ├── database-embed/      # Inline xNet database views
+│   │   ├── callout/             # Info/warning/tip boxes
+│   │   ├── toggle/              # Collapsible sections
 │   │   └── wikilink.ts          # Existing
 │   ├── nodeviews/
 │   │   ├── HeadingView.tsx      # Heading with ## syntax
@@ -208,11 +243,25 @@ packages/editor/
 │   │   ├── SlashMenu/           # Command palette
 │   │   ├── DragHandle/          # Drag handle + drop indicator
 │   │   └── MobileToolbar/       # Mobile toolbar
+│   ├── context/
+│   │   └── BlobContext.tsx      # Blob service provider
 │   ├── styles/
 │   │   └── editor.css           # Minimal CSS (mostly Tailwind)
 │   └── utils/
 ├── tailwind.config.js
 └── package.json
+
+packages/storage/
+├── src/
+│   ├── blob-store.ts            # BlobStore (ContentResolver impl)
+│   ├── chunk-manager.ts         # Large file chunking with Merkle trees
+│   └── ...
+
+packages/data/
+├── src/
+│   ├── blob/
+│   │   └── blob-service.ts      # High-level file upload/download
+│   └── ...
 ```
 
 ## Dependencies
@@ -237,6 +286,9 @@ packages/editor/
 7. **Tailwind throughout** - No external CSS dependencies
 8. **Tests pass** - >80% coverage on new code
 9. **Performance** - 60fps during editing, <100ms for large docs
+10. **Media support** - Images, files, and embeds work seamlessly
+11. **Database embeds** - Live xNet database views in documents
+12. **Rich blocks** - Callouts and toggles for content organization
 
 ## Reference Documents
 
