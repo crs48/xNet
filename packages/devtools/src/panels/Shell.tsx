@@ -1,0 +1,218 @@
+/**
+ * DevToolsPanel Shell - Tab container, resize handle, status bar
+ *
+ * Uses a dark zinc theme to distinguish from app content.
+ */
+
+import { useState, useCallback, useRef, type MouseEvent as ReactMouseEvent } from 'react'
+import { useDevTools } from '../provider/useDevTools'
+import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
+import { DEFAULTS } from '../core/constants'
+import { NodeExplorer } from './NodeExplorer/NodeExplorer'
+import { ChangeTimeline } from './ChangeTimeline/ChangeTimeline'
+import { SyncMonitor } from './SyncMonitor/SyncMonitor'
+import { YjsInspector } from './YjsInspector/YjsInspector'
+import { QueryDebugger } from './QueryDebugger/QueryDebugger'
+import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
+import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
+
+const PANELS: Array<{ id: PanelId; label: string }> = [
+  { id: 'nodes', label: 'Nodes' },
+  { id: 'changes', label: 'Changes' },
+  { id: 'sync', label: 'Sync' },
+  { id: 'yjs', label: 'Yjs' },
+  { id: 'queries', label: 'Queries' },
+  { id: 'telemetry', label: 'Telemetry' },
+  { id: 'schemas', label: 'Schemas' }
+]
+
+export function DevToolsPanel() {
+  const { position, height, activePanel, setActivePanel, setHeight, toggle, eventBus, store } =
+    useDevTools()
+
+  return (
+    <div
+      className={getContainerClass(position, height)}
+      role="complementary"
+      aria-label="xNet DevTools"
+    >
+      {/* Resize Handle */}
+      <ResizeHandle position={position} height={height} setHeight={setHeight} />
+
+      {/* Tab Bar */}
+      <div className="flex items-center border-b border-zinc-700 bg-zinc-900 px-2 shrink-0">
+        <span className="text-xs font-bold text-zinc-400 mr-3 select-none">xNet</span>
+
+        {PANELS.map((panel) => (
+          <button
+            key={panel.id}
+            onClick={() => setActivePanel(panel.id)}
+            className={`
+              px-3 py-1.5 text-xs font-medium border-b-2 transition-colors
+              ${
+                activePanel === panel.id
+                  ? 'border-blue-400 text-blue-400'
+                  : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              }
+            `}
+          >
+            {panel.label}
+          </button>
+        ))}
+
+        {/* Right-side controls */}
+        <div className="ml-auto flex items-center gap-2">
+          <EventCounter count={eventBus.size} capacity={eventBus.capacity} />
+          <PauseButton
+            isPaused={eventBus.isPaused}
+            onPause={() => eventBus.pause()}
+            onResume={() => eventBus.resume()}
+          />
+          <ClearButton onClear={() => eventBus.clear()} />
+          <button
+            onClick={toggle}
+            className="text-zinc-400 hover:text-white p-1 text-xs"
+            title="Close (Ctrl+Shift+D)"
+          >
+            x
+          </button>
+        </div>
+      </div>
+
+      {/* Active Panel Content */}
+      <div className="flex-1 overflow-hidden">
+        <ActivePanelContent panel={activePanel} />
+      </div>
+
+      {/* Status Bar */}
+      <div className="flex items-center px-3 py-1 border-t border-zinc-800 text-[10px] text-zinc-500 shrink-0">
+        <span>
+          Events: {eventBus.size}/{eventBus.capacity}
+        </span>
+        <span className="mx-2">|</span>
+        <span>Store: {store ? 'connected' : 'disconnected'}</span>
+        <span className="ml-auto">Ctrl+Shift+D to toggle</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Sub-components ────────────────────────────────────────
+
+function ActivePanelContent({ panel }: { panel: PanelId }) {
+  switch (panel) {
+    case 'nodes':
+      return <NodeExplorer />
+    case 'changes':
+      return <ChangeTimeline />
+    case 'sync':
+      return <SyncMonitor />
+    case 'yjs':
+      return <YjsInspector />
+    case 'queries':
+      return <QueryDebugger />
+    case 'telemetry':
+      return <TelemetryPanel />
+    case 'schemas':
+      return <SchemaRegistry />
+  }
+}
+
+function EventCounter({ count, capacity }: { count: number; capacity: number }) {
+  return <span className="text-[10px] text-zinc-500">{count}</span>
+}
+
+function PauseButton({
+  isPaused,
+  onPause,
+  onResume
+}: {
+  isPaused: boolean
+  onPause: () => void
+  onResume: () => void
+}) {
+  return (
+    <button
+      onClick={isPaused ? onResume : onPause}
+      className="text-zinc-400 hover:text-white text-xs p-0.5"
+      title={isPaused ? 'Resume' : 'Pause'}
+    >
+      {isPaused ? '>' : '||'}
+    </button>
+  )
+}
+
+function ClearButton({ onClear }: { onClear: () => void }) {
+  return (
+    <button
+      onClick={onClear}
+      className="text-zinc-400 hover:text-white text-xs p-0.5"
+      title="Clear events"
+    >
+      clr
+    </button>
+  )
+}
+
+function ResizeHandle({
+  position,
+  height,
+  setHeight
+}: {
+  position: PanelPosition
+  height: number
+  setHeight: (h: number) => void
+}) {
+  const handleMouseDown = (e: ReactMouseEvent) => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startX = e.clientX
+    const startHeight = height
+
+    const onMove = (me: globalThis.MouseEvent) => {
+      const delta =
+        position === 'bottom'
+          ? startY - me.clientY // drag up = larger
+          : me.clientX - startX // drag left = larger (for right position, actually reversed)
+      const newHeight = Math.max(
+        DEFAULTS.PANEL_MIN_HEIGHT,
+        Math.min(DEFAULTS.PANEL_MAX_HEIGHT, startHeight + delta)
+      )
+      setHeight(newHeight)
+    }
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
+
+  const cursorClass = position === 'bottom' ? 'cursor-ns-resize' : 'cursor-ew-resize'
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      className={`${cursorClass} shrink-0 ${
+        position === 'right' ? 'w-1 h-full' : 'h-1 w-full'
+      } bg-zinc-800 hover:bg-blue-500 transition-colors`}
+    />
+  )
+}
+
+// ─── Layout Helpers ────────────────────────────────────────
+
+function getContainerClass(position: PanelPosition, height: number): string {
+  const base = 'flex flex-col bg-zinc-950 text-zinc-200 font-mono text-xs border-zinc-700 z-[9999]'
+
+  switch (position) {
+    case 'bottom':
+      return `${base} fixed bottom-0 left-0 right-0 border-t h-[${height}px]`
+    case 'right':
+      return `${base} fixed top-0 right-0 bottom-0 border-l w-[${height}px]`
+    case 'floating':
+      return `${base} fixed bottom-4 right-4 rounded-lg border shadow-2xl w-[600px] h-[${height}px]`
+  }
+}
