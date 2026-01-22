@@ -183,6 +183,11 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   const userName = user?.name
   const userColor = user?.color
 
+  // Memoize createIfMissing to prevent unnecessary effect re-runs
+  // (options object is a new reference on each render)
+  const createIfMissingRef = useRef(createIfMissing)
+  createIfMissingRef.current = createIfMissing
+
   const { store, isReady } = useNodeStore()
   const schemaId = schema._schemaId
   const hasDocument = schema.schema.document === 'yjs'
@@ -223,13 +228,14 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       let node = await store.get(id)
 
       // Auto-create if not found and createIfMissing is provided
-      if (!node && createIfMissing && !creatingRef.current) {
+      // Use ref to avoid dependency on createIfMissing object reference
+      if (!node && createIfMissingRef.current && !creatingRef.current) {
         creatingRef.current = true
         try {
           node = await store.create({
             id,
             schemaId,
-            properties: createIfMissing as Record<string, unknown>
+            properties: createIfMissingRef.current as Record<string, unknown>
           })
           setWasCreated(true)
         } finally {
@@ -265,7 +271,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     } finally {
       setLoading(false)
     }
-  }, [store, isReady, id, schemaId, hasDocument, createIfMissing])
+  }, [store, isReady, id, schemaId, hasDocument])
 
   // Save document content
   const save = useCallback(async () => {

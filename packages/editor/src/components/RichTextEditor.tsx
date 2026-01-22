@@ -103,8 +103,11 @@ export function RichTextEditor({
       // StarterKit includes: Bold, Italic, Strike, Code, Heading, Blockquote,
       // BulletList, OrderedList, ListItem, CodeBlock, HardBreak, HorizontalRule
       // All with Markdown shortcuts enabled (e.g., **bold**, *italic*, # Heading)
-      // Note: Tiptap v3 StarterKit doesn't include history - Collaboration uses Yjs undo/redo
-      StarterKit,
+      // Disable undoRedo (we use Yjs undo/redo via Collaboration) and link (we configure our own)
+      StarterKit.configure({
+        undoRedo: false, // Collaboration uses Yjs undo/redo
+        link: false // We configure Link separately below
+      }),
       // Typography for smart quotes, em-dashes, ellipsis
       Typography,
       Placeholder.configure({
