@@ -3,6 +3,7 @@
  */
 import { createRootRoute, Outlet, Link } from '@tanstack/react-router'
 import { useIdentity } from '@xnet/react'
+import { ThemeToggle } from '@xnet/ui'
 import { Sidebar } from '../components/Sidebar'
 import { GlobalSearch } from '../components/GlobalSearch'
 
@@ -20,9 +21,10 @@ function RootLayout() {
           xNet
         </Link>
         <GlobalSearch />
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
           {identity && (
-            <span className="text-xs text-text-secondary font-mono" title={identity.did}>
+            <span className="text-xs text-muted-foreground font-mono" title={identity.did}>
               {identity.did.slice(0, 16)}...
             </span>
           )}

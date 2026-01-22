@@ -10,6 +10,7 @@
 import React, { useCallback, useState } from 'react'
 import { useQuery, useNodeStore, useMutate } from '@xnet/react'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
+import { ThemeToggle } from '@xnet/ui'
 import { Sidebar } from './components/Sidebar'
 import { PageView } from './components/PageView'
 import { DatabaseView } from './components/DatabaseView'
@@ -38,7 +39,7 @@ export function App() {
   const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema, { limit: 100 })
 
   // Mutations
-  const { create } = useMutate()
+  const { create, remove } = useMutate()
 
   // Combine all documents into a single list
   const documents: DocumentItem[] = [
@@ -109,12 +110,12 @@ export function App() {
   // Handle document deletion
   const handleDelete = useCallback(
     async (id: string) => {
-      // TODO: Implement delete via useMutate
+      await remove(id)
       if (selectedDocId === id) {
         setSelectedDocId(null)
       }
     },
-    [selectedDocId]
+    [remove, selectedDocId]
   )
 
   // Handle adding a shared document
@@ -164,9 +165,10 @@ export function App() {
   return (
     <div className="flex flex-col h-screen bg-bg-primary">
       {/* Titlebar */}
-      <header className="h-[38px] bg-bg-secondary flex items-center justify-between px-4 pr-20 border-b border-border relative">
+      <header className="h-[38px] bg-secondary flex items-center justify-between px-4 pr-20 border-b border-border relative">
         <div className="absolute inset-0 titlebar-drag" />
-        <h1 className="text-sm font-semibold z-10">xNet</h1>
+        <h1 className="text-sm font-semibold z-10 text-foreground">xNet</h1>
+        <ThemeToggle className="z-10 h-7 w-7" />
       </header>
 
       {/* Main content */}

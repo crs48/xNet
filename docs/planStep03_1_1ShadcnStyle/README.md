@@ -135,9 +135,9 @@ flowchart TB
 - [x] ThemeProvider manages `.dark` class on `<html>`
 - [x] useTheme() returns `{ theme, setTheme, toggleTheme }`
 - [x] Theme persists across sessions (localStorage)
-- [ ] Electron app has theme toggle in titlebar/menu
-- [ ] Web app has theme toggle
-- [ ] Expo app respects system theme with optional override
+- [x] Electron app has theme toggle in titlebar
+- [x] Web app has theme toggle in header
+- [x] Expo app respects system theme (via useColorScheme + NavigationContainer)
 - [x] System preference is respected as default
 
 ### Phase 6: DevTools-Specific Components (Week 3)
