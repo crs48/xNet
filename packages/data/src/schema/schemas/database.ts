@@ -38,8 +38,9 @@ export const DatabaseSchema = defineSchema({
 
     // Note: The property schema for items is stored separately
     // in the database's schema definition, not as a property value.
-  }
-  // No document - databases don't have rich text content
+  },
+  // Y.Doc for storing rows, view configs, and other mutable state
+  document: 'yjs'
 })
 
 /**

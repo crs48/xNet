@@ -59,6 +59,10 @@ export function GlobalSearch() {
 
     setLoading(true)
     try {
+      if (!store) {
+        setResults([])
+        return
+      }
       const state = store.getState()
       const allDocs = state.documents
       const queryLower = searchQuery.toLowerCase()

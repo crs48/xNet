@@ -91,6 +91,7 @@ export {
 export { PageSchema, type Page } from './schemas'
 export { DatabaseSchema, type Database } from './schemas'
 export { TaskSchema, type Task } from './schemas'
+export { CanvasSchema, type Canvas } from './schemas'
 export { builtInSchemas, type BuiltInSchemaIRI } from './schemas'
 
 // Schema registry

@@ -11,13 +11,16 @@
   },
   "dependencies": {
     "@tanstack/react-router": "^1.57.0",
+    "@xnet/data": "workspace:*",
     "@xnet/editor": "workspace:*",
     "@xnet/react": "workspace:*",
     "@xnet/sdk": "workspace:*",
+    "@xnet/storage": "workspace:*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "use-debounce": "^10.1.0",
-    "workbox-window": "^7.1.0"
+    "workbox-window": "^7.1.0",
+    "yjs": "^13.6.18"
   },
   "devDependencies": {
     "@tanstack/router-devtools": "^1.57.0",

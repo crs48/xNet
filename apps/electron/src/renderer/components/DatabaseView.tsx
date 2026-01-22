@@ -1,22 +1,20 @@
 /**
- * Database View - Table/Board view with Yjs persistence
+ * Database View - Table/Board view using @xnet/react hooks
  *
  * Uses @xnet/views TableView and BoardView with proper Schema + ViewConfig API.
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { TableView, BoardView, type ViewConfig } from '@xnet/views'
-import { defineSchema, text, select, date, type Schema } from '@xnet/data'
+import React, { useState, useEffect, useCallback } from 'react'
+import { useDocument } from '@xnet/react'
+import { DatabaseSchema, defineSchema, text, select, date, type Schema } from '@xnet/data'
+import { TableView, BoardView, type ViewConfig, type TableRow, type BoardRow } from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
-import type * as Y from 'yjs'
 
 interface DatabaseViewProps {
   docId: string
-  ydoc: Y.Doc | null
-  isLoading?: boolean
 }
 
-// Define a Task schema for the database
+// Define a Task schema for the database items
 const TaskSchema = defineSchema({
   name: 'Task',
   namespace: 'xnet://xnet.dev/',
@@ -45,7 +43,7 @@ const TaskSchema = defineSchema({
 // Get the schema object for views
 const schema: Schema = TaskSchema.schema
 
-// Default view configuration for table
+// Default view configurations
 const defaultTableView: ViewConfig = {
   id: 'default-table',
   name: 'Table View',
@@ -62,7 +60,6 @@ const defaultTableView: ViewConfig = {
   groupByProperty: 'status'
 }
 
-// Default view configuration for board
 const defaultBoardView: ViewConfig = {
   id: 'default-board',
   name: 'Board View',
@@ -118,21 +115,29 @@ const sampleData = [
   }
 ]
 
-export function DatabaseView({ docId, ydoc, isLoading }: DatabaseViewProps) {
+export function DatabaseView({ docId }: DatabaseViewProps) {
+  const {
+    data: database,
+    doc,
+    loading,
+    update
+  } = useDocument(DatabaseSchema, docId, {
+    createIfMissing: { title: 'Untitled Database' }
+  })
+
   const [viewMode, setViewMode] = useState<ViewMode>('table')
-  const [rows, setRows] = useState<Array<Record<string, unknown>>>([])
+  const [rows, setRows] = useState<TableRow[]>([])
   const [tableViewConfig, setTableViewConfig] = useState<ViewConfig>(defaultTableView)
   const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig>(defaultBoardView)
 
   // Load or initialize data from Y.Doc
   useEffect(() => {
-    if (!ydoc) return
+    if (!doc) return
 
-    const dataMap = ydoc.getMap('data')
+    const dataMap = doc.getMap('data')
 
-    // Load existing rows
     const loadRows = () => {
-      const storedRows = dataMap.get('rows') as Array<Record<string, unknown>> | undefined
+      const storedRows = dataMap.get('rows') as TableRow[] | undefined
       if (storedRows && Array.isArray(storedRows)) {
         setRows(storedRows)
       } else if (dataMap.size === 0) {
@@ -141,29 +146,24 @@ export function DatabaseView({ docId, ydoc, isLoading }: DatabaseViewProps) {
         setRows(sampleData)
       }
 
-      // Load view configs
       const storedTableView = dataMap.get('tableView') as ViewConfig | undefined
-      if (storedTableView) {
-        setTableViewConfig(storedTableView)
-      }
+      if (storedTableView) setTableViewConfig(storedTableView)
+
       const storedBoardView = dataMap.get('boardView') as ViewConfig | undefined
-      if (storedBoardView) {
-        setBoardViewConfig(storedBoardView)
-      }
+      if (storedBoardView) setBoardViewConfig(storedBoardView)
     }
 
     loadRows()
 
-    // Observe changes
     const observer = () => loadRows()
     dataMap.observe(observer)
 
     return () => dataMap.unobserve(observer)
-  }, [ydoc])
+  }, [doc])
 
   // Add new row
   const handleAddRow = useCallback(() => {
-    if (!ydoc) return
+    if (!doc) return
 
     const newRow = {
       id: Date.now().toString(),
@@ -174,18 +174,18 @@ export function DatabaseView({ docId, ydoc, isLoading }: DatabaseViewProps) {
       dueDate: ''
     }
 
-    const dataMap = ydoc.getMap('data')
+    const dataMap = doc.getMap('data')
     const currentRows = dataMap.get('rows') as Array<Record<string, unknown>> | undefined
     const updatedRows = [...(currentRows || []), newRow]
     dataMap.set('rows', updatedRows)
-  }, [ydoc])
+  }, [doc])
 
   // Handle row updates
   const handleUpdateRow = useCallback(
     (rowId: string, propertyId: string, value: unknown) => {
-      if (!ydoc) return
+      if (!doc) return
 
-      const dataMap = ydoc.getMap('data')
+      const dataMap = doc.getMap('data')
       const currentRows = dataMap.get('rows') as Array<Record<string, unknown>> | undefined
       if (!currentRows) return
 
@@ -195,55 +195,53 @@ export function DatabaseView({ docId, ydoc, isLoading }: DatabaseViewProps) {
 
       dataMap.set('rows', updatedRows)
     },
-    [ydoc]
+    [doc]
   )
 
   // Handle view config updates
   const handleUpdateTableView = useCallback(
     (changes: Partial<ViewConfig>) => {
-      if (!ydoc) return
+      if (!doc) return
       const newConfig = { ...tableViewConfig, ...changes }
       setTableViewConfig(newConfig)
-      const dataMap = ydoc.getMap('data')
-      dataMap.set('tableView', newConfig)
+      doc.getMap('data').set('tableView', newConfig)
     },
-    [ydoc, tableViewConfig]
+    [doc, tableViewConfig]
   )
 
   const handleUpdateBoardView = useCallback(
     (changes: Partial<ViewConfig>) => {
-      if (!ydoc) return
+      if (!doc) return
       const newConfig = { ...boardViewConfig, ...changes }
       setBoardViewConfig(newConfig)
-      const dataMap = ydoc.getMap('data')
-      dataMap.set('boardView', newConfig)
+      doc.getMap('data').set('boardView', newConfig)
     },
-    [ydoc, boardViewConfig]
+    [doc, boardViewConfig]
   )
 
   // Handle card add for board view
   const handleAddCard = useCallback(
     (columnId: string) => {
-      if (!ydoc) return
+      if (!doc) return
 
       const newRow = {
         id: Date.now().toString(),
         title: 'New item',
-        status: columnId, // Use the column as the status
+        status: columnId,
         priority: 'medium',
         assignee: '',
         dueDate: ''
       }
 
-      const dataMap = ydoc.getMap('data')
+      const dataMap = doc.getMap('data')
       const currentRows = dataMap.get('rows') as Array<Record<string, unknown>> | undefined
       const updatedRows = [...(currentRows || []), newRow]
       dataMap.set('rows', updatedRows)
     },
-    [ydoc]
+    [doc]
   )
 
-  if (isLoading || !ydoc) {
+  if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-text-secondary">Loading database...</p>
@@ -255,6 +253,18 @@ export function DatabaseView({ docId, ydoc, isLoading }: DatabaseViewProps) {
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
       <div className="flex items-center gap-2 p-3 border-b border-border bg-bg-secondary">
+        {/* Title */}
+        <input
+          type="text"
+          className="text-lg font-semibold border-none bg-transparent text-text outline-none placeholder:text-text-secondary"
+          value={database?.title || ''}
+          onChange={(e) => update({ title: e.target.value })}
+          placeholder="Untitled"
+        />
+
+        <div className="flex-1" />
+
+        {/* View switcher */}
         <div className="flex items-center bg-bg-tertiary rounded-md p-1">
           <button
             onClick={() => setViewMode('table')}
@@ -279,8 +289,6 @@ export function DatabaseView({ docId, ydoc, isLoading }: DatabaseViewProps) {
             <span>Board</span>
           </button>
         </div>
-
-        <div className="flex-1" />
 
         <button
           onClick={handleAddRow}

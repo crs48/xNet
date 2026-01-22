@@ -17,7 +17,7 @@ interface Props {
   docId: string
 }
 
-export function BacklinksPanel({ docId }: Props) {
+export function BacklinksPanel({ docId: _docId }: Props) {
   // TODO: Implement backlink search using NodeStore + query
   // For now, this is a placeholder that shows no backlinks
   const [expanded, setExpanded] = useState(false)

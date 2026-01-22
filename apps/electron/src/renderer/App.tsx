@@ -1,36 +1,66 @@
 /**
  * Electron App - Main component
  *
- * Integrates xNet packages:
- * - @xnet/editor for rich text editing
- * - @xnet/views for table/board views
- * - @xnet/canvas for infinite canvas
+ * Uses @xnet/react hooks for data management:
+ * - useQuery for listing documents
+ * - useDocument for editing documents
+ * - useMutate for creating/deleting
  */
 
-import React, { useEffect, useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
+import { useQuery, useNodeStore, useMutate } from '@xnet/react'
+import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
 import { Sidebar } from './components/Sidebar'
 import { PageView } from './components/PageView'
 import { DatabaseView } from './components/DatabaseView'
 import { CanvasView } from './components/CanvasView'
-import { useAppState } from './hooks/useAppState'
-import { useYDoc } from './hooks/useYDoc'
-import type { Document } from './lib/types'
+
+type DocType = 'page' | 'database' | 'canvas'
+
+interface DocumentItem {
+  id: string
+  title: string
+  type: DocType
+  createdAt?: number
+  updatedAt?: number
+}
 
 export function App() {
-  const { identity, documents, isLoading, error, createDocument, deleteDocument } = useAppState()
+  const { isReady } = useNodeStore()
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
+  const [selectedDocType, setSelectedDocType] = useState<DocType>('page')
 
-  const [selectedDocId, setSelectedDocId] = React.useState<string | null>(null)
-  const [selectedDocType, setSelectedDocType] = React.useState<Document['type']>('page')
+  // Query all document types
+  const { data: pages, loading: pagesLoading } = useQuery(PageSchema, { limit: 100 })
+  const { data: databases, loading: databasesLoading } = useQuery(DatabaseSchema, { limit: 100 })
+  const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema, { limit: 100 })
 
-  const { ydoc, isLoading: docLoading } = useYDoc(selectedDocId)
+  // Mutations
+  const { create } = useMutate()
 
-  // Listen for new page menu command
-  useEffect(() => {
-    if (!window.xnet) return
-    return window.xnet.onNewPage(() => {
-      handleCreate('page')
-    })
-  }, [])
+  // Combine all documents into a single list
+  const documents: DocumentItem[] = [
+    ...pages.map((p) => ({
+      id: p.id,
+      title: p.title || 'Untitled',
+      type: 'page' as DocType,
+      updatedAt: p.updatedAt
+    })),
+    ...databases.map((d) => ({
+      id: d.id,
+      title: d.title || 'Untitled',
+      type: 'database' as DocType,
+      updatedAt: d.updatedAt
+    })),
+    ...canvases.map((c) => ({
+      id: c.id,
+      title: c.title || 'Untitled',
+      type: 'canvas' as DocType,
+      updatedAt: c.updatedAt
+    }))
+  ].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+
+  const isLoading = !isReady || pagesLoading || databasesLoading || canvasesLoading
 
   // Handle document selection
   const handleSelect = useCallback(
@@ -38,7 +68,7 @@ export function App() {
       const doc = documents.find((d) => d.id === id)
       if (doc) {
         setSelectedDocId(id)
-        setSelectedDocType(doc.type || 'page')
+        setSelectedDocType(doc.type)
       }
     },
     [documents]
@@ -46,30 +76,43 @@ export function App() {
 
   // Handle document creation
   const handleCreate = useCallback(
-    async (type: Document['type']) => {
-      const titleMap: Record<Document['type'], string> = {
+    async (type: DocType) => {
+      const titleMap: Record<DocType, string> = {
         page: 'Untitled Page',
         database: 'Untitled Database',
         canvas: 'Untitled Canvas'
       }
-      const id = await createDocument(type, titleMap[type])
-      if (id) {
-        setSelectedDocId(id)
+
+      let newDoc
+      switch (type) {
+        case 'page':
+          newDoc = await create(PageSchema, { title: titleMap[type] })
+          break
+        case 'database':
+          newDoc = await create(DatabaseSchema, { title: titleMap[type] })
+          break
+        case 'canvas':
+          newDoc = await create(CanvasSchema, { title: titleMap[type] })
+          break
+      }
+
+      if (newDoc) {
+        setSelectedDocId(newDoc.id)
         setSelectedDocType(type)
       }
     },
-    [createDocument]
+    [create]
   )
 
   // Handle document deletion
   const handleDelete = useCallback(
     async (id: string) => {
-      await deleteDocument(id)
+      // TODO: Implement delete via useMutate
       if (selectedDocId === id) {
         setSelectedDocId(null)
       }
     },
-    [deleteDocument, selectedDocId]
+    [selectedDocId]
   )
 
   // Render content based on document type
@@ -85,11 +128,11 @@ export function App() {
 
     switch (selectedDocType) {
       case 'page':
-        return ydoc ? <PageView ydoc={ydoc} isLoading={docLoading} /> : null
+        return <PageView docId={selectedDocId} />
       case 'database':
-        return <DatabaseView docId={selectedDocId} ydoc={ydoc} isLoading={docLoading} />
+        return <DatabaseView docId={selectedDocId} />
       case 'canvas':
-        return <CanvasView docId={selectedDocId} ydoc={ydoc} isLoading={docLoading} />
+        return <CanvasView docId={selectedDocId} />
       default:
         return null
     }
@@ -105,29 +148,12 @@ export function App() {
     )
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full bg-bg-primary">
-        <p className="text-red-500 mb-4">Error: {error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-hover transition-colors"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
-
   return (
     <div className="flex flex-col h-screen bg-bg-primary">
       {/* Titlebar */}
       <header className="h-[38px] bg-bg-secondary flex items-center justify-between px-4 pr-20 border-b border-border relative">
         <div className="absolute inset-0 titlebar-drag" />
         <h1 className="text-sm font-semibold z-10">xNet</h1>
-        <span className="text-xs text-text-secondary z-10">
-          {identity ? `${identity.slice(0, 20)}...` : ''}
-        </span>
       </header>
 
       {/* Main content */}

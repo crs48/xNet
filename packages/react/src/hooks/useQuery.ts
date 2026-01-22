@@ -53,6 +53,11 @@ export interface TypedNode<P extends Record<string, PropertyBuilder>> extends No
 export type SortDirection = 'asc' | 'desc'
 
 /**
+ * System fields that can be used for ordering
+ */
+export type SystemOrderField = 'createdAt' | 'updatedAt'
+
+/**
  * Query filter options
  */
 export interface QueryFilter<
@@ -62,8 +67,8 @@ export interface QueryFilter<
   where?: Partial<InferCreateProps<P>>
   /** Include soft-deleted nodes */
   includeDeleted?: boolean
-  /** Sort by property */
-  orderBy?: { [K in keyof InferCreateProps<P>]?: SortDirection }
+  /** Sort by property or system field (createdAt, updatedAt) */
+  orderBy?: { [K in keyof InferCreateProps<P> | SystemOrderField]?: SortDirection }
   /** Limit results */
   limit?: number
   /** Offset for pagination */
