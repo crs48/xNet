@@ -389,30 +389,193 @@ sequenceDiagram
 
 ## UI Patterns
 
-### Editor Comments (Google Docs style)
+### Inline Comment Popover (Primary Interaction)
+
+The popover is the primary way to view and interact with comments. Users should never need to open a sidebar just to read a comment — the thread appears right next to the commented content on click (or hover for preview).
+
+```mermaid
+flowchart TB
+    subgraph "Trigger Events"
+        CLICK[Click on highlight/indicator]
+        HOVER[Hover on highlight/indicator]
+        FOCUS[Focus/cursor enters mark]
+    end
+
+    subgraph "Popover States"
+        PREVIEW["Preview (hover)<br/>Shows first comment + reply count"]
+        FULL["Full thread (click/focus)<br/>All comments + reply input"]
+    end
+
+    subgraph "Popover Position"
+        INLINE["Anchored to highlight<br/>(editor: right margin)<br/>(cell: below/beside cell)<br/>(canvas: beside pin)"]
+    end
+
+    HOVER --> PREVIEW
+    CLICK --> FULL
+    FOCUS --> FULL
+    PREVIEW --> FULL
+    FULL --> INLINE
+```
+
+**Interaction states:**
+
+| Trigger                                                       | Behavior                                           | Delay                                        |
+| ------------------------------------------------------------- | -------------------------------------------------- | -------------------------------------------- |
+| **Hover** over highlighted text / cell indicator / canvas pin | Show preview popover (first comment + "N replies") | 300ms delay, dismiss on mouse leave          |
+| **Click** on highlighted text / cell indicator / canvas pin   | Show full thread popover with reply input          | Immediate, stays open until explicit dismiss |
+| **Cursor enters** a comment mark (editor)                     | Show full thread popover                           | Immediate, stays while cursor is inside mark |
+| **Click away** / press Escape                                 | Dismiss popover                                    | Immediate                                    |
+| **Hover popover itself**                                      | Keep popover open (prevent dismiss on mouse-leave) | —                                            |
+
+**Popover anatomy:**
+
+```
+┌─────────────────────────────────────────┐
+│ ┌─────────────────────────────────────┐ │
+│ │ Avatar  Author Name    2 min ago    │ │
+│ │                                     │ │
+│ │ This needs to handle the edge case  │ │
+│ │ where `syncProvider` is null.       │ │
+│ └─────────────────────────────────────┘ │
+│ ┌─────────────────────────────────────┐ │
+│ │ Avatar  Reply Author   1 min ago    │ │
+│ │                                     │ │
+│ │ Good catch, I'll fix it.            │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ Reply...                        ⏎  │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ [Resolve]                    [···]      │
+└─────────────────────────────────────────┘
+```
+
+**Positioning logic:**
+
+| Context               | Popover Position                                            |
+| --------------------- | ----------------------------------------------------------- |
+| Editor text highlight | Right margin (beside the line), or below if narrow viewport |
+| Database cell         | Below the cell, aligned to left edge                        |
+| Database row          | Right side of the row, or in a slide-out panel              |
+| Canvas pin            | Beside the pin (offset to not cover content)                |
+| Canvas object         | Beside the object's bounding box                            |
+
+**React component sketch:**
+
+```typescript
+// packages/ui/src/components/CommentPopover.tsx
+
+interface CommentPopoverProps {
+  thread: CommentThread
+  comments: Comment[]
+  anchorEl: HTMLElement | { x: number; y: number }
+  mode: 'preview' | 'full'
+  onReply: (content: string) => void
+  onResolve: () => void
+  onDismiss: () => void
+}
+
+function CommentPopover({ thread, comments, anchorEl, mode, onReply, onResolve, onDismiss }: CommentPopoverProps) {
+  return (
+    <Popover anchor={anchorEl} onClose={onDismiss} side="right" align="start">
+      {mode === 'preview' ? (
+        <CommentPreview comment={comments[0]} replyCount={comments.length - 1} />
+      ) : (
+        <>
+          <CommentList comments={comments} />
+          <ReplyInput onSubmit={onReply} />
+          <ThreadActions onResolve={onResolve} threadId={thread.id} />
+        </>
+      )}
+    </Popover>
+  )
+}
+```
+
+**Editor integration (TipTap plugin):**
+
+```typescript
+// packages/editor/src/extensions/comment-popover-plugin.ts
+
+import { Plugin, PluginKey } from '@tiptap/pm/state'
+
+export const commentPopoverPlugin = new Plugin({
+  key: new PluginKey('commentPopover'),
+
+  props: {
+    handleClick(view, pos) {
+      // Check if click position is inside a comment mark
+      const marks = view.state.doc.resolve(pos).marks()
+      const commentMark = marks.find((m) => m.type.name === 'comment')
+
+      if (commentMark) {
+        // Get the DOM element for positioning
+        const dom = view.domAtPos(pos)
+        showCommentPopover({
+          threadId: commentMark.attrs.threadId,
+          anchorEl: dom.node as HTMLElement,
+          mode: 'full'
+        })
+        return true
+      }
+      return false
+    },
+
+    handleDOMEvents: {
+      mouseover(view, event) {
+        const target = event.target as HTMLElement
+        const commentSpan = target.closest('[data-comment]')
+
+        if (commentSpan) {
+          const threadId = commentSpan.getAttribute('data-thread-id')
+          // Show preview after hover delay
+          schedulePreview(threadId, commentSpan, 300)
+        }
+        return false
+      },
+
+      mouseout(view, event) {
+        const target = event.target as HTMLElement
+        if (target.closest('[data-comment]')) {
+          cancelPreview()
+        }
+        return false
+      }
+    }
+  }
+})
+```
+
+### Editor Comments
 
 ```mermaid
 flowchart LR
     subgraph "Editor"
-        TEXT[Document text with<br/>highlighted comment ranges]
+        TEXT["Document text with<br/>highlighted comment ranges"]
     end
 
-    subgraph "Sidebar"
-        THREAD1[Thread 1<br/>- Comment A<br/>- Reply B<br/>- Reply C]
-        THREAD2[Thread 2<br/>- Comment D]
+    subgraph "Popover (primary)"
+        POP["Thread popover<br/>appears inline on click/hover"]
     end
 
-    TEXT ---|click highlight| THREAD1
-    TEXT ---|click highlight| THREAD2
+    subgraph "Sidebar (optional)"
+        SIDE["All threads list<br/>for bulk review/navigation"]
+    end
+
+    TEXT ---|"click/hover highlight"| POP
+    TEXT ---|"open sidebar toggle"| SIDE
 ```
 
 **Interaction flow:**
 
 1. Select text → bubble menu shows "Comment" action
-2. Click "Comment" → sidebar opens with new thread input
+2. Click "Comment" → popover opens inline with thread input, mark is applied
 3. Highlighted text gets yellow background (comment Mark)
-4. Clicking highlighted text scrolls sidebar to that thread
-5. Clicking a sidebar thread scrolls editor to the highlighted text
+4. **Hover** on highlighted text → preview popover (first comment + reply count)
+5. **Click** on highlighted text → full thread popover with reply input
+6. Cursor entering a comment mark → full popover opens automatically
+7. Sidebar available via toggle for bulk review/navigation (optional, not required)
 
 ### Canvas Comments (Figma/Miro style)
 
@@ -421,51 +584,54 @@ flowchart TB
     subgraph "Canvas"
         OBJ1[Image Node]
         OBJ2[Text Node]
-        PIN1["📌 Pin at (120, 340)"]
-        PIN2["📌 Pin on Image"]
-        PIN3["📌 Pin at (500, 200)"]
+        PIN1["Pin at (120, 340)"]
+        PIN2["Pin on Image"]
+        PIN3["Pin at (500, 200)"]
     end
 
     subgraph "Comment Popover"
-        POP["Thread popover<br/>appears on pin click"]
+        POP["Thread popover<br/>appears beside pin on click/hover"]
     end
 
-    PIN1 ---|click| POP
+    PIN1 ---|"click/hover"| POP
     PIN2 ---|attached to| OBJ1
 ```
 
 **Interaction flow:**
 
 1. Enter "Comment mode" (shortcut or toolbar toggle)
-2. Click anywhere on canvas → drops a pin, opens thread input
+2. Click anywhere on canvas → drops a pin, opens thread popover inline
 3. Click on an object → attaches comment to that object (follows it when moved)
 4. Pins show author avatar or comment count badge
-5. Click pin → popover with thread
+5. **Hover** pin → preview popover beside the pin
+6. **Click** pin → full thread popover beside the pin
 
 ### Database Comments
 
 ```mermaid
 flowchart LR
     subgraph "Table View"
-        CELL["Cell: 'In Progress'<br/>💬 indicator"]
-        ROW["Row header<br/>💬 2 comments"]
-        COL["Column header: Status<br/>💬 1 comment"]
+        CELL["Cell: 'In Progress'<br/>comment indicator in corner"]
+        ROW["Row header<br/>comment count badge"]
+        COL["Column header: Status<br/>comment indicator"]
     end
 
-    subgraph "Comment Panel"
-        PANEL["Contextual thread<br/>shown on hover/click"]
+    subgraph "Comment Popover"
+        POP["Thread popover<br/>below/beside the cell"]
     end
 
-    CELL ---|hover/click| PANEL
-    ROW ---|click row menu| PANEL
+    CELL ---|"click/hover indicator"| POP
+    ROW ---|"click badge"| POP
 ```
 
 **Interaction flow:**
 
-1. Right-click cell → "Comment on cell"
-2. Comment indicator (speech bubble icon) appears in cell corner
-3. Row comments accessible via row action menu
-4. Column comments via column header menu
+1. Right-click cell → "Comment on cell" (or click the indicator icon)
+2. Comment indicator (small dot/icon) appears in cell corner when comments exist
+3. **Hover** indicator → preview popover showing first comment
+4. **Click** indicator → full thread popover below the cell
+5. Row comment badge → click shows popover beside the row
+6. Column comments via column header indicator
 
 ---
 
@@ -677,11 +843,52 @@ gantt
 | ---------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------- |
 | **Flat vs. nested replies?** | Flat (Linear/Figma) vs. threaded (GitHub/Slack) | Flat — simpler, works for focused discussions                           |
 | **Max nesting depth?**       | 1 level (flat), 2 levels, unlimited             | 1 level (parent + replies)                                              |
-| **Comment edit history?**    | Store previous versions vs. just "edited" flag  | Just "edited" flag to start                                             |
+| **Comment edit history?**    | Store previous versions vs. just "edited" flag  | Free via event-sourced Changes — no extra work needed (see below)       |
 | **Reactions on comments?**   | Emoji reactions (like GitHub)                   | Yes, but Phase 4+                                                       |
 | **Comment permissions?**     | Anyone can comment vs. ACL-gated                | Anyone with Node access can comment (matches Node permissions via UCAN) |
 | **Notification system?**     | Push vs. poll vs. in-app only                   | In-app only to start (badge counts)                                     |
 | **Markdown flavor?**         | CommonMark, GFM, custom subset                  | GFM subset (bold, italic, code, links, lists, mentions)                 |
+
+---
+
+## Comment Edit History (Free)
+
+Because comments are Nodes, and all Node mutations are event-sourced as `Change<NodePayload>` records, we get full edit history for free:
+
+```mermaid
+flowchart LR
+    subgraph "Change Log (already exists)"
+        C1["Change 1<br/>content: 'This is wrong'"]
+        C2["Change 2<br/>content: 'This might be wrong'"]
+        C3["Change 3<br/>content: 'Actually, this is a bug'"]
+    end
+
+    subgraph "Current State"
+        NOW["Materialized: 'Actually, this is a bug'<br/>edited: true"]
+    end
+
+    C1 --> C2 --> C3 --> NOW
+```
+
+- Every edit to a comment's `content` property creates a new `Change` with a Lamport timestamp
+- The change log is already persisted — we just don't expose a query API for it yet
+- When we do, comment history is automatically available: "edited 3 times" → click to see previous versions
+- No need to store a separate `previousVersions` array or versioning table
+- Same mechanism gives us "who edited" and "when" for each revision
+
+**Future API (when change log queries are exposed):**
+
+```typescript
+// Query the change history for a comment's content property
+const history = await store.getPropertyHistory(commentId, 'content')
+// Returns: [
+//   { value: 'This is wrong', timestamp: ..., author: 'did:key:...' },
+//   { value: 'This might be wrong', timestamp: ..., author: 'did:key:...' },
+//   { value: 'Actually, this is a bug', timestamp: ..., author: 'did:key:...' }
+// ]
+```
+
+This is a good example of xNet's event-sourced architecture paying dividends — features that other systems need to build explicitly (audit logs, version history, edit tracking) come for free once we surface the underlying change stream.
 
 ---
 
