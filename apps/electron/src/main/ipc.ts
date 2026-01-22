@@ -1,11 +1,12 @@
 /**
  * IPC handlers for xNet operations
  */
-import { ipcMain, app } from 'electron'
+import { ipcMain } from 'electron'
 import { join } from 'path'
 import { createXNetClient, type XNetClient } from '@xnet/sdk'
 import { SQLiteAdapter } from './storage'
 import { mkdirSync } from 'fs'
+import { dataPath } from './index'
 
 let client: XNetClient | null = null
 let storage: SQLiteAdapter | null = null
@@ -14,8 +15,6 @@ export function setupIPC() {
   // Initialize client
   ipcMain.handle('xnet:init', async () => {
     if (client) return { did: client.identity.did }
-
-    const dataPath = join(app.getPath('userData'), 'xnet-data')
 
     // Ensure data directory exists
     try {
