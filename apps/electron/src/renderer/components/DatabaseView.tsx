@@ -122,7 +122,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     loading,
     update
   } = useDocument(DatabaseSchema, docId, {
-    createIfMissing: { title: 'Untitled Database' }
+    createIfMissing: { title: 'Untitled Database' },
+    disableSync: true // Disable y-webrtc until signaling server is available
   })
 
   const [viewMode, setViewMode] = useState<ViewMode>('table')

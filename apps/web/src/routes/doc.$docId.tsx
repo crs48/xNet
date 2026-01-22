@@ -27,6 +27,7 @@ function DocumentPage() {
     remoteUsers
   } = useDocument(PageSchema, docId, {
     createIfMissing: { title: 'Untitled' },
+    disableSync: true, // Disable y-webrtc until signaling server is available
     user: { name: 'You' } // TODO: Get from identity
   })
 

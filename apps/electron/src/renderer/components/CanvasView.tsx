@@ -21,7 +21,8 @@ export function CanvasView({ docId }: CanvasViewProps) {
     loading,
     update
   } = useDocument(CanvasSchema, docId, {
-    createIfMissing: { title: 'Untitled Canvas' }
+    createIfMissing: { title: 'Untitled Canvas' },
+    disableSync: true // Disable y-webrtc until signaling server is available
   })
 
   const [canvasReady, setCanvasReady] = useState(false)
