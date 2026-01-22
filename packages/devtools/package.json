@@ -1,0 +1,42 @@
+{
+  "name": "@xnet/devtools",
+  "version": "0.1.0",
+  "description": "Protocol-level devtools for xNet applications",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "development": "./src/index.dev.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/index.dev.ts --format esm --dts --external react --external react-dom --external yjs --external @xnet/data --external @xnet/sync --external @xnet/react --external @xnet/ui",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "yjs": ">=13.0.0",
+    "@xnet/data": "workspace:*",
+    "@xnet/sync": "workspace:*",
+    "@xnet/react": "workspace:*"
+  },
+  "dependencies": {
+    "@xnet/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^2.0.0",
+    "yjs": "^13.6.0"
+  }
+}

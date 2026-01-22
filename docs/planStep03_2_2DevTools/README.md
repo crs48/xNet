@@ -89,18 +89,18 @@ flowchart TB
 
 ## Current State
 
-| Feature              | Status      | Notes                                                        |
-| -------------------- | ----------- | ------------------------------------------------------------ |
-| Package scaffold     | Not started |                                                              |
-| Instrumentation bus  | Not started | `console.log` debug statements exist in useDocument          |
-| Node Explorer        | Not started | Can reuse `@xnet/views` TableView                            |
-| Change Timeline      | Not started | NodeStore exposes `getRecentConflicts()`                     |
-| Sync Monitor         | Not started | SyncProvider has events: status-change, peer-connected, etc. |
-| Yjs Inspector        | Not started | Y.Doc instances tracked in useDocument                       |
-| Query Debugger       | Not started | useQuery/useMutate have subscription patterns                |
-| Telemetry Panel      | Not started | Depends on planStep03_1                                      |
-| Schema Registry      | Not started | SchemaRegistry exists with `getAllIRIs()`                    |
-| Platform integration | Not started | Electron/Expo/Web targets                                    |
+| Feature              | Status  | Notes                                                       |
+| -------------------- | ------- | ----------------------------------------------------------- |
+| Package scaffold     | Done    | package.json, tsconfig, conditional exports, build works    |
+| Instrumentation bus  | Done    | Ring buffer EventBus, store/sync/yjs instrumentation        |
+| Node Explorer        | Done    | Custom list with schema filter, search, detail pane         |
+| Change Timeline      | Done    | Lamport-ordered timeline with type/node filtering           |
+| Sync Monitor         | Done    | Peer list, connection status, sync event log                |
+| Yjs Inspector        | Done    | Doc list with size/update metrics, update log               |
+| Query Debugger       | Stub    | Placeholder - will track useQuery/useMutate hooks           |
+| Telemetry Panel      | Stub    | Placeholder - depends on planStep03_1                       |
+| Schema Registry      | Done    | Schema browser with node counts                             |
+| Platform integration | Partial | Ctrl+Shift+D + 4-finger tap implemented, not tested in Expo |
 
 ## Implementation Phases
 
@@ -113,11 +113,11 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] `@xnet/devtools` package builds successfully
-- [ ] EventBus captures store CRUD events
-- [ ] EventBus captures sync status changes
-- [ ] Production builds tree-shake to 0 bytes
-- [ ] Ring buffer limits memory to configurable max
+- [x] `@xnet/devtools` package builds successfully
+- [x] EventBus captures store CRUD events
+- [x] EventBus captures sync status changes
+- [x] Production builds tree-shake to 0 bytes
+- [x] Ring buffer limits memory to configurable max
 
 ### Phase 2: Provider & Panel Shell (Week 1-2)
 
@@ -127,11 +127,11 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] `<DevToolsProvider>` renders children unmodified when closed
-- [ ] `Ctrl+Shift+D` toggles panel
-- [ ] Panel supports bottom/right/floating positions
-- [ ] Tab navigation between panels works
-- [ ] Panel is resizable via drag handle
+- [x] `<DevToolsProvider>` renders children unmodified when closed
+- [x] `Ctrl+Shift+D` toggles panel
+- [x] Panel supports bottom/right/floating positions
+- [x] Tab navigation between panels works
+- [x] Panel is resizable via drag handle
 
 ### Phase 3: Data Panels (Week 2-3)
 
@@ -143,12 +143,12 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Node Explorer shows all nodes grouped by schema
+- [x] Node Explorer shows all nodes grouped by schema
 - [ ] Node Explorer uses `@xnet/views` TableView for rendering
-- [ ] Change Timeline shows Lamport-ordered changes
-- [ ] Conflicts are highlighted with resolution info
-- [ ] Sync Monitor shows live peer list with status
-- [ ] Sync event log updates in real-time
+- [x] Change Timeline shows Lamport-ordered changes
+- [x] Conflicts are highlighted with resolution info
+- [x] Sync Monitor shows live peer list with status
+- [x] Sync event log updates in real-time
 
 ### Phase 4: CRDT & Hooks Panels (Week 3-4)
 
@@ -165,6 +165,8 @@ flowchart TB
 - [ ] Performance metrics (update frequency, render time) are tracked
 - [ ] Hook source location is displayed where possible
 
+> Note: YjsInspector shows update events/sizes but not Y.Doc tree structure yet. QueryDebugger is a stub.
+
 ### Phase 5: Telemetry & Platform (Week 4-5)
 
 | Task | Document                                                   | Description                                                   |
@@ -179,7 +181,9 @@ flowchart TB
 - [ ] Consent status is visible and editable
 - [ ] Devtools work in Electron main window
 - [ ] Devtools work in Expo via dev overlay
-- [ ] Mobile: 4-finger tap toggles panel
+- [x] Mobile: 4-finger tap toggles panel
+
+> Note: TelemetryPanel is a stub (depends on planStep03_1). Platform integration not yet tested in apps.
 
 ## Package Structure
 
