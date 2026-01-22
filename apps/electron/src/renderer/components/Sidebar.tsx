@@ -5,7 +5,16 @@
  */
 
 import React, { useState } from 'react'
-import { FileText, Database, Layout, Plus, Trash2, ChevronDown, ChevronRight } from 'lucide-react'
+import {
+  FileText,
+  Database,
+  Layout,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Link
+} from 'lucide-react'
 import type { Document } from '../lib/types'
 
 interface SidebarProps {
@@ -14,13 +23,14 @@ interface SidebarProps {
   onSelect: (id: string) => void
   onDelete: (id: string) => void
   onCreate: (type: Document['type']) => void
+  onAddShared: () => void
 }
 
-const typeIcons: Record<Document['type'], React.ComponentType<{ size?: number }>> = {
+const typeIcons = {
   page: FileText,
   database: Database,
   canvas: Layout
-}
+} as const
 
 const typeLabels: Record<Document['type'], string> = {
   page: 'Page',
@@ -28,7 +38,14 @@ const typeLabels: Record<Document['type'], string> = {
   canvas: 'Canvas'
 }
 
-export function Sidebar({ documents, selectedId, onSelect, onDelete, onCreate }: SidebarProps) {
+export function Sidebar({
+  documents,
+  selectedId,
+  onSelect,
+  onDelete,
+  onCreate,
+  onAddShared
+}: SidebarProps) {
   const [showCreateMenu, setShowCreateMenu] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Record<Document['type'], boolean>>({
     page: true,
@@ -96,6 +113,17 @@ export function Sidebar({ documents, selectedId, onSelect, onDelete, onCreate }:
               >
                 <Layout size={14} />
                 <span>Canvas</span>
+              </button>
+              <hr className="my-1 border-border" />
+              <button
+                onClick={() => {
+                  setShowCreateMenu(false)
+                  onAddShared()
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-tertiary text-left text-primary"
+              >
+                <Link size={14} />
+                <span>Add Shared...</span>
               </button>
             </div>
           )}

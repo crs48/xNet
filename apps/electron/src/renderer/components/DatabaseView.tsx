@@ -9,6 +9,7 @@ import { useDocument } from '@xnet/react'
 import { DatabaseSchema, defineSchema, text, select, date, type Schema } from '@xnet/data'
 import { TableView, BoardView, type ViewConfig, type TableRow, type BoardRow } from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
+import { ShareButton } from './ShareButton'
 
 interface DatabaseViewProps {
   docId: string
@@ -298,6 +299,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           <Plus size={14} />
           <span>New</span>
         </button>
+
+        <ShareButton docId={docId} docType="database" />
       </div>
 
       {/* View content */}

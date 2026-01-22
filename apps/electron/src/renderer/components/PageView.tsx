@@ -6,6 +6,7 @@ import React from 'react'
 import { useDocument } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
 import { RichTextEditor } from '@xnet/editor/react'
+import { DocumentHeader } from './DocumentHeader'
 
 interface PageViewProps {
   docId: string
@@ -32,16 +33,13 @@ export function PageView({ docId }: PageViewProps) {
 
   return (
     <div className="flex-1 flex flex-col overflow-auto">
-      {/* Title */}
-      <div className="px-6 pt-6">
-        <input
-          type="text"
-          className="text-3xl font-semibold border-none bg-transparent text-text w-full outline-none placeholder:text-text-secondary"
-          value={page?.title || ''}
-          onChange={(e) => update({ title: e.target.value })}
-          placeholder="Untitled"
-        />
-      </div>
+      <DocumentHeader
+        docId={docId}
+        docType="page"
+        title={page?.title || ''}
+        onTitleChange={(title) => update({ title })}
+        placeholder="Untitled Page"
+      />
 
       {/* Editor */}
       <div className="flex-1 px-6 py-4">
