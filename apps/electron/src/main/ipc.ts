@@ -6,12 +6,15 @@ import { join } from 'path'
 import { createXNetClient, type XNetClient } from '@xnet/sdk'
 import { SQLiteAdapter } from './storage'
 import { mkdirSync } from 'fs'
-import { dataPath } from './index'
+import { dataPath, profile } from './index'
 
 let client: XNetClient | null = null
 let storage: SQLiteAdapter | null = null
 
 export function setupIPC() {
+  // Get profile name (for IndexedDB isolation in renderer)
+  ipcMain.handle('xnet:getProfile', () => profile)
+
   // Initialize client
   ipcMain.handle('xnet:init', async () => {
     if (client) return { did: client.identity.did }

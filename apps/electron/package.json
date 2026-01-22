@@ -8,7 +8,7 @@
     "dev": "concurrently -k -n signal,electron -c blue,green \"pnpm run dev:signaling\" \"pnpm run dev:electron\"",
     "dev:electron": "electron-vite dev",
     "dev:signaling": "pnpm --filter @xnet/signaling-server dev",
-    "dev:user2": "cross-env XNET_PROFILE=user2 electron-vite dev",
+    "dev:user2": "cross-env XNET_PROFILE=user2 VITE_PORT=5174 electron-vite dev",
     "dev:both": "concurrently -k -n signal,user1,user2 -c blue,green,yellow \"pnpm run dev:signaling\" \"pnpm run dev:electron\" \"sleep 3 && pnpm run dev:user2\"",
     "build": "electron-vite build",
     "postinstall": "electron-builder install-app-deps",
