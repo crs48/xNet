@@ -8,6 +8,7 @@ import { SQLiteAdapter } from './storage'
 import { mkdirSync } from 'fs'
 
 let client: XNetClient | null = null
+let storage: SQLiteAdapter | null = null
 
 export function setupIPC() {
   // Initialize client
@@ -23,7 +24,7 @@ export function setupIPC() {
       // Directory may already exist
     }
 
-    const storage = new SQLiteAdapter(join(dataPath, 'xnet.db'))
+    storage = new SQLiteAdapter(join(dataPath, 'xnet.db'))
 
     client = await createXNetClient({
       storage,
@@ -101,7 +102,7 @@ export function setupIPC() {
     if (!doc) return null
 
     // Return document data in the format expected by StorageAdapter
-    const state = await import('yjs').then(Y => Y.encodeStateAsUpdate(doc.ydoc))
+    const state = await import('yjs').then((Y) => Y.encodeStateAsUpdate(doc.ydoc))
     return {
       id: doc.id,
       content: Array.from(state), // Convert Uint8Array to array for IPC
@@ -116,10 +117,48 @@ export function setupIPC() {
   })
 
   ipcMain.handle('xnet:storage:setDocument', async (_, id, data) => {
-    if (!client) throw new Error('Client not initialized')
-    // This would need to update the storage directly
-    // For now, we'll skip this as the renderer uses createDocument instead
-    console.log('Storage setDocument called for:', id)
+    if (!client || !storage) throw new Error('Client not initialized')
+
+    // Get existing document to merge state
+    const existingDoc = await client.getDocument(id)
+
+    if (existingDoc && data.content && data.content.length > 0) {
+      // Apply the update to the existing Y.Doc
+      const Y = await import('yjs')
+      const update = new Uint8Array(data.content)
+      Y.applyUpdate(existingDoc.ydoc, update)
+
+      // Get the merged state
+      const mergedState = Y.encodeStateAsUpdate(existingDoc.ydoc)
+
+      // Save via storage adapter
+      const docData = {
+        id,
+        content: mergedState,
+        metadata: {
+          created: data.metadata?.created ?? Date.now(),
+          updated: Date.now(),
+          type: data.metadata?.type || 'page',
+          workspace: data.metadata?.workspace || 'default'
+        },
+        version: data.version || 1
+      }
+      await storage.setDocument(id, docData)
+    } else if (data.content && data.content.length > 0) {
+      // Document doesn't exist in cache, save directly
+      const docData = {
+        id,
+        content: new Uint8Array(data.content),
+        metadata: {
+          created: data.metadata?.created ?? Date.now(),
+          updated: Date.now(),
+          type: data.metadata?.type || 'page',
+          workspace: data.metadata?.workspace || 'default'
+        },
+        version: data.version || 1
+      }
+      await storage.setDocument(id, docData)
+    }
   })
 
   ipcMain.handle('xnet:storage:deleteDocument', async (_, id) => {

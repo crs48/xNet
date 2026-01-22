@@ -271,6 +271,9 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   const save = useCallback(async () => {
     if (!store || !id || !docRef.current) return
 
+    // Clear the timeout ref since we're about to save
+    saveTimeoutRef.current = null
+
     try {
       const content = Y.encodeStateAsUpdate(docRef.current)
       await store.setDocumentContent(id, content)
@@ -421,12 +424,16 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, userName, userColor])
 
   // Cleanup on unmount - save any pending changes
+  // Note: We use saveTimeoutRef.current as the indicator of pending saves
+  // (not isDirty state) to avoid stale closure issues
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
+        saveTimeoutRef.current = null
         // Flush pending save synchronously (best effort)
-        if (isDirty && docRef.current && store && id) {
+        // The presence of the timeout indicates unsaved changes
+        if (docRef.current && store && id) {
           const content = Y.encodeStateAsUpdate(docRef.current)
           store.setDocumentContent(id, content).catch(() => {
             // Silent fail on unmount
@@ -434,7 +441,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
         }
       }
     }
-  }, [isDirty, store, id])
+  }, [store, id])
 
   // Subscribe to property changes
   useEffect(() => {
