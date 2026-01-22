@@ -169,14 +169,24 @@ export class TelemetryCollector {
 
   /**
    * Report a crash/error.
+   * Field names align with OTel semantic conventions (exception.*).
    */
-  async reportCrash(error: Error, context?: Record<string, unknown>): Promise<string | null> {
+  async reportCrash(
+    error: Error,
+    context?: {
+      codeNamespace?: string // OTel: code.namespace
+      codeFunction?: string // OTel: code.function
+      userAction?: string // xNet-specific
+      serviceVersion?: string // OTel: service.version
+      osType?: string // OTel: os.type
+    }
+  ): Promise<string | null> {
     return this.report(
       'xnet://xnet.dev/telemetry/CrashReport',
       {
-        errorType: error.name,
-        errorMessage: error.message,
-        stackTrace: error.stack,
+        exceptionType: error.name, // OTel: exception.type
+        exceptionMessage: error.message, // OTel: exception.message
+        exceptionStacktrace: error.stack, // OTel: exception.stacktrace
         occurredAt: new Date(),
         ...context
       },
@@ -188,17 +198,18 @@ export class TelemetryCollector {
 
   /**
    * Report a usage metric.
+   * Uses OTel metric naming convention: <namespace>.<noun>.<verb>
    */
   async reportUsage(
-    metric: string,
+    metricName: string, // e.g., 'xnet.pages.created', 'xnet.sync.events'
     value: number,
     period: 'daily' | 'weekly' | 'monthly' = 'daily'
   ): Promise<string | null> {
     return this.report(
       'xnet://xnet.dev/telemetry/UsageMetric',
       {
-        metric,
-        bucket: bucketValue(value, 'count'),
+        metricName, // OTel metric naming
+        metricBucket: bucketValue(value, 'count'),
         period,
         measuredAt: new Date()
       },
@@ -210,18 +221,19 @@ export class TelemetryCollector {
 
   /**
    * Report a security event.
+   * Uses OTel event.name convention: xnet.security.<event_type>
    */
   async reportSecurityEvent(
-    eventType: string,
-    severity: 'low' | 'medium' | 'high' | 'critical',
+    eventName: string, // e.g., 'xnet.security.invalid_signature'
+    eventSeverity: 'low' | 'medium' | 'high' | 'critical',
     details: Record<string, unknown>
   ): Promise<string | null> {
     return this.report(
       'xnet://xnet.dev/telemetry/SecurityEvent',
       {
-        eventType,
-        severity,
-        details: JSON.stringify(details),
+        eventName, // OTel: event.name
+        eventSeverity, // OTel-aligned severity
+        eventDetails: JSON.stringify(details),
         occurredAt: new Date(),
         actionTaken: 'logged'
       },
@@ -412,10 +424,11 @@ try {
   dangerousOperation()
 } catch (error) {
   await collector.reportCrash(error, {
-    component: 'DataGrid',
-    action: 'sort',
-    appVersion: '1.2.3',
-    platform: 'macos'
+    codeNamespace: 'DataGrid', // OTel: code.namespace
+    codeFunction: 'handleSort', // OTel: code.function
+    userAction: 'sort-column', // xNet-specific
+    serviceVersion: '1.2.3', // OTel: service.version
+    osType: 'macos' // OTel: os.type
   })
 }
 ```
@@ -423,13 +436,13 @@ try {
 ### Usage Metrics
 
 ```typescript
-// Periodic usage tracking
+// Periodic usage tracking (OTel metric naming: <namespace>.<noun>.<verb>)
 async function reportDailyUsage() {
   const pageCount = await countPages()
-  await collector.reportUsage('pages_created', pageCount, 'daily')
+  await collector.reportUsage('xnet.pages.created', pageCount, 'daily')
 
   const syncCount = await countSyncEvents()
-  await collector.reportUsage('sync_events', syncCount, 'daily')
+  await collector.reportUsage('xnet.sync.completed', syncCount, 'daily')
 }
 ```
 
@@ -494,7 +507,8 @@ describe('TelemetryCollector', () => {
       expect(result).not.toBeNull()
 
       const node = await store.get(result!)
-      expect(node?.properties.errorType).toBe('Error')
+      expect(node?.properties.exceptionType).toBe('Error') // OTel: exception.type
+      expect(node?.properties.exceptionMessage).toBe('test') // OTel: exception.message
     })
 
     it('should scrub PII from error messages', async () => {
@@ -504,7 +518,7 @@ describe('TelemetryCollector', () => {
       await collector.reportCrash(error)
 
       const nodes = await store.list({ schemaId: 'xnet://xnet.dev/telemetry/CrashReport' })
-      const message = nodes[0].properties.errorMessage as string
+      const message = nodes[0].properties.exceptionMessage as string
 
       expect(message).not.toContain('john@example.com')
       expect(message).toContain('[EMAIL]')
@@ -517,18 +531,19 @@ describe('TelemetryCollector', () => {
     it('should require anonymous tier', async () => {
       await consent.setTier('crashes') // Not enough
 
-      const result = await collector.reportUsage('pages_created', 42)
+      const result = await collector.reportUsage('xnet.pages.created', 42)
       expect(result).toBeNull()
     })
 
-    it('should bucket values', async () => {
+    it('should bucket values and use OTel metric naming', async () => {
       await consent.setTier('anonymous')
 
-      await collector.reportUsage('pages_created', 42)
+      await collector.reportUsage('xnet.pages.created', 42)
 
       const nodes = await store.list({ schemaId: 'xnet://xnet.dev/telemetry/UsageMetric' })
+      expect(nodes[0].properties.metricName).toBe('xnet.pages.created')
       // 42 should be in '21-100' bucket
-      expect(nodes[0].properties.bucket).toBe('21-100')
+      expect(nodes[0].properties.metricBucket).toBe('21-100')
     })
   })
 
