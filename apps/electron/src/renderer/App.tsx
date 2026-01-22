@@ -14,6 +14,7 @@ import { Sidebar } from './components/Sidebar'
 import { PageView } from './components/PageView'
 import { DatabaseView } from './components/DatabaseView'
 import { CanvasView } from './components/CanvasView'
+import { AddSharedDialog } from './components/AddSharedDialog'
 
 type DocType = 'page' | 'database' | 'canvas'
 
@@ -29,6 +30,7 @@ export function App() {
   const { isReady } = useNodeStore()
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [selectedDocType, setSelectedDocType] = useState<DocType>('page')
+  const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
 
   // Query all document types
   const { data: pages, loading: pagesLoading } = useQuery(PageSchema, { limit: 100 })
@@ -115,6 +117,17 @@ export function App() {
     [selectedDocId]
   )
 
+  // Handle adding a shared document
+  // When a user pastes a doc ID, we just select it - the useDocument hook
+  // will create it locally and sync will populate it from peers
+  const handleAddShared = useCallback((docId: string) => {
+    // For now, assume it's a page. The actual type will be determined
+    // when the document syncs from peers.
+    // TODO: Could try to detect type from sync, or ask user
+    setSelectedDocId(docId)
+    setSelectedDocType('page')
+  }, [])
+
   // Render content based on document type
   const renderContent = () => {
     if (!selectedDocId) {
@@ -165,11 +178,19 @@ export function App() {
           onSelect={handleSelect}
           onDelete={handleDelete}
           onCreate={handleCreate}
+          onAddShared={() => setShowAddSharedDialog(true)}
         />
 
         {/* Content area */}
         <section className="flex-1 flex flex-col overflow-hidden">{renderContent()}</section>
       </main>
+
+      {/* Add Shared Dialog */}
+      <AddSharedDialog
+        isOpen={showAddSharedDialog}
+        onClose={() => setShowAddSharedDialog(false)}
+        onAdd={handleAddShared}
+      />
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { useDocument } from '@xnet/react'
 import { CanvasSchema } from '@xnet/data'
 import { Canvas, createNode, createEdge } from '@xnet/canvas'
 import { Plus, LayoutGrid, ZoomIn } from 'lucide-react'
+import { ShareButton } from './ShareButton'
 
 interface CanvasViewProps {
   docId: string
@@ -135,6 +136,8 @@ export function CanvasView({ docId }: CanvasViewProps) {
           <ZoomIn size={14} />
           <span>Zoom: Scroll</span>
         </div>
+
+        <ShareButton docId={docId} docType="canvas" />
       </div>
 
       {/* Canvas */}

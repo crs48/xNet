@@ -234,6 +234,261 @@ pnpm run dev:user2
 
 Then manually copy a document ID from User A's URL bar to User B.
 
+## Future: Presence & Collaboration UX
+
+### Awareness (Who's Here)
+
+Yjs has built-in awareness protocol for showing active collaborators:
+
+```typescript
+import { Awareness } from 'y-protocols/awareness'
+
+// Each user broadcasts their presence
+awareness.setLocalState({
+  user: { name: 'Alice', color: '#ff0000' },
+  cursor: { x: 100, y: 200 }
+})
+
+// Listen for other users
+awareness.on('change', () => {
+  const states = awareness.getStates() // Map of clientId -> state
+})
+```
+
+**UI Elements to Add:**
+
+- Avatar stack showing active editors (top-right of document)
+- Colored cursors with name labels in editor
+- "X people viewing" indicator
+
+### Cursor Sync Per Document Type
+
+We want cursor presence in ALL document types, not just rich text:
+
+#### 1. Pages (Rich Text Editor)
+
+TipTap + Yjs supports collaborative cursors via `@tiptap/extension-collaboration-cursor`:
+
+```typescript
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+
+const editor = new Editor({
+  extensions: [
+    Collaboration.configure({ document: ydoc }),
+    CollaborationCursor.configure({
+      provider: webrtcProvider,
+      user: { name: 'Alice', color: '#ff0000' }
+    })
+  ]
+})
+```
+
+**Shows:** Text cursor position, selection highlight with user color/name label.
+
+#### 2. Databases (Table/Board View)
+
+Need custom implementation - no built-in TipTap support:
+
+```typescript
+// Broadcast what cell/row user is focused on
+awareness.setLocalState({
+  user: { name: 'Alice', color: '#ff0000' },
+  focus: {
+    type: 'database',
+    rowId: 'row-123',
+    columnId: 'status', // Which cell
+    view: 'table' // or 'board'
+  }
+})
+```
+
+**Shows:**
+
+- **Table view**: Highlighted cell border in user's color
+- **Board view**: Card outline glow when someone is viewing/editing it
+- Row-level indicator if editing any cell in that row
+
+#### 3. Canvas (Infinite Canvas)
+
+Need custom implementation for spatial cursor:
+
+```typescript
+// Broadcast cursor position on canvas
+awareness.setLocalState({
+  user: { name: 'Alice', color: '#ff0000' },
+  cursor: {
+    type: 'canvas',
+    x: 450, // Canvas coordinates
+    y: 230,
+    viewport: {
+      // So we can show "Alice is viewing over there" arrow
+      x: 0,
+      y: 0,
+      zoom: 1.0
+    }
+  },
+  selection: ['node-1', 'node-2'] // Selected nodes
+})
+```
+
+**Shows:**
+
+- Cursor with name label floating on canvas
+- Selection outlines in user's color when they select nodes
+- "User is off-screen →" indicator pointing to their location
+- Mini-map could show other users' viewport positions
+
+### Shared Awareness Infrastructure
+
+All three document types can share the same awareness instance per document:
+
+```typescript
+// In useDocument or a new usePresence hook
+const awareness = provider.awareness
+
+// Generic presence state
+interface PresenceState {
+  user: {
+    id: string // DID or client ID
+    name: string // Display name
+    color: string // Assigned color
+  }
+  lastActive: number
+
+  // Document-type-specific cursor info
+  cursor?: PageCursor | DatabaseCursor | CanvasCursor
+}
+
+type PageCursor = {
+  type: 'page'
+  // TipTap handles this internally
+}
+
+type DatabaseCursor = {
+  type: 'database'
+  rowId?: string
+  columnId?: string
+  view: 'table' | 'board'
+}
+
+type CanvasCursor = {
+  type: 'canvas'
+  x: number
+  y: number
+  selection: string[]
+}
+```
+
+### Implementation Priority
+
+| Feature                    | Complexity | Value  | Priority                          |
+| -------------------------- | ---------- | ------ | --------------------------------- |
+| Page cursors (TipTap)      | Low        | High   | P1 - Use existing extension       |
+| Avatar stack (who's here)  | Low        | High   | P1 - Just render awareness states |
+| Canvas cursors             | Medium     | High   | P2 - Custom render layer          |
+| Database cell focus        | Medium     | Medium | P3 - Custom highlight logic       |
+| Off-screen user indicators | Medium     | Low    | P4 - Nice to have                 |
+| Mini-map with users        | High       | Low    | P5 - Future                       |
+
+### Color Assignment
+
+Need consistent colors per user across sessions:
+
+```typescript
+// Deterministic color from DID
+function getUserColor(did: string): string {
+  const hash = hashString(did)
+  const hue = hash % 360
+  return `hsl(${hue}, 70%, 50%)`
+}
+
+// Or pick from a palette
+const COLORS = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', ...]
+function getUserColor(did: string): string {
+  const index = hashString(did) % COLORS.length
+  return COLORS[index]
+}
+```
+
+// Listen for other users
+awareness.on('change', () => {
+const states = awareness.getStates() // Map of clientId -> state
+})
+
+````
+
+**UI Elements to Add:**
+
+- Avatar stack showing active editors (top-right of document)
+- Colored cursors with name labels in editor
+- "X people viewing" indicator
+
+### Cursor Sync (Where They Are)
+
+TipTap + Yjs supports collaborative cursors via `@tiptap/extension-collaboration-cursor`:
+
+```typescript
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+
+const editor = new Editor({
+  extensions: [
+    Collaboration.configure({ document: ydoc }),
+    CollaborationCursor.configure({
+      provider: webrtcProvider,
+      user: { name: 'Alice', color: '#ff0000' }
+    })
+  ]
+})
+````
+
+### Permission Management (Future)
+
+Currently, anyone with a document ID can join. Future needs:
+
+| Feature                 | Implementation                                   |
+| ----------------------- | ------------------------------------------------ |
+| Owner can revoke access | Store ACL in document metadata, check on connect |
+| View-only sharing       | UCAN with limited capabilities (read, no write)  |
+| Expiring links          | UCAN with `exp` (expiration) claim               |
+| Remove user from doc    | Awareness message to disconnect, plus ACL update |
+
+**Data Model:**
+
+```typescript
+interface DocumentACL {
+  owner: DID // Creator's DID
+  editors: DID[] // Can read + write
+  viewers: DID[] // Can read only
+  public: boolean // Anyone with link can view
+}
+```
+
+**Revocation Flow:**
+
+1. Owner removes user from ACL
+2. ACL change syncs via CRDT
+3. Removed user's client sees ACL change
+4. Client disconnects from sync (or is ignored by peers)
+
+This requires solving:
+
+- How to identify peers (DID exchange on connect)
+- How to enforce permissions in decentralized system
+- What happens if removed user has local copy (they keep it, but no more updates)
+
+### Share Granularity (Future)
+
+Current: Share entire Page/Database/Canvas
+
+Future possibilities:
+
+- Share a specific database row
+- Share a specific block/section of a page
+- Share a filtered view of a database
+- Transclusion (embed shared content in another doc)
+
+This requires content-addressable blocks with their own IDs.
+
 ## Open Questions
 
 1. **Should we fix NodeStore sync first?**
@@ -249,6 +504,16 @@ Then manually copy a document ID from User A's URL bar to User B.
 3. **Do we want `dev:both` to auto-open the same doc?**
    - Could have User B auto-navigate to a test doc
    - Makes repeated testing faster
+
+4. **How do we show sync status?**
+   - Connected/disconnected indicator
+   - Number of peers currently syncing
+   - Last sync timestamp
+
+5. **Identity for presence - where does user name come from?**
+   - Currently just DID (not human-readable)
+   - Need profile/settings for display name
+   - Or derive from DID (first 8 chars?)
 
 ---
 
