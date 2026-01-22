@@ -1,29 +1,37 @@
 /**
  * Canvas View - Infinite canvas for spatial visualization
  *
- * Uses @xnet/canvas for the canvas component.
+ * Uses @xnet/react hooks and @xnet/canvas for the canvas component.
  */
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { useDocument } from '@xnet/react'
+import { CanvasSchema } from '@xnet/data'
 import { Canvas, createNode, createEdge } from '@xnet/canvas'
-import { Plus, LayoutGrid, ZoomIn, ZoomOut, Maximize } from 'lucide-react'
-import type * as Y from 'yjs'
+import { Plus, LayoutGrid, ZoomIn } from 'lucide-react'
 
 interface CanvasViewProps {
   docId: string
-  ydoc: Y.Doc | null
-  isLoading?: boolean
 }
 
-export function CanvasView({ docId, ydoc, isLoading }: CanvasViewProps) {
+export function CanvasView({ docId }: CanvasViewProps) {
+  const {
+    data: canvas,
+    doc,
+    loading,
+    update
+  } = useDocument(CanvasSchema, docId, {
+    createIfMissing: { title: 'Untitled Canvas' }
+  })
+
   const [canvasReady, setCanvasReady] = useState(false)
 
   // Initialize canvas data structure if needed
   useEffect(() => {
-    if (!ydoc) return
+    if (!doc) return
 
-    const nodesMap = ydoc.getMap('nodes')
-    const edgesMap = ydoc.getMap('edges')
+    const nodesMap = doc.getMap('nodes')
+    const edgesMap = doc.getMap('edges')
 
     // Initialize with sample nodes if empty
     if (nodesMap.size === 0) {
@@ -49,7 +57,7 @@ export function CanvasView({ docId, ydoc, isLoading }: CanvasViewProps) {
         style: { markerEnd: 'arrow', strokeDasharray: '5,5' }
       })
 
-      ydoc.transact(() => {
+      doc.transact(() => {
         nodesMap.set(node1.id, node1)
         nodesMap.set(node2.id, node2)
         nodesMap.set(node3.id, node3)
@@ -60,9 +68,27 @@ export function CanvasView({ docId, ydoc, isLoading }: CanvasViewProps) {
     }
 
     setCanvasReady(true)
-  }, [ydoc])
+  }, [doc])
 
-  if (isLoading || !ydoc) {
+  // Add a new node to the canvas
+  const handleAddNode = useCallback(() => {
+    if (!doc) return
+
+    const nodesMap = doc.getMap('nodes')
+    const newNode = createNode(
+      'card',
+      {
+        x: 100 + Math.random() * 400,
+        y: 100 + Math.random() * 300,
+        width: 200,
+        height: 100
+      },
+      { title: 'New Node' }
+    )
+    nodesMap.set(newNode.id, newNode)
+  }, [doc])
+
+  if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-text-secondary">Loading canvas...</p>
@@ -82,30 +108,26 @@ export function CanvasView({ docId, ydoc, isLoading }: CanvasViewProps) {
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Canvas toolbar */}
       <div className="flex items-center gap-2 p-3 border-b border-border bg-bg-secondary">
+        {/* Title */}
+        <input
+          type="text"
+          className="text-lg font-semibold border-none bg-transparent text-text outline-none placeholder:text-text-secondary"
+          value={canvas?.title || ''}
+          onChange={(e) => update({ title: e.target.value })}
+          placeholder="Untitled"
+        />
+
+        <div className="flex-1" />
+
         <button
-          onClick={() => {
-            const nodesMap = ydoc.getMap('nodes')
-            const newNode = createNode(
-              'card',
-              {
-                x: 100 + Math.random() * 400,
-                y: 100 + Math.random() * 300,
-                width: 200,
-                height: 100
-              },
-              { title: 'New Node' }
-            )
-            nodesMap.set(newNode.id, newNode)
-          }}
+          onClick={handleAddNode}
           className="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-md text-sm hover:bg-primary-hover transition-colors"
         >
           <Plus size={14} />
           <span>Add Node</span>
         </button>
 
-        <div className="flex-1" />
-
-        <div className="flex items-center gap-1 text-xs text-text-secondary">
+        <div className="flex items-center gap-1 text-xs text-text-secondary ml-4">
           <LayoutGrid size={14} />
           <span>Pan: Drag background</span>
           <span className="mx-2">|</span>
@@ -117,7 +139,7 @@ export function CanvasView({ docId, ydoc, isLoading }: CanvasViewProps) {
       {/* Canvas */}
       <div className="flex-1 relative">
         <Canvas
-          doc={ydoc}
+          doc={doc}
           config={{
             showGrid: true,
             gridSize: 20,

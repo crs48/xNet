@@ -18,8 +18,8 @@ import { createXNetStore, type XNetStore } from './store/xnet'
  * XNet configuration
  */
 export interface XNetConfig {
-  /** Legacy storage adapter for XDocument-based storage */
-  storage: StorageAdapter
+  /** Legacy storage adapter for XDocument-based storage (optional - for migration) */
+  storage?: StorageAdapter
   /** Node storage adapter for NodeStore (defaults to MemoryNodeStorageAdapter) */
   nodeStorage?: NodeStorageAdapter
   /** Author's DID for signing changes */
@@ -38,14 +38,14 @@ export interface XNetConfig {
  * XNet context value
  */
 export interface XNetContextValue {
-  /** Legacy Zustand store for XDocument operations */
-  store: XNetStore
+  /** Legacy Zustand store for XDocument operations (null if not configured) */
+  store: XNetStore | null
   /** New NodeStore for Node operations */
   nodeStore: NodeStore | null
   /** Whether NodeStore is initialized */
   nodeStoreReady: boolean
-  /** Legacy storage adapter */
-  storage: StorageAdapter
+  /** Legacy storage adapter (null if not configured) */
+  storage: StorageAdapter | null
   network?: NetworkNode
   identity?: Identity
   searchIndex?: SearchIndex
@@ -68,19 +68,23 @@ export interface XNetProviderProps {
  * Provides both legacy XNetStore and new NodeStore for gradual migration.
  */
 export function XNetProvider({ config, children }: XNetProviderProps): JSX.Element {
-  // Legacy Zustand store
-  const [store] = useState(() => createXNetStore({ storage: config.storage }))
-  const [isReady, setIsReady] = useState(false)
+  // Legacy Zustand store (only if storage is provided)
+  const [store] = useState(() =>
+    config.storage ? createXNetStore({ storage: config.storage }) : null
+  )
+  const [isReady, setIsReady] = useState(!config.storage) // Ready immediately if no legacy storage
 
   // New NodeStore
   const [nodeStore, setNodeStore] = useState<NodeStore | null>(null)
   const [nodeStoreReady, setNodeStoreReady] = useState(false)
 
   useEffect(() => {
-    // Initialize legacy storage
-    config.storage.open().then(() => {
-      setIsReady(true)
-    })
+    // Initialize legacy storage if provided
+    if (config.storage) {
+      config.storage.open().then(() => {
+        setIsReady(true)
+      })
+    }
 
     // Initialize NodeStore
     const nodeStorageAdapter = config.nodeStorage ?? new MemoryNodeStorageAdapter()
@@ -94,7 +98,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
           'Provide these via config.authorDID/config.signingKey or config.identity.'
       )
       return () => {
-        config.storage.close()
+        config.storage?.close()
       }
     }
 
@@ -119,7 +123,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     initializeNodeStore()
 
     return () => {
-      config.storage.close()
+      config.storage?.close()
       // Close node storage adapter if it has a close() method
       if ('close' in nodeStorageAdapter && typeof nodeStorageAdapter.close === 'function') {
         nodeStorageAdapter.close()
@@ -137,7 +141,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     store,
     nodeStore,
     nodeStoreReady,
-    storage: config.storage,
+    storage: config.storage ?? null,
     network: config.network,
     identity: config.identity,
     searchIndex: config.searchIndex,

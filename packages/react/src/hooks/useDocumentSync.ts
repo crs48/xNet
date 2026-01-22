@@ -79,14 +79,14 @@ export function useDocumentSync(options: UseDocumentSyncOptions): UseDocumentSyn
     })
     providerRef.current = provider
 
-    // Update sync status in store
-    store.getState().setSyncStatus('connecting')
+    // Update sync status in store (if legacy store is available)
+    store?.getState().setSyncStatus('connecting')
 
     // Monitor connection status
     const checkConnection = () => {
       const isConnected = provider.provider.connected
       setConnected(isConnected)
-      store.getState().setSyncStatus(isConnected ? 'synced' : 'connecting')
+      store?.getState().setSyncStatus(isConnected ? 'synced' : 'connecting')
     }
 
     // Check initial connection
@@ -96,21 +96,21 @@ export function useDocumentSync(options: UseDocumentSyncOptions): UseDocumentSyn
     provider.provider.on('peers', (event: { webrtcPeers: string[] }) => {
       const peerList = event.webrtcPeers || []
       setPeers(peerList)
-      store.getState().setPeers(peerList)
+      store?.getState().setPeers(peerList)
     })
 
     // Monitor connection status changes
     provider.provider.on('status', (event: { connected: boolean }) => {
       setConnected(event.connected)
-      store.getState().setSyncStatus(event.connected ? 'synced' : 'connecting')
+      store?.getState().setSyncStatus(event.connected ? 'synced' : 'connecting')
     })
 
     // Cleanup on unmount or document change
     return () => {
       provider.destroy()
       providerRef.current = null
-      store.getState().setSyncStatus('offline')
-      store.getState().setPeers([])
+      store?.getState().setSyncStatus('offline')
+      store?.getState().setPeers([])
       setConnected(false)
       setPeers([])
     }

@@ -81,6 +81,8 @@ export {
   type Database,
   TaskSchema,
   type Task,
+  CanvasSchema,
+  type Canvas,
   builtInSchemas,
   type BuiltInSchemaIRI,
 
@@ -149,6 +151,8 @@ export {
 export {
   NodeStore,
   MemoryNodeStorageAdapter,
+  IndexedDBNodeStorageAdapter,
+  type IndexedDBNodeStorageAdapterOptions,
   type NodeId,
   type PropertyKey,
   type NodePayload,

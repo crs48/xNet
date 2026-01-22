@@ -8,6 +8,7 @@
 export { PageSchema, type Page } from './page'
 export { DatabaseSchema, type Database } from './database'
 export { TaskSchema, type Task } from './task'
+export { CanvasSchema, type Canvas } from './canvas'
 
 /**
  * All built-in schemas, keyed by their IRI.
@@ -15,7 +16,8 @@ export { TaskSchema, type Task } from './task'
 export const builtInSchemas = {
   'xnet://xnet.dev/Page': () => import('./page').then((m) => m.PageSchema),
   'xnet://xnet.dev/Database': () => import('./database').then((m) => m.DatabaseSchema),
-  'xnet://xnet.dev/Task': () => import('./task').then((m) => m.TaskSchema)
+  'xnet://xnet.dev/Task': () => import('./task').then((m) => m.TaskSchema),
+  'xnet://xnet.dev/Canvas': () => import('./canvas').then((m) => m.CanvasSchema)
 } as const
 
 /**
