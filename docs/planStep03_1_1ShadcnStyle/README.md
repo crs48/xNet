@@ -77,10 +77,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Single `globals.css` with `:root` and `.dark` token sets
-- [ ] All Tailwind configs reference the same token set
-- [ ] `darkMode: 'class'` in all Tailwind configs
-- [ ] Colors work with Tailwind opacity modifiers (`bg-primary/50`)
+- [x] Single `globals.css` with `:root` and `.dark` token sets
+- [x] All Tailwind configs reference the same token set
+- [x] `darkMode: 'class'` in all Tailwind configs
+- [x] Colors work with Tailwind opacity modifiers (`bg-primary/50`)
 
 ### Phase 2: Utilities & Variant System (Week 1)
 
@@ -90,10 +90,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Single `cn()` export from `@xnet/ui`
-- [ ] `cva()` available for all components
-- [ ] Editor package imports cn from @xnet/ui (no duplicate)
-- [ ] Variant types are exported for consumer use
+- [x] Single `cn()` export from `@xnet/ui`
+- [x] `cva()` available for all components
+- [x] Editor package imports cn from @xnet/ui (no duplicate)
+- [x] Variant types are exported for consumer use
 
 ### Phase 3: Migrate Existing Primitives (Week 1-2)
 
@@ -103,11 +103,11 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Button uses `bg-primary text-primary-foreground` (not `bg-blue-600 text-white`)
-- [ ] Modal uses `bg-card text-card-foreground` (not `bg-white text-gray-900`)
-- [ ] Select uses semantic border/bg tokens
-- [ ] All primitives render correctly in both light and dark mode
-- [ ] No raw palette colors (`gray-*`, `blue-*`, `white`) in primitives
+- [x] Button uses `bg-primary text-primary-foreground` (not `bg-blue-600 text-white`)
+- [x] Modal uses `bg-card text-card-foreground` (not `bg-white text-gray-900`)
+- [x] Select uses semantic border/bg tokens
+- [x] All primitives render correctly in both light and dark mode
+- [x] No raw palette colors (`gray-*`, `blue-*`, `white`) in primitives
 
 ### Phase 4: New Primitives (Week 2)
 
@@ -117,12 +117,12 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Tabs component works for devtools panel navigation
-- [ ] ScrollArea provides custom-styled scrollbars
-- [ ] Sheet component for mobile slide-out panels
-- [ ] Separator for visual dividers
-- [ ] All new primitives use semantic tokens
-- [ ] All new primitives support dark mode
+- [x] Tabs component works for devtools panel navigation
+- [x] ScrollArea provides custom-styled scrollbars
+- [x] Sheet component for mobile slide-out panels
+- [x] Separator for visual dividers
+- [x] All new primitives use semantic tokens
+- [x] All new primitives support dark mode
 
 ### Phase 5: App Theming & Toggle (Week 2-3)
 
@@ -132,13 +132,13 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] ThemeProvider manages `.dark` class on `<html>`
-- [ ] useTheme() returns `{ theme, setTheme, toggleTheme }`
-- [ ] Theme persists across sessions (localStorage)
+- [x] ThemeProvider manages `.dark` class on `<html>`
+- [x] useTheme() returns `{ theme, setTheme, toggleTheme }`
+- [x] Theme persists across sessions (localStorage)
 - [ ] Electron app has theme toggle in titlebar/menu
 - [ ] Web app has theme toggle
 - [ ] Expo app respects system theme with optional override
-- [ ] System preference is respected as default
+- [x] System preference is respected as default
 
 ### Phase 6: DevTools-Specific Components (Week 3)
 
@@ -148,11 +148,11 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] ResizablePanel works for devtools shell
-- [ ] TreeView renders Y.Doc and Node hierarchies
-- [ ] StatusDot shows connection states (green/yellow/red)
-- [ ] All devtools components use semantic tokens
-- [ ] Components render well in the always-dark devtools panel
+- [x] ResizablePanel works for devtools shell
+- [x] TreeView renders Y.Doc and Node hierarchies
+- [x] StatusDot shows connection states (green/yellow/red)
+- [x] All devtools components use semantic tokens
+- [x] Components render well in the always-dark devtools panel
 
 ## Token Architecture
 
