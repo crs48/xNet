@@ -5,7 +5,9 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { XNetProvider } from '@xnet/react'
 import { IndexedDBNodeStorageAdapter } from '@xnet/data'
+import { ThemeProvider } from '@xnet/ui'
 import { App } from './App'
+import '@xnet/ui/tokens.css'
 import './styles.css'
 
 // TODO: In production, load identity from secure storage via IPC
@@ -23,15 +25,17 @@ async function init() {
   const root = createRoot(document.getElementById('root')!)
   root.render(
     <React.StrictMode>
-      <XNetProvider
-        config={{
-          nodeStorage,
-          authorDID: AUTHOR_DID,
-          signingKey: SIGNING_KEY
-        }}
-      >
-        <App />
-      </XNetProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="xnet-electron-theme">
+        <XNetProvider
+          config={{
+            nodeStorage,
+            authorDID: AUTHOR_DID,
+            signingKey: SIGNING_KEY
+          }}
+        >
+          <App />
+        </XNetProvider>
+      </ThemeProvider>
     </React.StrictMode>
   )
 }

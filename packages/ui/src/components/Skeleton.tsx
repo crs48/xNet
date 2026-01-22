@@ -18,7 +18,7 @@ export function Skeleton({ width, height, rounded = 'md', className }: SkeletonP
 
   return (
     <div
-      className={cn('animate-pulse bg-gray-200', roundedStyles[rounded], className)}
+      className={cn('animate-pulse bg-muted', roundedStyles[rounded], className)}
       style={{
         width: typeof width === 'number' ? `${width}px` : width,
         height: typeof height === 'number' ? `${height}px` : height
@@ -40,7 +40,7 @@ export function SkeletonText({ lines = 3, className }: { lines?: number; classNa
 
 export function SkeletonCard({ className }: { className?: string }) {
   return (
-    <div className={cn('p-4 border border-gray-200 rounded-lg', className)}>
+    <div className={cn('p-4 border rounded-lg', className)}>
       <Skeleton height={120} className="mb-4" />
       <Skeleton height={20} width="60%" className="mb-2" />
       <Skeleton height={14} width="80%" />

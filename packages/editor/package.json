@@ -26,6 +26,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@xnet/ui": "workspace:*",
     "@tiptap/core": "^3.15.3",
     "@tiptap/extension-collaboration": "^3.15.3",
     "@tiptap/extension-link": "^3.15.3",

@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ─── Layout ────────────────────────────────── */
+    --radius: 0.5rem;
+
+    /* ─── Core Backgrounds ──────────────────────── */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    /* ─── Card / Panel ──────────────────────────── */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    /* ─── Popover / Dropdown ────────────────────── */
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    /* ─── Primary (brand action) ────────────────── */
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+
+    /* ─── Secondary ─────────────────────────────── */
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    /* ─── Muted (subtle backgrounds/text) ───────── */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    /* ─── Accent (hover/active states) ──────────── */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    /* ─── Destructive (danger/error) ────────────── */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* ─── Success ───────────────────────────────── */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 98%;
+
+    /* ─── Warning ───────────────────────────────── */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 9%;
+
+    /* ─── Borders & Inputs ──────────────────────── */
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 221 83% 53%;
+
+    /* ─── Sidebar ───────────────────────────────── */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    /* ─── Chart colors (data visualization) ─────── */
+    --chart-1: 221 83% 53%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 0 84% 60%;
+  }
+
+  .dark {
+    /* ─── Core Backgrounds ──────────────────────── */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    /* ─── Card / Panel ──────────────────────────── */
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    /* ─── Popover / Dropdown ────────────────────── */
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    /* ─── Primary ───────────────────────────────── */
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+
+    /* ─── Secondary ─────────────────────────────── */
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* ─── Muted ─────────────────────────────────── */
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    /* ─── Accent ────────────────────────────────── */
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    /* ─── Destructive ───────────────────────────── */
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* ─── Success ───────────────────────────────── */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 98%;
+
+    /* ─── Warning ───────────────────────────────── */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 9%;
+
+    /* ─── Borders & Inputs ──────────────────────── */
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 217 91% 60%;
+
+    /* ─── Sidebar ───────────────────────────────── */
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+
+    /* ─── Chart colors ──────────────────────────── */
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 0 63% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

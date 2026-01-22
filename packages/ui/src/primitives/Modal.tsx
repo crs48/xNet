@@ -34,15 +34,15 @@ export function Modal({
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className={cn(
-            'fixed inset-0 z-50 bg-black/50',
+            'fixed inset-0 z-50 bg-black/80',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0'
           )}
         />
         <DialogPrimitive.Content
           className={cn(
-            'fixed left-[50%] top-[50%] z-50 w-full translate-x-[-50%] translate-y-[-50%]',
-            'rounded-lg border border-gray-200 bg-white p-6 shadow-lg',
+            'fixed left-[50%] top-[50%] z-50 grid w-full translate-x-[-50%] translate-y-[-50%] gap-4',
+            'border bg-card p-6 shadow-lg duration-200 sm:rounded-lg',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -54,21 +54,21 @@ export function Modal({
           )}
         >
           {title && (
-            <DialogPrimitive.Title className="text-lg font-semibold text-gray-900">
+            <DialogPrimitive.Title className="text-lg font-semibold text-foreground">
               {title}
             </DialogPrimitive.Title>
           )}
           {description && (
-            <DialogPrimitive.Description className="mt-2 text-sm text-gray-500">
+            <DialogPrimitive.Description className="text-sm text-muted-foreground">
               {description}
             </DialogPrimitive.Description>
           )}
-          <div className={cn(title || description ? 'mt-4' : '')}>{children}</div>
+          <div className={cn(title || description ? '' : '')}>{children}</div>
           <DialogPrimitive.Close
             className={cn(
-              'absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity',
-              'hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2',
-              'disabled:pointer-events-none'
+              'absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity',
+              'hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+              'disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground'
             )}
           >
             <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

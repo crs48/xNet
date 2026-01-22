@@ -19,10 +19,10 @@ export const Checkbox = forwardRef<React.ElementRef<typeof CheckboxPrimitive.Roo
           ref={ref}
           id={checkboxId}
           className={cn(
-            'peer h-4 w-4 shrink-0 rounded border border-gray-300 bg-white',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+            'peer h-4 w-4 shrink-0 rounded-sm border border-input bg-transparent shadow',
+            'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            'data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 data-[state=checked]:text-white',
+            'data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground',
             className
           )}
           {...props}
@@ -46,12 +46,12 @@ export const Checkbox = forwardRef<React.ElementRef<typeof CheckboxPrimitive.Roo
             {label && (
               <label
                 htmlFor={checkboxId}
-                className="font-medium text-gray-900 cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                className="font-medium text-foreground cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 {label}
               </label>
             )}
-            {description && <p className="mt-1 text-gray-500">{description}</p>}
+            {description && <p className="mt-1 text-muted-foreground">{description}</p>}
           </div>
         )}
       </div>

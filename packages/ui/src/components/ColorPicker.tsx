@@ -48,16 +48,16 @@ export function ColorPicker({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+        className="flex items-center gap-2 px-3 py-2 border border-input rounded-md hover:bg-accent"
       >
         <span
-          className="w-4 h-4 rounded-full border border-gray-200"
+          className="w-4 h-4 rounded-full border border-border"
           style={{ backgroundColor: value }}
         />
-        <span className="text-sm text-gray-700">{value}</span>
+        <span className="text-sm text-foreground">{value}</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 z-50 mt-1 p-2 rounded-md border border-gray-200 bg-white shadow-lg">
+        <div className="absolute top-full left-0 z-50 mt-1 p-2 rounded-md border bg-popover shadow-lg">
           <div className="grid grid-cols-5 gap-1">
             {colors.map((color) => (
               <button
@@ -69,7 +69,7 @@ export function ColorPicker({
                 }}
                 className={cn(
                   'w-6 h-6 rounded-md border-2',
-                  value === color ? 'border-blue-500' : 'border-transparent'
+                  value === color ? 'border-primary' : 'border-transparent'
                 )}
                 style={{ backgroundColor: color }}
                 title={color}

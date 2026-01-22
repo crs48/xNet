@@ -19,7 +19,7 @@ export function Menu({ trigger, children, align = 'end', sideOffset = 4, classNa
           align={align}
           sideOffset={sideOffset}
           className={cn(
-            'z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-md',
+            'z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md',
             'data-[state=open]:animate-in data-[state=closed]:animate-out',
             'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
             'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -62,26 +62,26 @@ export function MenuItem({
       onSelect={onSelect}
       className={cn(
         'relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors',
-        'focus:bg-gray-100 focus:text-gray-900',
+        'focus:bg-accent focus:text-accent-foreground',
         'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
-        danger && 'text-red-600 focus:bg-red-50 focus:text-red-600',
+        danger && 'text-destructive focus:bg-destructive/10 focus:text-destructive',
         className
       )}
     >
       {icon && <span className="mr-2 h-4 w-4">{icon}</span>}
       <span className="flex-1">{children}</span>
-      {shortcut && <span className="ml-auto text-xs text-gray-400">{shortcut}</span>}
+      {shortcut && <span className="ml-auto text-xs text-muted-foreground">{shortcut}</span>}
     </DropdownMenuPrimitive.Item>
   )
 }
 
 export function MenuSeparator() {
-  return <DropdownMenuPrimitive.Separator className="-mx-1 my-1 h-px bg-gray-200" />
+  return <DropdownMenuPrimitive.Separator className="-mx-1 my-1 h-px bg-border" />
 }
 
 export function MenuLabel({ children }: { children: ReactNode }) {
   return (
-    <DropdownMenuPrimitive.Label className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+    <DropdownMenuPrimitive.Label className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
       {children}
     </DropdownMenuPrimitive.Label>
   )

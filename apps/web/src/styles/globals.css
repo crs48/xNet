@@ -1,46 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* CSS Variables for theming */
+/* App-specific layout variables */
 :root {
-  --color-bg: #ffffff;
-  --color-bg-secondary: #f8f9fa;
-  --color-text: #1a1a1a;
-  --color-text-secondary: #6c757d;
-  --color-border: #e5e5e5;
-  --color-primary: #0066cc;
-  --color-primary-hover: #0052a3;
-  --color-success: #28a745;
-  --color-warning: #ffc107;
-  --color-danger: #dc3545;
   --sidebar-width: 260px;
   --header-height: 52px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #1a1a1a;
-    --color-bg-secondary: #242424;
-    --color-text: #ffffff;
-    --color-text-secondary: #a0a0a0;
-    --color-border: #3a3a3a;
-    --color-primary: #4d9fff;
-    --color-primary-hover: #3d8fee;
-  }
 }
 
 /* Base layer */
 @layer base {
   body {
     @apply font-sans leading-relaxed;
-    background: var(--color-bg);
-    color: var(--color-text);
   }
 
   a {
-    color: var(--color-primary);
-    @apply no-underline hover:underline;
+    @apply text-primary no-underline hover:underline;
   }
 }
 
@@ -75,19 +46,16 @@
 }
 
 .editor-content .ProseMirror blockquote {
-  border-left: 3px solid var(--color-primary);
-  @apply pl-4 my-4;
-  color: var(--color-text-secondary);
+  border-left: 3px solid hsl(var(--primary));
+  @apply pl-4 my-4 text-muted-foreground;
 }
 
 .editor-content .ProseMirror pre {
-  background: var(--color-bg-secondary);
-  @apply p-3 rounded-md overflow-x-auto font-mono text-sm my-4;
+  @apply p-3 rounded-md overflow-x-auto font-mono text-sm my-4 bg-muted;
 }
 
 .editor-content .ProseMirror code {
-  background: var(--color-bg-secondary);
-  @apply px-1.5 py-0.5 rounded font-mono text-sm;
+  @apply px-1.5 py-0.5 rounded font-mono text-sm bg-muted;
 }
 
 .editor-content .ProseMirror pre code {
@@ -95,16 +63,13 @@
 }
 
 .editor-content .ProseMirror hr {
-  border: none;
-  border-top: 1px solid var(--color-border);
-  @apply my-8;
+  @apply my-8 border-t border-border;
 }
 
 /* Placeholder */
 .editor-content .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  @apply float-left pointer-events-none h-0;
-  color: var(--color-text-secondary);
+  @apply float-left pointer-events-none h-0 text-muted-foreground;
 }
 
 /* Task List */
@@ -125,15 +90,14 @@
 }
 
 .editor-content ul[data-type='taskList'] li[data-checked='true'] > div {
-  @apply line-through;
-  color: var(--color-text-secondary);
+  @apply line-through text-muted-foreground;
 }
 
 /* Wikilinks */
 .wikilink {
-  color: var(--color-primary);
+  color: hsl(var(--primary));
   @apply cursor-pointer no-underline;
-  border-bottom: 1px dashed var(--color-primary);
+  border-bottom: 1px dashed hsl(var(--primary));
 }
 
 .wikilink:hover {
@@ -143,8 +107,7 @@
 
 /* Live Preview - Markdown Syntax */
 .md-syntax {
-  @apply font-mono text-sm opacity-60 select-none pointer-events-none;
-  color: var(--color-text-secondary);
+  @apply font-mono text-sm opacity-60 select-none pointer-events-none text-muted-foreground;
 }
 
 .md-syntax-open {
