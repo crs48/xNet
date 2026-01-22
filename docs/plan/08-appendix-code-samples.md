@@ -14,7 +14,7 @@ This appendix contains detailed code samples, architecture diagrams, and technic
 
 ## Block Schema
 
-Core data model for all content in xNotes. Designed for forward-compatibility with versioning built in from day 1.
+Core data model for all content in xNet. Designed for forward-compatibility with versioning built in from day 1.
 
 **See also**: [Versioning Strategy](./11-versioning-strategy.md) for design principles.
 
@@ -459,7 +459,7 @@ export class ConnectionManager {
     this.connections.set(peerId, pc);
 
     // Create data channel
-    const dc = pc.createDataChannel('xnotes', { ordered: true });
+    const dc = pc.createDataChannel('xnet', { ordered: true });
 
     dc.onopen = () => {
       console.log(`Connected to ${peerId}`);

@@ -284,7 +284,7 @@ interface PropertyDefinitionV1 {
 ```typescript
 interface MCPToolDefinition {
   // Identity
-  id: string;              // 'xnotes.pages.list'
+  id: string;              // 'xnet.pages.list'
   version: string;         // '1.0.0'
 
   // Stability
@@ -314,7 +314,7 @@ interface MCPToolDefinition {
 
 // Example: list_pages with versions
 const LIST_PAGES: MCPToolDefinition = {
-  id: 'xnotes.pages.list',
+  id: 'xnet.pages.list',
   version: '1.0.0',
   stability: 'stable',
   signatures: {
@@ -592,7 +592,7 @@ interface ExportManifest {
 
   // Exporter info
   exporter: {
-    name: string;          // 'xNotes'
+    name: string;          // 'xNet'
     version: string;       // '1.2.3'
   };
 

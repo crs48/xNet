@@ -136,7 +136,7 @@ export class SQLiteAdapter implements StorageAdapter {
   private getDefaultDataDir(): string {
     // Platform-specific data directories
     const platform = process.platform;
-    const appName = 'xnotes';
+    const appName = 'xnet';
 
     switch (platform) {
       case 'darwin':
@@ -157,7 +157,7 @@ export class SQLiteAdapter implements StorageAdapter {
   }
 
   private openDatabase(): Database.Database {
-    const dbPath = join(this.config.dataDir, 'xnotes.db');
+    const dbPath = join(this.config.dataDir, 'xnet.db');
     const db = new Database(dbPath);
 
     // Configure for durability
@@ -368,7 +368,7 @@ export class SQLiteAdapter implements StorageAdapter {
    * Get database file path for manual backup
    */
   getDatabasePath(): string {
-    return join(this.config.dataDir, 'xnotes.db');
+    return join(this.config.dataDir, 'xnet.db');
   }
 
   /**
@@ -420,7 +420,7 @@ pub fn get_database_path(app_handle: tauri::AppHandle) -> Result<String, String>
     std::fs::create_dir_all(&data_dir)
         .map_err(|e| e.to_string())?;
 
-    let db_path = data_dir.join("xnotes.db");
+    let db_path = data_dir.join("xnet.db");
     Ok(db_path.to_string_lossy().to_string())
 }
 
@@ -514,7 +514,7 @@ export class OPFSAdapter implements StorageAdapter {
 
     // Open database
     this.db = await this.sqlite.open_v2(
-      'xnotes.db',
+      'xnet.db',
       SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE,
       'xnet-vfs'
     );

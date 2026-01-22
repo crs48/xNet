@@ -1,7 +1,7 @@
 {
-  "name": "xnotes-desktop",
+  "name": "xnet-desktop",
   "version": "0.0.1",
-  "description": "xNotes Desktop - A local-first notes app",
+  "description": "xNet Desktop - Local-first data platform for macOS/Windows/Linux",
   "main": "./out/main/index.js",
   "type": "module",
   "scripts": {

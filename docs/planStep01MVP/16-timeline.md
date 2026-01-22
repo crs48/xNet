@@ -414,7 +414,7 @@ gantt
 
 ## Phase 3: Features (Weeks 27-40)
 
-**Goal:** Build the actual xNotes application features.
+**Goal:** Build the actual xNet application features.
 
 ### Feature Dependency Graph
 
@@ -554,7 +554,7 @@ gantt
 - [ ] Presence avatars
 - [ ] Conflict-free editing
 
-**Reference:** [13-xnotes-features.md](./13-xnotes-features.md)
+**Reference:** [13-xnet-features.md](./13-xnet-features.md)
 
 ---
 

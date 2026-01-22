@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document outlines the engineering practices, security guidelines, and development workflows for the xNet and xNotes projects.
+This document outlines the engineering practices, security guidelines, and development workflows for the xNet and xNet projects.
 
 ---
 
@@ -296,8 +296,8 @@ jobs:
 
 ```bash
 # Clone the repository
-git clone https://github.com/xnet/xnotes.git
-cd xnotes
+git clone https://github.com/xnet/xnet.git
+cd xnet
 
 # Install dependencies
 pnpm install

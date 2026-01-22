@@ -8,7 +8,7 @@
 
 ## Overview
 
-xNet is the foundational infrastructure that powers xNotes and future decentralized applications. It must be developed **in parallel** with xNotes, with xNotes serving as the primary driver and validator of xNet's capabilities.
+xNet is the foundational infrastructure that powers xNet and future decentralized applications. It must be developed **in parallel** with xNet, with xNet serving as the primary driver and validator of xNet's capabilities.
 
 ---
 
@@ -19,11 +19,11 @@ graph TB
     subgraph "What Developers Use"
         direction TB
         R1["<b>@xnet/react</b><br/>npm install @xnet/react<br/><i>Primary entry point</i>"]
-        M1["@xnotes/mcp<br/><i>AI agents</i>"]
+        M1["@xnet/mcp<br/><i>AI agents</i>"]
     end
 
     subgraph "Applications"
-        A1[xNotes]
+        A1[xNet]
         A2[Your App]
         AI1[Claude Code]
     end
@@ -187,7 +187,7 @@ xnet/
 │       └── package.json
 │
 ├── apps/
-│   └── mcp/                      # @xnotes/mcp - AI Access Layer
+│   └── mcp/                      # @xnet/mcp - AI Access Layer
 │       ├── src/
 │       │   ├── index.ts          # MCP server entry point
 │       │   ├── server.ts         # MCP server setup
@@ -410,9 +410,9 @@ On-device vector search for semantic capabilities.
 
 ---
 
-### @xnotes/mcp - AI Access Layer
+### @xnet/mcp - AI Access Layer
 
-MCP (Model Context Protocol) server enabling AI agents to interact with xNotes data.
+MCP (Model Context Protocol) server enabling AI agents to interact with xNet data.
 
 ```mermaid
 flowchart TB
@@ -748,7 +748,7 @@ const pages = await workspace.query({
 ## Next Steps
 
 - [Development Timeline](./02-development-timeline.md) - When to build each package
-- [Phase 1: Wiki & Tasks](./03-phase-1-wiki-tasks.md) - First xNotes features
+- [Phase 1: Wiki & Tasks](./03-phase-1-wiki-tasks.md) - First xNet features
 - [Appendix: Code Samples](./08-appendix-code-samples.md) - Detailed implementations
 
 ---

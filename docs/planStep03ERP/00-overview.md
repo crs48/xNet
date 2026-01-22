@@ -14,7 +14,7 @@
 
 ## Goals
 
-Evolve xNotes into a fully customizable ERP platform, enabling businesses to build complete operational systems.
+Evolve xNet into a fully customizable ERP platform, enabling businesses to build complete operational systems.
 
 | Milestone       | Target          | Key Features                                    |
 | --------------- | --------------- | ----------------------------------------------- |

@@ -10,7 +10,7 @@
 
 **Core Principle**: xNet works with **zero infrastructure**—just laptops and phones. Higher tiers are **optional optimizations** for institutions with specific needs.
 
-This document covers how to scale xNotes from personal use to global infrastructure:
+This document covers how to scale xNet from personal use to global infrastructure:
 
 - **Pure P2P** - Works with just user devices, no servers
 - **P2P Mesh Scaling** - GossipSub, super-peers, and circuit relays for unlimited scale
@@ -543,7 +543,7 @@ interface SyncPolicy {
 
 ### The Git Analogy
 
-Like Git, xNotes provides inherent redundancy through distribution:
+Like Git, xNet provides inherent redundancy through distribution:
 
 ```mermaid
 flowchart LR
@@ -867,7 +867,7 @@ interface BackupDashboard {
 
 ## Unified Graph & Canvas
 
-xNotes unifies **graph visualization** and **infinite canvas** into a single system where:
+xNet unifies **graph visualization** and **infinite canvas** into a single system where:
 
 - **Graph View ("ALL")** - Procedurally generated from all content with computed edges
 - **Canvas Views** - User-curated subsets with manual positioning and custom edges
@@ -940,11 +940,11 @@ flowchart TB
 
 ### Addressable Content Reference
 
-All content in xNotes is addressable, allowing edges to target any level of granularity.
+All content in xNet is addressable, allowing edges to target any level of granularity.
 
 ```typescript
 /**
- * Universal reference to any content in xNotes.
+ * Universal reference to any content in xNet.
  * Enables edges between pages, blocks, databases, rows, and cells.
  */
 interface ContentRef {
@@ -1826,7 +1826,7 @@ Block-level granularity creates 10-100x more edges than document-level. This sec
 
 #### Hybrid Edge Strategy
 
-xNotes uses different strategies for different edge types:
+xNet uses different strategies for different edge types:
 
 ```typescript
 interface EdgeStorageStrategy {

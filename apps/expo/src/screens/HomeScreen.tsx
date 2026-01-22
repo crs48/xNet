@@ -105,7 +105,7 @@ export function HomeScreen({ navigation }: Props) {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#007AFF" />
-          <Text style={styles.loadingText}>Loading xNotes...</Text>
+          <Text style={styles.loadingText}>Loading xNet...</Text>
         </View>
       </SafeAreaView>
     )
@@ -114,10 +114,8 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>xNotes</Text>
-        <Text style={styles.identity}>
-          {identity ? `${identity.slice(0, 20)}...` : ''}
-        </Text>
+        <Text style={styles.title}>xNet</Text>
+        <Text style={styles.identity}>{identity ? `${identity.slice(0, 20)}...` : ''}</Text>
       </View>
 
       <TouchableOpacity style={styles.createButton} onPress={createDocument}>
@@ -127,9 +125,7 @@ export function HomeScreen({ navigation }: Props) {
       <FlatList
         data={documents}
         keyExtractor={(item) => item.id}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.docItem}

@@ -1,7 +1,7 @@
 {
-  "name": "xnotes-web",
+  "name": "xnet-web",
   "version": "0.0.1",
-  "description": "xNotes Web - A local-first notes PWA",
+  "description": "xNet Web - Local-first data platform PWA",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,4 +1,4 @@
-# 13: xNotes Features
+# 13: xNet Features
 
 > Wiki, tasks, and editor implementation
 
@@ -7,7 +7,7 @@
 
 ## Overview
 
-After platform POCs are working, implement the core xNotes features in this order:
+After platform POCs are working, implement the core xNet features in this order:
 
 1. Rich text editor (Tiptap)
 2. Page/wiki functionality

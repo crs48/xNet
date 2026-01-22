@@ -181,7 +181,7 @@ flowchart TD
 
 ## Goal
 
-Transform xNotes into a fully customizable ERP platform (like Tesla's Warp Drive):
+Transform xNet into a fully customizable ERP platform (like Tesla's Warp Drive):
 
 - **v2.5 (Month 30)**: Module framework, CRM/HRM, basic workflows
 - **v3.0 (Month 36)**: All modules, full workflows, plugin marketplace, enterprise features

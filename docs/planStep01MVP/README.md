@@ -21,7 +21,7 @@ Execute these documents in order. Each builds on the previous.
 | 10  | [Platform: Electron](./10-platform-electron.md)    | macOS desktop app                                   | 2 weeks   | ✅     |
 | 11  | [Platform: Expo](./11-platform-expo.md)            | iOS mobile app                                      | 2 weeks   | ✅     |
 | 12  | [Platform: Web](./12-platform-web.md)              | TanStack PWA                                        | 2 weeks   | ✅     |
-| 13  | [xNotes Features](./13-xnotes-features.md)         | Wiki, tasks, editor                                 | 6 weeks   | 🔶     |
+| 13  | [xNet Features](./13-xnet-features.md)         | Wiki, tasks, editor                                 | 6 weeks   | 🔶     |
 | 14  | [Testing Strategy](./14-testing-strategy.md)       | Unit tests, integration                             | Reference | ✅     |
 | 15  | [Infrastructure](./15-infrastructure.md)           | Signaling, relay, bootstrap                         | 3 weeks   | 🔶     |
 | 16  | [Timeline](./16-timeline.md)                       | Development timeline, schedules, milestones         | Reference | ✅     |

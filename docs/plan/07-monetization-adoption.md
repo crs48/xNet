@@ -8,7 +8,7 @@
 
 ## Overview
 
-xNotes follows a freemium model with optional token economics for the broader xNet ecosystem. The strategy balances open-source principles with sustainable revenue generation.
+xNet follows a freemium model with optional token economics for the broader xNet ecosystem. The strategy balances open-source principles with sustainable revenue generation.
 
 ---
 
@@ -281,7 +281,7 @@ gantt
 
 ### vs. Notion
 
-| Aspect | Notion | xNotes |
+| Aspect | Notion | xNet |
 |--------|--------|--------|
 | Data Location | Cloud (centralized) | Local-first (user devices) |
 | Privacy | Notion has access | E2E encrypted |
@@ -292,7 +292,7 @@ gantt
 
 ### vs. Obsidian
 
-| Aspect | Obsidian | xNotes |
+| Aspect | Obsidian | xNet |
 |--------|----------|--------|
 | Collaboration | Plugin-based | Native P2P |
 | Databases | No | Full Notion-like |
@@ -302,7 +302,7 @@ gantt
 
 ### vs. Roam Research
 
-| Aspect | Roam | xNotes |
+| Aspect | Roam | xNet |
 |--------|------|--------|
 | Pricing | $15/mo | Free core |
 | Self-hosting | No | Yes |

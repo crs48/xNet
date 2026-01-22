@@ -1,5 +1,5 @@
 /**
- * xNotes Mobile - Main App Entry
+ * xNet Mobile - Main App Entry
  */
 import React from 'react'
 import { StatusBar } from 'expo-status-bar'

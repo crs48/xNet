@@ -9,7 +9,7 @@ This document outlines the long-term vision for xNet beyond the MVP. These featu
 ```mermaid
 flowchart TD
     subgraph "MVP (planStep01MVP)"
-        MVP["xNotes MVP<br/>Months 1-12"]
+        MVP["xNet MVP<br/>Months 1-12"]
     end
 
     subgraph "Phase 2: Database Platform"
@@ -45,7 +45,7 @@ flowchart TD
 
 ## Phase 2: Database Platform (Months 12-24)
 
-Transform xNotes into a full Notion-like database platform.
+Transform xNet into a full Notion-like database platform.
 
 ### 2.1 Database UI (Months 12-18)
 

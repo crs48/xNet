@@ -1,4 +1,4 @@
-# xNet & xNotes Implementation Plan
+# xNet & xNet Implementation Plan
 
 > Building the Decentralized Internet and Its Flagship Productivity App
 
@@ -13,12 +13,12 @@ This plan covers the parallel development of two interconnected projects:
 | Project | Description | Role |
 |---------|-------------|------|
 | **xNet** | Decentralized internet infrastructure | Platform/SDK |
-| **xNotes** | Collaborative productivity app | Flagship application |
+| **xNet** | Collaborative productivity app | Flagship application |
 
 ```mermaid
 graph TB
-    subgraph "xNotes Application"
-        APP[xNotes App]
+    subgraph "xNet Application"
+        APP[xNet App]
         WIKI[Wiki Module]
         TASKS[Task Manager]
         DB[Database UI]
@@ -96,11 +96,11 @@ graph TB
 
 **xNet** is a fully decentralized internet architecture designed for mass adoption—enabling applications where data is local-first, stored on user devices, with P2P syncing and no central servers.
 
-**xNotes** is the flagship application built on xNet—a local-first, peer-to-peer collaborative productivity platform that evolves from a simple wiki and task manager into a fully customizable ERP system.
+**xNet** is the flagship application built on xNet—a local-first, peer-to-peer collaborative productivity platform that evolves from a simple wiki and task manager into a fully customizable ERP system.
 
 ### Why Decentralized?
 
-| Aspect | Traditional Apps | xNotes |
+| Aspect | Traditional Apps | xNet |
 |--------|------------------|--------|
 | Data Storage | Centralized servers | Local-first, user devices |
 | Privacy | Vendor has access | E2E encrypted, user-controlled |
@@ -194,17 +194,17 @@ gantt
 
     section Milestones
     xNet SDK v1.0           :milestone, 2026-06, 0d
-    xNotes MVP              :milestone, 2026-07, 0d
-    xNotes v1.0             :milestone, 2026-12, 0d
-    xNotes v2.0 (Notion)    :milestone, 2027-06, 0d
-    xNotes v2.5 (Canvas)    :milestone, 2027-09, 0d
-    xNotes v3.0 (ERP)       :milestone, 2028-01, 0d
+    xNet MVP              :milestone, 2026-07, 0d
+    xNet v1.0             :milestone, 2026-12, 0d
+    xNet v2.0 (Notion)    :milestone, 2027-06, 0d
+    xNet v2.5 (Canvas)    :milestone, 2027-09, 0d
+    xNet v3.0 (ERP)       :milestone, 2028-01, 0d
 
     section xNet Core
     Core packages           :2026-01, 6M
     Advanced features       :2026-06, 6M
 
-    section xNotes
+    section xNet
     Phase 1: Wiki & Tasks   :2026-01, 12M
     Phase 2: Database UI    :2027-01, 6M
     Phase 2.5: Canvas       :2027-07, 6M
@@ -238,7 +238,7 @@ gantt
 ```mermaid
 pie title Team Allocation (Phase 1)
     "xNet Core (Platform)" : 40
-    "xNotes App (Product)" : 45
+    "xNet App (Product)" : 45
     "Infrastructure" : 10
     "DevOps & Security" : 5
 ```
@@ -302,7 +302,7 @@ pie title Team Allocation (Phase 1)
 
 ### Local-First Performance Advantages
 
-| Scenario | Traditional SaaS | xNotes (Local-First) |
+| Scenario | Traditional SaaS | xNet (Local-First) |
 |----------|------------------|----------------------|
 | **Read latency** | 100-500ms | <10ms |
 | **Write latency** | 200-1000ms | <50ms |

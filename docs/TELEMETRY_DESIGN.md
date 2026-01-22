@@ -107,7 +107,7 @@ xNet already has:
 ```mermaid
 flowchart TB
     subgraph "User Device"
-        APP[xNotes App]
+        APP[xNet App]
         LOCAL[Local Telemetry Store]
         CONSENT[Consent Manager]
 
@@ -307,13 +307,13 @@ sequenceDiagram
 │  │    Metric: pages_created                        │   │
 │  │    Bucket: moderate (11-50)                     │   │
 │  │    Period: weekly                               │   │
-│  │    App: xNotes 1.2.3 / macOS                    │   │
+│  │    App: xNet 1.2.3 / macOS                    │   │
 │  │                                    [Delete] [→] │   │
 │  ├─────────────────────────────────────────────────┤   │
 │  │ 💥 Crash Report - Jan 20, 2026 (pending)        │   │
 │  │    Error: RangeError: Invalid array length      │   │
 │  │    Component: TableView                         │   │
-│  │    App: xNotes 1.2.3 / macOS                    │   │
+│  │    App: xNet 1.2.3 / macOS                    │   │
 │  │                         [Review & Send] [Delete]│   │
 │  └─────────────────────────────────────────────────┘   │
 │                                                         │

@@ -17,7 +17,7 @@ function RootLayout() {
     <div className="flex flex-col h-screen">
       <header className="h-[52px] flex items-center justify-between px-4 border-b border-border bg-bg">
         <Link to="/" className="text-lg font-semibold text-text no-underline hover:no-underline">
-          xNotes
+          xNet
         </Link>
         <GlobalSearch />
         <div className="flex items-center gap-4">

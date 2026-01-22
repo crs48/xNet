@@ -37,7 +37,7 @@ telemetry.setConsent({ tier: 'crashes', reviewBeforeSend: true })
 ```mermaid
 flowchart TB
     subgraph "User Device"
-        APP[xNotes App]
+        APP[xNet App]
         CONSENT[ConsentManager]
         COLLECTOR[TelemetryCollector]
         SCORER[PeerScorer]
@@ -100,7 +100,7 @@ flowchart TB
 
 - [ ] PII automatically scrubbed (paths, emails, IPs)
 - [ ] Numeric values bucketed (no exact counts)
-- [ ] React hooks work in xNotes app
+- [ ] React hooks work in xNet app
 - [ ] User can view/delete their telemetry
 
 ### Phase 3: Network Security Foundation (Week 3-4)
@@ -260,7 +260,7 @@ The current plan focuses on **local-first foundations** that make these future e
 
 1. **Start with Phase 1.1** - Create `@xnet/telemetry` package
 2. **Run tests after each change** - `pnpm test`
-3. **Test in xNotes** - Verify consent UI and telemetry collection
+3. **Test in xNet** - Verify consent UI and telemetry collection
 4. **Add security incrementally** - Connection limits first, then scoring
 
 ---

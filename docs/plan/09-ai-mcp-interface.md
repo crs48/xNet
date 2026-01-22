@@ -1,6 +1,6 @@
 # 09: AI & MCP Interface
 
-> Making xNotes data accessible to AI agents
+> Making xNet data accessible to AI agents
 
 [← Back to Plan Overview](./README.md) | [Previous: Appendix](./08-appendix-code-samples.md)
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-xNotes exposes all data operations through an MCP (Model Context Protocol) server, enabling AI agents like Claude to read, write, and query content programmatically. This replaces the need for file-based storage while providing structured, type-safe access to all data.
+xNet exposes all data operations through an MCP (Model Context Protocol) server, enabling AI agents like Claude to read, write, and query content programmatically. This replaces the need for file-based storage while providing structured, type-safe access to all data.
 
 **Design Principle**: AI agents access data via tools (MCP), not files. This provides:
 - Structured queries (filter, sort, aggregate)
@@ -27,7 +27,7 @@ flowchart TB
         Other["Other MCP Clients"]
     end
 
-    subgraph MCP["MCP Server (@xnotes/mcp)"]
+    subgraph MCP["MCP Server (@xnet/mcp)"]
         subgraph Tools["Tool Categories"]
             Pages["Page Tools"]
             DBTools["Database Tools"]
@@ -59,7 +59,7 @@ flowchart TB
 | Approach | Pros | Cons |
 |----------|------|------|
 | **File-based (Obsidian-style)** | Human-readable, Git-friendly, external editor support | Sync conflicts, Markdown limits rich content, parsing errors |
-| **MCP-based (xNotes)** | Structured queries, atomic ops, full flexibility, no sync issues | Requires MCP client, less portable |
+| **MCP-based (xNet)** | Structured queries, atomic ops, full flexibility, no sync issues | Requires MCP client, less portable |
 
 For AI agents specifically, MCP is superior:
 - Query: "find tasks due this week" (vs grep through files)
@@ -75,7 +75,7 @@ For AI agents specifically, MCP is superior:
 
 ### Page Operations
 
-#### xnotes_list_pages
+#### xnet_list_pages
 
 List pages with optional filtering.
 
@@ -103,7 +103,7 @@ List pages with optional filtering.
 }
 ```
 
-#### xnotes_get_page
+#### xnet_get_page
 
 Get full page content.
 
@@ -131,7 +131,7 @@ Get full page content.
 }
 ```
 
-#### xnotes_create_page
+#### xnet_create_page
 
 Create a new page.
 
@@ -152,7 +152,7 @@ Create a new page.
 }
 ```
 
-#### xnotes_update_page
+#### xnet_update_page
 
 Update an existing page.
 
@@ -176,7 +176,7 @@ Update an existing page.
 }
 ```
 
-#### xnotes_delete_page
+#### xnet_delete_page
 
 Delete a page.
 
@@ -198,7 +198,7 @@ Delete a page.
 
 ### Database Operations
 
-#### xnotes_list_databases
+#### xnet_list_databases
 
 List all databases in the workspace.
 
@@ -221,7 +221,7 @@ List all databases in the workspace.
 }
 ```
 
-#### xnotes_get_database_schema
+#### xnet_get_database_schema
 
 Get detailed schema for a database.
 
@@ -258,7 +258,7 @@ Get detailed schema for a database.
 }
 ```
 
-#### xnotes_query_database
+#### xnet_query_database
 
 Query records with filtering and sorting.
 
@@ -301,7 +301,7 @@ Query records with filtering and sorting.
 }
 ```
 
-#### xnotes_create_record
+#### xnet_create_record
 
 Create a new database record.
 
@@ -319,7 +319,7 @@ Create a new database record.
 }
 ```
 
-#### xnotes_update_record
+#### xnet_update_record
 
 Update an existing record.
 
@@ -337,7 +337,7 @@ Update an existing record.
 }
 ```
 
-#### xnotes_delete_record
+#### xnet_delete_record
 
 Delete a record.
 
@@ -353,7 +353,7 @@ Delete a record.
 }
 ```
 
-#### xnotes_create_database
+#### xnet_create_database
 
 Create a new database.
 
@@ -382,7 +382,7 @@ Create a new database.
 
 Tasks are stored in a built-in database but have convenience methods.
 
-#### xnotes_list_tasks
+#### xnet_list_tasks
 
 ```typescript
 // Parameters
@@ -414,7 +414,7 @@ Tasks are stored in a built-in database but have convenience methods.
 }
 ```
 
-#### xnotes_create_task
+#### xnet_create_task
 
 ```typescript
 // Parameters
@@ -437,7 +437,7 @@ Tasks are stored in a built-in database but have convenience methods.
 }
 ```
 
-#### xnotes_update_task
+#### xnet_update_task
 
 ```typescript
 // Parameters
@@ -463,7 +463,7 @@ Tasks are stored in a built-in database but have convenience methods.
 
 ### Search Operations
 
-#### xnotes_search
+#### xnet_search
 
 Global search across all content types.
 
@@ -490,7 +490,7 @@ Global search across all content types.
 }
 ```
 
-#### xnotes_get_backlinks
+#### xnet_get_backlinks
 
 Get all pages linking to a specific page.
 
@@ -515,7 +515,7 @@ Get all pages linking to a specific page.
 
 ### Export/Import Operations
 
-#### xnotes_export_workspace
+#### xnet_export_workspace
 
 Export workspace to files.
 
@@ -542,7 +542,7 @@ Export workspace to files.
 }
 ```
 
-#### xnotes_import_file
+#### xnet_import_file
 
 Import from file or directory.
 
@@ -588,7 +588,7 @@ export/
 │   └── contacts.json
 ├── attachments/
 │   └── {content-hash}.png
-└── .xnotes/
+└── .xnet/
     ├── manifest.json
     └── links.json
 ```
@@ -736,8 +736,8 @@ packages/mcp/
 ### Dependencies
 
 - `@modelcontextprotocol/sdk` - MCP server framework
-- `@xnotes/storage` - Data access
-- `@xnotes/query` - Search and filtering
+- `@xnet/storage` - Data access
+- `@xnet/query` - Search and filtering
 - `prosemirror-markdown` - Content conversion
 - `gray-matter` - Frontmatter parsing
 
@@ -749,7 +749,7 @@ packages/mcp/
 
 ```typescript
 // AI calls:
-xnotes_list_tasks({
+xnet_list_tasks({
   due_after: "2026-01-20",
   due_before: "2026-01-27",
   status: "todo"
@@ -762,7 +762,7 @@ xnotes_list_tasks({
 
 ```typescript
 // AI calls:
-xnotes_create_page({
+xnet_create_page({
   title: "Meeting Notes - Jan 20",
   content: "# Meeting Notes\n\n## Attendees\n\n## Agenda\n\n## Action Items\n",
   parent_id: "meetings-folder-uuid",
@@ -774,13 +774,13 @@ xnotes_create_page({
 
 ```typescript
 // AI calls:
-xnotes_search({
+xnet_search({
   query: "Project Alpha",
   types: ["page"]
 })
 
 // Or for backlinks specifically:
-xnotes_get_backlinks({
+xnet_get_backlinks({
   page_id: "project-alpha-uuid"
 })
 ```
@@ -789,7 +789,7 @@ xnotes_get_backlinks({
 
 ```typescript
 // AI calls:
-xnotes_create_record({
+xnet_create_record({
   database_id: "contacts-db-uuid",
   properties: {
     "Name": "Jane Smith",
