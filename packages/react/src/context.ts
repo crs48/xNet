@@ -33,6 +33,8 @@ export interface XNetContextValue {
   nodeStoreReady: boolean
   /** User identity (if provided) */
   identity?: Identity
+  /** Author DID (resolved from config.authorDID or config.identity.did) */
+  authorDID: string | null
 }
 
 /** @internal Exported for useNodeStore hook - not part of public API */
@@ -95,10 +97,13 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     }
   }, [config.nodeStorage, config.authorDID, config.signingKey, config.identity?.did])
 
+  const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
+
   const value: XNetContextValue = {
     nodeStore,
     nodeStoreReady,
-    identity: config.identity
+    identity: config.identity,
+    authorDID: authorDID ?? null
   }
 
   return React.createElement(XNetContext.Provider, { value }, children)

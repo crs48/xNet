@@ -6,15 +6,29 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Collaboration from '@tiptap/extension-collaboration'
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
 import Typography from '@tiptap/extension-typography'
 import type * as Y from 'yjs'
+import type { Awareness } from 'y-protocols/awareness'
 import { Wikilink, LivePreview } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
 import '../editor.css'
 import { cn } from '../utils'
+
+/**
+ * Generate a deterministic cursor color from a DID string.
+ */
+function generateCursorColor(did: string): string {
+  let hash = 0
+  for (let i = 0; i < did.length; i++) {
+    hash = did.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = Math.abs(hash % 360)
+  return `hsl(${hue}, 70%, 50%)`
+}
 
 export interface RichTextEditorProps {
   /** The Yjs document to bind to */
@@ -38,6 +52,10 @@ export interface RichTextEditorProps {
   className?: string
   /** Whether the editor is read-only */
   readOnly?: boolean
+  /** Yjs Awareness instance for cursor presence (optional) */
+  awareness?: Awareness
+  /** Local user's DID for cursor color/label (optional) */
+  did?: string
 }
 
 /**
@@ -94,46 +112,57 @@ export function RichTextEditor({
   toolbarMode = 'auto',
   onNavigate,
   className,
-  readOnly = false
+  readOnly = false,
+  awareness,
+  did
 }: RichTextEditorProps): JSX.Element {
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
 
+  // Build extensions list - conditionally include cursor presence
+  const extensions = [
+    StarterKit.configure({
+      undoRedo: false,
+      link: false
+    }),
+    Typography,
+    Placeholder.configure({
+      placeholder,
+      emptyEditorClass: 'is-editor-empty'
+    }),
+    Collaboration.configure({
+      fragment
+    }),
+    // Add cursor presence if awareness is provided
+    ...(awareness
+      ? [
+          CollaborationCursor.configure({
+            provider: { awareness } as any, // CollaborationCursor just needs .awareness
+            user: {
+              name: did ? `${did.slice(8, 16)}...` : 'Anonymous',
+              color: did ? generateCursorColor(did) : '#999999'
+            }
+          })
+        ]
+      : []),
+    TaskList,
+    TaskItem.configure({
+      nested: true
+    }),
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: {
+        class: 'text-primary hover:underline cursor-pointer'
+      }
+    }),
+    Wikilink.configure({
+      onNavigate: onNavigate || (() => {})
+    }),
+    LivePreview
+  ]
+
   const editor = useEditor({
-    extensions: [
-      // StarterKit includes: Bold, Italic, Strike, Code, Heading, Blockquote,
-      // BulletList, OrderedList, ListItem, CodeBlock, HardBreak, HorizontalRule
-      // All with Markdown shortcuts enabled (e.g., **bold**, *italic*, # Heading)
-      // Disable undoRedo (we use Yjs undo/redo via Collaboration) and link (we configure our own)
-      StarterKit.configure({
-        undoRedo: false, // Collaboration uses Yjs undo/redo
-        link: false // We configure Link separately below
-      }),
-      // Typography for smart quotes, em-dashes, ellipsis
-      Typography,
-      Placeholder.configure({
-        placeholder,
-        emptyEditorClass: 'is-editor-empty'
-      }),
-      Collaboration.configure({
-        fragment
-      }),
-      TaskList,
-      TaskItem.configure({
-        nested: true
-      }),
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-primary hover:underline cursor-pointer'
-        }
-      }),
-      Wikilink.configure({
-        onNavigate: onNavigate || (() => {})
-      }),
-      // Obsidian-style live preview - shows markdown syntax when cursor is on formatted text
-      LivePreview
-    ],
+    extensions,
     editorProps: {
       attributes: {
         // Full height, no outline on focus, proper typography

@@ -54,6 +54,9 @@ export {
   CommandShortcut
 } from './primitives/Command'
 
+// ─── Presence Components ──────────────────────────────────────────
+export { DIDAvatar, getColorForDID } from './components/DIDAvatar'
+
 // ─── Composed Components ──────────────────────────────────────────
 export { DatePicker, type DatePickerProps } from './components/DatePicker'
 export { ColorPicker, type ColorPickerProps } from './components/ColorPicker'

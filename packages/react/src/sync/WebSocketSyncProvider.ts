@@ -9,15 +9,27 @@
  * Protocol (extends the y-webrtc signaling protocol):
  * - Uses the same subscribe/publish mechanism as y-webrtc signaling
  * - Sync messages are published as JSON with base64-encoded binary data
- * - Message types: 'sync-step1', 'sync-step2', 'sync-update'
+ * - Message types: 'sync-step1', 'sync-step2', 'sync-update', 'awareness'
  *
  * Sync flow:
  * 1. On connect: subscribe to room, broadcast sync-step1 (state vector)
  * 2. On receiving sync-step1: respond with sync-step2 (diff for their vector)
  * 3. On local update: broadcast sync-update to room
  * 4. On receiving sync-update: apply to local doc
+ *
+ * Awareness flow:
+ * 1. On connect: broadcast local awareness state
+ * 2. On awareness change: broadcast updated state
+ * 3. On receiving awareness: apply to local awareness instance
+ * 4. On disconnect: peers remove the disconnected client's state
  */
 import * as Y from 'yjs'
+import {
+  Awareness,
+  applyAwarenessUpdate,
+  encodeAwarenessUpdate,
+  removeAwarenessStates
+} from 'y-protocols/awareness'
 
 // Encode/decode binary as base64 for JSON transport
 function toBase64(data: Uint8Array): string {
@@ -62,6 +74,7 @@ export class WebSocketSyncProvider {
   readonly doc: Y.Doc
   readonly room: string
   readonly url: string
+  readonly awareness: Awareness
 
   private ws: WebSocket | null = null
   private reconnectDelay: number
@@ -72,6 +85,7 @@ export class WebSocketSyncProvider {
   private connected = false
   private synced = false
   private peerId: string
+  private remotePeerIds = new Set<string>()
   private eventHandlers = new Map<SyncEventType, Set<SyncEventHandler>>()
 
   constructor(doc: Y.Doc, options: WebSocketSyncProviderOptions) {
@@ -84,8 +98,14 @@ export class WebSocketSyncProvider {
     // Generate a unique peer ID for this provider instance
     this.peerId = Math.random().toString(36).slice(2, 10)
 
+    // Create awareness instance for presence/cursors
+    this.awareness = new Awareness(doc)
+
     // Listen for local doc updates
     this.doc.on('update', this._onDocUpdate)
+
+    // Listen for local awareness changes
+    this.awareness.on('update', this._onAwarenessUpdate)
 
     // Connect
     this._connect()
@@ -117,6 +137,10 @@ export class WebSocketSyncProvider {
   destroy(): void {
     this.destroyed = true
     this.doc.off('update', this._onDocUpdate)
+    this.awareness.off('update', this._onAwarenessUpdate)
+
+    // Remove our own awareness state
+    removeAwarenessStates(this.awareness, [this.doc.clientID], this)
 
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer)
@@ -154,6 +178,14 @@ export class WebSocketSyncProvider {
           type: 'sync-step1',
           from: this.peerId,
           sv: toBase64(sv)
+        })
+
+        // Broadcast our awareness state
+        const awarenessUpdate = encodeAwarenessUpdate(this.awareness, [this.doc.clientID])
+        this._publish({
+          type: 'awareness',
+          from: this.peerId,
+          update: toBase64(awarenessUpdate)
         })
       }
 
@@ -213,6 +245,15 @@ export class WebSocketSyncProvider {
   private _handleSyncMessage(data: Record<string, unknown>): void {
     if (!data || data.from === this.peerId) return // Ignore own messages
 
+    // Track remote peers
+    if (data.from && typeof data.from === 'string') {
+      const hadPeer = this.remotePeerIds.has(data.from)
+      this.remotePeerIds.add(data.from)
+      if (!hadPeer) {
+        this.emit('peers', { count: this.remotePeerIds.size })
+      }
+    }
+
     switch (data.type) {
       case 'sync-step1': {
         // Peer sent their state vector, respond with the diff they need
@@ -236,6 +277,14 @@ export class WebSocketSyncProvider {
             sv: toBase64(sv)
           })
         }
+
+        // Send our awareness state to the new peer
+        const awarenessUpdate = encodeAwarenessUpdate(this.awareness, [this.doc.clientID])
+        this._publish({
+          type: 'awareness',
+          from: this.peerId,
+          update: toBase64(awarenessUpdate)
+        })
         break
       }
 
@@ -259,6 +308,13 @@ export class WebSocketSyncProvider {
         Y.applyUpdate(this.doc, update, this)
         break
       }
+
+      case 'awareness': {
+        // Apply remote awareness state
+        const update = fromBase64(data.update as string)
+        applyAwarenessUpdate(this.awareness, update, this)
+        break
+      }
     }
   }
 
@@ -270,6 +326,27 @@ export class WebSocketSyncProvider {
     if (this.connected) {
       this._publish({
         type: 'sync-update',
+        from: this.peerId,
+        update: toBase64(update)
+      })
+    }
+  }
+
+  /** Broadcast local awareness changes to peers */
+  private _onAwarenessUpdate = (
+    { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+    origin: unknown
+  ): void => {
+    // Don't re-broadcast awareness updates that came from remote peers
+    if (origin === this) return
+
+    const changedClients = [...added, ...updated, ...removed]
+    if (changedClients.length === 0) return
+
+    if (this.connected) {
+      const update = encodeAwarenessUpdate(this.awareness, changedClients)
+      this._publish({
+        type: 'awareness',
         from: this.peerId,
         update: toBase64(update)
       })

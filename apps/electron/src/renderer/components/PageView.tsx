@@ -3,24 +3,29 @@
  */
 
 import React from 'react'
-import { useDocument } from '@xnet/react'
+import { useDocument, useIdentity } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
 import { RichTextEditor } from '@xnet/editor/react'
 import { DocumentHeader } from './DocumentHeader'
+import { PresenceAvatars } from './PresenceAvatars'
 
 interface PageViewProps {
   docId: string
 }
 
 export function PageView({ docId }: PageViewProps) {
+  const { did } = useIdentity()
+
   const {
     data: page,
     doc,
     loading,
-    update
+    update,
+    remoteUsers,
+    awareness
   } = useDocument(PageSchema, docId, {
-    createIfMissing: { title: 'Untitled Page' }
-    // Sync enabled - signaling server runs via `pnpm dev`
+    createIfMissing: { title: 'Untitled Page' },
+    did: did ?? undefined
   })
 
   if (loading || !doc) {
@@ -39,16 +44,21 @@ export function PageView({ docId }: PageViewProps) {
         title={page?.title || ''}
         onTitleChange={(title) => update({ title })}
         placeholder="Untitled Page"
-      />
+      >
+        <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+      </DocumentHeader>
 
       {/* Editor */}
       <div className="flex-1 px-6 py-4">
         <RichTextEditor
+          key={awareness ? 'with-cursors' : 'no-cursors'}
           ydoc={doc}
           field="content"
           placeholder="Start typing..."
           showToolbar={true}
           toolbarMode="desktop"
+          awareness={awareness ?? undefined}
+          did={did ?? undefined}
         />
       </div>
     </div>
