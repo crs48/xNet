@@ -8,7 +8,6 @@ import { XNetProvider } from '@xnet/react'
 import { IndexedDBNodeStorageAdapter } from '@xnet/data'
 import { ThemeProvider } from '@xnet/ui'
 import { routeTree } from './routeTree.gen'
-import '@xnet/ui/tokens.css'
 import './styles/globals.css'
 
 // Create router instance
