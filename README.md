@@ -127,7 +127,7 @@ function TaskList() {
   return (
     <ul>
       {tasks.map((task) => (
-        <li key={task.id}>{task.properties.title}</li>
+        <li key={task.id}>{task.title}</li>
       ))}
       <button onClick={() => create(TaskSchema, { title: 'New', status: 'todo' })}>Add</button>
     </ul>
