@@ -92,6 +92,7 @@ import { defineSchema, text, number, select } from '@xnet/data'
 const InvoiceSchema = defineSchema({
   name: 'Invoice',
   namespace: 'xnet://myapp/',
+  document: 'yjs', // enables rich text body via Yjs CRDT
   properties: {
     title: text({ required: true }),
     amount: number(),
@@ -115,11 +116,10 @@ const InvoiceSchema = defineSchema({
 
 ## React Hooks
 
-Two hooks for all data operations:
-
 ```tsx
-import { NodeStoreProvider, useQuery, useMutate } from '@xnet/react'
+import { XNetProvider, useQuery, useMutate, useDocument } from '@xnet/react'
 
+// Structured data: useQuery + useMutate
 function TaskList() {
   const { data: tasks, loading } = useQuery(TaskSchema)
   const { create, update, remove } = useMutate()
@@ -132,6 +132,13 @@ function TaskList() {
       <button onClick={() => create(TaskSchema, { title: 'New', status: 'todo' })}>Add</button>
     </ul>
   )
+}
+
+// Rich text: useDocument (Yjs CRDT)
+function PageEditor({ nodeId }: { nodeId: string }) {
+  const { doc, loading } = useDocument(nodeId)
+  if (loading || !doc) return null
+  return <RichTextEditor doc={doc} />
 }
 ```
 
