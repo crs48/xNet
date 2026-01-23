@@ -18,6 +18,7 @@ node_modules/
 
 # Test
 coverage/
+__screenshots__/
 
 # OS
 .DS_Store
