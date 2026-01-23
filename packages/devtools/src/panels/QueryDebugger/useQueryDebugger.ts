@@ -12,6 +12,7 @@ export interface QueryStats {
   schemaId: string
   mode: 'list' | 'single' | 'filtered' | 'document'
   filter?: Record<string, unknown>
+  callerInfo?: string
 
   registeredAt: number
   lastUpdateAt: number | null
@@ -100,6 +101,7 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
         schemaId: e.schemaId,
         mode: e.mode as QueryStats['mode'],
         filter: e.filter,
+        callerInfo: e.callerInfo,
         registeredAt: e.wallTime,
         lastUpdateAt: null,
         active: true,

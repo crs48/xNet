@@ -154,6 +154,7 @@ export interface QuerySubscribeEvent extends DevToolsEventBase {
   schemaId: string
   mode: 'list' | 'single' | 'filtered'
   filter?: Record<string, unknown>
+  callerInfo?: string
 }
 
 export interface QueryUnsubscribeEvent extends DevToolsEventBase {
@@ -230,6 +231,21 @@ export interface TelemetryConsentEvent extends DevToolsEventBase {
   previousTier: string
 }
 
+export interface TelemetryPeerScoresEvent extends DevToolsEventBase {
+  type: 'telemetry:peer-scores'
+  scores: PeerScoreSnapshot[]
+}
+
+export interface PeerScoreSnapshot {
+  peerId: string
+  score: number
+  syncSuccesses: number
+  syncFailures: number
+  invalidSignatures: number
+  rateLimitViolations: number
+  lastSeen: number
+}
+
 // ─── Union Type ────────────────────────────────────────────
 
 export type DevToolsEvent =
@@ -262,6 +278,7 @@ export type DevToolsEvent =
   | TelemetrySecurityEvent
   | TelemetryPerformanceEvent
   | TelemetryConsentEvent
+  | TelemetryPeerScoresEvent
 
 export type DevToolsEventType = DevToolsEvent['type']
 

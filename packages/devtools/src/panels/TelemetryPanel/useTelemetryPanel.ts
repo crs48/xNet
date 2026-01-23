@@ -13,7 +13,9 @@ import type {
   TelemetryPerformanceEvent,
   TelemetryCrashEvent,
   TelemetryUsageEvent,
-  TelemetryConsentEvent
+  TelemetryConsentEvent,
+  TelemetryPeerScoresEvent,
+  PeerScoreSnapshot
 } from '../../core/types'
 
 // ─── Types ─────────────────────────────────────────────────
@@ -72,12 +74,15 @@ export interface NetworkHealth {
 
 // ─── Constants ─────────────────────────────────────────────
 
+export type { PeerScoreSnapshot } from '../../core/types'
+
 const TELEMETRY_EVENT_TYPES = new Set([
   'telemetry:security',
   'telemetry:performance',
   'telemetry:crash',
   'telemetry:usage',
-  'telemetry:consent-change'
+  'telemetry:consent-change',
+  'telemetry:peer-scores'
 ])
 
 const MAX_ENTRIES = 500
@@ -92,6 +97,7 @@ export function useTelemetryPanel() {
   const [performanceEvents, setPerformanceEvents] = useState<PerformanceEntry[]>([])
   const [crashEvents, setCrashEvents] = useState<CrashEntry[]>([])
   const [usageEvents, setUsageEvents] = useState<UsageEntry[]>([])
+  const [peerScores, setPeerScores] = useState<PeerScoreSnapshot[]>([])
   const [consent, setConsent] = useState<ConsentState>({
     tier: 'off',
     previousTier: null,
@@ -105,6 +111,7 @@ export function useTelemetryPanel() {
     const perf: PerformanceEntry[] = []
     const crashes: CrashEntry[] = []
     const usage: UsageEntry[] = []
+    let latestPeerScores: PeerScoreSnapshot[] = []
     let consentState: ConsentState = { tier: 'off', previousTier: null, lastChanged: null }
 
     for (const event of allEvents) {
@@ -161,6 +168,11 @@ export function useTelemetryPanel() {
           }
           break
         }
+        case 'telemetry:peer-scores': {
+          const e = event as TelemetryPeerScoresEvent
+          latestPeerScores = e.scores
+          break
+        }
       }
     }
 
@@ -168,6 +180,7 @@ export function useTelemetryPanel() {
     setPerformanceEvents(perf.slice(-MAX_ENTRIES))
     setCrashEvents(crashes.slice(-MAX_ENTRIES))
     setUsageEvents(usage.slice(-MAX_ENTRIES))
+    setPeerScores(latestPeerScores)
     setConsent(consentState)
   }, [eventBus])
 
@@ -248,6 +261,11 @@ export function useTelemetryPanel() {
           })
           break
         }
+        case 'telemetry:peer-scores': {
+          const e = event as TelemetryPeerScoresEvent
+          setPeerScores(e.scores)
+          break
+        }
       }
     })
     return unsub
@@ -266,6 +284,7 @@ export function useTelemetryPanel() {
     performanceEvents,
     crashEvents: crashEvents.slice().reverse(),
     usageEvents,
+    peerScores,
     consent,
     networkHealth,
     performanceGroups

@@ -1,13 +1,21 @@
 /**
- * NodeExplorer panel - Browse all nodes grouped by schema
+ * NodeExplorer panel - Browse all nodes using @xnet/views TableView
+ *
+ * Uses the TableView component for virtual scrolling, sorting, filtering,
+ * and column management. Synthesizes a Schema from available node data.
  */
 
+import { useMemo, useState } from 'react'
+import { TableView, type TableRow } from '@xnet/views'
+import type { Schema, PropertyDefinition } from '@xnet/data'
+import type { ViewConfig } from '@xnet/views'
 import { useNodeExplorer, type NodeEntry } from './useNodeExplorer'
-import { truncateDID, relativeTime } from '../../utils/formatters'
+import { truncateDID } from '../../utils/formatters'
 
 export function NodeExplorer() {
   const {
     nodes,
+    allNodes,
     schemas,
     selectedNode,
     setSelectedNode,
@@ -20,6 +28,30 @@ export function NodeExplorer() {
     isLoading
   } = useNodeExplorer()
 
+  const [viewConfig, setViewConfig] = useState<ViewConfig>(() => createDefaultViewConfig(null))
+
+  // When schema filter changes, update view config to show relevant columns
+  const schema = useMemo(() => synthesizeSchema(nodes, schemaFilter), [nodes, schemaFilter])
+
+  // Update view config when schema filter changes
+  const activeViewConfig = useMemo(() => {
+    if (schemaFilter) {
+      // Schema-specific: show actual property columns
+      const propNames = schema.properties
+        .filter((p) => !['createdAt', 'updatedAt', 'createdBy'].includes(p.name))
+        .map((p) => p.name)
+        .slice(0, 6)
+      return {
+        ...viewConfig,
+        visibleProperties: ['id', ...propNames, 'updatedAt']
+      }
+    }
+    return viewConfig
+  }, [schemaFilter, schema, viewConfig])
+
+  // Convert nodes to TableRow format
+  const tableRows: TableRow[] = useMemo(() => nodes.map(nodeToTableRow), [nodes])
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full text-zinc-500">Loading nodes...</div>
@@ -28,7 +60,7 @@ export function NodeExplorer() {
 
   return (
     <div className="flex h-full">
-      {/* Main list */}
+      {/* Main table area */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-zinc-800">
@@ -63,21 +95,24 @@ export function NodeExplorer() {
           <span className="text-[10px] text-zinc-500">{nodes.length} nodes</span>
         </div>
 
-        {/* Node list */}
-        <div className="flex-1 overflow-y-auto">
+        {/* TableView */}
+        <div className="flex-1 overflow-hidden">
           {nodes.length === 0 ? (
             <div className="flex items-center justify-center h-full text-zinc-500 text-xs">
               No nodes found
             </div>
           ) : (
-            nodes.map((node) => (
-              <NodeRow
-                key={node.id}
-                node={node}
-                isSelected={selectedNode?.id === node.id}
-                onSelect={() => setSelectedNode(node)}
-              />
-            ))
+            <TableView
+              schema={schema}
+              view={activeViewConfig}
+              data={tableRows}
+              onUpdateView={(changes: Partial<ViewConfig>) =>
+                setViewConfig((prev: ViewConfig) => ({ ...prev, ...changes }))
+              }
+              rowHeight={28}
+              overscan={15}
+              className="text-[11px]"
+            />
           )}
         </div>
       </div>
@@ -92,38 +127,111 @@ export function NodeExplorer() {
   )
 }
 
-function NodeRow({
-  node,
-  isSelected,
-  onSelect
-}: {
-  node: NodeEntry
-  isSelected: boolean
-  onSelect: () => void
-}) {
-  return (
-    <div
-      onClick={onSelect}
-      className={`
-        flex items-center gap-2 px-3 py-1 cursor-pointer border-l-2 text-xs
-        ${isSelected ? 'bg-zinc-800 border-blue-400' : 'border-transparent hover:bg-zinc-900'}
-        ${node.deleted ? 'opacity-50' : ''}
-      `}
-    >
-      <span className="text-zinc-500 font-mono text-[10px] w-20 truncate">
-        {node.id.slice(0, 8)}
-      </span>
-      <span className="text-blue-400 text-[10px] w-20 truncate">{node.schemaLabel}</span>
-      <span className="text-zinc-400 flex-1 truncate text-[10px]">
-        {Object.entries(node.properties)
-          .slice(0, 3)
-          .map(([k, v]) => `${k}: ${typeof v === 'string' ? v.slice(0, 20) : JSON.stringify(v)}`)
-          .join(', ')}
-      </span>
-      <span className="text-zinc-600 text-[10px]">{relativeTime(node.updatedAt)}</span>
-    </div>
-  )
+// ─── Schema Synthesis ──────────────────────────────────────
+
+/**
+ * Create a synthesized Schema for the TableView based on current nodes.
+ * When filtering by a specific schema, includes its actual property names.
+ * Otherwise, shows generic columns.
+ */
+function synthesizeSchema(nodes: NodeEntry[], schemaFilter: string | null): Schema {
+  const baseProperties: PropertyDefinition[] = [
+    { '@id': 'devtools:id', name: 'id', type: 'text', required: true },
+    { '@id': 'devtools:schemaLabel', name: 'schema', type: 'text', required: true },
+    { '@id': 'devtools:updatedAt', name: 'updatedAt', type: 'updated', required: true },
+    { '@id': 'devtools:createdAt', name: 'createdAt', type: 'created', required: true },
+    { '@id': 'devtools:createdBy', name: 'createdBy', type: 'createdBy', required: true }
+  ]
+
+  if (schemaFilter && nodes.length > 0) {
+    // Collect unique property keys from nodes of this schema
+    const propKeys = new Set<string>()
+    for (const node of nodes) {
+      Object.keys(node.properties).forEach((k) => propKeys.add(k))
+    }
+
+    // Create property definitions for actual schema properties
+    const schemaProps: PropertyDefinition[] = Array.from(propKeys)
+      .slice(0, 10)
+      .map((key) => ({
+        '@id': `devtools:prop:${key}`,
+        name: key,
+        type: 'text' as const,
+        required: false
+      }))
+
+    return {
+      '@id': `xnet://devtools/${schemaFilter.split('/').pop() ?? 'Node'}`,
+      '@type': 'xnet://xnet.dev/Schema',
+      name: schemaFilter.split('/').pop() ?? 'Node',
+      namespace: 'xnet://devtools/',
+      properties: [baseProperties[0], ...schemaProps, ...baseProperties.slice(2)]
+    }
+  }
+
+  // Generic schema for all nodes
+  return {
+    '@id': 'xnet://devtools/Node',
+    '@type': 'xnet://xnet.dev/Schema',
+    name: 'Node',
+    namespace: 'xnet://devtools/',
+    properties: [
+      ...baseProperties.slice(0, 2),
+      { '@id': 'devtools:preview', name: 'preview', type: 'text', required: false },
+      ...baseProperties.slice(2)
+    ]
+  }
 }
+
+/**
+ * Convert a NodeEntry to a TableRow for the TableView.
+ * Flattens properties to top-level for column access.
+ */
+function nodeToTableRow(node: NodeEntry): TableRow {
+  const row: TableRow = {
+    id: node.id,
+    schema: node.schemaLabel,
+    createdAt: node.createdAt,
+    updatedAt: node.updatedAt,
+    createdBy: node.createdBy,
+    preview: Object.entries(node.properties)
+      .slice(0, 3)
+      .map(
+        ([k, v]) =>
+          `${k}: ${typeof v === 'string' ? v.slice(0, 20) : JSON.stringify(v)?.slice(0, 20)}`
+      )
+      .join(', ')
+  }
+
+  // Flatten properties into the row for schema-specific views
+  for (const [key, value] of Object.entries(node.properties)) {
+    if (!(key in row)) {
+      row[key] = typeof value === 'object' ? JSON.stringify(value) : value
+    }
+  }
+
+  return row
+}
+
+function createDefaultViewConfig(schemaFilter: string | null): ViewConfig {
+  return {
+    id: 'devtools-node-explorer',
+    name: 'Node Explorer',
+    type: 'table',
+    visibleProperties: ['id', 'schema', 'preview', 'updatedAt'],
+    propertyWidths: {
+      id: 100,
+      schema: 100,
+      preview: 250,
+      updatedAt: 100,
+      createdAt: 100,
+      createdBy: 120
+    },
+    sorts: []
+  }
+}
+
+// ─── Node Detail ───────────────────────────────────────────
 
 function NodeDetail({ node, onClose }: { node: NodeEntry; onClose: () => void }) {
   return (

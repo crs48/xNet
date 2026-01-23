@@ -65,6 +65,9 @@ export function QueryDebugger() {
               <DetailRow label="Hook" value={selectedQuery.type} />
               <DetailRow label="Schema" value={selectedQuery.schemaId} />
               <DetailRow label="Mode" value={selectedQuery.mode} />
+              {selectedQuery.callerInfo && (
+                <DetailRow label="Source" value={selectedQuery.callerInfo} />
+              )}
               <DetailRow label="Updates" value={String(selectedQuery.updateCount)} />
               <DetailRow label="Results" value={String(selectedQuery.resultCount)} />
               <DetailRow label="Avg Render" value={`${selectedQuery.avgRenderTime.toFixed(2)}ms`} />
@@ -146,6 +149,9 @@ function QueryEntry({
         <span className="text-[9px] text-zinc-500">({query.mode})</span>
       </div>
 
+      {query.callerInfo && (
+        <div className="text-[8px] text-zinc-600 mt-0.5 font-mono truncate">{query.callerInfo}</div>
+      )}
       <div className="flex items-center gap-3 mt-1 text-[9px] text-zinc-500">
         <span>Updates: {query.updateCount}</span>
         <span>Results: {query.resultCount}</span>

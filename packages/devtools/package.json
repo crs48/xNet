@@ -27,7 +27,8 @@
     "@xnet/react": "workspace:*"
   },
   "dependencies": {
-    "@xnet/ui": "workspace:*"
+    "@xnet/ui": "workspace:*",
+    "@xnet/views": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

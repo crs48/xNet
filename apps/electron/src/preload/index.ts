@@ -21,6 +21,12 @@ contextBridge.exposeInMainWorld('xnet', {
   onNewPage: (callback: () => void) => {
     ipcRenderer.on('menu:new-page', callback)
     return () => ipcRenderer.removeListener('menu:new-page', callback)
+  },
+
+  // DevTools toggle from menu
+  onDevToolsToggle: (callback: () => void) => {
+    ipcRenderer.on('devtools:toggle', callback)
+    return () => ipcRenderer.removeListener('devtools:toggle', callback)
   }
 })
 
@@ -56,6 +62,7 @@ export interface XNetAPI {
   getSyncStatus(): Promise<{ status: string; peers: string[] }>
   stop(): Promise<void>
   onNewPage(callback: () => void): () => void
+  onDevToolsToggle(callback: () => void): () => void
 }
 
 export interface DocumentData {

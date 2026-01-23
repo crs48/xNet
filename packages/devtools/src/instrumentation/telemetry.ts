@@ -9,6 +9,7 @@
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
+import type { PeerScoreSnapshot } from '../core/types'
 
 /** Minimal TelemetryCollector interface (avoids hard dep on @xnet/telemetry) */
 interface TelemetryCollectorLike {
@@ -34,12 +35,30 @@ interface ConsentManagerLike {
   off: (event: string, listener: (...args: unknown[]) => void) => unknown
 }
 
-const SCHEMA_IRI_TO_TYPE: Record<string, string> = {
-  'xnet://xnet.dev/telemetry/CrashReport': 'crash',
-  'xnet://xnet.dev/telemetry/UsageMetric': 'usage',
-  'xnet://xnet.dev/telemetry/SecurityEvent': 'security',
-  'xnet://xnet.dev/telemetry/PerformanceMetric': 'performance'
+/** Minimal PeerScorer interface */
+interface PeerScorerLike {
+  getAllScores: () => Array<{
+    peerId: string
+    score: number
+    metrics: {
+      syncSuccesses: number
+      syncFailures: number
+      invalidSignatures: number
+      rateLimitViolations: number
+      lastSeen: number
+    }
+  }>
 }
+
+/** Options for telemetry instrumentation */
+export interface InstrumentTelemetryOptions {
+  /** PeerScorer instance for peer reputation display */
+  peerScorer?: PeerScorerLike
+  /** Poll interval for peer scores in ms (default: 3000) */
+  peerScorePollMs?: number
+}
+
+const DEFAULT_PEER_SCORE_POLL_MS = 3000
 
 /**
  * Instrument telemetry collector and consent manager to emit DevTools events.
@@ -49,7 +68,8 @@ const SCHEMA_IRI_TO_TYPE: Record<string, string> = {
 export function instrumentTelemetry(
   collector: TelemetryCollectorLike,
   consent: ConsentManagerLike,
-  bus: DevToolsEventBus
+  bus: DevToolsEventBus,
+  options?: InstrumentTelemetryOptions
 ): () => void {
   // Store original methods for restoration
   const origReportCrash = collector.reportCrash.bind(collector)
@@ -139,6 +159,31 @@ export function instrumentTelemetry(
     previousTier: consent.tier
   })
 
+  // Peer score polling
+  let peerScoreInterval: ReturnType<typeof setInterval> | null = null
+  const peerScorer = options?.peerScorer
+  if (peerScorer) {
+    const pollMs = options?.peerScorePollMs ?? DEFAULT_PEER_SCORE_POLL_MS
+
+    const emitPeerScores = () => {
+      const allScores = peerScorer.getAllScores()
+      const scores: PeerScoreSnapshot[] = allScores.map((s) => ({
+        peerId: s.peerId,
+        score: s.score,
+        syncSuccesses: s.metrics.syncSuccesses,
+        syncFailures: s.metrics.syncFailures,
+        invalidSignatures: s.metrics.invalidSignatures,
+        rateLimitViolations: s.metrics.rateLimitViolations,
+        lastSeen: s.metrics.lastSeen
+      }))
+      bus.emit({ type: 'telemetry:peer-scores', scores })
+    }
+
+    // Emit initial scores
+    emitPeerScores()
+    peerScoreInterval = setInterval(emitPeerScores, pollMs)
+  }
+
   // Return cleanup
   return () => {
     collector.reportCrash = origReportCrash
@@ -146,6 +191,7 @@ export function instrumentTelemetry(
     collector.reportPerformance = origReportPerformance
     collector.reportSecurityEvent = origReportSecurityEvent
     consent.off('tier-changed', tierChangedListener)
+    if (peerScoreInterval) clearInterval(peerScoreInterval)
   }
 }
 

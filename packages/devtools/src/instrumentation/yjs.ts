@@ -7,8 +7,16 @@
 
 import type * as Y from 'yjs'
 import type { DevToolsEventBus } from '../core/event-bus'
+import type { YDocRegistry } from '../provider/DevToolsContext'
 
-export function instrumentYDoc(doc: Y.Doc, docId: string, bus: DevToolsEventBus): () => void {
+export function instrumentYDoc(
+  doc: Y.Doc,
+  docId: string,
+  bus: DevToolsEventBus,
+  registry?: YDocRegistry
+): () => void {
+  // Register doc for tree inspection
+  registry?.register(docId, doc)
   const onUpdate = (update: Uint8Array, origin: unknown) => {
     bus.emit({
       type: 'yjs:update',
@@ -46,5 +54,6 @@ export function instrumentYDoc(doc: Y.Doc, docId: string, bus: DevToolsEventBus)
     if (metaMap && metaObserver) {
       metaMap.unobserve(metaObserver)
     }
+    registry?.unregister(docId)
   }
 }

@@ -7,20 +7,24 @@ export function createMenu() {
   const isMac = process.platform === 'darwin'
 
   const template: Electron.MenuItemConstructorOptions[] = [
-    ...(isMac ? [{
-      label: app.name,
-      submenu: [
-        { role: 'about' as const },
-        { type: 'separator' as const },
-        { role: 'services' as const },
-        { type: 'separator' as const },
-        { role: 'hide' as const },
-        { role: 'hideOthers' as const },
-        { role: 'unhide' as const },
-        { type: 'separator' as const },
-        { role: 'quit' as const }
-      ]
-    }] : []),
+    ...(isMac
+      ? [
+          {
+            label: app.name,
+            submenu: [
+              { role: 'about' as const },
+              { type: 'separator' as const },
+              { role: 'services' as const },
+              { type: 'separator' as const },
+              { role: 'hide' as const },
+              { role: 'hideOthers' as const },
+              { role: 'unhide' as const },
+              { type: 'separator' as const },
+              { role: 'quit' as const }
+            ]
+          }
+        ]
+      : []),
     {
       label: 'File',
       submenu: [
@@ -55,6 +59,15 @@ export function createMenu() {
         { role: 'forceReload' },
         { role: 'toggleDevTools' },
         { type: 'separator' },
+        {
+          label: 'Toggle xNet DevTools',
+          accelerator: 'CmdOrCtrl+Shift+D',
+          click: () => {
+            const win = BrowserWindow.getFocusedWindow()
+            win?.webContents.send('devtools:toggle')
+          }
+        },
+        { type: 'separator' },
         { role: 'resetZoom' },
         { role: 'zoomIn' },
         { role: 'zoomOut' },
@@ -67,12 +80,9 @@ export function createMenu() {
       submenu: [
         { role: 'minimize' },
         { role: 'zoom' },
-        ...(isMac ? [
-          { type: 'separator' as const },
-          { role: 'front' as const }
-        ] : [
-          { role: 'close' as const }
-        ])
+        ...(isMac
+          ? [{ type: 'separator' as const }, { role: 'front' as const }]
+          : [{ role: 'close' as const }])
       ]
     },
     {

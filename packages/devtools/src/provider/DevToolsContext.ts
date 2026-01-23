@@ -5,10 +5,21 @@
 import { createContext } from 'react'
 import type { DevToolsEventBus } from '../core/event-bus'
 import type { NodeStore } from '@xnet/data'
+import type * as Y from 'yjs'
 
 export type PanelId = 'nodes' | 'changes' | 'sync' | 'yjs' | 'queries' | 'telemetry' | 'schemas'
 
 export type PanelPosition = 'bottom' | 'right' | 'floating'
+
+/** Registry of Y.Doc instances being tracked */
+export interface YDocRegistry {
+  /** Get all tracked docs */
+  getDocs: () => Map<string, Y.Doc>
+  /** Register a doc for inspection */
+  register: (docId: string, doc: Y.Doc) => void
+  /** Unregister a doc */
+  unregister: (docId: string) => void
+}
 
 export interface DevToolsContextValue {
   /** Whether the devtools panel is open */
@@ -33,6 +44,8 @@ export interface DevToolsContextValue {
   eventBus: DevToolsEventBus
   /** The NodeStore instance (from context) */
   store: NodeStore | null
+  /** Registry of Y.Doc instances for tree inspection */
+  yDocRegistry: YDocRegistry
 }
 
 export const DevToolsContext = createContext<DevToolsContextValue | null>(null)
