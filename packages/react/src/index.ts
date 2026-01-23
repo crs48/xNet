@@ -90,13 +90,7 @@ export {
 // Utilities
 // =============================================================================
 
-export {
-  flattenNode,
-  flattenNodes,
-  extractProperties,
-  isFlatNode,
-  type NodeBase
-} from './utils/flattenNode'
+export { flattenNode, flattenNodes } from './utils/flattenNode'
 
 // =============================================================================
 // Identity

@@ -1,51 +1,9 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { XNetProvider, type XNetConfig } from '../context'
 import { useIdentity } from './useIdentity'
-import type { StorageAdapter, DocumentData } from '@xnet/storage'
 import type { Identity } from '@xnet/identity'
-
-// Mock storage adapter
-function createMockStorage(): StorageAdapter {
-  const documents = new Map<string, DocumentData>()
-
-  return {
-    async open() {},
-    async close() {},
-    async clear() {},
-    async getDocument(id: string) {
-      return documents.get(id) ?? null
-    },
-    async setDocument(id: string, data: DocumentData) {
-      documents.set(id, data)
-    },
-    async deleteDocument(id: string) {
-      documents.delete(id)
-    },
-    async listDocuments() {
-      return Array.from(documents.keys())
-    },
-    async appendUpdate() {},
-    async getUpdates() {
-      return []
-    },
-    async getUpdateCount() {
-      return 0
-    },
-    async getSnapshot() {
-      return null
-    },
-    async setSnapshot() {},
-    async getBlob() {
-      return null
-    },
-    async setBlob() {},
-    async hasBlob() {
-      return false
-    }
-  }
-}
 
 function createWrapper(config: XNetConfig) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -54,17 +12,8 @@ function createWrapper(config: XNetConfig) {
 }
 
 describe('useIdentity', () => {
-  let mockStorage: StorageAdapter
-
-  beforeEach(() => {
-    mockStorage = createMockStorage()
-  })
-
   it('should return null identity when not authenticated', () => {
-    const { result } = renderHook(
-      () => useIdentity(),
-      { wrapper: createWrapper({ storage: mockStorage }) }
-    )
+    const { result } = renderHook(() => useIdentity(), { wrapper: createWrapper({}) })
 
     expect(result.current.identity).toBeNull()
     expect(result.current.isAuthenticated).toBe(false)
@@ -78,10 +27,9 @@ describe('useIdentity', () => {
       created: Date.now()
     }
 
-    const { result } = renderHook(
-      () => useIdentity(),
-      { wrapper: createWrapper({ storage: mockStorage, identity: mockIdentity }) }
-    )
+    const { result } = renderHook(() => useIdentity(), {
+      wrapper: createWrapper({ identity: mockIdentity })
+    })
 
     expect(result.current.identity).toBe(mockIdentity)
     expect(result.current.isAuthenticated).toBe(true)

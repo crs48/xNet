@@ -1,55 +1,38 @@
 /**
  * XNet React context provider
  *
- * Provides both the legacy Zustand store (XNetStore) and the new NodeStore.
- * Apps should migrate to using useQuery/useMutate/useDocument hooks which
- * use the NodeStore internally.
+ * Provides NodeStore and optional identity to the React tree.
+ * All data access happens through useQuery/useMutate/useDocument hooks.
  */
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { StorageAdapter } from '@xnet/storage'
-import type { NetworkNode } from '@xnet/network'
 import type { Identity } from '@xnet/identity'
-import type { SearchIndex } from '@xnet/query'
 import type { DID } from '@xnet/core'
 import { NodeStore, MemoryNodeStorageAdapter, type NodeStorageAdapter } from '@xnet/data'
-import { createXNetStore, type XNetStore } from './store/xnet'
 
 /**
  * XNet configuration
  */
 export interface XNetConfig {
-  /** Legacy storage adapter for XDocument-based storage (optional - for migration) */
-  storage?: StorageAdapter
   /** Node storage adapter for NodeStore (defaults to MemoryNodeStorageAdapter) */
   nodeStorage?: NodeStorageAdapter
   /** Author's DID for signing changes */
   authorDID?: DID
   /** Ed25519 signing key */
   signingKey?: Uint8Array
-  /** Network node for P2P */
-  network?: NetworkNode
   /** User identity */
   identity?: Identity
-  /** Search index */
-  searchIndex?: SearchIndex
 }
 
 /**
  * XNet context value
  */
 export interface XNetContextValue {
-  /** Legacy Zustand store for XDocument operations (null if not configured) */
-  store: XNetStore | null
-  /** New NodeStore for Node operations */
+  /** NodeStore for Node operations */
   nodeStore: NodeStore | null
   /** Whether NodeStore is initialized */
   nodeStoreReady: boolean
-  /** Legacy storage adapter (null if not configured) */
-  storage: StorageAdapter | null
-  network?: NetworkNode
+  /** User identity (if provided) */
   identity?: Identity
-  searchIndex?: SearchIndex
-  isReady: boolean
 }
 
 /** @internal Exported for useNodeStore hook - not part of public API */
@@ -66,28 +49,13 @@ export interface XNetProviderProps {
 /**
  * XNet provider component
  *
- * Provides both legacy XNetStore and new NodeStore for gradual migration.
+ * Initializes NodeStore and provides it to the React tree.
  */
 export function XNetProvider({ config, children }: XNetProviderProps): JSX.Element {
-  // Legacy Zustand store (only if storage is provided)
-  const [store] = useState(() =>
-    config.storage ? createXNetStore({ storage: config.storage }) : null
-  )
-  const [isReady, setIsReady] = useState(!config.storage) // Ready immediately if no legacy storage
-
-  // New NodeStore
   const [nodeStore, setNodeStore] = useState<NodeStore | null>(null)
   const [nodeStoreReady, setNodeStoreReady] = useState(false)
 
   useEffect(() => {
-    // Initialize legacy storage if provided
-    if (config.storage) {
-      config.storage.open().then(() => {
-        setIsReady(true)
-      })
-    }
-
-    // Initialize NodeStore
     const nodeStorageAdapter = config.nodeStorage ?? new MemoryNodeStorageAdapter()
     const authorDID = config.authorDID ?? (config.identity?.did as DID | undefined)
     const signingKey = config.signingKey
@@ -98,14 +66,11 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         'XNetProvider: authorDID and signingKey not provided. NodeStore will not be initialized. ' +
           'Provide these via config.authorDID/config.signingKey or config.identity.'
       )
-      return () => {
-        config.storage?.close()
-      }
+      return
     }
 
     // Initialize the node storage adapter if it has an open() method
     const initializeNodeStore = async () => {
-      // Open adapter if needed (e.g., IndexedDBNodeStorageAdapter)
       if ('open' in nodeStorageAdapter && typeof nodeStorageAdapter.open === 'function') {
         await nodeStorageAdapter.open()
       }
@@ -124,29 +89,16 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     initializeNodeStore()
 
     return () => {
-      config.storage?.close()
-      // Close node storage adapter if it has a close() method
       if ('close' in nodeStorageAdapter && typeof nodeStorageAdapter.close === 'function') {
         nodeStorageAdapter.close()
       }
     }
-  }, [
-    config.storage,
-    config.nodeStorage,
-    config.authorDID,
-    config.signingKey,
-    config.identity?.did
-  ])
+  }, [config.nodeStorage, config.authorDID, config.signingKey, config.identity?.did])
 
   const value: XNetContextValue = {
-    store,
     nodeStore,
     nodeStoreReady,
-    storage: config.storage ?? null,
-    network: config.network,
-    identity: config.identity,
-    searchIndex: config.searchIndex,
-    isReady
+    identity: config.identity
   }
 
   return React.createElement(XNetContext.Provider, { value }, children)
@@ -154,6 +106,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
 /**
  * Hook to access XNet context
+ *
+ * @internal Used by useIdentity. Not part of public API.
  */
 export function useXNet(): XNetContextValue {
   const context = useContext(XNetContext)

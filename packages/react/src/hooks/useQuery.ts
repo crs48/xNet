@@ -41,13 +41,6 @@ import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'
 // =============================================================================
 
 /**
- * @deprecated Use FlatNode instead - properties are now at top level
- */
-export interface TypedNode<P extends Record<string, PropertyBuilder>> extends NodeState {
-  properties: InferCreateProps<P>
-}
-
-/**
  * Sort direction
  */
 export type SortDirection = 'asc' | 'desc'
