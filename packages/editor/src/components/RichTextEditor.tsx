@@ -6,7 +6,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Collaboration from '@tiptap/extension-collaboration'
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+import { yCursorPlugin, yCursorPluginKey } from 'y-prosemirror'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
@@ -119,7 +119,7 @@ export function RichTextEditor({
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
 
-  // Build extensions list - conditionally include cursor presence
+  // Build extensions list (without cursor - added dynamically when awareness is available)
   const extensions = [
     StarterKit.configure({
       undoRedo: false,
@@ -133,18 +133,6 @@ export function RichTextEditor({
     Collaboration.configure({
       fragment
     }),
-    // Add cursor presence if awareness is provided
-    ...(awareness
-      ? [
-          CollaborationCursor.configure({
-            provider: { awareness } as any, // CollaborationCursor just needs .awareness
-            user: {
-              name: did ? `${did.slice(8, 16)}...` : 'Anonymous',
-              color: did ? generateCursorColor(did) : '#999999'
-            }
-          })
-        ]
-      : []),
     TaskList,
     TaskItem.configure({
       nested: true
@@ -178,6 +166,40 @@ export function RichTextEditor({
       editor.setEditable(!readOnly)
     }
   }, [editor, readOnly])
+
+  // Add cursor plugin dynamically when awareness becomes available.
+  // We use yCursorPlugin directly (instead of CollaborationCursor extension) to avoid
+  // the render-phase setState that occurs when the extension calls setLocalStateField
+  // during useEditor initialization.
+  useEffect(() => {
+    if (!editor || !awareness) return
+
+    // Set local user state for cursor display
+    awareness.setLocalStateField('user', {
+      name: did ? `${did.slice(8, 16)}...` : 'Anonymous',
+      color: did ? generateCursorColor(did) : '#999999'
+    })
+
+    const plugin = yCursorPlugin(awareness, {
+      cursorBuilder: (user: { name: string; color: string }) => {
+        const cursor = document.createElement('span')
+        cursor.classList.add('collaboration-cursor__caret')
+        cursor.setAttribute('style', `border-color: ${user.color}`)
+        const label = document.createElement('div')
+        label.classList.add('collaboration-cursor__label')
+        label.setAttribute('style', `background-color: ${user.color}`)
+        label.insertBefore(document.createTextNode(user.name), null)
+        cursor.insertBefore(label, null)
+        return cursor
+      }
+    })
+
+    editor.registerPlugin(plugin)
+
+    return () => {
+      editor.unregisterPlugin(yCursorPluginKey)
+    }
+  }, [editor, awareness, did])
 
   // Clean up editor on unmount
   useEffect(() => {
