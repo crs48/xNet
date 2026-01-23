@@ -8,7 +8,6 @@ import { IndexedDBNodeStorageAdapter } from '@xnet/data'
 import { DevToolsProvider } from '@xnet/devtools'
 import { ThemeProvider } from '@xnet/ui'
 import { App } from './App'
-import '@xnet/ui/tokens.css'
 import './styles.css'
 
 // TODO: In production, load identity from secure storage via IPC
