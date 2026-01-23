@@ -20,14 +20,54 @@ import { cn } from '../utils'
 
 /**
  * Generate a deterministic cursor color from a DID string.
+ * Returns a 6-digit hex color (required by y-prosemirror's yCursorPlugin).
  */
 function generateCursorColor(did: string): string {
   let hash = 0
   for (let i = 0; i < did.length; i++) {
     hash = did.charCodeAt(i) + ((hash << 5) - hash)
   }
+  // Convert hash to a vibrant hex color
   const hue = Math.abs(hash % 360)
-  return `hsl(${hue}, 70%, 50%)`
+  // HSL to RGB conversion for s=70%, l=50%
+  const s = 0.7
+  const l = 0.5
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1))
+  const m = l - c / 2
+  let r = 0,
+    g = 0,
+    b = 0
+  if (hue < 60) {
+    r = c
+    g = x
+    b = 0
+  } else if (hue < 120) {
+    r = x
+    g = c
+    b = 0
+  } else if (hue < 180) {
+    r = 0
+    g = c
+    b = x
+  } else if (hue < 240) {
+    r = 0
+    g = x
+    b = c
+  } else if (hue < 300) {
+    r = x
+    g = 0
+    b = c
+  } else {
+    r = c
+    g = 0
+    b = x
+  }
+  const toHex = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
 export interface RichTextEditorProps {
@@ -210,6 +250,14 @@ export function RichTextEditor({
 
       editor.registerPlugin(plugin)
       registered = true
+
+      // Force a view update to trigger updateCursorInfo in the plugin's view.
+      // Without this, the cursor position won't be broadcast until the user
+      // moves the cursor or types (since focusin already happened before plugin registration).
+      if (editor.view.hasFocus()) {
+        const { tr } = editor.state
+        editor.view.dispatch(tr)
+      }
     }
 
     let rafId: number | undefined
