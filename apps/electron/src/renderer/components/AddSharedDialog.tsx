@@ -35,7 +35,6 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
       return
     }
 
-    console.log('[AddSharedDialog] Adding shared doc:', trimmedId)
     onAdd(trimmedId)
     setDocId('')
     setError(null)

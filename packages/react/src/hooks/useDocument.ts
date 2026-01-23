@@ -32,10 +32,10 @@
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import * as Y from 'yjs'
-import { WebrtcProvider } from 'y-webrtc'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
 import { useNodeStore } from './useNodeStore'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
+import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
 
 // =============================================================================
 // Types
@@ -205,7 +205,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
 
   // Refs
-  const providerRef = useRef<WebrtcProvider | null>(null)
+  const providerRef = useRef<WebSocketSyncProvider | null>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const docRef = useRef<Y.Doc | null>(null)
   const creatingRef = useRef(false)
@@ -409,48 +409,33 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       return
     }
 
-    // Listen for updates (both local and remote)
-    const updateHandler = (update: Uint8Array, origin: unknown) => {
-      const isRemote = origin === providerRef.current || origin === 'y-webrtc'
-      // Save both local and remote updates
+    // Listen for updates (both local and remote) to trigger persistence
+    const updateHandler = (_update: Uint8Array, _origin: unknown) => {
       scheduleSave()
     }
     doc.on('update', updateHandler)
 
-    // Set up y-webrtc sync
+    // Set up WebSocket sync
     if (!disableSync && signalingServers.length > 0) {
       setSyncStatus('connecting')
-      const provider = new WebrtcProvider(`xnet-doc-${id}`, doc, {
-        signaling: signalingServers,
-        maxConns: 20,
-        peerOpts: {
-          config: {
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' }
-            ]
-          }
-        }
+      const provider = new WebSocketSyncProvider(doc, {
+        url: signalingServers[0],
+        room: `xnet-doc-${id}`
       })
       providerRef.current = provider
 
       // Track connection status
-      const statusHandler = (event: { connected: boolean }) => {
-        setSyncStatus(event.connected ? 'connected' : 'connecting')
+      const statusHandler = (event: unknown) => {
+        const { connected } = event as { connected: boolean }
+        setSyncStatus(connected ? 'connected' : 'connecting')
       }
       provider.on('status', statusHandler)
-
-      // Track peers
-      const peersHandler = (event: { webrtcPeers: string[] }) => {
-        setPeerCount(event.webrtcPeers?.length ?? 0)
-      }
-      provider.on('peers', peersHandler)
 
       // Listen for remote meta changes (synced properties)
       const metaMap = doc.getMap('meta')
 
       // Helper to apply meta map values to NodeStore
-      const applyMetaToNodeStore = (source: string) => {
+      const applyMetaToNodeStore = () => {
         if (metaMap.size === 0) return
 
         const props: Record<string, unknown> = {}
@@ -471,63 +456,25 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       const metaObserver = (event: Y.YMapEvent<unknown>) => {
         // Process remote changes (origin is the provider or null for sync)
         if (event.transaction.origin !== null && event.transaction.origin !== 'local') {
-          applyMetaToNodeStore('observer')
+          applyMetaToNodeStore()
         }
       }
       metaMap.observe(metaObserver)
 
       // Also check meta map when sync first connects (handles initial sync)
-      const syncedHandler = (event: { synced: boolean }) => {
-        if (event.synced) {
-          applyMetaToNodeStore('synced')
+      const syncedHandler = (event: unknown) => {
+        const { synced } = event as { synced: boolean }
+        if (synced) {
+          applyMetaToNodeStore()
         }
       }
       provider.on('synced', syncedHandler)
-
-      // Set up presence if user info provided
-      let awarenessHandler: (() => void) | null = null
-      if (userName) {
-        const awareness = provider.awareness
-        awareness.setLocalState({
-          user: {
-            name: userName,
-            color: userColor || generateColor(userName)
-          }
-        })
-
-        // Track remote users
-        awarenessHandler = () => {
-          const states = awareness.getStates()
-          const remote: RemoteUser[] = []
-
-          states.forEach((state, clientId) => {
-            if (clientId === awareness.clientID) return
-            if (state?.user) {
-              remote.push({
-                id: clientId,
-                name: state.user.name || 'Anonymous',
-                color: state.user.color || generateColor(String(clientId)),
-                isActive: true
-              })
-            }
-          })
-
-          setRemoteUsers(remote)
-        }
-
-        awareness.on('change', awarenessHandler)
-        awarenessHandler() // Initial sync
-      }
 
       return () => {
         doc.off('update', updateHandler)
         metaMap.unobserve(metaObserver)
         provider.off('synced', syncedHandler)
         provider.off('status', statusHandler)
-        provider.off('peers', peersHandler)
-        if (awarenessHandler) {
-          provider.awareness.off('change', awarenessHandler)
-        }
         provider.destroy()
         providerRef.current = null
         setSyncStatus('offline')
@@ -540,7 +487,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       doc.off('update', updateHandler)
     }
     // Note: store is accessed via storeRef to avoid re-creating provider on store changes
-  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, userName, userColor])
+  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave])
 
   // Cleanup on unmount - save any pending changes
   // Note: We use saveTimeoutRef.current as the indicator of pending saves

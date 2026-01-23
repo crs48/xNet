@@ -24,7 +24,6 @@
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
     "@xnet/identity": "workspace:*",
-    "y-webrtc": "^10.3.0",
     "yjs": "^13.6.24"
   },
   "peerDependencies": {

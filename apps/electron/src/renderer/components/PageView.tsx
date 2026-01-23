@@ -13,8 +13,6 @@ interface PageViewProps {
 }
 
 export function PageView({ docId }: PageViewProps) {
-  console.log('[PageView] Rendering with docId:', docId)
-
   const {
     data: page,
     doc,
@@ -24,8 +22,6 @@ export function PageView({ docId }: PageViewProps) {
     createIfMissing: { title: 'Untitled Page' }
     // Sync enabled - signaling server runs via `pnpm dev`
   })
-
-  console.log('[PageView] useDocument result - loading:', loading, 'doc:', !!doc, 'page:', page)
 
   if (loading || !doc) {
     return (
