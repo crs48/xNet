@@ -27,8 +27,7 @@ function DocumentPage() {
     remoteUsers
   } = useDocument(PageSchema, docId, {
     createIfMissing: { title: 'Untitled' },
-    disableSync: true, // Disable y-webrtc until signaling server is available
-    user: { name: 'You' } // TODO: Get from identity
+    disableSync: true // Disable sync until signaling server is available
   })
 
   // Handle wikilink navigation
@@ -86,12 +85,12 @@ function DocumentPage() {
           <div className="flex -space-x-2">
             {remoteUsers.map((user) => (
               <span
-                key={user.id}
+                key={user.clientId}
                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white border-2 border-background"
                 style={{ backgroundColor: user.color }}
-                title={user.name}
+                title={user.did}
               >
-                {user.name?.[0] || '?'}
+                {user.did.slice(8, 10)}
               </span>
             ))}
           </div>

@@ -32,6 +32,7 @@
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import * as Y from 'yjs'
+import { Awareness } from 'y-protocols/awareness'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
 import { useNodeStore } from './useNodeStore'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
@@ -50,14 +51,12 @@ export type SyncStatus = 'offline' | 'connecting' | 'connected'
  * Remote user presence
  */
 export interface RemoteUser {
-  /** Client ID */
-  id: number
-  /** Display name */
-  name: string
+  /** Yjs client ID */
+  clientId: number
+  /** User's DID */
+  did: string
   /** User color for cursors/selections */
   color: string
-  /** Whether currently active */
-  isActive: boolean
 }
 
 /**
@@ -76,12 +75,9 @@ export interface UseDocumentOptions<P extends Record<string, PropertyBuilder>> {
    */
   createIfMissing?: InferCreateProps<P>
   /**
-   * User info for presence (optional)
+   * User's DID for presence/cursors. If provided, broadcasts awareness state.
    */
-  user?: {
-    name: string
-    color?: string
-  }
+  did?: string
 }
 
 /**
@@ -126,6 +122,8 @@ export interface UseDocumentResult<P extends Record<string, PropertyBuilder>> {
   // === Presence ===
   /** Remote users currently viewing this document */
   remoteUsers: RemoteUser[]
+  /** Yjs Awareness instance (for TipTap CollaborationCursor) */
+  awareness: Awareness | null
 
   // === Actions ===
   /** Manually trigger save */
@@ -175,13 +173,8 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     disableSync = false,
     persistDebounce = DEFAULT_PERSIST_DEBOUNCE,
     createIfMissing,
-    user
+    did
   } = options
-
-  // Memoize user info to prevent unnecessary effect re-runs
-  // (user object is a new reference on each render)
-  const userName = user?.name
-  const userColor = user?.color
 
   // Memoize createIfMissing to prevent unnecessary effect re-runs
   // (options object is a new reference on each render)
@@ -203,6 +196,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   const [peerCount, setPeerCount] = useState(0)
   const [wasCreated, setWasCreated] = useState(false)
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
+  const [awareness, setAwareness] = useState<Awareness | null>(null)
 
   // Refs
   const providerRef = useRef<WebSocketSyncProvider | null>(null)
@@ -263,51 +257,57 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
 
       // Load document if schema has one
       if (hasDocument) {
-        // Destroy previous provider and Y.Doc if switching to a different document.
-        // This prevents stale docs from being attached to new providers.
-        if (docRef.current && docRef.current.guid !== id) {
-          // Destroy provider first (it references the doc)
-          if (providerRef.current) {
-            providerRef.current.destroy()
-            providerRef.current = null
+        // If we already have a Y.Doc for this id, reuse it (don't recreate).
+        // Recreating would discard any in-memory edits and orphan the editor's reference.
+        if (docRef.current && docRef.current.guid === id) {
+          // Doc already loaded for this id - just update the state reference
+          setDoc(docRef.current)
+          setLastSavedAt(node.updatedAt)
+        } else {
+          // Destroy previous provider and Y.Doc if switching to a different document.
+          if (docRef.current) {
+            if (providerRef.current) {
+              providerRef.current.destroy()
+              providerRef.current = null
+            }
+            docRef.current.destroy()
+            docRef.current = null
+            setDoc(null)
           }
-          docRef.current.destroy()
-          docRef.current = null
-          setDoc(null)
-        }
 
-        const ydoc = new Y.Doc({ guid: id })
-        docRef.current = ydoc
+          const ydoc = new Y.Doc({ guid: id })
+          docRef.current = ydoc
 
-        // Load stored content
-        const storedContent = await store.getDocumentContent(id)
-        if (storedContent && storedContent.length > 0) {
-          Y.applyUpdate(ydoc, storedContent)
-        }
+          // Load stored content
+          const storedContent = await store.getDocumentContent(id)
+          if (storedContent && storedContent.length > 0) {
+            Y.applyUpdate(ydoc, storedContent)
+          }
 
-        // Initialize meta map with current node properties so they sync to peers.
-        // When justCreated (via createIfMissing), only write non-empty values to avoid
-        // placeholder data conflicting with the real creator's values during CRDT merge.
-        const metaMap = ydoc.getMap('meta')
+          // Initialize meta map with current node properties so they sync to peers.
+          // When justCreated (via createIfMissing), only write non-empty values to avoid
+          // placeholder data conflicting with the real creator's values during CRDT merge.
+          const metaMap = ydoc.getMap('meta')
 
-        if (metaMap.size === 0 && node.properties) {
-          const entries = Object.entries(node.properties)
-          const hasContent = entries.some(([, v]) => v !== '' && v !== null && v !== undefined)
+          if (metaMap.size === 0 && node.properties) {
+            const entries = Object.entries(node.properties)
+            const hasContent = entries.some(([, v]) => v !== '' && v !== null && v !== undefined)
 
-          if (hasContent || !justCreated) {
-            ydoc.transact(() => {
-              metaMap.set('_schemaId', schemaId)
-              for (const [key, value] of entries) {
-                if (!justCreated || (value !== '' && value !== null && value !== undefined)) {
-                  metaMap.set(key, value)
+            if (hasContent || !justCreated) {
+              ydoc.transact(() => {
+                metaMap.set('_schemaId', schemaId)
+                for (const [key, value] of entries) {
+                  if (!justCreated || (value !== '' && value !== null && value !== undefined)) {
+                    metaMap.set(key, value)
+                  }
                 }
-              }
-            }, 'local') // Mark as local to avoid triggering metaObserver
+              }, 'local') // Mark as local to avoid triggering metaObserver
+            }
           }
-        }
 
-        setDoc(ydoc)
-        setLastSavedAt(node.updatedAt)
+          setDoc(ydoc)
+          setLastSavedAt(node.updatedAt)
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
@@ -470,13 +470,56 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       }
       provider.on('synced', syncedHandler)
 
+      // Track peer count
+      const peersHandler = (event: unknown) => {
+        const { count } = event as { count: number }
+        setPeerCount(count)
+      }
+      provider.on('peers', peersHandler)
+
+      // Set up awareness (presence/cursors)
+      const { awareness: providerAwareness } = provider
+      setAwareness(providerAwareness)
+
+      // Set local awareness state with DID
+      if (did) {
+        providerAwareness.setLocalStateField('user', {
+          did,
+          color: generateColor(did)
+        })
+      }
+
+      // Listen for remote awareness changes
+      const awarenessHandler = () => {
+        const states = providerAwareness.getStates()
+        const remote: RemoteUser[] = []
+
+        states.forEach((state: Record<string, unknown>, clientId: number) => {
+          if (clientId === providerAwareness.clientID) return
+          const user = state.user as { did?: string; color?: string } | undefined
+          if (user?.did) {
+            remote.push({
+              clientId,
+              did: user.did,
+              color: user.color || generateColor(user.did)
+            })
+          }
+        })
+
+        setRemoteUsers(remote)
+      }
+      providerAwareness.on('change', awarenessHandler)
+
       return () => {
         doc.off('update', updateHandler)
         metaMap.unobserve(metaObserver)
+        providerAwareness.off('change', awarenessHandler)
         provider.off('synced', syncedHandler)
         provider.off('status', statusHandler)
+        provider.off('peers', peersHandler)
         provider.destroy()
         providerRef.current = null
+        setAwareness(null)
         setSyncStatus('offline')
         setPeerCount(0)
         setRemoteUsers([])
@@ -487,7 +530,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       doc.off('update', updateHandler)
     }
     // Note: store is accessed via storeRef to avoid re-creating provider on store changes
-  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave])
+  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, did])
 
   // Cleanup on unmount - save any pending changes
   // Note: We use saveTimeoutRef.current as the indicator of pending saves
@@ -545,6 +588,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
 
     // Presence
     remoteUsers,
+    awareness,
 
     // Actions
     save,

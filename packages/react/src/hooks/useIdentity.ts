@@ -17,11 +17,11 @@ export interface UseIdentityResult {
  * Hook for accessing current identity
  */
 export function useIdentity(): UseIdentityResult {
-  const { identity } = useXNet()
+  const { identity, authorDID } = useXNet()
 
   return {
     identity: identity ?? null,
-    isAuthenticated: !!identity,
-    did: identity?.did ?? null
+    isAuthenticated: !!identity || !!authorDID,
+    did: identity?.did ?? authorDID ?? null
   }
 }

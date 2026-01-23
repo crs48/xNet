@@ -13,6 +13,7 @@ interface DocumentHeaderProps {
   title: string
   onTitleChange: (title: string) => void
   placeholder?: string
+  children?: React.ReactNode
 }
 
 export function DocumentHeader({
@@ -20,7 +21,8 @@ export function DocumentHeader({
   docType,
   title,
   onTitleChange,
-  placeholder = 'Untitled'
+  placeholder = 'Untitled',
+  children
 }: DocumentHeaderProps) {
   return (
     <div className="flex items-start justify-between gap-4 px-6 pt-6">
@@ -31,7 +33,10 @@ export function DocumentHeader({
         onChange={(e) => onTitleChange(e.target.value)}
         placeholder={placeholder}
       />
-      <ShareButton docId={docId} docType={docType} />
+      <div className="flex items-center gap-3">
+        {children}
+        <ShareButton docId={docId} docType={docType} />
+      </div>
     </div>
   )
 }
