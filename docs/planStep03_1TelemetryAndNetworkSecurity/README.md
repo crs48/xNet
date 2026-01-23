@@ -96,10 +96,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Telemetry schemas defined and registered
-- [ ] ConsentManager persists user preferences
-- [ ] Telemetry respects consent tier
-- [ ] All tests pass (>80% coverage)
+- [x] Telemetry schemas defined and registered
+- [x] ConsentManager persists user preferences
+- [x] Telemetry respects consent tier
+- [x] All tests pass (>80% coverage)
 
 ### Phase 2: Collection & Scrubbing (Week 2-3)
 
@@ -111,10 +111,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] PII automatically scrubbed (paths, emails, IPs)
-- [ ] Numeric values bucketed (no exact counts)
-- [ ] React hooks work in xNet app
-- [ ] User can view/delete their telemetry
+- [x] PII automatically scrubbed (paths, emails, IPs)
+- [x] Numeric values bucketed (no exact counts)
+- [x] React hooks work in xNet app
+- [x] User can view/delete their telemetry
 
 ### Phase 3: Network Security Foundation (Week 3-4)
 
@@ -126,10 +126,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Connection limits prevent resource exhaustion
-- [ ] Rate limiting throttles aggressive peers
-- [ ] Security logs in fail2ban-compatible format
-- [ ] No performance regression for honest peers
+- [x] Connection limits prevent resource exhaustion
+- [x] Rate limiting throttles aggressive peers
+- [x] Security logs in fail2ban-compatible format
+- [x] No performance regression for honest peers
 
 ### Phase 4: Peer Reputation (Week 4-5)
 
@@ -141,10 +141,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Peer scores computed from behavior
-- [ ] Low-score peers automatically blocked
-- [ ] Users can manage allow/deny lists
-- [ ] Blocked peers cannot sync
+- [x] Peer scores computed from behavior
+- [x] Low-score peers automatically blocked
+- [x] Users can manage allow/deny lists
+- [x] Blocked peers cannot sync
 
 ### Phase 5: Integration & Polish (Week 5-6)
 
@@ -156,10 +156,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Telemetry syncs to aggregators (when consented)
-- [ ] Security dashboard shows network health
-- [ ] Documentation complete
-- [ ] All tests pass
+- [x] Telemetry syncs to aggregators (when consented)
+- [ ] Security dashboard shows network health (deferred to planStep03_2_2 DevTools)
+- [x] Documentation complete
+- [x] All tests pass
 
 ## Package Structure
 
