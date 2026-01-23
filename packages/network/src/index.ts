@@ -41,3 +41,51 @@ export {
 
 // DID resolution
 export { createDIDResolver, type DIDResolver } from './resolution/did'
+
+// Security
+export {
+  // Limits
+  type ConnectionLimits,
+  DEFAULT_LIMITS,
+  STRICT_LIMITS,
+  RELAXED_LIMITS,
+  // Tracker
+  type ConnectionInfo,
+  type ConnectionStats,
+  ConnectionTracker,
+  // Gater
+  type ConnectionGater,
+  DefaultConnectionGater,
+  // Rate limiter
+  TokenBucket,
+  SyncRateLimiter,
+  ProtocolRateLimiter,
+  // Logging
+  type SecurityEventType,
+  type SecuritySeverity,
+  type SecurityAction,
+  type SecurityEventData,
+  type SecurityLoggerConfig,
+  SecurityLogger,
+  getSecurityLogger,
+  configureSecurityLogger,
+  logSecurityEvent,
+  // Peer Scorer
+  type PeerMetrics,
+  type PeerScore,
+  type ScoreThresholds,
+  type ScoreWeights,
+  PeerScorer,
+  DEFAULT_THRESHOLDS,
+  DEFAULT_WEIGHTS,
+  // Auto Blocker
+  type BlockInfo,
+  type BlockThresholds,
+  AutoBlocker,
+  DEFAULT_BLOCK_THRESHOLDS,
+  // Access List
+  type DenyEntry,
+  type AllowEntry,
+  type WorkspaceAccessConfig,
+  PeerAccessControl
+} from './security'
