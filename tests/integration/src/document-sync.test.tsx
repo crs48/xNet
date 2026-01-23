@@ -20,8 +20,9 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import React, { useEffect, useState } from 'react'
 import { render, cleanup, act } from '@testing-library/react'
-import { NodeStoreProvider, useDocument, useNodeStore } from '@xnet/react'
+import { XNetProvider, useDocument } from '@xnet/react'
 import { PageSchema, DatabaseSchema, IndexedDBNodeStorageAdapter } from '@xnet/data'
+import type { DID } from '@xnet/core'
 import { generateIdentity } from '@xnet/identity'
 import * as Y from 'yjs'
 
@@ -60,9 +61,15 @@ function TestProvider({
   if (!adapter) return null
 
   return (
-    <NodeStoreProvider authorDID={identity.did} signingKey={identity.signingKey} storage={adapter}>
+    <XNetProvider
+      config={{
+        nodeStorage: adapter,
+        authorDID: identity.did as DID,
+        signingKey: identity.signingKey
+      }}
+    >
       {children}
-    </NodeStoreProvider>
+    </XNetProvider>
   )
 }
 

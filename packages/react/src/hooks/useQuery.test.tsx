@@ -7,7 +7,7 @@ import React, { type ReactNode, useMemo } from 'react'
 import { defineSchema, text, select, MemoryNodeStorageAdapter } from '@xnet/data'
 import { generateIdentity, type Identity } from '@xnet/identity'
 import type { DID } from '@xnet/core'
-import { NodeStoreProvider } from './useNodeStore'
+import { XNetProvider } from '../context'
 import { useQuery } from './useQuery'
 import { useMutate } from './useMutate'
 
@@ -47,9 +47,11 @@ describe('useQuery', () => {
       const stableStorage = useMemo(() => currentStorage, [])
 
       return (
-        <NodeStoreProvider storage={stableStorage} authorDID={currentDid} signingKey={currentKey}>
+        <XNetProvider
+          config={{ nodeStorage: stableStorage, authorDID: currentDid, signingKey: currentKey }}
+        >
           {children}
-        </NodeStoreProvider>
+        </XNetProvider>
       )
     }
   }

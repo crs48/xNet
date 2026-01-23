@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
-import { NodeStoreProvider } from './useNodeStore'
+import { XNetProvider } from '../context'
 import { useDocument } from './useDocument'
 import { PageSchema, MemoryNodeStorageAdapter, NodeStore, type DID } from '@xnet/data'
 
@@ -26,10 +26,12 @@ interface WrapperConfig {
 
 function createWrapper(config: WrapperConfig) {
   return function Wrapper({ children }: { children: ReactNode }) {
-    return React.createElement(NodeStoreProvider, {
-      storage: config.storage,
-      authorDID: config.authorDID,
-      signingKey: config.signingKey,
+    return React.createElement(XNetProvider, {
+      config: {
+        nodeStorage: config.storage,
+        authorDID: config.authorDID,
+        signingKey: config.signingKey
+      },
       children
     })
   }
