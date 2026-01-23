@@ -144,17 +144,18 @@ function PageEditor({ nodeId }: { nodeId: string }) {
 
 ## Key Technologies
 
-| Layer      | Technology                           |
-| ---------- | ------------------------------------ |
-| CRDT       | Yjs (conflict-free collaboration)    |
-| P2P        | libp2p + WebRTC                      |
-| Storage    | IndexedDB (browser), SQLite (native) |
-| Identity   | DID:key + UCAN authorization         |
-| Signing    | Ed25519 (via @noble/curves)          |
-| Hashing    | BLAKE3 (via @noble/hashes)           |
-| Encryption | XChaCha20-Poly1305                   |
-| Build      | Turborepo, tsup, Vite                |
-| Testing    | Vitest, Playwright (browser mode)    |
+| Layer      | Technology                                        |
+| ---------- | ------------------------------------------------- |
+| Sync       | Event-sourced immutable logs, Lamport clocks, LWW |
+| CRDT       | Yjs (conflict-free collaboration)                 |
+| P2P        | libp2p + WebRTC                                   |
+| Storage    | IndexedDB (browser), SQLite (native)              |
+| Identity   | DID:key + UCAN authorization                      |
+| Signing    | Ed25519 (via @noble/curves)                       |
+| Hashing    | BLAKE3 (via @noble/hashes)                        |
+| Encryption | XChaCha20-Poly1305                                |
+| Build      | Turborepo, tsup, Vite                             |
+| Testing    | Vitest, Playwright (browser mode)                 |
 
 ## Documentation
 
