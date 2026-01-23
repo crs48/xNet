@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",
+    "types": ["vitest", "@vitest/browser/providers/playwright"],
+    "paths": {
+      "@xnet/*": ["../../packages/*/src"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

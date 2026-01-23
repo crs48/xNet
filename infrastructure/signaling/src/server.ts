@@ -167,6 +167,20 @@ function handlePublish(sender: WebSocket, topicName: string, data: unknown) {
   const topic = topics.get(topicName)
   if (!topic) return
 
+  // Log signal details for debugging WebRTC connection issues
+  const d = data as Record<string, unknown> | null
+  if (d && typeof d === 'object') {
+    const signalType = d.type as string
+    if (signalType === 'announce') {
+      console.log(`[signal] ANNOUNCE from=${d.from} topic=${topicName}`)
+    } else if (signalType === 'signal') {
+      const signal = d.signal as Record<string, unknown> | undefined
+      console.log(
+        `[signal] SIGNAL from=${d.from} to=${d.to} signal.type=${signal?.type} token=${d.token} topic=${topicName}`
+      )
+    }
+  }
+
   const message = JSON.stringify({
     type: 'publish',
     topic: topicName,
