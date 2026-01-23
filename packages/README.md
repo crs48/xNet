@@ -19,16 +19,17 @@ Core SDK packages for the xNet decentralized infrastructure.
 
 ### Application
 
-| Package                    | Description                                                 | Status  |
-| -------------------------- | ----------------------------------------------------------- | ------- |
-| [@xnet/react](./react)     | useQuery, useMutate, useDocument, useIdentity, XNetProvider | Stable  |
-| [@xnet/sdk](./sdk)         | Unified client, browser/node presets                        | Stable  |
-| [@xnet/editor](./editor)   | TipTap-based collaborative rich text editor                 | Stable  |
-| [@xnet/ui](./ui)           | Shared UI components, design tokens                         | Stable  |
-| [@xnet/views](./views)     | Table, Board, Calendar, Gallery, Timeline views             | WIP     |
-| [@xnet/vectors](./vectors) | Embeddings (placeholder)                                    | Planned |
-| [@xnet/canvas](./canvas)   | Infinite canvas (placeholder)                               | Planned |
-| [@xnet/formula](./formula) | Formula engine (placeholder)                                | Planned |
+| Package                        | Description                                                 | Status  |
+| ------------------------------ | ----------------------------------------------------------- | ------- |
+| [@xnet/react](./react)         | useQuery, useMutate, useDocument, useIdentity, XNetProvider | Stable  |
+| [@xnet/sdk](./sdk)             | Unified client, browser/node presets                        | Stable  |
+| [@xnet/editor](./editor)       | TipTap-based collaborative rich text editor                 | Stable  |
+| [@xnet/ui](./ui)               | Shared UI components, design tokens                         | Stable  |
+| [@xnet/telemetry](./telemetry) | Privacy-preserving telemetry, consent, event collection     | WIP     |
+| [@xnet/views](./views)         | Table, Board, Calendar, Gallery, Timeline views             | WIP     |
+| [@xnet/vectors](./vectors)     | Embeddings (placeholder)                                    | Planned |
+| [@xnet/canvas](./canvas)       | Infinite canvas (placeholder)                               | Planned |
+| [@xnet/formula](./formula)     | Formula engine (placeholder)                                | Planned |
 
 ## Dependency Graph
 
@@ -83,6 +84,9 @@ flowchart TD
 
     identity --> react
     core --> react
+
+    core --> telemetry
+    data --> telemetry
 ```
 
 ## Build Order
@@ -105,6 +109,7 @@ flowchart LR
     vectors --> canvas
     ui --> canvas
     data --> canvas
+    data --> telemetry
     react --> sdk
     query --> sdk
     formula
