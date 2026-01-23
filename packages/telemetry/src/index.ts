@@ -55,3 +55,9 @@ export {
   type UseTelemetryReturn,
   TelemetryErrorBoundary
 } from './hooks'
+
+// Sync
+export type { TelemetrySyncConfig, SyncResult } from './sync'
+export { TelemetrySyncProvider } from './sync'
+export type { TelemetryBatch, TelemetryBatchRecord, AggregatorResponse } from './sync'
+export { TELEMETRY_PROTOCOL } from './sync'
