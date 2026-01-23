@@ -246,7 +246,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-text-secondary">Loading database...</p>
+        <p className="text-muted-foreground">Loading database...</p>
       </div>
     )
   }
@@ -254,11 +254,11 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 p-3 border-b border-border bg-bg-secondary">
+      <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
         {/* Title */}
         <input
           type="text"
-          className="text-lg font-semibold border-none bg-transparent text-text outline-none placeholder:text-text-secondary"
+          className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
           value={database?.title || ''}
           onChange={(e) => update({ title: e.target.value })}
           placeholder="Untitled"
@@ -267,13 +267,13 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         <div className="flex-1" />
 
         {/* View switcher */}
-        <div className="flex items-center bg-bg-tertiary rounded-md p-1">
+        <div className="flex items-center bg-accent rounded-md p-1">
           <button
             onClick={() => setViewMode('table')}
             className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors ${
               viewMode === 'table'
-                ? 'bg-bg-primary text-text-primary'
-                : 'text-text-secondary hover:text-text-primary'
+                ? 'bg-background text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <Table size={14} />
@@ -283,8 +283,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onClick={() => setViewMode('board')}
             className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors ${
               viewMode === 'board'
-                ? 'bg-bg-primary text-text-primary'
-                : 'text-text-secondary hover:text-text-primary'
+                ? 'bg-background text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <LayoutGrid size={14} />
