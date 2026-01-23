@@ -81,12 +81,6 @@
   @apply p-0 bg-transparent;
 }
 
-/* Placeholder */
-.editor-content .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  @apply float-left pointer-events-none h-0 text-muted-foreground;
-}
-
 /* Wikilinks */
 .wikilink {
   color: hsl(var(--primary));

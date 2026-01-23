@@ -1,0 +1,8 @@
+/* Placeholder: only show on the first empty paragraph of a completely empty editor */
+.xnet-editor .ProseMirror.is-editor-empty > p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground) / 0.5);
+  float: left;
+  pointer-events: none;
+  height: 0;
+}

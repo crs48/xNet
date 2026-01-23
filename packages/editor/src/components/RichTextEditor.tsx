@@ -13,6 +13,7 @@ import Typography from '@tiptap/extension-typography'
 import type * as Y from 'yjs'
 import { Wikilink, LivePreview } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
+import '../editor.css'
 import { cn } from '../utils'
 
 export interface RichTextEditorProps {
@@ -112,8 +113,7 @@ export function RichTextEditor({
       Typography,
       Placeholder.configure({
         placeholder,
-        emptyEditorClass: 'is-editor-empty',
-        emptyNodeClass: 'is-empty'
+        emptyEditorClass: 'is-editor-empty'
       }),
       Collaboration.configure({
         fragment
@@ -169,12 +169,8 @@ export function RichTextEditor({
           '[&_.ProseMirror]:outline-none [&_.ProseMirror:focus]:outline-none',
           '[&_.tiptap]:outline-none [&_.tiptap:focus]:outline-none',
           '[&_[contenteditable]]:outline-none [&_[contenteditable]:focus]:outline-none',
-          // Placeholder styling
-          '[&_.ProseMirror_.is-empty]:before:content-[attr(data-placeholder)]',
-          '[&_.ProseMirror_.is-empty]:before:text-text-secondary',
-          '[&_.ProseMirror_.is-empty]:before:float-left',
-          '[&_.ProseMirror_.is-empty]:before:pointer-events-none',
-          '[&_.ProseMirror_.is-empty]:before:h-0'
+          // Placeholder class - styles defined in editor.css
+          'xnet-editor'
         )}
       />
       {showToolbar && <FloatingToolbar editor={editor} mode={toolbarMode} />}

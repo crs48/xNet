@@ -72,12 +72,6 @@
   @apply my-8 border-t border-border;
 }
 
-/* Placeholder */
-.editor-content .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  @apply float-left pointer-events-none h-0 text-muted-foreground;
-}
-
 /* Task List */
 .editor-content ul[data-type='taskList'] {
   @apply list-none pl-0;
