@@ -299,7 +299,7 @@ To prevent a flash of wrong theme on page load, add a script to the HTML:
 - [ ] Integrate into Expo app
 - [ ] Add Electron menu items for theme switching
 - [ ] Add flash-prevention script to HTML files
-- [ ] Remove old CSS variable definitions from app stylesheets
+- [x] Remove old CSS variable definitions from app stylesheets
 - [ ] Import tokens.css in each app entry point
 - [ ] Verify light mode works in Electron
 - [ ] Verify dark mode works in Electron
