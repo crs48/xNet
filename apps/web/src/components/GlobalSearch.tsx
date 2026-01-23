@@ -5,7 +5,8 @@
  */
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useXNet } from '@xnet/react'
+import { useQuery } from '@xnet/react'
+import { PageSchema } from '@xnet/data'
 import { useDebouncedCallback } from 'use-debounce'
 
 interface SearchResult {
@@ -23,7 +24,7 @@ export function GlobalSearch() {
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-  const { store, isReady } = useXNet()
+  const { data: allPages, loading: pagesLoading } = useQuery(PageSchema, { limit: 200 })
 
   // Keyboard shortcut to open search (Cmd+K or Ctrl+K)
   useEffect(() => {
@@ -52,59 +53,32 @@ export function GlobalSearch() {
 
   // Debounced search function
   const performSearch = useDebouncedCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim() || !isReady) {
+    if (!searchQuery.trim() || pagesLoading) {
       setResults([])
       return
     }
 
     setLoading(true)
     try {
-      if (!store) {
-        setResults([])
-        return
-      }
-      const state = store.getState()
-      const allDocs = state.documents
       const queryLower = searchQuery.toLowerCase()
       const searchResults: SearchResult[] = []
 
-      for (const [id, doc] of Object.entries(allDocs)) {
-        const title = doc.metadata?.title || 'Untitled'
+      for (const page of allPages) {
+        const title = page.title || 'Untitled'
         const titleLower = title.toLowerCase()
 
-        // Get content for snippet
-        const content = doc.ydoc.getXmlFragment('content')
-        const text = extractPlainText(content.toString())
-        const textLower = text.toLowerCase()
-
-        // Calculate relevance score
+        // Calculate relevance score (title-based for now)
         let score = 0
         if (titleLower.includes(queryLower)) {
           score += 10
-          // Bonus for exact match
           if (titleLower === queryLower) score += 5
-        }
-        if (textLower.includes(queryLower)) {
-          score += 5
         }
 
         if (score > 0) {
-          // Extract snippet around first match
-          const matchIndex = textLower.indexOf(queryLower)
-          let snippet = ''
-          if (matchIndex >= 0) {
-            const start = Math.max(0, matchIndex - 40)
-            const end = Math.min(text.length, matchIndex + queryLower.length + 40)
-            snippet =
-              (start > 0 ? '...' : '') + text.slice(start, end) + (end < text.length ? '...' : '')
-          } else {
-            snippet = text.slice(0, 80) + (text.length > 80 ? '...' : '')
-          }
-
           searchResults.push({
-            id,
+            id: page.id,
             title,
-            snippet,
+            snippet: title,
             score
           })
         }
@@ -262,14 +236,4 @@ export function GlobalSearch() {
       </div>
     </div>
   )
-}
-
-/**
- * Extract plain text from XML fragment string
- */
-function extractPlainText(xmlStr: string): string {
-  return xmlStr
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
 }

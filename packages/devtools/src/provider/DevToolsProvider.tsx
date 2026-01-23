@@ -10,7 +10,7 @@ import { DevToolsContext, type PanelId, type PanelPosition } from './DevToolsCon
 import { DevToolsEventBus } from '../core/event-bus'
 import { DEFAULTS } from '../core/constants'
 import { instrumentStore } from '../instrumentation/store'
-import { useNodeStore } from '@xnet/react'
+import { useNodeStore } from '@xnet/react/internal'
 import { DevToolsPanel } from '../panels/Shell'
 
 export interface DevToolsProviderProps {
