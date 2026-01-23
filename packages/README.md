@@ -101,8 +101,13 @@ flowchart LR
     data --> editor
     ui --> views
     data --> views
+    storage --> vectors
+    vectors --> canvas
+    ui --> canvas
+    data --> canvas
     react --> sdk
     query --> sdk
+    formula
 ```
 
 ## Development
