@@ -8,6 +8,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./internal": {
+      "import": "./src/hooks/useNodeStore.ts",
+      "types": "./src/hooks/useNodeStore.ts"
     }
   },
   "scripts": {

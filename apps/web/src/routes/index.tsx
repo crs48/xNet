@@ -2,7 +2,7 @@
  * Home page - document list
  */
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { useQuery, useNodeStore } from '@xnet/react'
+import { useQuery } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
 
 export const Route = createFileRoute('/')({
@@ -11,7 +11,6 @@ export const Route = createFileRoute('/')({
 
 function HomePage() {
   const navigate = useNavigate()
-  const { isReady } = useNodeStore()
   const { data: pages, loading } = useQuery(PageSchema, {
     orderBy: { updatedAt: 'desc' },
     limit: 50
@@ -23,7 +22,7 @@ function HomePage() {
     navigate({ to: '/doc/$docId', params: { docId: id } })
   }
 
-  if (!isReady || loading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         Loading...

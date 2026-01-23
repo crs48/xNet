@@ -38,7 +38,7 @@ packages/
   data/       # Schema system, NodeStore, Yjs CRDT, document operations
   network/    # libp2p node, y-webrtc provider, DID resolution
   query/      # Local query engine, full-text search (Lunr.js)
-  react/      # useNode, useNodes, useNodeSync, useDocument hooks
+  react/      # useQuery, useMutate, useDocument, useIdentity, XNetProvider
   sdk/        # Unified client, browser/node presets
   editor/     # TipTap-based collaborative editor
   ui/         # Shared components

@@ -87,17 +87,6 @@ export {
 } from './hooks/useDocument'
 
 // =============================================================================
-// Store Provider
-// =============================================================================
-
-export {
-  NodeStoreProvider,
-  useNodeStore,
-  type NodeStoreContextValue,
-  type NodeStoreProviderProps
-} from './hooks/useNodeStore'
-
-// =============================================================================
 // Utilities
 // =============================================================================
 
@@ -116,42 +105,12 @@ export {
 export { useIdentity, type UseIdentityResult } from './hooks/useIdentity'
 
 // =============================================================================
-// Legacy (for backwards compatibility)
+// Provider
 // =============================================================================
 
-/** @deprecated Use useDocument instead */
-export {
-  useDocumentSync,
-  type UseDocumentSyncOptions,
-  type UseDocumentSyncResult
-} from './hooks/useDocumentSync'
-
-/** @deprecated Use useDocument instead */
-export { useEditor, type UseEditorOptions, type UseEditorResult } from './hooks/useEditor'
-
-/** @deprecated Use useDocument instead */
-export {
-  useNodeSync,
-  type UseNodeSyncOptions,
-  type UseNodeSyncResult,
-  type NodePeerState
-} from './hooks/useNodeSync'
-
-// Legacy context
 export {
   XNetProvider,
-  useXNet,
   type XNetConfig,
   type XNetContextValue,
   type XNetProviderProps
 } from './context'
-
-// Legacy store
-export {
-  createXNetStore,
-  type XNetStore,
-  type XNetState,
-  type XNetActions,
-  type DocumentState,
-  type StoreConfig
-} from './store/xnet'

@@ -8,7 +8,7 @@
  */
 
 import React, { useCallback, useState } from 'react'
-import { useQuery, useNodeStore, useMutate } from '@xnet/react'
+import { useQuery, useMutate } from '@xnet/react'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
 import { ThemeToggle } from '@xnet/ui'
 import { Sidebar } from './components/Sidebar'
@@ -28,7 +28,6 @@ interface DocumentItem {
 }
 
 export function App() {
-  const { isReady } = useNodeStore()
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [selectedDocType, setSelectedDocType] = useState<DocType>('page')
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
@@ -63,7 +62,7 @@ export function App() {
     }))
   ].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
 
-  const isLoading = !isReady || pagesLoading || databasesLoading || canvasesLoading
+  const isLoading = pagesLoading || databasesLoading || canvasesLoading
 
   // Handle document selection
   const handleSelect = useCallback(
