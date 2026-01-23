@@ -4,9 +4,21 @@
 import type { StorageAdapter, DocumentData } from '@xnet/storage'
 import { MemoryAdapter } from '@xnet/storage'
 import { generateKeyBundle, type Identity, type KeyBundle } from '@xnet/identity'
-import { createNode, type NetworkNode, type NetworkConfig } from '@xnet/network'
-import { createDocument, loadDocument, getDocumentState, type XDocument, type DocumentType } from '@xnet/data'
-import { createLocalQueryEngine, createSearchIndex, type Query, type QueryResult, type SearchIndex } from '@xnet/query'
+import type { NetworkNode, NetworkConfig } from '@xnet/network'
+import {
+  createDocument,
+  loadDocument,
+  getDocumentState,
+  type XDocument,
+  type DocumentType
+} from '@xnet/data'
+import {
+  createLocalQueryEngine,
+  createSearchIndex,
+  type Query,
+  type QueryResult,
+  type SearchIndex
+} from '@xnet/query'
 
 /**
  * XNet client configuration
@@ -78,10 +90,11 @@ export async function createXNetClient(config: XNetClientConfig = {}): Promise<X
   // Initialize search index
   const searchIndex = createSearchIndex()
 
-  // Initialize network (optional)
+  // Initialize network (optional, lazy-loaded to avoid bundling native deps)
   let networkNode: NetworkNode | null = null
   if (config.enableNetwork === true) {
     try {
+      const { createNode } = await import('@xnet/network')
       networkNode = await createNode({
         did: identity.did,
         privateKey: keyBundle.signingKey,
@@ -107,7 +120,7 @@ export async function createXNetClient(config: XNetClientConfig = {}): Promise<X
   let syncStatus: 'offline' | 'connecting' | 'synced' = networkNode ? 'connecting' : 'offline'
 
   function emit(event: string, ...args: unknown[]) {
-    eventHandlers.get(event)?.forEach(h => h(args[0]))
+    eventHandlers.get(event)?.forEach((h) => h(args[0]))
   }
 
   function generateId(): string {
@@ -115,10 +128,18 @@ export async function createXNetClient(config: XNetClientConfig = {}): Promise<X
   }
 
   const client: XNetClient = {
-    get isReady() { return isReady },
-    get identity() { return identity },
-    get peers() { return [] },
-    get syncStatus() { return syncStatus },
+    get isReady() {
+      return isReady
+    },
+    get identity() {
+      return identity
+    },
+    get peers() {
+      return []
+    },
+    get syncStatus() {
+      return syncStatus
+    },
 
     async start(): Promise<void> {
       if (networkNode) {
@@ -207,7 +228,7 @@ export async function createXNetClient(config: XNetClientConfig = {}): Promise<X
 
     async search(text: string, limit = 20) {
       const results = searchIndex.search({ text, limit })
-      return results.map(r => ({ id: r.id, title: r.title, score: r.score }))
+      return results.map((r) => ({ id: r.id, title: r.title, score: r.score }))
     },
 
     async connectToPeer(_multiaddr: string): Promise<void> {

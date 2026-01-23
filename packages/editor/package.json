@@ -3,20 +3,20 @@
   "version": "0.0.1",
   "description": "Collaborative editor for xNet with Tiptap",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
     },
     "./react": {
-      "import": "./dist/react.js",
-      "types": "./dist/react.d.ts"
+      "import": "./src/react.ts",
+      "types": "./src/react.ts"
     },
     "./extensions": {
-      "import": "./dist/extensions.js",
-      "types": "./dist/extensions.d.ts"
+      "import": "./src/extensions.ts",
+      "types": "./src/extensions.ts"
     }
   },
   "scripts": {

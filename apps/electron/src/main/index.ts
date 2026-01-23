@@ -2,7 +2,12 @@
  * Electron main process entry point
  */
 import { app, BrowserWindow } from 'electron'
-import { join } from 'path'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+// ESM __dirname shim (electron-vite outputs ESM)
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 import { setupIPC } from './ipc'
 import { createMenu } from './menu'
 
