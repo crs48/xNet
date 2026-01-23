@@ -6,7 +6,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Collaboration from '@tiptap/extension-collaboration'
-import { yCursorPlugin, yCursorPluginKey } from 'y-prosemirror'
+import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from 'y-prosemirror'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
@@ -171,33 +171,54 @@ export function RichTextEditor({
   // We use yCursorPlugin directly (instead of CollaborationCursor extension) to avoid
   // the render-phase setState that occurs when the extension calls setLocalStateField
   // during useEditor initialization.
+  //
+  // We must wait for the ySyncPlugin to be initialized (which requires the editor view
+  // to be created), because yCursorPlugin's init reads ySyncPlugin state.
   useEffect(() => {
     if (!editor || !awareness) return
 
-    // Set local user state for cursor display
-    awareness.setLocalStateField('user', {
-      name: did ? `${did.slice(8, 16)}...` : 'Anonymous',
-      color: did ? generateCursorColor(did) : '#999999'
-    })
-
-    const plugin = yCursorPlugin(awareness, {
-      cursorBuilder: (user: { name: string; color: string }) => {
-        const cursor = document.createElement('span')
-        cursor.classList.add('collaboration-cursor__caret')
-        cursor.setAttribute('style', `border-color: ${user.color}`)
-        const label = document.createElement('div')
-        label.classList.add('collaboration-cursor__label')
-        label.setAttribute('style', `background-color: ${user.color}`)
-        label.insertBefore(document.createTextNode(user.name), null)
-        cursor.insertBefore(label, null)
-        return cursor
+    // Wait for editor view to be ready and ySyncPlugin to be initialized.
+    // TipTap v3 may not have the view ready on the first effect run.
+    const tryRegister = () => {
+      // Check if ySyncPlugin is in the editor state
+      const syncState = ySyncPluginKey.getState(editor.state)
+      if (!syncState) {
+        // Not ready yet, try again on next frame
+        rafId = requestAnimationFrame(tryRegister)
+        return
       }
-    })
 
-    editor.registerPlugin(plugin)
+      // Set local user state for cursor display
+      awareness.setLocalStateField('user', {
+        name: did ? `${did.slice(8, 16)}...` : 'Anonymous',
+        color: did ? generateCursorColor(did) : '#999999'
+      })
+
+      const plugin = yCursorPlugin(awareness, {
+        cursorBuilder: (user: { name: string; color: string }) => {
+          const cursor = document.createElement('span')
+          cursor.classList.add('collaboration-cursor__caret')
+          cursor.setAttribute('style', `border-color: ${user.color}`)
+          const label = document.createElement('div')
+          label.classList.add('collaboration-cursor__label')
+          label.setAttribute('style', `background-color: ${user.color}`)
+          label.insertBefore(document.createTextNode(user.name), null)
+          cursor.insertBefore(label, null)
+          return cursor
+        }
+      })
+
+      editor.registerPlugin(plugin)
+      registered = true
+    }
+
+    let rafId: number | undefined
+    let registered = false
+    tryRegister()
 
     return () => {
-      editor.unregisterPlugin(yCursorPluginKey)
+      if (rafId !== undefined) cancelAnimationFrame(rafId)
+      if (registered) editor.unregisterPlugin(yCursorPluginKey)
     }
   }, [editor, awareness, did])
 
