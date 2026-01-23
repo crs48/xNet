@@ -5,7 +5,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { XNetProvider } from '@xnet/react'
-import { IndexedDBAdapter } from '@xnet/storage'
 import { IndexedDBNodeStorageAdapter } from '@xnet/data'
 import { ThemeProvider } from '@xnet/ui'
 import { routeTree } from './routeTree.gen'
@@ -22,8 +21,7 @@ declare module '@tanstack/react-router' {
   }
 }
 
-// Storage adapters - IndexedDB for persistent browser storage
-const storage = new IndexedDBAdapter()
+// Storage adapter - IndexedDB for persistent browser storage
 const nodeStorage = new IndexedDBNodeStorageAdapter()
 
 // TODO: In production, generate/load identity from secure storage
@@ -35,7 +33,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
       <XNetProvider
         config={{
-          storage,
           nodeStorage,
           authorDID: AUTHOR_DID,
           signingKey: SIGNING_KEY

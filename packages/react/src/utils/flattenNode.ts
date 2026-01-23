@@ -92,31 +92,3 @@ export function flattenNodes<P extends Record<string, PropertyBuilder>>(
 ): FlatNode<P>[] {
   return nodes.map((node) => flattenNode<P>(node))
 }
-
-/**
- * Extract only the property values from a flattened node.
- * Useful when you need to pass just the properties (e.g., for updates).
- *
- * @param flat - A flattened node
- * @returns Just the property values (without base fields)
- */
-export function extractProperties<P extends Record<string, PropertyBuilder>>(
-  flat: FlatNode<P>
-): InferCreateProps<P> {
-  const { id, schemaId, createdAt, createdBy, updatedAt, updatedBy, deleted, ...properties } = flat
-  return properties as InferCreateProps<P>
-}
-
-/**
- * Type guard to check if a value is a valid FlatNode.
- */
-export function isFlatNode(value: unknown): value is FlatNode<Record<string, PropertyBuilder>> {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'schemaId' in value &&
-    'createdAt' in value &&
-    'createdBy' in value
-  )
-}
