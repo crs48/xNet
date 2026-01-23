@@ -52,7 +52,8 @@ export interface XNetContextValue {
   isReady: boolean
 }
 
-const XNetContext = createContext<XNetContextValue | null>(null)
+/** @internal Exported for useNodeStore hook - not part of public API */
+export const XNetContext = createContext<XNetContextValue | null>(null)
 
 /**
  * XNet provider props

@@ -9,8 +9,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import React, { useEffect, useState } from 'react'
 import { render, cleanup, act } from '@testing-library/react'
-import { NodeStoreProvider, useDocument, useQuery, useMutate, useNodeStore } from '@xnet/react'
+import { XNetProvider, useDocument, useQuery, useMutate } from '@xnet/react'
 import { PageSchema, DatabaseSchema, IndexedDBNodeStorageAdapter } from '@xnet/data'
+import type { DID } from '@xnet/core'
 import { generateIdentity } from '@xnet/identity'
 import * as Y from 'yjs'
 
@@ -30,7 +31,7 @@ function createTestIdentity() {
 }
 
 /**
- * Test wrapper that provides NodeStoreProvider with IndexedDB.
+ * Test wrapper that provides XNetProvider with IndexedDB.
  * Opens the adapter before rendering the provider.
  */
 function TestProvider({
@@ -52,9 +53,15 @@ function TestProvider({
   if (!adapter) return null
 
   return (
-    <NodeStoreProvider authorDID={identity.did} signingKey={identity.signingKey} storage={adapter}>
+    <XNetProvider
+      config={{
+        nodeStorage: adapter,
+        authorDID: identity.did as DID,
+        signingKey: identity.signingKey
+      }}
+    >
       {children}
-    </NodeStoreProvider>
+    </XNetProvider>
   )
 }
 
@@ -233,7 +240,7 @@ describe('Page CRUD', () => {
     const { unmount: unmount1 } = renderWithStore(
       () => {
         mutateResult = useMutate()
-        return useNodeStore()
+        return null
       },
       { dbName, identity }
     )
@@ -358,7 +365,7 @@ describe('Database CRUD', () => {
     const { unmount } = renderWithStore(
       () => {
         mutateResult = useMutate()
-        return useNodeStore()
+        return null
       },
       { dbName, identity }
     )
