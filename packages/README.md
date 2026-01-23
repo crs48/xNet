@@ -87,16 +87,22 @@ flowchart TD
 
 ## Build Order
 
-```
-core ──> crypto ──> identity ──> storage ──> sync ──> data ──> network ──> query
-                                                        │
-                                              ui ───────┼──> editor
-                                                        │
-                                                        ├──> views
-                                                        │
-                                              react ────┘
-                                                        │
-                                                        └──> sdk
+```mermaid
+flowchart LR
+    core --> crypto --> identity
+    crypto --> sync
+    core --> storage
+    identity --> data
+    storage --> data
+    sync --> data
+    data --> network --> query
+    data --> react
+    ui --> editor
+    data --> editor
+    ui --> views
+    data --> views
+    react --> sdk
+    query --> sdk
 ```
 
 ## Development
