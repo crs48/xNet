@@ -38,7 +38,7 @@ function DocumentPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-text-secondary">
+      <div className="flex items-center justify-center h-full text-muted-foreground">
         Loading document...
       </div>
     )
@@ -50,7 +50,9 @@ function DocumentPage() {
 
   if (!page || !doc) {
     return (
-      <div className="flex items-center justify-center h-full text-text-secondary">Loading...</div>
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Loading...
+      </div>
     )
   }
 
@@ -61,7 +63,7 @@ function DocumentPage() {
       <div className="flex justify-between items-center mb-6">
         <input
           type="text"
-          className="text-3xl font-semibold border-none bg-transparent text-text w-full outline-none placeholder:text-text-secondary"
+          className="text-3xl font-semibold border-none bg-transparent text-foreground w-full outline-none placeholder:text-muted-foreground"
           value={page.title || ''}
           onChange={(e) => update({ title: e.target.value })}
           placeholder="Untitled"
@@ -69,12 +71,12 @@ function DocumentPage() {
 
         {/* Sync status indicator */}
         <div
-          className="flex items-center gap-1.5 text-xs text-text-secondary"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground"
           title={connected ? `Connected (${peerCount} peers)` : syncStatus}
         >
           <span
             className={`w-2 h-2 rounded-full transition-colors ${
-              connected ? 'bg-success' : 'bg-text-secondary'
+              connected ? 'bg-success' : 'bg-muted-foreground'
             }`}
           />
           {peerCount > 0 && <span className="text-xs font-medium">{peerCount}</span>}
@@ -85,7 +87,7 @@ function DocumentPage() {
             {remoteUsers.map((user) => (
               <span
                 key={user.id}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white border-2 border-bg"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white border-2 border-background"
                 style={{ backgroundColor: user.color }}
                 title={user.name}
               >

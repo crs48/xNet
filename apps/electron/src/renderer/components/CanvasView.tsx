@@ -93,7 +93,7 @@ export function CanvasView({ docId }: CanvasViewProps) {
   if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-text-secondary">Loading canvas...</p>
+        <p className="text-muted-foreground">Loading canvas...</p>
       </div>
     )
   }
@@ -101,7 +101,7 @@ export function CanvasView({ docId }: CanvasViewProps) {
   if (!canvasReady) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-text-secondary">Preparing canvas...</p>
+        <p className="text-muted-foreground">Preparing canvas...</p>
       </div>
     )
   }
@@ -109,11 +109,11 @@ export function CanvasView({ docId }: CanvasViewProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Canvas toolbar */}
-      <div className="flex items-center gap-2 p-3 border-b border-border bg-bg-secondary">
+      <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
         {/* Title */}
         <input
           type="text"
-          className="text-lg font-semibold border-none bg-transparent text-text outline-none placeholder:text-text-secondary"
+          className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
           value={canvas?.title || ''}
           onChange={(e) => update({ title: e.target.value })}
           placeholder="Untitled"
@@ -129,7 +129,7 @@ export function CanvasView({ docId }: CanvasViewProps) {
           <span>Add Node</span>
         </button>
 
-        <div className="flex items-center gap-1 text-xs text-text-secondary ml-4">
+        <div className="flex items-center gap-1 text-xs text-muted-foreground ml-4">
           <LayoutGrid size={14} />
           <span>Pan: Drag background</span>
           <span className="mx-2">|</span>

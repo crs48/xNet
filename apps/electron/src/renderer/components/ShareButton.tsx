@@ -37,7 +37,7 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-md transition-colors"
+        className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
         title="Share"
       >
         <Share2 size={14} />
@@ -50,18 +50,18 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
 
           {/* Popover */}
-          <div className="absolute right-0 top-full mt-2 w-80 bg-bg-primary border border-border rounded-lg shadow-lg z-50 p-4">
+          <div className="absolute right-0 top-full mt-2 w-80 bg-background border border-border rounded-lg shadow-lg z-50 p-4">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-medium">Share {typeLabel}</h3>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-text-secondary hover:text-text-primary"
+                className="text-muted-foreground hover:text-foreground"
               >
                 ×
               </button>
             </div>
 
-            <p className="text-xs text-text-secondary mb-3">
+            <p className="text-xs text-muted-foreground mb-3">
               Copy this ID and share it with others. They can use "Open Shared" to access this{' '}
               {typeLabel.toLowerCase()}.
             </p>
@@ -71,7 +71,7 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
                 type="text"
                 readOnly
                 value={docId}
-                className="flex-1 px-3 py-2 text-xs font-mono bg-bg-secondary border border-border rounded-md text-text-primary"
+                className="flex-1 px-3 py-2 text-xs font-mono bg-secondary border border-border rounded-md text-foreground"
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />
               <button
@@ -88,7 +88,7 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
             </div>
 
             <div className="mt-3 pt-3 border-t border-border">
-              <p className="text-xs text-text-secondary">
+              <p className="text-xs text-muted-foreground">
                 <strong>Note:</strong> Both users must be online for real-time sync. Changes sync
                 automatically via P2P.
               </p>

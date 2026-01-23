@@ -166,7 +166,7 @@ export function GlobalSearch() {
   if (!isOpen) {
     return (
       <button
-        className="px-4 py-2 border border-border bg-bg-secondary rounded-md cursor-pointer text-sm text-text-secondary flex items-center gap-3 hover:border-text-secondary transition-colors"
+        className="px-4 py-2 border border-border bg-secondary rounded-md cursor-pointer text-sm text-muted-foreground flex items-center gap-3 hover:border-muted-foreground transition-colors"
         onClick={() => {
           setIsOpen(true)
           setTimeout(() => inputRef.current?.focus(), 10)
@@ -174,7 +174,9 @@ export function GlobalSearch() {
         type="button"
       >
         Search...{' '}
-        <kbd className="text-xs px-1.5 py-0.5 bg-bg rounded border border-border">&#8984;K</kbd>
+        <kbd className="text-xs px-1.5 py-0.5 bg-background rounded border border-border">
+          &#8984;K
+        </kbd>
       </button>
     )
   }
@@ -185,7 +187,7 @@ export function GlobalSearch() {
       onClick={() => setIsOpen(false)}
     >
       <div
-        className="w-full max-w-xl bg-bg rounded-xl shadow-2xl overflow-hidden"
+        className="w-full max-w-xl bg-background rounded-xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -195,12 +197,12 @@ export function GlobalSearch() {
           value={query}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          className="w-full px-5 py-4 border-none text-lg outline-none bg-transparent text-text placeholder:text-text-secondary"
+          className="w-full px-5 py-4 border-none text-lg outline-none bg-transparent text-foreground placeholder:text-muted-foreground"
           autoComplete="off"
         />
 
         {loading && (
-          <div className="px-5 py-4 text-sm text-text-secondary border-t border-border">
+          <div className="px-5 py-4 text-sm text-muted-foreground border-t border-border">
             Searching...
           </div>
         )}
@@ -211,13 +213,13 @@ export function GlobalSearch() {
               <li
                 key={result.id}
                 className={`px-5 py-3 cursor-pointer border-b border-border last:border-b-0 transition-colors ${
-                  index === selectedIndex ? 'bg-bg-secondary' : 'hover:bg-bg-secondary'
+                  index === selectedIndex ? 'bg-secondary' : 'hover:bg-secondary'
                 }`}
                 onClick={() => handleSelect(result)}
                 onMouseEnter={() => setSelectedIndex(index)}
               >
                 <strong className="block font-medium mb-1">{result.title}</strong>
-                <p className="text-sm text-text-secondary m-0 truncate">{result.snippet}</p>
+                <p className="text-sm text-muted-foreground m-0 truncate">{result.snippet}</p>
               </li>
             ))}
           </ul>
@@ -225,7 +227,7 @@ export function GlobalSearch() {
 
         {query && !loading && results.length === 0 && (
           <div className="px-5 py-6 text-center border-t border-border">
-            <p className="text-text-secondary mb-3">No results found</p>
+            <p className="text-muted-foreground mb-3">No results found</p>
             <button
               className="px-4 py-2 bg-primary text-white border-none rounded-md cursor-pointer text-sm hover:bg-primary-hover transition-colors"
               onClick={handleCreate}
@@ -236,26 +238,24 @@ export function GlobalSearch() {
           </div>
         )}
 
-        <div className="flex gap-4 justify-center px-5 py-3 border-t border-border text-xs text-text-secondary">
+        <div className="flex gap-4 justify-center px-5 py-3 border-t border-border text-xs text-muted-foreground">
           <span>
-            <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded border border-border mr-1">
+            <kbd className="px-1.5 py-0.5 bg-secondary rounded border border-border mr-1">
               &uarr;
             </kbd>
-            <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded border border-border mr-1">
+            <kbd className="px-1.5 py-0.5 bg-secondary rounded border border-border mr-1">
               &darr;
             </kbd>
             to navigate
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded border border-border mr-1">
+            <kbd className="px-1.5 py-0.5 bg-secondary rounded border border-border mr-1">
               Enter
             </kbd>
             to select
           </span>
           <span>
-            <kbd className="px-1.5 py-0.5 bg-bg-secondary rounded border border-border mr-1">
-              Esc
-            </kbd>
+            <kbd className="px-1.5 py-0.5 bg-secondary rounded border border-border mr-1">Esc</kbd>
             to close
           </span>
         </div>

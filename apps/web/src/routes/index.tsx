@@ -25,7 +25,9 @@ function HomePage() {
 
   if (!isReady || loading) {
     return (
-      <div className="flex items-center justify-center h-full text-text-secondary">Loading...</div>
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        Loading...
+      </div>
     )
   }
 
@@ -42,7 +44,7 @@ function HomePage() {
       </div>
 
       {pages.length === 0 ? (
-        <div className="text-center py-12 text-text-secondary">
+        <div className="text-center py-12 text-muted-foreground">
           <p>No documents yet. Create your first page!</p>
         </div>
       ) : (
@@ -52,10 +54,10 @@ function HomePage() {
               <Link
                 to="/doc/$docId"
                 params={{ docId: page.id }}
-                className="flex justify-between items-center py-4 text-text no-underline hover:no-underline"
+                className="flex justify-between items-center py-4 text-foreground no-underline hover:no-underline"
               >
                 <span className="font-medium">{page.title || 'Untitled'}</span>
-                <span className="text-xs text-text-secondary">
+                <span className="text-xs text-muted-foreground">
                   {new Date(page.updatedAt).toLocaleDateString()}
                 </span>
               </Link>

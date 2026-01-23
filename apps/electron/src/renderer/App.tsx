@@ -133,7 +133,7 @@ export function App() {
   const renderContent = () => {
     if (!selectedDocId) {
       return (
-        <div className="flex flex-col items-center justify-center h-full text-text-secondary">
+        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
           <p className="text-lg mb-2">Welcome to xNet</p>
           <p className="text-sm">Select a document or create a new one</p>
         </div>
@@ -154,16 +154,16 @@ export function App() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-bg-primary">
+      <div className="flex flex-col items-center justify-center h-full bg-background">
         <div className="animate-pulse">
-          <p className="text-text-secondary">Loading xNet...</p>
+          <p className="text-muted-foreground">Loading xNet...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-screen bg-bg-primary">
+    <div className="flex flex-col h-screen bg-background">
       {/* Titlebar */}
       <header className="h-[38px] bg-secondary flex items-center justify-between px-4 pr-20 border-b border-border relative">
         <div className="absolute inset-0 titlebar-drag" />

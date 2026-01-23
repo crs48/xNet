@@ -17,21 +17,21 @@ function SettingsPage() {
 
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-3">Identity</h2>
-        <div className="bg-bg-secondary p-4 rounded-lg">
-          <label className="text-xs text-text-secondary">Your DID</label>
+        <div className="bg-secondary p-4 rounded-lg">
+          <label className="text-xs text-muted-foreground">Your DID</label>
           <p className="font-mono text-sm mt-1 break-all">{identity?.did || 'Not initialized'}</p>
         </div>
       </section>
 
       <section className="mb-6">
         <h2 className="text-lg font-medium mb-3">About</h2>
-        <div className="bg-bg-secondary p-4 rounded-lg space-y-3">
+        <div className="bg-secondary p-4 rounded-lg space-y-3">
           <div>
-            <label className="text-xs text-text-secondary">Version</label>
+            <label className="text-xs text-muted-foreground">Version</label>
             <p className="text-sm mt-1">1.0.0</p>
           </div>
           <div>
-            <label className="text-xs text-text-secondary">Built with</label>
+            <label className="text-xs text-muted-foreground">Built with</label>
             <p className="text-sm mt-1">xNet SDK + TanStack Router</p>
           </div>
         </div>

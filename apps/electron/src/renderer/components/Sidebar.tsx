@@ -74,7 +74,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="w-[250px] bg-bg-secondary border-r border-border flex flex-col">
+    <aside className="w-[250px] bg-secondary border-r border-border flex flex-col">
       {/* Create button */}
       <div className="p-3 border-b border-border">
         <div className="relative">
@@ -92,24 +92,24 @@ export function Sidebar({
 
           {/* Create menu dropdown */}
           {showCreateMenu && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-bg-primary border border-border rounded-md shadow-lg z-10 py-1">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 py-1">
               <button
                 onClick={() => handleCreate('page')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-tertiary text-left"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left"
               >
                 <FileText size={14} />
                 <span>Page</span>
               </button>
               <button
                 onClick={() => handleCreate('database')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-tertiary text-left"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left"
               >
                 <Database size={14} />
                 <span>Database</span>
               </button>
               <button
                 onClick={() => handleCreate('canvas')}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-tertiary text-left"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left"
               >
                 <Layout size={14} />
                 <span>Canvas</span>
@@ -120,7 +120,7 @@ export function Sidebar({
                   setShowCreateMenu(false)
                   onAddShared()
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-bg-tertiary text-left text-primary"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-primary"
               >
                 <Link size={14} />
                 <span>Add Shared...</span>
@@ -144,7 +144,7 @@ export function Sidebar({
               {/* Section header */}
               <button
                 onClick={() => toggleSection(type)}
-                className="w-full flex items-center gap-1 px-2 py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
+                className="w-full flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
                 <span className="uppercase font-medium tracking-wider">{typeLabels[type]}s</span>
@@ -159,17 +159,17 @@ export function Sidebar({
                       key={doc.id}
                       onClick={() => onSelect(doc.id)}
                       className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer mb-0.5 group transition-colors ${
-                        selectedId === doc.id ? 'bg-bg-tertiary' : 'hover:bg-bg-tertiary/50'
+                        selectedId === doc.id ? 'bg-accent' : 'hover:bg-accent/50'
                       }`}
                     >
-                      <Icon size={14} className="text-text-secondary flex-shrink-0" />
+                      <Icon size={14} className="text-muted-foreground flex-shrink-0" />
                       <span className="text-sm truncate flex-1">{doc.title}</span>
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
                           onDelete(doc.id)
                         }}
-                        className="bg-transparent border-none text-text-secondary cursor-pointer p-1 opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity"
+                        className="bg-transparent border-none text-muted-foreground cursor-pointer p-1 opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity"
                       >
                         <Trash2 size={12} />
                       </button>
@@ -182,7 +182,7 @@ export function Sidebar({
         })}
 
         {documents.length === 0 && (
-          <p className="text-text-secondary text-sm text-center mt-8">No documents yet</p>
+          <p className="text-muted-foreground text-sm text-center mt-8">No documents yet</p>
         )}
       </div>
     </aside>

@@ -35,6 +35,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
       return
     }
 
+    console.log('[AddSharedDialog] Adding shared doc:', trimmedId)
     onAdd(trimmedId)
     setDocId('')
     setError(null)
@@ -53,7 +54,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
       <div className="fixed inset-0 bg-black/50 z-40" onClick={handleClose} />
 
       {/* Dialog */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-bg-primary border border-border rounded-lg shadow-xl z-50">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] bg-background border border-border rounded-lg shadow-xl z-50">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
@@ -62,7 +63,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
           </div>
           <button
             onClick={handleClose}
-            className="text-text-secondary hover:text-text-primary p-1 rounded hover:bg-bg-tertiary transition-colors"
+            className="text-muted-foreground hover:text-foreground p-1 rounded hover:bg-accent transition-colors"
           >
             <X size={16} />
           </button>
@@ -70,13 +71,13 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-4">
-          <p className="text-sm text-text-secondary mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             Paste a document ID that was shared with you. The document will be added to your library
             and sync automatically.
           </p>
 
           <div className="mb-4">
-            <label className="block text-xs text-text-secondary mb-1.5">Document ID</label>
+            <label className="block text-xs text-muted-foreground mb-1.5">Document ID</label>
             <input
               type="text"
               value={docId}
@@ -85,7 +86,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
                 setError(null)
               }}
               placeholder="e.g., abc123-def456-..."
-              className="w-full px-3 py-2 text-sm font-mono bg-bg-secondary border border-border rounded-md text-text-primary placeholder:text-text-secondary/50 focus:outline-none focus:border-primary"
+              className="w-full px-3 py-2 text-sm font-mono bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
               autoFocus
             />
             {error && <p className="text-xs text-red-400 mt-1.5">{error}</p>}
@@ -95,7 +96,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
             <button
               type="button"
               onClick={handleClose}
-              className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary rounded-md transition-colors"
+              className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
             >
               Cancel
             </button>
@@ -109,8 +110,8 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
         </form>
 
         {/* Footer note */}
-        <div className="px-4 py-3 bg-bg-secondary/50 border-t border-border rounded-b-lg">
-          <p className="text-xs text-text-secondary">
+        <div className="px-4 py-3 bg-secondary/50 border-t border-border rounded-b-lg">
+          <p className="text-xs text-muted-foreground">
             <strong>Tip:</strong> Both you and the document owner need to be online for the initial
             sync. After that, changes sync whenever you're both online.
           </p>

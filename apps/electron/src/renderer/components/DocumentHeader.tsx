@@ -26,7 +26,7 @@ export function DocumentHeader({
     <div className="flex items-start justify-between gap-4 px-6 pt-6">
       <input
         type="text"
-        className="flex-1 text-3xl font-semibold border-none bg-transparent text-text w-full outline-none placeholder:text-text-secondary"
+        className="flex-1 text-3xl font-semibold border-none bg-transparent text-foreground w-full outline-none placeholder:text-muted-foreground"
         value={title}
         onChange={(e) => onTitleChange(e.target.value)}
         placeholder={placeholder}

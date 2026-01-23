@@ -16,8 +16,11 @@ function RootLayout() {
 
   return (
     <div className="flex flex-col h-screen">
-      <header className="h-[52px] flex items-center justify-between px-4 border-b border-border bg-bg">
-        <Link to="/" className="text-lg font-semibold text-text no-underline hover:no-underline">
+      <header className="h-[52px] flex items-center justify-between px-4 border-b border-border bg-background">
+        <Link
+          to="/"
+          className="text-lg font-semibold text-foreground no-underline hover:no-underline"
+        >
           xNet
         </Link>
         <GlobalSearch />
