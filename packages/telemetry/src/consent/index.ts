@@ -1,0 +1,6 @@
+export type { TelemetryTier, TelemetryConsent } from './types'
+export { DEFAULT_CONSENT, tierLevel, tierMeetsRequirement } from './types'
+export type { ConsentStorage } from './storage'
+export { MemoryConsentStorage, LocalStorageConsentStorage } from './storage'
+export type { ConsentManagerOptions, ConsentManagerEvents } from './manager'
+export { ConsentManager } from './manager'
