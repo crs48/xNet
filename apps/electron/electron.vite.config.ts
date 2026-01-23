@@ -7,7 +7,26 @@ const rendererPort = parseInt(process.env.VITE_PORT || '5173', 10)
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()]
+    plugins: [
+      externalizeDepsPlugin({
+        exclude: [
+          '@xnet/sdk',
+          '@xnet/core',
+          '@xnet/crypto',
+          '@xnet/identity',
+          '@xnet/storage',
+          '@xnet/sync',
+          '@xnet/data',
+          '@xnet/query',
+          '@xnet/telemetry'
+        ]
+      })
+    ],
+    build: {
+      rollupOptions: {
+        external: ['better-sqlite3']
+      }
+    }
   },
   preload: {
     plugins: [externalizeDepsPlugin()]
