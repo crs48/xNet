@@ -14,6 +14,9 @@ export default defineConfig({
   },
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
+    resolve: {
+      conditions: ['development']
+    },
     server: {
       port: rendererPort
     },

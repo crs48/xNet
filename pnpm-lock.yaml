@@ -55,6 +55,9 @@ importers:
       '@xnet/data':
         specifier: workspace:*
         version: link:../../packages/data
+      '@xnet/devtools':
+        specifier: workspace:*
+        version: link:../../packages/devtools
       '@xnet/editor':
         specifier: workspace:*
         version: link:../../packages/editor
