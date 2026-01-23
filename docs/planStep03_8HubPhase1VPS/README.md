@@ -1,0 +1,314 @@
+# xNet Implementation Plan - Step 03.8: Hub Phase 1 (VPS / Local Binary)
+
+> Always-on relay, encrypted backup, and server-side queries in a single deployable process
+
+## Executive Summary
+
+The xNet Hub is a server that acts as an always-on Yjs peer. It persists document state, provides encrypted backup, and handles queries too large for mobile devices. It runs as a single process with embedded SQLite -- deployable via Docker or a local binary (`npx @xnet/hub`).
+
+```typescript
+// Start a hub (CLI or programmatic)
+import { createHub } from '@xnet/hub'
+
+const hub = await createHub({
+  port: 4444,
+  dataDir: './data',
+  storage: 'sqlite' // or 'postgres' in Phase 2
+})
+
+await hub.start()
+// Hub is now:
+// - Signaling server (y-webrtc pub/sub)
+// - Yjs sync relay (persists Y.Doc state)
+// - Backup store (encrypted blobs)
+// - Query endpoint (full-text search)
+```
+
+```bash
+# Deploy to VPS
+docker run -p 4444:4444 -v xnet-data:/data xnet/hub
+
+# Or run locally (no Docker needed)
+npx @xnet/hub --port 4444 --data ~/.xnet-hub
+```
+
+## Architecture Overview
+
+```mermaid
+flowchart TB
+    subgraph "Clients"
+        C1[Desktop]
+        C2[Mobile]
+        C3[Web]
+    end
+
+    subgraph "xnet-hub (single process)"
+        WS[WebSocket Handler<br/>port 4444]
+
+        AUTH[UCAN Auth<br/>verify + capabilities]
+
+        SIG[Signaling<br/>pub/sub rooms]
+        RELAY[Sync Relay<br/>Y.Doc persistence]
+        BACKUP[Backup API<br/>encrypted blobs]
+        QUERY[Query API<br/>FTS + filters]
+
+        WS --> AUTH
+        AUTH --> SIG
+        AUTH --> RELAY
+        AUTH --> BACKUP
+        AUTH --> QUERY
+
+        POOL[Doc Pool<br/>hot/warm/cold]
+        RELAY --> POOL
+
+        subgraph "Storage (SQLite)"
+            DB[(crdt_state<br/>metadata<br/>changes<br/>FTS5)]
+            BLOBS[(Blob Dir<br/>encrypted files)]
+        end
+
+        POOL --> DB
+        BACKUP --> BLOBS
+        QUERY --> DB
+    end
+
+    C1 <-->|WebSocket| WS
+    C2 <-->|WebSocket| WS
+    C3 <-->|WebSocket| WS
+
+    style C1 fill:#e3f2fd
+    style C2 fill:#e3f2fd
+    style C3 fill:#e3f2fd
+    style WS fill:#fff3e0
+    style AUTH fill:#fff3e0
+    style SIG fill:#e8f5e9
+    style RELAY fill:#e8f5e9
+    style BACKUP fill:#e8f5e9
+    style QUERY fill:#e8f5e9
+    style DB fill:#f3e5f5
+    style BLOBS fill:#f3e5f5
+```
+
+## Architecture Decisions
+
+| Decision               | Choice                              | Rationale                                  |
+| ---------------------- | ----------------------------------- | ------------------------------------------ |
+| Single process         | Node.js monolith                    | Simplest deploy, $5 VPS is enough          |
+| Database               | SQLite (better-sqlite3)             | Zero-config, single-file backup, fast      |
+| Blob storage           | Filesystem                          | Simple; S3 adapter is Phase 2              |
+| Auth                   | UCAN tokens (existing)              | No new auth system, stateless              |
+| Transport              | WebSocket (existing protocol)       | Zero client changes for signaling+relay    |
+| HTTP framework         | Hono                                | Lightweight, typed, works on edge runtimes |
+| CLI                    | Commander.js                        | Standard, minimal deps                     |
+| Hub is a Yjs peer      | Participates in sync-step1/2/update | No protocol changes needed                 |
+| Backup is opaque blobs | Server can't read content           | Zero-knowledge by default                  |
+
+## Current State
+
+| Component             | Status                                | Notes                                |
+| --------------------- | ------------------------------------- | ------------------------------------ |
+| Signaling server      | Exists in `infrastructure/signaling/` | Dumb relay, no persistence           |
+| WebSocketSyncProvider | Working in `@xnet/react`              | Clients already relay through server |
+| UCAN tokens           | Implemented in `@xnet/identity`       | Single-level verify works            |
+| NodeStorageAdapter    | Interface defined in `@xnet/data`     | IndexedDB + Memory adapters exist    |
+| Security layer        | Exists in `@xnet/network/security`    | Not wired into anything yet          |
+
+## Implementation Phases
+
+### Phase 1: Package Scaffold + Signaling (Day 1)
+
+| Task | Document                                           | Description                                           |
+| ---- | -------------------------------------------------- | ----------------------------------------------------- |
+| 1.1  | [01-package-scaffold.md](./01-package-scaffold.md) | Create `packages/hub` with deps, tsconfig, Dockerfile |
+| 1.2  | [01-package-scaffold.md](./01-package-scaffold.md) | CLI entry point with Commander.js                     |
+| 1.3  | [01-package-scaffold.md](./01-package-scaffold.md) | Port signaling from `infrastructure/signaling/`       |
+
+**Validation Gate:**
+
+- [ ] `npx @xnet/hub` starts and shows "Hub listening on port 4444"
+- [ ] Existing `WebSocketSyncProvider` connects without changes
+- [ ] `/health` endpoint returns JSON status
+- [ ] `infrastructure/signaling/` tests pass against new hub
+
+### Phase 2: UCAN Authentication (Day 2)
+
+| Task | Document                             | Description                            |
+| ---- | ------------------------------------ | -------------------------------------- |
+| 2.1  | [02-ucan-auth.md](./02-ucan-auth.md) | UCAN verification on WebSocket connect |
+| 2.2  | [02-ucan-auth.md](./02-ucan-auth.md) | Room-level capability checks           |
+| 2.3  | [02-ucan-auth.md](./02-ucan-auth.md) | Anonymous mode for dev/local use       |
+
+**Validation Gate:**
+
+- [ ] Connections without valid UCAN are rejected (unless anonymous mode)
+- [ ] Room subscriptions require matching capability
+- [ ] `--anonymous` flag disables auth (for local dev)
+
+### Phase 3: Sync Relay (Days 3-4)
+
+| Task | Document                                       | Description                                      |
+| ---- | ---------------------------------------------- | ------------------------------------------------ |
+| 3.1  | [03-sync-relay.md](./03-sync-relay.md)         | Hub as a Yjs peer (sync-step1/2/update handling) |
+| 3.2  | [03-sync-relay.md](./03-sync-relay.md)         | Doc Pool with LRU eviction (hot/warm/cold)       |
+| 3.3  | [04-sqlite-storage.md](./04-sqlite-storage.md) | SQLite storage adapter for Y.Doc state           |
+| 3.4  | [04-sqlite-storage.md](./04-sqlite-storage.md) | Debounced persistence (1s after last update)     |
+
+**Validation Gate:**
+
+- [ ] Hub responds to sync-step1 with its persisted state
+- [ ] Client disconnects, reconnects, gets latest state from hub
+- [ ] Two clients sync through hub even when not online simultaneously
+- [ ] Idle docs evicted from memory, reloaded on next access
+- [ ] SQLite database contains CRDT state after hub restart
+
+### Phase 4: Encrypted Backup (Day 5)
+
+| Task | Document                               | Description                                        |
+| ---- | -------------------------------------- | -------------------------------------------------- |
+| 4.1  | [05-backup-api.md](./05-backup-api.md) | HTTP endpoints for blob upload/download/list       |
+| 4.2  | [05-backup-api.md](./05-backup-api.md) | UCAN-gated per-doc backup access                   |
+| 4.3  | [05-backup-api.md](./05-backup-api.md) | Storage quota enforcement                          |
+| 4.4  | [05-backup-api.md](./05-backup-api.md) | Filesystem blob store with content-addressed paths |
+
+**Validation Gate:**
+
+- [ ] `PUT /backup/:docId` stores encrypted blob
+- [ ] `GET /backup/:docId` retrieves it
+- [ ] `GET /backup` lists all backups for authenticated DID
+- [ ] Uploads exceeding quota are rejected with 413
+- [ ] Blobs are opaque on disk (not readable without client key)
+
+### Phase 5: Query Engine (Day 6)
+
+| Task | Document                                   | Description                               |
+| ---- | ------------------------------------------ | ----------------------------------------- |
+| 5.1  | [06-query-engine.md](./06-query-engine.md) | SQLite FTS5 index for searchable metadata |
+| 5.2  | [06-query-engine.md](./06-query-engine.md) | Query protocol over WebSocket             |
+| 5.3  | [06-query-engine.md](./06-query-engine.md) | Schema + property filter queries          |
+| 5.4  | [06-query-engine.md](./06-query-engine.md) | User-controlled indexing opt-in           |
+
+**Validation Gate:**
+
+- [ ] Client sends query message, receives filtered results
+- [ ] Full-text search returns ranked matches
+- [ ] Only explicitly indexed data is searchable
+- [ ] Queries without index permission return empty results
+
+### Phase 6: Docker + Deploy (Day 7)
+
+| Task | Document                                     | Description                                         |
+| ---- | -------------------------------------------- | --------------------------------------------------- |
+| 6.1  | [07-docker-deploy.md](./07-docker-deploy.md) | Multi-stage Dockerfile (build + runtime)            |
+| 6.2  | [07-docker-deploy.md](./07-docker-deploy.md) | Health checks + Prometheus metrics                  |
+| 6.3  | [07-docker-deploy.md](./07-docker-deploy.md) | fly.toml for Fly.io deployment                      |
+| 6.4  | [07-docker-deploy.md](./07-docker-deploy.md) | Graceful shutdown (persist docs, close connections) |
+| 6.5  | [07-docker-deploy.md](./07-docker-deploy.md) | Rate limiting + message size limits                 |
+
+**Validation Gate:**
+
+- [ ] `docker build` produces working image under 150MB
+- [ ] Container starts, serves health check, accepts WebSocket connections
+- [ ] `fly deploy` succeeds and hub is reachable via wss://
+- [ ] SIGTERM triggers graceful shutdown (all docs persisted)
+- [ ] Oversized messages (>5MB) are rejected
+
+### Phase 7: Client Integration (Days 8-9)
+
+| Task | Document                                               | Description                               |
+| ---- | ------------------------------------------------------ | ----------------------------------------- |
+| 7.1  | [08-client-integration.md](./08-client-integration.md) | Hub URL config in XNetProvider            |
+| 7.2  | [08-client-integration.md](./08-client-integration.md) | UCAN token generation for hub connection  |
+| 7.3  | [08-client-integration.md](./08-client-integration.md) | Backup trigger in useDocument (debounced) |
+| 7.4  | [08-client-integration.md](./08-client-integration.md) | Sync status: "connected to hub" indicator |
+
+**Validation Gate:**
+
+- [ ] `XNetProvider` accepts `hubUrl` option
+- [ ] Client auto-generates UCAN for hub authentication
+- [ ] Documents auto-backup to hub on save (if configured)
+- [ ] UI shows hub connection status (green dot or similar)
+
+## Package Structure (Target)
+
+```
+packages/
+  hub/
+    src/
+      index.ts                  # Programmatic API: createHub()
+      cli.ts                    # CLI entry: npx @xnet/hub
+      server.ts                 # Hono HTTP + WebSocket server
+      services/
+        signaling.ts            # Room pub/sub (ported from infrastructure/)
+        relay.ts                # Yjs sync relay (hub as peer)
+        backup.ts               # Encrypted blob store
+        query.ts                # FTS5 query engine
+      storage/
+        interface.ts            # HubStorage interface
+        sqlite.ts               # SQLite adapter (better-sqlite3)
+      auth/
+        ucan.ts                 # UCAN verification middleware
+        capabilities.ts         # Hub-specific capabilities
+      pool/
+        doc-pool.ts             # Y.Doc memory management (LRU)
+    bin/
+      xnet-hub.ts               # CLI binary entry point
+    test/
+      signaling.test.ts         # Protocol tests
+      relay.test.ts             # Sync relay tests
+      backup.test.ts            # Backup API tests
+      query.test.ts             # Query engine tests
+      auth.test.ts              # UCAN auth tests
+    Dockerfile
+    fly.toml
+    package.json
+    tsconfig.json
+```
+
+## Platform Considerations
+
+| Feature            | Local Binary                  | Docker                | Fly.io                 |
+| ------------------ | ----------------------------- | --------------------- | ---------------------- |
+| TLS                | User provides (reverse proxy) | User provides (Caddy) | Automatic              |
+| Persistent storage | `--data` flag (filesystem)    | Volume mount          | Fly volume             |
+| Blob storage       | Filesystem                    | Volume mount          | Fly volume / Tigris S3 |
+| Auto-restart       | User manages (systemd)        | `--restart always`    | Built-in               |
+| Metrics            | `/metrics` endpoint           | Same                  | Same                   |
+| Cost               | Free (own hardware)           | Free (own hardware)   | ~$5/mo                 |
+
+## Dependencies
+
+| Dependency          | Package   | Purpose                    |
+| ------------------- | --------- | -------------------------- |
+| `hono`              | External  | HTTP server + routing      |
+| `@hono/node-server` | External  | Node.js adapter for Hono   |
+| `ws`                | External  | WebSocket server           |
+| `better-sqlite3`    | External  | SQLite database            |
+| `commander`         | External  | CLI argument parsing       |
+| `yjs`               | External  | Y.Doc instances on server  |
+| `y-protocols`       | External  | Yjs sync protocol encoding |
+| `@xnet/identity`    | Workspace | UCAN verification          |
+| `@xnet/crypto`      | Workspace | BLAKE3 hashing, Ed25519    |
+| `@xnet/core`        | Workspace | ContentId, types           |
+
+## Success Criteria
+
+1. **`npx @xnet/hub` starts a working hub** with zero configuration
+2. **Existing clients sync through hub** without code changes (same WebSocket protocol)
+3. **Hub persists Y.Doc state** across restarts (SQLite)
+4. **Two clients sync without being online simultaneously** (hub bridges the gap)
+5. **Encrypted backup** stores and retrieves opaque blobs
+6. **Full-text search** returns results for indexed documents
+7. **Docker image under 150MB**, starts in under 3 seconds
+8. **Fly.io deploys** with `fly deploy` and serves wss:// connections
+9. **Auth is optional** (anonymous mode for local dev, UCAN for production)
+10. **Graceful shutdown** persists all in-memory state before exit
+
+## Reference Documents
+
+- [Server Infrastructure Exploration](../explorations/SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals
+- [P2P Signaling Plan](../planStep03_2Signaling/README.md) — Current signaling architecture
+- [Persistence Architecture](../explorations/PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
+- [Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) — Security layer design
+
+---
+
+[Back to Main Plan](../plan/README.md) | [Start Implementation →](./01-package-scaffold.md)

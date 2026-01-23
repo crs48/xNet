@@ -51,7 +51,6 @@ export function PageView({ docId }: PageViewProps) {
       {/* Editor */}
       <div className="flex-1 px-6 py-4">
         <RichTextEditor
-          key={awareness ? 'with-cursors' : 'no-cursors'}
           ydoc={doc}
           field="content"
           placeholder="Start typing..."
