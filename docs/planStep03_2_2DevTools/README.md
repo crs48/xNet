@@ -89,18 +89,18 @@ flowchart TB
 
 ## Current State
 
-| Feature              | Status  | Notes                                                                |
-| -------------------- | ------- | -------------------------------------------------------------------- |
-| Package scaffold     | Done    | package.json, tsconfig, conditional exports, build works             |
-| Instrumentation bus  | Done    | Ring buffer EventBus, store/sync/yjs instrumentation                 |
-| Node Explorer        | Done    | Custom list with schema filter, search, detail pane                  |
-| Change Timeline      | Done    | Lamport-ordered timeline with type/node filtering                    |
-| Sync Monitor         | Done    | Peer list, connection status, sync event log                         |
-| Yjs Inspector        | Done    | Doc list with size/update metrics, update log                        |
-| Query Debugger       | Done    | QueryTracker, hook list, perf metrics, detail pane                   |
-| Telemetry Panel      | Done    | Security/performance/consent sub-tabs, instrumentation               |
-| Schema Registry      | Done    | Schema browser with node counts                                      |
-| Platform integration | Partial | Ctrl+Shift+D + 4-finger tap implemented, not tested in Expo/Electron |
+| Feature              | Status  | Notes                                                                    |
+| -------------------- | ------- | ------------------------------------------------------------------------ |
+| Package scaffold     | Done    | package.json, tsconfig, conditional exports, build works                 |
+| Instrumentation bus  | Done    | Ring buffer EventBus, store/sync/yjs instrumentation                     |
+| Node Explorer        | Done    | @xnet/views TableView with virtual scrolling, schema filter, detail pane |
+| Change Timeline      | Done    | Lamport-ordered timeline with type/node filtering                        |
+| Sync Monitor         | Done    | Peer list, connection status, sync event log                             |
+| Yjs Inspector        | Done    | Doc tree structure, state vectors, update log                            |
+| Query Debugger       | Done    | QueryTracker, hook list, perf metrics, detail pane                       |
+| Telemetry Panel      | Done    | Security/performance/consent sub-tabs, instrumentation                   |
+| Schema Registry      | Done    | Schema browser with node counts                                          |
+| Platform integration | Partial | Ctrl+Shift+D + 4-finger tap + Electron menu item, Expo not tested        |
 
 ## Implementation Phases
 
@@ -144,7 +144,7 @@ flowchart TB
 **Validation Gate:**
 
 - [x] Node Explorer shows all nodes grouped by schema
-- [ ] Node Explorer uses `@xnet/views` TableView for rendering
+- [x] Node Explorer uses `@xnet/views` TableView for rendering
 - [x] Change Timeline shows Lamport-ordered changes
 - [x] Conflicts are highlighted with resolution info
 - [x] Sync Monitor shows live peer list with status
@@ -159,13 +159,13 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Yjs Inspector shows Y.Doc structure (Maps, XmlFragments)
-- [ ] State vector table displays all client entries
+- [x] Yjs Inspector shows Y.Doc structure (Maps, XmlFragments)
+- [x] State vector table displays all client entries
 - [x] Query Debugger lists all active useQuery/useDocument hooks
 - [x] Performance metrics (update frequency, render time) are tracked
-- [ ] Hook source location is displayed where possible
+- [x] Hook source location is displayed where possible
 
-> Note: YjsInspector shows update events/sizes but not Y.Doc tree structure or state vectors yet. Hook source location not yet captured.
+> Note: Hook source location uses Error.stack parsing (best-effort across V8/JSC). Y.Doc tree traversal is on-demand with depth limit.
 
 ### Phase 5: Telemetry & Platform (Week 4-5)
 
@@ -177,13 +177,13 @@ flowchart TB
 **Validation Gate:**
 
 - [x] Telemetry panel shows security events from planStep03_1
-- [ ] Peer scores display with score breakdown
+- [x] Peer scores display with score breakdown
 - [x] Consent status is visible and editable
-- [ ] Devtools work in Electron main window
+- [x] Devtools work in Electron main window
 - [ ] Devtools work in Expo via dev overlay
 - [x] Mobile: 4-finger tap toggles panel
 
-> Note: Peer scores require live PeerScorer integration (instrumentation emits events but no live peer score polling yet). Platform integration not yet tested in apps.
+> Note: Expo integration requires react-native-gesture-handler and Modal overlay (not yet implemented). Electron uses menu item + IPC bridge + DevToolsProvider.
 
 ## Package Structure
 

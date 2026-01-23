@@ -6,12 +6,31 @@
  */
 
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
-import { DevToolsContext, type PanelId, type PanelPosition } from './DevToolsContext'
+import type * as Y from 'yjs'
+import {
+  DevToolsContext,
+  type PanelId,
+  type PanelPosition,
+  type YDocRegistry
+} from './DevToolsContext'
 import { DevToolsEventBus } from '../core/event-bus'
 import { DEFAULTS } from '../core/constants'
 import { instrumentStore } from '../instrumentation/store'
 import { useNodeStore } from '@xnet/react/internal'
 import { DevToolsPanel } from '../panels/Shell'
+
+function createYDocRegistry(): YDocRegistry {
+  const docs = new Map<string, Y.Doc>()
+  return {
+    getDocs: () => docs,
+    register: (docId: string, doc: Y.Doc) => {
+      docs.set(docId, doc)
+    },
+    unregister: (docId: string) => {
+      docs.delete(docId)
+    }
+  }
+}
 
 export interface DevToolsProviderProps {
   children: ReactNode
@@ -41,6 +60,7 @@ export function DevToolsProvider({
   const [height, setHeight] = useState(initialHeight)
 
   const busRef = useRef<DevToolsEventBus>(new DevToolsEventBus({ maxEvents }))
+  const yDocRegistryRef = useRef<YDocRegistry>(createYDocRegistry())
   const cleanupsRef = useRef<Array<() => void>>([])
 
   // Get store from NodeStoreProvider context
@@ -80,6 +100,13 @@ export function DevToolsProvider({
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // Custom event toggle (from Electron IPC or external triggers)
+  useEffect(() => {
+    const handler = () => setIsOpen((prev) => !prev)
+    window.addEventListener('xnet-devtools-toggle', handler)
+    return () => window.removeEventListener('xnet-devtools-toggle', handler)
+  }, [])
+
   // Mobile: 4-finger tap
   useEffect(() => {
     const handler = (e: TouchEvent) => {
@@ -104,7 +131,8 @@ export function DevToolsProvider({
     setPosition,
     setHeight,
     eventBus: busRef.current,
-    store
+    store,
+    yDocRegistry: yDocRegistryRef.current
   }
 
   return (

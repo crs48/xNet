@@ -15,7 +15,8 @@ import {
   type PerformanceGroup,
   type NetworkHealth,
   type ConsentState,
-  type CrashEntry
+  type CrashEntry,
+  type PeerScoreSnapshot
 } from './useTelemetryPanel'
 
 // ─── Main Panel ────────────────────────────────────────────
@@ -55,6 +56,7 @@ export function TelemetryPanel() {
             events={state.securityEvents}
             crashes={state.crashEvents}
             health={state.networkHealth}
+            peerScores={state.peerScores}
           />
         )}
         {state.subTab === 'performance' && <PerformanceSubPanel groups={state.performanceGroups} />}
@@ -97,18 +99,20 @@ function TabButton({
 function SecuritySubPanel({
   events,
   crashes,
-  health
+  health,
+  peerScores
 }: {
   events: SecurityEntry[]
   crashes: CrashEntry[]
   health: NetworkHealth
+  peerScores: PeerScoreSnapshot[]
 }) {
   const [selectedEvent, setSelectedEvent] = useState<SecurityEntry | null>(null)
 
   return (
     <div className="flex h-full">
       {/* Left: Event list */}
-      <div className="w-2/3 overflow-y-auto border-r border-zinc-800">
+      <div className="flex-1 overflow-y-auto border-r border-zinc-800">
         {/* Health bar */}
         <div className="sticky top-0 bg-zinc-950 px-3 py-1.5 border-b border-zinc-800 z-10">
           <NetworkHealthBar health={health} />
@@ -143,12 +147,14 @@ function SecuritySubPanel({
         )}
       </div>
 
-      {/* Right: Detail / summary */}
-      <div className="w-1/3 overflow-y-auto p-2">
+      {/* Right: Peer scores + detail */}
+      <div className="w-64 overflow-y-auto">
         {selectedEvent ? (
-          <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+          <div className="p-2">
+            <EventDetail event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+          </div>
         ) : (
-          <SecuritySummary events={events} health={health} />
+          <PeerScoreList scores={peerScores} />
         )}
       </div>
     </div>
@@ -288,6 +294,85 @@ function DetailRow({ label, value }: { label: string; value: string }) {
       <span className="text-zinc-300">{value}</span>
     </div>
   )
+}
+
+// ─── Peer Score List ───────────────────────────────────────
+
+function PeerScoreList({ scores }: { scores: PeerScoreSnapshot[] }) {
+  const sorted = [...scores].sort((a, b) => b.score - a.score)
+
+  return (
+    <div className="p-2">
+      <h4 className="text-[10px] font-semibold text-zinc-400 uppercase mb-2">
+        Peer Scores ({scores.length})
+      </h4>
+
+      {sorted.length === 0 ? (
+        <div className="text-[9px] text-zinc-600">No peers connected</div>
+      ) : (
+        sorted.map((peer) => (
+          <div key={peer.peerId} className="py-1.5 border-b border-zinc-800/50">
+            <div className="flex items-center gap-2">
+              {/* Score bar */}
+              <div className="w-12 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${getScoreBarColor(peer.score)}`}
+                  style={{
+                    width: `${Math.max(0, Math.min(100, ((peer.score + 100) / 200) * 100))}%`
+                  }}
+                />
+              </div>
+
+              {/* Score value */}
+              <span
+                className={`text-[10px] w-8 text-right font-mono ${getScoreTextColor(peer.score)}`}
+              >
+                {peer.score > 0 ? '+' : ''}
+                {peer.score.toFixed(0)}
+              </span>
+
+              {/* Peer ID */}
+              <span className="text-[10px] text-zinc-400 font-mono truncate flex-1">
+                {peer.peerId.slice(0, 12)}
+              </span>
+            </div>
+
+            {/* Breakdown */}
+            <div className="flex gap-2 mt-0.5 ml-14 text-[8px] text-zinc-600">
+              <span title="Sync successes">S:{peer.syncSuccesses}</span>
+              <span title="Sync failures">F:{peer.syncFailures}</span>
+              {peer.invalidSignatures > 0 && (
+                <span className="text-red-500" title="Invalid signatures">
+                  Sig:{peer.invalidSignatures}
+                </span>
+              )}
+              {peer.rateLimitViolations > 0 && (
+                <span className="text-orange-500" title="Rate limit violations">
+                  RL:{peer.rateLimitViolations}
+                </span>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  )
+}
+
+function getScoreBarColor(score: number): string {
+  if (score > 50) return 'bg-green-400'
+  if (score > 0) return 'bg-blue-400'
+  if (score > -20) return 'bg-yellow-400'
+  if (score > -50) return 'bg-orange-400'
+  return 'bg-red-400'
+}
+
+function getScoreTextColor(score: number): string {
+  if (score > 50) return 'text-green-400'
+  if (score > 0) return 'text-blue-400'
+  if (score > -20) return 'text-yellow-400'
+  if (score > -50) return 'text-orange-400'
+  return 'text-red-400'
 }
 
 // ─── Security Summary ──────────────────────────────────────
