@@ -209,6 +209,8 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const docRef = useRef<Y.Doc | null>(null)
   const creatingRef = useRef(false)
+  const storeRef = useRef(store)
+  storeRef.current = store
 
   // Load node and document
   const load = useCallback(async () => {
@@ -226,6 +228,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     try {
       // Load node properties
       let node = await store.get(id)
+      let justCreated = false // Track if we just created this node (joining shared doc)
 
       // Auto-create if not found and createIfMissing is provided
       // Use ref to avoid dependency on createIfMissing object reference
@@ -237,10 +240,16 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
             schemaId,
             properties: createIfMissingRef.current as Record<string, unknown>
           })
+          justCreated = true
           setWasCreated(true)
         } finally {
           creatingRef.current = false
         }
+      }
+
+      // If node was deleted, restore it (e.g., when opening a shared doc)
+      if (node?.deleted && createIfMissingRef.current) {
+        node = await store.restore(id)
       }
 
       if (!node || node.schemaId !== schemaId) {
@@ -254,6 +263,19 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
 
       // Load document if schema has one
       if (hasDocument) {
+        // Destroy previous provider and Y.Doc if switching to a different document.
+        // This prevents stale docs from being attached to new providers.
+        if (docRef.current && docRef.current.guid !== id) {
+          // Destroy provider first (it references the doc)
+          if (providerRef.current) {
+            providerRef.current.destroy()
+            providerRef.current = null
+          }
+          docRef.current.destroy()
+          docRef.current = null
+          setDoc(null)
+        }
+
         const ydoc = new Y.Doc({ guid: id })
         docRef.current = ydoc
 
@@ -263,34 +285,29 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
           Y.applyUpdate(ydoc, storedContent)
         }
 
-        // Initialize meta map with node properties (for sync)
-        // Only set if meta is empty (don't overwrite synced values)
+        // Initialize meta map with current node properties so they sync to peers.
+        // When justCreated (via createIfMissing), only write non-empty values to avoid
+        // placeholder data conflicting with the real creator's values during CRDT merge.
         const metaMap = ydoc.getMap('meta')
-        let lastUpdated = node.updatedAt
 
         if (metaMap.size === 0 && node.properties) {
-          ydoc.transact(() => {
-            for (const [key, value] of Object.entries(node.properties)) {
-              metaMap.set(key, value)
-            }
-          })
-        } else if (metaMap.size > 0) {
-          // Meta map has synced values - apply them to node
-          const syncedProps: Record<string, unknown> = {}
-          metaMap.forEach((value, key) => {
-            syncedProps[key] = value
-          })
-          if (Object.keys(syncedProps).length > 0) {
-            const updatedNode = await store.update(id, { properties: syncedProps })
-            if (updatedNode) {
-              setData(flattenNode<P>(updatedNode))
-              lastUpdated = updatedNode.updatedAt
-            }
+          const entries = Object.entries(node.properties)
+          const hasContent = entries.some(([, v]) => v !== '' && v !== null && v !== undefined)
+
+          if (hasContent || !justCreated) {
+            ydoc.transact(() => {
+              metaMap.set('_schemaId', schemaId)
+              for (const [key, value] of entries) {
+                if (!justCreated || (value !== '' && value !== null && value !== undefined)) {
+                  metaMap.set(key, value)
+                }
+              }
+            }, 'local') // Mark as local to avoid triggering metaObserver
           }
         }
 
         setDoc(ydoc)
-        setLastSavedAt(lastUpdated)
+        setLastSavedAt(node.updatedAt)
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
@@ -316,7 +333,11 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     }
   }, [store, id])
 
-  // Debounced save
+  // Ref for save function to avoid effect re-runs
+  const saveRef = useRef(save)
+  saveRef.current = save
+
+  // Debounced save - use ref to avoid dependency changes
   const scheduleSave = useCallback(() => {
     setIsDirty(true)
 
@@ -325,9 +346,9 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      save()
+      saveRef.current()
     }, persistDebounce)
-  }, [save, persistDebounce])
+  }, [persistDebounce])
 
   // === Mutations ===
 
@@ -347,6 +368,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
         if (docRef.current) {
           const metaMap = docRef.current.getMap('meta')
           docRef.current.transact(() => {
+            metaMap.set('_schemaId', schemaId)
             for (const [key, value] of Object.entries(properties)) {
               metaMap.set(key, value)
             }
@@ -380,22 +402,35 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
   useEffect(() => {
     if (!doc || !id || !hasDocument) return
 
-    // Listen for local updates
+    // CRITICAL: Verify the doc matches the current id.
+    // When switching documents, React may run this effect with the new id
+    // but the old doc state (which hasn't been updated yet).
+    if (doc.guid !== id) {
+      return
+    }
+
+    // Listen for updates (both local and remote)
     const updateHandler = (update: Uint8Array, origin: unknown) => {
-      // Only schedule save for local changes (not from sync)
-      if (origin !== providerRef.current) {
-        scheduleSave()
-      }
+      const isRemote = origin === providerRef.current || origin === 'y-webrtc'
+      // Save both local and remote updates
+      scheduleSave()
     }
     doc.on('update', updateHandler)
 
     // Set up y-webrtc sync
     if (!disableSync && signalingServers.length > 0) {
       setSyncStatus('connecting')
-
       const provider = new WebrtcProvider(`xnet-doc-${id}`, doc, {
         signaling: signalingServers,
-        maxConns: 20
+        maxConns: 20,
+        peerOpts: {
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+          }
+        }
       })
       providerRef.current = provider
 
@@ -413,26 +448,41 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
 
       // Listen for remote meta changes (synced properties)
       const metaMap = doc.getMap('meta')
-      const metaObserver = (event: Y.YMapEvent<unknown>) => {
-        // Only process remote changes
-        if (event.transaction.origin === provider) {
-          const changes: Record<string, unknown> = {}
-          event.keysChanged.forEach((key) => {
-            changes[key] = metaMap.get(key)
-          })
 
-          // Update local NodeStore with synced properties
-          if (Object.keys(changes).length > 0 && store && id) {
-            store
-              .update(id, { properties: changes })
-              .then((node) => {
-                if (node) setData(flattenNode<P>(node))
-              })
-              .catch((err) => console.error('Failed to apply synced properties:', err))
-          }
+      // Helper to apply meta map values to NodeStore
+      const applyMetaToNodeStore = (source: string) => {
+        if (metaMap.size === 0) return
+
+        const props: Record<string, unknown> = {}
+        metaMap.forEach((value, key) => {
+          props[key] = value
+        })
+
+        if (Object.keys(props).length > 0 && storeRef.current && id) {
+          storeRef.current
+            .update(id, { properties: props })
+            .then((node) => {
+              if (node) setData(flattenNode<P>(node))
+            })
+            .catch(() => {})
+        }
+      }
+
+      const metaObserver = (event: Y.YMapEvent<unknown>) => {
+        // Process remote changes (origin is the provider or null for sync)
+        if (event.transaction.origin !== null && event.transaction.origin !== 'local') {
+          applyMetaToNodeStore('observer')
         }
       }
       metaMap.observe(metaObserver)
+
+      // Also check meta map when sync first connects (handles initial sync)
+      const syncedHandler = (event: { synced: boolean }) => {
+        if (event.synced) {
+          applyMetaToNodeStore('synced')
+        }
+      }
+      provider.on('synced', syncedHandler)
 
       // Set up presence if user info provided
       let awarenessHandler: (() => void) | null = null
@@ -472,6 +522,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       return () => {
         doc.off('update', updateHandler)
         metaMap.unobserve(metaObserver)
+        provider.off('synced', syncedHandler)
         provider.off('status', statusHandler)
         provider.off('peers', peersHandler)
         if (awarenessHandler) {
@@ -488,17 +539,8 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     return () => {
       doc.off('update', updateHandler)
     }
-  }, [
-    doc,
-    id,
-    store,
-    hasDocument,
-    disableSync,
-    signalingServers,
-    scheduleSave,
-    userName,
-    userColor
-  ])
+    // Note: store is accessed via storeRef to avoid re-creating provider on store changes
+  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, userName, userColor])
 
   // Cleanup on unmount - save any pending changes
   // Note: We use saveTimeoutRef.current as the indicator of pending saves

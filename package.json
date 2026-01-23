@@ -10,7 +10,9 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint packages --ext .ts,.tsx",
     "typecheck": "turbo run typecheck",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "test:integration": "pnpm --filter @xnet/integration-tests test",
+    "test:integration:watch": "pnpm --filter @xnet/integration-tests test:watch"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
@@ -27,5 +29,10 @@
   "packageManager": "pnpm@9.0.0",
   "engines": {
     "node": ">=20.0.0"
+  },
+  "pnpm": {
+    "patchedDependencies": {
+      "y-webrtc@10.3.0": "patches/y-webrtc@10.3.0.patch"
+    }
   }
 }
