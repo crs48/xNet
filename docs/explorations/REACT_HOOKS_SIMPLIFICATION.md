@@ -2,8 +2,9 @@
 
 > Audit of `@xnet/react` hooks: what's used, what's dead, and what can be removed.
 
-**Status**: Review Complete  
-**Last Updated**: January 2026
+**Status**: ✅ Implemented  
+**Last Updated**: January 2026  
+**Implemented**: January 24, 2026 (commits `903232e`, `bab49ae`, `9b4368f`)
 
 ---
 
