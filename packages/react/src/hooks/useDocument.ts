@@ -139,7 +139,8 @@ const DEFAULT_SIGNALING_SERVERS = ['ws://localhost:4444']
 const DEFAULT_PERSIST_DEBOUNCE = 1000
 
 /**
- * Generate a consistent color from a string
+ * Generate a consistent hex color from a string.
+ * Returns a 6-digit hex color (#rrggbb) as required by y-prosemirror's yCursorPlugin.
  */
 function generateColor(seed: string): string {
   let hash = 0
@@ -147,7 +148,45 @@ function generateColor(seed: string): string {
     hash = seed.charCodeAt(i) + ((hash << 5) - hash)
   }
   const hue = Math.abs(hash % 360)
-  return `hsl(${hue}, 70%, 50%)`
+  // HSL to RGB: s=70%, l=50%
+  const s = 0.7
+  const l = 0.5
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1))
+  const m = l - c / 2
+  let r = 0,
+    g = 0,
+    b = 0
+  if (hue < 60) {
+    r = c
+    g = x
+    b = 0
+  } else if (hue < 120) {
+    r = x
+    g = c
+    b = 0
+  } else if (hue < 180) {
+    r = 0
+    g = c
+    b = x
+  } else if (hue < 240) {
+    r = 0
+    g = x
+    b = c
+  } else if (hue < 300) {
+    r = x
+    g = 0
+    b = c
+  } else {
+    r = c
+    g = 0
+    b = x
+  }
+  const toHex = (v: number) =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
 // =============================================================================
@@ -481,10 +520,12 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
       const { awareness: providerAwareness } = provider
       setAwareness(providerAwareness)
 
-      // Set local awareness state with DID
+      // Set local awareness state with DID, name, and hex color
+      // The 'name' and 'color' fields are required by y-prosemirror's yCursorPlugin
       if (did) {
         providerAwareness.setLocalStateField('user', {
           did,
+          name: `${did.slice(8, 16)}...`,
           color: generateColor(did)
         })
       }

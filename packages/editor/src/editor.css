@@ -8,7 +8,7 @@
 }
 
 /* Collaboration cursor styles */
-.xnet-editor .collaboration-cursor__caret {
+.collaboration-cursor__caret {
   position: relative;
   margin-left: -1px;
   margin-right: -1px;
@@ -18,32 +18,39 @@
   pointer-events: none;
 }
 
-.xnet-editor .collaboration-cursor__label {
+.collaboration-cursor__label {
   position: absolute;
   top: -1.4em;
   left: -1px;
+  display: flex;
+  align-items: center;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
-  padding: 1px 4px;
+  padding: 2px 6px;
   border-radius: 3px 3px 3px 0;
   color: #fff;
   white-space: nowrap;
   user-select: none;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s ease;
+  animation: cursor-label-fade 3s forwards;
 }
 
-/* Show label on hover or when recently moved */
-.xnet-editor .collaboration-cursor__caret:hover .collaboration-cursor__label,
-.xnet-editor .collaboration-cursor__caret.is-active .collaboration-cursor__label {
-  opacity: 1;
+/* Fade-in then fade-out animation */
+@keyframes cursor-label-fade {
+  0% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* Remote selection highlight */
-.xnet-editor .ProseMirror .selection {
+.ProseMirror-yjs-selection {
   display: inline;
-  background-color: inherit;
-  opacity: 0.3;
+  border-radius: 2px;
 }
