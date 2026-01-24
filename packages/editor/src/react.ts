@@ -39,6 +39,7 @@ export { CalloutNodeView } from './extensions/callout'
 export { ToggleNodeView } from './extensions/toggle'
 export { FileNodeView } from './extensions/file'
 export { EmbedNodeView } from './extensions/embed'
+export { DatabaseEmbedNodeView } from './extensions/database-embed'
 
 // Blob context
 export { BlobProvider, useBlobService } from './context/BlobContext'
