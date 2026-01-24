@@ -50,7 +50,7 @@ async function createWindow() {
 
   // Load the app
   if (process.env.NODE_ENV === 'development') {
-    const port = process.env.VITE_PORT || '5173'
+    const port = process.env.VITE_PORT || '5177'
     mainWindow.loadURL(`http://localhost:${port}`)
     mainWindow.webContents.openDevTools()
   } else {

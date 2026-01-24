@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 // Support running multiple instances with different ports
-const rendererPort = parseInt(process.env.VITE_PORT || '5173', 10)
+const rendererPort = parseInt(process.env.VITE_PORT || '5177', 10)
 
 export default defineConfig({
   main: {

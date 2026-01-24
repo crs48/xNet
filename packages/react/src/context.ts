@@ -91,11 +91,17 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       return
     }
 
+    // Track whether this effect instance is still active (handles StrictMode double-mount)
+    let cancelled = false
+
     // Initialize the node storage adapter if it has an open() method
     const initializeNodeStore = async () => {
       if ('open' in nodeStorageAdapter && typeof nodeStorageAdapter.open === 'function') {
         await nodeStorageAdapter.open()
       }
+
+      // Check if effect was cleaned up while we were awaiting
+      if (cancelled) return
 
       const ns = new NodeStore({
         storage: nodeStorageAdapter,
@@ -104,6 +110,10 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       })
 
       await ns.initialize()
+
+      // Check again after second await
+      if (cancelled) return
+
       setNodeStore(ns)
       setNodeStoreReady(true)
     }
@@ -111,6 +121,9 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     initializeNodeStore()
 
     return () => {
+      cancelled = true
+      setNodeStore(null)
+      setNodeStoreReady(false)
       if ('close' in nodeStorageAdapter && typeof nodeStorageAdapter.close === 'function') {
         nodeStorageAdapter.close()
       }

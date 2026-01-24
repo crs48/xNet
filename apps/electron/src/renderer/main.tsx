@@ -21,8 +21,10 @@ const consentManager = new ConsentManager({ autoLoad: true })
 consentManager.setTier('anonymous') // Enable all collection tiers for devtools visibility
 const telemetryCollector = new TelemetryCollector({ consent: consentManager })
 
-// Create IPC-based sync manager for desktop (routes through main process BSM)
-const ipcSyncManager: SyncManager | undefined = window.xnetBSM ? createIPCSyncManager() : undefined
+// IPC-based sync manager disabled until signaling server is available.
+// The in-renderer SyncManager is also disabled to avoid connection errors.
+// TODO: Re-enable when signaling infrastructure is ready.
+const ipcSyncManager: SyncManager | undefined = undefined
 
 async function init() {
   const startTime = performance.now()
@@ -50,7 +52,7 @@ async function init() {
               nodeStorage,
               authorDID: AUTHOR_DID,
               signingKey: SIGNING_KEY,
-              syncManager: ipcSyncManager
+              disableSyncManager: true
             }}
           >
             <XNetDevToolsProvider
