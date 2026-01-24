@@ -111,7 +111,7 @@ function ToolbarButton({
         isMobile ? 'w-10 h-10' : 'w-8 h-8',
         active
           ? 'bg-primary/15 text-primary'
-          : 'text-text-secondary hover:text-text hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/15'
+          : 'text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/15'
       )}
       title={title}
       type="button"
@@ -370,7 +370,7 @@ function MobileToolbar({
     <div
       className={cn(
         'fixed left-0 right-0 z-50',
-        'bg-bg/95 backdrop-blur-sm border-t border-border',
+        'bg-background/95 backdrop-blur-sm border-t border-border',
         'shadow-[0_-4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]',
         'bottom-0',
         className
@@ -422,7 +422,7 @@ function DesktopToolbar({
       }}
       className={cn(
         'flex items-center gap-0.5 px-1 py-1',
-        'bg-bg rounded-lg',
+        'bg-background rounded-lg',
         'shadow-xl shadow-black/15 dark:shadow-black/40',
         'border border-border/50',
         className

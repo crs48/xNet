@@ -28,6 +28,7 @@ export function PageView({ docId }: PageViewProps) {
     awareness
   } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled Page' },
+    disableSync: true,
     did: did ?? undefined
   })
 
