@@ -681,4 +681,4 @@ describe('Peer Discovery', () => {
 
 ---
 
-[← Previous: Awareness Persistence](./12-awareness-persistence.md) | [Back to README](./README.md)
+[← Previous: Awareness Persistence](./12-awareness-persistence.md) | [Back to README](./README.md) | [Next: Hub Federation Search →](./14-hub-federation-search.md)
