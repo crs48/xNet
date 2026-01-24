@@ -2,7 +2,7 @@
  * Hook for the Yjs Inspector panel
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 import type {
   DevToolsEvent,
@@ -62,49 +62,8 @@ export function useYjsInspector() {
     rebuildStats(yjsEvents)
   }, [eventBus])
 
-  // Subscribe to live events
-  useEffect(() => {
-    const unsub = eventBus.subscribe((event: DevToolsEvent) => {
-      if (!YJS_EVENT_TYPES.has(event.type)) return
-
-      if (event.type === 'yjs:update' || event.type === 'yjs:meta-change') {
-        const yjsEvent = event as YjsEvent
-        setEvents((prev) => [...prev.slice(-499), yjsEvent])
-
-        if (event.type === 'yjs:update') {
-          const update = event as YjsUpdateEvent
-          setDocStats((prev) => {
-            const stats = prev.get(update.docId) || {
-              docId: update.docId,
-              updateCount: 0,
-              totalBytes: 0,
-              lastUpdate: 0,
-              localUpdates: 0,
-              remoteUpdates: 0
-            }
-            const updated = {
-              ...stats,
-              updateCount: stats.updateCount + 1,
-              totalBytes: stats.totalBytes + update.updateSize,
-              lastUpdate: update.wallTime,
-              localUpdates: stats.localUpdates + (update.isLocal ? 1 : 0),
-              remoteUpdates: stats.remoteUpdates + (update.isLocal ? 0 : 1)
-            }
-            return new Map(prev).set(update.docId, updated)
-          })
-        }
-      }
-
-      // Capture state vectors
-      if (event.type === 'yjs:state-vector') {
-        const sv = event as YjsStateVectorEvent
-        if (selectedDoc && sv.docId === selectedDoc) {
-          setStateVector(sv.entries)
-        }
-      }
-    })
-    return unsub
-  }, [eventBus, selectedDoc])
+  // Debounce ref for tree/state-vector refresh
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function rebuildStats(yjsEvents: YjsEvent[]) {
     const statsMap = new Map<string, DocStats>()
@@ -195,6 +154,66 @@ export function useYjsInspector() {
   useEffect(() => {
     refreshStateVector()
   }, [refreshStateVector])
+
+  // Subscribe to live events
+  useEffect(() => {
+    const unsub = eventBus.subscribe((event: DevToolsEvent) => {
+      if (!YJS_EVENT_TYPES.has(event.type)) return
+
+      if (event.type === 'yjs:update' || event.type === 'yjs:meta-change') {
+        const yjsEvent = event as YjsEvent
+        setEvents((prev) => [...prev.slice(-499), yjsEvent])
+
+        if (event.type === 'yjs:update') {
+          const update = event as YjsUpdateEvent
+          setDocStats((prev) => {
+            const stats = prev.get(update.docId) || {
+              docId: update.docId,
+              updateCount: 0,
+              totalBytes: 0,
+              lastUpdate: 0,
+              localUpdates: 0,
+              remoteUpdates: 0
+            }
+            const updated = {
+              ...stats,
+              updateCount: stats.updateCount + 1,
+              totalBytes: stats.totalBytes + update.updateSize,
+              lastUpdate: update.wallTime,
+              localUpdates: stats.localUpdates + (update.isLocal ? 1 : 0),
+              remoteUpdates: stats.remoteUpdates + (update.isLocal ? 0 : 1)
+            }
+            return new Map(prev).set(update.docId, updated)
+          })
+
+          // Auto-refresh structure/state-vector for the selected doc (debounced)
+          if (selectedDoc && update.docId === selectedDoc) {
+            if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current)
+            refreshTimerRef.current = setTimeout(() => {
+              refreshTimerRef.current = null
+              if (subView === 'structure') refreshTree()
+              else if (subView === 'state-vectors') refreshStateVector()
+            }, 500)
+          }
+        }
+      }
+
+      // Capture state vectors
+      if (event.type === 'yjs:state-vector') {
+        const sv = event as YjsStateVectorEvent
+        if (selectedDoc && sv.docId === selectedDoc) {
+          setStateVector(sv.entries)
+        }
+      }
+    })
+    return () => {
+      unsub()
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current)
+        refreshTimerRef.current = null
+      }
+    }
+  }, [eventBus, selectedDoc, subView, refreshTree, refreshStateVector])
 
   // Events for selected doc
   const filteredEvents = selectedDoc ? events.filter((e) => e.docId === selectedDoc) : events
