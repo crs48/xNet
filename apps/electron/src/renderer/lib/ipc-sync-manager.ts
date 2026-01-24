@@ -150,6 +150,14 @@ export function createIPCSyncManager(): SyncManager {
       return null
     },
 
+    async requestBlobs(_cids: string[]) {
+      // TODO: Route blob requests through IPC to main process BSM
+    },
+
+    announceBlobs(_cids: string[]) {
+      // TODO: Route blob announcements through IPC to main process BSM
+    },
+
     get status() {
       return currentStatus
     },
@@ -161,6 +169,9 @@ export function createIPCSyncManager(): SyncManager {
     },
     get queueSize() {
       return 0 // Queue is managed by main process
+    },
+    get pendingBlobCount() {
+      return 0 // Managed by main process
     },
 
     on(event: 'status', handler: (status: ConnectionStatus) => void): () => void {

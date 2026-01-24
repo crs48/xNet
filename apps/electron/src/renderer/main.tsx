@@ -4,7 +4,9 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { XNetProvider, type SyncManager } from '@xnet/react'
-import { IndexedDBNodeStorageAdapter } from '@xnet/data'
+import { IndexedDBNodeStorageAdapter, BlobService } from '@xnet/data'
+import { IndexedDBAdapter, BlobStore, ChunkManager } from '@xnet/storage'
+import { BlobProvider } from '@xnet/editor/react'
 import { XNetDevToolsProvider } from '@xnet/devtools'
 import { ThemeProvider } from '@xnet/ui'
 import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
@@ -36,6 +38,13 @@ async function init() {
 
   const nodeStorage = new IndexedDBNodeStorageAdapter({ dbName })
 
+  // Blob storage: IndexedDBAdapter → BlobStore → ChunkManager → BlobService
+  const storageAdapter = new IndexedDBAdapter()
+  await storageAdapter.open()
+  const blobStore = new BlobStore(storageAdapter)
+  const chunkManager = new ChunkManager(blobStore)
+  const blobService = new BlobService(chunkManager)
+
   // Listen for devtools toggle from main process menu
   // Dispatches a custom event that XNetDevToolsProvider can listen to
   window.xnet.onDevToolsToggle(() => {
@@ -52,15 +61,18 @@ async function init() {
               nodeStorage,
               authorDID: AUTHOR_DID,
               signingKey: SIGNING_KEY,
+              blobStore,
               disableSyncManager: true
             }}
           >
-            <XNetDevToolsProvider
-              telemetryCollector={telemetryCollector}
-              consentManager={consentManager}
-            >
-              <App />
-            </XNetDevToolsProvider>
+            <BlobProvider blobService={blobService}>
+              <XNetDevToolsProvider
+                telemetryCollector={telemetryCollector}
+                consentManager={consentManager}
+              >
+                <App />
+              </XNetDevToolsProvider>
+            </BlobProvider>
           </XNetProvider>
         </TelemetryProvider>
       </ThemeProvider>
