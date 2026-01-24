@@ -277,8 +277,273 @@ import Base from '../layouts/Base.astro'
       </div>
     </section>
 
+    <!-- React Hooks -->
+    <section id="hooks" class="border-y border-border bg-surface/30 py-20">
+      <div class="mx-auto max-w-6xl px-6">
+        <h2 class="text-3xl font-bold tracking-tight">React Hooks</h2>
+        <p class="mt-2 text-gray-400">Four hooks to build local-first apps. Real-time sync included.</p>
+
+        <!-- Tabs -->
+        <div class="mt-10" x-data="{ tab: 'query' }">
+          <!-- Tab buttons -->
+          <div class="flex flex-wrap gap-2 border-b border-border pb-4">
+            <button
+              class="hook-tab rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              :class="tab === 'query' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white hover:bg-surface'"
+              @click="tab = 'query'"
+            >
+              useQuery
+            </button>
+            <button
+              class="hook-tab rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              :class="tab === 'mutate' ? 'bg-emerald-600 text-white' : 'text-gray-400 hover:text-white hover:bg-surface'"
+              @click="tab = 'mutate'"
+            >
+              useMutate
+            </button>
+            <button
+              class="hook-tab rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              :class="tab === 'document' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white hover:bg-surface'"
+              @click="tab = 'document'"
+            >
+              useDocument
+            </button>
+            <button
+              class="hook-tab rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              :class="tab === 'identity' ? 'bg-pink-600 text-white' : 'text-gray-400 hover:text-white hover:bg-surface'"
+              @click="tab = 'identity'"
+            >
+              useIdentity
+            </button>
+          </div>
+
+          <!-- Tab content -->
+          <div class="mt-8 grid gap-8 lg:grid-cols-2">
+            <!-- useQuery -->
+            <template x-if="tab === 'query'">
+              <div class="space-y-4">
+                <div class="rounded-lg border border-indigo-500/30 bg-indigo-500/5 p-4">
+                  <h3 class="font-semibold text-indigo-400">useQuery</h3>
+                  <p class="mt-1 text-sm text-gray-400">Read nodes with real-time updates. Filter, sort, paginate.</p>
+                </div>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-indigo-400">&#10003;</span>
+                    <span>List all nodes of a schema</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-indigo-400">&#10003;</span>
+                    <span>Get single node by ID</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-indigo-400">&#10003;</span>
+                    <span>Filter with where clauses</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-indigo-400">&#10003;</span>
+                    <span>Auto-updates when data changes</span>
+                  </li>
+                </ul>
+              </div>
+            </template>
+            <template x-if="tab === 'query'">
+              <div>
+                <pre class="overflow-x-auto rounded-xl border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-indigo-400">import</span> {'{'} useQuery {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">TaskList</span>() {'{'}
+  <span class="text-gray-500">// List all tasks</span>
+  <span class="text-indigo-400">const</span> {'{'} data: tasks, loading {'}'} = <span class="text-yellow-300">useQuery</span>(TaskSchema)
+
+  <span class="text-gray-500">// Or filter</span>
+  <span class="text-indigo-400">const</span> {'{'} data: done {'}'} = <span class="text-yellow-300">useQuery</span>(TaskSchema, {'{'}
+    where: {'{'} status: <span class="text-emerald-400">'done'</span> {'}'},
+    orderBy: {'{'} updatedAt: <span class="text-emerald-400">'desc'</span> {'}'},
+    limit: <span class="text-orange-400">20</span>
+  {'}'})
+
+  <span class="text-indigo-400">if</span> (loading) <span class="text-indigo-400">return</span> &lt;p&gt;Loading...&lt;/p&gt;
+
+  <span class="text-indigo-400">return</span> (
+    &lt;ul&gt;
+      {'{'}tasks.<span class="text-yellow-300">map</span>(task =&gt; (
+        &lt;li key={'{'}task.id{'}'}&gt;{'{'}task.title{'}'}&lt;/li&gt;
+      )){'}'}
+    &lt;/ul&gt;
+  )
+{'}'}</code></pre>
+              </div>
+            </template>
+
+            <!-- useMutate -->
+            <template x-if="tab === 'mutate'">
+              <div class="space-y-4">
+                <div class="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4">
+                  <h3 class="font-semibold text-emerald-400">useMutate</h3>
+                  <p class="mt-1 text-sm text-gray-400">Create, update, delete nodes with type safety.</p>
+                </div>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-emerald-400">&#10003;</span>
+                    <span>Create nodes with schema validation</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-emerald-400">&#10003;</span>
+                    <span>Type-safe updates with updateTyped</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-emerald-400">&#10003;</span>
+                    <span>Soft delete with restore support</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-emerald-400">&#10003;</span>
+                    <span>Atomic transactions for batch ops</span>
+                  </li>
+                </ul>
+              </div>
+            </template>
+            <template x-if="tab === 'mutate'">
+              <div>
+                <pre class="overflow-x-auto rounded-xl border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-indigo-400">import</span> {'{'} useMutate {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">TaskActions</span>() {'{'}
+  <span class="text-indigo-400">const</span> {'{'} create, updateTyped, remove {'}'} = <span class="text-yellow-300">useMutate</span>()
+
+  <span class="text-gray-500">// Create a new task</span>
+  <span class="text-indigo-400">const</span> addTask = <span class="text-indigo-400">async</span> () =&gt; {'{'}
+    <span class="text-indigo-400">await</span> <span class="text-yellow-300">create</span>(TaskSchema, {'{'}
+      title: <span class="text-emerald-400">'New Task'</span>,
+      status: <span class="text-emerald-400">'todo'</span>
+    {'}'})
+  {'}'}
+
+  <span class="text-gray-500">// Update with type safety</span>
+  <span class="text-indigo-400">const</span> complete = <span class="text-indigo-400">async</span> (id: <span class="text-amber-400">string</span>) =&gt; {'{'}
+    <span class="text-indigo-400">await</span> <span class="text-yellow-300">updateTyped</span>(TaskSchema, id, {'{'}
+      status: <span class="text-emerald-400">'done'</span>
+    {'}'})
+  {'}'}
+
+  <span class="text-gray-500">// Delete</span>
+  <span class="text-indigo-400">const</span> deleteTask = (id: <span class="text-amber-400">string</span>) =&gt; <span class="text-yellow-300">remove</span>(id)
+{'}'}</code></pre>
+              </div>
+            </template>
+
+            <!-- useDocument -->
+            <template x-if="tab === 'document'">
+              <div class="space-y-4">
+                <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
+                  <h3 class="font-semibold text-amber-400">useDocument</h3>
+                  <p class="mt-1 text-sm text-gray-400">Rich text editing with real-time P2P collaboration.</p>
+                </div>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-amber-400">&#10003;</span>
+                    <span>Yjs Y.Doc for collaborative editing</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-amber-400">&#10003;</span>
+                    <span>WebRTC sync with peer discovery</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-amber-400">&#10003;</span>
+                    <span>Presence awareness (cursors, users)</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-amber-400">&#10003;</span>
+                    <span>Auto-persistence with dirty tracking</span>
+                  </li>
+                </ul>
+              </div>
+            </template>
+            <template x-if="tab === 'document'">
+              <div>
+                <pre class="overflow-x-auto rounded-xl border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-indigo-400">import</span> {'{'} useDocument {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">DocumentEditor</span>({'{'} docId {'}'}) {'{'}
+  <span class="text-indigo-400">const</span> {'{'}
+    data: page,
+    doc,              <span class="text-gray-500">// Yjs Y.Doc</span>
+    syncStatus,       <span class="text-gray-500">// 'connected' | 'offline'</span>
+    peerCount,        <span class="text-gray-500">// Number of peers</span>
+    remoteUsers,      <span class="text-gray-500">// Other users</span>
+    update
+  {'}'} = <span class="text-yellow-300">useDocument</span>(PageSchema, docId)
+
+  <span class="text-indigo-400">return</span> (
+    &lt;div&gt;
+      &lt;input
+        value={'{'}page?.title{'}'}
+        onChange={'{'}<span class="text-indigo-400">e</span> =&gt; <span class="text-yellow-300">update</span>({'{'} title: e.target.value {'}'}){'}'}
+      /&gt;
+      &lt;span&gt;{'{'}peerCount{'}'} peers online&lt;/span&gt;
+      &lt;Editor doc={'{'}doc{'}'} /&gt;
+    &lt;/div&gt;
+  )
+{'}'}</code></pre>
+              </div>
+            </template>
+
+            <!-- useIdentity -->
+            <template x-if="tab === 'identity'">
+              <div class="space-y-4">
+                <div class="rounded-lg border border-pink-500/30 bg-pink-500/5 p-4">
+                  <h3 class="font-semibold text-pink-400">useIdentity</h3>
+                  <p class="mt-1 text-sm text-gray-400">Access the current user's decentralized identity.</p>
+                </div>
+                <ul class="space-y-2 text-sm text-gray-400">
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-pink-400">&#10003;</span>
+                    <span>DID:key for self-sovereign identity</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-pink-400">&#10003;</span>
+                    <span>Authentication state tracking</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-pink-400">&#10003;</span>
+                    <span>No passwords or central auth server</span>
+                  </li>
+                  <li class="flex items-start gap-2">
+                    <span class="mt-1 text-pink-400">&#10003;</span>
+                    <span>Portable across apps and devices</span>
+                  </li>
+                </ul>
+              </div>
+            </template>
+            <template x-if="tab === 'identity'">
+              <div>
+                <pre class="overflow-x-auto rounded-xl border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-indigo-400">import</span> {'{'} useIdentity {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">UserBadge</span>() {'{'}
+  <span class="text-indigo-400">const</span> {'{'} isAuthenticated, did {'}'} = <span class="text-yellow-300">useIdentity</span>()
+
+  <span class="text-indigo-400">if</span> (!isAuthenticated) {'{'}
+    <span class="text-indigo-400">return</span> &lt;span&gt;Not logged in&lt;/span&gt;
+  {'}'}
+
+  <span class="text-indigo-400">return</span> (
+    &lt;span title={'{'}did{'}'}&gt;
+      {'{'}did?.<span class="text-yellow-300">slice</span>(<span class="text-orange-400">8</span>, <span class="text-orange-400">16</span>){'}'}...
+    &lt;/span&gt;
+  )
+{'}'}
+
+<span class="text-gray-500">// Conditional rendering</span>
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">AuthGate</span>({'{'} children {'}'}) {'{'}
+  <span class="text-indigo-400">const</span> {'{'} isAuthenticated {'}'} = <span class="text-yellow-300">useIdentity</span>()
+  <span class="text-indigo-400">if</span> (!isAuthenticated) <span class="text-indigo-400">return</span> &lt;LoginPrompt /&gt;
+  <span class="text-indigo-400">return</span> children
+{'}'}</code></pre>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- Vision / Roadmap -->
-    <section id="vision" class="border-y border-border bg-surface/30 py-20">
+    <section id="vision" class="py-20">
       <div class="mx-auto max-w-6xl px-6">
         <h2 class="text-3xl font-bold tracking-tight">The Vision</h2>
         <p class="mt-2 max-w-2xl text-gray-400">
