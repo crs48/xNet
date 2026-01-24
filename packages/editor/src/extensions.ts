@@ -3,7 +3,7 @@
  *
  * Custom extensions for the xNet editor.
  */
-import { Mark, Node, mergeAttributes, markInputRule } from '@tiptap/core'
+import { Mark, Node, mergeAttributes, markInputRule, textblockTypeInputRule } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { HeadingView } from './nodeviews/HeadingView'
 import { CodeBlockView } from './nodeviews/CodeBlockView'
@@ -147,14 +147,45 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
     return ReactNodeViewRenderer(HeadingView)
   },
 
-  addKeyboardShortcuts() {
-    return this.options.levels.reduce(
-      (shortcuts: Record<string, () => boolean>, level: number) => ({
-        ...shortcuts,
-        [`Mod-Alt-${level}`]: () => this.editor.commands.toggleHeading({ level: level as any })
-      }),
-      {}
+  addInputRules() {
+    return this.options.levels.map((level: number) =>
+      textblockTypeInputRule({
+        find: new RegExp(`^(#{1,${level}})\\s$`),
+        type: this.type,
+        getAttributes: { level }
+      })
     )
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      ...this.options.levels.reduce(
+        (shortcuts: Record<string, () => boolean>, level: number) => ({
+          ...shortcuts,
+          [`Mod-Alt-${level}`]: () => this.editor.commands.toggleHeading({ level: level as any })
+        }),
+        {}
+      ),
+      Backspace: () => {
+        const { state } = this.editor
+        const { $from } = state.selection
+
+        // Only handle when cursor is at the start of a heading with empty content
+        if (!this.editor.isActive('heading')) return false
+        if ($from.parentOffset !== 0) return false
+        if ($from.parent.textContent.length > 0) return false
+
+        const currentLevel = $from.parent.attrs.level as number
+
+        if (currentLevel > 1) {
+          // Demote: H2 → H1, H3 → H2, etc.
+          return this.editor.commands.setHeading({ level: (currentLevel - 1) as any })
+        }
+
+        // H1 → paragraph
+        return this.editor.commands.setParagraph()
+      }
+    }
   }
 })
 

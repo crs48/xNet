@@ -7,20 +7,18 @@ import StarterKit from '@tiptap/starter-kit'
 import { Wikilink, LivePreview, MARK_SYNTAX } from './extensions'
 
 // Helper to create a test editor with our extensions
-function createTestEditor(options: {
-  content?: string
-  onNavigate?: (pageId: string) => void
-} = {}) {
+function createTestEditor(
+  options: {
+    content?: string
+    onNavigate?: (pageId: string) => void
+  } = {}
+) {
   const { content = '<p></p>', onNavigate = () => {} } = options
 
   return new Editor({
     element: document.createElement('div'),
-    extensions: [
-      StarterKit,
-      Wikilink.configure({ onNavigate }),
-      LivePreview,
-    ],
-    content,
+    extensions: [StarterKit, Wikilink.configure({ onNavigate }), LivePreview],
+    content
   })
 }
 
@@ -30,9 +28,7 @@ describe('Wikilink Extension', () => {
       const onNavigate = vi.fn()
       const editor = createTestEditor({ onNavigate })
 
-      const extension = editor.extensionManager.extensions.find(
-        ext => ext.name === 'wikilink'
-      )
+      const extension = editor.extensionManager.extensions.find((ext) => ext.name === 'wikilink')
       expect(extension?.options.onNavigate).toBe(onNavigate)
 
       editor.destroy()
@@ -42,12 +38,10 @@ describe('Wikilink Extension', () => {
       const editor = new Editor({
         element: document.createElement('div'),
         extensions: [StarterKit, Wikilink],
-        content: '<p></p>',
+        content: '<p></p>'
       })
 
-      const extension = editor.extensionManager.extensions.find(
-        ext => ext.name === 'wikilink'
-      )
+      const extension = editor.extensionManager.extensions.find((ext) => ext.name === 'wikilink')
       expect(typeof extension?.options.onNavigate).toBe('function')
 
       editor.destroy()
@@ -90,9 +84,7 @@ describe('Wikilink Extension', () => {
     it('should have parseHTML configuration', () => {
       const editor = createTestEditor()
 
-      const extension = editor.extensionManager.extensions.find(
-        ext => ext.name === 'wikilink'
-      )
+      const extension = editor.extensionManager.extensions.find((ext) => ext.name === 'wikilink')
 
       expect(extension?.config?.parseHTML).toBeDefined()
 
@@ -121,9 +113,7 @@ describe('Wikilink Extension', () => {
     it('should have addInputRules method', () => {
       const editor = createTestEditor()
 
-      const extension = editor.extensionManager.extensions.find(
-        ext => ext.name === 'wikilink'
-      )
+      const extension = editor.extensionManager.extensions.find((ext) => ext.name === 'wikilink')
 
       expect(extension?.config?.addInputRules).toBeDefined()
 
@@ -135,19 +125,19 @@ describe('Wikilink Extension', () => {
 describe('LivePreview Extension', () => {
   describe('MARK_SYNTAX mapping', () => {
     it('should have correct syntax for bold', () => {
-      expect(MARK_SYNTAX.bold).toEqual({ open: '**', close: '**' })
+      expect(MARK_SYNTAX.bold).toMatchObject({ open: '**', close: '**' })
     })
 
     it('should have correct syntax for italic', () => {
-      expect(MARK_SYNTAX.italic).toEqual({ open: '*', close: '*' })
+      expect(MARK_SYNTAX.italic).toMatchObject({ open: '*', close: '*' })
     })
 
     it('should have correct syntax for strike', () => {
-      expect(MARK_SYNTAX.strike).toEqual({ open: '~~', close: '~~' })
+      expect(MARK_SYNTAX.strike).toMatchObject({ open: '~~', close: '~~' })
     })
 
     it('should have correct syntax for code', () => {
-      expect(MARK_SYNTAX.code).toEqual({ open: '`', close: '`' })
+      expect(MARK_SYNTAX.code).toMatchObject({ open: '`', close: '`' })
     })
   })
 
@@ -155,9 +145,7 @@ describe('LivePreview Extension', () => {
     it('should default to standard marks', () => {
       const editor = createTestEditor()
 
-      const extension = editor.extensionManager.extensions.find(
-        ext => ext.name === 'livePreview'
-      )
+      const extension = editor.extensionManager.extensions.find((ext) => ext.name === 'livePreview')
       expect(extension?.options.marks).toEqual(['bold', 'italic', 'strike', 'code'])
 
       editor.destroy()
@@ -166,16 +154,11 @@ describe('LivePreview Extension', () => {
     it('should accept custom marks option', () => {
       const editor = new Editor({
         element: document.createElement('div'),
-        extensions: [
-          StarterKit,
-          LivePreview.configure({ marks: ['bold', 'italic'] }),
-        ],
-        content: '<p></p>',
+        extensions: [StarterKit, LivePreview.configure({ marks: ['bold', 'italic'] })],
+        content: '<p></p>'
       })
 
-      const extension = editor.extensionManager.extensions.find(
-        ext => ext.name === 'livePreview'
-      )
+      const extension = editor.extensionManager.extensions.find((ext) => ext.name === 'livePreview')
       expect(extension?.options.marks).toEqual(['bold', 'italic'])
 
       editor.destroy()
@@ -186,9 +169,7 @@ describe('LivePreview Extension', () => {
     it('should have addProseMirrorPlugins method', () => {
       const editor = createTestEditor()
 
-      const extension = editor.extensionManager.extensions.find(
-        ext => ext.name === 'livePreview'
-      )
+      const extension = editor.extensionManager.extensions.find((ext) => ext.name === 'livePreview')
 
       expect(extension?.config?.addProseMirrorPlugins).toBeDefined()
 
@@ -209,7 +190,7 @@ describe('Extension Integration', () => {
   it('should register wikilink extension', () => {
     const editor = createTestEditor()
 
-    const extensionNames = editor.extensionManager.extensions.map(e => e.name)
+    const extensionNames = editor.extensionManager.extensions.map((e) => e.name)
     expect(extensionNames).toContain('wikilink')
 
     editor.destroy()
@@ -218,7 +199,7 @@ describe('Extension Integration', () => {
   it('should register livePreview extension', () => {
     const editor = createTestEditor()
 
-    const extensionNames = editor.extensionManager.extensions.map(e => e.name)
+    const extensionNames = editor.extensionManager.extensions.map((e) => e.name)
     expect(extensionNames).toContain('livePreview')
 
     editor.destroy()
@@ -226,7 +207,7 @@ describe('Extension Integration', () => {
 
   it('should work with formatting marks', () => {
     const editor = createTestEditor({
-      content: '<p>Hello world</p>',
+      content: '<p>Hello world</p>'
     })
 
     editor.commands.selectAll()
@@ -239,7 +220,7 @@ describe('Extension Integration', () => {
 
   it('should coexist with other marks', () => {
     const editor = createTestEditor({
-      content: '<p>test text</p>',
+      content: '<p>test text</p>'
     })
 
     editor.commands.selectAll()

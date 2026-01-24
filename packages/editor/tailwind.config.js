@@ -5,26 +5,58 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Semantic colors using CSS variables for theming
-        bg: {
-          DEFAULT: 'var(--color-bg, #ffffff)',
-          secondary: 'var(--color-bg-secondary, #f8f9fa)',
-          tertiary: 'var(--color-bg-tertiary, #f1f3f5)'
-        },
-        text: {
-          DEFAULT: 'var(--color-text, #1a1a1a)',
-          secondary: 'var(--color-text-secondary, #6c757d)'
-        },
-        border: 'var(--color-border, #e5e5e5)',
+        // Semantic color aliases using CSS variables defined in editor.css.
+        // These use Tailwind palette RGB values and adapt to dark mode automatically.
+        // Host apps can override by setting the --editor-* variables.
+        background: 'rgb(var(--editor-background) / <alpha-value>)',
+        foreground: 'rgb(var(--editor-foreground) / <alpha-value>)',
         primary: {
-          DEFAULT: 'var(--color-primary, #0066cc)',
-          hover: 'var(--color-primary-hover, #0052a3)'
+          DEFAULT: 'rgb(var(--editor-primary) / <alpha-value>)',
+          foreground: 'rgb(var(--editor-primary-foreground) / <alpha-value>)'
         },
-        success: 'var(--color-success, #28a745)',
-        warning: 'var(--color-warning, #ffc107)',
-        danger: 'var(--color-danger, #dc3545)'
+        secondary: {
+          DEFAULT: 'rgb(var(--editor-secondary) / <alpha-value>)',
+          foreground: 'rgb(var(--editor-secondary-foreground) / <alpha-value>)'
+        },
+        muted: {
+          DEFAULT: 'rgb(var(--editor-muted) / <alpha-value>)',
+          foreground: 'rgb(var(--editor-muted-foreground) / <alpha-value>)'
+        },
+        accent: {
+          DEFAULT: 'rgb(var(--editor-accent) / <alpha-value>)',
+          foreground: 'rgb(var(--editor-accent-foreground) / <alpha-value>)'
+        },
+        border: 'rgb(var(--editor-border) / <alpha-value>)',
+        success: 'rgb(var(--editor-success) / <alpha-value>)',
+        warning: 'rgb(var(--editor-warning) / <alpha-value>)',
+        destructive: {
+          DEFAULT: 'rgb(var(--editor-destructive) / <alpha-value>)',
+          foreground: 'rgb(var(--editor-destructive-foreground) / <alpha-value>)'
+        }
+      },
+
+      // Editor-specific animations
+      keyframes: {
+        'syntax-fade-in': {
+          from: { opacity: '0' },
+          to: { opacity: '0.5' }
+        },
+        'menu-appear': {
+          from: { opacity: '0', transform: 'translateY(-4px) scale(0.95)' },
+          to: { opacity: '1', transform: 'translateY(0) scale(1)' }
+        },
+        'menu-disappear': {
+          from: { opacity: '1', transform: 'translateY(0) scale(1)' },
+          to: { opacity: '0', transform: 'translateY(-4px) scale(0.95)' }
+        }
+      },
+
+      animation: {
+        'syntax-fade-in': 'syntax-fade-in 150ms ease-out forwards',
+        'menu-appear': 'menu-appear 150ms ease-out forwards',
+        'menu-disappear': 'menu-disappear 100ms ease-out forwards'
       }
     }
   },
-  plugins: []
+  plugins: [require('@tailwindcss/typography')]
 }

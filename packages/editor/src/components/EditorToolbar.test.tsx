@@ -200,9 +200,9 @@ describe('EditorToolbar', () => {
       render(<EditorToolbar editor={editor} />)
 
       const boldButton = screen.getByTitle('Bold (Cmd+B)')
-      // Active buttons have bg-primary and text-white classes
+      // Active buttons have bg-primary and text-primary-foreground classes
       expect(boldButton).toHaveClass('bg-primary')
-      expect(boldButton).toHaveClass('text-white')
+      expect(boldButton).toHaveClass('text-primary-foreground')
     })
 
     it('should show active styling when italic is active', () => {
@@ -213,7 +213,7 @@ describe('EditorToolbar', () => {
 
       const italicButton = screen.getByTitle('Italic (Cmd+I)')
       expect(italicButton).toHaveClass('bg-primary')
-      expect(italicButton).toHaveClass('text-white')
+      expect(italicButton).toHaveClass('text-primary-foreground')
     })
 
     it('should show active styling when heading is active', () => {
@@ -223,7 +223,7 @@ describe('EditorToolbar', () => {
 
       const h2Button = screen.getByTitle('Heading 2')
       expect(h2Button).toHaveClass('bg-primary')
-      expect(h2Button).toHaveClass('text-white')
+      expect(h2Button).toHaveClass('text-primary-foreground')
     })
 
     it('should not show active styling when format is not active', () => {

@@ -413,6 +413,10 @@ export function RichTextEditor({
       }
 
       const plugin = yCursorPlugin(awareness, {
+        // Only show cursors for remote clients, not our own
+        awarenessStateFilter: (currentClientId: number, userClientId: number) => {
+          return currentClientId !== userClientId
+        },
         cursorBuilder: (user: { name: string; color: string; did?: string }, clientId: number) => {
           const cursor = document.createElement('span')
           cursor.classList.add('collaboration-cursor__caret')

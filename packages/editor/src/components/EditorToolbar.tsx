@@ -13,9 +13,9 @@ export interface EditorToolbarProps {
 }
 
 const toolbarButtonBase =
-  'px-2.5 py-1.5 border-none bg-transparent rounded cursor-pointer text-sm min-w-[32px] flex items-center justify-center text-text hover:bg-bg-secondary transition-colors'
+  'px-2.5 py-1.5 border-none bg-transparent rounded cursor-pointer text-sm min-w-[32px] flex items-center justify-center text-foreground hover:bg-secondary transition-colors'
 
-const toolbarButtonActive = 'bg-primary text-white hover:bg-primary-hover'
+const toolbarButtonActive = 'bg-primary text-primary-foreground hover:bg-primary/90'
 
 /**
  * Editor toolbar component with formatting buttons.
@@ -32,7 +32,7 @@ export function EditorToolbar({ editor, className }: EditorToolbarProps): JSX.El
   return (
     <div
       className={cn(
-        'flex items-center gap-1 p-2 bg-bg-secondary border-b border-border flex-wrap',
+        'flex items-center gap-1 p-2 bg-secondary border-b border-border flex-wrap',
         className
       )}
     >
