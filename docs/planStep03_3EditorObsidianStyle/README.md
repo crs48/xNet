@@ -97,100 +97,100 @@ flowchart TB
 
 | Task | Document                                       | Status |
 | ---- | ---------------------------------------------- | ------ |
-| 1.1  | [01-tailwind-setup.md](./01-tailwind-setup.md) | [ ]    |
-| 1.2  | [02-editor-styles.md](./02-editor-styles.md)   | [ ]    |
+| 1.1  | [01-tailwind-setup.md](./01-tailwind-setup.md) | [x]    |
+| 1.2  | [02-editor-styles.md](./02-editor-styles.md)   | [x]    |
 | 1.3  | [03-toolbar-polish.md](./03-toolbar-polish.md) | [ ]    |
 
 **Validation Gate:**
 
-- [ ] Editor uses Tailwind classes throughout
-- [ ] Prose typography applied correctly
+- [x] Editor uses Tailwind classes throughout
+- [x] Prose typography applied correctly
 - [ ] Bubble menu has smooth appear/disappear animation
-- [ ] Dark mode works correctly
-- [ ] Tests pass
+- [x] Dark mode works correctly
+- [x] Tests pass
 
 ### Phase 2: Inline Live Preview (Week 1-2)
 
 | Task | Document                                                 | Status |
 | ---- | -------------------------------------------------------- | ------ |
-| 2.1  | [04-inline-marks-plugin.md](./04-inline-marks-plugin.md) | [ ]    |
-| 2.2  | [05-syntax-styling.md](./05-syntax-styling.md)           | [ ]    |
-| 2.3  | [06-link-preview.md](./06-link-preview.md)               | [ ]    |
+| 2.1  | [04-inline-marks-plugin.md](./04-inline-marks-plugin.md) | [x]    |
+| 2.2  | [05-syntax-styling.md](./05-syntax-styling.md)           | [x]    |
+| 2.3  | [06-link-preview.md](./06-link-preview.md)               | [x]    |
 
 **Validation Gate:**
 
-- [ ] `**`, `*`, `` ` ``, `~~` show when cursor in/adjacent to mark
-- [ ] Syntax characters are visually faded
-- [ ] Smooth opacity transition (150ms)
-- [ ] No layout shift when syntax appears/disappears
-- [ ] Link syntax visible when editing
+- [x] `**`, `*`, `` ` ``, `~~` show when cursor in/adjacent to mark
+- [x] Syntax characters are visually faded
+- [x] Smooth opacity transition (150ms)
+- [x] No layout shift when syntax appears/disappears
+- [x] Link syntax visible when editing
 
 ### Phase 3: Block-Level NodeViews (Week 2-3)
 
 | Task | Document                                                 | Status |
 | ---- | -------------------------------------------------------- | ------ |
-| 3.1  | [07-heading-nodeview.md](./07-heading-nodeview.md)       | [ ]    |
-| 3.2  | [08-codeblock-nodeview.md](./08-codeblock-nodeview.md)   | [ ]    |
-| 3.3  | [09-blockquote-nodeview.md](./09-blockquote-nodeview.md) | [ ]    |
-| 3.4  | [10-focus-detection.md](./10-focus-detection.md)         | [ ]    |
+| 3.1  | [07-heading-nodeview.md](./07-heading-nodeview.md)       | [x]    |
+| 3.2  | [08-codeblock-nodeview.md](./08-codeblock-nodeview.md)   | [x]    |
+| 3.3  | [09-blockquote-nodeview.md](./09-blockquote-nodeview.md) | [x]    |
+| 3.4  | [10-focus-detection.md](./10-focus-detection.md)         | [x]    |
 
 **Validation Gate:**
 
-- [ ] Heading shows `#` characters when cursor on line
-- [ ] Code block shows ``` and language when focused
-- [ ] Blockquote shows `>` when editing
-- [ ] Focus detection works for all block types
-- [ ] Keyboard navigation maintains focus state
+- [x] Heading shows `#` characters when cursor on line
+- [x] Code block shows ``` and language when focused
+- [x] Blockquote shows `>` when editing
+- [x] Focus detection works for all block types
+- [x] Keyboard navigation maintains focus state
 
 ### Phase 4: Slash Commands (Week 3)
 
 | Task | Document                                         | Status |
 | ---- | ------------------------------------------------ | ------ |
-| 4.1  | [11-slash-extension.md](./11-slash-extension.md) | [ ]    |
-| 4.2  | [12-command-menu.md](./12-command-menu.md)       | [ ]    |
-| 4.3  | [13-command-items.md](./13-command-items.md)     | [ ]    |
+| 4.1  | [11-slash-extension.md](./11-slash-extension.md) | [x]    |
+| 4.2  | [12-command-menu.md](./12-command-menu.md)       | [x]    |
+| 4.3  | [13-command-items.md](./13-command-items.md)     | [x]    |
 
 **Validation Gate:**
 
-- [ ] `/` triggers command menu
-- [ ] Typing filters commands
-- [ ] Arrow keys navigate, Enter selects
-- [ ] Escape closes menu
-- [ ] Menu positioned correctly (bottom-start of cursor)
-- [ ] Smooth appear animation
+- [x] `/` triggers command menu
+- [x] Typing filters commands
+- [x] Arrow keys navigate, Enter selects
+- [x] Escape closes menu
+- [x] Menu positioned correctly (bottom-start of cursor)
+- [x] Smooth appear animation
 
 ### Phase 5: Drag & Drop (Week 4)
 
 | Task | Document                                       | Status |
 | ---- | ---------------------------------------------- | ------ |
-| 5.1  | [14-drag-handle.md](./14-drag-handle.md)       | [ ]    |
-| 5.2  | [15-block-dnd.md](./15-block-dnd.md)           | [ ]    |
-| 5.3  | [16-drop-indicator.md](./16-drop-indicator.md) | [ ]    |
+| 5.1  | [14-drag-handle.md](./14-drag-handle.md)       | [x]    |
+| 5.2  | [15-block-dnd.md](./15-block-dnd.md)           | [x]    |
+| 5.3  | [16-drop-indicator.md](./16-drop-indicator.md) | [x]    |
 
 **Validation Gate:**
 
-- [ ] Drag handle appears on hover
-- [ ] Blocks can be dragged and reordered
-- [ ] Drop indicator shows target position
-- [ ] Works with all block types
-- [ ] Touch-friendly on mobile
+- [x] Drag handle appears on hover
+- [x] Blocks can be dragged and reordered
+- [x] Drop indicator shows target position
+- [x] Works with all block types
+- [x] Touch-friendly on mobile
 
 ### Phase 6: Integration & Polish (Week 4-5)
 
 | Task | Document                                               | Status |
 | ---- | ------------------------------------------------------ | ------ |
-| 6.1  | [17-keyboard-shortcuts.md](./17-keyboard-shortcuts.md) | [ ]    |
-| 6.2  | [18-mobile-toolbar.md](./18-mobile-toolbar.md)         | [ ]    |
-| 6.3  | [19-accessibility.md](./19-accessibility.md)           | [ ]    |
-| 6.4  | [20-performance.md](./20-performance.md)               | [ ]    |
+| 6.1  | [17-keyboard-shortcuts.md](./17-keyboard-shortcuts.md) | [x]    |
+| 6.2  | [18-mobile-toolbar.md](./18-mobile-toolbar.md)         | [x]    |
+| 6.3  | [19-accessibility.md](./19-accessibility.md)           | [x]    |
+| 6.4  | [20-performance.md](./20-performance.md)               | [x]    |
 
 **Validation Gate:**
 
-- [ ] All keyboard shortcuts work
-- [ ] Mobile toolbar has all needed actions
-- [ ] Screen readers can navigate content
-- [ ] Editor handles 10k+ words without lag
-- [ ] Full test coverage
+- [x] All keyboard shortcuts work
+- [x] Mobile toolbar has all needed actions
+- [x] Screen readers can navigate content
+- [x] Editor handles 10k+ words without lag
+- [x] Full test coverage
 
 ### Phase 7: Media & Rich Blocks (Week 5-6)
 

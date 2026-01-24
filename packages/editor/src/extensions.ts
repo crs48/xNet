@@ -3,9 +3,11 @@
  *
  * Custom extensions for the xNet editor.
  */
-import { Mark, Extension, mergeAttributes, markInputRule } from '@tiptap/core'
-import { Plugin, PluginKey } from '@tiptap/pm/state'
-import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { Mark, Node, mergeAttributes, markInputRule } from '@tiptap/core'
+import { ReactNodeViewRenderer } from '@tiptap/react'
+import { HeadingView } from './nodeviews/HeadingView'
+import { CodeBlockView } from './nodeviews/CodeBlockView'
+import { BlockquoteView } from './nodeviews/BlockquoteView'
 
 // ============================================================================
 // Wikilink Extension
@@ -35,19 +37,6 @@ const wikilinkInputRegex = /\[\[([^\]]+)\]\]$/
  *
  * Adds support for [[page-name]] style wikilinks.
  * When typed, converts to a clickable link that navigates within the app.
- *
- * @example
- * ```ts
- * import { Wikilink } from '@xnet/editor/extensions'
- *
- * const editor = useEditor({
- *   extensions: [
- *     Wikilink.configure({
- *       onNavigate: (pageId) => navigate(`/doc/${pageId}`)
- *     })
- *   ]
- * })
- * ```
  */
 export const Wikilink = Mark.create<WikilinkOptions>({
   name: 'wikilink',
@@ -55,26 +44,26 @@ export const Wikilink = Mark.create<WikilinkOptions>({
   addOptions() {
     return {
       onNavigate: () => {},
-      HTMLAttributes: {},
+      HTMLAttributes: {}
     }
   },
 
   addAttributes() {
     return {
       href: {
-        default: null,
+        default: null
       },
       title: {
-        default: null,
-      },
+        default: null
+      }
     }
   },
 
   parseHTML() {
     return [
       {
-        tag: 'a[data-wikilink]',
-      },
+        tag: 'a[data-wikilink]'
+      }
     ]
   },
 
@@ -83,9 +72,9 @@ export const Wikilink = Mark.create<WikilinkOptions>({
       'a',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         'data-wikilink': '',
-        class: 'wikilink',
+        class: 'wikilink'
       }),
-      0,
+      0
     ]
   },
 
@@ -98,162 +87,305 @@ export const Wikilink = Mark.create<WikilinkOptions>({
           const title = match[1]
           const pageId = generatePageId(title)
           return { href: pageId, title }
-        },
-      }),
+        }
+      })
     ]
-  },
+  }
 })
 
 // ============================================================================
-// Live Preview Extension (Obsidian-style)
+// HeadingWithSyntax Extension
 // ============================================================================
 
-/**
- * Mark syntax definitions - maps mark names to their markdown delimiters
- */
-export const MARK_SYNTAX: Record<string, { open: string; close: string }> = {
-  bold: { open: '**', close: '**' },
-  italic: { open: '*', close: '*' },
-  strike: { open: '~~', close: '~~' },
-  code: { open: '`', close: '`' },
-}
-
-const livePreviewPluginKey = new PluginKey('livePreview')
-
-export interface LivePreviewOptions {
-  /** Mark types to show syntax for (default: bold, italic, strike, code) */
-  marks?: string[]
+export interface HeadingWithSyntaxOptions {
+  levels: number[]
+  HTMLAttributes: Record<string, any>
 }
 
 /**
- * LivePreview extension for Obsidian-style markdown editing
- *
- * Shows markdown syntax (like `**` for bold) when the cursor is inside
- * or adjacent to formatted text. Hides syntax when cursor moves away.
- *
- * @example
- * ```ts
- * import { LivePreview } from '@xnet/editor/extensions'
- *
- * const editor = useEditor({
- *   extensions: [
- *     StarterKit,
- *     LivePreview,
- *   ]
- * })
- * ```
+ * Custom Heading extension that uses HeadingView for live preview.
+ * Shows `#` characters when the cursor is inside the heading.
  */
-export const LivePreview = Extension.create<LivePreviewOptions>({
-  name: 'livePreview',
+export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
+  name: 'heading',
 
   addOptions() {
     return {
-      marks: ['bold', 'italic', 'strike', 'code'],
+      levels: [1, 2, 3, 4, 5, 6],
+      HTMLAttributes: {}
     }
   },
 
-  addProseMirrorPlugins() {
-    const enabledMarks = this.options.marks || []
+  content: 'inline*',
 
-    return [
-      new Plugin({
-        key: livePreviewPluginKey,
+  group: 'block',
 
-        props: {
-          decorations(state) {
-            const { doc, selection } = state
-            const { $from } = selection
-            const decorations: Decoration[] = []
+  defining: true,
 
-            // Only process if we have a cursor (not a range selection)
-            if (!selection.empty) {
-              return DecorationSet.empty
-            }
+  addAttributes() {
+    return {
+      level: {
+        default: 1,
+        rendered: false
+      }
+    }
+  },
 
-            // Get marks at the cursor position
-            const marks = $from.marks()
-            if (marks.length === 0) {
-              return DecorationSet.empty
-            }
+  parseHTML() {
+    return this.options.levels.map((level: number) => ({
+      tag: `h${level}`,
+      attrs: { level }
+    }))
+  },
 
-            // Track which marks we've already processed (by type)
-            const processedTypes = new Set<string>()
+  renderHTML({ node, HTMLAttributes }) {
+    const level = node.attrs.level as number
+    return [`h${level}`, mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
+  },
 
-            // Find the extent of each mark around the cursor
-            for (const mark of marks) {
-              const markType = mark.type.name
-              const syntax = MARK_SYNTAX[markType]
+  addNodeView() {
+    return ReactNodeViewRenderer(HeadingView)
+  },
 
-              if (!syntax || !enabledMarks.includes(markType)) continue
-              if (processedTypes.has(markType)) continue
-              processedTypes.add(markType)
-
-              // Find mark boundaries containing the cursor
-              const cursorPos = $from.pos
-              const blockStart = $from.start()
-              const blockEnd = $from.end()
-              let markStart = -1
-              let markEnd = -1
-              let foundCursor = false
-
-              // Scan the parent block to find the mark range containing cursor
-              doc.nodesBetween(blockStart, blockEnd, (node, pos) => {
-                if (!node.isText) return
-                const nodeEnd = pos + node.nodeSize
-                const hasThisMark = node.marks.some(m => m.type.name === markType)
-                const cursorInNode = cursorPos >= pos && cursorPos <= nodeEnd
-
-                if (hasThisMark) {
-                  // If we're in a new mark range (not contiguous with previous)
-                  if (markStart === -1 || (foundCursor && markEnd < pos)) {
-                    // Reset if we already found the cursor's range
-                    if (foundCursor) return false
-                    markStart = pos
-                  }
-                  markEnd = nodeEnd
-                  if (cursorInNode) foundCursor = true
-                } else {
-                  // Mark ended - if we found cursor, we're done
-                  if (foundCursor && markStart !== -1) return false
-                  // Reset for potential next mark range
-                  if (!foundCursor) {
-                    markStart = -1
-                    markEnd = -1
-                  }
-                }
-              })
-
-              // Skip if we couldn't find valid boundaries
-              if (markStart === -1 || markEnd === -1 || markStart >= markEnd) continue
-
-              // Add decoration for opening syntax
-              decorations.push(
-                Decoration.widget(markStart, () => {
-                  const span = document.createElement('span')
-                  span.className = 'md-syntax md-syntax-open'
-                  span.textContent = syntax.open
-                  return span
-                }, { side: -1 })
-              )
-
-              // Add decoration for closing syntax
-              decorations.push(
-                Decoration.widget(markEnd, () => {
-                  const span = document.createElement('span')
-                  span.className = 'md-syntax md-syntax-close'
-                  span.textContent = syntax.close
-                  return span
-                }, { side: 1 })
-              )
-            }
-
-            return DecorationSet.create(doc, decorations)
-          },
-        },
+  addKeyboardShortcuts() {
+    return this.options.levels.reduce(
+      (shortcuts: Record<string, () => boolean>, level: number) => ({
+        ...shortcuts,
+        [`Mod-Alt-${level}`]: () => this.editor.commands.toggleHeading({ level: level as any })
       }),
+      {}
+    )
+  }
+})
+
+// ============================================================================
+// CodeBlockWithSyntax Extension
+// ============================================================================
+
+export interface CodeBlockWithSyntaxOptions {
+  defaultLanguage: string
+  HTMLAttributes: Record<string, any>
+}
+
+/**
+ * Custom CodeBlock extension with ``` fence preview and language selector.
+ */
+export const CodeBlockWithSyntax = Node.create<CodeBlockWithSyntaxOptions>({
+  name: 'codeBlock',
+
+  addOptions() {
+    return {
+      defaultLanguage: 'plaintext',
+      HTMLAttributes: {}
+    }
+  },
+
+  content: 'text*',
+
+  marks: '',
+
+  group: 'block',
+
+  code: true,
+
+  defining: true,
+
+  addAttributes() {
+    return {
+      language: {
+        default: this.options.defaultLanguage,
+        parseHTML: (element: HTMLElement) =>
+          element.getAttribute('data-language') ||
+          element.querySelector('code')?.className?.replace('language-', '') ||
+          this.options.defaultLanguage,
+        renderHTML: (attributes: Record<string, any>) => ({
+          'data-language': attributes.language
+        })
+      }
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'pre',
+        preserveWhitespace: 'full' as const
+      }
     ]
   },
+
+  renderHTML({ node, HTMLAttributes }) {
+    return [
+      'pre',
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes),
+      ['code', { class: `language-${node.attrs.language}` }, 0]
+    ]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(CodeBlockView)
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-Alt-c': () => this.editor.commands.toggleCodeBlock(),
+
+      Tab: () => {
+        if (this.editor.isActive('codeBlock')) {
+          this.editor.commands.insertContent('  ')
+          return true
+        }
+        return false
+      },
+
+      Enter: ({ editor }) => {
+        if (!editor.isActive('codeBlock')) return false
+
+        const { $from } = editor.state.selection
+        const isAtEnd = $from.parentOffset === $from.parent.content.size
+        const endsWithDoubleNewline = $from.parent.textContent.endsWith('\n\n')
+
+        if (isAtEnd && endsWithDoubleNewline) {
+          return editor
+            .chain()
+            .command(({ tr }) => {
+              tr.delete($from.pos - 2, $from.pos)
+              return true
+            })
+            .exitCode()
+            .run()
+        }
+
+        return false
+      }
+    }
+  }
 })
+
+// ============================================================================
+// BlockquoteWithSyntax Extension
+// ============================================================================
+
+export interface BlockquoteWithSyntaxOptions {
+  HTMLAttributes: Record<string, any>
+}
+
+/**
+ * Custom Blockquote extension with `>` prefix preview.
+ */
+export const BlockquoteWithSyntax = Node.create<BlockquoteWithSyntaxOptions>({
+  name: 'blockquote',
+
+  addOptions() {
+    return {
+      HTMLAttributes: {}
+    }
+  },
+
+  content: 'block+',
+
+  group: 'block',
+
+  defining: true,
+
+  parseHTML() {
+    return [{ tag: 'blockquote' }]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['blockquote', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
+  },
+
+  addNodeView() {
+    return ReactNodeViewRenderer(BlockquoteView)
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      'Mod-Shift-b': () => this.editor.commands.toggleBlockquote()
+    }
+  }
+})
+
+// ============================================================================
+// Re-exports
+// ============================================================================
+
+// LivePreview - Obsidian-style inline syntax preview
+export { LivePreview } from './extensions/live-preview'
+export type {
+  LivePreviewOptions,
+  MarkSyntax,
+  MarkRange,
+  InlineMarksPluginOptions
+} from './extensions/live-preview'
+export { MARK_SYNTAX, getSyntax, getEnabledMarks } from './extensions/live-preview'
+
+// SlashCommand - Notion-style command palette
+export { SlashCommand } from './extensions/slash-command'
+export type { SlashCommandItem, SlashCommandGroup } from './extensions/slash-command'
+export { COMMAND_GROUPS, getAllCommands, filterCommands } from './extensions/slash-command'
+
+// DragHandle - Drag handle with block DnD and drop indicator
+export { DragHandleExtension } from './extensions/drag-handle'
+export type { DragHandleExtensionOptions } from './extensions/drag-handle'
+export { DragHandle, DragHandlePluginKey } from './extensions/drag-handle'
+export type { DragHandleOptions } from './extensions/drag-handle'
+export { createDragDropPlugin, DragDropPluginKey } from './extensions/drag-handle'
+export type { DragState } from './extensions/drag-handle'
+export { createDropIndicatorPlugin, DropIndicatorPluginKey } from './extensions/drag-handle'
+
+// KeyboardShortcuts - Shortcut definitions and extra bindings
+export { KeyboardShortcutsExtension } from './extensions/keyboard-shortcuts'
+export type { KeyboardShortcutsOptions } from './extensions/keyboard-shortcuts'
+export {
+  KEYBOARD_SHORTCUTS,
+  getShortcutsByCategory,
+  getShortcutById,
+  getShortcutsMap,
+  formatShortcut,
+  isMac
+} from './extensions/keyboard-shortcuts'
+export type { KeyboardShortcut } from './extensions/keyboard-shortcuts'
+
+// Mobile utilities
+export {
+  isMobile,
+  isIOS,
+  isAndroid,
+  hapticFeedback,
+  isTouchDevice,
+  getSafeAreaInsets
+} from './utils/mobile'
+
+// Performance utilities
+export {
+  debounce,
+  throttle,
+  measure,
+  measureAsync,
+  requestIdle,
+  cancelIdle
+} from './utils/performance'
+export type { MeasureResult } from './utils/performance'
+
+// Accessibility utilities
+export { ScreenReaderAnnouncer, createAnnouncer, createFocusTrap } from './accessibility'
+export type {
+  AnnouncerPriority,
+  AnnounceOptions,
+  FocusTrap,
+  FocusTrapOptions
+} from './accessibility'
+
+// Testing / Benchmarks
+export {
+  benchmark,
+  benchmarkAsync,
+  generateLargeDocument,
+  formatBenchmarkResults
+} from './testing/benchmarks'
+export type { BenchmarkResult, BenchmarkOptions } from './testing/benchmarks'
 
 // Re-export commonly used Tiptap extensions for convenience
 export { default as StarterKit } from '@tiptap/starter-kit'
