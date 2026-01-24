@@ -198,8 +198,8 @@ flowchart TB
 | ---- | -------------------------------------------------------- | ------ |
 | 7.1  | [21-blob-infrastructure.md](./21-blob-infrastructure.md) | [x]    |
 | 7.2  | [22-image-upload.md](./22-image-upload.md)               | [x]    |
-| 7.3  | [23-file-attachments.md](./23-file-attachments.md)       | [ ]    |
-| 7.4  | [24-media-embeds.md](./24-media-embeds.md)               | [ ]    |
+| 7.3  | [23-file-attachments.md](./23-file-attachments.md)       | [x]    |
+| 7.4  | [24-media-embeds.md](./24-media-embeds.md)               | [x]    |
 | 7.5  | [25-database-embed.md](./25-database-embed.md)           | [ ]    |
 | 7.6  | [26-callouts.md](./26-callouts.md)                       | [x]    |
 | 7.7  | [27-toggles.md](./27-toggles.md)                         | [x]    |
@@ -208,8 +208,8 @@ flowchart TB
 
 - [x] BlobService handles upload, retrieval, and chunking
 - [x] Images can be pasted, dropped, and resized
-- [ ] File attachments show preview and download
-- [ ] YouTube, Spotify, Twitter embeds work
+- [x] File attachments show preview and download
+- [x] YouTube, Spotify, Twitter embeds work
 - [ ] Database views render inline with live data
 - [x] Callouts support info/warning/tip types
 - [x] Toggles expand/collapse smoothly

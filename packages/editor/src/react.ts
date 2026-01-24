@@ -37,6 +37,8 @@ export { BlockquoteView } from './nodeviews/BlockquoteView'
 export { ImageNodeView } from './extensions/image'
 export { CalloutNodeView } from './extensions/callout'
 export { ToggleNodeView } from './extensions/toggle'
+export { FileNodeView } from './extensions/file'
+export { EmbedNodeView } from './extensions/embed'
 
 // Blob context
 export { BlobProvider, useBlobService } from './context/BlobContext'
