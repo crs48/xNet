@@ -373,25 +373,11 @@ flowchart TB
 - [ ] Dead tasks expire and are reassigned
 - [ ] Crawler reputation tracks quality over time
 
-### Phase 16: Yjs Security (Days 27-29)
+### Phase 16: Yjs Security
 
-| Task | Document                                   | Description                                 |
-| ---- | ------------------------------------------ | ------------------------------------------- |
-| 16.1 | [17-yjs-security.md](./17-yjs-security.md) | Signed Yjs envelope protocol (hub-side)     |
-| 16.2 | [17-yjs-security.md](./17-yjs-security.md) | Client-side signing (WebSocketSyncProvider) |
-| 16.3 | [17-yjs-security.md](./17-yjs-security.md) | MetaBridge write-only fix                   |
-| 16.4 | [17-yjs-security.md](./17-yjs-security.md) | Update size limits (client + hub)           |
-| 16.5 | [17-yjs-security.md](./17-yjs-security.md) | Yjs peer scoring + auto-block               |
-| 16.6 | [17-yjs-security.md](./17-yjs-security.md) | Hash-at-rest for persisted Yjs state        |
-
-**Validation Gate:**
-
-- [ ] Signed Yjs envelopes verified on hub before `Y.applyUpdate()`
-- [ ] Client signs all outgoing Yjs updates when identity is provided
-- [ ] MetaBridge is unidirectional: NodeStore → Y.Doc only
-- [ ] Updates exceeding 1MB are rejected at both client and hub
-- [ ] Peer scorer blocks after 3 invalid signature attempts
-- [ ] Persisted Yjs state includes BLAKE3 hash, verified on load
+> **Moved to standalone plan:** [planStep04_1YjsSecurity](../planStep04_1YjsSecurity/README.md)
+>
+> Yjs security is a cross-cutting concern affecting both hub and client packages. The full 8-step implementation plan (signed envelopes, UCAN auth, size limits, MetaBridge isolation, hash-at-rest, peer scoring, clientID binding, hash chain integration) lives in its own plan step.
 
 ## Package Structure (Target)
 
@@ -418,8 +404,8 @@ packages/
         shard-ingest.ts         # Document ingestion to shards
         crawl.ts                # Crawl coordination
         crawl-robots.ts         # Robots.txt compliance
-        yjs-security.ts         # Signed envelope verification
-        yjs-peer-scoring.ts     # Yjs-specific peer scoring
+        yjs-security.ts         # Signed envelope verification (see planStep04_1YjsSecurity)
+        yjs-peer-scoring.ts     # Yjs-specific peer scoring (see planStep04_1YjsSecurity)
       routes/
         backup.ts               # /backup HTTP endpoints
         files.ts                # /files HTTP endpoints
@@ -516,7 +502,7 @@ packages/
 16. **Hub federation** queries peer hubs and returns merged, deduplicated results
 17. **Global index shards** distribute search across multiple hubs with BM25 scoring
 18. **Crawl coordination** assigns URLs to volunteer crawlers and indexes results
-19. **Yjs security** signs/verifies rich text updates, prevents MetaBridge bypass and DoS
+19. **Yjs security** — see [planStep04_1YjsSecurity](../planStep04_1YjsSecurity/README.md)
 
 ## Reference Documents
 
