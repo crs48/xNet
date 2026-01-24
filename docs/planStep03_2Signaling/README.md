@@ -122,15 +122,15 @@ The `infrastructure/` directory should only contain things that **cannot** run o
 | ---- | -------- | ------------------------------------ |
 | 1.1  | **Done** | Signaling server on port 4444        |
 | 1.2  | **Done** | `pnpm dev` runs signaling + electron |
-| 1.3  | **Done** | useDocument connects to signaling    |
-| 1.4  | Pending  | Test multi-window sync               |
+| 1.3  | **Done** | useNode connects to signaling        |
+| 1.4  | **Done** | Multi-window sync (dev:both script)  |
 
 **Validation Gate:**
 
 - [x] Signaling server starts with electron dev
-- [x] useDocument connects without errors
-- [ ] Two electron windows sync changes
-- [ ] Sync indicator shows peer count
+- [x] useNode connects without errors
+- [x] Two electron windows sync changes (`pnpm dev:both`)
+- [x] Sync indicator shows peer count
 
 ### Phase 2: Embedded Signaling (Week 1)
 
