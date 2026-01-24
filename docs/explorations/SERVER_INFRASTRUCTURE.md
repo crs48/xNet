@@ -1002,3 +1002,219 @@ The key insight: the storage adapter pattern means we never rewrite the hub -- w
 6. Move `infrastructure/signaling/` logic into hub (deprecate standalone)
 
 This gives us a deployable product on day one that replaces the existing signaling server while adding relay and backup.
+
+---
+
+## Future Hub Capabilities (Beyond Phase 1)
+
+Phase 1 covers signaling, Yjs sync relay, encrypted backup, FTS5 search, and UCAN auth. Below are additional capabilities the hub could provide, organized by timeline. Each connects to existing code in the monorepo.
+
+### Short-Term (Build Alongside Phase 1)
+
+#### 1. NodeChange Sync Relay (Event-Sourced Structured Data)
+
+The hub currently only relays Yjs CRDT updates (rich text). Structured data uses a separate event-sourced system (`NodeStore` + Lamport clocks + LWW), and these `NodeChange` events have no server relay. Without this, structured data (tasks, database rows, relations) only syncs when both peers are online simultaneously.
+
+```mermaid
+sequenceDiagram
+    participant A as Device A
+    participant Hub
+    participant B as Device B (offline)
+
+    A->>Hub: NodeChange (Task.status = "done")
+    Hub->>Hub: Append to node_changes table<br/>Track Lamport clock
+    Note over B: Comes online later
+    B->>Hub: requestChanges(sinceTimestamp)
+    Hub->>B: [NodeChange batch]
+    B->>B: applyRemoteChanges()
+```
+
+**Connects to:**
+
+- `NodeStore.applyRemoteChange()` in `packages/data/src/store/store.ts:387-409`
+- `NodeStorageAdapter.appendChange()` / `getAllChanges()` in `packages/data/src/store/types.ts:128-132`
+- `SyncProvider.broadcast()` / `requestChanges()` in `packages/sync/src/provider.ts:88-98`
+
+**Gap:** The `NodeStorageAdapter` has no `getChangesSince(lamportTime)` — only `getAllChanges()`. A delta-sync protocol needs a "since" query. Add a `changes_log` table with Lamport ordering on the hub.
+
+#### 2. File/Blob Storage (Content-Addressed)
+
+The `FileRef` property type (`packages/data/src/schema/properties/file.ts:10-18`) already defines CID, name, mimeType, size — but there's no upload/download infrastructure. Files cannot sync between devices today.
+
+The hub can provide content-addressed file hosting: `PUT /files/:cid` (upload), `GET /files/:cid` (download), UCAN-gated. Reuses the existing backup filesystem blob store. The `ContentStore` interface in `packages/core/src/content.ts:40-46` (`get(cid)`, `store(content)`, `verify(cid, content)`) already defines the right abstraction.
+
+#### 3. Schema Registry Service
+
+The `SchemaRegistry` (`packages/data/src/schema/registry.ts:58-83`) is local-only. When Client A creates a node with schema `xnet://did:key:z6MkAlice.../Recipe`, Client B cannot resolve that schema definition. The hub can serve published schemas via HTTP:
+
+```
+GET  /schemas/:iri  → SchemaDefinition JSON
+POST /schemas       → Publish new schema (UCAN: issuer = schema DID owner)
+GET  /schemas?search=recipe → Discover community schemas
+```
+
+A simple `schemas` table in SQLite (IRI, version, definition JSON, publisher DID) is sufficient.
+
+#### 4. Awareness/Presence Persistence
+
+The hub already relays awareness messages (currently pass-through, `03-sync-relay.md` line 309). Upgrading to persist last-known presence per DID gives "who was last editing this document" without requiring the peer to be online. Useful for collaborative UX (avatars, "last seen editing 2h ago").
+
+**Connects to:** `UserPresence`, `CursorPosition`, `SelectionRange` types in `packages/data/src/sync/awareness.ts`.
+
+#### 5. DID Resolution & Peer Discovery
+
+The `DIDResolver` in `packages/network/src/resolution/did.ts:33-43` is a stub (returns null for all resolution). The hub can maintain a DID-to-endpoint mapping so clients can find each other after IP changes:
+
+```
+POST /dids/register { did, multiaddrs, lastSeen }
+GET  /dids/:did → { multiaddrs, lastSeen, publicKey }
+```
+
+Also fills the empty `NetworkConfig.bootstrapPeers` (`packages/network/src/types.ts:74-79`) — the hub IS the bootstrap node.
+
+---
+
+### Medium-Term (Phase 2-3, After Core Hub Works)
+
+#### 6. Server-Side Vector/Semantic Search
+
+The `@xnet/vectors` package loads `Xenova/all-MiniLM-L6-v2` (384-dim) in-browser — slow and memory-intensive on mobile. The hub can pre-compute embeddings for indexed documents and serve vector search. Use `sqlite-vss` or an in-process HNSW index.
+
+**Connects to:**
+
+- `EmbeddingModel` interface in `packages/vectors/src/embedding.ts:26-35`
+- `SemanticSearch.indexDocument()` / `.search()` in `packages/vectors/src/search.ts`
+- `HybridSearch` in `packages/vectors/src/hybrid.ts` (combines vector + keyword)
+
+#### 7. Formula/Rollup Computation
+
+The formula engine (`packages/formula/src/`) is fully implemented with math, string, date, logic, and array functions. But rollups (TODO at `packages/data/src/schema/properties/index.ts:48`) require fetching related nodes via `relation` properties. When a relation points to thousands of items, only the hub has them all loaded.
+
+The hub can evaluate formulas on its full NodeStore snapshot: `GET /compute/:docId/:propertyId` or as a WebSocket subscription that pushes recomputed values when dependencies change.
+
+#### 8. TURN/Circuit Relay for NAT Traversal
+
+`packages/network/src/node.ts` already configures `circuitRelayTransport()` (line 11, 40) but has no actual relay server. The hub can act as a libp2p circuit relay (TURN equivalent), allowing peers behind symmetric NATs to connect when WebRTC direct connections fail. Critical for mobile users behind carrier-grade NAT.
+
+#### 9. Federated Query Execution
+
+The `FederatedQueryRouter` in `packages/query/src/federation/router.ts:43-45` throws `'Remote query not implemented'`. The hub is the natural execution point: clients send queries to their hub, and hubs can optionally route to peer hubs for cross-organization search.
+
+```mermaid
+flowchart LR
+    Client -->|query| HubA
+    HubA -->|federated query| HubB
+    HubA -->|federated query| HubC
+    HubB -->|results| HubA
+    HubC -->|results| HubA
+    HubA -->|merged results| Client
+```
+
+#### 10. Webhook/Event Notifications
+
+Allow users to register webhooks for specific events (node created, property changed, document edited). The `NodeChangeEvent` / `NodeChangeListener` types (`packages/data/src/store/types.ts:268-280`) already define the event system. The hub can forward these as HTTP webhooks for integrations (Slack, CI/CD, ERP connectors).
+
+```typescript
+// Example webhook registration
+POST /webhooks {
+  url: "https://hooks.slack.com/...",
+  events: ["node.created", "property.changed"],
+  filter: { schemaIri: "xnet://xnet.dev/Task", property: "status" }
+}
+```
+
+#### 11. Conflict Audit Trail
+
+The `MergeConflict` type (`packages/data/src/store/types.ts:189-197`) is only kept in-memory (`NodeStore.getRecentConflicts()` returns last 100). The hub can persist ALL conflicts for compliance and debugging. VISION.md explicitly calls out "Full audit trail of every change (who, what, when)" for enterprise use.
+
+#### 12. Peer Reputation Aggregation
+
+The `PeerScorer` (`packages/network/src/security/peer-scorer.ts`) only scores from one client's perspective. The hub can aggregate reports from all connected clients to build network-wide reputation. Malicious peers blocked by multiple clients get globally flagged via the `AutoBlocker` (`packages/network/src/security/auto-blocker.ts`).
+
+---
+
+### Long-Term (Architectural, Requires Research)
+
+#### 13. Distributed Search Index (Decentralized Google)
+
+VISION.md's primary macro-scale goal (lines 150-198): "A Google-scale search engine with no central operator." Multiple hubs participate in a distributed index where each hub indexes a portion of the namespace. Requires:
+
+- DHT-based index routing (which hub holds which shard?)
+- Incentive mechanisms for crawlers
+- Ranking algorithm governance
+- Inter-hub query protocol (builds on #9)
+
+#### 14. Federated Social Graph
+
+VISION.md's "Federated Social Network" (lines 199-240): posts live in user namespaces, social graph is portable, algorithms are transparent. Hubs aggregate and cache feeds from followed users across the network. Requires:
+
+- ActivityPub-like federation protocol
+- Feed aggregation at scale
+- Spam prevention without centralized moderation
+- Public namespace resolution across hubs
+
+#### 15. Key Recovery & Social Verification
+
+`@xnet/identity` has no recovery mechanism. If a user loses their device, DID keys are gone forever (`BrowserPasskeyStorage` in `packages/identity/src/passkey.ts` is device-bound). The hub can store encrypted key recovery shards (Shamir's Secret Sharing). Trusted contacts authorize recovery via UCAN delegations. Requires:
+
+- Threshold cryptography
+- Social recovery UX (N-of-M contacts)
+- Secure shard storage (encrypted at rest, per-shard access control)
+
+#### 16. Canvas Spatial Sharding
+
+The canvas package (`packages/canvas/src/store.ts`) uses a Y.Map for all nodes. With 10,000+ items, syncing the full map to every client is wasteful. The hub can serve spatial subscriptions based on viewport — only syncing visible regions. Requires:
+
+- Spatial subscription protocol (viewport → doc sub-regions)
+- Incremental Yjs sub-doc sync
+- Viewport-aware eviction in the DocPool
+- Integration with `SpatialIndex` R-tree (`packages/canvas/src/spatial/index.ts`)
+
+#### 17. Economic Layer / Incentivized Storage
+
+Hub operators earn tokens for providing storage, compute (embeddings, formula evaluation), and relay. Users pay with tokens or earn them by contributing (crawling, indexing). VISION.md's "Economic Layer" (roadmap: 2028-01 to 2028-06). Makes the network self-sustaining. Requires:
+
+- Token design (likely lightweight, not blockchain-heavy)
+- Proof-of-storage/compute verification
+- Pricing mechanisms
+- Anti-abuse / Sybil resistance
+
+#### 18. Inter-Hub Federation Protocol
+
+Hub-to-hub protocol for routing sync, queries, and schema resolution across organizational boundaries. An enterprise hub can selectively federate with partner hubs without full data replication. VISION.md shows "Selective sync" and "Federation" as Phase 3. Requires:
+
+- Selective replication (which changes cross boundaries?)
+- Access control delegation across trust boundaries
+- Conflict resolution across hubs (Lamport vs wall-clock?)
+- Hub identity (hub has its own DID, signed by operator)
+
+---
+
+### Capability Summary
+
+| #   | Capability                      | Timeline | Effort | Primary Package                     |
+| --- | ------------------------------- | -------- | ------ | ----------------------------------- |
+| 1   | NodeChange Sync Relay           | Short    | Low    | `@xnet/data`, `@xnet/sync`          |
+| 2   | File/Blob Storage (CID)         | Short    | Low    | `@xnet/data`, `@xnet/core`          |
+| 3   | Schema Registry                 | Short    | Low    | `@xnet/data` (SchemaRegistry)       |
+| 4   | Awareness/Presence Persistence  | Short    | Low    | `@xnet/data/sync/awareness`         |
+| 5   | DID Resolution / Peer Discovery | Short    | Medium | `@xnet/network`                     |
+| 6   | Server-Side Vector Search       | Medium   | Medium | `@xnet/vectors`                     |
+| 7   | Formula/Rollup Computation      | Medium   | Medium | `@xnet/formula`, `@xnet/data`       |
+| 8   | TURN/Circuit Relay              | Medium   | Medium | `@xnet/network` (libp2p)            |
+| 9   | Federated Query Execution       | Medium   | Medium | `@xnet/query` (federation/)         |
+| 10  | Webhook/Event Notifications     | Medium   | Low    | `@xnet/data` (NodeChangeEvent)      |
+| 11  | Conflict Audit Trail            | Medium   | Low    | `@xnet/data` (MergeConflict)        |
+| 12  | Peer Reputation Aggregation     | Medium   | Medium | `@xnet/network/security`            |
+| 13  | Distributed Search Index        | Long     | High   | `@xnet/query`, Vision               |
+| 14  | Federated Social Graph          | Long     | High   | Vision, schemas                     |
+| 15  | Key Recovery / Social Verify    | Long     | High   | `@xnet/identity`                    |
+| 16  | Canvas Spatial Sharding         | Long     | High   | `@xnet/canvas`                      |
+| 17  | Economic Layer                  | Long     | V.High | Vision, all packages                |
+| 18  | Inter-Hub Federation            | Long     | High   | `@xnet/query`, `@xnet/sync`, Vision |
+
+### Priority Recommendation
+
+For the Phase 1 hub implementation, consider adding **#1 (NodeChange Sync)** and **#2 (File/Blob Storage)** — both are low-effort and fill critical gaps that make the hub useful for more than just rich text documents. Schema Registry (#3) is also trivial to add since it's just another HTTP endpoint + SQLite table.
+
+After Phase 1, the highest-impact additions are **#6 (Vector Search)** and **#8 (TURN Relay)** — they solve real pain points (search quality and connectivity) that users hit immediately.
