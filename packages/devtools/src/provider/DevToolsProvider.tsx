@@ -25,6 +25,7 @@ import { DevToolsEventBus } from '../core/event-bus'
 import { DEFAULTS } from '../core/constants'
 import { instrumentStore } from '../instrumentation/store'
 import { instrumentYDoc } from '../instrumentation/yjs'
+import { instrumentTelemetry } from '../instrumentation/telemetry'
 import { QueryTracker } from '../instrumentation/query'
 import {
   useNodeStore,
@@ -172,6 +173,10 @@ export interface XNetDevToolsProviderProps {
   height?: number
   /** Max events in ring buffer */
   maxEvents?: number
+  /** TelemetryCollector instance for telemetry panel instrumentation */
+  telemetryCollector?: any
+  /** ConsentManager instance for telemetry panel instrumentation */
+  consentManager?: any
 }
 
 export function XNetDevToolsProvider({
@@ -180,7 +185,9 @@ export function XNetDevToolsProvider({
   defaultPanel = 'nodes',
   position: initialPosition = 'bottom',
   height: initialHeight = DEFAULTS.PANEL_HEIGHT,
-  maxEvents = DEFAULTS.MAX_EVENTS
+  maxEvents = DEFAULTS.MAX_EVENTS,
+  telemetryCollector,
+  consentManager
 }: XNetDevToolsProviderProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [activePanel, setActivePanel] = useState<PanelId>(defaultPanel)
@@ -207,6 +214,19 @@ export function XNetDevToolsProvider({
       cleanupsRef.current = cleanupsRef.current.filter((fn) => fn !== cleanup)
     }
   }, [store])
+
+  // Set up telemetry instrumentation when collector and consent are available
+  useEffect(() => {
+    if (!telemetryCollector || !consentManager) return
+
+    const cleanup = instrumentTelemetry(telemetryCollector, consentManager, busRef.current)
+    cleanupsRef.current.push(cleanup)
+
+    return () => {
+      cleanup()
+      cleanupsRef.current = cleanupsRef.current.filter((fn) => fn !== cleanup)
+    }
+  }, [telemetryCollector, consentManager])
 
   // Cleanup all instrumentation on unmount
   useEffect(() => {
