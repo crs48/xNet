@@ -373,6 +373,26 @@ flowchart TB
 - [ ] Dead tasks expire and are reassigned
 - [ ] Crawler reputation tracks quality over time
 
+### Phase 16: Yjs Security (Days 27-29)
+
+| Task | Document                                   | Description                                 |
+| ---- | ------------------------------------------ | ------------------------------------------- |
+| 16.1 | [17-yjs-security.md](./17-yjs-security.md) | Signed Yjs envelope protocol (hub-side)     |
+| 16.2 | [17-yjs-security.md](./17-yjs-security.md) | Client-side signing (WebSocketSyncProvider) |
+| 16.3 | [17-yjs-security.md](./17-yjs-security.md) | MetaBridge write-only fix                   |
+| 16.4 | [17-yjs-security.md](./17-yjs-security.md) | Update size limits (client + hub)           |
+| 16.5 | [17-yjs-security.md](./17-yjs-security.md) | Yjs peer scoring + auto-block               |
+| 16.6 | [17-yjs-security.md](./17-yjs-security.md) | Hash-at-rest for persisted Yjs state        |
+
+**Validation Gate:**
+
+- [ ] Signed Yjs envelopes verified on hub before `Y.applyUpdate()`
+- [ ] Client signs all outgoing Yjs updates when identity is provided
+- [ ] MetaBridge is unidirectional: NodeStore → Y.Doc only
+- [ ] Updates exceeding 1MB are rejected at both client and hub
+- [ ] Peer scorer blocks after 3 invalid signature attempts
+- [ ] Persisted Yjs state includes BLAKE3 hash, verified on load
+
 ## Package Structure (Target)
 
 ```
@@ -398,6 +418,8 @@ packages/
         shard-ingest.ts         # Document ingestion to shards
         crawl.ts                # Crawl coordination
         crawl-robots.ts         # Robots.txt compliance
+        yjs-security.ts         # Signed envelope verification
+        yjs-peer-scoring.ts     # Yjs-specific peer scoring
       routes/
         backup.ts               # /backup HTTP endpoints
         files.ts                # /files HTTP endpoints
@@ -494,6 +516,7 @@ packages/
 16. **Hub federation** queries peer hubs and returns merged, deduplicated results
 17. **Global index shards** distribute search across multiple hubs with BM25 scoring
 18. **Crawl coordination** assigns URLs to volunteer crawlers and indexes results
+19. **Yjs security** signs/verifies rich text updates, prevents MetaBridge bypass and DoS
 
 ## Reference Documents
 
@@ -504,6 +527,8 @@ packages/
 - [P2P Signaling Plan](../planStep03_2Signaling/README.md) — Current signaling architecture
 - [Persistence Architecture](../explorations/PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
 - [Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) — Security layer design
+- [Yjs Security Analysis](../explorations/YJS_SECURITY_ANALYSIS.md) — Threat model for unsigned rich text updates
+- [Node Change Architecture](../explorations/NODE_CHANGE_ARCHITECTURE.md) — How signed structured data works
 
 ---
 
