@@ -394,6 +394,19 @@ export type { ImageOptions } from './extensions/image'
 export { createImagePastePlugin, ImagePastePluginKey } from './extensions/image'
 export type { ImagePastePluginOptions } from './extensions/image'
 
+// File extension
+export { FileExtension } from './extensions/file'
+export type { FileExtensionOptions } from './extensions/file'
+export { createFileDropPlugin, FileDropPluginKey } from './extensions/file'
+export type { FileDropPluginOptions } from './extensions/file'
+export { formatFileSize } from './extensions/file'
+
+// Embed extension
+export { EmbedExtension } from './extensions/embed'
+export type { EmbedOptions } from './extensions/embed'
+export { EMBED_PROVIDERS, detectProvider, parseEmbedUrl } from './extensions/embed'
+export type { EmbedProvider } from './extensions/embed'
+
 // Image upload service
 export {
   uploadImage,

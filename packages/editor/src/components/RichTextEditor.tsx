@@ -24,7 +24,9 @@ import {
   KeyboardShortcutsExtension,
   ImageExtension,
   CalloutExtension,
-  ToggleExtension
+  ToggleExtension,
+  FileExtension,
+  EmbedExtension
 } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
 import '../styles/editor.css'
@@ -176,6 +178,25 @@ export interface RichTextEditorProps {
     height?: number
     cid?: string
   }>
+  /**
+   * File upload handler. When provided, enables file drag-and-drop and the File slash command.
+   * Called with the File; should return the stored file metadata.
+   */
+  onFileUpload?: (file: File) => Promise<{
+    cid: string
+    name: string
+    mimeType: string
+    size: number
+  }>
+  /**
+   * File download handler. Given file metadata, returns a download URL.
+   */
+  onFileDownload?: (attrs: {
+    cid: string
+    name: string
+    mimeType: string
+    size: number
+  }) => Promise<string>
 }
 
 /**
@@ -235,7 +256,9 @@ export function RichTextEditor({
   readOnly = false,
   awareness,
   did,
-  onImageUpload
+  onImageUpload,
+  onFileUpload,
+  onFileDownload
 }: RichTextEditorProps): JSX.Element {
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -296,7 +319,14 @@ export function RichTextEditor({
     // Callout blocks (info, tip, warning, etc.)
     CalloutExtension,
     // Toggle blocks (collapsible sections)
-    ToggleExtension
+    ToggleExtension,
+    // File attachments with drag-and-drop upload
+    FileExtension.configure({
+      onUpload: onFileUpload,
+      onDownload: onFileDownload
+    }),
+    // Media embeds (YouTube, Spotify, Vimeo, etc.)
+    EmbedExtension
   ]
 
   const editor = useEditor({

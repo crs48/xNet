@@ -206,6 +206,84 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
           }
           input.click()
         }
+      },
+      {
+        title: 'File',
+        description: 'Upload a file attachment',
+        icon: '\uD83D\uDCCE',
+        searchTerms: ['file', 'attachment', 'upload', 'document'],
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run()
+
+          const input = document.createElement('input')
+          input.type = 'file'
+          input.onchange = async (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0]
+            if (!file) return
+
+            const fileExt = editor.extensionManager.extensions.find((ext) => ext.name === 'file')
+            const onUpload = fileExt?.options?.onUpload as
+              | ((
+                  f: File
+                ) => Promise<{ cid: string; name: string; mimeType: string; size: number }>)
+              | undefined
+
+            if (onUpload) {
+              // Insert placeholder with upload progress
+              editor.commands.insertContent({
+                type: 'file',
+                attrs: {
+                  name: file.name,
+                  mimeType: file.type || 'application/octet-stream',
+                  size: file.size,
+                  uploadProgress: 0
+                }
+              })
+
+              try {
+                const result = await onUpload(file)
+                // Find and update the placeholder
+                editor.state.doc.descendants((node, pos) => {
+                  if (node.type.name === 'file' && node.attrs.uploadProgress !== null) {
+                    editor.view.dispatch(
+                      editor.state.tr.setNodeMarkup(pos, undefined, {
+                        cid: result.cid,
+                        name: result.name,
+                        mimeType: result.mimeType,
+                        size: result.size,
+                        uploadProgress: null
+                      })
+                    )
+                    return false
+                  }
+                })
+              } catch (err) {
+                // Remove placeholder on error
+                editor.state.doc.descendants((node, pos) => {
+                  if (node.type.name === 'file' && node.attrs.uploadProgress !== null) {
+                    editor.view.dispatch(editor.state.tr.delete(pos, pos + node.nodeSize))
+                    return false
+                  }
+                })
+              }
+            }
+          }
+          input.click()
+        }
+      },
+      {
+        title: 'Embed',
+        description: 'Embed from URL (YouTube, Spotify, etc.)',
+        icon: '\uD83D\uDD17',
+        searchTerms: ['embed', 'youtube', 'video', 'spotify', 'vimeo', 'iframe', 'media'],
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run()
+
+          const url = window.prompt('Enter embed URL (YouTube, Spotify, Vimeo, etc.):')
+          if (url?.trim()) {
+            editor.commands.setEmbed(url.trim())
+          }
+        }
       }
     ]
   },
