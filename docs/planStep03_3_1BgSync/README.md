@@ -80,6 +80,10 @@ flowchart TB
 - `planStep03_2Signaling` — BSM uses the signaling protocol (multi-room subscribe)
 - `planStep02_2UnifiedNodeDocument` — `useNode` hook that BSM modifies
 
+## Dependents
+
+- `planStep03_8HubPhase1VPS` — Hub client integration layers on BSM's ConnectionManager (auth, backup, search, node sync)
+
 ## What This Enables
 
 | Before (current)                            | After (with BSM)                                    |
@@ -128,6 +132,19 @@ flowchart LR
 ```
 
 Without a hub, the BSM syncs P2P via the signaling server (peers must be online simultaneously). With a hub, the BSM syncs through it for offline-resilient operation.
+
+### Hub Features Layer on Top of BSM
+
+When `hubUrl` is configured, the Hub's client features (auth, backup, search, node sync) attach to the BSM's `ConnectionManager` — they don't create a separate connection. See [Hub Client Integration](../planStep03_8HubPhase1VPS/08-client-integration.md#integration-with-background-sync-manager-bsm) for the unified architecture.
+
+| BSM Component       | Without Hub                  | With Hub                                    |
+| ------------------- | ---------------------------- | ------------------------------------------- |
+| `ConnectionManager` | Connects to signaling server | Connects to hub (same protocol + UCAN auth) |
+| `NodePool`          | Local acquire/release        | Also triggers hub Yjs sync                  |
+| `OfflineQueue`      | Publishes to signaling rooms | Same — hub persists for offline peers       |
+| `MetaBridge`        | Updates NodeStore            | Also sends `index-update` for hub search    |
+
+The BSM is **hub-ready by design**: building it first against the signaling server means zero refactoring when the hub replaces it.
 
 ---
 
