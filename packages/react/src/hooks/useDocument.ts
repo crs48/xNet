@@ -196,6 +196,14 @@ function generateColor(seed: string): string {
 // =============================================================================
 
 /**
+ * Module-level map tracking in-flight save promises by document ID.
+ * When a useNode instance unmounts, it stores its flush promise here.
+ * The next useNode instance loading the same doc awaits this before reading,
+ * ensuring content survives navigation.
+ */
+const pendingFlushes = new Map<string, Promise<void>>()
+
+/**
  * Load a Node with its CRDT document.
  *
  * This is the primary hook for editing content. It combines:
@@ -282,6 +290,13 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     setWasCreated(false)
 
     try {
+      // Await any in-flight flush from a previous unmount to ensure
+      // we read the latest persisted content (race condition on navigation)
+      const pendingFlush = pendingFlushes.get(id)
+      if (pendingFlush) {
+        await pendingFlush
+      }
+
       // Load node properties
       let node = await store.get(id)
       let justCreated = false // Track if we just created this node (joining shared doc)
@@ -666,23 +681,29 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     // Note: store is accessed via storeRef to avoid re-creating provider on store changes
   }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, did, syncManager])
 
-  // Cleanup on unmount - save any pending changes and release doc
-  // Note: We use saveTimeoutRef.current as the indicator of pending saves
-  // (not isDirty state) to avoid stale closure issues
+  // Cleanup on unmount - always persist Y.Doc content and release doc
   useEffect(() => {
     return () => {
+      // Cancel any pending debounced save
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current)
         saveTimeoutRef.current = null
-        // Flush pending save synchronously (best effort)
-        // The presence of the timeout indicates unsaved changes
-        if (docRef.current && store && id && !usingSyncManagerRef.current) {
-          const content = Y.encodeStateAsUpdate(docRef.current)
-          store.setDocumentContent(id, content).catch(() => {
+      }
+
+      // Always flush current Y.Doc state to storage on unmount.
+      // This ensures content survives navigation regardless of sync mode.
+      if (docRef.current && store && id) {
+        const content = Y.encodeStateAsUpdate(docRef.current)
+        const flushPromise = store
+          .setDocumentContent(id, content)
+          .catch(() => {
             // Silent fail on unmount
           })
-        }
-        // SyncManager pool handles persistence for managed docs
+          .finally(() => {
+            pendingFlushes.delete(id)
+          })
+        // Store the flush promise so the next load() can await it
+        pendingFlushes.set(id, flushPromise)
       }
 
       // Release doc back to SyncManager on unmount
