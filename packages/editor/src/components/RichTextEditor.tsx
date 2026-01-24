@@ -13,9 +13,21 @@ import Link from '@tiptap/extension-link'
 import Typography from '@tiptap/extension-typography'
 import type * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
-import { Wikilink, LivePreview } from '../extensions'
+import {
+  Wikilink,
+  LivePreview,
+  HeadingWithSyntax,
+  CodeBlockWithSyntax,
+  BlockquoteWithSyntax,
+  SlashCommand,
+  DragHandleExtension,
+  KeyboardShortcutsExtension,
+  ImageExtension,
+  CalloutExtension,
+  ToggleExtension
+} from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
-import '../editor.css'
+import '../styles/editor.css'
 import { cn } from '../utils'
 
 /**
@@ -154,6 +166,16 @@ export interface RichTextEditorProps {
   awareness?: Awareness
   /** Local user's DID for cursor color/label (optional) */
   did?: string
+  /**
+   * Image upload handler. When provided, enables paste/drop image upload.
+   * Called with the File; should return a resolved src URL and optional dimensions.
+   */
+  onImageUpload?: (file: File) => Promise<{
+    src: string
+    width?: number
+    height?: number
+    cid?: string
+  }>
 }
 
 /**
@@ -212,7 +234,8 @@ export function RichTextEditor({
   className,
   readOnly = false,
   awareness,
-  did
+  did,
+  onImageUpload
 }: RichTextEditorProps): JSX.Element {
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -221,8 +244,16 @@ export function RichTextEditor({
   const extensions = [
     StarterKit.configure({
       undoRedo: false,
-      link: false
+      link: false,
+      // Disable default heading, codeBlock, blockquote - we use custom NodeViews
+      heading: false,
+      codeBlock: false,
+      blockquote: false
     }),
+    // Custom block NodeViews with syntax preview
+    HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+    CodeBlockWithSyntax,
+    BlockquoteWithSyntax,
     Typography,
     Placeholder.configure({
       placeholder,
@@ -244,7 +275,28 @@ export function RichTextEditor({
     Wikilink.configure({
       onNavigate: onNavigate || (() => {})
     }),
-    LivePreview
+    // Obsidian-style inline syntax preview
+    LivePreview.configure({
+      marks: ['bold', 'italic', 'strike', 'code'],
+      links: true
+    }),
+    // Slash command palette
+    SlashCommand,
+    // Drag handle with block drag-and-drop
+    DragHandleExtension.configure({
+      enableDragDrop: !readOnly,
+      showDropIndicator: !readOnly
+    }),
+    // Extra keyboard shortcuts (Mod-e, Mod-k, Mod-\, etc.)
+    KeyboardShortcutsExtension,
+    // Image extension with paste/drop upload
+    ImageExtension.configure({
+      onUpload: onImageUpload
+    }),
+    // Callout blocks (info, tip, warning, etc.)
+    CalloutExtension,
+    // Toggle blocks (collapsible sections)
+    ToggleExtension
   ]
 
   const editor = useEditor({
@@ -483,7 +535,7 @@ export function RichTextEditor({
         className={cn(
           'flex-1 h-full',
           // ProseMirror sizing
-          '[&_.ProseMirror]:h-full [&_.ProseMirror]:px-1',
+          '[&_.ProseMirror]:h-full [&_.ProseMirror]:px-1 [&_.ProseMirror]:pl-8',
           // Remove all focus outlines
           '[&_.ProseMirror]:outline-none [&_.ProseMirror:focus]:outline-none',
           '[&_.tiptap]:outline-none [&_.tiptap:focus]:outline-none',

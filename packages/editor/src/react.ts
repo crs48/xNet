@@ -34,6 +34,13 @@ export { EditorToolbar, type EditorToolbarProps } from './components/EditorToolb
 export { HeadingView } from './nodeviews/HeadingView'
 export { CodeBlockView } from './nodeviews/CodeBlockView'
 export { BlockquoteView } from './nodeviews/BlockquoteView'
+export { ImageNodeView } from './extensions/image'
+export { CalloutNodeView } from './extensions/callout'
+export { ToggleNodeView } from './extensions/toggle'
+
+// Blob context
+export { BlobProvider, useBlobService } from './context/BlobContext'
+export type { BlobContextValue, BlobProviderProps } from './context/BlobContext'
 
 // DragHandle components
 export {
