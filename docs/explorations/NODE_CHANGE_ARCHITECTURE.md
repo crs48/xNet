@@ -182,19 +182,26 @@ Each property maintains its own `LamportTimestamp`. When a remote change arrives
 ```mermaid
 flowchart TB
     subgraph "Incoming Change"
-        IC[properties: { title: "B's Title", status: "done" }<br/>lamport: { time: 7, author: "did:key:bob" }]
+        IC["properties: title=Bobs Title, status=done
+        lamport: time=7, author=bob"]
     end
 
     subgraph "Existing Node State"
-        EP1[title: "A's Title"<br/>timestamp: { time: 8, author: "did:key:alice" }]
-        EP2[status: "todo"<br/>timestamp: { time: 3, author: "did:key:alice" }]
-        EP3[priority: "high"<br/>timestamp: { time: 2, author: "did:key:alice" }]
+        EP1["title: As Title
+        timestamp: time=8, author=alice"]
+        EP2["status: todo
+        timestamp: time=3, author=alice"]
+        EP3["priority: high
+        timestamp: time=2, author=alice"]
     end
 
     subgraph "After LWW Resolution"
-        RP1[title: "A's Title" ✓<br/><i>Alice's time 8 > Bob's time 7</i>]
-        RP2[status: "done" ✓<br/><i>Bob's time 7 > existing time 3</i>]
-        RP3[priority: "high"<br/><i>Untouched — not in incoming change</i>]
+        RP1["title: As Title ✓
+        Alice time 8 beats Bob time 7"]
+        RP2["status: done ✓
+        Bob time 7 beats existing time 3"]
+        RP3["priority: high
+        Untouched — not in incoming change"]
     end
 
     IC --> EP1
@@ -233,35 +240,42 @@ This is the most important architectural decision for the hub relay. A node that
 
 ```mermaid
 flowchart LR
-    subgraph "Node: Page (nodeId = abc123)"
+    subgraph "Node: Page nodeId=abc123"
         direction TB
-        subgraph "Structured Properties (NodeChange system)"
-            T[title: "My Page"]
-            TAGS[tags: ["work", "draft"]]
-            SCHEMA[schemaId: "xnet://xnet.dev/Page"]
+        subgraph "Structured Properties - NodeChange system"
+            T["title: My Page"]
+            TAGS["tags: work, draft"]
+            SCHEMA["schemaId: xnet://xnet.dev/Page"]
         end
 
-        subgraph "Rich Text Body (Yjs system)"
-            YDOC[Y.Doc<br/>paragraphs, headings, lists...<br/>Can be megabytes]
+        subgraph "Rich Text Body - Yjs system"
+            YDOC["Y.Doc
+            paragraphs, headings, lists...
+            Can be megabytes"]
         end
     end
 
     subgraph "Storage"
         direction TB
-        CL[(changes store<br/>keyPath: hash)]
-        NS[(nodes store<br/>keyPath: id)]
-        DC[(documentContent store<br/>keyPath: nodeId)]
+        CL[("changes store
+        keyPath: hash")]
+        NS[("nodes store
+        keyPath: id")]
+        DC[("documentContent store
+        keyPath: nodeId")]
     end
 
     T -->|via NodeChange| CL
     TAGS -->|via NodeChange| CL
     CL -->|LWW replay| NS
-    YDOC -->|Y.encodeStateAsUpdate()| DC
+    YDOC -->|encodeStateAsUpdate| DC
 
     subgraph "Sync"
         direction TB
-        HUB_NODE[Hub: node-change relay<br/>append-only log]
-        HUB_YJS[Hub: Yjs relay<br/>Y.Doc instances in DocPool]
+        HUB_NODE["Hub: node-change relay
+        append-only log"]
+        HUB_YJS["Hub: Yjs relay
+        Y.Doc instances in DocPool"]
     end
 
     CL -.->|node-change messages| HUB_NODE
@@ -373,12 +387,12 @@ The key insight: **NodeChanges are tiny** (just the delta property + metadata). 
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Created: store.create({ schemaId, properties })
-    Created --> Updated: store.update(id, { properties: {...} })
-    Updated --> Updated: store.update(id, { properties: {...} })
+    [*] --> Created: store.create(schemaId, properties)
+    Created --> Updated: store.update(id, properties)
+    Updated --> Updated: store.update(id, properties)
     Updated --> Deleted: store.delete(id)
     Deleted --> Restored: store.restore(id)
-    Restored --> Updated: store.update(id, { properties: {...} })
+    Restored --> Updated: store.update(id, properties)
 
     state Created {
         note: "payload.schemaId = required\npayload.properties = initial values"
