@@ -6,7 +6,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Collaboration from '@tiptap/extension-collaboration'
-import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from 'y-prosemirror'
+import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from '@tiptap/y-tiptap'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
@@ -27,9 +27,7 @@ function generateCursorColor(did: string): string {
   for (let i = 0; i < did.length; i++) {
     hash = did.charCodeAt(i) + ((hash << 5) - hash)
   }
-  // Convert hash to a vibrant hex color
   const hue = Math.abs(hash % 360)
-  // HSL to RGB conversion for s=70%, l=50%
   const s = 0.7
   const l = 0.5
   const c = (1 - Math.abs(2 * l - 1)) * s
@@ -68,6 +66,66 @@ function generateCursorColor(did: string): string {
       .toString(16)
       .padStart(2, '0')
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
+}
+
+// --- DID Avatar generation (matches @xnet/ui DIDAvatar, but as raw SVG string) ---
+
+function hashDID(did: string): number[] {
+  const bytes: number[] = []
+  let hash = 0
+  for (let i = 0; i < did.length; i++) {
+    hash = ((hash << 5) - hash + did.charCodeAt(i)) | 0
+  }
+  for (let i = 0; i < 32; i++) {
+    hash = ((hash << 13) ^ hash) | 0
+    hash = (hash * 0x5bd1e995) | 0
+    hash = (hash ^ (hash >> 15)) | 0
+    bytes.push(Math.abs(hash) % 256)
+  }
+  return bytes
+}
+
+function colorFromBytes(bytes: number[], offset: number): string {
+  const hue = (bytes[offset % bytes.length] * 360) / 256
+  const sat = 50 + (bytes[(offset + 1) % bytes.length] % 30)
+  const lit = 45 + (bytes[(offset + 2) % bytes.length] % 20)
+  return `hsl(${Math.round(hue)}, ${sat}%, ${lit}%)`
+}
+
+function generatePattern(bytes: number[]): boolean[] {
+  const grid: boolean[] = new Array(25).fill(false)
+  for (let row = 0; row < 5; row++) {
+    for (let col = 0; col < 3; col++) {
+      const byteIdx = row * 3 + col + 5
+      const filled = bytes[byteIdx % bytes.length] > 128
+      grid[row * 5 + col] = filled
+      grid[row * 5 + (4 - col)] = filled
+    }
+  }
+  return grid
+}
+
+/** Generate a DID identicon as an SVG data URI for use in an <img> element */
+function generateAvatarDataURI(did: string, size: number): string {
+  const bytes = hashDID(did)
+  const bgColor = colorFromBytes(bytes, 0)
+  const fgColor = colorFromBytes(bytes, 3)
+  const pattern = generatePattern(bytes)
+  const padding = size * 0.1
+  const innerSize = size - padding * 2
+  const innerCellSize = innerSize / 5
+
+  let rects = ''
+  for (let idx = 0; idx < 25; idx++) {
+    if (!pattern[idx]) continue
+    const row = Math.floor(idx / 5)
+    const col = idx % 5
+    const rx = innerCellSize * 0.15
+    rects += `<rect x="${padding + col * innerCellSize}" y="${padding + row * innerCellSize}" width="${innerCellSize}" height="${innerCellSize}" fill="${fgColor}" rx="${rx}"/>`
+  }
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="${bgColor}"/>${rects}</svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
 export interface RichTextEditorProps {
@@ -228,23 +286,51 @@ export function RichTextEditor({
         return
       }
 
-      // Set local user state for cursor display
-      awareness.setLocalStateField('user', {
-        name: did ? `${did.slice(8, 16)}...` : 'Anonymous',
-        color: did ? generateCursorColor(did) : '#999999'
-      })
+      // Set local user state for cursor display (only if not already set by provider)
+      const existingUser = awareness.getLocalState()?.user as
+        | { name?: string; color?: string; did?: string }
+        | undefined
+      if (!existingUser?.name || !existingUser?.color) {
+        awareness.setLocalStateField('user', {
+          did: did || undefined,
+          name: did ? `${did.slice(8, 16)}...` : 'Anonymous',
+          color: did ? generateCursorColor(did) : '#999999'
+        })
+      }
 
       const plugin = yCursorPlugin(awareness, {
-        cursorBuilder: (user: { name: string; color: string }) => {
+        cursorBuilder: (user: { name: string; color: string; did?: string }, clientId: number) => {
           const cursor = document.createElement('span')
           cursor.classList.add('collaboration-cursor__caret')
           cursor.setAttribute('style', `border-color: ${user.color}`)
+          cursor.dataset.clientId = String(clientId)
+
           const label = document.createElement('div')
           label.classList.add('collaboration-cursor__label')
           label.setAttribute('style', `background-color: ${user.color}`)
-          label.insertBefore(document.createTextNode(user.name), null)
-          cursor.insertBefore(label, null)
+
+          // Add DID avatar if available (user.did comes from remote awareness state)
+          const userDid = user.did
+          if (userDid) {
+            const avatar = document.createElement('img')
+            avatar.src = generateAvatarDataURI(userDid, 16)
+            avatar.setAttribute(
+              'style',
+              'width: 14px; height: 14px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 4px;'
+            )
+            label.appendChild(avatar)
+          }
+
+          label.appendChild(document.createTextNode(user.name))
+          cursor.appendChild(label)
           return cursor
+        },
+        selectionBuilder: (user: { name: string; color: string }, clientId: number) => {
+          return {
+            style: `background-color: ${user.color}40;`,
+            class: `ProseMirror-yjs-selection collaboration-cursor__selection--${clientId}`,
+            'data-client-id': String(clientId)
+          }
         }
       })
 
@@ -269,6 +355,119 @@ export function RichTextEditor({
       if (registered) editor.unregisterPlugin(yCursorPluginKey)
     }
   }, [editor, awareness, did])
+
+  // Hover detection for cursor labels: show label when mouse is over a remote
+  // selection or near a remote caret. Uses mousemove hit-testing so we never
+  // block text selection or clicks (all decorations remain pointer-events: none).
+  useEffect(() => {
+    if (!editor) return
+
+    let root: HTMLElement | null = null
+    try {
+      root = editor.view.dom
+    } catch {
+      let rafId: number | undefined
+      const tryAttach = () => {
+        try {
+          root = editor.view.dom
+        } catch {
+          rafId = requestAnimationFrame(tryAttach)
+          return
+        }
+        attach()
+      }
+      rafId = requestAnimationFrame(tryAttach)
+      return () => {
+        if (rafId !== undefined) cancelAnimationFrame(rafId)
+      }
+    }
+
+    let activeClientId: string | null = null
+    const CARET_HIT_RADIUS = 10 // px around the caret line
+
+    function showLabel(clientId: string) {
+      if (activeClientId === clientId) return
+      if (activeClientId) hideLabel()
+      activeClientId = clientId
+      const caret = root!.querySelector(
+        `.collaboration-cursor__caret[data-client-id="${clientId}"]`
+      )
+      const label = caret?.querySelector('.collaboration-cursor__label') as HTMLElement | null
+      if (label) {
+        label.style.opacity = '1'
+        label.style.animation = 'none'
+      }
+    }
+
+    function hideLabel() {
+      if (!activeClientId) return
+      const caret = root!.querySelector(
+        `.collaboration-cursor__caret[data-client-id="${activeClientId}"]`
+      )
+      const label = caret?.querySelector('.collaboration-cursor__label') as HTMLElement | null
+      if (label) {
+        label.style.opacity = ''
+        label.style.animation = ''
+      }
+      activeClientId = null
+    }
+
+    function onMouseMove(e: MouseEvent) {
+      const mx = e.clientX
+      const my = e.clientY
+
+      // Check if mouse is over a selection span
+      const els = document.elementsFromPoint(mx, my)
+      for (const el of els) {
+        if ((el as HTMLElement).classList?.contains('ProseMirror-yjs-selection')) {
+          const clientId = (el as HTMLElement).dataset.clientId
+          if (clientId) {
+            showLabel(clientId)
+            return
+          }
+        }
+      }
+
+      // Check proximity to any caret
+      const carets = root!.querySelectorAll('.collaboration-cursor__caret[data-client-id]')
+      for (const caret of carets) {
+        const rect = caret.getBoundingClientRect()
+        if (
+          mx >= rect.left - CARET_HIT_RADIUS &&
+          mx <= rect.right + CARET_HIT_RADIUS &&
+          my >= rect.top - CARET_HIT_RADIUS &&
+          my <= rect.bottom + CARET_HIT_RADIUS
+        ) {
+          showLabel((caret as HTMLElement).dataset.clientId!)
+          return
+        }
+      }
+
+      // Nothing hit
+      hideLabel()
+    }
+
+    function onMouseLeave() {
+      hideLabel()
+    }
+
+    function attach() {
+      if (!root) return
+      root.addEventListener('mousemove', onMouseMove)
+      root.addEventListener('mouseleave', onMouseLeave)
+      cleanupFn = () => {
+        root!.removeEventListener('mousemove', onMouseMove)
+        root!.removeEventListener('mouseleave', onMouseLeave)
+      }
+    }
+
+    let cleanupFn: (() => void) | null = null
+    attach()
+
+    return () => {
+      cleanupFn?.()
+    }
+  }, [editor])
 
   // Clean up editor on unmount
   useEffect(() => {
