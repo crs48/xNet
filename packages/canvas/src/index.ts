@@ -72,10 +72,10 @@ export {
 
 // React components
 export { Canvas } from './renderer/Canvas'
-export type { CanvasProps } from './renderer/Canvas'
+export type { CanvasProps, CanvasHandle, CanvasRemoteUser } from './renderer/Canvas'
 
 export { CanvasNodeComponent } from './nodes/CanvasNodeComponent'
-export type { CanvasNodeProps } from './nodes/CanvasNodeComponent'
+export type { CanvasNodeProps, NodeRemoteUser } from './nodes/CanvasNodeComponent'
 
 export { CanvasEdgeComponent } from './edges/CanvasEdgeComponent'
 export type { CanvasEdgeProps } from './edges/CanvasEdgeComponent'

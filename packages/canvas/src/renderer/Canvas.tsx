@@ -4,12 +4,50 @@
  * Main infinite canvas component with pan, zoom, and node rendering.
  */
 
-import React, { useRef, useCallback, useEffect, memo } from 'react'
+import React, {
+  useRef,
+  useCallback,
+  useEffect,
+  useState,
+  useImperativeHandle,
+  memo,
+  forwardRef
+} from 'react'
 import type * as Y from 'yjs'
 import type { CanvasConfig, CanvasNode, Point, ResizeHandle } from '../types'
+
+/** Minimal Awareness interface (avoids y-protocols dependency) */
+interface AwarenessLike {
+  clientID: number
+  getStates(): Map<number, Record<string, unknown>>
+  setLocalStateField(field: string, value: unknown): void
+  on(event: string, handler: (...args: unknown[]) => void): void
+  off(event: string, handler: (...args: unknown[]) => void): void
+}
 import { useCanvas, type UseCanvasReturn } from '../hooks/useCanvas'
 import { CanvasNodeComponent } from '../nodes/CanvasNodeComponent'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
+
+/**
+ * Remote user presence on the canvas
+ */
+export interface CanvasRemoteUser {
+  clientId: number
+  did: string
+  color: string
+  /** Node IDs this user has selected */
+  selectedNodes?: string[]
+}
+
+/**
+ * Imperative handle for Canvas component
+ */
+export interface CanvasHandle {
+  /** Fit the viewport to show all content */
+  fitToContent: (padding?: number) => void
+  /** Reset viewport to origin at zoom 1 */
+  resetView: () => void
+}
 
 export interface CanvasProps {
   /** Y.Doc containing the canvas data */
@@ -24,6 +62,8 @@ export interface CanvasProps {
   onNodeDoubleClick?: (id: string) => void
   /** Callback when canvas background is clicked */
   onBackgroundClick?: () => void
+  /** Yjs Awareness instance for presence (optional) */
+  awareness?: AwarenessLike | null
   /** CSS class name */
   className?: string
   /** CSS styles */
@@ -72,22 +112,36 @@ const GridBackground = memo(function GridBackground({
 /**
  * Canvas Component
  */
-export const Canvas = memo(function Canvas({
-  doc,
-  config = {},
-  initialViewport,
-  renderNode,
-  onNodeDoubleClick,
-  onBackgroundClick,
-  className,
-  style
-}: CanvasProps) {
+export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
+  {
+    doc,
+    config = {},
+    initialViewport,
+    renderNode,
+    onNodeDoubleClick,
+    onBackgroundClick,
+    awareness,
+    className,
+    style
+  },
+  ref
+) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
 
   // Use canvas hook
   const canvas = useCanvas({ doc, config, initialViewport })
+
+  // Expose imperative methods via ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      fitToContent: (padding?: number) => canvas.fitToContent(padding),
+      resetView: () => canvas.resetView()
+    }),
+    [canvas]
+  )
   const {
     nodes,
     edges,
@@ -101,6 +155,53 @@ export const Canvas = memo(function Canvas({
     zoomAt,
     findNodeAt
   } = canvas
+
+  // === Presence: track remote users' selected nodes ===
+  const [nodePresence, setNodePresence] = useState<Map<string, CanvasRemoteUser[]>>(new Map())
+
+  // Broadcast local selection to awareness
+  useEffect(() => {
+    if (!awareness) return
+    awareness.setLocalStateField('canvasSelection', Array.from(selectedNodeIds))
+  }, [awareness, selectedNodeIds])
+
+  // Listen for remote awareness changes
+  useEffect(() => {
+    if (!awareness) return
+
+    const updatePresence = () => {
+      const states = awareness.getStates()
+      const presenceMap = new Map<string, CanvasRemoteUser[]>()
+
+      states.forEach((state: Record<string, unknown>, clientId: number) => {
+        if (clientId === awareness.clientID) return // skip self
+        const user = state.user as { did?: string; color?: string } | undefined
+        if (!user?.did) return
+
+        const selectedNodes = state.canvasSelection as string[] | undefined
+        if (!selectedNodes || selectedNodes.length === 0) return
+
+        const remoteUser: CanvasRemoteUser = {
+          clientId,
+          did: user.did,
+          color: user.color || '#888',
+          selectedNodes
+        }
+
+        for (const nodeId of selectedNodes) {
+          const existing = presenceMap.get(nodeId) || []
+          existing.push(remoteUser)
+          presenceMap.set(nodeId, existing)
+        }
+      })
+
+      setNodePresence(presenceMap)
+    }
+
+    updatePresence()
+    awareness.on('change', updatePresence)
+    return () => awareness.off('change', updatePresence)
+  }, [awareness])
 
   // Update viewport size on resize
   useEffect(() => {
@@ -120,22 +221,30 @@ export const Canvas = memo(function Canvas({
     return () => observer.disconnect()
   }, [viewport])
 
-  // Handle wheel for zoom
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
+  // Attach wheel handler with { passive: false } so preventDefault works
+  // (React's onWheel registers as passive by default in modern browsers)
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleWheel = (e: WheelEvent) => {
       e.preventDefault()
 
       if (e.ctrlKey || e.metaKey) {
-        // Zoom
-        const factor = e.deltaY > 0 ? 0.9 : 1.1
+        // Pinch-to-zoom: scale factor by deltaY magnitude for smooth control
+        // Clamp delta to avoid extreme jumps from fast scrolling
+        const delta = Math.max(-10, Math.min(10, e.deltaY))
+        const factor = 1 - delta * 0.01
         zoomAt(e.clientX, e.clientY, factor)
       } else {
         // Pan
         pan(-e.deltaX, -e.deltaY)
       }
-    },
-    [pan, zoomAt]
-  )
+    }
+
+    container.addEventListener('wheel', handleWheel, { passive: false })
+    return () => container.removeEventListener('wheel', handleWheel)
+  }, [pan, zoomAt])
 
   // Handle background mouse down for pan
   const handleMouseDown = useCallback(
@@ -227,7 +336,9 @@ export const Canvas = memo(function Canvas({
       const nodesToMove = selectedNodeIds.has(id) ? Array.from(selectedNodeIds) : [id]
 
       nodesToMove.forEach((nodeId) => {
-        const node = nodes.find((n) => n.id === nodeId)
+        // Read directly from store (not React state) to avoid stale position
+        // during fast drags where React batches re-renders
+        const node = canvas.store.getNode(nodeId)
         if (node) {
           updateNodePosition(nodeId, {
             x: node.position.x + delta.x / viewport.zoom,
@@ -236,7 +347,7 @@ export const Canvas = memo(function Canvas({
         }
       })
     },
-    [selectedNodeIds, nodes, updateNodePosition, viewport.zoom]
+    [selectedNodeIds, canvas.store, updateNodePosition, viewport.zoom]
   )
 
   const handleNodeDragEnd = useCallback((id: string) => {
@@ -276,7 +387,6 @@ export const Canvas = memo(function Canvas({
       ref={containerRef}
       className={className}
       style={containerStyle}
-      onWheel={handleWheel}
       onMouseDown={handleMouseDown}
     >
       {/* Grid background */}
@@ -323,6 +433,7 @@ export const Canvas = memo(function Canvas({
             key={node.id}
             node={node}
             selected={selectedNodeIds.has(node.id)}
+            remoteUsers={nodePresence.get(node.id)}
             onSelect={handleNodeSelect}
             onDragStart={handleNodeDragStart}
             onDrag={handleNodeDrag}

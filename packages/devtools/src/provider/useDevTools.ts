@@ -8,7 +8,7 @@ import { DevToolsContext, type DevToolsContextValue } from './DevToolsContext'
 export function useDevTools(): DevToolsContextValue {
   const ctx = useContext(DevToolsContext)
   if (!ctx) {
-    throw new Error('useDevTools must be used within a DevToolsProvider')
+    throw new Error('useDevTools must be used within an XNetDevToolsProvider')
   }
   return ctx
 }

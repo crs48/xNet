@@ -111,7 +111,7 @@ export function NodeExplorer() {
               }
               rowHeight={28}
               overscan={15}
-              className="text-[11px]"
+              className="text-[11px] !bg-zinc-950 [&_thead]:!bg-zinc-900 [&_tr]:!border-zinc-800 [&_tr:hover]:!bg-zinc-900/50"
             />
           )}
         </div>
@@ -135,12 +135,15 @@ export function NodeExplorer() {
  * Otherwise, shows generic columns.
  */
 function synthesizeSchema(nodes: NodeEntry[], schemaFilter: string | null): Schema {
+  // NOTE: The @id must use '#' as separator because useTableState does
+  // property['@id'].split('#').pop() to derive the column accessor key.
+  // The key after '#' must match the TableRow property name exactly.
   const baseProperties: PropertyDefinition[] = [
-    { '@id': 'devtools:id', name: 'id', type: 'text', required: true },
-    { '@id': 'devtools:schemaLabel', name: 'schema', type: 'text', required: true },
-    { '@id': 'devtools:updatedAt', name: 'updatedAt', type: 'updated', required: true },
-    { '@id': 'devtools:createdAt', name: 'createdAt', type: 'created', required: true },
-    { '@id': 'devtools:createdBy', name: 'createdBy', type: 'createdBy', required: true }
+    { '@id': 'devtools#id', name: 'id', type: 'text', required: true },
+    { '@id': 'devtools#schema', name: 'schema', type: 'text', required: true },
+    { '@id': 'devtools#updatedAt', name: 'updatedAt', type: 'updated', required: true },
+    { '@id': 'devtools#createdAt', name: 'createdAt', type: 'created', required: true },
+    { '@id': 'devtools#createdBy', name: 'createdBy', type: 'createdBy', required: true }
   ]
 
   if (schemaFilter && nodes.length > 0) {
@@ -154,7 +157,7 @@ function synthesizeSchema(nodes: NodeEntry[], schemaFilter: string | null): Sche
     const schemaProps: PropertyDefinition[] = Array.from(propKeys)
       .slice(0, 10)
       .map((key) => ({
-        '@id': `devtools:prop:${key}`,
+        '@id': `devtools#${key}`,
         name: key,
         type: 'text' as const,
         required: false
@@ -177,7 +180,7 @@ function synthesizeSchema(nodes: NodeEntry[], schemaFilter: string | null): Sche
     namespace: 'xnet://devtools/',
     properties: [
       ...baseProperties.slice(0, 2),
-      { '@id': 'devtools:preview', name: 'preview', type: 'text', required: false },
+      { '@id': 'devtools#preview', name: 'preview', type: 'text', required: false },
       ...baseProperties.slice(2)
     ]
   }

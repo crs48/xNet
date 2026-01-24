@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { DevToolsProvider, useDevTools } from './index'
+import { XNetDevToolsProvider, useDevTools } from './index'
 
 describe('Production exports (no-op)', () => {
-  it('DevToolsProvider passes through children', () => {
-    const result = DevToolsProvider({ children: 'hello' })
+  it('XNetDevToolsProvider passes through children', () => {
+    const result = XNetDevToolsProvider({ children: 'hello' })
     expect(result).toBe('hello')
   })
 

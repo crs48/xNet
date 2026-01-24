@@ -176,7 +176,7 @@ export function App() {
       <header className="h-[38px] bg-secondary flex items-center justify-between px-4 pr-20 border-b border-border relative">
         <div className="absolute inset-0 titlebar-drag" />
         <h1 className="text-sm font-semibold z-10 text-foreground">xNet</h1>
-        <ThemeToggle className="z-10 h-7 w-7" />
+        <ThemeToggle className="z-10 h-7 w-7 titlebar-no-drag" />
       </header>
 
       {/* Main content */}

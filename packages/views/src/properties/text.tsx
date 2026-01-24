@@ -35,7 +35,7 @@ function TextEditor({
       disabled={disabled}
       placeholder={config?.placeholder as string}
       maxLength={config?.maxLength as number}
-      className="property-editor property-editor-text"
+      className="w-full h-full px-1 py-0.5 text-sm bg-transparent text-gray-900 dark:text-gray-100 border-none outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50"
     />
   )
 }
@@ -48,9 +48,9 @@ export const textHandler: PropertyHandler<string> = {
 
   render(value) {
     if (value === null || value === undefined || value === '') {
-      return <span className="property-empty">Empty</span>
+      return <span className="text-gray-400 dark:text-gray-500 italic">Empty</span>
     }
-    return <span className="property-text">{value}</span>
+    return <span className="text-gray-900 dark:text-gray-100">{value}</span>
   },
 
   compare(a, b) {

@@ -7,9 +7,20 @@
 import React, { useCallback, useRef, memo } from 'react'
 import type { CanvasNode, ResizeHandle, Point } from '../types'
 
+/**
+ * Remote user presence on a specific node
+ */
+export interface NodeRemoteUser {
+  clientId: number
+  did: string
+  color: string
+}
+
 export interface CanvasNodeProps {
   node: CanvasNode
   selected: boolean
+  /** Remote users who have this node selected */
+  remoteUsers?: NodeRemoteUser[]
   onSelect: (id: string, additive: boolean) => void
   onDragStart: (id: string, point: Point) => void
   onDrag: (id: string, delta: Point) => void
@@ -130,6 +141,7 @@ function DefaultNodeContent({ node }: { node: CanvasNode }) {
 export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   node,
   selected,
+  remoteUsers,
   onSelect,
   onDragStart,
   onDrag,
@@ -223,6 +235,10 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
     [node.id, onDoubleClick]
   )
 
+  // Determine border color based on presence
+  const hasRemotePresence = remoteUsers && remoteUsers.length > 0
+  const presenceColor = hasRemotePresence ? remoteUsers[0].color : undefined
+
   // Node styles
   const nodeStyle: React.CSSProperties = {
     position: 'absolute',
@@ -233,12 +249,20 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
     transform: position.rotation ? `rotate(${position.rotation}deg)` : undefined,
     zIndex: position.zIndex ?? 0,
     backgroundColor: '#fff',
-    border: selected ? '2px solid #0066ff' : '1px solid #e0e0e0',
+    border: selected
+      ? '2px solid #0066ff'
+      : hasRemotePresence
+        ? `2px solid ${presenceColor}`
+        : '1px solid #e0e0e0',
     borderRadius: 8,
-    boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : '0 1px 3px rgba(0,0,0,0.1)',
+    boxShadow: selected
+      ? '0 0 0 2px rgba(0,102,255,0.2)'
+      : hasRemotePresence
+        ? `0 0 0 2px ${presenceColor}33`
+        : '0 1px 3px rgba(0,0,0,0.1)',
     cursor: 'move',
     userSelect: 'none',
-    overflow: 'hidden'
+    overflow: 'visible'
   }
 
   return (
@@ -250,7 +274,46 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       data-node-id={node.id}
       data-node-type={node.type}
     >
-      {children ?? <DefaultNodeContent node={node} />}
+      {/* Content wrapper (clips overflow) */}
+      <div style={{ overflow: 'hidden', width: '100%', height: '100%', borderRadius: 6 }}>
+        {children ?? <DefaultNodeContent node={node} />}
+      </div>
+
+      {/* Remote user presence indicators */}
+      {hasRemotePresence && (
+        <div
+          style={{
+            position: 'absolute',
+            top: -10,
+            right: -4,
+            display: 'flex',
+            gap: 2
+          }}
+        >
+          {remoteUsers.map((user) => (
+            <div
+              key={user.clientId}
+              title={user.did.slice(0, 20) + '...'}
+              style={{
+                width: 16,
+                height: 16,
+                borderRadius: '50%',
+                backgroundColor: user.color,
+                border: '2px solid #fff',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 8,
+                fontWeight: 700,
+                color: '#fff'
+              }}
+            >
+              {user.did.slice(8, 10).toUpperCase()}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Resize handles (only when selected) */}
       {selected &&

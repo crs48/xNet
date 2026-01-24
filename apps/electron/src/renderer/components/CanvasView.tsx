@@ -4,28 +4,34 @@
  * Uses @xnet/react hooks and @xnet/canvas for the canvas component.
  */
 
-import React, { useEffect, useState, useCallback } from 'react'
-import { useNode } from '@xnet/react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
+import { useNode, useIdentity } from '@xnet/react'
 import { CanvasSchema } from '@xnet/data'
-import { Canvas, createNode, createEdge } from '@xnet/canvas'
-import { Plus, LayoutGrid, ZoomIn } from 'lucide-react'
+import { Canvas, createNode, createEdge, type CanvasHandle } from '@xnet/canvas'
+import { Plus, LayoutGrid, ZoomIn, Maximize2 } from 'lucide-react'
 import { ShareButton } from './ShareButton'
+import { PresenceAvatars } from './PresenceAvatars'
 
 interface CanvasViewProps {
   docId: string
 }
 
 export function CanvasView({ docId }: CanvasViewProps) {
+  const { did } = useIdentity()
+
   const {
     data: canvas,
     doc,
     loading,
-    update
+    update,
+    remoteUsers,
+    awareness
   } = useNode(CanvasSchema, docId, {
-    createIfMissing: { title: 'Untitled Canvas' }
-    // Sync enabled - signaling server runs via `pnpm dev`
+    createIfMissing: { title: 'Untitled Canvas' },
+    did: did ?? undefined
   })
 
+  const canvasRef = useRef<CanvasHandle>(null)
   const [canvasReady, setCanvasReady] = useState(false)
 
   // Initialize canvas data structure if needed
@@ -129,6 +135,17 @@ export function CanvasView({ docId }: CanvasViewProps) {
           <span>Add Node</span>
         </button>
 
+        <button
+          onClick={() => canvasRef.current?.fitToContent(60)}
+          className="flex items-center gap-1 px-3 py-1.5 bg-secondary border border-border text-foreground rounded-md text-sm hover:bg-secondary-hover transition-colors"
+          title="Fit to content (Cmd+1)"
+        >
+          <Maximize2 size={14} />
+          <span>Center</span>
+        </button>
+
+        <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+
         <div className="flex items-center gap-1 text-xs text-muted-foreground ml-4">
           <LayoutGrid size={14} />
           <span>Pan: Drag background</span>
@@ -143,7 +160,9 @@ export function CanvasView({ docId }: CanvasViewProps) {
       {/* Canvas */}
       <div className="flex-1 relative">
         <Canvas
+          ref={canvasRef}
           doc={doc}
+          awareness={awareness}
           config={{
             showGrid: true,
             gridSize: 20,

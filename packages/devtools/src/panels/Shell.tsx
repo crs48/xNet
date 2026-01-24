@@ -4,7 +4,13 @@
  * Uses a dark zinc theme to distinguish from app content.
  */
 
-import { useState, useCallback, useRef, type MouseEvent as ReactMouseEvent } from 'react'
+import {
+  useState,
+  useCallback,
+  useRef,
+  type MouseEvent as ReactMouseEvent,
+  type CSSProperties
+} from 'react'
 import { useDevTools } from '../provider/useDevTools'
 import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
 import { DEFAULTS } from '../core/constants'
@@ -32,7 +38,8 @@ export function DevToolsPanel() {
 
   return (
     <div
-      className={getContainerClass(position, height)}
+      className={getContainerClass(position)}
+      style={getContainerStyle(position, height)}
       role="complementary"
       aria-label="xNet DevTools"
     >
@@ -40,7 +47,7 @@ export function DevToolsPanel() {
       <ResizeHandle position={position} height={height} setHeight={setHeight} />
 
       {/* Tab Bar */}
-      <div className="flex items-center border-b border-zinc-700 bg-zinc-900 px-2 shrink-0">
+      <div className="flex items-center border-b border-zinc-700 px-2 shrink-0">
         <span className="text-xs font-bold text-zinc-400 mr-3 select-none">xNet</span>
 
         {PANELS.map((panel) => (
@@ -85,7 +92,7 @@ export function DevToolsPanel() {
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center px-3 py-1 border-t border-zinc-800 text-[10px] text-zinc-500 shrink-0">
+      <div className="flex items-center px-3 py-1 border-t border-zinc-800 bg-zinc-950 text-[10px] text-zinc-500 shrink-0">
         <span>
           Events: {eventBus.size}/{eventBus.capacity}
         </span>
@@ -173,11 +180,8 @@ function ResizeHandle({
       const delta =
         position === 'bottom'
           ? startY - me.clientY // drag up = larger
-          : me.clientX - startX // drag left = larger (for right position, actually reversed)
-      const newHeight = Math.max(
-        DEFAULTS.PANEL_MIN_HEIGHT,
-        Math.min(DEFAULTS.PANEL_MAX_HEIGHT, startHeight + delta)
-      )
+          : startX - me.clientX // drag left = larger
+      const newHeight = Math.max(DEFAULTS.PANEL_MIN_HEIGHT, startHeight + delta)
       setHeight(newHeight)
     }
 
@@ -190,29 +194,57 @@ function ResizeHandle({
     document.addEventListener('mouseup', onUp)
   }
 
-  const cursorClass = position === 'bottom' ? 'cursor-ns-resize' : 'cursor-ew-resize'
+  const isVertical = position === 'right'
 
   return (
     <div
       onMouseDown={handleMouseDown}
-      className={`${cursorClass} shrink-0 ${
-        position === 'right' ? 'w-1 h-full' : 'h-1 w-full'
-      } bg-zinc-800 hover:bg-blue-500 transition-colors`}
-    />
+      className="shrink-0 group"
+      style={{
+        cursor: isVertical ? 'ew-resize' : 'ns-resize',
+        width: isVertical ? 4 : '100%',
+        height: isVertical ? '100%' : 4,
+        backgroundColor: '#27272a',
+        position: 'relative'
+      }}
+    >
+      {/* Wider invisible hit area */}
+      <div
+        style={{
+          position: 'absolute',
+          top: isVertical ? 0 : -3,
+          left: isVertical ? -3 : 0,
+          width: isVertical ? 10 : '100%',
+          height: isVertical ? '100%' : 10
+        }}
+      />
+    </div>
   )
 }
 
 // ─── Layout Helpers ────────────────────────────────────────
 
-function getContainerClass(position: PanelPosition, height: number): string {
-  const base = 'flex flex-col bg-zinc-950 text-zinc-200 font-mono text-xs border-zinc-700 z-[9999]'
+function getContainerClass(position: PanelPosition): string {
+  const base =
+    'dark flex flex-col bg-zinc-950 text-zinc-200 font-mono text-xs border-zinc-700 z-[9999]'
 
   switch (position) {
     case 'bottom':
-      return `${base} fixed bottom-0 left-0 right-0 border-t h-[${height}px]`
+      return `${base} fixed bottom-0 left-0 right-0 border-t`
     case 'right':
-      return `${base} fixed top-0 right-0 bottom-0 border-l w-[${height}px]`
+      return `${base} fixed top-0 right-0 bottom-0 border-l`
     case 'floating':
-      return `${base} fixed bottom-4 right-4 rounded-lg border shadow-2xl w-[600px] h-[${height}px]`
+      return `${base} fixed bottom-4 right-4 rounded-lg border shadow-2xl`
+  }
+}
+
+function getContainerStyle(position: PanelPosition, height: number): CSSProperties {
+  switch (position) {
+    case 'bottom':
+      return { height }
+    case 'right':
+      return { width: height }
+    case 'floating':
+      return { width: 600, height }
   }
 }

@@ -2,7 +2,7 @@
  * QueryTracker - tracks active useQuery/useMutate/useNode hooks
  *
  * Hooks opt-in to reporting by checking for a QueryTracker in context.
- * If no DevToolsProvider is present, the tracker is null and hooks skip reporting.
+ * If no XNetDevToolsProvider is present, the tracker is null and hooks skip reporting.
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
