@@ -117,36 +117,39 @@ const Follow = defineSchema({
 // IRI: xnet://xnet.dev/Follow
 ```
 
-### 2.4 Like Schema
+### 2.4 Like Schema (Universal)
+
+The Like schema targets **any Node** -- not just Posts. This means the same `useLike()` hook works for timeline posts, wiki pages, database records, chat messages, comments, and any future Node type. See [Universal Social Primitives](./UNIVERSAL_SOCIAL_PRIMITIVES.md) for the full design.
 
 ```typescript
 const Like = defineSchema({
   name: 'Like',
   namespace: 'xnet://xnet.dev/',
   properties: {
-    post: relation({ target: 'xnet://xnet.dev/Post', required: true }),
-    author: person({ required: true }) // DID of post author (for routing)
+    target: relation({ required: true }), // ANY Node ID -- schema-agnostic
+    targetSchema: text() // Optional: schema IRI for query optimization
   }
 })
 // IRI: xnet://xnet.dev/Like
+// Works on: Posts, Pages, Database records, Messages, Comments, Files...
 ```
 
-### 2.5 Boost Schema
+### 2.5 Boost Schema (Universal)
 
 ```typescript
 const Boost = defineSchema({
   name: 'Boost',
   namespace: 'xnet://xnet.dev/',
   properties: {
-    post: relation({ target: 'xnet://xnet.dev/Post', required: true }),
-    author: person({ required: true }), // DID of original author
+    target: relation({ required: true }), // ANY Node -- share anything to your timeline
+    targetSchema: text(),
     comment: text({ maxLength: 500 }) // Optional quote-boost
   }
 })
 // IRI: xnet://xnet.dev/Boost
 ```
 
-### 2.6 Notification Schema
+### 2.6 Notification Schema (Universal)
 
 ```typescript
 const Notification = defineSchema({
@@ -154,11 +157,21 @@ const Notification = defineSchema({
   namespace: 'xnet://xnet.dev/',
   properties: {
     type: select({
-      options: ['follow', 'like', 'boost', 'mention', 'reply', 'follow_request'],
+      options: [
+        'follow',
+        'like',
+        'boost',
+        'mention',
+        'reply',
+        'follow_request',
+        'react',
+        'comment'
+      ],
       required: true
     }),
     actor: person({ required: true }), // Who triggered this
-    post: relation({ target: 'xnet://xnet.dev/Post' }), // Related post if any
+    target: relation(), // The Node this is about (any schema)
+    targetSchema: text(), // Schema IRI for rendering context
     read: checkbox({ default: false })
   }
 })
@@ -167,6 +180,8 @@ const Notification = defineSchema({
 
 ### Data Model Diagram
 
+Note: Like, Boost, and Notification use **universal `target`** -- they can reference any Node regardless of schema. See [Universal Social Primitives](./UNIVERSAL_SOCIAL_PRIMITIVES.md).
+
 ```mermaid
 erDiagram
     Profile ||--o{ Post : "creates"
@@ -174,12 +189,13 @@ erDiagram
     Profile ||--o{ Like : "gives"
     Profile ||--o{ Boost : "creates"
     Post ||--o{ Post : "inReplyTo"
-    Post ||--o{ Like : "receives"
-    Post ||--o{ Boost : "receives"
     Post }o--o{ Profile : "mentions"
     Follow }o--|| Profile : "targets"
     Notification }o--|| Profile : "notifies"
-    Notification }o--o| Post : "references"
+
+    AnyNode ||--o{ Like : "receives"
+    AnyNode ||--o{ Boost : "receives"
+    AnyNode ||--o{ Notification : "references"
 
     Profile {
         DID id PK
@@ -207,13 +223,13 @@ erDiagram
 
     Like {
         NodeId id PK
-        NodeId post FK
-        DID author
+        NodeId target FK "any Node"
+        SchemaIRI targetSchema "optional"
     }
 
     Boost {
         NodeId id PK
-        NodeId post FK
+        NodeId target FK "any Node"
         string comment
     }
 
@@ -221,10 +237,29 @@ erDiagram
         NodeId id PK
         enum type
         DID actor
-        NodeId post FK
+        NodeId target FK "any Node"
         boolean read
     }
+
+    AnyNode {
+        NodeId id PK
+        SchemaIRI schemaId "Post Page Task etc"
+    }
 ```
+
+### 2.7 Universal Social Primitives
+
+A key design decision: **Like, Boost, Comment, React, and Bookmark are schema-agnostic**. They target any Node by ID, regardless of what schema that Node belongs to. This means:
+
+- `useLike(nodeId)` works on a timeline Post, a wiki Page, a database Task, a chat Message
+- `useBoost(nodeId)` can share any Node to your timeline
+- `useReact(nodeId, emoji)` adds emoji reactions to anything
+- `useComment(nodeId)` attaches a comment thread to any Node
+- `useBookmark(nodeId)` saves any Node for later
+
+This is possible because xNet Node IDs are globally unique (nanoid, schema-independent). The social primitives reference a Node ID without needing to know what kind of Node it is.
+
+**Full exploration**: See [Universal Social Primitives](./UNIVERSAL_SOCIAL_PRIMITIVES.md) for the complete design, including the required `relation()` property change, query patterns, Hub indexing, and all universal primitive schemas.
 
 ---
 
