@@ -371,25 +371,30 @@ export function handleNodeMessages(
 }
 ```
 
-### 6. Client-Side: NodeStore WebSocket Sync Provider
+### 6. Client-Side: NodeStore Sync Provider
 
 ```typescript
 // packages/react/src/sync/NodeStoreSyncProvider.ts
 
 import type { NodeChange } from '@xnet/data'
 import type { SerializedNodeChange } from '@xnet/hub/src/storage/interface'
+import type { ConnectionManager } from './connection-manager'
 
 /**
- * Bridges NodeStore changes to the hub WebSocket.
+ * Bridges NodeStore changes to the hub via the BSM's ConnectionManager.
  *
  * - Listens to NodeStore change events and broadcasts to hub
  * - On connect, requests changes since last known Lamport time
  * - Applies received remote changes to local NodeStore
+ *
+ * NOTE: This uses the BSM's ConnectionManager (single multiplexed WebSocket)
+ * rather than managing its own connection. See planStep03_3_1BgSync for details.
  */
 export class NodeStoreSyncProvider {
   private lastLamport = 0
   private room: string
-  private ws: WebSocket | null = null
+  private connection: ConnectionManager | null = null
+  private cleanup: (() => void) | null = null
 
   constructor(
     private store: any, // NodeStore
@@ -399,55 +404,69 @@ export class NodeStoreSyncProvider {
   }
 
   /**
-   * Attach to a WebSocket connection (reuses the existing hub WS).
+   * Attach to the BSM's ConnectionManager (shares the single hub WebSocket).
+   * Falls back to raw WebSocket for backwards compatibility.
    */
-  attach(ws: WebSocket): void {
-    this.ws = ws
-
-    // Listen for incoming node messages
-    ws.addEventListener('message', (event) => {
-      const msg = JSON.parse(event.data)
-      if (msg.type === 'node-change' && msg.room === this.room) {
-        this.handleRemoteChange(msg.change)
-      } else if (msg.type === 'node-sync-response' && msg.room === this.room) {
-        this.handleSyncResponse(msg)
-      }
-    })
+  attach(connection: ConnectionManager): void
+  attach(ws: WebSocket): void
+  attach(target: ConnectionManager | WebSocket): void {
+    if ('joinRoom' in target) {
+      // BSM ConnectionManager path (preferred)
+      this.connection = target
+      this.cleanup = target.joinRoom(this.room, (data) => {
+        this.handleMessage(data)
+      })
+    } else {
+      // Legacy raw WebSocket path (backwards compat)
+      target.addEventListener('message', (event: MessageEvent) => {
+        const msg = JSON.parse(event.data)
+        if (msg.type === 'node-change' && msg.room === this.room) {
+          this.handleRemoteChange(msg.change)
+        } else if (msg.type === 'node-sync-response' && msg.room === this.room) {
+          this.handleSyncResponse(msg)
+        }
+      })
+    }
 
     // Request catch-up on attach
     this.requestSync()
+  }
+
+  private handleMessage(data: Record<string, unknown>): void {
+    if (data.type === 'node-change') {
+      this.handleRemoteChange(data.change as SerializedNodeChange)
+    } else if (data.type === 'node-sync-response') {
+      this.handleSyncResponse(data as any)
+    }
   }
 
   /**
    * Broadcast a local change to the hub.
    */
   broadcastChange(change: NodeChange): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
-
     const serialized = this.serializeChange(change)
 
-    this.ws.send(
-      JSON.stringify({
+    if (this.connection) {
+      // BSM path: publish via ConnectionManager
+      this.connection.publish(this.room, {
         type: 'node-change',
         room: this.room,
         change: serialized
       })
-    )
+    }
   }
 
   /**
    * Request changes since our last known Lamport time.
    */
   private requestSync(): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return
-
-    this.ws.send(
-      JSON.stringify({
+    if (this.connection) {
+      this.connection.publish(this.room, {
         type: 'node-sync-request',
         room: this.room,
         sinceLamport: this.lastLamport
       })
-    )
+    }
   }
 
   private async handleRemoteChange(serialized: SerializedNodeChange): Promise<void> {
@@ -507,7 +526,11 @@ export class NodeStoreSyncProvider {
   }
 
   detach(): void {
-    this.ws = null
+    if (this.cleanup) {
+      this.cleanup()
+      this.cleanup = null
+    }
+    this.connection = null
   }
 }
 
@@ -806,9 +829,10 @@ describe('Node Sync Relay', () => {
 - [ ] Add `node-sync-request` / `node-sync-response` message types
 - [ ] Broadcast new changes to room subscribers (excluding sender)
 - [ ] Create `NodeStoreSyncProvider` for client-side integration
+- [ ] Wire `NodeStoreSyncProvider` into BSM's `ConnectionManager` (not raw WebSocket)
 - [ ] Add `getChangesSince(lamport)` to `NodeStorageAdapter` interface
 - [ ] Implement `getChangesSince` in IndexedDB adapter (use existing `byLamport` index)
-- [ ] Wire `NodeStoreSyncProvider` into `XNetProvider` (auto-attach when hubUrl set)
+- [ ] Wire `NodeStoreSyncProvider` into `SyncManager.start()` (auto-attach when hubUrl set)
 - [ ] Add memory adapter implementation for `node_changes` (tests)
 - [ ] Write relay tests (persist, dedup, delta sync, offline-to-offline)
 - [ ] Verify LWW conflict resolution works across hub relay

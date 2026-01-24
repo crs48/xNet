@@ -821,16 +821,173 @@ describe('Hub Connection (Client)', () => {
  </XNetProvider>
 ```
 
+## Integration with Background Sync Manager (BSM)
+
+> See also: [planStep03_3_1BgSync](../planStep03_3_1BgSync/README.md)
+
+The BSM (`planStep03_3_1BgSync`) and Hub client integration define overlapping connection management. When both are implemented, they should be **unified** — not parallel systems.
+
+### Architecture: BSM Subsumes HubConnection
+
+The BSM's `ConnectionManager` (multiplexed WebSocket) becomes the **single connection** to the hub. The `HubConnection` defined above is absorbed into the BSM as hub-specific capabilities layered on the same socket:
+
+```mermaid
+flowchart TB
+    subgraph "Unified Client Architecture"
+        subgraph "BSM (planStep03_3_1)"
+            CM[Connection Manager<br/>single WebSocket to hub]
+            POOL[Node Pool<br/>Y.Doc LRU]
+            REG[Registry<br/>tracked nodes]
+            QUEUE[Offline Queue]
+            META[Meta Bridge]
+        end
+
+        subgraph "Hub Features (planStep03_8)"
+            AUTH[UCAN Auth<br/>token on connect]
+            BACKUP[Auto-Backup<br/>debounced snapshots]
+            SEARCH[Hub Search<br/>query-request/response]
+            NSYNC[NodeStore Sync<br/>node-change relay]
+        end
+
+        CM --> AUTH
+        CM --> BACKUP
+        CM --> SEARCH
+        CM --> NSYNC
+        POOL --> META
+        POOL --> BACKUP
+    end
+
+    CM <-->|"single WebSocket"| HUB[Hub Server]
+```
+
+### What Changes
+
+| BSM Component        | Without Hub                            | With Hub                                        |
+| -------------------- | -------------------------------------- | ----------------------------------------------- |
+| `ConnectionManager`  | Connects to signaling server           | Connects to hub (which IS the signaling server) |
+| Room subscribe       | `{ type: "subscribe", topics: [...] }` | Same protocol, hub also persists state          |
+| `NodePool` acquire   | Loads from local storage               | Also triggers hub sync (state vector exchange)  |
+| `OfflineQueue` drain | Publishes to signaling rooms           | Same, hub persists for offline peers            |
+| Auth                 | None (open signaling)                  | UCAN token appended to WS URL                   |
+
+### What Gets Added (Hub-Only Features)
+
+These features attach to the BSM's `ConnectionManager` but only activate when `hubUrl` is configured:
+
+| Feature       | Attachment Point                    | Trigger                                      |
+| ------------- | ----------------------------------- | -------------------------------------------- |
+| UCAN auth     | `ConnectionManager.connect()`       | Token appended as query param                |
+| Auto-backup   | `NodePool` update handler           | Debounced `Y.encodeStateAsUpdate` → hub HTTP |
+| Hub search    | `ConnectionManager.publish()`       | `query-request` message type                 |
+| Node sync     | `ConnectionManager` message handler | `node-change` / `node-sync-request` messages |
+| Index updates | `MetaBridge` observer               | `index-update` on meta map change            |
+
+### Unified ConnectionManager Config
+
+```typescript
+// packages/react/src/sync/connection-manager.ts (extended)
+
+export interface ConnectionManagerConfig {
+  /** Signaling/hub WebSocket URL */
+  url: string
+  /** Reconnect delay in ms (default: 2000) */
+  reconnectDelay?: number
+  /** Max reconnect attempts (default: Infinity) */
+  maxReconnects?: number
+
+  // --- Hub-specific (optional) ---
+  /** UCAN token for hub auth (appended as ?token=) */
+  ucanToken?: string
+  /** Generate UCAN on connect (alternative to static token) */
+  getUCANToken?: () => Promise<string>
+}
+```
+
+When `ucanToken` or `getUCANToken` is provided, the ConnectionManager appends it to the WebSocket URL. The rest of the hub features (backup, search, node sync) are separate services that share this connection.
+
+### Implementation Order
+
+Since BSM (03_3_1) is planned before Hub (03_8):
+
+1. **Build BSM first** with `ConnectionManager` targeting the existing signaling server
+2. **When Hub is built**, the hub replaces the signaling server (same protocol)
+3. **Hub client integration** adds auth + features to the existing `ConnectionManager`
+4. No refactor needed — the BSM is already hub-ready by design
+
+### NodeStoreSyncProvider Integration
+
+The `NodeStoreSyncProvider` (from `09-node-sync-relay.md`) attaches to the BSM's `ConnectionManager` rather than managing its own WebSocket:
+
+```typescript
+// Instead of:
+nodeStoreSyncProvider.attach(ws) // raw WebSocket
+
+// With BSM:
+nodeStoreSyncProvider.attach(syncManager.connection) // BSM's ConnectionManager
+
+// The BSM routes 'node-change' and 'node-sync-response' messages
+// to the NodeStoreSyncProvider's handler via room subscription
+```
+
+### AutoBackup Integration
+
+`AutoBackup` watches the BSM's `NodePool` instead of individual `useNode` instances:
+
+```typescript
+// AutoBackup observes pool-level events:
+syncManager.pool.on('dirty', (nodeId, doc) => {
+  autoBackup.schedule(nodeId, doc)
+})
+
+// On pool eviction (doc going cold), force-flush backup:
+syncManager.pool.on('evict', (nodeId, doc) => {
+  autoBackup.flush(nodeId, doc)
+})
+```
+
+This ensures ALL tracked nodes get backed up — not just ones with active UI components.
+
+### Desktop: Main Process Wiring
+
+On desktop (Electron), the BSM runs in the main process (see `planStep03_3_1BgSync/08-desktop-main-process.md`). Hub features wire in there too:
+
+```mermaid
+flowchart TB
+    subgraph "Main Process"
+        BSM[SyncManager]
+        CM[ConnectionManager<br/>+ UCAN auth]
+        AB[AutoBackup]
+        NSP[NodeStoreSyncProvider]
+        BSM --> CM
+        BSM --> AB
+        BSM --> NSP
+        CM <-->|"WebSocket"| HUB[Hub]
+    end
+
+    subgraph "Renderer"
+        UN[useNode]
+        HS[useHubSearch]
+        HB[useBackup]
+    end
+
+    UN <-->|"IPC + MessagePort"| BSM
+    HS -->|"IPC"| CM
+    HB -->|"IPC"| AB
+```
+
+The renderer's `useHubSearch` and `useBackup` hooks route through IPC to the main process, which forwards via the BSM's single WebSocket connection.
+
 ## Checklist
 
 - [ ] Add `hubUrl` prop to `XNetProvider`
-- [ ] Create `HubConnection` manager class
-- [ ] Add UCAN token to WebSocket connect URL (query param)
-- [ ] Implement `useHubStatus()` hook
-- [ ] Implement `useBackup()` hook (upload/download encrypted blobs)
-- [ ] Implement `useHubSearch()` hook (query via WebSocket)
-- [ ] Create `AutoBackup` class (debounced Y.Doc snapshots)
+- [ ] Extend `ConnectionManager` config with UCAN token support
+- [ ] Layer hub auth onto existing BSM connection (not a separate WebSocket)
+- [ ] Implement `useHubStatus()` hook (reads BSM connection status)
+- [ ] Implement `useBackup()` hook (upload/download encrypted blobs via hub HTTP)
+- [ ] Implement `useHubSearch()` hook (query via BSM's ConnectionManager)
+- [ ] Create `AutoBackup` class attached to BSM NodePool events
 - [ ] Create `HubStatusIndicator` component
+- [ ] Wire `NodeStoreSyncProvider` into BSM's ConnectionManager
 - [ ] Add UCAN generation for hub capabilities
 - [ ] Write client integration tests
 - [ ] Document migration guide (minimal vs full)
@@ -838,4 +995,4 @@ describe('Hub Connection (Client)', () => {
 
 ---
 
-[← Previous: Docker Deploy](./07-docker-deploy.md) | [Back to README](./README.md)
+[← Previous: Docker Deploy](./07-docker-deploy.md) | [Next: Node Sync Relay →](./09-node-sync-relay.md)

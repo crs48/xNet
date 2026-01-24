@@ -213,19 +213,21 @@ flowchart TB
 
 ### Phase 7: Client Integration (Days 8-9)
 
-| Task | Document                                               | Description                               |
-| ---- | ------------------------------------------------------ | ----------------------------------------- |
-| 7.1  | [08-client-integration.md](./08-client-integration.md) | Hub URL config in XNetProvider            |
-| 7.2  | [08-client-integration.md](./08-client-integration.md) | UCAN token generation for hub connection  |
-| 7.3  | [08-client-integration.md](./08-client-integration.md) | Backup trigger in useDocument (debounced) |
-| 7.4  | [08-client-integration.md](./08-client-integration.md) | Sync status: "connected to hub" indicator |
+| Task | Document                                               | Description                                     |
+| ---- | ------------------------------------------------------ | ----------------------------------------------- |
+| 7.1  | [08-client-integration.md](./08-client-integration.md) | Hub URL config in XNetProvider                  |
+| 7.2  | [08-client-integration.md](./08-client-integration.md) | UCAN token on BSM ConnectionManager             |
+| 7.3  | [08-client-integration.md](./08-client-integration.md) | AutoBackup attached to BSM NodePool             |
+| 7.4  | [08-client-integration.md](./08-client-integration.md) | Hub search + status via BSM's single connection |
+
+> **BSM Integration:** Hub client features layer onto the BSM's `ConnectionManager` (from [planStep03_3_1BgSync](../planStep03_3_1BgSync/README.md)). No separate WebSocket — auth, backup, search, and node sync all share the BSM's single connection.
 
 **Validation Gate:**
 
-- [ ] `XNetProvider` accepts `hubUrl` option
-- [ ] Client auto-generates UCAN for hub authentication
-- [ ] Documents auto-backup to hub on save (if configured)
-- [ ] UI shows hub connection status (green dot or similar)
+- [ ] `XNetProvider` accepts `hubUrl` option (passed to BSM ConnectionManager)
+- [ ] BSM ConnectionManager appends UCAN token to hub WebSocket URL
+- [ ] AutoBackup watches BSM NodePool dirty/evict events
+- [ ] UI shows hub connection status (reads BSM connection state)
 
 ### Phase 8: Node Sync Relay (Days 10-11)
 
@@ -495,6 +497,8 @@ packages/
 
 ## Reference Documents
 
+- [Background Sync Manager Plan](../planStep03_3_1BgSync/README.md) — Client-side sync orchestrator (BSM subsumes HubConnection)
+- [BSM Exploration](../explorations/BACKGROUND_SYNC_MANAGER.md) — Design decisions, platform considerations
 - [Server Infrastructure Exploration](../explorations/SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals
 - [Decentralized Search Exploration](../explorations/DECENTRALIZED_SEARCH.md) — Three-tier search architecture + Hub integration
 - [P2P Signaling Plan](../planStep03_2Signaling/README.md) — Current signaling architecture

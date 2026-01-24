@@ -53,6 +53,12 @@ export interface ConnectionManagerConfig {
   reconnectDelay?: number
   /** Max reconnect attempts (default: Infinity) */
   maxReconnects?: number
+
+  // --- Hub auth (optional, see planStep03_8) ---
+  /** Static UCAN token (appended as ?token= on connect) */
+  ucanToken?: string
+  /** Dynamic UCAN generator (called on each connect/reconnect) */
+  getUCANToken?: () => Promise<string>
 }
 
 type RoomHandler = (data: Record<string, unknown>) => void
@@ -124,13 +130,22 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     }
   }
 
-  function doConnect(): void {
+  async function doConnect(): Promise<void> {
     if (destroyed) return
 
     setStatus('connecting')
 
     try {
-      ws = new WebSocket(config.url)
+      // Append UCAN token if configured (hub auth, see planStep03_8)
+      let url = config.url
+      const token = config.ucanToken ?? (config.getUCANToken ? await config.getUCANToken() : null)
+      if (token) {
+        const parsed = new URL(url)
+        parsed.searchParams.set('token', token)
+        url = parsed.toString()
+      }
+
+      ws = new WebSocket(url)
 
       ws.onopen = () => {
         setStatus('connected')

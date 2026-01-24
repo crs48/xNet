@@ -55,6 +55,14 @@ export interface SyncManagerConfig {
   trackTTL?: number
   /** Author DID for awareness */
   authorDID?: string
+
+  // --- Hub-specific (optional, see planStep03_8) ---
+  /** UCAN token generator for hub auth */
+  getUCANToken?: () => Promise<string>
+  /** Enable NodeStore sync relay (structured data through hub) */
+  enableNodeSync?: boolean
+  /** Room/workspace for NodeStore sync */
+  nodesSyncRoom?: string
 }
 
 export interface SyncManager {
