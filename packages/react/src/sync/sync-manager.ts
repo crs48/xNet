@@ -203,12 +203,27 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const offlineQueue = createOfflineQueue({
     storage: config.storage
   })
-  const blobSync: BlobSyncProvider | null = config.blobStore
-    ? createBlobSyncProvider({
-        blobStore: config.blobStore,
-        connection
-      })
-    : null
+  // Wrap blobStore to auto-announce new blobs to peers on put()
+  let blobSync: BlobSyncProvider | null = null
+  if (config.blobStore) {
+    const underlyingStore = config.blobStore
+    const announcingStore: BlobStoreForSync = {
+      get: (cid) => underlyingStore.get(cid),
+      has: (cid) => underlyingStore.has(cid),
+      async put(data) {
+        const cid = await underlyingStore.put(data)
+        // Auto-announce newly stored blobs to peers
+        if (blobSync) {
+          blobSync.announceHave([cid])
+        }
+        return cid
+      }
+    }
+    blobSync = createBlobSyncProvider({
+      blobStore: announcingStore,
+      connection
+    })
+  }
 
   // Room cleanup functions per nodeId
   const roomCleanups = new Map<string, () => void>()

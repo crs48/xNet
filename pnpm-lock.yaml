@@ -67,6 +67,9 @@ importers:
       '@xnet/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@xnet/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@xnet/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry

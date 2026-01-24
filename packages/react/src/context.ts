@@ -16,6 +16,7 @@ import type { Identity } from '@xnet/identity'
 import type { DID } from '@xnet/core'
 import { NodeStore, MemoryNodeStorageAdapter, type NodeStorageAdapter } from '@xnet/data'
 import { createSyncManager, type SyncManager } from './sync/sync-manager'
+import type { BlobStoreForSync } from './sync/blob-sync'
 
 /**
  * XNet configuration
@@ -36,6 +37,9 @@ export interface XNetConfig {
   /** Provide an external SyncManager (e.g., IPC-based for Electron desktop).
    *  When provided, the internal SyncManager creation is skipped. */
   syncManager?: SyncManager
+  /** Blob store for P2P blob sync (images, files). If provided, the SyncManager
+   *  will sync blobs alongside Y.Doc state. Typically a BlobStore from @xnet/storage. */
+  blobStore?: BlobStoreForSync
 }
 
 /**
@@ -52,6 +56,8 @@ export interface XNetContextValue {
   authorDID: string | null
   /** Background Sync Manager (null if disabled or not yet initialized) */
   syncManager: SyncManager | null
+  /** Blob store for content-addressed storage (null if not configured) */
+  blobStore: BlobStoreForSync | null
 }
 
 /** @internal Exported for useNodeStore hook - not part of public API */
@@ -166,7 +172,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       nodeStore,
       storage,
       signalingUrl,
-      authorDID
+      authorDID,
+      blobStore: config.blobStore
     })
 
     sm.start()
@@ -190,7 +197,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     config.syncManager,
     config.signalingServers,
     config.authorDID,
-    config.identity?.did
+    config.identity?.did,
+    config.blobStore
   ])
 
   const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
@@ -200,7 +208,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     nodeStoreReady,
     identity: config.identity,
     authorDID: authorDID ?? null,
-    syncManager
+    syncManager,
+    blobStore: config.blobStore ?? null
   }
 
   return React.createElement(XNetContext.Provider, { value }, children)
