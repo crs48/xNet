@@ -4,7 +4,7 @@
 
 ## Executive Summary
 
-The xNet Hub is a server that acts as an always-on Yjs peer. It persists document state, provides encrypted backup, and handles queries too large for mobile devices. It runs as a single process with embedded SQLite -- deployable via Docker or a local binary (`npx @xnet/hub`).
+The xNet Hub is a server that acts as an always-on sync peer for both rich text (Yjs) and structured data (NodeStore). It persists document state, provides encrypted backup, content-addressed file hosting, a schema registry, awareness persistence, peer discovery, and handles queries too large for mobile devices. It runs as a single process with embedded SQLite -- deployable via Docker or a local binary (`npx @xnet/hub`).
 
 ```typescript
 // Start a hub (CLI or programmatic)
@@ -227,6 +227,91 @@ flowchart TB
 - [ ] Documents auto-backup to hub on save (if configured)
 - [ ] UI shows hub connection status (green dot or similar)
 
+### Phase 8: Node Sync Relay (Days 10-11)
+
+| Task | Document                                         | Description                              |
+| ---- | ------------------------------------------------ | ---------------------------------------- |
+| 8.1  | [09-node-sync-relay.md](./09-node-sync-relay.md) | NodeChange persistence (append-only log) |
+| 8.2  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Delta sync protocol (since Lamport time) |
+| 8.3  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Broadcast + deduplication by hash        |
+| 8.4  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Client-side NodeStoreSyncProvider        |
+
+**Validation Gate:**
+
+- [ ] Structured data (tasks, properties) syncs through hub
+- [ ] Two devices sync NodeChanges without being online simultaneously
+- [ ] Duplicate changes (same hash) are not stored twice
+- [ ] Delta sync returns only changes since requested Lamport time
+- [ ] `getChangesSince(lamport)` added to `NodeStorageAdapter`
+
+### Phase 9: File Storage (Day 12)
+
+| Task | Document                                   | Description                                |
+| ---- | ------------------------------------------ | ------------------------------------------ |
+| 9.1  | [10-file-storage.md](./10-file-storage.md) | Content-addressed upload (PUT /files/:cid) |
+| 9.2  | [10-file-storage.md](./10-file-storage.md) | BLAKE3 CID verification on upload          |
+| 9.3  | [10-file-storage.md](./10-file-storage.md) | Download with immutable cache headers      |
+| 9.4  | [10-file-storage.md](./10-file-storage.md) | Client-side useFileUpload hook             |
+
+**Validation Gate:**
+
+- [ ] `PUT /files/:cid` stores file, verifies hash matches
+- [ ] `GET /files/:cid` returns file with correct Content-Type
+- [ ] Duplicate uploads (same CID) are deduplicated
+- [ ] Cache-Control: immutable set on responses
+- [ ] Storage quota enforcement per user
+
+### Phase 10: Schema Registry (Day 13)
+
+| Task | Document                                         | Description                            |
+| ---- | ------------------------------------------------ | -------------------------------------- |
+| 10.1 | [11-schema-registry.md](./11-schema-registry.md) | Publish schemas (POST /schemas)        |
+| 10.2 | [11-schema-registry.md](./11-schema-registry.md) | Resolve by IRI (GET /schemas/resolve/) |
+| 10.3 | [11-schema-registry.md](./11-schema-registry.md) | Search/discover schemas                |
+| 10.4 | [11-schema-registry.md](./11-schema-registry.md) | Remote resolver fallback in @xnet/data |
+
+**Validation Gate:**
+
+- [ ] Schema author can publish to their DID namespace
+- [ ] Other users can resolve schemas by IRI
+- [ ] Search finds schemas by keyword
+- [ ] Namespace ownership enforced (can't publish to others' DIDs)
+- [ ] `SchemaRegistry.setRemoteResolver()` queries hub as fallback
+
+### Phase 11: Awareness Persistence (Day 14)
+
+| Task | Document                                                     | Description                           |
+| ---- | ------------------------------------------------------------ | ------------------------------------- |
+| 11.1 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Persist last-known awareness per user |
+| 11.2 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Send awareness-snapshot on room join  |
+| 11.3 | [12-awareness-persistence.md](./12-awareness-persistence.md) | TTL-based cleanup of stale entries    |
+| 11.4 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Enhanced usePresence hook             |
+
+**Validation Gate:**
+
+- [ ] New subscriber gets awareness-snapshot with recent users
+- [ ] Snapshot includes last-seen timestamps
+- [ ] Stale entries cleaned up after TTL
+- [ ] UI shows "Alice · last edited 2 hours ago"
+- [ ] Empty rooms don't send snapshots
+
+### Phase 12: Peer Discovery (Day 15)
+
+| Task | Document                                       | Description                               |
+| ---- | ---------------------------------------------- | ----------------------------------------- |
+| 12.1 | [13-peer-discovery.md](./13-peer-discovery.md) | Peer registry (POST /dids/register)       |
+| 12.2 | [13-peer-discovery.md](./13-peer-discovery.md) | DID resolution (GET /dids/:did)           |
+| 12.3 | [13-peer-discovery.md](./13-peer-discovery.md) | Auto-register on WebSocket connect        |
+| 12.4 | [13-peer-discovery.md](./13-peer-discovery.md) | DIDResolver implementation (replace stub) |
+
+**Validation Gate:**
+
+- [ ] Peers can register endpoints by DID
+- [ ] Other peers can resolve DIDs to endpoints
+- [ ] Auto-registration on authenticated WS connect
+- [ ] `DIDResolver.resolve()` returns hub-registered endpoints (not null)
+- [ ] Stale peers cleaned up after 7 days
+
 ## Package Structure (Target)
 
 ```
@@ -239,24 +324,47 @@ packages/
       services/
         signaling.ts            # Room pub/sub (ported from infrastructure/)
         relay.ts                # Yjs sync relay (hub as peer)
+        node-relay.ts           # NodeChange event-sourced relay
         backup.ts               # Encrypted blob store
+        files.ts                # Content-addressed file hosting
         query.ts                # FTS5 query engine
+        schemas.ts              # Schema registry
+        awareness.ts            # Presence persistence
+        discovery.ts            # DID resolution + peer registry
+      routes/
+        backup.ts               # /backup HTTP endpoints
+        files.ts                # /files HTTP endpoints
+        schemas.ts              # /schemas HTTP endpoints
+        dids.ts                 # /dids HTTP endpoints
       storage/
         interface.ts            # HubStorage interface
         sqlite.ts               # SQLite adapter (better-sqlite3)
+        memory.ts               # In-memory adapter (tests)
       auth/
         ucan.ts                 # UCAN verification middleware
         capabilities.ts         # Hub-specific capabilities
       pool/
         doc-pool.ts             # Y.Doc memory management (LRU)
+      middleware/
+        rate-limit.ts           # Per-connection rate limiting
+        metrics.ts              # Prometheus metrics
+      lifecycle/
+        shutdown.ts             # Graceful shutdown handler
     bin/
       xnet-hub.ts               # CLI binary entry point
     test/
       signaling.test.ts         # Protocol tests
       relay.test.ts             # Sync relay tests
+      node-relay.test.ts        # Node sync tests
       backup.test.ts            # Backup API tests
+      files.test.ts             # File storage tests
       query.test.ts             # Query engine tests
+      schemas.test.ts           # Schema registry tests
+      awareness.test.ts         # Awareness persistence tests
+      discovery.test.ts         # Peer discovery tests
       auth.test.ts              # UCAN auth tests
+      deploy.test.ts            # Production readiness tests
+      storage.test.ts           # Storage adapter tests
     Dockerfile
     fly.toml
     package.json
@@ -276,18 +384,20 @@ packages/
 
 ## Dependencies
 
-| Dependency          | Package   | Purpose                    |
-| ------------------- | --------- | -------------------------- |
-| `hono`              | External  | HTTP server + routing      |
-| `@hono/node-server` | External  | Node.js adapter for Hono   |
-| `ws`                | External  | WebSocket server           |
-| `better-sqlite3`    | External  | SQLite database            |
-| `commander`         | External  | CLI argument parsing       |
-| `yjs`               | External  | Y.Doc instances on server  |
-| `y-protocols`       | External  | Yjs sync protocol encoding |
-| `@xnet/identity`    | Workspace | UCAN verification          |
-| `@xnet/crypto`      | Workspace | BLAKE3 hashing, Ed25519    |
-| `@xnet/core`        | Workspace | ContentId, types           |
+| Dependency          | Package   | Purpose                             |
+| ------------------- | --------- | ----------------------------------- |
+| `hono`              | External  | HTTP server + routing               |
+| `@hono/node-server` | External  | Node.js adapter for Hono            |
+| `ws`                | External  | WebSocket server                    |
+| `better-sqlite3`    | External  | SQLite database                     |
+| `commander`         | External  | CLI argument parsing                |
+| `yjs`               | External  | Y.Doc instances on server           |
+| `y-protocols`       | External  | Yjs sync protocol encoding          |
+| `@xnet/identity`    | Workspace | UCAN verification                   |
+| `@xnet/crypto`      | Workspace | BLAKE3 hashing, Ed25519             |
+| `@xnet/core`        | Workspace | ContentId, DID, types               |
+| `@xnet/sync`        | Workspace | Change verification, Lamport clocks |
+| `@xnet/data`        | Workspace | NodeChange types, schema types      |
 
 ## Success Criteria
 
@@ -301,6 +411,11 @@ packages/
 8. **Fly.io deploys** with `fly deploy` and serves wss:// connections
 9. **Auth is optional** (anonymous mode for local dev, UCAN for production)
 10. **Graceful shutdown** persists all in-memory state before exit
+11. **Structured data (NodeChanges) syncs through hub** — not just rich text
+12. **File attachments upload/download** by content-addressed CID
+13. **Schema registry** resolves shared schemas by IRI from the network
+14. **Awareness persistence** shows "who was here" after they disconnect
+15. **DID resolution** finds peers by identity (replaces stub resolver)
 
 ## Reference Documents
 
