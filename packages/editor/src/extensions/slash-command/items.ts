@@ -350,6 +350,41 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
         }
       }
     ]
+  },
+  {
+    name: 'Data',
+    items: [
+      {
+        title: 'Database',
+        description: 'Embed a linked database view',
+        icon: '\uD83D\uDCCA',
+        searchTerms: ['database', 'table', 'board', 'view', 'data', 'spreadsheet'],
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).run()
+
+          const dbExt = editor.extensionManager.extensions.find(
+            (ext) => ext.name === 'databaseEmbed'
+          )
+          const onSelectDatabase = dbExt?.options?.onSelectDatabase as
+            | (() => Promise<string | null>)
+            | undefined
+
+          if (onSelectDatabase) {
+            onSelectDatabase().then((databaseId) => {
+              if (databaseId) {
+                editor.commands.setDatabaseEmbed({ databaseId })
+              }
+            })
+          } else {
+            // Fallback: prompt for database ID
+            const databaseId = window.prompt('Database ID:')
+            if (databaseId?.trim()) {
+              editor.commands.setDatabaseEmbed({ databaseId: databaseId.trim() })
+            }
+          }
+        }
+      }
+    ]
   }
 ]
 

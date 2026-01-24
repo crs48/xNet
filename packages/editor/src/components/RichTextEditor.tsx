@@ -1,6 +1,7 @@
 /**
  * RichTextEditor - Tiptap-based rich text editor with Yjs collaboration
  */
+import * as React from 'react'
 import { useEffect, type JSX } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
@@ -26,8 +27,10 @@ import {
   CalloutExtension,
   ToggleExtension,
   FileExtension,
-  EmbedExtension
+  EmbedExtension,
+  DatabaseEmbedExtension
 } from '../extensions'
+import type { DatabaseViewType } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
 import '../styles/editor.css'
 import { cn } from '../utils'
@@ -197,6 +200,26 @@ export interface RichTextEditorProps {
     mimeType: string
     size: number
   }) => Promise<string>
+  /**
+   * Database selection handler. Shows a picker and returns the selected database ID.
+   */
+  onSelectDatabase?: () => Promise<string | null>
+  /**
+   * Database metadata resolver. Given a database ID, returns its title and icon.
+   */
+  resolveDatabaseMeta?: (databaseId: string) => Promise<{
+    title: string
+    icon?: string
+  } | null>
+  /**
+   * Custom renderer for database views. Receives database ID, view type, and config.
+   * If not provided, a placeholder is shown.
+   */
+  renderDatabaseView?: (props: {
+    databaseId: string
+    viewType: DatabaseViewType
+    viewConfig: Record<string, unknown>
+  }) => React.ReactNode
 }
 
 /**
@@ -258,7 +281,10 @@ export function RichTextEditor({
   did,
   onImageUpload,
   onFileUpload,
-  onFileDownload
+  onFileDownload,
+  onSelectDatabase,
+  resolveDatabaseMeta,
+  renderDatabaseView
 }: RichTextEditorProps): JSX.Element {
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -326,7 +352,13 @@ export function RichTextEditor({
       onDownload: onFileDownload
     }),
     // Media embeds (YouTube, Spotify, Vimeo, etc.)
-    EmbedExtension
+    EmbedExtension,
+    // Database embeds (inline table/board/list views)
+    DatabaseEmbedExtension.configure({
+      onSelectDatabase,
+      renderView: renderDatabaseView,
+      resolveDatabaseMeta
+    })
   ]
 
   const editor = useEditor({

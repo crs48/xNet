@@ -407,6 +407,10 @@ export type { EmbedOptions } from './extensions/embed'
 export { EMBED_PROVIDERS, detectProvider, parseEmbedUrl } from './extensions/embed'
 export type { EmbedProvider } from './extensions/embed'
 
+// Database embed extension
+export { DatabaseEmbedExtension } from './extensions/database-embed'
+export type { DatabaseEmbedOptions, DatabaseViewType } from './extensions/database-embed'
+
 // Image upload service
 export {
   uploadImage,
