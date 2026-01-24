@@ -173,6 +173,9 @@ export {
   type NodeChangeListener
 } from './store'
 
+// Blob service
+export { BlobService, type BlobServiceOptions } from './blob'
+
 // Re-export Yjs for convenience
 export {
   Doc as YDoc,
