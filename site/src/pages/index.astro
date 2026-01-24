@@ -1,0 +1,217 @@
+---
+import Base from '../layouts/Base.astro'
+---
+
+<Base
+  title="xNet — Decentralized Data Infrastructure"
+  description="Local-first, P2P-synced, user-owned data. From personal notes to planetary-scale indexes."
+>
+  <!-- Nav -->
+  <header class="sticky top-0 z-50 border-b border-border bg-[#0a0a0f]/80 backdrop-blur-md">
+    <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <a href={import.meta.env.BASE_URL} class="font-mono text-xl font-bold tracking-tight text-white hover:text-indigo-400 transition-colors">
+        xNet
+      </a>
+      <div class="flex items-center gap-6 text-sm">
+        <a href="#features" class="hidden sm:inline text-gray-400 hover:text-white transition-colors">Features</a>
+        <a href="#architecture" class="hidden sm:inline text-gray-400 hover:text-white transition-colors">Architecture</a>
+        <a href="#get-started" class="hidden sm:inline text-gray-400 hover:text-white transition-colors">Get Started</a>
+        <a
+          href="https://github.com/anomalyco/xNet"
+          class="rounded-md border border-border px-3 py-1.5 text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
+        >
+          GitHub
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 py-24 lg:grid-cols-2 lg:gap-16 lg:py-32">
+      <div>
+        <h1 class="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl lg:text-[3.5rem]">
+          <span class="bg-gradient-to-br from-white to-indigo-400 bg-clip-text text-transparent">
+            Your data.<br/>Your devices.<br/>Your rules.
+          </span>
+        </h1>
+        <p class="mt-6 max-w-md text-lg text-gray-400">
+          xNet is decentralized data infrastructure. Local-first, P2P-synced,
+          user-owned. From personal notes to planetary-scale indexes.
+        </p>
+        <div class="mt-8 flex gap-4">
+          <a
+            href="https://github.com/anomalyco/xNet"
+            class="rounded-lg bg-indigo-600 px-5 py-2.5 font-semibold text-white hover:bg-indigo-500 transition-colors"
+          >
+            View on GitHub
+          </a>
+          <a
+            href="#features"
+            class="rounded-lg border border-border px-5 py-2.5 font-semibold text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
+          >
+            Learn More
+          </a>
+        </div>
+      </div>
+      <div>
+        <pre class="overflow-x-auto rounded-xl border border-border bg-surface p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-indigo-400">import</span> {'{'} defineSchema, text, select {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/data'</span>
+
+<span class="text-indigo-400">const</span> TaskSchema = <span class="text-yellow-300">defineSchema</span>({'{'}
+  name: <span class="text-emerald-400">'Task'</span>,
+  namespace: <span class="text-emerald-400">'xnet://myapp/'</span>,
+  properties: {'{'}
+    title: <span class="text-yellow-300">text</span>({'{'} required: <span class="text-orange-400">true</span> {'}'}),
+    status: <span class="text-yellow-300">select</span>({'{'}
+      options: [<span class="text-emerald-400">'todo'</span>, <span class="text-emerald-400">'in-progress'</span>, <span class="text-emerald-400">'done'</span>]
+    {'}'})
+  {'}'}
+{'}'})</code></pre>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="mx-auto max-w-6xl px-6 py-20">
+      <h2 class="text-3xl font-bold tracking-tight">Built Different</h2>
+      <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="rounded-xl border border-border bg-surface p-6 transition-colors hover:border-indigo-500/40">
+          <div class="text-2xl">&#9741;</div>
+          <h3 class="mt-3 text-lg font-semibold">Local-First</h3>
+          <p class="mt-2 text-sm text-gray-400">
+            Works offline. Syncs when connected. Your data lives on your devices, not someone else's server.
+          </p>
+        </div>
+        <div class="rounded-xl border border-border bg-surface p-6 transition-colors hover:border-indigo-500/40">
+          <div class="text-2xl">&#8644;</div>
+          <h3 class="mt-3 text-lg font-semibold">P2P Synced</h3>
+          <p class="mt-2 text-sm text-gray-400">
+            Devices sync directly via WebRTC. No central server required. CRDTs handle conflicts automatically.
+          </p>
+        </div>
+        <div class="rounded-xl border border-border bg-surface p-6 transition-colors hover:border-indigo-500/40">
+          <div class="text-2xl">&#128273;</div>
+          <h3 class="mt-3 text-lg font-semibold">Cryptographic Identity</h3>
+          <p class="mt-2 text-sm text-gray-400">
+            DID:key identities with Ed25519 signing. UCAN tokens for fine-grained, delegatable permissions.
+          </p>
+        </div>
+        <div class="rounded-xl border border-border bg-surface p-6 transition-colors hover:border-indigo-500/40">
+          <div class="text-2xl">&#128209;</div>
+          <h3 class="mt-3 text-lg font-semibold">Schema-First</h3>
+          <p class="mt-2 text-sm text-gray-400">
+            Define your data model with TypeScript-inferred schemas. Everything is a Node, typed by its Schema.
+          </p>
+        </div>
+        <div class="rounded-xl border border-border bg-surface p-6 transition-colors hover:border-indigo-500/40">
+          <div class="text-2xl">&#9997;</div>
+          <h3 class="mt-3 text-lg font-semibold">Real-Time Collaboration</h3>
+          <p class="mt-2 text-sm text-gray-400">
+            Rich text editing with Yjs CRDTs. Character-level merge for documents, field-level LWW for structured data.
+          </p>
+        </div>
+        <div class="rounded-xl border border-border bg-surface p-6 transition-colors hover:border-indigo-500/40">
+          <div class="text-2xl">&#128268;</div>
+          <h3 class="mt-3 text-lg font-semibold">Plugin Extensible</h3>
+          <p class="mt-2 text-sm text-gray-400">
+            Extend with custom schemas, views, and integrations. ERP, knowledge bases, or anything you build.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section id="architecture" class="mx-auto max-w-6xl px-6 py-20">
+      <h2 class="text-3xl font-bold tracking-tight">Architecture</h2>
+      <p class="mt-2 text-gray-400">Same primitives from personal notes to global indexes</p>
+      <div class="mt-8 flex flex-col gap-3">
+        <div class="flex items-center gap-5 rounded-lg border border-border border-l-[3px] border-l-blue-400 px-5 py-4">
+          <span class="min-w-[100px] text-xs font-bold uppercase tracking-wider text-blue-400">Macro</span>
+          <span class="text-sm text-gray-400">Decentralized Search &middot; Federated Social &middot; Public Datasets</span>
+        </div>
+        <div class="flex items-center gap-5 rounded-lg border border-border border-l-[3px] border-l-amber-400 px-5 py-4">
+          <span class="min-w-[100px] text-xs font-bold uppercase tracking-wider text-amber-400">Organization</span>
+          <span class="text-sm text-gray-400">Team Workspaces &middot; Audit Trails &middot; Access Control</span>
+        </div>
+        <div class="flex items-center gap-5 rounded-lg border border-border border-l-[3px] border-l-emerald-400 px-5 py-4">
+          <span class="min-w-[100px] text-xs font-bold uppercase tracking-wider text-emerald-400">Personal</span>
+          <span class="text-sm text-gray-400">Notes &middot; Tasks &middot; Databases &middot; Private by Default</span>
+        </div>
+        <div class="mt-3 flex flex-wrap justify-center gap-3">
+          <code class="rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-gray-300">Node</code>
+          <code class="rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-gray-300">Schema</code>
+          <code class="rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-gray-300">CRDT Sync</code>
+          <code class="rounded-md border border-border bg-surface px-3 py-1.5 text-xs text-gray-300">DID + UCAN</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tech Stack -->
+    <section class="mx-auto max-w-6xl px-6 py-20">
+      <h2 class="text-3xl font-bold tracking-tight">Under the Hood</h2>
+      <div class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <h4 class="font-semibold text-indigo-400">Sync</h4>
+          <p class="mt-1 text-sm text-gray-400">Yjs CRDT for rich text. Event-sourced changes with Lamport clocks for structured data.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-indigo-400">Crypto</h4>
+          <p class="mt-1 text-sm text-gray-400">BLAKE3 hashing. Ed25519 signing. XChaCha20-Poly1305 encryption. All in the browser.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-indigo-400">Network</h4>
+          <p class="mt-1 text-sm text-gray-400">libp2p transport. WebRTC direct connections. Optional hub relay for always-on sync.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold text-indigo-400">Storage</h4>
+          <p class="mt-1 text-sm text-gray-400">IndexedDB on web. SQLite on desktop/mobile. Content-addressed with CIDs.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Platforms -->
+    <section class="mx-auto max-w-6xl px-6 py-20">
+      <h2 class="text-3xl font-bold tracking-tight">Cross-Platform</h2>
+      <div class="mt-8 grid gap-5 sm:grid-cols-3">
+        <div class="rounded-lg border border-border bg-surface px-5 py-4">
+          <strong>Desktop</strong>
+          <p class="mt-1 text-sm text-gray-400">Electron (macOS, Linux, Windows)</p>
+        </div>
+        <div class="rounded-lg border border-border bg-surface px-5 py-4">
+          <strong>Mobile</strong>
+          <p class="mt-1 text-sm text-gray-400">Expo (iOS, Android)</p>
+        </div>
+        <div class="rounded-lg border border-border bg-surface px-5 py-4">
+          <strong>Web</strong>
+          <p class="mt-1 text-sm text-gray-400">PWA (any browser)</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Get Started -->
+    <section id="get-started" class="mx-auto max-w-6xl px-6 py-20 text-center">
+      <h2 class="text-3xl font-bold tracking-tight">Get Started</h2>
+      <div class="mx-auto mt-8 max-w-md text-left">
+        <pre class="overflow-x-auto rounded-xl border border-border bg-surface p-5 font-mono text-sm leading-relaxed text-gray-400"><code>git clone https://github.com/anomalyco/xNet.git
+cd xNet
+pnpm install
+pnpm dev</code></pre>
+      </div>
+      <p class="mt-4 text-sm text-gray-500">
+        Requires Node.js 22+ and pnpm. See the
+        <a href="https://github.com/anomalyco/xNet" class="text-indigo-400 hover:underline">README</a> for full setup.
+      </p>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-border">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-sm text-gray-500">
+      <span class="font-mono font-bold text-gray-300">xNet</span>
+      <div class="flex items-center gap-3">
+        <a href="https://github.com/anomalyco/xNet" class="hover:text-gray-300 transition-colors">GitHub</a>
+        <span>&middot;</span>
+        <a href="https://github.com/anomalyco/xNet/blob/main/LICENSE" class="hover:text-gray-300 transition-colors">MIT License</a>
+      </div>
+    </div>
+  </footer>
+</Base>
