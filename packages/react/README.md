@@ -11,7 +11,7 @@ pnpm add @xnet/react @xnet/data
 ## Quick Start
 
 ```tsx
-import { NodeStoreProvider, useQuery, useMutate, useDocument } from '@xnet/react'
+import { NodeStoreProvider, useQuery, useMutate, useNode } from '@xnet/react'
 import { MemoryNodeStorageAdapter, defineSchema, text, select } from '@xnet/data'
 
 // 1. Define your schema
@@ -150,12 +150,14 @@ await mutate([
 // All succeed or all fail
 ```
 
-### `useDocument` - Rich Text Editing
+### `useNode` - Rich Text Editing
 
 Load a node with its Y.Doc for collaborative rich text editing.
 
+> **Note:** `useDocument` is available as a deprecated alias for `useNode`. Both work identically.
+
 ```tsx
-import { useDocument } from '@xnet/react'
+import { useNode } from '@xnet/react'
 import { RichTextEditor } from '@xnet/editor/react'
 
 // Define a schema with document support
@@ -178,7 +180,7 @@ function DocumentEditor({ pageId }) {
     syncStatus, // 'offline' | 'connecting' | 'connected'
     peerCount, // Number of connected peers
     remoteUsers // [{ id, name, color, isActive }]
-  } = useDocument(PageSchema, pageId, {
+  } = useNode(PageSchema, pageId, {
     createIfMissing: { title: 'Untitled' }, // Auto-create if not found
     user: { name: 'Alice' } // Presence info
   })
@@ -289,15 +291,15 @@ Returns:
 - `isPending` - Any mutation in progress
 - `pendingCount` - Number of pending mutations
 
-### `useDocument`
+### `useNode`
 
-| Parameter  | Type                 | Description                   |
-| ---------- | -------------------- | ----------------------------- |
-| `schema`   | `DefinedSchema<P>`   | Schema with `document: 'yjs'` |
-| `id`       | `string \| null`     | Node ID                       |
-| `options?` | `UseDocumentOptions` | Configuration                 |
+| Parameter  | Type               | Description                   |
+| ---------- | ------------------ | ----------------------------- |
+| `schema`   | `DefinedSchema<P>` | Schema with `document: 'yjs'` |
+| `id`       | `string \| null`   | Node ID                       |
+| `options?` | `UseNodeOptions`   | Configuration                 |
 
-**UseDocumentOptions:**
+**UseNodeOptions:**
 
 - `createIfMissing?: Props` - Auto-create defaults
 - `user?: { name, color? }` - Presence info

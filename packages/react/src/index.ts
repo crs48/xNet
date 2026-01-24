@@ -4,7 +4,7 @@
  * Core API (3 hooks):
  * - useQuery: Read nodes (list, single, filtered)
  * - useMutate: Write nodes (create, update, remove, transactions)
- * - useDocument: Y.Doc for rich text + sync + presence
+ * - useNode: Load a Node with Y.Doc, sync, presence, and mutations
  */
 
 // =============================================================================
@@ -62,7 +62,7 @@ export {
 } from './hooks/useMutate'
 
 /**
- * useDocument - Y.Doc for rich text editing with sync and presence
+ * useNode - Load a Node with Y.Doc, sync, presence, and mutations
  *
  * @example
  * ```tsx
@@ -72,14 +72,18 @@ export {
  *   update,         // Type-safe mutations
  *   syncStatus,     // 'offline' | 'connecting' | 'connected'
  *   remoteUsers,    // Collaborators
- * } = useDocument(PageSchema, pageId, {
+ * } = useNode(PageSchema, pageId, {
  *   createIfMissing: { title: 'Untitled' },
- *   user: { name: 'Alice' }
+ *   did: myDid
  * })
  * ```
  */
 export {
+  useNode,
+  // Backwards-compatible aliases
   useDocument,
+  type UseNodeOptions,
+  type UseNodeResult,
   type UseDocumentOptions,
   type UseDocumentResult,
   type SyncStatus,

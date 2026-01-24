@@ -19,7 +19,8 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(docId)
+      // Encode type with the docId so peers open it correctly
+      await navigator.clipboard.writeText(`${docType}:${docId}`)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -70,7 +71,7 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
               <input
                 type="text"
                 readOnly
-                value={docId}
+                value={`${docType}:${docId}`}
                 className="flex-1 px-3 py-2 text-xs font-mono bg-secondary border border-border rounded-md text-foreground"
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />

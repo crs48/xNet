@@ -167,3 +167,19 @@ export interface ColumnMeta {
   handler: PropertyHandler
   onUpdate: (rowId: string, value: unknown) => void
 }
+
+/**
+ * Remote user's cell focus presence
+ */
+export interface CellPresence {
+  /** Row ID the remote user is focused on */
+  rowId: string
+  /** Column/property ID the remote user is focused on */
+  columnId: string
+  /** User's cursor color */
+  color: string
+  /** User's DID */
+  did: string
+  /** Display name */
+  name: string
+}

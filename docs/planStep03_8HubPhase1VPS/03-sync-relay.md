@@ -14,7 +14,7 @@ flowchart TB
     subgraph "Hub Process"
         SIG[Signaling Service<br/>pub/sub relay]
         RELAY[Relay Service<br/>Yjs peer logic]
-        POOL[Doc Pool<br/>LRU memory management]
+        POOL[Node Pool<br/>LRU memory management]
         STORE[(Storage<br/>SQLite)]
 
         SIG -->|sync messages| RELAY
@@ -33,10 +33,10 @@ flowchart TB
 
 ## Implementation
 
-### 1. Doc Pool (LRU Memory Management)
+### 1. Node Pool (LRU Memory Management)
 
 ```typescript
-// packages/hub/src/pool/doc-pool.ts
+// packages/hub/src/pool/node-pool.ts
 
 import * as Y from 'yjs'
 import type { HubStorage } from '../storage/interface'
@@ -56,7 +56,7 @@ interface PoolEntry {
  * - Warm: recently accessed, no subscribers (evicted when pool is full)
  * - Cold: on disk only (loaded on demand)
  */
-export class DocPool {
+export class NodePool {
   private entries = new Map<string, PoolEntry>()
   private maxWarmDocs: number
   private persistDelay: number
@@ -219,7 +219,7 @@ export class DocPool {
 
 import * as Y from 'yjs'
 import type { WebSocket } from 'ws'
-import type { DocPool } from '../pool/doc-pool'
+import type { NodePool } from '../pool/node-pool'
 
 interface SyncMessage {
   type: 'sync-step1' | 'sync-step2' | 'sync-update' | 'awareness'
@@ -241,7 +241,7 @@ interface SyncMessage {
 export class RelayService {
   private static HUB_PEER_ID = 'hub-relay'
 
-  constructor(private pool: DocPool) {}
+  constructor(private pool: NodePool) {}
 
   /**
    * Handle a sync message published to a room.
@@ -425,7 +425,7 @@ export class SignalingService {
 // Updated packages/hub/src/server.ts (createServer additions)
 
 import { RelayService } from './services/relay'
-import { DocPool } from './pool/doc-pool'
+import { NodePool } from './pool/node-pool'
 import { createSQLiteStorage } from './storage/sqlite'
 
 export function createServer(config: HubConfig): HubInstance {
@@ -435,7 +435,7 @@ export function createServer(config: HubConfig): HubInstance {
   const storage = config.storage === 'sqlite'
     ? createSQLiteStorage(config.dataDir)
     : createMemoryStorage()
-  const pool = new DocPool(storage, { maxWarmDocs: 500, persistDelay: 1000 })
+  const pool = new NodePool(storage, { maxWarmDocs: 500, persistDelay: 1000 })
   const relay = new RelayService(pool)
 
   // Wire relay into signaling
@@ -555,7 +555,7 @@ describe('Sync Relay', () => {
 
 ## Checklist
 
-- [ ] Implement `pool/doc-pool.ts` (LRU Y.Doc management)
+- [ ] Implement `pool/node-pool.ts` (LRU Y.Doc management)
 - [ ] Implement `services/relay.ts` (hub as Yjs peer)
 - [ ] Add message interceptor to `services/signaling.ts`
 - [ ] Add `publishFromHub` method to signaling

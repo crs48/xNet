@@ -2,7 +2,7 @@
  * XNet React context provider
  *
  * Provides NodeStore and optional identity to the React tree.
- * All data access happens through useQuery/useMutate/useDocument hooks.
+ * All data access happens through useQuery/useMutate/useNode hooks.
  */
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Identity } from '@xnet/identity'

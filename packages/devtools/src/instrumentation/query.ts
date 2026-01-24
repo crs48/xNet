@@ -1,5 +1,5 @@
 /**
- * QueryTracker - tracks active useQuery/useMutate/useDocument hooks
+ * QueryTracker - tracks active useQuery/useMutate/useNode hooks
  *
  * Hooks opt-in to reporting by checking for a QueryTracker in context.
  * If no DevToolsProvider is present, the tracker is null and hooks skip reporting.
@@ -62,7 +62,7 @@ export function captureCallerInfo(): string | undefined {
 
 export interface TrackedQuery {
   id: string
-  type: 'useQuery' | 'useMutate' | 'useDocument'
+  type: 'useQuery' | 'useMutate' | 'useNode'
   schemaId: string
   mode: 'list' | 'single' | 'filtered' | 'document'
   filter?: Record<string, unknown>

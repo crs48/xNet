@@ -3,7 +3,7 @@
  */
 
 import React from 'react'
-import { useDocument, useIdentity } from '@xnet/react'
+import { useNode, useIdentity } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
 import { RichTextEditor } from '@xnet/editor/react'
 import { DocumentHeader } from './DocumentHeader'
@@ -23,7 +23,7 @@ export function PageView({ docId }: PageViewProps) {
     update,
     remoteUsers,
     awareness
-  } = useDocument(PageSchema, docId, {
+  } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled Page' },
     did: did ?? undefined
   })

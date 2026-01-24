@@ -2,7 +2,7 @@
  * Document page - editor
  */
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useDocument } from '@xnet/react'
+import { useNode } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
 import { Editor } from '../components/Editor'
 import { BacklinksPanel } from '../components/BacklinksPanel'
@@ -25,7 +25,7 @@ function DocumentPage() {
     syncStatus,
     peerCount,
     remoteUsers
-  } = useDocument(PageSchema, docId, {
+  } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled' },
     disableSync: true // Disable sync until signaling server is available
   })

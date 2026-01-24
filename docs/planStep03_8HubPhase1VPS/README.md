@@ -58,7 +58,7 @@ flowchart TB
         AUTH --> BACKUP
         AUTH --> QUERY
 
-        POOL[Doc Pool<br/>hot/warm/cold]
+        POOL[Node Pool<br/>hot/warm/cold]
         RELAY --> POOL
 
         subgraph "Storage (SQLite)"
@@ -148,7 +148,7 @@ flowchart TB
 | Task | Document                                       | Description                                      |
 | ---- | ---------------------------------------------- | ------------------------------------------------ |
 | 3.1  | [03-sync-relay.md](./03-sync-relay.md)         | Hub as a Yjs peer (sync-step1/2/update handling) |
-| 3.2  | [03-sync-relay.md](./03-sync-relay.md)         | Doc Pool with LRU eviction (hot/warm/cold)       |
+| 3.2  | [03-sync-relay.md](./03-sync-relay.md)         | Node Pool with LRU eviction (hot/warm/cold)      |
 | 3.3  | [04-sqlite-storage.md](./04-sqlite-storage.md) | SQLite storage adapter for Y.Doc state           |
 | 3.4  | [04-sqlite-storage.md](./04-sqlite-storage.md) | Debounced persistence (1s after last update)     |
 
@@ -412,7 +412,7 @@ packages/
         ucan.ts                 # UCAN verification middleware
         capabilities.ts         # Hub-specific capabilities
       pool/
-        doc-pool.ts             # Y.Doc memory management (LRU)
+        node-pool.ts            # Y.Doc memory management (LRU)
       client/
         crawler-client.ts       # Reference crawler implementation
       middleware/

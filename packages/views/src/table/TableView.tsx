@@ -9,7 +9,7 @@ import { cn } from '@xnet/ui'
 import { useTableState, type TableRow } from './useTableState.js'
 import { TableHeader } from './TableHeader.js'
 import { TableCell } from './TableCell.js'
-import type { ViewConfig } from '../types.js'
+import type { ViewConfig, CellPresence } from '../types.js'
 
 export interface TableViewProps {
   /** Schema defining the table structure */
@@ -32,6 +32,12 @@ export interface TableViewProps {
   rowHeight?: number
   /** Number of rows to render above/below viewport (default: 10) */
   overscan?: number
+  /** Remote users' cell focus presence */
+  cellPresences?: CellPresence[]
+  /** Callback when a cell receives focus */
+  onCellFocus?: (rowId: string, columnId: string) => void
+  /** Callback when a cell loses focus */
+  onCellBlur?: () => void
 }
 
 /**
@@ -47,7 +53,10 @@ export function TableView({
   onAddRow,
   className,
   rowHeight = 36,
-  overscan = 10
+  overscan = 10,
+  cellPresences,
+  onCellFocus,
+  onCellBlur
 }: TableViewProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -104,9 +113,20 @@ export function TableView({
                   className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
                   data-index={virtualRow.index}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} cell={cell} />
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const presencesForCell = cellPresences?.filter(
+                      (p) => p.rowId === row.original.id && p.columnId === cell.column.id
+                    )
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        cell={cell}
+                        presences={presencesForCell}
+                        onCellFocus={onCellFocus}
+                        onCellBlur={onCellBlur}
+                      />
+                    )
+                  })}
                 </tr>
               )
             })}
