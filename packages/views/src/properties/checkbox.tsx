@@ -15,7 +15,7 @@ function CheckboxEditor({ value, onChange, disabled }: PropertyEditorProps<boole
       checked={value ?? false}
       onChange={(e) => onChange(e.target.checked)}
       disabled={disabled}
-      className="property-editor property-editor-checkbox"
+      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:bg-gray-800 focus:ring-blue-500 dark:focus:ring-blue-400 disabled:opacity-50 cursor-pointer"
     />
   )
 }
@@ -27,7 +27,17 @@ export const checkboxHandler: PropertyHandler<boolean> = {
   type: 'checkbox',
 
   render(value) {
-    return <span className={`property-checkbox ${value ? 'checked' : ''}`}>{value ? '✓' : ''}</span>
+    return (
+      <span
+        className={
+          value
+            ? 'text-green-600 dark:text-green-400 font-bold'
+            : 'text-gray-300 dark:text-gray-600'
+        }
+      >
+        {value ? '✓' : ''}
+      </span>
+    )
   },
 
   compare(a, b) {

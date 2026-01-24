@@ -30,11 +30,13 @@ function SelectEditor({
       onBlur={onBlur}
       autoFocus={autoFocus}
       disabled={disabled}
-      className="property-editor property-editor-select"
+      className="w-full h-full px-1 py-0.5 text-sm bg-transparent text-gray-900 dark:text-gray-100 border-none outline-none disabled:opacity-50 cursor-pointer"
     >
-      <option value="">Select...</option>
+      <option value="" className="bg-white dark:bg-gray-800">
+        Select...
+      </option>
       {options.map((opt) => (
-        <option key={opt.id} value={opt.id}>
+        <option key={opt.id} value={opt.id} className="bg-white dark:bg-gray-800">
           {opt.name}
         </option>
       ))}
@@ -63,10 +65,13 @@ export const selectHandler: PropertyHandler<string> = {
   render(value, config) {
     const option = getOption(value, config)
     if (!option) {
-      return <span className="property-empty">Empty</span>
+      return <span className="text-gray-400 dark:text-gray-500 italic">Empty</span>
     }
     return (
-      <span className="property-select-tag" style={{ backgroundColor: option.color ?? '#e0e0e0' }}>
+      <span
+        className="inline-flex items-center px-1.5 py-0.5 rounded text-xs text-white"
+        style={{ backgroundColor: option.color ?? '#6b7280' }}
+      >
         {option.name}
       </span>
     )

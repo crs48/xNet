@@ -5,7 +5,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { XNetProvider } from '@xnet/react'
 import { IndexedDBNodeStorageAdapter } from '@xnet/data'
-import { DevToolsProvider } from '@xnet/devtools'
+import { XNetDevToolsProvider } from '@xnet/devtools'
 import { ThemeProvider } from '@xnet/ui'
 import { App } from './App'
 import './styles.css'
@@ -23,7 +23,7 @@ async function init() {
   const nodeStorage = new IndexedDBNodeStorageAdapter({ dbName })
 
   // Listen for devtools toggle from main process menu
-  // Dispatches a custom event that DevToolsProvider can listen to
+  // Dispatches a custom event that XNetDevToolsProvider can listen to
   window.xnet.onDevToolsToggle(() => {
     window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
   })
@@ -39,9 +39,9 @@ async function init() {
             signingKey: SIGNING_KEY
           }}
         >
-          <DevToolsProvider>
+          <XNetDevToolsProvider>
             <App />
-          </DevToolsProvider>
+          </XNetDevToolsProvider>
         </XNetProvider>
       </ThemeProvider>
     </React.StrictMode>

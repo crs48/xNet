@@ -5,7 +5,7 @@
  * filtering/selection state.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useReducer } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 import type { DevToolsEvent } from '../../core/types'
 
@@ -29,36 +29,40 @@ export function useNodeExplorer() {
   const [showDeleted, setShowDeleted] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Load initial nodes from store
+  // Load nodes from store
+  const loadNodes = useCallback(async () => {
+    if (!store) return
+    try {
+      const allNodes = await store.list()
+      const entries: NodeEntry[] = allNodes.map((n) => ({
+        id: n.id,
+        schemaId: n.schemaId,
+        schemaLabel: n.schemaId.split('/').pop() || n.schemaId,
+        properties: n.properties,
+        deleted: n.deleted,
+        createdAt: n.createdAt,
+        updatedAt: n.updatedAt,
+        createdBy: n.createdBy
+      }))
+      setNodes(entries)
+    } catch (e) {
+      console.error('[DevTools] Failed to load nodes:', e)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [store])
+
+  // Poll store for nodes (handles race conditions with async init)
   useEffect(() => {
     if (!store) {
-      setIsLoading(false)
+      // Keep loading state true while waiting for store to initialize
       return
     }
 
-    const load = async () => {
-      try {
-        const allNodes = await store.list()
-        const entries: NodeEntry[] = allNodes.map((n) => ({
-          id: n.id,
-          schemaId: n.schemaId,
-          schemaLabel: n.schemaId.split('/').pop() || n.schemaId,
-          properties: n.properties,
-          deleted: n.deleted,
-          createdAt: n.createdAt,
-          updatedAt: n.updatedAt,
-          createdBy: n.createdBy
-        }))
-        setNodes(entries)
-      } catch (e) {
-        console.error('[DevTools] Failed to load nodes:', e)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    load()
-  }, [store])
+    loadNodes()
+    const interval = setInterval(loadNodes, 2000)
+    return () => clearInterval(interval)
+  }, [store, loadNodes])
 
   // Subscribe to live store events to update the list
   useEffect(() => {

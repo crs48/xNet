@@ -35,6 +35,7 @@ import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
 import { useNodeStore } from './useNodeStore'
+import { useInstrumentation } from '../instrumentation'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
 import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
 
@@ -221,6 +222,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   createIfMissingRef.current = createIfMissing
 
   const { store, isReady } = useNodeStore()
+  const instrumentation = useInstrumentation()
   const schemaId = schema._schemaId
   const hasDocument = schema.schema.document === 'yjs'
 
@@ -244,6 +246,23 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const creatingRef = useRef(false)
   const storeRef = useRef(store)
   storeRef.current = store
+
+  // Query tracking for devtools
+  const queryIdRef = useRef(
+    `useNode-${schemaId}-${id || 'null'}-${Math.random().toString(36).slice(2, 8)}`
+  )
+  useEffect(() => {
+    if (!instrumentation?.queryTracker || !id) return
+    instrumentation.queryTracker.register(queryIdRef.current, {
+      type: 'useNode',
+      schemaId,
+      mode: 'document',
+      nodeId: id
+    })
+    return () => {
+      instrumentation.queryTracker.unregister(queryIdRef.current)
+    }
+  }, [instrumentation, schemaId, id])
 
   // Load node and document
   const load = useCallback(async () => {
@@ -305,6 +324,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         } else {
           // Destroy previous provider and Y.Doc if switching to a different document.
           if (docRef.current) {
+            instrumentation?.yDocRegistry.unregister(docRef.current.guid)
             if (providerRef.current) {
               providerRef.current.destroy()
               providerRef.current = null
@@ -343,6 +363,9 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
               }, 'local') // Mark as local to avoid triggering metaObserver
             }
           }
+
+          // Register with devtools if available
+          instrumentation?.yDocRegistry.register(id, ydoc)
 
           setDoc(ydoc)
           setLastSavedAt(node.updatedAt)

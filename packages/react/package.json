@@ -10,8 +10,8 @@
       "types": "./src/index.ts"
     },
     "./internal": {
-      "import": "./src/hooks/useNodeStore.ts",
-      "types": "./src/hooks/useNodeStore.ts"
+      "import": "./src/internal.ts",
+      "types": "./src/internal.ts"
     }
   },
   "scripts": {

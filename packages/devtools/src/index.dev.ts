@@ -1,12 +1,12 @@
 /**
  * @xnet/devtools - Development entry point
  *
- * Full DevToolsProvider with all panels, instrumentation, and UI.
+ * Full XNetDevToolsProvider with all panels, instrumentation, and UI.
  * Selected by the bundler when the "development" condition is active.
  */
 
-export { DevToolsProvider } from './provider/DevToolsProvider'
-export type { DevToolsProviderProps } from './provider/DevToolsProvider'
+export { XNetDevToolsProvider } from './provider/DevToolsProvider'
+export type { XNetDevToolsProviderProps } from './provider/DevToolsProvider'
 export { useDevTools } from './provider/useDevTools'
 export type { DevToolsEvent, DevToolsEventType } from './core/types'
 

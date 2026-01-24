@@ -33,9 +33,9 @@ function MultiSelectEditor({
   }
 
   return (
-    <div className="property-editor property-editor-multiselect">
+    <div className="relative w-full h-full">
       <div
-        className="multiselect-trigger"
+        className="w-full h-full flex items-center gap-1 px-1 cursor-pointer"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         onBlur={() => {
           setIsOpen(false)
@@ -44,17 +44,17 @@ function MultiSelectEditor({
         tabIndex={0}
       >
         {selected.length === 0 ? (
-          <span className="property-empty">Select...</span>
+          <span className="text-sm text-gray-400 dark:text-gray-500">Select...</span>
         ) : (
-          <div className="multiselect-tags">
+          <div className="flex flex-wrap gap-0.5">
             {selected.map((id) => {
               const opt = options.find((o) => o.id === id)
               if (!opt) return null
               return (
                 <span
                   key={id}
-                  className="property-select-tag"
-                  style={{ backgroundColor: opt.color ?? '#e0e0e0' }}
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-xs text-white"
+                  style={{ backgroundColor: opt.color ?? '#6b7280' }}
                 >
                   {opt.name}
                 </span>
@@ -65,18 +65,22 @@ function MultiSelectEditor({
       </div>
 
       {isOpen && (
-        <div className="multiselect-dropdown">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[160px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1 z-30">
           {options.map((opt) => (
-            <label key={opt.id} className="multiselect-option">
+            <label
+              key={opt.id}
+              className="flex items-center gap-2 px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            >
               <input
                 type="checkbox"
                 checked={selected.includes(opt.id)}
                 onChange={() => toggleOption(opt.id)}
                 disabled={disabled}
+                className="w-3.5 h-3.5 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800"
               />
               <span
-                className="property-select-tag"
-                style={{ backgroundColor: opt.color ?? '#e0e0e0' }}
+                className="inline-flex items-center px-1.5 py-0.5 rounded text-xs text-white"
+                style={{ backgroundColor: opt.color ?? '#6b7280' }}
               >
                 {opt.name}
               </span>
@@ -109,15 +113,15 @@ export const multiSelectHandler: PropertyHandler<string[]> = {
   render(value, config) {
     const options = getOptions(value, config)
     if (options.length === 0) {
-      return <span className="property-empty">Empty</span>
+      return <span className="text-gray-400 dark:text-gray-500 italic">Empty</span>
     }
     return (
-      <div className="property-multiselect-tags">
+      <div className="flex flex-wrap gap-0.5">
         {options.map((opt) => (
           <span
             key={opt.id}
-            className="property-select-tag"
-            style={{ backgroundColor: opt.color ?? '#e0e0e0' }}
+            className="inline-flex items-center px-1.5 py-0.5 rounded text-xs text-white"
+            style={{ backgroundColor: opt.color ?? '#6b7280' }}
           >
             {opt.name}
           </span>

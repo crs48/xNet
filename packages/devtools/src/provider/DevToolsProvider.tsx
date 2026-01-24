@@ -1,11 +1,19 @@
 /**
- * DevToolsProvider - Full development implementation
+ * XNetDevToolsProvider - Full development implementation
  *
  * Wraps the app, sets up instrumentation, manages panel visibility,
  * and provides context to all devtools panels.
  */
 
-import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react'
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+  type ReactNode,
+  type MouseEvent as ReactMouseEvent
+} from 'react'
 import type * as Y from 'yjs'
 import {
   DevToolsContext,
@@ -16,23 +24,143 @@ import {
 import { DevToolsEventBus } from '../core/event-bus'
 import { DEFAULTS } from '../core/constants'
 import { instrumentStore } from '../instrumentation/store'
-import { useNodeStore } from '@xnet/react/internal'
+import { instrumentYDoc } from '../instrumentation/yjs'
+import { QueryTracker } from '../instrumentation/query'
+import {
+  useNodeStore,
+  InstrumentationContext,
+  type InstrumentationContextValue
+} from '@xnet/react/internal'
 import { DevToolsPanel } from '../panels/Shell'
 
-function createYDocRegistry(): YDocRegistry {
+function createYDocRegistry(
+  bus: DevToolsEventBus
+): YDocRegistry & { cleanups: Map<string, () => void> } {
   const docs = new Map<string, Y.Doc>()
+  const cleanups = new Map<string, () => void>()
+
   return {
     getDocs: () => docs,
     register: (docId: string, doc: Y.Doc) => {
+      // Unregister previous if exists
+      if (cleanups.has(docId)) {
+        cleanups.get(docId)!()
+      }
       docs.set(docId, doc)
+      // Auto-instrument the doc
+      const cleanup = instrumentYDoc(doc, docId, bus, {
+        getDocs: () => docs,
+        register: () => {},
+        unregister: () => {}
+      })
+      cleanups.set(docId, cleanup)
     },
     unregister: (docId: string) => {
+      if (cleanups.has(docId)) {
+        cleanups.get(docId)!()
+        cleanups.delete(docId)
+      }
       docs.delete(docId)
-    }
+    },
+    cleanups
   }
 }
 
-export interface DevToolsProviderProps {
+/**
+ * Floating Action Button for toggling DevTools.
+ * Draggable to reposition anywhere on screen.
+ */
+function DevToolsFab({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
+  const [pos, setPos] = useState({ x: 16, y: 16 }) // bottom-right offset
+  const dragging = useRef(false)
+  const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 })
+  const didDrag = useRef(false)
+
+  const handleMouseDown = useCallback(
+    (e: ReactMouseEvent) => {
+      e.preventDefault()
+      dragging.current = true
+      didDrag.current = false
+      dragStart.current = { x: e.clientX, y: e.clientY, posX: pos.x, posY: pos.y }
+
+      const handleMouseMove = (moveEvent: globalThis.MouseEvent) => {
+        if (!dragging.current) return
+        const dx = moveEvent.clientX - dragStart.current.x
+        const dy = moveEvent.clientY - dragStart.current.y
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+          didDrag.current = true
+        }
+        // Position is relative to bottom-right, so invert deltas
+        setPos({
+          x: Math.max(0, dragStart.current.posX - dx),
+          y: Math.max(0, dragStart.current.posY + dy)
+        })
+      }
+
+      const handleMouseUp = () => {
+        dragging.current = false
+        window.removeEventListener('mousemove', handleMouseMove)
+        window.removeEventListener('mouseup', handleMouseUp)
+      }
+
+      window.addEventListener('mousemove', handleMouseMove)
+      window.addEventListener('mouseup', handleMouseUp)
+    },
+    [pos]
+  )
+
+  const handleClick = useCallback(() => {
+    // Only toggle if we didn't drag
+    if (!didDrag.current) {
+      onToggle()
+    }
+  }, [onToggle])
+
+  const isMac = typeof navigator !== 'undefined' && /Mac/.test(navigator.platform)
+  const shortcut = isMac ? '⌘⇧D' : 'Ctrl+Shift+D'
+
+  return (
+    <div
+      onMouseDown={handleMouseDown}
+      onClick={handleClick}
+      title={`Toggle DevTools (${shortcut})`}
+      style={{
+        position: 'fixed',
+        bottom: pos.y,
+        right: pos.x,
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        backgroundColor: isOpen ? '#0066ff' : '#333',
+        border: '2px solid rgba(255,255,255,0.2)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: dragging.current ? 'grabbing' : 'grab',
+        zIndex: 99999,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        userSelect: 'none',
+        transition: 'background-color 0.15s'
+      }}
+    >
+      <svg
+        width={14}
+        height={14}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="white"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        {/* Wrench icon */}
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+      </svg>
+    </div>
+  )
+}
+
+export interface XNetDevToolsProviderProps {
   children: ReactNode
   /** Open the panel on mount */
   defaultOpen?: boolean
@@ -46,21 +174,22 @@ export interface DevToolsProviderProps {
   maxEvents?: number
 }
 
-export function DevToolsProvider({
+export function XNetDevToolsProvider({
   children,
   defaultOpen = false,
   defaultPanel = 'nodes',
   position: initialPosition = 'bottom',
   height: initialHeight = DEFAULTS.PANEL_HEIGHT,
   maxEvents = DEFAULTS.MAX_EVENTS
-}: DevToolsProviderProps) {
+}: XNetDevToolsProviderProps) {
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [activePanel, setActivePanel] = useState<PanelId>(defaultPanel)
   const [position, setPosition] = useState<PanelPosition>(initialPosition)
   const [height, setHeight] = useState(initialHeight)
 
   const busRef = useRef<DevToolsEventBus>(new DevToolsEventBus({ maxEvents }))
-  const yDocRegistryRef = useRef<YDocRegistry>(createYDocRegistry())
+  const yDocRegistryRef = useRef(createYDocRegistry(busRef.current))
+  const queryTrackerRef = useRef(new QueryTracker(busRef.current))
   const cleanupsRef = useRef<Array<() => void>>([])
 
   // Get store from NodeStoreProvider context
@@ -135,23 +264,35 @@ export function DevToolsProvider({
     yDocRegistry: yDocRegistryRef.current
   }
 
+  // Instrumentation context for hooks (useNode, useQuery, useMutate)
+  const instrumentationValue: InstrumentationContextValue = useMemo(
+    () => ({
+      yDocRegistry: yDocRegistryRef.current,
+      queryTracker: queryTrackerRef.current
+    }),
+    []
+  )
+
   return (
     <DevToolsContext.Provider value={contextValue}>
-      <div className="relative flex flex-col h-full">
-        <div
-          className="flex-1 overflow-hidden"
-          style={
-            isOpen && position === 'bottom'
-              ? { paddingBottom: `${height}px` }
-              : isOpen && position === 'right'
-                ? { paddingRight: `${height}px` }
-                : undefined
-          }
-        >
-          {children}
+      <InstrumentationContext.Provider value={instrumentationValue}>
+        <div className="relative flex flex-col h-full">
+          <div
+            className="flex-1 overflow-hidden"
+            style={
+              isOpen && position === 'bottom'
+                ? { paddingBottom: `${height}px` }
+                : isOpen && position === 'right'
+                  ? { paddingRight: `${height}px` }
+                  : undefined
+            }
+          >
+            {children}
+          </div>
+          {isOpen && <DevToolsPanel />}
+          <DevToolsFab isOpen={isOpen} onToggle={toggle} />
         </div>
-        {isOpen && <DevToolsPanel />}
-      </div>
+      </InstrumentationContext.Provider>
     </DevToolsContext.Provider>
   )
 }

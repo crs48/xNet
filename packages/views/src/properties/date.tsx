@@ -40,7 +40,7 @@ function DateEditor({
       }}
       onBlur={onBlur}
       disabled={disabled}
-      className="property-editor property-editor-date"
+      className="w-full h-full px-1 py-0.5 text-sm bg-transparent text-gray-900 dark:text-gray-100 border-none outline-none disabled:opacity-50 dark:[color-scheme:dark]"
     />
   )
 }
@@ -77,9 +77,9 @@ export const dateHandler: PropertyHandler<number> = {
 
   render(value, config) {
     if (value === null || value === undefined) {
-      return <span className="property-empty">Empty</span>
+      return <span className="text-gray-400 dark:text-gray-500 italic">Empty</span>
     }
-    return <span className="property-date">{formatDate(value, config)}</span>
+    return <span className="text-gray-900 dark:text-gray-100">{formatDate(value, config)}</span>
   },
 
   compare(a, b) {

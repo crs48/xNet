@@ -34,6 +34,7 @@ import type {
   NodeChangeEvent
 } from '@xnet/data'
 import { useNodeStore } from './useNodeStore'
+import { useInstrumentation } from '../instrumentation'
 import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'
 
 // =============================================================================
@@ -131,6 +132,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   idOrFilter?: string | QueryFilter<P>
 ): QueryListResult<P> | QuerySingleResult<P> {
   const { store, isReady } = useNodeStore()
+  const instrumentation = useInstrumentation()
   const schemaId = schema._schemaId
 
   // Determine query mode
@@ -145,6 +147,25 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
   // Track if we've loaded to prevent re-fetching
   const hasLoadedRef = useRef(false)
+
+  // Query tracking for devtools
+  const queryIdRef = useRef(
+    `useQuery-${schemaId}-${nodeId || 'list'}-${Math.random().toString(36).slice(2, 8)}`
+  )
+  useEffect(() => {
+    if (!instrumentation?.queryTracker) return
+    const mode = isSingleQuery ? 'single' : filter.where ? 'filtered' : 'list'
+    instrumentation.queryTracker.register(queryIdRef.current, {
+      type: 'useQuery',
+      schemaId,
+      mode,
+      filter: filter.where as Record<string, unknown> | undefined,
+      nodeId: nodeId || undefined
+    })
+    return () => {
+      instrumentation.queryTracker.unregister(queryIdRef.current)
+    }
+  }, [instrumentation, schemaId, isSingleQuery, nodeId])
 
   // Sort function
   const sortNodes = useCallback(
@@ -225,9 +246,22 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
         setData(flattened)
       }
       hasLoadedRef.current = true
+
+      // Report to devtools
+      if (instrumentation?.queryTracker) {
+        const count = isSingleQuery
+          ? data
+            ? 1
+            : 0
+          : Array.isArray(data)
+            ? (data as unknown[]).length
+            : 0
+        instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0)
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
       setData(isSingleQuery ? null : [])
+      instrumentation?.queryTracker?.recordError(queryIdRef.current, String(err))
     } finally {
       setLoading(false)
     }

@@ -10,9 +10,7 @@ export const DEFAULTS = {
   /** Default panel height in pixels */
   PANEL_HEIGHT: 320,
   /** Minimum panel height */
-  PANEL_MIN_HEIGHT: 200,
-  /** Maximum panel height */
-  PANEL_MAX_HEIGHT: 600,
+  PANEL_MIN_HEIGHT: 20,
   /** Keyboard shortcut to toggle devtools */
   KEYBOARD_SHORTCUT: { key: 'd', ctrl: true, shift: true },
   /** Number of fingers for mobile tap toggle */

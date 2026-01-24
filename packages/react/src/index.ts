@@ -121,3 +121,15 @@ export {
   type XNetContextValue,
   type XNetProviderProps
 } from './context'
+
+// =============================================================================
+// Instrumentation (for DevTools integration)
+// =============================================================================
+
+export {
+  InstrumentationContext,
+  useInstrumentation,
+  type InstrumentationContextValue,
+  type QueryTrackerLike,
+  type YDocRegistryLike
+} from './instrumentation'

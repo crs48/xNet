@@ -8,7 +8,7 @@
 
 import type { ReactNode } from 'react'
 
-export interface DevToolsProviderProps {
+export interface XNetDevToolsProviderProps {
   children: ReactNode
   defaultOpen?: boolean
   position?: 'bottom' | 'right' | 'floating'
@@ -20,7 +20,7 @@ export interface DevToolsProviderProps {
  * No-op in production. Renders children unchanged.
  * In development builds, this is replaced by the full implementation.
  */
-export function DevToolsProvider({ children }: DevToolsProviderProps) {
+export function XNetDevToolsProvider({ children }: XNetDevToolsProviderProps) {
   return children
 }
 
