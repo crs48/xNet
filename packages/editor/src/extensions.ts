@@ -378,6 +378,32 @@ export type {
   FocusTrapOptions
 } from './accessibility'
 
+// Toggle extension
+export { ToggleExtension } from './extensions/toggle'
+export type { ToggleOptions } from './extensions/toggle'
+
+// Callout extension
+export { CalloutExtension } from './extensions/callout'
+export type { CalloutOptions } from './extensions/callout'
+export { CALLOUT_CONFIGS } from './extensions/callout'
+export type { CalloutType, CalloutConfig } from './extensions/callout'
+
+// Image extension
+export { ImageExtension } from './extensions/image'
+export type { ImageOptions } from './extensions/image'
+export { createImagePastePlugin, ImagePastePluginKey } from './extensions/image'
+export type { ImagePastePluginOptions } from './extensions/image'
+
+// Image upload service
+export {
+  uploadImage,
+  validateImageFile,
+  loadImageDimensions,
+  compressImage,
+  ALLOWED_IMAGE_TYPES
+} from './services/image-upload'
+export type { ImageUploadOptions, ImageUploadResult } from './services/image-upload'
+
 // Testing / Benchmarks
 export {
   benchmark,
