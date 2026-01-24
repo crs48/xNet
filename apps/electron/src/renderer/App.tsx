@@ -46,21 +46,24 @@ export function App() {
       id: p.id,
       title: p.title || 'Untitled',
       type: 'page' as DocType,
+      createdAt: p.createdAt,
       updatedAt: p.updatedAt
     })),
     ...databases.map((d) => ({
       id: d.id,
       title: d.title || 'Untitled',
       type: 'database' as DocType,
+      createdAt: d.createdAt,
       updatedAt: d.updatedAt
     })),
     ...canvases.map((c) => ({
       id: c.id,
       title: c.title || 'Untitled',
       type: 'canvas' as DocType,
+      createdAt: c.createdAt,
       updatedAt: c.updatedAt
     }))
-  ].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+  ].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
 
   const isLoading = pagesLoading || databasesLoading || canvasesLoading
 
