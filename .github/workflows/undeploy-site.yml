@@ -1,0 +1,30 @@
+name: Undeploy Site from GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  undeploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - name: Create empty site
+        run: mkdir -p empty && echo '<html><body><p>Site offline.</p></body></html>' > empty/index.html
+
+      - name: Upload empty artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: empty
+
+      - name: Deploy empty page
+        uses: actions/deploy-pages@v4
