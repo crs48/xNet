@@ -14,18 +14,18 @@ flowchart LR
         PFAF["PFAF<br/>7,000 species<br/>uses, layers, companions"]
         USDA["USDA Plants<br/>90,000+ species<br/>hardiness, range"]
         WFO["World Flora Online<br/>350,000+ names<br/>canonical IDs"]
-        PP["Practical Plants<br/>(archived)<br/>7,400 species<br/>polyculture data"]
+        PP["Practical Plants<br/>archived<br/>7,400 species<br/>polyculture data"]
     end
 
     subgraph "Import Pipeline"
         PARSE["Parse & Normalize"]
         MAP["Map to SpeciesSchema"]
-        DEDUPE["Deduplicate<br/>(by scientific name)"]
+        DEDUPE["Deduplicate<br/>by scientific name"]
         VALIDATE["Validate Fields"]
     end
 
     subgraph "xNet Species DB"
-        LOCAL["Local DB<br/>(user's device)"]
+        LOCAL["Local DB<br/>user's device"]
         PUBLIC["Public Namespace<br/>xnet://farming/species/"]
     end
 

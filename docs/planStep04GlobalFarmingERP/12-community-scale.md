@@ -22,10 +22,10 @@ flowchart TD
     end
 
     subgraph "Community Dashboards"
-        SOIL_INDEX["Global Soil Health Index<br/>(by bioregion)"]
+        SOIL_INDEX["Global Soil Health Index<br/>by bioregion"]
         CARBON["Carbon Sequestration<br/>Leaderboard"]
-        SPECIES_PERF["Species Performance<br/>(yield by climate)"]
-        SEED["Seed Library<br/>(variety provenance)"]
+        SPECIES_PERF["Species Performance<br/>yield by climate"]
+        SEED["Seed Library<br/>variety provenance"]
     end
 
     F1 -->|"anonymize"| A1

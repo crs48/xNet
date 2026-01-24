@@ -567,7 +567,7 @@ OpenPlantDB (decentralized, community-maintained)
 ```mermaid
 graph TB
     subgraph "Farmer Alice (Brazil, Tropical)"
-        A_DATA["Her farm data<br/>(soil, harvests, guilds)"]
+        A_DATA["Her farm data<br/>soil, harvests, guilds"]
         A_DESIGNS["Her permaculture designs"]
         A_LOCAL["Local variety knowledge"]
     end
@@ -579,9 +579,9 @@ graph TB
     end
 
     subgraph "P2P Sync Layer"
-        MATCH["Climate-zone matching<br/>(similar bioregions discover each other)"]
-        SELECTIVE["Selective sync<br/>(only shared schemas replicate)"]
-        TRANSLATE["Schema-level translation<br/>(data structure is universal,<br/>labels are localized)"]
+        MATCH["Climate-zone matching<br/>similar bioregions discover each other"]
+        SELECTIVE["Selective sync<br/>only shared schemas replicate"]
+        TRANSLATE["Schema-level translation<br/>data structure is universal,<br/>labels are localized"]
     end
 
     A_DESIGNS -->|"Alice publishes<br/>guild design"| MATCH

@@ -24,7 +24,7 @@ flowchart TB
 
     subgraph "UI Layer"
         POPOVER[CommentPopover]
-        SIDEBAR[CommentSidebar<br/>(optional)]
+        SIDEBAR[CommentSidebar<br/>optional]
     end
 
     PM -->|"click/hover on mark"| HOOK

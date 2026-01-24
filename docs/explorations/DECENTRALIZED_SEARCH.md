@@ -64,11 +64,11 @@ Before designing the future, here's what exists today:
 ```mermaid
 graph TD
     subgraph "Current State"
-        MS["MiniSearch<br/>(title-only, in-memory)"]
-        LQE["LocalQueryEngine<br/>(full-scan, 11 filter operators)"]
-        FQR["FederatedQueryRouter<br/>(skeleton, local-only)"]
-        VS["@xnet/vectors<br/>(HNSW + HybridSearch via RRF)"]
-        FED["@xnet/core/federation<br/>(Wire types: QueryRequest/Response)"]
+        MS["MiniSearch<br/>title-only, in-memory"]
+        LQE["LocalQueryEngine<br/>full-scan, 11 filter operators"]
+        FQR["FederatedQueryRouter<br/>skeleton, local-only"]
+        VS["@xnet/vectors<br/>HNSW + HybridSearch via RRF"]
+        FED["@xnet/core/federation<br/>Wire types: QueryRequest/Response"]
     end
 
     subgraph "Gaps"
@@ -100,23 +100,23 @@ The design principle: **search is a spectrum from private to public, instant to 
 graph TB
     subgraph "Tier 1: LOCAL (private, <10ms)"
         direction LR
-        L1["Full-text index<br/>(all owned Nodes + Yjs docs)"]
-        L2["Structured query<br/>(schema-typed filters)"]
-        L3["Vector search<br/>(semantic similarity)"]
+        L1["Full-text index<br/>all owned Nodes + Yjs docs"]
+        L2["Structured query<br/>schema-typed filters"]
+        L3["Vector search<br/>semantic similarity"]
     end
 
     subgraph "Tier 2: WORKSPACE (trusted peers, 50-500ms)"
         direction LR
-        W1["Bloom filter gossip<br/>(routing hints)"]
-        W2["Direct peer queries<br/>(UCAN-authenticated)"]
-        W3["Result merge<br/>(BM25 normalization)"]
+        W1["Bloom filter gossip<br/>routing hints"]
+        W2["Direct peer queries<br/>UCAN-authenticated"]
+        W3["Result merge<br/>BM25 normalization"]
     end
 
     subgraph "Tier 3: GLOBAL (public, 200ms-2s)"
         direction LR
-        G1["DHT metadata index<br/>(CID→schema+title+DID)"]
-        G2["Schema-based routing<br/>('find all Recipes')"]
-        G3["Index shards<br/>(distributed Tantivy segments)"]
+        G1["DHT metadata index<br/>CID→schema+title+DID"]
+        G2["Schema-based routing<br/>'find all Recipes'"]
+        G3["Index shards<br/>distributed Tantivy segments"]
     end
 
     L1 --> W1

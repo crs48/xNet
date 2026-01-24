@@ -688,7 +688,7 @@ flowchart LR
     end
 
     subgraph "Output/Visualization"
-        CALENDAR["📅 Visual Calendar<br/>What to plant when<br/>(icons, not text)"]
+        CALENDAR["📅 Visual Calendar<br/>What to plant when<br/>icons, not text"]
         MAP["🗺️ Site Map<br/>Drag plants to zones,<br/>spatial layout"]
         TIMELINE["⏳ Growth Timeline<br/>Photo progression<br/>over seasons"]
         BADGE["🏆 Achievement System<br/>Soil improvement,<br/>biodiversity gains"]
@@ -802,9 +802,9 @@ flowchart LR
     WFO -.->|"species IDs"| SP
 
     subgraph "Import Sources"
-        PFAF_DATA["PFAF Data<br/>(7K species)"]
-        USDA["USDA Plants<br/>(90K species)"]
-        PP["Practical Plants<br/>(7.4K species,<br/>archived)"]
+        PFAF_DATA["PFAF Data<br/>7K species"]
+        USDA["USDA Plants<br/>90K species"]
+        PP["Practical Plants<br/>7.4K species,<br/>archived"]
     end
 
     PFAF_DATA -->|"seed database"| SP

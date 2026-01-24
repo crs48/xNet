@@ -72,18 +72,18 @@ flowchart TD
     subgraph DataLayer["Data Layer (Dual Sync)"]
         direction LR
         subgraph RichText["Rich Text Path"]
-            DATA["@xnet/data<br/>(Yjs CRDT)"]
-            SIGNED["SignedChange<br/>(hash chain)"]
+            DATA["@xnet/data<br/>Yjs CRDT"]
+            SIGNED["SignedChange<br/>hash chain"]
         end
         subgraph Tabular["Tabular Data Path"]
-            RECORDS["@xnet/records<br/>(Event-sourced)"]
-            RECOP["RecordChange<br/>(hash chain)"]
+            RECORDS["@xnet/records<br/>Event-sourced"]
+            RECOP["RecordChange<br/>hash chain"]
         end
     end
 
     subgraph Infrastructure["Infrastructure"]
-        STORAGE["@xnet/storage<br/>(IndexedDB)"]
-        NETWORK["@xnet/network<br/>(P2P sync)"]
+        STORAGE["@xnet/storage<br/>IndexedDB"]
+        NETWORK["@xnet/network<br/>P2P sync"]
     end
 
     EDITOR --> DATA
@@ -236,10 +236,10 @@ These packages share the same goal (structured data with sync) but use different
 flowchart TD
     subgraph unified["@xnet/data (Unified)"]
         subgraph doc["document/"]
-            DOC["Rich text<br/>(Yjs-based)"]
+            DOC["Rich text<br/>Yjs-based"]
         end
         subgraph db["database/"]
-            DB["Tabular data<br/>(Event-sourced)"]
+            DB["Tabular data<br/>Event-sourced"]
         end
         subgraph sync["sync/"]
             SYNC["Unified primitives"]
@@ -440,7 +440,7 @@ When resolving conflicts, query the operation log. This is slower for reads but 
 
 ```mermaid
 flowchart TD
-    CRYPTO["@xnet/crypto<br/>(0 deps)"]
+    CRYPTO["@xnet/crypto<br/>0 deps"]
     CORE["@xnet/core"]
     IDENTITY["@xnet/identity"]
     STORAGE["@xnet/storage"]
@@ -483,28 +483,28 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph Foundation["Foundation Layer"]
-        CRYPTO["@xnet/crypto<br/>(primitives)"]
-        CORE["@xnet/core<br/>(types, CIDs)"]
-        SYNC["@xnet/sync<br/>(NEW: change chains)"]
+        CRYPTO["@xnet/crypto<br/>primitives"]
+        CORE["@xnet/core<br/>types, CIDs"]
+        SYNC["@xnet/sync<br/>NEW: change chains"]
     end
 
     subgraph Auth["Auth Layer"]
-        IDENTITY["@xnet/identity<br/>(keys, DIDs, UCAN)"]
+        IDENTITY["@xnet/identity<br/>keys, DIDs, UCAN"]
     end
 
     subgraph DataLayer["Data Layer"]
-        STORAGE["@xnet/storage<br/>(persistence)"]
-        DATA["@xnet/data<br/>(unified: docs + databases)"]
+        STORAGE["@xnet/storage<br/>persistence"]
+        DATA["@xnet/data<br/>unified: docs + databases"]
     end
 
     subgraph Services["Services Layer"]
-        QUERY["@xnet/query<br/>(search, filtering)"]
-        NETWORK["@xnet/network<br/>(P2P transport)"]
+        QUERY["@xnet/query<br/>search, filtering"]
+        NETWORK["@xnet/network<br/>P2P transport"]
     end
 
     subgraph Client["Client Layer"]
-        REACT["@xnet/react<br/>(hooks)"]
-        SDK["@xnet/sdk<br/>(unified API)"]
+        REACT["@xnet/react<br/>hooks"]
+        SDK["@xnet/sdk<br/>unified API"]
     end
 
     CRYPTO --> CORE

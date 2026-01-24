@@ -19,13 +19,13 @@ flowchart LR
     end
 
     subgraph "Monitoring"
-        RAIN["Rainfall Log<br/>(daily/weekly)"]
+        RAIN["Rainfall Log<br/>daily/weekly"]
         LEVEL["Tank/Pond Levels"]
         FLOW["Flow Rates"]
     end
 
     subgraph "Analysis"
-        BUDGET["Water Budget<br/>(in vs out)"]
+        BUDGET["Water Budget<br/>in vs out"]
         HARVEST["Rainwater Harvest<br/>Potential"]
         SCHEDULE["Irrigation<br/>Scheduling"]
     end

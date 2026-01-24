@@ -36,14 +36,14 @@ flowchart TB
 
     subgraph React ["@xnet/react"]
         subgraph Hooks ["Core Hooks"]
-            useQuery["useQuery<br/>(read)"]
-            useMutate["useMutate<br/>(write)"]
-            useDocument["useDocument<br/>(edit + sync)"]
+            useQuery["useQuery<br/>read"]
+            useMutate["useMutate<br/>write"]
+            useDocument["useDocument<br/>edit + sync"]
         end
 
         subgraph Context ["Providers"]
             NodeStoreProvider
-            XNetProvider["XNetProvider<br/>(legacy)"]
+            XNetProvider["XNetProvider<br/>legacy"]
         end
 
         subgraph Utils ["Utilities"]
@@ -52,7 +52,7 @@ flowchart TB
     end
 
     subgraph Data ["@xnet/data"]
-        NodeStore["NodeStore<br/>(event-sourced)"]
+        NodeStore["NodeStore<br/>event-sourced"]
         Schema["Schema System"]
     end
 

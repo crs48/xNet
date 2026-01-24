@@ -264,7 +264,7 @@ Use the lightweight OTel API package for instrumentation, but replace the SDK/ex
 flowchart TB
     subgraph "xNet Application Code"
         CODE[App / Package Code]
-        OTEL_API["@opentelemetry/api<br/>(~5KB, API only)"]
+        OTEL_API["@opentelemetry/api<br/>~5KB, API only"]
         CODE -->|"trace.startSpan()"| OTEL_API
         CODE -->|"meter.createCounter()"| OTEL_API
     end
@@ -457,7 +457,7 @@ flowchart TD
     Q2 -->|No, local only| Q3{Is OTel JS bundle<br/>size acceptable?}
 
     Q3 -->|"Yes (dev builds only)"| DEV_OTEL["OTel for dev builds<br/>Strip in production"]
-    Q3 -->|No| SEMCONV["Semantic Conventions only<br/>(Option C)"]
+    Q3 -->|No| SEMCONV["Semantic Conventions only<br/>Option C"]
 
     CUSTOM --> FINAL[Adopt OTel semconv<br/>naming in custom schemas]
     HYBRID --> FINAL
