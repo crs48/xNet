@@ -3,6 +3,7 @@
  */
 
 import React from 'react'
+import type { SyncStatus } from '@xnet/react'
 import { useNode, useIdentity } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
 import { RichTextEditor } from '@xnet/editor/react'
@@ -21,6 +22,8 @@ export function PageView({ docId }: PageViewProps) {
     doc,
     loading,
     update,
+    syncStatus,
+    peerCount,
     remoteUsers,
     awareness
   } = useNode(PageSchema, docId, {
@@ -45,6 +48,7 @@ export function PageView({ docId }: PageViewProps) {
         onTitleChange={(title) => update({ title })}
         placeholder="Untitled Page"
       >
+        <SyncIndicator status={syncStatus} peerCount={peerCount} />
         <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
       </DocumentHeader>
 
@@ -60,6 +64,27 @@ export function PageView({ docId }: PageViewProps) {
           did={did ?? undefined}
         />
       </div>
+    </div>
+  )
+}
+
+function SyncIndicator({ status, peerCount }: { status: SyncStatus; peerCount: number }) {
+  const colors: Record<SyncStatus, string> = {
+    offline: 'bg-zinc-500',
+    connecting: 'bg-amber-400 animate-pulse',
+    connected: 'bg-emerald-400'
+  }
+
+  const labels: Record<SyncStatus, string> = {
+    offline: 'Offline',
+    connecting: 'Connecting...',
+    connected: peerCount > 0 ? `${peerCount} peer${peerCount !== 1 ? 's' : ''}` : 'Connected'
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title={labels[status]}>
+      <div className={`w-2 h-2 rounded-full ${colors[status]}`} />
+      <span>{labels[status]}</span>
     </div>
   )
 }
