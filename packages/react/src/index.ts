@@ -145,6 +145,15 @@ export {
   type QueueEntry
 } from './sync/offline-queue'
 
+export {
+  createBlobSyncProvider,
+  type BlobSyncProvider,
+  type BlobSyncProviderConfig,
+  type BlobStoreForSync,
+  type BlobSyncMessage,
+  BLOB_SYNC_ROOM
+} from './sync/blob-sync'
+
 // =============================================================================
 // Identity
 // =============================================================================

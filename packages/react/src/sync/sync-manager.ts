@@ -11,6 +11,7 @@
 
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
+import type { ContentId } from '@xnet/core'
 import type { NodeStore, NodeStorageAdapter } from '@xnet/data'
 import { createMetaBridge, type MetaBridge } from './meta-bridge'
 import { createNodePool, type NodePool } from './node-pool'
@@ -21,6 +22,7 @@ import {
   type ConnectionStatus
 } from './connection-manager'
 import { createOfflineQueue, type OfflineQueue } from './offline-queue'
+import { createBlobSyncProvider, type BlobSyncProvider, type BlobStoreForSync } from './blob-sync'
 
 export type SyncStatus = ConnectionStatus
 
@@ -37,6 +39,8 @@ export interface SyncManagerConfig {
   trackTTL?: number
   /** Author DID for awareness */
   authorDID?: string
+  /** Blob store for P2P blob sync (optional — if omitted, blob sync is disabled) */
+  blobStore?: BlobStoreForSync
 }
 
 export interface SyncManager {
@@ -58,6 +62,11 @@ export interface SyncManager {
   /** Get awareness for a Node (for cursor presence) */
   getAwareness(nodeId: string): Awareness | null
 
+  /** Request blobs from peers by CID (no-op if blob sync is disabled) */
+  requestBlobs(cids: string[]): Promise<void>
+  /** Announce blob CIDs to peers (no-op if blob sync is disabled) */
+  announceBlobs(cids: string[]): void
+
   /** Connection status */
   readonly status: SyncStatus
   /** Pool stats */
@@ -66,6 +75,8 @@ export interface SyncManager {
   readonly trackedCount: number
   /** Offline queue size */
   readonly queueSize: number
+  /** Pending blob requests */
+  readonly pendingBlobCount: number
 
   /** Listen for events */
   on(event: 'status', handler: (status: SyncStatus) => void): () => void
@@ -98,6 +109,83 @@ function createRegistryStorageAdapter(storage: NodeStorageAdapter): RegistryStor
   }
 }
 
+/**
+ * Extract blob CIDs from a Y.Doc by scanning the XmlFragment for nodes
+ * with cid attributes (images, files, etc.)
+ */
+function extractBlobCids(doc: Y.Doc): string[] {
+  const cids: string[] = []
+  const seen = new Set<string>()
+
+  // The editor stores content in a Y.XmlFragment named 'default' or 'prosemirror'
+  // Try known fragment names
+  for (const name of ['default', 'prosemirror', '']) {
+    let fragment: Y.XmlFragment | undefined
+    try {
+      fragment = doc.getXmlFragment(name)
+    } catch {
+      continue
+    }
+    if (!fragment || fragment.length === 0) continue
+    walkXmlFragment(fragment, (node) => {
+      if (node instanceof Y.XmlElement) {
+        const cid = node.getAttribute('cid')
+        if (typeof cid === 'string' && cid.length > 0 && !seen.has(cid)) {
+          seen.add(cid)
+          cids.push(cid)
+        }
+      }
+    })
+  }
+
+  // Also check the meta map for FileRef properties (structured data)
+  const meta = doc.getMap('meta')
+  if (meta) {
+    walkYMap(meta, (value) => {
+      if (typeof value === 'object' && value !== null && 'cid' in value) {
+        const cid = (value as { cid: string }).cid
+        if (typeof cid === 'string' && cid.length > 0 && !seen.has(cid)) {
+          seen.add(cid)
+          cids.push(cid)
+        }
+      }
+    })
+  }
+
+  return cids
+}
+
+/** Recursively walk a Y.XmlFragment/XmlElement tree */
+function walkXmlFragment(
+  node: Y.XmlFragment | Y.XmlElement,
+  visitor: (n: Y.XmlElement | Y.XmlText) => void
+): void {
+  for (let i = 0; i < node.length; i++) {
+    const child = node.get(i)
+    if (child instanceof Y.XmlElement) {
+      visitor(child)
+      walkXmlFragment(child, visitor)
+    } else if (child instanceof Y.XmlText) {
+      visitor(child)
+    }
+  }
+}
+
+/** Recursively walk a Y.Map looking for objects with cid fields */
+function walkYMap(map: Y.Map<unknown>, visitor: (value: unknown) => void): void {
+  map.forEach((value) => {
+    if (value instanceof Y.Map) {
+      walkYMap(value, visitor)
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        visitor(item)
+      }
+    } else {
+      visitor(value)
+    }
+  })
+}
+
 export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const metaBridge = createMetaBridge(config.nodeStore)
   const pool = createNodePool({
@@ -115,6 +203,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const offlineQueue = createOfflineQueue({
     storage: config.storage
   })
+  const blobSync: BlobSyncProvider | null = config.blobStore
+    ? createBlobSyncProvider({
+        blobStore: config.blobStore,
+        connection
+      })
+    : null
 
   // Room cleanup functions per nodeId
   const roomCleanups = new Map<string, () => void>()
@@ -280,6 +374,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       await offlineQueue.load()
       connection.connect()
 
+      // Start blob sync if configured
+      blobSync?.start()
+
       // When connection is established, drain offline queue and initiate sync
       connection.onStatus((s) => {
         if (s === 'connected') {
@@ -306,6 +403,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     },
 
     async stop() {
+      // Stop blob sync
+      blobSync?.stop()
+
       // Leave all rooms
       for (const nodeId of Array.from(roomCleanups.keys())) {
         leaveNodeRoom(nodeId)
@@ -347,6 +447,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         sendSyncStep1(nodeId, doc)
       }
 
+      // Eager blob sync: scan Y.Doc for CID references and request missing ones
+      if (blobSync) {
+        const cids = extractBlobCids(doc)
+        if (cids.length > 0) {
+          blobSync.requestBlobs(cids as ContentId[])
+        }
+      }
+
       return doc
     },
 
@@ -357,6 +465,18 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     getAwareness(nodeId) {
       return awarenessMap.get(nodeId) ?? null
+    },
+
+    async requestBlobs(cids) {
+      if (blobSync) {
+        await blobSync.requestBlobs(cids as ContentId[])
+      }
+    },
+
+    announceBlobs(cids) {
+      if (blobSync) {
+        blobSync.announceHave(cids as ContentId[])
+      }
     },
 
     get status() {
@@ -370,6 +490,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     },
     get queueSize() {
       return offlineQueue.size
+    },
+    get pendingBlobCount() {
+      return blobSync?.pendingCount ?? 0
     },
 
     on(event, handler) {
