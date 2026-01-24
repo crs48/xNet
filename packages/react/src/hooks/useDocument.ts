@@ -35,6 +35,7 @@ import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
 import { useNodeStore } from './useNodeStore'
+import { useSyncManager } from './useSyncManager'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
 import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
@@ -222,9 +223,12 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   createIfMissingRef.current = createIfMissing
 
   const { store, isReady } = useNodeStore()
+  const syncManager = useSyncManager()
   const instrumentation = useInstrumentation()
   const schemaId = schema._schemaId
   const hasDocument = schema.schema.document === 'yjs'
+  // Track whether this instance is using the SyncManager (for cleanup)
+  const usingSyncManagerRef = useRef(false)
 
   // State
   const [data, setData] = useState<FlatNode<P> | null>(null)
@@ -325,23 +329,44 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
           // Destroy previous provider and Y.Doc if switching to a different document.
           if (docRef.current) {
             instrumentation?.yDocRegistry.unregister(docRef.current.guid)
-            if (providerRef.current) {
-              providerRef.current.destroy()
-              providerRef.current = null
+            if (!usingSyncManagerRef.current) {
+              // Only destroy if we own the doc (not borrowed from SyncManager)
+              if (providerRef.current) {
+                providerRef.current.destroy()
+                providerRef.current = null
+              }
+              docRef.current.destroy()
+            } else if (docRef.current.guid) {
+              // Release back to SyncManager
+              syncManager?.release(docRef.current.guid)
             }
-            docRef.current.destroy()
             docRef.current = null
             setDoc(null)
+            usingSyncManagerRef.current = false
           }
 
-          const ydoc = new Y.Doc({ guid: id })
+          let ydoc: Y.Doc
+
+          if (syncManager && !disableSync) {
+            // === SyncManager path: borrow Y.Doc from the pool ===
+            ydoc = await syncManager.acquire(id)
+            usingSyncManagerRef.current = true
+
+            // Track this Node for background sync
+            syncManager.track(id, schemaId)
+          } else {
+            // === Fallback path: create our own Y.Doc (backwards compat) ===
+            ydoc = new Y.Doc({ guid: id })
+            usingSyncManagerRef.current = false
+
+            // Load stored content
+            const storedContent = await store.getDocumentContent(id)
+            if (storedContent && storedContent.length > 0) {
+              Y.applyUpdate(ydoc, storedContent)
+            }
+          }
+
           docRef.current = ydoc
-
-          // Load stored content
-          const storedContent = await store.getDocumentContent(id)
-          if (storedContent && storedContent.length > 0) {
-            Y.applyUpdate(ydoc, storedContent)
-          }
 
           // Initialize meta map with current node properties so they sync to peers.
           // When justCreated (via createIfMissing), only write non-empty values to avoid
@@ -460,7 +485,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     load()
   }, [load])
 
-  // Set up Y.Doc update listener, y-webrtc provider, and presence
+  // Set up Y.Doc update listener, sync provider, and presence
   useEffect(() => {
     if (!doc || !id || !hasDocument) return
 
@@ -470,6 +495,46 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     if (doc.guid !== id) {
       return
     }
+
+    // === SyncManager path: sync is handled internally by the manager ===
+    if (usingSyncManagerRef.current && syncManager) {
+      // Listen for updates to trigger local persistence (SyncManager pool handles this,
+      // but we still track dirty state for the UI)
+      const updateHandler = (_update: Uint8Array, _origin: unknown) => {
+        scheduleSave()
+      }
+      doc.on('update', updateHandler)
+
+      // Track connection status from SyncManager
+      const statusUnsub = syncManager.on('status', (status) => {
+        setSyncStatus(
+          status === 'connected' ? 'connected' : status === 'connecting' ? 'connecting' : 'offline'
+        )
+      })
+      // Set initial status
+      setSyncStatus(
+        syncManager.status === 'connected'
+          ? 'connected'
+          : syncManager.status === 'connecting'
+            ? 'connecting'
+            : 'offline'
+      )
+
+      // Get awareness from SyncManager
+      const awareness = syncManager.getAwareness(id)
+      setAwareness(awareness)
+
+      return () => {
+        doc.off('update', updateHandler)
+        statusUnsub()
+        setAwareness(null)
+        setSyncStatus('offline')
+        setPeerCount(0)
+        setRemoteUsers([])
+      }
+    }
+
+    // === Fallback path: create our own WebSocketSyncProvider ===
 
     // Listen for updates (both local and remote) to trigger persistence
     const updateHandler = (_update: Uint8Array, _origin: unknown) => {
@@ -599,9 +664,9 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       doc.off('update', updateHandler)
     }
     // Note: store is accessed via storeRef to avoid re-creating provider on store changes
-  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, did])
+  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, did, syncManager])
 
-  // Cleanup on unmount - save any pending changes
+  // Cleanup on unmount - save any pending changes and release doc
   // Note: We use saveTimeoutRef.current as the indicator of pending saves
   // (not isDirty state) to avoid stale closure issues
   useEffect(() => {
@@ -611,15 +676,22 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         saveTimeoutRef.current = null
         // Flush pending save synchronously (best effort)
         // The presence of the timeout indicates unsaved changes
-        if (docRef.current && store && id) {
+        if (docRef.current && store && id && !usingSyncManagerRef.current) {
           const content = Y.encodeStateAsUpdate(docRef.current)
           store.setDocumentContent(id, content).catch(() => {
             // Silent fail on unmount
           })
         }
+        // SyncManager pool handles persistence for managed docs
+      }
+
+      // Release doc back to SyncManager on unmount
+      if (usingSyncManagerRef.current && id && syncManager) {
+        syncManager.release(id)
+        usingSyncManagerRef.current = false
       }
     }
-  }, [store, id])
+  }, [store, id, syncManager])
 
   // Subscribe to property changes
   useEffect(() => {

@@ -105,6 +105,46 @@ export {
   type WebSocketSyncProviderOptions
 } from './sync/WebSocketSyncProvider'
 
+export {
+  createSyncManager,
+  type SyncManager,
+  type SyncManagerConfig,
+  type SyncStatus as SyncManagerStatus
+} from './sync/sync-manager'
+
+export { useSyncManager } from './hooks/useSyncManager'
+
+export {
+  createNodePool,
+  type NodePool,
+  type NodePoolConfig,
+  type PoolEntryState
+} from './sync/node-pool'
+
+export {
+  createConnectionManager,
+  type ConnectionManager,
+  type ConnectionManagerConfig,
+  type ConnectionStatus
+} from './sync/connection-manager'
+
+export {
+  createRegistry,
+  type Registry,
+  type RegistryConfig,
+  type RegistryStorage,
+  type TrackedNode
+} from './sync/registry'
+
+export { createMetaBridge, type MetaBridge } from './sync/meta-bridge'
+
+export {
+  createOfflineQueue,
+  type OfflineQueue,
+  type OfflineQueueConfig,
+  type QueueEntry
+} from './sync/offline-queue'
+
 // =============================================================================
 // Identity
 // =============================================================================

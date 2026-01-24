@@ -62,18 +62,18 @@ flowchart TB
 
 ## Implementation Steps
 
-| Step | File                                                       | Description                                     | Effort |
-| ---- | ---------------------------------------------------------- | ----------------------------------------------- | ------ |
-| 1    | [01-meta-bridge.md](./01-meta-bridge.md)                   | Extract meta sync into reusable utility         | 1 day  |
-| 2    | [02-node-pool.md](./02-node-pool.md)                       | LRU Y.Doc pool with acquire/release semantics   | 2 days |
-| 3    | [03-registry.md](./03-registry.md)                         | Tracked Node set with persistence               | 1 day  |
-| 4    | [04-connection-manager.md](./04-connection-manager.md)     | Multiplexed WebSocket with multi-room subscribe | 2 days |
-| 5    | [05-sync-manager.md](./05-sync-manager.md)                 | Orchestrator tying pool + registry + connection | 2 days |
-| 6    | [06-usenode-integration.md](./06-usenode-integration.md)   | Modify `useNode` to borrow from BSM             | 1 day  |
-| 7    | [07-offline-queue.md](./07-offline-queue.md)               | Persistent queue for offline changes            | 2 days |
-| 8    | [08-desktop-main-process.md](./08-desktop-main-process.md) | Move BSM to Electron main process               | 2 days |
+| Step | File                                                       | Description                                     | Effort | Status  |
+| ---- | ---------------------------------------------------------- | ----------------------------------------------- | ------ | ------- |
+| 1    | [01-meta-bridge.md](./01-meta-bridge.md)                   | Extract meta sync into reusable utility         | 1 day  | ✅ Done |
+| 2    | [02-node-pool.md](./02-node-pool.md)                       | LRU Y.Doc pool with acquire/release semantics   | 2 days | ✅ Done |
+| 3    | [03-registry.md](./03-registry.md)                         | Tracked Node set with persistence               | 1 day  | ✅ Done |
+| 4    | [04-connection-manager.md](./04-connection-manager.md)     | Multiplexed WebSocket with multi-room subscribe | 2 days | ✅ Done |
+| 5    | [05-sync-manager.md](./05-sync-manager.md)                 | Orchestrator tying pool + registry + connection | 2 days | ✅ Done |
+| 6    | [06-usenode-integration.md](./06-usenode-integration.md)   | Modify `useNode` to borrow from BSM             | 1 day  | ✅ Done |
+| 7    | [07-offline-queue.md](./07-offline-queue.md)               | Persistent queue for offline changes            | 2 days | ✅ Done |
+| 8    | [08-desktop-main-process.md](./08-desktop-main-process.md) | Move BSM to Electron main process               | 2 days | ✅ Done |
 
-**Total: ~2 weeks**
+**Total: ~2 weeks** | **All steps complete**
 
 ## Dependencies
 

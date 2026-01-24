@@ -3,11 +3,12 @@
  */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { XNetProvider } from '@xnet/react'
+import { XNetProvider, type SyncManager } from '@xnet/react'
 import { IndexedDBNodeStorageAdapter } from '@xnet/data'
 import { XNetDevToolsProvider } from '@xnet/devtools'
 import { ThemeProvider } from '@xnet/ui'
 import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
+import { createIPCSyncManager } from './lib/ipc-sync-manager'
 import { App } from './App'
 import './styles.css'
 
@@ -19,6 +20,9 @@ const SIGNING_KEY = new Uint8Array(32).fill(1)
 const consentManager = new ConsentManager({ autoLoad: true })
 consentManager.setTier('anonymous') // Enable all collection tiers for devtools visibility
 const telemetryCollector = new TelemetryCollector({ consent: consentManager })
+
+// Create IPC-based sync manager for desktop (routes through main process BSM)
+const ipcSyncManager: SyncManager | undefined = window.xnetBSM ? createIPCSyncManager() : undefined
 
 async function init() {
   const startTime = performance.now()
@@ -45,7 +49,8 @@ async function init() {
             config={{
               nodeStorage,
               authorDID: AUTHOR_DID,
-              signingKey: SIGNING_KEY
+              signingKey: SIGNING_KEY,
+              syncManager: ipcSyncManager
             }}
           >
             <XNetDevToolsProvider
