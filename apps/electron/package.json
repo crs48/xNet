@@ -23,6 +23,7 @@
     "@xnet/editor": "workspace:*",
     "@xnet/react": "workspace:*",
     "@xnet/sdk": "workspace:*",
+    "@xnet/telemetry": "workspace:*",
     "@xnet/ui": "workspace:*",
     "@xnet/views": "workspace:*",
     "better-sqlite3": "^11.0.0",

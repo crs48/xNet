@@ -77,34 +77,28 @@ export function instrumentTelemetry(
   const origReportPerformance = collector.reportPerformance.bind(collector)
   const origReportSecurityEvent = collector.reportSecurityEvent.bind(collector)
 
-  // Wrap reportCrash
+  // Wrap reportCrash - always emit to devtools regardless of consent result
   collector.reportCrash = (error: Error, context?: Record<string, unknown>): string | null => {
-    const result = origReportCrash(error, context)
-    if (result !== null) {
-      bus.emit({
-        type: 'telemetry:crash',
-        errorType: error.name,
-        errorMessage: error.message,
-        component: (context as Record<string, unknown> | undefined)?.codeNamespace as
-          | string
-          | undefined
-      })
-    }
-    return result
+    bus.emit({
+      type: 'telemetry:crash',
+      errorType: error.name,
+      errorMessage: error.message,
+      component: (context as Record<string, unknown> | undefined)?.codeNamespace as
+        | string
+        | undefined
+    })
+    return origReportCrash(error, context)
   }
 
   // Wrap reportUsage
   collector.reportUsage = (metricName: string, value: number, period?: string): string | null => {
-    const result = origReportUsage(metricName, value, period)
-    if (result !== null) {
-      bus.emit({
-        type: 'telemetry:usage',
-        metric: metricName,
-        bucket: String(value),
-        period: period ?? 'daily'
-      })
-    }
-    return result
+    bus.emit({
+      type: 'telemetry:usage',
+      metric: metricName,
+      bucket: String(value),
+      period: period ?? 'daily'
+    })
+    return origReportUsage(metricName, value, period)
   }
 
   // Wrap reportPerformance
@@ -113,15 +107,12 @@ export function instrumentTelemetry(
     durationMs: number,
     codeNamespace?: string
   ): string | null => {
-    const result = origReportPerformance(metricName, durationMs, codeNamespace)
-    if (result !== null) {
-      bus.emit({
-        type: 'telemetry:performance',
-        metric: metricName,
-        bucket: categorizeDuration(durationMs)
-      })
-    }
-    return result
+    bus.emit({
+      type: 'telemetry:performance',
+      metric: metricName,
+      bucket: categorizeDuration(durationMs)
+    })
+    return origReportPerformance(metricName, durationMs, codeNamespace)
   }
 
   // Wrap reportSecurityEvent
@@ -130,16 +121,13 @@ export function instrumentTelemetry(
     eventSeverity: string,
     details?: Record<string, unknown>
   ): string | null => {
-    const result = origReportSecurityEvent(eventName, eventSeverity, details)
-    if (result !== null) {
-      bus.emit({
-        type: 'telemetry:security',
-        eventType: eventName,
-        severity: eventSeverity,
-        actionTaken: (details?.actionTaken as string) ?? 'logged'
-      })
-    }
-    return result
+    bus.emit({
+      type: 'telemetry:security',
+      eventType: eventName,
+      severity: eventSeverity,
+      actionTaken: (details?.actionTaken as string) ?? 'logged'
+    })
+    return origReportSecurityEvent(eventName, eventSeverity, details)
   }
 
   // Subscribe to consent tier changes

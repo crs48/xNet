@@ -7,6 +7,7 @@ import { XNetProvider } from '@xnet/react'
 import { IndexedDBNodeStorageAdapter } from '@xnet/data'
 import { XNetDevToolsProvider } from '@xnet/devtools'
 import { ThemeProvider } from '@xnet/ui'
+import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
 import { App } from './App'
 import './styles.css'
 
@@ -14,7 +15,14 @@ import './styles.css'
 const AUTHOR_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as const
 const SIGNING_KEY = new Uint8Array(32).fill(1)
 
+// Telemetry: consent set to 'anonymous' for dev (enables all collection tiers, visible in devtools)
+const consentManager = new ConsentManager({ autoLoad: true })
+consentManager.setTier('anonymous') // Enable all collection tiers for devtools visibility
+const telemetryCollector = new TelemetryCollector({ consent: consentManager })
+
 async function init() {
+  const startTime = performance.now()
+
   // Get profile name from main process for IndexedDB isolation
   // This allows running multiple Electron instances with separate data
   const profile = await window.xnet.getProfile()
@@ -32,20 +40,31 @@ async function init() {
   root.render(
     <React.StrictMode>
       <ThemeProvider defaultTheme="dark" storageKey="xnet-electron-theme">
-        <XNetProvider
-          config={{
-            nodeStorage,
-            authorDID: AUTHOR_DID,
-            signingKey: SIGNING_KEY
-          }}
-        >
-          <XNetDevToolsProvider>
-            <App />
-          </XNetDevToolsProvider>
-        </XNetProvider>
+        <TelemetryProvider consent={consentManager} collector={telemetryCollector}>
+          <XNetProvider
+            config={{
+              nodeStorage,
+              authorDID: AUTHOR_DID,
+              signingKey: SIGNING_KEY
+            }}
+          >
+            <XNetDevToolsProvider
+              telemetryCollector={telemetryCollector}
+              consentManager={consentManager}
+            >
+              <App />
+            </XNetDevToolsProvider>
+          </XNetProvider>
+        </TelemetryProvider>
       </ThemeProvider>
     </React.StrictMode>
   )
+
+  // Report startup performance (deferred to ensure devtools instrumentation is mounted)
+  const startupDuration = performance.now() - startTime
+  setTimeout(() => {
+    telemetryCollector.reportPerformance('app.startup', startupDuration, 'renderer')
+  }, 100)
 }
 
 init()

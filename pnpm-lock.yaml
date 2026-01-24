@@ -67,6 +67,9 @@ importers:
       '@xnet/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@xnet/telemetry':
+        specifier: workspace:*
+        version: link:../../packages/telemetry
       '@xnet/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -13537,7 +13540,7 @@ snapshots:
       msw: 2.12.7(@types/node@20.19.30)(typescript@5.9.3)
       sirv: 3.0.2
       tinyrainbow: 1.2.0
-      vitest: 2.1.9(@types/node@20.19.30)(@vitest/browser@2.1.9)(jsdom@25.0.1)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.46.0)
+      vitest: 2.1.9(@types/node@20.19.30)(@vitest/browser@2.1.9)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.46.0)
       ws: 8.19.0
     optionalDependencies:
       playwright: 1.57.0
