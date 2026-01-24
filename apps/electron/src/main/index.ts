@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 import { setupIPC } from './ipc'
+import { setupBSM } from './bsm'
 import { createMenu } from './menu'
 
 // Profile support for running multiple instances with separate data
@@ -25,6 +26,7 @@ if (profile !== 'default') {
 export const dataPath = join(app.getPath('userData'), 'xnet-data')
 
 let mainWindow: BrowserWindow | null = null
+let bsm: { stop: () => Promise<void> } | null = null
 
 async function createWindow() {
   // Show profile in title for multi-instance testing
@@ -64,6 +66,11 @@ app.whenReady().then(async () => {
   // Setup IPC handlers
   setupIPC()
 
+  // Setup Background Sync Manager
+  bsm = setupBSM({
+    getMainWindow: () => mainWindow
+  })
+
   // Create menu
   createMenu()
 
@@ -80,5 +87,12 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
+  }
+})
+
+app.on('before-quit', async () => {
+  if (bsm) {
+    await bsm.stop()
+    bsm = null
   }
 })

@@ -4,10 +4,18 @@
  * Provides NodeStore and optional identity to the React tree.
  * All data access happens through useQuery/useMutate/useNode hooks.
  */
-import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+  type ReactNode
+} from 'react'
 import type { Identity } from '@xnet/identity'
 import type { DID } from '@xnet/core'
 import { NodeStore, MemoryNodeStorageAdapter, type NodeStorageAdapter } from '@xnet/data'
+import { createSyncManager, type SyncManager } from './sync/sync-manager'
 
 /**
  * XNet configuration
@@ -21,6 +29,13 @@ export interface XNetConfig {
   signingKey?: Uint8Array
   /** User identity */
   identity?: Identity
+  /** Signaling server URLs for sync (default: ['ws://localhost:4444']) */
+  signalingServers?: string[]
+  /** Disable Background Sync Manager (default: false) */
+  disableSyncManager?: boolean
+  /** Provide an external SyncManager (e.g., IPC-based for Electron desktop).
+   *  When provided, the internal SyncManager creation is skipped. */
+  syncManager?: SyncManager
 }
 
 /**
@@ -35,6 +50,8 @@ export interface XNetContextValue {
   identity?: Identity
   /** Author DID (resolved from config.authorDID or config.identity.did) */
   authorDID: string | null
+  /** Background Sync Manager (null if disabled or not yet initialized) */
+  syncManager: SyncManager | null
 }
 
 /** @internal Exported for useNodeStore hook - not part of public API */
@@ -56,9 +73,12 @@ export interface XNetProviderProps {
 export function XNetProvider({ config, children }: XNetProviderProps): JSX.Element {
   const [nodeStore, setNodeStore] = useState<NodeStore | null>(null)
   const [nodeStoreReady, setNodeStoreReady] = useState(false)
+  const [syncManager, setSyncManager] = useState<SyncManager | null>(null)
+  const nodeStorageRef = useRef<NodeStorageAdapter | null>(null)
 
   useEffect(() => {
     const nodeStorageAdapter = config.nodeStorage ?? new MemoryNodeStorageAdapter()
+    nodeStorageRef.current = nodeStorageAdapter
     const authorDID = config.authorDID ?? (config.identity?.did as DID | undefined)
     const signingKey = config.signingKey
 
@@ -97,13 +117,77 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     }
   }, [config.nodeStorage, config.authorDID, config.signingKey, config.identity?.did])
 
+  // Create SyncManager when NodeStore is ready
+  useEffect(() => {
+    // If an external SyncManager is provided (e.g., IPC-based for Electron), use it directly
+    if (config.syncManager) {
+      config.syncManager
+        .start()
+        .then(() => {
+          setSyncManager(config.syncManager!)
+        })
+        .catch((err) => {
+          console.warn('[XNetProvider] External SyncManager failed to start:', err)
+        })
+
+      return () => {
+        config.syncManager!.stop().catch((err) => {
+          console.warn('[XNetProvider] External SyncManager failed to stop:', err)
+        })
+        setSyncManager(null)
+      }
+    }
+
+    if (!nodeStore || !nodeStoreReady || config.disableSyncManager) {
+      setSyncManager(null)
+      return
+    }
+
+    const storage = nodeStorageRef.current
+    if (!storage) return
+
+    const signalingUrl = config.signalingServers?.[0] ?? 'ws://localhost:4444'
+    const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
+
+    const sm = createSyncManager({
+      nodeStore,
+      storage,
+      signalingUrl,
+      authorDID
+    })
+
+    sm.start()
+      .then(() => {
+        setSyncManager(sm)
+      })
+      .catch((err) => {
+        console.warn('[XNetProvider] SyncManager failed to start:', err)
+      })
+
+    return () => {
+      sm.stop().catch((err) => {
+        console.warn('[XNetProvider] SyncManager failed to stop:', err)
+      })
+      setSyncManager(null)
+    }
+  }, [
+    nodeStore,
+    nodeStoreReady,
+    config.disableSyncManager,
+    config.syncManager,
+    config.signalingServers,
+    config.authorDID,
+    config.identity?.did
+  ])
+
   const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
 
   const value: XNetContextValue = {
     nodeStore,
     nodeStoreReady,
     identity: config.identity,
-    authorDID: authorDID ?? null
+    authorDID: authorDID ?? null,
+    syncManager
   }
 
   return React.createElement(XNetContext.Provider, { value }, children)
