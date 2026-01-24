@@ -147,6 +147,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
   // Track if we've loaded to prevent re-fetching
   const hasLoadedRef = useRef(false)
+  // Track update count for devtools reporting
+  const updateCountRef = useRef(0)
 
   // Query tracking for devtools
   const queryIdRef = useRef(
@@ -246,18 +248,6 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
         setData(flattened)
       }
       hasLoadedRef.current = true
-
-      // Report to devtools
-      if (instrumentation?.queryTracker) {
-        const count = isSingleQuery
-          ? data
-            ? 1
-            : 0
-          : Array.isArray(data)
-            ? (data as unknown[]).length
-            : 0
-        instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0)
-      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
       setData(isSingleQuery ? null : [])
@@ -283,6 +273,14 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       loadData()
     }
   }, [isReady, loadData])
+
+  // Report updates to devtools whenever data changes
+  useEffect(() => {
+    if (!instrumentation?.queryTracker || !hasLoadedRef.current) return
+    const count = isSingleQuery ? (data ? 1 : 0) : Array.isArray(data) ? data.length : 0
+    updateCountRef.current++
+    instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0)
+  }, [data, instrumentation, isSingleQuery])
 
   // Subscribe to store changes
   useEffect(() => {

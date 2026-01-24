@@ -635,6 +635,12 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     return unsubscribe
   }, [store, id, schemaId])
 
+  // Report updates to devtools whenever data changes
+  useEffect(() => {
+    if (!instrumentation?.queryTracker || !id || loading) return
+    instrumentation.queryTracker.recordUpdate(queryIdRef.current, data ? 1 : 0, 0)
+  }, [data, instrumentation, id, loading])
+
   return {
     // Data
     data,
