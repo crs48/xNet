@@ -445,6 +445,359 @@ graph TD
 
 ---
 
+## The Hub as Search Infrastructure
+
+The three-tier model above assumes peers are ephemeral — laptops sleep, phones lose connectivity, browsers close tabs. In practice, Tier 2 and Tier 3 need **always-on participants** to be reliable. This is exactly what the xNet Hub provides (see [Server Infrastructure Exploration](./SERVER_INFRASTRUCTURE.md) and [planStep03_8HubPhase1VPS](../planStep03_8HubPhase1VPS/README.md)).
+
+A Hub is an xNet peer that never goes offline. It participates in the same sync protocols as any device, but runs on a VPS/container with persistent storage. The Hub is **optional** (everything works P2P without it), but it dramatically improves search availability and quality.
+
+### Hub Roles in Search
+
+```mermaid
+graph TB
+    subgraph "Devices (ephemeral)"
+        D1["Alice's Laptop<br/>(online 8h/day)"]
+        D2["Bob's Phone<br/>(online 4h/day)"]
+        D3["Carol's Browser<br/>(online 1h/day)"]
+    end
+
+    subgraph "Hubs (always-on)"
+        H1["hub.xnet.io<br/>(canonical, run by us)"]
+        H2["hub.acme-corp.com<br/>(self-hosted, enterprise)"]
+        H3["alice-hub.fly.dev<br/>(personal, $5/mo)"]
+    end
+
+    subgraph "Search Roles"
+        R1["Always-available<br/>Bloom filter responder"]
+        R2["Persistent index<br/>(FTS5 + pg_vector)"]
+        R3["Federation relay<br/>(hub-to-hub queries)"]
+        R4["Crawl coordinator<br/>(Tier 3 index shards)"]
+    end
+
+    D1 <-->|sync| H1
+    D2 <-->|sync| H1
+    D3 <-->|sync| H2
+
+    H1 --- R1
+    H1 --- R2
+    H1 <-->|federated query| H2
+    H2 --- R3
+    H1 --- R4
+
+    style D1 fill:#e3f2fd
+    style D2 fill:#e3f2fd
+    style D3 fill:#e3f2fd
+    style H1 fill:#e8f5e9
+    style H2 fill:#e8f5e9
+    style H3 fill:#e8f5e9
+```
+
+### Role 1: Always-Available Workspace Index (Tier 2 Enhancement)
+
+Without a Hub, workspace search only works when peers are online simultaneously. With a Hub:
+
+- The Hub syncs all workspace data via the standard relay protocol (Yjs + NodeChanges)
+- It maintains a persistent FTS5/pg_vector index of all synced content
+- When a peer searches, the Hub is always available to respond — no Bloom filter needed for a known Hub
+- The Hub's index is **complete** for the workspace (it has received all changes from all peers)
+
+```mermaid
+sequenceDiagram
+    participant Alice
+    participant Hub as hub.xnet.io
+    participant Bob as Bob (offline)
+
+    Note over Alice,Bob: Bob edited docs yesterday, is now offline
+    Alice->>Hub: SearchQueryRequest { text: "soil carbon" }
+    Hub->>Hub: Query FTS5 index (includes Bob's edits)
+    Hub->>Alice: SearchQueryResponse { results: [...] }
+    Note over Alice: Gets results from Bob's data without Bob being online
+```
+
+**This solves Tier 2's fundamental weakness**: Bloom filter gossip and peer queries only work when peers are present. The Hub makes workspace search work like a cloud service while keeping data user-owned.
+
+```typescript
+// Hub search config (per workspace)
+interface HubSearchConfig {
+  // What the hub indexes (user-controlled)
+  indexMode: 'none' | 'metadata' | 'fulltext' | 'semantic'
+
+  // Which schemas to index
+  schemas: SchemaIRI[] | '*'
+
+  // Privacy: should the hub see plaintext?
+  // If false, hub stores encrypted index (HMAC-keyed terms only)
+  plaintextIndex: boolean
+}
+```
+
+### Role 2: Federation Relay (Tier 2 → Tier 3 Bridge)
+
+Hubs are the natural federation points between organizations. When a query needs to span multiple workspaces or organizations, the Hub routes it:
+
+```mermaid
+flowchart LR
+    subgraph "Org A"
+        CA[Client A]
+        HA[Hub A<br/>hub.orgA.com]
+        CA -->|query| HA
+    end
+
+    subgraph "Org B"
+        HB[Hub B<br/>hub.orgB.com]
+    end
+
+    subgraph "Org C"
+        HC[Hub C<br/>hub.orgC.com]
+    end
+
+    HA <-->|"/xnet/search/1.0.0"| HB
+    HA <-->|"/xnet/search/1.0.0"| HC
+
+    HB -->|results| HA
+    HC -->|results| HA
+    HA -->|merged results| CA
+```
+
+**Inter-hub federation requires:**
+
+1. **Hub identity**: Each Hub has its own DID, signed by the operator
+2. **Federation agreements**: Hub A trusts Hub B for certain schema types (registered via UCAN delegation)
+3. **Query routing table**: Hub maintains a list of peer hubs and what schemas/topics they serve
+4. **Result attribution**: Each result carries the source Hub's DID for reputation tracking
+
+```typescript
+interface HubFederationConfig {
+  // Peer hubs this hub will forward queries to
+  peers: {
+    hubUrl: string
+    hubDid: DID
+    schemas: SchemaIRI[] // What schemas to query from this hub
+    trustLevel: 'full' | 'metadata-only'
+    maxLatencyMs: number // Skip if too slow
+  }[]
+
+  // What this hub exposes to federated queries
+  expose: {
+    schemas: SchemaIRI[] // Which schemas are queryable by other hubs
+    requireAuth: boolean // Require UCAN from querying hub
+    rateLimit: number // Queries per minute per hub
+  }
+}
+```
+
+### Role 3: Canonical Hub (Bootstrap & Revenue)
+
+The xNet project runs a canonical Hub at `hub.xnet.io` that serves multiple purposes:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    hub.xnet.io (canonical)                     │
+│                                                               │
+│  1. BOOTSTRAP NODE                                            │
+│     • First hub new users connect to                          │
+│     • Provides initial peer discovery                         │
+│     • Hosts public schema registry                            │
+│     • Solves cold-start (instant results from day one)        │
+│                                                               │
+│  2. SEARCH AGGREGATOR                                         │
+│     • Maintains global public index (Tier 3)                  │
+│     • Aggregates metadata from federated hubs                 │
+│     • Serves as "default search" for new users                │
+│     • Crawl coordinator for web indexing                      │
+│                                                               │
+│  3. REVENUE ENGINE                                            │
+│     • Paid tiers: relay, backup, search, semantic             │
+│     • Free tier: 10 docs, metadata search only                │
+│     • Team/Enterprise: unlimited, full-text + vector search   │
+│     • Like Mastodon/Matrix: official instance, anyone can     │
+│       run their own, revenue from convenience not lock-in     │
+│                                                               │
+│  4. REPUTATION ANCHOR                                         │
+│     • Aggregates DID reputation scores from connected hubs    │
+│     • Acts as trust root for new users without social graph   │
+│     • Publishes spam/abuse blocklists (opt-in for other hubs) │
+│                                                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**The cold-start problem solved**: New users connect to `hub.xnet.io`, which has a pre-built index of public schemas, community knowledge, and federated results from all connected hubs. From day one, search returns useful results.
+
+**The revenue model for search**:
+
+| Tier       | Search Capability                                  | Price       |
+| ---------- | -------------------------------------------------- | ----------- |
+| Free       | Metadata-only (title, schema, tags)                | $0          |
+| Personal   | Full-text + 1000 indexed docs                      | $5/mo       |
+| Team       | Full-text + semantic + unlimited docs + federation | $15/mo/seat |
+| Enterprise | Custom models, private hub federation, SLA         | Custom      |
+
+### Role 4: Index Shard Host (Tier 3 at Scale)
+
+For web-scale global search, Hubs become the infrastructure that hosts index shards:
+
+```mermaid
+graph TD
+    subgraph "Crawl Layer"
+        C1["Volunteer crawlers<br/>(any xNet peer)"]
+        C2["Dedicated crawlers<br/>(hub operators)"]
+    end
+
+    subgraph "Index Layer (Hubs)"
+        H1["Hub A<br/>Shard: terms A-F"]
+        H2["Hub B<br/>Shard: terms G-M"]
+        H3["Hub C<br/>Shard: terms N-S"]
+        H4["Hub D<br/>Shard: terms T-Z"]
+    end
+
+    subgraph "Query Layer"
+        QR["Any Hub can route<br/>queries to relevant shards"]
+    end
+
+    C1 -->|crawl results| H1
+    C1 -->|crawl results| H2
+    C2 -->|crawl results| H3
+    C2 -->|crawl results| H4
+
+    QR --> H1
+    QR --> H2
+    QR --> H3
+    QR --> H4
+
+    style H1 fill:#e8f5e9
+    style H2 fill:#e8f5e9
+    style H3 fill:#e8f5e9
+    style H4 fill:#e8f5e9
+```
+
+**Why Hubs are better than raw P2P for index shards:**
+
+| Property       | Raw P2P Shard                | Hub-Hosted Shard               |
+| -------------- | ---------------------------- | ------------------------------ |
+| Availability   | Depends on volunteer uptime  | 99.9% (VPS/cloud)              |
+| Latency        | Variable (home connections)  | Consistent (<50ms)             |
+| Storage        | Limited by consumer hardware | Scalable (S3/disk)             |
+| Accountability | Anonymous, no consequences   | Hub DID + reputation at stake  |
+| Incentive      | Altruism only                | Revenue from paid search tiers |
+
+### Hub Search Architecture (Implementation)
+
+How the Hub's query service integrates with the three tiers:
+
+```typescript
+// Hub query service (extends planStep03_8 Phase 5: Query Engine)
+class HubSearchService {
+  private fts: SQLiteFTS5 // Local full-text (from hub relay)
+  private vectors: PgVector // Semantic search (Phase 2+)
+  private federationPeers: HubPeer[] // Other hubs for federated queries
+
+  async search(request: SearchQueryRequest): Promise<SearchQueryResponse> {
+    const results: ScoredResult[] = []
+
+    // 1. Local index (all data this hub has synced)
+    const localResults = await this.fts.search(request.text, {
+      schema: request.schema,
+      filters: request.filters,
+      limit: request.limit
+    })
+    results.push(...localResults)
+
+    // 2. Vector search (if semantic query)
+    if (request.vector) {
+      const semanticResults = await this.vectors.search(request.vector, {
+        threshold: 0.7,
+        limit: request.limit
+      })
+      results.push(...semanticResults)
+    }
+
+    // 3. Federated query (if configured and authorized)
+    if (this.shouldFederate(request)) {
+      const fedResults = await this.queryFederatedHubs(request)
+      results.push(...fedResults)
+    }
+
+    // Merge and deduplicate by CID
+    return {
+      queryId: request.queryId,
+      results: deduplicateAndRank(results),
+      totalEstimate: results.length,
+      executionMs: Date.now() - start,
+      peerId: this.hubDid
+    }
+  }
+
+  private async queryFederatedHubs(request: SearchQueryRequest): Promise<ScoredResult[]> {
+    // Query peer hubs in parallel, with timeout
+    const promises = this.federationPeers
+      .filter((hub) => hub.servesSchema(request.schema))
+      .map((hub) => hub.query(request).catch(() => [] as ScoredResult[]))
+
+    const results = await Promise.allSettled(promises)
+    return results.filter((r) => r.status === 'fulfilled').flatMap((r) => r.value)
+  }
+}
+```
+
+### Hub vs Pure P2P: When Each Tier Uses What
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                    │
+│  Tier 1 (Local)                                                    │
+│  └── Always on-device. Hub irrelevant.                             │
+│                                                                    │
+│  Tier 2 (Workspace)                                                │
+│  ├── WITH Hub: Query hub's persistent index. Always works.         │
+│  │   Hub has complete workspace data via sync relay.               │
+│  │   Latency: 20-100ms (single round-trip to hub).                │
+│  └── WITHOUT Hub: Bloom filter gossip + direct peer queries.       │
+│      Only works when peers online. Latency: 50-500ms.             │
+│                                                                    │
+│  Tier 3 (Global)                                                   │
+│  ├── WITH Hub: Hub queries federated hubs + global index shards.   │
+│  │   Canonical hub (hub.xnet.io) acts as aggregator.              │
+│  │   Latency: 100-500ms.                                          │
+│  └── WITHOUT Hub: DHT metadata lookup only. No full-text.         │
+│      Requires peer discovery. Latency: 500ms-2s.                  │
+│                                                                    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Privacy Implications of Hub Search
+
+The Hub adds convenience but introduces a trust decision:
+
+| Privacy Property      | P2P Only          | With Hub                               |
+| --------------------- | ----------------- | -------------------------------------- |
+| Who sees queries?     | Direct peers only | Hub operator                           |
+| Who sees content?     | Workspace members | Hub (if `plaintextIndex: true`)        |
+| Who controls ranking? | Local BM25        | Hub can influence (but user-auditable) |
+| Data locality         | On-device only    | Replicated to hub's VPS                |
+| Opt-in?               | N/A (default)     | Yes — user explicitly configures hub   |
+
+**Mitigations:**
+
+- `plaintextIndex: false` → Hub only stores HMAC-keyed term hashes (can answer exact queries but can't read content)
+- Self-hosted hubs → you are the operator, no trust required
+- Hub code is open source (MIT) → auditable, no hidden behavior
+- UCAN scoping → Hub can only access data it's been granted
+
+### How This Maps to planStep03_8 Phases
+
+The Hub Phase 1 plan already includes the foundation for search. Here's how search-specific features layer on:
+
+| Hub Phase                  | Search Feature                                | Status   |
+| -------------------------- | --------------------------------------------- | -------- |
+| Phase 5 (Query Engine)     | FTS5 index, schema filters, query protocol    | Planned  |
+| Phase 8 (Node Sync Relay)  | NodeChange index (structured data searchable) | Planned  |
+| Phase 10 (Schema Registry) | Schema-based discovery/routing                | Planned  |
+| **New: Phase 14**          | Hub federation protocol for search            | Proposed |
+| **New: Phase 15**          | Global index shard assignment                 | Proposed |
+| **New: Phase 16**          | Crawl coordination (web indexing)             | Vision   |
+
+---
+
 ## Encrypted Search
 
 A critical challenge: how do you search data you can't read?
@@ -575,20 +928,26 @@ gantt
     Integrate NodeStore with search     :p1d, after p1c, 1w
     Connect @xnet/vectors to pipeline   :p1e, after p1d, 1w
 
-    section Phase 2: Federation
-    Define /xnet/search/1.0.0 protocol  :p2a, 2026-04, 2w
-    Bloom filter gossip implementation  :p2b, after p2a, 2w
-    Federated query + result merge      :p2c, after p2b, 2w
-    UCAN-authenticated queries          :p2d, after p2c, 1w
+    section Phase 2: Hub Search
+    Hub FTS5 index (planStep03_8 Ph5)   :p2a, 2026-03, 2w
+    Hub NodeChange indexing (Ph8)       :p2b, after p2a, 2w
+    Client useSearch hub fallback       :p2c, after p2b, 1w
+    Hub semantic search (pg_vector)     :p2d, after p2c, 2w
 
-    section Phase 3: Global
-    DHT metadata publishing             :p3a, 2026-07, 2w
-    Schema-based discovery              :p3b, after p3a, 2w
-    Tantivy-WASM migration              :p3c, after p3b, 4w
-    Index shard protocol                :p3d, after p3c, 4w
+    section Phase 3: Federation
+    Hub-to-hub query protocol           :p3a, 2026-06, 2w
+    Hub federation config + routing     :p3b, after p3a, 2w
+    P2P Bloom filter gossip (hubless)   :p3c, after p3b, 2w
+    Merged results (hub + P2P + local)  :p3d, after p3c, 1w
+
+    section Phase 4: Global
+    Canonical hub global index          :p4a, 2026-09, 4w
+    Schema-based discovery via hubs     :p4b, after p4a, 2w
+    Crawl coordination protocol         :p4c, after p4b, 4w
+    Index shard assignment              :p4d, after p4c, 4w
 ```
 
-### Phase 1 Details
+### Phase 1 Details (Local)
 
 1. **Index body text**: Walk `Y.Doc.getMap('blockMap')`, extract text from each block, concatenate for full-text indexing.
 2. **Persist index**: Serialize MiniSearch state to IndexedDB. Load on startup instead of full re-index.
@@ -596,19 +955,26 @@ gantt
 4. **NodeStore integration**: Index `NodeState.properties` alongside XDocument metadata. Schema-aware field boosting.
 5. **Vector pipeline**: Wire `@xnet/vectors` HybridSearch into the SDK's `client.search()`.
 
-### Phase 2 Details
+### Phase 2 Details (Hub Search)
 
-6. **Protocol definition**: Register `/xnet/search/1.0.0` on libp2p. msgpack encoding. Request/response pattern.
-7. **Bloom gossip**: Each peer maintains per-workspace Bloom filter. Exchange via gossipsub topic.
-8. **Query federation**: FederatedQueryRouter checks Bloom filters → queries relevant peers → merges with RRF.
-9. **Auth**: Every SearchQueryRequest includes UCAN token. Peers verify capability before responding.
+6. **Hub FTS5 index**: The Hub already plans a query engine (planStep03_8 Phase 5). Extend it with full-text indexing of relayed documents. The Hub sees all workspace content via sync relay — index it with SQLite FTS5.
+7. **Hub NodeChange indexing**: When the Hub receives NodeChanges (planStep03_8 Phase 8), index structured properties for schema-typed queries. A task's `status`, `priority`, `assignee` become filterable without the client loading all data.
+8. **Client `useSearch` hub fallback**: When local results are insufficient or when the user explicitly requests workspace-wide search, the client queries the Hub via the existing WebSocket connection. Progressive: show local results immediately, Hub results stream in.
+9. **Hub semantic search**: Add pg_vector (or sqlite-vss) to the Hub for "find similar" queries. The Hub generates embeddings server-side (users don't need to run ML models on-device).
 
-### Phase 3 Details
+### Phase 3 Details (Federation)
 
-10. **DHT metadata**: Publish PublicIndexRecord for user-designated public Nodes.
-11. **Schema routing**: Query DHT by schema IRI hash. "Find all public Recipes" = `findProviders(hash(schemaIRI))`.
-12. **Tantivy-WASM**: Replace MiniSearch for users with large datasets (>10k nodes). Incremental segment indexing.
-13. **Index shards**: Term-partitioned shards assigned by consistent hashing. Volunteer-run initially.
+10. **Hub-to-hub query protocol**: Define `/xnet/hub-search/1.0.0` — a WebSocket or HTTP protocol for hubs to query each other. UCAN-authenticated, rate-limited, schema-scoped.
+11. **Hub federation config**: Hub operators configure which peer hubs to federate with, which schemas to expose, and trust levels. The canonical hub (`hub.xnet.io`) federates with all registered community hubs.
+12. **P2P Bloom filter gossip (hubless fallback)**: For users without a Hub, maintain the pure P2P Bloom filter approach from Tier 2. This ensures xNet works without any servers.
+13. **Merged results**: Client-side `useSearch` combines: local (instant) + Hub (fast, complete) + P2P peers (fallback) + federated hubs (Tier 3). RRF merges across all sources.
+
+### Phase 4 Details (Global)
+
+14. **Canonical hub global index**: `hub.xnet.io` maintains a global index of all public metadata (published nodes, schemas, tags). This is the "Google-like" endpoint for public xNet content. Revenue: paid tiers for full-text and semantic search.
+15. **Schema-based discovery via hubs**: Any hub can advertise which schemas it serves. Clients query the canonical hub's registry to discover relevant hubs for a given schema (e.g., "which hubs have farming/Species data?").
+16. **Crawl coordination**: The canonical hub assigns URL ranges to volunteer crawlers. Crawl results are submitted back and indexed. Hub operators can opt-in to crawl coordination to build a decentralized web index.
+17. **Index shard assignment**: For web-scale search, multiple hubs each host a shard of the global index. Consistent hashing assigns terms to hubs. Any hub can route a query to the relevant shards.
 
 ---
 
@@ -745,32 +1111,40 @@ function SearchPage() {
 
 ## Technology Recommendations
 
-| Component        | Now                          | Future                     | Rationale                                                              |
-| ---------------- | ---------------------------- | -------------------------- | ---------------------------------------------------------------------- |
-| Local full-text  | MiniSearch                   | Tantivy-WASM               | MiniSearch for <10k docs. Tantivy for millions + incremental indexing. |
-| Persistence      | IndexedDB (serialized)       | OPFS (Tantivy segments)    | OPFS gives file-system semantics needed by Tantivy.                    |
-| Index transport  | Bloom filters over gossipsub | + Merkle DAG index sync    | Bloom for routing. Merkle for verifiable index state.                  |
-| Global discovery | Kademlia DHT (libp2p)        | + dedicated index nodes    | DHT for metadata. Index nodes for full-text web search.                |
-| Spam resistance  | UCAN + rate limiting         | + DID reputation scores    | Trust from capability chains. Reputation from usage patterns.          |
-| Ranking          | BM25 + RRF                   | + social trust + Goggles   | Local relevance + social authority + user control.                     |
-| Encrypted search | HMAC-keyed term hashing      | + multi-party PIR          | HMAC for workspace search. PIR for anonymous global queries (future).  |
-| Vector search    | @xnet/vectors (HNSW)         | + federated vector queries | Local HNSW now. Cross-peer approximate NN later.                       |
+| Component         | Now                          | Future                      | Rationale                                                              |
+| ----------------- | ---------------------------- | --------------------------- | ---------------------------------------------------------------------- |
+| Local full-text   | MiniSearch                   | Tantivy-WASM                | MiniSearch for <10k docs. Tantivy for millions + incremental indexing. |
+| Persistence       | IndexedDB (serialized)       | OPFS (Tantivy segments)     | OPFS gives file-system semantics needed by Tantivy.                    |
+| Hub full-text     | SQLite FTS5                  | Tantivy (native, on server) | FTS5 is zero-config. Tantivy for 10M+ doc hubs.                        |
+| Hub vector search | sqlite-vss                   | pgvector (PostgreSQL)       | sqlite-vss for single-hub. pgvector for scalable multi-tenant.         |
+| Hub federation    | HTTP + WebSocket             | libp2p streams              | HTTP for simplicity. libp2p for P2P hub mesh (no DNS required).        |
+| Index transport   | Bloom filters over gossipsub | + Merkle DAG index sync     | Bloom for P2P routing. Merkle for verifiable hub index state.          |
+| Global discovery  | Canonical hub registry       | + Kademlia DHT              | Hub registry for bootstrap. DHT for decentralized hub discovery.       |
+| Spam resistance   | UCAN + rate limiting         | + hub reputation scores     | Trust from capability chains. Hub reputation from federation quality.  |
+| Ranking           | BM25 + RRF                   | + social trust + Goggles    | Local relevance + social authority + user control.                     |
+| Encrypted search  | HMAC-keyed term hashing      | + multi-party PIR           | HMAC for hub workspace search. PIR for anonymous queries (future).     |
+| Vector search     | @xnet/vectors (HNSW)         | + hub-hosted ANN federation | Local HNSW now. Hub-side vector index for large-scale semantic.        |
+| Crawl coordinator | —                            | Hub-assigned URL ranges     | Canonical hub distributes crawl work to volunteer hubs/peers.          |
 
 ---
 
 ## Open Questions
 
-1. **Incentives for global indexers**: Volunteer-only, or do we need token economics? Can reputation alone motivate crawling/indexing?
+1. **Hub trust model**: Users must decide whether to trust a Hub with their search queries and (optionally) plaintext content. Self-hosted hubs eliminate this, but most users will use `hub.xnet.io`. How do we make the trust decision transparent and auditable? Publish query logs? Zero-knowledge proofs of correct execution?
 
-2. **Index consistency**: If two indexers independently index the same document, how do we verify they agree? Deterministic indexing (same input → same index output)?
+2. **Hub economics at scale**: The canonical hub needs to be self-sustaining. Is $5-15/mo/user enough to cover infrastructure for global search? At what user count does the paid tier cover the free tier's costs? Rough math: 1000 paying users at $10/mo = $10k/mo — enough for significant infrastructure.
 
-3. **Bandwidth budget**: Bloom filter gossip is cheap (~122KB/min/peer). But at what peer count does it become problematic? Hierarchical gossip with supernodes?
+3. **Federation governance**: Who decides which hubs can federate with `hub.xnet.io`? Open federation (anyone can join) risks spam. Curated federation (approval required) risks centralization. Middle ground: open join + reputation-based demotion?
 
-4. **Vector search federation**: Approximate nearest neighbor search across distributed indexes is an open research problem. Do we need a centralized vector index for semantic queries, or can we do ANN over DHT?
+4. **Index consistency across hubs**: If Hub A and Hub B both index the same public document, their indexes should agree. Deterministic indexing (same input → same index output) would allow verification. Is this achievable with FTS5/Tantivy?
 
-5. **Legal considerations**: If xNet enables global web search, who's liable for indexing copyrighted content? Does user-initiated crawling differ legally from corporate crawling?
+5. **Canonical hub as single point of failure**: If `hub.xnet.io` goes down, new users lose their bootstrap. Mitigation: maintain a list of backup hubs, gossip the hub registry P2P, allow any hub to serve as bootstrap.
 
-6. **Cold start**: New users have no trust graph, no local index, no peers. How to provide useful results immediately? Bootstrap with public index nodes?
+6. **Vector search federation**: Approximate nearest neighbor search across distributed hub indexes is an open research problem. Start with the canonical hub hosting the only vector index? Or federate ANN queries with score normalization?
+
+7. **Legal considerations**: If `hub.xnet.io` enables web crawl indexing, it inherits legal liability. Does running the canonical hub make xNet (the company) a search engine operator? May need DMCA takedown compliance for Tier 3 web index.
+
+8. **Incentives for community hub operators**: Beyond self-hosting for your own team, why would someone run a public hub and federate? Possible: revenue sharing from the canonical hub's paid tiers, or the hub operator's own paid search offering.
 
 ---
 
@@ -784,7 +1158,17 @@ xNet's decentralized search is not a single system — it's a **spectrum** from 
 - **libp2p** gives us protocol-level query routing
 - **Yjs/CRDT** observers give us real-time index freshness
 - **Lamport clocks** give us consistent ordering of index updates
+- **Hubs** give us always-on persistence, federation points, and revenue
 
-The path is incremental: fix local search first (body text, persistence, reactivity), then add workspace federation (Bloom filters, peer queries), then global discovery (DHT metadata, index shards). Each phase is independently useful — you don't need global search to benefit from better local search.
+The **Hub is the key insight** that makes decentralized search practical rather than theoretical. Pure P2P search (YaCy model) fails because peers are unreliable. Centralized search (Google) fails because it's a single point of control. Hubs provide the middle ground: always-on infrastructure that anyone can run, with a canonical instance (`hub.xnet.io`) that bootstraps the network and generates revenue.
 
-The end state: a search engine as good as Google's but owned by nobody, censored by nobody, and tracking nobody.
+The path is incremental:
+
+1. Fix local search (body text, persistence, reactivity) — works today, no Hub needed
+2. Add Hub-backed workspace search (Hub Phase 5 + 8) — cloud-quality search, user-owned data
+3. Add Hub federation (hub-to-hub queries) — cross-org discovery
+4. Scale to global index (canonical hub + shard assignment) — Google-competitive, decentralized
+
+Each phase is independently useful and revenue-generating. You don't need global search to benefit from better local search, and you don't need the canonical hub to benefit from your own Hub.
+
+The end state: a search engine as good as Google's but owned by nobody, censored by nobody, tracking nobody — and sustained by a network of Hub operators who earn revenue by providing infrastructure, not by exploiting user data.
