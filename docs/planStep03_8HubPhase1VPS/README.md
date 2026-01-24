@@ -375,7 +375,7 @@ flowchart TB
 
 ### Phase 16: Yjs Security
 
-> **Moved to standalone plan:** [planStep04_1YjsSecurity](../planStep04_1YjsSecurity/README.md)
+> **Moved to standalone plan:** [planStep03_4_1YjsSecurity](../planStep03_4_1YjsSecurity/README.md)
 >
 > Yjs security is a cross-cutting concern affecting both hub and client packages. The full 8-step implementation plan (signed envelopes, UCAN auth, size limits, MetaBridge isolation, hash-at-rest, peer scoring, clientID binding, hash chain integration) lives in its own plan step.
 
@@ -404,8 +404,8 @@ packages/
         shard-ingest.ts         # Document ingestion to shards
         crawl.ts                # Crawl coordination
         crawl-robots.ts         # Robots.txt compliance
-        yjs-security.ts         # Signed envelope verification (see planStep04_1YjsSecurity)
-        yjs-peer-scoring.ts     # Yjs-specific peer scoring (see planStep04_1YjsSecurity)
+        yjs-security.ts         # Signed envelope verification (see planStep03_4_1YjsSecurity)
+        yjs-peer-scoring.ts     # Yjs-specific peer scoring (see planStep03_4_1YjsSecurity)
       routes/
         backup.ts               # /backup HTTP endpoints
         files.ts                # /files HTTP endpoints
@@ -502,7 +502,7 @@ packages/
 16. **Hub federation** queries peer hubs and returns merged, deduplicated results
 17. **Global index shards** distribute search across multiple hubs with BM25 scoring
 18. **Crawl coordination** assigns URLs to volunteer crawlers and indexes results
-19. **Yjs security** — see [planStep04_1YjsSecurity](../planStep04_1YjsSecurity/README.md)
+19. **Yjs security** — see [planStep03_4_1YjsSecurity](../planStep03_4_1YjsSecurity/README.md)
 
 ## Reference Documents
 
