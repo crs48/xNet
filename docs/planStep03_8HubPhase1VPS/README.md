@@ -312,6 +312,65 @@ flowchart TB
 - [ ] `DIDResolver.resolve()` returns hub-registered endpoints (not null)
 - [ ] Stale peers cleaned up after 7 days
 
+### Phase 13: Hub Federation Search (Days 16-18)
+
+| Task | Document                                                     | Description                               |
+| ---- | ------------------------------------------------------------ | ----------------------------------------- |
+| 13.1 | [14-hub-federation-search.md](./14-hub-federation-search.md) | FederationService with peer query routing |
+| 13.2 | [14-hub-federation-search.md](./14-hub-federation-search.md) | /federation/query HTTP endpoint           |
+| 13.3 | [14-hub-federation-search.md](./14-hub-federation-search.md) | Reciprocal Rank Fusion + CID dedup        |
+| 13.4 | [14-hub-federation-search.md](./14-hub-federation-search.md) | Peer health checks + rate limiting        |
+| 13.5 | [14-hub-federation-search.md](./14-hub-federation-search.md) | `federate: true` option in query-request  |
+
+**Validation Gate:**
+
+- [ ] Hub A queries Hub B and returns merged results
+- [ ] Duplicate content (same CID) is deduplicated across hubs
+- [ ] Schema filter routes to hubs that serve that schema
+- [ ] Unresponsive hubs timeout gracefully (partial results returned)
+- [ ] `/federation/status` shows hub capabilities and peer count
+- [ ] Rate limiting prevents abuse between hubs
+
+### Phase 14: Global Index Shards (Days 19-22)
+
+| Task | Document                                                 | Description                                 |
+| ---- | -------------------------------------------------------- | ------------------------------------------- |
+| 14.1 | [15-global-index-shards.md](./15-global-index-shards.md) | ShardRegistry with consistent hashing       |
+| 14.2 | [15-global-index-shards.md](./15-global-index-shards.md) | ShardIngestRouter (term extraction + route) |
+| 14.3 | [15-global-index-shards.md](./15-global-index-shards.md) | ShardQueryRouter (parallel shard queries)   |
+| 14.4 | [15-global-index-shards.md](./15-global-index-shards.md) | BM25 scoring across shards                  |
+| 14.5 | [15-global-index-shards.md](./15-global-index-shards.md) | Shard rebalancing on hub join/leave         |
+
+**Validation Gate:**
+
+- [ ] Terms hash deterministically to the same shard
+- [ ] Documents ingested to correct shard based on term hashing
+- [ ] Multi-term queries route to multiple shards in parallel
+- [ ] BM25 scoring produces relevant rankings across shards
+- [ ] Replica fallback works when primary shard host is down
+- [ ] `/shards/assignments` returns current shard topology
+
+### Phase 15: Crawl Coordination (Days 23-26)
+
+| Task | Document                                               | Description                                 |
+| ---- | ------------------------------------------------------ | ------------------------------------------- |
+| 15.1 | [16-crawl-coordination.md](./16-crawl-coordination.md) | CrawlCoordinator with URL queue             |
+| 15.2 | [16-crawl-coordination.md](./16-crawl-coordination.md) | Crawler registration + task assignment      |
+| 15.3 | [16-crawl-coordination.md](./16-crawl-coordination.md) | Result submission + shard ingestion         |
+| 15.4 | [16-crawl-coordination.md](./16-crawl-coordination.md) | Robots.txt compliance                       |
+| 15.5 | [16-crawl-coordination.md](./16-crawl-coordination.md) | Crawler reputation + domain rate limiting   |
+| 15.6 | [16-crawl-coordination.md](./16-crawl-coordination.md) | XNetCrawler client reference implementation |
+
+**Validation Gate:**
+
+- [ ] Crawlers register and receive URL assignments
+- [ ] Domain rate limiting prevents abuse (1 page/2s/domain)
+- [ ] Robots.txt is fetched, parsed, and respected
+- [ ] CID-based deduplication skips unchanged content
+- [ ] Outlinks are extracted and added to queue
+- [ ] Dead tasks expire and are reassigned
+- [ ] Crawler reputation tracks quality over time
+
 ## Package Structure (Target)
 
 ```
@@ -331,11 +390,20 @@ packages/
         schemas.ts              # Schema registry
         awareness.ts            # Presence persistence
         discovery.ts            # DID resolution + peer registry
+        federation.ts           # Hub-to-hub federated search
+        index-shards.ts         # Global index shard management
+        shard-router.ts         # Query routing across shards
+        shard-ingest.ts         # Document ingestion to shards
+        crawl.ts                # Crawl coordination
+        crawl-robots.ts         # Robots.txt compliance
       routes/
         backup.ts               # /backup HTTP endpoints
         files.ts                # /files HTTP endpoints
         schemas.ts              # /schemas HTTP endpoints
         dids.ts                 # /dids HTTP endpoints
+        federation.ts           # /federation HTTP endpoints
+        shards.ts               # /shards HTTP endpoints
+        crawl.ts                # /crawl HTTP endpoints
       storage/
         interface.ts            # HubStorage interface
         sqlite.ts               # SQLite adapter (better-sqlite3)
@@ -345,6 +413,8 @@ packages/
         capabilities.ts         # Hub-specific capabilities
       pool/
         doc-pool.ts             # Y.Doc memory management (LRU)
+      client/
+        crawler-client.ts       # Reference crawler implementation
       middleware/
         rate-limit.ts           # Per-connection rate limiting
         metrics.ts              # Prometheus metrics
@@ -362,6 +432,9 @@ packages/
       schemas.test.ts           # Schema registry tests
       awareness.test.ts         # Awareness persistence tests
       discovery.test.ts         # Peer discovery tests
+      federation.test.ts        # Hub federation tests
+      shards.test.ts            # Index shard tests
+      crawl.test.ts             # Crawl coordination tests
       auth.test.ts              # UCAN auth tests
       deploy.test.ts            # Production readiness tests
       storage.test.ts           # Storage adapter tests
@@ -416,10 +489,14 @@ packages/
 13. **Schema registry** resolves shared schemas by IRI from the network
 14. **Awareness persistence** shows "who was here" after they disconnect
 15. **DID resolution** finds peers by identity (replaces stub resolver)
+16. **Hub federation** queries peer hubs and returns merged, deduplicated results
+17. **Global index shards** distribute search across multiple hubs with BM25 scoring
+18. **Crawl coordination** assigns URLs to volunteer crawlers and indexes results
 
 ## Reference Documents
 
 - [Server Infrastructure Exploration](../explorations/SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals
+- [Decentralized Search Exploration](../explorations/DECENTRALIZED_SEARCH.md) — Three-tier search architecture + Hub integration
 - [P2P Signaling Plan](../planStep03_2Signaling/README.md) — Current signaling architecture
 - [Persistence Architecture](../explorations/PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
 - [Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) — Security layer design
