@@ -378,13 +378,11 @@ AI models have been trained on orders of magnitude more TypeScript than ClojureS
 ### 5. Bundle Size & Performance
 
 ```mermaid
-bar chart
-    title Bundle Size Comparison (gzipped)
-    "TS + React (baseline)" : 45
-    "CLJS Runtime Overhead" : 30
-    "Total CLJS + React" : 100
-    "xNet Current (TS)" : 120
-    "xNet Hypothetical (CLJS)" : 160
+xychart-beta
+    title "Bundle Size Comparison (gzipped KB)"
+    x-axis ["TS + React", "CLJS Runtime", "Total CLJS + React", "xNet Current TS", "xNet Hypothetical CLJS"]
+    y-axis "KB" 0 --> 180
+    bar [45, 30, 100, 120, 160]
 ```
 
 ClojureScript adds ~30-40KB baseline for the persistent data structures runtime. Additionally, Google Closure Compiler **cannot tree-shake npm dependencies** — they're passed through as foreign libs. This means the full libp2p, Yjs, and noble/\* bundles ship regardless of what's actually used.
