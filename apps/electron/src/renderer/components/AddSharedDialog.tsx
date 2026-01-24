@@ -84,7 +84,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
                 setDocId(e.target.value)
                 setError(null)
               }}
-              placeholder="e.g., abc123-def456-..."
+              placeholder="e.g., database:abc123-def456-..."
               className="w-full px-3 py-2 text-sm font-mono bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
               autoFocus
             />

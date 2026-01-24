@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { XNetProvider } from '../context'
-import { useDocument } from './useDocument'
+import { useNode, useDocument } from './useDocument'
 import { PageSchema, MemoryNodeStorageAdapter, NodeStore, type DID } from '@xnet/data'
 
 // Mock y-webrtc to avoid WebRTC in tests
@@ -37,7 +37,7 @@ function createWrapper(config: WrapperConfig) {
   }
 }
 
-describe('useDocument', () => {
+describe('useNode', () => {
   let storage: MemoryNodeStorageAdapter
   let store: NodeStore
 
@@ -52,7 +52,7 @@ describe('useDocument', () => {
   })
 
   it('should return loading state initially', () => {
-    const { result } = renderHook(() => useDocument(PageSchema, 'test-id'), {
+    const { result } = renderHook(() => useNode(PageSchema, 'test-id'), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -64,7 +64,7 @@ describe('useDocument', () => {
   })
 
   it('should return null data for null id', async () => {
-    const { result } = renderHook(() => useDocument(PageSchema, null), {
+    const { result } = renderHook(() => useNode(PageSchema, null), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -87,7 +87,7 @@ describe('useDocument', () => {
       properties: { title: 'Test Page' }
     })
 
-    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+    const { result } = renderHook(() => useNode(PageSchema, page.id), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -114,7 +114,7 @@ describe('useDocument', () => {
       properties: { title: 'Test Page' }
     })
 
-    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+    const { result } = renderHook(() => useNode(PageSchema, page.id), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -140,7 +140,7 @@ describe('useDocument', () => {
       properties: { title: 'Test Page' }
     })
 
-    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+    const { result } = renderHook(() => useNode(PageSchema, page.id), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -161,7 +161,7 @@ describe('useDocument', () => {
       properties: { title: 'Test Page' }
     })
 
-    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+    const { result } = renderHook(() => useNode(PageSchema, page.id), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -182,7 +182,7 @@ describe('useDocument', () => {
       properties: { title: 'Test Page' }
     })
 
-    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+    const { result } = renderHook(() => useNode(PageSchema, page.id), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -204,7 +204,7 @@ describe('useDocument', () => {
       properties: { title: 'Test Page' }
     })
 
-    const { result } = renderHook(() => useDocument(PageSchema, page.id, { disableSync: true }), {
+    const { result } = renderHook(() => useNode(PageSchema, page.id, { disableSync: true }), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -221,7 +221,7 @@ describe('useDocument', () => {
   })
 
   it('should return null for non-existent node', async () => {
-    const { result } = renderHook(() => useDocument(PageSchema, 'non-existent-id'), {
+    const { result } = renderHook(() => useNode(PageSchema, 'non-existent-id'), {
       wrapper: createWrapper({
         storage,
         authorDID: TEST_DID,
@@ -235,5 +235,30 @@ describe('useDocument', () => {
 
     expect(result.current.data).toBeNull()
     expect(result.current.doc).toBeNull()
+  })
+
+  it('useDocument alias should work identically to useNode', async () => {
+    const page = await store.create({
+      schemaId: PageSchema._schemaId,
+      properties: { title: 'Alias Test' }
+    })
+
+    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
+      wrapper: createWrapper({
+        storage,
+        authorDID: TEST_DID,
+        signingKey: TEST_SIGNING_KEY
+      })
+    })
+
+    await waitFor(
+      () => {
+        expect(result.current.loading).toBe(false)
+        expect(result.current.data).not.toBeNull()
+      },
+      { timeout: 2000 }
+    )
+
+    expect(result.current.data?.title).toBe('Alias Test')
   })
 })

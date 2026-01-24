@@ -1,10 +1,10 @@
 /**
- * useDocument - The unified hook for working with a single Node
+ * useNode - The unified hook for working with a single Node
  *
- * This is the primary hook for editing documents. It provides:
+ * This is the primary hook for editing Nodes. It provides:
  * - Node properties (flattened for ergonomic access)
  * - Y.Doc for collaborative rich text (if schema specifies document: 'yjs')
- * - Auto-sync via y-webrtc
+ * - Auto-sync via WebSocket
  * - Type-safe mutations (update, remove)
  * - Presence awareness (remote users)
  * - Auto-create with createIfMissing
@@ -21,7 +21,7 @@
  *   remoteUsers,    // Users currently viewing
  *   loading,
  *   error
- * } = useDocument(PageSchema, pageId, {
+ * } = useNode(PageSchema, pageId, {
  *   createIfMissing: { title: 'Untitled' }
  * })
  *
@@ -60,9 +60,9 @@ export interface RemoteUser {
 }
 
 /**
- * Options for useDocument
+ * Options for useNode
  */
-export interface UseDocumentOptions<P extends Record<string, PropertyBuilder>> {
+export interface UseNodeOptions<P extends Record<string, PropertyBuilder>> {
   /** Signaling servers for y-webrtc (default: localhost for dev) */
   signalingServers?: string[]
   /** Disable auto-sync (default: false) */
@@ -81,9 +81,9 @@ export interface UseDocumentOptions<P extends Record<string, PropertyBuilder>> {
 }
 
 /**
- * Result from useDocument hook
+ * Result from useNode hook
  */
-export interface UseDocumentResult<P extends Record<string, PropertyBuilder>> {
+export interface UseNodeResult<P extends Record<string, PropertyBuilder>> {
   // === Data ===
   /** Node properties (flattened - access directly: data.title) */
   data: FlatNode<P> | null
@@ -202,11 +202,11 @@ function generateColor(seed: string): string {
  * - Type-safe mutations
  * - Real-time sync and presence
  */
-export function useDocument<P extends Record<string, PropertyBuilder>>(
+export function useNode<P extends Record<string, PropertyBuilder>>(
   schema: DefinedSchema<P>,
   id: string | null,
-  options: UseDocumentOptions<P> = {}
-): UseDocumentResult<P> {
+  options: UseNodeOptions<P> = {}
+): UseNodeResult<P> {
   const {
     signalingServers = DEFAULT_SIGNALING_SERVERS,
     disableSync = false,
@@ -411,7 +411,7 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
             for (const [key, value] of Object.entries(properties)) {
               metaMap.set(key, value)
             }
-          })
+          }, 'local') // Mark as local to avoid triggering metaObserver on this peer
         }
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)))
@@ -479,6 +479,9 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
 
         const props: Record<string, unknown> = {}
         metaMap.forEach((value, key) => {
+          // Skip internal keys - _schemaId is stored in meta for sync
+          // but is a system field on NodeState, not a property
+          if (key.startsWith('_')) return
           props[key] = value
         })
 
@@ -488,7 +491,9 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
             .then((node) => {
               if (node) setData(flattenNode<P>(node))
             })
-            .catch(() => {})
+            .catch((err) => {
+              console.warn('[useDocument] Failed to apply remote meta to NodeStore:', err)
+            })
         }
       }
 
@@ -636,3 +641,16 @@ export function useDocument<P extends Record<string, PropertyBuilder>>(
     reload: load
   }
 }
+
+// =============================================================================
+// Backwards-compatible aliases
+// =============================================================================
+
+/** @deprecated Use `useNode` instead */
+export const useDocument = useNode
+
+/** @deprecated Use `UseNodeOptions` instead */
+export type UseDocumentOptions<P extends Record<string, PropertyBuilder>> = UseNodeOptions<P>
+
+/** @deprecated Use `UseNodeResult` instead */
+export type UseDocumentResult<P extends Record<string, PropertyBuilder>> = UseNodeResult<P>

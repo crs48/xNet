@@ -19,10 +19,10 @@ pnpm add @xnet/editor @xnet/react @xnet/data
 
 ## Quick Start with React
 
-The recommended way to use `@xnet/editor` is with the `useDocument` hook from `@xnet/react`:
+The recommended way to use `@xnet/editor` is with the `useNode` hook from `@xnet/react`:
 
 ```tsx
-import { useDocument } from '@xnet/react'
+import { useNode } from '@xnet/react'
 import { RichTextEditor } from '@xnet/editor/react'
 import { defineSchema, text } from '@xnet/data'
 
@@ -44,7 +44,7 @@ function DocumentEditor({ pageId }: { pageId: string }) {
     error,
     syncStatus, // 'offline' | 'connecting' | 'connected'
     peerCount // Connected peers
-  } = useDocument(PageSchema, pageId, {
+  } = useNode(PageSchema, pageId, {
     createIfMissing: { title: 'Untitled' }
   })
 
@@ -81,7 +81,6 @@ Full-featured rich text editor with toolbar and Yjs collaboration.
 
 ```tsx
 import { RichTextEditor } from '@xnet/editor/react'
-
 ;<RichTextEditor
   ydoc={doc}
   field="content"
@@ -239,7 +238,7 @@ import { createEditor } from '@xnet/editor'
 
 ## Related Packages
 
-- `@xnet/react` - React hooks (`useDocument`, `useQuery`, `useMutate`)
+- `@xnet/react` - React hooks (`useNode`, `useQuery`, `useMutate`)
 - `@xnet/data` - Schema system and NodeStore
 - `@xnet/storage` - IndexedDB storage adapter
 

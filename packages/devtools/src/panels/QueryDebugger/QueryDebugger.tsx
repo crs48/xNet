@@ -1,5 +1,5 @@
 /**
- * QueryDebugger panel - tracks active useQuery/useMutate/useDocument hooks
+ * QueryDebugger panel - tracks active useQuery/useMutate/useNode hooks
  *
  * Displays active subscriptions, update frequency, and performance metrics.
  */
@@ -128,7 +128,7 @@ function QueryEntry({
 }) {
   const typeBadge = {
     useQuery: 'bg-blue-900 text-blue-300',
-    useDocument: 'bg-purple-900 text-purple-300',
+    useNode: 'bg-purple-900 text-purple-300',
     useMutate: 'bg-green-900 text-green-300'
   }[query.type]
 

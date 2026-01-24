@@ -8,7 +8,7 @@ import type { DevToolsEvent, QuerySubscribeEvent, QueryResultEvent } from '../..
 
 export interface QueryStats {
   id: string
-  type: 'useQuery' | 'useMutate' | 'useDocument'
+  type: 'useQuery' | 'useMutate' | 'useNode'
   schemaId: string
   mode: 'list' | 'single' | 'filtered' | 'document'
   filter?: Record<string, unknown>
@@ -142,7 +142,7 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
 }
 
 function inferHookType(queryId: string): QueryStats['type'] {
-  if (queryId.startsWith('useDocument')) return 'useDocument'
+  if (queryId.startsWith('useNode') || queryId.startsWith('useDocument')) return 'useNode'
   if (queryId.startsWith('useMutate')) return 'useMutate'
   return 'useQuery'
 }

@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react'
-import { useDocument } from '@xnet/react'
+import { useNode } from '@xnet/react'
 import { CanvasSchema } from '@xnet/data'
 import { Canvas, createNode, createEdge } from '@xnet/canvas'
 import { Plus, LayoutGrid, ZoomIn } from 'lucide-react'
@@ -21,7 +21,7 @@ export function CanvasView({ docId }: CanvasViewProps) {
     doc,
     loading,
     update
-  } = useDocument(CanvasSchema, docId, {
+  } = useNode(CanvasSchema, docId, {
     createIfMissing: { title: 'Untitled Canvas' }
     // Sync enabled - signaling server runs via `pnpm dev`
   })

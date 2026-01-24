@@ -21,6 +21,7 @@ export type {
   PropertyEditorProps,
   FilterInputProps,
   ColumnMeta,
+  CellPresence,
   GalleryCardSize,
   GalleryImageFit
 } from './types.js'

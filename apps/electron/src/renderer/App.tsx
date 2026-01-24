@@ -3,7 +3,7 @@
  *
  * Uses @xnet/react hooks for data management:
  * - useQuery for listing documents
- * - useDocument for editing documents
+ * - useNode for editing documents
  * - useMutate for creating/deleting
  */
 
@@ -118,14 +118,23 @@ export function App() {
   )
 
   // Handle adding a shared document
-  // When a user pastes a doc ID, we just select it - the useDocument hook
-  // will create it locally and sync will populate it from peers
-  const handleAddShared = useCallback((docId: string) => {
-    // For now, assume it's a page. The actual type will be determined
-    // when the document syncs from peers.
-    // TODO: Could try to detect type from sync, or ask user
+  // The share string is encoded as "type:docId" (e.g. "database:abc-123")
+  // Falls back to 'page' for bare IDs (backwards compatibility)
+  const handleAddShared = useCallback((shareString: string) => {
+    let docType: DocType = 'page'
+    let docId = shareString
+
+    const colonIdx = shareString.indexOf(':')
+    if (colonIdx > 0) {
+      const prefix = shareString.slice(0, colonIdx)
+      if (prefix === 'page' || prefix === 'database' || prefix === 'canvas') {
+        docType = prefix
+        docId = shareString.slice(colonIdx + 1)
+      }
+    }
+
     setSelectedDocId(docId)
-    setSelectedDocType('page')
+    setSelectedDocType(docType)
   }, [])
 
   // Render content based on document type

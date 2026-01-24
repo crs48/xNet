@@ -4,12 +4,20 @@
  * Uses @xnet/views TableView and BoardView with proper Schema + ViewConfig API.
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { useDocument } from '@xnet/react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { useNode, useIdentity } from '@xnet/react'
 import { DatabaseSchema, defineSchema, text, select, date, type Schema } from '@xnet/data'
-import { TableView, BoardView, type ViewConfig, type TableRow, type BoardRow } from '@xnet/views'
+import {
+  TableView,
+  BoardView,
+  type ViewConfig,
+  type TableRow,
+  type BoardRow,
+  type CellPresence
+} from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import { ShareButton } from './ShareButton'
+import { PresenceAvatars } from './PresenceAvatars'
 
 interface DatabaseViewProps {
   docId: string
@@ -117,20 +125,73 @@ const sampleData = [
 ]
 
 export function DatabaseView({ docId }: DatabaseViewProps) {
+  const { did } = useIdentity()
+
   const {
     data: database,
     doc,
     loading,
-    update
-  } = useDocument(DatabaseSchema, docId, {
-    createIfMissing: { title: 'Untitled Database' }
-    // Sync enabled - signaling server runs via `pnpm dev`
+    update,
+    remoteUsers,
+    awareness
+  } = useNode(DatabaseSchema, docId, {
+    createIfMissing: { title: 'Untitled Database' },
+    did: did ?? undefined
   })
 
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [rows, setRows] = useState<TableRow[]>([])
   const [tableViewConfig, setTableViewConfig] = useState<ViewConfig>(defaultTableView)
   const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig>(defaultBoardView)
+  const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
+
+  // Broadcast focused cell via awareness
+  const handleCellFocus = useCallback(
+    (rowId: string, columnId: string) => {
+      if (!awareness) return
+      awareness.setLocalStateField('cell', { rowId, columnId })
+    },
+    [awareness]
+  )
+
+  const handleCellBlur = useCallback(() => {
+    if (!awareness) return
+    awareness.setLocalStateField('cell', null)
+  }, [awareness])
+
+  // Listen for remote cell focus changes
+  useEffect(() => {
+    if (!awareness) return
+
+    const updatePresences = () => {
+      const states = awareness.getStates()
+      const presences: CellPresence[] = []
+
+      states.forEach((state: Record<string, unknown>, clientId: number) => {
+        if (clientId === awareness.clientID) return
+        const user = state.user as { did?: string; color?: string; name?: string } | undefined
+        const cell = state.cell as { rowId: string; columnId: string } | undefined
+        if (user?.did && cell) {
+          presences.push({
+            rowId: cell.rowId,
+            columnId: cell.columnId,
+            color: user.color || '#999',
+            did: user.did,
+            name: user.name || 'Anonymous'
+          })
+        }
+      })
+
+      setCellPresences(presences)
+    }
+
+    awareness.on('change', updatePresences)
+    updatePresences()
+
+    return () => {
+      awareness.off('change', updatePresences)
+    }
+  }, [awareness])
 
   // Load or initialize data from Y.Doc
   useEffect(() => {
@@ -264,6 +325,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           placeholder="Untitled"
         />
 
+        <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+
         <div className="flex-1" />
 
         {/* View switcher */}
@@ -313,6 +376,9 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onUpdateRow={handleUpdateRow}
             onUpdateView={handleUpdateTableView}
             onAddRow={handleAddRow}
+            cellPresences={cellPresences}
+            onCellFocus={handleCellFocus}
+            onCellBlur={handleCellBlur}
           />
         ) : (
           <BoardView

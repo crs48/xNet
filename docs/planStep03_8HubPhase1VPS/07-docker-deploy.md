@@ -166,11 +166,11 @@ primary_region = "sjc"
 ```typescript
 // packages/hub/src/lifecycle/shutdown.ts
 
-import type { DocPool } from '../pool/doc-pool'
+import type { NodePool } from '../pool/node-pool'
 import type { HubStorage } from '../storage/interface'
 
 export interface ShutdownDeps {
-  pool: DocPool
+  pool: NodePool
   storage: HubStorage
   wsServer: { close: () => void; clients: Set<{ close: (code: number, reason: string) => void }> }
   httpServer: { close: (cb?: () => void) => void }
