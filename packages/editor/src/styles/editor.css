@@ -1,0 +1,441 @@
+/* Base editor styles */
+
+/* Editor container */
+.ProseMirror {
+  @apply outline-none min-h-full;
+}
+
+/* Placeholder: only show on the first empty paragraph of a completely empty editor */
+.xnet-editor .ProseMirror.is-editor-empty > p.is-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-muted-foreground, #6c757d);
+  float: left;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Selection highlight */
+.ProseMirror ::selection {
+  background: color-mix(in srgb, var(--color-primary, #0066cc) 20%, transparent);
+}
+
+/* Node selection (images, etc.) */
+.ProseMirror .ProseMirror-selectednode {
+  outline: 2px solid color-mix(in srgb, var(--color-primary, #0066cc) 50%, transparent);
+  outline-offset: 2px;
+}
+
+/* Task list styling */
+.ProseMirror ul[data-type='taskList'] {
+  @apply list-none pl-0;
+}
+
+.ProseMirror ul[data-type='taskList'] li {
+  @apply flex items-start gap-2;
+}
+
+.ProseMirror ul[data-type='taskList'] li > label {
+  @apply flex-shrink-0 mt-1;
+}
+
+.ProseMirror ul[data-type='taskList'] li > label input[type='checkbox'] {
+  @apply w-4 h-4 rounded border-2 border-border
+         appearance-none cursor-pointer
+         transition-colors duration-150;
+}
+
+.ProseMirror ul[data-type='taskList'] li > label input[type='checkbox']:checked {
+  background-color: var(--color-primary, #0066cc);
+  border-color: var(--color-primary, #0066cc);
+}
+
+.ProseMirror ul[data-type='taskList'] li > label input[type='checkbox']:checked::after {
+  content: '';
+  @apply block w-full h-full;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+}
+
+.ProseMirror ul[data-type='taskList'] li > div {
+  @apply flex-1;
+}
+
+.ProseMirror ul[data-type='taskList'] li[data-checked='true'] > div {
+  @apply text-muted-foreground line-through;
+}
+
+/* Wikilinks */
+.ProseMirror a[data-wikilink] {
+  color: var(--color-primary, #0066cc);
+  @apply cursor-pointer no-underline;
+  border-bottom: 1px dashed var(--color-primary, #0066cc);
+  transition: border-bottom-style 0.15s;
+}
+
+.ProseMirror a[data-wikilink]:hover {
+  border-bottom-style: solid;
+}
+
+/* Horizontal rule */
+.ProseMirror hr {
+  @apply my-8 border-t border-border;
+}
+
+/* Markdown syntax characters (Live Preview) */
+.md-syntax {
+  font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, monospace);
+  font-weight: 400;
+  font-size: inherit;
+  color: var(--color-muted-foreground, #6c757d);
+  opacity: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  display: inline;
+  animation: syntax-fade-in 150ms ease-out forwards;
+}
+
+@keyframes syntax-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+.md-syntax-open {
+  margin-right: 1px;
+}
+
+.md-syntax-close {
+  margin-left: 1px;
+}
+
+/* Mark-specific syntax styling */
+.md-syntax[data-mark='bold'] {
+  font-weight: 600;
+}
+
+.md-syntax[data-mark='code'] {
+  background: color-mix(in srgb, var(--color-muted, #f8f9fa) 50%, transparent);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* Link syntax */
+.md-syntax-link {
+  font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, monospace);
+  color: var(--color-muted-foreground, #6c757d);
+  user-select: none;
+  pointer-events: none;
+  animation: syntax-fade-in 150ms ease-out forwards;
+}
+
+.md-syntax-url {
+  font-size: 0.85em;
+  opacity: 0.4;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  vertical-align: baseline;
+}
+
+/* Collaboration cursor styles */
+.collaboration-cursor__caret {
+  position: relative;
+  margin-left: -1px;
+  margin-right: -1px;
+  border-left: 2px solid;
+  border-color: inherit;
+  word-break: normal;
+  pointer-events: none;
+}
+
+.collaboration-cursor__label {
+  position: absolute;
+  top: -1.4em;
+  left: -1px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 3px 3px 3px 0;
+  color: #fff;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  animation: cursor-label-fade 3s forwards;
+}
+
+@keyframes cursor-label-fade {
+  0% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Remote selection highlight */
+.ProseMirror-yjs-selection {
+  display: inline;
+  border-radius: 2px;
+}
+
+/* Tippy.js slash menu */
+.tippy-box[data-theme~='slash-menu'] {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.tippy-box[data-theme~='slash-menu'] .tippy-content {
+  padding: 0;
+}
+
+/* ─── Drag Handle ─── */
+
+.xnet-drag-handle {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 0.25rem;
+}
+
+.xnet-drag-handle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.5rem;
+  border-radius: 0.25rem;
+  color: var(--xnet-text-muted, #9ca3af);
+  cursor: grab;
+  border: none;
+  background: none;
+  padding: 0;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.xnet-drag-handle-button:hover {
+  background-color: var(--xnet-bg-hover, #f3f4f6);
+  color: var(--xnet-text-secondary, #6b7280);
+}
+
+.xnet-drag-handle-button:active {
+  cursor: grabbing;
+  background-color: var(--xnet-bg-active, #e5e7eb);
+}
+
+.dark .xnet-drag-handle-button:hover {
+  background-color: var(--xnet-bg-hover-dark, #374151);
+  color: var(--xnet-text-secondary-dark, #9ca3af);
+}
+
+.dark .xnet-drag-handle-button:active {
+  background-color: var(--xnet-bg-active-dark, #4b5563);
+}
+
+/* ─── Drag State ─── */
+
+.xnet-editor.is-dragging {
+  cursor: grabbing !important;
+}
+
+.xnet-editor.is-dragging * {
+  cursor: grabbing !important;
+}
+
+.xnet-editor.is-dragging .ProseMirror-selectednode {
+  opacity: 0.4;
+}
+
+.xnet-drag-preview {
+  font-family: inherit;
+  font-size: 14px;
+  color: #374151;
+}
+
+.dark .xnet-drag-preview {
+  background: #1f2937;
+  color: #e5e7eb;
+}
+
+/* ─── Drop Indicator ─── */
+
+.xnet-drop-indicator {
+  position: relative;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: var(--xnet-primary, #3b82f6);
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 100;
+  animation: drop-indicator-appear 150ms ease-out;
+}
+
+.xnet-drop-indicator--before {
+  margin-top: -2px;
+}
+
+.xnet-drop-indicator--after {
+  margin-bottom: -2px;
+}
+
+.xnet-drop-indicator-dot {
+  position: absolute;
+  left: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background-color: var(--xnet-primary, #3b82f6);
+  border-radius: 50%;
+  border: 2px solid var(--xnet-bg, white);
+}
+
+@keyframes drop-indicator-appear {
+  from {
+    opacity: 0;
+    transform: scaleX(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.dark .xnet-drop-indicator {
+  background-color: var(--xnet-primary-dark, #60a5fa);
+}
+
+.dark .xnet-drop-indicator-dot {
+  background-color: var(--xnet-primary-dark, #60a5fa);
+  border-color: var(--xnet-bg-dark, #1f2937);
+}
+
+/* Legacy drop indicator (kept for backwards compat) */
+.drop-indicator {
+  @apply absolute left-0 right-0 h-0.5 rounded-full pointer-events-none;
+  background: var(--color-primary, #0066cc);
+}
+
+/* ─── Accessibility ─── */
+
+/* Reduced motion: disable all animations and transitions */
+@media (prefers-reduced-motion: reduce) {
+  .ProseMirror,
+  .ProseMirror *,
+  .xnet-drag-handle-button,
+  .xnet-drop-indicator,
+  .xnet-drop-indicator-dot {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode: increase borders and focus outlines */
+@media (prefers-contrast: high) {
+  .ProseMirror {
+    border: 2px solid currentColor;
+  }
+
+  .ProseMirror:focus {
+    outline: 3px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  .ProseMirror blockquote {
+    border-left-width: 4px;
+    border-left-color: currentColor;
+  }
+
+  .ProseMirror code {
+    border: 1px solid currentColor;
+  }
+
+  .ProseMirror pre {
+    border: 2px solid currentColor;
+  }
+
+  .xnet-drag-handle-button:focus-visible {
+    outline: 3px solid currentColor;
+    outline-offset: 1px;
+  }
+
+  .xnet-drop-indicator {
+    height: 4px;
+    background-color: currentColor;
+  }
+}
+
+/* Forced colors (Windows High Contrast): use system colors */
+@media (forced-colors: active) {
+  .ProseMirror {
+    border: 1px solid ButtonText;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .ProseMirror:focus {
+    outline: 2px solid Highlight;
+  }
+
+  .ProseMirror a {
+    color: LinkText;
+  }
+
+  .ProseMirror ::selection {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  .xnet-drag-handle-button {
+    color: ButtonText;
+    forced-color-adjust: none;
+  }
+
+  .xnet-drag-handle-button:hover {
+    background-color: Highlight;
+    color: HighlightText;
+  }
+
+  .xnet-drop-indicator {
+    background-color: Highlight;
+  }
+
+  .xnet-drop-indicator-dot {
+    background-color: Highlight;
+    border-color: Canvas;
+  }
+}
+
+/* Focus visible for keyboard navigation */
+.ProseMirror:focus-visible {
+  outline: 2px solid var(--xnet-primary, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Screen reader only utility (used by announcer) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
