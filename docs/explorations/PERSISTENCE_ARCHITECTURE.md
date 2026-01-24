@@ -55,20 +55,20 @@ flowchart TB
     end
 
     subgraph WebStorage["Web Storage Options"]
-        IDB["IndexedDB<br/>(Fallback)"]
-        OPFS["OPFS<br/>(Primary)"]
+        IDB["IndexedDB<br/>Fallback"]
+        OPFS["OPFS<br/>Primary"]
         ServiceWorker["Service Worker Cache"]
     end
 
     subgraph NativeStorage["Native Storage"]
-        SQLite["SQLite<br/>(Primary)"]
-        FileSystem["File System<br/>(Blobs)"]
+        SQLite["SQLite<br/>Primary"]
+        FileSystem["File System<br/>Blobs"]
     end
 
     subgraph Sync["Durability Layer"]
-        P2PSync["P2P Sync<br/>(Replication)"]
-        CloudBackup["Cloud Backup<br/>(Optional)"]
-        LocalBackup["Local Export<br/>(Manual)"]
+        P2PSync["P2P Sync<br/>Replication"]
+        CloudBackup["Cloud Backup<br/>Optional"]
+        LocalBackup["Local Export<br/>Manual"]
     end
 
     Web --> OPFS

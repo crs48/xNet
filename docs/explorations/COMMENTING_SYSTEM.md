@@ -407,7 +407,7 @@ flowchart TB
     end
 
     subgraph "Popover Position"
-        INLINE["Anchored to highlight<br/>(editor: right margin)<br/>(cell: below/beside cell)<br/>(canvas: beside pin)"]
+        INLINE["Anchored to highlight<br/>editor: right margin<br/>cell: below/beside cell<br/>canvas: beside pin"]
     end
 
     HOVER --> PREVIEW
@@ -666,7 +666,7 @@ flowchart LR
 ```mermaid
 flowchart LR
     INPUT[User types markdown<br/>in comment input]
-    STORE["Stored as plain text<br/>(text property on Node)"]
+    STORE["Stored as plain text<br/>text property on Node"]
     RENDER[Rendered as rich text<br/>via markdown parser]
 
     INPUT --> STORE --> RENDER

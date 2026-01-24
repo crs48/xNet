@@ -11,10 +11,10 @@ The Forest Map is the signature view for food forest management. It shows a top-
 ```mermaid
 flowchart TD
     subgraph "Forest Map View"
-        LAYERS["Layer Toggle<br/>(show/hide each of 8 layers)"]
-        CANVAS["Spatial Canvas<br/>(zoom, pan, drag plants)"]
-        ZONES["Zone Overlay<br/>(transparent colored regions)"]
-        LEGEND["Legend<br/>(layer colors + species icons)"]
+        LAYERS["Layer Toggle<br/>show/hide each of 8 layers"]
+        CANVAS["Spatial Canvas<br/>zoom, pan, drag plants"]
+        ZONES["Zone Overlay<br/>transparent colored regions"]
+        LEGEND["Legend<br/>layer colors + species icons"]
     end
 
     subgraph "Interactions"
@@ -25,9 +25,9 @@ flowchart TD
     end
 
     subgraph "Data"
-        PLANTINGS["Planting nodes<br/>(with x, y coords)"]
-        SPECIES["Species data<br/>(height, spread, layer)"]
-        SITE["Site boundaries<br/>(area, zones)"]
+        PLANTINGS["Planting nodes<br/>with x, y coords"]
+        SPECIES["Species data<br/>height, spread, layer"]
+        SITE["Site boundaries<br/>area, zones"]
     end
 
     PLANTINGS --> CANVAS

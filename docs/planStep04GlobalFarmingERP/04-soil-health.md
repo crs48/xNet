@@ -11,20 +11,20 @@ Soil is the foundation of regenerative farming. This step builds the tools to tr
 ```mermaid
 flowchart TD
     subgraph "Data Entry"
-        LAB["Lab Test Import<br/>(PDF/CSV parsing)"]
-        MANUAL["Manual Entry<br/>(simplified form)"]
-        DIY["DIY Tests<br/>(jar test, pH strip,<br/>worm count, infiltration)"]
+        LAB["Lab Test Import<br/>PDF/CSV parsing"]
+        MANUAL["Manual Entry<br/>simplified form"]
+        DIY["DIY Tests<br/>jar test, pH strip,<br/>worm count, infiltration"]
     end
 
     subgraph "Analysis"
-        TRENDS["Trend Charts<br/>(pH, OM, carbon over time)"]
-        COMPARE["Zone Comparison<br/>(which areas improving)"]
-        CARBON["Carbon Calculator<br/>(sequestration estimates)"]
-        INTERPRET["Interpretation<br/>(what results mean)"]
+        TRENDS["Trend Charts<br/>pH, OM, carbon over time"]
+        COMPARE["Zone Comparison<br/>which areas improving"]
+        CARBON["Carbon Calculator<br/>sequestration estimates"]
+        INTERPRET["Interpretation<br/>what results mean"]
     end
 
     subgraph "Actions"
-        RECOMMEND["Recommendations<br/>(amendments, cover crops)"]
+        RECOMMEND["Recommendations<br/>amendments, cover crops"]
         CONTRIBUTE["Contribute to<br/>Global Soil Index"]
     end
 

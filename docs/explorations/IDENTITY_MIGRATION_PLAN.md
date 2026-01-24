@@ -637,12 +637,12 @@ Rather than signing every change with ML-DSA (3.4 KB each), we use two efficient
 ```mermaid
 graph TD
     subgraph "Signing Strategies"
-        Master["ML-DSA Master Key<br/>(in Identity Doc)"]
+        Master["ML-DSA Master Key<br/>in Identity Doc"]
 
         subgraph "Strategy 1: Session Keys"
-            Session["Ed25519 Session Key<br/>(ephemeral, 24h)"]
-            UCAN["UCAN Delegation<br/>(3.4 KB once)"]
-            Changes1["Changes<br/>(64 byte sigs)"]
+            Session["Ed25519 Session Key<br/>ephemeral, 24h"]
+            UCAN["UCAN Delegation<br/>3.4 KB once"]
+            Changes1["Changes<br/>64 byte sigs"]
 
             Master -->|"delegates via"| UCAN
             UCAN -->|"authorizes"| Session
@@ -652,7 +652,7 @@ graph TD
         subgraph "Strategy 2: Batch Signing"
             Batch["Change Batch"]
             Root["Merkle Root"]
-            BatchSig["ML-DSA Signature<br/>(3.4 KB total)"]
+            BatchSig["ML-DSA Signature<br/>3.4 KB total"]
 
             Batch -->|"hashed to"| Root
             Master -->|"signs"| Root

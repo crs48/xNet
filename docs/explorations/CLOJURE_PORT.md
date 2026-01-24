@@ -15,19 +15,19 @@ This is a thought experiment exploring what a Clojure(Script) rewrite of xNet wo
 ```mermaid
 flowchart TD
     subgraph "TypeScript Ecosystem (native)"
-        TS_TYPES["Static Types<br/>(compile-time safety)"]
-        TS_LIBS["NPM Libraries<br/>(25M+ weekly React downloads)"]
-        TS_BUILD["Vite/tsup/Turborepo<br/>(fast, mature)"]
-        TS_AI["AI Agents<br/>(excellent TS generation)"]
+        TS_TYPES["Static Types<br/>compile-time safety"]
+        TS_LIBS["NPM Libraries<br/>25M+ weekly React downloads"]
+        TS_BUILD["Vite/tsup/Turborepo<br/>fast, mature"]
+        TS_AI["AI Agents<br/>excellent TS generation"]
     end
 
     subgraph "xNet Core"
-        SCHEMAS["Schema System<br/>(defineSchema, property types)"]
-        STORE["NodeStore<br/>(event-sourced, LWW)"]
-        SYNC["P2P Sync<br/>(libp2p, WebRTC)"]
-        CRDT["Rich Text<br/>(Yjs CRDT)"]
-        CRYPTO["Crypto<br/>(noble/curves, noble/hashes)"]
-        STORAGE["Storage<br/>(IndexedDB, SQLite)"]
+        SCHEMAS["Schema System<br/>defineSchema, property types"]
+        STORE["NodeStore<br/>event-sourced, LWW"]
+        SYNC["P2P Sync<br/>libp2p, WebRTC"]
+        CRDT["Rich Text<br/>Yjs CRDT"]
+        CRYPTO["Crypto<br/>noble/curves, noble/hashes"]
+        STORAGE["Storage<br/>IndexedDB, SQLite"]
     end
 
     TS_TYPES --> SCHEMAS
@@ -43,23 +43,23 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph "Clojure Ecosystem (native)"
-        CLJ_DATA["Immutable Data<br/>(persistent structures, built-in)"]
-        CLJ_REPL["REPL-Driven Dev<br/>(interactive, live)"]
-        CLJ_MACROS["Macros<br/>(code generation)"]
-        CLJ_SPEC["Malli/Spec<br/>(runtime validation)"]
+        CLJ_DATA["Immutable Data<br/>persistent structures, built-in"]
+        CLJ_REPL["REPL-Driven Dev<br/>interactive, live"]
+        CLJ_MACROS["Macros<br/>code generation"]
+        CLJ_SPEC["Malli/Spec<br/>runtime validation"]
     end
 
     subgraph "JS Interop Layer (wrapping)"
-        INTEROP_YJS["Yjs Wrapper<br/>(mutable JS objects)"]
-        INTEROP_P2P["libp2p Wrapper<br/>(streaming APIs, callbacks)"]
-        INTEROP_CRYPTO["noble/* Wrapper<br/>(Uint8Array, hex strings)"]
-        INTEROP_IDB["IndexedDB Wrapper<br/>(async, mutable)"]
+        INTEROP_YJS["Yjs Wrapper<br/>mutable JS objects"]
+        INTEROP_P2P["libp2p Wrapper<br/>streaming APIs, callbacks"]
+        INTEROP_CRYPTO["noble/* Wrapper<br/>Uint8Array, hex strings"]
+        INTEROP_IDB["IndexedDB Wrapper<br/>async, mutable"]
     end
 
     subgraph "xNet Core (CLJS)"
-        CLJ_SCHEMAS["Schema System<br/>(maps + Malli)"]
-        CLJ_STORE["NodeStore<br/>(atoms + reducers)"]
-        CLJ_SYNC["Sync<br/>(core.async channels)"]
+        CLJ_SCHEMAS["Schema System<br/>maps + Malli"]
+        CLJ_STORE["NodeStore<br/>atoms + reducers"]
+        CLJ_SYNC["Sync<br/>core.async channels"]
     end
 
     CLJ_DATA --> CLJ_STORE
@@ -308,13 +308,13 @@ flowchart LR
     subgraph "TypeScript: Errors at compile time"
         TS_WRITE["Write Code"] --> TS_CHECK["Type Check ❌<br/>'status' is not assignable<br/>to type 'todo' | 'done'"]
         TS_CHECK -->|"Fix"| TS_WRITE
-        TS_CHECK -->|"Pass ✅"| TS_RUN["Run Code<br/>(no type errors possible)"]
+        TS_CHECK -->|"Pass ✅"| TS_RUN["Run Code<br/>no type errors possible"]
     end
 
     subgraph "ClojureScript: Errors at runtime"
         CLJ_WRITE["Write Code"] --> CLJ_RUN["Run Code"]
-        CLJ_RUN --> CLJ_ERROR["Runtime Error 💥<br/>(in production?)"]
-        CLJ_RUN --> CLJ_OK["Works ✅<br/>(this time)"]
+        CLJ_RUN --> CLJ_ERROR["Runtime Error 💥<br/>in production?"]
+        CLJ_RUN --> CLJ_OK["Works ✅<br/>this time"]
     end
 ```
 
@@ -420,14 +420,14 @@ flowchart LR
 
     subgraph "Hypothetical (CLJS)"
         direction TB
-        C_CORE["xnet.core<br/>(specs + protocols)"]
-        C_CRYPTO["xnet.crypto<br/>(interop wrapper)"]
-        C_IDENTITY["xnet.identity<br/>(interop wrapper)"]
-        C_SYNC["xnet.sync<br/>(native CLJS ✅)"]
-        C_DATA["xnet.data<br/>(native CLJS ✅)"]
-        C_STORAGE["xnet.storage<br/>(interop wrapper)"]
-        C_NETWORK["xnet.network<br/>(interop wrapper)"]
-        C_REACT["xnet.ui<br/>(UIx/Reagent)"]
+        C_CORE["xnet.core<br/>specs + protocols"]
+        C_CRYPTO["xnet.crypto<br/>interop wrapper"]
+        C_IDENTITY["xnet.identity<br/>interop wrapper"]
+        C_SYNC["xnet.sync<br/>native CLJS ✅"]
+        C_DATA["xnet.data<br/>native CLJS ✅"]
+        C_STORAGE["xnet.storage<br/>interop wrapper"]
+        C_NETWORK["xnet.network<br/>interop wrapper"]
+        C_REACT["xnet.ui<br/>UIx/Reagent"]
     end
 
     P_CORE -->|"simpler"| C_CORE
@@ -522,8 +522,8 @@ This is beautiful for development. But:
 flowchart TD
     A["Clojure's Strengths"] --> B["Immutable data<br/>REPL-driven<br/>Concise transforms<br/>Macros"]
     B --> C{"Do they apply to<br/>xNet's core challenges?"}
-    C -->|"30% of codebase<br/>(sync, data, schemas)"| D["YES ✅<br/>Genuine simplification"]
-    C -->|"70% of codebase<br/>(crypto, network, storage, CRDT)"| E["NO ❌<br/>Still wrapping JS libs"]
+    C -->|"30% of codebase<br/>sync, data, schemas"| D["YES ✅<br/>Genuine simplification"]
+    C -->|"70% of codebase<br/>crypto, network, storage, CRDT"| E["NO ❌<br/>Still wrapping JS libs"]
 
     F["xNet's Actual Challenges"] --> G["P2P networking<br/>CRDT collaboration<br/>Cross-platform<br/>Extensibility<br/>Community growth"]
     G --> H{"What solves these?"}

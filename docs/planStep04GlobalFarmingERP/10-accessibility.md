@@ -12,7 +12,7 @@
 flowchart TD
     subgraph "Input Methods (alternatives to typing)"
         PHOTO["Photo Capture<br/>Take photo → attach to<br/>observation or planting"]
-        VOICE["Voice Notes<br/>Record → store as audio<br/>(transcribe when online)"]
+        VOICE["Voice Notes<br/>Record → store as audio<br/>transcribe when online"]
         ICON["Icon Taps<br/>Species icons, weather<br/>icons, status icons"]
         NUMBER["Number Pads<br/>Large buttons for<br/>harvest weights"]
     end
@@ -26,8 +26,8 @@ flowchart TD
 
     subgraph "Language"
         AUTO["Auto-detect locale"]
-        FALLBACK["Fallback: scientific name<br/>(universal)"]
-        COMMUNITY["Community translations<br/>(P2P synced)"]
+        FALLBACK["Fallback: scientific name<br/>universal"]
+        COMMUNITY["Community translations<br/>P2P synced"]
     end
 ```
 

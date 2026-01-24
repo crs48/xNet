@@ -47,7 +47,7 @@ flowchart LR
 
     subgraph "With Bun (1-2 tools)"
         BUN[Bun<br/>runtime + package manager<br/>+ bundler + test runner]
-        TURBO2[Turborepo<br/>task orchestration<br/>(optional)]
+        TURBO2[Turborepo<br/>task orchestration<br/>optional]
     end
 
     PNPM -.->|replaced by| BUN
@@ -160,15 +160,15 @@ flowchart TB
 
     subgraph "Compatible with Caveats (yellow)"
         style CC fill:#fff9c4
-        ELECTRON[Electron<br/>(needs Node runtime internally)]
-        SQLITE[better-sqlite3<br/>(native addon, needs node-gyp)]
-        SHARP[sharp<br/>(native addon)]
+        ELECTRON[Electron<br/>needs Node runtime internally]
+        SQLITE[better-sqlite3<br/>native addon, needs node-gyp]
+        SHARP[sharp<br/>native addon]
     end
 
     subgraph "Needs Verification (orange)"
         style NV fill:#ffe0b2
-        YWEBRTC[y-webrtc patch<br/>(patch format differs)]
-        EXPO[Expo/React Native<br/>(Metro bundler, not Bun)]
+        YWEBRTC[y-webrtc patch<br/>patch format differs]
+        EXPO[Expo/React Native<br/>Metro bundler, not Bun]
     end
 ```
 

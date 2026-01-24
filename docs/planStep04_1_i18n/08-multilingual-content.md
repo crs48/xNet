@@ -18,9 +18,9 @@ flowchart LR
 
     subgraph "Y.Doc for 'abc123'"
         META[Y.Map 'meta']
-        CONTENT["Y.XmlFragment 'content'<br/>(source: English)"]
-        CONTENT_FR["Y.XmlFragment 'content.fr'<br/>(French translation)"]
-        CONTENT_DE["Y.XmlFragment 'content.de'<br/>(German translation)"]
+        CONTENT["Y.XmlFragment 'content'<br/>source: English"]
+        CONTENT_FR["Y.XmlFragment 'content.fr'<br/>French translation"]
+        CONTENT_DE["Y.XmlFragment 'content.de'<br/>German translation"]
     end
 ```
 

@@ -206,15 +206,15 @@ react/ # useQuery, useMutate, useDocument, useNodeStore, useIdentity
 ```mermaid
 flowchart TB
     subgraph "Before (Confusing)"
-        XP1["XNetProvider<br/>(identity + store + sync)"]
-        NSP1["NodeStoreProvider<br/>(just store)"]
-        UNS1["useNodeStore()<br/>(public export)"]
+        XP1["XNetProvider<br/>identity + store + sync"]
+        NSP1["NodeStoreProvider<br/>just store"]
+        UNS1["useNodeStore()<br/>public export"]
         XP1 -.->|"overlap"| NSP1
     end
 
     subgraph "After (Clear)"
-        XP2["XNetProvider<br/>(identity + store + ready state)"]
-        UNS2["useNodeStore()<br/>(INTERNAL only, not exported)"]
+        XP2["XNetProvider<br/>identity + store + ready state"]
+        UNS2["useNodeStore()<br/>INTERNAL only, not exported"]
         XP2 -->|"provides context"| UNS2
     end
 ```

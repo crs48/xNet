@@ -11,16 +11,16 @@ A guild is a group of plants that support each other — a central tree surround
 ```mermaid
 flowchart TD
     subgraph "Guild Designer UI"
-        SEARCH["Species Search<br/>(filter by layer, function, climate)"]
-        ROLES["Functional Roles<br/>(checklist: N-fixer, mulch, pollinator...)"]
-        CANVAS["Guild Canvas<br/>(concentric rings by layer)"]
-        FEEDBACK["Completeness Feedback<br/>(missing roles highlighted)"]
+        SEARCH["Species Search<br/>filter by layer, function, climate"]
+        ROLES["Functional Roles<br/>checklist: N-fixer, mulch, pollinator..."]
+        CANVAS["Guild Canvas<br/>concentric rings by layer"]
+        FEEDBACK["Completeness Feedback<br/>missing roles highlighted"]
     end
 
     subgraph "Data"
         SP["Species DB"]
         COMP["Companion Relations"]
-        TEMPLATES["Guild Templates<br/>(by climate zone)"]
+        TEMPLATES["Guild Templates<br/>by climate zone"]
     end
 
     SP --> SEARCH

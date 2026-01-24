@@ -29,8 +29,8 @@ flowchart TD
 ```mermaid
 flowchart LR
     subgraph "Settings > Language"
-        GLOBAL["App Language<br/>(syncs across devices)<br/>Dropdown: English, French, ..."]
-        DEVICE["This Device Only<br/>(overrides synced pref)<br/>Toggle + Dropdown"]
+        GLOBAL["App Language<br/>syncs across devices<br/>Dropdown: English, French, ..."]
+        DEVICE["This Device Only<br/>overrides synced pref<br/>Toggle + Dropdown"]
     end
 ```
 
