@@ -277,12 +277,16 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
         icon: '\uD83D\uDD17',
         searchTerms: ['embed', 'youtube', 'video', 'spotify', 'vimeo', 'iframe', 'media'],
         command: ({ editor, range }) => {
-          editor.chain().focus().deleteRange(range).run()
-
-          const url = window.prompt('Enter embed URL (YouTube, Spotify, Vimeo, etc.):')
-          if (url?.trim()) {
-            editor.commands.setEmbed(url.trim())
-          }
+          // Insert empty embed node - the node view will show an input field
+          editor
+            .chain()
+            .focus()
+            .deleteRange(range)
+            .insertContent({
+              type: 'embed',
+              attrs: { url: null, provider: null, embedId: null, embedUrl: null }
+            })
+            .run()
         }
       }
     ]
