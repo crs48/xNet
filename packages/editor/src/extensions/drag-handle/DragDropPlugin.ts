@@ -111,160 +111,164 @@ export function createDragDropPlugin() {
       }
     },
 
-    props: {
-      handleDOMEvents: {
-        dragstart: (view: EditorView, event: DragEvent) => {
-          const target = event.target as HTMLElement
-          const dragButton = target.closest('.xnet-drag-handle-button')
-          if (!dragButton) return false
+    view(editorView) {
+      const parentEl = editorView.dom.parentElement
+      if (!parentEl) return {}
 
-          const handle = dragButton.closest('.xnet-drag-handle')
-          const posStr = handle?.getAttribute('data-drag-pos')
-          if (!posStr) return false
+      const handleDragStart = (event: DragEvent) => {
+        const target = event.target as HTMLElement
+        const dragButton = target.closest('.xnet-drag-handle-button')
+        if (!dragButton) return
 
-          const pos = parseInt(posStr, 10)
-          const $pos = view.state.doc.resolve(pos)
-          const node = $pos.nodeAfter ?? $pos.parent
-          if (!node) return false
+        const handle = dragButton.closest('.xnet-drag-handle')
+        const posStr = handle?.getAttribute('data-drag-pos')
+        if (!posStr) return
 
-          // Find the actual block start position
-          let blockPos = pos
-          if (!$pos.nodeAfter) {
-            // pos is inside a node; find the block start
-            try {
-              blockPos = $pos.before($pos.depth)
-            } catch {
-              return false
-            }
-          }
+        const blockPos = parseInt(posStr, 10)
+        const $pos = editorView.state.doc.resolve(blockPos)
+        const blockNode = $pos.nodeAfter
+        if (!blockNode) return
 
-          const blockNode = view.state.doc.resolve(blockPos).nodeAfter
-          if (!blockNode) return false
+        dragState.draggedPos = blockPos
+        dragState.draggedNode = blockNode
 
-          dragState.draggedPos = blockPos
-          dragState.draggedNode = blockNode
+        // Set drag data
+        if (event.dataTransfer) {
+          event.dataTransfer.setData(DRAG_DATA_TYPE, JSON.stringify({ pos: blockPos }))
+          event.dataTransfer.effectAllowed = 'move'
 
-          // Set drag data
-          if (event.dataTransfer) {
-            event.dataTransfer.setData(DRAG_DATA_TYPE, JSON.stringify({ pos: blockPos }))
-            event.dataTransfer.effectAllowed = 'move'
+          // Create drag image
+          const dragImage = createDragImage(blockNode)
+          document.body.appendChild(dragImage)
+          event.dataTransfer.setDragImage(dragImage, 0, 0)
+          requestAnimationFrame(() => dragImage.remove())
+        }
 
-            // Create drag image
-            const dragImage = createDragImage(blockNode)
-            document.body.appendChild(dragImage)
-            event.dataTransfer.setDragImage(dragImage, 0, 0)
-            requestAnimationFrame(() => dragImage.remove())
-          }
+        // Add dragging class
+        editorView.dom.classList.add('is-dragging')
 
-          // Add dragging class
-          view.dom.classList.add('is-dragging')
+        // Dispatch meta to update plugin state
+        const tr = editorView.state.tr.setMeta(DragDropPluginKey, {
+          draggedPos: blockPos,
+          draggedNode: blockNode
+        })
+        editorView.dispatch(tr)
+      }
 
-          // Dispatch meta to update plugin state
-          const tr = view.state.tr.setMeta(DragDropPluginKey, {
-            draggedPos: blockPos,
-            draggedNode: blockNode
+      const handleDragOver = (event: DragEvent) => {
+        if (!dragState.draggedNode) return
+
+        event.preventDefault()
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = 'move'
+        }
+
+        const coords = { left: event.clientX, top: event.clientY }
+        const dropInfo = calculateDropPosition(editorView, coords, dragState.draggedPos!)
+
+        if (dropInfo) {
+          dragState.dropPos = dropInfo.pos
+          dragState.dropSide = dropInfo.side
+
+          const tr = editorView.state.tr.setMeta(DragDropPluginKey, {
+            dropPos: dropInfo.pos,
+            dropSide: dropInfo.side
           })
-          view.dispatch(tr)
+          editorView.dispatch(tr)
+        }
+      }
 
-          return true
-        },
+      const handleDragLeave = (event: DragEvent) => {
+        if (!dragState.draggedNode) return
 
-        dragover: (view: EditorView, event: DragEvent) => {
-          if (!dragState.draggedNode) return false
+        const related = event.relatedTarget as HTMLElement | null
+        if (!related || !parentEl.contains(related)) {
+          const tr = editorView.state.tr.setMeta(DragDropPluginKey, {
+            dropPos: null,
+            dropSide: null
+          })
+          editorView.dispatch(tr)
+        }
+      }
 
-          event.preventDefault()
-          if (event.dataTransfer) {
-            event.dataTransfer.dropEffect = 'move'
-          }
-
-          const coords = { left: event.clientX, top: event.clientY }
-          const dropInfo = calculateDropPosition(view, coords, dragState.draggedPos!)
-
-          if (dropInfo) {
-            dragState.dropPos = dropInfo.pos
-            dragState.dropSide = dropInfo.side
-
-            const tr = view.state.tr.setMeta(DragDropPluginKey, {
-              dropPos: dropInfo.pos,
-              dropSide: dropInfo.side
-            })
-            view.dispatch(tr)
-          }
-
-          return true
-        },
-
-        dragleave: (view: EditorView, event: DragEvent) => {
-          if (!dragState.draggedNode) return false
-
-          const related = event.relatedTarget as HTMLElement | null
-          if (!related || !view.dom.contains(related)) {
-            const tr = view.state.tr.setMeta(DragDropPluginKey, {
-              dropPos: null,
-              dropSide: null
-            })
-            view.dispatch(tr)
-          }
-          return false
-        },
-
-        drop: (view: EditorView, event: DragEvent) => {
-          if (!dragState.draggedNode || dragState.dropPos === null) {
-            resetDragState()
-            return false
-          }
-
-          event.preventDefault()
-
-          const { draggedPos, draggedNode, dropPos, dropSide } = dragState
-
-          if (draggedPos === null || !draggedNode) {
-            resetDragState()
-            return false
-          }
-
-          // Calculate the insert position
-          let insertPos = dropPos
-          if (dropSide === 'after') {
-            const $dropPos = view.state.doc.resolve(dropPos)
-            const nodeAfter = $dropPos.nodeAfter
-            if (nodeAfter) {
-              insertPos = dropPos + nodeAfter.nodeSize
-            }
-          }
-
-          // Create transaction: delete then insert
-          const tr = view.state.tr
-
-          // Delete the original node first
-          tr.delete(draggedPos, draggedPos + draggedNode.nodeSize)
-
-          // Adjust insert position if it was after the deleted node
-          if (insertPos > draggedPos) {
-            insertPos -= draggedNode.nodeSize
-          }
-
-          // Insert at new position
-          tr.insert(insertPos, draggedNode)
-
-          // Clear drag state
-          tr.setMeta(DragDropPluginKey, { ...INITIAL_STATE })
-
-          view.dispatch(tr)
-          view.dom.classList.remove('is-dragging')
+      const handleDrop = (event: DragEvent) => {
+        if (!dragState.draggedNode || dragState.dropPos === null) {
           resetDragState()
+          return
+        }
 
-          return true
-        },
+        event.preventDefault()
 
-        dragend: (view: EditorView) => {
-          view.dom.classList.remove('is-dragging')
+        const { draggedPos, dropPos, dropSide } = dragState
 
-          const tr = view.state.tr.setMeta(DragDropPluginKey, { ...INITIAL_STATE })
-          view.dispatch(tr)
-
+        if (draggedPos === null) {
           resetDragState()
-          return false
+          return
+        }
+
+        // Re-resolve the node from current state (important for Yjs collaboration)
+        const $draggedPos = editorView.state.doc.resolve(draggedPos)
+        const currentNode = $draggedPos.nodeAfter
+        if (!currentNode) {
+          resetDragState()
+          return
+        }
+
+        // Calculate the insert position
+        let insertPos = dropPos
+        if (dropSide === 'after') {
+          const $dropPos = editorView.state.doc.resolve(dropPos)
+          const nodeAfter = $dropPos.nodeAfter
+          if (nodeAfter) {
+            insertPos = dropPos + nodeAfter.nodeSize
+          }
+        }
+
+        // Create transaction: delete then insert
+        const tr = editorView.state.tr
+
+        // Delete the original node first
+        tr.delete(draggedPos, draggedPos + currentNode.nodeSize)
+
+        // Adjust insert position if it was after the deleted node
+        if (insertPos > draggedPos) {
+          insertPos -= currentNode.nodeSize
+        }
+
+        // Insert at new position
+        tr.insert(insertPos, currentNode)
+
+        // Clear drag state
+        tr.setMeta(DragDropPluginKey, { ...INITIAL_STATE })
+
+        editorView.dispatch(tr)
+        editorView.dom.classList.remove('is-dragging')
+        resetDragState()
+      }
+
+      const handleDragEnd = () => {
+        editorView.dom.classList.remove('is-dragging')
+
+        const tr = editorView.state.tr.setMeta(DragDropPluginKey, { ...INITIAL_STATE })
+        editorView.dispatch(tr)
+
+        resetDragState()
+      }
+
+      // Listen on parent element to catch events from the drag handle
+      parentEl.addEventListener('dragstart', handleDragStart)
+      parentEl.addEventListener('dragover', handleDragOver)
+      parentEl.addEventListener('dragleave', handleDragLeave)
+      parentEl.addEventListener('drop', handleDrop)
+      parentEl.addEventListener('dragend', handleDragEnd)
+
+      return {
+        destroy() {
+          parentEl.removeEventListener('dragstart', handleDragStart)
+          parentEl.removeEventListener('dragover', handleDragOver)
+          parentEl.removeEventListener('dragleave', handleDragLeave)
+          parentEl.removeEventListener('drop', handleDrop)
+          parentEl.removeEventListener('dragend', handleDragEnd)
         }
       }
     }

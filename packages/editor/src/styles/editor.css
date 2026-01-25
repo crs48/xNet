@@ -424,12 +424,6 @@
 
 /* dark mode handled via CSS variables above */
 
-/* Legacy drop indicator (kept for backwards compat) */
-.drop-indicator {
-  @apply absolute left-0 right-0 h-0.5 rounded-full pointer-events-none;
-  background: rgb(var(--editor-primary));
-}
-
 /* ─── Accessibility ─── */
 
 /* Reduced motion: disable all animations and transitions */

@@ -164,13 +164,9 @@ describe('DragDropPlugin', () => {
           ) !== undefined
       )
       expect(plugin).toBeDefined()
-      // The plugin has handleDOMEvents with dragstart/dragover/drop/dragend/dragleave
-      const props = (plugin as any).spec.props
-      expect(props.handleDOMEvents.dragstart).toBeDefined()
-      expect(props.handleDOMEvents.dragover).toBeDefined()
-      expect(props.handleDOMEvents.drop).toBeDefined()
-      expect(props.handleDOMEvents.dragend).toBeDefined()
-      expect(props.handleDOMEvents.dragleave).toBeDefined()
+      // The plugin uses view() lifecycle to set up event listeners on parent element
+      const spec = (plugin as any).spec
+      expect(spec.view).toBeDefined()
     })
   })
 })

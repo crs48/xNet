@@ -18,8 +18,8 @@ export const DragHandle = Extension.create<DragHandleOptions>({
   addOptions() {
     return {
       draggableSelector: 'p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, hr',
-      handleOffset: -28,
-      showDelay: 50
+      handleOffset: 0,
+      showDelay: 0
     }
   },
 
@@ -49,12 +49,15 @@ export const DragHandle = Extension.create<DragHandleOptions>({
           </svg>
         </button>
       `
+      // Extended padding-right creates an invisible hover zone bridging
+      // the gap between the handle and the content
       handle.style.cssText = `
         position: absolute;
         opacity: 0;
         pointer-events: none;
         transition: opacity 150ms ease;
         z-index: 50;
+        padding-right: 8px;
       `
       return handle
     }
@@ -62,11 +65,18 @@ export const DragHandle = Extension.create<DragHandleOptions>({
     const showHandle = (block: HTMLElement) => {
       if (!dragHandleElement) return
 
-      const editorRect = editor.view.dom.getBoundingClientRect()
+      const parentEl = editor.view.dom.parentElement
+      if (!parentEl) return
+
+      const parentRect = parentEl.getBoundingClientRect()
       const blockRect = block.getBoundingClientRect()
 
-      const top = blockRect.top - editorRect.top + editor.view.dom.scrollTop
-      const left = options.handleOffset
+      // Position relative to the parent element (where handle is appended)
+      const top = blockRect.top - parentRect.top + parentEl.scrollTop
+      // Position handle immediately to the left of the block's content
+      const blockLeft = blockRect.left - parentRect.left
+      const handleWidth = 24 // Width of handle + small gap
+      const left = blockLeft - handleWidth
 
       dragHandleElement.style.top = `${top}px`
       dragHandleElement.style.left = `${left}px`
@@ -74,9 +84,20 @@ export const DragHandle = Extension.create<DragHandleOptions>({
       dragHandleElement.style.opacity = '1'
       dragHandleElement.style.pointerEvents = 'auto'
 
-      // Store position for drag operations
+      // Store position for drag operations - get position BEFORE the block node
       const pos = editor.view.posAtDOM(block, 0)
-      dragHandleElement.setAttribute('data-drag-pos', String(pos))
+      const $pos = editor.state.doc.resolve(pos)
+      // Walk up to find the top-level block position
+      let blockPos = pos
+      try {
+        // Get the position before the block at depth 1 (top-level)
+        const depth = Math.max(1, $pos.depth)
+        blockPos = $pos.before(depth)
+      } catch {
+        // Fallback to resolved position
+        blockPos = pos
+      }
+      dragHandleElement.setAttribute('data-drag-pos', String(blockPos))
 
       currentBlock = block
     }

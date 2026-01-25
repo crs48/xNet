@@ -1,18 +1,21 @@
 /**
- * Database View - Table/Board view using @xnet/react hooks
+ * Database View - Table/Board view with dynamic schema
  *
- * Uses @xnet/views TableView and BoardView with proper Schema + ViewConfig API.
+ * Schema (columns) and data (rows) are stored in Y.Doc, not hardcoded.
+ * - doc.getMap('data').get('columns') -> PropertyDefinition[]
+ * - doc.getMap('data').get('rows') -> TableRow[]
+ * - doc.getMap('data').get('tableView') -> ViewConfig
+ * - doc.getMap('data').get('boardView') -> ViewConfig
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNode, useIdentity } from '@xnet/react'
-import { DatabaseSchema, defineSchema, text, select, date, type Schema } from '@xnet/data'
+import { DatabaseSchema, type Schema, type PropertyDefinition, type PropertyType } from '@xnet/data'
 import {
   TableView,
   BoardView,
   type ViewConfig,
   type TableRow,
-  type BoardRow,
   type CellPresence
 } from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
@@ -23,106 +26,76 @@ interface DatabaseViewProps {
   docId: string
 }
 
-// Define a Task schema for the database items
-const TaskSchema = defineSchema({
-  name: 'Task',
-  namespace: 'xnet://xnet.dev/',
-  properties: {
-    title: text({ required: true }),
-    status: select({
-      options: [
-        { id: 'todo', name: 'To Do', color: '#6B7280' },
-        { id: 'in-progress', name: 'In Progress', color: '#3B82F6' },
-        { id: 'review', name: 'Review', color: '#F59E0B' },
-        { id: 'done', name: 'Done', color: '#10B981' }
-      ] as const
-    }),
-    priority: select({
-      options: [
-        { id: 'low', name: 'Low', color: '#9CA3AF' },
-        { id: 'medium', name: 'Medium', color: '#F59E0B' },
-        { id: 'high', name: 'High', color: '#EF4444' }
-      ] as const
-    }),
-    assignee: text(),
-    dueDate: date()
-  }
-})
-
-// Get the schema object for views
-const schema: Schema = TaskSchema.schema
-
-// Default view configurations
-const defaultTableView: ViewConfig = {
-  id: 'default-table',
-  name: 'Table View',
-  type: 'table',
-  visibleProperties: ['title', 'status', 'priority', 'assignee', 'dueDate'],
-  propertyWidths: {
-    title: 200,
-    status: 120,
-    priority: 100,
-    assignee: 150,
-    dueDate: 120
-  },
-  sorts: [],
-  groupByProperty: 'status'
-}
-
-const defaultBoardView: ViewConfig = {
-  id: 'default-board',
-  name: 'Board View',
-  type: 'board',
-  visibleProperties: ['title', 'priority', 'assignee', 'dueDate'],
-  sorts: [],
-  groupByProperty: 'status'
-}
-
 type ViewMode = 'table' | 'board'
 
-// Sample data for new databases
-const sampleData = [
-  {
-    id: '1',
-    title: 'Design system setup',
-    status: 'done',
-    priority: 'high',
-    assignee: 'Alice',
-    dueDate: '2024-01-15'
-  },
-  {
-    id: '2',
-    title: 'API integration',
-    status: 'in-progress',
-    priority: 'high',
-    assignee: 'Bob',
-    dueDate: '2024-01-20'
-  },
-  {
-    id: '3',
-    title: 'Unit tests',
-    status: 'todo',
-    priority: 'medium',
-    assignee: 'Carol',
-    dueDate: '2024-01-25'
-  },
-  {
-    id: '4',
-    title: 'Documentation',
-    status: 'todo',
-    priority: 'low',
-    assignee: 'Dan',
-    dueDate: '2024-01-30'
-  },
-  {
-    id: '5',
-    title: 'Code review',
-    status: 'review',
-    priority: 'medium',
-    assignee: 'Eve',
-    dueDate: '2024-01-22'
+/**
+ * Stored column definition (simplified PropertyDefinition for storage)
+ */
+interface StoredColumn {
+  id: string
+  name: string
+  type: PropertyType
+  config?: Record<string, unknown>
+}
+
+/**
+ * Build a Schema object from stored columns
+ */
+function buildSchema(columns: StoredColumn[], dbId: string): Schema {
+  const properties: PropertyDefinition[] = columns.map((col) => ({
+    '@id': `xnet://xnet.dev/DynamicDatabase#${col.id}`,
+    name: col.name,
+    type: col.type,
+    required: false,
+    config: col.config
+  }))
+
+  return {
+    '@id': `xnet://xnet.dev/DynamicDatabase` as const,
+    '@type': 'xnet://xnet.dev/Schema',
+    name: 'DynamicDatabase',
+    namespace: 'xnet://xnet.dev/',
+    properties
   }
-]
+}
+
+/**
+ * Build default view config from columns
+ */
+function buildDefaultTableView(columns: StoredColumn[]): ViewConfig {
+  const visibleProperties = columns.map((c) => c.id)
+  const propertyWidths: Record<string, number> = {}
+  columns.forEach((c) => {
+    propertyWidths[c.id] = c.type === 'text' ? 200 : 120
+  })
+
+  // Find first select column for grouping
+  const selectColumn = columns.find((c) => c.type === 'select')
+
+  return {
+    id: 'default-table',
+    name: 'Table View',
+    type: 'table',
+    visibleProperties,
+    propertyWidths,
+    sorts: [],
+    groupByProperty: selectColumn?.id
+  }
+}
+
+function buildDefaultBoardView(columns: StoredColumn[]): ViewConfig {
+  const visibleProperties = columns.map((c) => c.id)
+  const selectColumn = columns.find((c) => c.type === 'select')
+
+  return {
+    id: 'default-board',
+    name: 'Board View',
+    type: 'board',
+    visibleProperties,
+    sorts: [],
+    groupByProperty: selectColumn?.id
+  }
+}
 
 export function DatabaseView({ docId }: DatabaseViewProps) {
   const { did } = useIdentity()
@@ -140,10 +113,24 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   })
 
   const [viewMode, setViewMode] = useState<ViewMode>('table')
+  const [columns, setColumns] = useState<StoredColumn[]>([])
   const [rows, setRows] = useState<TableRow[]>([])
-  const [tableViewConfig, setTableViewConfig] = useState<ViewConfig>(defaultTableView)
-  const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig>(defaultBoardView)
+  const [tableViewConfig, setTableViewConfig] = useState<ViewConfig | null>(null)
+  const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig | null>(null)
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
+
+  // Build schema from columns
+  const schema = useMemo(() => buildSchema(columns, docId), [columns, docId])
+
+  // Ensure we have valid view configs (use stored or build default)
+  const effectiveTableView = useMemo(
+    () => tableViewConfig || buildDefaultTableView(columns),
+    [tableViewConfig, columns]
+  )
+  const effectiveBoardView = useMemo(
+    () => boardViewConfig || buildDefaultBoardView(columns),
+    [boardViewConfig, columns]
+  )
 
   // Broadcast focused cell via awareness
   const handleCellFocus = useCallback(
@@ -193,22 +180,32 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     }
   }, [awareness])
 
-  // Load or initialize data from Y.Doc
+  // Load data from Y.Doc
   useEffect(() => {
     if (!doc) return
 
     const dataMap = doc.getMap('data')
 
-    const loadRows = () => {
+    const loadData = () => {
+      // Load columns
+      const storedColumns = dataMap.get('columns') as StoredColumn[] | undefined
+      if (storedColumns && Array.isArray(storedColumns)) {
+        setColumns(storedColumns)
+      } else {
+        // Default: empty database (no columns)
+        setColumns([])
+      }
+
+      // Load rows
       const storedRows = dataMap.get('rows') as TableRow[] | undefined
       if (storedRows && Array.isArray(storedRows)) {
         setRows(storedRows)
-      } else if (dataMap.size === 0) {
-        // Initialize with sample data for new databases
-        dataMap.set('rows', sampleData)
-        setRows(sampleData)
+      } else {
+        // Default: no rows
+        setRows([])
       }
 
+      // Load view configs
       const storedTableView = dataMap.get('tableView') as ViewConfig | undefined
       if (storedTableView) setTableViewConfig(storedTableView)
 
@@ -216,32 +213,78 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       if (storedBoardView) setBoardViewConfig(storedBoardView)
     }
 
-    loadRows()
+    loadData()
 
-    const observer = () => loadRows()
+    const observer = () => loadData()
     dataMap.observe(observer)
 
     return () => dataMap.unobserve(observer)
+  }, [doc])
+
+  // Add new column
+  const handleAddColumn = useCallback(() => {
+    if (!doc) return
+
+    const newColumn: StoredColumn = {
+      id: `col_${Date.now()}`,
+      name: 'New Column',
+      type: 'text'
+    }
+
+    const dataMap = doc.getMap('data')
+    const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+    const updatedColumns = [...currentColumns, newColumn]
+    dataMap.set('columns', updatedColumns)
+
+    // Update view configs to include new column
+    const currentTableView = dataMap.get('tableView') as ViewConfig | undefined
+    if (currentTableView) {
+      dataMap.set('tableView', {
+        ...currentTableView,
+        visibleProperties: [...currentTableView.visibleProperties, newColumn.id],
+        propertyWidths: { ...currentTableView.propertyWidths, [newColumn.id]: 150 }
+      })
+    }
+
+    const currentBoardView = dataMap.get('boardView') as ViewConfig | undefined
+    if (currentBoardView) {
+      dataMap.set('boardView', {
+        ...currentBoardView,
+        visibleProperties: [...currentBoardView.visibleProperties, newColumn.id]
+      })
+    }
   }, [doc])
 
   // Add new row
   const handleAddRow = useCallback(() => {
     if (!doc) return
 
-    const newRow = {
-      id: Date.now().toString(),
-      title: 'New item',
-      status: 'todo',
-      priority: 'medium',
-      assignee: '',
-      dueDate: ''
+    const newRow: TableRow = {
+      id: Date.now().toString()
     }
 
+    // Initialize all columns with empty/default values
+    columns.forEach((col) => {
+      switch (col.type) {
+        case 'checkbox':
+          newRow[col.id] = false
+          break
+        case 'number':
+          newRow[col.id] = null
+          break
+        case 'multiSelect':
+          newRow[col.id] = []
+          break
+        default:
+          newRow[col.id] = ''
+      }
+    })
+
     const dataMap = doc.getMap('data')
-    const currentRows = dataMap.get('rows') as Array<Record<string, unknown>> | undefined
-    const updatedRows = [...(currentRows || []), newRow]
+    const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+    const updatedRows = [...currentRows, newRow]
     dataMap.set('rows', updatedRows)
-  }, [doc])
+  }, [doc, columns])
 
   // Handle row updates
   const handleUpdateRow = useCallback(
@@ -249,7 +292,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       if (!doc) return
 
       const dataMap = doc.getMap('data')
-      const currentRows = dataMap.get('rows') as Array<Record<string, unknown>> | undefined
+      const currentRows = dataMap.get('rows') as TableRow[] | undefined
       if (!currentRows) return
 
       const updatedRows = currentRows.map((row) =>
@@ -265,21 +308,21 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const handleUpdateTableView = useCallback(
     (changes: Partial<ViewConfig>) => {
       if (!doc) return
-      const newConfig = { ...tableViewConfig, ...changes }
+      const newConfig = { ...effectiveTableView, ...changes }
       setTableViewConfig(newConfig)
       doc.getMap('data').set('tableView', newConfig)
     },
-    [doc, tableViewConfig]
+    [doc, effectiveTableView]
   )
 
   const handleUpdateBoardView = useCallback(
     (changes: Partial<ViewConfig>) => {
       if (!doc) return
-      const newConfig = { ...boardViewConfig, ...changes }
+      const newConfig = { ...effectiveBoardView, ...changes }
       setBoardViewConfig(newConfig)
       doc.getMap('data').set('boardView', newConfig)
     },
-    [doc, boardViewConfig]
+    [doc, effectiveBoardView]
   )
 
   // Handle card add for board view
@@ -287,27 +330,77 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     (columnId: string) => {
       if (!doc) return
 
-      const newRow = {
-        id: Date.now().toString(),
-        title: 'New item',
-        status: columnId,
-        priority: 'medium',
-        assignee: '',
-        dueDate: ''
+      const newRow: TableRow = {
+        id: Date.now().toString()
       }
 
+      // Initialize columns, setting the groupBy column to the clicked column
+      const groupByProp = effectiveBoardView.groupByProperty
+      columns.forEach((col) => {
+        if (col.id === groupByProp) {
+          newRow[col.id] = columnId
+        } else {
+          switch (col.type) {
+            case 'checkbox':
+              newRow[col.id] = false
+              break
+            case 'number':
+              newRow[col.id] = null
+              break
+            case 'multiSelect':
+              newRow[col.id] = []
+              break
+            default:
+              newRow[col.id] = ''
+          }
+        }
+      })
+
       const dataMap = doc.getMap('data')
-      const currentRows = dataMap.get('rows') as Array<Record<string, unknown>> | undefined
-      const updatedRows = [...(currentRows || []), newRow]
+      const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+      const updatedRows = [...currentRows, newRow]
       dataMap.set('rows', updatedRows)
     },
-    [doc]
+    [doc, columns, effectiveBoardView.groupByProperty]
   )
 
   if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-muted-foreground">Loading database...</p>
+      </div>
+    )
+  }
+
+  // Empty state when no columns
+  if (columns.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Toolbar */}
+        <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
+          <input
+            type="text"
+            className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+            value={database?.title || ''}
+            onChange={(e) => update({ title: e.target.value })}
+            placeholder="Untitled"
+          />
+          <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+          <div className="flex-1" />
+          <ShareButton docId={docId} docType="database" />
+        </div>
+
+        {/* Empty state */}
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+          <p className="mb-4">This database has no columns yet.</p>
+          <button
+            onClick={handleAddColumn}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-md text-sm hover:bg-primary-hover transition-colors"
+          >
+            <Plus size={16} />
+            Add Column
+          </button>
+        </div>
       </div>
     )
   }
@@ -371,10 +464,11 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         {viewMode === 'table' ? (
           <TableView
             schema={schema}
-            view={tableViewConfig}
+            view={effectiveTableView}
             data={rows}
             onUpdateRow={handleUpdateRow}
             onUpdateView={handleUpdateTableView}
+            onAddColumn={handleAddColumn}
             onAddRow={handleAddRow}
             cellPresences={cellPresences}
             onCellFocus={handleCellFocus}
@@ -383,7 +477,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         ) : (
           <BoardView
             schema={schema}
-            view={boardViewConfig}
+            view={effectiveBoardView}
             data={rows}
             onUpdateRow={handleUpdateRow}
             onUpdateView={handleUpdateBoardView}
