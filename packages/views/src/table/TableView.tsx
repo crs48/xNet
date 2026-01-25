@@ -11,6 +11,13 @@ import { TableHeader } from './TableHeader.js'
 import { TableCell } from './TableCell.js'
 import type { ViewConfig, CellPresence } from '../types.js'
 
+/** Column update payload */
+export interface ColumnUpdate {
+  name?: string
+  type?: string
+  config?: Record<string, unknown>
+}
+
 export interface TableViewProps {
   /** Schema defining the table structure */
   schema: Schema
@@ -24,6 +31,10 @@ export interface TableViewProps {
   onUpdateView?: (changes: Partial<ViewConfig>) => void
   /** Callback when add column is clicked */
   onAddColumn?: () => void
+  /** Callback when a column is updated (rename, change type) */
+  onUpdateColumn?: (columnId: string, updates: ColumnUpdate) => void
+  /** Callback when a column is deleted */
+  onDeleteColumn?: (columnId: string) => void
   /** Callback when add row is clicked */
   onAddRow?: () => void
   /** Additional CSS class */
@@ -50,6 +61,8 @@ export function TableView({
   onUpdateRow,
   onUpdateView,
   onAddColumn,
+  onUpdateColumn,
+  onDeleteColumn,
   onAddRow,
   className,
   rowHeight = 36,
@@ -93,7 +106,12 @@ export function TableView({
       <div ref={containerRef} className="flex-1 overflow-auto">
         <table className="w-full border-collapse text-sm">
           {/* Header */}
-          <TableHeader table={table} onAddColumn={onAddColumn} />
+          <TableHeader
+            table={table}
+            onAddColumn={onAddColumn}
+            onUpdateColumn={onUpdateColumn}
+            onDeleteColumn={onDeleteColumn}
+          />
 
           {/* Body with virtual scrolling */}
           <tbody>

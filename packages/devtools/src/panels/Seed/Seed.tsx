@@ -227,16 +227,27 @@ export function Seed() {
       ydoc.transact(() => {
         const dataMap = ydoc.getMap('data')
 
-        // Define columns - one for each supported property type
-        // Column names are the property type for easy identification
+        // Define columns - one for each of the 15 usable property types
+        // (excludes rollup and formula which are "not yet implemented")
+        // Column names match the property type for easy identification
         const columns = [
-          { id: 'text', name: 'Text', type: 'text' },
-          { id: 'number', name: 'Number', type: 'number' },
-          { id: 'checkbox', name: 'Checkbox', type: 'checkbox' },
-          { id: 'date', name: 'Date', type: 'date' },
+          // Basic types (3)
+          { id: 'text', name: 'text', type: 'text' },
+          { id: 'number', name: 'number', type: 'number' },
+          { id: 'checkbox', name: 'checkbox', type: 'checkbox' },
+
+          // Temporal types (2)
+          { id: 'date', name: 'date', type: 'date' },
+          {
+            id: 'dateRange',
+            name: 'dateRange',
+            type: 'dateRange'
+          },
+
+          // Selection types (2)
           {
             id: 'select',
-            name: 'Select',
+            name: 'select',
             type: 'select',
             config: {
               options: [
@@ -248,7 +259,7 @@ export function Seed() {
           },
           {
             id: 'multiSelect',
-            name: 'Multi-Select',
+            name: 'multiSelect',
             type: 'multiSelect',
             config: {
               options: [
@@ -258,14 +269,32 @@ export function Seed() {
               ]
             }
           },
-          { id: 'url', name: 'URL', type: 'url' },
-          { id: 'email', name: 'Email', type: 'email' },
-          { id: 'phone', name: 'Phone', type: 'phone' }
+
+          // Reference types (2)
+          { id: 'person', name: 'person', type: 'person' },
+          {
+            id: 'relation',
+            name: 'relation',
+            type: 'relation',
+            config: { targetSchema: 'xnet://xnet.dev/Page' }
+          },
+
+          // Rich types (4)
+          { id: 'url', name: 'url', type: 'url' },
+          { id: 'email', name: 'email', type: 'email' },
+          { id: 'phone', name: 'phone', type: 'phone' },
+          { id: 'file', name: 'file', type: 'file', config: { accept: ['*/*'] } },
+
+          // Auto-populated types (3) - read-only, auto-filled on create/update
+          { id: 'created', name: 'created', type: 'created' },
+          { id: 'updated', name: 'updated', type: 'updated' },
+          { id: 'createdBy', name: 'createdBy', type: 'createdBy' }
         ]
 
         dataMap.set('columns', columns)
 
-        // Create sample rows demonstrating filled and empty states
+        // Create sample rows demonstrating filled and empty states for all 15 types
+        const now = Date.now()
         const rows = [
           // Row 1: All fields populated
           {
@@ -274,11 +303,22 @@ export function Seed() {
             number: 42.5,
             checkbox: true,
             date: '2024-06-15',
+            dateRange: { start: '2024-06-01', end: '2024-06-30' },
             select: 'opt_a',
             multiSelect: ['tag_1', 'tag_2'],
+            person: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+            relation: 'node_abc123',
             url: 'https://example.com',
             email: 'hello@example.com',
-            phone: '+1 (555) 123-4567'
+            phone: '+1 (555) 123-4567',
+            file: {
+              cid: 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi',
+              name: 'document.pdf',
+              size: 102400
+            },
+            created: now - 86400000 * 7, // 7 days ago
+            updated: now,
+            createdBy: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'
           },
           // Row 2: Different values
           {
@@ -287,50 +327,82 @@ export function Seed() {
             number: 100,
             checkbox: false,
             date: '2024-12-25',
+            dateRange: { start: '2024-12-20', end: '2025-01-05' },
             select: 'opt_b',
             multiSelect: ['tag_3'],
+            person: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
+            relation: 'node_def456',
             url: 'https://xnet.dev',
             email: 'test@xnet.dev',
-            phone: '+44 20 7946 0958'
+            phone: '+44 20 7946 0958',
+            file: {
+              cid: 'bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4',
+              name: 'image.png',
+              size: 51200
+            },
+            created: now - 86400000 * 3, // 3 days ago
+            updated: now - 3600000,
+            createdBy: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH'
           },
-          // Row 3: Minimal data (some empty)
+          // Row 3: Sparse data (some empty)
           {
             id: generateId(),
             text: 'Sparse row',
             number: 0,
             checkbox: false,
             date: '',
+            dateRange: null,
             select: 'opt_c',
             multiSelect: [],
+            person: '',
+            relation: '',
             url: '',
             email: '',
-            phone: ''
+            phone: '',
+            file: null,
+            created: now - 86400000,
+            updated: now - 86400000,
+            createdBy: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'
           },
-          // Row 4: Negative number, all tags
+          // Row 4: Edge cases (negative number, all tags, no select)
           {
             id: generateId(),
-            text: 'Negative number test',
+            text: 'Edge cases row',
             number: -99.9,
             checkbox: true,
             date: '2020-01-01',
+            dateRange: { start: '2020-01-01', end: '2020-01-01' }, // Same day range
             select: '',
             multiSelect: ['tag_1', 'tag_2', 'tag_3'],
+            person: '',
+            relation: 'node_ghi789',
             url: 'https://github.com',
             email: 'dev@github.com',
-            phone: ''
+            phone: '',
+            file: null,
+            created: now - 86400000 * 30,
+            updated: now - 86400000 * 15,
+            createdBy: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH'
           },
-          // Row 5: Empty row (all fields undefined/empty)
+          // Row 5: Empty row (all user-editable fields empty)
           {
             id: generateId(),
             text: '',
             number: null,
             checkbox: false,
             date: '',
+            dateRange: null,
             select: '',
             multiSelect: [],
+            person: '',
+            relation: '',
             url: '',
             email: '',
-            phone: ''
+            phone: '',
+            file: null,
+            created: now,
+            updated: now,
+            createdBy: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'
           }
         ]
 
@@ -445,8 +517,10 @@ export function Seed() {
             code block, horizontal rule, all callout types, and toggle sections.
           </div>
           <div>
-            <strong>Sample Database:</strong> 9 columns (Text, Number, Checkbox, Date, Select,
-            Multi-Select, URL, Email, Phone) with 5 rows showing filled, partial, and empty states.
+            <strong>Sample Database:</strong> 15 columns covering all property types (text, number,
+            checkbox, date, dateRange, select, multiSelect, person, relation, url, email, phone,
+            file, created, updated, createdBy) with 5 rows showing filled, partial, and empty
+            states.
           </div>
         </div>
       </div>
