@@ -142,7 +142,7 @@ function processEvent(event: DevToolsEvent, map: Map<string, QueryStats>): void 
 }
 
 function inferHookType(queryId: string): QueryStats['type'] {
-  if (queryId.startsWith('useNode') || queryId.startsWith('useDocument')) return 'useNode'
+  if (queryId.startsWith('useNode')) return 'useNode'
   if (queryId.startsWith('useMutate')) return 'useMutate'
   return 'useQuery'
 }

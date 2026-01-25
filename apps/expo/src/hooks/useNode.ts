@@ -1,11 +1,11 @@
 /**
- * Document hook for Expo
+ * Node hook for Expo
  */
 import { useState, useEffect, useCallback } from 'react'
 import { useXNet } from './useXNet'
 import type { XDocument } from '@xnet/sdk'
 
-interface UseDocumentResult {
+interface UseNodeResult {
   document: XDocument | null
   loading: boolean
   error: Error | null
@@ -14,7 +14,7 @@ interface UseDocumentResult {
   refresh: () => Promise<void>
 }
 
-export function useDocument(docId: string | null): UseDocumentResult {
+export function useNode(docId: string | null): UseNodeResult {
   const { client, isReady } = useXNet()
   const [document, setDocument] = useState<XDocument | null>(null)
   const [loading, setLoading] = useState(true)
@@ -41,21 +41,27 @@ export function useDocument(docId: string | null): UseDocumentResult {
     load()
   }, [load])
 
-  const updateTitle = useCallback(async (title: string) => {
-    if (!document) return
-    document.metadata.title = title
-    // Re-fetch to refresh state
-    await load()
-  }, [document, load])
+  const updateTitle = useCallback(
+    async (title: string) => {
+      if (!document) return
+      document.metadata.title = title
+      // Re-fetch to refresh state
+      await load()
+    },
+    [document, load]
+  )
 
-  const updateContent = useCallback(async (content: string) => {
-    if (!document) return
-    const text = document.ydoc.getText('content')
-    text.delete(0, text.length)
-    text.insert(0, content)
-    // Re-fetch to refresh state
-    await load()
-  }, [document, load])
+  const updateContent = useCallback(
+    async (content: string) => {
+      if (!document) return
+      const text = document.ydoc.getText('content')
+      text.delete(0, text.length)
+      text.insert(0, content)
+      // Re-fetch to refresh state
+      await load()
+    },
+    [document, load]
+  )
 
   return {
     document,

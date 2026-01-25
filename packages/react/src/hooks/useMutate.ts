@@ -3,7 +3,7 @@
  *
  * A single hook for all write operations:
  * - Create nodes (requires schema)
- * - Update nodes (by ID)
+ * - Update nodes (requires schema for type safety)
  * - Delete nodes (by ID)
  * - Atomic transactions (multiple operations)
  *
@@ -19,12 +19,8 @@
  *
  * // Simple operations (optimistic by default)
  * await create(TaskSchema, { title: 'New Task', status: 'todo' })
- * await update(taskId, { status: 'done' })
+ * await update(TaskSchema, taskId, { status: 'done' })  // Type-safe!
  * await remove(taskId)
- *
- * // Type-safe schema-bound update
- * const { updateTyped } = useMutate()
- * await updateTyped(TaskSchema, taskId, { status: 'done' })  // Type-checked!
  *
  * // Atomic transaction
  * await mutate([
@@ -128,29 +124,17 @@ export interface UseMutateResult {
 
   /**
    * Update an existing node by ID.
-   * Schema not required - node already knows its type.
-   *
-   * Note: This is not type-safe. Use updateTyped() for compile-time checks.
-   *
-   * @returns The updated node (flattened), or null if update failed
-   */
-  update: (
-    id: string,
-    data: Record<string, unknown>,
-    options?: MutateOptions
-  ) => Promise<FlatNode<Record<string, PropertyBuilder>> | null>
-
-  /**
-   * Type-safe update for a specific schema.
-   * Provides compile-time checking of property names and types.
+   * Requires schema for type-safe property checking.
    *
    * @example
    * ```tsx
-   * await updateTyped(TaskSchema, taskId, { status: 'done' })  // OK
-   * await updateTyped(TaskSchema, taskId, { typo: 'x' })       // Type error!
+   * await update(TaskSchema, taskId, { status: 'done' })  // OK
+   * await update(TaskSchema, taskId, { typo: 'x' })       // Type error!
    * ```
+   *
+   * @returns The updated node (flattened), or null if update failed
    */
-  updateTyped: <P extends Record<string, PropertyBuilder>>(
+  update: <P extends Record<string, PropertyBuilder>>(
     schema: DefinedSchema<P>,
     id: string,
     data: Partial<InferCreateProps<P>>,
@@ -241,25 +225,8 @@ export function useMutate(): UseMutateResult {
     [store, isReady, withPending]
   )
 
-  // Update an existing node (untyped)
+  // Update an existing node (type-safe)
   const update = useCallback(
-    async (
-      id: string,
-      data: Record<string, unknown>,
-      _options?: MutateOptions
-    ): Promise<FlatNode<Record<string, PropertyBuilder>> | null> => {
-      if (!store || !isReady) return null
-
-      return withPending(async () => {
-        const node = await store.update(id, { properties: data })
-        return flattenNode<Record<string, PropertyBuilder>>(node)
-      })
-    },
-    [store, isReady, withPending]
-  )
-
-  // Type-safe update for a specific schema
-  const updateTyped = useCallback(
     async <P extends Record<string, PropertyBuilder>>(
       _schema: DefinedSchema<P>,
       id: string,
@@ -344,7 +311,6 @@ export function useMutate(): UseMutateResult {
   return {
     create,
     update,
-    updateTyped,
     remove,
     restore,
     mutate,

@@ -19,7 +19,7 @@ import Base from '../layouts/Base.astro'
         <a href="#vision" class="hidden sm:inline text-gray-400 hover:text-white transition-colors">Vision</a>
         <a href="#get-started" class="hidden sm:inline text-gray-400 hover:text-white transition-colors">Get Started</a>
         <a
-          href="https://github.com/anomalyco/xNet"
+          href="https://github.com/crs48/xNet"
           class="rounded-md border border-border px-3 py-1.5 text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all"
         >
           GitHub
@@ -43,7 +43,7 @@ import Base from '../layouts/Base.astro'
         </p>
         <div class="mt-10 flex justify-center gap-4">
           <a
-            href="https://github.com/anomalyco/xNet"
+            href="https://github.com/crs48/xNet"
             class="rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-500 transition-colors"
           >
             View on GitHub
@@ -389,7 +389,7 @@ import Base from '../layouts/Base.astro'
                   </li>
                   <li class="flex items-start gap-2">
                     <span class="mt-1 text-emerald-400">&#10003;</span>
-                    <span>Type-safe updates with updateTyped</span>
+                    <span>Type-safe updates with schema validation</span>
                   </li>
                   <li class="flex items-start gap-2">
                     <span class="mt-1 text-emerald-400">&#10003;</span>
@@ -407,7 +407,7 @@ import Base from '../layouts/Base.astro'
                 <pre class="overflow-x-auto rounded-xl border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-indigo-400">import</span> {'{'} useMutate {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
 
 <span class="text-indigo-400">function</span> <span class="text-yellow-300">TaskActions</span>() {'{'}
-  <span class="text-indigo-400">const</span> {'{'} create, updateTyped, remove {'}'} = <span class="text-yellow-300">useMutate</span>()
+  <span class="text-indigo-400">const</span> {'{'} create, update, remove {'}'} = <span class="text-yellow-300">useMutate</span>()
 
   <span class="text-gray-500">// Create a new task</span>
   <span class="text-indigo-400">const</span> addTask = <span class="text-indigo-400">async</span> () =&gt; {'{'}
@@ -419,7 +419,7 @@ import Base from '../layouts/Base.astro'
 
   <span class="text-gray-500">// Update with type safety</span>
   <span class="text-indigo-400">const</span> complete = <span class="text-indigo-400">async</span> (id: <span class="text-amber-400">string</span>) =&gt; {'{'}
-    <span class="text-indigo-400">await</span> <span class="text-yellow-300">updateTyped</span>(TaskSchema, id, {'{'}
+    <span class="text-indigo-400">await</span> <span class="text-yellow-300">update</span>(TaskSchema, id, {'{'}
       status: <span class="text-emerald-400">'done'</span>
     {'}'})
   {'}'}
@@ -672,7 +672,7 @@ import Base from '../layouts/Base.astro'
         <p class="mt-2 text-gray-400">Open source. MIT licensed. Ready to build.</p>
         <div class="mx-auto mt-8 max-w-lg text-left">
           <pre class="overflow-x-auto rounded-xl border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-gray-500"># Clone and run</span>
-git clone https://github.com/anomalyco/xNet.git
+git clone https://github.com/crs48/xNet.git
 cd xNet
 pnpm install
 pnpm dev
@@ -682,7 +682,7 @@ pnpm add @xnet/react @xnet/data</code></pre>
         </div>
         <p class="mt-6 text-sm text-gray-500">
           Requires Node.js 22+ and pnpm. See the
-          <a href="https://github.com/anomalyco/xNet" class="text-indigo-400 hover:underline">README</a> for full documentation.
+          <a href="https://github.com/crs48/xNet" class="text-indigo-400 hover:underline">README</a> for full documentation.
         </p>
       </div>
     </section>
@@ -693,9 +693,9 @@ pnpm add @xnet/react @xnet/data</code></pre>
     <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 text-sm text-gray-500">
       <span class="font-mono font-bold text-gray-300">xNet</span>
       <div class="flex items-center gap-3">
-        <a href="https://github.com/anomalyco/xNet" class="hover:text-gray-300 transition-colors">GitHub</a>
+        <a href="https://github.com/crs48/xNet" class="hover:text-gray-300 transition-colors">GitHub</a>
         <span>&middot;</span>
-        <a href="https://github.com/anomalyco/xNet/blob/main/LICENSE" class="hover:text-gray-300 transition-colors">MIT License</a>
+        <a href="https://github.com/crs48/xNet/blob/main/LICENSE" class="hover:text-gray-300 transition-colors">MIT License</a>
       </div>
     </div>
   </footer>

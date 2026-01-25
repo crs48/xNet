@@ -12,7 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native'
-import { useDocument } from '../hooks/useDocument'
+import { useNode } from '../hooks/useNode'
 import { WebViewEditor } from '../components/WebViewEditor'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import type { RouteProp } from '@react-navigation/native'
@@ -25,7 +25,7 @@ interface Props {
 
 export function DocumentScreen({ navigation, route }: Props) {
   const { docId } = route.params
-  const { document, loading, error, updateContent } = useDocument(docId)
+  const { document, loading, error, updateContent } = useNode(docId)
   const [title, setTitle] = useState('')
   const [initialContent, setInitialContent] = useState('')
 

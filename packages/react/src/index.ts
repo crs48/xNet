@@ -43,10 +43,10 @@ export {
  *
  * @example
  * ```tsx
- * const { create, update, updateTyped, remove, isPending } = useMutate()
+ * const { create, update, remove, isPending } = useMutate()
  *
  * await create(TaskSchema, { title: 'New Task' })
- * await updateTyped(TaskSchema, taskId, { status: 'done' })
+ * await update(TaskSchema, taskId, { status: 'done' })
  * await remove(taskId)
  * ```
  */
@@ -80,15 +80,11 @@ export {
  */
 export {
   useNode,
-  // Backwards-compatible aliases
-  useDocument,
   type UseNodeOptions,
   type UseNodeResult,
-  type UseDocumentOptions,
-  type UseDocumentResult,
   type SyncStatus,
   type RemoteUser
-} from './hooks/useDocument'
+} from './hooks/useNode'
 
 // =============================================================================
 // Utilities

@@ -119,15 +119,8 @@ function CreateTaskButton() {
 
 ```tsx
 const { update } = useMutate()
-await update(taskId, { status: 'done' })
-```
-
-**Update (type-safe):**
-
-```tsx
-const { updateTyped } = useMutate()
-await updateTyped(TaskSchema, taskId, { status: 'done' }) // Type-checked!
-await updateTyped(TaskSchema, taskId, { typo: 'x' }) // Compile error!
+await update(TaskSchema, taskId, { status: 'done' }) // Type-checked!
+await update(TaskSchema, taskId, { typo: 'x' }) // Compile error!
 ```
 
 **Delete:**
@@ -283,8 +276,7 @@ const title = page.title // Correctly typed as string
 Returns:
 
 - `create(schema, data, id?)` - Create a node
-- `update(id, data)` - Update (untyped)
-- `updateTyped(schema, id, data)` - Update (type-safe)
+- `update(schema, id, data)` - Update a node (type-safe)
 - `remove(id)` - Soft delete
 - `restore(id)` - Restore deleted
 - `mutate(ops[])` - Transaction

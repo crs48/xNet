@@ -128,7 +128,7 @@ describe('useMutate', () => {
 
       // Update
       await act(async () => {
-        await result.current.mutate.update(taskId!, { status: 'done' })
+        await result.current.mutate.update(TaskSchema, taskId!, { status: 'done' })
       })
 
       // Verify
