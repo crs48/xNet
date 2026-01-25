@@ -283,8 +283,8 @@ The Telemetry Panel reads from the same `NodeStore` that `@xnet/telemetry` write
 
 ## Reference Documents
 
-- [Exploration: DevTools Design](../explorations/DEVTOOLS_DESIGN.md) - Initial design research
-- [Exploration: LiveStore Evaluation](../explorations/LIVESTORE_EVALUATION.md) - LiveStore comparison
+- [Exploration: DevTools Design](../explorations/0005_DEVTOOLS_DESIGN.md) - Initial design research
+- [Exploration: LiveStore Evaluation](../explorations/0004_LIVESTORE_EVALUATION.md) - LiveStore comparison
 - [Plan: Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) - Telemetry schemas and security events
 
 ---

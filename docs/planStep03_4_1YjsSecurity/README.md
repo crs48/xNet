@@ -82,7 +82,7 @@ flowchart LR
 4. **Denial of Service** — Oversized Yjs updates block the event loop
 5. **Stealth Content Injection** — No audit trail for who inserted what text
 
-See [Yjs Security Analysis](../explorations/YJS_SECURITY_ANALYSIS.md) for the full threat model.
+See [Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md) for the full threat model.
 
 ## Architecture (Target State)
 
@@ -274,8 +274,8 @@ This covers unauthorized access, per-update verification, author attribution, Do
 
 ## Reference Documents
 
-- [Yjs Security Analysis](../explorations/YJS_SECURITY_ANALYSIS.md) — Full threat model and research
-- [Node Change Architecture](../explorations/NODE_CHANGE_ARCHITECTURE.md) — How the secure path works
+- [Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md) — Full threat model and research
+- [Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md) — How the secure path works
 - [Hub Phase 1 Plan](../planStep03_8HubPhase1VPS/README.md) — Hub implementation context
 - [Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) — Peer scoring infrastructure
 

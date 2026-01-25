@@ -364,4 +364,4 @@ Dependency chain:
 - [WebKit: 7-Day Cap on Script-Writable Storage](https://webkit.org/blog/8613/intelligent-tracking-prevention-2-1/)
 - [expo-sqlite docs](https://docs.expo.dev/versions/latest/sdk/sqlite/)
 - [BSM Implementation](../planStep03_3_1BgSync/README.md)
-- [BSM Exploration](../explorations/BACKGROUND_SYNC_MANAGER.md)
+- [BSM Exploration](../explorations/0024_BACKGROUND_SYNC_MANAGER.md)

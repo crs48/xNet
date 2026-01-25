@@ -148,4 +148,4 @@ The BSM is **hub-ready by design**: building it first against the signaling serv
 
 ---
 
-[Exploration: Background Sync Manager](../explorations/BACKGROUND_SYNC_MANAGER.md)
+[Exploration: Background Sync Manager](../explorations/0024_BACKGROUND_SYNC_MANAGER.md)

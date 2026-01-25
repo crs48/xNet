@@ -507,14 +507,14 @@ packages/
 ## Reference Documents
 
 - [Background Sync Manager Plan](../planStep03_3_1BgSync/README.md) — Client-side sync orchestrator (BSM subsumes HubConnection)
-- [BSM Exploration](../explorations/BACKGROUND_SYNC_MANAGER.md) — Design decisions, platform considerations
-- [Server Infrastructure Exploration](../explorations/SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals
-- [Decentralized Search Exploration](../explorations/DECENTRALIZED_SEARCH.md) — Three-tier search architecture + Hub integration
+- [BSM Exploration](../explorations/0024_BACKGROUND_SYNC_MANAGER.md) — Design decisions, platform considerations
+- [Server Infrastructure Exploration](../explorations/0011_SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals
+- [Decentralized Search Exploration](../explorations/0023_DECENTRALIZED_SEARCH.md) — Three-tier search architecture + Hub integration
 - [P2P Signaling Plan](../planStep03_2Signaling/README.md) — Current signaling architecture
-- [Persistence Architecture](../explorations/PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
+- [Persistence Architecture](../explorations/0016_PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
 - [Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) — Security layer design
-- [Yjs Security Analysis](../explorations/YJS_SECURITY_ANALYSIS.md) — Threat model for unsigned rich text updates
-- [Node Change Architecture](../explorations/NODE_CHANGE_ARCHITECTURE.md) — How signed structured data works
+- [Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md) — Threat model for unsigned rich text updates
+- [Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md) — How signed structured data works
 
 ---
 

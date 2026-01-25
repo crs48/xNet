@@ -260,9 +260,9 @@ integrations/
 
 ## Reference Documents
 
-- [Plugin Architecture Exploration](../explorations/PLUGIN_ARCHITECTURE.md) - Full research with prior art comparison
+- [Plugin Architecture Exploration](../explorations/0006_PLUGIN_ARCHITECTURE.md) - Full research with prior art comparison
 - [Data Model Consolidation](../planStep02_1DataModelConsolidation/README.md) - Schema/Node system (plugin data model)
-- [Editor Redesign Research](../explorations/EDITOR_REDESIGN_RESEARCH.md) - TipTap extension patterns
+- [Editor Redesign Research](../explorations/0003_EDITOR_REDESIGN_RESEARCH.md) - TipTap extension patterns
 
 ---
 
