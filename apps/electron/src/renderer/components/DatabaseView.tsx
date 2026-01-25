@@ -14,6 +14,7 @@ import { DatabaseSchema, type Schema, type PropertyDefinition, type PropertyType
 import {
   TableView,
   BoardView,
+  CardDetailModal,
   type ViewConfig,
   type TableRow,
   type CellPresence,
@@ -119,6 +120,13 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [tableViewConfig, setTableViewConfig] = useState<ViewConfig | null>(null)
   const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig | null>(null)
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+
+  // Get selected row for modal
+  const selectedRow = useMemo(
+    () => (selectedCardId ? rows.find((r) => r.id === selectedCardId) || null : null),
+    [selectedCardId, rows]
+  )
 
   // Build schema from columns
   const schema = useMemo(() => buildSchema(columns, docId), [columns, docId])
@@ -593,6 +601,54 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     [doc, effectiveBoardView.groupByProperty]
   )
 
+  // Handle reordering cards (rows)
+  const handleReorderCards = useCallback(
+    (newRowOrder: string[]) => {
+      if (!doc) return
+
+      const dataMap = doc.getMap('data')
+      const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+
+      // Reorder rows based on the new order
+      const reorderedRows = newRowOrder
+        .map((id) => currentRows.find((row) => row.id === id))
+        .filter((row): row is TableRow => row !== undefined)
+
+      // Add any rows that weren't in the new order (shouldn't happen but be safe)
+      currentRows.forEach((row) => {
+        if (!newRowOrder.includes(row.id)) {
+          reorderedRows.push(row)
+        }
+      })
+
+      dataMap.set('rows', reorderedRows)
+    },
+    [doc]
+  )
+
+  // Handle deleting a row
+  const handleDeleteRow = useCallback(
+    (rowId: string) => {
+      if (!doc) return
+
+      const dataMap = doc.getMap('data')
+      const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+      const updatedRows = currentRows.filter((row) => row.id !== rowId)
+      dataMap.set('rows', updatedRows)
+    },
+    [doc]
+  )
+
+  // Handle card click (open modal)
+  const handleCardClick = useCallback((itemId: string) => {
+    setSelectedCardId(itemId)
+  }, [])
+
+  // Handle modal close
+  const handleCloseModal = useCallback(() => {
+    setSelectedCardId(null)
+  }, [])
+
   if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -717,10 +773,21 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onRenameColumn={handleRenameBoardColumn}
             onDeleteColumn={handleDeleteBoardColumn}
             onReorderColumns={handleReorderBoardColumns}
-            onCardClick={(itemId) => console.log('Card clicked:', itemId)}
+            onReorderCards={handleReorderCards}
+            onCardClick={handleCardClick}
           />
         )}
       </div>
+
+      {/* Card detail modal */}
+      <CardDetailModal
+        isOpen={selectedCardId !== null}
+        onClose={handleCloseModal}
+        row={selectedRow}
+        schema={schema}
+        onUpdateRow={handleUpdateRow}
+        onDeleteRow={handleDeleteRow}
+      />
     </div>
   )
 }

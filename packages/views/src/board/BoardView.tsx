@@ -2,20 +2,24 @@
  * BoardView - Kanban board view with drag-and-drop
  */
 
-import React, { useState } from 'react'
+import React, { useState, useCallback, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  closestCenter,
+  pointerWithin,
+  rectIntersection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
-  type DragOverEvent
+  type DragOverEvent,
+  type CollisionDetection,
+  type UniqueIdentifier
 } from '@dnd-kit/core'
-import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
+import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { cn } from '@xnet/ui'
 import type { Schema } from '@xnet/data'
 import {
@@ -48,6 +52,8 @@ export interface BoardViewProps {
   onDeleteColumn?: (columnId: string) => void
   /** Callback when columns are reordered */
   onReorderColumns?: (columnIds: string[]) => void
+  /** Callback when cards are reordered (provides new row order as array of row IDs) */
+  onReorderCards?: (rowIds: string[]) => void
   /** Callback when a card is clicked */
   onCardClick?: (itemId: string) => void
   /** Additional CSS class */
@@ -68,6 +74,7 @@ export function BoardView({
   onRenameColumn,
   onDeleteColumn,
   onReorderColumns,
+  onReorderCards,
   onCardClick,
   className
 }: BoardViewProps): React.JSX.Element {
@@ -80,9 +87,11 @@ export function BoardView({
   })
 
   const [activeItem, setActiveItem] = useState<BoardRow | null>(null)
-  const [activeColumnId, setActiveColumnId] = useState<string | null>(null)
   const [activeColumn, setActiveColumn] = useState<BoardColumnType | null>(null)
   const [isDraggingColumn, setIsDraggingColumn] = useState(false)
+
+  // Track the source column when dragging a card
+  const sourceColumnRef = useRef<string | null>(null)
 
   // Card properties to display (from view config or default to visible properties)
   const cardProperties = view.visibleProperties
@@ -97,6 +106,32 @@ export function BoardView({
     useSensor(KeyboardSensor)
   )
 
+  // Find which column contains a card
+  const findColumnForCard = useCallback(
+    (cardId: string): BoardColumnType | undefined => {
+      return columns.find((col) => col.items.some((item) => item.id === cardId))
+    },
+    [columns]
+  )
+
+  // Find column by droppable ID (either column ID directly or prefixed)
+  const findColumnById = useCallback(
+    (id: string): BoardColumnType | undefined => {
+      // Direct column ID (droppable area)
+      const direct = columns.find((c) => c.id === id)
+      if (direct) return direct
+
+      // Prefixed column ID (sortable column)
+      if (id.startsWith('column-')) {
+        return columns.find((c) => c.id === id.replace('column-', ''))
+      }
+
+      // Card ID - find its column
+      return findColumnForCard(id)
+    },
+    [columns, findColumnForCard]
+  )
+
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
     const activeId = active.id as string
@@ -108,38 +143,29 @@ export function BoardView({
       if (column) {
         setActiveColumn(column)
         setIsDraggingColumn(true)
+        sourceColumnRef.current = null
       }
       return
     }
 
-    // Find the item and its column
-    for (const column of columns) {
-      const item = column.items.find((i) => i.id === activeId)
+    // Dragging a card - find it and its source column
+    const sourceColumn = findColumnForCard(activeId)
+    if (sourceColumn) {
+      const item = sourceColumn.items.find((i) => i.id === activeId)
       if (item) {
         setActiveItem(item)
-        setActiveColumnId(column.id)
-        break
+        sourceColumnRef.current = sourceColumn.id
       }
     }
   }
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event
-    if (!over || isDraggingColumn) return
-
-    const overId = over.id as string
-
-    // Find which column we're over (for cards only)
-    const overColumn = columns.find((c) => c.id === overId || c.items.some((i) => i.id === overId))
-
-    if (overColumn && overColumn.id !== activeColumnId) {
-      setActiveColumnId(overColumn.id)
-    }
+  const handleDragOver = (_event: DragOverEvent) => {
+    // We don't need to track this for visual feedback anymore
+    // The column's isOver from useDroppable handles highlighting
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-
     const activeId = active.id as string
 
     // Handle column reorder
@@ -166,43 +192,122 @@ export function BoardView({
 
       if (fromIndex === -1 || toIndex === -1) return
 
-      // Reorder
-      const newOrder = [...currentOrder]
-      newOrder.splice(fromIndex, 1)
-      newOrder.splice(toIndex, 0, fromColumnId)
-
-      onReorderColumns(newOrder)
+      onReorderColumns(arrayMove(currentOrder, fromIndex, toIndex))
       return
     }
 
-    // Handle card move
-    const fromColumnId = activeColumnId
+    // Handle card move/reorder
+    const fromColumnId = sourceColumnRef.current
 
     setActiveItem(null)
-    setActiveColumnId(null)
+    sourceColumnRef.current = null
 
     if (!over || !fromColumnId) return
 
     const overId = over.id as string
 
+    // Check if dropped on another card
+    const isCardTarget = data.some((row) => row.id === overId)
+
     // Find destination column
-    let destColumn = columns.find((c) => c.id === overId)
-    if (!destColumn) {
-      // Dropped on another card, find its column
-      destColumn = columns.find((c) => c.items.some((i) => i.id === overId))
-    }
+    const destColumn = findColumnById(overId)
     if (!destColumn) return
 
-    // Move the card
-    moveCard(activeId, fromColumnId, destColumn.id)
+    const isMovingColumns = destColumn.id !== fromColumnId
+
+    // Update column value if moving between columns
+    if (isMovingColumns) {
+      moveCard(activeId, fromColumnId, destColumn.id)
+    }
+
+    // Handle reordering
+    if (onReorderCards) {
+      const currentOrder = data.map((row) => row.id)
+      const activeIndex = currentOrder.indexOf(activeId)
+
+      if (activeIndex === -1) return
+
+      let overIndex: number
+
+      if (isCardTarget) {
+        // Dropped on a card - use that card's index
+        overIndex = currentOrder.indexOf(overId)
+      } else {
+        // Dropped on column - insert at end of that column's items
+        const destColumnCards = destColumn.items.map((item) => item.id)
+        if (destColumnCards.length === 0) {
+          // Empty column - keep at current position or move to end
+          if (!isMovingColumns) return
+          overIndex = currentOrder.length - 1
+        } else {
+          // After the last card in destination column
+          const lastCardInColumn = destColumnCards[destColumnCards.length - 1]
+          overIndex = currentOrder.indexOf(lastCardInColumn)
+        }
+      }
+
+      if (overIndex === -1) return
+      if (activeIndex === overIndex) return
+
+      onReorderCards(arrayMove(currentOrder, activeIndex, overIndex))
+    }
   }
 
   const handleDragCancel = () => {
     setActiveItem(null)
-    setActiveColumnId(null)
     setActiveColumn(null)
     setIsDraggingColumn(false)
+    sourceColumnRef.current = null
   }
+
+  // Custom collision detection for cards and columns
+  const collisionDetection: CollisionDetection = useCallback(
+    (args) => {
+      // For columns, use closestCenter on column- prefixed items only
+      if (isDraggingColumn) {
+        return closestCenter(args)
+      }
+
+      // For cards: first try to find a card we're directly over (for reordering)
+      const pointerCollisions = pointerWithin(args)
+
+      // Check if we're over another card (for reordering within/across columns)
+      const cardCollisions = pointerCollisions.filter((collision) => {
+        const id = collision.id as string
+        // Card IDs are row IDs - not column IDs and not prefixed
+        return data.some((row) => row.id === id)
+      })
+
+      if (cardCollisions.length > 0) {
+        // Return the card collision for reordering
+        return [cardCollisions[0]]
+      }
+
+      // Otherwise check for column droppables
+      const columnCollisions = pointerCollisions.filter((collision) => {
+        const id = collision.id as string
+        return columns.some((col) => col.id === id) && !id.startsWith('column-')
+      })
+
+      if (columnCollisions.length > 0) {
+        return columnCollisions
+      }
+
+      // Fallback: use rect intersection to find columns
+      const rectCollisions = rectIntersection(args)
+      const columnRectCollisions = rectCollisions.filter((collision) => {
+        const id = collision.id as string
+        return columns.some((col) => col.id === id)
+      })
+
+      if (columnRectCollisions.length > 0) {
+        return columnRectCollisions
+      }
+
+      return pointerCollisions
+    },
+    [isDraggingColumn, columns, data]
+  )
 
   // Column IDs for sortable context (prefixed)
   const sortableColumnIds = columns
@@ -213,7 +318,7 @@ export function BoardView({
     <div className={cn('h-full overflow-x-auto p-4 bg-white dark:bg-gray-900', className)}>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -228,7 +333,7 @@ export function BoardView({
                 schema={schema}
                 cardProperties={cardProperties}
                 onToggleCollapse={() => toggleColumnCollapse(column.id)}
-                isDropTarget={activeColumnId === column.id}
+                isDropTarget={false}
                 onAddCard={onAddCard}
                 onCardClick={onCardClick}
                 onRenameColumn={onRenameColumn}

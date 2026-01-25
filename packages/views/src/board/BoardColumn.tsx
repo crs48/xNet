@@ -161,6 +161,19 @@ export function BoardColumn({
         {...(isDraggable && isEditable ? { ...attributes, ...listeners } : {})}
       >
         <div className="flex items-center gap-2 min-w-0">
+          {/* Drag handle indicator */}
+          {isDraggable && isEditable && (
+            <span className="text-gray-400 dark:text-gray-500 flex-shrink-0">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="9" cy="6" r="1.5" />
+                <circle cx="15" cy="6" r="1.5" />
+                <circle cx="9" cy="12" r="1.5" />
+                <circle cx="15" cy="12" r="1.5" />
+                <circle cx="9" cy="18" r="1.5" />
+                <circle cx="15" cy="18" r="1.5" />
+              </svg>
+            </span>
+          )}
           {/* Color indicator */}
           <span
             className="w-2 h-2 rounded-full flex-shrink-0"

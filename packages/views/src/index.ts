@@ -127,3 +127,6 @@ export {
   type UseCalendarStateOptions,
   type UseCalendarStateResult
 } from './calendar/index.js'
+
+// Card detail modal
+export { CardDetailModal, type CardDetailModalProps } from './card-detail/index.js'
