@@ -6,10 +6,12 @@
  * - Resize handles (left/right)
  * - Alignment toolbar (left/center/right/full)
  * - Accessible alt text
+ * - CID-based blob URL resolution
  */
 import * as React from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
 import { cn } from '../../utils'
+import { useBlobService } from '../../context/BlobContext'
 
 const ALIGNMENTS: Record<string, string> = {
   left: 'mr-auto',
@@ -19,10 +21,63 @@ const ALIGNMENTS: Record<string, string> = {
 }
 
 export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProps) {
-  const { src, alt, title, width, height, alignment, uploadProgress } = node.attrs
+  const { src, alt, title, width, height, alignment, uploadProgress, cid } = node.attrs
+  const blobService = useBlobService()
   const containerRef = React.useRef<HTMLDivElement>(null)
+  const imgRef = React.useRef<HTMLImageElement>(null)
   const [resizeWidth, setResizeWidth] = React.useState<number | null>(null)
+  const resizeWidthRef = React.useRef<number | null>(null) // Track latest value for mouseup handler
+  const [resolvedSrc, setResolvedSrc] = React.useState<string | null>(null)
+  const [loadError, setLoadError] = React.useState(false)
+  const [naturalWidth, setNaturalWidth] = React.useState<number | null>(null)
   const isResizing = resizeWidth !== null
+
+  // Keep ref in sync with state
+  React.useEffect(() => {
+    resizeWidthRef.current = resizeWidth
+  }, [resizeWidth])
+
+  // Resolve CID to blob URL when cid changes
+  React.useEffect(() => {
+    if (!cid || !blobService) {
+      // No CID or no blob service - use src directly
+      setResolvedSrc(src || null)
+      return
+    }
+
+    let cancelled = false
+
+    async function resolveBlob() {
+      try {
+        const url = await blobService!.getUrl({
+          cid,
+          name: alt || 'image',
+          mimeType: 'image/*',
+          size: 0
+        })
+        if (!cancelled) {
+          setResolvedSrc(url)
+          setLoadError(false)
+        }
+      } catch (err) {
+        console.error('Failed to resolve image CID:', cid, err)
+        if (!cancelled) {
+          // Fall back to src if CID resolution fails
+          setResolvedSrc(src || null)
+          setLoadError(true)
+        }
+      }
+    }
+
+    resolveBlob()
+
+    return () => {
+      cancelled = true
+    }
+  }, [cid, blobService, src, alt])
+
+  // The actual src to use for the image
+  const imageSrc = resolvedSrc
 
   // Handle resize via mouse drag
   const handleResizeStart = React.useCallback(
@@ -32,20 +87,26 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
 
       const startX = e.clientX
       const startWidth = containerRef.current?.offsetWidth || width || 400
+      // Use natural width as max, fall back to stored width from upload, then 1200
+      const maxWidth = naturalWidth || (height ? width : null) || 1200
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const delta =
           direction === 'right' ? moveEvent.clientX - startX : startX - moveEvent.clientX
 
-        const newWidth = Math.max(100, Math.min(startWidth + delta * 2, 1200))
+        const newWidth = Math.max(100, Math.min(startWidth + delta * 2, maxWidth))
         setResizeWidth(newWidth)
+        resizeWidthRef.current = newWidth // Update ref immediately for mouseup
       }
 
       const handleMouseUp = () => {
-        if (resizeWidth !== null) {
-          updateAttributes({ width: resizeWidth })
+        // Use ref to get the latest value (state may be stale in closure)
+        const finalWidth = resizeWidthRef.current
+        if (finalWidth !== null) {
+          updateAttributes({ width: finalWidth })
         }
         setResizeWidth(null)
+        resizeWidthRef.current = null
         document.removeEventListener('mousemove', handleMouseMove)
         document.removeEventListener('mouseup', handleMouseUp)
       }
@@ -53,7 +114,7 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
       document.addEventListener('mousemove', handleMouseMove)
       document.addEventListener('mouseup', handleMouseUp)
     },
-    [width, resizeWidth, updateAttributes]
+    [width, height, naturalWidth, updateAttributes]
   )
 
   // Upload progress state
@@ -86,8 +147,9 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
     )
   }
 
-  // No src - broken image
-  if (!src) {
+  // No src and no CID - broken image
+  // Also show loading state while resolving CID
+  if (!imageSrc && !cid) {
     return (
       <NodeViewWrapper>
         <div
@@ -99,6 +161,31 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
           style={{ width: width || 300, height: height || 200 }}
         >
           <span className="text-sm">Image not available</span>
+        </div>
+      </NodeViewWrapper>
+    )
+  }
+
+  // Loading state while resolving CID
+  if (cid && !imageSrc && !loadError) {
+    return (
+      <NodeViewWrapper>
+        <div
+          className={cn(
+            'relative bg-gray-100 dark:bg-gray-800 rounded-lg',
+            'flex items-center justify-center',
+            ALIGNMENTS[alignment || 'center']
+          )}
+          style={{ width: width || 300, height: height || 200 }}
+        >
+          <div className="text-center">
+            <div className="w-8 h-8 mx-auto text-gray-400 animate-pulse">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+              </svg>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Loading...</p>
+          </div>
         </div>
       </NodeViewWrapper>
     )
@@ -118,11 +205,18 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
       >
         {/* Image */}
         <img
-          src={src}
+          ref={imgRef}
+          src={imageSrc || ''}
           alt={alt || ''}
           title={title || undefined}
           className={cn('max-w-full h-auto rounded-lg', alignment === 'full' && 'w-full')}
           draggable={false}
+          onLoad={(e) => {
+            const img = e.currentTarget
+            if (img.naturalWidth > 0) {
+              setNaturalWidth(img.naturalWidth)
+            }
+          }}
         />
 
         {/* Resize handles (visible on selection) */}
