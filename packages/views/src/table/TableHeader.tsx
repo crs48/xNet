@@ -1,27 +1,60 @@
 /**
- * TableHeader - Table header component with sorting and resizing
+ * TableHeader - Table header component with sorting, resizing, and column editing
  */
 
 import React, { useState, useRef, useEffect } from 'react'
 import { flexRender, type Table, type Header } from '@tanstack/react-table'
 import { cn } from '@xnet/ui'
+import type { PropertyType } from '@xnet/data'
 import type { TableRow } from './useTableState.js'
+import type { ColumnUpdate } from './TableView.js'
 
 export interface TableHeaderProps {
   table: Table<TableRow>
   onAddColumn?: () => void
+  onUpdateColumn?: (columnId: string, updates: ColumnUpdate) => void
+  onDeleteColumn?: (columnId: string) => void
 }
+
+/**
+ * Available property types for column type selector
+ */
+const PROPERTY_TYPES: { value: PropertyType; label: string }[] = [
+  { value: 'text', label: 'Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'checkbox', label: 'Checkbox' },
+  { value: 'date', label: 'Date' },
+  { value: 'dateRange', label: 'Date Range' },
+  { value: 'select', label: 'Select' },
+  { value: 'multiSelect', label: 'Multi-Select' },
+  { value: 'person', label: 'Person' },
+  { value: 'relation', label: 'Relation' },
+  { value: 'url', label: 'URL' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Phone' },
+  { value: 'file', label: 'File' }
+]
 
 /**
  * Table header component
  */
-export function TableHeader({ table, onAddColumn }: TableHeaderProps): React.JSX.Element {
+export function TableHeader({
+  table,
+  onAddColumn,
+  onUpdateColumn,
+  onDeleteColumn
+}: TableHeaderProps): React.JSX.Element {
   return (
     <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
       {table.getHeaderGroups().map((headerGroup) => (
         <tr key={headerGroup.id}>
           {headerGroup.headers.map((header) => (
-            <HeaderCell key={header.id} header={header} />
+            <HeaderCell
+              key={header.id}
+              header={header}
+              onUpdateColumn={onUpdateColumn}
+              onDeleteColumn={onDeleteColumn}
+            />
           ))}
 
           {/* Add column button */}
@@ -44,12 +77,18 @@ export function TableHeader({ table, onAddColumn }: TableHeaderProps): React.JSX
 
 interface HeaderCellProps {
   header: Header<TableRow, unknown>
+  onUpdateColumn?: (columnId: string, updates: ColumnUpdate) => void
+  onDeleteColumn?: (columnId: string) => void
 }
 
 /**
  * Individual header cell with sort and resize
  */
-function HeaderCell({ header }: HeaderCellProps): React.JSX.Element {
+function HeaderCell({
+  header,
+  onUpdateColumn,
+  onDeleteColumn
+}: HeaderCellProps): React.JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -74,7 +113,7 @@ function HeaderCell({ header }: HeaderCellProps): React.JSX.Element {
   return (
     <th
       className={cn(
-        'relative h-9 px-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300',
+        'group relative h-9 px-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300',
         'border-b border-r border-gray-200 dark:border-gray-700',
         'select-none',
         isResizing && 'bg-blue-50 dark:bg-blue-900/20'
@@ -115,7 +154,13 @@ function HeaderCell({ header }: HeaderCellProps): React.JSX.Element {
 
         {/* Column dropdown menu */}
         {menuOpen && (
-          <ColumnMenu ref={menuRef} header={header} onClose={() => setMenuOpen(false)} />
+          <ColumnMenu
+            ref={menuRef}
+            header={header}
+            onClose={() => setMenuOpen(false)}
+            onUpdateColumn={onUpdateColumn}
+            onDeleteColumn={onDeleteColumn}
+          />
         )}
       </div>
 
@@ -137,57 +182,181 @@ function HeaderCell({ header }: HeaderCellProps): React.JSX.Element {
 interface ColumnMenuProps {
   header: Header<TableRow, unknown>
   onClose: () => void
+  onUpdateColumn?: (columnId: string, updates: ColumnUpdate) => void
+  onDeleteColumn?: (columnId: string) => void
 }
 
 /**
- * Column dropdown menu
+ * Column dropdown menu with sort, rename, change type, and delete options
  */
-const ColumnMenu = React.forwardRef<HTMLDivElement, ColumnMenuProps>(({ header, onClose }, ref) => {
-  const handleSortAsc = () => {
-    header.column.toggleSorting(false)
-    onClose()
-  }
+const ColumnMenu = React.forwardRef<HTMLDivElement, ColumnMenuProps>(
+  ({ header, onClose, onUpdateColumn, onDeleteColumn }, ref) => {
+    const [isRenaming, setIsRenaming] = useState(false)
+    const [isChangingType, setIsChangingType] = useState(false)
+    const [newName, setNewName] = useState(String(header.column.columnDef.header || ''))
+    const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleSortDesc = () => {
-    header.column.toggleSorting(true)
-    onClose()
-  }
+    const columnId = header.column.id
 
-  const handleClearSort = () => {
-    header.column.clearSorting()
-    onClose()
-  }
+    // Focus input when renaming
+    useEffect(() => {
+      if (isRenaming && inputRef.current) {
+        inputRef.current.focus()
+        inputRef.current.select()
+      }
+    }, [isRenaming])
 
-  const handleHide = () => {
-    header.column.toggleVisibility(false)
-    onClose()
-  }
+    const handleSortAsc = () => {
+      header.column.toggleSorting(false)
+      onClose()
+    }
 
-  const menuItemClass =
-    'w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+    const handleSortDesc = () => {
+      header.column.toggleSorting(true)
+      onClose()
+    }
 
-  return (
-    <div
-      ref={ref}
-      className="absolute top-full right-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
-    >
-      <button className={menuItemClass} onClick={handleSortAsc}>
-        ↑ Sort ascending
-      </button>
-      <button className={menuItemClass} onClick={handleSortDesc}>
-        ↓ Sort descending
-      </button>
-      {header.column.getIsSorted() && (
-        <button className={menuItemClass} onClick={handleClearSort}>
-          ✕ Clear sort
+    const handleClearSort = () => {
+      header.column.clearSorting()
+      onClose()
+    }
+
+    const handleHide = () => {
+      header.column.toggleVisibility(false)
+      onClose()
+    }
+
+    const handleStartRename = () => {
+      setIsRenaming(true)
+    }
+
+    const handleRename = () => {
+      if (newName.trim() && onUpdateColumn) {
+        onUpdateColumn(columnId, { name: newName.trim() })
+      }
+      setIsRenaming(false)
+      onClose()
+    }
+
+    const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        handleRename()
+      } else if (e.key === 'Escape') {
+        setIsRenaming(false)
+      }
+    }
+
+    const handleChangeType = (type: PropertyType) => {
+      if (onUpdateColumn) {
+        onUpdateColumn(columnId, { type })
+      }
+      setIsChangingType(false)
+      onClose()
+    }
+
+    const handleDelete = () => {
+      if (onDeleteColumn) {
+        onDeleteColumn(columnId)
+      }
+      onClose()
+    }
+
+    const menuItemClass =
+      'w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+
+    const dangerItemClass =
+      'w-full px-3 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors'
+
+    // Rename input mode
+    if (isRenaming) {
+      return (
+        <div
+          ref={ref}
+          className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 p-2 z-20"
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={handleRenameKeyDown}
+            onBlur={handleRename}
+            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            placeholder="Column name"
+          />
+        </div>
+      )
+    }
+
+    // Type selector mode
+    if (isChangingType) {
+      return (
+        <div
+          ref={ref}
+          className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20 max-h-64 overflow-y-auto"
+        >
+          <div className="px-3 py-1.5 text-xs font-medium text-gray-500 dark:text-gray-400">
+            Select type
+          </div>
+          {PROPERTY_TYPES.map((pt) => (
+            <button
+              key={pt.value}
+              className={menuItemClass}
+              onClick={() => handleChangeType(pt.value)}
+            >
+              {pt.label}
+            </button>
+          ))}
+          <hr className="my-1 border-gray-200 dark:border-gray-700" />
+          <button className={menuItemClass} onClick={() => setIsChangingType(false)}>
+            ← Back
+          </button>
+        </div>
+      )
+    }
+
+    // Main menu
+    return (
+      <div
+        ref={ref}
+        className="absolute top-full right-0 mt-1 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20"
+      >
+        <button className={menuItemClass} onClick={handleSortAsc}>
+          ↑ Sort ascending
         </button>
-      )}
-      <hr className="my-1 border-gray-200 dark:border-gray-700" />
-      <button className={menuItemClass} onClick={handleHide}>
-        Hide column
-      </button>
-    </div>
-  )
-})
+        <button className={menuItemClass} onClick={handleSortDesc}>
+          ↓ Sort descending
+        </button>
+        {header.column.getIsSorted() && (
+          <button className={menuItemClass} onClick={handleClearSort}>
+            ✕ Clear sort
+          </button>
+        )}
+        <hr className="my-1 border-gray-200 dark:border-gray-700" />
+        {onUpdateColumn && (
+          <>
+            <button className={menuItemClass} onClick={handleStartRename}>
+              ✎ Rename
+            </button>
+            <button className={menuItemClass} onClick={() => setIsChangingType(true)}>
+              ⇄ Change type
+            </button>
+          </>
+        )}
+        <button className={menuItemClass} onClick={handleHide}>
+          ◯ Hide column
+        </button>
+        {onDeleteColumn && (
+          <>
+            <hr className="my-1 border-gray-200 dark:border-gray-700" />
+            <button className={dangerItemClass} onClick={handleDelete}>
+              ✕ Delete column
+            </button>
+          </>
+        )}
+      </div>
+    )
+  }
+)
 
 ColumnMenu.displayName = 'ColumnMenu'

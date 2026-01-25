@@ -16,7 +16,8 @@ import {
   BoardView,
   type ViewConfig,
   type TableRow,
-  type CellPresence
+  type CellPresence,
+  type ColumnUpdate
 } from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import { ShareButton } from './ShareButton'
@@ -255,6 +256,76 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     }
   }, [doc])
 
+  // Update column (rename, change type)
+  const handleUpdateColumn = useCallback(
+    (columnId: string, updates: ColumnUpdate) => {
+      if (!doc) return
+
+      const dataMap = doc.getMap('data')
+      const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+
+      const updatedColumns = currentColumns.map((col) => {
+        if (col.id !== columnId) return col
+        return {
+          ...col,
+          ...(updates.name !== undefined && { name: updates.name }),
+          ...(updates.type !== undefined && { type: updates.type as PropertyType }),
+          ...(updates.config !== undefined && { config: updates.config })
+        }
+      })
+
+      dataMap.set('columns', updatedColumns)
+    },
+    [doc]
+  )
+
+  // Delete column
+  const handleDeleteColumn = useCallback(
+    (columnId: string) => {
+      if (!doc) return
+
+      const dataMap = doc.getMap('data')
+
+      // Remove from columns
+      const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+      const updatedColumns = currentColumns.filter((col) => col.id !== columnId)
+      dataMap.set('columns', updatedColumns)
+
+      // Remove from view configs
+      const currentTableView = dataMap.get('tableView') as ViewConfig | undefined
+      if (currentTableView) {
+        const { [columnId]: _, ...restWidths } = currentTableView.propertyWidths || {}
+        dataMap.set('tableView', {
+          ...currentTableView,
+          visibleProperties: currentTableView.visibleProperties.filter((p) => p !== columnId),
+          propertyWidths: restWidths
+        })
+      }
+
+      const currentBoardView = dataMap.get('boardView') as ViewConfig | undefined
+      if (currentBoardView) {
+        dataMap.set('boardView', {
+          ...currentBoardView,
+          visibleProperties: currentBoardView.visibleProperties.filter((p) => p !== columnId),
+          // If deleted column was groupBy, clear it
+          groupByProperty:
+            currentBoardView.groupByProperty === columnId
+              ? undefined
+              : currentBoardView.groupByProperty
+        })
+      }
+
+      // Remove column data from all rows
+      const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+      const updatedRows = currentRows.map((row) => {
+        const { [columnId]: _, ...rest } = row
+        return rest as TableRow
+      })
+      dataMap.set('rows', updatedRows)
+    },
+    [doc]
+  )
+
   // Add new row
   const handleAddRow = useCallback(() => {
     if (!doc) return
@@ -469,6 +540,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onUpdateRow={handleUpdateRow}
             onUpdateView={handleUpdateTableView}
             onAddColumn={handleAddColumn}
+            onUpdateColumn={handleUpdateColumn}
+            onDeleteColumn={handleDeleteColumn}
             onAddRow={handleAddRow}
             cellPresences={cellPresences}
             onCellFocus={handleCellFocus}

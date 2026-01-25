@@ -50,6 +50,7 @@ export {
   type TableHeaderProps,
   type TableCellProps,
   type TableRow,
+  type ColumnUpdate,
   type UseTableStateOptions,
   type UseTableStateResult
 } from './table/index.js'
