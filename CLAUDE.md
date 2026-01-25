@@ -4,51 +4,52 @@
 
 **xNet** = Decentralized data infrastructure AND application. Local-first, P2P-synced, user-owned data.
 
-xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more. Think "one app to rule them all" but decentralized.
+xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
 
-> **The Big Picture**: xNet is infrastructure for a new internet where data is user-owned, globally addressable, and works from personal notes to planetary-scale indexes (decentralized search, federated social, etc.). See `docs/VISION.md` for the full vision.
+> **The Big Picture**: Infrastructure for a new internet where data is user-owned, globally addressable, and works from personal notes to planetary-scale indexes. See `docs/VISION.md`.
 
-## Data Model (Current)
+**Current focus**: Daily-driver personal productivity app. See `docs/ROADMAP.md` for the 6-month plan.
 
-The xNet data model uses a **schema-first, Node-based architecture**:
+## Data Model
 
-- Everything is a `Node` (universal container)
-- A `Schema` defines what the Node is (Page, Database, Task, etc.)
-- Schemas are defined in code via `defineSchema()` with TypeScript inference
+Schema-first, Node-based architecture:
+
+- Everything is a `Node` — schemas define type (Page, Database, Task, etc.)
+- `defineSchema()` with TypeScript inference and IRI namespacing
 - Schemas use globally unique IRIs: `xnet://xnet.dev/Page`, `xnet://did:key:.../Recipe`
 
 ### Sync Strategies
 
-| Data Type              | Package      | Sync Mechanism      | Conflict Resolution   |
-| ---------------------- | ------------ | ------------------- | --------------------- |
-| Rich text (wiki pages) | `@xnet/data` | Yjs CRDT            | Character-level merge |
-| Structured data        | `@xnet/data` | NodeStore + Lamport | Field-level LWW       |
+| Data Type              | Sync Mechanism      | Conflict Resolution   |
+| ---------------------- | ------------------- | --------------------- |
+| Rich text (wiki pages) | Yjs CRDT            | Character-level merge |
+| Structured data        | NodeStore + Lamport | Field-level LWW       |
 
-Rich text uses Yjs CRDT for fine-grained character merging. Structured data (Nodes) uses event-sourced changes with Lamport timestamps and last-writer-wins per property.
-
-## Package Map
+## Packages (All Implemented)
 
 ```
 packages/
-  core/       # Types, content addressing (CIDs), permissions
-  crypto/     # BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption
-  identity/   # DID:key generation, UCAN tokens, key management
-  storage/    # IndexedDB adapter, snapshot management
-  sync/       # Lamport timestamps, Change<T>, hash chains, SyncProvider
-  data/       # Schema system, NodeStore, Yjs CRDT, document operations
-  network/    # libp2p node, y-webrtc provider, DID resolution
-  query/      # Local query engine, full-text search (Lunr.js)
-  react/      # useQuery, useMutate, useDocument, useIdentity, XNetProvider
+  core/       # CIDs, permissions, types
+  crypto/     # BLAKE3, Ed25519, XChaCha20
+  identity/   # DID:key, UCAN tokens
+  storage/    # IndexedDB adapter, snapshots
+  sync/       # Lamport clocks, Change<T>, hash chains
+  data/       # Schema system, NodeStore, Yjs, 15 property types
+  network/    # libp2p, y-webrtc, security (rate-limit, peer-scoring)
+  query/      # Local engine, MiniSearch full-text
+  react/      # useQuery, useMutate, useDocument, sync manager
   sdk/        # Unified client, browser/node presets
-  editor/     # TipTap-based collaborative editor
-  ui/         # Shared components
-  views/      # Table/Board view components (WIP)
-  vectors/    # Embeddings (placeholder)
-  canvas/     # Infinite canvas (placeholder)
-  formula/    # Formula engine (placeholder)
+  editor/     # TipTap with 10 extensions, slash commands, drag-drop
+  ui/         # Radix primitives, theme system
+  views/      # Table, Board, Calendar, Timeline, Gallery
+  vectors/    # HNSW index, hybrid search
+  canvas/     # Infinite canvas with spatial indexing (ELK layout)
+  formula/    # Expression parser + evaluator
+  telemetry/  # Privacy-first, consent-gated metrics
+  devtools/   # 7 debug panels, tree-shaking for prod
 ```
 
-## Key Relationships
+### Key Relationships
 
 ```
 crypto ──> identity ──> storage ──> sync ──> data ──> network ──> query
@@ -60,40 +61,35 @@ crypto ──> identity ──> storage ──> sync ──> data ──> networ
 
 ```
 apps/
-  electron/   # Desktop (macOS)
-  expo/       # Mobile (iOS)
-  web/        # PWA (TanStack Router)
+  electron/   # Desktop — full features (pages, databases, canvas, sharing)
+  web/        # PWA — pages only (database/canvas views not yet wired)
+  expo/       # Mobile — WebView editor, basic navigation
 ```
 
 ## Testing
 
 ```bash
-pnpm vitest run packages/sync packages/data  # Core tests (140 total)
-pnpm --filter @xnet/data test                # Single package
-pnpm test:coverage                           # With coverage (>80% required)
+pnpm vitest run                    # All tests (~350 total)
+pnpm --filter @xnet/data test      # Single package
 ```
 
 ## Do
 
-- Use Mermaid diagrams in markdown files to visualize architecture, data flows, and sequences
-- Prefer diagrams over walls of text for system relationships and processes
-- Err on the side of reading too much code. It's better to fullyg understand the codebase than to make wrong assumptions
+- Read code before making assumptions — grep, don't guess
+- Use Mermaid diagrams in docs
+- Follow `docs/ROADMAP.md` priorities
 
 ## Don't
 
-- Don't add features beyond what's requested
-- Don't write UI tests (manual testing only)
-- Don't skip unit tests for core packages
-- Don't use heavyweight frameworks
-- Don't store computed property values (rollup, formula) - compute at read time
-- Don't make assumptions when you can grep
+- Add features beyond what's requested
+- Write UI tests (manual testing only)
+- Skip unit tests for core packages
+- Use heavyweight frameworks
+- Store computed values (formula, rollup) — compute at read
 
 ## Key Docs
 
-- `docs/VISION.md` - **The big picture: micro-to-macro data sovereignty**
-- `docs/planStep02_1DataModelConsolidation/HANDOFF.md` - **Implementation status and examples**
-- `docs/planStep02_1DataModelConsolidation/README.md` - Schema-first architecture plan
-- `docs/planStep03_1TelemetryAndNetworkSecurity/README.md` - **Telemetry & network security plan**
-- `docs/TELEMETRY_DESIGN.md` - Full telemetry design exploration with research
-- `docs/TRADEOFFS.md` - Why hybrid sync (Yjs + event-sourcing)
-- `docs/PERSISTENCE_ARCHITECTURE.md` - Storage durability tiers
+- `docs/ROADMAP.md` — **6-month plan: daily driver → hub → multiplayer**
+- `docs/VISION.md` — Long-term vision
+- `docs/explorations/LANDSCAPE_ANALYSIS.md` — Competition analysis
+- `docs/TRADEOFFS.md` — Why hybrid sync
