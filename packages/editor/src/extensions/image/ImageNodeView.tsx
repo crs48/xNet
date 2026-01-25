@@ -16,8 +16,7 @@ import { useBlobService } from '../../context/BlobContext'
 const ALIGNMENTS: Record<string, string> = {
   left: 'mr-auto',
   center: 'mx-auto',
-  right: 'ml-auto',
-  full: 'w-full'
+  right: 'ml-auto'
 }
 
 export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProps) {
@@ -39,40 +38,50 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
 
   // Resolve CID to blob URL when cid changes
   React.useEffect(() => {
-    if (!cid || !blobService) {
-      // No CID or no blob service - use src directly
-      setResolvedSrc(src || null)
-      return
-    }
+    // If we have a CID, we must resolve it - don't use stale blob URLs
+    if (cid) {
+      if (!blobService) {
+        // Waiting for blob service - don't set a stale src
+        setResolvedSrc(null)
+        return
+      }
 
-    let cancelled = false
+      let cancelled = false
 
-    async function resolveBlob() {
-      try {
-        const url = await blobService!.getUrl({
-          cid,
-          name: alt || 'image',
-          mimeType: 'image/*',
-          size: 0
-        })
-        if (!cancelled) {
-          setResolvedSrc(url)
-          setLoadError(false)
+      async function resolveBlob() {
+        try {
+          const url = await blobService!.getUrl({
+            cid,
+            name: alt || 'image',
+            mimeType: 'image/*',
+            size: 0
+          })
+          if (!cancelled) {
+            setResolvedSrc(url)
+            setLoadError(false)
+          }
+        } catch (err) {
+          console.error('Failed to resolve image CID:', cid, err)
+          if (!cancelled) {
+            setResolvedSrc(null)
+            setLoadError(true)
+          }
         }
-      } catch (err) {
-        console.error('Failed to resolve image CID:', cid, err)
-        if (!cancelled) {
-          // Fall back to src if CID resolution fails
-          setResolvedSrc(src || null)
-          setLoadError(true)
-        }
+      }
+
+      resolveBlob()
+
+      return () => {
+        cancelled = true
       }
     }
 
-    resolveBlob()
-
-    return () => {
-      cancelled = true
+    // No CID - use src directly (external images)
+    // But ignore blob: URLs without a CID - they're stale
+    if (src && !src.startsWith('blob:')) {
+      setResolvedSrc(src)
+    } else {
+      setResolvedSrc(null)
     }
   }, [cid, blobService, src, alt])
 
@@ -209,7 +218,7 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
           src={imageSrc || ''}
           alt={alt || ''}
           title={title || undefined}
-          className={cn('max-w-full h-auto rounded-lg', alignment === 'full' && 'w-full')}
+          className="max-w-full h-auto rounded-lg"
           draggable={false}
           onLoad={(e) => {
             const img = e.currentTarget
@@ -220,7 +229,7 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
         />
 
         {/* Resize handles (visible on selection) */}
-        {selected && alignment !== 'full' && (
+        {selected && (
           <>
             {/* Left handle */}
             <div
@@ -229,7 +238,11 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
                 'w-3 h-12 bg-blue-500 rounded-full cursor-ew-resize',
                 'opacity-0 group-hover:opacity-100 transition-opacity'
               )}
-              onMouseDown={(e) => handleResizeStart(e, 'left')}
+              onMouseDown={(e) => {
+                e.stopPropagation()
+                handleResizeStart(e, 'left')
+              }}
+              draggable={false}
               role="separator"
               aria-orientation="vertical"
               aria-label="Resize image left"
@@ -241,7 +254,11 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
                 'w-3 h-12 bg-blue-500 rounded-full cursor-ew-resize',
                 'opacity-0 group-hover:opacity-100 transition-opacity'
               )}
-              onMouseDown={(e) => handleResizeStart(e, 'right')}
+              onMouseDown={(e) => {
+                e.stopPropagation()
+                handleResizeStart(e, 'right')
+              }}
+              draggable={false}
               role="separator"
               aria-orientation="vertical"
               aria-label="Resize image right"
@@ -259,7 +276,7 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
               'border border-gray-200 dark:border-gray-700'
             )}
           >
-            {(['left', 'center', 'right', 'full'] as const).map((align) => (
+            {(['left', 'center', 'right'] as const).map((align) => (
               <button
                 key={align}
                 type="button"
@@ -283,12 +300,11 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
   )
 }
 
-function AlignIcon({ type }: { type: 'left' | 'center' | 'right' | 'full' }) {
+function AlignIcon({ type }: { type: 'left' | 'center' | 'right' }) {
   const paths: Record<string, string> = {
     left: 'M3 6h18M3 12h12M3 18h18',
     center: 'M3 6h18M6 12h12M3 18h18',
-    right: 'M3 6h18M9 12h12M3 18h18',
-    full: 'M3 6h18M3 12h18M3 18h18'
+    right: 'M3 6h18M9 12h12M3 18h18'
   }
 
   return (

@@ -4,9 +4,13 @@
  * Renders iframes for supported providers with provider badge and resize support.
  */
 import { Node, mergeAttributes } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { EmbedNodeView } from './EmbedNodeView'
 import { parseEmbedUrl } from './providers'
+import { createEmbedLinkPlugin } from './EmbedLinkPlugin'
+
+const EmbedPastePluginKey = new PluginKey('embedPaste')
 
 export interface EmbedOptions {
   /** Enable auto-detection of pasted URLs */
@@ -47,7 +51,9 @@ export const EmbedExtension = Node.create<EmbedOptions>({
       provider: { default: null },
       embedId: { default: null },
       embedUrl: { default: null },
-      title: { default: null }
+      title: { default: null },
+      width: { default: 400 },
+      alignment: { default: 'left' }
     }
   },
 
@@ -98,5 +104,48 @@ export const EmbedExtension = Node.create<EmbedOptions>({
           })
         }
     }
+  },
+
+  addProseMirrorPlugins() {
+    const editor = this.editor
+    const plugins = []
+
+    // Auto-embed pasted URLs
+    if (this.options.autoEmbed) {
+      plugins.push(
+        new Plugin({
+          key: EmbedPastePluginKey,
+          props: {
+            handlePaste(view, event) {
+              const text = event.clipboardData?.getData('text/plain')
+              if (!text) return false
+
+              // Check if the pasted text is a URL that can be embedded
+              const trimmed = text.trim()
+
+              // Must look like a URL
+              if (!trimmed.match(/^https?:\/\//)) return false
+
+              // Try to parse as embed
+              const parsed = parseEmbedUrl(trimmed)
+              if (!parsed) return false
+
+              // Prevent default paste
+              event.preventDefault()
+
+              // Insert the embed
+              editor.commands.setEmbed(trimmed)
+
+              return true
+            }
+          }
+        })
+      )
+    }
+
+    // Show embed button on hover over embeddable links
+    plugins.push(createEmbedLinkPlugin({ editor }))
+
+    return plugins
   }
 })
