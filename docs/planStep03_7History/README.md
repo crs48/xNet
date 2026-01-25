@@ -230,9 +230,9 @@ packages/
 
 ## Reference Documents
 
-- [Event Sourcing History Exploration](../explorations/EVENT_SOURCING_HISTORY.md) - Full research with architecture details
+- [Event Sourcing History Exploration](../explorations/0008_EVENT_SOURCING_HISTORY.md) - Full research with architecture details
 - [Data Model Consolidation](../planStep02_1DataModelConsolidation/README.md) - NodeStore, Change<T>, LWW
-- [Persistence Architecture](../explorations/PERSISTENCE_ARCHITECTURE.md) - Storage durability tiers
+- [Persistence Architecture](../explorations/0016_PERSISTENCE_ARCHITECTURE.md) - Storage durability tiers
 - [Tradeoffs](../TRADEOFFS.md) - Why hybrid sync (Yjs + event sourcing)
 
 ---

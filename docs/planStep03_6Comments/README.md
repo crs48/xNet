@@ -242,7 +242,7 @@ Deferred to future work:
 
 ## Reference Documents
 
-- [COMMENTING_SYSTEM.md](../explorations/COMMENTING_SYSTEM.md) — Full design exploration
+- [COMMENTING_SYSTEM.md](../explorations/0014_COMMENTING_SYSTEM.md) — Full design exploration
 - [TipTap Comments](https://tiptap.dev/docs/comments/getting-started/overview) — TipTap's approach (reference)
 - [Figma Multiplayer](https://www.figma.com/blog/how-figmas-multiplayer-technology-works/) — Canvas collaboration patterns
 
