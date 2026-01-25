@@ -307,7 +307,7 @@ import Base from '../layouts/Base.astro'
               :class="tab === 'document' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:text-white hover:bg-surface'"
               @click="tab = 'document'"
             >
-              useDocument
+              useNode
             </button>
             <button
               class="hook-tab rounded-lg px-4 py-2 text-sm font-medium transition-colors"
@@ -430,12 +430,12 @@ import Base from '../layouts/Base.astro'
               </div>
             </template>
 
-            <!-- useDocument -->
+            <!-- useNode -->
             <template x-if="tab === 'document'">
               <div class="space-y-4">
                 <div class="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-                  <h3 class="font-semibold text-amber-400">useDocument</h3>
-                  <p class="mt-1 text-sm text-gray-400">Rich text editing with real-time P2P collaboration.</p>
+                  <h3 class="font-semibold text-amber-400">useNode</h3>
+                  <p class="mt-1 text-sm text-gray-400">Load a node with Y.Doc, sync, presence, and type-safe mutations.</p>
                 </div>
                 <ul class="space-y-2 text-sm text-gray-400">
                   <li class="flex items-start gap-2">
@@ -459,9 +459,9 @@ import Base from '../layouts/Base.astro'
             </template>
             <template x-if="tab === 'document'">
               <div>
-                <pre class="overflow-x-auto rounded-xl border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-indigo-400">import</span> {'{'} useDocument {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+                <pre class="overflow-x-auto rounded-xl border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed text-gray-400"><code><span class="text-indigo-400">import</span> {'{'} useNode {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
 
-<span class="text-indigo-400">function</span> <span class="text-yellow-300">DocumentEditor</span>({'{'} docId {'}'}) {'{'}
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">PageEditor</span>({'{'} pageId {'}'}) {'{'}
   <span class="text-indigo-400">const</span> {'{'}
     data: page,
     doc,              <span class="text-gray-500">// Yjs Y.Doc</span>
@@ -469,7 +469,7 @@ import Base from '../layouts/Base.astro'
     peerCount,        <span class="text-gray-500">// Number of peers</span>
     remoteUsers,      <span class="text-gray-500">// Other users</span>
     update
-  {'}'} = <span class="text-yellow-300">useDocument</span>(PageSchema, docId)
+  {'}'} = <span class="text-yellow-300">useNode</span>(PageSchema, pageId)
 
   <span class="text-indigo-400">return</span> (
     &lt;div&gt;
