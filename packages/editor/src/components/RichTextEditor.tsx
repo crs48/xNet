@@ -297,7 +297,9 @@ export function RichTextEditor({
       // Disable default heading, codeBlock, blockquote - we use custom NodeViews
       heading: false,
       codeBlock: false,
-      blockquote: false
+      blockquote: false,
+      // Disable default dropcursor - we use our own drop indicator
+      dropcursor: false
     }),
     // Custom block NodeViews with syntax preview
     HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),

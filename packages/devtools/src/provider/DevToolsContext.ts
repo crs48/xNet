@@ -7,7 +7,15 @@ import type { DevToolsEventBus } from '../core/event-bus'
 import type { NodeStore } from '@xnet/data'
 import type * as Y from 'yjs'
 
-export type PanelId = 'nodes' | 'changes' | 'sync' | 'yjs' | 'queries' | 'telemetry' | 'schemas'
+export type PanelId =
+  | 'nodes'
+  | 'changes'
+  | 'sync'
+  | 'yjs'
+  | 'queries'
+  | 'telemetry'
+  | 'schemas'
+  | 'seed'
 
 export type PanelPosition = 'bottom' | 'right' | 'floating'
 

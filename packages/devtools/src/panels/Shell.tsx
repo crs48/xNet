@@ -21,6 +21,7 @@ import { YjsInspector } from './YjsInspector/YjsInspector'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
 import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
+import { Seed } from './Seed/Seed'
 
 const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'nodes', label: 'Nodes' },
@@ -29,7 +30,8 @@ const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'yjs', label: 'Yjs' },
   { id: 'queries', label: 'Queries' },
   { id: 'telemetry', label: 'Telemetry' },
-  { id: 'schemas', label: 'Schemas' }
+  { id: 'schemas', label: 'Schemas' },
+  { id: 'seed', label: 'Seed' }
 ]
 
 export function DevToolsPanel() {
@@ -122,6 +124,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <TelemetryPanel />
     case 'schemas':
       return <SchemaRegistry />
+    case 'seed':
+      return <Seed />
   }
 }
 
