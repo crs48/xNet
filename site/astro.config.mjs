@@ -4,7 +4,7 @@ import tailwind from '@astrojs/tailwind'
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://anomalyco.github.io',
+  site: 'https://crs48.github.io',
   base: '/xNet',
   integrations: [tailwind()]
 })

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { XNetProvider } from '../context'
-import { useNode, useDocument } from './useDocument'
+import { useNode } from './useNode'
 import { PageSchema, MemoryNodeStorageAdapter, NodeStore, type DID } from '@xnet/data'
 
 // Mock y-webrtc to avoid WebRTC in tests
@@ -235,30 +235,5 @@ describe('useNode', () => {
 
     expect(result.current.data).toBeNull()
     expect(result.current.doc).toBeNull()
-  })
-
-  it('useDocument alias should work identically to useNode', async () => {
-    const page = await store.create({
-      schemaId: PageSchema._schemaId,
-      properties: { title: 'Alias Test' }
-    })
-
-    const { result } = renderHook(() => useDocument(PageSchema, page.id), {
-      wrapper: createWrapper({
-        storage,
-        authorDID: TEST_DID,
-        signingKey: TEST_SIGNING_KEY
-      })
-    })
-
-    await waitFor(
-      () => {
-        expect(result.current.loading).toBe(false)
-        expect(result.current.data).not.toBeNull()
-      },
-      { timeout: 2000 }
-    )
-
-    expect(result.current.data?.title).toBe('Alias Test')
   })
 })

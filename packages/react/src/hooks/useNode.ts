@@ -763,16 +763,3 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     reload: load
   }
 }
-
-// =============================================================================
-// Backwards-compatible aliases
-// =============================================================================
-
-/** @deprecated Use `useNode` instead */
-export const useDocument = useNode
-
-/** @deprecated Use `UseNodeOptions` instead */
-export type UseDocumentOptions<P extends Record<string, PropertyBuilder>> = UseNodeOptions<P>
-
-/** @deprecated Use `UseNodeResult` instead */
-export type UseDocumentResult<P extends Record<string, PropertyBuilder>> = UseNodeResult<P>
