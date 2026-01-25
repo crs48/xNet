@@ -44,8 +44,14 @@ export function createFileDropPlugin(options: FileDropPluginOptions) {
 
         event.preventDefault()
 
+        // Get drop position
+        const dropPos = view.posAtCoords({
+          left: event.clientX,
+          top: event.clientY
+        })
+
         for (const file of attachments) {
-          handleFileUpload(file, options)
+          handleFileUpload(file, options, dropPos?.pos)
         }
 
         return true
@@ -54,14 +60,15 @@ export function createFileDropPlugin(options: FileDropPluginOptions) {
   })
 }
 
-async function handleFileUpload(file: File, options: FileDropPluginOptions) {
+async function handleFileUpload(file: File, options: FileDropPluginOptions, insertPos?: number) {
   const { editor, onUpload } = options
 
-  // Insert placeholder
+  // Insert placeholder at drop position or cursor
+  const pos = insertPos ?? editor.state.selection.from
   editor
     .chain()
     .focus()
-    .insertContent({
+    .insertContentAt(pos, {
       type: 'file',
       attrs: {
         name: file.name,

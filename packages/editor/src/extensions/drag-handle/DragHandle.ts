@@ -78,18 +78,21 @@ export const DragHandle = Extension.create<DragHandleOptions>({
       const handleWidth = 24 // Width of handle + small gap
       const left = blockLeft - handleWidth
 
-      dragHandleElement.style.top = `${top}px`
-      dragHandleElement.style.left = `${left}px`
-      dragHandleElement.style.height = `${blockRect.height}px`
-      dragHandleElement.style.opacity = '1'
-      dragHandleElement.style.pointerEvents = 'auto'
-
       // Store position for drag operations - get position BEFORE the block node
-      const pos = editor.view.posAtDOM(block, 0)
-      const $pos = editor.state.doc.resolve(pos)
-      // Walk up to find the top-level block position
+      let pos: number
+      try {
+        pos = editor.view.posAtDOM(block, 0)
+      } catch {
+        // DOM node not in document (can happen during updates)
+        return
+      }
+
+      // posAtDOM returns -1 if the node is not in the document
+      if (pos < 0) return
+
       let blockPos = pos
       try {
+        const $pos = editor.state.doc.resolve(pos)
         // Get the position before the block at depth 1 (top-level)
         const depth = Math.max(1, $pos.depth)
         blockPos = $pos.before(depth)
@@ -97,6 +100,12 @@ export const DragHandle = Extension.create<DragHandleOptions>({
         // Fallback to resolved position
         blockPos = pos
       }
+
+      dragHandleElement.style.top = `${top}px`
+      dragHandleElement.style.left = `${left}px`
+      dragHandleElement.style.height = `${blockRect.height}px`
+      dragHandleElement.style.opacity = '1'
+      dragHandleElement.style.pointerEvents = 'auto'
       dragHandleElement.setAttribute('data-drag-pos', String(blockPos))
 
       currentBlock = block

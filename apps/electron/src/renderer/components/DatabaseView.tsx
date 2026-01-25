@@ -409,7 +409,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       const groupByProp = effectiveBoardView.groupByProperty
       columns.forEach((col) => {
         if (col.id === groupByProp) {
-          newRow[col.id] = columnId
+          // Don't set __none__ as a value
+          newRow[col.id] = columnId === '__none__' ? '' : columnId
         } else {
           switch (col.type) {
             case 'checkbox':
@@ -433,6 +434,163 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       dataMap.set('rows', updatedRows)
     },
     [doc, columns, effectiveBoardView.groupByProperty]
+  )
+
+  // Handle adding a new board column (= adding a new select option)
+  const handleAddBoardColumn = useCallback(() => {
+    if (!doc) return
+
+    const groupByProp = effectiveBoardView.groupByProperty
+    if (!groupByProp) return
+
+    const dataMap = doc.getMap('data')
+    const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+
+    // Find the groupBy column
+    const groupColumn = currentColumns.find((c) => c.id === groupByProp)
+    if (!groupColumn || (groupColumn.type !== 'select' && groupColumn.type !== 'multiSelect'))
+      return
+
+    // Add new option
+    const options =
+      (groupColumn.config?.options as Array<{ id: string; name: string; color?: string }>) || []
+    const newOption = {
+      id: `opt_${Date.now()}`,
+      name: 'New Column',
+      color: '#9ca3af'
+    }
+
+    const updatedColumns = currentColumns.map((col) => {
+      if (col.id !== groupByProp) return col
+      return {
+        ...col,
+        config: {
+          ...col.config,
+          options: [...options, newOption]
+        }
+      }
+    })
+
+    dataMap.set('columns', updatedColumns)
+  }, [doc, effectiveBoardView.groupByProperty])
+
+  // Handle renaming a board column (= renaming a select option)
+  const handleRenameBoardColumn = useCallback(
+    (columnId: string, newName: string) => {
+      if (!doc) return
+
+      const groupByProp = effectiveBoardView.groupByProperty
+      if (!groupByProp) return
+
+      const dataMap = doc.getMap('data')
+      const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+
+      const updatedColumns = currentColumns.map((col) => {
+        if (col.id !== groupByProp) return col
+
+        const options =
+          (col.config?.options as Array<{ id: string; name: string; color?: string }>) || []
+        const updatedOptions = options.map((opt) =>
+          opt.id === columnId ? { ...opt, name: newName } : opt
+        )
+
+        return {
+          ...col,
+          config: {
+            ...col.config,
+            options: updatedOptions
+          }
+        }
+      })
+
+      dataMap.set('columns', updatedColumns)
+    },
+    [doc, effectiveBoardView.groupByProperty]
+  )
+
+  // Handle deleting a board column (= removing a select option)
+  const handleDeleteBoardColumn = useCallback(
+    (columnId: string) => {
+      if (!doc) return
+
+      const groupByProp = effectiveBoardView.groupByProperty
+      if (!groupByProp) return
+
+      const dataMap = doc.getMap('data')
+      const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+
+      // Remove option from the select column
+      const updatedColumns = currentColumns.map((col) => {
+        if (col.id !== groupByProp) return col
+
+        const options =
+          (col.config?.options as Array<{ id: string; name: string; color?: string }>) || []
+        const updatedOptions = options.filter((opt) => opt.id !== columnId)
+
+        return {
+          ...col,
+          config: {
+            ...col.config,
+            options: updatedOptions
+          }
+        }
+      })
+
+      dataMap.set('columns', updatedColumns)
+
+      // Clear the deleted option value from all rows
+      const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+      const updatedRows = currentRows.map((row) => {
+        const value = row[groupByProp]
+        if (value === columnId) {
+          return { ...row, [groupByProp]: '' }
+        }
+        // Handle multiSelect
+        if (Array.isArray(value)) {
+          return { ...row, [groupByProp]: value.filter((v) => v !== columnId) }
+        }
+        return row
+      })
+
+      dataMap.set('rows', updatedRows)
+    },
+    [doc, effectiveBoardView.groupByProperty]
+  )
+
+  // Handle reordering board columns (= reordering select options)
+  const handleReorderBoardColumns = useCallback(
+    (newOrder: string[]) => {
+      if (!doc) return
+
+      const groupByProp = effectiveBoardView.groupByProperty
+      if (!groupByProp) return
+
+      const dataMap = doc.getMap('data')
+      const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+
+      const updatedColumns = currentColumns.map((col) => {
+        if (col.id !== groupByProp) return col
+
+        const options =
+          (col.config?.options as Array<{ id: string; name: string; color?: string }>) || []
+
+        // Reorder options based on newOrder
+        const reorderedOptions = newOrder
+          .map((id) => options.find((opt) => opt.id === id))
+          .filter((opt): opt is { id: string; name: string; color?: string } => opt !== undefined)
+
+        return {
+          ...col,
+          config: {
+            ...col.config,
+            options: reorderedOptions
+          }
+        }
+      })
+
+      dataMap.set('columns', updatedColumns)
+    },
+    [doc, effectiveBoardView.groupByProperty]
   )
 
   if (loading || !doc) {
@@ -555,6 +713,10 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onUpdateRow={handleUpdateRow}
             onUpdateView={handleUpdateBoardView}
             onAddCard={handleAddCard}
+            onAddColumn={handleAddBoardColumn}
+            onRenameColumn={handleRenameBoardColumn}
+            onDeleteColumn={handleDeleteBoardColumn}
+            onReorderColumns={handleReorderBoardColumns}
             onCardClick={(itemId) => console.log('Card clicked:', itemId)}
           />
         )}

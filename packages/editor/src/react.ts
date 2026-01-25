@@ -67,6 +67,12 @@ export type {
 export { useNodeFocus } from './nodeviews/hooks/useNodeFocus'
 export { useActiveStates } from './hooks/useActiveStates'
 export type { ActiveStates, UseActiveStatesOptions } from './hooks/useActiveStates'
+export { useImageUpload } from './hooks/useImageUpload'
+export type { UseImageUploadOptions, ImageUploadResult } from './hooks/useImageUpload'
+export { useFileUpload } from './hooks/useFileUpload'
+export type { FileUploadResult } from './hooks/useFileUpload'
+export { useFileDownload } from './hooks/useFileDownload'
+export type { FileDownloadAttrs } from './hooks/useFileDownload'
 export { useFocusTrap } from './accessibility/useFocusTrap'
 export type { UseFocusTrapOptions } from './accessibility/useFocusTrap'
 

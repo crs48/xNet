@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, type JSX } from 'react'
 import type { Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
+import { NodeSelection } from '@tiptap/pm/state'
 import { cn } from '../utils'
 
 /** Toolbar display mode */
@@ -413,8 +414,10 @@ function DesktopToolbar({
         placement: 'top',
         offset: 8
       }}
-      // Only show when there's a text selection (not on empty cursor)
-      shouldShow={({ editor, from, to }) => {
+      // Only show when there's a text selection (not on empty cursor or node selection)
+      shouldShow={({ editor, from, to, state }) => {
+        // Don't show for node selections (images, files, embeds have their own toolbars)
+        if (state.selection instanceof NodeSelection) return false
         // Don't show in code blocks
         if (editor.isActive('codeBlock')) return false
         // Only show when there's actual text selected

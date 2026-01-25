@@ -6,7 +6,7 @@ import React from 'react'
 import type { SyncStatus } from '@xnet/react'
 import { useNode, useIdentity } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
-import { RichTextEditor } from '@xnet/editor/react'
+import { RichTextEditor, useImageUpload, useFileUpload, useFileDownload } from '@xnet/editor/react'
 import { DocumentHeader } from './DocumentHeader'
 import { PresenceAvatars } from './PresenceAvatars'
 
@@ -16,6 +16,9 @@ interface PageViewProps {
 
 export function PageView({ docId }: PageViewProps) {
   const { did } = useIdentity()
+  const onImageUpload = useImageUpload()
+  const onFileUpload = useFileUpload()
+  const onFileDownload = useFileDownload()
 
   const {
     data: page,
@@ -63,6 +66,9 @@ export function PageView({ docId }: PageViewProps) {
           toolbarMode="desktop"
           awareness={awareness ?? undefined}
           did={did ?? undefined}
+          onImageUpload={onImageUpload ?? undefined}
+          onFileUpload={onFileUpload ?? undefined}
+          onFileDownload={onFileDownload ?? undefined}
         />
       </div>
     </div>

@@ -8,11 +8,13 @@ import { textHandler } from './text.js'
 import { numberHandler } from './number.js'
 import { checkboxHandler } from './checkbox.js'
 import { dateHandler } from './date.js'
+import { dateRangeHandler } from './dateRange.js'
 import { selectHandler } from './select.js'
 import { multiSelectHandler } from './multiSelect.js'
 import { urlHandler } from './url.js'
 import { emailHandler } from './email.js'
 import { phoneHandler } from './phone.js'
+import { fileHandler } from './file.js'
 
 /**
  * Registry of property handlers by type
@@ -24,11 +26,16 @@ const handlers: Partial<Record<PropertyType, PropertyHandler<any>>> = {
   number: numberHandler,
   checkbox: checkboxHandler,
   date: dateHandler,
+  dateRange: dateRangeHandler,
   select: selectHandler,
   multiSelect: multiSelectHandler,
   url: urlHandler,
   email: emailHandler,
   phone: phoneHandler,
+  file: fileHandler,
+  // String-based types use textHandler
+  person: textHandler,
+  relation: textHandler,
   // Auto properties - read-only
   created: dateHandler,
   updated: dateHandler,
@@ -53,9 +60,11 @@ export {
   numberHandler,
   checkboxHandler,
   dateHandler,
+  dateRangeHandler,
   selectHandler,
   multiSelectHandler,
   urlHandler,
   emailHandler,
-  phoneHandler
+  phoneHandler,
+  fileHandler
 }
