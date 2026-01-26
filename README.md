@@ -258,26 +258,26 @@ flowchart LR
         UI["UI"]
         NodeStore["NodeStore<br/>(structured data)"]
         YDoc["Y.Doc<br/>(rich text)"]
-        IDB[("IndexedDB")]
+        DB[("DB<br/>(IndexedDB, SQLite, PG)")]
     end
 
     subgraph Remote["Remote Peers"]
-        Peer1["Peer"]
-        Peer2["Peer"]
+        Peer1["Peer<br/>(desktop)"]
+        Peer2["Peer<br/>(mobile)"]
         HubNode["Hub<br/>(always-on)"]
     end
 
     UI -->|"mutate()"| NodeStore
     UI -->|"edit"| YDoc
-    NodeStore -->|"Change&lt;T&gt;<br/>LWW"| IDB
-    YDoc -->|"Yjs updates<br/>CRDT"| IDB
+    NodeStore -->|"Change&lt;T&gt;<br/>LWW"| DB
+    YDoc -->|"Yjs updates<br/>CRDT"| DB
 
     Local <-->|"WebRTC / WebSocket"| Remote
 
     classDef storage fill:#fff3e0,stroke:#ff9800
     classDef peer fill:#e8f5e9,stroke:#4caf50
     classDef hub fill:#e1f5fe,stroke:#0288d1,stroke-dasharray: 5 5
-    class IDB storage
+    class DB storage
     class Peer1,Peer2 peer
     class HubNode hub
 ```
