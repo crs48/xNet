@@ -285,24 +285,8 @@ flowchart LR
 
 ### Roadmap
 
-```mermaid
-gantt
-    title 6-Month Roadmap (2026)
-    dateFormat YYYY-MM-DD
-    axisFormat %b
+**Phase 1: Daily Driver** — Personal wiki you actually use daily  
+**Phase 2: Hub MVP** — Always-on sync, backup, access from any device  
+**Phase 3: Multiplayer** — Real-time collaboration and sharing
 
-    section Phase 1
-    Daily Driver App    :active, p1, 2026-01-27, 6w
-
-    section Phase 2
-    Hub MVP             :p2, after p1, 8w
-
-    section Phase 3
-    Multiplayer         :p3, after p2, 10w
-```
-
-| Phase               | Goal                           | Key Features                                                             |
-| ------------------- | ------------------------------ | ------------------------------------------------------------------------ |
-| **1. Daily Driver** | Personal wiki you actually use | Web feature parity, navigation polish, local search, PWA                 |
-| **2. Hub MVP**      | Always-on sync + backup        | Server relay, encrypted backup, FTS5 search, file storage                |
-| **3. Multiplayer**  | Real-time collaboration        | Workspace invites, presence cursors, sharing permissions, hub federation |
+See [docs/ROADMAP.md](./docs/ROADMAP.md) for the full 6-month plan.
