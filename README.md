@@ -167,10 +167,6 @@ function PageEditor({ nodeId }: { nodeId: string }) {
 - [Plugins](./docs/planStep03_5Plugins/README.md) — Plugin architecture plan
 - [History](./docs/planStep03_7History/README.md) — Time machine, undo, audit trails
 
-## License
-
-MIT
-
 ## Architecture
 
 ```mermaid
@@ -290,3 +286,7 @@ flowchart LR
 **Phase 3: Multiplayer** — Real-time collaboration and sharing
 
 See [docs/ROADMAP.md](./docs/ROADMAP.md) for the full 6-month plan.
+
+## License
+
+MIT
