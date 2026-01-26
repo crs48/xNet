@@ -4,141 +4,6 @@ Decentralized data infrastructure and application. Local-first, P2P-synced, user
 
 xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
 
-## Architecture
-
-```mermaid
-flowchart TB
-    subgraph Apps["Applications"]
-        Electron["Electron<br/>(Desktop)"]
-        Web["Web PWA"]
-        Expo["Expo<br/>(Mobile)"]
-    end
-
-    subgraph UI["UI Layer"]
-        Editor["@xnet/editor"]
-        Views["@xnet/views"]
-        Canvas["@xnet/canvas"]
-        UILib["@xnet/ui"]
-    end
-
-    subgraph Client["Client Layer"]
-        React["@xnet/react"]
-        SDK["@xnet/sdk"]
-        Devtools["@xnet/devtools"]
-    end
-
-    subgraph Data["Data Layer"]
-        DataPkg["@xnet/data"]
-        Query["@xnet/query"]
-        Vectors["@xnet/vectors"]
-        Formula["@xnet/formula"]
-    end
-
-    subgraph Infra["Infrastructure Layer"]
-        Sync["@xnet/sync"]
-        Storage["@xnet/storage"]
-        Network["@xnet/network"]
-    end
-
-    subgraph Foundation["Foundation"]
-        Identity["@xnet/identity"]
-        Crypto["@xnet/crypto"]
-        Core["@xnet/core"]
-    end
-
-    Apps --> UI & Client
-    UI --> Client
-    Client --> Data
-    Data --> Infra
-    Infra --> Foundation
-
-    subgraph External["External Services"]
-        Signaling["Signaling Server"]
-        Bootstrap["Bootstrap Node"]
-    end
-
-    Network <--> External
-
-    subgraph Planned["Planned"]
-        Hub["@xnet/hub"]
-        Plugins["@xnet/plugins"]
-        History["@xnet/history"]
-    end
-
-    Hub -.-> Network
-    Plugins -.-> Client
-    History -.-> Data
-
-    subgraph Future["Future"]
-        Federation["Hub Federation"]
-        GlobalIndex["Global Search"]
-    end
-
-    Federation -.-> Hub
-    GlobalIndex -.-> Federation
-
-    classDef planned fill:#e1f5fe,stroke:#0288d1,stroke-dasharray: 5 5
-    classDef future fill:#f3e5f5,stroke:#7b1fa2,stroke-dasharray: 5 5
-    class Hub,Plugins,History planned
-    class Federation,GlobalIndex future
-```
-
-### Hybrid Sync Model
-
-```mermaid
-flowchart LR
-    subgraph Local["Local Device"]
-        UI["UI"]
-        NodeStore["NodeStore<br/>(structured data)"]
-        YDoc["Y.Doc<br/>(rich text)"]
-        IDB[("IndexedDB")]
-    end
-
-    subgraph Remote["Remote Peers"]
-        Peer1["Peer"]
-        Peer2["Peer"]
-        HubNode["Hub<br/>(always-on)"]
-    end
-
-    UI -->|"mutate()"| NodeStore
-    UI -->|"edit"| YDoc
-    NodeStore -->|"Change&lt;T&gt;<br/>LWW"| IDB
-    YDoc -->|"Yjs updates<br/>CRDT"| IDB
-
-    Local <-->|"WebRTC / WebSocket"| Remote
-
-    classDef storage fill:#fff3e0,stroke:#ff9800
-    classDef peer fill:#e8f5e9,stroke:#4caf50
-    classDef hub fill:#e1f5fe,stroke:#0288d1,stroke-dasharray: 5 5
-    class IDB storage
-    class Peer1,Peer2 peer
-    class HubNode hub
-```
-
-### Roadmap
-
-```mermaid
-gantt
-    title 6-Month Roadmap (2026)
-    dateFormat YYYY-MM-DD
-    axisFormat %b
-
-    section Phase 1
-    Daily Driver App    :active, p1, 2026-01-27, 6w
-
-    section Phase 2
-    Hub MVP             :p2, after p1, 8w
-
-    section Phase 3
-    Multiplayer         :p3, after p2, 10w
-```
-
-| Phase               | Goal                           | Key Features                                                             |
-| ------------------- | ------------------------------ | ------------------------------------------------------------------------ |
-| **1. Daily Driver** | Personal wiki you actually use | Web feature parity, navigation polish, local search, PWA                 |
-| **2. Hub MVP**      | Always-on sync + backup        | Server relay, encrypted backup, FTS5 search, file storage                |
-| **3. Multiplayer**  | Real-time collaboration        | Workspace invites, presence cursors, sharing permissions, hub federation |
-
 ## Getting Started
 
 ```bash
@@ -305,3 +170,138 @@ function PageEditor({ nodeId }: { nodeId: string }) {
 ## License
 
 MIT
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Apps["Applications"]
+        Electron["Electron<br/>(Desktop)"]
+        Web["Web PWA"]
+        Expo["Expo<br/>(Mobile)"]
+    end
+
+    subgraph UI["UI Layer"]
+        Editor["@xnet/editor"]
+        Views["@xnet/views"]
+        Canvas["@xnet/canvas"]
+        UILib["@xnet/ui"]
+    end
+
+    subgraph Client["Client Layer"]
+        React["@xnet/react"]
+        SDK["@xnet/sdk"]
+        Devtools["@xnet/devtools"]
+    end
+
+    subgraph Data["Data Layer"]
+        DataPkg["@xnet/data"]
+        Query["@xnet/query"]
+        Vectors["@xnet/vectors"]
+        Formula["@xnet/formula"]
+    end
+
+    subgraph Infra["Infrastructure Layer"]
+        Sync["@xnet/sync"]
+        Storage["@xnet/storage"]
+        Network["@xnet/network"]
+    end
+
+    subgraph Foundation["Foundation"]
+        Identity["@xnet/identity"]
+        Crypto["@xnet/crypto"]
+        Core["@xnet/core"]
+    end
+
+    Apps --> UI & Client
+    UI --> Client
+    Client --> Data
+    Data --> Infra
+    Infra --> Foundation
+
+    subgraph External["External Services"]
+        Signaling["Signaling Server"]
+        Bootstrap["Bootstrap Node"]
+    end
+
+    Network <--> External
+
+    subgraph Planned["Planned"]
+        Hub["@xnet/hub"]
+        Plugins["@xnet/plugins"]
+        History["@xnet/history"]
+    end
+
+    Hub -.-> Network
+    Plugins -.-> Client
+    History -.-> Data
+
+    subgraph Future["Future"]
+        Federation["Hub Federation"]
+        GlobalIndex["Global Search"]
+    end
+
+    Federation -.-> Hub
+    GlobalIndex -.-> Federation
+
+    classDef planned fill:#e1f5fe,stroke:#0288d1,stroke-dasharray: 5 5
+    classDef future fill:#f3e5f5,stroke:#7b1fa2,stroke-dasharray: 5 5
+    class Hub,Plugins,History planned
+    class Federation,GlobalIndex future
+```
+
+### Hybrid Sync Model
+
+```mermaid
+flowchart LR
+    subgraph Local["Local Device"]
+        UI["UI"]
+        NodeStore["NodeStore<br/>(structured data)"]
+        YDoc["Y.Doc<br/>(rich text)"]
+        IDB[("IndexedDB")]
+    end
+
+    subgraph Remote["Remote Peers"]
+        Peer1["Peer"]
+        Peer2["Peer"]
+        HubNode["Hub<br/>(always-on)"]
+    end
+
+    UI -->|"mutate()"| NodeStore
+    UI -->|"edit"| YDoc
+    NodeStore -->|"Change&lt;T&gt;<br/>LWW"| IDB
+    YDoc -->|"Yjs updates<br/>CRDT"| IDB
+
+    Local <-->|"WebRTC / WebSocket"| Remote
+
+    classDef storage fill:#fff3e0,stroke:#ff9800
+    classDef peer fill:#e8f5e9,stroke:#4caf50
+    classDef hub fill:#e1f5fe,stroke:#0288d1,stroke-dasharray: 5 5
+    class IDB storage
+    class Peer1,Peer2 peer
+    class HubNode hub
+```
+
+### Roadmap
+
+```mermaid
+gantt
+    title 6-Month Roadmap (2026)
+    dateFormat YYYY-MM-DD
+    axisFormat %b
+
+    section Phase 1
+    Daily Driver App    :active, p1, 2026-01-27, 6w
+
+    section Phase 2
+    Hub MVP             :p2, after p1, 8w
+
+    section Phase 3
+    Multiplayer         :p3, after p2, 10w
+```
+
+| Phase               | Goal                           | Key Features                                                             |
+| ------------------- | ------------------------------ | ------------------------------------------------------------------------ |
+| **1. Daily Driver** | Personal wiki you actually use | Web feature parity, navigation polish, local search, PWA                 |
+| **2. Hub MVP**      | Always-on sync + backup        | Server relay, encrypted backup, FTS5 search, file storage                |
+| **3. Multiplayer**  | Real-time collaboration        | Workspace invites, presence cursors, sharing permissions, hub federation |
