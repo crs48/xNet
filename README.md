@@ -4,6 +4,152 @@ Decentralized data infrastructure and application. Local-first, P2P-synced, user
 
 xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
 
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Apps["Applications"]
+        Electron["Electron<br/>(Desktop)"]
+        Web["Web<br/>(PWA)"]
+        Expo["Expo<br/>(Mobile)"]
+    end
+
+    subgraph UI["UI Layer"]
+        Editor["@xnet/editor<br/>TipTap rich text"]
+        Views["@xnet/views<br/>Table, Board, Calendar"]
+        Canvas["@xnet/canvas<br/>Infinite canvas"]
+        UILib["@xnet/ui<br/>Radix components"]
+    end
+
+    subgraph Client["Client Layer"]
+        React["@xnet/react<br/>Hooks + SyncManager"]
+        SDK["@xnet/sdk<br/>Unified client"]
+    end
+
+    subgraph Data["Data Layer"]
+        DataPkg["@xnet/data<br/>Schema, NodeStore, Yjs"]
+        Query["@xnet/query<br/>Local engine + FTS"]
+        Vectors["@xnet/vectors<br/>HNSW embeddings"]
+        Formula["@xnet/formula<br/>Expression engine"]
+    end
+
+    subgraph Sync["Sync Layer"]
+        SyncPkg["@xnet/sync<br/>Change&lt;T&gt;, Lamport, chains"]
+        Storage["@xnet/storage<br/>IndexedDB adapter"]
+    end
+
+    subgraph Foundation["Foundation"]
+        Identity["@xnet/identity<br/>DID:key, UCAN"]
+        Crypto["@xnet/crypto<br/>BLAKE3, Ed25519"]
+        Core["@xnet/core<br/>CIDs, types"]
+    end
+
+    subgraph Network["Network Layer"]
+        NetworkPkg["@xnet/network<br/>libp2p, y-webrtc"]
+    end
+
+    subgraph Infra["Infrastructure"]
+        Signaling["Signaling Server<br/>WebSocket pub/sub"]
+        Bootstrap["Bootstrap Node<br/>DHT discovery"]
+    end
+
+    subgraph Planned["Planned: Hub (Q2 2026)"]
+        direction TB
+        Hub["@xnet/hub<br/>Always-on sync peer"]
+        HubFeatures["Backup, Query API,<br/>File store, Awareness"]
+    end
+
+    subgraph Future["Future: Federation"]
+        Federation["Hub ↔ Hub<br/>Cross-org queries"]
+    end
+
+    %% App connections
+    Apps --> UI
+    Apps --> Client
+
+    %% UI dependencies
+    Editor --> DataPkg
+    Editor --> UILib
+    Views --> DataPkg
+    Views --> UILib
+    Canvas --> DataPkg
+    Canvas --> Vectors
+
+    %% Client dependencies
+    React --> DataPkg
+    React --> Identity
+    SDK --> DataPkg
+    SDK --> Query
+    SDK --> NetworkPkg
+    SDK --> Storage
+
+    %% Data layer
+    DataPkg --> SyncPkg
+    DataPkg --> Storage
+    DataPkg --> Identity
+    Query --> DataPkg
+    Vectors --> Storage
+    Formula -.-> DataPkg
+
+    %% Sync layer
+    SyncPkg --> Crypto
+    Storage --> Crypto
+
+    %% Foundation
+    Identity --> Crypto
+    Crypto --> Core
+
+    %% Network
+    NetworkPkg --> DataPkg
+    NetworkPkg --> Identity
+    NetworkPkg <--> Signaling
+    NetworkPkg <--> Bootstrap
+
+    %% Planned connections
+    Hub --> NetworkPkg
+    Hub --> Storage
+    HubFeatures --> Hub
+    Federation --> Hub
+
+    %% Styling
+    classDef planned fill:#f9f,stroke:#333,stroke-dasharray: 5 5
+    classDef future fill:#bbf,stroke:#333,stroke-dasharray: 5 5
+    class Hub,HubFeatures planned
+    class Federation future
+```
+
+### Data Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant React as @xnet/react
+    participant Store as NodeStore
+    participant Yjs as Y.Doc
+    participant Storage as IndexedDB
+    participant Network as WebRTC/WebSocket
+    participant Peer as Remote Peer
+
+    User->>React: Edit document
+    React->>Yjs: Apply change (CRDT)
+    Yjs->>Storage: Persist update
+    Yjs->>Network: Broadcast update
+    Network->>Peer: Sync via signaling
+
+    User->>React: Update record
+    React->>Store: mutate()
+    Store->>Store: Create Change<T>
+    Store->>Storage: Append to log
+    Store->>Network: Broadcast change
+    Network->>Peer: Sync via signaling
+
+    Peer->>Network: Remote change arrives
+    Network->>Store: applyRemoteChange()
+    Store->>Storage: Merge (LWW)
+    Store->>React: Notify subscribers
+    React->>User: UI updates
+```
+
 ## Getting Started
 
 ```bash
@@ -28,6 +174,7 @@ pnpm typecheck
 ```
 packages/              # Core SDK packages (@xnet/*)
 apps/                  # Platform applications
+site/                  # Static website
 infrastructure/        # Bootstrap node, signaling server
 tests/                 # Browser-based integration tests
 docs/                  # Vision, explorations, implementation plans
