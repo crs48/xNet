@@ -182,35 +182,36 @@ flowchart TB
     end
 
     subgraph UI["UI Layer"]
-        Editor["@xnet/editor"]
-        Views["@xnet/views"]
-        Canvas["@xnet/canvas"]
-        UILib["@xnet/ui"]
+        Editor["@xnet/editor<br/><small>TipTap, slash commands,<br/>drag-drop blocks</small>"]
+        Views["@xnet/views<br/><small>Table, Board, Calendar,<br/>Timeline, Gallery</small>"]
+        Canvas["@xnet/canvas<br/><small>Infinite canvas,<br/>spatial indexing</small>"]
+        UILib["@xnet/ui<br/><small>Radix primitives,<br/>theme system</small>"]
     end
 
     subgraph Client["Client Layer"]
-        React["@xnet/react"]
-        SDK["@xnet/sdk"]
-        Devtools["@xnet/devtools"]
+        React["@xnet/react<br/><small>useQuery, useMutate,<br/>useDocument, SyncManager</small>"]
+        SDK["@xnet/sdk<br/><small>Unified client,<br/>browser/node presets</small>"]
+        Devtools["@xnet/devtools<br/><small>Node explorer,<br/>sync monitor</small>"]
+        Telemetry["@xnet/telemetry<br/><small>Privacy-first,<br/>consent-gated</small>"]
     end
 
     subgraph Data["Data Layer"]
-        DataPkg["@xnet/data"]
-        Query["@xnet/query"]
-        Vectors["@xnet/vectors"]
-        Formula["@xnet/formula"]
+        DataPkg["@xnet/data<br/><small>Schema system, NodeStore,<br/>Yjs CRDT, 15 property types</small>"]
+        Query["@xnet/query<br/><small>Local engine,<br/>MiniSearch FTS</small>"]
+        Vectors["@xnet/vectors<br/><small>HNSW index,<br/>hybrid search</small>"]
+        Formula["@xnet/formula<br/><small>Expression parser,<br/>computed properties</small>"]
     end
 
     subgraph Infra["Infrastructure Layer"]
-        Sync["@xnet/sync"]
-        Storage["@xnet/storage"]
-        Network["@xnet/network"]
+        Sync["@xnet/sync<br/><small>Change&lt;T&gt;, Lamport clocks,<br/>hash chains</small>"]
+        Storage["@xnet/storage<br/><small>IndexedDB, SQLite,<br/>snapshot management</small>"]
+        Network["@xnet/network<br/><small>libp2p, y-webrtc,<br/>peer scoring</small>"]
     end
 
     subgraph Foundation["Foundation"]
-        Identity["@xnet/identity"]
-        Crypto["@xnet/crypto"]
-        Core["@xnet/core"]
+        Identity["@xnet/identity<br/><small>DID:key, UCAN tokens,<br/>key management</small>"]
+        Crypto["@xnet/crypto<br/><small>BLAKE3, Ed25519,<br/>XChaCha20</small>"]
+        Core["@xnet/core<br/><small>CIDs, types,<br/>permissions</small>"]
     end
 
     Apps --> UI & Client
@@ -219,17 +220,17 @@ flowchart TB
     Data --> Infra
     Infra --> Foundation
 
-    subgraph External["External Services"]
-        Signaling["Signaling Server"]
-        Bootstrap["Bootstrap Node"]
+    subgraph External["Infrastructure Services"]
+        Signaling["Signaling Server<br/><small>WebSocket pub/sub</small>"]
+        Bootstrap["Bootstrap Node<br/><small>DHT discovery</small>"]
     end
 
     Network <--> External
 
     subgraph Planned["Planned"]
-        Hub["@xnet/hub"]
-        Plugins["@xnet/plugins"]
-        History["@xnet/history"]
+        Hub["@xnet/hub<br/><small>Always-on sync relay,<br/>backup, FTS5 search</small>"]
+        Plugins["@xnet/plugins<br/><small>Scripts, extensions,<br/>custom views</small>"]
+        History["@xnet/history<br/><small>Time machine,<br/>undo/redo, audit</small>"]
     end
 
     Hub -.-> Network
@@ -237,8 +238,8 @@ flowchart TB
     History -.-> Data
 
     subgraph Future["Future"]
-        Federation["Hub Federation"]
-        GlobalIndex["Global Search"]
+        Federation["Hub Federation<br/><small>Cross-org queries,<br/>schema sharing</small>"]
+        GlobalIndex["Global Search<br/><small>Distributed index,<br/>crawl coordination</small>"]
     end
 
     Federation -.-> Hub
