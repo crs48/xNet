@@ -100,6 +100,8 @@ export function DevToolsPanel() {
         </span>
         <span className="mx-2">|</span>
         <span>Store: {store ? 'connected' : 'disconnected'}</span>
+        <span className="mx-2">|</span>
+        <ClearDataButton />
         <span className="ml-auto">Ctrl+Shift+D to toggle</span>
       </div>
     </div>
@@ -161,6 +163,44 @@ function ClearButton({ onClear }: { onClear: () => void }) {
       title="Clear events"
     >
       clr
+    </button>
+  )
+}
+
+function ClearDataButton() {
+  const [confirming, setConfirming] = useState(false)
+
+  const handleClick = async () => {
+    if (!confirming) {
+      setConfirming(true)
+      // Auto-cancel after 3 seconds
+      setTimeout(() => setConfirming(false), 3000)
+      return
+    }
+
+    // Clear IndexedDB
+    try {
+      const databases = await indexedDB.databases()
+      for (const db of databases) {
+        if (db.name?.startsWith('xnet-')) {
+          indexedDB.deleteDatabase(db.name)
+        }
+      }
+      // Reload the page to reset state
+      window.location.reload()
+    } catch (err) {
+      console.error('[DevTools] Failed to clear data:', err)
+      setConfirming(false)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className={`text-xs p-0.5 ${confirming ? 'text-red-400 hover:text-red-300' : 'text-zinc-400 hover:text-white'}`}
+      title={confirming ? 'Click again to confirm' : 'Clear all IndexedDB data'}
+    >
+      {confirming ? 'Confirm Clear?' : 'Clear Data'}
     </button>
   )
 }
