@@ -222,9 +222,19 @@ function formatConfig(config: Record<string, unknown>): string {
   const parts: string[] = []
 
   if ('options' in config && Array.isArray(config.options)) {
-    parts.push(
-      `[${config.options.slice(0, 3).join(', ')}${config.options.length > 3 ? '...' : ''}]`
-    )
+    // Handle select/multiSelect options which are {id, name, color?} objects
+    const optionLabels = config.options.map((opt: unknown) => {
+      if (typeof opt === 'object' && opt !== null) {
+        const o = opt as Record<string, unknown>
+        return o.name || o.id || o.value || JSON.stringify(opt)
+      }
+      return String(opt)
+    })
+    const display = optionLabels.slice(0, 3).join(', ')
+    parts.push(`[${display}${optionLabels.length > 3 ? ', ...' : ''}]`)
+  }
+  if ('default' in config && config.default !== undefined) {
+    parts.push(`default: ${config.default}`)
   }
   if ('targetSchema' in config) {
     const target = String(config.targetSchema).split('/').pop()
