@@ -173,7 +173,6 @@ describe('ModuleName', () => {
 - Use heavyweight frameworks
 - Store computed values (formula, rollup) - compute at read
 - Skip tests for core packages
-- Use `console.log` for debugging (use the `log()` helper with debug flag)
 
 ## Sync Architecture
 
