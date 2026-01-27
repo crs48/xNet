@@ -11,6 +11,7 @@
 
 // Types
 export type {
+  Disposable,
   ViewType,
   ViewConfig,
   SortConfig,
@@ -27,7 +28,12 @@ export type {
 } from './types.js'
 
 // Property handlers
-export { getPropertyHandler } from './properties/index.js'
+export {
+  getPropertyHandler,
+  registerPropertyHandler,
+  onPropertyHandlersChange,
+  getRegisteredPropertyTypes
+} from './properties/index.js'
 export {
   textHandler,
   numberHandler,

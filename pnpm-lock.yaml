@@ -787,6 +787,9 @@ importers:
       '@xnet/identity':
         specifier: workspace:*
         version: link:../identity
+      '@xnet/plugins':
+        specifier: workspace:*
+        version: link:../plugins
       y-protocols:
         specifier: ^1.0.6
         version: 1.0.7(yjs@13.6.29)

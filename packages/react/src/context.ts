@@ -15,8 +15,10 @@ import React, {
 import type { Identity } from '@xnet/identity'
 import type { DID } from '@xnet/core'
 import { NodeStore, MemoryNodeStorageAdapter, type NodeStorageAdapter } from '@xnet/data'
+import { PluginRegistry, type Platform } from '@xnet/plugins'
 import { createSyncManager, type SyncManager } from './sync/sync-manager'
 import type { BlobStoreForSync } from './sync/blob-sync'
+import { PluginRegistryContext } from './hooks/usePlugins'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(...args: unknown[]): void {
@@ -47,6 +49,10 @@ export interface XNetConfig {
   /** Blob store for P2P blob sync (images, files). If provided, the SyncManager
    *  will sync blobs alongside Y.Doc state. Typically a BlobStore from @xnet/storage. */
   blobStore?: BlobStoreForSync
+  /** Platform for plugin compatibility ('web' | 'electron' | 'mobile'). Defaults to 'web'. */
+  platform?: Platform
+  /** Disable plugin system (default: false) */
+  disablePlugins?: boolean
 }
 
 /**
@@ -65,6 +71,8 @@ export interface XNetContextValue {
   syncManager: SyncManager | null
   /** Blob store for content-addressed storage (null if not configured) */
   blobStore: BlobStoreForSync | null
+  /** Plugin Registry (null if disabled or not yet initialized) */
+  pluginRegistry: PluginRegistry | null
 }
 
 /** @internal Exported for useNodeStore hook - not part of public API */
@@ -87,6 +95,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const [nodeStore, setNodeStore] = useState<NodeStore | null>(null)
   const [nodeStoreReady, setNodeStoreReady] = useState(false)
   const [syncManager, setSyncManager] = useState<SyncManager | null>(null)
+  const [pluginRegistry, setPluginRegistry] = useState<PluginRegistry | null>(null)
   const nodeStorageRef = useRef<NodeStorageAdapter | null>(null)
 
   useEffect(() => {
@@ -234,6 +243,39 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     config.blobStore
   ])
 
+  // Create PluginRegistry when NodeStore is ready
+  useEffect(() => {
+    if (!nodeStore || !nodeStoreReady || config.disablePlugins) {
+      log('PluginRegistry disabled or NodeStore not ready')
+      setPluginRegistry(null)
+      return
+    }
+
+    const platform = config.platform ?? 'web'
+    log('Creating PluginRegistry with platform:', platform)
+
+    const registry = new PluginRegistry(nodeStore, platform)
+    setPluginRegistry(registry)
+
+    // Load any previously installed plugins from storage
+    registry.loadFromStore().catch((err: unknown) => {
+      console.warn('[XNetProvider] Failed to load plugins from store:', err)
+    })
+
+    return () => {
+      // Deactivate all plugins on cleanup
+      const plugins = registry.getAll()
+      for (const plugin of plugins) {
+        if (plugin.status === 'active') {
+          registry.deactivate(plugin.manifest.id).catch((err: unknown) => {
+            console.warn(`[XNetProvider] Failed to deactivate plugin ${plugin.manifest.id}:`, err)
+          })
+        }
+      }
+      setPluginRegistry(null)
+    }
+  }, [nodeStore, nodeStoreReady, config.disablePlugins, config.platform])
+
   const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
 
   const value: XNetContextValue = {
@@ -242,10 +284,16 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     identity: config.identity,
     authorDID: authorDID ?? null,
     syncManager,
-    blobStore: config.blobStore ?? null
+    blobStore: config.blobStore ?? null,
+    pluginRegistry
   }
 
-  return React.createElement(XNetContext.Provider, { value }, children)
+  // Wrap children with PluginRegistryContext if plugins are enabled
+  const content = pluginRegistry
+    ? React.createElement(PluginRegistryContext.Provider, { value: pluginRegistry }, children)
+    : children
+
+  return React.createElement(XNetContext.Provider, { value }, content)
 }
 
 /**
