@@ -12,8 +12,8 @@
  *   Renderer <--MessagePort--> Main Process BSM <--WebSocket--> Hub/Signaling
  */
 
-// Debug logging - always enabled for now to diagnose sync issues
-const DEBUG = true
+// Debug logging - disabled by default, enable for diagnosing sync issues
+const DEBUG = false
 function log(...args: unknown[]): void {
   if (DEBUG) {
     console.log('[BSM]', ...args)
@@ -91,11 +91,11 @@ export function setupBSM(config: BSMConfig) {
   const pendingBlobRequests = new Set<string>()
   // Known peers (from sync messages)
   const knownPeers = new Map<string, { lastSeen: number; rooms: Set<string> }>()
-  // Peer timeout: check every 5s, timeout after 15s of no heartbeat
-  const PEER_TIMEOUT_MS = 15000
-  const PEER_CHECK_INTERVAL_MS = 5000
-  // Heartbeat: send every 4444ms to all subscribed rooms
-  const HEARTBEAT_INTERVAL_MS = 4444
+  // Peer timeout: check every 1111ms, timeout after 4444ms of no heartbeat
+  const PEER_TIMEOUT_MS = 4444
+  const PEER_CHECK_INTERVAL_MS = 1111
+  // Heartbeat: send every 1111ms to all subscribed rooms
+  const HEARTBEAT_INTERVAL_MS = 1111
   let peerTimeoutInterval: ReturnType<typeof setInterval> | null = null
   let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
@@ -147,7 +147,9 @@ export function setupBSM(config: BSMConfig) {
   function checkPeerTimeouts(): void {
     const now = Date.now()
     for (const [peerId, info] of knownPeers) {
-      if (now - info.lastSeen > PEER_TIMEOUT_MS) {
+      const elapsed = now - info.lastSeen
+      if (elapsed > PEER_TIMEOUT_MS) {
+        log('Peer timeout:', peerId, 'elapsed:', elapsed, 'ms')
         removePeer(peerId, 'timeout')
       }
     }
@@ -432,6 +434,15 @@ export function setupBSM(config: BSMConfig) {
         break
       }
 
+      case 'peer-leave': {
+        // Peer explicitly left - remove them immediately
+        if (data.from) {
+          log('Peer left room:', data.from, room)
+          removePeer(data.from as string, 'left')
+        }
+        break
+      }
+
       case 'awareness': {
         // Track peer connection
         if (data.from) trackPeer(data.from as string, room)
@@ -639,6 +650,13 @@ export function setupBSM(config: BSMConfig) {
     const room = `xnet-doc-${nodeId}`
     if (!subscribedRooms.has(room)) return
 
+    // Broadcast peer-leave so other peers know we left immediately
+    wsSend({
+      type: 'publish',
+      topic: room,
+      data: { type: 'peer-leave', from: peerId }
+    })
+
     subscribedRooms.delete(room)
     wsSend({ type: 'unsubscribe', topics: [room] })
   }
@@ -795,6 +813,9 @@ export function setupBSM(config: BSMConfig) {
       port.close()
       activePorts.delete(nodeId)
     }
+
+    // Leave the room (broadcasts peer-leave to other peers)
+    leaveRoom(nodeId)
 
     // Release from pool (stays warm for background sync)
     releaseDoc(nodeId)
