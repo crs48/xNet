@@ -301,6 +301,22 @@ export function setupBSM(config: BSMConfig) {
         forwardToRenderer(nodeId, update)
         break
       }
+
+      case 'awareness': {
+        // Forward awareness updates to renderer
+        const update = fromBase64(data.update as string)
+        log('Received awareness update, size:', update.length)
+        forwardAwarenessToRenderer(nodeId, update)
+        break
+      }
+    }
+  }
+
+  function forwardAwarenessToRenderer(nodeId: string, update: Uint8Array): void {
+    const port = activePorts.get(nodeId)
+    if (port) {
+      log('Forwarding awareness to renderer for node:', nodeId, 'size:', update.length)
+      port.postMessage({ type: 'awareness', update: Array.from(update) })
     }
   }
 
@@ -600,6 +616,17 @@ export function setupBSM(config: BSMConfig) {
             type: 'publish',
             topic: room,
             data: { type: 'sync-update', from: peerId, update: toBase64(u8) }
+          })
+        }
+      } else if (type === 'awareness' && update) {
+        // Forward awareness updates to network
+        if (status === 'connected') {
+          const room = `xnet-doc-${nodeId}`
+          log('Broadcasting awareness update to network')
+          wsSend({
+            type: 'publish',
+            topic: room,
+            data: { type: 'awareness', from: peerId, update: toBase64(new Uint8Array(update)) }
           })
         }
       }

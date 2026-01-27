@@ -7,9 +7,13 @@
  *
  * The renderer maintains its own Y.Doc mirror (for TipTap/editor binding)
  * that stays in sync with the main-process doc via the MessagePort.
+ *
+ * Awareness is managed in the renderer and synced via IPC to the main process,
+ * which broadcasts it over WebSocket to other peers.
  */
 
 import * as Y from 'yjs'
+import { Awareness, encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness'
 import type { SyncManager } from '@xnet/react'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
@@ -18,6 +22,8 @@ type StatusHandler = (status: ConnectionStatus) => void
 export function createIPCSyncManager(): SyncManager {
   // Renderer-side Y.Doc mirrors (one per acquired node)
   const docs = new Map<string, Y.Doc>()
+  // Awareness instances per node (for cursor presence, etc.)
+  const awarenessMap = new Map<string, Awareness>()
   // Cleanup functions for doc update listeners and message handlers
   const cleanups = new Map<string, () => void>()
   // Pending acquire promises to handle concurrent calls
@@ -105,6 +111,10 @@ export function createIPCSyncManager(): SyncManager {
         // Create renderer-side Y.Doc mirror
         const doc = new Y.Doc({ guid: nodeId })
 
+        // Create awareness for this doc
+        const awareness = new Awareness(doc)
+        awarenessMap.set(nodeId, awareness)
+
         // Request port from main process (preload manages the actual MessagePort)
         await window.xnetBSM.acquire(nodeId, '')
 
@@ -113,6 +123,9 @@ export function createIPCSyncManager(): SyncManager {
           const { type, update } = data as { type: string; update?: number[] }
           if (type === 'update' && update) {
             Y.applyUpdate(doc, new Uint8Array(update), 'remote')
+          } else if (type === 'awareness' && update) {
+            // Apply remote awareness update
+            applyAwarenessUpdate(awareness, new Uint8Array(update), 'remote')
           }
         })
 
@@ -125,8 +138,23 @@ export function createIPCSyncManager(): SyncManager {
         }
         doc.on('update', updateHandler)
 
+        // Forward local awareness changes to main process
+        const awarenessHandler = (
+          changes: { added: number[]; updated: number[]; removed: number[] },
+          origin: unknown
+        ) => {
+          if (origin === 'remote') return // Don't echo back remote awareness
+          const changedClients = [...changes.added, ...changes.updated, ...changes.removed]
+          if (changedClients.length > 0) {
+            const update = encodeAwarenessUpdate(awareness, changedClients)
+            window.xnetBSM.postMessage(nodeId, { type: 'awareness', update: Array.from(update) })
+          }
+        }
+        awareness.on('change', awarenessHandler)
+
         cleanups.set(nodeId, () => {
           doc.off('update', updateHandler)
+          awareness.off('change', awarenessHandler)
           messageCleanup()
         })
 
@@ -150,6 +178,13 @@ export function createIPCSyncManager(): SyncManager {
         cleanups.delete(nodeId)
       }
 
+      // Clean up awareness
+      const awareness = awarenessMap.get(nodeId)
+      if (awareness) {
+        awareness.destroy()
+        awarenessMap.delete(nodeId)
+      }
+
       // Destroy renderer mirror
       const doc = docs.get(nodeId)
       if (doc) {
@@ -161,9 +196,8 @@ export function createIPCSyncManager(): SyncManager {
       window.xnetBSM.release(nodeId)
     },
 
-    getAwareness(_nodeId: string) {
-      // TODO: Implement awareness via IPC
-      return null
+    getAwareness(nodeId: string) {
+      return awarenessMap.get(nodeId) ?? null
     },
 
     async requestBlobs(cids: string[]) {
