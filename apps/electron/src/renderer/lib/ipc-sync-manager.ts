@@ -124,7 +124,6 @@ export function createIPCSyncManager(): SyncManager {
           if (type === 'update' && update) {
             Y.applyUpdate(doc, new Uint8Array(update), 'remote')
           } else if (type === 'awareness' && update) {
-            // Apply remote awareness update
             applyAwarenessUpdate(awareness, new Uint8Array(update), 'remote')
           }
         })
