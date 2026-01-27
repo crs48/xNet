@@ -18,6 +18,13 @@ import { NodeStore, MemoryNodeStorageAdapter, type NodeStorageAdapter } from '@x
 import { createSyncManager, type SyncManager } from './sync/sync-manager'
 import type { BlobStoreForSync } from './sync/blob-sync'
 
+// Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
+function log(...args: unknown[]): void {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
+    console.log('[XNetProvider]', ...args)
+  }
+}
+
 /**
  * XNet configuration
  */
@@ -157,16 +164,26 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     }
 
     if (!nodeStore || !nodeStoreReady || config.disableSyncManager) {
+      log('SyncManager disabled or NodeStore not ready', {
+        nodeStore: !!nodeStore,
+        nodeStoreReady,
+        disableSyncManager: config.disableSyncManager
+      })
       setSyncManager(null)
       return
     }
 
     const storage = nodeStorageRef.current
-    if (!storage) return
+    if (!storage) {
+      log('No storage adapter available')
+      return
+    }
 
     const signalingUrl = config.signalingServers?.[0] ?? 'ws://localhost:4444'
     const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
 
+    console.log('[XNetProvider] Creating SyncManager with signalingUrl:', signalingUrl)
+    log('Creating SyncManager with signalingUrl:', signalingUrl)
     const sm = createSyncManager({
       nodeStore,
       storage,
@@ -175,12 +192,19 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       blobStore: config.blobStore
     })
 
+    // Set SyncManager immediately so hooks can use it
+    // (it will connect in the background)
+    setSyncManager(sm)
+    console.log('[XNetProvider] SyncManager created and set in context')
+    log('SyncManager created, starting...')
+
     sm.start()
       .then(() => {
-        setSyncManager(sm)
+        log('SyncManager started successfully')
       })
       .catch((err) => {
         console.warn('[XNetProvider] SyncManager failed to start:', err)
+        log('SyncManager start failed:', err)
       })
 
     return () => {

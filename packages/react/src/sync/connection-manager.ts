@@ -9,6 +9,13 @@
  *   { type: "subscribe", topics: ["xnet-doc-abc", "xnet-doc-def"] }
  */
 
+// Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
+function log(...args: unknown[]): void {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
+    console.log('[ConnectionManager]', ...args)
+  }
+}
+
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 
 export interface ConnectionManagerConfig {
@@ -56,6 +63,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   const statusListeners = new Set<StatusHandler>()
 
   function setStatus(s: ConnectionStatus): void {
+    log('Status changed:', status, '->', s)
     status = s
     for (const handler of statusListeners) {
       try {
@@ -68,7 +76,10 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
 
   function send(msg: object): void {
     if (ws?.readyState === WebSocket.OPEN) {
+      log('Sending:', msg)
       ws.send(JSON.stringify(msg))
+    } else {
+      log('Cannot send, WebSocket not open. readyState:', ws?.readyState)
     }
   }
 
@@ -78,53 +89,70 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
 
       if (msg.type === 'pong') return // Ignore keepalive responses
 
+      log('Received message:', msg.type, msg.topic ? `topic=${msg.topic}` : '')
+
       if (msg.type === 'publish' && msg.topic) {
         const handlers = rooms.get(msg.topic)
         if (handlers) {
+          log('Dispatching to', handlers.size, 'handler(s) for room:', msg.topic)
           for (const handler of handlers) {
             try {
               handler(msg.data)
-            } catch {
+            } catch (err) {
+              log('Handler error:', err)
               // Handler errors don't break the message loop
             }
           }
+        } else {
+          log('No handlers for room:', msg.topic)
         }
       }
-    } catch {
+    } catch (err) {
+      log('Failed to parse message:', err)
       // Ignore parse errors
     }
   }
 
   function doConnect(): void {
-    if (destroyed) return
+    if (destroyed) {
+      log('doConnect called but manager is destroyed')
+      return
+    }
 
+    log('Connecting to:', config.url)
     setStatus('connecting')
 
     try {
       ws = new WebSocket(config.url)
 
       ws.onopen = () => {
+        log('WebSocket connected')
         setStatus('connected')
         reconnectAttempts = 0
 
         // Re-subscribe to all rooms
         if (rooms.size > 0) {
-          send({ type: 'subscribe', topics: Array.from(rooms.keys()) })
+          const roomList = Array.from(rooms.keys())
+          log('Re-subscribing to', roomList.length, 'room(s):', roomList)
+          send({ type: 'subscribe', topics: roomList })
         }
       }
 
       ws.onmessage = handleMessage
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
+        log('WebSocket closed, code:', event.code, 'reason:', event.reason || '(none)')
         ws = null
         setStatus('disconnected')
         scheduleReconnect()
       }
 
-      ws.onerror = () => {
+      ws.onerror = (event) => {
+        log('WebSocket error:', event)
         setStatus('error')
       }
-    } catch {
+    } catch (err) {
+      log('Failed to create WebSocket:', err)
       setStatus('error')
       scheduleReconnect()
     }
@@ -172,16 +200,20 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     },
 
     joinRoom(room: string, handler: RoomHandler): () => void {
+      log('Joining room:', room)
       let handlers = rooms.get(room)
       if (!handlers) {
         handlers = new Set()
         rooms.set(room, handlers)
         // Subscribe on the wire if connected
+        log('New room subscription, sending subscribe message')
         send({ type: 'subscribe', topics: [room] })
       }
       handlers.add(handler)
+      log('Room', room, 'now has', handlers.size, 'handler(s)')
 
       return () => {
+        log('Leaving room:', room)
         handlers!.delete(handler)
         if (handlers!.size === 0) {
           rooms.delete(room)
@@ -196,6 +228,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     },
 
     publish(room: string, data: object): void {
+      log('Publishing to room:', room, 'type:', (data as { type?: string }).type)
       send({ type: 'publish', topic: room, data })
     },
 

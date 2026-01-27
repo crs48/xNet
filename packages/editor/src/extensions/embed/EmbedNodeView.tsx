@@ -281,6 +281,7 @@ export function EmbedNodeView({
             src={embedUrl}
             title={title || `${provider?.displayName || 'Embedded'} content`}
             className="absolute inset-0 w-full h-full"
+            style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen

@@ -11,6 +11,14 @@
  *   Renderer <--MessagePort--> Main Process BSM <--WebSocket--> Hub/Signaling
  */
 
+// Debug logging - always enabled for now to diagnose sync issues
+const DEBUG = true
+function log(...args: unknown[]): void {
+  if (DEBUG) {
+    console.log('[BSM]', ...args)
+  }
+}
+
 import { ipcMain, MessageChannelMain, type BrowserWindow } from 'electron'
 import * as Y from 'yjs'
 import WebSocket from 'ws'
@@ -83,22 +91,29 @@ export function setupBSM(config: BSMConfig) {
   }
 
   function connect(): void {
-    if (destroyed || !signalingUrl) return
+    if (destroyed || !signalingUrl) {
+      log('connect() aborted - destroyed:', destroyed, 'signalingUrl:', signalingUrl)
+      return
+    }
 
+    log('Connecting to:', signalingUrl)
     setStatus('connecting')
 
     try {
       ws = new WebSocket(signalingUrl)
 
       ws.on('open', () => {
+        log('WebSocket connected')
         setStatus('connected')
 
         // Re-subscribe to all rooms
         if (subscribedRooms.size > 0) {
+          log('Re-subscribing to', subscribedRooms.size, 'rooms')
           wsSend({ type: 'subscribe', topics: Array.from(subscribedRooms) })
         }
 
         // Initiate sync for all pooled docs
+        log('Initiating sync for', pool.size, 'pooled docs')
         for (const [nodeId, entry] of pool) {
           sendSyncStep1(nodeId, entry.doc)
         }
@@ -113,15 +128,20 @@ export function setupBSM(config: BSMConfig) {
           const msg = JSON.parse(data.toString())
           if (msg.type === 'pong') return
 
+          log('WS message received:', msg.type, msg.topic ? `topic=${msg.topic}` : '')
+
           if (msg.type === 'publish' && msg.topic) {
             const room = msg.topic as string
             const nodeId = room.replace('xnet-doc-', '')
             if (pool.has(nodeId)) {
+              log('Handling sync message for node:', nodeId, 'type:', msg.data?.type)
               handleSyncMessage(nodeId, msg.data)
+            } else {
+              log('No doc in pool for node:', nodeId)
             }
           }
-        } catch {
-          // Ignore parse errors
+        } catch (err) {
+          log('WS message parse error:', err)
         }
       })
 
@@ -171,6 +191,14 @@ export function setupBSM(config: BSMConfig) {
   function sendSyncStep1(nodeId: string, doc: Y.Doc): void {
     const room = `xnet-doc-${nodeId}`
     const sv = Y.encodeStateVector(doc)
+    log(
+      'sendSyncStep1 for node:',
+      nodeId,
+      'SV size:',
+      sv.length,
+      'doc meta keys:',
+      doc.getMap('meta').size
+    )
     wsSend({
       type: 'publish',
       topic: room,
@@ -179,10 +207,16 @@ export function setupBSM(config: BSMConfig) {
   }
 
   function handleSyncMessage(nodeId: string, data: Record<string, unknown>): void {
-    if (data.from === peerId) return
+    if (data.from === peerId) {
+      log('Ignoring own message')
+      return
+    }
 
     const entry = pool.get(nodeId)
-    if (!entry) return
+    if (!entry) {
+      log('No pool entry for node:', nodeId)
+      return
+    }
 
     const doc = entry.doc
     const room = `xnet-doc-${nodeId}`
@@ -191,26 +225,38 @@ export function setupBSM(config: BSMConfig) {
       case 'sync-step1': {
         const remoteSV = fromBase64(data.sv as string)
         const diff = Y.encodeStateAsUpdate(doc, remoteSV)
+        log(
+          'Received sync-step1 from',
+          data.from,
+          'remoteSV size:',
+          remoteSV.length,
+          'diff size:',
+          diff.length
+        )
+
+        // Send sync-step2 with what they're missing
         wsSend({
           type: 'publish',
           topic: room,
           data: { type: 'sync-step2', from: peerId, to: data.from, update: toBase64(diff) }
         })
-        // Also request what we're missing
-        const ourSV = Y.encodeStateVector(doc)
-        wsSend({
-          type: 'publish',
-          topic: room,
-          data: { type: 'sync-step1', from: peerId, sv: toBase64(ourSV) }
-        })
+
+        // DON'T send sync-step1 back here - that causes an infinite loop.
+        // If we need content from them, we'll get it from our initial sync-step1
+        // that we send when joining the room.
         break
       }
 
       case 'sync-step2': {
-        if (data.to && data.to !== peerId) break
+        if (data.to && data.to !== peerId) {
+          log('Ignoring sync-step2 addressed to:', data.to)
+          break
+        }
         const update = fromBase64(data.update as string)
+        log('Received sync-step2, applying update size:', update.length)
         Y.applyUpdate(doc, update, 'remote')
         entry.dirty = true
+        log('Doc after sync-step2 - meta keys:', doc.getMap('meta').size)
         // Forward to renderer via MessagePort
         forwardToRenderer(nodeId, update)
         break
@@ -218,6 +264,7 @@ export function setupBSM(config: BSMConfig) {
 
       case 'sync-update': {
         const update = fromBase64(data.update as string)
+        log('Received sync-update, size:', update.length)
         Y.applyUpdate(doc, update, 'remote')
         entry.dirty = true
         // Forward to renderer via MessagePort
@@ -230,7 +277,10 @@ export function setupBSM(config: BSMConfig) {
   function forwardToRenderer(nodeId: string, update: Uint8Array): void {
     const port = activePorts.get(nodeId)
     if (port) {
+      log('Forwarding update to renderer for node:', nodeId, 'size:', update.length)
       port.postMessage({ type: 'update', update: Array.from(update) })
+    } else {
+      log('No active port for node:', nodeId, '- cannot forward to renderer')
     }
   }
 
@@ -346,16 +396,28 @@ export function setupBSM(config: BSMConfig) {
     // Receive updates from renderer
     port1.on('message', (msgEvent) => {
       const { type, update } = msgEvent.data
+      log(
+        'Received message from renderer for',
+        nodeId,
+        'type:',
+        type,
+        'update size:',
+        update?.length
+      )
       if (type === 'update' && update) {
         const u8 = new Uint8Array(update)
+        log('Applying renderer update to BSM doc, size:', u8.length)
         Y.applyUpdate(doc, u8, 'renderer')
 
         const entry = pool.get(nodeId)
         if (entry) entry.dirty = true
 
+        log('BSM doc after renderer update - meta keys:', doc.getMap('meta').size)
+
         // Broadcast to network
         if (status === 'connected') {
           const room = `xnet-doc-${nodeId}`
+          log('Broadcasting renderer update to network')
           wsSend({
             type: 'publish',
             topic: room,

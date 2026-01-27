@@ -31,6 +31,13 @@ import {
   removeAwarenessStates
 } from 'y-protocols/awareness'
 
+// Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
+function log(provider: WebSocketSyncProvider, ...args: unknown[]): void {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
+    console.log(`[WSSyncProvider:${provider.room}]`, ...args)
+  }
+}
+
 // Encode/decode binary as base64 for JSON transport
 function toBase64(data: Uint8Array): string {
   // Works in both Node.js and browser
@@ -119,6 +126,16 @@ export class WebSocketSyncProvider {
     return this.synced
   }
 
+  /** Helper to get XML fragment length for debug logging */
+  private _getFragmentLength(): number {
+    try {
+      const fragment = this.doc.getXmlFragment('default')
+      return fragment?.length ?? 0
+    } catch {
+      return 0
+    }
+  }
+
   on(event: SyncEventType, handler: SyncEventHandler): void {
     if (!this.eventHandlers.has(event)) {
       this.eventHandlers.set(event, new Set())
@@ -165,15 +182,18 @@ export class WebSocketSyncProvider {
       this.ws = new WebSocket(this.url)
 
       this.ws.onopen = () => {
+        log(this, 'WebSocket connected to', this.url)
         this.connected = true
         this.reconnectAttempts = 0
         this.emit('status', { connected: true })
 
         // Subscribe to the room
+        log(this, 'Subscribing to room:', this.room)
         this._send({ type: 'subscribe', topics: [this.room] })
 
         // Initiate sync: broadcast our state vector (sync-step1)
         const sv = Y.encodeStateVector(this.doc)
+        log(this, 'Sending sync-step1, state vector size:', sv.length)
         this._publish({
           type: 'sync-step1',
           from: this.peerId,
@@ -182,6 +202,7 @@ export class WebSocketSyncProvider {
 
         // Broadcast our awareness state
         const awarenessUpdate = encodeAwarenessUpdate(this.awareness, [this.doc.clientID])
+        log(this, 'Sending initial awareness update')
         this._publish({
           type: 'awareness',
           from: this.peerId,
@@ -202,14 +223,16 @@ export class WebSocketSyncProvider {
         }
       }
 
-      this.ws.onclose = () => {
+      this.ws.onclose = (event) => {
+        log(this, 'WebSocket closed, code:', event.code, 'reason:', event.reason || '(none)')
         this.connected = false
         this.synced = false
         this.emit('status', { connected: false })
         this._scheduleReconnect()
       }
 
-      this.ws.onerror = () => {
+      this.ws.onerror = (event) => {
+        log(this, 'WebSocket error:', event)
         // onclose will fire after this
       }
     } catch {
@@ -254,13 +277,23 @@ export class WebSocketSyncProvider {
       }
     }
 
+    log(this, 'Received message type:', data.type, 'from:', data.from)
+
     switch (data.type) {
       case 'sync-step1': {
         // Peer sent their state vector, respond with the diff they need
         const remoteSV = fromBase64(data.sv as string)
         const diff = Y.encodeStateAsUpdate(this.doc, remoteSV)
+        log(
+          this,
+          'Received sync-step1 from peer, their SV size:',
+          remoteSV.length,
+          'our diff size:',
+          diff.length
+        )
 
         // Send sync-step2 (the actual update data)
+        log(this, 'Sending sync-step2 to peer:', data.from, 'update size:', diff.length)
         this._publish({
           type: 'sync-step2',
           from: this.peerId,
@@ -271,6 +304,7 @@ export class WebSocketSyncProvider {
         // Also send our state vector so they can send us what we're missing
         if (!this.synced) {
           const sv = Y.encodeStateVector(this.doc)
+          log(this, 'Sending our sync-step1 in response, SV size:', sv.length)
           this._publish({
             type: 'sync-step1',
             from: this.peerId,
@@ -290,13 +324,32 @@ export class WebSocketSyncProvider {
 
       case 'sync-step2': {
         // Only process if addressed to us (or broadcast)
-        if (data.to && data.to !== this.peerId) return
+        if (data.to && data.to !== this.peerId) {
+          log(this, 'Ignoring sync-step2 addressed to different peer:', data.to)
+          return
+        }
 
         const update = fromBase64(data.update as string)
+        log(
+          this,
+          'Received sync-step2, applying update size:',
+          update.length,
+          'doc content before:',
+          this.doc.getMap('meta').size,
+          'keys'
+        )
         Y.applyUpdate(this.doc, update, this)
+        log(
+          this,
+          'After applying update, doc content:',
+          this.doc.getMap('meta').size,
+          'keys, XML fragment length:',
+          this._getFragmentLength()
+        )
 
         if (!this.synced) {
           this.synced = true
+          log(this, 'Sync complete! Emitting synced event')
           this.emit('synced', { synced: true })
         }
         break
@@ -305,6 +358,7 @@ export class WebSocketSyncProvider {
       case 'sync-update': {
         // Incremental update from a peer
         const update = fromBase64(data.update as string)
+        log(this, 'Received sync-update, size:', update.length)
         Y.applyUpdate(this.doc, update, this)
         break
       }
@@ -312,6 +366,7 @@ export class WebSocketSyncProvider {
       case 'awareness': {
         // Apply remote awareness state
         const update = fromBase64(data.update as string)
+        log(this, 'Received awareness update')
         applyAwarenessUpdate(this.awareness, update, this)
         break
       }

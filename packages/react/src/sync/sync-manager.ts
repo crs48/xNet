@@ -9,6 +9,8 @@
  * docs stay alive in the pool and continue syncing in the background.
  */
 
+console.log('[SyncManager] Module loaded from source!')
+
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
 import type { ContentId } from '@xnet/core'
@@ -23,6 +25,13 @@ import {
 } from './connection-manager'
 import { createOfflineQueue, type OfflineQueue } from './offline-queue'
 import { createBlobSyncProvider, type BlobSyncProvider, type BlobStoreForSync } from './blob-sync'
+
+// Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
+function log(...args: unknown[]): void {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
+    console.log('[SyncManager]', ...args)
+  }
+}
 
 export type SyncStatus = ConnectionStatus
 
@@ -252,9 +261,13 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   }
 
   function joinNodeRoom(nodeId: string): void {
-    if (roomCleanups.has(nodeId)) return
+    if (roomCleanups.has(nodeId)) {
+      log('Already joined room for node:', nodeId)
+      return
+    }
 
     const room = `xnet-doc-${nodeId}`
+    log('Joining room:', room)
 
     const cleanup = connection.joinRoom(room, (data) => {
       handleSyncMessage(nodeId, data)
@@ -264,8 +277,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     // Send initial sync-step1 if we have a doc in the pool
     if (pool.has(nodeId)) {
+      log('Doc already in pool, sending initial sync-step1')
       pool.acquire(nodeId).then((doc) => {
         const sv = Y.encodeStateVector(doc)
+        log('Sending sync-step1 for node:', nodeId, 'SV size:', sv.length)
         connection.publish(room, {
           type: 'sync-step1',
           from: peerId,
@@ -273,6 +288,8 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         })
         pool.release(nodeId)
       })
+    } else {
+      log('Doc not in pool yet for node:', nodeId)
     }
   }
 
@@ -287,8 +304,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   }
 
   async function handleSyncMessage(nodeId: string, data: Record<string, unknown>): Promise<void> {
-    if (data.from === peerId) return // Ignore own messages
+    if (data.from === peerId) {
+      log('Ignoring own message')
+      return
+    }
 
+    log('Received message for node:', nodeId, 'type:', data.type, 'from:', data.from)
     const doc = await pool.acquire(nodeId)
     const room = `xnet-doc-${nodeId}`
 
@@ -298,34 +319,44 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
           // Peer wants our updates since their state vector
           const remoteSV = fromBase64(data.sv as string)
           const diff = Y.encodeStateAsUpdate(doc, remoteSV)
+          log(
+            'Received sync-step1, remote SV size:',
+            remoteSV.length,
+            'sending diff size:',
+            diff.length
+          )
           connection.publish(room, {
             type: 'sync-step2',
             from: peerId,
             to: data.from,
             update: toBase64(diff)
           })
-          // Also send our state vector so they send us what we're missing
-          const ourSV = Y.encodeStateVector(doc)
-          connection.publish(room, {
-            type: 'sync-step1',
-            from: peerId,
-            sv: toBase64(ourSV)
-          })
+          // DON'T send sync-step1 back here - that causes an infinite loop.
+          // If we need content from them, we'll get it from our initial sync-step1
+          // that we send when joining the room.
           break
         }
 
         case 'sync-step2': {
           // Response to our sync-step1 — apply their diff
-          if (data.to && data.to !== peerId) break // Not for us
+          if (data.to && data.to !== peerId) {
+            log('Ignoring sync-step2 addressed to different peer:', data.to)
+            break
+          }
           const update = fromBase64(data.update as string)
+          log('Received sync-step2, applying update size:', update.length)
+          log('Doc state before update - meta keys:', doc.getMap('meta').size)
           Y.applyUpdate(doc, update, 'remote')
+          log('Doc state after update - meta keys:', doc.getMap('meta').size)
           registry.markSynced(nodeId)
+          log('Marked node as synced:', nodeId)
           break
         }
 
         case 'sync-update': {
           // Incremental update from a peer
           const update = fromBase64(data.update as string)
+          log('Received sync-update, size:', update.length)
           Y.applyUpdate(doc, update, 'remote')
           break
         }
@@ -376,6 +407,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   function sendSyncStep1(nodeId: string, doc: Y.Doc): void {
     const room = `xnet-doc-${nodeId}`
     const sv = Y.encodeStateVector(doc)
+    log(
+      'sendSyncStep1 for node:',
+      nodeId,
+      'SV size:',
+      sv.length,
+      'connection status:',
+      connection.status
+    )
     connection.publish(room, {
       type: 'sync-step1',
       from: peerId,
@@ -385,8 +424,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
   return {
     async start() {
+      log('Starting SyncManager...')
       await registry.load()
+      log('Registry loaded, tracked nodes:', registry.getTracked().length)
       await offlineQueue.load()
+      log('Offline queue loaded, size:', offlineQueue.size)
+      log('Connecting to signaling server...')
       connection.connect()
 
       // Start blob sync if configured
@@ -394,6 +437,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
       // When connection is established, drain offline queue and initiate sync
       connection.onStatus((s) => {
+        log('Connection status changed in start():', s)
         if (s === 'connected') {
           // Drain any queued offline updates first
           drainOfflineQueue()
@@ -412,9 +456,11 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
       // Join rooms for all tracked Nodes
       const tracked = registry.getTracked()
+      log('Joining rooms for', tracked.length, 'tracked nodes')
       for (const entry of tracked) {
         joinNodeRoom(entry.nodeId)
       }
+      log('SyncManager started')
     },
 
     async stop() {
@@ -445,9 +491,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     },
 
     async acquire(nodeId) {
+      console.log('[SyncManager] acquire() called for:', nodeId)
+      log('Acquiring doc for node:', nodeId)
       registry.touch(nodeId)
 
       const doc = await pool.acquire(nodeId)
+      log('Doc acquired from pool, guid:', doc.guid, 'meta keys:', doc.getMap('meta').size)
 
       // Set up broadcast if not already done
       setupDocBroadcast(nodeId, doc)
@@ -459,7 +508,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
       // Send sync-step1 to get any updates we missed
       if (connection.status === 'connected') {
+        log('Connection is connected, sending sync-step1')
         sendSyncStep1(nodeId, doc)
+      } else {
+        log('Connection not connected, status:', connection.status)
       }
 
       // Eager blob sync: scan Y.Doc for CID references and request missing ones

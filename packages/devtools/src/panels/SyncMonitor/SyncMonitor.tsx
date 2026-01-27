@@ -2,11 +2,38 @@
  * SyncMonitor panel - P2P connection status, peer list, sync events
  */
 
+import { useState, useCallback } from 'react'
 import { useSyncMonitor, type SyncEvent, type PeerEntry } from './useSyncMonitor'
 import { formatTime, relativeTime } from '../../utils/formatters'
 
+const SYNC_DEBUG_KEY = 'xnet:sync:debug'
+
+function useSyncDebugLogging() {
+  const [enabled, setEnabled] = useState(() => {
+    if (typeof localStorage === 'undefined') return false
+    return localStorage.getItem(SYNC_DEBUG_KEY) === 'true'
+  })
+
+  const toggle = useCallback(() => {
+    const newValue = !enabled
+    setEnabled(newValue)
+    if (typeof localStorage !== 'undefined') {
+      if (newValue) {
+        localStorage.setItem(SYNC_DEBUG_KEY, 'true')
+      } else {
+        localStorage.removeItem(SYNC_DEBUG_KEY)
+      }
+    }
+    // Log to console so user knows it changed
+    console.log(`[xNet] Sync debug logging ${newValue ? 'enabled' : 'disabled'}`)
+  }, [enabled])
+
+  return { enabled, toggle }
+}
+
 export function SyncMonitor() {
   const { events, peers, connectionStatus, stats } = useSyncMonitor()
+  const { enabled: debugEnabled, toggle: toggleDebug } = useSyncDebugLogging()
 
   return (
     <div className="flex flex-col h-full">
@@ -20,6 +47,17 @@ export function SyncMonitor() {
           <span>Sent: {stats.sent}</span>
           <span>Recv: {stats.received}</span>
           <span className={stats.errors > 0 ? 'text-red-400' : ''}>Errors: {stats.errors}</span>
+          <button
+            onClick={toggleDebug}
+            className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              debugEnabled
+                ? 'bg-blue-600 text-white'
+                : 'bg-zinc-700 text-zinc-400 hover:bg-zinc-600'
+            }`}
+            title={debugEnabled ? 'Disable sync debug logging' : 'Enable sync debug logging'}
+          >
+            {debugEnabled ? 'Debug ON' : 'Debug OFF'}
+          </button>
         </div>
       </div>
 
