@@ -10,31 +10,31 @@ import type { ViewConfig } from '../types'
 
 // Mock schema
 const mockSchema: Schema = {
-  '@id': 'xnet://xnet.dev/Product',
-  '@type': 'xnet://xnet.dev/Schema',
+  '@id': 'xnet://xnet.fyi/Product',
+  '@type': 'xnet://xnet.fyi/Schema',
   name: 'Product',
-  namespace: 'xnet.dev',
+  namespace: 'xnet.fyi',
   properties: [
     {
-      '@id': 'xnet://xnet.dev/Product#name',
+      '@id': 'xnet://xnet.fyi/Product#name',
       name: 'Name',
       type: 'text',
       required: true
     },
     {
-      '@id': 'xnet://xnet.dev/Product#price',
+      '@id': 'xnet://xnet.fyi/Product#price',
       name: 'Price',
       type: 'number',
       required: false
     },
     {
-      '@id': 'xnet://xnet.dev/Product#image',
+      '@id': 'xnet://xnet.fyi/Product#image',
       name: 'Image',
       type: 'file',
       required: false
     },
     {
-      '@id': 'xnet://xnet.dev/Product#category',
+      '@id': 'xnet://xnet.fyi/Product#category',
       name: 'Category',
       type: 'select',
       required: false,

@@ -15,31 +15,31 @@ import type { ViewConfig } from '../types'
 
 // Mock schema with date properties
 const mockSchema: Schema = {
-  '@id': 'xnet://xnet.dev/Task',
-  '@type': 'xnet://xnet.dev/Schema',
+  '@id': 'xnet://xnet.fyi/Task',
+  '@type': 'xnet://xnet.fyi/Schema',
   name: 'Task',
-  namespace: 'xnet.dev',
+  namespace: 'xnet.fyi',
   properties: [
     {
-      '@id': 'xnet://xnet.dev/Task#title',
+      '@id': 'xnet://xnet.fyi/Task#title',
       name: 'Title',
       type: 'text',
       required: true
     },
     {
-      '@id': 'xnet://xnet.dev/Task#startDate',
+      '@id': 'xnet://xnet.fyi/Task#startDate',
       name: 'Start Date',
       type: 'date',
       required: true
     },
     {
-      '@id': 'xnet://xnet.dev/Task#endDate',
+      '@id': 'xnet://xnet.fyi/Task#endDate',
       name: 'End Date',
       type: 'date',
       required: false
     },
     {
-      '@id': 'xnet://xnet.dev/Task#status',
+      '@id': 'xnet://xnet.fyi/Task#status',
       name: 'Status',
       type: 'select',
       required: false,

@@ -11,7 +11,7 @@ import { defineSchema, text, select, date } from '@xnet/data'
 
 export const CrashReportSchema = defineSchema({
   name: 'CrashReport',
-  namespace: 'xnet://xnet.dev/telemetry/',
+  namespace: 'xnet://xnet.fyi/telemetry/',
   properties: {
     exceptionType: text({ required: true }),
     exceptionMessage: text({ required: true }),

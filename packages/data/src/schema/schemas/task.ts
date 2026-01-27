@@ -11,7 +11,7 @@ import type { InferNode } from '../types'
 
 export const TaskSchema = defineSchema({
   name: 'Task',
-  namespace: 'xnet://xnet.dev/',
+  namespace: 'xnet://xnet.fyi/',
   properties: {
     /** Task title */
     title: text({ required: true, maxLength: 500 }),
@@ -48,7 +48,7 @@ export const TaskSchema = defineSchema({
     assignee: person({}),
 
     /** Parent task (for subtasks) */
-    parent: relation({ target: 'xnet://xnet.dev/Task' as const })
+    parent: relation({ target: 'xnet://xnet.fyi/Task' as const })
   },
   document: 'yjs' // Collaborative Y.Doc for description
 })

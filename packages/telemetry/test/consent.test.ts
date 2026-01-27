@@ -85,11 +85,11 @@ describe('ConsentManager', () => {
       await manager.setConsent({
         tier: 'anonymous',
         reviewBeforeSend: false,
-        enabledSchemas: ['xnet://xnet.dev/telemetry/CrashReport']
+        enabledSchemas: ['xnet://xnet.fyi/telemetry/CrashReport']
       })
       expect(manager.current.tier).toBe('anonymous')
       expect(manager.current.reviewBeforeSend).toBe(false)
-      expect(manager.current.enabledSchemas).toEqual(['xnet://xnet.dev/telemetry/CrashReport'])
+      expect(manager.current.enabledSchemas).toEqual(['xnet://xnet.fyi/telemetry/CrashReport'])
     })
   })
 
@@ -113,10 +113,10 @@ describe('ConsentManager', () => {
     it('filters by enabledSchemas when set', async () => {
       await manager.setConsent({
         tier: 'local',
-        enabledSchemas: ['xnet://xnet.dev/telemetry/CrashReport']
+        enabledSchemas: ['xnet://xnet.fyi/telemetry/CrashReport']
       })
-      expect(manager.allowsSchema('xnet://xnet.dev/telemetry/CrashReport')).toBe(true)
-      expect(manager.allowsSchema('xnet://xnet.dev/telemetry/UsageMetric')).toBe(false)
+      expect(manager.allowsSchema('xnet://xnet.fyi/telemetry/CrashReport')).toBe(true)
+      expect(manager.allowsSchema('xnet://xnet.fyi/telemetry/UsageMetric')).toBe(false)
     })
 
     it('returns false when tier is off', () => {

@@ -16,7 +16,7 @@
  *
  * // Create a node
  * const task = await store.create({
- *   schemaId: 'xnet://xnet.dev/Task',
+ *   schemaId: 'xnet://xnet.fyi/Task',
  *   properties: { title: 'My Task', status: 'todo' }
  * })
  *
@@ -24,7 +24,7 @@
  * await store.update(task.id, { properties: { status: 'done' } })
  *
  * // List
- * const tasks = await store.list({ schemaId: 'xnet://xnet.dev/Task' })
+ * const tasks = await store.list({ schemaId: 'xnet://xnet.fyi/Task' })
  * ```
  */
 

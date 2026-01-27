@@ -6,7 +6,7 @@ import type { PropertyBuilder } from '../types'
 import type { SchemaIRI } from '../node'
 
 export interface RelationOptions {
-  /** The target schema IRI (e.g., 'xnet://xnet.dev/Task') */
+  /** The target schema IRI (e.g., 'xnet://xnet.fyi/Task') */
   target: SchemaIRI
   required?: boolean
   /** Allow multiple relations */
@@ -20,8 +20,8 @@ export interface RelationOptions {
  * ```typescript
  * const schema = defineSchema({
  *   properties: {
- *     parent: relation({ target: 'xnet://xnet.dev/Task' }),
- *     subtasks: relation({ target: 'xnet://xnet.dev/Task', multiple: true })
+ *     parent: relation({ target: 'xnet://xnet.fyi/Task' }),
+ *     subtasks: relation({ target: 'xnet://xnet.fyi/Task', multiple: true })
  *   }
  * })
  * ```

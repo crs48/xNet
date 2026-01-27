@@ -11,21 +11,21 @@ describe('Schema System', () => {
     it('creates a schema with correct IRI', () => {
       const TaskSchema = defineSchema({
         name: 'Task',
-        namespace: 'xnet://xnet.dev/',
+        namespace: 'xnet://xnet.fyi/',
         properties: {
           title: text({ required: true })
         }
       })
 
-      expect(TaskSchema.schema['@id']).toBe('xnet://xnet.dev/Task')
-      expect(TaskSchema.schema['@type']).toBe('xnet://xnet.dev/Schema')
+      expect(TaskSchema.schema['@id']).toBe('xnet://xnet.fyi/Task')
+      expect(TaskSchema.schema['@type']).toBe('xnet://xnet.fyi/Schema')
       expect(TaskSchema.schema.name).toBe('Task')
     })
 
     it('builds property definitions with IRIs', () => {
       const TaskSchema = defineSchema({
         name: 'Task',
-        namespace: 'xnet://xnet.dev/',
+        namespace: 'xnet://xnet.fyi/',
         properties: {
           title: text({ required: true }),
           priority: number({})
@@ -33,16 +33,16 @@ describe('Schema System', () => {
       })
 
       expect(TaskSchema.schema.properties).toHaveLength(2)
-      expect(TaskSchema.schema.properties[0]['@id']).toBe('xnet://xnet.dev/Task#title')
+      expect(TaskSchema.schema.properties[0]['@id']).toBe('xnet://xnet.fyi/Task#title')
       expect(TaskSchema.schema.properties[0].required).toBe(true)
-      expect(TaskSchema.schema.properties[1]['@id']).toBe('xnet://xnet.dev/Task#priority')
+      expect(TaskSchema.schema.properties[1]['@id']).toBe('xnet://xnet.fyi/Task#priority')
       expect(TaskSchema.schema.properties[1].required).toBe(false)
     })
 
     it('sets document type correctly', () => {
       const PageSchema = defineSchema({
         name: 'Page',
-        namespace: 'xnet://xnet.dev/',
+        namespace: 'xnet://xnet.fyi/',
         properties: {
           title: text({ required: true })
         },
@@ -56,7 +56,7 @@ describe('Schema System', () => {
   describe('schema.create', () => {
     const TaskSchema = defineSchema({
       name: 'Task',
-      namespace: 'xnet://xnet.dev/',
+      namespace: 'xnet://xnet.fyi/',
       properties: {
         title: text({ required: true }),
         completed: checkbox({ default: false }),
@@ -68,7 +68,7 @@ describe('Schema System', () => {
       const task = TaskSchema.create({ title: 'Fix the bug' }, { createdBy: testDID })
 
       expect(task.id).toBeDefined()
-      expect(task.schemaId).toBe('xnet://xnet.dev/Task')
+      expect(task.schemaId).toBe('xnet://xnet.fyi/Task')
       expect(task.createdAt).toBeGreaterThan(0)
       expect(task.createdBy).toBe(testDID)
       expect(task.title).toBe('Fix the bug')
@@ -104,7 +104,7 @@ describe('Schema System', () => {
   describe('schema.validate', () => {
     const TaskSchema = defineSchema({
       name: 'Task',
-      namespace: 'xnet://xnet.dev/',
+      namespace: 'xnet://xnet.fyi/',
       properties: {
         title: text({ required: true, maxLength: 100 }),
         priority: number({ min: 1, max: 5 })
@@ -122,7 +122,7 @@ describe('Schema System', () => {
     it('rejects missing required field', () => {
       const invalid = {
         id: 'test',
-        schemaId: 'xnet://xnet.dev/Task',
+        schemaId: 'xnet://xnet.fyi/Task',
         createdAt: Date.now(),
         createdBy: testDID
         // title is missing
@@ -136,7 +136,7 @@ describe('Schema System', () => {
     it('rejects invalid property value', () => {
       const invalid = {
         id: 'test',
-        schemaId: 'xnet://xnet.dev/Task',
+        schemaId: 'xnet://xnet.fyi/Task',
         createdAt: Date.now(),
         createdBy: testDID,
         title: 'Valid',
@@ -151,7 +151,7 @@ describe('Schema System', () => {
     it('rejects wrong schemaId', () => {
       const wrong = {
         id: 'test',
-        schemaId: 'xnet://xnet.dev/Other',
+        schemaId: 'xnet://xnet.fyi/Other',
         createdAt: Date.now(),
         createdBy: testDID,
         title: 'Valid'
@@ -166,7 +166,7 @@ describe('Schema System', () => {
   describe('schema.is', () => {
     const TaskSchema = defineSchema({
       name: 'Task',
-      namespace: 'xnet://xnet.dev/',
+      namespace: 'xnet://xnet.fyi/',
       properties: {
         title: text({ required: true })
       }
@@ -174,7 +174,7 @@ describe('Schema System', () => {
 
     const PageSchema = defineSchema({
       name: 'Page',
-      namespace: 'xnet://xnet.dev/',
+      namespace: 'xnet://xnet.fyi/',
       properties: {
         title: text({ required: true })
       }
@@ -268,7 +268,7 @@ describe('Schema System', () => {
     it('isNode validates node structure', () => {
       const valid: Node = {
         id: 'test',
-        schemaId: 'xnet://xnet.dev/Task',
+        schemaId: 'xnet://xnet.fyi/Task',
         createdAt: Date.now(),
         createdBy: testDID
       }

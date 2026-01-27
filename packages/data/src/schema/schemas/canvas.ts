@@ -13,7 +13,7 @@ import type { InferNode } from '../types'
 
 export const CanvasSchema = defineSchema({
   name: 'Canvas',
-  namespace: 'xnet://xnet.dev/',
+  namespace: 'xnet://xnet.fyi/',
   properties: {
     /** Canvas title */
     title: text({ required: true, maxLength: 500 }),

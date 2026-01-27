@@ -13,7 +13,7 @@ import type { InferNode } from '../types'
 
 export const PageSchema = defineSchema({
   name: 'Page',
-  namespace: 'xnet://xnet.dev/',
+  namespace: 'xnet://xnet.fyi/',
   properties: {
     /** Page title */
     title: text({ required: true, maxLength: 500 }),

@@ -23,7 +23,7 @@ import type {
 export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> {
   /** Schema name (e.g., 'Task', 'Page') */
   name: string
-  /** Namespace (e.g., 'xnet://xnet.dev/') */
+  /** Namespace (e.g., 'xnet://xnet.fyi/') */
   namespace: `xnet://${string}/`
   /** Property definitions */
   properties: P
@@ -45,7 +45,7 @@ export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> 
  * ```typescript
  * const TaskSchema = defineSchema({
  *   name: 'Task',
- *   namespace: 'xnet://xnet.dev/',
+ *   namespace: 'xnet://xnet.fyi/',
  *   properties: {
  *     title: text({ required: true }),
  *     status: select({ options: ['todo', 'done'] as const }),
@@ -74,7 +74,7 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
   // The schema definition (JSON-LD compatible)
   const schema: Schema = {
     '@id': schemaId,
-    '@type': 'xnet://xnet.dev/Schema',
+    '@type': 'xnet://xnet.fyi/Schema',
     name: options.name,
     namespace: options.namespace,
     properties,

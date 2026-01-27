@@ -65,7 +65,7 @@ export type FlatNode<P extends Record<string, PropertyBuilder>> = NodeBase & Inf
  * ```ts
  * const nodeState = {
  *   id: '123',
- *   schemaId: 'xnet://xnet.dev/Task',
+ *   schemaId: 'xnet://xnet.fyi/Task',
  *   properties: { title: 'My Task', status: 'todo' },
  *   // ...
  * }

@@ -8,7 +8,7 @@ import { defineSchema, text, select, date } from '@xnet/data'
 
 export const UsageMetricSchema = defineSchema({
   name: 'UsageMetric',
-  namespace: 'xnet://xnet.dev/telemetry/',
+  namespace: 'xnet://xnet.fyi/telemetry/',
   properties: {
     metricName: text({ required: true }),
     metricBucket: select({

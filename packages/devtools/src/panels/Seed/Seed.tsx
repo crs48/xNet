@@ -32,7 +32,7 @@ export function Seed() {
     try {
       // Create the page node
       const node = await store.create({
-        schemaId: 'xnet://xnet.dev/Page',
+        schemaId: 'xnet://xnet.fyi/Page',
         properties: {
           title: 'Sample Page - All Block Types',
           icon: '📄'
@@ -181,7 +181,7 @@ export function Seed() {
 
         // Also populate the meta map with title
         const metaMap = ydoc.getMap('meta')
-        metaMap.set('_schemaId', 'xnet://xnet.dev/Page')
+        metaMap.set('_schemaId', 'xnet://xnet.fyi/Page')
         metaMap.set('title', 'Sample Page - All Block Types')
         metaMap.set('icon', '📄')
       })
@@ -213,7 +213,7 @@ export function Seed() {
     try {
       // Create the database node
       const node = await store.create({
-        schemaId: 'xnet://xnet.dev/Database',
+        schemaId: 'xnet://xnet.fyi/Database',
         properties: {
           title: 'Sample Database - All Property Types',
           icon: '📊',
@@ -276,7 +276,7 @@ export function Seed() {
             id: 'relation',
             name: 'relation',
             type: 'relation',
-            config: { targetSchema: 'xnet://xnet.dev/Page' }
+            config: { targetSchema: 'xnet://xnet.fyi/Page' }
           },
 
           // Rich types (4)
@@ -332,8 +332,8 @@ export function Seed() {
             multiSelect: ['tag_3'],
             person: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
             relation: 'node_def456',
-            url: 'https://xnet.dev',
-            email: 'test@xnet.dev',
+            url: 'https://xnet.fyi',
+            email: 'test@xnet.fyi',
             phone: '+44 20 7946 0958',
             file: {
               cid: 'bafkreifjjcie6lypi6ny7amxnfftagclbuxndqonfipmb64f2km2devei4',
@@ -436,7 +436,7 @@ export function Seed() {
 
         // Also populate meta map
         const metaMap = ydoc.getMap('meta')
-        metaMap.set('_schemaId', 'xnet://xnet.dev/Database')
+        metaMap.set('_schemaId', 'xnet://xnet.fyi/Database')
         metaMap.set('title', 'Sample Database - All Property Types')
         metaMap.set('icon', '📊')
         metaMap.set('defaultView', 'table')
