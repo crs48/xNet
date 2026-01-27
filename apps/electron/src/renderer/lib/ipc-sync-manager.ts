@@ -18,10 +18,10 @@ type StatusHandler = (status: ConnectionStatus) => void
 export function createIPCSyncManager(): SyncManager {
   // Renderer-side Y.Doc mirrors (one per acquired node)
   const docs = new Map<string, Y.Doc>()
-  // MessagePort connections (one per acquired node)
-  const ports = new Map<string, MessagePort>()
-  // Cleanup functions for doc update listeners
+  // Cleanup functions for doc update listeners and message handlers
   const cleanups = new Map<string, () => void>()
+  // Pending acquire promises to handle concurrent calls
+  const pendingAcquires = new Map<string, Promise<Y.Doc>>()
 
   let currentStatus: ConnectionStatus = 'disconnected'
   const statusListeners = new Set<StatusHandler>()
@@ -40,24 +40,32 @@ export function createIPCSyncManager(): SyncManager {
 
   return {
     async start() {
-      const signalingUrl = 'ws://localhost:4444' // TODO: make configurable
-      await window.xnetBSM.start({ signalingUrl })
-      currentStatus = 'connecting'
-
-      // Listen for status changes from main process
+      // Listen for status changes from main process BEFORE starting
+      // This ensures we capture status updates even if start() fails
       statusCleanup = window.xnetBSM.onStatusChange((status) => {
         notifyStatus(status as ConnectionStatus)
       })
+
+      notifyStatus('connecting')
+
+      const signalingUrl = 'ws://localhost:4444' // TODO: make configurable
+      try {
+        await window.xnetBSM.start({ signalingUrl })
+      } catch (err) {
+        // Start failed (e.g., signaling server unavailable)
+        // Keep the manager usable for local-only operation
+        console.warn('[IPCSyncManager] Failed to start:', err)
+        notifyStatus('disconnected')
+      }
     },
 
     async stop() {
-      // Close all MessagePorts
-      for (const [nodeId, port] of ports) {
-        port.close()
+      // Clean up all nodes
+      for (const [nodeId] of docs) {
         const cleanup = cleanups.get(nodeId)
         if (cleanup) cleanup()
+        window.xnetBSM.release(nodeId)
       }
-      ports.clear()
       cleanups.clear()
 
       // Destroy renderer-side mirrors
@@ -84,50 +92,56 @@ export function createIPCSyncManager(): SyncManager {
     },
 
     async acquire(nodeId: string): Promise<Y.Doc> {
-      // Reuse existing mirror if already acquired
+      // Reuse existing mirror if already fully acquired
       const existing = docs.get(nodeId)
       if (existing) return existing
 
-      // Create renderer-side Y.Doc mirror
-      const doc = new Y.Doc({ guid: nodeId })
-      docs.set(nodeId, doc)
+      // If there's already a pending acquire for this node, wait for it
+      const pending = pendingAcquires.get(nodeId)
+      if (pending) return pending
 
-      // Get MessagePort from main process
-      const port = await window.xnetBSM.acquire(nodeId, '') // schemaId resolved by main
+      // Create the acquire promise and store it BEFORE starting async work
+      const acquirePromise = (async () => {
+        // Create renderer-side Y.Doc mirror
+        const doc = new Y.Doc({ guid: nodeId })
 
-      // Handle messages from main process (initial state + remote updates)
-      port.onmessage = (event) => {
-        const { type, update } = event.data
-        if ((type === 'init' || type === 'update') && update) {
-          Y.applyUpdate(doc, new Uint8Array(update), 'remote')
+        // Request port from main process (preload manages the actual MessagePort)
+        await window.xnetBSM.acquire(nodeId, '')
+
+        // Set up message handler for remote updates (via preload)
+        const messageCleanup = window.xnetBSM.onMessage(nodeId, (data: unknown) => {
+          const { type, update } = data as { type: string; update?: number[] }
+          if (type === 'update' && update) {
+            Y.applyUpdate(doc, new Uint8Array(update), 'remote')
+          }
+        })
+
+        // Forward local edits to main process (via preload)
+        const updateHandler = (update: Uint8Array, origin: unknown) => {
+          if (origin === 'remote' || origin === 'storage') return
+          window.xnetBSM.postMessage(nodeId, { type: 'update', update: Array.from(update) })
         }
-      }
-      port.start()
-      ports.set(nodeId, port)
+        doc.on('update', updateHandler)
 
-      // Forward local edits to main process
-      const updateHandler = (update: Uint8Array, origin: unknown) => {
-        if (origin === 'remote') return // Don't echo back
-        port.postMessage({ type: 'update', update: Array.from(update) })
-      }
-      doc.on('update', updateHandler)
+        cleanups.set(nodeId, () => {
+          doc.off('update', updateHandler)
+          messageCleanup()
+        })
 
-      cleanups.set(nodeId, () => {
-        doc.off('update', updateHandler)
-      })
+        // Store doc only after fully set up, then clean up pending
+        docs.set(nodeId, doc)
+        pendingAcquires.delete(nodeId)
 
-      return doc
+        return doc
+      })()
+
+      // Store pending promise synchronously before any await
+      pendingAcquires.set(nodeId, acquirePromise)
+      return acquirePromise
     },
 
     release(nodeId: string) {
-      // Close the MessagePort
-      const port = ports.get(nodeId)
-      if (port) {
-        port.close()
-        ports.delete(nodeId)
-      }
-
-      // Cleanup update listener
+      // Cleanup update listener and message handler
       const cleanup = cleanups.get(nodeId)
       if (cleanup) {
         cleanup()

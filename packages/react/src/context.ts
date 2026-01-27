@@ -140,14 +140,13 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   useEffect(() => {
     // If an external SyncManager is provided (e.g., IPC-based for Electron), use it directly
     if (config.syncManager) {
-      config.syncManager
-        .start()
-        .then(() => {
-          setSyncManager(config.syncManager!)
-        })
-        .catch((err) => {
-          console.warn('[XNetProvider] External SyncManager failed to start:', err)
-        })
+      // Set the syncManager immediately so components can subscribe to status updates
+      setSyncManager(config.syncManager)
+
+      config.syncManager.start().catch((err) => {
+        console.warn('[XNetProvider] External SyncManager failed to start:', err)
+        // SyncManager is still usable for local-only operation
+      })
 
       return () => {
         config.syncManager!.stop().catch((err) => {
