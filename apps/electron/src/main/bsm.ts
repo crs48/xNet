@@ -271,6 +271,9 @@ export function setupBSM(config: BSMConfig) {
           data: { type: 'sync-step2', from: peerId, to: data.from, update: toBase64(diff) }
         })
 
+        // Ask renderer to re-broadcast its awareness state so the new peer sees us
+        requestAwarenessFromRenderer(nodeId)
+
         // DON'T send sync-step1 back here - that causes an infinite loop.
         // If we need content from them, we'll get it from our initial sync-step1
         // that we send when joining the room.
@@ -317,6 +320,14 @@ export function setupBSM(config: BSMConfig) {
     if (port) {
       log('Forwarding awareness to renderer for node:', nodeId, 'size:', update.length)
       port.postMessage({ type: 'awareness', update: Array.from(update) })
+    }
+  }
+
+  function requestAwarenessFromRenderer(nodeId: string): void {
+    const port = activePorts.get(nodeId)
+    if (port) {
+      log('Requesting awareness broadcast from renderer for node:', nodeId)
+      port.postMessage({ type: 'request-awareness' })
     }
   }
 

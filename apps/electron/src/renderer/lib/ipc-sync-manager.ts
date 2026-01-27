@@ -125,6 +125,16 @@ export function createIPCSyncManager(): SyncManager {
             Y.applyUpdate(doc, new Uint8Array(update), 'remote')
           } else if (type === 'awareness' && update) {
             applyAwarenessUpdate(awareness, new Uint8Array(update), 'remote')
+          } else if (type === 'request-awareness') {
+            // BSM is asking us to re-broadcast our awareness (a new peer joined)
+            const localState = awareness.getLocalState()
+            if (localState) {
+              const awarenessUpdate = encodeAwarenessUpdate(awareness, [awareness.clientID])
+              window.xnetBSM.postMessage(nodeId, {
+                type: 'awareness',
+                update: Array.from(awarenessUpdate)
+              })
+            }
           }
         })
 
