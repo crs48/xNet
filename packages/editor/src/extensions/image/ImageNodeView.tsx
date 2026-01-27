@@ -37,6 +37,7 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
   }, [resizeWidth])
 
   // Resolve CID to blob URL when cid changes
+  // Retries with exponential backoff if blob not found (may be syncing)
   React.useEffect(() => {
     // If we have a CID, we must resolve it - don't use stale blob URLs
     if (cid) {
@@ -47,6 +48,9 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
       }
 
       let cancelled = false
+      let retryCount = 0
+      const maxRetries = 5
+      const baseDelay = 1000 // 1 second
 
       async function resolveBlob() {
         try {
@@ -61,8 +65,23 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
             setLoadError(false)
           }
         } catch (err) {
-          console.error('Failed to resolve image CID:', cid, err)
-          if (!cancelled) {
+          console.log(
+            `[ImageNodeView] Blob not found (attempt ${retryCount + 1}/${maxRetries}):`,
+            cid
+          )
+
+          if (!cancelled && retryCount < maxRetries) {
+            // Retry with exponential backoff
+            retryCount++
+            const delay = baseDelay * Math.pow(2, retryCount - 1)
+            console.log(`[ImageNodeView] Retrying in ${delay}ms...`)
+            setTimeout(() => {
+              if (!cancelled) {
+                resolveBlob()
+              }
+            }, delay)
+          } else if (!cancelled) {
+            console.error('Failed to resolve image CID after retries:', cid, err)
             setResolvedSrc(null)
             setLoadError(true)
           }
