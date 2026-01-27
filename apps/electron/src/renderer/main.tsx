@@ -1,16 +1,16 @@
 /**
  * Renderer entry point
  */
-import React from 'react'
+import React, { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { XNetProvider } from '@xnet/react'
 import { IndexedDBNodeStorageAdapter, BlobService } from '@xnet/data'
 import { ChunkManager } from '@xnet/storage'
 import { BlobProvider } from '@xnet/editor/react'
-import { XNetDevToolsProvider } from '@xnet/devtools'
+import { XNetDevToolsProvider, useDevTools } from '@xnet/devtools'
 import { ThemeProvider } from '@xnet/ui'
 import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
-import { createIPCSyncManager } from './lib/ipc-sync-manager'
+import { createIPCSyncManager, type IPCSyncManager } from './lib/ipc-sync-manager'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { App } from './App'
 import './styles.css'
@@ -26,6 +26,21 @@ const telemetryCollector = new TelemetryCollector({ consent: consentManager })
 
 // IPC-based sync manager routes sync through the main process BSM
 const ipcSyncManager = createIPCSyncManager()
+
+/**
+ * Component that instruments the sync manager with devtools.
+ * Must be rendered inside XNetDevToolsProvider to access the event bus.
+ */
+function SyncInstrumentation({ syncManager }: { syncManager: IPCSyncManager }) {
+  const { eventBus } = useDevTools()
+
+  useEffect(() => {
+    if (!eventBus) return
+    return syncManager.instrument(eventBus)
+  }, [eventBus, syncManager])
+
+  return null
+}
 
 async function init() {
   const startTime = performance.now()
@@ -70,6 +85,7 @@ async function init() {
                 telemetryCollector={telemetryCollector}
                 consentManager={consentManager}
               >
+                <SyncInstrumentation syncManager={ipcSyncManager} />
                 <App />
               </XNetDevToolsProvider>
             </BlobProvider>

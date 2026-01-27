@@ -179,6 +179,39 @@ export interface XNetDevToolsProviderProps {
   consentManager?: any
 }
 
+const STORAGE_KEY_OPEN = 'xnet:devtools:open'
+const STORAGE_KEY_PANEL = 'xnet:devtools:panel'
+const STORAGE_KEY_POSITION = 'xnet:devtools:position'
+
+function loadStoredOpen(defaultOpen: boolean): boolean {
+  if (typeof localStorage === 'undefined') return defaultOpen
+  const stored = localStorage.getItem(STORAGE_KEY_OPEN)
+  if (stored === 'true') return true
+  if (stored === 'false') return false
+  return defaultOpen
+}
+
+function loadStoredPanel(defaultPanel: PanelId): PanelId {
+  if (typeof localStorage === 'undefined') return defaultPanel
+  const stored = localStorage.getItem(STORAGE_KEY_PANEL)
+  if (
+    stored &&
+    ['nodes', 'queries', 'sync', 'yjs', 'schemas', 'timeline', 'telemetry'].includes(stored)
+  ) {
+    return stored as PanelId
+  }
+  return defaultPanel
+}
+
+function loadStoredPosition(defaultPosition: PanelPosition): PanelPosition {
+  if (typeof localStorage === 'undefined') return defaultPosition
+  const stored = localStorage.getItem(STORAGE_KEY_POSITION)
+  if (stored === 'bottom' || stored === 'right') {
+    return stored
+  }
+  return defaultPosition
+}
+
 export function XNetDevToolsProvider({
   children,
   defaultOpen = false,
@@ -189,10 +222,39 @@ export function XNetDevToolsProvider({
   telemetryCollector,
   consentManager
 }: XNetDevToolsProviderProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen)
-  const [activePanel, setActivePanel] = useState<PanelId>(defaultPanel)
-  const [position, setPosition] = useState<PanelPosition>(initialPosition)
+  const [isOpen, setIsOpenState] = useState(() => loadStoredOpen(defaultOpen))
+  const [activePanel, setActivePanelState] = useState<PanelId>(() => loadStoredPanel(defaultPanel))
+  const [position, setPositionState] = useState<PanelPosition>(() =>
+    loadStoredPosition(initialPosition)
+  )
   const [height, setHeight] = useState(initialHeight)
+
+  // Persist open state
+  const setIsOpen = (open: boolean | ((prev: boolean) => boolean)) => {
+    setIsOpenState((prev) => {
+      const newValue = typeof open === 'function' ? open(prev) : open
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY_OPEN, String(newValue))
+      }
+      return newValue
+    })
+  }
+
+  // Persist panel selection
+  const setActivePanel = (panel: PanelId) => {
+    setActivePanelState(panel)
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_PANEL, panel)
+    }
+  }
+
+  // Persist position selection
+  const setPosition = (pos: PanelPosition) => {
+    setPositionState(pos)
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_POSITION, pos)
+    }
+  }
 
   const busRef = useRef<DevToolsEventBus>(new DevToolsEventBus({ maxEvents }))
   const yDocRegistryRef = useRef(createYDocRegistry(busRef.current))
