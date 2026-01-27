@@ -274,11 +274,11 @@ describe('MetaBridge (unidirectional)', () => {
 
 ## Validation Gate
 
-- [ ] MetaBridge only writes NodeStore→Y.Doc (not reverse)
-- [ ] Malicious Y.Doc meta changes do NOT reach NodeStore
-- [ ] Editor UI reads properties from meta map (display-only)
-- [ ] Property writes go through `mutate()` (signed NodeChange path)
-- [ ] `seed()` populates meta map with current NodeStore state
-- [ ] Non-MetaBridge meta changes logged as warnings
-- [ ] All existing editor property reads still work
-- [ ] No `getMap('meta').set()` calls remain that bypass `mutate()`
+- [x] MetaBridge only writes NodeStore→Y.Doc (not reverse)
+- [x] Malicious Y.Doc meta changes do NOT reach NodeStore
+- [x] Editor UI reads properties from meta map (display-only)
+- [x] Property writes go through `mutate()` (signed NodeChange path)
+- [x] `seed()` populates meta map with current NodeStore state
+- [x] Non-MetaBridge meta changes logged as warnings (configurable)
+- [x] All existing editor property reads still work
+- [x] No `getMap('meta').set()` calls remain that bypass `mutate()`
