@@ -135,7 +135,10 @@ contextBridge.exposeInMainWorld('xnetBSM', {
     ipcRenderer.on('xnet:bsm:blob-received', handler as (...args: unknown[]) => void)
     return () =>
       ipcRenderer.removeListener('xnet:bsm:blob-received', handler as (...args: unknown[]) => void)
-  }
+  },
+  // Debug logging control
+  setDebug: (enabled: boolean) => ipcRenderer.invoke('xnet:bsm:set-debug', enabled),
+  getDebug: () => ipcRenderer.invoke('xnet:bsm:get-debug')
 })
 
 // Expose storage API for @xnet/react integration
@@ -220,6 +223,9 @@ export interface XNetBSMAPI {
   putBlob(data: number[]): Promise<string>
   hasBlob(cid: string): Promise<boolean>
   onBlobReceived(callback: (cid: string) => void): () => void
+  // Debug logging control
+  setDebug(enabled: boolean): Promise<void>
+  getDebug(): Promise<boolean>
 }
 
 declare global {

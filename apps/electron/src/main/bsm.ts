@@ -12,10 +12,10 @@
  *   Renderer <--MessagePort--> Main Process BSM <--WebSocket--> Hub/Signaling
  */
 
-// Debug logging - disabled by default, enable for diagnosing sync issues
-const DEBUG = false
+// Debug logging - controllable via IPC from devtools
+let debugEnabled = false
 function log(...args: unknown[]): void {
-  if (DEBUG) {
+  if (debugEnabled) {
     console.log('[BSM]', ...args)
   }
 }
@@ -1096,6 +1096,17 @@ export function setupBSM(config: BSMConfig) {
     const has = await config.blobStorage.hasBlob(opts.cid)
     log('IPC has-blob:', opts.cid, has)
     return has
+  })
+
+  // ─── Debug IPC Handlers ─────────────────────────────────────────────────
+
+  ipcMain.handle('xnet:bsm:set-debug', async (_event, enabled: boolean) => {
+    debugEnabled = enabled
+    console.log(`[BSM] Debug logging ${enabled ? 'enabled' : 'disabled'}`)
+  })
+
+  ipcMain.handle('xnet:bsm:get-debug', async () => {
+    return debugEnabled
   })
 
   return {

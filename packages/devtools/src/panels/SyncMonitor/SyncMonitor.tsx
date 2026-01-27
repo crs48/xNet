@@ -27,6 +27,12 @@ function useSyncDebugLogging() {
     }
     // Log to console so user knows it changed
     console.log(`[xNet] Sync debug logging ${newValue ? 'enabled' : 'disabled'}`)
+
+    // Also toggle BSM debug logging if available (Electron only)
+    if (typeof window !== 'undefined' && 'xnetBSM' in window) {
+      const xnetBSM = (window as { xnetBSM?: { setDebug?: (enabled: boolean) => void } }).xnetBSM
+      xnetBSM?.setDebug?.(newValue)
+    }
   }, [enabled])
 
   return { enabled, toggle }
