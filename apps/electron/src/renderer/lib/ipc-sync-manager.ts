@@ -53,6 +53,7 @@ export function createIPCSyncManager(): IPCSyncManager {
   const statusListeners = new Set<StatusHandler>()
   let statusCleanup: (() => void) | null = null
   let instrumentedEventBus: DevToolsEventBus | null = null
+  let statusPollInterval: ReturnType<typeof setInterval> | null = null
 
   function notifyStatus(s: ConnectionStatus): void {
     if (s === currentStatus) return // Skip duplicate status updates
@@ -69,27 +70,22 @@ export function createIPCSyncManager(): IPCSyncManager {
 
   return {
     async start() {
-      // Listen for status changes from main process BEFORE starting
-      // This ensures we capture status updates even if start() fails
+      // Guard against multiple start calls (React StrictMode)
+      if (statusCleanup) {
+        return
+      }
+
+      // Listen for status changes from main process
       statusCleanup = window.xnetBSM.onStatusChange((status) => {
         notifyStatus(status as ConnectionStatus)
       })
 
-      notifyStatus('connecting')
-
+      // Tell BSM to start (it may already be running)
       const signalingUrl = 'ws://localhost:4444' // TODO: make configurable
       try {
         await window.xnetBSM.start({ signalingUrl })
-        // Fetch actual status from BSM (it may already be connected)
-        const bsmStatus = await window.xnetBSM.getStatus()
-        if (bsmStatus.status !== currentStatus) {
-          notifyStatus(bsmStatus.status as ConnectionStatus)
-        }
       } catch (err) {
-        // Start failed (e.g., signaling server unavailable)
-        // Keep the manager usable for local-only operation
         console.warn('[IPCSyncManager] Failed to start:', err)
-        notifyStatus('disconnected')
       }
     },
 
@@ -113,8 +109,10 @@ export function createIPCSyncManager(): IPCSyncManager {
         statusCleanup = null
       }
 
-      await window.xnetBSM.stop()
-      currentStatus = 'disconnected'
+      // Don't actually stop the BSM - it runs in the main process
+      // and should persist across React lifecycle. Only stop on app quit.
+      // await window.xnetBSM.stop()
+      // currentStatus = 'disconnected'
     },
 
     track(nodeId: string, schemaId: string) {
@@ -272,30 +270,61 @@ export function createIPCSyncManager(): IPCSyncManager {
     },
 
     instrument(eventBus: DevToolsEventBus): () => void {
-      // Prevent duplicate instrumentation (React StrictMode calls effects twice)
-      if (instrumentedEventBus === eventBus) {
-        return () => {} // Already instrumented with this bus
-      }
+      // Store event bus for emitting
       instrumentedEventBus = eventBus
 
-      // Emit current status immediately so devtools has something to show
-      eventBus.emit({
-        type: 'sync:status-change',
-        room: 'ipc-bsm',
-        previousStatus: previousStatus,
-        newStatus: currentStatus
-      })
+      // Track last emitted status to avoid duplicate events
+      let lastEmittedStatus: ConnectionStatus | null = null
 
-      // Subscribe to status changes - this will catch the "connected" event when BSM finishes connecting
-      const statusHandler = () => {
-        eventBus.emit({
+      const emitStatus = () => {
+        if (!instrumentedEventBus) return
+        if (currentStatus === lastEmittedStatus) return
+        instrumentedEventBus.emit({
           type: 'sync:status-change',
           room: 'ipc-bsm',
-          previousStatus: previousStatus,
+          previousStatus: lastEmittedStatus ?? previousStatus,
           newStatus: currentStatus
         })
+        lastEmittedStatus = currentStatus
       }
+
+      // Emit current status immediately
+      emitStatus()
+
+      // Subscribe to status changes from notifyStatus()
+      const statusHandler = () => emitStatus()
       statusListeners.add(statusHandler)
+
+      // Start polling BSM for actual status (handles race condition where
+      // BSM connects before we set up listeners)
+      if (statusPollInterval) {
+        clearInterval(statusPollInterval)
+      }
+      let pollCount = 0
+      statusPollInterval = setInterval(async () => {
+        pollCount++
+        try {
+          const bsmStatus = await window.xnetBSM.getStatus()
+          const actualStatus = bsmStatus.status as ConnectionStatus
+          if (actualStatus !== currentStatus) {
+            previousStatus = currentStatus
+            currentStatus = actualStatus
+            emitStatus()
+          }
+          // Stop polling once connected or after 10 attempts (5 seconds)
+          if (actualStatus === 'connected' || pollCount >= 10) {
+            if (statusPollInterval) {
+              clearInterval(statusPollInterval)
+              statusPollInterval = null
+            }
+          }
+        } catch {
+          if (statusPollInterval) {
+            clearInterval(statusPollInterval)
+            statusPollInterval = null
+          }
+        }
+      }, 500)
 
       // Subscribe to peer events from main process
       const peerConnectedCleanup = window.xnetBSM.onPeerConnected((peerId, room, totalPeers) => {
@@ -323,6 +352,10 @@ export function createIPCSyncManager(): IPCSyncManager {
       )
 
       return () => {
+        if (statusPollInterval) {
+          clearInterval(statusPollInterval)
+          statusPollInterval = null
+        }
         statusListeners.delete(statusHandler)
         peerConnectedCleanup()
         peerDisconnectedCleanup()
