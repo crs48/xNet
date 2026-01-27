@@ -720,6 +720,34 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/plugins:
+    dependencies:
+      '@xnet/core':
+        specifier: workspace:*
+        version: link:../core
+      '@xnet/data':
+        specifier: workspace:*
+        version: link:../data
+    devDependencies:
+      '@tiptap/core':
+        specifier: ^2.0.0
+        version: 2.27.2(@tiptap/pm@3.16.0)
+      '@types/react':
+        specifier: ^18.2.0
+        version: 18.3.27
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.30)(@vitest/browser@2.1.9)(jsdom@26.1.0)(lightningcss@1.27.0)(terser@5.46.0)
+
   packages/query:
     dependencies:
       '@xnet/core':
@@ -3712,6 +3740,11 @@ packages:
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
+
+  '@tiptap/core@2.27.2':
+    resolution: {integrity: sha512-ABL1N6eoxzDzC1bYvkMbvyexHacszsKdVPYqhl5GwHLOvpZcv9VE9QaKwDILTyz5voCA0lGcAAXZp+qnXOk5lQ==}
+    peerDependencies:
+      '@tiptap/pm': ^2.7.0
 
   '@tiptap/core@3.16.0':
     resolution: {integrity: sha512-XegRaNuoQ/guzBQU2xHxOwFXXrtoXW9tiyXDhssSqylvZmBVSlRIPNHA6ArkHBKm6ehLf6+6Y9fF3uky1yCXYQ==}
@@ -13081,6 +13114,10 @@ snapshots:
   '@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1)':
     dependencies:
       '@testing-library/dom': 10.4.1
+
+  '@tiptap/core@2.27.2(@tiptap/pm@3.16.0)':
+    dependencies:
+      '@tiptap/pm': 3.16.0
 
   '@tiptap/core@3.16.0(@tiptap/pm@3.16.0)':
     dependencies:
