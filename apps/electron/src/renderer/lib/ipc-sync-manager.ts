@@ -117,8 +117,10 @@ export function createIPCSyncManager(): SyncManager {
         })
 
         // Forward local edits to main process (via preload)
+        // Note: We skip 'remote' origin to avoid echo, but we DO forward 'storage'
+        // origin updates so the main process gets the initial content loaded from IndexedDB
         const updateHandler = (update: Uint8Array, origin: unknown) => {
-          if (origin === 'remote' || origin === 'storage') return
+          if (origin === 'remote') return // Don't echo back remote updates
           window.xnetBSM.postMessage(nodeId, { type: 'update', update: Array.from(update) })
         }
         doc.on('update', updateHandler)

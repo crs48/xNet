@@ -2,8 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import path from 'path'
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // Use source files directly for hot reload during development
+      '@xnet/react': path.resolve(__dirname, '../../packages/react/src')
+    }
+  },
   plugins: [
     TanStackRouterVite(),
     react(),

@@ -40,6 +40,13 @@ import { useInstrumentation } from '../instrumentation'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
 import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
 
+// Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
+function log(...args: unknown[]): void {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
+    console.log('[useNode]', ...args)
+  }
+}
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -47,7 +54,7 @@ import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
 /**
  * Sync connection status
  */
-export type SyncStatus = 'offline' | 'connecting' | 'connected'
+export type SyncStatus = 'offline' | 'connecting' | 'connected' | 'error'
 
 /**
  * Remote user presence
@@ -118,6 +125,8 @@ export interface UseNodeResult<P extends Record<string, PropertyBuilder>> {
   // === Sync ===
   /** Sync connection status */
   syncStatus: SyncStatus
+  /** Sync error message (if syncStatus is 'error') */
+  syncError: string | null
   /** Connected peer count */
   peerCount: number
 
@@ -232,6 +241,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 
   const { store, isReady } = useNodeStore()
   const syncManager = useSyncManager()
+  log('syncManager from context:', syncManager ? 'present' : 'null', 'status:', syncManager?.status)
   const instrumentation = useInstrumentation()
   const schemaId = schema._schemaId
   const hasDocument = schema.schema.document === 'yjs'
@@ -246,6 +256,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const [isDirty, setIsDirty] = useState(false)
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null)
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('offline')
+  const [syncError, setSyncError] = useState<string | null>(null)
   const [peerCount, setPeerCount] = useState(0)
   const [wasCreated, setWasCreated] = useState(false)
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
@@ -258,6 +269,8 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const creatingRef = useRef(false)
   const storeRef = useRef(store)
   storeRef.current = store
+  const dataRef = useRef<FlatNode<P> | null>(null)
+  dataRef.current = data
 
   // Query tracking for devtools
   const queryIdRef = useRef(
@@ -285,25 +298,30 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       return
     }
 
+    log('Loading node:', id, 'schemaId:', schemaId)
     setLoading(true)
     setError(null)
     setWasCreated(false)
+    setSyncError(null)
 
     try {
       // Await any in-flight flush from a previous unmount to ensure
       // we read the latest persisted content (race condition on navigation)
       const pendingFlush = pendingFlushes.get(id)
       if (pendingFlush) {
+        log('Awaiting pending flush for:', id)
         await pendingFlush
       }
 
       // Load node properties
       let node = await store.get(id)
+      log('Node from store:', node ? 'found' : 'not found')
       let justCreated = false // Track if we just created this node (joining shared doc)
 
       // Auto-create if not found and createIfMissing is provided
       // Use ref to avoid dependency on createIfMissing object reference
       if (!node && createIfMissingRef.current && !creatingRef.current) {
+        log('Node not found, creating with createIfMissing')
         creatingRef.current = true
         try {
           node = await store.create({
@@ -313,6 +331,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
           })
           justCreated = true
           setWasCreated(true)
+          log('Node created, justCreated=true')
         } finally {
           creatingRef.current = false
         }
@@ -364,26 +383,35 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 
           if (syncManager && !disableSync) {
             // === SyncManager path: borrow Y.Doc from the pool ===
+            log('Using SyncManager path')
+            console.log('[useNode] About to call syncManager.acquire for:', id)
             ydoc = await syncManager.acquire(id)
+            console.log('[useNode] syncManager.acquire returned doc:', ydoc?.guid)
             usingSyncManagerRef.current = true
 
             // Load stored content into the doc (the SyncManager may return an empty doc)
             const storedContent = await store.getDocumentContent(id)
+            log('Stored content size:', storedContent?.length ?? 0)
             if (storedContent && storedContent.length > 0) {
               Y.applyUpdate(ydoc, storedContent, 'storage')
+              log('Applied stored content to Y.Doc')
             }
 
             // Track this Node for background sync
             syncManager.track(id, schemaId)
+            log('Tracking node for background sync')
           } else {
             // === Fallback path: create our own Y.Doc (backwards compat) ===
+            log('Using fallback WebSocketSyncProvider path')
             ydoc = new Y.Doc({ guid: id })
             usingSyncManagerRef.current = false
 
             // Load stored content
             const storedContent = await store.getDocumentContent(id)
+            log('Stored content size:', storedContent?.length ?? 0)
             if (storedContent && storedContent.length > 0) {
               Y.applyUpdate(ydoc, storedContent)
+              log('Applied stored content to Y.Doc')
             }
           }
 
@@ -393,12 +421,19 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
           // When justCreated (via createIfMissing), only write non-empty values to avoid
           // placeholder data conflicting with the real creator's values during CRDT merge.
           const metaMap = ydoc.getMap('meta')
+          log(
+            'Meta map size:',
+            metaMap.size,
+            'node.properties:',
+            Object.keys(node.properties || {})
+          )
 
           if (metaMap.size === 0 && node.properties) {
             const entries = Object.entries(node.properties)
             const hasContent = entries.some(([, v]) => v !== '' && v !== null && v !== undefined)
 
             if (hasContent || !justCreated) {
+              log('Initializing meta map with node properties')
               ydoc.transact(() => {
                 metaMap.set('_schemaId', schemaId)
                 for (const [key, value] of entries) {
@@ -407,6 +442,8 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
                   }
                 }
               }, 'local') // Mark as local to avoid triggering metaObserver
+            } else {
+              log('Skipping meta map init: justCreated=true and no content')
             }
           }
 
@@ -519,15 +556,91 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 
     // === SyncManager path: sync is handled internally by the manager ===
     if (usingSyncManagerRef.current && syncManager) {
+      log('Using SyncManager path for sync')
+
+      // Track whether we received any sync data
+      let receivedSyncData = false
+      let syncTimeoutId: ReturnType<typeof setTimeout> | null = null
+
       // Listen for updates to trigger local persistence (SyncManager pool handles this,
       // but we still track dirty state for the UI)
-      const updateHandler = (_update: Uint8Array, _origin: unknown) => {
+      const updateHandler = (_update: Uint8Array, origin: unknown) => {
+        // If update came from remote, we've received sync data
+        if (origin === 'remote') {
+          log('Received remote update via SyncManager')
+          receivedSyncData = true
+          if (syncTimeoutId) {
+            clearTimeout(syncTimeoutId)
+            syncTimeoutId = null
+          }
+          setSyncError(null)
+        }
         scheduleSave()
       }
       doc.on('update', updateHandler)
 
+      // Listen for remote meta changes (synced properties like title)
+      const metaMap = doc.getMap('meta')
+
+      // Helper to apply meta map values to NodeStore
+      // Only updates if values actually changed to avoid unnecessary re-renders
+      const applyMetaToNodeStore = () => {
+        if (metaMap.size === 0 || !storeRef.current || !id) return
+
+        const remoteProps: Record<string, unknown> = {}
+        metaMap.forEach((value, key) => {
+          // Skip internal keys - _schemaId is stored in meta for sync
+          // but is a system field on NodeState, not a property
+          if (key.startsWith('_')) return
+          remoteProps[key] = value
+        })
+
+        if (Object.keys(remoteProps).length === 0) return
+
+        // Compare against current data via ref (avoids stale closure)
+        const currentData = dataRef.current
+        if (currentData) {
+          // Check if any property actually changed
+          let hasChanges = false
+          for (const [key, value] of Object.entries(remoteProps)) {
+            if ((currentData as Record<string, unknown>)[key] !== value) {
+              hasChanges = true
+              break
+            }
+          }
+          if (!hasChanges) return
+        }
+
+        log('Applying changed meta to NodeStore:', Object.keys(remoteProps))
+        storeRef.current
+          .update(id, { properties: remoteProps })
+          .then((node) => {
+            if (node) setData(flattenNode<P>(node))
+          })
+          .catch((err) => {
+            console.warn('[useNode] Failed to apply remote meta to NodeStore:', err)
+          })
+      }
+
+      const metaObserver = (event: Y.YMapEvent<unknown>) => {
+        // Process remote changes (origin is the provider or 'remote' for sync)
+        if (event.transaction.origin !== null && event.transaction.origin !== 'local') {
+          log('Meta map changed from remote, applying to NodeStore')
+          applyMetaToNodeStore()
+        }
+      }
+      metaMap.observe(metaObserver)
+
+      // Apply meta on initial load in case we joined and got synced data
+      // Do it immediately since we already check for changes
+      if (metaMap.size > 0) {
+        log('Applying initial meta map')
+        applyMetaToNodeStore()
+      }
+
       // Track connection status from SyncManager
       const statusUnsub = syncManager.on('status', (status) => {
+        log('SyncManager status changed:', status)
         setSyncStatus(
           status === 'connected' ? 'connected' : status === 'connecting' ? 'connecting' : 'offline'
         )
@@ -545,11 +658,44 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       const awareness = syncManager.getAwareness(id)
       setAwareness(awareness)
 
+      // If we just created this node (joining a shared doc), set a timeout
+      // to detect if sync fails to deliver any content
+      if (wasCreated) {
+        log('Node was just created (SyncManager path), starting sync timeout')
+        syncTimeoutId = setTimeout(() => {
+          // Check if the doc is still empty
+          const fragment = doc.getXmlFragment('default')
+          const metaMap = doc.getMap('meta')
+          const hasContent = (fragment?.length ?? 0) > 0 || metaMap.size > 1
+
+          log(
+            'Sync timeout fired (SyncManager). receivedSyncData:',
+            receivedSyncData,
+            'hasContent:',
+            hasContent
+          )
+
+          if (!receivedSyncData && !hasContent) {
+            const errorMsg =
+              'Sync timeout: No content received from peers. The shared document may not exist or peers may be offline.'
+            log('Setting sync error:', errorMsg)
+            setSyncStatus('error')
+            setSyncError(errorMsg)
+          }
+        }, 10000)
+      }
+
       return () => {
+        log('Cleaning up SyncManager sync')
+        if (syncTimeoutId) {
+          clearTimeout(syncTimeoutId)
+        }
         doc.off('update', updateHandler)
+        metaMap.unobserve(metaObserver)
         statusUnsub()
         setAwareness(null)
         setSyncStatus('offline')
+        setSyncError(null)
         setPeerCount(0)
         setRemoteUsers([])
       }
@@ -565,6 +711,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 
     // Set up WebSocket sync
     if (!disableSync && signalingServers.length > 0) {
+      log('Setting up WebSocketSyncProvider for room:', `xnet-doc-${id}`)
       setSyncStatus('connecting')
       const provider = new WebSocketSyncProvider(doc, {
         url: signalingServers[0],
@@ -572,9 +719,14 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       })
       providerRef.current = provider
 
+      // Track whether we received any sync data
+      let receivedSyncData = false
+      let syncTimeoutId: ReturnType<typeof setTimeout> | null = null
+
       // Track connection status
       const statusHandler = (event: unknown) => {
         const { connected } = event as { connected: boolean }
+        log('Connection status changed:', connected ? 'connected' : 'disconnected')
         setSyncStatus(connected ? 'connected' : 'connecting')
       }
       provider.on('status', statusHandler)
@@ -617,11 +769,50 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       // Also check meta map when sync first connects (handles initial sync)
       const syncedHandler = (event: unknown) => {
         const { synced } = event as { synced: boolean }
+        log('Synced event received:', synced)
         if (synced) {
+          receivedSyncData = true
+          if (syncTimeoutId) {
+            clearTimeout(syncTimeoutId)
+            syncTimeoutId = null
+          }
+          // Clear any previous sync error
+          setSyncError(null)
           applyMetaToNodeStore()
         }
       }
       provider.on('synced', syncedHandler)
+
+      // If we just created this node (joining a shared doc), set a timeout
+      // to detect if sync fails to deliver any content
+      if (wasCreated) {
+        log('Node was just created (joining shared doc), starting sync timeout')
+        syncTimeoutId = setTimeout(() => {
+          // Check if the doc is still empty
+          const fragment = doc.getXmlFragment('default')
+          const metaMap = doc.getMap('meta')
+          const hasContent = (fragment?.length ?? 0) > 0 || metaMap.size > 1 // >1 because _schemaId might be there
+
+          log(
+            'Sync timeout fired. receivedSyncData:',
+            receivedSyncData,
+            'hasContent:',
+            hasContent,
+            'fragment.length:',
+            fragment?.length,
+            'metaMap.size:',
+            metaMap.size
+          )
+
+          if (!receivedSyncData && !hasContent) {
+            const errorMsg =
+              'Sync timeout: No content received from peers. The shared document may not exist or peers may be offline.'
+            log('Setting sync error:', errorMsg)
+            setSyncStatus('error')
+            setSyncError(errorMsg)
+          }
+        }, 10000) // 10 second timeout
+      }
 
       // Track peer count
       const peersHandler = (event: unknown) => {
@@ -666,6 +857,10 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       providerAwareness.on('change', awarenessHandler)
 
       return () => {
+        log('Cleaning up sync provider')
+        if (syncTimeoutId) {
+          clearTimeout(syncTimeoutId)
+        }
         doc.off('update', updateHandler)
         metaMap.unobserve(metaObserver)
         providerAwareness.off('change', awarenessHandler)
@@ -676,6 +871,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         providerRef.current = null
         setAwareness(null)
         setSyncStatus('offline')
+        setSyncError(null)
         setPeerCount(0)
         setRemoteUsers([])
       }
@@ -685,7 +881,18 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       doc.off('update', updateHandler)
     }
     // Note: store is accessed via storeRef to avoid re-creating provider on store changes
-  }, [doc, id, hasDocument, disableSync, signalingServers, scheduleSave, did, syncManager])
+    // wasCreated is included to trigger sync timeout logic when joining a shared doc
+  }, [
+    doc,
+    id,
+    hasDocument,
+    disableSync,
+    signalingServers,
+    scheduleSave,
+    did,
+    syncManager,
+    wasCreated
+  ])
 
   // Cleanup on unmount - always persist Y.Doc content and release doc
   useEffect(() => {
@@ -758,6 +965,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 
     // Sync
     syncStatus,
+    syncError,
     peerCount,
 
     // Presence
