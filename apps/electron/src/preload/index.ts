@@ -105,6 +105,13 @@ contextBridge.exposeInMainWorld('xnetBSM', {
     return () =>
       ipcRenderer.removeListener('xnet:bsm:status-change', handler as (...args: unknown[]) => void)
   },
+  onPeerConnected: (callback: (peerId: string, room: string, totalPeers: number) => void) => {
+    const handler = (_: unknown, data: { peerId: string; room: string; totalPeers: number }) =>
+      callback(data.peerId, data.room, data.totalPeers)
+    ipcRenderer.on('xnet:bsm:peer-connected', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener('xnet:bsm:peer-connected', handler as (...args: unknown[]) => void)
+  },
   // Blob sync methods
   requestBlobs: (cids: string[]) => ipcRenderer.invoke('xnet:bsm:request-blobs', { cids }),
   announceBlobs: (cids: string[]) => ipcRenderer.invoke('xnet:bsm:announce-blobs', { cids }),
@@ -191,6 +198,7 @@ export interface XNetBSMAPI {
     queueSize: number
   }>
   onStatusChange(callback: (status: string) => void): () => void
+  onPeerConnected(callback: (peerId: string, room: string, totalPeers: number) => void): () => void
   // Blob sync
   requestBlobs(cids: string[]): Promise<void>
   announceBlobs(cids: string[]): Promise<void>

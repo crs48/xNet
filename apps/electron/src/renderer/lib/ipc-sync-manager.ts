@@ -19,7 +19,26 @@ import type { SyncManager } from '@xnet/react'
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type StatusHandler = (status: ConnectionStatus) => void
 
-export function createIPCSyncManager(): SyncManager {
+// DevTools event bus type (optional - for instrumentation)
+interface DevToolsEventBus {
+  emit(event: {
+    type: string
+    room?: string
+    previousStatus?: string
+    newStatus?: string
+    error?: string
+    peer?: { id: string; name?: string; connectedAt: number; lastSeen: number }
+    totalPeers?: number
+    peerId?: string
+  }): void
+}
+
+export interface IPCSyncManager extends SyncManager {
+  /** Instrument with devtools event bus for sync monitoring */
+  instrument(eventBus: DevToolsEventBus): () => void
+}
+
+export function createIPCSyncManager(): IPCSyncManager {
   // Renderer-side Y.Doc mirrors (one per acquired node)
   const docs = new Map<string, Y.Doc>()
   // Awareness instances per node (for cursor presence, etc.)
@@ -30,10 +49,13 @@ export function createIPCSyncManager(): SyncManager {
   const pendingAcquires = new Map<string, Promise<Y.Doc>>()
 
   let currentStatus: ConnectionStatus = 'disconnected'
+  let previousStatus: ConnectionStatus = 'disconnected'
   const statusListeners = new Set<StatusHandler>()
   let statusCleanup: (() => void) | null = null
 
   function notifyStatus(s: ConnectionStatus): void {
+    if (s === currentStatus) return // Skip duplicate status updates
+    previousStatus = currentStatus
     currentStatus = s
     for (const handler of statusListeners) {
       try {
@@ -241,6 +263,46 @@ export function createIPCSyncManager(): SyncManager {
         return () => statusListeners.delete(handler)
       }
       return () => {}
+    },
+
+    instrument(eventBus: DevToolsEventBus): () => void {
+      // Emit initial status
+      eventBus.emit({
+        type: 'sync:status-change',
+        room: 'ipc-bsm',
+        previousStatus: 'disconnected',
+        newStatus: currentStatus
+      })
+
+      // Subscribe to status changes
+      const statusHandler = () => {
+        eventBus.emit({
+          type: 'sync:status-change',
+          room: 'ipc-bsm',
+          previousStatus: previousStatus,
+          newStatus: currentStatus
+        })
+      }
+      statusListeners.add(statusHandler)
+
+      // Subscribe to peer events from main process
+      const peerCleanup = window.xnetBSM.onPeerConnected((peerId, room, totalPeers) => {
+        eventBus.emit({
+          type: 'sync:peer-connected',
+          room,
+          peer: {
+            id: peerId,
+            connectedAt: Date.now(),
+            lastSeen: Date.now()
+          },
+          totalPeers
+        })
+      })
+
+      return () => {
+        statusListeners.delete(statusHandler)
+        peerCleanup()
+      }
     }
   }
 }

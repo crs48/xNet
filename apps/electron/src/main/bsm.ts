@@ -89,6 +89,8 @@ export function setupBSM(config: BSMConfig) {
   const tracked = new Map<string, TrackedNode>()
   // Pending blob requests
   const pendingBlobRequests = new Set<string>()
+  // Known peers (from sync messages)
+  const knownPeers = new Map<string, { lastSeen: number; rooms: Set<string> }>()
 
   // ─── WebSocket Management ───────────────────────────────────────────────
 
@@ -97,6 +99,26 @@ export function setupBSM(config: BSMConfig) {
     const win = config.getMainWindow()
     if (win && !win.isDestroyed()) {
       win.webContents.send('xnet:bsm:status-change', { status: s })
+    }
+  }
+
+  function trackPeer(remotePeerId: string, room: string): void {
+    const existing = knownPeers.get(remotePeerId)
+    if (existing) {
+      existing.lastSeen = Date.now()
+      existing.rooms.add(room)
+    } else {
+      // New peer - notify renderer
+      knownPeers.set(remotePeerId, { lastSeen: Date.now(), rooms: new Set([room]) })
+      const win = config.getMainWindow()
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('xnet:bsm:peer-connected', {
+          peerId: remotePeerId,
+          room,
+          totalPeers: knownPeers.size
+        })
+      }
+      log('Peer connected:', remotePeerId, 'total:', knownPeers.size)
     }
   }
 
@@ -253,6 +275,9 @@ export function setupBSM(config: BSMConfig) {
 
     switch (data.type) {
       case 'sync-step1': {
+        // Track peer connection
+        trackPeer(data.from as string, room)
+
         const remoteSV = fromBase64(data.sv as string)
         const diff = Y.encodeStateAsUpdate(doc, remoteSV)
         log(
@@ -285,6 +310,9 @@ export function setupBSM(config: BSMConfig) {
           log('Ignoring sync-step2 addressed to:', data.to)
           break
         }
+        // Track peer connection
+        if (data.from) trackPeer(data.from as string, room)
+
         const update = fromBase64(data.update as string)
         log('Received sync-step2, applying update size:', update.length)
         Y.applyUpdate(doc, update, 'remote')
@@ -296,6 +324,9 @@ export function setupBSM(config: BSMConfig) {
       }
 
       case 'sync-update': {
+        // Track peer connection
+        if (data.from) trackPeer(data.from as string, room)
+
         const update = fromBase64(data.update as string)
         log('Received sync-update, size:', update.length)
         Y.applyUpdate(doc, update, 'remote')
@@ -306,6 +337,9 @@ export function setupBSM(config: BSMConfig) {
       }
 
       case 'awareness': {
+        // Track peer connection
+        if (data.from) trackPeer(data.from as string, room)
+
         // Forward awareness updates to renderer
         const update = fromBase64(data.update as string)
         log('Received awareness update, size:', update.length)
