@@ -75,24 +75,28 @@ export function Seed() {
 
         // Bullet List
         const bulletList = new Y.XmlElement('bulletList')
+        const bulletItems: Y.XmlElement[] = []
         for (const text of ['First bullet point', 'Second bullet point', 'Third bullet point']) {
           const li = new Y.XmlElement('listItem')
           const p = new Y.XmlElement('paragraph')
           p.insert(0, [new Y.XmlText(text)])
           li.insert(0, [p])
-          bulletList.push([li])
+          bulletItems.push(li)
         }
+        bulletList.insert(0, bulletItems)
         fragment.push([bulletList])
 
         // Numbered List
         const orderedList = new Y.XmlElement('orderedList')
+        const orderedItems: Y.XmlElement[] = []
         for (const text of ['First numbered item', 'Second numbered item']) {
           const li = new Y.XmlElement('listItem')
           const p = new Y.XmlElement('paragraph')
           p.insert(0, [new Y.XmlText(text)])
           li.insert(0, [p])
-          orderedList.push([li])
+          orderedItems.push(li)
         }
+        orderedList.insert(0, orderedItems)
         fragment.push([orderedList])
 
         // Task List
@@ -101,14 +105,16 @@ export function Seed() {
           { text: 'Unchecked task', checked: false },
           { text: 'Completed task', checked: true }
         ]
+        const taskItems: Y.XmlElement[] = []
         for (const { text, checked } of tasks) {
           const task = new Y.XmlElement('taskItem')
           task.setAttribute('checked', String(checked))
           const p = new Y.XmlElement('paragraph')
           p.insert(0, [new Y.XmlText(text)])
           task.insert(0, [p])
-          taskList.push([task])
+          taskItems.push(task)
         }
+        taskList.insert(0, taskItems)
         fragment.push([taskList])
 
         // Blockquote
