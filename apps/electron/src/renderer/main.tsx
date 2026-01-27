@@ -16,8 +16,18 @@ import { App } from './App'
 import './styles.css'
 
 // TODO: In production, load identity from secure storage via IPC
-const AUTHOR_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as const
-const SIGNING_KEY = new Uint8Array(32).fill(1)
+// For dev/testing, use a deterministic test identity derived from a fixed seed
+// This ensures the DID and signing key are cryptographically matched
+import { identityFromPrivateKey } from '@xnet/identity'
+
+// Fixed 32-byte seed for deterministic test identity (DO NOT use in production!)
+const TEST_PRIVATE_KEY = new Uint8Array([
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+  28, 29, 30, 31, 32
+])
+const TEST_IDENTITY = identityFromPrivateKey(TEST_PRIVATE_KEY)
+const AUTHOR_DID = TEST_IDENTITY.did
+const SIGNING_KEY = TEST_PRIVATE_KEY
 
 // Telemetry: consent set to 'anonymous' for dev (enables all collection tiers, visible in devtools)
 const consentManager = new ConsentManager({ autoLoad: true })
