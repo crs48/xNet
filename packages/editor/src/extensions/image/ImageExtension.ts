@@ -102,9 +102,16 @@ export const ImageExtension = Node.create<ImageOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
+    // Don't render blob: URLs - they're ephemeral and won't work across sessions
+    // The React NodeView will resolve the CID to a fresh blob URL
+    const attrs = { ...HTMLAttributes }
+    if (attrs.src && attrs.src.startsWith('blob:')) {
+      delete attrs.src
+    }
+
     return [
       'img',
-      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+      mergeAttributes(this.options.HTMLAttributes, attrs, {
         'data-cid': HTMLAttributes.cid,
         'data-alignment': HTMLAttributes.alignment
       })

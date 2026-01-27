@@ -64,24 +64,17 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
             setResolvedSrc(url)
             setLoadError(false)
           }
-        } catch (err) {
-          console.log(
-            `[ImageNodeView] Blob not found (attempt ${retryCount + 1}/${maxRetries}):`,
-            cid
-          )
-
+        } catch {
           if (!cancelled && retryCount < maxRetries) {
             // Retry with exponential backoff
             retryCount++
             const delay = baseDelay * Math.pow(2, retryCount - 1)
-            console.log(`[ImageNodeView] Retrying in ${delay}ms...`)
             setTimeout(() => {
               if (!cancelled) {
                 resolveBlob()
               }
             }, delay)
           } else if (!cancelled) {
-            console.error('Failed to resolve image CID after retries:', cid, err)
             setResolvedSrc(null)
             setLoadError(true)
           }
