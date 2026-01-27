@@ -132,7 +132,12 @@ export {
   type TrackedNode
 } from './sync/registry'
 
-export { createMetaBridge, type MetaBridge } from './sync/meta-bridge'
+export {
+  createMetaBridge,
+  type MetaBridge,
+  METABRIDGE_ORIGIN,
+  METABRIDGE_SEED_ORIGIN
+} from './sync/meta-bridge'
 
 export {
   createOfflineQueue,
