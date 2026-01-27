@@ -235,7 +235,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         // Clamp delta to avoid extreme jumps from fast scrolling
         const delta = Math.max(-10, Math.min(10, e.deltaY))
         const factor = 1 - delta * 0.01
-        zoomAt(e.clientX, e.clientY, factor)
+        // Convert client coordinates to container-relative coordinates
+        const rect = container.getBoundingClientRect()
+        const x = e.clientX - rect.left
+        const y = e.clientY - rect.top
+        zoomAt(x, y, factor)
       } else {
         // Pan
         pan(-e.deltaX, -e.deltaY)
