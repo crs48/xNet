@@ -120,3 +120,23 @@ export {
   ClientIdMapImpl,
   validateClientIdOwnership
 } from './clientid-attestation'
+
+// Yjs security: hash chain integration (Step 08)
+export type {
+  YjsUpdatePayload,
+  YjsChange,
+  UnsignedYjsChange,
+  CreateYjsChangeOptions
+} from './yjs-change'
+export {
+  YJS_CHANGE_TYPE,
+  createYjsChange,
+  createUnsignedYjsChange,
+  isYjsChange,
+  isNodeChange,
+  getChangeNodeId
+} from './yjs-change'
+
+// Yjs security: update batching (Step 08)
+export type { YjsBatcherConfig, BatchFlushCallback, MergeUpdatesFn } from './yjs-batcher'
+export { YjsBatcher, DEFAULT_BATCHER_CONFIG } from './yjs-batcher'
