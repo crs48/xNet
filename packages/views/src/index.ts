@@ -34,6 +34,27 @@ export {
   onPropertyHandlersChange,
   getRegisteredPropertyTypes
 } from './properties/index.js'
+
+// View Registry
+export {
+  ViewRegistry,
+  viewRegistry,
+  type ViewRegistration,
+  type ViewProps,
+  type ViewRow,
+  type ViewConfigField,
+  type ViewConfigFieldType,
+  type Platform as ViewPlatform
+} from './registry.js'
+
+// Built-in views registration
+export { registerBuiltinViews, getBuiltinViews } from './builtins.js'
+
+// View Registry Hook
+export { useViewRegistry, type UseViewRegistryResult } from './hooks/useViewRegistry.js'
+
+// View Renderer
+export { ViewRenderer, type ViewRendererProps } from './ViewRenderer.js'
 export {
   textHandler,
   numberHandler,
