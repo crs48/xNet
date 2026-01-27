@@ -491,13 +491,13 @@ describe('Dual-path sync', () => {
 
 ## Validation Gate
 
-- [ ] `YjsChange` type wraps Yjs updates in `Change<T>` envelope
-- [ ] Updates batched every 2 seconds (configurable)
-- [ ] Batch flushed on paragraph break or max size
-- [ ] `Y.mergeUpdates()` produces single merged update per batch
-- [ ] YjsChange gets hash, parentHash, signature, authorDID, lamport
-- [ ] Unified hash chain contains both NodeChanges and YjsChanges
-- [ ] Real-time envelope (Path 1) and audit trail (Path 2) coexist
-- [ ] Hub verifies and stores YjsChanges in append-only log
-- [ ] `getChangesSince()` returns both node and Yjs changes
-- [ ] Overhead <100 bytes/sec with 2-second batching
+- [x] `YjsChange` type wraps Yjs updates in `Change<T>` envelope
+- [x] Updates batched every 2 seconds (configurable via YjsBatcherConfig)
+- [x] Batch flushed on paragraph break or max size
+- [x] `Y.mergeUpdates()` produces single merged update per batch (via MergeUpdatesFn)
+- [x] YjsChange gets hash, parentHash, signature, authorDID, lamport
+- [ ] Unified hash chain contains both NodeChanges and YjsChanges (needs storage integration)
+- [ ] Real-time envelope (Path 1) and audit trail (Path 2) coexist (needs sync provider integration)
+- [ ] Hub verifies and stores YjsChanges in append-only log (needs hub package)
+- [ ] `getChangesSince()` returns both node and Yjs changes (needs storage integration)
+- [x] Overhead <100 bytes/sec with 2-second batching (design validated)
