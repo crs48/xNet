@@ -13,7 +13,12 @@
  */
 
 import * as Y from 'yjs'
-import { Awareness, encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness'
+import {
+  Awareness,
+  encodeAwarenessUpdate,
+  applyAwarenessUpdate,
+  removeAwarenessStates
+} from 'y-protocols/awareness'
 import type { SyncManager } from '@xnet/react'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
@@ -213,9 +218,17 @@ export function createIPCSyncManager(): IPCSyncManager {
         cleanups.delete(nodeId)
       }
 
-      // Clean up awareness
+      // Clean up awareness - broadcast removal before destroying
       const awareness = awarenessMap.get(nodeId)
       if (awareness) {
+        // Broadcast awareness removal to peers so they clear our presence immediately
+        removeAwarenessStates(awareness, [awareness.clientID], 'local')
+        // Send the removal update to the network
+        const removalUpdate = encodeAwarenessUpdate(awareness, [awareness.clientID])
+        window.xnetBSM.postMessage(nodeId, {
+          type: 'awareness',
+          update: Array.from(removalUpdate)
+        })
         awareness.destroy()
         awarenessMap.delete(nodeId)
       }
