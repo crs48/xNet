@@ -84,3 +84,26 @@ export {
   chunkUpdate,
   reassembleChunks
 } from './yjs-limits'
+
+// Yjs security: hash-at-rest integrity (Step 05)
+export type { PersistedDocState } from './yjs-integrity'
+export {
+  hashYjsState,
+  verifyYjsStateIntegrity,
+  YjsIntegrityError,
+  createPersistedDocState,
+  verifyPersistedDocState,
+  loadVerifiedState,
+  shouldCompact,
+  COMPACTION_UPDATE_THRESHOLD,
+  COMPACTION_TIME_THRESHOLD
+} from './yjs-integrity'
+
+// Yjs security: peer scoring (Step 06)
+export type {
+  YjsPeerMetrics,
+  YjsViolationType,
+  PeerAction,
+  YjsScoringConfig
+} from './yjs-peer-scoring'
+export { YjsPeerScorer, DEFAULT_YJS_SCORING_CONFIG } from './yjs-peer-scoring'
