@@ -7,7 +7,7 @@
  * - Consent tier status and management
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   useTelemetryPanel,
   type SubTab,
@@ -18,11 +18,29 @@ import {
   type CrashEntry,
   type PeerScoreSnapshot
 } from './useTelemetryPanel'
+import { CopyButton } from '../../components/CopyButton'
 
 // ─── Main Panel ────────────────────────────────────────────
 
 export function TelemetryPanel() {
   const state = useTelemetryPanel()
+
+  const getTelemetryData = useCallback(
+    () => ({
+      securityEvents: state.securityEvents,
+      performanceEvents: state.performanceEvents,
+      crashEvents: state.crashEvents,
+      consent: state.consent,
+      peerScores: state.peerScores
+    }),
+    [
+      state.securityEvents,
+      state.performanceEvents,
+      state.crashEvents,
+      state.consent,
+      state.peerScores
+    ]
+  )
 
   // Check if any telemetry events have been received
   const hasData =
@@ -47,6 +65,9 @@ export function TelemetryPanel() {
           label="Performance"
         />
         <TabButton id="consent" active={state.subTab} onClick={state.setSubTab} label="Consent" />
+        <div className="ml-auto">
+          <CopyButton getData={getTelemetryData} label="Copy Telemetry" />
+        </div>
       </div>
 
       {/* Content */}

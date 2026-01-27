@@ -5,6 +5,7 @@
 import { useState, useCallback } from 'react'
 import { useSyncMonitor, type SyncEvent, type PeerEntry } from './useSyncMonitor'
 import { formatTime, relativeTime } from '../../utils/formatters'
+import { CopyButton } from '../../components/CopyButton'
 
 const SYNC_DEBUG_KEY = 'xnet:sync:debug'
 
@@ -35,6 +36,11 @@ export function SyncMonitor() {
   const { events, peers, connectionStatus, stats } = useSyncMonitor()
   const { enabled: debugEnabled, toggle: toggleDebug } = useSyncDebugLogging()
 
+  const getEventsData = useCallback(
+    () => ({ events, peers, connectionStatus, stats }),
+    [events, peers, connectionStatus, stats]
+  )
+
   return (
     <div className="flex flex-col h-full">
       {/* Status bar */}
@@ -58,6 +64,7 @@ export function SyncMonitor() {
           >
             {debugEnabled ? 'Debug ON' : 'Debug OFF'}
           </button>
+          <CopyButton getData={getEventsData} label="Copy Events" />
         </div>
       </div>
 

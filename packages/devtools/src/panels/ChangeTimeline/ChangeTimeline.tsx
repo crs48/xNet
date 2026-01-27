@@ -2,9 +2,10 @@
  * ChangeTimeline panel - Visualize event-sourced changes with Lamport ordering
  */
 
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useCallback } from 'react'
 import { useChangeTimeline, type TimelineEvent } from './useChangeTimeline'
 import { formatTime, truncateCID } from '../../utils/formatters'
+import { CopyButton } from '../../components/CopyButton'
 
 export function ChangeTimeline() {
   const {
@@ -20,6 +21,7 @@ export function ChangeTimeline() {
   } = useChangeTimeline()
 
   const listRef = useRef<HTMLDivElement>(null)
+  const getEventsData = useCallback(() => events, [events])
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -64,6 +66,7 @@ export function ChangeTimeline() {
             Auto-scroll
           </label>
           <span className="text-[10px] text-zinc-500">{events.length} changes</span>
+          <CopyButton getData={getEventsData} label="Copy Changes" />
         </div>
 
         {/* Event list */}

@@ -5,12 +5,13 @@
  * and column management. Synthesizes a Schema from available node data.
  */
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { TableView, type TableRow } from '@xnet/views'
 import type { Schema, PropertyDefinition } from '@xnet/data'
 import type { ViewConfig } from '@xnet/views'
 import { useNodeExplorer, type NodeEntry } from './useNodeExplorer'
 import { truncateDID } from '../../utils/formatters'
+import { CopyButton } from '../../components/CopyButton'
 
 export function NodeExplorer() {
   const {
@@ -51,6 +52,8 @@ export function NodeExplorer() {
 
   // Convert nodes to TableRow format
   const tableRows: TableRow[] = useMemo(() => nodes.map(nodeToTableRow), [nodes])
+
+  const getNodesData = useCallback(() => nodes, [nodes])
 
   if (isLoading) {
     return (
@@ -93,6 +96,7 @@ export function NodeExplorer() {
             Deleted
           </label>
           <span className="text-[10px] text-zinc-500">{nodes.length} nodes</span>
+          <CopyButton getData={getNodesData} label="Copy Nodes" />
         </div>
 
         {/* TableView */}

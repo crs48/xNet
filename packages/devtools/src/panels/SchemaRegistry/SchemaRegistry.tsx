@@ -2,10 +2,14 @@
  * SchemaRegistry panel - Browse registered schemas and their usage
  */
 
+import { useCallback } from 'react'
 import { useSchemaRegistry, type SchemaEntry } from './useSchemaRegistry'
+import { CopyButton } from '../../components/CopyButton'
 
 export function SchemaRegistry() {
   const { schemas, selectedSchema, setSelectedSchema, isLoading } = useSchemaRegistry()
+
+  const getSchemasData = useCallback(() => schemas, [schemas])
 
   if (isLoading) {
     return (
@@ -19,8 +23,9 @@ export function SchemaRegistry() {
     <div className="flex h-full">
       {/* Schema list */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-2 py-1 text-[10px] font-bold text-zinc-500 border-b border-zinc-800">
-          Schemas ({schemas.length})
+        <div className="flex items-center justify-between px-2 py-1 border-b border-zinc-800">
+          <span className="text-[10px] font-bold text-zinc-500">Schemas ({schemas.length})</span>
+          <CopyButton getData={getSchemasData} label="Copy Schemas" />
         </div>
         {schemas.length === 0 ? (
           <div className="flex items-center justify-center h-32 text-zinc-600 text-xs">
