@@ -407,18 +407,32 @@ export function setupBSM(config: BSMConfig) {
   }
 
   function requestBlobs(cids: string[]): void {
-    if (!config.blobStorage || cids.length === 0) return
+    log(
+      'requestBlobs called with',
+      cids.length,
+      'CIDs, blobStorage:',
+      !!config.blobStorage,
+      'status:',
+      status
+    )
+    if (!config.blobStorage || cids.length === 0) {
+      log('requestBlobs: early return - no storage or empty CIDs')
+      return
+    }
 
     // Filter to only request blobs we don't have
     const checkAndRequest = async () => {
       const missing: string[] = []
       for (const cid of cids) {
-        if (!(await config.blobStorage!.hasBlob(cid))) {
+        const has = await config.blobStorage!.hasBlob(cid)
+        log('requestBlobs: checking CID', cid, 'has:', has)
+        if (!has) {
           missing.push(cid)
         }
       }
+      log('requestBlobs: missing count:', missing.length, 'connected:', status === 'connected')
       if (missing.length > 0 && status === 'connected') {
-        log('Requesting', missing.length, 'blobs')
+        log('requestBlobs: sending blob-want for', missing.length, 'blobs to room', BLOB_SYNC_ROOM)
         wsSend({
           type: 'publish',
           topic: BLOB_SYNC_ROOM,
@@ -427,14 +441,20 @@ export function setupBSM(config: BSMConfig) {
         for (const cid of missing) {
           pendingBlobRequests.add(cid)
         }
+      } else if (status !== 'connected') {
+        log('requestBlobs: not sending - not connected')
       }
     }
     checkAndRequest()
   }
 
   function announceBlobs(cids: string[]): void {
-    if (cids.length === 0 || status !== 'connected') return
-    log('Announcing', cids.length, 'blobs')
+    log('announceBlobs called with', cids.length, 'CIDs, status:', status)
+    if (cids.length === 0 || status !== 'connected') {
+      log('announceBlobs: early return - empty or not connected')
+      return
+    }
+    log('announceBlobs: sending blob-have for', cids.length, 'blobs to room', BLOB_SYNC_ROOM)
     wsSend({
       type: 'publish',
       topic: BLOB_SYNC_ROOM,
@@ -639,16 +659,22 @@ export function setupBSM(config: BSMConfig) {
   // ─── Blob IPC Handlers ─────────────────────────────────────────────────
 
   ipcMain.handle('xnet:bsm:request-blobs', async (_event, opts: { cids: string[] }) => {
+    log('IPC request-blobs:', opts.cids.length, 'CIDs, status:', status)
     requestBlobs(opts.cids)
   })
 
   ipcMain.handle('xnet:bsm:announce-blobs', async (_event, opts: { cids: string[] }) => {
+    log('IPC announce-blobs:', opts.cids.length, 'CIDs, status:', status)
     announceBlobs(opts.cids)
   })
 
   ipcMain.handle('xnet:bsm:get-blob', async (_event, opts: { cid: string }) => {
-    if (!config.blobStorage) return null
+    if (!config.blobStorage) {
+      log('IPC get-blob: no blob storage configured')
+      return null
+    }
     const data = await config.blobStorage.getBlob(opts.cid)
+    log('IPC get-blob:', opts.cid, data ? `found (${data.length} bytes)` : 'not found')
     return data ? Array.from(data) : null
   })
 
@@ -657,13 +683,16 @@ export function setupBSM(config: BSMConfig) {
     const data = new Uint8Array(opts.data)
     const hash = hashContent(data)
     const cid = createContentId(hash)
+    log('IPC put-blob:', cid, 'size:', data.length)
     await config.blobStorage.setBlob(cid, data)
     return cid
   })
 
   ipcMain.handle('xnet:bsm:has-blob', async (_event, opts: { cid: string }) => {
     if (!config.blobStorage) return false
-    return config.blobStorage.hasBlob(opts.cid)
+    const has = await config.blobStorage.hasBlob(opts.cid)
+    log('IPC has-blob:', opts.cid, has)
+    return has
   })
 
   return {
