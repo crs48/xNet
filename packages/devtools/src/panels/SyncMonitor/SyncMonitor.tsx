@@ -129,17 +129,30 @@ function SyncEventRow({ event }: { event: SyncEvent }) {
   const typeLabel = event.type.split(':')[1]
   const isError = event.type === 'sync:error'
 
+  // Build detail string based on event type
+  let detail = ''
+  if (event.type === 'sync:status-change') {
+    detail = `${event.previousStatus} → ${event.newStatus}`
+  } else if ('room' in event) {
+    detail = event.room
+  }
+  if ('peerId' in event && (event as any).peerId) {
+    detail += ` peer:${(event as any).peerId.slice(0, 8)}`
+  }
+  if ('peer' in event && (event as any).peer?.id) {
+    detail += ` peer:${(event as any).peer.id.slice(0, 8)}`
+  }
+  if ('error' in event) {
+    detail += ` ${(event as any).error}`
+  }
+
   return (
     <div
       className={`flex items-center gap-2 px-2 py-0.5 text-[10px] ${isError ? 'bg-red-950/20' : ''}`}
     >
       <span className="text-zinc-600 w-16 font-mono">{formatTime(event.wallTime)}</span>
       <span className={`w-20 ${isError ? 'text-red-400' : 'text-zinc-400'}`}>{typeLabel}</span>
-      <span className="text-zinc-500 truncate flex-1">
-        {'room' in event ? event.room : ''}
-        {'peerId' in event ? ` peer:${(event as any).peerId?.slice(0, 8)}` : ''}
-        {'error' in event ? ` ${(event as any).error}` : ''}
-      </span>
+      <span className="text-zinc-500 truncate flex-1">{detail}</span>
     </div>
   )
 }

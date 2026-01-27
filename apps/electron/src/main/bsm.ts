@@ -91,10 +91,18 @@ export function setupBSM(config: BSMConfig) {
   const pendingBlobRequests = new Set<string>()
   // Known peers (from sync messages)
   const knownPeers = new Map<string, { lastSeen: number; rooms: Set<string> }>()
+  // Peer timeout: check every 5s, timeout after 15s of no heartbeat
+  const PEER_TIMEOUT_MS = 15000
+  const PEER_CHECK_INTERVAL_MS = 5000
+  // Heartbeat: send every 4444ms to all subscribed rooms
+  const HEARTBEAT_INTERVAL_MS = 4444
+  let peerTimeoutInterval: ReturnType<typeof setInterval> | null = null
+  let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
   // ─── WebSocket Management ───────────────────────────────────────────────
 
   function setStatus(s: ConnectionStatus): void {
+    if (s === status) return // Skip duplicate status updates
     status = s
     const win = config.getMainWindow()
     if (win && !win.isDestroyed()) {
@@ -122,6 +130,74 @@ export function setupBSM(config: BSMConfig) {
     }
   }
 
+  function removePeer(remotePeerId: string, reason: string): void {
+    if (!knownPeers.has(remotePeerId)) return
+    knownPeers.delete(remotePeerId)
+    const win = config.getMainWindow()
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('xnet:bsm:peer-disconnected', {
+        peerId: remotePeerId,
+        reason,
+        totalPeers: knownPeers.size
+      })
+    }
+    log('Peer disconnected:', remotePeerId, 'reason:', reason, 'total:', knownPeers.size)
+  }
+
+  function checkPeerTimeouts(): void {
+    const now = Date.now()
+    for (const [peerId, info] of knownPeers) {
+      if (now - info.lastSeen > PEER_TIMEOUT_MS) {
+        removePeer(peerId, 'timeout')
+      }
+    }
+  }
+
+  function startPeerTimeoutCheck(): void {
+    if (peerTimeoutInterval) return
+    peerTimeoutInterval = setInterval(checkPeerTimeouts, PEER_CHECK_INTERVAL_MS)
+  }
+
+  function stopPeerTimeoutCheck(): void {
+    if (peerTimeoutInterval) {
+      clearInterval(peerTimeoutInterval)
+      peerTimeoutInterval = null
+    }
+  }
+
+  function sendHeartbeat(): void {
+    // Send heartbeat to all subscribed doc rooms
+    for (const room of subscribedRooms) {
+      if (room.startsWith('xnet-doc-')) {
+        wsSend({
+          type: 'publish',
+          topic: room,
+          data: { type: 'heartbeat', from: peerId }
+        })
+      }
+    }
+  }
+
+  function startHeartbeat(): void {
+    if (heartbeatInterval) return
+    // Send initial heartbeat immediately
+    sendHeartbeat()
+    heartbeatInterval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL_MS)
+  }
+
+  function stopHeartbeat(): void {
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval)
+      heartbeatInterval = null
+    }
+  }
+
+  function clearAllPeers(): void {
+    for (const peerId of knownPeers.keys()) {
+      removePeer(peerId, 'disconnected')
+    }
+  }
+
   function wsSend(msg: object): void {
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify(msg))
@@ -131,6 +207,10 @@ export function setupBSM(config: BSMConfig) {
   function connect(): void {
     if (destroyed || !signalingUrl) {
       log('connect() aborted - destroyed:', destroyed, 'signalingUrl:', signalingUrl)
+      return
+    }
+    if (ws) {
+      log('connect() aborted - already connected or connecting')
       return
     }
 
@@ -143,6 +223,10 @@ export function setupBSM(config: BSMConfig) {
       ws.on('open', () => {
         log('WebSocket connected')
         setStatus('connected')
+
+        // Start peer timeout checking and heartbeat
+        startPeerTimeoutCheck()
+        startHeartbeat()
 
         // Re-subscribe to all rooms
         if (subscribedRooms.size > 0) {
@@ -200,6 +284,9 @@ export function setupBSM(config: BSMConfig) {
       ws.on('close', () => {
         ws = null
         setStatus('disconnected')
+        stopHeartbeat()
+        stopPeerTimeoutCheck()
+        clearAllPeers()
         scheduleReconnect()
       })
 
@@ -214,6 +301,9 @@ export function setupBSM(config: BSMConfig) {
 
   function disconnect(): void {
     destroyed = true
+    stopHeartbeat()
+    stopPeerTimeoutCheck()
+    clearAllPeers()
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
@@ -333,6 +423,12 @@ export function setupBSM(config: BSMConfig) {
         entry.dirty = true
         // Forward to renderer via MessagePort
         forwardToRenderer(nodeId, update)
+        break
+      }
+
+      case 'heartbeat': {
+        // Track peer - heartbeat keeps them alive
+        if (data.from) trackPeer(data.from as string, room)
         break
       }
 
