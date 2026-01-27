@@ -18,6 +18,7 @@
   "dependencies": {
     "@tanstack/react-router": "^1.45.0",
     "@xnet/canvas": "workspace:*",
+    "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
     "@xnet/devtools": "workspace:*",
     "@xnet/storage": "workspace:*",

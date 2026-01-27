@@ -166,12 +166,14 @@ export function createIPCSyncManager(): SyncManager {
       return null
     },
 
-    async requestBlobs(_cids: string[]) {
-      // TODO: Route blob requests through IPC to main process BSM
+    async requestBlobs(cids: string[]) {
+      if (cids.length === 0) return
+      await window.xnetBSM.requestBlobs(cids)
     },
 
-    announceBlobs(_cids: string[]) {
-      // TODO: Route blob announcements through IPC to main process BSM
+    announceBlobs(cids: string[]) {
+      if (cids.length === 0) return
+      window.xnetBSM.announceBlobs(cids)
     },
 
     get status() {
