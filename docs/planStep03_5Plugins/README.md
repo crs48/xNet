@@ -89,15 +89,15 @@ Core infrastructure that all other phases depend on.
 
 | Task | Document                                                   | Description                                                 | Status |
 | ---- | ---------------------------------------------------------- | ----------------------------------------------------------- | ------ |
-| 1.1  | [01-plugin-registry-core.md](./01-plugin-registry-core.md) | PluginRegistry, ExtensionContext, lifecycle, manifest types | [ ]    |
-| 1.2  | [02-extension-points.md](./02-extension-points.md)         | Wire existing registries + add missing ones to NodeStore    | [ ]    |
+| 1.1  | [01-plugin-registry-core.md](./01-plugin-registry-core.md) | PluginRegistry, ExtensionContext, lifecycle, manifest types | [x]    |
+| 1.2  | [02-extension-points.md](./02-extension-points.md)         | Wire existing registries + add missing ones to NodeStore    | [x]    |
 
 **Validation Gate:**
 
-- [ ] Can register/unregister a plugin programmatically
-- [ ] Extension context provides access to NodeStore, schemas, subscriptions
-- [ ] Middleware chain on NodeStore works for pre/post change hooks
-- [ ] Plugin metadata stored as Nodes
+- [x] Can register/unregister a plugin programmatically
+- [x] Extension context provides access to NodeStore, schemas, subscriptions
+- [x] Middleware chain on NodeStore works for pre/post change hooks
+- [x] Plugin metadata stored as Nodes
 
 ### Phase 2: Views & Editor (Steps 03-05)
 

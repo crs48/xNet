@@ -5,6 +5,13 @@
 import type { PropertyType, PropertyDefinition } from '@xnet/data'
 
 /**
+ * Disposable interface for cleanup
+ */
+export interface Disposable {
+  dispose(): void
+}
+
+/**
  * View type identifiers
  */
 export type ViewType = 'table' | 'board' | 'gallery' | 'timeline' | 'calendar' | 'list'

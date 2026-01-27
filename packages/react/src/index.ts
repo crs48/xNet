@@ -166,6 +166,24 @@ export {
 } from './context'
 
 // =============================================================================
+// Plugin System
+// =============================================================================
+
+export {
+  PluginRegistryContext,
+  usePluginRegistry,
+  usePlugins,
+  useContributions,
+  useViews,
+  useCommands,
+  useSlashCommands,
+  useSidebarItems,
+  useEditorExtensions,
+  useView,
+  useCommand
+} from './hooks/usePlugins'
+
+// =============================================================================
 // Instrumentation (for DevTools integration)
 // =============================================================================
 
