@@ -855,6 +855,9 @@ importers:
       '@xnet/crypto':
         specifier: workspace:*
         version: link:../crypto
+      '@xnet/identity':
+        specifier: workspace:*
+        version: link:../identity
     devDependencies:
       tsup:
         specifier: ^8.0.0
