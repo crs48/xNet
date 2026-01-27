@@ -4,12 +4,16 @@
  * Displays active subscriptions, update frequency, and performance metrics.
  */
 
+import { useCallback } from 'react'
 import { useQueryDebugger, type QueryStats } from './useQueryDebugger'
 import { relativeTime } from '../../utils/formatters'
+import { CopyButton } from '../../components/CopyButton'
 
 export function QueryDebugger() {
   const { queries, selectedQuery, setSelectedQuery, sortBy, setSortBy, totalUpdates, avgRender } =
     useQueryDebugger()
+
+  const getQueriesData = useCallback(() => queries, [queries])
 
   return (
     <div className="flex flex-col h-full">
@@ -34,6 +38,7 @@ export function QueryDebugger() {
           <option value="render">Sort: Slowest Render</option>
           <option value="recent">Sort: Most Recent</option>
         </select>
+        <CopyButton getData={getQueriesData} label="Copy Queries" />
       </div>
 
       {/* Content */}

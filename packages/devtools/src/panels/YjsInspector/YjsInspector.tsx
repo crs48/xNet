@@ -2,7 +2,7 @@
  * YjsInspector panel - Y.Doc structure, state vectors, and update events
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   useYjsInspector,
   type DocStats,
@@ -12,6 +12,7 @@ import {
   type StateVectorEntry
 } from './useYjsInspector'
 import { formatBytes, formatTime, relativeTime } from '../../utils/formatters'
+import { CopyButton } from '../../components/CopyButton'
 
 export function YjsInspector() {
   const {
@@ -26,6 +27,11 @@ export function YjsInspector() {
     refreshTree,
     refreshStateVector
   } = useYjsInspector()
+
+  const getEventsData = useCallback(
+    () => ({ events, docStats, stateVector }),
+    [events, docStats, stateVector]
+  )
 
   return (
     <div className="flex h-full">
@@ -87,6 +93,7 @@ export function YjsInspector() {
               Refresh
             </button>
           )}
+          <CopyButton getData={getEventsData} label="Copy Events" />
         </div>
 
         {/* Sub-view content */}
