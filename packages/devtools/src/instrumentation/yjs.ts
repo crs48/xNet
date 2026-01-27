@@ -9,6 +9,24 @@ import type * as Y from 'yjs'
 import type { DevToolsEventBus } from '../core/event-bus'
 import type { YDocRegistry } from '../provider/DevToolsContext'
 
+function formatOrigin(origin: unknown): string | null {
+  if (origin == null) return null
+  if (typeof origin === 'string') return origin
+  if (typeof origin === 'object') {
+    // Try to get a meaningful name from the object
+    const name = (origin as Record<string, unknown>).constructor?.name
+    if (name && name !== 'Object') return name
+    // For plain objects, try to serialize briefly
+    try {
+      const json = JSON.stringify(origin)
+      return json.length > 50 ? json.slice(0, 47) + '...' : json
+    } catch {
+      return '[object]'
+    }
+  }
+  return String(origin)
+}
+
 export function instrumentYDoc(
   doc: Y.Doc,
   docId: string,
@@ -22,7 +40,7 @@ export function instrumentYDoc(
       type: 'yjs:update',
       docId,
       updateSize: update.byteLength,
-      origin: origin != null ? String(origin) : null,
+      origin: formatOrigin(origin),
       isLocal: origin === null || origin === 'local'
     })
   }
@@ -38,7 +56,7 @@ export function instrumentYDoc(
         type: 'yjs:meta-change',
         docId,
         keysChanged: Array.from(event.keysChanged),
-        origin: event.transaction.origin != null ? String(event.transaction.origin) : null,
+        origin: formatOrigin(event.transaction.origin),
         isLocal: event.transaction.origin === null || event.transaction.origin === 'local'
       })
     }
