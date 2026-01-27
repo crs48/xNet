@@ -1,0 +1,240 @@
+/**
+ * Contribution types and registry for plugin-provided extensions
+ */
+
+import type { ComponentType } from 'react'
+import type { Extension } from '@tiptap/core'
+import type { Disposable } from './types'
+
+// ─── Contribution Types ────────────────────────────────────────────────────
+
+export interface ViewContribution {
+  /** Unique view type identifier */
+  type: string
+  /** Display name */
+  name: string
+  /** Icon (Lucide icon name or component) */
+  icon?: string | ComponentType
+  /** React component for rendering the view */
+  component: ComponentType<ViewProps>
+  /** Schema IRIs this view supports (empty = all) */
+  supportedSchemas?: string[]
+}
+
+export interface ViewProps {
+  nodeId: string
+  schemaId: string
+}
+
+export interface CommandContribution {
+  /** Unique command ID */
+  id: string
+  /** Display name */
+  name: string
+  /** Description for command palette */
+  description?: string
+  /** Keyboard shortcut (e.g., 'mod+shift+p') */
+  keybinding?: string
+  /** Icon (Lucide icon name) */
+  icon?: string
+  /** Command handler */
+  execute: () => void | Promise<void>
+  /** Whether command is currently enabled */
+  when?: () => boolean
+}
+
+export interface SlashCommandContribution {
+  /** Unique command ID */
+  id: string
+  /** Display name in slash menu */
+  name: string
+  /** Description shown in menu */
+  description?: string
+  /** Search aliases */
+  aliases?: string[]
+  /** Icon (Lucide icon name) */
+  icon?: string
+  /** Insert content or execute action */
+  execute: (props: SlashCommandContext) => void
+}
+
+export interface SlashCommandContext {
+  editor: unknown // TipTap editor instance
+  range: { from: number; to: number }
+}
+
+export interface EditorContribution {
+  /** Unique extension ID */
+  id: string
+  /** TipTap extension */
+  extension: Extension
+}
+
+export interface SidebarContribution {
+  /** Unique item ID */
+  id: string
+  /** Display name */
+  name: string
+  /** Icon (Lucide icon name) */
+  icon: string
+  /** Position in sidebar (lower = higher) */
+  priority?: number
+  /** Click handler or route path */
+  action: (() => void) | string
+}
+
+export interface PropertyHandlerContribution {
+  /** Property type this handler manages */
+  type: string
+  /** Handler implementation */
+  handler: PropertyHandler
+}
+
+export interface PropertyHandler {
+  /** Render the property cell in table view */
+  Cell: ComponentType<PropertyCellProps>
+  /** Render the property editor */
+  Editor: ComponentType<PropertyEditorProps>
+  /** Parse string input to property value */
+  parse?: (input: string) => unknown
+  /** Format value for display */
+  format?: (value: unknown) => string
+  /** Validate value */
+  validate?: (value: unknown) => boolean
+}
+
+export interface PropertyCellProps {
+  value: unknown
+  config?: Record<string, unknown>
+}
+
+export interface PropertyEditorProps {
+  value: unknown
+  onChange: (value: unknown) => void
+  config?: Record<string, unknown>
+}
+
+export interface BlockContribution {
+  /** Block type identifier */
+  type: string
+  /** Display name */
+  name: string
+  /** React component */
+  component: ComponentType<BlockProps>
+}
+
+export interface BlockProps {
+  node: unknown
+  updateAttributes: (attrs: Record<string, unknown>) => void
+}
+
+export interface SettingContribution {
+  /** Setting section ID */
+  id: string
+  /** Section title */
+  title: string
+  /** Icon (Lucide icon name) */
+  icon?: string
+  /** Settings panel component */
+  component: ComponentType
+}
+
+export interface SchemaContribution {
+  /** The schema definition */
+  schema: unknown // DefinedSchema from @xnet/data
+}
+
+// ─── Typed Registry ────────────────────────────────────────────────────────
+
+/**
+ * A registry for typed contributions with change notifications
+ */
+export class TypedRegistry<T extends { id?: string; type?: string }> {
+  private items = new Map<string, T>()
+  private listeners = new Set<() => void>()
+
+  register(item: T): Disposable {
+    const key =
+      (item as { id?: string }).id ?? (item as { type?: string }).type ?? crypto.randomUUID()
+    this.items.set(key, item)
+    this.notify()
+    return {
+      dispose: () => {
+        this.items.delete(key)
+        this.notify()
+      }
+    }
+  }
+
+  unregister(key: string): boolean {
+    const deleted = this.items.delete(key)
+    if (deleted) this.notify()
+    return deleted
+  }
+
+  get(key: string): T | undefined {
+    return this.items.get(key)
+  }
+
+  getAll(): T[] {
+    return [...this.items.values()]
+  }
+
+  has(key: string): boolean {
+    return this.items.has(key)
+  }
+
+  get size(): number {
+    return this.items.size
+  }
+
+  onChange(listener: () => void): () => void {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+
+  private notify(): void {
+    for (const listener of this.listeners) {
+      try {
+        listener()
+      } catch (err) {
+        console.error('[TypedRegistry] Listener error:', err)
+      }
+    }
+  }
+
+  clear(): void {
+    this.items.clear()
+    this.notify()
+  }
+}
+
+// ─── Contribution Registry ─────────────────────────────────────────────────
+
+/**
+ * Central registry for all plugin contributions
+ */
+export class ContributionRegistry {
+  readonly views = new TypedRegistry<ViewContribution>()
+  readonly commands = new TypedRegistry<CommandContribution>()
+  readonly slashCommands = new TypedRegistry<SlashCommandContribution>()
+  readonly sidebar = new TypedRegistry<SidebarContribution>()
+  readonly editor = new TypedRegistry<EditorContribution>()
+  readonly propertyHandlers = new TypedRegistry<PropertyHandlerContribution>()
+  readonly blocks = new TypedRegistry<BlockContribution>()
+  readonly settings = new TypedRegistry<SettingContribution>()
+
+  /**
+   * Clear all registries (for cleanup/testing)
+   */
+  clear(): void {
+    this.views.clear()
+    this.commands.clear()
+    this.slashCommands.clear()
+    this.sidebar.clear()
+    this.editor.clear()
+    this.propertyHandlers.clear()
+    this.blocks.clear()
+    this.settings.clear()
+  }
+}
