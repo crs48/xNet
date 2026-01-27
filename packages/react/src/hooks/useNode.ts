@@ -658,6 +658,41 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       const awareness = syncManager.getAwareness(id)
       setAwareness(awareness)
 
+      // Set local awareness state with DID, name, and hex color
+      if (awareness && did) {
+        awareness.setLocalStateField('user', {
+          did,
+          name: `${did.slice(8, 16)}...`,
+          color: generateColor(did)
+        })
+      }
+
+      // Listen for remote awareness changes to update remoteUsers
+      let awarenessCleanup: (() => void) | null = null
+      if (awareness) {
+        const awarenessHandler = () => {
+          const states = awareness.getStates()
+          const remote: RemoteUser[] = []
+
+          states.forEach((state: Record<string, unknown>, clientId: number) => {
+            if (clientId === awareness.clientID) return
+            const user = state.user as { did?: string; color?: string } | undefined
+            if (user?.did) {
+              remote.push({
+                clientId,
+                did: user.did,
+                color: user.color || generateColor(user.did)
+              })
+            }
+          })
+
+          setRemoteUsers(remote)
+        }
+        awareness.on('change', awarenessHandler)
+        awarenessHandler() // Initial population
+        awarenessCleanup = () => awareness.off('change', awarenessHandler)
+      }
+
       // If we just created this node (joining a shared doc), set a timeout
       // to detect if sync fails to deliver any content
       if (wasCreated) {
@@ -693,6 +728,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         doc.off('update', updateHandler)
         metaMap.unobserve(metaObserver)
         statusUnsub()
+        if (awarenessCleanup) awarenessCleanup()
         setAwareness(null)
         setSyncStatus('offline')
         setSyncError(null)
