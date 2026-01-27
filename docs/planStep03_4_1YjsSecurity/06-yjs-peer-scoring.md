@@ -415,13 +415,13 @@ describe('YjsPeerScorer', () => {
 
 ## Validation Gate
 
-- [ ] Peers start at score 100
-- [ ] Each violation type deducts configured penalty points
-- [ ] Peer blocked after 3 invalid signatures (instant)
-- [ ] Peer blocked when score drops below 10
-- [ ] Peer throttled when score drops below 30
-- [ ] Score recovers at 1 point/minute with no violations
-- [ ] Valid updates tracked for ratio monitoring
-- [ ] Blocked peers have WebSocket closed with 4403
-- [ ] Metrics endpoint exposes per-peer scores
-- [ ] Peer state cleaned up on disconnect
+- [x] Peers start at score 100
+- [x] Each violation type deducts configured penalty points
+- [x] Peer blocked after 3 invalid signatures (instant)
+- [x] Peer blocked when score drops below 10
+- [x] Peer throttled when score drops below 30
+- [x] Score recovers at 1 point/minute with no violations (tick method)
+- [x] Valid updates tracked for ratio monitoring (getViolationRatio)
+- [ ] Blocked peers have WebSocket closed with 4403 (hub integration)
+- [x] Metrics endpoint exposes per-peer scores (getAllMetrics)
+- [x] Peer state cleaned up on disconnect (remove method)

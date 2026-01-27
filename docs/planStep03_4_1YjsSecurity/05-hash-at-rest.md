@@ -315,10 +315,10 @@ describe('Compaction', () => {
 
 ## Validation Gate
 
-- [ ] BLAKE3 hash stored alongside every persisted Yjs state
-- [ ] Hash verified on every load (both client and hub)
-- [ ] `YjsIntegrityError` thrown when hash mismatches
+- [x] BLAKE3 hash stored alongside every persisted Yjs state (hashYjsState, createPersistedDocState)
+- [x] Hash verified on every load (both client and hub) (verifyYjsStateIntegrity, loadVerifiedState)
+- [x] `YjsIntegrityError` thrown when hash mismatches
 - [ ] Recovery attempts hub backup before starting fresh
-- [ ] Legacy records without hash load normally (backward compat)
-- [ ] Compaction re-hashes after 100 incremental updates
-- [ ] Corruption detected before reaching `Y.applyUpdate()`
+- [x] Legacy records without hash load normally (backward compat) (loadVerifiedState)
+- [x] Compaction re-hashes after 100 incremental updates (shouldCompact utility)
+- [x] Corruption detected before reaching `Y.applyUpdate()` (verifyPersistedDocState)

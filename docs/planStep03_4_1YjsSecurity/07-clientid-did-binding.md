@@ -457,12 +457,12 @@ describe('Hub clientId verification', () => {
 
 ## Validation Gate
 
-- [ ] `createClientIdAttestation()` produces signed binding of clientId→DID
-- [ ] `verifyClientIdAttestation()` validates signature and expiry
+- [x] `createClientIdAttestation()` produces signed binding of clientId→DID
+- [x] `verifyClientIdAttestation()` validates signature and expiry
 - [ ] Client sends attestation on room join (when identity present)
 - [ ] Hub verifies attestation and stores in per-room map
 - [ ] Hub rejects updates with clientId attested to a different DID
 - [ ] Hub broadcasts attestation to other room subscribers
-- [ ] Expired attestations cleaned up automatically
-- [ ] DID change (re-join) replaces old clientId binding
+- [x] Expired attestations cleaned up automatically
+- [x] DID change (re-join) replaces old clientId binding
 - [ ] Awareness/presence can display verified DID for clientIDs
