@@ -64,6 +64,9 @@ importers:
       '@xnet/editor':
         specifier: workspace:*
         version: link:../../packages/editor
+      '@xnet/identity':
+        specifier: workspace:*
+        version: link:../../packages/identity
       '@xnet/react':
         specifier: workspace:*
         version: link:../../packages/react
