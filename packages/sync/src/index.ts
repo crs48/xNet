@@ -62,3 +62,25 @@ export type {
   SyncProviderOptions
 } from './provider'
 export { BaseSyncProvider } from './provider'
+
+// Yjs security: signed envelopes (Step 01)
+export type { SignedYjsEnvelope, EnvelopeVerifyResult } from './yjs-envelope'
+export { signYjsUpdate, verifyYjsEnvelope, hasSignedEnvelope, isLegacyUpdate } from './yjs-envelope'
+
+// Yjs security: size and rate limits (Step 03)
+export type { RateLimiterConfig } from './yjs-limits'
+export {
+  MAX_YJS_UPDATE_SIZE,
+  MAX_YJS_UPDATES_PER_SECOND,
+  MAX_YJS_UPDATES_PER_MINUTE,
+  MAX_YJS_DOC_SIZE,
+  YJS_SYNC_CHUNK_SIZE,
+  YJS_RATE_BURST_ALLOWANCE,
+  DEFAULT_RATE_LIMITER_CONFIG,
+  YjsRateLimiter,
+  isUpdateTooLarge,
+  isDocumentTooLarge,
+  calculateChunkCount,
+  chunkUpdate,
+  reassembleChunks
+} from './yjs-limits'

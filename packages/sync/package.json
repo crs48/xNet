@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*"
+    "@xnet/crypto": "workspace:*",
+    "@xnet/identity": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
