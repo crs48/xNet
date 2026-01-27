@@ -14,10 +14,10 @@ export { CanvasSchema, type Canvas } from './canvas'
  * All built-in schemas, keyed by their IRI.
  */
 export const builtInSchemas = {
-  'xnet://xnet.dev/Page': () => import('./page').then((m) => m.PageSchema),
-  'xnet://xnet.dev/Database': () => import('./database').then((m) => m.DatabaseSchema),
-  'xnet://xnet.dev/Task': () => import('./task').then((m) => m.TaskSchema),
-  'xnet://xnet.dev/Canvas': () => import('./canvas').then((m) => m.CanvasSchema)
+  'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),
+  'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
+  'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema)
 } as const
 
 /**

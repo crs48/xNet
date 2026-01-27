@@ -45,7 +45,7 @@ interface StoredColumn {
  */
 function buildSchema(columns: StoredColumn[], dbId: string): Schema {
   const properties: PropertyDefinition[] = columns.map((col) => ({
-    '@id': `xnet://xnet.dev/DynamicDatabase#${col.id}`,
+    '@id': `xnet://xnet.fyi/DynamicDatabase#${col.id}`,
     name: col.name,
     type: col.type,
     required: false,
@@ -53,10 +53,10 @@ function buildSchema(columns: StoredColumn[], dbId: string): Schema {
   }))
 
   return {
-    '@id': `xnet://xnet.dev/DynamicDatabase` as const,
-    '@type': 'xnet://xnet.dev/Schema',
+    '@id': `xnet://xnet.fyi/DynamicDatabase` as const,
+    '@type': 'xnet://xnet.fyi/Schema',
     name: 'DynamicDatabase',
-    namespace: 'xnet://xnet.dev/',
+    namespace: 'xnet://xnet.fyi/',
     properties
   }
 }

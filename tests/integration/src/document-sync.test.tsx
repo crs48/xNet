@@ -205,7 +205,7 @@ describe('Page Document Sharing', () => {
     // User 2's meta map should now have user 1's title
     const meta2 = user2.current.doc!.getMap('meta')
     expect(meta2.get('title')).toBe('Created by User 1')
-    expect(meta2.get('_schemaId')).toBe('xnet://xnet.dev/Page')
+    expect(meta2.get('_schemaId')).toBe('xnet://xnet.fyi/Page')
 
     sync.destroy()
   })
@@ -613,7 +613,7 @@ describe('Database Schema Sync', () => {
     const meta2 = user2.current.doc!.getMap('meta')
     expect(meta2.get('title')).toBe('My Database')
     expect(meta2.get('defaultView')).toBe('table')
-    expect(meta2.get('_schemaId')).toBe('xnet://xnet.dev/Database')
+    expect(meta2.get('_schemaId')).toBe('xnet://xnet.fyi/Database')
 
     sync.destroy()
   })

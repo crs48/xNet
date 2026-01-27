@@ -19,31 +19,31 @@ import type { ViewConfig } from '../types'
 
 // Mock schema with date properties
 const mockSchema: Schema = {
-  '@id': 'xnet://xnet.dev/Event',
-  '@type': 'xnet://xnet.dev/Schema',
+  '@id': 'xnet://xnet.fyi/Event',
+  '@type': 'xnet://xnet.fyi/Schema',
   name: 'Event',
-  namespace: 'xnet.dev',
+  namespace: 'xnet.fyi',
   properties: [
     {
-      '@id': 'xnet://xnet.dev/Event#title',
+      '@id': 'xnet://xnet.fyi/Event#title',
       name: 'Title',
       type: 'text',
       required: true
     },
     {
-      '@id': 'xnet://xnet.dev/Event#date',
+      '@id': 'xnet://xnet.fyi/Event#date',
       name: 'Date',
       type: 'date',
       required: true
     },
     {
-      '@id': 'xnet://xnet.dev/Event#endDate',
+      '@id': 'xnet://xnet.fyi/Event#endDate',
       name: 'End Date',
       type: 'date',
       required: false
     },
     {
-      '@id': 'xnet://xnet.dev/Event#category',
+      '@id': 'xnet://xnet.fyi/Event#category',
       name: 'Category',
       type: 'select',
       required: false,

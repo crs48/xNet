@@ -31,7 +31,7 @@ export type PropertyType =
  * Base property definition stored in a schema.
  */
 export interface PropertyDefinition {
-  /** Property IRI (e.g., 'xnet://xnet.dev/Task#title') */
+  /** Property IRI (e.g., 'xnet://xnet.fyi/Task#title') */
   '@id': string
   /** Property name */
   name: string
@@ -77,7 +77,7 @@ export interface Schema {
   /** Schema IRI */
   '@id': SchemaIRI
   /** Type marker for JSON-LD */
-  '@type': 'xnet://xnet.dev/Schema'
+  '@type': 'xnet://xnet.fyi/Schema'
   /** Human-readable name */
   name: string
   /** Namespace for this schema */

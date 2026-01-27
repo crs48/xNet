@@ -8,7 +8,7 @@ import { defineSchema, text, select, date } from '@xnet/data'
 
 export const SecurityEventSchema = defineSchema({
   name: 'SecurityEvent',
-  namespace: 'xnet://xnet.dev/telemetry/',
+  namespace: 'xnet://xnet.fyi/telemetry/',
   properties: {
     eventName: select({
       options: [

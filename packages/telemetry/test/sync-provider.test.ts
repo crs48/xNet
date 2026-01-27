@@ -52,7 +52,7 @@ describe('TelemetrySyncProvider', () => {
   function addPendingRecord(id: string): TelemetryRecord {
     const record: TelemetryRecord = {
       id,
-      schemaId: 'xnet://xnet.dev/telemetry/UsageMetric',
+      schemaId: 'xnet://xnet.fyi/telemetry/UsageMetric',
       data: { metricName: 'test', metricBucket: '1-5' },
       createdAt: Date.now(),
       status: 'pending'

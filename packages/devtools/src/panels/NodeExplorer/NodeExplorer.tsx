@@ -169,7 +169,7 @@ function synthesizeSchema(nodes: NodeEntry[], schemaFilter: string | null): Sche
 
     return {
       '@id': `xnet://devtools/${schemaFilter.split('/').pop() ?? 'Node'}`,
-      '@type': 'xnet://xnet.dev/Schema',
+      '@type': 'xnet://xnet.fyi/Schema',
       name: schemaFilter.split('/').pop() ?? 'Node',
       namespace: 'xnet://devtools/',
       properties: [baseProperties[0], ...schemaProps, ...baseProperties.slice(2)]
@@ -179,7 +179,7 @@ function synthesizeSchema(nodes: NodeEntry[], schemaFilter: string | null): Sche
   // Generic schema for all nodes
   return {
     '@id': 'xnet://devtools/Node',
-    '@type': 'xnet://xnet.dev/Schema',
+    '@type': 'xnet://xnet.fyi/Schema',
     name: 'Node',
     namespace: 'xnet://devtools/',
     properties: [

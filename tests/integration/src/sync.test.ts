@@ -125,14 +125,14 @@ describe('Y.Doc Sync Protocol', () => {
     // Set properties on doc1
     const meta1 = doc1.getMap('meta')
     doc1.transact(() => {
-      meta1.set('_schemaId', 'xnet://xnet.dev/Page')
+      meta1.set('_schemaId', 'xnet://xnet.fyi/Page')
       meta1.set('title', 'Shared Page')
       meta1.set('icon', '📄')
     })
 
     // Check doc2
     const meta2 = doc2.getMap('meta')
-    expect(meta2.get('_schemaId')).toBe('xnet://xnet.dev/Page')
+    expect(meta2.get('_schemaId')).toBe('xnet://xnet.fyi/Page')
     expect(meta2.get('title')).toBe('Shared Page')
     expect(meta2.get('icon')).toBe('📄')
 

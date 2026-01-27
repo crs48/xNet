@@ -11,8 +11,8 @@ import { nanoid } from 'nanoid'
  * Format: xnet://<authority>/<name>
  *
  * Examples:
- * - xnet://xnet.dev/Page (built-in)
- * - xnet://xnet.dev/Task (built-in)
+ * - xnet://xnet.fyi/Page (built-in)
+ * - xnet://xnet.fyi/Task (built-in)
  * - xnet://acme-corp.com/Project (organization)
  * - xnet://did:key:z6Mk.../Recipe (personal)
  */

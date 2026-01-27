@@ -18,8 +18,8 @@ export const TelemetrySchemas = [
 
 /** Schema IRI constants */
 export const TelemetrySchemaIRIs = {
-  CrashReport: 'xnet://xnet.dev/telemetry/CrashReport',
-  UsageMetric: 'xnet://xnet.dev/telemetry/UsageMetric',
-  SecurityEvent: 'xnet://xnet.dev/telemetry/SecurityEvent',
-  PerformanceMetric: 'xnet://xnet.dev/telemetry/PerformanceMetric'
+  CrashReport: 'xnet://xnet.fyi/telemetry/CrashReport',
+  UsageMetric: 'xnet://xnet.fyi/telemetry/UsageMetric',
+  SecurityEvent: 'xnet://xnet.fyi/telemetry/SecurityEvent',
+  PerformanceMetric: 'xnet://xnet.fyi/telemetry/PerformanceMetric'
 } as const

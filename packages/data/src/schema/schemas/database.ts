@@ -12,7 +12,7 @@ import type { InferNode } from '../types'
 
 export const DatabaseSchema = defineSchema({
   name: 'Database',
-  namespace: 'xnet://xnet.dev/',
+  namespace: 'xnet://xnet.fyi/',
   properties: {
     /** Database title */
     title: text({ required: true, maxLength: 500 }),

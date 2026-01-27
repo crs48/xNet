@@ -10,8 +10,8 @@ import type { DID } from '@xnet/core'
 import type { SchemaIRI } from '../schema/node'
 
 // Test fixtures
-const TEST_SCHEMA: SchemaIRI = 'xnet://xnet.dev/Task'
-const TEST_SCHEMA_2: SchemaIRI = 'xnet://xnet.dev/Page'
+const TEST_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Task'
+const TEST_SCHEMA_2: SchemaIRI = 'xnet://xnet.fyi/Page'
 
 function createTestStore(): {
   store: NodeStore

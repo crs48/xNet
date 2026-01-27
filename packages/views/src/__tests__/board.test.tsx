@@ -10,19 +10,19 @@ import type { ViewConfig } from '../types'
 
 // Mock schema with select property
 const mockSchema: Schema = {
-  '@id': 'xnet://xnet.dev/Task',
-  '@type': 'xnet://xnet.dev/Schema',
+  '@id': 'xnet://xnet.fyi/Task',
+  '@type': 'xnet://xnet.fyi/Schema',
   name: 'Task',
-  namespace: 'xnet.dev',
+  namespace: 'xnet.fyi',
   properties: [
     {
-      '@id': 'xnet://xnet.dev/Task#title',
+      '@id': 'xnet://xnet.fyi/Task#title',
       name: 'Title',
       type: 'text',
       required: true
     },
     {
-      '@id': 'xnet://xnet.dev/Task#status',
+      '@id': 'xnet://xnet.fyi/Task#status',
       name: 'Status',
       type: 'select',
       required: false,
@@ -186,19 +186,19 @@ describe('useBoardState', () => {
 
 describe('useBoardState with multiSelect', () => {
   const multiSelectSchema: Schema = {
-    '@id': 'xnet://xnet.dev/Task',
-    '@type': 'xnet://xnet.dev/Schema',
+    '@id': 'xnet://xnet.fyi/Task',
+    '@type': 'xnet://xnet.fyi/Schema',
     name: 'Task',
-    namespace: 'xnet.dev',
+    namespace: 'xnet.fyi',
     properties: [
       {
-        '@id': 'xnet://xnet.dev/Task#title',
+        '@id': 'xnet://xnet.fyi/Task#title',
         name: 'Title',
         type: 'text',
         required: true
       },
       {
-        '@id': 'xnet://xnet.dev/Task#tags',
+        '@id': 'xnet://xnet.fyi/Task#tags',
         name: 'Tags',
         type: 'multiSelect',
         required: false,
