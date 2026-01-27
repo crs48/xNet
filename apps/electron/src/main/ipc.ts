@@ -11,6 +11,24 @@ import { dataPath, profile } from './index'
 let client: XNetClient | null = null
 let storage: SQLiteAdapter | null = null
 
+/**
+ * Get or create the SQLite storage adapter.
+ * Called early by main/index.ts to share with BSM.
+ */
+export function getOrCreateStorage(): SQLiteAdapter {
+  if (storage) return storage
+
+  // Ensure data directory exists
+  try {
+    mkdirSync(dataPath, { recursive: true })
+  } catch {
+    // Directory may already exist
+  }
+
+  storage = new SQLiteAdapter(join(dataPath, 'xnet.db'))
+  return storage
+}
+
 export function setupIPC() {
   // Get profile name (for IndexedDB isolation in renderer)
   ipcMain.handle('xnet:getProfile', () => profile)
@@ -19,17 +37,11 @@ export function setupIPC() {
   ipcMain.handle('xnet:init', async () => {
     if (client) return { did: client.identity.did }
 
-    // Ensure data directory exists
-    try {
-      mkdirSync(dataPath, { recursive: true })
-    } catch {
-      // Directory may already exist
-    }
-
-    storage = new SQLiteAdapter(join(dataPath, 'xnet.db'))
+    // Ensure storage is created
+    const storageAdapter = getOrCreateStorage()
 
     client = await createXNetClient({
-      storage,
+      storage: storageAdapter,
       enableNetwork: false // Disabled for now until network is stable
     })
 

@@ -78,13 +78,15 @@ function SyncIndicator({ status, peerCount }: { status: SyncStatus; peerCount: n
   const colors: Record<SyncStatus, string> = {
     offline: 'bg-zinc-500',
     connecting: 'bg-amber-400 animate-pulse',
-    connected: 'bg-emerald-400'
+    connected: 'bg-emerald-400',
+    error: 'bg-red-500'
   }
 
   const labels: Record<SyncStatus, string> = {
     offline: 'Offline',
     connecting: 'Connecting...',
-    connected: peerCount > 0 ? `${peerCount} peer${peerCount !== 1 ? 's' : ''}` : 'Connected'
+    connected: peerCount > 0 ? `${peerCount} peer${peerCount !== 1 ? 's' : ''}` : 'Connected',
+    error: 'Sync error'
   }
 
   return (

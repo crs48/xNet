@@ -8,7 +8,7 @@ import { fileURLToPath } from 'url'
 // ESM __dirname shim (electron-vite outputs ESM)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-import { setupIPC } from './ipc'
+import { setupIPC, getOrCreateStorage } from './ipc'
 import { setupBSM } from './bsm'
 import { createMenu } from './menu'
 
@@ -63,12 +63,17 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
+  // Create storage early so both IPC and BSM can use it
+  const storage = getOrCreateStorage()
+  await storage.open()
+
   // Setup IPC handlers
   setupIPC()
 
-  // Setup Background Sync Manager
+  // Setup Background Sync Manager with blob storage
   bsm = setupBSM({
-    getMainWindow: () => mainWindow
+    getMainWindow: () => mainWindow,
+    blobStorage: storage
   })
 
   // Create menu

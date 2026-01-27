@@ -104,6 +104,20 @@ contextBridge.exposeInMainWorld('xnetBSM', {
     ipcRenderer.on('xnet:bsm:status-change', handler as (...args: unknown[]) => void)
     return () =>
       ipcRenderer.removeListener('xnet:bsm:status-change', handler as (...args: unknown[]) => void)
+  },
+  // Blob sync methods
+  requestBlobs: (cids: string[]) => ipcRenderer.invoke('xnet:bsm:request-blobs', { cids }),
+  announceBlobs: (cids: string[]) => ipcRenderer.invoke('xnet:bsm:announce-blobs', { cids }),
+  // Blob storage methods (for renderer to access main process blob storage)
+  getBlob: (cid: string) => ipcRenderer.invoke('xnet:bsm:get-blob', { cid }),
+  putBlob: (data: number[]) => ipcRenderer.invoke('xnet:bsm:put-blob', { data }),
+  hasBlob: (cid: string) => ipcRenderer.invoke('xnet:bsm:has-blob', { cid }),
+  // Subscribe to blob received events
+  onBlobReceived: (callback: (cid: string) => void) => {
+    const handler = (_: unknown, data: { cid: string }) => callback(data.cid)
+    ipcRenderer.on('xnet:bsm:blob-received', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener('xnet:bsm:blob-received', handler as (...args: unknown[]) => void)
   }
 })
 
@@ -177,6 +191,14 @@ export interface XNetBSMAPI {
     queueSize: number
   }>
   onStatusChange(callback: (status: string) => void): () => void
+  // Blob sync
+  requestBlobs(cids: string[]): Promise<void>
+  announceBlobs(cids: string[]): Promise<void>
+  // Blob storage
+  getBlob(cid: string): Promise<number[] | null>
+  putBlob(data: number[]): Promise<string>
+  hasBlob(cid: string): Promise<boolean>
+  onBlobReceived(callback: (cid: string) => void): () => void
 }
 
 declare global {

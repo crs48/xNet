@@ -5,12 +5,13 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { XNetProvider } from '@xnet/react'
 import { IndexedDBNodeStorageAdapter, BlobService } from '@xnet/data'
-import { IndexedDBAdapter, BlobStore, ChunkManager } from '@xnet/storage'
+import { ChunkManager } from '@xnet/storage'
 import { BlobProvider } from '@xnet/editor/react'
 import { XNetDevToolsProvider } from '@xnet/devtools'
 import { ThemeProvider } from '@xnet/ui'
 import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
 import { createIPCSyncManager } from './lib/ipc-sync-manager'
+import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { App } from './App'
 import './styles.css'
 
@@ -36,11 +37,12 @@ async function init() {
 
   const nodeStorage = new IndexedDBNodeStorageAdapter({ dbName })
 
-  // Blob storage: IndexedDBAdapter → BlobStore → ChunkManager → BlobService
-  const storageAdapter = new IndexedDBAdapter()
-  await storageAdapter.open()
-  const blobStore = new BlobStore(storageAdapter)
-  const chunkManager = new ChunkManager(blobStore)
+  // Blob storage: IPC to main process → ChunkManager → BlobService
+  // This routes all blob operations through IPC to main process SQLite,
+  // ensuring blobs are available for BSM to sync with peers
+  const ipcBlobStore = createIPCBlobStore()
+  // ChunkManager expects a BlobStore, but our IPC blob store has the same interface
+  const chunkManager = new ChunkManager(ipcBlobStore as any)
   const blobService = new BlobService(chunkManager)
 
   // Listen for devtools toggle from main process menu
@@ -59,7 +61,7 @@ async function init() {
               nodeStorage,
               authorDID: AUTHOR_DID,
               signingKey: SIGNING_KEY,
-              blobStore,
+              blobStore: ipcBlobStore as any,
               syncManager: ipcSyncManager
             }}
           >
