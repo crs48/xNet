@@ -384,9 +384,9 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
           if (syncManager && !disableSync) {
             // === SyncManager path: borrow Y.Doc from the pool ===
             log('Using SyncManager path')
-            console.log('[useNode] About to call syncManager.acquire for:', id)
+            log('About to call syncManager.acquire for:', id)
             ydoc = await syncManager.acquire(id)
-            console.log('[useNode] syncManager.acquire returned doc:', ydoc?.guid)
+            log('syncManager.acquire returned doc:', ydoc?.guid)
             usingSyncManagerRef.current = true
 
             // Load stored content into the doc (the SyncManager may return an empty doc)

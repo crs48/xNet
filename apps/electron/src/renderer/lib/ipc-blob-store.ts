@@ -9,6 +9,13 @@
 // ContentId is just a branded string in @xnet/core
 type ContentId = string
 
+// Debug logging - controlled by localStorage flag (same as sync debug)
+function log(...args: unknown[]): void {
+  if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
+    console.log('[IPCBlobStore]', ...args)
+  }
+}
+
 /**
  * Minimal blob store interface for sync (matches BlobStoreForSync from @xnet/react)
  */
@@ -25,17 +32,17 @@ export interface IPCBlobStore {
 export function createIPCBlobStore(): IPCBlobStore {
   return {
     async get(cid: ContentId): Promise<Uint8Array | null> {
-      console.log('[IPCBlobStore] get() called for CID:', cid)
+      log('get() called for CID:', cid)
 
       // First check if we have it locally
       const data = await window.xnetBSM.getBlob(cid)
       if (data) {
-        console.log('[IPCBlobStore] Found blob locally, size:', data.length)
+        log('Found blob locally, size:', data.length)
         return new Uint8Array(data)
       }
 
       // We don't have it - request from peers
-      console.log('[IPCBlobStore] Blob not found locally, requesting from peers:', cid)
+      log('Blob not found locally, requesting from peers:', cid)
       await window.xnetBSM.requestBlobs([cid])
 
       // TODO: Could wait for blob-received event, but for now return null
@@ -44,12 +51,12 @@ export function createIPCBlobStore(): IPCBlobStore {
     },
 
     async put(data: Uint8Array): Promise<ContentId> {
-      console.log('[IPCBlobStore] put() called, size:', data.length)
+      log('put() called, size:', data.length)
       const cid = await window.xnetBSM.putBlob(Array.from(data))
-      console.log('[IPCBlobStore] Stored blob with CID:', cid)
+      log('Stored blob with CID:', cid)
 
       // Announce the new blob to peers
-      console.log('[IPCBlobStore] Announcing new blob to peers:', cid)
+      log('Announcing new blob to peers:', cid)
       await window.xnetBSM.announceBlobs([cid])
 
       return cid
@@ -57,7 +64,7 @@ export function createIPCBlobStore(): IPCBlobStore {
 
     async has(cid: ContentId): Promise<boolean> {
       const result = await window.xnetBSM.hasBlob(cid)
-      console.log('[IPCBlobStore] has() called for CID:', cid, 'result:', result)
+      log('has() called for CID:', cid, 'result:', result)
       return result
     }
   }

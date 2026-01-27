@@ -58,7 +58,6 @@ export function FileNodeView({ node, selected, extension }: NodeViewProps) {
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        console.log(`[FileNodeView] Download attempt ${attempt + 1}/${maxRetries} for:`, cid)
         const url = await onDownload({ cid, name, mimeType, size })
         const a = document.createElement('a')
         a.href = url
@@ -68,14 +67,11 @@ export function FileNodeView({ node, selected, extension }: NodeViewProps) {
         document.body.removeChild(a)
         setDownloading(false)
         return // Success!
-      } catch (error) {
-        console.log(`[FileNodeView] Download attempt ${attempt + 1} failed:`, error)
+      } catch {
         if (attempt < maxRetries - 1) {
           const delay = baseDelay * Math.pow(2, attempt)
-          console.log(`[FileNodeView] Retrying in ${delay}ms...`)
           await new Promise((resolve) => setTimeout(resolve, delay))
         } else {
-          console.error('Download failed after retries:', error)
           setDownloadError('File not available. It may still be syncing.')
           setDownloading(false)
         }

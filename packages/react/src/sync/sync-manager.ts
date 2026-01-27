@@ -9,7 +9,10 @@
  * docs stay alive in the pool and continue syncing in the background.
  */
 
-console.log('[SyncManager] Module loaded from source!')
+// Module loaded indicator - only shown in debug mode
+if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
+  console.log('[SyncManager] Module loaded from source!')
+}
 
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
