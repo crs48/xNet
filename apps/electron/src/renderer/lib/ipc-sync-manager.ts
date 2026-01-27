@@ -41,6 +41,8 @@ interface DevToolsEventBus {
 export interface IPCSyncManager extends SyncManager {
   /** Instrument with devtools event bus for sync monitoring */
   instrument(eventBus: DevToolsEventBus): () => void
+  /** Set identity for signing outgoing updates */
+  setIdentity(authorDID: string, signingKey: Uint8Array): void
 }
 
 export function createIPCSyncManager(): IPCSyncManager {
@@ -59,6 +61,10 @@ export function createIPCSyncManager(): IPCSyncManager {
   let statusCleanup: (() => void) | null = null
   let instrumentedEventBus: DevToolsEventBus | null = null
   let statusPollInterval: ReturnType<typeof setInterval> | null = null
+
+  // Identity for signing outgoing updates
+  let identityAuthorDID: string | null = null
+  let identitySigningKey: number[] | null = null
 
   function notifyStatus(s: ConnectionStatus): void {
     if (s === currentStatus) return // Skip duplicate status updates
@@ -88,10 +94,19 @@ export function createIPCSyncManager(): IPCSyncManager {
       // Tell BSM to start (it may already be running)
       const signalingUrl = 'ws://localhost:4444' // TODO: make configurable
       try {
-        await window.xnetBSM.start({ signalingUrl })
+        await window.xnetBSM.start({
+          signalingUrl,
+          authorDID: identityAuthorDID ?? undefined,
+          signingKey: identitySigningKey ?? undefined
+        })
       } catch (err) {
         console.warn('[IPCSyncManager] Failed to start:', err)
       }
+    },
+
+    setIdentity(authorDID: string, signingKey: Uint8Array) {
+      identityAuthorDID = authorDID
+      identitySigningKey = Array.from(signingKey)
     },
 
     async stop() {

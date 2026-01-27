@@ -24,6 +24,15 @@ import { ipcMain, MessageChannelMain, type BrowserWindow } from 'electron'
 import * as Y from 'yjs'
 import WebSocket from 'ws'
 import { hashContent, createContentId } from '@xnet/core'
+import {
+  signYjsUpdate,
+  verifyYjsEnvelope,
+  isUpdateTooLarge,
+  MAX_YJS_UPDATE_SIZE,
+  YjsRateLimiter,
+  YjsPeerScorer,
+  type SignedYjsEnvelope
+} from '@xnet/sync'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -64,6 +73,51 @@ function fromBase64(str: string): Uint8Array {
   return new Uint8Array(Buffer.from(str, 'base64'))
 }
 
+/**
+ * Serialize a SignedYjsEnvelope for transmission.
+ * Converts Uint8Array fields to base64 for JSON serialization.
+ */
+function serializeEnvelope(envelope: SignedYjsEnvelope): Record<string, unknown> {
+  return {
+    update: toBase64(envelope.update),
+    authorDID: envelope.authorDID,
+    signature: toBase64(envelope.signature),
+    timestamp: envelope.timestamp,
+    clientId: envelope.clientId
+  }
+}
+
+/**
+ * Deserialize a received envelope from JSON.
+ * Converts base64 fields back to Uint8Array.
+ */
+function deserializeEnvelope(data: Record<string, unknown>): SignedYjsEnvelope | null {
+  try {
+    return {
+      update: fromBase64(data.update as string),
+      authorDID: data.authorDID as string,
+      signature: fromBase64(data.signature as string),
+      timestamp: data.timestamp as number,
+      clientId: data.clientId as number
+    }
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Check if a message contains a signed envelope (vs legacy format).
+ */
+function hasEnvelope(data: Record<string, unknown>): boolean {
+  return (
+    typeof data.envelope === 'object' &&
+    data.envelope !== null &&
+    'update' in (data.envelope as object) &&
+    'authorDID' in (data.envelope as object) &&
+    'signature' in (data.envelope as object)
+  )
+}
+
 // ─── BSM Service ────────────────────────────────────────────────────────────
 
 /** The room name used for all blob sync messages */
@@ -74,10 +128,18 @@ export function setupBSM(config: BSMConfig) {
   let status: ConnectionStatus = 'disconnected'
   let signalingUrl = ''
   let authorDID = ''
+  let signingKey: Uint8Array | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
 
   const peerId = Math.random().toString(36).slice(2, 10)
+
+  // Security primitives
+  const rateLimiter = new YjsRateLimiter()
+  const peerScorer = new YjsPeerScorer()
+
+  // Score recovery timer (runs every 60s)
+  let scorerRecoveryInterval: ReturnType<typeof setInterval> | null = null
 
   // Y.Doc pool
   const pool = new Map<string, PoolEntry>()
@@ -230,6 +292,11 @@ export function setupBSM(config: BSMConfig) {
         startPeerTimeoutCheck()
         startHeartbeat()
 
+        // Start peer score recovery timer
+        if (!scorerRecoveryInterval) {
+          scorerRecoveryInterval = setInterval(() => peerScorer.tick(), 60_000)
+        }
+
         // Re-subscribe to all rooms
         if (subscribedRooms.size > 0) {
           log('Re-subscribing to', subscribedRooms.size, 'rooms')
@@ -289,6 +356,11 @@ export function setupBSM(config: BSMConfig) {
         stopHeartbeat()
         stopPeerTimeoutCheck()
         clearAllPeers()
+        // Stop score recovery timer
+        if (scorerRecoveryInterval) {
+          clearInterval(scorerRecoveryInterval)
+          scorerRecoveryInterval = null
+        }
         scheduleReconnect()
       })
 
@@ -306,6 +378,14 @@ export function setupBSM(config: BSMConfig) {
     stopHeartbeat()
     stopPeerTimeoutCheck()
     clearAllPeers()
+    // Stop score recovery timer
+    if (scorerRecoveryInterval) {
+      clearInterval(scorerRecoveryInterval)
+      scorerRecoveryInterval = null
+    }
+    // Clean up security state
+    rateLimiter.clear()
+    peerScorer.clear()
     if (reconnectTimer) {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
@@ -331,6 +411,122 @@ export function setupBSM(config: BSMConfig) {
   }
 
   // ─── Yjs Sync Protocol ─────────────────────────────────────────────────
+
+  /**
+   * Create a signed envelope for an outgoing Yjs update.
+   * Returns the envelope data for JSON serialization, or the raw update if signing is unavailable.
+   */
+  function createOutgoingUpdate(
+    update: Uint8Array,
+    doc: Y.Doc
+  ): { envelope: Record<string, unknown> } | { update: string } {
+    // If we have signing credentials, create a signed envelope
+    if (signingKey && authorDID) {
+      const envelope = signYjsUpdate(update, authorDID, signingKey, doc.clientID)
+      return { envelope: serializeEnvelope(envelope) }
+    }
+    // Otherwise send unsigned (legacy format)
+    return { update: toBase64(update) }
+  }
+
+  /**
+   * Verify and extract update from incoming message.
+   * Handles both signed envelopes and legacy unsigned formats.
+   * Returns the update bytes if valid, null if rejected.
+   *
+   * @param remotePeerId - Peer ID for rate limiting/scoring
+   * @param data - The incoming message data
+   * @returns Update bytes if valid, null if rejected
+   */
+  function verifyIncomingUpdate(
+    remotePeerId: string,
+    data: Record<string, unknown>
+  ): Uint8Array | null {
+    // Check rate limit first (before any parsing work)
+    if (!rateLimiter.allow(remotePeerId)) {
+      const action = peerScorer.penalize(remotePeerId, 'rateExceeded')
+      log('Rate limit exceeded for peer:', remotePeerId, 'action:', action)
+      if (action === 'block') {
+        log('Peer blocked due to repeated rate limit violations:', remotePeerId)
+      }
+      return null
+    }
+
+    // Handle signed envelope format
+    if (hasEnvelope(data)) {
+      const envelope = deserializeEnvelope(data.envelope as Record<string, unknown>)
+      if (!envelope) {
+        const action = peerScorer.penalize(remotePeerId, 'invalidSignature')
+        log('Failed to deserialize envelope from peer:', remotePeerId, 'action:', action)
+        return null
+      }
+
+      // Check update size before verification
+      if (isUpdateTooLarge(envelope.update)) {
+        const action = peerScorer.penalize(remotePeerId, 'oversizedUpdate')
+        log(
+          'Update too large from peer:',
+          remotePeerId,
+          'size:',
+          envelope.update.length,
+          'max:',
+          MAX_YJS_UPDATE_SIZE,
+          'action:',
+          action
+        )
+        return null
+      }
+
+      // Verify signature
+      const result = verifyYjsEnvelope(envelope)
+      if (!result.valid) {
+        const action = peerScorer.penalize(remotePeerId, 'invalidSignature')
+        log(
+          'Invalid signature from peer:',
+          remotePeerId,
+          'reason:',
+          result.reason,
+          'action:',
+          action
+        )
+        return null
+      }
+
+      // Valid signed update
+      peerScorer.recordValid(remotePeerId)
+      return envelope.update
+    }
+
+    // Handle legacy unsigned format (Phase A: accept with warning)
+    if (typeof data.update === 'string') {
+      const update = fromBase64(data.update)
+
+      // Check size
+      if (isUpdateTooLarge(update)) {
+        const action = peerScorer.penalize(remotePeerId, 'oversizedUpdate')
+        log(
+          'Unsigned update too large from peer:',
+          remotePeerId,
+          'size:',
+          update.length,
+          'action:',
+          action
+        )
+        return null
+      }
+
+      // Phase A: Accept unsigned updates but log warning and penalize lightly
+      // In Phase B/C this would reject instead
+      log('WARNING: Received unsigned update from peer:', remotePeerId)
+      peerScorer.penalize(remotePeerId, 'unsignedUpdate')
+      peerScorer.recordValid(remotePeerId) // Also record as valid since we're accepting it
+
+      return update
+    }
+
+    log('Unknown update format from peer:', remotePeerId)
+    return null
+  }
 
   function sendSyncStep1(nodeId: string, doc: Y.Doc): void {
     const room = `xnet-doc-${nodeId}`
@@ -381,11 +577,12 @@ export function setupBSM(config: BSMConfig) {
           diff.length
         )
 
-        // Send sync-step2 with what they're missing
+        // Send sync-step2 with what they're missing (signed if possible)
+        const updateData = createOutgoingUpdate(diff, doc)
         wsSend({
           type: 'publish',
           topic: room,
-          data: { type: 'sync-step2', from: peerId, to: data.from, update: toBase64(diff) }
+          data: { type: 'sync-step2', from: peerId, to: data.from, ...updateData }
         })
 
         // Ask renderer to re-broadcast its awareness state so the new peer sees us
@@ -403,9 +600,16 @@ export function setupBSM(config: BSMConfig) {
           break
         }
         // Track peer connection
-        if (data.from) trackPeer(data.from as string, room)
+        const remotePeerId = data.from as string
+        if (remotePeerId) trackPeer(remotePeerId, room)
 
-        const update = fromBase64(data.update as string)
+        // Verify and extract update (handles both signed and unsigned)
+        const update = verifyIncomingUpdate(remotePeerId, data)
+        if (!update) {
+          log('Rejected sync-step2 from peer:', remotePeerId)
+          break
+        }
+
         log('Received sync-step2, applying update size:', update.length)
         Y.applyUpdate(doc, update, 'remote')
         entry.dirty = true
@@ -417,9 +621,16 @@ export function setupBSM(config: BSMConfig) {
 
       case 'sync-update': {
         // Track peer connection
-        if (data.from) trackPeer(data.from as string, room)
+        const remotePeerId = data.from as string
+        if (remotePeerId) trackPeer(remotePeerId, room)
 
-        const update = fromBase64(data.update as string)
+        // Verify and extract update (handles both signed and unsigned)
+        const update = verifyIncomingUpdate(remotePeerId, data)
+        if (!update) {
+          log('Rejected sync-update from peer:', remotePeerId)
+          break
+        }
+
         log('Received sync-update, size:', update.length)
         Y.applyUpdate(doc, update, 'remote')
         entry.dirty = true
@@ -672,15 +883,16 @@ export function setupBSM(config: BSMConfig) {
 
     const doc = new Y.Doc({ guid: nodeId })
 
-    // Set up broadcast: local edits → WebSocket
+    // Set up broadcast: local edits → WebSocket (signed if possible)
     doc.on('update', (update: Uint8Array, origin: unknown) => {
       if (origin === 'remote' || origin === 'renderer') return
       if (status === 'connected') {
         const room = `xnet-doc-${nodeId}`
+        const updateData = createOutgoingUpdate(update, doc)
         wsSend({
           type: 'publish',
           topic: room,
-          data: { type: 'sync-update', from: peerId, update: toBase64(update) }
+          data: { type: 'sync-update', from: peerId, ...updateData }
         })
       }
     })
@@ -701,11 +913,12 @@ export function setupBSM(config: BSMConfig) {
 
   ipcMain.handle(
     'xnet:bsm:start',
-    async (_event, opts: { signalingUrl: string; authorDID?: string }) => {
+    async (_event, opts: { signalingUrl: string; authorDID?: string; signingKey?: number[] }) => {
       if (status !== 'disconnected') return // Already running
 
       signalingUrl = opts.signalingUrl
       authorDID = opts.authorDID ?? ''
+      signingKey = opts.signingKey ? new Uint8Array(opts.signingKey) : null
       destroyed = false
       connect()
     }
@@ -767,14 +980,15 @@ export function setupBSM(config: BSMConfig) {
 
         log('BSM doc after renderer update - meta keys:', doc.getMap('meta').size)
 
-        // Broadcast to network
+        // Broadcast to network (signed if possible)
         if (status === 'connected') {
           const room = `xnet-doc-${nodeId}`
           log('Broadcasting renderer update to network')
+          const updateData = createOutgoingUpdate(u8, doc)
           wsSend({
             type: 'publish',
             topic: room,
-            data: { type: 'sync-update', from: peerId, update: toBase64(u8) }
+            data: { type: 'sync-update', from: peerId, ...updateData }
           })
         }
       } else if (type === 'awareness' && update) {

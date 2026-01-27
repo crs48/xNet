@@ -22,6 +22,7 @@
     "@xnet/data": "workspace:*",
     "@xnet/devtools": "workspace:*",
     "@xnet/storage": "workspace:*",
+    "@xnet/sync": "workspace:*",
     "@xnet/editor": "workspace:*",
     "@xnet/react": "workspace:*",
     "@xnet/sdk": "workspace:*",
