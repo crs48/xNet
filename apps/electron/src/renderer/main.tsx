@@ -3,7 +3,7 @@
  */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { XNetProvider, type SyncManager } from '@xnet/react'
+import { XNetProvider } from '@xnet/react'
 import { IndexedDBNodeStorageAdapter, BlobService } from '@xnet/data'
 import { IndexedDBAdapter, BlobStore, ChunkManager } from '@xnet/storage'
 import { BlobProvider } from '@xnet/editor/react'
@@ -23,10 +23,8 @@ const consentManager = new ConsentManager({ autoLoad: true })
 consentManager.setTier('anonymous') // Enable all collection tiers for devtools visibility
 const telemetryCollector = new TelemetryCollector({ consent: consentManager })
 
-// IPC-based sync manager disabled until signaling server is available.
-// The in-renderer SyncManager is also disabled to avoid connection errors.
-// TODO: Re-enable when signaling infrastructure is ready.
-const ipcSyncManager: SyncManager | undefined = undefined
+// IPC-based sync manager routes sync through the main process BSM
+const ipcSyncManager = createIPCSyncManager()
 
 async function init() {
   const startTime = performance.now()
@@ -62,7 +60,7 @@ async function init() {
               authorDID: AUTHOR_DID,
               signingKey: SIGNING_KEY,
               blobStore,
-              disableSyncManager: true
+              syncManager: ipcSyncManager
             }}
           >
             <BlobProvider blobService={blobService}>

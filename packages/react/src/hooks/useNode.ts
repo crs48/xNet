@@ -367,6 +367,12 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
             ydoc = await syncManager.acquire(id)
             usingSyncManagerRef.current = true
 
+            // Load stored content into the doc (the SyncManager may return an empty doc)
+            const storedContent = await store.getDocumentContent(id)
+            if (storedContent && storedContent.length > 0) {
+              Y.applyUpdate(ydoc, storedContent, 'storage')
+            }
+
             // Track this Node for background sync
             syncManager.track(id, schemaId)
           } else {

@@ -31,17 +31,28 @@ contextBridge.exposeInMainWorld('xnet', {
 })
 
 // Expose BSM API for background sync
-const bsmPortListeners = new Map<string, Set<(port: MessagePort) => void>>()
+// MessagePorts can't cross contextBridge, so we manage them here in preload
+const bsmPorts = new Map<string, MessagePort>()
+const bsmPortReadyCallbacks = new Map<string, Set<() => void>>()
+const bsmMessageHandlers = new Map<string, (data: unknown) => void>()
 
 ipcRenderer.on('xnet:bsm:port', (event, { nodeId }: { nodeId: string }) => {
   const [port] = event.ports
   if (!port) return
 
-  // Notify any waiting listeners
-  const listeners = bsmPortListeners.get(nodeId)
-  if (listeners) {
-    for (const cb of listeners) cb(port)
-    bsmPortListeners.delete(nodeId)
+  // Set up message forwarding to renderer
+  port.onmessage = (msgEvent) => {
+    const handler = bsmMessageHandlers.get(nodeId)
+    if (handler) handler(msgEvent.data)
+  }
+  port.start()
+  bsmPorts.set(nodeId, port)
+
+  // Notify any waiting callbacks that port is ready
+  const callbacks = bsmPortReadyCallbacks.get(nodeId)
+  if (callbacks) {
+    for (const cb of callbacks) cb()
+    bsmPortReadyCallbacks.delete(nodeId)
   }
 })
 
@@ -49,17 +60,41 @@ contextBridge.exposeInMainWorld('xnetBSM', {
   start: (opts: { signalingUrl: string; authorDID?: string }) =>
     ipcRenderer.invoke('xnet:bsm:start', opts),
   stop: () => ipcRenderer.invoke('xnet:bsm:stop'),
-  acquire: (nodeId: string, schemaId: string): Promise<MessagePort> => {
+  acquire: (nodeId: string, schemaId: string): Promise<void> => {
     return new Promise((resolve) => {
-      // Register listener for incoming port BEFORE invoking acquire
-      const listeners = bsmPortListeners.get(nodeId) ?? new Set()
-      listeners.add(resolve)
-      bsmPortListeners.set(nodeId, listeners)
+      // If port already exists, resolve immediately
+      if (bsmPorts.has(nodeId)) {
+        resolve()
+        return
+      }
+
+      // Register callback for when port is ready
+      const callbacks = bsmPortReadyCallbacks.get(nodeId) ?? new Set()
+      callbacks.add(resolve)
+      bsmPortReadyCallbacks.set(nodeId, callbacks)
 
       ipcRenderer.invoke('xnet:bsm:acquire', { nodeId, schemaId })
     })
   },
-  release: (nodeId: string) => ipcRenderer.invoke('xnet:bsm:release', { nodeId }),
+  release: (nodeId: string) => {
+    const port = bsmPorts.get(nodeId)
+    if (port) {
+      port.close()
+      bsmPorts.delete(nodeId)
+    }
+    bsmMessageHandlers.delete(nodeId)
+    return ipcRenderer.invoke('xnet:bsm:release', { nodeId })
+  },
+  // Send a message to the main process for this node
+  postMessage: (nodeId: string, data: unknown) => {
+    const port = bsmPorts.get(nodeId)
+    if (port) port.postMessage(data)
+  },
+  // Set up a message handler for this node
+  onMessage: (nodeId: string, handler: (data: unknown) => void) => {
+    bsmMessageHandlers.set(nodeId, handler)
+    return () => bsmMessageHandlers.delete(nodeId)
+  },
   track: (nodeId: string, schemaId: string) =>
     ipcRenderer.invoke('xnet:bsm:track', { nodeId, schemaId }),
   untrack: (nodeId: string) => ipcRenderer.invoke('xnet:bsm:untrack', { nodeId }),
@@ -129,8 +164,10 @@ export interface XNetStorageAPI {
 export interface XNetBSMAPI {
   start(opts: { signalingUrl: string; authorDID?: string }): Promise<void>
   stop(): Promise<void>
-  acquire(nodeId: string, schemaId: string): Promise<MessagePort>
+  acquire(nodeId: string, schemaId: string): Promise<void>
   release(nodeId: string): Promise<void>
+  postMessage(nodeId: string, data: unknown): void
+  onMessage(nodeId: string, handler: (data: unknown) => void): () => void
   track(nodeId: string, schemaId: string): Promise<void>
   untrack(nodeId: string): Promise<void>
   getStatus(): Promise<{

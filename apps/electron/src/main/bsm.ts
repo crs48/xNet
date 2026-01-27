@@ -328,6 +328,7 @@ export function setupBSM(config: BSMConfig) {
 
   ipcMain.handle('xnet:bsm:acquire', async (event, opts: { nodeId: string; schemaId: string }) => {
     const { nodeId, schemaId } = opts
+    console.log('[BSM] acquire called for', nodeId)
 
     // Track the node
     tracked.set(nodeId, { nodeId, schemaId, lastOpened: Date.now() })
@@ -340,12 +341,9 @@ export function setupBSM(config: BSMConfig) {
 
     // Create MessageChannel for binary Y.Doc updates
     const { port1, port2 } = new MessageChannelMain()
+    console.log('[BSM] created port for', nodeId)
 
-    // Send full initial state to renderer
-    const initialState = Y.encodeStateAsUpdate(doc)
-    port1.postMessage({ type: 'init', update: Array.from(initialState) })
-
-    // Receive local updates from renderer → main
+    // Receive updates from renderer
     port1.on('message', (msgEvent) => {
       const { type, update } = msgEvent.data
       if (type === 'update' && update) {
@@ -376,6 +374,7 @@ export function setupBSM(config: BSMConfig) {
     activePorts.set(nodeId, port1)
 
     // Transfer port2 to the renderer
+    console.log('[BSM] sending port to renderer for', nodeId)
     event.sender.postMessage('xnet:bsm:port', { nodeId }, [port2])
   })
 
