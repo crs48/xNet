@@ -52,6 +52,7 @@ export function createIPCSyncManager(): IPCSyncManager {
   let previousStatus: ConnectionStatus = 'disconnected'
   const statusListeners = new Set<StatusHandler>()
   let statusCleanup: (() => void) | null = null
+  let instrumentedEventBus: DevToolsEventBus | null = null
 
   function notifyStatus(s: ConnectionStatus): void {
     if (s === currentStatus) return // Skip duplicate status updates
@@ -79,6 +80,11 @@ export function createIPCSyncManager(): IPCSyncManager {
       const signalingUrl = 'ws://localhost:4444' // TODO: make configurable
       try {
         await window.xnetBSM.start({ signalingUrl })
+        // Fetch actual status from BSM (it may already be connected)
+        const bsmStatus = await window.xnetBSM.getStatus()
+        if (bsmStatus.status !== currentStatus) {
+          notifyStatus(bsmStatus.status as ConnectionStatus)
+        }
       } catch (err) {
         // Start failed (e.g., signaling server unavailable)
         // Keep the manager usable for local-only operation
@@ -266,15 +272,21 @@ export function createIPCSyncManager(): IPCSyncManager {
     },
 
     instrument(eventBus: DevToolsEventBus): () => void {
-      // Emit initial status
+      // Prevent duplicate instrumentation (React StrictMode calls effects twice)
+      if (instrumentedEventBus === eventBus) {
+        return () => {} // Already instrumented with this bus
+      }
+      instrumentedEventBus = eventBus
+
+      // Emit current status immediately so devtools has something to show
       eventBus.emit({
         type: 'sync:status-change',
         room: 'ipc-bsm',
-        previousStatus: 'disconnected',
+        previousStatus: previousStatus,
         newStatus: currentStatus
       })
 
-      // Subscribe to status changes
+      // Subscribe to status changes - this will catch the "connected" event when BSM finishes connecting
       const statusHandler = () => {
         eventBus.emit({
           type: 'sync:status-change',
@@ -286,7 +298,7 @@ export function createIPCSyncManager(): IPCSyncManager {
       statusListeners.add(statusHandler)
 
       // Subscribe to peer events from main process
-      const peerCleanup = window.xnetBSM.onPeerConnected((peerId, room, totalPeers) => {
+      const peerConnectedCleanup = window.xnetBSM.onPeerConnected((peerId, room, totalPeers) => {
         eventBus.emit({
           type: 'sync:peer-connected',
           room,
@@ -299,9 +311,22 @@ export function createIPCSyncManager(): IPCSyncManager {
         })
       })
 
+      const peerDisconnectedCleanup = window.xnetBSM.onPeerDisconnected(
+        (peerId, _reason, totalPeers) => {
+          eventBus.emit({
+            type: 'sync:peer-disconnected',
+            room: 'ipc-bsm',
+            peerId,
+            totalPeers
+          })
+        }
+      )
+
       return () => {
         statusListeners.delete(statusHandler)
-        peerCleanup()
+        peerConnectedCleanup()
+        peerDisconnectedCleanup()
+        instrumentedEventBus = null
       }
     }
   }
