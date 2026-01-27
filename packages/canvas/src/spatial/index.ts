@@ -283,22 +283,23 @@ export class Viewport {
   }
 
   /**
-   * Zoom at a specific screen point
+   * Zoom at a specific screen point, keeping the canvas point under the cursor stationary
    */
   zoomAt(screenX: number, screenY: number, factor: number, minZoom = 0.1, maxZoom = 4): void {
     const newZoom = Math.max(minZoom, Math.min(maxZoom, this.zoom * factor))
     if (newZoom === this.zoom) return
 
-    // Get canvas point before zoom
+    // Get canvas point under cursor before zoom
     const canvasPoint = this.screenToCanvas(screenX, screenY)
 
-    // Apply zoom
+    // Apply new zoom
     this.zoom = newZoom
 
-    // Adjust center so the canvas point stays under the cursor
-    const newScreen = this.canvasToScreen(canvasPoint.x, canvasPoint.y)
-    this.x += (screenX - newScreen.x) / this.zoom
-    this.y += (screenY - newScreen.y) / this.zoom
+    // Calculate new viewport center so canvasPoint stays at (screenX, screenY)
+    // From screenToCanvas: canvasX = (screenX - width/2) / zoom + centerX
+    // Solving for centerX: centerX = canvasX - (screenX - width/2) / zoom
+    this.x = canvasPoint.x - (screenX - this.width / 2) / this.zoom
+    this.y = canvasPoint.y - (screenY - this.height / 2) / this.zoom
   }
 
   /**
