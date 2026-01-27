@@ -107,3 +107,16 @@ export type {
   YjsScoringConfig
 } from './yjs-peer-scoring'
 export { YjsPeerScorer, DEFAULT_YJS_SCORING_CONFIG } from './yjs-peer-scoring'
+
+// Yjs security: clientID-DID binding (Step 07)
+export type {
+  ClientIdAttestation,
+  AttestationVerifyResult,
+  ClientIdMap
+} from './clientid-attestation'
+export {
+  createClientIdAttestation,
+  verifyClientIdAttestation,
+  ClientIdMapImpl,
+  validateClientIdOwnership
+} from './clientid-attestation'
