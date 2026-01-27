@@ -172,11 +172,11 @@ flowchart TB
 
 **Tier 1 Validation Gate:**
 
-- [ ] All Yjs updates are signed before sending
-- [ ] Hub rejects updates with invalid signatures
-- [ ] WebSocket connections require UCAN token (except anonymous mode)
-- [ ] Updates >1MB are rejected; >30/sec are rate-limited
-- [ ] MetaBridge no longer writes Yjs meta changes to NodeStore
+- [x] All Yjs updates are signed before sending (SignedYjsEnvelope)
+- [ ] Hub rejects updates with invalid signatures (needs hub package)
+- [ ] WebSocket connections require UCAN token (needs hub package)
+- [x] Updates >1MB are rejected; >30/sec are rate-limited (YjsRateLimiter)
+- [x] MetaBridge no longer writes Yjs meta changes to NodeStore
 
 ### Tier 2: Defense in Depth (Days 5-8)
 
@@ -191,10 +191,10 @@ flowchart TB
 
 **Tier 2 Validation Gate:**
 
-- [ ] Persisted Yjs state includes BLAKE3 hash
-- [ ] Corrupted-at-rest state detected on load (hash mismatch)
-- [ ] Peer blocked after 3 invalid signature attempts
-- [ ] Rate/size violations degrade peer score
+- [x] Persisted Yjs state includes BLAKE3 hash (PersistedDocState)
+- [x] Corrupted-at-rest state detected on load (YjsIntegrityError)
+- [x] Peer blocked after 3 invalid signature attempts (YjsPeerScorer)
+- [x] Rate/size violations degrade peer score (YjsPeerScorer)
 
 ### Tier 3: Full Integrity (Days 9-12)
 
@@ -209,10 +209,10 @@ flowchart TB
 
 **Tier 3 Validation Gate:**
 
-- [ ] ClientID→DID binding verified on room join
-- [ ] Updates from unattested clientIDs rejected
-- [ ] Yjs updates appear in the per-node hash chain
-- [ ] Batching reduces overhead to <0.5 updates/sec
+- [x] ClientID→DID binding verified on room join (ClientIdAttestation)
+- [x] Updates from unattested clientIDs rejected (validateClientIdOwnership)
+- [x] Yjs updates appear in the per-node hash chain (YjsChange type)
+- [x] Batching reduces overhead to <0.5 updates/sec (YjsBatcher)
 
 ## Affected Packages
 
