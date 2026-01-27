@@ -73,6 +73,9 @@ importers:
       '@xnet/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@xnet/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
       '@xnet/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry

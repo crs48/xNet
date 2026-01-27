@@ -57,7 +57,7 @@ ipcRenderer.on('xnet:bsm:port', (event, { nodeId }: { nodeId: string }) => {
 })
 
 contextBridge.exposeInMainWorld('xnetBSM', {
-  start: (opts: { signalingUrl: string; authorDID?: string }) =>
+  start: (opts: { signalingUrl: string; authorDID?: string; signingKey?: number[] }) =>
     ipcRenderer.invoke('xnet:bsm:start', opts),
   stop: () => ipcRenderer.invoke('xnet:bsm:stop'),
   acquire: (nodeId: string, schemaId: string): Promise<void> => {
@@ -193,7 +193,7 @@ export interface XNetStorageAPI {
 }
 
 export interface XNetBSMAPI {
-  start(opts: { signalingUrl: string; authorDID?: string }): Promise<void>
+  start(opts: { signalingUrl: string; authorDID?: string; signingKey?: number[] }): Promise<void>
   stop(): Promise<void>
   acquire(nodeId: string, schemaId: string): Promise<void>
   release(nodeId: string): Promise<void>

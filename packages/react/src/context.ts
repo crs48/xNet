@@ -150,6 +150,16 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       // Set the syncManager immediately so components can subscribe to status updates
       setSyncManager(config.syncManager)
 
+      // If the external SyncManager supports setIdentity (e.g., IPCSyncManager for Electron),
+      // set the identity before starting so updates can be signed
+      const sm = config.syncManager as SyncManager & {
+        setIdentity?: (authorDID: string, signingKey: Uint8Array) => void
+      }
+      const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
+      if (sm.setIdentity && authorDID && config.signingKey) {
+        sm.setIdentity(authorDID, config.signingKey)
+      }
+
       config.syncManager.start().catch((err) => {
         console.warn('[XNetProvider] External SyncManager failed to start:', err)
         // SyncManager is still usable for local-only operation
