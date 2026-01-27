@@ -361,8 +361,8 @@ describe('WebSocketSyncProvider signing', () => {
 
 ## Validation Gate
 
-- [ ] `signYjsUpdate()` produces envelope with Ed25519 signature over BLAKE3(update)
-- [ ] `verifyYjsEnvelope()` accepts valid, rejects tampered/invalid
+- [x] `signYjsUpdate()` produces envelope with Ed25519 signature over BLAKE3(update)
+- [x] `verifyYjsEnvelope()` accepts valid, rejects tampered/invalid
 - [ ] `WebSocketSyncProvider` signs outgoing when identity provided
 - [ ] `WebSocketSyncProvider` verifies incoming signed updates
 - [ ] Hub `YjsSecurityService` rejects invalid before `Y.applyUpdate()`

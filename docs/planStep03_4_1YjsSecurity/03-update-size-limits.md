@@ -353,11 +353,11 @@ describe('Chunked sync', () => {
 
 ## Validation Gate
 
-- [ ] Updates >1MB rejected at hub with `update_too_large`
-- [ ] Updates >30/sec rate-limited with `rate_exceeded`
-- [ ] Client chunks updates >1MB into 256KB pieces
-- [ ] Hub reassembles chunks and applies as single update
-- [ ] Reassembled total >50MB rejected
+- [x] Updates >1MB rejected at hub with `update_too_large` (isUpdateTooLarge utility)
+- [x] Updates >30/sec rate-limited with `rate_exceeded` (YjsRateLimiter)
+- [x] Client chunks updates >1MB into 256KB pieces (chunkUpdate utility)
+- [x] Hub reassembles chunks and applies as single update (reassembleChunks utility)
+- [x] Reassembled total >50MB rejected (isDocumentTooLarge utility)
 - [ ] Stale pending chunks cleaned up after 30s TTL
 - [ ] Document size monitoring warns at 80% of limit
 - [ ] All rejections trigger peer score penalty
