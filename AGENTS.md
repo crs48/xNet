@@ -165,6 +165,8 @@ describe('ModuleName', () => {
 - Write unit tests for core packages
 - Use existing patterns from similar code
 - Keep changes minimal and focused
+- Prefer Tailwind over custom CSS
+- Integrate new features into the Electron app first, before bothering with Web or Expo
 
 **DON'T:**
 
