@@ -11,6 +11,12 @@ export const slashCommandPluginKey = new PluginKey('slashCommand')
 export interface SlashCommandOptions {
   /** Custom suggestion trigger character */
   char?: string
+  /**
+   * Custom commands to use instead of built-in commands.
+   * When provided, these commands replace the default `filterCommands` behavior.
+   * Use this to pass merged built-in + plugin commands.
+   */
+  commands?: SlashCommandItem[]
 }
 
 /**
@@ -18,17 +24,47 @@ export interface SlashCommandOptions {
  *
  * Triggered by typing `/` at the start of a line or after a space.
  * Shows a filterable menu of block types and commands.
+ *
+ * @example Default usage (built-in commands only)
+ * ```tsx
+ * SlashCommand.configure({ char: '/' })
+ * ```
+ *
+ * @example With plugin commands
+ * ```tsx
+ * const allCommands = useSlashCommands({ getContributions: () => pluginCommands })
+ * SlashCommand.configure({ commands: allCommands })
+ * ```
  */
 export const SlashCommand = Extension.create<SlashCommandOptions>({
   name: 'slashCommand',
 
   addOptions() {
     return {
-      char: '/'
+      char: '/',
+      commands: undefined
     }
   },
 
   addProseMirrorPlugins() {
+    const customCommands = this.options.commands
+
+    // Filter function: uses custom commands if provided, else falls back to built-in
+    const getFilteredCommands = (query: string): SlashCommandItem[] => {
+      if (customCommands) {
+        const search = query.toLowerCase().trim()
+        if (!search) return customCommands
+
+        return customCommands.filter((item) => {
+          if (item.title.toLowerCase().includes(search)) return true
+          if (item.searchTerms?.some((term) => term.includes(search))) return true
+          if (item.description.toLowerCase().includes(search)) return true
+          return false
+        })
+      }
+      return filterCommands(query)
+    }
+
     return [
       Suggestion({
         editor: this.editor,
@@ -37,7 +73,7 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
         allowSpaces: false,
         startOfLine: false,
 
-        items: ({ query }: { query: string }) => filterCommands(query),
+        items: ({ query }: { query: string }) => getFilteredCommands(query),
 
         command: ({ editor, range, props }: { editor: any; range: any; props: any }) => {
           props.command({ editor, range })

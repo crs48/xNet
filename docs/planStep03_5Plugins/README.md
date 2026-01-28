@@ -106,14 +106,14 @@ Make the UI extensible — custom views, editor blocks, slash commands.
 | Task | Document                                             | Description                                                  | Status |
 | ---- | ---------------------------------------------------- | ------------------------------------------------------------ | ------ |
 | 2.1  | [03-view-registry.md](./03-view-registry.md)         | ViewRegistry, ViewContribution, dynamic view type resolution | [x]    |
-| 2.2  | [04-editor-extensions.md](./04-editor-extensions.md) | Extension prop, custom blocks, toolbar items                 | [ ]    |
-| 2.3  | [05-slash-commands.md](./05-slash-commands.md)       | TipTap suggestion plugin, command registry                   | [ ]    |
+| 2.2  | [04-editor-extensions.md](./04-editor-extensions.md) | Extension prop, custom blocks, toolbar items                 | [x]    |
+| 2.3  | [05-slash-commands.md](./05-slash-commands.md)       | TipTap suggestion plugin, command registry                   | [x]    |
 
 **Validation Gate:**
 
 - [x] A plugin can register a custom view type visible in the view switcher
-- [ ] A plugin can add a TipTap extension to the editor
-- [ ] Slash commands work with plugin-registered commands
+- [x] A plugin can add a TipTap extension to the editor
+- [x] Slash commands work with plugin-registered commands
 - [x] PropertyHandler registration is dynamic
 
 ### Phase 3: Scripts & AI (Steps 06-07)

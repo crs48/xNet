@@ -82,6 +82,8 @@ export type {
   UseEditorExtensionsResult,
   UseEditorExtensionsOptions
 } from './hooks/useEditorExtensions'
+export { useSlashCommands } from './hooks/useSlashCommands'
+export type { SlashCommandContribution, UseSlashCommandsOptions } from './hooks/useSlashCommands'
 
 // Re-export hooks from @tiptap/react for convenience
 export { useEditor, EditorContent } from '@tiptap/react'

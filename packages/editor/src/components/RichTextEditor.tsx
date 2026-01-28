@@ -31,7 +31,7 @@ import {
   EmbedExtension,
   DatabaseEmbedExtension
 } from '../extensions'
-import type { DatabaseViewType } from '../extensions'
+import type { DatabaseViewType, SlashCommandItem } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
 import '../styles/editor.css'
 import { cn } from '../utils'
@@ -249,6 +249,12 @@ export interface RichTextEditorProps {
    * These are added to the floating toolbar.
    */
   toolbarItems?: ToolbarItemContribution[]
+  /**
+   * Custom slash commands from plugins.
+   * When provided, these replace the default built-in commands.
+   * Use useSlashCommands() to merge built-in + plugin commands.
+   */
+  slashCommands?: SlashCommandItem[]
 }
 
 /**
@@ -315,7 +321,8 @@ export function RichTextEditor({
   resolveDatabaseMeta,
   renderDatabaseView,
   extensions: additionalExtensions = [],
-  toolbarItems: additionalToolbarItems = []
+  toolbarItems: additionalToolbarItems = [],
+  slashCommands
 }: RichTextEditorProps): JSX.Element {
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -362,8 +369,10 @@ export function RichTextEditor({
       marks: ['bold', 'italic', 'strike', 'code'],
       links: true
     }),
-    // Slash command palette
-    SlashCommand,
+    // Slash command palette (with optional custom commands)
+    SlashCommand.configure({
+      commands: slashCommands
+    }),
     // Drag handle with block drag-and-drop
     DragHandleExtension.configure({
       enableDragDrop: !readOnly,
