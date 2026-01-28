@@ -4,7 +4,7 @@
 
 import React from 'react'
 import type { SyncStatus } from '@xnet/react'
-import { useNode, useIdentity } from '@xnet/react'
+import { useNode, useIdentity, useEditorExtensionsSafe } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
 import { RichTextEditor, useImageUpload, useFileUpload, useFileDownload } from '@xnet/editor/react'
 import { DocumentHeader } from './DocumentHeader'
@@ -19,6 +19,12 @@ export function PageView({ docId }: PageViewProps) {
   const onImageUpload = useImageUpload()
   const onFileUpload = useFileUpload()
   const onFileDownload = useFileDownload()
+
+  // Get editor extensions from plugins (reactive - updates when plugins change)
+  // Uses safe version that returns [] if plugin system isn't ready
+  // Cast to any to avoid TipTap version conflicts between packages
+  const editorContributions = useEditorExtensionsSafe()
+  const pluginExtensions = editorContributions.map((c) => c.extension) as any[]
 
   const {
     data: page,
@@ -68,6 +74,7 @@ export function PageView({ docId }: PageViewProps) {
           onImageUpload={onImageUpload ?? undefined}
           onFileUpload={onFileUpload ?? undefined}
           onFileDownload={onFileDownload ?? undefined}
+          extensions={pluginExtensions}
         />
       </div>
     </div>

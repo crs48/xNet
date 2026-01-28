@@ -16,6 +16,8 @@ import { PageView } from './components/PageView'
 import { DatabaseView } from './components/DatabaseView'
 import { CanvasView } from './components/CanvasView'
 import { AddSharedDialog } from './components/AddSharedDialog'
+import { SettingsView } from './components/SettingsView'
+import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 
 type DocType = 'page' | 'database' | 'canvas'
 
@@ -31,6 +33,7 @@ export function App() {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [selectedDocType, setSelectedDocType] = useState<DocType>('page')
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   // Query all document types
   const { data: pages, loading: pagesLoading } = useQuery(PageSchema, { limit: 100 })
@@ -140,8 +143,13 @@ export function App() {
     setSelectedDocType(docType)
   }, [])
 
-  // Render content based on document type
+  // Render content based on document type or settings
   const renderContent = () => {
+    // Show settings if open
+    if (showSettings) {
+      return <SettingsView onClose={() => setShowSettings(false)} />
+    }
+
     if (!selectedDocId) {
       return (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -192,6 +200,7 @@ export function App() {
           onDelete={handleDelete}
           onCreate={handleCreate}
           onAddShared={() => setShowAddSharedDialog(true)}
+          onSettings={() => setShowSettings(true)}
         />
 
         {/* Content area */}
@@ -204,6 +213,9 @@ export function App() {
         onClose={() => setShowAddSharedDialog(false)}
         onAdd={handleAddShared}
       />
+
+      {/* Auto-install bundled plugins */}
+      <BundledPluginInstaller />
     </div>
   )
 }

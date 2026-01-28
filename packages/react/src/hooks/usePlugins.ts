@@ -33,13 +33,27 @@ export const PluginRegistryContext = createContext<PluginRegistry | null>(null)
  * const registry = usePluginRegistry()
  * const plugins = registry.getAll()
  * ```
+ *
+ * @throws Error if used outside of XNetProvider with plugins enabled
  */
 export function usePluginRegistry(): PluginRegistry {
   const registry = useContext(PluginRegistryContext)
   if (!registry) {
-    throw new Error('usePluginRegistry must be used within a PluginRegistryProvider')
+    throw new Error(
+      'usePluginRegistry must be used within XNetProvider with plugins enabled. ' +
+        "Ensure XNetProvider has platform: 'electron' or platform: 'web' in its config."
+    )
   }
   return registry
+}
+
+/**
+ * Safely access the PluginRegistry instance, returns null if not available
+ *
+ * Use this when you need to optionally access the plugin system without throwing.
+ */
+export function usePluginRegistryOptional(): PluginRegistry | null {
+  return useContext(PluginRegistryContext)
 }
 
 // ─── usePlugins ─────────────────────────────────────────────────────────────
@@ -185,9 +199,43 @@ export function useSidebarItems(): SidebarContribution[] {
 
 /**
  * Get all registered editor extensions
+ *
+ * @throws Error if plugin system is not enabled
  */
 export function useEditorExtensions(): EditorContribution[] {
   return useContributions('editor')
+}
+
+/**
+ * Get all registered editor extensions, returns empty array if plugin system is not available
+ *
+ * Safe version that doesn't throw if plugins aren't enabled.
+ */
+export function useEditorExtensionsSafe(): EditorContribution[] {
+  const registry = usePluginRegistryOptional()
+  const [items, setItems] = useState<EditorContribution[]>([])
+
+  useEffect(() => {
+    if (!registry) {
+      setItems([])
+      return
+    }
+
+    const contributions = registry.getContributions()
+    const typedRegistry = contributions.editor
+
+    // Initial load
+    setItems(typedRegistry.getAll())
+
+    // Subscribe to changes
+    const unsubscribe = typedRegistry.onChange(() => {
+      setItems(typedRegistry.getAll())
+    })
+
+    return unsubscribe
+  }, [registry])
+
+  return items
 }
 
 /**
