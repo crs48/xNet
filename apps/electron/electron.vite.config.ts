@@ -18,7 +18,8 @@ export default defineConfig({
           '@xnet/sync',
           '@xnet/data',
           '@xnet/query',
-          '@xnet/telemetry'
+          '@xnet/telemetry',
+          '@xnet/plugins'
         ]
       })
     ],
