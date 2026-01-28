@@ -40,3 +40,14 @@ export { createServiceClient, isServiceClientAvailable, SERVICE_IPC_CHANNELS } f
 // Webhook Emitter
 export type { WebhookConfig, WebhookPayload, DeliveryResult } from './webhook-emitter'
 export { WebhookEmitter, createWebhookEmitter } from './webhook-emitter'
+
+// MCP Server
+export type {
+  MCPTool,
+  MCPPropertySchema,
+  MCPResource,
+  MCPRequest,
+  MCPResponse,
+  MCPServerConfig
+} from './mcp-server'
+export { MCPServer, createMCPServer } from './mcp-server'
