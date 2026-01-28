@@ -157,7 +157,7 @@ Electron-only background processes + external system connections.
 
 | Task | Document                                                   | Description                                    | Status |
 | ---- | ---------------------------------------------------------- | ---------------------------------------------- | ------ |
-| 5.1  | [09-services-electron.md](./09-services-electron.md)       | Process manager, IPC bridge, MCP server        | [~]    |
+| 5.1  | [09-services-electron.md](./09-services-electron.md)       | Process manager, IPC bridge, MCP server        | [x]    |
 | 5.2  | [10-n8n-mcp-integrations.md](./10-n8n-mcp-integrations.md) | N8N community node, local REST API, MCP client | [ ]    |
 
 **Validation Gate:**
@@ -166,7 +166,7 @@ Electron-only background processes + external system connections.
 - [x] ProcessManager with spawn/kill/restart
 - [x] Health checks (HTTP, TCP, stdout)
 - [x] ServiceClient for renderer process
-- [ ] IPC bridge setup in Electron main process
+- [x] IPC bridge setup in Electron main process
 - [ ] Local HTTP API server
 - [ ] N8N can trigger workflows on node changes
 - [ ] xNet works as MCP server (AI agents can query nodes)
