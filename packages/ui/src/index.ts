@@ -82,6 +82,17 @@ export {
   type CommandPaletteProps
 } from './composed/CommandPalette'
 
+// ─── Settings View ────────────────────────────────────────────────
+export {
+  SettingsView,
+  SettingsSection,
+  SettingsRow,
+  type SettingsViewProps,
+  type SettingsSection as SettingsSectionType,
+  type SettingsPanelProps,
+  type PluginSettingsPanel
+} from './composed/SettingsView'
+
 // ─── Theme ────────────────────────────────────────────────────────
 export { ThemeProvider, useTheme, type Theme } from './theme/ThemeProvider'
 

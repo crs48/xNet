@@ -148,7 +148,7 @@ App-level extension points: sidebar, command palette, settings, routes.
 - [x] ShortcutManager for keyboard shortcuts
 - [x] Cmd+Shift+P global shortcut to open command palette
 - [x] Sidebar modified to render plugin items (with badges)
-- [ ] Plugin settings panels render in settings view
+- [x] SettingsView component with plugin panels
 - [ ] Web app supports dynamic route registration
 
 ### Phase 5: Services & Integrations (Steps 09-10)
