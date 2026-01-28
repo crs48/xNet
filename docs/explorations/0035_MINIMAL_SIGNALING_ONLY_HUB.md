@@ -131,7 +131,7 @@ flowchart TB
     subgraph "Minimal Signaling Hub"
         WS[WebSocket Server<br/>port 4444]
         ROOMS[Room Registry<br/>in-memory]
-        HEALTH[/health endpoint]
+        HEALTH[health endpoint]
 
         WS --> ROOMS
     end
@@ -149,7 +149,7 @@ flowchart TB
     A_APP -->|"1. subscribe/publish"| WS
     B_APP -->|"1. subscribe/publish"| WS
 
-    A_WEBRTC <-->|"2. DataChannel<br/>(after handshake)"| B_WEBRTC
+    A_WEBRTC ---|"2. DataChannel<br/>(after handshake)"| B_WEBRTC
 
     style WS fill:#e8f5e9
     style A_WEBRTC fill:#e3f2fd
