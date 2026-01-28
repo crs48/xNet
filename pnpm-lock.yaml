@@ -67,6 +67,9 @@ importers:
       '@xnet/identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@xnet/plugins':
+        specifier: workspace:*
+        version: link:../../packages/plugins
       '@xnet/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -13603,6 +13606,28 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@vitest/browser@2.1.9(@types/node@20.19.30)(playwright@1.57.0)(typescript@5.9.3)(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.27.0)(terser@5.46.0))(vitest@1.6.1)':
+    dependencies:
+      '@testing-library/dom': 10.4.1
+      '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
+      '@vitest/mocker': 2.1.9(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.27.0)(terser@5.46.0))
+      '@vitest/utils': 2.1.9
+      magic-string: 0.30.21
+      msw: 2.12.7(@types/node@20.19.30)(typescript@5.9.3)
+      sirv: 3.0.2
+      tinyrainbow: 1.2.0
+      vitest: 1.6.1(@types/node@20.19.30)(@vitest/browser@2.1.9)(jsdom@26.1.0)(lightningcss@1.27.0)(terser@5.46.0)
+      ws: 8.19.0
+    optionalDependencies:
+      playwright: 1.57.0
+    transitivePeerDependencies:
+      - '@types/node'
+      - bufferutil
+      - typescript
+      - utf-8-validate
+      - vite
+    optional: true
+
   '@vitest/browser@2.1.9(@types/node@20.19.30)(playwright@1.57.0)(typescript@5.9.3)(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.27.0)(terser@5.46.0))(vitest@2.1.9)':
     dependencies:
       '@testing-library/dom': 10.4.1
@@ -13623,28 +13648,6 @@ snapshots:
       - typescript
       - utf-8-validate
       - vite
-
-  '@vitest/browser@2.1.9(@types/node@20.19.30)(playwright@1.57.0)(typescript@5.9.3)(vite@7.3.1(@types/node@20.19.30)(jiti@1.21.7)(lightningcss@1.27.0)(terser@5.46.0)(tsx@4.21.0))(vitest@1.6.1)':
-    dependencies:
-      '@testing-library/dom': 10.4.1
-      '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
-      '@vitest/mocker': 2.1.9(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(vite@7.3.1(@types/node@20.19.30)(jiti@1.21.7)(lightningcss@1.27.0)(terser@5.46.0)(tsx@4.21.0))
-      '@vitest/utils': 2.1.9
-      magic-string: 0.30.21
-      msw: 2.12.7(@types/node@20.19.30)(typescript@5.9.3)
-      sirv: 3.0.2
-      tinyrainbow: 1.2.0
-      vitest: 1.6.1(@types/node@20.19.30)(@vitest/browser@2.1.9)(jsdom@26.1.0)(lightningcss@1.27.0)(terser@5.46.0)
-      ws: 8.19.0
-    optionalDependencies:
-      playwright: 1.57.0
-    transitivePeerDependencies:
-      - '@types/node'
-      - bufferutil
-      - typescript
-      - utf-8-validate
-      - vite
-    optional: true
 
   '@vitest/coverage-v8@1.6.1(vitest@1.6.1(@types/node@20.19.30)(@vitest/browser@2.1.9)(jsdom@26.1.0)(lightningcss@1.27.0)(terser@5.46.0))':
     dependencies:
@@ -13695,16 +13698,6 @@ snapshots:
     optionalDependencies:
       msw: 2.12.7(@types/node@20.19.30)(typescript@5.9.3)
       vite: 5.4.21(@types/node@20.19.30)(lightningcss@1.27.0)(terser@5.46.0)
-
-  '@vitest/mocker@2.1.9(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(vite@7.3.1(@types/node@20.19.30)(jiti@1.21.7)(lightningcss@1.27.0)(terser@5.46.0)(tsx@4.21.0))':
-    dependencies:
-      '@vitest/spy': 2.1.9
-      estree-walker: 3.0.3
-      magic-string: 0.30.21
-    optionalDependencies:
-      msw: 2.12.7(@types/node@20.19.30)(typescript@5.9.3)
-      vite: 7.3.1(@types/node@20.19.30)(jiti@1.21.7)(lightningcss@1.27.0)(terser@5.46.0)(tsx@4.21.0)
-    optional: true
 
   '@vitest/mocker@4.0.17(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(vite@7.3.1(@types/node@20.19.30)(jiti@1.21.7)(lightningcss@1.27.0)(terser@5.46.0)(tsx@4.21.0))':
     dependencies:
@@ -19571,7 +19564,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 20.19.30
-      '@vitest/browser': 2.1.9(@types/node@20.19.30)(playwright@1.57.0)(typescript@5.9.3)(vite@7.3.1(@types/node@20.19.30)(jiti@1.21.7)(lightningcss@1.27.0)(terser@5.46.0)(tsx@4.21.0))(vitest@1.6.1)
+      '@vitest/browser': 2.1.9(@types/node@20.19.30)(playwright@1.57.0)(typescript@5.9.3)(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.27.0)(terser@5.46.0))(vitest@1.6.1)
       jsdom: 26.1.0
     transitivePeerDependencies:
       - less
