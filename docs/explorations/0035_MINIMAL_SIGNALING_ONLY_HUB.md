@@ -40,9 +40,10 @@ sequenceDiagram
     Sig->>B: forward(ICE candidate)
 
     Note over A,B: Phase 3: Direct P2P (signaling no longer needed)
-    A<-->B: WebRTC DataChannel
+    A->>B: WebRTC DataChannel
+    B->>A: WebRTC DataChannel
     A->>B: Yjs sync-step1/2
-    A<-->B: Yjs updates (encrypted)
+    B->>A: Yjs updates (encrypted)
 
     Note over Sig: Signaling server sees:<br/>- Room subscriptions<br/>- SDP offers/answers<br/>- ICE candidates<br/>- NOTHING about actual data
 ```
@@ -448,7 +449,8 @@ sequenceDiagram
     Hub->>Owner: forward answer
 
     Note over Owner,Guest: Direct P2P established
-    Owner<-->Guest: Yjs sync via DataChannel
+    Owner->>Guest: Yjs sync via DataChannel
+    Guest->>Owner: Yjs sync via DataChannel
     Note over Hub: Hub is now idle<br/>(can disconnect)
 ```
 
