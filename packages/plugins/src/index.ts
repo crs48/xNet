@@ -39,9 +39,13 @@ export type {
   BlockContribution,
   BlockProps,
   SettingContribution,
+  SettingsPanelProps,
   SchemaContribution
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
+
+// Shortcuts
+export { ShortcutManager, getShortcutManager, installShortcutHandler } from './shortcuts'
 
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'

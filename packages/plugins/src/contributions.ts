@@ -33,8 +33,10 @@ export interface CommandContribution {
   name: string
   /** Description for command palette */
   description?: string
-  /** Keyboard shortcut (e.g., 'mod+shift+p') */
+  /** Keyboard shortcut (e.g., 'Mod-Shift-P') */
   keybinding?: string
+  /** Search keywords for fuzzy matching */
+  keywords?: string[]
   /** Icon (Lucide icon name) */
   icon?: string
   /** Command handler */
@@ -97,12 +99,20 @@ export interface SidebarContribution {
   id: string
   /** Display name */
   name: string
-  /** Icon (Lucide icon name) */
-  icon: string
-  /** Position in sidebar (lower = higher) */
+  /** Icon (Lucide icon name or React component) */
+  icon: string | ComponentType
+  /** Position in sidebar: top, bottom, or within a section */
+  position?: 'top' | 'bottom' | 'section'
+  /** Section name for 'section' position */
+  section?: string
+  /** Priority within position (lower = higher) */
   priority?: number
+  /** Dynamic badge (e.g., unread count) */
+  badge?: () => string | number | null
   /** Click handler or route path */
   action: (() => void) | string
+  /** Optional panel component to render */
+  panel?: ComponentType
 }
 
 export interface PropertyHandlerContribution {
@@ -155,10 +165,23 @@ export interface SettingContribution {
   id: string
   /** Section title */
   title: string
+  /** Description for the settings panel */
+  description?: string
   /** Icon (Lucide icon name) */
   icon?: string
+  /** Which settings section this belongs to */
+  section?: 'general' | 'appearance' | 'plugins' | 'data' | 'network'
   /** Settings panel component */
-  component: ComponentType
+  component: ComponentType<SettingsPanelProps>
+}
+
+export interface SettingsPanelProps {
+  /** Plugin's key-value storage */
+  storage: {
+    get: <T>(key: string) => T | undefined
+    set: <T>(key: string, value: T) => void
+    keys: () => string[]
+  }
 }
 
 export interface SchemaContribution {
