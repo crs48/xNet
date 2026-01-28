@@ -138,3 +138,31 @@ export type {
   AIScriptResponse,
   ScriptGeneratorOptions
 } from './ai'
+
+// Services (Background process management)
+export {
+  // Process Manager (Node.js/Electron main process)
+  ProcessManager,
+  // Client (Renderer process)
+  createServiceClient,
+  isServiceClientAvailable,
+  SERVICE_IPC_CHANNELS
+} from './services'
+export type {
+  // Service definition
+  ServiceDefinition,
+  ServiceProcessConfig,
+  ServiceHealthCheck,
+  ServiceLifecycle,
+  ServiceCommunication,
+  ServiceProvides,
+  // Status
+  ServiceState,
+  ServiceStatus,
+  ServiceStatusEvent,
+  ServiceOutputEvent,
+  // Interfaces
+  ServiceClient,
+  IProcessManager,
+  ProcessManagerEvents
+} from './services'
