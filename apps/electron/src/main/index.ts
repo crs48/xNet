@@ -11,6 +11,7 @@ const __dirname = dirname(__filename)
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { setupBSM } from './bsm'
 import { createMenu } from './menu'
+import { setupServiceIPC, cleanupServices } from './service-ipc'
 
 // Profile support for running multiple instances with separate data
 // Usage: XNET_PROFILE=user2 pnpm dev:electron
@@ -70,6 +71,9 @@ app.whenReady().then(async () => {
   // Setup IPC handlers
   setupIPC()
 
+  // Setup service IPC for plugin background processes
+  setupServiceIPC()
+
   // Setup Background Sync Manager with blob storage
   bsm = setupBSM({
     getMainWindow: () => mainWindow,
@@ -96,6 +100,10 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async () => {
+  // Stop all plugin services
+  await cleanupServices()
+
+  // Stop Background Sync Manager
   if (bsm) {
     await bsm.stop()
     bsm = null

@@ -141,6 +141,18 @@ contextBridge.exposeInMainWorld('xnetBSM', {
   getDebug: () => ipcRenderer.invoke('xnet:bsm:get-debug')
 })
 
+// Expose service API for plugin background processes
+contextBridge.exposeInMainWorld('xnetServices', {
+  invoke: <T>(channel: string, ...args: unknown[]): Promise<T> =>
+    ipcRenderer.invoke(channel, ...args),
+  on: (channel: string, handler: (...args: unknown[]) => void): void => {
+    ipcRenderer.on(channel, (_event, ...args) => handler(...args))
+  },
+  off: (channel: string, handler: (...args: unknown[]) => void): void => {
+    ipcRenderer.removeListener(channel, handler)
+  }
+})
+
 // Expose storage API for @xnet/react integration
 contextBridge.exposeInMainWorld('xnetStorage', {
   getDocument: (id: string) => ipcRenderer.invoke('xnet:storage:getDocument', id),
@@ -228,10 +240,17 @@ export interface XNetBSMAPI {
   getDebug(): Promise<boolean>
 }
 
+export interface XNetServicesAPI {
+  invoke<T>(channel: string, ...args: unknown[]): Promise<T>
+  on(channel: string, handler: (...args: unknown[]) => void): void
+  off(channel: string, handler: (...args: unknown[]) => void): void
+}
+
 declare global {
   interface Window {
     xnet: XNetAPI
     xnetStorage: XNetStorageAPI
     xnetBSM: XNetBSMAPI
+    xnetServices: XNetServicesAPI
   }
 }
