@@ -63,3 +63,41 @@ export { PluginRegistry, PluginError } from './registry'
 // Schemas
 export { PluginSchema } from './schemas/plugin'
 export type { PluginNode } from './schemas/plugin'
+export { ScriptSchema, isScriptNode } from './schemas/script'
+export type { ScriptNode, ScriptTriggerType, ScriptOutputType } from './schemas/script'
+
+// Sandbox (Script execution)
+export {
+  // Context
+  createScriptContext,
+  // Validator
+  validateScriptAST,
+  quickSafetyCheck,
+  // Sandbox
+  ScriptSandbox,
+  ScriptError,
+  ScriptTimeoutError,
+  ScriptValidationError,
+  executeScript,
+  validateScript,
+  // Runner
+  ScriptRunner
+} from './sandbox'
+export type {
+  // Context types
+  ScriptContext,
+  FlatNode,
+  FormatHelpers,
+  MathHelpers,
+  TextHelpers,
+  ArrayHelpers,
+  // Validator types
+  ValidationResult,
+  // Sandbox types
+  SandboxOptions,
+  // Runner types
+  ScriptStore,
+  ScriptNodeChangeEvent,
+  ScriptRunnerOptions,
+  ScriptExecutionResult
+} from './sandbox'

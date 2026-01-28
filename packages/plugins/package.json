@@ -19,7 +19,8 @@
   },
   "dependencies": {
     "@xnet/core": "workspace:*",
-    "@xnet/data": "workspace:*"
+    "@xnet/data": "workspace:*",
+    "acorn": "^8.15.0"
   },
   "peerDependencies": {
     "@tiptap/core": "^2.0.0",
