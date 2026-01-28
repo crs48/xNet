@@ -355,33 +355,7 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
       }
     ]
   },
-  {
-    name: 'Diagrams',
-    items: [
-      {
-        title: 'Mermaid',
-        description: 'Flowcharts, sequence diagrams, and more',
-        icon: '\uD83E\uDDDC',
-        searchTerms: [
-          'mermaid',
-          'diagram',
-          'flowchart',
-          'sequence',
-          'graph',
-          'chart',
-          'uml',
-          'class',
-          'state',
-          'gantt',
-          'pie',
-          'mindmap'
-        ],
-        command: ({ editor, range }) => {
-          editor.chain().focus().deleteRange(range).setMermaid().run()
-        }
-      }
-    ]
-  },
+
   {
     name: 'Data',
     items: [

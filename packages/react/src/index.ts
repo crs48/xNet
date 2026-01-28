@@ -160,6 +160,7 @@ export { useIdentity, type UseIdentityResult } from './hooks/useIdentity'
 
 export {
   XNetProvider,
+  useXNet,
   type XNetConfig,
   type XNetContextValue,
   type XNetProviderProps
@@ -172,6 +173,7 @@ export {
 export {
   PluginRegistryContext,
   usePluginRegistry,
+  usePluginRegistryOptional,
   usePlugins,
   useContributions,
   useViews,
@@ -179,6 +181,7 @@ export {
   useSlashCommands,
   useSidebarItems,
   useEditorExtensions,
+  useEditorExtensionsSafe,
   useView,
   useCommand
 } from './hooks/usePlugins'

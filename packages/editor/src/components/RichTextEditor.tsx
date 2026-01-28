@@ -29,8 +29,7 @@ import {
   ToggleExtension,
   FileExtension,
   EmbedExtension,
-  DatabaseEmbedExtension,
-  MermaidExtension
+  DatabaseEmbedExtension
 } from '../extensions'
 import type { DatabaseViewType, SlashCommandItem } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
@@ -402,9 +401,7 @@ export function RichTextEditor({
       renderView: renderDatabaseView,
       resolveDatabaseMeta
     }),
-    // Mermaid diagrams (flowcharts, sequence diagrams, etc.)
-    MermaidExtension,
-    // Plugin-provided extensions
+    // Plugin-provided extensions (includes Mermaid when plugin is installed)
     ...additionalExtensions
   ]
 

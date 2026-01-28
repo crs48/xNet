@@ -26,7 +26,7 @@ const TEST_PRIVATE_KEY = new Uint8Array([
   28, 29, 30, 31, 32
 ])
 const TEST_IDENTITY = identityFromPrivateKey(TEST_PRIVATE_KEY)
-const AUTHOR_DID = TEST_IDENTITY.did
+const AUTHOR_DID = TEST_IDENTITY.did as `did:key:${string}`
 const SIGNING_KEY = TEST_PRIVATE_KEY
 
 // Telemetry: consent set to 'anonymous' for dev (enables all collection tiers, visible in devtools)
@@ -87,7 +87,8 @@ async function init() {
               authorDID: AUTHOR_DID,
               signingKey: SIGNING_KEY,
               blobStore: ipcBlobStore as any,
-              syncManager: ipcSyncManager
+              syncManager: ipcSyncManager,
+              platform: 'electron'
             }}
           >
             <BlobProvider blobService={blobService}>
