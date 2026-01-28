@@ -139,7 +139,7 @@ App-level extension points: sidebar, command palette, settings, routes.
 
 | Task | Document                                             | Description                                             | Status |
 | ---- | ---------------------------------------------------- | ------------------------------------------------------- | ------ |
-| 4.1  | [08-ui-slots-commands.md](./08-ui-slots-commands.md) | Sidebar slots, command palette, settings panels, routes | [~]    |
+| 4.1  | [08-ui-slots-commands.md](./08-ui-slots-commands.md) | Sidebar slots, command palette, settings panels, routes | [x]    |
 
 **Validation Gate:**
 
@@ -149,7 +149,7 @@ App-level extension points: sidebar, command palette, settings, routes.
 - [x] Cmd+Shift+P global shortcut to open command palette
 - [x] Sidebar modified to render plugin items (with badges)
 - [x] SettingsView component with plugin panels
-- [ ] Web app supports dynamic route registration
+- [~] Web app dynamic routes (deferred - requires web app refactor)
 
 ### Phase 5: Services & Integrations (Steps 09-10)
 
