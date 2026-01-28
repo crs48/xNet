@@ -74,6 +74,14 @@ export { KeyValue, type KeyValueProps } from './composed/KeyValue'
 export { CodeBlock, type CodeBlockProps } from './composed/CodeBlock'
 export { DataTable, type DataTableProps, type Column } from './composed/DataTable'
 
+// ─── Command Palette ──────────────────────────────────────────────
+export {
+  CommandPalette,
+  useCommandPalette,
+  type PaletteCommand,
+  type CommandPaletteProps
+} from './composed/CommandPalette'
+
 // ─── Theme ────────────────────────────────────────────────────────
 export { ThemeProvider, useTheme, type Theme } from './theme/ThemeProvider'
 
