@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["pnpm", "dlx", "@playwright/mcp@latest", "--viewport-size=1280x800"],
+      "enabled": true
+    }
+  },
+  "instructions": ["AGENTS.md"]
+}
