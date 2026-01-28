@@ -123,13 +123,13 @@ End-user plugin creation: sandbox, script editor, AI generation.
 | Task | Document                                                   | Description                                    | Status |
 | ---- | ---------------------------------------------------------- | ---------------------------------------------- | ------ |
 | 3.1  | [06-script-sandbox.md](./06-script-sandbox.md)             | ScriptSandbox, ScriptSchema, reactive triggers | [x]    |
-| 3.2  | [07-ai-script-generation.md](./07-ai-script-generation.md) | AI prompt engineering, in-app editor, preview  | [ ]    |
+| 3.2  | [07-ai-script-generation.md](./07-ai-script-generation.md) | AI prompt engineering, in-app editor, preview  | [x]    |
 
 **Validation Gate:**
 
 - [x] Scripts execute safely in sandbox with no escape
 - [x] Scripts stored as Nodes and sync via P2P
-- [ ] AI can generate valid scripts from natural language
+- [x] AI can generate valid scripts from natural language
 - [x] Scripts work as computed column values in table views
 - [x] Script errors don't crash the app
 
