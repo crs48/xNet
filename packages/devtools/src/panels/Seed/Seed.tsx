@@ -173,6 +173,33 @@ export function Seed() {
         toggle.insert(0, [summary, detailsContent])
         fragment.push([toggle])
 
+        // Mermaid diagram
+        const mermaidHeading = new Y.XmlElement('heading')
+        mermaidHeading.setAttribute('level', '2')
+        mermaidHeading.insert(0, [new Y.XmlText('Mermaid Diagrams')])
+        fragment.push([mermaidHeading])
+
+        const mermaidIntro = new Y.XmlElement('paragraph')
+        mermaidIntro.insert(0, [
+          new Y.XmlText(
+            'Mermaid diagrams render flowcharts, sequence diagrams, and more from text.'
+          )
+        ])
+        fragment.push([mermaidIntro])
+
+        const mermaid = new Y.XmlElement('mermaid')
+        mermaid.setAttribute(
+          'code',
+          `flowchart TD
+    A[Start] --> B{Is it working?}
+    B -->|Yes| C[Great!]
+    B -->|No| D[Debug]
+    D --> B
+    C --> E[Ship it!]`
+        )
+        mermaid.setAttribute('theme', 'default')
+        fragment.push([mermaid])
+
         // Placeholder paragraphs for media types
         const placeholders = [
           '[Image placeholder - use /image command to insert]',
@@ -520,7 +547,7 @@ export function Seed() {
         <div className="text-[10px] text-zinc-600 space-y-1">
           <div>
             <strong>Sample Page:</strong> H1-H3, paragraph, bullet/numbered/task lists, blockquote,
-            code block, horizontal rule, all callout types, and toggle sections.
+            code block, horizontal rule, all callout types, toggle sections, and Mermaid diagram.
           </div>
           <div>
             <strong>Sample Database:</strong> 15 columns covering all property types (text, number,
