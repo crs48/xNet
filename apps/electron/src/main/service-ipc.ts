@@ -5,12 +5,8 @@
  * can start, stop, and communicate with background services.
  */
 import { ipcMain, BrowserWindow } from 'electron'
-import {
-  ProcessManager,
-  SERVICE_IPC_CHANNELS,
-  type ServiceDefinition,
-  type ServiceStatus
-} from '@xnet/plugins'
+import { ProcessManager } from '@xnet/plugins/node'
+import { SERVICE_IPC_CHANNELS, type ServiceDefinition, type ServiceStatus } from '@xnet/plugins'
 
 // ─── Process Manager Instance ────────────────────────────────────────────────
 

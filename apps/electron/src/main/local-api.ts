@@ -13,7 +13,7 @@ import {
   type SchemaRegistryAPI,
   type NodeData,
   type SchemaData
-} from '@xnet/plugins'
+} from '@xnet/plugins/node'
 
 // ─── Module State ────────────────────────────────────────────────────────────
 

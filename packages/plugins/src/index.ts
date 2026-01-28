@@ -140,18 +140,12 @@ export type {
 } from './ai'
 
 // Services (Background process management)
+// Note: Node.js-only modules (LocalAPIServer, MCPServer, ProcessManager) are
+// available via '@xnet/plugins/node' to avoid bundling Node.js APIs in browser builds.
 export {
-  // Process Manager (Node.js/Electron main process)
-  ProcessManager,
-  // Local API Server (Node.js/Electron main process)
-  LocalAPIServer,
-  createLocalAPI,
-  // Webhook Emitter
+  // Webhook Emitter (uses fetch which is available everywhere)
   WebhookEmitter,
   createWebhookEmitter,
-  // MCP Server
-  MCPServer,
-  createMCPServer,
   // Client (Renderer process)
   createServiceClient,
   isServiceClientAvailable,
@@ -174,7 +168,7 @@ export type {
   ServiceClient,
   IProcessManager,
   ProcessManagerEvents,
-  // Local API types
+  // Local API types (for interface compatibility)
   NodeStoreAPI,
   SchemaRegistryAPI,
   NodeData,
