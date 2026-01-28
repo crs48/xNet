@@ -20,6 +20,7 @@
     "@xnet/canvas": "workspace:*",
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
+    "@xnet/plugins": "workspace:*",
     "@xnet/devtools": "workspace:*",
     "@xnet/identity": "workspace:*",
     "@xnet/storage": "workspace:*",

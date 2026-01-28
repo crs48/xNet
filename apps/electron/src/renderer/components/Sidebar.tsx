@@ -2,9 +2,11 @@
  * Sidebar Component
  *
  * Shows document list with icons for different types.
+ * Also renders plugin-contributed sidebar items.
  */
 
-import React, { useState } from 'react'
+import React, { useState, useMemo, type ComponentType } from 'react'
+import * as icons from 'lucide-react'
 import {
   FileText,
   Database,
@@ -13,9 +15,11 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  Link
+  Link,
+  Settings
 } from 'lucide-react'
 import type { Document } from '../lib/types'
+import type { SidebarContribution } from '@xnet/plugins'
 
 interface SidebarProps {
   documents: Document[]
@@ -24,6 +28,10 @@ interface SidebarProps {
   onDelete: (id: string) => void
   onCreate: (type: Document['type']) => void
   onAddShared: () => void
+  /** Plugin-contributed sidebar items */
+  pluginItems?: SidebarContribution[]
+  /** Handler for settings navigation */
+  onSettings?: () => void
 }
 
 const typeIcons = {
@@ -38,13 +46,43 @@ const typeLabels: Record<Document['type'], string> = {
   canvas: 'Canvas'
 }
 
+/**
+ * Render an icon from a string name or component
+ */
+function renderIcon(icon: string | ComponentType, size = 14, className = ''): React.ReactNode {
+  if (typeof icon !== 'string') {
+    const IconComp = icon
+    return <IconComp />
+  }
+
+  // Convert kebab-case to PascalCase for Lucide lookup
+  const iconName = icon
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')
+
+  // Look up in lucide-react (cast to any to avoid complex Lucide types)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const IconComponent = (icons as any)[iconName] as
+    | React.ComponentType<{ size?: number; className?: string }>
+    | undefined
+  if (IconComponent) {
+    return <IconComponent size={size} className={className} />
+  }
+
+  // Fallback to Circle
+  return <icons.Circle size={size} className={className} />
+}
+
 export function Sidebar({
   documents,
   selectedId,
   onSelect,
   onDelete,
   onCreate,
-  onAddShared
+  onAddShared,
+  pluginItems = [],
+  onSettings
 }: SidebarProps) {
   const [showCreateMenu, setShowCreateMenu] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Record<Document['type'], boolean>>({
@@ -52,6 +90,27 @@ export function Sidebar({
     database: true,
     canvas: true
   })
+
+  // Sort plugin items by priority and group by position
+  const sortedPluginItems = useMemo(() => {
+    const sorted = [...pluginItems].sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100))
+    return {
+      top: sorted.filter((i) => i.position === 'top' || !i.position),
+      bottom: sorted.filter((i) => i.position === 'bottom'),
+      sections: sorted.filter((i) => i.position === 'section')
+    }
+  }, [pluginItems])
+
+  // Group section items by section name
+  const sectionGroups = useMemo(() => {
+    const groups = new Map<string, SidebarContribution[]>()
+    for (const item of sortedPluginItems.sections) {
+      const section = item.section ?? 'Other'
+      if (!groups.has(section)) groups.set(section, [])
+      groups.get(section)!.push(item)
+    }
+    return groups
+  }, [sortedPluginItems.sections])
 
   // Group documents by type
   const groupedDocs = documents.reduce(
@@ -184,7 +243,71 @@ export function Sidebar({
         {documents.length === 0 && (
           <p className="text-muted-foreground text-sm text-center mt-8">No documents yet</p>
         )}
+
+        {/* Plugin section groups */}
+        {[...sectionGroups.entries()].map(([section, items]) => (
+          <div key={section} className="mb-2">
+            <div className="w-full flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground">
+              <span className="uppercase font-medium tracking-wider">{section}</span>
+            </div>
+            <ul className="list-none p-0 m-0">
+              {items.map((item) => (
+                <PluginSidebarItem key={item.id} item={item} />
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom items (plugin + settings) */}
+      <div className="p-2 border-t border-border">
+        {/* Plugin bottom items */}
+        {sortedPluginItems.bottom.map((item) => (
+          <PluginSidebarItem key={item.id} item={item} />
+        ))}
+
+        {/* Settings */}
+        {onSettings && (
+          <button
+            onClick={onSettings}
+            className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-accent/50 transition-colors"
+          >
+            <Settings size={14} className="text-muted-foreground" />
+            <span className="text-sm">Settings</span>
+          </button>
+        )}
       </div>
     </aside>
+  )
+}
+
+/**
+ * Render a plugin sidebar item
+ */
+function PluginSidebarItem({ item }: { item: SidebarContribution }) {
+  const badge = item.badge?.()
+
+  const handleClick = () => {
+    if (typeof item.action === 'function') {
+      item.action()
+    } else {
+      // Route navigation - would need router integration
+      console.log('[Sidebar] Navigate to:', item.action)
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-accent/50 transition-colors"
+    >
+      {renderIcon(item.icon, 14, 'text-muted-foreground flex-shrink-0')}
+      <span className="text-sm truncate flex-1">{item.name}</span>
+      {badge != null && (
+        <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+          {badge}
+        </span>
+      )}
+    </button>
   )
 }
