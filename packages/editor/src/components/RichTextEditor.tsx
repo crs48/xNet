@@ -3,7 +3,8 @@
  */
 import * as React from 'react'
 import { useEffect, type JSX } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, type Editor } from '@tiptap/react'
+import type { AnyExtension } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Collaboration from '@tiptap/extension-collaboration'
@@ -145,6 +146,24 @@ function generateAvatarDataURI(did: string, size: number): string {
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
+/**
+ * Toolbar item contribution from plugins
+ */
+export interface ToolbarItemContribution {
+  /** Icon name (Lucide) or React component */
+  icon: string | React.ComponentType
+  /** Tooltip/title text */
+  title: string
+  /** Toolbar section: format, insert, block, or custom */
+  group?: 'format' | 'insert' | 'block' | 'custom'
+  /** Check if button should appear active */
+  isActive?: (editor: Editor) => boolean
+  /** Button click handler */
+  action: (editor: Editor) => void
+  /** Keyboard shortcut display (e.g., 'Mod-Shift-H') */
+  shortcut?: string
+}
+
 export interface RichTextEditorProps {
   /** The Yjs document to bind to */
   ydoc: Y.Doc
@@ -220,6 +239,16 @@ export interface RichTextEditorProps {
     viewType: DatabaseViewType
     viewConfig: Record<string, unknown>
   }) => React.ReactNode
+  /**
+   * Additional TipTap extensions from plugins.
+   * These are merged with the built-in extensions.
+   */
+  extensions?: AnyExtension[]
+  /**
+   * Additional toolbar items from plugins.
+   * These are added to the floating toolbar.
+   */
+  toolbarItems?: ToolbarItemContribution[]
 }
 
 /**
@@ -284,13 +313,15 @@ export function RichTextEditor({
   onFileDownload,
   onSelectDatabase,
   resolveDatabaseMeta,
-  renderDatabaseView
+  renderDatabaseView,
+  extensions: additionalExtensions = [],
+  toolbarItems: additionalToolbarItems = []
 }: RichTextEditorProps): JSX.Element {
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
 
   // Build extensions list (without cursor - added dynamically when awareness is available)
-  const extensions = [
+  const builtinExtensions: AnyExtension[] = [
     StarterKit.configure({
       undoRedo: false,
       link: false,
@@ -360,11 +391,13 @@ export function RichTextEditor({
       onSelectDatabase,
       renderView: renderDatabaseView,
       resolveDatabaseMeta
-    })
+    }),
+    // Plugin-provided extensions
+    ...additionalExtensions
   ]
 
   const editor = useEditor({
-    extensions,
+    extensions: builtinExtensions,
     editorProps: {
       attributes: {
         // Full height, no outline on focus, proper typography
@@ -612,7 +645,13 @@ export function RichTextEditor({
           'xnet-editor'
         )}
       />
-      {showToolbar && <FloatingToolbar editor={editor} mode={toolbarMode} />}
+      {showToolbar && (
+        <FloatingToolbar
+          editor={editor}
+          mode={toolbarMode}
+          additionalItems={additionalToolbarItems}
+        />
+      )}
     </div>
   )
 }

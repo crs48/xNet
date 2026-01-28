@@ -13,6 +13,24 @@ import { cn } from '../utils'
 /** Toolbar display mode */
 export type ToolbarMode = 'auto' | 'desktop' | 'mobile'
 
+/**
+ * Toolbar item contribution from plugins
+ */
+export interface ToolbarItemContribution {
+  /** Icon name (Lucide) or React component */
+  icon: string | React.ComponentType
+  /** Tooltip/title text */
+  title: string
+  /** Toolbar section: format, insert, block, or custom */
+  group?: 'format' | 'insert' | 'block' | 'custom'
+  /** Check if button should appear active */
+  isActive?: (editor: Editor) => boolean
+  /** Button click handler */
+  action: (editor: Editor) => void
+  /** Keyboard shortcut display (e.g., 'Mod-Shift-H') */
+  shortcut?: string
+}
+
 export interface FloatingToolbarProps {
   /** The Tiptap editor instance */
   editor: Editor | null
@@ -25,6 +43,10 @@ export interface FloatingToolbarProps {
    * - 'mobile': Always show fixed bottom toolbar (for mobile apps)
    */
   mode?: ToolbarMode
+  /**
+   * Additional toolbar items from plugins
+   */
+  additionalItems?: ToolbarItemContribution[]
 }
 
 // Check if we're on a mobile device
@@ -128,12 +150,49 @@ function ToolbarDivider({ isMobile }: { isMobile: boolean }): JSX.Element {
   )
 }
 
+/**
+ * Render a plugin-provided toolbar button
+ */
+function PluginToolbarButton({
+  item,
+  editor,
+  isMobile
+}: {
+  item: ToolbarItemContribution
+  editor: Editor
+  isMobile: boolean
+}): JSX.Element {
+  const isActive = item.isActive?.(editor) ?? false
+  const title = item.shortcut ? `${item.title} (${item.shortcut})` : item.title
+
+  return (
+    <ToolbarButton
+      onClick={() => item.action(editor)}
+      active={isActive}
+      title={title}
+      isMobile={isMobile}
+    >
+      {typeof item.icon === 'string' ? item.icon : <item.icon />}
+    </ToolbarButton>
+  )
+}
+
 interface ToolbarContentProps {
   editor: Editor
   isMobile: boolean
+  additionalItems?: ToolbarItemContribution[]
 }
 
-function ToolbarContent({ editor, isMobile }: ToolbarContentProps): JSX.Element {
+function ToolbarContent({
+  editor,
+  isMobile,
+  additionalItems = []
+}: ToolbarContentProps): JSX.Element {
+  // Group additional items by their group
+  const formatItems = additionalItems.filter((i) => i.group === 'format')
+  const insertItems = additionalItems.filter((i) => i.group === 'insert')
+  const blockItems = additionalItems.filter((i) => i.group === 'block')
+  const customItems = additionalItems.filter((i) => i.group === 'custom' || !i.group)
   return (
     <>
       {/* Text formatting */}
@@ -169,6 +228,10 @@ function ToolbarContent({ editor, isMobile }: ToolbarContentProps): JSX.Element 
       >
         {'</>'}
       </ToolbarButton>
+      {/* Plugin format buttons */}
+      {formatItems.map((item) => (
+        <PluginToolbarButton key={item.title} item={item} editor={editor} isMobile={isMobile} />
+      ))}
 
       <ToolbarDivider isMobile={isMobile} />
 
@@ -253,6 +316,20 @@ function ToolbarContent({ editor, isMobile }: ToolbarContentProps): JSX.Element 
       >
         —
       </ToolbarButton>
+      {/* Plugin block buttons */}
+      {blockItems.map((item) => (
+        <PluginToolbarButton key={item.title} item={item} editor={editor} isMobile={isMobile} />
+      ))}
+      {/* Plugin insert buttons */}
+      {insertItems.length > 0 && <ToolbarDivider isMobile={isMobile} />}
+      {insertItems.map((item) => (
+        <PluginToolbarButton key={item.title} item={item} editor={editor} isMobile={isMobile} />
+      ))}
+      {/* Plugin custom buttons */}
+      {customItems.length > 0 && <ToolbarDivider isMobile={isMobile} />}
+      {customItems.map((item) => (
+        <PluginToolbarButton key={item.title} item={item} editor={editor} isMobile={isMobile} />
+      ))}
 
       {/* Mobile-only buttons */}
       {isMobile && <ToolbarDivider isMobile={isMobile} />}
@@ -333,10 +410,12 @@ function ToolbarContent({ editor, isMobile }: ToolbarContentProps): JSX.Element 
  */
 function MobileToolbar({
   editor,
-  className
+  className,
+  additionalItems = []
 }: {
   editor: Editor
   className?: string
+  additionalItems?: ToolbarItemContribution[]
 }): JSX.Element | null {
   const keyboardVisible = useKeyboardVisible()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -391,7 +470,7 @@ function MobileToolbar({
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        <ToolbarContent editor={editor} isMobile={true} />
+        <ToolbarContent editor={editor} isMobile={true} additionalItems={additionalItems} />
       </div>
     </div>
   )
@@ -402,10 +481,12 @@ function MobileToolbar({
  */
 function DesktopToolbar({
   editor,
-  className
+  className,
+  additionalItems = []
 }: {
   editor: Editor
   className?: string
+  additionalItems?: ToolbarItemContribution[]
 }): JSX.Element {
   return (
     <BubbleMenu
@@ -431,7 +512,7 @@ function DesktopToolbar({
         className
       )}
     >
-      <ToolbarContent editor={editor} isMobile={false} />
+      <ToolbarContent editor={editor} isMobile={false} additionalItems={additionalItems} />
     </BubbleMenu>
   )
 }
@@ -445,15 +526,16 @@ function DesktopToolbar({
 export function FloatingToolbar({
   editor,
   className,
-  mode = 'auto'
+  mode = 'auto',
+  additionalItems = []
 }: FloatingToolbarProps): JSX.Element | null {
   const isMobile = useIsMobile(mode)
 
   if (!editor) return null
 
   if (isMobile) {
-    return <MobileToolbar editor={editor} className={className} />
+    return <MobileToolbar editor={editor} className={className} additionalItems={additionalItems} />
   }
 
-  return <DesktopToolbar editor={editor} className={className} />
+  return <DesktopToolbar editor={editor} className={className} additionalItems={additionalItems} />
 }
