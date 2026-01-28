@@ -999,30 +999,31 @@ function TaskList() {
 When combining results from multiple sources:
 
 ```mermaid
-flowchart TB
-    subgraph "Input"
-        L[Local Results<br/>15 items]
-        H[Hub Results<br/>150 items]
-        F1[Hub A Results<br/>30 items]
-        F2[Hub B Results<br/>25 items]
+flowchart LR
+    subgraph Input
+        L[Local: 15]
+        H[Hub: 150]
+        F1[Hub A: 30]
+        F2[Hub B: 25]
     end
 
-    subgraph "Merge Process"
-        D1[1. Deduplicate by CID]
-        D2[2. Merge scores via RRF]
-        D3[3. Apply limit/offset]
-        D4[4. Track source attribution]
+    subgraph Merge
+        D1[Dedupe by CID]
+        D2[RRF Ranking]
+        D3[Paginate]
     end
 
-    subgraph "Output"
-        R[Merged Results<br/>20 items + hasMore]
+    subgraph Output
+        R[20 items]
     end
 
     L --> D1
     H --> D1
     F1 --> D1
     F2 --> D1
-    D1 --> D2 --> D3 --> D4 --> R
+    D1 --> D2
+    D2 --> D3
+    D3 --> R
 ```
 
 ```typescript
