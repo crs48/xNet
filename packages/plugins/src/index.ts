@@ -101,3 +101,36 @@ export type {
   ScriptRunnerOptions,
   ScriptExecutionResult
 } from './sandbox'
+
+// AI (Script generation from natural language)
+export {
+  // Prompt building
+  buildScriptPrompt,
+  buildRetryPrompt,
+  // Providers
+  AnthropicProvider,
+  OpenAIProvider,
+  OllamaProvider,
+  createAIProvider,
+  isOllamaAvailable,
+  listOllamaModels,
+  AIGenerationError,
+  // Generator
+  ScriptGenerator,
+  ScriptGenerationError,
+  generateScript
+} from './ai'
+export type {
+  // Prompt types
+  AIScriptRequest,
+  SchemaProperty,
+  SchemaDefinition,
+  // Provider types
+  AIProvider,
+  AIProviderOptions,
+  AIProviderType,
+  AIProviderConfig,
+  // Generator types
+  AIScriptResponse,
+  ScriptGeneratorOptions
+} from './ai'
