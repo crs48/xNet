@@ -143,6 +143,15 @@ export type {
 export {
   // Process Manager (Node.js/Electron main process)
   ProcessManager,
+  // Local API Server (Node.js/Electron main process)
+  LocalAPIServer,
+  createLocalAPI,
+  // Webhook Emitter
+  WebhookEmitter,
+  createWebhookEmitter,
+  // MCP Server
+  MCPServer,
+  createMCPServer,
   // Client (Renderer process)
   createServiceClient,
   isServiceClientAvailable,
@@ -164,5 +173,23 @@ export type {
   // Interfaces
   ServiceClient,
   IProcessManager,
-  ProcessManagerEvents
+  ProcessManagerEvents,
+  // Local API types
+  NodeStoreAPI,
+  SchemaRegistryAPI,
+  NodeData,
+  SchemaData,
+  NodeChangeEventData,
+  LocalAPIConfig,
+  // Webhook types
+  WebhookConfig,
+  WebhookPayload,
+  DeliveryResult,
+  // MCP types
+  MCPTool,
+  MCPPropertySchema,
+  MCPResource,
+  MCPRequest,
+  MCPResponse,
+  MCPServerConfig
 } from './services'

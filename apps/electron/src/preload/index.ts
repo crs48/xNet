@@ -162,6 +162,13 @@ contextBridge.exposeInMainWorld('xnetStorage', {
   listDocuments: (prefix?: string) => ipcRenderer.invoke('xnet:storage:listDocuments', prefix)
 })
 
+// Expose Local API status/control for renderer
+contextBridge.exposeInMainWorld('xnetLocalAPI', {
+  status: () => ipcRenderer.invoke('xnet:localapi:status'),
+  start: () => ipcRenderer.invoke('xnet:localapi:start'),
+  stop: () => ipcRenderer.invoke('xnet:localapi:stop')
+})
+
 // Type declaration for renderer
 export interface XNetAPI {
   getProfile(): Promise<string>
@@ -246,11 +253,23 @@ export interface XNetServicesAPI {
   off(channel: string, handler: (...args: unknown[]) => void): void
 }
 
+export interface XNetLocalAPIStatus {
+  running: boolean
+  port: number
+}
+
+export interface XNetLocalAPIAPI {
+  status(): Promise<XNetLocalAPIStatus>
+  start(): Promise<XNetLocalAPIStatus>
+  stop(): Promise<{ running: boolean }>
+}
+
 declare global {
   interface Window {
     xnet: XNetAPI
     xnetStorage: XNetStorageAPI
     xnetBSM: XNetBSMAPI
     xnetServices: XNetServicesAPI
+    xnetLocalAPI: XNetLocalAPIAPI
   }
 }

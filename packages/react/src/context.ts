@@ -138,6 +138,11 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
       setNodeStore(ns)
       setNodeStoreReady(true)
+
+      // Expose NodeStore to window for main process access (Electron Local API)
+      if (typeof window !== 'undefined') {
+        ;(window as Window & { __xnetNodeStore?: NodeStore }).__xnetNodeStore = ns
+      }
     }
 
     initializeNodeStore()
@@ -146,6 +151,12 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       cancelled = true
       setNodeStore(null)
       setNodeStoreReady(false)
+
+      // Clean up window reference
+      if (typeof window !== 'undefined') {
+        delete (window as Window & { __xnetNodeStore?: NodeStore }).__xnetNodeStore
+      }
+
       if ('close' in nodeStorageAdapter && typeof nodeStorageAdapter.close === 'function') {
         nodeStorageAdapter.close()
       }
