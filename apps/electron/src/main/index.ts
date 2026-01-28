@@ -12,6 +12,7 @@ import { setupIPC, getOrCreateStorage } from './ipc'
 import { setupBSM } from './bsm'
 import { createMenu } from './menu'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
+import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 
 // Profile support for running multiple instances with separate data
 // Usage: XNET_PROFILE=user2 pnpm dev:electron
@@ -74,6 +75,12 @@ app.whenReady().then(async () => {
   // Setup service IPC for plugin background processes
   setupServiceIPC()
 
+  // Setup Local API IPC handlers
+  setupLocalAPIIPC()
+
+  // Start Local API server (for external integrations)
+  await startLocalAPI()
+
   // Setup Background Sync Manager with blob storage
   bsm = setupBSM({
     getMainWindow: () => mainWindow,
@@ -100,6 +107,9 @@ app.on('window-all-closed', () => {
 })
 
 app.on('before-quit', async () => {
+  // Stop Local API server
+  await stopLocalAPI()
+
   // Stop all plugin services
   await cleanupServices()
 
