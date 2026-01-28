@@ -43,6 +43,7 @@
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.6.0",
     "tippy.js": "^6.3.7",
+    "mermaid": "^11.12.2",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.24"
   },

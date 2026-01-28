@@ -442,6 +442,11 @@ export type { EmbedProvider } from './extensions/embed'
 export { DatabaseEmbedExtension } from './extensions/database-embed'
 export type { DatabaseEmbedOptions, DatabaseViewType } from './extensions/database-embed'
 
+// Mermaid diagram extension
+export { MermaidExtension } from './extensions/mermaid'
+export type { MermaidOptions, MermaidTheme, MermaidConfig } from './extensions/mermaid'
+export { MERMAID_EXAMPLES, DEFAULT_MERMAID_CONFIG } from './extensions/mermaid'
+
 // Image upload service
 export {
   uploadImage,
