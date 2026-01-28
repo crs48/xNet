@@ -159,24 +159,15 @@ describe('ModuleName', () => {
 
 ## Playwright MCP (Browser Automation)
 
-The Playwright MCP server is configured in `opencode.json` for browser automation. Use it to:
+Debug the Electron app at `http://localhost:5177` when dev server is running (`cd apps/electron && pnpm dev`).
 
-- **Debug the Electron app**: Navigate to `http://localhost:5177` when dev server is running
-- **Verify UI changes**: Take screenshots or get accessibility snapshots after making changes
-- **Inspect elements**: Use `browser_snapshot` to get the accessibility tree (more useful than screenshots for understanding page structure)
-- **Test interactions**: Click buttons, fill forms, verify text appears
+Key tools:
 
-Example workflow after implementing a UI feature:
+- `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_take_screenshot`
+- `browser_console_messages` - check for JS errors, React warnings, unhandled rejections
 
-```
-1. Start the dev server: cd apps/electron && pnpm dev
-2. Use playwright to navigate to http://localhost:5177
-3. Take a snapshot to see the current state
-4. Click elements, type text, verify behavior
-5. Take screenshots to confirm visual appearance
-```
-
-Key tools: `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_take_screenshot`
+Workflow: navigate → snapshot (accessibility tree) → interact → screenshot → check console.
+Enable sync debug logs: `localStorage.setItem('xnet:sync:debug', 'true')`
 
 ## Key Constraints
 
