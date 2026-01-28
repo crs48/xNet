@@ -29,3 +29,23 @@ export { MCPServer, createMCPServer } from './mcp-server'
 
 // Process Manager (uses Node.js child_process module)
 export { ProcessManager } from './process-manager'
+
+// IPC channel names (shared between main and renderer)
+export { SERVICE_IPC_CHANNELS } from './client'
+
+// Service types (for IPC handlers)
+export type {
+  ServiceDefinition,
+  ServiceStatus,
+  ServiceState,
+  ServiceStatusEvent,
+  ServiceOutputEvent,
+  ServiceProcessConfig,
+  ServiceLifecycle,
+  ServiceCommunication,
+  ServiceHealthCheck,
+  ServiceProvides,
+  ServiceClient,
+  IProcessManager,
+  ProcessManagerEvents
+} from './types'

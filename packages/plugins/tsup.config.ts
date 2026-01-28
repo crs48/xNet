@@ -8,7 +8,9 @@ export default defineConfig([
     dts: true,
     clean: true,
     outDir: 'dist',
-    splitting: false
+    splitting: false,
+    // Mark workspace packages as external - they're bundled by the consumer
+    external: ['@xnet/core', '@xnet/data']
   },
   // Node.js-only bundle (server-side code)
   {
