@@ -766,6 +766,612 @@ const { data } = useQuery(TaskSchema, { limit: 20 })
 
 4. **Virtual list integration?** Should we provide a `useVirtualInfiniteQuery` that integrates with react-virtual/react-window?
 
+5. **Hub query latency?** Remote hub queries add 50-200ms latency. Should pagination be:
+   - Local-first with hub results streaming in?
+   - Hub-authoritative with local as cache?
+
+6. **Federation result merging?** When querying multiple hubs, how to handle:
+   - Different total counts from each hub?
+   - Duplicate items (same CID) across hubs?
+   - Inconsistent sort orders?
+
+---
+
+## Part 2: Remote Hub & Federated Query Support
+
+This section extends the pagination design to support querying remote hubs and federated multi-hub queries, as defined in [planStep03_8HubPhase1VPS](../planStep03_8HubPhase1VPS/README.md).
+
+### Current Architecture Gap
+
+The current `useQuery` only queries local `NodeStore` (IndexedDB). The Hub architecture introduces:
+
+1. **Hub as always-on sync peer** - Hub has complete workspace data via Yjs/NodeChange relay
+2. **Hub query endpoint** - FTS5 + structured queries over WebSocket
+3. **Hub federation** - Hub-to-hub queries for cross-organization search
+4. **Three-tier search** - Local → Workspace (Hub) → Global (Federated Hubs)
+
+```mermaid
+flowchart TB
+    subgraph "Current (Local Only)"
+        C1[useQuery] --> NS[NodeStore]
+        NS --> IDB[(IndexedDB)]
+    end
+
+    subgraph "Target (Local + Hub + Federation)"
+        C2[useQuery] --> QR[QueryRouter]
+        QR --> NS2[NodeStore<br/>Local]
+        QR --> HUB[Hub Query<br/>WebSocket]
+        QR --> FED[Federation<br/>Multi-Hub]
+
+        HUB --> HDB[(Hub SQLite)]
+        FED --> H1[Hub A]
+        FED --> H2[Hub B]
+    end
+
+    style C1 fill:#ffcdd2
+    style C2 fill:#c8e6c9
+```
+
+### Hub Query Protocol
+
+The Hub exposes queries over the existing WebSocket connection (same as sync):
+
+```typescript
+// Client → Hub (over WebSocket)
+interface HubQueryRequest {
+  type: 'query-request'
+  queryId: string
+  schemaId?: SchemaIRI
+  where?: Record<string, unknown>
+  orderBy?: { field: string; direction: 'asc' | 'desc' }[]
+  limit: number
+  offset?: number
+  cursor?: string
+  text?: string // Full-text search
+  federate?: boolean // Query federated hubs too
+}
+
+// Hub → Client
+interface HubQueryResponse {
+  type: 'query-response'
+  queryId: string
+  items: NodeState[]
+  total: number
+  hasMore: boolean
+  cursor?: string
+  sources: QuerySource[] // Which hubs contributed results
+  executionMs: number
+}
+
+interface QuerySource {
+  hubId: string
+  hubUrl: string
+  itemCount: number
+  latencyMs: number
+}
+```
+
+### Data Flow: Local + Hub + Federation
+
+```mermaid
+sequenceDiagram
+    participant UI as React Component
+    participant Hook as useQuery
+    participant Router as QueryRouter
+    participant Local as NodeStore (Local)
+    participant Hub as Hub (WebSocket)
+    participant Fed as Federated Hubs
+
+    Note over UI,Fed: Query with hub: true, federate: true
+
+    UI->>Hook: useQuery(TaskSchema, { limit: 20, hub: true })
+    Hook->>Router: query(options)
+
+    par Local Query (instant)
+        Router->>Local: list({ schemaId, limit: 20 })
+        Local-->>Router: { items: [...], total: 15 }
+    and Hub Query (50-200ms)
+        Router->>Hub: query-request { schemaId, limit: 20 }
+        Hub-->>Router: query-response { items: [...], total: 150 }
+    and Federation (100-500ms, if federate: true)
+        Router->>Fed: query-request { schemaId, limit: 20, federate: true }
+        Fed-->>Router: query-response { items: [...], sources: [...] }
+    end
+
+    Router->>Router: Merge & deduplicate by CID
+    Router-->>Hook: { items, total, hasMore, sources }
+    Hook-->>UI: Progressive results (local → hub → federation)
+```
+
+### Proposed API: Extended Options
+
+```typescript
+interface QueryFilter<P> {
+  // Existing local options
+  where?: Partial<InferCreateProps<P>>
+  orderBy?: { [K in keyof InferCreateProps<P>]?: 'asc' | 'desc' }
+  includeDeleted?: boolean
+  limit?: number
+  offset?: number
+  cursor?: string
+
+  // NEW: Remote query options
+  source?: QuerySource
+  hub?: boolean | HubQueryOptions
+  federate?: boolean | FederateOptions
+  text?: string // Full-text search (hub-only)
+}
+
+type QuerySource = 'local' | 'hub' | 'federation' | 'auto'
+
+interface HubQueryOptions {
+  /** Hub URL (defaults to configured hub) */
+  url?: string
+  /** Timeout in ms (default: 5000) */
+  timeout?: number
+  /** Use hub as authoritative source (vs local-first) */
+  authoritative?: boolean
+}
+
+interface FederateOptions {
+  /** Max number of hubs to query (default: 5) */
+  maxHubs?: number
+  /** Timeout per hub in ms (default: 3000) */
+  timeout?: number
+  /** Only query hubs serving this schema */
+  schemaRouting?: boolean
+}
+```
+
+### Proposed API: Extended Result
+
+```typescript
+interface QueryListResult<P> {
+  // Existing
+  data: FlatNode<P>[]
+  loading: boolean
+  error: Error | null
+  reload: () => Promise<void>
+
+  // Pagination
+  totalCount: number | null
+  hasMore: boolean
+  loadMore: () => Promise<void>
+
+  // NEW: Source information
+  sources: {
+    local: { count: number; latencyMs: number }
+    hub?: { count: number; latencyMs: number; url: string }
+    federation?: {
+      hubs: { url: string; count: number; latencyMs: number }[]
+      totalHubs: number
+    }
+  }
+
+  // NEW: Loading states per source
+  loadingStates: {
+    local: boolean
+    hub: boolean
+    federation: boolean
+  }
+}
+```
+
+### Progressive Loading Pattern
+
+Results appear progressively as each tier responds:
+
+```typescript
+function TaskList() {
+  const { data, loadingStates, sources } = useQuery(TaskSchema, {
+    limit: 20,
+    hub: true,
+    federate: true
+  })
+
+  return (
+    <>
+      {/* Results appear progressively */}
+      {data.map((task) => (
+        <TaskCard key={task.id} task={task} />
+      ))}
+
+      {/* Show loading indicators per tier */}
+      <div className="text-sm text-gray-500">
+        {loadingStates.local && <Spinner size="sm" />}
+        {!loadingStates.local && `${sources.local.count} local`}
+        {' | '}
+        {loadingStates.hub && <Spinner size="sm" />}
+        {!loadingStates.hub && sources.hub && `${sources.hub.count} from hub`}
+        {' | '}
+        {loadingStates.federation && <Spinner size="sm" />}
+        {!loadingStates.federation &&
+          sources.federation &&
+          `${sources.federation.hubs.length} hubs queried`}
+      </div>
+    </>
+  )
+}
+```
+
+### Result Merging Strategy
+
+When combining results from multiple sources:
+
+```mermaid
+flowchart TB
+    subgraph "Input"
+        L[Local Results<br/>15 items]
+        H[Hub Results<br/>150 items]
+        F1[Hub A Results<br/>30 items]
+        F2[Hub B Results<br/>25 items]
+    end
+
+    subgraph "Merge Process"
+        D1[1. Deduplicate by CID]
+        D2[2. Merge scores via RRF]
+        D3[3. Apply limit/offset]
+        D4[4. Track source attribution]
+    end
+
+    subgraph "Output"
+        R[Merged Results<br/>20 items + hasMore]
+    end
+
+    L --> D1
+    H --> D1
+    F1 --> D1
+    F2 --> D1
+    D1 --> D2 --> D3 --> D4 --> R
+```
+
+```typescript
+function mergeQueryResults<P>(
+  local: QueryResult<P>,
+  hub: QueryResult<P> | null,
+  federation: QueryResult<P>[] | null,
+  options: { limit: number; offset: number }
+): MergedQueryResult<P> {
+  const allItems: Array<FlatNode<P> & { _source: string; _score: number }> = []
+
+  // Collect all results with source attribution
+  for (const item of local.items) {
+    allItems.push({ ...item, _source: 'local', _score: 1.0 })
+  }
+
+  if (hub) {
+    for (const item of hub.items) {
+      allItems.push({ ...item, _source: 'hub', _score: 0.9 })
+    }
+  }
+
+  if (federation) {
+    for (const result of federation) {
+      for (const item of result.items) {
+        allItems.push({ ...item, _source: result.hubUrl, _score: 0.8 })
+      }
+    }
+  }
+
+  // Deduplicate by CID (content hash)
+  const seen = new Map<string, (typeof allItems)[0]>()
+  for (const item of allItems) {
+    const cid = item.id // Or compute from content hash
+    if (!seen.has(cid) || seen.get(cid)!._score < item._score) {
+      seen.set(cid, item) // Keep highest-scored duplicate
+    }
+  }
+
+  // Apply Reciprocal Rank Fusion for final ranking
+  const ranked = reciprocalRankFusion([...seen.values()])
+
+  // Apply pagination
+  const paginated = ranked.slice(options.offset, options.offset + options.limit)
+
+  // Calculate total (sum of unique items across all sources)
+  const totalCount = Math.max(local.total, hub?.total ?? 0, ...federation.map((f) => f.total))
+
+  return {
+    items: paginated,
+    totalCount,
+    hasMore: options.offset + options.limit < totalCount,
+    sources: {
+      /* ... */
+    }
+  }
+}
+```
+
+### Hub-Specific Pagination Considerations
+
+#### 1. Total Count Accuracy
+
+Local `totalCount` may differ from Hub's count (Hub has complete data, local may have subset):
+
+```typescript
+interface PaginationState {
+  // Local count (what we have locally)
+  localCount: number
+
+  // Hub count (authoritative if connected)
+  hubCount: number | null
+
+  // Use hub count when available, fall back to local
+  get totalCount(): number
+}
+```
+
+#### 2. Cursor Synchronization
+
+Cursors must work across local and remote:
+
+```typescript
+interface UnifiedCursor {
+  // Local cursor (IndexedDB position)
+  local?: { nodeId: string; sortValue: unknown }
+
+  // Hub cursor (server-provided opaque token)
+  hub?: string
+
+  // Federation cursors (per-hub)
+  federation?: Record<string, string>
+}
+
+// Encode as single cursor string for API
+function encodeCursor(cursor: UnifiedCursor): string {
+  return btoa(JSON.stringify(cursor))
+}
+```
+
+#### 3. Offline Behavior
+
+When Hub is unreachable:
+
+```typescript
+const { data, sources, error } = useQuery(TaskSchema, {
+  hub: true,
+  federate: true
+})
+
+// Graceful degradation
+if (sources.hub === null) {
+  // Hub offline - show local results only
+  // UI can indicate "showing cached results"
+}
+
+if (error?.code === 'HUB_TIMEOUT') {
+  // Partial results available
+  // data contains local + any federation results that succeeded
+}
+```
+
+### Federation Query Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Hub as My Hub
+    participant Registry as Hub Registry
+    participant HubA as Federated Hub A
+    participant HubB as Federated Hub B
+
+    Client->>Hub: query-request { federate: true, schemaId: "Task" }
+
+    Hub->>Registry: Which hubs serve "Task" schema?
+    Registry-->>Hub: [HubA, HubB, HubC]
+
+    par Query federated hubs
+        Hub->>HubA: /federation/query { schemaId, limit, cursor }
+        HubA-->>Hub: { items: [...], total: 50 }
+    and
+        Hub->>HubB: /federation/query { schemaId, limit, cursor }
+        HubB-->>Hub: { items: [...], total: 30 }
+    end
+
+    Hub->>Hub: Merge local + HubA + HubB results
+    Hub->>Hub: Deduplicate by CID
+    Hub->>Hub: Apply RRF ranking
+
+    Hub-->>Client: query-response { items, total, sources }
+```
+
+### Schema-Based Query Routing
+
+Queries can be routed to hubs that serve specific schemas:
+
+```typescript
+interface FederationConfig {
+  // Hub capabilities (advertised to federation)
+  serves: {
+    schemas: SchemaIRI[]
+    capabilities: ('fulltext' | 'vector' | 'structured')[]
+  }
+
+  // Peer hubs and what they serve
+  peers: {
+    url: string
+    did: string
+    schemas: SchemaIRI[]
+    trustLevel: 'full' | 'metadata-only'
+  }[]
+}
+
+// Query routing
+function routeQuery(query: HubQueryRequest, config: FederationConfig): string[] {
+  if (!query.schemaId) {
+    // No schema filter - query all peers
+    return config.peers.map((p) => p.url)
+  }
+
+  // Route to hubs serving this schema
+  return config.peers.filter((p) => p.schemas.includes(query.schemaId!)).map((p) => p.url)
+}
+```
+
+### Implementation Phases (Extended)
+
+#### Phase 5: Hub Query Integration
+
+```typescript
+// packages/react/src/hooks/useQuery.ts - Add hub support
+
+const loadFromHub = useCallback(async () => {
+  if (!hubOptions || !connectionManager) return null
+
+  const queryId = crypto.randomUUID()
+  const request: HubQueryRequest = {
+    type: 'query-request',
+    queryId,
+    schemaId,
+    where: filter.where,
+    orderBy: filter.orderBy,
+    limit: filter.limit ?? 20,
+    offset: filter.offset ?? 0,
+    cursor: filter.cursor
+  }
+
+  return new Promise<HubQueryResponse>((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error('Hub query timeout')),
+      hubOptions.timeout ?? 5000
+    )
+
+    connectionManager.sendQuery(request, (response) => {
+      clearTimeout(timeout)
+      resolve(response)
+    })
+  })
+}, [connectionManager, schemaId, filter, hubOptions])
+```
+
+#### Phase 6: Federation Support
+
+```typescript
+// packages/react/src/hooks/useQuery.ts - Add federation
+
+const loadFromFederation = useCallback(async () => {
+  if (!federateOptions) return null
+
+  // Federation is handled by the hub - we just set the flag
+  const request: HubQueryRequest = {
+    ...baseRequest,
+    federate: true
+  }
+
+  const response = await sendHubQuery(request)
+
+  // Response includes results from all federated hubs
+  return {
+    items: response.items,
+    total: response.total,
+    sources: response.sources
+  }
+}, [federateOptions, baseRequest])
+```
+
+#### Phase 7: Progressive Results Hook
+
+```typescript
+// packages/react/src/hooks/useProgressiveQuery.ts
+
+export function useProgressiveQuery<P>(
+  schema: DefinedSchema<P>,
+  options: ProgressiveQueryOptions<P>
+): ProgressiveQueryResult<P> {
+  const [localResult, setLocalResult] = useState<QueryResult<P> | null>(null)
+  const [hubResult, setHubResult] = useState<QueryResult<P> | null>(null)
+  const [fedResult, setFedResult] = useState<QueryResult<P>[] | null>(null)
+
+  const [loadingStates, setLoadingStates] = useState({
+    local: true,
+    hub: !!options.hub,
+    federation: !!options.federate
+  })
+
+  // Load local immediately
+  useEffect(() => {
+    loadLocal().then((result) => {
+      setLocalResult(result)
+      setLoadingStates((s) => ({ ...s, local: false }))
+    })
+  }, [loadLocal])
+
+  // Load hub in parallel
+  useEffect(() => {
+    if (!options.hub) return
+    loadHub().then((result) => {
+      setHubResult(result)
+      setLoadingStates((s) => ({ ...s, hub: false }))
+    })
+  }, [loadHub, options.hub])
+
+  // Load federation in parallel
+  useEffect(() => {
+    if (!options.federate) return
+    loadFederation().then((result) => {
+      setFedResult(result)
+      setLoadingStates((s) => ({ ...s, federation: false }))
+    })
+  }, [loadFederation, options.federate])
+
+  // Merge results as they arrive
+  const mergedData = useMemo(() => {
+    return mergeQueryResults(localResult, hubResult, fedResult, {
+      limit: options.limit ?? 20,
+      offset: options.offset ?? 0
+    })
+  }, [localResult, hubResult, fedResult, options.limit, options.offset])
+
+  return {
+    data: mergedData.items,
+    totalCount: mergedData.totalCount,
+    hasMore: mergedData.hasMore,
+    loadingStates,
+    sources: mergedData.sources,
+    loading: loadingStates.local, // Consider "loading" only for local
+    loadingAny: Object.values(loadingStates).some(Boolean),
+    error: null,
+    reload: async () => {
+      /* ... */
+    },
+    loadMore: async () => {
+      /* ... */
+    }
+  }
+}
+```
+
+### Privacy Considerations
+
+| Query Type | What Hub Sees                    | What Federated Hubs See          |
+| ---------- | -------------------------------- | -------------------------------- |
+| Local only | Nothing                          | Nothing                          |
+| Hub query  | Query terms, schema, user DID    | Nothing                          |
+| Federated  | Query terms, schema, user DID    | Query terms, schema, hub DID     |
+| Full-text  | Search text, highlighted results | Search text (if hub forwards)    |
+| Encrypted  | HMAC-hashed terms only           | HMAC-hashed terms (if forwarded) |
+
+**Mitigations:**
+
+1. `source: 'local'` for sensitive queries
+2. Hub is user-chosen (self-host for full control)
+3. Federation is opt-in per query
+4. Encrypted workspace search (HMAC terms)
+
+### Comparison: Local vs Hub vs Federation
+
+| Aspect           | Local Only         | With Hub              | With Federation         |
+| ---------------- | ------------------ | --------------------- | ----------------------- |
+| Latency          | <10ms              | 50-200ms              | 100-500ms               |
+| Completeness     | Only synced data   | All workspace data    | Cross-organization      |
+| Offline          | Full functionality | Graceful degradation  | Local fallback          |
+| Total count      | Local count only   | Accurate count        | Aggregated estimate     |
+| Full-text search | MiniSearch (basic) | FTS5 (advanced)       | FTS5 across hubs        |
+| Vector search    | On-device (slow)   | Server-side (fast)    | Distributed             |
+| Privacy          | Maximum            | Trust hub operator    | Trust federated hubs    |
+| Real-time        | Instant updates    | Sync delay (~1s)      | Higher latency          |
+| Pagination       | Cursor/offset      | Server-side efficient | Coordinated across hubs |
+
 ## References
 
 - [TanStack Query - Paginated Queries](https://tanstack.com/query/latest/docs/framework/react/guides/paginated-queries)
