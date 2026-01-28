@@ -32,11 +32,12 @@ interface XNetIPC {
 }
 
 /**
- * Get the IPC interface from the window object
+ * Get the IPC interface from the window object.
+ * The xnetServices API is exposed by the Electron preload script.
  */
 function getIPC(): XNetIPC | null {
   if (typeof window === 'undefined') return null
-  return (window as Window & { xnet?: XNetIPC }).xnet ?? null
+  return (window as Window & { xnetServices?: XNetIPC }).xnetServices ?? null
 }
 
 // ─── Service Client Implementation ───────────────────────────────────────────
