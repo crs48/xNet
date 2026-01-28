@@ -22,7 +22,8 @@ export { RichTextEditor, type RichTextEditorProps } from './components/RichTextE
 export {
   FloatingToolbar,
   type FloatingToolbarProps,
-  type ToolbarMode
+  type ToolbarMode,
+  type ToolbarItemContribution
 } from './components/FloatingToolbar'
 // Slash command menu component
 export { SlashMenu, type SlashMenuRef } from './components/SlashMenu'
@@ -75,6 +76,12 @@ export { useFileDownload } from './hooks/useFileDownload'
 export type { FileDownloadAttrs } from './hooks/useFileDownload'
 export { useFocusTrap } from './accessibility/useFocusTrap'
 export type { UseFocusTrapOptions } from './accessibility/useFocusTrap'
+export { useEditorExtensions } from './hooks/useEditorExtensions'
+export type {
+  EditorContribution,
+  UseEditorExtensionsResult,
+  UseEditorExtensionsOptions
+} from './hooks/useEditorExtensions'
 
 // Re-export hooks from @tiptap/react for convenience
 export { useEditor, EditorContent } from '@tiptap/react'

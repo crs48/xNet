@@ -30,6 +30,7 @@ export type {
   SlashCommandContribution,
   SlashCommandContext,
   EditorContribution,
+  ToolbarContribution,
   SidebarContribution,
   PropertyHandlerContribution,
   PropertyHandler,

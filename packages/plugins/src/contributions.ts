@@ -63,11 +63,33 @@ export interface SlashCommandContext {
   range: { from: number; to: number }
 }
 
+/**
+ * Toolbar button contribution for the editor
+ */
+export interface ToolbarContribution {
+  /** Icon name (Lucide) or React component */
+  icon: string | ComponentType
+  /** Tooltip/title text */
+  title: string
+  /** Toolbar section: format, insert, block, or custom */
+  group?: 'format' | 'insert' | 'block' | 'custom'
+  /** Check if button should appear active */
+  isActive?: (editor: unknown) => boolean
+  /** Button click handler */
+  action: (editor: unknown) => void
+  /** Keyboard shortcut display (e.g., 'Mod-Shift-H') */
+  shortcut?: string
+}
+
 export interface EditorContribution {
   /** Unique extension ID */
   id: string
-  /** TipTap extension */
+  /** TipTap extension (Extension, Node, or Mark) */
   extension: Extension
+  /** Optional toolbar button for this extension */
+  toolbar?: ToolbarContribution
+  /** Priority for extension ordering (lower = earlier, default: 100) */
+  priority?: number
 }
 
 export interface SidebarContribution {
