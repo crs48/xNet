@@ -591,15 +591,15 @@ export function CommentSidebar({
 
 ## Checklist
 
-- [ ] Create universal `useComments(nodeId)` hook
-- [ ] Create CommentPlugin extension (click/hover handlers)
-- [ ] Implement createTextComment flow (anchor -> comment -> mark)
-- [ ] Add "Comment" action to bubble menu
-- [ ] Create CommentSidebar component
-- [ ] Wire up editor -> popover -> store
-- [ ] Add keyboard shortcuts
-- [ ] Handle mark restoration on document open
-- [ ] Tests pass
+- [x] Create universal `useComments(nodeId)` hook - `packages/react/src/hooks/useComments.ts`
+- [x] Create CommentPlugin extension (click/hover handlers) - `packages/editor/src/extensions/comment/CommentPlugin.ts`
+- [x] Implement createTextComment flow (anchor -> comment -> mark) - in `PageView.tsx`
+- [x] Add "Comment" action to toolbar - `packages/editor/src/components/FloatingToolbar.tsx`
+- [x] Create CommentSidebar component (using OrphanedThreadList for detached) - `packages/ui/src/composed/comments/OrphanedThreadList.tsx`
+- [x] Wire up editor -> popover -> store - in `PageView.tsx`
+- [x] Add keyboard shortcuts (Cmd+Enter to submit replies)
+- [x] Handle mark restoration on document open - `restoreCommentMarks` in `PageView.tsx`
+- [x] Tests pass
 
 ---
 

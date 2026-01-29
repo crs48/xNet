@@ -535,16 +535,16 @@ describe('Anchor encoding', () => {
 
 ## Checklist
 
-- [ ] Create CommentSchema with universal `target` relation (schema-agnostic)
-- [ ] Add `targetSchema` optimization field
-- [ ] Add `inReplyTo` for reply threading
-- [ ] Include anchor data fields (anchorType, anchorData)
-- [ ] Create anchor type definitions and encode/decode utilities
-- [ ] Create thread utility functions (getThreadRoot, getThreadComments)
-- [ ] Register schema in schema index
-- [ ] Verify schema passes validation
-- [ ] Write schema tests
-- [ ] Tests pass
+- [x] Create CommentSchema with universal `target` relation (schema-agnostic) - `packages/data/src/schema/schemas/comment.ts`
+- [x] Add `targetSchema` optimization field
+- [x] Add `inReplyTo` for reply threading
+- [x] Include anchor data fields (anchorType, anchorData)
+- [x] Create anchor type definitions and encode/decode utilities - `packages/data/src/schema/schemas/commentAnchors.ts`
+- [x] Create thread utility functions (getThreadRoot, getThreadComments) - via `useComments` hook
+- [x] Register schema in schema index - `packages/data/src/schema/schemas/index.ts`
+- [x] Verify schema passes validation
+- [x] Write schema tests - `comment.test.ts`, `commentAnchors.test.ts` (57 tests)
+- [x] Tests pass
 
 ---
 

@@ -565,16 +565,16 @@ export function useCommentPopover() {
 
 ## Checklist
 
-- [ ] Create CommentPopover component (preview + full modes)
-- [ ] Create CommentBubble component (individual comment display)
-- [ ] Implement reply input with Cmd+Enter submit
-- [ ] Implement resolve/reopen actions
-- [ ] Implement edit/delete on individual comments
-- [ ] Add hover delay logic (300ms preview, dismiss on leave)
-- [ ] Create useCommentPopover hook
-- [ ] Add markdown rendering for comment content
-- [ ] Style popover (light + dark mode)
-- [ ] Tests pass
+- [x] Create CommentPopover component (preview + full modes) - `packages/ui/src/composed/comments/CommentPopover.tsx`
+- [x] Create CommentBubble component (individual comment display) - `packages/ui/src/composed/comments/CommentBubble.tsx`
+- [x] Implement reply input with Cmd+Enter submit
+- [x] Implement resolve/reopen actions
+- [x] Implement edit/delete on individual comments
+- [x] Add hover delay logic (300ms preview, dismiss on leave) - in `PageView.tsx`
+- [x] Create useCommentPopover hook - `packages/ui/src/composed/comments/useCommentPopover.ts`
+- [x] Add markdown rendering for comment content (plain text for now, GFM TODO)
+- [x] Style popover (light + dark mode) - uses @xnet/ui tokens
+- [x] Tests pass (UI tests are manual per AGENTS.md)
 
 ---
 

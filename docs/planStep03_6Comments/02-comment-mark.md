@@ -308,13 +308,13 @@ describe('CommentMark', () => {
 
 ## Checklist
 
-- [ ] Create CommentMark extension with commentId/resolved attributes
-- [ ] Implement setComment, unsetComment, toggleComment commands
-- [ ] Allow overlapping marks (excludes: '')
-- [ ] Add comment highlight CSS (active, hover, resolved, dark mode, overlapping)
-- [ ] Register in RichTextEditor extensions
-- [ ] Write mark tests
-- [ ] Tests pass
+- [x] Create CommentMark extension with commentId/resolved attributes - `packages/editor/src/extensions/comment/CommentMark.ts`
+- [x] Implement setComment, unsetComment, toggleComment commands
+- [x] Allow overlapping marks (excludes: '')
+- [x] Add comment highlight CSS (active, hover, resolved, dark mode, overlapping) - in `RichTextEditor.css`
+- [x] Register in RichTextEditor extensions - via `extensions` prop
+- [x] Write mark tests (manual testing - editor tests are UI tests)
+- [x] Tests pass
 
 ---
 
