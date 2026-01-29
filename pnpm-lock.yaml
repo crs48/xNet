@@ -373,7 +373,7 @@ importers:
         specifier: workspace:*
         version: link:../data
       '@xnet/react':
-        specifier: workspace:^
+        specifier: workspace:*
         version: link:../react
       '@xnet/ui':
         specifier: workspace:*
@@ -1085,6 +1085,9 @@ importers:
       '@xnet/data':
         specifier: workspace:*
         version: link:../data
+      '@xnet/react':
+        specifier: workspace:*
+        version: link:../react
       '@xnet/ui':
         specifier: workspace:*
         version: link:../ui

@@ -19,6 +19,7 @@
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
+    "@xnet/react": "workspace:*",
     "@xnet/ui": "workspace:*",
     "@tanstack/react-table": "^8.21.2",
     "@tanstack/react-virtual": "^3.13.2",
