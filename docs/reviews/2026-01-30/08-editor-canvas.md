@@ -206,6 +206,43 @@ The drag handler uses **incremental** deltas (reset `dragStart` each move). The 
 
 ---
 
+## Recommendations
+
+> **Roadmap note:** Phase 1 is a personal wiki. Editor heading bugs, upload race conditions, and canvas performance directly affect daily use. Coordinate system mismatches affect canvas comments (Phase 2+). Collaborative editing features are Phase 3.
+
+### Phase 1 (Daily Driver) -- Bugs affecting everyday editing
+
+- [ ] **Heading input rule:** Change regex from `#{1,${level}}` to `#{${level}}` in `extensions.ts:150` so `# ` creates H1, not H6
+- [ ] **Upload race condition:** Use unique ID attribute (`crypto.randomUUID()`) for image/file placeholders instead of matching by filename after async upload
+- [ ] **PERF-04 (cross-ref):** Use `SpatialIndex.search(viewport)` in Canvas renderer -- canvas unusable at 200+ nodes
+- [ ] **PERF-05 (cross-ref):** Add `requestAnimationFrame` throttling for canvas wheel events
+- [ ] **CV-09:** Check if focus is in an input/textarea before handling keyboard Delete in canvas
+- [ ] **ED-06:** Memoize extensions list in `RichTextEditor` with `useMemo`
+- [ ] **ED-05:** Throttle `mousemove` handler that calls `elementsFromPoint` (causes layout thrashing)
+- [ ] **CV-01:** Memoize comment overlay `Map` instead of recreating every render
+- [ ] **ED-02:** Remove dead `currentContent` assignment in `core.ts:121`
+
+### Phase 2 (Hub MVP) -- Required for canvas comments and persistence
+
+- [ ] **Coordinate system mismatch:** Fix `Canvas.tsx:464-467` to convert center-based viewport coords to pan-offset-based for `CommentOverlay` (add `width/2`, `height/2` offset)
+- [ ] **Y.Map observer leak:** Call `unobserve()` in `CanvasStore.dispose()` to prevent memory leak and post-disposal callbacks
+- [ ] **Resize delta semantics:** Align resize handler to use incremental deltas (like drag) or document the cumulative convention
+- [ ] **Orphan reattachment:** Batch all comment mark reattachments into a single ProseMirror transaction (prevent position corruption)
+- [ ] **ED-03:** Fix `uint8ArrayToBase64` spread operator stack overflow on large arrays in `textAnchor.ts`
+- [ ] **ED-04:** Add cleanup for cursor registration `requestAnimationFrame` loop
+- [ ] **CV-04:** Use batch `updateNodePositions` for multi-select drag
+
+### Phase 3 (Multiplayer) -- Required for collaborative editing
+
+- [ ] **CV-05:** Fix `handleNodesChange` to emit correct event type (`node-added` vs `node-updated`) for new nodes
+- [ ] **CV-06:** Wire up or remove unused `node-added` and `bulk-update` events from `CanvasStore`
+- [ ] **ED-01:** Deduplicate `ToolbarItemContribution` type between `RichTextEditor.tsx` and `FloatingToolbar.tsx`
+- [ ] **CV-07:** Replace `Math.random` with `crypto.randomUUID()` in `generateNodeId`/`generateEdgeId`
+- [ ] **CV-08:** Wrap `removeEdge` in Yjs transaction for atomicity
+- [ ] **CV-11:** Remove default exports (violates project conventions)
+
+---
+
 ## Test Coverage Comparison
 
 ```mermaid

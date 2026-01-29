@@ -188,18 +188,33 @@ sequenceDiagram
 
 ## Recommendations
 
-### Priority 1: Make the Security Stack Actually Active
+> **Roadmap note:** Phase 1 is single-user (no network sync). Foundational correctness bugs (hash serialization, random IDs) affect local data integrity now. Network security and peer validation are Phase 2+. Stub implementations block Phase 3 multiplayer.
 
-The security primitives in `@xnet/sync` are well-designed but the network layer doesn't use them. Wire the `YjsEnvelopeHandler`, rate limiter, and peer scorer into the actual sync protocol.
+### Phase 1 (Daily Driver) -- Local data correctness
 
-### Priority 2: Fix Foundational Issues
+- [ ] **SY-01:** Fix `computeChangeHash` to convert `Uint8Array` to hex/base64 before `JSON.stringify` -- breaks hash chain after any serialization round-trip
+- [ ] **SY-02:** Replace `Math.random()` with `crypto.getRandomValues()` in `createChangeId` and `createBatchId` -- collision risk in change history
+- [ ] **SY-03:** Make `mergeUpdates` a required parameter in `YjsBatcher` (remove broken byte-concatenation fallback)
+- [ ] **SDK-01:** Replace `Math.random` with `crypto.getRandomValues()` in `generateId` for document IDs
+- [ ] **SY-04:** Type `SignedYjsEnvelope.authorDID` as branded `DID` type instead of plain `string`
+- [ ] **SY-08:** Handle `Date`, `Uint8Array`, `Map`, `Set` in `sortObjectKeys` for canonical hashing
+- [ ] **BSM-05:** Fix `xnetServices.off()` wrapper reference mismatch so listeners are actually removed
 
-- Replace `Math.random()` with `crypto.getRandomValues()` for all IDs
-- Fix `computeChangeHash` to handle `Uint8Array` payloads
-- Make `mergeUpdates` required in `YjsBatcher`
+### Phase 2 (Hub MVP) -- Required for sync server
 
-### Priority 3: Complete Stub Implementations
+- [ ] **NW-01:** Wire `YjsEnvelopeHandler`, rate limiter, and peer scorer into the actual network sync protocol -- security stack exists but is bypassed
+- [ ] **SY-05:** Add Ed25519 signature verification to `validateChain` (currently only checks hashes)
+- [ ] **NW-02:** Add libp2p cleanup on `createNode` `start()` failure
+- [ ] **SDK-02:** Add LRU eviction to document cache in `XNetClient`
+- [ ] **NW-07:** Add peer eviction to `SyncRateLimiter` when peers disconnect
+- [ ] **NW-08:** Add max-size or LRU eviction to `DIDResolver` cache
+- [ ] **BSM-02:** Handle Electron `before-quit` async properly (use `event.preventDefault()` + delayed `app.quit()`)
+- [ ] **BSM-04:** Add timeout/rejection to `acquire` promise in preload so it doesn't hang forever
 
-- `connectToPeer` in SDK
-- `getConnectedPeers` / `onPeersChange` in y-webrtc provider
-- Peer cache eviction in rate limiter and DID resolver
+### Phase 3 (Multiplayer) -- Required for peer-to-peer sync
+
+- [ ] **BSM-01:** Verify blob CID matches content hash before storing peer data
+- [ ] **NW-04/NW-05:** Implement real `getConnectedPeers` and `onPeersChange` in y-webrtc provider
+- [ ] **SDK-04:** Implement `connectToPeer` body in XNetClient
+- [ ] **NW-09:** Fix `PeerScorer.decayScores` so decay actually persists between events
+- [ ] **NW-06:** Replace `Date.now()` with `crypto.randomUUID()` for `connectionId` in gater

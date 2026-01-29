@@ -261,10 +261,24 @@ sequenceDiagram
 
 ## Recommendations
 
-1. **Immediate:** Fix DI-01 (conflict value capture) -- simple one-line fix with high impact
-2. **Immediate:** Fix DI-03 (Uint8Array hashing) -- required for hash chain integrity
-3. **Short-term:** Fix DI-04 (batch merge fallback) -- make `mergeUpdates` required
-4. **Short-term:** Fix DI-02 (atomic transactions) -- implement rollback mechanism
-5. **Medium-term:** Implement `since` parameter in storage adapters (DI-06)
-6. **Medium-term:** Add Merkle root verification to chunk reassembly (DI-08)
-7. **Medium-term:** Migrate DatabaseView to proper Yjs data structures (DI-05)
+> **Roadmap note:** DI-01 and DI-09 directly affect the Phase 1 dog-fooding experience. DI-03/DI-04 affect sync correctness (Phase 2+). DI-05 affects collaborative database editing (Phase 3).
+
+### Phase 1 (Daily Driver) -- Bugs you'll hit during dog-fooding
+
+- [ ] **DI-01:** Capture local value _before_ overwrite in `store.ts:619` -- one-line fix, high impact on conflict UI
+- [ ] **DI-07:** Only record conflicts when `change.authorDID !== localDID` -- prevents false conflict noise in single-user mode
+- [ ] **DI-09:** Rename one of the two `DocumentType` exports to avoid ambiguity (e.g., `ContentCategory` vs `CRDTType`)
+- [ ] **DI-11:** Accumulate Yjs updates in `captureUpdate` instead of overwriting -- use array + `Y.mergeUpdates`
+
+### Phase 2 (Hub MVP) -- Required for reliable sync
+
+- [ ] **DI-03:** Fix `computeChangeHash` to convert `Uint8Array` to hex/base64 before JSON serialization
+- [ ] **DI-04:** Make `mergeUpdates` a required parameter in `YjsBatcher` (remove broken concatenation fallback)
+- [ ] **DI-10:** Replace `Math.random()` with `crypto.getRandomValues()` in `createChangeId` and `createBatchId`
+- [ ] **DI-06:** Implement `since` parameter in both `IndexedDBAdapter.getUpdates` and `MemoryAdapter.getUpdates`
+- [ ] **DI-02:** Implement transaction rollback -- buffer changes, validate all, then apply; snapshot pre-transaction state for rollback
+
+### Phase 3 (Multiplayer) -- Required for collaborative editing
+
+- [ ] **DI-05:** Migrate `DatabaseView` from array-in-Y.Map to proper `Y.Array`/`Y.Map` per-element CRDT structures
+- [ ] **DI-08:** Verify Merkle `rootHash` after chunk reassembly in `ChunkManager.retrieve()`

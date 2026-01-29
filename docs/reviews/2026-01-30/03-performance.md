@@ -254,3 +254,31 @@ gantt
         Snapshot-based incremental load      :p3b, 2026-02-18, 5d
         Worker-based rendering               :p3c, 2026-02-18, 5d
 ```
+
+## Recommendations
+
+> **Roadmap note:** Phase 1 is a single-user daily-driver wiki. Performance issues that affect page load, canvas usability, and query speed with hundreds of nodes are Phase 1 blockers. Multi-peer sync performance and large-scale indexing are Phase 2+.
+
+### Phase 1 (Daily Driver) -- Noticeable during dog-fooding
+
+- [ ] **PERF-04:** Use `SpatialIndex.search(viewport)` in Canvas renderer instead of rendering all nodes -- canvas unusable at 200+ nodes
+- [ ] **PERF-05:** Throttle canvas wheel events via `requestAnimationFrame` -- causes jank on 120Hz displays
+- [ ] **PERF-08:** Fix `getLastChange` to use IDB cursor with `'prev'` direction instead of loading all changes -- called on every CRUD op
+- [ ] **PERF-09:** Fix `countNodes` to use `db.count()` / `db.countFromIndex()` instead of loading all nodes into memory
+- [ ] **PERF-01:** Add query indexing (IDB secondary indexes or MiniSearch) -- every query does a full table scan, ~5s at 10K docs
+- [ ] **PERF-03:** Use `IDBKeyRange.bound(prefix, prefix + '\uffff')` in `listDocuments` instead of loading all keys
+- [ ] **PERF-06:** Memoize `contextValue` in `DevToolsProvider` with `useMemo` -- causes cascading re-renders
+- [ ] **PERF-07:** Memoize comment overlay `Map` in Canvas instead of recreating every render
+
+### Phase 2 (Hub MVP) -- Required for reliable sync at scale
+
+- [ ] **PERF-02:** Implement dedicated `count()` using `IDBObjectStore.count()` instead of full query
+- [ ] **PERF-10:** Parallelize chunk writes with `Promise.all` (content-addressed, no ordering dependency)
+- [ ] **PERF-11:** Wire snapshot system to actually use `since` parameter for incremental document loads
+- [ ] **PERF-12:** Debounce or diff-patch comment reload in `useComments` instead of full O(N) reload on every change
+- [ ] **PERF-13:** Use batch `updateNodePositions` for multi-select drag instead of per-node Yjs transactions
+- [ ] **PERF-15:** Add debouncing to `NodeExplorer` devtool store event handler and remove 2s polling
+
+### Phase 3 (Multiplayer) -- Required for collaborative scale
+
+- [ ] **PERF-14:** Implement aggregate `useCommentCount` hook (single subscription, shared across sidebar items)
