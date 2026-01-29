@@ -534,3 +534,65 @@
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ─── Comment Marks ─── */
+
+/* Base comment mark style */
+.xnet-comment-mark {
+  background-color: rgb(251 191 36 / 0.3); /* amber-400 with transparency */
+  border-bottom: 2px solid rgb(245 158 11); /* amber-500 */
+  padding: 1px 0;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.xnet-comment-mark:hover {
+  background-color: rgb(251 191 36 / 0.5);
+}
+
+/* Active/selected comment */
+.xnet-comment-selected,
+.xnet-comment-mark.xnet-comment-selected {
+  background-color: rgb(251 191 36 / 0.5);
+  border-bottom-color: rgb(217 119 6); /* amber-600 */
+}
+
+/* Resolved comment - more subtle */
+.xnet-comment-resolved {
+  background-color: rgb(134 239 172 / 0.25); /* green-300 with transparency */
+  border-bottom: 2px solid rgb(34 197 94 / 0.5); /* green-500 */
+}
+
+.xnet-comment-resolved:hover {
+  background-color: rgb(134 239 172 / 0.4);
+}
+
+/* Dark mode adjustments */
+.dark .xnet-comment-mark {
+  background-color: rgb(251 191 36 / 0.25);
+  border-bottom-color: rgb(251 191 36);
+}
+
+.dark .xnet-comment-mark:hover {
+  background-color: rgb(251 191 36 / 0.4);
+}
+
+.dark .xnet-comment-selected,
+.dark .xnet-comment-mark.xnet-comment-selected {
+  background-color: rgb(251 191 36 / 0.4);
+}
+
+.dark .xnet-comment-resolved {
+  background-color: rgb(34 197 94 / 0.2);
+  border-bottom-color: rgb(34 197 94 / 0.6);
+}
+
+.dark .xnet-comment-resolved:hover {
+  background-color: rgb(34 197 94 / 0.3);
+}
+
+/* Overlapping comments - darker highlight */
+.xnet-comment-mark + .xnet-comment-mark,
+.xnet-comment-mark.has-overlap {
+  background-color: rgb(251 191 36 / 0.5);
+}

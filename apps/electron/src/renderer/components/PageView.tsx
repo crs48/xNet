@@ -347,6 +347,25 @@ export function PageView({ docId }: PageViewProps) {
           )
           editorRef.current.view.dispatch(tr)
         }
+
+        // After a short delay, find the mark element and show the popover
+        // This gives time for the DOM and threads state to update
+        const showPopover = () => {
+          const markEl = document.querySelector(
+            `[data-comment-id="${commentId}"]`
+          ) as HTMLElement | null
+          if (markEl) {
+            setPopoverState({
+              visible: true,
+              mode: 'full',
+              threadId: commentId,
+              anchor: markEl
+            })
+          }
+        }
+        // Try immediately, then retry after a delay if needed
+        setTimeout(showPopover, 50)
+        setTimeout(showPopover, 200)
       }
 
       // Close the new comment UI
@@ -381,7 +400,19 @@ export function PageView({ docId }: PageViewProps) {
   )
 
   // Get the current thread for the popover
+  // If thread not found in map yet (newly created), it will show once threads update
   const currentThread = popoverState.threadId ? threadDataMap.get(popoverState.threadId) : null
+
+  // Debug: log when popover should show but thread not found
+  useEffect(() => {
+    if (popoverState.visible && popoverState.threadId && !currentThread) {
+      console.log('[Comments] Popover visible but thread not found yet:', popoverState.threadId)
+      console.log(
+        '[Comments] Available threads:',
+        threads.map((t) => t.root.id)
+      )
+    }
+  }, [popoverState, currentThread, threads])
 
   // ─── Orphaned Comment Handlers ─────────────────────────────────────────────────
 
@@ -490,22 +521,34 @@ export function PageView({ docId }: PageViewProps) {
       </div>
 
       {/* Comment Popover */}
-      {currentThread && popoverState.anchor && (
-        <CommentPopover
-          thread={currentThread}
-          anchor={popoverState.anchor}
-          mode={popoverState.mode}
-          open={popoverState.visible}
-          side="right"
-          onReply={handleReply}
-          onResolve={handleResolve}
-          onReopen={handleReopen}
-          onDelete={handleDelete}
-          onEdit={handleEdit}
-          onDismiss={handleDismiss}
-          onUpgradeToFull={handleUpgradeToFull}
-        />
-      )}
+      {popoverState.visible &&
+        popoverState.anchor &&
+        (currentThread ? (
+          <CommentPopover
+            thread={currentThread}
+            anchor={popoverState.anchor}
+            mode={popoverState.mode}
+            open={popoverState.visible}
+            side="right"
+            onReply={handleReply}
+            onResolve={handleResolve}
+            onReopen={handleReopen}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            onDismiss={handleDismiss}
+            onUpgradeToFull={handleUpgradeToFull}
+          />
+        ) : (
+          <div
+            className="fixed z-50 w-64 p-4 rounded-lg border bg-popover text-popover-foreground shadow-lg"
+            style={{
+              left: popoverState.anchor.getBoundingClientRect().right + 8,
+              top: popoverState.anchor.getBoundingClientRect().top
+            }}
+          >
+            <div className="text-sm text-muted-foreground">Loading comment...</div>
+          </div>
+        ))}
 
       {/* New Comment Input */}
       {newCommentState?.visible && (
