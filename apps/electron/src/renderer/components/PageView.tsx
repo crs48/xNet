@@ -336,17 +336,32 @@ export function PageView({ docId }: PageViewProps) {
       })
 
       if (commentId) {
-        // Apply the mark to the original selection range
-        const { tr } = editorRef.current.state
-        const markType = editorRef.current.schema.marks.comment
-        if (markType) {
-          tr.addMark(
-            newCommentState.selectionFrom,
-            newCommentState.selectionTo,
-            markType.create({ commentId, resolved: false })
-          )
-          editorRef.current.view.dispatch(tr)
-        }
+        console.log('[Comments] Applying mark:', {
+          commentId,
+          from: newCommentState.selectionFrom,
+          to: newCommentState.selectionTo
+        })
+
+        // Use the editor command to apply the mark
+        // First, set selection to the original range, then apply mark
+        editorRef.current
+          .chain()
+          .focus()
+          .setTextSelection({
+            from: newCommentState.selectionFrom,
+            to: newCommentState.selectionTo
+          })
+          .setComment(commentId)
+          .run()
+
+        console.log('[Comments] Mark command executed, checking DOM...')
+        setTimeout(() => {
+          const el = document.querySelector(`[data-comment-id="${commentId}"]`)
+          console.log('[Comments] DOM element found:', el)
+          if (el) {
+            console.log('[Comments] Element HTML:', el.outerHTML)
+          }
+        }, 50)
 
         // After a short delay, find the mark element and show the popover
         // This gives time for the DOM and threads state to update
