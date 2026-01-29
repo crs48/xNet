@@ -598,17 +598,17 @@ For now, just show the `edited` flag and `editedAt` timestamp in the UI.
 
 ## Checklist
 
-- [ ] Implement orphan detection (checkOrphanStatus)
-- [ ] Create OrphanedThreadList component
-- [ ] Implement auto-reattachment on undo
-- [ ] Implement overlap detection (getCommentsAtPosition)
-- [ ] Create ThreadPicker component
-- [ ] Implement useCommentCount hook
-- [ ] Implement @mention extraction
-- [ ] Implement deleteThread with cascade
-- [ ] Handle thread deletion (soft-delete, remove marks)
-- [ ] Add "Detached Comments" section to sidebar
-- [ ] Tests pass
+- [x] Implement orphan detection (checkOrphanStatus) - `packages/data/src/schema/schemas/commentOrphans.ts`
+- [x] Create OrphanedThreadList component - `packages/ui/src/composed/comments/OrphanedThreadList.tsx`
+- [x] Implement auto-reattachment on undo - `packages/editor/src/extensions/comment/useOrphanReattachment.ts`
+- [x] Implement overlap detection (getCommentsAtPosition) - `packages/editor/src/extensions/comment/CommentPlugin.ts`
+- [x] Create ThreadPicker component - `packages/ui/src/composed/comments/ThreadPicker.tsx`
+- [x] Implement useCommentCount hook - `packages/react/src/hooks/useCommentCount.ts`
+- [x] Implement @mention extraction - `packages/data/src/schema/schemas/commentReferences.ts`
+- [x] Implement deleteThread with cascade - `packages/react/src/hooks/useComments.ts`
+- [x] Handle thread deletion (soft-delete, remove marks) - `packages/react/src/hooks/useComments.ts`
+- [ ] Add "Detached Comments" section to sidebar (integration)
+- [x] Tests pass (158+ comment-related tests)
 
 ---
 
