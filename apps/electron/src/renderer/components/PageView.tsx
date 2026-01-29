@@ -7,13 +7,19 @@
  * - Real-time presence indicators
  */
 
-import React, { useState, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { SyncStatus } from '@xnet/react'
 // Editor type - we use any since @tiptap/core isn't directly available
 import { useNode, useIdentity, useEditorExtensionsSafe, useComments } from '@xnet/react'
-import { PageSchema } from '@xnet/data'
-import { RichTextEditor, useImageUpload, useFileUpload, useFileDownload } from '@xnet/editor/react'
-import { CommentMark, CommentPlugin } from '@xnet/editor/extensions'
+import { PageSchema, decodeAnchor, type TextAnchor } from '@xnet/data'
+import {
+  RichTextEditor,
+  useImageUpload,
+  useFileUpload,
+  useFileDownload,
+  type Editor
+} from '@xnet/editor/react'
+import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
 import { CommentPopover, type CommentThreadData } from '@xnet/ui'
 import { DocumentHeader } from './DocumentHeader'
 import { PresenceAvatars } from './PresenceAvatars'
@@ -82,10 +88,36 @@ export function PageView({ docId }: PageViewProps) {
   // Popover state for comment interactions
   const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const editorRef = useRef<Editor | null>(null)
+  const marksRestoredRef = useRef(false)
 
-  // Note: Mark restoration requires editor access. We'll add onEditorReady
-  // prop to RichTextEditor in a future update. For now, comment marks are
-  // applied on click/hover through the CommentPlugin.
+  // Handle editor ready - store ref and restore comment marks
+  const handleEditorReady = useCallback((editor: Editor) => {
+    editorRef.current = editor
+  }, [])
+
+  // Restore comment marks when editor is ready and threads are loaded
+  useEffect(() => {
+    if (!editorRef.current || marksRestoredRef.current || threads.length === 0) return
+
+    // Convert threads to format expected by restoreCommentMarks
+    const commentsToRestore = threads.map((t) => ({
+      id: t.root.id,
+      properties: {
+        anchorType: t.root.properties.anchorType,
+        anchorData: t.root.properties.anchorData,
+        resolved: t.root.properties.resolved
+      }
+    }))
+
+    // Restore marks - this will highlight the commented text
+    const { resolved, orphaned } = restoreCommentMarks(editorRef.current, commentsToRestore)
+
+    if (resolved.length > 0 || orphaned.length > 0) {
+      marksRestoredRef.current = true
+      console.log(`[Comments] Restored ${resolved.length} marks, ${orphaned.length} orphaned`)
+    }
+  }, [threads])
 
   // Convert threads to format expected by CommentPopover
   const threadDataMap = useMemo(() => {
@@ -251,10 +283,6 @@ export function PageView({ docId }: PageViewProps) {
     [pluginExtensions, commentExtensions]
   )
 
-  // TODO: Restore comment marks when document opens
-  // This requires adding an onEditorReady callback to RichTextEditor
-  // For now, comments will show on hover/click through the CommentPlugin
-
   // Get the current thread for the popover
   const currentThread = popoverState.threadId ? threadDataMap.get(popoverState.threadId) : null
 
@@ -303,6 +331,7 @@ export function PageView({ docId }: PageViewProps) {
           onFileDownload={onFileDownload ?? undefined}
           extensions={allExtensions}
           onCreateComment={handleCreateComment}
+          onEditorReady={handleEditorReady}
         />
       </div>
 
