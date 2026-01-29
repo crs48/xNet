@@ -27,6 +27,7 @@ interface AwarenessLike {
 import { useCanvas, type UseCanvasReturn } from '../hooks/useCanvas'
 import { CanvasNodeComponent } from '../nodes/CanvasNodeComponent'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
+import { CommentOverlay, type CommentOverlayProps } from '../comments/CommentOverlay'
 
 /**
  * Remote user presence on the canvas
@@ -68,6 +69,10 @@ export interface CanvasProps {
   className?: string
   /** CSS styles */
   style?: React.CSSProperties
+  /** Canvas Node ID for comments (enables comment overlay) */
+  canvasNodeId?: string
+  /** Schema IRI of the canvas (optimization for comments) */
+  canvasSchema?: string
 }
 
 /**
@@ -122,7 +127,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onBackgroundClick,
     awareness,
     className,
-    style
+    style,
+    canvasNodeId,
+    canvasSchema
   },
   ref
 ) {
@@ -448,6 +455,33 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
           </CanvasNodeComponent>
         ))}
       </div>
+
+      {/* Comment overlay (optional - only when canvasNodeId provided) */}
+      {canvasNodeId && (
+        <CommentOverlay
+          canvasNodeId={canvasNodeId}
+          canvasSchema={canvasSchema}
+          transform={{
+            panX: viewport.x,
+            panY: viewport.y,
+            zoom: viewport.zoom
+          }}
+          objects={
+            new Map(
+              nodes.map((n) => [
+                n.id,
+                {
+                  id: n.id,
+                  x: n.position.x,
+                  y: n.position.y,
+                  width: n.position.width,
+                  height: n.position.height
+                }
+              ])
+            )
+          }
+        />
+      )}
 
       {/* Minimap could go here */}
     </div>
