@@ -157,3 +157,16 @@ export {
 
 // Card detail modal
 export { CardDetailModal, type CardDetailModalProps } from './card-detail/index.js'
+
+// Database comments
+export {
+  useDatabaseComments,
+  isDatabaseAnchorOrphaned,
+  createCellKey,
+  parseCellKey,
+  type UseDatabaseCommentsOptions,
+  type UseDatabaseCommentsResult
+} from './hooks/useDatabaseComments.js'
+
+// Shared components
+export { CommentIndicator, type CommentIndicatorProps } from './components/index.js'
