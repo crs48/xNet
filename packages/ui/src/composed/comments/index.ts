@@ -14,3 +14,11 @@ export {
   type PopoverState,
   type UseCommentPopoverResult
 } from './useCommentPopover'
+export {
+  OrphanedThreadList,
+  type OrphanedThreadListProps,
+  type OrphanedThread,
+  type OrphanedCommentData,
+  type OrphanReason
+} from './OrphanedThreadList'
+export { ThreadPicker, type ThreadPickerProps, type ThreadPreview } from './ThreadPicker'

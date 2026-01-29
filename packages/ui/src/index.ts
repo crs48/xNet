@@ -98,12 +98,20 @@ export {
   CommentBubble,
   CommentPopover,
   useCommentPopover,
+  OrphanedThreadList,
+  ThreadPicker,
   type CommentBubbleProps,
   type CommentPopoverProps,
   type CommentData,
   type CommentThreadData,
   type PopoverState,
-  type UseCommentPopoverResult
+  type UseCommentPopoverResult,
+  type OrphanedThreadListProps,
+  type OrphanedThread,
+  type OrphanedCommentData,
+  type OrphanReason,
+  type ThreadPickerProps,
+  type ThreadPreview
 } from './composed/comments'
 
 // ─── Theme ────────────────────────────────────────────────────────

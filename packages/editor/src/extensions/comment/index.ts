@@ -5,6 +5,7 @@
  * - CommentMark: TipTap mark for highlighting commented text
  * - CommentPlugin: ProseMirror plugin for click/hover interactions
  * - Text anchor utilities for Yjs-relative positioning
+ * - Orphan reattachment utilities for undo operations
  */
 
 // Mark extension
@@ -29,3 +30,12 @@ export {
   uint8ArrayToBase64,
   base64ToUint8Array
 } from './textAnchor'
+
+// Orphan reattachment
+export {
+  useOrphanReattachment,
+  recheckOrphanedAnchors,
+  type OrphanedComment,
+  type UseOrphanReattachmentOptions,
+  type UseOrphanReattachmentResult
+} from './useOrphanReattachment'
