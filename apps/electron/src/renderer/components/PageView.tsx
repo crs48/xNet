@@ -49,6 +49,15 @@ const INITIAL_POPOVER_STATE: PopoverState = {
   anchor: null
 }
 
+/** State for creating a new comment (before submission) */
+interface NewCommentState {
+  visible: boolean
+  anchorData: string
+  /** Selection range to restore when applying the mark */
+  selectionFrom: number
+  selectionTo: number
+}
+
 export function PageView({ docId }: PageViewProps) {
   const { did } = useIdentity()
   const onImageUpload = useImageUpload()
@@ -92,6 +101,7 @@ export function PageView({ docId }: PageViewProps) {
 
   // Popover state for comment interactions
   const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
+  const [newCommentState, setNewCommentState] = useState<NewCommentState | null>(null)
   const [orphanedIds, setOrphanedIds] = useState<string[]>([])
   const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -290,20 +300,65 @@ export function PageView({ docId }: PageViewProps) {
     [editComment]
   )
 
-  // Handler for creating a new comment from toolbar selection
-  const handleCreateComment = useCallback(
-    async (anchorData: string): Promise<string | null> => {
-      // For now, create with empty content (TODO: show input dialog)
-      // The comment system allows editing after creation
-      return addComment({
-        content: '', // Empty initially - user can edit inline
+  // Handler for initiating comment creation from toolbar selection
+  // This shows the input UI; actual comment creation happens on submit
+  const handleCreateComment = useCallback(async (anchorData: string): Promise<string | null> => {
+    if (!editorRef.current) return null
+
+    // Capture the current selection range so we can apply the mark later
+    const { from, to } = editorRef.current.state.selection
+
+    if (from === to) return null // No selection
+
+    // Show the new comment input modal
+    setNewCommentState({
+      visible: true,
+      anchorData,
+      selectionFrom: from,
+      selectionTo: to
+    })
+
+    // Return null - we're not creating the comment yet
+    // The actual creation happens when user submits the new comment form
+    return null
+  }, [])
+
+  // Handler for submitting a new comment
+  const handleSubmitNewComment = useCallback(
+    async (content: string) => {
+      if (!newCommentState || !content.trim() || !editorRef.current) return
+
+      const commentId = await addComment({
+        content: content.trim(),
         anchorType: 'text',
-        anchorData,
+        anchorData: newCommentState.anchorData,
         targetSchema: PageSchema.schema['@id']
       })
+
+      if (commentId) {
+        // Apply the mark to the original selection range
+        const { tr } = editorRef.current.state
+        const markType = editorRef.current.schema.marks.comment
+        if (markType) {
+          tr.addMark(
+            newCommentState.selectionFrom,
+            newCommentState.selectionTo,
+            markType.create({ commentId, resolved: false })
+          )
+          editorRef.current.view.dispatch(tr)
+        }
+      }
+
+      // Close the new comment UI
+      setNewCommentState(null)
     },
-    [addComment]
+    [newCommentState, addComment]
   )
+
+  // Handler for canceling new comment creation
+  const handleCancelNewComment = useCallback(() => {
+    setNewCommentState(null)
+  }, [])
 
   // ─── Comment Extensions ───────────────────────────────────────────────────────
 
@@ -451,6 +506,11 @@ export function PageView({ docId }: PageViewProps) {
           onUpgradeToFull={handleUpgradeToFull}
         />
       )}
+
+      {/* New Comment Input */}
+      {newCommentState?.visible && (
+        <NewCommentInput onSubmit={handleSubmitNewComment} onCancel={handleCancelNewComment} />
+      )}
     </div>
   )
 }
@@ -474,6 +534,73 @@ function SyncIndicator({ status, peerCount }: { status: SyncStatus; peerCount: n
     <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title={labels[status]}>
       <div className={`w-2 h-2 rounded-full ${colors[status]}`} />
       <span>{labels[status]}</span>
+    </div>
+  )
+}
+
+// ─── New Comment Input ─────────────────────────────────────────────────────────
+
+interface NewCommentInputProps {
+  onSubmit: (content: string) => void
+  onCancel: () => void
+}
+
+function NewCommentInput({ onSubmit, onCancel }: NewCommentInputProps) {
+  const [content, setContent] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Focus on mount
+  useEffect(() => {
+    textareaRef.current?.focus()
+  }, [])
+
+  const handleSubmit = () => {
+    if (content.trim()) {
+      onSubmit(content)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      handleSubmit()
+    }
+    if (e.key === 'Escape') {
+      onCancel()
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+      <div className="w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg p-4">
+        <div className="text-sm font-medium mb-2">Add Comment</div>
+        <textarea
+          ref={textareaRef}
+          className="w-full p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
+          placeholder="Write a comment..."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <div className="flex justify-end gap-2 mt-3">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 text-sm rounded border hover:bg-accent transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!content.trim()}
+            className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Comment
+          </button>
+        </div>
+        <div className="text-xs text-muted-foreground mt-2">
+          Press Cmd+Enter to submit, Esc to cancel
+        </div>
+      </div>
     </div>
   )
 }
