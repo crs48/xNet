@@ -108,6 +108,13 @@ export {
   isCanvasObjectAnchor,
   isNodeAnchor,
 
+  // Comment orphan detection
+  type OrphanReason,
+  type OrphanStatus,
+  type OrphanResolvers,
+  checkOrphanStatus,
+  filterOrphanedComments,
+
   // Schema registry
   SchemaRegistry,
   schemaRegistry

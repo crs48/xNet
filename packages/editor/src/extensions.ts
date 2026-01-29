@@ -462,7 +462,14 @@ export {
   restoreCommentMarks,
   isTextAnchorValid,
   uint8ArrayToBase64,
-  base64ToUint8Array
+  base64ToUint8Array,
+  useOrphanReattachment,
+  recheckOrphanedAnchors
+} from './extensions/comment'
+export type {
+  OrphanedComment,
+  UseOrphanReattachmentOptions,
+  UseOrphanReattachmentResult
 } from './extensions/comment'
 
 // Image upload service
