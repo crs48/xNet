@@ -117,5 +117,14 @@ export {
   isNodeAnchor
 } from './schemas'
 
+// Comment orphan detection
+export {
+  type OrphanReason,
+  type OrphanStatus,
+  type OrphanResolvers,
+  checkOrphanStatus,
+  filterOrphanedComments
+} from './schemas'
+
 // Schema registry
 export { SchemaRegistry, schemaRegistry } from './registry'

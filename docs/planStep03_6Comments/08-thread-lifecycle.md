@@ -607,7 +607,7 @@ For now, just show the `edited` flag and `editedAt` timestamp in the UI.
 - [x] Implement @mention extraction - `packages/data/src/schema/schemas/commentReferences.ts`
 - [x] Implement deleteThread with cascade - `packages/react/src/hooks/useComments.ts`
 - [x] Handle thread deletion (soft-delete, remove marks) - `packages/react/src/hooks/useComments.ts`
-- [ ] Add "Detached Comments" section to sidebar (integration)
+- [x] Add "Detached Comments" section to PageView - `apps/electron/src/renderer/components/PageView.tsx`
 - [x] Tests pass (158+ comment-related tests)
 
 ---

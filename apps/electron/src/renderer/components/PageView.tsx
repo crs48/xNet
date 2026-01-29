@@ -20,7 +20,12 @@ import {
   type Editor
 } from '@xnet/editor/react'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
-import { CommentPopover, type CommentThreadData } from '@xnet/ui'
+import {
+  CommentPopover,
+  OrphanedThreadList,
+  type CommentThreadData,
+  type OrphanedThread
+} from '@xnet/ui'
 import { DocumentHeader } from './DocumentHeader'
 import { PresenceAvatars } from './PresenceAvatars'
 
@@ -87,6 +92,8 @@ export function PageView({ docId }: PageViewProps) {
 
   // Popover state for comment interactions
   const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
+  const [orphanedIds, setOrphanedIds] = useState<string[]>([])
+  const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const editorRef = useRef<Editor | null>(null)
   const marksRestoredRef = useRef(false)
@@ -115,9 +122,44 @@ export function PageView({ docId }: PageViewProps) {
 
     if (resolved.length > 0 || orphaned.length > 0) {
       marksRestoredRef.current = true
+      setOrphanedIds(orphaned)
       console.log(`[Comments] Restored ${resolved.length} marks, ${orphaned.length} orphaned`)
     }
   }, [threads])
+
+  // Build orphaned threads list for display
+  const orphanedThreads = useMemo((): OrphanedThread[] => {
+    const result: OrphanedThread[] = []
+
+    for (const id of orphanedIds) {
+      const thread = threads.find((t) => t.root.id === id)
+      if (!thread) continue
+
+      // Parse anchor data to get context
+      let context: string | undefined
+      try {
+        const anchor = JSON.parse(thread.root.properties.anchorData)
+        context = anchor.quotedText
+      } catch {
+        // Ignore parse errors
+      }
+
+      result.push({
+        comment: {
+          id: thread.root.id,
+          author: thread.root.properties.createdBy,
+          authorDisplayName: undefined,
+          content: thread.root.properties.content,
+          createdAt: thread.root.createdAt,
+          replyCount: thread.replies.length
+        },
+        reason: 'text-deleted',
+        context
+      })
+    }
+
+    return result
+  }, [orphanedIds, threads])
 
   // Convert threads to format expected by CommentPopover
   const threadDataMap = useMemo(() => {
@@ -286,6 +328,49 @@ export function PageView({ docId }: PageViewProps) {
   // Get the current thread for the popover
   const currentThread = popoverState.threadId ? threadDataMap.get(popoverState.threadId) : null
 
+  // ─── Orphaned Comment Handlers ─────────────────────────────────────────────────
+
+  const handleDismissOrphaned = useCallback(
+    async (commentId: string) => {
+      // Delete the orphaned thread entirely
+      const thread = threads.find((t) => t.root.id === commentId)
+      if (thread) {
+        // Delete replies first, then root
+        for (const reply of thread.replies) {
+          await deleteComment(reply.id)
+        }
+        await deleteComment(commentId)
+      }
+      // Remove from orphaned list
+      setOrphanedIds((prev) => prev.filter((id) => id !== commentId))
+    },
+    [threads, deleteComment]
+  )
+
+  const handleReattachOrphaned = useCallback((commentId: string) => {
+    // For now, just show a message - reattachment requires selecting new text
+    // In a full implementation, this would open a mode to select new anchor text
+    console.log(`[Comments] Reattach not yet implemented for ${commentId}`)
+    // TODO: Implement reattachment UI - enter "select text" mode
+  }, [])
+
+  const handleSelectOrphaned = useCallback(
+    (commentId: string) => {
+      // Open the popover for this orphaned comment
+      const thread = threadDataMap.get(commentId)
+      if (thread) {
+        // Since orphaned comments don't have anchor elements, use coordinates
+        setPopoverState({
+          visible: true,
+          mode: 'full',
+          threadId: commentId,
+          anchor: null // Will need to position differently
+        })
+      }
+    },
+    [threadDataMap]
+  )
+
   if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -333,6 +418,20 @@ export function PageView({ docId }: PageViewProps) {
           onCreateComment={handleCreateComment}
           onEditorReady={handleEditorReady}
         />
+
+        {/* Orphaned Comments Section */}
+        {orphanedThreads.length > 0 && (
+          <div className="mt-6">
+            <OrphanedThreadList
+              orphanedThreads={orphanedThreads}
+              collapsed={orphanedCollapsed}
+              onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
+              onDismiss={handleDismissOrphaned}
+              onReattach={handleReattachOrphaned}
+              onSelect={handleSelectOrphaned}
+            />
+          </div>
+        )}
       </div>
 
       {/* Comment Popover */}
