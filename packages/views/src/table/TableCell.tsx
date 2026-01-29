@@ -7,6 +7,7 @@ import type { Cell } from '@tanstack/react-table'
 import { cn } from '@xnet/ui'
 import type { TableRow } from './useTableState.js'
 import type { ColumnMeta, CellPresence } from '../types.js'
+import { CommentIndicator } from '../components/CommentIndicator.js'
 
 export interface TableCellProps {
   cell: Cell<TableRow, unknown>
@@ -16,6 +17,14 @@ export interface TableCellProps {
   onCellFocus?: (rowId: string, columnId: string) => void
   /** Callback when this cell loses focus */
   onCellBlur?: () => void
+  /** Number of comments on this cell */
+  commentCount?: number
+  /** Callback when comment indicator is clicked */
+  onCommentClick?: (rowId: string, propertyKey: string, anchorEl: HTMLElement) => void
+  /** Callback when comment indicator is hovered */
+  onCommentHover?: (rowId: string, propertyKey: string, anchorEl: HTMLElement) => void
+  /** Callback when mouse leaves comment indicator */
+  onCommentLeave?: () => void
 }
 
 /**
@@ -25,7 +34,11 @@ export function TableCell({
   cell,
   presences,
   onCellFocus,
-  onCellBlur
+  onCellBlur,
+  commentCount = 0,
+  onCommentClick,
+  onCommentHover,
+  onCommentLeave
 }: TableCellProps): React.JSX.Element {
   const [editing, setEditing] = useState(false)
   const cellRef = useRef<HTMLTableCellElement>(null)
@@ -93,10 +106,25 @@ export function TableCell({
     return (
       <td
         ref={cellRef}
-        className="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-gray-900 dark:text-gray-100"
+        className="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-gray-900 dark:text-gray-100 relative"
         style={{ width: cell.column.getSize() }}
       >
         <div className="truncate">{value != null ? String(value) : ''}</div>
+        {commentCount > 0 && (
+          <CommentIndicator
+            count={commentCount}
+            variant="dot"
+            onClick={(e) => {
+              e.stopPropagation()
+              onCommentClick?.(cell.row.original.id, cell.column.id, cellRef.current!)
+            }}
+            onMouseEnter={(e) => {
+              e.stopPropagation()
+              onCommentHover?.(cell.row.original.id, cell.column.id, cellRef.current!)
+            }}
+            onMouseLeave={onCommentLeave}
+          />
+        )}
       </td>
     )
   }
@@ -141,6 +169,22 @@ export function TableCell({
         >
           {presences[0].name}
         </div>
+      )}
+      {/* Comment indicator */}
+      {commentCount > 0 && (
+        <CommentIndicator
+          count={commentCount}
+          variant="dot"
+          onClick={(e) => {
+            e.stopPropagation()
+            onCommentClick?.(cell.row.original.id, cell.column.id, cellRef.current!)
+          }}
+          onMouseEnter={(e) => {
+            e.stopPropagation()
+            onCommentHover?.(cell.row.original.id, cell.column.id, cellRef.current!)
+          }}
+          onMouseLeave={onCommentLeave}
+        />
       )}
     </td>
   )

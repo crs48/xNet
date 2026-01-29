@@ -70,8 +70,7 @@ export function PageView({ docId }: PageViewProps) {
   // Load comments for this page, filtered to text anchors only
   const {
     threads,
-    // TODO: addComment will be used when we add a "Comment" toolbar button
-    // that creates a new comment from the current text selection
+    addComment,
     replyTo,
     resolveThread,
     reopenThread,
@@ -217,6 +216,21 @@ export function PageView({ docId }: PageViewProps) {
     [editComment]
   )
 
+  // Handler for creating a new comment from toolbar selection
+  const handleCreateComment = useCallback(
+    async (anchorData: string): Promise<string | null> => {
+      // For now, create with empty content (TODO: show input dialog)
+      // The comment system allows editing after creation
+      return addComment({
+        content: '', // Empty initially - user can edit inline
+        anchorType: 'text',
+        anchorData,
+        targetSchema: PageSchema.schema['@id']
+      })
+    },
+    [addComment]
+  )
+
   // ─── Comment Extensions ───────────────────────────────────────────────────────
 
   const commentExtensions = useMemo(
@@ -288,6 +302,7 @@ export function PageView({ docId }: PageViewProps) {
           onFileUpload={onFileUpload ?? undefined}
           onFileDownload={onFileDownload ?? undefined}
           extensions={allExtensions}
+          onCreateComment={handleCreateComment}
         />
       </div>
 

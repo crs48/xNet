@@ -33,6 +33,23 @@ export {
   isNodeAnchor
 } from './commentAnchors'
 
+// Comment reference extraction
+export {
+  type Mention,
+  type CommentRef,
+  type NodeRef,
+  type Reference,
+  extractReferences,
+  extractMentions,
+  getMentionedUsers,
+  isMentioned,
+  isUsernameMentioned,
+  extractNodeRefs,
+  extractCommentRefs,
+  replaceAt,
+  convertRefsToLinks
+} from './commentReferences'
+
 /**
  * All built-in schemas, keyed by their IRI.
  */

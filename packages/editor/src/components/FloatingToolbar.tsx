@@ -4,11 +4,12 @@
  * Desktop: Bubble menu that floats near cursor/selection
  * Mobile: Fixed at bottom, above keyboard, horizontally scrollable
  */
-import { useState, useEffect, useRef, type JSX } from 'react'
+import { useState, useEffect, useRef, useCallback, type JSX } from 'react'
 import type { Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { NodeSelection } from '@tiptap/pm/state'
 import { cn } from '../utils'
+import { captureTextAnchor } from '../extensions/comment'
 
 /** Toolbar display mode */
 export type ToolbarMode = 'auto' | 'desktop' | 'mobile'
@@ -47,6 +48,11 @@ export interface FloatingToolbarProps {
    * Additional toolbar items from plugins
    */
   additionalItems?: ToolbarItemContribution[]
+  /**
+   * Comment creation handler. When provided, shows a Comment button.
+   * Called with anchor data; should return the new comment ID.
+   */
+  onCreateComment?: (anchorData: string) => Promise<string | null>
 }
 
 // Check if we're on a mobile device
@@ -181,18 +187,40 @@ interface ToolbarContentProps {
   editor: Editor
   isMobile: boolean
   additionalItems?: ToolbarItemContribution[]
+  onCreateComment?: (anchorData: string) => Promise<string | null>
 }
 
 function ToolbarContent({
   editor,
   isMobile,
-  additionalItems = []
+  additionalItems = [],
+  onCreateComment
 }: ToolbarContentProps): JSX.Element {
   // Group additional items by their group
   const formatItems = additionalItems.filter((i) => i.group === 'format')
   const insertItems = additionalItems.filter((i) => i.group === 'insert')
   const blockItems = additionalItems.filter((i) => i.group === 'block')
   const customItems = additionalItems.filter((i) => i.group === 'custom' || !i.group)
+
+  // Handle comment creation
+  const handleCreateComment = useCallback(async () => {
+    if (!onCreateComment) return
+
+    const anchor = captureTextAnchor(editor)
+    if (!anchor) return
+
+    // Encode the anchor as JSON string
+    const anchorData = JSON.stringify(anchor)
+
+    // Create the comment - parent will return the new comment ID
+    const commentId = await onCreateComment(anchorData)
+
+    if (commentId) {
+      // Apply the mark to the selection
+      editor.commands.setComment(commentId)
+    }
+  }, [editor, onCreateComment])
+
   return (
     <>
       {/* Text formatting */}
@@ -228,6 +256,29 @@ function ToolbarContent({
       >
         {'</>'}
       </ToolbarButton>
+      {/* Comment button - only show when handler is provided */}
+      {onCreateComment && (
+        <ToolbarButton
+          onClick={handleCreateComment}
+          active={editor.isActive('comment')}
+          title="Add Comment"
+          isMobile={isMobile}
+        >
+          {/* Comment icon - speech bubble outline */}
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </ToolbarButton>
+      )}
       {/* Plugin format buttons */}
       {formatItems.map((item) => (
         <PluginToolbarButton key={item.title} item={item} editor={editor} isMobile={isMobile} />
@@ -411,11 +462,13 @@ function ToolbarContent({
 function MobileToolbar({
   editor,
   className,
-  additionalItems = []
+  additionalItems = [],
+  onCreateComment
 }: {
   editor: Editor
   className?: string
   additionalItems?: ToolbarItemContribution[]
+  onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
   const keyboardVisible = useKeyboardVisible()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -470,7 +523,12 @@ function MobileToolbar({
           WebkitOverflowScrolling: 'touch'
         }}
       >
-        <ToolbarContent editor={editor} isMobile={true} additionalItems={additionalItems} />
+        <ToolbarContent
+          editor={editor}
+          isMobile={true}
+          additionalItems={additionalItems}
+          onCreateComment={onCreateComment}
+        />
       </div>
     </div>
   )
@@ -482,11 +540,13 @@ function MobileToolbar({
 function DesktopToolbar({
   editor,
   className,
-  additionalItems = []
+  additionalItems = [],
+  onCreateComment
 }: {
   editor: Editor
   className?: string
   additionalItems?: ToolbarItemContribution[]
+  onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element {
   return (
     <BubbleMenu
@@ -512,7 +572,12 @@ function DesktopToolbar({
         className
       )}
     >
-      <ToolbarContent editor={editor} isMobile={false} additionalItems={additionalItems} />
+      <ToolbarContent
+        editor={editor}
+        isMobile={false}
+        additionalItems={additionalItems}
+        onCreateComment={onCreateComment}
+      />
     </BubbleMenu>
   )
 }
@@ -527,15 +592,30 @@ export function FloatingToolbar({
   editor,
   className,
   mode = 'auto',
-  additionalItems = []
+  additionalItems = [],
+  onCreateComment
 }: FloatingToolbarProps): JSX.Element | null {
   const isMobile = useIsMobile(mode)
 
   if (!editor) return null
 
   if (isMobile) {
-    return <MobileToolbar editor={editor} className={className} additionalItems={additionalItems} />
+    return (
+      <MobileToolbar
+        editor={editor}
+        className={className}
+        additionalItems={additionalItems}
+        onCreateComment={onCreateComment}
+      />
+    )
   }
 
-  return <DesktopToolbar editor={editor} className={className} additionalItems={additionalItems} />
+  return (
+    <DesktopToolbar
+      editor={editor}
+      className={className}
+      additionalItems={additionalItems}
+      onCreateComment={onCreateComment}
+    />
+  )
 }

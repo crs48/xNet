@@ -49,6 +49,14 @@ export interface TableViewProps {
   onCellFocus?: (rowId: string, columnId: string) => void
   /** Callback when a cell loses focus */
   onCellBlur?: () => void
+  /** Comment counts per cell (Map of "rowId:propertyKey" -> count) */
+  cellCommentCounts?: Map<string, number>
+  /** Callback when a comment indicator is clicked */
+  onCommentClick?: (rowId: string, propertyKey: string, anchorEl: HTMLElement) => void
+  /** Callback when a comment indicator is hovered */
+  onCommentHover?: (rowId: string, propertyKey: string, anchorEl: HTMLElement) => void
+  /** Callback when mouse leaves a comment indicator */
+  onCommentLeave?: () => void
 }
 
 /**
@@ -69,7 +77,11 @@ export function TableView({
   overscan = 10,
   cellPresences,
   onCellFocus,
-  onCellBlur
+  onCellBlur,
+  cellCommentCounts,
+  onCommentClick,
+  onCommentHover,
+  onCommentLeave
 }: TableViewProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -135,6 +147,8 @@ export function TableView({
                     const presencesForCell = cellPresences?.filter(
                       (p) => p.rowId === row.original.id && p.columnId === cell.column.id
                     )
+                    const commentCount =
+                      cellCommentCounts?.get(`${row.original.id}:${cell.column.id}`) ?? 0
                     return (
                       <TableCell
                         key={cell.id}
@@ -142,6 +156,10 @@ export function TableView({
                         presences={presencesForCell}
                         onCellFocus={onCellFocus}
                         onCellBlur={onCellBlur}
+                        commentCount={commentCount}
+                        onCommentClick={onCommentClick}
+                        onCommentHover={onCommentHover}
+                        onCommentLeave={onCommentLeave}
                       />
                     )
                   })}
