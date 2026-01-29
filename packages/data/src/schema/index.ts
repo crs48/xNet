@@ -92,7 +92,30 @@ export { PageSchema, type Page } from './schemas'
 export { DatabaseSchema, type Database } from './schemas'
 export { TaskSchema, type Task } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
+export { CommentSchema, type Comment } from './schemas'
 export { builtInSchemas, type BuiltInSchemaIRI } from './schemas'
+
+// Comment anchor types
+export {
+  type AnchorType,
+  type TextAnchor,
+  type CellAnchor,
+  type RowAnchor,
+  type ColumnAnchor,
+  type CanvasPositionAnchor,
+  type CanvasObjectAnchor,
+  type NodeAnchor,
+  type AnchorData,
+  encodeAnchor,
+  decodeAnchor,
+  isTextAnchor,
+  isCellAnchor,
+  isRowAnchor,
+  isColumnAnchor,
+  isCanvasPositionAnchor,
+  isCanvasObjectAnchor,
+  isNodeAnchor
+} from './schemas'
 
 // Schema registry
 export { SchemaRegistry, schemaRegistry } from './registry'

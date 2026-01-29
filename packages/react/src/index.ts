@@ -86,6 +86,24 @@ export {
   type RemoteUser
 } from './hooks/useNode'
 
+/**
+ * useComments - Universal hook for comments on any Node
+ *
+ * @example
+ * ```tsx
+ * const { threads, addComment, replyTo, resolveThread } = useComments({ nodeId: pageId })
+ * ```
+ */
+export {
+  useComments,
+  type UseCommentsOptions,
+  type UseCommentsResult,
+  type CommentThread,
+  type CommentNode,
+  type AddCommentOptions,
+  type ReplyContext
+} from './hooks/useComments'
+
 // =============================================================================
 // Utilities
 // =============================================================================
