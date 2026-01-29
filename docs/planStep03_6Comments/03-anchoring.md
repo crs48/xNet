@@ -391,15 +391,15 @@ describe('Text anchor utilities', () => {
 
 ## Checklist
 
-- [ ] Implement captureTextAnchor (Yjs RelativePosition capture)
-- [ ] Implement resolveTextAnchor (RelativePosition → absolute position)
-- [ ] Implement restoreCommentMarks (on document open)
-- [ ] Implement resolveDatabaseAnchor (ID-based lookup)
-- [ ] Implement resolveCanvasAnchor (coordinate transform)
-- [ ] Add base64 utilities for Uint8Array serialization
-- [ ] Handle orphaned anchors (return null)
-- [ ] Write anchoring tests (especially Yjs relative position survival)
-- [ ] Tests pass
+- [x] Implement captureTextAnchor (Yjs RelativePosition capture) - `packages/editor/src/extensions/comment/textAnchor.ts`
+- [x] Implement resolveTextAnchor (RelativePosition → absolute position)
+- [x] Implement restoreCommentMarks (on document open)
+- [x] Implement resolveDatabaseAnchor (ID-based lookup) - in `useDatabaseComments.ts`
+- [x] Implement resolveCanvasAnchor (coordinate transform) - in `useCanvasComments.ts`
+- [x] Add base64 utilities for Uint8Array serialization
+- [x] Handle orphaned anchors (return null) - `packages/data/src/schema/schemas/commentOrphans.ts`
+- [x] Write anchoring tests - `commentAnchors.test.ts` (36 tests)
+- [x] Tests pass
 
 ---
 

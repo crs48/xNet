@@ -513,17 +513,17 @@ sequenceDiagram
 
 ## Checklist
 
-- [ ] Create useCanvasComments hook (extends useComments)
-- [ ] Create CommentPin component
-- [ ] Create CommentOverlay (renders all pins + popover)
-- [ ] Implement comment mode (crosshair cursor, click -> create)
-- [ ] Implement position pin creation (x, y coordinates)
-- [ ] Implement object attachment (objectId-based)
-- [ ] Handle object movement (pins follow automatically)
-- [ ] Handle object deletion (orphaned pins)
-- [ ] Style pins (active, resolved, hover, selected)
-- [ ] Wire popover to canvas pins
-- [ ] Tests pass
+- [x] Create useCanvasComments hook (extends useComments) - `packages/canvas/src/hooks/useCanvasComments.ts`
+- [x] Create CommentPin component - `packages/canvas/src/comments/CommentPin.tsx`
+- [x] Create CommentOverlay (renders all pins + popover) - `packages/canvas/src/comments/CommentOverlay.tsx`
+- [x] Implement comment mode (crosshair cursor, click -> create) - in CommentOverlay
+- [x] Implement position pin creation (x, y coordinates)
+- [x] Implement object attachment (objectId-based)
+- [x] Handle object movement (pins follow automatically) - via object position lookup
+- [x] Handle object deletion (orphaned pins) - `commentOrphans.ts`
+- [x] Style pins (active, resolved, hover, selected)
+- [x] Wire popover to canvas pins - integrated in Canvas.tsx
+- [x] Tests pass - `useCanvasComments.test.ts` (19 tests)
 
 ---
 
