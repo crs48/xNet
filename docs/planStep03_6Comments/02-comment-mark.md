@@ -7,17 +7,19 @@
 
 ## Overview
 
-The `CommentMark` is a TipTap Mark extension that visually highlights text ranges associated with comment threads. It stores the `threadId` as an attribute and renders as a styled `<span>` element.
+The `CommentMark` is a TipTap Mark extension that visually highlights text ranges associated with comments. It stores the `commentId` (the root Comment's ID) as an attribute and renders as a styled `<span>` element.
+
+With the **Universal Social Primitives** pattern, a "thread" is simply a root Comment plus its replies. The mark references the root Comment's ID.
 
 ```mermaid
 flowchart LR
-    subgraph "TipTap Document"
-        TEXT["The |quick brown| fox jumps"]
-        MARK["CommentMark<br/>threadId: 'abc123'<br/>resolved: false"]
+    subgraph TipTap_Document[TipTap Document]
+        TEXT[The quick brown fox jumps]
+        MARK[CommentMark commentId: abc123]
     end
 
-    subgraph "Rendered HTML"
-        HTML["The <span data-comment<br/>data-thread-id='abc123'<br/>class='comment-active'><br/>quick brown</span> fox jumps"]
+    subgraph Rendered_HTML[Rendered HTML]
+        HTML[span data-comment data-comment-id]
     end
 
     TEXT --> MARK --> HTML
@@ -35,9 +37,9 @@ import { Mark, mergeAttributes } from '@tiptap/core'
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
     commentMark: {
-      setComment: (threadId: string) => ReturnType
-      unsetComment: (threadId: string) => ReturnType
-      toggleComment: (threadId: string) => ReturnType
+      setComment: (commentId: string) => ReturnType
+      unsetComment: (commentId: string) => ReturnType
+      toggleComment: (commentId: string) => ReturnType
     }
   }
 }
@@ -51,10 +53,10 @@ export const CommentMark = Mark.create({
 
   addAttributes() {
     return {
-      threadId: {
+      commentId: {
         default: null,
-        parseHTML: (el) => el.getAttribute('data-thread-id'),
-        renderHTML: (attrs) => ({ 'data-thread-id': attrs.threadId })
+        parseHTML: (el) => el.getAttribute('data-comment-id'),
+        renderHTML: (attrs) => ({ 'data-comment-id': attrs.commentId })
       },
       resolved: {
         default: false,
@@ -86,19 +88,19 @@ export const CommentMark = Mark.create({
   addCommands() {
     return {
       setComment:
-        (threadId: string) =>
+        (commentId: string) =>
         ({ commands }) => {
-          return commands.setMark(this.name, { threadId, resolved: false })
+          return commands.setMark(this.name, { commentId, resolved: false })
         },
 
       unsetComment:
-        (threadId: string) =>
+        (commentId: string) =>
         ({ tr, state }) => {
-          // Remove only the mark with this specific threadId
+          // Remove only the mark with this specific commentId
           const { from, to } = state.selection
           state.doc.nodesBetween(from, to, (node, pos) => {
             node.marks.forEach((mark) => {
-              if (mark.type.name === this.name && mark.attrs.threadId === threadId) {
+              if (mark.type.name === this.name && mark.attrs.commentId === commentId) {
                 tr.removeMark(pos, pos + node.nodeSize, mark)
               }
             })
@@ -107,20 +109,20 @@ export const CommentMark = Mark.create({
         },
 
       toggleComment:
-        (threadId: string) =>
+        (commentId: string) =>
         ({ commands, state }) => {
           const { from, to } = state.selection
           let hasComment = false
 
           state.doc.nodesBetween(from, to, (node) => {
             if (
-              node.marks.some((m) => m.type.name === this.name && m.attrs.threadId === threadId)
+              node.marks.some((m) => m.type.name === this.name && m.attrs.commentId === commentId)
             ) {
               hasComment = true
             }
           })
 
-          return hasComment ? commands.unsetComment(threadId) : commands.setComment(threadId)
+          return hasComment ? commands.unsetComment(commentId) : commands.setComment(commentId)
         }
     }
   }
@@ -199,14 +201,14 @@ extensions: [
 ### Applying a comment mark
 
 ```typescript
-// After creating a CommentThread Node:
-editor.chain().focus().setComment(thread.id).run()
+// After creating a Comment Node:
+editor.chain().focus().setComment(comment.id).run()
 ```
 
-### Removing a comment mark (on thread deletion)
+### Removing a comment mark (on comment deletion)
 
 ```typescript
-editor.chain().focus().unsetComment(thread.id).run()
+editor.chain().focus().unsetComment(comment.id).run()
 ```
 
 ### Updating resolved state
@@ -217,12 +219,12 @@ const { doc, tr } = editor.state
 
 doc.descendants((node, pos) => {
   node.marks.forEach((mark) => {
-    if (mark.type.name === 'comment' && mark.attrs.threadId === threadId) {
+    if (mark.type.name === 'comment' && mark.attrs.commentId === commentId) {
       tr.removeMark(pos, pos + node.nodeSize, mark)
       tr.addMark(
         pos,
         pos + node.nodeSize,
-        editor.schema.marks.comment.create({ threadId, resolved: true })
+        editor.schema.marks.comment.create({ commentId, resolved: true })
       )
     }
   })
@@ -249,13 +251,13 @@ function createEditor(content: string) {
 }
 
 describe('CommentMark', () => {
-  it('should apply comment mark with threadId', () => {
+  it('should apply comment mark with commentId', () => {
     const editor = createEditor('<p>Hello world</p>')
     editor.commands.setTextSelection({ from: 1, to: 6 })
-    editor.commands.setComment('thread-1')
+    editor.commands.setComment('comment-1')
 
     const marks = editor.state.doc.nodeAt(1)?.marks ?? []
-    expect(marks.some((m) => m.type.name === 'comment' && m.attrs.threadId === 'thread-1')).toBe(
+    expect(marks.some((m) => m.type.name === 'comment' && m.attrs.commentId === 'comment-1')).toBe(
       true
     )
   })
@@ -265,11 +267,11 @@ describe('CommentMark', () => {
 
     // First comment on "Hello"
     editor.commands.setTextSelection({ from: 1, to: 6 })
-    editor.commands.setComment('thread-1')
+    editor.commands.setComment('comment-1')
 
     // Second comment on "lo wor"
     editor.commands.setTextSelection({ from: 4, to: 10 })
-    editor.commands.setComment('thread-2')
+    editor.commands.setComment('comment-2')
 
     // "lo" (positions 4-5) should have both marks
     const node = editor.state.doc.nodeAt(4)
@@ -277,28 +279,28 @@ describe('CommentMark', () => {
     expect(commentMarks.length).toBe(2)
   })
 
-  it('should remove only specific threadId mark', () => {
+  it('should remove only specific commentId mark', () => {
     const editor = createEditor('<p>Hello world</p>')
     editor.commands.setTextSelection({ from: 1, to: 6 })
-    editor.commands.setComment('thread-1')
-    editor.commands.setComment('thread-2')
+    editor.commands.setComment('comment-1')
+    editor.commands.setComment('comment-2')
 
     editor.commands.setTextSelection({ from: 1, to: 6 })
-    editor.commands.unsetComment('thread-1')
+    editor.commands.unsetComment('comment-1')
 
     const marks = editor.state.doc.nodeAt(1)?.marks ?? []
-    expect(marks.some((m) => m.attrs.threadId === 'thread-1')).toBe(false)
-    expect(marks.some((m) => m.attrs.threadId === 'thread-2')).toBe(true)
+    expect(marks.some((m) => m.attrs.commentId === 'comment-1')).toBe(false)
+    expect(marks.some((m) => m.attrs.commentId === 'comment-2')).toBe(true)
   })
 
   it('should render with data-comment attribute', () => {
     const editor = createEditor('<p>Hello world</p>')
     editor.commands.setTextSelection({ from: 1, to: 6 })
-    editor.commands.setComment('thread-1')
+    editor.commands.setComment('comment-1')
 
     const html = editor.getHTML()
     expect(html).toContain('data-comment')
-    expect(html).toContain('data-thread-id="thread-1"')
+    expect(html).toContain('data-comment-id="comment-1"')
     expect(html).toContain('comment-active')
   })
 })
@@ -306,7 +308,7 @@ describe('CommentMark', () => {
 
 ## Checklist
 
-- [ ] Create CommentMark extension with threadId/resolved attributes
+- [ ] Create CommentMark extension with commentId/resolved attributes
 - [ ] Implement setComment, unsetComment, toggleComment commands
 - [ ] Allow overlapping marks (excludes: '')
 - [ ] Add comment highlight CSS (active, hover, resolved, dark mode, overlapping)

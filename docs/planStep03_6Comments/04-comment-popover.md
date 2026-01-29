@@ -1,6 +1,6 @@
 # 04: Comment Popover UI
 
-> Inline comment popover — the primary interaction for viewing and replying to comments
+> Inline comment popover -- the primary interaction for viewing and replying to comments
 
 **Duration:** 2-3 days  
 **Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), `@xnet/ui` (Popover primitive)
@@ -8,6 +8,8 @@
 ## Overview
 
 The comment popover is the primary way users interact with comments. It appears inline next to the commented content on hover (preview) or click (full thread), eliminating the need to open a sidebar.
+
+With the **Universal Social Primitives** pattern, a "thread" is a root Comment plus its replies. The popover receives the root comment and its replies array.
 
 ```mermaid
 stateDiagram-v2
@@ -74,14 +76,16 @@ Complete thread with all replies and input for new replies.
 
 import React, { useState, useCallback } from 'react'
 import { Popover } from '../primitives/Popover'
-import { CommentThread, Comment } from '@xnet/data'
+import { Comment } from '@xnet/data'
+
+interface CommentThread {
+  root: Comment
+  replies: Comment[]
+}
 
 export interface CommentPopoverProps {
-  /** The thread to display */
+  /** The thread to display (root comment + replies) */
   thread: CommentThread
-
-  /** Comments in the thread (ordered by creation time) */
-  comments: Comment[]
 
   /** Anchor element or coordinates for positioning */
   anchor: HTMLElement | { x: number; y: number }
@@ -99,12 +103,11 @@ export interface CommentPopoverProps {
   onDelete: (commentId: string) => void
   onEdit: (commentId: string, newContent: string) => void
   onDismiss: () => void
-  onUpgradeToFull?: () => void  // Preview → Full transition
+  onUpgradeToFull?: () => void  // Preview -> Full transition
 }
 
 export function CommentPopover({
   thread,
-  comments,
   anchor,
   mode,
   side = 'right',
@@ -135,16 +138,17 @@ export function CommentPopover({
     }
   }, [handleSubmitReply, onDismiss])
 
-  const isResolved = thread.properties.resolved
+  const isResolved = thread.root.properties.resolved
+  const allComments = [thread.root, ...thread.replies]
 
   if (mode === 'preview') {
     return (
       <Popover anchor={anchor} side={side} onClose={onDismiss}>
         <div className="comment-popover comment-popover--preview" onClick={onUpgradeToFull}>
-          <CommentBubble comment={comments[0]} compact />
-          {comments.length > 1 && (
+          <CommentBubble comment={thread.root} compact />
+          {thread.replies.length > 0 && (
             <div className="comment-popover__reply-count">
-              {comments.length - 1} {comments.length - 1 === 1 ? 'reply' : 'replies'}
+              {thread.replies.length} {thread.replies.length === 1 ? 'reply' : 'replies'}
             </div>
           )}
         </div>
@@ -157,7 +161,7 @@ export function CommentPopover({
       <div className="comment-popover comment-popover--full" onKeyDown={handleKeyDown}>
         {/* Thread comments */}
         <div className="comment-popover__thread">
-          {comments.map((comment) => (
+          {allComments.map((comment) => (
             <CommentBubble
               key={comment.id}
               comment={comment}
@@ -220,8 +224,9 @@ export function CommentPopover({
 
 import React, { useState } from 'react'
 import { Comment } from '@xnet/data'
-import { renderMarkdown } from '../utils/markdown'
+import { renderGitHubMarkdown } from '../utils/markdown'
 import { formatRelativeTime } from '../utils/time'
+import { resolveUserDisplayName } from '../utils/identity'
 
 interface CommentBubbleProps {
   comment: Comment
@@ -231,6 +236,7 @@ interface CommentBubbleProps {
   onStartEdit?: () => void
   onDelete?: () => void
   onCancelEdit?: () => void
+  onReplyTo?: (userId: string, commentId: string) => void // For "reply to this" action
 }
 
 export function CommentBubble({
@@ -240,32 +246,46 @@ export function CommentBubble({
   onEdit,
   onStartEdit,
   onDelete,
-  onCancelEdit
+  onCancelEdit,
+  onReplyTo
 }: CommentBubbleProps) {
   const [editText, setEditText] = useState(comment.properties.content as string)
+
+  const replyToUser = comment.properties.replyToUser as string | undefined
+  const replyToCommentId = comment.properties.replyToCommentId as string | undefined
 
   return (
     <div className="comment-bubble">
       <div className="comment-bubble__header">
         <span className="comment-bubble__avatar">
-          {/* Avatar placeholder — resolve from DID */}
+          {/* Avatar placeholder -- resolve from DID */}
         </span>
         <span className="comment-bubble__author">
-          {comment.properties.createdBy}
+          {resolveUserDisplayName(comment.properties.createdBy as string)}
         </span>
         <span className="comment-bubble__time">
-          {formatRelativeTime(comment.properties.createdAt as number)}
+          {formatRelativeTime(comment.wallTime)} {/* Use wallTime for display */}
         </span>
         {comment.properties.edited && (
           <span className="comment-bubble__edited">(edited)</span>
         )}
       </div>
 
+      {/* Pseudo reply-to indicator (GitHub-style "in reply to @user") */}
+      {replyToUser && (
+        <div className="comment-bubble__reply-context">
+          replying to <a href={`#comment-${replyToCommentId}`}>
+            @{resolveUserDisplayName(replyToUser)}
+          </a>
+        </div>
+      )}
+
       {isEditing ? (
         <div className="comment-bubble__edit">
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
+            placeholder="GitHub-flavored markdown supported..."
             autoFocus
           />
           <div className="comment-bubble__edit-actions">
@@ -276,12 +296,20 @@ export function CommentBubble({
       ) : (
         <div
           className="comment-bubble__content"
-          dangerouslySetInnerHTML={{ __html: renderMarkdown(comment.properties.content as string) }}
+          dangerouslySetInnerHTML={{
+            __html: renderGitHubMarkdown(comment.properties.content as string)
+          }}
         />
       )}
 
       {!compact && !isEditing && (
         <div className="comment-bubble__menu">
+          <button onClick={() => onReplyTo?.(
+            comment.properties.createdBy as string,
+            comment.id
+          )}>
+            Reply
+          </button>
           <button onClick={onStartEdit}>Edit</button>
           <button onClick={onDelete}>Delete</button>
         </div>
@@ -455,13 +483,17 @@ export function CommentBubble({
 // packages/react/src/hooks/useCommentPopover.ts
 
 import { useState, useCallback, useRef } from 'react'
-import { CommentThread, Comment } from '@xnet/data'
+import { Comment } from '@xnet/data'
+
+interface CommentThread {
+  root: Comment
+  replies: Comment[]
+}
 
 interface PopoverState {
   visible: boolean
   mode: 'preview' | 'full'
   thread: CommentThread | null
-  comments: Comment[]
   anchor: HTMLElement | { x: number; y: number } | null
 }
 
@@ -470,34 +502,25 @@ export function useCommentPopover() {
     visible: false,
     mode: 'preview',
     thread: null,
-    comments: [],
     anchor: null
   })
 
   const hoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const showPreview = useCallback(
-    (
-      thread: CommentThread,
-      comments: Comment[],
-      anchor: HTMLElement | { x: number; y: number }
-    ) => {
+    (thread: CommentThread, anchor: HTMLElement | { x: number; y: number }) => {
       // Delay preview by 300ms
       hoverTimeout.current = setTimeout(() => {
-        setState({ visible: true, mode: 'preview', thread, comments, anchor })
+        setState({ visible: true, mode: 'preview', thread, anchor })
       }, 300)
     },
     []
   )
 
   const showFull = useCallback(
-    (
-      thread: CommentThread,
-      comments: Comment[],
-      anchor: HTMLElement | { x: number; y: number }
-    ) => {
+    (thread: CommentThread, anchor: HTMLElement | { x: number; y: number }) => {
       if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
-      setState({ visible: true, mode: 'full', thread, comments, anchor })
+      setState({ visible: true, mode: 'full', thread, anchor })
     },
     []
   )
@@ -508,7 +531,7 @@ export function useCommentPopover() {
 
   const dismiss = useCallback(() => {
     if (hoverTimeout.current) clearTimeout(hoverTimeout.current)
-    setState({ visible: false, mode: 'preview', thread: null, comments: [], anchor: null })
+    setState({ visible: false, mode: 'preview', thread: null, anchor: null })
   }, [])
 
   const cancelPreview = useCallback(() => {
