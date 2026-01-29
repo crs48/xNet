@@ -16,7 +16,7 @@ export interface CommentMarkOptions {
 
 declare module '@tiptap/core' {
   interface Commands<ReturnType> {
-    commentMark: {
+    comment: {
       /** Apply a comment mark with the given commentId */
       setComment: (commentId: string) => ReturnType
       /** Remove a specific comment mark by commentId */

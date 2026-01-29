@@ -542,8 +542,11 @@
   background-color: rgb(251 191 36 / 0.3); /* amber-400 with transparency */
   border-bottom: 2px solid rgb(245 158 11); /* amber-500 */
   padding: 1px 0;
-  cursor: pointer;
+  cursor: text; /* Keep text cursor for editing */
   transition: background-color 150ms ease;
+  /* Ensure text remains selectable and editable */
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .xnet-comment-mark:hover {
