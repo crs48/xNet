@@ -1,6 +1,6 @@
 # 05: Editor Integration
 
-> ProseMirror plugin for comment interactions + optional sidebar
+> ProseMirror plugin for comment interactions + universal useComments hook
 
 **Duration:** 2-3 days  
 **Dependencies:** [02-comment-mark.md](./02-comment-mark.md), [03-anchoring.md](./03-anchoring.md), [04-comment-popover.md](./04-comment-popover.md)
@@ -9,32 +9,220 @@
 
 The editor integration connects the CommentMark, anchoring logic, and popover UI into a cohesive experience. A ProseMirror plugin handles click/hover events on comment marks, and the popover appears inline.
 
+This follows the **Universal Social Primitives** pattern with the `useComments(nodeId)` hook.
+
 ```mermaid
 flowchart TB
-    subgraph "Editor Layer"
+    subgraph Editor_Layer[Editor Layer]
         PM[ProseMirror Plugin]
         MARK[CommentMark]
-        BUBBLE[Bubble Menu<br/>"Comment" action]
+        BUBBLE[Bubble Menu - Comment action]
     end
 
-    subgraph "State Management"
-        HOOK[useCommentPopover]
-        STORE[useNodes query<br/>CommentThread + Comments]
+    subgraph State_Management[State Management]
+        HOOK[useComments - Universal Hook]
+        STORE[NodeStore query - Comment nodes]
     end
 
-    subgraph "UI Layer"
+    subgraph UI_Layer[UI Layer]
         POPOVER[CommentPopover]
-        SIDEBAR[CommentSidebar<br/>optional]
+        SIDEBAR[CommentSidebar - optional]
     end
 
-    PM -->|"click/hover on mark"| HOOK
-    BUBBLE -->|"create thread"| STORE
+    PM -->|click/hover on mark| HOOK
+    BUBBLE -->|create comment| STORE
     HOOK --> POPOVER
     STORE --> POPOVER
     STORE --> SIDEBAR
 ```
 
 ## Implementation
+
+### Universal useComments Hook
+
+Following the [Universal Social Primitives](../explorations/0030_UNIVERSAL_SOCIAL_PRIMITIVES.md) pattern:
+
+```typescript
+// packages/react/src/hooks/useComments.ts
+
+import { useMemo, useCallback } from 'react'
+import { useNodes, useNodeStore } from './useNodes'
+import { Comment, decodeAnchor, TextAnchor, encodeAnchor } from '@xnet/data'
+
+interface UseCommentsOptions {
+  /** The Node ID to get comments for (any schema) */
+  nodeId: string
+  /** Optional: filter to specific anchor type */
+  anchorType?: string
+}
+
+interface CommentThread {
+  root: Comment
+  replies: Comment[]
+}
+
+/**
+ * Universal hook for comments on any Node.
+ * Works on Pages, Posts, Tasks, Database records, Canvas objects, etc.
+ */
+export function useComments({ nodeId, anchorType }: UseCommentsOptions) {
+  const store = useNodeStore()
+
+  // Query all comments targeting this Node
+  const comments = useNodes<Comment>({
+    schemaId: 'xnet://xnet.dev/Comment',
+    where: anchorType ? { target: nodeId, anchorType } : { target: nodeId }
+  })
+
+  // Group into threads (root + replies)
+  // With flat threading, all replies point directly to root (not nested)
+  const threads = useMemo(() => {
+    const threadMap = new Map<string, CommentThread>()
+
+    // First pass: find all root comments (inReplyTo is null/undefined)
+    for (const comment of comments) {
+      if (!comment.properties.inReplyTo) {
+        threadMap.set(comment.id, { root: comment, replies: [] })
+      }
+    }
+
+    // Second pass: attach replies to their root (flat - no chain walking needed)
+    for (const comment of comments) {
+      const rootId = comment.properties.inReplyTo as string | undefined
+      if (rootId) {
+        const thread = threadMap.get(rootId)
+        if (thread) {
+          thread.replies.push(comment)
+        }
+        // Note: if thread not found, reply is orphaned (root was deleted)
+      }
+    }
+
+    // Sort replies by Lamport time for consistent ordering across peers
+    for (const thread of threadMap.values()) {
+      thread.replies.sort((a, b) => a.lamportTime - b.lamportTime)
+    }
+
+    return Array.from(threadMap.values())
+  }, [comments])
+
+  // Count of unresolved threads
+  const unresolvedCount = useMemo(() => {
+    return threads.filter((t) => !t.root.properties.resolved).length
+  }, [threads])
+
+  // Add a new root comment
+  const addComment = useCallback(
+    async (options: {
+      content: string
+      anchorType: string
+      anchorData: string
+      targetSchema?: string
+    }) => {
+      const comment = await store.create({
+        schemaId: 'xnet://xnet.dev/Comment',
+        properties: {
+          target: nodeId,
+          targetSchema: options.targetSchema,
+          anchorType: options.anchorType,
+          anchorData: options.anchorData,
+          content: options.content,
+          resolved: false
+        }
+      })
+      return comment.id
+    },
+    [store, nodeId]
+  )
+
+  // Reply to a thread (adds to flat thread structure)
+  const replyTo = useCallback(
+    async (
+      rootCommentId: string,
+      content: string,
+      replyContext?: {
+        replyToUser?: string // DID of user being replied to
+        replyToCommentId?: string // Comment ID being referenced (for "in reply to X" UI)
+      }
+    ) => {
+      // Get the root to copy its target info
+      const root = threads.find((t) => t.root.id === rootCommentId)?.root
+      if (!root) throw new Error('Thread root not found')
+
+      const reply = await store.create({
+        schemaId: 'xnet://xnet.dev/Comment',
+        properties: {
+          target: nodeId,
+          targetSchema: root.properties.targetSchema,
+          inReplyTo: rootCommentId, // Always points to root (flat threading)
+          anchorType: 'node', // Replies don't need positional anchors
+          anchorData: '{}',
+          content,
+          // Pseudo reply-to for UI display (not structural)
+          replyToUser: replyContext?.replyToUser,
+          replyToCommentId: replyContext?.replyToCommentId
+        }
+      })
+      return reply.id
+    },
+    [store, nodeId, threads]
+  )
+
+  // Resolve a thread (marks the root comment as resolved)
+  const resolveThread = useCallback(
+    async (rootCommentId: string) => {
+      await store.update(rootCommentId, {
+        properties: { resolved: true, resolvedAt: Date.now() }
+      })
+    },
+    [store]
+  )
+
+  // Reopen a resolved thread
+  const reopenThread = useCallback(
+    async (rootCommentId: string) => {
+      await store.update(rootCommentId, {
+        properties: { resolved: false, resolvedBy: null, resolvedAt: null }
+      })
+    },
+    [store]
+  )
+
+  // Delete a comment
+  const deleteComment = useCallback(
+    async (commentId: string) => {
+      await store.delete(commentId)
+    },
+    [store]
+  )
+
+  // Edit a comment
+  const editComment = useCallback(
+    async (commentId: string, content: string) => {
+      await store.update(commentId, {
+        properties: { content, edited: true, editedAt: Date.now() }
+      })
+    },
+    [store]
+  )
+
+  return {
+    // Data
+    comments,
+    threads,
+    count: comments.length,
+    unresolvedCount,
+
+    // Actions
+    addComment,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment
+  }
+}
+```
 
 ### Comment Plugin (ProseMirror)
 
@@ -46,8 +234,8 @@ import { Decoration, DecorationSet } from '@tiptap/pm/view'
 import { Extension } from '@tiptap/core'
 
 export interface CommentPluginOptions {
-  onClickComment: (threadId: string, anchorEl: HTMLElement) => void
-  onHoverComment: (threadId: string, anchorEl: HTMLElement) => void
+  onClickComment: (commentId: string, anchorEl: HTMLElement) => void
+  onHoverComment: (commentId: string, anchorEl: HTMLElement) => void
   onLeaveComment: () => void
   onCreateComment: (from: number, to: number) => void
 }
@@ -77,9 +265,9 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
             const commentSpan = target.closest('[data-comment]') as HTMLElement
 
             if (commentSpan) {
-              const threadId = commentSpan.getAttribute('data-thread-id')
-              if (threadId) {
-                options.onClickComment(threadId, commentSpan)
+              const commentId = commentSpan.getAttribute('data-comment-id')
+              if (commentId) {
+                options.onClickComment(commentId, commentSpan)
                 return true
               }
             }
@@ -92,9 +280,9 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
               const commentSpan = target.closest('[data-comment]') as HTMLElement
 
               if (commentSpan) {
-                const threadId = commentSpan.getAttribute('data-thread-id')
-                if (threadId) {
-                  options.onHoverComment(threadId, commentSpan)
+                const commentId = commentSpan.getAttribute('data-comment-id')
+                if (commentId) {
+                  options.onHoverComment(commentId, commentSpan)
                 }
               }
               return false
@@ -138,153 +326,44 @@ export interface CreateCommentOptions {
   editor: Editor
   store: NodeStore
   targetNodeId: string // The Page/Document node this editor is editing
+  targetSchema?: string // Schema IRI of the target (optimization)
   content: string // Initial comment text
 }
 
 /**
- * Create a comment thread on the current text selection.
+ * Create a comment on the current text selection.
  * 1. Captures Yjs RelativePosition anchor
- * 2. Creates CommentThread node
- * 3. Creates initial Comment node
- * 4. Applies CommentMark to selection
+ * 2. Creates Comment node with anchor data
+ * 3. Applies CommentMark to selection
  */
 export async function createTextComment({
   editor,
   store,
   targetNodeId,
+  targetSchema,
   content
-}: CreateCommentOptions): Promise<{ threadId: string; commentId: string } | null> {
+}: CreateCommentOptions): Promise<string | null> {
   // 1. Capture anchor from current selection
   const anchor = captureTextAnchor(editor)
   if (!anchor) return null
 
-  // 2. Create thread
-  const thread = await store.create({
-    schemaId: 'xnet://xnet.dev/CommentThread',
+  // 2. Create comment
+  const comment = await store.create({
+    schemaId: 'xnet://xnet.dev/Comment',
     properties: {
-      targetNodeId,
+      target: targetNodeId,
+      targetSchema,
       anchorType: 'text',
       anchorData: encodeAnchor(anchor),
+      content,
       resolved: false
     }
   })
 
-  // 3. Create initial comment
-  const comment = await store.create({
-    schemaId: 'xnet://xnet.dev/Comment',
-    properties: {
-      threadId: thread.id,
-      content,
-      edited: false
-    }
-  })
+  // 3. Apply mark to selection
+  editor.chain().focus().setComment(comment.id).run()
 
-  // 4. Apply mark to selection
-  editor.chain().focus().setComment(thread.id).run()
-
-  return { threadId: thread.id, commentId: comment.id }
-}
-```
-
-### React Integration Hook
-
-```typescript
-// packages/react/src/hooks/useDocumentComments.ts
-
-import { useMemo, useCallback } from 'react'
-import { useNodes, useNodeStore } from './useNodes'
-import { CommentThread, Comment, decodeAnchor, TextAnchor } from '@xnet/data'
-
-interface UseDocumentCommentsOptions {
-  /** The document Node ID to get comments for */
-  documentId: string
-}
-
-export function useDocumentComments({ documentId }: UseDocumentCommentsOptions) {
-  const store = useNodeStore()
-
-  // Query all threads targeting this document
-  const threads = useNodes<CommentThread>({
-    schemaId: 'xnet://xnet.dev/CommentThread',
-    filter: { targetNodeId: documentId }
-  })
-
-  // Query all comments (we'll group by thread)
-  const allComments = useNodes<Comment>({
-    schemaId: 'xnet://xnet.dev/Comment'
-  })
-
-  // Group comments by thread
-  const commentsByThread = useMemo(() => {
-    const map = new Map<string, Comment[]>()
-    for (const comment of allComments) {
-      const threadId = comment.properties.threadId as string
-      if (!map.has(threadId)) map.set(threadId, [])
-      map.get(threadId)!.push(comment)
-    }
-    // Sort each thread's comments by creation time
-    for (const [, comments] of map) {
-      comments.sort(
-        (a, b) => (a.properties.createdAt as number) - (b.properties.createdAt as number)
-      )
-    }
-    return map
-  }, [allComments])
-
-  // Thread actions
-  const createReply = useCallback(
-    async (threadId: string, content: string) => {
-      await store.create({
-        schemaId: 'xnet://xnet.dev/Comment',
-        properties: { threadId, content, edited: false }
-      })
-    },
-    [store]
-  )
-
-  const resolveThread = useCallback(
-    async (threadId: string) => {
-      await store.update(threadId, {
-        properties: { resolved: true, resolvedAt: Date.now() }
-      })
-    },
-    [store]
-  )
-
-  const reopenThread = useCallback(
-    async (threadId: string) => {
-      await store.update(threadId, {
-        properties: { resolved: false, resolvedBy: null, resolvedAt: null }
-      })
-    },
-    [store]
-  )
-
-  const deleteComment = useCallback(
-    async (commentId: string) => {
-      await store.delete(commentId)
-    },
-    [store]
-  )
-
-  const editComment = useCallback(
-    async (commentId: string, content: string) => {
-      await store.update(commentId, {
-        properties: { content, edited: true, editedAt: Date.now() }
-      })
-    },
-    [store]
-  )
-
-  return {
-    threads,
-    commentsByThread,
-    createReply,
-    resolveThread,
-    reopenThread,
-    deleteComment,
-    editComment
-  }
+  return comment.id
 }
 ```
 
@@ -297,15 +376,17 @@ Add a "Comment" button to the existing bubble menu that appears on text selectio
 
 import React, { useState } from 'react'
 import { Editor } from '@tiptap/core'
+import { NodeStore } from '@xnet/data'
 import { createTextComment } from '../comments/create-comment'
 
 interface Props {
   editor: Editor
   targetNodeId: string
+  targetSchema?: string
   store: NodeStore
 }
 
-export function BubbleMenuCommentAction({ editor, targetNodeId, store }: Props) {
+export function BubbleMenuCommentAction({ editor, targetNodeId, targetSchema, store }: Props) {
   const [isCreating, setIsCreating] = useState(false)
   const [commentText, setCommentText] = useState('')
 
@@ -316,6 +397,7 @@ export function BubbleMenuCommentAction({ editor, targetNodeId, store }: Props) 
       editor,
       store,
       targetNodeId,
+      targetSchema,
       content: commentText.trim()
     })
 
@@ -349,8 +431,86 @@ export function BubbleMenuCommentAction({ editor, targetNodeId, store }: Props) 
       onClick={() => setIsCreating(true)}
       title="Add comment"
     >
-      💬
+      Comment
     </button>
+  )
+}
+```
+
+### Document Comments Integration
+
+```typescript
+// packages/editor/src/components/DocumentComments.tsx
+
+import React from 'react'
+import { Editor } from '@tiptap/core'
+import { useComments } from '@xnet/react'
+import { CommentPopover } from '@xnet/ui'
+import { useCommentPopover } from '@xnet/react'
+import { resolveTextAnchor } from '../comments/text-anchor'
+import { decodeAnchor, TextAnchor } from '@xnet/data'
+
+interface DocumentCommentsProps {
+  editor: Editor
+  documentId: string
+  documentSchema?: string
+}
+
+export function DocumentComments({
+  editor,
+  documentId,
+  documentSchema
+}: DocumentCommentsProps) {
+  const {
+    threads,
+    addComment,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment,
+    unresolvedCount
+  } = useComments({ nodeId: documentId, anchorType: 'text' })
+
+  const { state, showPreview, showFull, dismiss, cancelPreview, upgradeToFull } =
+    useCommentPopover()
+
+  // Resolve thread positions for popover positioning
+  const getCommentPosition = (commentId: string) => {
+    const comment = threads.find((t) => t.root.id === commentId)?.root
+    if (!comment || comment.properties.anchorType !== 'text') return null
+
+    const anchor = decodeAnchor<TextAnchor>(comment.properties.anchorData as string)
+    return resolveTextAnchor(editor, anchor)
+  }
+
+  return (
+    <>
+      {/* Popover */}
+      {state.visible && state.thread && (
+        <CommentPopover
+          thread={state.thread}
+          comments={[state.thread.root, ...state.thread.replies]}
+          anchor={state.anchor!}
+          mode={state.mode}
+          side="right"
+          onReply={(content) => replyTo(state.thread!.root.id, content)}
+          onResolve={() => resolveThread(state.thread!.root.id)}
+          onReopen={() => reopenThread(state.thread!.root.id)}
+          onDelete={(id) => deleteComment(id)}
+          onEdit={(id, content) => editComment(id, content)}
+          onDismiss={dismiss}
+          onUpgradeToFull={upgradeToFull}
+        />
+      )}
+
+      {/* Optional: Comment count indicator */}
+      {unresolvedCount > 0 && (
+        <div className="document-comment-count">
+          {unresolvedCount} unresolved comment{unresolvedCount > 1 ? 's' : ''}
+        </div>
+      )}
+    </>
   )
 }
 ```
@@ -363,23 +523,24 @@ The sidebar is a secondary navigation tool for reviewing all threads at once:
 // packages/editor/src/components/CommentSidebar.tsx
 
 import React from 'react'
-import { CommentThread, Comment, decodeAnchor, TextAnchor } from '@xnet/data'
+import { useComments } from '@xnet/react'
+import { decodeAnchor, TextAnchor } from '@xnet/data'
 
 interface CommentSidebarProps {
-  threads: CommentThread[]
-  commentsByThread: Map<string, Comment[]>
-  onSelectThread: (threadId: string) => void
+  nodeId: string
+  onSelectThread: (commentId: string) => void
   showResolved?: boolean
 }
 
 export function CommentSidebar({
-  threads,
-  commentsByThread,
+  nodeId,
   onSelectThread,
   showResolved = false
 }: CommentSidebarProps) {
-  const filteredThreads = threads.filter((t) =>
-    showResolved || !(t.properties.resolved as boolean)
+  const { threads } = useComments({ nodeId })
+
+  const filteredThreads = threads.filter(
+    (t) => showResolved || !t.root.properties.resolved
   )
 
   return (
@@ -389,31 +550,26 @@ export function CommentSidebar({
       </div>
       <div className="comment-sidebar__list">
         {filteredThreads.map((thread) => {
-          const comments = commentsByThread.get(thread.id) ?? []
-          const firstComment = comments[0]
-          const anchor = thread.properties.anchorType === 'text'
-            ? decodeAnchor<TextAnchor>(thread.properties.anchorData as string)
-            : null
+          const anchor =
+            thread.root.properties.anchorType === 'text'
+              ? decodeAnchor<TextAnchor>(thread.root.properties.anchorData as string)
+              : null
 
           return (
             <div
-              key={thread.id}
+              key={thread.root.id}
               className="comment-sidebar__item"
-              onClick={() => onSelectThread(thread.id)}
+              onClick={() => onSelectThread(thread.root.id)}
             >
               {anchor?.quotedText && (
-                <div className="comment-sidebar__quote">
-                  "{anchor.quotedText}"
-                </div>
+                <div className="comment-sidebar__quote">"{anchor.quotedText}"</div>
               )}
-              {firstComment && (
-                <div className="comment-sidebar__preview">
-                  {firstComment.properties.content as string}
-                </div>
-              )}
+              <div className="comment-sidebar__preview">
+                {thread.root.properties.content as string}
+              </div>
               <div className="comment-sidebar__meta">
-                {comments.length} {comments.length === 1 ? 'comment' : 'comments'}
-                {thread.properties.resolved && ' · Resolved'}
+                {thread.replies.length + 1} comment{thread.replies.length > 0 ? 's' : ''}
+                {thread.root.properties.resolved && ' - Resolved'}
               </div>
             </div>
           )
@@ -435,12 +591,12 @@ export function CommentSidebar({
 
 ## Checklist
 
+- [ ] Create universal `useComments(nodeId)` hook
 - [ ] Create CommentPlugin extension (click/hover handlers)
-- [ ] Implement createTextComment flow (anchor → thread → comment → mark)
-- [ ] Create useDocumentComments hook
+- [ ] Implement createTextComment flow (anchor -> comment -> mark)
 - [ ] Add "Comment" action to bubble menu
 - [ ] Create CommentSidebar component
-- [ ] Wire up editor ↔ popover ↔ store
+- [ ] Wire up editor -> popover -> store
 - [ ] Add keyboard shortcuts
 - [ ] Handle mark restoration on document open
 - [ ] Tests pass

@@ -1,6 +1,6 @@
 # 07: Canvas Comments
 
-> Figma/Miro-style commenting with position pins and object attachment
+> Figma/Miro-style commenting with position pins and object attachment using the universal Comment schema
 
 **Duration:** 2-3 days  
 **Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), [04-comment-popover.md](./04-comment-popover.md), `@xnet/canvas`
@@ -9,28 +9,30 @@
 
 Canvas comments support two anchor types:
 
-1. **Position pins** — fixed (x, y) coordinates on the canvas (Figma-style "click anywhere to comment")
-2. **Object attachment** — comments that follow an object when it moves
+1. **Position pins** -- fixed (x, y) coordinates on the canvas (Figma-style "click anywhere to comment")
+2. **Object attachment** -- comments that follow an object when it moves
+
+Following the **Universal Social Primitives** pattern, canvas comments use the same `useComments(nodeId)` hook.
 
 ```mermaid
 flowchart TB
     subgraph "Canvas"
         OBJ1[Shape at 100,200]
         OBJ2[Image at 400,300]
-        PIN1["📌 (150, 250)<br/>position pin"]
-        PIN2["📌 on Shape<br/>object attachment"]
+        PIN1["Pin (150, 250)<br/>position pin"]
+        PIN2["Pin on Shape<br/>object attachment"]
     end
 
     subgraph "Comment Mode"
-        TOGGLE["Toggle: Edit ↔ Comment mode"]
+        TOGGLE["Toggle: Edit <-> Comment mode"]
         CURSOR["Cursor changes to crosshair"]
     end
 
     subgraph "Interactions"
-        CLICK_EMPTY["Click empty space<br/>→ position pin"]
-        CLICK_OBJ["Click object<br/>→ object attachment"]
-        HOVER_PIN["Hover pin → preview"]
-        CLICK_PIN["Click pin → full thread"]
+        CLICK_EMPTY["Click empty space<br/>-> position pin"]
+        CLICK_OBJ["Click object<br/>-> object attachment"]
+        HOVER_PIN["Hover pin -> preview"]
+        CLICK_PIN["Click pin -> full thread"]
     end
 
     TOGGLE --> CURSOR
@@ -42,6 +44,177 @@ flowchart TB
 
 ## Implementation
 
+### Canvas Comment Hook (extends useComments)
+
+```typescript
+// packages/canvas/src/hooks/useCanvasComments.ts
+
+import { useMemo, useCallback } from 'react'
+import { useComments } from '@xnet/react'
+import {
+  Comment,
+  encodeAnchor,
+  decodeAnchor,
+  CanvasPositionAnchor,
+  CanvasObjectAnchor
+} from '@xnet/data'
+
+interface CanvasTransform {
+  panX: number
+  panY: number
+  zoom: number
+}
+
+interface CanvasObject {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+interface UseCanvasCommentsOptions {
+  canvasNodeId: string
+  canvasSchema?: string
+  transform: CanvasTransform
+  objects: Map<string, CanvasObject>
+}
+
+interface ResolvedPin {
+  thread: { root: Comment; replies: Comment[] }
+  viewportX: number
+  viewportY: number
+  orphaned: boolean
+}
+
+/**
+ * Extends the universal useComments hook with canvas-specific helpers.
+ */
+export function useCanvasComments({
+  canvasNodeId,
+  canvasSchema,
+  transform,
+  objects
+}: UseCanvasCommentsOptions) {
+  // Use the universal hook
+  const {
+    comments,
+    threads,
+    addComment,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment
+  } = useComments({ nodeId: canvasNodeId })
+
+  // Resolve all canvas thread positions
+  const resolvedPins = useMemo((): ResolvedPin[] => {
+    return threads
+      .filter((t) =>
+        ['canvas-position', 'canvas-object'].includes(t.root.properties.anchorType as string)
+      )
+      .map((thread) => {
+        const anchorType = thread.root.properties.anchorType as 'canvas-position' | 'canvas-object'
+        const anchor = decodeAnchor(thread.root.properties.anchorData as string)
+
+        if (anchorType === 'canvas-position') {
+          const { x, y } = anchor as CanvasPositionAnchor
+          return {
+            thread,
+            viewportX: (x - transform.panX) * transform.zoom,
+            viewportY: (y - transform.panY) * transform.zoom,
+            orphaned: false
+          }
+        }
+
+        if (anchorType === 'canvas-object') {
+          const { objectId, offsetX = 0, offsetY = 0 } = anchor as CanvasObjectAnchor
+          const obj = objects.get(objectId)
+
+          if (!obj) {
+            // Object deleted -- orphaned
+            return {
+              thread,
+              viewportX: 0,
+              viewportY: 0,
+              orphaned: true
+            }
+          }
+
+          const x = obj.x + obj.width + offsetX
+          const y = obj.y + offsetY
+          return {
+            thread,
+            viewportX: (x - transform.panX) * transform.zoom,
+            viewportY: (y - transform.panY) * transform.zoom,
+            orphaned: false
+          }
+        }
+
+        return null
+      })
+      .filter((p): p is ResolvedPin => p !== null)
+  }, [threads, transform, objects])
+
+  // Non-orphaned pins only
+  const activePins = useMemo(() => {
+    return resolvedPins.filter((p) => !p.orphaned)
+  }, [resolvedPins])
+
+  // Orphaned pins
+  const orphanedPins = useMemo(() => {
+    return resolvedPins.filter((p) => p.orphaned)
+  }, [resolvedPins])
+
+  // Create comment at canvas position
+  const commentAtPosition = useCallback(
+    async (canvasX: number, canvasY: number, content: string) => {
+      const anchor: CanvasPositionAnchor = { x: canvasX, y: canvasY }
+      return addComment({
+        content,
+        anchorType: 'canvas-position',
+        anchorData: encodeAnchor(anchor),
+        targetSchema: canvasSchema
+      })
+    },
+    [addComment, canvasSchema]
+  )
+
+  // Create comment attached to object
+  const commentOnObject = useCallback(
+    async (objectId: string, content: string, offsetX?: number, offsetY?: number) => {
+      const anchor: CanvasObjectAnchor = { objectId, offsetX, offsetY }
+      return addComment({
+        content,
+        anchorType: 'canvas-object',
+        anchorData: encodeAnchor(anchor),
+        targetSchema: canvasSchema
+      })
+    },
+    [addComment, canvasSchema]
+  )
+
+  return {
+    // From universal hook
+    comments,
+    threads,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment,
+
+    // Canvas-specific
+    resolvedPins,
+    activePins,
+    orphanedPins,
+    commentAtPosition,
+    commentOnObject
+  }
+}
+```
+
 ### Comment Pin Renderer
 
 Pins are rendered in an overlay layer above the canvas objects but below the cursor/selection layer.
@@ -50,11 +223,11 @@ Pins are rendered in an overlay layer above the canvas objects but below the cur
 // packages/canvas/src/comments/CommentPin.tsx
 
 import React from 'react'
-import { CommentThread, Comment } from '@xnet/data'
+import { Comment } from '@xnet/data'
 
 interface CommentPinProps {
-  thread: CommentThread
-  comments: Comment[]
+  root: Comment
+  replies: Comment[]
   viewportX: number
   viewportY: number
   isHovered: boolean
@@ -65,8 +238,8 @@ interface CommentPinProps {
 }
 
 export function CommentPin({
-  thread,
-  comments,
+  root,
+  replies,
   viewportX,
   viewportY,
   isHovered,
@@ -75,10 +248,9 @@ export function CommentPin({
   onMouseLeave,
   onClick
 }: CommentPinProps) {
-  const firstComment = comments[0]
-  const authorInitial = getAuthorInitial(firstComment?.properties.createdBy as string)
-  const isResolved = thread.properties.resolved as boolean
-  const replyCount = comments.length - 1
+  const authorInitial = getAuthorInitial(root.properties.createdBy as string)
+  const isResolved = root.properties.resolved as boolean
+  const totalCount = replies.length + 1
 
   return (
     <div
@@ -95,16 +267,14 @@ export function CommentPin({
     >
       <div className="comment-pin__marker">
         <span className="comment-pin__avatar">{authorInitial}</span>
-        {replyCount > 0 && (
-          <span className="comment-pin__count">{replyCount + 1}</span>
-        )}
+        {totalCount > 1 && <span className="comment-pin__count">{totalCount}</span>}
       </div>
     </div>
   )
 }
 
 function getAuthorInitial(did?: string): string {
-  // Placeholder — resolve display name from DID
+  // Placeholder -- resolve display name from DID
   return did ? did.slice(-2).toUpperCase() : '?'
 }
 ```
@@ -114,81 +284,81 @@ function getAuthorInitial(did?: string): string {
 ```typescript
 // packages/canvas/src/comments/CommentOverlay.tsx
 
-import React, { useMemo } from 'react'
-import { CommentThread, Comment, decodeAnchor, CanvasPositionAnchor, CanvasObjectAnchor } from '@xnet/data'
+import React from 'react'
 import { CommentPin } from './CommentPin'
 import { CommentPopover } from '@xnet/ui'
 import { useCommentPopover } from '@xnet/react'
-import { resolveCanvasAnchor } from './canvas-anchor'
+import { useCanvasComments } from '../hooks/useCanvasComments'
 
 interface CommentOverlayProps {
-  threads: CommentThread[]
-  commentsByThread: Map<string, Comment[]>
-  canvasTransform: { panX: number; panY: number; zoom: number }
-  canvasObjects: Map<string, { x: number; y: number; width: number; height: number }>
-  onReply: (threadId: string, content: string) => void
-  onResolve: (threadId: string) => void
+  canvasNodeId: string
+  canvasSchema?: string
+  transform: { panX: number; panY: number; zoom: number }
+  objects: Map<string, { id: string; x: number; y: number; width: number; height: number }>
 }
 
 export function CommentOverlay({
-  threads,
-  commentsByThread,
-  canvasTransform,
-  canvasObjects,
-  onReply,
-  onResolve
+  canvasNodeId,
+  canvasSchema,
+  transform,
+  objects
 }: CommentOverlayProps) {
-  const { state, showPreview, showFull, dismiss, cancelPreview, upgradeToFull } = useCommentPopover()
+  const {
+    activePins,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment
+  } = useCanvasComments({
+    canvasNodeId,
+    canvasSchema,
+    transform,
+    objects
+  })
 
-  // Resolve all canvas-type thread positions
-  const resolvedPins = useMemo(() => {
-    return threads
-      .filter((t) => ['canvas-position', 'canvas-object'].includes(t.properties.anchorType as string))
-      .map((thread) => {
-        const anchorType = thread.properties.anchorType as 'canvas-position' | 'canvas-object'
-        const anchor = decodeAnchor(thread.properties.anchorData as string)
-        const position = resolveCanvasAnchor(anchorType, anchor, canvasTransform, canvasObjects)
-
-        return { thread, position }
-      })
-      .filter((p) => p.position !== null)
-  }, [threads, canvasTransform, canvasObjects])
+  const { state, showPreview, showFull, dismiss, cancelPreview, upgradeToFull } =
+    useCommentPopover()
 
   return (
-    <div className="comment-overlay" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
-      {resolvedPins.map(({ thread, position }) => {
-        const comments = commentsByThread.get(thread.id) ?? []
-        return (
-          <div key={thread.id} style={{ pointerEvents: 'auto' }}>
-            <CommentPin
-              thread={thread}
-              comments={comments}
-              viewportX={position!.viewportX}
-              viewportY={position!.viewportY}
-              isHovered={state.thread?.id === thread.id && state.mode === 'preview'}
-              isSelected={state.thread?.id === thread.id && state.mode === 'full'}
-              onMouseEnter={() => showPreview(thread, comments, { x: position!.viewportX, y: position!.viewportY })}
-              onMouseLeave={cancelPreview}
-              onClick={() => showFull(thread, comments, { x: position!.viewportX + 20, y: position!.viewportY })}
-            />
-          </div>
-        )
-      })}
+    <div
+      className="comment-overlay"
+      style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}
+    >
+      {activePins.map(({ thread, viewportX, viewportY }) => (
+        <div key={thread.root.id} style={{ pointerEvents: 'auto' }}>
+          <CommentPin
+            root={thread.root}
+            replies={thread.replies}
+            viewportX={viewportX}
+            viewportY={viewportY}
+            isHovered={state.thread?.root.id === thread.root.id && state.mode === 'preview'}
+            isSelected={state.thread?.root.id === thread.root.id && state.mode === 'full'}
+            onMouseEnter={() =>
+              showPreview(thread, { x: viewportX, y: viewportY })
+            }
+            onMouseLeave={cancelPreview}
+            onClick={() =>
+              showFull(thread, { x: viewportX + 20, y: viewportY })
+            }
+          />
+        </div>
+      ))}
 
       {/* Popover */}
       {state.visible && state.thread && (
         <div style={{ pointerEvents: 'auto' }}>
           <CommentPopover
-            thread={state.thread}
-            comments={state.comments}
+            thread={state.thread.root}
+            comments={[state.thread.root, ...state.thread.replies]}
             anchor={state.anchor!}
             mode={state.mode}
             side="right"
-            onReply={(content) => onReply(state.thread!.id, content)}
-            onResolve={() => onResolve(state.thread!.id)}
-            onReopen={() => {}}
-            onDelete={() => {}}
-            onEdit={() => {}}
+            onReply={(content) => replyTo(state.thread!.root.id, content)}
+            onResolve={() => resolveThread(state.thread!.root.id)}
+            onReopen={() => reopenThread(state.thread!.root.id)}
+            onDelete={(id) => deleteComment(id)}
+            onEdit={(id, content) => editComment(id, content)}
             onDismiss={dismiss}
             onUpgradeToFull={upgradeToFull}
           />
@@ -215,8 +385,9 @@ export interface CommentModeState {
 export function handleCommentModeClick(
   e: React.MouseEvent,
   canvasTransform: { panX: number; panY: number; zoom: number },
-  canvasObjects: Map<string, { x: number; y: number; width: number; height: number }>,
-  createComment: (anchorType: 'canvas-position' | 'canvas-object', anchor: any) => void
+  canvasObjects: Map<string, { id: string; x: number; y: number; width: number; height: number }>,
+  createPositionComment: (x: number, y: number) => void,
+  createObjectComment: (objectId: string, offsetX: number, offsetY: number) => void
 ): void {
   const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
   const viewportX = e.clientX - rect.left
@@ -231,23 +402,19 @@ export function handleCommentModeClick(
 
   if (hitObject) {
     // Attach to object
-    createComment('canvas-object', {
-      objectId: hitObject.id,
-      offsetX: canvasX - hitObject.x,
-      offsetY: canvasY - hitObject.y
-    })
+    createObjectComment(hitObject.id, canvasX - hitObject.x, canvasY - hitObject.y)
   } else {
     // Pin at position
-    createComment('canvas-position', { x: canvasX, y: canvasY })
+    createPositionComment(canvasX, canvasY)
   }
 }
 
 function findObjectAtPoint(
   x: number,
   y: number,
-  objects: Map<string, { x: number; y: number; width: number; height: number }>
+  objects: Map<string, { id: string; x: number; y: number; width: number; height: number }>
 ): { id: string; x: number; y: number } | null {
-  // Simple bounding box hit test (iterate in reverse z-order)
+  // Simple bounding box hit test (iterate in reverse z-order for top-most)
   for (const [id, obj] of objects) {
     if (x >= obj.x && x <= obj.x + obj.width && y >= obj.y && y <= obj.y + obj.height) {
       return { id, x: obj.x, y: obj.y }
@@ -332,22 +499,24 @@ sequenceDiagram
     participant User
     participant Canvas
     participant Overlay as Comment Overlay
-    participant Store as NodeStore
+    participant Hook as useCanvasComments
 
     User->>Canvas: Drag object to new position
     Canvas->>Canvas: Update object.x, object.y
-    Canvas->>Overlay: Re-render (canvasObjects changed)
-    Overlay->>Overlay: resolveCanvasAnchor(objectId)<br/>→ new viewport coordinates
+    Canvas->>Hook: objects Map changed
+    Hook->>Hook: useMemo recalculates resolvedPins
+    Hook->>Overlay: New viewport coordinates
     Overlay->>Overlay: Pin rendered at new position
 
-    Note over Store: No store update needed!<br/>Anchor references objectId,<br/>not absolute coordinates.
+    Note over Hook: No store update needed!<br/>Anchor references objectId,<br/>not absolute coordinates.
 ```
 
 ## Checklist
 
+- [ ] Create useCanvasComments hook (extends useComments)
 - [ ] Create CommentPin component
 - [ ] Create CommentOverlay (renders all pins + popover)
-- [ ] Implement comment mode (crosshair cursor, click → create)
+- [ ] Implement comment mode (crosshair cursor, click -> create)
 - [ ] Implement position pin creation (x, y coordinates)
 - [ ] Implement object attachment (objectId-based)
 - [ ] Handle object movement (pins follow automatically)

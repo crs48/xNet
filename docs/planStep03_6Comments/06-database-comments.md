@@ -1,6 +1,6 @@
 # 06: Database Comments
 
-> Commenting on cells, rows, and columns in table/board views
+> Commenting on cells, rows, and columns in table/board views using the universal Comment schema
 
 **Duration:** 2 days  
 **Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), [04-comment-popover.md](./04-comment-popover.md)
@@ -9,20 +9,22 @@
 
 Database comments use stable ID-based anchors (rowId + propertyKey), making them simpler than text anchors. Comment indicators appear in cell corners, row headers, or column headers.
 
+Following the **Universal Social Primitives** pattern, database comments use the same `useComments(nodeId)` hook -- the `nodeId` is the database Node, and `anchorType` filters to the specific anchor type.
+
 ```mermaid
 flowchart LR
     subgraph "Table View"
-        C1["Cell (row-1, status)<br/>● indicator"]
-        C2["Cell (row-2, title)<br/>● indicator"]
-        RH["Row header<br/>💬 2"]
-        CH["Column header<br/>💬 1"]
+        C1["Cell (row-1, status)<br/>indicator"]
+        C2["Cell (row-2, title)<br/>indicator"]
+        RH["Row header<br/>2 comments"]
+        CH["Column header<br/>1 comment"]
     end
 
     subgraph "Popover"
         POP[CommentPopover]
     end
 
-    C1 -->|"hover/click ●"| POP
+    C1 -->|"hover/click"| POP
     RH -->|"click badge"| POP
 ```
 
@@ -40,7 +42,7 @@ interface CommentIndicatorProps {
   onClick: (e: React.MouseEvent) => void
   onMouseEnter: (e: React.MouseEvent) => void
   onMouseLeave: () => void
-  variant: 'dot' | 'badge'  // dot for cells, badge for rows/columns
+  variant: 'dot' | 'badge' // dot for cells, badge for rows/columns
 }
 
 export function CommentIndicator({
@@ -73,50 +75,58 @@ export function CommentIndicator({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      💬 {count}
+      {count}
     </button>
   )
 }
 ```
 
-### Database Comment Hook
+### Database Comment Hook (extends useComments)
 
 ```typescript
 // packages/views/src/hooks/useDatabaseComments.ts
 
 import { useMemo, useCallback } from 'react'
-import { useNodes, useNodeStore } from '@xnet/react'
+import { useComments } from '@xnet/react'
 import {
-  CommentThread,
   Comment,
   encodeAnchor,
   CellAnchor,
   RowAnchor,
-  ColumnAnchor
+  ColumnAnchor,
+  decodeAnchor
 } from '@xnet/data'
 
 interface UseDatabaseCommentsOptions {
   databaseNodeId: string
+  databaseSchema?: string // e.g., 'xnet://xnet.dev/Database'
 }
 
-export function useDatabaseComments({ databaseNodeId }: UseDatabaseCommentsOptions) {
-  const store = useNodeStore()
+/**
+ * Extends the universal useComments hook with database-specific helpers.
+ */
+export function useDatabaseComments({
+  databaseNodeId,
+  databaseSchema
+}: UseDatabaseCommentsOptions) {
+  // Use the universal hook
+  const {
+    comments,
+    threads,
+    addComment,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment
+  } = useComments({ nodeId: databaseNodeId })
 
-  const threads = useNodes<CommentThread>({
-    schemaId: 'xnet://xnet.dev/CommentThread',
-    filter: { targetNodeId: databaseNodeId }
-  })
-
-  const allComments = useNodes<Comment>({
-    schemaId: 'xnet://xnet.dev/Comment'
-  })
-
-  // Index: cell key → thread count
+  // Index: cell key -> thread count
   const cellCommentCounts = useMemo(() => {
     const map = new Map<string, number>()
     for (const thread of threads) {
-      if (thread.properties.anchorType === 'cell') {
-        const anchor = JSON.parse(thread.properties.anchorData as string) as CellAnchor
+      if (thread.root.properties.anchorType === 'cell') {
+        const anchor = decodeAnchor<CellAnchor>(thread.root.properties.anchorData as string)
         const key = `${anchor.rowId}:${anchor.propertyKey}`
         map.set(key, (map.get(key) ?? 0) + 1)
       }
@@ -124,13 +134,25 @@ export function useDatabaseComments({ databaseNodeId }: UseDatabaseCommentsOptio
     return map
   }, [threads])
 
-  // Index: rowId → thread count
+  // Index: rowId -> thread count
   const rowCommentCounts = useMemo(() => {
     const map = new Map<string, number>()
     for (const thread of threads) {
-      if (thread.properties.anchorType === 'row') {
-        const anchor = JSON.parse(thread.properties.anchorData as string) as RowAnchor
+      if (thread.root.properties.anchorType === 'row') {
+        const anchor = decodeAnchor<RowAnchor>(thread.root.properties.anchorData as string)
         map.set(anchor.rowId, (map.get(anchor.rowId) ?? 0) + 1)
+      }
+    }
+    return map
+  }, [threads])
+
+  // Index: propertyKey -> thread count
+  const columnCommentCounts = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const thread of threads) {
+      if (thread.root.properties.anchorType === 'column') {
+        const anchor = decodeAnchor<ColumnAnchor>(thread.root.properties.anchorData as string)
+        map.set(anchor.propertyKey, (map.get(anchor.propertyKey) ?? 0) + 1)
       }
     }
     return map
@@ -140,88 +162,100 @@ export function useDatabaseComments({ databaseNodeId }: UseDatabaseCommentsOptio
   const commentOnCell = useCallback(
     async (rowId: string, propertyKey: string, content: string) => {
       const anchor: CellAnchor = { rowId, propertyKey }
-      const thread = await store.create({
-        schemaId: 'xnet://xnet.dev/CommentThread',
-        properties: {
-          targetNodeId: databaseNodeId,
-          anchorType: 'cell',
-          anchorData: encodeAnchor(anchor),
-          resolved: false
-        }
+      return addComment({
+        content,
+        anchorType: 'cell',
+        anchorData: encodeAnchor(anchor),
+        targetSchema: databaseSchema
       })
-      await store.create({
-        schemaId: 'xnet://xnet.dev/Comment',
-        properties: { threadId: thread.id, content, edited: false }
-      })
-      return thread.id
     },
-    [store, databaseNodeId]
+    [addComment, databaseSchema]
   )
 
   // Create comment on row
   const commentOnRow = useCallback(
     async (rowId: string, content: string) => {
       const anchor: RowAnchor = { rowId }
-      const thread = await store.create({
-        schemaId: 'xnet://xnet.dev/CommentThread',
-        properties: {
-          targetNodeId: databaseNodeId,
-          anchorType: 'row',
-          anchorData: encodeAnchor(anchor),
-          resolved: false
-        }
+      return addComment({
+        content,
+        anchorType: 'row',
+        anchorData: encodeAnchor(anchor),
+        targetSchema: databaseSchema
       })
-      await store.create({
-        schemaId: 'xnet://xnet.dev/Comment',
-        properties: { threadId: thread.id, content, edited: false }
-      })
-      return thread.id
     },
-    [store, databaseNodeId]
+    [addComment, databaseSchema]
   )
 
   // Create comment on column
   const commentOnColumn = useCallback(
     async (propertyKey: string, content: string) => {
       const anchor: ColumnAnchor = { propertyKey }
-      const thread = await store.create({
-        schemaId: 'xnet://xnet.dev/CommentThread',
-        properties: {
-          targetNodeId: databaseNodeId,
-          anchorType: 'column',
-          anchorData: encodeAnchor(anchor),
-          resolved: false
-        }
+      return addComment({
+        content,
+        anchorType: 'column',
+        anchorData: encodeAnchor(anchor),
+        targetSchema: databaseSchema
       })
-      await store.create({
-        schemaId: 'xnet://xnet.dev/Comment',
-        properties: { threadId: thread.id, content, edited: false }
-      })
-      return thread.id
     },
-    [store, databaseNodeId]
+    [addComment, databaseSchema]
   )
 
   // Get threads for a specific cell
   const getThreadsForCell = useCallback(
     (rowId: string, propertyKey: string) => {
       return threads.filter((t) => {
-        if (t.properties.anchorType !== 'cell') return false
-        const anchor = JSON.parse(t.properties.anchorData as string) as CellAnchor
+        if (t.root.properties.anchorType !== 'cell') return false
+        const anchor = decodeAnchor<CellAnchor>(t.root.properties.anchorData as string)
         return anchor.rowId === rowId && anchor.propertyKey === propertyKey
       })
     },
     [threads]
   )
 
+  // Get threads for a specific row
+  const getThreadsForRow = useCallback(
+    (rowId: string) => {
+      return threads.filter((t) => {
+        if (t.root.properties.anchorType !== 'row') return false
+        const anchor = decodeAnchor<RowAnchor>(t.root.properties.anchorData as string)
+        return anchor.rowId === rowId
+      })
+    },
+    [threads]
+  )
+
+  // Get threads for a specific column
+  const getThreadsForColumn = useCallback(
+    (propertyKey: string) => {
+      return threads.filter((t) => {
+        if (t.root.properties.anchorType !== 'column') return false
+        const anchor = decodeAnchor<ColumnAnchor>(t.root.properties.anchorData as string)
+        return anchor.propertyKey === propertyKey
+      })
+    },
+    [threads]
+  )
+
   return {
+    // From universal hook
+    comments,
     threads,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment,
+
+    // Database-specific
     cellCommentCounts,
     rowCommentCounts,
+    columnCommentCounts,
     commentOnCell,
     commentOnRow,
     commentOnColumn,
-    getThreadsForCell
+    getThreadsForCell,
+    getThreadsForRow,
+    getThreadsForColumn
   }
 }
 ```
@@ -231,31 +265,53 @@ export function useDatabaseComments({ databaseNodeId }: UseDatabaseCommentsOptio
 ```typescript
 // Integration point in the table cell component
 
-// In the cell renderer, add indicator when comments exist:
-function TableCell({ rowId, propertyKey, databaseNodeId, ...props }) {
-  const { cellCommentCounts, getThreadsForCell } = useDatabaseComments({ databaseNodeId })
+import { useDatabaseComments } from '../hooks/useDatabaseComments'
+import { useCommentPopover } from '@xnet/react'
+import { CommentIndicator } from './CommentIndicator'
+
+function TableCell({ rowId, propertyKey, databaseNodeId, databaseSchema, children }) {
+  const { cellCommentCounts, getThreadsForCell, replyTo, resolveThread } = useDatabaseComments({
+    databaseNodeId,
+    databaseSchema
+  })
   const { showPreview, showFull, cancelPreview } = useCommentPopover()
 
   const key = `${rowId}:${propertyKey}`
   const count = cellCommentCounts.get(key) ?? 0
 
+  const handleClick = (e: React.MouseEvent) => {
+    const threads = getThreadsForCell(rowId, propertyKey)
+    if (threads.length > 0) {
+      const thread = threads[0]
+      showFull(
+        { root: thread.root, replies: thread.replies },
+        e.currentTarget as HTMLElement
+      )
+    }
+  }
+
+  const handleHover = (e: React.MouseEvent) => {
+    const threads = getThreadsForCell(rowId, propertyKey)
+    if (threads.length > 0) {
+      const thread = threads[0]
+      showPreview(
+        { root: thread.root, replies: thread.replies },
+        e.currentTarget as HTMLElement
+      )
+    }
+  }
+
   return (
     <td data-row-id={rowId} data-property={propertyKey}>
       {/* Cell content */}
-      {props.children}
+      {children}
 
       {/* Comment indicator */}
       <CommentIndicator
         count={count}
         variant="dot"
-        onClick={(e) => {
-          const threads = getThreadsForCell(rowId, propertyKey)
-          showFull(threads[0], comments, e.currentTarget)
-        }}
-        onMouseEnter={(e) => {
-          const threads = getThreadsForCell(rowId, propertyKey)
-          showPreview(threads[0], comments, e.currentTarget)
-        }}
+        onClick={handleClick}
+        onMouseEnter={handleHover}
         onMouseLeave={cancelPreview}
       />
     </td>
@@ -268,27 +324,51 @@ function TableCell({ rowId, propertyKey, databaseNodeId, ...props }) {
 ```typescript
 // Add "Comment" to cell/row/column context menus
 
-const cellContextMenu = [
-  // ...existing actions
-  {
-    label: 'Comment on cell',
-    icon: 'message-square',
-    action: (rowId: string, propertyKey: string) => {
-      // Open popover in creation mode
-      openNewCommentPopover({ anchorType: 'cell', rowId, propertyKey })
-    }
-  }
-]
+import { useDatabaseComments } from '../hooks/useDatabaseComments'
 
-const rowContextMenu = [
-  {
-    label: 'Comment on row',
-    icon: 'message-square',
-    action: (rowId: string) => {
-      openNewCommentPopover({ anchorType: 'row', rowId })
+function CellContextMenu({ rowId, propertyKey, databaseNodeId, databaseSchema }) {
+  const { commentOnCell } = useDatabaseComments({ databaseNodeId, databaseSchema })
+  const [showCommentInput, setShowCommentInput] = useState(false)
+  const [commentText, setCommentText] = useState('')
+
+  const handleComment = async () => {
+    if (commentText.trim()) {
+      await commentOnCell(rowId, propertyKey, commentText.trim())
+      setCommentText('')
+      setShowCommentInput(false)
     }
   }
-]
+
+  return (
+    <>
+      {/* ...existing menu items */}
+      <MenuItem
+        icon="message-square"
+        label="Comment on cell"
+        onClick={() => setShowCommentInput(true)}
+      />
+
+      {showCommentInput && (
+        <CommentInputPopover
+          onSubmit={handleComment}
+          onCancel={() => setShowCommentInput(false)}
+          value={commentText}
+          onChange={setCommentText}
+        />
+      )}
+    </>
+  )
+}
+
+function RowContextMenu({ rowId, databaseNodeId, databaseSchema }) {
+  const { commentOnRow } = useDatabaseComments({ databaseNodeId, databaseSchema })
+  // Similar pattern...
+}
+
+function ColumnContextMenu({ propertyKey, databaseNodeId, databaseSchema }) {
+  const { commentOnColumn } = useDatabaseComments({ databaseNodeId, databaseSchema })
+  // Similar pattern...
+}
 ```
 
 ### Indicator Styling
@@ -304,7 +384,7 @@ const rowContextMenu = [
   padding: 0;
 }
 
-/* Cell dot indicator — top-right corner */
+/* Cell dot indicator -- top-right corner */
 .comment-indicator--dot {
   top: 2px;
   right: 2px;
@@ -332,8 +412,9 @@ const rowContextMenu = [
 .comment-indicator--badge {
   font-size: 11px;
   color: var(--color-text-secondary);
-  padding: 2px 4px;
+  padding: 2px 6px;
   border-radius: 4px;
+  background: var(--color-surface-secondary);
 }
 
 .comment-indicator--badge:hover {
@@ -342,14 +423,44 @@ const rowContextMenu = [
 }
 ```
 
+## Orphaned Database Anchors
+
+Database anchors can become orphaned when:
+
+- A row is deleted (cell and row anchors orphan)
+- A column/property is removed from the schema (column anchors orphan)
+
+Detection is simpler than text anchors -- just check if the row/property still exists:
+
+```typescript
+function isDatabaseAnchorOrphaned(
+  anchorType: 'cell' | 'row' | 'column',
+  anchor: CellAnchor | RowAnchor | ColumnAnchor,
+  existingRowIds: Set<string>,
+  existingPropertyKeys: Set<string>
+): boolean {
+  if (anchorType === 'cell') {
+    const { rowId, propertyKey } = anchor as CellAnchor
+    return !existingRowIds.has(rowId) || !existingPropertyKeys.has(propertyKey)
+  }
+  if (anchorType === 'row') {
+    return !existingRowIds.has((anchor as RowAnchor).rowId)
+  }
+  if (anchorType === 'column') {
+    return !existingPropertyKeys.has((anchor as ColumnAnchor).propertyKey)
+  }
+  return false
+}
+```
+
 ## Checklist
 
 - [ ] Create CommentIndicator component (dot + badge variants)
-- [ ] Implement useDatabaseComments hook
+- [ ] Implement useDatabaseComments hook (extends useComments)
 - [ ] Wire indicators into table cell renderer
 - [ ] Add context menu "Comment on cell/row/column" actions
 - [ ] Popover positioning below/beside cells
-- [ ] Handle orphaned anchors (row deleted from database)
+- [ ] Handle orphaned anchors (row/column deleted)
 - [ ] Tests pass
 
 ---

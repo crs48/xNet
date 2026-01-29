@@ -7,7 +7,7 @@
 
 ## Overview
 
-Each comment thread has an anchor that defines where it attaches. The anchoring strategy varies by surface type, with the key challenge being **text anchors** that must survive concurrent edits.
+Each comment has an anchor that defines where it attaches. With the **Universal Social Primitives** pattern, the anchor data is stored directly on the Comment node (`anchorType` + `anchorData` fields). The anchoring strategy varies by surface type, with the key challenge being **text anchors** that must survive concurrent edits.
 
 ```mermaid
 flowchart TB
@@ -172,26 +172,29 @@ When a document is opened, we need to re-apply comment marks at the correct posi
 // packages/editor/src/comments/restore-marks.ts
 
 import { Editor } from '@tiptap/core'
-import { CommentThread, TextAnchor, decodeAnchor } from '@xnet/data'
+import { Comment, TextAnchor, decodeAnchor } from '@xnet/data'
 import { resolveTextAnchor } from './text-anchor'
 
 /**
- * Restore comment marks from stored CommentThread nodes.
+ * Restore comment marks from stored Comment nodes.
  * Called when a document is first opened.
+ * Only processes root comments (those with text anchors).
  */
 export function restoreCommentMarks(
   editor: Editor,
-  threads: CommentThread[]
+  comments: Comment[]
 ): { resolved: string[]; orphaned: string[] } {
   const resolved: string[] = []
   const orphaned: string[] = []
 
   const { tr } = editor.state
 
-  for (const thread of threads) {
-    if (thread.properties.anchorType !== 'text') continue
+  for (const comment of comments) {
+    // Only process root comments with text anchors
+    if (comment.properties.anchorType !== 'text') continue
+    if (comment.properties.inReplyTo) continue // Skip replies
 
-    const anchor = decodeAnchor<TextAnchor>(thread.properties.anchorData as string)
+    const anchor = decodeAnchor<TextAnchor>(comment.properties.anchorData as string)
     const positions = resolveTextAnchor(editor, anchor)
 
     if (positions) {
@@ -201,14 +204,14 @@ export function restoreCommentMarks(
         positions.from,
         positions.to,
         markType.create({
-          threadId: thread.id,
-          resolved: thread.properties.resolved
+          commentId: comment.id,
+          resolved: comment.properties.resolved
         })
       )
-      resolved.push(thread.id)
+      resolved.push(comment.id)
     } else {
-      // Anchor is orphaned — text was deleted
-      orphaned.push(thread.id)
+      // Anchor is orphaned -- text was deleted
+      orphaned.push(comment.id)
     }
   }
 
@@ -312,7 +315,7 @@ export function resolveCanvasAnchor(
 ```typescript
 // packages/data/src/comments/anchor-resolver.ts
 
-import { CommentThread, AnchorData, decodeAnchor } from '../schema/schemas/commentAnchors'
+import { Comment, AnchorData, decodeAnchor } from '../schema/schemas/commentAnchors'
 
 export interface ResolvedAnchor {
   /** DOM element to position popover relative to */
@@ -325,7 +328,7 @@ export interface ResolvedAnchor {
   quotedText?: string
 }
 
-export type AnchorResolver = (thread: CommentThread) => ResolvedAnchor
+export type AnchorResolver = (comment: Comment) => ResolvedAnchor
 ```
 
 ## Tests
