@@ -215,11 +215,7 @@ The root vitest config sets these thresholds:
 - Lines: 80%
 - Branches: 75%
 
-Given the gaps identified above, the project likely **does not meet these thresholds** across all packages. The thresholds are aspirational rather than enforced per-package. Consider:
-
-1. Adding per-package coverage thresholds
-2. Enforcing lower thresholds initially (60%) and ramping up
-3. Using `istanbul ignore` sparingly for genuinely untestable code (e.g., browser-specific APIs)
+Given the gaps identified above, the project likely **does not meet these thresholds** across all packages. The thresholds are aspirational rather than enforced per-package.
 
 ---
 
@@ -239,3 +235,33 @@ These suggest:
 1. The storage test uses wrong field names (bug in test, not caught because tests may be skipped)
 2. The sync tests use plain strings where branded DID types are expected
 3. The editor tests need vitest-dom type declarations
+
+---
+
+## Recommendations
+
+> **Roadmap note:** Phase 1 is single-user daily-driver. Security and data integrity tests are the highest priority -- bugs in crypto/sync can silently corrupt data. UI/hook tests matter more in Phase 2+ when the codebase grows and refactors are frequent.
+
+### Phase 1 (Daily Driver) -- Tests that catch data corruption
+
+- [ ] **Security tests:** Create `crypto/src/utils.test.ts` -- test `hexToBytes` with invalid hex, `bytesToBase64` with >65K inputs, `constantTimeEqual` timing, `concatBytes` edge cases
+- [ ] **Security tests:** Extend `identity/src/ucan.test.ts` with malformed tokens, `alg: 'none'`, exact expiration boundaries, oversized payloads
+- [ ] **Data integrity tests:** Create `data/src/schema/registry.test.ts` -- register, resolve, lazy load, unregister, clear, duplicate handling
+- [ ] **Data integrity tests:** Create `data/src/schema/properties/*.test.ts` -- validate all 15 types with null, NaN, Infinity, boundaries, type mismatches
+- [ ] **Data integrity tests:** Create `data/src/store/indexeddb-adapter.test.ts` using `fake-indexeddb` -- CRUD, duplicates, concurrent ops
+- [ ] **Fix type errors:** Fix `storage/snapshots/manager.test.ts` wrong field name, `sync/yjs-change.test.ts` branded DID types, `editor` vitest-dom declarations
+- [ ] **Add test scripts:** Add `"test": "vitest run"` to `@xnet/core` and `@xnet/crypto` package.json
+
+### Phase 2 (Hub MVP) -- Tests for sync and network reliability
+
+- [ ] **Network tests:** Create `network/src/protocols/sync.test.ts` -- malformed binary messages, size limits, invalid Yjs updates, replay attacks
+- [ ] **React hook tests:** Create `react/src/hooks/useComments.test.ts` -- loading, threading, real-time subscription
+- [ ] **React hook tests:** Create `react/src/sync/sync-manager.test.ts` -- acquire/release lifecycle, awareness, concurrent acquisitions, cleanup
+- [ ] **Coverage thresholds:** Add per-package coverage thresholds (start at 60%, ramp to 80%)
+- [ ] **Coverage thresholds:** Use `istanbul ignore` sparingly for genuinely untestable browser-specific APIs
+
+### Phase 3 (Multiplayer) -- Integration and adversarial tests
+
+- [ ] **Integration tests:** Create `tests/integration/sync-flow.test.ts` -- two peers editing same doc, LWW conflict resolution, offline+reconnect merge
+- [ ] **Adversarial tests:** Add fuzz testing for crypto, identity, and network protocol handlers
+- [ ] **Concurrent tests:** Test multi-user scenarios (simultaneous edits, CRDT merge correctness, canvas operations)

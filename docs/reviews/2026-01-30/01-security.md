@@ -310,11 +310,26 @@ graph TD
 
 ## Recommendations
 
-1. **Immediate:** Remove `executeJavaScript` from local-api.ts and replace with structured IPC
-2. **Immediate:** Enable Chromium sandbox (`sandbox: true`)
-3. **Immediate:** Add IPC channel allowlist to preload
-4. **Short-term:** Implement per-user key generation and secure storage
-5. **Short-term:** Add authentication to local API
-6. **Short-term:** Validate all peer-received data (messages, blobs, Yjs updates)
-7. **Medium-term:** Fix UCAN implementation to follow spec (signature over encoded parts, proof chain validation)
-8. **Medium-term:** Move plugin execution to Web Workers for true isolation
+> **Roadmap note:** Phase 1 is web-first (the Electron local API is dev-only). Most Electron security issues are Phase 2+ concerns. UCAN auth is Phase 2.2. Plugin sandboxing is deferred beyond the 6-month horizon. Items are tagged with their roadmap phase.
+
+### Phase 1 (Daily Driver) -- Fix during dog-fooding
+
+- [ ] **SEC-12:** Add hex character validation to `hexToBytes` in `@xnet/crypto` -- silent corruption affects hashing everywhere
+- [ ] **SEC-06:** Add TODO/warning comment on hardcoded test key with link to Phase 2.2 auth plan
+
+### Phase 2 (Hub MVP) -- Fix before hub launch
+
+- [ ] **SEC-01:** Remove `executeJavaScript` from `local-api.ts`, replace with structured IPC messages
+- [ ] **SEC-02:** Enable Chromium sandbox (`sandbox: true`) and restructure preload
+- [ ] **SEC-03:** Add IPC channel allowlist to `xnetServices` preload bridge
+- [ ] **SEC-07:** Implement token-based authentication on local API (uncomment + wire up `XNET_API_TOKEN`)
+- [ ] **SEC-06:** Implement per-user key generation and secure storage (replaces hardcoded test key)
+- [ ] **SEC-05:** Fix UCAN signature to compute over encoded `header.body` string (required for Phase 2.2 auth)
+- [ ] **SEC-10:** Integrate real WebAuthn PRF into `BrowserPasskeyStorage` or remove from public API
+
+### Phase 3 (Multiplayer) -- Fix before multi-user sync
+
+- [ ] **SEC-08:** Validate all peer-received sync messages (structure, signatures, Yjs update integrity)
+- [ ] **SEC-09:** Verify blob CID matches content hash before storing peer data
+- [ ] **SEC-11:** Implement UCAN proof chain recursive validation
+- [ ] **SEC-04:** Move plugin script execution to Web Workers for true timeout isolation

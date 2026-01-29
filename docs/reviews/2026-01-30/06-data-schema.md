@@ -265,3 +265,36 @@ pie title Test Coverage by Module
 - No tests for `SchemaRegistry` (registration, lazy loading, clear)
 - No tests for `IndexedDBNodeStorageAdapter` (requires fake-indexeddb)
 - No tests for schema inheritance (`extends`)
+
+---
+
+## Recommendations
+
+> **Roadmap note:** Phase 1 is a personal wiki. Schema validation bugs, type safety issues, and performance problems with hundreds of nodes directly affect daily use. Comment system issues and advanced schema features (inheritance, rollup/formula) are Phase 2+.
+
+### Phase 1 (Daily Driver) -- Bugs affecting everyday editing
+
+- [ ] **Validate type predicate:** Fix all 15 property type `validate()` functions to return `false` (not `true`) for `null`/`undefined` -- current behavior is a type-system lie
+- [ ] **DI-01 (cross-ref):** Capture local value _before_ overwrite in `store.ts:619` conflict tracking
+- [ ] **DI-07 (cross-ref):** Only record conflicts when `change.authorDID !== localDID`
+- [ ] **Temporal consistency:** Align `dateRange` to use Unix timestamps like `date()`/`created()`/`updated()`, or add conversion helpers
+- [ ] **Text pattern flags:** Preserve regex flags in `text()` property serialization (`options.pattern.flags` alongside `.source`)
+- [ ] **Number coerce:** Clamp value to `min`/`max` in `number()` coerce function
+- [ ] **DocumentType rename:** Rename one of the two `DocumentType` exports (e.g., `ContentCategory` vs `CRDTBackingType`)
+- [ ] **DI-11 (cross-ref):** Accumulate Yjs updates in `captureUpdate` instead of overwriting
+- [ ] **NodeStore factory:** Add `NodeStore.create(options)` static factory that calls `initialize()` internally
+- [ ] **Index signature:** Remove `[key: string]: unknown` from `Node` type to preserve typed property access
+
+### Phase 2 (Hub MVP) -- Required for schema registry and persistence
+
+- [ ] **Schema inheritance:** Fix `validate()` to check properties from `extends` parent schemas
+- [ ] **SchemaRegistry tests:** Add tests for registration, lazy loading, clear, duplicate handling
+- [ ] **IndexedDB adapter tests:** Add tests using `fake-indexeddb` for CRUD, duplicates, concurrent ops
+- [ ] **Property type tests:** Add dedicated edge-case tests for all 15 types (NaN, Infinity, boundaries, type mismatches)
+- [ ] **DI-02 (cross-ref):** Implement transaction rollback with pre-transaction snapshots
+- [ ] **Comment XSS:** Escape HTML in `convertRefsToLinks` to prevent injection via @mentions
+
+### Phase 3 (Multiplayer) -- Required for collaborative editing
+
+- [ ] **DI-05 (cross-ref):** Migrate `DatabaseView` from array-in-Y.Map to proper `Y.Array`/`Y.Map` per-element CRDT structures
+- [ ] **Remove rollup/formula stubs:** Remove unimplemented `rollup`/`formula` from `PropertyType` union until implemented

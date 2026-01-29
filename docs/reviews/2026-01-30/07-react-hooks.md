@@ -175,24 +175,36 @@ stateDiagram-v2
 
 ## Recommendations
 
-### Use `useSyncExternalStore`
+> **Roadmap note:** Phase 1 is single-user daily-driver. Hook correctness bugs (stale data, false reloads, memory leaks) and the massive `useNode` complexity directly affect dog-fooding. Awareness and sync infrastructure are Phase 2+. Comment collaboration is Phase 3.
 
-The current `useState` + `useEffect` + `store.subscribe` pattern is tear-prone in React 18 concurrent mode. `useSyncExternalStore` is designed specifically for external store subscriptions.
+### Phase 1 (Daily Driver) -- Bugs affecting single-user experience
 
-### Split `useNode` Into Smaller Hooks
+- [ ] **RH-07:** Fix `hasLoadedRef` to reset on store replacement so data refreshes after re-authentication
+- [ ] **RH-03:** Replace `JSON.stringify` in `useQuery` dependency arrays with a stable deep-compare or sorted-key approach
+- [ ] **RH-08:** Add `schemaId` to `useNode` `update` callback dependency array
+- [ ] **RH-06:** Use a ref for `store` in `useNode` cleanup function to avoid closing over stale store
+- [ ] **RH-02:** Move `pendingFlushes` from module-level to context-scoped (per `XNetProvider` instance)
+- [ ] **RH-04:** Extract shared `setupSync(config)` function from `useNode` to eliminate 385 lines of duplicated sync code
+- [ ] **RH-13:** Memoize `config` objects passed in useEffect dependency arrays in `context.ts`
+- [ ] **RH-16:** Memoize `signalingServers` array reference in `useNode` to prevent unnecessary provider teardown
+- [ ] **RH-12:** Remove `console.log` statements left in production code (`context.ts:215,228`, `sync-manager.ts:497`)
+- [ ] **Adopt `useSyncExternalStore`:** Replace `useState` + `useEffect` + `store.subscribe` pattern to prevent tearing in React 18 concurrent mode
+- [ ] **Split `useNode`:** Break 931-line hook into composable hooks: `useNodeData`, `useNodeSync`, `useNodeAwareness`, `useNodeAutoSave`
 
-The 931-line `useNode` hook does too much:
+### Phase 2 (Hub MVP) -- Required for sync infrastructure
 
-- Data loading
-- Y.Doc management
-- Sync provider lifecycle
-- Awareness
-- Auto-save
-- Dirty tracking
+- [ ] **RH-01:** Populate `awarenessMap` in `SyncManager.getAwareness()` -- currently always returns null, breaking all presence features
+- [ ] **RH-09:** Implement chunked blob transfer in `blob-sync.ts` for files >256KB (currently both branches are identical)
+- [ ] **RH-05:** Optimize `useComments` to diff-patch on change events instead of full reload
+- [ ] **RH-15:** Add exponential backoff to `WebSocketSyncProvider` reconnect
+- [ ] **RH-10:** Wire up `optimistic` option in `useMutate` (currently accepted but ignored)
 
-Each concern should be a separate hook composed together.
+### Phase 3 (Multiplayer) -- Required for collaborative features
 
-### Add Missing Test Coverage
+- [ ] **RH-11:** Implement aggregate `useCommentCount` hook (single subscription shared across sidebar items instead of N subscriptions)
+- [ ] **RH-17:** Fix `wasCreated` in dependency array causing unnecessary provider teardown on collaborative edits
+
+### Test Coverage Needed
 
 | Module              | Current Tests | Needed                                            |
 | ------------------- | ------------- | ------------------------------------------------- |

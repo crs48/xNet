@@ -185,10 +185,25 @@ graph TD
 
 ## Recommendations
 
-1. **Align vitest versions** -- Pick one major version (recommend ^2.0.0) and use `pnpm.overrides` in root `package.json` to enforce it
-2. **Align TipTap versions** -- Upgrade `@xnet/plugins` to TipTap 3 or document the incompatibility
-3. **Fix `@xnet/plugins` main field** -- Change to `"main": "./src/index.ts"` like all other packages
-4. **Add `test` scripts** -- All packages should have `"test": "vitest run"`
-5. **Remove unused dependencies** -- `@xnet/core` from crypto and identity
-6. **Update AGENTS.md** -- Reflect the actual dependency graph
-7. **Plan ESLint migration** -- Move to flat config before ESLint 9 becomes standard
+> **Roadmap note:** Phase 1 is a single-user daily-driver. Build consistency and test reliability directly affect development velocity. Dependency version fragmentation causes subtle test failures and runtime bugs. Infrastructure cleanup is foundational for all phases.
+
+### Phase 1 (Daily Driver) -- Unblocks reliable development
+
+- [ ] **INF-01:** Align all vitest versions to `^2.0.0` using `pnpm.overrides` in root `package.json` -- 4 different major versions cause hoisting conflicts
+- [ ] **INF-07:** Fix `@xnet/plugins` main field to `"./src/index.ts"` like all other packages -- currently requires build before dev works
+- [ ] **INF-08:** Add `"test": "vitest run"` script to `@xnet/core` and `@xnet/crypto` -- `turbo run test` currently no-ops for these
+- [ ] **INF-06:** Remove unused `@xnet/core` dependency from `@xnet/crypto` and `@xnet/identity`
+- [ ] **INF-10:** Update AGENTS.md dependency diagram to reflect actual package relationships
+- [ ] **INF-04:** Align jsdom versions across packages (`^25.0.0` vs `^26.0.0`)
+- [ ] **INF-05:** Align `@testing-library/react` versions (`^14.0.0` vs `^16.0.0`)
+
+### Phase 2 (Hub MVP) -- Required before plugin system launches
+
+- [ ] **INF-02:** Align TipTap versions -- upgrade `@xnet/plugins` to TipTap 3 or document the API boundary
+- [ ] **INF-03:** Standardize React peer dependency ranges across all packages
+- [ ] **INF-09:** Migrate `.eslintrc.cjs` to ESLint flat config (`eslint.config.js`) before ESLint 9 becomes standard
+- [ ] **INF-11:** Add per-package coverage thresholds (start at 60%, ramp to 80%)
+
+### Phase 3 (Multiplayer) -- Housekeeping
+
+- [ ] **INF-06 (electron):** Remove unused `@tanstack/react-router` from Electron app

@@ -189,3 +189,37 @@ graph TD
 ```
 
 **Assessment:** The UCAN implementation covers basic token creation and verification but is not spec-compliant. The most critical gap is the signature computation (over raw JSON instead of encoded parts) and the missing proof chain validation. These must be fixed for interoperability with other UCAN implementations.
+
+## Recommendations
+
+> **Roadmap note:** Phase 1 is single-user; crypto correctness bugs (silent corruption, stack overflows) affect daily use. UCAN spec compliance and key management are Phase 2 (auth). Proof chains and passkey storage are Phase 3 (multi-user delegation).
+
+### Phase 1 (Daily Driver) -- Bugs affecting single-user correctness
+
+- [ ] **C-01:** Add hex character validation to `hexToBytes` (reject non-hex, odd-length) -- silent corruption affects all hashing
+- [ ] **C-02:** Replace spread-based `bytesToBase64`/`bytesToBase64url` with chunked `String.fromCharCode` to handle >65K inputs
+- [ ] **M-01:** Remove duplicate `bytesToBase64url` from `hashing.ts`, import from `utils.ts`
+- [ ] **M-05:** Add unit tests for `utils.ts` (8 functions) and `random.ts`
+- [ ] **I-11:** Deduplicate base64url/concatBytes from `identity/ucan.ts` and `identity/passkey.ts` -- import from `@xnet/crypto`
+- [ ] **I-07:** Make `identityFromPrivateKey` accept optional `created` timestamp for deterministic testing
+- [ ] **m-01:** Rename `hashBase64` to `hashBase64Url` to match actual return format
+- [ ] **m-04/I-09:** Remove unused `@xnet/core` dependency from both `crypto` and `identity`
+
+### Phase 2 (Hub MVP) -- Required for auth system (Phase 2.2)
+
+- [ ] **I-01:** Fix UCAN signature to compute over `base64url(header).base64url(payload)` per JWT/UCAN spec
+- [ ] **I-02:** Validate `alg` header field during UCAN verification (reject `alg: 'none'`)
+- [ ] **I-06:** Replace simple hash in `deriveKeyBundle` with proper HKDF (or update JSDoc to not claim HKDF)
+- [ ] **I-08:** Add input validation to `deserializeKeyBundle` (check field presence, types, key lengths)
+- [ ] **M-02:** Add explicit salt parameter to `deriveSharedSecret` HKDF calls
+- [ ] **M-03:** Validate nonce length in `decrypt` before passing to XChaCha20
+- [ ] **M-04:** Validate key/signature lengths in `sign`/`verify` (32-byte key, 64-byte sig)
+- [ ] **I-05:** Implement hierarchical capability matching in `hasCapability` (e.g., `xnet://*` grants `xnet://docs/123`)
+- [ ] **I-10:** Fix `toBase64UrlBytes` spread operator stack overflow (same fix as C-02)
+- [ ] **I-13/I-14:** Add `nbf` (not-before) and `nnc` (nonce) fields to UCAN token type
+
+### Phase 3 (Multiplayer) -- Required for multi-user delegation
+
+- [ ] **I-04:** Implement recursive UCAN proof chain validation
+- [ ] **I-03:** Integrate real WebAuthn PRF into `BrowserPasskeyStorage` or remove from public API
+- [ ] **m-03:** Fix `constantTimeEqual` to pad shorter inputs instead of early-returning on length mismatch
