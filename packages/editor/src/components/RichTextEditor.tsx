@@ -255,6 +255,17 @@ export interface RichTextEditorProps {
    * Use useSlashCommands() to merge built-in + plugin commands.
    */
   slashCommands?: SlashCommandItem[]
+  /**
+   * Callback when the editor is ready. Provides the TipTap editor instance
+   * for advanced integrations like comment system.
+   */
+  onEditorReady?: (editor: Editor) => void
+  /**
+   * Comment creation handler. When provided, shows a Comment button in the toolbar.
+   * Called with anchor data when user clicks Comment; should return the new comment ID.
+   * The editor will then apply the comment mark to the selection.
+   */
+  onCreateComment?: (anchorData: string) => Promise<string | null>
 }
 
 /**
@@ -322,7 +333,9 @@ export function RichTextEditor({
   renderDatabaseView,
   extensions: additionalExtensions = [],
   toolbarItems: additionalToolbarItems = [],
-  slashCommands
+  slashCommands,
+  onEditorReady,
+  onCreateComment
 }: RichTextEditorProps): JSX.Element {
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -422,6 +435,13 @@ export function RichTextEditor({
       editor.setEditable(!readOnly)
     }
   }, [editor, readOnly])
+
+  // Notify parent when editor is ready
+  useEffect(() => {
+    if (editor && onEditorReady) {
+      onEditorReady(editor)
+    }
+  }, [editor, onEditorReady])
 
   // Add cursor plugin dynamically when awareness becomes available.
   // We use yCursorPlugin directly (instead of CollaborationCursor extension) to avoid
@@ -659,6 +679,7 @@ export function RichTextEditor({
           editor={editor}
           mode={toolbarMode}
           additionalItems={additionalToolbarItems}
+          onCreateComment={onCreateComment}
         />
       )}
     </div>

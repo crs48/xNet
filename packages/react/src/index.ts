@@ -104,6 +104,17 @@ export {
   type ReplyContext
 } from './hooks/useComments'
 
+/**
+ * useCommentCount - Get unresolved comment count for a Node
+ *
+ * @example
+ * ```tsx
+ * const count = useCommentCount(node.id)
+ * // Show badge if count > 0
+ * ```
+ */
+export { useCommentCount, useCommentCounts } from './hooks/useCommentCount'
+
 // =============================================================================
 // Utilities
 // =============================================================================
