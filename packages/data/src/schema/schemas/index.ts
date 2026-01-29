@@ -50,6 +50,15 @@ export {
   convertRefsToLinks
 } from './commentReferences'
 
+// Comment orphan detection
+export {
+  type OrphanReason,
+  type OrphanStatus,
+  type OrphanResolvers,
+  checkOrphanStatus,
+  filterOrphanedComments
+} from './commentOrphans'
+
 /**
  * All built-in schemas, keyed by their IRI.
  */
