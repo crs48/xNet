@@ -447,6 +447,24 @@ export { MermaidExtension } from './extensions/mermaid'
 export type { MermaidOptions, MermaidTheme, MermaidConfig } from './extensions/mermaid'
 export { MERMAID_EXAMPLES, DEFAULT_MERMAID_CONFIG } from './extensions/mermaid'
 
+// Comment extension
+export {
+  CommentMark,
+  CommentPlugin,
+  CommentPluginKey,
+  setSelectedComment,
+  getCommentsAtPosition
+} from './extensions/comment'
+export type { CommentMarkOptions, CommentPluginOptions } from './extensions/comment'
+export {
+  captureTextAnchor,
+  resolveTextAnchor,
+  restoreCommentMarks,
+  isTextAnchorValid,
+  uint8ArrayToBase64,
+  base64ToUint8Array
+} from './extensions/comment'
+
 // Image upload service
 export {
   uploadImage,

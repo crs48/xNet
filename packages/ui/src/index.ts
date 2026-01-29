@@ -93,6 +93,19 @@ export {
   type PluginSettingsPanel
 } from './composed/SettingsView'
 
+// ─── Comment Components ───────────────────────────────────────────
+export {
+  CommentBubble,
+  CommentPopover,
+  useCommentPopover,
+  type CommentBubbleProps,
+  type CommentPopoverProps,
+  type CommentData,
+  type CommentThreadData,
+  type PopoverState,
+  type UseCommentPopoverResult
+} from './composed/comments'
+
 // ─── Theme ────────────────────────────────────────────────────────
 export { ThemeProvider, useTheme, type Theme } from './theme/ThemeProvider'
 
