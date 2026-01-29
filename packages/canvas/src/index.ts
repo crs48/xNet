@@ -82,3 +82,24 @@ export type { CanvasEdgeProps } from './edges/CanvasEdgeComponent'
 
 // React hooks
 export { useCanvas, type UseCanvasOptions, type UseCanvasReturn } from './hooks/useCanvas'
+
+// Canvas comments
+export {
+  useCanvasComments,
+  viewportToCanvas,
+  canvasToViewport,
+  findObjectAtPoint,
+  isCanvasAnchorOrphaned,
+  type CanvasTransform,
+  type CanvasObject,
+  type UseCanvasCommentsOptions,
+  type UseCanvasCommentsResult,
+  type ResolvedPin
+} from './hooks/useCanvasComments'
+
+export {
+  CommentPin,
+  CommentOverlay,
+  type CommentPinProps,
+  type CommentOverlayProps
+} from './comments/index'
