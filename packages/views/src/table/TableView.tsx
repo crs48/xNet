@@ -57,6 +57,10 @@ export interface TableViewProps {
   onCommentHover?: (rowId: string, propertyKey: string, anchorEl: HTMLElement) => void
   /** Callback when mouse leaves a comment indicator */
   onCommentLeave?: () => void
+  /** Callback to create a comment on a cell (from context menu) */
+  onCommentCreate?: (rowId: string, propertyKey: string, anchorEl: HTMLElement) => void
+  /** Callback to delete a row (from context menu) */
+  onDeleteRow?: (rowId: string) => void
 }
 
 /**
@@ -81,7 +85,9 @@ export function TableView({
   cellCommentCounts,
   onCommentClick,
   onCommentHover,
-  onCommentLeave
+  onCommentLeave,
+  onCommentCreate,
+  onDeleteRow
 }: TableViewProps): JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -160,6 +166,8 @@ export function TableView({
                         onCommentClick={onCommentClick}
                         onCommentHover={onCommentHover}
                         onCommentLeave={onCommentLeave}
+                        onCommentCreate={onCommentCreate}
+                        onDeleteRow={onDeleteRow}
                       />
                     )
                   })}

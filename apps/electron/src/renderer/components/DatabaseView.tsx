@@ -8,18 +8,20 @@
  * - doc.getMap('data').get('boardView') -> ViewConfig
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNode, useIdentity } from '@xnet/react'
 import { DatabaseSchema, type Schema, type PropertyDefinition, type PropertyType } from '@xnet/data'
 import {
   TableView,
   BoardView,
   CardDetailModal,
+  useDatabaseComments,
   type ViewConfig,
   type TableRow,
   type CellPresence,
   type ColumnUpdate
 } from '@xnet/views'
+import { CommentPopover, type CommentThreadData } from '@xnet/ui'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import { ShareButton } from './ShareButton'
 import { PresenceAvatars } from './PresenceAvatars'
@@ -121,6 +123,251 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig | null>(null)
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+
+  // ─── Comments Integration ─────────────────────────────────────────────────────
+
+  const {
+    threads: commentThreads,
+    cellCommentCounts,
+    unresolvedCount: commentUnresolvedCount,
+    commentOnCell,
+    getThreadsForCell,
+    replyTo: commentReplyTo,
+    resolveThread: commentResolveThread,
+    reopenThread: commentReopenThread,
+    deleteComment: commentDeleteComment,
+    editComment: commentEditComment
+  } = useDatabaseComments({
+    databaseNodeId: docId,
+    databaseSchema: DatabaseSchema.schema['@id']
+  })
+
+  // Comment popover state
+  interface CommentPopoverState {
+    visible: boolean
+    mode: 'preview' | 'full'
+    threadId: string | null
+    anchor: HTMLElement | null
+    /** Cell being commented on (for new comment creation) */
+    cellRowId: string | null
+    cellPropertyKey: string | null
+  }
+
+  const INITIAL_COMMENT_STATE: CommentPopoverState = {
+    visible: false,
+    mode: 'preview',
+    threadId: null,
+    anchor: null,
+    cellRowId: null,
+    cellPropertyKey: null
+  }
+
+  const [commentState, setCommentState] = useState<CommentPopoverState>(INITIAL_COMMENT_STATE)
+  const [newCommentText, setNewCommentText] = useState('')
+  const commentHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const commentDismissTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const commentIndicatorHoveredRef = useRef(false)
+  const commentPopoverHoveredRef = useRef(false)
+
+  const scheduleCommentDismiss = useCallback(() => {
+    if (commentDismissTimeoutRef.current) clearTimeout(commentDismissTimeoutRef.current)
+    commentDismissTimeoutRef.current = setTimeout(() => {
+      if (!commentIndicatorHoveredRef.current && !commentPopoverHoveredRef.current) {
+        setCommentState(INITIAL_COMMENT_STATE)
+      }
+    }, 200)
+  }, [])
+
+  // Convert threads to format expected by CommentPopover
+  const commentThreadDataMap = useMemo(() => {
+    const map = new Map<string, CommentThreadData>()
+    for (const thread of commentThreads) {
+      map.set(thread.root.id, {
+        root: {
+          id: thread.root.id,
+          author: thread.root.properties.createdBy,
+          authorDisplayName: undefined,
+          content: thread.root.properties.content,
+          createdAt: thread.root.createdAt,
+          edited: thread.root.properties.edited,
+          editedAt: thread.root.properties.editedAt
+        },
+        replies: thread.replies.map((r) => ({
+          id: r.id,
+          author: r.properties.createdBy,
+          authorDisplayName: undefined,
+          content: r.properties.content,
+          createdAt: r.createdAt,
+          edited: r.properties.edited,
+          editedAt: r.properties.editedAt
+        })),
+        resolved: thread.root.properties.resolved
+      })
+    }
+    return map
+  }, [commentThreads])
+
+  // Comment indicator handlers
+  const handleCommentClick = useCallback(
+    (rowId: string, propertyKey: string, anchorEl: HTMLElement) => {
+      if (commentHoverTimeoutRef.current) {
+        clearTimeout(commentHoverTimeoutRef.current)
+        commentHoverTimeoutRef.current = null
+      }
+      if (commentDismissTimeoutRef.current) {
+        clearTimeout(commentDismissTimeoutRef.current)
+        commentDismissTimeoutRef.current = null
+      }
+
+      // Find the first thread for this cell
+      const cellThreads = getThreadsForCell(rowId, propertyKey)
+      if (cellThreads.length > 0) {
+        setCommentState((prev) => {
+          if (prev.visible && prev.threadId === cellThreads[0].root.id) return prev
+          return {
+            visible: true,
+            mode: 'full',
+            threadId: cellThreads[0].root.id,
+            anchor: anchorEl,
+            cellRowId: rowId,
+            cellPropertyKey: propertyKey
+          }
+        })
+      } else {
+        // No threads yet — open new comment input
+        setCommentState({
+          visible: true,
+          mode: 'full',
+          threadId: null,
+          anchor: anchorEl,
+          cellRowId: rowId,
+          cellPropertyKey: propertyKey
+        })
+      }
+    },
+    [getThreadsForCell]
+  )
+
+  const handleCommentHover = useCallback(
+    (rowId: string, propertyKey: string, anchorEl: HTMLElement) => {
+      commentIndicatorHoveredRef.current = true
+      if (commentDismissTimeoutRef.current) {
+        clearTimeout(commentDismissTimeoutRef.current)
+        commentDismissTimeoutRef.current = null
+      }
+      if (commentHoverTimeoutRef.current) clearTimeout(commentHoverTimeoutRef.current)
+      commentHoverTimeoutRef.current = setTimeout(() => {
+        const cellThreads = getThreadsForCell(rowId, propertyKey)
+        if (cellThreads.length > 0) {
+          setCommentState((prev) => {
+            if (prev.visible && prev.threadId === cellThreads[0].root.id) return prev
+            return {
+              visible: true,
+              mode: 'full',
+              threadId: cellThreads[0].root.id,
+              anchor: anchorEl,
+              cellRowId: rowId,
+              cellPropertyKey: propertyKey
+            }
+          })
+        }
+      }, 300)
+    },
+    [getThreadsForCell]
+  )
+
+  const handleCommentLeave = useCallback(() => {
+    commentIndicatorHoveredRef.current = false
+    if (commentHoverTimeoutRef.current) {
+      clearTimeout(commentHoverTimeoutRef.current)
+      commentHoverTimeoutRef.current = null
+    }
+    scheduleCommentDismiss()
+  }, [scheduleCommentDismiss])
+
+  const handleCommentPopoverMouseEnter = useCallback(() => {
+    commentPopoverHoveredRef.current = true
+    if (commentDismissTimeoutRef.current) {
+      clearTimeout(commentDismissTimeoutRef.current)
+      commentDismissTimeoutRef.current = null
+    }
+  }, [])
+
+  const handleCommentPopoverMouseLeave = useCallback(() => {
+    commentPopoverHoveredRef.current = false
+    scheduleCommentDismiss()
+  }, [scheduleCommentDismiss])
+
+  const handleCommentDismiss = useCallback(() => {
+    if (commentHoverTimeoutRef.current) {
+      clearTimeout(commentHoverTimeoutRef.current)
+      commentHoverTimeoutRef.current = null
+    }
+    if (commentDismissTimeoutRef.current) {
+      clearTimeout(commentDismissTimeoutRef.current)
+      commentDismissTimeoutRef.current = null
+    }
+    commentIndicatorHoveredRef.current = false
+    commentPopoverHoveredRef.current = false
+    setCommentState(INITIAL_COMMENT_STATE)
+    setNewCommentText('')
+  }, [])
+
+  // Comment actions
+  const handleCommentReply = useCallback(
+    async (content: string) => {
+      if (!commentState.threadId) return
+      await commentReplyTo(commentState.threadId, content)
+    },
+    [commentState.threadId, commentReplyTo]
+  )
+
+  const handleCommentResolve = useCallback(async () => {
+    if (!commentState.threadId) return
+    await commentResolveThread(commentState.threadId)
+  }, [commentState.threadId, commentResolveThread])
+
+  const handleCommentReopen = useCallback(async () => {
+    if (!commentState.threadId) return
+    await commentReopenThread(commentState.threadId)
+  }, [commentState.threadId, commentReopenThread])
+
+  const handleCommentDelete = useCallback(
+    async (commentId: string) => {
+      await commentDeleteComment(commentId)
+      const thread = commentState.threadId ? commentThreadDataMap.get(commentState.threadId) : null
+      if (thread && commentId === thread.root.id && thread.replies.length === 0) {
+        handleCommentDismiss()
+      }
+    },
+    [commentDeleteComment, commentState.threadId, commentThreadDataMap, handleCommentDismiss]
+  )
+
+  const handleCommentEdit = useCallback(
+    async (commentId: string, newContent: string) => {
+      await commentEditComment(commentId, newContent)
+    },
+    [commentEditComment]
+  )
+
+  // Create new comment on a cell
+  const handleSubmitNewCellComment = useCallback(async () => {
+    if (!newCommentText.trim() || !commentState.cellRowId || !commentState.cellPropertyKey) return
+    const commentId = await commentOnCell(
+      commentState.cellRowId,
+      commentState.cellPropertyKey,
+      newCommentText.trim()
+    )
+    setNewCommentText('')
+    if (commentId) {
+      // Show the newly created thread
+      setCommentState((prev) => ({ ...prev, threadId: commentId }))
+    }
+  }, [newCommentText, commentState.cellRowId, commentState.cellPropertyKey, commentOnCell])
+
+  const currentCommentThread = commentState.threadId
+    ? commentThreadDataMap.get(commentState.threadId)
+    : null
 
   // Get selected row for modal
   const selectedRow = useMemo(
@@ -704,6 +951,15 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         />
 
         <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+        {commentUnresolvedCount > 0 && (
+          <div
+            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+            title={`${commentUnresolvedCount} unresolved comment${commentUnresolvedCount !== 1 ? 's' : ''}`}
+          >
+            <span className="text-amber-500">{commentUnresolvedCount}</span>
+            <span>comment{commentUnresolvedCount !== 1 ? 's' : ''}</span>
+          </div>
+        )}
 
         <div className="flex-1" />
 
@@ -760,6 +1016,12 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             cellPresences={cellPresences}
             onCellFocus={handleCellFocus}
             onCellBlur={handleCellBlur}
+            cellCommentCounts={cellCommentCounts}
+            onCommentClick={handleCommentClick}
+            onCommentHover={handleCommentHover}
+            onCommentLeave={handleCommentLeave}
+            onCommentCreate={handleCommentClick}
+            onDeleteRow={handleDeleteRow}
           />
         ) : (
           <BoardView
@@ -788,6 +1050,69 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         onUpdateRow={handleUpdateRow}
         onDeleteRow={handleDeleteRow}
       />
+
+      {/* Comment Popover */}
+      {commentState.visible &&
+        commentState.anchor &&
+        (currentCommentThread ? (
+          <CommentPopover
+            thread={currentCommentThread}
+            anchor={commentState.anchor}
+            mode={commentState.mode}
+            open={commentState.visible}
+            side="bottom"
+            onReply={handleCommentReply}
+            onResolve={handleCommentResolve}
+            onReopen={handleCommentReopen}
+            onDelete={handleCommentDelete}
+            onEdit={handleCommentEdit}
+            onDismiss={handleCommentDismiss}
+            onMouseEnter={handleCommentPopoverMouseEnter}
+            onMouseLeave={handleCommentPopoverMouseLeave}
+          />
+        ) : commentState.cellRowId && commentState.cellPropertyKey ? (
+          /* New comment input for cells without existing threads */
+          <div
+            className="fixed z-50 animate-in fade-in-0 zoom-in-95 duration-150"
+            style={{
+              left: commentState.anchor.getBoundingClientRect().left,
+              top: commentState.anchor.getBoundingClientRect().bottom + 8
+            }}
+            onMouseEnter={handleCommentPopoverMouseEnter}
+            onMouseLeave={handleCommentPopoverMouseLeave}
+          >
+            <div className="w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg p-3">
+              <div className="text-sm font-medium mb-2">Add Comment</div>
+              <textarea
+                className="w-full p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[60px]"
+                placeholder="Write a comment..."
+                value={newCommentText}
+                onChange={(e) => setNewCommentText(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault()
+                    handleSubmitNewCellComment()
+                  }
+                  if (e.key === 'Escape') handleCommentDismiss()
+                }}
+              />
+              {newCommentText.trim() && (
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={handleSubmitNewCellComment}
+                    className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Comment
+                  </button>
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground mt-2">
+                Cmd+Enter to submit, Esc to cancel
+              </div>
+            </div>
+          </div>
+        ) : null)}
     </div>
   )
 }
