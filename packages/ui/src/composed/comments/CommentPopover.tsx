@@ -6,8 +6,7 @@
  * - Full mode (click): Shows complete thread with reply input
  * - Resolve/reopen actions
  */
-import { useState, useCallback, type KeyboardEvent } from 'react'
-import * as PopoverPrimitive from '@radix-ui/react-popover'
+import React, { useState, useCallback, type KeyboardEvent } from 'react'
 import { cn } from '../../utils'
 import { Button } from '../../primitives/Button'
 import { CommentBubble, type CommentBubbleProps } from './CommentBubble'
@@ -229,27 +228,29 @@ export function CommentPopover({
     ) : null
   }
 
-  // Otherwise use Radix popover with element anchor.
-  // We use a virtualRef so the popover is positioned relative to the actual
-  // comment mark <span> in the editor DOM without needing to wrap it.
-  const virtualRef = anchorElement
-    ? { current: { getBoundingClientRect: () => anchorElement.getBoundingClientRect() } }
-    : undefined
+  // Position relative to the anchor element using fixed positioning.
+  // Avoids Radix Popover mount/unmount cycles that cause flicker when
+  // ProseMirror DOM updates destroy and recreate comment mark spans.
+  const rect = anchorElement?.getBoundingClientRect()
+  const style: React.CSSProperties = rect
+    ? side === 'right'
+      ? { position: 'fixed', left: rect.right + 8, top: rect.top, zIndex: 50 }
+      : side === 'left'
+        ? { position: 'fixed', right: window.innerWidth - rect.left + 8, top: rect.top, zIndex: 50 }
+        : side === 'bottom'
+          ? { position: 'fixed', left: rect.left, top: rect.bottom + 8, zIndex: 50 }
+          : {
+              position: 'fixed',
+              left: rect.left,
+              top: rect.top - 8,
+              zIndex: 50,
+              transform: 'translateY(-100%)'
+            }
+    : { position: 'fixed', top: 0, left: 0, zIndex: 50 }
 
-  return (
-    <PopoverPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onDismiss?.()}>
-      <PopoverPrimitive.Anchor virtualRef={virtualRef} />
-      <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content
-          side={side}
-          align="start"
-          sideOffset={8}
-          className="z-50 animate-in fade-in-0 zoom-in-95"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          {content}
-        </PopoverPrimitive.Content>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
-  )
+  return open ? (
+    <div style={style} className="animate-in fade-in-0 zoom-in-95 duration-150">
+      {content}
+    </div>
+  ) : null
 }
