@@ -141,12 +141,15 @@ export function useComments({ nodeId, anchorType }: UseCommentsOptions): UseComm
         schemaId: CommentSchema._schemaId
       })
 
-      // Filter to comments targeting our node
+      // Filter to comments targeting our node.
+      // Replies (inReplyTo set) are exempt from the anchorType filter because
+      // they are created with anchorType 'node' regardless of the root's type.
       const filtered = nodes.filter((n: NodeState) => {
         if (n.properties.target !== queryRef.current.nodeId) return false
         if (
           queryRef.current.anchorType &&
-          n.properties.anchorType !== queryRef.current.anchorType
+          n.properties.anchorType !== queryRef.current.anchorType &&
+          !n.properties.inReplyTo
         ) {
           return false
         }
