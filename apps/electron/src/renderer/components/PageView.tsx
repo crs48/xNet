@@ -164,6 +164,34 @@ export function PageView({ docId }: PageViewProps) {
     }
   }, [threads, editorReady])
 
+  // Dismiss the comment popover when the caret moves out of comment marks.
+  // TipTap's onSelectionUpdate fires after every cursor movement.
+  useEffect(() => {
+    const editor = editorRef.current
+    if (!editor) return
+
+    const onSelectionUpdate = () => {
+      setPopoverState((prev) => {
+        if (!prev.visible || !prev.threadId) return prev
+        const { from } = editor.state.selection
+        const resolved = editor.state.doc.resolve(from)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const inComment = resolved
+          .marks()
+          .some((m: any) => m.type.name === 'comment' && m.attrs.commentId === prev.threadId)
+        if (!inComment && !markHoveredRef.current && !popoverHoveredRef.current) {
+          return INITIAL_POPOVER_STATE
+        }
+        return prev
+      })
+    }
+
+    editor.on('selectionUpdate', onSelectionUpdate)
+    return () => {
+      editor.off('selectionUpdate', onSelectionUpdate)
+    }
+  }, [editorReady])
+
   // Build orphaned threads list for display
   const orphanedThreads = useMemo((): OrphanedThread[] => {
     const result: OrphanedThread[] = []
@@ -233,6 +261,31 @@ export function PageView({ docId }: PageViewProps) {
 
   // ─── Popover Handlers ─────────────────────────────────────────────────────────
 
+  // Track whether the cursor is over the mark or the popover.
+  // The popover stays open as long as either is true.
+  const markHoveredRef = useRef(false)
+  const popoverHoveredRef = useRef(false)
+
+  /** Check if the editor caret is currently inside a comment mark matching the popover thread. */
+  const isCaretInComment = useCallback((): boolean => {
+    const editor = editorRef.current
+    if (!editor) return false
+    const { from } = editor.state.selection
+    const resolved = editor.state.doc.resolve(from)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return resolved.marks().some((m: any) => m.type.name === 'comment')
+  }, [])
+
+  /** Schedule a dismiss after a short delay, unless mark/popover is hovered or caret is in comment. */
+  const scheduleDismiss = useCallback(() => {
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
+    dismissTimeoutRef.current = setTimeout(() => {
+      if (!markHoveredRef.current && !popoverHoveredRef.current && !isCaretInComment()) {
+        setPopoverState(INITIAL_POPOVER_STATE)
+      }
+    }, 200)
+  }, [isCaretInComment])
+
   const handleClickComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
@@ -242,82 +295,53 @@ export function PageView({ docId }: PageViewProps) {
       clearTimeout(dismissTimeoutRef.current)
       dismissTimeoutRef.current = null
     }
-    setPopoverState({
-      visible: true,
-      mode: 'full',
-      threadId: commentId,
-      anchor: anchorEl
+    setPopoverState((prev) => {
+      // Already showing for this comment — keep as-is to avoid flicker
+      if (prev.visible && prev.mode === 'full' && prev.threadId === commentId) {
+        return prev
+      }
+      return { visible: true, mode: 'full', threadId: commentId, anchor: anchorEl }
     })
   }, [])
 
   const handleHoverComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
-    // Cancel any pending dismiss so hovering back keeps the popover alive
+    markHoveredRef.current = true
+    // Cancel any pending dismiss
     if (dismissTimeoutRef.current) {
       clearTimeout(dismissTimeoutRef.current)
       dismissTimeoutRef.current = null
     }
     // Delay showing to avoid flicker on quick mouse passes
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-    }
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
     hoverTimeoutRef.current = setTimeout(() => {
       setPopoverState((prev) => {
-        // Don't reset if already showing full for the same comment
-        if (prev.visible && prev.threadId === commentId) {
-          return prev
-        }
-        return {
-          visible: true,
-          mode: 'full',
-          threadId: commentId,
-          anchor: anchorEl
-        }
+        if (prev.visible && prev.threadId === commentId) return prev
+        return { visible: true, mode: 'full', threadId: commentId, anchor: anchorEl }
       })
     }, 300)
   }, [])
 
   const handleLeaveComment = useCallback(() => {
+    markHoveredRef.current = false
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
       hoverTimeoutRef.current = null
     }
-    // Delay dismiss to allow cursor to travel from mark to popover
-    if (dismissTimeoutRef.current) {
-      clearTimeout(dismissTimeoutRef.current)
-    }
-    dismissTimeoutRef.current = setTimeout(() => {
-      setPopoverState((prev) => {
-        // Only dismiss hover-opened popovers, not click-opened ones
-        if (prev.mode === 'full' && prev.visible) {
-          return INITIAL_POPOVER_STATE
-        }
-        return prev
-      })
-    }, 200)
-  }, [])
+    scheduleDismiss()
+  }, [scheduleDismiss])
 
-  // Cancel dismiss when cursor enters the popover
   const handlePopoverMouseEnter = useCallback(() => {
+    popoverHoveredRef.current = true
     if (dismissTimeoutRef.current) {
       clearTimeout(dismissTimeoutRef.current)
       dismissTimeoutRef.current = null
     }
   }, [])
 
-  // Start dismiss when cursor leaves the popover
   const handlePopoverMouseLeave = useCallback(() => {
-    if (dismissTimeoutRef.current) {
-      clearTimeout(dismissTimeoutRef.current)
-    }
-    dismissTimeoutRef.current = setTimeout(() => {
-      setPopoverState((prev) => {
-        if (prev.mode === 'full' && prev.visible) {
-          return INITIAL_POPOVER_STATE
-        }
-        return prev
-      })
-    }, 200)
-  }, [])
+    popoverHoveredRef.current = false
+    scheduleDismiss()
+  }, [scheduleDismiss])
 
   const handleDismiss = useCallback(() => {
     if (hoverTimeoutRef.current) {
@@ -328,6 +352,8 @@ export function PageView({ docId }: PageViewProps) {
       clearTimeout(dismissTimeoutRef.current)
       dismissTimeoutRef.current = null
     }
+    markHoveredRef.current = false
+    popoverHoveredRef.current = false
     setPopoverState(INITIAL_POPOVER_STATE)
   }, [])
 
