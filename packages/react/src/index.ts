@@ -129,6 +129,58 @@ export { useCommentCount, useCommentCounts } from './hooks/useCommentCount'
  */
 export { useHistory, type UseHistoryResult } from './hooks/useHistory'
 
+/**
+ * useUndo - Per-node undo/redo via compensating changes
+ *
+ * @example
+ * ```tsx
+ * const { undo, redo, canUndo, canRedo } = useUndo(nodeId, { localDID })
+ * ```
+ */
+export { useUndo, type UseUndoResult, type UseUndoOptions } from './hooks/useUndo'
+
+/**
+ * useAudit - Query the audit log for a node
+ *
+ * @example
+ * ```tsx
+ * const { entries, activity, loading } = useAudit(nodeId)
+ * ```
+ */
+export { useAudit, type UseAuditResult, type UseAuditOptions } from './hooks/useAudit'
+
+/**
+ * useDiff - Compare node state between two points in time
+ *
+ * @example
+ * ```tsx
+ * const { diff, result, loading } = useDiff(nodeId)
+ * await diff({ type: 'index', index: 0 }, { type: 'latest' })
+ * ```
+ */
+export { useDiff, type UseDiffResult } from './hooks/useDiff'
+
+/**
+ * useBlame - Per-property attribution (who changed what)
+ *
+ * @example
+ * ```tsx
+ * const { blame, loading } = useBlame(nodeId)
+ * ```
+ */
+export { useBlame, type UseBlameResult } from './hooks/useBlame'
+
+/**
+ * useVerification - Cryptographic chain verification
+ *
+ * @example
+ * ```tsx
+ * const { verify, result, loading } = useVerification(nodeId)
+ * await verify()
+ * ```
+ */
+export { useVerification, type UseVerificationResult } from './hooks/useVerification'
+
 // =============================================================================
 // Utilities
 // =============================================================================

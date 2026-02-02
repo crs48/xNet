@@ -502,7 +502,7 @@ describe('HistoryEngine', () => {
 - [x] Implement `diff()` between two targets
 - [x] Implement `createRevertPayload()` for revert-to-point
 - [x] Implement `resolveTarget()` for all target types
-- [ ] Create `useHistory()` React hook
+- [x] Create `useHistory()` React hook
 - [x] Write unit tests (target: 25+ tests covering all target types, LWW, diffs)
 - [ ] Verify performance: 1000-change node reconstructs in < 50ms without snapshots
 

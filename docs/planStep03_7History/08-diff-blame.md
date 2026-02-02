@@ -375,7 +375,7 @@ export function useChangesBadge(nodeId: NodeId, since: number) {
 - [x] Implement `BlameEngine` with per-property attribution history
 - [ ] Build `DiffView` component (side-by-side table)
 - [ ] Build `BlameView` component (expandable property history)
-- [ ] Create `useDiff`, `useBlame`, `useChangesBadge` hooks
+- [x] Create `useDiff`, `useBlame`, `useChangesBadge` hooks
 - [ ] Style diff types (added=green, modified=yellow, removed=red)
 - [x] Handle complex values in diffs (objects, arrays) via deepEqual
 - [ ] Add "Changes since last visit" badge using `useChangesBadge`
