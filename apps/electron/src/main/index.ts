@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url'
 
 // Enable remote debugging in development for Playwright/CDP testing
 if (process.env.NODE_ENV === 'development') {
-  app.commandLine.appendSwitch('remote-debugging-port', '9222')
+  app.commandLine.appendSwitch('remote-debugging-port', '9223')
 }
 
 // ESM __dirname shim (electron-vite outputs ESM)
