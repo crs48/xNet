@@ -378,11 +378,11 @@ This means undo is **collaborative-safe** — it doesn't require any special pro
 - [x] Implement `UndoManager` with per-node undo/redo stacks
 - [x] Implement compensating change creation (reverse the property values)
 - [x] Implement change merging (rapid edits within 300ms merge into one entry)
-- [ ] Implement batch undo (undo entire transactions)
+- [x] Implement batch undo (undo entire transactions)
 - [x] Set up pre-change state capture via capturePreChangeState()
 - [ ] Create `useUndo()` React hook
 - [ ] Wire Ctrl+Z / Ctrl+Shift+Z keyboard shortcuts
-- [ ] Handle edge cases: undo after remote change, undo deleted node
+- [x] Handle edge cases: undo after remote change, undo deleted node
 - [x] Implement stack size limits and cleanup
 - [x] Write tests: single undo, redo, batch undo, merge, stack overflow
 - [ ] Verify P2P behavior: undo syncs correctly to peers

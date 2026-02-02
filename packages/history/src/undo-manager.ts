@@ -6,7 +6,7 @@
  */
 
 import type { DID, ContentId } from '@xnet/core'
-import type { NodeChange, NodeState, NodeId } from '@xnet/data'
+import type { NodeChange, NodeState, NodeId, TransactionOperation } from '@xnet/data'
 import type { NodeStore } from '@xnet/data'
 import type { UndoEntry, UndoManagerOptions } from './types'
 
@@ -66,7 +66,15 @@ export class UndoManager {
 
     this._isUndoRedoing = true
     try {
-      await this.store.update(nodeId, { properties: entry.previousValues })
+      if (entry.wasDelete) {
+        // Undo a delete → restore the node
+        await this.store.restore(nodeId)
+      } else if (entry.wasRestore) {
+        // Undo a restore → delete the node again
+        await this.store.delete(nodeId)
+      } else {
+        await this.store.update(nodeId, { properties: entry.previousValues })
+      }
     } finally {
       this._isUndoRedoing = false
     }
@@ -86,13 +94,66 @@ export class UndoManager {
 
     this._isUndoRedoing = true
     try {
-      await this.store.update(nodeId, { properties: entry.currentValues })
+      if (entry.wasDelete) {
+        // Redo a delete → delete the node again
+        await this.store.delete(nodeId)
+      } else if (entry.wasRestore) {
+        // Redo a restore → restore the node again
+        await this.store.restore(nodeId)
+      } else {
+        await this.store.update(nodeId, { properties: entry.currentValues })
+      }
     } finally {
       this._isUndoRedoing = false
     }
 
     const undoStack = this.getOrCreateStack(this.undoStacks, nodeId)
     undoStack.push(entry)
+
+    return true
+  }
+
+  /** Undo all changes in a batch/transaction */
+  async undoBatch(batchId: string): Promise<boolean> {
+    // Find all entries with this batchId across all nodes
+    const entries: { nodeId: NodeId; entry: UndoEntry; stackIndex: number }[] = []
+
+    for (const [nodeId, stack] of this.undoStacks) {
+      for (let i = stack.length - 1; i >= 0; i--) {
+        if (stack[i].batchId === batchId) {
+          entries.push({ nodeId, entry: stack[i], stackIndex: i })
+        }
+      }
+    }
+
+    if (entries.length === 0) return false
+
+    // Remove from undo stacks
+    for (const { nodeId, stackIndex } of entries) {
+      const stack = this.undoStacks.get(nodeId)!
+      stack.splice(stackIndex, 1)
+    }
+
+    // Build transaction operations
+    const operations: TransactionOperation[] = entries.map(({ nodeId, entry }) => ({
+      type: 'update' as const,
+      nodeId,
+      options: { properties: entry.previousValues }
+    }))
+
+    // Apply all reverts as a single transaction
+    this._isUndoRedoing = true
+    try {
+      await this.store.transaction(operations)
+    } finally {
+      this._isUndoRedoing = false
+    }
+
+    // Push to redo stacks
+    for (const { nodeId, entry } of entries) {
+      const redoStack = this.getOrCreateStack(this.redoStacks, nodeId)
+      redoStack.push(entry)
+    }
 
     return true
   }
@@ -157,7 +218,9 @@ export class UndoManager {
       previousValues,
       currentValues,
       batchId: change.batchId,
-      wallTime: change.wallTime
+      wallTime: change.wallTime,
+      wasDelete: change.payload.deleted === true,
+      wasRestore: change.payload.deleted === false
     }
 
     // Merge with previous entry if within merge interval

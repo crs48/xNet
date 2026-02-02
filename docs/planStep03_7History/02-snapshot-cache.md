@@ -347,7 +347,7 @@ describe('SnapshotCache', () => {
 - [ ] Implement `IndexedDBSnapshotStorage` adapter
 - [x] Implement `MemorySnapshotStorage` for testing
 - [x] Integrate snapshot lookup into `HistoryEngine.materializeAt()`
-- [ ] Add auto-snapshot on write via NodeStore subscription
+- [x] Add auto-snapshot on write via NodeStore subscription
 - [x] Implement per-node and total-size eviction policies
 - [x] Add `getStats()` for cache monitoring
 - [x] Write unit tests for cache behavior and eviction
