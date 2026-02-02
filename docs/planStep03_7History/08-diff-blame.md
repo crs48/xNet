@@ -371,16 +371,16 @@ export function useChangesBadge(nodeId: NodeId, since: number) {
 
 ## Checklist
 
-- [ ] Implement `DiffEngine` with property-level diffing
-- [ ] Implement `BlameEngine` with per-property attribution history
+- [x] Implement `DiffEngine` with property-level diffing
+- [x] Implement `BlameEngine` with per-property attribution history
 - [ ] Build `DiffView` component (side-by-side table)
 - [ ] Build `BlameView` component (expandable property history)
 - [ ] Create `useDiff`, `useBlame`, `useChangesBadge` hooks
 - [ ] Style diff types (added=green, modified=yellow, removed=red)
-- [ ] Handle complex values in diffs (objects, arrays)
+- [x] Handle complex values in diffs (objects, arrays) via deepEqual
 - [ ] Add "Changes since last visit" badge using `useChangesBadge`
 - [ ] Integrate blame into node detail / property panels
-- [ ] Write tests for diff accuracy and blame ordering
+- [x] Write tests for diff accuracy and blame ordering
 
 ---
 

@@ -366,11 +366,13 @@ This requires modifying how `useDocument` stores Yjs updates — instead of merg
 - [ ] Build `HistoricalDocumentView` component (read-only editor at historical state)
 - [ ] Build `DocumentTimeMachine` component with scrubber integration
 - [ ] Modify document content storage to preserve individual updates (update log format)
-- [ ] Implement document restore (historical → current via Yjs transaction)
+- [ ] Implement document restore (historical -> current via Yjs transaction)
 - [ ] Handle edge cases: empty doc, very large docs, concurrent CRDT updates
 - [ ] Style the historical view with appropriate badge/overlay
 - [ ] Performance: ensure scrubbing a 1000-update doc is smooth
 - [ ] Test with collaborative scenario (multiple authors' updates interleaved)
+
+> Note: Document-specific history (Yjs update log) and UI components are deferred to UI integration phase. The core HistoryEngine supports structured node history which covers database/property-level time travel.
 
 ---
 

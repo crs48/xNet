@@ -92,15 +92,15 @@ Build the reconstruction and indexing infrastructure.
 
 | Task | Document                                       | Description                                            | Status |
 | ---- | ---------------------------------------------- | ------------------------------------------------------ | ------ |
-| 1.1  | [01-history-engine.md](./01-history-engine.md) | HistoryEngine: materializeAt, timeline, revert         | [ ]    |
-| 1.2  | [02-snapshot-cache.md](./02-snapshot-cache.md) | SnapshotCache: periodic checkpoints, nearest lookup    | [ ]    |
-| 1.3  | [03-audit-index.md](./03-audit-index.md)       | AuditIndex: storage indexes, queryable change metadata | [ ]    |
+| 1.1  | [01-history-engine.md](./01-history-engine.md) | HistoryEngine: materializeAt, timeline, revert         | [x]    |
+| 1.2  | [02-snapshot-cache.md](./02-snapshot-cache.md) | SnapshotCache: periodic checkpoints, nearest lookup    | [x]    |
+| 1.3  | [03-audit-index.md](./03-audit-index.md)       | AuditIndex: storage indexes, queryable change metadata | [x]    |
 
 **Validation Gate:**
 
-- [ ] Can reconstruct any node's state at any Lamport time
-- [ ] Snapshots created every 100 changes, nearest-before lookup works
-- [ ] Can query changes by author, time range, schema, operation
+- [x] Can reconstruct any node's state at any Lamport time
+- [x] Snapshots created every 100 changes, nearest-before lookup works
+- [x] Can query changes by author, time range, schema, operation
 - [ ] Reconstruction from snapshot + 50 changes completes in < 5ms
 
 ### Phase 2: Undo/Redo (Step 04)
@@ -109,12 +109,12 @@ User-facing undo via compensating changes.
 
 | Task | Document                             | Description                                                  | Status |
 | ---- | ------------------------------------ | ------------------------------------------------------------ | ------ |
-| 2.1  | [04-undo-redo.md](./04-undo-redo.md) | UndoManager: per-node stacks, batch undo, keyboard shortcuts | [ ]    |
+| 2.1  | [04-undo-redo.md](./04-undo-redo.md) | UndoManager: per-node stacks, batch undo, keyboard shortcuts | [x]    |
 
 **Validation Gate:**
 
-- [ ] Ctrl+Z undoes last local change (creates compensating change)
-- [ ] Ctrl+Shift+Z redoes
+- [x] Ctrl+Z undoes last local change (creates compensating change)
+- [x] Ctrl+Shift+Z redoes
 - [ ] Transaction/batch undo undoes all changes in a group
 - [ ] Undo syncs to peers (they see the revert)
 
@@ -124,7 +124,7 @@ The scrubber UI and platform-specific Time Machine modes.
 
 | Task | Document                                                     | Description                                                    | Status |
 | ---- | ------------------------------------------------------------ | -------------------------------------------------------------- | ------ |
-| 3.1  | [05-timeline-scrubber.md](./05-timeline-scrubber.md)         | TimelineScrubber component, PlaybackEngine, ScrubCache         | [ ]    |
+| 3.1  | [05-timeline-scrubber.md](./05-timeline-scrubber.md)         | TimelineScrubber component, PlaybackEngine, ScrubCache         | [~]    |
 | 3.2  | [06-document-time-machine.md](./06-document-time-machine.md) | Yjs snapshot integration, read-only editor at historical state | [ ]    |
 | 3.3  | [07-database-time-machine.md](./07-database-time-machine.md) | Multi-node reconstruction, table/board at historical state     | [ ]    |
 
@@ -142,14 +142,14 @@ Advanced history features for power users and compliance.
 
 | Task | Document                                                   | Description                                             | Status |
 | ---- | ---------------------------------------------------------- | ------------------------------------------------------- | ------ |
-| 4.1  | [08-diff-blame.md](./08-diff-blame.md)                     | DiffEngine, BlameView, per-property attribution history | [ ]    |
-| 4.2  | [09-verification-pruning.md](./09-verification-pruning.md) | Chain verification, signature checks, optional pruning  | [ ]    |
+| 4.1  | [08-diff-blame.md](./08-diff-blame.md)                     | DiffEngine, BlameView, per-property attribution history | [x]    |
+| 4.2  | [09-verification-pruning.md](./09-verification-pruning.md) | Chain verification, signature checks, optional pruning  | [x]    |
 
 **Validation Gate:**
 
-- [ ] Diff view shows side-by-side property changes between two points
-- [ ] Blame view shows who last edited each property with full history
-- [ ] Verification confirms hash chain integrity and signature validity
+- [x] Diff view shows side-by-side property changes between two points
+- [x] Blame view shows who last edited each property with full history
+- [x] Verification confirms hash chain integrity and signature validity
 - [ ] Pruning removes old changes behind snapshots without breaking reconstruction
 
 ## Package Structure (Target)

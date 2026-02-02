@@ -405,7 +405,7 @@ function getCellClassName(nodeId: NodeId, property: string, highlights?: CellHig
 ## Checklist
 
 - [ ] Implement `SchemaTimeline` with merged multi-node timeline
-- [ ] Implement `materializeSchemaAt()` reconstructing all rows
+- [x] Implement `materializeMultipleAt()` reconstructing multiple rows (in HistoryEngine)
 - [ ] Implement `SchemaScrubCache` for smooth database scrubbing
 - [ ] Build `DatabaseTimeMachine` component with enable/disable toggle
 - [ ] Add historical state banner with "Return to Present" and "Restore" buttons
@@ -415,6 +415,8 @@ function getCellClassName(nodeId: NodeId, property: string, highlights?: CellHig
 - [ ] Pass `readOnly` flag to view when showing historical state
 - [ ] Performance: test with 100 rows, 1000 total changes
 - [ ] Handle the case where a schema has no history yet (empty state)
+
+> Note: Database Time Machine UI components are deferred to UI integration phase. The core `HistoryEngine.materializeMultipleAt()` provides the reconstruction foundation.
 
 ---
 
