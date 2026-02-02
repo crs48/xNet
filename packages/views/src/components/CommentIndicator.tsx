@@ -62,29 +62,27 @@ export function CommentIndicator({
   const label = `${count} comment${count > 1 ? 's' : ''}${resolved ? ' (resolved)' : ''}`
 
   if (variant === 'dot') {
+    const color = resolved ? 'var(--color-muted-foreground, #9ca3af)' : '#f59e0b'
     return (
       <button
         type="button"
         className={cn(
-          'absolute top-0.5 right-0.5 w-4 h-4 flex items-center justify-center',
-          'cursor-pointer border-none bg-transparent',
-          'opacity-60 hover:opacity-100 transition-opacity',
-          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 rounded',
+          'absolute top-0 right-0 w-0 h-0 cursor-pointer border-none p-0',
+          'opacity-70 hover:opacity-100 transition-opacity',
+          'focus:outline-none',
           className
         )}
+        style={{
+          borderStyle: 'solid',
+          borderWidth: '8px',
+          borderColor: `${color} ${color} transparent transparent`
+        }}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         aria-label={label}
         title={label}
-      >
-        <span
-          className={cn(
-            'w-1.5 h-1.5 rounded-full',
-            resolved ? 'bg-muted-foreground' : 'bg-amber-500'
-          )}
-        />
-      </button>
+      />
     )
   }
 

@@ -69,13 +69,14 @@ export function TableCell({
     property.type !== 'formula' &&
     property.type !== 'rollup'
 
-  // Handle click to edit
+  // Handle click to edit — skip if context menu was just open (closing it fires click)
   const handleClick = useCallback(() => {
+    if (contextMenu) return
     if (!editing && isEditable) {
       setEditing(true)
       onCellFocus?.(rowId, columnId)
     }
-  }, [editing, isEditable, onCellFocus, rowId, columnId])
+  }, [editing, isEditable, onCellFocus, rowId, columnId, contextMenu])
 
   // Handle value change
   const handleChange = useCallback(

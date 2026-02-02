@@ -6,7 +6,7 @@
  * - Full mode (click): Shows complete thread with reply input
  * - Resolve/reopen actions
  */
-import React, { useState, useCallback, type KeyboardEvent } from 'react'
+import React, { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react'
 import { cn } from '../../utils'
 import { Button } from '../../primitives/Button'
 import { CommentBubble, type CommentBubbleProps } from './CommentBubble'
@@ -60,6 +60,8 @@ export interface CommentPopoverProps {
   onMouseEnter?: () => void
   /** Called when cursor leaves the popover */
   onMouseLeave?: () => void
+  /** When true, auto-focus the reply textarea on open */
+  focusReply?: boolean
   /** Custom className */
   className?: string
 }
@@ -81,10 +83,20 @@ export function CommentPopover({
   onUpgradeToFull,
   onMouseEnter,
   onMouseLeave,
+  focusReply = false,
   className
 }: CommentPopoverProps) {
   const [replyText, setReplyText] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Focus reply textarea when requested
+  useEffect(() => {
+    if (focusReply && open && mode === 'full' && replyTextareaRef.current) {
+      // Small delay to ensure the popover is positioned before focusing
+      requestAnimationFrame(() => replyTextareaRef.current?.focus())
+    }
+  }, [focusReply, open, mode])
 
   const handleSubmitReply = useCallback(() => {
     if (replyText.trim() && onReply) {
@@ -183,6 +195,7 @@ export function CommentPopover({
           <div className="mt-3 pt-3 border-t">
             <div className="flex gap-2">
               <textarea
+                ref={replyTextareaRef}
                 className="flex-1 p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[60px]"
                 placeholder="Reply..."
                 value={replyText}
