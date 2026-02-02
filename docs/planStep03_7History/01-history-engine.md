@@ -494,16 +494,16 @@ describe('HistoryEngine', () => {
 
 ## Checklist
 
-- [ ] Create `packages/history/` with package.json and tsconfig
-- [ ] Implement `HistoryTarget` type with all targeting strategies
-- [ ] Implement `HistoryEngine.materializeAt()` with LWW replay
-- [ ] Implement `materializeMultipleAt()` for database views
-- [ ] Implement `getTimeline()` and `getTimelineRange()`
-- [ ] Implement `diff()` between two targets
-- [ ] Implement `createRevertPayload()` for revert-to-point
-- [ ] Implement `resolveTarget()` for all target types
+- [x] Create `packages/history/` with package.json and tsconfig
+- [x] Implement `HistoryTarget` type with all targeting strategies
+- [x] Implement `HistoryEngine.materializeAt()` with LWW replay
+- [x] Implement `materializeMultipleAt()` for database views
+- [x] Implement `getTimeline()` and `getTimelineRange()`
+- [x] Implement `diff()` between two targets
+- [x] Implement `createRevertPayload()` for revert-to-point
+- [x] Implement `resolveTarget()` for all target types
 - [ ] Create `useHistory()` React hook
-- [ ] Write unit tests (target: 25+ tests covering all target types, LWW, diffs)
+- [x] Write unit tests (target: 25+ tests covering all target types, LWW, diffs)
 - [ ] Verify performance: 1000-change node reconstructs in < 50ms without snapshots
 
 ---

@@ -342,15 +342,15 @@ describe('SnapshotCache', () => {
 
 ## Checklist
 
-- [ ] Implement `Snapshot` type and `SnapshotCacheOptions`
-- [ ] Implement `SnapshotCache` with getNearestBefore, save, eviction
+- [x] Implement `Snapshot` type and `SnapshotCacheOptions`
+- [x] Implement `SnapshotCache` with getNearestBefore, save, eviction
 - [ ] Implement `IndexedDBSnapshotStorage` adapter
-- [ ] Implement `MemorySnapshotStorage` for testing
-- [ ] Integrate snapshot lookup into `HistoryEngine.materializeAt()`
+- [x] Implement `MemorySnapshotStorage` for testing
+- [x] Integrate snapshot lookup into `HistoryEngine.materializeAt()`
 - [ ] Add auto-snapshot on write via NodeStore subscription
-- [ ] Implement per-node and total-size eviction policies
-- [ ] Add `getStats()` for cache monitoring
-- [ ] Write unit tests for cache behavior and eviction
+- [x] Implement per-node and total-size eviction policies
+- [x] Add `getStats()` for cache monitoring
+- [x] Write unit tests for cache behavior and eviction
 - [ ] Benchmark: verify reconstruction with snapshots is < 5ms for 100 replays
 
 ---

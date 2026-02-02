@@ -456,8 +456,8 @@ export function TimeMachineWrapper({ nodeId, schemaIRI, children }: TimeMachineP
 
 ## Checklist
 
-- [ ] Implement `ScrubCache` with pre-computed states at configurable resolution
-- [ ] Implement `PlaybackEngine` with play/pause/seek/speed/step
+- [x] Implement `ScrubCache` with pre-computed states at configurable resolution
+- [x] Implement `PlaybackEngine` with play/pause/seek/speed/step
 - [ ] Build `TimelineScrubber` React component with slider and controls
 - [ ] Add author-colored segments on the timeline track
 - [ ] Add batch group markers

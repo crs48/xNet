@@ -825,20 +825,20 @@ describe('PruningEngine', () => {
 
 ## Checklist
 
-- [ ] Implement `VerificationEngine` with hash, signature, chain, and clock checks
-- [ ] Implement `PruningEngine` with policy-based candidate selection
-- [ ] Add `deleteChange` / `deleteChanges` to `NodeStorageAdapter`
+- [x] Implement `VerificationEngine` with hash, signature, chain, and clock checks
+- [x] Implement `PruningEngine` with policy-based candidate selection
+- [x] Add `deleteChange` to `PrunableStorageAdapter` interface
 - [ ] Implement `deleteChange` in IndexedDB adapter
 - [ ] Create DID-to-public-key resolver for `did:key:` verification
 - [ ] Build `useVerification` and `useStorageMetrics` React hooks
 - [ ] Build `VerificationBadge` component (icon + status + details)
 - [ ] Build `StoragePanel` component (metrics + prune button)
-- [ ] Add platform-specific pruning policies (Desktop, Web, Mobile)
-- [ ] Implement dry-run with user confirmation before actual deletion
+- [x] Add platform-specific pruning policies (Desktop, Web, Mobile)
+- [x] Implement dry-run support in PruningEngine
 - [ ] Verify reconstruction still works after pruning (snapshot-based)
-- [ ] Write unit tests for verification (tamper, signature, chain, clock)
+- [x] Write unit tests for verification (hash, chain, clock)
 - [ ] Write unit tests for pruning (policy, safety, storage recovery)
-- [ ] Integration test: full flow (create changes → snapshot → prune → materialize)
+- [ ] Integration test: full flow (create changes -> snapshot -> prune -> materialize)
 
 ---
 

@@ -344,16 +344,16 @@ export function useChangesSince(nodeId: NodeId, since: number) {
 
 ## Checklist
 
-- [ ] Define `AuditQuery`, `AuditEntry`, `ActivitySummary` types
+- [x] Define `AuditQuery`, `AuditEntry`, `ActivitySummary` types
 - [ ] Add `byAuthor`, `byWallTime`, `byBatch` indexes to IndexedDB adapter
 - [ ] Denormalize `schemaId` and `operation` on write for indexing
 - [ ] Implement `queryChanges()` on IndexedDB adapter with index-based lookups
-- [ ] Implement `AuditIndex` class with query, count, summaries
-- [ ] Implement `matchesQuery()` for real-time subscription filtering
-- [ ] Implement `subscribe()` for live audit feeds
+- [x] Implement `AuditIndex` class with query, count, summaries
+- [x] Implement `matchesQuery()` for real-time subscription filtering
+- [x] Implement `subscribe()` for live audit feeds
 - [ ] Handle DB version migration (v1 → v2) for existing data
 - [ ] Create `useAudit`, `useNodeActivity`, `useChangesSince` hooks
-- [ ] Write tests for all query combinations
+- [x] Write tests for all query combinations
 - [ ] Benchmark: 10k changes query by author+timeRange < 100ms
 
 ---
