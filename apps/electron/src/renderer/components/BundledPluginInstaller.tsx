@@ -21,13 +21,15 @@ export function BundledPluginInstaller() {
 
     const installBundledPlugins = async () => {
       for (const plugin of BUNDLED_PLUGINS) {
-        // Skip if already installed
-        if (pluginRegistry.has(plugin.id)) {
-          continue
-        }
-
         try {
-          await pluginRegistry.install(plugin)
+          if (pluginRegistry.has(plugin.id)) {
+            // Plugin was loaded from store with a JSON-deserialized manifest.
+            // Rehydrate with the live manifest so extension objects (with
+            // methods like renderHTML, addNodeView) are properly available.
+            await pluginRegistry.rehydrate(plugin)
+          } else {
+            await pluginRegistry.install(plugin)
+          }
         } catch (err) {
           console.error(`[BundledPlugins] Failed to install '${plugin.name}':`, err)
         }

@@ -217,6 +217,38 @@ export class PluginRegistry {
   }
 
   /**
+   * Rehydrate a plugin loaded from store with a live manifest.
+   *
+   * When plugins are persisted via `install()`, the manifest is serialized
+   * with `JSON.stringify()`, which strips non-serializable values like
+   * TipTap Extension instances, React components, and functions. When
+   * `loadFromStore()` deserializes with `JSON.parse()`, these values are
+   * lost and the plugin's contributions (e.g., editor extensions) are broken.
+   *
+   * For bundled plugins, the `BundledPluginInstaller` has access to the live
+   * manifest objects. This method replaces the deserialized manifest with the
+   * live one and re-registers its static contributions so that extension
+   * objects with methods (like `renderHTML`, `addNodeView`) are properly
+   * available to the editor.
+   */
+  async rehydrate(liveManifest: XNetExtension): Promise<void> {
+    const plugin = this.plugins.get(liveManifest.id)
+    if (!plugin) return
+
+    // Deactivate to clean up stale contributions from the deserialized manifest
+    if (plugin.status === 'active') {
+      await this.deactivate(liveManifest.id)
+    }
+
+    // Replace the deserialized manifest with the live one
+    plugin.manifest = liveManifest
+    plugin.status = 'installed'
+
+    // Re-activate with the live manifest
+    await this.activate(liveManifest.id)
+  }
+
+  /**
    * Get contribution registry
    */
   getContributions(): ContributionRegistry {
