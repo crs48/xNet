@@ -82,7 +82,7 @@ function createTextAnchor(
 }
 
 export function Seed() {
-  const { store, yDocRegistry } = useDevTools()
+  const { store, yDocRegistry, documentHistory } = useDevTools()
   const [status, setStatus] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
 
@@ -284,6 +284,11 @@ export function Seed() {
       // Save the document content
       const content = Y.encodeStateAsUpdate(ydoc)
       await store.setDocumentContent(node.id, content)
+
+      // Capture Yjs snapshot for document time travel
+      if (documentHistory) {
+        await documentHistory.forceCapture(node.id, ydoc)
+      }
 
       // Register with devtools for inspection
       yDocRegistry.register(node.id, ydoc)
@@ -669,6 +674,11 @@ export function Seed() {
       // Save the document content
       const content = Y.encodeStateAsUpdate(ydoc)
       await store.setDocumentContent(node.id, content)
+
+      // Capture Yjs snapshot for document time travel
+      if (documentHistory) {
+        await documentHistory.forceCapture(node.id, ydoc)
+      }
 
       // Register with devtools for inspection
       yDocRegistry.register(node.id, ydoc)

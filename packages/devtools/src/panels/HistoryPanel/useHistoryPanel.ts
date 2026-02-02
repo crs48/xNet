@@ -27,13 +27,23 @@ import {
   type AuditQuery,
   type ActivitySummary,
   type VerificationResult,
-  type PruneCandidate
+  type PruneCandidate,
+  type DocumentTimelineEntry,
+  type DocumentDiffResult,
+  type DocumentStorageMetrics
 } from '@xnet/history'
 import { useDevTools } from '../../provider/useDevTools'
 
 // ─── Types ───────────────────────────────────────────────────
 
-export type HistorySubTab = 'timeline' | 'diff' | 'blame' | 'audit' | 'verification' | 'storage'
+export type HistorySubTab =
+  | 'timeline'
+  | 'diff'
+  | 'blame'
+  | 'audit'
+  | 'verification'
+  | 'storage'
+  | 'document'
 
 export interface NodeOption {
   id: NodeId
@@ -102,6 +112,20 @@ export interface UseHistoryPanelResult {
   storageLoading: boolean
   loadStorageMetrics: () => Promise<void>
 
+  // Document history (Yjs snapshots)
+  documentTimeline: DocumentTimelineEntry[]
+  documentTimelineLoading: boolean
+  selectedDocSnapshotIndex: number | null
+  setSelectedDocSnapshotIndex: (index: number | null) => void
+  docSnapshotText: string | null
+  docDiffResult: DocumentDiffResult | null
+  docDiffLoading: boolean
+  docStorageMetrics: DocumentStorageMetrics | null
+  loadDocumentTimeline: () => Promise<void>
+  loadDocSnapshot: (index: number) => Promise<void>
+  computeDocDiff: (fromIndex: number, toIndex: number) => Promise<void>
+  hasDocumentHistory: boolean
+
   // General
   error: string | null
 }
@@ -109,7 +133,7 @@ export interface UseHistoryPanelResult {
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useHistoryPanel(): UseHistoryPanelResult {
-  const { store, activeNodeId } = useDevTools()
+  const { store, activeNodeId, documentHistory } = useDevTools()
 
   // ─── Node Selection ──────────────────────────────────────
   const [nodes, setNodes] = useState<NodeOption[]>([])
@@ -147,6 +171,15 @@ export function useHistoryPanel(): UseHistoryPanelResult {
   const [storageMetrics, setStorageMetrics] = useState<StorageMetrics | null>(null)
   const [pruneCandidates, setPruneCandidates] = useState<PruneCandidate[]>([])
   const [storageLoading, setStorageLoading] = useState(false)
+
+  // ─── Document History State ─────────────────────────────
+  const [documentTimeline, setDocumentTimeline] = useState<DocumentTimelineEntry[]>([])
+  const [documentTimelineLoading, setDocumentTimelineLoading] = useState(false)
+  const [selectedDocSnapshotIndex, setSelectedDocSnapshotIndex] = useState<number | null>(null)
+  const [docSnapshotText, setDocSnapshotText] = useState<string | null>(null)
+  const [docDiffResult, setDocDiffResult] = useState<DocumentDiffResult | null>(null)
+  const [docDiffLoading, setDocDiffLoading] = useState(false)
+  const [docStorageMetrics, setDocStorageMetrics] = useState<DocumentStorageMetrics | null>(null)
 
   // ─── Engine Refs ─────────────────────────────────────────
   const enginesRef = useRef<{
@@ -263,6 +296,11 @@ export function useHistoryPanel(): UseHistoryPanelResult {
     setActivitySummary(null)
     setVerificationResult(null)
     setStorageMetrics(null)
+    setDocumentTimeline([])
+    setSelectedDocSnapshotIndex(null)
+    setDocSnapshotText(null)
+    setDocDiffResult(null)
+    setDocStorageMetrics(null)
   }, [loadTimeline])
 
   // ─── Materialize At ──────────────────────────────────────
@@ -387,6 +425,90 @@ export function useHistoryPanel(): UseHistoryPanelResult {
     }
   }, [selectedNodeId, getEngines])
 
+  // ─── Document History Methods ───────────────────────────
+  const loadDocumentTimeline = useCallback(async () => {
+    if (!selectedNodeId || !documentHistory) {
+      setDocumentTimeline([])
+      return
+    }
+
+    setDocumentTimelineLoading(true)
+    try {
+      const entries = await documentHistory.getDocumentTimeline(selectedNodeId)
+      setDocumentTimeline(entries)
+      const metrics = await documentHistory.getStorageMetrics(selectedNodeId)
+      setDocStorageMetrics(metrics)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setDocumentTimelineLoading(false)
+    }
+  }, [selectedNodeId, documentHistory])
+
+  const loadDocSnapshot = useCallback(
+    async (index: number) => {
+      if (!selectedNodeId || !documentHistory) return
+
+      try {
+        const doc = await documentHistory.reconstructAt(selectedNodeId, index)
+        if (doc) {
+          // Extract text content for display
+          const parts: string[] = []
+          try {
+            const content = doc.getXmlFragment('content')
+            if (content.length > 0) {
+              parts.push(`[Rich text: ${content.length} blocks]`)
+            }
+          } catch {
+            /* no content fragment */
+          }
+          try {
+            const dataMap = doc.getMap('data')
+            const rows = dataMap.get('rows')
+            if (Array.isArray(rows)) {
+              parts.push(`[Database: ${rows.length} rows]`)
+            }
+          } catch {
+            /* no data map */
+          }
+          try {
+            const meta = doc.getMap('metadata')
+            const title = meta.get('title')
+            if (title) parts.unshift(`Title: ${String(title)}`)
+          } catch {
+            /* no metadata */
+          }
+
+          setDocSnapshotText(parts.join('\n') || '[Empty document]')
+          setSelectedDocSnapshotIndex(index)
+          doc.destroy()
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+      }
+    },
+    [selectedNodeId, documentHistory]
+  )
+
+  const computeDocDiff = useCallback(
+    async (fromIndex: number, toIndex: number) => {
+      if (!selectedNodeId || !documentHistory) return
+
+      setDocDiffLoading(true)
+      try {
+        const result = await documentHistory.diffSnapshots(selectedNodeId, fromIndex, toIndex)
+        setDocDiffResult(result)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setDocDiffLoading(false)
+      }
+    },
+    [selectedNodeId, documentHistory]
+  )
+
+  const hasDocumentHistory = documentTimeline.length > 0
+
   return {
     nodes,
     selectedNodeId,
@@ -423,6 +545,18 @@ export function useHistoryPanel(): UseHistoryPanelResult {
     pruneCandidates,
     storageLoading,
     loadStorageMetrics,
+    documentTimeline,
+    documentTimelineLoading,
+    selectedDocSnapshotIndex,
+    setSelectedDocSnapshotIndex,
+    docSnapshotText,
+    docDiffResult,
+    docDiffLoading,
+    docStorageMetrics,
+    loadDocumentTimeline,
+    loadDocSnapshot,
+    computeDocDiff,
+    hasDocumentHistory,
     error
   }
 }

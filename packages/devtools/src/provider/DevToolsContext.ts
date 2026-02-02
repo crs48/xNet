@@ -5,6 +5,7 @@
 import { createContext } from 'react'
 import type { DevToolsEventBus } from '../core/event-bus'
 import type { NodeStore } from '@xnet/data'
+import type { DocumentHistoryEngine } from '@xnet/history'
 import type * as Y from 'yjs'
 
 export type PanelId =
@@ -60,6 +61,9 @@ export interface DevToolsContextValue {
   activeNodeId: string | null
   /** Called by the app when the user navigates to a different document */
   setActiveNodeId: (id: string | null) => void
+
+  /** Document history engine for Yjs snapshot-based time travel */
+  documentHistory: DocumentHistoryEngine | null
 }
 
 export const DevToolsContext = createContext<DevToolsContextValue | null>(null)

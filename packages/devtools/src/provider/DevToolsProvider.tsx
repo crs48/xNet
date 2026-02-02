@@ -27,6 +27,7 @@ import { instrumentStore } from '../instrumentation/store'
 import { instrumentYDoc } from '../instrumentation/yjs'
 import { instrumentTelemetry } from '../instrumentation/telemetry'
 import { QueryTracker } from '../instrumentation/query'
+import { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from '@xnet/history'
 import {
   useNodeStore,
   InstrumentationContext,
@@ -271,6 +272,7 @@ export function XNetDevToolsProvider({
   const busRef = useRef<DevToolsEventBus>(new DevToolsEventBus({ maxEvents }))
   const yDocRegistryRef = useRef(createYDocRegistry(busRef.current))
   const queryTrackerRef = useRef(new QueryTracker(busRef.current))
+  const documentHistoryRef = useRef<DocumentHistoryEngine | null>(null)
   const cleanupsRef = useRef<Array<() => void>>([])
 
   // Get store from NodeStoreProvider context
@@ -282,6 +284,17 @@ export function XNetDevToolsProvider({
 
     const cleanup = instrumentStore(store, busRef.current)
     cleanupsRef.current.push(cleanup)
+
+    // Create DocumentHistoryEngine backed by the store's storage adapter
+    const storage = (store as any).storage
+    if (storage && typeof storage.saveYjsSnapshot === 'function') {
+      documentHistoryRef.current = new DocumentHistoryEngine(storage, { minInterval: 2000 })
+    } else {
+      // Fallback to in-memory storage for adapters without Yjs snapshot support
+      documentHistoryRef.current = new DocumentHistoryEngine(new MemoryYjsSnapshotStorage(), {
+        minInterval: 2000
+      })
+    }
 
     return () => {
       cleanup()
@@ -357,7 +370,8 @@ export function XNetDevToolsProvider({
     store,
     yDocRegistry: yDocRegistryRef.current,
     activeNodeId,
-    setActiveNodeId
+    setActiveNodeId,
+    documentHistory: documentHistoryRef.current
   }
 
   // Instrumentation context for hooks (useNode, useQuery, useMutate)

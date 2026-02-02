@@ -21,7 +21,8 @@
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
-    "@xnet/sync": "workspace:*"
+    "@xnet/sync": "workspace:*",
+    "yjs": "^13.6.0"
   },
   "devDependencies": {
     "@xnet/crypto": "workspace:*",

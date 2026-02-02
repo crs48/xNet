@@ -16,13 +16,20 @@ import type {
 } from './types'
 
 const DB_NAME = 'xnet-nodes'
-const DB_VERSION = 1
+const DB_VERSION = 3
 
 interface NodeDB {
   nodes: NodeState
   changes: NodeChange & { nodeId: NodeId }
   documentContent: { nodeId: NodeId; content: Uint8Array }
   meta: { key: string; value: unknown }
+  yjsSnapshots: {
+    nodeId: NodeId
+    timestamp: number
+    snapshot: Uint8Array
+    docState: Uint8Array
+    byteSize: number
+  }
 }
 
 export interface IndexedDBNodeStorageAdapterOptions {
@@ -88,6 +95,15 @@ export class IndexedDBNodeStorageAdapter implements NodeStorageAdapter {
         // Meta store - sync state, etc.
         if (!db.objectStoreNames.contains('meta')) {
           db.createObjectStore('meta', { keyPath: 'key' })
+        }
+
+        // Yjs snapshot store - for document time travel
+        if (!db.objectStoreNames.contains('yjsSnapshots')) {
+          const store = db.createObjectStore('yjsSnapshots', {
+            autoIncrement: true
+          })
+          store.createIndex('byNodeId', 'nodeId')
+          store.createIndex('byNodeIdTimestamp', ['nodeId', 'timestamp'])
         }
       }
     })
@@ -259,6 +275,47 @@ export class IndexedDBNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   // ==========================================================================
+  // Yjs Snapshot Operations (for document time travel)
+  // ==========================================================================
+
+  async saveYjsSnapshot(snapshot: {
+    nodeId: NodeId
+    timestamp: number
+    snapshot: Uint8Array
+    docState: Uint8Array
+    byteSize: number
+  }): Promise<void> {
+    const db = this.ensureOpen()
+    await db.add('yjsSnapshots', snapshot)
+  }
+
+  async getYjsSnapshots(nodeId: NodeId): Promise<
+    {
+      nodeId: NodeId
+      timestamp: number
+      snapshot: Uint8Array
+      docState: Uint8Array
+      byteSize: number
+    }[]
+  > {
+    const db = this.ensureOpen()
+    const results = await db.getAllFromIndex('yjsSnapshots', 'byNodeId', nodeId)
+    return results.sort((a, b) => a.timestamp - b.timestamp)
+  }
+
+  async deleteYjsSnapshots(nodeId: NodeId): Promise<void> {
+    const db = this.ensureOpen()
+    const tx = db.transaction('yjsSnapshots', 'readwrite')
+    const index = tx.store.index('byNodeId')
+    let cursor = await index.openCursor(nodeId)
+    while (cursor) {
+      cursor.delete()
+      cursor = await cursor.continue()
+    }
+    await tx.done
+  }
+
+  // ==========================================================================
   // Utility Methods
   // ==========================================================================
 
@@ -267,13 +324,8 @@ export class IndexedDBNodeStorageAdapter implements NodeStorageAdapter {
    */
   async clear(): Promise<void> {
     const db = this.ensureOpen()
-    const tx = db.transaction(['nodes', 'changes', 'documentContent', 'meta'], 'readwrite')
-    await Promise.all([
-      tx.objectStore('nodes').clear(),
-      tx.objectStore('changes').clear(),
-      tx.objectStore('documentContent').clear(),
-      tx.objectStore('meta').clear(),
-      tx.done
-    ])
+    const storeNames = Array.from(db.objectStoreNames) as (keyof NodeDB)[]
+    const tx = db.transaction(storeNames, 'readwrite')
+    await Promise.all([...storeNames.map((name) => tx.objectStore(name).clear()), tx.done])
   }
 }

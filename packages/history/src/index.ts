@@ -32,7 +32,11 @@ export type {
   UndoEntry,
   UndoManagerOptions,
   PlaybackState,
-  SchemaTimelineEntry
+  SchemaTimelineEntry,
+  YjsSnapshot,
+  YjsSnapshotStorageAdapter,
+  DocumentTimelineEntry,
+  UnifiedTimelineEntry
 } from './types'
 
 // ─── Core Engine ─────────────────────────────────────────────
@@ -67,6 +71,14 @@ export type { PrunableStorageAdapter } from './pruning'
 // ─── Schema Timeline (Database Time Machine) ─────────────────
 export { SchemaTimeline, restoreSchemaAt } from './schema-timeline'
 export { SchemaScrubCache } from './schema-scrub-cache'
+
+// ─── Document History (Yjs Snapshots) ─────────────────────────
+export { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from './document-history'
+export type {
+  DocumentHistoryOptions,
+  DocumentDiffResult,
+  DocumentStorageMetrics
+} from './document-history'
 
 // ─── Utilities ───────────────────────────────────────────────
 export { deepEqual } from './utils'
