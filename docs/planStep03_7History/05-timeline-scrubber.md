@@ -466,7 +466,7 @@ export function TimeMachineWrapper({ nodeId, schemaIRI, children }: TimeMachineP
 - [ ] Implement smooth seeking (< 16ms per position change with ScrubCache)
 - [ ] Style the scrubber to match app theme
 - [ ] Add keyboard shortcuts (left/right arrows for step, space for play/pause)
-- [ ] Handle edge cases: empty timeline, single change, very long timeline
+- [x] Handle edge cases: empty timeline, single change, very long timeline
 
 ---
 

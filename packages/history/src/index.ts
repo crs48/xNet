@@ -39,7 +39,7 @@ export type {
 export { HistoryEngine, createEmptyState, applyChangeToState, inferOperation } from './engine'
 
 // ─── Snapshot Cache ──────────────────────────────────────────
-export { SnapshotCache, MemorySnapshotStorage } from './snapshot-cache'
+export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 export type { SnapshotStorageAdapter } from './snapshot-cache'
 
 // ─── Audit Index ─────────────────────────────────────────────
@@ -63,6 +63,10 @@ export { BlameEngine } from './blame'
 export { VerificationEngine } from './verification'
 export { PruningEngine, DEFAULT_POLICY, MOBILE_POLICY } from './pruning'
 export type { PrunableStorageAdapter } from './pruning'
+
+// ─── Schema Timeline (Database Time Machine) ─────────────────
+export { SchemaTimeline, restoreSchemaAt } from './schema-timeline'
+export { SchemaScrubCache } from './schema-scrub-cache'
 
 // ─── Utilities ───────────────────────────────────────────────
 export { deepEqual } from './utils'

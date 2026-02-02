@@ -115,7 +115,7 @@ User-facing undo via compensating changes.
 
 - [x] Ctrl+Z undoes last local change (creates compensating change)
 - [x] Ctrl+Shift+Z redoes
-- [ ] Transaction/batch undo undoes all changes in a group
+- [x] Transaction/batch undo undoes all changes in a group
 - [ ] Undo syncs to peers (they see the revert)
 
 ### Phase 3: Time Machine UI (Steps 05-07)

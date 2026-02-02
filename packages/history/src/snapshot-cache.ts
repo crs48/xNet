@@ -8,6 +8,7 @@
 
 import type { ContentId } from '@xnet/core'
 import type { NodeState, NodeId } from '@xnet/data'
+import type { NodeStore } from '@xnet/data'
 import type { Snapshot, SnapshotCacheOptions, CacheStats } from './types'
 
 // ─── Storage Adapter ─────────────────────────────────────────
@@ -169,4 +170,34 @@ export class MemorySnapshotStorage implements SnapshotStorageAdapter {
   clear(): void {
     this.snapshots = []
   }
+}
+
+// ─── Auto-Snapshot Integration ────────────────────────────────
+
+/**
+ * Subscribe to a NodeStore and automatically create snapshots as changes accumulate.
+ *
+ * Tracks per-node change counts and creates a snapshot at every interval boundary.
+ * Returns an unsubscribe function to stop auto-snapshotting.
+ *
+ * @example
+ * ```ts
+ * const unsubscribe = setupAutoSnapshots(store, snapshotCache)
+ * // ... later
+ * unsubscribe()
+ * ```
+ */
+export function setupAutoSnapshots(store: NodeStore, snapshots: SnapshotCache): () => void {
+  const changeCounts = new Map<string, number>()
+
+  return store.subscribe(async (event) => {
+    if (!event.node) return
+    const nodeId = event.change.payload.nodeId
+    const count = (changeCounts.get(nodeId) ?? 0) + 1
+    changeCounts.set(nodeId, count)
+
+    if (snapshots.shouldSnapshot(count)) {
+      await snapshots.save(nodeId, count, event.change.hash, event.node)
+    }
+  })
 }

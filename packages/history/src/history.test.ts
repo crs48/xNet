@@ -7,10 +7,10 @@ import { generateSigningKeyPair } from '@xnet/crypto'
 import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
 import type { DID } from '@xnet/core'
 import type { SchemaIRI } from '@xnet/data'
-import type { NodeId, NodeStorageAdapter } from '@xnet/data'
+import type { NodeId, NodeStorageAdapter, NodeChange } from '@xnet/data'
 
 import { HistoryEngine, createEmptyState, applyChangeToState, inferOperation } from './engine'
-import { SnapshotCache, MemorySnapshotStorage } from './snapshot-cache'
+import { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 import { AuditIndex } from './audit-index'
 import { UndoManager } from './undo-manager'
 import { ScrubCache } from './scrub-cache'
@@ -18,6 +18,10 @@ import { PlaybackEngine } from './playback'
 import { DiffEngine } from './diff'
 import { BlameEngine } from './blame'
 import { VerificationEngine } from './verification'
+import { PruningEngine, DEFAULT_POLICY, MOBILE_POLICY } from './pruning'
+import type { PrunableStorageAdapter } from './pruning'
+import { SchemaTimeline, restoreSchemaAt } from './schema-timeline'
+import { SchemaScrubCache } from './schema-scrub-cache'
 import { deepEqual } from './utils'
 
 // ─── Test Fixtures ───────────────────────────────────────────
@@ -1200,5 +1204,688 @@ describe('Integration', () => {
     const audit = new AuditIndex(adapter)
     const activity = await audit.getNodeActivity(task.id)
     expect(activity.totalChanges).toBe(4)
+  })
+})
+
+// ─── setupAutoSnapshots Tests ─────────────────────────────────
+
+describe('setupAutoSnapshots', () => {
+  it('automatically creates snapshots at interval boundaries', async () => {
+    const { store, adapter } = createTestStore()
+    await store.initialize()
+
+    const snapshotStorage = new MemorySnapshotStorage()
+    const cache = new SnapshotCache(snapshotStorage, { interval: 3 })
+
+    const unsub = setupAutoSnapshots(store, cache)
+
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 0 }
+    })
+
+    // Create changes to pass interval boundary (interval=3, count goes 1,2,3,4)
+    for (let i = 1; i <= 5; i++) {
+      await store.update(node.id, { properties: { count: i } })
+    }
+
+    unsub()
+
+    // Should have created a snapshot at count=3 (change count 3)
+    const snaps = await snapshotStorage.getSnapshots(node.id)
+    expect(snaps.length).toBeGreaterThan(0)
+    // At least one snapshot should exist at interval boundary
+    expect(snaps.some((s) => s.changeIndex === 3 || s.changeIndex === 6)).toBe(true)
+  })
+
+  it('returns unsubscribe function that stops snapshotting', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const snapshotStorage = new MemorySnapshotStorage()
+    const cache = new SnapshotCache(snapshotStorage, { interval: 2 })
+
+    const unsub = setupAutoSnapshots(store, cache)
+    unsub()
+
+    await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 0 }
+    })
+
+    const allSnaps = await snapshotStorage.getAllSnapshots()
+    expect(allSnaps).toHaveLength(0)
+  })
+})
+
+// ─── UndoManager undoBatch Tests ──────────────────────────────
+
+describe('UndoManager - undoBatch', () => {
+  let store: NodeStore
+  let adapter: MemoryNodeStorageAdapter
+  let did: DID
+  let undo: UndoManager
+
+  beforeEach(async () => {
+    const test = createTestStore()
+    store = test.store
+    adapter = test.adapter
+    did = test.did
+    await store.initialize()
+    undo = new UndoManager(store, did, { mergeInterval: 0 })
+    undo.start()
+  })
+
+  it('undoes all changes in a batch', async () => {
+    // Create two nodes, then batch-update them
+    const node1 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 1 }
+    })
+    const node2 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 10 }
+    })
+
+    // Capture pre-change states
+    const n1 = await store.get(node1.id)
+    const n2 = await store.get(node2.id)
+    undo.capturePreChangeState(node1.id, n1!.properties)
+    undo.capturePreChangeState(node2.id, n2!.properties)
+
+    // Execute a transaction (batch update)
+    const result = await store.transaction([
+      { type: 'update', nodeId: node1.id, options: { properties: { count: 99 } } },
+      { type: 'update', nodeId: node2.id, options: { properties: { count: 99 } } }
+    ])
+
+    const batchId = result.batchId
+
+    // Both should be 99 now
+    expect((await store.get(node1.id))!.properties.count).toBe(99)
+    expect((await store.get(node2.id))!.properties.count).toBe(99)
+
+    // Undo the batch
+    const undone = await undo.undoBatch(batchId)
+    expect(undone).toBe(true)
+
+    // Both should be reverted
+    expect((await store.get(node1.id))!.properties.count).toBe(1)
+    expect((await store.get(node2.id))!.properties.count).toBe(10)
+  })
+
+  it('returns false when batchId not found', async () => {
+    const result = await undo.undoBatch('nonexistent-batch')
+    expect(result).toBe(false)
+  })
+})
+
+// ─── UndoManager delete/restore edge cases ────────────────────
+
+describe('UndoManager - delete/restore', () => {
+  let store: NodeStore
+  let adapter: MemoryNodeStorageAdapter
+  let did: DID
+  let undo: UndoManager
+
+  beforeEach(async () => {
+    const test = createTestStore()
+    store = test.store
+    adapter = test.adapter
+    did = test.did
+    await store.initialize()
+    undo = new UndoManager(store, did, { mergeInterval: 0 })
+    undo.start()
+  })
+
+  it('can undo a delete (restores the node)', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Keep Me' }
+    })
+
+    // Delete the node (soft delete)
+    await store.delete(node.id)
+
+    // Node should be soft-deleted
+    const deleted = await store.get(node.id)
+    expect(deleted!.deleted).toBe(true)
+
+    // Undo the delete
+    const undone = await undo.undo(node.id)
+    expect(undone).toBe(true)
+
+    // Node should be restored
+    const restored = await store.get(node.id)
+    expect(restored).not.toBeNull()
+    expect(restored!.deleted).toBe(false)
+    expect(restored!.properties.title).toBe('Keep Me')
+  })
+
+  it('can redo a delete after undoing it', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Test' }
+    })
+
+    await store.delete(node.id)
+    await undo.undo(node.id)
+
+    // Redo the delete
+    await undo.redo(node.id)
+    const result = await store.get(node.id)
+    expect(result!.deleted).toBe(true)
+  })
+})
+
+// ─── SchemaTimeline Tests ─────────────────────────────────────
+
+describe('SchemaTimeline', () => {
+  let store: NodeStore
+  let adapter: MemoryNodeStorageAdapter
+
+  beforeEach(async () => {
+    const test = createTestStore()
+    store = test.store
+    adapter = test.adapter
+    await store.initialize()
+  })
+
+  it('merges timelines from multiple nodes of the same schema', async () => {
+    const node1 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Row 1' }
+    })
+    const node2 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Row 2' }
+    })
+    await store.update(node1.id, { properties: { title: 'Row 1 updated' } })
+
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const timeline = await schemaTimeline.getMergedTimeline(TEST_SCHEMA)
+
+    // 3 total changes: 2 creates + 1 update
+    expect(timeline).toHaveLength(3)
+    // Should be sorted by lamport time
+    for (let i = 1; i < timeline.length; i++) {
+      expect(timeline[i].lamport.time).toBeGreaterThanOrEqual(timeline[i - 1].lamport.time)
+    }
+  })
+
+  it('includes nodeId in each entry', async () => {
+    const node1 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Row 1' }
+    })
+    const node2 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Row 2' }
+    })
+
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const timeline = await schemaTimeline.getMergedTimeline(TEST_SCHEMA)
+
+    const nodeIds = new Set(timeline.map((e) => e.nodeId))
+    expect(nodeIds.size).toBe(2)
+    expect(nodeIds.has(node1.id)).toBe(true)
+    expect(nodeIds.has(node2.id)).toBe(true)
+  })
+
+  it('returns empty for unknown schema', async () => {
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const timeline = await schemaTimeline.getMergedTimeline(
+      'xnet://xnet.fyi/NonExistent' as SchemaIRI
+    )
+    expect(timeline).toHaveLength(0)
+  })
+
+  it('does not mix schemas', async () => {
+    await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Task' }
+    })
+    await store.create({
+      schemaId: TEST_SCHEMA_2,
+      properties: { title: 'Page' }
+    })
+
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const timeline = await schemaTimeline.getMergedTimeline(TEST_SCHEMA)
+    expect(timeline).toHaveLength(1)
+  })
+
+  describe('materializeSchemaAt', () => {
+    it('reconstructs all rows at a specific point', async () => {
+      const node1 = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Row 1', count: 1 }
+      })
+      await store.update(node1.id, { properties: { count: 2 } })
+
+      const node2 = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Row 2' }
+      })
+
+      const schemaTimeline = new SchemaTimeline(adapter)
+      const timeline = await schemaTimeline.getMergedTimeline(TEST_SCHEMA)
+
+      // At the end, both rows should exist
+      const endRows = await schemaTimeline.materializeSchemaAt(timeline, timeline.length - 1)
+      expect(endRows).toHaveLength(2)
+
+      // At index 0 (first create), only one row should exist
+      const startRows = await schemaTimeline.materializeSchemaAt(timeline, 0)
+      expect(startRows).toHaveLength(1)
+      expect(startRows[0].properties.title).toBe('Row 1')
+    })
+
+    it('handles deleted nodes (hides them)', async () => {
+      const node = await store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Will delete' }
+      })
+      await store.delete(node.id)
+
+      const schemaTimeline = new SchemaTimeline(adapter)
+      const timeline = await schemaTimeline.getMergedTimeline(TEST_SCHEMA)
+
+      // At the end (after delete), no rows visible
+      const endRows = await schemaTimeline.materializeSchemaAt(timeline, timeline.length - 1)
+      expect(endRows).toHaveLength(0)
+
+      // At index 0 (before delete), row is visible
+      const startRows = await schemaTimeline.materializeSchemaAt(timeline, 0)
+      expect(startRows).toHaveLength(1)
+    })
+
+    it('returns empty for empty timeline', async () => {
+      const schemaTimeline = new SchemaTimeline(adapter)
+      const rows = await schemaTimeline.materializeSchemaAt([], 0)
+      expect(rows).toHaveLength(0)
+    })
+
+    it('returns empty for out of range index', async () => {
+      const schemaTimeline = new SchemaTimeline(adapter)
+      const rows = await schemaTimeline.materializeSchemaAt([], -1)
+      expect(rows).toHaveLength(0)
+    })
+  })
+})
+
+// ─── SchemaScrubCache Tests ───────────────────────────────────
+
+describe('SchemaScrubCache', () => {
+  let store: NodeStore
+  let adapter: MemoryNodeStorageAdapter
+
+  beforeEach(async () => {
+    const test = createTestStore()
+    store = test.store
+    adapter = test.adapter
+    await store.initialize()
+  })
+
+  it('pre-computes and allows fast seeking', async () => {
+    const node1 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 1 }
+    })
+    await store.update(node1.id, { properties: { count: 2 } })
+    const node2 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 10 }
+    })
+
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const scrubCache = new SchemaScrubCache(2)
+    await scrubCache.precompute(TEST_SCHEMA, schemaTimeline)
+
+    expect(scrubCache.totalChanges).toBe(3)
+
+    // At the end, both rows should exist
+    const endRows = await scrubCache.getRowsAt(2, schemaTimeline)
+    expect(endRows).toHaveLength(2)
+
+    // At index 0, only one row
+    const startRows = await scrubCache.getRowsAt(0, schemaTimeline)
+    expect(startRows).toHaveLength(1)
+  })
+
+  it('returns empty for schema with no history', async () => {
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const scrubCache = new SchemaScrubCache()
+    await scrubCache.precompute('xnet://xnet.fyi/Empty' as SchemaIRI, schemaTimeline)
+
+    expect(scrubCache.totalChanges).toBe(0)
+    const rows = await scrubCache.getRowsAt(0, schemaTimeline)
+    expect(rows).toHaveLength(0)
+  })
+})
+
+// ─── restoreSchemaAt Tests ────────────────────────────────────
+
+describe('restoreSchemaAt', () => {
+  let store: NodeStore
+  let adapter: MemoryNodeStorageAdapter
+
+  beforeEach(async () => {
+    const test = createTestStore()
+    store = test.store
+    adapter = test.adapter
+    await store.initialize()
+  })
+
+  it('restores schema state to a historical point', async () => {
+    // Create and update rows
+    const node1 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Row 1', count: 1 }
+    })
+    const node2 = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Row 2', count: 10 }
+    })
+
+    // Update values
+    await store.update(node1.id, { properties: { count: 99 } })
+    await store.update(node2.id, { properties: { count: 99 } })
+
+    // Get timeline
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const timeline = await schemaTimeline.getMergedTimeline(TEST_SCHEMA)
+
+    // Find the index right after both creates but before updates
+    // Timeline: create node1, create node2, update node1, update node2
+    const lastCreateIdx = timeline.findIndex(
+      (e) => e.operation === 'create' && e.nodeId === node2.id
+    )
+    expect(lastCreateIdx).toBeGreaterThanOrEqual(0)
+
+    // Restore to after both creates
+    await restoreSchemaAt(store, schemaTimeline, timeline, lastCreateIdx, TEST_SCHEMA)
+
+    // Values should be reverted
+    const n1 = await store.get(node1.id)
+    const n2 = await store.get(node2.id)
+    expect(n1!.properties.count).toBe(1)
+    expect(n2!.properties.count).toBe(10)
+  })
+
+  it('returns 0 when nothing to restore', async () => {
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const timeline = await schemaTimeline.getMergedTimeline(TEST_SCHEMA)
+
+    // Empty timeline - nothing to do
+    const ops = await restoreSchemaAt(store, schemaTimeline, timeline, 0, TEST_SCHEMA)
+    expect(ops).toBe(0)
+  })
+})
+
+// ─── PruningEngine Tests ──────────────────────────────────────
+
+describe('PruningEngine', () => {
+  let store: NodeStore
+  let adapter: MemoryNodeStorageAdapter & PrunableStorageAdapter
+  let snapshotStorage: MemorySnapshotStorage
+  let snapshotCache: SnapshotCache
+  let verifier: VerificationEngine
+
+  beforeEach(async () => {
+    const test = createTestStore()
+    store = test.store
+    // Add deleteChange method to the adapter for pruning
+    const baseAdapter = test.adapter as MemoryNodeStorageAdapter
+    const prunableAdapter = baseAdapter as MemoryNodeStorageAdapter & PrunableStorageAdapter
+    prunableAdapter.deleteChange = async (hash: string) => {
+      // Access internal changes map and filter out the hash from all nodes
+      const changesMap = (baseAdapter as any).changes as Map<string, NodeChange[]>
+      for (const [nodeId, changes] of changesMap) {
+        const filtered = changes.filter((c: NodeChange) => c.hash !== hash)
+        changesMap.set(nodeId, filtered)
+      }
+      // Also remove from hash index
+      const hashMap = (baseAdapter as any).changesByHash as Map<string, NodeChange>
+      hashMap.delete(hash)
+    }
+    adapter = prunableAdapter
+    await store.initialize()
+
+    snapshotStorage = new MemorySnapshotStorage()
+    snapshotCache = new SnapshotCache(snapshotStorage, { interval: 5 })
+    verifier = new VerificationEngine(adapter)
+  })
+
+  it('identifies candidates above threshold with snapshots', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 0 }
+    })
+
+    // Create many changes with old timestamps
+    for (let i = 1; i <= 10; i++) {
+      await store.update(node.id, { properties: { count: i } })
+    }
+
+    // Create a snapshot at index 5
+    const changes = await adapter.getChanges(node.id)
+    const { engine } = createHistoryEngine(adapter)
+    const state = await engine.materializeAt(node.id, { type: 'index', index: 5 })
+    await snapshotCache.save(node.id, 5, changes[5].hash, state.node)
+
+    const pruner = new PruningEngine(adapter, snapshotCache, verifier, {
+      ...DEFAULT_POLICY,
+      pruneThreshold: 5,
+      keepRecentChanges: 3,
+      minAge: 0 // allow pruning immediately for testing
+    })
+
+    const candidates = await pruner.findCandidates()
+    expect(candidates.length).toBeGreaterThanOrEqual(1)
+    expect(candidates[0].nodeId).toBe(node.id)
+    expect(candidates[0].prunableChanges).toBeGreaterThan(0)
+  })
+
+  it('skips nodes below pruneThreshold', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 0 }
+    })
+    await store.update(node.id, { properties: { count: 1 } })
+
+    const pruner = new PruningEngine(adapter, snapshotCache, verifier, {
+      ...DEFAULT_POLICY,
+      pruneThreshold: 100
+    })
+
+    const candidates = await pruner.findCandidates()
+    expect(candidates).toHaveLength(0)
+  })
+
+  it('skips protected schemas', async () => {
+    const protectedSchema = 'xnet://xnet.fyi/Audit' as SchemaIRI
+    const node = await store.create({
+      schemaId: protectedSchema,
+      properties: { count: 0 }
+    })
+
+    for (let i = 1; i <= 10; i++) {
+      await store.update(node.id, { properties: { count: i } })
+    }
+
+    // Create snapshot
+    const changes = await adapter.getChanges(node.id)
+    const { engine } = createHistoryEngine(adapter)
+    const state = await engine.materializeAt(node.id, { type: 'index', index: 5 })
+    await snapshotCache.save(node.id, 5, changes[5].hash, state.node)
+
+    const pruner = new PruningEngine(adapter, snapshotCache, verifier, {
+      ...DEFAULT_POLICY,
+      pruneThreshold: 5,
+      minAge: 0,
+      protectedSchemas: [protectedSchema]
+    })
+
+    const candidates = await pruner.findCandidates()
+    expect(candidates).toHaveLength(0)
+  })
+
+  it('refuses to prune without snapshot', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 0 }
+    })
+
+    for (let i = 1; i <= 10; i++) {
+      await store.update(node.id, { properties: { count: i } })
+    }
+
+    const pruner = new PruningEngine(adapter, snapshotCache, verifier, {
+      ...DEFAULT_POLICY,
+      pruneThreshold: 5,
+      minAge: 0
+    })
+
+    await expect(pruner.pruneNode(node.id)).rejects.toThrow('no snapshot')
+  })
+
+  it('dryRun returns correct counts without deleting', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 0 }
+    })
+
+    for (let i = 1; i <= 10; i++) {
+      await store.update(node.id, { properties: { count: i } })
+    }
+
+    // Create a snapshot
+    const { engine } = createHistoryEngine(adapter)
+    const state = await engine.materializeAt(node.id, { type: 'index', index: 5 })
+    const changes = await adapter.getChanges(node.id)
+    await snapshotCache.save(node.id, 5, changes[5].hash, state.node)
+
+    const pruner = new PruningEngine(adapter, snapshotCache, verifier, {
+      ...DEFAULT_POLICY,
+      pruneThreshold: 5,
+      keepRecentChanges: 3,
+      minAge: 0,
+      requireVerifiedSnapshot: false
+    })
+
+    const beforeCount = (await adapter.getAllChanges()).length
+    const result = await pruner.pruneNode(node.id, { dryRun: true })
+
+    expect(result.deletedChanges).toBeGreaterThan(0)
+    // Verify nothing was actually deleted
+    const afterCount = (await adapter.getAllChanges()).length
+    expect(afterCount).toBe(beforeCount)
+  })
+
+  it('getStorageMetrics returns accurate counts', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 0 }
+    })
+
+    for (let i = 1; i <= 5; i++) {
+      await store.update(node.id, { properties: { count: i } })
+    }
+
+    const pruner = new PruningEngine(adapter, snapshotCache, verifier)
+    const metrics = await pruner.getStorageMetrics(node.id)
+
+    expect(metrics.totalChanges).toBe(6) // create + 5 updates
+    expect(metrics.estimatedSize).toBe(6 * 512)
+    expect(metrics.hasSnapshot).toBe(false)
+  })
+
+  it('policies have correct defaults', () => {
+    expect(DEFAULT_POLICY.keepRecentChanges).toBe(200)
+    expect(DEFAULT_POLICY.minAge).toBe(30 * 24 * 60 * 60 * 1000)
+    expect(MOBILE_POLICY.keepRecentChanges).toBe(50)
+    expect(MOBILE_POLICY.storageBudget).toBe(50 * 1024 * 1024)
+  })
+})
+
+// ─── Edge Cases ───────────────────────────────────────────────
+
+describe('Edge Cases', () => {
+  let store: NodeStore
+  let adapter: MemoryNodeStorageAdapter
+
+  beforeEach(async () => {
+    const test = createTestStore()
+    store = test.store
+    adapter = test.adapter
+    await store.initialize()
+  })
+
+  it('handles empty timeline in getTimeline', async () => {
+    const { engine } = createHistoryEngine(adapter)
+    // A nonexistent node returns empty array
+    const timeline = await engine.getTimeline('nonexistent')
+    expect(timeline).toHaveLength(0)
+  })
+
+  it('handles single change in timeline', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Single' }
+    })
+
+    const { engine } = createHistoryEngine(adapter)
+    const timeline = await engine.getTimeline(node.id)
+    expect(timeline).toHaveLength(1)
+    expect(timeline[0].operation).toBe('create')
+  })
+
+  it('handles schema with no nodes', async () => {
+    const schemaTimeline = new SchemaTimeline(adapter)
+    const timeline = await schemaTimeline.getMergedTimeline('xnet://xnet.fyi/Empty' as SchemaIRI)
+    expect(timeline).toHaveLength(0)
+  })
+
+  it('ScrubCache handles empty node', async () => {
+    const scrub = new ScrubCache()
+    await scrub.precompute('nonexistent', adapter)
+    expect(scrub.totalChanges).toBe(0)
+    expect(scrub.getStateAt(0)).toBeNull()
+  })
+
+  it('PlaybackEngine handles 0 changes', () => {
+    const pb = new PlaybackEngine(0)
+    expect(pb.getPosition()).toBe(0)
+    pb.stepForward()
+    expect(pb.getPosition()).toBe(0)
+  })
+
+  it('PlaybackEngine handles 1 change', () => {
+    const pb = new PlaybackEngine(1)
+    expect(pb.getPosition()).toBe(0)
+    pb.stepForward()
+    expect(pb.getPosition()).toBe(0)
+    pb.jumpToEnd()
+    expect(pb.getPosition()).toBe(0)
+  })
+
+  it('DiffEngine handles diffing identical states', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Same' }
+    })
+
+    const { engine } = createHistoryEngine(adapter)
+    const diffEngine = new DiffEngine(engine)
+    const result = await diffEngine.diffNode(
+      node.id,
+      { type: 'index', index: 0 },
+      { type: 'index', index: 0 }
+    )
+    expect(result.diffs).toHaveLength(0)
+    expect(result.summary.added).toBe(0)
+    expect(result.summary.modified).toBe(0)
+    expect(result.summary.removed).toBe(0)
   })
 })

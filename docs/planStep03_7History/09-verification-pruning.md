@@ -837,7 +837,7 @@ describe('PruningEngine', () => {
 - [x] Implement dry-run support in PruningEngine
 - [ ] Verify reconstruction still works after pruning (snapshot-based)
 - [x] Write unit tests for verification (hash, chain, clock)
-- [ ] Write unit tests for pruning (policy, safety, storage recovery)
+- [x] Write unit tests for pruning (policy, safety, storage recovery)
 - [ ] Integration test: full flow (create changes -> snapshot -> prune -> materialize)
 
 ---
