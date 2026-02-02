@@ -3,7 +3,14 @@
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["pnpm", "dlx", "@playwright/mcp@latest", "--viewport-size=1280x800"],
+      "command": [
+        "pnpm",
+        "dlx",
+        "@playwright/mcp@latest",
+        "--viewport-size=1280x800",
+        "--output-dir",
+        "tmp/playwright"
+      ],
       "enabled": true
     },
     "electron": {
@@ -13,7 +20,9 @@
         "dlx",
         "@playwright/mcp@latest",
         "--cdp-endpoint",
-        "http://127.0.0.1:9222"
+        "http://127.0.0.1:9223",
+        "--output-dir",
+        "tmp/playwright"
       ],
       "enabled": true
     }
