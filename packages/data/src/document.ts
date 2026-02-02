@@ -20,7 +20,7 @@ export interface CreateDocumentOptions {
  * Create a new XDocument
  */
 export function createDocument(options: CreateDocumentOptions): XDocument {
-  const ydoc = new Y.Doc({ guid: options.id })
+  const ydoc = new Y.Doc({ guid: options.id, gc: false })
 
   // Initialize metadata
   const meta = ydoc.getMap('metadata')
@@ -69,7 +69,7 @@ export function loadDocument(
   type: DocumentType,
   state: Uint8Array
 ): XDocument {
-  const ydoc = new Y.Doc({ guid: id })
+  const ydoc = new Y.Doc({ guid: id, gc: false })
   Y.applyUpdate(ydoc, state)
 
   const meta = ydoc.getMap('metadata')

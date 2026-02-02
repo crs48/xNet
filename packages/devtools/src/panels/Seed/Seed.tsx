@@ -106,7 +106,7 @@ export function Seed() {
       })
 
       // Create a Y.Doc and populate with sample content
-      const ydoc = new Y.Doc({ guid: node.id })
+      const ydoc = new Y.Doc({ guid: node.id, gc: false })
 
       // The RichTextEditor uses 'content' as the fragment name
       const fragment = ydoc.getXmlFragment('content')
@@ -446,7 +446,7 @@ export function Seed() {
       })
 
       // Create Y.Doc for storing the database data
-      const ydoc = new Y.Doc({ guid: node.id })
+      const ydoc = new Y.Doc({ guid: node.id, gc: false })
 
       ydoc.transact(() => {
         const dataMap = ydoc.getMap('data')

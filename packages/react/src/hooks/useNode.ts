@@ -403,7 +403,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
           } else {
             // === Fallback path: create our own Y.Doc (backwards compat) ===
             log('Using fallback WebSocketSyncProvider path')
-            ydoc = new Y.Doc({ guid: id })
+            ydoc = new Y.Doc({ guid: id, gc: false })
             usingSyncManagerRef.current = false
 
             // Load stored content
