@@ -120,6 +120,7 @@ export function PageView({ docId }: PageViewProps) {
   const [orphanedIds, setOrphanedIds] = useState<string[]>([])
   const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const dismissTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const editorRef = useRef<Editor | null>(null)
   const marksRestoredRef = useRef(false)
   const [editorReady, setEditorReady] = useState(false)
@@ -237,6 +238,10 @@ export function PageView({ docId }: PageViewProps) {
       clearTimeout(hoverTimeoutRef.current)
       hoverTimeoutRef.current = null
     }
+    if (dismissTimeoutRef.current) {
+      clearTimeout(dismissTimeoutRef.current)
+      dismissTimeoutRef.current = null
+    }
     setPopoverState({
       visible: true,
       mode: 'full',
@@ -246,19 +251,24 @@ export function PageView({ docId }: PageViewProps) {
   }, [])
 
   const handleHoverComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
-    // Delay showing preview to avoid flicker
+    // Cancel any pending dismiss so hovering back keeps the popover alive
+    if (dismissTimeoutRef.current) {
+      clearTimeout(dismissTimeoutRef.current)
+      dismissTimeoutRef.current = null
+    }
+    // Delay showing to avoid flicker on quick mouse passes
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
     }
     hoverTimeoutRef.current = setTimeout(() => {
       setPopoverState((prev) => {
-        // Don't downgrade from full to preview if already showing full
-        if (prev.visible && prev.mode === 'full' && prev.threadId === commentId) {
+        // Don't reset if already showing full for the same comment
+        if (prev.visible && prev.threadId === commentId) {
           return prev
         }
         return {
           visible: true,
-          mode: 'preview',
+          mode: 'full',
           threadId: commentId,
           anchor: anchorEl
         }
@@ -271,14 +281,52 @@ export function PageView({ docId }: PageViewProps) {
       clearTimeout(hoverTimeoutRef.current)
       hoverTimeoutRef.current = null
     }
-    // Only dismiss if in preview mode
-    setPopoverState((prev) => (prev.mode === 'preview' ? INITIAL_POPOVER_STATE : prev))
+    // Delay dismiss to allow cursor to travel from mark to popover
+    if (dismissTimeoutRef.current) {
+      clearTimeout(dismissTimeoutRef.current)
+    }
+    dismissTimeoutRef.current = setTimeout(() => {
+      setPopoverState((prev) => {
+        // Only dismiss hover-opened popovers, not click-opened ones
+        if (prev.mode === 'full' && prev.visible) {
+          return INITIAL_POPOVER_STATE
+        }
+        return prev
+      })
+    }, 200)
+  }, [])
+
+  // Cancel dismiss when cursor enters the popover
+  const handlePopoverMouseEnter = useCallback(() => {
+    if (dismissTimeoutRef.current) {
+      clearTimeout(dismissTimeoutRef.current)
+      dismissTimeoutRef.current = null
+    }
+  }, [])
+
+  // Start dismiss when cursor leaves the popover
+  const handlePopoverMouseLeave = useCallback(() => {
+    if (dismissTimeoutRef.current) {
+      clearTimeout(dismissTimeoutRef.current)
+    }
+    dismissTimeoutRef.current = setTimeout(() => {
+      setPopoverState((prev) => {
+        if (prev.mode === 'full' && prev.visible) {
+          return INITIAL_POPOVER_STATE
+        }
+        return prev
+      })
+    }, 200)
   }, [])
 
   const handleDismiss = useCallback(() => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
       hoverTimeoutRef.current = null
+    }
+    if (dismissTimeoutRef.current) {
+      clearTimeout(dismissTimeoutRef.current)
+      dismissTimeoutRef.current = null
     }
     setPopoverState(INITIAL_POPOVER_STATE)
   }, [])
@@ -598,6 +646,8 @@ export function PageView({ docId }: PageViewProps) {
             onEdit={handleEdit}
             onDismiss={handleDismiss}
             onUpgradeToFull={handleUpgradeToFull}
+            onMouseEnter={handlePopoverMouseEnter}
+            onMouseLeave={handlePopoverMouseLeave}
           />
         ) : (
           <div
