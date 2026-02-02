@@ -98,7 +98,7 @@ export function CommentBubble({
   return (
     <div
       className={cn(
-        'group px-3 py-2 rounded-md transition-colors',
+        'relative group/comment px-3 py-2 rounded-md transition-colors',
         !compact && 'hover:bg-muted/50',
         className
       )}
@@ -159,7 +159,7 @@ export function CommentBubble({
 
       {/* Actions menu (on hover) */}
       {showMenu && !compact && !isEditing && (
-        <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute right-2 top-2 flex gap-1">
           {onReplyTo && (
             <Button size="sm" variant="ghost" onClick={onReplyTo} className="h-6 px-2 text-xs">
               Reply
