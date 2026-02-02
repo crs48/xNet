@@ -195,7 +195,9 @@ function handlePublish(sender: WebSocket, topicName: string, data: unknown) {
     }
   })
 
-  console.log(`Published to ${topicName}: ${sent} recipients`)
+  if (sent > 0) {
+    console.log(`[signal] Published to ${topicName}: ${sent} recipients`)
+  }
 }
 
 /**
