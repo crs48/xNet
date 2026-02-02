@@ -155,7 +155,7 @@ export function createIPCSyncManager(): IPCSyncManager {
       // Create the acquire promise and store it BEFORE starting async work
       const acquirePromise = (async () => {
         // Create renderer-side Y.Doc mirror
-        const doc = new Y.Doc({ guid: nodeId })
+        const doc = new Y.Doc({ guid: nodeId, gc: false })
 
         // Create awareness for this doc
         const awareness = new Awareness(doc)

@@ -881,7 +881,7 @@ export function setupBSM(config: BSMConfig) {
       return existing.doc
     }
 
-    const doc = new Y.Doc({ guid: nodeId })
+    const doc = new Y.Doc({ guid: nodeId, gc: false })
 
     // Set up broadcast: local edits → WebSocket (signed if possible)
     doc.on('update', (update: Uint8Array, origin: unknown) => {

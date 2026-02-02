@@ -411,7 +411,7 @@ export function createCanvasStore(ydoc: Y.Doc): CanvasStore {
  * Create a new empty canvas document
  */
 export function createCanvasDoc(id: string, title = 'Untitled Canvas'): Y.Doc {
-  const ydoc = new Y.Doc({ guid: id })
+  const ydoc = new Y.Doc({ guid: id, gc: false })
 
   // Initialize metadata
   const meta = ydoc.getMap('metadata')

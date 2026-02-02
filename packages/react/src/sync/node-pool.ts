@@ -61,7 +61,7 @@ export function createNodePool(config: NodePoolConfig): NodePool {
   const persistDelay = config.persistDelay ?? 2000
 
   async function loadDoc(nodeId: string): Promise<Y.Doc> {
-    const doc = new Y.Doc({ guid: nodeId })
+    const doc = new Y.Doc({ guid: nodeId, gc: false })
 
     // Load stored content
     const content = await config.storage.getDocumentContent(nodeId)
