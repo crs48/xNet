@@ -66,6 +66,7 @@ export interface UseHistoryPanelResult {
   selectedTimelineIndex: number | null
   setSelectedTimelineIndex: (index: number | null) => void
   materializedState: HistoricalState | null
+  clearMaterializedState: () => void
   materializeAt: (target: HistoryTarget) => Promise<void>
 
   // Diff
@@ -353,6 +354,12 @@ export function useHistoryPanel(): UseHistoryPanelResult {
     }
   }, [selectedNodeId, getEngines])
 
+  // ─── Clear Materialized State ───────────────────────────
+  const clearMaterializedState = useCallback(() => {
+    setMaterializedState(null)
+    setSelectedTimelineIndex(null)
+  }, [])
+
   // ─── Load Storage Metrics ────────────────────────────────
   const loadStorageMetrics = useCallback(async () => {
     if (!selectedNodeId) return
@@ -384,6 +391,7 @@ export function useHistoryPanel(): UseHistoryPanelResult {
     selectedTimelineIndex,
     setSelectedTimelineIndex,
     materializedState,
+    clearMaterializedState,
     materializeAt,
     diffFrom,
     diffTo,

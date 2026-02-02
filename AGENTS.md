@@ -94,6 +94,7 @@ apps/
 - Export types inline: `export { fn, type FnResult }`
 - Factory functions for classes: `createFoo()` alongside `class Foo`
 
+
 ### Comments
 
 File-level JSDoc at top:
@@ -204,6 +205,8 @@ Never leave background servers running between tasks or at end of session.
 - Use heavyweight frameworks
 - Store computed values (formula, rollup) - compute at read
 - Skip tests for core packages
+- - Test electron in a browser. Only test electron in electron.
+- Don't open browsers like chrome to check if servers are running
 
 ## Sync Architecture
 

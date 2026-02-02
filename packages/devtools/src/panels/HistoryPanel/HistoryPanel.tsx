@@ -182,7 +182,7 @@ function TimelineTab({ panel }: { panel: UseHistoryPanelResult }) {
               State @ change {panel.materializedState.changeIndex}
             </h3>
             <button
-              onClick={() => panel.setSelectedTimelineIndex(null)}
+              onClick={() => panel.clearMaterializedState()}
               className="text-zinc-500 hover:text-white text-xs"
             >
               x
