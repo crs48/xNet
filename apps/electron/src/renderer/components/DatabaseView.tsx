@@ -147,17 +147,21 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     visible: boolean
     mode: 'preview' | 'full'
     threadId: string | null
-    anchor: HTMLElement | null
+    /** Snapshotted anchor position so layout changes don't shift the popover */
+    anchorRect: { left: number; top: number; bottom: number; right: number } | null
     /** Cell being commented on (for new comment creation) */
     cellRowId: string | null
     cellPropertyKey: string | null
+    /** Focus the reply textarea on open */
+    focusReply: boolean
   }
 
   const INITIAL_COMMENT_STATE: CommentPopoverState = {
     visible: false,
     mode: 'preview',
     threadId: null,
-    anchor: null,
+    anchorRect: null,
+    focusReply: false,
     cellRowId: null,
     cellPropertyKey: null
   }
@@ -219,18 +223,25 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         commentDismissTimeoutRef.current = null
       }
 
+      // Snapshot the cell rect so layout changes don't shift the popover
+      const rect = anchorEl.getBoundingClientRect()
+      const snappedRect = { left: rect.left, top: rect.top, bottom: rect.bottom, right: rect.right }
+
       // Find the first thread for this cell
       const cellThreads = getThreadsForCell(rowId, propertyKey)
       if (cellThreads.length > 0) {
         setCommentState((prev) => {
-          if (prev.visible && prev.threadId === cellThreads[0].root.id) return prev
+          if (prev.visible && prev.threadId === cellThreads[0].root.id) {
+            return prev.focusReply ? prev : { ...prev, focusReply: true }
+          }
           return {
             visible: true,
             mode: 'full',
             threadId: cellThreads[0].root.id,
-            anchor: anchorEl,
+            anchorRect: snappedRect,
             cellRowId: rowId,
-            cellPropertyKey: propertyKey
+            cellPropertyKey: propertyKey,
+            focusReply: true
           }
         })
       } else {
@@ -239,9 +250,10 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           visible: true,
           mode: 'full',
           threadId: null,
-          anchor: anchorEl,
+          anchorRect: snappedRect,
           cellRowId: rowId,
-          cellPropertyKey: propertyKey
+          cellPropertyKey: propertyKey,
+          focusReply: true
         })
       }
     },
@@ -259,15 +271,23 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       commentHoverTimeoutRef.current = setTimeout(() => {
         const cellThreads = getThreadsForCell(rowId, propertyKey)
         if (cellThreads.length > 0) {
+          const rect = anchorEl.getBoundingClientRect()
+          const snappedRect = {
+            left: rect.left,
+            top: rect.top,
+            bottom: rect.bottom,
+            right: rect.right
+          }
           setCommentState((prev) => {
             if (prev.visible && prev.threadId === cellThreads[0].root.id) return prev
             return {
               visible: true,
               mode: 'full',
               threadId: cellThreads[0].root.id,
-              anchor: anchorEl,
+              anchorRect: snappedRect,
               cellRowId: rowId,
-              cellPropertyKey: propertyKey
+              cellPropertyKey: propertyKey,
+              focusReply: false
             }
           })
         }
@@ -1053,14 +1073,14 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
       {/* Comment Popover */}
       {commentState.visible &&
-        commentState.anchor &&
+        commentState.anchorRect &&
         (currentCommentThread ? (
           <CommentPopover
             thread={currentCommentThread}
-            anchor={commentState.anchor}
+            anchor={{ x: commentState.anchorRect.left, y: commentState.anchorRect.bottom + 8 }}
             mode={commentState.mode}
             open={commentState.visible}
-            side="bottom"
+            focusReply={commentState.focusReply}
             onReply={handleCommentReply}
             onResolve={handleCommentResolve}
             onReopen={handleCommentReopen}
@@ -1075,8 +1095,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           <div
             className="fixed z-50 animate-in fade-in-0 zoom-in-95 duration-150"
             style={{
-              left: commentState.anchor.getBoundingClientRect().left,
-              top: commentState.anchor.getBoundingClientRect().bottom + 8
+              left: commentState.anchorRect.left,
+              top: commentState.anchorRect.bottom + 8
             }}
             onMouseEnter={handleCommentPopoverMouseEnter}
             onMouseLeave={handleCommentPopoverMouseLeave}
