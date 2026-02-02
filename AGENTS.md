@@ -161,13 +161,28 @@ describe('ModuleName', () => {
 
 Debug the Electron app at `http://localhost:5177` when dev server is running (`cd apps/electron && pnpm dev`).
 
-Key tools:
+### Key tools
 
 - `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_take_screenshot`
 - `browser_console_messages` - check for JS errors, React warnings, unhandled rejections
 
-Workflow: navigate → snapshot (accessibility tree) → interact → screenshot → check console.
+### Workflow
+
+navigate → snapshot (accessibility tree) → interact → screenshot → check console.
 Enable sync debug logs: `localStorage.setItem('xnet:sync:debug', 'true')`
+
+**IMPORTANT: Always kill dev servers when done.** After finishing any Playwright testing or dev server usage, shut down ALL background processes before ending:
+
+```bash
+# Kill servers on known ports
+lsof -ti:5177,4444,3000,8080 2>/dev/null | xargs kill -9 2>/dev/null
+# Kill by process name
+pkill -f "vite" 2>/dev/null; pkill -f "electron" 2>/dev/null; pkill -f "signaling" 2>/dev/null
+# Verify nothing is left running
+lsof -ti:5177,4444,3000,8080 2>/dev/null || echo "All ports clear"
+```
+
+Never leave background servers running between tasks or at end of session.
 
 ## Key Constraints
 
@@ -179,6 +194,8 @@ Enable sync debug logs: `localStorage.setItem('xnet:sync:debug', 'true')`
 - Keep changes minimal and focused
 - Prefer Tailwind over custom CSS
 - Integrate new features into the Electron app first, before bothering with Web or Expo
+- Test UI changes in Electron with Playwright after implementing (start dev server, verify it works)
+- Always kill dev servers when done testing — never leave background processes running
 
 **DON'T:**
 
