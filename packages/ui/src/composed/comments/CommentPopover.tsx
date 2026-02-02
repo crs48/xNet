@@ -57,6 +57,10 @@ export interface CommentPopoverProps {
   onDismiss?: () => void
   /** Callback to upgrade from preview to full mode */
   onUpgradeToFull?: () => void
+  /** Called when cursor enters the popover */
+  onMouseEnter?: () => void
+  /** Called when cursor leaves the popover */
+  onMouseLeave?: () => void
   /** Custom className */
   className?: string
 }
@@ -76,6 +80,8 @@ export function CommentPopover({
   onEdit,
   onDismiss,
   onUpgradeToFull,
+  onMouseEnter,
+  onMouseLeave,
   className
 }: CommentPopoverProps) {
   const [replyText, setReplyText] = useState('')
@@ -122,6 +128,8 @@ export function CommentPopover({
         className
       )}
       onKeyDown={handleKeyDown}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {mode === 'preview' ? (
         // Preview mode - compact view
