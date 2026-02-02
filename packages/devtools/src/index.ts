@@ -30,7 +30,8 @@ export function useDevTools() {
     toggle: () => {},
     eventBus: null,
     activeNodeId: null as string | null,
-    setActiveNodeId: (_id: string | null) => {}
+    setActiveNodeId: (_id: string | null) => {},
+    documentHistory: null
   }
 }
 

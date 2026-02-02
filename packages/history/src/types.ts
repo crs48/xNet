@@ -141,6 +141,43 @@ export interface PropertyHistoryEntry {
   changeIndex: number
 }
 
+// ─── Yjs Document Snapshots ──────────────────────────────────
+
+/** A Yjs document snapshot stored for time travel */
+export interface YjsSnapshot {
+  /** Node this snapshot belongs to */
+  nodeId: NodeId
+  /** When this snapshot was captured */
+  timestamp: number
+  /** Serialized Yjs snapshot (from Y.encodeSnapshot) */
+  snapshot: Uint8Array
+  /** Serialized full doc state at capture time (from Y.encodeStateAsUpdate) */
+  docState: Uint8Array
+  /** Byte size of the snapshot */
+  byteSize: number
+}
+
+/** Storage adapter for Yjs document snapshots */
+export interface YjsSnapshotStorageAdapter {
+  saveYjsSnapshot(snapshot: YjsSnapshot): Promise<void>
+  getYjsSnapshots(nodeId: NodeId): Promise<YjsSnapshot[]>
+  deleteYjsSnapshots(nodeId: NodeId): Promise<void>
+}
+
+/** A document change entry for the unified timeline */
+export interface DocumentTimelineEntry {
+  type: 'document'
+  /** Index within the document snapshot list */
+  snapshotIndex: number
+  /** Wall clock time */
+  wallTime: number
+  /** Byte size of the doc state at this point */
+  byteSize: number
+}
+
+/** Unified timeline entry — either a property change or a document snapshot */
+export type UnifiedTimelineEntry = (TimelineEntry & { type: 'property' }) | DocumentTimelineEntry
+
 // ─── Snapshots ───────────────────────────────────────────────
 
 /** A snapshot of node state at a specific change index */

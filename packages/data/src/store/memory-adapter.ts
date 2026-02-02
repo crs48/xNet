@@ -23,6 +23,13 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   private changesByHash = new Map<ContentId, NodeChange>()
   private nodes = new Map<NodeId, NodeState>()
   private documentContentStore = new Map<NodeId, Uint8Array>()
+  private yjsSnapshotStore: {
+    nodeId: NodeId
+    timestamp: number
+    snapshot: Uint8Array
+    docState: Uint8Array
+    byteSize: number
+  }[] = []
   private lastLamportTime = 0
 
   // ==========================================================================
@@ -145,6 +152,40 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   // ==========================================================================
+  // Yjs Snapshot Operations (for document time travel)
+  // ==========================================================================
+
+  async saveYjsSnapshot(snapshot: {
+    nodeId: NodeId
+    timestamp: number
+    snapshot: Uint8Array
+    docState: Uint8Array
+    byteSize: number
+  }): Promise<void> {
+    this.yjsSnapshotStore.push(structuredClone(snapshot))
+  }
+
+  async getYjsSnapshots(
+    nodeId: NodeId
+  ): Promise<
+    {
+      nodeId: NodeId
+      timestamp: number
+      snapshot: Uint8Array
+      docState: Uint8Array
+      byteSize: number
+    }[]
+  > {
+    return this.yjsSnapshotStore
+      .filter((s) => s.nodeId === nodeId)
+      .sort((a, b) => a.timestamp - b.timestamp)
+  }
+
+  async deleteYjsSnapshots(nodeId: NodeId): Promise<void> {
+    this.yjsSnapshotStore = this.yjsSnapshotStore.filter((s) => s.nodeId !== nodeId)
+  }
+
+  // ==========================================================================
   // Utility Methods (for testing)
   // ==========================================================================
 
@@ -156,6 +197,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.changesByHash.clear()
     this.nodes.clear()
     this.documentContentStore.clear()
+    this.yjsSnapshotStore = []
     this.lastLamportTime = 0
   }
 

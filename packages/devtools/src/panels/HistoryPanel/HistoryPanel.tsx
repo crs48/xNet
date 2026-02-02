@@ -4,7 +4,7 @@
  * Sub-tabs: Timeline | Diff | Blame | Audit | Verification | Storage
  */
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useHistoryPanel, type HistorySubTab, type UseHistoryPanelResult } from './useHistoryPanel'
 import {
   formatTime,
@@ -20,7 +20,8 @@ import type {
   AuditEntry,
   PropertyDiff,
   VerificationResult,
-  PruneCandidate
+  PruneCandidate,
+  DocumentTimelineEntry
 } from '@xnet/history'
 
 // ─── Sub-tab Config ──────────────────────────────────────────
@@ -31,7 +32,8 @@ const SUB_TABS: Array<{ id: HistorySubTab; label: string }> = [
   { id: 'blame', label: 'Blame' },
   { id: 'audit', label: 'Audit' },
   { id: 'verification', label: 'Verify' },
-  { id: 'storage', label: 'Storage' }
+  { id: 'storage', label: 'Storage' },
+  { id: 'document', label: 'Document' }
 ]
 
 // ─── Main Component ──────────────────────────────────────────
@@ -117,6 +119,8 @@ function ActiveTabContent({ panel }: { panel: UseHistoryPanelResult }) {
       return <VerificationTab panel={panel} />
     case 'storage':
       return <StorageTab panel={panel} />
+    case 'document':
+      return <DocumentTab panel={panel} />
   }
 }
 
@@ -650,6 +654,187 @@ function StorageTab({ panel }: { panel: UseHistoryPanelResult }) {
           <Empty message="No storage data" />
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Document Tab ─────────────────────────────────────────────
+
+function DocumentTab({ panel }: { panel: UseHistoryPanelResult }) {
+  const [diffFrom, setDiffFrom] = useState<number>(0)
+  const [diffTo, setDiffTo] = useState<number>(0)
+
+  useEffect(() => {
+    if (panel.selectedNodeId) {
+      panel.loadDocumentTimeline()
+    }
+  }, [panel.selectedNodeId])
+
+  useEffect(() => {
+    if (panel.documentTimeline.length > 0) {
+      setDiffTo(panel.documentTimeline.length - 1)
+    }
+  }, [panel.documentTimeline.length])
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-zinc-800 shrink-0">
+        <span className="text-[10px] text-zinc-500">Yjs document snapshots</span>
+        <button
+          onClick={panel.loadDocumentTimeline}
+          disabled={panel.documentTimelineLoading}
+          className="px-2 py-0.5 text-[10px] bg-zinc-700 hover:bg-zinc-600 text-zinc-200 rounded disabled:opacity-50 ml-auto"
+        >
+          {panel.documentTimelineLoading ? 'Loading...' : 'Reload'}
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3">
+        {panel.documentTimelineLoading ? (
+          <Loading />
+        ) : panel.documentTimeline.length === 0 ? (
+          <Empty message="No document snapshots recorded" />
+        ) : (
+          <div className="space-y-4">
+            {/* Storage metrics */}
+            {panel.docStorageMetrics && (
+              <div className="grid grid-cols-3 gap-2">
+                <StatCard label="Snapshots" value={panel.docStorageMetrics.snapshotCount} />
+                <StatCard label="Total Bytes" value={panel.docStorageMetrics.totalBytes} />
+                <StatCard
+                  label="Avg Size"
+                  value={
+                    panel.docStorageMetrics.snapshotCount > 0
+                      ? Math.round(
+                          panel.docStorageMetrics.totalBytes / panel.docStorageMetrics.snapshotCount
+                        )
+                      : 0
+                  }
+                />
+              </div>
+            )}
+
+            {/* Snapshot list */}
+            <div>
+              <h4 className="text-[10px] font-bold text-zinc-400 mb-1">
+                Snapshots ({panel.documentTimeline.length})
+              </h4>
+              {panel.documentTimeline.map((entry, i) => (
+                <DocSnapshotRow
+                  key={i}
+                  entry={entry}
+                  index={i}
+                  isSelected={panel.selectedDocSnapshotIndex === i}
+                  onClick={() => panel.loadDocSnapshot(i)}
+                />
+              ))}
+            </div>
+
+            {/* Selected snapshot content */}
+            {panel.docSnapshotText !== null && (
+              <div>
+                <h4 className="text-[10px] font-bold text-zinc-400 mb-1">
+                  Snapshot #{panel.selectedDocSnapshotIndex} Content
+                </h4>
+                <pre className="text-[10px] text-zinc-300 bg-zinc-900 rounded p-2 overflow-x-auto max-h-48 whitespace-pre-wrap font-mono">
+                  {panel.docSnapshotText}
+                </pre>
+              </div>
+            )}
+
+            {/* Diff between snapshots */}
+            {panel.documentTimeline.length >= 2 && (
+              <div>
+                <h4 className="text-[10px] font-bold text-zinc-400 mb-2">Diff Snapshots</h4>
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="text-[10px] text-zinc-500">From:</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={panel.documentTimeline.length - 1}
+                    value={diffFrom}
+                    onChange={(e) => setDiffFrom(Number(e.target.value))}
+                    className="bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-xs text-zinc-200 w-16"
+                  />
+                  <label className="text-[10px] text-zinc-500">To:</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={panel.documentTimeline.length - 1}
+                    value={diffTo}
+                    onChange={(e) => setDiffTo(Number(e.target.value))}
+                    className="bg-zinc-900 border border-zinc-700 rounded px-2 py-0.5 text-xs text-zinc-200 w-16"
+                  />
+                  <button
+                    onClick={() => panel.computeDocDiff(diffFrom, diffTo)}
+                    disabled={panel.docDiffLoading}
+                    className="px-2 py-0.5 text-[10px] bg-blue-600 hover:bg-blue-500 text-white rounded disabled:opacity-50"
+                  >
+                    {panel.docDiffLoading ? 'Diffing...' : 'Diff'}
+                  </button>
+                </div>
+
+                {panel.docDiffResult && (
+                  <div className="bg-zinc-900 rounded p-2 space-y-2">
+                    <div className="text-[10px] text-zinc-500">
+                      Snapshot #{panel.docDiffResult.fromIndex} vs #{panel.docDiffResult.toIndex}
+                      {' | '}
+                      Size delta: {panel.docDiffResult.sizeDelta > 0 ? '+' : ''}
+                      {formatBytes(panel.docDiffResult.sizeDelta)}
+                    </div>
+                    {panel.docDiffResult.fromText !== panel.docDiffResult.toText ? (
+                      <>
+                        <div>
+                          <div className="text-[10px] font-bold text-red-400 mb-0.5">Before</div>
+                          <pre className="text-[10px] text-red-400/70 font-mono whitespace-pre-wrap bg-red-950/20 rounded p-1.5 max-h-32 overflow-y-auto">
+                            {panel.docDiffResult.fromText || '[empty]'}
+                          </pre>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold text-green-400 mb-0.5">After</div>
+                          <pre className="text-[10px] text-green-400 font-mono whitespace-pre-wrap bg-green-950/20 rounded p-1.5 max-h-32 overflow-y-auto">
+                            {panel.docDiffResult.toText || '[empty]'}
+                          </pre>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-[10px] text-zinc-500 font-mono">No text change</div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DocSnapshotRow({
+  entry,
+  index,
+  isSelected,
+  onClick
+}: {
+  entry: DocumentTimelineEntry
+  index: number
+  isSelected: boolean
+  onClick: () => void
+}) {
+  return (
+    <div
+      onClick={onClick}
+      className={`flex items-center gap-2 px-3 py-1 cursor-pointer border-l-2 text-xs ${
+        isSelected ? 'bg-zinc-800 border-purple-400' : 'border-transparent hover:bg-zinc-900'
+      }`}
+    >
+      <span className="text-[10px] text-zinc-600 w-6 font-mono">#{index}</span>
+      <span className="text-[10px] text-zinc-500 w-20 font-mono">{formatTime(entry.wallTime)}</span>
+      <span className="w-2 h-2 rounded-full bg-purple-400" />
+      <span className="text-[10px] text-zinc-300">snapshot</span>
+      <span className="text-[10px] text-zinc-500 ml-auto">{formatBytes(entry.byteSize)}</span>
     </div>
   )
 }
