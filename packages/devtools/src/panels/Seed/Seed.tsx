@@ -15,6 +15,72 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 }
 
+/** Encode a Uint8Array to Base64 string */
+function uint8ArrayToBase64(arr: Uint8Array): string {
+  return btoa(String.fromCharCode(...arr))
+}
+
+/**
+ * Create a TextAnchor JSON string for a text range within a Y.XmlFragment.
+ * Walks the fragment tree to find ProseMirror-style positions for the given text.
+ *
+ * @param fragment - The Y.XmlFragment containing the document content
+ * @param searchText - The text substring to anchor to
+ * @param occurrence - Which occurrence to match (0-based, default 0)
+ * @returns JSON-encoded TextAnchor, or null if text not found
+ */
+function createTextAnchor(
+  fragment: Y.XmlFragment,
+  searchText: string,
+  occurrence = 0
+): string | null {
+  // Walk the Yjs XML tree to compute ProseMirror-style positions.
+  // ProseMirror positions: doc node opens at 0, first child opens at 1, etc.
+  // Each opening/closing tag takes 1 position, text characters take 1 each.
+  let pos = 0 // ProseMirror position (starts inside the doc node)
+  let found = 0
+
+  function walk(el: Y.XmlElement | Y.XmlFragment): { from: number; to: number } | null {
+    const children =
+      el instanceof Y.XmlFragment && !(el instanceof Y.XmlElement)
+        ? el.toArray()
+        : (el as Y.XmlElement).toArray()
+    for (const child of children) {
+      if (child instanceof Y.XmlElement) {
+        pos++ // Opening tag
+        const result = walk(child)
+        if (result) return result
+        pos++ // Closing tag
+      } else if (child instanceof Y.XmlText) {
+        const text = child.toString()
+        const idx = text.indexOf(searchText)
+        if (idx !== -1 && found === occurrence) {
+          const from = pos + idx
+          const to = from + searchText.length
+          return { from, to }
+        }
+        if (idx !== -1) found++
+        pos += text.length
+      }
+    }
+    return null
+  }
+
+  const result = walk(fragment)
+  if (!result) return null
+
+  // Convert ProseMirror positions to Yjs relative positions
+  // ProseMirror is 1-based from the doc node, Yjs uses 0-based fragment indices
+  const startRelPos = Y.createRelativePositionFromTypeIndex(fragment, result.from - 1)
+  const endRelPos = Y.createRelativePositionFromTypeIndex(fragment, result.to - 1)
+
+  return JSON.stringify({
+    startRelative: uint8ArrayToBase64(Y.encodeRelativePosition(startRelPos)),
+    endRelative: uint8ArrayToBase64(Y.encodeRelativePosition(endRelPos)),
+    quotedText: searchText
+  })
+}
+
 export function Seed() {
   const { store, yDocRegistry } = useDevTools()
   const [status, setStatus] = useState<string | null>(null)
@@ -221,6 +287,81 @@ export function Seed() {
 
       // Register with devtools for inspection
       yDocRegistry.register(node.id, ydoc)
+
+      // ─── Create sample comments ──────────────────────────────────────
+      // Comments are separate nodes that reference text positions via Yjs
+      // RelativePositions. The editor's restoreCommentMarks() will apply
+      // the visual highlights when the page is opened.
+
+      const pageSchemaId = 'xnet://xnet.fyi/Page'
+      const commentSchemaId = 'xnet://xnet.fyi/Comment' as const
+
+      // Comment 1: On the intro paragraph text (active, with a reply thread)
+      const anchor1 = createTextAnchor(fragment, 'all supported block types')
+      if (anchor1) {
+        const rootComment = await store.create({
+          schemaId: commentSchemaId,
+          properties: {
+            target: node.id,
+            targetSchema: pageSchemaId,
+            anchorType: 'text',
+            anchorData: anchor1,
+            content:
+              'This page is a great reference for testing. Should we add an embed example too?',
+            resolved: false,
+            edited: false
+          }
+        })
+
+        // Reply to comment 1
+        await store.create({
+          schemaId: commentSchemaId,
+          properties: {
+            target: node.id,
+            targetSchema: pageSchemaId,
+            inReplyTo: rootComment.id,
+            anchorType: 'text',
+            anchorData: anchor1,
+            content: 'Good idea! The embed placeholder at the bottom covers that for now.',
+            resolved: false,
+            edited: false
+          }
+        })
+      }
+
+      // Comment 2: On the blockquote text (active, standalone)
+      const anchor2 = createTextAnchor(fragment, 'multiple lines of quoted text')
+      if (anchor2) {
+        await store.create({
+          schemaId: commentSchemaId,
+          properties: {
+            target: node.id,
+            targetSchema: pageSchemaId,
+            anchorType: 'text',
+            anchorData: anchor2,
+            content: 'Consider adding a multi-paragraph blockquote example here.',
+            resolved: false,
+            edited: false
+          }
+        })
+      }
+
+      // Comment 3: On a callout (resolved thread)
+      const anchor3 = createTextAnchor(fragment, 'important notices')
+      if (anchor3) {
+        await store.create({
+          schemaId: commentSchemaId,
+          properties: {
+            target: node.id,
+            targetSchema: pageSchemaId,
+            anchorType: 'text',
+            anchorData: anchor3,
+            content: 'Typo fixed in the warning callout text.',
+            resolved: true,
+            edited: false
+          }
+        })
+      }
 
       setStatus(`Created sample page: ${node.id}`)
     } catch (err) {
@@ -543,7 +684,8 @@ export function Seed() {
         <div className="text-[10px] text-zinc-600 space-y-1">
           <div>
             <strong>Sample Page:</strong> H1-H3, paragraph, bullet/numbered/task lists, blockquote,
-            code block, horizontal rule, all callout types, toggle sections, and Mermaid diagram.
+            code block, horizontal rule, all callout types, toggle sections, Mermaid diagram, and
+            sample comments (active thread with reply, standalone comment, and resolved thread).
           </div>
           <div>
             <strong>Sample Database:</strong> 15 columns covering all property types (text, number,
