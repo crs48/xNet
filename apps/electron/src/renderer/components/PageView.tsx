@@ -122,13 +122,24 @@ export function PageView({ docId }: PageViewProps) {
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const editorRef = useRef<Editor | null>(null)
   const marksRestoredRef = useRef(false)
+  const [editorReady, setEditorReady] = useState(false)
 
-  // Handle editor ready - store ref and restore comment marks
+  // Reset mark restoration state when switching documents
+  useEffect(() => {
+    marksRestoredRef.current = false
+    editorRef.current = null
+    setEditorReady(false)
+  }, [docId])
+
+  // Handle editor ready - store ref and trigger mark restoration
   const handleEditorReady = useCallback((editor: Editor) => {
     editorRef.current = editor
+    setEditorReady(true)
   }, [])
 
-  // Restore comment marks when editor is ready and threads are loaded
+  // Restore comment marks when editor is ready and threads are loaded.
+  // Both editorReady and threads are in the dependency array so the effect
+  // fires regardless of which one becomes available first.
   useEffect(() => {
     if (!editorRef.current || marksRestoredRef.current || threads.length === 0) return
 
@@ -150,7 +161,7 @@ export function PageView({ docId }: PageViewProps) {
       setOrphanedIds(orphaned)
       console.log(`[Comments] Restored ${resolved.length} marks, ${orphaned.length} orphaned`)
     }
-  }, [threads])
+  }, [threads, editorReady])
 
   // Build orphaned threads list for display
   const orphanedThreads = useMemo((): OrphanedThread[] => {
@@ -289,19 +300,39 @@ export function PageView({ docId }: PageViewProps) {
   const handleResolve = useCallback(async () => {
     if (!popoverState.threadId) return
     await resolveThread(popoverState.threadId)
+    // Update the mark visual state to resolved (amber -> green)
+    editorRef.current?.commands.setCommentResolved(popoverState.threadId, true)
   }, [popoverState.threadId, resolveThread])
 
   const handleReopen = useCallback(async () => {
     if (!popoverState.threadId) return
     await reopenThread(popoverState.threadId)
+    // Update the mark visual state back to active (green -> amber)
+    editorRef.current?.commands.setCommentResolved(popoverState.threadId, false)
   }, [popoverState.threadId, reopenThread])
 
   const handleDelete = useCallback(
     async (commentId: string) => {
       await deleteComment(commentId)
-      // If deleting root with no replies, close popover
+      // If deleting root with no replies, remove the mark from the document and close popover
       const thread = threadDataMap.get(popoverState.threadId || '')
       if (thread && commentId === thread.root.id && thread.replies.length === 0) {
+        // Remove the comment mark from the editor document
+        const editor = editorRef.current
+        if (editor) {
+          const { tr, doc } = editor.state
+          const markType = editor.schema.marks.comment
+          if (markType) {
+            doc.descendants((node, pos) => {
+              node.marks.forEach((mark) => {
+                if (mark.type === markType && mark.attrs.commentId === commentId) {
+                  tr.removeMark(pos, pos + node.nodeSize, mark)
+                }
+              })
+            })
+            editor.view.dispatch(tr)
+          }
+        }
         handleDismiss()
       }
     },

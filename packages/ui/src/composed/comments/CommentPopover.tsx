@@ -221,12 +221,16 @@ export function CommentPopover({
     ) : null
   }
 
-  // Otherwise use Radix popover with element anchor
+  // Otherwise use Radix popover with element anchor.
+  // We use a virtualRef so the popover is positioned relative to the actual
+  // comment mark <span> in the editor DOM without needing to wrap it.
+  const virtualRef = anchorElement
+    ? { current: { getBoundingClientRect: () => anchorElement.getBoundingClientRect() } }
+    : undefined
+
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={(isOpen) => !isOpen && onDismiss?.()}>
-      <PopoverPrimitive.Anchor asChild>
-        <span />
-      </PopoverPrimitive.Anchor>
+      <PopoverPrimitive.Anchor virtualRef={virtualRef} />
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content
           side={side}

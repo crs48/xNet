@@ -70,7 +70,9 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
               const commentId = commentSpan.getAttribute('data-comment-id')
               if (commentId) {
                 extension.options.onClickComment(commentId, commentSpan)
-                return true
+                // Return false so ProseMirror still places the caret at the
+                // click position. The popover is shown as a side-effect.
+                return false
               }
             }
             return false
