@@ -10,7 +10,13 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { SyncStatus } from '@xnet/react'
 // Editor type - we use any since @tiptap/core isn't directly available
-import { useNode, useIdentity, useEditorExtensionsSafe, useComments } from '@xnet/react'
+import {
+  useNode,
+  useIdentity,
+  useEditorExtensionsSafe,
+  useComments,
+  usePluginRegistryOptional
+} from '@xnet/react'
 import { PageSchema, decodeAnchor, type TextAnchor } from '@xnet/data'
 import {
   RichTextEditor,
@@ -69,6 +75,15 @@ export function PageView({ docId }: PageViewProps) {
   // Cast to any to avoid TipTap version conflicts between packages
   const editorContributions = useEditorExtensionsSafe()
   const pluginExtensions = editorContributions.map((c) => c.extension) as any[]
+
+  // Wait for plugin-contributed editor extensions to be registered before
+  // mounting the editor. BundledPluginInstaller installs plugins (like Mermaid)
+  // asynchronously. If the editor mounts before Mermaid is registered, Yjs
+  // content containing mermaid nodes will crash ProseMirror ("toDOM is not a
+  // function"). We gate on editorContributions being populated, which means
+  // the plugin's activate() has run and contributions are registered.
+  const pluginRegistry = usePluginRegistryOptional()
+  const pluginsReady = pluginRegistry ? editorContributions.length > 0 : false
 
   // Page data and Y.Doc
   const {
@@ -472,7 +487,7 @@ export function PageView({ docId }: PageViewProps) {
     [threadDataMap]
   )
 
-  if (loading || !doc) {
+  if (loading || !doc || !pluginsReady) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-muted-foreground">Loading...</p>
