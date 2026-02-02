@@ -28,7 +28,9 @@ export function useDevTools() {
   return {
     isOpen: false,
     toggle: () => {},
-    eventBus: null
+    eventBus: null,
+    activeNodeId: null as string | null,
+    setActiveNodeId: (_id: string | null) => {}
   }
 }
 

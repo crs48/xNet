@@ -55,6 +55,11 @@ export interface DevToolsContextValue {
   store: NodeStore | null
   /** Registry of Y.Doc instances for tree inspection */
   yDocRegistry: YDocRegistry
+
+  /** Node ID of the document currently open in the app (page, database, etc.) */
+  activeNodeId: string | null
+  /** Called by the app when the user navigates to a different document */
+  setActiveNodeId: (id: string | null) => void
 }
 
 export const DevToolsContext = createContext<DevToolsContextValue | null>(null)

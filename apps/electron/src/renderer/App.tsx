@@ -9,6 +9,7 @@
 
 import React, { useCallback, useState } from 'react'
 import { useQuery, useMutate } from '@xnet/react'
+import { useDevTools } from '@xnet/devtools'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
 import { ThemeToggle } from '@xnet/ui'
 import { Sidebar } from './components/Sidebar'
@@ -34,6 +35,7 @@ export function App() {
   const [selectedDocType, setSelectedDocType] = useState<DocType>('page')
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const { setActiveNodeId } = useDevTools()
 
   // Query all document types
   const { data: pages, loading: pagesLoading } = useQuery(PageSchema, { limit: 100 })
@@ -77,9 +79,10 @@ export function App() {
       if (doc) {
         setSelectedDocId(id)
         setSelectedDocType(doc.type)
+        setActiveNodeId(id)
       }
     },
-    [documents]
+    [documents, setActiveNodeId]
   )
 
   // Handle document creation
@@ -107,9 +110,10 @@ export function App() {
       if (newDoc) {
         setSelectedDocId(newDoc.id)
         setSelectedDocType(type)
+        setActiveNodeId(newDoc.id)
       }
     },
-    [create]
+    [create, setActiveNodeId]
   )
 
   // Handle document deletion
@@ -118,30 +122,35 @@ export function App() {
       await remove(id)
       if (selectedDocId === id) {
         setSelectedDocId(null)
+        setActiveNodeId(null)
       }
     },
-    [remove, selectedDocId]
+    [remove, selectedDocId, setActiveNodeId]
   )
 
   // Handle adding a shared document
   // The share string is encoded as "type:docId" (e.g. "database:abc-123")
   // Falls back to 'page' for bare IDs (backwards compatibility)
-  const handleAddShared = useCallback((shareString: string) => {
-    let docType: DocType = 'page'
-    let docId = shareString
+  const handleAddShared = useCallback(
+    (shareString: string) => {
+      let docType: DocType = 'page'
+      let docId = shareString
 
-    const colonIdx = shareString.indexOf(':')
-    if (colonIdx > 0) {
-      const prefix = shareString.slice(0, colonIdx)
-      if (prefix === 'page' || prefix === 'database' || prefix === 'canvas') {
-        docType = prefix
-        docId = shareString.slice(colonIdx + 1)
+      const colonIdx = shareString.indexOf(':')
+      if (colonIdx > 0) {
+        const prefix = shareString.slice(0, colonIdx)
+        if (prefix === 'page' || prefix === 'database' || prefix === 'canvas') {
+          docType = prefix
+          docId = shareString.slice(colonIdx + 1)
+        }
       }
-    }
 
-    setSelectedDocId(docId)
-    setSelectedDocType(docType)
-  }, [])
+      setSelectedDocId(docId)
+      setSelectedDocType(docType)
+      setActiveNodeId(docId)
+    },
+    [setActiveNodeId]
+  )
 
   // Render content based on document type or settings
   const renderContent = () => {

@@ -109,7 +109,7 @@ export interface UseHistoryPanelResult {
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useHistoryPanel(): UseHistoryPanelResult {
-  const { store } = useDevTools()
+  const { store, activeNodeId } = useDevTools()
 
   // ─── Node Selection ──────────────────────────────────────
   const [nodes, setNodes] = useState<NodeOption[]>([])
@@ -191,6 +191,13 @@ export function useHistoryPanel(): UseHistoryPanelResult {
     }
     return enginesRef.current
   }, [getStorage])
+
+  // ─── Sync Active Node from App ─────────────────────────
+  useEffect(() => {
+    if (activeNodeId) {
+      setSelectedNodeId(activeNodeId as NodeId)
+    }
+  }, [activeNodeId])
 
   // ─── Load Node List ──────────────────────────────────────
   useEffect(() => {

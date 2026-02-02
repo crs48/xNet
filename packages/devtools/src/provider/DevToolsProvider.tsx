@@ -239,6 +239,7 @@ export function XNetDevToolsProvider({
     loadStoredPosition(initialPosition)
   )
   const [height, setHeight] = useState(initialHeight)
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null)
 
   // Persist open state
   const setIsOpen = (open: boolean | ((prev: boolean) => boolean)) => {
@@ -354,7 +355,9 @@ export function XNetDevToolsProvider({
     setHeight,
     eventBus: busRef.current,
     store,
-    yDocRegistry: yDocRegistryRef.current
+    yDocRegistry: yDocRegistryRef.current,
+    activeNodeId,
+    setActiveNodeId
   }
 
   // Instrumentation context for hooks (useNode, useQuery, useMutate)
