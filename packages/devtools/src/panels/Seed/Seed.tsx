@@ -156,21 +156,17 @@ export function Seed() {
           fragment.push([callout])
         }
 
-        // Toggle (collapsible section)
-        const toggle = new Y.XmlElement('details')
-        const summary = new Y.XmlElement('detailsSummary')
-        const summaryPara = new Y.XmlElement('paragraph')
-        summaryPara.insert(0, [new Y.XmlText('Click to expand this toggle section')])
-        summary.insert(0, [summaryPara])
-        const detailsContent = new Y.XmlElement('detailsContent')
+        // Toggle (collapsible section) - uses 'toggle' node name to match ToggleExtension
+        const toggle = new Y.XmlElement('toggle')
+        toggle.setAttribute('summary', 'Click to expand this toggle section')
+        toggle.setAttribute('open', 'true')
         const contentPara = new Y.XmlElement('paragraph')
         contentPara.insert(0, [
           new Y.XmlText(
             'This is the hidden content inside the toggle. It can contain any other block types.'
           )
         ])
-        detailsContent.insert(0, [contentPara])
-        toggle.insert(0, [summary, detailsContent])
+        toggle.insert(0, [contentPara])
         fragment.push([toggle])
 
         // Mermaid diagram

@@ -5,6 +5,11 @@ import { app, BrowserWindow } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
+// Enable remote debugging in development for Playwright/CDP testing
+if (process.env.NODE_ENV === 'development') {
+  app.commandLine.appendSwitch('remote-debugging-port', '9222')
+}
+
 // ESM __dirname shim (electron-vite outputs ESM)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
