@@ -116,6 +116,20 @@ export {
 export { useCommentCount, useCommentCounts } from './hooks/useCommentCount'
 
 // =============================================================================
+// History
+// =============================================================================
+
+/**
+ * useHistory - React hook for node history / time travel
+ *
+ * @example
+ * ```tsx
+ * const { timeline, materializeAt, diff, changeCount } = useHistory(nodeId)
+ * ```
+ */
+export { useHistory, type UseHistoryResult } from './hooks/useHistory'
+
+// =============================================================================
 // Utilities
 // =============================================================================
 

@@ -22,6 +22,7 @@ import { QueryDebugger } from './QueryDebugger/QueryDebugger'
 import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
 import { Seed } from './Seed/Seed'
+import { HistoryPanel } from './HistoryPanel/HistoryPanel'
 
 const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'nodes', label: 'Nodes' },
@@ -31,7 +32,8 @@ const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'queries', label: 'Queries' },
   { id: 'telemetry', label: 'Telemetry' },
   { id: 'schemas', label: 'Schemas' },
-  { id: 'seed', label: 'Seed' }
+  { id: 'seed', label: 'Seed' },
+  { id: 'history', label: 'History' }
 ]
 
 export function DevToolsPanel() {
@@ -128,6 +130,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <SchemaRegistry />
     case 'seed':
       return <Seed />
+    case 'history':
+      return <HistoryPanel />
   }
 }
 

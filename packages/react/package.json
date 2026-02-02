@@ -23,6 +23,7 @@
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
+    "@xnet/history": "workspace:*",
     "@xnet/identity": "workspace:*",
     "@xnet/plugins": "workspace:*",
     "y-protocols": "^1.0.6",

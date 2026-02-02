@@ -16,6 +16,7 @@ export type PanelId =
   | 'telemetry'
   | 'schemas'
   | 'seed'
+  | 'history'
 
 export type PanelPosition = 'bottom' | 'right' | 'floating'
 
