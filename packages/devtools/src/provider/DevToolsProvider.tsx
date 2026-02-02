@@ -196,7 +196,18 @@ function loadStoredPanel(defaultPanel: PanelId): PanelId {
   const stored = localStorage.getItem(STORAGE_KEY_PANEL)
   if (
     stored &&
-    ['nodes', 'queries', 'sync', 'yjs', 'schemas', 'timeline', 'telemetry'].includes(stored)
+    [
+      'nodes',
+      'queries',
+      'sync',
+      'yjs',
+      'schemas',
+      'timeline',
+      'telemetry',
+      'changes',
+      'seed',
+      'history'
+    ].includes(stored)
   ) {
     return stored as PanelId
   }

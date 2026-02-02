@@ -28,6 +28,7 @@
     "@xnet/react": "workspace:*"
   },
   "dependencies": {
+    "@xnet/history": "workspace:*",
     "@xnet/ui": "workspace:*",
     "@xnet/views": "workspace:*"
   },

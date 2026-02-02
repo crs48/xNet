@@ -499,6 +499,9 @@ importers:
       '@xnet/data':
         specifier: workspace:*
         version: link:../data
+      '@xnet/history':
+        specifier: workspace:*
+        version: link:../history
       '@xnet/react':
         specifier: workspace:*
         version: link:../react
@@ -821,6 +824,9 @@ importers:
       '@xnet/data':
         specifier: workspace:*
         version: link:../data
+      '@xnet/history':
+        specifier: workspace:*
+        version: link:../history
       '@xnet/identity':
         specifier: workspace:*
         version: link:../identity
