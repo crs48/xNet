@@ -237,6 +237,7 @@ export function CommentPopover({
           align="start"
           sideOffset={8}
           className="z-50 animate-in fade-in-0 zoom-in-95"
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {content}
         </PopoverPrimitive.Content>
