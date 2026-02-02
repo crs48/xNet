@@ -36,7 +36,9 @@
     "clsx": "^2.1.0",
     "cmdk": "^1.1.1",
     "lucide-react": "^0.400.0",
+    "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.4.1",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7"
   },
