@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { cn } from '../../utils'
 import { DIDAvatar } from '../../components/DIDAvatar'
+import { MarkdownContent } from '../../components/MarkdownContent'
 import { Button } from '../../primitives/Button'
 
 export interface CommentBubbleProps {
@@ -152,9 +153,7 @@ export function CommentBubble({
           </div>
         </div>
       ) : (
-        <div className="pl-7 text-sm text-foreground whitespace-pre-wrap break-words">
-          {content}
-        </div>
+        <MarkdownContent content={content} className="pl-7 text-foreground" />
       )}
 
       {/* Actions menu (on hover) */}

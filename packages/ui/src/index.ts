@@ -64,6 +64,7 @@ export { TagInput, type TagInputProps } from './components/TagInput'
 export { SearchInput, type SearchInputProps } from './components/SearchInput'
 export { EmptyState, type EmptyStateProps } from './components/EmptyState'
 export { Skeleton, type SkeletonProps } from './components/Skeleton'
+export { MarkdownContent, type MarkdownContentProps } from './components/MarkdownContent'
 
 // ─── DevTools Components ──────────────────────────────────────────
 export { ThemeToggle } from './composed/ThemeToggle'
