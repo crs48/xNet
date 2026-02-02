@@ -352,7 +352,7 @@ export function useChangesSince(nodeId: NodeId, since: number) {
 - [x] Implement `matchesQuery()` for real-time subscription filtering
 - [x] Implement `subscribe()` for live audit feeds
 - [ ] Handle DB version migration (v1 → v2) for existing data
-- [ ] Create `useAudit`, `useNodeActivity`, `useChangesSince` hooks
+- [x] Create `useAudit`, `useNodeActivity`, `useChangesSince` hooks
 - [x] Write tests for all query combinations
 - [ ] Benchmark: 10k changes query by author+timeRange < 100ms
 

@@ -830,7 +830,7 @@ describe('PruningEngine', () => {
 - [x] Add `deleteChange` to `PrunableStorageAdapter` interface
 - [ ] Implement `deleteChange` in IndexedDB adapter
 - [ ] Create DID-to-public-key resolver for `did:key:` verification
-- [ ] Build `useVerification` and `useStorageMetrics` React hooks
+- [x] Build `useVerification` and `useStorageMetrics` React hooks
 - [ ] Build `VerificationBadge` component (icon + status + details)
 - [ ] Build `StoragePanel` component (metrics + prune button)
 - [x] Add platform-specific pruning policies (Desktop, Web, Mobile)
