@@ -295,11 +295,12 @@ export function Seed() {
 
       const pageSchemaId = 'xnet://xnet.fyi/Page'
       const commentSchemaId = 'xnet://xnet.fyi/Comment' as const
+      let rootComment: { id: string } | null = null
 
       // Comment 1: On the intro paragraph text (active, with a reply thread)
       const anchor1 = createTextAnchor(fragment, 'all supported block types')
       if (anchor1) {
-        const rootComment = await store.create({
+        rootComment = await store.create({
           schemaId: commentSchemaId,
           properties: {
             target: node.id,
@@ -363,7 +364,60 @@ export function Seed() {
         })
       }
 
-      setStatus(`Created sample page: ${node.id}`)
+      // ─── Create history (multiple updates) ─────────────────────────
+      // These updates build a realistic change history for testing the
+      // History devtools panel: timeline scrubbing, diff, blame, etc.
+
+      await store.update(node.id, {
+        properties: { title: 'Sample Page - Draft' }
+      })
+
+      await store.update(node.id, {
+        properties: { icon: '📝' }
+      })
+
+      await store.update(node.id, {
+        properties: { title: 'Sample Page - All Block Types' }
+      })
+
+      await store.update(node.id, {
+        properties: { icon: '📄' }
+      })
+
+      // ─── Comment history (edits, resolve, reopen) ──────────────────
+      // Give the first root comment a realistic edit history
+      if (anchor1 && rootComment) {
+        // Edit the root comment
+        await store.update(rootComment.id, {
+          properties: {
+            content:
+              'This page is a great reference for testing! Should we add an embed example too? (edited for clarity)',
+            edited: true,
+            editedAt: Date.now()
+          }
+        })
+      }
+
+      // Resolve then reopen comment 2 to show resolve/reopen history
+      if (anchor2) {
+        const comment2List = (await store.list()).filter(
+          (n) =>
+            n.properties?.target === node.id &&
+            n.properties?.anchorData === anchor2 &&
+            n.schemaId === commentSchemaId
+        )
+        if (comment2List.length > 0) {
+          const c2 = comment2List[0]
+          await store.update(c2.id, {
+            properties: { resolved: true, resolvedAt: Date.now() }
+          })
+          await store.update(c2.id, {
+            properties: { resolved: false, resolvedAt: null }
+          })
+        }
+      }
+
+      setStatus(`Created sample page: ${node.id} (5 changes + comment history)`)
     } catch (err) {
       setStatus(`Error: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
@@ -619,7 +673,100 @@ export function Seed() {
       // Register with devtools for inspection
       yDocRegistry.register(node.id, ydoc)
 
-      setStatus(`Created sample database: ${node.id}`)
+      // ─── Create database comments ──────────────────────────────────
+      const dbSchemaId = 'xnet://xnet.fyi/Database'
+      const commentSchemaId = 'xnet://xnet.fyi/Comment' as const
+
+      // Comment on a cell (text column, row 1)
+      const cellComment = await store.create({
+        schemaId: commentSchemaId,
+        properties: {
+          target: node.id,
+          targetSchema: dbSchemaId,
+          anchorType: 'cell',
+          anchorData: JSON.stringify({ rowIndex: 0, columnId: 'text' }),
+          content: 'This row has all fields populated - great for screenshot demos.',
+          resolved: false,
+          edited: false
+        }
+      })
+
+      // Reply to the cell comment
+      await store.create({
+        schemaId: commentSchemaId,
+        properties: {
+          target: node.id,
+          targetSchema: dbSchemaId,
+          inReplyTo: cellComment.id,
+          anchorType: 'node',
+          anchorData: '{}',
+          content: 'Agreed, we should keep this row as the primary example.',
+          resolved: false,
+          edited: false
+        }
+      })
+
+      // Comment on a row (row 3 - sparse data)
+      await store.create({
+        schemaId: commentSchemaId,
+        properties: {
+          target: node.id,
+          targetSchema: dbSchemaId,
+          anchorType: 'row',
+          anchorData: JSON.stringify({ rowIndex: 2 }),
+          content:
+            'Should we fill in more fields here, or keep it sparse for testing empty states?',
+          resolved: false,
+          edited: false
+        }
+      })
+
+      // Resolved comment on a column
+      await store.create({
+        schemaId: commentSchemaId,
+        properties: {
+          target: node.id,
+          targetSchema: dbSchemaId,
+          anchorType: 'column',
+          anchorData: JSON.stringify({ columnId: 'dateRange' }),
+          content: 'Fixed: dateRange column now correctly handles same-day ranges.',
+          resolved: true,
+          edited: false
+        }
+      })
+
+      // ─── Create database history ──────────────────────────────────
+      await store.update(node.id, {
+        properties: { title: 'Property Types DB' }
+      })
+
+      await store.update(node.id, {
+        properties: { defaultView: 'board' }
+      })
+
+      await store.update(node.id, {
+        properties: { title: 'Sample Database - All Property Types', defaultView: 'table' }
+      })
+
+      await store.update(node.id, {
+        properties: { icon: '🗄️' }
+      })
+
+      await store.update(node.id, {
+        properties: { icon: '📊' }
+      })
+
+      // Edit the cell comment to show comment history
+      await store.update(cellComment.id, {
+        properties: {
+          content:
+            'This row has all 15 fields populated - great for screenshot demos and integration testing.',
+          edited: true,
+          editedAt: Date.now()
+        }
+      })
+
+      setStatus(`Created sample database: ${node.id} (6 changes + comments)`)
     } catch (err) {
       setStatus(`Error: ${err instanceof Error ? err.message : String(err)}`)
     } finally {
@@ -684,14 +831,14 @@ export function Seed() {
         <div className="text-[10px] text-zinc-600 space-y-1">
           <div>
             <strong>Sample Page:</strong> H1-H3, paragraph, bullet/numbered/task lists, blockquote,
-            code block, horizontal rule, all callout types, toggle sections, Mermaid diagram, and
-            sample comments (active thread with reply, standalone comment, and resolved thread).
+            code block, horizontal rule, all callout types, toggle sections, Mermaid diagram,
+            comments (active thread with reply, standalone, resolved), and change history (5
+            changes: create + title/icon updates).
           </div>
           <div>
-            <strong>Sample Database:</strong> 15 columns covering all property types (text, number,
-            checkbox, date, dateRange, select, multiSelect, person, relation, url, email, phone,
-            file, created, updated, createdBy) with 5 rows showing filled, partial, and empty
-            states.
+            <strong>Sample Database:</strong> 15 columns covering all property types with 5 rows,
+            comments (cell thread with reply, row comment, resolved column comment), and change
+            history (6 changes: create + title/view/icon updates).
           </div>
         </div>
       </div>
