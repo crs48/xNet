@@ -62,6 +62,24 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
 ): DefinedSchema<P> {
   const schemaId = `${options.namespace}${options.name}` as SchemaIRI
 
+  // ─── Dev-time warning: detect text() properties that look like references ───
+  if (process.env.NODE_ENV !== 'production') {
+    // Patterns that suggest a property stores a node ID or foreign key.
+    // Matches: target, inReplyTo, replyToFoo, parentId, nodeRef, fooNodeId
+    // Excludes: pluginId, sourceUrl, schemaId (these are identifiers, not FK refs)
+    const REF_NAME_PATTERN =
+      /(?:^target$|^inReplyTo$|^replyTo[A-Z].*(?:Id|Node)$|(?:parent|node|comment|task|page|database)(?:Id|Ref)$)/
+
+    for (const [name, builder] of Object.entries(options.properties)) {
+      if (builder.definition.type === 'text' && REF_NAME_PATTERN.test(name)) {
+        console.warn(
+          `[xNet Schema] "${options.name}.${name}" is a text() property whose name suggests it stores a reference. ` +
+            `Consider using relation() for node references or person() for DIDs.`
+        )
+      }
+    }
+  }
+
   // Build property definitions with IRIs
   const properties: PropertyDefinition[] = Object.entries(options.properties).map(
     ([name, builder]) => ({

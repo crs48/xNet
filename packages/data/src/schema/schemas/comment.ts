@@ -28,7 +28,7 @@ export const CommentSchema = defineSchema({
     // ─── Universal Targeting (schema-agnostic relation) ────────────────────────
 
     /** The Node this comment is on (any schema - Page, Task, Database, Canvas, etc.) */
-    target: text({ required: true }),
+    target: relation({ required: true }),
 
     /** Schema IRI of the target Node (optimization hint, not enforced) */
     targetSchema: text({}),
@@ -36,7 +36,7 @@ export const CommentSchema = defineSchema({
     // ─── Threading (flat - all replies point to root) ──────────────────────────
 
     /** Root comment ID for threading (null = this IS the root) */
-    inReplyTo: text({}),
+    inReplyTo: relation({}),
 
     // ─── Anchor Data (polymorphic positioning) ─────────────────────────────────
 
@@ -69,10 +69,10 @@ export const CommentSchema = defineSchema({
     // ─── Pseudo Reply-To (for UI, not structural threading) ────────────────────
 
     /** DID of user being replied to (UI hint) */
-    replyToUser: text({}),
+    replyToUser: person({}),
 
     /** Comment ID being referenced (for "in reply to" display) */
-    replyToCommentId: text({}),
+    replyToCommentId: relation({}),
 
     // ─── Thread State (on root comment only) ───────────────────────────────────
 

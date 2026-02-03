@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { defineSchema } from './define'
-import { text, number, checkbox, select, date } from './properties'
+import { text, number, checkbox, select, date, relation } from './properties'
 import { isNode, createNodeId } from './node'
 import type { DID, Node, InferNode } from './index'
 
@@ -261,6 +261,158 @@ describe('Schema System', () => {
       )
       expect(typeof event.startDate).toBe('number')
       expect(event.startDate).toBe(Date.parse('2026-01-21T12:00:00Z'))
+    })
+  })
+
+  describe('relation property', () => {
+    it('creates typed relation with target schema', () => {
+      const Schema = defineSchema({
+        name: 'Child',
+        namespace: 'xnet://test/',
+        properties: {
+          parent: relation({ target: 'xnet://test/Parent' as const, required: true })
+        }
+      })
+
+      const child = Schema.create({ parent: 'parent-123' }, { createdBy: testDID })
+      expect(child.parent).toBe('parent-123')
+
+      const prop = Schema.schema.properties[0]
+      expect(prop.type).toBe('relation')
+      expect(prop.config?.target).toBe('xnet://test/Parent')
+    })
+
+    it('creates untyped relation without target schema', () => {
+      const Schema = defineSchema({
+        name: 'Comment',
+        namespace: 'xnet://test/',
+        properties: {
+          target: relation({ required: true }),
+          inReplyTo: relation({})
+        }
+      })
+
+      const comment = Schema.create(
+        { target: 'any-node-123', inReplyTo: 'root-456' },
+        { createdBy: testDID }
+      )
+      expect(comment.target).toBe('any-node-123')
+      expect(comment.inReplyTo).toBe('root-456')
+
+      // Untyped relation has no target in config
+      const targetProp = Schema.schema.properties[0]
+      expect(targetProp.type).toBe('relation')
+      expect(targetProp.config?.target).toBeUndefined()
+    })
+
+    it('validates untyped relation accepts any non-empty string', () => {
+      const Schema = defineSchema({
+        name: 'Ref',
+        namespace: 'xnet://test/',
+        properties: {
+          target: relation({ required: true })
+        }
+      })
+
+      const valid = {
+        id: 'test',
+        schemaId: 'xnet://test/Ref',
+        createdAt: Date.now(),
+        createdBy: testDID,
+        target: 'some-node-id'
+      }
+      expect(Schema.validate(valid).valid).toBe(true)
+
+      const empty = { ...valid, target: '' }
+      expect(Schema.validate(empty).valid).toBe(false)
+
+      const missing = { ...valid, target: undefined }
+      expect(Schema.validate(missing).valid).toBe(false)
+    })
+
+    it('supports multiple untyped relations', () => {
+      const Schema = defineSchema({
+        name: 'Collection',
+        namespace: 'xnet://test/',
+        properties: {
+          items: relation({ multiple: true })
+        }
+      })
+
+      const col = Schema.create({ items: ['a', 'b', 'c'] }, { createdBy: testDID })
+      expect(col.items).toEqual(['a', 'b', 'c'])
+    })
+
+    it('coerces null to empty array for multiple relations', () => {
+      const Schema = defineSchema({
+        name: 'Collection',
+        namespace: 'xnet://test/',
+        properties: {
+          items: relation({ multiple: true })
+        }
+      })
+
+      const col = Schema.create({}, { createdBy: testDID })
+      expect(col.items).toEqual([])
+    })
+  })
+
+  describe('defineSchema warnings', () => {
+    it('warns when text() property name looks like a reference', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      defineSchema({
+        name: 'Bad',
+        namespace: 'xnet://test/',
+        properties: {
+          target: text({}),
+          inReplyTo: text({}),
+          replyToCommentId: text({})
+        }
+      })
+
+      expect(warnSpy).toHaveBeenCalledTimes(3)
+      expect(warnSpy.mock.calls[0][0]).toContain('Bad.target')
+      expect(warnSpy.mock.calls[1][0]).toContain('Bad.inReplyTo')
+      expect(warnSpy.mock.calls[2][0]).toContain('Bad.replyToCommentId')
+
+      warnSpy.mockRestore()
+    })
+
+    it('does not warn for legitimate text() properties', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      defineSchema({
+        name: 'Good',
+        namespace: 'xnet://test/',
+        properties: {
+          title: text({ required: true }),
+          description: text({}),
+          pluginId: text({}),
+          source: text({})
+        }
+      })
+
+      expect(warnSpy).not.toHaveBeenCalled()
+
+      warnSpy.mockRestore()
+    })
+
+    it('does not warn when relation() is used correctly', () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      defineSchema({
+        name: 'Comment',
+        namespace: 'xnet://test/',
+        properties: {
+          target: relation({ required: true }),
+          inReplyTo: relation({})
+        }
+      })
+
+      expect(warnSpy).not.toHaveBeenCalled()
+
+      warnSpy.mockRestore()
     })
   })
 

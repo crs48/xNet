@@ -196,6 +196,7 @@ Never leave background servers running between tasks or at end of session.
 - Integrate new features into the Electron app first, before bothering with Web or Expo
 - Test UI changes in Electron with Playwright after implementing (start dev server, verify it works)
 - Always kill dev servers when done testing — never leave background processes running
+- Use `opencode.json` and not any `claude.json` for config like MCP
 
 **DON'T:**
 
