@@ -1,0 +1,31 @@
+/* Starlight theme overrides to match the xNet landing page */
+
+/* Dark theme (default) */
+:root {
+  --sl-color-accent-low: #1a1a3e;
+  --sl-color-accent: #6366f1;
+  --sl-color-accent-high: #c7d2fe;
+
+  --sl-color-bg-nav: #0a0a0f;
+  --sl-color-bg-sidebar: #0d0d14;
+
+  --sl-color-gray-1: #e5e7eb;
+  --sl-color-gray-2: #9ca3af;
+  --sl-color-gray-3: #6b7280;
+  --sl-color-gray-4: #4b5563;
+  --sl-color-gray-5: #1e1e2e;
+  --sl-color-gray-6: #12121a;
+  --sl-color-gray-7: #0a0a0f;
+
+  --sl-font: system-ui, -apple-system, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --sl-content-width: 50rem;
+}
+
+/* Light theme overrides */
+:root[data-theme='light'] {
+  --sl-color-accent-low: #e8e8ff;
+  --sl-color-accent: #4f46e5;
+  --sl-color-accent-high: #1e1b4b;
+}

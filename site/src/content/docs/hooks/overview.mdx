@@ -1,0 +1,116 @@
+---
+title: Hooks Overview
+draft: false
+description: How xNet's React hooks connect and which to use when.
+sidebar:
+  order: 0
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
+
+:::note[You will learn]
+
+- Which hook to use for which task
+- How the hooks relate to each other
+- The flow of data through the system
+  :::
+
+## The three core hooks
+
+| Hook                                       | When to use it                                   | Returns                                               |
+| ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------- |
+| [`useQuery`](/xNet/hooks/usequery/)   | List or find nodes. Read-only.                   | `{ data, loading, error, reload }`                    |
+| [`useMutate`](/xNet/hooks/usemutate/) | Create, update, delete nodes.                    | `{ create, update, remove, restore, mutate }`         |
+| [`useNode`](/xNet/hooks/usenode/)     | Edit a single node with collaborative rich text. | `{ data, doc, update, syncStatus, remoteUsers, ... }` |
+
+### When to use which
+
+- **Listing data** (tables, lists, grids, search results) — `useQuery`
+- **Reading a single node by ID** (detail views, cards) — `useQuery(schema, id)`
+- **Creating or deleting** — `useMutate`
+- **Updating properties** on a detail page — `useMutate().update` or `useNode().update`
+- **Rich text editing** (TipTap, collaborative docs) — `useNode` (gives you a `Y.Doc`)
+- **Showing who's online** (presence, cursors) — `useNode` (gives you `remoteUsers` and `awareness`)
+
+### The decision tree
+
+```
+Do you need a Yjs document (rich text, canvas)?
+  ├── Yes → useNode
+  └── No
+        ├── Reading data? → useQuery
+        └── Writing data? → useMutate
+```
+
+`useNode` is the only hook that manages a Yjs document and P2P sync connection. If you don't need collaborative editing, `useQuery` + `useMutate` are simpler and more efficient.
+
+## Supporting hooks
+
+| Hook                                           | Purpose                                    |
+| ---------------------------------------------- | ------------------------------------------ |
+| [`useIdentity`](/xNet/hooks/useidentity/) | Get the current user's DID and auth status |
+| `useComments`                                  | Thread-based comments on any node          |
+| `useHistory`                                   | Change history for a node                  |
+| `useUndo`                                      | Undo/redo for node changes                 |
+
+## All hooks require `XNetProvider`
+
+Every hook reads from a React context provided by `XNetProvider`. If you call a hook outside the provider, it throws:
+
+```tsx
+import { XNetProvider } from '@xnet/react'
+
+function App() {
+  return (
+    <XNetProvider config={{ authorDID, signingKey }}>
+      {/* All hooks work inside here */}
+      <TaskList />
+    </XNetProvider>
+  )
+}
+```
+
+## Data flow
+
+```
+React Component
+  │
+  ├── useQuery(TaskSchema, filter)
+  │     └── NodeStore.list() → IndexedDB
+  │           └── subscribes to NodeChangeEvents
+  │
+  ├── useMutate()
+  │     └── NodeStore.create/update/delete()
+  │           ├── validates against schema
+  │           ├── signs change (Ed25519)
+  │           ├── persists to IndexedDB
+  │           ├── emits NodeChangeEvent → useQuery re-renders
+  │           └── syncs to peers (via SyncManager)
+  │
+  └── useNode(PageSchema, id)
+        ├── NodeStore (structured properties)
+        └── Y.Doc (rich text)
+              ├── WebRTC sync (via SyncManager or WebSocketSyncProvider)
+              ├── debounced persistence to IndexedDB
+              └── awareness (remote users, cursors)
+```
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="useQuery"
+    description="Read data reactively. Filter, sort, paginate."
+    href="/xNet/hooks/usequery/"
+  />
+  <LinkCard
+    title="useMutate"
+    description="Create, update, delete with type safety."
+    href="/xNet/hooks/usemutate/"
+  />
+  <LinkCard
+    title="useNode"
+    description="Collaborative editing with Yjs, presence, and sync."
+    href="/xNet/hooks/usenode/"
+  />
+</CardGrid>

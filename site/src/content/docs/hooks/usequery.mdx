@@ -1,0 +1,222 @@
+---
+title: useQuery
+draft: false
+description: Read data reactively with filtering, sorting, and pagination.
+sidebar:
+  badge:
+    text: Core
+    variant: success
+  order: 1
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components'
+
+:::note[You will learn]
+
+- The full API signature and all three overloads
+- How to filter, sort, and paginate results
+- How reactive updates work under the hood
+- Common gotchas and edge cases
+  :::
+
+:::tip[What useQuery replaces]
+In a traditional React app, `useQuery` replaces:
+
+- **React Query / SWR** — reactive data fetching
+- **REST/GraphQL client** — API calls
+- **Database queries** — Prisma/Drizzle on the backend
+- **WebSocket subscriptions** — real-time updates
+
+With xNet, all of this is one hook. Data is local, so queries are instant.
+:::
+
+## Quick example
+
+```tsx
+import { useQuery } from '@xnet/react'
+import { TaskSchema } from './schema'
+
+function TaskList() {
+  const { data: tasks, loading } = useQuery(TaskSchema, {
+    where: { status: 'todo' },
+    orderBy: { createdAt: 'desc' },
+    limit: 20
+  })
+
+  if (loading) return <p>Loading...</p>
+  return (
+    <ul>
+      {tasks.map((t) => (
+        <li key={t.id}>{t.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+## Signature
+
+`useQuery` has three overloads:
+
+```ts
+// Overload 1: List all nodes of a schema
+function useQuery<P>(schema: DefinedSchema<P>): QueryListResult<P>
+
+// Overload 2: Get a single node by ID
+function useQuery<P>(schema: DefinedSchema<P>, id: string): QuerySingleResult<P>
+
+// Overload 3: Query with filters
+function useQuery<P>(schema: DefinedSchema<P>, filter: QueryFilter<P>): QueryListResult<P>
+```
+
+The second argument determines the overload: pass a `string` for single-node lookup, an object for filtered queries, or omit it to get all nodes.
+
+## Parameters
+
+| Parameter | Type               | Description                                                                             |
+| --------- | ------------------ | --------------------------------------------------------------------------------------- |
+| `schema`  | `DefinedSchema<P>` | The schema to query. Created with [`defineSchema()`](/xNet/schemas/defineschema/). |
+| `id`      | `string`           | _(Overload 2)_ Node ID to fetch.                                                        |
+| `filter`  | `QueryFilter<P>`   | _(Overload 3)_ Filter, sort, and pagination options.                                    |
+
+### QueryFilter
+
+| Field            | Type                              | Default | Description                                          |
+| ---------------- | --------------------------------- | ------- | ---------------------------------------------------- |
+| `where`          | `Partial<InferCreateProps<P>>`    | —       | Filter by property values. Strict equality matching. |
+| `includeDeleted` | `boolean`                         | `false` | Include soft-deleted nodes in results.               |
+| `orderBy`        | `Record<string, 'asc' \| 'desc'>` | —       | Sort by any property, `createdAt`, or `updatedAt`.   |
+| `limit`          | `number`                          | —       | Maximum results to return.                           |
+| `offset`         | `number`                          | —       | Skip N results (for pagination).                     |
+
+## Return value
+
+### List result (overloads 1 and 3)
+
+| Field     | Type                  | Description                                                   |
+| --------- | --------------------- | ------------------------------------------------------------- |
+| `data`    | `FlatNode<P>[]`       | The query results. Properties are spread to top level.        |
+| `loading` | `boolean`             | `true` during initial load, `false` once data is available.   |
+| `error`   | `Error \| null`       | Any error during query execution.                             |
+| `reload`  | `() => Promise<void>` | Force re-fetch from store. Rarely needed — data auto-updates. |
+
+### Single result (overload 2)
+
+| Field     | Type                  | Description                                  |
+| --------- | --------------------- | -------------------------------------------- |
+| `data`    | `FlatNode<P> \| null` | The node, or `null` if not found or deleted. |
+| `loading` | `boolean`             | `true` during initial load.                  |
+| `error`   | `Error \| null`       | Any error during query execution.            |
+| `reload`  | `() => Promise<void>` | Force re-fetch from store.                   |
+
+### FlatNode
+
+Every node includes system fields plus your schema properties:
+
+```ts
+interface FlatNode<P> {
+  id: string
+  schemaId: string // e.g., 'xnet://my-app/Task'
+  createdAt: number // Unix timestamp (ms)
+  createdBy: string // DID of creator
+  updatedAt: number
+  updatedBy: string
+  deleted: boolean
+  // ... plus all your schema properties
+}
+```
+
+## Usage patterns
+
+### List all nodes
+
+The simplest query — returns every node of a schema:
+
+```tsx
+const { data: tasks } = useQuery(TaskSchema)
+// tasks: FlatNode<typeof TaskSchema._properties>[]
+```
+
+### Filter and sort
+
+```tsx
+const { data: activeTasks } = useQuery(TaskSchema, {
+  where: { status: 'doing' },
+  orderBy: { updatedAt: 'desc' },
+  limit: 50
+})
+```
+
+### Single node by ID
+
+```tsx
+const { data: task } = useQuery(TaskSchema, taskId)
+// task: FlatNode | null
+```
+
+### Conditional query (skip when ID is null)
+
+When `id` is null or undefined, use a guard:
+
+```tsx
+function TaskDetail({ id }: { id: string | null }) {
+  // Only query when id is available
+  const { data: task } = useQuery(TaskSchema, id ?? '')
+
+  if (!id || !task) return <p>No task selected</p>
+  return <h1>{task.title}</h1>
+}
+```
+
+### Pagination
+
+```tsx
+const [page, setPage] = useState(0)
+const PAGE_SIZE = 20
+
+const { data: tasks } = useQuery(TaskSchema, {
+  orderBy: { createdAt: 'desc' },
+  limit: PAGE_SIZE,
+  offset: page * PAGE_SIZE
+})
+```
+
+## Gotchas
+
+:::caution[Memoize your `where` object]
+The `where` filter uses `JSON.stringify()` for dependency tracking. If you create a new object on every render, the subscription re-fires unnecessarily. Define the filter outside the component or memoize it:
+
+```tsx
+// Bad — new object every render
+const { data } = useQuery(TaskSchema, { where: { status: 'todo' } })
+
+// Good — stable reference
+const filter = useMemo(() => ({ where: { status: 'todo' } }), [])
+const { data } = useQuery(TaskSchema, filter)
+
+// Also good — defined outside component
+const TODO_FILTER = { where: { status: 'todo' as const } }
+function TaskList() {
+  const { data } = useQuery(TaskSchema, TODO_FILTER)
+}
+```
+
+:::
+
+:::tip[No loading spinners for local data]
+Since data is stored locally, `loading` transitions from `true` to `false` almost instantly. You usually don't need a loading state for local queries — the data is already there.
+:::
+
+:::caution[Filtering is in-memory]
+`where` filtering happens in JavaScript after loading from the store. For large datasets (1000+ nodes), consider using `limit` and `offset` rather than loading everything and filtering client-side.
+:::
+
+:::note[Deleted nodes are excluded by default]
+Single-node queries return `null` for deleted nodes. List queries exclude deleted nodes unless you pass `includeDeleted: true`.
+:::
+
+## Related
+
+- [`useMutate`](/xNet/hooks/usemutate/) — write data that `useQuery` reads
+- [`useNode`](/xNet/hooks/usenode/) — when you need a Yjs document for one node
+- [`defineSchema`](/xNet/schemas/defineschema/) — define the schemas you query

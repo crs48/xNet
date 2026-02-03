@@ -1,0 +1,48 @@
+---
+title: 'Relations'
+draft: false
+description: 'Link nodes together with relation() and person() properties.'
+---
+
+Relations are how you connect nodes together in xNet. Instead of embedding nested objects, you store references between nodes using two specialized property types: `relation()` and `person()`.
+
+## relation()
+
+The `relation()` property stores a reference to another node by its ID. You can think of it like a foreign key in a relational database, except it works across peers in a local-first system. When you need to link a task to a project, or a comment to a post, `relation()` is the right choice.
+
+```ts
+import { defineSchema, relation, text } from '@xnet/data'
+
+const Task = defineSchema('task', {
+  title: text(),
+  project: relation(), // single reference to a project node
+  blockedBy: relation.many() // multiple references to other tasks
+})
+```
+
+Relations support both single and multiple cardinality. Use `relation()` for a single link and `relation.many()` for an array of links. When creating nodes in a transaction, you can use temporary IDs to reference nodes that don't exist yet — the NodeStore resolves them once all nodes in the batch are committed.
+
+## person()
+
+The `person()` property links to a user by their DID (Decentralized Identifier) rather than a node ID. This is useful for ownership, assignment, and authorship fields where you need to reference an identity rather than a piece of data.
+
+```ts
+const Task = defineSchema('task', {
+  title: text(),
+  assignee: person(), // single DID reference
+  watchers: person.many() // multiple DID references
+})
+```
+
+## Transactions with Temporary IDs
+
+When creating multiple related nodes at once, you can use temporary IDs so that nodes can reference each other before they're persisted:
+
+```ts
+const { commit } = store.transaction()
+const projectTempId = commit.create('project', { name: 'Acme' })
+commit.create('task', { title: 'Setup', project: projectTempId })
+await commit.execute()
+```
+
+The NodeStore replaces temporary IDs with real IDs when the transaction is applied, ensuring all references are valid. This works seamlessly with sync — related nodes are sent together so that no dangling references appear on other peers.

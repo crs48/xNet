@@ -1,0 +1,179 @@
+---
+title: Core Concepts
+draft: false
+description: The mental model behind xNet — schemas, nodes, hooks, and sync.
+sidebar:
+  order: 2
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
+
+:::note[In this article]
+
+- How data is structured (schemas and nodes)
+- How you interact with data (the three hooks)
+- How sync and conflict resolution work
+- How identity and signing work
+  :::
+
+## Schemas define your data
+
+Every piece of data in xNet is a **node**. Every node conforms to a **schema**. A schema is defined once in TypeScript and describes the shape of your data:
+
+```ts
+import { defineSchema, text, number, select } from '@xnet/data'
+
+export const ProjectSchema = defineSchema({
+  name: 'Project',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true }),
+    priority: number({ min: 1, max: 5 }),
+    status: select({
+      options: [
+        { id: 'active', name: 'Active' },
+        { id: 'archived', name: 'Archived' }
+      ] as const
+    })
+  }
+})
+```
+
+Schemas give you:
+
+- **Type inference** — `project.status` is `'active' | 'archived'`, not `string`
+- **Validation** — invalid data is rejected at creation time
+- **Identity** — each schema has a unique IRI like `xnet://my-app/Project`
+
+See [defineSchema](/xNet/schemas/defineschema/) and [Property Types](/xNet/schemas/property-types/) for full reference.
+
+## Nodes are your data
+
+A node is an instance of a schema. When you create a task, you create a node:
+
+```ts
+const { create } = useMutate()
+const task = await create(TaskSchema, { title: 'Ship it', status: 'todo' })
+```
+
+Every node has system fields added automatically:
+
+| Field       | Type      | Description                             |
+| ----------- | --------- | --------------------------------------- |
+| `id`        | `string`  | Unique identifier (nanoid, 21 chars)    |
+| `schemaId`  | `string`  | Schema IRI (e.g., `xnet://my-app/Task`) |
+| `createdAt` | `number`  | Unix timestamp (ms)                     |
+| `createdBy` | `string`  | Author's DID (e.g., `did:key:z6Mk...`)  |
+| `updatedAt` | `number`  | Last modification timestamp             |
+| `updatedBy` | `string`  | Last modifier's DID                     |
+| `deleted`   | `boolean` | Soft-delete flag                        |
+
+Your schema properties are merged alongside these fields into a **flat node** — you access `task.title` directly, not `task.properties.title`.
+
+## Three hooks for everything
+
+### useQuery — read data
+
+```tsx
+const { data: tasks } = useQuery(TaskSchema, {
+  where: { status: 'todo' },
+  orderBy: { createdAt: 'desc' },
+  limit: 20
+})
+```
+
+Returns reactive data that auto-updates when the underlying store changes — whether from your own mutations, a peer's sync, or a background process.
+
+### useMutate — write data
+
+```tsx
+const { create, update, remove, restore, mutate } = useMutate()
+
+await create(TaskSchema, { title: 'New' })
+await update(TaskSchema, id, { status: 'done' })
+await remove(id)
+await restore(id)
+await mutate([
+  { type: 'create', schema: TaskSchema, data: { title: 'A' } },
+  { type: 'create', schema: TaskSchema, data: { title: 'B' } }
+])
+```
+
+All mutations are type-safe, validated against the schema, and automatically synced.
+
+### useNode — edit a single node with CRDT
+
+```tsx
+const { data, doc, update, syncStatus, remoteUsers } = useNode(PageSchema, pageId, {
+  createIfMissing: { title: 'Untitled' },
+  did: currentUserDID
+})
+```
+
+`useNode` is the powerhouse hook for collaborative editing. It gives you:
+
+- **Structured data** via `data` (the node's properties)
+- **A Yjs document** via `doc` (for rich text, bind to TipTap)
+- **Sync status** and **remote users** for presence UI
+- **Automatic persistence** with debounced saves
+
+## Two conflict resolution strategies
+
+xNet uses different strategies for different data types:
+
+| Data Type                    | Strategy                           | How It Works                                                                                |
+| ---------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Structured data (properties) | **Lamport LWW** (Last Writer Wins) | Each property change carries a Lamport timestamp. Higher timestamp wins.                    |
+| Rich text (documents)        | **Yjs CRDT**                       | Character-level merge. Two users typing in the same paragraph are merged without data loss. |
+
+This dual strategy means structured fields like `title` or `status` use simple, predictable conflict resolution, while collaborative text editing uses the industry-standard Yjs CRDT for seamless merging.
+
+## Every change is signed
+
+When you create or update a node, xNet:
+
+1. Signs the change with your **Ed25519** private key
+2. Hashes the change with **BLAKE3**
+3. Stores the signed change locally
+4. Syncs the signed change to peers
+
+When a peer receives a change, they **verify the signature** before applying it. This means:
+
+- You can prove who made every change
+- Tampered data is rejected
+- No server is needed to enforce trust
+
+## Identity is a key pair
+
+Your identity in xNet is a **DID:key** — a decentralized identifier derived from an Ed25519 public key:
+
+```
+did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
+```
+
+No accounts. No passwords. No auth server. Your key pair is your identity. You can delegate permissions to other keys using **UCAN tokens** (capability-based authorization).
+
+## Next steps
+
+<CardGrid>
+  <LinkCard
+    title="useQuery"
+    description="Full reference for reading data reactively."
+    href="/xNet/hooks/usequery/"
+  />
+  <LinkCard
+    title="useMutate"
+    description="Full reference for creating and updating data."
+    href="/xNet/hooks/usemutate/"
+  />
+  <LinkCard
+    title="useNode"
+    description="Full reference for collaborative editing."
+    href="/xNet/hooks/usenode/"
+  />
+  <LinkCard
+    title="defineSchema"
+    description="Full reference for defining schemas."
+    href="/xNet/schemas/defineschema/"
+  />
+</CardGrid>
