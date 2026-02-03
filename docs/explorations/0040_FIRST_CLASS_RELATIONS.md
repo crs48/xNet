@@ -367,6 +367,8 @@ Key decisions:
 
 ## Part 4: The Privacy-Scoped Graph
 
+> **Implementation status:** Privacy scopes are entirely aspirational. Today, all nodes are unencrypted and all sync rooms are open. The infrastructure needed — scope storage, per-scope encryption keys, scope-based sync room partitioning — does not exist yet. This section describes a target architecture.
+
 ### The Problem with a Global Graph
 
 A truly global graph leaks information. If Alice can traverse from her task to Bob's private notes through a shared reference, the graph becomes a privacy violation. The solution: **privacy scopes** that partition the graph into visibility boundaries.
@@ -733,9 +735,92 @@ const aliceTasks = await store.getByPerson(aliceDID, {
 
 ## Part 9: UCAN Integration with Graph Permissions
 
-### From Identity to Authorization
+### Current State: What Exists Today
 
-xNet already has UCAN token infrastructure. First-class relations create the opportunity to make authorization **graph-aware**:
+xNet's identity and authorization infrastructure has three layers, each at a different level of maturity:
+
+**Layer 1: DID:key Identity (Fully Implemented, Used Everywhere)**
+
+- Every user has an Ed25519 keypair → `did:key:z6Mk...` identity
+- `parseDID()` / `createDID()` convert between DIDs and raw public keys
+- Every `Change<NodePayload>` is signed with Ed25519 and verified on receipt
+- Every Yjs update is wrapped in a signed envelope and verified before applying
+- ClientID attestations bind Yjs client IDs to DIDs
+- This layer works and is enforced at runtime across the entire system
+
+**Layer 2: UCAN Token Functions (Implemented, Never Called at Runtime)**
+
+- `createUCAN()` — creates JWT-like `header.payload.signature` tokens
+- `verifyUCAN()` — parses and verifies signature + expiration
+- `hasCapability()` — checks if a token grants `{with: resource, can: action}`
+- These functions exist in `@xnet/identity` and pass their unit tests
+- **No code path in the app ever calls them** — not the signaling server, not the sync layer, not the NodeStore
+
+**Known issues with the current UCAN implementation:**
+
+- **Signature bug:** `createUCAN()` signs `JSON.stringify(payload)` but `verifyUCAN()` also signs a reconstructed JSON object — this works only because the field order happens to match. Per JWT spec, the signature should be over `base64url(header).base64url(payload)`, not the raw JSON.
+- **No proof chain validation:** The `prf` field stores parent UCAN strings, but `verifyUCAN()` never recursively validates them. A token with fabricated proofs would pass verification.
+- **No attenuation checking:** UCAN's key feature is that delegated tokens can only narrow (never widen) capabilities. There's no code to enforce this constraint.
+
+**Layer 3: Permission Evaluation (Type Definitions Only, No Implementation)**
+
+- `PermissionEvaluator` interface in `@xnet/core` — `hasCapability()`, `resolveGroups()`, `getPermissions()`
+- `Group`, `Role`, `PermissionGrant`, `ResourceScope`, `Condition` types
+- `STANDARD_ROLES` (viewer/editor/admin) and utility functions like `roleHasCapability()`
+- **No class implements `PermissionEvaluator`** — the interface has zero consumers
+
+**Current reality:** The signaling server is fully open (no auth). Any peer can join any sync room. Node mutations require a valid Ed25519 signature (DID-based), but there is no authorization — any authenticated user can write to any node they can reach.
+
+```mermaid
+flowchart LR
+    subgraph "Implemented & Enforced"
+        DID[DID:key Identity]
+        SIGN[Ed25519 Change Signing]
+        VERIFY[Signature Verification]
+        DID --> SIGN --> VERIFY
+    end
+
+    subgraph "Implemented, Not Used"
+        UCAN_CREATE[createUCAN]
+        UCAN_VERIFY[verifyUCAN]
+        UCAN_CAP[hasCapability]
+        UCAN_CREATE -.-> UCAN_VERIFY -.-> UCAN_CAP
+    end
+
+    subgraph "Types Only, No Implementation"
+        PERM_EVAL[PermissionEvaluator]
+        GROUPS[Groups & Roles]
+        GRANTS[PermissionGrants]
+        PERM_EVAL -.-> GROUPS -.-> GRANTS
+    end
+
+    VERIFY -.->|"gap"| UCAN_CREATE
+    UCAN_CAP -.->|"gap"| PERM_EVAL
+
+    style DID fill:#4ade80,stroke:#16a34a
+    style SIGN fill:#4ade80,stroke:#16a34a
+    style VERIFY fill:#4ade80,stroke:#16a34a
+    style UCAN_CREATE fill:#fbbf24,stroke:#f59e0b
+    style UCAN_VERIFY fill:#fbbf24,stroke:#f59e0b
+    style UCAN_CAP fill:#fbbf24,stroke:#f59e0b
+    style PERM_EVAL fill:#fecaca,stroke:#dc2626
+    style GROUPS fill:#fecaca,stroke:#dc2626
+    style GRANTS fill:#fecaca,stroke:#dc2626
+```
+
+### The Path from DID Signing to UCAN Authorization
+
+Bridging the gap requires these concrete steps:
+
+1. **Fix UCAN signature format** — sign `base64url(header).base64url(payload)` per JWT/UCAN spec, not raw JSON
+2. **Implement proof chain validation** — recursively verify `prf` tokens, check that each delegation attenuates (narrows) the parent's capabilities
+3. **Integrate UCAN into the signaling server** — require a valid UCAN to join a sync room, where the token's `with` field matches the room/scope ID
+4. **Integrate UCAN into NodeStore** — check capabilities before applying mutations (not just signature validity)
+5. **Implement `PermissionEvaluator`** — a concrete class that resolves UCAN chains + group membership to answer "can DID X do action Y on resource Z?"
+
+### Vision: Graph-Aware Authorization
+
+Once UCAN is actually enforced, first-class relations create the opportunity to make authorization **graph-aware**:
 
 ```mermaid
 flowchart TD
@@ -757,7 +842,7 @@ flowchart TD
     end
 ```
 
-### Permission Scopes on Relations
+### Permission Scopes on Relations (Future)
 
 ```typescript
 const TeamSchema = defineSchema({
@@ -774,6 +859,8 @@ const TeamSchema = defineSchema({
   }
 })
 ```
+
+> **Note:** The `permission` field on `relation()` is aspirational. It requires the full UCAN → PermissionEvaluator pipeline to be operational before it can be enforced.
 
 ## Part 10: The Full Architecture
 
@@ -900,13 +987,19 @@ erDiagram
 
 ### Phase 2d: Privacy Scopes
 
-| Task                                   | Effort | Impact                       |
-| -------------------------------------- | ------ | ---------------------------- |
-| Scope model and storage                | M      | Foundation for privacy       |
-| Scope-based sync room partitioning     | L      | Data isolation               |
-| Cross-scope relation stubs             | M      | UX for permission boundaries |
-| Scope key management (UCAN delegation) | L      | Cryptographic access control |
-| Encrypted-at-rest for private scopes   | L      | Security                     |
+> **Prerequisite:** Phase 2d depends on fixing the UCAN implementation first. See Part 9 for the gap analysis. At minimum, steps 1-3 (fix signature format, implement proof chain validation, integrate into signaling server) must be complete before scope key management is viable.
+
+| Task                                          | Effort | Impact                       |
+| --------------------------------------------- | ------ | ---------------------------- |
+| Fix UCAN signature format (JWT spec)          | S      | Correctness prerequisite     |
+| Implement UCAN proof chain validation         | M      | Trust chain prerequisite     |
+| Scope model and storage                       | M      | Foundation for privacy       |
+| Scope-based sync room partitioning            | L      | Data isolation               |
+| UCAN integration in signaling server          | M      | Room-level access control    |
+| Cross-scope relation stubs                    | M      | UX for permission boundaries |
+| Scope key management (UCAN key exchange)      | L      | Cryptographic access control |
+| Encrypted-at-rest for private scopes          | L      | Security                     |
+| UCAN integration in NodeStore (write control) | L      | Mutation-level authorization |
 
 ### Phase 2e: Social Graph
 
