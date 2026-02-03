@@ -5,7 +5,7 @@ interface Props {
   class?: string
 }
 
-const { as: Tag = 'span', gradient = 'from-white via-gray-200 to-indigo-400', class: className = '' } = Astro.props
+const { as: Tag = 'span', gradient = 'from-gray-900 via-gray-600 to-indigo-600 dark:from-white dark:via-gray-200 dark:to-indigo-400', class: className = '' } = Astro.props
 ---
 
 <Tag class={`bg-gradient-to-br ${gradient} bg-clip-text text-transparent ${className}`}>

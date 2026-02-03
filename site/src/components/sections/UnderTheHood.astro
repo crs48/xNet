@@ -59,7 +59,7 @@ const colorDot: Record<string, string> = {
           <h4 class={`font-semibold ${colorText[pillar.color]}`}>{pillar.title}</h4>
           <ul class="mt-4 space-y-2.5">
             {pillar.items.map((item) => (
-              <li class="flex items-start gap-2 text-sm text-gray-400">
+              <li class="flex items-start gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <span class={`mt-1.5 h-1.5 w-1.5 rounded-full ${colorDot[pillar.color]} shrink-0`}></span>
                 {item}
               </li>

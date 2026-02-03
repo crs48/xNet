@@ -93,8 +93,8 @@ const colorMap: Record<string, { border: string, bg: string, text: string, dot: 
               <span class={`h-2 w-2 rounded-full ${c.dot}`}></span>
               <h3 class={`font-semibold ${c.text}`}>{ex.title}</h3>
             </div>
-            <p class="text-sm text-gray-400 leading-relaxed">{ex.description}</p>
-            <pre class="mt-4 overflow-x-auto rounded-lg border border-border bg-[#0a0a0f] p-3 font-mono text-xs leading-relaxed text-gray-500"><code>{ex.code}</code></pre>
+            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{ex.description}</p>
+            <pre class="mt-4 overflow-x-auto rounded-lg border border-border bg-code-bg p-3 font-mono text-xs leading-relaxed text-gray-500"><code>{ex.code}</code></pre>
           </div>
         )
       })}

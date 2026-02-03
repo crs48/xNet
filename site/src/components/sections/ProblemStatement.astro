@@ -2,7 +2,7 @@
 import SectionHeader from '../ui/SectionHeader.astro'
 ---
 
-<section class="relative border-y border-border/50 bg-surface/20 py-24 lg:py-32">
+<section class="relative border-y border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
       title="Building apps shouldn't require a PhD in infrastructure"
@@ -17,7 +17,7 @@ import SectionHeader from '../ui/SectionHeader.astro'
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             A "simple" collaborative app today
           </div>
-          <ul class="space-y-3.5 text-sm text-gray-400">
+          <ul class="space-y-3.5 text-sm text-gray-500 dark:text-gray-400">
             <li class="flex items-start gap-3">
               <span class="mt-0.5 text-red-400/60 shrink-0">1.</span>
               <span>Choose a database <span class="text-gray-600">(Postgres? Mongo? Firestore?)</span></span>
@@ -54,7 +54,7 @@ import SectionHeader from '../ui/SectionHeader.astro'
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             The same app with xNet
           </div>
-          <div class="rounded-lg border border-border bg-[#0a0a0f] p-5 font-mono text-sm leading-relaxed">
+          <div class="rounded-lg border border-border bg-code-bg p-5 font-mono text-sm leading-relaxed">
             <div class="text-gray-500">// That's it. Really.</div>
             <div class="mt-2"><span class="text-indigo-400">import</span> {'{'} useQuery, useMutate {'}'}</div>
             <div>&nbsp;&nbsp;<span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span></div>

@@ -3,7 +3,7 @@ import SectionHeader from '../ui/SectionHeader.astro'
 import CodeBlock from '../ui/CodeBlock.astro'
 ---
 
-<section id="get-started" class="relative border-t border-border/50 bg-surface/20 py-24 lg:py-32">
+<section id="get-started" class="relative border-t border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
   <!-- Subtle glow -->
   <div class="absolute left-1/2 bottom-0 -translate-x-1/2 h-[400px] w-[600px] rounded-full bg-indigo-500/[0.05] blur-[120px]"></div>
 
@@ -19,7 +19,7 @@ import CodeBlock from '../ui/CodeBlock.astro'
       <div class="animate-on-scroll">
         <div class="mb-2 flex items-center gap-2">
           <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">1</span>
-          <span class="text-sm font-medium text-gray-300">Install the packages</span>
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Install the packages</span>
         </div>
         <CodeBlock filename="terminal">
 <span class="text-gray-500">$</span> pnpm add @xnet/react @xnet/data
@@ -30,7 +30,7 @@ import CodeBlock from '../ui/CodeBlock.astro'
       <div class="animate-on-scroll">
         <div class="mb-2 flex items-center gap-2">
           <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">2</span>
-          <span class="text-sm font-medium text-gray-300">Define a schema</span>
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Define a schema</span>
         </div>
         <CodeBlock filename="schema.ts">
 <span class="text-indigo-400">import</span> {'{'} defineSchema, text, select {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/data'</span>
@@ -50,10 +50,10 @@ import CodeBlock from '../ui/CodeBlock.astro'
       <div class="animate-on-scroll">
         <div class="mb-2 flex items-center gap-2">
           <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">3</span>
-          <span class="text-sm font-medium text-gray-300">Use it in your components</span>
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Use it in your components</span>
         </div>
-        <div class="group relative overflow-hidden rounded-xl border border-border bg-[#0a0a0f]">
-          <div class="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+        <div class="group relative overflow-hidden rounded-xl border border-border bg-code-bg">
+          <div class="flex items-center border-b border-border bg-surface/30 dark:bg-surface/50 px-4 py-2">
             <div class="flex items-center gap-1.5 mr-3">
               <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
               <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
@@ -61,7 +61,7 @@ import CodeBlock from '../ui/CodeBlock.astro'
             </div>
             <span class="text-xs font-mono text-gray-500">App.tsx</span>
           </div>
-          <pre class="overflow-x-auto p-5 font-mono text-sm leading-relaxed text-gray-300"><code set:html={`<span class="text-indigo-400">import</span> { useQuery, useMutate } <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+          <pre class="overflow-x-auto p-5 font-mono text-sm leading-relaxed text-gray-600 dark:text-gray-300"><code set:html={`<span class="text-indigo-400">import</span> { useQuery, useMutate } <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
 <span class="text-indigo-400">import</span> { TaskSchema } <span class="text-indigo-400">from</span> <span class="text-emerald-400">'./schema'</span>
 
 <span class="text-indigo-400">function</span> <span class="text-yellow-300">App</span>() {
@@ -84,9 +84,9 @@ import CodeBlock from '../ui/CodeBlock.astro'
 
     <!-- Run the full monorepo -->
     <div class="mx-auto mt-12 max-w-2xl animate-on-scroll">
-      <div class="rounded-xl border border-border bg-surface/50 p-5 text-center">
-        <p class="text-sm text-gray-400 mb-3">Or clone the full monorepo to explore the Electron app, canvas, editor, and devtools:</p>
-        <pre class="inline-block rounded-lg border border-border bg-[#0a0a0f] px-4 py-2.5 font-mono text-sm text-gray-400">git clone https://github.com/crs48/xNet.git && cd xNet && pnpm install && pnpm dev</pre>
+      <div class="rounded-xl border border-border bg-surface/30 dark:bg-surface/50 p-5 text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Or clone the full monorepo to explore the Electron app, canvas, editor, and devtools:</p>
+        <pre class="inline-block rounded-lg border border-border bg-code-bg px-4 py-2.5 font-mono text-sm text-gray-500 dark:text-gray-400">git clone https://github.com/crs48/xNet.git && cd xNet && pnpm install && pnpm dev</pre>
       </div>
     </div>
 
@@ -94,7 +94,7 @@ import CodeBlock from '../ui/CodeBlock.astro'
       <a href={`${import.meta.env.BASE_URL}/docs/quickstart/`} class="rounded-lg bg-indigo-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-400 transition-colors">
         Read the Docs
       </a>
-      <a href="https://github.com/crs48/xNet" class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all">
+      <a href="https://github.com/crs48/xNet" class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all">
         View on GitHub
       </a>
     </div>
