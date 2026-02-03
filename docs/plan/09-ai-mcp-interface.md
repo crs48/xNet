@@ -11,6 +11,7 @@
 xNet exposes all data operations through an MCP (Model Context Protocol) server, enabling AI agents like Claude to read, write, and query content programmatically. This replaces the need for file-based storage while providing structured, type-safe access to all data.
 
 **Design Principle**: AI agents access data via tools (MCP), not files. This provides:
+
 - Structured queries (filter, sort, aggregate)
 - Atomic operations (no parse errors)
 - Schema-aware updates (type validation)
@@ -56,12 +57,13 @@ flowchart TB
 
 ## Why MCP Instead of Files?
 
-| Approach | Pros | Cons |
-|----------|------|------|
-| **File-based (Obsidian-style)** | Human-readable, Git-friendly, external editor support | Sync conflicts, Markdown limits rich content, parsing errors |
-| **MCP-based (xNet)** | Structured queries, atomic ops, full flexibility, no sync issues | Requires MCP client, less portable |
+| Approach                        | Pros                                                             | Cons                                                         |
+| ------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------ |
+| **File-based (Obsidian-style)** | Human-readable, Git-friendly, external editor support            | Sync conflicts, Markdown limits rich content, parsing errors |
+| **MCP-based (xNet)**            | Structured queries, atomic ops, full flexibility, no sync issues | Requires MCP client, less portable                           |
 
 For AI agents specifically, MCP is superior:
+
 - Query: "find tasks due this week" (vs grep through files)
 - Bulk update: "mark all done" (vs edit multiple files)
 - Type safety: dates stay dates, numbers stay numbers
@@ -308,14 +310,14 @@ Create a new database record.
 ```typescript
 // Parameters
 {
-  database_id: string;
-  properties: Record<string, any>;  // property_name → value
+  database_id: string
+  properties: Record<string, any> // property_name → value
 }
 
 // Returns
 {
-  id: string;
-  created_at: string;
+  id: string
+  created_at: string
 }
 ```
 
@@ -326,14 +328,14 @@ Update an existing record.
 ```typescript
 // Parameters
 {
-  record_id: string;
-  properties: Record<string, any>;  // Only include properties to update
+  record_id: string
+  properties: Record<string, any> // Only include properties to update
 }
 
 // Returns
 {
-  success: boolean;
-  updated_at: string;
+  success: boolean
+  updated_at: string
 }
 ```
 
@@ -344,12 +346,12 @@ Delete a record.
 ```typescript
 // Parameters
 {
-  record_id: string;
+  record_id: string
 }
 
 // Returns
 {
-  success: boolean;
+  success: boolean
 }
 ```
 
@@ -663,21 +665,21 @@ Page content is stored internally as ProseMirror JSON but exposed via MCP as **M
 
 ### Supported Markdown Features
 
-| Feature | Syntax | Notes |
-|---------|--------|-------|
-| Headings | `# H1` to `###### H6` | |
-| Bold/Italic | `**bold**` `*italic*` | |
-| Links | `[text](url)` | External links |
-| Wikilinks | `[[Page Name]]` | Internal links |
-| Code | `` `inline` `` and fenced | With syntax highlighting |
-| Lists | `- item` and `1. item` | Nested supported |
-| Tasks | `- [ ] todo` | Checkbox items |
-| Blockquotes | `> quote` | |
-| Tables | GFM tables | |
-| Images | `![alt](url)` | |
-| Embeds | `![[Page Name]]` | Transclusion |
-| Math | `$inline$` `$$block$$` | LaTeX |
-| Mermaid | ````mermaid` | Diagrams |
+| Feature     | Syntax                    | Notes                    |
+| ----------- | ------------------------- | ------------------------ |
+| Headings    | `# H1` to `###### H6`     |                          |
+| Bold/Italic | `**bold**` `*italic*`     |                          |
+| Links       | `[text](url)`             | External links           |
+| Wikilinks   | `[[Page Name]]`           | Internal links           |
+| Code        | `` `inline` `` and fenced | With syntax highlighting |
+| Lists       | `- item` and `1. item`    | Nested supported         |
+| Tasks       | `- [ ] todo`              | Checkbox items           |
+| Blockquotes | `> quote`                 |                          |
+| Tables      | GFM tables                |                          |
+| Images      | `![alt](url)`             |                          |
+| Embeds      | `![[Page Name]]`          | Transclusion             |
+| Math        | `$inline$` `$$block$$`    | LaTeX                    |
+| Mermaid     | ````mermaid`              | Diagrams                 |
 
 ### Conversion Notes
 
@@ -692,6 +694,7 @@ Page content is stored internally as ProseMirror JSON but exposed via MCP as **M
 ### Local Mode (Default)
 
 When running on the same machine:
+
 - MCP server binds to localhost only
 - No authentication required
 - Full access to workspace
@@ -699,6 +702,7 @@ When running on the same machine:
 ### Remote Mode (Future)
 
 For remote access:
+
 - Token-based authentication
 - Workspace-level API keys
 - Permission scoping (read-only, read-write, admin)
@@ -750,9 +754,9 @@ packages/mcp/
 ```typescript
 // AI calls:
 xnet_list_tasks({
-  due_after: "2026-01-20",
-  due_before: "2026-01-27",
-  status: "todo"
+  due_after: '2026-01-20',
+  due_before: '2026-01-27',
+  status: 'todo'
 })
 
 // Returns tasks, AI formats response
@@ -763,10 +767,10 @@ xnet_list_tasks({
 ```typescript
 // AI calls:
 xnet_create_page({
-  title: "Meeting Notes - Jan 20",
-  content: "# Meeting Notes\n\n## Attendees\n\n## Agenda\n\n## Action Items\n",
-  parent_id: "meetings-folder-uuid",
-  tags: ["meeting", "2026"]
+  title: 'Meeting Notes - Jan 20',
+  content: '# Meeting Notes\n\n## Attendees\n\n## Agenda\n\n## Action Items\n',
+  parent_id: 'meetings-folder-uuid',
+  tags: ['meeting', '2026']
 })
 ```
 
@@ -775,13 +779,13 @@ xnet_create_page({
 ```typescript
 // AI calls:
 xnet_search({
-  query: "Project Alpha",
-  types: ["page"]
+  query: 'Project Alpha',
+  types: ['page']
 })
 
 // Or for backlinks specifically:
 xnet_get_backlinks({
-  page_id: "project-alpha-uuid"
+  page_id: 'project-alpha-uuid'
 })
 ```
 
@@ -790,15 +794,21 @@ xnet_get_backlinks({
 ```typescript
 // AI calls:
 xnet_create_record({
-  database_id: "contacts-db-uuid",
+  database_id: 'contacts-db-uuid',
   properties: {
-    "Name": "Jane Smith",
-    "Email": "jane@example.com",
-    "Company": "Acme Corp",
-    "Status": "Lead"
+    Name: 'Jane Smith',
+    Email: 'jane@example.com',
+    Company: 'Acme Corp',
+    Status: 'Lead'
   }
 })
 ```
+
+---
+
+## AI-Collaborative Document Editing
+
+Beyond tool-based CRUD, the most compelling direction is AI agents that can collaboratively edit rich text documents, canvases, and databases — the same content types that humans work with in xNet. This is explored in depth in [**Exploration 0044: AI-Collaborative Editing via MCP and Yjs**](../explorations/0044_AI_COLLABORATIVE_EDITING.md), which covers how an MCP server can give AI agents the same power over xNet content that Claude Code has over an Obsidian vault — but with rich text, structured data, and real-time collaboration.
 
 ---
 
