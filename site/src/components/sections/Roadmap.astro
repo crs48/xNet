@@ -1,0 +1,178 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+const phases = [
+  {
+    status: 'done',
+    label: 'Built',
+    color: 'emerald',
+    title: 'The Foundation',
+    description: 'Core primitives for local-first apps',
+    items: [
+      'Crypto identity (DID:key, Ed25519, UCAN)',
+      'Schema system with 15 property types',
+      'P2P sync engine (Yjs + Lamport clocks)',
+      'Rich text editor, infinite canvas, devtools',
+      'Electron app with real-time collaboration',
+      '350+ tests across 17 packages',
+    ],
+  },
+  {
+    status: 'now',
+    label: 'Now',
+    color: 'amber',
+    title: 'Daily Driver',
+    description: 'Make xNet an app you actually use every day',
+    items: [
+      'Personal wiki & task manager',
+      'Query API improvements',
+      'Polished desktop experience',
+      'Plugin system & custom views',
+    ],
+  },
+  {
+    status: 'next',
+    label: 'Next',
+    color: 'indigo',
+    title: 'Hubs & Multiplayer',
+    description: 'Always-on sync nodes and shared workspaces',
+    items: [
+      'Hub MVP — backup, relay, search',
+      'Workspace invites & permissions',
+      'Presence & live cursors',
+      'Mobile app (Expo)',
+    ],
+  },
+  {
+    status: 'future',
+    label: 'Then',
+    color: 'purple',
+    title: 'Federation',
+    description: 'Hubs talk to each other. Data flows freely.',
+    items: [
+      'Hub-to-hub federation protocol',
+      'Federated queries across hubs',
+      'Schema registry & discovery',
+      'ERP framework & domain modules',
+    ],
+  },
+  {
+    status: 'vision',
+    label: 'Vision',
+    color: 'pink',
+    title: 'The Decentralized Data Layer',
+    description: 'A global namespace for structured knowledge',
+    items: [
+      'Global namespace — xnet://*',
+      'Decentralized search engine',
+      'Social federation (follows, feeds, reputation)',
+      'Domain-specific networks (farming, science, education)',
+      'Data commons — humanity\'s shared knowledge graph',
+    ],
+  },
+]
+
+const colorMap: Record<string, { dot: string; border: string; bg: string; label: string; line: string }> = {
+  emerald: {
+    dot: 'bg-emerald-400',
+    border: 'border-emerald-500/30',
+    bg: 'bg-emerald-500/[0.04]',
+    label: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
+    line: 'from-emerald-500/50',
+  },
+  amber: {
+    dot: 'bg-amber-400 animate-pulse',
+    border: 'border-amber-500/30',
+    bg: 'bg-amber-500/[0.04]',
+    label: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    line: 'from-amber-500/50',
+  },
+  indigo: {
+    dot: 'bg-indigo-400',
+    border: 'border-indigo-500/30',
+    bg: 'bg-indigo-500/[0.04]',
+    label: 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300',
+    line: 'from-indigo-500/50',
+  },
+  purple: {
+    dot: 'bg-purple-400',
+    border: 'border-purple-500/30',
+    bg: 'bg-purple-500/[0.04]',
+    label: 'bg-purple-500/15 text-purple-700 dark:text-purple-300',
+    line: 'from-purple-500/50',
+  },
+  pink: {
+    dot: 'bg-pink-400',
+    border: 'border-pink-500/30',
+    bg: 'bg-pink-500/[0.04]',
+    label: 'bg-pink-500/15 text-pink-700 dark:text-pink-300',
+    line: 'from-pink-500/50',
+  },
+}
+---
+
+<section id="roadmap" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="Where this is going"
+      subtitle="From local-first primitives to the decentralized data layer of the internet. Each layer builds on the last."
+      align="center"
+    />
+
+    <!-- Timeline -->
+    <div class="relative mt-16 mx-auto max-w-3xl">
+      <!-- Vertical line -->
+      <div class="absolute left-6 top-0 bottom-0 w-px bg-gradient-to-b from-emerald-500/50 via-indigo-500/30 to-pink-500/20 sm:left-8"></div>
+
+      <div class="space-y-6">
+        {phases.map((phase, i) => {
+          const colors = colorMap[phase.color]
+          const isLast = i === phases.length - 1
+          return (
+            <div class="animate-on-scroll relative pl-16 sm:pl-20">
+              <!-- Dot on the timeline -->
+              <div class={`absolute left-[18px] top-6 h-4 w-4 rounded-full ${colors.dot} ring-4 ring-white dark:ring-[#0a0a0f] sm:left-[26px]`}></div>
+
+              <!-- Card -->
+              <div class={`rounded-xl border ${colors.border} ${colors.bg} p-5 sm:p-6`}>
+                <div class="flex flex-wrap items-center gap-2 mb-2">
+                  <span class={`rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider ${colors.label}`}>
+                    {phase.label}
+                  </span>
+                  <h3 class="text-lg font-bold text-gray-900 dark:text-white">{phase.title}</h3>
+                </div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">{phase.description}</p>
+                <ul class="grid gap-1.5 sm:grid-cols-2">
+                  {phase.items.map(item => (
+                    <li class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                      {phase.status === 'done' ? (
+                        <svg class="h-4 w-4 mt-0.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                      ) : (
+                        <span class={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${colors.dot.replace(' animate-pulse', '')}`}></span>
+                      )}
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Fading arrow between cards */}
+              {!isLast && (
+                <div class="absolute left-[22px] -bottom-3 sm:left-[30px]">
+                  <svg class="h-3 w-3 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 12 12"><path d="M6 9l-4-4h8z"/></svg>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <!-- End flourish -->
+      <div class="mt-8 flex items-center justify-center">
+        <div class="rounded-full border border-pink-500/20 bg-pink-500/[0.04] px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+          Every app built on xNet makes the network stronger
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
