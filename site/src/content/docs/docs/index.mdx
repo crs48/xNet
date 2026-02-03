@@ -2,32 +2,133 @@
 title: xNet Documentation
 draft: false
 description: Build local-first apps with React hooks. No server, no auth, no vendor lock-in.
-template: splash
-hero:
-  tagline: Three hooks. Zero backend. Local-first apps that just work.
-  actions:
-    - text: Quick Start
-      link: /xNet/docs/quickstart/
-      icon: right-arrow
-      variant: primary
-    - text: View on GitHub
-      link: https://github.com/crs48/xNet
-      icon: external
 ---
 
 import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
 
-<CardGrid stagger>
-  <Card title="useQuery" icon="magnifier">
-    Read data reactively. Filter, sort, paginate — all with type safety.
-  </Card>
-  <Card title="useMutate" icon="pencil">
-    Create, update, delete nodes. Type-safe, validated, auto-synced.
-  </Card>
-  <Card title="useNode" icon="document">
-    Collaborative editing with Yjs, P2P sync, and presence awareness.
-  </Card>
-  <Card title="defineSchema" icon="setting">
-    16 property types with full TypeScript inference.
-  </Card>
+xNet is a local-first React framework. Your data lives on the device, syncs peer-to-peer, and works offline. Three hooks replace your entire backend.
+
+## Get started
+
+<CardGrid>
+  <LinkCard
+    title="Introduction"
+    description="What xNet is and when to use it."
+    href="/xNet/docs/introduction/"
+  />
+  <LinkCard
+    title="Quick Start"
+    description="Build a task manager in 5 minutes."
+    href="/xNet/docs/quickstart/"
+  />
+  <LinkCard
+    title="Core Concepts"
+    description="Schemas, hooks, sync — the mental model."
+    href="/xNet/docs/core-concepts/"
+  />
 </CardGrid>
+
+## React Hooks
+
+<CardGrid>
+  <LinkCard
+    title="useQuery"
+    description="Read data reactively with filtering, sorting, and pagination."
+    href="/xNet/docs/hooks/usequery/"
+  />
+  <LinkCard
+    title="useMutate"
+    description="Create, update, delete nodes with full type safety."
+    href="/xNet/docs/hooks/usemutate/"
+  />
+  <LinkCard
+    title="useNode"
+    description="Collaborative editing with Yjs, P2P sync, and presence."
+    href="/xNet/docs/hooks/usenode/"
+  />
+  <LinkCard
+    title="useIdentity"
+    description="Access the current user's DID and auth status."
+    href="/xNet/docs/hooks/useidentity/"
+  />
+</CardGrid>
+
+## Schemas & Data
+
+<CardGrid>
+  <LinkCard
+    title="defineSchema"
+    description="Define typed schemas with 16 property types."
+    href="/xNet/docs/schemas/defineschema/"
+  />
+  <LinkCard
+    title="Property Types"
+    description="text, number, date, select, relation, person, and more."
+    href="/xNet/docs/schemas/property-types/"
+  />
+  <LinkCard
+    title="Relations"
+    description="Link nodes together with relation() and person()."
+    href="/xNet/docs/schemas/relations/"
+  />
+  <LinkCard
+    title="Type Inference"
+    description="How TypeScript types flow from schemas to hooks."
+    href="/xNet/docs/schemas/type-inference/"
+  />
+</CardGrid>
+
+## Guides
+
+<CardGrid>
+  <LinkCard
+    title="Plugin Development"
+    description="Build extensions with the 4-layer plugin system."
+    href="/xNet/docs/guides/plugins/"
+  />
+  <LinkCard
+    title="Sync"
+    description="How P2P sync works and how to configure it."
+    href="/xNet/docs/guides/sync/"
+  />
+  <LinkCard
+    title="Identity & Keys"
+    description="DID:key pairs, UCAN tokens, and key management."
+    href="/xNet/docs/guides/identity/"
+  />
+  <LinkCard
+    title="Real-time Collaboration"
+    description="Collaborative editors with useNode and TipTap."
+    href="/xNet/docs/guides/collaboration/"
+  />
+  <LinkCard
+    title="Offline Patterns"
+    description="Building apps that work without connectivity."
+    href="/xNet/docs/guides/offline/"
+  />
+  <LinkCard
+    title="Electron Setup"
+    description="Running xNet in an Electron desktop app."
+    href="/xNet/docs/guides/electron/"
+  />
+  <LinkCard
+    title="Testing"
+    description="Testing xNet apps with Vitest."
+    href="/xNet/docs/guides/testing/"
+  />
+</CardGrid>
+
+## Packages
+
+| Package          | Description                                                         |
+| ---------------- | ------------------------------------------------------------------- |
+| `@xnet/react`    | React hooks: useQuery, useMutate, useNode, useIdentity              |
+| `@xnet/data`     | Schema system, NodeStore, 16 property types                         |
+| `@xnet/sync`     | Lamport clocks, Change\<T\>, Yjs security                           |
+| `@xnet/crypto`   | BLAKE3, Ed25519, XChaCha20-Poly1305                                 |
+| `@xnet/identity` | DID:key, UCAN tokens, key management                                |
+| `@xnet/plugins`  | 4-layer plugin system (scripts, extensions, services, integrations) |
+| `@xnet/storage`  | IndexedDB adapter                                                   |
+| `@xnet/editor`   | TipTap rich text editor with Yjs collaboration                      |
+| `@xnet/canvas`   | Infinite canvas with spatial indexing                               |
+| `@xnet/network`  | libp2p, WebRTC/WebSocket transport                                  |
