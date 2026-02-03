@@ -570,7 +570,25 @@ export function PageView({ docId }: PageViewProps) {
     [editComment]
   )
 
+  const hoveredThreadRef = useRef<string | null>(null)
+  const leaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
   const handleSidebarHoverThread = useCallback((threadId: string) => {
+    // Cancel any pending leave — user moved to another thread or re-entered
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current)
+      leaveTimerRef.current = null
+    }
+
+    // Clear previous thread's highlights if switching threads
+    if (hoveredThreadRef.current && hoveredThreadRef.current !== threadId) {
+      document.querySelectorAll('.xnet-comment-sidebar-hover').forEach((el) => {
+        el.classList.remove('xnet-comment-sidebar-hover')
+      })
+    }
+
+    hoveredThreadRef.current = threadId
+
     // Find all mark elements for this thread and add the hover class
     const marks = document.querySelectorAll(`[data-comment-id="${threadId}"]`)
     marks.forEach((el) => el.classList.add('xnet-comment-sidebar-hover'))
@@ -581,10 +599,16 @@ export function PageView({ docId }: PageViewProps) {
   }, [])
 
   const handleSidebarLeaveThread = useCallback(() => {
-    // Remove hover class from all comment marks
-    document.querySelectorAll('.xnet-comment-sidebar-hover').forEach((el) => {
-      el.classList.remove('xnet-comment-sidebar-hover')
-    })
+    // Delay removal to avoid flicker from scroll-induced spurious mouseLeave events.
+    // If the user re-enters the same thread (or enters another) within the window,
+    // handleSidebarHoverThread will cancel this timer.
+    if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current)
+    leaveTimerRef.current = setTimeout(() => {
+      hoveredThreadRef.current = null
+      document.querySelectorAll('.xnet-comment-sidebar-hover').forEach((el) => {
+        el.classList.remove('xnet-comment-sidebar-hover')
+      })
+    }, 150)
   }, [])
 
   // ─── Comment Extensions ───────────────────────────────────────────────────────
