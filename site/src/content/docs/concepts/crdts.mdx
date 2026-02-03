@@ -2,8 +2,103 @@
 title: 'CRDTs'
 draft: false
 description: 'Conflict-free replicated data types in xNet.'
+sidebar:
+  order: 3
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+## What are CRDTs?
 
-This page will explain what CRDTs are, how xNet uses Yjs for rich text and Lamport clocks for structured data, and why these approaches guarantee convergence without a central server.
+A Conflict-free Replicated Data Type (CRDT) is a data structure that can be modified independently on different devices and merged automatically without conflicts. No central server is needed to coordinate — the mathematical properties of the data structure guarantee that all replicas converge to the same state.
+
+## xNet's dual-CRDT model
+
+xNet uses two complementary CRDT strategies, each optimized for a different data shape:
+
+| Data type       | CRDT        | Resolution                   | Package                        |
+| --------------- | ----------- | ---------------------------- | ------------------------------ |
+| Rich text       | Yjs         | Character-level merge        | `@xnet/sync` (Yjs integration) |
+| Structured data | Lamport LWW | Field-level last-writer-wins | `@xnet/sync` (clock + change)  |
+
+### Why two strategies?
+
+Rich text has complex structure — characters, paragraphs, formatting ranges, embedded objects. A general-purpose LWW register would lose edits when two users type in the same paragraph. Yjs solves this by tracking every character's position and identity in a sequence CRDT.
+
+Structured data (title, status, assignee) doesn't need character-level merging. A simple last-writer-wins strategy at the field level is sufficient and much simpler to implement and reason about.
+
+## Yjs for rich text
+
+[Yjs](https://yjs.dev) is a high-performance CRDT implementation for collaborative editing. xNet uses Yjs to sync editor content:
+
+- Each node's rich text is stored in a `Y.Doc` containing a `Y.XmlFragment`
+- Yjs tracks every character with a unique ID (clientID + sequence number)
+- Concurrent inserts at the same position are ordered deterministically by clientID
+- Deletions are tombstoned (marked as deleted but kept for merge correctness)
+
+### How merging works
+
+**Two users typing in different paragraphs** — edits are independent, merge trivially.
+
+**Two users typing at the same cursor position** — Yjs uses internal ordering rules (based on clientID, which is bound to a DID in xNet) to produce a deterministic interleaving. Both users see the same final text.
+
+**One user deletes text while another edits nearby** — Yjs preserves the edit. In general, inserts survive concurrent deletes.
+
+You don't need to handle any of this manually. The TipTap editor integration applies Yjs updates automatically.
+
+## Lamport clocks for structured data
+
+For node properties (title, status, priority, etc.), xNet uses Lamport clocks with field-level last-writer-wins:
+
+```ts
+interface LamportTimestamp {
+  time: number // Logical clock value
+  author: DID // Tie-breaker
+}
+```
+
+### How it works
+
+1. Each peer maintains a logical clock that starts at 0
+2. On every mutation, the clock increments by 1 and the timestamp is attached to the change
+3. When receiving a remote change, the local clock fast-forwards to `max(local, remote)`
+4. On conflict (two changes to the same field), the one with the **higher** Lamport time wins
+5. If times are equal (rare), the DID string is compared lexicographically as a deterministic tie-breaker
+
+### Field-level resolution
+
+LWW is applied per-field, not per-node. If Alice changes `title` while Bob changes `status`, both changes are preserved — there's no conflict because they modified different fields.
+
+```
+Alice: { title: "New title" }  @ time=5
+Bob:   { status: "done" }     @ time=5
+Result: { title: "New title", status: "done" }  ← both win
+```
+
+If both change the same field:
+
+```
+Alice: { title: "Alice's title" }  @ time=5, did:key:alice
+Bob:   { title: "Bob's title" }    @ time=5, did:key:bob
+Result: { title: "Bob's title" }   ← Bob wins (DID tie-breaker)
+```
+
+## Hash chains
+
+Changes are linked into a hash chain via `parentHash`. This provides:
+
+- **Causality** — you can trace the full history of a node
+- **Integrity** — tampering with a change breaks the chain
+- **Fork detection** — two changes with the same parent indicate concurrent edits
+
+Forks are valid — they represent concurrent modifications, not errors. The LWW resolver picks the winning value for each field deterministically.
+
+## Convergence guarantee
+
+Both CRDT strategies guarantee **strong eventual consistency**: if two peers have received the same set of changes (in any order), they will have the same state. This is a mathematical property of the algorithms, not a best-effort heuristic.
+
+The practical implication is that xNet never shows merge conflict dialogs. The system always converges automatically.
+
+## Further reading
+
+- [Sync Guide](/xNet/guides/sync/) — How to configure and debug sync
+- [Sync Architecture](/xNet/concepts/sync-architecture/) — The full sync stack
+- [Collaboration Guide](/xNet/guides/collaboration/) — Building collaborative editors

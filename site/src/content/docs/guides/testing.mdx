@@ -2,8 +2,331 @@
 title: 'Testing'
 draft: false
 description: 'Testing xNet apps with Vitest.'
+sidebar:
+  order: 7
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+:::note[You will learn]
 
-This guide will cover how to write and run tests for xNet applications using Vitest, including testing schemas, mocking the NodeStore, and verifying sync behavior in isolated environments.
+- How to run the xNet test suite
+- How to write tests for schemas, stores, and sync
+- Common patterns for mocking crypto and storage
+- How to test multi-peer sync scenarios
+  :::
+
+## Running tests
+
+```bash
+# All tests (~350 tests across all packages)
+pnpm test
+
+# Single package
+pnpm --filter @xnet/sync test
+pnpm --filter @xnet/data test
+pnpm --filter @xnet/canvas test
+
+# Single file
+pnpm --filter @xnet/sync vitest run src/clock.test.ts
+
+# Pattern match
+pnpm --filter @xnet/data vitest run -t "NodeStore"
+
+# Watch mode
+pnpm --filter @xnet/sync test:watch
+```
+
+All tests use Vitest with the standard `describe` / `it` / `expect` structure.
+
+## Test structure
+
+Follow the Arrange-Act-Assert pattern:
+
+```ts
+import { describe, it, expect } from 'vitest'
+
+describe('ModuleName', () => {
+  describe('functionName', () => {
+    it('should do expected behavior', () => {
+      // Arrange
+      const input = createTestData()
+
+      // Act
+      const result = functionName(input)
+
+      // Assert
+      expect(result).toBe(expected)
+    })
+  })
+})
+```
+
+## Testing schemas
+
+```ts
+import { describe, it, expect } from 'vitest'
+import { defineSchema, text, number, boolean } from '@xnet/data'
+
+describe('TaskSchema', () => {
+  const Task = defineSchema('task', {
+    title: text(),
+    priority: number({ default: 0 }),
+    done: boolean({ default: false })
+  })
+
+  it('should have the correct schemaIRI', () => {
+    expect(Task.schemaIRI).toContain('task')
+  })
+
+  it('should define expected properties', () => {
+    expect(Task.properties.title).toBeDefined()
+    expect(Task.properties.priority).toBeDefined()
+    expect(Task.properties.done).toBeDefined()
+  })
+})
+```
+
+## Testing crypto and signing
+
+Generate keys in tests using `@xnet/crypto` and `@xnet/identity`:
+
+```ts
+import { generateSigningKeyPair, sign, verify, hash } from '@xnet/crypto'
+import { generateIdentity } from '@xnet/identity'
+
+describe('Signing', () => {
+  it('should sign and verify a message', () => {
+    const { publicKey, privateKey } = generateSigningKeyPair()
+    const message = new TextEncoder().encode('hello')
+
+    const signature = sign(message, privateKey)
+    expect(verify(message, signature, publicKey)).toBe(true)
+  })
+
+  it('should reject tampered messages', () => {
+    const { publicKey, privateKey } = generateSigningKeyPair()
+    const message = new TextEncoder().encode('hello')
+    const tampered = new TextEncoder().encode('world')
+
+    const signature = sign(message, privateKey)
+    expect(verify(tampered, signature, publicKey)).toBe(false)
+  })
+})
+```
+
+## Testing Lamport clocks
+
+```ts
+import { createLamportClock, tick, receive, compareLamportTimestamps } from '@xnet/sync'
+
+describe('LamportClock', () => {
+  it('should increment on tick', () => {
+    const clock = createLamportClock('did:key:alice')
+    const [newClock, timestamp] = tick(clock)
+
+    expect(newClock.time).toBe(1)
+    expect(timestamp.time).toBe(1)
+    expect(timestamp.author).toBe('did:key:alice')
+  })
+
+  it('should fast-forward on receive', () => {
+    const clock = createLamportClock('did:key:alice')
+    const updated = receive(clock, 10)
+
+    expect(updated.time).toBe(10)
+  })
+
+  it('should break ties by DID', () => {
+    const a = { time: 5, author: 'did:key:alice' }
+    const b = { time: 5, author: 'did:key:bob' }
+
+    // Deterministic: string comparison on DID
+    expect(compareLamportTimestamps(a, b)).not.toBe(0)
+  })
+})
+```
+
+## Testing Change\<T\> and hash chains
+
+```ts
+import { signChange, verifyChange, verifyChangeHash } from '@xnet/sync'
+import { generateSigningKeyPair } from '@xnet/crypto'
+import { generateIdentity } from '@xnet/identity'
+
+describe('Change', () => {
+  it('should sign and verify a change', () => {
+    const { identity, privateKey } = generateIdentity()
+    const { publicKey } = generateSigningKeyPair()
+
+    const unsigned = {
+      id: 'change-1',
+      type: 'create-task',
+      payload: { title: 'Test' },
+      parentHash: null,
+      authorDID: identity.did,
+      wallTime: Date.now(),
+      lamport: { time: 1, author: identity.did }
+    }
+
+    const signed = signChange(unsigned, privateKey)
+    expect(signed.hash).toMatch(/^cid:blake3:/)
+    expect(signed.signature).toBeInstanceOf(Uint8Array)
+  })
+})
+```
+
+## Testing Yjs security
+
+```ts
+import { signYjsUpdate, verifyYjsEnvelope } from '@xnet/sync'
+import { generateIdentity } from '@xnet/identity'
+
+describe('YjsEnvelope', () => {
+  it('should round-trip sign and verify', async () => {
+    const { identity, privateKey } = generateIdentity()
+    const update = new Uint8Array([1, 2, 3, 4])
+
+    const envelope = signYjsUpdate(update, identity.did, privateKey, 12345)
+    const result = await verifyYjsEnvelope(envelope)
+
+    expect(result.valid).toBe(true)
+  })
+
+  it('should reject tampered updates', async () => {
+    const { identity, privateKey } = generateIdentity()
+    const update = new Uint8Array([1, 2, 3, 4])
+
+    const envelope = signYjsUpdate(update, identity.did, privateKey, 12345)
+    envelope.update = new Uint8Array([5, 6, 7, 8]) // Tamper
+
+    const result = await verifyYjsEnvelope(envelope)
+    expect(result.valid).toBe(false)
+  })
+})
+```
+
+## Testing sync scenarios
+
+For multi-peer sync tests, create separate clock instances and simulate message exchange:
+
+```ts
+import { createLamportClock, tick, receive } from '@xnet/sync'
+
+describe('Two-peer sync', () => {
+  it('should converge after message exchange', () => {
+    let alice = createLamportClock('did:key:alice')
+    let bob = createLamportClock('did:key:bob')
+
+    // Alice makes two changes
+    let ts1
+    ;[alice, ts1] = tick(alice)
+    let ts2
+    ;[alice, ts2] = tick(alice)
+
+    // Bob receives Alice's second change
+    bob = receive(bob, ts2.time)
+
+    // Bob's next tick is higher than Alice's
+    let ts3
+    ;[bob, ts3] = tick(bob)
+    expect(ts3.time).toBe(3)
+  })
+})
+```
+
+## Testing plugins
+
+```ts
+import { describe, it, expect, vi } from 'vitest'
+import { PluginRegistry } from '@xnet/plugins'
+
+describe('PluginRegistry', () => {
+  it('should install and activate a plugin', async () => {
+    const activate = vi.fn()
+    const registry = new PluginRegistry(mockStore, 'electron')
+
+    await registry.install({
+      id: 'com.test.plugin',
+      name: 'Test Plugin',
+      version: '1.0.0',
+      activate
+    })
+
+    expect(activate).toHaveBeenCalled()
+    const plugins = registry.getAll()
+    expect(plugins[0].status).toBe('active')
+  })
+})
+```
+
+## Testing middleware
+
+```ts
+import { MiddlewareChain } from '@xnet/plugins'
+
+describe('MiddlewareChain', () => {
+  it('should execute in priority order', async () => {
+    const chain = new MiddlewareChain()
+    const order: number[] = []
+
+    chain.add({
+      id: 'second',
+      priority: 200,
+      async beforeChange(change, next) {
+        order.push(2)
+        return next()
+      }
+    })
+
+    chain.add({
+      id: 'first',
+      priority: 100,
+      async beforeChange(change, next) {
+        order.push(1)
+        return next()
+      }
+    })
+
+    await chain.executeBefore(mockChange, async () => {
+      order.push(3)
+    })
+    expect(order).toEqual([1, 2, 3])
+  })
+})
+```
+
+## Common patterns
+
+### Suppressing console noise
+
+```ts
+vi.spyOn(console, 'error').mockImplementation(() => {})
+vi.spyOn(console, 'warn').mockImplementation(() => {})
+```
+
+### Immutability assertions
+
+```ts
+it('should not mutate the original clock', () => {
+  const original = createLamportClock('did:key:alice')
+  const originalTime = original.time
+
+  tick(original) // Returns new object
+
+  expect(original.time).toBe(originalTime) // Original unchanged
+})
+```
+
+### Test DIDs
+
+Use typed DID strings in tests:
+
+```ts
+const testDID = 'did:key:z6MkTest123' as DID
+```
+
+Or generate real ones:
+
+```ts
+const { identity } = generateIdentity()
+const did = identity.did // Real did:key:z6Mk...
+```

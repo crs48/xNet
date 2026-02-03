@@ -2,8 +2,115 @@
 title: 'Getting Started'
 draft: false
 description: 'How to set up the xNet monorepo for development.'
+sidebar:
+  order: 1
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+## Prerequisites
 
-This page will walk you through cloning the xNet monorepo, installing dependencies with pnpm, running the build and test suite, and launching the Electron dev environment for local development.
+- **Node.js** 18+ (LTS recommended)
+- **pnpm** 9+ (`npm install -g pnpm`)
+- **Git**
+
+## Clone and install
+
+```bash
+git clone https://github.com/crs48/xNet.git
+cd xNet
+pnpm install
+```
+
+## Build all packages
+
+```bash
+pnpm build
+```
+
+This builds all packages in dependency order (crypto → identity → storage → sync → data → react → etc.).
+
+## Run tests
+
+```bash
+# All tests (~350)
+pnpm test
+
+# Single package
+pnpm --filter @xnet/sync test
+pnpm --filter @xnet/data test
+
+# Single file
+pnpm --filter @xnet/sync vitest run src/clock.test.ts
+
+# Watch mode
+pnpm --filter @xnet/sync test:watch
+```
+
+## Type checking
+
+```bash
+pnpm typecheck
+```
+
+## Linting
+
+```bash
+pnpm lint
+```
+
+## Run the Electron app
+
+```bash
+cd apps/electron && pnpm dev
+```
+
+This starts the Vite dev server, signaling server, and Electron app. The app is available at `http://localhost:5177` for debugging.
+
+### Two-instance sync testing
+
+```bash
+cd apps/electron && pnpm dev:both
+```
+
+Launches two Electron windows connected to the same signaling server for testing real-time sync.
+
+## Project structure
+
+```
+packages/           # Core libraries (@xnet/*)
+  crypto/           # BLAKE3, Ed25519, XChaCha20
+  identity/         # DID:key, UCAN tokens
+  storage/          # IndexedDB adapter
+  sync/             # Lamport clocks, Change<T>, Yjs security
+  data/             # Schema system, NodeStore, 16 property types
+  react/            # useQuery, useMutate, useNode hooks
+  plugins/          # 4-layer plugin system
+  canvas/           # Infinite canvas with spatial indexing
+  editor/           # TipTap rich text editor
+  network/          # libp2p, WebRTC, peer security
+  devtools/         # Debug panels (7 panels)
+apps/
+  electron/         # Desktop app (full features)
+  web/              # PWA (pages only)
+site/               # Documentation site (Astro + Starlight)
+```
+
+## Workflow
+
+1. Create a feature branch from `main`
+2. Make changes in the relevant package(s)
+3. Run tests for affected packages
+4. Run `pnpm typecheck` and `pnpm lint`
+5. Commit with a descriptive message following conventional commits
+6. Open a pull request
+
+## Useful commands
+
+| Command                               | Description              |
+| ------------------------------------- | ------------------------ |
+| `pnpm install`                        | Install all dependencies |
+| `pnpm build`                          | Build all packages       |
+| `pnpm test`                           | Run all tests            |
+| `pnpm typecheck`                      | Type check all packages  |
+| `pnpm lint`                           | Lint all packages        |
+| `pnpm --filter @xnet/sync test`       | Test a single package    |
+| `pnpm --filter @xnet/sync test:watch` | Watch mode for a package |

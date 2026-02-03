@@ -1,9 +1,175 @@
 ---
 title: 'Real-time Collaboration'
 draft: false
-description: 'Building collaborative editors with useNode and TipTap.'
+description: 'Building collaborative editors with useNode, TipTap, and awareness.'
+sidebar:
+  order: 4
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+:::note[You will learn]
 
-This guide will cover how to build real-time collaborative experiences using xNet's `useNode` hook and the TipTap rich text editor integration. You'll learn how Yjs CRDTs enable character-level merging and how to handle presence and cursor awareness.
+- How `useNode` enables real-time collaborative editing
+- How Yjs CRDTs handle concurrent text edits
+- How to display cursor presence with awareness
+- The dual-write model for properties vs. rich text
+  :::
+
+## How it works
+
+When two users open the same node, xNet automatically synchronizes their edits in real time. Rich text goes through Yjs (character-level CRDT), while properties go through the NodeStore (field-level LWW). Both channels share the same WebSocket connection.
+
+```tsx
+import { useNode } from '@xnet/react'
+
+function DocumentEditor({ nodeId }) {
+  const { editor, properties, mutate, peers } = useNode(nodeId)
+
+  return (
+    <div>
+      <h1>{properties.title}</h1>
+      <RichTextEditor editor={editor} />
+      <PeerAvatars peers={peers} />
+    </div>
+  )
+}
+```
+
+### The dual-write model
+
+`useNode` manages two sync channels simultaneously:
+
+| Channel        | Data                          | CRDT                | How to write              |
+| -------------- | ----------------------------- | ------------------- | ------------------------- |
+| Editor content | Rich text, blocks, embeds     | Yjs `Y.XmlFragment` | Type in the TipTap editor |
+| Properties     | Title, status, assignee, etc. | Lamport LWW         | Call `mutate.update()`    |
+
+These channels are bridged one-way by the MetaBridge: property changes in NodeStore are reflected in the Y.Doc's metadata map, but Yjs updates never write back to NodeStore. This prevents malicious Yjs payloads from corrupting structured data.
+
+## Yjs CRDT merging
+
+Yjs uses a character-level CRDT algorithm that handles concurrent edits without conflicts:
+
+- **Same paragraph, different positions** — edits merge cleanly
+- **Same character position** — Yjs uses internal ordering rules (clientID + sequence number) to produce a deterministic result
+- **Delete + edit at same position** — the edit wins (insert beats delete in Yjs)
+
+You don't need to handle conflicts for rich text — Yjs resolves everything automatically.
+
+## Cursor awareness
+
+Yjs provides an `Awareness` protocol for sharing ephemeral state like cursor positions and user information. xNet hooks into this through `useNode`:
+
+```tsx
+function DocumentEditor({ nodeId }) {
+  const { editor, awareness } = useNode(nodeId)
+
+  // TipTap's collaboration extension handles awareness rendering
+  // automatically when you provide the awareness instance
+}
+```
+
+Awareness data includes:
+
+- Cursor position and selection range
+- User name and color
+- Online/offline status
+
+Awareness state is ephemeral — it's not persisted and not signed. It's purely for real-time presence display.
+
+## Property collaboration
+
+When multiple users edit the same property simultaneously, the last write wins based on Lamport timestamp ordering:
+
+```tsx
+function TaskHeader({ nodeId }) {
+  const { properties, mutate } = useNode(nodeId)
+
+  const updateTitle = (newTitle: string) => {
+    mutate.update({ title: newTitle })
+    // This creates a signed Change with a Lamport timestamp
+    // If another peer writes at the same time, the higher
+    // timestamp wins. DID breaks ties deterministically.
+  }
+
+  return <input value={properties.title} onChange={(e) => updateTitle(e.target.value)} />
+}
+```
+
+:::tip
+For title fields and other frequently-edited properties, consider debouncing updates to reduce change volume:
+
+```ts
+const debouncedUpdate = useDebouncedCallback((title: string) => {
+  mutate.update({ title })
+}, 300)
+```
+
+:::
+
+## Multi-user patterns
+
+### Sync indicator
+
+Show users when their changes are synced:
+
+```tsx
+import { useNode } from '@xnet/react'
+
+function SyncStatus({ nodeId }) {
+  const { syncState } = useNode(nodeId)
+
+  switch (syncState) {
+    case 'synced':
+      return <span>All changes saved</span>
+    case 'syncing':
+      return <span>Syncing...</span>
+    case 'offline':
+      return <span>Working offline</span>
+  }
+}
+```
+
+### List + detail with background sync
+
+Track nodes so they sync even when the editor isn't open:
+
+```tsx
+function TaskList() {
+  const { data: tasks } = useQuery(TaskSchema)
+  const sync = useSyncManager()
+
+  // Track all visible tasks for background sync
+  useEffect(() => {
+    tasks.forEach((t) => sync.track(t.id, TaskSchema.schemaIRI))
+  }, [tasks])
+
+  return tasks.map((t) => <TaskRow key={t.id} task={t} />)
+}
+```
+
+### Handling offline → online transitions
+
+When connectivity is restored, the offline queue drains automatically. You don't need to handle this manually — `useNode` and `useQuery` will re-render with the merged state. See the [Offline Patterns](/xNet/guides/offline/) guide for details.
+
+## TipTap integration
+
+xNet's editor package (`@xnet/editor`) wraps TipTap with Yjs collaboration pre-configured. When you use the editor through `useNode`, the following extensions are active:
+
+- **Collaboration** — Yjs document binding
+- **CollaborationCursor** — Remote cursor rendering
+- **All standard TipTap extensions** — Headings, lists, code blocks, etc.
+- **Plugin-contributed extensions** — Any `EditorContribution` from the plugin system
+
+The editor instance returned by `useNode` is a standard TipTap `Editor` — you can use any TipTap API on it.
+
+## Security model
+
+All collaborative data is cryptographically secured:
+
+1. **Signed changes** — Every property mutation is signed with Ed25519 and linked into a hash chain
+2. **Signed Yjs updates** — Editor content updates are wrapped in `SignedYjsEnvelope` with BLAKE3 + Ed25519
+3. **ClientID attestation** — Yjs clientIDs are cryptographically bound to DIDs
+4. **Peer scoring** — Peers that send invalid data get penalized and eventually blocked
+5. **Rate limiting** — Per-peer limits prevent flooding (30 updates/sec, 1 MB max size)
+
+See the [Sync Guide](/xNet/guides/sync/) for the full security architecture.

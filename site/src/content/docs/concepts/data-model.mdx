@@ -2,8 +2,144 @@
 title: 'Data Model'
 draft: false
 description: 'Schemas, nodes, changes, and the NodeStore.'
+sidebar:
+  order: 2
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+## Overview
 
-This page will explain xNet's core data model: how schemas define node shapes with 15 property types, how the NodeStore manages CRUD operations and change tracking, and how `Change<T>` records propagate through the sync layer.
+xNet's data model has three layers:
+
+1. **Schemas** — Define the shape of your data (property types, defaults, validation)
+2. **Nodes** — Individual data records conforming to a schema
+3. **Changes** — Signed, hash-chained mutations that form an audit trail
+
+## Schemas
+
+A schema declares the properties a node can have, using typed builder functions:
+
+```ts
+import { defineSchema, text, number, boolean, select, relation } from '@xnet/data'
+
+const Task = defineSchema('task', {
+  title: text(),
+  priority: number({ default: 0 }),
+  done: boolean({ default: false }),
+  status: select({ options: ['todo', 'doing', 'done'] }),
+  project: relation()
+})
+```
+
+Each builder returns a typed descriptor that encodes the value type, default, and cardinality. TypeScript infers the full type from the schema definition — no manual type annotations needed.
+
+xNet provides 16 property types:
+
+| Type              | Value      | Notes                      |
+| ----------------- | ---------- | -------------------------- |
+| `text()`          | `string`   | Plain text                 |
+| `number()`        | `number`   | Numeric value              |
+| `boolean()`       | `boolean`  | True/false                 |
+| `date()`          | `number`   | Unix timestamp             |
+| `select()`        | `string`   | Single choice from options |
+| `multiSelect()`   | `string[]` | Multiple choices           |
+| `url()`           | `string`   | URL string                 |
+| `email()`         | `string`   | Email address              |
+| `phone()`         | `string`   | Phone number               |
+| `relation()`      | `string`   | Reference to another node  |
+| `relation.many()` | `string[]` | Multiple references        |
+| `person()`        | `string`   | Reference to a DID         |
+| `person.many()`   | `string[]` | Multiple DID references    |
+| `checkbox()`      | `boolean`  | Alias for boolean          |
+| `file()`          | `object`   | File attachment            |
+| `formula()`       | _computed_ | Computed at read time      |
+| `rollup()`        | _computed_ | Aggregation over relations |
+
+See [Property Types](/xNet/schemas/property-types/) for full details on each type.
+
+## Nodes
+
+A node is an instance of a schema. Every node has base fields plus the properties defined by its schema:
+
+```ts
+interface NodeBase {
+  id: string // Unique node ID
+  schemaIRI: string // Schema identifier
+  createdAt: number // Unix timestamp
+  updatedAt: number // Unix timestamp
+  createdBy: string // Author DID
+}
+```
+
+When you read a node via `useQuery` or `useNode`, you get a `FlatNode` — the base fields merged with the schema properties:
+
+```ts
+// FlatNode<TaskSchema>
+{
+  id: 'abc123',
+  schemaIRI: 'xnet://app/task',
+  createdAt: 1706000000,
+  updatedAt: 1706000100,
+  createdBy: 'did:key:z6Mk...',
+  title: 'Ship the feature',
+  priority: 1,
+  done: false,
+  status: 'doing',
+  project: 'project-456'
+}
+```
+
+## NodeStore
+
+The `NodeStore` is the central data layer that manages CRUD operations and change tracking:
+
+- **Create** — `store.create(schema, properties)` → new node with signed change
+- **Read** — `store.get(id)` or `store.query(schema, filter)` → node(s)
+- **Update** — `store.update(id, changes)` → signed change with Lamport timestamp
+- **Delete** — `store.delete(id)` → soft delete with signed change
+
+Every mutation creates a `Change<T>` record that is signed, hash-chained, and propagated to peers.
+
+## Change\<T\>
+
+The `Change<T>` type is the fundamental unit of sync:
+
+```ts
+interface Change<T> {
+  id: string // Unique change ID
+  type: string // e.g., 'create-task', 'update-task'
+  payload: T // The actual data
+  hash: ContentId // cid:blake3:... content-addressed
+  parentHash: ContentId | null // Previous change in the chain
+  authorDID: DID // Who made this change
+  signature: Uint8Array // Ed25519 over the hash
+  wallTime: number // Wall clock (display only)
+  lamport: LamportTimestamp // Causal ordering
+}
+```
+
+Changes form a hash chain — each change references its parent's hash. This creates a verifiable audit trail where:
+
+- **Tampering is detectable** — altering a change invalidates its hash and breaks the chain
+- **Authorship is provable** — every change is signed with Ed25519
+- **Ordering is deterministic** — Lamport timestamps provide causal ordering across peers
+
+## Transactions
+
+For atomic multi-node operations, use transactions:
+
+```ts
+const result = mutate.transaction((tx) => {
+  const projectId = tx.create(ProjectSchema, { name: 'Acme' })
+  tx.create(TaskSchema, { title: 'Setup', project: projectId })
+  tx.create(TaskSchema, { title: 'Launch', project: projectId })
+})
+```
+
+Transactions are batched — all changes share a `batchId` and are applied atomically. Temporary IDs used within a transaction are resolved to real IDs when committed.
+
+## Further reading
+
+- [defineSchema](/xNet/schemas/defineschema/) — Schema definition API
+- [Property Types](/xNet/schemas/property-types/) — All 16 property types
+- [Type Inference](/xNet/schemas/type-inference/) — How TypeScript types flow from schemas to hooks
+- [Relations](/xNet/schemas/relations/) — Linking nodes together

@@ -1,9 +1,706 @@
 ---
 title: 'Plugin Development'
 draft: false
-description: "Building plugins for xNet's 4-layer plugin system."
+description: "Building plugins for xNet's 4-layer extensibility system."
+sidebar:
+  order: 1
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+import { Tabs, TabItem, Steps, FileTree } from '@astrojs/starlight/components'
 
-This guide will cover xNet's plugin architecture, including the four plugin layers, how to register custom schemas, add UI components, and extend sync behavior. You'll learn the plugin lifecycle and how to distribute plugins to other users.
+:::note[You will learn]
+
+- The four plugin layers and when to use each one
+- How to define, register, and distribute an extension
+- All nine contribution types with working examples
+- The middleware system for intercepting data operations
+- The script sandbox for safe user-authored expressions
+- Platform compatibility across Electron, Web, and Mobile
+  :::
+
+## The four layers
+
+xNet's plugin system is organized into four layers of increasing complexity:
+
+| Layer | Name             | Description                                                         | Platform                          |
+| ----- | ---------------- | ------------------------------------------------------------------- | --------------------------------- |
+| 1     | **Scripts**      | Sandboxed expressions. Safe for AI-generated code.                  | All                               |
+| 2     | **Extensions**   | Developer-built packages with views, commands, editor integrations. | All (some features Electron-only) |
+| 3     | **Services**     | Background processes managed by a process supervisor.               | Electron only                     |
+| 4     | **Integrations** | HTTP API, MCP server, webhooks for external tools.                  | Electron only                     |
+
+Most plugin development happens at Layer 2. Layers 3 and 4 are for advanced use cases that need OS-level access.
+
+## Quick start: your first extension
+
+<Steps>
+
+1. **Define the manifest**
+
+   Every extension starts with an `XNetExtension` manifest. Use `defineExtension()` for validation:
+
+   ```ts
+   import { defineExtension } from '@xnet/plugins'
+
+   export const MyPlugin = defineExtension({
+     id: 'com.example.my-plugin', // reverse-domain format
+     name: 'My Plugin',
+     version: '1.0.0',
+     description: 'Adds a custom view and slash command.',
+     platforms: ['electron', 'web'],
+
+     contributes: {
+       // Static contributions declared here
+     },
+
+     activate(ctx) {
+       // Dynamic contributions registered here
+     },
+
+     deactivate() {
+       // Cleanup (optional — subscriptions auto-dispose)
+     }
+   })
+   ```
+
+2. **Register it**
+
+   In your app setup, install the plugin with the registry:
+
+   ```ts
+   import { usePluginRegistry } from '@xnet/react'
+   import { MyPlugin } from './plugins/my-plugin'
+
+   function App() {
+     const registry = usePluginRegistry()
+
+     useEffect(() => {
+       registry.install(MyPlugin)
+     }, [])
+   }
+   ```
+
+3. **Consume contributions in your UI**
+
+   ```tsx
+   import { useViews, useCommands } from '@xnet/react'
+
+   function Sidebar() {
+     const views = useViews()
+     const commands = useCommands()
+     // Render plugin-contributed views and commands
+   }
+   ```
+
+</Steps>
+
+## Manifest reference
+
+The `XNetExtension` interface:
+
+```ts
+interface XNetExtension {
+  id: string // Reverse-domain: 'com.example.my-plugin'
+  name: string
+  version: string // Semver: '1.0.0'
+  description?: string
+  author?: string
+  xnetVersion?: string // Minimum compatible xNet version
+  platforms?: Platform[] // 'web' | 'electron' | 'mobile' (default: all)
+  permissions?: PluginPermissions
+  contributes?: PluginContributions // Static contributions
+  activate?(ctx: ExtensionContext): void | Promise<void>
+  deactivate?(): void | Promise<void>
+}
+```
+
+**Validation rules** enforced by `defineExtension()`:
+
+- `id` must match `/^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$/i` (reverse-domain)
+- `version` must be valid semver
+- `platforms` values must be `'web'`, `'electron'`, or `'mobile'`
+- `activate` and `deactivate` must be functions if present
+
+## Lifecycle
+
+```
+install → activate → contribute → deactivate → uninstall
+```
+
+1. **Install** — Manifest is validated, platform compatibility checked, plugin persisted as a node in the store (syncs to peers). Status: `'installed'`. Activation happens immediately.
+
+2. **Activate** — An `ExtensionContext` is created. Static contributions from `contributes` are registered. Then `activate(ctx)` is called if defined — this is where you register dynamic contributions, subscribe to data changes, or add middleware.
+
+3. **Contribute** — All `ctx.register*()` calls return `Disposable` objects tracked in `ctx.subscriptions`. Contributions are visible to React hooks immediately.
+
+4. **Deactivate** — `deactivate()` is called, then all subscriptions are disposed. Contributions are unregistered, middleware removed, store subscriptions cancelled.
+
+5. **Uninstall** — Plugin node deleted from the store.
+
+:::tip
+You rarely need a `deactivate()` function. All resources registered through `ExtensionContext` are automatically cleaned up when the plugin is deactivated.
+:::
+
+## ExtensionContext
+
+The context object passed to `activate()` provides the full plugin API:
+
+```ts
+interface ExtensionContext {
+  readonly pluginId: string
+  readonly platform: Platform
+  readonly store: NodeStore
+  readonly storage: ExtensionStorage // Key-value storage scoped to this plugin
+  readonly capabilities: PlatformCapabilities
+  readonly subscriptions: Disposable[]
+
+  // Data access
+  query(schema: SchemaIRI, filter?: QueryFilter): Promise<NodeState[]>
+  subscribe(schema: SchemaIRI | null, callback): Disposable
+
+  // Registration (all return Disposable)
+  registerSchema(schema): Disposable
+  registerView(view: ViewContribution): Disposable
+  registerCommand(command: CommandContribution): Disposable
+  registerSlashCommand(cmd: SlashCommandContribution): Disposable
+  registerEditorExtension(ext: EditorContribution): Disposable
+  registerSidebarItem(item: SidebarContribution): Disposable
+  registerPropertyHandler(type, handler): Disposable
+  registerBlockType(block: BlockContribution): Disposable
+  addMiddleware(middleware: NodeStoreMiddleware): Disposable
+}
+```
+
+## Contribution types
+
+xNet supports nine contribution types. Each can be declared statically in `contributes` or registered dynamically in `activate()`.
+
+### Views
+
+Custom UI panels for displaying node data:
+
+```ts
+interface ViewContribution {
+  type: string // Unique view type identifier
+  name: string
+  icon?: string | ComponentType
+  component: ComponentType<ViewProps> // React component
+  supportedSchemas?: string[] // Restrict to specific schemas
+}
+
+interface ViewProps {
+  nodeId: string
+  schemaId: string
+}
+```
+
+```tsx
+const KanbanView: ViewContribution = {
+  type: 'kanban',
+  name: 'Kanban Board',
+  icon: 'columns',
+  supportedSchemas: ['xnet://app/Task'],
+  component: ({ nodeId, schemaId }) => {
+    const { data } = useQuery(schemaId)
+    return <KanbanBoard tasks={data} />
+  }
+}
+```
+
+### Commands
+
+Actions triggered by keyboard shortcuts or the command palette:
+
+```ts
+interface CommandContribution {
+  id: string
+  name: string
+  description?: string
+  keybinding?: string // e.g., 'Mod-Shift-P' (Mod = Cmd on Mac, Ctrl elsewhere)
+  keywords?: string[] // For command palette search
+  icon?: string
+  execute: () => void | Promise<void>
+  when?: () => boolean // Show/enable condition
+}
+```
+
+```ts
+ctx.registerCommand({
+  id: 'my-plugin.export-csv',
+  name: 'Export as CSV',
+  keybinding: 'Mod-Shift-E',
+  keywords: ['export', 'csv', 'download'],
+  execute: async () => {
+    const nodes = await ctx.query('xnet://app/Task')
+    downloadCSV(nodes)
+  }
+})
+```
+
+### Slash commands
+
+In-editor commands triggered by typing `/`:
+
+```ts
+interface SlashCommandContribution {
+  id: string
+  name: string
+  description?: string
+  aliases?: string[] // Alternative trigger words
+  icon?: string
+  execute: (props: SlashCommandContext) => void
+}
+
+interface SlashCommandContext {
+  editor: unknown // TipTap Editor instance
+  range: { from: number; to: number }
+}
+```
+
+### Editor extensions
+
+TipTap editor extensions (nodes, marks, plugins):
+
+```ts
+interface EditorContribution {
+  id: string
+  extension: Extension // TipTap Extension/Node/Mark
+  priority?: number // Default: 100. Lower runs first.
+  toolbar?: ToolbarContribution
+}
+
+interface ToolbarContribution {
+  icon: string | ComponentType
+  title: string
+  group?: 'format' | 'insert' | 'block' | 'custom'
+  isActive?: (editor) => boolean
+  action: (editor) => void
+  shortcut?: string
+}
+```
+
+### Sidebar items
+
+Add items to the application sidebar:
+
+```ts
+interface SidebarContribution {
+  id: string
+  name: string
+  icon: string | ComponentType
+  position?: 'top' | 'bottom' | 'section'
+  section?: string
+  priority?: number
+  badge?: () => string | number | null
+  action: (() => void) | string // Function or route string
+  panel?: ComponentType // Expandable panel content
+}
+```
+
+### Property handlers
+
+Custom renderers for property types in table cells and editors:
+
+```ts
+interface PropertyHandlerContribution {
+  type: string // Property type identifier
+  handler: {
+    Cell: ComponentType<{ value; config? }> // Read-only display
+    Editor: ComponentType<{ value; onChange; config? }> // Edit mode
+    parse?: (input: string) => unknown
+    format?: (value: unknown) => string
+    validate?: (value: unknown) => boolean
+  }
+}
+```
+
+### Block types
+
+Custom block-level elements inside the editor:
+
+```ts
+interface BlockContribution {
+  type: string
+  name: string
+  component: ComponentType<{
+    node: unknown
+    updateAttributes: (attrs: Record<string, unknown>) => void
+  }>
+}
+```
+
+### Settings panels
+
+Add sections to the application settings UI:
+
+```ts
+interface SettingContribution {
+  id: string
+  title: string
+  description?: string
+  icon?: string
+  section?: 'general' | 'appearance' | 'plugins' | 'data' | 'network'
+  component: ComponentType<{
+    storage: ExtensionStorage
+  }>
+}
+```
+
+### Schema contributions
+
+Register new schemas from a plugin:
+
+```ts
+interface SchemaContribution {
+  schema: unknown // A defineSchema() result
+}
+```
+
+## React hooks
+
+Use these hooks to consume plugin contributions in your components:
+
+| Hook                        | Returns                            | Description                                        |
+| --------------------------- | ---------------------------------- | -------------------------------------------------- |
+| `usePlugins()`              | `RegisteredPlugin[]`               | All registered plugins with status                 |
+| `useViews()`                | `ViewContribution[]`               | All view contributions                             |
+| `useCommands()`             | `CommandContribution[]`            | All command contributions                          |
+| `useSlashCommands()`        | `SlashCommandContribution[]`       | All slash commands                                 |
+| `useSidebarItems()`         | `SidebarContribution[]`            | All sidebar items                                  |
+| `useEditorExtensions()`     | `EditorContribution[]`             | All editor extensions (throws if no plugin system) |
+| `useEditorExtensionsSafe()` | `EditorContribution[]`             | Same, returns `[]` if no plugin system             |
+| `useContributions(type)`    | `Contribution[]`                   | Generic — pass `'views'`, `'commands'`, etc.       |
+| `useView(type)`             | `ViewContribution \| undefined`    | Find a specific view by type                       |
+| `useCommand(id)`            | `CommandContribution \| undefined` | Find a specific command by ID                      |
+| `usePluginRegistry()`       | `PluginRegistry`                   | Direct registry access (throws if missing)         |
+
+All hooks are reactive — they re-render when contributions change.
+
+## Middleware
+
+Middleware lets you intercept NodeStore operations. This is useful for validation, audit logging, computed fields, or cross-plugin data transformation.
+
+```ts
+interface NodeStoreMiddleware {
+  id: string
+  priority?: number // Lower runs first. Default: 100.
+  beforeChange?(change: PendingChange, next: () => Promise<unknown>): Promise<unknown>
+  afterChange?(event: NodeChangeEvent): void
+}
+```
+
+### Example: audit log middleware
+
+```ts
+ctx.addMiddleware({
+  id: 'my-plugin.audit-log',
+  priority: 50, // Run early
+
+  async beforeChange(change, next) {
+    // Pass through — let the operation proceed
+    const result = await next()
+    return result
+  },
+
+  afterChange({ change, node, isRemote }) {
+    if (!isRemote) {
+      console.log(`[audit] ${change.type} on ${change.nodeId}`)
+    }
+  }
+})
+```
+
+### Middleware capabilities
+
+- **Pass through**: Call `next()` to continue the chain
+- **Modify**: Mutate the `change` object before calling `next()`
+- **Reject**: Throw an error to abort the operation
+- **Short-circuit**: Return a value without calling `next()`
+
+The `MiddlewareChain` executes `beforeChange` hooks in priority order (lowest first). After the store operation completes, `afterChange` hooks run for all middleware — one failing hook does not prevent others.
+
+## Layer 1: Scripts
+
+Scripts are sandboxed expressions for safe, user-authored (or AI-generated) logic. They run in a restricted JavaScript subset with no access to the DOM, network, or Node.js APIs.
+
+### Script node
+
+Scripts are stored as nodes with schema `xnet://xnet.dev/Script`:
+
+```ts
+interface ScriptNode {
+  name: string
+  description?: string
+  code: string // The script body
+  triggerType: 'manual' | 'onChange' | 'onView' | 'scheduled'
+  triggerProperty?: string // For onChange: which property triggers re-run
+  inputSchema?: string // SchemaIRI to filter triggers
+  outputType: 'value' | 'mutation' | 'decoration' | 'void'
+  enabled: boolean
+  lastError?: string
+  lastRun?: number
+}
+```
+
+### Script context
+
+Scripts receive a frozen context with helper libraries:
+
+```ts
+interface ScriptContext {
+  node: Readonly<FlatNode> // Current node
+  nodes: (schemaIRI?) => ReadonlyArray<FlatNode> // Query siblings
+  now: () => number // Current timestamp
+  format: { date; number; currency; relativeTime; bytes }
+  math: { sum; avg; min; max; round; clamp; abs; floor; ceil }
+  text: { slugify; truncate; capitalize; titleCase; contains; template; trim; lower; upper }
+  array: { first; last; sortBy; groupBy; unique; count; compact }
+}
+```
+
+### Example script
+
+```js
+// Compute a "progress" value from subtask completion
+const tasks = nodes('xnet://app/Task')
+const done = array.count(tasks, (t) => t.status === 'done')
+const total = tasks.length
+total > 0 ? math.round((done / total) * 100) : 0
+```
+
+### AST validation
+
+Before execution, scripts are parsed with `acorn` and validated against a strict allowlist. Blocked patterns include:
+
+- 60+ forbidden globals (`window`, `document`, `fetch`, `eval`, `require`, `process`, `setTimeout`, etc.)
+- Forbidden property access (`__proto__`, `constructor`, `prototype`)
+- Import/export statements and dynamic `import()`
+- `async`/`await`, `new Function()`, `with` statements
+
+### Sandbox execution
+
+```ts
+import { ScriptSandbox, createScriptContext } from '@xnet/plugins'
+
+const sandbox = new ScriptSandbox({ timeoutMs: 1000 })
+const context = createScriptContext(node, queryFn)
+const result = await sandbox.execute(code, context)
+```
+
+The sandbox wraps code in a `new Function()` with all dangerous globals shadowed to `undefined`. Output is sanitized — functions, symbols, circular references, and non-plain objects are stripped.
+
+### AI script generation
+
+xNet includes an AI script generator that produces validated scripts:
+
+```ts
+import { generateScript, createAIProvider } from '@xnet/plugins'
+
+const provider = createAIProvider({
+  type: 'anthropic',   // or 'openai', 'ollama'
+  options: { apiKey: '...' }
+})
+
+const result = await generateScript(provider, {
+  intent: 'Calculate total price from quantity and unit price',
+  schema: { name: 'LineItem', schemaIRI: '...', properties: [...] },
+  outputType: 'value'
+})
+
+if (result.validated) {
+  // result.code is safe to execute in the sandbox
+}
+```
+
+The generator builds a structured prompt with schema context and helper documentation, then validates the output through the AST validator. It retries up to 2 times if validation fails.
+
+## Layer 3: Services
+
+Services are background processes managed by `ProcessManager` in the Electron main process. Think of them as supervised daemons.
+
+```ts
+interface ServiceDefinition {
+  id: string
+  name: string
+  process: {
+    command: string // e.g., 'python', 'node'
+    args?: string[]
+    cwd?: string
+    env?: Record<string, string>
+  }
+  lifecycle: {
+    restart: 'always' | 'on-failure' | 'never'
+    maxRestarts?: number
+    restartDelayMs?: number
+    healthCheck?: {
+      type: 'http' | 'tcp' | 'stdout'
+      url?: string
+      port?: number
+      intervalMs?: number
+    }
+  }
+  communication: {
+    protocol: 'stdio' | 'http' | 'websocket' | 'ipc'
+    port?: number
+  }
+}
+```
+
+From the renderer, use the `ServiceClient`:
+
+```ts
+import { createServiceClient } from '@xnet/plugins'
+
+const services = createServiceClient()
+await services.start(myServiceDef)
+
+const status = await services.status('my-service')
+// { state: 'running', pid: 12345, uptime: 60000, ... }
+
+const result = await services.call('my-service', 'POST', '/analyze', { data })
+```
+
+The service client communicates with the main process via IPC. It is only available in Electron.
+
+## Layer 4: Integrations
+
+### Local HTTP API
+
+A REST API on `localhost:31415` for external tools:
+
+```
+GET    /api/v1/nodes?schema=&limit=&offset=
+POST   /api/v1/nodes          { schema, properties }
+GET    /api/v1/nodes/:id
+PATCH  /api/v1/nodes/:id
+DELETE /api/v1/nodes/:id
+POST   /api/v1/query          { schema, limit?, offset? }
+GET    /api/v1/events?since=   Polling endpoint
+GET    /api/v1/schemas
+```
+
+Optional Bearer token authentication. CORS enabled.
+
+### MCP server
+
+Exposes xNet data to AI agents via the Model Context Protocol:
+
+| Tool           | Description            |
+| -------------- | ---------------------- |
+| `xnet_query`   | Query nodes by schema  |
+| `xnet_get`     | Get a node by ID       |
+| `xnet_create`  | Create a node          |
+| `xnet_update`  | Update node properties |
+| `xnet_delete`  | Delete a node          |
+| `xnet_schemas` | List all schemas       |
+
+The MCP server reads from stdin and writes JSON-RPC 2.0 responses to stdout.
+
+### Webhooks
+
+Push notifications on store changes:
+
+```ts
+import { createWebhookEmitter } from '@xnet/plugins'
+
+const emitter = createWebhookEmitter(store)
+emitter.register({
+  id: 'notify-slack',
+  url: 'https://hooks.slack.com/...',
+  events: ['created', 'updated'],
+  schema: 'xnet://app/Task',
+  secret: 'hmac-secret',
+  retries: 3
+})
+emitter.start()
+```
+
+Payloads are signed with HMAC-SHA256 (`x-xnet-signature-256` header). Failed deliveries retry with exponential backoff.
+
+## Worked example: Mermaid plugin
+
+Here is the complete source for the built-in Mermaid diagram plugin:
+
+```ts
+import type { XNetExtension } from '@xnet/plugins'
+import { MermaidExtension } from '@xnet/editor/extensions'
+
+export const MermaidPlugin: XNetExtension = {
+  id: 'fyi.xnet.mermaid',
+  name: 'Mermaid Diagrams',
+  version: '1.0.0',
+  description: 'Add flowcharts, sequence diagrams, and more using Mermaid syntax.',
+  author: 'xNet',
+  platforms: ['electron', 'web'],
+
+  contributes: {
+    editorExtensions: [
+      {
+        id: 'mermaid',
+        extension: MermaidExtension,
+        priority: 100
+      }
+    ],
+    slashCommands: [
+      {
+        id: 'mermaid',
+        name: 'Mermaid Diagram',
+        description: 'Insert a Mermaid diagram',
+        aliases: ['diagram', 'flowchart', 'sequence', 'chart'],
+        icon: 'git-branch',
+        execute: ({ editor, range }) => {
+          ;(editor as any).chain().focus().deleteRange(range).setMermaid().run()
+        }
+      }
+    ]
+  }
+}
+```
+
+Key takeaways:
+
+- **No `activate`/`deactivate`** — simple plugins only need `contributes`
+- **Two contributions** — an editor extension and a slash command that work together
+- **Platform restriction** — excluded from mobile where the editor isn't available
+- **Bundled plugins** are installed from `BUNDLED_PLUGINS` in the app entry point and rehydrated on restart using `registry.rehydrate()` to restore live function references after deserialization
+
+## Permissions
+
+Plugins can declare the permissions they need:
+
+```ts
+permissions: {
+  schemas: {
+    read: ['xnet://app/Task', 'xnet://app/Project'],
+    write: ['xnet://app/Task'],
+    create: ['xnet://app/Task']
+  },
+  capabilities: {
+    network: ['https://api.example.com'],   // or true for all
+    storage: 'local',                        // or 'shared'
+    clipboard: true,
+    notifications: true,
+    processes: true                           // Electron only
+  }
+}
+```
+
+## Platform compatibility
+
+| Feature              | Electron | Web | Mobile |
+| -------------------- | -------- | --- | ------ |
+| Views                | Yes      | Yes | Yes    |
+| Commands             | Yes      | Yes | Yes    |
+| Slash commands       | Yes      | Yes | No     |
+| Editor extensions    | Yes      | Yes | No     |
+| Sidebar items        | Yes      | Yes | Yes    |
+| Property handlers    | Yes      | Yes | Yes    |
+| Block types          | Yes      | Yes | No     |
+| Settings panels      | Yes      | Yes | Yes    |
+| Scripts (sandbox)    | Yes      | Yes | Yes    |
+| Services (processes) | Yes      | No  | No     |
+| Local API            | Yes      | No  | No     |
+| MCP server           | Yes      | No  | No     |
+| Webhooks             | Yes      | Yes | Yes    |
+
+If a plugin specifies `platforms` and the current platform isn't included, installation is rejected. Use `ctx.capabilities` to check feature availability at runtime.

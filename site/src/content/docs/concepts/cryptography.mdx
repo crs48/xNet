@@ -2,8 +2,103 @@
 title: 'Cryptography'
 draft: false
 description: 'BLAKE3, Ed25519, and XChaCha20 in xNet.'
+sidebar:
+  order: 5
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+## Three primitives
 
-This page will cover the three cryptographic primitives used in xNet: BLAKE3 for fast hashing, Ed25519 for digital signatures and identity, and XChaCha20-Poly1305 for authenticated encryption of private data.
+xNet's cryptographic stack uses three algorithms, each chosen for a specific role:
+
+| Algorithm          | Purpose                  | Package        |
+| ------------------ | ------------------------ | -------------- |
+| BLAKE3             | Hashing                  | `@xnet/crypto` |
+| Ed25519            | Digital signatures       | `@xnet/crypto` |
+| XChaCha20-Poly1305 | Authenticated encryption | `@xnet/crypto` |
+
+All implementations come from the `@noble` library family (`@noble/hashes`, `@noble/curves`, `@noble/ciphers`), which are audited, pure-JavaScript implementations with no native dependencies.
+
+## BLAKE3
+
+BLAKE3 is a cryptographic hash function used throughout xNet for content addressing and integrity:
+
+- **Change hashing** — Every `Change<T>` is content-addressed with `cid:blake3:<hex>`
+- **Yjs update signing** — The BLAKE3 hash of the update bytes is what gets signed
+- **Storage integrity** — Persisted Y.Doc state is BLAKE3-hashed to detect corruption
+- **ClientID attestation** — The attestation message is BLAKE3-hashed before signing
+
+### Why BLAKE3?
+
+BLAKE3 is 3-5x faster than SHA-256 on modern hardware. Since xNet hashes every change and every Yjs update, the performance difference adds up. BLAKE3 also produces 256-bit digests suitable for content addressing.
+
+SHA-256 is available as a fallback for interoperability with external systems.
+
+## Ed25519
+
+Ed25519 is an elliptic curve signature scheme used for:
+
+- **Change signing** — Every NodeStore mutation is signed by the author
+- **Yjs envelope signing** — Rich text updates are signed before broadcast
+- **UCAN tokens** — Authorization tokens are signed by the issuer
+- **ClientID attestation** — Binds Yjs clientIDs to DIDs
+
+### Why Ed25519?
+
+- Small keys (32 bytes public, 32 bytes private) and signatures (64 bytes)
+- Fast signing and verification
+- Deterministic — same message + key always produces the same signature
+- The DID:key method spec uses Ed25519 as its primary key type
+
+### Key derivation
+
+Ed25519 keys also serve as the basis for X25519 key exchange. The same key pair (with curve conversion) can be used for both signing and Diffie-Hellman key agreement.
+
+## XChaCha20-Poly1305
+
+XChaCha20-Poly1305 is an authenticated encryption cipher used for:
+
+- **Key bundle storage** — Encrypting the user's private keys at rest
+- **Private node content** — Encrypting data that should only be readable by specific users
+
+### Why XChaCha20?
+
+- 24-byte nonce (vs. 12 for AES-GCM) — safe to use random nonces without collision risk
+- No timing side-channels (constant-time by design)
+- Poly1305 authentication tag detects any tampering
+
+### Key exchange
+
+For sharing encrypted data between users, xNet uses X25519 Diffie-Hellman key exchange with HKDF-SHA256 key derivation:
+
+```
+Alice's private key + Bob's public key → shared secret
+Bob's private key + Alice's public key → same shared secret
+```
+
+The shared secret is used as the encryption key for XChaCha20-Poly1305.
+
+## Where crypto is used in xNet
+
+| Operation            | Hash                     | Signature                  | Encryption                 |
+| -------------------- | ------------------------ | -------------------------- | -------------------------- |
+| Create/update node   | BLAKE3 (change hash)     | Ed25519 (sign change)      | —                          |
+| Rich text edit       | BLAKE3 (update hash)     | Ed25519 (sign envelope)    | —                          |
+| Store Y.Doc state    | BLAKE3 (integrity check) | —                          | —                          |
+| ClientID attestation | BLAKE3 (message hash)    | Ed25519 (sign attestation) | —                          |
+| UCAN token           | —                        | Ed25519 (sign token)       | —                          |
+| Key storage          | —                        | —                          | XChaCha20 (encrypt bundle) |
+| Private content      | BLAKE3 (change hash)     | Ed25519 (sign change)      | XChaCha20 (encrypt data)   |
+
+## Security properties
+
+- **Authenticity** — Every change is signed. You can verify who made it.
+- **Integrity** — Hash chains detect tampering. Altering a change breaks the chain.
+- **Confidentiality** — Private data is encrypted end-to-end. The signaling server never sees plaintext.
+- **Non-repudiation** — Signatures prove authorship. The author cannot deny making a change.
+- **Forward secrecy** — Per-session X25519 key exchange means compromising one session doesn't compromise others.
+
+## Further reading
+
+- [Identity Model](/xNet/concepts/identity-model/) — How keys become identities
+- [Identity & Keys Guide](/xNet/guides/identity/) — Practical crypto API usage
+- [Sync Guide](/xNet/guides/sync/) — How signatures protect sync

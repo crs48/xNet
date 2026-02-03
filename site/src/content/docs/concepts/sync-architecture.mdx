@@ -2,8 +2,140 @@
 title: 'Sync Architecture'
 draft: false
 description: 'How xNet syncs data peer-to-peer.'
+sidebar:
+  order: 6
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+## Architecture overview
 
-This page will cover xNet's sync architecture in depth: Yjs CRDTs for rich text with character-level merging, Lamport clock field-level LWW for structured data, Ed25519 signed updates, and the rate limiting and peer scoring systems that protect against abuse.
+xNet's sync system has four layers:
+
+```
+┌──────────────────────────────────────┐
+│  React hooks (useNode, useQuery)     │  Application layer
+├──────────────────────────────────────┤
+│  SyncManager                         │  Orchestration
+│  NodePool · Registry · OfflineQueue  │
+│  MetaBridge · BlobSync               │
+├──────────────────────────────────────┤
+│  Yjs security layer                  │  Security
+│  Envelopes · Rate limits · Scoring   │
+│  ClientID attestation · Batching     │
+├──────────────────────────────────────┤
+│  ConnectionManager                   │  Transport
+│  WebSocket (multiplexed, room-based) │
+└──────────────────────────────────────┘
+```
+
+## Transport layer
+
+A single multiplexed WebSocket connection handles all documents. Messages are routed by room (one room per document):
+
+- `subscribe(topics)` — join rooms
+- `publish(topic, data)` — broadcast to room
+- Auto-reconnect with configurable delay
+
+This is O(1) connections regardless of how many documents are open — not O(N) per document.
+
+## Security layer
+
+Every Yjs update is wrapped in a `SignedYjsEnvelope` before transmission:
+
+1. **BLAKE3 hash** the update bytes
+2. **Ed25519 sign** the hash
+3. Attach author DID, clientId, and timestamp
+
+On the receiving side:
+
+1. **Rate limit check** — per-peer sliding window (30/sec, 600/min)
+2. **Size check** — max 1 MB per update, 50 MB per document
+3. **Signature verification** — extract public key from DID, verify Ed25519
+4. **ClientID validation** — check attestation binding (clientId → DID)
+5. **Peer scoring** — track violations, throttle/block bad peers
+
+### Peer scoring
+
+Peers start at score 100. Violations deduct points:
+
+- Invalid signature: **-30** (auto-block after 3 occurrences)
+- Unsigned update: **-20**
+- Unattested clientId: **-15**
+- Oversized update: **-10**
+- Rate exceeded: **-5**
+
+Thresholds: warn at 50, throttle at 30, block at 10. Recovery: +1 per tick if clean for 60 seconds.
+
+### Update batching
+
+Individual keystrokes produce ~5 Yjs updates per second. The `YjsBatcher` collects them and flushes every 2 seconds (or when the batch hits 50 updates). This reduces signing overhead from ~5/sec to ~0.5/sec without adding perceptible latency.
+
+## Orchestration layer
+
+### SyncManager
+
+The top-level orchestrator that wires everything together:
+
+- **`start()`** — connect, load state, join rooms
+- **`acquire(nodeId)`** — get a Y.Doc for editing (used by `useNode`)
+- **`release(nodeId)`** — done editing; doc stays warm
+- **`track(nodeId)`** — add to background sync set
+- **`stop()`** — disconnect, flush, save state
+
+### NodePool
+
+Manages Y.Doc instances in three tiers:
+
+| State  | Condition     | Behavior                                   |
+| ------ | ------------- | ------------------------------------------ |
+| Active | refCount > 0  | In use by a component. Never evicted.      |
+| Warm   | refCount = 0  | Released but cached. Evicted via LRU.      |
+| Cold   | Not in memory | Persisted in IndexedDB. Loaded on acquire. |
+
+Default warm pool size: 50 documents.
+
+### Registry
+
+Persistent set of tracked nodes that survives app restarts. Tracked nodes sync in the background even when no component has them open. Entries expire after 7 days unless pinned.
+
+### OfflineQueue
+
+When disconnected, local updates queue up (max 1000 entries, persisted for crash resilience). On reconnect, the queue drains in order. The Yjs state-vector exchange after reconnect reconciles any gaps.
+
+### MetaBridge
+
+One-way bridge from NodeStore properties to Y.Doc metadata. Prevents malicious Yjs updates from corrupting structured data. Property writes always go through the signed `Change<T>` pipeline.
+
+## Electron architecture
+
+In Electron, sync is split across two processes:
+
+```
+Renderer (React UI)  ←— IPC / MessagePort —→  Main (BSM)  ←— WebSocket —→  Peers
+```
+
+The **Background Sync Manager (BSM)** runs in the main process:
+
+- Manages its own Y.Doc pool and WebSocket connection
+- Signs outgoing updates, verifies incoming ones
+- Survives renderer crashes
+- Streams binary updates to renderer via MessagePort (zero-copy)
+
+The renderer maintains mirror Y.Docs for editor binding. The `IPCSyncManager` implements the same `SyncManager` interface, so React hooks work identically on Electron and Web.
+
+## Data flow: an edit
+
+1. User types in TipTap editor → local Y.Doc update in renderer
+2. Update forwarded to BSM via MessagePort
+3. BSM applies to its Y.Doc copy
+4. BSM batches, BLAKE3 hashes, Ed25519 signs → `SignedYjsEnvelope`
+5. Envelope broadcast via WebSocket to room subscribers
+6. Remote BSM receives: rate-limit check → size check → verify signature → apply
+7. Remote BSM forwards to its renderer → applied with `'remote'` origin
+8. Both renderers show the same text
+
+## Further reading
+
+- [Sync Guide](/xNet/guides/sync/) — Configuration, debugging, and API
+- [CRDTs](/xNet/concepts/crdts/) — How conflict-free merging works
+- [Cryptography](/xNet/concepts/cryptography/) — The primitives behind signatures
+- [Electron Setup](/xNet/guides/electron/) — The BSM architecture in detail
