@@ -238,6 +238,366 @@ flowchart LR
     RT2 --> RT3
 ```
 
+### Option D: Datalog-Style Logical Matching with Implicit Joins
+
+The options above all inherit the SQL mental model: you pick a table, filter it, then explicitly declare joins. Datalog inverts this. You declare **patterns** with **logical variables**, and the engine figures out how to join them. There is no "join" keyword — shared variables across clauses _are_ the joins.
+
+#### How Datomic Datalog Works (and Why It's Powerful)
+
+In Datomic, every fact is a triple: `[entity attribute value]`. A query is a set of **clauses** that must all be true simultaneously. Variables (prefixed with `?`) unify across clauses — if `?task` appears in two clauses, it must be the same entity in both.
+
+```clojure
+;; "Find names of people who are friends with Alice"
+[:find ?name
+ :where
+ [?alice :person/name "Alice"]     ;; bind ?alice to the entity named Alice
+ [?alice :person/friend ?friend]   ;; ?alice's friends → bind ?friend
+ [?friend :person/name ?name]]     ;; ?friend's name → bind ?name
+```
+
+There is no `JOIN` keyword. The shared variable `?alice` in clauses 1 and 2, and `?friend` in clauses 2 and 3, _is_ the join. The engine determines join order, index usage, and optimization automatically. This is profoundly different from SQL, where the developer must specify join mechanics.
+
+#### Translating to TypeScript: `q()` — The Pattern Query
+
+What if xNet had a Datalog-inspired API where **logical variables** replace explicit joins?
+
+```typescript
+import { q, $, find, where, rule } from '@xnet/query'
+
+// ─── Simple: find all task titles ──────────────────────────
+const tasks = useFind(
+  find($task, 'title'),
+  where([$task, 'schemaId', 'xnet://xnet.fyi/Task'], [$task, 'title', $title])
+)
+// → [{ $task: 'abc', title: 'Build auth' }, ...]
+
+// ─── Implicit join: tasks with their comments ──────────────
+const tasksWithComments = useFind(
+  find($task, $comment),
+  where(
+    [$task, 'schemaId', 'xnet://xnet.fyi/Task'],
+    [$task, 'status', 'todo'],
+    [$comment, 'schemaId', 'xnet://xnet.fyi/Comment'],
+    [$comment, 'target', $task] // ← THIS IS THE JOIN
+  )
+)
+// No "include", no "from", no "follow". The shared $task IS the join.
+
+// ─── Multi-hop: people who commented on tasks in a project ─
+const collaborators = useFind(
+  find($person),
+  where(
+    [$task, 'schemaId', 'xnet://xnet.fyi/Task'],
+    [$task, 'parent', projectId], // task belongs to project
+    [$comment, 'target', $task], // comment targets the task
+    [$comment, 'createdBy', $person] // comment was created by person
+  ),
+  { distinct: true }
+)
+// Three "joins" — zero join syntax. Just shared variables.
+```
+
+The `$` prefix creates a logical variable (similar to Datomic's `?` prefix). Each clause is a triple pattern `[entity, property, value]` where any position can be a variable or a concrete value. The engine unifies all clauses and returns the bindings that satisfy all of them.
+
+#### Schema-Aware Triple Patterns
+
+Unlike raw Datomic where attributes are global keywords, xNet's triples are schema-aware. The engine knows that `'target'` on a Comment schema is a `relation()` property, and can use the relation index for reverse lookups:
+
+```typescript
+// The engine sees [$comment, 'target', $task] and knows:
+// 1. 'target' is a relation property on Comment
+// 2. $task is already bound from an earlier clause
+// 3. → Use the relation index: byTarget($task) → comment IDs
+// 4. This is O(k) not O(n) — no full scan needed
+```
+
+```mermaid
+flowchart TD
+    subgraph "SQL Mental Model"
+        direction LR
+        S1[Pick table] --> S2[Filter rows]
+        S2 --> S3["Explicitly JOIN other tables"]
+        S3 --> S4[Filter joined rows]
+    end
+
+    subgraph "Datalog Mental Model"
+        direction LR
+        D1[Declare patterns with variables] --> D2[Engine unifies variables]
+        D2 --> D3[Engine chooses join order + indexes]
+        D3 --> D4[Return matching bindings]
+    end
+
+    style S3 fill:#fbbf24,stroke:#f59e0b
+    style D2 fill:#4ade80,stroke:#16a34a
+    style D3 fill:#4ade80,stroke:#16a34a
+```
+
+#### Recursive Queries with Rules
+
+Datalog's killer feature for graph traversal: **rules** — named patterns that can reference themselves.
+
+```typescript
+// Define a recursive rule: "ancestor" means parent, or parent's parent, etc.
+const ancestor = rule(
+  'ancestor',
+  // Base case: direct parent
+  [$child, 'parent', $ancestor],
+  // Recursive case: parent's ancestor
+  [
+    [$child, 'parent', $mid],
+    ['ancestor', $mid, $ancestor] // self-reference!
+  ]
+)
+
+// Use it: "find all ancestors of this task"
+const allAncestors = useFind(
+  find($ancestor),
+  where(
+    ancestor(taskId, $ancestor), // use the rule as a clause
+    [$ancestor, 'title', $title] // also get their titles
+  )
+)
+
+// "Find all descendants of a project (any depth)"
+const allDescendants = useFind(
+  find($descendant, $title, $status),
+  where(
+    ancestor($descendant, projectId), // reversed: descendant's ancestor is project
+    [$descendant, 'schemaId', 'xnet://xnet.fyi/Task'],
+    [$descendant, 'title', $title],
+    [$descendant, 'status', $status]
+  )
+)
+```
+
+No `maxDepth`, no `reachable` configuration, no `traverse` arrays. Recursion is natural — it's just a rule that references itself. The engine handles cycle detection and fixpoint termination.
+
+#### Aggregation in Datalog
+
+```typescript
+// "Count comments per task"
+const commentCounts = useFind(
+  find($task, $title, count($comment)),
+  where(
+    [$task, 'schemaId', 'xnet://xnet.fyi/Task'],
+    [$task, 'parent', projectId],
+    [$task, 'title', $title],
+    [$comment, 'target', $task]
+  )
+)
+// → [{ $task: 'abc', title: 'Build auth', count: 5 }, ...]
+
+// "Tasks with more than 3 comments"
+const activeTasks = useFind(
+  find($task, $title, count($comment)),
+  where(
+    [$task, 'schemaId', 'xnet://xnet.fyi/Task'],
+    [$task, 'title', $title],
+    [$comment, 'target', $task]
+  ),
+  { having: { count: gt(3) } }
+)
+```
+
+#### Negation and Disjunction
+
+```typescript
+// "Tasks with NO comments"
+const uncommented = useFind(
+  find($task),
+  where(
+    [$task, 'schemaId', 'xnet://xnet.fyi/Task'],
+    not([$comment, 'target', $task]) // negation
+  )
+)
+
+// "Tasks assigned to Alice OR Bob"
+const teamTasks = useFind(
+  find($task),
+  where(
+    [$task, 'schemaId', 'xnet://xnet.fyi/Task'],
+    or([$task, 'assignee', aliceDID], [$task, 'assignee', bobDID])
+  )
+)
+```
+
+#### Filter Expressions in Datalog
+
+```typescript
+// "Overdue tasks"
+const overdue = useFind(
+  find($task, $title, $due),
+  where(
+    [$task, 'schemaId', 'xnet://xnet.fyi/Task'],
+    [$task, 'title', $title],
+    [$task, 'dueDate', $due],
+    [$task, 'status', $status],
+    pred($due, '<', new Date()), // predicate: $due < now
+    pred($status, '!=', 'done')
+  )
+)
+```
+
+#### TypeScript Type Safety for Datalog
+
+This is the hard part. Datomic's Datalog is dynamically typed — variables are untyped symbols. Can we make logical variables type-safe in TypeScript?
+
+```typescript
+// Approach: typed variable constructors
+const $task = v<NodeId>('task')
+const $title = v<string>('title')
+const $status = v<'todo' | 'doing' | 'done'>('status')
+const $comment = v<NodeId>('comment')
+const $due = v<Date>('due')
+
+// Now the find() return type is inferred:
+const results = useFind(find($task, $title, $status), where(/* ... */))
+// results.data: Array<{ task: NodeId, title: string, status: 'todo' | 'doing' | 'done' }>
+
+// And predicates are type-checked:
+pred($due, '<', new Date()) // OK: Date < Date
+pred($due, '<', 'yesterday') // TS Error: string not assignable to Date
+pred($status, '=', 'invalid') // TS Error: 'invalid' not in 'todo' | 'doing' | 'done'
+```
+
+The limitation: type inference can only flow from variable declarations, not from schema definitions. The engine can't know that `[$task, 'title', $title]` means `$title` must be a string without additional plumbing. Possible solutions:
+
+1. **Typed triple helpers**: `clause(TaskSchema, 'title', $title)` where the schema constrains the value type
+2. **Schema-registered variables**: `const $title = TaskSchema.var('title')` that carries the type
+3. **Validate at runtime, trust at compile time**: accept `v<string>` as a developer annotation
+
+```typescript
+// Schema-aware clause builder (best type safety):
+const results = useFind(
+  find($task, $title, $status),
+  where(
+    match(Task, $task, { title: $title, status: $status }), // type-safe binding
+    match(Comment, $comment, { target: $task }), // $task constrained to NodeId
+    pred($status, '!=', 'done')
+  )
+)
+```
+
+The `match()` helper combines schema awareness with triple patterns. It expands to the same logical clauses but gives the type system enough information to infer variable types from the schema.
+
+#### Evaluation: Datalog vs. The Other Options
+
+```mermaid
+graph TD
+    subgraph "Developer Experience Spectrum"
+        direction LR
+        SQL[SQL/Prisma<br>Options A-C] ---|"more familiar<br>explicit joins"| MID[" "]
+        MID ---|"more powerful<br>implicit joins"| DL[Datalog<br>Option D]
+    end
+
+    subgraph "What Datalog Gains"
+        G1["No explicit join syntax"]
+        G2["Natural recursion via rules"]
+        G3["Engine-optimized join order"]
+        G4["Uniform treatment of forward + reverse"]
+        G5["Pattern matching replaces nested includes"]
+    end
+
+    subgraph "What Datalog Costs"
+        C1["Unfamiliar to most web devs"]
+        C2["Clause order doesn't match execution order"]
+        C3["Harder to visualize data flow"]
+        C4["TypeScript typing requires extra machinery"]
+        C5["Steeper learning curve for simple queries"]
+    end
+```
+
+| Aspect             | Options A-C (SQL-family)                                      | Option D (Datalog)                                                       |
+| ------------------ | ------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **Simple CRUD**    | Natural: `useQuery(Task, { where: { status: eq('todo') } })`  | Verbose: `find($t), where([$t, 'schema', Task], [$t, 'status', 'todo'])` |
+| **Forward join**   | `include: { parent: follow('parent') }`                       | `[$task, 'parent', $project]`                                            |
+| **Reverse join**   | `include: { comments: from(Comment, 'target') }`              | `[$comment, 'target', $task]` — identical to forward                     |
+| **Multi-hop**      | `traverse: [start(), reverse(), forward()]` — imperative path | Additional clauses with shared variables — declarative                   |
+| **Recursion**      | `reachable: { through: 'parent', maxDepth: 10 }`              | `rule('ancestor', ...)` — native, no depth config                        |
+| **Aggregation**    | `groupBy + aggregate` — separate concepts                     | `find($x, count($y))` — inline in find clause                            |
+| **Negation**       | `where: { status: not(eq('done')) }`                          | `not([$task, 'status', 'done'])`                                         |
+| **Learning curve** | Low — reads like Prisma/SQL                                   | High — requires understanding unification                                |
+| **TypeScript fit** | Excellent — object shapes map to generics naturally           | Challenging — logical variables need extra type machinery                |
+
+#### The Case For Offering Both
+
+The ideal might be to **expose both APIs**, where the Prisma-style API (Option C) compiles down to Datalog evaluation internally:
+
+```typescript
+// Developer-facing: familiar API
+useQuery(Task, {
+  where: { status: not(eq('done')), parent: relatedTo(projectId) },
+  include: { comments: from(Comment, 'target') }
+})
+
+// Power-user facing: Datalog API for complex queries
+useFind(
+  find($task, $title, count($comment)),
+  where(
+    match(Task, $task, { title: $title, status: $status }),
+    pred($status, '!=', 'done'),
+    match(Task, $task, { parent: projectId }),
+    match(Comment, $comment, { target: $task })
+  )
+)
+
+// Both compile to the same internal query plan
+```
+
+```mermaid
+flowchart TD
+    subgraph "Developer-Facing APIs"
+        OC["Option C: useQuery(Task, { where, include })<br>Prisma-style — 90% of queries"]
+        OD["Option D: useFind(find, where)<br>Datalog-style — complex queries"]
+    end
+
+    subgraph "Internal Engine"
+        COMPILE[Compile to logical clauses]
+        OPTIMIZE[Optimize join order]
+        INDEXES[Select indexes]
+        EXECUTE[Execute + materialize]
+    end
+
+    OC --> COMPILE
+    OD --> COMPILE
+    COMPILE --> OPTIMIZE
+    OPTIMIZE --> INDEXES
+    INDEXES --> EXECUTE
+```
+
+This is the approach DataScript takes: it offers both a pull API (tree-shaped, like Option C's `include`) and a Datalog query API. 90% of application code uses pull. The 10% that needs multi-hop joins, recursion, or complex aggregation uses Datalog.
+
+#### When to Reach for Datalog
+
+| Query Type                                            | Use Option C                    | Use Option D           |
+| ----------------------------------------------------- | ------------------------------- | ---------------------- |
+| List tasks with filters                               | Yes                             | Overkill               |
+| Single node with related data                         | Yes (`include`)                 | Overkill               |
+| "All users who commented on tasks in project X"       | Awkward (`traverse`)            | Natural (3 clauses)    |
+| Recursive tree queries (all descendants)              | Limited (`reachable`)           | Native (`rule`)        |
+| "Tasks where assignee's team is 'Engineering'"        | Complex (`relatedWhere` chains) | Natural (extra clause) |
+| Graph analytics (shortest path, connected components) | Not possible                    | Possible with rules    |
+| Ad-hoc exploration ("what connects A to B?")          | Not possible                    | Pattern matching       |
+
+#### xNet-Specific Considerations for Datalog
+
+**Local-first implications**: Datalog queries run against the local store, so they only see locally-synced data. A multi-hop query may produce incomplete results if intermediate nodes haven't been synced. The query result should include the same `completeness` / `stubs` metadata as Option C queries.
+
+**Reactive Datalog**: Maintaining a live Datalog query subscription is more complex than a flat `where` subscription. When a change arrives, the engine must re-evaluate which variable bindings are affected. This is exactly the "incremental view maintenance" problem that Datalog research has solved (semi-naive evaluation, differential dataflow). Libraries like [Differential Datalog](https://github.com/vmware/differential-datalog) and [Materialize](https://materialize.com) demonstrate this at scale — xNet would need a much simpler version for client-side use.
+
+**Schema as implicit clauses**: In Datomic, you write `[?task :task/status ?s]` and the `:task/` namespace implicitly scopes to the right entity type. In xNet, the `match()` helper serves this role — `match(Task, $task, { status: $status })` ensures that `$task` is bound to a Task node and `$status` to a valid status value.
+
+**History in Datalog**: Datomic supports `(d/history db)` to query across all time. xNet could add a `history` modifier to triple patterns:
+
+```typescript
+// "When was this task's status changed to 'done', and by whom?"
+const statusChanges = useFind(
+  find($time, $author),
+  where(history([$task, 'status', 'done', $time, $author])),
+  { bind: { $task: taskId } }
+)
+```
+
 ## Part 3: The Complete Query API
 
 ### 3.1 Filter Operators
@@ -1311,7 +1671,7 @@ prisma.task.findMany({
 })
 ```
 
-### xNet (equivalent)
+### xNet Option C (Prisma-style, equivalent)
 
 ```typescript
 useQuery(Task, {
@@ -1322,7 +1682,32 @@ useQuery(Task, {
 })
 ```
 
-The xNet API is closest to Prisma in syntax, but adds Datalog-level power (recursive traversals, computed aggregations) and local-first semantics (reactive subscriptions, partial results, conflict awareness).
+### xNet Option D (Datalog-style, equivalent)
+
+```typescript
+useFind(
+  find($task, $title, count($comment)),
+  where(
+    match(Task, $task, { title: $title, status: $status, parent: projectId }),
+    pred($status, '!=', 'done'),
+    match(Comment, $comment, { target: $task })
+  ),
+  { orderBy: { $title: 'asc' }, limit: 20 }
+)
+```
+
+### Comparison Summary
+
+| Dimension      | SQL            | Datomic             | Prisma          | xNet Option C         | xNet Option D         |
+| -------------- | -------------- | ------------------- | --------------- | --------------------- | --------------------- |
+| Join syntax    | `JOIN ... ON`  | Shared `?variables` | `include: {}`   | `from()` / `follow()` | Shared `$variables`   |
+| Recursion      | CTEs (verbose) | Rules (native)      | None            | `reachable` (config)  | Rules (native)        |
+| Type safety    | None           | None                | Generated types | Schema-inferred       | Typed variables       |
+| Learning curve | Medium         | High                | Low             | Low                   | Medium-High           |
+| Reactivity     | None           | None                | None            | Built-in              | Built-in              |
+| Best for       | Reporting      | Graph queries       | CRUD apps       | 90% of app queries    | Complex graph queries |
+
+The xNet Option C API is closest to Prisma in syntax and covers the vast majority of application queries. Option D provides an escape hatch for the 10% of queries that need Datalog-level expressiveness — multi-hop joins, recursion, graph analytics — without requiring a separate query engine.
 
 ## Part 13: Implementation Roadmap
 
@@ -1405,9 +1790,13 @@ The xNet API is closest to Prisma in syntax, but adds Datalog-level power (recur
 
 7. **AI-native queries**: Convex positions itself as "AI-native." Should xNet's query format be designed for LLM generation? The JSON-object approach with function operators is LLM-friendly — models can construct queries from natural language more easily than fluent chains. Consider providing a `queryFromNaturalLanguage(schema, prompt)` helper that uses the schema to generate valid queries.
 
+8. **Dual API cost**: Offering both Option C (Prisma-style) and Option D (Datalog-style) means two APIs to document, test, and maintain. Is the 10% of queries that benefit from Datalog worth the maintenance cost? Alternatively, could Option C's `traverse` / `reachable` cover enough graph queries to defer Datalog entirely? The Datomic ecosystem suggests that once developers learn Datalog, they prefer it even for simple queries — but the learning curve is real and may conflict with the "familiar to web devs" design principle.
+
+9. **Datalog variable scoping**: In Datomic, variables are scoped to a single query. Should xNet's `$variables` be reusable across queries (e.g., for correlated subqueries or inter-component shared bindings)? Probably not — per-query scoping is simpler and avoids subtle bugs.
+
 ## Conclusion
 
-The unified query API transforms xNet from "a store with basic CRUD" to "a reactive, graph-aware, local-first database with the query power of Datomic and the ergonomics of Prisma." The key architectural decision is: **queries are TypeScript objects composed from typed helper functions**. This gives:
+The unified query API transforms xNet from "a store with basic CRUD" to "a reactive, graph-aware, local-first database with the query power of Datomic and the ergonomics of Prisma." The key architectural insight is that **two complementary APIs can share one engine**: Option C (Prisma-style `useQuery` with `where`, `include`, `from`, `follow`) handles 90% of application queries with near-zero learning curve, while Option D (Datalog-style `useFind` with logical variables and pattern matching) handles the remaining 10% — multi-hop joins, recursive traversals, graph analytics — that would be awkward or impossible in a SQL-family syntax. Both compile to the same internal logical clauses and share the same query planner, index selection, and incremental view maintenance. This gives:
 
 - **Autocomplete**: Functions like `eq()`, `from()`, `follow()` are discoverable in any IDE
 - **Type safety**: Invalid queries are compile-time errors, not runtime surprises
