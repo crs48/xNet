@@ -560,6 +560,13 @@
   border-bottom-color: rgb(217 119 6); /* amber-600 */
 }
 
+/* Sidebar-hovered comment - brighter to draw attention */
+.xnet-comment-sidebar-hover,
+.xnet-comment-mark.xnet-comment-sidebar-hover {
+  background-color: rgb(253 224 71 / 0.55); /* yellow-300 - noticeably brighter */
+  border-bottom-color: rgb(234 179 8); /* yellow-500 */
+}
+
 /* Resolved comment - more subtle */
 .xnet-comment-resolved {
   background-color: rgb(134 239 172 / 0.25); /* green-300 with transparency */
@@ -583,6 +590,12 @@
 .dark .xnet-comment-selected,
 .dark .xnet-comment-mark.xnet-comment-selected {
   background-color: rgb(251 191 36 / 0.4);
+}
+
+.dark .xnet-comment-sidebar-hover,
+.dark .xnet-comment-mark.xnet-comment-sidebar-hover {
+  background-color: rgb(253 224 71 / 0.45); /* yellow-300 - brighter in dark mode */
+  border-bottom-color: rgb(253 224 71); /* yellow-300 */
 }
 
 .dark .xnet-comment-resolved {

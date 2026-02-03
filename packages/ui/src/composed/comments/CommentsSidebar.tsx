@@ -35,6 +35,10 @@ export interface CommentsSidebarProps {
   onDelete?: (commentId: string) => void
   /** Callback to edit a comment */
   onEdit?: (commentId: string, content: string) => void
+  /** Callback when cursor enters a thread (e.g. to highlight mark in editor) */
+  onHoverThread?: (threadId: string) => void
+  /** Callback when cursor leaves a thread */
+  onLeaveThread?: () => void
   /** Custom className */
   className?: string
 }
@@ -52,6 +56,8 @@ export function CommentsSidebar({
   onReopen,
   onDelete,
   onEdit,
+  onHoverThread,
+  onLeaveThread,
   className
 }: CommentsSidebarProps) {
   const [expandedThreadId, setExpandedThreadId] = useState<string | null>(null)
@@ -119,6 +125,8 @@ export function CommentsSidebar({
           'border-b border-border/50 last:border-b-0 transition-colors',
           isSelected && 'bg-amber-500/5'
         )}
+        onMouseEnter={() => onHoverThread?.(thread.root.id)}
+        onMouseLeave={() => onLeaveThread?.()}
       >
         {/* Thread header - clickable to expand/select */}
         <div
