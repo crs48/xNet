@@ -46,6 +46,22 @@ The package provides:
 
 ## Security stack
 
+```mermaid
+flowchart TD
+  A["Incoming connection"] --> B["1. Connection Limits\n(max connections, per-IP)"]
+  B -->|allowed| C["2. Connection Gating\n(denylist, allowlist)"]
+  C -->|allowed| D["3. Rate Limiting\n(token bucket per peer)"]
+  D -->|allowed| E["4. Peer Scoring\n(reputation: -100 to +100)"]
+  E -->|above threshold| F["5. Auto-Blocking\n(ban on repeated violations)"]
+  F -->|passed| G["Process message"]
+
+  B -->|denied| X["Reject"]
+  C -->|denied| X
+  D -->|exceeded| X
+  E -->|below threshold| X
+  F -->|blocked| X
+```
+
 Five layers of defense, each operating independently:
 
 ### 1. Connection limits

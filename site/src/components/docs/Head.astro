@@ -1,0 +1,27 @@
+---
+/**
+ * Custom Starlight Head — injects Mermaid.js for rendering diagrams.
+ * rehype-mermaid with strategy 'pre-mermaid' outputs <pre class="mermaid">
+ * blocks that Mermaid.js picks up and renders client-side.
+ */
+import type { Props } from '@astrojs/starlight/props'
+import Default from '@astrojs/starlight/components/Head.astro'
+---
+
+<Default {...Astro.props}><slot /></Default>
+
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: document.documentElement.dataset.theme === 'light' ? 'default' : 'dark',
+    themeVariables: {
+      primaryColor: '#6366f1',
+      primaryTextColor: '#e5e7eb',
+      primaryBorderColor: '#4b5563',
+      lineColor: '#6b7280',
+      secondaryColor: '#1e1e2e',
+      tertiaryColor: '#12121a'
+    }
+  })
+</script>

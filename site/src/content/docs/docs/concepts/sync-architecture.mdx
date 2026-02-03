@@ -124,6 +124,27 @@ The renderer maintains mirror Y.Docs for editor binding. The `IPCSyncManager` im
 
 ## Data flow: an edit
 
+```mermaid
+sequenceDiagram
+  participant User as User (TipTap)
+  participant Renderer as Renderer Y.Doc
+  participant BSM as BSM (Main Process)
+  participant WS as WebSocket
+  participant Remote as Remote BSM
+  participant RemoteUI as Remote Renderer
+
+  User->>Renderer: Type in editor
+  Renderer->>BSM: MessagePort update
+  BSM->>BSM: Apply to Y.Doc copy
+  BSM->>BSM: Batch → BLAKE3 → Ed25519 sign
+  BSM->>WS: SignedYjsEnvelope
+  WS->>Remote: Broadcast to room
+  Remote->>Remote: Rate limit → Size check → Verify sig
+  Remote->>Remote: Apply to Y.Doc
+  Remote->>RemoteUI: MessagePort (origin: remote)
+  RemoteUI->>RemoteUI: Render merged text
+```
+
 1. User types in TipTap editor → local Y.Doc update in renderer
 2. Update forwarded to BSM via MessagePort
 3. BSM applies to its Y.Doc copy
