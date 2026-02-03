@@ -41,6 +41,7 @@ import type {
   TransactionResult,
   NodeChangeListener
 } from './types'
+import { resolveTempIds, type SchemaLookup } from './tempids'
 
 /**
  * NodeStore manages event-sourced Nodes with LWW conflict resolution.
@@ -52,12 +53,14 @@ export class NodeStore {
   private clock: LamportClock
   private conflicts: MergeConflict[] = []
   private listeners: Set<NodeChangeListener> = new Set()
+  private schemaLookup?: SchemaLookup
 
   constructor(options: NodeStoreOptions) {
     this.storage = options.storage
     this.authorDID = options.authorDID
     this.signingKey = options.signingKey
     this.clock = createLamportClock(options.authorDID)
+    this.schemaLookup = options.schemaLookup
   }
 
   /**
@@ -254,11 +257,14 @@ export class NodeStore {
    */
   async transaction(operations: TransactionOperation[]): Promise<TransactionResult> {
     if (operations.length === 0) {
-      return { batchId: '', results: [], changes: [] }
+      return { batchId: '', results: [], changes: [], tempIds: {} }
     }
 
+    // ─── Resolve temp IDs before processing ────────────────────────────────
+    const { operations: resolvedOps, tempIds } = resolveTempIds(operations, this.schemaLookup)
+
     const batchId = createBatchId()
-    const batchSize = operations.length
+    const batchSize = resolvedOps.length
     const now = Date.now()
 
     // Tick the clock once for the entire batch
@@ -268,8 +274,8 @@ export class NodeStore {
     const results: (NodeState | null)[] = []
     const changes: NodeChange[] = []
 
-    for (let i = 0; i < operations.length; i++) {
-      const op = operations[i]
+    for (let i = 0; i < resolvedOps.length; i++) {
+      const op = resolvedOps[i]
       let change: NodeChange
       let result: NodeState | null = null
 
@@ -374,7 +380,7 @@ export class NodeStore {
       this.emit(change, result, false)
     }
 
-    return { batchId, results, changes }
+    return { batchId, results, changes, tempIds }
   }
 
   // ==========================================================================

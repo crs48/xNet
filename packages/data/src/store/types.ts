@@ -14,6 +14,7 @@
 import type { DID, ContentId } from '@xnet/core'
 import type { Change, LamportTimestamp } from '@xnet/sync'
 import type { SchemaIRI, Node } from '../schema/node'
+import type { SchemaLookup } from './tempids'
 
 // ============================================================================
 // Node ID Types
@@ -210,6 +211,13 @@ export interface NodeStoreOptions {
   authorDID: DID
   /** Ed25519 signing key */
   signingKey: Uint8Array
+  /**
+   * Optional schema lookup for temp ID resolution in relation properties.
+   * When provided, `transaction()` will resolve `~`-prefixed temp IDs in
+   * properties whose schema type is `'relation'`.
+   * Without this, temp IDs are only resolved in operation ID fields.
+   */
+  schemaLookup?: SchemaLookup
 }
 
 /**
@@ -256,6 +264,8 @@ export interface TransactionResult {
   results: (NodeState | null)[]
   /** All changes created in this transaction */
   changes: NodeChange[]
+  /** Map from temp ID → generated real ID (empty if no temp IDs were used) */
+  tempIds: Record<string, NodeId>
 }
 
 // ============================================================================

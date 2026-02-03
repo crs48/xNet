@@ -199,7 +199,13 @@ export {
   type TransactionOperation,
   type TransactionResult,
   type NodeChangeEvent,
-  type NodeChangeListener
+  type NodeChangeListener,
+  isTempId,
+  TEMP_ID_PREFIX,
+  resolveTempIds,
+  createSchemaLookup,
+  type SchemaLookup,
+  type TempIdResolution
 } from './store'
 
 // Blob service
