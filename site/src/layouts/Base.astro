@@ -15,9 +15,63 @@ const { title, description } = Astro.props
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
     <title>{title}</title>
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+      /* Scroll-triggered animations */
+      .animate-on-scroll {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      }
+      .animate-on-scroll.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Stagger children */
+      .animate-on-scroll:nth-child(2) { transition-delay: 0.1s; }
+      .animate-on-scroll:nth-child(3) { transition-delay: 0.2s; }
+      .animate-on-scroll:nth-child(4) { transition-delay: 0.3s; }
+      .animate-on-scroll:nth-child(5) { transition-delay: 0.35s; }
+      .animate-on-scroll:nth-child(6) { transition-delay: 0.4s; }
+
+      /* Copy button feedback */
+      .copy-btn.copied {
+        color: #10b981;
+      }
+    </style>
   </head>
   <body class="bg-[#0a0a0f] text-gray-200 antialiased font-sans leading-relaxed">
     <slot />
+    <script>
+      // Intersection Observer for scroll animations
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible')
+              observer.unobserve(entry.target)
+            }
+          })
+        },
+        { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+      )
+      document.querySelectorAll('.animate-on-scroll').forEach((el) => observer.observe(el))
+
+      // Copy buttons
+      document.querySelectorAll('.copy-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const code = (btn as HTMLElement).dataset.copy
+            || btn.closest('.relative')?.querySelector('code')?.textContent
+            || ''
+          await navigator.clipboard.writeText(code.trim())
+          btn.textContent = 'Copied!'
+          btn.classList.add('copied')
+          setTimeout(() => {
+            btn.textContent = 'Copy'
+            btn.classList.remove('copied')
+          }, 2000)
+        })
+      })
+    </script>
   </body>
 </html>

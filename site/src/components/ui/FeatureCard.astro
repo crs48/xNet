@@ -1,0 +1,29 @@
+---
+interface Props {
+  title: string
+  description: string
+  color?: 'indigo' | 'emerald' | 'amber' | 'pink' | 'blue' | 'purple'
+  icon?: string
+}
+
+const { title, description, color = 'indigo' } = Astro.props
+
+const colorMap = {
+  indigo: { bg: 'bg-indigo-500/10', text: 'text-indigo-400', border: 'hover:border-indigo-500/40', glow: 'hover:shadow-indigo-500/5' },
+  emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-400', border: 'hover:border-emerald-500/40', glow: 'hover:shadow-emerald-500/5' },
+  amber: { bg: 'bg-amber-500/10', text: 'text-amber-400', border: 'hover:border-amber-500/40', glow: 'hover:shadow-amber-500/5' },
+  pink: { bg: 'bg-pink-500/10', text: 'text-pink-400', border: 'hover:border-pink-500/40', glow: 'hover:shadow-pink-500/5' },
+  blue: { bg: 'bg-blue-500/10', text: 'text-blue-400', border: 'hover:border-blue-500/40', glow: 'hover:shadow-blue-500/5' },
+  purple: { bg: 'bg-purple-500/10', text: 'text-purple-400', border: 'hover:border-purple-500/40', glow: 'hover:shadow-purple-500/5' },
+}
+
+const c = colorMap[color]
+---
+
+<div class={`animate-on-scroll rounded-xl border border-border bg-surface p-6 transition-all duration-300 ${c.border} ${c.glow} hover:shadow-lg`}>
+  <div class={`flex h-10 w-10 items-center justify-center rounded-lg ${c.bg} ${c.text}`}>
+    <slot name="icon" />
+  </div>
+  <h3 class="mt-4 text-lg font-semibold">{title}</h3>
+  <p class="mt-2 text-sm leading-relaxed text-gray-400">{description}</p>
+</div>

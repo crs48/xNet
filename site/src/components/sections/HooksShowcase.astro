@@ -1,0 +1,147 @@
+---
+import CodeBlock from '../ui/CodeBlock.astro'
+import SectionHeader from '../ui/SectionHeader.astro'
+---
+
+<section id="hooks" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="The entire API: three hooks"
+      subtitle="useQuery reads. useMutate writes. useNode syncs. Everything else — storage, crypto, networking — is handled for you."
+    />
+
+    <!-- Hook 1: useQuery -->
+    <div class="mt-20 grid gap-8 lg:grid-cols-2 lg:gap-12 items-center animate-on-scroll">
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400 text-sm font-bold">1</span>
+          <h3 class="text-xl font-semibold text-indigo-400">useQuery</h3>
+        </div>
+        <p class="text-gray-400 leading-relaxed">
+          Read any data with full TypeScript inference. Queries are reactive &mdash; your UI updates automatically when data changes.
+          Filter, sort, and paginate, all type-checked against your schema.
+        </p>
+        <p class="mt-4 text-sm text-gray-500">
+          Data is local, so reads are instant. No loading spinners for local data &mdash; it's already there.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs text-indigo-400">Replaces: React Query</span>
+          <span class="rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs text-indigo-400">+ REST/GraphQL client</span>
+          <span class="rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs text-indigo-400">+ Database queries</span>
+        </div>
+      </div>
+      <CodeBlock filename="TaskList.tsx">
+<span class="text-indigo-400">import</span> {'{'} useQuery {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">TaskList</span>() {'{'}
+  <span class="text-gray-500">// Fully typed — schema defines the shape</span>
+  <span class="text-indigo-400">const</span> {'{'} data: tasks {'}'} = <span class="text-yellow-300">useQuery</span>(TaskSchema, {'{'}
+    where: {'{'} status: <span class="text-emerald-400">'active'</span> {'}'},
+    orderBy: {'{'} createdAt: <span class="text-emerald-400">'desc'</span> {'}'},
+    limit: <span class="text-orange-400">20</span>
+  {'}'})
+
+  <span class="text-gray-500">// No loading state for local data</span>
+  <span class="text-gray-500">// Auto-updates when peers sync changes</span>
+  <span class="text-indigo-400">return</span> (
+    &lt;ul&gt;
+      {'{'}tasks.<span class="text-yellow-300">map</span>(t =&gt;
+        &lt;li key={'{'}t.id{'}'}&gt;{'{'}t.title{'}'}&lt;/li&gt;
+      ){'}'}
+    &lt;/ul&gt;
+  )
+{'}'}
+      </CodeBlock>
+    </div>
+
+    <!-- Hook 2: useMutate -->
+    <div class="mt-20 grid gap-8 lg:grid-cols-2 lg:gap-12 items-center animate-on-scroll">
+      <div class="lg:order-2">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400 text-sm font-bold">2</span>
+          <h3 class="text-xl font-semibold text-emerald-400">useMutate</h3>
+        </div>
+        <p class="text-gray-400 leading-relaxed">
+          Create, update, and delete nodes with compile-time type safety.
+          Invalid property names and wrong value types are caught before your code runs.
+        </p>
+        <p class="mt-4 text-sm text-gray-500">
+          Mutations apply locally first, then sync to all connected peers. Works offline &mdash; changes queue and merge when connectivity returns.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-400">Replaces: API routes</span>
+          <span class="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-400">+ ORM mutations</span>
+          <span class="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs text-emerald-400">+ Optimistic updates</span>
+        </div>
+      </div>
+      <div class="lg:order-1">
+        <CodeBlock filename="TaskActions.tsx">
+<span class="text-indigo-400">import</span> {'{'} useMutate {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">TaskActions</span>() {'{'}
+  <span class="text-indigo-400">const</span> {'{'} create, update, remove {'}'} = <span class="text-yellow-300">useMutate</span>()
+
+  <span class="text-gray-500">// Schema-validated at compile time</span>
+  <span class="text-indigo-400">const</span> add = () =&gt; <span class="text-yellow-300">create</span>(TaskSchema, {'{'}
+    title: <span class="text-emerald-400">'Ship the landing page'</span>,
+    status: <span class="text-emerald-400">'active'</span>
+  {'}'})
+
+  <span class="text-gray-500">// Syncs to all peers automatically</span>
+  <span class="text-indigo-400">const</span> done = (id: <span class="text-amber-300">string</span>) =&gt;
+    <span class="text-yellow-300">update</span>(TaskSchema, id, {'{'}
+      status: <span class="text-emerald-400">'done'</span>
+    {'}'})
+
+  <span class="text-gray-500">// Works offline — queued until reconnect</span>
+  <span class="text-indigo-400">const</span> del = (id: <span class="text-amber-300">string</span>) =&gt; <span class="text-yellow-300">remove</span>(id)
+{'}'}
+        </CodeBlock>
+      </div>
+    </div>
+
+    <!-- Hook 3: useNode -->
+    <div class="mt-20 grid gap-8 lg:grid-cols-2 lg:gap-12 items-center animate-on-scroll">
+      <div>
+        <div class="flex items-center gap-3 mb-4">
+          <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-400 text-sm font-bold">3</span>
+          <h3 class="text-xl font-semibold text-amber-400">useNode</h3>
+        </div>
+        <p class="text-gray-400 leading-relaxed">
+          Load a single node with its Yjs document for real-time collaborative editing.
+          Plug the Y.Doc into TipTap, ProseMirror, or any Yjs-compatible editor.
+        </p>
+        <p class="mt-4 text-sm text-gray-500">
+          Character-level conflict resolution via CRDTs. See who else is editing with presence awareness.
+          Every change is Ed25519-signed and verified.
+        </p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-400">Replaces: WebSocket server</span>
+          <span class="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-400">+ Operational transforms</span>
+          <span class="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-400">+ Presence service</span>
+        </div>
+      </div>
+      <CodeBlock filename="PageEditor.tsx">
+<span class="text-indigo-400">import</span> {'{'} useNode {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">PageEditor</span>({'{'} pageId {'}'}) {'{'}
+  <span class="text-indigo-400">const</span> {'{'}
+    data: page,       <span class="text-gray-500">// Typed node data</span>
+    doc,              <span class="text-gray-500">// Yjs Y.Doc</span>
+    peerCount,        <span class="text-gray-500">// Connected collaborators</span>
+    syncStatus,       <span class="text-gray-500">// 'connected' | 'offline'</span>
+    update            <span class="text-gray-500">// Type-safe mutations</span>
+  {'}'} = <span class="text-yellow-300">useNode</span>(PageSchema, pageId)
+
+  <span class="text-indigo-400">return</span> (
+    &lt;div&gt;
+      &lt;h1&gt;{'{'}page?.title{'}'}&lt;/h1&gt;
+      &lt;span&gt;{'{'}peerCount{'}'} peers online&lt;/span&gt;
+      &lt;TipTapEditor doc={'{'}doc{'}'} /&gt;
+    &lt;/div&gt;
+  )
+{'}'}
+      </CodeBlock>
+    </div>
+  </div>
+</section>

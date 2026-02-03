@@ -481,20 +481,90 @@ These update on each deploy, not on each page load.
 
 ---
 
-## 7. Competitive Positioning
+## 7. Competitive Positioning & Landscape
 
-### How to Position Against Alternatives
+### Philosophy: Celebrate the Space
 
-The landing page should implicitly (not explicitly — no comparison tables for pre-release) position xNet:
+xNet is a free OSS project. We're not competing — we're part of a movement. The landing page should **link to and celebrate** other local-first and decentralized projects. This does several things:
 
-| vs.                     | xNet Advantage                                          |
-| ----------------------- | ------------------------------------------------------- |
-| **Firebase/Supabase**   | No server, no vendor, data is yours, works offline      |
-| **Convex**              | Local-first (not cloud-first), open source, P2P sync    |
-| **Automerge/Yjs alone** | Full application framework, not just a CRDT library     |
-| **DXOS**                | React-native DX with hooks, richer typed schema system  |
-| **Triplit**             | Broader vision (social, plugins, AI), not just database |
-| **Notion/Linear APIs**  | User-owned data, extensible, no API rate limits         |
+1. **Builds trust** — we're not insecure about alternatives, we actively recommend exploring them
+2. **Educates developers** — many visitors are new to local-first and benefit from seeing the full landscape
+3. **Grows the ecosystem** — the more developers in local-first, the better for everyone
+4. **Positions xNet honestly** — developers can see where xNet fits and make informed choices
+
+### Two Comparison Tables
+
+The landing page should include two interactive comparison tables (inspired by Triplit's comparison table, but broader and more generous to competitors):
+
+#### Table 1: Local-First Data Infrastructure
+
+Compares the developer-facing tools and frameworks — what you'd use to build an app:
+
+| Feature           | xNet                           | Zero            | Triplit         | ElectricSQL     | Jazz            | LiveStore      | DXOS           | Convex         |
+| ----------------- | ------------------------------ | --------------- | --------------- | --------------- | --------------- | -------------- | -------------- | -------------- |
+| Local-first       | Yes                            | Yes             | Yes             | Yes             | Yes             | Yes            | Yes            | Cloud-first    |
+| Offline support   | Full                           | Full            | Full            | Full            | Full            | Full           | Full           | Partial        |
+| Real-time sync    | P2P (WebRTC)                   | Server          | Server          | Server          | P2P             | Client         | P2P            | Server         |
+| CRDT support      | Yjs + LWW                      | Server rebase   | LWW             | Server rebase   | Automerge       | Event-sourced  | Automerge      | Server         |
+| Rich text editing | Yjs + TipTap                   | No              | No              | No              | Automerge       | No             | Automerge      | No             |
+| Schema system     | TypeScript defineSchema()      | Postgres        | TypeScript      | Postgres        | CoValues        | SQLite         | TypeScript     | TypeScript     |
+| React hooks       | useQuery/useMutate/useNode     | useQuery        | useQuery        | useShape        | useCoState      | useStore       | useQuery       | useQuery       |
+| Type safety       | Full inference                 | Via Postgres    | Full inference  | Via Postgres    | Full inference  | Full inference | Full inference | Full inference |
+| Self-hosted       | Yes (no server needed)         | Server required | Server required | Server required | Server optional | Client-only    | P2P optional   | Cloud only     |
+| Open source       | MIT                            | Apache 2.0      | AGPL            | Apache 2.0      | MIT             | MIT            | MIT            | Proprietary\*  |
+| Identity          | DID:key + UCAN                 | External        | External        | External        | Built-in        | External       | Built-in       | External       |
+| Plugin system     | 4-layer (Scripts→Integrations) | No              | No              | No              | No              | No             | Yes            | No             |
+| Cross-platform    | Electron + Web + Expo          | Web             | Web + Mobile    | Web             | Web + Mobile    | Web            | Web + Electron | Web            |
+
+\*Convex runtime is proprietary, client SDKs are open source
+
+Each project name links to its website/GitHub. Brief description below the table explains what each project is best at.
+
+#### Table 2: Decentralized Protocols & P2P Infrastructure
+
+Compares the protocol/infrastructure layer — the broader ecosystem of user-owned data:
+
+| Project        | Scope           | Data Model                | Sync              | Identity       | Language        | Status                 | Best For                    |
+| -------------- | --------------- | ------------------------- | ----------------- | -------------- | --------------- | ---------------------- | --------------------------- |
+| xNet           | App framework   | Schema-typed nodes + Yjs  | P2P (WebRTC)      | DID:key + UCAN | TypeScript      | Pre-release            | Full-stack local-first apps |
+| AT Protocol    | Social protocol | Signed repos (Lexicons)   | Federated relay   | DID:plc        | TypeScript      | Production (30M users) | Social networking           |
+| Nostr          | Event protocol  | Signed JSON events        | Relay (WebSocket) | secp256k1 keys | Any             | Production             | Social + payments           |
+| Hypercore/Pear | P2P runtime     | Append-only logs          | P2P (DHT)         | Public keys    | JavaScript      | Production             | P2P apps + streaming        |
+| Iroh           | Networking      | Content-addressed blobs   | P2P (QUIC)        | Public keys    | Rust            | Production             | P2P networking layer        |
+| p2panda        | P2P toolkit     | DAG of CBOR operations    | P2P (QUIC/iroh)   | Public keys    | Rust            | Active (v0.5)          | Encrypted group apps        |
+| Willow         | Sync protocol   | 3D namespace model        | Protocol-agnostic | Capabilities   | Spec + JS/Rust  | Active                 | Fine-grained sync           |
+| Holochain      | Agent framework | Agent source chains + DHT | DHT gossip        | Agent keys     | Rust (WASM)     | Beta (7+ years)        | Agent-centric apps          |
+| Anytype        | App + protocol  | Typed objects + DAGs      | P2P (custom)      | Keys           | Go + TypeScript | Production (1M+ users) | Personal knowledge          |
+| Solid          | Data pods       | RDF/Linked Data           | Server (REST)     | WebID          | Any             | Active                 | Academic/government         |
+
+Each project name links to its website/GitHub.
+
+### Framing for the Tables
+
+The section header should be something like:
+
+```
+## The local-first landscape
+
+We're building xNet because we believe in a future where users own their data.
+We're not alone — here are the projects pushing this vision forward.
+We encourage you to explore them all and pick what's right for your use case.
+```
+
+Below the tables, add a short "Where xNet fits" summary:
+
+```
+xNet's unique position: the only project combining TypeScript-inferred schemas,
+dual CRDT strategy (Yjs for text + Lamport LWW for structured data), React hooks API,
+a four-layer plugin system, and true P2P sync — all in one framework.
+
+If you're building a React app and want local-first with minimal boilerplate, start here.
+If you need a social protocol, look at AT Protocol or Nostr.
+If you need low-level P2P networking, look at Iroh or Hypercore.
+If you want a production knowledge base today, look at Anytype.
+```
+
+This is radically generous positioning — and that's the point. Developers respect projects that aren't afraid to link to alternatives. It builds trust and signals that xNet competes on merit.
 
 ### Key Differentiators to Emphasize
 

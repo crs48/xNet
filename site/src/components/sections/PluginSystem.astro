@@ -1,0 +1,97 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+const layers = [
+  {
+    num: '1',
+    title: 'Scripts',
+    description: 'Single-file, AI-generatable. Think "formulas for your data pipeline." Run anywhere.',
+    platforms: 'Web, Desktop, Mobile',
+    color: 'emerald',
+  },
+  {
+    num: '2',
+    title: 'Extensions',
+    description: 'Multi-file packages with custom views, editors, and schemas. The building blocks of apps.',
+    platforms: 'Web, Desktop, Mobile',
+    color: 'indigo',
+  },
+  {
+    num: '3',
+    title: 'Services',
+    description: 'Background processes with full Node.js access. Heavy computation, custom protocols.',
+    platforms: 'Desktop',
+    color: 'amber',
+  },
+  {
+    num: '4',
+    title: 'Integrations',
+    description: 'External connections via webhooks, MCP, and automation tools like N8N.',
+    platforms: 'All platforms',
+    color: 'pink',
+  },
+]
+
+const colorMap: Record<string, { num: string, border: string }> = {
+  emerald: { num: 'bg-emerald-500/10 text-emerald-400', border: 'border-emerald-500/20' },
+  indigo: { num: 'bg-indigo-500/10 text-indigo-400', border: 'border-indigo-500/20' },
+  amber: { num: 'bg-amber-500/10 text-amber-400', border: 'border-amber-500/20' },
+  pink: { num: 'bg-pink-500/10 text-pink-400', border: 'border-pink-500/20' },
+}
+---
+
+<section class="border-y border-border/50 bg-surface/20 py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="Extend everything"
+      subtitle="A four-layer plugin system inspired by VS Code, Figma, and Obsidian. The simplest plugin is one file. An AI can generate one in seconds."
+    />
+
+    <div class="mt-16 grid gap-4 sm:grid-cols-2">
+      {layers.map((layer) => {
+        const c = colorMap[layer.color]
+        return (
+          <div class={`animate-on-scroll rounded-xl border ${c.border} bg-surface p-6 transition-all duration-300 hover:border-opacity-60`}>
+            <div class="flex items-center gap-3 mb-3">
+              <span class={`flex h-7 w-7 items-center justify-center rounded-md ${c.num} text-xs font-bold`}>{layer.num}</span>
+              <h4 class="font-semibold">{layer.title}</h4>
+            </div>
+            <p class="text-sm text-gray-400 leading-relaxed">{layer.description}</p>
+            <div class="mt-3">
+              <span class="text-xs text-gray-600">{layer.platforms}</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+
+    <!-- Quick example -->
+    <div class="mx-auto mt-12 max-w-2xl animate-on-scroll">
+      <div class="rounded-xl border border-border bg-[#0a0a0f]">
+        <div class="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+          <div class="flex items-center gap-1.5 mr-3">
+            <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]"></span>
+          </div>
+          <span class="text-xs font-mono text-gray-500">word-count-plugin.ts</span>
+        </div>
+        <pre class="overflow-x-auto p-5 font-mono text-sm leading-relaxed text-gray-300"><code><span class="text-indigo-400">import</span> {'{'} definePlugin {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/sdk'</span>
+
+<span class="text-indigo-400">export default</span> <span class="text-yellow-300">definePlugin</span>({'{'}
+  name: <span class="text-emerald-400">'word-count'</span>,
+  setup(ctx) {'{'}
+    ctx.<span class="text-yellow-300">registerView</span>({'{'}
+      name: <span class="text-emerald-400">'Word Count'</span>,
+      component: () =&gt; {'{'}
+        <span class="text-indigo-400">const</span> {'{'} doc {'}'} = ctx.<span class="text-yellow-300">useCurrentNode</span>()
+        <span class="text-indigo-400">const</span> words = doc?.getText()?.length ?? <span class="text-orange-400">0</span>
+        <span class="text-indigo-400">return</span> &lt;span&gt;{'{'}words{'}'} words&lt;/span&gt;
+      {'}'}
+    {'}'})
+  {'}'}
+{'}'})</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
