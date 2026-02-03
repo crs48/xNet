@@ -21,7 +21,7 @@ import {
   type CellPresence,
   type ColumnUpdate
 } from '@xnet/views'
-import { CommentPopover, type CommentThreadData } from '@xnet/ui'
+import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnet/ui'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import { ShareButton } from './ShareButton'
 import { PresenceAvatars } from './PresenceAvatars'
@@ -123,6 +123,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig | null>(null)
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
 
@@ -384,6 +385,48 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       setCommentState((prev) => ({ ...prev, threadId: commentId }))
     }
   }, [newCommentText, commentState.cellRowId, commentState.cellPropertyKey, commentOnCell])
+
+  // ─── Sidebar Handlers ─────────────────────────────────────────────────────────
+
+  const sidebarThreads = useMemo(
+    () => Array.from(commentThreadDataMap.values()),
+    [commentThreadDataMap]
+  )
+
+  const handleSidebarReply = useCallback(
+    async (threadId: string, content: string) => {
+      await commentReplyTo(threadId, content)
+    },
+    [commentReplyTo]
+  )
+
+  const handleSidebarResolve = useCallback(
+    async (threadId: string) => {
+      await commentResolveThread(threadId)
+    },
+    [commentResolveThread]
+  )
+
+  const handleSidebarReopen = useCallback(
+    async (threadId: string) => {
+      await commentReopenThread(threadId)
+    },
+    [commentReopenThread]
+  )
+
+  const handleSidebarDelete = useCallback(
+    async (commentId: string) => {
+      await commentDeleteComment(commentId)
+    },
+    [commentDeleteComment]
+  )
+
+  const handleSidebarEdit = useCallback(
+    async (commentId: string, newContent: string) => {
+      await commentEditComment(commentId, newContent)
+    },
+    [commentEditComment]
+  )
 
   const currentCommentThread = commentState.threadId
     ? commentThreadDataMap.get(commentState.threadId)
@@ -972,13 +1015,14 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
         <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
         {commentUnresolvedCount > 0 && (
-          <div
-            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+          <button
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={`${commentUnresolvedCount} unresolved comment${commentUnresolvedCount !== 1 ? 's' : ''}`}
+            onClick={() => setSidebarOpen((prev) => !prev)}
           >
             <span className="text-amber-500">{commentUnresolvedCount}</span>
             <span>comment{commentUnresolvedCount !== 1 ? 's' : ''}</span>
-          </div>
+          </button>
         )}
 
         <div className="flex-1" />
@@ -1020,45 +1064,60 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         <ShareButton docId={docId} docType="database" />
       </div>
 
-      {/* View content */}
-      <div className="flex-1 overflow-auto">
-        {viewMode === 'table' ? (
-          <TableView
-            schema={schema}
-            view={effectiveTableView}
-            data={rows}
-            onUpdateRow={handleUpdateRow}
-            onUpdateView={handleUpdateTableView}
-            onAddColumn={handleAddColumn}
-            onUpdateColumn={handleUpdateColumn}
-            onDeleteColumn={handleDeleteColumn}
-            onAddRow={handleAddRow}
-            cellPresences={cellPresences}
-            onCellFocus={handleCellFocus}
-            onCellBlur={handleCellBlur}
-            cellCommentCounts={cellCommentCounts}
-            onCommentClick={handleCommentClick}
-            onCommentHover={handleCommentHover}
-            onCommentLeave={handleCommentLeave}
-            onCommentCreate={handleCommentClick}
-            onDeleteRow={handleDeleteRow}
-          />
-        ) : (
-          <BoardView
-            schema={schema}
-            view={effectiveBoardView}
-            data={rows}
-            onUpdateRow={handleUpdateRow}
-            onUpdateView={handleUpdateBoardView}
-            onAddCard={handleAddCard}
-            onAddColumn={handleAddBoardColumn}
-            onRenameColumn={handleRenameBoardColumn}
-            onDeleteColumn={handleDeleteBoardColumn}
-            onReorderColumns={handleReorderBoardColumns}
-            onReorderCards={handleReorderCards}
-            onCardClick={handleCardClick}
-          />
-        )}
+      {/* View content + Sidebar horizontal layout */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-auto">
+          {viewMode === 'table' ? (
+            <TableView
+              schema={schema}
+              view={effectiveTableView}
+              data={rows}
+              onUpdateRow={handleUpdateRow}
+              onUpdateView={handleUpdateTableView}
+              onAddColumn={handleAddColumn}
+              onUpdateColumn={handleUpdateColumn}
+              onDeleteColumn={handleDeleteColumn}
+              onAddRow={handleAddRow}
+              cellPresences={cellPresences}
+              onCellFocus={handleCellFocus}
+              onCellBlur={handleCellBlur}
+              cellCommentCounts={cellCommentCounts}
+              onCommentClick={handleCommentClick}
+              onCommentHover={handleCommentHover}
+              onCommentLeave={handleCommentLeave}
+              onCommentCreate={handleCommentClick}
+              onDeleteRow={handleDeleteRow}
+            />
+          ) : (
+            <BoardView
+              schema={schema}
+              view={effectiveBoardView}
+              data={rows}
+              onUpdateRow={handleUpdateRow}
+              onUpdateView={handleUpdateBoardView}
+              onAddCard={handleAddCard}
+              onAddColumn={handleAddBoardColumn}
+              onRenameColumn={handleRenameBoardColumn}
+              onDeleteColumn={handleDeleteBoardColumn}
+              onReorderColumns={handleReorderBoardColumns}
+              onReorderCards={handleReorderCards}
+              onCardClick={handleCardClick}
+            />
+          )}
+        </div>
+
+        {/* Comments Sidebar */}
+        <CommentsSidebar
+          threads={sidebarThreads}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          selectedThreadId={commentState.threadId}
+          onReply={handleSidebarReply}
+          onResolve={handleSidebarResolve}
+          onReopen={handleSidebarReopen}
+          onDelete={handleSidebarDelete}
+          onEdit={handleSidebarEdit}
+        />
       </div>
 
       {/* Card detail modal */}

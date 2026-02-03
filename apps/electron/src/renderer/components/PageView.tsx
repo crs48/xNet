@@ -570,6 +570,23 @@ export function PageView({ docId }: PageViewProps) {
     [editComment]
   )
 
+  const handleSidebarHoverThread = useCallback((threadId: string) => {
+    // Find all mark elements for this thread and add the hover class
+    const marks = document.querySelectorAll(`[data-comment-id="${threadId}"]`)
+    marks.forEach((el) => el.classList.add('xnet-comment-sidebar-hover'))
+    // Scroll the first mark into view
+    if (marks.length > 0) {
+      marks[0].scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [])
+
+  const handleSidebarLeaveThread = useCallback(() => {
+    // Remove hover class from all comment marks
+    document.querySelectorAll('.xnet-comment-sidebar-hover').forEach((el) => {
+      el.classList.remove('xnet-comment-sidebar-hover')
+    })
+  }, [])
+
   // ─── Comment Extensions ───────────────────────────────────────────────────────
 
   const commentExtensions = useMemo(
@@ -729,6 +746,8 @@ export function PageView({ docId }: PageViewProps) {
           onReopen={handleSidebarReopen}
           onDelete={handleSidebarDelete}
           onEdit={handleSidebarEdit}
+          onHoverThread={handleSidebarHoverThread}
+          onLeaveThread={handleSidebarLeaveThread}
         />
       </div>
 
