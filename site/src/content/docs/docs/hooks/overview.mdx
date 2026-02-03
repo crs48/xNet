@@ -19,9 +19,9 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
 
 | Hook                                       | When to use it                                   | Returns                                               |
 | ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------- |
-| [`useQuery`](/xNet/hooks/usequery/)   | List or find nodes. Read-only.                   | `{ data, loading, error, reload }`                    |
-| [`useMutate`](/xNet/hooks/usemutate/) | Create, update, delete nodes.                    | `{ create, update, remove, restore, mutate }`         |
-| [`useNode`](/xNet/hooks/usenode/)     | Edit a single node with collaborative rich text. | `{ data, doc, update, syncStatus, remoteUsers, ... }` |
+| [`useQuery`](/xNet/docs/hooks/usequery/)   | List or find nodes. Read-only.                   | `{ data, loading, error, reload }`                    |
+| [`useMutate`](/xNet/docs/hooks/usemutate/) | Create, update, delete nodes.                    | `{ create, update, remove, restore, mutate }`         |
+| [`useNode`](/xNet/docs/hooks/usenode/)     | Edit a single node with collaborative rich text. | `{ data, doc, update, syncStatus, remoteUsers, ... }` |
 
 ### When to use which
 
@@ -48,7 +48,7 @@ Do you need a Yjs document (rich text, canvas)?
 
 | Hook                                           | Purpose                                    |
 | ---------------------------------------------- | ------------------------------------------ |
-| [`useIdentity`](/xNet/hooks/useidentity/) | Get the current user's DID and auth status |
+| [`useIdentity`](/xNet/docs/hooks/useidentity/) | Get the current user's DID and auth status |
 | `useComments`                                  | Thread-based comments on any node          |
 | `useHistory`                                   | Change history for a node                  |
 | `useUndo`                                      | Undo/redo for node changes                 |
