@@ -1,0 +1,97 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+const pillars = [
+  {
+    title: 'Sync',
+    color: 'indigo',
+    items: ['Yjs CRDTs for rich text', 'Lamport LWW for structured data', 'WebRTC peer-to-peer connections', 'Ed25519-signed envelopes'],
+  },
+  {
+    title: 'Crypto',
+    color: 'emerald',
+    items: ['BLAKE3 content hashing', 'Ed25519 signatures', 'XChaCha20-Poly1305 encryption', 'All browser-native'],
+  },
+  {
+    title: 'Identity',
+    color: 'amber',
+    items: ['DID:key self-sovereign IDs', 'UCAN delegatable tokens', 'No central auth server', 'Portable across apps'],
+  },
+  {
+    title: 'Storage',
+    color: 'pink',
+    items: ['IndexedDB on web', 'SQLite on desktop/mobile', 'Content-addressed with CIDs', 'Event-sourced history'],
+  },
+]
+
+const colorText: Record<string, string> = {
+  indigo: 'text-indigo-400',
+  emerald: 'text-emerald-400',
+  amber: 'text-amber-400',
+  pink: 'text-pink-400',
+}
+
+const colorBorder: Record<string, string> = {
+  indigo: 'border-indigo-500/20',
+  emerald: 'border-emerald-500/20',
+  amber: 'border-amber-500/20',
+  pink: 'border-pink-500/20',
+}
+
+const colorDot: Record<string, string> = {
+  indigo: 'bg-indigo-500',
+  emerald: 'bg-emerald-500',
+  amber: 'bg-amber-500',
+  pink: 'bg-pink-500',
+}
+---
+
+<section id="under-the-hood" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="Under the hood"
+      subtitle="Production-tested primitives across 17 packages. Every layer designed for local-first."
+    />
+
+    <div class="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      {pillars.map((pillar) => (
+        <div class={`animate-on-scroll rounded-xl border ${colorBorder[pillar.color]} bg-surface p-6 transition-all duration-300 hover:border-opacity-60`}>
+          <h4 class={`font-semibold ${colorText[pillar.color]}`}>{pillar.title}</h4>
+          <ul class="mt-4 space-y-2.5">
+            {pillar.items.map((item) => (
+              <li class="flex items-start gap-2 text-sm text-gray-400">
+                <span class={`mt-1.5 h-1.5 w-1.5 rounded-full ${colorDot[pillar.color]} shrink-0`}></span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+    <!-- Platforms -->
+    <div class="mt-12 grid gap-4 sm:grid-cols-3">
+      <div class="animate-on-scroll flex items-center gap-4 rounded-xl border border-border bg-surface px-5 py-4 transition-colors hover:border-indigo-500/30">
+        <svg class="h-8 w-8 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" stroke-width="1.5"/><line x1="8" y1="21" x2="16" y2="21" stroke-width="1.5"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="1.5"/></svg>
+        <div>
+          <strong class="text-sm">Desktop</strong>
+          <p class="text-xs text-gray-500">Electron &mdash; macOS, Linux, Windows</p>
+        </div>
+      </div>
+      <div class="animate-on-scroll flex items-center gap-4 rounded-xl border border-border bg-surface px-5 py-4 transition-colors hover:border-indigo-500/30">
+        <svg class="h-8 w-8 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" stroke-width="1.5"/><line x1="10" y1="18" x2="14" y2="18" stroke-width="1.5"/></svg>
+        <div>
+          <strong class="text-sm">Mobile</strong>
+          <p class="text-xs text-gray-500">Expo &mdash; iOS, Android</p>
+        </div>
+      </div>
+      <div class="animate-on-scroll flex items-center gap-4 rounded-xl border border-border bg-surface px-5 py-4 transition-colors hover:border-indigo-500/30">
+        <svg class="h-8 w-8 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke-width="1.5"/></svg>
+        <div>
+          <strong class="text-sm">Web</strong>
+          <p class="text-xs text-gray-500">PWA &mdash; any modern browser</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

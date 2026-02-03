@@ -1,0 +1,411 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+// ─── Table 1: Local-First Data Infrastructure ────────────────────────────
+
+const infraProjects = [
+  {
+    name: 'xNet',
+    url: 'https://github.com/crs48/xNet',
+    highlight: true,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'P2P (WebRTC)',
+    crdt: 'Yjs + Lamport LWW',
+    richText: 'Yjs + TipTap',
+    schema: 'TypeScript defineSchema()',
+    hooks: 'useQuery / useMutate / useNode',
+    typeSafety: 'Full inference',
+    selfHosted: 'No server needed',
+    license: 'MIT',
+    identity: 'DID:key + UCAN',
+    plugins: '4-layer system',
+    platforms: 'Electron + Web + Expo',
+  },
+  {
+    name: 'Zero',
+    url: 'https://zerosync.dev',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'Server (sync engine)',
+    crdt: 'Server rebase',
+    richText: '—',
+    schema: 'Postgres',
+    hooks: 'useQuery',
+    typeSafety: 'Via Postgres types',
+    selfHosted: 'Server required',
+    license: 'Apache 2.0',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web',
+  },
+  {
+    name: 'Triplit',
+    url: 'https://triplit.dev',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'Server (WebSocket)',
+    crdt: 'LWW per-attribute',
+    richText: '—',
+    schema: 'TypeScript',
+    hooks: 'useQuery',
+    typeSafety: 'Full inference',
+    selfHosted: 'Server required',
+    license: 'AGPL',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web + Mobile',
+  },
+  {
+    name: 'ElectricSQL',
+    url: 'https://electric-sql.com',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'Server (Postgres CDC)',
+    crdt: 'Server rebase',
+    richText: '—',
+    schema: 'Postgres',
+    hooks: 'useShape',
+    typeSafety: 'Via Postgres types',
+    selfHosted: 'Server required',
+    license: 'Apache 2.0',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web',
+  },
+  {
+    name: 'Jazz',
+    url: 'https://jazz.tools',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'P2P via relay',
+    crdt: 'Automerge-based',
+    richText: '—',
+    schema: 'CoValues (TypeScript)',
+    hooks: 'useCoState',
+    typeSafety: 'Full inference',
+    selfHosted: 'Relay optional',
+    license: 'MIT',
+    identity: 'Built-in',
+    plugins: '—',
+    platforms: 'Web + React Native',
+  },
+  {
+    name: 'LiveStore',
+    url: 'https://github.com/livestorejs/livestore',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'Client-side events',
+    crdt: 'Event-sourced',
+    richText: '—',
+    schema: 'SQLite',
+    hooks: 'useStore',
+    typeSafety: 'Full inference',
+    selfHosted: 'Client-only',
+    license: 'MIT',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web',
+  },
+  {
+    name: 'DXOS',
+    url: 'https://dxos.org',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'P2P (MESH)',
+    crdt: 'Automerge (ECHO)',
+    richText: 'Automerge',
+    schema: 'TypeScript (ECHO)',
+    hooks: 'useQuery',
+    typeSafety: 'Full inference',
+    selfHosted: 'P2P optional',
+    license: 'MIT',
+    identity: 'Built-in (HALO)',
+    plugins: 'Yes',
+    platforms: 'Web + Electron',
+  },
+  {
+    name: 'Convex',
+    url: 'https://convex.dev',
+    highlight: false,
+    localFirst: false,
+    offline: 'Partial',
+    sync: 'Server (reactive)',
+    crdt: 'Server authority',
+    richText: '—',
+    schema: 'TypeScript',
+    hooks: 'useQuery',
+    typeSafety: 'Full inference',
+    selfHosted: 'Cloud only',
+    license: 'Proprietary*',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web',
+  },
+]
+
+const infraColumns = [
+  { key: 'localFirst', label: 'Local-first' },
+  { key: 'offline', label: 'Offline' },
+  { key: 'sync', label: 'Sync' },
+  { key: 'crdt', label: 'Conflict Resolution' },
+  { key: 'richText', label: 'Rich Text' },
+  { key: 'schema', label: 'Schema' },
+  { key: 'hooks', label: 'React Hooks' },
+  { key: 'typeSafety', label: 'Type Safety' },
+  { key: 'selfHosted', label: 'Self-Hosted' },
+  { key: 'license', label: 'License' },
+  { key: 'identity', label: 'Identity' },
+  { key: 'plugins', label: 'Plugins' },
+  { key: 'platforms', label: 'Platforms' },
+]
+
+// ─── Table 2: Protocols & P2P Infrastructure ─────────────────────────────
+
+const protocolProjects = [
+  {
+    name: 'xNet',
+    url: 'https://github.com/crs48/xNet',
+    highlight: true,
+    scope: 'App framework',
+    dataModel: 'Schema-typed nodes + Yjs',
+    sync: 'P2P (WebRTC)',
+    identity: 'DID:key + UCAN',
+    language: 'TypeScript',
+    status: 'Pre-release',
+    bestFor: 'Full-stack local-first apps',
+  },
+  {
+    name: 'AT Protocol',
+    url: 'https://atproto.com',
+    highlight: false,
+    scope: 'Social protocol',
+    dataModel: 'Signed repos (Lexicons)',
+    sync: 'Federated relay',
+    identity: 'DID:plc',
+    language: 'TypeScript',
+    status: 'Production (30M+ users)',
+    bestFor: 'Social networking',
+  },
+  {
+    name: 'Nostr',
+    url: 'https://nostr.com',
+    highlight: false,
+    scope: 'Event protocol',
+    dataModel: 'Signed JSON events',
+    sync: 'Relay (WebSocket)',
+    identity: 'secp256k1 keys',
+    language: 'Any',
+    status: 'Production',
+    bestFor: 'Social + payments',
+  },
+  {
+    name: 'Hypercore / Pear',
+    url: 'https://holepunch.to',
+    highlight: false,
+    scope: 'P2P runtime',
+    dataModel: 'Append-only logs',
+    sync: 'P2P (DHT)',
+    identity: 'Public keys',
+    language: 'JavaScript',
+    status: 'Production',
+    bestFor: 'P2P apps + streaming',
+  },
+  {
+    name: 'Iroh',
+    url: 'https://iroh.computer',
+    highlight: false,
+    scope: 'Networking library',
+    dataModel: 'Content-addressed blobs',
+    sync: 'P2P (QUIC)',
+    identity: 'Public keys',
+    language: 'Rust',
+    status: 'Production',
+    bestFor: 'P2P networking layer',
+  },
+  {
+    name: 'p2panda',
+    url: 'https://p2panda.org',
+    highlight: false,
+    scope: 'P2P toolkit',
+    dataModel: 'DAG of CBOR operations',
+    sync: 'P2P (QUIC / iroh)',
+    identity: 'Public keys',
+    language: 'Rust',
+    status: 'Active (v0.5)',
+    bestFor: 'Encrypted group apps',
+  },
+  {
+    name: 'Willow',
+    url: 'https://willowprotocol.org',
+    highlight: false,
+    scope: 'Sync protocol',
+    dataModel: '3D namespace model',
+    sync: 'Protocol-agnostic',
+    identity: 'Capabilities (Meadowcap)',
+    language: 'Spec + JS/Rust',
+    status: 'Active',
+    bestFor: 'Fine-grained sync + access',
+  },
+  {
+    name: 'Holochain',
+    url: 'https://holochain.org',
+    highlight: false,
+    scope: 'Agent framework',
+    dataModel: 'Agent chains + DHT',
+    sync: 'DHT gossip',
+    identity: 'Agent keys',
+    language: 'Rust (WASM)',
+    status: 'Beta (7+ years)',
+    bestFor: 'Agent-centric apps',
+  },
+  {
+    name: 'Anytype',
+    url: 'https://anytype.io',
+    highlight: false,
+    scope: 'App + protocol',
+    dataModel: 'Typed objects + DAGs',
+    sync: 'P2P (custom)',
+    identity: 'Key pairs',
+    language: 'Go + TypeScript',
+    status: 'Production (1M+ users)',
+    bestFor: 'Personal knowledge base',
+  },
+  {
+    name: 'Solid',
+    url: 'https://solidproject.org',
+    highlight: false,
+    scope: 'Data pods',
+    dataModel: 'RDF / Linked Data',
+    sync: 'Server (REST)',
+    identity: 'WebID',
+    language: 'Any',
+    status: 'Active (niche)',
+    bestFor: 'Academic / government',
+  },
+]
+
+const protocolColumns = [
+  { key: 'scope', label: 'Scope' },
+  { key: 'dataModel', label: 'Data Model' },
+  { key: 'sync', label: 'Sync' },
+  { key: 'identity', label: 'Identity' },
+  { key: 'language', label: 'Language' },
+  { key: 'status', label: 'Status' },
+  { key: 'bestFor', label: 'Best For' },
+]
+---
+
+<section id="landscape" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-7xl px-6">
+    <SectionHeader
+      title="The local-first landscape"
+      subtitle="We're building xNet because we believe in a future where users own their data. We're not alone — here are the projects pushing this vision forward. We encourage you to explore them all."
+      align="center"
+    />
+
+    <!-- Table 1: Data Infrastructure -->
+    <div class="mt-16 animate-on-scroll">
+      <h3 class="text-lg font-semibold text-gray-200 mb-2">Developer Frameworks & Data Tools</h3>
+      <p class="text-sm text-gray-500 mb-6">What you'd use to build a local-first app today. Each has different tradeoffs.</p>
+      <div class="overflow-x-auto rounded-xl border border-border">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border bg-surface/50">
+              <th class="sticky left-0 z-10 bg-surface/90 backdrop-blur-sm px-4 py-3 text-left font-semibold text-gray-300 min-w-[100px]">Project</th>
+              {infraColumns.map(col => (
+                <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">{col.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {infraProjects.map((project) => (
+              <tr class={`border-b border-border/50 ${project.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}>
+                <td class={`sticky left-0 z-10 ${project.highlight ? 'bg-indigo-500/[0.06]' : 'bg-[#0a0a0f]'} backdrop-blur-sm px-4 py-3 font-medium whitespace-nowrap`}>
+                  <a href={project.url} target="_blank" rel="noopener noreferrer" class={`hover:underline ${project.highlight ? 'text-indigo-400' : 'text-gray-300 hover:text-indigo-400'}`}>
+                    {project.name}{project.highlight ? ' *' : ''}
+                  </a>
+                </td>
+                {infraColumns.map(col => {
+                  const val = (project as any)[col.key]
+                  const isBoolean = typeof val === 'boolean'
+                  const isDash = val === '—'
+                  return (
+                    <td class={`px-4 py-3 whitespace-nowrap ${isDash ? 'text-gray-700' : 'text-gray-400'}`}>
+                      {isBoolean ? (
+                        val ? (
+                          <span class="text-emerald-400">Yes</span>
+                        ) : (
+                          <span class="text-gray-600">No</span>
+                        )
+                      ) : val}
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="mt-2 text-xs text-gray-600">* Convex runtime is proprietary; client SDKs are open source. All other projects are fully open source.</p>
+    </div>
+
+    <!-- Table 2: Protocols & P2P Infrastructure -->
+    <div class="mt-16 animate-on-scroll">
+      <h3 class="text-lg font-semibold text-gray-200 mb-2">Protocols & P2P Infrastructure</h3>
+      <p class="text-sm text-gray-500 mb-6">The broader ecosystem of decentralized data. Different scopes, different goals — all pushing toward user-owned data.</p>
+      <div class="overflow-x-auto rounded-xl border border-border">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border bg-surface/50">
+              <th class="sticky left-0 z-10 bg-surface/90 backdrop-blur-sm px-4 py-3 text-left font-semibold text-gray-300 min-w-[130px]">Project</th>
+              {protocolColumns.map(col => (
+                <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">{col.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {protocolProjects.map((project) => (
+              <tr class={`border-b border-border/50 ${project.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}>
+                <td class={`sticky left-0 z-10 ${project.highlight ? 'bg-indigo-500/[0.06]' : 'bg-[#0a0a0f]'} backdrop-blur-sm px-4 py-3 font-medium whitespace-nowrap`}>
+                  <a href={project.url} target="_blank" rel="noopener noreferrer" class={`hover:underline ${project.highlight ? 'text-indigo-400' : 'text-gray-300 hover:text-indigo-400'}`}>
+                    {project.name}{project.highlight ? ' *' : ''}
+                  </a>
+                </td>
+                {protocolColumns.map(col => (
+                  <td class="px-4 py-3 text-gray-400 whitespace-nowrap">{(project as any)[col.key]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Where xNet fits -->
+    <div class="mx-auto mt-12 max-w-3xl animate-on-scroll">
+      <div class="rounded-xl border border-border bg-surface/50 p-6 sm:p-8 text-center">
+        <h3 class="font-semibold text-gray-200 mb-3">Where xNet fits</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">
+          xNet combines <strong class="text-gray-300">TypeScript-inferred schemas</strong>,
+          a <strong class="text-gray-300">dual CRDT strategy</strong> (Yjs for rich text + Lamport LWW for structured data),
+          <strong class="text-gray-300">React hooks</strong>,
+          a <strong class="text-gray-300">four-layer plugin system</strong>,
+          and <strong class="text-gray-300">true P2P sync</strong> — all in one framework.
+        </p>
+        <div class="mt-6 space-y-2 text-sm text-gray-500">
+          <p>Building a React app and want local-first with minimal boilerplate? <strong class="text-indigo-400">Start here.</strong></p>
+          <p>Need a social protocol? Check out <a href="https://atproto.com" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-400 underline decoration-gray-700 hover:decoration-indigo-400">AT Protocol</a> or <a href="https://nostr.com" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-400 underline decoration-gray-700 hover:decoration-indigo-400">Nostr</a>.</p>
+          <p>Need low-level P2P networking? Check out <a href="https://iroh.computer" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-400 underline decoration-gray-700 hover:decoration-indigo-400">Iroh</a> or <a href="https://holepunch.to" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-400 underline decoration-gray-700 hover:decoration-indigo-400">Hypercore</a>.</p>
+          <p>Want a production knowledge base today? Check out <a href="https://anytype.io" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-indigo-400 underline decoration-gray-700 hover:decoration-indigo-400">Anytype</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

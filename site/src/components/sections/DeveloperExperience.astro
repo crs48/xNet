@@ -1,0 +1,68 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+import CodeBlock from '../ui/CodeBlock.astro'
+---
+
+<section class="border-y border-border/50 bg-surface/20 py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="TypeScript all the way down"
+      subtitle="Define schemas in TypeScript. Get full inference everywhere — queries, mutations, hooks. No codegen step."
+    />
+
+    <div class="mt-16 grid gap-8 lg:grid-cols-2 lg:gap-12 items-start">
+      <!-- Schema definition -->
+      <div class="animate-on-scroll">
+        <CodeBlock filename="schema.ts">
+<span class="text-indigo-400">import</span> {'{'} defineSchema, text, select, number,
+  relation, richText {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/data'</span>
+
+<span class="text-indigo-400">export const</span> RecipeSchema = <span class="text-yellow-300">defineSchema</span>({'{'}
+  name: <span class="text-emerald-400">'Recipe'</span>,
+  namespace: <span class="text-emerald-400">'xnet://did:key:z6Mk.../'</span>,
+  properties: {'{'}
+    title:       <span class="text-yellow-300">text</span>({'{'} required: <span class="text-orange-400">true</span> {'}'}),
+    difficulty:  <span class="text-yellow-300">select</span>({'{'}
+      options: [<span class="text-emerald-400">'easy'</span>, <span class="text-emerald-400">'medium'</span>, <span class="text-emerald-400">'hard'</span>]
+    {'}'}),
+    prepTime:    <span class="text-yellow-300">number</span>({'{'} min: <span class="text-orange-400">0</span> {'}'}),
+    ingredients: <span class="text-yellow-300">relation</span>({'{'}
+      target: IngredientSchema,
+      many: <span class="text-orange-400">true</span>
+    {'}'}),
+    body:        <span class="text-yellow-300">richText</span>(),
+  {'}'}
+{'}'})
+        </CodeBlock>
+      </div>
+
+      <!-- DX features list -->
+      <div class="animate-on-scroll space-y-6">
+        <div class="rounded-xl border border-border bg-surface p-5">
+          <h4 class="font-semibold text-indigo-400">Full Type Inference</h4>
+          <p class="mt-1.5 text-sm text-gray-400">
+            Schema definitions generate TypeScript types automatically. Invalid property names and wrong value types are caught at compile time. No <code class="text-gray-300 bg-surface rounded px-1">codegen</code> step needed.
+          </p>
+        </div>
+        <div class="rounded-xl border border-border bg-surface p-5">
+          <h4 class="font-semibold text-emerald-400">15 Property Types</h4>
+          <p class="mt-1.5 text-sm text-gray-400">
+            Text, number, boolean, select, multi-select, date, URL, email, phone, relation, rich text, files, checkbox, color, and formula. Everything you need for real applications.
+          </p>
+        </div>
+        <div class="rounded-xl border border-border bg-surface p-5">
+          <h4 class="font-semibold text-amber-400">AI-Friendly Architecture</h4>
+          <p class="mt-1.5 text-sm text-gray-400">
+            Pure TypeScript with strong types means excellent autocomplete in Cursor, Copilot, and Claude. AI agents can generate schemas, queries, and even plugins with high accuracy.
+          </p>
+        </div>
+        <div class="rounded-xl border border-border bg-surface p-5">
+          <h4 class="font-semibold text-pink-400">One Language, Every Platform</h4>
+          <p class="mt-1.5 text-sm text-gray-400">
+            TypeScript across client, data layer, sync engine, and plugins. Desktop (Electron), mobile (Expo), and web (PWA) share the same codebase and types.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
