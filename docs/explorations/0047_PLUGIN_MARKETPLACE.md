@@ -178,6 +178,7 @@ interface PluginIndex {
   version: 1
   generatedAt: string // ISO timestamp
   plugins: PluginEntry[]
+  revoked: RevokedEntry[] // Plugins removed for cause (see Security section)
 }
 
 interface PluginEntry {
@@ -203,12 +204,25 @@ interface PluginEntry {
     stars: number // 142
     forks: number // 12
     openIssues: number // 3
+    closedIssues: number // 47
     license: string // "MIT"
     topics: string[] // ["kanban", "project-management"]
     language: string // "TypeScript"
     createdAt: string // ISO
     updatedAt: string // ISO
     avatarUrl: string // Author avatar
+    contributors: number // 5
+  }
+
+  // From GitHub API (auto-fetched, repo health signals)
+  health: {
+    commitFrequency: number // Commits in last 90 days
+    lastCommitAt: string // ISO — more accurate than repo updatedAt
+    issueCloseRate: number // closedIssues / (openIssues + closedIssues), 0-1
+    releaseFrequency: number // Releases in last 12 months
+    hasReadme: boolean
+    hasLicense: boolean
+    isArchived: boolean
   }
 
   // From GitHub Releases (auto-fetched)
@@ -256,13 +270,14 @@ sequenceDiagram
 
 ### What Gets Reviewed (And What Doesn't)
 
-| Action                              | Review needed?          | Who reviews?                      |
-| ----------------------------------- | ----------------------- | --------------------------------- |
-| Initial listing (add repo URL)      | Automated CI only       | Nobody — if CI passes, auto-merge |
-| Plugin updates (new release)        | No — auto-indexed daily | Nobody                            |
-| Metadata changes (stars, downloads) | No — auto-refreshed     | Nobody                            |
-| Removing a plugin                   | PR to delete line       | Anyone can propose                |
-| Flagging malicious plugin           | GitHub issue            | Community + maintainers           |
+| Action                              | Review needed?                                       | Who reviews?                      |
+| ----------------------------------- | ---------------------------------------------------- | --------------------------------- |
+| Initial listing (add repo URL)      | Automated CI only                                    | Nobody — if CI passes, auto-merge |
+| Plugin updates (new release)        | No — auto-indexed daily                              | Nobody                            |
+| Metadata changes (stars, downloads) | No — auto-refreshed                                  | Nobody                            |
+| Removing a plugin                   | PR to delete line + add to `blocked.yaml`            | Anyone can propose                |
+| Flagging malicious plugin           | GitHub issue → blocked.yaml update                   | Community + maintainers           |
+| Blocking a repeat offender          | Add GitHub username to `blocked.yaml` `authors` list | Maintainers                       |
 
 **The key insight**: we don't review plugin code. We rely on:
 
@@ -289,7 +304,7 @@ crs48/xnet-plugins/
 │       └── CODEOWNERS         # Auto-approve if CI passes
 ├── categories.yaml            # Optional: category definitions
 ├── featured.yaml              # Optional: hand-picked featured plugins
-├── blocked.yaml               # Blocked repos (reported as malicious)
+├── blocked.yaml               # Blocked repos, authors, and plugin IDs
 └── README.md                  # How to submit a plugin
 ```
 
@@ -339,10 +354,17 @@ jobs:
             ID=$(echo "$MANIFEST" | jq -r '.id')
             echo "$ID" | grep -qE '^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$'
 
-            # 6. Not in blocked.yaml
-            ! grep -q "$repo" blocked.yaml
+            # 6. Repo not in blocked repos list
+            AUTHOR=$(echo "$repo" | cut -d'/' -f1)
+            ! yq '.repos[]' blocked.yaml 2>/dev/null | grep -q "^$repo$"
 
-            # 7. No duplicate ID in existing index
+            # 7. Author not in blocked authors list
+            ! yq '.authors[]' blocked.yaml 2>/dev/null | grep -q "^$AUTHOR$"
+
+            # 8. Plugin ID not in blocked IDs list
+            ! yq '.plugin_ids[]' blocked.yaml 2>/dev/null | grep -q "^$ID$"
+
+            # 9. No duplicate ID in existing index
             ! jq -e --arg id "$ID" '.plugins[] | select(.id == $id)' plugins.json > /dev/null 2>&1
 
             echo "  ✅ $repo is valid"
@@ -392,14 +414,19 @@ jobs:
 import { readFileSync } from 'fs'
 import { parse } from 'yaml'
 
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString()
+
 const registry = parse(readFileSync('registry.yaml', 'utf8'))
-const blocked = parse(readFileSync('blocked.yaml', 'utf8'))?.repos ?? []
+const blocked = parse(readFileSync('blocked.yaml', 'utf8')) ?? {}
 
 const plugins = []
 
 for (const entry of registry.plugins) {
   const { repo } = entry
-  if (blocked.includes(repo)) continue
+  const blockedRepos = blocked.repos ?? []
+  const blockedAuthors = blocked.authors ?? []
+  const author = repo.split('/')[0]
+  if (blockedRepos.includes(repo) || blockedAuthors.includes(author)) continue
 
   try {
     // Fetch repo metadata
@@ -410,6 +437,37 @@ for (const entry of registry.plugins) {
 
     // Fetch manifest.json from release assets or repo root
     const manifest = await fetchManifest(repo, release)
+
+    // Fetch activity signals (parallel)
+    const [commits, issues, releases, contributors] = await Promise.all([
+      // Commit activity in last 90 days
+      ghAPI(`repos/${repo}/commits?since=${daysAgo(90)}&per_page=1`, { rawHeaders: true })
+        .then((res) => parseInt(res.headers?.['x-total-count'] ?? '0', 10))
+        .catch(() => 0),
+      // Closed issues (open_issues_count is already on repoData)
+      ghAPI(`repos/${repo}/issues?state=closed&per_page=1`, { rawHeaders: true })
+        .then((res) => parseInt(res.headers?.['x-total-count'] ?? '0', 10))
+        .catch(() => 0),
+      // All releases in last 12 months
+      ghAPI(`repos/${repo}/releases?per_page=100`)
+        .then(
+          (rels) => rels.filter((r) => new Date(r.published_at) > new Date(daysAgo(365))).length
+        )
+        .catch(() => 0),
+      // Contributor count
+      ghAPI(`repos/${repo}/contributors?per_page=1&anon=true`, { rawHeaders: true })
+        .then((res) => parseInt(res.headers?.['x-total-count'] ?? '1', 10))
+        .catch(() => 1)
+    ])
+
+    // Last commit date
+    const lastCommit = await ghAPI(`repos/${repo}/commits?per_page=1`)
+      .then((c) => c[0]?.commit?.committer?.date)
+      .catch(() => repoData.pushed_at)
+
+    const closedIssues = issues
+    const openIssues = repoData.open_issues_count
+    const totalIssues = openIssues + closedIssues
 
     plugins.push({
       repo,
@@ -426,13 +484,25 @@ for (const entry of registry.plugins) {
       github: {
         stars: repoData.stargazers_count,
         forks: repoData.forks_count,
-        openIssues: repoData.open_issues_count,
+        openIssues,
+        closedIssues,
         license: repoData.license?.spdx_id ?? 'Unknown',
         topics: repoData.topics ?? [],
         language: repoData.language,
         createdAt: repoData.created_at,
         updatedAt: repoData.pushed_at,
-        avatarUrl: repoData.owner.avatar_url
+        avatarUrl: repoData.owner.avatar_url,
+        contributors
+      },
+
+      health: {
+        commitFrequency: commits,
+        lastCommitAt: lastCommit,
+        issueCloseRate: totalIssues > 0 ? closedIssues / totalIssues : 1,
+        releaseFrequency: releases,
+        hasReadme: repoData.has_wiki || true, // GitHub repos almost always have README
+        hasLicense: !!repoData.license,
+        isArchived: repoData.archived
       },
 
       release: {
@@ -452,10 +522,19 @@ for (const entry of registry.plugins) {
 // Sort by stars descending as default
 plugins.sort((a, b) => b.github.stars - a.github.stars)
 
+// Build revoked list from blocked.yaml (repos + plugin IDs that were once listed)
+const revoked = (blocked.revoked ?? []).map((r) => ({
+  id: r.id,
+  repo: r.repo,
+  reason: r.reason,
+  revokedAt: r.revokedAt
+}))
+
 const index = {
   version: 1,
   generatedAt: new Date().toISOString(),
-  plugins
+  plugins,
+  revoked
 }
 
 writeFileSync('plugins.json', JSON.stringify(index, null, 2))
@@ -554,6 +633,11 @@ export class PluginMarketplace {
       results = results.filter((p) => p.contributes.includes(options.contributes!))
     }
 
+    // Filter out archived/inactive if requested
+    if (options?.activeOnly) {
+      results = results.filter((p) => !p.health.isArchived && p.health.commitFrequency > 0)
+    }
+
     // Sort
     switch (options?.sort ?? 'stars') {
       case 'stars':
@@ -562,11 +646,14 @@ export class PluginMarketplace {
       case 'updated':
         results.sort(
           (a, b) =>
-            new Date(b.release.publishedAt).getTime() - new Date(a.release.publishedAt).getTime()
+            new Date(b.health.lastCommitAt).getTime() - new Date(a.health.lastCommitAt).getTime()
         )
         break
       case 'downloads':
         results.sort((a, b) => b.release.downloadCount - a.release.downloadCount)
+        break
+      case 'activity':
+        results.sort((a, b) => b.health.commitFrequency - a.health.commitFrequency)
         break
       case 'name':
         results.sort((a, b) => a.name.localeCompare(b.name))
@@ -614,7 +701,8 @@ export class PluginMarketplace {
 interface SearchOptions {
   platform?: Platform
   contributes?: string
-  sort?: 'stars' | 'updated' | 'downloads' | 'name'
+  sort?: 'stars' | 'updated' | 'downloads' | 'activity' | 'name'
+  activeOnly?: boolean // Filter out archived repos and repos with 0 commits in 90 days
 }
 ```
 
@@ -693,10 +781,11 @@ Each plugin card shows:
 
 - Name + author avatar (from GitHub)
 - Description (first line)
-- Stars count + download count
-- Last updated date
+- Stars count + download count + contributor count
+- Last commit date (e.g. "Updated 3 days ago" or "Last updated 8 months ago")
 - Platform badges (Electron, Web, Mobile)
 - Contribution type badges (Views, Commands, Editor, etc.)
+- Activity indicator: green dot (active — commits in last 90 days), yellow dot (slow — no commits in 90 days but not archived), red dot (archived/abandoned)
 - Install / Installed / Update Available button
 
 The detail modal shows:
@@ -705,6 +794,7 @@ The detail modal shows:
 - Changelog (from latest release)
 - Permissions requested
 - Screenshots (if linked in manifest.json `screenshots` array)
+- Activity stats: commits in last 90 days, issue close rate, release frequency, contributor count
 - Links: GitHub repo, issues, author
 
 ## Plugin Developer Experience
@@ -896,12 +986,83 @@ flowchart LR
 
 | Threat                                           | Mitigation                                                                                    |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Malicious plugin in registry                     | Community reporting → remove from `registry.yaml` → next index build drops it                 |
+| Malicious plugin in registry                     | Multi-level blocklist (repo, author, plugin ID) + client-side revocation list                 |
+| Malicious author resubmits under new repo        | Author-level blocking by GitHub username — all repos from that user rejected by CI            |
 | Plugin update introduces malware                 | GitHub Release history is immutable and auditable. Users can pin versions.                    |
 | Supply chain attack (compromised author account) | GitHub 2FA encouraged. Release signatures could be added later (Ed25519 from `@xnet/crypto`). |
 | Registry repo compromised                        | `plugins.json` is committed by CI bot, changes are auditable in git history                   |
 | Typosquatting                                    | Plugin IDs use reverse-domain format (`dev.alice.kanban`), harder to squat than names         |
 | Excessive permissions                            | App shows permissions dialog before install. Users consent explicitly.                        |
+| Installed plugin removed from registry           | Client-side revocation list embedded in `plugins.json` — app warns/disables on next fetch     |
+
+### Blocklist & Revocation
+
+The original design only blocked by repo path in `blocked.yaml`, which a malicious actor could trivially bypass by creating a new repo. The blocklist needs to operate at three levels:
+
+```yaml
+# blocked.yaml — multi-level blocklist
+repos:
+  - alice/xnet-plugin-keylogger # Block specific repo
+  - bob/xnet-plugin-data-exfil
+
+authors:
+  - mallory # Block ALL repos from this GitHub user
+  - eve # CI rejects any PR adding a repo owned by these users
+
+plugin_ids:
+  - dev.mallory.keylogger # Block this plugin ID from ever being registered
+  - net.evil.data-exfil # Even if submitted from a different author's repo
+```
+
+**CI validates all three levels:**
+
+1. **Repo check**: `! grep -q "$repo" blocked.yaml` (already existed)
+2. **Author check**: extract the GitHub username from the repo path (`alice/foo` → `alice`) and reject if in `authors` list
+3. **Plugin ID check**: parse the `manifest.json` from the submitted repo and reject if the ID is in `plugin_ids` list
+
+This means a blocked author can't just create `mallory2/xnet-plugin-harmless` — the CI would reject it because `mallory2` would need to be a different GitHub account entirely. And if they go that far, the community reporting cycle catches them again.
+
+**Client-side revocation:**
+
+The `plugins.json` index includes a `revoked` array that the client checks against installed plugins:
+
+```typescript
+interface PluginIndex {
+  version: 1
+  generatedAt: string
+  plugins: PluginEntry[]
+  revoked: RevokedEntry[] // Plugins removed for cause
+}
+
+interface RevokedEntry {
+  id: string // "dev.mallory.keylogger"
+  repo: string // "mallory/xnet-plugin-keylogger"
+  reason: string // "Exfiltrates user data to external server"
+  revokedAt: string // ISO timestamp
+}
+```
+
+When the app fetches a fresh index, it checks `revoked` against installed plugins:
+
+```typescript
+async checkRevocations(index: PluginIndex, registry: PluginRegistry): Promise<RevokedEntry[]> {
+  const installed = registry.getInstalledPlugins()
+  const revoked: RevokedEntry[] = []
+
+  for (const entry of index.revoked) {
+    const match = installed.find(p => p.id === entry.id)
+    if (match) {
+      // Deactivate the plugin immediately, notify the user
+      registry.deactivate(match.id)
+      revoked.push(entry)
+    }
+  }
+
+  return revoked // Caller shows warning UI with reasons
+}
+```
+
+The app shows a warning modal: "Plugin X was removed from the marketplace: [reason]. It has been deactivated. You can uninstall it in Settings > Plugins." The plugin is deactivated but not auto-deleted — the user has the final say on removal.
 
 ### Future: Signed Plugins
 
