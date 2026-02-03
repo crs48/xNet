@@ -5,6 +5,18 @@
 **Dependencies:** `01-package-scaffold.md`, `02-ucan-auth.md`, `04-sqlite-storage.md`
 **Modifies:** `packages/hub/src/services/files.ts`, `packages/hub/src/routes/files.ts`, `packages/hub/src/storage/`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset    | Location                                | Reuse Strategy                                                                 |
+| ----------------- | --------------------------------------- | ------------------------------------------------------------------------------ |
+| BLAKE3 hashing    | `packages/crypto/src/hashing.ts`        | CID verification on upload (`cid:blake3:hex` format)                           |
+| BlobStore         | `packages/storage/src/blob-store.ts`    | Content-addressed storage with BLAKE3 — same CID pattern                       |
+| ChunkManager      | `packages/storage/src/chunk-manager.ts` | Large file chunking (64KB threshold, 256KB chunks)                             |
+| BlobSync protocol | `packages/react/src/sync/blob-sync.ts`  | P2P blob sync (blob-want/blob-data/blob-have) — hub can serve as blob provider |
+| BSM blob sync     | `apps/electron/src/main/bsm.ts`         | Blob sync handling in dedicated `xnet-blob-sync` room                          |
+
+> **No server-side file storage exists yet.** Client-side blob handling (BlobStore, BlobSync, ChunkManager) is complete. The hub file storage provides a reliable always-on blob provider that P2P blob sync can fall back to.
+
 ## Overview
 
 The `file()` property type in `@xnet/data` already defines `FileRef` objects with CID, name, mimeType, and size — but there's no infrastructure to actually upload or download these files. The hub provides a content-addressed file store: clients upload files by their BLAKE3 hash (CID), and any authorized client can download by the same CID. Files are stored on the hub's filesystem, deduplicated by content hash.

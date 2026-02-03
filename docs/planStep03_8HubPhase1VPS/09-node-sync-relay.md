@@ -5,6 +5,24 @@
 **Dependencies:** `01-package-scaffold.md`, `02-ucan-auth.md`, `04-sqlite-storage.md`
 **Modifies:** `packages/hub/src/services/node-relay.ts`, `packages/hub/src/storage/`, `packages/data/src/store/types.ts`, `packages/react/src/sync/`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset        | Location                                     | Status                                                                                                     |
+| --------------------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Change\<T\> type      | `packages/sync/src/change.ts` (247 LOC)      | **Complete** — universal signed change with hash chains, Lamport timestamps, batch support                 |
+| LamportClock          | `packages/sync/src/clock.ts` (152 LOC)       | **Complete** — tick, receive, compare, serialize/parse                                                     |
+| Hash chain validation | `packages/sync/src/chain.ts` (300 LOC)       | **Complete** — validateChain, detectFork, topologicalSort                                                  |
+| NodeStore             | `packages/data/src/store/` (683 LOC)         | **Complete** — event-sourced CRUD, LWW resolution, batch changes                                           |
+| NodeStorageAdapter    | `packages/data/src/store/types.ts` (291 LOC) | **Complete** — `appendChange`, `getChanges`, `getAllChanges`, etc. **Missing: `getChangesSince(lamport)`** |
+| IndexedDB adapter     | `packages/data/src/store/` (332 LOC)         | **Complete** — 5 object stores. Needs `byLamport` index + `getChangesSince`.                               |
+| Memory adapter        | `packages/data/src/store/` (218 LOC)         | **Complete** — needs `getChangesSince` method added.                                                       |
+
+### Key Gaps
+
+> 1. **`getChangesSince(lamportTime)` does not exist** on `NodeStorageAdapter` — this is the critical addition needed for delta sync. The interface has `getAllChanges()` and `getLastLamportTime()` but no range query.
+> 2. **Hub does NOT need materialized state** — it only stores the append-only change log and serves deltas. Clients handle LWW resolution locally (see [Exploration 0026](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md)).
+> 3. **`verifyIntegrity` in the plan only checks hash prefix** — real verification needs `@xnet/crypto` BLAKE3 + Ed25519 signature check. The `@xnet/sync` `verifyChangeHash` function should be used.
+
 ## Overview
 
 The hub currently relays only Yjs CRDT updates (rich text documents). Structured data — tasks, database rows, relations, properties — uses a separate event-sourced system (`NodeStore` + Lamport clocks + LWW per-property). Today, NodeChanges have **no transport**: they only sync when manually passed between stores. This means structured data only works on a single device.

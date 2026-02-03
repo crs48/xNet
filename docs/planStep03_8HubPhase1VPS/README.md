@@ -90,71 +90,135 @@ flowchart TB
 
 ## Architecture Decisions
 
-| Decision               | Choice                              | Rationale                                  |
-| ---------------------- | ----------------------------------- | ------------------------------------------ |
-| Single process         | Node.js monolith                    | Simplest deploy, $5 VPS is enough          |
-| Database               | SQLite (better-sqlite3)             | Zero-config, single-file backup, fast      |
-| Blob storage           | Filesystem                          | Simple; S3 adapter is Phase 2              |
-| Auth                   | UCAN tokens (existing)              | No new auth system, stateless              |
-| Transport              | WebSocket (existing protocol)       | Zero client changes for signaling+relay    |
-| HTTP framework         | Hono                                | Lightweight, typed, works on edge runtimes |
-| CLI                    | Commander.js                        | Standard, minimal deps                     |
-| Hub is a Yjs peer      | Participates in sync-step1/2/update | No protocol changes needed                 |
-| Backup is opaque blobs | Server can't read content           | Zero-knowledge by default                  |
+| Decision                 | Choice                                  | Rationale                                                                             |
+| ------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------- |
+| Single process           | Node.js monolith                        | Simplest deploy, $5 VPS is enough                                                     |
+| Database                 | SQLite (better-sqlite3)                 | Zero-config, single-file backup, fast. Already used in Electron main process.         |
+| Blob storage             | Filesystem                              | Simple; S3 adapter is Phase 2                                                         |
+| Auth                     | UCAN tokens (existing `@xnet/identity`) | No new auth system, stateless. **Needs bug fixes first** (see Expl. 0040).            |
+| Transport                | WebSocket (existing protocol)           | Zero client changes for signaling+relay. BSM/SyncManager already speak this protocol. |
+| HTTP framework           | Hono                                    | Lightweight, typed, works on edge runtimes                                            |
+| CLI                      | Commander.js                            | Standard, minimal deps                                                                |
+| Hub is a Yjs peer        | Participates in sync-step1/2/update     | No protocol changes needed. Mirrors BSM's Yjs handling.                               |
+| Hub is a NodeChange peer | Append-only log, delta sync by Lamport  | Mirrors `@xnet/data` Change\<T\> architecture.                                        |
+| Backup is opaque blobs   | Server can't read content               | Zero-knowledge by default. XChaCha20-Poly1305 from `@xnet/crypto`.                    |
+| Yjs security             | Signed envelopes verified on hub        | `@xnet/sync` already implements sign/verify. BSM already uses them.                   |
 
-## Current State
+### Decisions Informed by Explorations
 
-| Component             | Status                                | Notes                                |
-| --------------------- | ------------------------------------- | ------------------------------------ |
-| Signaling server      | Exists in `infrastructure/signaling/` | Dumb relay, no persistence           |
-| WebSocketSyncProvider | Working in `@xnet/react`              | Clients already relay through server |
-| UCAN tokens           | Implemented in `@xnet/identity`       | Single-level verify works            |
-| NodeStorageAdapter    | Interface defined in `@xnet/data`     | IndexedDB + Memory adapters exist    |
-| Security layer        | Exists in `@xnet/network/security`    | Not wired into anything yet          |
+| Exploration                                                                               | Impact on Hub                                                                                                                                                                   |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [0035 Minimal Signaling-Only Hub](../explorations/0035_MINIMAL_SIGNALING_ONLY_HUB.md)     | Hub should support **3 modes**: signaling-only, signaling+relay, full hub — selectable via CLI flag.                                                                            |
+| [0040 First-Class Relations](../explorations/0040_FIRST_CLASS_RELATIONS.md)               | UCAN has known bugs that must be fixed before hub auth. Relation index on hub enables graph queries.                                                                            |
+| [0041 Database Data Model](../explorations/0041_DATABASE_DATA_MODEL.md)                   | Database rows as Nodes requires `getChangesSince(lamport)` + pagination on NodeStorageAdapter.                                                                                  |
+| [0042 Unified Query API](../explorations/0042_UNIFIED_QUERY_API.md)                       | Hub query engine should align with the unified query descriptor format (JSON-serializable, sent over WS). Hub-side FTS5/compound indexes complement lightweight client indexes. |
+| [0043 Off-Main-Thread Architecture](../explorations/0043_OFF_MAIN_THREAD_ARCHITECTURE.md) | Hub's architecture mirrors the DataBridge/DataWorker pattern. SQLite adapter should be extracted from Electron into a shared package.                                           |
+| [0044 AI-Collaborative Editing](../explorations/0044_AI_COLLABORATIVE_EDITING.md)         | MCP server connects via Local API (port 31415) or hub HTTP API. Hub enables remote AI agents.                                                                                   |
+| [0025 Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md)               | Hub MUST verify signed Yjs envelopes before applying updates. MetaBridge must be write-only (NodeStore→Yjs, never Yjs→NodeStore).                                               |
+| [0026 Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md)         | Hub node relay = append-only `node_changes` table. Hub does NOT need materialized state or LWW resolution — clients do that.                                                    |
+| [0024 Background Sync Manager](../explorations/0024_BACKGROUND_SYNC_MANAGER.md)           | BSM's ConnectionManager is the client-side counterpart. Hub auth, backup, search, node sync all share BSM's single connection.                                                  |
+| [0023 Decentralized Search](../explorations/0023_DECENTRALIZED_SEARCH.md)                 | Three-tier search (local→hub→federated). Hub provides always-available Tier 2 FTS5 index.                                                                                       |
+| [0011 Server Infrastructure](../explorations/0011_SERVER_INFRASTRUCTURE.md)               | Hybrid Proposal C: start with Node.js monolith + SQLite → swap to Postgres/S3 → scale to multi-worker only if needed.                                                           |
+
+## Current State (as of Feb 2026)
+
+> **`packages/hub/` does not exist yet.** All items below are existing building blocks that the hub will compose.
+
+| Component                 | Status                              | Location                                        | Notes                                                                                                                                                           |
+| ------------------------- | ----------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Signaling server          | **Production** — deployed to Fly.io | `infrastructure/signaling/` (271 LOC)           | Stateless pub/sub relay, Dockerfile + fly.toml. Port 4000. No auth, no persistence.                                                                             |
+| WebSocketSyncProvider     | **Complete** (411 LOC)              | `packages/react/src/sync/`                      | Full Yjs sync protocol (step1/step2/update/awareness), reconnection. Clients relay through server.                                                              |
+| SyncManager (BSM)         | **Complete** (576 LOC)              | `packages/react/src/sync/sync-manager.ts`       | Top-level sync orchestrator: NodePool, Registry, ConnectionManager, OfflineQueue, BlobSync.                                                                     |
+| ConnectionManager         | **Complete** (241 LOC)              | `packages/react/src/sync/connection-manager.ts` | Single multiplexed WebSocket for all rooms. Subscribe/publish/reconnect.                                                                                        |
+| BSM (Electron)            | **Complete** (1131 LOC)             | `apps/electron/src/main/bsm.ts`                 | Full sync in main process: signed Yjs envelopes, YjsRateLimiter, YjsPeerScorer, blob sync, MessagePort IPC.                                                     |
+| UCAN tokens               | **Complete** (163 LOC)              | `packages/identity/src/ucan.ts`                 | create/verify/capabilities/expiry. **Not wired into signaling or sync** — primitives only.                                                                      |
+| UCAN bugs                 | **Known issues** (Expl. 0040)       | `packages/identity/`                            | Signature signs raw JSON not base64url; no proof chain validation; no attenuation checking.                                                                     |
+| NodeStorageAdapter        | **Complete** (291 LOC interface)    | `packages/data/src/store/types.ts`              | IndexedDB + Memory adapters. **No `getChangesSince(lamport)` method** — needed for hub delta sync.                                                              |
+| NodeStore                 | **Complete** (683 LOC)              | `packages/data/src/store/`                      | Full CRUD, LWW conflict resolution, transactions, batch changes, remote change apply.                                                                           |
+| SQLite adapter (Electron) | **Complete** (149 LOC)              | `apps/electron/src/main/storage.ts`             | `better-sqlite3`, WAL mode. App-level — NOT in a shared package.                                                                                                |
+| Security layer            | **Complete** (6 files)              | `packages/network/security/`                    | ConnectionTracker, ConnectionGater, TokenBucket, PeerScorer, AutoBlocker, PeerAccessControl. Operates at libp2p level — **not wired into WebSocket sync path**. |
+| Yjs signed envelopes      | **Complete**                        | `packages/sync/yjs-envelope.ts`                 | signYjsUpdate / verifyYjsEnvelope. **Wired into BSM** (Electron), not into web SyncManager.                                                                     |
+| Yjs rate limiting         | **Complete**                        | `packages/sync/yjs-limits.ts`                   | MAX_YJS_UPDATE_SIZE, YjsRateLimiter. Wired into BSM.                                                                                                            |
+| Yjs peer scoring          | **Complete**                        | `packages/sync/yjs-peer-scoring.ts`             | YjsPeerScorer with penalty/recovery. Wired into BSM.                                                                                                            |
+| ClientID attestation      | **Complete**                        | `packages/sync/clientid-attestation.ts`         | create/verify attestations binding clientID to DID.                                                                                                             |
+| Crypto primitives         | **Complete**                        | `packages/crypto/`                              | BLAKE3, Ed25519, XChaCha20-Poly1305, X25519. Used throughout.                                                                                                   |
+| Local API                 | **Complete** (279 LOC)              | `apps/electron/src/main/local-api.ts`           | HTTP on port 31415. CRUD proxy to renderer NodeStore.                                                                                                           |
+| libp2p bootstrap          | **Complete**                        | `infrastructure/bootstrap/`                     | Kademlia DHT bootstrap node with Dockerfile. Currently unused (app uses WS).                                                                                    |
+| XNetProvider              | **Complete** (322 LOC)              | `packages/react/src/context.ts`                 | Accepts `signalingServers` config. No `hubUrl` prop yet.                                                                                                        |
+
+### Key Architectural Insight
+
+The current architecture is **fully P2P with a dumb relay**. All intelligence (sync protocol, signing, verification, rate limiting, peer scoring) lives in clients. The hub needs to become a **smart relay** that:
+
+1. Authenticates connections (UCAN primitives exist but are unwired)
+2. Persists Y.Doc state server-side (SQLite adapter exists in Electron, needs extraction)
+3. Persists NodeChanges server-side (append-only log with delta sync)
+4. Acts as an always-online sync peer (the BSM logic can be adapted)
+5. Manages workspace access (PeerAccessControl exists but at libp2p level)
+
+### What Can Be Reused vs What Must Be Built
+
+| Reusable                                                           | Must be built                                    |
+| ------------------------------------------------------------------ | ------------------------------------------------ |
+| Signaling pub/sub protocol (port from `infrastructure/signaling/`) | `packages/hub/` package scaffold                 |
+| Yjs sync protocol (adapt from BSM's WS handling)                   | Hub-side Y.Doc persistence + LRU pool            |
+| `@xnet/identity` UCAN create/verify                                | UCAN integration into WS connect + room auth     |
+| `@xnet/sync` signed envelopes + rate limiting                      | Server-side NodeChange relay + delta sync        |
+| `@xnet/crypto` BLAKE3/Ed25519                                      | HubStorage interface + SQLite adapter            |
+| `apps/electron/src/main/storage.ts` SQLite patterns                | Query engine (FTS5)                              |
+| `packages/data/` NodeStorageAdapter interface                      | HTTP routes (backup, files, schemas)             |
+|                                                                    | `getChangesSince(lamport)` on NodeStorageAdapter |
 
 ## Implementation Phases
 
+> **Prerequisite:** Fix UCAN signature bug in `@xnet/identity` (signs raw JSON, should sign base64url — see Exploration 0040). This blocks Phase 2 auth.
+
 ### Phase 1: Package Scaffold + Signaling (Day 1)
 
-| Task | Document                                           | Description                                           |
-| ---- | -------------------------------------------------- | ----------------------------------------------------- |
-| 1.1  | [01-package-scaffold.md](./01-package-scaffold.md) | Create `packages/hub` with deps, tsconfig, Dockerfile |
-| 1.2  | [01-package-scaffold.md](./01-package-scaffold.md) | CLI entry point with Commander.js                     |
-| 1.3  | [01-package-scaffold.md](./01-package-scaffold.md) | Port signaling from `infrastructure/signaling/`       |
+| Task | Document                                           | Description                                     | Existing Code                                                    |
+| ---- | -------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| 1.1  | [01-package-scaffold.md](./01-package-scaffold.md) | Create `packages/hub` with deps, tsconfig       | —                                                                |
+| 1.2  | [01-package-scaffold.md](./01-package-scaffold.md) | CLI entry point with Commander.js               | —                                                                |
+| 1.3  | [01-package-scaffold.md](./01-package-scaffold.md) | Port signaling from `infrastructure/signaling/` | `infrastructure/signaling/src/server.ts` (271 LOC) — direct port |
 
 **Validation Gate:**
 
 - [ ] `npx @xnet/hub` starts and shows "Hub listening on port 4444"
 - [ ] Existing `WebSocketSyncProvider` connects without changes
+- [ ] Existing BSM (Electron) connects without changes
 - [ ] `/health` endpoint returns JSON status
 - [ ] `infrastructure/signaling/` tests pass against new hub
 
 ### Phase 2: UCAN Authentication (Day 2)
 
-| Task | Document                             | Description                            |
-| ---- | ------------------------------------ | -------------------------------------- |
-| 2.1  | [02-ucan-auth.md](./02-ucan-auth.md) | UCAN verification on WebSocket connect |
-| 2.2  | [02-ucan-auth.md](./02-ucan-auth.md) | Room-level capability checks           |
-| 2.3  | [02-ucan-auth.md](./02-ucan-auth.md) | Anonymous mode for dev/local use       |
+| Task | Document                             | Description                                       | Existing Code                                                  |
+| ---- | ------------------------------------ | ------------------------------------------------- | -------------------------------------------------------------- |
+| 2.0  | —                                    | Fix UCAN signature format bug in `@xnet/identity` | `packages/identity/src/ucan.ts` — fix signing to use base64url |
+| 2.1  | [02-ucan-auth.md](./02-ucan-auth.md) | UCAN verification on WebSocket connect            | `@xnet/identity` verifyUCAN exists                             |
+| 2.2  | [02-ucan-auth.md](./02-ucan-auth.md) | Room-level capability checks                      | —                                                              |
+| 2.3  | [02-ucan-auth.md](./02-ucan-auth.md) | Anonymous mode for dev/local use                  | —                                                              |
 
 **Validation Gate:**
 
+- [ ] UCAN signature format fixed and tests pass
 - [ ] Connections without valid UCAN are rejected (unless anonymous mode)
 - [ ] Room subscriptions require matching capability
-- [ ] `--anonymous` flag disables auth (for local dev)
+- [ ] `--no-auth` flag disables auth (for local dev)
 
 ### Phase 3: Sync Relay (Days 3-4)
 
-| Task | Document                                       | Description                                      |
-| ---- | ---------------------------------------------- | ------------------------------------------------ |
-| 3.1  | [03-sync-relay.md](./03-sync-relay.md)         | Hub as a Yjs peer (sync-step1/2/update handling) |
-| 3.2  | [03-sync-relay.md](./03-sync-relay.md)         | Node Pool with LRU eviction (hot/warm/cold)      |
-| 3.3  | [04-sqlite-storage.md](./04-sqlite-storage.md) | SQLite storage adapter for Y.Doc state           |
-| 3.4  | [04-sqlite-storage.md](./04-sqlite-storage.md) | Debounced persistence (1s after last update)     |
+| Task | Document                                       | Description                                      | Existing Code                                                    |
+| ---- | ---------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------- |
+| 3.1  | [03-sync-relay.md](./03-sync-relay.md)         | Hub as a Yjs peer (sync-step1/2/update handling) | BSM already does this (1131 LOC) — adapt server-side             |
+| 3.2  | [03-sync-relay.md](./03-sync-relay.md)         | Verify signed Yjs envelopes before applying      | `@xnet/sync` signYjsUpdate/verifyYjsEnvelope exist               |
+| 3.3  | [03-sync-relay.md](./03-sync-relay.md)         | Node Pool with LRU eviction (hot/warm/cold)      | `packages/react/src/sync/node-pool.ts` — similar pattern         |
+| 3.4  | [04-sqlite-storage.md](./04-sqlite-storage.md) | SQLite storage adapter for Y.Doc state           | `apps/electron/src/main/storage.ts` (149 LOC) — extract + extend |
+| 3.5  | [04-sqlite-storage.md](./04-sqlite-storage.md) | Debounced persistence (1s after last update)     | —                                                                |
 
 **Validation Gate:**
 
 - [ ] Hub responds to sync-step1 with its persisted state
+- [ ] Hub verifies signed Yjs envelopes (rejects unsigned in auth mode)
 - [ ] Client disconnects, reconnects, gets latest state from hub
 - [ ] Two clients sync through hub even when not online simultaneously
 - [ ] Idle docs evicted from memory, reloaded on next access
@@ -162,12 +226,12 @@ flowchart TB
 
 ### Phase 4: Encrypted Backup (Day 5)
 
-| Task | Document                               | Description                                        |
-| ---- | -------------------------------------- | -------------------------------------------------- |
-| 4.1  | [05-backup-api.md](./05-backup-api.md) | HTTP endpoints for blob upload/download/list       |
-| 4.2  | [05-backup-api.md](./05-backup-api.md) | UCAN-gated per-doc backup access                   |
-| 4.3  | [05-backup-api.md](./05-backup-api.md) | Storage quota enforcement                          |
-| 4.4  | [05-backup-api.md](./05-backup-api.md) | Filesystem blob store with content-addressed paths |
+| Task | Document                               | Description                                        | Existing Code                                             |
+| ---- | -------------------------------------- | -------------------------------------------------- | --------------------------------------------------------- |
+| 4.1  | [05-backup-api.md](./05-backup-api.md) | HTTP endpoints for blob upload/download/list       | —                                                         |
+| 4.2  | [05-backup-api.md](./05-backup-api.md) | UCAN-gated per-doc backup access                   | —                                                         |
+| 4.3  | [05-backup-api.md](./05-backup-api.md) | Storage quota enforcement                          | —                                                         |
+| 4.4  | [05-backup-api.md](./05-backup-api.md) | Filesystem blob store with content-addressed paths | `@xnet/storage` BlobStore uses BLAKE3 CIDs — same pattern |
 
 **Validation Gate:**
 
@@ -179,12 +243,14 @@ flowchart TB
 
 ### Phase 5: Query Engine (Day 6)
 
-| Task | Document                                   | Description                               |
-| ---- | ------------------------------------------ | ----------------------------------------- |
-| 5.1  | [06-query-engine.md](./06-query-engine.md) | SQLite FTS5 index for searchable metadata |
-| 5.2  | [06-query-engine.md](./06-query-engine.md) | Query protocol over WebSocket             |
-| 5.3  | [06-query-engine.md](./06-query-engine.md) | Schema + property filter queries          |
-| 5.4  | [06-query-engine.md](./06-query-engine.md) | User-controlled indexing opt-in           |
+| Task | Document                                   | Description                               | Existing Code                                   |
+| ---- | ------------------------------------------ | ----------------------------------------- | ----------------------------------------------- |
+| 5.1  | [06-query-engine.md](./06-query-engine.md) | SQLite FTS5 index for searchable metadata | —                                               |
+| 5.2  | [06-query-engine.md](./06-query-engine.md) | Query protocol over WebSocket             | Align with Expl. 0042 unified query descriptors |
+| 5.3  | [06-query-engine.md](./06-query-engine.md) | Schema + property filter queries          | —                                               |
+| 5.4  | [06-query-engine.md](./06-query-engine.md) | User-controlled indexing opt-in           | —                                               |
+
+> **Query API alignment:** The query protocol should use the JSON-serializable query descriptor format from [Exploration 0042](../explorations/0042_UNIFIED_QUERY_API.md). This ensures the same `useQuery()` calls work locally and can be offloaded to the hub for heavy queries.
 
 **Validation Gate:**
 
@@ -195,13 +261,13 @@ flowchart TB
 
 ### Phase 6: Docker + Deploy (Day 7)
 
-| Task | Document                                     | Description                                         |
-| ---- | -------------------------------------------- | --------------------------------------------------- |
-| 6.1  | [07-docker-deploy.md](./07-docker-deploy.md) | Multi-stage Dockerfile (build + runtime)            |
-| 6.2  | [07-docker-deploy.md](./07-docker-deploy.md) | Health checks + Prometheus metrics                  |
-| 6.3  | [07-docker-deploy.md](./07-docker-deploy.md) | fly.toml for Fly.io deployment                      |
-| 6.4  | [07-docker-deploy.md](./07-docker-deploy.md) | Graceful shutdown (persist docs, close connections) |
-| 6.5  | [07-docker-deploy.md](./07-docker-deploy.md) | Rate limiting + message size limits                 |
+| Task | Document                                     | Description                                         | Existing Code                                            |
+| ---- | -------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| 6.1  | [07-docker-deploy.md](./07-docker-deploy.md) | Multi-stage Dockerfile (build + runtime)            | `infrastructure/signaling/Dockerfile` — similar pattern  |
+| 6.2  | [07-docker-deploy.md](./07-docker-deploy.md) | Health checks + Prometheus metrics                  | Signaling already has `/health` + `/metrics`             |
+| 6.3  | [07-docker-deploy.md](./07-docker-deploy.md) | fly.toml for Fly.io deployment                      | `infrastructure/signaling/fly.toml` — adapt              |
+| 6.4  | [07-docker-deploy.md](./07-docker-deploy.md) | Graceful shutdown (persist docs, close connections) | —                                                        |
+| 6.5  | [07-docker-deploy.md](./07-docker-deploy.md) | Rate limiting + message size limits                 | `@xnet/sync` YjsRateLimiter exists for per-update limits |
 
 **Validation Gate:**
 
@@ -213,30 +279,31 @@ flowchart TB
 
 ### Phase 7: Client Integration (Days 8-9)
 
-| Task | Document                                               | Description                                     |
-| ---- | ------------------------------------------------------ | ----------------------------------------------- |
-| 7.1  | [08-client-integration.md](./08-client-integration.md) | Hub URL config in XNetProvider                  |
-| 7.2  | [08-client-integration.md](./08-client-integration.md) | UCAN token on BSM ConnectionManager             |
-| 7.3  | [08-client-integration.md](./08-client-integration.md) | AutoBackup attached to BSM NodePool             |
-| 7.4  | [08-client-integration.md](./08-client-integration.md) | Hub search + status via BSM's single connection |
+| Task | Document                                               | Description                                     | Existing Code                                                          |
+| ---- | ------------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------- |
+| 7.1  | [08-client-integration.md](./08-client-integration.md) | Hub URL config in XNetProvider                  | `XNetProvider` already accepts `signalingServers` — extend to `hubUrl` |
+| 7.2  | [08-client-integration.md](./08-client-integration.md) | UCAN token on BSM ConnectionManager             | `ConnectionManager` (241 LOC) already connects via WS — add `?token=`  |
+| 7.3  | [08-client-integration.md](./08-client-integration.md) | AutoBackup attached to BSM NodePool             | `node-pool.ts` exists with dirty/evict events                          |
+| 7.4  | [08-client-integration.md](./08-client-integration.md) | Hub search + status via BSM's single connection | —                                                                      |
 
-> **BSM Integration:** Hub client features layer onto the BSM's `ConnectionManager` (from [planStep03_3_1BgSync](../planStep03_3_1BgSync/README.md)). No separate WebSocket — auth, backup, search, and node sync all share the BSM's single connection.
+> **BSM Integration:** Hub client features layer onto the existing `SyncManager`'s `ConnectionManager` (already implemented in `packages/react/src/sync/`). No separate WebSocket — auth, backup, search, and node sync all share BSM's single connection. The Electron BSM (`apps/electron/src/main/bsm.ts`) already implements signed envelope handling that the hub will verify.
 
 **Validation Gate:**
 
-- [ ] `XNetProvider` accepts `hubUrl` option (passed to BSM ConnectionManager)
-- [ ] BSM ConnectionManager appends UCAN token to hub WebSocket URL
-- [ ] AutoBackup watches BSM NodePool dirty/evict events
-- [ ] UI shows hub connection status (reads BSM connection state)
+- [ ] `XNetProvider` accepts `hubUrl` option (passed to SyncManager/BSM ConnectionManager)
+- [ ] ConnectionManager appends UCAN token to hub WebSocket URL
+- [ ] AutoBackup watches NodePool dirty/evict events
+- [ ] UI shows hub connection status (reads SyncManager connection state)
 
 ### Phase 8: Node Sync Relay (Days 10-11)
 
-| Task | Document                                         | Description                              |
-| ---- | ------------------------------------------------ | ---------------------------------------- |
-| 8.1  | [09-node-sync-relay.md](./09-node-sync-relay.md) | NodeChange persistence (append-only log) |
-| 8.2  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Delta sync protocol (since Lamport time) |
-| 8.3  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Broadcast + deduplication by hash        |
-| 8.4  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Client-side NodeStoreSyncProvider        |
+| Task | Document                                         | Description                                            | Existing Code                                                |
+| ---- | ------------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------ |
+| 8.1  | [09-node-sync-relay.md](./09-node-sync-relay.md) | NodeChange persistence (append-only log)               | `@xnet/data` Change\<T\> type, NodeStore event-sourced model |
+| 8.2  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Delta sync protocol (since Lamport time)               | `@xnet/sync` LamportClock exists                             |
+| 8.3  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Broadcast + deduplication by hash                      | BLAKE3 hashing in `@xnet/crypto`                             |
+| 8.4  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Add `getChangesSince(lamport)` to NodeStorageAdapter   | **Gap**: not on current interface (291 LOC)                  |
+| 8.5  | [09-node-sync-relay.md](./09-node-sync-relay.md) | Client-side NodeStoreSyncProvider on ConnectionManager | —                                                            |
 
 **Validation Gate:**
 
@@ -244,16 +311,16 @@ flowchart TB
 - [ ] Two devices sync NodeChanges without being online simultaneously
 - [ ] Duplicate changes (same hash) are not stored twice
 - [ ] Delta sync returns only changes since requested Lamport time
-- [ ] `getChangesSince(lamport)` added to `NodeStorageAdapter`
+- [ ] `getChangesSince(lamport)` added to `NodeStorageAdapter` interface + IndexedDB adapter
 
 ### Phase 9: File Storage (Day 12)
 
-| Task | Document                                   | Description                                |
-| ---- | ------------------------------------------ | ------------------------------------------ |
-| 9.1  | [10-file-storage.md](./10-file-storage.md) | Content-addressed upload (PUT /files/:cid) |
-| 9.2  | [10-file-storage.md](./10-file-storage.md) | BLAKE3 CID verification on upload          |
-| 9.3  | [10-file-storage.md](./10-file-storage.md) | Download with immutable cache headers      |
-| 9.4  | [10-file-storage.md](./10-file-storage.md) | Client-side useFileUpload hook             |
+| Task | Document                                   | Description                                | Existing Code                                                 |
+| ---- | ------------------------------------------ | ------------------------------------------ | ------------------------------------------------------------- |
+| 9.1  | [10-file-storage.md](./10-file-storage.md) | Content-addressed upload (PUT /files/:cid) | `@xnet/storage` BlobStore + ChunkManager use same CID pattern |
+| 9.2  | [10-file-storage.md](./10-file-storage.md) | BLAKE3 CID verification on upload          | `@xnet/crypto` blake3                                         |
+| 9.3  | [10-file-storage.md](./10-file-storage.md) | Download with immutable cache headers      | —                                                             |
+| 9.4  | [10-file-storage.md](./10-file-storage.md) | Client-side useFileUpload hook             | —                                                             |
 
 **Validation Gate:**
 
@@ -265,12 +332,12 @@ flowchart TB
 
 ### Phase 10: Schema Registry (Day 13)
 
-| Task | Document                                         | Description                            |
-| ---- | ------------------------------------------------ | -------------------------------------- |
-| 10.1 | [11-schema-registry.md](./11-schema-registry.md) | Publish schemas (POST /schemas)        |
-| 10.2 | [11-schema-registry.md](./11-schema-registry.md) | Resolve by IRI (GET /schemas/resolve/) |
-| 10.3 | [11-schema-registry.md](./11-schema-registry.md) | Search/discover schemas                |
-| 10.4 | [11-schema-registry.md](./11-schema-registry.md) | Remote resolver fallback in @xnet/data |
+| Task | Document                                         | Description                            | Existing Code                               |
+| ---- | ------------------------------------------------ | -------------------------------------- | ------------------------------------------- |
+| 10.1 | [11-schema-registry.md](./11-schema-registry.md) | Publish schemas (POST /schemas)        | `@xnet/data` SchemaRegistry class exists    |
+| 10.2 | [11-schema-registry.md](./11-schema-registry.md) | Resolve by IRI (GET /schemas/resolve/) | —                                           |
+| 10.3 | [11-schema-registry.md](./11-schema-registry.md) | Search/discover schemas                | —                                           |
+| 10.4 | [11-schema-registry.md](./11-schema-registry.md) | Remote resolver fallback in @xnet/data | Add `setRemoteResolver()` to SchemaRegistry |
 
 **Validation Gate:**
 
@@ -282,12 +349,12 @@ flowchart TB
 
 ### Phase 11: Awareness Persistence (Day 14)
 
-| Task | Document                                                     | Description                           |
-| ---- | ------------------------------------------------------------ | ------------------------------------- |
-| 11.1 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Persist last-known awareness per user |
-| 11.2 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Send awareness-snapshot on room join  |
-| 11.3 | [12-awareness-persistence.md](./12-awareness-persistence.md) | TTL-based cleanup of stale entries    |
-| 11.4 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Enhanced usePresence hook             |
+| Task | Document                                                     | Description                           | Existing Code                                                    |
+| ---- | ------------------------------------------------------------ | ------------------------------------- | ---------------------------------------------------------------- |
+| 11.1 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Persist last-known awareness per user | `@xnet/data` awareness.ts has UserPresence type                  |
+| 11.2 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Send awareness-snapshot on room join  | —                                                                |
+| 11.3 | [12-awareness-persistence.md](./12-awareness-persistence.md) | TTL-based cleanup of stale entries    | —                                                                |
+| 11.4 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Enhanced usePresence hook             | Currently embedded in useNode's `remoteUsers` — needs extraction |
 
 **Validation Gate:**
 
@@ -299,12 +366,12 @@ flowchart TB
 
 ### Phase 12: Peer Discovery (Day 15)
 
-| Task | Document                                       | Description                               |
-| ---- | ---------------------------------------------- | ----------------------------------------- |
-| 12.1 | [13-peer-discovery.md](./13-peer-discovery.md) | Peer registry (POST /dids/register)       |
-| 12.2 | [13-peer-discovery.md](./13-peer-discovery.md) | DID resolution (GET /dids/:did)           |
-| 12.3 | [13-peer-discovery.md](./13-peer-discovery.md) | Auto-register on WebSocket connect        |
-| 12.4 | [13-peer-discovery.md](./13-peer-discovery.md) | DIDResolver implementation (replace stub) |
+| Task | Document                                       | Description                               | Existing Code                                          |
+| ---- | ---------------------------------------------- | ----------------------------------------- | ------------------------------------------------------ |
+| 12.1 | [13-peer-discovery.md](./13-peer-discovery.md) | Peer registry (POST /dids/register)       | —                                                      |
+| 12.2 | [13-peer-discovery.md](./13-peer-discovery.md) | DID resolution (GET /dids/:did)           | `@xnet/network` DIDResolver exists (needs replacement) |
+| 12.3 | [13-peer-discovery.md](./13-peer-discovery.md) | Auto-register on WebSocket connect        | —                                                      |
+| 12.4 | [13-peer-discovery.md](./13-peer-discovery.md) | DIDResolver implementation (replace stub) | —                                                      |
 
 **Validation Gate:**
 
@@ -315,6 +382,8 @@ flowchart TB
 - [ ] Stale peers cleaned up after 7 days
 
 ### Phase 13: Hub Federation Search (Days 16-18)
+
+> **Note:** Phases 13-15 are advanced distributed systems features. They are architecturally sound but should only be implemented after Phases 1-12 are stable and in production use. See [Exploration 0023](../explorations/0023_DECENTRALIZED_SEARCH.md) for the full three-tier search design.
 
 | Task | Document                                                     | Description                               |
 | ---- | ------------------------------------------------------------ | ----------------------------------------- |
@@ -467,20 +536,20 @@ packages/
 
 ## Dependencies
 
-| Dependency          | Package   | Purpose                             |
-| ------------------- | --------- | ----------------------------------- |
-| `hono`              | External  | HTTP server + routing               |
-| `@hono/node-server` | External  | Node.js adapter for Hono            |
-| `ws`                | External  | WebSocket server                    |
-| `better-sqlite3`    | External  | SQLite database                     |
-| `commander`         | External  | CLI argument parsing                |
-| `yjs`               | External  | Y.Doc instances on server           |
-| `y-protocols`       | External  | Yjs sync protocol encoding          |
-| `@xnet/identity`    | Workspace | UCAN verification                   |
-| `@xnet/crypto`      | Workspace | BLAKE3 hashing, Ed25519             |
-| `@xnet/core`        | Workspace | ContentId, DID, types               |
-| `@xnet/sync`        | Workspace | Change verification, Lamport clocks |
-| `@xnet/data`        | Workspace | NodeChange types, schema types      |
+| Dependency          | Package   | Purpose                                                                         | Status                                           |
+| ------------------- | --------- | ------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `hono`              | External  | HTTP server + routing                                                           | Not yet in monorepo                              |
+| `@hono/node-server` | External  | Node.js adapter for Hono                                                        | Not yet in monorepo                              |
+| `ws`                | External  | WebSocket server                                                                | Already used by signaling + BSM                  |
+| `better-sqlite3`    | External  | SQLite database                                                                 | Already used by Electron main process            |
+| `commander`         | External  | CLI argument parsing                                                            | Not yet in monorepo                              |
+| `yjs`               | External  | Y.Doc instances on server                                                       | Already used throughout                          |
+| `y-protocols`       | External  | Yjs sync protocol encoding                                                      | Already used by WebSocketSyncProvider + BSM      |
+| `@xnet/identity`    | Workspace | UCAN verification (create/verify/capabilities)                                  | **Complete** — needs sig format bug fix          |
+| `@xnet/crypto`      | Workspace | BLAKE3 hashing, Ed25519 signing, XChaCha20                                      | **Complete**                                     |
+| `@xnet/core`        | Workspace | ContentId, DID, types                                                           | **Complete**                                     |
+| `@xnet/sync`        | Workspace | Change verification, Lamport clocks, Yjs envelopes, rate limiting, peer scoring | **Complete** — all used by BSM                   |
+| `@xnet/data`        | Workspace | NodeChange types, schema types, NodeStorageAdapter                              | **Complete** — needs `getChangesSince` extension |
 
 ## Success Criteria
 
@@ -506,15 +575,36 @@ packages/
 
 ## Reference Documents
 
+### Plans
+
 - [Background Sync Manager Plan](../planStep03_3_1BgSync/README.md) — Client-side sync orchestrator (BSM subsumes HubConnection)
-- [BSM Exploration](../explorations/0024_BACKGROUND_SYNC_MANAGER.md) — Design decisions, platform considerations
-- [Server Infrastructure Exploration](../explorations/0011_SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals
-- [Decentralized Search Exploration](../explorations/0023_DECENTRALIZED_SEARCH.md) — Three-tier search architecture + Hub integration
 - [P2P Signaling Plan](../planStep03_2Signaling/README.md) — Current signaling architecture
-- [Persistence Architecture](../explorations/0016_PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
 - [Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) — Security layer design
-- [Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md) — Threat model for unsigned rich text updates
-- [Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md) — How signed structured data works
+- [Yjs Security Plan](../planStep03_4_1YjsSecurity/README.md) — Signed envelopes, UCAN, size limits, peer scoring
+
+### Explorations (Architecture)
+
+- [0011 Server Infrastructure](../explorations/0011_SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals → Hybrid Proposal C chosen
+- [0016 Persistence Architecture](../explorations/0016_PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
+- [0024 Background Sync Manager](../explorations/0024_BACKGROUND_SYNC_MANAGER.md) — BSM design decisions, platform considerations
+- [0035 Minimal Signaling-Only Hub](../explorations/0035_MINIMAL_SIGNALING_ONLY_HUB.md) — 3 hub modes (signaling-only → full hub), HybridSyncProvider
+- [0043 Off-Main-Thread Architecture](../explorations/0043_OFF_MAIN_THREAD_ARCHITECTURE.md) — DataBridge pattern, hub mirrors utility process model
+
+### Explorations (Security & Sync)
+
+- [0025 Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md) — Threat model for unsigned rich text updates
+- [0026 Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md) — Event-sourced structured data, hub relay = append-only log
+- [0040 First-Class Relations](../explorations/0040_FIRST_CLASS_RELATIONS.md) — UCAN bugs identified, relation index for graph queries
+
+### Explorations (Data & Query)
+
+- [0041 Database Data Model](../explorations/0041_DATABASE_DATA_MODEL.md) — Rows as Nodes, pagination needed on NodeStorageAdapter
+- [0042 Unified Query API](../explorations/0042_UNIFIED_QUERY_API.md) — JSON-serializable query descriptors, hub-side FTS5/compound indexes
+- [0023 Decentralized Search](../explorations/0023_DECENTRALIZED_SEARCH.md) — Three-tier search (local → hub → federated), BM25 + social trust
+
+### Explorations (AI & Integration)
+
+- [0044 AI-Collaborative Editing](../explorations/0044_AI_COLLABORATIVE_EDITING.md) — MCP server via Local API or hub HTTP, Markdown ↔ Yjs conversion
 
 ---
 

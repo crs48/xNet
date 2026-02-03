@@ -5,6 +5,26 @@
 **Dependencies:** `01-package-scaffold.md`, `02-ucan-auth.md`, `04-sqlite-storage.md`
 **Modifies:** `packages/hub/src/services/query.ts`, `packages/hub/src/services/signaling.ts`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset        | Location                    | Relevance                                                                                   |
+| --------------------- | --------------------------- | ------------------------------------------------------------------------------------------- |
+| `useQuery` hook       | `packages/react/src/hooks/` | Currently does full table scan + client-side JS filtering. No comparison operators, no FTS. |
+| NodeStore queries     | `packages/data/src/store/`  | `listNodes()`, `countNodes()` — basic iteration only                                        |
+| `@xnet/query` package | `packages/query/`           | Exists but unclear scope — may contain query primitives                                     |
+
+### Alignment with Exploration 0042 (Unified Query API)
+
+> The query protocol sent over WebSocket should use the **JSON-serializable query descriptor** format from [Exploration 0042](../explorations/0042_UNIFIED_QUERY_API.md). This means the same `useQuery()` call can execute locally (full table scan) or be offloaded to the hub (FTS5 + indexes) transparently. The hub query engine is the server-side complement to the client-side query engine.
+>
+> Key design from 0042:
+>
+> - Filter operators as functions: `eq()`, `gt()`, `contains()`, `search()`
+> - Results include `completeness: 'full' | 'partial'` + `stubs[]`
+> - Hub-side FTS5, compound property indexes, and vector indexes complement lightweight client indexes
+
+> **No server-side query engine exists yet.** This is entirely new code.
+
 ## Overview
 
 The query engine enables clients to search documents stored on the hub using full-text search (SQLite FTS5) and metadata filters. Queries are sent over the existing WebSocket connection using a new message type (`query-request` / `query-response`). Documents are only searchable if the owner explicitly opts in by sending an `index-update` message with metadata and text content.

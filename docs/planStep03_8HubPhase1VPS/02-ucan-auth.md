@@ -5,6 +5,28 @@
 **Dependencies:** `01-package-scaffold.md`, `@xnet/identity` (UCAN verify)
 **Modifies:** `packages/hub/src/server.ts`, new `packages/hub/src/auth/`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset         | Location                                  | Status                                                                                          |
+| ---------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `createUCAN()`         | `packages/identity/src/ucan.ts` (163 LOC) | **Complete** — JWT-like format, EdDSA signing                                                   |
+| `verifyUCAN()`         | `packages/identity/src/ucan.ts`           | **Complete** — signature + expiry check                                                         |
+| `getCapabilities()`    | `packages/identity/src/ucan.ts`           | **Complete** — extracts capabilities array                                                      |
+| `hasCapability()`      | `packages/identity/src/ucan.ts`           | **Complete** — single capability check                                                          |
+| `generateKeyBundle()`  | `packages/identity/src/keys.ts`           | **Complete** — Ed25519 key generation                                                           |
+| Network security layer | `packages/network/security/` (6 files)    | **Complete** but at libp2p level — PeerAccessControl, PeerScorer, AutoBlocker not wired into WS |
+
+### Known UCAN Bugs (from Exploration 0040)
+
+> **MUST FIX BEFORE IMPLEMENTING HUB AUTH:**
+>
+> 1. **Signature format wrong** — currently signs raw JSON payload instead of base64url-encoded payload. This means signatures may be fragile to serialization changes.
+> 2. **No proof chain validation** — `verifyUCAN` checks the issuer's signature but does not validate the delegation chain (proof array).
+> 3. **No attenuation checking** — a delegated UCAN can claim MORE capabilities than its parent, which violates UCAN spec.
+> 4. **UCAN is never called at runtime** — the signaling server has zero authentication. The BSM connects with a bare WebSocket URL.
+>
+> The fixes for (1)-(3) should be done in `@xnet/identity` as a prerequisite to this step.
+
 ## Overview
 
 The hub uses UCAN tokens for authentication. Clients send a UCAN as a query parameter on WebSocket connect. The hub verifies the signature, extracts capabilities, and enforces per-room access. Anonymous mode (for local dev) skips verification.

@@ -5,6 +5,18 @@
 **Dependencies:** `01-package-scaffold.md`, `02-ucan-auth.md`
 **Modifies:** `packages/hub/src/services/discovery.ts`, `packages/hub/src/routes/dids.ts`, `packages/network/src/resolution/did.ts`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset         | Location                                 | Status                                                                                                    |
+| ---------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| DID:key implementation | `packages/identity/src/did.ts` (80 LOC)  | **Complete** — createDID, parseDID, isValidDID                                                            |
+| DIDResolver            | `packages/network/src/resolution/did.ts` | Exists but needs replacement — currently a stub/basic implementation                                      |
+| libp2p node            | `packages/network/src/node.ts` (119 LOC) | Full libp2p setup with WebRTC, Kademlia DHT — includes DID-based peer routing                             |
+| Bootstrap node         | `infrastructure/bootstrap/` (132 LOC)    | Kademlia DHT bootstrap — implemented but unused (app uses WS signaling)                                   |
+| Network config         | `packages/network/`                      | `PRODUCTION_CONFIG` has placeholder URLs (`wss://signal-us-west.xnet.io` etc.) with empty bootstrap peers |
+
+> **Peer discovery is mostly unimplemented at the application level.** The libp2p primitives exist but are not used — the app relies entirely on WebSocket signaling for peer discovery. The hub registry would provide the first real DID→endpoint resolution.
+
 ## Overview
 
 The `DIDResolver` in `@xnet/network` is a stub — `resolve()` returns null for all lookups. The hub fills this gap by acting as a rendezvous point: clients register their DID with their current endpoints (WebSocket URL, WebRTC signaling params), and other clients can look up peers by DID to establish connections.

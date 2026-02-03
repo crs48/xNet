@@ -5,6 +5,29 @@
 **Dependencies:** `02-ucan-auth.md`, `03-sync-relay.md`, `05-backup-api.md`, `06-query-engine.md`
 **Modifies:** `packages/react/src/`, `packages/sdk/src/`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset    | Location                                                  | Status                                                                                                                     |
+| ----------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| XNetProvider      | `packages/react/src/context.ts` (322 LOC)                 | **Complete** — accepts `signalingServers` config, creates NodeStore + SyncManager. Needs `hubUrl` prop.                    |
+| SyncManager       | `packages/react/src/sync/sync-manager.ts` (576 LOC)       | **Complete** — orchestrates NodePool, Registry, ConnectionManager, OfflineQueue, BlobSync. Already accepts `signalingUrl`. |
+| ConnectionManager | `packages/react/src/sync/connection-manager.ts` (241 LOC) | **Complete** — single multiplexed WS. Needs UCAN token injection on connect URL.                                           |
+| BSM (Electron)    | `apps/electron/src/main/bsm.ts` (1131 LOC)                | **Complete** — full sync in main process with signed envelopes, rate limiting, peer scoring, blob sync.                    |
+| NodePool (client) | `packages/react/src/sync/node-pool.ts`                    | **Complete** — LRU pool with dirty/evict events. AutoBackup hooks here.                                                    |
+| OfflineQueue      | `packages/react/src/sync/offline-queue.ts`                | **Complete** — queues updates when disconnected, replays on reconnect.                                                     |
+| BlobSync          | `packages/react/src/sync/blob-sync.ts`                    | **Complete** — P2P blob sync protocol with tests.                                                                          |
+
+### Key Integration Insight
+
+> The existing `SyncManager` already provides the full client-side infrastructure that the hub plan's "Client Integration" phase needs. The work is:
+>
+> 1. Add `hubUrl` to `XNetProviderProps` (trivial)
+> 2. Inject UCAN token into `ConnectionManager` WS URL (small change)
+> 3. Add `AutoBackup` class that watches `NodePool` dirty/evict events (new)
+> 4. Add `useHubSearch` / `useHubStatus` hooks (new)
+>
+> The BSM (Electron) already handles signed envelopes. The web `SyncManager` does NOT yet sign Yjs updates — this is a gap that should be closed before hub auth mode is enabled.
+
 ## Overview
 
 Client integration connects the existing xNet apps (desktop, mobile, web) to a hub with minimal configuration. The key change: `XNetProvider` accepts an optional `hubUrl` prop, and the `WebSocketSyncProvider` automatically authenticates with a UCAN token. Backup and search are opt-in features that piggyback on the existing WebSocket connection.

@@ -5,6 +5,17 @@
 **Dependencies:** `06-query-engine.md`, `09-node-sync-relay.md`, `11-schema-registry.md`, `13-peer-discovery.md`
 **Modifies:** `packages/hub/src/services/federation.ts`, `packages/hub/src/routes/federation.ts`, `packages/hub/src/storage/`
 
+## Codebase Status (Feb 2026)
+
+> **Federation is entirely speculative — no code exists.** This depends on Phases 1-12 being complete and multiple hubs running in production.
+>
+> Relevant existing work:
+>
+> - [Exploration 0023](../explorations/0023_DECENTRALIZED_SEARCH.md) — Three-tier search design with hub federation as Tier 2/3
+> - [Exploration 0042](../explorations/0042_UNIFIED_QUERY_API.md) — JSON-serializable query descriptors that can be forwarded between hubs
+> - `@xnet/crypto` Ed25519 signing — for signed federation responses
+> - `@xnet/identity` UCAN — for inter-hub delegation chains
+
 ## Overview
 
 Each Hub maintains a complete index of its workspace data (via sync relay + FTS5). Hub Federation extends this so that hubs can query each other — enabling cross-organization discovery without exposing raw data. A user searching on Hub A can transparently get results from Hub B and Hub C, if those hubs have a federation agreement.

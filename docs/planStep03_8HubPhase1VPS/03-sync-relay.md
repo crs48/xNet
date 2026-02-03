@@ -5,6 +5,22 @@
 **Dependencies:** `01-package-scaffold.md`, `02-ucan-auth.md`
 **Modifies:** `packages/hub/src/services/`, new `packages/hub/src/pool/`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset            | Location                                      | Reuse Strategy                                                                                                  |
+| ------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| BSM Yjs sync handling     | `apps/electron/src/main/bsm.ts` (1131 LOC)    | **Primary reference** — already does sync-step1/2/update over WS, signed envelopes, rate limiting, peer scoring |
+| WebSocketSyncProvider     | `packages/react/src/sync/` (411 LOC)          | Hub must speak this exact protocol                                                                              |
+| NodePool (client)         | `packages/react/src/sync/node-pool.ts`        | Similar LRU pattern — hub pool needs persistence to SQLite                                                      |
+| Signed Yjs envelopes      | `packages/sync/yjs-envelope.ts`               | Hub should verify incoming `signYjsUpdate` envelopes                                                            |
+| Yjs rate limiting         | `packages/sync/yjs-limits.ts`                 | Reuse `YjsRateLimiter` + `MAX_YJS_UPDATE_SIZE` on hub                                                           |
+| Yjs peer scoring          | `packages/sync/yjs-peer-scoring.ts`           | Reuse `YjsPeerScorer` to track misbehaving clients                                                              |
+| SQLite adapter (Electron) | `apps/electron/src/main/storage.ts` (149 LOC) | Extract as shared `HubStorage` implementation                                                                   |
+
+### Key Difference from BSM
+
+The BSM is a **client** — it connects to the signaling server as a peer. The hub's relay service is the **server** — it intercepts messages published through signaling and responds as a persistent peer. The BSM signs outgoing updates; the hub **verifies** incoming updates. The hub should reject unsigned updates when auth is enabled (see [Exploration 0025](../explorations/0025_YJS_SECURITY_ANALYSIS.md)).
+
 ## Overview
 
 The sync relay makes the hub participate in Yjs sync as a persistent peer. When clients connect and broadcast `sync-step1` (their state vector), the hub responds with `sync-step2` (the diff from its stored state). When clients send `sync-update`, the hub applies it to its Y.Doc and persists. This means clients can sync through the hub even when not online simultaneously.

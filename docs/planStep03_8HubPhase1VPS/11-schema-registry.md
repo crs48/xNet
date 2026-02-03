@@ -5,6 +5,16 @@
 **Dependencies:** `01-package-scaffold.md`, `02-ucan-auth.md`, `04-sqlite-storage.md`
 **Modifies:** `packages/hub/src/services/schemas.ts`, `packages/hub/src/routes/schemas.ts`, `packages/hub/src/storage/`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset           | Location                              | Status                                                                                           |
+| ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| SchemaRegistry           | `packages/data/src/schema/`           | **Complete** — `defineSchema()` with typed properties, local registration. No remote resolution. |
+| Schema property types    | `packages/data/src/schema/`           | **Complete** — 15 property types including `relation()`, `person()`, `file()`                    |
+| Local API schema listing | `apps/electron/src/main/local-api.ts` | Lists registered schemas via HTTP — same pattern hub would use                                   |
+
+> **No remote schema resolution exists.** The `SchemaRegistry` class needs a `setRemoteResolver()` method added to fall back to hub queries when a schema IRI isn't locally registered.
+
 ## Overview
 
 The `SchemaRegistry` in `@xnet/data` is currently local-only. When Client A creates a node with schema `xnet://did:key:z6MkAlice.../Recipe`, Client B cannot resolve that schema definition — it has no way to know what properties a "Recipe" has. The hub provides a network-accessible registry where users can publish schemas and others can discover them.

@@ -5,6 +5,17 @@
 **Dependencies:** `01-package-scaffold.md`, `04-sqlite-storage.md`
 **Modifies:** `packages/hub/Dockerfile`, `packages/hub/fly.toml`, `packages/hub/src/server.ts`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset                   | Location                                       | Reuse Strategy                                                                       |
+| -------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Signaling Dockerfile             | `infrastructure/signaling/Dockerfile` (24 LOC) | Multi-stage pattern — adapt for hub (add `better-sqlite3` native build)              |
+| Signaling fly.toml               | `infrastructure/signaling/fly.toml` (40 LOC)   | Adapt for hub — add persistent volume for SQLite + blobs                             |
+| Signaling `/health` + `/metrics` | `infrastructure/signaling/src/server.ts`       | Same pattern — hub extends with pool stats, storage stats                            |
+| `@xnet/sync` YjsRateLimiter      | `packages/sync/yjs-limits.ts`                  | Per-update rate limiting already implemented — hub adds per-connection rate limiting |
+
+> **No hub deployment config exists yet.** The signaling server is deployed separately on Fly.io (`app = "xnet-signaling"`, region `sjc`). The hub will eventually replace or absorb the signaling server.
+
 ## Overview
 
 The hub deploys as a single Docker container (Node 22 Alpine, <150MB). It supports Fly.io, any VPS with Docker, or bare-metal via `npx @xnet/hub`. Key production concerns: graceful shutdown (persist all Y.Docs before exit), rate limiting (per-connection + global), message size enforcement, Prometheus metrics, and health checks.
