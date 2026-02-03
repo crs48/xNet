@@ -4,7 +4,7 @@
 
 ## Context
 
-[Exploration 0040](./0040_FIRST_CLASS_RELATIONS.md) established that first-class relations turn xNet's data into a navigable graph. But having a graph is useless without a way to **query** it. Today, `useQuery` supports flat `where` equality checks and client-side sorting — roughly equivalent to `SELECT * FROM table WHERE col = val ORDER BY col`. This is adequate for simple cases but falls apart for:
+[Exploration 0040](./0040_FIRST_CLASS_RELATIONS.md) established that first-class relations turn xNet's data into a navigable graph. [Exploration 0037](./0037_USEQUERY_PAGINATION.md) designed pagination patterns (`totalCount`, `hasMore`, `loadMore`, cursor-based pagination, infinite scroll, and hub/federation query routing). But having a graph and pagination infrastructure is useless without a **query language** powerful enough to express what you actually want. Today, `useQuery` supports flat `where` equality checks and client-side sorting — roughly equivalent to `SELECT * FROM table WHERE col = val ORDER BY col`. This is adequate for simple cases but falls apart for:
 
 - Joins across relations ("tasks with their comments and assignees")
 - Reverse lookups ("everything pointing at this node")
@@ -44,6 +44,8 @@ const { data: urgent } = useQuery(TaskSchema, {
 })
 ```
 
+Note that [Exploration 0037](./0037_USEQUERY_PAGINATION.md) already designs the pagination primitives (`totalCount`, `hasMore`, `loadMore()`, `nextPage()`, cursor-based pagination, `useInfiniteQuery`, and progressive hub/federation query loading). This exploration assumes those primitives exist and focuses on the **query semantics** — what you can ask for, not how you paginate through it. The two designs are complementary: 0037 handles "give me the next page of results" while this document handles "what results match in the first place."
+
 ### What's Missing
 
 ```mermaid
@@ -54,6 +56,12 @@ mindmap
       Single-field sort
       Limit/offset
       Get by ID
+    Designed in 0037
+      totalCount / hasMore
+      loadMore / infinite scroll
+      Cursor pagination
+      Hub query routing
+      Federation merging
     Missing: Filtering
       Comparison operators
       Logical combinators
@@ -818,7 +826,7 @@ flowchart TD
 
 ### 3.4 Aggregation
 
-Aggregations compute summary values over query results:
+Aggregations compute summary values over query results. Note that `count()` here is a **query-level aggregation** (count comments per task, group by status) — distinct from the `totalCount` pagination metadata designed in [Exploration 0037](./0037_USEQUERY_PAGINATION.md), which counts total matching nodes for pagination UI. Both are needed: `totalCount` answers "how many tasks match my filter?" while `count()` in an aggregate answers "how many comments does each task have?"
 
 ```typescript
 // ─── Simple count ─────────────────────────────────────────
@@ -960,7 +968,7 @@ const tasks = useQuery(Task, {
 
 ### 4.1 `useQuery` — The Universal Hook
 
-All query capabilities are accessible through a single hook with overloaded signatures:
+All query capabilities are accessible through a single hook with overloaded signatures. The pagination primitives (`totalCount`, `hasMore`, `loadMore`, cursor support) designed in [Exploration 0037](./0037_USEQUERY_PAGINATION.md) integrate directly into the result type — every list query returns pagination metadata alongside the query results:
 
 ```typescript
 // ─── Overloads ────────────────────────────────────────────
@@ -983,7 +991,27 @@ function useQuery<S, I>(schema: S, options: QueryOptions<S, I>): QueryResult<Exp
 
 // Aggregate query (returns summary, not nodes)
 function useQuery<S, A>(schema: S, options: AggregateOptions<S, A>): QueryResult<A>
+
+// ─── Result includes pagination (from 0037) ───────────────
+interface QueryResult<T> {
+  data: T
+  loading: boolean
+  error: Error | null
+  reload: () => Promise<void>
+
+  // Pagination (from Exploration 0037)
+  totalCount: number | null
+  hasMore: boolean
+  loadMore: (count?: number) => Promise<void>
+
+  // New from this exploration
+  completeness: 'full' | 'partial'
+  stubs: StubInfo[]
+  syncing: boolean
+}
 ```
+
+For dedicated infinite scroll and page-based navigation, [Exploration 0037](./0037_USEQUERY_PAGINATION.md) proposes separate `useInfiniteQuery` and `usePaginatedQuery` hooks that share the same underlying query engine but optimize for their specific pagination patterns.
 
 ### 4.2 Reactive Subscriptions
 
