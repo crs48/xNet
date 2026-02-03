@@ -1794,6 +1794,226 @@ The xNet Option C API is closest to Prisma in syntax and covers the vast majorit
 
 9. **Datalog variable scoping**: In Datomic, variables are scoped to a single query. Should xNet's `$variables` be reusable across queries (e.g., for correlated subqueries or inter-component shared bindings)? Probably not — per-query scoping is simpler and avoids subtle bugs.
 
+10. **Property selection revisited**: If xNet ever supports a "thin client" mode (e.g., a web app that queries a remote peer without syncing the full dataset), property selection becomes relevant again — it would reduce wire payload from the remote peer. Should the query API support `select` as a no-op hint today that becomes meaningful later, or should it only be added when the use case materializes?
+
+## Part 14: Property Selection (GraphQL/Pull-Style Whitelisting)
+
+### The Idea
+
+GraphQL's core innovation is that the client declares the **shape** of data it wants, and the server returns exactly that — no more, no less:
+
+```graphql
+# GraphQL: only fetch what the component needs
+query {
+  task(id: "abc") {
+    title
+    status
+    comments {
+      content
+      createdBy
+    }
+  }
+}
+```
+
+Datomic's Pull API does the same:
+
+```clojure
+;; Datomic Pull: specify which attributes to return
+(d/pull db [:task/title :task/status {:task/comments [:comment/content :comment/createdBy]}] task-id)
+```
+
+Should xNet's query API support a `select` clause that whitelists which properties to return?
+
+```typescript
+// Hypothetical: only return title and status, not priority, dueDate, etc.
+const { data } = useQuery(Task, {
+  select: ['title', 'status'],
+  where: { status: eq('todo') }
+})
+// data[0].title → "Build auth"   ✓
+// data[0].status → "todo"        ✓
+// data[0].priority → undefined   (not selected)
+
+// With includes: specify shape at each level
+const { data } = useQuery(Task, taskId, {
+  select: ['title', 'status'],
+  include: {
+    comments: from(Comment, 'target', {
+      select: ['content', 'createdBy']
+    })
+  }
+})
+```
+
+### Why This Matters in Client-Server Architectures
+
+In GraphQL/REST, property selection solves three real problems:
+
+1. **Network bandwidth**: Don't send fields the client doesn't need over the wire
+2. **Server computation**: Don't resolve expensive computed fields unless asked for
+3. **Security**: Don't expose sensitive fields to clients that shouldn't see them
+
+### Why Most of This Doesn't Apply to xNet
+
+xNet is **local-first**. The query runs against the local IndexedDB store. The data is already on the device. This fundamentally changes the calculus:
+
+```mermaid
+flowchart LR
+    subgraph "Client-Server (GraphQL)"
+        C1[Client] -->|"GET title, status"| S1[Server]
+        S1 -->|"{ title, status }"| C1
+        Note1["Bandwidth saved: didn't send<br>description, priority, dueDate, ..."]
+    end
+
+    subgraph "Local-First (xNet)"
+        C2[React Component] -->|"query"| L[Local IndexedDB]
+        L -->|"Full NodeState"| C2
+        Note2["Node is already fully stored locally.<br>No network hop. No bandwidth to save."]
+    end
+
+    style Note1 fill:#4ade80,stroke:#16a34a
+    style Note2 fill:#fbbf24,stroke:#f59e0b
+```
+
+#### Problem 1: Network Bandwidth — Not Applicable
+
+Nodes are synced to the local store as complete `Change<NodePayload>` records. Each change contains a sparse set of properties, but the materialized `NodeState` contains all properties. By the time a query runs, the full node is already in IndexedDB. Returning 3 properties vs. 15 properties from a local `store.get()` call saves zero network bytes.
+
+Could we sync only selected properties? **No.** The sync architecture requires full changes for correctness:
+
+- **Ed25519 signatures** cover the entire `Change<NodePayload>` including all properties in the change. You can't strip properties without invalidating the signature.
+- **BLAKE3 content hashes** are computed over the full change payload. Partial payloads would break the hash chain.
+- **LWW conflict resolution** needs all property timestamps to determine which values win. If a peer only received `title` and `status`, it couldn't resolve conflicts on `priority`.
+- **Change replay** (for history, time-travel, materialization) requires the full payload. Partial changes would create incomplete snapshots.
+
+```mermaid
+flowchart TD
+    subgraph "Why Partial Sync Breaks Everything"
+        CH[Change Payload] --> SIG[Ed25519 Signature]
+        CH --> HASH[BLAKE3 Content Hash]
+        CH --> LWW[LWW Timestamps per Property]
+        CH --> CHAIN[Hash Chain Linkage]
+
+        SIG -->|"Covers full payload"| INVALID["Strip a property → signature invalid"]
+        HASH -->|"Covers full payload"| BROKEN["Strip a property → hash mismatch"]
+        LWW -->|"Per-property resolution"| INCOMPLETE["Missing property → can't resolve conflict"]
+        CHAIN -->|"Hash of parent"| ORPHAN["Modified hash → chain breaks"]
+    end
+
+    style INVALID fill:#fecaca,stroke:#dc2626
+    style BROKEN fill:#fecaca,stroke:#dc2626
+    style INCOMPLETE fill:#fecaca,stroke:#dc2626
+    style ORPHAN fill:#fecaca,stroke:#dc2626
+```
+
+#### Problem 2: Computation Cost — Marginal
+
+Reading 3 properties vs. 15 from a JavaScript object is effectively free. The cost is dominated by IndexedDB deserialization, which happens at the node level regardless of how many properties you read. There is no per-property I/O cost.
+
+The one exception is **computed properties** (rollups, formulas). If a `select` clause omits a rollup, the engine could skip computing it. But this is better handled by making computed properties lazy by default — only compute when accessed, not when fetched.
+
+#### Problem 3: Security — Handled at the Scope Level
+
+In GraphQL, field-level access control prevents exposing sensitive data. In xNet, privacy is enforced at the **scope level** (see [Exploration 0040, Part 4](./0040_FIRST_CLASS_RELATIONS.md#part-4-the-privacy-scoped-graph)). If you have access to a node's scope, you have access to all its properties. Field-level redaction doesn't exist because the full node is already on your device.
+
+### Where Property Selection Does Have Value
+
+Despite the above, there are a few legitimate use cases:
+
+#### 1. React Render Optimization
+
+If `useQuery` returns full nodes and a component only reads `title`, it will still re-render when `priority` changes — because the node object reference changed. Property selection could enable **fine-grained subscriptions**:
+
+```typescript
+// Without select: re-renders on ANY property change
+const { data } = useQuery(Task, taskId)
+// Component only reads data.title, but re-renders when data.priority changes
+
+// With select: only re-renders when selected properties change
+const { data } = useQuery(Task, taskId, { select: ['title', 'status'] })
+// data is { title, status } — only re-renders when title or status changes
+```
+
+This is a real optimization, but it's better solved with **selector functions** (like Zustand/Redux selectors) or **structural sharing** (like React Query) rather than a query-level `select` clause:
+
+```typescript
+// Better approach: selector at the hook level
+const title = useQuery(Task, taskId, { select: (task) => task.title })
+// Only re-renders when task.title actually changes (referential equality check)
+```
+
+#### 2. Memory Reduction for Large Result Sets
+
+If you're loading 10,000 tasks for a reporting view and only need `title` and `status`, holding 10,000 full node objects in React state wastes memory. A `select` clause could project to lighter objects:
+
+```typescript
+// 10,000 full nodes: ~40 bytes × 15 properties × 10,000 = ~6MB
+const { data } = useQuery(Task, { limit: 10000 })
+
+// 10,000 projected nodes: ~40 bytes × 2 properties × 10,000 = ~800KB
+const { data } = useQuery(Task, { select: ['title', 'status'], limit: 10000 })
+```
+
+This is meaningful at scale. But 10,000 nodes in a local-first app is already unusual — if you're hitting this, pagination is probably the better answer.
+
+#### 3. TypeScript DX: Narrowing the Return Type
+
+A `select` clause narrows the return type, which can improve developer experience:
+
+```typescript
+// Without select: full type, 15+ properties
+const { data } = useQuery(Task)
+// data[0] is FlatNode<TaskProperties> — lots of optional properties
+
+// With select: only the properties you asked for
+const { data } = useQuery(Task, { select: ['title', 'status'] as const })
+// data[0] is Pick<FlatNode<TaskProperties>, 'id' | 'title' | 'status'>
+```
+
+But this is marginal — TypeScript autocomplete already handles large types well, and the `select` clause adds another concept to learn.
+
+### Recommendation: Don't Add `select` to v1
+
+Property selection in a local-first architecture is **solving problems that don't exist** at the storage/sync layer. The three traditional benefits (bandwidth, computation, security) don't apply because:
+
+- Full nodes are already local — no network savings
+- Property reads from JS objects are free — no computation savings
+- Privacy is scope-level — no field-level security needed
+- Partial sync would break signatures, hashes, LWW, and the change chain
+
+The minor benefits (React render optimization, memory reduction) are better addressed by:
+
+- **Selector functions** on the hook: `useQuery(Task, id, { select: (t) => t.title })` — familiar from Zustand/React Query, no new query concept
+- **Pagination** for large result sets — the actual fix for memory pressure
+- **Lazy computed properties** — don't evaluate rollups until accessed
+
+If property selection is ever needed, it should be a **post-query projection** at the React layer, not a core query primitive:
+
+```typescript
+// Recommended: projection as a selector function (like React Query)
+const { data: title } = useQuery(Task, taskId, {
+  select: (task) => task?.title
+})
+
+// NOT recommended: projection as a query primitive
+const { data } = useQuery(Task, taskId, {
+  select: ['title'] // adds complexity to the query engine for minimal benefit
+})
+```
+
+### Comparison: Where Each System Needs Property Selection
+
+| System          | Storage         | Query Runs              | Property Selection Needed?                                 |
+| --------------- | --------------- | ----------------------- | ---------------------------------------------------------- |
+| **GraphQL**     | Server DB       | Server → wire → client  | **Yes** — saves bandwidth and server compute               |
+| **Prisma**      | Server DB       | Server → wire → client  | **Yes** — `select` avoids fetching large BLOBs             |
+| **Datomic**     | Server DB       | Server → wire → client  | **Useful** — Pull API shapes the response                  |
+| **Convex**      | Cloud DB        | Cloud → wire → client   | **Yes** — reactive queries re-run on server                |
+| **xNet**        | Local IndexedDB | Local store → JS object | **No** — data is already local, full nodes are cheap       |
+| **TinyBase**    | Local memory    | Memory → JS object      | **No** — same reasoning as xNet                            |
+| **ElectricSQL** | Local SQLite    | Local DB → JS object    | **Marginal** — SQLite can skip columns, but rows are small |
+
 ## Conclusion
 
 The unified query API transforms xNet from "a store with basic CRUD" to "a reactive, graph-aware, local-first database with the query power of Datomic and the ergonomics of Prisma." The key architectural insight is that **two complementary APIs can share one engine**: Option C (Prisma-style `useQuery` with `where`, `include`, `from`, `follow`) handles 90% of application queries with near-zero learning curve, while Option D (Datalog-style `useFind` with logical variables and pattern matching) handles the remaining 10% — multi-hop joins, recursive traversals, graph analytics — that would be awkward or impossible in a SQL-family syntax. Both compile to the same internal logical clauses and share the same query planner, index selection, and incremental view maintenance. This gives:
