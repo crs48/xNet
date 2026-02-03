@@ -1,0 +1,120 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+const tools = [
+  {
+    title: 'Documents',
+    description: 'Rich text editor with TipTap and Yjs. Real-time collaboration, slash commands, block-based editing. Character-level conflict resolution.',
+    icon: 'doc',
+    color: 'indigo',
+  },
+  {
+    title: 'Databases',
+    description: '15 property types, relations, views (table, board, gallery, calendar, timeline). Filter, sort, group — all reactive, all local-first.',
+    icon: 'db',
+    color: 'emerald',
+  },
+  {
+    title: 'Canvas',
+    description: 'Infinite canvas with spatial indexing. Drag nodes, draw connections, embed documents. Think Miro meets Obsidian Canvas.',
+    icon: 'canvas',
+    color: 'amber',
+  },
+  {
+    title: 'Tasks',
+    description: 'Schema-first task management with status, priority, assignees, due dates. Kanban boards, list views, and calendar views.',
+    icon: 'task',
+    color: 'pink',
+  },
+]
+
+const colorMap: Record<string, { border: string, bg: string, text: string, iconBg: string }> = {
+  indigo: { border: 'border-indigo-500/20', bg: 'bg-indigo-500/[0.03]', text: 'text-indigo-400', iconBg: 'bg-indigo-500/10' },
+  emerald: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/[0.03]', text: 'text-emerald-400', iconBg: 'bg-emerald-500/10' },
+  amber: { border: 'border-amber-500/20', bg: 'bg-amber-500/[0.03]', text: 'text-amber-400', iconBg: 'bg-amber-500/10' },
+  pink: { border: 'border-pink-500/20', bg: 'bg-pink-500/[0.03]', text: 'text-pink-400', iconBg: 'bg-pink-500/10' },
+}
+---
+
+<section id="app" class="border-y border-border/50 bg-surface/20 py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="A productivity app you can hack on"
+      subtitle="xNet ships with a full productivity platform — documents, databases, canvas, and tasks. It's free, self-hostable, and open source. But it's also the best way to start developing on xNet."
+      align="center"
+    />
+
+    <!-- Why the app exists -->
+    <div class="mx-auto mt-12 max-w-3xl animate-on-scroll">
+      <div class="rounded-xl border border-border bg-surface/50 p-6 sm:p-8">
+        <div class="grid gap-6 sm:grid-cols-2">
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="h-4 w-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+              <h4 class="text-sm font-semibold text-gray-200">A real testing ground</h4>
+            </div>
+            <p class="text-sm text-gray-400 leading-relaxed">
+              Every feature in xNet is battle-tested here first. The app is the proving ground for the SDK — if it works for a full productivity suite, it works for your app.
+            </p>
+          </div>
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <svg class="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
+              <h4 class="text-sm font-semibold text-gray-200">The easiest way to contribute</h4>
+            </div>
+            <p class="text-sm text-gray-400 leading-relaxed">
+              Want to build on xNet? Start with a plugin. Or submit a PR to improve the editor, add a database view, or build a new canvas tool. It's all TypeScript, all open.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tools grid -->
+    <div class="mt-12 grid gap-5 sm:grid-cols-2">
+      {tools.map((tool) => {
+        const c = colorMap[tool.color]
+        return (
+          <div class={`animate-on-scroll rounded-xl border ${c.border} ${c.bg} p-6 transition-all duration-300 hover:border-opacity-60`}>
+            <div class="flex items-center gap-3 mb-3">
+              <div class={`flex h-8 w-8 items-center justify-center rounded-lg ${c.iconBg} ${c.text}`}>
+                {tool.icon === 'doc' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>}
+                {tool.icon === 'db' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>}
+                {tool.icon === 'canvas' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"/></svg>}
+                {tool.icon === 'task' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>}
+              </div>
+              <h3 class={`font-semibold ${c.text}`}>{tool.title}</h3>
+            </div>
+            <p class="text-sm text-gray-400 leading-relaxed">{tool.description}</p>
+          </div>
+        )
+      })}
+    </div>
+
+    <!-- Platforms + contribute CTA -->
+    <div class="mt-12 animate-on-scroll">
+      <div class="rounded-xl border border-border bg-[#0a0a0f] p-6 sm:p-8">
+        <div class="grid gap-8 sm:grid-cols-3">
+          <div class="text-center">
+            <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" stroke-width="1.5"/><line x1="8" y1="21" x2="16" y2="21" stroke-width="1.5"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="1.5"/></svg>
+            <strong class="text-sm text-gray-200">Desktop</strong>
+            <p class="text-xs text-gray-500 mt-1">Electron &mdash; full features, plugins, background services</p>
+          </div>
+          <div class="text-center">
+            <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke-width="1.5"/></svg>
+            <strong class="text-sm text-gray-200">Web</strong>
+            <p class="text-xs text-gray-500 mt-1">PWA &mdash; works in any browser, installable</p>
+          </div>
+          <div class="text-center">
+            <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" stroke-width="1.5"/><line x1="10" y1="18" x2="14" y2="18" stroke-width="1.5"/></svg>
+            <strong class="text-sm text-gray-200">Mobile</strong>
+            <p class="text-xs text-gray-500 mt-1">Expo &mdash; iOS and Android (coming soon)</p>
+          </div>
+        </div>
+        <p class="mt-6 text-center text-sm text-gray-500">
+          Free forever. Self-hostable. Every feature is open source and will stay that way.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

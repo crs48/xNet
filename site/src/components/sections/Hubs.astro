@@ -1,0 +1,137 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+const features = [
+  {
+    title: 'Always-on sync relay',
+    description: 'Peers sync directly when both are online. When one goes offline, the Hub holds updates and delivers them later. No data lost.',
+    icon: 'sync',
+  },
+  {
+    title: 'Encrypted backups',
+    description: 'Your data is encrypted before it leaves your device. The Hub stores ciphertext it can\'t read. Restore to any device, anytime.',
+    icon: 'backup',
+  },
+  {
+    title: 'Authorization gateway',
+    description: 'UCAN-based permissions enforced at the relay. Fine-grained access control — read, write, admin — without a central auth service.',
+    icon: 'auth',
+  },
+  {
+    title: 'Web UI',
+    description: 'Your Hub can serve the xNet web app directly. One URL gives your team access to everything — documents, databases, canvas — from any browser.',
+    icon: 'web',
+  },
+  {
+    title: 'Schema registry',
+    description: 'Publish and discover schemas across your team or community. The Hub indexes available types so apps can find and use them.',
+    icon: 'schema',
+  },
+  {
+    title: 'Blob storage',
+    description: 'Content-addressed file storage. Images, attachments, exports — synced P2P when peers are available, served from the Hub when they\'re not.',
+    icon: 'blob',
+  },
+]
+---
+
+<section id="hubs" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="Hubs: your infrastructure, your rules"
+      subtitle="xNet works fully P2P with zero infrastructure. But when you want always-on sync, backups, and team access — spin up a Hub on any $5/month VPS."
+      align="center"
+    />
+
+    <!-- Architecture diagram -->
+    <div class="mx-auto mt-12 max-w-3xl animate-on-scroll">
+      <div class="rounded-xl border border-border bg-[#0a0a0f] p-6 sm:p-8">
+        <div class="flex flex-col items-center gap-4 font-mono text-sm">
+          <!-- Devices row -->
+          <div class="flex items-center gap-4 sm:gap-8 flex-wrap justify-center">
+            <div class="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-indigo-300 text-center">
+              <div class="text-xs text-indigo-400/60 mb-0.5">Desktop</div>
+              Peer A
+            </div>
+            <div class="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-indigo-300 text-center">
+              <div class="text-xs text-indigo-400/60 mb-0.5">Phone</div>
+              Peer B
+            </div>
+            <div class="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-2 text-indigo-300 text-center">
+              <div class="text-xs text-indigo-400/60 mb-0.5">Browser</div>
+              Peer C
+            </div>
+          </div>
+
+          <!-- Connection lines -->
+          <div class="flex items-center gap-2 text-gray-600">
+            <span class="text-xs">P2P when online</span>
+            <span>&darr;</span>
+            <span class="text-xs">Hub when offline</span>
+          </div>
+
+          <!-- Hub -->
+          <div class="w-full max-w-sm rounded-xl border border-amber-500/30 bg-amber-500/[0.05] p-4 text-center">
+            <div class="text-amber-400 font-semibold mb-1">Hub</div>
+            <div class="text-xs text-gray-500">$5/month VPS &mdash; Docker, SQLite, single process</div>
+            <div class="mt-3 flex flex-wrap justify-center gap-2">
+              <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400/70">Sync relay</span>
+              <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400/70">Backups</span>
+              <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400/70">Auth</span>
+              <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400/70">Web UI</span>
+              <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400/70">Blobs</span>
+            </div>
+          </div>
+
+          <!-- Emphasis -->
+          <div class="text-center text-xs text-gray-600 max-w-sm">
+            The Hub never sees your plaintext data. It relays encrypted updates and stores ciphertext.
+            Optional — everything works without it.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature grid -->
+    <div class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {features.map((feature) => (
+        <div class="animate-on-scroll rounded-xl border border-border bg-surface p-5 transition-all duration-300 hover:border-amber-500/30">
+          <div class="flex items-center gap-2.5 mb-2">
+            {feature.icon === 'sync' && <svg class="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>}
+            {feature.icon === 'backup' && <svg class="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>}
+            {feature.icon === 'auth' && <svg class="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>}
+            {feature.icon === 'web' && <svg class="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/></svg>}
+            {feature.icon === 'schema' && <svg class="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>}
+            {feature.icon === 'blob' && <svg class="h-4 w-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>}
+            <h4 class="text-sm font-semibold text-gray-200">{feature.title}</h4>
+          </div>
+          <p class="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
+        </div>
+      ))}
+    </div>
+
+    <!-- Deploy snippet -->
+    <div class="mx-auto mt-12 max-w-xl animate-on-scroll">
+      <div class="rounded-xl border border-border bg-[#0a0a0f]">
+        <div class="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+          <div class="flex items-center gap-1.5 mr-3">
+            <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
+            <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]"></span>
+          </div>
+          <span class="text-xs font-mono text-gray-500">terminal</span>
+        </div>
+        <pre class="overflow-x-auto p-5 font-mono text-sm leading-relaxed text-gray-300"><code><span class="text-gray-500"># Deploy a Hub in under a minute</span>
+<span class="text-gray-500">$</span> docker run -d -p 4444:4444 \
+    -v xnet-data:/data \
+    ghcr.io/crs48/xnet-hub:latest
+
+<span class="text-gray-500"># That's it. Sync relay, backups, web UI.</span>
+<span class="text-gray-500"># Point your app at ws://your-server:4444</span></code></pre>
+      </div>
+      <p class="mt-3 text-center text-xs text-gray-600">
+        Coming soon &mdash; Hub is in active development. <a href="https://github.com/crs48/xNet" class="text-gray-500 hover:text-indigo-400 underline decoration-gray-700 hover:decoration-indigo-400">Follow progress on GitHub.</a>
+      </p>
+    </div>
+  </div>
+</section>

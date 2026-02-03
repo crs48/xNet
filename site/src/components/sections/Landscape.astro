@@ -143,7 +143,7 @@ const infraProjects = [
     hooks: 'useQuery',
     typeSafety: 'Full inference',
     selfHosted: 'Cloud only',
-    license: 'Proprietary*',
+    license: 'Proprietary**',
     identity: 'External',
     plugins: '—',
     platforms: 'Web',
@@ -300,6 +300,179 @@ const protocolColumns = [
   { key: 'status', label: 'Status' },
   { key: 'bestFor', label: 'Best For' },
 ]
+
+// ─── Table 3: Productivity Apps ──────────────────────────────────────────
+
+const productivityApps = [
+  {
+    name: 'xNet App',
+    url: 'https://github.com/crs48/xNet',
+    highlight: true,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'P2P (Yjs)',
+    richText: 'TipTap + Yjs',
+    databases: '15 property types, views',
+    canvas: 'Infinite, spatial index',
+    openSource: 'MIT',
+    selfHosted: 'Full (Hub optional)',
+    plugins: '4-layer system',
+    pricing: 'Free forever',
+    dataOwnership: 'Full — encrypted, local',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'Notion',
+    url: 'https://notion.so',
+    highlight: false,
+    localFirst: false,
+    offline: 'Partial (cache)',
+    realTimeCollab: 'Server (OT)',
+    richText: 'Block-based',
+    databases: 'Full (views, relations)',
+    canvas: 'No',
+    openSource: 'No',
+    selfHosted: 'No',
+    plugins: 'Integrations API',
+    pricing: 'Freemium ($8+/mo)',
+    dataOwnership: 'Cloud only',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'Obsidian',
+    url: 'https://obsidian.md',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'Paid plugin',
+    richText: 'Markdown',
+    databases: 'Via plugins',
+    canvas: 'Yes',
+    openSource: 'No (free for personal)',
+    selfHosted: 'Files on disk',
+    plugins: 'Community plugins',
+    pricing: 'Free / $50/yr sync',
+    dataOwnership: 'Full — local files',
+    platforms: 'Desktop, Mobile',
+  },
+  {
+    name: 'Anytype',
+    url: 'https://anytype.io',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'P2P',
+    richText: 'Block-based',
+    databases: 'Relations + views',
+    canvas: 'Yes',
+    openSource: 'Source-available',
+    selfHosted: 'Self-hosted nodes',
+    plugins: 'No',
+    pricing: 'Free (paid tiers coming)',
+    dataOwnership: 'Full — encrypted, P2P',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'Linear',
+    url: 'https://linear.app',
+    highlight: false,
+    localFirst: false,
+    offline: 'Partial (cache)',
+    realTimeCollab: 'Server',
+    richText: 'Minimal',
+    databases: 'Issue tracker',
+    canvas: 'No',
+    openSource: 'No',
+    selfHosted: 'No',
+    plugins: 'Integrations',
+    pricing: 'Free / $8+/mo',
+    dataOwnership: 'Cloud only',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'Coda',
+    url: 'https://coda.io',
+    highlight: false,
+    localFirst: false,
+    offline: 'No',
+    realTimeCollab: 'Server',
+    richText: 'Block-based',
+    databases: 'Tables + formulas',
+    canvas: 'No',
+    openSource: 'No',
+    selfHosted: 'No',
+    plugins: 'Packs (marketplace)',
+    pricing: 'Freemium ($10+/mo)',
+    dataOwnership: 'Cloud only',
+    platforms: 'Web, Mobile',
+  },
+  {
+    name: 'Airtable',
+    url: 'https://airtable.com',
+    highlight: false,
+    localFirst: false,
+    offline: 'No',
+    realTimeCollab: 'Server',
+    richText: 'Rich field type',
+    databases: 'Full (views, automations)',
+    canvas: 'Interfaces',
+    openSource: 'No',
+    selfHosted: 'No',
+    plugins: 'Extensions + scripts',
+    pricing: 'Freemium ($20+/mo)',
+    dataOwnership: 'Cloud only',
+    platforms: 'Web, Mobile',
+  },
+  {
+    name: 'AppFlowy',
+    url: 'https://appflowy.io',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'Cloud sync',
+    richText: 'Block-based',
+    databases: 'Grid, board, calendar',
+    canvas: 'No',
+    openSource: 'AGPL',
+    selfHosted: 'Full',
+    plugins: 'Flutter plugins',
+    pricing: 'Free / cloud plans',
+    dataOwnership: 'Full — local + optional cloud',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'AFFiNE',
+    url: 'https://affine.pro',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'Yjs (cloud)',
+    richText: 'BlockSuite',
+    databases: 'Table views',
+    canvas: 'Edgeless mode',
+    openSource: 'MIT',
+    selfHosted: 'Full',
+    plugins: 'Plugin system',
+    pricing: 'Free / cloud plans',
+    dataOwnership: 'Full — local + optional cloud',
+    platforms: 'Desktop, Web, Mobile',
+  },
+]
+
+const productivityColumns = [
+  { key: 'localFirst', label: 'Local-first' },
+  { key: 'offline', label: 'Offline' },
+  { key: 'realTimeCollab', label: 'Real-time Collab' },
+  { key: 'richText', label: 'Rich Text' },
+  { key: 'databases', label: 'Databases' },
+  { key: 'canvas', label: 'Canvas' },
+  { key: 'openSource', label: 'Open Source' },
+  { key: 'selfHosted', label: 'Self-Hosted' },
+  { key: 'plugins', label: 'Plugins' },
+  { key: 'pricing', label: 'Pricing' },
+  { key: 'dataOwnership', label: 'Data Ownership' },
+  { key: 'platforms', label: 'Platforms' },
+]
 ---
 
 <section id="landscape" class="py-24 lg:py-32">
@@ -329,7 +502,7 @@ const protocolColumns = [
               <tr class={`border-b border-border/50 ${project.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}>
                 <td class={`sticky left-0 z-10 ${project.highlight ? 'bg-indigo-500/[0.06]' : 'bg-[#0a0a0f]'} backdrop-blur-sm px-4 py-3 font-medium whitespace-nowrap`}>
                   <a href={project.url} target="_blank" rel="noopener noreferrer" class={`hover:underline ${project.highlight ? 'text-indigo-400' : 'text-gray-300 hover:text-indigo-400'}`}>
-                    {project.name}{project.highlight ? ' *' : ''}
+                    {project.name}
                   </a>
                 </td>
                 {infraColumns.map(col => {
@@ -353,7 +526,7 @@ const protocolColumns = [
           </tbody>
         </table>
       </div>
-      <p class="mt-2 text-xs text-gray-600">* Convex runtime is proprietary; client SDKs are open source. All other projects are fully open source.</p>
+      <p class="mt-2 text-xs text-gray-600">** Convex runtime is proprietary; client SDKs are open source. All other projects are fully open source.</p>
     </div>
 
     <!-- Table 2: Protocols & P2P Infrastructure -->
@@ -375,12 +548,57 @@ const protocolColumns = [
               <tr class={`border-b border-border/50 ${project.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}>
                 <td class={`sticky left-0 z-10 ${project.highlight ? 'bg-indigo-500/[0.06]' : 'bg-[#0a0a0f]'} backdrop-blur-sm px-4 py-3 font-medium whitespace-nowrap`}>
                   <a href={project.url} target="_blank" rel="noopener noreferrer" class={`hover:underline ${project.highlight ? 'text-indigo-400' : 'text-gray-300 hover:text-indigo-400'}`}>
-                    {project.name}{project.highlight ? ' *' : ''}
+                    {project.name}
                   </a>
                 </td>
                 {protocolColumns.map(col => (
                   <td class="px-4 py-3 text-gray-400 whitespace-nowrap">{(project as any)[col.key]}</td>
                 ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Table 3: Productivity Apps -->
+    <div class="mt-16 animate-on-scroll">
+      <h3 class="text-lg font-semibold text-gray-200 mb-2">Productivity Apps</h3>
+      <p class="text-sm text-gray-500 mb-6">How xNet's built-in app compares to the tools you might already use. Different philosophies — from cloud-first SaaS to local-first open source.</p>
+      <div class="overflow-x-auto rounded-xl border border-border">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border bg-surface/50">
+              <th class="sticky left-0 z-10 bg-surface/90 backdrop-blur-sm px-4 py-3 text-left font-semibold text-gray-300 min-w-[110px]">App</th>
+              {productivityColumns.map(col => (
+                <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">{col.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {productivityApps.map((app) => (
+              <tr class={`border-b border-border/50 ${app.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}>
+                <td class={`sticky left-0 z-10 ${app.highlight ? 'bg-indigo-500/[0.06]' : 'bg-[#0a0a0f]'} backdrop-blur-sm px-4 py-3 font-medium whitespace-nowrap`}>
+                  <a href={app.url} target="_blank" rel="noopener noreferrer" class={`hover:underline ${app.highlight ? 'text-indigo-400' : 'text-gray-300 hover:text-indigo-400'}`}>
+                    {app.name}
+                  </a>
+                </td>
+                {productivityColumns.map(col => {
+                  const val = (app as any)[col.key]
+                  const isBoolean = typeof val === 'boolean'
+                  const isNo = val === 'No'
+                  return (
+                    <td class={`px-4 py-3 whitespace-nowrap ${isNo ? 'text-gray-700' : 'text-gray-400'}`}>
+                      {isBoolean ? (
+                        val ? (
+                          <span class="text-emerald-400">Yes</span>
+                        ) : (
+                          <span class="text-gray-600">No</span>
+                        )
+                      ) : val}
+                    </td>
+                  )
+                })}
               </tr>
             ))}
           </tbody>
