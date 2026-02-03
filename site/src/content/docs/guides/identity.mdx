@@ -1,9 +1,253 @@
 ---
 title: 'Identity & Keys'
 draft: false
-description: 'Generating DID:key pairs and managing user identity.'
+description: 'Generating DID:key pairs, UCAN tokens, and managing user identity.'
+sidebar:
+  order: 3
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+:::note[You will learn]
 
-This guide will cover how to generate Ed25519 key pairs, create DID:key identifiers, and manage user identity across devices. You'll learn how identities are used for signing data and authorizing sync operations.
+- How to generate Ed25519 key pairs and DID:key identifiers
+- The KeyBundle concept (signing + encryption keys)
+- How to create and verify UCAN authorization tokens
+- How identity flows through the stack (provider → hooks → sync)
+  :::
+
+## DID:key identifiers
+
+Every xNet user has a **Decentralized Identifier** (DID) derived from their Ed25519 public key. The format follows the W3C DID:key method:
+
+```
+did:key:z6Mk...
+```
+
+The public key is embedded directly in the DID, making it **self-certifying** — you can extract the public key and verify signatures without any external resolver or blockchain.
+
+### How it's constructed
+
+1. Take the 32-byte Ed25519 public key
+2. Prepend the multicodec prefix `0xed01` (Ed25519 public key)
+3. Encode with base58btc (multibase prefix `z`)
+4. Prefix with `did:key:`
+
+### Generate an identity
+
+```ts
+import { generateIdentity, isValidDID } from '@xnet/identity'
+
+const { identity, privateKey } = generateIdentity()
+// identity.did = "did:key:z6Mk..."
+// identity.publicKey = Uint8Array (32 bytes)
+// identity.created = Date.now()
+
+isValidDID(identity.did) // true
+```
+
+### Parse a DID
+
+```ts
+import { parseDID } from '@xnet/identity'
+
+const publicKey = parseDID('did:key:z6Mk...')
+// Returns the 32-byte Ed25519 public key
+```
+
+## Key bundles
+
+Each user has two key pairs bundled together:
+
+| Key            | Algorithm | Purpose                                |
+| -------------- | --------- | -------------------------------------- |
+| Signing key    | Ed25519   | Sign changes, Yjs updates, UCAN tokens |
+| Encryption key | X25519    | Key exchange, encrypted storage        |
+
+The DID is derived from the signing public key.
+
+```ts
+import { generateKeyBundle, deriveKeyBundle } from '@xnet/identity'
+
+// Random generation
+const bundle = generateKeyBundle()
+// bundle.signingKey    — Ed25519 private key
+// bundle.encryptionKey — X25519 private key
+// bundle.identity      — { did, publicKey, created }
+
+// Deterministic from a seed (same seed = same identity)
+const bundle2 = deriveKeyBundle(masterSeed)
+```
+
+### Storage
+
+Key bundles are serialized, encrypted with XChaCha20-Poly1305, and stored via `PasskeyStorage`. In production, the encryption key should be derived from WebAuthn credentials.
+
+```ts
+import { BrowserPasskeyStorage } from '@xnet/identity'
+
+const storage = new BrowserPasskeyStorage()
+const storedKey = await storage.store(bundle, credentialId)
+const recovered = await storage.retrieve(storedKey, credentialId)
+```
+
+## Cryptographic primitives
+
+The `@xnet/crypto` package provides all the low-level operations:
+
+### Hashing (BLAKE3)
+
+```ts
+import { hash, hashHex } from '@xnet/crypto'
+
+const digest = hash(data) // Uint8Array
+const hex = hashHex(data) // hex string
+const b64 = hashBase64(data) // base64url string
+const sha = hash(data, 'sha256') // SHA-256 fallback
+```
+
+### Signing (Ed25519)
+
+```ts
+import { generateSigningKeyPair, sign, verify } from '@xnet/crypto'
+
+const { publicKey, privateKey } = generateSigningKeyPair()
+const signature = sign(message, privateKey)
+const valid = verify(message, signature, publicKey) // boolean
+```
+
+### Encryption (XChaCha20-Poly1305)
+
+```ts
+import { generateKey, encrypt, decrypt } from '@xnet/crypto'
+
+const key = generateKey() // 32 bytes
+const encrypted = encrypt(plaintext, key) // { nonce, ciphertext }
+const decrypted = decrypt(encrypted, key) // Uint8Array
+```
+
+### Key exchange (X25519 + HKDF)
+
+```ts
+import { generateKeyPair, deriveSharedSecret } from '@xnet/crypto'
+
+const alice = generateKeyPair()
+const bob = generateKeyPair()
+const shared = deriveSharedSecret(alice.privateKey, bob.publicKey)
+// Both sides derive the same 32-byte shared secret
+```
+
+## UCAN tokens
+
+UCANs (User Controlled Authorization Networks) are self-signed capability tokens for decentralized authorization. They replace traditional API keys or OAuth tokens.
+
+### Structure
+
+```ts
+interface UCANToken {
+  iss: string // Issuer DID
+  aud: string // Audience DID
+  exp: number // Expiration (Unix seconds)
+  att: UCANCapability[] // Capabilities granted
+  prf: string[] // Proof chain (parent tokens)
+  sig: Uint8Array // Ed25519 signature
+}
+
+interface UCANCapability {
+  with: string // Resource URI: 'xnet://doc/123' or '*'
+  can: string // Action: 'read', 'write', or '*'
+}
+```
+
+### Create a token
+
+```ts
+import { createUCAN } from '@xnet/identity'
+
+const token = createUCAN({
+  issuer: alice.did,
+  issuerKey: alice.privateKey,
+  audience: bob.did,
+  capabilities: [
+    { with: 'xnet://doc/123', can: 'write' },
+    { with: 'xnet://doc/*', can: 'read' }
+  ],
+  expiration: Date.now() / 1000 + 3600, // 1 hour (default)
+  proofs: [] // Parent tokens for delegation
+})
+```
+
+### Verify a token
+
+```ts
+import { verifyUCAN, hasCapability } from '@xnet/identity'
+
+const result = verifyUCAN(token)
+if (result.valid) {
+  const canWrite = hasCapability(result.payload, 'xnet://doc/123', 'write')
+}
+```
+
+Verification extracts the issuer's public key from their DID (no external resolver), checks expiration, and verifies the Ed25519 signature.
+
+### Delegation chains
+
+UCANs support transitive delegation via the `prf` (proofs) field:
+
+```ts
+// Alice grants Bob write access
+const aliceToBob = createUCAN({
+  issuer: alice.did,
+  issuerKey: alice.privateKey,
+  audience: bob.did,
+  capabilities: [{ with: 'xnet://doc/123', can: 'write' }]
+})
+
+// Bob delegates read access to Carol, citing Alice's grant as proof
+const bobToCarol = createUCAN({
+  issuer: bob.did,
+  issuerKey: bob.privateKey,
+  audience: carol.did,
+  capabilities: [{ with: 'xnet://doc/123', can: 'read' }],
+  proofs: [aliceToBob]
+})
+```
+
+## Integration with React
+
+Identity is provided to the app through `XNetProvider`:
+
+```tsx
+import { XNetProvider } from '@xnet/react'
+
+;<XNetProvider
+  config={{
+    authorDID: identity.did,
+    signingKey: privateKey,
+    identity: identity
+    // ...
+  }}
+>
+  <App />
+</XNetProvider>
+```
+
+The `useIdentity` hook exposes identity state to components:
+
+```ts
+import { useIdentity } from '@xnet/react'
+
+function Profile() {
+  const { identity, isAuthenticated, did } = useIdentity()
+
+  if (!isAuthenticated) return <LoginScreen />
+  return <p>Signed in as {did}</p>
+}
+```
+
+### How identity flows through the stack
+
+1. `XNetProvider` creates a `NodeStore` with `authorDID` and `signingKey`
+2. Every `mutate.create()` / `mutate.update()` call signs the change with Ed25519
+3. `SyncManager` receives the signing credentials and passes them to the BSM
+4. Yjs updates are signed as `SignedYjsEnvelope` before broadcast
+5. ClientID attestations bind the Yjs clientID to the DID
+6. Remote peers verify all signatures before applying changes

@@ -2,8 +2,98 @@
 title: 'Identity Model'
 draft: false
 description: 'DID:key, Ed25519, and UCAN tokens.'
+sidebar:
+  order: 4
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+## Decentralized identity
 
-This page will explain xNet's decentralized identity model, including how DID:key identifiers are derived from Ed25519 public keys, how UCAN tokens enable capability-based authorization, and how identity works without a central authority.
+xNet uses **self-certifying identifiers** — your identity is derived from a cryptographic key pair, not assigned by a server. No registration, no email, no password. You generate a key pair and that's your identity.
+
+## DID:key
+
+Every user is identified by a DID (Decentralized Identifier) in the `did:key` format:
+
+```
+did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
+```
+
+This DID is derived from the user's Ed25519 public key:
+
+1. Take the 32-byte Ed25519 public key
+2. Prepend the multicodec prefix `0xed01` (Ed25519 identifier)
+3. Encode with base58btc (multibase prefix `z`)
+4. Prefix with `did:key:`
+
+The public key is **embedded in the DID itself**. To verify a signature, you parse the DID to extract the key — no external resolver, blockchain, or directory service is needed.
+
+## Key pairs
+
+Each user has two key pairs:
+
+| Key            | Algorithm | Purpose                                |
+| -------------- | --------- | -------------------------------------- |
+| Signing key    | Ed25519   | Sign changes, UCAN tokens, Yjs updates |
+| Encryption key | X25519    | Key exchange, encrypt private data     |
+
+The DID is derived from the signing public key. Both keys are bundled together as a `KeyBundle` and stored encrypted on the device.
+
+## UCAN authorization
+
+UCANs (User Controlled Authorization Networks) are self-signed capability tokens. They replace traditional API keys, OAuth tokens, and ACL systems with a decentralized model where any user can grant capabilities to any other user.
+
+### Token structure
+
+```ts
+{
+  iss: "did:key:z6Mk...",           // Issuer
+  aud: "did:key:z6Mk...",           // Audience (who can use this token)
+  exp: 1706003600,                   // Expiration (Unix seconds)
+  att: [                             // Capabilities granted
+    { with: "xnet://doc/123", can: "write" },
+    { with: "xnet://doc/*", can: "read" }
+  ],
+  prf: [],                           // Proof chain (parent tokens)
+  sig: Uint8Array                    // Ed25519 signature
+}
+```
+
+### Delegation
+
+UCANs support transitive delegation. Alice can grant Bob access, and Bob can delegate a subset of that access to Carol:
+
+```
+Alice → Bob: { with: "xnet://doc/123", can: "write" }
+Bob → Carol: { with: "xnet://doc/123", can: "read" }  (proof: Alice's token)
+```
+
+Each token in the chain is self-verifying — you extract the issuer's public key from their DID and check the signature. No server lookup required.
+
+### Capability model
+
+- **Resources** are identified by URI: `xnet://doc/123`, `xnet://doc/*`, `*`
+- **Actions** are strings: `read`, `write`, `*` (wildcard)
+- Wildcards grant broad access; specific URIs grant narrow access
+
+## How identity flows through xNet
+
+1. **App startup** — Key bundle loaded from encrypted storage, identity provided via `XNetProvider`
+2. **Data mutations** — Every `mutate.create()` / `mutate.update()` signs a `Change<T>` with Ed25519
+3. **Rich text editing** — Yjs updates are signed as `SignedYjsEnvelope` before broadcast
+4. **Sync** — Remote peers verify all signatures before applying changes
+5. **ClientID binding** — Yjs clientIDs are cryptographically bound to DIDs via attestations
+
+## No accounts, no servers
+
+The identity system has no concept of "creating an account" or "logging in" to a server. Identity is:
+
+- **Generated locally** — a random Ed25519 key pair
+- **Self-certifying** — the public key is the identity
+- **Portable** — export your key bundle and use it on any device
+- **Verifiable offline** — signatures can be checked without network access
+
+## Further reading
+
+- [Identity & Keys Guide](/xNet/guides/identity/) — Practical API usage
+- [Cryptography](/xNet/concepts/cryptography/) — The primitives behind identity
+- [Sync Guide](/xNet/guides/sync/) — How signed updates propagate

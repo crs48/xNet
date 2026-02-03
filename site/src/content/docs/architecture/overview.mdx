@@ -2,8 +2,94 @@
 title: 'Architecture Overview'
 draft: false
 description: "How xNet's packages fit together."
+sidebar:
+  order: 1
 ---
 
-This page is under construction. Check back soon or [contribute on GitHub](https://github.com/crs48/xNet).
+## Layered architecture
 
-This page will provide a high-level overview of xNet's layered architecture, from low-level cryptographic primitives up through identity, storage, sync, data, and React bindings, explaining how each layer builds on the ones below it.
+xNet is organized as a layered stack where each package builds on the ones below it. Lower packages never import from higher ones.
+
+```
+┌─────────────────────────────────────────┐
+│  apps/electron  ·  apps/web             │  Applications
+├─────────────────────────────────────────┤
+│  @xnet/react                            │  React bindings
+│  useQuery · useMutate · useNode         │
+│  useIdentity · XNetProvider             │
+├─────────────────────────────────────────┤
+│  @xnet/data                             │  Data layer
+│  defineSchema · NodeStore               │
+│  16 property types · validation         │
+├─────────────────────────────────────────┤
+│  @xnet/sync                             │  Sync primitives
+│  Lamport clocks · Change<T> · chains    │
+│  Yjs security · envelopes · scoring     │
+├─────────────────────────────────────────┤
+│  @xnet/storage                          │  Persistence
+│  IndexedDB adapter                      │
+├─────────────────────────────────────────┤
+│  @xnet/identity                         │  Identity
+│  DID:key · UCAN · key management        │
+├─────────────────────────────────────────┤
+│  @xnet/crypto                           │  Cryptography
+│  BLAKE3 · Ed25519 · XChaCha20           │
+└─────────────────────────────────────────┘
+```
+
+## Additional packages
+
+| Package          | Purpose                                                             |
+| ---------------- | ------------------------------------------------------------------- |
+| `@xnet/plugins`  | 4-layer plugin system (scripts, extensions, services, integrations) |
+| `@xnet/canvas`   | Infinite canvas with spatial indexing                               |
+| `@xnet/editor`   | TipTap rich text editor with Yjs collaboration                      |
+| `@xnet/network`  | libp2p node, WebRTC/WebSocket transport, peer security              |
+| `@xnet/devtools` | 7 debug panels for inspecting sync, store, schema, and more         |
+
+## Design principles
+
+**Minimal coupling** — Each package has a focused responsibility. The crypto package knows nothing about schemas. The data package knows nothing about React.
+
+**No default exports** — Everything is a named export. Barrel files (`index.ts`) re-export from internal modules.
+
+**Factory functions** — Classes are paired with factory functions (`createFoo()` alongside `class Foo`). This keeps the API surface consistent and makes testing easier.
+
+**Immutability** — Core types like `LamportTimestamp` and `Change<T>` are treated as immutable. Functions return new objects instead of mutating in place.
+
+**Validation over exceptions** — Functions return `{ valid: boolean, errors: [] }` objects instead of throwing. Exceptions are reserved for programmer errors, not data validation.
+
+## How data flows
+
+### Write path
+
+```
+User action → useMutate() → NodeStore.update()
+  → Create Change<T> with Lamport timestamp
+  → BLAKE3 hash → Ed25519 sign → Hash chain link
+  → Persist to IndexedDB
+  → Broadcast via SyncManager
+```
+
+### Read path
+
+```
+useQuery(schema, filter)
+  → NodeStore.query() → IndexedDB read
+  → Return FlatNode[] to component
+  → Subscribe to NodeStore changes → Re-render on update
+```
+
+### Sync path
+
+```
+Local Y.Doc update → YjsBatcher (2s window) → signYjsUpdate()
+  → ConnectionManager.publish(room, envelope)
+  → WebSocket → Signaling server → Peer's WebSocket
+  → Rate limit → Verify signature → Apply to Y.Doc
+```
+
+## Further reading
+
+- [Package Graph](/xNet/architecture/package-graph/) — The full dependency graph
+- [Architecture Decisions](/xNet/architecture/decisions/) — Why we made these choices
