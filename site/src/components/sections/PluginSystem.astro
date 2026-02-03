@@ -40,7 +40,7 @@ const colorMap: Record<string, { num: string, border: string }> = {
 }
 ---
 
-<section class="border-y border-border/50 bg-surface/20 py-24 lg:py-32">
+<section class="border-y border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
       title="Extend everything"
@@ -56,7 +56,7 @@ const colorMap: Record<string, { num: string, border: string }> = {
               <span class={`flex h-7 w-7 items-center justify-center rounded-md ${c.num} text-xs font-bold`}>{layer.num}</span>
               <h4 class="font-semibold">{layer.title}</h4>
             </div>
-            <p class="text-sm text-gray-400 leading-relaxed">{layer.description}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{layer.description}</p>
             <div class="mt-3">
               <span class="text-xs text-gray-600">{layer.platforms}</span>
             </div>
@@ -67,8 +67,8 @@ const colorMap: Record<string, { num: string, border: string }> = {
 
     <!-- Quick example -->
     <div class="mx-auto mt-12 max-w-2xl animate-on-scroll">
-      <div class="rounded-xl border border-border bg-[#0a0a0f]">
-        <div class="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+      <div class="rounded-xl border border-border bg-code-bg">
+        <div class="flex items-center border-b border-border bg-surface/30 dark:bg-surface/50 px-4 py-2">
           <div class="flex items-center gap-1.5 mr-3">
             <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
             <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
@@ -76,7 +76,7 @@ const colorMap: Record<string, { num: string, border: string }> = {
           </div>
           <span class="text-xs font-mono text-gray-500">word-count-plugin.ts</span>
         </div>
-        <pre class="overflow-x-auto p-5 font-mono text-sm leading-relaxed text-gray-300"><code><span class="text-indigo-400">import</span> {'{'} definePlugin {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/sdk'</span>
+        <pre class="overflow-x-auto p-5 font-mono text-sm leading-relaxed text-gray-700 dark:text-gray-300"><code><span class="text-indigo-400">import</span> {'{'} definePlugin {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/sdk'</span>
 
 <span class="text-indigo-400">export default</span> <span class="text-yellow-300">definePlugin</span>({'{'}
   name: <span class="text-emerald-400">'word-count'</span>,
