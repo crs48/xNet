@@ -2,11 +2,18 @@
  * Text anchor utilities for comments.
  *
  * Uses Yjs RelativePosition to create anchors that survive concurrent edits.
+ * Position conversion uses y-tiptap's absolutePositionToRelativePosition /
+ * relativePositionToAbsolutePosition which walk the Yjs tree properly,
+ * creating positions on the actual Y.XmlText nodes (not the root fragment).
  */
 import * as Y from 'yjs'
 import type { Editor } from '@tiptap/core'
 import type { TextAnchor } from '@xnet/data'
-import { ySyncPluginKey } from '@tiptap/y-tiptap'
+import {
+  ySyncPluginKey,
+  absolutePositionToRelativePosition,
+  relativePositionToAbsolutePosition
+} from '@tiptap/y-tiptap'
 
 // ─── Base64 Utilities ──────────────────────────────────────────────────────────
 
@@ -44,15 +51,15 @@ export function captureTextAnchor(editor: Editor): TextAnchor | null {
 
   // Get the Y.XmlFragment binding from y-prosemirror
   const ystate = ySyncPluginKey.getState(editor.state)
-  if (!ystate?.type) return null
+  if (!ystate?.type || !ystate?.binding) return null
 
-  const ydoc = ystate.type.doc
-  if (!ydoc) return null
+  // Use y-tiptap's position mapping which walks the Yjs tree properly,
+  // creating RelativePositions on the actual Y.XmlText nodes
+  const mapping = ystate.binding.mapping
+  const startRelPos = absolutePositionToRelativePosition(from, ystate.type, mapping)
+  const endRelPos = absolutePositionToRelativePosition(to, ystate.type, mapping)
 
-  // Create relative positions from ProseMirror positions
-  // Note: ProseMirror positions are 1-based, Yjs indices are 0-based
-  const startRelPos = Y.createRelativePositionFromTypeIndex(ystate.type, from - 1)
-  const endRelPos = Y.createRelativePositionFromTypeIndex(ystate.type, to - 1)
+  if (!startRelPos || !endRelPos) return null
 
   // Encode as base64 for JSON storage
   const startRelative = uint8ArrayToBase64(Y.encodeRelativePosition(startRelPos))
@@ -81,7 +88,7 @@ export function resolveTextAnchor(
   anchor: TextAnchor
 ): { from: number; to: number } | null {
   const ystate = ySyncPluginKey.getState(editor.state)
-  if (!ystate?.type) return null
+  if (!ystate?.type || !ystate?.binding) return null
 
   const ydoc = ystate.type.doc
   if (!ydoc) return null
@@ -91,17 +98,15 @@ export function resolveTextAnchor(
     const startRelPos = Y.decodeRelativePosition(base64ToUint8Array(anchor.startRelative))
     const endRelPos = Y.decodeRelativePosition(base64ToUint8Array(anchor.endRelative))
 
-    // Resolve to absolute positions
-    const startAbs = Y.createAbsolutePositionFromRelativePosition(startRelPos, ydoc)
-    const endAbs = Y.createAbsolutePositionFromRelativePosition(endRelPos, ydoc)
+    // Use y-tiptap's position mapping which properly walks the tree,
+    // handling positions on Y.XmlText nodes and computing ProseMirror offsets
+    const mapping = ystate.binding.mapping
+    const from = relativePositionToAbsolutePosition(ydoc, ystate.type, startRelPos, mapping)
+    const to = relativePositionToAbsolutePosition(ydoc, ystate.type, endRelPos, mapping)
 
-    if (!startAbs || !endAbs) return null // Orphaned
+    if (from === null || to === null) return null // Orphaned
 
-    // Convert Yjs indices back to ProseMirror positions (+1 for doc offset)
-    return {
-      from: startAbs.index + 1,
-      to: endAbs.index + 1
-    }
+    return { from, to }
   } catch {
     // Invalid anchor data
     return null
