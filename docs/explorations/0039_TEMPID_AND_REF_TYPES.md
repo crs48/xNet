@@ -1,6 +1,6 @@
 # Temp IDs and Reference Types for Transactional Node Creation
 
-> How can we create multiple related nodes in a single transaction without pre-generating IDs or using workarounds? Should we adopt Datomic/DataScript-style negative temp IDs? Do we need a first-class `ref` property type?
+> How can we create multiple related nodes in a single transaction without pre-generating IDs or using workarounds? How does `relation()` serve as our universal foreign key type?
 
 ## Problem Statement
 
@@ -102,44 +102,93 @@ Without `:db.type/ref`, the system cannot distinguish between `{:age -1}` (liter
 
 ## Current State in xNet
 
+### The `relation()` Property Type (Implemented)
+
+We resolved the "ref type question" by extending `relation()` to serve as xNet's universal foreign key type. The `target` schema constraint is now **optional**:
+
+```typescript
+// Typed relation -- constrains to a specific schema
+parent: relation({ target: 'xnet://xnet.fyi/Task' })
+
+// Untyped relation -- references any node regardless of schema
+target: relation({ required: true })
+inReplyTo: relation({})
+```
+
+This is the xNet equivalent of Datomic's `:db.type/ref`. A single property type handles both typed and untyped node references, avoiding the complexity of maintaining separate `ref()` and `relation()` types.
+
 ### Property Types
 
-xNet has 15 implemented property types. Two are reference-like:
+xNet has 16 implemented property types. Three are reference-like:
 
-| Type       | Stores                           | Validates              | Knows it's a ref?                         |
-| ---------- | -------------------------------- | ---------------------- | ----------------------------------------- |
-| `relation` | `string` (node ID) or `string[]` | Non-empty string check | **Yes** -- config has `target: SchemaIRI` |
-| `person`   | `string` (DID) or `string[]`     | DID format regex       | **No** -- references users, not nodes     |
-| `text`     | `string`                         | Length check only      | **No**                                    |
+| Type       | Stores                           | Validates              | Knows it's a ref?                              |
+| ---------- | -------------------------------- | ---------------------- | ---------------------------------------------- |
+| `relation` | `string` (node ID) or `string[]` | Non-empty string check | **Yes** -- always a node reference             |
+| `person`   | `string` (DID) or `string[]`     | DID format regex       | **Yes** -- references users via DID, not nodes |
+| `text`     | `string`                         | Length check only      | **No** -- never a reference                    |
 
 ### How References Are Used Today
 
 ```mermaid
 graph LR
-    subgraph "Typed References"
-        A[relation] -->|stores node ID| B[Target Node]
-        C[person] -->|stores DID| D[User Identity]
+    subgraph "Typed Relations (target schema constrained)"
+        A[Task.parent] -->|relation target: Task| B[Task Node]
     end
 
-    subgraph "Untyped References (plain text)"
-        E[Comment.target] -->|stores node ID as text| F[Any Node]
-        G[Comment.inReplyTo] -->|stores node ID as text| H[Root Comment]
-        I[CellAnchor.rowId] -->|JSON-encoded text| J[Database Row]
+    subgraph "Untyped Relations (any node)"
+        C[Comment.target] -->|relation, no target| D[Any Node]
+        E[Comment.inReplyTo] -->|relation, no target| F[Comment Node]
+        G[Comment.replyToCommentId] -->|relation, no target| H[Comment Node]
+    end
+
+    subgraph "Person References"
+        I[Comment.replyToUser] -->|person| J[User DID]
+        K[Comment.resolvedBy] -->|person| L[User DID]
+    end
+
+    subgraph "Remaining Limitations"
+        M[CellAnchor.rowId] -->|JSON inside text| N[Database Row]
     end
 
     style A fill:#4ade80,stroke:#16a34a
     style C fill:#4ade80,stroke:#16a34a
-    style E fill:#f97316,stroke:#ea580c
-    style G fill:#f97316,stroke:#ea580c
-    style I fill:#f97316,stroke:#ea580c
+    style E fill:#4ade80,stroke:#16a34a
+    style G fill:#4ade80,stroke:#16a34a
+    style I fill:#60a5fa,stroke:#3b82f6
+    style K fill:#60a5fa,stroke:#3b82f6
+    style M fill:#f97316,stroke:#ea580c
 ```
 
-There are **four patterns** for cross-node references:
+There are now **three clean patterns** for cross-entity references:
 
-1. **`relation()` property** -- typed, schema-aware, but only used in TaskSchema (`parent`, `subtasks`)
-2. **`person()` property** -- typed, but for DIDs not node IDs
-3. **`text()` as foreign key** -- untyped, used by CommentSchema for `target`, `inReplyTo`, `replyToCommentId`
-4. **JSON-encoded anchors** -- anchor data contains `rowId`/`propertyKey` as JSON strings inside a `text()` field
+1. **`relation({ target })` property** -- typed node reference, constrains to a specific schema
+2. **`relation({})` property** -- untyped node reference, can point to any node
+3. **`person()` property** -- typed DID reference for users
+
+And one remaining edge case:
+
+4. **JSON-encoded anchors** -- `anchorData` contains `rowId`/`propertyKey` as JSON strings inside a `text()` field. These refs are embedded in JSON and cannot be typed statically.
+
+### Dev-Time Protection
+
+`defineSchema()` now emits a **console warning** during development when a `text()` property has a name that looks like a foreign key (e.g., `target`, `inReplyTo`, `replyToCommentId`, `parentId`, `nodeRef`). This catches accidental text-as-FK patterns early:
+
+```
+[xNet Schema] "Bad.target" is a text() property whose name suggests it stores a reference.
+Consider using relation() for node references or person() for DIDs.
+```
+
+### The CommentSchema (Migrated)
+
+The CommentSchema was the primary offender -- it had 5 `text()` properties storing references. All have been migrated:
+
+| Property           | Before          | After                                        |
+| ------------------ | --------------- | -------------------------------------------- |
+| `target`           | `text()`        | `relation({ required: true })`               |
+| `inReplyTo`        | `text()`        | `relation({})`                               |
+| `replyToCommentId` | `text()`        | `relation({})`                               |
+| `replyToUser`      | `text()`        | `person({})`                                 |
+| `targetSchema`     | `text()` (kept) | `text()` -- schema IRI, not a node reference |
 
 ### The Transaction API
 
@@ -189,7 +238,7 @@ Pros:
 
 Cons:
 
-- Need schema awareness to know which fields contain node ID references (to resolve temp IDs in values)
+- Need schema awareness to know which fields contain node ID references (to resolve temp IDs in values) -- **now solved** since all FK properties use `relation()` type
 
 ### Option B: Numeric String Temp IDs
 
@@ -242,104 +291,35 @@ Cons:
 - Requires a wrapper type that must be serializable
 - More API surface
 
-## The Ref Type Question
+## Temp ID Resolution via Schema
 
-### Do We Need a First-Class `ref` Type?
-
-For temp ID resolution to work automatically, the transaction processor needs to know which property values are node ID references. Currently:
-
-- `relation()` properties **are** refs -- config says `{ target: SchemaIRI }`
-- `text()` properties used as refs (Comment.target, Comment.inReplyTo) are **not** distinguishable from plain text
+Now that all node references use `relation()`, the transaction processor can automatically resolve temp IDs by walking the schema:
 
 ```mermaid
 flowchart TD
     TX[Transaction with temp IDs] --> RESOLVE{Resolve temp IDs}
     RESOLVE --> ID[In operation IDs ✓]
     RESOLVE --> PROPS{In property values?}
-    PROPS -->|relation type| YES[Can resolve ✓]
-    PROPS -->|text type| NO[Cannot distinguish from plain text ✗]
-    PROPS -->|person type| SKIP[Skip - DIDs not node IDs]
+    PROPS -->|relation type| YES[Resolve ✓ — typed or untyped]
+    PROPS -->|text type| SKIP1[Skip — never a reference]
+    PROPS -->|person type| SKIP2[Skip — DIDs not node IDs]
 
-    style NO fill:#ef4444,stroke:#dc2626,color:#fff
     style YES fill:#22c55e,stroke:#16a34a
-    style SKIP fill:#a3a3a3,stroke:#737373
+    style SKIP1 fill:#a3a3a3,stroke:#737373
+    style SKIP2 fill:#a3a3a3,stroke:#737373
 ```
 
-### Option 1: Schema-Driven Resolution (Requires Ref Type)
+The key insight: because `relation()` is now the **single** property type for all node references (with optional `target` for schema constraints), the transaction processor only needs to check `definition.type === 'relation'` to know which properties should have temp IDs resolved. No ambiguity, no false positives.
 
-Add a `ref()` property type that stores node IDs with full type information:
+## Implementation Plan
 
-```typescript
-export const CommentSchema = defineSchema({
-  properties: {
-    target: ref({ required: true }), // was: text({ required: true })
-    inReplyTo: ref({}), // was: text({})
-    replyToCommentId: ref({}) // was: text({})
-    // ... rest unchanged
-  }
-})
-```
-
-The `ref()` type would:
-
-- Store a `string` (node ID), same as `relation()` but without a target schema constraint
-- Signal to the transaction processor that values should have temp IDs resolved
-- Enable future features: reverse lookups, cascade delete, referential integrity checks
-
-```mermaid
-graph TD
-    subgraph "Property Type Hierarchy"
-        TEXT[text] --> |"stores string"| STRING[string value]
-        REF[ref] --> |"stores node ID"| NODEID[NodeId value]
-        RELATION[relation] --> |"stores node ID + target schema"| NODEID
-        PERSON[person] --> |"stores DID"| DID[DID value]
-    end
-
-    style REF fill:#3b82f6,stroke:#2563eb,color:#fff
-    style RELATION fill:#3b82f6,stroke:#2563eb,color:#fff
-```
-
-`ref` vs `relation`:
-
-- **`ref()`** -- untyped node reference ("this field points to a node, any schema")
-- **`relation()`** -- typed node reference ("this field points to a node of schema X")
-- `relation()` could be implemented as `ref()` + target schema metadata
-
-### Option 2: Explicit Resolution Fields
-
-Instead of adding a new type, let the caller declare which fields should be resolved:
-
-```typescript
-await store.transaction(operations, {
-  resolveFields: {
-    Comment: ['target', 'inReplyTo', 'replyToCommentId']
-  }
-})
-```
-
-Pros: No schema changes
-Cons: Error-prone, caller must remember to declare fields, not self-documenting
-
-### Option 3: Convention-Based Resolution
-
-Resolve temp IDs in **all string properties** that match the temp ID pattern:
-
-```typescript
-// If any string value starts with '~', resolve it
-```
-
-Pros: Zero configuration
-Cons: Could accidentally resolve literal text values that happen to start with `~`
-
-## Recommendation
-
-### Phase 1: Temp IDs with Prefix Convention
+### Phase 1: Temp IDs with Prefix Convention (Next)
 
 1. Use `~`-prefixed strings as temp IDs (Option A)
 2. Resolve temp IDs in:
    - Operation `id` fields (always)
    - Operation `nodeId` fields (always)
-   - Property values of type `relation` (schema-driven)
+   - Property values where `definition.type === 'relation'` (schema-driven)
 3. Return a `tempIds` map in the transaction result
 
 ```typescript
@@ -352,29 +332,14 @@ interface TransactionResult {
 }
 ```
 
-### Phase 2: Add `ref()` Property Type
+### Phase 2: Automatic Features on Relations (Future)
 
-1. Add `ref()` -- a node ID reference without target schema constraint
-2. Migrate Comment.target, Comment.inReplyTo from `text()` to `ref()`
-3. Extend temp ID resolution to cover `ref()` properties
-4. `relation()` becomes sugar for `ref()` + target schema config
-
-```typescript
-// ref() - untyped node reference
-export function ref(options?: { required?: boolean; multiple?: boolean }): PropertyBuilder<string>
-
-// relation() - typed node reference (extends ref semantics)
-export function relation(options: RelationOptions): PropertyBuilder<string>
-```
-
-### Phase 3: Automatic Features on Ref Types
-
-Once the schema knows which fields are refs, we can build:
+Once the schema knows which fields are relations, we can build:
 
 - **Reverse lookups**: "find all comments targeting node X" without scanning
 - **Cascade operations**: delete a node and its dependents
 - **Referential integrity warnings**: warn when deleting a referenced node
-- **Graph traversal**: walk the node graph through ref edges
+- **Graph traversal**: walk the node graph through relation edges
 
 ## Transaction Flow with Temp IDs
 
@@ -416,13 +381,13 @@ const rowIds = [generateId(), generateId(), generateId()]
 await store.transaction([
   // Create database node
   { type: 'create', options: { id: '~db', schemaId: 'Database', properties: { title: 'Sample' } } },
-  // Create comment on a cell -- if we had ref-aware anchor resolution
+  // Create comment on a cell
   {
     type: 'create',
     options: {
       schemaId: 'Comment',
       properties: {
-        target: '~db', // resolved automatically because 'target' is ref()
+        target: '~db', // resolved automatically because 'target' is relation()
         anchorType: 'cell',
         anchorData: JSON.stringify({ rowId: '~row1', propertyKey: 'text' }),
         content: 'Great row!'
@@ -432,16 +397,19 @@ await store.transaction([
 ])
 ```
 
-Note: `anchorData` is a JSON-encoded `text()` field -- temp IDs inside JSON strings would **not** be resolved automatically. This is a limitation. Options:
+Note: `anchorData` is a JSON-encoded `text()` field -- temp IDs inside JSON strings would **not** be resolved automatically. This is a known limitation. Options:
 
 1. Keep pre-generating IDs for anchor data (pragmatic)
 2. Add a post-processing hook for JSON-encoded ref fields (complex)
-3. Restructure anchor data as separate ref properties (breaking change)
+3. Restructure anchor data as separate relation properties (breaking change)
 
 ## Open Questions
 
-1. **Should `ref()` replace `relation()`, or coexist?** If `relation()` = `ref()` + target hint, do we keep both?
-2. **Nested temp IDs in JSON strings** -- anchorData contains refs as JSON. Do we support resolving inside JSON, or accept this as a known limitation?
-3. **Temp ID scope** -- should temp IDs be scoped to a single transaction (like Datomic), or can they persist across transactions in a session?
-4. **Sync implications** -- temp IDs are resolved locally before changes are synced. Remote peers never see temp IDs. Any edge cases?
-5. **Validation** -- should `ref()` validate that the referenced node exists? Datomic doesn't enforce this for tempids within the same transaction, but does for existing entity IDs.
+1. **Nested temp IDs in JSON strings** -- anchorData contains refs as JSON. Do we support resolving inside JSON, or accept this as a known limitation?
+2. **Temp ID scope** -- should temp IDs be scoped to a single transaction (like Datomic), or can they persist across transactions in a session?
+3. **Sync implications** -- temp IDs are resolved locally before changes are synced. Remote peers never see temp IDs. Any edge cases?
+4. **Validation** -- should `relation()` validate that the referenced node exists? Datomic doesn't enforce this for tempids within the same transaction, but does for existing entity IDs.
+
+## Resolved Questions
+
+1. ~~**Should `ref()` replace `relation()`, or coexist?**~~ **Resolved: unified into `relation()`.** Making `target` optional on `relation()` gives us a single, self-documenting property type. `relation({})` = untyped reference (any node), `relation({ target: SchemaIRI })` = typed reference (specific schema). No need for a separate `ref()` type.
