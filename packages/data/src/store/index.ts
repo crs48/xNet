@@ -53,6 +53,16 @@ export type {
 // NodeStore
 export { NodeStore } from './store'
 
+// Temp ID utilities
+export {
+  isTempId,
+  TEMP_ID_PREFIX,
+  resolveTempIds,
+  createSchemaLookup,
+  type SchemaLookup,
+  type TempIdResolution
+} from './tempids'
+
 // Adapters
 export { MemoryNodeStorageAdapter } from './memory-adapter'
 export {
