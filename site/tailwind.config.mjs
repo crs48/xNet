@@ -11,6 +11,10 @@ export default {
         surface: 'var(--lp-surface)',
         border: 'var(--lp-border)',
         'code-bg': 'var(--lp-code-bg)'
+      },
+      borderColor: {
+        DEFAULT: 'var(--lp-border)',
+        border: 'var(--lp-border)'
       }
     }
   },
