@@ -63,30 +63,43 @@ xNet is organized as a layered stack where each package builds on the ones below
 
 ### Write path
 
-```
-User action → useMutate() → NodeStore.update()
-  → Create Change<T> with Lamport timestamp
-  → BLAKE3 hash → Ed25519 sign → Hash chain link
-  → Persist to IndexedDB
-  → Broadcast via SyncManager
+```mermaid
+flowchart LR
+  A["User action"] --> B["useMutate()"]
+  B --> C["NodeStore.update()"]
+  C --> D["Change‹T› + Lamport"]
+  D --> E["BLAKE3 hash"]
+  E --> F["Ed25519 sign"]
+  F --> G["Hash chain link"]
+  G --> H["IndexedDB"]
+  G --> I["SyncManager"]
 ```
 
 ### Read path
 
-```
-useQuery(schema, filter)
-  → NodeStore.query() → IndexedDB read
-  → Return FlatNode[] to component
-  → Subscribe to NodeStore changes → Re-render on update
+```mermaid
+flowchart LR
+  A["useQuery(schema, filter)"] --> B["NodeStore.query()"]
+  B --> C["IndexedDB read"]
+  C --> D["FlatNode[]"]
+  D --> E["Component render"]
+  B -.->|subscribe| F["Change events"]
+  F -.->|re-render| E
 ```
 
 ### Sync path
 
-```
-Local Y.Doc update → YjsBatcher (2s window) → signYjsUpdate()
-  → ConnectionManager.publish(room, envelope)
-  → WebSocket → Signaling server → Peer's WebSocket
-  → Rate limit → Verify signature → Apply to Y.Doc
+```mermaid
+flowchart LR
+  A["Y.Doc update"] --> B["YjsBatcher\n(2s window)"]
+  B --> C["signYjsUpdate()"]
+  C --> D["ConnectionManager\n.publish()"]
+  D --> E["WebSocket"]
+  E --> F["Signaling server"]
+  F --> G["Peer WebSocket"]
+  G --> H["Rate limit"]
+  H --> I["Verify signature"]
+  I --> J["Apply to Y.Doc"]
 ```
 
 ## Further reading

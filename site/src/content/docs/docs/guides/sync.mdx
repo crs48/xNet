@@ -79,17 +79,31 @@ interface SignedYjsEnvelope {
 }
 ```
 
-### Signing flow
+### Signing and verification flow
 
-1. BLAKE3 hash the raw Yjs update bytes
-2. Ed25519 sign the hash with the author's private key
-3. Attach the envelope metadata (DID, clientId, timestamp)
+```mermaid
+flowchart LR
+  subgraph Signing
+    A["Yjs update bytes"] --> B["BLAKE3 hash"]
+    B --> C["Ed25519 sign\n(private key)"]
+    C --> D["SignedYjsEnvelope\n+ DID, clientId, ts"]
+  end
 
-### Verification flow
+  subgraph Verification
+    E["Receive envelope"] --> F["Parse DID →\npublic key"]
+    E --> G["BLAKE3 hash\nupdate bytes"]
+    F --> H["Ed25519 verify\nsig vs hash"]
+    G --> H
+    H -->|valid| I["Apply update"]
+    H -->|invalid| J["Reject + penalize"]
+  end
 
-1. Parse the author's DID to extract their Ed25519 public key (self-certifying — no resolver needed)
-2. BLAKE3 hash the update bytes
-3. Verify the Ed25519 signature against the hash
+  D -.->|network| E
+```
+
+**Signing:** BLAKE3 hash the raw Yjs update bytes → Ed25519 sign the hash with the author's private key → attach envelope metadata (DID, clientId, timestamp).
+
+**Verification:** Parse the author's DID to extract their Ed25519 public key (self-certifying — no resolver needed) → BLAKE3 hash the update bytes → verify the Ed25519 signature against the hash.
 
 ### Rate limiting
 

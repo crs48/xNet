@@ -2,11 +2,15 @@
 import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 import tailwind from '@astrojs/tailwind'
+import rehypeMermaid from 'rehype-mermaid'
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://crs48.github.io',
   base: '/xNet',
+  markdown: {
+    rehypePlugins: [[rehypeMermaid, { strategy: 'pre-mermaid' }]]
+  },
   integrations: [
     starlight({
       title: 'xNet',
@@ -16,7 +20,8 @@ export default defineConfig({
         baseUrl: 'https://github.com/crs48/xNet/edit/main/site/'
       },
       components: {
-        SiteTitle: './src/components/docs/SiteTitle.astro'
+        SiteTitle: './src/components/docs/SiteTitle.astro',
+        Head: './src/components/docs/Head.astro'
       },
       sidebar: [
         {

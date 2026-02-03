@@ -10,10 +10,47 @@ sidebar:
 
 The core dependency chain flows upward. Lower packages cannot import from higher ones:
 
-```
-crypto → identity → storage → sync → data → react → sdk
-                                ↓
-                            network → query
+```mermaid
+graph BT
+  crypto["@xnet/crypto"]
+  identity["@xnet/identity"]
+  storage["@xnet/storage"]
+  sync["@xnet/sync"]
+  data["@xnet/data"]
+  react["@xnet/react"]
+  network["@xnet/network"]
+  plugins["@xnet/plugins"]
+  editor["@xnet/editor"]
+  canvas["@xnet/canvas"]
+  devtools["@xnet/devtools"]
+
+  identity --> crypto
+  storage --> identity
+  sync --> crypto
+  sync --> identity
+  data --> sync
+  data --> crypto
+  network --> sync
+  network --> crypto
+  react --> data
+  react --> sync
+  react --> storage
+  plugins --> data
+  editor --> |Yjs| sync
+  canvas --> data
+  devtools --> react
+
+  style crypto fill:#4f46e5,color:#fff,stroke:#6366f1
+  style identity fill:#4f46e5,color:#fff,stroke:#6366f1
+  style storage fill:#4f46e5,color:#fff,stroke:#6366f1
+  style sync fill:#4f46e5,color:#fff,stroke:#6366f1
+  style data fill:#4f46e5,color:#fff,stroke:#6366f1
+  style react fill:#4f46e5,color:#fff,stroke:#6366f1
+  style network fill:#6366f1,color:#fff,stroke:#818cf8
+  style plugins fill:#6366f1,color:#fff,stroke:#818cf8
+  style editor fill:#6366f1,color:#fff,stroke:#818cf8
+  style canvas fill:#6366f1,color:#fff,stroke:#818cf8
+  style devtools fill:#6366f1,color:#fff,stroke:#818cf8
 ```
 
 ## Package details

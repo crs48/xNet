@@ -190,6 +190,13 @@ Verification extracts the issuer's public key from their DID (no external resolv
 
 ### Delegation chains
 
+```mermaid
+flowchart LR
+  A["Alice\n(document owner)"] -->|"grants write\n(signs UCAN)"| B["Bob"]
+  B -->|"delegates read\n(cites Alice's UCAN as proof)"| C["Carol"]
+  C -->|"verifies chain"| D["Alice → Bob → Carol"]
+```
+
 UCANs support transitive delegation via the `prf` (proofs) field:
 
 ```ts
@@ -217,7 +224,6 @@ Identity is provided to the app through `XNetProvider`:
 
 ```tsx
 import { XNetProvider } from '@xnet/react'
-
 ;<XNetProvider
   config={{
     authorDID: identity.did,
@@ -244,6 +250,19 @@ function Profile() {
 ```
 
 ### How identity flows through the stack
+
+```mermaid
+flowchart TD
+  A["XNetProvider\n(authorDID + signingKey)"] --> B["NodeStore"]
+  A --> C["SyncManager"]
+  B --> D["mutate.create() / update()"]
+  D --> E["Ed25519 sign Change‹T›"]
+  C --> F["BSM\n(Background Sync Manager)"]
+  F --> G["signYjsUpdate()\nSignedYjsEnvelope"]
+  F --> H["ClientID attestation\n(clientId → DID binding)"]
+  G --> I["Broadcast to peers"]
+  I --> J["Remote peer\nverify all signatures"]
+```
 
 1. `XNetProvider` creates a `NodeStore` with `authorDID` and `signingKey`
 2. Every `mutate.create()` / `mutate.update()` call signs the change with Ed25519
