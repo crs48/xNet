@@ -22,7 +22,11 @@ function uint8ArrayToBase64(arr: Uint8Array): string {
 
 /**
  * Create a TextAnchor JSON string for a text range within a Y.XmlFragment.
- * Walks the fragment tree to find ProseMirror-style positions for the given text.
+ * Walks the Yjs tree to find the actual Y.XmlText node containing the target
+ * text, then creates RelativePositions on that text node — matching what
+ * y-tiptap's absolutePositionToRelativePosition does internally (it walks
+ * into child nodes and creates positions on the Y.XmlText node, not the
+ * root fragment).
  *
  * @param fragment - The Y.XmlFragment containing the document content
  * @param searchText - The text substring to anchor to
@@ -34,45 +38,49 @@ function createTextAnchor(
   searchText: string,
   occurrence = 0
 ): string | null {
-  // Walk the Yjs XML tree to compute ProseMirror-style positions.
-  // ProseMirror positions: doc node opens at 0, first child opens at 1, etc.
-  // Each opening/closing tag takes 1 position, text characters take 1 each.
-  let pos = 0 // ProseMirror position (starts inside the doc node)
   let found = 0
 
-  function walk(el: Y.XmlElement | Y.XmlFragment): { from: number; to: number } | null {
+  // Walk the tree to find the Y.XmlText node containing the search text
+  function findTextNode(
+    el: Y.XmlElement | Y.XmlFragment
+  ): { textNode: Y.XmlText; offsetInNode: number } | null {
     const children =
       el instanceof Y.XmlFragment && !(el instanceof Y.XmlElement)
         ? el.toArray()
         : (el as Y.XmlElement).toArray()
     for (const child of children) {
       if (child instanceof Y.XmlElement) {
-        pos++ // Opening tag
-        const result = walk(child)
+        const result = findTextNode(child)
         if (result) return result
-        pos++ // Closing tag
       } else if (child instanceof Y.XmlText) {
         const text = child.toString()
         const idx = text.indexOf(searchText)
         if (idx !== -1 && found === occurrence) {
-          const from = pos + idx
-          const to = from + searchText.length
-          return { from, to }
+          return { textNode: child, offsetInNode: idx }
         }
         if (idx !== -1) found++
-        pos += text.length
       }
     }
     return null
   }
 
-  const result = walk(fragment)
+  const result = findTextNode(fragment)
   if (!result) return null
 
-  // Convert ProseMirror positions to Yjs relative positions
-  // ProseMirror is 1-based from the doc node, Yjs uses 0-based fragment indices
-  const startRelPos = Y.createRelativePositionFromTypeIndex(fragment, result.from - 1)
-  const endRelPos = Y.createRelativePositionFromTypeIndex(fragment, result.to - 1)
+  // Create RelativePositions directly on the Y.XmlText node.
+  // y-tiptap's absolutePositionToRelativePosition walks the tree and creates
+  // positions on the text node it reaches, not on the root fragment. The assoc
+  // parameter -1 matches what y-tiptap uses for left-biased positions.
+  const startRelPos = Y.createRelativePositionFromTypeIndex(
+    result.textNode,
+    result.offsetInNode,
+    -1
+  )
+  const endRelPos = Y.createRelativePositionFromTypeIndex(
+    result.textNode,
+    result.offsetInNode + searchText.length,
+    -1
+  )
 
   return JSON.stringify({
     startRelative: uint8ArrayToBase64(Y.encodeRelativePosition(startRelPos)),
