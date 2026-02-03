@@ -614,3 +614,17 @@
 .xnet-comment-mark.has-overlap {
   background-color: rgb(251 191 36 / 0.5);
 }
+
+/* ─── Database Cell Comment Hover Highlight ─── */
+
+/* Highlight database table cells when hovering a comment in the sidebar */
+.xnet-db-comment-hover {
+  background-color: rgb(251 191 36 / 0.15) !important;
+  box-shadow: inset 0 0 0 2px rgb(245 158 11 / 0.5);
+  transition: none;
+}
+
+.dark .xnet-db-comment-hover {
+  background-color: rgb(251 191 36 / 0.12) !important;
+  box-shadow: inset 0 0 0 2px rgb(251 191 36 / 0.4);
+}

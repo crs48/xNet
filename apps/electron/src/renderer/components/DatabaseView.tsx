@@ -10,7 +10,16 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNode, useIdentity } from '@xnet/react'
-import { DatabaseSchema, type Schema, type PropertyDefinition, type PropertyType } from '@xnet/data'
+import {
+  DatabaseSchema,
+  decodeAnchor,
+  type Schema,
+  type PropertyDefinition,
+  type PropertyType,
+  type CellAnchor,
+  type RowAnchor,
+  type ColumnAnchor
+} from '@xnet/data'
 import {
   TableView,
   BoardView,
@@ -427,6 +436,95 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     },
     [commentEditComment]
   )
+
+  // Build a map from thread ID to its anchor coordinates for hover highlighting
+  const threadAnchorMap = useMemo(() => {
+    const map = new Map<
+      string,
+      | { type: 'cell'; rowId: string; propertyKey: string }
+      | { type: 'row'; rowId: string }
+      | { type: 'column'; propertyKey: string }
+    >()
+    for (const thread of commentThreads) {
+      const anchorType = thread.root.properties.anchorType
+      const anchorData = thread.root.properties.anchorData
+      try {
+        if (anchorType === 'cell') {
+          const anchor = decodeAnchor<CellAnchor>(anchorData)
+          map.set(thread.root.id, {
+            type: 'cell',
+            rowId: anchor.rowId,
+            propertyKey: anchor.propertyKey
+          })
+        } else if (anchorType === 'row') {
+          const anchor = decodeAnchor<RowAnchor>(anchorData)
+          map.set(thread.root.id, { type: 'row', rowId: anchor.rowId })
+        } else if (anchorType === 'column') {
+          const anchor = decodeAnchor<ColumnAnchor>(anchorData)
+          map.set(thread.root.id, { type: 'column', propertyKey: anchor.propertyKey })
+        }
+      } catch {
+        // Skip malformed anchors
+      }
+    }
+    return map
+  }, [commentThreads])
+
+  const hoveredDbThreadRef = useRef<string | null>(null)
+  const dbLeaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const HIGHLIGHT_CLASS = 'xnet-db-comment-hover'
+
+  const handleSidebarHoverThread = useCallback(
+    (threadId: string) => {
+      // Cancel pending leave
+      if (dbLeaveTimerRef.current) {
+        clearTimeout(dbLeaveTimerRef.current)
+        dbLeaveTimerRef.current = null
+      }
+
+      // Clear previous highlights
+      if (hoveredDbThreadRef.current && hoveredDbThreadRef.current !== threadId) {
+        document.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach((el) => {
+          el.classList.remove(HIGHLIGHT_CLASS)
+        })
+      }
+
+      hoveredDbThreadRef.current = threadId
+
+      const anchor = threadAnchorMap.get(threadId)
+      if (!anchor) return
+
+      let cells: NodeListOf<Element> | null = null
+
+      if (anchor.type === 'cell') {
+        cells = document.querySelectorAll(
+          `td[data-row-id="${anchor.rowId}"][data-column-id="${anchor.propertyKey}"]`
+        )
+      } else if (anchor.type === 'row') {
+        cells = document.querySelectorAll(`td[data-row-id="${anchor.rowId}"]`)
+      } else if (anchor.type === 'column') {
+        cells = document.querySelectorAll(`td[data-column-id="${anchor.propertyKey}"]`)
+      }
+
+      if (cells && cells.length > 0) {
+        cells.forEach((el) => el.classList.add(HIGHLIGHT_CLASS))
+        // Scroll the first matching cell into view (both axes)
+        cells[0].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+      }
+    },
+    [threadAnchorMap]
+  )
+
+  const handleSidebarLeaveThread = useCallback(() => {
+    if (dbLeaveTimerRef.current) clearTimeout(dbLeaveTimerRef.current)
+    dbLeaveTimerRef.current = setTimeout(() => {
+      hoveredDbThreadRef.current = null
+      document.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach((el) => {
+        el.classList.remove(HIGHLIGHT_CLASS)
+      })
+    }, 150)
+  }, [])
 
   const currentCommentThread = commentState.threadId
     ? commentThreadDataMap.get(commentState.threadId)
@@ -1117,6 +1215,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           onReopen={handleSidebarReopen}
           onDelete={handleSidebarDelete}
           onEdit={handleSidebarEdit}
+          onHoverThread={handleSidebarHoverThread}
+          onLeaveThread={handleSidebarLeaveThread}
         />
       </div>
 

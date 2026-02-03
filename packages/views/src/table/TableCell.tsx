@@ -283,6 +283,8 @@ export function TableCell({
     return (
       <td
         ref={cellRef}
+        data-row-id={rowId}
+        data-column-id={columnId}
         className="px-2 py-1.5 border-r border-gray-100 dark:border-gray-800 text-gray-900 dark:text-gray-100 relative"
         style={{ width: cell.column.getSize() }}
         onContextMenu={handleContextMenu}
@@ -305,6 +307,8 @@ export function TableCell({
   return (
     <td
       ref={cellRef}
+      data-row-id={rowId}
+      data-column-id={columnId}
       className={cn(
         'px-2 py-1.5 border-r border-gray-100 dark:border-gray-800',
         'text-gray-900 dark:text-gray-100 relative',
