@@ -1,0 +1,173 @@
+---
+title: defineSchema
+draft: false
+description: Create a schema definition with full TypeScript inference.
+sidebar:
+  badge:
+    text: Core
+    variant: success
+  order: 1
+---
+
+:::note[You will learn]
+
+- The full `defineSchema()` API
+- All options and what they do
+- What a `DefinedSchema` gives you
+- How validation and coercion work
+  :::
+
+## Quick example
+
+```ts
+import { defineSchema, text, select, checkbox, relation, created, updated } from '@xnet/data'
+
+export const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true, maxLength: 500 }),
+    status: select({
+      options: [
+        { id: 'todo', name: 'To Do', color: '#6366f1' },
+        { id: 'doing', name: 'Doing', color: '#f59e0b' },
+        { id: 'done', name: 'Done', color: '#10b981' }
+      ] as const
+    }),
+    completed: checkbox({ default: false }),
+    project: relation({ target: 'xnet://my-app/Project' }),
+    createdAt: created(),
+    updatedAt: updated()
+  }
+})
+```
+
+## Signature
+
+```ts
+function defineSchema<P extends Record<string, PropertyBuilder>>(
+  options: DefineSchemaOptions<P>
+): DefinedSchema<P>
+```
+
+## Options
+
+| Field        | Type                              | Required | Description                                                                        |
+| ------------ | --------------------------------- | -------- | ---------------------------------------------------------------------------------- |
+| `name`       | `string`                          | Yes      | Schema name (e.g., `'Task'`). Used in the schema IRI.                              |
+| `namespace`  | `` `xnet://${string}/` ``         | Yes      | Namespace for grouping. Must end with `/`.                                         |
+| `properties` | `Record<string, PropertyBuilder>` | Yes      | Property definitions using builder functions.                                      |
+| `extends`    | `DefinedSchema`                   | No       | Parent schema to inherit properties from.                                          |
+| `document`   | `'yjs' \| 'automerge'`            | No       | CRDT document type. Required for [`useNode`](/xNet/hooks/usenode/) rich text. |
+
+### Schema IRI
+
+The schema's unique identifier is `${namespace}${name}`:
+
+```ts
+defineSchema({ name: 'Task', namespace: 'xnet://my-app/' })
+// Schema IRI: 'xnet://my-app/Task'
+```
+
+Each property also gets an IRI: `${schemaId}#${propertyName}`:
+
+```
+xnet://my-app/Task#title
+xnet://my-app/Task#status
+```
+
+## Return value: DefinedSchema
+
+| Field/Method             | Type                            | Description                                       |
+| ------------------------ | ------------------------------- | ------------------------------------------------- |
+| `schema`                 | `Schema`                        | The JSON-LD compatible schema object.             |
+| `validate(node)`         | `(unknown) => ValidationResult` | Validate a node against this schema.              |
+| `create(props, options)` | `(props, options) => Node`      | Create a new node (used internally).              |
+| `is(node)`               | `(node) => boolean`             | Type guard — check if a node matches this schema. |
+| `_schemaId`              | `string`                        | The computed schema IRI.                          |
+| `_properties`            | `P`                             | Property builders (for type inference).           |
+
+### ValidationResult
+
+```ts
+interface ValidationResult {
+  valid: boolean
+  errors: ValidationError[] // { path, message, value? }
+}
+```
+
+Validation checks:
+
+- Required system fields (`id`, `schemaId`, `createdAt`, `createdBy`)
+- `schemaId` matches the schema
+- `createdBy` starts with `did:key:`
+- Each property's constraints (required, min/max, pattern, etc.)
+
+## Adding rich text support
+
+Add `document: 'yjs'` to enable collaborative editing via [`useNode`](/xNet/hooks/usenode/):
+
+```ts
+export const PageSchema = defineSchema({
+  name: 'Page',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true }),
+    icon: text()
+  },
+  document: 'yjs'
+})
+```
+
+When `document: 'yjs'` is set, `useNode` creates a `Y.Doc` for the node and manages P2P sync for its content.
+
+## Schema inheritance
+
+Use `extends` to inherit properties from a parent schema:
+
+```ts
+const BaseSchema = defineSchema({
+  name: 'Base',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true }),
+    createdAt: created()
+  }
+})
+
+const ArticleSchema = defineSchema({
+  name: 'Article',
+  namespace: 'xnet://my-app/',
+  extends: BaseSchema,
+  properties: {
+    body: text(),
+    publishedAt: date()
+  }
+})
+// ArticleSchema has: title, createdAt, body, publishedAt
+```
+
+## Coercion
+
+When you create or update a node, property values are **coerced** through the property builder:
+
+- `text()` — calls `String(value)`, trims whitespace
+- `number()` — calls `Number(value)`, applies `Math.round()` if `integer`
+- `select()` — validates against option IDs, tries case-insensitive name matching as fallback
+- `date()` — accepts `number`, `Date`, or ISO string; normalizes to timestamp
+- `email()` — trims and lowercases
+- `url()` — auto-prepends `https://` if no protocol
+
+This means your data is always normalized regardless of what the user types.
+
+## Dev-time warnings
+
+In development, `defineSchema` warns if:
+
+- A `text()` property has a name that looks like a reference (e.g., `targetId`, `parentId`), suggesting you use `relation()` instead
+
+## Related
+
+- [Property Types](/xNet/schemas/property-types/) — all 16 property builders
+- [Relations](/xNet/schemas/relations/) — linking nodes together
+- [Type Inference](/xNet/schemas/type-inference/) — how TypeScript types flow

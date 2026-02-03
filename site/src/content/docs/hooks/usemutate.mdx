@@ -1,0 +1,238 @@
+---
+title: useMutate
+draft: false
+description: Create, update, delete, and restore nodes with full type safety.
+sidebar:
+  badge:
+    text: Core
+    variant: success
+  order: 2
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components'
+
+:::note[You will learn]
+
+- Every method on the `useMutate` return object
+- How to batch operations in a transaction
+- How to track pending mutations
+- Edge cases around optimistic updates
+  :::
+
+:::tip[What useMutate replaces]
+In a traditional app, `useMutate` replaces:
+
+- **Prisma / Drizzle** — database writes
+- **REST POST/PUT/DELETE** — API mutations
+- **Redux actions / Zustand mutations** — state updates
+- **Optimistic updates** — the local-first model is inherently optimistic
+
+Every mutation is validated, signed, persisted, and synced — automatically.
+:::
+
+## Quick example
+
+```tsx
+import { useMutate } from '@xnet/react'
+import { TaskSchema } from './schema'
+
+function AddTaskButton() {
+  const { create, isPending } = useMutate()
+
+  return (
+    <button
+      disabled={isPending}
+      onClick={() =>
+        create(TaskSchema, {
+          title: 'New task',
+          status: 'todo'
+        })
+      }
+    >
+      {isPending ? 'Creating...' : 'Add Task'}
+    </button>
+  )
+}
+```
+
+## Signature
+
+```ts
+function useMutate(): UseMutateResult
+```
+
+Takes no parameters. Returns methods for all mutation operations.
+
+## Return value
+
+### Mutation methods
+
+| Method    | Signature                                                    | Description                                                                 |
+| --------- | ------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| `create`  | `(schema, data, id?, options?) => Promise<FlatNode \| null>` | Create a new node. Returns the created node or `null` if store isn't ready. |
+| `update`  | `(schema, id, data, options?) => Promise<FlatNode \| null>`  | Update properties. Only changed fields are written.                         |
+| `remove`  | `(id, options?) => Promise<void>`                            | Soft-delete a node. Recoverable via `restore`.                              |
+| `restore` | `(id, options?) => Promise<FlatNode \| null>`                | Restore a soft-deleted node.                                                |
+| `mutate`  | `(ops[], options?) => Promise<TransactionResult \| null>`    | Batch multiple operations atomically.                                       |
+
+### Status fields
+
+| Field          | Type      | Description                                    |
+| -------------- | --------- | ---------------------------------------------- |
+| `isPending`    | `boolean` | `true` if any mutation is currently in flight. |
+| `pendingCount` | `number`  | Number of concurrent mutations in flight.      |
+
+### MutateOptions
+
+| Field        | Type      | Default | Description                                                                                               |
+| ------------ | --------- | ------- | --------------------------------------------------------------------------------------------------------- |
+| `optimistic` | `boolean` | `true`  | Whether to apply optimistic updates. Currently accepted but unused — all writes go directly to the store. |
+
+## Usage patterns
+
+### Basic CRUD
+
+```tsx
+const { create, update, remove, restore } = useMutate()
+
+// Create
+const task = await create(TaskSchema, {
+  title: 'Ship v1',
+  status: 'todo'
+})
+
+// Update (sparse — only changed fields)
+await update(TaskSchema, task.id, { status: 'doing' })
+
+// Soft-delete
+await remove(task.id)
+
+// Restore
+await restore(task.id)
+```
+
+### Custom ID
+
+Pass an optional third argument to `create` to specify the node ID:
+
+```tsx
+const task = await create(TaskSchema, { title: 'Known ID' }, 'my-custom-id')
+// task.id === 'my-custom-id'
+```
+
+### Transactions (batch operations)
+
+Use `mutate()` to execute multiple operations atomically:
+
+```tsx
+const { mutate } = useMutate()
+
+const result = await mutate([
+  { type: 'create', schema: TaskSchema, data: { title: 'Task A' } },
+  { type: 'create', schema: TaskSchema, data: { title: 'Task B' } },
+  { type: 'update', id: existingId, data: { status: 'done' } },
+  { type: 'delete', id: oldTaskId }
+])
+```
+
+### Transactions with temp IDs
+
+When creating related nodes in a transaction, the result includes a `tempIds` map from your provided IDs to the generated real IDs:
+
+```tsx
+const result = await mutate([
+  {
+    type: 'create',
+    schema: ProjectSchema,
+    data: { title: 'New Project' },
+    id: 'temp-project'
+  },
+  {
+    type: 'create',
+    schema: TaskSchema,
+    data: {
+      title: 'First task',
+      projectId: 'temp-project' // Reference the temp ID
+    }
+  }
+])
+
+// result.tempIds['temp-project'] → real generated ID
+```
+
+### TransactionResult
+
+```ts
+interface TransactionResult {
+  batchId: string // Unique batch identifier
+  results: (NodeState | null)[] // One result per operation (null for deletes)
+  changes: NodeChange[] // All changes produced
+  tempIds: Record<string, string> // Temp ID → real ID mapping
+}
+```
+
+### Form integration
+
+```tsx
+function TaskForm({ taskId }: { taskId: string }) {
+  const { data: task } = useQuery(TaskSchema, taskId)
+  const { update } = useMutate()
+  const [title, setTitle] = useState('')
+
+  useEffect(() => {
+    if (task) setTitle(task.title)
+  }, [task])
+
+  const save = () => update(TaskSchema, taskId, { title })
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        save()
+      }}
+    >
+      <input value={title} onChange={(e) => setTitle(e.target.value)} />
+      <button type="submit">Save</button>
+    </form>
+  )
+}
+```
+
+### Tracking pending state
+
+```tsx
+const { create, isPending, pendingCount } = useMutate()
+
+// Disable UI during mutations
+<button disabled={isPending}>Save</button>
+
+// Show count for batch operations
+{pendingCount > 0 && <span>{pendingCount} operations pending...</span>}
+```
+
+## Gotchas
+
+:::caution[`null` means the store isn't ready]
+All mutation methods return `null` if the NodeStore hasn't initialized yet (e.g., `XNetProvider` is still mounting). This is rare but possible if you call a mutation immediately on mount.
+:::
+
+:::tip[Updates are sparse]
+`update()` only writes the fields you pass. Other properties are untouched. This is important for conflict resolution — you're only claiming ownership of the fields you change.
+
+```tsx
+// This only updates `status`, not `title`
+await update(TaskSchema, id, { status: 'done' })
+```
+
+:::
+
+:::note[Mutations trigger useQuery updates]
+When you call `create`, `update`, `remove`, or `restore`, the NodeStore emits a `NodeChangeEvent`. Any `useQuery` hook watching the same schema will automatically re-render with the new data. You don't need to manually invalidate queries.
+:::
+
+## Related
+
+- [`useQuery`](/xNet/hooks/usequery/) — read the data you mutate
+- [`useNode`](/xNet/hooks/usenode/) — alternative for single-node editing with Yjs
+- [`defineSchema`](/xNet/schemas/defineschema/) — define the schemas you write to

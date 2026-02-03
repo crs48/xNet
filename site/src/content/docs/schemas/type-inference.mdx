@@ -1,0 +1,44 @@
+---
+title: 'Type Inference'
+draft: false
+description: 'How TypeScript types flow from schemas to hooks.'
+---
+
+One of xNet's key design goals is end-to-end type safety: you define a schema once and TypeScript carries those types all the way through to your React hooks. No manual type annotations, no `as` casts, no runtime surprises.
+
+## How It Works
+
+The type inference pipeline has three stages:
+
+1. **`defineSchema`** captures the property builder functions you pass in and preserves their types as a generic parameter. Each builder (like `text()`, `number()`, `relation()`) returns a typed descriptor that encodes the property's value type, default, and cardinality.
+
+2. **`InferCreateProps<S>`** maps over the schema's property descriptors to produce the type you pass to `createNode()`. Required properties (no default) become required fields; optional properties (with defaults) become optional fields. This is the "write" side of the type.
+
+3. **`FlatNode<S>`** merges the base node fields (`id`, `createdAt`, `updatedAt`, `createdBy`) with the inferred property types to produce the "read" side. This is what you get back from `useQuery` and `useNode`.
+
+## From Schema to Hook
+
+```ts
+// 1. Define schema — types are captured here
+const Task = defineSchema('task', {
+  title: text(),
+  done: boolean({ default: false }),
+  assignee: person()
+})
+
+// 2. Create — TypeScript knows title is required, done is optional
+mutate.create('task', { title: 'Ship it' }) // ✅
+mutate.create('task', {}) // ❌ missing title
+
+// 3. Read — TypeScript knows the full shape
+const tasks = useQuery(Task)
+tasks[0].title // string
+tasks[0].done // boolean
+tasks[0].id // string (from base fields)
+```
+
+## Extending the Type System
+
+Because schemas are plain objects with typed descriptors, you can compose them, create utility types around them, and build higher-level abstractions without losing type information. The property builder pattern ensures that new property types automatically flow through `InferCreateProps` and `FlatNode` without any changes to the inference machinery.
+
+If you're building a custom property type, implement the `PropertyBuilder` interface and the inference pipeline will pick it up automatically.

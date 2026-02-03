@@ -1,0 +1,42 @@
+---
+/**
+ * Custom Starlight SiteTitle — "xNet" links to landing page, "Docs" links to docs root.
+ */
+---
+
+<a href={import.meta.env.BASE_URL} class="site-title sl-flex">
+  <span class="site-title-text">xNet</span>
+  <span class="site-title-separator">/</span>
+  <a href={`${import.meta.env.BASE_URL}introduction/`} class="site-title-docs">Docs</a>
+</a>
+
+<style>
+  .site-title {
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    font-size: var(--sl-text-lg);
+    text-decoration: none;
+    color: var(--sl-color-white);
+    white-space: nowrap;
+  }
+
+  .site-title-text:hover {
+    color: var(--sl-color-accent);
+  }
+
+  .site-title-separator {
+    color: var(--sl-color-gray-4);
+    font-weight: 400;
+  }
+
+  .site-title-docs {
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .site-title-docs:hover {
+    color: var(--sl-color-accent);
+  }
+</style>

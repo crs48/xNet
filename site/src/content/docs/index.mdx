@@ -1,0 +1,33 @@
+---
+title: xNet Documentation
+draft: false
+description: Build local-first apps with React hooks. No server, no auth, no vendor lock-in.
+template: splash
+hero:
+  tagline: Three hooks. Zero backend. Local-first apps that just work.
+  actions:
+    - text: Quick Start
+      link: /xNet/quickstart/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/crs48/xNet
+      icon: external
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
+
+<CardGrid stagger>
+  <Card title="useQuery" icon="magnifier">
+    Read data reactively. Filter, sort, paginate — all with type safety.
+  </Card>
+  <Card title="useMutate" icon="pencil">
+    Create, update, delete nodes. Type-safe, validated, auto-synced.
+  </Card>
+  <Card title="useNode" icon="document">
+    Collaborative editing with Yjs, P2P sync, and presence awareness.
+  </Card>
+  <Card title="defineSchema" icon="setting">
+    16 property types with full TypeScript inference.
+  </Card>
+</CardGrid>

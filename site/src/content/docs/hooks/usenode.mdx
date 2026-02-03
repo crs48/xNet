@@ -1,0 +1,296 @@
+---
+title: useNode
+draft: false
+description: Edit a single node with collaborative rich text, P2P sync, and presence.
+sidebar:
+  badge:
+    text: Core
+    variant: success
+  order: 3
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components'
+
+:::note[You will learn]
+
+- All options and the full return type (grouped by category)
+- How to bind a Yjs document to TipTap
+- How the dual-write model works (NodeStore + Y.Doc)
+- Sync lifecycle, presence, and error handling
+  :::
+
+:::tip[What useNode replaces]
+In a traditional app, `useNode` replaces:
+
+- **WebSocket connection** — real-time sync per document
+- **Yjs provider setup** — WebRTC/WebSocket provider, awareness, persistence
+- **Autosave logic** — debounced persistence
+- **Presence system** — who's online, cursor positions
+- **Document loading** — fetch, cache, conflict handling
+
+One hook. All of it.
+:::
+
+## Quick example
+
+```tsx
+import { useNode } from '@xnet/react'
+import { useEditor, EditorContent } from '@tiptap/react'
+import Collaboration from '@tiptap/extension-collaboration'
+import { PageSchema } from './schema'
+
+function PageEditor({ pageId }: { pageId: string }) {
+  const { data, doc, update, syncStatus, remoteUsers } = useNode(PageSchema, pageId, {
+    createIfMissing: { title: 'Untitled' },
+    did: currentUserDID
+  })
+
+  const editor = useEditor(
+    {
+      extensions: [
+        // ... your extensions
+        Collaboration.configure({ document: doc })
+      ]
+    },
+    [doc]
+  )
+
+  if (!data) return <p>Loading...</p>
+
+  return (
+    <div>
+      <input value={data.title} onChange={(e) => update({ title: e.target.value })} />
+      <div>{syncStatus === 'connected' ? `${remoteUsers.length} collaborator(s)` : syncStatus}</div>
+      <EditorContent editor={editor} />
+    </div>
+  )
+}
+```
+
+## Signature
+
+```ts
+function useNode<P extends Record<string, PropertyBuilder>>(
+  schema: DefinedSchema<P>,
+  id: string | null,
+  options?: UseNodeOptions<P>
+): UseNodeResult<P>
+```
+
+Passing `null` for `id` disables the hook — `data` and `doc` will be `null`.
+
+## Parameters
+
+| Parameter | Type                | Description                                                          |
+| --------- | ------------------- | -------------------------------------------------------------------- |
+| `schema`  | `DefinedSchema<P>`  | The schema for this node. Must have `document: 'yjs'` for rich text. |
+| `id`      | `string \| null`    | The node ID to load. `null` disables the hook.                       |
+| `options` | `UseNodeOptions<P>` | Configuration for sync, persistence, and auto-creation.              |
+
+### UseNodeOptions
+
+| Option             | Type                  | Default                   | Description                                             |
+| ------------------ | --------------------- | ------------------------- | ------------------------------------------------------- |
+| `signalingServers` | `string[]`            | `['ws://localhost:4444']` | WebSocket servers for peer discovery.                   |
+| `disableSync`      | `boolean`             | `false`                   | Disable P2P sync (local-only mode).                     |
+| `persistDebounce`  | `number`              | `1000`                    | Milliseconds to debounce Y.Doc saves to storage.        |
+| `createIfMissing`  | `InferCreateProps<P>` | —                         | Auto-create the node if it doesn't exist.               |
+| `did`              | `string`              | —                         | User's DID for presence awareness (cursors, user list). |
+
+## Return value
+
+### Data
+
+| Field  | Type                  | Description                                                                        |
+| ------ | --------------------- | ---------------------------------------------------------------------------------- |
+| `data` | `FlatNode<P> \| null` | The node's structured properties (flattened). `null` if loading or not found.      |
+| `doc`  | `Y.Doc \| null`       | Yjs document for collaborative editing. `null` if schema has no `document: 'yjs'`. |
+
+### Mutations
+
+| Field    | Type                                                     | Description                                                                     |
+| -------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `update` | `(props: Partial<InferCreateProps<P>>) => Promise<void>` | Update structured properties. Dual-writes to both NodeStore and Y.Doc meta map. |
+| `remove` | `() => Promise<void>`                                    | Soft-delete this node.                                                          |
+
+### State
+
+| Field         | Type             | Description                                                          |
+| ------------- | ---------------- | -------------------------------------------------------------------- |
+| `loading`     | `boolean`        | `true` during initial load.                                          |
+| `error`       | `Error \| null`  | Any error during loading, sync, or persistence.                      |
+| `isDirty`     | `boolean`        | `true` if the Y.Doc has unsaved changes (debounce timer is pending). |
+| `lastSavedAt` | `number \| null` | Timestamp of last successful persistence.                            |
+| `wasCreated`  | `boolean`        | `true` if the node was auto-created via `createIfMissing`.           |
+
+### Sync
+
+| Field        | Type             | Description                                                  |
+| ------------ | ---------------- | ------------------------------------------------------------ |
+| `syncStatus` | `SyncStatus`     | `'offline' \| 'connecting' \| 'connected' \| 'error'`        |
+| `syncError`  | `string \| null` | Human-readable error message when `syncStatus` is `'error'`. |
+| `peerCount`  | `number`         | Number of currently connected peers editing this document.   |
+
+### Presence
+
+| Field         | Type                | Description                                                                 |
+| ------------- | ------------------- | --------------------------------------------------------------------------- |
+| `remoteUsers` | `RemoteUser[]`      | Other users viewing this document. Each has `clientId`, `did`, and `color`. |
+| `awareness`   | `Awareness \| null` | Yjs Awareness instance. Pass to TipTap's `CollaborationCursor` extension.   |
+
+### Actions
+
+| Field    | Type                  | Description                                             |
+| -------- | --------------------- | ------------------------------------------------------- |
+| `save`   | `() => Promise<void>` | Manually flush pending changes (bypass debounce timer). |
+| `reload` | `() => Promise<void>` | Reload node and document from storage.                  |
+
+## Usage patterns
+
+### Structured properties only (no rich text)
+
+If your schema doesn't have `document: 'yjs'`, `doc` will be `null` and useNode behaves like a single-node version of useQuery + useMutate:
+
+```tsx
+const { data, update } = useNode(TaskSchema, taskId)
+
+// Update properties
+await update({ status: 'done', title: 'Shipped!' })
+```
+
+### Rich text with TipTap
+
+```tsx
+import Collaboration from '@tiptap/extension-collaboration'
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
+
+const { doc, awareness, remoteUsers } = useNode(PageSchema, id, { did })
+
+const editor = useEditor(
+  {
+    extensions: [
+      StarterKit.configure({ history: false }), // Disable built-in history
+      Collaboration.configure({ document: doc }),
+      CollaborationCursor.configure({
+        provider: awareness,
+        user: { name: 'You', color: '#6366f1' }
+      })
+    ]
+  },
+  [doc]
+)
+```
+
+:::caution[Disable TipTap's built-in history]
+When using `Collaboration`, you must disable TipTap's built-in `history` extension. Yjs has its own undo manager. Using both causes conflicts.
+:::
+
+### Presence awareness
+
+Pass `did` to enable presence. Remote users are reported with a deterministic color derived from their DID:
+
+```tsx
+const { remoteUsers, syncStatus } = useNode(PageSchema, id, {
+  did: currentUserDID
+})
+
+return (
+  <div>
+    {remoteUsers.map((user) => (
+      <span key={user.clientId} style={{ color: user.color }}>
+        {user.did.slice(8, 16)}...
+      </span>
+    ))}
+    <span>{syncStatus}</span>
+  </div>
+)
+```
+
+### Auto-create with `createIfMissing`
+
+For "new document" flows, pass default properties. If the node doesn't exist, it's created automatically:
+
+```tsx
+const { data, wasCreated } = useNode(PageSchema, newPageId, {
+  createIfMissing: { title: 'Untitled', content: '' }
+})
+
+if (wasCreated) {
+  // Focus the title input, show onboarding, etc.
+}
+```
+
+If the node exists but is soft-deleted, `createIfMissing` restores it instead of creating a duplicate.
+
+### Manual save
+
+The debounced persistence timer (default: 1000ms) means there's a window where changes exist in memory but not on disk. For critical moments, flush manually:
+
+```tsx
+const { save, isDirty } = useNode(PageSchema, id)
+
+const handleNavigateAway = async () => {
+  if (isDirty) await save()
+  router.push('/home')
+}
+```
+
+## The dual-write model
+
+This is the most important thing to understand about `useNode`:
+
+When you call `update({ title: 'New Title' })`, it writes to **two places**:
+
+1. **NodeStore** — structured data with Lamport timestamps (for `useQuery` and persistence)
+2. **Y.Doc meta map** — a `Y.Map('meta')` inside the Yjs document (for P2P sync)
+
+When a remote peer changes the Y.Doc meta map, a `metaObserver` picks up the change and writes it back to the NodeStore. This bidirectional bridge keeps both stores in sync.
+
+:::danger[Direct Y.Doc edits don't update NodeStore]
+If you modify the Y.Doc's text content directly (e.g., via TipTap), that content syncs fine through Yjs. But if you modify the Y.Doc's `meta` map directly (bypassing `update()`), the change will NOT be written to the NodeStore unless it comes from a remote peer. Always use the `update()` method for structured properties.
+:::
+
+## Lifecycle
+
+1. **Mount** — NodeStore lookup. If not found and `createIfMissing` is set, create the node.
+2. **Init Y.Doc** — If schema has `document: 'yjs'`, load stored content and initialize the Yjs document.
+3. **Connect** — Acquire a sync connection from `SyncManager` (or create a `WebSocketSyncProvider` as fallback).
+4. **Editing** — User and peer changes flow through Yjs CRDT. Property changes go through the dual-write bridge.
+5. **Persist** — Y.Doc changes are debounced and saved to IndexedDB as `Y.encodeStateAsUpdate()`.
+6. **Unmount** — Flush all pending changes immediately, release the sync connection.
+
+:::caution[Navigation flush]
+When the component unmounts, `useNode` immediately flushes the Y.Doc to storage. If you navigate back to the same node quickly, the new instance waits for the previous flush to complete before loading. This prevents data loss but can cause a brief delay.
+:::
+
+## Gotchas
+
+:::tip[Pass `did` for presence]
+Without the `did` option, presence awareness is disabled and `remoteUsers` will always be empty:
+
+```tsx
+const { did } = useIdentity()
+const { remoteUsers } = useNode(PageSchema, id, { did })
+```
+
+:::
+
+:::caution[Sync timeout on new documents]
+When `wasCreated` is true (you're joining a shared document that was created by someone else), a 10-second timeout checks if any sync content was received. If not, `syncStatus` changes to `'error'` with a descriptive message. This helps surface connectivity issues.
+:::
+
+:::tip[Debug logging]
+Enable sync debug logs in the browser console:
+
+```js
+localStorage.setItem('xnet:sync:debug', 'true')
+```
+
+:::
+
+## Related
+
+- [`useQuery`](/xNet/hooks/usequery/) — for reading multiple nodes (no Yjs)
+- [`useMutate`](/xNet/hooks/usemutate/) — for mutations without a Yjs document
+- [`useIdentity`](/xNet/hooks/useidentity/) — get the current DID for presence
+- [Collaboration guide](/xNet/guides/collaboration/) — full walkthrough of building a collaborative editor
