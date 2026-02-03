@@ -5,6 +5,17 @@
 **Dependencies:** `01-package-scaffold.md`, `02-ucan-auth.md`, `04-sqlite-storage.md`
 **Modifies:** `packages/hub/src/services/backup.ts`, `packages/hub/src/server.ts`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset                | Location                                | Reuse Strategy                                                              |
+| ----------------------------- | --------------------------------------- | --------------------------------------------------------------------------- |
+| XChaCha20-Poly1305 encryption | `packages/crypto/src/symmetric.ts`      | Client-side encryption before upload — hub never sees plaintext             |
+| BLAKE3 hashing                | `packages/crypto/src/hashing.ts`        | Content-addressing for backup blobs                                         |
+| BlobStore                     | `packages/storage/src/blob-store.ts`    | Content-addressed storage pattern — same BLAKE3 CID approach                |
+| `@xnet/storage` ChunkManager  | `packages/storage/src/chunk-manager.ts` | Large blob chunking (64KB threshold) — relevant for backup upload streaming |
+
+> **No backup API exists yet.** This is entirely new server-side code. Client-side crypto primitives are ready.
+
 ## Overview
 
 The backup API provides HTTP endpoints for storing and retrieving encrypted blobs. Clients encrypt documents locally (using `@xnet/crypto` XChaCha20-Poly1305), then upload opaque ciphertext. The hub stores blobs content-addressed by their BLAKE3 hash on the filesystem. UCAN tokens gate access per document, and configurable quotas prevent abuse.

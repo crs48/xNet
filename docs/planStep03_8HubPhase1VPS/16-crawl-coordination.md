@@ -5,6 +5,18 @@
 **Dependencies:** `14-hub-federation-search.md`, `15-global-index-shards.md`
 **Modifies:** `packages/hub/src/services/crawl.ts`, `packages/hub/src/routes/crawl.ts`, `packages/hub/src/storage/`
 
+## Codebase Status (Feb 2026)
+
+> **Crawl coordination is entirely speculative — no code exists.** This is the most advanced feature in the hub plan, depending on global index shards (Phase 14) and a significant user base.
+>
+> Relevant existing work:
+>
+> - [Exploration 0023](../explorations/0023_DECENTRALIZED_SEARCH.md) — Crawl architecture with volunteer crawlers and reputation scoring
+> - `@xnet/crypto` BLAKE3 — CID generation for crawled content deduplication
+> - `@xnet/identity` UCAN — DID-authenticated crawler registration
+>
+> **Note:** The `CrawlStorage` interface referenced in this document is undefined — it needs to be added to the `HubStorage` interface or defined separately.
+
 ## Overview
 
 For xNet to provide a competitive global search index (VISION.md's "decentralized Google"), it needs to crawl the web. Rather than running expensive centralized crawlers, xNet distributes crawl work across volunteer peers and hub operators. The canonical hub coordinates which URLs each crawler should visit, deduplicates results, and routes crawled pages to the correct index shards.

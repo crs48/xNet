@@ -5,6 +5,19 @@
 **Dependencies:** `01-package-scaffold.md`, `03-sync-relay.md`
 **Modifies:** `packages/hub/src/services/awareness.ts`, `packages/hub/src/storage/`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset                     | Location                              | Status                                                                      |
+| ---------------------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
+| UserPresence type                  | `packages/data/src/sync/awareness.ts` | **Complete** — name, color, cursor, selection                               |
+| Awareness in BSM                   | `apps/electron/src/main/bsm.ts`       | BSM forwards awareness messages between renderer and network                |
+| Awareness in WebSocketSyncProvider | `packages/react/src/sync/`            | Handles Yjs awareness protocol messages                                     |
+| `useNode` remoteUsers              | `packages/react/src/hooks/`           | Presence is embedded in `useNode` return — no standalone `usePresence` hook |
+
+> **No awareness persistence exists.** Awareness is purely ephemeral — when a peer disconnects, their presence vanishes immediately. The hub would persist last-known awareness state with TTL for "Alice was here 2 hours ago" UX.
+>
+> **Note:** There is no standalone `usePresence()` hook — presence data comes through `useNode`'s `remoteUsers` field. Phase 11.4 should create a dedicated `usePresence()` hook.
+
 ## Overview
 
 The hub already relays awareness messages (presence, cursors, selections) as pass-through. This upgrade persists the last-known awareness state per user per room, so clients connecting later can see "Alice was editing this document 2 hours ago" without Alice being online. The hub evicts stale awareness entries after a configurable TTL (default: 24 hours).

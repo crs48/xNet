@@ -5,6 +5,18 @@
 **Dependencies:** `infrastructure/signaling/` (existing code to port)
 **New Package:** `packages/hub` (`@xnet/hub`)
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset                  | Location                                 | Reuse Strategy                                                                            |
+| ------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Signaling server (271 LOC)      | `infrastructure/signaling/src/server.ts` | Direct port — same pub/sub protocol, add `publishFromHub` + `setMessageInterceptor` hooks |
+| Signaling Dockerfile + fly.toml | `infrastructure/signaling/`              | Adapt for hub (larger image due to SQLite)                                                |
+| BSM WebSocket handling          | `apps/electron/src/main/bsm.ts`          | Reference for sync message formats                                                        |
+| WebSocketSyncProvider           | `packages/react/src/sync/`               | No changes — hub must be protocol-compatible                                              |
+| SyncManager + ConnectionManager | `packages/react/src/sync/`               | No changes — hub must accept multiplexed room subscriptions                               |
+
+> **Key constraint:** The hub's signaling MUST be wire-compatible with the existing `WebSocketSyncProvider` and `ConnectionManager`. Both use JSON messages with `{type: 'subscribe'|'unsubscribe'|'publish'|'ping', topics?, topic?, data?}` format.
+
 ## Overview
 
 The hub package is a standalone Node.js server that combines signaling, relay, backup, and query into a single process. This step creates the package structure, CLI entry point, and ports the existing signaling logic.

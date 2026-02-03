@@ -5,6 +5,16 @@
 **Dependencies:** `06-query-engine.md`, `14-hub-federation-search.md`
 **Modifies:** `packages/hub/src/services/index-shards.ts`, `packages/hub/src/services/shard-router.ts`, `packages/hub/src/storage/`
 
+## Codebase Status (Feb 2026)
+
+> **Global index sharding is entirely speculative — no code exists.** This is a web-scale feature that depends on federation (Phase 13) and multiple production hubs.
+>
+> Relevant existing work:
+>
+> - [Exploration 0023](../explorations/0023_DECENTRALIZED_SEARCH.md) — Term-partitioned sharding with BM25 scoring design
+> - `@xnet/crypto` BLAKE3 — consistent hash function for shard assignment
+> - The canonical hub (`hub.xnet.io`) would host ALL shards initially and distribute as hubs join the network
+
 ## Overview
 
 Hub Federation (step 14) enables cross-hub queries, but each hub still maintains its own independent index. For a truly global search index (the "decentralized Google" from VISION.md), we need to split a shared global index across multiple hubs, with each hub responsible for a shard of the term space.

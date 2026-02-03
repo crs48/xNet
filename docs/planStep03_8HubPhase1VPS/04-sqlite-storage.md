@@ -5,6 +5,32 @@
 **Dependencies:** `01-package-scaffold.md`, `03-sync-relay.md`
 **Modifies:** `packages/hub/src/storage/`
 
+## Codebase Status (Feb 2026)
+
+| Existing Asset             | Location                                      | Reuse Strategy                                                                               |
+| -------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Electron SQLite adapter    | `apps/electron/src/main/storage.ts` (149 LOC) | **Extract and extend** — already uses `better-sqlite3`, WAL mode, stores Y.Doc state + blobs |
+| `StorageAdapter` interface | `packages/storage/src/types.ts`               | Hub's `HubStorage` interface is a superset — adds FTS5, doc metadata, backups                |
+| BlobStore                  | `packages/storage/src/blob-store.ts`          | Content-addressed blob storage with BLAKE3 — same pattern for hub backup blobs               |
+| `better-sqlite3`           | Already a dependency in Electron              | Known to work well — synchronous API is fine for hub (single process)                        |
+
+### Alignment with Exploration 0042 (Unified Query API)
+
+The `HubStorage` interface should be designed to support the query descriptor format from [Exploration 0042](../explorations/0042_UNIFIED_QUERY_API.md):
+
+- FTS5 for full-text `search()` operator
+- Property indexes for `eq()`, `gt()`, `contains()` filter operators
+- Compound indexes for multi-property sorts
+- The `NodeStorageAdapter` interface (291 LOC in `packages/data/src/store/types.ts`) should be extended with `getChangesSince(lamportTime)` for delta sync
+
+### Alignment with Exploration 0043 (Off-Main-Thread)
+
+The SQLite adapter should be extracted into a shared package (or into `packages/storage/`) so it can be reused by:
+
+1. The hub server
+2. Electron's utility process (when migrated from main process per Exploration 0043)
+3. Web Worker with SQLite-WASM + OPFS (future)
+
 ## Overview
 
 The SQLite storage adapter implements the `HubStorage` interface using `better-sqlite3` in WAL mode. It stores CRDT document state (binary blobs), document metadata (schema, title, owner), backup blobs (encrypted, content-addressed), and a full-text search index (FTS5). The same interface can be swapped for Postgres in Phase 2.
