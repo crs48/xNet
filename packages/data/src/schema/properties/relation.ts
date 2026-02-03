@@ -1,13 +1,33 @@
 /**
  * Relation (node reference) property helper.
+ *
+ * Stores a reference to another node by ID. Can optionally constrain the
+ * target to a specific schema (typed relation) or leave it unconstrained
+ * (untyped relation that can reference any node).
+ *
+ * This is the xNet equivalent of Datomic's `:db.type/ref` — it tells the
+ * system that a property value is a node ID, enabling:
+ * - Temp ID resolution in transactions
+ * - Reverse lookups and cascade operations (future)
+ * - Graph traversal through relation edges (future)
  */
 
 import type { PropertyBuilder } from '../types'
 import type { SchemaIRI } from '../node'
 
 export interface RelationOptions {
-  /** The target schema IRI (e.g., 'xnet://xnet.fyi/Task') */
-  target: SchemaIRI
+  /**
+   * Target schema IRI to constrain this relation to a specific node type.
+   * When omitted, the relation can reference any node regardless of schema.
+   *
+   * @example
+   * // Typed: only references Task nodes
+   * parent: relation({ target: 'xnet://xnet.fyi/Task' })
+   *
+   * // Untyped: references any node
+   * target: relation({ required: true })
+   */
+  target?: SchemaIRI
   required?: boolean
   /** Allow multiple relations */
   multiple?: boolean
@@ -16,19 +36,28 @@ export interface RelationOptions {
 /**
  * Define a relation property that references other nodes.
  *
+ * When `target` is specified, the relation is typed — it declares that
+ * values should be node IDs of the given schema. When omitted, the
+ * relation is untyped and can reference any node.
+ *
  * @example
  * ```typescript
  * const schema = defineSchema({
  *   properties: {
+ *     // Typed relation (references Task nodes only)
  *     parent: relation({ target: 'xnet://xnet.fyi/Task' }),
- *     subtasks: relation({ target: 'xnet://xnet.fyi/Task', multiple: true })
+ *     subtasks: relation({ target: 'xnet://xnet.fyi/Task', multiple: true }),
+ *
+ *     // Untyped relation (references any node)
+ *     target: relation({ required: true }),
+ *     inReplyTo: relation({})
  *   }
  * })
  * ```
  */
 export function relation(options: RelationOptions & { multiple: true }): PropertyBuilder<string[]>
 export function relation(options: RelationOptions): PropertyBuilder<string>
-export function relation(options: RelationOptions): PropertyBuilder<string | string[]> {
+export function relation(options: RelationOptions = {}): PropertyBuilder<string | string[]> {
   const isMultiple = options.multiple ?? false
 
   return {
@@ -36,7 +65,7 @@ export function relation(options: RelationOptions): PropertyBuilder<string | str
       type: 'relation',
       required: options.required ?? false,
       config: {
-        target: options.target,
+        ...(options.target !== undefined && { target: options.target }),
         multiple: isMultiple
       }
     },
