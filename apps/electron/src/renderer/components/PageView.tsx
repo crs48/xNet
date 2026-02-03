@@ -28,6 +28,7 @@ import {
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
 import {
   CommentPopover,
+  CommentsSidebar,
   OrphanedThreadList,
   type CommentThreadData,
   type OrphanedThread
@@ -119,6 +120,7 @@ export function PageView({ docId }: PageViewProps) {
   const [newCommentState, setNewCommentState] = useState<NewCommentState | null>(null)
   const [orphanedIds, setOrphanedIds] = useState<string[]>([])
   const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const dismissTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const editorRef = useRef<Editor | null>(null)
@@ -514,6 +516,60 @@ export function PageView({ docId }: PageViewProps) {
     setNewCommentState(null)
   }, [])
 
+  // ─── Sidebar Handlers ─────────────────────────────────────────────────────────
+
+  const handleSidebarSelectThread = useCallback((threadId: string) => {
+    // Find and scroll to the comment mark in the editor
+    const markEl = document.querySelector(`[data-comment-id="${threadId}"]`) as HTMLElement | null
+    if (markEl) {
+      markEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      // Flash the highlight by briefly selecting it
+      setPopoverState({
+        visible: true,
+        mode: 'full',
+        threadId,
+        anchor: markEl
+      })
+    }
+  }, [])
+
+  const handleSidebarReply = useCallback(
+    async (threadId: string, content: string) => {
+      await replyTo(threadId, content)
+    },
+    [replyTo]
+  )
+
+  const handleSidebarResolve = useCallback(
+    async (threadId: string) => {
+      await resolveThread(threadId)
+      editorRef.current?.commands.setCommentResolved(threadId, true)
+    },
+    [resolveThread]
+  )
+
+  const handleSidebarReopen = useCallback(
+    async (threadId: string) => {
+      await reopenThread(threadId)
+      editorRef.current?.commands.setCommentResolved(threadId, false)
+    },
+    [reopenThread]
+  )
+
+  const handleSidebarDelete = useCallback(
+    async (commentId: string) => {
+      await deleteComment(commentId)
+    },
+    [deleteComment]
+  )
+
+  const handleSidebarEdit = useCallback(
+    async (commentId: string, newContent: string) => {
+      await editComment(commentId, newContent)
+    },
+    [editComment]
+  )
+
   // ─── Comment Extensions ───────────────────────────────────────────────────────
 
   const commentExtensions = useMemo(
@@ -592,6 +648,9 @@ export function PageView({ docId }: PageViewProps) {
     [threadDataMap]
   )
 
+  // Sidebar thread list (derived from threadDataMap)
+  const sidebarThreads = useMemo(() => Array.from(threadDataMap.values()), [threadDataMap])
+
   if (loading || !doc || !pluginsReady) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -601,7 +660,7 @@ export function PageView({ docId }: PageViewProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-auto">
+    <div className="flex-1 flex flex-col overflow-hidden">
       <DocumentHeader
         docId={docId}
         docType="page"
@@ -611,48 +670,66 @@ export function PageView({ docId }: PageViewProps) {
       >
         <SyncIndicator status={syncStatus} peerCount={peerCount} />
         {unresolvedCount > 0 && (
-          <div
-            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+          <button
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={`${unresolvedCount} unresolved comment${unresolvedCount !== 1 ? 's' : ''}`}
+            onClick={() => setSidebarOpen((prev) => !prev)}
           >
             <span className="text-amber-500">{unresolvedCount}</span>
             <span>comment{unresolvedCount !== 1 ? 's' : ''}</span>
-          </div>
+          </button>
         )}
         <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
       </DocumentHeader>
 
-      {/* Editor */}
-      <div className="flex-1 px-6 py-4">
-        <RichTextEditor
-          ydoc={doc}
-          field="content"
-          placeholder="Start typing..."
-          showToolbar={true}
-          toolbarMode="desktop"
-          awareness={awareness ?? undefined}
-          did={did ?? undefined}
-          onImageUpload={onImageUpload ?? undefined}
-          onFileUpload={onFileUpload ?? undefined}
-          onFileDownload={onFileDownload ?? undefined}
-          extensions={allExtensions}
-          onCreateComment={handleCreateComment}
-          onEditorReady={handleEditorReady}
-        />
+      {/* Editor + Sidebar horizontal layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Editor */}
+        <div className="flex-1 overflow-auto px-6 py-4">
+          <RichTextEditor
+            ydoc={doc}
+            field="content"
+            placeholder="Start typing..."
+            showToolbar={true}
+            toolbarMode="desktop"
+            awareness={awareness ?? undefined}
+            did={did ?? undefined}
+            onImageUpload={onImageUpload ?? undefined}
+            onFileUpload={onFileUpload ?? undefined}
+            onFileDownload={onFileDownload ?? undefined}
+            extensions={allExtensions}
+            onCreateComment={handleCreateComment}
+            onEditorReady={handleEditorReady}
+          />
 
-        {/* Orphaned Comments Section */}
-        {orphanedThreads.length > 0 && (
-          <div className="mt-6">
-            <OrphanedThreadList
-              orphanedThreads={orphanedThreads}
-              collapsed={orphanedCollapsed}
-              onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
-              onDismiss={handleDismissOrphaned}
-              onReattach={handleReattachOrphaned}
-              onSelect={handleSelectOrphaned}
-            />
-          </div>
-        )}
+          {/* Orphaned Comments Section */}
+          {orphanedThreads.length > 0 && (
+            <div className="mt-6">
+              <OrphanedThreadList
+                orphanedThreads={orphanedThreads}
+                collapsed={orphanedCollapsed}
+                onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
+                onDismiss={handleDismissOrphaned}
+                onReattach={handleReattachOrphaned}
+                onSelect={handleSelectOrphaned}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Comments Sidebar */}
+        <CommentsSidebar
+          threads={sidebarThreads}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onSelectThread={handleSidebarSelectThread}
+          selectedThreadId={popoverState.threadId}
+          onReply={handleSidebarReply}
+          onResolve={handleSidebarResolve}
+          onReopen={handleSidebarReopen}
+          onDelete={handleSidebarDelete}
+          onEdit={handleSidebarEdit}
+        />
       </div>
 
       {/* Comment Popover */}
