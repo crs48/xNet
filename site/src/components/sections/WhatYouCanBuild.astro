@@ -53,13 +53,16 @@ await mcp.create(TaskSchema, {
 })`,
   },
   {
-    title: 'Cross-Platform Apps',
-    description: 'Same hooks work on Electron, Web (PWA), and mobile (Expo). Write once, sync everywhere.',
+    title: 'Media-Rich Apps',
+    description: 'Content-addressed blob storage with BLAKE3 hashes. Upload images, files, and attachments — auto-compressed, deduplicated, and P2P synced between devices.',
     color: 'blue',
-    code: `// Same code on every platform
-const { data } = useQuery(Schema)
-const { create } = useMutate()
-// Electron, Web, iOS, Android`,
+    code: `import { useImageUpload } from '@xnet/editor'
+
+const upload = useImageUpload()
+// Auto-compresses, generates CID
+const ref = await upload(file)
+// { cid: 'cid:blake3:a1b2...', name, size }
+// Syncs to peers via blob-sync protocol`,
   },
 ]
 
