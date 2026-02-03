@@ -57,6 +57,10 @@ export default defineConfig({
             { slug: 'docs/guides/identity' },
             { slug: 'docs/guides/collaboration' },
             { slug: 'docs/guides/plugins' },
+            { slug: 'docs/guides/canvas' },
+            { slug: 'docs/guides/editor' },
+            { slug: 'docs/guides/hub' },
+            { slug: 'docs/guides/devtools' },
             { slug: 'docs/guides/electron' },
             { slug: 'docs/guides/testing' }
           ]
@@ -70,7 +74,8 @@ export default defineConfig({
             { slug: 'docs/concepts/sync-architecture' },
             { slug: 'docs/concepts/identity-model' },
             { slug: 'docs/concepts/cryptography' },
-            { slug: 'docs/concepts/data-model' }
+            { slug: 'docs/concepts/data-model' },
+            { slug: 'docs/concepts/network' }
           ]
         },
         {
