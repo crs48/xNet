@@ -22,3 +22,4 @@ export {
   type OrphanReason
 } from './OrphanedThreadList'
 export { ThreadPicker, type ThreadPickerProps, type ThreadPreview } from './ThreadPicker'
+export { CommentsSidebar, type CommentsSidebarProps } from './CommentsSidebar'

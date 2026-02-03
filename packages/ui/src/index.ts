@@ -112,7 +112,9 @@ export {
   type OrphanedCommentData,
   type OrphanReason,
   type ThreadPickerProps,
-  type ThreadPreview
+  type ThreadPreview,
+  CommentsSidebar,
+  type CommentsSidebarProps
 } from './composed/comments'
 
 // ─── Theme ────────────────────────────────────────────────────────
