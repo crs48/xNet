@@ -461,6 +461,9 @@ export function Seed() {
       // Create Y.Doc for storing the database data
       const ydoc = new Y.Doc({ guid: node.id, gc: false })
 
+      // Pre-generate row IDs so we can reference them in comment anchors
+      const rowIds = [generateId(), generateId(), generateId(), generateId(), generateId()]
+
       ydoc.transact(() => {
         const dataMap = ydoc.getMap('data')
 
@@ -535,7 +538,7 @@ export function Seed() {
         const rows = [
           // Row 1: All fields populated
           {
-            id: generateId(),
+            id: rowIds[0],
             text: 'Fully populated row',
             number: 42.5,
             checkbox: true,
@@ -559,7 +562,7 @@ export function Seed() {
           },
           // Row 2: Different values
           {
-            id: generateId(),
+            id: rowIds[1],
             text: 'Another row with data',
             number: 100,
             checkbox: false,
@@ -583,7 +586,7 @@ export function Seed() {
           },
           // Row 3: Sparse data (some empty)
           {
-            id: generateId(),
+            id: rowIds[2],
             text: 'Sparse row',
             number: 0,
             checkbox: false,
@@ -603,7 +606,7 @@ export function Seed() {
           },
           // Row 4: Edge cases (negative number, all tags, no select)
           {
-            id: generateId(),
+            id: rowIds[3],
             text: 'Edge cases row',
             number: -99.9,
             checkbox: true,
@@ -623,7 +626,7 @@ export function Seed() {
           },
           // Row 5: Empty row (all user-editable fields empty)
           {
-            id: generateId(),
+            id: rowIds[4],
             text: '',
             number: null,
             checkbox: false,
@@ -702,7 +705,7 @@ export function Seed() {
           target: node.id,
           targetSchema: dbSchemaId,
           anchorType: 'cell',
-          anchorData: JSON.stringify({ rowIndex: 0, columnId: 'text' }),
+          anchorData: JSON.stringify({ rowId: rowIds[0], propertyKey: 'text' }),
           content: 'This row has all fields populated - great for screenshot demos.',
           resolved: false,
           edited: false
@@ -731,7 +734,7 @@ export function Seed() {
           target: node.id,
           targetSchema: dbSchemaId,
           anchorType: 'row',
-          anchorData: JSON.stringify({ rowIndex: 2 }),
+          anchorData: JSON.stringify({ rowId: rowIds[2] }),
           content:
             'Should we fill in more fields here, or keep it sparse for testing empty states?',
           resolved: false,
@@ -746,7 +749,7 @@ export function Seed() {
           target: node.id,
           targetSchema: dbSchemaId,
           anchorType: 'column',
-          anchorData: JSON.stringify({ columnId: 'dateRange' }),
+          anchorData: JSON.stringify({ propertyKey: 'dateRange' }),
           content: 'Fixed: dateRange column now correctly handles same-day ranges.',
           resolved: true,
           edited: false
