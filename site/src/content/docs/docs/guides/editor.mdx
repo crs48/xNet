@@ -1,0 +1,171 @@
+---
+title: 'Rich Text Editor'
+draft: false
+description: 'TipTap editor with Yjs collaboration, slash commands, and plugin extensions.'
+sidebar:
+  order: 11
+---
+
+:::note[You will learn]
+
+- The editor component and its props
+- All built-in extensions (20+)
+- Slash commands and the floating toolbar
+- How plugins contribute editor extensions
+- Yjs collaboration and cursor presence
+  :::
+
+## Overview
+
+`@xnet/editor` is a collaborative rich text editor built on TipTap v3 with Yjs for real-time CRDT sync. It provides three entry points:
+
+| Import                    | Contents                                 |
+| ------------------------- | ---------------------------------------- |
+| `@xnet/editor`            | Core `Editor` class (framework-agnostic) |
+| `@xnet/editor/react`      | React components, hooks, node views      |
+| `@xnet/editor/extensions` | All TipTap extensions and utilities      |
+
+## RichTextEditor component
+
+```tsx
+import { RichTextEditor } from '@xnet/editor/react'
+
+<RichTextEditor
+  ydoc={ydoc}                          // Required: Yjs document
+  field="content"                       // Y.XmlFragment field name
+  placeholder="Start writing..."
+  awareness={awareness}                 // Cursor presence
+  did={myDID}                           // Local user's DID for cursor color
+  showToolbar={true}
+  readOnly={false}
+  extensions={pluginExtensions}         // Additional TipTap extensions
+  slashCommands={customCommands}        // Custom slash commands
+  onNavigate={(docId) => router.push(`/doc/${docId}`)}
+  onImageUpload={handleImageUpload}
+  onFileUpload={handleFileUpload}
+  onEditorReady={(editor) => { ... }}
+/>
+```
+
+## Built-in extensions
+
+### Block types
+
+| Block           | Description                                                               | Input             |
+| --------------- | ------------------------------------------------------------------------- | ----------------- |
+| Paragraph       | Default text block                                                        | —                 |
+| Heading (1-6)   | Section headings with `#` syntax preview                                  | `# `, `## `, etc. |
+| Code Block      | Syntax-highlighted code with language selector                            | ` ``` `           |
+| Blockquote      | Quote with `>` prefix preview                                             | `> `              |
+| Bullet List     | Unordered list                                                            | `- ` or `* `      |
+| Ordered List    | Numbered list                                                             | `1. `             |
+| Task List       | Checkbox list with nesting                                                | `[ ] `            |
+| Horizontal Rule | Divider                                                                   | `---`             |
+| Image           | CID-based with paste/drop upload, resize handles, alignment               | Paste or `/image` |
+| File            | Generic file attachment with upload progress                              | Drop or `/file`   |
+| Embed           | Auto-embed for YouTube, Vimeo, Spotify, Twitter, Figma, CodeSandbox, Loom | Paste URL         |
+| Callout         | 6 types (info, tip, warning, caution, note, quote), collapsible           | `> [!info]`       |
+| Toggle          | Collapsible details/summary sections                                      | `> [toggle]`      |
+| Database Embed  | Inline database views (table/board/list/calendar/gallery/timeline)        | `/database`       |
+| Mermaid         | Diagram blocks (via plugin)                                               | ` ```mermaid `    |
+
+### Marks
+
+Bold, italic, strikethrough, code, link, wikilink (`[[page-name]]`), and comment.
+
+### Live preview
+
+Obsidian-style inline markdown syntax rendering — bold markers (`**`), italic (`*`), strikethrough (`~~`), and code (`` ` ``) are shown as decorations while typing and hidden when the cursor moves away.
+
+## Slash commands
+
+Type `/` to open the command palette. Built-in command groups:
+
+- **Basic Blocks** — Text, H1, H2, H3
+- **Lists** — Bullet, Numbered, Task
+- **Blocks** — Quote, Code Block, Divider
+- **Media** — Image, File, Embed
+- **Callouts** — Info, Tip, Warning, Caution, Note
+- **Toggles** — Toggle section
+- **Data** — Database
+
+Plugins can add custom slash commands via `contributes.slashCommands`.
+
+## Floating toolbar
+
+The toolbar appears on text selection:
+
+- **Desktop** — Bubble menu floating near the selection
+- **Mobile** — Fixed bottom bar, horizontally scrollable
+
+Built-in buttons: Bold, Italic, Strike, Code, Comment | H1, H2, H3 | Bullet, Ordered, Task | Quote, Code Block, Divider.
+
+Plugins can add toolbar buttons via `EditorContribution.toolbar`.
+
+## Drag and drop
+
+Three integrated plugins handle block-level drag and drop:
+
+- **DragHandle** — Shows a grip icon on hover at the left edge of blocks
+- **DragDropPlugin** — Handles block reordering via drag
+- **DropIndicator** — Shows a visual insertion line during drag
+
+## Yjs collaboration
+
+The editor binds to a `Y.XmlFragment` inside the Y.Doc via TipTap's `Collaboration` extension. When you pass an `awareness` instance, cursor presence is shown automatically:
+
+- Remote cursors rendered as colored carets with DID-derived identicon avatars
+- Selections shown as translucent highlights in the user's color
+- Hover over a cursor to see the user label
+
+### Comment anchors
+
+Comments are positioned using Yjs relative positions (`captureTextAnchor` / `resolveTextAnchor`). This means comment positions survive concurrent edits — if someone inserts text before your comment, the anchor moves with the text.
+
+## Plugin extensions
+
+Plugins contribute editor extensions through the contribution system:
+
+```ts
+// In a plugin manifest
+contributes: {
+  editorExtensions: [{
+    id: 'my-extension',
+    extension: MyTipTapExtension,
+    priority: 100,
+    toolbar: {
+      icon: MyIcon,
+      title: 'My Tool',
+      group: 'insert',
+      action: (editor) => editor.chain().focus().insertMyThing().run()
+    }
+  }],
+  slashCommands: [{
+    id: 'my-command',
+    name: 'My Block',
+    execute: ({ editor, range }) => { ... }
+  }]
+}
+```
+
+The Electron app collects plugin extensions via `useEditorExtensionsSafe()` and passes them to `<RichTextEditor extensions={...} />`. Plugin extensions are loaded before the editor mounts to prevent crashes when Yjs content contains nodes from unregistered extensions.
+
+## Embed providers
+
+URLs pasted into the editor are automatically detected and embedded for 7 services:
+
+| Provider    | URL Pattern                     |
+| ----------- | ------------------------------- |
+| YouTube     | `youtube.com/watch`, `youtu.be` |
+| Vimeo       | `vimeo.com`                     |
+| Spotify     | `open.spotify.com`              |
+| Twitter/X   | `twitter.com`, `x.com`          |
+| Figma       | `figma.com`                     |
+| CodeSandbox | `codesandbox.io`                |
+| Loom        | `loom.com`                      |
+
+## Further reading
+
+- [Collaboration Guide](/xNet/docs/guides/collaboration/) — Real-time editing patterns
+- [Plugin Development](/xNet/docs/guides/plugins/) — Contributing editor extensions
+- [useNode](/xNet/docs/hooks/usenode/) — The hook that provides the editor
