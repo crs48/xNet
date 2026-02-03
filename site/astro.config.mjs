@@ -2,14 +2,41 @@
 import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 import tailwind from '@astrojs/tailwind'
-import rehypeMermaid from 'rehype-mermaid'
+/**
+ * Lightweight rehype plugin that converts ```mermaid code blocks into
+ * <pre class="mermaid"> elements for client-side rendering by Mermaid.js.
+ * Replaces rehype-mermaid (which drags in playwright as a transitive dep).
+ */
+function rehypeMermaidPre() {
+  function walk(node) {
+    if (!node.children) return
+    for (const child of node.children) {
+      if (
+        child.type === 'element' &&
+        child.tagName === 'pre' &&
+        child.children?.length === 1 &&
+        child.children[0].tagName === 'code'
+      ) {
+        const code = child.children[0]
+        const classes = code.properties?.className || []
+        if (classes.includes('language-mermaid')) {
+          const text = code.children?.map((c) => c.value || '').join('')
+          child.properties = { className: ['mermaid'] }
+          child.children = [{ type: 'text', value: text }]
+        }
+      }
+      walk(child)
+    }
+  }
+  return (tree) => walk(tree)
+}
 
 // https://astro.build/config
 export default defineConfig({
   site: 'https://crs48.github.io',
   base: '/xNet',
   markdown: {
-    rehypePlugins: [[rehypeMermaid, { strategy: 'pre-mermaid' }]]
+    rehypePlugins: [rehypeMermaidPre]
   },
   integrations: [
     starlight({
