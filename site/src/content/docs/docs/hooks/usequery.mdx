@@ -75,7 +75,7 @@ The second argument determines the overload: pass a `string` for single-node loo
 
 | Parameter | Type               | Description                                                                             |
 | --------- | ------------------ | --------------------------------------------------------------------------------------- |
-| `schema`  | `DefinedSchema<P>` | The schema to query. Created with [`defineSchema()`](/xNet/schemas/defineschema/). |
+| `schema`  | `DefinedSchema<P>` | The schema to query. Created with [`defineSchema()`](/xNet/docs/schemas/defineschema/). |
 | `id`      | `string`           | _(Overload 2)_ Node ID to fetch.                                                        |
 | `filter`  | `QueryFilter<P>`   | _(Overload 3)_ Filter, sort, and pagination options.                                    |
 
@@ -217,6 +217,6 @@ Single-node queries return `null` for deleted nodes. List queries exclude delete
 
 ## Related
 
-- [`useMutate`](/xNet/hooks/usemutate/) — write data that `useQuery` reads
-- [`useNode`](/xNet/hooks/usenode/) — when you need a Yjs document for one node
-- [`defineSchema`](/xNet/schemas/defineschema/) — define the schemas you query
+- [`useMutate`](/xNet/docs/hooks/usemutate/) — write data that `useQuery` reads
+- [`useNode`](/xNet/docs/hooks/usenode/) — when you need a Yjs document for one node
+- [`defineSchema`](/xNet/docs/schemas/defineschema/) — define the schemas you query

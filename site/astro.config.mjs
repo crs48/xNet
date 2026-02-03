@@ -21,70 +21,74 @@ export default defineConfig({
       sidebar: [
         {
           label: 'Start Here',
-          items: [{ slug: 'introduction' }, { slug: 'quickstart' }, { slug: 'core-concepts' }]
+          items: [
+            { slug: 'docs/introduction' },
+            { slug: 'docs/quickstart' },
+            { slug: 'docs/core-concepts' }
+          ]
         },
         {
           label: 'React Hooks',
           items: [
-            { slug: 'hooks/overview' },
-            { slug: 'hooks/usequery' },
-            { slug: 'hooks/usemutate' },
-            { slug: 'hooks/usenode' },
-            { slug: 'hooks/useidentity' },
-            { slug: 'hooks/patterns' }
+            { slug: 'docs/hooks/overview' },
+            { slug: 'docs/hooks/usequery' },
+            { slug: 'docs/hooks/usemutate' },
+            { slug: 'docs/hooks/usenode' },
+            { slug: 'docs/hooks/useidentity' },
+            { slug: 'docs/hooks/patterns' }
           ]
         },
         {
           label: 'Schemas & Data',
           items: [
-            { slug: 'schemas/overview' },
-            { slug: 'schemas/defineschema' },
-            { slug: 'schemas/property-types' },
-            { slug: 'schemas/relations' },
-            { slug: 'schemas/type-inference' }
+            { slug: 'docs/schemas/overview' },
+            { slug: 'docs/schemas/defineschema' },
+            { slug: 'docs/schemas/property-types' },
+            { slug: 'docs/schemas/relations' },
+            { slug: 'docs/schemas/type-inference' }
           ]
         },
         {
           label: 'Guides',
           collapsed: true,
           items: [
-            { slug: 'guides/sync' },
-            { slug: 'guides/offline' },
-            { slug: 'guides/identity' },
-            { slug: 'guides/collaboration' },
-            { slug: 'guides/plugins' },
-            { slug: 'guides/electron' },
-            { slug: 'guides/testing' }
+            { slug: 'docs/guides/sync' },
+            { slug: 'docs/guides/offline' },
+            { slug: 'docs/guides/identity' },
+            { slug: 'docs/guides/collaboration' },
+            { slug: 'docs/guides/plugins' },
+            { slug: 'docs/guides/electron' },
+            { slug: 'docs/guides/testing' }
           ]
         },
         {
           label: 'Concepts',
           collapsed: true,
           items: [
-            { slug: 'concepts/local-first' },
-            { slug: 'concepts/crdts' },
-            { slug: 'concepts/sync-architecture' },
-            { slug: 'concepts/identity-model' },
-            { slug: 'concepts/cryptography' },
-            { slug: 'concepts/data-model' }
+            { slug: 'docs/concepts/local-first' },
+            { slug: 'docs/concepts/crdts' },
+            { slug: 'docs/concepts/sync-architecture' },
+            { slug: 'docs/concepts/identity-model' },
+            { slug: 'docs/concepts/cryptography' },
+            { slug: 'docs/concepts/data-model' }
           ]
         },
         {
           label: 'Architecture',
           collapsed: true,
           items: [
-            { slug: 'architecture/overview' },
-            { slug: 'architecture/decisions' },
-            { slug: 'architecture/package-graph' }
+            { slug: 'docs/architecture/overview' },
+            { slug: 'docs/architecture/decisions' },
+            { slug: 'docs/architecture/package-graph' }
           ]
         },
         {
           label: 'Contributing',
           collapsed: true,
           items: [
-            { slug: 'contributing/getting-started' },
-            { slug: 'contributing/code-style' },
-            { slug: 'contributing/testing' }
+            { slug: 'docs/contributing/getting-started' },
+            { slug: 'docs/contributing/code-style' },
+            { slug: 'docs/contributing/testing' }
           ]
         }
       ]

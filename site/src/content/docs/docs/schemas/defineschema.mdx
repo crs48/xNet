@@ -58,7 +58,7 @@ function defineSchema<P extends Record<string, PropertyBuilder>>(
 | `namespace`  | `` `xnet://${string}/` ``         | Yes      | Namespace for grouping. Must end with `/`.                                         |
 | `properties` | `Record<string, PropertyBuilder>` | Yes      | Property definitions using builder functions.                                      |
 | `extends`    | `DefinedSchema`                   | No       | Parent schema to inherit properties from.                                          |
-| `document`   | `'yjs' \| 'automerge'`            | No       | CRDT document type. Required for [`useNode`](/xNet/hooks/usenode/) rich text. |
+| `document`   | `'yjs' \| 'automerge'`            | No       | CRDT document type. Required for [`useNode`](/xNet/docs/hooks/usenode/) rich text. |
 
 ### Schema IRI
 
@@ -105,7 +105,7 @@ Validation checks:
 
 ## Adding rich text support
 
-Add `document: 'yjs'` to enable collaborative editing via [`useNode`](/xNet/hooks/usenode/):
+Add `document: 'yjs'` to enable collaborative editing via [`useNode`](/xNet/docs/hooks/usenode/):
 
 ```ts
 export const PageSchema = defineSchema({
@@ -168,6 +168,6 @@ In development, `defineSchema` warns if:
 
 ## Related
 
-- [Property Types](/xNet/schemas/property-types/) — all 16 property builders
-- [Relations](/xNet/schemas/relations/) — linking nodes together
-- [Type Inference](/xNet/schemas/type-inference/) — how TypeScript types flow
+- [Property Types](/xNet/docs/schemas/property-types/) — all 16 property builders
+- [Relations](/xNet/docs/schemas/relations/) — linking nodes together
+- [Type Inference](/xNet/docs/schemas/type-inference/) — how TypeScript types flow
