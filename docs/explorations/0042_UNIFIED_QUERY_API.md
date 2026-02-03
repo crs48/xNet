@@ -1796,6 +1796,12 @@ The xNet Option C API is closest to Prisma in syntax and covers the vast majorit
 
 10. **Property selection revisited**: If xNet ever supports a "thin client" mode (e.g., a web app that queries a remote peer without syncing the full dataset), property selection becomes relevant again — it would reduce wire payload from the remote peer. Should the query API support `select` as a no-op hint today that becomes meaningful later, or should it only be added when the use case materializes?
 
+11. **Hub query trust model**: If a hub returns query results (ranked node IDs, aggregate counts), should the client trust them or verify? The client can verify that returned nodes exist and match the query locally, but it can't verify completeness ("the hub returned all matching nodes, not just some"). For search ranking, the client can't verify relevance scores. Is "trust but verify what you can" sufficient, or does hub offloading need a stronger integrity model?
+
+12. **SQLite migration timing**: Moving Electron's NodeStore from IndexedDB to SQLite is a prerequisite for FTS5 and compound indexes. Should this happen before or after the query API enhancements? Argument for before: the query engine can use SQL directly, avoiding reimplementing filtering logic in JS. Argument for after: the current JS filtering works, and the query API design shouldn't be coupled to a specific backend.
+
+13. **Search engine boundary**: Should the search index be part of the `NodeStorageAdapter` interface (every adapter provides search), or a separate `SearchAdapter` interface that can be backed by MiniSearch, FTS5, or MeiliSearch independently? Separate interfaces allow mixing (e.g., IndexedDB for storage + MiniSearch for search on web, SQLite for both on Electron).
+
 ## Part 14: Property Selection (GraphQL/Pull-Style Whitelisting)
 
 ### The Idea
@@ -2013,6 +2019,256 @@ const { data } = useQuery(Task, taskId, {
 | **xNet**        | Local IndexedDB | Local store → JS object | **No** — data is already local, full nodes are cheap       |
 | **TinyBase**    | Local memory    | Memory → JS object      | **No** — same reasoning as xNet                            |
 | **ElectricSQL** | Local SQLite    | Local DB → JS object    | **Marginal** — SQLite can skip columns, but rows are small |
+
+## Part 15: Storage Backends and Hub-Side Indexes
+
+### The Storage Adapter Is Already Swappable
+
+The `NodeStorageAdapter` interface is a clean abstraction with two implementations today:
+
+| Backend        | Implementation                | Where                            |
+| -------------- | ----------------------------- | -------------------------------- |
+| In-memory Maps | `MemoryNodeStorageAdapter`    | Tests, fallback                  |
+| IndexedDB      | `IndexedDBNodeStorageAdapter` | Browser (Electron renderer, PWA) |
+
+The interface is narrow (15 methods, all async) and the `NodeStore` accepts it via constructor injection. Swapping backends requires zero changes to the query layer, the sync layer, or the React hooks — just a new class implementing the interface.
+
+Two additional SQLite adapters already exist for the older `StorageAdapter` (SDK-level, Y.Doc focused):
+
+- `better-sqlite3` in Electron main process (`apps/electron/src/main/storage.ts`)
+- `expo-sqlite` in the Expo app (`apps/expo/src/storage/ExpoStorageAdapter.ts`)
+
+Neither implements `NodeStorageAdapter` yet. A `SQLiteNodeStorageAdapter` is [planned for mobile](../planStep03_9ExpoStorage/README.md) but not built.
+
+### Why IndexedDB Is Fine for Now — and Where It Isn't
+
+IndexedDB is adequate for local-first client data at the scale most users encounter (hundreds to low thousands of nodes). Its limitations emerge at the edges:
+
+| Concern                   | IndexedDB                            | SQLite                                       | Postgres                                  |
+| ------------------------- | ------------------------------------ | -------------------------------------------- | ----------------------------------------- |
+| **Max practical dataset** | ~50K nodes before perf degrades      | Millions of rows                             | Billions of rows                          |
+| **Full-text search**      | Not built in (need MiniSearch in JS) | FTS5 extension (fast, ranked)                | `tsvector` / `pg_trgm` (production-grade) |
+| **Complex queries**       | Full scan + JS filtering             | SQL with indexes, joins, CTEs                | Full SQL, window functions, CTEs          |
+| **Compound indexes**      | Supported but limited                | Full SQL index support                       | Full SQL + partial/expression indexes     |
+| **Transactions**          | Async, single-store per tx           | Synchronous, multi-table ACID                | Full ACID, MVCC                           |
+| **Concurrency**           | Single-thread (main or worker)       | WAL mode, concurrent readers                 | Multi-process, connection pooling         |
+| **Runs in browser**       | Yes                                  | No (needs native bridge)                     | No                                        |
+| **Runs in Electron main** | No                                   | Yes (`better-sqlite3`, already a dependency) | Yes (via pg driver)                       |
+| **Runs on mobile**        | Yes (WebView)                        | Yes (`expo-sqlite`)                          | No                                        |
+| **Runs on a VPS hub**     | No                                   | Yes                                          | Yes                                       |
+
+The key insight: **different environments should use different backends**, and the `NodeStorageAdapter` interface makes this possible without touching application code.
+
+### Backend Strategy Per Platform
+
+```mermaid
+flowchart TD
+    subgraph "Electron App"
+        E_RENDER[Renderer Process] -->|IndexedDB| E_IDB[(IndexedDB)]
+        E_MAIN[Main Process] -->|better-sqlite3| E_SQL[(SQLite)]
+        E_RENDER -.->|"future: IPC to main"| E_MAIN
+    end
+
+    subgraph "Web/PWA"
+        W[Browser] -->|IndexedDB| W_IDB[(IndexedDB)]
+        W -.->|"future: OPFS + SQLite WASM"| W_SQL[(wa-sqlite)]
+    end
+
+    subgraph "Mobile (Expo)"
+        M[React Native] -->|expo-sqlite| M_SQL[(SQLite)]
+    end
+
+    subgraph "Hub (VPS)"
+        H[Node.js] -->|better-sqlite3| H_SQL[(SQLite)]
+        H -.->|"Phase 2"| H_PG[(Postgres)]
+    end
+
+    style E_IDB fill:#fbbf24,stroke:#f59e0b
+    style E_SQL fill:#4ade80,stroke:#16a34a
+    style W_IDB fill:#fbbf24,stroke:#f59e0b
+    style W_SQL fill:#4ade80,stroke:#16a34a
+    style M_SQL fill:#4ade80,stroke:#16a34a
+    style H_SQL fill:#4ade80,stroke:#16a34a
+    style H_PG fill:#818cf8,stroke:#6366f1
+```
+
+**Electron today**: The renderer uses IndexedDB for `NodeStore` data, while the main process uses `better-sqlite3` for Y.Doc storage. A natural next step is moving `NodeStore` data to SQLite in the main process too, accessed via IPC from the renderer. This gives:
+
+- FTS5 for full-text search (replaces MiniSearch)
+- Proper compound indexes for property filtering
+- Single source of truth (no IndexedDB ↔ SQLite split)
+- The main process already has `better-sqlite3` as a dependency
+
+**Web/PWA**: Stuck with IndexedDB for now. [wa-sqlite](https://nicolo-ribaudo.github.io/nicolo-ribaudo.github.io/nicolo-ribaudo.github.io/) (SQLite compiled to WASM, backed by OPFS) is an emerging option for browsers that need real SQL, but it adds ~600KB to bundle size and OPFS support is still spotty.
+
+**Mobile**: `expo-sqlite` already works. Building a `SQLiteNodeStorageAdapter` over it is straightforward.
+
+**Hub**: SQLite via `better-sqlite3` for Phase 1, Postgres for Phase 2 when horizontal scaling or multi-tenancy is needed.
+
+### Hubs as Heavyweight Index Servers
+
+Client devices have constrained resources — limited storage, limited CPU for indexing, battery concerns. A hub has none of these constraints. This creates an asymmetry the query system can exploit:
+
+```mermaid
+flowchart LR
+    subgraph "Client (Electron/Mobile/Browser)"
+        C_STORE[Local NodeStore]
+        C_IDX["Light indexes<br>(schema, relation, person)"]
+        C_SEARCH["In-memory search<br>(MiniSearch, ~1K nodes)"]
+    end
+
+    subgraph "Hub (VPS)"
+        H_STORE["Full NodeStore<br>(all synced data)"]
+        H_IDX["Heavy indexes<br>(compound property, GIN, spatial)"]
+        H_FTS["FTS engine<br>(SQLite FTS5 or dedicated)"]
+        H_GRAPH["Graph index<br>(materialized transitive closure)"]
+        H_AGG["Pre-computed aggregates<br>(rollup caches, dashboards)"]
+    end
+
+    C_STORE <-->|"sync changes"| H_STORE
+    C_IDX -.->|"query offload"| H_IDX
+    C_SEARCH -.->|"remote search"| H_FTS
+
+    style C_SEARCH fill:#fbbf24,stroke:#f59e0b
+    style H_FTS fill:#4ade80,stroke:#16a34a
+    style H_GRAPH fill:#4ade80,stroke:#16a34a
+    style H_AGG fill:#4ade80,stroke:#16a34a
+```
+
+#### What a Hub Can Index That a Client Can't
+
+| Index Type                     | Client (IndexedDB)           | Hub (SQLite/Postgres)                             | Why the Hub Wins                                                                         |
+| ------------------------------ | ---------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Full-text search**           | MiniSearch in JS (~1K nodes) | SQLite FTS5 or MeiliSearch (~1M+ docs)            | Dedicated search engines handle tokenization, stemming, ranking, typo tolerance at scale |
+| **Compound property indexes**  | Not supported                | `CREATE INDEX ON nodes(schema, status, priority)` | SQL databases handle multi-column indexes natively                                       |
+| **Materialized graph closure** | Too expensive to maintain    | Pre-compute transitive closure on write           | Hub can afford O(V+E) computation; client can't                                          |
+| **Cross-user aggregates**      | Only sees local data         | Sees all data from all synced users               | "Most active tasks in this workspace" requires global view                               |
+| **Embedding/vector index**     | Not feasible                 | pgvector, SQLite-vec, or Qdrant                   | Semantic search needs ~384-1536 floats per document                                      |
+| **Spatial indexes**            | Not supported                | R-tree (SQLite), PostGIS (Postgres)               | Canvas nodes with spatial queries at scale                                               |
+
+#### Hub Query Offloading
+
+The query API can transparently offload to a hub when the local store can't answer efficiently:
+
+```typescript
+// This query runs locally — small dataset, simple filter
+const { data } = useQuery(Task, {
+  where: { status: eq('todo') }
+})
+
+// This query offloads to the hub — full-text search across 100K nodes
+const { data } = useQuery(Task, {
+  search: 'authentication flow',
+  limit: 20
+})
+// Internally:
+// 1. Check: do we have a hub connection?
+// 2. Check: is this query type better served by the hub? (search → yes)
+// 3. Send query descriptor to hub via WebSocket
+// 4. Hub runs FTS5/MeiliSearch, returns ranked node IDs
+// 5. Client resolves IDs to local NodeState (or fetches missing nodes)
+// 6. Subscribe to hub for live updates to the query
+
+// Developer doesn't know or care whether it ran locally or on the hub
+```
+
+```mermaid
+sequenceDiagram
+    participant Component as React Component
+    participant Hook as useQuery
+    participant Engine as Query Engine
+    participant Local as Local Store
+    participant Hub as Hub Server
+
+    Component->>Hook: useQuery(Task, { search: 'auth' })
+    Hook->>Engine: Execute query
+    Engine->>Engine: Can local store handle this?
+    Note over Engine: search on 50K nodes → too slow locally
+    Engine->>Hub: WebSocket: { type: 'query', schema: 'Task', search: 'auth' }
+    Hub->>Hub: Run FTS5 query
+    Hub-->>Engine: { nodeIds: ['abc', 'def', ...], scores: [0.95, 0.87, ...] }
+    Engine->>Local: Resolve nodeIds to NodeState
+    Local-->>Engine: [nodeState1, nodeState2, ...]
+    Engine-->>Hook: Ranked results
+    Hook-->>Component: { data: [...], source: 'hub' }
+
+    Note over Hub: Hub also subscribes to changes matching query
+    Hub-->>Engine: Live update: new node 'ghi' matches
+    Engine-->>Hook: Updated results
+    Hook-->>Component: Re-render with new result
+```
+
+#### Dedicated Search Engines on Desktop
+
+For Electron specifically, we can go further than SQLite FTS5. The main process is a full Node.js environment — it can host any native search engine:
+
+| Engine                    | Type                      | Size        | Strengths                                             | xNet Fit                               |
+| ------------------------- | ------------------------- | ----------- | ----------------------------------------------------- | -------------------------------------- |
+| **SQLite FTS5**           | Built into better-sqlite3 | 0 (bundled) | Zero-config, BM25 ranking, good enough for most cases | Best default — already available       |
+| **MeiliSearch**           | Standalone binary         | ~50MB       | Typo tolerance, facets, filterable, sub-50ms          | Overkill unless search is core feature |
+| **Tantivy** (via napi-rs) | Rust library              | ~10MB       | Fastest Rust FTS, Lucene-compatible                   | Good if FTS5 isn't enough              |
+| **SQLite-vec**            | SQLite extension          | ~2MB        | Vector similarity search                              | Needed for semantic/AI search          |
+| **lmdb-js**               | Key-value store           | ~2MB        | Fastest reads, memory-mapped, ACID                    | Alternative to SQLite for raw speed    |
+
+The recommendation: **start with SQLite FTS5** (free, already there via `better-sqlite3`). Only add MeiliSearch or Tantivy if users hit relevance quality or performance limits that FTS5 can't solve. The `NodeStorageAdapter` interface doesn't need to change — search is a layer above storage.
+
+For LMDB specifically: it's the fastest embedded key-value store available (memory-mapped, zero-copy reads), and `lmdb-js` is a mature Node.js binding. It could theoretically replace SQLite for the node/change storage if raw read throughput matters more than SQL query flexibility. But SQLite's FTS5, JSON support, and query expressiveness make it a better fit for xNet's needs — LMDB would only win for very hot-path key-value lookups, which isn't the bottleneck.
+
+### The Migration Path
+
+Moving from IndexedDB to SQLite (or any backend) on Electron is non-breaking because of the adapter abstraction:
+
+```mermaid
+flowchart TD
+    subgraph "Step 1: Today"
+        R1[Renderer] -->|IndexedDB| IDB1[(IndexedDB<br>NodeStore + Changes)]
+        M1[Main Process] -->|better-sqlite3| SQL1[(SQLite<br>Y.Doc storage only)]
+    end
+
+    subgraph "Step 2: Add SQLiteNodeStorageAdapter"
+        R2[Renderer] -->|IPC| M2[Main Process]
+        M2 -->|better-sqlite3| SQL2[(SQLite<br>NodeStore + Changes + Y.Doc)]
+        IDB2[(IndexedDB)] -.->|"one-time migration"| SQL2
+    end
+
+    subgraph "Step 3: Hub Queries"
+        R3[Renderer] -->|IPC| M3[Main Process]
+        M3 -->|better-sqlite3| SQL3[(SQLite<br>full local store)]
+        M3 -->|WebSocket| HUB[(Hub<br>FTS + heavy indexes)]
+    end
+
+    style IDB1 fill:#fbbf24,stroke:#f59e0b
+    style SQL2 fill:#4ade80,stroke:#16a34a
+    style SQL3 fill:#4ade80,stroke:#16a34a
+    style HUB fill:#818cf8,stroke:#6366f1
+```
+
+**Step 1 → 2**: Build `SQLiteNodeStorageAdapter` implementing the same interface. On first launch, detect IndexedDB data and migrate (read all nodes + changes, write to SQLite, delete IndexedDB). Expose via IPC so the renderer's `NodeStore` talks to main process SQLite.
+
+**Step 2 → 3**: Add hub query offloading. The query engine checks if a hub is connected and if the query would benefit from hub-side execution (search, cross-user aggregates, heavy graph traversals). Node IDs come back from the hub, full node data is resolved locally.
+
+### Impact on the Query API
+
+None. The query API described in this document is **backend-agnostic**. The same `useQuery(Task, { where, include, search })` call works whether the backend is IndexedDB, SQLite, Postgres, or a hub:
+
+```typescript
+// This query works identically on all backends:
+useQuery(Task, {
+  where: { status: not(eq('done')), parent: relatedTo(projectId) },
+  include: { comments: from(Comment, 'target') },
+  search: 'authentication',
+  orderBy: { _score: 'desc' },
+  limit: 20
+})
+
+// What changes per backend is HOW the query is executed:
+// - IndexedDB: full scan + MiniSearch + JS sort
+// - SQLite: FTS5 + indexed query + SQL sort
+// - Postgres: tsvector + GIN index + SQL sort
+// - Hub offload: remote FTS5/MeiliSearch + local resolution
+```
+
+The query engine's job is to pick the best execution strategy given the available backends. This is the **query planner** — and it's the same concept whether you call it that or call it "the Datalog evaluation strategy."
 
 ## Conclusion
 
