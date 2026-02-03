@@ -249,12 +249,22 @@ httpServer.listen(PORT, () => {
 })
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully...')
+function shutdown(signal: string): void {
+  console.log(`Received ${signal}, shutting down gracefully...`)
+  // Force exit after 3s if graceful shutdown stalls
+  const forceTimer = setTimeout(() => {
+    console.log('Shutdown timed out, forcing exit')
+    process.exit(1)
+  }, 3000)
+  forceTimer.unref()
+
   wss.close(() => {
     httpServer.close(() => {
       console.log('Server closed')
       process.exit(0)
     })
   })
-})
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
