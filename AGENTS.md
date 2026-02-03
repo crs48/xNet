@@ -204,9 +204,7 @@ Never leave background servers running between tasks or at end of session.
 - Use heavyweight frameworks
 - Store computed values (formula, rollup) - compute at read
 - Skip tests for core packages
-- - Test electron in a browser. Only test electron in electron.
-- Don't open browsers like chrome to check if servers are running
-- Don't open browsers or use `browser_navigate` to URLs — use `browser_snapshot` to connect to the already-running Electron app via CDP
+- Test electron in a browser. Only test electron with `playright-electron` MCP over CDP.
 
 ## Sync Architecture
 
