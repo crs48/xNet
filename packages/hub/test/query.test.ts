@@ -120,7 +120,8 @@ describe('Query Engine', () => {
       {
         type: 'index-update',
         docId: 'remove-me',
-        meta: { schemaIri: 'xnet://xnet.dev/Page', title: 'Temporary Document' }
+        meta: { schemaIri: 'xnet://xnet.dev/Page', title: 'Temporary Document' },
+        text: 'Temporary document body should not be searchable after removal.'
       },
       'index-ack'
     )
