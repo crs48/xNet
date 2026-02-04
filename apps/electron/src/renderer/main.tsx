@@ -21,13 +21,23 @@ import './styles.css'
 import { identityFromPrivateKey } from '@xnet/identity'
 
 // Fixed 32-byte seed for deterministic test identity (DO NOT use in production!)
-const TEST_PRIVATE_KEY = new Uint8Array([
-  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
-  28, 29, 30, 31, 32
-])
-const TEST_IDENTITY = identityFromPrivateKey(TEST_PRIVATE_KEY)
-const AUTHOR_DID = TEST_IDENTITY.did as `did:key:${string}`
-const SIGNING_KEY = TEST_PRIVATE_KEY
+// Each profile gets a unique identity by hashing the profile name into the seed.
+// This ensures multi-instance dev/test runs have distinct DIDs.
+const makeTestKey = (profileName: string): Uint8Array => {
+  const seed = new Uint8Array([
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+    27, 28, 29, 30, 31, 32
+  ])
+  // Mix profile name into the seed so each profile has a different identity
+  for (let i = 0; i < profileName.length; i++) {
+    seed[i % 32] ^= profileName.charCodeAt(i)
+  }
+  return seed
+}
+
+// Defer AUTHOR_DID / SIGNING_KEY resolution until we know the profile (see init())
+let AUTHOR_DID: `did:key:${string}`
+let SIGNING_KEY: Uint8Array
 
 // Telemetry: consent set to 'anonymous' for dev (enables all collection tiers, visible in devtools)
 const consentManager = new ConsentManager({ autoLoad: true })
@@ -59,6 +69,12 @@ async function init() {
   // This allows running multiple Electron instances with separate data
   const profile = await window.xnet.getProfile()
   const dbName = profile === 'default' ? 'xnet-electron-nodes' : `xnet-electron-nodes-${profile}`
+
+  // Resolve identity per profile so each instance has a unique DID
+  const testKey = makeTestKey(profile)
+  const testIdentity = identityFromPrivateKey(testKey)
+  AUTHOR_DID = testIdentity.did as `did:key:${string}`
+  SIGNING_KEY = testKey
 
   const nodeStorage = new IndexedDBNodeStorageAdapter({ dbName })
 

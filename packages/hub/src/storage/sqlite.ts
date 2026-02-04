@@ -51,6 +51,7 @@ const SCHEMA_SQL = `
     owner_did TEXT NOT NULL,
     schema_iri TEXT NOT NULL,
     title TEXT NOT NULL DEFAULT '',
+    body TEXT NOT NULL DEFAULT '',
     properties_json TEXT DEFAULT '{}',
     created_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
     updated_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
