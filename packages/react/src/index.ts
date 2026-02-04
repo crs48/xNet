@@ -204,7 +204,6 @@ export {
   type RemoteSchemaState
 } from './hooks/useRemoteSchema'
 
-export { usePresence, type PresenceUser } from './hooks/usePresence'
 
 export { usePeerDiscovery, type DiscoveredPeer } from './hooks/usePeerDiscovery'
 
