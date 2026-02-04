@@ -234,7 +234,7 @@ graph LR
 
 ### Medium Priority (Convention Compliance)
 
-- [ ] Convert ~20 `interface` declarations to `type`
+- [x] Convert ~20 `interface` declarations to `type`
 - [ ] Add explicit return types to all exported functions
 - [ ] Add factory functions for service/middleware classes
 - [ ] Add file-level JSDoc headers to all hub files
