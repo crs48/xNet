@@ -5,6 +5,7 @@
 import type { HubConfig } from './types'
 import { Command } from 'commander'
 import { createHub } from './index'
+import { registerShutdownHandlers } from './lifecycle/shutdown'
 import { DEFAULT_CONFIG } from './types'
 
 const parseNumber = (value: string, fallback: number): number => {
@@ -45,17 +46,10 @@ const run = async (): Promise<void> => {
 
       const hub = await createHub(config)
 
-      let shuttingDown = false
-      const shutdown = async (): Promise<void> => {
-        if (shuttingDown) return
-        shuttingDown = true
+      registerShutdownHandlers(async () => {
         console.log('\nShutting down...')
         await hub.stop()
-        process.exit(0)
-      }
-
-      process.on('SIGINT', shutdown)
-      process.on('SIGTERM', shutdown)
+      })
 
       await hub.start()
       console.log(`xNet Hub listening on port ${hub.port}`)
