@@ -46,7 +46,12 @@ export const createShardRoutes = (options: ShardRoutesOptions): Hono => {
     return c.json(assignments)
   })
 
-  app.post('/ingest', async (c) => {
+  const ingestHandler = async (c: Context) => {
+    const auth = c.get('auth') as AuthContext | undefined
+    if (auth && !auth.can('index/write', '*')) {
+      return c.json({ error: 'Unauthorized' }, 403)
+    }
+
     const payload = await c.req.json()
     if (!isRecord(payload)) {
       return c.json({ error: 'Invalid payload' }, 400)
@@ -90,7 +95,13 @@ export const createShardRoutes = (options: ShardRoutesOptions): Hono => {
     })
 
     return c.json({ ingested: true })
-  })
+  }
+
+  if (requireAuth) {
+    app.post('/ingest', requireAuth, ingestHandler)
+  } else {
+    app.post('/ingest', ingestHandler)
+  }
 
   app.post('/query', async (c) => {
     const payload = await c.req.json()

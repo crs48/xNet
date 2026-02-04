@@ -21,7 +21,7 @@ export class RobotsChecker {
     const parsed = new URL(url)
     const rules = await this.getRules(parsed.origin)
     if (rules.length === 0) return true
-    return !rules.some((rule) => rule !== '/' && parsed.pathname.startsWith(rule))
+    return !rules.some((rule) => parsed.pathname.startsWith(rule))
   }
 
   private async getRules(origin: string): Promise<string[]> {

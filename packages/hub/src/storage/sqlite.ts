@@ -28,7 +28,15 @@ import type {
 } from './interface'
 import Database from 'better-sqlite3'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+
+const assertSafePath = (base: string, key: string): string => {
+  const resolved = resolve(base, key)
+  if (!resolved.startsWith(resolve(base) + '/') && resolved !== resolve(base)) {
+    throw new Error(`Path traversal detected: ${key}`)
+  }
+  return resolved
+}
 
 const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS doc_state (
@@ -529,7 +537,9 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `),
     deleteFileMeta: db.prepare('DELETE FROM file_meta WHERE cid = ? RETURNING file_path'),
-    listFiles: db.prepare('SELECT * FROM file_meta WHERE uploader_did = ? ORDER BY created_at DESC'),
+    listFiles: db.prepare(
+      'SELECT * FROM file_meta WHERE uploader_did = ? ORDER BY created_at DESC'
+    ),
     upsertAwareness: db.prepare(`
       INSERT OR REPLACE INTO awareness_state (room, user_did, state_json, last_seen)
       VALUES (?, ?, ?, ?)
@@ -759,7 +769,8 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
   }
 
   const putBlob = async (key: string, data: Uint8Array, meta: BlobMeta): Promise<void> => {
-    const blobPath = join(dataDir, 'blobs', key)
+    const blobDir = join(dataDir, 'blobs')
+    const blobPath = assertSafePath(blobDir, key)
     writeFileSync(blobPath, data)
 
     stmts.insertBackup.run(
@@ -819,7 +830,8 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     data: Uint8Array,
     meta: Omit<FileMeta, 'referenceCount' | 'createdAt'>
   ): Promise<void> => {
-    const filePath = join(dataDir, 'files', cid)
+    const fileDir = join(dataDir, 'files')
+    const filePath = assertSafePath(fileDir, cid)
     writeFileSync(filePath, data)
 
     stmts.insertFileMeta.run(
@@ -1167,10 +1179,7 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     )
   }
 
-  const listShardPostings = async (
-    shardId: number,
-    terms: string[]
-  ): Promise<ShardPosting[]> => {
+  const listShardPostings = async (shardId: number, terms: string[]): Promise<ShardPosting[]> => {
     if (terms.length === 0) return []
     const placeholders = terms.map(() => '?').join(', ')
     const statement = db.prepare(
@@ -1207,10 +1216,7 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     }
   }
 
-  const getShardTermStats = async (
-    shardId: number,
-    terms: string[]
-  ): Promise<ShardTermStat[]> => {
+  const getShardTermStats = async (shardId: number, terms: string[]): Promise<ShardTermStat[]> => {
     if (terms.length === 0) return []
     const placeholders = terms.map(() => '?').join(', ')
     const statement = db.prepare(

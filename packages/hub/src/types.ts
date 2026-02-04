@@ -29,6 +29,8 @@ export type HubConfig = {
   awarenessCleanupIntervalMs: number
   /** Max awareness users stored per room (default: 100). */
   awarenessMaxUsers: number
+  /** Hub's own DID for UCAN audience verification (optional). */
+  hubDid?: string
   /** Public hub URL for peer discovery (optional). */
   publicUrl?: string
   /** Peer discovery TTL in ms (default: 7 days). */
