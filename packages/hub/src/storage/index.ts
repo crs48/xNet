@@ -10,6 +10,7 @@ export type {
   HubStorage,
   BlobMeta,
   DocMeta,
+  AwarenessEntry,
   FileMeta,
   SchemaRecord,
   SearchOptions,
