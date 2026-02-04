@@ -89,7 +89,7 @@ flowchart TB
     subgraph "User's Browser"
         SPA["React App\n(loaded from GH Pages)"]
         IDB[("IndexedDB\nLocal data")]
-        KEYS["Ed25519 Keys\n(client-generated)"]
+        KEYS["Ed25519 Keys\n(derived from passkey PRF)"]
     end
 
     subgraph "Graduation Path"
@@ -118,7 +118,7 @@ flowchart TB
     style SELF_HUB fill:#1e1e2e,stroke:#34d399,color:#f5f5f7
 ```
 
-The key insight: **the app JS is served from GitHub Pages (free), but connects to a Railway Hub for sync (cheap)**. The Hub doesn't serve any static files — it's purely a WebSocket relay + HTTP API for backup/files/schemas.
+The key insight: **the app JS is served from GitHub Pages (free), but connects to a Railway Hub for sync (cheap)**. The Hub doesn't serve any static files — it's purely a WebSocket relay + HTTP API for backup/files/schemas. Every user authenticates with a passkey on first visit — one Touch ID / Face ID tap creates their cryptographic identity, connects them to the Hub, and they're in.
 
 ---
 
@@ -249,6 +249,10 @@ export const DEMO_OVERRIDES: Partial<HubConfig> = {
   maxBlobSize: 2 * 1024 * 1024, // 2 MB per blob
   maxDocuments: 50, // 50 docs per DID
 
+  // Auth: standard UCAN (same as production — passkey-first means every
+  // connection is authenticated, no anonymous mode needed)
+  auth: true,
+
   // Rate limits (generous for real-time collab)
   maxConnections: 200, // Total concurrent connections
   maxConnectionsPerDid: 3, // Per-user connection limit
@@ -375,22 +379,44 @@ CREATE INDEX idx_did_activity_last_seen ON did_activity(last_seen);
 
 The web app needs to communicate that this is a sandbox — data is ephemeral, and users should graduate to the desktop app or self-hosted Hub for permanent storage.
 
+### Passkey-First: One Tap to Start
+
+Passkey auth is not a friction point — it's a ~1 second biometric tap. The user visits `xnet.fyi/app`, sees "Use Touch ID to get started", taps their finger, and they have a cryptographic identity + Hub connection. No forms, no email, no password. This is _faster_ than most signup flows and gives us real auth from the start.
+
+Going passkey-first has major advantages over anonymous-first:
+
+| Factor                | Passkey-First                               | Anonymous-First                              |
+| --------------------- | ------------------------------------------- | -------------------------------------------- |
+| **Implementation**    | One auth path, standard UCAN flow           | Two paths: anon + authenticated              |
+| **Hub complexity**    | Standard auth, no special demo mode         | Need anon connection handling, DID migration |
+| **Cross-device sync** | Works immediately (same passkey = same DID) | Only after upgrade — user might never do it  |
+| **Data ownership**    | Clear from the start                        | Ambiguous until passkey created              |
+| **Abuse protection**  | Passkey creation is rate-limited by OS      | Easy to create throwaway connections         |
+| **Share links**       | UCAN-based sharing works immediately        | Need workaround for anon users               |
+| **Code simplicity**   | Same code as desktop/production             | Demo-specific auth middleware                |
+| **User experience**   | 1 second (Touch ID / Face ID)               | 0 seconds, but deferred complexity           |
+
+The only users who can't use passkeys are on older browsers without WebAuthn support. For those, we show a clear message: "This demo requires a modern browser with passkey support. Try Chrome, Safari, or Edge." This is a reasonable requirement for a tech demo in 2026.
+
 ### Demo Banner
 
 ```mermaid
 flowchart TB
     subgraph "Demo App UX"
         direction TB
-        BANNER["📌 Persistent Banner\n'This is a demo — data expires in 24h.\nDownload the desktop app to keep your work.'"]
-        EDITOR["Normal editing experience\n(pages, databases, canvas)"]
+        PASSKEY["Touch ID / Face ID\n'Use biometrics to get started'\n(~1 second)"]
+        BANNER["Persistent Banner\n'This is a demo — data expires in 24h.\nDownload the desktop app to keep your work.'"]
+        EDITOR["Normal editing experience\n(pages, databases, canvas, sync)"]
         QUOTA["Storage indicator\n'3.2 MB / 10 MB used'"]
         EXPORT["Export button\n'Save to desktop app'"]
     end
 
+    PASSKEY --> BANNER
     BANNER --> EDITOR
     EDITOR --> QUOTA
     EDITOR --> EXPORT
 
+    style PASSKEY fill:#1e1e2e,stroke:#a78bfa,color:#a78bfa
     style BANNER fill:#1e1e2e,stroke:#fbbf24,color:#fbbf24
     style EDITOR fill:#1e1e2e,stroke:#818cf8,color:#f5f5f7
     style QUOTA fill:#1e1e2e,stroke:#fbbf24,color:#f5f5f7
@@ -403,9 +429,9 @@ flowchart TB
 // packages/react/src/demo/DemoMode.ts
 
 export type DemoState =
-  | 'fresh' // First visit, no identity
-  | 'anonymous' // Generated ephemeral key, editing
-  | 'identified' // Created passkey, syncing with Hub
+  | 'passkey-prompt' // First visit — "Use Touch ID to get started"
+  | 'creating' // Passkey creation in progress
+  | 'active' // Authenticated, editing, syncing with Hub
   | 'quota-warning' // Approaching 10 MB limit
   | 'quota-exceeded' // At limit, read-only
   | 'expired-warning' // Data will expire soon (< 2 hours)
@@ -461,7 +487,7 @@ flowchart TB
 
     subgraph "Demo Impact"
         direction TB
-        D01["Progressive identity:\nanonymous → passkey"]
+        D01["Passkey-first:\nTouch ID on first visit"]
         D02["Adapted for demo:\n'Try it' not 'Get Started'"]
         D03["Demo Hub enables this\nfor the first time"]
         D04["Share links work\nvia hub.xnet.fyi"]
@@ -492,7 +518,7 @@ flowchart TB
 
 ### Detailed Integration Notes
 
-#### Step 01: Passkey Auth — Progressive Identity
+#### Step 01: Passkey Auth — Passkey-First on the Demo
 
 The passkey plan uses `rpId: window.location.hostname`. For `xnet.fyi`, this gives us a stable rpId that works across:
 
@@ -500,65 +526,70 @@ The passkey plan uses `rpId: window.location.hostname`. For `xnet.fyi`, this giv
 - `xnet.fyi/` (landing page, if we ever add auth there)
 - Future `app.xnet.fyi` subdomain (WebAuthn allows parent domain rpId)
 
-**Change from the plan:** Instead of passkey-first, the demo uses **anonymous-first**:
+**The demo uses the same passkey-first flow as the production app.** One Touch ID tap creates the user's identity and connects them to the Hub. No anonymous mode, no deferred auth, no DID migration complexity.
 
 ```mermaid
 sequenceDiagram
     participant User
     participant Demo as Demo App
+    participant PK as Passkey Provider
     participant Hub as Demo Hub
-    participant PK as Passkey
 
-    Note over User,PK: Phase 1: Instant Start (no auth)
     User->>Demo: Visit xnet.fyi/app
-    Demo->>Demo: Generate ephemeral Ed25519 keypair
-    Demo->>Demo: Store in IndexedDB (unprotected)
-    Demo->>Hub: Connect with ephemeral DID
-    Hub->>Hub: Accept (demo mode, no UCAN required)
+    Demo->>User: "Use Touch ID to get started"
+
+    User->>PK: Touch ID / Face ID
+    PK->>Demo: PRF output
+    Demo->>Demo: Derive Ed25519 keypair from PRF
+    Demo->>Demo: Generate DID:key
+    Demo->>Demo: Mint self-signed UCAN
+    Demo->>Hub: Connect with UCAN
+    Hub->>Hub: Verify UCAN, create session
     Demo->>User: "Welcome! Start creating."
 
-    Note over User,PK: Phase 2: Optional Upgrade
-    User->>Demo: Creates content, likes it
-    Demo->>User: "Save your identity to keep\nyour work across devices"
-    User->>PK: Touch ID
-    PK->>Demo: PRF output → new keypair
-    Demo->>Demo: Migrate data to new DID
-    Demo->>Hub: Re-auth with passkey DID
-    Hub->>Hub: Migrate user data to new DID
+    Note over User,Hub: Everything syncs from the start
 
-    Note over User,PK: Phase 3: Graduation
-    User->>Demo: "I want to keep this"
-    Demo->>User: "Download desktop app.\nYour passkey will sync your data."
-    User->>Demo: Downloads Electron app
+    User->>Demo: Create pages, databases, canvas
+    Demo->>Hub: Sync via WebSocket (all authenticated)
+
+    Note over User,Hub: Graduation
+
+    User->>Demo: "I want to keep this permanently"
+    Demo->>User: "Download desktop app"
     User->>PK: Same Touch ID on desktop
-    PK->>Demo: Same DID
-    Demo->>Hub: Desktop syncs all data
-    Demo->>User: "Data safe! You can close the demo."
+    Note over PK: Same PRF output → same keypair → same DID
+    Hub->>Demo: Desktop syncs all data automatically
+    Demo->>User: "All synced! Your data is safe."
 ```
 
-**Key difference from passkey plan:** The demo Hub accepts anonymous connections (no UCAN required for `HUB_MODE=demo`). This removes ALL friction from first visit. UCAN auth is only needed when the user upgrades to a passkey identity.
+This is simpler than anonymous-first in every way:
 
-#### Step 02: Onboarding Flow — Demo-Adapted Screens
+- **One auth path** — same code as production, no demo-specific auth middleware
+- **Hub uses standard UCAN verification** — no special "accept anonymous" mode
+- **Cross-device sync works immediately** — same passkey = same DID from the start
+- **No DID migration** — user never changes identity mid-session
+- **Abuse protection is built-in** — passkey creation is rate-limited by the OS itself
 
-The onboarding flow from step 02 has 4 screens: Welcome, Passkey Setup, Hub Connect, Ready. For the demo, we modify these:
+#### Step 02: Onboarding Flow — Streamlined for Demo
 
-| Original Screen | Demo Adaptation                                                        |
-| --------------- | ---------------------------------------------------------------------- |
-| Welcome         | "Try xNet — no signup, no download. Everything works in your browser." |
-| Passkey Setup   | Deferred — shown after user creates 2+ pages                           |
-| Hub Connect     | Automatic — demo Hub URL hardcoded                                     |
-| Ready           | "You're in! This is a demo — data expires in 24h."                     |
+The onboarding flow from step 02 has 4 screens: Welcome, Passkey Setup, Hub Connect, Ready. For the demo, these collapse into a single fast flow:
 
-The onboarding state machine from `02-onboarding-flow.md` gains a new initial state:
+| Original Screen | Demo Adaptation                                            |
+| --------------- | ---------------------------------------------------------- |
+| Welcome         | "Try xNet — use Touch ID to get started" (single screen)   |
+| Passkey Setup   | Happens on that same screen — one tap                      |
+| Hub Connect     | Automatic — demo Hub URL hardcoded, connects after passkey |
+| Ready           | Straight into the editor with demo banner showing          |
+
+The beauty of passkey-first is that the onboarding is essentially one screen with one action. The user taps their fingerprint and they're in — identity created, Hub connected, ready to edit. Total time: ~2 seconds.
 
 ```typescript
-// New states for demo mode
+// Demo onboarding states — much simpler than anonymous-first
 export type DemoOnboardingState =
-  | 'instant-start' // Skip welcome, go straight to editing
-  | 'first-edit' // User made first change
-  | 'passkey-nudge' // After 2+ pages: "Save your identity?"
-  | 'passkey-setup' // Same as original passkey-prompt
-  | 'demo-ready' // Syncing with demo Hub, banner shown
+  | 'welcome' // "Use Touch ID to get started"
+  | 'creating-passkey' // OS biometric prompt shown
+  | 'connecting' // Connecting to demo Hub
+  | 'ready' // Editing with demo banner
   | 'graduation-nudge' // After significant use: "Download desktop app"
 ```
 
@@ -713,69 +744,39 @@ Even the viral scenario is manageable at ~$100/mo. The eviction service ensures 
 
 ## Hub Auth for Demo Mode
 
-The demo Hub needs a relaxed auth model. The current Hub requires UCAN tokens for all WebSocket connections. For the demo:
+With passkey-first, the demo Hub uses **the exact same UCAN auth as production**. No special auth middleware, no anonymous mode, no demo-specific connection handling. Every connection presents a valid UCAN token derived from the user's passkey.
 
 ```mermaid
 flowchart TB
-    subgraph "Standard Hub Auth"
+    subgraph "Auth Flow (Same for Demo + Production)"
         direction TB
         A1["Client connects"]
-        A2["Send UCAN token"]
-        A3["Hub verifies UCAN"]
-        A4["Access granted"]
-        A1 --> A2 --> A3 --> A4
-    end
-
-    subgraph "Demo Hub Auth"
-        direction TB
-        B1["Client connects"]
-        B2{"Has UCAN?"}
-        B2 -->|"Yes"| B3["Verify UCAN\nFull access"]
-        B2 -->|"No"| B4["Accept anonymous\nDemo-limited access"]
-        B4 --> B5["Assign ephemeral DID\nfrom connection"]
+        A2["Send self-signed UCAN\n(derived from passkey)"]
+        A3["Hub verifies UCAN signature"]
+        A4["Check demo quotas\n(10 MB, 50 docs)"]
+        A5["Access granted"]
+        A1 --> A2 --> A3 --> A4 --> A5
     end
 
     style A3 fill:#1e1e2e,stroke:#34d399,color:#f5f5f7
-    style B3 fill:#1e1e2e,stroke:#34d399,color:#f5f5f7
-    style B4 fill:#1e1e2e,stroke:#fbbf24,color:#f5f5f7
+    style A4 fill:#1e1e2e,stroke:#fbbf24,color:#f5f5f7
 ```
 
-### Implementation
+The only difference between the demo Hub and a production Hub is the **quota configuration** — tighter limits on storage, blob size, and document count. Auth is identical.
 
-```typescript
-// packages/hub/src/middleware/demo-auth.ts
+This is a major simplification. We don't need:
 
-export function createDemoAuthMiddleware(config: HubConfig) {
-  return async (ws: WebSocket, did: DID | null) => {
-    if (did) {
-      // Authenticated user — apply demo quotas
-      return {
-        did,
-        quota: config.defaultQuota, // 10 MB
-        maxDocs: config.maxDocuments, // 50
-        authenticated: true
-      }
-    }
+- Anonymous connection handling
+- DID migration when users "upgrade"
+- Demo-specific auth middleware
+- Special trust models for unverified DIDs
 
-    // Anonymous user — generate ephemeral identity
-    // The client sends its self-generated DID; we trust it for demo purposes
-    // (no UCAN verification, but still scoped to that DID for isolation)
-    return {
-      did: `did:key:demo-${randomId()}`,
-      quota: config.defaultQuota,
-      maxDocs: config.maxDocuments,
-      authenticated: false
-    }
-  }
-}
-```
-
-The `--demo` flag or `HUB_MODE=demo` environment variable activates demo mode:
+The `--demo` flag or `HUB_MODE=demo` environment variable activates demo mode, which only changes quotas and enables eviction:
 
 ```typescript
 // packages/hub/src/cli.ts additions
 
-program.option('--demo', 'Run in demo mode with ephemeral storage and relaxed auth')
+program.option('--demo', 'Run in demo mode with tight quotas and auto-eviction')
 
 // In server startup:
 if (options.demo || process.env.HUB_MODE === 'demo') {
@@ -815,13 +816,13 @@ sequenceDiagram
 
 This is exactly the `InitialSyncManager` from step 03 of the onboarding plan. No new code needed — the same sync mechanism that enables cross-device sync also enables demo-to-desktop migration.
 
-### What if the user doesn't have passkeys?
+### What about browsers without passkey support?
 
-If the user never upgraded from anonymous mode, they can:
+Since passkeys are required, users on browsers without WebAuthn + PRF support (very old browsers, some Firefox configurations) can't use the demo. This is an acceptable tradeoff:
 
-1. **Export as JSON/HTML** — download their content as files
-2. **Create a passkey now** — upgrade identity, then sync to desktop
-3. **QR code link** — scan from desktop app to transfer identity (step 03, QR linking)
+- **Chrome 116+, Safari 18+, Edge 116+** all support PRF — that's the vast majority of users in 2026
+- The demo page shows a clear message: "This demo requires passkey support. Please use Chrome, Safari, or Edge."
+- Users who can't use the demo can still download the Electron app, which handles key generation natively
 
 ---
 
@@ -836,6 +837,7 @@ dockerfilePath = "packages/hub/Dockerfile"
 
 [deploy]
 startCommand = "node packages/hub/dist/cli.js --demo --port $PORT --data $RAILWAY_VOLUME_MOUNT_PATH"
+# --demo only changes quotas + enables eviction. Auth is standard UCAN.
 healthcheckPath = "/health"
 healthcheckTimeout = 10
 restartPolicyType = "on_failure"
@@ -849,11 +851,10 @@ restartPolicyMaxRetries = 5
 HUB_MODE=demo
 HUB_PORT=$PORT                            # Railway injects PORT
 HUB_DATA_DIR=$RAILWAY_VOLUME_MOUNT_PATH   # Railway volume
-HUB_AUTH=false                             # Demo: anonymous access
 HUB_LOG_LEVEL=info
 NODE_ENV=production
 
-# Demo-specific
+# Demo-specific (quotas + eviction only — auth is standard UCAN)
 DEMO_QUOTA_BYTES=10485760                  # 10 MB per DID
 DEMO_MAX_BLOB_SIZE=2097152                 # 2 MB per blob
 DEMO_MAX_DOCUMENTS=50
@@ -878,17 +879,17 @@ flowchart TB
     end
 
     subgraph "Demo Experience"
-        D1["App loads at /app\n(instant, no auth)"]
-        D2["Create first page\n(auto-saved to IndexedDB)"]
-        D3["Hub syncs in background\n(anonymous DID)"]
+        D1["App loads at /app"]
+        D2["Touch ID / Face ID\n(~1 second)"]
+        D3["Identity created +\nHub connected"]
         D4["See demo banner:\n'Data expires in 24h'"]
     end
 
     subgraph "Engagement"
-        E1["Create 2+ pages"]
-        E2["Nudge: 'Save identity?'"]
-        E3["Create passkey\n(Touch ID/Face ID)"]
-        E4["Share a page\n(link via Hub)"]
+        E1["Create pages, databases"]
+        E2["Everything syncs\nacross devices"]
+        E3["Share a page\n(link via Hub)"]
+        E4["Real-time collab\nwith a friend"]
     end
 
     subgraph "Graduation"
@@ -906,9 +907,9 @@ flowchart TB
     G1 --> G2a --> G3 --> G4
     G1 --> G2b --> G3
 
-    style D1 fill:#1e1e2e,stroke:#34d399,color:#f5f5f7
+    style D2 fill:#1e1e2e,stroke:#a78bfa,color:#a78bfa
+    style D3 fill:#1e1e2e,stroke:#34d399,color:#f5f5f7
     style D4 fill:#1e1e2e,stroke:#fbbf24,color:#f5f5f7
-    style E3 fill:#1e1e2e,stroke:#a78bfa,color:#f5f5f7
     style G3 fill:#1e1e2e,stroke:#34d399,color:#f5f5f7
     style G4 fill:#1e1e2e,stroke:#34d399,color:#f5f5f7
 ```
@@ -924,9 +925,8 @@ flowchart TB
 3. Add `touchDid()` calls on all write operations
 4. Add `deleteAllForDid()` and `getDidsInactiveSince()` to SQLite storage
 5. Add demo quota enforcement (10 MB, 50 docs, 2 MB blobs)
-6. Allow anonymous WebSocket connections in demo mode
-7. Deploy to Railway with custom domain `hub.xnet.fyi`
-8. Test: create data, wait 24h, verify eviction
+6. Deploy to Railway with custom domain `hub.xnet.fyi`
+7. Test: create data, wait 24h, verify eviction
 
 ### Phase 2: Custom Domain + Web App (2-3 days)
 
@@ -943,13 +943,12 @@ flowchart TB
 
 ### Phase 3: Demo UX (2-3 days)
 
-1. Implement demo status bar (quota, expiry countdown)
-2. Implement progressive identity (anonymous → passkey)
-3. Add "Save your identity" nudge after 2+ pages
-4. Add "Download desktop app" graduation CTA
-5. Implement export-as-JSON fallback
-6. Add "data expired" recovery message
-7. Test onboarding flow end-to-end
+1. Implement passkey-first welcome screen ("Use Touch ID to get started")
+2. Implement demo status bar (quota, expiry countdown)
+3. Add "Download desktop app" graduation CTA
+4. Implement export-as-JSON fallback (for users who want a local copy)
+5. Add "data expired" recovery message (re-sync from IndexedDB)
+6. Test onboarding flow end-to-end
 
 ### Phase 4: Share Links + Collab (1-2 days)
 
@@ -985,13 +984,9 @@ The URL path for the demo app:
 
 **Recommendation: `/app`** with demo mode communicated via banner, not URL. The URL should look permanent — the app IS the app, it just happens to be in demo mode on this Hub. When users self-host, the same `/app` URL serves the full experience.
 
-### 2. Should the demo Hub require any auth at all?
+### 2. What if passkey PRF isn't supported?
 
-Options:
-
-- **No auth (recommended for demo):** Anyone can connect and create content. Abuse is mitigated by tight quotas and 24h eviction.
-- **Lightweight auth:** Require a self-signed token (client generates, no server verification). Provides basic DID binding without friction.
-- **Full UCAN auth:** Requires passkey setup before any sync. High friction, kills the instant-start experience.
+On browsers that support WebAuthn but not the PRF extension, we fall back to the passkey-without-PRF approach from exploration 0050: generate a random Ed25519 keypair, encrypt it with a key derived from the passkey's `userHandle`, store in IndexedDB. The DID won't be deterministically derived (so cross-device sync requires the Hub to bridge), but the auth flow is the same. This is a small edge case that shrinks over time as PRF support widens.
 
 ### 3. What happens when a demo user's data is evicted?
 
@@ -1006,11 +1001,11 @@ This is actually a beautiful demonstration of local-first: the Hub is just a rel
 
 ### 4. Should we show other demo users' data?
 
-No. Each DID is isolated. The demo Hub enforces DID-scoped access even in anonymous mode. You can only read/write your own data (or data shared with you via UCAN).
+No. Each DID is isolated. The demo Hub enforces DID-scoped access — you can only read/write your own data (or data shared with you via UCAN). Since every connection is authenticated via passkey, DID isolation is enforced by the same UCAN verification as production.
 
 ### 5. Rate limiting for the demo
 
-With anonymous access, we need protection against abuse:
+Even with passkey auth, we need protection against abuse (automated passkey creation, etc.):
 
 | Protection          | Setting                     |
 | ------------------- | --------------------------- |
@@ -1062,9 +1057,9 @@ flowchart LR
 2. **Cost is effectively $0/mo** with the Railway Hobby credit and aggressive eviction
 3. **Data limits (10 MB, 24h TTL) are features, not bugs** — they communicate "this is a sandbox" and create a natural graduation path to desktop/self-hosted
 4. **`xnet.fyi` with subpath `/app` is the right domain strategy** — clean URLs, portable passkey rpId, single GitHub Pages deployment
-5. **Anonymous auth for the demo removes all friction** — instant start, zero signup
+5. **Passkey-first is simpler, not harder** — one Touch ID tap (~1 second) replaces the complexity of anonymous auth, DID migration, and demo-specific middleware. The demo uses the same auth code as production.
 6. **The eviction timer resets on activity** — active users never lose data; only abandoned demos are cleaned up
 7. **Local-first shines here** — even after Hub eviction, the browser still has everything. The Hub is truly just a relay.
 8. **This plan integrates cleanly with all 11 steps of the onboarding plan** — it's not a separate track, it's the first implementation of that plan
 9. **Graduation is natural, not forced** — users experience the full product, then choose to self-host or use desktop when they're ready
-10. **The demo is the product** — same code, same UI, just with tighter quotas and a banner. No separate "demo mode" codebase.
+10. **The demo is the product** — same code, same auth, same UI, just with tighter quotas and a banner. No separate "demo mode" codebase.
