@@ -23,16 +23,21 @@ import { createDiscoveryRoutes } from './routes/dids'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
 import { createSchemaRoutes } from './routes/schemas'
+import { createShardRoutes } from './routes/shards'
 import { BackupService } from './services/backup'
 import { AwarenessService } from './services/awareness'
 import { DiscoveryService } from './services/discovery'
 import { FederationHealthChecker } from './services/federation-health'
 import { FederationService } from './services/federation'
 import { FileService } from './services/files'
+import { ShardRegistry } from './services/index-shards'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
 import { SchemaRegistryService } from './services/schemas'
+import { ShardIngestRouter } from './services/shard-ingest'
+import { ShardQueryRouter } from './services/shard-router'
+import { ShardRebalancer } from './services/shard-rebalancer'
 import { createSignalingService } from './services/signaling'
 import { createStorage } from './storage'
 
@@ -191,6 +196,31 @@ export const createServer = (config: HubConfig): HubInstance => {
     : federationDefaults
   const federation = new FederationService(federationConfig, storage, query)
   const federationHealth = new FederationHealthChecker(federationConfig)
+  const shardDefaults = {
+    enabled: false,
+    totalShards: 64,
+    hostedShards: [] as number[],
+    replicationFactor: 2,
+    registryUrl: config.publicUrl ?? '',
+    maxDocsPerShard: 1_000_000,
+    hubDid: federationConfig.hubDid,
+    hubUrl: config.publicUrl ?? `http://localhost:${config.port}`,
+    isRegistry: false,
+    refreshIntervalMs: 5 * 60_000
+  }
+  const shardConfig = config.shards
+    ? {
+        ...shardDefaults,
+        ...config.shards,
+        hostedShards: config.shards.hostedShards ?? shardDefaults.hostedShards
+      }
+    : shardDefaults
+  const shardRegistry = new ShardRegistry(shardConfig, storage)
+  const shardIngest = new ShardIngestRouter(shardRegistry, storage, shardConfig)
+  const shardRouter = new ShardQueryRouter(shardRegistry, storage, shardConfig)
+  const shardRebalancer = shardConfig.isRegistry
+    ? new ShardRebalancer(shardConfig, storage, shardRegistry)
+    : null
   const nodeRelay = new NodeRelayService(storage)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
@@ -265,6 +295,18 @@ export const createServer = (config: HubConfig): HubInstance => {
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
   app.route('/federation', createFederationRoutes(federation, { requireAuth }))
+  if (shardConfig.enabled) {
+    app.route(
+      '/shards',
+      createShardRoutes({
+        registry: shardRegistry,
+        ingest: shardIngest,
+        router: shardRouter,
+        rebalancer: shardRebalancer ?? undefined,
+        requireAuth
+      })
+    )
+  }
 
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null
@@ -276,6 +318,16 @@ export const createServer = (config: HubConfig): HubInstance => {
     if (federationConfig.enabled) {
       await federation.loadPeers()
       federationHealth.start()
+    }
+    if (shardConfig.enabled) {
+      await shardRegistry.init()
+      if (shardConfig.isRegistry && shardRebalancer && shardConfig.hubDid && shardConfig.hubUrl) {
+        await shardRebalancer.registerHost({
+          hubDid: shardConfig.hubDid,
+          url: shardConfig.hubUrl,
+          capacity: shardConfig.maxDocsPerShard
+        })
+      }
     }
     await schemas.seedBuiltInSchemas([
       {
@@ -595,6 +647,7 @@ export const createServer = (config: HubConfig): HubInstance => {
     awareness.stop()
     discovery.stop()
     federationHealth.stop()
+    shardRegistry.stop()
     signaling.destroy()
     connectionCount = 0
   }

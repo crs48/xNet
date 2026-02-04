@@ -3,6 +3,7 @@
  */
 
 import type { FederationConfig } from './services/federation'
+import type { ShardConfig } from './services/index-shards'
 
 export type HubConfig = {
   /** WebSocket + HTTP port (default: 4444). */
@@ -46,6 +47,8 @@ export type HubConfig = {
   logLevel: 'debug' | 'info' | 'warn' | 'error'
   /** Federation configuration (optional). */
   federation?: FederationConfig
+  /** Global shard configuration (optional). */
+  shards?: ShardConfig
 }
 
 export const DEFAULT_CONFIG: HubConfig = {
