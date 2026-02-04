@@ -49,16 +49,30 @@ pnpm --filter @xnet/integration-tests test -- --browser.headless=false
 
 Unit tests live co-located with source code in each package (`packages/*/src/**/*.test.ts`). They run in Node via the root `vitest.config.ts`. Integration tests here run in a real browser to cover cross-package flows that depend on browser-only APIs.
 
-|             | Unit Tests          | Integration Tests        |
-| ----------- | ------------------- | ------------------------ |
-| Location    | `packages/*/src/`   | `tests/integration/src/` |
-| Environment | Node (vitest)       | Chromium (Playwright)    |
-| Scope       | Single package      | Cross-package flows      |
-| APIs        | Mocked or in-memory | Real IndexedDB, WebRTC   |
-| Speed       | Fast (~140 tests)   | Slower (browser startup) |
+```mermaid
+flowchart LR
+    subgraph Unit["Unit Tests (~98 files)"]
+        direction TB
+        U1["packages/*/src/*.test.ts"]
+        U2["Node.js (vitest)"]
+        U3["Single package scope"]
+        U4["Mocked / in-memory"]
+    end
+
+    subgraph Integration["Integration Tests (4 files)"]
+        direction TB
+        I1["tests/integration/src/*.test.ts"]
+        I2["Chromium (Playwright)"]
+        I3["Cross-package flows"]
+        I4["Real IndexedDB, WebRTC"]
+    end
+
+    Unit ---|"Fast"| CI["CI Pipeline"]
+    Integration ---|"Slower"| CI
+```
 
 ## Related
 
-- [Packages README](../packages/README.md) — SDK packages with unit tests
-- [Root vitest.config.ts](../vitest.config.ts) — Unit test configuration
-- [CI Workflow](../.github/workflows/ci.yml) — Runs both unit and integration tests
+- [Packages README](../packages/README.md) -- SDK packages with unit tests
+- [Root vitest.config.ts](../vitest.config.ts) -- Unit test configuration
+- [CI Workflow](../.github/workflows/ci.yml) -- Runs both unit and integration tests

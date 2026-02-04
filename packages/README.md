@@ -1,78 +1,115 @@
 # @xnet packages
 
-Core SDK packages for the xNet decentralized infrastructure.
+21 core SDK packages for the xNet decentralized infrastructure.
 
 ## Packages
 
+### Foundation
+
+| Package                      | Description                                           | Tests | Status |
+| ---------------------------- | ----------------------------------------------------- | ----- | ------ |
+| [@xnet/core](./core)         | Types, content addressing (CIDs), permissions, RBAC   | 5     | Stable |
+| [@xnet/crypto](./crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption | 4     | Stable |
+| [@xnet/identity](./identity) | DID:key generation, UCAN tokens, passkey storage      | 4     | Stable |
+
 ### Infrastructure
 
-| Package                      | Description                                             | Status |
-| ---------------------------- | ------------------------------------------------------- | ------ |
-| [@xnet/core](./core)         | Types, content addressing (CIDs), permissions           | Stable |
-| [@xnet/crypto](./crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption   | Stable |
-| [@xnet/identity](./identity) | DID:key generation, UCAN tokens, key management         | Stable |
-| [@xnet/storage](./storage)   | IndexedDB adapter, snapshot management                  | Stable |
-| [@xnet/sync](./sync)         | Change\<T\>, Lamport clocks, hash chains, SyncProvider  | Stable |
-| [@xnet/data](./data)         | Schema system, NodeStore, Yjs CRDT, document operations | Stable |
-| [@xnet/network](./network)   | libp2p node, y-webrtc provider, DID resolution          | Stable |
-| [@xnet/query](./query)       | Local query engine, full-text search (Lunr.js)          | Stable |
+| Package                    | Description                                            | Tests | Status |
+| -------------------------- | ------------------------------------------------------ | ----- | ------ |
+| [@xnet/storage](./storage) | IndexedDB/memory adapters, blob store, snapshots       | 4     | Stable |
+| [@xnet/sync](./sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security | 10    | Stable |
+| [@xnet/data](./data)       | Schema system, NodeStore, 15 property types, Yjs CRDT  | 10    | Stable |
+| [@xnet/network](./network) | libp2p node, y-webrtc provider, security suite         | 1     | Stable |
+| [@xnet/query](./query)     | Local query engine, MiniSearch FTS, federation         | 2     | Stable |
+| [@xnet/hub](./hub)         | Signaling, sync relay, backup, FTS5, sharding          | 0     | Stable |
 
 ### Application
 
-| Package                        | Description                                             | Status  |
-| ------------------------------ | ------------------------------------------------------- | ------- |
-| [@xnet/react](./react)         | useQuery, useMutate, useNode, useIdentity, XNetProvider | Stable  |
-| [@xnet/sdk](./sdk)             | Unified client, browser/node presets                    | Stable  |
-| [@xnet/editor](./editor)       | TipTap-based collaborative rich text editor             | Stable  |
-| [@xnet/ui](./ui)               | Shared UI components, design tokens                     | Stable  |
-| [@xnet/telemetry](./telemetry) | Privacy-preserving telemetry, consent, event collection | WIP     |
-| [@xnet/views](./views)         | Table, Board, Calendar, Gallery, Timeline views         | WIP     |
-| [@xnet/vectors](./vectors)     | Embeddings (placeholder)                                | Planned |
-| [@xnet/canvas](./canvas)       | Infinite canvas (placeholder)                           | Planned |
-| [@xnet/formula](./formula)     | Formula engine (placeholder)                            | Planned |
+| Package                        | Description                                         | Tests | Status |
+| ------------------------------ | --------------------------------------------------- | ----- | ------ |
+| [@xnet/react](./react)         | useQuery, useMutate, useNode, hub/plugin hooks      | 2     | Stable |
+| [@xnet/sdk](./sdk)             | Unified client, browser/node presets                | 1     | Stable |
+| [@xnet/editor](./editor)       | TipTap editor, slash commands, wikilinks, drag-drop | 23    | Stable |
+| [@xnet/ui](./ui)               | Radix UI primitives, composed components, theme     | 0     | Stable |
+| [@xnet/views](./views)         | Table, Board, Gallery, Timeline, Calendar           | 7     | Stable |
+| [@xnet/canvas](./canvas)       | Infinite canvas, R-tree, ELK.js layout              | 4     | Stable |
+| [@xnet/devtools](./devtools)   | 9-panel debug suite                                 | 2     | Stable |
+| [@xnet/history](./history)     | Time machine, undo/redo, audit, blame, diff         | 3     | Stable |
+| [@xnet/plugins](./plugins)     | Plugin registry, sandbox, AI generation, MCP        | 8     | Stable |
+| [@xnet/telemetry](./telemetry) | Privacy-preserving telemetry, tiered consent        | 0     | Stable |
+| [@xnet/formula](./formula)     | Expression parser, evaluator, built-in functions    | 4     | Stable |
+| [@xnet/vectors](./vectors)     | HNSW vector index, semantic + hybrid search         | 4     | Stable |
 
 ## Dependency Graph
 
 ```mermaid
 flowchart TD
-    core --> crypto
-    core --> identity
-    core --> storage
-    core --> sync
+    core["@xnet/core"]
+    crypto["@xnet/crypto"]
+    identity["@xnet/identity"]
+    storage["@xnet/storage"]
+    sync["@xnet/sync"]
+    data["@xnet/data"]
+    network["@xnet/network"]
+    query["@xnet/query"]
+    react["@xnet/react"]
+    sdk["@xnet/sdk"]
+    editor["@xnet/editor"]
+    ui["@xnet/ui"]
+    views["@xnet/views"]
+    canvas["@xnet/canvas"]
+    devtools["@xnet/devtools"]
+    history["@xnet/history"]
+    plugins["@xnet/plugins"]
+    telemetry["@xnet/telemetry"]
+    formula["@xnet/formula"]
+    vectors["@xnet/vectors"]
+    hub["@xnet/hub"]
 
-    crypto --> identity
+    core --> crypto --> identity
+    core --> storage
     crypto --> storage
+    core --> sync
     crypto --> sync
+    identity --> sync
 
     identity --> data
     storage --> data
     sync --> data
 
-    data --> network
-    data --> query
-    data --> react
-    data --> editor
-    data --> views
-    data --> canvas
-
+    core --> network
+    crypto --> network
     identity --> network
-    identity --> query
-
-    network --> query
-
-    ui --> editor
-    ui --> views
-    ui --> canvas
-
-    core --> views
-    core --> vectors
-    core --> canvas
-
-    storage --> vectors
-    vectors --> canvas
+    data --> network
 
     core --> query
+    data --> query
+    identity --> query
+    network --> query
     storage --> query
+
+    core --> hub
+    crypto --> hub
+    identity --> hub
+    data --> hub
+    sync --> hub
+
+    core --> history
+    data --> history
+    sync --> history
+
+    core --> plugins
+    data --> plugins
+
+    core --> telemetry
+    data --> telemetry
+
+    core --> react
+    crypto --> react
+    data --> react
+    identity --> react
+    history --> react
+    plugins --> react
 
     core --> sdk
     crypto --> sdk
@@ -82,36 +119,53 @@ flowchart TD
     network --> sdk
     query --> sdk
 
-    identity --> react
-    core --> react
+    data --> editor
+    ui --> editor
 
-    core --> telemetry
-    data --> telemetry
+    core --> views
+    data --> views
+    react --> views
+    ui --> views
+
+    core --> canvas
+    data --> canvas
+    react --> canvas
+    ui --> canvas
+    vectors --> canvas
+
+    history --> devtools
+    ui --> devtools
+    views --> devtools
+
+    core --> vectors
+    storage --> vectors
 ```
 
 ## Build Order
 
 ```mermaid
 flowchart LR
-    core --> crypto --> identity
-    crypto --> sync
+    core --> crypto --> identity --> sync
     core --> storage
-    identity --> data
-    storage --> data
     sync --> data
-    data --> network --> query
-    data --> react
+    storage --> data
+    identity --> data
+    data --> network --> query --> sdk
+    data --> react --> sdk
+    data --> hub
+    data --> history --> react
+    data --> plugins --> react
+    data --> telemetry
     ui --> editor
     data --> editor
     ui --> views
-    data --> views
-    storage --> vectors
-    vectors --> canvas
+    react --> views
     ui --> canvas
-    data --> canvas
-    data --> telemetry
-    react --> sdk
-    query --> sdk
+    react --> canvas
+    storage --> vectors --> canvas
+    history --> devtools
+    ui --> devtools
+    views --> devtools
     formula
 ```
 
@@ -127,9 +181,15 @@ pnpm test
 # Test single package
 pnpm --filter @xnet/data test
 
-# Test core packages (sync + data)
-pnpm vitest run packages/sync packages/data
+# Run a single test file
+pnpm --filter @xnet/sync vitest run src/clock.test.ts
 
-# Test with coverage
-pnpm test:coverage
+# Test with pattern matching
+pnpm --filter @xnet/data vitest run -t "NodeStore"
+
+# Watch mode
+pnpm --filter @xnet/sync test:watch
+
+# Type check
+pnpm typecheck
 ```

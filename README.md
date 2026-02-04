@@ -17,73 +17,164 @@ pnpm install
 # Build all packages
 pnpm build
 
-# Run unit tests
+# Run unit tests (~350 tests across ~98 test files)
 pnpm test
 
-# Run integration tests (browser)
+# Run integration tests (real browser via Playwright)
 pnpm --filter @xnet/integration-tests test
 
 # Type check
 pnpm typecheck
+
+# Lint
+pnpm lint
 ```
 
 ## Monorepo Structure
 
 ```
-packages/              # Core SDK packages (@xnet/*)
-apps/                  # Platform applications
-site/                  # Static website
-tests/                 # Browser-based integration tests
-docs/                  # Vision, explorations, implementation plans
+packages/           # 21 core SDK packages (@xnet/*)
+apps/               # Electron, Web, Expo applications
+site/               # Astro + Starlight documentation website
+tests/              # Browser-based integration tests (Playwright)
+docs/               # Vision, explorations, implementation plans
 ```
 
 See the README in each directory for details:
 
-- [packages/README.md](./packages/README.md) — All 17 packages with dependency graph
-- [apps/README.md](./apps/README.md) — Electron, Expo, Web apps
-- [tests/README.md](./tests/README.md) — Integration test suite
+- [packages/README.md](./packages/README.md) -- All 21 packages with dependency graph
+- [apps/README.md](./apps/README.md) -- Electron, Web, Expo apps
+- [tests/README.md](./tests/README.md) -- Integration test suite
+- [site/README.md](./site/README.md) -- Documentation website
 
 ## Packages
 
+### Foundation
+
+| Package                               | Description                                           |
+| ------------------------------------- | ----------------------------------------------------- |
+| [@xnet/core](./packages/core)         | Types, content addressing (CIDs), permissions, RBAC   |
+| [@xnet/crypto](./packages/crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption |
+| [@xnet/identity](./packages/identity) | DID:key generation, UCAN tokens, passkey storage      |
+
 ### Infrastructure
 
-| Package                               | Description                                             |
-| ------------------------------------- | ------------------------------------------------------- |
-| [@xnet/core](./packages/core)         | Types, content addressing (CIDs), permissions           |
-| [@xnet/crypto](./packages/crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption   |
-| [@xnet/identity](./packages/identity) | DID:key generation, UCAN tokens, key management         |
-| [@xnet/storage](./packages/storage)   | IndexedDB adapter, snapshot management                  |
-| [@xnet/sync](./packages/sync)         | Change\<T\>, Lamport clocks, hash chains, SyncProvider  |
-| [@xnet/data](./packages/data)         | Schema system, NodeStore, Yjs CRDT, document operations |
-| [@xnet/network](./packages/network)   | libp2p node, y-webrtc provider, DID resolution          |
-| [@xnet/query](./packages/query)       | Local query engine, full-text search (Lunr.js)          |
+| Package                             | Description                                                             |
+| ----------------------------------- | ----------------------------------------------------------------------- |
+| [@xnet/storage](./packages/storage) | IndexedDB/memory adapters, blob store, chunk manager, snapshots         |
+| [@xnet/sync](./packages/sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security layer            |
+| [@xnet/data](./packages/data)       | Schema system, NodeStore, 15 property types, Yjs CRDT, built-in schemas |
+| [@xnet/network](./packages/network) | libp2p node, y-webrtc provider, peer scoring, security suite            |
+| [@xnet/query](./packages/query)     | Local query engine, MiniSearch full-text search, federated router       |
+| [@xnet/hub](./packages/hub)         | Signaling server, sync relay, backup, FTS5 search, sharding, federation |
 
 ### Application
 
-| Package                                 | Description                                                 |
-| --------------------------------------- | ----------------------------------------------------------- |
-| [@xnet/react](./packages/react)         | useQuery, useMutate, useDocument, useIdentity, XNetProvider |
-| [@xnet/sdk](./packages/sdk)             | Unified client, browser/node presets                        |
-| [@xnet/editor](./packages/editor)       | TipTap-based collaborative rich text editor                 |
-| [@xnet/ui](./packages/ui)               | Shared UI components, design tokens                         |
-| [@xnet/telemetry](./packages/telemetry) | Privacy-preserving telemetry, consent, event collection     |
-| [@xnet/views](./packages/views)         | Table, Board, Calendar, Gallery, Timeline views             |
-
-### Planned
-
-| Package                             | Description     |
-| ----------------------------------- | --------------- |
-| [@xnet/vectors](./packages/vectors) | Embeddings      |
-| [@xnet/canvas](./packages/canvas)   | Infinite canvas |
-| [@xnet/formula](./packages/formula) | Formula engine  |
+| Package                                 | Description                                                                    |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| [@xnet/react](./packages/react)         | useQuery, useMutate, useNode, hub hooks, plugin hooks, sync infrastructure     |
+| [@xnet/sdk](./packages/sdk)             | Unified client, browser/node presets, re-exports                               |
+| [@xnet/editor](./packages/editor)       | TipTap collaborative editor, slash commands, wikilinks, drag-drop, mermaid     |
+| [@xnet/ui](./packages/ui)               | Radix UI primitives, composed components, theme system, design tokens          |
+| [@xnet/views](./packages/views)         | Table, Board, Gallery, Timeline, Calendar views with property renderers        |
+| [@xnet/canvas](./packages/canvas)       | Infinite canvas, R-tree spatial indexing, ELK.js auto-layout, Yjs-backed store |
+| [@xnet/devtools](./packages/devtools)   | 9-panel debug suite (node explorer, sync monitor, Yjs inspector, ...)          |
+| [@xnet/history](./packages/history)     | Time machine, undo/redo, audit trails, blame, diff, verification               |
+| [@xnet/plugins](./packages/plugins)     | Plugin registry, sandboxed scripts, AI generation, MCP server, webhooks        |
+| [@xnet/telemetry](./packages/telemetry) | Privacy-preserving telemetry, tiered consent, k-anonymity, scrubbing           |
+| [@xnet/formula](./packages/formula)     | Expression parser, AST evaluator, built-in function library                    |
+| [@xnet/vectors](./packages/vectors)     | HNSW vector index, semantic search, hybrid keyword+semantic search             |
 
 ## Apps
 
-| App                         | Tech                           | Description                   |
-| --------------------------- | ------------------------------ | ----------------------------- |
-| [Electron](./apps/electron) | electron-vite, React, Tailwind | Desktop (macOS/Windows/Linux) |
-| [Expo](./apps/expo)         | React Native, Expo             | Mobile (iOS)                  |
-| [Web](./apps/web)           | Vite, TanStack Router, PWA     | Browser progressive web app   |
+| App                         | Tech                                                 | Description                   |
+| --------------------------- | ---------------------------------------------------- | ----------------------------- |
+| [Electron](./apps/electron) | Electron + Vite + React + TanStack Router + Tailwind | Desktop (macOS/Windows/Linux) |
+| [Web](./apps/web)           | Vite + React + TanStack Router + Workbox PWA         | Browser progressive web app   |
+| [Expo](./apps/expo)         | Expo SDK 52 + React Native + React Navigation        | Mobile (iOS/Android)          |
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Apps["Applications"]
+        Electron["Electron<br/>(Desktop)"]
+        Web["Web PWA"]
+        Expo["Expo<br/>(Mobile)"]
+    end
+
+    subgraph UI["UI Layer"]
+        Editor["@xnet/editor<br/><small>TipTap, slash commands,<br/>drag-drop, mermaid</small>"]
+        Views["@xnet/views<br/><small>Table, Board, Calendar,<br/>Timeline, Gallery</small>"]
+        Canvas["@xnet/canvas<br/><small>Infinite canvas,<br/>R-tree, ELK.js</small>"]
+        UILib["@xnet/ui<br/><small>Radix primitives,<br/>theme system</small>"]
+    end
+
+    subgraph Client["Client Layer"]
+        React["@xnet/react<br/><small>useQuery, useMutate,<br/>useNode, SyncManager</small>"]
+        SDK["@xnet/sdk<br/><small>Unified client,<br/>browser/node presets</small>"]
+        Devtools["@xnet/devtools<br/><small>9-panel debug suite</small>"]
+        Plugins["@xnet/plugins<br/><small>Registry, sandbox,<br/>AI generation, MCP</small>"]
+        Telemetry["@xnet/telemetry<br/><small>Privacy-first,<br/>consent-gated</small>"]
+        History["@xnet/history<br/><small>Time machine,<br/>undo/redo, audit</small>"]
+    end
+
+    subgraph Data["Data Layer"]
+        DataPkg["@xnet/data<br/><small>Schema system, NodeStore,<br/>Yjs CRDT, 15 property types</small>"]
+        Query["@xnet/query<br/><small>Local engine,<br/>MiniSearch FTS</small>"]
+        Vectors["@xnet/vectors<br/><small>HNSW index,<br/>hybrid search</small>"]
+        Formula["@xnet/formula<br/><small>Expression parser,<br/>computed properties</small>"]
+    end
+
+    subgraph Infra["Infrastructure Layer"]
+        Sync["@xnet/sync<br/><small>Change&lt;T&gt;, Lamport clocks,<br/>hash chains, Yjs security</small>"]
+        Storage["@xnet/storage<br/><small>IndexedDB, blobs,<br/>snapshots</small>"]
+        Network["@xnet/network<br/><small>libp2p, y-webrtc,<br/>peer scoring</small>"]
+    end
+
+    subgraph Foundation["Foundation"]
+        Identity["@xnet/identity<br/><small>DID:key, UCAN tokens,<br/>passkey storage</small>"]
+        Crypto["@xnet/crypto<br/><small>BLAKE3, Ed25519,<br/>XChaCha20</small>"]
+        Core["@xnet/core<br/><small>CIDs, types,<br/>permissions, RBAC</small>"]
+    end
+
+    Apps --> UI & Client
+    UI --> Client
+    Client --> Data
+    Data --> Infra
+    Infra --> Foundation
+
+    subgraph Server["Server"]
+        Hub["@xnet/hub<br/><small>Signaling, sync relay,<br/>backup, FTS5, federation</small>"]
+    end
+
+    Network <--> Hub
+```
+
+### Hybrid Sync Model
+
+```mermaid
+flowchart LR
+    subgraph Local["Local Device"]
+        UI["UI"]
+        NodeStore["NodeStore<br/>(structured data)"]
+        YDoc["Y.Doc<br/>(rich text)"]
+        DB[("IndexedDB / SQLite")]
+    end
+
+    subgraph Remote["Remote Peers"]
+        Peer1["Peer<br/>(desktop)"]
+        Peer2["Peer<br/>(mobile)"]
+        HubNode["Hub<br/>(always-on)"]
+    end
+
+    UI -->|"mutate()"| NodeStore
+    UI -->|"edit"| YDoc
+    NodeStore -->|"Change&lt;T&gt;<br/>LWW"| DB
+    YDoc -->|"Yjs updates<br/>CRDT"| DB
+
+    Local <-->|"WebRTC / WebSocket"| Remote
+```
 
 ## Data Model
 
@@ -95,7 +186,7 @@ import { defineSchema, text, number, select } from '@xnet/data'
 const InvoiceSchema = defineSchema({
   name: 'Invoice',
   namespace: 'xnet://myapp/',
-  document: 'yjs', // enables rich text body via Yjs CRDT
+  document: 'yjs',
   properties: {
     title: text({ required: true }),
     amount: number(),
@@ -120,9 +211,9 @@ const InvoiceSchema = defineSchema({
 ## React Hooks
 
 ```tsx
-import { XNetProvider, useQuery, useMutate, useDocument } from '@xnet/react'
+import { useQuery, useMutate, useNode } from '@xnet/react'
 
-// Structured data: useQuery + useMutate
+// Structured data
 function TaskList() {
   const { data: tasks, loading } = useQuery(TaskSchema)
   const { create, update, remove } = useMutate()
@@ -137,11 +228,11 @@ function TaskList() {
   )
 }
 
-// Rich text: useDocument (Yjs CRDT)
+// Rich text with Yjs CRDT
 function PageEditor({ nodeId }: { nodeId: string }) {
-  const { doc, loading } = useDocument(nodeId)
-  if (loading || !doc) return null
-  return <RichTextEditor doc={doc} />
+  const { data: page, doc, syncStatus, peerCount } = useNode(PageSchema, nodeId)
+  if (!doc) return null
+  return <RichTextEditor ydoc={doc} />
 }
 ```
 
@@ -157,133 +248,16 @@ function PageEditor({ nodeId }: { nodeId: string }) {
 | Signing    | Ed25519 (via @noble/curves)                       |
 | Hashing    | BLAKE3 (via @noble/hashes)                        |
 | Encryption | XChaCha20-Poly1305                                |
+| Search     | MiniSearch (local), FTS5 (hub)                    |
 | Build      | Turborepo, tsup, Vite                             |
 | Testing    | Vitest, Playwright (browser mode)                 |
 
 ## Documentation
 
-- [Vision](./docs/VISION.md) — The big picture: micro-to-macro data sovereignty
-- [Tradeoffs](./docs/TRADEOFFS.md) — Why hybrid sync (Yjs + event sourcing)
-- [Data Model](./docs/planStep02_1DataModelConsolidation/README.md) — Schema-first architecture
-- [Telemetry](./docs/planStep03_1TelemetryAndNetworkSecurity/README.md) — Telemetry & network security
-- [Plugins](./docs/planStep03_5Plugins/README.md) — Plugin architecture plan
-- [History](./docs/planStep03_7History/README.md) — Time machine, undo, audit trails
-
-## Architecture
-
-```mermaid
-flowchart TB
-    subgraph Apps["Applications"]
-        Electron["Electron<br/>(Desktop)"]
-        Web["Web PWA"]
-        Expo["Expo<br/>(Mobile)"]
-    end
-
-    subgraph UI["UI Layer"]
-        Editor["@xnet/editor<br/><small>TipTap, slash commands,<br/>drag-drop blocks</small>"]
-        Views["@xnet/views<br/><small>Table, Board, Calendar,<br/>Timeline, Gallery</small>"]
-        Canvas["@xnet/canvas<br/><small>Infinite canvas,<br/>spatial indexing</small>"]
-        UILib["@xnet/ui<br/><small>Radix primitives,<br/>theme system</small>"]
-    end
-
-    subgraph Client["Client Layer"]
-        React["@xnet/react<br/><small>useQuery, useMutate,<br/>useDocument, SyncManager</small>"]
-        SDK["@xnet/sdk<br/><small>Unified client,<br/>browser/node presets</small>"]
-        Devtools["@xnet/devtools<br/><small>Node explorer,<br/>sync monitor</small>"]
-        Telemetry["@xnet/telemetry<br/><small>Privacy-first,<br/>consent-gated</small>"]
-    end
-
-    subgraph Data["Data Layer"]
-        DataPkg["@xnet/data<br/><small>Schema system, NodeStore,<br/>Yjs CRDT, 15 property types</small>"]
-        Query["@xnet/query<br/><small>Local engine,<br/>MiniSearch FTS</small>"]
-        Vectors["@xnet/vectors<br/><small>HNSW index,<br/>hybrid search</small>"]
-        Formula["@xnet/formula<br/><small>Expression parser,<br/>computed properties</small>"]
-    end
-
-    subgraph Infra["Infrastructure Layer"]
-        Sync["@xnet/sync<br/><small>Change&lt;T&gt;, Lamport clocks,<br/>hash chains</small>"]
-        Storage["@xnet/storage<br/><small>IndexedDB, SQLite,<br/>snapshot management</small>"]
-        Network["@xnet/network<br/><small>libp2p, y-webrtc,<br/>peer scoring</small>"]
-    end
-
-    subgraph Foundation["Foundation"]
-        Identity["@xnet/identity<br/><small>DID:key, UCAN tokens,<br/>key management</small>"]
-        Crypto["@xnet/crypto<br/><small>BLAKE3, Ed25519,<br/>XChaCha20</small>"]
-        Core["@xnet/core<br/><small>CIDs, types,<br/>permissions</small>"]
-    end
-
-    Apps --> UI & Client
-    UI --> Client
-    Client --> Data
-    Data --> Infra
-    Infra --> Foundation
-
-    subgraph Server["Server"]
-        Hub["@xnet/hub<br/><small>Signaling, sync relay,<br/>backup, FTS5 search</small>"]
-    end
-
-    Network <--> Hub
-
-    subgraph Planned["Planned"]
-        Plugins["@xnet/plugins<br/><small>Scripts, extensions,<br/>custom views</small>"]
-        History["@xnet/history<br/><small>Time machine,<br/>undo/redo, audit</small>"]
-    end
-    Plugins -.-> Client
-    History -.-> Data
-
-    subgraph Future["Future"]
-        Federation["Hub Federation<br/><small>Cross-org queries,<br/>schema sharing</small>"]
-        GlobalIndex["Global Search<br/><small>Distributed index,<br/>crawl coordination</small>"]
-    end
-
-    Federation -.-> Hub
-    GlobalIndex -.-> Federation
-
-    classDef planned fill:#e1f5fe,stroke:#0288d1,stroke-dasharray: 5 5
-    classDef future fill:#f3e5f5,stroke:#7b1fa2,stroke-dasharray: 5 5
-    class Hub,Plugins,History planned
-    class Federation,GlobalIndex future
-```
-
-### Hybrid Sync Model
-
-```mermaid
-flowchart LR
-    subgraph Local["Local Device"]
-        UI["UI"]
-        NodeStore["NodeStore<br/>(structured data)"]
-        YDoc["Y.Doc<br/>(rich text)"]
-        DB[("DB<br/>(IndexedDB, SQLite, PG)")]
-    end
-
-    subgraph Remote["Remote Peers"]
-        Peer1["Peer<br/>(desktop)"]
-        Peer2["Peer<br/>(mobile)"]
-        HubNode["Hub<br/>(always-on)"]
-    end
-
-    UI -->|"mutate()"| NodeStore
-    UI -->|"edit"| YDoc
-    NodeStore -->|"Change&lt;T&gt;<br/>LWW"| DB
-    YDoc -->|"Yjs updates<br/>CRDT"| DB
-
-    Local <-->|"WebRTC / WebSocket"| Remote
-
-    classDef storage fill:#fff3e0,stroke:#ff9800
-    classDef peer fill:#e8f5e9,stroke:#4caf50
-    classDef hub fill:#e1f5fe,stroke:#0288d1,stroke-dasharray: 5 5
-    class DB storage
-    class Peer1,Peer2 peer
-    class HubNode hub
-```
-
-### Roadmap
-
-**Phase 1: Daily Driver** — Personal wiki you actually use daily  
-**Phase 2: Hub MVP** — Always-on sync, backup, access from any device  
-**Phase 3: Multiplayer** — Real-time collaboration and sharing
-
-See [docs/ROADMAP.md](./docs/ROADMAP.md) for the full 6-month plan.
+- [Site](./site) -- Astro + Starlight documentation website
+- [Vision](./docs/VISION.md) -- The big picture: micro-to-macro data sovereignty
+- [Tradeoffs](./docs/TRADEOFFS.md) -- Why hybrid sync (Yjs + event sourcing)
+- [Roadmap](./docs/ROADMAP.md) -- 6-month development plan
 
 ## License
 
