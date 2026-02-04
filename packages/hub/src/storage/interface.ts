@@ -112,6 +112,52 @@ export type FederationQueryLog = {
   timestamp: number
 }
 
+export type ShardAssignmentRecord = {
+  shardId: number
+  rangeStart: number
+  rangeEnd: number
+  primaryUrl: string
+  primaryDid: string
+  replicaUrl?: string | null
+  replicaDid?: string | null
+  docCount: number
+  updatedAt: number
+}
+
+export type ShardHostRecord = {
+  hubDid: string
+  url: string
+  capacity: number
+  registeredAt: number
+  lastSeen: number
+}
+
+export type ShardPosting = {
+  shardId: number
+  term: string
+  cid: string
+  tf: number
+  title: string
+  url?: string
+  schema?: string
+  author?: string
+  language?: string
+  indexedAt: number
+  docLen: number
+}
+
+export type ShardTermStat = {
+  shardId: number
+  term: string
+  docFreq: number
+}
+
+export type ShardStats = {
+  shardId: number
+  totalDocs: number
+  avgDocLen: number
+}
+
 export type SchemaRecord = {
   iri: string
   version: number
@@ -189,6 +235,18 @@ export type HubStorage = {
     lastSuccessAt?: number | null
   ) => Promise<void>
   logFederationQuery: (entry: FederationQueryLog) => Promise<void>
+
+  listShardAssignments: () => Promise<ShardAssignmentRecord[]>
+  replaceShardAssignments: (assignments: ShardAssignmentRecord[]) => Promise<void>
+  upsertShardHost: (host: ShardHostRecord) => Promise<void>
+  listShardHosts: () => Promise<ShardHostRecord[]>
+  removeShardHost: (hubDid: string) => Promise<void>
+  insertShardPosting: (posting: ShardPosting) => Promise<void>
+  listShardPostings: (shardId: number, terms: string[]) => Promise<ShardPosting[]>
+  recomputeShardTermStats: (shardId: number, terms: string[]) => Promise<void>
+  getShardTermStats: (shardId: number, terms: string[]) => Promise<ShardTermStat[]>
+  getShardStats: (shardId: number) => Promise<ShardStats>
+  updateShardDocCount: (shardId: number, docCount: number) => Promise<void>
 
   putSchema: (schema: SchemaRecord) => Promise<void>
   getSchema: (iri: string, version?: number) => Promise<SchemaRecord | null>

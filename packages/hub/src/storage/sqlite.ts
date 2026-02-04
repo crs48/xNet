@@ -12,6 +12,11 @@ import type {
   HubStorage,
   PeerEndpoint,
   PeerRecord,
+  ShardAssignmentRecord,
+  ShardHostRecord,
+  ShardPosting,
+  ShardStats,
+  ShardTermStat,
   SchemaRecord,
   SearchOptions,
   SearchResult,
@@ -115,6 +120,50 @@ const SCHEMA_SQL = `
     timestamp INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_fed_log_from ON federation_query_log(from_hub, timestamp);
+
+  CREATE TABLE IF NOT EXISTS shard_assignments (
+    shard_id INTEGER PRIMARY KEY,
+    range_start INTEGER NOT NULL,
+    range_end INTEGER NOT NULL,
+    primary_url TEXT NOT NULL,
+    primary_did TEXT NOT NULL,
+    replica_url TEXT,
+    replica_did TEXT,
+    doc_count INTEGER NOT NULL DEFAULT 0,
+    updated_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS shard_hosts (
+    hub_did TEXT PRIMARY KEY,
+    url TEXT NOT NULL,
+    capacity INTEGER NOT NULL,
+    registered_at INTEGER NOT NULL,
+    last_seen INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS shard_postings (
+    shard_id INTEGER NOT NULL,
+    term TEXT NOT NULL,
+    cid TEXT NOT NULL,
+    tf INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    url TEXT,
+    schema TEXT,
+    author TEXT,
+    language TEXT,
+    indexed_at INTEGER NOT NULL,
+    doc_len INTEGER NOT NULL,
+    PRIMARY KEY (shard_id, term, cid)
+  );
+  CREATE INDEX IF NOT EXISTS idx_shard_postings_term ON shard_postings(shard_id, term);
+  CREATE INDEX IF NOT EXISTS idx_shard_postings_cid ON shard_postings(shard_id, cid);
+
+  CREATE TABLE IF NOT EXISTS shard_term_stats (
+    shard_id INTEGER NOT NULL,
+    term TEXT NOT NULL,
+    doc_freq INTEGER NOT NULL,
+    PRIMARY KEY (shard_id, term)
+  );
 
   CREATE TABLE IF NOT EXISTS schemas (
     iri TEXT NOT NULL,
@@ -262,6 +311,46 @@ type FederationPeerRow = {
   registered_by: string | null
 }
 
+type ShardAssignmentRow = {
+  shard_id: number
+  range_start: number
+  range_end: number
+  primary_url: string
+  primary_did: string
+  replica_url: string | null
+  replica_did: string | null
+  doc_count: number
+  updated_at: number
+}
+
+type ShardHostRow = {
+  hub_did: string
+  url: string
+  capacity: number
+  registered_at: number
+  last_seen: number
+}
+
+type ShardPostingRow = {
+  shard_id: number
+  term: string
+  cid: string
+  tf: number
+  title: string
+  url: string | null
+  schema: string | null
+  author: string | null
+  language: string | null
+  indexed_at: number
+  doc_len: number
+}
+
+type ShardTermStatRow = {
+  shard_id: number
+  term: string
+  doc_freq: number
+}
+
 type SchemaRow = {
   iri: string
   version: number
@@ -389,6 +478,44 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       INSERT INTO federation_query_log
         (query_id, from_hub, query_text, schema_filter, result_count, execution_ms, timestamp)
       VALUES (?, ?, ?, ?, ?, ?, ?)
+    `),
+    listShardAssignments: db.prepare('SELECT * FROM shard_assignments ORDER BY shard_id'),
+    clearShardAssignments: db.prepare('DELETE FROM shard_assignments'),
+    insertShardAssignment: db.prepare(`
+      INSERT INTO shard_assignments
+        (shard_id, range_start, range_end, primary_url, primary_did, replica_url, replica_did, doc_count, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    upsertShardHost: db.prepare(`
+      INSERT OR REPLACE INTO shard_hosts
+        (hub_did, url, capacity, registered_at, last_seen)
+      VALUES (?, ?, ?, ?, ?)
+    `),
+    listShardHosts: db.prepare('SELECT * FROM shard_hosts ORDER BY registered_at ASC'),
+    removeShardHost: db.prepare('DELETE FROM shard_hosts WHERE hub_did = ?'),
+    insertShardPosting: db.prepare(`
+      INSERT OR REPLACE INTO shard_postings
+        (shard_id, term, cid, tf, title, url, schema, author, language, indexed_at, doc_len)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    upsertShardTermStat: db.prepare(`
+      INSERT OR REPLACE INTO shard_term_stats (shard_id, term, doc_freq)
+      VALUES (?, ?, ?)
+    `),
+    updateShardDocCount: db.prepare(`
+      UPDATE shard_assignments SET doc_count = ?, updated_at = ? WHERE shard_id = ?
+    `),
+    getShardDocCount: db.prepare(`
+      SELECT COUNT(DISTINCT cid) as count FROM shard_postings WHERE shard_id = ?
+    `),
+    getShardAvgDocLen: db.prepare(`
+      SELECT AVG(doc_len) as avg_len
+      FROM (
+        SELECT cid, MAX(doc_len) as doc_len
+        FROM shard_postings
+        WHERE shard_id = ?
+        GROUP BY cid
+      )
     `),
     insertSchema: db.prepare(`
       INSERT OR REPLACE INTO schemas
@@ -835,6 +962,157 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     )
   }
 
+  const rowToShardAssignment = (row: ShardAssignmentRow): ShardAssignmentRecord => ({
+    shardId: row.shard_id,
+    rangeStart: row.range_start,
+    rangeEnd: row.range_end,
+    primaryUrl: row.primary_url,
+    primaryDid: row.primary_did,
+    replicaUrl: row.replica_url ?? null,
+    replicaDid: row.replica_did ?? null,
+    docCount: row.doc_count,
+    updatedAt: row.updated_at
+  })
+
+  const listShardAssignments = async (): Promise<ShardAssignmentRecord[]> => {
+    const rows = stmts.listShardAssignments.all() as ShardAssignmentRow[]
+    return rows.map(rowToShardAssignment)
+  }
+
+  const replaceShardAssignments = async (assignments: ShardAssignmentRecord[]): Promise<void> => {
+    const update = db.transaction(() => {
+      stmts.clearShardAssignments.run()
+      for (const assignment of assignments) {
+        stmts.insertShardAssignment.run(
+          assignment.shardId,
+          assignment.rangeStart,
+          assignment.rangeEnd,
+          assignment.primaryUrl,
+          assignment.primaryDid,
+          assignment.replicaUrl ?? null,
+          assignment.replicaDid ?? null,
+          assignment.docCount,
+          assignment.updatedAt
+        )
+      }
+    })
+    update()
+  }
+
+  const upsertShardHost = async (host: ShardHostRecord): Promise<void> => {
+    stmts.upsertShardHost.run(
+      host.hubDid,
+      host.url,
+      host.capacity,
+      host.registeredAt,
+      host.lastSeen
+    )
+  }
+
+  const listShardHosts = async (): Promise<ShardHostRecord[]> => {
+    const rows = stmts.listShardHosts.all() as ShardHostRow[]
+    return rows.map((row) => ({
+      hubDid: row.hub_did,
+      url: row.url,
+      capacity: row.capacity,
+      registeredAt: row.registered_at,
+      lastSeen: row.last_seen
+    }))
+  }
+
+  const removeShardHost = async (hubDid: string): Promise<void> => {
+    stmts.removeShardHost.run(hubDid)
+  }
+
+  const insertShardPosting = async (posting: ShardPosting): Promise<void> => {
+    stmts.insertShardPosting.run(
+      posting.shardId,
+      posting.term,
+      posting.cid,
+      posting.tf,
+      posting.title,
+      posting.url ?? null,
+      posting.schema ?? null,
+      posting.author ?? null,
+      posting.language ?? null,
+      posting.indexedAt,
+      posting.docLen
+    )
+  }
+
+  const listShardPostings = async (
+    shardId: number,
+    terms: string[]
+  ): Promise<ShardPosting[]> => {
+    if (terms.length === 0) return []
+    const placeholders = terms.map(() => '?').join(', ')
+    const statement = db.prepare(
+      `SELECT * FROM shard_postings WHERE shard_id = ? AND term IN (${placeholders})`
+    )
+    const rows = statement.all(shardId, ...terms) as ShardPostingRow[]
+    return rows.map((row) => ({
+      shardId: row.shard_id,
+      term: row.term,
+      cid: row.cid,
+      tf: row.tf,
+      title: row.title,
+      url: row.url ?? undefined,
+      schema: row.schema ?? undefined,
+      author: row.author ?? undefined,
+      language: row.language ?? undefined,
+      indexedAt: row.indexed_at,
+      docLen: row.doc_len
+    }))
+  }
+
+  const recomputeShardTermStats = async (shardId: number, terms: string[]): Promise<void> => {
+    if (terms.length === 0) return
+    const placeholders = terms.map(() => '?').join(', ')
+    const statement = db.prepare(
+      `SELECT term, COUNT(DISTINCT cid) as doc_freq
+       FROM shard_postings
+       WHERE shard_id = ? AND term IN (${placeholders})
+       GROUP BY term`
+    )
+    const rows = statement.all(shardId, ...terms) as ShardTermStatRow[]
+    for (const row of rows) {
+      stmts.upsertShardTermStat.run(shardId, row.term, row.doc_freq)
+    }
+  }
+
+  const getShardTermStats = async (
+    shardId: number,
+    terms: string[]
+  ): Promise<ShardTermStat[]> => {
+    if (terms.length === 0) return []
+    const placeholders = terms.map(() => '?').join(', ')
+    const statement = db.prepare(
+      `SELECT shard_id, term, doc_freq
+       FROM shard_term_stats
+       WHERE shard_id = ? AND term IN (${placeholders})`
+    )
+    const rows = statement.all(shardId, ...terms) as ShardTermStatRow[]
+    return rows.map((row) => ({
+      shardId: row.shard_id,
+      term: row.term,
+      docFreq: row.doc_freq
+    }))
+  }
+
+  const getShardStats = async (shardId: number): Promise<ShardStats> => {
+    const countRow = stmts.getShardDocCount.get(shardId) as { count: number } | undefined
+    const avgRow = stmts.getShardAvgDocLen.get(shardId) as { avg_len: number | null } | undefined
+    return {
+      shardId,
+      totalDocs: countRow?.count ?? 0,
+      avgDocLen: avgRow?.avg_len ?? 0
+    }
+  }
+
+  const updateShardDocCount = async (shardId: number, docCount: number): Promise<void> => {
+    stmts.updateShardDocCount.run(docCount, Date.now(), shardId)
+  }
+
   const deleteBlob = async (key: string): Promise<void> => {
     const row = stmts.deleteBackup.get(key) as BackupRow
     if (row?.blob_path && existsSync(row.blob_path)) {
@@ -992,6 +1270,17 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     upsertFederationPeer,
     updateFederationPeerHealth,
     logFederationQuery,
+    listShardAssignments,
+    replaceShardAssignments,
+    upsertShardHost,
+    listShardHosts,
+    removeShardHost,
+    insertShardPosting,
+    listShardPostings,
+    recomputeShardTermStats,
+    getShardTermStats,
+    getShardStats,
+    updateShardDocCount,
     putSchema,
     getSchema,
     listSchemasByAuthor,

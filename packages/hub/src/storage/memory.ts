@@ -11,6 +11,11 @@ import type {
   FederationQueryLog,
   HubStorage,
   PeerRecord,
+  ShardAssignmentRecord,
+  ShardHostRecord,
+  ShardPosting,
+  ShardStats,
+  ShardTermStat,
   SchemaRecord,
   SearchOptions,
   SearchResult,
@@ -30,6 +35,10 @@ export const createMemoryStorage = (): HubStorage => {
   const peersByDid = new Map<string, PeerRecord>()
   const federationPeers = new Map<string, FederationPeerRecord>()
   const federationLogs: FederationQueryLog[] = []
+  const shardAssignments = new Map<number, ShardAssignmentRecord>()
+  const shardHosts = new Map<string, ShardHostRecord>()
+  const shardPostings = new Map<string, ShardPosting>()
+  const shardTermStats = new Map<string, ShardTermStat>()
 
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value && typeof value === 'object')
@@ -261,6 +270,86 @@ export const createMemoryStorage = (): HubStorage => {
     federationLogs.push(entry)
   }
 
+  const listShardAssignments = async (): Promise<ShardAssignmentRecord[]> =>
+    Array.from(shardAssignments.values()).sort((a, b) => a.shardId - b.shardId)
+
+  const replaceShardAssignments = async (assignments: ShardAssignmentRecord[]): Promise<void> => {
+    shardAssignments.clear()
+    for (const assignment of assignments) {
+      shardAssignments.set(assignment.shardId, assignment)
+    }
+  }
+
+  const upsertShardHost = async (host: ShardHostRecord): Promise<void> => {
+    shardHosts.set(host.hubDid, host)
+  }
+
+  const listShardHosts = async (): Promise<ShardHostRecord[]> =>
+    Array.from(shardHosts.values()).sort((a, b) => a.registeredAt - b.registeredAt)
+
+  const removeShardHost = async (hubDid: string): Promise<void> => {
+    shardHosts.delete(hubDid)
+  }
+
+  const insertShardPosting = async (posting: ShardPosting): Promise<void> => {
+    const key = `${posting.shardId}:${posting.term}:${posting.cid}`
+    shardPostings.set(key, posting)
+  }
+
+  const listShardPostings = async (
+    shardId: number,
+    terms: string[]
+  ): Promise<ShardPosting[]> => {
+    const termSet = new Set(terms)
+    return Array.from(shardPostings.values()).filter(
+      (posting) => posting.shardId === shardId && termSet.has(posting.term)
+    )
+  }
+
+  const recomputeShardTermStats = async (shardId: number, terms: string[]): Promise<void> => {
+    const termSet = new Set(terms)
+    const byTerm = new Map<string, Set<string>>()
+    for (const posting of shardPostings.values()) {
+      if (posting.shardId !== shardId) continue
+      if (!termSet.has(posting.term)) continue
+      const existing = byTerm.get(posting.term) ?? new Set<string>()
+      existing.add(posting.cid)
+      byTerm.set(posting.term, existing)
+    }
+    for (const [term, cids] of byTerm.entries()) {
+      shardTermStats.set(`${shardId}:${term}`, { shardId, term, docFreq: cids.size })
+    }
+  }
+
+  const getShardTermStats = async (
+    shardId: number,
+    terms: string[]
+  ): Promise<ShardTermStat[]> =>
+    terms
+      .map((term) => shardTermStats.get(`${shardId}:${term}`))
+      .filter((stat): stat is ShardTermStat => Boolean(stat))
+
+  const getShardStats = async (shardId: number): Promise<ShardStats> => {
+    const byCid = new Map<string, number>()
+    for (const posting of shardPostings.values()) {
+      if (posting.shardId !== shardId) continue
+      const existing = byCid.get(posting.cid) ?? posting.docLen
+      byCid.set(posting.cid, existing)
+    }
+    const totalDocs = byCid.size
+    const avgDocLen =
+      totalDocs === 0
+        ? 0
+        : Array.from(byCid.values()).reduce((sum, len) => sum + len, 0) / totalDocs
+    return { shardId, totalDocs, avgDocLen }
+  }
+
+  const updateShardDocCount = async (shardId: number, docCount: number): Promise<void> => {
+    const assignment = shardAssignments.get(shardId)
+    if (!assignment) return
+    shardAssignments.set(shardId, { ...assignment, docCount, updatedAt: Date.now() })
+  }
+
   const putSchema = async (schema: SchemaRecord): Promise<void> => {
     const versions = schemasByIri.get(schema.iri) ?? new Map<number, SchemaRecord>()
     versions.set(schema.version, schema)
@@ -357,6 +446,10 @@ export const createMemoryStorage = (): HubStorage => {
     peersByDid.clear()
     federationPeers.clear()
     federationLogs.length = 0
+    shardAssignments.clear()
+    shardHosts.clear()
+    shardPostings.clear()
+    shardTermStats.clear()
   }
 
   return {
@@ -391,6 +484,17 @@ export const createMemoryStorage = (): HubStorage => {
     upsertFederationPeer,
     updateFederationPeerHealth,
     logFederationQuery,
+    listShardAssignments,
+    replaceShardAssignments,
+    upsertShardHost,
+    listShardHosts,
+    removeShardHost,
+    insertShardPosting,
+    listShardPostings,
+    recomputeShardTermStats,
+    getShardTermStats,
+    getShardStats,
+    updateShardDocCount,
     putSchema,
     getSchema,
     listSchemasByAuthor,
