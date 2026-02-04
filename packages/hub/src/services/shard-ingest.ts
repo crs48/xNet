@@ -6,7 +6,7 @@ import type { HubStorage } from '../storage/interface'
 import type { ShardConfig, ShardRegistry } from './index-shards'
 import { computeTermFreqs, tokenizeText } from './shard-utils'
 
-export interface IndexableDocument {
+export type IndexableDocument = {
   cid: string
   url?: string
   title: string
@@ -18,7 +18,7 @@ export interface IndexableDocument {
   indexedAt: number
 }
 
-export interface IngestResult {
+export type IngestResult = {
   cid: string
   termsExtracted: number
   shardsUpdated: number

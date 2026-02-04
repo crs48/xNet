@@ -177,11 +177,11 @@ graph TD
 
 ### Before Production
 
-- [ ] Add HTTP rate limiting (currently WS-only)
+- [x] Add HTTP rate limiting (currently WS-only)
 - [ ] Add SSRF protection for federation/crawl/shard URLs
-- [ ] Add `.dockerignore` for faster builds
+- [x] Add `.dockerignore` for faster builds
 - [ ] Fix `actionAllows` inconsistency between `ucan.ts` and `capabilities.ts`
-- [ ] Add readiness probe (`/ready` endpoint with storage health check)
+- [x] Add readiness probe (`/ready` endpoint with storage health check)
 - [ ] Extract duplicated utilities (`isRecord`, `toStringArray`, `toHubHttpUrl`, `sanitizeFtsQuery`)
-- [ ] Add upper bounds on all pagination `limit` params
+- [x] Add upper bounds on all pagination `limit` params
 - [ ] Fix unbounded in-memory maps (awareness rooms, federation rate limiters, domain cooldowns)

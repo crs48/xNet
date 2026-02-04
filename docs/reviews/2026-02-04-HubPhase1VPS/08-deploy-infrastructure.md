@@ -219,12 +219,12 @@ The `await` may not complete before the process exits. However, `shutdown` itsel
 
 - [ ] **DEPLOY-01** -- Add `@xnet/data` to Dockerfile copy steps
 - [ ] **DEPLOY-02** -- Add `USER node` to Dockerfile
-- [ ] **DEPLOY-03** -- Create `.dockerignore` at repo root
+- [x] **DEPLOY-03** -- Create `.dockerignore` at repo root
 - [ ] **DEPLOY-05** -- Document/script `fly deploy` from repo root
 - [ ] **DEPLOY-07** -- Ensure Railway `startCommand` works with correct env vars
-- [ ] **DEPLOY-09** -- Validate `HUB_STORAGE` against allowed values
-- [ ] **DEPLOY-10** -- Validate `HUB_LOG_LEVEL` against allowed values
-- [ ] **DEPLOY-11** -- Validate port is in range 1-65535
-- [ ] **DEPLOY-12** -- Exit with code 1 on shutdown failure
-- [ ] Add `/ready` endpoint with storage health check
+- [x] **DEPLOY-09** -- Validate `HUB_STORAGE` against allowed values
+- [x] **DEPLOY-10** -- Validate `HUB_LOG_LEVEL` against allowed values
+- [x] **DEPLOY-11** -- Validate port is in range 1-65535
+- [x] **DEPLOY-12** -- Exit with code 1 on shutdown failure
+- [x] Add `/ready` endpoint with storage health check
 - [ ] Add secret management documentation for UCAN signing keys

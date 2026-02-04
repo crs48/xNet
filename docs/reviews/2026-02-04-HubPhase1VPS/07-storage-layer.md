@@ -112,8 +112,8 @@ Clean factory pattern. No issues.
 
 - [ ] Sanitize blob/file keys against path traversal (resolve + startsWith check)
 - [ ] Remove or paginate `LIMIT 1000` in `getNodeChangesSince`
-- [ ] Cache dynamic prepared statements by placeholder count
-- [ ] Add try-catch to all `JSON.parse()` calls in row mappers
+- [x] Cache dynamic prepared statements by placeholder count
+- [x] Add try-catch to all `JSON.parse()` calls in row mappers
 - [ ] Store body text in `doc_meta` table for FTS5 rebuild safety
 - [ ] Remove `updateSearchBody` optionality from interface (both impls provide it)
 - [ ] Unify search semantics between memory and SQLite (at minimum, document the difference)
