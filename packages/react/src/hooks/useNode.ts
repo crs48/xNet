@@ -6,7 +6,7 @@
  * - Y.Doc for collaborative rich text (if schema specifies document: 'yjs')
  * - Auto-sync via WebSocket
  * - Type-safe mutations (update, remove)
- * - Presence awareness (remote users)
+ * - Presence awareness (live + hub snapshot)
  * - Auto-create with createIfMissing
  *
  * @example
@@ -18,7 +18,7 @@
  *   remove,         // Soft delete
  *   syncStatus,     // 'offline' | 'connecting' | 'connected'
  *   peerCount,      // Number of connected peers
- *   remoteUsers,    // Users currently viewing
+ *   presence,       // Presence list (live + hub snapshot)
  *   loading,
  *   error
  * } = useNode(PageSchema, pageId, {
@@ -56,24 +56,12 @@ function log(...args: unknown[]): void {
  */
 export type SyncStatus = 'offline' | 'connecting' | 'connected' | 'error'
 
-/**
- * Remote user presence
- */
-export interface RemoteUser {
-  /** Yjs client ID */
-  clientId: number
-  /** User's DID */
-  did: string
-  /** User color for cursors/selections */
-  color: string
-}
-
 export interface PresenceUser {
   did: string
   name?: string
   color?: string
-  lastSeen: number
-  isStale: boolean
+  lastSeen?: number
+  isStale?: boolean
 }
 
 /**
@@ -139,10 +127,8 @@ export interface UseNodeResult<P extends Record<string, PropertyBuilder>> {
   peerCount: number
 
   // === Presence ===
-  /** Remote users currently viewing this document */
-  remoteUsers: RemoteUser[]
-  /** Last-known presence snapshot from the hub */
-  presenceUsers: PresenceUser[]
+  /** Presence list (live awareness + hub snapshot) */
+  presence: PresenceUser[]
   /** Yjs Awareness instance (for TipTap CollaborationCursor) */
   awareness: Awareness | null
 
@@ -269,9 +255,23 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const [syncError, setSyncError] = useState<string | null>(null)
   const [peerCount, setPeerCount] = useState(0)
   const [wasCreated, setWasCreated] = useState(false)
-  const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
-  const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([])
+  const [livePresence, setLivePresence] = useState<PresenceUser[]>([])
+  const [snapshotPresence, setSnapshotPresence] = useState<PresenceUser[]>([])
   const [awareness, setAwareness] = useState<Awareness | null>(null)
+
+  const presence = useMemo(() => {
+    if (livePresence.length === 0 && snapshotPresence.length === 0) return []
+    const liveByDid = new Map(livePresence.map((user) => [user.did, user]))
+    const snapshotByDid = new Map(snapshotPresence.map((user) => [user.did, user]))
+
+    const mergedLive = livePresence.map((user) => ({
+      ...snapshotByDid.get(user.did),
+      ...user,
+      isStale: false
+    }))
+    const mergedSnapshot = snapshotPresence.filter((user) => !liveByDid.has(user.did))
+    return [...mergedLive, ...mergedSnapshot]
+  }, [livePresence, snapshotPresence])
 
   // Refs
   const providerRef = useRef<WebSocketSyncProvider | null>(null)
@@ -678,26 +678,27 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         })
       }
 
-      // Listen for remote awareness changes to update remoteUsers
+      // Listen for remote awareness changes to update live presence
       let awarenessCleanup: (() => void) | null = null
       if (awareness) {
         const awarenessHandler = () => {
           const states = awareness.getStates()
-          const remote: RemoteUser[] = []
+          const nextPresence: PresenceUser[] = []
 
           states.forEach((state: Record<string, unknown>, clientId: number) => {
             if (clientId === awareness.clientID) return
-            const user = state.user as { did?: string; color?: string } | undefined
+            const user = state.user as { did?: string; color?: string; name?: string } | undefined
             if (user?.did) {
-              remote.push({
-                clientId,
+              nextPresence.push({
                 did: user.did,
-                color: user.color || generateColor(user.did)
+                name: user.name,
+                color: user.color || generateColor(user.did),
+                isStale: false
               })
             }
           })
 
-          setRemoteUsers(remote)
+          setLivePresence(nextPresence)
         }
         awareness.on('change', awarenessHandler)
         awarenessHandler() // Initial population
@@ -705,14 +706,14 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       }
 
       const snapshotUnsub = syncManager.onAwarenessSnapshot(id, (users) => {
-        const mapped = users.map((user) => ({
+        const mapped: PresenceUser[] = users.map((user) => ({
           did: user.did,
           name: user.state.user?.name,
-          color: user.state.user?.color,
+          color: user.state.user?.color ?? generateColor(user.did),
           lastSeen: user.lastSeen,
           isStale: user.isStale
         }))
-        setPresenceUsers(mapped)
+        setSnapshotPresence(mapped)
       })
 
       // If we just created this node (joining a shared doc), set a timeout
@@ -756,8 +757,8 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         setSyncStatus('offline')
         setSyncError(null)
         setPeerCount(0)
-        setRemoteUsers([])
-        setPresenceUsers([])
+        setLivePresence([])
+        setSnapshotPresence([])
       }
     }
 
@@ -898,21 +899,22 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       // Listen for remote awareness changes
       const awarenessHandler = () => {
         const states = providerAwareness.getStates()
-        const remote: RemoteUser[] = []
+        const nextPresence: PresenceUser[] = []
 
         states.forEach((state: Record<string, unknown>, clientId: number) => {
           if (clientId === providerAwareness.clientID) return
-          const user = state.user as { did?: string; color?: string } | undefined
+          const user = state.user as { did?: string; color?: string; name?: string } | undefined
           if (user?.did) {
-            remote.push({
-              clientId,
+            nextPresence.push({
               did: user.did,
-              color: user.color || generateColor(user.did)
+              name: user.name,
+              color: user.color || generateColor(user.did),
+              isStale: false
             })
           }
         })
 
-        setRemoteUsers(remote)
+        setLivePresence(nextPresence)
       }
       providerAwareness.on('change', awarenessHandler)
 
@@ -928,14 +930,14 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
             } =>
               Boolean(user && typeof user === 'object' && typeof (user as { did?: unknown }).did === 'string')
           )
-          .map((user) => ({
+          .map((user): PresenceUser => ({
             did: user.did,
             name: user.state.user?.name,
-            color: user.state.user?.color,
+            color: user.state.user?.color ?? generateColor(user.did),
             lastSeen: user.lastSeen,
             isStale: user.isStale
           }))
-        setPresenceUsers(mapped)
+        setSnapshotPresence(mapped)
       }
       provider.on('awareness-snapshot', snapshotHandler)
 
@@ -957,8 +959,8 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         setSyncStatus('offline')
         setSyncError(null)
         setPeerCount(0)
-        setRemoteUsers([])
-        setPresenceUsers([])
+        setLivePresence([])
+        setSnapshotPresence([])
       }
     }
 
@@ -1054,8 +1056,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     peerCount,
 
     // Presence
-    remoteUsers,
-    presenceUsers,
+    presence,
     awareness,
 
     // Actions

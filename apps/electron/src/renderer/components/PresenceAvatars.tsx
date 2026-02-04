@@ -4,20 +4,20 @@
 
 import React from 'react'
 import { DIDAvatar } from '@xnet/ui'
-import type { RemoteUser } from '@xnet/react'
+import type { PresenceUser } from '@xnet/react'
 
 interface PresenceAvatarsProps {
-  remoteUsers: RemoteUser[]
+  presence: PresenceUser[]
   localDid?: string | null
 }
 
-export function PresenceAvatars({ remoteUsers, localDid }: PresenceAvatarsProps) {
-  if (remoteUsers.length === 0) return null
+export function PresenceAvatars({ presence, localDid }: PresenceAvatarsProps) {
+  if (presence.length === 0) return null
 
   return (
     <div className="flex items-center -space-x-2">
-      {remoteUsers.map((user) => (
-        <div key={user.clientId} className="relative" title={`Peer: ${user.did.slice(0, 20)}...`}>
+      {presence.map((user) => (
+        <div key={user.did} className="relative" title={`Peer: ${user.did.slice(0, 20)}...`}>
           <div className="rounded-full ring-2 ring-background" style={{ width: 28, height: 28 }}>
             <DIDAvatar did={user.did} size={28} />
           </div>

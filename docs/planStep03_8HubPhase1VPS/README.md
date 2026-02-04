@@ -354,7 +354,7 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 | 11.1 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Persist last-known awareness per user | `@xnet/data` awareness.ts has UserPresence type                  |
 | 11.2 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Send awareness-snapshot on room join  | —                                                                |
 | 11.3 | [12-awareness-persistence.md](./12-awareness-persistence.md) | TTL-based cleanup of stale entries    | —                                                                |
-| 11.4 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Enhanced usePresence hook             | Currently embedded in useNode's `remoteUsers` — needs extraction |
+| 11.4 | [12-awareness-persistence.md](./12-awareness-persistence.md) | Enhanced usePresence hook             | Currently embedded in useNode's `presence` — needs extraction |
 
 **Validation Gate:**
 

@@ -63,8 +63,8 @@ useDocument(PageSchema, id, { createIfMissing: { title: 'Untitled' } })
 ### 4. Integrated Presence
 
 ```tsx
-const { remoteUsers, syncStatus, peerCount } = useDocument(PageSchema, id, {
-  user: { name: 'Alice' }
+const { presence, syncStatus, peerCount } = useDocument(PageSchema, id, {
+  did: myDid
 })
 ```
 
@@ -104,10 +104,10 @@ const {
   doc, // Y.Doc
   update, // Type-safe
   syncStatus,
-  remoteUsers
+  presence
 } = useDocument(PageSchema, id, {
   createIfMissing: { title: 'Untitled' },
-  user: { name: 'Alice' }
+  did: myDid
 })
 ```
 

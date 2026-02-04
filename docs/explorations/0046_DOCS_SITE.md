@@ -506,7 +506,7 @@ This is the most complex hook and needs the most documentation:
 **Presence:**
 | Field | Type | Description |
 |-------|------|-------------|
-| `remoteUsers` | `RemoteUser[]` | Other users editing this document. Each has `clientId`, `did`, `color`. |
+| `presence` | `PresenceUser[]` | Other users editing this document. Each has `did`, `name?`, `color?`, `lastSeen?`, `isStale?`. |
 | `awareness` | `Awareness \| null` | Yjs Awareness instance. Pass to TipTap's `CollaborationCursor` extension. |
 
 **Usage patterns:**
@@ -571,12 +571,12 @@ data loss but can cause a brief delay.
 :::
 
 :::tip[Pass `did` for presence]
-Without the `did` option, presence awareness is disabled and `remoteUsers`
+Without the `did` option, presence awareness is disabled and `presence`
 will always be empty. Always pass the current user's DID:
 
 ```tsx
 const { did } = useIdentity()
-const { doc, remoteUsers } = useNode(PageSchema, id, { did })
+const { doc, presence } = useNode(PageSchema, id, { did })
 ```
 ````
 
