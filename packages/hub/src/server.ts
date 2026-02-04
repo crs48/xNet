@@ -10,8 +10,11 @@ import type { MiddlewareHandler } from 'hono'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { WebSocketServer } from 'ws'
+import { randomUUID } from 'node:crypto'
 import { hasHubCapability } from './auth/capabilities'
 import { authenticateConnection, authenticateHttpRequest, removeSession, toAuthContext } from './auth/ucan'
+import { Metrics, HUB_METRICS } from './middleware/metrics'
+import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createBackupRoutes } from './routes/backup'
 import { BackupService } from './services/backup'
@@ -106,19 +109,6 @@ const checkRoomAuth = (session: AuthSession, topics: string[]): boolean =>
     )
   })
 
-const createMetricsPayload = (connectionCount: number, roomCount: number, uptimeSeconds: number): string =>
-  [
-    '# HELP xnet_hub_connections_active Active WebSocket connections',
-    '# TYPE xnet_hub_connections_active gauge',
-    `xnet_hub_connections_active ${connectionCount}`,
-    '# HELP xnet_hub_rooms_active Active signaling rooms',
-    '# TYPE xnet_hub_rooms_active gauge',
-    `xnet_hub_rooms_active ${roomCount}`,
-    '# HELP xnet_hub_uptime_seconds Hub uptime in seconds',
-    '# TYPE xnet_hub_uptime_seconds counter',
-    `xnet_hub_uptime_seconds ${uptimeSeconds}`
-  ].join('\n')
-
 export const createServer = (config: HubConfig): HubInstance => {
   const app = new Hono()
   const signaling = createSignalingService()
@@ -130,25 +120,45 @@ export const createServer = (config: HubConfig): HubInstance => {
     maxBlobSize: config.maxBlobSize
   })
   const query = new QueryService(storage)
+  const metrics = new Metrics()
+  const rateLimiter = new RateLimiter({
+    perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
+    maxConnections: config.rateLimit?.maxConnections ?? config.maxConnections,
+    maxMessageSize: config.rateLimit?.maxMessageSize ?? config.maxMessageSize,
+    windowMs: config.rateLimit?.windowMs ?? 1000
+  })
 
-  let connectionCount = 0
   const startTime = Date.now()
   const socketTopics = new Map<WebSocket, Set<string>>()
   const socketPeers = new Map<WebSocket, Set<string>>()
 
-  app.get('/health', (c) =>
-    c.json({
+  app.get('/health', (c) => {
+    const poolStats = pool.getStats()
+    const rlStats = rateLimiter.getStats()
+    return c.json({
       status: 'ok',
       uptime: Math.floor((Date.now() - startTime) / 1000),
-      connections: connectionCount,
+      timestamp: Date.now(),
       rooms: signaling.getRoomCount(),
+      docs: poolStats,
+      connections: { active: rlStats.totalConnections, max: rlStats.maxConnections },
+      memory: {
+        rss: process.memoryUsage().rss,
+        heapUsed: process.memoryUsage().heapUsed
+      },
       version: '0.0.1'
     })
-  )
+  })
 
-  app.get('/metrics', (c) => {
-    const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000)
-    return c.text(createMetricsPayload(connectionCount, signaling.getRoomCount(), uptimeSeconds))
+  app.get('/metrics', () => {
+    const poolStats = pool.getStats()
+    const rlStats = rateLimiter.getStats()
+    metrics.gauge(HUB_METRICS.SYNC_DOCS_HOT, poolStats.hot)
+    metrics.gauge(HUB_METRICS.SYNC_DOCS_WARM, poolStats.warm)
+    metrics.gauge(HUB_METRICS.WS_CONNECTIONS_ACTIVE, rlStats.totalConnections)
+    return new Response(metrics.render(), {
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    })
   })
 
   const requireAuth: MiddlewareHandler = async (c, next) => {
@@ -184,8 +194,9 @@ export const createServer = (config: HubConfig): HubInstance => {
 
     wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
       void (async () => {
-        if (connectionCount >= config.maxConnections) {
-          ws.close(4429, 'Too many connections')
+        if (!rateLimiter.canAcceptConnection()) {
+          ws.close(1013, 'Server at capacity')
+          metrics.increment(HUB_METRICS.RATE_LIMIT_REJECTIONS)
           return
         }
 
@@ -193,13 +204,15 @@ export const createServer = (config: HubConfig): HubInstance => {
         if (!session) return
         const authContext = toAuthContext(session)
 
-        connectionCount += 1
+        const connId = randomUUID()
+        rateLimiter.addConnection(connId)
+        metrics.increment(HUB_METRICS.WS_CONNECTIONS_TOTAL)
         let closed = false
 
         const finalize = (): void => {
           if (closed) return
           closed = true
-          connectionCount = Math.max(0, connectionCount - 1)
+          rateLimiter.removeConnection(connId)
           removeSession(ws)
           const topics = socketTopics.get(ws)
           if (topics) {
@@ -220,13 +233,21 @@ export const createServer = (config: HubConfig): HubInstance => {
 
         ws.on('message', (data: RawData) => {
           void (async () => {
-            if (getMessageSize(data) > config.maxMessageSize) {
-              ws.close(4413, 'Message too large')
+            const check = rateLimiter.checkMessage(connId, getMessageSize(data))
+            if (!check.allowed) {
+              metrics.increment(HUB_METRICS.RATE_LIMIT_REJECTIONS)
+              metrics.increment(HUB_METRICS.WS_MESSAGES_REJECTED)
+              if (check.reason?.includes('will be closed')) {
+                ws.close(1008, 'Rate limit exceeded')
+                return
+              }
+              ws.send(JSON.stringify({ type: 'error', message: check.reason }))
               return
             }
 
             const payload = safeParseJson(dataToString(data))
             if (!payload) return
+            metrics.increment(HUB_METRICS.WS_MESSAGES_RECEIVED)
 
             if (isQueryRequest(payload)) {
               if (!authContext.can('query/read', '*')) {
@@ -236,7 +257,10 @@ export const createServer = (config: HubConfig): HubInstance => {
                 return
               }
               const response = await query.handleQuery(payload)
+              metrics.increment(HUB_METRICS.QUERY_REQUESTS_TOTAL)
+              metrics.observe(HUB_METRICS.QUERY_DURATION_MS, response.took)
               ws.send(JSON.stringify(response))
+              metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
               return
             }
 
@@ -253,6 +277,7 @@ export const createServer = (config: HubConfig): HubInstance => {
               }
               const ack = await query.handleIndexUpdate(payload.docId, authContext.did, payload)
               ws.send(JSON.stringify(ack))
+              metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
               return
             }
 
@@ -269,6 +294,7 @@ export const createServer = (config: HubConfig): HubInstance => {
               }
               await query.removeFromIndex(payload.docId)
               ws.send(JSON.stringify({ type: 'index-ack', docId: payload.docId, indexed: false }))
+              metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
               return
             }
 

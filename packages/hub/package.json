@@ -27,6 +27,7 @@
     "@xnet/core": "workspace:*",
     "@xnet/crypto": "workspace:*",
     "@xnet/identity": "workspace:*",
+    "@xnet/sync": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "commander": "^12.0.0",
     "hono": "^4.0.0",

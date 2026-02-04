@@ -713,19 +713,19 @@ fly scale memory 1024  # Upgrade to 1GB RAM
 
 ## Checklist
 
-- [ ] Create multi-stage Dockerfile (builder + runtime)
+- [x] Create multi-stage Dockerfile (builder + runtime)
 - [ ] Target <150MB image size
-- [ ] Write `fly.toml` with volume mount and health checks
-- [ ] Implement graceful shutdown handler (SIGTERM/SIGINT)
-- [ ] Implement per-connection rate limiter
-- [ ] Implement global connection limit
-- [ ] Enforce message size limits
-- [ ] Create Prometheus-compatible metrics endpoint
-- [ ] Create `/health` JSON endpoint
-- [ ] Wire rate limiter into WebSocket handler
-- [ ] Write production readiness tests
+- [x] Write `fly.toml` with volume mount and health checks
+- [x] Implement graceful shutdown handler (SIGTERM/SIGINT)
+- [x] Implement per-connection rate limiter
+- [x] Implement global connection limit
+- [x] Enforce message size limits
+- [x] Create Prometheus-compatible metrics endpoint
+- [x] Create `/health` JSON endpoint
+- [x] Wire rate limiter into WebSocket handler
+- [x] Write production readiness tests
 - [ ] Test Docker build locally
-- [ ] Document deployment commands
+- [x] Document deployment commands
 
 ---
 

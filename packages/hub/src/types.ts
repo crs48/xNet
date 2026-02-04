@@ -19,6 +19,13 @@ export type HubConfig = {
   defaultQuota: number
   /** Maximum backup blob size in bytes (default: 50MB). */
   maxBlobSize: number
+  /** Optional rate limit overrides. */
+  rateLimit?: {
+    perConnectionRate?: number
+    maxConnections?: number
+    maxMessageSize?: number
+    windowMs?: number
+  }
   /** Log level (default: 'info'). */
   logLevel: 'debug' | 'info' | 'warn' | 'error'
 }
