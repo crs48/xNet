@@ -744,8 +744,8 @@ describe('PasskeyIdentity', () => {
 - [x] `createPasskeyIdentity()` creates credential with PRF extension
 - [x] `unlockPasskeyIdentity()` derives identical key from same passkey
 - [x] `detectPasskeySupport()` correctly identifies browser capabilities
-- [ ] Passkey is **required** — no skip option, no anonymous mode
-- [ ] Unsupported browsers show clear message directing to desktop app
+- [x] Passkey is **required** — no skip option, no anonymous mode
+- [x] Unsupported browsers show clear message directing to desktop app
 - [x] PRF-not-supported authenticators fall back to encrypted storage (edge case)
 - [ ] React hook manages state correctly
 - [ ] Electron integration uses native Touch ID

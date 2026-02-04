@@ -204,7 +204,6 @@ export {
   type RemoteSchemaState
 } from './hooks/useRemoteSchema'
 
-
 export { usePeerDiscovery, type DiscoveredPeer } from './hooks/usePeerDiscovery'
 
 export { HubStatusIndicator } from './components/HubStatusIndicator'
@@ -282,6 +281,37 @@ export { type BlobStoreForSync } from './sync/blob-sync'
 // =============================================================================
 
 export { useIdentity, type UseIdentityResult } from './hooks/useIdentity'
+
+// =============================================================================
+// Onboarding
+// =============================================================================
+
+export {
+  OnboardingProvider,
+  useOnboarding,
+  OnboardingFlow,
+  WelcomeScreen,
+  AuthenticatingScreen,
+  AuthErrorScreen,
+  UnsupportedBrowserScreen,
+  ImportIdentityScreen,
+  HubConnectScreen,
+  ReadyScreen,
+  onboardingReducer,
+  createInitialState,
+  QUICK_START_TEMPLATES,
+  getPlatformAuthName,
+  truncateDid,
+  copyToClipboard,
+  type OnboardingProviderProps,
+  type OnboardingContextValue,
+  type OnboardingFlowProps,
+  type OnboardingState,
+  type OnboardingEvent,
+  type OnboardingMachineContext,
+  type OnboardingReducerState,
+  type QuickStartTemplate
+} from './onboarding/index'
 
 // =============================================================================
 // Provider
