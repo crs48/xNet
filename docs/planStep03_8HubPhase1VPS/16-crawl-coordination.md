@@ -1126,22 +1126,52 @@ describe('Crawl Coordination', () => {
 })
 ```
 
+## Crawler Opt-In (App Settings)
+
+Users opt in to crawling from the xNet app settings:
+
+- Toggle: **"Contribute to web crawling"**
+- Modes: `browser` (low), `desktop` (medium), `server` (high)
+- Optional limits: max pages/min, allowed domains, preferred languages
+- Privacy note: crawler sends extracted text (not raw HTML), keyed by CID
+
+When enabled, the client registers with:
+
+```
+POST /crawl/register
+GET  /crawl/next
+POST /crawl/results
+```
+
+## Bootstrap Seed List
+
+The canonical hub should seed a small, safe URL list to start. Example seed list:
+
+```
+https://xnet.io
+https://xnet.io/docs
+https://news.ycombinator.com
+https://en.wikipedia.org/wiki/Main_Page
+```
+
+These can be configured via `crawl.seedUrls` and refreshed with `POST /crawl/seed`.
+
 ## Checklist
 
-- [ ] Implement `CrawlCoordinator` with task assignment and result processing
-- [ ] Implement `XNetCrawler` client-side reference implementation
-- [ ] Implement `RobotsChecker` with robots.txt parsing and caching
-- [ ] Add `crawl_queue`, `crawlers`, `crawl_history`, `crawl_domains` tables
-- [ ] Add `/crawl/register`, `/crawl/next`, `/crawl/results`, `/crawl/seed`, `/crawl/stats` endpoints
-- [ ] Implement domain rate limiting (per-domain cooldown)
-- [ ] Implement CID-based deduplication (skip unchanged content)
-- [ ] Implement outlink extraction and queue addition
-- [ ] Implement task expiry and reassignment
-- [ ] Implement crawler reputation tracking
-- [ ] Add User-Agent identification with info page
-- [ ] Write crawl coordinator tests
-- [ ] Document crawler opt-in for xNet app users (settings page)
-- [ ] Seed initial URL list for bootstrap
+- [x] Implement `CrawlCoordinator` with task assignment and result processing
+- [x] Implement `XNetCrawler` client-side reference implementation
+- [x] Implement `RobotsChecker` with robots.txt parsing and caching
+- [x] Add `crawl_queue`, `crawlers`, `crawl_history`, `crawl_domains` tables
+- [x] Add `/crawl/register`, `/crawl/next`, `/crawl/results`, `/crawl/seed`, `/crawl/stats` endpoints
+- [x] Implement domain rate limiting (per-domain cooldown)
+- [x] Implement CID-based deduplication (skip unchanged content)
+- [x] Implement outlink extraction and queue addition
+- [x] Implement task expiry and reassignment
+- [x] Implement crawler reputation tracking
+- [x] Add User-Agent identification with info page
+- [x] Write crawl coordinator tests
+- [x] Document crawler opt-in for xNet app users (settings page)
+- [x] Seed initial URL list for bootstrap
 
 ---
 

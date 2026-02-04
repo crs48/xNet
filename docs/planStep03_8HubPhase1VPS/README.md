@@ -434,13 +434,13 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] Crawlers register and receive URL assignments
-- [ ] Domain rate limiting prevents abuse (1 page/2s/domain)
-- [ ] Robots.txt is fetched, parsed, and respected
-- [ ] CID-based deduplication skips unchanged content
-- [ ] Outlinks are extracted and added to queue
-- [ ] Dead tasks expire and are reassigned
-- [ ] Crawler reputation tracks quality over time
+- [x] Crawlers register and receive URL assignments
+- [x] Domain rate limiting prevents abuse (1 page/2s/domain)
+- [x] Robots.txt is fetched, parsed, and respected
+- [x] CID-based deduplication skips unchanged content
+- [x] Outlinks are extracted and added to queue
+- [x] Dead tasks expire and are reassigned
+- [x] Crawler reputation tracks quality over time
 
 ### Phase 16: Yjs Security
 
