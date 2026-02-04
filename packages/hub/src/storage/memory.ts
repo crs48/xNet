@@ -7,6 +7,7 @@ import type {
   DocMeta,
   FileMeta,
   HubStorage,
+  SchemaRecord,
   SearchOptions,
   SearchResult,
   SerializedNodeChange
@@ -20,6 +21,39 @@ export const createMemoryStorage = (): HubStorage => {
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
+  const schemasByIri = new Map<string, Map<number, SchemaRecord>>()
+
+  const isRecord = (value: unknown): value is Record<string, unknown> =>
+    Boolean(value && typeof value === 'object')
+
+  const getLatestSchema = (versions: Map<number, SchemaRecord>): SchemaRecord | null => {
+    let latest: SchemaRecord | null = null
+    for (const schema of versions.values()) {
+      if (!latest || schema.version > latest.version) {
+        latest = schema
+      }
+    }
+    return latest
+  }
+
+  const getLatestSchemas = (): SchemaRecord[] =>
+    Array.from(schemasByIri.values())
+      .map(getLatestSchema)
+      .filter((schema): schema is SchemaRecord => schema !== null)
+
+  const getSchemaPropertyNames = (schema: SchemaRecord): string[] => {
+    const definition = schema.definition as { properties?: unknown }
+    const properties = definition.properties
+    if (Array.isArray(properties)) {
+      return properties
+        .map((prop) => (isRecord(prop) && typeof prop.name === 'string' ? prop.name : ''))
+        .filter((name) => name.length > 0)
+    }
+    if (isRecord(properties)) {
+      return Object.keys(properties)
+    }
+    return []
+  }
 
   const getDocState = async (docId: string): Promise<Uint8Array | null> =>
     docStates.get(docId) ?? null
@@ -121,6 +155,50 @@ export const createMemoryStorage = (): HubStorage => {
     }
   }
 
+  const putSchema = async (schema: SchemaRecord): Promise<void> => {
+    const versions = schemasByIri.get(schema.iri) ?? new Map<number, SchemaRecord>()
+    versions.set(schema.version, schema)
+    schemasByIri.set(schema.iri, versions)
+  }
+
+  const getSchema = async (iri: string, version?: number): Promise<SchemaRecord | null> => {
+    const versions = schemasByIri.get(iri)
+    if (!versions) return null
+    if (version !== undefined) {
+      return versions.get(version) ?? null
+    }
+    return getLatestSchema(versions)
+  }
+
+  const listSchemasByAuthor = async (authorDid: string): Promise<SchemaRecord[]> =>
+    getLatestSchemas()
+      .filter((schema) => schema.authorDid === authorDid)
+      .sort((a, b) => b.createdAt - a.createdAt)
+
+  const searchSchemas = async (
+    query: string,
+    options?: { limit?: number; offset?: number }
+  ): Promise<SchemaRecord[]> => {
+    const q = query.toLowerCase()
+    const results = getLatestSchemas().filter((schema) => {
+      const propertyNames = getSchemaPropertyNames(schema).join(' ').toLowerCase()
+      return (
+        schema.name.toLowerCase().includes(q) ||
+        schema.description.toLowerCase().includes(q) ||
+        propertyNames.includes(q)
+      )
+    })
+
+    const offset = options?.offset ?? 0
+    const limit = options?.limit ?? 20
+    return results.slice(offset, offset + limit)
+  }
+
+  const listPopularSchemas = async (limit = 20): Promise<SchemaRecord[]> =>
+    getLatestSchemas()
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit)
+
   const hasNodeChange = async (hash: string): Promise<boolean> => nodeChangesByHash.has(hash)
 
   const appendNodeChange = async (room: string, change: SerializedNodeChange): Promise<void> => {
@@ -168,6 +246,7 @@ export const createMemoryStorage = (): HubStorage => {
     nodeChangesByHash.clear()
     nodeChangesByRoom.clear()
     files.clear()
+    schemasByIri.clear()
   }
 
   return {
@@ -188,6 +267,11 @@ export const createMemoryStorage = (): HubStorage => {
     deleteFile,
     listFiles,
     getFilesUsage,
+    putSchema,
+    getSchema,
+    listSchemasByAuthor,
+    searchSchemas,
+    listPopularSchemas,
     hasNodeChange,
     appendNodeChange,
     getNodeChangesSince,

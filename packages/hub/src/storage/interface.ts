@@ -46,6 +46,17 @@ export type FileMeta = {
   createdAt: number
 }
 
+export type SchemaRecord = {
+  iri: string
+  version: number
+  definition: Record<string, unknown>
+  authorDid: string
+  name: string
+  description: string
+  propertiesCount: number
+  createdAt: number
+}
+
 export type SerializedNodeChange = {
   id: string
   type: string
@@ -91,6 +102,15 @@ export type HubStorage = {
   deleteFile: (cid: string) => Promise<void>
   listFiles: (uploaderDid: string) => Promise<FileMeta[]>
   getFilesUsage: (uploaderDid: string) => Promise<{ totalBytes: number; fileCount: number }>
+
+  putSchema: (schema: SchemaRecord) => Promise<void>
+  getSchema: (iri: string, version?: number) => Promise<SchemaRecord | null>
+  listSchemasByAuthor: (authorDid: string) => Promise<SchemaRecord[]>
+  searchSchemas: (
+    query: string,
+    options?: { limit?: number; offset?: number }
+  ) => Promise<SchemaRecord[]>
+  listPopularSchemas: (limit?: number) => Promise<SchemaRecord[]>
 
   hasNodeChange: (hash: string) => Promise<boolean>
   appendNodeChange: (room: string, change: SerializedNodeChange) => Promise<void>

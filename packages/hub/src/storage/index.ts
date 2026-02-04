@@ -11,6 +11,7 @@ export type {
   BlobMeta,
   DocMeta,
   FileMeta,
+  SchemaRecord,
   SearchOptions,
   SearchResult,
   SerializedNodeChange
