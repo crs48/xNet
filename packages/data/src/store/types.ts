@@ -129,6 +129,8 @@ export interface NodeStorageAdapter {
   appendChange(change: NodeChange): Promise<void>
   getChanges(nodeId: NodeId): Promise<NodeChange[]>
   getAllChanges(): Promise<NodeChange[]>
+  /** Get changes with Lamport time greater than `since` */
+  getChangesSince(sinceLamport: number): Promise<NodeChange[]>
   getChangeByHash(hash: ContentId): Promise<NodeChange | null>
   getLastChange(nodeId: NodeId): Promise<NodeChange | null>
 

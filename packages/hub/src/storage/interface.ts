@@ -36,6 +36,30 @@ export type SearchResult = {
   rank: number
 }
 
+export type SerializedNodeChange = {
+  id: string
+  type: string
+  hash: string
+  room: string
+  nodeId: string
+  schemaId?: string
+  lamportTime: number
+  lamportAuthor: string
+  authorDid: string
+  wallTime: number
+  parentHash: string | null
+  payload: {
+    nodeId: string
+    schemaId?: string
+    properties: Record<string, unknown>
+    deleted?: boolean
+  }
+  signatureB64: string
+  batchId?: string
+  batchIndex?: number
+  batchSize?: number
+}
+
 export type HubStorage = {
   getDocState: (docId: string) => Promise<Uint8Array | null>
   setDocState: (docId: string, state: Uint8Array) => Promise<void>
@@ -50,6 +74,12 @@ export type HubStorage = {
   getDocMeta: (docId: string) => Promise<DocMeta | null>
   search: (query: string, options?: SearchOptions) => Promise<SearchResult[]>
   updateSearchBody?: (docId: string, text: string) => Promise<void>
+
+  hasNodeChange: (hash: string) => Promise<boolean>
+  appendNodeChange: (room: string, change: SerializedNodeChange) => Promise<void>
+  getNodeChangesSince: (room: string, sinceLamport: number) => Promise<SerializedNodeChange[]>
+  getNodeChangesForNode: (room: string, nodeId: string) => Promise<SerializedNodeChange[]>
+  getHighWaterMark: (room: string) => Promise<number>
 
   close: () => Promise<void>
 }

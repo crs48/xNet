@@ -1016,7 +1016,7 @@ The renderer's `useHubSearch` and `useBackup` hooks route through IPC to the mai
 - [x] Implement `useHubSearch()` hook (query via BSM's ConnectionManager)
 - [x] Create `AutoBackup` class attached to BSM NodePool events
 - [x] Create `HubStatusIndicator` component
-- [ ] Wire `NodeStoreSyncProvider` into BSM's ConnectionManager
+- [x] Wire `NodeStoreSyncProvider` into BSM's ConnectionManager
 - [x] Add UCAN generation for hub capabilities
 - [ ] Write client integration tests
 - [x] Document migration guide (minimal vs full)

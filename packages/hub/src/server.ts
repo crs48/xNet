@@ -6,6 +6,7 @@ import type { IncomingMessage } from 'http'
 import type { RawData, WebSocket } from 'ws'
 import type { AuthSession } from './auth/ucan'
 import type { HubConfig, HubInstance } from './types'
+import type { SerializedNodeChange } from './storage/interface'
 import type { MiddlewareHandler } from 'hono'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
@@ -18,6 +19,7 @@ import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createBackupRoutes } from './routes/backup'
 import { BackupService } from './services/backup'
+import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
 import { createSignalingService } from './services/signaling'
@@ -97,6 +99,27 @@ const isIndexRemove = (value: unknown): value is { type: 'index-remove'; docId: 
   return value.type === 'index-remove' && typeof value.docId === 'string'
 }
 
+const isNodeSyncRequest = (
+  value: unknown
+): value is { type: 'node-sync-request'; room: string; sinceLamport: number } => {
+  if (!isRecord(value)) return false
+  return (
+    value.type === 'node-sync-request' &&
+    typeof value.room === 'string' &&
+    typeof value.sinceLamport === 'number'
+  )
+}
+
+const isNodeChangePayload = (
+  value: unknown
+): value is { type: 'node-change'; room: string; change: SerializedNodeChange } => {
+  if (!isRecord(value)) return false
+  if (value.type !== 'node-change' || typeof value.room !== 'string') return false
+  if (!isRecord(value.change)) return false
+  const change = value.change as Record<string, unknown>
+  return typeof change.hash === 'string' && typeof change.signatureB64 === 'string'
+}
+
 const topicToResource = (topic: string): string =>
   topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
 
@@ -120,6 +143,7 @@ export const createServer = (config: HubConfig): HubInstance => {
     maxBlobSize: config.maxBlobSize
   })
   const query = new QueryService(storage)
+  const nodeRelay = new NodeRelayService(storage)
   const metrics = new Metrics()
   const rateLimiter = new RateLimiter({
     perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
@@ -298,11 +322,57 @@ export const createServer = (config: HubConfig): HubInstance => {
               return
             }
 
+            if (isNodeSyncRequest(payload)) {
+              try {
+                const response = await nodeRelay.handleSyncRequest(payload, authContext)
+                ws.send(JSON.stringify(response))
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+              } catch (err) {
+                if (err instanceof NodeRelayError) {
+                  ws.send(JSON.stringify({ type: 'node-error', code: err.code, error: err.message }))
+                  metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                  return
+                }
+                throw err
+              }
+              return
+            }
+
+            if (isPublishMessage(payload) && isNodeSyncRequest(payload.data)) {
+              try {
+                const response = await nodeRelay.handleSyncRequest(payload.data, authContext)
+                ws.send(JSON.stringify(response))
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+              } catch (err) {
+                if (err instanceof NodeRelayError) {
+                  ws.send(JSON.stringify({ type: 'node-error', code: err.code, error: err.message }))
+                  metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                  return
+                }
+                throw err
+              }
+              return
+            }
+
             if (config.auth && isSubscribeMessage(payload)) {
               const topics = parseTopics(payload.topics)
               if (!checkRoomAuth(session, topics)) {
                 ws.close(4403, 'Insufficient capabilities for room')
                 return
+              }
+            }
+
+            if (isPublishMessage(payload) && isNodeChangePayload(payload.data)) {
+              try {
+                const isNew = await nodeRelay.handleNodeChange(payload.data, authContext)
+                if (!isNew) return
+              } catch (err) {
+                if (err instanceof NodeRelayError) {
+                  ws.send(JSON.stringify({ type: 'node-error', code: err.code, error: err.message }))
+                  metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                  return
+                }
+                throw err
               }
             }
 

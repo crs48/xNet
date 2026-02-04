@@ -28,6 +28,7 @@ import {
 } from './connection-manager'
 import { createOfflineQueue, type OfflineQueue } from './offline-queue'
 import { createBlobSyncProvider, type BlobSyncProvider, type BlobStoreForSync } from './blob-sync'
+import { NodeStoreSyncProvider } from './node-store-sync-provider'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(...args: unknown[]): void {
@@ -61,6 +62,8 @@ export interface SyncManagerConfig {
   onDocUpdate?: (nodeId: string, doc: Y.Doc) => void
   /** Optional pool eviction callback */
   onDocEvict?: (nodeId: string, doc: Y.Doc) => void
+  /** Optional room for node-change relay (enables NodeStore sync via hub) */
+  nodeSyncRoom?: string
 }
 
 export interface SyncManager {
@@ -229,6 +232,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const offlineQueue = createOfflineQueue({
     storage: config.storage
   })
+  const nodeSyncProvider = config.nodeSyncRoom
+    ? new NodeStoreSyncProvider(config.nodeStore, config.nodeSyncRoom)
+    : null
   // Wrap blobStore to auto-announce new blobs to peers on put()
   let blobSync: BlobSyncProvider | null = null
   if (config.blobStore) {
@@ -449,6 +455,8 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       log('Connecting to signaling server...')
       connection.connect()
 
+      nodeSyncProvider?.attach(connection)
+
       // Start blob sync if configured
       blobSync?.start()
 
@@ -483,6 +491,8 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     async stop() {
       // Stop blob sync
       blobSync?.stop()
+
+      nodeSyncProvider?.detach()
 
       // Leave all rooms
       for (const nodeId of Array.from(roomCleanups.keys())) {

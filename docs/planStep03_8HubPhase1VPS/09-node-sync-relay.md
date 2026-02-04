@@ -94,6 +94,8 @@ CREATE INDEX IF NOT EXISTS idx_node_changes_batch
 // Addition to packages/hub/src/storage/interface.ts
 
 export interface SerializedNodeChange {
+  id: string
+  type: string
   hash: string // ContentId
   room: string
   nodeId: string
@@ -509,6 +511,8 @@ export class NodeStoreSyncProvider {
 
   private serializeChange(change: NodeChange): SerializedNodeChange {
     return {
+      id: change.id,
+      type: change.type,
       hash: change.hash,
       room: this.room,
       nodeId: change.payload.nodeId,
@@ -528,8 +532,8 @@ export class NodeStoreSyncProvider {
 
   private deserializeChange(s: SerializedNodeChange): NodeChange {
     return {
-      id: s.hash.slice(0, 21), // Use hash prefix as ID
-      type: 'node-change',
+      id: s.id,
+      type: s.type,
       hash: s.hash as any,
       parentHash: s.parentHash as any,
       authorDID: s.authorDid as any,
@@ -840,19 +844,19 @@ describe('Node Sync Relay', () => {
 
 ## Checklist
 
-- [ ] Add `node_changes` table to SQLite schema
-- [ ] Add `hasNodeChange`, `appendNodeChange`, `getNodeChangesSince`, `getHighWaterMark` to `HubStorage`
-- [ ] Implement `NodeRelayService` (verify, dedup, persist, serve)
-- [ ] Add `node-change` message type to WebSocket handler
-- [ ] Add `node-sync-request` / `node-sync-response` message types
-- [ ] Broadcast new changes to room subscribers (excluding sender)
-- [ ] Create `NodeStoreSyncProvider` for client-side integration
-- [ ] Wire `NodeStoreSyncProvider` into BSM's `ConnectionManager` (not raw WebSocket)
-- [ ] Add `getChangesSince(lamport)` to `NodeStorageAdapter` interface
-- [ ] Implement `getChangesSince` in IndexedDB adapter (use existing `byLamport` index)
-- [ ] Wire `NodeStoreSyncProvider` into `SyncManager.start()` (auto-attach when hubUrl set)
-- [ ] Add memory adapter implementation for `node_changes` (tests)
-- [ ] Write relay tests (persist, dedup, delta sync, offline-to-offline)
+- [x] Add `node_changes` table to SQLite schema
+- [x] Add `hasNodeChange`, `appendNodeChange`, `getNodeChangesSince`, `getHighWaterMark` to `HubStorage`
+- [x] Implement `NodeRelayService` (verify, dedup, persist, serve)
+- [x] Add `node-change` message type to WebSocket handler
+- [x] Add `node-sync-request` / `node-sync-response` message types
+- [x] Broadcast new changes to room subscribers (excluding sender)
+- [x] Create `NodeStoreSyncProvider` for client-side integration
+- [x] Wire `NodeStoreSyncProvider` into BSM's `ConnectionManager` (not raw WebSocket)
+- [x] Add `getChangesSince(lamport)` to `NodeStorageAdapter` interface
+- [x] Implement `getChangesSince` in IndexedDB adapter (use existing `byLamport` index)
+- [x] Wire `NodeStoreSyncProvider` into `SyncManager.start()` (auto-attach when hubUrl set)
+- [x] Add memory adapter implementation for `node_changes` (tests)
+- [x] Write relay tests (persist, dedup, delta sync, offline-to-offline)
 - [ ] Verify LWW conflict resolution works across hub relay
 
 ---

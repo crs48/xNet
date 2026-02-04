@@ -147,6 +147,13 @@ export class IndexedDBNodeStorageAdapter implements NodeStorageAdapter {
     return changes.sort((a, b) => a.lamport.time - b.lamport.time)
   }
 
+  async getChangesSince(sinceLamport: number): Promise<NodeChange[]> {
+    const db = this.ensureOpen()
+    const range = IDBKeyRange.lowerBound(sinceLamport, true)
+    const changes = await db.getAllFromIndex('changes', 'byLamport', range)
+    return changes.sort((a, b) => a.lamport.time - b.lamport.time)
+  }
+
   async getChangeByHash(hash: ContentId): Promise<NodeChange | null> {
     const db = this.ensureOpen()
     return (await db.get('changes', hash)) ?? null
