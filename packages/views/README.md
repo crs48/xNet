@@ -1,40 +1,6 @@
 # @xnet/views
 
-Database view components for xNet applications.
-
-## Overview
-
-Provides multiple ways to visualize database items:
-
-- **Table** - Spreadsheet with virtual scrolling (TanStack Table)
-- **Board** - Kanban with drag-drop (dnd-kit)
-- **Gallery** - Card grid with cover images
-- **Timeline** - Gantt chart with dependencies
-- **Calendar** - Month/week/day views
-- **List** - Simple list with grouping
-
-## Status
-
-**Not yet implemented** - This is a scaffold package.
-
-## Planned Structure
-
-```
-src/
-  table/      # TanStack Table integration
-  board/      # Kanban board with dnd-kit
-  gallery/    # Card-based gallery
-  timeline/   # Gantt-style timeline
-  calendar/   # Calendar views
-  shared/     # Common components (filters, sorts)
-```
-
-## Dependencies
-
-- @tanstack/react-table - Table virtualization
-- @tanstack/react-virtual - Virtual scrolling
-- @dnd-kit/core - Drag and drop
-- @xnet/records - Property types and data
+Database view components for xNet -- five view types with property renderers, state hooks, and a view registry.
 
 ## Installation
 
@@ -42,8 +8,123 @@ src/
 pnpm add @xnet/views
 ```
 
+## Features
+
+- **Table** -- Spreadsheet with virtual scrolling (TanStack Table)
+- **Board** -- Kanban with drag-drop columns (dnd-kit)
+- **Gallery** -- Card grid with cover images
+- **Timeline** -- Gantt chart with time bars
+- **Calendar** -- Month and week views
+- **Property renderers** -- 9 typed property cell renderers
+- **View registry** -- Register and discover view types
+- **Card detail modal** -- Full node detail overlay
+- **Comment indicators** -- Per-node comment counts
+
+## Usage
+
+```tsx
+import { TableView, BoardView, GalleryView, TimelineView, CalendarView } from '@xnet/views'
+
+// Table view
+<TableView schema={TaskSchema} nodes={tasks} onNodeClick={handleClick} />
+
+// Kanban board
+<BoardView schema={TaskSchema} nodes={tasks} groupByField="status" />
+
+// Gallery grid
+<GalleryView schema={TaskSchema} nodes={tasks} coverField="image" />
+
+// Timeline / Gantt
+<TimelineView schema={TaskSchema} nodes={tasks} dateField="dueDate" />
+
+// Calendar
+<CalendarView schema={TaskSchema} nodes={tasks} dateField="dueDate" />
+```
+
+### View Registry
+
+```tsx
+import { useViewRegistry } from '@xnet/views'
+
+function ViewSwitcher({ schema, nodes }) {
+  const { views, activeView, setActiveView } = useViewRegistry()
+
+  return (
+    <div>
+      {views.map((v) => (
+        <button key={v.id} onClick={() => setActiveView(v.id)}>
+          {v.name}
+        </button>
+      ))}
+      <ViewRenderer view={activeView} schema={schema} nodes={nodes} />
+    </div>
+  )
+}
+```
+
+### State Hooks
+
+Each view has a companion state hook:
+
+```tsx
+import { useTableState, useBoardState, useGalleryState } from '@xnet/views'
+
+const tableState = useTableState({ schema, nodes, sorting, filters })
+const boardState = useBoardState({ schema, nodes, groupByField: 'status' })
+const galleryState = useGalleryState({ schema, nodes, coverField: 'image' })
+```
+
+## Architecture
+
+```mermaid
+flowchart TD
+    Registry["ViewRegistry<br/><small>Register + discover views</small>"]
+    Renderer["ViewRenderer<br/><small>Renders active view</small>"]
+
+    subgraph Views["View Types"]
+        Table["TableView<br/><small>TanStack Table</small>"]
+        Board["BoardView<br/><small>dnd-kit Kanban</small>"]
+        Gallery["GalleryView<br/><small>Card grid</small>"]
+        Timeline["TimelineView<br/><small>Gantt bars</small>"]
+        Calendar["CalendarView<br/><small>Month + week</small>"]
+    end
+
+    subgraph Properties["Property Renderers"]
+        P["text, number, checkbox,<br/>date, dateRange, select,<br/>multiSelect, url, email,<br/>phone, file"]
+    end
+
+    Registry --> Renderer --> Views
+    Views --> Properties
+    Views --> Detail["CardDetailModal"]
+```
+
+## Property Renderers
+
+| Type          | Renderer               |
+| ------------- | ---------------------- |
+| `text`        | Editable text input    |
+| `number`      | Numeric input          |
+| `checkbox`    | Toggle switch          |
+| `date`        | Date picker            |
+| `dateRange`   | Start/end date picker  |
+| `select`      | Single-choice dropdown |
+| `multiSelect` | Multi-choice tags      |
+| `url`         | Clickable link         |
+| `email`       | Mailto link            |
+| `phone`       | Tel link               |
+| `file`        | File badge             |
+
+## Dependencies
+
+- `@xnet/core`, `@xnet/data`, `@xnet/react`, `@xnet/ui`
+- `@tanstack/react-table` -- Table virtualization
+- `@tanstack/react-virtual` -- Virtual scrolling
+- `@dnd-kit/core`, `@dnd-kit/sortable` -- Drag and drop
+
 ## Testing
 
 ```bash
-pnpm test
+pnpm --filter @xnet/views test
 ```
+
+7 test files covering registry, board, gallery, timeline, calendar, and property renderers.

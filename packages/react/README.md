@@ -1,6 +1,6 @@
 # @xnet/react
 
-React hooks for xNet - the primary API for building xNet applications.
+React hooks for xNet -- the primary API for building xNet applications.
 
 ## Installation
 
@@ -43,9 +43,58 @@ function App() {
 }
 ```
 
+## Hook Categories
+
+```mermaid
+flowchart TD
+    subgraph Core["Core Hooks"]
+        useQuery["useQuery<br/><small>Read nodes with filters</small>"]
+        useMutate["useMutate<br/><small>Create, update, delete</small>"]
+        useNode["useNode<br/><small>Rich text + Y.Doc</small>"]
+        useIdentity["useIdentity<br/><small>Current user DID</small>"]
+        useNodeStore["useNodeStore<br/><small>Direct store access</small>"]
+    end
+
+    subgraph Comments["Comment Hooks"]
+        useComments["useComments"]
+        useCommentCount["useCommentCount"]
+    end
+
+    subgraph History["History Hooks"]
+        useHistory["useHistory"]
+        useUndo["useUndo"]
+        useAudit["useAudit"]
+        useDiff["useDiff"]
+        useBlame["useBlame"]
+        useVerification["useVerification"]
+    end
+
+    subgraph Hub["Hub Hooks"]
+        useHubStatus["useHubStatus"]
+        useBackup["useBackup"]
+        useFileUpload["useFileUpload"]
+        useHubSearch["useHubSearch"]
+        useRemoteSchema["useRemoteSchema"]
+        usePeerDiscovery["usePeerDiscovery"]
+    end
+
+    subgraph Plugin["Plugin Hooks"]
+        usePluginRegistry["usePluginRegistry"]
+        usePlugins["usePlugins"]
+        useContributions["useContributions"]
+        useViews["useViews"]
+        useCommands["useCommands"]
+    end
+
+    Core --> Comments
+    Core --> History
+    Core --> Hub
+    Core --> Plugin
+```
+
 ## Core Hooks
 
-### `useQuery` - Read Data
+### `useQuery` -- Read Data
 
 Query nodes with automatic real-time updates.
 
@@ -53,7 +102,6 @@ Query nodes with automatic real-time updates.
 import { useQuery } from '@xnet/react'
 
 function TaskList() {
-  // List all tasks
   const { data: tasks, loading, error } = useQuery(TaskSchema)
 
   if (loading) return <p>Loading...</p>
@@ -63,7 +111,7 @@ function TaskList() {
     <ul>
       {tasks.map((task) => (
         <li key={task.id}>
-          {task.title} {/* Direct property access - no .properties needed! */}
+          {task.title} {/* Direct property access -- no .properties needed */}
           <span>{task.status}</span>
         </li>
       ))}
@@ -76,7 +124,6 @@ function TaskList() {
 
 ```tsx
 const { data: task } = useQuery(TaskSchema, taskId)
-// task is null if not found
 ```
 
 **Filtered & Sorted:**
@@ -89,7 +136,7 @@ const { data: todoTasks } = useQuery(TaskSchema, {
 })
 ```
 
-### `useMutate` - Write Data
+### `useMutate` -- Write Data
 
 Create, update, and delete nodes.
 
@@ -115,12 +162,11 @@ function CreateTaskButton() {
 }
 ```
 
-**Update (untyped):**
+**Update:**
 
 ```tsx
 const { update } = useMutate()
 await update(TaskSchema, taskId, { status: 'done' }) // Type-checked!
-await update(TaskSchema, taskId, { typo: 'x' }) // Compile error!
 ```
 
 **Delete:**
@@ -140,67 +186,46 @@ await mutate([
   { type: 'update', id: task2.id, data: { order: 2 } },
   { type: 'delete', id: task3.id }
 ])
-// All succeed or all fail
 ```
 
-### `useNode` - Rich Text Editing
+### `useNode` -- Rich Text Editing
 
 Load a node with its Y.Doc for collaborative rich text editing.
 
-> **Note:** `useDocument` is available as a deprecated alias for `useNode`. Both work identically.
+> **Note:** `useDocument` is available as a deprecated alias for `useNode`.
 
 ```tsx
 import { useNode } from '@xnet/react'
 import { RichTextEditor } from '@xnet/editor/react'
 
-// Define a schema with document support
 const PageSchema = defineSchema({
   name: 'Page',
   namespace: 'myapp://',
-  properties: {
-    title: text({ required: true })
-  },
-  document: 'yjs' // Enable Y.Doc for rich text
+  properties: { title: text({ required: true }) },
+  document: 'yjs'
 })
 
 function DocumentEditor({ pageId }) {
   const {
-    data: page, // FlatNode - page.title works directly
+    data: page, // FlatNode -- page.title works directly
     doc, // Y.Doc for rich text
     update, // Type-safe property updates
     loading,
     error,
     syncStatus, // 'offline' | 'connecting' | 'connected'
-    peerCount, // Number of connected peers
+    peerCount, // Connected peers
     presence // [{ did, name, color, lastSeen, isStale }]
   } = useNode(PageSchema, pageId, {
-    createIfMissing: { title: 'Untitled' }, // Auto-create if not found
-    did: myDid // Presence identity
+    createIfMissing: { title: 'Untitled' },
+    did: myDid
   })
 
   if (loading) return <p>Loading...</p>
-  if (error) return <p>Error: {error.message}</p>
   if (!page || !doc) return <p>Not found</p>
 
   return (
     <div>
-      {/* Title input with type-safe update */}
       <input value={page.title} onChange={(e) => update({ title: e.target.value })} />
-
-      {/* Sync status */}
-      <span>
-        {syncStatus === 'connected' ? '🟢' : '🔴'}
-        {peerCount} peers
-      </span>
-
-      {/* Collaborators */}
-      {presence.map((user) => (
-        <span key={user.did} style={{ color: user.color }}>
-          {user.name ?? user.did.slice(0, 12)}
-        </span>
-      ))}
-
-      {/* Rich text editor */}
       <RichTextEditor ydoc={doc} />
     </div>
   )
@@ -209,49 +234,67 @@ function DocumentEditor({ pageId }) {
 
 ## Additional Hooks
 
-### `useIdentity`
-
-Access the current user's identity.
+### Comment Hooks
 
 ```tsx
-import { useIdentity } from '@xnet/react'
-
-function UserInfo() {
-  const { identity, isAuthenticated, did } = useIdentity()
-
-  if (!isAuthenticated) return <p>Not logged in</p>
-
-  return <p>Logged in as {did}</p>
-}
+const { comments, addComment, resolveComment } = useComments(nodeId)
+const { count } = useCommentCount(nodeId)
 ```
 
-### `useNodeStore`
-
-Direct access to the NodeStore (escape hatch for advanced use cases).
+### History Hooks
 
 ```tsx
-import { useNodeStore } from '@xnet/react'
-
-function AdvancedComponent() {
-  const { store, isReady, error } = useNodeStore()
-
-  // Direct store access
-  const doSomething = async () => {
-    const nodes = await store.list({ schemaId: 'myapp://Task' })
-  }
-}
+const { entries, goTo } = useHistory(nodeId)
+const { undo, redo, canUndo, canRedo } = useUndo(nodeId)
+const { trail } = useAudit(nodeId)
+const { diff } = useDiff(nodeId, version1, version2)
+const { blame } = useBlame(nodeId)
+const { verify } = useVerification(nodeId)
 ```
+
+### Hub Hooks
+
+```tsx
+const { connected, latency } = useHubStatus()
+const { backup, restore } = useBackup()
+const { upload, progress } = useFileUpload()
+const { search, results } = useHubSearch()
+const { schema } = useRemoteSchema(schemaId)
+const { peers } = usePeerDiscovery()
+```
+
+### Plugin Hooks
+
+```tsx
+const { registry } = usePluginRegistry()
+const { plugins } = usePlugins()
+const { contributions } = useContributions('view')
+const { views } = useViews()
+const { commands, execute } = useCommands()
+```
+
+## Sync Infrastructure
+
+The package includes a full sync infrastructure layer:
+
+| Module                  | Description                        |
+| ----------------------- | ---------------------------------- |
+| `WebSocketSyncProvider` | WebSocket-based sync with hub      |
+| `SyncManager`           | Orchestrates sync across providers |
+| `NodePool`              | Manages Y.Doc instances            |
+| `ConnectionManager`     | WebSocket connection lifecycle     |
+| `NodeStoreSyncProvider` | Syncs NodeStore changes            |
+| `MetaBridge`            | Bridges node metadata to Yjs       |
+| `OfflineQueue`          | Queues mutations while offline     |
+| `BlobSync`              | Syncs file blobs to hub            |
 
 ## Type Safety with FlatNode
 
 All hooks return `FlatNode<Schema>` which flattens properties to the top level:
 
 ```tsx
-// Old pattern (don't do this)
-const title = page.properties.title as string
-
-// New pattern (just works!)
-const title = page.title // Correctly typed as string
+// Properties are directly accessible
+const title = page.title // string (correctly typed)
 ```
 
 ## API Reference
@@ -263,25 +306,9 @@ const title = page.title // Correctly typed as string
 | `schema`      | `DefinedSchema<P>`      | The schema to query       |
 | `idOrFilter?` | `string \| QueryFilter` | Node ID or filter options |
 
-**QueryFilter options:**
-
-- `where?: Partial<Props>` - Filter by property values
-- `orderBy?: { [key]: 'asc' | 'desc' }` - Sort order
-- `limit?: number` - Max results
-- `offset?: number` - Skip results
-- `includeDeleted?: boolean` - Include soft-deleted nodes
-
 ### `useMutate`
 
-Returns:
-
-- `create(schema, data, id?)` - Create a node
-- `update(schema, id, data)` - Update a node (type-safe)
-- `remove(id)` - Soft delete
-- `restore(id)` - Restore deleted
-- `mutate(ops[])` - Transaction
-- `isPending` - Any mutation in progress
-- `pendingCount` - Number of pending mutations
+Returns: `create`, `update`, `remove`, `restore`, `mutate`, `isPending`, `pendingCount`
 
 ### `useNode`
 
@@ -291,17 +318,10 @@ Returns:
 | `id`       | `string \| null`   | Node ID                       |
 | `options?` | `UseNodeOptions`   | Configuration                 |
 
-**UseNodeOptions:**
-
-- `createIfMissing?: Props` - Auto-create defaults
-- `user?: { name, color? }` - Presence info
-- `signalingServers?: string[]` - WebRTC signaling
-- `disableSync?: boolean` - Disable P2P sync
-- `persistDebounce?: number` - Save debounce (ms)
-
 ## Related Packages
 
-- `@xnet/data` - Schema system and NodeStore
-- `@xnet/editor` - Rich text editor components
-- `@xnet/storage` - IndexedDB storage adapter
-- `@xnet/identity` - DID and key management
+- `@xnet/data` -- Schema system and NodeStore
+- `@xnet/editor` -- Rich text editor components
+- `@xnet/history` -- Time machine and audit hooks
+- `@xnet/plugins` -- Plugin system hooks
+- `@xnet/identity` -- DID and key management

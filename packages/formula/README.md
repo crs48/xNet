@@ -1,34 +1,6 @@
 # @xnet/formula
 
-Formula parser and evaluator for database computed properties.
-
-## Overview
-
-Provides a formula language similar to Notion/Excel:
-
-- Expression parsing (lexer + parser)
-- AST evaluation
-- Built-in functions (math, string, date, logic)
-- Property references
-
-## Status
-
-**Not yet implemented** - This is a scaffold package. Implementation will include:
-
-- `src/lexer.ts` - Tokenization
-- `src/parser.ts` - AST generation
-- `src/evaluator.ts` - Expression evaluation
-- `src/functions/` - Built-in function library
-
-## Planned Features
-
-```typescript
-// Example formulas (not yet working)
-"prop(\"Price\") * prop(\"Quantity\")"
-"if(prop(\"Status\") == \"Done\", \"Complete\", \"Pending\")"
-"formatDate(prop(\"Due Date\"), \"MMM D, YYYY\")"
-"sum(prop(\"Subtasks\").map(t => t.prop(\"Hours\")))"
-```
+Formula parser and evaluator for database computed properties -- a standalone package with zero `@xnet/*` dependencies.
 
 ## Installation
 
@@ -36,8 +8,111 @@ Provides a formula language similar to Notion/Excel:
 pnpm add @xnet/formula
 ```
 
+## Features
+
+- **Lexer** -- Tokenizes formula expressions
+- **Parser** -- Generates an AST from tokens
+- **Evaluator** -- Evaluates AST nodes with a context
+- **Validator** -- Validates formulas before evaluation
+- **Compiler** -- Pre-compiles formulas for repeated evaluation
+- **Built-in functions** -- Math, string, date, and logic functions
+- **Property references** -- Extract referenced properties from formulas
+
+## Usage
+
+```typescript
+import { parseFormula, evaluateFormula, validateFormula } from '@xnet/formula'
+
+// Parse and evaluate
+const result = evaluateFormula('prop("Price") * prop("Quantity")', {
+  props: { Price: 29.99, Quantity: 3 }
+})
+// => 89.97
+
+// Validate before evaluating
+const { valid, errors } = validateFormula('if(prop("Status") == "Done", "Complete", "Pending")')
+
+// Extract property references
+import { extractPropertyReferences } from '@xnet/formula'
+const refs = extractPropertyReferences('prop("Price") * prop("Quantity")')
+// => ["Price", "Quantity"]
+```
+
+### Compiled Formulas
+
+```typescript
+import { compileFormula } from '@xnet/formula'
+
+// Pre-compile for repeated evaluation
+const compiled = compileFormula('prop("Price") * prop("Quantity") * (1 + prop("Tax"))')
+
+const result1 = compiled.evaluate({ props: { Price: 10, Quantity: 2, Tax: 0.1 } })
+const result2 = compiled.evaluate({ props: { Price: 20, Quantity: 1, Tax: 0.2 } })
+```
+
+### Advanced: Direct AST Access
+
+```typescript
+import { Lexer, Parser, Evaluator } from '@xnet/formula'
+
+const tokens = new Lexer('1 + 2 * 3').tokenize()
+const ast = new Parser(tokens).parse()
+const result = new Evaluator().evaluate(ast, context)
+```
+
+## Formula Language
+
+```
+// Arithmetic
+prop("Price") * prop("Quantity")
+(prop("Subtotal") + prop("Tax")) / 100
+
+// Comparisons
+prop("Status") == "Done"
+prop("Priority") > 3
+
+// Conditionals
+if(prop("Status") == "Done", "Complete", "Pending")
+
+// String functions
+concat(prop("First"), " ", prop("Last"))
+length(prop("Title"))
+
+// Date functions
+formatDate(prop("Due Date"), "MMM D, YYYY")
+
+// Math functions
+round(prop("Score"), 2)
+sum(prop("Values"))
+```
+
+## Architecture
+
+```mermaid
+flowchart LR
+    Input["Formula String"] --> Lexer["Lexer<br/><small>Tokenization</small>"]
+    Lexer --> Parser["Parser<br/><small>AST generation</small>"]
+    Parser --> AST["AST"]
+    AST --> Evaluator["Evaluator<br/><small>Execution</small>"]
+    AST --> Validator["Validator<br/><small>Error checking</small>"]
+    Evaluator --> Result["Result"]
+    Functions["Function<br/>Registry"] --> Evaluator
+```
+
+## Modules
+
+| Module               | Description                 |
+| -------------------- | --------------------------- |
+| `lexer.ts`           | Tokenizer                   |
+| `parser.ts`          | AST parser                  |
+| `evaluator.ts`       | Expression evaluator        |
+| `ast.ts`             | AST node types and builders |
+| `functions/index.ts` | Built-in function registry  |
+
 ## Testing
 
 ```bash
-pnpm test
+pnpm --filter @xnet/formula test
 ```
+
+4 test files covering lexer, parser, evaluator, and built-in functions.

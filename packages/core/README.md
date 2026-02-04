@@ -1,6 +1,6 @@
 # @xnet/core
 
-Core types, schemas, and content addressing utilities.
+Core types, content addressing, and permission primitives for xNet. This is the leaf package -- it has no internal `@xnet/*` dependencies.
 
 ## Installation
 
@@ -8,25 +8,59 @@ Core types, schemas, and content addressing utilities.
 pnpm add @xnet/core
 ```
 
+## Features
+
+- **Content addressing** -- BLAKE3-based CIDs (`cid:blake3:{hash}`), Merkle trees
+- **Signed updates** -- Vector clocks, signed update types for causal ordering
+- **Snapshots** -- Point-in-time snapshot types for state persistence
+- **Verification** -- Fork detection, update chain verification
+- **DID resolution** -- Pluggable DID resolver interface
+- **Query federation** -- Types for cross-hub federated queries
+- **Permissions** -- Role-based access control (RBAC), capabilities
+
 ## Usage
 
 ```typescript
-import { createContentId, verifyContent, hashContent } from '@xnet/core'
+import { hashContent, createContentId, verifyContent, buildMerkleTree } from '@xnet/core'
 
-// Hash content
+// Hash content with BLAKE3
 const hash = hashContent(new Uint8Array([1, 2, 3]))
 
-// Create content ID
+// Create a content-addressed ID
 const cid = createContentId(data)
 
-// Verify content
+// Verify content integrity
 const isValid = verifyContent(cid, data)
+
+// Build a Merkle tree
+const tree = buildMerkleTree(chunks)
 ```
 
-## Features
+```typescript
+import { detectFork, verifyUpdateChain } from '@xnet/core'
 
-- BLAKE3 content hashing
-- Content ID (CID) format: `cid:blake3:{hash}`
-- Vector clocks for causality
-- Signed update types
-- Snapshot types
+// Verify an update chain
+const valid = verifyUpdateChain(updates)
+
+// Detect forks in update history
+const fork = detectFork(chain1, chain2)
+```
+
+## Modules
+
+| Module            | Description                        |
+| ----------------- | ---------------------------------- |
+| `content.ts`      | Content addressing, CID creation   |
+| `hashing.ts`      | BLAKE3 hashing, Merkle trees       |
+| `snapshots.ts`    | Snapshot types and utilities       |
+| `updates.ts`      | Signed updates, vector clocks      |
+| `verification.ts` | Fork detection, chain verification |
+| `resolution.ts`   | DID resolver interface             |
+| `federation.ts`   | Federated query types              |
+| `permissions.ts`  | Roles, capabilities, RBAC          |
+
+## Testing
+
+```bash
+pnpm --filter @xnet/core test
+```
