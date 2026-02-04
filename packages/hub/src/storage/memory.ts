@@ -5,6 +5,7 @@
 import type {
   BlobMeta,
   DocMeta,
+  FileMeta,
   HubStorage,
   SearchOptions,
   SearchResult,
@@ -18,6 +19,7 @@ export const createMemoryStorage = (): HubStorage => {
   const searchBodies = new Map<string, string>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
+  const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
 
   const getDocState = async (docId: string): Promise<Uint8Array | null> =>
     docStates.get(docId) ?? null
@@ -79,6 +81,46 @@ export const createMemoryStorage = (): HubStorage => {
     searchBodies.set(docId, text)
   }
 
+  const getFileMeta = async (cid: string): Promise<FileMeta | null> =>
+    files.get(cid)?.meta ?? null
+
+  const putFile = async (
+    cid: string,
+    data: Uint8Array,
+    meta: Omit<FileMeta, 'referenceCount' | 'createdAt'>
+  ): Promise<void> => {
+    const entry: FileMeta = {
+      ...meta,
+      cid,
+      referenceCount: 1,
+      createdAt: Date.now()
+    }
+    files.set(cid, { data: new Uint8Array(data), meta: entry })
+  }
+
+  const getFileData = async (cid: string): Promise<Uint8Array | null> =>
+    files.get(cid)?.data ?? null
+
+  const deleteFile = async (cid: string): Promise<void> => {
+    files.delete(cid)
+  }
+
+  const listFiles = async (uploaderDid: string): Promise<FileMeta[]> =>
+    Array.from(files.values())
+      .map((entry) => entry.meta)
+      .filter((meta) => meta.uploaderDid === uploaderDid)
+      .sort((a, b) => b.createdAt - a.createdAt)
+
+  const getFilesUsage = async (
+    uploaderDid: string
+  ): Promise<{ totalBytes: number; fileCount: number }> => {
+    const uploaded = await listFiles(uploaderDid)
+    return {
+      totalBytes: uploaded.reduce((sum, file) => sum + file.sizeBytes, 0),
+      fileCount: uploaded.length
+    }
+  }
+
   const hasNodeChange = async (hash: string): Promise<boolean> => nodeChangesByHash.has(hash)
 
   const appendNodeChange = async (room: string, change: SerializedNodeChange): Promise<void> => {
@@ -125,6 +167,7 @@ export const createMemoryStorage = (): HubStorage => {
     searchBodies.clear()
     nodeChangesByHash.clear()
     nodeChangesByRoom.clear()
+    files.clear()
   }
 
   return {
@@ -139,6 +182,12 @@ export const createMemoryStorage = (): HubStorage => {
     getDocMeta,
     search,
     updateSearchBody,
+    getFileMeta,
+    putFile,
+    getFileData,
+    deleteFile,
+    listFiles,
+    getFilesUsage,
     hasNodeChange,
     appendNodeChange,
     getNodeChangesSince,

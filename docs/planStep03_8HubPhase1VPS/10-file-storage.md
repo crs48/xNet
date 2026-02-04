@@ -592,17 +592,17 @@ describe('File Storage API', () => {
 
 ## Checklist
 
-- [ ] Add `file_meta` table to SQLite schema
-- [ ] Add file methods to `HubStorage` interface (`putFile`, `getFileData`, `getFileMeta`, etc.)
-- [ ] Implement `FileService` with BLAKE3 CID verification
-- [ ] Add content-deduplication (skip store if CID already exists)
-- [ ] Create Hono routes: PUT, GET, HEAD, GET (list)
-- [ ] Set `Cache-Control: immutable` on GET responses (CID = content never changes)
-- [ ] Add storage quota enforcement per user
-- [ ] Create `useFileUpload()` React hook
-- [ ] Wire file routes into server
-- [ ] Write file storage tests (upload, download, dedup, HEAD, list)
-- [ ] Document `FileRef` property usage in client code
+- [x] Add `file_meta` table to SQLite schema
+- [x] Add file methods to `HubStorage` interface (`putFile`, `getFileData`, `getFileMeta`, etc.)
+- [x] Implement `FileService` with BLAKE3 CID verification
+- [x] Add content-deduplication (skip store if CID already exists)
+- [x] Create Hono routes: PUT, GET, HEAD, GET (list)
+- [x] Set `Cache-Control: immutable` on GET responses (CID = content never changes)
+- [x] Add storage quota enforcement per user
+- [x] Create `useFileUpload()` React hook
+- [x] Wire file routes into server
+- [x] Write file storage tests (upload, download, dedup, HEAD, list)
+- [x] Document `FileRef` property usage in client code
 
 ---
 

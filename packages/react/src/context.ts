@@ -36,6 +36,7 @@ function log(...args: unknown[]): void {
 const HUB_CAPABILITIES = [
   { with: '*', can: 'hub/*' },
   { with: '*', can: 'backup/*' },
+  { with: '*', can: 'files/*' },
   { with: '*', can: 'query/*' },
   { with: '*', can: 'index/*' }
 ] as const
