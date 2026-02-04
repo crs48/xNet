@@ -36,7 +36,7 @@ export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
     }
 
     const auth = c.get('auth') as AuthContext | undefined
-    if (auth && auth.did !== payload.did) {
+    if (!auth || auth.did !== payload.did) {
       return c.json({ error: 'Unauthorized' }, 403)
     }
 
@@ -85,7 +85,7 @@ export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
 
   const resultsHandler = async (c: Context) => {
     const auth = c.get('auth') as AuthContext | undefined
-    if (auth && !auth.can('crawl/write', '*')) {
+    if (!auth || !auth.can('crawl/write', '*')) {
       return c.json({ error: 'Unauthorized' }, 403)
     }
 
@@ -108,7 +108,7 @@ export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
 
   const seedHandler = async (c: Context) => {
     const auth = c.get('auth') as AuthContext | undefined
-    if (auth && !auth.can('hub/admin', '*')) {
+    if (!auth || !auth.can('hub/admin', '*')) {
       return c.json({ error: 'Unauthorized' }, 403)
     }
     const payload = await c.req.json()
