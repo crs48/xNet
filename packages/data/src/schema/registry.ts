@@ -8,9 +8,38 @@
  * - Validation that a node matches its schema
  */
 
-import type { SchemaIRI } from './node'
-import type { DefinedSchema, PropertyBuilder } from './types'
+import type { SchemaIRI, Node } from './node'
+import type {
+  CreateNodeOptions,
+  DefinedSchema,
+  InferCreateProps,
+  InferNode,
+  PropertyBuilder,
+  PropertyDefinition,
+  Schema,
+  ValidationError,
+  ValidationResult
+} from './types'
+import type { SelectOption } from './properties'
+import { createNodeId } from './node'
 import { builtInSchemas, type BuiltInSchemaIRI } from './schemas'
+import {
+  checkbox,
+  created,
+  createdBy,
+  date,
+  dateRange,
+  email,
+  file,
+  multiSelect,
+  number,
+  person,
+  relation,
+  select,
+  text,
+  updated,
+  url
+} from './properties'
 
 /**
  * A registered schema entry.
@@ -27,7 +56,8 @@ interface SchemaEntry {
  */
 export class SchemaRegistry {
   private schemas = new Map<SchemaIRI, SchemaEntry>()
-  private loadingPromises = new Map<SchemaIRI, Promise<DefinedSchema>>()
+  private loadingPromises = new Map<SchemaIRI, Promise<DefinedSchema | undefined>>()
+  private remoteResolver: ((iri: SchemaIRI) => Promise<Schema | null>) | null = null
 
   /**
    * Register a custom schema.
@@ -75,6 +105,29 @@ export class SchemaRegistry {
         this.loadingPromises.delete(iri)
         return schema
       })
+
+      this.loadingPromises.set(iri, loadPromise)
+      return loadPromise
+    }
+
+    if (this.remoteResolver) {
+      const existingPromise = this.loadingPromises.get(iri)
+      if (existingPromise) {
+        return existingPromise
+      }
+
+      const loadPromise = this.remoteResolver(iri)
+        .then((definition) => {
+          if (!definition) return undefined
+          const parsed = parseSchemaDefinition(definition)
+          if (!parsed) return undefined
+          this.schemas.set(iri, { schema: parsed, builtIn: false })
+          return parsed
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          this.loadingPromises.delete(iri)
+        })
 
       this.loadingPromises.set(iri, loadPromise)
       return loadPromise
@@ -144,6 +197,281 @@ export class SchemaRegistry {
       }
     }
   }
+
+  /**
+   * Set a remote resolver for fetching schemas by IRI.
+   * When a schema is not found locally, the resolver is queried.
+   */
+  setRemoteResolver(resolver: (iri: SchemaIRI) => Promise<Schema | null>): void {
+    this.remoteResolver = resolver
+  }
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === 'object')
+
+const toNumber = (value: unknown): number | undefined =>
+  typeof value === 'number' && Number.isFinite(value) ? value : undefined
+
+const toBoolean = (value: unknown): boolean | undefined =>
+  typeof value === 'boolean' ? value : undefined
+
+const toStringValue = (value: unknown): string | undefined =>
+  typeof value === 'string' ? value : undefined
+
+const toStringArray = (value: unknown): string[] | undefined =>
+  Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : undefined
+
+const toRegExp = (value: unknown): RegExp | undefined => {
+  if (typeof value !== 'string' || value.length === 0) return undefined
+  try {
+    return new RegExp(value)
+  } catch {
+    return undefined
+  }
+}
+
+const normalizeSelectOptions = (value: unknown): SelectOption[] => {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+    .map((entry) => ({
+      id: typeof entry.id === 'string' ? entry.id : '',
+      name: typeof entry.name === 'string' ? entry.name : '',
+      ...(typeof entry.color === 'string' ? { color: entry.color } : {})
+    }))
+    .filter((entry) => entry.id.length > 0 && entry.name.length > 0)
+}
+
+const normalizePropertyDefinition = (
+  definition: PropertyDefinition,
+  schemaId: SchemaIRI
+): PropertyDefinition | null => {
+  const name = typeof definition.name === 'string' ? definition.name : ''
+  const type = typeof definition.type === 'string' ? definition.type : ''
+  if (!name || !type) return null
+
+  return {
+    '@id': typeof definition['@id'] === 'string' ? definition['@id'] : `${schemaId}#${name}`,
+    name,
+    type: definition.type,
+    required: typeof definition.required === 'boolean' ? definition.required : false,
+    ...(isRecord(definition.config) ? { config: definition.config } : {})
+  }
+}
+
+const buildPropertyBuilder = (definition: PropertyDefinition): PropertyBuilder | null => {
+  const config = isRecord(definition.config) ? definition.config : {}
+  const required = typeof definition.required === 'boolean' ? definition.required : false
+
+  switch (definition.type) {
+    case 'text':
+      return text({
+        required,
+        minLength: toNumber(config.minLength),
+        maxLength: toNumber(config.maxLength),
+        pattern: toRegExp(config.pattern),
+        placeholder: toStringValue(config.placeholder)
+      })
+    case 'number':
+      return number({
+        required,
+        min: toNumber(config.min),
+        max: toNumber(config.max),
+        integer: toBoolean(config.integer)
+      })
+    case 'checkbox':
+      return checkbox({
+        required,
+        default: toBoolean(config.default)
+      })
+    case 'date':
+      return date({
+        required,
+        includeTime: toBoolean(config.includeTime)
+      })
+    case 'dateRange':
+      return dateRange({
+        required,
+        includeTime: toBoolean(config.includeTime)
+      })
+    case 'select': {
+      const options = normalizeSelectOptions(config.options)
+      return select({
+        options: options as SelectOption[],
+        required,
+        default: toStringValue(config.default) as SelectOption['id'] | undefined
+      })
+    }
+    case 'multiSelect': {
+      const options = normalizeSelectOptions(config.options)
+      const defaultValue = toStringArray(config.default)
+      return multiSelect({
+        options: options as SelectOption[],
+        required,
+        default: defaultValue as SelectOption['id'][] | undefined
+      })
+    }
+    case 'person':
+      return person({
+        required,
+        multiple: toBoolean(config.multiple)
+      })
+    case 'relation':
+      return relation({
+        required,
+        multiple: toBoolean(config.multiple),
+        target: toStringValue(config.target) as SchemaIRI | undefined
+      })
+    case 'url':
+      return url({
+        required,
+        placeholder: toStringValue(config.placeholder)
+      })
+    case 'email':
+      return email({
+        required,
+        placeholder: toStringValue(config.placeholder)
+      })
+    case 'phone':
+      return phone({
+        required,
+        placeholder: toStringValue(config.placeholder)
+      })
+    case 'file':
+      return file({
+        required,
+        multiple: toBoolean(config.multiple),
+        accept: toStringArray(config.accept),
+        maxSize: toNumber(config.maxSize)
+      })
+    case 'created':
+      return created({
+        label: toStringValue(config.label)
+      })
+    case 'updated':
+      return updated({
+        label: toStringValue(config.label)
+      })
+    case 'createdBy':
+      return createdBy({
+        label: toStringValue(config.label)
+      })
+    default:
+      return null
+  }
+}
+
+const createDefinedSchema = <TProperties extends Record<string, PropertyBuilder>>(
+  schema: Schema,
+  properties: TProperties
+): DefinedSchema<TProperties> => {
+  const schemaId = schema['@id']
+
+  const validate = (node: unknown): ValidationResult => {
+    const errors: ValidationError[] = []
+
+    if (typeof node !== 'object' || node === null) {
+      return { valid: false, errors: [{ path: '', message: 'Node must be an object' }] }
+    }
+
+    const obj = node as Record<string, unknown>
+
+    if (typeof obj.id !== 'string') {
+      errors.push({ path: 'id', message: 'id is required and must be a string' })
+    }
+    if (obj.schemaId !== schemaId) {
+      errors.push({
+        path: 'schemaId',
+        message: `schemaId must be '${schemaId}'`,
+        value: obj.schemaId
+      })
+    }
+    if (typeof obj.createdAt !== 'number') {
+      errors.push({ path: 'createdAt', message: 'createdAt is required and must be a number' })
+    }
+    if (typeof obj.createdBy !== 'string' || !obj.createdBy.startsWith('did:key:')) {
+      errors.push({ path: 'createdBy', message: 'createdBy must be a valid DID' })
+    }
+
+    for (const [name, builder] of Object.entries(properties)) {
+      const value = obj[name]
+      const isRequired = builder.definition.required
+
+      if (value === undefined || value === null) {
+        if (isRequired) {
+          errors.push({ path: name, message: `${name} is required` })
+        }
+      } else if (!builder.validate(value)) {
+        errors.push({ path: name, message: `${name} has invalid value`, value })
+      }
+    }
+
+    return { valid: errors.length === 0, errors }
+  }
+
+  const create = (
+    props: InferCreateProps<TProperties>,
+    createOptions: CreateNodeOptions
+  ): InferNode<TProperties> => {
+    const now = createOptions.createdAt ?? Date.now()
+    const id = createOptions.id ?? createNodeId()
+
+    const node: Record<string, unknown> = {
+      id,
+      schemaId,
+      createdAt: now,
+      createdBy: createOptions.createdBy
+    }
+
+    for (const [name, builder] of Object.entries(properties)) {
+      const rawValue = (props as Record<string, unknown>)[name]
+      const coerced = builder.coerce(rawValue)
+      if (coerced !== null) {
+        node[name] = coerced
+      }
+    }
+
+    return node as InferNode<TProperties>
+  }
+
+  const is = (node: Node): node is InferNode<TProperties> => node.schemaId === schemaId
+
+  return {
+    schema,
+    validate,
+    create,
+    is,
+    _schemaId: schemaId,
+    _properties: properties
+  }
+}
+
+const parseSchemaDefinition = (definition: Schema): DefinedSchema | undefined => {
+  if (!definition || typeof definition !== 'object') return undefined
+  if (typeof definition['@id'] !== 'string') return undefined
+  if (!Array.isArray(definition.properties)) return undefined
+
+  const schemaId = definition['@id'] as SchemaIRI
+  const properties = definition.properties
+    .map((prop) => normalizePropertyDefinition(prop, schemaId))
+    .filter((prop): prop is PropertyDefinition => prop !== null)
+
+  if (properties.length === 0) return undefined
+
+  const propertyBuilders: Record<string, PropertyBuilder> = {}
+  for (const property of properties) {
+    const builder = buildPropertyBuilder(property)
+    if (!builder) return undefined
+    propertyBuilders[property.name] = builder
+  }
+
+  const normalizedSchema: Schema = {
+    ...definition,
+    properties
+  }
+
+  return createDefinedSchema(normalizedSchema, propertyBuilders)
 }
 
 /**
