@@ -230,7 +230,7 @@ export class SchemaRegistryService {
       version: input.version,
       definition,
       authorDid: publisher.did,
-      name: input.name,
+      name: definition.name,
       description: input.description ?? '',
       propertiesCount: definition.properties.length,
       createdAt: Date.now()
