@@ -26,6 +26,11 @@ const run = async (): Promise<void> => {
       'max concurrent connections',
       String(DEFAULT_CONFIG.maxConnections)
     )
+    .option(
+      '--max-blob-size <number>',
+      'max backup blob size in bytes',
+      String(DEFAULT_CONFIG.maxBlobSize)
+    )
     .option('--log-level <level>', 'log level (debug|info|warn|error)', DEFAULT_CONFIG.logLevel)
     .action(async (opts) => {
       const config: Partial<HubConfig> = {
@@ -34,6 +39,7 @@ const run = async (): Promise<void> => {
         auth: opts.auth !== false,
         storage: opts.storage,
         maxConnections: parseNumber(opts.maxConnections, DEFAULT_CONFIG.maxConnections),
+        maxBlobSize: parseNumber(opts.maxBlobSize, DEFAULT_CONFIG.maxBlobSize),
         logLevel: opts.logLevel
       }
 

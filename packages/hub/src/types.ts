@@ -17,6 +17,8 @@ export type HubConfig = {
   maxConnections: number
   /** Default storage quota per DID in bytes (default: 1GB). */
   defaultQuota: number
+  /** Maximum backup blob size in bytes (default: 50MB). */
+  maxBlobSize: number
   /** Log level (default: 'info'). */
   logLevel: 'debug' | 'info' | 'warn' | 'error'
 }
@@ -29,6 +31,7 @@ export const DEFAULT_CONFIG: HubConfig = {
   maxMessageSize: 5 * 1024 * 1024,
   maxConnections: 1000,
   defaultQuota: 1024 * 1024 * 1024,
+  maxBlobSize: 50 * 1024 * 1024,
   logLevel: 'info'
 }
 

@@ -463,14 +463,14 @@ describe('Backup API', () => {
 
 ## Checklist
 
-- [ ] Implement `BackupService` class with put/get/list/delete
-- [ ] Add BLAKE3 content-addressing for blob keys
-- [ ] Implement quota enforcement (per-owner byte limit)
-- [ ] Create Hono routes for backup HTTP API
-- [ ] Wire backup routes into server
-- [ ] Add UCAN capability checks (backup/read, backup/write, backup/delete)
-- [ ] Handle error responses (413 too large, 507 quota, 404 not found)
-- [ ] Write integration tests (upload, download, list, delete)
+- [x] Implement `BackupService` class with put/get/list/delete
+- [x] Add BLAKE3 content-addressing for blob keys
+- [x] Implement quota enforcement (per-owner byte limit)
+- [x] Create Hono routes for backup HTTP API
+- [x] Wire backup routes into server
+- [x] Add UCAN capability checks (backup/read, backup/write, backup/delete)
+- [x] Handle error responses (413 too large, 507 quota, 404 not found)
+- [x] Write integration tests (upload, download, list, delete)
 - [ ] Verify blobs are opaque on disk (no metadata leakage)
 - [ ] Test with actual encrypted payloads from `@xnet/crypto`
 
