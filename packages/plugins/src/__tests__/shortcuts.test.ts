@@ -1,22 +1,25 @@
 /**
+ * @vitest-environment jsdom
+ */
+
+/**
  * Tests for ShortcutManager
- *
- * Note: Some tests that require DOM APIs (KeyboardEvent, document) are skipped
- * when running in Node environment. They would pass in jsdom/browser.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ShortcutManager, getShortcutManager } from '../shortcuts'
 import type { CommandContribution } from '../contributions'
 
-// Check if DOM APIs are available
-const hasDOMAPIs = typeof KeyboardEvent !== 'undefined' && typeof document !== 'undefined'
-
-// Mock navigator.platform
-const originalNavigator = global.navigator
+// Mock navigator.platform by overriding the property on the existing navigator
 const mockNavigator = (platform: string) => {
-  Object.defineProperty(global, 'navigator', {
-    value: { platform, userAgent: '' },
-    writable: true
+  Object.defineProperty(navigator, 'platform', {
+    value: platform,
+    writable: true,
+    configurable: true
+  })
+  Object.defineProperty(navigator, 'userAgent', {
+    value: platform.includes('Mac') ? 'Mac' : '',
+    writable: true,
+    configurable: true
   })
 }
 
@@ -28,9 +31,16 @@ describe('ShortcutManager', () => {
   })
 
   afterEach(() => {
-    Object.defineProperty(global, 'navigator', {
-      value: originalNavigator,
-      writable: true
+    // Reset navigator.platform to jsdom default
+    Object.defineProperty(navigator, 'platform', {
+      value: '',
+      writable: true,
+      configurable: true
+    })
+    Object.defineProperty(navigator, 'userAgent', {
+      value: '',
+      writable: true,
+      configurable: true
     })
   })
 
@@ -83,7 +93,7 @@ describe('ShortcutManager', () => {
   })
 
   describe('handleKeyDown', () => {
-    it.skipIf(!hasDOMAPIs)('executes matching command', () => {
+    it('executes matching command', () => {
       mockNavigator('MacIntel')
 
       const execute = vi.fn()
@@ -111,7 +121,7 @@ describe('ShortcutManager', () => {
       expect(execute).toHaveBeenCalled()
     })
 
-    it.skipIf(!hasDOMAPIs)('does not execute when disabled', () => {
+    it('does not execute when disabled', () => {
       const execute = vi.fn()
       const cmd: CommandContribution = {
         id: 'test-cmd',
@@ -134,7 +144,7 @@ describe('ShortcutManager', () => {
       expect(execute).not.toHaveBeenCalled()
     })
 
-    it.skipIf(!hasDOMAPIs)('respects command when() condition', () => {
+    it('respects command when() condition', () => {
       mockNavigator('MacIntel')
 
       const execute = vi.fn()
@@ -160,7 +170,7 @@ describe('ShortcutManager', () => {
       expect(execute).not.toHaveBeenCalled()
     })
 
-    it.skipIf(!hasDOMAPIs)('skips shortcuts in input elements', () => {
+    it('skips shortcuts in input elements', () => {
       const execute = vi.fn()
       const cmd: CommandContribution = {
         id: 'test-cmd',
@@ -186,7 +196,7 @@ describe('ShortcutManager', () => {
       expect(execute).not.toHaveBeenCalled()
     })
 
-    it.skipIf(!hasDOMAPIs)('allows Escape in input elements', () => {
+    it('allows Escape in input elements', () => {
       mockNavigator('MacIntel')
 
       const execute = vi.fn()
