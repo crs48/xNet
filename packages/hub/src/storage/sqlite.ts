@@ -7,6 +7,7 @@ import type {
   DocMeta,
   FileMeta,
   HubStorage,
+  SchemaRecord,
   SearchOptions,
   SearchResult,
   SerializedNodeChange
@@ -59,6 +60,29 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_file_meta_uploader ON file_meta(uploader_did);
   CREATE INDEX IF NOT EXISTS idx_file_meta_mime ON file_meta(mime_type);
+
+  CREATE TABLE IF NOT EXISTS schemas (
+    iri TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    definition_json TEXT NOT NULL,
+    author_did TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    properties_count INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+    PRIMARY KEY (iri, version)
+  );
+  CREATE INDEX IF NOT EXISTS idx_schemas_iri ON schemas(iri);
+  CREATE INDEX IF NOT EXISTS idx_schemas_author ON schemas(author_did);
+  CREATE INDEX IF NOT EXISTS idx_schemas_name ON schemas(name);
+
+  CREATE VIRTUAL TABLE IF NOT EXISTS schema_search USING fts5(
+    iri UNINDEXED,
+    version UNINDEXED,
+    name,
+    description,
+    property_names
+  );
 
   CREATE TABLE IF NOT EXISTS node_changes (
     hash TEXT PRIMARY KEY,
@@ -151,6 +175,17 @@ type FileMetaRow = {
   created_at: number
 }
 
+type SchemaRow = {
+  iri: string
+  version: number
+  definition_json: string
+  author_did: string
+  name: string
+  description: string
+  properties_count: number
+  created_at: number
+}
+
 type NodeChangeRow = {
   hash: string
   change_id: string
@@ -229,6 +264,50 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     `),
     deleteFileMeta: db.prepare('DELETE FROM file_meta WHERE cid = ? RETURNING file_path'),
     listFiles: db.prepare('SELECT * FROM file_meta WHERE uploader_did = ? ORDER BY created_at DESC'),
+    insertSchema: db.prepare(`
+      INSERT OR REPLACE INTO schemas
+        (iri, version, definition_json, author_did, name, description, properties_count, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    getSchemaLatest: db.prepare(`
+      SELECT * FROM schemas WHERE iri = ? ORDER BY version DESC LIMIT 1
+    `),
+    getSchemaVersion: db.prepare('SELECT * FROM schemas WHERE iri = ? AND version = ?'),
+    deleteSchemaSearch: db.prepare('DELETE FROM schema_search WHERE iri = ?'),
+    insertSchemaSearch: db.prepare(`
+      INSERT INTO schema_search (iri, version, name, description, property_names)
+      VALUES (?, ?, ?, ?, ?)
+    `),
+    listSchemasByAuthor: db.prepare(`
+      SELECT s.*
+      FROM schemas s
+      JOIN (
+        SELECT iri, MAX(version) AS version
+        FROM schemas
+        WHERE author_did = ?
+        GROUP BY iri
+      ) latest ON latest.iri = s.iri AND latest.version = s.version
+      ORDER BY s.created_at DESC
+    `),
+    listPopularSchemas: db.prepare(`
+      SELECT s.*
+      FROM schemas s
+      JOIN (
+        SELECT iri, MAX(version) AS version
+        FROM schemas
+        GROUP BY iri
+      ) latest ON latest.iri = s.iri AND latest.version = s.version
+      ORDER BY s.created_at DESC
+      LIMIT ?
+    `),
+    searchSchemas: db.prepare(`
+      SELECT s.*, bm25(schema_search) as rank
+      FROM schema_search
+      JOIN schemas s ON s.iri = schema_search.iri AND s.version = schema_search.version
+      WHERE schema_search MATCH ?
+      ORDER BY rank
+      LIMIT ? OFFSET ?
+    `),
     getFilesUsage: db.prepare(`
       SELECT COALESCE(SUM(size_bytes), 0) as totalBytes, COUNT(*) as fileCount
       FROM file_meta WHERE uploader_did = ?
@@ -410,6 +489,88 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     }
   }
 
+  const rowToSchemaRecord = (row: SchemaRow): SchemaRecord => ({
+    iri: row.iri,
+    version: row.version,
+    definition: JSON.parse(row.definition_json) as SchemaRecord['definition'],
+    authorDid: row.author_did,
+    name: row.name,
+    description: row.description ?? '',
+    propertiesCount: row.properties_count ?? 0,
+    createdAt: row.created_at
+  })
+
+  const schemaPropertyNames = (schema: SchemaRecord): string => {
+    const definition = schema.definition as { properties?: unknown }
+    const properties = definition.properties
+    if (Array.isArray(properties)) {
+      return properties
+        .map((prop) =>
+          typeof (prop as { name?: unknown }).name === 'string'
+            ? String((prop as { name?: unknown }).name)
+            : ''
+        )
+        .filter((name) => name.length > 0)
+        .join(' ')
+    }
+    if (properties && typeof properties === 'object') {
+      return Object.keys(properties).join(' ')
+    }
+    return ''
+  }
+
+  const putSchema = async (schema: SchemaRecord): Promise<void> => {
+    const write = db.transaction(() => {
+      stmts.insertSchema.run(
+        schema.iri,
+        schema.version,
+        JSON.stringify(schema.definition),
+        schema.authorDid,
+        schema.name,
+        schema.description,
+        schema.propertiesCount,
+        schema.createdAt || Date.now()
+      )
+      stmts.deleteSchemaSearch.run(schema.iri)
+      stmts.insertSchemaSearch.run(
+        schema.iri,
+        schema.version,
+        schema.name,
+        schema.description,
+        schemaPropertyNames(schema)
+      )
+    })
+    write()
+  }
+
+  const getSchema = async (iri: string, version?: number): Promise<SchemaRecord | null> => {
+    const row =
+      version !== undefined
+        ? (stmts.getSchemaVersion.get(iri, version) as SchemaRow | undefined)
+        : (stmts.getSchemaLatest.get(iri) as SchemaRow | undefined)
+    return row ? rowToSchemaRecord(row) : null
+  }
+
+  const listSchemasByAuthor = async (authorDid: string): Promise<SchemaRecord[]> => {
+    const rows = stmts.listSchemasByAuthor.all(authorDid) as SchemaRow[]
+    return rows.map(rowToSchemaRecord)
+  }
+
+  const searchSchemas = async (
+    query: string,
+    options?: { limit?: number; offset?: number }
+  ): Promise<SchemaRecord[]> => {
+    const limit = options?.limit ?? 20
+    const offset = options?.offset ?? 0
+    const rows = stmts.searchSchemas.all(query, limit, offset) as (SchemaRow & { rank: number })[]
+    return rows.map((row) => rowToSchemaRecord(row))
+  }
+
+  const listPopularSchemas = async (limit = 20): Promise<SchemaRecord[]> => {
+    const rows = stmts.listPopularSchemas.all(limit) as SchemaRow[]
+    return rows.map(rowToSchemaRecord)
+  }
+
   const deleteBlob = async (key: string): Promise<void> => {
     const row = stmts.deleteBackup.get(key) as BackupRow
     if (row?.blob_path && existsSync(row.blob_path)) {
@@ -553,6 +714,11 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     deleteFile,
     listFiles,
     getFilesUsage,
+    putSchema,
+    getSchema,
+    listSchemasByAuthor,
+    searchSchemas,
+    listPopularSchemas,
     hasNodeChange,
     appendNodeChange,
     getNodeChangesSince,
