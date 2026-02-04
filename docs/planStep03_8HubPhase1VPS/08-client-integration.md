@@ -817,31 +817,37 @@ describe('Hub Connection (Client)', () => {
 ### Minimal Change (just add hub sync)
 
 ```diff
- // apps/web/src/App.tsx
+// apps/web/src/App.tsx
 
- <XNetProvider
-   identity={identity}
-+  hubUrl="wss://hub.xnet.dev"
- >
-   <App />
- </XNetProvider>
+<XNetProvider
+-  identity={identity}
++  config={{
++    identity,
++    hubUrl: 'wss://hub.xnet.dev'
++  }}
+>
+  <App />
+</XNetProvider>
 ```
 
 ### Full Integration (sync + backup + search)
 
 ```diff
- <XNetProvider
-   identity={identity}
-+  hubUrl="wss://hub.xnet.dev"
-+  hubOptions={{
-+    autoBackup: true,
-+    backupDebounceMs: 10000,
-+    enableSearchIndex: true
+<XNetProvider
+-  identity={identity}
++  config={{
++    identity,
++    hubUrl: 'wss://hub.xnet.dev',
++    hubOptions: {
++      autoBackup: true,
++      backupDebounceMs: 10000,
++      enableSearchIndex: true
++    }
 +  }}
- >
-   <App />
+>
+  <App />
 +  <HubStatusIndicator />
- </XNetProvider>
+</XNetProvider>
 ```
 
 ## Integration with Background Sync Manager (BSM)
@@ -1002,19 +1008,19 @@ The renderer's `useHubSearch` and `useBackup` hooks route through IPC to the mai
 
 ## Checklist
 
-- [ ] Add `hubUrl` prop to `XNetProvider`
-- [ ] Extend `ConnectionManager` config with UCAN token support
-- [ ] Layer hub auth onto existing BSM connection (not a separate WebSocket)
-- [ ] Implement `useHubStatus()` hook (reads BSM connection status)
-- [ ] Implement `useBackup()` hook (upload/download encrypted blobs via hub HTTP)
-- [ ] Implement `useHubSearch()` hook (query via BSM's ConnectionManager)
-- [ ] Create `AutoBackup` class attached to BSM NodePool events
-- [ ] Create `HubStatusIndicator` component
+- [x] Add `hubUrl` prop to `XNetProvider`
+- [x] Extend `ConnectionManager` config with UCAN token support
+- [x] Layer hub auth onto existing BSM connection (not a separate WebSocket)
+- [x] Implement `useHubStatus()` hook (reads BSM connection status)
+- [x] Implement `useBackup()` hook (upload/download encrypted blobs via hub HTTP)
+- [x] Implement `useHubSearch()` hook (query via BSM's ConnectionManager)
+- [x] Create `AutoBackup` class attached to BSM NodePool events
+- [x] Create `HubStatusIndicator` component
 - [ ] Wire `NodeStoreSyncProvider` into BSM's ConnectionManager
-- [ ] Add UCAN generation for hub capabilities
+- [x] Add UCAN generation for hub capabilities
 - [ ] Write client integration tests
-- [ ] Document migration guide (minimal vs full)
-- [ ] Verify zero breaking changes to existing apps without hubUrl
+- [x] Document migration guide (minimal vs full)
+- [x] Verify zero breaking changes to existing apps without hubUrl
 
 ---
 

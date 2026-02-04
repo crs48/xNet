@@ -35,6 +35,10 @@ export interface NodePoolConfig {
   maxWarm?: number
   /** Debounce delay for persisting dirty docs (default: 2000ms) */
   persistDelay?: number
+  /** Optional callback when a doc is updated */
+  onDocUpdate?: (nodeId: string, doc: Y.Doc) => void
+  /** Optional callback before a doc is evicted */
+  onDocEvict?: (nodeId: string, doc: Y.Doc) => void
 }
 
 export interface NodePool {
@@ -117,6 +121,8 @@ export function createNodePool(config: NodePoolConfig): NodePool {
         entry.unobserveMeta()
       }
 
+      config.onDocEvict?.(id, entry.doc)
+
       // Destroy Y.Doc
       entry.doc.destroy()
       entries.delete(id)
@@ -144,6 +150,7 @@ export function createNodePool(config: NodePoolConfig): NodePool {
         if (e) {
           e.dirty = true
           schedulePersist(nodeId)
+          config.onDocUpdate?.(nodeId, doc)
         }
       })
 

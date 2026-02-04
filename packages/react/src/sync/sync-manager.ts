@@ -53,6 +53,14 @@ export interface SyncManagerConfig {
   authorDID?: string
   /** Blob store for P2P blob sync (optional — if omitted, blob sync is disabled) */
   blobStore?: BlobStoreForSync
+  /** Optional UCAN token for hub auth */
+  ucanToken?: string
+  /** Optional UCAN token provider for hub auth */
+  getUCANToken?: () => Promise<string>
+  /** Optional pool update callback */
+  onDocUpdate?: (nodeId: string, doc: Y.Doc) => void
+  /** Optional pool eviction callback */
+  onDocEvict?: (nodeId: string, doc: Y.Doc) => void
 }
 
 export interface SyncManager {
@@ -92,6 +100,8 @@ export interface SyncManager {
 
   /** Listen for events */
   on(event: 'status', handler: (status: SyncStatus) => void): () => void
+  /** Underlying ConnectionManager (if available) */
+  readonly connection?: ConnectionManager
 }
 
 /**
@@ -203,14 +213,18 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const pool = createNodePool({
     storage: config.storage,
     metaBridge,
-    maxWarm: config.poolSize ?? 50
+    maxWarm: config.poolSize ?? 50,
+    onDocUpdate: config.onDocUpdate,
+    onDocEvict: config.onDocEvict
   })
   const registry = createRegistry({
     storage: createRegistryStorageAdapter(config.storage),
     trackTTL: config.trackTTL
   })
   const connection = createConnectionManager({
-    url: config.signalingUrl
+    url: config.signalingUrl,
+    ucanToken: config.ucanToken,
+    getUCANToken: config.getUCANToken
   })
   const offlineQueue = createOfflineQueue({
     storage: config.storage
@@ -551,6 +565,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     get status() {
       return connection.status
+    },
+    get connection() {
+      return connection
     },
     get poolSize() {
       return pool.size

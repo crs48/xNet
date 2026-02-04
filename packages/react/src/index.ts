@@ -182,6 +182,23 @@ export { useBlame, type UseBlameResult } from './hooks/useBlame'
 export { useVerification, type UseVerificationResult } from './hooks/useVerification'
 
 // =============================================================================
+// Hub
+// =============================================================================
+
+export { useHubStatus } from './hooks/useHubStatus'
+
+export { useBackup, type UseBackupReturn } from './hooks/useBackup'
+
+export {
+  useHubSearch,
+  type HubSearchOptions,
+  type HubSearchResult,
+  type HubSearchState
+} from './hooks/useHubSearch'
+
+export { HubStatusIndicator } from './components/HubStatusIndicator'
+
+// =============================================================================
 // Utilities
 // =============================================================================
 
