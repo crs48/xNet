@@ -318,12 +318,12 @@ describe('Hub UCAN Auth', () => {
 
 ## Checklist
 
-- [ ] Implement `auth/capabilities.ts` (hub-specific capability matching)
-- [ ] Implement `auth/ucan.ts` (verify token, manage sessions)
-- [ ] Add auth to WebSocket connection handler in `server.ts`
-- [ ] Add room-level authorization checks on subscribe
-- [ ] Add `--no-auth` CLI flag (anonymous mode)
-- [ ] Write auth tests (reject invalid, accept valid, anonymous mode)
+- [x] Implement `auth/capabilities.ts` (hub-specific capability matching)
+- [x] Implement `auth/ucan.ts` (verify token, manage sessions)
+- [x] Add auth to WebSocket connection handler in `server.ts`
+- [x] Add room-level authorization checks on subscribe
+- [x] Add `--no-auth` CLI flag (anonymous mode)
+- [x] Write auth tests (reject invalid, accept valid, anonymous mode)
 - [ ] Test with existing `WebSocketSyncProvider` (passes token in URL)
 
 ---

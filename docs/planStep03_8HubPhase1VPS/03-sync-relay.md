@@ -571,14 +571,14 @@ describe('Sync Relay', () => {
 
 ## Checklist
 
-- [ ] Implement `pool/node-pool.ts` (LRU Y.Doc management)
-- [ ] Implement `services/relay.ts` (hub as Yjs peer)
-- [ ] Add message interceptor to `services/signaling.ts`
-- [ ] Add `publishFromHub` method to signaling
-- [ ] Wire pool + relay into `server.ts`
-- [ ] Add graceful shutdown (persist all dirty docs)
-- [ ] Write relay tests (persist + serve to new client)
-- [ ] Write doc pool tests (eviction, persistence)
+- [x] Implement `pool/node-pool.ts` (LRU Y.Doc management)
+- [x] Implement `services/relay.ts` (hub as Yjs peer)
+- [x] Add message interceptor to `services/signaling.ts`
+- [x] Add `publishFromHub` method to signaling
+- [x] Wire pool + relay into `server.ts`
+- [x] Add graceful shutdown (persist all dirty docs)
+- [x] Write relay tests (persist + serve to new client)
+- [x] Write doc pool tests (eviction, persistence)
 - [ ] Verify with two clients syncing through hub asynchronously
 
 ---

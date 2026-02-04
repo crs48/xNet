@@ -736,14 +736,14 @@ describe.each(storageFactories)('HubStorage (%s)', (_name, factory) => {
 
 ## Checklist
 
-- [ ] Define `HubStorage` interface in `storage/interface.ts`
-- [ ] Implement `createSQLiteStorage()` with WAL mode
-- [ ] Create schema (doc_state, doc_meta, backups, search_index tables)
-- [ ] Implement FTS5 triggers for auto-indexing
-- [ ] Implement `createMemoryStorage()` for tests
-- [ ] Create `createStorage()` factory function
-- [ ] Write storage adapter tests (both SQLite + memory)
-- [ ] Ensure blob files are stored content-addressed on filesystem
+- [x] Define `HubStorage` interface in `storage/interface.ts`
+- [x] Implement `createSQLiteStorage()` with WAL mode
+- [x] Create schema (doc_state, doc_meta, backups, search_index tables)
+- [x] Implement FTS5 triggers for auto-indexing
+- [x] Implement `createMemoryStorage()` for tests
+- [x] Create `createStorage()` factory function
+- [x] Write storage adapter tests (both SQLite + memory)
+- [x] Ensure blob files are stored content-addressed on filesystem
 - [ ] Verify WAL mode with concurrent read/write access
 
 ---
