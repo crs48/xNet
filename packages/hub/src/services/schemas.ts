@@ -105,7 +105,12 @@ const normalizeProperties = (value: unknown, iri: string): SchemaPropertyDefinit
         throw new SchemaError('INVALID_DEFINITION', `Property at index ${index} must include name/type`)
       }
       const required = typeof entry.required === 'boolean' ? entry.required : false
-      const config = isRecord(entry.config) ? entry.config : undefined
+      const rawConfig = isRecord(entry.config)
+        ? entry.config
+        : Object.fromEntries(
+            Object.entries(entry).filter(([key]) => KNOWN_CONFIG_KEYS.has(key))
+          )
+      const config = Object.keys(rawConfig).length > 0 ? rawConfig : undefined
       return {
         '@id': typeof entry['@id'] === 'string' ? entry['@id'] : `${iri}#${name}`,
         name,
