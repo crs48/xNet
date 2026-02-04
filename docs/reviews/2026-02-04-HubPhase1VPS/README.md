@@ -157,31 +157,31 @@ graph TD
 
 ### Immediate (Before Any Testing)
 
-- [ ] Run `pnpm install` and verify hub deps resolve
-- [ ] Add `vitest.config.ts` to `packages/hub/` with `server.deps.external: ['better-sqlite3', 'ws']`
-- [ ] Fix port conflicts in test files (14451, 14452 used twice each)
-- [ ] Fix UCAN proof test to use real token instead of dummy string
+- [x] Run `pnpm install` and verify hub deps resolve
+- [x] Add `vitest.config.ts` to `packages/hub/` with `server.deps.external: ['better-sqlite3', 'ws']`
+- [x] Fix port conflicts in test files (14451, 14452 used twice each)
+- [x] Fix UCAN proof test to use real token instead of dummy string
 
 ### Before First Deploy
 
-- [ ] Add auth to shard ingest endpoint (`routes/shards.ts:49`)
-- [ ] Add auth to crawl results endpoint (`routes/crawl.ts:86`)
-- [ ] Sanitize blob/file keys against path traversal (`storage/sqlite.ts:762,822`)
-- [ ] Add UCAN audience verification (`auth/ucan.ts:84`)
-- [ ] Fix `Disallow: /` handling in robots.txt parser (`services/crawl-robots.ts:24`)
-- [ ] Add `@xnet/data` to Dockerfile copy steps
-- [ ] Add `USER node` to Dockerfile
-- [ ] Await persistence in pool eviction (`pool/node-pool.ts:152`)
-- [ ] Fix `fromBase64` browser path (`network/resolution/did.ts:32`)
-- [ ] Add missing `phone` import in schema registry (`data/schema/registry.ts:337`)
+- [x] Add auth to shard ingest endpoint (`routes/shards.ts:49`)
+- [x] Add auth to crawl results endpoint (`routes/crawl.ts:86`)
+- [x] Sanitize blob/file keys against path traversal (`storage/sqlite.ts:762,822`)
+- [x] Add UCAN audience verification (`auth/ucan.ts:84`)
+- [x] Fix `Disallow: /` handling in robots.txt parser (`services/crawl-robots.ts:24`)
+- [x] Add `@xnet/data` to Dockerfile copy steps
+- [x] Add `USER node` to Dockerfile
+- [x] Await persistence in pool eviction (`pool/node-pool.ts:152`)
+- [x] Fix `fromBase64` browser path (`network/resolution/did.ts:32`)
+- [x] Add missing `phone` import in schema registry (`data/schema/registry.ts:337`)
 
 ### Before Production
 
 - [x] Add HTTP rate limiting (currently WS-only)
-- [ ] Add SSRF protection for federation/crawl/shard URLs
+- [x] Add SSRF protection for federation/crawl/shard URLs
 - [x] Add `.dockerignore` for faster builds
-- [ ] Fix `actionAllows` inconsistency between `ucan.ts` and `capabilities.ts`
+- [x] Fix `actionAllows` inconsistency between `ucan.ts` and `capabilities.ts`
 - [x] Add readiness probe (`/ready` endpoint with storage health check)
-- [ ] Extract duplicated utilities (`isRecord`, `toStringArray`, `toHubHttpUrl`, `sanitizeFtsQuery`)
+- [x] Extract duplicated utilities (`isRecord`, `toStringArray`, `toHubHttpUrl`, `sanitizeFtsQuery`)
 - [x] Add upper bounds on all pagination `limit` params
-- [ ] Fix unbounded in-memory maps (awareness rooms, federation rate limiters, domain cooldowns)
+- [x] Fix unbounded in-memory maps (awareness rooms, federation rate limiters, domain cooldowns)
