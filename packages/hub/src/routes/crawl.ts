@@ -78,7 +78,7 @@ export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
     const limit = Number(c.req.query('limit') ?? 5)
     const tasks = await options.coordinator.getNextTasks(
       crawlerDid,
-      Number.isFinite(limit) ? Math.max(limit, 1) : 5
+      Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 50) : 5
     )
     return c.json({ tasks })
   })
