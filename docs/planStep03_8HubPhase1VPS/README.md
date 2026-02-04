@@ -307,11 +307,11 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] Structured data (tasks, properties) syncs through hub
-- [ ] Two devices sync NodeChanges without being online simultaneously
-- [ ] Duplicate changes (same hash) are not stored twice
-- [ ] Delta sync returns only changes since requested Lamport time
-- [ ] `getChangesSince(lamport)` added to `NodeStorageAdapter` interface + IndexedDB adapter
+- [x] Structured data (tasks, properties) syncs through hub
+- [x] Two devices sync NodeChanges without being online simultaneously
+- [x] Duplicate changes (same hash) are not stored twice
+- [x] Delta sync returns only changes since requested Lamport time
+- [x] `getChangesSince(lamport)` added to `NodeStorageAdapter` interface + IndexedDB adapter
 
 ### Phase 9: File Storage (Day 12)
 

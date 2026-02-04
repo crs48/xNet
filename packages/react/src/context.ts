@@ -69,6 +69,8 @@ export interface XNetConfig {
     backupDebounceMs?: number
     /** Enable search indexing on NodeStore changes (default: false) */
     enableSearchIndex?: boolean
+    /** Room name for node-change relay (defaults to author DID) */
+    nodeSyncRoom?: string
   }
   /** Encryption key for hub backups (XChaCha20-Poly1305) */
   encryptionKey?: Uint8Array
@@ -147,6 +149,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const autoBackup = hubOptions?.autoBackup ?? false
   const backupDebounceMs = hubOptions?.backupDebounceMs ?? 5000
   const enableSearchIndex = hubOptions?.enableSearchIndex ?? false
+  const nodeSyncRoom = hubOptions?.nodeSyncRoom ?? authorDID ?? 'default'
   const encryptionKey = config.encryptionKey ?? null
 
   const getHubAuthToken = useCallback(async (): Promise<string> => {
@@ -294,6 +297,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       signalingUrl,
       authorDID,
       blobStore: config.blobStore,
+      nodeSyncRoom: hubUrl ? nodeSyncRoom : undefined,
       getUCANToken: hubUrl && autoAuth ? getHubAuthToken : undefined,
       onDocUpdate: enableAutoBackup
         ? (nodeId, doc) => {
@@ -362,7 +366,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     backupDebounceMs,
     encryptionKey,
     getHubAuthToken,
-    hubUrl
+    hubUrl,
+    nodeSyncRoom
   ])
 
   // Track hub connection status from SyncManager

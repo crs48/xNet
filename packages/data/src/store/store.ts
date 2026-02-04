@@ -430,6 +430,13 @@ export class NodeStore {
   }
 
   /**
+   * Get changes since a Lamport time (for delta sync).
+   */
+  async getChangesSince(sinceLamport: number): Promise<NodeChange[]> {
+    return this.storage.getChangesSince(sinceLamport)
+  }
+
+  /**
    * Get the current Lamport time (for sync protocol).
    */
   getCurrentLamportTime(): number {

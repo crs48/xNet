@@ -2,13 +2,22 @@
  * @xnet/hub - In-memory storage adapter.
  */
 
-import type { BlobMeta, DocMeta, HubStorage, SearchOptions, SearchResult } from './interface'
+import type {
+  BlobMeta,
+  DocMeta,
+  HubStorage,
+  SearchOptions,
+  SearchResult,
+  SerializedNodeChange
+} from './interface'
 
 export const createMemoryStorage = (): HubStorage => {
   const docStates = new Map<string, Uint8Array>()
   const docMetas = new Map<string, DocMeta>()
   const blobs = new Map<string, { data: Uint8Array; meta: BlobMeta }>()
   const searchBodies = new Map<string, string>()
+  const nodeChangesByHash = new Map<string, SerializedNodeChange>()
+  const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
 
   const getDocState = async (docId: string): Promise<Uint8Array | null> =>
     docStates.get(docId) ?? null
@@ -70,11 +79,52 @@ export const createMemoryStorage = (): HubStorage => {
     searchBodies.set(docId, text)
   }
 
+  const hasNodeChange = async (hash: string): Promise<boolean> => nodeChangesByHash.has(hash)
+
+  const appendNodeChange = async (room: string, change: SerializedNodeChange): Promise<void> => {
+    if (nodeChangesByHash.has(change.hash)) return
+    nodeChangesByHash.set(change.hash, change)
+    const existing = nodeChangesByRoom.get(room) ?? []
+    existing.push(change)
+    nodeChangesByRoom.set(room, existing)
+  }
+
+  const getNodeChangesSince = async (
+    room: string,
+    sinceLamport: number
+  ): Promise<SerializedNodeChange[]> => {
+    const changes = nodeChangesByRoom.get(room) ?? []
+    return changes
+      .filter((change) => change.lamportTime > sinceLamport)
+      .sort((a, b) =>
+        a.lamportTime === b.lamportTime
+          ? a.lamportAuthor.localeCompare(b.lamportAuthor)
+          : a.lamportTime - b.lamportTime
+      )
+  }
+
+  const getNodeChangesForNode = async (
+    room: string,
+    nodeId: string
+  ): Promise<SerializedNodeChange[]> => {
+    const changes = nodeChangesByRoom.get(room) ?? []
+    return changes
+      .filter((change) => change.nodeId === nodeId)
+      .sort((a, b) => a.lamportTime - b.lamportTime)
+  }
+
+  const getHighWaterMark = async (room: string): Promise<number> => {
+    const changes = nodeChangesByRoom.get(room) ?? []
+    return changes.reduce((max, change) => Math.max(max, change.lamportTime), 0)
+  }
+
   const close = async (): Promise<void> => {
     docStates.clear()
     docMetas.clear()
     blobs.clear()
     searchBodies.clear()
+    nodeChangesByHash.clear()
+    nodeChangesByRoom.clear()
   }
 
   return {
@@ -89,6 +139,11 @@ export const createMemoryStorage = (): HubStorage => {
     getDocMeta,
     search,
     updateSearchBody,
+    hasNodeChange,
+    appendNodeChange,
+    getNodeChangesSince,
+    getNodeChangesForNode,
+    getHighWaterMark,
     close
   }
 }

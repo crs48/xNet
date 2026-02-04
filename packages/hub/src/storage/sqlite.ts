@@ -2,7 +2,14 @@
  * @xnet/hub - SQLite storage adapter.
  */
 
-import type { BlobMeta, DocMeta, HubStorage, SearchOptions, SearchResult } from './interface'
+import type {
+  BlobMeta,
+  DocMeta,
+  HubStorage,
+  SearchOptions,
+  SearchResult,
+  SerializedNodeChange
+} from './interface'
 import Database from 'better-sqlite3'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -38,6 +45,32 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_backups_owner ON backups(owner_did);
   CREATE INDEX IF NOT EXISTS idx_backups_doc ON backups(doc_id);
+
+  CREATE TABLE IF NOT EXISTS node_changes (
+    hash TEXT PRIMARY KEY,
+    change_id TEXT NOT NULL,
+    change_type TEXT NOT NULL,
+    room TEXT NOT NULL,
+    node_id TEXT NOT NULL,
+    schema_id TEXT,
+    lamport_time INTEGER NOT NULL,
+    lamport_author TEXT NOT NULL,
+    author_did TEXT NOT NULL,
+    wall_time INTEGER NOT NULL,
+    parent_hash TEXT,
+    payload_json TEXT NOT NULL,
+    signature_b64 TEXT NOT NULL,
+    batch_id TEXT,
+    batch_index INTEGER,
+    batch_size INTEGER,
+    received_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+  );
+  CREATE INDEX IF NOT EXISTS idx_node_changes_room_lamport
+    ON node_changes(room, lamport_time);
+  CREATE INDEX IF NOT EXISTS idx_node_changes_node
+    ON node_changes(node_id, lamport_time);
+  CREATE INDEX IF NOT EXISTS idx_node_changes_batch
+    ON node_changes(batch_id) WHERE batch_id IS NOT NULL;
 
   CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
     doc_id UNINDEXED,
@@ -91,6 +124,25 @@ type BackupMetaRow = {
   size_bytes: number
   content_type: string
   created_at: number
+}
+
+type NodeChangeRow = {
+  hash: string
+  change_id: string
+  change_type: string
+  room: string
+  node_id: string
+  schema_id: string | null
+  lamport_time: number
+  lamport_author: string
+  author_did: string
+  wall_time: number
+  parent_hash: string | null
+  payload_json: string
+  signature_b64: string
+  batch_id: string | null
+  batch_index: number | null
+  batch_size: number | null
 }
 
 type SearchRow = {
@@ -169,6 +221,29 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     insertSearchBody: db.prepare(`
       INSERT INTO search_index(doc_id, title, body, schema_iri, owner_did)
       SELECT doc_id, title, ?, schema_iri, owner_did FROM doc_meta WHERE doc_id = ?
+    `),
+    hasNodeChange: db.prepare('SELECT 1 FROM node_changes WHERE hash = ?'),
+    appendNodeChange: db.prepare(`
+      INSERT OR IGNORE INTO node_changes
+        (hash, change_id, change_type, room, node_id, schema_id,
+         lamport_time, lamport_author, author_did, wall_time,
+         parent_hash, payload_json, signature_b64,
+         batch_id, batch_index, batch_size, received_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    getNodeChangesSince: db.prepare(`
+      SELECT * FROM node_changes
+      WHERE room = ? AND lamport_time > ?
+      ORDER BY lamport_time ASC, lamport_author ASC
+      LIMIT 1000
+    `),
+    getNodeChangesForNode: db.prepare(`
+      SELECT * FROM node_changes
+      WHERE room = ? AND node_id = ?
+      ORDER BY lamport_time ASC
+    `),
+    getHighWaterMark: db.prepare(`
+      SELECT MAX(lamport_time) as hwm FROM node_changes WHERE room = ?
     `)
   }
 
@@ -281,6 +356,73 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     }))
   }
 
+  const rowToSerializedChange = (row: NodeChangeRow): SerializedNodeChange => ({
+    id: row.change_id,
+    type: row.change_type,
+    hash: row.hash,
+    room: row.room,
+    nodeId: row.node_id,
+    schemaId: row.schema_id ?? undefined,
+    lamportTime: row.lamport_time,
+    lamportAuthor: row.lamport_author,
+    authorDid: row.author_did,
+    wallTime: row.wall_time,
+    parentHash: row.parent_hash,
+    payload: JSON.parse(row.payload_json) as SerializedNodeChange['payload'],
+    signatureB64: row.signature_b64,
+    batchId: row.batch_id ?? undefined,
+    batchIndex: row.batch_index ?? undefined,
+    batchSize: row.batch_size ?? undefined
+  })
+
+  const hasNodeChange = async (hash: string): Promise<boolean> => {
+    const row = stmts.hasNodeChange.get(hash) as { '1': number } | undefined
+    return Boolean(row)
+  }
+
+  const appendNodeChange = async (room: string, change: SerializedNodeChange): Promise<void> => {
+    stmts.appendNodeChange.run(
+      change.hash,
+      change.id,
+      change.type,
+      room,
+      change.nodeId,
+      change.schemaId ?? null,
+      change.lamportTime,
+      change.lamportAuthor,
+      change.authorDid,
+      change.wallTime,
+      change.parentHash ?? null,
+      JSON.stringify(change.payload),
+      change.signatureB64,
+      change.batchId ?? null,
+      change.batchIndex ?? null,
+      change.batchSize ?? null,
+      Date.now()
+    )
+  }
+
+  const getNodeChangesSince = async (
+    room: string,
+    sinceLamport: number
+  ): Promise<SerializedNodeChange[]> => {
+    const rows = stmts.getNodeChangesSince.all(room, sinceLamport) as NodeChangeRow[]
+    return rows.map(rowToSerializedChange)
+  }
+
+  const getNodeChangesForNode = async (
+    room: string,
+    nodeId: string
+  ): Promise<SerializedNodeChange[]> => {
+    const rows = stmts.getNodeChangesForNode.all(room, nodeId) as NodeChangeRow[]
+    return rows.map(rowToSerializedChange)
+  }
+
+  const getHighWaterMark = async (room: string): Promise<number> => {
+    const row = stmts.getHighWaterMark.get(room) as { hwm: number | null } | undefined
+    return row?.hwm ?? 0
+  }
+
   const close = async (): Promise<void> => {
     db.close()
   }
@@ -296,6 +438,11 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     setDocMeta,
     getDocMeta,
     search,
+    hasNodeChange,
+    appendNodeChange,
+    getNodeChangesSince,
+    getNodeChangesForNode,
+    getHighWaterMark,
     updateSearchBody: async (docId: string, text: string): Promise<void> => {
       const updateFn = db.transaction(() => {
         stmts.updateSearchBody.run(docId)

@@ -237,6 +237,12 @@ export {
 } from './sync/connection-manager'
 
 export {
+  NodeStoreSyncProvider,
+  type SerializedNodeChange,
+  type NodeSyncResponse
+} from './sync/node-store-sync-provider'
+
+export {
   createRegistry,
   type Registry,
   type RegistryConfig,
