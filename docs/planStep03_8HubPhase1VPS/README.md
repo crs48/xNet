@@ -122,7 +122,7 @@ flowchart TB
 
 ## Current State (as of Feb 2026)
 
-> **`packages/hub/` does not exist yet.** All items below are existing building blocks that the hub will compose.
+> **`packages/hub/` now exists with Phase 1 scaffolding (CLI + signaling).** All items below are existing building blocks that the hub will compose.
 
 | Component                 | Status                              | Location                                        | Notes                                                                                                                                                           |
 | ------------------------- | ----------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
