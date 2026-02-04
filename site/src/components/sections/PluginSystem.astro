@@ -2,6 +2,29 @@
 import SectionHeader from '../ui/SectionHeader.astro'
 import CodeBlock from '../ui/CodeBlock.astro'
 
+const kw = (s: string) => `<span class="text-indigo-400">${s}</span>`
+const fn = (s: string) => `<span class="text-yellow-300">${s}</span>`
+const str = (s: string) => `<span class="text-emerald-400">${s}</span>`
+const num = (s: string) => `<span class="text-orange-400">${s}</span>`
+
+const pluginCode = [
+  `${kw('import')} { definePlugin } ${kw('from')} ${str("'@xnet/sdk'")}`,
+  ``,
+  `${kw('export default')} ${fn('definePlugin')}({`,
+  `  name: ${str("'word-count'")},`,
+  `  setup(ctx) {`,
+  `    ctx.${fn('registerView')}({`,
+  `      name: ${str("'Word Count'")},`,
+  `      component: () =&gt; {`,
+  `        ${kw('const')} { doc } = ctx.${fn('useCurrentNode')}()`,
+  `        ${kw('const')} words = doc?.getText()?.length ?? ${num('0')}`,
+  `        ${kw('return')} &lt;span&gt;{words} words&lt;/span&gt;`,
+  `      }`,
+  `    })`,
+  `  }`,
+  `})`,
+].join('\n')
+
 const layers = [
   {
     num: '1',
@@ -68,23 +91,7 @@ const colorMap: Record<string, { num: string, border: string }> = {
 
     <!-- Quick example -->
     <div class="mx-auto mt-12 max-w-2xl animate-on-scroll">
-      <CodeBlock filename="word-count-plugin.ts">
-<span class="text-indigo-400">import</span> {'{'} definePlugin {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/sdk'</span>
-
-<span class="text-indigo-400">export default</span> <span class="text-yellow-300">definePlugin</span>({'{'}
-  name: <span class="text-emerald-400">'word-count'</span>,
-  setup(ctx) {'{'}
-    ctx.<span class="text-yellow-300">registerView</span>({'{'}
-      name: <span class="text-emerald-400">'Word Count'</span>,
-      component: () =&gt; {'{'}
-        <span class="text-indigo-400">const</span> {'{'} doc {'}'} = ctx.<span class="text-yellow-300">useCurrentNode</span>()
-        <span class="text-indigo-400">const</span> words = doc?.getText()?.length ?? <span class="text-orange-400">0</span>
-        <span class="text-indigo-400">return</span> &lt;span&gt;{'{'}words{'}'} words&lt;/span&gt;
-      {'}'}
-    {'}'})
-  {'}'}
-{'}'})
-      </CodeBlock>
+      <CodeBlock filename="word-count-plugin.ts" code={pluginCode} />
     </div>
   </div>
 </section>

@@ -88,7 +88,7 @@ const colorMap: Record<string, { border: string, bg: string, text: string, dot: 
       {examples.map((ex) => {
         const c = colorMap[ex.color]
         return (
-          <div class={`animate-on-scroll rounded-xl border ${c.border} ${c.bg} p-6 transition-all duration-300 hover:border-opacity-40`}>
+          <div class={`animate-on-scroll min-w-0 rounded-xl border ${c.border} ${c.bg} p-6 transition-all duration-300 hover:border-opacity-40`}>
             <div class="flex items-center gap-2 mb-3">
               <span class={`h-2 w-2 rounded-full ${c.dot}`}></span>
               <h3 class={`font-semibold ${c.text}`}>{ex.title}</h3>
