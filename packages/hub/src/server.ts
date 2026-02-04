@@ -12,6 +12,7 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { WebSocketServer } from 'ws'
 import { randomUUID } from 'node:crypto'
+import { DatabaseSchema, PageSchema, TaskSchema } from '@xnet/data'
 import { hasHubCapability } from './auth/capabilities'
 import { authenticateConnection, authenticateHttpRequest, removeSession, toAuthContext } from './auth/ucan'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
@@ -19,11 +20,13 @@ import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createBackupRoutes } from './routes/backup'
 import { createFileRoutes } from './routes/files'
+import { createSchemaRoutes } from './routes/schemas'
 import { BackupService } from './services/backup'
 import { FileService } from './services/files'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
+import { SchemaRegistryService } from './services/schemas'
 import { createSignalingService } from './services/signaling'
 import { createStorage } from './storage'
 
@@ -147,6 +150,7 @@ export const createServer = (config: HubConfig): HubInstance => {
   const files = new FileService(storage)
   const query = new QueryService(storage)
   const nodeRelay = new NodeRelayService(storage)
+  const schemas = new SchemaRegistryService(storage)
   const metrics = new Metrics()
   const rateLimiter = new RateLimiter({
     perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
@@ -206,11 +210,30 @@ export const createServer = (config: HubConfig): HubInstance => {
   app.use('/files', requireAuth)
   app.route('/files', createFileRoutes(files))
 
+  app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
+
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null
 
   const start = async (): Promise<void> => {
     if (httpServer) return
+    await schemas.seedBuiltInSchemas([
+      {
+        definition: PageSchema.schema,
+        description: 'Built-in rich text page schema',
+        authorDid: 'did:key:xnet'
+      },
+      {
+        definition: TaskSchema.schema,
+        description: 'Built-in task schema',
+        authorDid: 'did:key:xnet'
+      },
+      {
+        definition: DatabaseSchema.schema,
+        description: 'Built-in database container schema',
+        authorDid: 'did:key:xnet'
+      }
+    ])
     httpServer = serve({ fetch: app.fetch, port: config.port })
 
     await new Promise<void>((resolve) => {

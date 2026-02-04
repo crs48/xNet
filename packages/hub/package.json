@@ -26,6 +26,7 @@
     "@hono/node-server": "^1.0.0",
     "@xnet/core": "workspace:*",
     "@xnet/crypto": "workspace:*",
+    "@xnet/data": "workspace:*",
     "@xnet/identity": "workspace:*",
     "@xnet/sync": "workspace:*",
     "better-sqlite3": "^11.0.0",
