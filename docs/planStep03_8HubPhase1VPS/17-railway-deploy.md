@@ -489,18 +489,18 @@ describe('Railway Deployment Compatibility', () => {
 
 ## Checklist
 
-- [ ] Create `resolveConfig()` with env var → CLI → default resolution chain
-- [ ] Update `cli.ts` to use `resolveConfig()`
-- [ ] Update `createHub()` to accept resolved config
-- [ ] Add `railway.toml` to `packages/hub/`
-- [ ] Adjust Dockerfile for Railway volume permissions (remove `USER node`)
-- [ ] Add `RAILWAY_GRACE_MS` timeout to shutdown handler
-- [ ] Healthcheck uses `${PORT:-4444}` in Dockerfile
+- [x] Create `resolveConfig()` with env var → CLI → default resolution chain
+- [x] Update `cli.ts` to use `resolveConfig()`
+- [x] Update `createHub()` to accept resolved config
+- [x] Add `railway.toml` to `packages/hub/`
+- [x] Adjust Dockerfile for Railway volume permissions (remove `USER node`)
+- [x] Add `RAILWAY_GRACE_MS` timeout to shutdown handler
+- [x] Healthcheck uses `${PORT:-4444}` in Dockerfile
 - [ ] Create Railway template (submit to railway.app/templates)
 - [ ] Add "Deploy on Railway" button to README.md
 - [ ] Add "Deploy on Railway" button to site Hub docs
-- [ ] Write `resolveConfig` unit tests
-- [ ] Write Railway deployment integration tests
+- [x] Write `resolveConfig` unit tests
+- [x] Write Railway deployment integration tests
 - [ ] Update landing page Hubs section to mention Railway
 - [ ] Document migration from VPS/Fly.io to Railway
 
