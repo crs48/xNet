@@ -203,7 +203,7 @@ describe('Hub Federation', () => {
 })
 
 describe('Hub Federation Signing', () => {
-  const PORT_C = 14462
+  const PORT_C = 14470
 
   it('signs empty responses when schema is not allowed', async () => {
     const identity = generateIdentity()

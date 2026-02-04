@@ -1,14 +1,19 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { mkdtempSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { createHub, type HubInstance } from '../src'
 import { resolveConfig } from '../src/config'
 
 describe('Railway deployment', () => {
   let hub: HubInstance
   const PORT = 14462
+  let tmpDir: string
 
   beforeAll(async () => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'xnet-railway-'))
     process.env.PORT = String(PORT)
-    process.env.RAILWAY_VOLUME_MOUNT_PATH = '/railway/data'
+    process.env.RAILWAY_VOLUME_MOUNT_PATH = tmpDir
 
     const config = resolveConfig({ auth: false, storage: 'memory' })
     hub = await createHub(config)
@@ -19,6 +24,7 @@ describe('Railway deployment', () => {
     await hub.stop()
     delete process.env.PORT
     delete process.env.RAILWAY_VOLUME_MOUNT_PATH
+    rmSync(tmpDir, { recursive: true, force: true })
   })
 
   it('serves health check on Railway port', async () => {

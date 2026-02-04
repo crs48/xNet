@@ -149,9 +149,14 @@ describe('Crawl Coordinator', () => {
 
   it('deduplicates unchanged content by CID', async () => {
     const { storage, ingest } = await createShardSetup()
-    const coordinator = new CrawlCoordinator(storage, ingest, baseCrawlConfig, {
-      isAllowed: async () => true
-    } as any)
+    const coordinator = new CrawlCoordinator(
+      storage,
+      ingest,
+      { ...baseCrawlConfig, domainCooldownMs: 0 },
+      {
+        isAllowed: async () => true
+      } as any
+    )
 
     await coordinator.registerCrawler({
       did: 'did:key:crawler1',
@@ -212,14 +217,19 @@ describe('Crawl Coordinator', () => {
 
   it('adds outlinks to the queue', async () => {
     const { storage, ingest } = await createShardSetup()
-    const coordinator = new CrawlCoordinator(storage, ingest, baseCrawlConfig, {
-      isAllowed: async () => true
-    } as any)
+    const coordinator = new CrawlCoordinator(
+      storage,
+      ingest,
+      { ...baseCrawlConfig, domainCooldownMs: 0, maxBatchSize: 10 },
+      {
+        isAllowed: async () => true
+      } as any
+    )
 
     await coordinator.registerCrawler({
       did: 'did:key:crawler1',
       type: 'desktop',
-      capacity: 3,
+      capacity: 10,
       languages: ['en'],
       reputation: 50,
       totalCrawled: 0,
@@ -280,7 +290,12 @@ describe('Crawl Coordinator', () => {
     const coordinator = new CrawlCoordinator(
       storage,
       ingest,
-      { ...baseCrawlConfig, taskDeadlineMs: 500, deadlineCheckIntervalMs: 200 },
+      {
+        ...baseCrawlConfig,
+        taskDeadlineMs: 500,
+        deadlineCheckIntervalMs: 200,
+        domainCooldownMs: 0
+      },
       { isAllowed: async () => true } as any
     )
 
