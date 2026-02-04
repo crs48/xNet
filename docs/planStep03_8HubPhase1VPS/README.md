@@ -324,11 +324,11 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] `PUT /files/:cid` stores file, verifies hash matches
-- [ ] `GET /files/:cid` returns file with correct Content-Type
-- [ ] Duplicate uploads (same CID) are deduplicated
-- [ ] Cache-Control: immutable set on responses
-- [ ] Storage quota enforcement per user
+- [x] `PUT /files/:cid` stores file, verifies hash matches
+- [x] `GET /files/:cid` returns file with correct Content-Type
+- [x] Duplicate uploads (same CID) are deduplicated
+- [x] Cache-Control: immutable set on responses
+- [x] Storage quota enforcement per user
 
 ### Phase 10: Schema Registry (Day 13)
 

@@ -189,6 +189,8 @@ export { useHubStatus } from './hooks/useHubStatus'
 
 export { useBackup, type UseBackupReturn } from './hooks/useBackup'
 
+export { useFileUpload, type FileRef, type UseFileUploadReturn } from './hooks/useFileUpload'
+
 export {
   useHubSearch,
   type HubSearchOptions,

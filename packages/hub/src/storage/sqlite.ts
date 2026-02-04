@@ -5,6 +5,7 @@
 import type {
   BlobMeta,
   DocMeta,
+  FileMeta,
   HubStorage,
   SearchOptions,
   SearchResult,
@@ -45,6 +46,19 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_backups_owner ON backups(owner_did);
   CREATE INDEX IF NOT EXISTS idx_backups_doc ON backups(doc_id);
+
+  CREATE TABLE IF NOT EXISTS file_meta (
+    cid TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    uploader_did TEXT NOT NULL,
+    reference_count INTEGER NOT NULL DEFAULT 1,
+    file_path TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+  );
+  CREATE INDEX IF NOT EXISTS idx_file_meta_uploader ON file_meta(uploader_did);
+  CREATE INDEX IF NOT EXISTS idx_file_meta_mime ON file_meta(mime_type);
 
   CREATE TABLE IF NOT EXISTS node_changes (
     hash TEXT PRIMARY KEY,
@@ -126,6 +140,17 @@ type BackupMetaRow = {
   created_at: number
 }
 
+type FileMetaRow = {
+  cid: string
+  name: string
+  mime_type: string
+  size_bytes: number
+  uploader_did: string
+  reference_count: number
+  file_path: string
+  created_at: number
+}
+
 type NodeChangeRow = {
   hash: string
   change_id: string
@@ -156,6 +181,7 @@ type SearchRow = {
 export const createSQLiteStorage = (dataDir: string): HubStorage => {
   mkdirSync(dataDir, { recursive: true })
   mkdirSync(join(dataDir, 'blobs'), { recursive: true })
+  mkdirSync(join(dataDir, 'files'), { recursive: true })
 
   const dbPath = join(dataDir, 'hub.db')
   const db = new Database(dbPath)
@@ -195,6 +221,18 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     getBackup: db.prepare('SELECT blob_path FROM backups WHERE key = ?'),
     listBackups: db.prepare('SELECT * FROM backups WHERE owner_did = ? ORDER BY created_at DESC'),
     deleteBackup: db.prepare('DELETE FROM backups WHERE key = ? RETURNING blob_path'),
+    getFileMeta: db.prepare('SELECT * FROM file_meta WHERE cid = ?'),
+    insertFileMeta: db.prepare(`
+      INSERT OR REPLACE INTO file_meta
+        (cid, name, mime_type, size_bytes, uploader_did, reference_count, file_path, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    deleteFileMeta: db.prepare('DELETE FROM file_meta WHERE cid = ? RETURNING file_path'),
+    listFiles: db.prepare('SELECT * FROM file_meta WHERE uploader_did = ? ORDER BY created_at DESC'),
+    getFilesUsage: db.prepare(`
+      SELECT COALESCE(SUM(size_bytes), 0) as totalBytes, COUNT(*) as fileCount
+      FROM file_meta WHERE uploader_did = ?
+    `),
     search: db.prepare(`
       SELECT doc_id, title, schema_iri,
              snippet(search_index, 2, '<b>', '</b>', '...', 32) as snippet,
@@ -299,6 +337,77 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       contentType: row.content_type,
       createdAt: row.created_at
     }))
+  }
+
+  const rowToFileMeta = (row: FileMetaRow): FileMeta => ({
+    cid: row.cid,
+    name: row.name,
+    mimeType: row.mime_type,
+    sizeBytes: row.size_bytes,
+    uploaderDid: row.uploader_did,
+    referenceCount: row.reference_count,
+    createdAt: row.created_at
+  })
+
+  const getFileMeta = async (cid: string): Promise<FileMeta | null> => {
+    const row = stmts.getFileMeta.get(cid) as FileMetaRow | undefined
+    if (!row) return null
+    return rowToFileMeta(row)
+  }
+
+  const putFile = async (
+    cid: string,
+    data: Uint8Array,
+    meta: Omit<FileMeta, 'referenceCount' | 'createdAt'>
+  ): Promise<void> => {
+    const filePath = join(dataDir, 'files', cid)
+    writeFileSync(filePath, data)
+
+    stmts.insertFileMeta.run(
+      cid,
+      meta.name,
+      meta.mimeType,
+      meta.sizeBytes,
+      meta.uploaderDid,
+      1,
+      filePath,
+      Date.now()
+    )
+  }
+
+  const getFileData = async (cid: string): Promise<Uint8Array | null> => {
+    const row = stmts.getFileMeta.get(cid) as FileMetaRow | undefined
+    if (!row) return null
+    try {
+      const data = readFileSync(row.file_path)
+      return new Uint8Array(data)
+    } catch {
+      return null
+    }
+  }
+
+  const deleteFile = async (cid: string): Promise<void> => {
+    const row = stmts.deleteFileMeta.get(cid) as { file_path: string } | undefined
+    if (row?.file_path && existsSync(row.file_path)) {
+      unlinkSync(row.file_path)
+    }
+  }
+
+  const listFiles = async (uploaderDid: string): Promise<FileMeta[]> => {
+    const rows = stmts.listFiles.all(uploaderDid) as FileMetaRow[]
+    return rows.map(rowToFileMeta)
+  }
+
+  const getFilesUsage = async (
+    uploaderDid: string
+  ): Promise<{ totalBytes: number; fileCount: number }> => {
+    const row = stmts.getFilesUsage.get(uploaderDid) as
+      | { totalBytes: number; fileCount: number }
+      | undefined
+    return {
+      totalBytes: row?.totalBytes ?? 0,
+      fileCount: row?.fileCount ?? 0
+    }
   }
 
   const deleteBlob = async (key: string): Promise<void> => {
@@ -438,6 +547,12 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     setDocMeta,
     getDocMeta,
     search,
+    getFileMeta,
+    putFile,
+    getFileData,
+    deleteFile,
+    listFiles,
+    getFilesUsage,
     hasNodeChange,
     appendNodeChange,
     getNodeChangesSince,

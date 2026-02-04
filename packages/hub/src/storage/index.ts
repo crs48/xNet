@@ -10,6 +10,7 @@ export type {
   HubStorage,
   BlobMeta,
   DocMeta,
+  FileMeta,
   SearchOptions,
   SearchResult,
   SerializedNodeChange

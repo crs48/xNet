@@ -18,7 +18,9 @@ import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createBackupRoutes } from './routes/backup'
+import { createFileRoutes } from './routes/files'
 import { BackupService } from './services/backup'
+import { FileService } from './services/files'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
@@ -142,6 +144,7 @@ export const createServer = (config: HubConfig): HubInstance => {
     maxQuotaBytes: config.defaultQuota,
     maxBlobSize: config.maxBlobSize
   })
+  const files = new FileService(storage)
   const query = new QueryService(storage)
   const nodeRelay = new NodeRelayService(storage)
   const metrics = new Metrics()
@@ -198,6 +201,10 @@ export const createServer = (config: HubConfig): HubInstance => {
   app.use('/backup/*', requireAuth)
   app.use('/backup', requireAuth)
   app.route('/backup', createBackupRoutes(backup))
+
+  app.use('/files/*', requireAuth)
+  app.use('/files', requireAuth)
+  app.route('/files', createFileRoutes(files))
 
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null

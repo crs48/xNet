@@ -36,6 +36,16 @@ export type SearchResult = {
   rank: number
 }
 
+export type FileMeta = {
+  cid: string
+  name: string
+  mimeType: string
+  sizeBytes: number
+  uploaderDid: string
+  referenceCount: number
+  createdAt: number
+}
+
 export type SerializedNodeChange = {
   id: string
   type: string
@@ -74,6 +84,13 @@ export type HubStorage = {
   getDocMeta: (docId: string) => Promise<DocMeta | null>
   search: (query: string, options?: SearchOptions) => Promise<SearchResult[]>
   updateSearchBody?: (docId: string, text: string) => Promise<void>
+
+  getFileMeta: (cid: string) => Promise<FileMeta | null>
+  putFile: (cid: string, data: Uint8Array, meta: Omit<FileMeta, 'referenceCount' | 'createdAt'>) => Promise<void>
+  getFileData: (cid: string) => Promise<Uint8Array | null>
+  deleteFile: (cid: string) => Promise<void>
+  listFiles: (uploaderDid: string) => Promise<FileMeta[]>
+  getFilesUsage: (uploaderDid: string) => Promise<{ totalBytes: number; fileCount: number }>
 
   hasNodeChange: (hash: string) => Promise<boolean>
   appendNodeChange: (room: string, change: SerializedNodeChange) => Promise<void>
