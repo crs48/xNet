@@ -6,12 +6,15 @@ import type { IncomingMessage } from 'http'
 import type { RawData, WebSocket } from 'ws'
 import type { AuthSession } from './auth/ucan'
 import type { HubConfig, HubInstance } from './types'
+import type { MiddlewareHandler } from 'hono'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { WebSocketServer } from 'ws'
 import { hasHubCapability } from './auth/capabilities'
-import { authenticateConnection, removeSession } from './auth/ucan'
+import { authenticateConnection, authenticateHttpRequest, removeSession } from './auth/ucan'
 import { NodePool } from './pool/node-pool'
+import { createBackupRoutes } from './routes/backup'
+import { BackupService } from './services/backup'
 import { RelayService } from './services/relay'
 import { createSignalingService } from './services/signaling'
 import { createStorage } from './storage'
@@ -98,6 +101,10 @@ export const createServer = (config: HubConfig): HubInstance => {
   const storage = createStorage(config.storage, config.dataDir)
   const pool = new NodePool(storage)
   const relay = new RelayService(pool, { requireSignedUpdates: config.auth })
+  const backup = new BackupService(storage, {
+    maxQuotaBytes: config.defaultQuota,
+    maxBlobSize: config.maxBlobSize
+  })
 
   let connectionCount = 0
   const startTime = Date.now()
@@ -118,6 +125,20 @@ export const createServer = (config: HubConfig): HubInstance => {
     const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000)
     return c.text(createMetricsPayload(connectionCount, signaling.getRoomCount(), uptimeSeconds))
   })
+
+  const requireAuth: MiddlewareHandler = async (c, next) => {
+    const authHeader = c.req.header('authorization') ?? c.req.header('Authorization')
+    const auth = authenticateHttpRequest(authHeader, config)
+    if (!auth) {
+      return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401)
+    }
+    c.set('auth', auth)
+    await next()
+  }
+
+  app.use('/backup/*', requireAuth)
+  app.use('/backup', requireAuth)
+  app.route('/backup', createBackupRoutes(backup))
 
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null
