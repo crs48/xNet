@@ -538,17 +538,17 @@ describe('Hub Signaling', () => {
 
 ## Checklist
 
-- [ ] Create `packages/hub/` directory structure
-- [ ] Write `package.json` with dependencies
-- [ ] Write `tsconfig.json`
-- [ ] Implement `types.ts` (HubConfig, HubInstance)
-- [ ] Implement `cli.ts` (Commander.js CLI)
-- [ ] Implement `server.ts` (Hono + WebSocket server)
-- [ ] Implement `services/signaling.ts` (pub/sub rooms)
-- [ ] Implement `index.ts` (createHub API)
-- [ ] Write signaling tests
+- [x] Create `packages/hub/` directory structure
+- [x] Write `package.json` with dependencies
+- [x] Write `tsconfig.json`
+- [x] Implement `types.ts` (HubConfig, HubInstance)
+- [x] Implement `cli.ts` (Commander.js CLI)
+- [x] Implement `server.ts` (Hono + WebSocket server)
+- [x] Implement `services/signaling.ts` (pub/sub rooms)
+- [x] Implement `index.ts` (createHub API)
+- [x] Write signaling tests
 - [ ] Verify existing `WebSocketSyncProvider` connects
-- [ ] Add `packages/hub` to workspace `pnpm-workspace.yaml`
+- [x] Add `packages/hub` to workspace `pnpm-workspace.yaml`
 - [ ] Run `pnpm install` to link workspace
 
 ---
