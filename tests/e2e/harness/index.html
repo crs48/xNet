@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>xNet E2E Test Harness</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 16px;
+      }
+      #root {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .status {
+        padding: 8px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      .status.connected {
+        background: #d4edda;
+      }
+      .status.connecting {
+        background: #fff3cd;
+      }
+      .status.offline {
+        background: #f8d7da;
+      }
+      .editor-container {
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        min-height: 200px;
+      }
+      .ProseMirror {
+        padding: 12px;
+        outline: none;
+        min-height: 200px;
+      }
+      .ProseMirror p {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>

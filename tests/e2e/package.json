@@ -1,0 +1,25 @@
+{
+  "name": "@xnet/e2e-tests",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Browser-based E2E tests for collaborative sync (not part of normal test suite)",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:debug": "E2E_DEBUG=1 playwright test",
+    "dev:harness": "vite --config harness/vite.config.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "@xnet/data": "workspace:*",
+    "@xnet/editor": "workspace:*",
+    "@xnet/identity": "workspace:*",
+    "@xnet/react": "workspace:*",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "vite": "^5.0.0"
+  }
+}
