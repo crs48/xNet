@@ -6,7 +6,7 @@ import { bytesToBase64, generateSigningKeyPair } from '@xnet/crypto'
 import { identityFromPrivateKey } from '@xnet/identity'
 import type { SerializedNodeChange } from '../src/storage/interface'
 
-const PORT = 14451
+const PORT = 14461
 const ROOM = 'workspace-test-1'
 
 const connect = (port: number): Promise<WebSocket> =>
@@ -24,7 +24,9 @@ const waitForMessage = (ws: WebSocket): Promise<unknown> =>
     })
   })
 
-const makeSerializedChange = (overrides: Partial<SerializedNodeChange> = {}): SerializedNodeChange => {
+const makeSerializedChange = (
+  overrides: Partial<SerializedNodeChange> = {}
+): SerializedNodeChange => {
   const { privateKey } = generateSigningKeyPair()
   const identity = identityFromPrivateKey(privateKey)
   const unsigned = createUnsignedChange({

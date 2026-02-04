@@ -4,7 +4,7 @@ import { resolveConfig } from '../src/config'
 
 describe('Railway deployment', () => {
   let hub: HubInstance
-  const PORT = 14452
+  const PORT = 14462
 
   beforeAll(async () => {
     process.env.PORT = String(PORT)
