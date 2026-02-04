@@ -41,7 +41,7 @@ A task manager that works offline, syncs peer-to-peer, and persists to the brows
    Create a file that describes the shape of your data:
 
    ```ts title="src/schema.ts"
-   import { defineSchema, text, select, checkbox, created, updated } from '@xnet/data'
+   import { defineSchema, text, select, checkbox } from '@xnet/data'
 
    export const TaskSchema = defineSchema({
      name: 'Task',
@@ -55,14 +55,16 @@ A task manager that works offline, syncs peer-to-peer, and persists to the brows
            { id: 'done', name: 'Done', color: '#10b981' }
          ] as const
        }),
-       completed: checkbox({ default: false }),
-       createdAt: created(),
-       updatedAt: updated()
+       completed: checkbox({ default: false })
      }
    })
    ```
 
    The `as const` on the options array gives you literal type inference — `status` is typed as `'todo' | 'doing' | 'done'`, not just `string`.
+
+   :::tip[Automatic timestamps]
+   You don't need to define `createdAt` or `updatedAt` — every node gets these automatically. You can query and sort by them out of the box.
+   :::
 
 3. **Wrap your app in `XNetProvider`**
 

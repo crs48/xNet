@@ -354,6 +354,10 @@ interface FileRef {
 
 ## Auto-populated types
 
+:::note[Usually not needed]
+Every node automatically gets `createdAt`, `updatedAt`, `createdBy`, and `updatedBy` as system fields — you don't need to define them in your schema. These property builders exist for cases where you want timestamps or authorship to appear as **formal schema properties** (e.g., for generic table UIs that render columns from schema definitions). For most schemas, skip these entirely.
+:::
+
 These are read-only fields populated automatically by the system.
 
 ### created

@@ -14,7 +14,7 @@ The type inference pipeline has three stages:
 
 2. **`InferCreateProps<S>`** maps over the schema's property descriptors to produce the type you pass to `createNode()`. Required properties (no default) become required fields; optional properties (with defaults) become optional fields. This is the "write" side of the type.
 
-3. **`FlatNode<S>`** merges the base node fields (`id`, `createdAt`, `updatedAt`, `createdBy`) with the inferred property types to produce the "read" side. This is what you get back from `useQuery` and `useNode`.
+3. **`FlatNode<S>`** merges the automatic system fields (`id`, `schemaId`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy`) with the inferred property types to produce the "read" side. These system fields are managed by the store — you don't define them in your schema. This is what you get back from `useQuery` and `useNode`.
 
 ## From Schema to Hook
 
