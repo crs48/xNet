@@ -14,7 +14,12 @@ import { WebSocketServer } from 'ws'
 import { randomUUID } from 'node:crypto'
 import { DatabaseSchema, PageSchema, TaskSchema } from '@xnet/data'
 import { hasHubCapability } from './auth/capabilities'
-import { authenticateConnection, authenticateHttpRequest, removeSession, toAuthContext } from './auth/ucan'
+import {
+  authenticateConnection,
+  authenticateHttpRequest,
+  removeSession,
+  toAuthContext
+} from './auth/ucan'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
@@ -81,7 +86,9 @@ const isSubscribeMessage = (value: unknown): value is { type: 'subscribe'; topic
   return candidate.type === 'subscribe'
 }
 
-const isUnsubscribeMessage = (value: unknown): value is { type: 'unsubscribe'; topics?: unknown } => {
+const isUnsubscribeMessage = (
+  value: unknown
+): value is { type: 'unsubscribe'; topics?: unknown } => {
   if (!value || typeof value !== 'object') return false
   const candidate = value as { type?: unknown }
   return candidate.type === 'unsubscribe'
@@ -102,7 +109,11 @@ const isQueryRequest = (
   value: unknown
 ): value is { type: 'query-request'; id: string; query: string; federate?: boolean } => {
   if (!isRecord(value)) return false
-  return value.type === 'query-request' && typeof value.id === 'string' && typeof value.query === 'string'
+  return (
+    value.type === 'query-request' &&
+    typeof value.id === 'string' &&
+    typeof value.query === 'string'
+  )
 }
 
 const isIndexUpdate = (
@@ -246,7 +257,12 @@ export const createServer = (config: HubConfig): HubInstance => {
   const robots = crawlConfig.enabled
     ? new RobotsChecker({ userAgent: crawlConfig.userAgent, cacheTtlMs: 24 * 60 * 60 * 1000 })
     : null
-  const crawlCoordinator = new CrawlCoordinator(storage, shardIngest, crawlConfig, robots ?? undefined)
+  const crawlCoordinator = new CrawlCoordinator(
+    storage,
+    shardIngest,
+    crawlConfig,
+    robots ?? undefined
+  )
   const nodeRelay = new NodeRelayService(storage)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
@@ -290,6 +306,19 @@ export const createServer = (config: HubConfig): HubInstance => {
       machineId: config.runtime?.machineId,
       version: '0.0.1'
     })
+  })
+
+  app.get('/ready', async (c) => {
+    try {
+      // Verify storage is writable by performing a lightweight operation
+      await storage.getDocState('__readiness_check__')
+      return c.json({ status: 'ready' })
+    } catch (err) {
+      return c.json(
+        { status: 'not ready', error: err instanceof Error ? err.message : String(err) },
+        503
+      )
+    }
   })
 
   app.get('/metrics', () => {
@@ -416,9 +445,7 @@ export const createServer = (config: HubConfig): HubInstance => {
         const authContext = toAuthContext(session)
 
         if (session.did !== 'did:key:anonymous') {
-          const publicUrl =
-            config.publicUrl ??
-            `ws://localhost:${config.port}`
+          const publicUrl = config.publicUrl ?? `ws://localhost:${config.port}`
           const websocketUrl = publicUrl.replace('https://', 'wss://').replace('http://', 'ws://')
           void discovery
             .register(
@@ -542,7 +569,9 @@ export const createServer = (config: HubConfig): HubInstance => {
                 metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
               } catch (err) {
                 if (err instanceof NodeRelayError) {
-                  ws.send(JSON.stringify({ type: 'node-error', code: err.code, error: err.message }))
+                  ws.send(
+                    JSON.stringify({ type: 'node-error', code: err.code, error: err.message })
+                  )
                   metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
                   return
                 }
@@ -558,7 +587,9 @@ export const createServer = (config: HubConfig): HubInstance => {
                 metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
               } catch (err) {
                 if (err instanceof NodeRelayError) {
-                  ws.send(JSON.stringify({ type: 'node-error', code: err.code, error: err.message }))
+                  ws.send(
+                    JSON.stringify({ type: 'node-error', code: err.code, error: err.message })
+                  )
                   metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
                   return
                 }
@@ -581,7 +612,9 @@ export const createServer = (config: HubConfig): HubInstance => {
                 if (!isNew) return
               } catch (err) {
                 if (err instanceof NodeRelayError) {
-                  ws.send(JSON.stringify({ type: 'node-error', code: err.code, error: err.message }))
+                  ws.send(
+                    JSON.stringify({ type: 'node-error', code: err.code, error: err.message })
+                  )
                   metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
                   return
                 }
