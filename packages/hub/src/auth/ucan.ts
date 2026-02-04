@@ -87,6 +87,12 @@ export const authenticateConnection = async (
     return null
   }
 
+  // Verify audience matches this hub's DID (if configured)
+  if (config.hubDid && result.payload.aud !== config.hubDid) {
+    ws.close(4401, 'UCAN audience does not match this hub')
+    return null
+  }
+
   const session: AuthSession = {
     did: result.payload.iss,
     capabilities: getCapabilities(result.payload),
@@ -110,7 +116,10 @@ const parseBearerToken = (value: string | null): string | null => {
   return token.trim()
 }
 
-export const authenticateHttpRequest = (authHeader: string | null, config: HubConfig): AuthContext | null => {
+export const authenticateHttpRequest = (
+  authHeader: string | null,
+  config: HubConfig
+): AuthContext | null => {
   if (!config.auth) {
     return createAuthContext(createAnonymousSession())
   }
@@ -120,6 +129,9 @@ export const authenticateHttpRequest = (authHeader: string | null, config: HubCo
 
   const result = verifyUCAN(token)
   if (!result.valid || !result.payload) return null
+
+  // Verify audience matches this hub's DID (if configured)
+  if (config.hubDid && result.payload.aud !== config.hubDid) return null
 
   return createAuthContext({
     did: result.payload.iss,

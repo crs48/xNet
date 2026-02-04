@@ -83,7 +83,12 @@ export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
     return c.json({ tasks })
   })
 
-  app.post('/results', async (c) => {
+  const resultsHandler = async (c: Context) => {
+    const auth = c.get('auth') as AuthContext | undefined
+    if (auth && !auth.can('crawl/write', '*')) {
+      return c.json({ error: 'Unauthorized' }, 403)
+    }
+
     const payload = await c.req.json()
     if (!Array.isArray(payload)) {
       return c.json({ error: 'Invalid results payload' }, 400)
@@ -93,9 +98,15 @@ export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
       results as Parameters<typeof options.coordinator.submitResults>[0]
     )
     return c.json(summary)
-  })
+  }
 
-  app.post('/seed', async (c) => {
+  if (requireAuth) {
+    app.post('/results', requireAuth, resultsHandler)
+  } else {
+    app.post('/results', resultsHandler)
+  }
+
+  const seedHandler = async (c: Context) => {
     const auth = c.get('auth') as AuthContext | undefined
     if (auth && !auth.can('hub/admin', '*')) {
       return c.json({ error: 'Unauthorized' }, 403)
@@ -108,7 +119,13 @@ export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
     }
     await options.coordinator.seedUrls(list)
     return c.json({ seeded: list.length })
-  })
+  }
+
+  if (requireAuth) {
+    app.post('/seed', requireAuth, seedHandler)
+  } else {
+    app.post('/seed', seedHandler)
+  }
 
   app.get('/stats', async (c) => {
     const stats = await options.coordinator.getStats()

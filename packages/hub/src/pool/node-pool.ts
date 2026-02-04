@@ -28,10 +28,14 @@ const createEntry = (doc: Y.Doc): PoolEntry => ({
 
 export class NodePool {
   private entries = new Map<string, PoolEntry>()
+  private loading = new Map<string, Promise<Y.Doc>>()
   private maxWarmDocs: number
   private persistDelay: number
 
-  constructor(private storage: HubStorage, options?: NodePoolOptions) {
+  constructor(
+    private storage: HubStorage,
+    options?: NodePoolOptions
+  ) {
     this.maxWarmDocs = options?.maxWarmDocs ?? 500
     this.persistDelay = options?.persistDelay ?? 1000
   }
@@ -43,6 +47,17 @@ export class NodePool {
       return existing.doc
     }
 
+    // Deduplicate concurrent loads for the same docId
+    const pending = this.loading.get(docId)
+    if (pending) return pending
+
+    const promise = this.loadDoc(docId)
+    this.loading.set(docId, promise)
+    promise.finally(() => this.loading.delete(docId))
+    return promise
+  }
+
+  private async loadDoc(docId: string): Promise<Y.Doc> {
     const doc = new Y.Doc()
     const state = await this.storage.getDocState(docId)
     if (state) {
@@ -150,9 +165,22 @@ export class NodePool {
       }
       if (entry.dirty) {
         const state = Y.encodeStateAsUpdate(entry.doc)
-        void this.storage.setDocState(docId, state)
+        this.storage
+          .setDocState(docId, state)
+          .then(() => {
+            entry.doc.destroy()
+          })
+          .catch((err) => {
+            console.error(
+              `[node-pool] Failed to persist ${docId} during eviction, keeping in pool:`,
+              err instanceof Error ? err.message : String(err)
+            )
+            // Re-add to pool so data is not lost
+            this.entries.set(docId, entry)
+          })
+      } else {
+        entry.doc.destroy()
       }
-      entry.doc.destroy()
       this.entries.delete(docId)
     }
   }

@@ -77,7 +77,10 @@ export class RelayService {
   private peerScorer = new YjsPeerScorer()
   private requireSignedUpdates: boolean
 
-  constructor(private pool: NodePool, options?: RelayOptions) {
+  constructor(
+    private pool: NodePool,
+    options?: RelayOptions
+  ) {
     this.requireSignedUpdates = options?.requireSignedUpdates ?? false
   }
 
@@ -141,13 +144,15 @@ export class RelayService {
     }
   }
 
-  async handleRoomJoin(topic: string, sendToRoom: (topic: string, data: object) => void): Promise<void> {
+  async handleRoomJoin(
+    topic: string,
+    sendToRoom: (topic: string, data: object) => void
+  ): Promise<void> {
     const docId = this.extractDocId(topic)
     if (!docId) return
 
-    this.pool.addSubscriber(docId)
-
     const doc = await this.pool.get(docId)
+    this.pool.addSubscriber(docId)
     const fullState = Y.encodeStateAsUpdate(doc)
     if (fullState.length <= 2) return
 
@@ -186,7 +191,9 @@ export class RelayService {
     }
 
     if (data && hasEnvelope(data as Record<string, unknown>)) {
-      const envelope = deserializeEnvelope((data as Record<string, unknown>).envelope as Record<string, unknown>)
+      const envelope = deserializeEnvelope(
+        (data as Record<string, unknown>).envelope as Record<string, unknown>
+      )
       if (!envelope) {
         this.peerScorer.penalize(peerId, 'invalidSignature')
         return null

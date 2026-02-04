@@ -34,6 +34,7 @@ import {
   multiSelect,
   number,
   person,
+  phone,
   relation,
   select,
   text,
@@ -220,7 +221,9 @@ const toStringValue = (value: unknown): string | undefined =>
   typeof value === 'string' ? value : undefined
 
 const toStringArray = (value: unknown): string[] | undefined =>
-  Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : undefined
+  Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === 'string')
+    : undefined
 
 const toRegExp = (value: unknown): RegExp | undefined => {
   if (typeof value !== 'string' || value.length === 0) return undefined
