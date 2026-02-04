@@ -94,7 +94,10 @@ const colorMap: Record<string, { border: string, bg: string, text: string, dot: 
               <h3 class={`font-semibold ${c.text}`}>{ex.title}</h3>
             </div>
             <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{ex.description}</p>
-            <pre class="mt-4 overflow-x-auto rounded-lg border border-border bg-code-bg p-3 font-mono text-xs leading-relaxed text-gray-500"><code>{ex.code}</code></pre>
+            <div class="group/code relative mt-4 overflow-hidden rounded-lg border border-border bg-code-bg">
+              <pre class="overflow-x-auto p-3 font-mono text-xs leading-relaxed text-gray-500"><code>{ex.code}</code></pre>
+              <button class="copy-btn absolute right-2 top-2 rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] text-gray-500 opacity-0 transition-opacity hover:text-gray-700 dark:hover:text-gray-300 group-hover/code:opacity-100" aria-label="Copy code">Copy</button>
+            </div>
           </div>
         )
       })}
