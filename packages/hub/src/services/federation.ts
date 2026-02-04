@@ -9,6 +9,7 @@ import { sign, verify } from '@xnet/crypto'
 import { parseDID } from '@xnet/identity'
 import { TextEncoder } from 'node:util'
 import { QueryService } from './query'
+import { validateExternalUrl } from '../utils/url'
 
 export interface FederationPeer {
   url: string
@@ -120,10 +121,12 @@ export class FederationService {
     this.config.peers = Array.from(merged.values())
   }
 
-  async registerPeer(
-    peer: FederationPeer,
-    registeredBy?: string | null
-  ): Promise<FederationPeer> {
+  async registerPeer(peer: FederationPeer, registeredBy?: string | null): Promise<FederationPeer> {
+    const urlCheck = validateExternalUrl(peer.url)
+    if (!urlCheck.valid) {
+      throw new Error(`Invalid peer URL: ${urlCheck.error}`)
+    }
+
     const entry = {
       hubDid: peer.hubDid,
       url: peer.url,
@@ -429,10 +432,7 @@ export class FederationService {
     })
   }
 
-  private verifyResponseSignature(
-    response: FederationQueryResponse,
-    expectedDid: string
-  ): boolean {
+  private verifyResponseSignature(response: FederationQueryResponse, expectedDid: string): boolean {
     if (response.hubDid !== expectedDid) return false
     if (!response.signature) return false
 

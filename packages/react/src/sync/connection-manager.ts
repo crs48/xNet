@@ -63,6 +63,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   let reconnectAttempts = 0
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
+  let connectInProgress = false
 
   const reconnectDelay = config.reconnectDelay ?? 2000
   const maxReconnects = config.maxReconnects ?? Infinity
@@ -153,7 +154,12 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
       log('doConnect called but manager is destroyed')
       return
     }
+    if (connectInProgress) {
+      log('doConnect called but connection already in progress')
+      return
+    }
 
+    connectInProgress = true
     log('Connecting to:', config.url)
     setStatus('connecting')
 
@@ -162,6 +168,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
       ws = new WebSocket(url)
 
       ws.onopen = () => {
+        connectInProgress = false
         log('WebSocket connected')
         setStatus('connected')
         reconnectAttempts = 0
@@ -177,6 +184,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
       ws.onmessage = handleMessage
 
       ws.onclose = (event) => {
+        connectInProgress = false
         log('WebSocket closed, code:', event.code, 'reason:', event.reason || '(none)')
         ws = null
         setStatus('disconnected')
@@ -184,10 +192,12 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
       }
 
       ws.onerror = (event) => {
+        connectInProgress = false
         log('WebSocket error:', event)
         setStatus('error')
       }
     } catch (err) {
+      connectInProgress = false
       log('Failed to create WebSocket:', err)
       setStatus('error')
       scheduleReconnect()

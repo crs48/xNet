@@ -90,10 +90,7 @@ export interface SyncManager {
   /** Get awareness for a Node (for cursor presence) */
   getAwareness(nodeId: string): Awareness | null
   /** Listen for awareness snapshots from the hub */
-  onAwarenessSnapshot(
-    nodeId: string,
-    handler: (users: AwarenessSnapshotUser[]) => void
-  ): () => void
+  onAwarenessSnapshot(nodeId: string, handler: (users: AwarenessSnapshotUser[]) => void): () => void
 
   /** Request blobs from peers by CID (no-op if blob sync is disabled) */
   requestBlobs(cids: string[]): Promise<void>
@@ -241,7 +238,11 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     metaBridge,
     maxWarm: config.poolSize ?? 50,
     onDocUpdate: config.onDocUpdate,
-    onDocEvict: config.onDocEvict
+    onDocEvict: (nodeId: string, doc: Y.Doc) => {
+      // Clear broadcastDocs so re-acquisition registers a fresh handler
+      broadcastDocs.delete(nodeId)
+      config.onDocEvict?.(nodeId, doc)
+    }
   })
   const registry = createRegistry({
     storage: createRegistryStorageAdapter(config.storage),

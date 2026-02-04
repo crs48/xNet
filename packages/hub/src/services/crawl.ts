@@ -12,6 +12,7 @@ import type {
 import type { ShardIngestRouter } from './shard-ingest'
 import type { RobotsChecker } from './crawl-robots'
 import { randomUUID } from 'node:crypto'
+import { validateExternalUrl } from '../utils/url'
 
 export interface CrawlTask {
   taskId: string
@@ -86,6 +87,7 @@ export class CrawlCoordinator {
     for (const url of urls) {
       const normalized = this.normalizeUrl(url)
       if (!normalized) continue
+      if (!validateExternalUrl(normalized).valid) continue
       const domain = new URL(normalized).hostname
       if (this.isBlockedDomain(domain)) continue
       const entry: CrawlQueueEntry = {
@@ -122,8 +124,7 @@ export class CrawlCoordinator {
 
       const domainState = await this.getDomainState(candidate.domain)
       if (domainState.blocked) continue
-      const last =
-        this.domainLastCrawl.get(candidate.domain) ?? domainState.lastCrawledAt ?? 0
+      const last = this.domainLastCrawl.get(candidate.domain) ?? domainState.lastCrawledAt ?? 0
       if (Date.now() - last < domainState.cooldownMs) continue
 
       const task: CrawlTask = {

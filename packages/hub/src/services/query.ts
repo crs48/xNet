@@ -3,6 +3,7 @@
  */
 
 import type { DocMeta, HubStorage, SearchOptions, SearchResult } from '../storage/interface'
+import { sanitizeFtsQuery } from '../utils/fts'
 
 export type QueryRequest = {
   type: 'query-request'
@@ -68,11 +69,17 @@ export class QueryService {
 
     const results = await this.storage.search(safeQuery, options)
 
+    // Estimate total: if we got a full page, there are likely more results
+    const limit = options.limit ?? 20
+    const offset = options.offset ?? 0
+    const hasMore = results.length === limit
+    const total = hasMore ? offset + results.length + 1 : offset + results.length
+
     return {
       type: 'query-response',
       id: request.id,
       results,
-      total: results.length,
+      total,
       took: Date.now() - start
     }
   }
@@ -122,9 +129,5 @@ export class QueryService {
   }
 }
 
-export const sanitizeFtsQuery = (query: string): string =>
-  query
-    .replace(/[;{}[\]\\]/g, '')
-    .replace(/\b(NEAR|COLUMN)\b/gi, '')
-    .trim()
-    .slice(0, 500)
+// Re-export for backward compatibility
+export { sanitizeFtsQuery } from '../utils/fts'
