@@ -600,17 +600,17 @@ describe('Schema Registry', () => {
 
 ## Checklist
 
-- [ ] Add `schemas` and `schema_search` tables to SQLite schema
-- [ ] Add schema methods to `HubStorage` interface
-- [ ] Implement `SchemaRegistryService` (publish, resolve, search)
-- [ ] Enforce namespace ownership (IRI authority must match publisher DID)
-- [ ] Create Hono routes: POST (publish), GET /resolve/ (resolve), GET (search/list)
-- [ ] Add FTS5 search for schema discovery
-- [ ] Create `useRemoteSchema()` React hook
-- [ ] Add `setRemoteResolver()` to `SchemaRegistry` in `@xnet/data`
-- [ ] Wire schema routes into server
-- [ ] Write registry tests (publish, resolve, version, search)
-- [ ] Seed built-in schemas (Page, Task, Database) on hub startup
+- [x] Add `schemas` and `schema_search` tables to SQLite schema
+- [x] Add schema methods to `HubStorage` interface
+- [x] Implement `SchemaRegistryService` (publish, resolve, search)
+- [x] Enforce namespace ownership (IRI authority must match publisher DID)
+- [x] Create Hono routes: POST (publish), GET /resolve/ (resolve), GET (search/list)
+- [x] Add FTS5 search for schema discovery
+- [x] Create `useRemoteSchema()` React hook
+- [x] Add `setRemoteResolver()` to `SchemaRegistry` in `@xnet/data`
+- [x] Wire schema routes into server
+- [x] Write registry tests (publish, resolve, version, search)
+- [x] Seed built-in schemas (Page, Task, Database) on hub startup
 
 ---
 
