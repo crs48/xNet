@@ -120,9 +120,11 @@ export class CrawlCoordinator {
       if (this.isBlockedDomain(candidate.domain)) continue
       if (this.robots && !(await this.robots.isAllowed(candidate.url))) continue
 
-      const cooldown = await this.getDomainCooldown(candidate.domain)
-      const last = this.domainLastCrawl.get(candidate.domain) ?? 0
-      if (Date.now() - last < cooldown) continue
+      const domainState = await this.getDomainState(candidate.domain)
+      if (domainState.blocked) continue
+      const last =
+        this.domainLastCrawl.get(candidate.domain) ?? domainState.lastCrawledAt ?? 0
+      if (Date.now() - last < domainState.cooldownMs) continue
 
       const task: CrawlTask = {
         taskId: randomUUID(),
@@ -237,11 +239,24 @@ export class CrawlCoordinator {
     await this.storage.upsertCrawlDomainState(state)
   }
 
-  private async getDomainCooldown(domain: string): Promise<number> {
+  private async getDomainState(domain: string): Promise<{
+    cooldownMs: number
+    lastCrawledAt: number | null
+    blocked: boolean
+  }> {
     const state = await this.storage.getCrawlDomainState(domain)
-    if (!state) return this.config.domainCooldownMs
-    if (state.blocked) return Number.MAX_SAFE_INTEGER
-    return state.cooldownMs
+    if (!state) {
+      return {
+        cooldownMs: this.config.domainCooldownMs,
+        lastCrawledAt: null,
+        blocked: false
+      }
+    }
+    return {
+      cooldownMs: state.cooldownMs,
+      lastCrawledAt: state.lastCrawledAt ?? null,
+      blocked: state.blocked
+    }
   }
 
   private isBlockedDomain(domain: string): boolean {

@@ -101,6 +101,52 @@ describe('Crawl Coordinator', () => {
     expect(rateTasks.length).toBeLessThanOrEqual(1)
   })
 
+  it('respects persisted domain cooldown across coordinator restarts', async () => {
+    const { storage, ingest } = await createShardSetup()
+    const coordinator = new CrawlCoordinator(storage, ingest, baseCrawlConfig, {
+      isAllowed: async () => true
+    } as any)
+
+    await coordinator.registerCrawler({
+      did: 'did:key:crawler1',
+      type: 'desktop',
+      capacity: 1,
+      languages: ['en'],
+      reputation: 50,
+      totalCrawled: 0,
+      registeredAt: Date.now()
+    })
+
+    await coordinator.seedUrls(['https://cooldown.com/page'])
+    const tasks = await coordinator.getNextTasks('did:key:crawler1', 1)
+
+    await coordinator.submitResults([
+      {
+        taskId: tasks[0]?.taskId ?? '',
+        url: 'https://cooldown.com/page',
+        cid: 'cid:blake3:cooldown',
+        title: 'Cooldown Page',
+        body: 'Needs cooldown',
+        outLinks: [],
+        language: 'en',
+        statusCode: 200,
+        contentType: 'text/html',
+        crawlTimeMs: 100,
+        robotsAllowed: true,
+        crawlerDid: 'did:key:crawler1',
+        crawledAt: Date.now()
+      }
+    ])
+
+    const coordinatorRestarted = new CrawlCoordinator(storage, ingest, baseCrawlConfig, {
+      isAllowed: async () => true
+    } as any)
+
+    const tasksAfterRestart = await coordinatorRestarted.getNextTasks('did:key:crawler1', 1)
+    const urls = tasksAfterRestart.map((task) => task.url)
+    expect(urls).not.toContain('https://cooldown.com/page')
+  })
+
   it('deduplicates unchanged content by CID', async () => {
     const { storage, ingest } = await createShardSetup()
     const coordinator = new CrawlCoordinator(storage, ingest, baseCrawlConfig, {

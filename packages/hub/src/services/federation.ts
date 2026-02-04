@@ -216,45 +216,43 @@ export class FederationService {
       throw new Error('Rate limited')
     }
 
-    if (this.config.expose.schemas !== '*' && request.schema) {
-      if (!this.config.expose.schemas.includes(request.schema)) {
-        return {
-          queryId: request.queryId,
-          results: [],
-          totalEstimate: 0,
-          executionMs: 0,
-          hubDid: this.config.hubDid,
-          signature: ''
-        }
+    const schemaAllowed =
+      this.config.expose.schemas === '*' ||
+      !request.schema ||
+      this.config.expose.schemas.includes(request.schema)
+
+    let results: FederatedResult[] = []
+    let totalEstimate = 0
+
+    if (schemaAllowed) {
+      const queryRequest: QueryRequest = {
+        type: 'query-request',
+        id: request.queryId,
+        query: request.text ?? '',
+        filters: { schemaIri: request.schema },
+        limit: Math.min(request.limit, this.config.expose.maxResults)
       }
+
+      const localResults = await this.queryService.handleQuery(queryRequest)
+
+      results = localResults.results.map((result) => ({
+        nodeId: result.docId,
+        cid: result.docId,
+        score: Number.isFinite(result.rank) ? result.rank : 0,
+        title: result.title,
+        schema: result.schemaIri ?? '',
+        snippet: result.snippet,
+        author: '',
+        updatedAt: Date.now(),
+        sourceHub: this.config.hubDid
+      }))
+      totalEstimate = localResults.total
     }
-
-    const queryRequest: QueryRequest = {
-      type: 'query-request',
-      id: request.queryId,
-      query: request.text ?? '',
-      filters: { schemaIri: request.schema },
-      limit: Math.min(request.limit, this.config.expose.maxResults)
-    }
-
-    const localResults = await this.queryService.handleQuery(queryRequest)
-
-    const results: FederatedResult[] = localResults.results.map((result) => ({
-      nodeId: result.docId,
-      cid: result.docId,
-      score: Number.isFinite(result.rank) ? result.rank : 0,
-      title: result.title,
-      schema: result.schemaIri ?? '',
-      snippet: result.snippet,
-      author: '',
-      updatedAt: Date.now(),
-      sourceHub: this.config.hubDid
-    }))
 
     const response: FederationQueryResponse = {
       queryId: request.queryId,
       results,
-      totalEstimate: localResults.total,
+      totalEstimate,
       executionMs: Date.now() - start,
       hubDid: this.config.hubDid,
       signature: ''
