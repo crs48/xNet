@@ -32,6 +32,11 @@ export { unlockPasskeyIdentity } from './unlock'
 export { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
 export { getStoredIdentity, storeIdentity, clearStoredIdentity } from './storage'
 export { deriveKeySeed } from './derive'
+export {
+  discoverExistingPasskey,
+  unlockDiscoveredPasskey,
+  type DiscoveredPasskey
+} from './discovery'
 
 // ─── Identity Manager ────────────────────────────────────────
 

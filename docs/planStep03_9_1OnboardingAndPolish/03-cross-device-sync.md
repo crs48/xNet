@@ -780,13 +780,13 @@ describe('Cross-Device Sync', () => {
 
 ## Validation Gate
 
-- [ ] Existing passkey discovered automatically on new device
-- [ ] Same passkey = same DID across devices
-- [ ] Initial sync receives full hub state
-- [ ] Sync progress UI shows accurate status
+- [x] Existing passkey discovered automatically on new device
+- [x] Same passkey = same DID across devices
+- [x] Initial sync receives full hub state
+- [x] Sync progress UI shows accurate status
 - [ ] QR linking works for cross-ecosystem devices
 - [ ] Data merges correctly (no data loss)
-- [ ] Works offline (sync resumes when connected)
+- [x] Works offline (sync resumes when connected)
 
 ---
 

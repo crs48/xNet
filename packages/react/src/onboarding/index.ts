@@ -31,6 +31,8 @@ export { UnsupportedBrowserScreen } from './screens/UnsupportedBrowserScreen'
 export { ImportIdentityScreen } from './screens/ImportIdentityScreen'
 export { HubConnectScreen } from './screens/HubConnectScreen'
 export { ReadyScreen } from './screens/ReadyScreen'
+export { SmartWelcome } from './screens/SmartWelcome'
+export { SyncProgressOverlay, type SyncProgressOverlayProps } from './screens/SyncProgressOverlay'
 
 // Templates
 export { QUICK_START_TEMPLATES, type QuickStartTemplate } from './templates'
