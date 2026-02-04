@@ -22,6 +22,7 @@ import { createBackupRoutes } from './routes/backup'
 import { createFileRoutes } from './routes/files'
 import { createSchemaRoutes } from './routes/schemas'
 import { BackupService } from './services/backup'
+import { AwarenessService } from './services/awareness'
 import { FileService } from './services/files'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
@@ -125,6 +126,18 @@ const isNodeChangePayload = (
   return typeof change.hash === 'string' && typeof change.signatureB64 === 'string'
 }
 
+const isAwarenessMessage = (
+  value: unknown
+): value is { type: 'awareness'; update?: string; state?: unknown } => {
+  if (!isRecord(value)) return false
+  if (value.type !== 'awareness') return false
+  const candidate = value as { update?: unknown; state?: unknown }
+  return (
+    (typeof candidate.update === 'string' && candidate.update.length > 0) ||
+    typeof candidate.state !== 'undefined'
+  )
+}
+
 const topicToResource = (topic: string): string =>
   topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
 
@@ -150,6 +163,11 @@ export const createServer = (config: HubConfig): HubInstance => {
   const files = new FileService(storage)
   const query = new QueryService(storage)
   const nodeRelay = new NodeRelayService(storage)
+  const awareness = new AwarenessService(storage, {
+    ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
+    cleanupIntervalMs: config.awarenessCleanupIntervalMs ?? 60 * 60 * 1000,
+    maxUsersPerRoom: config.awarenessMaxUsers ?? 100
+  })
   const schemas = new SchemaRegistryService(storage)
   const metrics = new Metrics()
   const rateLimiter = new RateLimiter({
@@ -217,6 +235,7 @@ export const createServer = (config: HubConfig): HubInstance => {
 
   const start = async (): Promise<void> => {
     if (httpServer) return
+    awareness.start()
     await schemas.seedBuiltInSchemas([
       {
         definition: PageSchema.schema,
@@ -272,6 +291,7 @@ export const createServer = (config: HubConfig): HubInstance => {
           if (topics) {
             for (const topic of topics) {
               relay.handleRoomLeave(topic)
+              void awareness.handleDisconnect(topic, session.did)
             }
           }
           socketTopics.delete(ws)
@@ -406,6 +426,14 @@ export const createServer = (config: HubConfig): HubInstance => {
               }
             }
 
+            if (
+              isPublishMessage(payload) &&
+              typeof payload.topic === 'string' &&
+              isAwarenessMessage(payload.data)
+            ) {
+              await awareness.handleAwarenessMessage(payload.topic, authContext.did, payload.data)
+            }
+
             signaling.handleMessage(ws, payload)
 
             if (isSubscribeMessage(payload)) {
@@ -416,6 +444,25 @@ export const createServer = (config: HubConfig): HubInstance => {
                   if (!existing.has(topic)) {
                     existing.add(topic)
                     void relay.handleRoomJoin(topic, signaling.publishFromHub)
+                    const snapshot = await awareness.getSnapshot(topic)
+                    if (snapshot.length > 0 && ws.readyState === 1) {
+                      ws.send(
+                        JSON.stringify({
+                          type: 'publish',
+                          topic,
+                          data: {
+                            type: 'awareness-snapshot',
+                            from: 'hub-relay',
+                            users: snapshot.map((entry) => ({
+                              did: entry.userDid,
+                              state: entry.state,
+                              lastSeen: entry.lastSeen,
+                              isStale: Date.now() - entry.lastSeen > 5 * 60 * 1000
+                            }))
+                          }
+                        })
+                      )
+                    }
                   }
                 }
                 socketTopics.set(ws, existing)
@@ -429,6 +476,7 @@ export const createServer = (config: HubConfig): HubInstance => {
                 for (const topic of topics) {
                   if (existing.delete(topic)) {
                     relay.handleRoomLeave(topic)
+                    await awareness.handleDisconnect(topic, authContext.did)
                   }
                 }
                 if (existing.size === 0) {
@@ -478,6 +526,7 @@ export const createServer = (config: HubConfig): HubInstance => {
     pool.destroy()
     await storage.close()
 
+    awareness.stop()
     signaling.destroy()
     connectionCount = 0
   }

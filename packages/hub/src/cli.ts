@@ -32,6 +32,21 @@ const run = async (): Promise<void> => {
       'max backup blob size in bytes',
       String(DEFAULT_CONFIG.maxBlobSize)
     )
+    .option(
+      '--awareness-ttl <number>',
+      'awareness entry TTL in ms',
+      String(DEFAULT_CONFIG.awarenessTtlMs)
+    )
+    .option(
+      '--awareness-cleanup <number>',
+      'awareness cleanup interval in ms',
+      String(DEFAULT_CONFIG.awarenessCleanupIntervalMs)
+    )
+    .option(
+      '--awareness-max-users <number>',
+      'max awareness users per room',
+      String(DEFAULT_CONFIG.awarenessMaxUsers)
+    )
     .option('--log-level <level>', 'log level (debug|info|warn|error)', DEFAULT_CONFIG.logLevel)
     .action(async (opts) => {
       const config: Partial<HubConfig> = {
@@ -41,6 +56,12 @@ const run = async (): Promise<void> => {
         storage: opts.storage,
         maxConnections: parseNumber(opts.maxConnections, DEFAULT_CONFIG.maxConnections),
         maxBlobSize: parseNumber(opts.maxBlobSize, DEFAULT_CONFIG.maxBlobSize),
+        awarenessTtlMs: parseNumber(opts.awarenessTtl, DEFAULT_CONFIG.awarenessTtlMs),
+        awarenessCleanupIntervalMs: parseNumber(
+          opts.awarenessCleanup,
+          DEFAULT_CONFIG.awarenessCleanupIntervalMs
+        ),
+        awarenessMaxUsers: parseNumber(opts.awarenessMaxUsers, DEFAULT_CONFIG.awarenessMaxUsers),
         logLevel: opts.logLevel
       }
 

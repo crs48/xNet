@@ -19,6 +19,12 @@ export type HubConfig = {
   defaultQuota: number
   /** Maximum backup blob size in bytes (default: 50MB). */
   maxBlobSize: number
+  /** Awareness entry TTL in ms (default: 24 hours). */
+  awarenessTtlMs: number
+  /** Awareness cleanup interval in ms (default: 1 hour). */
+  awarenessCleanupIntervalMs: number
+  /** Max awareness users stored per room (default: 100). */
+  awarenessMaxUsers: number
   /** Optional rate limit overrides. */
   rateLimit?: {
     perConnectionRate?: number
@@ -39,6 +45,9 @@ export const DEFAULT_CONFIG: HubConfig = {
   maxConnections: 1000,
   defaultQuota: 1024 * 1024 * 1024,
   maxBlobSize: 50 * 1024 * 1024,
+  awarenessTtlMs: 24 * 60 * 60 * 1000,
+  awarenessCleanupIntervalMs: 60 * 60 * 1000,
+  awarenessMaxUsers: 100,
   logLevel: 'info'
 }
 
