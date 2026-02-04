@@ -1,7 +1,7 @@
 /**
- * DID resolution over the network
+ * DID resolution over the hub network.
  */
-import type { NetworkNode } from '../types'
+
 import type { DIDResolution, PeerLocation } from '@xnet/core'
 
 /**
@@ -14,52 +14,96 @@ export interface DIDResolver {
   clearCache(): void
 }
 
+export interface DIDResolverConfig {
+  hubUrl: string
+  cacheTtlMs?: number
+  getAuthToken?: () => Promise<string>
+}
+
+type CacheEntry = {
+  record: DIDResolution
+  fetchedAt: number
+}
+
+const toHubHttpUrl = (hubUrl: string): string =>
+  hubUrl.replace('wss://', 'https://').replace('ws://', 'http://')
+
+const fromBase64 = (value: string): Uint8Array =>
+  typeof Buffer !== 'undefined' ? new Uint8Array(Buffer.from(value, 'base64')) : new Uint8Array()
+
+const mapLocationsToEndpoints = (locations: PeerLocation[]) =>
+  locations.map((location, index) => ({
+    type: 'libp2p',
+    address: location.multiaddr,
+    priority: index
+  }))
+
+const mapEndpointsToLocations = (endpoints: Array<{ address: string }>, lastSeen: number) =>
+  endpoints.map((endpoint) => ({
+    multiaddr: endpoint.address,
+    lastSeen
+  }))
+
 /**
- * Create a DID resolver for the network
+ * Create a DID resolver for the hub.
  */
-export function createDIDResolver(node: NetworkNode): DIDResolver {
-  const cache = new Map<string, DIDResolution>()
-  const CACHE_TTL = 60000 // 1 minute
+export function createDIDResolver(config: DIDResolverConfig): DIDResolver {
+  const cache = new Map<string, CacheEntry>()
+  const cacheTtlMs = config.cacheTtlMs ?? 60_000
 
   return {
     async resolve(did: string): Promise<DIDResolution | null> {
-      // Check cache first
       const cached = cache.get(did)
-      if (cached && Date.now() - cached.lastUpdated < CACHE_TTL) {
-        return cached
+      if (cached && Date.now() - cached.fetchedAt < cacheTtlMs) {
+        return cached.record
       }
 
-      // Try connected peers
-      const peers = node.libp2p.getPeers()
-      for (const _peer of peers) {
-        // Would query peer for DID info via a resolution protocol
-        // Simplified: return null for now
+      try {
+        const hubHttpUrl = toHubHttpUrl(config.hubUrl)
+        const res = await fetch(`${hubHttpUrl}/dids/${encodeURIComponent(did)}`)
+        if (!res.ok) return null
+
+        const record = (await res.json()) as {
+          did: string
+          publicKeyB64?: string
+          endpoints: Array<{ address: string }>
+          lastSeen: number
+        }
+
+        const resolution: DIDResolution = {
+          did: record.did,
+          publicKey: record.publicKeyB64 ? fromBase64(record.publicKeyB64) : new Uint8Array(),
+          locations: mapEndpointsToLocations(record.endpoints ?? [], record.lastSeen),
+          lastUpdated: record.lastSeen
+        }
+
+        cache.set(did, { record: resolution, fetchedAt: Date.now() })
+        return resolution
+      } catch {
+        return null
       }
-
-      // Try DHT if available
-      // const dht = node.libp2p.services.dht
-      // Would query DHT for DID resolution record
-
-      return null
     },
 
     async publish(did: string, locations: PeerLocation[]): Promise<void> {
-      // Publish to DHT
-      // const dht = node.libp2p.services.dht
-      // Would put resolution record to DHT
+      const hubHttpUrl = toHubHttpUrl(config.hubUrl)
+      const token = config.getAuthToken ? await config.getAuthToken() : ''
 
-      // Update local cache
-      const resolution: DIDResolution = {
-        did,
-        publicKey: new Uint8Array(), // Would include actual key
-        locations,
-        lastUpdated: Date.now()
-      }
-      cache.set(did, resolution)
+      await fetch(`${hubHttpUrl}/dids/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          did,
+          publicKeyB64: '',
+          endpoints: mapLocationsToEndpoints(locations)
+        })
+      })
     },
 
     getCached(did: string): DIDResolution | null {
-      return cache.get(did) ?? null
+      return cache.get(did)?.record ?? null
     },
 
     clearCache(): void {
