@@ -109,6 +109,10 @@ export class QueryService {
         updatedAt: Date.now()
       })
     }
+
+    if ('updateSearchBody' in this.storage && typeof this.storage.updateSearchBody === 'function') {
+      await this.storage.updateSearchBody(docId, '')
+    }
   }
 
   private async updateSearchBody(docId: string, text: string): Promise<void> {

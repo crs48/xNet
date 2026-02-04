@@ -695,7 +695,6 @@ export const createServer = (config: HubConfig): HubInstance => {
     shardRegistry.stop()
     crawlCoordinator.stop()
     signaling.destroy()
-    connectionCount = 0
   }
 
   return {
