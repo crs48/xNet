@@ -8,6 +8,7 @@ export const createMemoryStorage = (): HubStorage => {
   const docStates = new Map<string, Uint8Array>()
   const docMetas = new Map<string, DocMeta>()
   const blobs = new Map<string, { data: Uint8Array; meta: BlobMeta }>()
+  const searchBodies = new Map<string, string>()
 
   const getDocState = async (docId: string): Promise<Uint8Array | null> =>
     docStates.get(docId) ?? null
@@ -48,7 +49,8 @@ export const createMemoryStorage = (): HubStorage => {
       if (options?.schemaIri && meta.schemaIri !== options.schemaIri) continue
       if (options?.ownerDid && meta.ownerDid !== options.ownerDid) continue
 
-      if (meta.title.toLowerCase().includes(q)) {
+      const body = searchBodies.get(meta.docId)?.toLowerCase() ?? ''
+      if (meta.title.toLowerCase().includes(q) || body.includes(q)) {
         results.push({
           docId: meta.docId,
           title: meta.title,
@@ -64,10 +66,15 @@ export const createMemoryStorage = (): HubStorage => {
     return results.slice(offset, offset + limit)
   }
 
+  const updateSearchBody = async (docId: string, text: string): Promise<void> => {
+    searchBodies.set(docId, text)
+  }
+
   const close = async (): Promise<void> => {
     docStates.clear()
     docMetas.clear()
     blobs.clear()
+    searchBodies.clear()
   }
 
   return {
@@ -81,6 +88,7 @@ export const createMemoryStorage = (): HubStorage => {
     setDocMeta,
     getDocMeta,
     search,
+    updateSearchBody,
     close
   }
 }

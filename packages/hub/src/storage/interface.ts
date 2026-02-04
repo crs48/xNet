@@ -49,6 +49,7 @@ export type HubStorage = {
   setDocMeta: (docId: string, meta: DocMeta) => Promise<void>
   getDocMeta: (docId: string) => Promise<DocMeta | null>
   search: (query: string, options?: SearchOptions) => Promise<SearchResult[]>
+  updateSearchBody?: (docId: string, text: string) => Promise<void>
 
   close: () => Promise<void>
 }
