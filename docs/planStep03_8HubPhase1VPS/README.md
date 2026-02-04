@@ -358,11 +358,11 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] New subscriber gets awareness-snapshot with recent users
-- [ ] Snapshot includes last-seen timestamps
-- [ ] Stale entries cleaned up after TTL
-- [ ] UI shows "Alice · last edited 2 hours ago"
-- [ ] Empty rooms don't send snapshots
+- [x] New subscriber gets awareness-snapshot with recent users
+- [x] Snapshot includes last-seen timestamps
+- [x] Stale entries cleaned up after TTL
+- [x] UI shows "Alice · last edited 2 hours ago"
+- [x] Empty rooms don't send snapshots
 
 ### Phase 12: Peer Discovery (Day 15)
 
