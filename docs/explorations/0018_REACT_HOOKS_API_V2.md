@@ -254,7 +254,7 @@ const {
   doc, // Y.Doc
   update, // Type-safe
   syncStatus, // 'offline' | 'connecting' | 'connected'
-  remoteUsers // Collaborators
+  presence // Collaborators
 } = useDocument(PageSchema, pageId, {
   createIfMissing: { title: 'Untitled' },
   user: { name: 'Alice' }
@@ -505,7 +505,7 @@ function DocumentPage({ pageId }) {
     doc,
     update,
     syncStatus,
-    remoteUsers
+    presence
   } = useDocument(PageSchema, pageId, {
     createIfMissing: { title: 'Untitled' }
   })
@@ -521,7 +521,7 @@ function DocumentPage({ pageId }) {
       <SyncBadge status={syncStatus} />
 
       {/* Collaborators */}
-      <AvatarStack users={remoteUsers} />
+      <AvatarStack users={presence} />
 
       {/* Rich text editor with CRDT */}
       <Editor doc={doc} />

@@ -71,7 +71,7 @@ export {
  *   doc,            // Y.Doc
  *   update,         // Type-safe mutations
  *   syncStatus,     // 'offline' | 'connecting' | 'connected'
- *   remoteUsers,    // Collaborators
+ *   presence,       // Presence list (live + hub snapshot)
  * } = useNode(PageSchema, pageId, {
  *   createIfMissing: { title: 'Untitled' },
  *   did: myDid
@@ -83,7 +83,7 @@ export {
   type UseNodeOptions,
   type UseNodeResult,
   type SyncStatus,
-  type RemoteUser
+  type PresenceUser
 } from './hooks/useNode'
 
 /**

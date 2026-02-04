@@ -118,7 +118,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     doc,
     loading,
     update,
-    remoteUsers,
+    presence,
     awareness
   } = useNode(DatabaseSchema, docId, {
     createIfMissing: { title: 'Untitled Database' },
@@ -1078,7 +1078,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onChange={(e) => update({ title: e.target.value })}
             placeholder="Untitled"
           />
-          <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+          <PresenceAvatars presence={presence} localDid={did} />
           <div className="flex-1" />
           <ShareButton docId={docId} docType="database" />
         </div>
@@ -1111,7 +1111,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           placeholder="Untitled"
         />
 
-        <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+        <PresenceAvatars presence={presence} localDid={did} />
         {commentUnresolvedCount > 0 && (
           <button
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"

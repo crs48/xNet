@@ -94,7 +94,7 @@ export function PageView({ docId }: PageViewProps) {
     update,
     syncStatus,
     peerCount,
-    remoteUsers,
+    presence,
     awareness
   } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled Page' },
@@ -720,7 +720,7 @@ export function PageView({ docId }: PageViewProps) {
             <span>comment{unresolvedCount !== 1 ? 's' : ''}</span>
           </button>
         )}
-        <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+        <PresenceAvatars presence={presence} localDid={did} />
       </DocumentHeader>
 
       {/* Editor + Sidebar horizontal layout */}

@@ -172,10 +172,10 @@ function DocumentEditor({ pageId }) {
     error,
     syncStatus, // 'offline' | 'connecting' | 'connected'
     peerCount, // Number of connected peers
-    remoteUsers // [{ id, name, color, isActive }]
+    presence // [{ did, name, color, lastSeen, isStale }]
   } = useNode(PageSchema, pageId, {
     createIfMissing: { title: 'Untitled' }, // Auto-create if not found
-    user: { name: 'Alice' } // Presence info
+    did: myDid // Presence identity
   })
 
   if (loading) return <p>Loading...</p>
@@ -194,9 +194,9 @@ function DocumentEditor({ pageId }) {
       </span>
 
       {/* Collaborators */}
-      {remoteUsers.map((user) => (
-        <span key={user.id} style={{ color: user.color }}>
-          {user.name}
+      {presence.map((user) => (
+        <span key={user.did} style={{ color: user.color }}>
+          {user.name ?? user.did.slice(0, 12)}
         </span>
       ))}
 

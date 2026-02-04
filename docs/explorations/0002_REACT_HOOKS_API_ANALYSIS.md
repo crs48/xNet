@@ -473,7 +473,7 @@ const { syncStatus } = useDocument(Schema, id) // Same type
 // AFTER (proposed)
 const {
   localUser, // { id, name, color, cursor }
-  remoteUsers, // User[] - actually populated!
+  presence, // User[] - actually populated!
   setLocalState // (state) => void
 } = usePresence(docId)
 
@@ -530,7 +530,7 @@ const {
   peerCount,
 
   // Presence
-  remoteUsers,
+  presence,
 
   // Actions
   save,
@@ -662,7 +662,7 @@ function DocumentPage() {
     error,
     syncStatus,
     peerCount,
-    remoteUsers
+    presence
   } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled' }
   })
@@ -674,7 +674,7 @@ function DocumentPage() {
     <div>
       <input value={page.title} onChange={(e) => update({ title: e.target.value })} />
       <SyncIndicator status={syncStatus} peers={peerCount} />
-      <PresenceAvatars users={remoteUsers} />
+      <PresenceAvatars users={presence} />
       <Editor doc={doc} />
     </div>
   )

@@ -24,7 +24,7 @@ function DocumentPage() {
     error,
     syncStatus,
     peerCount,
-    remoteUsers
+    presence
   } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled' },
     disableSync: true // Disable sync until signaling server is available
@@ -81,11 +81,11 @@ function DocumentPage() {
           {peerCount > 0 && <span className="text-xs font-medium">{peerCount}</span>}
         </div>
 
-        {remoteUsers.length > 0 && (
+        {presence.length > 0 && (
           <div className="flex -space-x-2">
-            {remoteUsers.map((user) => (
+            {presence.map((user) => (
               <span
-                key={user.clientId}
+                key={user.did}
                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white border-2 border-background"
                 style={{ backgroundColor: user.color }}
                 title={user.did}

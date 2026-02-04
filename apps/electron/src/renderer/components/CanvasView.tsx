@@ -24,7 +24,7 @@ export function CanvasView({ docId }: CanvasViewProps) {
     doc,
     loading,
     update,
-    remoteUsers,
+    presence,
     awareness
   } = useNode(CanvasSchema, docId, {
     createIfMissing: { title: 'Untitled Canvas' },
@@ -144,7 +144,7 @@ export function CanvasView({ docId }: CanvasViewProps) {
           <span>Center</span>
         </button>
 
-        <PresenceAvatars remoteUsers={remoteUsers} localDid={did} />
+        <PresenceAvatars presence={presence} localDid={did} />
 
         <div className="flex items-center gap-1 text-xs text-muted-foreground ml-4">
           <LayoutGrid size={14} />
