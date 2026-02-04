@@ -60,8 +60,11 @@ describe('Hub Signaling', () => {
 
   it('health endpoint returns status', async () => {
     const res = await fetch(`http://localhost:${PORT}/health`)
-    const json = (await res.json()) as { status: string; connections: number }
+    const json = (await res.json()) as {
+      status: string
+      connections: { active: number; max: number }
+    }
     expect(json.status).toBe('ok')
-    expect(typeof json.connections).toBe('number')
+    expect(typeof json.connections.active).toBe('number')
   })
 })

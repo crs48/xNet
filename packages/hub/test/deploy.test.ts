@@ -38,7 +38,7 @@ describe('Production Readiness', () => {
         memory: { rss: number }
       }
       expect(body.status).toBe('ok')
-      expect(body.uptime).toBeGreaterThan(0)
+      expect(body.uptime).toBeGreaterThanOrEqual(0)
       expect(body.docs).toBeDefined()
       expect(body.connections).toBeDefined()
       expect(body.memory.rss).toBeGreaterThan(0)

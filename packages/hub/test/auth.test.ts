@@ -43,10 +43,10 @@ describe('Hub UCAN Auth', () => {
   })
 
   it('anonymous mode allows all connections', async () => {
-    const anonHub = await createHub({ port: PORT + 1, auth: false, storage: 'memory' })
+    const anonHub = await createHub({ port: PORT + 20, auth: false, storage: 'memory' })
     await anonHub.start()
 
-    const ws = new WebSocket(`ws://localhost:${PORT + 1}`)
+    const ws = new WebSocket(`ws://localhost:${PORT + 20}`)
     await new Promise<void>((resolve) => {
       ws.on('open', () => resolve())
     })

@@ -4,14 +4,16 @@ import { ShardIngestRouter } from '../src/services/shard-ingest'
 import { ShardQueryRouter } from '../src/services/shard-router'
 import { ShardRegistry, type ShardAssignment, type ShardConfig } from '../src/services/index-shards'
 
-const createAssignments = (totalShards: number, hubDid: string, hubUrl: string): ShardAssignment[] =>
+const createAssignments = (
+  totalShards: number,
+  hubDid: string,
+  hubUrl: string
+): ShardAssignment[] =>
   Array.from({ length: totalShards }, (_, shardId) => ({
     shardId,
     rangeStart: Math.floor((256 / totalShards) * shardId),
     rangeEnd:
-      shardId === totalShards - 1
-        ? 255
-        : Math.floor((256 / totalShards) * (shardId + 1)) - 1,
+      shardId === totalShards - 1 ? 255 : Math.floor((256 / totalShards) * (shardId + 1)) - 1,
     primaryHub: { url: hubUrl, hubDid },
     replicaHub: undefined,
     docCount: 0,
@@ -38,7 +40,9 @@ describe('Global Index Shards', () => {
   it('assigns terms to correct shards deterministically', async () => {
     const storage = createMemoryStorage()
     const registry = new ShardRegistry(config, storage)
-    await registry.setAssignments(createAssignments(config.totalShards, config.hubDid!, config.hubUrl!))
+    await registry.setAssignments(
+      createAssignments(config.totalShards, config.hubDid!, config.hubUrl!)
+    )
 
     const shard1 = registry.getShardForTerm('permaculture')
     const shard2 = registry.getShardForTerm('permaculture')
@@ -49,7 +53,9 @@ describe('Global Index Shards', () => {
   it('routes multi-term query to multiple shards', async () => {
     const storage = createMemoryStorage()
     const registry = new ShardRegistry(config, storage)
-    await registry.setAssignments(createAssignments(config.totalShards, config.hubDid!, config.hubUrl!))
+    await registry.setAssignments(
+      createAssignments(config.totalShards, config.hubDid!, config.hubUrl!)
+    )
 
     const shards = registry.getShardsForQuery(['food', 'forest', 'design'])
     expect(shards.length).toBeGreaterThanOrEqual(1)
@@ -59,7 +65,9 @@ describe('Global Index Shards', () => {
   it('ingests document and queries it back', async () => {
     const storage = createMemoryStorage()
     const registry = new ShardRegistry(config, storage)
-    await registry.setAssignments(createAssignments(config.totalShards, config.hubDid!, config.hubUrl!))
+    await registry.setAssignments(
+      createAssignments(config.totalShards, config.hubDid!, config.hubUrl!)
+    )
 
     const ingest = new ShardIngestRouter(registry, storage, config)
     const router = new ShardQueryRouter(registry, storage, config)
@@ -84,10 +92,7 @@ describe('Global Index Shards', () => {
 
   it('handles shard host failure with replica fallback', async () => {
     const storage = createMemoryStorage()
-    const registry = new ShardRegistry(
-      { ...config, hostedShards: [] },
-      storage
-    )
+    const registry = new ShardRegistry({ ...config, hostedShards: [], totalShards: 1 }, storage)
 
     await registry.setAssignments([
       {
@@ -101,7 +106,11 @@ describe('Global Index Shards', () => {
       }
     ])
 
-    const router = new ShardQueryRouter(registry, storage, { ...config, hostedShards: [] })
+    const router = new ShardQueryRouter(registry, storage, {
+      ...config,
+      hostedShards: [],
+      totalShards: 1
+    })
     const fetchMock = vi.fn(async (input: RequestInfo) => {
       const url = String(input)
       if (url.includes('dead-host')) {

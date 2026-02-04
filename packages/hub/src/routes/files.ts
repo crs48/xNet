@@ -66,7 +66,7 @@ export const createFileRoutes = (fileService: FileService): Hono => {
     })
   })
 
-  app.head('/:cid', async (c) => {
+  app.on('HEAD', '/:cid', async (c) => {
     const auth = c.get('auth') as AuthContext
     const cid = c.req.param('cid')
 
