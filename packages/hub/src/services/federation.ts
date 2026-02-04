@@ -11,7 +11,7 @@ import { TextEncoder } from 'node:util'
 import { QueryService } from './query'
 import { validateExternalUrl } from '../utils/url'
 
-export interface FederationPeer {
+export type FederationPeer = {
   url: string
   hubDid: string
   schemas: string[] | '*'
@@ -22,14 +22,14 @@ export interface FederationPeer {
   lastSuccessAt: number | null
 }
 
-export interface FederationExpose {
+export type FederationExpose = {
   schemas: string[] | '*'
   requireAuth: boolean
   rateLimit: number
   maxResults: number
 }
 
-export interface FederationConfig {
+export type FederationConfig = {
   enabled: boolean
   hubDid: string
   peers: FederationPeer[]
@@ -41,7 +41,7 @@ export interface FederationConfig {
   openRegistration?: boolean
 }
 
-export interface FederationQueryRequest {
+export type FederationQueryRequest = {
   queryId: string
   text?: string
   schema?: string
@@ -55,7 +55,7 @@ export interface FederationQueryRequest {
   fromHub: string
 }
 
-export interface FederatedResult {
+export type FederatedResult = {
   nodeId: string
   cid: string
   score: number
@@ -67,7 +67,7 @@ export interface FederatedResult {
   sourceHub: string
 }
 
-export interface FederationQueryResponse {
+export type FederationQueryResponse = {
   queryId: string
   results: FederatedResult[]
   totalEstimate: number

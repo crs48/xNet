@@ -22,7 +22,7 @@ export type SchemaDefinition = {
   document?: string
 }
 
-export interface SchemaDefinitionInput {
+export type SchemaDefinitionInput = {
   /** Full schema IRI (e.g., xnet://did:key:z6Mk.../Recipe) */
   iri: string
   /** Version number (must be > current latest) */
@@ -102,14 +102,15 @@ const normalizeProperties = (value: unknown, iri: string): SchemaPropertyDefinit
       const name = typeof entry.name === 'string' ? entry.name : ''
       const type = typeof entry.type === 'string' ? entry.type : ''
       if (!name || !type) {
-        throw new SchemaError('INVALID_DEFINITION', `Property at index ${index} must include name/type`)
+        throw new SchemaError(
+          'INVALID_DEFINITION',
+          `Property at index ${index} must include name/type`
+        )
       }
       const required = typeof entry.required === 'boolean' ? entry.required : false
       const rawConfig = isRecord(entry.config)
         ? entry.config
-        : Object.fromEntries(
-            Object.entries(entry).filter(([key]) => KNOWN_CONFIG_KEYS.has(key))
-          )
+        : Object.fromEntries(Object.entries(entry).filter(([key]) => KNOWN_CONFIG_KEYS.has(key)))
       const config = Object.keys(rawConfig).length > 0 ? rawConfig : undefined
       return {
         '@id': typeof entry['@id'] === 'string' ? entry['@id'] : `${iri}#${name}`,
@@ -133,9 +134,7 @@ const normalizeProperties = (value: unknown, iri: string): SchemaPropertyDefinit
       const required = typeof entry.required === 'boolean' ? entry.required : false
       const config = isRecord(entry.config)
         ? entry.config
-        : Object.fromEntries(
-            Object.entries(entry).filter(([key]) => KNOWN_CONFIG_KEYS.has(key))
-          )
+        : Object.fromEntries(Object.entries(entry).filter(([key]) => KNOWN_CONFIG_KEYS.has(key)))
 
       return {
         '@id': typeof entry['@id'] === 'string' ? entry['@id'] : `${iri}#${name}`,

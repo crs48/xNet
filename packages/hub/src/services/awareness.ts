@@ -6,7 +6,7 @@ import * as Y from 'yjs'
 import { Awareness, applyAwarenessUpdate } from 'y-protocols/awareness'
 import type { AwarenessEntry, HubStorage } from '../storage/interface'
 
-export interface AwarenessConfig {
+export type AwarenessConfig = {
   /** TTL for awareness entries (default: 24 hours) */
   ttlMs: number
   /** How often to clean stale entries (default: 1 hour) */
@@ -47,7 +47,10 @@ const withUserDid = (state: Record<string, unknown>, userDid: string): Record<st
   return { ...state, user: { did: userDid } }
 }
 
-const withOnlineState = (state: Record<string, unknown>, online: boolean): AwarenessEntry['state'] => {
+const withOnlineState = (
+  state: Record<string, unknown>,
+  online: boolean
+): AwarenessEntry['state'] => {
   if (state.online === online) {
     return state as AwarenessEntry['state']
   }
@@ -120,9 +123,7 @@ export class AwarenessService {
     const entries = await this.storage.getAwareness(room)
     const cutoff = Date.now() - this.config.ttlMs
 
-    return entries
-      .filter((entry) => entry.lastSeen > cutoff)
-      .slice(0, this.config.maxUsersPerRoom)
+    return entries.filter((entry) => entry.lastSeen > cutoff).slice(0, this.config.maxUsersPerRoom)
   }
 
   /**

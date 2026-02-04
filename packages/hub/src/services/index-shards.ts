@@ -6,7 +6,7 @@ import type { HubStorage, ShardAssignmentRecord } from '../storage/interface'
 import { hash } from '@xnet/crypto'
 import { TextEncoder } from 'node:util'
 
-export interface ShardAssignment {
+export type ShardAssignment = {
   shardId: number
   rangeStart: number
   rangeEnd: number
@@ -16,7 +16,7 @@ export interface ShardAssignment {
   updatedAt: number
 }
 
-export interface ShardConfig {
+export type ShardConfig = {
   enabled: boolean
   totalShards: number
   hostedShards: number[]

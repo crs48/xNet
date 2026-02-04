@@ -4,7 +4,7 @@
 
 import type { HubStorage, PeerEndpoint, PeerRecord } from '../storage/interface'
 
-export interface DiscoveryConfig {
+export type DiscoveryConfig = {
   /** How long before a peer is considered stale (default: 7 days) */
   staleTtlMs: number
   /** How often to clean stale peers (default: 6 hours) */
@@ -19,7 +19,7 @@ const DEFAULT_CONFIG: DiscoveryConfig = {
   maxPeers: 10000
 }
 
-export interface RegisterInput {
+export type RegisterInput = {
   did: string
   publicKeyB64: string
   displayName?: string
@@ -35,9 +35,9 @@ const normalizeEndpoints = (endpoints: PeerEndpoint[]): PeerEndpoint[] =>
     .filter((endpoint) =>
       Boolean(
         endpoint &&
-          ENDPOINT_TYPES.has(endpoint.type) &&
-          typeof endpoint.address === 'string' &&
-          endpoint.address.length > 0
+        ENDPOINT_TYPES.has(endpoint.type) &&
+        typeof endpoint.address === 'string' &&
+        endpoint.address.length > 0
       )
     )
     .map((endpoint, index) => ({

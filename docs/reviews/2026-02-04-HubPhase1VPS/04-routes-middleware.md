@@ -195,10 +195,10 @@ Prometheus-compatible counter/gauge/summary collector.
 - [ ] Add auth to `POST /crawl/results`
 - [ ] Add auth to `POST /crawl/seed`
 - [ ] Add auth or rate-limiting to `POST /shards/query` and `/search`
-- [ ] Add HTTP rate limiting middleware
+- [x] Add HTTP rate limiting middleware
 - [ ] Add JSON body size limit middleware
-- [ ] Add upper bounds on all `limit` params (cap at 100-500)
-- [ ] Add URL validation for federation/crawl/shard registration
+- [x] Add upper bounds on all `limit` params (cap at 100-500)
+- [x] Add URL validation for federation/crawl/shard registration
 - [ ] Replace `body as any` with `body as Record<string, unknown>` in dids.ts
 - [ ] Fix fragile error-message matching in federation route
 - [ ] Stop leaking raw error messages to clients

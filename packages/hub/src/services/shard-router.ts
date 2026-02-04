@@ -6,13 +6,13 @@ import type { HubStorage, ShardPosting, ShardTermStat } from '../storage/interfa
 import type { ShardAssignment, ShardConfig, ShardRegistry } from './index-shards'
 import { tokenizeText } from './shard-utils'
 
-export interface GlobalSearchRequest {
+export type GlobalSearchRequest = {
   queryId: string
   text: string
   limit?: number
 }
 
-export interface ShardQueryResult {
+export type ShardQueryResult = {
   cid: string
   title: string
   url?: string
@@ -25,7 +25,7 @@ export interface ShardQueryResult {
   sourceHub: string
 }
 
-export interface GlobalSearchResponse {
+export type GlobalSearchResponse = {
   queryId: string
   results: ShardQueryResult[]
   took: number
