@@ -441,18 +441,18 @@ describe('Fly.io Config Resolution', () => {
 
 ## Checklist
 
-- [ ] Create `fly.toml` in `packages/hub/` with suspend/resume config
-- [ ] Add Fly.io platform detection to `resolveConfig()` (`FLY_REGION`, `FLY_MACHINE_ID`)
-- [ ] Add `runtime` metadata to config (platform, region, machineId)
-- [ ] Include platform/region in `/health` response
-- [ ] Adjust shutdown grace period for Fly suspend (4s vs 8s)
+- [x] Create `fly.toml` in `packages/hub/` with suspend/resume config
+- [x] Add Fly.io platform detection to `resolveConfig()` (`FLY_REGION`, `FLY_MACHINE_ID`)
+- [x] Add `runtime` metadata to config (platform, region, machineId)
+- [x] Include platform/region in `/health` response
+- [x] Adjust shutdown grace period for Fly suspend (4s vs 8s)
 - [ ] Verify Dockerfile works with `fly deploy`
 - [ ] Test Machine suspend/resume cycle (SQLite WAL flush + reopen)
 - [ ] Test WebSocket reconnection after Machine wake
 - [ ] Document single-region deployment commands
 - [ ] Document multi-region deployment (future, requires Hub Federation)
-- [ ] Write config resolution tests for Fly.io env vars
-- [ ] Write health check integration test with Fly metadata
+- [x] Write config resolution tests for Fly.io env vars
+- [x] Write health check integration test with Fly metadata
 
 ---
 
