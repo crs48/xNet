@@ -176,10 +176,10 @@ const checkRoomAuth = (session: AuthSession, topics: string[]): boolean =>
     )
   })
 
-export const createServer = (config: HubConfig): HubInstance => {
+export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const app = new Hono()
   const signaling = createSignalingService()
-  const storage = createStorage(config.storage, config.dataDir)
+  const storage = await createStorage(config.storage, config.dataDir)
   const pool = new NodePool(storage)
   const relay = new RelayService(pool, { requireSignedUpdates: config.auth })
   const backup = new BackupService(storage, {

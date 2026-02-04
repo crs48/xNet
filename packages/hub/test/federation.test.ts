@@ -28,8 +28,8 @@ const sendAndWait = (ws: WebSocket, msg: object, matchType: string): Promise<any
 describe('Hub Federation', () => {
   let hubA: HubInstance
   let hubB: HubInstance
-  const PORT_A = 14460
-  const PORT_B = 14461
+  const PORT_A = 14471
+  const PORT_B = 14472
 
   beforeAll(async () => {
     const identityA = generateIdentity()
