@@ -1,60 +1,112 @@
 # 09: Hub CD Pipeline
 
-> Automated Docker builds and deployments for the hub
+> Automated Docker images for self-hosters; Railway auto-deploys the demo hub
 
 **Duration:** 2 days
 **Dependencies:** Hub package, Demo hub deployment
 
 ## Overview
 
-When changes are pushed to the hub package, GitHub Actions builds multi-architecture Docker images and publishes them to GitHub Container Registry. Tagged releases auto-deploy to the demo hub on Railway.
+The demo hub at `hub.xnet.fyi` deploys automatically via **Railway's native auto-deploy** — no GitHub Actions involved. Railway watches the `main` branch, detects the `railway.toml` and `Dockerfile` in `packages/hub/`, builds, and deploys on every push. Zero config in CI, zero GH Action costs.
+
+GitHub Actions is only used for **tagged releases** to build multi-arch Docker images and push them to GHCR — this serves self-hosters who pull `ghcr.io/xnet-dev/xnet-hub`.
 
 ```mermaid
 flowchart LR
-    subgraph "Triggers"
-        PUSH[Push to main]
-        TAG[Release Tag]
+    subgraph "Push to main"
+        PUSH[git push main]
     end
 
-    subgraph "GitHub Actions"
+    subgraph "Railway (automatic)"
+        RW_BUILD[Build Dockerfile]
+        RW_DEPLOY[Deploy hub.xnet.fyi]
+    end
+
+    subgraph "Tagged Release"
+        TAG[hub-v1.2.3 tag]
+    end
+
+    subgraph "GitHub Actions (release only)"
         BUILD[Build Docker<br/>amd64 + arm64]
         PUSH_GHCR[Push to GHCR]
-        DEPLOY[Deploy to Railway]
+        SCAN[Security scan]
     end
 
     subgraph "Outputs"
-        GHCR[ghcr.io/xnet-dev/<br/>xnet-hub:latest]
-        RAILWAY[hub.xnet.fyi]
+        DEMO[hub.xnet.fyi<br/>auto-deployed]
+        GHCR[ghcr.io/xnet-dev/<br/>xnet-hub:1.2.3]
     end
 
-    PUSH --> BUILD
+    PUSH --> RW_BUILD
+    RW_BUILD --> RW_DEPLOY
+    RW_DEPLOY --> DEMO
+
     TAG --> BUILD
     BUILD --> PUSH_GHCR
+    BUILD --> SCAN
     PUSH_GHCR --> GHCR
-    TAG --> DEPLOY
-    DEPLOY --> RAILWAY
 ```
 
-## Implementation
+## Railway Auto-Deploy (Demo Hub)
 
-### 1. GitHub Actions Workflow
+Railway handles the entire demo hub lifecycle with zero CI configuration:
+
+### How It Works
+
+1. Connect the GitHub repo to Railway (one-time setup in dashboard)
+2. Set **root directory** to the repo root (the Dockerfile needs monorepo context)
+3. Railway detects `packages/hub/railway.toml` → uses `packages/hub/Dockerfile`
+4. On every push to `main`, Railway rebuilds and redeploys automatically
+5. Health check at `/health` verifies the deploy succeeded
+
+### What Already Exists
+
+| File                         | Purpose                                                   |
+| ---------------------------- | --------------------------------------------------------- |
+| `packages/hub/railway.toml`  | Build config, health check, restart policy                |
+| `packages/hub/Dockerfile`    | Multi-stage build (node:22-alpine)                        |
+| `packages/hub/src/config.ts` | Detects `RAILWAY_VOLUME_MOUNT_PATH`, `RAILWAY_PROJECT_ID` |
+
+### Railway Dashboard Setup
+
+```
+Project:        xnet-hub
+Service:        xnet-hub
+Root Directory: /                           (repo root — Dockerfile needs monorepo context)
+Branch:         main
+Auto-deploy:    ON
+
+Environment Variables:
+  NODE_ENV=production
+  HUB_MODE=demo
+  HUB_PORT=4444
+
+Volume:
+  Mount path: /data
+  Size: 1 GB
+
+Custom Domain:
+  hub.xnet.fyi → <railway-target>.up.railway.app
+```
+
+No `RAILWAY_TOKEN` secret needed in GitHub. No deploy step in CI. Railway does it all.
+
+### Rollback
+
+If a deploy breaks, roll back in the Railway dashboard (one click on previous deployment). Railway keeps deployment history automatically.
+
+## GitHub Actions (GHCR Images for Self-Hosters)
+
+This workflow only runs on **tagged releases** — not on every push. It builds multi-arch images so self-hosters can `docker pull ghcr.io/xnet-dev/xnet-hub:latest`.
+
+### 1. Release Image Workflow
 
 ```yaml
 # .github/workflows/hub-release.yml
 
-name: Hub Release
+name: Hub Release Image
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'packages/hub/**'
-      - 'packages/core/**'
-      - 'packages/crypto/**'
-      - 'packages/identity/**'
-      - 'packages/sync/**'
-      - 'packages/data/**'
-      - '.github/workflows/hub-release.yml'
   release:
     types: [published]
   workflow_dispatch:
@@ -94,10 +146,9 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=
+            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -115,53 +166,6 @@ jobs:
         uses: anchore/sbom-action@v0
         with:
           image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-
-  deploy:
-    needs: build
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
-    environment: production
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm i -g @railway/cli
-
-      - name: Deploy to Railway
-        run: |
-          railway up --service xnet-hub
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Verify deployment
-        run: |
-          sleep 30
-          curl -sf https://hub.xnet.fyi/health | jq .
-          if [ $? -ne 0 ]; then
-            echo "Health check failed!"
-            exit 1
-          fi
-
-      - name: Notify Slack
-        if: success()
-        uses: slackapi/slack-github-action@v1
-        with:
-          payload: |
-            {
-              "text": "xNet Hub deployed: v${{ needs.build.outputs.version }}",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*xNet Hub Deployed*\nVersion: `${{ needs.build.outputs.version }}`\nEnvironment: Production (Railway)\n<https://hub.xnet.fyi/health|Health Check>"
-                  }
-                }
-              ]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   security-scan:
     needs: build
@@ -182,6 +186,13 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 ```
+
+Key differences from the previous version:
+
+- **No deploy job** — Railway handles demo hub deployment
+- **No `on: push` trigger** — only runs on published releases (saves GH Action minutes)
+- **No `RAILWAY_TOKEN` secret** — no CI-to-Railway communication needed
+- **No canary workflow** — Railway has preview environments if we need that later
 
 ### 2. Version Management
 
@@ -231,8 +242,8 @@ Next steps:
   git push && git push --tags
 
 This will trigger:
-  1. Docker build and push to GHCR
-  2. Deployment to hub.xnet.dev
+  1. Railway auto-deploys demo hub (from main push)
+  2. GitHub Actions builds + pushes Docker image to GHCR (from tag)
 `)
 }
 
@@ -268,7 +279,7 @@ if (!['major', 'minor', 'patch'].includes(type)) {
 bumpVersion(type)
 ```
 
-### 3. Release Workflow
+### 3. Release Workflow (Manual Trigger)
 
 ```yaml
 # .github/workflows/hub-create-release.yml
@@ -342,149 +353,16 @@ jobs:
             ${{ inputs.prerelease && '--prerelease' || '' }}
 ```
 
-### 4. Multi-Stage Dockerfile (Optimized)
+## Deployment Flow Summary
 
-```dockerfile
-# packages/hub/Dockerfile
+| Event                                       | What Happens                                            | Cost              |
+| ------------------------------------------- | ------------------------------------------------------- | ----------------- |
+| Push to `main` touching `packages/hub/`     | Railway auto-builds + deploys demo hub                  | $0 (Railway)      |
+| Push to `main` NOT touching `packages/hub/` | Nothing                                                 | $0                |
+| Manual "Create Hub Release" workflow        | Bumps version, creates tag + GH release                 | ~1 min GH Actions |
+| GH Release published                        | Builds multi-arch Docker, pushes to GHCR, security scan | ~5 min GH Actions |
 
-# ============================================
-# Build stage
-# ============================================
-FROM --platform=$BUILDPLATFORM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9 --activate
-
-# Copy package files for dependency caching
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/hub/package.json ./packages/hub/
-COPY packages/core/package.json ./packages/core/
-COPY packages/crypto/package.json ./packages/crypto/
-COPY packages/identity/package.json ./packages/identity/
-COPY packages/sync/package.json ./packages/sync/
-COPY packages/data/package.json ./packages/data/
-
-# Install dependencies
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
-
-# Copy source code
-COPY packages/ ./packages/
-COPY tsconfig.base.json ./
-
-# Build all packages
-RUN pnpm --filter @xnet/hub... build
-
-# ============================================
-# Production dependencies stage
-# ============================================
-FROM node:20-alpine AS deps
-
-WORKDIR /app
-
-RUN corepack enable && corepack prepare pnpm@9 --activate
-
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/hub/package.json ./packages/hub/
-COPY packages/core/package.json ./packages/core/
-COPY packages/crypto/package.json ./packages/crypto/
-COPY packages/identity/package.json ./packages/identity/
-COPY packages/sync/package.json ./packages/sync/
-COPY packages/data/package.json ./packages/data/
-
-RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --prod
-
-# ============================================
-# Runtime stage
-# ============================================
-FROM node:20-alpine AS runtime
-
-# Security: run as non-root
-RUN addgroup -g 1001 -S xnet && \
-    adduser -u 1001 -S xnet -G xnet
-
-WORKDIR /app
-
-# Copy production dependencies
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/*/node_modules ./packages/
-
-# Copy built code
-COPY --from=builder /app/packages/hub/dist ./packages/hub/dist
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
-COPY --from=builder /app/packages/crypto/dist ./packages/crypto/dist
-COPY --from=builder /app/packages/identity/dist ./packages/identity/dist
-COPY --from=builder /app/packages/sync/dist ./packages/sync/dist
-COPY --from=builder /app/packages/data/dist ./packages/data/dist
-
-# Copy package.json files for module resolution
-COPY --from=builder /app/packages/hub/package.json ./packages/hub/
-COPY --from=builder /app/packages/core/package.json ./packages/core/
-COPY --from=builder /app/packages/crypto/package.json ./packages/crypto/
-COPY --from=builder /app/packages/identity/package.json ./packages/identity/
-COPY --from=builder /app/packages/sync/package.json ./packages/sync/
-COPY --from=builder /app/packages/data/package.json ./packages/data/
-
-# Create data directory
-RUN mkdir -p /data && chown -R xnet:xnet /data
-
-USER xnet
-
-EXPOSE 4444
-
-ENV NODE_ENV=production
-ENV DATA_DIR=/data
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD wget -q --spider http://localhost:4444/health || exit 1
-
-CMD ["node", "packages/hub/dist/cli.js"]
-```
-
-### 5. Canary Deployments
-
-```yaml
-# .github/workflows/hub-canary.yml
-
-name: Hub Canary Deployment
-
-on:
-  push:
-    branches: [main]
-    paths:
-      - 'packages/hub/**'
-
-jobs:
-  canary:
-    runs-on: ubuntu-latest
-    environment: canary
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Railway CLI
-        run: npm i -g @railway/cli
-
-      - name: Deploy to canary
-        run: railway up --service xnet-hub-canary
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-
-      - name: Run smoke tests
-        run: |
-          # Test WebSocket connection
-          npm install -g wscat
-          echo '{"type":"ping"}' | wscat -c wss://canary.hub.xnet.fyi -w 5
-
-      - name: Promote to production
-        if: success()
-        run: |
-          echo "Canary tests passed. Ready for production."
-          # Optionally auto-promote after N hours of stability
-```
+**Total GH Actions cost:** Only on releases (maybe monthly). Day-to-day development deploys are free via Railway.
 
 ## Testing
 
@@ -524,13 +402,14 @@ describe('Hub CD Pipeline', () => {
 
 ## Validation Gate
 
-- [ ] Docker image builds for amd64 and arm64
-- [ ] Image pushed to ghcr.io/xnet-dev/xnet-hub
-- [ ] Tagged releases auto-deploy to `hub.xnet.fyi` via Railway
-- [ ] Health check passes after deployment
+- [ ] Railway auto-deploys `hub.xnet.fyi` on push to `main`
+- [ ] Health check passes after Railway deploy
+- [ ] Rollback works via Railway dashboard
+- [ ] Docker image builds for amd64 and arm64 on tagged release
+- [ ] Image pushed to `ghcr.io/xnet-dev/xnet-hub` on tagged release
 - [ ] SBOM generated for each release
 - [ ] Security scan runs and reports vulnerabilities
-- [ ] Canary deployment tests new code before production
+- [ ] **No GH Actions run on regular pushes** (only on releases)
 
 ---
 

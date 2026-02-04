@@ -55,12 +55,16 @@ flowchart TB
 
 ### 1. Railway Configuration
 
+The `railway.toml` already exists at `packages/hub/railway.toml`. Railway auto-deploys from `main` — no GitHub Actions or deploy scripts needed. See [09-hub-cd.md](./09-hub-cd.md) for details.
+
+The existing `railway.toml` needs one addition for demo mode — the `--demo` flag in the start command:
+
 ```toml
-# infrastructure/railway/railway.toml
+# packages/hub/railway.toml
 
 [build]
   builder = "dockerfile"
-  dockerfilePath = "packages/hub/Dockerfile"
+  dockerfilePath = "Dockerfile"
 
 [deploy]
   startCommand = "node packages/hub/dist/cli.js --demo"
@@ -74,12 +78,9 @@ Environment variables (set in Railway dashboard):
 
 ```bash
 NODE_ENV=production
-PORT=4444                          # Railway injects $PORT
-DATA_DIR=/data                     # Railway volume mount
+HUB_PORT=4444
 HUB_MODE=demo                     # Enables demo overrides
 LOG_LEVEL=info
-AUTH_MODE=ucan                     # Standard UCAN — no anonymous
-REQUIRE_SIGNED_UPDATES=true
 
 # Demo overrides (applied when HUB_MODE=demo)
 DEMO_QUOTA=10485760               # 10 MB per user
@@ -279,31 +280,11 @@ interface HubHandshakeResponse {
 // - "Download desktop app" graduation CTA
 ```
 
-### 6. Deploy Script
+### 6. Deployment
 
-```bash
-#!/bin/bash
-# infrastructure/railway/deploy.sh
+Railway auto-deploys on every push to `main`. No deploy script, no CI job, no tokens. See [09-hub-cd.md](./09-hub-cd.md) for the full CD pipeline details.
 
-set -e
-
-echo "Deploying xNet Demo Hub to Railway..."
-
-# Ensure Railway CLI is installed
-command -v railway >/dev/null 2>&1 || {
-  echo "Install Railway CLI: npm i -g @railway/cli"
-  exit 1
-}
-
-# Deploy
-railway up --service xnet-hub
-
-echo "
-Deployment complete!
-Hub URL: https://hub.xnet.fyi
-Health:  https://hub.xnet.fyi/health
-"
-```
+Rollback: one click in the Railway dashboard on a previous deployment.
 
 ### 7. Custom Domain Setup
 
