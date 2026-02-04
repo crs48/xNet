@@ -15,7 +15,7 @@ const recipeCode = [
   ``,
   `${kw('export const')} RecipeSchema = ${fn('defineSchema')}({`,
   `  name: ${str("'Recipe'")},`,
-  `  namespace: ${str("'xnet://did:key:z6Mk.../'")},`,
+  `  namespace: ${str("'xnet://did:key:z6Mk/'")},`,
   `  properties: {`,
   `    title: ${fn('text')}({ required: ${num('true')} }),`,
   `    difficulty: ${fn('select')}({`,
@@ -39,9 +39,9 @@ const recipeCode = [
       subtitle="Define schemas in TypeScript. Get full inference everywhere — queries, mutations, hooks. No codegen step."
     />
 
-    <div class="mt-16 grid gap-8 lg:grid-cols-2 lg:gap-12 items-start">
+    <div class="mt-16 grid gap-8 lg:grid-cols-2 lg:gap-12 items-start min-w-0">
       <!-- Schema definition -->
-      <div class="animate-on-scroll">
+      <div class="animate-on-scroll min-w-0">
         <CodeBlock filename="schema.ts" code={recipeCode} />
       </div>
 
