@@ -395,12 +395,12 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] Hub A queries Hub B and returns merged results
-- [ ] Duplicate content (same CID) is deduplicated across hubs
-- [ ] Schema filter routes to hubs that serve that schema
-- [ ] Unresponsive hubs timeout gracefully (partial results returned)
-- [ ] `/federation/status` shows hub capabilities and peer count
-- [ ] Rate limiting prevents abuse between hubs
+- [x] Hub A queries Hub B and returns merged results
+- [x] Duplicate content (same CID) is deduplicated across hubs
+- [x] Schema filter routes to hubs that serve that schema
+- [x] Unresponsive hubs timeout gracefully (partial results returned)
+- [x] `/federation/status` shows hub capabilities and peer count
+- [x] Rate limiting prevents abuse between hubs
 
 ### Phase 14: Global Index Shards (Days 19-22)
 
