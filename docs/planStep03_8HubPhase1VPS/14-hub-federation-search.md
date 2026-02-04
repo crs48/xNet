@@ -703,6 +703,43 @@ const canonicalConfig: FederationConfig = {
 }
 ```
 
+## Configuration (Hub Operators)
+
+```typescript
+import { createHub } from '@xnet/hub'
+
+const hub = await createHub({
+  federation: {
+    enabled: true,
+    hubDid: 'did:key:z6MkYourHubDid',
+    hubSigningKey: yourHubPrivateKey, // must match hubDid
+    peers: [
+      {
+        url: 'https://partner-hub.example.com',
+        hubDid: 'did:key:z6MkPartnerHub',
+        schemas: '*',
+        trustLevel: 'full',
+        maxLatencyMs: 2000,
+        rateLimit: 60,
+        healthy: true,
+        lastSuccessAt: null
+      }
+    ],
+    expose: {
+      schemas: '*',
+      requireAuth: false,
+      rateLimit: 60,
+      maxResults: 50
+    },
+    peerTimeoutMs: 2000,
+    totalTimeoutMs: 5000,
+    openRegistration: false
+  }
+})
+
+await hub.start()
+```
+
 ## Tests
 
 ```typescript
@@ -927,21 +964,21 @@ function sendAndWait(ws: WebSocket, msg: object, matchType: string): Promise<any
 
 ## Checklist
 
-- [ ] Implement `FederationService` with `search()` and `handleIncomingQuery()`
-- [ ] Add `/federation/query` HTTP endpoint (hub-to-hub)
-- [ ] Add `/federation/status` endpoint
-- [ ] Add `/federation/register` endpoint (peer registration)
-- [ ] Implement Reciprocal Rank Fusion scoring
-- [ ] Implement CID-based deduplication
-- [ ] Add `federation_peers` and `federation_query_log` tables to SQLite
-- [ ] Implement rate limiting per hub
-- [ ] Implement peer health checking
-- [ ] Add `federate: true` option to WebSocket query-request
-- [ ] Sign federation responses with hub DID
-- [ ] Verify incoming UCAN for federation queries
-- [ ] Handle timeouts gracefully (partial results)
-- [ ] Write federation tests (cross-hub query, dedup, schema filter, timeout)
-- [ ] Document federation configuration for hub operators
+- [x] Implement `FederationService` with `search()` and `handleIncomingQuery()`
+- [x] Add `/federation/query` HTTP endpoint (hub-to-hub)
+- [x] Add `/federation/status` endpoint
+- [x] Add `/federation/register` endpoint (peer registration)
+- [x] Implement Reciprocal Rank Fusion scoring
+- [x] Implement CID-based deduplication
+- [x] Add `federation_peers` and `federation_query_log` tables to SQLite
+- [x] Implement rate limiting per hub
+- [x] Implement peer health checking
+- [x] Add `federate: true` option to WebSocket query-request
+- [x] Sign federation responses with hub DID
+- [x] Verify incoming UCAN for federation queries
+- [x] Handle timeouts gracefully (partial results)
+- [x] Write federation tests (cross-hub query, dedup, schema filter, timeout)
+- [x] Document federation configuration for hub operators
 
 ---
 
