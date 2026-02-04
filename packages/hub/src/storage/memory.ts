@@ -7,6 +7,8 @@ import type {
   BlobMeta,
   DocMeta,
   FileMeta,
+  FederationPeerRecord,
+  FederationQueryLog,
   HubStorage,
   PeerRecord,
   SchemaRecord,
@@ -26,6 +28,8 @@ export const createMemoryStorage = (): HubStorage => {
   const schemasByIri = new Map<string, Map<number, SchemaRecord>>()
   const awarenessByRoom = new Map<string, Map<string, AwarenessEntry>>()
   const peersByDid = new Map<string, PeerRecord>()
+  const federationPeers = new Map<string, FederationPeerRecord>()
+  const federationLogs: FederationQueryLog[] = []
 
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value && typeof value === 'object')
@@ -232,6 +236,31 @@ export const createMemoryStorage = (): HubStorage => {
 
   const getPeerCount = async (): Promise<number> => peersByDid.size
 
+  const listFederationPeers = async (): Promise<FederationPeerRecord[]> =>
+    Array.from(federationPeers.values()).sort((a, b) => b.registeredAt - a.registeredAt)
+
+  const upsertFederationPeer = async (peer: FederationPeerRecord): Promise<void> => {
+    federationPeers.set(peer.hubDid, peer)
+  }
+
+  const updateFederationPeerHealth = async (
+    hubDid: string,
+    healthy: boolean,
+    lastSuccessAt?: number | null
+  ): Promise<void> => {
+    const existing = federationPeers.get(hubDid)
+    if (!existing) return
+    federationPeers.set(hubDid, {
+      ...existing,
+      healthy,
+      lastSuccessAt: lastSuccessAt ?? existing.lastSuccessAt
+    })
+  }
+
+  const logFederationQuery = async (entry: FederationQueryLog): Promise<void> => {
+    federationLogs.push(entry)
+  }
+
   const putSchema = async (schema: SchemaRecord): Promise<void> => {
     const versions = schemasByIri.get(schema.iri) ?? new Map<number, SchemaRecord>()
     versions.set(schema.version, schema)
@@ -326,6 +355,8 @@ export const createMemoryStorage = (): HubStorage => {
     schemasByIri.clear()
     awarenessByRoom.clear()
     peersByDid.clear()
+    federationPeers.clear()
+    federationLogs.length = 0
   }
 
   return {
@@ -356,6 +387,10 @@ export const createMemoryStorage = (): HubStorage => {
     searchPeers,
     removeStalePeers,
     getPeerCount,
+    listFederationPeers,
+    upsertFederationPeer,
+    updateFederationPeerHealth,
+    logFederationQuery,
     putSchema,
     getSchema,
     listSchemasByAuthor,

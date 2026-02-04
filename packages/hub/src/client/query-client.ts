@@ -38,6 +38,7 @@ export class QueryClient {
       limit?: number
       offset?: number
       timeoutMs?: number
+      federate?: boolean
     }
   ): Promise<{ results: unknown[]; total: number; took: number }> {
     const id = crypto.randomUUID()
@@ -61,7 +62,8 @@ export class QueryClient {
             ownerDid: options?.ownerDid
           },
           limit: options?.limit,
-          offset: options?.offset
+          offset: options?.offset,
+          federate: options?.federate
         })
       )
     })
