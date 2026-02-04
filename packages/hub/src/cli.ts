@@ -5,6 +5,7 @@
 import type { HubConfig } from './types'
 import { Command } from 'commander'
 import { createHub } from './index'
+import { resolveConfig } from './config'
 import { registerShutdownHandlers } from './lifecycle/shutdown'
 import { DEFAULT_CONFIG } from './types'
 
@@ -88,19 +89,20 @@ const run = async (): Promise<void> => {
         logLevel: opts.logLevel
       }
 
-      const hub = await createHub(config)
+      const resolved = resolveConfig(config)
+      const hub = await createHub(resolved)
 
       registerShutdownHandlers(async () => {
         console.log('\nShutting down...')
         await hub.stop()
-      })
+      }, console, resolved.shutdownGraceMs)
 
       await hub.start()
       console.log(`xNet Hub listening on port ${hub.port}`)
       console.log(`  WebSocket: ws://localhost:${hub.port}`)
       console.log(`  Health:    http://localhost:${hub.port}/health`)
-      console.log(`  Auth:      ${config.auth ? 'UCAN' : 'anonymous'}`)
-      console.log(`  Storage:   ${config.storage} (${config.dataDir})`)
+      console.log(`  Auth:      ${resolved.auth ? 'UCAN' : 'anonymous'}`)
+      console.log(`  Storage:   ${resolved.storage} (${resolved.dataDir})`)
     })
 
   await program.parseAsync(process.argv)

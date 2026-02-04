@@ -55,8 +55,6 @@ COPY --from=builder /build/packages/sync/dist packages/sync/dist/
 # Create data directory
 RUN mkdir -p /data && chown node:node /data
 
-USER node
-
 ENV NODE_ENV=production
 ENV HUB_PORT=4444
 ENV HUB_DATA_DIR=/data
@@ -64,7 +62,7 @@ ENV HUB_DATA_DIR=/data
 EXPOSE 4444
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:4444/health || exit 1
+  CMD wget -qO- http://localhost:${PORT:-4444}/health || exit 1
 
 ENTRYPOINT ["node", "packages/hub/dist/cli.js"]
 CMD ["--port", "4444", "--data", "/data"]
