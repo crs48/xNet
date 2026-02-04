@@ -6,8 +6,10 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 // Enable remote debugging in development for Playwright/CDP testing
+// CDP port is configurable via ELECTRON_CDP_PORT env var (default: 9223)
 if (process.env.NODE_ENV === 'development') {
-  app.commandLine.appendSwitch('remote-debugging-port', '9223')
+  const cdpPort = process.env.ELECTRON_CDP_PORT || '9223'
+  app.commandLine.appendSwitch('remote-debugging-port', cdpPort)
 }
 
 // ESM __dirname shim (electron-vite outputs ESM)
