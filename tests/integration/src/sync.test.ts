@@ -8,8 +8,8 @@
  * mode runs in a single page, we test sync by simulating the y-protocols
  * sync mechanism directly (which is what WebRTC transports internally).
  *
- * For real WebRTC testing across processes, use the signaling server tests
- * at infrastructure/signaling/test/ywebrtc-sync.test.ts
+ * For real WebRTC testing across processes, use the hub's relay tests
+ * at packages/hub/test/relay.test.ts
  */
 import { describe, it, expect, beforeAll } from 'vitest'
 import * as Y from 'yjs'

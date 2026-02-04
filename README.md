@@ -33,7 +33,6 @@ pnpm typecheck
 packages/              # Core SDK packages (@xnet/*)
 apps/                  # Platform applications
 site/                  # Static website
-infrastructure/        # Bootstrap node, signaling server
 tests/                 # Browser-based integration tests
 docs/                  # Vision, explorations, implementation plans
 ```
@@ -43,7 +42,6 @@ See the README in each directory for details:
 - [packages/README.md](./packages/README.md) — All 17 packages with dependency graph
 - [apps/README.md](./apps/README.md) — Electron, Expo, Web apps
 - [tests/README.md](./tests/README.md) — Integration test suite
-- [infrastructure/signaling/README.md](./infrastructure/signaling/README.md) — Signaling server
 
 ## Packages
 
@@ -220,20 +218,16 @@ flowchart TB
     Data --> Infra
     Infra --> Foundation
 
-    subgraph External["Infrastructure Services"]
-        Signaling["Signaling Server<br/><small>WebSocket pub/sub</small>"]
-        Bootstrap["Bootstrap Node<br/><small>DHT discovery</small>"]
+    subgraph Server["Server"]
+        Hub["@xnet/hub<br/><small>Signaling, sync relay,<br/>backup, FTS5 search</small>"]
     end
 
-    Network <--> External
+    Network <--> Hub
 
     subgraph Planned["Planned"]
-        Hub["@xnet/hub<br/><small>Always-on sync relay,<br/>backup, FTS5 search</small>"]
         Plugins["@xnet/plugins<br/><small>Scripts, extensions,<br/>custom views</small>"]
         History["@xnet/history<br/><small>Time machine,<br/>undo/redo, audit</small>"]
     end
-
-    Hub -.-> Network
     Plugins -.-> Client
     History -.-> Data
 
