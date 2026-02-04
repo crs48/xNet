@@ -26,6 +26,7 @@ type AwarenessRoomState = {
   doc: Y.Doc
   awareness: Awareness
   clientUserMap: Map<number, string>
+  lastActivity: number
 }
 
 const toBytes = (value: string): Uint8Array => new Uint8Array(Buffer.from(value, 'base64'))
@@ -150,7 +151,8 @@ export class AwarenessService {
     const state: AwarenessRoomState = {
       doc,
       awareness,
-      clientUserMap: new Map()
+      clientUserMap: new Map(),
+      lastActivity: Date.now()
     }
     this.rooms.set(room, state)
     return state
@@ -162,6 +164,7 @@ export class AwarenessService {
     update: Uint8Array
   ): Promise<void> {
     const roomState = this.getRoomState(room)
+    roomState.lastActivity = Date.now()
     const { awareness, clientUserMap } = roomState
 
     let change: { added: number[]; updated: number[]; removed: number[] } | null = null
@@ -215,6 +218,21 @@ export class AwarenessService {
     const removed = await this.storage.cleanStaleAwareness(this.config.ttlMs)
     if (removed > 0) {
       console.info(`[awareness] Cleaned ${removed} stale entries`)
+    }
+
+    // Evict in-memory room state for rooms with no recent activity
+    const cutoff = Date.now() - this.config.ttlMs
+    let evicted = 0
+    for (const [room, state] of this.rooms) {
+      if (state.clientUserMap.size === 0 && state.lastActivity < cutoff) {
+        state.awareness.destroy()
+        state.doc.destroy()
+        this.rooms.delete(room)
+        evicted++
+      }
+    }
+    if (evicted > 0) {
+      console.info(`[awareness] Evicted ${evicted} stale room(s) from memory`)
     }
   }
 }
