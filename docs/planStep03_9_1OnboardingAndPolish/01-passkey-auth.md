@@ -741,15 +741,15 @@ describe('PasskeyIdentity', () => {
 
 ## Validation Gate
 
-- [ ] `createPasskeyIdentity()` creates credential with PRF extension
-- [ ] `unlockPasskeyIdentity()` derives identical key from same passkey
-- [ ] `detectPasskeySupport()` correctly identifies browser capabilities
+- [x] `createPasskeyIdentity()` creates credential with PRF extension
+- [x] `unlockPasskeyIdentity()` derives identical key from same passkey
+- [x] `detectPasskeySupport()` correctly identifies browser capabilities
 - [ ] Passkey is **required** — no skip option, no anonymous mode
 - [ ] Unsupported browsers show clear message directing to desktop app
-- [ ] PRF-not-supported authenticators fall back to encrypted storage (edge case)
+- [x] PRF-not-supported authenticators fall back to encrypted storage (edge case)
 - [ ] React hook manages state correctly
 - [ ] Electron integration uses native Touch ID
-- [ ] Keys are never persisted - only derived on unlock
+- [x] Keys are never persisted - only derived on unlock
 
 ---
 
