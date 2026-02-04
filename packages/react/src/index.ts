@@ -297,6 +297,8 @@ export {
   ImportIdentityScreen,
   HubConnectScreen,
   ReadyScreen,
+  SmartWelcome,
+  SyncProgressOverlay,
   onboardingReducer,
   createInitialState,
   QUICK_START_TEMPLATES,
@@ -310,8 +312,22 @@ export {
   type OnboardingEvent,
   type OnboardingMachineContext,
   type OnboardingReducerState,
-  type QuickStartTemplate
+  type QuickStartTemplate,
+  type SyncProgressOverlayProps
 } from './onboarding/index'
+
+// =============================================================================
+// Initial Sync
+// =============================================================================
+
+export {
+  createInitialSyncManager,
+  type InitialSyncManager,
+  type InitialSyncMessage,
+  type SyncProgress,
+  type SyncPhase,
+  type ProgressListener
+} from './sync/InitialSyncManager'
 
 // =============================================================================
 // Provider
