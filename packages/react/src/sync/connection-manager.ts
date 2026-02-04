@@ -25,6 +25,10 @@ export interface ConnectionManagerConfig {
   reconnectDelay?: number
   /** Max reconnect attempts (default: Infinity) */
   maxReconnects?: number
+  /** UCAN token for hub auth (appended as ?token=) */
+  ucanToken?: string
+  /** Async UCAN token provider (preferred for rotation) */
+  getUCANToken?: () => Promise<string>
 }
 
 type RoomHandler = (data: Record<string, unknown>) => void
@@ -43,6 +47,10 @@ export interface ConnectionManager {
   leaveRoom(room: string): void
   /** Publish a message to a room */
   publish(room: string, data: object): void
+  /** Send a raw message on the WebSocket */
+  sendRaw(message: object): void
+  /** Listen for non-room messages */
+  onMessage(handler: (message: Record<string, unknown>) => void): () => void
   /** Listen for status changes */
   onStatus(handler: StatusHandler): () => void
   /** Number of active room subscriptions */
@@ -61,6 +69,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
 
   const rooms = new Map<string, Set<RoomHandler>>()
   const statusListeners = new Set<StatusHandler>()
+  const messageListeners = new Set<(message: Record<string, unknown>) => void>()
 
   function setStatus(s: ConnectionStatus): void {
     log('Status changed:', status, '->', s)
@@ -106,6 +115,17 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
         } else {
           log('No handlers for room:', msg.topic)
         }
+        return
+      }
+
+      if (msg && typeof msg === 'object') {
+        for (const handler of messageListeners) {
+          try {
+            handler(msg as Record<string, unknown>)
+          } catch {
+            // Listener errors don't break the message loop
+          }
+        }
       }
     } catch (err) {
       log('Failed to parse message:', err)
@@ -113,7 +133,22 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     }
   }
 
-  function doConnect(): void {
+  async function buildUrl(): Promise<string> {
+    let token = config.ucanToken ?? ''
+    if (!token && config.getUCANToken) {
+      try {
+        token = await config.getUCANToken()
+      } catch {
+        token = ''
+      }
+    }
+    if (!token) return config.url
+    const url = new URL(config.url)
+    url.searchParams.set('token', token)
+    return url.toString()
+  }
+
+  async function doConnect(): Promise<void> {
     if (destroyed) {
       log('doConnect called but manager is destroyed')
       return
@@ -123,7 +158,8 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     setStatus('connecting')
 
     try {
-      ws = new WebSocket(config.url)
+      const url = await buildUrl()
+      ws = new WebSocket(url)
 
       ws.onopen = () => {
         log('WebSocket connected')
@@ -165,7 +201,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     reconnectAttempts++
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
-      doConnect()
+      void doConnect()
     }, reconnectDelay)
   }
 
@@ -179,7 +215,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
 
     connect() {
       destroyed = false
-      doConnect()
+      void doConnect()
     },
 
     disconnect() {
@@ -230,6 +266,15 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     publish(room: string, data: object): void {
       log('Publishing to room:', room, 'type:', (data as { type?: string }).type)
       send({ type: 'publish', topic: room, data })
+    },
+
+    sendRaw(message: object): void {
+      send(message)
+    },
+
+    onMessage(handler: (message: Record<string, unknown>) => void): () => void {
+      messageListeners.add(handler)
+      return () => messageListeners.delete(handler)
     },
 
     onStatus(handler: StatusHandler): () => void {

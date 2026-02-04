@@ -290,10 +290,10 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] `XNetProvider` accepts `hubUrl` option (passed to SyncManager/BSM ConnectionManager)
-- [ ] ConnectionManager appends UCAN token to hub WebSocket URL
-- [ ] AutoBackup watches NodePool dirty/evict events
-- [ ] UI shows hub connection status (reads SyncManager connection state)
+- [x] `XNetProvider` accepts `hubUrl` option (passed to SyncManager/BSM ConnectionManager)
+- [x] ConnectionManager appends UCAN token to hub WebSocket URL
+- [x] AutoBackup watches NodePool dirty/evict events
+- [x] UI shows hub connection status (reads SyncManager connection state)
 
 ### Phase 8: Node Sync Relay (Days 10-11)
 

@@ -4,20 +4,26 @@
  * Provides NodeStore and optional identity to the React tree.
  * All data access happens through useQuery/useMutate/useNode hooks.
  */
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useRef,
-  type ReactNode
-} from 'react'
+import type { ReactNode } from 'react'
 import type { Identity } from '@xnet/identity'
 import type { DID } from '@xnet/core'
+import type { NodeChangeEvent } from '@xnet/data'
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
+import { createUCAN } from '@xnet/identity'
 import { NodeStore, MemoryNodeStorageAdapter, type NodeStorageAdapter } from '@xnet/data'
 import { PluginRegistry, type Platform } from '@xnet/plugins'
-import { createSyncManager, type SyncManager } from './sync/sync-manager'
+import { AutoBackup } from './hub/auto-backup'
+import { uploadBackup } from './hub/backup'
+import { createSyncManager, type SyncManager, type SyncStatus } from './sync/sync-manager'
 import type { BlobStoreForSync } from './sync/blob-sync'
+import type { ConnectionManager } from './sync/connection-manager'
 import { PluginRegistryContext } from './hooks/usePlugins'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
@@ -26,6 +32,16 @@ function log(...args: unknown[]): void {
     console.log('[XNetProvider]', ...args)
   }
 }
+
+const HUB_CAPABILITIES = [
+  { with: '*', can: 'hub/*' },
+  { with: '*', can: 'backup/*' },
+  { with: '*', can: 'query/*' },
+  { with: '*', can: 'index/*' }
+] as const
+
+const HUB_TOKEN_TTL_SECONDS = 60 * 60 * 24
+const HUB_INDEX_DEBOUNCE_MS = 2000
 
 /**
  * XNet configuration
@@ -41,6 +57,21 @@ export interface XNetConfig {
   identity?: Identity
   /** Signaling server URLs for sync (default: ['ws://localhost:4444']) */
   signalingServers?: string[]
+  /** Hub WebSocket URL for always-on sync (overrides signalingServers[0]) */
+  hubUrl?: string
+  /** Hub integration options */
+  hubOptions?: {
+    /** Auto-generate UCAN for hub auth (default: true) */
+    autoAuth?: boolean
+    /** Enable auto-backup on document updates (default: false) */
+    autoBackup?: boolean
+    /** Backup debounce delay in ms (default: 5000) */
+    backupDebounceMs?: number
+    /** Enable search indexing on NodeStore changes (default: false) */
+    enableSearchIndex?: boolean
+  }
+  /** Encryption key for hub backups (XChaCha20-Poly1305) */
+  encryptionKey?: Uint8Array
   /** Disable Background Sync Manager (default: false) */
   disableSyncManager?: boolean
   /** Provide an external SyncManager (e.g., IPC-based for Electron desktop).
@@ -69,6 +100,16 @@ export interface XNetContextValue {
   authorDID: string | null
   /** Background Sync Manager (null if disabled or not yet initialized) */
   syncManager: SyncManager | null
+  /** Hub URL (if configured) */
+  hubUrl: string | null
+  /** Hub connection status */
+  hubStatus: SyncStatus
+  /** Hub connection (shares SyncManager connection when available) */
+  hubConnection: ConnectionManager | null
+  /** Hub auth token provider (for HTTP requests) */
+  getHubAuthToken?: () => Promise<string>
+  /** Encryption key for hub backups */
+  encryptionKey: Uint8Array | null
   /** Blob store for content-addressed storage (null if not configured) */
   blobStore: BlobStoreForSync | null
   /** Plugin Registry (null if disabled or not yet initialized) */
@@ -95,13 +136,37 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const [nodeStore, setNodeStore] = useState<NodeStore | null>(null)
   const [nodeStoreReady, setNodeStoreReady] = useState(false)
   const [syncManager, setSyncManager] = useState<SyncManager | null>(null)
+  const [hubStatus, setHubStatus] = useState<SyncStatus>('disconnected')
   const [pluginRegistry, setPluginRegistry] = useState<PluginRegistry | null>(null)
   const nodeStorageRef = useRef<NodeStorageAdapter | null>(null)
+
+  const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
+  const hubUrl = config.hubUrl ?? null
+  const hubOptions = config.hubOptions
+  const autoAuth = hubOptions?.autoAuth ?? true
+  const autoBackup = hubOptions?.autoBackup ?? false
+  const backupDebounceMs = hubOptions?.backupDebounceMs ?? 5000
+  const enableSearchIndex = hubOptions?.enableSearchIndex ?? false
+  const encryptionKey = config.encryptionKey ?? null
+
+  const getHubAuthToken = useCallback(async (): Promise<string> => {
+    if (!hubUrl || !autoAuth) return ''
+    if (!authorDID || !config.signingKey) {
+      throw new Error('Missing authorDID/signingKey for hub auth')
+    }
+
+    return createUCAN({
+      issuer: authorDID,
+      issuerKey: config.signingKey,
+      audience: hubUrl,
+      capabilities: HUB_CAPABILITIES as unknown as Array<{ with: string; can: string }>,
+      expiration: Math.floor(Date.now() / 1000) + HUB_TOKEN_TTL_SECONDS
+    })
+  }, [authorDID, autoAuth, config.signingKey, hubUrl])
 
   useEffect(() => {
     const nodeStorageAdapter = config.nodeStorage ?? new MemoryNodeStorageAdapter()
     nodeStorageRef.current = nodeStorageAdapter
-    const authorDID = config.authorDID ?? (config.identity?.did as DID | undefined)
     const signingKey = config.signingKey
 
     // Skip NodeStore initialization if credentials not provided
@@ -161,7 +226,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         nodeStorageAdapter.close()
       }
     }
-  }, [config.nodeStorage, config.authorDID, config.signingKey, config.identity?.did])
+  }, [authorDID, config.nodeStorage, config.signingKey])
 
   // Create SyncManager when NodeStore is ready
   useEffect(() => {
@@ -175,7 +240,6 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       const sm = config.syncManager as SyncManager & {
         setIdentity?: (authorDID: string, signingKey: Uint8Array) => void
       }
-      const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
       if (sm.setIdentity && authorDID && config.signingKey) {
         sm.setIdentity(authorDID, config.signingKey)
       }
@@ -209,18 +273,59 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       return
     }
 
-    const signalingUrl = config.signalingServers?.[0] ?? 'ws://localhost:4444'
-    const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
+    const signalingUrl = hubUrl ?? config.signalingServers?.[0] ?? 'ws://localhost:4444'
+
+    if (autoAuth && hubUrl && (!authorDID || !config.signingKey)) {
+      console.warn('[XNetProvider] Hub auth enabled but authorDID/signingKey missing')
+    }
+
+    if (autoBackup && (!hubUrl || !encryptionKey)) {
+      console.warn('[XNetProvider] Auto-backup requires hubUrl and encryptionKey')
+    }
 
     console.log('[XNetProvider] Creating SyncManager with signalingUrl:', signalingUrl)
     log('Creating SyncManager with signalingUrl:', signalingUrl)
+    let autoBackupManager: AutoBackup | null = null
+    const enableAutoBackup = Boolean(autoBackup && hubUrl && encryptionKey)
+
     const sm = createSyncManager({
       nodeStore,
       storage,
       signalingUrl,
       authorDID,
-      blobStore: config.blobStore
+      blobStore: config.blobStore,
+      getUCANToken: hubUrl && autoAuth ? getHubAuthToken : undefined,
+      onDocUpdate: enableAutoBackup
+        ? (nodeId, doc) => {
+            autoBackupManager?.handleDocUpdate(nodeId, doc)
+          }
+        : undefined,
+      onDocEvict: enableAutoBackup
+        ? (nodeId, doc) => {
+            autoBackupManager?.handleDocEvict(nodeId, doc)
+          }
+        : undefined
     })
+
+    if (enableAutoBackup && hubUrl && encryptionKey) {
+      autoBackupManager = new AutoBackup(
+        async (docId, plaintext) => {
+          await uploadBackup(
+            {
+              hubUrl,
+              encryptionKey,
+              getAuthToken: autoAuth ? getHubAuthToken : undefined
+            },
+            docId,
+            plaintext
+          )
+        },
+        {
+          debounceMs: backupDebounceMs,
+          isEnabled: () => sm.connection?.status === 'connected'
+        }
+      )
+    }
 
     // Set SyncManager immediately so hooks can use it
     // (it will connect in the background)
@@ -241,6 +346,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       sm.stop().catch((err) => {
         console.warn('[XNetProvider] SyncManager failed to stop:', err)
       })
+      autoBackupManager?.destroy()
       setSyncManager(null)
     }
   }, [
@@ -249,10 +355,103 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     config.disableSyncManager,
     config.syncManager,
     config.signalingServers,
-    config.authorDID,
-    config.identity?.did,
-    config.blobStore
+    config.blobStore,
+    authorDID,
+    autoAuth,
+    autoBackup,
+    backupDebounceMs,
+    encryptionKey,
+    getHubAuthToken,
+    hubUrl
   ])
+
+  // Track hub connection status from SyncManager
+  useEffect(() => {
+    if (!syncManager) {
+      setHubStatus('disconnected')
+      return
+    }
+
+    setHubStatus(syncManager.status)
+    return syncManager.on('status', (status) => {
+      setHubStatus(status)
+    })
+  }, [syncManager])
+
+  // Hub search index updates (NodeStore -> hub index)
+  useEffect(() => {
+    if (!nodeStore || !syncManager || !hubUrl || !enableSearchIndex) return
+    const connection = syncManager.connection
+    if (!connection) return
+
+    const timers = new Map<string, ReturnType<typeof setTimeout>>()
+    const pending = new Map<string, { type: 'update'; meta: { schemaIri: string; title: string; properties: Record<string, unknown> } } | { type: 'remove' }>()
+
+    const schedule = (
+      docId: string,
+      payload:
+        | { type: 'update'; meta: { schemaIri: string; title: string; properties: Record<string, unknown> } }
+        | { type: 'remove' }
+    ): void => {
+      pending.set(docId, payload)
+      const existing = timers.get(docId)
+      if (existing) clearTimeout(existing)
+
+      timers.set(
+        docId,
+        setTimeout(() => {
+          timers.delete(docId)
+          const next = pending.get(docId)
+          pending.delete(docId)
+          if (!next) return
+
+          if (connection.status !== 'connected') return
+
+          if (next.type === 'remove') {
+            connection.sendRaw({ type: 'index-remove', docId })
+            return
+          }
+
+          connection.sendRaw({
+            type: 'index-update',
+            docId,
+            meta: next.meta
+          })
+        }, HUB_INDEX_DEBOUNCE_MS)
+      )
+    }
+
+    const handleChange = (event: NodeChangeEvent) => {
+      const node = event.node
+      if (!node || node.deleted) {
+        schedule(event.change.payload.nodeId, { type: 'remove' })
+        return
+      }
+
+      if (!node.schemaId) return
+
+      const title = typeof node.properties.title === 'string' ? node.properties.title : ''
+      schedule(node.id, {
+        type: 'update',
+        meta: {
+          schemaIri: node.schemaId,
+          title,
+          properties: node.properties
+        }
+      })
+    }
+
+    const unsubscribe = nodeStore.subscribe(handleChange)
+
+    return () => {
+      unsubscribe()
+      for (const timer of timers.values()) {
+        clearTimeout(timer)
+      }
+      timers.clear()
+      pending.clear()
+    }
+  }, [enableSearchIndex, hubUrl, nodeStore, syncManager])
 
   // Create PluginRegistry when NodeStore is ready
   useEffect(() => {
@@ -287,14 +486,17 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     }
   }, [nodeStore, nodeStoreReady, config.disablePlugins, config.platform])
 
-  const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
-
   const value: XNetContextValue = {
     nodeStore,
     nodeStoreReady,
     identity: config.identity,
     authorDID: authorDID ?? null,
     syncManager,
+    hubUrl,
+    hubStatus,
+    hubConnection: syncManager?.connection ?? null,
+    getHubAuthToken: hubUrl ? getHubAuthToken : undefined,
+    encryptionKey,
     blobStore: config.blobStore ?? null,
     pluginRegistry
   }
