@@ -198,6 +198,12 @@ export {
   type HubSearchState
 } from './hooks/useHubSearch'
 
+export {
+  useRemoteSchema,
+  type RemoteSchemaDefinition,
+  type RemoteSchemaState
+} from './hooks/useRemoteSchema'
+
 export { HubStatusIndicator } from './components/HubStatusIndicator'
 
 // =============================================================================
