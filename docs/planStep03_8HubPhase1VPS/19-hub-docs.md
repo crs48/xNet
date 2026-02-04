@@ -360,16 +360,16 @@ No automated tests for documentation. Validation is:
 
 ## Checklist
 
-- [ ] Rewrite `site/src/content/docs/docs/guides/hub.mdx` with full deployment guide
-- [ ] Add Railway as the primary (first-shown) deployment method
-- [ ] Add Fly.io deployment tab with `fly launch` + `fly deploy` commands
-- [ ] Keep VPS/Docker deployment tab with existing `docker run` command
-- [ ] Add local development deployment option (`npx @xnet/hub`)
-- [ ] Add configuration reference (env vars + CLI flags + endpoints)
-- [ ] Add client integration examples (Electron + React)
-- [ ] Add monitoring section (health check + Prometheus)
-- [ ] Add platform comparison table
-- [ ] Update landing page Hubs section to show Railway as default deploy
+- [x] Rewrite `site/src/content/docs/docs/guides/hub.mdx` with full deployment guide
+- [x] Add Railway as the primary (first-shown) deployment method
+- [x] Add Fly.io deployment tab with `fly launch` + `fly deploy` commands
+- [x] Keep VPS/Docker deployment tab with existing `docker run` command
+- [x] Add local development deployment option (`npx @xnet/hub`)
+- [x] Add configuration reference (env vars + CLI flags + endpoints)
+- [x] Add client integration examples (Electron + React)
+- [x] Add monitoring section (health check + Prometheus)
+- [x] Add platform comparison table
+- [x] Update landing page Hubs section to show Railway as default deploy
 - [ ] Verify `pnpm build` succeeds in `site/`
 - [ ] Verify all internal doc links resolve
 
