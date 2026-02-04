@@ -234,7 +234,7 @@ function NetworkSettings() {
         <SettingRow label="Signaling server" description="WebRTC signaling server URL">
           <input
             type="text"
-            defaultValue="ws://localhost:4444"
+            defaultValue={import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'}
             className="bg-secondary border border-border rounded-md px-3 py-1.5 text-sm w-[200px]"
           />
         </SettingRow>

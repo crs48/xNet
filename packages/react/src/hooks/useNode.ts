@@ -39,6 +39,7 @@ import { useSyncManager } from './useSyncManager'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
 import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
+import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN } from '../sync/meta-bridge'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(...args: unknown[]): void {
@@ -634,11 +635,24 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       }
 
       const metaObserver = (event: Y.YMapEvent<unknown>) => {
-        // Process remote changes (origin is the provider or 'remote' for sync)
-        if (event.transaction.origin !== null && event.transaction.origin !== 'local') {
-          log('Meta map changed from remote, applying to NodeStore')
-          applyMetaToNodeStore()
+        const origin = event.transaction.origin
+        // Only process genuine remote changes (from sync provider).
+        // Ignore: null (local Y.Doc init), 'local' (our own edits),
+        // METABRIDGE_ORIGIN/SEED (NodeStore→meta writes from MetaBridge).
+        // Without this filter, a feedback loop occurs:
+        //   remote meta → applyMetaToNodeStore → NodeStore event →
+        //   MetaBridge.observe → writePropertiesToMeta → metaObserver fires again
+        if (
+          origin === null ||
+          origin === 'local' ||
+          origin === 'storage' ||
+          origin === METABRIDGE_ORIGIN ||
+          origin === METABRIDGE_SEED_ORIGIN
+        ) {
+          return
         }
+        log('Meta map changed from remote (origin:', origin, '), applying to NodeStore')
+        applyMetaToNodeStore()
       }
       metaMap.observe(metaObserver)
 
@@ -820,10 +834,19 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       }
 
       const metaObserver = (event: Y.YMapEvent<unknown>) => {
-        // Process remote changes (origin is the provider or null for sync)
-        if (event.transaction.origin !== null && event.transaction.origin !== 'local') {
-          applyMetaToNodeStore()
+        const origin = event.transaction.origin
+        // Only process genuine remote changes. Ignore MetaBridge origins
+        // to prevent feedback loops (see SyncManager path comment above).
+        if (
+          origin === null ||
+          origin === 'local' ||
+          origin === 'storage' ||
+          origin === METABRIDGE_ORIGIN ||
+          origin === METABRIDGE_SEED_ORIGIN
+        ) {
+          return
         }
+        applyMetaToNodeStore()
       }
       metaMap.observe(metaObserver)
 
@@ -922,21 +945,29 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         if (!Array.isArray(users)) return
         const mapped = users
           .filter(
-            (user): user is {
+            (
+              user
+            ): user is {
               did: string
               state: { user?: { name?: string; color?: string } }
               lastSeen: number
               isStale: boolean
             } =>
-              Boolean(user && typeof user === 'object' && typeof (user as { did?: unknown }).did === 'string')
+              Boolean(
+                user &&
+                typeof user === 'object' &&
+                typeof (user as { did?: unknown }).did === 'string'
+              )
           )
-          .map((user): PresenceUser => ({
-            did: user.did,
-            name: user.state.user?.name,
-            color: user.state.user?.color ?? generateColor(user.did),
-            lastSeen: user.lastSeen,
-            isStale: user.isStale
-          }))
+          .map(
+            (user): PresenceUser => ({
+              did: user.did,
+              name: user.state.user?.name,
+              color: user.state.user?.color ?? generateColor(user.did),
+              lastSeen: user.lastSeen,
+              isStale: user.isStale
+            })
+          )
         setSnapshotPresence(mapped)
       }
       provider.on('awareness-snapshot', snapshotHandler)

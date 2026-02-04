@@ -109,7 +109,7 @@ export function createIPCSyncManager(): IPCSyncManager {
       })
 
       // Tell BSM to start (it may already be running)
-      const signalingUrl = 'ws://localhost:4444' // TODO: make configurable
+      const signalingUrl = import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
       try {
         await window.xnetBSM.start({
           signalingUrl,
@@ -183,7 +183,11 @@ export function createIPCSyncManager(): IPCSyncManager {
 
         // Set up message handler for remote updates (via preload)
         const messageCleanup = window.xnetBSM.onMessage(nodeId, (data: unknown) => {
-          const { type, update, users } = data as { type: string; update?: number[]; users?: unknown }
+          const { type, update, users } = data as {
+            type: string
+            update?: number[]
+            users?: unknown
+          }
           if (type === 'update' && update) {
             Y.applyUpdate(doc, new Uint8Array(update), 'remote')
           } else if (type === 'awareness' && update) {
