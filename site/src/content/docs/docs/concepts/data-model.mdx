@@ -58,15 +58,16 @@ See [Property Types](/xNet/docs/schemas/property-types/) for full details on eac
 
 ## Nodes
 
-A node is an instance of a schema. Every node has base fields plus the properties defined by its schema:
+A node is an instance of a schema. Every node has base fields that are managed automatically by the store — you never define or set these yourself:
 
 ```ts
 interface NodeBase {
-  id: string // Unique node ID
+  id: string // Unique node ID (auto-generated)
   schemaIRI: string // Schema identifier
-  createdAt: number // Unix timestamp
-  updatedAt: number // Unix timestamp
+  createdAt: number // Set at creation time
+  updatedAt: number // Updated on every change
   createdBy: string // Author DID
+  updatedBy: string // Last modifier's DID
 }
 ```
 

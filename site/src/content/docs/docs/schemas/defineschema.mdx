@@ -20,7 +20,7 @@ sidebar:
 ## Quick example
 
 ```ts
-import { defineSchema, text, select, checkbox, relation, created, updated } from '@xnet/data'
+import { defineSchema, text, select, checkbox, relation } from '@xnet/data'
 
 export const TaskSchema = defineSchema({
   name: 'Task',
@@ -35,12 +35,14 @@ export const TaskSchema = defineSchema({
       ] as const
     }),
     completed: checkbox({ default: false }),
-    project: relation({ target: 'xnet://my-app/Project' }),
-    createdAt: created(),
-    updatedAt: updated()
+    project: relation({ target: 'xnet://my-app/Project' })
   }
 })
 ```
+
+:::tip[Automatic fields]
+Every node automatically gets `id`, `schemaId`, `createdAt`, `updatedAt`, `createdBy`, and `updatedBy`. You don't need to define these in your schema — they're managed by the store and available on every node when you read it.
+:::
 
 ## Signature
 
@@ -131,7 +133,7 @@ const BaseSchema = defineSchema({
   namespace: 'xnet://my-app/',
   properties: {
     title: text({ required: true }),
-    createdAt: created()
+    tags: multiSelect({ options: ['draft', 'published'] as const })
   }
 })
 
@@ -144,7 +146,7 @@ const ArticleSchema = defineSchema({
     publishedAt: date()
   }
 })
-// ArticleSchema has: title, createdAt, body, publishedAt
+// ArticleSchema has: title, tags, body, publishedAt
 ```
 
 ## Coercion

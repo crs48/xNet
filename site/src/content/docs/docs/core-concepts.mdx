@@ -56,19 +56,19 @@ const { create } = useMutate()
 const task = await create(TaskSchema, { title: 'Ship it', status: 'todo' })
 ```
 
-Every node has system fields added automatically:
+Every node has system fields managed automatically by the store — you never need to define or set these yourself:
 
 | Field       | Type      | Description                             |
 | ----------- | --------- | --------------------------------------- |
 | `id`        | `string`  | Unique identifier (nanoid, 21 chars)    |
 | `schemaId`  | `string`  | Schema IRI (e.g., `xnet://my-app/Task`) |
-| `createdAt` | `number`  | Unix timestamp (ms)                     |
+| `createdAt` | `number`  | Set automatically at creation time      |
 | `createdBy` | `string`  | Author's DID (e.g., `did:key:z6Mk...`)  |
-| `updatedAt` | `number`  | Last modification timestamp             |
+| `updatedAt` | `number`  | Updated automatically on every change   |
 | `updatedBy` | `string`  | Last modifier's DID                     |
 | `deleted`   | `boolean` | Soft-delete flag                        |
 
-Your schema properties are merged alongside these fields into a **flat node** — you access `task.title` directly, not `task.properties.title`.
+Your schema properties are merged alongside these fields into a **flat node** — you access `task.title` directly, not `task.properties.title`. You can filter and sort by any system field (e.g., `orderBy: { createdAt: 'desc' }`) without defining them in your schema.
 
 ## Three hooks for everything
 

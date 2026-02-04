@@ -111,20 +111,22 @@ The second argument determines the overload: pass a `string` for single-node loo
 
 ### FlatNode
 
-Every node includes system fields plus your schema properties:
+Every node includes system fields (managed automatically) plus your schema properties:
 
 ```ts
 interface FlatNode<P> {
   id: string
   schemaId: string // e.g., 'xnet://my-app/Task'
-  createdAt: number // Unix timestamp (ms)
+  createdAt: number // Auto-set at creation time
   createdBy: string // DID of creator
-  updatedAt: number
-  updatedBy: string
+  updatedAt: number // Auto-updated on every change
+  updatedBy: string // DID of last modifier
   deleted: boolean
   // ... plus all your schema properties
 }
 ```
+
+You can filter and sort by any of these system fields without defining them in your schema.
 
 ## Usage patterns
 
