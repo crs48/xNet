@@ -283,7 +283,7 @@ Identical function duplicated. If one is fixed (e.g., for large shard counts), t
 - [ ] **DI-04** -- Add signature verification for remote node changes
 - [ ] **DI-05** -- Add atomic quota enforcement
 - [ ] **DI-06** -- Add URL assignment locking in crawl coordinator
-- [ ] **DI-07** -- Add pending-connection guard in connection manager
+- [x] **DI-07** -- Add pending-connection guard in connection manager
 - [ ] **DI-09** -- Remove or document LIMIT 1000 in `getNodeChangesSince`
 - [ ] **DI-10** -- Store body text in `doc_meta` table for FTS5 rebuild safety
 - [ ] **DI-11** -- Return true total count from search/query
