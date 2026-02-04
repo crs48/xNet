@@ -2,7 +2,9 @@ import type { HubInstance } from '../src'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
 import { createHub } from '../src'
-import { generateIdentity } from '@xnet/identity'
+import { generateIdentity, parseDID } from '@xnet/identity'
+import { verify } from '@xnet/crypto'
+import { TextEncoder } from 'node:util'
 
 const connect = (port: number): Promise<WebSocket> =>
   new Promise((resolve) => {
@@ -197,5 +199,72 @@ describe('Hub Federation', () => {
     const status = await response.json()
     expect(status.federation).toBe(true)
     expect(status.peerCount).toBeGreaterThanOrEqual(1)
+  })
+})
+
+describe('Hub Federation Signing', () => {
+  const PORT_C = 14462
+
+  it('signs empty responses when schema is not allowed', async () => {
+    const identity = generateIdentity()
+    const hub = await createHub({
+      port: PORT_C,
+      auth: false,
+      storage: 'memory',
+      federation: {
+        enabled: true,
+        hubDid: identity.identity.did,
+        hubSigningKey: identity.privateKey,
+        peers: [],
+        expose: {
+          schemas: ['xnet://xnet.dev/Page'],
+          requireAuth: false,
+          rateLimit: 60,
+          maxResults: 50
+        },
+        peerTimeoutMs: 2000,
+        totalTimeoutMs: 5000
+      }
+    })
+
+    await hub.start()
+
+    try {
+      const response = await fetch(`http://localhost:${PORT_C}/federation/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          queryId: 'q-schema-denied',
+          text: 'Denied',
+          schema: 'xnet://xnet.dev/Task',
+          limit: 10,
+          auth: '',
+          fromHub: 'did:key:z6MkRequester'
+        })
+      })
+
+      expect(response.status).toBe(200)
+      const payload = await response.json()
+      expect(Array.isArray(payload.results)).toBe(true)
+      expect(payload.results.length).toBe(0)
+      expect(typeof payload.signature).toBe('string')
+      expect(payload.signature.length).toBeGreaterThan(0)
+
+      const signerKey = parseDID(payload.hubDid)
+      const encoder = new TextEncoder()
+      const message = encoder.encode(
+        JSON.stringify({
+          queryId: payload.queryId,
+          results: payload.results,
+          totalEstimate: payload.totalEstimate,
+          executionMs: payload.executionMs,
+          hubDid: payload.hubDid
+        })
+      )
+      const signatureBytes = new Uint8Array(Buffer.from(payload.signature, 'base64'))
+      expect(verify(message, signatureBytes, signerKey)).toBe(true)
+    } finally {
+      await hub.stop()
+    }
   })
 })
