@@ -394,6 +394,12 @@ export class FederationService {
     const now = Date.now()
     const limiter = this.rateLimiters.get(key)
     if (!limiter || now > limiter.resetAt) {
+      // Prune expired entries periodically to prevent unbounded growth
+      if (this.rateLimiters.size > 1000) {
+        for (const [k, v] of this.rateLimiters) {
+          if (now > v.resetAt) this.rateLimiters.delete(k)
+        }
+      }
       this.rateLimiters.set(key, { count: 1, resetAt: now + 60_000 })
       return true
     }

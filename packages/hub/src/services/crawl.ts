@@ -295,5 +295,16 @@ export class CrawlCoordinator {
         this.activeUrls.delete(task.url)
       }
     }
+
+    // Prune stale domain cooldown entries to prevent unbounded growth.
+    // Keep entries younger than 2x the cooldown period.
+    const domainCutoff = now - this.config.domainCooldownMs * 2
+    if (this.domainLastCrawl.size > 10_000) {
+      for (const [domain, lastCrawl] of this.domainLastCrawl) {
+        if (lastCrawl < domainCutoff) {
+          this.domainLastCrawl.delete(domain)
+        }
+      }
+    }
   }
 }
