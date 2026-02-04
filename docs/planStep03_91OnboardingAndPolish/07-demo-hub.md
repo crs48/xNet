@@ -1,308 +1,213 @@
 # 07: Demo Hub Deployment
 
-> Public hub at hub.xnet.dev for users to try xNet without self-hosting
+> Public demo hub at hub.xnet.fyi on Railway for users to try xNet instantly
 
 **Duration:** 3 days
-**Dependencies:** Hub package from planStep03_8HubPhase1VPS
+**Dependencies:** Hub package from planStep03_8HubPhase1VPS, [Exploration 0051](../explorations/0051_DEMO_HUB_ON_RAILWAY.md)
 
 ## Overview
 
 The demo hub serves two purposes:
 
-1. **Try before you commit**: New users can use xNet immediately without setup
-2. **Default sync target**: Desktop/mobile apps connect here by default
+1. **Try before you commit**: New users at `xnet.fyi/app` authenticate with Touch ID and start using xNet immediately
+2. **Default sync target**: Web app connects to `hub.xnet.fyi` by default; desktop app defaults here until user configures their own hub
+
+The demo hub uses **standard UCAN authentication** (same as production) — passkeys are required, there is no anonymous mode. Demo mode only changes quotas and enables auto-eviction.
 
 ```mermaid
 flowchart TB
     subgraph "Users"
-        WEB[Web App Users]
-        DESKTOP[Desktop Users]
-        MOBILE[Mobile Users]
+        WEB[xnet.fyi/app<br/>Web Users]
+        DESKTOP[Desktop Users<br/>default hub]
     end
 
-    subgraph "Fly.io"
-        HUB[hub.xnet.dev<br/>xNet Hub]
+    subgraph "Railway"
+        HUB[hub.xnet.fyi<br/>xNet Hub --demo]
         VOLUME[(Persistent<br/>Volume)]
-        METRICS[Prometheus<br/>Metrics]
+        EVICTION[EvictionService<br/>hourly cron]
     end
 
-    subgraph "Monitoring"
-        GRAFANA[Grafana Cloud]
-        ALERTS[PagerDuty/Slack]
+    subgraph "GitHub Pages"
+        SITE[xnet.fyi<br/>Landing + Docs + App Shell]
     end
 
     WEB <-->|wss://| HUB
     DESKTOP <-->|wss://| HUB
-    MOBILE <-->|wss://| HUB
+    SITE -->|serves app shell| WEB
 
     HUB --> VOLUME
-    HUB --> METRICS
-    METRICS --> GRAFANA
-    GRAFANA --> ALERTS
+    EVICTION -->|24h TTL| VOLUME
 ```
+
+## Key Constraints (from Exploration 0051)
+
+| Constraint       | Value                            |
+| ---------------- | -------------------------------- |
+| Storage per user | 10 MB                            |
+| Max documents    | 50                               |
+| Max blob size    | 2 MB                             |
+| Inactivity TTL   | 24 hours                         |
+| Eviction check   | Hourly cron                      |
+| Auth             | Standard UCAN (passkey required) |
+| Cost             | ~$0/mo (Railway Hobby $5 credit) |
 
 ## Implementation
 
-### 1. Fly.io Configuration
+### 1. Railway Configuration
 
 ```toml
-# apps/hub-deploy/fly.toml
-
-app = "xnet-hub"
-primary_region = "sjc"
+# infrastructure/railway/railway.toml
 
 [build]
-  dockerfile = "../../packages/hub/Dockerfile"
+  builder = "dockerfile"
+  dockerfilePath = "packages/hub/Dockerfile"
 
-[env]
-  NODE_ENV = "production"
-  LOG_LEVEL = "info"
-  PORT = "4444"
-  DATA_DIR = "/data"
-  AUTH_MODE = "ucan"
-  MAX_CONNECTIONS = "5000"
-  DEFAULT_QUOTA = "104857600" # 100MB per user
-  RATE_LIMIT_MESSAGES = "100"
-  RATE_LIMIT_WINDOW = "60000"
-
-[http_service]
-  internal_port = 4444
-  force_https = true
-  auto_stop_machines = false
-  auto_start_machines = true
-  min_machines_running = 1
-
-  [http_service.concurrency]
-    type = "connections"
-    hard_limit = 2500
-    soft_limit = 2000
-
-[[vm]]
-  cpu_kind = "shared"
-  cpus = 2
-  memory_mb = 2048
-
-[mounts]
-  source = "xnet_hub_data"
-  destination = "/data"
-
-[checks]
-  [checks.health]
-    port = 4444
-    type = "http"
-    interval = "15s"
-    timeout = "5s"
-    grace_period = "10s"
-    method = "GET"
-    path = "/health"
-
-[metrics]
-  port = 4444
-  path = "/metrics"
+[deploy]
+  startCommand = "node packages/hub/dist/cli.js --demo"
+  healthcheckPath = "/health"
+  healthcheckTimeout = 10
+  restartPolicyType = "on_failure"
+  restartPolicyMaxRetries = 5
 ```
 
-### 2. Deploy Script
+Environment variables (set in Railway dashboard):
 
 ```bash
-#!/bin/bash
-# apps/hub-deploy/deploy.sh
+NODE_ENV=production
+PORT=4444                          # Railway injects $PORT
+DATA_DIR=/data                     # Railway volume mount
+HUB_MODE=demo                     # Enables demo overrides
+LOG_LEVEL=info
+AUTH_MODE=ucan                     # Standard UCAN — no anonymous
+REQUIRE_SIGNED_UPDATES=true
 
-set -e
-
-echo "Deploying xNet Hub to Fly.io..."
-
-# Ensure we're logged in
-fly auth whoami || fly auth login
-
-# Create app if it doesn't exist
-fly apps create xnet-hub --org xnet 2>/dev/null || true
-
-# Create volume if it doesn't exist
-fly volumes create xnet_hub_data --region sjc --size 10 2>/dev/null || true
-
-# Set secrets
-fly secrets set \
-  --app xnet-hub \
-  REVOCATION_CHECK_URL="https://api.xnet.dev/revocations" \
-  2>/dev/null || true
-
-# Deploy
-fly deploy --app xnet-hub
-
-# Scale to 2 machines for availability
-fly scale count 2 --app xnet-hub
-
-echo "Deployment complete!"
-echo "Hub URL: https://xnet-hub.fly.dev"
+# Demo overrides (applied when HUB_MODE=demo)
+DEMO_QUOTA=10485760               # 10 MB per user
+DEMO_MAX_DOCS=50
+DEMO_MAX_BLOB=2097152             # 2 MB
+DEMO_EVICTION_TTL=86400000        # 24 hours in ms
+DEMO_EVICTION_INTERVAL=3600000    # 1 hour in ms
 ```
 
-### 3. Custom Domain Setup
+### 2. Demo Mode Flag
 
-```bash
-# Add custom domain
-fly certs create hub.xnet.dev --app xnet-hub
-
-# DNS: Add CNAME record
-# hub.xnet.dev -> xnet-hub.fly.dev
-```
-
-### 4. Hub Dockerfile (Production)
-
-```dockerfile
-# packages/hub/Dockerfile
-
-# Build stage
-FROM node:20-alpine AS builder
-
-WORKDIR /app
-
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9 --activate
-
-# Copy workspace files
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/hub/package.json ./packages/hub/
-COPY packages/core/package.json ./packages/core/
-COPY packages/crypto/package.json ./packages/crypto/
-COPY packages/identity/package.json ./packages/identity/
-COPY packages/sync/package.json ./packages/sync/
-COPY packages/data/package.json ./packages/data/
-
-# Install dependencies
-RUN pnpm install --frozen-lockfile
-
-# Copy source
-COPY packages/ ./packages/
-
-# Build
-RUN pnpm --filter @xnet/hub build
-
-# Runtime stage
-FROM node:20-alpine
-
-WORKDIR /app
-
-# Install production dependencies only
-RUN corepack enable && corepack prepare pnpm@9 --activate
-
-COPY --from=builder /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
-COPY --from=builder /app/packages/hub/package.json ./packages/hub/
-COPY --from=builder /app/packages/hub/dist ./packages/hub/dist
-COPY --from=builder /app/packages/core/dist ./packages/core/dist
-COPY --from=builder /app/packages/crypto/dist ./packages/crypto/dist
-COPY --from=builder /app/packages/identity/dist ./packages/identity/dist
-COPY --from=builder /app/packages/sync/dist ./packages/sync/dist
-COPY --from=builder /app/packages/data/dist ./packages/data/dist
-
-# Install production dependencies
-RUN pnpm install --prod --frozen-lockfile
-
-# Create data directory
-RUN mkdir -p /data && chown -R node:node /data
-
-USER node
-
-EXPOSE 4444
-
-ENV NODE_ENV=production
-ENV DATA_DIR=/data
-
-CMD ["node", "packages/hub/dist/cli.js"]
-```
-
-### 5. Rate Limiting Configuration
+The `--demo` CLI flag (or `HUB_MODE=demo` env var) applies demo-specific quotas and enables the EvictionService. All other behavior (auth, sync, backup) is identical to production.
 
 ```typescript
-// packages/hub/src/middleware/rate-limit.ts
+// packages/hub/src/config.ts (additions)
 
-export interface RateLimitConfig {
-  /** Max WebSocket messages per window */
-  messagesPerWindow: number
-
-  /** Window size in ms */
-  windowMs: number
-
-  /** Max connections per IP */
-  connectionsPerIp: number
-
-  /** Max storage per DID (bytes) */
-  storageQuota: number
-
-  /** Burst allowance (multiplier for short bursts) */
-  burstMultiplier: number
+export interface DemoOverrides {
+  /** Storage quota per user (bytes) */
+  quota: number
+  /** Max documents per user */
+  maxDocs: number
+  /** Max blob size (bytes) */
+  maxBlob: number
+  /** Inactivity TTL before eviction (ms) */
+  evictionTtl: number
+  /** How often to run eviction check (ms) */
+  evictionInterval: number
 }
 
-export const DEMO_HUB_LIMITS: RateLimitConfig = {
-  messagesPerWindow: 100,
-  windowMs: 60_000, // 1 minute
-  connectionsPerIp: 10,
-  storageQuota: 100 * 1024 * 1024, // 100MB
-  burstMultiplier: 3
+export const DEMO_DEFAULTS: DemoOverrides = {
+  quota: 10 * 1024 * 1024, // 10 MB
+  maxDocs: 50,
+  maxBlob: 2 * 1024 * 1024, // 2 MB
+  evictionTtl: 24 * 60 * 60 * 1000, // 24 hours
+  evictionInterval: 60 * 60 * 1000 // 1 hour
 }
 
-export class RateLimiter {
-  private windows = new Map<string, { count: number; resetAt: number }>()
-  private connections = new Map<string, Set<WebSocket>>()
+export function getDemoOverrides(): DemoOverrides | null {
+  if (process.env.HUB_MODE !== 'demo') return null
 
-  constructor(private config: RateLimitConfig) {}
-
-  checkMessage(clientId: string): { allowed: boolean; retryAfter?: number } {
-    const now = Date.now()
-    const window = this.windows.get(clientId)
-
-    if (!window || now > window.resetAt) {
-      this.windows.set(clientId, {
-        count: 1,
-        resetAt: now + this.config.windowMs
-      })
-      return { allowed: true }
-    }
-
-    // Allow burst
-    const limit = this.config.messagesPerWindow * this.config.burstMultiplier
-
-    if (window.count >= limit) {
-      return {
-        allowed: false,
-        retryAfter: Math.ceil((window.resetAt - now) / 1000)
-      }
-    }
-
-    window.count++
-    return { allowed: true }
-  }
-
-  checkConnection(ip: string, ws: WebSocket): { allowed: boolean } {
-    const existing = this.connections.get(ip) ?? new Set()
-
-    if (existing.size >= this.config.connectionsPerIp) {
-      return { allowed: false }
-    }
-
-    existing.add(ws)
-    this.connections.set(ip, existing)
-
-    ws.on('close', () => {
-      existing.delete(ws)
-      if (existing.size === 0) {
-        this.connections.delete(ip)
-      }
-    })
-
-    return { allowed: true }
+  return {
+    quota: Number(process.env.DEMO_QUOTA) || DEMO_DEFAULTS.quota,
+    maxDocs: Number(process.env.DEMO_MAX_DOCS) || DEMO_DEFAULTS.maxDocs,
+    maxBlob: Number(process.env.DEMO_MAX_BLOB) || DEMO_DEFAULTS.maxBlob,
+    evictionTtl: Number(process.env.DEMO_EVICTION_TTL) || DEMO_DEFAULTS.evictionTtl,
+    evictionInterval: Number(process.env.DEMO_EVICTION_INTERVAL) || DEMO_DEFAULTS.evictionInterval
   }
 }
 ```
 
-### 6. Usage Quota Enforcement
+### 3. Eviction Service
+
+Tracks last activity per DID and evicts data after inactivity TTL:
 
 ```typescript
-// packages/hub/src/services/quota.ts
+// packages/hub/src/services/eviction.ts
+
+export class EvictionService {
+  private timer: ReturnType<typeof setInterval> | null = null
+
+  constructor(
+    private storage: HubStorage,
+    private config: DemoOverrides
+  ) {}
+
+  start(): void {
+    // Run immediately, then on interval
+    this.evict()
+    this.timer = setInterval(() => this.evict(), this.config.evictionInterval)
+    console.log(
+      `[eviction] Started with TTL=${this.config.evictionTtl}ms, interval=${this.config.evictionInterval}ms`
+    )
+  }
+
+  stop(): void {
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = null
+    }
+  }
+
+  /** Record activity for a DID (called on every authenticated message) */
+  async touch(did: DID): Promise<void> {
+    await this.storage.upsertActivity(did, Date.now())
+  }
+
+  private async evict(): Promise<void> {
+    const cutoff = Date.now() - this.config.evictionTtl
+    const stale = await this.storage.getInactiveDids(cutoff)
+
+    if (stale.length === 0) return
+
+    console.log(
+      `[eviction] Evicting ${stale.length} inactive users (cutoff: ${new Date(cutoff).toISOString()})`
+    )
+
+    for (const did of stale) {
+      await this.storage.deleteUserData(did)
+      await this.storage.deleteActivity(did)
+      console.log(`[eviction] Evicted: ${did.slice(0, 20)}...`)
+    }
+  }
+}
+```
+
+Activity tracking table:
+
+```sql
+-- did_activity table (SQLite)
+CREATE TABLE IF NOT EXISTS did_activity (
+  did TEXT PRIMARY KEY,
+  last_active_at INTEGER NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') * 1000)
+);
+
+CREATE INDEX idx_did_activity_last_active ON did_activity(last_active_at);
+```
+
+### 4. Demo-Aware Quota Enforcement
+
+```typescript
+// packages/hub/src/services/quota.ts (updated)
 
 export class QuotaService {
   constructor(
     private storage: HubStorage,
-    private defaultQuota: number
+    private defaultQuota: number,
+    private demoOverrides: DemoOverrides | null
   ) {}
 
   async checkQuota(
@@ -313,151 +218,105 @@ export class QuotaService {
     used: number
     limit: number
     remaining: number
+    isDemo: boolean
   }> {
     const used = await this.storage.getStorageUsed(did)
-    const limit = await this.getQuotaLimit(did)
+    const limit = this.demoOverrides?.quota ?? this.defaultQuota
     const remaining = limit - used
 
     return {
       allowed: additionalBytes <= remaining,
       used,
       limit,
-      remaining: Math.max(0, remaining)
+      remaining: Math.max(0, remaining),
+      isDemo: this.demoOverrides !== null
     }
   }
 
-  async getQuotaLimit(did: DID): Promise<number> {
-    // Could be customized per-user in the future
-    return this.defaultQuota
+  async checkDocCount(did: DID): Promise<{ allowed: boolean; count: number; limit: number }> {
+    if (!this.demoOverrides) return { allowed: true, count: 0, limit: Infinity }
+
+    const count = await this.storage.getDocCount(did)
+    return {
+      allowed: count < this.demoOverrides.maxDocs,
+      count,
+      limit: this.demoOverrides.maxDocs
+    }
   }
 
-  async getUsageStats(did: DID): Promise<{
-    documents: number
-    totalBytes: number
-    byType: Record<string, number>
-  }> {
-    return this.storage.getUsageStats(did)
+  async checkBlobSize(size: number): Promise<{ allowed: boolean; limit: number }> {
+    if (!this.demoOverrides) return { allowed: true, limit: Infinity }
+
+    return {
+      allowed: size <= this.demoOverrides.maxBlob,
+      limit: this.demoOverrides.maxBlob
+    }
   }
 }
 ```
 
-### 7. Monitoring Setup
+### 5. Demo Status in Hub Handshake
+
+When a client connects, the hub includes demo status in the handshake response so the UI can show appropriate banners:
 
 ```typescript
-// packages/hub/src/middleware/metrics.ts
+// packages/hub/src/services/connection.ts (handshake addition)
 
-import { Registry, Counter, Gauge, Histogram } from 'prom-client'
-
-export function createMetrics() {
-  const registry = new Registry()
-
-  const metrics = {
-    connections: new Gauge({
-      name: 'xnet_hub_connections_active',
-      help: 'Number of active WebSocket connections',
-      registers: [registry]
-    }),
-
-    rooms: new Gauge({
-      name: 'xnet_hub_rooms_active',
-      help: 'Number of active sync rooms',
-      registers: [registry]
-    }),
-
-    messages: new Counter({
-      name: 'xnet_hub_messages_total',
-      help: 'Total messages processed',
-      labelNames: ['type'],
-      registers: [registry]
-    }),
-
-    messageLatency: new Histogram({
-      name: 'xnet_hub_message_latency_ms',
-      help: 'Message processing latency in milliseconds',
-      buckets: [1, 5, 10, 25, 50, 100, 250, 500, 1000],
-      registers: [registry]
-    }),
-
-    storageBytes: new Gauge({
-      name: 'xnet_hub_storage_bytes',
-      help: 'Total storage used in bytes',
-      registers: [registry]
-    }),
-
-    rateLimitHits: new Counter({
-      name: 'xnet_hub_rate_limit_hits_total',
-      help: 'Number of rate limit violations',
-      registers: [registry]
-    }),
-
-    authFailures: new Counter({
-      name: 'xnet_hub_auth_failures_total',
-      help: 'Number of authentication failures',
-      labelNames: ['reason'],
-      registers: [registry]
-    })
+interface HubHandshakeResponse {
+  version: string
+  did: DID
+  isDemo: boolean
+  demoLimits?: {
+    quotaBytes: number
+    maxDocs: number
+    evictionTtlMs: number
   }
-
-  return { registry, metrics }
 }
+
+// Client receives this on connect and can show:
+// - "Demo mode — data expires after 24h of inactivity"
+// - Quota usage bar
+// - "Download desktop app" graduation CTA
 ```
 
-### 8. Alert Configuration
+### 6. Deploy Script
 
-```yaml
-# apps/hub-deploy/alerts.yml
-# For Grafana Cloud Alerting
+```bash
+#!/bin/bash
+# infrastructure/railway/deploy.sh
 
-groups:
-  - name: xnet-hub
-    rules:
-      - alert: HighConnectionCount
-        expr: xnet_hub_connections_active > 4000
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: 'High connection count on xNet Hub'
-          description: '{{ $value }} connections (threshold: 4000)'
+set -e
 
-      - alert: HighErrorRate
-        expr: rate(xnet_hub_auth_failures_total[5m]) > 10
-        for: 2m
-        labels:
-          severity: warning
-        annotations:
-          summary: 'High authentication failure rate'
-          description: '{{ $value }} failures per second'
+echo "Deploying xNet Demo Hub to Railway..."
 
-      - alert: HighLatency
-        expr: histogram_quantile(0.95, rate(xnet_hub_message_latency_ms_bucket[5m])) > 500
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: 'High message latency'
-          description: 'p95 latency is {{ $value }}ms'
+# Ensure Railway CLI is installed
+command -v railway >/dev/null 2>&1 || {
+  echo "Install Railway CLI: npm i -g @railway/cli"
+  exit 1
+}
 
-      - alert: HubDown
-        expr: up{job="xnet-hub"} == 0
-        for: 1m
-        labels:
-          severity: critical
-        annotations:
-          summary: 'xNet Hub is down'
-          description: 'Hub has been unreachable for 1 minute'
+# Deploy
+railway up --service xnet-hub
 
-      - alert: StorageNearFull
-        expr: xnet_hub_storage_bytes / (10 * 1024 * 1024 * 1024) > 0.8
-        for: 10m
-        labels:
-          severity: warning
-        annotations:
-          summary: 'Hub storage over 80%'
-          description: 'Storage at {{ $value | humanizePercentage }}'
+echo "
+Deployment complete!
+Hub URL: https://hub.xnet.fyi
+Health:  https://hub.xnet.fyi/health
+"
 ```
 
-### 9. Health Check Endpoint
+### 7. Custom Domain Setup
+
+```bash
+# In Railway dashboard:
+# 1. Add custom domain: hub.xnet.fyi
+# 2. Railway provides a CNAME target
+
+# DNS: Add CNAME record
+# hub.xnet.fyi -> <railway-provided-target>.up.railway.app
+```
+
+### 8. Health Check Endpoint
 
 ```typescript
 // packages/hub/src/routes/health.ts
@@ -466,10 +325,12 @@ export function healthRoutes(app: Hono, hub: HubInstance) {
   app.get('/health', (c) => {
     const uptime = process.uptime()
     const memory = process.memoryUsage()
+    const demo = getDemoOverrides()
 
     return c.json({
       status: 'ok',
       version: hub.version,
+      mode: demo ? 'demo' : 'production',
       uptime: Math.floor(uptime),
       connections: hub.getConnectionCount(),
       rooms: hub.getRoomCount(),
@@ -478,106 +339,97 @@ export function healthRoutes(app: Hono, hub: HubInstance) {
         heapTotal: memory.heapTotal,
         rss: memory.rss
       },
+      ...(demo && {
+        demo: {
+          quota: demo.quota,
+          evictionTtl: demo.evictionTtl,
+          maxDocs: demo.maxDocs
+        }
+      }),
       timestamp: Date.now()
     })
   })
-
-  // Detailed health for internal monitoring
-  app.get('/health/detailed', async (c) => {
-    const storage = await hub.storage.healthCheck()
-    const uptime = process.uptime()
-
-    return c.json({
-      status: storage.ok ? 'ok' : 'degraded',
-      checks: {
-        storage: storage.ok ? 'ok' : 'error',
-        memory: process.memoryUsage().heapUsed < 1.5 * 1024 * 1024 * 1024 ? 'ok' : 'warning'
-      },
-      storage: {
-        ok: storage.ok,
-        latencyMs: storage.latencyMs,
-        sizeBytes: storage.sizeBytes
-      },
-      uptime: Math.floor(uptime),
-      version: hub.version
-    })
-  })
 }
 ```
 
-### 10. Graceful Degradation
+### 9. Rate Limiting (Existing)
+
+The hub already has rate limiting (`packages/hub/src/middleware/rate-limit.ts`), quota enforcement (BackupService), and platform detection (Fly.io/Railway/local). Demo mode simply uses tighter limits:
 
 ```typescript
-// packages/hub/src/services/circuit-breaker.ts
-
-export class CircuitBreaker {
-  private failures = 0
-  private lastFailure = 0
-  private state: 'closed' | 'open' | 'half-open' = 'closed'
-
-  constructor(
-    private readonly threshold: number = 5,
-    private readonly timeout: number = 30000
-  ) {}
-
-  async execute<T>(fn: () => Promise<T>): Promise<T> {
-    if (this.state === 'open') {
-      if (Date.now() - this.lastFailure > this.timeout) {
-        this.state = 'half-open'
-      } else {
-        throw new Error('Circuit breaker is open')
-      }
-    }
-
-    try {
-      const result = await fn()
-      this.onSuccess()
-      return result
-    } catch (error) {
-      this.onFailure()
-      throw error
-    }
-  }
-
-  private onSuccess() {
-    this.failures = 0
-    this.state = 'closed'
-  }
-
-  private onFailure() {
-    this.failures++
-    this.lastFailure = Date.now()
-
-    if (this.failures >= this.threshold) {
-      this.state = 'open'
-    }
-  }
-
-  getState() {
-    return this.state
-  }
+export const DEMO_HUB_LIMITS: RateLimitConfig = {
+  messagesPerWindow: 100,
+  windowMs: 60_000,
+  connectionsPerIp: 10,
+  storageQuota: 10 * 1024 * 1024, // 10MB (not 100MB)
+  burstMultiplier: 3
 }
 ```
+
+### 10. Monitoring
+
+Railway provides built-in metrics, logs, and alerting via the dashboard. For additional monitoring:
+
+```typescript
+// packages/hub/src/middleware/metrics.ts (same as production)
+
+// Key metrics to watch in Railway dashboard:
+// - Memory usage (stay under 512MB for Hobby plan)
+// - CPU usage
+// - Network egress
+// - Volume disk usage
+// - Response times
+```
+
+## Cost Analysis
+
+| Resource  | Railway Hobby Plan                            |
+| --------- | --------------------------------------------- |
+| Compute   | $5/mo credit (covers ~720h of small instance) |
+| Volume    | 1 GB included                                 |
+| Egress    | 100 GB/mo included                            |
+| **Total** | **~$0/mo** (within free credit)               |
 
 ## Testing
 
 ```typescript
 describe('Demo Hub', () => {
-  it('accepts WebSocket connections', async () => {
-    const ws = new WebSocket('wss://hub.xnet.dev')
-    await new Promise((resolve) => (ws.onopen = resolve))
-    expect(ws.readyState).toBe(WebSocket.OPEN)
+  it('accepts WebSocket connections with UCAN auth', async () => {
+    const identity = await createPasskeyIdentity()
+    const ucan = await createUcan({ issuer: identity })
+    const ws = new WebSocket('wss://hub.xnet.fyi')
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'auth', token: ucan }))
+    }
+
+    const response = await waitForMessage(ws)
+    expect(response.type).toBe('auth-success')
+    expect(response.isDemo).toBe(true)
     ws.close()
   })
 
-  it('health endpoint returns ok', async () => {
-    const res = await fetch('https://hub.xnet.dev/health')
+  it('health endpoint returns demo mode', async () => {
+    const res = await fetch('https://hub.xnet.fyi/health')
     const json = await res.json()
     expect(json.status).toBe('ok')
+    expect(json.mode).toBe('demo')
+    expect(json.demo.quota).toBe(10 * 1024 * 1024)
+  })
+
+  it('enforces demo quota (10MB)', async () => {
+    const identity = await createTestIdentity()
+    const hub = await connectToHub('wss://hub.xnet.fyi', identity)
+
+    // Try to store more than 10MB
+    const largeData = new Uint8Array(11 * 1024 * 1024)
+    const result = await hub.store(largeData)
+
+    expect(result.error).toBe('QUOTA_EXCEEDED')
   })
 
   it('enforces rate limits', async () => {
-    const ws = new WebSocket('wss://hub.xnet.dev')
+    const ws = new WebSocket('wss://hub.xnet.fyi')
     await new Promise((resolve) => (ws.onopen = resolve))
 
     // Send many messages quickly
@@ -585,7 +437,6 @@ describe('Demo Hub', () => {
       ws.send(JSON.stringify({ type: 'ping' }))
     }
 
-    // Should receive rate limit response
     const response = await new Promise((resolve) => {
       ws.onmessage = (e) => resolve(JSON.parse(e.data))
     })
@@ -593,19 +444,39 @@ describe('Demo Hub', () => {
     expect(response.type).toBe('error')
     expect(response.code).toBe('RATE_LIMITED')
   })
+
+  it('evicts inactive users after TTL', async () => {
+    const storage = createMockStorage()
+    const eviction = new EvictionService(storage, {
+      ...DEMO_DEFAULTS,
+      evictionTtl: 100 // 100ms for testing
+    })
+
+    await storage.upsertActivity('did:key:stale', Date.now() - 200)
+    await storage.upsertActivity('did:key:active', Date.now())
+
+    await eviction.evict()
+
+    expect(await storage.hasUserData('did:key:stale')).toBe(false)
+    expect(await storage.hasUserData('did:key:active')).toBe(true)
+  })
 })
 ```
 
 ## Validation Gate
 
-- [ ] Hub deploys to Fly.io successfully
-- [ ] WebSocket connections work via wss://hub.xnet.dev
-- [ ] TLS certificate is valid
-- [ ] Health endpoint returns status
-- [ ] Metrics endpoint exposes Prometheus metrics
+- [ ] Hub deploys to Railway successfully with `--demo` flag
+- [ ] WebSocket connections work via `wss://hub.xnet.fyi`
+- [ ] TLS certificate is valid (Railway auto-provisions)
+- [ ] **Standard UCAN auth required** — no anonymous connections
+- [ ] Health endpoint returns `mode: "demo"` with quota info
+- [ ] 10 MB quota enforced per user
+- [ ] 50 document limit enforced
+- [ ] 2 MB blob size limit enforced
+- [ ] EvictionService removes data after 24h inactivity
 - [ ] Rate limiting prevents abuse
-- [ ] Storage quota enforced per user
-- [ ] Graceful shutdown persists data
+- [ ] Demo status sent in handshake (client shows banner)
+- [ ] Cost stays within Railway Hobby $5 credit
 
 ---
 

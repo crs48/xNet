@@ -32,14 +32,14 @@ sequenceDiagram
 ## Share Link Format
 
 ```
-https://xnet.dev/s/[encoded-share-data]
+https://xnet.fyi/s/[encoded-share-data]
 
 Share data (base64url encoded):
 {
   "v": 1,                                    // Version
   "r": "xnet://did:key:z.../workspace/abc",  // Resource
   "u": "eyJ...",                             // UCAN token
-  "h": "wss://hub.xnet.dev"                  // Hub URL (optional)
+  "h": "wss://hub.xnet.fyi"                  // Hub URL (optional)
 }
 ```
 
@@ -102,7 +102,7 @@ export async function createShareToken(
 
   const token = await createUcan({
     issuer: identity,
-    audience: audience ?? 'did:web:xnet.dev', // Public share if no specific audience
+    audience: audience ?? 'did:web:xnet.fyi', // Public share if no specific audience
     capabilities,
     expiration: Math.floor(expiresAt / 1000),
     facts: [
@@ -120,7 +120,7 @@ export async function createShareToken(
     u: token
   }
   const encoded = base64urlEncode(JSON.stringify(shareData))
-  const shareLink = `https://xnet.dev/s/${encoded}`
+  const shareLink = `https://xnet.fyi/s/${encoded}`
 
   return {
     token,

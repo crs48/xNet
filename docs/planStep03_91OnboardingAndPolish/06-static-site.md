@@ -1,51 +1,54 @@
 # 06: Static Site
 
-> Landing page, documentation, and download links at xnet.dev
+> Landing page, documentation, app shell, and download links at xnet.fyi
 
 **Duration:** 4 days
 **Dependencies:** Electron releases, demo hub
 
 ## Overview
 
-The static site serves as the primary entry point for xNet. It explains what xNet is, links to the web app, provides download links for the desktop app, and hosts documentation.
+The static site at `xnet.fyi` serves as the primary entry point for xNet. It's built with Astro + Starlight + Tailwind and already exists in the `site/` directory (not in the pnpm workspace). GitHub Pages hosts it for free; the demo Hub runs separately on Railway at `hub.xnet.fyi`.
 
 ```
-xnet.dev
+xnet.fyi
 ├── /                    # Landing page
+├── /app                # React SPA (Astro React island) — connects to hub.xnet.fyi
 ├── /download           # Platform-specific downloads
-├── /docs               # Documentation
+├── /docs               # Documentation (Starlight)
 │   ├── /getting-started
 │   ├── /features
 │   ├── /self-hosting
 │   └── /api
-├── /app                # Web app (separate build)
 └── /blog               # Optional: updates/changelog
 ```
 
+**Key architectural decisions:**
+
+- **Subpath `/app`** preferred over subdomain `app.xnet.fyi` — keeps passkey rpId as `xnet.fyi` (portable to subdomains later)
+- **Existing `site/` directory** — already set up with Astro + Starlight, NOT in pnpm workspace
+- **Build:** `cd site && pnpm build` (separate from monorepo build)
+
 ## Implementation
 
-### 1. Astro Project Setup
+### 1. Astro Project (Existing)
 
-```bash
-# Create new Astro project
-cd apps
-pnpm create astro@latest static --template minimal --typescript strict
-
-# Add integrations
-cd static
-pnpm add @astrojs/tailwind @astrojs/mdx @astrojs/sitemap
-```
+The site already exists at `site/` with Astro + Starlight. Update the config for the custom domain:
 
 ```typescript
-// apps/static/astro.config.mjs
+// site/astro.config.mjs
 import { defineConfig } from 'astro/config'
+import starlight from '@astrojs/starlight'
 import tailwind from '@astrojs/tailwind'
-import mdx from '@astrojs/mdx'
-import sitemap from '@astrojs/sitemap'
+import react from '@astrojs/react'
 
 export default defineConfig({
-  site: 'https://xnet.dev',
-  integrations: [tailwind(), mdx(), sitemap()],
+  site: 'https://xnet.fyi',
+  base: '/', // Was '/xNet' before custom domain
+  integrations: [
+    starlight({ title: 'xNet' /* ... */ }),
+    tailwind(),
+    react() // For /app React SPA island
+  ],
   output: 'static'
 })
 ```
@@ -54,7 +57,7 @@ export default defineConfig({
 
 ```astro
 ---
-// apps/static/src/pages/index.astro
+// site/src/pages/index.astro
 import Layout from '../layouts/Layout.astro'
 import Hero from '../components/Hero.astro'
 import Features from '../components/Features.astro'
@@ -73,7 +76,7 @@ import CTA from '../components/CTA.astro'
 
 ```astro
 ---
-// apps/static/src/components/Hero.astro
+// site/src/components/Hero.astro
 ---
 
 <section class="hero">
@@ -213,7 +216,7 @@ import CTA from '../components/CTA.astro'
 
 ```astro
 ---
-// apps/static/src/components/Features.astro
+// site/src/components/Features.astro
 const features = [
   {
     icon: 'lock',
@@ -274,7 +277,7 @@ const features = [
 
 ```astro
 ---
-// apps/static/src/pages/download.astro
+// site/src/pages/download.astro
 import Layout from '../layouts/Layout.astro'
 
 // Fetch latest release from GitHub API at build time
@@ -374,7 +377,7 @@ function getDownloadUrl(pattern: string) {
 ### 5. Documentation Structure
 
 ```
-apps/static/src/content/docs/
+site/src/content/docs/docs/  # Note: double docs/ — Starlight convention
 ├── getting-started/
 │   ├── index.mdx
 │   ├── first-steps.mdx
@@ -400,7 +403,7 @@ apps/static/src/content/docs/
 
 ```mdx
 ---
-// apps/static/src/content/docs/getting-started/index.mdx
+// site/src/content/docs/docs/getting-started/index.mdx
 title: Getting Started
 description: Get up and running with xNet in 5 minutes
 ---
@@ -412,7 +415,7 @@ xNet is a local-first workspace for your notes, tasks, and ideas. Here's how to 
 ## Quick Start
 
 1. **[Open xNet](/app)** in your browser, or [download the desktop app](/download)
-2. **Authenticate** with Face ID / Touch ID (or skip for now)
+2. **Authenticate** with Touch ID / Face ID (required)
 3. **Create your first page** and start writing
 
 That's it! No email, no password, no account creation.
@@ -446,7 +449,7 @@ xNet syncs data in two ways:
 1. **Direct P2P**: When devices are on the same network
 2. **Via Hub**: A relay server that bridges devices that can't connect directly
 
-You can use our public hub (`hub.xnet.dev`) or [run your own](/docs/self-hosting).
+You can use our demo hub (`hub.xnet.fyi`) or [run your own](/docs/self-hosting).
 
 ### CRDTs
 
@@ -467,7 +470,7 @@ xNet uses CRDTs (Conflict-free Replicated Data Types) to merge changes from mult
 
 ```astro
 ---
-// apps/static/src/layouts/DocsLayout.astro
+// site/src/layouts/DocsLayout.astro (if custom layout needed; Starlight provides its own)
 import Layout from './Layout.astro'
 import DocsSidebar from '../components/DocsSidebar.astro'
 import DocsTableOfContents from '../components/DocsTableOfContents.astro'
@@ -563,7 +566,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'apps/static/**'
+      - 'site/**'
       - '.github/workflows/static-site.yml'
   workflow_dispatch:
 
@@ -580,22 +583,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: cd site && pnpm install --frozen-lockfile
 
       - name: Build site
-        run: |
-          cd apps/static
-          pnpm build
+        run: cd site && pnpm build
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/static/dist
+          path: site/dist
 
   deploy:
     needs: build
@@ -615,8 +615,8 @@ jobs:
 ### 8. Custom Domain Setup
 
 ```
-# apps/static/public/CNAME
-xnet.dev
+# site/public/CNAME
+xnet.fyi
 ```
 
 DNS Configuration:
@@ -627,7 +627,7 @@ A     @     185.199.108.153
 A     @     185.199.109.153
 A     @     185.199.110.153
 A     @     185.199.111.153
-CNAME www   xnet-dev.github.io
+CNAME www   crs48.github.io
 ```
 
 ## Testing
@@ -663,14 +663,15 @@ describe('Static Site', () => {
 
 ## Validation Gate
 
-- [ ] Landing page loads and looks good
+- [ ] Landing page loads and looks good at `xnet.fyi`
+- [ ] `/app` route serves React SPA with passkey-first onboarding
+- [ ] `/app` connects to `hub.xnet.fyi` for demo sync
 - [ ] Download page shows latest release version
 - [ ] Platform detection highlights correct download
-- [ ] "Try it now" links to web app
-- [ ] Documentation renders with navigation
-- [ ] Site deploys to GitHub Pages
-- [ ] Custom domain (xnet.dev) works
-- [ ] SSL certificate active
+- [ ] Documentation renders with Starlight navigation
+- [ ] Site deploys to GitHub Pages from `site/` directory
+- [ ] Custom domain (`xnet.fyi`) works with SSL
+- [ ] Passkey rpId is `xnet.fyi` (portable to subdomains later)
 
 ---
 

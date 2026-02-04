@@ -7,7 +7,11 @@
 
 ## Overview
 
-Passkeys provide the best balance of security and usability for xNet identity. Rather than just using passkeys to "unlock" a stored key (which could be extracted), we use the WebAuthn PRF (Pseudo-Random Function) extension to derive the Ed25519 private key directly from the passkey. This means the key literally cannot exist without biometric authentication.
+Passkeys are the **required** authentication method for xNet — both in the demo at `xnet.fyi/app` and in the desktop app. There is no anonymous mode, no "skip for now" option, and no separate demo auth path. One Touch ID / Face ID tap (~1 second) creates the user's cryptographic identity, and the same code runs everywhere.
+
+We use the WebAuthn PRF (Pseudo-Random Function) extension to derive the Ed25519 private key directly from the passkey. This means the key literally cannot exist without biometric authentication. Since passkey-first is required, we avoid the complexity of anonymous connection handling, DID migration, and demo-specific auth middleware.
+
+**Browser requirements:** Chrome 116+, Safari 18+, Edge 116+ (all support PRF). Users on unsupported browsers see a clear message directing them to the desktop app.
 
 ```mermaid
 sequenceDiagram
@@ -350,9 +354,9 @@ async function deriveKeySeed(prfOutput: Uint8Array): Promise<Uint8Array> {
 }
 ```
 
-### 5. Fallback for Non-PRF Browsers
+### 5. Edge Case: PRF Not Supported by Authenticator
 
-For browsers/authenticators that don't support PRF, we fall back to passkey-protected encrypted storage:
+On browsers that support WebAuthn but where the specific authenticator doesn't support PRF (rare in 2026), we fall back to passkey-protected encrypted storage. This is a narrow edge case — not a primary flow. The UX is the same (biometric tap), but the key is encrypted in IndexedDB rather than derived on-the-fly:
 
 ```typescript
 // packages/identity/src/passkey/fallback.ts
@@ -740,7 +744,9 @@ describe('PasskeyIdentity', () => {
 - [ ] `createPasskeyIdentity()` creates credential with PRF extension
 - [ ] `unlockPasskeyIdentity()` derives identical key from same passkey
 - [ ] `detectPasskeySupport()` correctly identifies browser capabilities
-- [ ] Fallback mode works for non-PRF authenticators
+- [ ] Passkey is **required** — no skip option, no anonymous mode
+- [ ] Unsupported browsers show clear message directing to desktop app
+- [ ] PRF-not-supported authenticators fall back to encrypted storage (edge case)
 - [ ] React hook manages state correctly
 - [ ] Electron integration uses native Touch ID
 - [ ] Keys are never persisted - only derived on unlock

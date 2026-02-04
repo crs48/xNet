@@ -9,21 +9,20 @@ This plan takes xNet from "working prototype" to "releasable product" by focusin
 The user journey we're building:
 
 ```
-1. Visit xnet.dev (static site)
-2. Try the web app on our demo hub
-3. Generate identity, save to passkey
-4. Create pages, databases, canvases
-5. Download desktop app (linked from site)
-6. Login with passkey - data syncs instantly
-7. Share with others via hub
-8. Optionally: spin up your own hub on a VPS
+1. Visit xnet.fyi (landing page on GitHub Pages)
+2. Click "Try it now" → xnet.fyi/app
+3. Tap Touch ID / Face ID (~1 second) → identity created
+4. Create pages, databases, canvases (synced via demo Hub)
+5. Share with others via link
+6. Download desktop app → same passkey → data syncs instantly
+7. Optionally: deploy your own Hub on Railway or VPS
 ```
 
 ```mermaid
 flowchart TB
     subgraph "Entry Points"
-        SITE[xnet.dev Static Site]
-        WEB[Web App on Demo Hub]
+        SITE[xnet.fyi Landing + Docs]
+        WEB[Web App at xnet.fyi/app]
         DESKTOP[Electron Desktop App]
         MOBILE[Expo Mobile App]
     end
@@ -35,7 +34,7 @@ flowchart TB
     end
 
     subgraph "Sync Infrastructure"
-        DEMO_HUB[Demo Hub - hub.xnet.dev]
+        DEMO_HUB[Demo Hub - hub.xnet.fyi]
         SELF_HUB[Self-Hosted Hub]
         P2P[Direct P2P Sync]
     end
@@ -65,25 +64,28 @@ flowchart TB
 
 ## Architecture Decisions
 
-| Decision             | Choice                   | Rationale                                                      |
-| -------------------- | ------------------------ | -------------------------------------------------------------- |
-| Primary auth         | Passkeys (WebAuthn)      | Biometric unlock, no passwords, cross-device via iCloud/Google |
-| Key storage          | Passkey PRF extension    | Keys derived from passkey, not just protected by it            |
-| Desktop distribution | GitHub Releases CD       | Auto-updates, code signing, cross-platform                     |
-| Demo hub             | Fly.io                   | Simple deploy, global edge, $5/mo                              |
-| Self-hosted docs     | VPS guide + Docker image | Low barrier, reproducible                                      |
-| Static site          | Astro                    | Fast, modern, good DX                                          |
+| Decision             | Choice                     | Rationale                                                        |
+| -------------------- | -------------------------- | ---------------------------------------------------------------- |
+| Primary auth         | Passkeys (WebAuthn)        | Biometric unlock, no passwords, cross-device via iCloud/Google   |
+| Key storage          | Passkey PRF extension      | Keys derived from passkey, not just protected by it              |
+| Auth model           | Passkey-first, required    | Same auth code for demo + production, no anonymous mode          |
+| Desktop distribution | GitHub Releases CD         | Auto-updates, code signing, cross-platform                       |
+| Demo hub             | Railway                    | Usage-based pricing (~$0/mo with Hobby credit), one-click deploy |
+| Demo domain          | xnet.fyi                   | GH Pages for site/app, Railway for Hub at hub.xnet.fyi           |
+| Demo data policy     | 10 MB quota, 24h eviction  | Sandbox feel, natural graduation path to desktop/self-hosted     |
+| Self-hosted docs     | VPS/Railway guide + Docker | Low barrier, multiple deployment options                         |
+| Static site          | Astro + Starlight          | Fast, modern, good DX, already built at site/                    |
 
 ## Current State
 
-| Component       | Status      | Notes                                              |
-| --------------- | ----------- | -------------------------------------------------- |
-| Identity system | Partial     | Ed25519/DID:key works, passkey integration missing |
-| Hub             | Partial     | Signaling + relay works, needs polish              |
-| Electron app    | Working     | Needs CD pipeline, auto-update, code signing       |
-| Web app         | Working     | Needs hub connection UI, onboarding flow           |
-| Expo app        | Working     | Lower priority, compile-your-own for now           |
-| Static site     | Not started | Landing page, docs, download links needed          |
+| Component       | Status  | Notes                                               |
+| --------------- | ------- | --------------------------------------------------- |
+| Identity system | Partial | Ed25519/DID:key works, passkey integration missing  |
+| Hub             | Partial | Signaling + relay works, needs demo mode + eviction |
+| Electron app    | Working | Needs CD pipeline, auto-update, code signing        |
+| Web app         | Working | Needs passkey auth, Hub connection, demo UX         |
+| Expo app        | Working | Lower priority, compile-your-own for now            |
+| Static site     | Working | Landing page + docs at site/, needs xnet.fyi domain |
 
 ## Implementation Phases
 
@@ -98,10 +100,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] New user can create identity protected by passkey
+- [ ] New user creates identity via passkey on first visit (required, not optional)
 - [ ] Returning user unlocks with biometric (Face ID / Touch ID / Windows Hello)
-- [ ] Keys are derived from passkey, not stored in plain IndexedDB
-- [ ] Works in Chrome, Safari, Firefox (with fallbacks)
+- [ ] Keys are derived from passkey PRF, not stored in plain IndexedDB
+- [ ] Works in Chrome 116+, Safari 18+, Edge 116+ (PRF required)
 
 ### Phase 2: Onboarding Flow (Days 5-7)
 
@@ -114,9 +116,9 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] New user goes from landing to working in < 60 seconds
-- [ ] Passkey setup is encouraged but skippable
-- [ ] Hub connection is automatic for demo, configurable for advanced
+- [ ] New user goes from landing to working in < 10 seconds (one biometric tap)
+- [ ] Passkey is required — no skip option, no anonymous mode
+- [ ] Demo Hub connection is automatic after passkey creation
 - [ ] User sees sample content to understand features
 
 ### Phase 3: Cross-Device Sync (Days 8-11)
@@ -178,26 +180,26 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] xnet.dev shows landing page
+- [ ] xnet.fyi shows landing page (GitHub Pages with custom domain)
 - [ ] Download links point to latest GitHub releases
 - [ ] Docs explain features, self-hosting, API
-- [ ] "Try it now" links to web app on demo hub
+- [ ] "Try it now" links to xnet.fyi/app (demo with passkey + Hub)
 
 ### Phase 7: Demo Hub Deployment (Days 23-25)
 
-| Task | Document                           | Description                |
-| ---- | ---------------------------------- | -------------------------- |
-| 7.1  | [07-demo-hub.md](./07-demo-hub.md) | Fly.io deployment config   |
-| 7.2  | [07-demo-hub.md](./07-demo-hub.md) | TLS certificate setup      |
-| 7.3  | [07-demo-hub.md](./07-demo-hub.md) | Monitoring and alerts      |
-| 7.4  | [07-demo-hub.md](./07-demo-hub.md) | Usage limits for free tier |
+| Task | Document                           | Description                          |
+| ---- | ---------------------------------- | ------------------------------------ |
+| 7.1  | [07-demo-hub.md](./07-demo-hub.md) | Railway deployment (hub.xnet.fyi)    |
+| 7.2  | [07-demo-hub.md](./07-demo-hub.md) | Demo mode: 10 MB quota, 24h eviction |
+| 7.3  | [07-demo-hub.md](./07-demo-hub.md) | Monitoring and alerts                |
+| 7.4  | [07-demo-hub.md](./07-demo-hub.md) | Standard UCAN auth (passkey-first)   |
 
 **Validation Gate:**
 
-- [ ] hub.xnet.dev accepts WebSocket connections
-- [ ] TLS works (wss://)
-- [ ] Basic metrics visible in Grafana/Fly dashboard
-- [ ] Rate limiting prevents abuse
+- [ ] hub.xnet.fyi accepts WebSocket connections (Railway)
+- [ ] TLS works (wss://) with custom domain
+- [ ] Demo quotas enforced (10 MB per DID, 24h eviction)
+- [ ] Rate limiting prevents abuse, standard UCAN auth
 
 ### Phase 8: Self-Hosted Hub Guide (Days 26-28)
 
@@ -221,14 +223,14 @@ flowchart TB
 | ---- | ------------------------------ | -------------------------------- |
 | 9.1  | [09-hub-cd.md](./09-hub-cd.md) | GitHub Actions for Docker build  |
 | 9.2  | [09-hub-cd.md](./09-hub-cd.md) | Multi-arch images (amd64, arm64) |
-| 9.3  | [09-hub-cd.md](./09-hub-cd.md) | Automated Fly.io deploys         |
+| 9.3  | [09-hub-cd.md](./09-hub-cd.md) | Automated Railway/Fly.io deploys |
 | 9.4  | [09-hub-cd.md](./09-hub-cd.md) | Version tagging strategy         |
 
 **Validation Gate:**
 
 - [ ] Push to main builds and publishes Docker image
 - [ ] Image works on both x86 and ARM VPS
-- [ ] Demo hub auto-deploys on release
+- [ ] Demo Hub auto-deploys to Railway on release
 - [ ] Semantic versioning for hub releases
 
 ### Phase 10: Expo Polish (Days 31-32)
@@ -270,29 +272,25 @@ flowchart TB
 ```mermaid
 sequenceDiagram
     participant User
-    participant Site as xnet.dev
-    participant Web as Web App
-    participant Hub as Demo Hub
+    participant Site as xnet.fyi
+    participant Web as Web App (/app)
     participant Passkey as Passkey Provider
+    participant Hub as Demo Hub (hub.xnet.fyi)
 
-    User->>Site: Visit xnet.dev
+    User->>Site: Visit xnet.fyi
     Site->>User: Landing page + "Try it now"
     User->>Web: Click "Try it now"
-    Web->>User: Welcome screen
+    Web->>User: "Use Touch ID to get started"
 
-    User->>Web: "Get Started"
-    Web->>Passkey: Create passkey credential
-    Passkey->>User: Biometric prompt
-    User->>Passkey: Touch ID / Face ID
-    Passkey->>Web: Credential created
-
+    User->>Passkey: Touch ID / Face ID (~1 sec)
+    Passkey->>Web: PRF output
     Web->>Web: Derive Ed25519 key from PRF
-    Web->>Web: Generate DID:key
+    Web->>Web: Generate DID:key + mint UCAN
 
     Web->>Hub: Connect with UCAN
     Hub->>Web: Connected
 
-    Web->>User: Ready! Here's a sample page
+    Web->>User: Ready! Demo banner + sample page
     User->>Web: Edit, create, explore
     Web->>Hub: Sync changes
 ```
@@ -304,20 +302,21 @@ sequenceDiagram
     participant User
     participant Desktop as Electron App
     participant Passkey as OS Passkey
-    participant Hub as Demo Hub
+    participant Hub as Demo Hub (hub.xnet.fyi)
 
-    User->>Desktop: Launch app
+    User->>Desktop: Launch app (downloaded from xnet.fyi)
     Desktop->>Passkey: Request credential
     Passkey->>User: Touch ID prompt
     User->>Passkey: Authenticate
-    Passkey->>Desktop: Credential + PRF output
+    Passkey->>Desktop: Same PRF output → same keypair
 
-    Desktop->>Desktop: Derive same Ed25519 key
     Desktop->>Desktop: Same DID:key as web
+    Desktop->>Desktop: Mint UCAN
 
     Desktop->>Hub: Connect with UCAN
-    Hub->>Desktop: Sync state (all user's data)
-    Desktop->>User: Everything's here!
+    Hub->>Desktop: Sync all user data from demo
+    Desktop->>Desktop: Store permanently in local SQLite
+    Desktop->>User: Everything's here! Data is now permanent.
 ```
 
 ## Package Changes
@@ -329,7 +328,7 @@ sequenceDiagram
 | `@xnet/hub`      | Add rate limiting, monitoring endpoints, usage quotas |
 | `apps/electron`  | Add auto-update, code signing, passkey integration    |
 | `apps/web`       | Add onboarding wizard, hub config UI                  |
-| `apps/static`    | New package - Astro static site                       |
+| `site/`          | Add @astrojs/react, /app route, demo UX components    |
 
 ## Dependencies
 
@@ -337,45 +336,49 @@ sequenceDiagram
 | ------------------------- | -------------- | ---------------------------- |
 | `@simplewebauthn/browser` | @xnet/identity | WebAuthn client-side         |
 | `@simplewebauthn/server`  | @xnet/hub      | WebAuthn server verification |
-| `astro`                   | apps/static    | Static site generator        |
+| `@astrojs/react`          | site/          | React islands for /app route |
 | `electron-updater`        | apps/electron  | Auto-updates                 |
 | `electron-builder`        | apps/electron  | Packaging + signing          |
 
 ## Success Criteria
 
-1. **Zero-friction onboarding** - New user productive in < 60 seconds
-2. **Seamless cross-device** - Data appears instantly on new device after passkey auth
-3. **Secure by default** - Keys protected by biometric, never stored in plaintext
-4. **Self-hostable** - Anyone can run their own hub in 15 minutes
-5. **Auto-updating desktop** - Users always on latest version
-6. **Professional distribution** - No security warnings on any platform
-7. **Documented** - Clear docs for users, developers, and self-hosters
-8. **Accessible** - Core flows work with screen readers
+1. **Instant onboarding** — New user productive in < 10 seconds (one biometric tap)
+2. **Passkey-first** — No anonymous mode, no skip option. Same auth code for demo + production.
+3. **Full demo experience** — Sync, sharing, collab all work on xnet.fyi/app via demo Hub
+4. **Seamless cross-device** — Data appears instantly on new device after same passkey auth
+5. **Secure by default** — Keys derived from passkey PRF, never stored in plaintext
+6. **Natural graduation** — Demo (10 MB, 24h TTL) → Desktop app or self-hosted Hub
+7. **Self-hostable** — Anyone can run their own Hub via Railway (1-click) or VPS (15 min)
+8. **Auto-updating desktop** — Users always on latest version
+9. **Professional distribution** — No security warnings on any platform
+10. **Accessible** — Core flows work with screen readers
 
 ## Risk Mitigation
 
-| Risk                             | Mitigation                                                      |
-| -------------------------------- | --------------------------------------------------------------- |
-| Passkey PRF not widely supported | Fallback to encrypted IndexedDB with passkey unlock             |
-| Code signing costs               | Apple Developer ($99/yr), Windows can use self-signed initially |
-| Demo hub abuse                   | Rate limiting, storage quotas, IP-based limits                  |
-| Complex self-hosting             | One-liner install script, detailed docs                         |
+| Risk                             | Mitigation                                                                                               |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Passkey PRF not widely supported | Require modern browsers (Chrome 116+, Safari 18+, Edge 116+). Show clear error for unsupported browsers. |
+| No anonymous fallback            | Acceptable tradeoff — passkey support is widespread in 2026. Users without it can use the desktop app.   |
+| Code signing costs               | Apple Developer ($99/yr), Windows can use self-signed initially                                          |
+| Demo hub abuse                   | Passkey creation is OS-rate-limited. Plus: quotas, eviction, rate limits.                                |
+| Demo data loss                   | Local IndexedDB is the source of truth. Hub eviction only removes the relay copy.                        |
+| Complex self-hosting             | Railway 1-click deploy as default, VPS guide for power users                                             |
 
 ## Timeline Summary
 
-| Phase             | Duration | Milestone                        |
-| ----------------- | -------- | -------------------------------- |
-| Passkey Auth      | 4 days   | Identity system production-ready |
-| Onboarding        | 3 days   | New user flow polished           |
-| Cross-Device      | 4 days   | Multi-device sync working        |
-| Sharing           | 3 days   | Collaboration features complete  |
-| Electron CD       | 4 days   | Desktop distribution automated   |
-| Static Site       | 4 days   | Public website live              |
-| Demo Hub          | 3 days   | hub.xnet.dev operational         |
-| Self-Hosted Guide | 3 days   | Documentation complete           |
-| Hub CD            | 2 days   | Hub releases automated           |
-| Expo Polish       | 2 days   | Mobile documented                |
-| Final Polish      | 3 days   | Release candidate ready          |
+| Phase             | Duration | Milestone                          |
+| ----------------- | -------- | ---------------------------------- |
+| Passkey Auth      | 4 days   | Identity system production-ready   |
+| Onboarding        | 3 days   | New user flow polished             |
+| Cross-Device      | 4 days   | Multi-device sync working          |
+| Sharing           | 3 days   | Collaboration features complete    |
+| Electron CD       | 4 days   | Desktop distribution automated     |
+| Static Site       | 4 days   | Public website live                |
+| Demo Hub          | 3 days   | hub.xnet.fyi operational (Railway) |
+| Self-Hosted Guide | 3 days   | Documentation complete             |
+| Hub CD            | 2 days   | Hub releases automated             |
+| Expo Polish       | 2 days   | Mobile documented                  |
+| Final Polish      | 3 days   | Release candidate ready            |
 
 **Total: ~35 days (7 weeks)**
 
@@ -385,6 +388,9 @@ sequenceDiagram
 - [Hub Phase 1 Plan](../planStep03_8HubPhase1VPS/README.md) - Hub implementation details
 - [Yjs Security Plan](../planStep03_4_1YjsSecurity/README.md) - Secure sync foundation
 - [Background Sync Manager](../planStep03_3_1BgSync/README.md) - Client sync architecture
+- [Exploration 0049: Hub on Railway](../explorations/0049_HUB_RAILWAY_DEPLOYMENT.md) - Railway as deployment target
+- [Exploration 0050: Web App on GitHub Pages](../explorations/0050_WEB_APP_ON_GITHUB_PAGES.md) - Static demo feasibility
+- [Exploration 0051: Demo Hub on Railway](../explorations/0051_DEMO_HUB_ON_RAILWAY.md) - Full demo architecture (passkey-first, eviction, xnet.fyi)
 
 ---
 

@@ -722,7 +722,7 @@ describe('Cross-Device Sync', () => {
 
   describe('QR Linking', () => {
     it('generates valid QR code', async () => {
-      const { qrData } = await createLinkSession('wss://hub.xnet.dev')
+      const { qrData } = await createLinkSession('wss://hub.xnet.fyi')
 
       expect(qrData).toMatch(/^xnet:\/\/link\?data=/)
       const parsed = parseQRData(qrData)
@@ -732,7 +732,7 @@ describe('Cross-Device Sync', () => {
 
     it('transfers identity securely', async () => {
       const sender = await createIdentity()
-      const { session, qrData } = await createLinkSession('wss://hub.xnet.dev')
+      const { session, qrData } = await createLinkSession('wss://hub.xnet.fyi')
 
       // Simulate receiver
       const receivedIdentity = await acceptLinkRequest(qrData, sender)

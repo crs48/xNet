@@ -732,6 +732,136 @@ describe('Polish', () => {
 })
 ```
 
+### 9. Demo-Specific Polish
+
+When connected to the demo hub (`hub.xnet.fyi`), additional UI elements help users understand the ephemeral nature and guide graduation:
+
+```typescript
+// packages/react/src/components/DemoBanner.tsx
+
+export function DemoBanner({ demoLimits }: { demoLimits: DemoLimits }) {
+  const [dismissed, setDismissed] = useState(false)
+
+  if (dismissed) return null
+
+  return (
+    <div className="demo-banner" role="status">
+      <InfoIcon size={16} />
+      <span>
+        Demo mode — data expires after 24h of inactivity.
+        {' '}<a href="/download">Download the desktop app</a> to keep your data.
+      </span>
+      <button
+        className="dismiss"
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss demo banner"
+      >
+        <XIcon size={14} />
+      </button>
+    </div>
+  )
+}
+
+// packages/react/src/components/DemoQuotaIndicator.tsx
+
+export function DemoQuotaIndicator({ used, limit }: { used: number; limit: number }) {
+  const percentage = Math.min((used / limit) * 100, 100)
+  const isNearLimit = percentage > 80
+
+  return (
+    <div className={`quota-indicator ${isNearLimit ? 'warning' : ''}`}>
+      <div className="quota-bar">
+        <div className="quota-fill" style={{ width: `${percentage}%` }} />
+      </div>
+      <span className="quota-text">
+        {formatBytes(used)} / {formatBytes(limit)}
+      </span>
+      {isNearLimit && (
+        <span className="quota-warning">
+          Running low — <a href="/download">upgrade to desktop</a>
+        </span>
+      )}
+    </div>
+  )
+}
+
+// packages/react/src/components/DemoDataExpired.tsx
+// Shown when user returns after eviction
+
+export function DemoDataExpiredScreen() {
+  return (
+    <div className="onboarding-screen data-expired">
+      <div className="icon">
+        <ClockIcon size={48} />
+      </div>
+
+      <h1>Your demo data has expired</h1>
+
+      <p>
+        Demo data is automatically removed after 24 hours of inactivity.
+        Your identity is still safe — it's stored in your passkey.
+      </p>
+
+      <button className="primary-button" onClick={createNewWorkspace}>
+        Start fresh
+      </button>
+
+      <a href="/download" className="secondary-button">
+        Download desktop app (data never expires)
+      </a>
+    </div>
+  )
+}
+```
+
+```css
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--info-bg);
+  border-bottom: 1px solid var(--info-border);
+  font-size: 0.875rem;
+}
+
+.demo-banner .dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.quota-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.quota-bar {
+  width: 60px;
+  height: 4px;
+  background: var(--surface-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.quota-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.quota-indicator.warning .quota-fill {
+  background: var(--warning);
+}
+```
+
 ## Validation Gate
 
 - [ ] Error boundary catches React errors gracefully
@@ -746,6 +876,10 @@ describe('Polish', () => {
 - [ ] Screen reader can navigate main flows
 - [ ] Large lists are virtualized
 - [ ] No unhandled promise rejections in console
+- [ ] **Demo banner** shows when connected to demo hub
+- [ ] **Quota indicator** shows usage and warns near limit
+- [ ] **Data expired screen** shows graceful recovery after eviction
+- [ ] **Graduation CTAs** (download desktop app) visible throughout demo experience
 
 ---
 
