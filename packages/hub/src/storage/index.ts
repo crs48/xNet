@@ -11,6 +11,8 @@ export type {
   BlobMeta,
   DocMeta,
   AwarenessEntry,
+  PeerEndpoint,
+  PeerRecord,
   FileMeta,
   SchemaRecord,
   SearchOptions,

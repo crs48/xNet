@@ -67,6 +67,24 @@ export type AwarenessEntry = {
   lastSeen: number
 }
 
+export type PeerEndpoint = {
+  type: 'websocket' | 'webrtc-signaling' | 'libp2p' | 'http'
+  address: string
+  priority: number
+}
+
+export type PeerRecord = {
+  did: string
+  publicKeyB64: string
+  displayName?: string
+  endpoints: PeerEndpoint[]
+  hubUrl?: string
+  capabilities: string[]
+  lastSeen: number
+  registeredAt: number
+  version: number
+}
+
 export type SchemaRecord = {
   iri: string
   version: number
@@ -128,6 +146,13 @@ export type HubStorage = {
   getAwareness: (room: string) => Promise<AwarenessEntry[]>
   removeAwareness: (room: string, userDid: string) => Promise<void>
   cleanStaleAwareness: (olderThanMs: number) => Promise<number>
+
+  upsertPeer: (peer: PeerRecord) => Promise<void>
+  getPeer: (did: string) => Promise<PeerRecord | null>
+  listRecentPeers: (limit?: number) => Promise<PeerRecord[]>
+  searchPeers: (query: string) => Promise<PeerRecord[]>
+  removeStalePeers: (olderThanMs: number) => Promise<number>
+  getPeerCount: () => Promise<number>
 
   putSchema: (schema: SchemaRecord) => Promise<void>
   getSchema: (iri: string, version?: number) => Promise<SchemaRecord | null>

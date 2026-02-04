@@ -8,6 +8,7 @@ import type {
   DocMeta,
   FileMeta,
   HubStorage,
+  PeerRecord,
   SchemaRecord,
   SearchOptions,
   SearchResult,
@@ -24,6 +25,7 @@ export const createMemoryStorage = (): HubStorage => {
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
   const schemasByIri = new Map<string, Map<number, SchemaRecord>>()
   const awarenessByRoom = new Map<string, Map<string, AwarenessEntry>>()
+  const peersByDid = new Map<string, PeerRecord>()
 
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value && typeof value === 'object')
@@ -197,6 +199,39 @@ export const createMemoryStorage = (): HubStorage => {
     return removed
   }
 
+  const upsertPeer = async (peer: PeerRecord): Promise<void> => {
+    peersByDid.set(peer.did, peer)
+  }
+
+  const getPeer = async (did: string): Promise<PeerRecord | null> => peersByDid.get(did) ?? null
+
+  const listRecentPeers = async (limit = 50): Promise<PeerRecord[]> =>
+    Array.from(peersByDid.values())
+      .sort((a, b) => b.lastSeen - a.lastSeen)
+      .slice(0, limit)
+
+  const searchPeers = async (query: string): Promise<PeerRecord[]> => {
+    const q = query.toLowerCase()
+    return Array.from(peersByDid.values()).filter((peer) => {
+      const name = peer.displayName?.toLowerCase() ?? ''
+      return peer.did.toLowerCase().includes(q) || name.includes(q)
+    })
+  }
+
+  const removeStalePeers = async (olderThanMs: number): Promise<number> => {
+    const cutoff = Date.now() - olderThanMs
+    let removed = 0
+    for (const [did, peer] of peersByDid.entries()) {
+      if (peer.lastSeen < cutoff) {
+        peersByDid.delete(did)
+        removed++
+      }
+    }
+    return removed
+  }
+
+  const getPeerCount = async (): Promise<number> => peersByDid.size
+
   const putSchema = async (schema: SchemaRecord): Promise<void> => {
     const versions = schemasByIri.get(schema.iri) ?? new Map<number, SchemaRecord>()
     versions.set(schema.version, schema)
@@ -290,6 +325,7 @@ export const createMemoryStorage = (): HubStorage => {
     files.clear()
     schemasByIri.clear()
     awarenessByRoom.clear()
+    peersByDid.clear()
   }
 
   return {
@@ -314,6 +350,12 @@ export const createMemoryStorage = (): HubStorage => {
     getAwareness,
     removeAwareness,
     cleanStaleAwareness,
+    upsertPeer,
+    getPeer,
+    listRecentPeers,
+    searchPeers,
+    removeStalePeers,
+    getPeerCount,
     putSchema,
     getSchema,
     listSchemasByAuthor,
