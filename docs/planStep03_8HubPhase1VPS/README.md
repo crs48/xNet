@@ -375,11 +375,11 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] Peers can register endpoints by DID
-- [ ] Other peers can resolve DIDs to endpoints
-- [ ] Auto-registration on authenticated WS connect
-- [ ] `DIDResolver.resolve()` returns hub-registered endpoints (not null)
-- [ ] Stale peers cleaned up after 7 days
+- [x] Peers can register endpoints by DID
+- [x] Other peers can resolve DIDs to endpoints
+- [x] Auto-registration on authenticated WS connect
+- [x] `DIDResolver.resolve()` returns hub-registered endpoints (not null)
+- [x] Stale peers cleaned up after 7 days
 
 ### Phase 13: Hub Federation Search (Days 16-18)
 

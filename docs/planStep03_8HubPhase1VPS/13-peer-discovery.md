@@ -678,18 +678,18 @@ describe('Peer Discovery', () => {
 
 ## Checklist
 
-- [ ] Add `peer_registry` table to SQLite schema
-- [ ] Add peer discovery methods to `HubStorage` interface
-- [ ] Implement `DiscoveryService` (register, resolve, heartbeat, cleanup)
-- [ ] Create Hono routes: POST /register, GET /:did, GET / (list)
-- [ ] Auto-register peers on authenticated WebSocket connect
-- [ ] Update heartbeat on WebSocket message activity
-- [ ] Implement `DIDResolver` in `@xnet/network` (replace stub)
-- [ ] Add resolution cache with TTL
-- [ ] Create `usePeerDiscovery()` React hook
-- [ ] Periodic cleanup of stale peer records
-- [ ] Wire discovery routes into server
-- [ ] Write discovery tests (register, resolve, update, list)
+- [x] Add `peer_registry` table to SQLite schema
+- [x] Add peer discovery methods to `HubStorage` interface
+- [x] Implement `DiscoveryService` (register, resolve, heartbeat, cleanup)
+- [x] Create Hono routes: POST /register, GET /:did, GET / (list)
+- [x] Auto-register peers on authenticated WebSocket connect
+- [x] Update heartbeat on WebSocket message activity
+- [x] Implement `DIDResolver` in `@xnet/network` (replace stub)
+- [x] Add resolution cache with TTL
+- [x] Create `usePeerDiscovery()` React hook
+- [x] Periodic cleanup of stale peer records
+- [x] Wire discovery routes into server
+- [x] Write discovery tests (register, resolve, update, list)
 
 ---
 
