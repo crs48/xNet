@@ -12,6 +12,9 @@ export type SchemaRoutesOptions = {
   requireAuth?: MiddlewareHandler
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === 'object')
+
 export const createSchemaRoutes = (
   schemas: SchemaRegistryService,
   options: SchemaRoutesOptions = {}
@@ -26,6 +29,9 @@ export const createSchemaRoutes = (
     }
 
     const body = await c.req.json()
+    if (!isRecord(body)) {
+      return c.json({ error: 'Invalid schema payload', code: 'INVALID_DEFINITION' }, 400)
+    }
 
     try {
       const record = await schemas.publish(body, {
