@@ -19,6 +19,7 @@ import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createBackupRoutes } from './routes/backup'
+import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
@@ -26,6 +27,7 @@ import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
 import { BackupService } from './services/backup'
 import { AwarenessService } from './services/awareness'
+import { CrawlCoordinator } from './services/crawl'
 import { DiscoveryService } from './services/discovery'
 import { FederationHealthChecker } from './services/federation-health'
 import { FederationService } from './services/federation'
@@ -34,6 +36,7 @@ import { ShardRegistry } from './services/index-shards'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
+import { RobotsChecker } from './services/robots'
 import { SchemaRegistryService } from './services/schemas'
 import { ShardIngestRouter } from './services/shard-ingest'
 import { ShardQueryRouter } from './services/shard-router'
@@ -221,6 +224,29 @@ export const createServer = (config: HubConfig): HubInstance => {
   const shardRebalancer = shardConfig.isRegistry
     ? new ShardRebalancer(shardConfig, storage, shardRegistry)
     : null
+  const crawlDefaults = {
+    enabled: false,
+    maxBatchSize: 10,
+    taskDeadlineMs: 5 * 60 * 1000,
+    domainCooldownMs: 2000,
+    maxQueueSize: 10_000,
+    blocklist: [] as string[],
+    userAgent: 'xNetCrawler/1.0 (+https://xnet.io/crawler)',
+    seedUrls: [] as string[],
+    deadlineCheckIntervalMs: 30_000
+  }
+  const crawlConfig = config.crawl
+    ? {
+        ...crawlDefaults,
+        ...config.crawl,
+        blocklist: config.crawl.blocklist ?? crawlDefaults.blocklist,
+        seedUrls: config.crawl.seedUrls ?? crawlDefaults.seedUrls
+      }
+    : crawlDefaults
+  const robots = crawlConfig.enabled
+    ? new RobotsChecker({ userAgent: crawlConfig.userAgent, cacheTtlMs: 24 * 60 * 60 * 1000 })
+    : null
+  const crawlCoordinator = new CrawlCoordinator(storage, shardIngest, crawlConfig, robots ?? undefined)
   const nodeRelay = new NodeRelayService(storage)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
@@ -307,6 +333,16 @@ export const createServer = (config: HubConfig): HubInstance => {
       })
     )
   }
+  if (crawlConfig.enabled) {
+    app.route(
+      '/crawl',
+      createCrawlRoutes({
+        coordinator: crawlCoordinator,
+        requireAuth,
+        userAgent: crawlConfig.userAgent
+      })
+    )
+  }
 
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null
@@ -327,6 +363,12 @@ export const createServer = (config: HubConfig): HubInstance => {
           url: shardConfig.hubUrl,
           capacity: shardConfig.maxDocsPerShard
         })
+      }
+    }
+    if (crawlConfig.enabled) {
+      crawlCoordinator.start()
+      if (crawlConfig.seedUrls && crawlConfig.seedUrls.length > 0) {
+        await crawlCoordinator.seedUrls(crawlConfig.seedUrls)
       }
     }
     await schemas.seedBuiltInSchemas([
@@ -648,6 +690,7 @@ export const createServer = (config: HubConfig): HubInstance => {
     discovery.stop()
     federationHealth.stop()
     shardRegistry.stop()
+    crawlCoordinator.stop()
     signaling.destroy()
     connectionCount = 0
   }

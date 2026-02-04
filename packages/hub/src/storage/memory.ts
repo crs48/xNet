@@ -11,6 +11,10 @@ import type {
   FederationQueryLog,
   HubStorage,
   PeerRecord,
+  CrawlerProfile,
+  CrawlQueueEntry,
+  CrawlHistoryEntry,
+  CrawlDomainState,
   ShardAssignmentRecord,
   ShardHostRecord,
   ShardPosting,
@@ -39,6 +43,10 @@ export const createMemoryStorage = (): HubStorage => {
   const shardHosts = new Map<string, ShardHostRecord>()
   const shardPostings = new Map<string, ShardPosting>()
   const shardTermStats = new Map<string, ShardTermStat>()
+  const crawlersByDid = new Map<string, CrawlerProfile>()
+  const crawlQueue = new Map<string, CrawlQueueEntry>()
+  const crawlHistory = new Map<string, CrawlHistoryEntry>()
+  const crawlDomains = new Map<string, CrawlDomainState>()
 
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value && typeof value === 'object')
@@ -350,6 +358,63 @@ export const createMemoryStorage = (): HubStorage => {
     shardAssignments.set(shardId, { ...assignment, docCount, updatedAt: Date.now() })
   }
 
+  const upsertCrawler = async (profile: CrawlerProfile): Promise<void> => {
+    crawlersByDid.set(profile.did, profile)
+  }
+
+  const getCrawler = async (did: string): Promise<CrawlerProfile | null> =>
+    crawlersByDid.get(did) ?? null
+
+  const listCrawlers = async (): Promise<CrawlerProfile[]> =>
+    Array.from(crawlersByDid.values()).sort((a, b) => b.registeredAt - a.registeredAt)
+
+  const updateCrawlerStats = async (
+    did: string,
+    updates: { reputation?: number; totalCrawled?: number }
+  ): Promise<void> => {
+    const crawler = crawlersByDid.get(did)
+    if (!crawler) return
+    crawlersByDid.set(did, {
+      ...crawler,
+      reputation: updates.reputation ?? crawler.reputation,
+      totalCrawled: updates.totalCrawled ?? crawler.totalCrawled
+    })
+  }
+
+  const upsertCrawlQueue = async (entry: CrawlQueueEntry): Promise<void> => {
+    crawlQueue.set(entry.url, entry)
+  }
+
+  const getQueuedUrls = async (options: {
+    limit: number
+    languages?: string[]
+    domains?: string[]
+  }): Promise<CrawlQueueEntry[]> => {
+    const langSet = options.languages ? new Set(options.languages) : null
+    const domainSet = options.domains ? new Set(options.domains) : null
+    return Array.from(crawlQueue.values())
+      .filter((entry) => (langSet ? !entry.language || langSet.has(entry.language) : true))
+      .filter((entry) => (domainSet ? domainSet.has(entry.domain) : true))
+      .sort((a, b) =>
+        a.priority === b.priority ? a.enqueuedAt - b.enqueuedAt : b.priority - a.priority
+      )
+      .slice(0, options.limit)
+  }
+
+  const getCrawlHistory = async (url: string): Promise<CrawlHistoryEntry | null> =>
+    crawlHistory.get(url) ?? null
+
+  const appendCrawlHistory = async (entry: CrawlHistoryEntry): Promise<void> => {
+    crawlHistory.set(entry.url, entry)
+  }
+
+  const upsertCrawlDomainState = async (state: CrawlDomainState): Promise<void> => {
+    crawlDomains.set(state.domain, state)
+  }
+
+  const getCrawlDomainState = async (domain: string): Promise<CrawlDomainState | null> =>
+    crawlDomains.get(domain) ?? null
+
   const putSchema = async (schema: SchemaRecord): Promise<void> => {
     const versions = schemasByIri.get(schema.iri) ?? new Map<number, SchemaRecord>()
     versions.set(schema.version, schema)
@@ -450,6 +515,10 @@ export const createMemoryStorage = (): HubStorage => {
     shardHosts.clear()
     shardPostings.clear()
     shardTermStats.clear()
+    crawlersByDid.clear()
+    crawlQueue.clear()
+    crawlHistory.clear()
+    crawlDomains.clear()
   }
 
   return {
@@ -495,6 +564,16 @@ export const createMemoryStorage = (): HubStorage => {
     getShardTermStats,
     getShardStats,
     updateShardDocCount,
+    upsertCrawler,
+    getCrawler,
+    listCrawlers,
+    updateCrawlerStats,
+    upsertCrawlQueue,
+    getQueuedUrls,
+    getCrawlHistory,
+    appendCrawlHistory,
+    upsertCrawlDomainState,
+    getCrawlDomainState,
     putSchema,
     getSchema,
     listSchemasByAuthor,

@@ -17,6 +17,10 @@ import type {
   ShardPosting,
   ShardStats,
   ShardTermStat,
+  CrawlerProfile,
+  CrawlQueueEntry,
+  CrawlHistoryEntry,
+  CrawlDomainState,
   SchemaRecord,
   SearchOptions,
   SearchResult,
@@ -163,6 +167,51 @@ const SCHEMA_SQL = `
     term TEXT NOT NULL,
     doc_freq INTEGER NOT NULL,
     PRIMARY KEY (shard_id, term)
+  );
+
+  CREATE TABLE IF NOT EXISTS crawlers (
+    did TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    capacity INTEGER NOT NULL,
+    languages_json TEXT NOT NULL,
+    domains_json TEXT,
+    reputation INTEGER NOT NULL,
+    total_crawled INTEGER NOT NULL,
+    registered_at INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS crawl_queue (
+    url TEXT PRIMARY KEY,
+    domain TEXT NOT NULL,
+    priority INTEGER NOT NULL,
+    language TEXT,
+    crawl_count INTEGER NOT NULL,
+    last_cid TEXT,
+    last_crawled_at INTEGER,
+    enqueued_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_crawl_queue_domain ON crawl_queue(domain);
+  CREATE INDEX IF NOT EXISTS idx_crawl_queue_priority ON crawl_queue(priority);
+
+  CREATE TABLE IF NOT EXISTS crawl_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT NOT NULL,
+    cid TEXT NOT NULL,
+    title TEXT,
+    status_code INTEGER,
+    content_type TEXT,
+    language TEXT,
+    crawler_did TEXT,
+    crawl_time_ms INTEGER,
+    crawled_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_crawl_history_url ON crawl_history(url, crawled_at);
+
+  CREATE TABLE IF NOT EXISTS crawl_domains (
+    domain TEXT PRIMARY KEY,
+    last_crawled_at INTEGER,
+    cooldown_ms INTEGER NOT NULL,
+    blocked INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS schemas (
@@ -351,6 +400,47 @@ type ShardTermStatRow = {
   doc_freq: number
 }
 
+type CrawlerRow = {
+  did: string
+  type: 'browser' | 'desktop' | 'server'
+  capacity: number
+  languages_json: string
+  domains_json: string | null
+  reputation: number
+  total_crawled: number
+  registered_at: number
+}
+
+type CrawlQueueRow = {
+  url: string
+  domain: string
+  priority: number
+  language: string | null
+  crawl_count: number
+  last_cid: string | null
+  last_crawled_at: number | null
+  enqueued_at: number
+}
+
+type CrawlHistoryRow = {
+  url: string
+  cid: string
+  title: string | null
+  status_code: number | null
+  content_type: string | null
+  language: string | null
+  crawler_did: string | null
+  crawl_time_ms: number | null
+  crawled_at: number
+}
+
+type CrawlDomainRow = {
+  domain: string
+  last_crawled_at: number | null
+  cooldown_ms: number
+  blocked: number
+}
+
 type SchemaRow = {
   iri: string
   version: number
@@ -517,6 +607,43 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
         GROUP BY cid
       )
     `),
+    upsertCrawler: db.prepare(`
+      INSERT OR REPLACE INTO crawlers
+        (did, type, capacity, languages_json, domains_json, reputation, total_crawled, registered_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    getCrawler: db.prepare('SELECT * FROM crawlers WHERE did = ?'),
+    listCrawlers: db.prepare('SELECT * FROM crawlers ORDER BY registered_at DESC'),
+    updateCrawlerStats: db.prepare(`
+      UPDATE crawlers
+      SET reputation = COALESCE(?, reputation),
+          total_crawled = COALESCE(?, total_crawled)
+      WHERE did = ?
+    `),
+    upsertCrawlQueue: db.prepare(`
+      INSERT OR REPLACE INTO crawl_queue
+        (url, domain, priority, language, crawl_count, last_cid, last_crawled_at, enqueued_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    listCrawlQueue: db.prepare(`
+      SELECT * FROM crawl_queue
+      ORDER BY priority DESC, enqueued_at ASC
+      LIMIT ?
+    `),
+    getCrawlHistory: db.prepare(`
+      SELECT * FROM crawl_history WHERE url = ? ORDER BY crawled_at DESC LIMIT 1
+    `),
+    insertCrawlHistory: db.prepare(`
+      INSERT INTO crawl_history
+        (url, cid, title, status_code, content_type, language, crawler_did, crawl_time_ms, crawled_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    upsertCrawlDomain: db.prepare(`
+      INSERT OR REPLACE INTO crawl_domains
+        (domain, last_crawled_at, cooldown_ms, blocked)
+      VALUES (?, ?, ?, ?)
+    `),
+    getCrawlDomain: db.prepare('SELECT * FROM crawl_domains WHERE domain = ?'),
     insertSchema: db.prepare(`
       INSERT OR REPLACE INTO schemas
         (iri, version, definition_json, author_did, name, description, properties_count, created_at)
@@ -1113,6 +1240,135 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     stmts.updateShardDocCount.run(docCount, Date.now(), shardId)
   }
 
+  const rowToCrawler = (row: CrawlerRow): CrawlerProfile => ({
+    did: row.did,
+    type: row.type,
+    capacity: row.capacity,
+    languages: JSON.parse(row.languages_json) as string[],
+    domains: row.domains_json ? (JSON.parse(row.domains_json) as string[]) : undefined,
+    reputation: row.reputation,
+    totalCrawled: row.total_crawled,
+    registeredAt: row.registered_at
+  })
+
+  const upsertCrawler = async (profile: CrawlerProfile): Promise<void> => {
+    stmts.upsertCrawler.run(
+      profile.did,
+      profile.type,
+      profile.capacity,
+      JSON.stringify(profile.languages),
+      profile.domains ? JSON.stringify(profile.domains) : null,
+      profile.reputation,
+      profile.totalCrawled,
+      profile.registeredAt
+    )
+  }
+
+  const getCrawler = async (did: string): Promise<CrawlerProfile | null> => {
+    const row = stmts.getCrawler.get(did) as CrawlerRow | undefined
+    return row ? rowToCrawler(row) : null
+  }
+
+  const listCrawlers = async (): Promise<CrawlerProfile[]> => {
+    const rows = stmts.listCrawlers.all() as CrawlerRow[]
+    return rows.map(rowToCrawler)
+  }
+
+  const updateCrawlerStats = async (
+    did: string,
+    updates: { reputation?: number; totalCrawled?: number }
+  ): Promise<void> => {
+    stmts.updateCrawlerStats.run(updates.reputation ?? null, updates.totalCrawled ?? null, did)
+  }
+
+  const rowToCrawlQueue = (row: CrawlQueueRow): CrawlQueueEntry => ({
+    url: row.url,
+    domain: row.domain,
+    priority: row.priority,
+    language: row.language ?? null,
+    crawlCount: row.crawl_count,
+    lastCid: row.last_cid ?? null,
+    lastCrawledAt: row.last_crawled_at ?? null,
+    enqueuedAt: row.enqueued_at
+  })
+
+  const upsertCrawlQueue = async (entry: CrawlQueueEntry): Promise<void> => {
+    stmts.upsertCrawlQueue.run(
+      entry.url,
+      entry.domain,
+      entry.priority,
+      entry.language ?? null,
+      entry.crawlCount,
+      entry.lastCid ?? null,
+      entry.lastCrawledAt ?? null,
+      entry.enqueuedAt
+    )
+  }
+
+  const getQueuedUrls = async (options: {
+    limit: number
+    languages?: string[]
+    domains?: string[]
+  }): Promise<CrawlQueueEntry[]> => {
+    const rows = stmts.listCrawlQueue.all(options.limit) as CrawlQueueRow[]
+    const langSet = options.languages ? new Set(options.languages) : null
+    const domainSet = options.domains ? new Set(options.domains) : null
+    return rows
+      .map(rowToCrawlQueue)
+      .filter((entry) => (langSet ? !entry.language || langSet.has(entry.language) : true))
+      .filter((entry) => (domainSet ? domainSet.has(entry.domain) : true))
+  }
+
+  const getCrawlHistory = async (url: string): Promise<CrawlHistoryEntry | null> => {
+    const row = stmts.getCrawlHistory.get(url) as CrawlHistoryRow | undefined
+    if (!row) return null
+    return {
+      url: row.url,
+      cid: row.cid,
+      title: row.title ?? '',
+      statusCode: row.status_code ?? 0,
+      contentType: row.content_type ?? '',
+      language: row.language ?? '',
+      crawlerDid: row.crawler_did ?? '',
+      crawlTimeMs: row.crawl_time_ms ?? 0,
+      crawledAt: row.crawled_at
+    }
+  }
+
+  const appendCrawlHistory = async (entry: CrawlHistoryEntry): Promise<void> => {
+    stmts.insertCrawlHistory.run(
+      entry.url,
+      entry.cid,
+      entry.title,
+      entry.statusCode,
+      entry.contentType,
+      entry.language,
+      entry.crawlerDid,
+      entry.crawlTimeMs,
+      entry.crawledAt
+    )
+  }
+
+  const upsertCrawlDomainState = async (state: CrawlDomainState): Promise<void> => {
+    stmts.upsertCrawlDomain.run(
+      state.domain,
+      state.lastCrawledAt,
+      state.cooldownMs,
+      state.blocked ? 1 : 0
+    )
+  }
+
+  const getCrawlDomainState = async (domain: string): Promise<CrawlDomainState | null> => {
+    const row = stmts.getCrawlDomain.get(domain) as CrawlDomainRow | undefined
+    if (!row) return null
+    return {
+      domain: row.domain,
+      lastCrawledAt: row.last_crawled_at ?? 0,
+      cooldownMs: row.cooldown_ms,
+      blocked: row.blocked === 1
+    }
+  }
+
   const deleteBlob = async (key: string): Promise<void> => {
     const row = stmts.deleteBackup.get(key) as BackupRow
     if (row?.blob_path && existsSync(row.blob_path)) {
@@ -1281,6 +1537,16 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     getShardTermStats,
     getShardStats,
     updateShardDocCount,
+    upsertCrawler,
+    getCrawler,
+    listCrawlers,
+    updateCrawlerStats,
+    upsertCrawlQueue,
+    getQueuedUrls,
+    getCrawlHistory,
+    appendCrawlHistory,
+    upsertCrawlDomainState,
+    getCrawlDomainState,
     putSchema,
     getSchema,
     listSchemasByAuthor,

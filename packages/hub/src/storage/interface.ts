@@ -158,6 +158,47 @@ export type ShardStats = {
   avgDocLen: number
 }
 
+export type CrawlerProfile = {
+  did: string
+  type: 'browser' | 'desktop' | 'server'
+  capacity: number
+  languages: string[]
+  domains?: string[]
+  reputation: number
+  totalCrawled: number
+  registeredAt: number
+}
+
+export type CrawlQueueEntry = {
+  url: string
+  domain: string
+  priority: number
+  language?: string | null
+  crawlCount: number
+  lastCid?: string | null
+  lastCrawledAt?: number | null
+  enqueuedAt: number
+}
+
+export type CrawlHistoryEntry = {
+  url: string
+  cid: string
+  title: string
+  statusCode: number
+  contentType: string
+  language: string
+  crawlerDid: string
+  crawlTimeMs: number
+  crawledAt: number
+}
+
+export type CrawlDomainState = {
+  domain: string
+  lastCrawledAt: number
+  cooldownMs: number
+  blocked: boolean
+}
+
 export type SchemaRecord = {
   iri: string
   version: number
@@ -247,6 +288,24 @@ export type HubStorage = {
   getShardTermStats: (shardId: number, terms: string[]) => Promise<ShardTermStat[]>
   getShardStats: (shardId: number) => Promise<ShardStats>
   updateShardDocCount: (shardId: number, docCount: number) => Promise<void>
+
+  upsertCrawler: (profile: CrawlerProfile) => Promise<void>
+  getCrawler: (did: string) => Promise<CrawlerProfile | null>
+  listCrawlers: () => Promise<CrawlerProfile[]>
+  updateCrawlerStats: (
+    did: string,
+    updates: { reputation?: number; totalCrawled?: number }
+  ) => Promise<void>
+  upsertCrawlQueue: (entry: CrawlQueueEntry) => Promise<void>
+  getQueuedUrls: (options: {
+    limit: number
+    languages?: string[]
+    domains?: string[]
+  }) => Promise<CrawlQueueEntry[]>
+  getCrawlHistory: (url: string) => Promise<CrawlHistoryEntry | null>
+  appendCrawlHistory: (entry: CrawlHistoryEntry) => Promise<void>
+  upsertCrawlDomainState: (state: CrawlDomainState) => Promise<void>
+  getCrawlDomainState: (domain: string) => Promise<CrawlDomainState | null>
 
   putSchema: (schema: SchemaRecord) => Promise<void>
   getSchema: (iri: string, version?: number) => Promise<SchemaRecord | null>
