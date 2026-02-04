@@ -8,6 +8,8 @@ import type {
   DocMeta,
   FileMeta,
   HubStorage,
+  PeerEndpoint,
+  PeerRecord,
   SchemaRecord,
   SearchOptions,
   SearchResult,
@@ -71,6 +73,20 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_awareness_room ON awareness_state(room);
   CREATE INDEX IF NOT EXISTS idx_awareness_stale ON awareness_state(last_seen);
+
+  CREATE TABLE IF NOT EXISTS peer_registry (
+    did TEXT PRIMARY KEY,
+    public_key_b64 TEXT NOT NULL,
+    display_name TEXT,
+    endpoints_json TEXT NOT NULL,
+    hub_url TEXT,
+    capabilities_json TEXT DEFAULT '[]',
+    last_seen INTEGER NOT NULL,
+    registered_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+    version INTEGER NOT NULL DEFAULT 1
+  );
+  CREATE INDEX IF NOT EXISTS idx_peer_last_seen ON peer_registry(last_seen);
+  CREATE INDEX IF NOT EXISTS idx_peer_hub ON peer_registry(hub_url);
 
   CREATE TABLE IF NOT EXISTS schemas (
     iri TEXT NOT NULL,
@@ -193,6 +209,18 @@ type AwarenessRow = {
   last_seen: number
 }
 
+type PeerRow = {
+  did: string
+  public_key_b64: string
+  display_name: string | null
+  endpoints_json: string
+  hub_url: string | null
+  capabilities_json: string
+  last_seen: number
+  registered_at: number
+  version: number
+}
+
 type SchemaRow = {
   iri: string
   version: number
@@ -291,6 +319,20 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     `),
     deleteAwareness: db.prepare('DELETE FROM awareness_state WHERE room = ? AND user_did = ?'),
     cleanAwareness: db.prepare('DELETE FROM awareness_state WHERE last_seen < ?'),
+    upsertPeer: db.prepare(`
+      INSERT OR REPLACE INTO peer_registry
+        (did, public_key_b64, display_name, endpoints_json, hub_url, capabilities_json, last_seen, registered_at, version)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    getPeer: db.prepare('SELECT * FROM peer_registry WHERE did = ?'),
+    listRecentPeers: db.prepare('SELECT * FROM peer_registry ORDER BY last_seen DESC LIMIT ?'),
+    searchPeers: db.prepare(`
+      SELECT * FROM peer_registry
+      WHERE did LIKE ? OR display_name LIKE ?
+      ORDER BY last_seen DESC
+    `),
+    removeStalePeers: db.prepare('DELETE FROM peer_registry WHERE last_seen < ?'),
+    getPeerCount: db.prepare('SELECT COUNT(*) as count FROM peer_registry'),
     insertSchema: db.prepare(`
       INSERT OR REPLACE INTO schemas
         (iri, version, definition_json, author_did, name, description, properties_count, created_at)
@@ -629,6 +671,59 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     return result.changes ?? 0
   }
 
+  const rowToPeerRecord = (row: PeerRow): PeerRecord => ({
+    did: row.did,
+    publicKeyB64: row.public_key_b64,
+    displayName: row.display_name ?? undefined,
+    endpoints: JSON.parse(row.endpoints_json) as PeerEndpoint[],
+    hubUrl: row.hub_url ?? undefined,
+    capabilities: JSON.parse(row.capabilities_json) as string[],
+    lastSeen: row.last_seen,
+    registeredAt: row.registered_at,
+    version: row.version
+  })
+
+  const upsertPeer = async (peer: PeerRecord): Promise<void> => {
+    stmts.upsertPeer.run(
+      peer.did,
+      peer.publicKeyB64,
+      peer.displayName ?? null,
+      JSON.stringify(peer.endpoints),
+      peer.hubUrl ?? null,
+      JSON.stringify(peer.capabilities),
+      peer.lastSeen,
+      peer.registeredAt,
+      peer.version
+    )
+  }
+
+  const getPeer = async (did: string): Promise<PeerRecord | null> => {
+    const row = stmts.getPeer.get(did) as PeerRow | undefined
+    return row ? rowToPeerRecord(row) : null
+  }
+
+  const listRecentPeers = async (limit = 50): Promise<PeerRecord[]> => {
+    const rows = stmts.listRecentPeers.all(limit) as PeerRow[]
+    return rows.map(rowToPeerRecord)
+  }
+
+  const searchPeers = async (query: string): Promise<PeerRecord[]> => {
+    const pattern = `%${query}%`
+    const rows = stmts.searchPeers.all(pattern, pattern) as PeerRow[]
+    return rows.map(rowToPeerRecord)
+  }
+
+  const removeStalePeers = async (olderThanMs: number): Promise<number> => {
+    const cutoff = Date.now() - olderThanMs
+    const result = stmts.removeStalePeers.run(cutoff) as { changes: number }
+    return result.changes ?? 0
+  }
+
+  const getPeerCount = async (): Promise<number> => {
+    const row = stmts.getPeerCount.get() as { count: number } | undefined
+    return row?.count ?? 0
+  }
+
   const deleteBlob = async (key: string): Promise<void> => {
     const row = stmts.deleteBackup.get(key) as BackupRow
     if (row?.blob_path && existsSync(row.blob_path)) {
@@ -776,6 +871,12 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     getAwareness,
     removeAwareness,
     cleanStaleAwareness,
+    upsertPeer,
+    getPeer,
+    listRecentPeers,
+    searchPeers,
+    removeStalePeers,
+    getPeerCount,
     putSchema,
     getSchema,
     listSchemasByAuthor,
