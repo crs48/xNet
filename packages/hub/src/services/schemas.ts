@@ -3,6 +3,7 @@
  */
 
 import type { HubStorage, SchemaRecord } from '../storage/interface'
+import { isRecord } from '../utils/validation'
 
 export type SchemaPropertyDefinition = {
   '@id': string
@@ -66,9 +67,6 @@ const KNOWN_CONFIG_KEYS = new Set([
   'auto',
   'readonly'
 ])
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object')
 
 const sanitizeSearchQuery = (query: string): string =>
   query

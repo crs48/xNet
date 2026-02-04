@@ -5,6 +5,7 @@
 import * as Y from 'yjs'
 import { Awareness, applyAwarenessUpdate } from 'y-protocols/awareness'
 import type { AwarenessEntry, HubStorage } from '../storage/interface'
+import { isRecord } from '../utils/validation'
 
 export type AwarenessConfig = {
   /** TTL for awareness entries (default: 24 hours) */
@@ -28,9 +29,6 @@ type AwarenessRoomState = {
 }
 
 const toBytes = (value: string): Uint8Array => new Uint8Array(Buffer.from(value, 'base64'))
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object')
 
 const extractUserDid = (state: Record<string, unknown>): string | null => {
   if (!isRecord(state.user)) return null

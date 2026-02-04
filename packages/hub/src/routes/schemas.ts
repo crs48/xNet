@@ -7,13 +7,11 @@ import type { AuthContext } from '../auth/ucan'
 import type { SchemaRegistryService } from '../services/schemas'
 import { Hono } from 'hono'
 import { SchemaError } from '../services/schemas'
+import { isRecord } from '../utils/validation'
 
 export type SchemaRoutesOptions = {
   requireAuth?: MiddlewareHandler
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object')
 
 export const createSchemaRoutes = (
   schemas: SchemaRegistryService,

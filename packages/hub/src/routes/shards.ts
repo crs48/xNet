@@ -9,6 +9,7 @@ import type { ShardQueryRouter } from '../services/shard-router'
 import type { ShardRegistry } from '../services/index-shards'
 import type { ShardRebalancer } from '../services/shard-rebalancer'
 import { Hono } from 'hono'
+import { isRecord, toStringArray } from '../utils/validation'
 
 export type ShardRoutesOptions = {
   registry: ShardRegistry
@@ -16,15 +17,6 @@ export type ShardRoutesOptions = {
   router: ShardQueryRouter
   rebalancer?: ShardRebalancer
   requireAuth?: MiddlewareHandler
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object')
-
-const toStringArray = (value: unknown): string[] | null => {
-  if (!Array.isArray(value)) return null
-  const filtered = value.filter((item): item is string => typeof item === 'string')
-  return filtered.length === value.length ? filtered : null
 }
 
 export const createShardRoutes = (options: ShardRoutesOptions): Hono => {
