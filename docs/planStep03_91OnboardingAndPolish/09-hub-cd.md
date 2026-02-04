@@ -7,7 +7,7 @@
 
 ## Overview
 
-When changes are pushed to the hub package, GitHub Actions builds multi-architecture Docker images and publishes them to GitHub Container Registry. Tagged releases auto-deploy to the demo hub on Fly.io.
+When changes are pushed to the hub package, GitHub Actions builds multi-architecture Docker images and publishes them to GitHub Container Registry. Tagged releases auto-deploy to the demo hub on Railway.
 
 ```mermaid
 flowchart LR
@@ -19,12 +19,12 @@ flowchart LR
     subgraph "GitHub Actions"
         BUILD[Build Docker<br/>amd64 + arm64]
         PUSH_GHCR[Push to GHCR]
-        DEPLOY[Deploy to Fly.io]
+        DEPLOY[Deploy to Railway]
     end
 
     subgraph "Outputs"
         GHCR[ghcr.io/xnet-dev/<br/>xnet-hub:latest]
-        FLY[hub.xnet.dev]
+        RAILWAY[hub.xnet.fyi]
     end
 
     PUSH --> BUILD
@@ -32,7 +32,7 @@ flowchart LR
     BUILD --> PUSH_GHCR
     PUSH_GHCR --> GHCR
     TAG --> DEPLOY
-    DEPLOY --> FLY
+    DEPLOY --> RAILWAY
 ```
 
 ## Implementation
@@ -125,20 +125,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Fly.io
-        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
 
-      - name: Deploy to Fly.io
+      - name: Deploy to Railway
         run: |
-          cd apps/hub-deploy
-          flyctl deploy --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build.outputs.version }}
+          railway up --service xnet-hub
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
       - name: Verify deployment
         run: |
           sleep 30
-          curl -sf https://hub.xnet.dev/health | jq .
+          curl -sf https://hub.xnet.fyi/health | jq .
           if [ $? -ne 0 ]; then
             echo "Health check failed!"
             exit 1
@@ -156,7 +155,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "*xNet Hub Deployed*\nVersion: `${{ needs.build.outputs.version }}`\nEnvironment: Production\n<https://hub.xnet.dev/health|Health Check>"
+                    "text": "*xNet Hub Deployed*\nVersion: `${{ needs.build.outputs.version }}`\nEnvironment: Production (Railway)\n<https://hub.xnet.fyi/health|Health Check>"
                   }
                 }
               ]
@@ -466,23 +465,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy canary
-        uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Install Railway CLI
+        run: npm i -g @railway/cli
 
       - name: Deploy to canary
-        run: |
-          cd apps/hub-deploy
-          flyctl deploy \
-            --app xnet-hub-canary \
-            --image ghcr.io/xnet-dev/xnet-hub:main
+        run: railway up --service xnet-hub-canary
         env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
 
       - name: Run smoke tests
         run: |
           # Test WebSocket connection
           npm install -g wscat
-          echo '{"type":"ping"}' | wscat -c wss://canary.hub.xnet.dev -w 5
+          echo '{"type":"ping"}' | wscat -c wss://canary.hub.xnet.fyi -w 5
 
       - name: Promote to production
         if: success()
@@ -531,7 +526,7 @@ describe('Hub CD Pipeline', () => {
 
 - [ ] Docker image builds for amd64 and arm64
 - [ ] Image pushed to ghcr.io/xnet-dev/xnet-hub
-- [ ] Tagged releases auto-deploy to hub.xnet.dev
+- [ ] Tagged releases auto-deploy to `hub.xnet.fyi` via Railway
 - [ ] Health check passes after deployment
 - [ ] SBOM generated for each release
 - [ ] Security scan runs and reports vulnerabilities

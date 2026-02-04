@@ -1,34 +1,35 @@
 # 02: Onboarding Flow
 
-> First-run experience that gets users productive in 60 seconds
+> First-run experience that gets users productive in 10 seconds
 
 **Duration:** 3 days
 **Dependencies:** [01-passkey-auth.md](./01-passkey-auth.md)
 
 ## Overview
 
-The onboarding flow is the user's first impression of xNet. It should feel effortless - no forms, no email verification, no passwords. Just biometric authentication and they're in.
+The onboarding flow is the user's first impression of xNet. It should feel effortless — no forms, no email verification, no passwords. One Touch ID / Face ID tap (~1 second) creates their identity and they're in. Passkey authentication is **required** — there is no "skip for now" option and no anonymous mode.
 
 ```mermaid
 stateDiagram-v2
     [*] --> Welcome: First visit
 
-    Welcome --> CreateIdentity: "Get Started"
+    Welcome --> Authenticate: "Use Touch ID to get started"
     Welcome --> ImportIdentity: "I have an identity"
 
-    CreateIdentity --> PasskeyPrompt: Auto-triggered
-    PasskeyPrompt --> Ready: Biometric success
-    PasskeyPrompt --> SkipPasskey: "Skip for now"
-    SkipPasskey --> Ready: Device-only key
+    Authenticate --> HubConnect: Biometric success
+    Authenticate --> UnsupportedBrowser: No WebAuthn/PRF
+
+    UnsupportedBrowser --> [*]: Direct to desktop app
 
     ImportIdentity --> QRScan: Scan from another device
     ImportIdentity --> RecoveryPhrase: Enter seed phrase
-    QRScan --> Ready: Identity transferred
-    RecoveryPhrase --> Ready: Identity restored
+    QRScan --> HubConnect: Identity transferred
+    RecoveryPhrase --> HubConnect: Identity restored
 
-    Ready --> HubConnect: Auto-connect to demo hub
-    HubConnect --> Tutorial: Show quick tour
-    Tutorial --> Workspace: Create first page
+    HubConnect --> Ready: Connected to hub.xnet.fyi
+    HubConnect --> Ready: Offline (continue locally)
+
+    Ready --> Workspace: Create first page
 
     Workspace --> [*]: User is productive
 ```
@@ -36,6 +37,8 @@ stateDiagram-v2
 ## Screen Designs
 
 ### Welcome Screen
+
+Passkey creation is the primary action — not a separate step after "Get Started". One tap does everything.
 
 ```
 +--------------------------------------------------+
@@ -49,37 +52,11 @@ stateDiagram-v2
 |                                                  |
 |  +------------------------------------------+   |
 |  |                                          |   |
-|  |           [Get Started]                  |   |
+|  |   [Use Touch ID to get started]          |   |
 |  |                                          |   |
 |  +------------------------------------------+   |
 |                                                  |
 |        I already have an identity               |
-|                                                  |
-+--------------------------------------------------+
-```
-
-### Passkey Setup
-
-```
-+--------------------------------------------------+
-|                                                  |
-|                    [Lock Icon]                   |
-|                                                  |
-|           Secure your identity                   |
-|                                                  |
-|     Use Face ID / Touch ID to protect your      |
-|     data. Your identity stays on your device.   |
-|                                                  |
-|  +------------------------------------------+   |
-|  |                                          |   |
-|  |      [Set up Face ID / Touch ID]         |   |
-|  |                                          |   |
-|  +------------------------------------------+   |
-|                                                  |
-|              Skip for now                        |
-|                                                  |
-|   (Not recommended - data won't sync to other   |
-|    devices securely)                            |
 |                                                  |
 +--------------------------------------------------+
 ```
@@ -95,7 +72,7 @@ stateDiagram-v2
 |                                                  |
 |     Your identity: did:key:z6Mk...xyz           |
 |                                                  |
-|     Connected to: hub.xnet.dev                  |
+|     Connected to: hub.xnet.fyi                  |
 |                                                  |
 |  +------------------------------------------+   |
 |  |                                          |   |
@@ -104,6 +81,30 @@ stateDiagram-v2
 |  +------------------------------------------+   |
 |                                                  |
 |           or explore sample content             |
+|                                                  |
++--------------------------------------------------+
+```
+
+### Unsupported Browser Screen
+
+```
++--------------------------------------------------+
+|                                                  |
+|                    [Warning Icon]                |
+|                                                  |
+|        Browser not supported                     |
+|                                                  |
+|     xNet requires Touch ID / Face ID which      |
+|     isn't available in this browser.             |
+|                                                  |
+|  +------------------------------------------+   |
+|  |                                          |   |
+|  |      [Download Desktop App]              |   |
+|  |                                          |   |
+|  +------------------------------------------+   |
+|                                                  |
+|     Supported: Chrome 116+, Safari 18+,         |
+|     Edge 116+                                    |
 |                                                  |
 +--------------------------------------------------+
 ```
@@ -117,36 +118,35 @@ stateDiagram-v2
 
 export type OnboardingState =
   | 'welcome'
-  | 'create-identity'
-  | 'passkey-prompt'
-  | 'passkey-error'
-  | 'skip-passkey'
+  | 'authenticating'
+  | 'auth-error'
+  | 'unsupported-browser'
   | 'import-identity'
   | 'qr-scan'
   | 'recovery-phrase'
   | 'connecting-hub'
   | 'ready'
-  | 'tutorial'
   | 'complete'
 
 export type OnboardingEvent =
-  | { type: 'GET_STARTED' }
+  | { type: 'AUTHENTICATE' }
   | { type: 'IMPORT_EXISTING' }
   | { type: 'PASSKEY_SUCCESS'; identity: Identity }
   | { type: 'PASSKEY_FAILED'; error: Error }
-  | { type: 'SKIP_PASSKEY' }
+  | { type: 'BROWSER_UNSUPPORTED' }
+  | { type: 'RETRY_AUTH' }
   | { type: 'SCAN_QR' }
   | { type: 'ENTER_PHRASE' }
   | { type: 'IDENTITY_IMPORTED'; identity: Identity }
   | { type: 'HUB_CONNECTED' }
   | { type: 'HUB_FAILED'; error: Error }
-  | { type: 'SKIP_TUTORIAL' }
-  | { type: 'TUTORIAL_COMPLETE' }
+  | { type: 'CREATE_FIRST_PAGE' }
 
 export interface OnboardingContext {
   identity: Identity | null
   hubUrl: string | null
   error: Error | null
+  isDemo: boolean
 }
 
 export function createOnboardingMachine() {
@@ -155,25 +155,25 @@ export function createOnboardingMachine() {
     context: {
       identity: null,
       hubUrl: null,
-      error: null
+      error: null,
+      isDemo: false
     } as OnboardingContext,
 
     transitions: {
       welcome: {
-        GET_STARTED: 'create-identity',
-        IMPORT_EXISTING: 'import-identity'
+        AUTHENTICATE: 'authenticating',
+        IMPORT_EXISTING: 'import-identity',
+        BROWSER_UNSUPPORTED: 'unsupported-browser'
       },
-      'create-identity': {
-        // Auto-transition to passkey-prompt
+      authenticating: {
         PASSKEY_SUCCESS: 'connecting-hub',
-        PASSKEY_FAILED: 'passkey-error'
+        PASSKEY_FAILED: 'auth-error'
       },
-      'passkey-error': {
-        SKIP_PASSKEY: 'skip-passkey',
-        GET_STARTED: 'create-identity' // Retry
+      'auth-error': {
+        RETRY_AUTH: 'authenticating' // No skip — retry or leave
       },
-      'skip-passkey': {
-        PASSKEY_SUCCESS: 'connecting-hub' // Device-only key created
+      'unsupported-browser': {
+        // Terminal state — user must use desktop app or supported browser
       },
       'import-identity': {
         SCAN_QR: 'qr-scan',
@@ -190,11 +190,7 @@ export function createOnboardingMachine() {
         HUB_FAILED: 'ready' // Continue anyway, hub is optional
       },
       ready: {
-        SKIP_TUTORIAL: 'complete',
-        GET_STARTED: 'tutorial'
-      },
-      tutorial: {
-        TUTORIAL_COMPLETE: 'complete'
+        CREATE_FIRST_PAGE: 'complete'
       }
     }
   }
@@ -227,7 +223,7 @@ const OnboardingContext = createContext<{
 
 export function OnboardingProvider({
   children,
-  defaultHubUrl = 'wss://hub.xnet.dev',
+  defaultHubUrl = 'wss://hub.xnet.fyi',
   onComplete
 }: OnboardingProviderProps) {
   const identity = useIdentity()
@@ -235,12 +231,21 @@ export function OnboardingProvider({
 
   const [{ state, context }, dispatch] = useReducer(
     onboardingReducer,
-    { state: 'welcome', context: { identity: null, hubUrl: defaultHubUrl, error: null } }
+    { state: 'welcome', context: { identity: null, hubUrl: defaultHubUrl, error: null, isDemo: false } }
   )
+
+  // Check browser support on mount
+  useEffect(() => {
+    detectPasskeySupport().then((support) => {
+      if (!support.webauthn || !support.platform) {
+        dispatch({ type: 'BROWSER_UNSUPPORTED' })
+      }
+    })
+  }, [])
 
   // Auto-advance based on identity state
   useEffect(() => {
-    if (state === 'create-identity' && !identity.isLoading) {
+    if (state === 'authenticating' && !identity.isLoading) {
       if (identity.identity) {
         dispatch({ type: 'PASSKEY_SUCCESS', identity: identity.identity })
       } else if (identity.error) {
@@ -269,11 +274,11 @@ export function OnboardingProvider({
 
   const send = useCallback((event: OnboardingEvent) => {
     // Side effects for certain events
-    if (event.type === 'GET_STARTED' && state === 'welcome') {
-      identity.create()
+    if (event.type === 'AUTHENTICATE' && state === 'welcome') {
+      identity.create() // Triggers passkey/biometric prompt
     }
-    if (event.type === 'SKIP_PASSKEY') {
-      identity.create({ useFallback: true })
+    if (event.type === 'RETRY_AUTH' && state === 'auth-error') {
+      identity.create() // Retry passkey creation
     }
     dispatch(event)
   }, [state, identity])
@@ -318,9 +323,9 @@ export function WelcomeScreen() {
 
       <button
         className="primary-button"
-        onClick={() => send({ type: 'GET_STARTED' })}
+        onClick={() => send({ type: 'AUTHENTICATE' })}
       >
-        Get Started
+        Use {getPlatformAuthName()} to get started
       </button>
 
       <button
@@ -333,53 +338,63 @@ export function WelcomeScreen() {
   )
 }
 
-// packages/react/src/onboarding/screens/PasskeyPromptScreen.tsx
+// packages/react/src/onboarding/screens/AuthErrorScreen.tsx
 
-export function PasskeyPromptScreen() {
+export function AuthErrorScreen() {
   const { send, context } = useOnboarding()
-  const [isPrompting, setIsPrompting] = useState(false)
-
-  useEffect(() => {
-    // Auto-trigger passkey prompt
-    setIsPrompting(true)
-  }, [])
 
   return (
-    <div className="onboarding-screen passkey-prompt">
+    <div className="onboarding-screen auth-error">
       <div className="icon">
-        <LockIcon size={48} />
+        <AlertCircleIcon size={48} />
       </div>
 
-      <h1>Secure your identity</h1>
+      <h1>Authentication failed</h1>
 
       <p>
-        Use {getPlatformAuthName()} to protect your data.
-        Your identity stays on your device.
+        Could not set up {getPlatformAuthName()}.
       </p>
 
-      {isPrompting && (
-        <div className="prompt-indicator">
-          <Spinner />
-          <span>Waiting for {getPlatformAuthName()}...</span>
-        </div>
-      )}
-
       {context.error && (
-        <div className="error-message">
-          <p>Could not set up {getPlatformAuthName()}</p>
-          <p className="error-detail">{context.error.message}</p>
-        </div>
+        <p className="error-detail">{context.error.message}</p>
       )}
 
       <button
-        className="text-button"
-        onClick={() => send({ type: 'SKIP_PASSKEY' })}
+        className="primary-button"
+        onClick={() => send({ type: 'RETRY_AUTH' })}
       >
-        Skip for now
+        Try again
       </button>
 
-      <p className="warning">
-        Not recommended - data won't sync securely to other devices
+      <p className="help-text">
+        Make sure your browser supports passkeys (Chrome 116+, Safari 18+, Edge 116+).
+        Or <a href="/download">download the desktop app</a>.
+      </p>
+    </div>
+  )
+}
+
+// packages/react/src/onboarding/screens/UnsupportedBrowserScreen.tsx
+
+export function UnsupportedBrowserScreen() {
+  return (
+    <div className="onboarding-screen unsupported">
+      <div className="icon">
+        <AlertTriangleIcon size={48} />
+      </div>
+
+      <h1>Browser not supported</h1>
+
+      <p>
+        xNet requires {getPlatformAuthName()} which isn't available in this browser.
+      </p>
+
+      <a href="/download" className="primary-button">
+        Download Desktop App
+      </a>
+
+      <p className="supported-browsers">
+        Supported browsers: Chrome 116+, Safari 18+, Edge 116+
       </p>
     </div>
   )
@@ -388,7 +403,7 @@ export function PasskeyPromptScreen() {
 function getPlatformAuthName(): string {
   const ua = navigator.userAgent.toLowerCase()
   if (ua.includes('mac') || ua.includes('iphone') || ua.includes('ipad')) {
-    return 'Face ID / Touch ID'
+    return 'Touch ID'
   }
   if (ua.includes('windows')) {
     return 'Windows Hello'
@@ -427,18 +442,18 @@ export function ReadyScreen() {
         </div>
       )}
 
-      <button
-        className="primary-button"
-        onClick={() => send({ type: 'GET_STARTED' })}
-      >
-        Create your first page
-      </button>
+      {context.isDemo && (
+        <div className="demo-banner">
+          <InfoIcon size={16} />
+          <span>Demo mode — data expires after 24h of inactivity. <a href="/download">Download the desktop app</a> to keep your data.</span>
+        </div>
+      )}
 
       <button
-        className="text-button"
-        onClick={() => send({ type: 'SKIP_TUTORIAL' })}
+        className="primary-button"
+        onClick={() => send({ type: 'CREATE_FIRST_PAGE' })}
       >
-        Explore sample content
+        Create your first page
       </button>
     </div>
   )
@@ -785,12 +800,7 @@ describe('Onboarding Flow', () => {
 
     // Welcome screen
     expect(screen.getByText('Welcome to xNet')).toBeInTheDocument()
-    await userEvent.click(screen.getByText('Get Started'))
-
-    // Passkey prompt (mocked)
-    await waitFor(() => {
-      expect(screen.getByText('Secure your identity')).toBeInTheDocument()
-    })
+    await userEvent.click(screen.getByText(/Use .* to get started/))
 
     // Simulate passkey success
     mockPasskeySuccess()
@@ -802,21 +812,30 @@ describe('Onboarding Flow', () => {
     expect(screen.getByText(/did:key:/)).toBeInTheDocument()
   })
 
-  it('allows skipping passkey', async () => {
+  it('shows auth error with retry on passkey failure', async () => {
     render(<OnboardingProvider><OnboardingFlow /></OnboardingProvider>)
 
-    await userEvent.click(screen.getByText('Get Started'))
+    await userEvent.click(screen.getByText(/Use .* to get started/))
     mockPasskeyFailure()
 
     await waitFor(() => {
-      expect(screen.getByText('Skip for now')).toBeInTheDocument()
+      expect(screen.getByText('Authentication failed')).toBeInTheDocument()
     })
 
-    await userEvent.click(screen.getByText('Skip for now'))
+    // No "skip" option — only retry
+    expect(screen.queryByText('Skip for now')).not.toBeInTheDocument()
+    expect(screen.getByText('Try again')).toBeInTheDocument()
+  })
+
+  it('shows unsupported browser screen when WebAuthn unavailable', async () => {
+    mockNoWebAuthnSupport()
+
+    render(<OnboardingProvider><OnboardingFlow /></OnboardingProvider>)
 
     await waitFor(() => {
-      expect(screen.getByText("You're all set!")).toBeInTheDocument()
+      expect(screen.getByText('Browser not supported')).toBeInTheDocument()
     })
+    expect(screen.getByText('Download Desktop App')).toBeInTheDocument()
   })
 
   it('handles import existing identity', async () => {
@@ -827,18 +846,31 @@ describe('Onboarding Flow', () => {
     expect(screen.getByText('Scan from another device')).toBeInTheDocument()
     expect(screen.getByText('Enter recovery phrase')).toBeInTheDocument()
   })
+
+  it('shows demo banner when connected to demo hub', async () => {
+    render(<OnboardingProvider defaultHubUrl="wss://hub.xnet.fyi"><OnboardingFlow /></OnboardingProvider>)
+
+    await userEvent.click(screen.getByText(/Use .* to get started/))
+    mockPasskeySuccess()
+    mockHubConnected({ isDemo: true })
+
+    await waitFor(() => {
+      expect(screen.getByText(/Demo mode/)).toBeInTheDocument()
+    })
+  })
 })
 ```
 
 ## Validation Gate
 
-- [ ] Welcome screen displays with clear CTA
-- [ ] Passkey prompt triggers automatically after "Get Started"
-- [ ] Skip option available if passkey fails
-- [ ] Ready screen shows DID and hub connection status
+- [ ] Welcome screen displays with "Use Touch ID to get started" as primary CTA
+- [ ] Passkey creation triggers immediately on tap (no separate passkey prompt screen)
+- [ ] **No skip option** — passkey is required for all users
+- [ ] Auth error screen shows retry button, not skip
+- [ ] Unsupported browser screen shows when WebAuthn/PRF unavailable
+- [ ] Ready screen shows DID, hub connection status, and demo banner (if demo)
 - [ ] Quick-start templates create valid content
-- [ ] Tutorial overlay highlights key features
-- [ ] Full flow completes in < 60 seconds
+- [ ] Full flow completes in < 10 seconds (one biometric tap)
 - [ ] Accessible with keyboard navigation
 
 ---

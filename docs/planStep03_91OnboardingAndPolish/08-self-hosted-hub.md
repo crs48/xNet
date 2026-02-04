@@ -1,19 +1,28 @@
 # 08: Self-Hosted Hub Guide
 
-> Complete documentation for running your own xNet Hub
+> Complete documentation for running your own xNet Hub — the graduation path from demo
 
 **Duration:** 3 days
 **Dependencies:** Hub Docker image, documentation site
 
 ## Overview
 
-Self-hosting gives users complete control over their data. The hub can run on any VPS with Docker, or directly with Node.js. This guide covers both approaches plus one-liner installation.
+Self-hosting gives users complete control over their data. This is the natural **graduation path** from the demo hub at `hub.xnet.fyi` — users who want to keep their data permanently deploy their own hub.
+
+Options from easiest to most control:
+
+1. **Railway** (easiest) — one-click deploy, same platform as demo hub
+2. **Docker on VPS** — full control, any cloud provider
+3. **Node.js directly** — no Docker required
 
 ## Target Experience
 
 ```bash
-# One command to install and run
-curl -fsSL https://xnet.dev/install-hub.sh | bash
+# Option 1: Deploy on Railway (easiest)
+# Click "Deploy on Railway" button on xnet.fyi/docs/self-hosting
+
+# Option 2: One command on VPS
+curl -fsSL https://xnet.fyi/install-hub.sh | bash
 ```
 
 After running, users have:
@@ -25,12 +34,40 @@ After running, users have:
 
 ## Implementation
 
-### 1. Install Script
+### 0. Railway One-Click Deploy (Recommended)
+
+The fastest path from demo to self-hosted:
+
+```markdown
+<!-- site/src/content/docs/docs/self-hosting/index.mdx -->
+
+## Deploy on Railway
+
+The easiest way to run your own hub. Same platform as the demo hub, but with your own data and no eviction.
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/xnet-hub)
+
+After deploying:
+
+1. Add a custom domain in Railway settings (e.g., `hub.yourdomain.com`)
+2. Update your xNet app: Settings > Hub > `wss://hub.yourdomain.com`
+3. Your data syncs to your hub — no more 10 MB limit or 24h eviction
+
+**Cost:** ~$5/mo (Railway Hobby plan) — effectively free if usage is light.
+
+**Key difference from demo:** No `--demo` flag means production defaults:
+
+- 1 GB quota per user (configurable)
+- No auto-eviction
+- No document limits
+```
+
+### 1. Install Script (VPS)
 
 ```bash
 #!/bin/bash
 # install-hub.sh
-# Usage: curl -fsSL https://xnet.dev/install-hub.sh | bash
+# Usage: curl -fsSL https://xnet.fyi/install-hub.sh | bash
 
 set -e
 
@@ -65,7 +102,7 @@ sudo mkdir -p /opt/xnet-hub/data
 sudo chown -R $USER:$USER /opt/xnet-hub
 
 # Download docker-compose.yml
-curl -fsSL https://xnet.dev/docker-compose.hub.yml -o /opt/xnet-hub/docker-compose.yml
+curl -fsSL https://xnet.fyi/docker-compose.hub.yml -o /opt/xnet-hub/docker-compose.yml
 
 # Get domain from user
 read -p "Enter your domain (e.g., hub.example.com): " DOMAIN
@@ -97,7 +134,7 @@ To view logs:
 To stop:
   cd /opt/xnet-hub && docker compose down
 
-Documentation: https://xnet.dev/docs/self-hosting
+Documentation: https://xnet.fyi/docs/self-hosting
 "
 ```
 
@@ -682,7 +719,7 @@ find $BACKUP_DIR -name "xnet-hub-\*.tar.gz" -mtime +7 -delete
 describe('Self-Hosted Hub', () => {
   describe('Install Script', () => {
     it('downloads docker-compose.yml', async () => {
-      const res = await fetch('https://xnet.dev/docker-compose.hub.yml')
+      const res = await fetch('https://xnet.fyi/docker-compose.hub.yml')
       expect(res.ok).toBe(true)
       const text = await res.text()
       expect(text).toContain('xnet-hub')
@@ -715,11 +752,13 @@ describe('Self-Hosted Hub', () => {
 
 ## Validation Gate
 
+- [ ] Railway one-click deploy template works
 - [ ] Install script works on fresh Ubuntu 22.04
 - [ ] Docker Compose starts hub with Caddy
 - [ ] HTTPS certificate obtained automatically
 - [ ] Health endpoint accessible
 - [ ] WebSocket connections work
+- [ ] Graduation path from demo hub is clear and documented
 - [ ] Documentation is clear and complete
 - [ ] Backup/restore procedure documented
 - [ ] Security hardening guide complete
