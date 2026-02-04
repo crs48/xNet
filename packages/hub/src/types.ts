@@ -2,6 +2,8 @@
  * @xnet/hub - Hub configuration and instance types.
  */
 
+import type { FederationConfig } from './services/federation'
+
 export type HubConfig = {
   /** WebSocket + HTTP port (default: 4444). */
   port: number
@@ -42,6 +44,8 @@ export type HubConfig = {
   }
   /** Log level (default: 'info'). */
   logLevel: 'debug' | 'info' | 'warn' | 'error'
+  /** Federation configuration (optional). */
+  federation?: FederationConfig
 }
 
 export const DEFAULT_CONFIG: HubConfig = {

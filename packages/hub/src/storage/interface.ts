@@ -34,6 +34,10 @@ export type SearchResult = {
   schemaIri: string
   snippet: string
   rank: number
+  cid?: string
+  sourceHub?: string
+  author?: string
+  updatedAt?: number
 }
 
 export type FileMeta = {
@@ -83,6 +87,29 @@ export type PeerRecord = {
   lastSeen: number
   registeredAt: number
   version: number
+}
+
+export type FederationPeerRecord = {
+  hubDid: string
+  url: string
+  schemas: string[] | '*'
+  trustLevel: 'full' | 'metadata'
+  maxLatencyMs: number
+  rateLimit: number
+  healthy: boolean
+  lastSuccessAt: number | null
+  registeredAt: number
+  registeredBy?: string | null
+}
+
+export type FederationQueryLog = {
+  queryId: string
+  fromHub: string
+  queryText: string
+  schemaFilter: string | null
+  resultCount: number
+  executionMs: number
+  timestamp: number
 }
 
 export type SchemaRecord = {
@@ -153,6 +180,15 @@ export type HubStorage = {
   searchPeers: (query: string) => Promise<PeerRecord[]>
   removeStalePeers: (olderThanMs: number) => Promise<number>
   getPeerCount: () => Promise<number>
+
+  listFederationPeers: () => Promise<FederationPeerRecord[]>
+  upsertFederationPeer: (peer: FederationPeerRecord) => Promise<void>
+  updateFederationPeerHealth: (
+    hubDid: string,
+    healthy: boolean,
+    lastSuccessAt?: number | null
+  ) => Promise<void>
+  logFederationQuery: (entry: FederationQueryLog) => Promise<void>
 
   putSchema: (schema: SchemaRecord) => Promise<void>
   getSchema: (iri: string, version?: number) => Promise<SchemaRecord | null>

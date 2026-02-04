@@ -14,6 +14,7 @@ export type QueryRequest = {
   }
   limit?: number
   offset?: number
+  federate?: boolean
 }
 
 export type QueryResponse = {

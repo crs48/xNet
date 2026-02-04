@@ -11,6 +11,8 @@ export type {
   BlobMeta,
   DocMeta,
   AwarenessEntry,
+  FederationPeerRecord,
+  FederationQueryLog,
   PeerEndpoint,
   PeerRecord,
   FileMeta,

@@ -20,11 +20,14 @@ import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createBackupRoutes } from './routes/backup'
 import { createDiscoveryRoutes } from './routes/dids'
+import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
 import { createSchemaRoutes } from './routes/schemas'
 import { BackupService } from './services/backup'
 import { AwarenessService } from './services/awareness'
 import { DiscoveryService } from './services/discovery'
+import { FederationHealthChecker } from './services/federation-health'
+import { FederationService } from './services/federation'
 import { FileService } from './services/files'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
@@ -87,7 +90,9 @@ const isPublishMessage = (
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === 'object')
 
-const isQueryRequest = (value: unknown): value is { type: 'query-request'; id: string; query: string } => {
+const isQueryRequest = (
+  value: unknown
+): value is { type: 'query-request'; id: string; query: string; federate?: boolean } => {
   if (!isRecord(value)) return false
   return value.type === 'query-request' && typeof value.id === 'string' && typeof value.query === 'string'
 }
@@ -164,6 +169,28 @@ export const createServer = (config: HubConfig): HubInstance => {
   })
   const files = new FileService(storage)
   const query = new QueryService(storage)
+  const federationDefaults = {
+    enabled: false,
+    hubDid: 'did:key:hub',
+    peers: [] as const,
+    expose: { schemas: '*', requireAuth: false, rateLimit: 60, maxResults: 50 },
+    peerTimeoutMs: 2000,
+    totalTimeoutMs: 5000,
+    openRegistration: false
+  }
+  const federationConfig = config.federation
+    ? {
+        ...federationDefaults,
+        ...config.federation,
+        peers: config.federation.peers ?? federationDefaults.peers,
+        expose: {
+          ...federationDefaults.expose,
+          ...config.federation.expose
+        }
+      }
+    : federationDefaults
+  const federation = new FederationService(federationConfig, storage, query)
+  const federationHealth = new FederationHealthChecker(federationConfig)
   const nodeRelay = new NodeRelayService(storage)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
@@ -237,6 +264,7 @@ export const createServer = (config: HubConfig): HubInstance => {
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
+  app.route('/federation', createFederationRoutes(federation, { requireAuth }))
 
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null
@@ -245,6 +273,10 @@ export const createServer = (config: HubConfig): HubInstance => {
     if (httpServer) return
     awareness.start()
     discovery.start()
+    if (federationConfig.enabled) {
+      await federation.loadPeers()
+      federationHealth.start()
+    }
     await schemas.seedBuiltInSchemas([
       {
         definition: PageSchema.schema,
@@ -361,7 +393,10 @@ export const createServer = (config: HubConfig): HubInstance => {
                 )
                 return
               }
-              const response = await query.handleQuery(payload)
+              const response =
+                payload.federate && federationConfig.enabled
+                  ? await federation.search(payload)
+                  : await query.handleQuery(payload)
               metrics.increment(HUB_METRICS.QUERY_REQUESTS_TOTAL)
               metrics.observe(HUB_METRICS.QUERY_DURATION_MS, response.took)
               ws.send(JSON.stringify(response))
@@ -559,6 +594,7 @@ export const createServer = (config: HubConfig): HubInstance => {
 
     awareness.stop()
     discovery.stop()
+    federationHealth.stop()
     signaling.destroy()
     connectionCount = 0
   }

@@ -7,6 +7,8 @@ import type {
   BlobMeta,
   DocMeta,
   FileMeta,
+  FederationPeerRecord,
+  FederationQueryLog,
   HubStorage,
   PeerEndpoint,
   PeerRecord,
@@ -87,6 +89,32 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_peer_last_seen ON peer_registry(last_seen);
   CREATE INDEX IF NOT EXISTS idx_peer_hub ON peer_registry(hub_url);
+
+  CREATE TABLE IF NOT EXISTS federation_peers (
+    hub_did TEXT PRIMARY KEY,
+    url TEXT NOT NULL,
+    schemas TEXT NOT NULL DEFAULT '*',
+    trust_level TEXT NOT NULL DEFAULT 'metadata',
+    max_latency_ms INTEGER DEFAULT 2000,
+    rate_limit INTEGER DEFAULT 60,
+    healthy INTEGER DEFAULT 1,
+    last_success_at INTEGER,
+    registered_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000),
+    registered_by TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_federation_peers_health ON federation_peers(healthy);
+
+  CREATE TABLE IF NOT EXISTS federation_query_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    query_id TEXT NOT NULL,
+    from_hub TEXT NOT NULL,
+    query_text TEXT,
+    schema_filter TEXT,
+    result_count INTEGER,
+    execution_ms INTEGER,
+    timestamp INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_fed_log_from ON federation_query_log(from_hub, timestamp);
 
   CREATE TABLE IF NOT EXISTS schemas (
     iri TEXT NOT NULL,
@@ -221,6 +249,19 @@ type PeerRow = {
   version: number
 }
 
+type FederationPeerRow = {
+  hub_did: string
+  url: string
+  schemas: string
+  trust_level: 'full' | 'metadata'
+  max_latency_ms: number
+  rate_limit: number
+  healthy: number
+  last_success_at: number | null
+  registered_at: number
+  registered_by: string | null
+}
+
 type SchemaRow = {
   iri: string
   version: number
@@ -333,6 +374,22 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     `),
     removeStalePeers: db.prepare('DELETE FROM peer_registry WHERE last_seen < ?'),
     getPeerCount: db.prepare('SELECT COUNT(*) as count FROM peer_registry'),
+    listFederationPeers: db.prepare('SELECT * FROM federation_peers ORDER BY registered_at DESC'),
+    upsertFederationPeer: db.prepare(`
+      INSERT OR REPLACE INTO federation_peers
+        (hub_did, url, schemas, trust_level, max_latency_ms, rate_limit, healthy, last_success_at, registered_at, registered_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    updateFederationPeerHealth: db.prepare(`
+      UPDATE federation_peers
+      SET healthy = ?, last_success_at = COALESCE(?, last_success_at)
+      WHERE hub_did = ?
+    `),
+    insertFederationLog: db.prepare(`
+      INSERT INTO federation_query_log
+        (query_id, from_hub, query_text, schema_filter, result_count, execution_ms, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `),
     insertSchema: db.prepare(`
       INSERT OR REPLACE INTO schemas
         (iri, version, definition_json, author_did, name, description, properties_count, created_at)
@@ -724,6 +781,60 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     return row?.count ?? 0
   }
 
+  const rowToFederationPeer = (row: FederationPeerRow): FederationPeerRecord => ({
+    hubDid: row.hub_did,
+    url: row.url,
+    schemas: row.schemas === '*' ? '*' : (JSON.parse(row.schemas) as string[]),
+    trustLevel: row.trust_level,
+    maxLatencyMs: row.max_latency_ms,
+    rateLimit: row.rate_limit,
+    healthy: row.healthy === 1,
+    lastSuccessAt: row.last_success_at,
+    registeredAt: row.registered_at,
+    registeredBy: row.registered_by ?? null
+  })
+
+  const listFederationPeers = async (): Promise<FederationPeerRecord[]> => {
+    const rows = stmts.listFederationPeers.all() as FederationPeerRow[]
+    return rows.map(rowToFederationPeer)
+  }
+
+  const upsertFederationPeer = async (peer: FederationPeerRecord): Promise<void> => {
+    const schemas = peer.schemas === '*' ? '*' : JSON.stringify(peer.schemas)
+    stmts.upsertFederationPeer.run(
+      peer.hubDid,
+      peer.url,
+      schemas,
+      peer.trustLevel,
+      peer.maxLatencyMs,
+      peer.rateLimit,
+      peer.healthy ? 1 : 0,
+      peer.lastSuccessAt ?? null,
+      peer.registeredAt,
+      peer.registeredBy ?? null
+    )
+  }
+
+  const updateFederationPeerHealth = async (
+    hubDid: string,
+    healthy: boolean,
+    lastSuccessAt?: number | null
+  ): Promise<void> => {
+    stmts.updateFederationPeerHealth.run(healthy ? 1 : 0, lastSuccessAt ?? null, hubDid)
+  }
+
+  const logFederationQuery = async (entry: FederationQueryLog): Promise<void> => {
+    stmts.insertFederationLog.run(
+      entry.queryId,
+      entry.fromHub,
+      entry.queryText,
+      entry.schemaFilter,
+      entry.resultCount,
+      entry.executionMs,
+      entry.timestamp
+    )
+  }
+
   const deleteBlob = async (key: string): Promise<void> => {
     const row = stmts.deleteBackup.get(key) as BackupRow
     if (row?.blob_path && existsSync(row.blob_path)) {
@@ -877,6 +988,10 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     searchPeers,
     removeStalePeers,
     getPeerCount,
+    listFederationPeers,
+    upsertFederationPeer,
+    updateFederationPeerHealth,
+    logFederationQuery,
     putSchema,
     getSchema,
     listSchemasByAuthor,
