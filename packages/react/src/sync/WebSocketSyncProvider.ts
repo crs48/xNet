@@ -240,6 +240,8 @@ export class WebSocketSyncProvider {
         log(this, 'WebSocket closed, code:', event.code, 'reason:', event.reason || '(none)')
         this.connected = false
         this.synced = false
+        this.remotePeerIds.clear()
+        this.emit('peers', { count: 0 })
         this.emit('status', { connected: false })
         this._scheduleReconnect()
       }
