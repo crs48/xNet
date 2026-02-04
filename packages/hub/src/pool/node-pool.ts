@@ -66,7 +66,7 @@ export class NodePool {
 
     const entry = createEntry(doc)
     this.entries.set(docId, entry)
-    this.evictIfNeeded()
+    await this.evictIfNeeded()
     return doc
   }
 
@@ -144,7 +144,7 @@ export class NodePool {
     this.entries.clear()
   }
 
-  private evictIfNeeded(): void {
+  private async evictIfNeeded(): Promise<void> {
     const warmDocs: Array<[string, PoolEntry]> = []
 
     for (const [docId, entry] of this.entries) {
@@ -164,24 +164,22 @@ export class NodePool {
         clearTimeout(entry.persistTimer)
       }
       if (entry.dirty) {
-        const state = Y.encodeStateAsUpdate(entry.doc)
-        this.storage
-          .setDocState(docId, state)
-          .then(() => {
-            entry.doc.destroy()
-          })
-          .catch((err) => {
-            console.error(
-              `[node-pool] Failed to persist ${docId} during eviction, keeping in pool:`,
-              err instanceof Error ? err.message : String(err)
-            )
-            // Re-add to pool so data is not lost
-            this.entries.set(docId, entry)
-          })
+        try {
+          const state = Y.encodeStateAsUpdate(entry.doc)
+          await this.storage.setDocState(docId, state)
+          entry.doc.destroy()
+          this.entries.delete(docId)
+        } catch (err) {
+          console.error(
+            `[node-pool] Failed to persist ${docId} during eviction, keeping in pool:`,
+            err instanceof Error ? err.message : String(err)
+          )
+          // Leave entry in pool so data is not lost
+        }
       } else {
         entry.doc.destroy()
+        this.entries.delete(docId)
       }
-      this.entries.delete(docId)
     }
   }
 }

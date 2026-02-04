@@ -48,7 +48,7 @@ export const createShardRoutes = (options: ShardRoutesOptions): Hono => {
 
   const ingestHandler = async (c: Context) => {
     const auth = c.get('auth') as AuthContext | undefined
-    if (auth && !auth.can('index/write', '*')) {
+    if (!auth || !auth.can('index/write', '*')) {
       return c.json({ error: 'Unauthorized' }, 403)
     }
 
@@ -133,7 +133,7 @@ export const createShardRoutes = (options: ShardRoutesOptions): Hono => {
       return c.json({ error: 'Shard registry not enabled' }, 404)
     }
     const auth = c.get('auth') as AuthContext | undefined
-    if (auth && !auth.can('hub/admin', '*')) {
+    if (!auth || !auth.can('hub/admin', '*')) {
       return c.json({ error: 'Unauthorized' }, 403)
     }
 
