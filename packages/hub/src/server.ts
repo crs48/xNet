@@ -285,6 +285,9 @@ export const createServer = (config: HubConfig): HubInstance => {
         rss: process.memoryUsage().rss,
         heapUsed: process.memoryUsage().heapUsed
       },
+      platform: config.runtime?.platform ?? 'unknown',
+      region: config.runtime?.region,
+      machineId: config.runtime?.machineId,
       version: '0.0.1'
     })
   })

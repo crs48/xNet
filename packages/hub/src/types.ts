@@ -52,6 +52,14 @@ export type HubConfig = {
   shards?: ShardConfig
   /** Crawl coordination configuration (optional). */
   crawl?: CrawlConfig
+  /** Runtime metadata (platform info, region). */
+  runtime?: {
+    platform?: 'railway' | 'fly' | 'local' | 'unknown'
+    region?: string
+    machineId?: string
+  }
+  /** Shutdown grace period in ms (platform-specific). */
+  shutdownGraceMs?: number
 }
 
 export const DEFAULT_CONFIG: HubConfig = {
@@ -69,7 +77,8 @@ export const DEFAULT_CONFIG: HubConfig = {
   discoveryStaleTtlMs: 7 * 24 * 60 * 60 * 1000,
   discoveryCleanupIntervalMs: 6 * 60 * 60 * 1000,
   discoveryMaxPeers: 10000,
-  logLevel: 'info'
+  logLevel: 'info',
+  shutdownGraceMs: 8000
 }
 
 export type HubInstance = {

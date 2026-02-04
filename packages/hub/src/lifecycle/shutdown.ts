@@ -4,7 +4,8 @@
 
 export const registerShutdownHandlers = (
   stop: () => Promise<void>,
-  logger: typeof console = console
+  logger: typeof console = console,
+  graceMs = 8000
 ): void => {
   let shutdownInProgress = false
 
@@ -12,10 +13,16 @@ export const registerShutdownHandlers = (
     if (shutdownInProgress) return
     shutdownInProgress = true
     logger.info(`[shutdown] Received ${signal}, shutting down...`)
+    const timeout = setTimeout(() => {
+      logger.warn('[shutdown] Grace period exceeded, forcing exit')
+      process.exit(1)
+    }, graceMs)
     try {
       await stop()
+      clearTimeout(timeout)
       logger.info('[shutdown] Complete')
     } catch (err) {
+      clearTimeout(timeout)
       logger.error('[shutdown] Failed:', err)
     } finally {
       process.exit(0)
