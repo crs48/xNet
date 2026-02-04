@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { createUCAN, verifyUCAN, hasCapability, isExpired } from './ucan'
-import { generateIdentity } from './did'
 import type { UCANToken } from './types'
+import { describe, expect, it } from 'vitest'
+import { generateIdentity } from './did'
+import { createUCAN, hasCapability, isExpired, verifyUCAN } from './ucan'
 
 describe('UCAN', () => {
   describe('createUCAN and verifyUCAN', () => {
@@ -87,6 +87,68 @@ describe('UCAN', () => {
       expect(result.valid).toBe(true)
       expect(result.payload?.prf).toContain(proofToken)
     })
+
+    it('should validate proof chain and attenuation', () => {
+      const { identity: delegator, privateKey: delegatorKey } = generateIdentity()
+      const { identity: delegate, privateKey: delegateKey } = generateIdentity()
+      const { identity: audience } = generateIdentity()
+
+      const parent = createUCAN({
+        issuer: delegator.did,
+        issuerKey: delegatorKey,
+        audience: delegate.did,
+        capabilities: [{ with: 'xnet://doc/123', can: 'write' }]
+      })
+
+      const child = createUCAN({
+        issuer: delegate.did,
+        issuerKey: delegateKey,
+        audience: audience.did,
+        capabilities: [{ with: 'xnet://doc/123', can: 'write' }],
+        proofs: [parent]
+      })
+
+      const childResult = verifyUCAN(child)
+      expect(childResult.valid).toBe(true)
+
+      const invalidChild = createUCAN({
+        issuer: delegate.did,
+        issuerKey: delegateKey,
+        audience: audience.did,
+        capabilities: [{ with: 'xnet://doc/123', can: 'admin' }],
+        proofs: [parent]
+      })
+
+      const invalidResult = verifyUCAN(invalidChild)
+      expect(invalidResult.valid).toBe(false)
+    })
+
+    it('should reject proofs with shorter expiry', () => {
+      const now = Math.floor(Date.now() / 1000)
+      const { identity: delegator, privateKey: delegatorKey } = generateIdentity()
+      const { identity: delegate, privateKey: delegateKey } = generateIdentity()
+      const { identity: audience } = generateIdentity()
+
+      const parent = createUCAN({
+        issuer: delegator.did,
+        issuerKey: delegatorKey,
+        audience: delegate.did,
+        capabilities: [{ with: 'xnet://doc/123', can: 'write' }],
+        expiration: now + 300
+      })
+
+      const child = createUCAN({
+        issuer: delegate.did,
+        issuerKey: delegateKey,
+        audience: audience.did,
+        capabilities: [{ with: 'xnet://doc/123', can: 'write' }],
+        proofs: [parent],
+        expiration: now + 600
+      })
+
+      const result = verifyUCAN(child)
+      expect(result.valid).toBe(false)
+    })
   })
 
   describe('hasCapability', () => {
@@ -116,9 +178,7 @@ describe('UCAN', () => {
     })
 
     it('should match wildcard in resource path', () => {
-      // Note: this test shows current behavior - exact match only
-      // A more sophisticated impl would support glob patterns
-      expect(hasCapability(mockToken, 'xnet://doc/*', 'read')).toBe(true)
+      expect(hasCapability(mockToken, 'xnet://doc/abc', 'read')).toBe(true)
     })
   })
 
