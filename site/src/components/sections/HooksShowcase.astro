@@ -1,6 +1,82 @@
 ---
 import CodeBlock from '../ui/CodeBlock.astro'
 import SectionHeader from '../ui/SectionHeader.astro'
+
+// Syntax highlighting helpers
+const kw = (s: string) => `<span class="text-indigo-400">${s}</span>`
+const fn = (s: string) => `<span class="text-yellow-300">${s}</span>`
+const str = (s: string) => `<span class="text-emerald-400">${s}</span>`
+const num = (s: string) => `<span class="text-orange-400">${s}</span>`
+const typ = (s: string) => `<span class="text-amber-300">${s}</span>`
+const cm = (s: string) => `<span class="text-gray-500">${s}</span>`
+
+const useQueryCode = [
+  `${kw('import')} { useQuery } ${kw('from')} ${str("'@xnet/react'")}`,
+  ``,
+  `${kw('function')} ${fn('TaskList')}() {`,
+  `  ${cm('// Fully typed — schema defines the shape')}`,
+  `  ${kw('const')} { data: tasks } = ${fn('useQuery')}(TaskSchema, {`,
+  `    where: { status: ${str("'active'")} },`,
+  `    orderBy: { createdAt: ${str("'desc'")} },`,
+  `    limit: ${num('20')}`,
+  `  })`,
+  ``,
+  `  ${cm('// No loading state for local data')}`,
+  `  ${cm('// Auto-updates when peers sync changes')}`,
+  `  ${kw('return')} (`,
+  `    &lt;ul&gt;`,
+  `      {tasks.${fn('map')}(t =&gt;`,
+  `        &lt;li key={t.id}&gt;{t.title}&lt;/li&gt;`,
+  `      )}`,
+  `    &lt;/ul&gt;`,
+  `  )`,
+  `}`,
+].join('\n')
+
+const useMutateCode = [
+  `${kw('import')} { useMutate } ${kw('from')} ${str("'@xnet/react'")}`,
+  ``,
+  `${kw('function')} ${fn('TaskActions')}() {`,
+  `  ${kw('const')} { create, update, remove } = ${fn('useMutate')}()`,
+  ``,
+  `  ${cm('// Schema-validated at compile time')}`,
+  `  ${kw('const')} add = () =&gt; ${fn('create')}(TaskSchema, {`,
+  `    title: ${str("'Ship the landing page'")},`,
+  `    status: ${str("'active'")}`,
+  `  })`,
+  ``,
+  `  ${cm('// Syncs to all peers automatically')}`,
+  `  ${kw('const')} done = (id: ${typ('string')}) =&gt;`,
+  `    ${fn('update')}(TaskSchema, id, {`,
+  `      status: ${str("'done'")}`,
+  `    })`,
+  ``,
+  `  ${cm('// Works offline — queued until reconnect')}`,
+  `  ${kw('const')} del = (id: ${typ('string')}) =&gt; ${fn('remove')}(id)`,
+  `}`,
+].join('\n')
+
+const useNodeCode = [
+  `${kw('import')} { useNode } ${kw('from')} ${str("'@xnet/react'")}`,
+  ``,
+  `${kw('function')} ${fn('PageEditor')}({ pageId }) {`,
+  `  ${kw('const')} {`,
+  `    data: page,    ${cm('// Typed node data')}`,
+  `    doc,           ${cm('// Yjs Y.Doc')}`,
+  `    peerCount,     ${cm('// Connected collaborators')}`,
+  `    syncStatus,    ${cm("// 'connected' | 'offline'")}`,
+  `    update         ${cm('// Type-safe mutations')}`,
+  `  } = ${fn('useNode')}(PageSchema, pageId)`,
+  ``,
+  `  ${kw('return')} (`,
+  `    &lt;div&gt;`,
+  `      &lt;h1&gt;{page?.title}&lt;/h1&gt;`,
+  `      &lt;span&gt;{peerCount} peers online&lt;/span&gt;`,
+  `      &lt;TipTapEditor doc={doc} /&gt;`,
+  `    &lt;/div&gt;`,
+  `  )`,
+  `}`,
+].join('\n')
 ---
 
 <section id="hooks" class="py-24 lg:py-32">
@@ -30,28 +106,7 @@ import SectionHeader from '../ui/SectionHeader.astro'
           <span class="rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs text-indigo-400">+ Database queries</span>
         </div>
       </div>
-      <CodeBlock filename="TaskList.tsx">
-<span class="text-indigo-400">import</span> {'{'} useQuery {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
-
-<span class="text-indigo-400">function</span> <span class="text-yellow-300">TaskList</span>() {'{'}
-  <span class="text-gray-500">// Fully typed — schema defines the shape</span>
-  <span class="text-indigo-400">const</span> {'{'} data: tasks {'}'} = <span class="text-yellow-300">useQuery</span>(TaskSchema, {'{'}
-    where: {'{'} status: <span class="text-emerald-400">'active'</span> {'}'},
-    orderBy: {'{'} createdAt: <span class="text-emerald-400">'desc'</span> {'}'},
-    limit: <span class="text-orange-400">20</span>
-  {'}'})
-
-  <span class="text-gray-500">// No loading state for local data</span>
-  <span class="text-gray-500">// Auto-updates when peers sync changes</span>
-  <span class="text-indigo-400">return</span> (
-    &lt;ul&gt;
-      {'{'}tasks.<span class="text-yellow-300">map</span>(t =&gt;
-        &lt;li key={'{'}t.id{'}'}&gt;{'{'}t.title{'}'}&lt;/li&gt;
-      ){'}'}
-    &lt;/ul&gt;
-  )
-{'}'}
-      </CodeBlock>
+      <CodeBlock filename="TaskList.tsx" code={useQueryCode} />
     </div>
 
     <!-- Hook 2: useMutate -->
@@ -75,28 +130,7 @@ import SectionHeader from '../ui/SectionHeader.astro'
         </div>
       </div>
       <div class="lg:order-1">
-        <CodeBlock filename="TaskActions.tsx">
-<span class="text-indigo-400">import</span> {'{'} useMutate {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
-
-<span class="text-indigo-400">function</span> <span class="text-yellow-300">TaskActions</span>() {'{'}
-  <span class="text-indigo-400">const</span> {'{'} create, update, remove {'}'} = <span class="text-yellow-300">useMutate</span>()
-
-  <span class="text-gray-500">// Schema-validated at compile time</span>
-  <span class="text-indigo-400">const</span> add = () =&gt; <span class="text-yellow-300">create</span>(TaskSchema, {'{'}
-    title: <span class="text-emerald-400">'Ship the landing page'</span>,
-    status: <span class="text-emerald-400">'active'</span>
-  {'}'})
-
-  <span class="text-gray-500">// Syncs to all peers automatically</span>
-  <span class="text-indigo-400">const</span> done = (id: <span class="text-amber-300">string</span>) =&gt;
-    <span class="text-yellow-300">update</span>(TaskSchema, id, {'{'}
-      status: <span class="text-emerald-400">'done'</span>
-    {'}'})
-
-  <span class="text-gray-500">// Works offline — queued until reconnect</span>
-  <span class="text-indigo-400">const</span> del = (id: <span class="text-amber-300">string</span>) =&gt; <span class="text-yellow-300">remove</span>(id)
-{'}'}
-        </CodeBlock>
+        <CodeBlock filename="TaskActions.tsx" code={useMutateCode} />
       </div>
     </div>
 
@@ -121,27 +155,7 @@ import SectionHeader from '../ui/SectionHeader.astro'
           <span class="rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs text-amber-400">+ Presence service</span>
         </div>
       </div>
-      <CodeBlock filename="PageEditor.tsx">
-<span class="text-indigo-400">import</span> {'{'} useNode {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
-
-<span class="text-indigo-400">function</span> <span class="text-yellow-300">PageEditor</span>({'{'} pageId {'}'}) {'{'}
-  <span class="text-indigo-400">const</span> {'{'}
-    data: page,       <span class="text-gray-500">// Typed node data</span>
-    doc,              <span class="text-gray-500">// Yjs Y.Doc</span>
-    peerCount,        <span class="text-gray-500">// Connected collaborators</span>
-    syncStatus,       <span class="text-gray-500">// 'connected' | 'offline'</span>
-    update            <span class="text-gray-500">// Type-safe mutations</span>
-  {'}'} = <span class="text-yellow-300">useNode</span>(PageSchema, pageId)
-
-  <span class="text-indigo-400">return</span> (
-    &lt;div&gt;
-      &lt;h1&gt;{'{'}page?.title{'}'}&lt;/h1&gt;
-      &lt;span&gt;{'{'}peerCount{'}'} peers online&lt;/span&gt;
-      &lt;TipTapEditor doc={'{'}doc{'}'} /&gt;
-    &lt;/div&gt;
-  )
-{'}'}
-      </CodeBlock>
+      <CodeBlock filename="PageEditor.tsx" code={useNodeCode} />
     </div>
   </div>
 </section>

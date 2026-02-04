@@ -1,6 +1,53 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
 import CodeBlock from '../ui/CodeBlock.astro'
+
+const kw = (s: string) => `<span class="text-indigo-400">${s}</span>`
+const fn = (s: string) => `<span class="text-yellow-300">${s}</span>`
+const str = (s: string) => `<span class="text-emerald-400">${s}</span>`
+const num = (s: string) => `<span class="text-orange-400">${s}</span>`
+const cm = (s: string) => `<span class="text-gray-500">${s}</span>`
+const dim = (s: string) => `<span class="text-gray-500">${s}</span>`
+
+const installCode = `${dim('$')} pnpm add @xnet/react @xnet/data`
+
+const schemaCode = [
+  `${kw('import')} { defineSchema, text, select } ${kw('from')} ${str("'@xnet/data'")}`,
+  ``,
+  `${kw('export const')} TaskSchema = ${fn('defineSchema')}({`,
+  `  name: ${str("'Task'")},`,
+  `  namespace: ${str("'xnet://your-did/'")},`,
+  `  properties: {`,
+  `    title: ${fn('text')}({ required: ${num('true')} }),`,
+  `    status: ${fn('select')}({`,
+  `      options: [${str("'todo'")}, ${str("'doing'")}, ${str("'done'")}]`,
+  `    })`,
+  `  }`,
+  `})`,
+].join('\n')
+
+const appCode = [
+  `${kw('import')} { useQuery, useMutate } ${kw('from')} ${str("'@xnet/react'")}`,
+  `${kw('import')} { TaskSchema } ${kw('from')} ${str("'./schema'")}`,
+  ``,
+  `${kw('function')} ${fn('App')}() {`,
+  `  ${kw('const')} { data: tasks } = ${fn('useQuery')}(TaskSchema)`,
+  `  ${kw('const')} { create } = ${fn('useMutate')}()`,
+  ``,
+  `  ${kw('return')} (`,
+  `    &lt;div&gt;`,
+  `      &lt;button onClick={() =&gt; ${fn('create')}(TaskSchema, {`,
+  `        title: ${str("'New task'")},`,
+  `        status: ${str("'todo'")}`,
+  `      })}&gt;Add&lt;/button&gt;`,
+  `      {tasks.${fn('map')}(t =&gt; &lt;li key={t.id}&gt;{t.title}&lt;/li&gt;)}`,
+  `    &lt;/div&gt;`,
+  `  )`,
+  `}`,
+  `${cm('// That\'s it. Sync, storage, crypto — all handled.')}`,
+].join('\n')
+
+const cloneCode = `${dim('$')} git clone https://github.com/crs48/xNet.git &amp;&amp; cd xNet &amp;&amp; pnpm install &amp;&amp; pnpm dev`
 ---
 
 <section id="get-started" class="relative border-t border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
@@ -21,9 +68,7 @@ import CodeBlock from '../ui/CodeBlock.astro'
           <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">1</span>
           <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Install the packages</span>
         </div>
-        <CodeBlock filename="terminal">
-<span class="text-gray-500">$</span> pnpm add @xnet/react @xnet/data
-        </CodeBlock>
+        <CodeBlock filename="terminal" code={installCode} />
       </div>
 
       <!-- Step 2 -->
@@ -32,18 +77,7 @@ import CodeBlock from '../ui/CodeBlock.astro'
           <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">2</span>
           <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Define a schema</span>
         </div>
-        <CodeBlock filename="schema.ts">
-<span class="text-indigo-400">import</span> {'{'} defineSchema, text, select {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/data'</span>
-
-<span class="text-indigo-400">export const</span> TaskSchema = <span class="text-yellow-300">defineSchema</span>({'{'}
-  name: <span class="text-emerald-400">'Task'</span>,
-  namespace: <span class="text-emerald-400">'xnet://your-did/'</span>,
-  properties: {'{'}
-    title:  <span class="text-yellow-300">text</span>({'{'} required: <span class="text-orange-400">true</span> {'}'}),
-    status: <span class="text-yellow-300">select</span>({'{'} options: [<span class="text-emerald-400">'todo'</span>, <span class="text-emerald-400">'doing'</span>, <span class="text-emerald-400">'done'</span>] {'}'})
-  {'}'}
-{'}'})
-        </CodeBlock>
+        <CodeBlock filename="schema.ts" code={schemaCode} />
       </div>
 
       <!-- Step 3 -->
@@ -52,36 +86,14 @@ import CodeBlock from '../ui/CodeBlock.astro'
           <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">3</span>
           <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Use it in your components</span>
         </div>
-        <CodeBlock filename="App.tsx">
-<span class="text-indigo-400">import</span> {'{'} useQuery, useMutate {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
-<span class="text-indigo-400">import</span> {'{'} TaskSchema {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'./schema'</span>
-
-<span class="text-indigo-400">function</span> <span class="text-yellow-300">App</span>() {'{'}
-  <span class="text-indigo-400">const</span> {'{'} data: tasks {'}'} = <span class="text-yellow-300">useQuery</span>(TaskSchema)
-  <span class="text-indigo-400">const</span> {'{'} create {'}'} = <span class="text-yellow-300">useMutate</span>()
-
-  <span class="text-indigo-400">return</span> (
-    &lt;div&gt;
-      &lt;button onClick={'{'}() =&gt; <span class="text-yellow-300">create</span>(TaskSchema, {'{'}
-        title: <span class="text-emerald-400">'New task'</span>,
-        status: <span class="text-emerald-400">'todo'</span>
-      {'}'}){'}'}&gt;Add&lt;/button&gt;
-      {'{'}tasks.<span class="text-yellow-300">map</span>(t =&gt; &lt;li key={'{'}t.id{'}'}&gt;{'{'}t.title{'}'}&lt;/li&gt;){'}'}
-    &lt;/div&gt;
-  )
-{'}'}
-<span class="text-gray-500">// That's it. Sync, storage, crypto — all handled.</span>
-        </CodeBlock>
+        <CodeBlock filename="App.tsx" code={appCode} />
       </div>
     </div>
 
     <!-- Run the full monorepo -->
     <div class="mx-auto mt-12 max-w-2xl animate-on-scroll">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-3 text-center">Or clone the full monorepo to explore the Electron app, canvas, editor, and devtools:</p>
-      <CodeBlock filename="terminal">
-<span class="text-gray-500">$</span> git clone https://github.com/crs48/xNet.git
-<span class="text-gray-500">$</span> cd xNet && pnpm install && pnpm dev
-      </CodeBlock>
+      <CodeBlock filename="terminal" code={cloneCode} />
     </div>
 
     <div class="mt-8 flex justify-center gap-4">
