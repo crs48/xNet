@@ -206,6 +206,8 @@ export {
 
 export { usePresence, type PresenceUser } from './hooks/usePresence'
 
+export { usePeerDiscovery, type DiscoveredPeer } from './hooks/usePeerDiscovery'
+
 export { HubStatusIndicator } from './components/HubStatusIndicator'
 
 // =============================================================================
