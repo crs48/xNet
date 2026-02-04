@@ -11,10 +11,11 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { WebSocketServer } from 'ws'
 import { hasHubCapability } from './auth/capabilities'
-import { authenticateConnection, authenticateHttpRequest, removeSession } from './auth/ucan'
+import { authenticateConnection, authenticateHttpRequest, removeSession, toAuthContext } from './auth/ucan'
 import { NodePool } from './pool/node-pool'
 import { createBackupRoutes } from './routes/backup'
 import { BackupService } from './services/backup'
+import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
 import { createSignalingService } from './services/signaling'
 import { createStorage } from './storage'
@@ -70,6 +71,29 @@ const isPublishMessage = (
   return candidate.type === 'publish'
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value && typeof value === 'object')
+
+const isQueryRequest = (value: unknown): value is { type: 'query-request'; id: string; query: string } => {
+  if (!isRecord(value)) return false
+  return value.type === 'query-request' && typeof value.id === 'string' && typeof value.query === 'string'
+}
+
+const isIndexUpdate = (
+  value: unknown
+): value is { type: 'index-update'; docId: string; meta: { schemaIri: string; title: string } } => {
+  if (!isRecord(value)) return false
+  if (value.type !== 'index-update') return false
+  if (typeof value.docId !== 'string') return false
+  if (!isRecord(value.meta)) return false
+  return typeof value.meta.schemaIri === 'string' && typeof value.meta.title === 'string'
+}
+
+const isIndexRemove = (value: unknown): value is { type: 'index-remove'; docId: string } => {
+  if (!isRecord(value)) return false
+  return value.type === 'index-remove' && typeof value.docId === 'string'
+}
+
 const topicToResource = (topic: string): string =>
   topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
 
@@ -105,6 +129,7 @@ export const createServer = (config: HubConfig): HubInstance => {
     maxQuotaBytes: config.defaultQuota,
     maxBlobSize: config.maxBlobSize
   })
+  const query = new QueryService(storage)
 
   let connectionCount = 0
   const startTime = Date.now()
@@ -166,6 +191,7 @@ export const createServer = (config: HubConfig): HubInstance => {
 
         const session = await authenticateConnection(ws, req, config)
         if (!session) return
+        const authContext = toAuthContext(session)
 
         connectionCount += 1
         let closed = false
@@ -193,67 +219,113 @@ export const createServer = (config: HubConfig): HubInstance => {
         }
 
         ws.on('message', (data: RawData) => {
-          if (getMessageSize(data) > config.maxMessageSize) {
-            ws.close(4413, 'Message too large')
-            return
-          }
-
-          const payload = safeParseJson(dataToString(data))
-          if (!payload) return
-
-          if (config.auth && isSubscribeMessage(payload)) {
-            const topics = parseTopics(payload.topics)
-            if (!checkRoomAuth(session, topics)) {
-              ws.close(4403, 'Insufficient capabilities for room')
+          void (async () => {
+            if (getMessageSize(data) > config.maxMessageSize) {
+              ws.close(4413, 'Message too large')
               return
             }
-          }
 
-          signaling.handleMessage(ws, payload)
+            const payload = safeParseJson(dataToString(data))
+            if (!payload) return
 
-          if (isSubscribeMessage(payload)) {
-            const topics = parseTopics(payload.topics)
-            if (topics.length > 0) {
-              const existing = socketTopics.get(ws) ?? new Set<string>()
-              for (const topic of topics) {
-                if (!existing.has(topic)) {
-                  existing.add(topic)
-                  void relay.handleRoomJoin(topic, signaling.publishFromHub)
+            if (isQueryRequest(payload)) {
+              if (!authContext.can('query/read', '*')) {
+                ws.send(
+                  JSON.stringify({ type: 'query-error', id: payload.id, error: 'Unauthorized' })
+                )
+                return
+              }
+              const response = await query.handleQuery(payload)
+              ws.send(JSON.stringify(response))
+              return
+            }
+
+            if (isIndexUpdate(payload)) {
+              if (!authContext.can('index/write', payload.docId)) {
+                ws.send(
+                  JSON.stringify({
+                    type: 'index-error',
+                    docId: payload.docId,
+                    error: 'Unauthorized'
+                  })
+                )
+                return
+              }
+              const ack = await query.handleIndexUpdate(payload.docId, authContext.did, payload)
+              ws.send(JSON.stringify(ack))
+              return
+            }
+
+            if (isIndexRemove(payload)) {
+              if (!authContext.can('index/write', payload.docId)) {
+                ws.send(
+                  JSON.stringify({
+                    type: 'index-error',
+                    docId: payload.docId,
+                    error: 'Unauthorized'
+                  })
+                )
+                return
+              }
+              await query.removeFromIndex(payload.docId)
+              ws.send(JSON.stringify({ type: 'index-ack', docId: payload.docId, indexed: false }))
+              return
+            }
+
+            if (config.auth && isSubscribeMessage(payload)) {
+              const topics = parseTopics(payload.topics)
+              if (!checkRoomAuth(session, topics)) {
+                ws.close(4403, 'Insufficient capabilities for room')
+                return
+              }
+            }
+
+            signaling.handleMessage(ws, payload)
+
+            if (isSubscribeMessage(payload)) {
+              const topics = parseTopics(payload.topics)
+              if (topics.length > 0) {
+                const existing = socketTopics.get(ws) ?? new Set<string>()
+                for (const topic of topics) {
+                  if (!existing.has(topic)) {
+                    existing.add(topic)
+                    void relay.handleRoomJoin(topic, signaling.publishFromHub)
+                  }
+                }
+                socketTopics.set(ws, existing)
+              }
+            }
+
+            if (isUnsubscribeMessage(payload)) {
+              const topics = parseTopics(payload.topics)
+              const existing = socketTopics.get(ws)
+              if (existing && topics.length > 0) {
+                for (const topic of topics) {
+                  if (existing.delete(topic)) {
+                    relay.handleRoomLeave(topic)
+                  }
+                }
+                if (existing.size === 0) {
+                  socketTopics.delete(ws)
                 }
               }
-              socketTopics.set(ws, existing)
             }
-          }
 
-          if (isUnsubscribeMessage(payload)) {
-            const topics = parseTopics(payload.topics)
-            const existing = socketTopics.get(ws)
-            if (existing && topics.length > 0) {
-              for (const topic of topics) {
-                if (existing.delete(topic)) {
-                  relay.handleRoomLeave(topic)
-                }
+            if (isPublishMessage(payload) && typeof payload.topic === 'string') {
+              const peerId = (() => {
+                if (!payload.data || typeof payload.data !== 'object') return null
+                const data = payload.data as { from?: unknown }
+                return typeof data.from === 'string' ? data.from : null
+              })()
+              if (peerId) {
+                const peers = socketPeers.get(ws) ?? new Set<string>()
+                peers.add(peerId)
+                socketPeers.set(ws, peers)
               }
-              if (existing.size === 0) {
-                socketTopics.delete(ws)
-              }
-            }
-          }
 
-          if (isPublishMessage(payload) && typeof payload.topic === 'string') {
-            const peerId = (() => {
-              if (!payload.data || typeof payload.data !== 'object') return null
-              const data = payload.data as { from?: unknown }
-              return typeof data.from === 'string' ? data.from : null
-            })()
-            if (peerId) {
-              const peers = socketPeers.get(ws) ?? new Set<string>()
-              peers.add(peerId)
-              socketPeers.set(ws, peers)
+              void relay.handleSyncMessage(payload.topic, payload.data, signaling.publishFromHub)
             }
-
-            void relay.handleSyncMessage(payload.topic, payload.data, signaling.publishFromHub)
-          }
+          })()
         })
 
         ws.on('close', finalize)

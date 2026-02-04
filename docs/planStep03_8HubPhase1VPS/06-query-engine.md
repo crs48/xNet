@@ -628,15 +628,15 @@ describe('Query Engine', () => {
 
 ## Checklist
 
-- [ ] Implement `QueryService` with handleQuery and handleIndexUpdate
-- [ ] Add `query-request` / `query-response` message types to signaling
-- [ ] Add `index-update` / `index-ack` message types
-- [ ] Implement FTS5 query sanitization
-- [ ] Add `updateSearchBody` to SQLite storage adapter
-- [ ] Create `QueryClient` reference implementation
-- [ ] Add UCAN capability checks (query/read, index/write)
-- [ ] Write query engine tests (search, filter, paginate, remove)
-- [ ] Cap query length and result limit to prevent abuse
+- [x] Implement `QueryService` with handleQuery and handleIndexUpdate
+- [x] Add `query-request` / `query-response` message types to signaling
+- [x] Add `index-update` / `index-ack` message types
+- [x] Implement FTS5 query sanitization
+- [x] Add `updateSearchBody` to SQLite storage adapter
+- [x] Create `QueryClient` reference implementation
+- [x] Add UCAN capability checks (query/read, index/write)
+- [x] Write query engine tests (search, filter, paginate, remove)
+- [x] Cap query length and result limit to prevent abuse
 - [ ] Document FTS5 query syntax for client developers
 
 ---

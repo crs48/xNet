@@ -160,6 +160,15 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       WHERE search_index MATCH ? AND schema_iri = ?
       ORDER BY rank
       LIMIT ? OFFSET ?
+    `),
+    updateSearchBody: db.prepare(`
+      INSERT INTO search_index(search_index, rowid, doc_id, title, body, schema_iri, owner_did)
+      SELECT 'delete', rowid, doc_id, title, body, schema_iri, owner_did
+      FROM search_index WHERE doc_id = ?;
+    `),
+    insertSearchBody: db.prepare(`
+      INSERT INTO search_index(doc_id, title, body, schema_iri, owner_did)
+      SELECT doc_id, title, ?, schema_iri, owner_did FROM doc_meta WHERE doc_id = ?
     `)
   }
 
@@ -287,6 +296,13 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     setDocMeta,
     getDocMeta,
     search,
+    updateSearchBody: async (docId: string, text: string): Promise<void> => {
+      const updateFn = db.transaction(() => {
+        stmts.updateSearchBody.run(docId)
+        stmts.insertSearchBody.run(text, docId)
+      })
+      updateFn()
+    },
     close
   }
 }

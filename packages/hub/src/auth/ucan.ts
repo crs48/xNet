@@ -53,6 +53,8 @@ const createAuthContext = (session: AuthSession): AuthContext => ({
     )
 })
 
+export const toAuthContext = (session: AuthSession): AuthContext => createAuthContext(session)
+
 const getTokenFromRequest = (req: IncomingMessage): string | null => {
   const host = req.headers.host ?? 'localhost'
   const url = new URL(req.url ?? '/', `http://${host}`)
