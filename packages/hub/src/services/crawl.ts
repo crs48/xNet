@@ -10,7 +10,7 @@ import type {
   HubStorage
 } from '../storage/interface'
 import type { ShardIngestRouter } from './shard-ingest'
-import type { RobotsChecker } from './robots'
+import type { RobotsChecker } from './crawl-robots'
 import { randomUUID } from 'node:crypto'
 
 export interface CrawlTask {
