@@ -131,7 +131,7 @@ const colorMap: Record<string, { dot: string; border: string; bg: string; label:
           return (
             <div class="animate-on-scroll relative pl-16 sm:pl-20">
               <!-- Dot on the timeline -->
-              <div class={`absolute left-[18px] top-6 h-4 w-4 rounded-full ${colors.dot} ring-4 ring-white dark:ring-[#0a0a0f] sm:left-[26px]`}></div>
+              <div class={`absolute left-[19px] top-6 h-[11px] w-[11px] rounded-full ${colors.dot} ring-[3px] ring-white dark:ring-[#0a0a0f] sm:left-[27px]`}></div>
 
               <!-- Card -->
               <div class={`rounded-xl border ${colors.border} ${colors.bg} p-5 sm:p-6`}>
@@ -155,13 +155,6 @@ const colorMap: Record<string, { dot: string; border: string; bg: string; label:
                   ))}
                 </ul>
               </div>
-
-              {/* Fading arrow between cards */}
-              {!isLast && (
-                <div class="absolute left-[22px] -bottom-3 sm:left-[30px]">
-                  <svg class="h-3 w-3 text-gray-300 dark:text-gray-600" fill="currentColor" viewBox="0 0 12 12"><path d="M6 9l-4-4h8z"/></svg>
-                </div>
-              )}
             </div>
           )
         })}
