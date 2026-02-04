@@ -71,15 +71,22 @@ describe('UCAN', () => {
     })
 
     it('should include proofs', () => {
+      const { identity: delegator, privateKey: delegatorKey } = generateIdentity()
       const { identity: issuer, privateKey } = generateIdentity()
       const { identity: audience } = generateIdentity()
 
-      const proofToken = 'parent.token.here'
+      const proofToken = createUCAN({
+        issuer: delegator.did,
+        issuerKey: delegatorKey,
+        audience: issuer.did,
+        capabilities: [{ with: '*', can: '*' }]
+      })
+
       const token = createUCAN({
         issuer: issuer.did,
         issuerKey: privateKey,
         audience: audience.did,
-        capabilities: [],
+        capabilities: [{ with: '*', can: '*' }],
         proofs: [proofToken]
       })
 
