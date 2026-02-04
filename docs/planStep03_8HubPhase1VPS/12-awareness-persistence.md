@@ -536,17 +536,17 @@ describe('Awareness Persistence', () => {
 
 ## Checklist
 
-- [ ] Add `awareness_state` table to SQLite schema
-- [ ] Add awareness methods to `HubStorage` interface
-- [ ] Implement `AwarenessService` (persist, snapshot, cleanup)
-- [ ] Wire into signaling message interceptor
-- [ ] Send `awareness-snapshot` on room join
-- [ ] Mark users as offline on disconnect (don't delete)
-- [ ] Periodic cleanup of entries older than TTL
-- [ ] Handle `awareness-snapshot` in `WebSocketSyncProvider`
-- [ ] Enhance `usePresence` hook to include historical state
-- [ ] Write awareness tests (snapshot, update, empty room)
-- [ ] Configure TTL via hub config
+- [x] Add `awareness_state` table to SQLite schema
+- [x] Add awareness methods to `HubStorage` interface
+- [x] Implement `AwarenessService` (persist, snapshot, cleanup)
+- [x] Wire into signaling message interceptor
+- [x] Send `awareness-snapshot` on room join
+- [x] Mark users as offline on disconnect (don't delete)
+- [x] Periodic cleanup of entries older than TTL
+- [x] Handle `awareness-snapshot` in `WebSocketSyncProvider`
+- [x] Enhance `usePresence` hook to include historical state
+- [x] Write awareness tests (snapshot, update, empty room)
+- [x] Configure TTL via hub config
 
 ---
 
