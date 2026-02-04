@@ -77,8 +77,10 @@ export const createSchemaRoutes = (
   app.get('/', async (c) => {
     const search = c.req.query('search')
     const author = c.req.query('author')
-    const limit = Math.min(Number(c.req.query('limit') ?? 20), 100)
-    const offset = Math.max(Number(c.req.query('offset') ?? 0), 0)
+    const rawLimit = Number(c.req.query('limit') ?? 20)
+    const rawOffset = Number(c.req.query('offset') ?? 0)
+    const limit = Number.isFinite(rawLimit) ? Math.min(rawLimit, 100) : 20
+    const offset = Number.isFinite(rawOffset) ? Math.max(rawOffset, 0) : 0
 
     if (search) {
       const results = await schemas.search(search, { limit, offset })
