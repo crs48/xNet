@@ -863,13 +863,13 @@ describe('Onboarding Flow', () => {
 
 ## Validation Gate
 
-- [ ] Welcome screen displays with "Use Touch ID to get started" as primary CTA
-- [ ] Passkey creation triggers immediately on tap (no separate passkey prompt screen)
-- [ ] **No skip option** — passkey is required for all users
-- [ ] Auth error screen shows retry button, not skip
-- [ ] Unsupported browser screen shows when WebAuthn/PRF unavailable
-- [ ] Ready screen shows DID, hub connection status, and demo banner (if demo)
-- [ ] Quick-start templates create valid content
+- [x] Welcome screen displays with "Use Touch ID to get started" as primary CTA
+- [x] Passkey creation triggers immediately on tap (no separate passkey prompt screen)
+- [x] **No skip option** — passkey is required for all users
+- [x] Auth error screen shows retry button, not skip
+- [x] Unsupported browser screen shows when WebAuthn/PRF unavailable
+- [x] Ready screen shows DID, hub connection status, and demo banner (if demo)
+- [x] Quick-start templates create valid content
 - [ ] Full flow completes in < 10 seconds (one biometric tap)
 - [ ] Accessible with keyboard navigation
 
