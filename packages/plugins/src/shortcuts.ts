@@ -215,12 +215,12 @@ export class ShortcutManager {
    * Convert a keyboard event to a normalized string.
    */
   private eventToString(event: KeyboardEvent): string {
-    const parts: string[] = []
+    const modifiers: string[] = []
 
-    if (event.ctrlKey) parts.push('ctrl')
-    if (event.metaKey) parts.push('meta')
-    if (event.altKey) parts.push('alt')
-    if (event.shiftKey) parts.push('shift')
+    if (event.ctrlKey) modifiers.push('ctrl')
+    if (event.metaKey) modifiers.push('meta')
+    if (event.altKey) modifiers.push('alt')
+    if (event.shiftKey) modifiers.push('shift')
 
     // Get the key name
     let key = event.key.toLowerCase()
@@ -237,9 +237,9 @@ export class ShortcutManager {
       return ''
     }
 
-    parts.push(key)
-
-    return parts.sort().join('-')
+    // Sort modifiers for consistent comparison, then append key
+    // (must match normalize() which does: sorted modifiers + key)
+    return [...modifiers.sort(), key].join('-')
   }
 
   /**
