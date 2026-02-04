@@ -414,12 +414,12 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] Terms hash deterministically to the same shard
-- [ ] Documents ingested to correct shard based on term hashing
-- [ ] Multi-term queries route to multiple shards in parallel
-- [ ] BM25 scoring produces relevant rankings across shards
-- [ ] Replica fallback works when primary shard host is down
-- [ ] `/shards/assignments` returns current shard topology
+- [x] Terms hash deterministically to the same shard
+- [x] Documents ingested to correct shard based on term hashing
+- [x] Multi-term queries route to multiple shards in parallel
+- [x] BM25 scoring produces relevant rankings across shards
+- [x] Replica fallback works when primary shard host is down
+- [x] `/shards/assignments` returns current shard topology
 
 ### Phase 15: Crawl Coordination (Days 23-26)
 

@@ -1081,21 +1081,48 @@ describe('Global Index Shards', () => {
 })
 ```
 
+## Community Hub Hosting Requirements
+
+Community hubs hosting shards should meet these baseline requirements:
+
+- **Stable URL + DID**: Set `hubUrl` and `hubDid` in shard config so other hubs can route and verify.
+- **Storage headroom**: Reserve disk for shard postings (start with 10GB for small shards).
+- **Compute budget**: BM25 scoring is CPU-bound; plan for steady query load.
+- **Availability**: Target >99% uptime or ensure replica coverage via `replicationFactor`.
+- **Registration**: Register with the canonical registry via `POST /shards/register`.
+
+Example configuration:
+
+```typescript
+const hub = await createHub({
+  shards: {
+    enabled: true,
+    totalShards: 64,
+    hostedShards: [0, 1, 2, 3],
+    replicationFactor: 2,
+    registryUrl: 'https://hub.xnet.io',
+    maxDocsPerShard: 1_000_000,
+    hubDid: 'did:key:z6MkCommunityHub',
+    hubUrl: 'https://hub.community.org'
+  }
+})
+```
+
 ## Checklist
 
-- [ ] Implement `ShardRegistry` with consistent hashing and shard lookup
-- [ ] Implement `ShardIngestRouter` with term extraction and shard routing
-- [ ] Implement `ShardQueryRouter` with parallel shard queries and BM25 scoring
-- [ ] Add `shard_postings`, `shard_term_stats`, and `shard_assignments` tables
-- [ ] Add `/shards/assignments`, `/shards/ingest`, `/shards/query`, `/shards/search` endpoints
-- [ ] Add `/shards/register` for new hub operators
-- [ ] Implement replica fallback for shard queries
-- [ ] Implement `ShardRebalancer` for hub join/leave events
-- [ ] Add BM25 scoring with IDF across shards
-- [ ] Add term extraction with stop-word filtering
-- [ ] Add CID-based deduplication for multi-shard results
-- [ ] Write shard distribution and query tests
-- [ ] Document shard hosting requirements for community hub operators
+- [x] Implement `ShardRegistry` with consistent hashing and shard lookup
+- [x] Implement `ShardIngestRouter` with term extraction and shard routing
+- [x] Implement `ShardQueryRouter` with parallel shard queries and BM25 scoring
+- [x] Add `shard_postings`, `shard_term_stats`, and `shard_assignments` tables
+- [x] Add `/shards/assignments`, `/shards/ingest`, `/shards/query`, `/shards/search` endpoints
+- [x] Add `/shards/register` for new hub operators
+- [x] Implement replica fallback for shard queries
+- [x] Implement `ShardRebalancer` for hub join/leave events
+- [x] Add BM25 scoring with IDF across shards
+- [x] Add term extraction with stop-word filtering
+- [x] Add CID-based deduplication for multi-shard results
+- [x] Write shard distribution and query tests
+- [x] Document shard hosting requirements for community hub operators
 
 ---
 
