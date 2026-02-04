@@ -68,6 +68,14 @@ export interface RemoteUser {
   color: string
 }
 
+export interface PresenceUser {
+  did: string
+  name?: string
+  color?: string
+  lastSeen: number
+  isStale: boolean
+}
+
 /**
  * Options for useNode
  */
@@ -133,6 +141,8 @@ export interface UseNodeResult<P extends Record<string, PropertyBuilder>> {
   // === Presence ===
   /** Remote users currently viewing this document */
   remoteUsers: RemoteUser[]
+  /** Last-known presence snapshot from the hub */
+  presenceUsers: PresenceUser[]
   /** Yjs Awareness instance (for TipTap CollaborationCursor) */
   awareness: Awareness | null
 
@@ -260,6 +270,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const [peerCount, setPeerCount] = useState(0)
   const [wasCreated, setWasCreated] = useState(false)
   const [remoteUsers, setRemoteUsers] = useState<RemoteUser[]>([])
+  const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([])
   const [awareness, setAwareness] = useState<Awareness | null>(null)
 
   // Refs
@@ -693,6 +704,17 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         awarenessCleanup = () => awareness.off('change', awarenessHandler)
       }
 
+      const snapshotUnsub = syncManager.onAwarenessSnapshot(id, (users) => {
+        const mapped = users.map((user) => ({
+          did: user.did,
+          name: user.state.user?.name,
+          color: user.state.user?.color,
+          lastSeen: user.lastSeen,
+          isStale: user.isStale
+        }))
+        setPresenceUsers(mapped)
+      })
+
       // If we just created this node (joining a shared doc), set a timeout
       // to detect if sync fails to deliver any content
       if (wasCreated) {
@@ -729,11 +751,13 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         metaMap.unobserve(metaObserver)
         statusUnsub()
         if (awarenessCleanup) awarenessCleanup()
+        snapshotUnsub()
         setAwareness(null)
         setSyncStatus('offline')
         setSyncError(null)
         setPeerCount(0)
         setRemoteUsers([])
+        setPresenceUsers([])
       }
     }
 
@@ -892,6 +916,29 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       }
       providerAwareness.on('change', awarenessHandler)
 
+      const snapshotHandler = (users: unknown) => {
+        if (!Array.isArray(users)) return
+        const mapped = users
+          .filter(
+            (user): user is {
+              did: string
+              state: { user?: { name?: string; color?: string } }
+              lastSeen: number
+              isStale: boolean
+            } =>
+              Boolean(user && typeof user === 'object' && typeof (user as { did?: unknown }).did === 'string')
+          )
+          .map((user) => ({
+            did: user.did,
+            name: user.state.user?.name,
+            color: user.state.user?.color,
+            lastSeen: user.lastSeen,
+            isStale: user.isStale
+          }))
+        setPresenceUsers(mapped)
+      }
+      provider.on('awareness-snapshot', snapshotHandler)
+
       return () => {
         log('Cleaning up sync provider')
         if (syncTimeoutId) {
@@ -900,6 +947,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         doc.off('update', updateHandler)
         metaMap.unobserve(metaObserver)
         providerAwareness.off('change', awarenessHandler)
+        provider.off('awareness-snapshot', snapshotHandler)
         provider.off('synced', syncedHandler)
         provider.off('status', statusHandler)
         provider.off('peers', peersHandler)
@@ -910,6 +958,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         setSyncError(null)
         setPeerCount(0)
         setRemoteUsers([])
+        setPresenceUsers([])
       }
     }
 
@@ -1006,6 +1055,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 
     // Presence
     remoteUsers,
+    presenceUsers,
     awareness,
 
     // Actions

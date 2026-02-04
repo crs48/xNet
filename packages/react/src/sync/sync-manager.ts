@@ -15,7 +15,12 @@ if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug
 }
 
 import * as Y from 'yjs'
-import { Awareness } from 'y-protocols/awareness'
+import {
+  Awareness,
+  applyAwarenessUpdate,
+  encodeAwarenessUpdate,
+  removeAwarenessStates
+} from 'y-protocols/awareness'
 import type { ContentId } from '@xnet/core'
 import type { NodeStore, NodeStorageAdapter } from '@xnet/data'
 import { createMetaBridge, type MetaBridge } from './meta-bridge'
@@ -84,6 +89,11 @@ export interface SyncManager {
 
   /** Get awareness for a Node (for cursor presence) */
   getAwareness(nodeId: string): Awareness | null
+  /** Listen for awareness snapshots from the hub */
+  onAwarenessSnapshot(
+    nodeId: string,
+    handler: (users: AwarenessSnapshotUser[]) => void
+  ): () => void
 
   /** Request blobs from peers by CID (no-op if blob sync is disabled) */
   requestBlobs(cids: string[]): Promise<void>
@@ -105,6 +115,19 @@ export interface SyncManager {
   on(event: 'status', handler: (status: SyncStatus) => void): () => void
   /** Underlying ConnectionManager (if available) */
   readonly connection?: ConnectionManager
+}
+
+export type AwarenessSnapshotUser = {
+  did: string
+  state: {
+    user?: { name?: string; color?: string; avatar?: string; did?: string }
+    cursor?: { anchor: number; head: number }
+    selection?: unknown
+    online?: boolean
+    [key: string]: unknown
+  }
+  lastSeen: number
+  isStale: boolean
 }
 
 /**
@@ -261,6 +284,11 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const roomCleanups = new Map<string, () => void>()
   // Awareness instances per nodeId
   const awarenessMap = new Map<string, Awareness>()
+  const awarenessSnapshots = new Map<string, AwarenessSnapshotUser[]>()
+  const awarenessSnapshotListeners = new Map<
+    string,
+    Set<(users: AwarenessSnapshotUser[]) => void>
+  >()
   // Track which docs have broadcast listeners set up
   const broadcastDocs = new Set<string>()
   // Peer ID for deduplication
@@ -302,6 +330,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     if (pool.has(nodeId)) {
       log('Doc already in pool, sending initial sync-step1')
       pool.acquire(nodeId).then((doc) => {
+        getOrCreateAwareness(nodeId, doc)
         const sv = Y.encodeStateVector(doc)
         log('Sending sync-step1 for node:', nodeId, 'SV size:', sv.length)
         connection.publish(room, {
@@ -322,8 +351,51 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       cleanup()
       roomCleanups.delete(nodeId)
     }
+    const awareness = awarenessMap.get(nodeId)
+    if (awareness) {
+      removeAwarenessStates(awareness, [awareness.clientID], 'local')
+    }
     awarenessMap.delete(nodeId)
+    awarenessSnapshots.delete(nodeId)
+    awarenessSnapshotListeners.delete(nodeId)
     broadcastDocs.delete(nodeId)
+  }
+
+  function getOrCreateAwareness(nodeId: string, doc: Y.Doc): Awareness {
+    const existing = awarenessMap.get(nodeId)
+    if (existing) return existing
+
+    const awareness = new Awareness(doc)
+    awarenessMap.set(nodeId, awareness)
+
+    awareness.on('update', ({ added, updated, removed }, origin) => {
+      if (origin === 'remote') return
+      const changed = [...added, ...updated, ...removed]
+      if (changed.length === 0) return
+      if (connection.status !== 'connected') return
+      const room = `xnet-doc-${nodeId}`
+      const update = encodeAwarenessUpdate(awareness, changed)
+      connection.publish(room, {
+        type: 'awareness',
+        from: peerId,
+        update: toBase64(update)
+      })
+    })
+
+    return awareness
+  }
+
+  function emitAwarenessSnapshot(nodeId: string, users: AwarenessSnapshotUser[]): void {
+    awarenessSnapshots.set(nodeId, users)
+    const listeners = awarenessSnapshotListeners.get(nodeId)
+    if (!listeners) return
+    for (const handler of listeners) {
+      try {
+        handler(users)
+      } catch {
+        // ignore listener errors
+      }
+    }
   }
 
   async function handleSyncMessage(nodeId: string, data: Record<string, unknown>): Promise<void> {
@@ -381,6 +453,19 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
           const update = fromBase64(data.update as string)
           log('Received sync-update, size:', update.length)
           Y.applyUpdate(doc, update, 'remote')
+          break
+        }
+
+        case 'awareness': {
+          const update = fromBase64(data.update as string)
+          const awareness = getOrCreateAwareness(nodeId, doc)
+          applyAwarenessUpdate(awareness, update, 'remote')
+          break
+        }
+
+        case 'awareness-snapshot': {
+          const users = Array.isArray(data.users) ? (data.users as AwarenessSnapshotUser[]) : []
+          emitAwarenessSnapshot(nodeId, users)
           break
         }
       }
@@ -527,6 +612,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
       // Set up broadcast if not already done
       setupDocBroadcast(nodeId, doc)
+      getOrCreateAwareness(nodeId, doc)
 
       // Join room if not already joined
       if (!roomCleanups.has(nodeId)) {
@@ -559,6 +645,24 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     getAwareness(nodeId) {
       return awarenessMap.get(nodeId) ?? null
+    },
+
+    onAwarenessSnapshot(nodeId, handler) {
+      const listeners = awarenessSnapshotListeners.get(nodeId) ?? new Set()
+      listeners.add(handler)
+      awarenessSnapshotListeners.set(nodeId, listeners)
+      const existing = awarenessSnapshots.get(nodeId)
+      if (existing) {
+        handler(existing)
+      }
+      return () => {
+        const current = awarenessSnapshotListeners.get(nodeId)
+        if (!current) return
+        current.delete(handler)
+        if (current.size === 0) {
+          awarenessSnapshotListeners.delete(nodeId)
+        }
+      }
     },
 
     async requestBlobs(cids) {
