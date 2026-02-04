@@ -23,6 +23,8 @@ import type { SyncManager } from '@xnet/react'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type StatusHandler = (status: ConnectionStatus) => void
+type AwarenessSnapshotHandler = Parameters<SyncManager['onAwarenessSnapshot']>[1]
+type AwarenessSnapshotUsers = Parameters<AwarenessSnapshotHandler>[0]
 
 // DevTools event bus type (optional - for instrumentation)
 interface DevToolsEventBus {
@@ -50,6 +52,8 @@ export function createIPCSyncManager(): IPCSyncManager {
   const docs = new Map<string, Y.Doc>()
   // Awareness instances per node (for cursor presence, etc.)
   const awarenessMap = new Map<string, Awareness>()
+  const awarenessSnapshots = new Map<string, AwarenessSnapshotUsers>()
+  const awarenessSnapshotListeners = new Map<string, Set<AwarenessSnapshotHandler>>()
   // Cleanup functions for doc update listeners and message handlers
   const cleanups = new Map<string, () => void>()
   // Pending acquire promises to handle concurrent calls
@@ -73,6 +77,19 @@ export function createIPCSyncManager(): IPCSyncManager {
     for (const handler of statusListeners) {
       try {
         handler(s)
+      } catch {
+        // Listener errors don't break the manager
+      }
+    }
+  }
+
+  function emitAwarenessSnapshot(nodeId: string, users: AwarenessSnapshotUsers): void {
+    awarenessSnapshots.set(nodeId, users)
+    const listeners = awarenessSnapshotListeners.get(nodeId)
+    if (!listeners) return
+    for (const handler of listeners) {
+      try {
+        handler(users)
       } catch {
         // Listener errors don't break the manager
       }
@@ -166,11 +183,13 @@ export function createIPCSyncManager(): IPCSyncManager {
 
         // Set up message handler for remote updates (via preload)
         const messageCleanup = window.xnetBSM.onMessage(nodeId, (data: unknown) => {
-          const { type, update } = data as { type: string; update?: number[] }
+          const { type, update, users } = data as { type: string; update?: number[]; users?: unknown }
           if (type === 'update' && update) {
             Y.applyUpdate(doc, new Uint8Array(update), 'remote')
           } else if (type === 'awareness' && update) {
             applyAwarenessUpdate(awareness, new Uint8Array(update), 'remote')
+          } else if (type === 'awareness-snapshot' && Array.isArray(users)) {
+            emitAwarenessSnapshot(nodeId, users as AwarenessSnapshotUsers)
           } else if (type === 'request-awareness') {
             // BSM is asking us to re-broadcast our awareness (a new peer joined)
             const localState = awareness.getLocalState()
@@ -248,6 +267,9 @@ export function createIPCSyncManager(): IPCSyncManager {
         awarenessMap.delete(nodeId)
       }
 
+      awarenessSnapshots.delete(nodeId)
+      awarenessSnapshotListeners.delete(nodeId)
+
       // Destroy renderer mirror
       const doc = docs.get(nodeId)
       if (doc) {
@@ -261,6 +283,24 @@ export function createIPCSyncManager(): IPCSyncManager {
 
     getAwareness(nodeId: string) {
       return awarenessMap.get(nodeId) ?? null
+    },
+
+    onAwarenessSnapshot(nodeId, handler) {
+      const listeners = awarenessSnapshotListeners.get(nodeId) ?? new Set()
+      listeners.add(handler)
+      awarenessSnapshotListeners.set(nodeId, listeners)
+      const existing = awarenessSnapshots.get(nodeId)
+      if (existing) {
+        handler(existing)
+      }
+      return () => {
+        const current = awarenessSnapshotListeners.get(nodeId)
+        if (!current) return
+        current.delete(handler)
+        if (current.size === 0) {
+          awarenessSnapshotListeners.delete(nodeId)
+        }
+      }
     },
 
     async requestBlobs(cids: string[]) {

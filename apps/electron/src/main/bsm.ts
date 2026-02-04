@@ -664,6 +664,15 @@ export function setupBSM(config: BSMConfig) {
         forwardAwarenessToRenderer(nodeId, update)
         break
       }
+
+      case 'awareness-snapshot': {
+        const users = Array.isArray(data.users) ? data.users : []
+        if (users.length > 0) {
+          log('Received awareness snapshot, users:', users.length)
+        }
+        forwardAwarenessSnapshotToRenderer(nodeId, users)
+        break
+      }
     }
   }
 
@@ -672,6 +681,14 @@ export function setupBSM(config: BSMConfig) {
     if (port) {
       log('Forwarding awareness to renderer for node:', nodeId, 'size:', update.length)
       port.postMessage({ type: 'awareness', update: Array.from(update) })
+    }
+  }
+
+  function forwardAwarenessSnapshotToRenderer(nodeId: string, users: unknown[]): void {
+    const port = activePorts.get(nodeId)
+    if (port) {
+      log('Forwarding awareness snapshot to renderer for node:', nodeId, 'users:', users.length)
+      port.postMessage({ type: 'awareness-snapshot', users })
     }
   }
 
