@@ -132,7 +132,7 @@ flowchart TB
 | ConnectionManager         | **Complete** (241 LOC)              | `packages/react/src/sync/connection-manager.ts` | Single multiplexed WebSocket for all rooms. Subscribe/publish/reconnect.                                                                                        |
 | BSM (Electron)            | **Complete** (1131 LOC)             | `apps/electron/src/main/bsm.ts`                 | Full sync in main process: signed Yjs envelopes, YjsRateLimiter, YjsPeerScorer, blob sync, MessagePort IPC.                                                     |
 | UCAN tokens               | **Complete** (163 LOC)              | `packages/identity/src/ucan.ts`                 | create/verify/capabilities/expiry. **Not wired into signaling or sync** — primitives only.                                                                      |
-| UCAN bugs                 | **Known issues** (Expl. 0040)       | `packages/identity/`                            | Signature signs raw JSON not base64url; no proof chain validation; no attenuation checking.                                                                     |
+| UCAN bugs                 | **Fixed** (Feb 2026)                | `packages/identity/`                            | Signature now signs base64url payload; proof chain validation + attenuation enforced.                                                                          |
 | NodeStorageAdapter        | **Complete** (291 LOC interface)    | `packages/data/src/store/types.ts`              | IndexedDB + Memory adapters. **No `getChangesSince(lamport)` method** — needed for hub delta sync.                                                              |
 | NodeStore                 | **Complete** (683 LOC)              | `packages/data/src/store/`                      | Full CRUD, LWW conflict resolution, transactions, batch changes, remote change apply.                                                                           |
 | SQLite adapter (Electron) | **Complete** (149 LOC)              | `apps/electron/src/main/storage.ts`             | `better-sqlite3`, WAL mode. App-level — NOT in a shared package.                                                                                                |
@@ -594,7 +594,7 @@ packages/
 
 - [0025 Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md) — Threat model for unsigned rich text updates
 - [0026 Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md) — Event-sourced structured data, hub relay = append-only log
-- [0040 First-Class Relations](../explorations/0040_FIRST_CLASS_RELATIONS.md) — UCAN bugs identified, relation index for graph queries
+- [0040 First-Class Relations](../explorations/0040_FIRST_CLASS_RELATIONS.md) — UCAN bugs identified (now fixed), relation index for graph queries
 
 ### Explorations (Data & Query)
 
