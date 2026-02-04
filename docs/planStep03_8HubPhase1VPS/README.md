@@ -132,7 +132,7 @@ flowchart TB
 | ConnectionManager         | **Complete** (241 LOC)              | `packages/react/src/sync/connection-manager.ts` | Single multiplexed WebSocket for all rooms. Subscribe/publish/reconnect.                                                                                        |
 | BSM (Electron)            | **Complete** (1131 LOC)             | `apps/electron/src/main/bsm.ts`                 | Full sync in main process: signed Yjs envelopes, YjsRateLimiter, YjsPeerScorer, blob sync, MessagePort IPC.                                                     |
 | UCAN tokens               | **Complete** (163 LOC)              | `packages/identity/src/ucan.ts`                 | create/verify/capabilities/expiry. **Not wired into signaling or sync** — primitives only.                                                                      |
-| UCAN bugs                 | **Fixed** (Feb 2026)                | `packages/identity/`                            | Signature now signs base64url payload; proof chain validation + attenuation enforced.                                                                          |
+| UCAN bugs                 | **Fixed** (Feb 2026)                | `packages/identity/`                            | Signature now signs base64url payload; proof chain validation + attenuation enforced.                                                                           |
 | NodeStorageAdapter        | **Complete** (291 LOC interface)    | `packages/data/src/store/types.ts`              | IndexedDB + Memory adapters. **No `getChangesSince(lamport)` method** — needed for hub delta sync.                                                              |
 | NodeStore                 | **Complete** (683 LOC)              | `packages/data/src/store/`                      | Full CRUD, LWW conflict resolution, transactions, batch changes, remote change apply.                                                                           |
 | SQLite adapter (Electron) | **Complete** (149 LOC)              | `apps/electron/src/main/storage.ts`             | `better-sqlite3`, WAL mode. App-level — NOT in a shared package.                                                                                                |
@@ -448,6 +448,61 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 >
 > Yjs security is a cross-cutting concern affecting both hub and client packages. The full 8-step implementation plan (signed envelopes, UCAN auth, size limits, MetaBridge isolation, hash-at-rest, peer scoring, clientID binding, hash chain integration) lives in its own plan step.
 
+### Phase 17: Railway Deployment — Default (Day 27)
+
+| Task | Document                                       | Description                                          |
+| ---- | ---------------------------------------------- | ---------------------------------------------------- |
+| 17.1 | [17-railway-deploy.md](./17-railway-deploy.md) | `resolveConfig()` with env var → CLI → default chain |
+| 17.2 | [17-railway-deploy.md](./17-railway-deploy.md) | `railway.toml` config as code                        |
+| 17.3 | [17-railway-deploy.md](./17-railway-deploy.md) | Dockerfile adjustments for Railway volumes           |
+| 17.4 | [17-railway-deploy.md](./17-railway-deploy.md) | Railway template + "Deploy on Railway" button        |
+| 17.5 | [17-railway-deploy.md](./17-railway-deploy.md) | Graceful shutdown within Railway grace period        |
+
+**Validation Gate:**
+
+- [ ] Hub reads `PORT` and `RAILWAY_VOLUME_MOUNT_PATH` env vars
+- [ ] `railway.toml` deploys successfully from GitHub
+- [ ] One-click "Deploy on Railway" button works
+- [ ] Health check passes on Railway
+- [ ] Graceful shutdown completes within 10s grace period
+- [ ] Config resolution tests pass (env > CLI > defaults)
+
+### Phase 18: Fly.io Deployment (Day 28)
+
+| Task | Document                                   | Description                                    |
+| ---- | ------------------------------------------ | ---------------------------------------------- |
+| 18.1 | [18-flyio-deploy.md](./18-flyio-deploy.md) | `fly.toml` with suspend/resume config          |
+| 18.2 | [18-flyio-deploy.md](./18-flyio-deploy.md) | Fly.io platform detection (`FLY_REGION`, etc.) |
+| 18.3 | [18-flyio-deploy.md](./18-flyio-deploy.md) | Enhanced `/health` with platform/region info   |
+| 18.4 | [18-flyio-deploy.md](./18-flyio-deploy.md) | Suspend-aware shutdown grace period            |
+| 18.5 | [18-flyio-deploy.md](./18-flyio-deploy.md) | Multi-region deployment guide (future)         |
+
+**Validation Gate:**
+
+- [ ] `fly deploy` succeeds from `packages/hub/`
+- [ ] Machine suspends when idle and resumes on request
+- [ ] Health check includes `platform: "fly"` and `region`
+- [ ] WebSocket clients reconnect after Machine wake
+- [ ] SQLite WAL flushes correctly on suspend
+
+### Phase 19: Hub Documentation (Day 29)
+
+| Task | Document                           | Description                                        |
+| ---- | ---------------------------------- | -------------------------------------------------- |
+| 19.1 | [19-hub-docs.md](./19-hub-docs.md) | Rewrite Hub docs page with deployment guide        |
+| 19.2 | [19-hub-docs.md](./19-hub-docs.md) | Railway as default, Fly.io + VPS + Local as tabs   |
+| 19.3 | [19-hub-docs.md](./19-hub-docs.md) | Configuration reference (env vars, CLI, endpoints) |
+| 19.4 | [19-hub-docs.md](./19-hub-docs.md) | Client integration examples (Electron + React)     |
+| 19.5 | [19-hub-docs.md](./19-hub-docs.md) | Update landing page Hubs section                   |
+
+**Validation Gate:**
+
+- [ ] Hub docs page covers Railway, Fly.io, VPS, and local deployment
+- [ ] `cd site && pnpm build` succeeds
+- [ ] All internal doc links resolve
+- [ ] Landing page Hubs section shows Railway as primary deploy option
+- [ ] Platform comparison table is accurate
+
 ## Package Structure (Target)
 
 ```
@@ -456,6 +511,7 @@ packages/
     src/
       index.ts                  # Programmatic API: createHub()
       cli.ts                    # CLI entry: npx @xnet/hub
+      config.ts                 # resolveConfig() — env var → CLI → default resolution
       server.ts                 # Hono HTTP + WebSocket server
       services/
         signaling.ts            # Room pub/sub (ported from infrastructure/)
@@ -515,24 +571,30 @@ packages/
       shards.test.ts            # Index shard tests
       crawl.test.ts             # Crawl coordination tests
       auth.test.ts              # UCAN auth tests
+      config.test.ts            # Config resolution tests (env vars, CLI, defaults)
       deploy.test.ts            # Production readiness tests
+      railway-deploy.test.ts    # Railway deployment compatibility tests
+      flyio-deploy.test.ts      # Fly.io deployment compatibility tests
       storage.test.ts           # Storage adapter tests
     Dockerfile
     fly.toml
+    railway.toml
     package.json
     tsconfig.json
 ```
 
 ## Platform Considerations
 
-| Feature            | Local Binary                  | Docker                | Fly.io                 |
-| ------------------ | ----------------------------- | --------------------- | ---------------------- |
-| TLS                | User provides (reverse proxy) | User provides (Caddy) | Automatic              |
-| Persistent storage | `--data` flag (filesystem)    | Volume mount          | Fly volume             |
-| Blob storage       | Filesystem                    | Volume mount          | Fly volume / Tigris S3 |
-| Auto-restart       | User manages (systemd)        | `--restart always`    | Built-in               |
-| Metrics            | `/metrics` endpoint           | Same                  | Same                   |
-| Cost               | Free (own hardware)           | Free (own hardware)   | ~$5/mo                 |
+| Feature            | Local Binary                  | Docker                | Railway (Default)         | Fly.io                 |
+| ------------------ | ----------------------------- | --------------------- | ------------------------- | ---------------------- |
+| TLS                | User provides (reverse proxy) | User provides (Caddy) | Automatic                 | Automatic              |
+| Persistent storage | `--data` flag (filesystem)    | Volume mount          | Volume mount              | Fly volume             |
+| Blob storage       | Filesystem                    | Volume mount          | Volume mount              | Fly volume / Tigris S3 |
+| Auto-restart       | User manages (systemd)        | `--restart always`    | Built-in                  | Built-in               |
+| Git deploy         | —                             | Manual CI/CD          | Automatic on push         | `fly deploy`           |
+| Metrics            | `/metrics` endpoint           | Same                  | Same + built-in dashboard | Same + Prometheus      |
+| Cost (solo)        | Free (own hardware)           | Free (own hardware)   | ~$0-2/mo                  | ~$2-4/mo               |
+| Cost (team)        | Free (own hardware)           | Free (own hardware)   | ~$3-5/mo                  | ~$4-6/mo               |
 
 ## Dependencies
 
@@ -572,6 +634,9 @@ packages/
 17. **Global index shards** distribute search across multiple hubs with BM25 scoring
 18. **Crawl coordination** assigns URLs to volunteer crawlers and indexes results
 19. **Yjs security** — see [planStep03_4_1YjsSecurity](../planStep03_4_1YjsSecurity/README.md)
+20. **Railway deploys** with one click and serves wss:// connections at $0-2/mo
+21. **Fly.io deploys** with `fly deploy`, supports suspend/resume and multi-region
+22. **Hub docs** provide comprehensive setup guide from one-click deploy to monitoring
 
 ## Reference Documents
 
@@ -601,6 +666,10 @@ packages/
 - [0041 Database Data Model](../explorations/0041_DATABASE_DATA_MODEL.md) — Rows as Nodes, pagination needed on NodeStorageAdapter
 - [0042 Unified Query API](../explorations/0042_UNIFIED_QUERY_API.md) — JSON-serializable query descriptors, hub-side FTS5/compound indexes
 - [0023 Decentralized Search](../explorations/0023_DECENTRALIZED_SEARCH.md) — Three-tier search (local → hub → federated), BM25 + social trust
+
+### Explorations (Deployment)
+
+- [0049 Hub Railway Deployment](../explorations/0049_HUB_RAILWAY_DEPLOYMENT.md) — Railway platform analysis, cost comparison, architecture compatibility
 
 ### Explorations (AI & Integration)
 
