@@ -341,11 +341,11 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] Schema author can publish to their DID namespace
-- [ ] Other users can resolve schemas by IRI
-- [ ] Search finds schemas by keyword
-- [ ] Namespace ownership enforced (can't publish to others' DIDs)
-- [ ] `SchemaRegistry.setRemoteResolver()` queries hub as fallback
+- [x] Schema author can publish to their DID namespace
+- [x] Other users can resolve schemas by IRI
+- [x] Search finds schemas by keyword
+- [x] Namespace ownership enforced (can't publish to others' DIDs)
+- [x] `SchemaRegistry.setRemoteResolver()` queries hub as fallback
 
 ### Phase 11: Awareness Persistence (Day 14)
 
