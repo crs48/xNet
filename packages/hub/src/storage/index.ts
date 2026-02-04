@@ -4,7 +4,6 @@
 
 import type { HubStorage } from './interface'
 import { createMemoryStorage } from './memory'
-import { createSQLiteStorage } from './sqlite'
 
 export type {
   HubStorage,
@@ -32,10 +31,13 @@ export type {
 } from './interface'
 export type StorageType = 'sqlite' | 'memory'
 
-export const createStorage = (type: StorageType, dataDir: string): HubStorage => {
+export const createStorage = async (type: StorageType, dataDir: string): Promise<HubStorage> => {
   switch (type) {
-    case 'sqlite':
+    case 'sqlite': {
+      // Dynamic import to avoid loading better-sqlite3 native module when using memory storage
+      const { createSQLiteStorage } = await import('./sqlite.js')
       return createSQLiteStorage(dataDir)
+    }
     case 'memory':
       return createMemoryStorage()
     default:
@@ -43,5 +45,4 @@ export const createStorage = (type: StorageType, dataDir: string): HubStorage =>
   }
 }
 
-export { createSQLiteStorage } from './sqlite'
 export { createMemoryStorage } from './memory'
