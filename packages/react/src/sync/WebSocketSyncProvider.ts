@@ -74,8 +74,21 @@ export interface WebSocketSyncProviderOptions {
   maxReconnectAttempts?: number
 }
 
-type SyncEventType = 'status' | 'synced' | 'peers'
+type SyncEventType = 'status' | 'synced' | 'peers' | 'awareness-snapshot'
 type SyncEventHandler = (event: unknown) => void
+
+export interface AwarenessSnapshotUser {
+  did: string
+  state: {
+    user?: { name?: string; color?: string; avatar?: string; did?: string }
+    cursor?: { anchor: number; head: number }
+    selection?: unknown
+    online?: boolean
+    [key: string]: unknown
+  }
+  lastSeen: number
+  isStale: boolean
+}
 
 export class WebSocketSyncProvider {
   readonly doc: Y.Doc
@@ -368,6 +381,12 @@ export class WebSocketSyncProvider {
         const update = fromBase64(data.update as string)
         log(this, 'Received awareness update')
         applyAwarenessUpdate(this.awareness, update, this)
+        break
+      }
+
+      case 'awareness-snapshot': {
+        const users = Array.isArray(data.users) ? (data.users as AwarenessSnapshotUser[]) : []
+        this.emit('awareness-snapshot', users)
         break
       }
     }

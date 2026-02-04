@@ -204,6 +204,8 @@ export {
   type RemoteSchemaState
 } from './hooks/useRemoteSchema'
 
+export { usePresence, type PresenceUser } from './hooks/usePresence'
+
 export { HubStatusIndicator } from './components/HubStatusIndicator'
 
 // =============================================================================
