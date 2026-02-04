@@ -22,6 +22,7 @@ const run = async (): Promise<void> => {
     .option('-d, --data <path>', 'data directory', DEFAULT_CONFIG.dataDir)
     .option('--no-auth', 'disable UCAN authentication (anonymous mode)')
     .option('--storage <type>', 'storage backend (sqlite|memory)', DEFAULT_CONFIG.storage)
+    .option('--public-url <url>', 'public hub URL for discovery', DEFAULT_CONFIG.publicUrl ?? '')
     .option(
       '--max-connections <number>',
       'max concurrent connections',
@@ -47,6 +48,21 @@ const run = async (): Promise<void> => {
       'max awareness users per room',
       String(DEFAULT_CONFIG.awarenessMaxUsers)
     )
+    .option(
+      '--discovery-ttl <number>',
+      'peer discovery TTL in ms',
+      String(DEFAULT_CONFIG.discoveryStaleTtlMs)
+    )
+    .option(
+      '--discovery-cleanup <number>',
+      'peer discovery cleanup interval in ms',
+      String(DEFAULT_CONFIG.discoveryCleanupIntervalMs)
+    )
+    .option(
+      '--discovery-max-peers <number>',
+      'max peers stored for discovery',
+      String(DEFAULT_CONFIG.discoveryMaxPeers)
+    )
     .option('--log-level <level>', 'log level (debug|info|warn|error)', DEFAULT_CONFIG.logLevel)
     .action(async (opts) => {
       const config: Partial<HubConfig> = {
@@ -54,6 +70,7 @@ const run = async (): Promise<void> => {
         dataDir: opts.data,
         auth: opts.auth !== false,
         storage: opts.storage,
+        publicUrl: opts.publicUrl || undefined,
         maxConnections: parseNumber(opts.maxConnections, DEFAULT_CONFIG.maxConnections),
         maxBlobSize: parseNumber(opts.maxBlobSize, DEFAULT_CONFIG.maxBlobSize),
         awarenessTtlMs: parseNumber(opts.awarenessTtl, DEFAULT_CONFIG.awarenessTtlMs),
@@ -62,6 +79,12 @@ const run = async (): Promise<void> => {
           DEFAULT_CONFIG.awarenessCleanupIntervalMs
         ),
         awarenessMaxUsers: parseNumber(opts.awarenessMaxUsers, DEFAULT_CONFIG.awarenessMaxUsers),
+        discoveryStaleTtlMs: parseNumber(opts.discoveryTtl, DEFAULT_CONFIG.discoveryStaleTtlMs),
+        discoveryCleanupIntervalMs: parseNumber(
+          opts.discoveryCleanup,
+          DEFAULT_CONFIG.discoveryCleanupIntervalMs
+        ),
+        discoveryMaxPeers: parseNumber(opts.discoveryMaxPeers, DEFAULT_CONFIG.discoveryMaxPeers),
         logLevel: opts.logLevel
       }
 

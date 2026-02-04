@@ -25,6 +25,14 @@ export type HubConfig = {
   awarenessCleanupIntervalMs: number
   /** Max awareness users stored per room (default: 100). */
   awarenessMaxUsers: number
+  /** Public hub URL for peer discovery (optional). */
+  publicUrl?: string
+  /** Peer discovery TTL in ms (default: 7 days). */
+  discoveryStaleTtlMs: number
+  /** Peer discovery cleanup interval in ms (default: 6 hours). */
+  discoveryCleanupIntervalMs: number
+  /** Max peers stored for discovery (default: 10000). */
+  discoveryMaxPeers: number
   /** Optional rate limit overrides. */
   rateLimit?: {
     perConnectionRate?: number
@@ -48,6 +56,9 @@ export const DEFAULT_CONFIG: HubConfig = {
   awarenessTtlMs: 24 * 60 * 60 * 1000,
   awarenessCleanupIntervalMs: 60 * 60 * 1000,
   awarenessMaxUsers: 100,
+  discoveryStaleTtlMs: 7 * 24 * 60 * 60 * 1000,
+  discoveryCleanupIntervalMs: 6 * 60 * 60 * 1000,
+  discoveryMaxPeers: 10000,
   logLevel: 'info'
 }
 

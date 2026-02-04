@@ -19,10 +19,12 @@ import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createBackupRoutes } from './routes/backup'
+import { createDiscoveryRoutes } from './routes/dids'
 import { createFileRoutes } from './routes/files'
 import { createSchemaRoutes } from './routes/schemas'
 import { BackupService } from './services/backup'
 import { AwarenessService } from './services/awareness'
+import { DiscoveryService } from './services/discovery'
 import { FileService } from './services/files'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
@@ -168,6 +170,11 @@ export const createServer = (config: HubConfig): HubInstance => {
     cleanupIntervalMs: config.awarenessCleanupIntervalMs ?? 60 * 60 * 1000,
     maxUsersPerRoom: config.awarenessMaxUsers ?? 100
   })
+  const discovery = new DiscoveryService(storage, {
+    staleTtlMs: config.discoveryStaleTtlMs ?? 7 * 24 * 60 * 60 * 1000,
+    cleanupIntervalMs: config.discoveryCleanupIntervalMs ?? 6 * 60 * 60 * 1000,
+    maxPeers: config.discoveryMaxPeers ?? 10000
+  })
   const schemas = new SchemaRegistryService(storage)
   const metrics = new Metrics()
   const rateLimiter = new RateLimiter({
@@ -229,6 +236,7 @@ export const createServer = (config: HubConfig): HubInstance => {
   app.route('/files', createFileRoutes(files))
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
+  app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
 
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null
@@ -236,6 +244,7 @@ export const createServer = (config: HubConfig): HubInstance => {
   const start = async (): Promise<void> => {
     if (httpServer) return
     awareness.start()
+    discovery.start()
     await schemas.seedBuiltInSchemas([
       {
         definition: PageSchema.schema,
@@ -277,6 +286,25 @@ export const createServer = (config: HubConfig): HubInstance => {
         if (!session) return
         const authContext = toAuthContext(session)
 
+        if (session.did !== 'did:key:anonymous') {
+          const publicUrl =
+            config.publicUrl ??
+            `ws://localhost:${config.port}`
+          const websocketUrl = publicUrl.replace('https://', 'wss://').replace('http://', 'ws://')
+          void discovery
+            .register(
+              {
+                did: session.did,
+                publicKeyB64: '',
+                endpoints: [{ type: 'websocket', address: websocketUrl, priority: 0 }],
+                hubUrl: config.publicUrl ?? websocketUrl,
+                capabilities: session.capabilities.map((cap) => cap.can)
+              },
+              session.did
+            )
+            .catch(() => {})
+        }
+
         const connId = randomUUID()
         rateLimiter.addConnection(connId)
         metrics.increment(HUB_METRICS.WS_CONNECTIONS_TOTAL)
@@ -307,6 +335,9 @@ export const createServer = (config: HubConfig): HubInstance => {
 
         ws.on('message', (data: RawData) => {
           void (async () => {
+            if (session.did !== 'did:key:anonymous') {
+              void discovery.heartbeat(session.did)
+            }
             const check = rateLimiter.checkMessage(connId, getMessageSize(data))
             if (!check.allowed) {
               metrics.increment(HUB_METRICS.RATE_LIMIT_REJECTIONS)
@@ -527,6 +558,7 @@ export const createServer = (config: HubConfig): HubInstance => {
     await storage.close()
 
     awareness.stop()
+    discovery.stop()
     signaling.destroy()
     connectionCount = 0
   }
