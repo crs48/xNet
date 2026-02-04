@@ -3,6 +3,7 @@
  */
 
 import type {
+  AwarenessEntry,
   BlobMeta,
   DocMeta,
   FileMeta,
@@ -60,6 +61,16 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_file_meta_uploader ON file_meta(uploader_did);
   CREATE INDEX IF NOT EXISTS idx_file_meta_mime ON file_meta(mime_type);
+
+  CREATE TABLE IF NOT EXISTS awareness_state (
+    room TEXT NOT NULL,
+    user_did TEXT NOT NULL,
+    state_json TEXT NOT NULL,
+    last_seen INTEGER NOT NULL,
+    PRIMARY KEY (room, user_did)
+  );
+  CREATE INDEX IF NOT EXISTS idx_awareness_room ON awareness_state(room);
+  CREATE INDEX IF NOT EXISTS idx_awareness_stale ON awareness_state(last_seen);
 
   CREATE TABLE IF NOT EXISTS schemas (
     iri TEXT NOT NULL,
@@ -175,6 +186,13 @@ type FileMetaRow = {
   created_at: number
 }
 
+type AwarenessRow = {
+  room: string
+  user_did: string
+  state_json: string
+  last_seen: number
+}
+
 type SchemaRow = {
   iri: string
   version: number
@@ -264,6 +282,15 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     `),
     deleteFileMeta: db.prepare('DELETE FROM file_meta WHERE cid = ? RETURNING file_path'),
     listFiles: db.prepare('SELECT * FROM file_meta WHERE uploader_did = ? ORDER BY created_at DESC'),
+    upsertAwareness: db.prepare(`
+      INSERT OR REPLACE INTO awareness_state (room, user_did, state_json, last_seen)
+      VALUES (?, ?, ?, ?)
+    `),
+    getAwareness: db.prepare(`
+      SELECT * FROM awareness_state WHERE room = ? ORDER BY last_seen DESC
+    `),
+    deleteAwareness: db.prepare('DELETE FROM awareness_state WHERE room = ? AND user_did = ?'),
+    cleanAwareness: db.prepare('DELETE FROM awareness_state WHERE last_seen < ?'),
     insertSchema: db.prepare(`
       INSERT OR REPLACE INTO schemas
         (iri, version, definition_json, author_did, name, description, properties_count, created_at)
@@ -571,6 +598,37 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     return rows.map(rowToSchemaRecord)
   }
 
+  const rowToAwarenessEntry = (row: AwarenessRow): AwarenessEntry => ({
+    room: row.room,
+    userDid: row.user_did,
+    state: JSON.parse(row.state_json) as AwarenessEntry['state'],
+    lastSeen: row.last_seen
+  })
+
+  const setAwareness = async (entry: AwarenessEntry): Promise<void> => {
+    stmts.upsertAwareness.run(
+      entry.room,
+      entry.userDid,
+      JSON.stringify(entry.state),
+      entry.lastSeen
+    )
+  }
+
+  const getAwareness = async (room: string): Promise<AwarenessEntry[]> => {
+    const rows = stmts.getAwareness.all(room) as AwarenessRow[]
+    return rows.map(rowToAwarenessEntry)
+  }
+
+  const removeAwareness = async (room: string, userDid: string): Promise<void> => {
+    stmts.deleteAwareness.run(room, userDid)
+  }
+
+  const cleanStaleAwareness = async (olderThanMs: number): Promise<number> => {
+    const cutoff = Date.now() - olderThanMs
+    const result = stmts.cleanAwareness.run(cutoff) as { changes: number }
+    return result.changes ?? 0
+  }
+
   const deleteBlob = async (key: string): Promise<void> => {
     const row = stmts.deleteBackup.get(key) as BackupRow
     if (row?.blob_path && existsSync(row.blob_path)) {
@@ -714,6 +772,10 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     deleteFile,
     listFiles,
     getFilesUsage,
+    setAwareness,
+    getAwareness,
+    removeAwareness,
+    cleanStaleAwareness,
     putSchema,
     getSchema,
     listSchemasByAuthor,

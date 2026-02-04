@@ -3,6 +3,7 @@
  */
 
 import type {
+  AwarenessEntry,
   BlobMeta,
   DocMeta,
   FileMeta,
@@ -22,6 +23,7 @@ export const createMemoryStorage = (): HubStorage => {
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
   const schemasByIri = new Map<string, Map<number, SchemaRecord>>()
+  const awarenessByRoom = new Map<string, Map<string, AwarenessEntry>>()
 
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value && typeof value === 'object')
@@ -155,6 +157,46 @@ export const createMemoryStorage = (): HubStorage => {
     }
   }
 
+  const setAwareness = async (entry: AwarenessEntry): Promise<void> => {
+    const roomEntries = awarenessByRoom.get(entry.room) ?? new Map<string, AwarenessEntry>()
+    roomEntries.set(entry.userDid, entry)
+    awarenessByRoom.set(entry.room, roomEntries)
+  }
+
+  const getAwareness = async (room: string): Promise<AwarenessEntry[]> => {
+    const entries = awarenessByRoom.get(room)
+    if (!entries) return []
+    return Array.from(entries.values()).sort((a, b) => b.lastSeen - a.lastSeen)
+  }
+
+  const removeAwareness = async (room: string, userDid: string): Promise<void> => {
+    const entries = awarenessByRoom.get(room)
+    if (!entries) return
+    entries.delete(userDid)
+    if (entries.size === 0) {
+      awarenessByRoom.delete(room)
+    }
+  }
+
+  const cleanStaleAwareness = async (olderThanMs: number): Promise<number> => {
+    const cutoff = Date.now() - olderThanMs
+    let removed = 0
+
+    for (const [room, entries] of awarenessByRoom.entries()) {
+      for (const [userDid, entry] of entries.entries()) {
+        if (entry.lastSeen < cutoff) {
+          entries.delete(userDid)
+          removed++
+        }
+      }
+      if (entries.size === 0) {
+        awarenessByRoom.delete(room)
+      }
+    }
+
+    return removed
+  }
+
   const putSchema = async (schema: SchemaRecord): Promise<void> => {
     const versions = schemasByIri.get(schema.iri) ?? new Map<number, SchemaRecord>()
     versions.set(schema.version, schema)
@@ -247,6 +289,7 @@ export const createMemoryStorage = (): HubStorage => {
     nodeChangesByRoom.clear()
     files.clear()
     schemasByIri.clear()
+    awarenessByRoom.clear()
   }
 
   return {
@@ -267,6 +310,10 @@ export const createMemoryStorage = (): HubStorage => {
     deleteFile,
     listFiles,
     getFilesUsage,
+    setAwareness,
+    getAwareness,
+    removeAwareness,
+    cleanStaleAwareness,
     putSchema,
     getSchema,
     listSchemasByAuthor,

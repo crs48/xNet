@@ -46,6 +46,27 @@ export type FileMeta = {
   createdAt: number
 }
 
+export type AwarenessEntry = {
+  room: string
+  userDid: string
+  state: {
+    user?: {
+      name?: string
+      color?: string
+      avatar?: string
+      did?: string
+    }
+    cursor?: {
+      anchor: number
+      head: number
+    }
+    selection?: unknown
+    online?: boolean
+    [key: string]: unknown
+  }
+  lastSeen: number
+}
+
 export type SchemaRecord = {
   iri: string
   version: number
@@ -102,6 +123,11 @@ export type HubStorage = {
   deleteFile: (cid: string) => Promise<void>
   listFiles: (uploaderDid: string) => Promise<FileMeta[]>
   getFilesUsage: (uploaderDid: string) => Promise<{ totalBytes: number; fileCount: number }>
+
+  setAwareness: (entry: AwarenessEntry) => Promise<void>
+  getAwareness: (room: string) => Promise<AwarenessEntry[]>
+  removeAwareness: (room: string, userDid: string) => Promise<void>
+  cleanStaleAwareness: (olderThanMs: number) => Promise<number>
 
   putSchema: (schema: SchemaRecord) => Promise<void>
   getSchema: (iri: string, version?: number) => Promise<SchemaRecord | null>
