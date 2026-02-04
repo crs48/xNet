@@ -52,42 +52,36 @@ import CodeBlock from '../ui/CodeBlock.astro'
           <span class="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500/10 text-xs font-bold text-indigo-400">3</span>
           <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Use it in your components</span>
         </div>
-        <div class="group relative overflow-hidden rounded-xl border border-border bg-code-bg">
-          <div class="flex items-center border-b border-border bg-surface/30 dark:bg-surface/50 px-4 py-2">
-            <div class="flex items-center gap-1.5 mr-3">
-              <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
-              <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
-              <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]"></span>
-            </div>
-            <span class="text-xs font-mono text-gray-500">App.tsx</span>
-          </div>
-          <pre class="overflow-x-auto p-5 font-mono text-sm leading-relaxed text-gray-600 dark:text-gray-300"><code set:html={`<span class="text-indigo-400">import</span> { useQuery, useMutate } <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
-<span class="text-indigo-400">import</span> { TaskSchema } <span class="text-indigo-400">from</span> <span class="text-emerald-400">'./schema'</span>
+        <CodeBlock filename="App.tsx">
+<span class="text-indigo-400">import</span> {'{'} useQuery, useMutate {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'@xnet/react'</span>
+<span class="text-indigo-400">import</span> {'{'} TaskSchema {'}'} <span class="text-indigo-400">from</span> <span class="text-emerald-400">'./schema'</span>
 
-<span class="text-indigo-400">function</span> <span class="text-yellow-300">App</span>() {
-  <span class="text-indigo-400">const</span> { data: tasks } = <span class="text-yellow-300">useQuery</span>(TaskSchema)
-  <span class="text-indigo-400">const</span> { create } = <span class="text-yellow-300">useMutate</span>()
+<span class="text-indigo-400">function</span> <span class="text-yellow-300">App</span>() {'{'}
+  <span class="text-indigo-400">const</span> {'{'} data: tasks {'}'} = <span class="text-yellow-300">useQuery</span>(TaskSchema)
+  <span class="text-indigo-400">const</span> {'{'} create {'}'} = <span class="text-yellow-300">useMutate</span>()
 
   <span class="text-indigo-400">return</span> (
     &lt;div&gt;
-      &lt;button onClick={() =&gt; <span class="text-yellow-300">create</span>(TaskSchema, {
-        title: <span class="text-emerald-400">'New task'</span>, status: <span class="text-emerald-400">'todo'</span>
-      })}&gt;Add&lt;/button&gt;
-      {tasks.<span class="text-yellow-300">map</span>(t =&gt; &lt;li key={t.id}&gt;{t.title}&lt;/li&gt;)}
+      &lt;button onClick={'{'}() =&gt; <span class="text-yellow-300">create</span>(TaskSchema, {'{'}
+        title: <span class="text-emerald-400">'New task'</span>,
+        status: <span class="text-emerald-400">'todo'</span>
+      {'}'}){'}'}&gt;Add&lt;/button&gt;
+      {'{'}tasks.<span class="text-yellow-300">map</span>(t =&gt; &lt;li key={'{'}t.id{'}'}&gt;{'{'}t.title{'}'}&lt;/li&gt;){'}'}
     &lt;/div&gt;
   )
-}
-<span class="text-gray-500">// That's it. Sync, storage, crypto — all handled.</span>`} /></code></pre>
-        </div>
+{'}'}
+<span class="text-gray-500">// That's it. Sync, storage, crypto — all handled.</span>
+        </CodeBlock>
       </div>
     </div>
 
     <!-- Run the full monorepo -->
     <div class="mx-auto mt-12 max-w-2xl animate-on-scroll">
-      <div class="rounded-xl border border-border bg-surface/30 dark:bg-surface/50 p-5 text-center">
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Or clone the full monorepo to explore the Electron app, canvas, editor, and devtools:</p>
-        <pre class="inline-block rounded-lg border border-border bg-code-bg px-4 py-2.5 font-mono text-sm text-gray-500 dark:text-gray-400">git clone https://github.com/crs48/xNet.git && cd xNet && pnpm install && pnpm dev</pre>
-      </div>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-3 text-center">Or clone the full monorepo to explore the Electron app, canvas, editor, and devtools:</p>
+      <CodeBlock filename="terminal">
+<span class="text-gray-500">$</span> git clone https://github.com/crs48/xNet.git
+<span class="text-gray-500">$</span> cd xNet && pnpm install && pnpm dev
+      </CodeBlock>
     </div>
 
     <div class="mt-8 flex justify-center gap-4">
