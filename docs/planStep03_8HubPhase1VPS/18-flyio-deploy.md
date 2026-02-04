@@ -449,8 +449,8 @@ describe('Fly.io Config Resolution', () => {
 - [ ] Verify Dockerfile works with `fly deploy`
 - [ ] Test Machine suspend/resume cycle (SQLite WAL flush + reopen)
 - [ ] Test WebSocket reconnection after Machine wake
-- [ ] Document single-region deployment commands
-- [ ] Document multi-region deployment (future, requires Hub Federation)
+- [x] Document single-region deployment commands
+- [x] Document multi-region deployment (future, requires Hub Federation)
 - [x] Write config resolution tests for Fly.io env vars
 - [x] Write health check integration test with Fly metadata
 

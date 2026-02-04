@@ -460,11 +460,11 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] Hub reads `PORT` and `RAILWAY_VOLUME_MOUNT_PATH` env vars
+- [x] Hub reads `PORT` and `RAILWAY_VOLUME_MOUNT_PATH` env vars
 - [ ] `railway.toml` deploys successfully from GitHub
 - [ ] One-click "Deploy on Railway" button works
 - [ ] Health check passes on Railway
-- [ ] Graceful shutdown completes within 10s grace period
+- [x] Graceful shutdown completes within 10s grace period
 - [ ] Config resolution tests pass (env > CLI > defaults)
 
 ### Phase 18: Fly.io Deployment (Day 28)
@@ -481,7 +481,7 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 - [ ] `fly deploy` succeeds from `packages/hub/`
 - [ ] Machine suspends when idle and resumes on request
-- [ ] Health check includes `platform: "fly"` and `region`
+- [x] Health check includes `platform: "fly"` and `region`
 - [ ] WebSocket clients reconnect after Machine wake
 - [ ] SQLite WAL flushes correctly on suspend
 
@@ -497,11 +497,11 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 **Validation Gate:**
 
-- [ ] Hub docs page covers Railway, Fly.io, VPS, and local deployment
+- [x] Hub docs page covers Railway, Fly.io, VPS, and local deployment
 - [ ] `cd site && pnpm build` succeeds
 - [ ] All internal doc links resolve
-- [ ] Landing page Hubs section shows Railway as primary deploy option
-- [ ] Platform comparison table is accurate
+- [x] Landing page Hubs section shows Railway as primary deploy option
+- [x] Platform comparison table is accurate
 
 ## Package Structure (Target)
 

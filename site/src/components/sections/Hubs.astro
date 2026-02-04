@@ -5,13 +5,15 @@ import CodeBlock from '../ui/CodeBlock.astro'
 const cm = (s: string) => `<span class="text-gray-500">${s}</span>`
 
 const deployCode = [
-  `${cm('# Deploy a Hub in under a minute')}`,
+  `${cm('# Deploy on Railway (recommended)')}`,
+  `${cm('# https://railway.app/template/xnet-hub')}`,
+  ``,
+  `${cm('# Or self-host with Docker')}`,
   `${cm('$')} docker run -d -p 4444:4444 \\`,
   `    -v xnet-data:/data \\`,
   `    ghcr.io/crs48/xnet-hub:latest`,
   ``,
-  `${cm('# That\'s it. Sync relay, backups, web UI.')}`,
-  `${cm('# Point your app at ws://your-server:4444')}`,
+  `${cm('# Point your app at wss://your-hub:4444')}`,
 ].join('\n')
 
 const features = [
@@ -57,7 +59,7 @@ const features = [
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
       title="Hubs: your infrastructure, your rules"
-      subtitle="xNet works fully P2P with zero infrastructure. But when you want always-on sync, backups, and team access — spin up a Hub on any $5/month VPS."
+      subtitle="xNet works fully P2P with zero infrastructure. When you want always-on sync, backups, and team access — deploy on Railway in one click or self-host on a $5/month VPS."
       align="center"
     />
 
@@ -91,7 +93,7 @@ const features = [
           <!-- Hub -->
           <div class="w-full max-w-sm rounded-xl border border-amber-500/30 bg-amber-500/[0.05] p-4 text-center">
             <div class="text-amber-400 font-semibold mb-1">Hub</div>
-            <div class="text-xs text-gray-500">$5/month VPS &mdash; Docker, SQLite, single process</div>
+            <div class="text-xs text-gray-500">Railway or $5/month VPS &mdash; Docker, SQLite, single process</div>
             <div class="mt-3 flex flex-wrap justify-center gap-2">
               <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400/70">Sync relay</span>
               <span class="rounded bg-amber-500/10 px-2 py-0.5 text-xs text-amber-400/70">Backups</span>
@@ -133,7 +135,7 @@ const features = [
     <div class="mx-auto mt-12 max-w-xl animate-on-scroll">
       <CodeBlock filename="terminal" code={deployCode} />
       <p class="mt-3 text-center text-xs text-gray-600">
-        Coming soon &mdash; Hub is in active development. <a href="https://github.com/crs48/xNet" class="text-gray-500 hover:text-indigo-400 underline decoration-gray-700 hover:decoration-indigo-400">Follow progress on GitHub.</a>
+        Deploy on Railway or Docker. <a href="/xNet/docs/guides/hub/" class="text-gray-500 hover:text-indigo-400 underline decoration-gray-700 hover:decoration-indigo-400">Read the Hub setup guide.</a>
       </p>
     </div>
   </div>

@@ -4,6 +4,10 @@ Decentralized data infrastructure and application. Local-first, P2P-synced, user
 
 xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
 
+## Deploy a Hub
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/xnet-hub)
+
 ## Getting Started
 
 ```bash

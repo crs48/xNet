@@ -497,12 +497,12 @@ describe('Railway Deployment Compatibility', () => {
 - [x] Add `RAILWAY_GRACE_MS` timeout to shutdown handler
 - [x] Healthcheck uses `${PORT:-4444}` in Dockerfile
 - [ ] Create Railway template (submit to railway.app/templates)
-- [ ] Add "Deploy on Railway" button to README.md
-- [ ] Add "Deploy on Railway" button to site Hub docs
+- [x] Add "Deploy on Railway" button to README.md
+- [x] Add "Deploy on Railway" button to site Hub docs
 - [x] Write `resolveConfig` unit tests
 - [x] Write Railway deployment integration tests
-- [ ] Update landing page Hubs section to mention Railway
-- [ ] Document migration from VPS/Fly.io to Railway
+- [x] Update landing page Hubs section to mention Railway
+- [x] Document migration from VPS/Fly.io to Railway
 
 ---
 

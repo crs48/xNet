@@ -1,155 +1,230 @@
 ---
-title: 'Hub & Signaling'
+title: 'Hub Setup'
 draft: false
-description: 'The always-on sync relay and how to self-host it.'
+description: 'Deploy a Hub for always-on sync, encrypted backup, and team access.'
 sidebar:
   order: 8
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components'
+
 :::note[You will learn]
 
-- What the Hub is and its role in the xNet architecture
-- How the signaling server works today
-- How to self-host a signaling server
-- The planned Hub evolution from dumb relay to smart peer
+- What the Hub does and why you might want one
+- How to deploy a Hub in under 2 minutes
+- How to connect your app to a Hub
+- How to monitor and manage your Hub
   :::
 
 ## What is the Hub?
 
-The Hub is xNet's server-side component. In a local-first system, the server is optional — it exists to improve availability, not to own your data. The Hub serves three purposes:
+xNet works fully peer-to-peer — no server required. A Hub improves availability and adds services that are hard on mobile devices:
 
-1. **Signaling** — Broker WebRTC handshakes so peers can find each other
-2. **Relay** — Forward Yjs updates over WebSocket when direct P2P fails (firewalls, NAT)
-3. **Persistence** (planned) — Store Y.Doc state so peers that were never online simultaneously can still sync
+| Without Hub                          | With Hub                           |
+| ------------------------------------ | ---------------------------------- |
+| Sync only when both peers are online | Sync anytime — Hub bridges the gap |
+| No backup                            | Encrypted backup (zero-knowledge)  |
+| No full-text search across devices   | Server-side FTS5 search            |
+| P2P only                             | P2P when possible, Hub when not    |
 
-Today, xNet ships a **signaling server** that handles purposes 1 and 2. The full Hub with persistence is planned.
+The Hub never sees your plaintext data. It stores encrypted updates and relays them to your devices.
 
-## Current architecture
-
-```
-Peer A ←→ Signaling Server ←→ Peer B
-              (stateless relay)
-```
-
-The signaling server is entirely stateless. It never stores your data — it only forwards opaque messages between peers subscribed to the same room. All intelligence (sync protocol, signing, verification, rate limiting, peer scoring) lives in the clients.
-
-## How signaling works
-
-The signaling server implements the y-webrtc pub/sub protocol over WebSocket:
-
-```
-Client → Server:  { type: 'subscribe', topics: ['room1'] }
-Client → Server:  { type: 'publish', topic: 'room1', data: { ... } }
-Server → Others:  { type: 'publish', topic: 'room1', data: { ... } }
+```mermaid
+flowchart LR
+  A[Device A] <-->|P2P| B[Device B]
+  A <-->|Hub Relay| H[Hub]
+  B <-->|Hub Relay| H
 ```
 
-Each document gets a room named `xnet-doc-{nodeId}`. When a client publishes to a room, the message is broadcast to all other subscribers. The server doesn't inspect the message content.
+## Quick Start: Deploy on Railway
 
-### Endpoints
+The fastest way to get a Hub running. No Docker, no SSH, no TLS setup.
 
-| Endpoint          | Purpose                                         |
-| ----------------- | ----------------------------------------------- |
-| `ws://host:4444/` | WebSocket connection                            |
-| `GET /health`     | JSON health check (status, uptime, connections) |
-| `GET /metrics`    | Prometheus-format metrics                       |
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/xnet-hub)
 
-## Self-hosting the signaling server
+**What happens:**
 
-### Run directly
+1. Railway clones the xNet repo
+2. Builds the Hub from its Dockerfile
+3. Creates a persistent volume for SQLite + blobs
+4. Gives you a URL: `hub-xyz.up.railway.app`
 
-```bash
-cd infrastructure/signaling
-pnpm install && pnpm build
-PORT=4444 node dist/server.js
+**Cost:** $0-2/month for a personal Hub (covered by Railway's $5 Hobby credit).
+
+### After Deploying
+
+Your Hub is live. Copy the URL and configure your app:
+
+```tsx
+<XNetProvider
+  config={{
+    hubUrl: 'wss://hub-xyz.up.railway.app',
+  }}
+/>
 ```
 
-### Run with Docker
+## Platform Comparison
 
-```bash
-cd infrastructure/signaling
-docker build -t xnet-signaling .
-docker run -p 4444:4444 xnet-signaling
+| Platform | Best for | Typical cost | Notes |
+| --- | --- | --- | --- |
+| Railway | One-click, lowest friction | $0-2/mo | Ideal default for personal Hubs |
+| Fly.io | Auto-suspend, global edge | $2-6/mo | Suspend/resume adds ~2s wake |
+| VPS | Full control | $4-5/mo | You manage TLS + upgrades |
+
+## Alternative Deployments
+
+<Tabs>
+  <TabItem label="Fly.io">
+    Best for auto-suspend cost savings or multi-region experiments.
+
+    ```bash
+    # Install Fly CLI
+    curl -L https://fly.io/install.sh | sh
+    fly auth login
+
+    # Deploy
+    cd packages/hub
+    fly launch --no-deploy
+    fly volumes create xnet_hub_data --size 1 --region sjc
+    fly deploy
+    ```
+
+    Cost: ~$2-6/month depending on usage. Machines can auto-suspend when idle.
+
+    For multi-region (future), add additional regions and volumes, then enable hub federation for query routing.
+  </TabItem>
+
+  <TabItem label="VPS (Docker)">
+    Best for full control or predictable cost.
+
+    ```bash
+    docker run -d \
+      --name xnet-hub \
+      -p 4444:4444 \
+      -v xnet-hub-data:/data \
+      --restart unless-stopped \
+      ghcr.io/crs48/xnet-hub:latest
+    ```
+
+    You'll need to configure TLS yourself (Caddy, nginx, or Cloudflare Tunnel).
+
+    Cost: $4-5/month for a basic VPS (Hetzner, DigitalOcean).
+  </TabItem>
+
+  <TabItem label="Local">
+    Best for development and testing.
+
+    ```bash
+    npx @xnet/hub --port 4444 --data ~/.xnet-hub
+    ```
+
+    No TLS, no persistence guarantees. Use for local development only.
+  </TabItem>
+</Tabs>
+
+## Configuration
+
+### Environment Variables
+
+| Variable                    | Default           | Description                                   |
+| --------------------------- | ----------------- | --------------------------------------------- |
+| `PORT`                      | `4444`            | Listen port (Railway injects this)            |
+| `HUB_DATA_DIR`              | `./xnet-hub-data` | SQLite + blob storage directory               |
+| `HUB_LOG_LEVEL`             | `info`            | Log verbosity: debug, info, warn, error       |
+| `HUB_PUBLIC_URL`            | —                 | Public URL for discovery + federation         |
+| `RAILWAY_VOLUME_MOUNT_PATH` | —                 | Auto-set by Railway when a volume is attached |
+
+### CLI Flags
+
+| Flag                   | Description                        |
+| ---------------------- | ---------------------------------- |
+| `--port`               | Listen port                        |
+| `--data`               | Data directory                     |
+| `--no-auth`            | Disable UCAN authentication         |
+| `--storage`            | Storage backend: sqlite, memory |
+| `--public-url`         | Public hub URL for discovery        |
+| `--max-connections`    | Max concurrent WebSocket clients   |
+| `--max-blob-size`      | Max backup blob size               |
+| `--awareness-ttl`      | Awareness TTL in ms                |
+| `--discovery-ttl`      | Peer discovery TTL in ms           |
+
+## Connect Your App
+
+### React (Renderer)
+
+```tsx
+<XNetProvider
+  config={{
+    hubUrl: 'wss://your-hub.example.com',
+  }}
+/>
 ```
 
-### Deploy to Fly.io
-
-```bash
-cd infrastructure/signaling
-fly launch --name my-xnet-signaling
-fly deploy
-```
-
-The included `fly.toml` configures auto-HTTPS, health checks, and Prometheus metrics.
-
-### Configuration
-
-| Variable  | Default | Description              |
-| --------- | ------- | ------------------------ |
-| `PORT`    | `4444`  | WebSocket and HTTP port  |
-| `VERSION` | `0.0.1` | Reported in health check |
-
-### Connect your app
-
-Point the Electron app or web client to your signaling server:
+### Electron (Main)
 
 ```ts
-<XNetProvider config={{
-  signalingServers: ['wss://my-hub.example.com'],
-  // ...
-}}>
+const manager = new SyncManager({
+  hubUrl: 'wss://your-hub.example.com',
+})
 ```
 
-In the Electron app, the signaling URL is configurable in Settings.
+## Operations
 
-## Hub roadmap
+### Health & Metrics
 
-The Hub is designed to evolve through three operational modes:
+| Endpoint       | Purpose                                |
+| -------------- | -------------------------------------- |
+| `GET /health`  | JSON status, uptime, platform metadata |
+| `GET /metrics` | Prometheus metrics                     |
 
-| Mode                  | Capability                                               | Status  |
-| --------------------- | -------------------------------------------------------- | ------- |
-| **Signaling only**    | WebRTC handshake brokering. No data persistence.         | Shipped |
-| **Signaling + Relay** | Also relays Yjs updates when P2P fails.                  | Shipped |
-| **Full Hub**          | Persistence, backup, query, schema registry, federation. | Planned |
+### Core Endpoints
 
-### Planned Full Hub features
+| Endpoint | Purpose |
+| --- | --- |
+| `PUT /backup/:docId` | Upload encrypted backup |
+| `GET /backup/:docId` | Download encrypted backup |
+| `GET /backup` | List backups for your DID |
+| `PUT /files/:cid` | Upload content-addressed file |
+| `GET /files/:cid` | Download file |
+| `POST /schemas` | Publish schema |
+| `GET /schemas/resolve/:iri` | Resolve schema |
+| `POST /dids/register` | Register peer discovery |
+| `GET /dids/:did` | Resolve peer |
 
-- **Y.Doc persistence** — SQLite storage so offline peers can sync later
-- **Encrypted backup** — Content-addressed blob storage
-- **Query engine** — SQLite FTS5 for full-text search
-- **UCAN authentication** — Verify tokens on WebSocket connect
-- **Schema registry** — Publish and resolve schemas
-- **Peer discovery** — DID resolution and peer registry
-- **Hub federation** — Hub-to-hub queries across instances
+### Backups
 
-### Planned deployment
+The Hub stores encrypted blobs. Your app encrypts before upload.
 
-```bash
-# One-liner install (planned)
-npx @xnet/hub --port 4444 --data ~/.xnet-hub
+| Endpoint             | Purpose                     |
+| -------------------- | --------------------------- |
+| `PUT /backup/:docId` | Upload encrypted backup     |
+| `GET /backup/:docId` | Download encrypted backup   |
+| `GET /backup`        | List backups for your DID   |
 
-# Or with Docker
-docker run -p 4444:4444 -v hub-data:/data ghcr.io/xnet-dev/xnet-hub
+### Query + Search
+
+Queries run locally first, with Hub results filling in the gaps:
+
+```ts
+const results = await queryClient.search('budget', {
+  federate: true,
+  limit: 20,
+})
 ```
 
-Three modes planned:
+## Migration
 
-```bash
-npx @xnet/hub --mode signaling   # Minimal — signaling only
-npx @xnet/hub --mode relay       # Signaling + relay
-npx @xnet/hub --mode full        # Everything
-```
+Moving between platforms is straightforward:
 
-## Why not TURN?
+1. Stop the old Hub (`SIGTERM` flushes SQLite)
+2. Copy the data directory (`/data` or your `HUB_DATA_DIR`)
+3. Start the new Hub with the same data dir
+4. Update your app's `hubUrl`
 
-xNet uses a WebSocket relay instead of TURN for NAT traversal:
+Railway → VPS/Fly.io is just a volume export + upload. Fly.io → Railway is the same process in reverse.
 
-- TURN is essentially the same as WebSocket relay but more complex to operate
-- WebSocket relay integrates naturally with the signaling server
-- No need for separate TURN infrastructure
-- All traffic is signed with Ed25519 regardless of transport
+## Further Reading
 
-## Further reading
-
-- [Sync Guide](/xNet/docs/guides/sync/) — How P2P sync works
-- [Sync Architecture](/xNet/docs/concepts/sync-architecture/) — The full sync stack
-- [Electron Setup](/xNet/docs/guides/electron/) — BSM and signaling integration
+- [Sync Guide](/xNet/docs/guides/sync/)
+- [Sync Architecture](/xNet/docs/concepts/sync-architecture/)
+- [Electron Setup](/xNet/docs/guides/electron/)
