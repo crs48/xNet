@@ -6,6 +6,7 @@ import type { IncomingMessage } from 'http'
 import type { WebSocket } from 'ws'
 import type { HubConfig } from '../types'
 import { getCapabilities, type UCANToken, verifyUCAN } from '@xnet/identity'
+import { actionAllows, resourceAllows } from './capabilities'
 
 export type AuthSession = {
   did: string
@@ -25,25 +26,6 @@ const createAnonymousSession = (): AuthSession => ({
   capabilities: [{ with: '*', can: '*' }],
   token: null
 })
-
-const actionAllows = (granted: string, requested: string): boolean => {
-  if (granted === '*' || granted === requested) return true
-  if (granted.endsWith('/*')) {
-    const prefix = granted.slice(0, -2)
-    return requested.startsWith(prefix)
-  }
-  return false
-}
-
-const resourceAllows = (granted: string, requested: string): boolean => {
-  if (granted === '*') return true
-  if (granted === requested) return true
-  if (granted.endsWith('/*')) {
-    const prefix = granted.slice(0, -2)
-    return requested.startsWith(prefix)
-  }
-  return false
-}
 
 const createAuthContext = (session: AuthSession): AuthContext => ({
   did: session.did,

@@ -7,13 +7,11 @@ import type { AuthContext } from '../auth/ucan'
 import type { DiscoveryService } from '../services/discovery'
 import { Hono } from 'hono'
 import { DiscoveryError } from '../services/discovery'
+import { isRecord } from '../utils/validation'
 
 export type DiscoveryRoutesOptions = {
   requireAuth?: MiddlewareHandler
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object')
 
 export const createDiscoveryRoutes = (
   discovery: DiscoveryService,

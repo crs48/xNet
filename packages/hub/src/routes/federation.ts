@@ -6,18 +6,10 @@ import type { Context, MiddlewareHandler } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { FederationPeer, FederationService } from '../services/federation'
 import { Hono } from 'hono'
+import { isRecord, toStringArray } from '../utils/validation'
 
 export type FederationRoutesOptions = {
   requireAuth?: MiddlewareHandler
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object')
-
-const toStringArray = (value: unknown): string[] | null => {
-  if (!Array.isArray(value)) return null
-  const filtered = value.filter((item): item is string => typeof item === 'string')
-  return filtered.length === value.length ? filtered : null
 }
 
 const parsePeerPayload = (payload: unknown): FederationPeer | null => {
@@ -25,13 +17,11 @@ const parsePeerPayload = (payload: unknown): FederationPeer | null => {
   if (typeof payload.url !== 'string' || typeof payload.hubDid !== 'string') return null
 
   const schemas = 'schemas' in payload ? payload.schemas : '*'
-  const parsedSchemas =
-    schemas === '*' ? '*' : toStringArray(schemas) ?? null
+  const parsedSchemas = schemas === '*' ? '*' : (toStringArray(schemas) ?? null)
   if (parsedSchemas === null) return null
 
   const trustLevel = payload.trustLevel === 'full' ? 'full' : 'metadata'
-  const maxLatencyMs =
-    typeof payload.maxLatencyMs === 'number' ? payload.maxLatencyMs : 2000
+  const maxLatencyMs = typeof payload.maxLatencyMs === 'number' ? payload.maxLatencyMs : 2000
   const rateLimit = typeof payload.rateLimit === 'number' ? payload.rateLimit : 60
 
   return {

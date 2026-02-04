@@ -6,20 +6,12 @@ import type { Context, MiddlewareHandler } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { CrawlCoordinator } from '../services/crawl'
 import { Hono } from 'hono'
+import { isRecord, toStringArray } from '../utils/validation'
 
 export type CrawlRoutesOptions = {
   coordinator: CrawlCoordinator
   requireAuth?: MiddlewareHandler
   userAgent: string
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value && typeof value === 'object')
-
-const toStringArray = (value: unknown): string[] | null => {
-  if (!Array.isArray(value)) return null
-  const filtered = value.filter((item): item is string => typeof item === 'string')
-  return filtered.length === value.length ? filtered : null
 }
 
 export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {

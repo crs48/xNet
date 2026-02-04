@@ -15,7 +15,8 @@ export type HubAction =
   | 'hub/query'
   | 'hub/admin'
 
-const actionAllows = (granted: string, requested: string): boolean => {
+/** Check if a granted action pattern covers the requested action. */
+export const actionAllows = (granted: string, requested: string): boolean => {
   if (granted === '*' || granted === requested) return true
   if (granted.endsWith('/*')) {
     const prefix = granted.slice(0, -2)
@@ -24,7 +25,8 @@ const actionAllows = (granted: string, requested: string): boolean => {
   return false
 }
 
-const resourceAllows = (granted: string, requested: string): boolean => {
+/** Check if a granted resource pattern covers the requested resource. */
+export const resourceAllows = (granted: string, requested: string): boolean => {
   if (granted === '*') return true
   if (granted === requested) return true
   if (granted.endsWith('/*')) {
