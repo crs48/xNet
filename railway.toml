@@ -11,8 +11,9 @@ builder = "dockerfile"
 dockerfilePath = "packages/hub/Dockerfile"
 
 [deploy]
-startCommand = "node packages/hub/dist/cli.js --demo"
+# Railway sets $PORT env var - must pass it to the CLI
+startCommand = "node packages/hub/dist/cli.js --port $PORT --data /data --demo"
 healthcheckPath = "/health"
-healthcheckTimeout = 10
+healthcheckTimeout = 30
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
