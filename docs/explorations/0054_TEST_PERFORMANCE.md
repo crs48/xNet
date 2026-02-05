@@ -412,23 +412,16 @@ These work with Vitest 1.6.x:
 
 Major version upgrade with architectural improvements:
 
-- [ ] **Upgrade Vitest to 4.x** — new pool architecture, per-project config, Vite Module Runner.
-- [ ] **Replace `vitest.config.ts` per-package files with unified `projects`** — single Vite server, less duplication.
-- [ ] **Per-project isolation** — `isolate: false` for unit tests, `isolate: true` for DOM/integration.
-- [ ] **Per-project pool** — `threads` for unit, `forks` for integration.
-- [ ] **Clean up stale per-package configs** — remove the 11 separate `vitest.config.ts` files.
+- [x] **Upgrade Vitest to 4.x** — upgraded all packages from mixed v1.3-2.x to ^4.0.0. Vitest 4.0.18 resolves. Wall clock: ~3.5s (down from ~5.5s on v1.6).
+- [ ] **Replace `vitest.config.ts` per-package files with unified `projects`** — Vitest 4.x `projects` API needs workspace file; deferred for future exploration.
+- [ ] **Per-project isolation** — `isolate: false` for unit tests, `isolate: true` for DOM/integration. Deferred (needs workspace config).
+- [ ] **Per-project pool** — `threads` for unit, `forks` for integration. Deferred (needs workspace config).
+- [ ] **Clean up stale per-package configs** — remove the 11 separate `vitest.config.ts` files. Deferred (per-package configs still needed without workspace).
 
 ### Phase 4: CI Optimizations
 
-- [ ] **Add sharding for CI** — split test files across parallel jobs:
-  ```yaml
-  strategy:
-    matrix:
-      shard: [1/3, 2/3, 3/3]
-  steps:
-    - run: pnpm vitest run --shard=${{ matrix.shard }}
-  ```
-- [ ] **Use `vitest run --changed` in CI for PRs** — only run affected tests on non-main branches.
+- [x] **Add sharding for CI** — split test files across 3 parallel jobs in `.github/workflows/ci.yml`. Lint/typecheck separated into own job.
+- [ ] **Use `vitest run --changed` in CI for PRs** — only run affected tests on non-main branches. Deferred (needs branch comparison logic).
 - [ ] **Cache Vitest's module graph** — Vitest 4.x has improved caching that persists across runs.
 
 ---
