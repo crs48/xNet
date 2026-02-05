@@ -41,6 +41,9 @@ runs:
     - run: pnpm install --frozen-lockfile
       shell: bash
 
-    - name: Rebuild native modules
-      run: pnpm rebuild better-sqlite3
+    - name: Rebuild better-sqlite3 for correct Node version
+      run: |
+        echo "Node version: $(node --version)"
+        echo "Rebuilding better-sqlite3..."
+        npm rebuild better-sqlite3
       shell: bash
