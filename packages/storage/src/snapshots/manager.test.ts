@@ -19,8 +19,8 @@ describe('SnapshotManager', () => {
       adapter,
       triggers: {
         updateCount: 100,
-        timeSinceLastSnapshot: 60000,
-        storageSizeThreshold: 1024 * 1024
+        timeInterval: 60000,
+        storagePressure: 0.8
       },
       signingKey,
       creatorDID: 'did:key:test'

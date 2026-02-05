@@ -1,7 +1,7 @@
 /**
  * NodeStoreSyncProvider - Sync NodeChange events via hub ConnectionManager.
  */
-import type { ContentId } from '@xnet/core'
+import type { ContentId, DID } from '@xnet/core'
 import { base64ToBytes, bytesToBase64 } from '@xnet/crypto'
 import type { NodeChange, NodePayload, NodeStore } from '@xnet/data'
 import type { ConnectionManager } from './connection-manager'
@@ -182,10 +182,10 @@ export class NodeStoreSyncProvider {
       type: serialized.type,
       hash: serialized.hash as ContentId,
       parentHash: serialized.parentHash as ContentId | null,
-      authorDID: serialized.authorDid,
+      authorDID: serialized.authorDid as DID,
       signature: base64ToBytes(serialized.signatureB64),
       wallTime: serialized.wallTime,
-      lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor },
+      lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
       payload: serialized.payload,
       batchId: serialized.batchId,
       batchIndex: serialized.batchIndex,

@@ -167,7 +167,11 @@ export class AwarenessService {
     roomState.lastActivity = Date.now()
     const { awareness, clientUserMap } = roomState
 
-    let change: { added: number[]; updated: number[]; removed: number[] } | null = null
+    let change: { added: number[]; updated: number[]; removed: number[] } | null = null as {
+      added: number[]
+      updated: number[]
+      removed: number[]
+    } | null
     const handler = (payload: { added: number[]; updated: number[]; removed: number[] }) => {
       change = payload
     }

@@ -8,14 +8,16 @@ import type { CrawlCoordinator } from '../services/crawl'
 import { Hono } from 'hono'
 import { isRecord, toStringArray } from '../utils/validation'
 
+type Env = { Variables: { auth: AuthContext } }
+
 export type CrawlRoutesOptions = {
   coordinator: CrawlCoordinator
   requireAuth?: MiddlewareHandler
   userAgent: string
 }
 
-export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
-  const app = new Hono()
+export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono<Env> => {
+  const app = new Hono<Env>()
   const requireAuth = options.requireAuth
 
   const register = async (c: Context) => {
@@ -87,7 +89,7 @@ export const createCrawlRoutes = (options: CrawlRoutesOptions): Hono => {
     }
     const results = payload.filter((entry) => isRecord(entry))
     const summary = await options.coordinator.submitResults(
-      results as Parameters<typeof options.coordinator.submitResults>[0]
+      results as unknown as Parameters<typeof options.coordinator.submitResults>[0]
     )
     return c.json(summary)
   }

@@ -6,7 +6,8 @@ export class QueryClient {
   private pending = new Map<
     string,
     {
-      resolve: (value: unknown) => void
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      resolve: (value: any) => void
       reject: (error: Error) => void
       timeout: ReturnType<typeof setTimeout>
     }

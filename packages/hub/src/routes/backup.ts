@@ -6,8 +6,10 @@ import type { AuthContext } from '../auth/ucan'
 import type { BackupService } from '../services/backup'
 import { Hono } from 'hono'
 
-export const createBackupRoutes = (backup: BackupService): Hono => {
-  const app = new Hono()
+type Env = { Variables: { auth: AuthContext } }
+
+export const createBackupRoutes = (backup: BackupService): Hono<Env> => {
+  const app = new Hono<Env>()
 
   app.put('/:docId', async (c) => {
     const auth = c.get('auth') as AuthContext
@@ -50,7 +52,7 @@ export const createBackupRoutes = (backup: BackupService): Hono => {
       return c.json({ error: 'Not found', code: 'NOT_FOUND' }, 404)
     }
 
-    return new Response(data, {
+    return new Response(data as BodyInit, {
       status: 200,
       headers: { 'Content-Type': 'application/octet-stream' }
     })

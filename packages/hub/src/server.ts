@@ -35,7 +35,7 @@ import { AwarenessService } from './services/awareness'
 import { CrawlCoordinator } from './services/crawl'
 import { DiscoveryService } from './services/discovery'
 import { FederationHealthChecker } from './services/federation-health'
-import { FederationService } from './services/federation'
+import { FederationService, type FederationConfig } from './services/federation'
 import { FileService } from './services/files'
 import { ShardRegistry } from './services/index-shards'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
@@ -208,8 +208,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         }
       }
     : federationDefaults
-  const federation = new FederationService(federationConfig, storage, query)
-  const federationHealth = new FederationHealthChecker(federationConfig)
+  const federation = new FederationService(federationConfig as FederationConfig, storage, query)
+  const federationHealth = new FederationHealthChecker(federationConfig as FederationConfig)
   const shardDefaults = {
     enabled: false,
     totalShards: 64,
@@ -334,7 +334,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   const requireAuth: MiddlewareHandler = async (c, next) => {
     const authHeader = c.req.header('authorization') ?? c.req.header('Authorization')
-    const auth = authenticateHttpRequest(authHeader, config)
+    const auth = authenticateHttpRequest(authHeader ?? null, config)
     if (!auth) {
       return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401)
     }
@@ -430,7 +430,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       httpServer?.once('listening', () => resolve())
     })
 
-    wss = new WebSocketServer({ server: httpServer })
+    wss = new WebSocketServer({ server: httpServer as import('http').Server })
 
     wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
       void (async () => {

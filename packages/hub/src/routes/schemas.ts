@@ -32,10 +32,13 @@ export const createSchemaRoutes = (
     }
 
     try {
-      const record = await schemas.publish(body, {
-        did: auth.did,
-        canAdmin: auth.can('hub/admin', '*')
-      })
+      const record = await schemas.publish(
+        body as import('../services/schemas').SchemaDefinitionInput,
+        {
+          did: auth.did,
+          canAdmin: auth.can('hub/admin', '*')
+        }
+      )
       return c.json(record, 201)
     } catch (err) {
       if (err instanceof SchemaError) {

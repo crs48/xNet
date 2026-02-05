@@ -5,8 +5,10 @@ import { Hono } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { FileService } from '../services/files'
 
-export const createFileRoutes = (fileService: FileService): Hono => {
-  const app = new Hono()
+type Env = { Variables: { auth: AuthContext } }
+
+export const createFileRoutes = (fileService: FileService): Hono<Env> => {
+  const app = new Hono<Env>()
 
   app.put('/:cid', async (c) => {
     const auth = c.get('auth') as AuthContext
@@ -55,7 +57,7 @@ export const createFileRoutes = (fileService: FileService): Hono => {
       return c.json({ error: 'File not found', code: 'NOT_FOUND' }, 404)
     }
 
-    return new Response(result.data, {
+    return new Response(result.data as BodyInit, {
       status: 200,
       headers: {
         'Content-Type': result.meta.mimeType,

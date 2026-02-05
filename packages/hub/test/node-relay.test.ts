@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import type { DID } from '@xnet/core'
 import { WebSocket } from 'ws'
 import { createHub, type HubInstance } from '../src'
 import { createUnsignedChange, signChange, createChangeId } from '@xnet/sync'
@@ -38,9 +39,9 @@ const makeSerializedChange = (
       properties: { title: 'Test Task', status: 'todo' }
     },
     parentHash: null,
-    authorDID: identity.did,
+    authorDID: identity.did as DID,
     wallTime: Date.now(),
-    lamport: { time: 1, author: identity.did }
+    lamport: { time: 1, author: identity.did as DID }
   })
 
   const signed = signChange(unsigned, privateKey)
