@@ -2,8 +2,8 @@
  * Checkbox property handler
  */
 
-import React from 'react'
 import type { PropertyHandler, PropertyEditorProps } from '../types'
+import React from 'react'
 
 /**
  * Checkbox editor component

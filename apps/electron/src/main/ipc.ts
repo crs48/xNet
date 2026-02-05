@@ -1,11 +1,11 @@
 /**
  * IPC handlers for xNet operations
  */
-import { ipcMain } from 'electron'
+import { mkdirSync } from 'fs'
 import { join } from 'path'
 import { createXNetClient, type XNetClient } from '@xnet/sdk'
+import { ipcMain } from 'electron'
 import { SQLiteAdapter } from './storage'
-import { mkdirSync } from 'fs'
 import { dataPath, profile } from './index'
 
 let client: XNetClient | null = null

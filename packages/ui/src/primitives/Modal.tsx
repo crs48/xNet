@@ -1,6 +1,6 @@
+import type { ReactNode } from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { cn } from '../utils'
-import type { ReactNode } from 'react'
 
 export interface ModalProps {
   open: boolean

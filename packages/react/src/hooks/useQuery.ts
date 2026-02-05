@@ -25,11 +25,11 @@
  * })
  * ```
  */
-import { useState, useEffect, useCallback, useRef } from 'react'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeChangeEvent } from '@xnet/data'
-import { useNodeStore } from './useNodeStore'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'
+import { useNodeStore } from './useNodeStore'
 
 // =============================================================================
 // Types

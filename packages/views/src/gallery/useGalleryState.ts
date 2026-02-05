@@ -2,9 +2,9 @@
  * useGalleryState - Hook for managing gallery view state
  */
 
-import { useMemo } from 'react'
-import type { Schema, PropertyDefinition } from '@xnet/data'
 import type { ViewConfig, GalleryCardSize, GalleryImageFit } from '../types.js'
+import type { Schema, PropertyDefinition } from '@xnet/data'
+import { useMemo } from 'react'
 
 /**
  * A row in the gallery (generic node with properties)

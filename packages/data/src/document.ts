@@ -1,8 +1,8 @@
 /**
  * XDocument operations
  */
-import * as Y from 'yjs'
 import type { XDocument, DocumentType, Block } from './types'
+import * as Y from 'yjs'
 
 /**
  * Options for creating a new document

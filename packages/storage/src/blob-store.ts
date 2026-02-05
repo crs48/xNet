@@ -4,9 +4,9 @@
  * Wraps StorageAdapter blob methods with automatic CID computation and
  * deduplication. Implements the ContentResolver interface from @xnet/core.
  */
+import type { StorageAdapter } from './types'
 import type { ContentId, ContentResolver, ContentChunk, ContentTree } from '@xnet/core'
 import { hashContent, createContentId, verifyContent, buildMerkleTree } from '@xnet/core'
-import type { StorageAdapter } from './types'
 
 export class BlobStore implements ContentResolver {
   constructor(private adapter: StorageAdapter) {}

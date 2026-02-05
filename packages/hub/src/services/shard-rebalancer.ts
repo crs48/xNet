@@ -2,10 +2,10 @@
  * @xnet/hub - Shard rebalancer (consistent hashing).
  */
 
-import type { HubStorage, ShardHostRecord } from '../storage/interface'
 import type { ShardAssignment, ShardConfig } from './index-shards'
-import { hash } from '@xnet/crypto'
+import type { HubStorage, ShardHostRecord } from '../storage/interface'
 import { TextEncoder } from 'node:util'
+import { hash } from '@xnet/crypto'
 
 const encoder = new TextEncoder()
 

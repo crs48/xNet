@@ -1,6 +1,6 @@
 import { useState, useRef, type KeyboardEvent } from 'react'
-import { cn } from '../utils'
 import { Badge } from '../primitives/Badge'
+import { cn } from '../utils'
 
 export interface TagInputProps {
   value: string[]

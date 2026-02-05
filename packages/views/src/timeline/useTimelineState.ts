@@ -2,9 +2,9 @@
  * useTimelineState - Hook for managing timeline (Gantt) view state
  */
 
-import { useMemo, useState, useCallback } from 'react'
-import type { Schema, PropertyDefinition } from '@xnet/data'
 import type { ViewConfig } from '../types.js'
+import type { Schema, PropertyDefinition } from '@xnet/data'
+import { useMemo, useState, useCallback } from 'react'
 
 /**
  * A row in the timeline (generic node with properties)

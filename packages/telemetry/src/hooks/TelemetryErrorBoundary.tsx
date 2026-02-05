@@ -2,8 +2,8 @@
  * TelemetryErrorBoundary - Error boundary that automatically reports crashes.
  */
 
-import { Component, type ReactNode, type ErrorInfo } from 'react'
 import type { TelemetryCollector } from '../collection/collector'
+import { Component, type ReactNode, type ErrorInfo } from 'react'
 
 interface Props {
   collector: TelemetryCollector

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createMemoryStorage } from '../src/storage'
-import { ShardIngestRouter } from '../src/services/shard-ingest'
-import { ShardRegistry, type ShardConfig } from '../src/services/index-shards'
 import { CrawlCoordinator, type CrawlConfig } from '../src/services/crawl'
+import { ShardRegistry, type ShardConfig } from '../src/services/index-shards'
+import { ShardIngestRouter } from '../src/services/shard-ingest'
+import { createMemoryStorage } from '../src/storage'
 
 const createShardSetup = async () => {
   const storage = createMemoryStorage()

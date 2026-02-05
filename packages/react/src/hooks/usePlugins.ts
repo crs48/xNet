@@ -1,7 +1,6 @@
 /**
  * Plugin system hooks for accessing the PluginRegistry and contributions
  */
-import { createContext, useContext, useState, useEffect } from 'react'
 import type {
   PluginRegistry,
   RegisteredPlugin,
@@ -15,6 +14,7 @@ import type {
   BlockContribution,
   SettingContribution
 } from '@xnet/plugins'
+import { createContext, useContext, useState, useEffect } from 'react'
 
 // ─── Context ────────────────────────────────────────────────────────────────
 

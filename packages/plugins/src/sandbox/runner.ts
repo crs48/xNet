@@ -8,9 +8,9 @@
  * - Updates script status (lastRun, lastError)
  */
 
-import { ScriptSandbox, ScriptError } from './sandbox'
-import { createScriptContext, type FlatNode } from './context'
 import type { ScriptNode, ScriptOutputType } from '../schemas/script'
+import { createScriptContext, type FlatNode } from './context'
+import { ScriptSandbox, ScriptError } from './sandbox'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

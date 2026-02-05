@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { createLocalQueryEngine, type LocalQueryEngine } from './engine'
-import { MemoryAdapter } from '@xnet/storage'
 import { createDocument, type XDocument } from '@xnet/data'
 import { generateIdentity } from '@xnet/identity'
+import { MemoryAdapter } from '@xnet/storage'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { createLocalQueryEngine, type LocalQueryEngine } from './engine'
 
 describe('LocalQueryEngine', () => {
   let storage: MemoryAdapter

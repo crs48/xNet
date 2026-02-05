@@ -14,9 +14,9 @@
  * ```
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
 import type { NodeId, NodeStorageAdapter } from '@xnet/data'
 import { BlameEngine, type BlameInfo } from '@xnet/history'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 
 // ─── Types ───────────────────────────────────────────────────

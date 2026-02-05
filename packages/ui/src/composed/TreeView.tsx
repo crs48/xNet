@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { cn } from '../utils'
 
 export interface TreeNode {

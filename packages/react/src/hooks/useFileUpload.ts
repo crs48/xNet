@@ -1,8 +1,8 @@
 /**
  * useFileUpload - Upload files to the hub by CID.
  */
-import { useCallback, useContext, useState } from 'react'
 import { hashHex } from '@xnet/crypto'
+import { useCallback, useContext, useState } from 'react'
 import { XNetContext } from '../context'
 
 export interface FileRef {

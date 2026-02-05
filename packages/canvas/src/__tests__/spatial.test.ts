@@ -2,9 +2,9 @@
  * Tests for spatial indexing
  */
 
+import type { CanvasNode } from '../types'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SpatialIndex, Viewport, createSpatialIndex, createViewport } from '../spatial/index'
-import type { CanvasNode } from '../types'
 
 describe('SpatialIndex', () => {
   let index: SpatialIndex

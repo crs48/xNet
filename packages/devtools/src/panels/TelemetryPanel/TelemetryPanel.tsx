@@ -8,6 +8,7 @@
  */
 
 import { useState, useCallback } from 'react'
+import { CopyButton } from '../../components/CopyButton'
 import {
   useTelemetryPanel,
   type SubTab,
@@ -18,7 +19,6 @@ import {
   type CrashEntry,
   type PeerScoreSnapshot
 } from './useTelemetryPanel'
-import { CopyButton } from '../../components/CopyButton'
 
 // ─── Main Panel ────────────────────────────────────────────
 

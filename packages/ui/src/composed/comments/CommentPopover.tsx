@@ -7,8 +7,8 @@
  * - Resolve/reopen actions
  */
 import React, { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react'
-import { cn } from '../../utils'
 import { Button } from '../../primitives/Button'
+import { cn } from '../../utils'
 import { CommentBubble } from './CommentBubble'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────

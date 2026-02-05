@@ -2,10 +2,10 @@
  * CommentBubble - Individual comment display in a thread.
  */
 import { useState } from 'react'
-import { cn } from '../../utils'
 import { DIDAvatar } from '../../components/DIDAvatar'
 import { MarkdownContent } from '../../components/MarkdownContent'
 import { Button } from '../../primitives/Button'
+import { cn } from '../../utils'
 
 export interface CommentBubbleProps {
   /** Comment ID */

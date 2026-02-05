@@ -16,15 +16,15 @@
  * />
  * ```
  */
-import React, { useState, useCallback, useRef } from 'react'
+import type { CommentThread } from '@xnet/react'
 import { CommentPopover, type CommentThreadData } from '@xnet/ui'
-import { CommentPin } from './CommentPin'
+import React, { useState, useCallback, useRef } from 'react'
 import {
   useCanvasComments,
   type CanvasTransform,
   type CanvasObject
 } from '../hooks/useCanvasComments'
-import type { CommentThread } from '@xnet/react'
+import { CommentPin } from './CommentPin'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
-import { cn } from '../utils'
 import { ScrollArea } from '../primitives/ScrollArea'
+import { cn } from '../utils'
 
 export interface CodeBlockProps {
   code: string

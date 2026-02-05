@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { DatabaseEmbedExtension } from './DatabaseEmbedExtension'
 
 describe('DatabaseEmbedExtension', () => {

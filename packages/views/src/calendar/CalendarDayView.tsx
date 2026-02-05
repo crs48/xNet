@@ -2,9 +2,9 @@
  * CalendarDayView - Single day view for calendar with time slots
  */
 
-import React from 'react'
-import { cn } from '@xnet/ui'
 import type { CalendarEvent } from './useCalendarState.js'
+import { cn } from '@xnet/ui'
+import React from 'react'
 import { isSameDay, getHours, formatHour } from './useCalendarState.js'
 
 export interface CalendarDayViewProps {

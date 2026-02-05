@@ -2,9 +2,9 @@
  * Tests for YjsChange - Yjs updates wrapped in Change<T> envelope
  */
 
-import { describe, it, expect } from 'vitest'
 import type { DID } from '@xnet/core'
 import { generateIdentity } from '@xnet/identity'
+import { describe, it, expect } from 'vitest'
 import { verifyChange, verifyChangeHash } from './change'
 import {
   createYjsChange,

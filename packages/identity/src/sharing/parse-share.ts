@@ -1,9 +1,9 @@
 /**
  * @xnet/identity/sharing - Parse and validate share links
  */
+import type { ShareData, SharePermission } from './types'
 import { verifyUCAN } from '../ucan'
 import { fromBase64Url } from './base64url'
-import type { ShareData, SharePermission } from './types'
 
 // ─── Parsed Share Result ─────────────────────────────────────
 

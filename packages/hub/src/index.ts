@@ -4,8 +4,8 @@
 
 import type { HubConfig, HubInstance } from './types'
 import { mkdirSync } from 'fs'
-import { DEFAULT_CONFIG } from './types'
 import { createServer } from './server'
+import { DEFAULT_CONFIG } from './types'
 export { resolveConfig } from './config'
 
 export type { HubConfig, HubInstance, DemoOverrides } from './types'

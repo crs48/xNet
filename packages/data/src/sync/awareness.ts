@@ -1,8 +1,8 @@
 /**
  * Awareness/presence tracking for collaborative editing
  */
-import { Awareness } from 'y-protocols/awareness'
 import type { XDocument } from '../types'
+import { Awareness } from 'y-protocols/awareness'
 
 /**
  * User presence information

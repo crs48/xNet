@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest'
 import { generateKeyBundle } from '@xnet/identity'
+import { describe, it, expect } from 'vitest'
+import { getPlatformAuthName, truncateDid } from './helpers'
 import {
   onboardingReducer,
   createInitialState,
   type OnboardingReducerState,
   type OnboardingEvent
 } from './machine'
-import { getPlatformAuthName, truncateDid } from './helpers'
 import { QUICK_START_TEMPLATES } from './templates'
 
 // ─── Helper ──────────────────────────────────────────────────

@@ -4,13 +4,13 @@
  * React hook for managing canvas state with a Yjs-backed store.
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import type * as Y from 'yjs'
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, CanvasConfig, Rect } from '../types'
-import { DEFAULT_CANVAS_CONFIG } from '../types'
-import { CanvasStore, createCanvasStore } from '../store'
-import { Viewport, createViewport } from '../spatial/index'
+import type * as Y from 'yjs'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createLayoutEngine, type LayoutConfig } from '../layout/index'
+import { Viewport, createViewport } from '../spatial/index'
+import { CanvasStore, createCanvasStore } from '../store'
+import { DEFAULT_CANVAS_CONFIG } from '../types'
 
 /**
  * Canvas hook options

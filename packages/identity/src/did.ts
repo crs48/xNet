@@ -1,9 +1,9 @@
 /**
  * DID:key implementation for Ed25519 keys
  */
-import { base58btc } from 'multiformats/bases/base58'
-import { generateSigningKeyPair, getSigningPublicKeyFromPrivate } from '@xnet/crypto'
 import type { Identity } from './types'
+import { generateSigningKeyPair, getSigningPublicKeyFromPrivate } from '@xnet/crypto'
+import { base58btc } from 'multiformats/bases/base58'
 
 // Multicodec prefix for Ed25519 public key (0xed01)
 const ED25519_PREFIX = new Uint8Array([0xed, 0x01])

@@ -4,8 +4,8 @@
  * Tracks which formatting options (bold, italic, headings, etc.) are
  * currently active at the cursor position, with throttled updates for performance.
  */
-import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Editor } from '@tiptap/react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { throttle } from '../utils/performance'
 
 export interface ActiveStates {

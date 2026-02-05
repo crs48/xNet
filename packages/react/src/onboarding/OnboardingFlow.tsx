@@ -5,13 +5,13 @@
  * Must be rendered inside an <OnboardingProvider>.
  */
 import { useOnboarding } from './OnboardingProvider'
-import { WelcomeScreen } from './screens/WelcomeScreen'
 import { AuthenticatingScreen } from './screens/AuthenticatingScreen'
 import { AuthErrorScreen } from './screens/AuthErrorScreen'
-import { UnsupportedBrowserScreen } from './screens/UnsupportedBrowserScreen'
-import { ImportIdentityScreen } from './screens/ImportIdentityScreen'
 import { HubConnectScreen, type HubConnectScreenProps } from './screens/HubConnectScreen'
+import { ImportIdentityScreen } from './screens/ImportIdentityScreen'
 import { ReadyScreen } from './screens/ReadyScreen'
+import { UnsupportedBrowserScreen } from './screens/UnsupportedBrowserScreen'
+import { WelcomeScreen } from './screens/WelcomeScreen'
 
 export interface OnboardingFlowProps {
   /** Optional hub connection function */

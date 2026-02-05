@@ -1,3 +1,4 @@
+import { generateIdentity } from '@xnet/identity'
 import { describe, it, expect } from 'vitest'
 import {
   createDocument,
@@ -6,7 +7,6 @@ import {
   setDocumentTitle,
   setDocumentArchived
 } from './document'
-import { generateIdentity } from '@xnet/identity'
 
 describe('XDocument', () => {
   describe('createDocument', () => {

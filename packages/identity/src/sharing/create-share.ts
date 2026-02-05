@@ -2,9 +2,9 @@
  * @xnet/identity/sharing - Create share tokens using UCAN
  */
 import type { UCANCapability } from '../types'
+import type { ShareOptions, ShareToken, ShareData, SharePermission } from './types'
 import { createUCAN } from '../ucan'
 import { toBase64Url } from './base64url'
-import type { ShareOptions, ShareToken, ShareData, SharePermission } from './types'
 
 const DEFAULT_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 const DEFAULT_BASE_URL = 'https://xnet.fyi'

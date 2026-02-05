@@ -5,13 +5,13 @@
  * and column management. Synthesizes a Schema from available node data.
  */
 
+import type { PropertyDefinition, Schema } from '@xnet/data'
+import type { TableRow, ViewConfig } from '@xnet/views'
+import { TableView } from '@xnet/views'
 import { useMemo, useState, useCallback } from 'react'
-import { TableView, type TableRow } from '@xnet/views'
-import type { Schema, PropertyDefinition } from '@xnet/data'
-import type { ViewConfig } from '@xnet/views'
-import { useNodeExplorer, type NodeEntry } from './useNodeExplorer'
-import { truncateDID } from '../../utils/formatters'
 import { CopyButton } from '../../components/CopyButton'
+import { truncateDID } from '../../utils/formatters'
+import { useNodeExplorer, type NodeEntry } from './useNodeExplorer'
 
 export function NodeExplorer() {
   const {

@@ -1,5 +1,5 @@
-import { forwardRef } from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
+import { forwardRef } from 'react'
 import { cn } from '../utils'
 
 export interface SelectOption {

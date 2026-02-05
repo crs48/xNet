@@ -1,9 +1,9 @@
 /**
  * Full-text search index using MiniSearch
  */
-import MiniSearch from 'minisearch'
-import type { XDocument } from '@xnet/data'
 import type { SearchQuery, SearchResult } from '../types'
+import type { XDocument } from '@xnet/data'
+import MiniSearch from 'minisearch'
 
 /**
  * Search index interface

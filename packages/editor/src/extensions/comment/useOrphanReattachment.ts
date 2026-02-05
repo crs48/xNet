@@ -15,8 +15,8 @@
  * }, [editor.state.doc])
  * ```
  */
-import { useCallback, useRef, useState, useEffect } from 'react'
 import type { Editor } from '@tiptap/core'
+import { useCallback, useRef, useState, useEffect } from 'react'
 import { resolveTextAnchor } from './textAnchor'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────

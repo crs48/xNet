@@ -2,8 +2,8 @@
  * React hook for accessing the ViewRegistry
  */
 
-import { useState, useEffect, useCallback } from 'react'
 import type { SchemaIRI } from '@xnet/data'
+import { useState, useEffect, useCallback } from 'react'
 import { viewRegistry, type ViewRegistration, type Platform } from '../registry.js'
 
 /**

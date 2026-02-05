@@ -5,9 +5,9 @@
  * filtering/selection state.
  */
 
+import type { DevToolsEvent } from '../../core/types'
 import { useState, useEffect, useCallback } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
-import type { DevToolsEvent } from '../../core/types'
 
 export interface NodeEntry {
   id: string

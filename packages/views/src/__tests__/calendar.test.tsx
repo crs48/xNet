@@ -2,8 +2,10 @@
  * Tests for calendar view components
  */
 
-import { describe, it, expect, vi } from 'vitest'
+import type { ViewConfig } from '../types'
+import type { Schema } from '@xnet/data'
 import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import {
   useCalendarState,
   isSameDay,
@@ -14,8 +16,6 @@ import {
   getHours,
   formatHour
 } from '../calendar/useCalendarState'
-import type { Schema } from '@xnet/data'
-import type { ViewConfig } from '../types'
 
 // Mock schema with date properties
 const mockSchema: Schema = {

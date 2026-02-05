@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { EditorState } from '@tiptap/pm/state'
 import { schema } from '@tiptap/pm/schema-basic'
+import { EditorState } from '@tiptap/pm/state'
 import { DecorationSet } from '@tiptap/pm/view'
+import { describe, it, expect } from 'vitest'
 import { createDragDropPlugin, DragDropPluginKey } from './DragDropPlugin'
 import { createDropIndicatorPlugin, DropIndicatorPluginKey } from './DropIndicatorPlugin'
 

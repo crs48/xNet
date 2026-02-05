@@ -6,9 +6,9 @@
 import { Node, mergeAttributes } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { ReactNodeViewRenderer } from '@tiptap/react'
+import { createEmbedLinkPlugin } from './EmbedLinkPlugin'
 import { EmbedNodeView } from './EmbedNodeView'
 import { parseEmbedUrl } from './providers'
-import { createEmbedLinkPlugin } from './EmbedLinkPlugin'
 
 const EmbedPastePluginKey = new PluginKey('embedPaste')
 

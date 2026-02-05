@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import { renderHook, waitFor } from '@testing-library/react'
-import React, { type ReactNode } from 'react'
-import { XNetProvider, useXNet, type XNetConfig } from './context'
-import { MemoryNodeStorageAdapter } from '@xnet/data'
-import type { Identity } from '@xnet/identity'
 import type { DID } from '@xnet/core'
+import type { Identity } from '@xnet/identity'
+import { renderHook, waitFor } from '@testing-library/react'
+import { MemoryNodeStorageAdapter } from '@xnet/data'
+import React, { type ReactNode } from 'react'
+import { describe, it, expect } from 'vitest'
+import { XNetProvider, useXNet, type XNetConfig } from './context'
 
 const TEST_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
 const TEST_KEY = new Uint8Array(32).fill(1)

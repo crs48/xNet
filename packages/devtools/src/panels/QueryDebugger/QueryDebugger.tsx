@@ -5,9 +5,9 @@
  */
 
 import { useCallback } from 'react'
-import { useQueryDebugger, type QueryStats } from './useQueryDebugger'
-import { relativeTime } from '../../utils/formatters'
 import { CopyButton } from '../../components/CopyButton'
+import { relativeTime } from '../../utils/formatters'
+import { useQueryDebugger, type QueryStats } from './useQueryDebugger'
 
 export function QueryDebugger() {
   const { queries, selectedQuery, setSelectedQuery, sortBy, setSortBy, totalUpdates, avgRender } =

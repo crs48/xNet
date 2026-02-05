@@ -6,18 +6,18 @@
  * targeting strategies (by Lamport time, wall clock, hash, or index).
  */
 
+import type { SnapshotCache } from './snapshot-cache'
+import type { HistoryTarget, HistoricalState, TimelineEntry, PropertyDiff } from './types'
 import type { DID } from '@xnet/core'
-import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
 import type {
   NodeChange,
   NodeState,
   NodeStorageAdapter,
   NodeId,
-  PropertyTimestamp
+  PropertyTimestamp,
+  SchemaIRI
 } from '@xnet/data'
-import type { SchemaIRI } from '@xnet/data'
-import type { SnapshotCache } from './snapshot-cache'
-import type { HistoryTarget, HistoricalState, TimelineEntry, PropertyDiff } from './types'
+import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
 import { deepEqual } from './utils'
 
 export class HistoryEngine {

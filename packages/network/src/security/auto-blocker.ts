@@ -4,8 +4,8 @@
  * Blocks peers when they exceed configurable thresholds for different event types.
  */
 
-import type { PeerScorer } from './peer-scorer'
 import type { DefaultConnectionGater } from './gater'
+import type { PeerScorer } from './peer-scorer'
 import { logSecurityEvent, type SecurityEventType } from './logging'
 
 export interface BlockInfo {

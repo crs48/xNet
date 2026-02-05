@@ -20,9 +20,9 @@
  * ```
  */
 
-import { createNodeId, type SchemaIRI } from '../schema/node'
-import type { DefinedSchema, PropertyBuilder } from '../schema/types'
 import type { TransactionOperation, NodeId } from './types'
+import type { DefinedSchema, PropertyBuilder } from '../schema/types'
+import { createNodeId, type SchemaIRI } from '../schema/node'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

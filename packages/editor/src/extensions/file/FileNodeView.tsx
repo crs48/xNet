@@ -4,8 +4,8 @@
  * Displays file info (icon, name, size) with download button.
  * Uses emoji icons for file types (no lucide-react dependency).
  */
-import * as React from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
+import * as React from 'react'
 import { cn } from '../../utils'
 
 /** Map MIME type to an emoji icon */

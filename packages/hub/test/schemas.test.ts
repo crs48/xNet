@@ -1,6 +1,6 @@
+import { createUCAN, generateKeyBundle } from '@xnet/identity'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createHub, type HubInstance } from '../src'
-import { createUCAN, generateKeyBundle } from '@xnet/identity'
 
 const createAuthToken = (did: string, signingKey: Uint8Array): string =>
   createUCAN({

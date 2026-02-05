@@ -2,6 +2,8 @@
  * @xnet/hub - Crawl coordinator service.
  */
 
+import type { RobotsChecker } from './crawl-robots'
+import type { ShardIngestRouter } from './shard-ingest'
 import type {
   CrawlDomainState,
   CrawlHistoryEntry,
@@ -9,8 +11,6 @@ import type {
   CrawlerProfile,
   HubStorage
 } from '../storage/interface'
-import type { ShardIngestRouter } from './shard-ingest'
-import type { RobotsChecker } from './crawl-robots'
 import { randomUUID } from 'node:crypto'
 import { validateExternalUrl } from '../utils/url'
 

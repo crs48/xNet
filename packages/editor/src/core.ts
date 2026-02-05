@@ -4,7 +4,6 @@
  * Framework-agnostic editor that binds to a Yjs document.
  * Can be used directly with vanilla JS/DOM or wrapped by framework bindings.
  */
-import * as Y from 'yjs'
 import type {
   EditorConfig,
   EditorState,
@@ -12,6 +11,7 @@ import type {
   EditorEventType,
   EditorEventHandler
 } from './types'
+import * as Y from 'yjs'
 
 /**
  * Core editor class - framework agnostic

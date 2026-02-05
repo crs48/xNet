@@ -7,8 +7,8 @@
  * - Range queries (find nodes in selection box)
  */
 
-import RBush from 'rbush'
 import type { Rect, Point, CanvasNode, CanvasNodePosition } from '../types'
+import RBush from 'rbush'
 
 /**
  * R-tree item format required by rbush

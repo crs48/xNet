@@ -1,6 +1,6 @@
-import { forwardRef, type ComponentPropsWithoutRef, type HTMLAttributes } from 'react'
 import { Command as CommandPrimitive } from 'cmdk'
 import { Search } from 'lucide-react'
+import { forwardRef, type ComponentPropsWithoutRef, type HTMLAttributes } from 'react'
 import { cn } from '../utils'
 
 const Command = forwardRef<

@@ -1,8 +1,8 @@
 /**
  * @xnet/identity/passkey - Unlock an existing passkey identity
  */
-import { deriveKeyBundle } from '../keys'
 import type { PasskeyIdentity, PasskeyUnlockResult } from './types'
+import { deriveKeyBundle } from '../keys'
 import { deriveKeySeed, PRF_INPUT } from './derive'
 
 /**

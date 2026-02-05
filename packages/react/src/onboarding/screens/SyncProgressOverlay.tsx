@@ -1,8 +1,8 @@
 /**
  * Sync progress overlay — shown during initial sync on a new device.
  */
-import { useEffect } from 'react'
 import type { SyncProgress } from '../../sync/InitialSyncManager'
+import { useEffect } from 'react'
 
 export interface SyncProgressOverlayProps {
   progress: SyncProgress

@@ -7,9 +7,9 @@
 
 import type { ConsentManager } from '../consent/manager'
 import type { TelemetryTier } from '../consent/types'
-import { scrubTelemetryData, type ScrubOptions, DEFAULT_SCRUB_OPTIONS } from './scrubbing'
-import { bucketCount, bucketLatency, bucketTimestamp } from './bucketing'
 import { TelemetrySchemaIRIs } from '../schemas'
+import { bucketCount, bucketLatency, bucketTimestamp } from './bucketing'
+import { scrubTelemetryData, type ScrubOptions, DEFAULT_SCRUB_OPTIONS } from './scrubbing'
 
 export interface TelemetryCollectorOptions {
   /** ConsentManager instance */

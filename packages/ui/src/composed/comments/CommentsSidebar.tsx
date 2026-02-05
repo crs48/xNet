@@ -6,11 +6,11 @@
  * - Click a thread to scroll to and highlight it in the editor
  * - Reply, resolve, reopen, edit, and delete actions inline
  */
-import React, { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react'
-import { cn } from '../../utils'
-import { Button } from '../../primitives/Button'
-import { CommentBubble } from './CommentBubble'
 import type { CommentThreadData } from './CommentPopover'
+import React, { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react'
+import { Button } from '../../primitives/Button'
+import { cn } from '../../utils'
+import { CommentBubble } from './CommentBubble'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

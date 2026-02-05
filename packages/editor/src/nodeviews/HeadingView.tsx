@@ -1,5 +1,5 @@
-import { memo, useMemo } from 'react'
 import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from '@tiptap/react'
+import { memo, useMemo } from 'react'
 import { cn } from '../utils'
 import { useNodeFocus } from './hooks/useNodeFocus'
 

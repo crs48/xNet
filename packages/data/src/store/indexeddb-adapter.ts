@@ -4,8 +4,6 @@
  * Persistent storage for browser environments using IndexedDB.
  */
 
-import { openDB, type IDBPDatabase } from 'idb'
-import type { ContentId } from '@xnet/core'
 import type {
   NodeId,
   NodeChange,
@@ -14,6 +12,8 @@ import type {
   ListNodesOptions,
   CountNodesOptions
 } from './types'
+import type { ContentId } from '@xnet/core'
+import { openDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'xnet-nodes'
 const DB_VERSION = 3

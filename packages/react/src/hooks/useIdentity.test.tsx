@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import type { Identity } from '@xnet/identity'
 import { renderHook } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
+import { describe, it, expect } from 'vitest'
 import { XNetProvider, type XNetConfig } from '../context'
 import { useIdentity } from './useIdentity'
-import type { Identity } from '@xnet/identity'
 
 function createWrapper(config: XNetConfig) {
   return function Wrapper({ children }: { children: ReactNode }) {

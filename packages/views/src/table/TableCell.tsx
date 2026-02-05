@@ -2,11 +2,11 @@
  * TableCell - Editable table cell component with context menu
  */
 
-import React, { useState, useCallback, useRef, useEffect } from 'react'
-import type { Cell } from '@tanstack/react-table'
-import { cn } from '@xnet/ui'
 import type { TableRow } from './useTableState.js'
 import type { ColumnMeta, CellPresence } from '../types.js'
+import type { Cell } from '@tanstack/react-table'
+import { cn } from '@xnet/ui'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { CommentIndicator } from '../components/CommentIndicator.js'
 
 export interface TableCellProps {

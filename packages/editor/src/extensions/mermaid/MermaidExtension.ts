@@ -7,10 +7,10 @@
  * - Theme selection (default, dark, forest, neutral)
  * - Supports all Mermaid diagram types (flowchart, sequence, class, etc.)
  */
+import type { MermaidTheme } from './types'
 import { Node, mergeAttributes, InputRule } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { MermaidNodeView } from './MermaidNodeView'
-import type { MermaidTheme } from './types'
 
 export interface MermaidOptions {
   /** Default theme for new diagrams */

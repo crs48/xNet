@@ -5,7 +5,8 @@
  * Also renders plugin-contributed sidebar items.
  */
 
-import React, { useState, useMemo, type ComponentType } from 'react'
+import type { Document } from '../lib/types'
+import type { SidebarContribution } from '@xnet/plugins'
 import * as icons from 'lucide-react'
 import {
   FileText,
@@ -18,8 +19,7 @@ import {
   Link,
   Settings
 } from 'lucide-react'
-import type { Document } from '../lib/types'
-import type { SidebarContribution } from '@xnet/plugins'
+import React, { useState, useMemo, type ComponentType } from 'react'
 
 interface SidebarProps {
   documents: Document[]

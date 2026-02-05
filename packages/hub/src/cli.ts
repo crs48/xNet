@@ -4,10 +4,10 @@
 
 import type { HubConfig } from './types'
 import { Command } from 'commander'
-import { createHub } from './index'
 import { resolveConfig } from './config'
 import { registerShutdownHandlers } from './lifecycle/shutdown'
 import { DEFAULT_CONFIG } from './types'
+import { createHub } from './index'
 
 const parseNumber = (value: string, fallback: number): number => {
   const parsed = Number.parseInt(value, 10)

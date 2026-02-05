@@ -5,7 +5,6 @@
  * to external integrations like N8N, MCP clients, and webhooks.
  */
 
-import { ipcMain, BrowserWindow } from 'electron'
 import {
   type LocalAPIServer,
   createLocalAPI,
@@ -13,6 +12,7 @@ import {
   type SchemaRegistryAPI,
   type NodeData
 } from '@xnet/plugins/node'
+import { ipcMain, BrowserWindow } from 'electron'
 
 // ─── Module State ────────────────────────────────────────────────────────────
 

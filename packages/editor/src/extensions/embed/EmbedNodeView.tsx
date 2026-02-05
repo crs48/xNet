@@ -7,8 +7,8 @@
  * - Open in new tab button
  * - Loading state
  */
-import * as React from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
+import * as React from 'react'
 import { cn } from '../../utils'
 import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from './providers'
 

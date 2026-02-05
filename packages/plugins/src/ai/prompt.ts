@@ -5,8 +5,8 @@
  * valid, sandboxed scripts for xNet.
  */
 
-import type { ScriptOutputType, ScriptTriggerType } from '../schemas/script'
 import type { FlatNode } from '../sandbox/context'
+import type { ScriptOutputType, ScriptTriggerType } from '../schemas/script'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

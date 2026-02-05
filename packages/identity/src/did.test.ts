@@ -1,6 +1,6 @@
+import { generateSigningKeyPair } from '@xnet/crypto'
 import { describe, it, expect } from 'vitest'
 import { createDID, parseDID, generateIdentity, identityFromPrivateKey, isValidDID } from './did'
-import { generateSigningKeyPair } from '@xnet/crypto'
 
 describe('DID:key', () => {
   it('should generate valid DID', () => {

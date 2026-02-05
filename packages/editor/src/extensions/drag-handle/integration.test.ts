@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
-import { DragHandleExtension } from './index'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { DragDropPluginKey } from './DragDropPlugin'
+import { DragHandleExtension } from './index'
 
 describe('DragHandleExtension Integration', () => {
   let editor: Editor

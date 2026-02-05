@@ -17,8 +17,8 @@
  * See: docs/planStep03_4_1YjsSecurity/04-metabridge-isolation.md
  */
 
-import * as Y from 'yjs'
 import type { NodeStore, NodeChangeEvent } from '@xnet/data'
+import * as Y from 'yjs'
 
 /** Transaction origin for MetaBridge writes (for debugging/monitoring) */
 export const METABRIDGE_ORIGIN = 'metabridge'

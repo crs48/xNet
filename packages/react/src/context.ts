@@ -4,20 +4,20 @@
  * Provides NodeStore and optional identity to the React tree.
  * All data access happens through useQuery/useMutate/useNode hooks.
  */
-import type { ReactNode } from 'react'
-import type { Identity } from '@xnet/identity'
+import type { BlobStoreForSync } from './sync/blob-sync'
+import type { ConnectionManager } from './sync/connection-manager'
 import type { DID } from '@xnet/core'
-import type { NodeChangeEvent } from '@xnet/data'
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import type { NodeChangeEvent, NodeStorageAdapter } from '@xnet/data'
+import type { Identity } from '@xnet/identity'
+import type { ReactNode } from 'react'
+import { MemoryNodeStorageAdapter, NodeStore } from '@xnet/data'
 import { createUCAN } from '@xnet/identity'
-import { NodeStore, MemoryNodeStorageAdapter, type NodeStorageAdapter } from '@xnet/data'
 import { PluginRegistry, type Platform } from '@xnet/plugins'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { PluginRegistryContext } from './hooks/usePlugins'
 import { AutoBackup } from './hub/auto-backup'
 import { uploadBackup } from './hub/backup'
 import { createSyncManager, type SyncManager, type SyncStatus } from './sync/sync-manager'
-import type { BlobStoreForSync } from './sync/blob-sync'
-import type { ConnectionManager } from './sync/connection-manager'
-import { PluginRegistryContext } from './hooks/usePlugins'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(...args: unknown[]): void {
@@ -203,7 +203,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
       // Expose NodeStore to window for main process access (Electron Local API)
       if (typeof window !== 'undefined') {
-        ;(window as Window & { __xnetNodeStore?: NodeStore }).__xnetNodeStore = ns
+        const win = window as Window & { __xnetNodeStore?: NodeStore }
+        win.__xnetNodeStore = ns
       }
     }
 

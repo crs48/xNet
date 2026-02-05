@@ -4,8 +4,8 @@
  * Organized into sections: General, Appearance, Plugins, Data, Network
  */
 
-import React, { useState } from 'react'
 import { Settings, Palette, Puzzle, Database, Wifi, ChevronRight } from 'lucide-react'
+import React, { useState } from 'react'
 import { PluginManager } from './PluginManager'
 
 type SettingsSection = 'general' | 'appearance' | 'plugins' | 'data' | 'network'

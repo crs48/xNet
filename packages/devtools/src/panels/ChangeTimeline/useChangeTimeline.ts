@@ -2,8 +2,6 @@
  * Hook for the Change Timeline panel
  */
 
-import { useState, useEffect } from 'react'
-import { useDevTools } from '../../provider/useDevTools'
 import type {
   DevToolsEvent,
   StoreCreateEvent,
@@ -13,6 +11,8 @@ import type {
   StoreRemoteChangeEvent,
   StoreConflictEvent
 } from '../../core/types'
+import { useState, useEffect } from 'react'
+import { useDevTools } from '../../provider/useDevTools'
 
 export type TimelineEvent =
   | StoreCreateEvent

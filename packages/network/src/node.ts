@@ -1,16 +1,16 @@
 /**
  * libp2p node setup and management
  */
-import { createLibp2p } from 'libp2p'
-import { webRTC } from '@libp2p/webrtc'
-import { webSockets } from '@libp2p/websockets'
-import { bootstrap } from '@libp2p/bootstrap'
-import { kadDHT } from '@libp2p/kad-dht'
+import type { NetworkNode, NetworkConfig } from './types'
 import { noise } from '@chainsafe/libp2p-noise'
 import { yamux } from '@chainsafe/libp2p-yamux'
+import { bootstrap } from '@libp2p/bootstrap'
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
 import { identify } from '@libp2p/identify'
-import type { NetworkNode, NetworkConfig } from './types'
+import { kadDHT } from '@libp2p/kad-dht'
+import { webRTC } from '@libp2p/webrtc'
+import { webSockets } from '@libp2p/websockets'
+import { createLibp2p } from 'libp2p'
 import { DEFAULT_CONFIG } from './types'
 
 /**

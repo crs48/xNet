@@ -9,8 +9,6 @@
  * which requires gc: false on all Y.Doc instances.
  */
 
-import * as Y from 'yjs'
-import type { NodeId } from '@xnet/data'
 import type {
   YjsSnapshot,
   YjsSnapshotStorageAdapter,
@@ -18,6 +16,8 @@ import type {
   UnifiedTimelineEntry,
   TimelineEntry
 } from './types'
+import type { NodeId } from '@xnet/data'
+import * as Y from 'yjs'
 
 // ─── Configuration ───────────────────────────────────────────
 

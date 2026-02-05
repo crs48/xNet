@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { PeerScorer, DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS } from '../src/security/peer-scorer'
 import { configureSecurityLogger } from '../src/security/logging'
+import { PeerScorer, DEFAULT_WEIGHTS, DEFAULT_THRESHOLDS } from '../src/security/peer-scorer'
 
 describe('PeerScorer', () => {
   let scorer: PeerScorer

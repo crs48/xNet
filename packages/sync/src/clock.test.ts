@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import type { LamportTimestamp } from './clock'
 import type { DID } from '@xnet/core'
+import { describe, it, expect } from 'vitest'
 import {
   createLamportClock,
   tick,
@@ -11,7 +12,6 @@ import {
   parseTimestamp,
   maxTime
 } from './clock'
-import type { LamportTimestamp } from './clock'
 
 describe('LamportClock', () => {
   const authorA = 'did:key:z6MkAuthorA' as DID

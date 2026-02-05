@@ -11,8 +11,8 @@
  *   blob-data: Transfer blob bytes (base64 encoded)
  *   blob-not-found: Signal unavailability
  */
-import type { ContentId } from '@xnet/core'
 import type { ConnectionManager } from './connection-manager'
+import type { ContentId } from '@xnet/core'
 
 /** Minimal blob store interface for sync (satisfied by BlobStore from @xnet/storage) */
 export interface BlobStoreForSync {

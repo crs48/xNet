@@ -8,8 +8,8 @@
  * - Output sanitization
  */
 
-import { validateScriptAST } from './ast-validator'
 import type { ScriptContext } from './context'
+import { validateScriptAST } from './ast-validator'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

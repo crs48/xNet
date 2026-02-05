@@ -1,6 +1,6 @@
+import type { KeyboardShortcut } from './types'
 import { Extension } from '@tiptap/core'
 import { KEYBOARD_SHORTCUTS } from './shortcuts'
-import type { KeyboardShortcut } from './types'
 
 export interface KeyboardShortcutsOptions {
   /** Additional custom shortcuts to register */

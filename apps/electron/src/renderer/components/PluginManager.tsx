@@ -8,7 +8,8 @@
  * - Uninstall plugins
  */
 
-import React, { useState, useCallback, useEffect } from 'react'
+import type { RegisteredPlugin } from '@xnet/plugins'
+import { useXNet } from '@xnet/react'
 import {
   Puzzle,
   Power,
@@ -21,8 +22,7 @@ import {
   Package,
   Loader2
 } from 'lucide-react'
-import type { RegisteredPlugin } from '@xnet/plugins'
-import { useXNet } from '@xnet/react'
+import React, { useState, useCallback, useEffect } from 'react'
 
 export function PluginManager() {
   const [error, setError] = useState<string | null>(null)

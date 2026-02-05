@@ -1,3 +1,4 @@
+import { randomBytes } from '@xnet/crypto'
 import { describe, it, expect } from 'vitest'
 import {
   deriveKeyBundle,
@@ -5,7 +6,6 @@ import {
   serializeKeyBundle,
   deserializeKeyBundle
 } from './keys'
-import { randomBytes } from '@xnet/crypto'
 
 describe('Key Management', () => {
   describe('deriveKeyBundle', () => {

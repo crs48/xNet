@@ -5,8 +5,8 @@
  * bundled plugins that aren't already installed.
  */
 
-import { useEffect, useRef } from 'react'
 import { useXNet } from '@xnet/react'
+import { useEffect, useRef } from 'react'
 import { BUNDLED_PLUGINS } from '../plugins'
 
 export function BundledPluginInstaller() {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { BrowserPasskeyStorage, MemoryPasskeyStorage } from './passkey'
 import { generateKeyBundle } from './keys'
+import { BrowserPasskeyStorage, MemoryPasskeyStorage } from './passkey'
 
 describe('PasskeyStorage', () => {
   describe('MemoryPasskeyStorage', () => {

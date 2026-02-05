@@ -5,10 +5,9 @@
  * the merged schema timeline, enabling fast seeking for the Database Time Machine.
  */
 
-import type { NodeState } from '@xnet/data'
-import type { SchemaIRI } from '@xnet/data'
-import type { SchemaTimelineEntry } from './types'
 import type { SchemaTimeline } from './schema-timeline'
+import type { SchemaTimelineEntry } from './types'
+import type { NodeState, SchemaIRI } from '@xnet/data'
 
 export class SchemaScrubCache {
   private cache = new Map<number, NodeState[]>()

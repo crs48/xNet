@@ -2,9 +2,9 @@
  * useTelemetry - Hook for reporting telemetry from React components.
  */
 
-import { useCallback, useRef, useEffect } from 'react'
-import type { TelemetryTier } from '../consent/types'
 import type { ReportOptions } from '../collection/collector'
+import type { TelemetryTier } from '../consent/types'
+import { useCallback, useRef, useEffect } from 'react'
 import { useTelemetryContext } from './TelemetryContext'
 
 export interface UseTelemetryOptions {

@@ -2,6 +2,7 @@
  * Tests for the Script Sandbox system
  */
 
+import type { FlatNode } from '../sandbox'
 import { describe, it, expect } from 'vitest'
 import {
   validateScriptAST,
@@ -10,7 +11,6 @@ import {
   ScriptValidationError,
   createScriptContext
 } from '../sandbox'
-import type { FlatNode } from '../sandbox'
 
 describe('validateScriptAST', () => {
   describe('valid scripts', () => {

@@ -1,8 +1,8 @@
+import type { EditorState } from '@tiptap/pm/state'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
-import type { EditorState } from '@tiptap/pm/state'
-import { getSyntax, getEnabledMarks } from './syntax'
 import { findMarkRange } from './mark-range'
+import { getSyntax, getEnabledMarks } from './syntax'
 
 export const inlineMarksPluginKey = new PluginKey('inlineMarks')
 

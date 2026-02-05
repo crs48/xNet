@@ -2,8 +2,8 @@
  * @xnet/hub - Shard query router with BM25 scoring.
  */
 
-import type { HubStorage, ShardPosting, ShardTermStat } from '../storage/interface'
 import type { ShardAssignment, ShardConfig, ShardRegistry } from './index-shards'
+import type { HubStorage, ShardPosting, ShardTermStat } from '../storage/interface'
 import { tokenizeText } from './shard-utils'
 
 export type GlobalSearchRequest = {

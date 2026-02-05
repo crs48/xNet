@@ -4,8 +4,8 @@
  * Renders individual nodes on the canvas with selection, resize handles, etc.
  */
 
-import React, { useCallback, useRef, memo } from 'react'
 import type { CanvasNode, ResizeHandle, Point } from '../types'
+import React, { useCallback, useRef, memo } from 'react'
 
 /**
  * Remote user presence on a specific node

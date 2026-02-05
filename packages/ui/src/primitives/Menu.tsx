@@ -1,6 +1,6 @@
+import type { ReactNode } from 'react'
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu'
 import { cn } from '../utils'
-import type { ReactNode } from 'react'
 
 export interface MenuProps {
   trigger: ReactNode

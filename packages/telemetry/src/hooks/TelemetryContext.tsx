@@ -2,9 +2,9 @@
  * TelemetryContext - React context for telemetry consent and collection.
  */
 
-import { createContext, useContext, type ReactNode } from 'react'
-import type { ConsentManager } from '../consent/manager'
 import type { TelemetryCollector } from '../collection/collector'
+import type { ConsentManager } from '../consent/manager'
+import { createContext, useContext, type ReactNode } from 'react'
 
 export interface TelemetryContextValue {
   consent: ConsentManager

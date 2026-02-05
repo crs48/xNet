@@ -2,19 +2,19 @@
  * Property handlers for rendering and editing different property types
  */
 
-import type { PropertyType } from '@xnet/data'
 import type { PropertyHandler, Disposable } from '../types'
-import { textHandler } from './text.js'
-import { numberHandler } from './number.js'
+import type { PropertyType } from '@xnet/data'
 import { checkboxHandler } from './checkbox.js'
 import { dateHandler } from './date.js'
 import { dateRangeHandler } from './dateRange.js'
-import { selectHandler } from './select.js'
-import { multiSelectHandler } from './multiSelect.js'
-import { urlHandler } from './url.js'
 import { emailHandler } from './email.js'
-import { phoneHandler } from './phone.js'
 import { fileHandler } from './file.js'
+import { multiSelectHandler } from './multiSelect.js'
+import { numberHandler } from './number.js'
+import { phoneHandler } from './phone.js'
+import { selectHandler } from './select.js'
+import { textHandler } from './text.js'
+import { urlHandler } from './url.js'
 
 // ─── Built-in Handlers ──────────────────────────────────────────────────────
 

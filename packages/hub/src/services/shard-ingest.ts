@@ -2,8 +2,8 @@
  * @xnet/hub - Shard ingest router.
  */
 
-import type { HubStorage } from '../storage/interface'
 import type { ShardConfig, ShardRegistry } from './index-shards'
+import type { HubStorage } from '../storage/interface'
 import { computeTermFreqs, tokenizeText } from './shard-utils'
 
 export type IndexableDocument = {

@@ -1,9 +1,9 @@
 /**
  * Federated query routing
  */
-import type { NetworkNode } from '@xnet/network'
 import type { Query, QueryResult } from '../types'
 import type { DataSource } from '@xnet/core'
+import type { NetworkNode } from '@xnet/network'
 
 /**
  * Federated query router interface

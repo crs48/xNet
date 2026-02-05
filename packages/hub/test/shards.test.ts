@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createMemoryStorage } from '../src/storage'
+import { ShardRegistry, type ShardAssignment, type ShardConfig } from '../src/services/index-shards'
 import { ShardIngestRouter } from '../src/services/shard-ingest'
 import { ShardQueryRouter } from '../src/services/shard-router'
-import { ShardRegistry, type ShardAssignment, type ShardConfig } from '../src/services/index-shards'
+import { createMemoryStorage } from '../src/storage'
 
 const createAssignments = (
   totalShards: number,

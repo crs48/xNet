@@ -23,13 +23,13 @@
  * 3. On receiving awareness: apply to local awareness instance
  * 4. On disconnect: peers remove the disconnected client's state
  */
-import * as Y from 'yjs'
 import {
   Awareness,
   applyAwarenessUpdate,
   encodeAwarenessUpdate,
   removeAwarenessStates
 } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(provider: WebSocketSyncProvider, ...args: unknown[]): void {

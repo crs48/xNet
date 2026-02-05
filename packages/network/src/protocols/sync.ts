@@ -1,12 +1,12 @@
 /**
  * Document synchronization protocol
  */
-import { pipe } from 'it-pipe'
-import * as lp from 'it-length-prefixed'
-import { encode, decode } from '@msgpack/msgpack'
 import type { NetworkNode, SyncMessage } from '../types'
 import type { XDocument } from '@xnet/data'
+import { encode, decode } from '@msgpack/msgpack'
 import { getDocumentState, getStateVector } from '@xnet/data'
+import * as lp from 'it-length-prefixed'
+import { pipe } from 'it-pipe'
 import * as Y from 'yjs'
 
 const SYNC_PROTOCOL = '/xnet/sync/1.0.0'

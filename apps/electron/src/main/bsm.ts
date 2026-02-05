@@ -20,9 +20,6 @@ function log(...args: unknown[]): void {
   }
 }
 
-import { ipcMain, MessageChannelMain, type BrowserWindow } from 'electron'
-import * as Y from 'yjs'
-import WebSocket from 'ws'
 import { hashContent, createContentId } from '@xnet/core'
 import {
   signYjsUpdate,
@@ -33,6 +30,9 @@ import {
   YjsPeerScorer,
   type SignedYjsEnvelope
 } from '@xnet/sync'
+import { ipcMain, MessageChannelMain, type BrowserWindow } from 'electron'
+import WebSocket from 'ws'
+import * as Y from 'yjs'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

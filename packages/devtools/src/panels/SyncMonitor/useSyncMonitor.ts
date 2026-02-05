@@ -2,8 +2,6 @@
  * Hook for the Sync Monitor panel
  */
 
-import { useState, useEffect } from 'react'
-import { useDevTools } from '../../provider/useDevTools'
 import type {
   DevToolsEvent,
   SyncStatusEvent,
@@ -12,6 +10,8 @@ import type {
   SyncChangeReceivedEvent,
   SyncErrorEvent
 } from '../../core/types'
+import { useState, useEffect } from 'react'
+import { useDevTools } from '../../provider/useDevTools'
 
 export type SyncEvent =
   | SyncStatusEvent

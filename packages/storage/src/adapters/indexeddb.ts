@@ -1,9 +1,9 @@
 /**
  * IndexedDB storage adapter for browser
  */
-import { openDB, type IDBPDatabase } from 'idb'
 import type { StorageAdapter, DocumentData } from '../types'
 import type { ContentId, Snapshot, SignedUpdate } from '@xnet/core'
+import { openDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'xnet-storage'
 const DB_VERSION = 1

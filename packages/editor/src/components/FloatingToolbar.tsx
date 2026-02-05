@@ -4,12 +4,12 @@
  * Desktop: Bubble menu that floats near cursor/selection
  * Mobile: Fixed at bottom, above keyboard, horizontally scrollable
  */
-import { useState, useEffect, useRef, useCallback, type JSX } from 'react'
 import type { Editor } from '@tiptap/react'
-import { BubbleMenu } from '@tiptap/react/menus'
 import { NodeSelection } from '@tiptap/pm/state'
-import { cn } from '../utils'
+import { BubbleMenu } from '@tiptap/react/menus'
+import { useState, useEffect, useRef, useCallback, type JSX } from 'react'
 import { captureTextAnchor } from '../extensions/comment'
+import { cn } from '../utils'
 
 /** Toolbar display mode */
 export type ToolbarMode = 'auto' | 'desktop' | 'mobile'

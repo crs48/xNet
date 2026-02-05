@@ -5,10 +5,10 @@
  * for each field.
  */
 
-import type { DID } from '@xnet/core'
-import { topologicalSort } from '@xnet/sync'
-import type { NodeStorageAdapter, NodeId } from '@xnet/data'
 import type { BlameInfo } from './types'
+import type { DID } from '@xnet/core'
+import type { NodeStorageAdapter, NodeId } from '@xnet/data'
+import { topologicalSort } from '@xnet/sync'
 
 export class BlameEngine {
   constructor(private storage: NodeStorageAdapter) {}

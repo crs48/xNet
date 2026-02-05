@@ -2,11 +2,11 @@
  * Tests for gallery view components
  */
 
-import { describe, it, expect } from 'vitest'
-import { renderHook } from '@testing-library/react'
-import { useGalleryState, CARD_SIZES } from '../gallery/useGalleryState'
-import type { Schema } from '@xnet/data'
 import type { ViewConfig } from '../types'
+import type { Schema } from '@xnet/data'
+import { renderHook } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { useGalleryState, CARD_SIZES } from '../gallery/useGalleryState'
 
 // Mock schema
 const mockSchema: Schema = {

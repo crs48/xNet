@@ -9,10 +9,10 @@
  * See: docs/planStep03_4_1YjsSecurity/08-hash-chain-integration.md
  */
 
-import type { ContentId, DID } from '@xnet/core'
 import type { Change, UnsignedChange } from './change'
-import { createUnsignedChange, signChange, createChangeId } from './change'
 import type { LamportTimestamp } from './clock'
+import type { ContentId, DID } from '@xnet/core'
+import { createUnsignedChange, signChange, createChangeId } from './change'
 
 /**
  * Change type identifier for Yjs changes.

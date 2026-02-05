@@ -2,14 +2,14 @@
  * TableView - Main table view component with virtual scrolling
  */
 
-import React, { useRef, type JSX } from 'react'
-import { useVirtualizer } from '@tanstack/react-virtual'
-import type { Schema } from '@xnet/data'
-import { cn } from '@xnet/ui'
-import { useTableState, type TableRow } from './useTableState.js'
-import { TableHeader } from './TableHeader.js'
-import { TableCell } from './TableCell.js'
 import type { ViewConfig, CellPresence } from '../types.js'
+import type { Schema } from '@xnet/data'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { cn } from '@xnet/ui'
+import React, { useRef, type JSX } from 'react'
+import { TableCell } from './TableCell.js'
+import { TableHeader } from './TableHeader.js'
+import { useTableState, type TableRow } from './useTableState.js'
 
 /** Column update payload */
 export interface ColumnUpdate {

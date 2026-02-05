@@ -2,9 +2,9 @@
  * Tests for MCPServer
  */
 
+import type { NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MCPServer, createMCPServer, type MCPRequest } from '../services/mcp-server'
-import type { NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
 
 // ─── Mock Store ──────────────────────────────────────────────────────────────
 

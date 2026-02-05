@@ -8,8 +8,8 @@
  * When no devtools provider is present, the context is null and hooks skip reporting.
  */
 
-import { createContext, useContext } from 'react'
 import type * as Y from 'yjs'
+import { createContext, useContext } from 'react'
 
 /**
  * Query tracker interface (implemented by @xnet/devtools QueryTracker)

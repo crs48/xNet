@@ -7,9 +7,9 @@
  * - Icons and cover images
  */
 
+import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, file } from '../properties'
-import type { InferNode } from '../types'
 
 export const PageSchema = defineSchema({
   name: 'Page',

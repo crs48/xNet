@@ -1,4 +1,8 @@
+import type { XDocument } from './types'
+import { generateIdentity } from '@xnet/identity'
 import { describe, it, expect } from 'vitest'
+import * as Y from 'yjs'
+import { createDocument, getDocumentState } from './document'
 import {
   signUpdate,
   verifyUpdate,
@@ -6,10 +10,6 @@ import {
   applySignedUpdate,
   mergeDocuments
 } from './updates'
-import { createDocument, getDocumentState } from './document'
-import type { XDocument } from './types'
-import { generateIdentity } from '@xnet/identity'
-import * as Y from 'yjs'
 
 describe('Signed Updates', () => {
   describe('signUpdate and verifyUpdate', () => {

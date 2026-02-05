@@ -1,8 +1,8 @@
 /**
  * Passkey/WebAuthn integration for key storage
  */
-import { encrypt, decrypt, generateKey } from '@xnet/crypto'
 import type { StoredKey, KeyBundle } from './types'
+import { encrypt, decrypt, generateKey } from '@xnet/crypto'
 import { serializeKeyBundle, deserializeKeyBundle } from './keys'
 
 /**

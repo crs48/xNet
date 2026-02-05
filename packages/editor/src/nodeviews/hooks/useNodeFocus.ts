@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Editor } from '@tiptap/react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
  * Hook to track if the cursor is within a specific node.

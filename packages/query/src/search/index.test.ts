@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { createSearchIndex, type SearchIndex } from './index'
 import { createDocument } from '@xnet/data'
 import { generateIdentity } from '@xnet/identity'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { createSearchIndex, type SearchIndex } from './index'
 
 describe('SearchIndex', () => {
   let index: SearchIndex

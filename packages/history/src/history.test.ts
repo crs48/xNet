@@ -2,27 +2,25 @@
  * Tests for @xnet/history
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import type { PrunableStorageAdapter } from './pruning'
+import type { DID } from '@xnet/core'
+import type { SchemaIRI, NodeStorageAdapter, NodeChange } from '@xnet/data'
 import { generateSigningKeyPair } from '@xnet/crypto'
 import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
-import type { DID } from '@xnet/core'
-import type { SchemaIRI } from '@xnet/data'
-import type { NodeStorageAdapter, NodeChange } from '@xnet/data'
-
-import { HistoryEngine } from './engine'
-import { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AuditIndex } from './audit-index'
-import { UndoManager } from './undo-manager'
-import { ScrubCache } from './scrub-cache'
-import { PlaybackEngine } from './playback'
-import { DiffEngine } from './diff'
 import { BlameEngine } from './blame'
-import { VerificationEngine } from './verification'
+import { DiffEngine } from './diff'
+import { HistoryEngine } from './engine'
+import { PlaybackEngine } from './playback'
 import { PruningEngine, DEFAULT_POLICY, MOBILE_POLICY } from './pruning'
-import type { PrunableStorageAdapter } from './pruning'
-import { SchemaTimeline, restoreSchemaAt } from './schema-timeline'
 import { SchemaScrubCache } from './schema-scrub-cache'
+import { SchemaTimeline, restoreSchemaAt } from './schema-timeline'
+import { ScrubCache } from './scrub-cache'
+import { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
+import { UndoManager } from './undo-manager'
 import { deepEqual } from './utils'
+import { VerificationEngine } from './verification'
 
 // ─── Test Fixtures ───────────────────────────────────────────
 

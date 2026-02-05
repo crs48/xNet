@@ -8,11 +8,11 @@
  * 4. Only syncs when consent tier >= 'crashes'
  */
 
+import type { TelemetryBatch, TelemetryBatchRecord, AggregatorResponse } from './protocol'
+import type { TelemetryRecord } from '../collection/collector'
 import type { ConsentManager } from '../consent/manager'
 import type { TelemetryTier } from '../consent/types'
-import type { TelemetryRecord } from '../collection/collector'
 import { scheduleWithJitter } from '../collection/timing'
-import type { TelemetryBatch, TelemetryBatchRecord, AggregatorResponse } from './protocol'
 
 export interface TelemetrySyncConfig {
   /** Aggregator node addresses (multiaddr or URL) */

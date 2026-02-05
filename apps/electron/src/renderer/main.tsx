@@ -1,24 +1,24 @@
 /**
  * Renderer entry point
  */
+import { IndexedDBNodeStorageAdapter, BlobService } from '@xnet/data'
+import { XNetDevToolsProvider, useDevTools } from '@xnet/devtools'
+import { BlobProvider } from '@xnet/editor/react'
+import { identityFromPrivateKey } from '@xnet/identity'
+import { XNetProvider } from '@xnet/react'
+import { ChunkManager } from '@xnet/storage'
+import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
+import { ThemeProvider } from '@xnet/ui'
 import React, { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
-import { XNetProvider } from '@xnet/react'
-import { IndexedDBNodeStorageAdapter, BlobService } from '@xnet/data'
-import { ChunkManager } from '@xnet/storage'
-import { BlobProvider } from '@xnet/editor/react'
-import { XNetDevToolsProvider, useDevTools } from '@xnet/devtools'
-import { ThemeProvider } from '@xnet/ui'
-import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
-import { createIPCSyncManager, type IPCSyncManager } from './lib/ipc-sync-manager'
-import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { App } from './App'
+import { createIPCBlobStore } from './lib/ipc-blob-store'
+import { createIPCSyncManager, type IPCSyncManager } from './lib/ipc-sync-manager'
 import './styles.css'
 
 // TODO: In production, load identity from secure storage via IPC
 // For dev/testing, use a deterministic test identity derived from a fixed seed
 // This ensures the DID and signing key are cryptographically matched
-import { identityFromPrivateKey } from '@xnet/identity'
 
 // Fixed 32-byte seed for deterministic test identity (DO NOT use in production!)
 // Each profile gets a unique identity by hashing the profile name into the seed.

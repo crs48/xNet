@@ -12,14 +12,14 @@
  * which broadcasts it over WebSocket to other peers.
  */
 
-import * as Y from 'yjs'
+import type { SyncManager } from '@xnet/react'
 import {
   Awareness,
   encodeAwarenessUpdate,
   applyAwarenessUpdate,
   removeAwarenessStates
 } from 'y-protocols/awareness'
-import type { SyncManager } from '@xnet/react'
+import * as Y from 'yjs'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type StatusHandler = (status: ConnectionStatus) => void

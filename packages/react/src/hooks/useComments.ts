@@ -13,9 +13,9 @@
  * const { threads } = useComments({ nodeId: pageId, anchorType: 'text' })
  * ```
  */
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import type { NodeState, NodeChangeEvent } from '@xnet/data'
 import { CommentSchema } from '@xnet/data'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────

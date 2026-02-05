@@ -2,9 +2,9 @@
  * @xnet/hub - Federation routes.
  */
 
-import type { Context, MiddlewareHandler } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { FederationPeer, FederationService } from '../services/federation'
+import type { Context, MiddlewareHandler } from 'hono'
 import { Hono } from 'hono'
 import { isRecord, toStringArray } from '../utils/validation'
 

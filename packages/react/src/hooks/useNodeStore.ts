@@ -4,8 +4,8 @@
  * This is NOT part of the public API. Use useQuery/useMutate/useNode instead.
  * Only @xnet/devtools uses this via the @xnet/react/internal subpath.
  */
-import { useContext } from 'react'
 import type { NodeStore } from '@xnet/data'
+import { useContext } from 'react'
 import { XNetContext } from '../context'
 
 /**

@@ -5,10 +5,9 @@
  * This is P2P-safe — peers see the undo as a normal change.
  */
 
-import type { DID } from '@xnet/core'
-import type { NodeChange, NodeState, NodeId, TransactionOperation } from '@xnet/data'
-import type { NodeStore } from '@xnet/data'
 import type { UndoEntry, UndoManagerOptions } from './types'
+import type { DID } from '@xnet/core'
+import type { NodeChange, NodeState, NodeId, TransactionOperation, NodeStore } from '@xnet/data'
 
 export class UndoManager {
   private undoStacks = new Map<NodeId, UndoEntry[]>()

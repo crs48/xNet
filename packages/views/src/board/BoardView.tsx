@@ -2,7 +2,8 @@
  * BoardView - Kanban board view with drag-and-drop
  */
 
-import React, { useState, useCallback, useRef } from 'react'
+import type { ViewConfig } from '../types.js'
+import type { Schema } from '@xnet/data'
 import {
   DndContext,
   DragOverlay,
@@ -20,15 +21,14 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { cn } from '@xnet/ui'
-import type { Schema } from '@xnet/data'
+import React, { useState, useCallback, useRef } from 'react'
+import { BoardCard } from './BoardCard.js'
+import { BoardColumn } from './BoardColumn.js'
 import {
   useBoardState,
   type BoardRow,
   type BoardColumn as BoardColumnType
 } from './useBoardState.js'
-import { BoardColumn } from './BoardColumn.js'
-import { BoardCard } from './BoardCard.js'
-import type { ViewConfig } from '../types.js'
 
 export interface BoardViewProps {
   /** Schema defining the board structure */

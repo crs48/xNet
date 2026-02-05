@@ -1,13 +1,13 @@
 /**
  * Tests for EditorToolbar component
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Editor } from '@tiptap/core'
-import StarterKit from '@tiptap/starter-kit'
-import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
+import TaskList from '@tiptap/extension-task-list'
+import StarterKit from '@tiptap/starter-kit'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { EditorToolbar } from './EditorToolbar'
 
 describe('EditorToolbar', () => {

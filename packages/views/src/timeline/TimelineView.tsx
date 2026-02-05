@@ -2,17 +2,17 @@
  * TimelineView - Gantt-style timeline view
  */
 
-import React, { useRef, useMemo } from 'react'
-import { cn } from '@xnet/ui'
+import type { ViewConfig } from '../types.js'
 import type { Schema } from '@xnet/data'
+import { cn } from '@xnet/ui'
+import React, { useRef, useMemo } from 'react'
+import { TimelineBar } from './TimelineBar.js'
 import {
   useTimelineState,
   getDatePosition,
   type TimelineRow,
   type ZoomLevel
 } from './useTimelineState.js'
-import { TimelineBar } from './TimelineBar.js'
-import type { ViewConfig } from '../types.js'
 
 export interface TimelineViewProps {
   /** Schema defining the timeline structure */

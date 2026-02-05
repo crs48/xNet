@@ -1,10 +1,10 @@
 /**
  * NodeStoreSyncProvider - Sync NodeChange events via hub ConnectionManager.
  */
-import type { ContentId, DID } from '@xnet/core'
-import { base64ToBytes, bytesToBase64 } from '@xnet/crypto'
-import type { NodeChange, NodePayload, NodeStore } from '@xnet/data'
 import type { ConnectionManager } from './connection-manager'
+import type { ContentId, DID } from '@xnet/core'
+import type { NodeChange, NodePayload, NodeStore } from '@xnet/data'
+import { base64ToBytes, bytesToBase64 } from '@xnet/crypto'
 
 export type SerializedNodeChange = {
   id: string

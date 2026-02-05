@@ -7,6 +7,7 @@
  * Threading is flat: all replies point directly to the root comment (not nested).
  */
 
+import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import {
   text,
@@ -19,7 +20,6 @@ import {
   created,
   createdBy
 } from '../properties'
-import type { InferNode } from '../types'
 
 export const CommentSchema = defineSchema({
   name: 'Comment',

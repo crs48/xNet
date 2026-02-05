@@ -10,19 +10,6 @@
  * - Materialized state for fast reads
  */
 
-import type { DID } from '@xnet/core'
-import {
-  createLamportClock,
-  tick,
-  receive,
-  compareLamportTimestamps,
-  signChange,
-  createUnsignedChange,
-  createBatchId,
-  type LamportClock,
-  type LamportTimestamp
-} from '@xnet/sync'
-import { createNodeId } from '../schema/node'
 import type {
   NodeId,
   NodePayload,
@@ -39,6 +26,19 @@ import type {
   TransactionResult,
   NodeChangeListener
 } from './types'
+import type { DID } from '@xnet/core'
+import {
+  createLamportClock,
+  tick,
+  receive,
+  compareLamportTimestamps,
+  signChange,
+  createUnsignedChange,
+  createBatchId,
+  type LamportClock,
+  type LamportTimestamp
+} from '@xnet/sync'
+import { createNodeId } from '../schema/node'
 import { resolveTempIds, type SchemaLookup } from './tempids'
 
 /**

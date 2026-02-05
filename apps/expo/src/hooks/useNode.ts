@@ -1,9 +1,9 @@
 /**
  * Node hook for Expo
  */
+import type { XDocument } from '@xnet/sdk'
 import { useState, useEffect, useCallback } from 'react'
 import { useXNet } from './useXNet'
-import type { XDocument } from '@xnet/sdk'
 
 interface UseNodeResult {
   document: XDocument | null

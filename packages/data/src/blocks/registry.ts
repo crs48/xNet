@@ -1,8 +1,8 @@
 /**
  * Block type registry for document content
  */
-import * as Y from 'yjs'
 import type { Block, BlockType } from '../types'
+import * as Y from 'yjs'
 
 /**
  * Block definition for registering new block types

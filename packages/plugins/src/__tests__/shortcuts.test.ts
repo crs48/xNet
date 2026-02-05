@@ -5,9 +5,9 @@
 /**
  * Tests for ShortcutManager
  */
+import type { CommandContribution } from '../contributions'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ShortcutManager, getShortcutManager } from '../shortcuts'
-import type { CommandContribution } from '../contributions'
 
 // Mock navigator.platform by overriding the property on the existing navigator
 const mockNavigator = (platform: string) => {

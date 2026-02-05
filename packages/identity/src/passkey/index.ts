@@ -9,11 +9,11 @@
  */
 import type { KeyBundle } from '../types'
 import type { PasskeyIdentity, PasskeyCreateOptions, FallbackStorage } from './types'
-import { detectPasskeySupport } from './support'
 import { createPasskeyIdentity } from './create'
-import { unlockPasskeyIdentity } from './unlock'
 import { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
 import { getStoredIdentity, storeIdentity, clearStoredIdentity } from './storage'
+import { detectPasskeySupport } from './support'
+import { unlockPasskeyIdentity } from './unlock'
 
 // ─── Public Types ────────────────────────────────────────────
 

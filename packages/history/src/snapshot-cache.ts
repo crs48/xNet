@@ -6,10 +6,9 @@
  * checkpoints so reconstruction only replays the remainder.
  */
 
-import type { ContentId } from '@xnet/core'
-import type { NodeState, NodeId } from '@xnet/data'
-import type { NodeStore } from '@xnet/data'
 import type { Snapshot, SnapshotCacheOptions, CacheStats } from './types'
+import type { ContentId } from '@xnet/core'
+import type { NodeState, NodeId, NodeStore } from '@xnet/data'
 
 // ─── Storage Adapter ─────────────────────────────────────────
 

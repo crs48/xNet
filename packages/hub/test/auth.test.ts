@@ -1,7 +1,7 @@
 import type { HubInstance } from '../src/index'
+import { createUCAN, generateKeyBundle } from '@xnet/identity'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
-import { createUCAN, generateKeyBundle } from '@xnet/identity'
 import { createHub } from '../src/index'
 
 describe('Hub UCAN Auth', () => {

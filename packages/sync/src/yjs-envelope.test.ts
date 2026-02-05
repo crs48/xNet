@@ -2,8 +2,8 @@
  * Tests for Signed Yjs Envelopes
  */
 
-import { describe, it, expect } from 'vitest'
 import { generateIdentity } from '@xnet/identity'
+import { describe, it, expect } from 'vitest'
 import {
   signYjsUpdate,
   verifyYjsEnvelope,

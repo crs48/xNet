@@ -1,9 +1,8 @@
-import { describe, it, expect } from 'vitest'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import type { DID, ContentId } from '@xnet/core'
-import { signChange, createUnsignedChange } from './change'
 import type { Change } from './change'
 import type { LamportTimestamp } from './clock'
+import type { DID, ContentId } from '@xnet/core'
+import { generateSigningKeyPair } from '@xnet/crypto'
+import { describe, it, expect } from 'vitest'
 import {
   validateChain,
   detectFork,
@@ -14,6 +13,7 @@ import {
   getForks,
   topologicalSort
 } from './chain'
+import { signChange, createUnsignedChange } from './change'
 
 describe('Chain', () => {
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID

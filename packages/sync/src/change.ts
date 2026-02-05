@@ -6,9 +6,9 @@
  * with a single, generic type.
  */
 
+import type { LamportTimestamp } from './clock'
 import type { DID, ContentId } from '@xnet/core'
 import { hashHex, sign, verify } from '@xnet/crypto'
-import type { LamportTimestamp } from './clock'
 
 /**
  * A signed change with chain linkage and Lamport ordering.

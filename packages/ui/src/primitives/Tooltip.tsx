@@ -1,6 +1,6 @@
+import type { ReactNode } from 'react'
 import * as TooltipPrimitive from '@radix-ui/react-tooltip'
 import { cn } from '../utils'
-import type { ReactNode } from 'react'
 
 export interface TooltipProps {
   content: ReactNode

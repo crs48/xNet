@@ -1,6 +1,6 @@
+import type { ReactNode } from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
 import { cn } from '../utils'
-import type { ReactNode } from 'react'
 
 export interface PopoverProps {
   trigger: ReactNode

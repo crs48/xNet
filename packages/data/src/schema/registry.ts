@@ -9,6 +9,7 @@
  */
 
 import type { SchemaIRI, Node } from './node'
+import type { SelectOption } from './properties'
 import type {
   CreateNodeOptions,
   DefinedSchema,
@@ -20,9 +21,7 @@ import type {
   ValidationError,
   ValidationResult
 } from './types'
-import type { SelectOption } from './properties'
 import { createNodeId } from './node'
-import { builtInSchemas, type BuiltInSchemaIRI } from './schemas'
 import {
   checkbox,
   created,
@@ -41,6 +40,7 @@ import {
   updated,
   url
 } from './properties'
+import { builtInSchemas, type BuiltInSchemaIRI } from './schemas'
 
 /**
  * A registered schema entry.

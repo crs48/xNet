@@ -2,9 +2,9 @@
  * Select property handler
  */
 
-import React from 'react'
 import type { PropertyHandler, PropertyEditorProps } from '../types'
 import type { SelectOption } from '@xnet/data'
+import React from 'react'
 
 interface SelectConfig {
   options?: SelectOption[]

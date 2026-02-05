@@ -9,14 +9,14 @@
  *
  * Following the Universal Social Primitives pattern from planStep03_6Comments.
  */
-import { useMemo, useCallback } from 'react'
-import { useComments, type CommentThread } from '@xnet/react'
 import {
   encodeAnchor,
   decodeAnchor,
   type CanvasPositionAnchor,
   type CanvasObjectAnchor
 } from '@xnet/data'
+import { useComments, type CommentThread } from '@xnet/react'
+import { useMemo, useCallback } from 'react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

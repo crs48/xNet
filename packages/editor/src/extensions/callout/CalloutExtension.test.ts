@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { CalloutExtension } from './CalloutExtension'
 import { CALLOUT_CONFIGS, type CalloutType } from './types'
 

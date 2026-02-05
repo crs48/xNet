@@ -1,20 +1,21 @@
 /**
  * RichTextEditor - Tiptap-based rich text editor with Yjs collaboration
  */
+import type { DatabaseViewType, SlashCommandItem } from '../extensions'
+import type { AnyExtension } from '@tiptap/core'
+import type { Awareness } from 'y-protocols/awareness'
+import type * as Y from 'yjs'
+import Collaboration from '@tiptap/extension-collaboration'
+import Link from '@tiptap/extension-link'
+import Placeholder from '@tiptap/extension-placeholder'
+import TaskItem from '@tiptap/extension-task-item'
+import TaskList from '@tiptap/extension-task-list'
+import Typography from '@tiptap/extension-typography'
+import { useEditor, EditorContent, type Editor } from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
+import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from '@tiptap/y-tiptap'
 import * as React from 'react'
 import { useEffect, type JSX } from 'react'
-import { useEditor, EditorContent, type Editor } from '@tiptap/react'
-import type { AnyExtension } from '@tiptap/core'
-import StarterKit from '@tiptap/starter-kit'
-import Placeholder from '@tiptap/extension-placeholder'
-import Collaboration from '@tiptap/extension-collaboration'
-import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from '@tiptap/y-tiptap'
-import TaskList from '@tiptap/extension-task-list'
-import TaskItem from '@tiptap/extension-task-item'
-import Link from '@tiptap/extension-link'
-import Typography from '@tiptap/extension-typography'
-import type * as Y from 'yjs'
-import type { Awareness } from 'y-protocols/awareness'
 import {
   Wikilink,
   LivePreview,
@@ -31,7 +32,6 @@ import {
   EmbedExtension,
   DatabaseEmbedExtension
 } from '../extensions'
-import type { DatabaseViewType, SlashCommandItem } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
 import '../styles/editor.css'
 import { cn } from '../utils'

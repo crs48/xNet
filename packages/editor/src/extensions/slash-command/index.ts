@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core'
-import Suggestion from '@tiptap/suggestion'
 import { PluginKey } from '@tiptap/pm/state'
 import { ReactRenderer } from '@tiptap/react'
+import Suggestion from '@tiptap/suggestion'
 import tippy, { type Instance, type Props as TippyProps } from 'tippy.js'
 import { SlashMenu, type SlashMenuRef } from '../../components/SlashMenu'
 import { filterCommands, type SlashCommandItem } from './items'

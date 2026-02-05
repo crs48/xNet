@@ -2,8 +2,8 @@
  * Person (DID reference) property helper.
  */
 
-import type { PropertyBuilder } from '../types'
 import type { DID } from '../node'
+import type { PropertyBuilder } from '../types'
 
 export interface PersonOptions {
   required?: boolean

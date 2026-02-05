@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { AutoBlocker } from '../src/security/auto-blocker'
-import { PeerScorer } from '../src/security/peer-scorer'
 import { DefaultConnectionGater } from '../src/security/gater'
 import { DEFAULT_LIMITS } from '../src/security/limits'
 import { configureSecurityLogger } from '../src/security/logging'
+import { PeerScorer } from '../src/security/peer-scorer'
 
 describe('AutoBlocker', () => {
   let gater: DefaultConnectionGater

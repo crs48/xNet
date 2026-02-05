@@ -8,10 +8,10 @@
  * - Accessible alt text
  * - CID-based blob URL resolution
  */
-import * as React from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { cn } from '../../utils'
+import * as React from 'react'
 import { useBlobService } from '../../context/BlobContext'
+import { cn } from '../../utils'
 
 const ALIGNMENTS: Record<string, string> = {
   left: 'mr-auto',

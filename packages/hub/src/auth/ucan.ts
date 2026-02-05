@@ -2,9 +2,9 @@
  * @xnet/hub - UCAN authentication helpers.
  */
 
+import type { HubConfig } from '../types'
 import type { IncomingMessage } from 'http'
 import type { WebSocket } from 'ws'
-import type { HubConfig } from '../types'
 import { getCapabilities, type UCANToken, verifyUCAN } from '@xnet/identity'
 import { actionAllows, resourceAllows } from './capabilities'
 

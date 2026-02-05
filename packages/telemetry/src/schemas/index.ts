@@ -4,9 +4,9 @@ export { SecurityEventSchema, type SecurityEvent } from './security'
 export { PerformanceMetricSchema, type PerformanceMetric } from './performance'
 
 import { CrashReportSchema } from './crash'
-import { UsageMetricSchema } from './usage'
-import { SecurityEventSchema } from './security'
 import { PerformanceMetricSchema } from './performance'
+import { SecurityEventSchema } from './security'
+import { UsageMetricSchema } from './usage'
 
 /** All telemetry schemas */
 export const TelemetrySchemas = [

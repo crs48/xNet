@@ -4,9 +4,9 @@
  * When hovering over a link that can be embedded (YouTube, etc.),
  * shows a tooltip with an "Embed" button to convert it.
  */
-import { Plugin, PluginKey } from '@tiptap/pm/state'
-import type { EditorView } from '@tiptap/pm/view'
 import type { Editor } from '@tiptap/core'
+import type { EditorView } from '@tiptap/pm/view'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { parseEmbedUrl } from './providers'
 
 export const EmbedLinkPluginKey = new PluginKey('embedLink')

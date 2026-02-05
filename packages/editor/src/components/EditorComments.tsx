@@ -7,9 +7,10 @@
  * - Manages popover state for click/hover interactions
  * - Provides comment creation from text selection
  */
+import type { Editor } from '@tiptap/core'
+import { encodeAnchor } from '@xnet/data'
 import * as React from 'react'
 import { useEffect, useCallback, useState, useRef } from 'react'
-import type { Editor } from '@tiptap/core'
 import {
   CommentMark,
   CommentPlugin,
@@ -17,7 +18,6 @@ import {
   restoreCommentMarks,
   setSelectedComment
 } from '../extensions/comment'
-import { encodeAnchor } from '@xnet/data'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

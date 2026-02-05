@@ -2,9 +2,9 @@
  * CalendarMonthView - Month grid view for calendar
  */
 
-import React from 'react'
-import { cn } from '@xnet/ui'
 import type { CalendarEvent, WeekStartDay } from './useCalendarState.js'
+import { cn } from '@xnet/ui'
+import React from 'react'
 import { getMonthWeeks, getDayNames, isSameDay } from './useCalendarState.js'
 
 export interface CalendarMonthViewProps {

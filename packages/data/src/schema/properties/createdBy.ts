@@ -5,8 +5,8 @@
  * The value is set automatically at node creation time and cannot be modified.
  */
 
-import type { PropertyBuilder } from '../types'
 import type { DID } from '../node'
+import type { PropertyBuilder } from '../types'
 
 export interface CreatedByOptions {
   /** Custom label for UI display */

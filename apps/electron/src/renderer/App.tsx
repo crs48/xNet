@@ -7,18 +7,18 @@
  * - useMutate for creating/deleting
  */
 
-import React, { useCallback, useState } from 'react'
-import { useQuery, useMutate } from '@xnet/react'
-import { useDevTools } from '@xnet/devtools'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
+import { useDevTools } from '@xnet/devtools'
+import { useQuery, useMutate } from '@xnet/react'
 import { ThemeToggle } from '@xnet/ui'
-import { Sidebar } from './components/Sidebar'
-import { PageView } from './components/PageView'
-import { DatabaseView } from './components/DatabaseView'
-import { CanvasView } from './components/CanvasView'
+import React, { useCallback, useState } from 'react'
 import { AddSharedDialog } from './components/AddSharedDialog'
-import { SettingsView } from './components/SettingsView'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
+import { CanvasView } from './components/CanvasView'
+import { DatabaseView } from './components/DatabaseView'
+import { PageView } from './components/PageView'
+import { SettingsView } from './components/SettingsView'
+import { Sidebar } from './components/Sidebar'
 
 type DocType = 'page' | 'database' | 'canvas'
 

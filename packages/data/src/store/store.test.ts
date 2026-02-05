@@ -2,12 +2,12 @@
  * Tests for NodeStore
  */
 
-import { describe, it, expect } from 'vitest'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { NodeStore } from './store'
-import { MemoryNodeStorageAdapter } from './memory-adapter'
-import type { DID } from '@xnet/core'
 import type { SchemaIRI } from '../schema/node'
+import type { DID } from '@xnet/core'
+import { generateSigningKeyPair } from '@xnet/crypto'
+import { describe, it, expect } from 'vitest'
+import { MemoryNodeStorageAdapter } from './memory-adapter'
+import { NodeStore } from './store'
 
 // Test fixtures
 const TEST_SCHEMA: SchemaIRI = 'xnet://xnet.fyi/Task'

@@ -4,8 +4,8 @@
  * Renders connections between nodes as SVG paths.
  */
 
-import React, { memo, useMemo } from 'react'
 import type { CanvasEdge, CanvasNode, Point, EdgeAnchor } from '../types'
+import React, { memo, useMemo } from 'react'
 
 export interface CanvasEdgeProps {
   edge: CanvasEdge

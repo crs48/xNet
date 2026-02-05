@@ -2,7 +2,6 @@
  * Tests for comment orphan detection utilities.
  */
 import { describe, it, expect } from 'vitest'
-import { checkOrphanStatus, filterOrphanedComments, type OrphanResolvers } from './commentOrphans'
 import {
   encodeAnchor,
   type TextAnchor,
@@ -12,6 +11,7 @@ import {
   type CanvasObjectAnchor,
   type CanvasPositionAnchor
 } from './commentAnchors'
+import { checkOrphanStatus, filterOrphanedComments, type OrphanResolvers } from './commentOrphans'
 
 // ─── checkOrphanStatus ─────────────────────────────────────────────────────────
 
