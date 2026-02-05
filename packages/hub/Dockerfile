@@ -15,6 +15,9 @@ COPY packages/identity/package.json packages/identity/
 COPY packages/storage/package.json packages/storage/
 COPY packages/sync/package.json packages/sync/
 
+# Copy patches for pnpm
+COPY patches/ patches/
+
 # Install dependencies
 RUN corepack enable && pnpm install --frozen-lockfile --filter @xnet/hub...
 
@@ -45,6 +48,9 @@ COPY --from=builder /build/packages/data/package.json packages/data/
 COPY --from=builder /build/packages/identity/package.json packages/identity/
 COPY --from=builder /build/packages/storage/package.json packages/storage/
 COPY --from=builder /build/packages/sync/package.json packages/sync/
+
+# Copy patches for pnpm
+COPY --from=builder /build/patches/ patches/
 
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
   && corepack enable \
