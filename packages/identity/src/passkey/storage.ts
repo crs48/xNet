@@ -59,7 +59,7 @@ function dbDelete(db: IDBDatabase, key: string): Promise<void> {
 // ─── Serialization ───────────────────────────────────────────
 
 /** Uint8Arrays don't survive IndexedDB structured cloning in all browsers. */
-interface SerializedRecord {
+type SerializedRecord = {
   passkey: {
     did: string
     publicKey: number[]
@@ -71,7 +71,9 @@ interface SerializedRecord {
   fallback?: {
     encryptedBundle: number[]
     nonce: number[]
-    salt: number[]
+    encKey: number[]
+    /** @deprecated Old field name — migrated to `encKey` on read */
+    salt?: number[]
   }
 }
 
@@ -90,7 +92,7 @@ function serializeRecord(record: StoredPasskeyRecord): SerializedRecord {
     serialized.fallback = {
       encryptedBundle: Array.from(record.fallback.encryptedBundle),
       nonce: Array.from(record.fallback.nonce),
-      salt: Array.from(record.fallback.salt)
+      encKey: Array.from(record.fallback.encKey)
     }
   }
   return serialized
@@ -108,10 +110,12 @@ function deserializeRecord(raw: SerializedRecord): StoredPasskeyRecord {
     }
   }
   if (raw.fallback) {
+    // Support migration from old `salt` field name to `encKey`
+    const keyData = raw.fallback.encKey ?? raw.fallback.salt
     record.fallback = {
       encryptedBundle: new Uint8Array(raw.fallback.encryptedBundle),
       nonce: new Uint8Array(raw.fallback.nonce),
-      salt: new Uint8Array(raw.fallback.salt)
+      encKey: keyData ? new Uint8Array(keyData) : new Uint8Array(0)
     }
   }
   return record

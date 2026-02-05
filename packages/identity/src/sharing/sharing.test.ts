@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { generateIdentity } from '../did'
 import { createShareToken, buildCapabilities } from './create-share'
-import { parseShareLink, verifyShareToken } from './parse-share'
+import { parseShareLink, parseAndVerifyShareLink, verifyShareToken } from './parse-share'
 import { RevocationStore, createRevocation, computeTokenHash } from './revocation'
 
 // ─── Helper ──────────────────────────────────────────────────
@@ -256,6 +256,146 @@ describe('RevocationStore', () => {
     })
     store.revoke(createRevocation(identity.did, privateKey, share.token))
     expect(store.size).toBe(1)
+  })
+})
+
+// ─── parseAndVerifyShareLink ──────────────────────────────────
+
+describe('parseAndVerifyShareLink', () => {
+  it('returns valid for a correctly signed share', () => {
+    const { identity, privateKey } = makeIdentity()
+    const share = createShareToken(identity.did, privateKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read'
+    })
+
+    const result = parseAndVerifyShareLink(share.shareLink)
+    expect(result.valid).toBe(true)
+    expect(result.expired).toBe(false)
+    expect(result.resource).toBe('xnet://test/page/1')
+  })
+
+  it('returns invalid for an expired share', () => {
+    const { identity, privateKey } = makeIdentity()
+    const share = createShareToken(identity.did, privateKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read',
+      expiresIn: -10000
+    })
+
+    const result = parseAndVerifyShareLink(share.shareLink)
+    expect(result.valid).toBe(false)
+    expect(result.expired).toBe(true)
+    expect(result.error).toContain('expired')
+  })
+})
+
+// ─── parseShareLink expiry flag ──────────────────────────────
+
+describe('parseShareLink expiry detection', () => {
+  it('sets expired=true for expired tokens', () => {
+    const { identity, privateKey } = makeIdentity()
+    const share = createShareToken(identity.did, privateKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read',
+      expiresIn: -10000
+    })
+
+    const parsed = parseShareLink(share.shareLink)
+    expect(parsed.expired).toBe(true)
+  })
+
+  it('sets expired=false for valid tokens', () => {
+    const { identity, privateKey } = makeIdentity()
+    const share = createShareToken(identity.did, privateKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read'
+    })
+
+    const parsed = parseShareLink(share.shareLink)
+    expect(parsed.expired).toBe(false)
+  })
+})
+
+// ─── Unicode resource URIs ───────────────────────────────────
+
+describe('Unicode resource URIs', () => {
+  it('round-trips share links with Unicode resource URIs', () => {
+    const { identity, privateKey } = makeIdentity()
+    const resource = 'xnet://test/page/日本語テスト'
+    const share = createShareToken(identity.did, privateKey, {
+      resource,
+      permission: 'read'
+    })
+
+    const parsed = parseShareLink(share.shareLink)
+    expect(parsed.resource).toBe(resource)
+  })
+
+  it('handles emoji in resource URIs', () => {
+    const { identity, privateKey } = makeIdentity()
+    const resource = 'xnet://test/page/🎉🚀'
+    const share = createShareToken(identity.did, privateKey, {
+      resource,
+      permission: 'write'
+    })
+
+    const parsed = parseShareLink(share.shareLink)
+    expect(parsed.resource).toBe(resource)
+  })
+})
+
+// ─── Revocation issuer verification ──────────────────────────
+
+describe('Revocation issuer verification', () => {
+  it('rejects createRevocation when issuer does not match token issuer', () => {
+    const { identity: alice, privateKey: aliceKey } = makeIdentity()
+    const { identity: bob, privateKey: bobKey } = makeIdentity()
+
+    const share = createShareToken(alice.did, aliceKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read'
+    })
+
+    // Bob tries to revoke Alice's token
+    expect(() => createRevocation(bob.did, bobKey, share.token)).toThrow(
+      'Revocation issuer does not match token issuer'
+    )
+  })
+
+  it('allows createRevocation when issuer matches', () => {
+    const { identity, privateKey } = makeIdentity()
+    const share = createShareToken(identity.did, privateKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read'
+    })
+
+    // Original issuer can revoke — should not throw
+    const revocation = createRevocation(identity.did, privateKey, share.token)
+    expect(revocation.tokenHash).toBeTruthy()
+  })
+
+  it('RevocationStore.revoke rejects mismatched issuer when original token provided', () => {
+    const { identity: alice, privateKey: aliceKey } = makeIdentity()
+    const { identity: bob, privateKey: bobKey } = makeIdentity()
+
+    const share = createShareToken(alice.did, aliceKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read'
+    })
+
+    // Create a revocation manually with Bob's DID (bypassing createRevocation check)
+    const tokenHash = computeTokenHash(share.token)
+    const store = new RevocationStore()
+
+    // Forge a revocation with wrong issuer — signature will be valid for bob's key
+    const fakeRevocation = createRevocation(bob.did, bobKey, 'fake-token')
+    const forgedRevocation = { ...fakeRevocation, tokenHash, issuer: bob.did }
+
+    // When original token is provided, store should reject the mismatch
+    expect(() => store.revoke(forgedRevocation, share.token)).toThrow(
+      'Revocation issuer does not match token issuer'
+    )
   })
 })
 

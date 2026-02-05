@@ -8,7 +8,7 @@ import { parseDID } from './did'
 /**
  * Options for creating a UCAN token
  */
-export interface CreateUCANOptions {
+export type CreateUCANOptions = {
   issuer: string // Issuer DID
   issuerKey: Uint8Array // Issuer private key
   audience: string // Audience DID
@@ -20,7 +20,7 @@ export interface CreateUCANOptions {
 /**
  * Result of verifying a UCAN token
  */
-export interface VerifyResult {
+export type VerifyResult = {
   valid: boolean
   payload?: UCANToken
   error?: string
@@ -71,7 +71,8 @@ const parsePayload = (payload: unknown): UCANPayload | null => {
   if (typeof record.aud !== 'string') return null
   if (typeof record.exp !== 'number' || !Number.isFinite(record.exp)) return null
   if (!Array.isArray(record.att) || !record.att.every(isCapability)) return null
-  if (!Array.isArray(record.prf) || !record.prf.every((entry) => typeof entry === 'string')) return null
+  if (!Array.isArray(record.prf) || !record.prf.every((entry) => typeof entry === 'string'))
+    return null
 
   return {
     iss: record.iss,
@@ -241,9 +242,15 @@ export function isExpired(token: UCANToken): boolean {
   return token.exp < Math.floor(Date.now() / 1000)
 }
 
-// Helper functions for base64url encoding
+// ─── Unicode-safe base64url helpers ──────────────────────────
+
 function toBase64Url(str: string): string {
-  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+  const bytes = new TextEncoder().encode(str)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
 function fromBase64Url(str: string): string {
@@ -252,7 +259,9 @@ function fromBase64Url(str: string): string {
   if (padding) {
     base64 += '='.repeat(4 - padding)
   }
-  return atob(base64)
+  const binary = atob(base64)
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
 }
 
 function toBase64UrlBytes(bytes: Uint8Array): string {

@@ -72,7 +72,7 @@ export async function createFallbackIdentity(rpId?: string): Promise<{
   const fallback: FallbackStorage = {
     encryptedBundle: encrypted.ciphertext,
     nonce: encrypted.nonce,
-    salt: encKey
+    encKey
   }
 
   return { keyBundle, passkey, fallback }
@@ -108,7 +108,7 @@ export async function unlockFallbackIdentity(
   // Decrypt key bundle
   const decrypted = decrypt(
     { nonce: fallback.nonce, ciphertext: fallback.encryptedBundle },
-    fallback.salt
+    fallback.encKey
   )
   const keyBundle = deserializeKeyBundle(decrypted)
 

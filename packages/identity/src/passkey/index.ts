@@ -40,7 +40,7 @@ export {
 
 // ─── Identity Manager ────────────────────────────────────────
 
-export interface IdentityManager {
+export type IdentityManager = {
   /** Check if an identity exists in storage */
   hasIdentity(): Promise<boolean>
 

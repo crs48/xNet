@@ -3,6 +3,7 @@
  */
 import type { UCANCapability } from '../types'
 import { createUCAN } from '../ucan'
+import { toBase64Url } from './base64url'
 import type { ShareOptions, ShareToken, ShareData, SharePermission } from './types'
 
 const DEFAULT_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
@@ -98,8 +99,4 @@ export function buildCapabilities(resource: string, permission: SharePermission)
   }
 
   return capabilities
-}
-
-function toBase64Url(str: string): string {
-  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }

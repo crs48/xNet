@@ -9,7 +9,12 @@ export type { SharePermission, ShareOptions, ShareToken, ShareData, Revocation }
 export { createShareToken, buildCapabilities } from './create-share'
 
 // Parse shares
-export { parseShareLink, verifyShareToken, type ParsedShare } from './parse-share'
+export {
+  parseShareLink,
+  parseAndVerifyShareLink,
+  verifyShareToken,
+  type ParsedShare
+} from './parse-share'
 
 // Revocation
 export { RevocationStore, createRevocation, computeTokenHash } from './revocation'

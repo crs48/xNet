@@ -9,7 +9,7 @@
 
 export type SyncPhase = 'connecting' | 'syncing' | 'complete' | 'error'
 
-export interface SyncProgress {
+export type SyncProgress = {
   /** Current phase of the sync process */
   phase: SyncPhase
 
@@ -26,7 +26,7 @@ export interface SyncProgress {
   error?: Error
 }
 
-export interface InitialSyncMessage {
+export type InitialSyncMessage = {
   type: 'initial-sync' | 'node-changes' | 'initial-sync-complete'
   room?: string
   update?: Uint8Array
@@ -53,7 +53,7 @@ export type ProgressListener = (progress: SyncProgress) => void
  * unsub()
  * ```
  */
-export interface InitialSyncManager {
+export type InitialSyncManager = {
   /** Subscribe to progress updates */
   onProgress(listener: ProgressListener): () => void
 
@@ -82,6 +82,8 @@ export function createInitialSyncManager(): InitialSyncManager {
   }
 
   const listeners = new Set<ProgressListener>()
+  // Track unique rooms synced by ID to avoid double-counting
+  let syncedRoomIds = new Set<string>()
 
   function notify(): void {
     const snapshot = { ...progress }
@@ -107,7 +109,15 @@ export function createInitialSyncManager(): InitialSyncManager {
           if (msg.update) {
             progress.bytesReceived += msg.update.byteLength
           }
-          progress.roomsSynced++
+          // Track rooms by ID to count unique rooms, not messages
+          if (msg.room) {
+            syncedRoomIds.add(msg.room)
+            progress.roomsSynced = syncedRoomIds.size
+          }
+          // Set roomsTotal from roomCount if available during sync
+          if (msg.roomCount != null) {
+            progress.roomsTotal = msg.roomCount
+          }
           notify()
           break
 
@@ -121,7 +131,8 @@ export function createInitialSyncManager(): InitialSyncManager {
 
         case 'initial-sync-complete':
           progress.phase = 'complete'
-          progress.roomsTotal = msg.roomCount ?? progress.roomsSynced
+          progress.roomsTotal = msg.roomCount ?? syncedRoomIds.size
+          progress.roomsSynced = syncedRoomIds.size
           notify()
           break
       }
@@ -132,6 +143,7 @@ export function createInitialSyncManager(): InitialSyncManager {
     },
 
     start(): void {
+      syncedRoomIds = new Set<string>()
       progress = {
         phase: 'connecting',
         roomsTotal: 0,
@@ -148,6 +160,7 @@ export function createInitialSyncManager(): InitialSyncManager {
     },
 
     reset(): void {
+      syncedRoomIds = new Set<string>()
       progress = {
         phase: 'connecting',
         roomsTotal: 0,

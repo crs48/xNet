@@ -8,7 +8,7 @@ export type SharePermission = 'read' | 'write' | 'admin'
 
 // ─── Share Options ───────────────────────────────────────────
 
-export interface ShareOptions {
+export type ShareOptions = {
   /** Resource URI to share (e.g. "xnet://did:key:z.../page/123") */
   resource: string
 
@@ -30,7 +30,7 @@ export interface ShareOptions {
 
 // ─── Share Token ─────────────────────────────────────────────
 
-export interface ShareToken {
+export type ShareToken = {
   /** The UCAN JWT token string */
   token: string
 
@@ -55,7 +55,7 @@ export interface ShareToken {
 
 // ─── Share Data (encoded in the link) ────────────────────────
 
-export interface ShareData {
+export type ShareData = {
   /** Version */
   v: 1
 
@@ -71,7 +71,7 @@ export interface ShareData {
 
 // ─── Revocation ──────────────────────────────────────────────
 
-export interface Revocation {
+export type Revocation = {
   /** Hash of the UCAN token (for identification) */
   tokenHash: string
 

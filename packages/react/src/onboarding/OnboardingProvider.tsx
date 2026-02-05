@@ -7,6 +7,7 @@ import {
   useReducer,
   useCallback,
   useEffect,
+  useRef,
   type ReactNode
 } from 'react'
 import type { Identity, KeyBundle } from '@xnet/identity'
@@ -21,7 +22,7 @@ import {
 
 // ─── Context ─────────────────────────────────────────────────
 
-export interface OnboardingContextValue {
+export type OnboardingContextValue = {
   state: OnboardingState
   context: OnboardingMachineContext
   send: (event: OnboardingEvent) => void
@@ -31,7 +32,7 @@ const OnboardingCtx = createContext<OnboardingContextValue | null>(null)
 
 // ─── Provider ────────────────────────────────────────────────
 
-export interface OnboardingProviderProps {
+export type OnboardingProviderProps = {
   children: ReactNode
   /** Default hub URL for new users */
   defaultHubUrl?: string
@@ -73,13 +74,19 @@ export function OnboardingProvider({
     }
   }, [state, context.identity, context.keyBundle, onComplete])
 
+  // Guard against concurrent passkey creation (e.g. double-click)
+  const authInFlight = useRef(false)
+
   const send = useCallback(
     (event: OnboardingEvent) => {
       // Side effects: trigger passkey creation/unlock
       if (
-        (event.type === 'AUTHENTICATE' && state === 'welcome') ||
+        ((event.type === 'AUTHENTICATE' || event.type === 'CREATE_NEW') && state === 'welcome') ||
         (event.type === 'RETRY_AUTH' && state === 'auth-error')
       ) {
+        if (authInFlight.current) return // Prevent duplicate calls
+        authInFlight.current = true
+
         const manager = createIdentityManager()
         manager
           .create()
@@ -95,6 +102,9 @@ export function OnboardingProvider({
               type: 'PASSKEY_FAILED',
               error: err instanceof Error ? err : new Error(String(err))
             })
+          })
+          .finally(() => {
+            authInFlight.current = false
           })
       }
 
