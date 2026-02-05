@@ -267,8 +267,7 @@ function ResizeHandle({
 // ─── Layout Helpers ────────────────────────────────────────
 
 function getContainerClass(position: PanelPosition): string {
-  const base =
-    'dark flex flex-col bg-zinc-950 text-zinc-200 font-mono text-xs border-zinc-700 z-[9999]'
+  const base = 'dark flex flex-col text-zinc-200 font-mono text-xs border-zinc-700 z-[9999]'
 
   switch (position) {
     case 'bottom':
@@ -281,12 +280,15 @@ function getContainerClass(position: PanelPosition): string {
 }
 
 function getContainerStyle(position: PanelPosition, height: number): CSSProperties {
+  // Use inline background color as fallback (Tailwind bg-zinc-950 may not be bundled)
+  const baseStyle: CSSProperties = { backgroundColor: '#09090b' }
+
   switch (position) {
     case 'bottom':
-      return { height }
+      return { ...baseStyle, height }
     case 'right':
-      return { width: height }
+      return { ...baseStyle, width: height }
     case 'floating':
-      return { width: 600, height }
+      return { ...baseStyle, width: 600, height }
   }
 }
