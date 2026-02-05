@@ -1,5 +1,16 @@
 # xNet
 
+[![CI](https://github.com/crs48/xNet/actions/workflows/ci.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/ci.yml)
+[![Electron Release](https://github.com/crs48/xNet/actions/workflows/electron-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/electron-release.yml)
+[![Hub Release](https://github.com/crs48/xNet/actions/workflows/hub-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/hub-release.yml)
+[![Docs](https://img.shields.io/badge/docs-starlight-blue?logo=astro)](https://crs48.github.io/xNet)
+[![GitHub Stars](https://img.shields.io/github/stars/crs48/xNet?style=flat&logo=github)](https://github.com/crs48/xNet/stargazers)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-monorepo-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![Turborepo](https://img.shields.io/badge/Turborepo-powered-EF4444?logo=turborepo&logoColor=white)](https://turbo.build/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/crs48/xNet/pulls)
+
 Decentralized data infrastructure and application. Local-first, P2P-synced, user-owned data.
 
 xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
