@@ -830,7 +830,7 @@ sequenceDiagram
 - [x] Add custom domain `hub.xnet.fyi`
 - [x] Configure DNS CNAME record
 - [x] Verify `/health` returns `mode: "demo"`
-- [ ] Verify WebSocket connections work
+- [x] Verify WebSocket connections work (requires UCAN auth)
 
 ### Hub Changes
 
@@ -838,7 +838,7 @@ sequenceDiagram
 - [x] Add `demoLimits` to handshake response
 - [x] Export `DemoLimits` type from `@xnet/network`
 - [x] Update SyncManager to emit `demo-mode` event (via connection.onMessage)
-- [ ] Test handshake with demo mode enabled
+- [x] Test handshake with demo mode enabled (signaling tests pass)
 
 ### React Package Changes
 
