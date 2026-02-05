@@ -263,6 +263,9 @@ importers:
       '@xnet/editor':
         specifier: workspace:*
         version: link:../../packages/editor
+      '@xnet/identity':
+        specifier: workspace:*
+        version: link:../../packages/identity
       '@xnet/react':
         specifier: workspace:*
         version: link:../../packages/react
@@ -272,6 +275,9 @@ importers:
       '@xnet/storage':
         specifier: workspace:*
         version: link:../../packages/storage
+      '@xnet/sync':
+        specifier: workspace:*
+        version: link:../../packages/sync
       '@xnet/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -18098,7 +18104,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.6
       '@babel/helper-plugin-utils': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
       esutils: 2.0.3
 
   '@babel/preset-react@7.28.5(@babel/core@7.28.6)':
