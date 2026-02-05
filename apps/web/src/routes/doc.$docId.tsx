@@ -2,10 +2,12 @@
  * Document page - editor
  */
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useNode } from '@xnet/react'
 import { PageSchema } from '@xnet/data'
-import { Editor } from '../components/Editor'
+import { useNode } from '@xnet/react'
 import { BacklinksPanel } from '../components/BacklinksPanel'
+import { Editor } from '../components/Editor'
+import { PresenceAvatars } from '../components/PresenceAvatars'
+import { ShareButton } from '../components/ShareButton'
 
 export const Route = createFileRoute('/doc/$docId')({
   component: DocumentPage
@@ -68,6 +70,12 @@ function DocumentPage() {
           placeholder="Untitled"
         />
 
+        {/* Presence avatars */}
+        <PresenceAvatars presence={presence} />
+
+        {/* Share button */}
+        <ShareButton docId={docId} docType="page" />
+
         {/* Sync status indicator */}
         <div
           className="flex items-center gap-1.5 text-xs text-muted-foreground"
@@ -80,21 +88,6 @@ function DocumentPage() {
           />
           {peerCount > 0 && <span className="text-xs font-medium">{peerCount}</span>}
         </div>
-
-        {presence.length > 0 && (
-          <div className="flex -space-x-2">
-            {presence.map((user) => (
-              <span
-                key={user.did}
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white border-2 border-background"
-                style={{ backgroundColor: user.color }}
-                title={user.did}
-              >
-                {user.did.slice(8, 10)}
-              </span>
-            ))}
-          </div>
-        )}
       </div>
 
       <Editor doc={doc} onNavigate={handleNavigate} />

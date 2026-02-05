@@ -9,6 +9,8 @@ import { useNode, useIdentity } from '@xnet/react'
 import { TableView, BoardView, type ViewConfig, type TableRow } from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { PresenceAvatars } from './PresenceAvatars'
+import { ShareButton } from './ShareButton'
 
 interface DatabaseViewProps {
   docId: string
@@ -100,7 +102,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     data: database,
     doc,
     loading,
-    update
+    update,
+    presence
   } = useNode(DatabaseSchema, docId, {
     createIfMissing: { title: 'Untitled Database' },
     did: did ?? undefined
@@ -343,6 +346,12 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         />
 
         <div className="flex-1" />
+
+        {/* Presence avatars */}
+        <PresenceAvatars presence={presence} />
+
+        {/* Share button */}
+        <ShareButton docId={docId} docType="database" />
 
         {/* View mode toggle */}
         <div className="flex items-center border border-border rounded-md overflow-hidden">

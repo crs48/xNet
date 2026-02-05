@@ -9,6 +9,8 @@ import { CanvasSchema } from '@xnet/data'
 import { useNode, useIdentity } from '@xnet/react'
 import { Plus, LayoutGrid, ZoomIn, Maximize2 } from 'lucide-react'
 import { useEffect, useState, useCallback, useRef } from 'react'
+import { PresenceAvatars } from './PresenceAvatars'
+import { ShareButton } from './ShareButton'
 
 interface CanvasViewProps {
   docId: string
@@ -23,7 +25,8 @@ export function CanvasView({ docId }: CanvasViewProps) {
     doc,
     loading,
     update,
-    awareness
+    awareness,
+    presence
   } = useNode(CanvasSchema, docId, {
     createIfMissing: { title: 'Untitled Canvas' },
     did: did ?? undefined
@@ -124,6 +127,12 @@ export function CanvasView({ docId }: CanvasViewProps) {
         />
 
         <div className="flex-1" />
+
+        {/* Presence avatars */}
+        <PresenceAvatars presence={presence} />
+
+        {/* Share button */}
+        <ShareButton docId={docId} docType="canvas" />
 
         <button
           onClick={handleAddNode}
