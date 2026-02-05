@@ -12,50 +12,70 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocDocIdRouteImport } from './routes/doc.$docId'
+import { Route as DbDbIdRouteImport } from './routes/db.$dbId'
+import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const DocDocIdRoute = DocDocIdRouteImport.update({
   id: '/doc/$docId',
   path: '/doc/$docId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
+} as any)
+const DbDbIdRoute = DbDbIdRouteImport.update({
+  id: '/db/$dbId',
+  path: '/db/$dbId',
+  getParentRoute: () => rootRouteImport
+} as any)
+const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
+  id: '/canvas/$canvasId',
+  path: '/canvas/$canvasId',
+  getParentRoute: () => rootRouteImport
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/canvas/$canvasId': typeof CanvasCanvasIdRoute
+  '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/canvas/$canvasId': typeof CanvasCanvasIdRoute
+  '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/canvas/$canvasId': typeof CanvasCanvasIdRoute
+  '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/settings' | '/doc/$docId'
+  fullPaths: '/' | '/settings' | '/canvas/$canvasId' | '/db/$dbId' | '/doc/$docId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/settings' | '/doc/$docId'
-  id: '__root__' | '/' | '/settings' | '/doc/$docId'
+  to: '/' | '/settings' | '/canvas/$canvasId' | '/db/$dbId' | '/doc/$docId'
+  id: '__root__' | '/' | '/settings' | '/canvas/$canvasId' | '/db/$dbId' | '/doc/$docId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SettingsRoute: typeof SettingsRoute
+  CanvasCanvasIdRoute: typeof CanvasCanvasIdRoute
+  DbDbIdRoute: typeof DbDbIdRoute
   DocDocIdRoute: typeof DocDocIdRoute
 }
 
@@ -82,13 +102,29 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DocDocIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/db/$dbId': {
+      id: '/db/$dbId'
+      path: '/db/$dbId'
+      fullPath: '/db/$dbId'
+      preLoaderRoute: typeof DbDbIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/canvas/$canvasId': {
+      id: '/canvas/$canvasId'
+      path: '/canvas/$canvasId'
+      fullPath: '/canvas/$canvasId'
+      preLoaderRoute: typeof CanvasCanvasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SettingsRoute: SettingsRoute,
-  DocDocIdRoute: DocDocIdRoute,
+  CanvasCanvasIdRoute: CanvasCanvasIdRoute,
+  DbDbIdRoute: DbDbIdRoute,
+  DocDocIdRoute: DocDocIdRoute
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

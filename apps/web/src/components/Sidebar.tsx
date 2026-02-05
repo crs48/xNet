@@ -1,64 +1,277 @@
 /**
- * Sidebar component
+ * Sidebar component with collapsible sections for all document types
  */
-import { Link, useLocation } from '@tanstack/react-router'
+import { Link, useLocation, useNavigate } from '@tanstack/react-router'
+import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
 import { useQuery } from '@xnet/react'
-import { PageSchema } from '@xnet/data'
+import {
+  FileText,
+  Database,
+  Layout,
+  Plus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Settings
+} from 'lucide-react'
+import { useState } from 'react'
+
+type DocType = 'page' | 'database' | 'canvas'
+
+const typeConfig = {
+  page: {
+    icon: FileText,
+    label: 'Pages',
+    route: '/doc/$docId' as const,
+    paramKey: 'docId'
+  },
+  database: {
+    icon: Database,
+    label: 'Databases',
+    route: '/db/$dbId' as const,
+    paramKey: 'dbId'
+  },
+  canvas: {
+    icon: Layout,
+    label: 'Canvases',
+    route: '/canvas/$canvasId' as const,
+    paramKey: 'canvasId'
+  }
+} as const
 
 export function Sidebar() {
   const location = useLocation()
-  const { data: pages, loading } = useQuery(PageSchema, { limit: 20 })
+  const navigate = useNavigate()
+  const [showCreateMenu, setShowCreateMenu] = useState(false)
+  const [expandedSections, setExpandedSections] = useState<Record<DocType, boolean>>({
+    page: true,
+    database: true,
+    canvas: true
+  })
+
+  // Query all document types
+  const { data: pages, loading: pagesLoading } = useQuery(PageSchema, { limit: 50 })
+  const { data: databases, loading: databasesLoading } = useQuery(DatabaseSchema, { limit: 50 })
+  const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema, { limit: 50 })
+
+  const toggleSection = (type: DocType) => {
+    setExpandedSections((prev) => ({ ...prev, [type]: !prev[type] }))
+  }
+
+  const handleCreate = (type: DocType) => {
+    const id = Math.random().toString(36).substring(2, 15)
+    setShowCreateMenu(false)
+
+    switch (type) {
+      case 'page':
+        navigate({ to: '/doc/$docId', params: { docId: id } })
+        break
+      case 'database':
+        navigate({ to: '/db/$dbId', params: { dbId: id } })
+        break
+      case 'canvas':
+        navigate({ to: '/canvas/$canvasId', params: { canvasId: id } })
+        break
+    }
+  }
+
+  const renderDocLink = (type: DocType, doc: { id: string; title?: string }) => {
+    const config = typeConfig[type]
+    const Icon = config.icon
+    const isActive = location.pathname.includes(doc.id)
+
+    // Render type-specific links to satisfy TypeScript
+    if (type === 'page') {
+      return (
+        <Link
+          to="/doc/$docId"
+          params={{ docId: doc.id }}
+          className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer mb-0.5 group transition-colors no-underline hover:no-underline ${
+            isActive ? 'bg-accent' : 'hover:bg-accent/50'
+          }`}
+        >
+          <Icon size={14} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-sm truncate flex-1 text-foreground">{doc.title || 'Untitled'}</span>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              console.log('Delete:', doc.id)
+            }}
+            className="bg-transparent border-none text-muted-foreground cursor-pointer p-1 opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity"
+          >
+            <Trash2 size={12} />
+          </button>
+        </Link>
+      )
+    }
+
+    if (type === 'database') {
+      return (
+        <Link
+          to="/db/$dbId"
+          params={{ dbId: doc.id }}
+          className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer mb-0.5 group transition-colors no-underline hover:no-underline ${
+            isActive ? 'bg-accent' : 'hover:bg-accent/50'
+          }`}
+        >
+          <Icon size={14} className="text-muted-foreground flex-shrink-0" />
+          <span className="text-sm truncate flex-1 text-foreground">{doc.title || 'Untitled'}</span>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              console.log('Delete:', doc.id)
+            }}
+            className="bg-transparent border-none text-muted-foreground cursor-pointer p-1 opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity"
+          >
+            <Trash2 size={12} />
+          </button>
+        </Link>
+      )
+    }
+
+    // type === 'canvas'
+    return (
+      <Link
+        to="/canvas/$canvasId"
+        params={{ canvasId: doc.id }}
+        className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer mb-0.5 group transition-colors no-underline hover:no-underline ${
+          isActive ? 'bg-accent' : 'hover:bg-accent/50'
+        }`}
+      >
+        <Icon size={14} className="text-muted-foreground flex-shrink-0" />
+        <span className="text-sm truncate flex-1 text-foreground">{doc.title || 'Untitled'}</span>
+        <button
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log('Delete:', doc.id)
+          }}
+          className="bg-transparent border-none text-muted-foreground cursor-pointer p-1 opacity-0 group-hover:opacity-50 hover:opacity-100 transition-opacity"
+        >
+          <Trash2 size={12} />
+        </button>
+      </Link>
+    )
+  }
+
+  const renderSection = (
+    type: DocType,
+    docs: Array<{ id: string; title?: string }>,
+    loading: boolean
+  ) => {
+    const config = typeConfig[type]
+    const isExpanded = expandedSections[type]
+
+    if (loading) {
+      return (
+        <div key={type} className="mb-2">
+          <div className="px-3 py-2 text-xs text-muted-foreground">Loading...</div>
+        </div>
+      )
+    }
+
+    if (docs.length === 0) return null
+
+    return (
+      <div key={type} className="mb-2">
+        {/* Section header */}
+        <button
+          onClick={() => toggleSection(type)}
+          className="w-full flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          <span className="uppercase font-medium tracking-wider">{config.label}</span>
+          <span className="ml-auto opacity-50">{docs.length}</span>
+        </button>
+
+        {/* Documents */}
+        {isExpanded && (
+          <ul className="list-none p-0 m-0">
+            {docs.map((doc) => (
+              <li key={doc.id}>{renderDocLink(type, doc)}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+    )
+  }
 
   return (
-    <aside className="w-[260px] bg-secondary border-r border-border overflow-y-auto p-4">
-      <nav className="flex flex-col gap-1">
-        <Link
-          to="/"
-          className={`px-3 py-2 rounded-md text-sm no-underline hover:no-underline transition-colors ${
-            location.pathname === '/' ? 'bg-primary text-white' : 'text-foreground hover:bg-border'
-          }`}
-        >
-          All Pages
-        </Link>
+    <aside className="w-[250px] bg-secondary border-r border-border flex flex-col">
+      {/* Create button */}
+      <div className="p-3 border-b border-border">
+        <div className="relative">
+          <button
+            onClick={() => setShowCreateMenu(!showCreateMenu)}
+            className="w-full flex items-center justify-center gap-2 bg-primary text-white border-none px-4 py-2 rounded-md cursor-pointer text-sm hover:bg-primary/90 transition-colors"
+          >
+            <Plus size={16} />
+            <span>New</span>
+            <ChevronDown
+              size={14}
+              className={`transition-transform ${showCreateMenu ? 'rotate-180' : ''}`}
+            />
+          </button>
 
-        <div className="mt-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase mb-2 px-3">
-            Recent
-          </h3>
-          {loading ? (
-            <p className="px-3 text-sm text-muted-foreground">Loading...</p>
-          ) : (
-            <ul className="list-none">
-              {pages.slice(0, 10).map((page) => (
-                <li key={page.id}>
-                  <Link
-                    to="/doc/$docId"
-                    params={{ docId: page.id }}
-                    className={`block px-3 py-2 rounded-md text-sm truncate no-underline hover:no-underline transition-colors ${
-                      location.pathname.includes(page.id)
-                        ? 'bg-primary text-white'
-                        : 'text-foreground hover:bg-border'
-                    }`}
-                  >
-                    {page.title || 'Untitled'}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          {/* Create menu dropdown */}
+          {showCreateMenu && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg z-10 py-1">
+              <button
+                onClick={() => handleCreate('page')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
+              >
+                <FileText size={14} />
+                <span>Page</span>
+              </button>
+              <button
+                onClick={() => handleCreate('database')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
+              >
+                <Database size={14} />
+                <span>Database</span>
+              </button>
+              <button
+                onClick={() => handleCreate('canvas')}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-foreground bg-transparent border-none cursor-pointer"
+              >
+                <Layout size={14} />
+                <span>Canvas</span>
+              </button>
+            </div>
           )}
         </div>
+      </div>
 
+      {/* Document list */}
+      <div className="flex-1 overflow-auto p-2">
+        {renderSection('page', pages || [], pagesLoading)}
+        {renderSection('database', databases || [], databasesLoading)}
+        {renderSection('canvas', canvases || [], canvasesLoading)}
+
+        {!pagesLoading &&
+          !databasesLoading &&
+          !canvasesLoading &&
+          (pages?.length || 0) + (databases?.length || 0) + (canvases?.length || 0) === 0 && (
+            <p className="text-muted-foreground text-sm text-center mt-8">No documents yet</p>
+          )}
+      </div>
+
+      {/* Settings */}
+      <div className="p-2 border-t border-border">
         <Link
           to="/settings"
-          className={`mt-auto px-3 py-2 rounded-md text-sm no-underline hover:no-underline transition-colors ${
+          className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer no-underline hover:no-underline transition-colors ${
             location.pathname === '/settings'
-              ? 'bg-primary text-white'
-              : 'text-foreground hover:bg-border'
+              ? 'bg-accent text-foreground'
+              : 'text-foreground hover:bg-accent/50'
           }`}
         >
-          Settings
+          <Settings size={14} className="text-muted-foreground" />
+          <span className="text-sm">Settings</span>
         </Link>
-      </nav>
+      </div>
     </aside>
   )
 }

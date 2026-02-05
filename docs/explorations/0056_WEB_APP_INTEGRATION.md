@@ -532,28 +532,28 @@ These must be done to have a functional demo at `xnet.fyi/app`:
 
 These bring the web app to basic feature parity with Electron:
 
-- [ ] **Database Support**
-  - [ ] Add `@xnet/views` to dependencies
-  - [ ] Create `DatabaseView.tsx` component
-  - [ ] Import and configure `TableView`
-  - [ ] Import and configure `BoardView`
-  - [ ] Add view mode switcher
-  - [ ] Add route `/db/$dbId`
-  - [ ] Add "New Database" to create menu
+- [x] **Database Support**
+  - [x] Add `@xnet/views` to dependencies
+  - [x] Create `DatabaseView.tsx` component
+  - [x] Import and configure `TableView`
+  - [x] Import and configure `BoardView`
+  - [x] Add view mode switcher
+  - [x] Add route `/db/$dbId`
+  - [x] Add "New Database" to create menu
 
-- [ ] **Canvas Support**
-  - [ ] Add `@xnet/canvas` to dependencies
-  - [ ] Create `CanvasView.tsx` component
-  - [ ] Import and configure `Canvas`
-  - [ ] Add toolbar (Add Node, Center)
-  - [ ] Add route `/canvas/$canvasId`
-  - [ ] Add "New Canvas" to create menu
+- [x] **Canvas Support**
+  - [x] Add `@xnet/canvas` to dependencies
+  - [x] Create `CanvasView.tsx` component
+  - [x] Import and configure `Canvas`
+  - [x] Add toolbar (Add Node, Center)
+  - [x] Add route `/canvas/$canvasId`
+  - [x] Add "New Canvas" to create menu
 
-- [ ] **Sidebar Upgrade**
-  - [ ] Add collapsible sections (Pages, Databases, Canvases)
-  - [ ] Add document type icons (FileText, Database, Layout)
-  - [ ] Add delete button on hover
-  - [ ] Upgrade create button to dropdown with all types
+- [x] **Sidebar Upgrade**
+  - [x] Add collapsible sections (Pages, Databases, Canvases)
+  - [x] Add document type icons (FileText, Database, Layout)
+  - [x] Add delete button on hover
+  - [x] Upgrade create button to dropdown with all types
   - [ ] Add "Add Shared..." option
 
 - [ ] **Comment System**
