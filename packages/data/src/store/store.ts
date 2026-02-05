@@ -10,7 +10,7 @@
  * - Materialized state for fast reads
  */
 
-import type { DID, ContentId } from '@xnet/core'
+import type { DID } from '@xnet/core'
 import {
   createLamportClock,
   tick,
@@ -20,13 +20,11 @@ import {
   createUnsignedChange,
   createBatchId,
   type LamportClock,
-  type LamportTimestamp,
-  type Change
+  type LamportTimestamp
 } from '@xnet/sync'
-import { createNodeId, type SchemaIRI } from '../schema/node'
+import { createNodeId } from '../schema/node'
 import type {
   NodeId,
-  PropertyKey,
   NodePayload,
   NodeChange,
   NodeState,

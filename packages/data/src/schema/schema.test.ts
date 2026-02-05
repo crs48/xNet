@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { defineSchema } from './define'
 import { text, number, checkbox, select, date, relation } from './properties'
 import { isNode, createNodeId } from './node'
-import type { DID, Node, InferNode } from './index'
+import type { DID, Node } from './index'
 
 describe('Schema System', () => {
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID

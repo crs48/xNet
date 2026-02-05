@@ -257,7 +257,7 @@ export function getMonthWeeks(date: Date, weekStartsOn: WeekStartDay): Date[][] 
   // Start from the first day of the week containing the 1st
   const start = getWeekStart(firstDay, weekStartsOn)
 
-  let current = new Date(start)
+  const current = new Date(start)
   while (current <= lastDay || weeks.length < 6) {
     const week: Date[] = []
     for (let i = 0; i < 7; i++) {

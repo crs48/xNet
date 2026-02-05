@@ -14,7 +14,7 @@ import React, {
   forwardRef
 } from 'react'
 import type * as Y from 'yjs'
-import type { CanvasConfig, CanvasNode, Point, ResizeHandle } from '../types'
+import type { CanvasConfig, CanvasNode, Point } from '../types'
 
 /** Minimal Awareness interface (avoids y-protocols dependency) */
 interface AwarenessLike {
@@ -24,10 +24,10 @@ interface AwarenessLike {
   on(event: string, handler: (...args: unknown[]) => void): void
   off(event: string, handler: (...args: unknown[]) => void): void
 }
-import { useCanvas, type UseCanvasReturn } from '../hooks/useCanvas'
+import { useCanvas } from '../hooks/useCanvas'
 import { CanvasNodeComponent } from '../nodes/CanvasNodeComponent'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
-import { CommentOverlay, type CommentOverlayProps } from '../comments/CommentOverlay'
+import { CommentOverlay } from '../comments/CommentOverlay'
 
 /**
  * Remote user presence on the canvas
@@ -159,8 +159,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     clearSelection,
     updateNodePosition,
     pan,
-    zoomAt,
-    findNodeAt
+    zoomAt
   } = canvas
 
   // === Presence: track remote users' selected nodes ===
@@ -337,7 +336,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [selectNode]
   )
 
-  const handleNodeDragStart = useCallback((id: string, point: Point) => {
+  const handleNodeDragStart = useCallback((_id: string, _point: Point) => {
     // Could start undo batch here
   }, [])
 
@@ -361,7 +360,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [selectedNodeIds, canvas.store, updateNodePosition, viewport.zoom]
   )
 
-  const handleNodeDragEnd = useCallback((id: string) => {
+  const handleNodeDragEnd = useCallback((_id: string) => {
     // Could end undo batch here
   }, [])
 

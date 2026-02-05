@@ -8,7 +8,7 @@
  */
 
 import { defineSchema } from '../define'
-import { text, file } from '../properties'
+import { text } from '../properties'
 import type { InferNode } from '../types'
 
 export const CanvasSchema = defineSchema({

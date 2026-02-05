@@ -7,7 +7,7 @@
  */
 
 import type { DID } from '@xnet/core'
-import type { LamportTimestamp } from '@xnet/sync'
+
 import type { NodeChange, NodeStorageAdapter, NodeId } from '@xnet/data'
 import type { SchemaIRI } from '@xnet/data'
 import type { NodeStore } from '@xnet/data'

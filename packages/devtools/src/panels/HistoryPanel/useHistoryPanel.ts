@@ -5,7 +5,7 @@
  * to provide timeline, diff, blame, audit, verification, and storage data.
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { NodeId, NodeStorageAdapter, NodeState } from '@xnet/data'
 import {
   HistoryEngine,
@@ -20,7 +20,6 @@ import {
   type TimelineEntry,
   type HistoryTarget,
   type HistoricalState,
-  type PropertyDiff,
   type DiffResult,
   type BlameInfo,
   type AuditEntry,

@@ -199,7 +199,7 @@ describe('BaseSyncProvider', () => {
       provider.testAddPeer('peer-1')
       provider.testAddPeer('peer-2')
 
-      const changes = await provider.requestChangesFromAll('since-hash')
+      await provider.requestChangesFromAll('since-hash')
 
       expect(provider.requestedFrom).toContainEqual({ peerId: 'peer-1', since: 'since-hash' })
       expect(provider.requestedFrom).toContainEqual({ peerId: 'peer-2', since: 'since-hash' })

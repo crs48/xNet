@@ -6,7 +6,7 @@ import {
   type OnboardingReducerState,
   type OnboardingEvent
 } from './machine'
-import { getPlatformAuthName, truncateDid, copyToClipboard } from './helpers'
+import { getPlatformAuthName, truncateDid } from './helpers'
 import { QUICK_START_TEMPLATES } from './templates'
 
 // ─── Helper ──────────────────────────────────────────────────

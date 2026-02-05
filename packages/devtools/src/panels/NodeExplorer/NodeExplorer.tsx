@@ -16,7 +16,6 @@ import { CopyButton } from '../../components/CopyButton'
 export function NodeExplorer() {
   const {
     nodes,
-    allNodes,
     schemas,
     selectedNode,
     setSelectedNode,
@@ -220,7 +219,7 @@ function nodeToTableRow(node: NodeEntry): TableRow {
   return row
 }
 
-function createDefaultViewConfig(schemaFilter: string | null): ViewConfig {
+function createDefaultViewConfig(_schemaFilter: string | null): ViewConfig {
   return {
     id: 'devtools-node-explorer',
     name: 'Node Explorer',

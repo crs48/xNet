@@ -52,7 +52,7 @@ export function ImageNodeView({ node, updateAttributes, selected }: NodeViewProp
       const maxRetries = 5
       const baseDelay = 1000 // 1 second
 
-      async function resolveBlob() {
+      const resolveBlob = async () => {
         try {
           const url = await blobService!.getUrl({
             cid,

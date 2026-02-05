@@ -60,6 +60,7 @@ function buildBranch(start: SignedUpdate, allUpdates: SignedUpdate[]): SignedUpd
   }
 
   let current = start
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     const next = byParent.get(current.updateHash)
     if (!next) break

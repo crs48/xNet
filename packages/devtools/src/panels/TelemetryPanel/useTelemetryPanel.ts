@@ -5,7 +5,7 @@
  * Provides security events, performance metrics, consent state, and peer scores.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 import type {
   DevToolsEvent,

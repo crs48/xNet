@@ -16,8 +16,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
-  type CollisionDetection,
-  type UniqueIdentifier
+  type CollisionDetection
 } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
 import { cn } from '@xnet/ui'

@@ -27,20 +27,18 @@ export function createFederatedQueryRouter(
   localEngine: { query: (q: Query) => Promise<QueryResult<unknown>> }
 ): FederatedQueryRouter {
   return {
-    async findSources(query: Query): Promise<DataSource[]> {
+    async findSources(_query: Query): Promise<DataSource[]> {
       const sources: DataSource[] = [{ type: 'local', id: 'local', estimatedLatency: 0 }]
 
       // Would query connected peers to find relevant sources
       // For now, just return local
-      const peers = node.libp2p.getPeers()
-      for (const _peer of peers) {
-        // Would add remote sources based on peer capabilities
-      }
+      // const peers = node.libp2p.getPeers()
+      // TODO: add remote sources based on peer capabilities
 
       return sources
     },
 
-    async routeToRemote(query: Query, source: DataSource): Promise<QueryResult<unknown>> {
+    async routeToRemote(_query: Query, _source: DataSource): Promise<QueryResult<unknown>> {
       // Would send query message to peer and await response
       throw new Error('Remote query not implemented')
     },

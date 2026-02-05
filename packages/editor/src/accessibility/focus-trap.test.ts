@@ -136,7 +136,7 @@ describe('createFocusTrap', () => {
         bubbles: true,
         cancelable: true
       })
-      const prevented = !container.dispatchEvent(event)
+      void container.dispatchEvent(event)
       // Should not prevent default for middle elements
       // (the browser will handle normal tab)
       expect(document.activeElement).toBe(button2) // stays (no actual browser tab)
@@ -179,7 +179,7 @@ describe('createFocusTrap', () => {
 
     it('does not call onEscape when trap is inactive', () => {
       const onEscape = vi.fn()
-      const trap = createFocusTrap(container, { onEscape })
+      createFocusTrap(container, { onEscape })
       // Not activated
 
       const event = new KeyboardEvent('keydown', {

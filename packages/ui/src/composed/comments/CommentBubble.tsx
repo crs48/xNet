@@ -64,13 +64,13 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export function CommentBubble({
-  id,
+  id: _id,
   author,
   authorDisplayName,
   content,
   createdAt,
   edited,
-  editedAt,
+  editedAt: _editedAt,
   replyToUser,
   replyToCommentId,
   compact = false,

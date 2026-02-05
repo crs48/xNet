@@ -195,17 +195,14 @@ describe('LamportClock', () => {
   describe('distributed scenario', () => {
     it('maintains total ordering across two authors', () => {
       // Author A creates some changes
-      let clockA = createLamportClock(authorA)
-      let tsA1: LamportTimestamp
-      let tsA2: LamportTimestamp
-      ;[clockA, tsA1] = tick(clockA) // time=1
-      ;[clockA, tsA2] = tick(clockA) // time=2
+      const clockA = createLamportClock(authorA)
+      const [clockA1, tsA1] = tick(clockA) // time=1
+      const [, tsA2] = tick(clockA1) // time=2
 
       // Author B receives A's changes and creates their own
-      let clockB = createLamportClock(authorB)
-      clockB = receive(clockB, tsA2.time) // sync to A's time
-      let tsB1: LamportTimestamp
-      ;[clockB, tsB1] = tick(clockB) // time=3 (after A's changes)
+      const clockB = createLamportClock(authorB)
+      const clockB2 = receive(clockB, tsA2.time) // sync to A's time
+      const [, tsB1] = tick(clockB2) // time=3 (after A's changes)
 
       // All timestamps are totally ordered
       expect(isBefore(tsA1, tsA2)).toBe(true)
@@ -216,13 +213,11 @@ describe('LamportClock', () => {
     it('handles concurrent changes with deterministic tie-breaking', () => {
       // Both authors create changes at the "same" logical time
       // (they haven't synced yet)
-      let clockA = createLamportClock(authorA)
-      let clockB = createLamportClock(authorB)
+      const clockA = createLamportClock(authorA)
+      const clockB = createLamportClock(authorB)
 
-      let tsA: LamportTimestamp
-      let tsB: LamportTimestamp
-      ;[clockA, tsA] = tick(clockA) // time=1
-      ;[clockB, tsB] = tick(clockB) // time=1
+      const [, tsA] = tick(clockA) // time=1
+      const [, tsB] = tick(clockB) // time=1
 
       // Same time, but author provides deterministic ordering
       expect(tsA.time).toBe(tsB.time)

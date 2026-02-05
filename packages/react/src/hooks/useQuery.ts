@@ -26,13 +26,7 @@
  * ```
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type {
-  DefinedSchema,
-  PropertyBuilder,
-  InferCreateProps,
-  NodeState,
-  NodeChangeEvent
-} from '@xnet/data'
+import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeChangeEvent } from '@xnet/data'
 import { useNodeStore } from './useNodeStore'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'

@@ -8,7 +8,7 @@ import {
   createWebhookEmitter,
   type WebhookConfig
 } from '../services/webhook-emitter'
-import type { NodeStoreAPI, NodeData } from '../services/local-api'
+import type { NodeStoreAPI } from '../services/local-api'
 
 // ─── Mock Store ──────────────────────────────────────────────────────────────
 

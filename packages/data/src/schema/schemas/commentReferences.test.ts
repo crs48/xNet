@@ -12,9 +12,7 @@ import {
   extractCommentRefs,
   replaceAt,
   convertRefsToLinks,
-  type Mention,
-  type NodeRef,
-  type CommentRef
+  type Mention
 } from './commentReferences'
 
 // ─── extractReferences ─────────────────────────────────────────────────────────

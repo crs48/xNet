@@ -6,13 +6,7 @@
  */
 
 import * as Y from 'yjs'
-import type {
-  CanvasNode,
-  CanvasEdge,
-  CanvasNodePosition,
-  CanvasNodeType,
-  ViewportState
-} from './types'
+import type { CanvasNode, CanvasEdge, CanvasNodePosition, CanvasNodeType } from './types'
 import { SpatialIndex, createSpatialIndex } from './spatial/index'
 
 /**

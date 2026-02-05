@@ -1,7 +1,7 @@
 /**
  * React hook for focus trapping within a container element.
  */
-import { useRef, useEffect, useCallback } from 'react'
+import { useRef, useEffect } from 'react'
 import { createFocusTrap, type FocusTrap, type FocusTrapOptions } from './focus-trap'
 
 export interface UseFocusTrapOptions extends Omit<FocusTrapOptions, 'returnFocusTo'> {

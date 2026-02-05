@@ -156,7 +156,7 @@ export interface SyncProviderOptions {
 export abstract class BaseSyncProvider<T = unknown> implements SyncProvider<T> {
   protected _status: SyncStatus = 'disconnected'
   protected _peers: Map<string, PeerInfo> = new Map()
-  protected _listeners: Map<string, Set<Function>> = new Map()
+  protected _listeners: Map<string, Set<(...args: unknown[]) => unknown>> = new Map()
 
   get status(): SyncStatus {
     return this._status
@@ -199,21 +199,21 @@ export abstract class BaseSyncProvider<T = unknown> implements SyncProvider<T> {
 
   on<E extends keyof SyncProviderEvents<T>>(event: E, listener: SyncProviderEvents<T>[E]): void {
     const listeners = this._listeners.get(event) || new Set()
-    listeners.add(listener as Function)
+    listeners.add(listener as (...args: unknown[]) => unknown)
     this._listeners.set(event, listeners)
   }
 
   off<E extends keyof SyncProviderEvents<T>>(event: E, listener: SyncProviderEvents<T>[E]): void {
     const listeners = this._listeners.get(event)
     if (listeners) {
-      listeners.delete(listener as Function)
+      listeners.delete(listener as (...args: unknown[]) => unknown)
     }
   }
 
   once<E extends keyof SyncProviderEvents<T>>(event: E, listener: SyncProviderEvents<T>[E]): void {
     const onceListener = ((...args: unknown[]) => {
       this.off(event, onceListener as SyncProviderEvents<T>[E])
-      ;(listener as Function)(...args)
+      ;(listener as (...args: unknown[]) => unknown)(...args)
     }) as SyncProviderEvents<T>[E]
 
     this.on(event, onceListener)

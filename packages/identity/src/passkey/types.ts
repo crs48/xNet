@@ -1,7 +1,7 @@
 /**
  * @xnet/identity/passkey - WebAuthn passkey authentication types
  */
-import type { Identity, KeyBundle } from '../types'
+import type { KeyBundle } from '../types'
 
 // ─── Passkey Identity ────────────────────────────────────────
 

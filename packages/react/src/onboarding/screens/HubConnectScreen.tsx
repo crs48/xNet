@@ -37,7 +37,7 @@ export function HubConnectScreen({ connectToHub }: HubConnectScreenProps): JSX.E
     return () => {
       cancelled = true
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="onboarding-screen hub-connect">

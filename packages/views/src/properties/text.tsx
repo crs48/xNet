@@ -3,7 +3,7 @@
  */
 
 import React, { useEffect, useRef } from 'react'
-import type { PropertyHandler, PropertyEditorProps, FilterOperator } from '../types'
+import type { PropertyHandler, PropertyEditorProps } from '../types'
 
 /**
  * Text editor component

@@ -13,7 +13,7 @@ import {
   generateNodeId,
   generateEdgeId
 } from '../store'
-import type { CanvasNode, CanvasEdge } from '../types'
+// Types used via store API
 
 describe('CanvasStore', () => {
   let doc: Y.Doc

@@ -2,7 +2,7 @@
  * Tests for NodeStore
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { generateSigningKeyPair } from '@xnet/crypto'
 import { NodeStore } from './store'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
@@ -584,11 +584,11 @@ describe('transaction support', () => {
 
 describe('MemoryNodeStorageAdapter', () => {
   it('should persist and retrieve changes', async () => {
-    const adapter = new MemoryNodeStorageAdapter()
+    new MemoryNodeStorageAdapter()
     const { store } = createTestStore()
 
     // Use the adapter directly
-    const node = await store.create({
+    await store.create({
       schemaId: TEST_SCHEMA,
       properties: { title: 'Test' }
     })

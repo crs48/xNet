@@ -35,7 +35,6 @@ import type {
   DefinedSchema,
   PropertyBuilder,
   InferCreateProps,
-  NodeState,
   TransactionOperation,
   TransactionResult
 } from '@xnet/data'

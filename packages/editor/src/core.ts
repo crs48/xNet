@@ -114,10 +114,11 @@ export class Editor {
   /**
    * Apply a delta (insert/delete at current selection)
    */
-  applyDelta(oldText: string, newText: string, selectionStart: number): void {
+  applyDelta(oldText: string, newText: string, _selectionStart: number): void {
     if (this.readOnly) return
 
     // Find the difference and apply minimal changes
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const currentContent = this.getContent()
 
     // Simple diff: find common prefix and suffix
@@ -205,7 +206,7 @@ export class Editor {
    * Emit event
    */
   private emit<T>(event: EditorEventType, data: T): void {
-    this.listeners.get(event)?.forEach(handler => handler(data))
+    this.listeners.get(event)?.forEach((handler) => handler(data))
   }
 
   /**

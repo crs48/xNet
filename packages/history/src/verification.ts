@@ -5,16 +5,10 @@
  * and clock monotonicity for the full history of any node.
  */
 
-import type { DID, ContentId } from '@xnet/core'
+import type { ContentId } from '@xnet/core'
 import { verifyChangeHash, topologicalSort, getChainHeads, getChainRoots } from '@xnet/sync'
 import type { NodeChange, NodeStorageAdapter, NodeId } from '@xnet/data'
-import type {
-  VerificationResult,
-  VerificationError,
-  VerificationStats,
-  VerificationOptions,
-  VerificationErrorType
-} from './types'
+import type { VerificationResult, VerificationError, VerificationOptions } from './types'
 
 export class VerificationEngine {
   constructor(private storage: NodeStorageAdapter) {}

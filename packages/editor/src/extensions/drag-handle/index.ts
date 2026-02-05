@@ -1,7 +1,7 @@
 import { Extension } from '@tiptap/core'
-import { DragHandle, type DragHandleOptions, DragHandlePluginKey } from './DragHandle'
-import { createDragDropPlugin, DragDropPluginKey, type DragState } from './DragDropPlugin'
-import { createDropIndicatorPlugin, DropIndicatorPluginKey } from './DropIndicatorPlugin'
+import { DragHandle, type DragHandleOptions } from './DragHandle'
+import { createDragDropPlugin } from './DragDropPlugin'
+import { createDropIndicatorPlugin } from './DropIndicatorPlugin'
 
 export interface DragHandleExtensionOptions extends DragHandleOptions {
   /** Enable drag and drop reordering */

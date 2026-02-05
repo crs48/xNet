@@ -69,7 +69,7 @@ export function shouldCreateSnapshot(
 /**
  * Calculate the effective state vector after applying updates
  */
-export function mergeStateVectors(base: Uint8Array, updates: SignedUpdate[]): Uint8Array {
+export function mergeStateVectors(base: Uint8Array, _updates: SignedUpdate[]): Uint8Array {
   // State vectors are implementation-specific to the CRDT library (Yjs)
   // This is a placeholder - actual implementation in @xnet/data
   return base

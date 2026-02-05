@@ -16,8 +16,7 @@ import {
   createLocalQueryEngine,
   createSearchIndex,
   type Query,
-  type QueryResult,
-  type SearchIndex
+  type QueryResult
 } from '@xnet/query'
 
 /**

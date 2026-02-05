@@ -259,8 +259,7 @@ describe('useCalendarState', () => {
       result.current.navigateNext()
     })
 
-    const beforeToday = result.current.currentDate
-
+    // Navigate away, then back to today
     act(() => {
       result.current.navigateToday()
     })

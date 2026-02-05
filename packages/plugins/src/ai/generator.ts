@@ -6,7 +6,7 @@
  */
 
 import { validateScriptAST } from '../sandbox/ast-validator'
-import type { ScriptTriggerType, ScriptOutputType } from '../schemas/script'
+import type { ScriptTriggerType } from '../schemas/script'
 import { buildScriptPrompt, buildRetryPrompt, type AIScriptRequest } from './prompt'
 import type { AIProvider } from './providers'
 
@@ -197,7 +197,7 @@ export class ScriptGenerator {
   /**
    * Generate an explanation for the script
    */
-  private generateExplanation(request: AIScriptRequest, code: string): string {
+  private generateExplanation(request: AIScriptRequest, _code: string): string {
     // Simple heuristic explanation based on intent
     const intent = request.intent.toLowerCase()
 

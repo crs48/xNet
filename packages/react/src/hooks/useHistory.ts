@@ -19,7 +19,7 @@
  * ```
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { NodeId, NodeStorageAdapter } from '@xnet/data'
 import {
   HistoryEngine,

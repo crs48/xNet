@@ -36,32 +36,38 @@ export function createSyncProtocol(node: NetworkNode): SyncProtocol {
   const messageCallbacks = new Set<(msg: SyncMessage) => void>()
 
   // Handle incoming streams
-  node.libp2p.handle(SYNC_PROTOCOL, async ({ stream, connection }) => {
-    const peerId = connection.remotePeer.toString()
+  node.libp2p.handle(SYNC_PROTOCOL, async ({ stream, connection: _connection }) => {
+    // TODO: use connection.remotePeer for peer-specific sync logic
 
-    await pipe(stream.source, lp.decode, async function* (source) {
-      for await (const data of source) {
-        const msg = decode(data.subarray()) as SyncMessage
+    await pipe(
+      stream.source,
+      lp.decode,
+      async function* (source) {
+        for await (const data of source) {
+          const msg = decode(data.subarray()) as SyncMessage
 
-        // Notify callbacks
-        messageCallbacks.forEach((cb) => cb(msg))
+          // Notify callbacks
+          messageCallbacks.forEach((cb) => cb(msg))
 
-        // Handle sync request
-        if (msg.type === 'sync-request') {
-          const doc = documents.get(msg.docId)
-          if (doc) {
-            const state = getDocumentState(doc)
-            yield encode({
-              type: 'sync-response',
-              docId: msg.docId,
-              payload: state,
-              sender: node.did,
-              timestamp: Date.now()
-            } satisfies SyncMessage)
+          // Handle sync request
+          if (msg.type === 'sync-request') {
+            const doc = documents.get(msg.docId)
+            if (doc) {
+              const state = getDocumentState(doc)
+              yield encode({
+                type: 'sync-response',
+                docId: msg.docId,
+                payload: state,
+                sender: node.did,
+                timestamp: Date.now()
+              } satisfies SyncMessage)
+            }
           }
         }
-      }
-    }, lp.encode, stream.sink)
+      },
+      lp.encode,
+      stream.sink
+    )
   })
 
   return {

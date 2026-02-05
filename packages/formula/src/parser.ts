@@ -234,6 +234,7 @@ export class Parser {
   private parseCall(): ASTNode {
     let expr = this.parsePrimary()
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       if (this.match('LPAREN')) {
         // Function call - only valid if expr is an identifier
@@ -312,12 +313,13 @@ export class Parser {
         this.position++
         return { type: 'Identifier', name: token.value as string }
 
-      case 'LPAREN':
+      case 'LPAREN': {
         // Grouped expression
         this.consume('LPAREN')
         const expr = this.parseExpression()
         this.consume('RPAREN')
         return expr
+      }
 
       case 'LBRACKET':
         // Array literal

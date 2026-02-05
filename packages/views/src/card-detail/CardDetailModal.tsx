@@ -4,7 +4,7 @@
 
 import React, { useCallback } from 'react'
 import type { Schema, PropertyDefinition } from '@xnet/data'
-import { cn } from '@xnet/ui'
+
 import { getPropertyHandler } from '../properties/index.js'
 import type { TableRow } from '../table/useTableState.js'
 
