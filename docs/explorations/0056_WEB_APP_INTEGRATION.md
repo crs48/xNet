@@ -556,13 +556,13 @@ These bring the web app to basic feature parity with Electron:
   - [x] Upgrade create button to dropdown with all types
   - [x] Add "Add Shared..." option
 
-- [ ] **Comment System**
-  - [ ] Import `CommentPopover` from `@xnet/ui`
-  - [ ] Import `CommentsSidebar` from `@xnet/ui`
-  - [ ] Add `useComments` hook integration
-  - [ ] Add CommentMark extension to editor
-  - [ ] Add comment count badge to header
-  - [ ] Add new comment input modal
+- [x] **Comment System**
+  - [x] Import `CommentPopover` from `@xnet/ui`
+  - [x] Import `CommentsSidebar` from `@xnet/ui`
+  - [x] Add `useComments` hook integration
+  - [x] Add CommentMark extension to editor
+  - [x] Add comment count badge to header
+  - [x] Add new comment input modal
 
 - [x] **Presence & Sharing**
   - [x] Import `DIDAvatar` from `@xnet/ui`
