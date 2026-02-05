@@ -40,12 +40,15 @@ export function HubConnectScreen({ connectToHub }: HubConnectScreenProps): JSX.E
   }, [])
 
   return (
-    <div className="onboarding-screen hub-connect">
-      <h1>Connecting to sync server</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-6">
+      <div className="w-12 h-12 mb-6 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <h1 className="text-2xl font-semibold mb-2">Connecting to sync server</h1>
 
-      <p className="spinner-text">Setting up secure connection...</p>
+      <p className="text-muted-foreground mb-4">Setting up secure connection...</p>
 
-      {context.hubUrl && <p className="hub-url">{context.hubUrl}</p>}
+      {context.hubUrl && (
+        <p className="text-xs text-muted-foreground font-mono">{context.hubUrl}</p>
+      )}
     </div>
   )
 }
