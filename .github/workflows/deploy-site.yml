@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'site/**'
+      - 'apps/web/**'
+      - 'packages/**'
   workflow_dispatch:
 
 permissions:
@@ -28,7 +30,15 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: site/pnpm-lock.yaml
+
+      - name: Install monorepo dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Build web app
+        run: pnpm --filter xnet-web build
 
       - name: Cache Astro build
         uses: actions/cache@v4
@@ -37,13 +47,20 @@ jobs:
           key: astro-${{ hashFiles('site/pnpm-lock.yaml', 'site/src/**', 'site/astro.config.mjs') }}
           restore-keys: astro-
 
-      - name: Install dependencies
+      - name: Install site dependencies
         run: pnpm install --ignore-workspace
         working-directory: site
 
       - name: Build site
         run: pnpm build
         working-directory: site
+
+      - name: Copy web app to site/dist/app
+        run: |
+          mkdir -p site/dist/app
+          cp -r apps/web/dist/* site/dist/app/
+          # SPA fallback for GitHub Pages
+          cp site/dist/app/index.html site/dist/app/404.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

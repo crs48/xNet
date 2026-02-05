@@ -23,7 +23,7 @@ import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
 // ─── Router ─────────────────────────────────────────────────────
-const router = createRouter({ routeTree })
+const router = createRouter({ routeTree, basepath: '/app' })
 
 declare module '@tanstack/react-router' {
   interface Register {
