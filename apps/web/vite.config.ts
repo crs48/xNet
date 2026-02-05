@@ -6,6 +6,11 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: '/app/',
+  build: {
+    // Target older Safari/WebKit for Orion browser compatibility
+    // Safari 14 corresponds to WebKit 605.1.15
+    target: ['es2020', 'safari14']
+  },
   resolve: {
     alias: {
       // Use source files directly for hot reload during development

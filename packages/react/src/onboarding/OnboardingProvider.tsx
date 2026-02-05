@@ -10,6 +10,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useMemo,
   type ReactNode
 } from 'react'
 import {
@@ -50,9 +51,22 @@ export function OnboardingProvider({
     createInitialState(defaultHubUrl)
   )
 
-  // Check browser support on mount
+  // Create identity manager once and keep it stable
+  // This is important so preflight() caches PRF support for create()
+  const manager = useMemo(() => createIdentityManager(), [])
+
+  // Check browser support AND preflight PRF detection on mount
+  // This must happen BEFORE user clicks, so Safari/WebKit doesn't
+  // invalidate the user gesture when we call WebAuthn
   useEffect(() => {
     let cancelled = false
+
+    // Preflight the manager to detect PRF support
+    manager.preflight().catch(() => {
+      // Ignore preflight errors - we'll handle them at create time
+    })
+
+    // Also check basic browser support
     detectPasskeySupport()
       .then((support) => {
         if (!cancelled && (!support.webauthn || !support.platform)) {
@@ -62,10 +76,11 @@ export function OnboardingProvider({
       .catch(() => {
         // If detection fails, don't block — let user try
       })
+
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [manager])
 
   // Notify completion
   useEffect(() => {
@@ -87,7 +102,7 @@ export function OnboardingProvider({
         if (authInFlight.current) return // Prevent duplicate calls
         authInFlight.current = true
 
-        const manager = createIdentityManager()
+        // Use the preflighted manager (has cached PRF support info)
         manager
           .create()
           .then((keyBundle) => {
@@ -110,7 +125,7 @@ export function OnboardingProvider({
 
       dispatch(event)
     },
-    [state]
+    [state, manager]
   )
 
   return (
