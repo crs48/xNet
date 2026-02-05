@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@tanstack/react-router": "^1.57.0",
+    "@xnet/canvas": "workspace:*",
     "@xnet/data": "workspace:*",
     "@xnet/editor": "workspace:*",
     "@xnet/identity": "workspace:*",
@@ -19,6 +20,8 @@
     "@xnet/storage": "workspace:*",
     "@xnet/sync": "workspace:*",
     "@xnet/ui": "workspace:*",
+    "@xnet/views": "workspace:*",
+    "lucide-react": "^0.453.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "use-debounce": "^10.1.0",

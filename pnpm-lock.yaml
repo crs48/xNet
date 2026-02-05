@@ -257,6 +257,9 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.57.0
         version: 1.153.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@xnet/canvas':
+        specifier: workspace:*
+        version: link:../../packages/canvas
       '@xnet/data':
         specifier: workspace:*
         version: link:../../packages/data
@@ -281,6 +284,12 @@ importers:
       '@xnet/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@xnet/views':
+        specifier: workspace:*
+        version: link:../../packages/views
+      lucide-react:
+        specifier: ^0.453.0
+        version: 0.453.0(react@18.3.1)
       react:
         specifier: ^18.3.0
         version: 18.3.1
@@ -11994,6 +12003,14 @@ packages:
       }
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  lucide-react@0.453.0:
+    resolution:
+      {
+        integrity: sha512-kL+RGZCcJi9BvJtzg2kshO192Ddy9hv3ij+cPrVPWSRzgCWCVazoQJxOjAwgK53NomL07HB7GPHW120FimjNhQ==
+      }
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
 
   lz-string@1.5.0:
     resolution:
@@ -25181,6 +25198,10 @@ snapshots:
   lru-cache@7.18.3: {}
 
   lucide-react@0.400.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
+  lucide-react@0.453.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 
