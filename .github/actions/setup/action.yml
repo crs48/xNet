@@ -39,7 +39,8 @@ runs:
         restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
 
     # Install setuptools for Python 3.12+ (provides distutils needed by native module builds)
-    - if: runner.os == 'Windows'
+    # Required on Windows and macOS where Python 3.12+ removed distutils
+    - if: runner.os == 'Windows' || runner.os == 'macOS'
       run: pip install setuptools
       shell: bash
 
