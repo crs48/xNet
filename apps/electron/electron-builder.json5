@@ -51,9 +51,7 @@
         "target": "nsis",
         "arch": ["x64"]
       }
-    ],
-    "signingHashAlgorithms": ["sha256"],
-    "certificateSubjectName": "xNet"
+    ]
   },
 
   "nsis": {
