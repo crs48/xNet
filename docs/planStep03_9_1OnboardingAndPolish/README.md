@@ -245,8 +245,8 @@ flowchart TB
 **Validation Gate:**
 
 - [ ] Developer can build and run Expo app locally
-- [ ] EAS Build produces installable IPA/APK
-- [ ] Docs explain it's "compile your own" for now
+- [x] EAS Build produces installable IPA/APK
+- [x] Docs explain it's "compile your own" for now
 - [ ] Core features work (pages, sync)
 
 ### Phase 11: Final Polish (Days 33-35)
@@ -261,9 +261,9 @@ flowchart TB
 **Validation Gate:**
 
 - [ ] No unhandled promise rejections in console
-- [ ] All async operations show loading state
-- [ ] Offline mode clearly indicated
-- [ ] Screen reader can navigate core flows
+- [x] All async operations show loading state
+- [x] Offline mode clearly indicated
+- [x] Screen reader can navigate core flows
 
 ## User Journey (Detailed)
 
