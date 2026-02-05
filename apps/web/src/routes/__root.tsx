@@ -2,7 +2,7 @@
  * Root layout with ErrorBoundary
  */
 import { createRootRoute, Outlet, Link, useLocation } from '@tanstack/react-router'
-import { useIdentity, ErrorBoundary } from '@xnet/react'
+import { useIdentity, ErrorBoundary, HubStatusIndicator } from '@xnet/react'
 import { ThemeToggle } from '@xnet/ui'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { GlobalSearch } from '../components/GlobalSearch'
@@ -27,6 +27,7 @@ function RootLayout() {
         </Link>
         <GlobalSearch />
         <div className="flex items-center gap-3">
+          <HubStatusIndicator />
           <ThemeToggle />
           {identity && (
             <span className="text-xs text-muted-foreground font-mono" title={identity.did}>

@@ -587,7 +587,7 @@ These complete feature parity:
 
 - [ ] **Database (Advanced)**
   - [x] Add `CardDetailModal` for row editing
-  - [ ] Add cell presence indicators
+  - [x] Add cell presence indicators
   - [ ] Add view configuration (sorts, groups)
 
 - [x] **Canvas (Advanced)**
@@ -627,7 +627,7 @@ These improve the demo experience:
 - [x] **Error Handling**
   - [x] Add `ErrorBoundary` to root
   - [x] Add `OfflineIndicator` to root
-  - [ ] Add `HubStatusIndicator` to header
+  - [x] Add `HubStatusIndicator` to header
 
 ### Expo: WebView Migration
 

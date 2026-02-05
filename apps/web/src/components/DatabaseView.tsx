@@ -6,7 +6,14 @@
 
 import { DatabaseSchema, type PropertyDefinition, type PropertyType } from '@xnet/data'
 import { useNode, useIdentity } from '@xnet/react'
-import { TableView, BoardView, CardDetailModal, type ViewConfig, type TableRow } from '@xnet/views'
+import {
+  TableView,
+  BoardView,
+  CardDetailModal,
+  type ViewConfig,
+  type TableRow,
+  type CellPresence
+} from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
@@ -103,7 +110,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     doc,
     loading,
     update,
-    presence
+    presence,
+    awareness
   } = useNode(DatabaseSchema, docId, {
     createIfMissing: { title: 'Untitled Database' },
     did: did ?? undefined
@@ -115,6 +123,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [tableViewConfig, setTableViewConfig] = useState<ViewConfig | null>(null)
   const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig | null>(null)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
 
   // ─── Initialize / Load Data ─────────────────────────────────────────────
 
@@ -170,6 +179,55 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     dataMap.observe(observer)
     return () => dataMap.unobserve(observer)
   }, [doc])
+
+  // ─── Cell Presence ────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (!awareness) return
+
+    const updatePresences = () => {
+      const states = awareness.getStates()
+      const presences: CellPresence[] = []
+
+      states.forEach((state: Record<string, unknown>, clientId: number) => {
+        if (clientId === awareness.clientID) return
+        const user = state.user as { did?: string; color?: string; name?: string } | undefined
+        const cell = state.cell as { rowId: string; columnId: string } | undefined
+        if (user?.did && cell) {
+          presences.push({
+            rowId: cell.rowId,
+            columnId: cell.columnId,
+            color: user.color || '#999',
+            did: user.did,
+            name: user.name || 'Anonymous'
+          })
+        }
+      })
+
+      setCellPresences(presences)
+    }
+
+    awareness.on('change', updatePresences)
+    updatePresences()
+
+    return () => {
+      awareness.off('change', updatePresences)
+    }
+  }, [awareness])
+
+  // Broadcast focused cell via awareness
+  const handleCellFocus = useCallback(
+    (rowId: string, columnId: string) => {
+      if (!awareness) return
+      awareness.setLocalStateField('cell', { rowId, columnId })
+    },
+    [awareness]
+  )
+
+  const handleCellBlur = useCallback(() => {
+    if (!awareness) return
+    awareness.setLocalStateField('cell', null)
+  }, [awareness])
 
   // ─── Row Operations ─────────────────────────────────────────────────────
 
@@ -432,6 +490,9 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onDeleteColumn={handleDeleteColumn}
             onAddRow={handleAddRow}
             onDeleteRow={handleDeleteRow}
+            cellPresences={cellPresences}
+            onCellFocus={handleCellFocus}
+            onCellBlur={handleCellBlur}
           />
         )}
 
