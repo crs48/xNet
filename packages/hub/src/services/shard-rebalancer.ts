@@ -25,9 +25,7 @@ const computeRange = (shardId: number, totalShards: number): { start: number; en
 type RingHost = { host: ShardHostRecord; hash: number }
 
 const buildRing = (hosts: ShardHostRecord[]): RingHost[] =>
-  hosts
-    .map((host) => ({ host, hash: hashToUint32(host.hubDid) }))
-    .sort((a, b) => a.hash - b.hash)
+  hosts.map((host) => ({ host, hash: hashToUint32(host.hubDid) })).sort((a, b) => a.hash - b.hash)
 
 const pickHost = (ring: RingHost[], shardHash: number): ShardHostRecord | null => {
   if (ring.length === 0) return null

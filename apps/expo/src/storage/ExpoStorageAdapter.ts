@@ -104,12 +104,11 @@ export class ExpoStorageAdapter implements StorageAdapter {
   async listDocuments(prefix?: string): Promise<string[]> {
     if (!this.db) throw new Error('Database not open')
     const rows = prefix
-      ? await this.db.getAllAsync<{ id: string }>(
-          'SELECT id FROM documents WHERE id LIKE ?',
-          [`${prefix}%`]
-        )
+      ? await this.db.getAllAsync<{ id: string }>('SELECT id FROM documents WHERE id LIKE ?', [
+          `${prefix}%`
+        ])
       : await this.db.getAllAsync<{ id: string }>('SELECT id FROM documents')
-    return rows.map(r => r.id)
+    return rows.map((r) => r.id)
   }
 
   async appendUpdate(docId: string, update: SignedUpdate): Promise<void> {
@@ -126,7 +125,7 @@ export class ExpoStorageAdapter implements StorageAdapter {
       'SELECT update_data FROM updates WHERE doc_id = ? ORDER BY created_at ASC',
       [docId]
     )
-    return rows.map(r => JSON.parse(r.update_data) as SignedUpdate)
+    return rows.map((r) => JSON.parse(r.update_data) as SignedUpdate)
   }
 
   async getUpdateCount(docId: string): Promise<number> {
@@ -167,10 +166,7 @@ export class ExpoStorageAdapter implements StorageAdapter {
 
   async setBlob(cid: ContentId, data: Uint8Array): Promise<void> {
     if (!this.db) throw new Error('Database not open')
-    await this.db.runAsync(
-      'INSERT OR REPLACE INTO blobs (cid, data) VALUES (?, ?)',
-      [cid, data]
-    )
+    await this.db.runAsync('INSERT OR REPLACE INTO blobs (cid, data) VALUES (?, ?)', [cid, data])
   }
 
   async hasBlob(cid: ContentId): Promise<boolean> {

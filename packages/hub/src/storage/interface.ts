@@ -250,7 +250,11 @@ export type HubStorage = {
   updateSearchBody?: (docId: string, text: string) => Promise<void>
 
   getFileMeta: (cid: string) => Promise<FileMeta | null>
-  putFile: (cid: string, data: Uint8Array, meta: Omit<FileMeta, 'referenceCount' | 'createdAt'>) => Promise<void>
+  putFile: (
+    cid: string,
+    data: Uint8Array,
+    meta: Omit<FileMeta, 'referenceCount' | 'createdAt'>
+  ) => Promise<void>
   getFileData: (cid: string) => Promise<Uint8Array | null>
   deleteFile: (cid: string) => Promise<void>
   listFiles: (uploaderDid: string) => Promise<FileMeta[]>

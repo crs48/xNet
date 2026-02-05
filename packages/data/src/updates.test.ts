@@ -174,16 +174,9 @@ describe('Signed Updates', () => {
         signingKey: privateKey
       })
 
-      const signed = captureUpdate(
-        doc,
-        identity.did,
-        privateKey,
-        'genesis',
-        {},
-        () => {
-          // No changes
-        }
-      )
+      const signed = captureUpdate(doc, identity.did, privateKey, 'genesis', {}, () => {
+        // No changes
+      })
 
       expect(signed).toBeNull()
     })
@@ -207,17 +200,10 @@ describe('Signed Updates', () => {
       const initialState = getDocumentState(source)
 
       // Capture the change as a signed update
-      const signed = captureUpdate(
-        source,
-        identity.did,
-        privateKey,
-        'genesis',
-        {},
-        () => {
-          const meta = source.ydoc.getMap('metadata')
-          meta.set('title', 'Changed')
-        }
-      )!
+      const signed = captureUpdate(source, identity.did, privateKey, 'genesis', {}, () => {
+        const meta = source.ydoc.getMap('metadata')
+        meta.set('title', 'Changed')
+      })!
 
       // Create empty target document and apply initial state
       const targetYdoc = new Y.Doc({ guid: 'doc-1' })

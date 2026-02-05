@@ -105,9 +105,9 @@ describe('Query Engine', () => {
       'query-response'
     )
 
-    expect(response.results.every((r: { schemaIri: string }) => r.schemaIri === 'xnet://xnet.dev/Task')).toBe(
-      true
-    )
+    expect(
+      response.results.every((r: { schemaIri: string }) => r.schemaIri === 'xnet://xnet.dev/Task')
+    ).toBe(true)
 
     ws.close()
   })

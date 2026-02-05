@@ -61,7 +61,12 @@ const send = (ws: WebSocket, msg: object): void => {
   }
 }
 
-const publish = (subscribers: Set<WebSocket>, topic: string, data: unknown, sender?: WebSocket): void => {
+const publish = (
+  subscribers: Set<WebSocket>,
+  topic: string,
+  data: unknown,
+  sender?: WebSocket
+): void => {
   const payload = JSON.stringify({ type: 'publish', topic, data })
   for (const subscriber of subscribers) {
     if (subscriber !== sender && subscriber.readyState === 1) {
