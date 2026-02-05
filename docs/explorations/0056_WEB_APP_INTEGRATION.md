@@ -582,11 +582,11 @@ These complete feature parity:
 
 - [x] **Comment System (Advanced)**
   - [x] Add resolve/reopen functionality
-  - [ ] Add `OrphanedThreadList` component
+  - [x] Add `OrphanedThreadList` component
   - [ ] Handle orphaned comment restoration
 
 - [ ] **Database (Advanced)**
-  - [ ] Add `CardDetailModal` for row editing
+  - [x] Add `CardDetailModal` for row editing
   - [ ] Add cell presence indicators
   - [ ] Add view configuration (sorts, groups)
 
@@ -598,7 +598,7 @@ These complete feature parity:
 - [x] **Settings Expansion**
   - [x] Add theme selector (Light/Dark/System)
   - [x] Add clear local data button
-  - [ ] Add export data button
+  - [x] Add export data button
   - [ ] Add signaling server config (advanced)
   - [ ] Add auto-save toggle
 

@@ -3,7 +3,7 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { useIdentity } from '@xnet/react'
-import { Palette, Database, Info, ChevronRight, Sun, Moon, Monitor } from 'lucide-react'
+import { Palette, Database, Info, ChevronRight, Sun, Moon, Monitor, Download } from 'lucide-react'
 import { useState, useCallback } from 'react'
 
 export const Route = createFileRoute('/settings')({
@@ -168,6 +168,65 @@ function DataSettings() {
   const [clearing, setClearing] = useState(false)
   const [cleared, setCleared] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportData = useCallback(async () => {
+    setExporting(true)
+    try {
+      const databases = await indexedDB.databases()
+      const exportData: {
+        exportedAt: string
+        version: string
+        databases: Record<string, Record<string, unknown[]>>
+      } = {
+        exportedAt: new Date().toISOString(),
+        version: '1.0.0',
+        databases: {}
+      }
+
+      // Export each database
+      for (const dbInfo of databases) {
+        if (!dbInfo.name) continue
+
+        const db = await new Promise<IDBDatabase>((resolve, reject) => {
+          const request = indexedDB.open(dbInfo.name!)
+          request.onsuccess = () => resolve(request.result)
+          request.onerror = () => reject(request.error)
+        })
+
+        const dbExport: Record<string, unknown[]> = {}
+
+        for (const storeName of Array.from(db.objectStoreNames)) {
+          const tx = db.transaction(storeName, 'readonly')
+          const store = tx.objectStore(storeName)
+          const items = await new Promise<unknown[]>((resolve, reject) => {
+            const request = store.getAll()
+            request.onsuccess = () => resolve(request.result)
+            request.onerror = () => reject(request.error)
+          })
+          dbExport[storeName] = items
+        }
+
+        exportData.databases[dbInfo.name] = dbExport
+        db.close()
+      }
+
+      // Download as JSON
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `xnet-export-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      console.error('Failed to export data:', err)
+    } finally {
+      setExporting(false)
+    }
+  }, [])
 
   const handleClearData = useCallback(async () => {
     if (!confirmClear) {
@@ -216,6 +275,17 @@ function DataSettings() {
       <div className="space-y-4">
         <SettingRow label="Storage" description="Data is stored locally in your browser">
           <span className="text-sm text-muted-foreground">IndexedDB</span>
+        </SettingRow>
+
+        <SettingRow label="Export data" description="Download a backup of all your documents">
+          <button
+            onClick={handleExportData}
+            disabled={exporting}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm border border-border hover:bg-accent transition-colors disabled:opacity-50"
+          >
+            <Download size={14} />
+            {exporting ? 'Exporting...' : 'Export'}
+          </button>
         </SettingRow>
 
         <SettingRow
