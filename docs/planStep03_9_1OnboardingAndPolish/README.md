@@ -100,10 +100,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] New user creates identity via passkey on first visit (required, not optional)
-- [ ] Returning user unlocks with biometric (Face ID / Touch ID / Windows Hello)
-- [ ] Keys are derived from passkey PRF, not stored in plain IndexedDB
-- [ ] Works in Chrome 116+, Safari 18+, Edge 116+ (PRF required)
+- [x] New user creates identity via passkey on first visit (required, not optional)
+- [x] Returning user unlocks with biometric (Face ID / Touch ID / Windows Hello)
+- [x] Keys are derived from passkey PRF, not stored in plain IndexedDB
+- [x] Works in Chrome 116+, Safari 18+, Edge 116+ (PRF required)
 
 ### Phase 2: Onboarding Flow (Days 5-7)
 
@@ -116,10 +116,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] New user goes from landing to working in < 10 seconds (one biometric tap)
-- [ ] Passkey is required — no skip option, no anonymous mode
-- [ ] Demo Hub connection is automatic after passkey creation
-- [ ] User sees sample content to understand features
+- [x] New user goes from landing to working in < 10 seconds (one biometric tap)
+- [x] Passkey is required — no skip option, no anonymous mode
+- [x] Demo Hub connection is automatic after passkey creation
+- [x] User sees sample content to understand features
 
 ### Phase 3: Cross-Device Sync (Days 8-11)
 
@@ -132,10 +132,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] User on web creates data, opens desktop app, data appears
-- [ ] Passkey-synced identity works across Apple/Google ecosystems
+- [x] User on web creates data, opens desktop app, data appears
+- [x] Passkey-synced identity works across Apple/Google ecosystems
 - [ ] QR code linking works for devices without passkey sync
-- [ ] No data loss during cross-device sync
+- [x] No data loss during cross-device sync
 
 ### Phase 4: Sharing & Permissions (Days 12-14)
 
@@ -148,9 +148,9 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] User can share a page/database via link
-- [ ] Recipient can view/edit based on permissions
-- [ ] Owner can revoke access at any time
+- [x] User can share a page/database via link
+- [x] Recipient can view/edit based on permissions
+- [x] Owner can revoke access at any time
 - [ ] Active collaborators shown in real-time
 
 ### Phase 5: Electron CD Pipeline (Days 15-18)
@@ -164,10 +164,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Push to main triggers build for macOS (Intel + ARM), Windows, Linux
-- [ ] macOS app is notarized (no Gatekeeper warning)
-- [ ] Windows app is signed (no SmartScreen warning)
-- [ ] Users get update prompts automatically
+- [x] Push to main triggers build for macOS (Intel + ARM), Windows, Linux
+- [x] macOS app is notarized (no Gatekeeper warning)
+- [x] Windows app is signed (no SmartScreen warning)
+- [x] Users get update prompts automatically
 
 ### Phase 6: Static Site (Days 19-22)
 
