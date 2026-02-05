@@ -403,7 +403,7 @@ These are test-level fixes that work with the current Vitest version:
 These work with Vitest 1.6.x:
 
 - [x] **Switch to `pool: 'threads'`** — configured in root vitest.config.ts. Lower worker startup cost for pure TS tests.
-- [ ] **Add `isolate: false`** — deferred to Phase 3 (Vitest 4.x per-project isolation). Hub integration tests with real WebSocket servers fail under no-isolate due to shared state.
+- [x] **Add `isolate: false`** — enabled per-project in Phase 3 via `projects` config. Unit tests run with `isolate: false` (1.2s for 70 files/1358 tests). DOM and integration projects keep `isolate: true`.
 - [x] **Unify Vitest version specs** — aligned sub-packages to `^2.0.0`, root stays at `^1.6.0` (root runner resolves to 1.6.1).
 
 **Estimated total savings: ~1.5s wall clock**
@@ -413,15 +413,15 @@ These work with Vitest 1.6.x:
 Major version upgrade with architectural improvements:
 
 - [x] **Upgrade Vitest to 4.x** — upgraded all packages from mixed v1.3-2.x to ^4.0.0. Vitest 4.0.18 resolves. Wall clock: ~3.5s (down from ~5.5s on v1.6).
-- [ ] **Replace `vitest.config.ts` per-package files with unified `projects`** — Vitest 4.x `projects` API needs workspace file; deferred for future exploration.
-- [ ] **Per-project isolation** — `isolate: false` for unit tests, `isolate: true` for DOM/integration. Deferred (needs workspace config).
-- [ ] **Per-project pool** — `threads` for unit, `forks` for integration. Deferred (needs workspace config).
-- [ ] **Clean up stale per-package configs** — remove the 11 separate `vitest.config.ts` files. Deferred (per-package configs still needed without workspace).
+- [x] **Replace flat config with unified `projects`** — root `vitest.config.ts` now defines 4 inline projects: `unit` (threads/no-isolate), `dom` (jsdom/threads/isolate), `integration` (forks/isolate), `editor` (jsdom/setupFiles). All 148 test files / 2426 tests run in a single `vitest run` command (~7.4s).
+- [x] **Per-project isolation** — `isolate: false` for unit project (1.2s for 70 files), `isolate: true` for dom/integration/editor.
+- [x] **Per-project pool** — `threads` for unit+dom+editor, `forks` for integration (needs process isolation for WebSocket servers).
+- [x] **Per-package configs retained** — the 11 per-package `vitest.config.ts` files are kept for `pnpm --filter @xnet/sync test` usage. They don't interfere with the root projects config (inline projects, not glob-based).
 
 ### Phase 4: CI Optimizations
 
 - [x] **Add sharding for CI** — split test files across 3 parallel jobs in `.github/workflows/ci.yml`. Lint/typecheck separated into own job.
-- [ ] **Use `vitest run --changed` in CI for PRs** — only run affected tests on non-main branches. Deferred (needs branch comparison logic).
+- [x] **Use `vitest run --changed` in CI for PRs** — PR branches now run `vitest run --changed=origin/$BASE_REF --passWithNoTests` per shard. Push to main still runs all tests.
 - [ ] **Cache Vitest's module graph** — Vitest 4.x has improved caching that persists across runs.
 
 ---
