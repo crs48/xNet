@@ -16,6 +16,12 @@ Decentralized data infrastructure and application. Local-first, P2P-synced, user
 
 xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
 
+## Try It Now
+
+**[Try the demo at xnet.fyi/app](https://xnet.fyi/app)** — no signup required, just use your device's passkey (Touch ID, Face ID, Windows Hello).
+
+> Demo mode: Data is stored on our demo hub with a 10MB quota and expires after 24 hours of inactivity. For permanent storage, [download the desktop app](https://xnet.fyi/download).
+
 ## Deploy a Hub
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/xnet-hub)
