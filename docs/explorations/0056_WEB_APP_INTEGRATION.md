@@ -583,12 +583,12 @@ These complete feature parity:
 - [x] **Comment System (Advanced)**
   - [x] Add resolve/reopen functionality
   - [x] Add `OrphanedThreadList` component
-  - [ ] Handle orphaned comment restoration
+  - [x] Handle orphaned comment restoration (dismiss/select - reattach TBD)
 
-- [ ] **Database (Advanced)**
+- [x] **Database (Advanced)**
   - [x] Add `CardDetailModal` for row editing
   - [x] Add cell presence indicators
-  - [ ] Add view configuration (sorts, groups)
+  - [x] Add view configuration (sorts, groups)
 
 - [x] **Canvas (Advanced)**
   - [x] Add arrow/dashed edge styles
@@ -599,7 +599,7 @@ These complete feature parity:
   - [x] Add theme selector (Light/Dark/System)
   - [x] Add clear local data button
   - [x] Add export data button
-  - [ ] Add signaling server config (advanced)
+  - [x] Add signaling server config (advanced)
   - [ ] Add auto-save toggle
 
 - [x] **Plugin System**
