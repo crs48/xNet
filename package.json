@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
-    "test": "vitest run",
+    "test": "vitest run && pnpm --filter @xnet/editor test",
+    "test:editor": "pnpm --filter @xnet/editor test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint packages apps --ext .ts,.tsx",

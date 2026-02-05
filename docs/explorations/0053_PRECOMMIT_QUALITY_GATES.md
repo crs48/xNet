@@ -256,7 +256,7 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
   - `crypto/src/hashing.test.ts`: 50ms → 200ms
   - `crypto/src/signing.test.ts`: 500ms → 1000ms
 
-- [ ] **Update AGENTS.md with git hooks section** — once hooks are live, agents need to know: what hooks exist, what they check, expected timing (~10-15s), and that `--no-verify` is available for emergencies. Without this, agents will be confused by commit failures.
+- [x] **Update AGENTS.md with git hooks section** — added full documentation: hook timing, commit message format, bypass instructions, and troubleshooting guide.
 
 #### Phase 1: CI Fixes (immediate, no workflow change for developers)
 
@@ -345,10 +345,10 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
 
 #### Phase 5: Nice-to-Haves
 
-- [ ] **Add `.editorconfig`** — ensures consistent indentation/line endings even without Prettier integration in the editor. Trivial to add, zero maintenance.
-- [ ] **Add `format:check` script** — `prettier --check .` so developers can verify formatting manually. Currently there's no way to check without the editor.
-- [ ] **Add editor tests to root `pnpm test`** — `packages/editor` tests are silently excluded from `vitest run`. Either include them (with `jsdom` env override) or add a separate `test:editor` script and run both in CI.
-- [ ] **Turbo-ify linting** — move lint into a per-package Turbo task so it benefits from caching and only re-lints changed packages. Current approach re-lints everything every time.
+- [x] **Add `.editorconfig`** — added with 2-space indent, LF line endings, UTF-8, trailing whitespace trimming.
+- [x] **Add `format:check` script** — added to root package.json (also added as CI step in Phase 1).
+- [x] **Add editor tests to root `pnpm test`** — root `test` now runs `vitest run && pnpm --filter @xnet/editor test`. Added `test:editor` script for running editor tests alone.
+- [ ] **Turbo-ify linting** — deferred; would require adding lint scripts to every package.json. Current root-level lint is fast enough.
 
 ### Estimated Time Impact on Developer Workflow
 
