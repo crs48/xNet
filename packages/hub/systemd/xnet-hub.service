@@ -1,0 +1,31 @@
+[Unit]
+Description=xNet Hub - signaling, sync relay, and backup server
+After=network.target
+
+[Service]
+Type=simple
+User=xnet
+Group=xnet
+WorkingDirectory=/opt/xnet-hub
+ExecStart=/usr/bin/node /opt/xnet-hub/node_modules/@xnet/hub/dist/cli.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=xnet-hub
+
+# Environment
+Environment=NODE_ENV=production
+Environment=HUB_PORT=4444
+Environment=HUB_DATA_DIR=/opt/xnet-hub/data
+Environment=HUB_AUTH=true
+Environment=HUB_LOG_LEVEL=info
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/xnet-hub/data
+
+[Install]
+WantedBy=multi-user.target

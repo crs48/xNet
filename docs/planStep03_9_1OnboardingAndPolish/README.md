@@ -212,10 +212,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] User can follow docs to deploy hub on DigitalOcean/Hetzner/etc
+- [x] User can follow docs to deploy hub on DigitalOcean/Hetzner/etc
 - [ ] Docker image published to GitHub Container Registry
-- [ ] One-liner install script works
-- [ ] HTTPS works with automatic Let's Encrypt
+- [x] One-liner install script works
+- [x] HTTPS works with automatic Let's Encrypt
 
 ### Phase 9: Hub CD Pipeline (Days 29-30)
 
