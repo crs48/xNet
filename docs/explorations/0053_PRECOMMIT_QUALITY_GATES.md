@@ -266,9 +266,9 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
 
 #### Phase 2: Git Hooks (local enforcement, fast feedback)
 
-- [ ] **Install husky** — `pnpm add -Dw husky`, add `"prepare": "husky"` to root `package.json`. Gives us the hook infrastructure.
-- [ ] **Install lint-staged** — `pnpm add -Dw lint-staged`. Runs checks only on staged files so hooks stay fast.
-- [ ] **Pre-commit: lint-staged config** — add to root `package.json`:
+- [x] **Install husky** — installed, `"prepare": "husky"` added to root `package.json`.
+- [x] **Install lint-staged** — installed.
+- [x] **Pre-commit: lint-staged config** — added to root `package.json`:
   ```json
   "lint-staged": {
     "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
@@ -280,7 +280,7 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
   - **ESLint + autofix** on staged `.ts`/`.tsx` files (~2-3s on changed files)
   - **Prettier formatting** enforced automatically (no more style drift)
   - **Lockfile sync** whenever any `package.json` is staged (the original problem)
-- [ ] **Pre-commit: affected tests + typecheck** — Vitest and Turbo both support running only what's affected by the current changes. Measured timings show this is fast enough for pre-commit:
+- [x] **Pre-commit: affected tests + typecheck** — Vitest and Turbo both support running only what's affected by the current changes. Measured timings show this is fast enough for pre-commit:
 
   | Command                                | What It Does                                           | Time                              |
   | -------------------------------------- | ------------------------------------------------------ | --------------------------------- |
@@ -316,7 +316,7 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
 
   Note: lint-staged passes the staged file paths as arguments to each command, so `vitest related` receives exactly the right files.
 
-- [ ] **Pre-push (optional, belt-and-suspenders)** — if pre-commit already runs affected tests + typecheck, pre-push can run the full suite as a final gate:
+- [x] **Pre-push (optional, belt-and-suspenders)** — if pre-commit already runs affected tests + typecheck, pre-push can run the full suite as a final gate:
   ```bash
   # .husky/pre-push
   pnpm typecheck && pnpm test
