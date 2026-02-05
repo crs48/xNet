@@ -1,10 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
-import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: '/app/',
   resolve: {
     alias: {
       // Use source files directly for hot reload during development
@@ -24,6 +25,8 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
+        start_url: '/app/',
+        scope: '/app/',
         icons: [
           {
             src: 'icons/icon-192.png',
