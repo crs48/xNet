@@ -91,7 +91,9 @@ export class IndexedDBAdapter implements StorageAdapter {
   // Update operations
   async appendUpdate(docId: string, update: SignedUpdate): Promise<void> {
     if (!this.db) throw new Error('Database not open')
-    await this.db.add('updates', { docId, updateHash: update.updateHash, update })
+    // Use put() instead of add() to handle duplicate updates gracefully
+    // (same update may be received multiple times during sync)
+    await this.db.put('updates', { docId, updateHash: update.updateHash, update })
   }
 
   async getUpdates(docId: string, _since?: string): Promise<SignedUpdate[]> {

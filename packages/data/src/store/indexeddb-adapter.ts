@@ -130,7 +130,9 @@ export class IndexedDBNodeStorageAdapter implements NodeStorageAdapter {
 
   async appendChange(change: NodeChange): Promise<void> {
     const db = this.ensureOpen()
-    await db.add('changes', change as NodeChange & { nodeId: NodeId })
+    // Use put() instead of add() to handle duplicate changes gracefully
+    // (same change may be received multiple times during sync)
+    await db.put('changes', change as NodeChange & { nodeId: NodeId })
   }
 
   async getChanges(nodeId: NodeId): Promise<NodeChange[]> {
