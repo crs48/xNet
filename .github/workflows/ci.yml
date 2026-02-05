@@ -16,8 +16,11 @@ jobs:
       - name: Format check
         run: pnpm prettier --check "packages/**/*.{ts,tsx}" "apps/**/*.{ts,tsx}"
 
-      - name: Build & Type check & Lint
-        run: pnpm turbo run build typecheck lint
+      - name: Build & Type check
+        run: pnpm turbo run build typecheck
+
+      - name: Lint
+        run: pnpm lint
 
   test:
     runs-on: ubuntu-latest
