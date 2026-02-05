@@ -87,4 +87,4 @@ The landing page (`src/pages/index.astro`) includes custom sections:
 
 ## Deployment
 
-Built to `site/dist/`. Designed for GitHub Pages at `https://crs48.github.io/xNet`.
+Built to `site/dist/`. Deployed at `https://xnet.fyi`.

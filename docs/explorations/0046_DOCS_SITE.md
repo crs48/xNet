@@ -74,8 +74,8 @@ import starlight from '@astrojs/starlight'
 import tailwind from '@astrojs/tailwind'
 
 export default defineConfig({
-  site: 'https://crs48.github.io',
-  base: '/xNet',
+  site: 'https://xnet.fyi',
+  base: '/',
   integrations: [
     starlight({
       title: 'xNet',
