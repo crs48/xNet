@@ -49,8 +49,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  build-macos:
+  build-js:
     needs: version
+    if: needs.version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Upload JS build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-build
+          path: |
+            packages/*/dist
+            apps/electron/dist-electron
+          retention-days: 1
+
+  build-macos:
+    needs: [version, build-js]
     if: needs.version.outputs.should_release == 'true'
     runs-on: macos-latest
     strategy:
@@ -58,21 +78,14 @@ jobs:
         arch: [x64, arm64]
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v3
+      - uses: ./.github/actions/setup
         with:
-          version: 9
+          electron-cache: 'true'
 
-      - uses: actions/setup-node@v4
+      - name: Download JS build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm build
+          name: js-build
 
       - name: Import code signing certificates
         env:
@@ -126,26 +139,19 @@ jobs:
             apps/electron/dist/latest-mac.yml
 
   build-windows:
-    needs: version
+    needs: [version, build-js]
     if: needs.version.outputs.should_release == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v3
+      - uses: ./.github/actions/setup
         with:
-          version: 9
+          electron-cache: 'true'
 
-      - uses: actions/setup-node@v4
+      - name: Download JS build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm build
+          name: js-build
 
       - name: Build Electron app
         env:
@@ -164,7 +170,7 @@ jobs:
             apps/electron/dist/latest.yml
 
   build-linux:
-    needs: version
+    needs: [version, build-js]
     if: needs.version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     strategy:
@@ -172,21 +178,14 @@ jobs:
         arch: [x64, arm64]
     steps:
       - uses: actions/checkout@v4
-
-      - uses: pnpm/action-setup@v3
+      - uses: ./.github/actions/setup
         with:
-          version: 9
+          electron-cache: 'true'
 
-      - uses: actions/setup-node@v4
+      - name: Download JS build artifacts
+        uses: actions/download-artifact@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm build
+          name: js-build
 
       - name: Build Electron app
         run: |

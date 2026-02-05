@@ -327,16 +327,16 @@ This saves 4 redundant `pnpm build` executions. With Turbo cache, even the platf
 
 ### Phase 1: Quick Wins (config changes only)
 
-- [ ] **Add Turbo cache to `ci.yml`** — `actions/cache` on `.turbo` directory. Biggest bang for buck.
-- [ ] **Merge `ci.yml` jobs** — combine `test` and `build` into a single job. Eliminates redundant install + build.
-- [ ] **Add Electron binary cache to `electron-release.yml`** — cache `~/.cache/electron` and `~/.cache/electron-builder`.
-- [ ] **Add Turbo cache to `electron-release.yml`** — each build job benefits from cached package builds.
-- [ ] **Unify action versions** — all workflows should use `pnpm/action-setup@v4` and Node 22.
+- [x] **Add Turbo cache to `ci.yml`** — `actions/cache` on `.turbo` directory. Biggest bang for buck.
+- [x] **Merge `ci.yml` jobs** — combine `test` and `build` into a single job. Eliminates redundant install + build.
+- [x] **Add Electron binary cache to `electron-release.yml`** — cache `~/.cache/electron` and `~/.cache/electron-builder`.
+- [x] **Add Turbo cache to `electron-release.yml`** — each build job benefits from cached package builds.
+- [x] **Unify action versions** — all workflows should use `pnpm/action-setup@v4` and Node 22.
 
 ### Phase 2: Structural Changes
 
-- [ ] **Create composite setup action** — `.github/actions/setup/action.yml` to DRY up the 8 duplicated setup sequences.
-- [ ] **Separate JS build from Electron packaging** — build once on Linux, share `dist/` via artifacts, then run platform-specific packaging only.
+- [x] **Create composite setup action** — `.github/actions/setup/action.yml` to DRY up the 8 duplicated setup sequences.
+- [x] **Separate JS build from Electron packaging** — build once on Linux, share `dist/` via artifacts, then run platform-specific packaging only.
 
 ### Phase 3: Advanced
 

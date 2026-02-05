@@ -1,0 +1,43 @@
+name: 'Setup xNet'
+description: 'Checkout, install pnpm, Node.js, and dependencies'
+
+inputs:
+  node-version:
+    description: 'Node.js version'
+    default: '22'
+  turbo-cache:
+    description: 'Enable Turbo cache persistence'
+    default: 'true'
+  electron-cache:
+    description: 'Cache Electron and electron-builder binaries'
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: pnpm/action-setup@v4
+      shell: bash
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'pnpm'
+
+    - if: inputs.turbo-cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: .turbo
+        key: turbo-${{ runner.os }}-${{ github.sha }}
+        restore-keys: turbo-${{ runner.os }}-
+
+    - if: inputs.electron-cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/electron
+          ~/.cache/electron-builder
+        key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/electron/package.json') }}
+        restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
+
+    - run: pnpm install --frozen-lockfile
+      shell: bash
