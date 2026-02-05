@@ -1,0 +1,18 @@
+# Railway configuration for xNet Demo Hub
+#
+# This file must be at the repo root because the Dockerfile
+# expects to build from monorepo context (copies multiple packages).
+#
+# Deploy: Railway auto-deploys on push to main
+# Docs: https://docs.railway.app/reference/config-as-code
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "packages/hub/Dockerfile"
+
+[deploy]
+startCommand = "node packages/hub/dist/cli.js --demo"
+healthcheckPath = "/health"
+healthcheckTimeout = 10
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 5
