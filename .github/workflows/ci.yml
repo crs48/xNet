@@ -56,14 +56,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run tests (shard ${{ matrix.shard }})
+        if: github.event_name == 'push'
         run: pnpm vitest run --shard=${{ matrix.shard }} --coverage
 
-      - name: Run editor tests
-        if: matrix.shard == '1/3'
-        run: pnpm --filter @xnet/editor test
+      - name: Run changed tests (shard ${{ matrix.shard }})
+        if: github.event_name == 'pull_request'
+        run: pnpm vitest run --changed=origin/${{ github.base_ref }} --shard=${{ matrix.shard }} --passWithNoTests
 
       - name: Upload coverage
-        if: matrix.shard == '1/3'
+        if: matrix.shard == '1/3' && github.event_name == 'push'
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage/coverage-final.json
