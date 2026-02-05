@@ -180,9 +180,9 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] xnet.fyi shows landing page (GitHub Pages with custom domain)
-- [ ] Download links point to latest GitHub releases
-- [ ] Docs explain features, self-hosting, API
+- [x] xnet.fyi shows landing page (GitHub Pages with custom domain)
+- [x] Download links point to latest GitHub releases
+- [x] Docs explain features, self-hosting, API
 - [ ] "Try it now" links to xnet.fyi/app (demo with passkey + Hub)
 
 ### Phase 7: Demo Hub Deployment (Days 23-25)
