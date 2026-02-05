@@ -40,3 +40,7 @@ runs:
 
     - run: pnpm install --frozen-lockfile
       shell: bash
+
+    - name: Rebuild native modules
+      run: pnpm rebuild better-sqlite3
+      shell: bash
