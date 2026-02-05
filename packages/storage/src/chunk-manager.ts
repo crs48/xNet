@@ -5,9 +5,9 @@
  * stored individually with a manifest that records chunk order and
  * a Merkle root hash for integrity verification.
  */
+import type { BlobStore } from './blob-store'
 import type { ContentId, ContentChunk } from '@xnet/core'
 import { buildMerkleTree } from '@xnet/core'
-import type { BlobStore } from './blob-store'
 
 /** Chunk size: 256KB - good balance for sync efficiency */
 export const CHUNK_SIZE = 256 * 1024
@@ -46,8 +46,24 @@ export interface StoreResult {
 /**
  * ChunkManager - Handles chunked storage for large files.
  */
+export type ChunkManagerOptions = {
+  /** Override chunk size (default: CHUNK_SIZE) */
+  chunkSize?: number
+  /** Override chunk threshold (default: CHUNK_THRESHOLD) */
+  chunkThreshold?: number
+}
+
 export class ChunkManager {
-  constructor(private blobStore: BlobStore) {}
+  private readonly _chunkSize: number
+  private readonly _chunkThreshold: number
+
+  constructor(
+    private blobStore: BlobStore,
+    options?: ChunkManagerOptions
+  ) {
+    this._chunkSize = options?.chunkSize ?? CHUNK_SIZE
+    this._chunkThreshold = options?.chunkThreshold ?? CHUNK_THRESHOLD
+  }
 
   /**
    * Store a file, chunking if necessary.
@@ -60,7 +76,7 @@ export class ChunkManager {
     metadata: { filename: string; mimeType: string }
   ): Promise<StoreResult> {
     // Small files: store directly
-    if (data.byteLength < CHUNK_THRESHOLD) {
+    if (data.byteLength < this._chunkThreshold) {
       const cid = await this.blobStore.put(data)
       return { cid, isChunked: false }
     }
@@ -91,7 +107,7 @@ export class ChunkManager {
       filename: metadata.filename,
       rootHash: tree.rootHash,
       chunks: chunkCids,
-      chunkSize: CHUNK_SIZE
+      chunkSize: this._chunkSize
     }
 
     const manifestData = new TextEncoder().encode(JSON.stringify(manifest))
@@ -186,7 +202,7 @@ export class ChunkManager {
     let offset = 0
 
     while (offset < data.byteLength) {
-      const end = Math.min(offset + CHUNK_SIZE, data.byteLength)
+      const end = Math.min(offset + this._chunkSize, data.byteLength)
       chunks.push(data.slice(offset, end))
       offset = end
     }

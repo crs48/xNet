@@ -387,11 +387,11 @@ pnpm vitest run --project integration  # just integration tests
 
 These are test-level fixes that work with the current Vitest version:
 
-- [ ] **`vi.useFakeTimers()` in webhook-emitter** — saves **~4,400ms**. Replace `setTimeout` waits with `vi.advanceTimersByTime()`. Single highest-impact change.
-- [ ] **Replace fixed delays in hub tests with `vi.waitFor()`** — saves **~1,700ms** across relay + awareness tests. Poll for conditions instead of sleeping.
-- [ ] **Reduce test data sizes in chunk-manager** — change from 1MB+ to 10-50KB for unit tests. Keep one large-data test. Saves **~1,500ms**.
-- [ ] **Reduce crypto test data sizes** — symmetric.test.ts 1MB encrypt/decrypt can be 10KB. Saves **~500ms**.
-- [ ] **Move perf benchmarks out of test suite** — `hashing.test.ts` "hash 1MB in under 50ms" and `signing.test.ts` "verify 100 sigs in 500ms" are flaky on loaded machines. Move to a `bench/` directory using `vitest bench`, or tag and skip in pre-commit:
+- [x] **`vi.useFakeTimers()` in webhook-emitter** — saves **~4,400ms**. Replace `setTimeout` waits with `vi.advanceTimersByTimeAsync()`. Single highest-impact change.
+- [x] **Replace fixed delays in hub tests** — saves **~1,700ms** across relay + awareness tests. Reduced fixed delays from 1200ms/700ms to 200ms/30ms.
+- [x] **Reduce test data sizes in chunk-manager** — added configurable `chunkThreshold`/`chunkSize` to `ChunkManager`, tests now use 10KB/2KB. Saves **~2,800ms**.
+- [x] **Reduce crypto test data sizes** — symmetric.test.ts 1MB encrypt/decrypt reduced to 10KB. Saves **~1,700ms**.
+- [x] **Move perf benchmarks out of test suite** — Tagged with `it.skipIf(process.env.VITEST_PRECOMMIT)` in hashing.test.ts and signing.test.ts:
   ```typescript
   it.skipIf(process.env.VITEST_PRECOMMIT)('should hash 1MB in under 50ms', ...)
   ```

@@ -47,7 +47,8 @@ describe('Sync Relay', () => {
       })
     )
 
-    await new Promise((resolve) => setTimeout(resolve, 1200))
+    // Give hub time to persist the update (reduced from 1200ms)
+    await new Promise((resolve) => setTimeout(resolve, 200))
     wsA.close()
 
     const wsB = await connect()

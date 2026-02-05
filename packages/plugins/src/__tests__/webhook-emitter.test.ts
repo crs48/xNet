@@ -2,13 +2,13 @@
  * Tests for WebhookEmitter
  */
 
+import type { NodeStoreAPI } from '../services/local-api'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   WebhookEmitter,
   createWebhookEmitter,
   type WebhookConfig
 } from '../services/webhook-emitter'
-import type { NodeStoreAPI } from '../services/local-api'
 
 // ─── Mock Store ──────────────────────────────────────────────────────────────
 
@@ -62,6 +62,7 @@ describe('WebhookEmitter', () => {
   let mockStore: ReturnType<typeof createMockStore>
 
   beforeEach(() => {
+    vi.useFakeTimers()
     mockStore = createMockStore()
     emitter = new WebhookEmitter(mockStore)
     mockFetch.mockReset()
@@ -70,6 +71,7 @@ describe('WebhookEmitter', () => {
 
   afterEach(() => {
     emitter.stop()
+    vi.useRealTimers()
   })
 
   describe('registration', () => {
@@ -146,7 +148,7 @@ describe('WebhookEmitter', () => {
       mockStore.emit({ change: { type: 'node-change' }, node, isRemote: false })
 
       // Wait for async webhook delivery
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://example.com/webhook',
@@ -180,7 +182,7 @@ describe('WebhookEmitter', () => {
       // This emits 'updated' by default
       mockStore.emit({ change: { type: 'node-change' }, node, isRemote: false })
 
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(mockFetch).not.toHaveBeenCalled()
     })
@@ -206,7 +208,7 @@ describe('WebhookEmitter', () => {
 
       mockStore.emit({ change: { type: 'node-change' }, node: taskNode, isRemote: false })
 
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(mockFetch).not.toHaveBeenCalled()
 
@@ -221,7 +223,7 @@ describe('WebhookEmitter', () => {
 
       mockStore.emit({ change: { type: 'node-change' }, node: projectNode, isRemote: false })
 
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(mockFetch).toHaveBeenCalled()
     })
@@ -249,7 +251,7 @@ describe('WebhookEmitter', () => {
         isRemote: false
       })
 
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(mockFetch).not.toHaveBeenCalled()
     })
@@ -279,7 +281,11 @@ describe('WebhookEmitter', () => {
         isRemote: false
       })
 
-      await new Promise((r) => setTimeout(r, 50))
+      // crypto.subtle.sign is genuinely async — advance timers repeatedly
+      // to flush both timer callbacks and microtask-based crypto operations
+      for (let i = 0; i < 10; i++) {
+        await vi.advanceTimersByTimeAsync(10)
+      }
 
       expect(mockFetch).toHaveBeenCalledWith(
         'https://example.com/webhook',
@@ -322,11 +328,15 @@ describe('WebhookEmitter', () => {
         isRemote: false
       })
 
-      // Wait for retries (exponential backoff: 1s, 2s, 4s)
-      await new Promise((r) => setTimeout(r, 4000))
+      // Flush initial delivery attempt (fail #1)
+      await vi.advanceTimersByTimeAsync(50)
+      // Advance past 1s backoff (2^0) → fail #2
+      await vi.advanceTimersByTimeAsync(1000)
+      // Advance past 2s backoff (2^1) → success #3
+      await vi.advanceTimersByTimeAsync(2000)
 
       expect(mockFetch).toHaveBeenCalledTimes(3)
-    }, 10000)
+    })
 
     it('records delivery history', async () => {
       emitter.start()
@@ -350,7 +360,7 @@ describe('WebhookEmitter', () => {
         isRemote: false
       })
 
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       const history = emitter.getDeliveryHistory()
       expect(history).toHaveLength(1)
@@ -381,7 +391,7 @@ describe('WebhookEmitter', () => {
         isRemote: false
       })
 
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(emitter.getDeliveryHistory()).toHaveLength(1)
       emitter.clearDeliveryHistory()
@@ -412,7 +422,7 @@ describe('WebhookEmitter', () => {
         isRemote: false
       })
 
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(mockFetch).not.toHaveBeenCalled()
     })
@@ -440,7 +450,7 @@ describe('WebhookEmitter', () => {
         isRemote: false
       })
 
-      await new Promise((r) => setTimeout(r, 50))
+      await vi.advanceTimersByTimeAsync(50)
 
       expect(mockFetch).not.toHaveBeenCalled()
     })
