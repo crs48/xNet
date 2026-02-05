@@ -215,3 +215,92 @@ The specific failure from the issue shows `electron-updater` was added to `apps/
 ```
 
 This is the classic case: someone ran `pnpm add electron-updater` locally, committed `package.json`, but the lockfile update either wasn't committed or was lost in a merge.
+
+## Beyond Lockfiles: Full Pre-commit Quality Gates
+
+The lockfile issue is a symptom of a broader gap — there are no local quality gates at all. Here's what currently runs only in CI (or not at all) that could catch issues before they leave the developer's machine.
+
+### Current State
+
+| Check                            | Runs in CI?            | Runs Locally?  | Scope Gap                               |
+| -------------------------------- | ---------------------- | -------------- | --------------------------------------- |
+| `pnpm install --frozen-lockfile` | Only in release        | Never enforced | Lockfile drift                          |
+| `eslint`                         | Yes (`pnpm lint`)      | Editor only    | `apps/` not linted at all               |
+| `prettier`                       | **No**                 | Editor only    | No `format:check` script exists         |
+| `tsc --noEmit`                   | Yes (`pnpm typecheck`) | Editor only    | Slow feedback loop                      |
+| `vitest`                         | Yes (`pnpm test`)      | Manual only    | Editor tests silently excluded          |
+| `commitlint`                     | **No**                 | **No**         | No commit message convention enforced   |
+| `react-hooks` lint rules         | **No**                 | **No**         | Not installed despite heavy React usage |
+
+### What to Implement
+
+#### Phase 1: CI Fixes (immediate, no workflow change for developers)
+
+- [ ] **`ci.yml`: Use `--frozen-lockfile`** — change both `pnpm install` lines to `pnpm install --frozen-lockfile`. Catches lockfile drift at PR time instead of release time.
+- [ ] **`ci.yml`: Add Prettier check** — add `pnpm prettier --check "packages/**/*.{ts,tsx}" "apps/**/*.{ts,tsx}"` step. Currently formatting is never validated anywhere.
+- [ ] **`ci.yml`: Lint `apps/` too** — change lint script from `eslint packages --ext .ts,.tsx` to `eslint packages apps --ext .ts,.tsx`, or move to a Turbo-based lint task so each package/app lints itself.
+
+#### Phase 2: Git Hooks (local enforcement, fast feedback)
+
+- [ ] **Install husky** — `pnpm add -Dw husky`, add `"prepare": "husky"` to root `package.json`. Gives us the hook infrastructure.
+- [ ] **Install lint-staged** — `pnpm add -Dw lint-staged`. Runs checks only on staged files so hooks stay fast.
+- [ ] **Pre-commit: lint-staged config** — add to root `package.json`:
+  ```json
+  "lint-staged": {
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md,yml,yaml}": ["prettier --write"],
+    "package.json": ["pnpm install --lockfile-only"]
+  }
+  ```
+  This gives us:
+  - **ESLint + autofix** on staged `.ts`/`.tsx` files (~2-3s on changed files)
+  - **Prettier formatting** enforced automatically (no more style drift)
+  - **Lockfile sync** whenever any `package.json` is staged (the original problem)
+- [ ] **Pre-commit: typecheck on affected packages** — optionally run `tsc --noEmit` scoped to packages with staged changes. This is slower (~5-15s even with Turbo cache) so it could be pre-push instead. Suggested hook:
+  ```bash
+  # .husky/pre-commit
+  pnpm lint-staged
+  ```
+- [ ] **Pre-push: full test + typecheck** — heavier checks that shouldn't block every commit but should block pushes:
+  ```bash
+  # .husky/pre-push
+  pnpm typecheck && pnpm test
+  ```
+  This runs the same checks CI runs (~30-60s) before code hits the remote. Prevents the "push, wait 2 min, CI fails, fix, push again" cycle.
+
+#### Phase 3: Commit Message Conventions
+
+- [ ] **Install commitlint** — `pnpm add -Dw @commitlint/cli @commitlint/config-conventional`
+- [ ] **Add commitlint config** — create `commitlint.config.cjs`:
+  ```js
+  module.exports = { extends: ['@commitlint/config-conventional'] }
+  ```
+- [ ] **Add commit-msg hook** — `.husky/commit-msg`:
+  ```bash
+  pnpm commitlint --edit "$1"
+  ```
+  This enforces the `type(scope): description` format that the repo already uses informally (e.g. `feat(hub): add hub CD pipeline`). Making it formal means changelogs, release notes, and git log filtering all work reliably.
+
+#### Phase 4: ESLint Hardening
+
+- [ ] **Add `eslint-plugin-react-hooks`** — the repo has heavy React usage across 6 packages but no hooks linting. Missing dependency arrays and rules-of-hooks violations are a class of bug that's hard to catch in review.
+- [ ] **Promote `no-explicit-any` to error** — currently `warn`, which means it's ignored. Either enforce it or remove the rule.
+- [ ] **Add `eslint-plugin-import`** — enforces import ordering conventions from AGENTS.md (type-only first, external, internal, local). Currently the ordering rules exist only in documentation.
+- [ ] **Consider `explicit-function-return-type` on exported functions** — AGENTS.md says "Use explicit return types on exported functions" but the ESLint rule is `off`. Could enable it as `['warn', { allowExpressions: true }]` for exported functions only.
+
+#### Phase 5: Nice-to-Haves
+
+- [ ] **Add `.editorconfig`** — ensures consistent indentation/line endings even without Prettier integration in the editor. Trivial to add, zero maintenance.
+- [ ] **Add `format:check` script** — `prettier --check .` so developers can verify formatting manually. Currently there's no way to check without the editor.
+- [ ] **Add editor tests to root `pnpm test`** — `packages/editor` tests are silently excluded from `vitest run`. Either include them (with `jsdom` env override) or add a separate `test:editor` script and run both in CI.
+- [ ] **Turbo-ify linting** — move lint into a per-package Turbo task so it benefits from caching and only re-lints changed packages. Current approach re-lints everything every time.
+
+### Estimated Time Impact on Developer Workflow
+
+| Hook       | What Runs                                                       | Time   | Blocking?    |
+| ---------- | --------------------------------------------------------------- | ------ | ------------ |
+| Pre-commit | lint-staged (eslint + prettier on staged files, lockfile check) | 2-5s   | Every commit |
+| Commit-msg | commitlint                                                      | <1s    | Every commit |
+| Pre-push   | typecheck + test                                                | 30-60s | Every push   |
+
+All hooks are bypassable with `--no-verify` for emergencies. The key principle: **catch formatting and lint issues at commit time (cheap), catch type and logic errors at push time (thorough), and CI is the final backstop that should rarely fail.**
