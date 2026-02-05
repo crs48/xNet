@@ -44,6 +44,9 @@ runs:
     - name: Rebuild better-sqlite3 for correct Node version
       run: |
         echo "Node version: $(node --version)"
+        echo "Removing cached better-sqlite3 binary..."
+        rm -rf node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/build
+        rm -rf node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3/prebuilds
         echo "Rebuilding better-sqlite3..."
-        npm rebuild better-sqlite3
+        cd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 && npx --yes prebuild-install || npm run build-release
       shell: bash
