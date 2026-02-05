@@ -12,7 +12,8 @@ import {
   Moon,
   Monitor,
   Download,
-  Puzzle
+  Puzzle,
+  Wifi
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { PluginManager } from '../components/PluginManager'
@@ -21,7 +22,7 @@ export const Route = createFileRoute('/settings')({
   component: SettingsPage
 })
 
-type SettingsSection = 'appearance' | 'data' | 'plugins' | 'about'
+type SettingsSection = 'appearance' | 'data' | 'network' | 'plugins' | 'about'
 
 interface SectionConfig {
   id: SettingsSection
@@ -42,6 +43,12 @@ const SECTIONS: SectionConfig[] = [
     label: 'Data',
     icon: <Database size={18} />,
     description: 'Storage and export'
+  },
+  {
+    id: 'network',
+    label: 'Network',
+    icon: <Wifi size={18} />,
+    description: 'Sync settings'
   },
   {
     id: 'plugins',
@@ -88,6 +95,7 @@ function SettingsPage() {
       <div className="flex-1 overflow-auto p-6">
         {activeSection === 'appearance' && <AppearanceSettings />}
         {activeSection === 'data' && <DataSettings />}
+        {activeSection === 'network' && <NetworkSettings />}
         {activeSection === 'plugins' && <PluginManager />}
         {activeSection === 'about' && <AboutSettings />}
       </div>
@@ -337,6 +345,95 @@ function DataSettings() {
             </button>
           )}
         </SettingRow>
+      </div>
+    </div>
+  )
+}
+
+// ─── Network Settings ──────────────────────────────────────────────────────────
+
+const DEFAULT_HUB_URL = import.meta.env.VITE_HUB_URL || 'wss://hub.xnet.fyi'
+
+function NetworkSettings() {
+  const [hubUrl, setHubUrl] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_HUB_URL
+    return localStorage.getItem('xnet:hub-url') || DEFAULT_HUB_URL
+  })
+  const [saved, setSaved] = useState(false)
+
+  const handleSave = useCallback(() => {
+    localStorage.setItem('xnet:hub-url', hubUrl)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }, [hubUrl])
+
+  const handleReset = useCallback(() => {
+    setHubUrl(DEFAULT_HUB_URL)
+    localStorage.removeItem('xnet:hub-url')
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }, [])
+
+  const isModified = hubUrl !== DEFAULT_HUB_URL
+
+  return (
+    <div className="max-w-xl space-y-6">
+      <div>
+        <h2 className="text-lg font-medium mb-1">Network</h2>
+        <p className="text-sm text-muted-foreground">Configure sync and connectivity</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="py-3 border-b border-border">
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <div className="text-sm font-medium">Hub URL</div>
+              <div className="text-xs text-muted-foreground">
+                WebSocket server for peer discovery and sync
+              </div>
+            </div>
+            {saved && <span className="text-xs text-green-500">Saved! Reload to apply.</span>}
+          </div>
+          <div className="flex gap-2 mt-2">
+            <input
+              type="text"
+              value={hubUrl}
+              onChange={(e) => setHubUrl(e.target.value)}
+              placeholder="wss://hub.xnet.fyi"
+              className="flex-1 px-3 py-1.5 rounded-md text-sm border border-border bg-background focus:outline-none focus:ring-2 focus:ring-ring font-mono"
+            />
+            <button
+              onClick={handleSave}
+              className="px-3 py-1.5 rounded-md text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Save
+            </button>
+            {isModified && (
+              <button
+                onClick={handleReset}
+                className="px-3 py-1.5 rounded-md text-sm border border-border hover:bg-accent transition-colors"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        </div>
+
+        <SettingRow label="Protocol" description="Connection type used for sync">
+          <span className="text-sm text-muted-foreground">WebSocket + WebRTC</span>
+        </SettingRow>
+
+        <SettingRow label="Encryption" description="All sync traffic is encrypted">
+          <span className="text-sm text-muted-foreground">XChaCha20-Poly1305</span>
+        </SettingRow>
+      </div>
+
+      <div className="pt-4 border-t border-border">
+        <p className="text-xs text-muted-foreground">
+          Changes to the Hub URL require reloading the app to take effect. The default hub at{' '}
+          <code className="font-mono">hub.xnet.fyi</code> is provided for convenience, but you can
+          run your own signaling server.
+        </p>
       </div>
     </div>
   )
