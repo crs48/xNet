@@ -497,35 +497,35 @@ This gives Expo full feature parity with web automatically — when web gains a 
 
 These must be done to have a functional demo at `xnet.fyi/app`:
 
-- [ ] **Identity & Auth**
-  - [ ] Add `@xnet/identity` to `apps/web/package.json`
-  - [ ] Remove hardcoded `AUTHOR_DID` and `SIGNING_KEY` from `main.tsx`
-  - [ ] Integrate `createIdentityManager()` for passkey auth
-  - [ ] Add unlock flow for returning users
+- [x] **Identity & Auth**
+  - [x] Add `@xnet/identity` to `apps/web/package.json`
+  - [x] Remove hardcoded `AUTHOR_DID` and `SIGNING_KEY` from `main.tsx`
+  - [x] Integrate `createIdentityManager()` for passkey auth
+  - [x] Add unlock flow for returning users
   - [ ] Handle fallback for non-PRF browsers
 
-- [ ] **Onboarding**
-  - [ ] Import `OnboardingProvider` and `OnboardingFlow` from `@xnet/react`
-  - [ ] Wire onboarding into app entry point
-  - [ ] Configure hub URL (`wss://hub.xnet.fyi`)
+- [x] **Onboarding**
+  - [x] Import `OnboardingProvider` and `OnboardingFlow` from `@xnet/react`
+  - [x] Wire onboarding into app entry point
+  - [x] Configure hub URL (`wss://hub.xnet.fyi`)
   - [ ] Add template picker on `ReadyScreen`
 
-- [ ] **Hub Connection**
-  - [ ] Pass `signalingUrl` to `XNetProvider` config
+- [x] **Hub Connection**
+  - [x] Pass `hubUrl` to `XNetProvider` config
   - [ ] Remove `disableSync: true` from `useNode` calls
   - [ ] Verify Yjs sync works end-to-end
 
-- [ ] **Deployment**
-  - [ ] Set `base: '/app/'` in `vite.config.ts`
-  - [ ] Set `basepath: '/app'` in TanStack Router
-  - [ ] Update PWA manifest `start_url` and `scope`
-  - [ ] Update `deploy-site.yml` to build web app
-  - [ ] Add SPA fallback (`404.html`)
+- [x] **Deployment**
+  - [x] Set `base: '/app/'` in `vite.config.ts`
+  - [x] Set `basepath: '/app'` in TanStack Router
+  - [x] Update PWA manifest `start_url` and `scope`
+  - [x] Update `deploy-site.yml` to build web app
+  - [x] Add SPA fallback (`404.html`)
   - [ ] Verify deployment at `xnet.fyi/app`
 
-- [ ] **Landing Page**
-  - [ ] Add "Try it now" CTA to Hero section
-  - [ ] Add "Try it" to Nav
+- [x] **Landing Page**
+  - [x] Add "Try it now" CTA to Hero section
+  - [x] Add "Try it" to Nav
   - [ ] Verify download page `/app` link works
 
 ### Web App: P1 (Feature Parity - Core)
