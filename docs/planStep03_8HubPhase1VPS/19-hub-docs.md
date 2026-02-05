@@ -285,9 +285,9 @@ Exposes: `hub_ws_connections_active`, `hub_ws_messages_received_total`, `hub_syn
 
 ## Further Reading
 
-- [Sync Guide](/xNet/docs/guides/sync/) — How P2P sync works
-- [Sync Architecture](/xNet/docs/concepts/sync-architecture/) — The full sync stack
-- [Identity Guide](/xNet/docs/guides/identity/) — UCAN tokens and authentication
+- [Sync Guide](/docs/guides/sync/) — How P2P sync works
+- [Sync Architecture](/docs/concepts/sync-architecture/) — The full sync stack
+- [Identity Guide](/docs/guides/identity/) — UCAN tokens and authentication
 
 ````
 
