@@ -553,11 +553,11 @@ describe('Expo App', () => {
 
 - [ ] Development build runs on iOS simulator
 - [ ] Development build runs on Android emulator
-- [ ] EAS Build produces installable builds
+- [x] EAS Build produces installable builds
 - [ ] Biometric authentication works
 - [ ] Hub connection works
-- [ ] Documentation clearly explains build process
-- [ ] Known limitations documented
+- [x] Documentation clearly explains build process
+- [x] Known limitations documented
 - [ ] TestFlight link available for early adopters
 
 ---

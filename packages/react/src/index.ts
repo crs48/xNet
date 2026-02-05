@@ -208,6 +208,16 @@ export { usePeerDiscovery, type DiscoveredPeer } from './hooks/usePeerDiscovery'
 
 export { HubStatusIndicator } from './components/HubStatusIndicator'
 
+export { ErrorBoundary, type ErrorBoundaryProps } from './components/ErrorBoundary'
+
+export { Skeleton, injectSkeletonStyles, type SkeletonProps } from './components/Skeleton'
+
+export {
+  OfflineIndicator,
+  useIsOffline,
+  type OfflineIndicatorProps
+} from './components/OfflineIndicator'
+
 // =============================================================================
 // Utilities
 // =============================================================================

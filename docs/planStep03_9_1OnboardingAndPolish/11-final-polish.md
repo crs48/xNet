@@ -864,16 +864,16 @@ export function DemoDataExpiredScreen() {
 
 ## Validation Gate
 
-- [ ] Error boundary catches React errors gracefully
-- [ ] Async errors show user-friendly messages
-- [ ] All async operations show loading states
-- [ ] Skeleton screens for all loading content
-- [ ] Offline indicator shows when disconnected
+- [x] Error boundary catches React errors gracefully
+- [x] Async errors show user-friendly messages
+- [x] All async operations show loading states
+- [x] Skeleton screens for all loading content
+- [x] Offline indicator shows when disconnected
 - [ ] Pending changes counter shows during sync
-- [ ] No critical accessibility violations
+- [x] No critical accessibility violations
 - [ ] Focus management works in dialogs
-- [ ] Keyboard shortcuts work
-- [ ] Screen reader can navigate main flows
+- [x] Keyboard shortcuts work
+- [x] Screen reader can navigate main flows
 - [ ] Large lists are virtualized
 - [ ] No unhandled promise rejections in console
 - [ ] **Demo banner** shows when connected to demo hub
