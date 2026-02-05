@@ -18,9 +18,40 @@ export class RevocationStore {
   /**
    * Add a revocation after verifying the signature.
    *
+   * Optionally accepts the original UCAN token to verify that the
+   * revocation issuer matches the token's issuer.
+   *
    * @throws {Error} If the revocation signature is invalid
+   * @throws {Error} If the issuer does not match the token issuer
    */
-  revoke(revocation: Revocation): void {
+  revoke(revocation: Revocation, originalToken?: string): void {
+    // If the original token is provided, verify the issuer matches
+    if (originalToken) {
+      const ucanParts = originalToken.split('.')
+      if (ucanParts.length === 3) {
+        try {
+          let base64 = ucanParts[1].replace(/-/g, '+').replace(/_/g, '/')
+          const padding = base64.length % 4
+          if (padding) {
+            base64 += '='.repeat(4 - padding)
+          }
+          const binary = atob(base64)
+          const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+          const payloadJson = new TextDecoder().decode(bytes)
+          const ucanPayload = JSON.parse(payloadJson) as { iss?: string }
+          if (ucanPayload.iss && ucanPayload.iss !== revocation.issuer) {
+            throw new Error(
+              'Revocation issuer does not match token issuer: only the original issuer can revoke'
+            )
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message.startsWith('Revocation issuer')) {
+            throw err
+          }
+        }
+      }
+    }
+
     // Verify the signature
     const payload = buildRevocationPayload(revocation.tokenHash, revocation.revokedAt)
 
@@ -65,15 +96,45 @@ export class RevocationStore {
 /**
  * Create a signed revocation for a share token.
  *
+ * Verifies that the issuerDid matches the UCAN's `iss` field — only
+ * the original issuer can revoke a token.
+ *
  * @param issuerDid - DID of the identity that created the share
  * @param signingKey - Ed25519 private key
  * @param token - The UCAN token string to revoke
+ * @throws {Error} If issuerDid does not match the token's issuer
  */
 export function createRevocation(
   issuerDid: string,
   signingKey: Uint8Array,
   token: string
 ): Revocation {
+  // Verify that the issuer matches the UCAN's iss field
+  const ucanParts = token.split('.')
+  if (ucanParts.length === 3) {
+    try {
+      let base64 = ucanParts[1].replace(/-/g, '+').replace(/_/g, '/')
+      const padding = base64.length % 4
+      if (padding) {
+        base64 += '='.repeat(4 - padding)
+      }
+      const binary = atob(base64)
+      const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+      const payloadJson = new TextDecoder().decode(bytes)
+      const ucanPayload = JSON.parse(payloadJson) as { iss?: string }
+      if (ucanPayload.iss && ucanPayload.iss !== issuerDid) {
+        throw new Error(
+          'Revocation issuer does not match token issuer: only the original issuer can revoke a token'
+        )
+      }
+    } catch (err) {
+      // Re-throw issuer mismatch errors, ignore parse errors
+      if (err instanceof Error && err.message.startsWith('Revocation issuer')) {
+        throw err
+      }
+    }
+  }
+
   const tokenHash = computeTokenHash(token)
   const revokedAt = Date.now()
 

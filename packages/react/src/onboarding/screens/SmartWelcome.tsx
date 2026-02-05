@@ -52,7 +52,7 @@ export function SmartWelcome(): JSX.Element {
           Sign in with {authName}
         </button>
 
-        <button className="text-button" onClick={() => send({ type: 'AUTHENTICATE' })}>
+        <button className="text-button" onClick={() => send({ type: 'CREATE_NEW' })}>
           Create a new identity instead
         </button>
       </div>

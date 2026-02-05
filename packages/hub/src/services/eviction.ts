@@ -32,9 +32,14 @@ export class EvictionService {
 
   /** Start periodic eviction checks. */
   start(): void {
+    // Guard against double-start leaking intervals
+    this.stop()
+
     // Run immediately, then on interval
-    void this.evict()
-    this.timer = setInterval(() => void this.evict(), this.config.evictionInterval)
+    this.evict().catch((err) => console.error('[eviction] Initial eviction failed:', err))
+    this.timer = setInterval(() => {
+      this.evict().catch((err) => console.error('[eviction] Periodic eviction failed:', err))
+    }, this.config.evictionInterval)
     console.log(
       `[eviction] Started with TTL=${this.config.evictionTtl}ms, interval=${this.config.evictionInterval}ms`
     )
@@ -64,11 +69,17 @@ export class EvictionService {
       `[eviction] Evicting ${stale.length} inactive users (cutoff: ${new Date(cutoff).toISOString()})`
     )
 
+    let evicted = 0
     for (const did of stale) {
-      await this.storage.deleteUserData(did)
-      await this.storage.deleteActivity(did)
+      try {
+        await this.storage.deleteUserData(did)
+        await this.storage.deleteActivity(did)
+        evicted++
+      } catch (err) {
+        console.error(`[eviction] Failed to evict DID ${did}:`, err)
+      }
     }
 
-    return stale.length
+    return evicted
   }
 }

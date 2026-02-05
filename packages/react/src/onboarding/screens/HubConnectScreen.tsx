@@ -5,7 +5,7 @@
 import { useEffect } from 'react'
 import { useOnboarding } from '../OnboardingProvider'
 
-export interface HubConnectScreenProps {
+export type HubConnectScreenProps = {
   /** Optional: attempt hub connection. If not provided, auto-advances. */
   connectToHub?: () => Promise<void>
 }
@@ -14,18 +14,28 @@ export function HubConnectScreen({ connectToHub }: HubConnectScreenProps): JSX.E
   const { send, context } = useOnboarding()
 
   useEffect(() => {
+    let cancelled = false
+
     if (connectToHub) {
       connectToHub()
-        .then(() => send({ type: 'HUB_CONNECTED' }))
-        .catch((err: unknown) =>
-          send({
-            type: 'HUB_FAILED',
-            error: err instanceof Error ? err : new Error(String(err))
-          })
-        )
+        .then(() => {
+          if (!cancelled) send({ type: 'HUB_CONNECTED' })
+        })
+        .catch((err: unknown) => {
+          if (!cancelled) {
+            send({
+              type: 'HUB_FAILED',
+              error: err instanceof Error ? err : new Error(String(err))
+            })
+          }
+        })
     } else {
       // No hub connector provided — skip straight to ready
       send({ type: 'HUB_CONNECTED' })
+    }
+
+    return () => {
+      cancelled = true
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

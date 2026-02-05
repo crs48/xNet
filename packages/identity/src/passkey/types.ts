@@ -9,7 +9,7 @@ import type { Identity, KeyBundle } from '../types'
  * Public identity info persisted in IndexedDB.
  * The private key is NEVER stored — it's derived on-demand via PRF.
  */
-export interface PasskeyIdentity {
+export type PasskeyIdentity = {
   /** The DID derived from the public key */
   did: string
 
@@ -35,7 +35,7 @@ export interface PasskeyIdentity {
  * Result of creating or unlocking a passkey identity.
  * Contains the full KeyBundle (ephemeral — don't persist the private keys!).
  */
-export interface PasskeyUnlockResult {
+export type PasskeyUnlockResult = {
   /** Full key bundle with signing + encryption keys */
   keyBundle: KeyBundle
 
@@ -45,7 +45,7 @@ export interface PasskeyUnlockResult {
 
 // ─── Options ─────────────────────────────────────────────────
 
-export interface PasskeyCreateOptions {
+export type PasskeyCreateOptions = {
   /** User-friendly name for the passkey (default: "xNet Identity") */
   displayName?: string
 
@@ -61,16 +61,26 @@ export interface PasskeyCreateOptions {
 /**
  * Encrypted private key storage for authenticators that don't support PRF.
  * Stored alongside PasskeyIdentity in IndexedDB.
+ *
+ * **Security model:** The encryption key (`encKey`) is stored alongside the
+ * ciphertext in IndexedDB. This does NOT protect against XSS — if an
+ * attacker can read IndexedDB, they can decrypt the key bundle. Security
+ * comes from the passkey gating access to the application, not from the
+ * encryption at rest. PRF-based storage is preferred when available.
  */
-export interface FallbackStorage {
+export type FallbackStorage = {
   /** Encrypted serialized KeyBundle (XChaCha20-Poly1305) */
   encryptedBundle: Uint8Array
 
   /** Nonce used for encryption */
   nonce: Uint8Array
 
-  /** Salt used for HKDF key derivation */
-  salt: Uint8Array
+  /**
+   * Encryption key (NOT a salt). Stored alongside ciphertext.
+   * Security relies on passkey gating, not key secrecy.
+   * @see Security model note above
+   */
+  encKey: Uint8Array
 }
 
 // ─── Stored Record ───────────────────────────────────────────
@@ -79,14 +89,14 @@ export interface FallbackStorage {
  * Full stored record in IndexedDB.
  * For PRF identities, fallback is undefined.
  */
-export interface StoredPasskeyRecord {
+export type StoredPasskeyRecord = {
   passkey: PasskeyIdentity
   fallback?: FallbackStorage
 }
 
 // ─── Support Detection ───────────────────────────────────────
 
-export interface PasskeySupport {
+export type PasskeySupport = {
   /** Browser supports WebAuthn at all */
   webauthn: boolean
 

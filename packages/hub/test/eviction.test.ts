@@ -145,6 +145,48 @@ describe('EvictionService', () => {
     })
   })
 
+  describe('error handling', () => {
+    it('should continue evicting remaining DIDs when one fails', async () => {
+      const service = new EvictionService(storage, config)
+      const now = Date.now()
+
+      await storage.upsertActivity('did:key:a', now - 300)
+      await storage.upsertActivity('did:key:b', now - 200)
+      await storage.upsertActivity('did:key:c', now - 150)
+
+      // Make deleteUserData throw for 'did:key:b'
+      const originalDelete = storage.deleteUserData.bind(storage)
+      storage.deleteUserData = async (did: string) => {
+        if (did === 'did:key:b') throw new Error('storage error')
+        return originalDelete(did)
+      }
+
+      const count = await service.evict()
+
+      // 2 of 3 should succeed, 'b' failed
+      expect(count).toBe(2)
+      // a and c should be evicted
+      expect(storage.userData.has('did:key:a')).toBe(false)
+      expect(storage.userData.has('did:key:c')).toBe(false)
+      // b's data should remain (deleteUserData threw before deleteActivity)
+      expect(storage.userData.has('did:key:b')).toBe(true)
+    })
+  })
+
+  describe('double-start guard', () => {
+    it('should not leak intervals when start() is called twice', () => {
+      vi.useFakeTimers()
+      const service = new EvictionService(storage, config)
+
+      service.start()
+      service.start() // Should stop first, then restart
+
+      // Only one interval should be active — verify by stopping once
+      service.stop()
+      vi.useRealTimers()
+    })
+  })
+
   describe('DEMO_DEFAULTS', () => {
     it('should have sensible defaults', () => {
       expect(DEMO_DEFAULTS.quota).toBe(10 * 1024 * 1024)

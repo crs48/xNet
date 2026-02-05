@@ -33,7 +33,7 @@ describe('InitialSyncManager', () => {
       expect(p.bytesReceived).toBe(100)
     })
 
-    it('increments synced rooms for each message', () => {
+    it('counts unique rooms synced', () => {
       const manager = createInitialSyncManager()
 
       manager.handleMessage({
@@ -50,6 +50,26 @@ describe('InitialSyncManager', () => {
       const p = manager.getProgress()
       expect(p.roomsSynced).toBe(2)
       expect(p.bytesReceived).toBe(125)
+    })
+
+    it('does not double-count duplicate room messages', () => {
+      const manager = createInitialSyncManager()
+
+      manager.handleMessage({
+        type: 'initial-sync',
+        room: 'room1',
+        update: new Uint8Array(50)
+      })
+      // Second message for same room (e.g. incremental update)
+      manager.handleMessage({
+        type: 'initial-sync',
+        room: 'room1',
+        update: new Uint8Array(30)
+      })
+
+      const p = manager.getProgress()
+      expect(p.roomsSynced).toBe(1) // Only 1 unique room
+      expect(p.bytesReceived).toBe(80) // Bytes still accumulate
     })
 
     it('handles node-changes messages', () => {

@@ -2,11 +2,12 @@
  * @xnet/identity/sharing - Parse and validate share links
  */
 import { verifyUCAN } from '../ucan'
+import { fromBase64Url } from './base64url'
 import type { ShareData, SharePermission } from './types'
 
 // ─── Parsed Share Result ─────────────────────────────────────
 
-export interface ParsedShare {
+export type ParsedShare = {
   /** Resource URI */
   resource: string
 
@@ -27,10 +28,18 @@ export interface ParsedShare {
 
   /** Permissions granted */
   permissions: SharePermission[]
+
+  /** Whether the token has expired */
+  expired: boolean
 }
 
 /**
  * Parse a share link or the encoded share data portion.
+ *
+ * **WARNING: The returned data is NOT verified.** The UCAN signature is not
+ * checked — all fields (issuer, audience, permissions) come from the
+ * unverified token payload. Always call `verifyShareToken(parsed.token)`
+ * before trusting any values.
  *
  * Accepts either:
  * - Full URL: "https://xnet.fyi/s/eyJ..."
@@ -98,14 +107,37 @@ export function parseShareLink(input: string): ParsedShare {
     }
   }
 
+  const expiresAt = payload.exp * 1000
+  const expired = expiresAt < Date.now()
+
   return {
     resource: data.r,
     token: data.u,
     hubUrl: data.h ?? null,
     issuer: payload.iss,
     audience: payload.aud,
-    expiresAt: payload.exp * 1000,
-    permissions
+    expiresAt,
+    permissions,
+    expired
+  }
+}
+
+/**
+ * Parse and verify a share link in one step.
+ *
+ * Parses the link data and verifies the UCAN signature + expiry.
+ * Returns the parsed share data along with verification status.
+ */
+export function parseAndVerifyShareLink(input: string): ParsedShare & {
+  valid: boolean
+  error?: string
+} {
+  const parsed = parseShareLink(input)
+  const verification = verifyShareToken(parsed.token)
+  return {
+    ...parsed,
+    valid: verification.valid,
+    error: verification.error
   }
 }
 
@@ -121,15 +153,4 @@ export function verifyShareToken(token: string): {
     valid: result.valid,
     error: result.error
   }
-}
-
-// ─── Helpers ─────────────────────────────────────────────────
-
-function fromBase64Url(str: string): string {
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/')
-  const padding = base64.length % 4
-  if (padding) {
-    base64 += '='.repeat(4 - padding)
-  }
-  return atob(base64)
 }

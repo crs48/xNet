@@ -11,7 +11,7 @@ import { deriveKeySeed, PRF_INPUT } from './derive'
 
 // ─── Types ───────────────────────────────────────────────────
 
-export interface DiscoveredPasskey {
+export type DiscoveredPasskey = {
   credentialId: Uint8Array
   rpId: string
   userHandle: Uint8Array | null

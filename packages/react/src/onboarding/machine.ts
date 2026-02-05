@@ -28,6 +28,7 @@ export type OnboardingState =
 
 export type OnboardingEvent =
   | { type: 'AUTHENTICATE' }
+  | { type: 'CREATE_NEW' }
   | { type: 'IMPORT_EXISTING' }
   | { type: 'PASSKEY_SUCCESS'; identity: Identity; keyBundle: KeyBundle }
   | { type: 'PASSKEY_FAILED'; error: Error }
@@ -43,7 +44,7 @@ export type OnboardingEvent =
 
 // ─── Context ─────────────────────────────────────────────────
 
-export interface OnboardingMachineContext {
+export type OnboardingMachineContext = {
   identity: Identity | null
   keyBundle: KeyBundle | null
   hubUrl: string | null
@@ -62,6 +63,7 @@ const TRANSITIONS: Partial<
 > = {
   welcome: {
     AUTHENTICATE: 'authenticating',
+    CREATE_NEW: 'authenticating',
     IMPORT_EXISTING: 'import-identity',
     BROWSER_UNSUPPORTED: 'unsupported-browser'
   },
@@ -98,7 +100,7 @@ const TRANSITIONS: Partial<
 
 // ─── Reducer ─────────────────────────────────────────────────
 
-export interface OnboardingReducerState {
+export type OnboardingReducerState = {
   state: OnboardingState
   context: OnboardingMachineContext
 }
@@ -145,6 +147,7 @@ export function onboardingReducer(
 
     case 'RETRY_AUTH':
     case 'AUTHENTICATE':
+    case 'CREATE_NEW':
       nextContext.error = null
       break
   }

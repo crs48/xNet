@@ -22,7 +22,20 @@ const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000
 // Delay before first check (let the app finish loading)
 const INITIAL_CHECK_DELAY_MS = 10_000
 
+// ─── Helpers ────────────────────────────────────────────────
+
+/** Safely send IPC to a window, guarding against destroyed windows. */
+function safeSend(window: BrowserWindow, channel: string, data: unknown): void {
+  if (!window.isDestroyed()) {
+    window.webContents.send(channel, data)
+  }
+}
+
 // ─── Init ───────────────────────────────────────────────────
+
+let checkInterval: ReturnType<typeof setInterval> | null = null
+let initialTimeout: ReturnType<typeof setTimeout> | null = null
+let initialized = false
 
 export function initAutoUpdater(mainWindow: BrowserWindow): void {
   // Skip in development
@@ -30,26 +43,45 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
     return
   }
 
+  // Prevent double-initialization (IPC handlers can only register once)
+  if (initialized) {
+    return
+  }
+  initialized = true
+
   // Check for updates on startup (after a delay)
-  setTimeout(() => {
+  initialTimeout = setTimeout(() => {
     autoUpdater.checkForUpdates().catch(() => {
       // Silently ignore — network may be unavailable
     })
   }, INITIAL_CHECK_DELAY_MS)
 
-  // Periodic check
-  setInterval(() => {
+  // Periodic check — store handle for cleanup
+  checkInterval = setInterval(() => {
     autoUpdater.checkForUpdates().catch(() => {})
   }, CHECK_INTERVAL_MS)
+
+  // Clean up intervals when the window is closed
+  mainWindow.on('closed', () => {
+    if (checkInterval) {
+      clearInterval(checkInterval)
+      checkInterval = null
+    }
+    if (initialTimeout) {
+      clearTimeout(initialTimeout)
+      initialTimeout = null
+    }
+  })
 
   // ─── Events ─────────────────────────────────────────────
 
   autoUpdater.on('update-available', (info: any) => {
-    // Notify renderer
-    mainWindow.webContents.send('update-available', {
+    safeSend(mainWindow, 'update-available', {
       version: info.version,
       releaseNotes: info.releaseNotes
     })
+
+    if (mainWindow.isDestroyed()) return
 
     dialog
       .showMessageBox(mainWindow, {
@@ -68,7 +100,7 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
   })
 
   autoUpdater.on('download-progress', (progress: any) => {
-    mainWindow.webContents.send('update-progress', {
+    safeSend(mainWindow, 'update-progress', {
       percent: progress.percent,
       transferred: progress.transferred,
       total: progress.total
@@ -85,9 +117,11 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
       app.dock?.setBadge('')
     }
 
-    mainWindow.webContents.send('update-ready', {
+    safeSend(mainWindow, 'update-ready', {
       version: info.version
     })
+
+    if (mainWindow.isDestroyed()) return
 
     dialog
       .showMessageBox(mainWindow, {
@@ -106,27 +140,27 @@ export function initAutoUpdater(mainWindow: BrowserWindow): void {
   })
 
   autoUpdater.on('error', (err: Error) => {
-    mainWindow.webContents.send('update-error', {
+    safeSend(mainWindow, 'update-error', {
       message: err.message
     })
   })
+
+  // ─── IPC handlers for manual update control ─────────────
+
+  ipcMain.handle('check-for-updates', async () => {
+    try {
+      const result = await autoUpdater.checkForUpdates()
+      return result?.updateInfo ?? null
+    } catch {
+      return null
+    }
+  })
+
+  ipcMain.handle('download-update', () => {
+    autoUpdater.downloadUpdate()
+  })
+
+  ipcMain.handle('install-update', () => {
+    autoUpdater.quitAndInstall()
+  })
 }
-
-// ─── IPC handlers for manual update control ─────────────────
-
-ipcMain.handle('check-for-updates', async () => {
-  try {
-    const result = await autoUpdater.checkForUpdates()
-    return result?.updateInfo ?? null
-  } catch {
-    return null
-  }
-})
-
-ipcMain.handle('download-update', () => {
-  autoUpdater.downloadUpdate()
-})
-
-ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall()
-})
