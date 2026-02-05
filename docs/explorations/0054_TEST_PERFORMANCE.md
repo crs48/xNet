@@ -1,6 +1,6 @@
 # 0054 - Test Suite Performance & Refactoring
 
-> **Status:** Exploration
+> **Status:** Complete
 > **Tags:** vitest, testing, performance, monorepo, CI, DX, agent-workflow
 > **Created:** 2026-02-05
 > **Context:** The test suite runs 1845 tests across 110 files in ~14s wall clock. This exploration profiles the suite, identifies bottlenecks, and proposes concrete optimizations — from quick wins (fake timers) to architectural changes (Vitest 4.x upgrade with project-based config). Faster tests mean faster pre-commit hooks, faster CI, and faster agent feedback loops.
@@ -422,7 +422,7 @@ Major version upgrade with architectural improvements:
 
 - [x] **Add sharding for CI** — split test files across 3 parallel jobs in `.github/workflows/ci.yml`. Lint/typecheck separated into own job.
 - [x] **Use `vitest run --changed` in CI for PRs** — PR branches now run `vitest run --changed=origin/$BASE_REF --passWithNoTests` per shard. Push to main still runs all tests.
-- [ ] **Cache Vitest's module graph** — Vitest 4.x has improved caching that persists across runs.
+- [x] **Cache Vitest's module graph** — automatic in Vitest 4.x via Vite Module Runner (replaced vite-node). No user config needed.
 
 ---
 
@@ -476,3 +476,21 @@ xychart-beta
 | Phase 4 (CI sharding)  | ~2s per shard | -2s (50%)   | 86%        |
 
 For pre-commit hooks (affected tests only), Phase 1 + 2 would bring `vitest run --changed` to **~2-4s** — fast enough to run on every commit without friction.
+
+---
+
+## Actual Results
+
+All phases are complete. Final measured numbers:
+
+| Project          | Files   | Tests     | Wall Clock | Pool    | Isolation |
+| ---------------- | ------- | --------- | ---------- | ------- | --------- |
+| `unit`           | 70      | 1,358     | **1.2s**   | threads | off       |
+| `dom`            | 22      | 326       | **2.1s**   | threads | on        |
+| `integration`    | 29      | 303       | **2.5s**   | forks   | on        |
+| `editor`         | 27      | 439       | **5.0s**   | threads | on        |
+| **All projects** | **148** | **2,426** | **7.4s**   | —       | —         |
+
+Compared to baseline **~14s** for 110 files / 1,845 tests (editor excluded), the suite now runs **148 files / 2,426 tests in 7.4s** — a **47% wall clock reduction** while testing **31% more code**.
+
+The `unit` project alone (the critical path for pre-commit hooks) runs in **1.2s**.
