@@ -198,8 +198,8 @@ flowchart TB
 
 - [ ] hub.xnet.fyi accepts WebSocket connections (Railway)
 - [ ] TLS works (wss://) with custom domain
-- [ ] Demo quotas enforced (10 MB per DID, 24h eviction)
-- [ ] Rate limiting prevents abuse, standard UCAN auth
+- [x] Demo quotas enforced (10 MB per DID, 24h eviction)
+- [x] Rate limiting prevents abuse, standard UCAN auth
 
 ### Phase 8: Self-Hosted Hub Guide (Days 26-28)
 

@@ -446,16 +446,16 @@ describe('Demo Hub', () => {
 
 ## Validation Gate
 
-- [ ] Hub deploys to Railway successfully with `--demo` flag
+- [x] Hub deploys to Railway successfully with `--demo` flag
 - [ ] WebSocket connections work via `wss://hub.xnet.fyi`
 - [ ] TLS certificate is valid (Railway auto-provisions)
-- [ ] **Standard UCAN auth required** — no anonymous connections
-- [ ] Health endpoint returns `mode: "demo"` with quota info
-- [ ] 10 MB quota enforced per user
-- [ ] 50 document limit enforced
-- [ ] 2 MB blob size limit enforced
-- [ ] EvictionService removes data after 24h inactivity
-- [ ] Rate limiting prevents abuse
+- [x] **Standard UCAN auth required** — no anonymous connections
+- [x] Health endpoint returns `mode: "demo"` with quota info
+- [x] 10 MB quota enforced per user
+- [x] 50 document limit enforced
+- [x] 2 MB blob size limit enforced
+- [x] EvictionService removes data after 24h inactivity
+- [x] Rate limiting prevents abuse
 - [ ] Demo status sent in handshake (client shows banner)
 - [ ] Cost stays within Railway Hobby $5 credit
 
