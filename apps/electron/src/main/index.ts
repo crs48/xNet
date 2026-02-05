@@ -20,6 +20,7 @@ import { setupBSM } from './bsm'
 import { createMenu } from './menu'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
+import { initAutoUpdater } from './updater'
 
 // Profile support for running multiple instances with separate data
 // Usage: XNET_PROFILE=user2 pnpm dev:electron
@@ -99,6 +100,11 @@ app.whenReady().then(async () => {
 
   // Create window
   await createWindow()
+
+  // Init auto-updater (production only)
+  if (mainWindow) {
+    initAutoUpdater(mainWindow)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

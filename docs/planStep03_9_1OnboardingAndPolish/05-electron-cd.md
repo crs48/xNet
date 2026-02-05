@@ -727,14 +727,14 @@ describe('Auto-updater', () => {
 
 ## Validation Gate
 
-- [ ] GitHub Actions builds on push to main
-- [ ] macOS builds are code-signed and notarized
-- [ ] Windows builds are code-signed (no SmartScreen)
-- [ ] Linux builds produce AppImage and .deb
-- [ ] Release artifacts uploaded to GitHub Releases
-- [ ] Auto-updater detects new versions
-- [ ] Update download shows progress
-- [ ] "Restart to update" installs and relaunches
+- [x] GitHub Actions builds on push to main
+- [x] macOS builds are code-signed and notarized
+- [x] Windows builds are code-signed (no SmartScreen)
+- [x] Linux builds produce AppImage and .deb
+- [x] Release artifacts uploaded to GitHub Releases
+- [x] Auto-updater detects new versions
+- [x] Update download shows progress
+- [x] "Restart to update" installs and relaunches
 
 ---
 

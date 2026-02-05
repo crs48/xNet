@@ -33,6 +33,7 @@
     "@xnet/views": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "electron-store": "^10.0.0",
+    "electron-updater": "^6.3.0",
     "lucide-react": "^0.400.0",
     "ws": "^8.18.0",
     "y-protocols": "^1.0.6",
