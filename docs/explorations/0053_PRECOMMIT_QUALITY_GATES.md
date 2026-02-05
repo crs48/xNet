@@ -325,12 +325,12 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
 
 #### Phase 3: Commit Message Conventions
 
-- [ ] **Install commitlint** — `pnpm add -Dw @commitlint/cli @commitlint/config-conventional`
-- [ ] **Add commitlint config** — create `commitlint.config.cjs`:
+- [x] **Install commitlint** — installed `@commitlint/cli` and `@commitlint/config-conventional`.
+- [x] **Add commitlint config** — created `commitlint.config.cjs`:
   ```js
   module.exports = { extends: ['@commitlint/config-conventional'] }
   ```
-- [ ] **Add commit-msg hook** — `.husky/commit-msg`:
+- [x] **Add commit-msg hook** — `.husky/commit-msg`:
   ```bash
   pnpm commitlint --edit "$1"
   ```
