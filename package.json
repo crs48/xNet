@@ -50,9 +50,7 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ],
-    "package.json": [
-      "pnpm install --lockfile-only"
-    ]
+    "package.json": []
   },
   "pnpm": {
     "patchedDependencies": {
