@@ -53,3 +53,20 @@ export {
   type FallbackStorage,
   type StoredPasskeyRecord
 } from './passkey/index'
+
+// Sharing (UCAN-based)
+export {
+  createShareToken,
+  buildCapabilities,
+  parseShareLink,
+  verifyShareToken,
+  RevocationStore,
+  createRevocation,
+  computeTokenHash,
+  type SharePermission,
+  type ShareOptions,
+  type ShareToken,
+  type ShareData,
+  type Revocation,
+  type ParsedShare
+} from './sharing/index'
