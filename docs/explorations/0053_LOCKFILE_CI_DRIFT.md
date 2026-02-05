@@ -256,17 +256,48 @@ The lockfile issue is a symptom of a broader gap — there are no local quality 
   - **ESLint + autofix** on staged `.ts`/`.tsx` files (~2-3s on changed files)
   - **Prettier formatting** enforced automatically (no more style drift)
   - **Lockfile sync** whenever any `package.json` is staged (the original problem)
-- [ ] **Pre-commit: typecheck on affected packages** — optionally run `tsc --noEmit` scoped to packages with staged changes. This is slower (~5-15s even with Turbo cache) so it could be pre-push instead. Suggested hook:
+- [ ] **Pre-commit: affected tests + typecheck** — Vitest and Turbo both support running only what's affected by the current changes. Measured timings show this is fast enough for pre-commit:
+
+  | Command                                | What It Does                                           | Time                              |
+  | -------------------------------------- | ------------------------------------------------------ | --------------------------------- |
+  | `vitest related <file>`                | Runs tests that import the changed file (transitive)   | **5-8s** for a single source file |
+  | `vitest run --changed HEAD`            | Runs tests affected by uncommitted changes (git-aware) | **~8s** (scales with change size) |
+  | `turbo run typecheck --affected`       | Typechecks only packages with changes vs `main`        | **3-5s** (with Turbo cache)       |
+  | `pnpm --filter @xnet/crypto typecheck` | Typechecks a single package                            | **~3.5s**                         |
+
+  Suggested hook:
+
   ```bash
   # .husky/pre-commit
   pnpm lint-staged
+  pnpm turbo run typecheck --affected
+  pnpm vitest run --changed HEAD --passWithNoTests
   ```
-- [ ] **Pre-push: full test + typecheck** — heavier checks that shouldn't block every commit but should block pushes:
+
+  This gives ~10-15s pre-commit hooks that catch type errors and test regressions _before_ the commit is created. The key insight is that both Turbo and Vitest do their own change detection — we don't need to wire up file-to-package mapping ourselves.
+
+  For lint-staged specifically, Vitest's `related` subcommand can be used to run only tests that transitively import the staged files:
+
+  ```json
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write",
+      "vitest related --run --passWithNoTests"
+    ],
+    "*.{json,md,yml,yaml}": ["prettier --write"],
+    "package.json": ["pnpm install --lockfile-only"]
+  }
+  ```
+
+  Note: lint-staged passes the staged file paths as arguments to each command, so `vitest related` receives exactly the right files.
+
+- [ ] **Pre-push (optional, belt-and-suspenders)** — if pre-commit already runs affected tests + typecheck, pre-push can run the full suite as a final gate:
   ```bash
   # .husky/pre-push
   pnpm typecheck && pnpm test
   ```
-  This runs the same checks CI runs (~30-60s) before code hits the remote. Prevents the "push, wait 2 min, CI fails, fix, push again" cycle.
+  Full suite is ~14s (tests) + ~20s (typecheck) = ~30s. This is optional if pre-commit is already catching affected issues — the tradeoff is whether you want the full suite locally or are happy to let CI be the backstop for cross-package regressions.
 
 #### Phase 3: Commit Message Conventions
 
@@ -297,10 +328,25 @@ The lockfile issue is a symptom of a broader gap — there are no local quality 
 
 ### Estimated Time Impact on Developer Workflow
 
-| Hook       | What Runs                                                       | Time   | Blocking?    |
-| ---------- | --------------------------------------------------------------- | ------ | ------------ |
-| Pre-commit | lint-staged (eslint + prettier on staged files, lockfile check) | 2-5s   | Every commit |
-| Commit-msg | commitlint                                                      | <1s    | Every commit |
-| Pre-push   | typecheck + test                                                | 30-60s | Every push   |
+| Hook                | What Runs                                                          | Measured Time | Blocking?    |
+| ------------------- | ------------------------------------------------------------------ | ------------- | ------------ |
+| Pre-commit          | lint-staged (eslint + prettier + `vitest related` on staged files) | 5-8s          | Every commit |
+| Pre-commit          | `turbo typecheck --affected`                                       | 3-5s (cached) | Every commit |
+| Pre-commit          | `vitest run --changed HEAD`                                        | 5-8s          | Every commit |
+| Commit-msg          | commitlint                                                         | <1s           | Every commit |
+| Pre-push (optional) | full `pnpm typecheck && pnpm test`                                 | ~30s          | Every push   |
 
-All hooks are bypassable with `--no-verify` for emergencies. The key principle: **catch formatting and lint issues at commit time (cheap), catch type and logic errors at push time (thorough), and CI is the final backstop that should rarely fail.**
+Total pre-commit is **~10-15s** in practice. lint-staged runs first (fast, only staged files), then affected typecheck and tests run. With Turbo caching, repeated commits in the same package are near-instant.
+
+All hooks are bypassable with `--no-verify` for emergencies.
+
+### Why Pre-commit Over Pre-push
+
+Most commits in this repo are made by AI coding agents (Claude Code, etc.), not humans typing `git commit`. This changes the calculus:
+
+- **Agents commit frequently** — they make small, incremental commits as they work. Pre-push hooks only fire once at the end, by which time the agent may have built 5+ commits on top of a broken one.
+- **Agents can't check CI** — an agent doesn't monitor GitHub Actions. A failed pre-commit hook gives it immediate, actionable feedback in the same terminal session. A failed CI run requires a human to notice and re-prompt.
+- **10-15s is cheap for an agent** — a human might find 15s annoying on every commit, but an agent doesn't care. The cost of _not_ catching an error (broken CI, wasted human time triaging) is much higher.
+- **Agents benefit from guardrails** — agents sometimes forget to run `pnpm install` after changing dependencies, or introduce type errors they don't notice. Pre-commit hooks act as an automatic safety net that requires zero agent cooperation.
+
+The key principle: **catch formatting, lint, type errors, and test regressions at commit time (affected only, ~10-15s), and CI is the final backstop for full cross-package validation.**
