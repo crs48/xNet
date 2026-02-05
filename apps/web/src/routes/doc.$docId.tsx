@@ -72,7 +72,6 @@ function DocumentPage() {
     awareness
   } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled' },
-    disableSync: true, // Disable sync until signaling server is available
     did: did ?? undefined
   })
 

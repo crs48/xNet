@@ -18,27 +18,27 @@ import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const DocDocIdRoute = DocDocIdRouteImport.update({
   id: '/doc/$docId',
   path: '/doc/$docId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const DbDbIdRoute = DbDbIdRouteImport.update({
   id: '/db/$dbId',
   path: '/db/$dbId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
   id: '/canvas/$canvasId',
   path: '/canvas/$canvasId',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => rootRouteImport
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -65,21 +65,10 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/settings'
-    | '/canvas/$canvasId'
-    | '/db/$dbId'
-    | '/doc/$docId'
+  fullPaths: '/' | '/settings' | '/canvas/$canvasId' | '/db/$dbId' | '/doc/$docId'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/settings' | '/canvas/$canvasId' | '/db/$dbId' | '/doc/$docId'
-  id:
-    | '__root__'
-    | '/'
-    | '/settings'
-    | '/canvas/$canvasId'
-    | '/db/$dbId'
-    | '/doc/$docId'
+  id: '__root__' | '/' | '/settings' | '/canvas/$canvasId' | '/db/$dbId' | '/doc/$docId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -135,7 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   SettingsRoute: SettingsRoute,
   CanvasCanvasIdRoute: CanvasCanvasIdRoute,
   DbDbIdRoute: DbDbIdRoute,
-  DocDocIdRoute: DocDocIdRoute,
+  DocDocIdRoute: DocDocIdRoute
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
