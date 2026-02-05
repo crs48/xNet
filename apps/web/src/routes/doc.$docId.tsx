@@ -1,11 +1,21 @@
 /**
- * Document page - editor
+ * Document page - editor with comment system
+ *
+ * Features:
+ * - Collaborative editing via Yjs
+ * - Comment system with inline popover and sidebar
+ * - Real-time presence indicators
  */
+import type { Editor } from '@xnet/editor/react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnet/data'
-import { useNode } from '@xnet/react'
+import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
+import { useNode, useComments, useIdentity } from '@xnet/react'
+import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnet/ui'
+import { MessageSquare } from 'lucide-react'
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { BacklinksPanel } from '../components/BacklinksPanel'
-import { Editor } from '../components/Editor'
+import { Editor as EditorComponent } from '../components/Editor'
 import { PresenceAvatars } from '../components/PresenceAvatars'
 import { ShareButton } from '../components/ShareButton'
 
@@ -13,9 +23,35 @@ export const Route = createFileRoute('/doc/$docId')({
   component: DocumentPage
 })
 
+// ─── Comment Popover State ──────────────────────────────────────────────────────
+
+interface PopoverState {
+  visible: boolean
+  mode: 'preview' | 'full'
+  threadId: string | null
+  anchor: HTMLElement | null
+}
+
+const INITIAL_POPOVER_STATE: PopoverState = {
+  visible: false,
+  mode: 'preview',
+  threadId: null,
+  anchor: null
+}
+
+/** State for creating a new comment (before submission) */
+interface NewCommentState {
+  visible: boolean
+  anchorData: string
+  selectionFrom: number
+  selectionTo: number
+}
+
 function DocumentPage() {
   const { docId } = Route.useParams()
   const navigate = useNavigate()
+  const { identity } = useIdentity()
+  const did = identity?.did
 
   // Load document with Y.Doc, sync, presence, and auto-create
   const {
@@ -26,11 +62,365 @@ function DocumentPage() {
     error,
     syncStatus,
     peerCount,
-    presence
+    presence,
+    awareness
   } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled' },
-    disableSync: true // Disable sync until signaling server is available
+    disableSync: true, // Disable sync until signaling server is available
+    did: did ?? undefined
   })
+
+  // ─── Comments Integration ─────────────────────────────────────────────────────
+
+  const {
+    threads,
+    addComment,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment,
+    unresolvedCount
+  } = useComments({ nodeId: docId, anchorType: 'text' })
+
+  // Popover state for comment interactions
+  const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
+  const [newCommentState, setNewCommentState] = useState<NewCommentState | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const editorRef = useRef<Editor | null>(null)
+  const marksRestoredRef = useRef(false)
+  const [editorReady, setEditorReady] = useState(false)
+
+  // Track hover state for mark and popover
+  const markHoveredRef = useRef(false)
+  const popoverHoveredRef = useRef(false)
+
+  // Reset mark restoration state when switching documents
+  useEffect(() => {
+    marksRestoredRef.current = false
+    editorRef.current = null
+    setEditorReady(false)
+  }, [docId])
+
+  // Handle editor ready - store ref and trigger mark restoration
+  const handleEditorReady = useCallback((editor: Editor) => {
+    editorRef.current = editor
+    setEditorReady(true)
+  }, [])
+
+  // Restore comment marks when editor is ready and threads are loaded
+  useEffect(() => {
+    if (!editorRef.current || marksRestoredRef.current || threads.length === 0) return
+
+    const commentsToRestore = threads.map((t) => ({
+      id: t.root.id,
+      properties: {
+        anchorType: t.root.properties.anchorType,
+        anchorData: t.root.properties.anchorData,
+        resolved: t.root.properties.resolved
+      }
+    }))
+
+    const { resolved, orphaned } = restoreCommentMarks(editorRef.current, commentsToRestore)
+
+    if (resolved.length > 0 || orphaned.length > 0) {
+      marksRestoredRef.current = true
+      console.log(`[Comments] Restored ${resolved.length} marks, ${orphaned.length} orphaned`)
+    }
+  }, [threads, editorReady])
+
+  // Convert threads to format expected by CommentPopover/CommentsSidebar
+  const threadDataMap = useMemo(() => {
+    const map = new Map<string, CommentThreadData>()
+    for (const thread of threads) {
+      map.set(thread.root.id, {
+        root: {
+          id: thread.root.id,
+          author: thread.root.properties.createdBy,
+          authorDisplayName: undefined,
+          content: thread.root.properties.content,
+          createdAt: thread.root.createdAt,
+          edited: thread.root.properties.edited,
+          editedAt: thread.root.properties.editedAt,
+          replyToUser: thread.root.properties.replyToUser,
+          replyToCommentId: thread.root.properties.replyToCommentId
+        },
+        replies: thread.replies.map((r) => ({
+          id: r.id,
+          author: r.properties.createdBy,
+          authorDisplayName: undefined,
+          content: r.properties.content,
+          createdAt: r.createdAt,
+          edited: r.properties.edited,
+          editedAt: r.properties.editedAt,
+          replyToUser: r.properties.replyToUser,
+          replyToCommentId: r.properties.replyToCommentId
+        })),
+        resolved: thread.root.properties.resolved
+      })
+    }
+    return map
+  }, [threads])
+
+  // ─── Popover Handlers ─────────────────────────────────────────────────────────
+
+  const isCaretInComment = useCallback((): boolean => {
+    const editor = editorRef.current
+    if (!editor) return false
+    const { from } = editor.state.selection
+    const resolved = editor.state.doc.resolve(from)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return resolved.marks().some((m: any) => m.type.name === 'comment')
+  }, [])
+
+  const scheduleDismiss = useCallback(() => {
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
+    dismissTimeoutRef.current = setTimeout(() => {
+      if (!markHoveredRef.current && !popoverHoveredRef.current && !isCaretInComment()) {
+        setPopoverState(INITIAL_POPOVER_STATE)
+      }
+    }, 200)
+  }, [isCaretInComment])
+
+  const handleClickComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
+    setPopoverState((prev) => {
+      if (prev.visible && prev.mode === 'full' && prev.threadId === commentId) return prev
+      return { visible: true, mode: 'full', threadId: commentId, anchor: anchorEl }
+    })
+  }, [])
+
+  const handleHoverComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
+    markHoveredRef.current = true
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+    hoverTimeoutRef.current = setTimeout(() => {
+      setPopoverState((prev) => {
+        if (prev.visible && prev.threadId === commentId) return prev
+        return { visible: true, mode: 'full', threadId: commentId, anchor: anchorEl }
+      })
+    }, 300)
+  }, [])
+
+  const handleLeaveComment = useCallback(() => {
+    markHoveredRef.current = false
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+    scheduleDismiss()
+  }, [scheduleDismiss])
+
+  const handlePopoverMouseEnter = useCallback(() => {
+    popoverHoveredRef.current = true
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
+  }, [])
+
+  const handlePopoverMouseLeave = useCallback(() => {
+    popoverHoveredRef.current = false
+    scheduleDismiss()
+  }, [scheduleDismiss])
+
+  const handleDismiss = useCallback(() => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
+    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
+    markHoveredRef.current = false
+    popoverHoveredRef.current = false
+    setPopoverState(INITIAL_POPOVER_STATE)
+  }, [])
+
+  const handleUpgradeToFull = useCallback(() => {
+    setPopoverState((prev) => ({ ...prev, mode: 'full' }))
+  }, [])
+
+  // ─── Comment Actions ──────────────────────────────────────────────────────────
+
+  const handleReply = useCallback(
+    async (content: string) => {
+      if (!popoverState.threadId) return
+      await replyTo(popoverState.threadId, content)
+    },
+    [popoverState.threadId, replyTo]
+  )
+
+  const handleResolve = useCallback(async () => {
+    if (!popoverState.threadId) return
+    await resolveThread(popoverState.threadId)
+    editorRef.current?.commands.setCommentResolved(popoverState.threadId, true)
+  }, [popoverState.threadId, resolveThread])
+
+  const handleReopen = useCallback(async () => {
+    if (!popoverState.threadId) return
+    await reopenThread(popoverState.threadId)
+    editorRef.current?.commands.setCommentResolved(popoverState.threadId, false)
+  }, [popoverState.threadId, reopenThread])
+
+  const handleDelete = useCallback(
+    async (commentId: string) => {
+      await deleteComment(commentId)
+      const thread = threadDataMap.get(popoverState.threadId || '')
+      if (thread && commentId === thread.root.id && thread.replies.length === 0) {
+        const editor = editorRef.current
+        if (editor) {
+          const { tr, doc: editorDoc } = editor.state
+          const markType = editor.schema.marks.comment
+          if (markType) {
+            editorDoc.descendants((node, pos) => {
+              node.marks.forEach((mark) => {
+                if (mark.type === markType && mark.attrs.commentId === commentId) {
+                  tr.removeMark(pos, pos + node.nodeSize, mark)
+                }
+              })
+            })
+            editor.view.dispatch(tr)
+          }
+        }
+        handleDismiss()
+      }
+    },
+    [deleteComment, threadDataMap, popoverState.threadId, handleDismiss]
+  )
+
+  const handleEdit = useCallback(
+    async (commentId: string, newContent: string) => {
+      await editComment(commentId, newContent)
+    },
+    [editComment]
+  )
+
+  // Handler for initiating comment creation from toolbar
+  const handleCreateComment = useCallback(async (anchorData: string): Promise<string | null> => {
+    if (!editorRef.current) return null
+    const { from, to } = editorRef.current.state.selection
+    if (from === to) return null
+
+    setNewCommentState({
+      visible: true,
+      anchorData,
+      selectionFrom: from,
+      selectionTo: to
+    })
+    return null
+  }, [])
+
+  // Handler for submitting a new comment
+  const handleSubmitNewComment = useCallback(
+    async (content: string) => {
+      if (!newCommentState || !content.trim() || !editorRef.current) return
+
+      const commentId = await addComment({
+        content: content.trim(),
+        anchorType: 'text',
+        anchorData: newCommentState.anchorData,
+        targetSchema: PageSchema.schema['@id']
+      })
+
+      if (commentId) {
+        editorRef.current
+          .chain()
+          .focus()
+          .setTextSelection({
+            from: newCommentState.selectionFrom,
+            to: newCommentState.selectionTo
+          })
+          .setComment(commentId)
+          .run()
+
+        const showPopover = () => {
+          const markEl = document.querySelector(
+            `[data-comment-id="${commentId}"]`
+          ) as HTMLElement | null
+          if (markEl) {
+            setPopoverState({
+              visible: true,
+              mode: 'full',
+              threadId: commentId,
+              anchor: markEl
+            })
+          }
+        }
+        setTimeout(showPopover, 50)
+        setTimeout(showPopover, 200)
+      }
+
+      setNewCommentState(null)
+    },
+    [newCommentState, addComment]
+  )
+
+  const handleCancelNewComment = useCallback(() => {
+    setNewCommentState(null)
+  }, [])
+
+  // ─── Sidebar Handlers ─────────────────────────────────────────────────────────
+
+  const handleSidebarSelectThread = useCallback((threadId: string) => {
+    const markEl = document.querySelector(`[data-comment-id="${threadId}"]`) as HTMLElement | null
+    if (markEl) {
+      markEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setPopoverState({
+        visible: true,
+        mode: 'full',
+        threadId,
+        anchor: markEl
+      })
+    }
+  }, [])
+
+  const handleSidebarReply = useCallback(
+    async (threadId: string, content: string) => {
+      await replyTo(threadId, content)
+    },
+    [replyTo]
+  )
+
+  const handleSidebarResolve = useCallback(
+    async (threadId: string) => {
+      await resolveThread(threadId)
+      editorRef.current?.commands.setCommentResolved(threadId, true)
+    },
+    [resolveThread]
+  )
+
+  const handleSidebarReopen = useCallback(
+    async (threadId: string) => {
+      await reopenThread(threadId)
+      editorRef.current?.commands.setCommentResolved(threadId, false)
+    },
+    [reopenThread]
+  )
+
+  const handleSidebarDelete = useCallback(
+    async (commentId: string) => {
+      await deleteComment(commentId)
+    },
+    [deleteComment]
+  )
+
+  const handleSidebarEdit = useCallback(
+    async (commentId: string, newContent: string) => {
+      await editComment(commentId, newContent)
+    },
+    [editComment]
+  )
+
+  // ─── Comment Extensions ───────────────────────────────────────────────────────
+
+  const commentExtensions = useMemo(
+    () => [
+      CommentMark,
+      CommentPlugin.configure({
+        onClickComment: handleClickComment,
+        onHoverComment: handleHoverComment,
+        onLeaveComment: handleLeaveComment
+      })
+    ],
+    [handleClickComment, handleHoverComment, handleLeaveComment]
+  )
+
+  // Get the current thread for the popover
+  const currentThread = popoverState.threadId ? threadDataMap.get(popoverState.threadId) : null
+  const sidebarThreads = useMemo(() => Array.from(threadDataMap.values()), [threadDataMap])
 
   // Handle wikilink navigation
   const handleNavigate = (targetDocId: string) => {
@@ -60,20 +450,30 @@ function DocumentPage() {
   const connected = syncStatus === 'connected'
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+    <div className="flex-1 flex flex-col h-full overflow-hidden -m-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-border bg-secondary">
         <input
           type="text"
-          className="text-3xl font-semibold border-none bg-transparent text-foreground w-full outline-none placeholder:text-muted-foreground"
+          className="text-xl font-semibold border-none bg-transparent text-foreground flex-1 outline-none placeholder:text-muted-foreground"
           value={page.title || ''}
           onChange={(e) => update({ title: e.target.value })}
           placeholder="Untitled"
         />
 
-        {/* Presence avatars */}
-        <PresenceAvatars presence={presence} />
+        {/* Comment count badge */}
+        {unresolvedCount > 0 && (
+          <button
+            className="flex items-center gap-1.5 px-2 py-1 text-xs text-amber-600 hover:text-amber-500 bg-amber-500/10 rounded-md transition-colors"
+            title={`${unresolvedCount} unresolved comment${unresolvedCount !== 1 ? 's' : ''}`}
+            onClick={() => setSidebarOpen((prev) => !prev)}
+          >
+            <MessageSquare size={14} />
+            <span>{unresolvedCount}</span>
+          </button>
+        )}
 
-        {/* Share button */}
+        <PresenceAvatars presence={presence} />
         <ShareButton docId={docId} docType="page" />
 
         {/* Sync status indicator */}
@@ -90,9 +490,129 @@ function DocumentPage() {
         </div>
       </div>
 
-      <Editor doc={doc} onNavigate={handleNavigate} />
+      {/* Editor + Sidebar horizontal layout */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Editor */}
+        <div className="flex-1 overflow-auto px-6 py-4">
+          <div className="max-w-3xl mx-auto">
+            <EditorComponent
+              doc={doc}
+              awareness={awareness}
+              did={did}
+              onNavigate={handleNavigate}
+              extensions={commentExtensions}
+              onEditorReady={handleEditorReady}
+              onCreateComment={handleCreateComment}
+            />
+            <BacklinksPanel docId={docId} />
+          </div>
+        </div>
 
-      <BacklinksPanel docId={docId} />
+        {/* Comments Sidebar */}
+        <CommentsSidebar
+          threads={sidebarThreads}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onSelectThread={handleSidebarSelectThread}
+          selectedThreadId={popoverState.threadId}
+          onReply={handleSidebarReply}
+          onResolve={handleSidebarResolve}
+          onReopen={handleSidebarReopen}
+          onDelete={handleSidebarDelete}
+          onEdit={handleSidebarEdit}
+        />
+      </div>
+
+      {/* Comment Popover */}
+      {popoverState.visible && popoverState.anchor && currentThread && (
+        <CommentPopover
+          thread={currentThread}
+          anchor={popoverState.anchor}
+          mode={popoverState.mode}
+          open={popoverState.visible}
+          side="right"
+          onReply={handleReply}
+          onResolve={handleResolve}
+          onReopen={handleReopen}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          onDismiss={handleDismiss}
+          onUpgradeToFull={handleUpgradeToFull}
+          onMouseEnter={handlePopoverMouseEnter}
+          onMouseLeave={handlePopoverMouseLeave}
+        />
+      )}
+
+      {/* New Comment Input Modal */}
+      {newCommentState?.visible && (
+        <NewCommentInput onSubmit={handleSubmitNewComment} onCancel={handleCancelNewComment} />
+      )}
+    </div>
+  )
+}
+
+// ─── New Comment Input ─────────────────────────────────────────────────────────
+
+interface NewCommentInputProps {
+  onSubmit: (content: string) => void
+  onCancel: () => void
+}
+
+function NewCommentInput({ onSubmit, onCancel }: NewCommentInputProps) {
+  const [content, setContent] = useState('')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    textareaRef.current?.focus()
+  }, [])
+
+  const handleSubmit = () => {
+    if (content.trim()) {
+      onSubmit(content)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      handleSubmit()
+    }
+    if (e.key === 'Escape') {
+      onCancel()
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+      <div className="w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg p-4">
+        <div className="text-sm font-medium mb-2">Add Comment</div>
+        <textarea
+          ref={textareaRef}
+          className="w-full p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
+          placeholder="Write a comment..."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+        <div className="flex justify-end gap-2 mt-3">
+          <button
+            onClick={onCancel}
+            className="px-3 py-1.5 text-sm rounded border hover:bg-accent transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!content.trim()}
+            className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Comment
+          </button>
+        </div>
+        <div className="text-xs text-muted-foreground mt-2">
+          Press Cmd+Enter to submit, Esc to cancel
+        </div>
+      </div>
     </div>
   )
 }
