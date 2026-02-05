@@ -1,6 +1,7 @@
 /**
  * @xnet/hub - Node change relay service.
  */
+import type { ContentId, DID } from '@xnet/core'
 import { base64ToBytes } from '@xnet/crypto'
 import { parseDID } from '@xnet/identity'
 import { verifyChange, verifyChangeHash, type Change } from '@xnet/sync'
@@ -30,11 +31,7 @@ export type NodeSyncResponse = {
 
 export class NodeRelayError extends Error {
   constructor(
-    public code:
-      | 'UNAUTHORIZED'
-      | 'INVALID_CHANGE'
-      | 'INVALID_SIGNATURE'
-      | 'INVALID_HASH',
+    public code: 'UNAUTHORIZED' | 'INVALID_CHANGE' | 'INVALID_SIGNATURE' | 'INVALID_HASH',
     message: string
   ) {
     super(message)
@@ -100,12 +97,12 @@ export class NodeRelayService {
     return {
       id: serialized.id,
       type: serialized.type,
-      hash: serialized.hash,
-      parentHash: serialized.parentHash,
-      authorDID: serialized.authorDid,
+      hash: serialized.hash as ContentId,
+      parentHash: serialized.parentHash as ContentId | null,
+      authorDID: serialized.authorDid as DID,
       signature: base64ToBytes(serialized.signatureB64),
       wallTime: serialized.wallTime,
-      lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor },
+      lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
       payload: serialized.payload,
       batchId: serialized.batchId,
       batchIndex: serialized.batchIndex,

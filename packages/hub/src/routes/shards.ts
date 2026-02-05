@@ -82,7 +82,7 @@ export const createShardRoutes = (options: ShardRoutesOptions): Hono => {
       terms,
       termFreqs: Object.fromEntries(
         Object.entries(payload.termFreqs).filter((entry) => typeof entry[1] === 'number')
-      ),
+      ) as Record<string, number>,
       docLen
     })
 

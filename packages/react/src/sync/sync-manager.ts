@@ -369,19 +369,25 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     const awareness = new Awareness(doc)
     awarenessMap.set(nodeId, awareness)
 
-    awareness.on('update', ({ added, updated, removed }, origin) => {
-      if (origin === 'remote') return
-      const changed = [...added, ...updated, ...removed]
-      if (changed.length === 0) return
-      if (connection.status !== 'connected') return
-      const room = `xnet-doc-${nodeId}`
-      const update = encodeAwarenessUpdate(awareness, changed)
-      connection.publish(room, {
-        type: 'awareness',
-        from: peerId,
-        update: toBase64(update)
-      })
-    })
+    awareness.on(
+      'update',
+      (
+        { added, updated, removed }: { added: number[]; updated: number[]; removed: number[] },
+        origin: string
+      ) => {
+        if (origin === 'remote') return
+        const changed = [...added, ...updated, ...removed]
+        if (changed.length === 0) return
+        if (connection.status !== 'connected') return
+        const room = `xnet-doc-${nodeId}`
+        const update = encodeAwarenessUpdate(awareness, changed)
+        connection.publish(room, {
+          type: 'awareness',
+          from: peerId,
+          update: toBase64(update)
+        })
+      }
+    )
 
     return awareness
   }

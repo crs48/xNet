@@ -45,6 +45,8 @@ function createMockConnectionManager() {
     publish(room, data) {
       published.push({ room, data })
     },
+    sendRaw: vi.fn(),
+    onMessage: vi.fn().mockReturnValue(() => {}),
     onStatus() {
       return () => {}
     },

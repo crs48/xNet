@@ -87,7 +87,7 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
 
   const shutdownGraceMs =
     toNumber(process.env.RAILWAY_GRACE_MS) ??
-    (runtime.platform === 'fly' ? 4000 : (DEFAULT_CONFIG.shutdownGraceMs ?? 8000))
+    (runtime?.platform === 'fly' ? 4000 : (DEFAULT_CONFIG.shutdownGraceMs ?? 8000))
 
   const demo = cliOptions.demo ?? process.env.HUB_MODE === 'demo'
   const demoOverrides = getDemoOverrides(demo) ?? undefined

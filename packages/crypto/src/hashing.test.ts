@@ -34,12 +34,12 @@ describe('Hashing', () => {
     expect(blake3Hash).not.toBe(sha256Hash)
   })
 
-  it('should hash 1MB in under 50ms', () => {
+  it('should hash 1MB in under 200ms', () => {
     const data = new Uint8Array(1024 * 1024)
     // Warm up
     hash(data)
     const start = performance.now()
     hash(data)
-    expect(performance.now() - start).toBeLessThan(50)
+    expect(performance.now() - start).toBeLessThan(200)
   })
 })

@@ -8,14 +8,7 @@ import type { ReactNode } from 'react'
 import type { Identity } from '@xnet/identity'
 import type { DID } from '@xnet/core'
 import type { NodeChangeEvent } from '@xnet/data'
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState
-} from 'react'
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { createUCAN } from '@xnet/identity'
 import { NodeStore, MemoryNodeStorageAdapter, type NodeStorageAdapter } from '@xnet/data'
 import { PluginRegistry, type Platform } from '@xnet/plugins'
@@ -196,7 +189,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
       const ns = new NodeStore({
         storage: nodeStorageAdapter,
-        authorDID,
+        authorDID: authorDID as DID,
         signingKey
       })
 
@@ -391,12 +384,22 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     if (!connection) return
 
     const timers = new Map<string, ReturnType<typeof setTimeout>>()
-    const pending = new Map<string, { type: 'update'; meta: { schemaIri: string; title: string; properties: Record<string, unknown> } } | { type: 'remove' }>()
+    const pending = new Map<
+      string,
+      | {
+          type: 'update'
+          meta: { schemaIri: string; title: string; properties: Record<string, unknown> }
+        }
+      | { type: 'remove' }
+    >()
 
     const schedule = (
       docId: string,
       payload:
-        | { type: 'update'; meta: { schemaIri: string; title: string; properties: Record<string, unknown> } }
+        | {
+            type: 'update'
+            meta: { schemaIri: string; title: string; properties: Record<string, unknown> }
+          }
         | { type: 'remove' }
     ): void => {
       pending.set(docId, payload)

@@ -1,13 +1,7 @@
 /**
  * Hub backup helpers.
  */
-import {
-  concatBytes,
-  decrypt,
-  encrypt,
-  NONCE_SIZE,
-  type EncryptedData
-} from '@xnet/crypto'
+import { concatBytes, decrypt, encrypt, NONCE_SIZE, type EncryptedData } from '@xnet/crypto'
 
 export type HubBackupConfig = {
   hubUrl: string
@@ -81,7 +75,7 @@ export async function uploadEncryptedBackup(
       ...(authHeader ? { Authorization: authHeader } : {}),
       'Content-Type': 'application/octet-stream'
     },
-    body: payload
+    body: payload as unknown as BodyInit
   })
 
   if (!res.ok) {

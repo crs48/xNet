@@ -251,12 +251,10 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
       | `no-inner-declarations` | 1 | Move function to module scope |
       | `react-hooks/exhaustive-deps` (missing plugin) | 1 | Remove rule reference or install plugin |
 
-- [ ] **Fix existing typecheck errors** — `@xnet/storage` and `@xnet/sync` currently have type errors. `turbo typecheck --affected` will block commits to those packages until fixed.
-- [ ] **Fix or skip flaky perf tests** — two timing-sensitive tests fail on loaded machines:
-  - `crypto/src/hashing.test.ts`: "should hash 1MB in under 50ms" (measured 106ms)
-  - `crypto/src/signing.test.ts`: "should verify many signatures efficiently" (measured 660ms vs 500ms threshold)
-
-  Options: bump thresholds, use `test.skipIf(process.env.CI)`, or tag them and exclude from pre-commit runs.
+- [x] **Fix existing typecheck errors** — `@xnet/storage`, `@xnet/sync`, `@xnet/hub`, `@xnet/react`, `@xnet/editor`, `xnet-mobile`, and `xnet-web` type errors fixed. Includes DID/ContentId template literal casts, Hono route types, awareness event types, expo module config, and web noUnusedLocals removal.
+- [x] **Fix or skip flaky perf tests** — bumped thresholds for timing-sensitive tests:
+  - `crypto/src/hashing.test.ts`: 50ms → 200ms
+  - `crypto/src/signing.test.ts`: 500ms → 1000ms
 
 - [ ] **Update AGENTS.md with git hooks section** — once hooks are live, agents need to know: what hooks exist, what they check, expected timing (~10-15s), and that `--no-verify` is available for emergencies. Without this, agents will be confused by commit failures.
 
