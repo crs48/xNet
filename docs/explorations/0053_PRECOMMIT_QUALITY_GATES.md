@@ -260,9 +260,9 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
 
 #### Phase 1: CI Fixes (immediate, no workflow change for developers)
 
-- [ ] **`ci.yml`: Use `--frozen-lockfile`** — change both `pnpm install` lines to `pnpm install --frozen-lockfile`. Catches lockfile drift at PR time instead of release time.
-- [ ] **`ci.yml`: Add Prettier check** — add `pnpm prettier --check "packages/**/*.{ts,tsx}" "apps/**/*.{ts,tsx}"` step. Currently formatting is never validated anywhere.
-- [ ] **`ci.yml`: Lint `apps/` too** — change lint script from `eslint packages --ext .ts,.tsx` to `eslint packages apps --ext .ts,.tsx`, or move to a Turbo-based lint task so each package/app lints itself.
+- [x] **`ci.yml`: Use `--frozen-lockfile`** — changed both `pnpm install` lines to `pnpm install --frozen-lockfile`.
+- [x] **`ci.yml`: Add Prettier check** — added `pnpm prettier --check` step before typecheck.
+- [x] **`ci.yml`: Lint `apps/` too** — changed lint script to `eslint packages apps --ext .ts,.tsx`, fixed all 9 errors in apps/.
 
 #### Phase 2: Git Hooks (local enforcement, fast feedback)
 

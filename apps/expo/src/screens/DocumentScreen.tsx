@@ -25,7 +25,7 @@ interface Props {
 
 export function DocumentScreen({ navigation, route }: Props) {
   const { docId } = route.params
-  const { document, loading, error, updateContent } = useNode(docId)
+  const { document, loading, error } = useNode(docId)
   const [title, setTitle] = useState('')
   const [initialContent, setInitialContent] = useState('')
 

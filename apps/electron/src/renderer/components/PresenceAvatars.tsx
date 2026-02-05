@@ -11,7 +11,7 @@ interface PresenceAvatarsProps {
   localDid?: string | null
 }
 
-export function PresenceAvatars({ presence, localDid }: PresenceAvatarsProps) {
+export function PresenceAvatars({ presence, localDid: _localDid }: PresenceAvatarsProps) {
   if (presence.length === 0) return null
 
   return (

@@ -11,8 +11,7 @@ import {
   createLocalAPI,
   type NodeStoreAPI,
   type SchemaRegistryAPI,
-  type NodeData,
-  type SchemaData
+  type NodeData
 } from '@xnet/plugins/node'
 
 // ─── Module State ────────────────────────────────────────────────────────────
