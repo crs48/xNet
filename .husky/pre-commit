@@ -1,0 +1,3 @@
+pnpm lint-staged
+pnpm turbo run typecheck --affected
+pnpm vitest run --changed HEAD --passWithNoTests
