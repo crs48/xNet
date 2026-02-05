@@ -184,6 +184,60 @@ lsof -ti:5177,4444,3000,8080 2>/dev/null || echo "All ports clear"
 
 Never leave background servers running between tasks or at end of session.
 
+## Git Hooks (Pre-commit Quality Gates)
+
+This repo uses **husky** for git hooks. They run automatically on every commit/push.
+
+### What Runs on Every Commit (~10-15s)
+
+| Hook       | What Runs                                                | Time |
+| ---------- | -------------------------------------------------------- | ---- |
+| Pre-commit | `lint-staged` (eslint --fix + prettier + vitest related) | 5-8s |
+| Pre-commit | `turbo typecheck --affected`                             | 3-5s |
+| Pre-commit | `vitest run --changed HEAD --passWithNoTests`            | 5-8s |
+| Commit-msg | `commitlint` (conventional commits)                      | <1s  |
+
+### What Runs on Every Push (~30s)
+
+| Hook     | What Runs                     | Time |
+| -------- | ----------------------------- | ---- |
+| Pre-push | `pnpm typecheck && pnpm test` | ~30s |
+
+### Commit Message Format
+
+Commits must follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+type(scope): description
+
+# Examples:
+feat(sync): add peer scoring for Yjs updates
+fix(data): handle null schema in NodeStore
+refactor(canvas): extract spatial index to separate module
+test(identity): add WebAuthn emulator tests
+docs(exploration): add pre-commit quality gates plan
+ci: harden CI with frozen-lockfile
+chore: update dependencies
+```
+
+### Bypassing Hooks (Emergency Only)
+
+```bash
+# Skip all hooks
+git commit --no-verify -m "fix: emergency hotfix"
+git push --no-verify
+```
+
+Only use `--no-verify` when hooks are genuinely broken or blocking an emergency fix. CI will still catch issues.
+
+### If a Hook Fails
+
+- **ESLint error**: Fix the lint issue. The hook auto-fixes what it can.
+- **Type error**: Run `pnpm typecheck` to see full error. Fix the type issue.
+- **Test failure**: Run `pnpm test` to see which test failed. Fix or update the test.
+- **Commitlint error**: Reformat your commit message to `type(scope): description`.
+- **Lockfile drift**: Run `pnpm install` and stage `pnpm-lock.yaml`.
+
 ## Key Constraints
 
 **DO:**
@@ -196,7 +250,7 @@ Never leave background servers running between tasks or at end of session.
 - Integrate new features into the Electron app first, before bothering with Web or Expo
 - Test UI changes in Electron with Playwright after implementing (start dev server, verify it works)
 - Always kill dev servers when done testing — never leave background processes running
-- Use `opencode.json` and not any `claude.json` for config like MCP
+- Use `Claude.json` and not any `claude.json` for config like MCP
 
 **DON'T:**
 
