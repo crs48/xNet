@@ -402,14 +402,14 @@ describe('Hub CD Pipeline', () => {
 
 ## Validation Gate
 
-- [ ] Railway auto-deploys `hub.xnet.fyi` on push to `main`
-- [ ] Health check passes after Railway deploy
-- [ ] Rollback works via Railway dashboard
-- [ ] Docker image builds for amd64 and arm64 on tagged release
-- [ ] Image pushed to `ghcr.io/xnet-dev/xnet-hub` on tagged release
-- [ ] SBOM generated for each release
-- [ ] Security scan runs and reports vulnerabilities
-- [ ] **No GH Actions run on regular pushes** (only on releases)
+- [x] Railway auto-deploys `hub.xnet.fyi` on push to `main`
+- [x] Health check passes after Railway deploy
+- [x] Rollback works via Railway dashboard
+- [x] Docker image builds for amd64 and arm64 on tagged release
+- [x] Image pushed to `ghcr.io/xnet-dev/xnet-hub` on tagged release
+- [x] SBOM generated for each release
+- [x] Security scan runs and reports vulnerabilities
+- [x] **No GH Actions run on regular pushes** (only on releases)
 
 ---
 
