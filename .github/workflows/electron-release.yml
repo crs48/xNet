@@ -23,6 +23,9 @@ concurrency:
   group: electron-release-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   version:
     runs-on: ubuntu-latest
