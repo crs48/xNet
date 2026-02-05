@@ -47,17 +47,17 @@ export function OnboardingFlow({ connectToHub, children }: OnboardingFlowProps):
     case 'qr-scan':
       // Placeholder — Phase 3 (Cross-Device Sync) will implement QR scanning
       return (
-        <div className="onboarding-screen">
-          <h1>QR Scan</h1>
-          <p>Coming soon — scan a QR code from another device.</p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-6">
+          <h1 className="text-2xl font-semibold mb-2">QR Scan</h1>
+          <p className="text-muted-foreground">Coming soon — scan a QR code from another device.</p>
         </div>
       )
     case 'recovery-phrase':
       // Placeholder — Phase 3 will implement recovery phrase entry
       return (
-        <div className="onboarding-screen">
-          <h1>Recovery Phrase</h1>
-          <p>Coming soon — enter your recovery phrase.</p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-6">
+          <h1 className="text-2xl font-semibold mb-2">Recovery Phrase</h1>
+          <p className="text-muted-foreground">Coming soon — enter your recovery phrase.</p>
         </div>
       )
     case 'connecting-hub':
