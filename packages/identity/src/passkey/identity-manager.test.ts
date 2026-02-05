@@ -159,20 +159,14 @@ describe('createIdentityManager', () => {
     expect(await manager.hasIdentity()).toBe(false)
   })
 
-  it('create throws when passkeys not supported', async () => {
-    // Override PublicKeyCredential to report no platform authenticator
-    Object.defineProperty(globalThis, 'PublicKeyCredential', {
-      value: {
-        isUserVerifyingPlatformAuthenticatorAvailable: vi.fn().mockResolvedValue(false),
-        prototype: {}
-      },
-      configurable: true
-    })
+  it('create throws when passkey creation is cancelled', async () => {
+    // Mock navigator.credentials.create to return null (user cancelled)
+    vi.spyOn(navigator.credentials, 'create').mockResolvedValue(null)
 
     const { createIdentityManager } = await import('./index')
     const manager = createIdentityManager()
 
-    await expect(manager.create()).rejects.toThrow('Passkeys not supported')
+    await expect(manager.create()).rejects.toThrow('Passkey creation cancelled')
   })
 })
 
@@ -220,6 +214,9 @@ describe('createIdentityManager (WebAuthn emulator, fallback path)', () => {
     const { createIdentityManager } = await import('./index')
     const manager = createIdentityManager()
 
+    // Preflight detects PRF is not supported, so create() will use fallback
+    await manager.preflight()
+
     const keyBundle = await manager.create({ rpId: 'localhost' })
 
     expect(keyBundle.identity.did).toMatch(/^did:key:z/)
@@ -238,6 +235,7 @@ describe('createIdentityManager (WebAuthn emulator, fallback path)', () => {
     const { createIdentityManager } = await import('./index')
     const manager = createIdentityManager()
 
+    await manager.preflight()
     await manager.create({ rpId: 'localhost' })
 
     // Clear cache to force unlock from storage
@@ -267,6 +265,7 @@ describe('createIdentityManager (WebAuthn emulator, fallback path)', () => {
 
     expect(manager.getCached()).toBeNull()
 
+    await manager.preflight()
     const keyBundle = await manager.create({ rpId: 'localhost' })
 
     expect(manager.getCached()).toBe(keyBundle)
@@ -276,6 +275,7 @@ describe('createIdentityManager (WebAuthn emulator, fallback path)', () => {
     const { createIdentityManager } = await import('./index')
     const manager = createIdentityManager()
 
+    await manager.preflight()
     const created = await manager.create({ rpId: 'localhost' })
     const unlocked = await manager.unlock()
 
@@ -287,6 +287,7 @@ describe('createIdentityManager (WebAuthn emulator, fallback path)', () => {
     const { createIdentityManager } = await import('./index')
     const manager = createIdentityManager()
 
+    await manager.preflight()
     await manager.create({ rpId: 'localhost' })
     expect(await manager.hasIdentity()).toBe(true)
     expect(manager.getCached()).not.toBeNull()

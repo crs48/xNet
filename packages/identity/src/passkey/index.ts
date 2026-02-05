@@ -41,6 +41,12 @@ export {
 // ─── Identity Manager ────────────────────────────────────────
 
 export type IdentityManager = {
+  /**
+   * Pre-detect PRF support. Call on mount, before user interaction.
+   * Required for Safari/WebKit which invalidates user gestures after async ops.
+   */
+  preflight(): Promise<void>
+
   /** Check if an identity exists in storage */
   hasIdentity(): Promise<boolean>
 
@@ -61,9 +67,17 @@ export type IdentityManager = {
  * Create a unified identity manager that handles passkey creation,
  * unlock, and caching.
  *
+ * IMPORTANT: Call `preflight()` on mount to detect PRF support BEFORE
+ * the user clicks. This is required for Safari/WebKit which invalidates
+ * user gestures after any async operation.
+ *
  * @example
  * const manager = createIdentityManager()
  *
+ * // On component mount (before user interaction):
+ * await manager.preflight()
+ *
+ * // On user click:
  * if (await manager.hasIdentity()) {
  *   const keys = await manager.unlock() // Touch ID prompt
  * } else {
@@ -72,29 +86,51 @@ export type IdentityManager = {
  */
 export function createIdentityManager(): IdentityManager {
   let cachedKeyBundle: KeyBundle | null = null
+  let prfSupported: boolean | null = null
 
   return {
+    async preflight(): Promise<void> {
+      const support = await detectPasskeySupport()
+      prfSupported = support.prf
+    },
+
     async hasIdentity(): Promise<boolean> {
       const stored = await getStoredIdentity()
       return stored !== null
     },
 
     async create(options?: PasskeyCreateOptions): Promise<KeyBundle> {
-      const support = await detectPasskeySupport()
-
-      if (!support.webauthn || !support.platform) {
-        throw new Error('Passkeys not supported on this device')
-      }
+      // IMPORTANT: Do NOT call detectPasskeySupport() here!
+      // Safari/WebKit requires WebAuthn calls to be in the synchronous call stack
+      // of a user gesture. Any async operation will cause the credential creation
+      // to be blocked. Support detection must happen via preflight() on mount.
 
       let keyBundle: KeyBundle
       let passkey: PasskeyIdentity
       let fallback: FallbackStorage | undefined
 
-      if (support.prf) {
-        const result = await createPasskeyIdentity(options)
-        keyBundle = result.keyBundle
-        passkey = result.passkey
+      // Use cached PRF support if available, otherwise try PRF first
+      const usePrf = prfSupported !== false
+
+      if (usePrf) {
+        try {
+          const result = await createPasskeyIdentity(options)
+          keyBundle = result.keyBundle
+          passkey = result.passkey
+        } catch (err) {
+          // If PRF extension not supported at runtime, we can't fall back
+          // because the user gesture is now consumed. Re-throw with helpful message.
+          if (err instanceof Error && err.message.includes('PRF extension not supported')) {
+            // Cache this for next attempt
+            prfSupported = false
+            throw new Error(
+              'PRF extension not supported. Please try again - we will use a compatible method.'
+            )
+          }
+          throw err
+        }
       } else {
+        // PRF not supported, use fallback directly
         const result = await createFallbackIdentity(options?.rpId)
         keyBundle = result.keyBundle
         passkey = result.passkey
