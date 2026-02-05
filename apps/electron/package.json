@@ -2,6 +2,11 @@
   "name": "xnet-desktop",
   "version": "0.0.1",
   "description": "xNet Desktop - Local-first data platform for macOS/Windows/Linux",
+  "author": {
+    "name": "xNet",
+    "email": "support@xnet.dev"
+  },
+  "homepage": "https://github.com/crs48/xNet",
   "main": "./out/main/index.js",
   "type": "module",
   "scripts": {
