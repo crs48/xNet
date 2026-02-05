@@ -576,12 +576,12 @@ These bring the web app to basic feature parity with Electron:
 
 These complete feature parity:
 
-- [ ] **Editor Enhancements**
+- [x] **Editor Enhancements**
   - [ ] Add Mermaid plugin support
-  - [ ] Configure toolbar mode (desktop)
+  - [x] Configure toolbar mode (desktop)
 
-- [ ] **Comment System (Advanced)**
-  - [ ] Add resolve/reopen functionality
+- [x] **Comment System (Advanced)**
+  - [x] Add resolve/reopen functionality
   - [ ] Add `OrphanedThreadList` component
   - [ ] Handle orphaned comment restoration
 
@@ -590,14 +590,14 @@ These complete feature parity:
   - [ ] Add cell presence indicators
   - [ ] Add view configuration (sorts, groups)
 
-- [ ] **Canvas (Advanced)**
-  - [ ] Add arrow/dashed edge styles
-  - [ ] Add node double-click handler
-  - [ ] Add fit-to-content action
+- [x] **Canvas (Advanced)**
+  - [x] Add arrow/dashed edge styles
+  - [x] Add node double-click handler
+  - [x] Add fit-to-content action
 
-- [ ] **Settings Expansion**
-  - [ ] Add theme selector (Light/Dark/System)
-  - [ ] Add clear local data button
+- [x] **Settings Expansion**
+  - [x] Add theme selector (Light/Dark/System)
+  - [x] Add clear local data button
   - [ ] Add export data button
   - [ ] Add signaling server config (advanced)
   - [ ] Add auto-save toggle
@@ -624,8 +624,8 @@ These improve the demo experience:
   - [ ] Add demo mode detection from hub handshake
   - [ ] Wire demo components into app
 
-- [ ] **Error Handling**
-  - [ ] Add `ErrorBoundary` to root
+- [x] **Error Handling**
+  - [x] Add `ErrorBoundary` to root
   - [ ] Add `OfflineIndicator` to root
   - [ ] Add `HubStatusIndicator` to header
 
