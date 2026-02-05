@@ -1,9 +1,17 @@
 /**
- * Tests for passkey storage serialization/deserialization.
+ * Tests for passkey storage serialization/deserialization and IndexedDB operations.
  */
-import { describe, it, expect } from 'vitest'
-import { serializeRecord, deserializeRecord, type SerializedRecord } from './storage'
-import type { StoredPasskeyRecord } from './types'
+import { describe, it, expect, beforeEach } from 'vitest'
+import 'fake-indexeddb/auto'
+import {
+  serializeRecord,
+  deserializeRecord,
+  type SerializedRecord,
+  storeIdentity,
+  getStoredIdentity,
+  clearStoredIdentity
+} from './storage'
+import type { StoredPasskeyRecord, PasskeyIdentity, FallbackStorage } from './types'
 
 // ─── Test Data ───────────────────────────────────────────────
 
@@ -38,7 +46,19 @@ function makeFallbackRecord(): StoredPasskeyRecord {
   }
 }
 
-// ─── Tests ───────────────────────────────────────────────────
+function makePasskey(overrides?: Partial<PasskeyIdentity>): PasskeyIdentity {
+  return {
+    did: 'did:key:z6MktestIDB',
+    publicKey: new Uint8Array([1, 2, 3]),
+    credentialId: new Uint8Array([4, 5, 6]),
+    createdAt: Date.now(),
+    rpId: 'localhost',
+    mode: 'prf',
+    ...overrides
+  }
+}
+
+// ─── Serialization Tests ─────────────────────────────────────
 
 describe('storage serialization', () => {
   describe('serializeRecord / deserializeRecord round-trip', () => {
@@ -92,7 +112,6 @@ describe('storage serialization', () => {
 
   describe('migration from salt to encKey', () => {
     it('deserializes old records with salt field', () => {
-      // Simulate an old serialized record that uses `salt` instead of `encKey`
       const oldSerialized: SerializedRecord = {
         passkey: {
           did: 'did:key:z6Mkold',
@@ -113,7 +132,6 @@ describe('storage serialization', () => {
       const deserialized = deserializeRecord(oldSerialized)
 
       expect(deserialized.fallback).toBeDefined()
-      // Should have migrated salt → encKey
       expect(deserialized.fallback!.encKey).toEqual(new Uint8Array([30, 31, 32]))
     })
 
@@ -136,8 +154,100 @@ describe('storage serialization', () => {
       }
 
       const deserialized = deserializeRecord(ambiguous)
-      // encKey should be preferred
       expect(deserialized.fallback!.encKey).toEqual(new Uint8Array([40, 41, 42]))
+    })
+  })
+})
+
+// ─── IndexedDB Storage Tests ─────────────────────────────────
+
+describe('IndexedDB storage', () => {
+  beforeEach(async () => {
+    // Clear stored identity before each test
+    await clearStoredIdentity()
+  })
+
+  describe('storeIdentity / getStoredIdentity', () => {
+    it('stores and retrieves a PRF identity', async () => {
+      const passkey = makePasskey()
+      await storeIdentity(passkey)
+
+      const stored = await getStoredIdentity()
+      expect(stored).not.toBeNull()
+      expect(stored!.passkey.did).toBe(passkey.did)
+      expect(stored!.passkey.publicKey).toEqual(passkey.publicKey)
+      expect(stored!.passkey.credentialId).toEqual(passkey.credentialId)
+      expect(stored!.passkey.rpId).toBe('localhost')
+      expect(stored!.passkey.mode).toBe('prf')
+      expect(stored!.fallback).toBeUndefined()
+    })
+
+    it('stores and retrieves a fallback identity with encKey', async () => {
+      const passkey = makePasskey({ mode: 'fallback' })
+      const fallback: FallbackStorage = {
+        encryptedBundle: new Uint8Array([10, 20, 30, 40]),
+        nonce: new Uint8Array([50, 60, 70]),
+        encKey: new Uint8Array([80, 90, 100])
+      }
+
+      await storeIdentity(passkey, fallback)
+
+      const stored = await getStoredIdentity()
+      expect(stored).not.toBeNull()
+      expect(stored!.passkey.mode).toBe('fallback')
+      expect(stored!.fallback).toBeDefined()
+      expect(stored!.fallback!.encryptedBundle).toEqual(fallback.encryptedBundle)
+      expect(stored!.fallback!.nonce).toEqual(fallback.nonce)
+      expect(stored!.fallback!.encKey).toEqual(fallback.encKey)
+    })
+
+    it('overwrites previous identity (only one at a time)', async () => {
+      const passkey1 = makePasskey({ did: 'did:key:z6Mkfirst' })
+      const passkey2 = makePasskey({ did: 'did:key:z6Mksecond' })
+
+      await storeIdentity(passkey1)
+      await storeIdentity(passkey2)
+
+      const stored = await getStoredIdentity()
+      expect(stored!.passkey.did).toBe('did:key:z6Mksecond')
+    })
+
+    it('returns null when no identity stored', async () => {
+      const stored = await getStoredIdentity()
+      expect(stored).toBeNull()
+    })
+  })
+
+  describe('clearStoredIdentity', () => {
+    it('clears the stored identity', async () => {
+      await storeIdentity(makePasskey())
+      expect(await getStoredIdentity()).not.toBeNull()
+
+      await clearStoredIdentity()
+      expect(await getStoredIdentity()).toBeNull()
+    })
+
+    it('does not throw when nothing to clear', async () => {
+      await expect(clearStoredIdentity()).resolves.toBeUndefined()
+    })
+  })
+
+  describe('Uint8Array round-trip through IndexedDB', () => {
+    it('preserves Uint8Array data through store/retrieve cycle', async () => {
+      const pubKey = new Uint8Array(32).fill(0xab)
+      const credId = new Uint8Array(64).fill(0xcd)
+      const passkey = makePasskey({
+        publicKey: pubKey,
+        credentialId: credId
+      })
+
+      await storeIdentity(passkey)
+      const stored = await getStoredIdentity()
+
+      expect(stored!.passkey.publicKey).toBeInstanceOf(Uint8Array)
+      expect(stored!.passkey.publicKey).toEqual(pubKey)
+      expect(stored!.passkey.credentialId).toBeInstanceOf(Uint8Array)
+      expect(stored!.passkey.credentialId).toEqual(credId)
     })
   })
 })
