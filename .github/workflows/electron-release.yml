@@ -74,6 +74,7 @@ jobs:
     if: needs.version.outputs.should_release == 'true'
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         arch: [x64, arm64]
     steps:
@@ -89,6 +90,7 @@ jobs:
           path: .
 
       - name: Import code signing certificates
+        if: env.APPLE_CERTIFICATE != ''
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -104,8 +106,10 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
-      - name: Build Electron app
+      - name: Build Electron app (signed)
+        if: env.APPLE_CERTIFICATE != ''
         env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -115,8 +119,19 @@ jobs:
           cd apps/electron
           pnpm electron-builder --mac --${{ matrix.arch }} --publish never
 
-      - name: Notarize app
+      - name: Build Electron app (unsigned)
+        if: env.APPLE_CERTIFICATE == ''
         env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          cd apps/electron
+          pnpm electron-builder --mac --${{ matrix.arch }} --publish never
+
+      - name: Notarize app
+        if: env.APPLE_CERTIFICATE != ''
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -155,10 +170,21 @@ jobs:
           name: js-build
           path: .
 
-      - name: Build Electron app
+      - name: Build Electron app (signed)
+        if: env.WINDOWS_CERTIFICATE != ''
         env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           CSC_LINK: ${{ secrets.WINDOWS_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          cd apps/electron
+          pnpm electron-builder --win --x64 --publish never
+
+      - name: Build Electron app (unsigned)
+        if: env.WINDOWS_CERTIFICATE == ''
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: |
           cd apps/electron
           pnpm electron-builder --win --x64 --publish never
