@@ -67,8 +67,8 @@ COPY --from=builder /build/packages/identity/dist packages/identity/dist/
 COPY --from=builder /build/packages/storage/dist packages/storage/dist/
 COPY --from=builder /build/packages/sync/dist packages/sync/dist/
 
-# Create data directory
-RUN mkdir -p /data && chown node:node /data
+# Create data directory (Railway volume mount will override, but useful for local)
+RUN mkdir -p /data
 
 ENV NODE_ENV=production
 ENV HUB_DATA_DIR=/data
@@ -78,7 +78,8 @@ ENV PORT=4444
 
 EXPOSE 4444
 
-USER node
+# Run as root to allow writing to Railway-mounted volumes
+# (Railway mounts volumes as root-owned)
 
 # Default CMD for local Docker runs; Railway uses startCommand from railway.toml
 CMD ["node", "packages/hub/dist/cli.js", "--port", "4444", "--data", "/data"]
