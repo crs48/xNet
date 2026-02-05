@@ -2,7 +2,7 @@
 
 > Getting xnet.fyi/app live with full demo mode experience
 
-**Status:** Draft
+**Status:** In Progress
 **Created:** 2026-02-05
 **Dependencies:**
 
@@ -821,38 +821,38 @@ sequenceDiagram
 
 - [x] Move `packages/hub/railway.toml` to repo root
 - [x] Update `dockerfilePath` to `packages/hub/Dockerfile`
-- [ ] Create Railway project from GitHub repo
-- [ ] Add persistent volume at `/data`
-- [ ] Set environment variables:
-  - [ ] `NODE_ENV=production`
-  - [ ] `HUB_MODE=demo`
-  - [ ] `LOG_LEVEL=info`
-- [ ] Add custom domain `hub.xnet.fyi`
-- [ ] Configure DNS CNAME record
-- [ ] Verify `/health` returns `mode: "demo"`
+- [x] Create Railway project from GitHub repo
+- [x] Add persistent volume at `/data`
+- [x] Set environment variables:
+  - [x] `NODE_ENV=production`
+  - [x] `HUB_MODE=demo`
+  - [x] `LOG_LEVEL=info`
+- [x] Add custom domain `hub.xnet.fyi`
+- [x] Configure DNS CNAME record
+- [x] Verify `/health` returns `mode: "demo"`
 - [ ] Verify WebSocket connections work
 
 ### Hub Changes
 
-- [ ] Add `isDemo` to handshake response
-- [ ] Add `demoLimits` to handshake response
-- [ ] Export `DemoLimits` type from `@xnet/network`
-- [ ] Update SyncManager to emit `demo-mode` event
+- [x] Add `isDemo` to handshake response
+- [x] Add `demoLimits` to handshake response
+- [x] Export `DemoLimits` type from `@xnet/network`
+- [x] Update SyncManager to emit `demo-mode` event (via connection.onMessage)
 - [ ] Test handshake with demo mode enabled
 
 ### React Package Changes
 
-- [ ] Create `DemoBanner.tsx` component
-- [ ] Create `DemoQuotaIndicator.tsx` component
-- [ ] Create `DemoDataExpiredScreen.tsx` component
-- [ ] Create `useDemoMode.ts` hook
-- [ ] Export all demo components from index.ts
-- [ ] Add TypeScript types for demo state
+- [x] Create `DemoBanner.tsx` component
+- [x] Create `DemoQuotaIndicator.tsx` component
+- [x] Create `DemoDataExpiredScreen.tsx` component
+- [x] Create `useDemoMode.ts` hook
+- [x] Export all demo components from index.ts
+- [x] Add TypeScript types for demo state
 
 ### Web App Changes
 
-- [ ] Import and wire `DemoBanner` in `__root.tsx`
-- [ ] Add top padding when banner is shown
+- [x] Import and wire `DemoBanner` in `__root.tsx`
+- [x] Add top padding when banner is shown
 - [ ] Optionally add `DemoQuotaIndicator` to sidebar
 - [ ] Test banner dismiss persistence
 

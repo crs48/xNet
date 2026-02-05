@@ -51,6 +51,27 @@ export interface SyncMessage {
 }
 
 /**
+ * Demo mode limits (sent from hub in handshake)
+ */
+export interface DemoLimits {
+  quotaBytes: number
+  maxDocs: number
+  maxBlobBytes: number
+  evictionTtlMs: number
+}
+
+/**
+ * Hub handshake message
+ */
+export interface HubHandshake {
+  type: 'handshake'
+  version: string
+  hubDid?: string
+  isDemo: boolean
+  demoLimits?: DemoLimits
+}
+
+/**
  * Network configuration
  */
 export interface NetworkConfig {

@@ -212,6 +212,23 @@ export { ErrorBoundary, type ErrorBoundaryProps } from './components/ErrorBounda
 
 export { Skeleton, injectSkeletonStyles, type SkeletonProps } from './components/Skeleton'
 
+// =============================================================================
+// Demo Mode
+// =============================================================================
+
+export { DemoBanner, type DemoBannerProps } from './components/DemoBanner'
+
+export { DemoQuotaIndicator, type DemoQuotaIndicatorProps } from './components/DemoQuotaIndicator'
+
+export { DemoDataExpiredScreen } from './components/DemoDataExpiredScreen'
+
+export {
+  useDemoMode,
+  type DemoModeState,
+  type DemoLimits,
+  type DemoUsage
+} from './hooks/useDemoMode'
+
 export {
   OfflineIndicator,
   useIsOffline,

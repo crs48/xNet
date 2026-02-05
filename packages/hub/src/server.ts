@@ -466,6 +466,36 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         metrics.increment(HUB_METRICS.WS_CONNECTIONS_TOTAL)
         let closed = false
 
+        // Send handshake message with hub info (including demo mode)
+        const handshake: {
+          type: 'handshake'
+          version: string
+          hubDid?: string
+          isDemo: boolean
+          demoLimits?: {
+            quotaBytes: number
+            maxDocs: number
+            maxBlobBytes: number
+            evictionTtlMs: number
+          }
+        } = {
+          type: 'handshake',
+          version: '0.0.1',
+          hubDid: config.hubDid,
+          isDemo: !!config.demo
+        }
+        if (config.demo && config.demoOverrides) {
+          handshake.demoLimits = {
+            quotaBytes: config.demoOverrides.quota,
+            maxDocs: config.demoOverrides.maxDocs,
+            maxBlobBytes: config.demoOverrides.maxBlob,
+            evictionTtlMs: config.demoOverrides.evictionTtl
+          }
+        }
+        if (ws.readyState === 1) {
+          ws.send(JSON.stringify(handshake))
+        }
+
         const finalize = (): void => {
           if (closed) return
           closed = true
