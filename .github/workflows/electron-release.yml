@@ -279,19 +279,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Collect all release files (excluding js-build artifacts and directories)
-          FILES=$(find artifacts -type f \( -name "*.dmg" -o -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.yml" \) | grep -v js-build || true)
+          # Use null delimiter to handle filenames with spaces
+          mapfile -d '' FILES < <(find artifacts -type f \( -name "*.dmg" -o -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.yml" \) -print0 | grep -zv js-build || true)
 
-          if [ -z "$FILES" ]; then
+          if [ ${#FILES[@]} -eq 0 ]; then
             echo "No release files found!"
             exit 1
           fi
 
-          echo "Uploading files:"
-          echo "$FILES"
+          echo "Uploading ${#FILES[@]} files:"
+          printf '%s\n' "${FILES[@]}"
 
           gh release create "v${{ needs.version.outputs.version }}" \
             --title "xNet v${{ needs.version.outputs.version }}" \
             --notes-file release-notes.md \
             ${{ github.event.inputs.release_type == 'draft' && '--draft' || '' }} \
             ${{ github.event.inputs.release_type == 'prerelease' && '--prerelease' || '' }} \
-            $FILES
+            "${FILES[@]}"
