@@ -33,8 +33,8 @@ function rehypeMermaidPre() {
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://crs48.github.io',
-  base: '/xNet',
+  site: 'https://xnet.fyi',
+  base: '/',
   markdown: {
     rehypePlugins: [rehypeMermaidPre]
   },

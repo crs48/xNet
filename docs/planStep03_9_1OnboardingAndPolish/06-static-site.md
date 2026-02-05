@@ -663,15 +663,15 @@ describe('Static Site', () => {
 
 ## Validation Gate
 
-- [ ] Landing page loads and looks good at `xnet.fyi`
+- [x] Landing page loads and looks good at `xnet.fyi`
 - [ ] `/app` route serves React SPA with passkey-first onboarding
 - [ ] `/app` connects to `hub.xnet.fyi` for demo sync
-- [ ] Download page shows latest release version
-- [ ] Platform detection highlights correct download
-- [ ] Documentation renders with Starlight navigation
-- [ ] Site deploys to GitHub Pages from `site/` directory
-- [ ] Custom domain (`xnet.fyi`) works with SSL
-- [ ] Passkey rpId is `xnet.fyi` (portable to subdomains later)
+- [x] Download page shows latest release version
+- [x] Platform detection highlights correct download
+- [x] Documentation renders with Starlight navigation
+- [x] Site deploys to GitHub Pages from `site/` directory
+- [x] Custom domain (`xnet.fyi`) works with SSL
+- [x] Passkey rpId is `xnet.fyi` (portable to subdomains later)
 
 ---
 
