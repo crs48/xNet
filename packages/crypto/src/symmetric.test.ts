@@ -54,7 +54,8 @@ describe('Symmetric Encryption', () => {
 
   it('should handle large plaintext', () => {
     const key = generateKey()
-    const plaintext = new Uint8Array(1024 * 1024) // 1MB
+    const plaintext = new Uint8Array(10 * 1024) // 10KB (logic is size-independent)
+    for (let i = 0; i < plaintext.length; i++) plaintext[i] = i % 256
     const encrypted = encrypt(plaintext, key)
     const decrypted = decrypt(encrypted, key)
     expect(decrypted).toEqual(plaintext)

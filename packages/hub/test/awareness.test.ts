@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { WebSocket } from 'ws'
-import * as Y from 'yjs'
 import { Awareness, encodeAwarenessUpdate } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 import { createHub, type HubInstance } from '../src'
 
 const toBase64 = (data: Uint8Array): string => Buffer.from(data).toString('base64')
@@ -10,6 +10,9 @@ const wait = (ms: number): Promise<void> =>
   new Promise((resolve) => {
     setTimeout(resolve, ms)
   })
+
+// Short delay for message delivery (replaces longer fixed waits)
+const SHORT_WAIT = 30
 
 const connect = (port: number): Promise<WebSocket> =>
   new Promise((resolve) => {
@@ -35,7 +38,7 @@ describe('Awareness Persistence', () => {
 
     const wsAlice = await connect(PORT)
     wsAlice.send(JSON.stringify({ type: 'subscribe', topics: [ROOM] }))
-    await wait(50)
+    await wait(SHORT_WAIT)
 
     const doc = new Y.Doc()
     const awareness = new Awareness(doc)
@@ -57,9 +60,9 @@ describe('Awareness Persistence', () => {
       })
     )
 
-    await wait(100)
+    await wait(SHORT_WAIT)
     wsAlice.close()
-    await wait(100)
+    await wait(SHORT_WAIT)
 
     const wsBob = await connect(PORT)
     const snapshotPromise = new Promise<any>((resolve) => {
@@ -89,7 +92,7 @@ describe('Awareness Persistence', () => {
 
     const ws = await connect(PORT)
     ws.send(JSON.stringify({ type: 'subscribe', topics: [ROOM] }))
-    await wait(50)
+    await wait(SHORT_WAIT)
 
     const doc = new Y.Doc()
     const awareness = new Awareness(doc)
@@ -104,7 +107,7 @@ describe('Awareness Persistence', () => {
       })
     )
 
-    await wait(50)
+    await wait(SHORT_WAIT)
 
     awareness.setLocalState({ user: { did: 'did:key:z6MkBob' }, cursor: { anchor: 50, head: 50 } })
     update = encodeAwarenessUpdate(awareness, [doc.clientID])
@@ -116,9 +119,9 @@ describe('Awareness Persistence', () => {
       })
     )
 
-    await wait(100)
+    await wait(SHORT_WAIT)
     ws.close()
-    await wait(50)
+    await wait(SHORT_WAIT)
 
     const ws2 = await connect(PORT)
     const snapshot = await new Promise<any>((resolve) => {
@@ -146,7 +149,7 @@ describe('Awareness Persistence', () => {
     })
 
     ws.send(JSON.stringify({ type: 'subscribe', topics: [ROOM] }))
-    await wait(200)
+    await wait(SHORT_WAIT)
 
     expect(gotSnapshot).toBe(false)
     ws.close()

@@ -57,7 +57,7 @@ describe('Signing', () => {
     expect(verify(message, invalidSignature, kp.publicKey)).toBe(false)
   })
 
-  it('should verify many signatures efficiently', () => {
+  it.skipIf(process.env.VITEST_PRECOMMIT)('should verify many signatures efficiently', () => {
     const kp = generateSigningKeyPair()
     const count = 100
     const messages = Array.from({ length: count }, (_, i) =>

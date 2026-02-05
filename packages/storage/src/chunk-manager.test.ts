@@ -1,7 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { ChunkManager, CHUNK_THRESHOLD, CHUNK_SIZE } from './chunk-manager'
-import { BlobStore } from './blob-store'
 import { MemoryAdapter } from './adapters/memory'
+import { BlobStore } from './blob-store'
+import { ChunkManager } from './chunk-manager'
+
+// Use small sizes for fast tests (10KB threshold, 2KB chunks)
+const TEST_CHUNK_THRESHOLD = 10 * 1024 // 10KB
+const TEST_CHUNK_SIZE = 2 * 1024 // 2KB
 
 describe('ChunkManager', () => {
   let chunkManager: ChunkManager
@@ -11,7 +15,10 @@ describe('ChunkManager', () => {
     const adapter = new MemoryAdapter()
     await adapter.open()
     blobStore = new BlobStore(adapter)
-    chunkManager = new ChunkManager(blobStore)
+    chunkManager = new ChunkManager(blobStore, {
+      chunkThreshold: TEST_CHUNK_THRESHOLD,
+      chunkSize: TEST_CHUNK_SIZE
+    })
   })
 
   describe('store', () => {
@@ -27,7 +34,7 @@ describe('ChunkManager', () => {
     })
 
     it('chunks large files', async () => {
-      const data = new Uint8Array(CHUNK_THRESHOLD + 1) // Just over threshold
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD + 1) // Just over threshold
       const { cid, isChunked } = await chunkManager.store(data, {
         filename: 'large.bin',
         mimeType: 'application/octet-stream'
@@ -38,7 +45,7 @@ describe('ChunkManager', () => {
     })
 
     it('stores files exactly at threshold without chunking', async () => {
-      const data = new Uint8Array(CHUNK_THRESHOLD - 1)
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD - 1)
       const { isChunked } = await chunkManager.store(data, {
         filename: 'exact.bin',
         mimeType: 'application/octet-stream'
@@ -48,7 +55,7 @@ describe('ChunkManager', () => {
     })
 
     it('preserves filename and mimeType in manifest', async () => {
-      const data = new Uint8Array(CHUNK_THRESHOLD + 100)
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD + 100)
       const { cid } = await chunkManager.store(data, {
         filename: 'photo.jpg',
         mimeType: 'image/jpeg'
@@ -60,13 +67,13 @@ describe('ChunkManager', () => {
       const manifest = JSON.parse(new TextDecoder().decode(manifestData!))
       expect(manifest.filename).toBe('photo.jpg')
       expect(manifest.mimeType).toBe('image/jpeg')
-      expect(manifest.totalSize).toBe(CHUNK_THRESHOLD + 100)
+      expect(manifest.totalSize).toBe(TEST_CHUNK_THRESHOLD + 100)
       expect(manifest.version).toBe(1)
     })
 
     it('creates correct number of chunks', async () => {
-      // Need size > CHUNK_THRESHOLD to trigger chunking
-      const size = CHUNK_THRESHOLD + CHUNK_SIZE * 2 + 100 // 1MB + 512KB + 100 = ~1.5MB
+      // Need size > TEST_CHUNK_THRESHOLD to trigger chunking
+      const size = TEST_CHUNK_THRESHOLD + TEST_CHUNK_SIZE * 2 + 100 // 1MB + 512KB + 100 = ~1.5MB
       const data = new Uint8Array(size)
       for (let i = 0; i < data.length; i++) data[i] = i % 256 // Unique data per chunk
       const { cid, isChunked } = await chunkManager.store(data, {
@@ -77,7 +84,7 @@ describe('ChunkManager', () => {
       expect(isChunked).toBe(true)
       const manifestData = await blobStore.get(cid)
       const manifest = JSON.parse(new TextDecoder().decode(manifestData!))
-      const expectedChunks = Math.ceil(size / CHUNK_SIZE)
+      const expectedChunks = Math.ceil(size / TEST_CHUNK_SIZE)
       expect(manifest.chunks.length).toBe(expectedChunks)
     })
   })
@@ -96,7 +103,7 @@ describe('ChunkManager', () => {
 
     it('reassembles chunked files', async () => {
       // Create data larger than chunk threshold with known pattern
-      const data = new Uint8Array(CHUNK_THRESHOLD + 500)
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD + 500)
       for (let i = 0; i < data.length; i++) {
         data[i] = i % 256
       }
@@ -118,7 +125,7 @@ describe('ChunkManager', () => {
     })
 
     it('throws when chunks are missing', async () => {
-      const data = new Uint8Array(CHUNK_THRESHOLD + 100)
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD + 100)
       for (let i = 0; i < data.length; i++) data[i] = ((i >> 16) ^ (i >> 8) ^ i) & 0xff
       const { cid } = await chunkManager.store(data, {
         filename: 'test.bin',
@@ -149,7 +156,7 @@ describe('ChunkManager', () => {
     })
 
     it('returns true when all chunks exist', async () => {
-      const data = new Uint8Array(CHUNK_THRESHOLD + 100)
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD + 100)
       const { cid } = await chunkManager.store(data, {
         filename: 'test.bin',
         mimeType: 'application/octet-stream'
@@ -159,7 +166,7 @@ describe('ChunkManager', () => {
     })
 
     it('returns false when a chunk is missing', async () => {
-      const data = new Uint8Array(CHUNK_THRESHOLD + 100)
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD + 100)
       for (let i = 0; i < data.length; i++) data[i] = ((i >> 16) ^ (i >> 8) ^ i) & 0xff
       const { cid } = await chunkManager.store(data, {
         filename: 'test.bin',
@@ -185,7 +192,7 @@ describe('ChunkManager', () => {
 
   describe('getMissingChunks', () => {
     it('returns empty array when all chunks exist', async () => {
-      const data = new Uint8Array(CHUNK_THRESHOLD + 100)
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD + 100)
       const { cid } = await chunkManager.store(data, {
         filename: 'test.bin',
         mimeType: 'application/octet-stream'
@@ -196,7 +203,7 @@ describe('ChunkManager', () => {
     })
 
     it('returns missing chunk CIDs', async () => {
-      const data = new Uint8Array(CHUNK_THRESHOLD + 100)
+      const data = new Uint8Array(TEST_CHUNK_THRESHOLD + 100)
       // Each byte encodes its position including high bits so chunks are unique
       for (let i = 0; i < data.length; i++) data[i] = ((i >> 16) ^ (i >> 8) ^ i) & 0xff
       const { cid } = await chunkManager.store(data, {
