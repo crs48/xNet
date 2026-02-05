@@ -135,6 +135,362 @@ Deploy the web app to a separate host (Cloudflare Pages, Vercel, etc.) at `app.x
 
 Option B gives the cleanest architecture — the web app stays a normal Vite SPA, the site stays a normal Astro site, and they're stitched together at the CI level. No framework coupling, no routing conflicts.
 
+## Feature Parity: Electron as Reference Implementation
+
+The Electron app has the most complete feature set. The web app and Expo need to reach parity with it. This section details every feature in the Electron app that needs to be ported.
+
+### Document Types
+
+The Electron app supports three document types, each with its own schema, editor, and features:
+
+```mermaid
+graph LR
+    subgraph "Document Types"
+        P["Page<br/>Rich text editor<br/>Comments, wikilinks"]
+        D["Database<br/>Table + Board views<br/>Dynamic schema"]
+        C["Canvas<br/>Infinite spatial canvas<br/>Nodes + edges"]
+    end
+
+    subgraph "Shared Infrastructure"
+        S["Yjs CRDT sync"]
+        A["Awareness (presence)"]
+        B["Blob storage"]
+        I["Identity (DID)"]
+    end
+
+    P --> S
+    D --> S
+    C --> S
+    P --> A
+    D --> A
+    C --> A
+
+    style P fill:#6366f1,color:#fff
+    style D fill:#10b981,color:#fff
+    style C fill:#f59e0b,color:#000
+```
+
+| Type         | Schema           | Package        | Web Status            | Expo Status          |
+| ------------ | ---------------- | -------------- | --------------------- | -------------------- |
+| **Page**     | `PageSchema`     | `@xnet/editor` | Partial (no comments) | CDN WebView (no Yjs) |
+| **Database** | `DatabaseSchema` | `@xnet/views`  | Missing               | Missing              |
+| **Canvas**   | `CanvasSchema`   | `@xnet/canvas` | Missing               | Missing              |
+
+### Electron App Component Tree
+
+```
+App.tsx (shell)
+├── Sidebar.tsx (314 lines)
+│   ├── Collapsible sections (Pages, Databases, Canvases)
+│   ├── Document list with icons, delete, hover states
+│   ├── Create dropdown (Page, Database, Canvas, Add Shared)
+│   ├── Plugin sidebar items (top, bottom, section)
+│   └── Settings link
+│
+├── PageView.tsx (907 lines)
+│   ├── DocumentHeader (title, share button)
+│   ├── SyncIndicator (status dot, peer count)
+│   ├── PresenceAvatars (remote users)
+│   ├── RichTextEditor (@xnet/editor)
+│   │   ├── Collaborative Yjs binding
+│   │   ├── Image/file upload hooks
+│   │   ├── Plugin extensions (mermaid, etc.)
+│   │   └── Toolbar (desktop mode)
+│   ├── Comment System
+│   │   ├── CommentMark extension (text anchors)
+│   │   ├── CommentPopover (preview/full modes)
+│   │   ├── CommentsSidebar (thread list)
+│   │   └── OrphanedThreadList (deleted anchor handling)
+│   └── New comment input modal
+│
+├── DatabaseView.tsx (1300 lines)
+│   ├── View mode switcher (Table / Board)
+│   ├── TableView (@xnet/views)
+│   │   ├── Virtual scrolling
+│   │   ├── Column CRUD (add, rename, delete, reorder)
+│   │   ├── Cell presence indicators
+│   │   └── Inline editing
+│   ├── BoardView (@xnet/views)
+│   │   ├── Kanban columns from select options
+│   │   ├── Card drag-and-drop
+│   │   ├── Column reordering
+│   │   └── CardDetailModal
+│   ├── Cell comments (anchor to row+column)
+│   └── CommentsSidebar with cell hover highlighting
+│
+├── CanvasView.tsx (183 lines)
+│   ├── Canvas (@xnet/canvas)
+│   │   ├── Infinite pan/zoom
+│   │   ├── Grid background
+│   │   ├── Node creation (card type)
+│   │   └── Edge creation (arrows, dashed)
+│   ├── Toolbar (Add Node, Center)
+│   └── PresenceAvatars
+│
+├── SettingsView.tsx (295 lines)
+│   ├── General (startup behavior, auto-save)
+│   ├── Appearance (theme, font size, sidebar position)
+│   ├── Plugins (PluginManager)
+│   ├── Data (storage info, clear, export)
+│   └── Network (P2P toggle, signaling server, local API)
+│
+├── PluginManager.tsx
+│   ├── Installed plugin list with status badges
+│   ├── Activate / Deactivate / Uninstall actions
+│   └── Install from manifest dialog
+│
+└── Supporting Components
+    ├── ShareButton (copy share ID)
+    ├── PresenceAvatars (DIDAvatar stack)
+    ├── DocumentHeader (editable title)
+    ├── AddSharedDialog (paste shared ID)
+    ├── BundledPluginInstaller (auto-install on startup)
+    └── UpdateNotification (Electron-only)
+```
+
+### Feature Parity Matrix
+
+#### Core Features
+
+| Feature                |   Electron    |    Web    |     Expo     | Priority |
+| ---------------------- | :-----------: | :-------: | :----------: | -------- |
+| Page CRUD              |      Yes      |    Yes    |     Yes      | P0       |
+| Database CRUD          |      Yes      |    No     |      No      | P0       |
+| Canvas CRUD            |      Yes      |    No     |      No      | P1       |
+| Rich text editor       |     Full      |   Basic   | CDN (no Yjs) | P0       |
+| Yjs collaborative sync |      Yes      | Disabled  |      No      | P0       |
+| Passkey identity       | Profile-based | Hardcoded |   SDK auto   | P0       |
+| Hub connection         |    IPC→BSM    |   None    |     None     | P0       |
+| Onboarding flow        |      No       |    No     |      No      | P0       |
+
+#### Editor Features
+
+| Feature                  | Electron |   Web   | Expo | Priority |
+| ------------------------ | :------: | :-----: | :--: | -------- |
+| RichTextEditor component |   Yes    |   Yes   | CDN  | P0       |
+| Toolbar (desktop mode)   |   Yes    | Default |  No  | P1       |
+| Image upload             |   Yes    |   Yes   |  No  | P1       |
+| File upload/download     |   Yes    |   Yes   |  No  | P2       |
+| Wikilinks                |   Yes    |   Yes   |  No  | P1       |
+| Slash commands           |   Yes    |   Yes   |  No  | P1       |
+| Drag handle              |   Yes    |   Yes   |  No  | P2       |
+| Callouts                 |   Yes    |   Yes   |  No  | P2       |
+| Toggle blocks            |   Yes    |   Yes   |  No  | P2       |
+| Code blocks              |   Yes    |   Yes   |  No  | P1       |
+| Mermaid diagrams         |  Plugin  |   No    |  No  | P2       |
+
+#### Comment System
+
+| Feature                       | Electron | Web | Expo | Priority |
+| ----------------------------- | :------: | :-: | :--: | -------- |
+| Text anchor comments          |   Yes    | No  |  No  | P1       |
+| CommentMark extension         |   Yes    | No  |  No  | P1       |
+| CommentPopover (preview/full) |   Yes    | No  |  No  | P1       |
+| CommentsSidebar               |   Yes    | No  |  No  | P1       |
+| Reply threads                 |   Yes    | No  |  No  | P1       |
+| Resolve/reopen                |   Yes    | No  |  No  | P2       |
+| Orphaned comment handling     |   Yes    | No  |  No  | P2       |
+| Cell comments (database)      |   Yes    | No  |  No  | P2       |
+| Row/column comments           |   Yes    | No  |  No  | P2       |
+
+#### Database Features
+
+| Feature                                                    | Electron | Web | Expo | Priority |
+| ---------------------------------------------------------- | :------: | :-: | :--: | -------- |
+| TableView                                                  |   Yes    | No  |  No  | P0       |
+| BoardView                                                  |   Yes    | No  |  No  | P0       |
+| Column CRUD                                                |   Yes    | No  |  No  | P0       |
+| Column types (text, number, checkbox, select, multiSelect) |   Yes    | No  |  No  | P0       |
+| Row CRUD                                                   |   Yes    | No  |  No  | P0       |
+| Virtual scrolling                                          |   Yes    | No  |  No  | P1       |
+| Cell presence indicators                                   |   Yes    | No  |  No  | P1       |
+| CardDetailModal                                            |   Yes    | No  |  No  | P1       |
+| View configuration (sorts, groups)                         |   Yes    | No  |  No  | P2       |
+| Gallery view                                               |    No    | No  |  No  | P3       |
+| Timeline view                                              |    No    | No  |  No  | P3       |
+| Calendar view                                              |    No    | No  |  No  | P3       |
+
+#### Canvas Features
+
+| Feature            | Electron | Web | Expo | Priority |
+| ------------------ | :------: | :-: | :--: | -------- |
+| Infinite pan/zoom  |   Yes    | No  |  No  | P1       |
+| Grid background    |   Yes    | No  |  No  | P1       |
+| Card nodes         |   Yes    | No  |  No  | P1       |
+| Edge connections   |   Yes    | No  |  No  | P1       |
+| Arrow/dashed edges |   Yes    | No  |  No  | P2       |
+| Node double-click  |   Yes    | No  |  No  | P2       |
+| Fit to content     |   Yes    | No  |  No  | P2       |
+
+#### Sidebar Features
+
+| Feature              | Electron  |    Web     |    Expo    | Priority |
+| -------------------- | :-------: | :--------: | :--------: | -------- |
+| Document list        |  3 types  | Pages only |  FlatList  | P0       |
+| Collapsible sections |    Yes    |     No     |    N/A     | P1       |
+| Document type icons  |    Yes    |     No     |     No     | P1       |
+| Delete on hover      |    Yes    |     No     | Long press | P1       |
+| Create dropdown      | 4 options | Link only  |   Button   | P0       |
+| Add Shared dialog    |    Yes    |     No     |     No     | P1       |
+| Plugin sidebar items |    Yes    |     No     |     No     | P2       |
+| Settings link        |    Yes    |    Yes     |   Screen   | P1       |
+
+#### Settings Features
+
+| Feature                 | Electron |     Web     |    Expo     | Priority      |
+| ----------------------- | :------: | :---------: | :---------: | ------------- |
+| Theme selector          |   Yes    | Toggle only | System only | P1            |
+| Signaling server config |   Yes    |     No      |     No      | P2            |
+| Clear local data        |   Yes    |     No      |     Yes     | P1            |
+| Export data             |   Yes    |     No      |     No      | P2            |
+| Plugin manager          |   Yes    |     No      |     No      | P2            |
+| Local API toggle        |   Yes    |     No      |     No      | Electron-only |
+| Auto-save toggle        |   Yes    |     No      |     No      | P2            |
+
+#### Presence & Collaboration
+
+| Feature                  | Electron  |     Web      | Expo | Priority |
+| ------------------------ | :-------: | :----------: | :--: | -------- |
+| Sync status indicator    |    Yes    |     Yes      |  No  | P0       |
+| Peer count               |    Yes    |      No      |  No  | P1       |
+| PresenceAvatars          | DIDAvatar | Inline spans |  No  | P1       |
+| Remote cursor (editor)   |    Yes    |      No      |  No  | P1       |
+| Cell presence (database) |    Yes    |      No      |  No  | P2       |
+
+#### Sharing
+
+| Feature           | Electron | Web | Expo | Priority |
+| ----------------- | :------: | :-: | :--: | -------- |
+| Share button      |   Yes    | No  |  No  | P1       |
+| Copy share ID     |   Yes    | No  |  No  | P1       |
+| Add Shared dialog |   Yes    | No  |  No  | P1       |
+| Type-prefixed IDs |   Yes    | No  |  No  | P1       |
+
+### Shared Package Usage
+
+The Electron app uses the full suite of shared packages. The web and Expo apps need to expand their usage:
+
+```mermaid
+graph TD
+    subgraph "Shared Packages (platform-agnostic)"
+        react["@xnet/react<br/>hooks, providers, onboarding"]
+        data["@xnet/data<br/>schemas, NodeStore"]
+        editor["@xnet/editor<br/>RichTextEditor, extensions"]
+        views["@xnet/views<br/>TableView, BoardView, CardDetailModal"]
+        canvas["@xnet/canvas<br/>Canvas, nodes, edges"]
+        ui["@xnet/ui<br/>CommentPopover, CommentsSidebar,<br/>DIDAvatar, ThemeToggle"]
+        identity["@xnet/identity<br/>passkey, DID, UCAN"]
+        sync["@xnet/sync<br/>Yjs sync, awareness"]
+        storage["@xnet/storage<br/>IndexedDB, BlobStore"]
+        devtools["@xnet/devtools<br/>debug panels"]
+        plugins["@xnet/plugins<br/>plugin system"]
+    end
+
+    subgraph "Electron (uses all)"
+        E["apps/electron"]
+    end
+
+    subgraph "Web (needs expansion)"
+        W["apps/web"]
+    end
+
+    subgraph "Expo (needs major work)"
+        X["apps/expo"]
+    end
+
+    E --> react & data & editor & views & canvas & ui & identity & sync & storage & devtools & plugins
+
+    W --> react & data & editor & ui & storage
+    W -.->|"needs"| views & canvas & identity & sync & devtools
+
+    X --> react
+    X -.->|"needs"| data & editor & views & canvas & ui & identity & sync & storage
+
+    style E fill:#10b981,color:#fff
+    style W fill:#f59e0b,color:#000
+    style X fill:#ef4444,color:#fff
+```
+
+### Web App Parity Roadmap
+
+To bring `apps/web` to parity with Electron, implement in this order:
+
+#### Phase A: Infrastructure (before Phase 1)
+
+1. **Add missing package dependencies** to `apps/web/package.json`:
+
+   ```json
+   "@xnet/identity": "workspace:*",
+   "@xnet/views": "workspace:*",
+   "@xnet/canvas": "workspace:*",
+   "@xnet/devtools": "workspace:*",
+   "@xnet/plugins": "workspace:*"
+   ```
+
+2. **Port the App shell** from Electron's `App.tsx`:
+   - State-based document selection (or integrate with TanStack Router params)
+   - Support for all three document types
+   - Create dropdown with Page/Database/Canvas/Add Shared
+
+3. **Port the Sidebar** from Electron's `Sidebar.tsx`:
+   - Collapsible sections by document type
+   - Document type icons
+   - Delete button on hover
+   - Full create dropdown
+
+#### Phase B: Database Support
+
+4. **Add DatabaseView** using `@xnet/views`:
+   - Import `TableView`, `BoardView`, `CardDetailModal`
+   - Port the view mode switcher
+   - Port column CRUD operations
+   - Port cell presence indicators
+
+5. **Add database routing**:
+   - New route: `/db/$dbId`
+   - Or extend the existing routing to support document types
+
+#### Phase C: Canvas Support
+
+6. **Add CanvasView** using `@xnet/canvas`:
+   - Import `Canvas` component
+   - Port toolbar (Add Node, Center)
+   - Port initial content creation
+
+7. **Add canvas routing**:
+   - New route: `/canvas/$canvasId`
+
+#### Phase D: Comment System
+
+8. **Integrate comment system** from `@xnet/ui`:
+   - Import `CommentPopover`, `CommentsSidebar`, `OrphanedThreadList`
+   - Add `useComments` hook usage
+   - Port the comment mark extension integration
+   - Add comment count badge to header
+
+#### Phase E: Sharing & Presence
+
+9. **Add ShareButton** component
+10. **Add AddSharedDialog** component
+11. **Upgrade PresenceAvatars** to use `DIDAvatar` from `@xnet/ui`
+
+#### Phase F: Settings & Plugins
+
+12. **Expand SettingsView** with all sections from Electron
+13. **Add PluginManager** (optional for web, but enables same plugin ecosystem)
+14. **Add devtools** via `@xnet/devtools`
+
+### Expo Parity Strategy
+
+Expo requires a different approach due to React Native's constraints. The `@xnet/editor`, `@xnet/views`, and `@xnet/canvas` packages are DOM-based and cannot run natively. The solution is the WebView-first architecture described in the Cross-Platform Convergence section:
+
+1. **Replace CDN TipTap** in `WebViewEditor.tsx` with the actual `apps/web` bundle
+2. **Implement PostMessage bridge** for storage, identity, and sync
+3. **Native shell** handles navigation, biometrics, SQLite storage
+4. **WebView** renders the full app UI
+
+This gives Expo full feature parity with web automatically — when web gains a feature, Expo gets it too.
+
 ## Integration Plan
 
 ### Phase 1: Wire Up the Web App (apps/web)
@@ -1001,14 +1357,35 @@ The web app integration (Phases 1-3 of this exploration) becomes even more impor
 
 The hardest work is already done. The identity system, onboarding flow, sync infrastructure, and hub are all implemented. The shared packages (`@xnet/react`, `@xnet/editor`, `@xnet/views`, `@xnet/ui`, `@xnet/canvas`) are platform-agnostic React libraries that work in any DOM environment.
 
-The immediate priority is getting `xnet.fyi/app` live:
+### Immediate Priority: Get `xnet.fyi/app` Live
 
-1. **Wire `apps/web/` to use `@xnet/identity` and `@xnet/react` onboarding** (the biggest code change, ~1 day)
-2. **Set Vite base path and TanStack basepath to `/app/`** (config changes, ~1 hour)
+1. **Wire `apps/web/` to use `@xnet/identity` and `@xnet/react` onboarding** (~1 day)
+2. **Set Vite base path and TanStack basepath to `/app/`** (~1 hour)
 3. **Update the CI workflow to build and stitch both projects** (~1 hour)
 4. **Add landing page CTAs** (~1 hour)
 5. **Build demo UI polish components** (DemoBanner, quota indicator — ~1 day)
 
-The recommended approach (Option B: pre-built SPA copied into site dist) avoids any framework coupling between Astro and the web app, keeps both build pipelines simple, and works within GitHub Pages' constraints.
+### Medium-Term: Feature Parity
 
-The broader opportunity is convergence. Today, Electron has the richest feature set (databases, canvas, comments, plugins, devtools) while the web app is a minimal page editor and Expo is essentially a separate product. By making `apps/web` the canonical React SPA and introducing a platform adapter pattern, all three platforms can render the same UI — Electron via BrowserWindow, browsers via direct load, and mobile via WebView. The features are written once in shared packages, the app shell is written once in `apps/web`, and platform-specific concerns (storage, sync, auth, native capabilities) are handled by thin adapters. This is not a rewrite — it's an incremental convergence that starts with the web app integration described in this document.
+The Feature Parity section above details every capability in the Electron app. The web app needs:
+
+- **Database support** — Port `TableView`, `BoardView`, and `CardDetailModal` from `@xnet/views`
+- **Canvas support** — Port `Canvas` component from `@xnet/canvas`
+- **Comment system** — Integrate `CommentPopover`, `CommentsSidebar` from `@xnet/ui`
+- **Full sidebar** — Collapsible sections, all document types, create dropdown
+- **Sharing** — `ShareButton`, `AddSharedDialog`, type-prefixed IDs
+- **Settings** — Full settings panel with all sections
+
+Most of this is importing existing shared packages — the Electron app already uses them, so they're proven to work.
+
+### Long-Term: Platform Convergence
+
+The broader opportunity is convergence. Today, Electron has the richest feature set (databases, canvas, comments, plugins, devtools) while the web app is a minimal page editor and Expo is essentially a separate product.
+
+By making `apps/web` the canonical React SPA and introducing a platform adapter pattern, all three platforms can render the same UI:
+
+- **Electron** — BrowserWindow loading `apps/web` with IPC adapters
+- **Browser** — Direct load at `xnet.fyi/app` with IndexedDB/WebSocket adapters
+- **Mobile** — React Native shell with WebView loading `apps/web`, native adapters via postMessage
+
+Features are written once in shared packages. The app shell is written once in `apps/web`. Platform-specific concerns (storage, sync, auth, native capabilities) are handled by thin adapters. This is not a rewrite — it's an incremental convergence that starts with the web app integration described in this document.
