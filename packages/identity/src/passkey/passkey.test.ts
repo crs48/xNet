@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { createPasskeysEmulator } from 'nid-webauthn-emulator'
 import { deriveKeySeed, PRF_INPUT } from './derive'
 import { detectPasskeySupport } from './support'
 
@@ -344,6 +345,88 @@ describe('fallback identity', () => {
 
     await expect(unlockFallbackIdentity(created.passkey, created.fallback)).rejects.toThrow(
       'Authentication cancelled'
+    )
+  })
+})
+
+// ─── Fallback with WebAuthn Emulator ─────────────────────────
+
+describe('fallback identity (WebAuthn emulator)', () => {
+  let emulator: ReturnType<typeof createPasskeysEmulator>
+
+  beforeEach(() => {
+    emulator = createPasskeysEmulator({
+      origin: 'http://localhost',
+      rpId: 'localhost',
+      autofill: true
+    })
+
+    // Inject emulator into globals
+    Object.defineProperty(globalThis, 'navigator', {
+      value: {
+        ...globalThis.navigator,
+        credentials: emulator.methods.credentialsContainer,
+        userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X) Chrome/120'
+      },
+      writable: true,
+      configurable: true
+    })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('creates fallback identity with real WebAuthn credential', async () => {
+    const { createFallbackIdentity } = await import('./fallback')
+
+    const result = await createFallbackIdentity('localhost')
+
+    expect(result.keyBundle.identity.did).toMatch(/^did:key:z/)
+    expect(result.keyBundle.signingKey).toBeInstanceOf(Uint8Array)
+    expect(result.keyBundle.signingKey.length).toBe(32)
+    expect(result.passkey.mode).toBe('fallback')
+    expect(result.passkey.rpId).toBe('localhost')
+    expect(result.passkey.credentialId).toBeInstanceOf(Uint8Array)
+    expect(result.passkey.credentialId.length).toBeGreaterThan(0)
+    expect(result.fallback.encryptedBundle.length).toBeGreaterThan(0)
+    expect(result.fallback.nonce.length).toBeGreaterThan(0)
+    expect(result.fallback.encKey.length).toBeGreaterThan(0)
+  })
+
+  it('creates and unlocks fallback identity with real WebAuthn responses', async () => {
+    const { createFallbackIdentity, unlockFallbackIdentity } = await import('./fallback')
+
+    // Create identity — emulator handles the credential.create call
+    const created = await createFallbackIdentity('localhost')
+    expect(created.passkey.mode).toBe('fallback')
+
+    // Unlock — emulator handles the credential.get call with the same credential
+    const unlocked = await unlockFallbackIdentity(created.passkey, created.fallback)
+
+    // Should derive the exact same identity
+    expect(unlocked.keyBundle.identity.did).toBe(created.keyBundle.identity.did)
+    expect(unlocked.keyBundle.signingKey).toEqual(created.keyBundle.signingKey)
+    expect(unlocked.keyBundle.encryptionKey).toEqual(created.keyBundle.encryptionKey)
+  })
+
+  it('produces unique identities for separate create calls', async () => {
+    const { createFallbackIdentity } = await import('./fallback')
+
+    const identity1 = await createFallbackIdentity('localhost')
+    const identity2 = await createFallbackIdentity('localhost')
+
+    // Each call generates a random keypair, so DIDs must differ
+    expect(identity1.keyBundle.identity.did).not.toBe(identity2.keyBundle.identity.did)
+    expect(identity1.passkey.credentialId).not.toEqual(identity2.passkey.credentialId)
+  })
+
+  it('PRF create correctly throws when emulator has no PRF support', async () => {
+    const { createPasskeyIdentity } = await import('./create')
+
+    // The emulator doesn't support PRF, so createPasskeyIdentity should throw
+    await expect(createPasskeyIdentity({ rpId: 'localhost' })).rejects.toThrow(
+      'PRF extension not supported'
     )
   })
 })

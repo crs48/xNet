@@ -31,6 +31,9 @@ importers:
       fake-indexeddb:
         specifier: ^6.0.0
         version: 6.2.5
+      nid-webauthn-emulator:
+        specifier: ^0.2.9
+        version: 0.2.9
       prettier:
         specifier: ^3.2.0
         version: 3.8.0
@@ -5043,6 +5046,10 @@ packages:
   caniuse-lite@1.0.30001765:
     resolution: {integrity: sha512-LWcNtSyZrakjECqmpP4qdg0MMGdN368D7X8XvvAqOcqMv0RxnlqVKZl2V6/mBR68oYMxOZPLw/gO7DuisMHUvQ==}
 
+  cbor@10.0.11:
+    resolution: {integrity: sha512-vIwORDd/WyB8Nc23o2zNN5RrtFGlR6Fca61TtjkUXueI3Jf2DOZDl1zsshvBntZ3wZHBM9ztjnkXSmzQDaq3WA==}
+    engines: {node: '>=20'}
+
   cborg@4.5.6:
     resolution: {integrity: sha512-Sppp2qmicewbgW0BTUgc/ACOOC+jHVpLPuZMnifI3+Ha4NW0uy3v3cb6bjM5ZrY04b14WEwgDMhAih8Pu1hXvA==}
     hasBin: true
@@ -7924,6 +7931,9 @@ packages:
   nice-try@1.0.5:
     resolution: {integrity: sha512-1nh45deeb5olNY7eX82BkPO7SSxR5SSYJiPTrTdFUVYwAl8CKMA5N9PjTYkHiRjisVcxcQ1HXdLhx2qxxJzLNQ==}
 
+  nid-webauthn-emulator@0.2.9:
+    resolution: {integrity: sha512-Mj7gNUOCihKbdcg0LF/8xQKGXli3d6y/fGsHoTAZBtBboauYLv50xGi4FEJ2nYU5c2gT3KG6FAlpKwygAp3NfA==}
+
   node-abi@3.87.0:
     resolution: {integrity: sha512-+CGM1L1CgmtheLcBuleyYOn7NWPVu0s0EJH2C4puxgEZb9h8QpR9G2dBfZJOAUhi7VQxuBPMd0hiISWcTyiYyQ==}
     engines: {node: '>=10'}
@@ -7972,6 +7982,10 @@ packages:
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
+
+  nofilter@3.1.0:
+    resolution: {integrity: sha512-l2NNj07e9afPnhAhvgVrCD/oy2Ai1yfLpuo3EpiO1jFTsB4sFz6oIfAfSZyQzVpkZQ9xS8ZS5g1jCBgq4Hwo0g==}
+    engines: {node: '>=12.19'}
 
   nopt@6.0.0:
     resolution: {integrity: sha512-ZwLpbTgdhuZUnZzjd7nb1ZV+4DoiC6/sfiVKok72ym/4Tlf+DFdlHYmT2JPmcNNWV6Pi3SDf1kT+A4r9RTuT9g==}
@@ -15437,6 +15451,10 @@ snapshots:
 
   caniuse-lite@1.0.30001765: {}
 
+  cbor@10.0.11:
+    dependencies:
+      nofilter: 3.1.0
+
   cborg@4.5.6: {}
 
   ccount@2.0.1: {}
@@ -19063,6 +19081,11 @@ snapshots:
 
   nice-try@1.0.5: {}
 
+  nid-webauthn-emulator@0.2.9:
+    dependencies:
+      cbor: 10.0.11
+      tldts: 7.0.19
+
   node-abi@3.87.0:
     dependencies:
       semver: 7.7.3
@@ -19112,6 +19135,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.27: {}
+
+  nofilter@3.1.0: {}
 
   nopt@6.0.0:
     dependencies:
