@@ -15,6 +15,14 @@
       "enabled": true
     }
   },
+  "permission": {
+    "edit": {
+      "tmp/*": "allow"
+    },
+    "read": {
+      "tmp/*": "allow"
+    }
+  },
   "instructions": ["AGENTS.md"],
   "tui": {
     "scroll_speed": 1,
