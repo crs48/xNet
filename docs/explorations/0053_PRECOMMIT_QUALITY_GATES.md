@@ -1,9 +1,9 @@
-# 0053 - Eliminating Lockfile Drift CI Failures
+# 0053 - Pre-commit Quality Gates & CI Hardening
 
 > **Status:** Exploration
-> **Tags:** CI, pnpm, lockfile, frozen-lockfile, DX, git hooks
+> **Tags:** CI, DX, git hooks, husky, lint-staged, eslint, typecheck, vitest, turbo, agent-workflow
 > **Created:** 2026-02-05
-> **Context:** The `electron-release.yml` workflow uses `pnpm install --frozen-lockfile`, which fails when `pnpm-lock.yaml` is out of sync with any `package.json`. This happens regularly because nothing enforces lockfile freshness before code is pushed.
+> **Context:** CI failures from lockfile drift, lint errors, and type errors waste time — especially for AI agents that commit frequently and can't monitor GitHub Actions. This exploration covers adding pre-commit hooks (husky + lint-staged + affected typecheck + affected tests), hardening CI, fixing the ~179 existing ESLint errors, and documenting the setup in AGENTS.md.
 
 ## Problem
 
@@ -234,6 +234,32 @@ The lockfile issue is a symptom of a broader gap — there are no local quality 
 
 ### What to Implement
 
+#### Phase 0: Fix Existing Errors (prerequisite for all hooks)
+
+Pre-commit hooks can't be turned on if the codebase already has errors — agents and developers would be blocked from committing files they didn't break. These must be fixed first.
+
+- [x] **Fix all 179 ESLint errors** — breakdown by rule:
+      | Rule | Count | Fix Strategy |
+      |---|---|---|
+      | `@typescript-eslint/no-unused-vars` | 155 | Remove unused imports/vars, prefix unused params with `_` |
+      | `@typescript-eslint/ban-types` (`Function`) | 7 | Replace with specific function signatures |
+      | `prefer-const` | 6 | Auto-fix with `eslint --fix` |
+      | `no-case-declarations` | 4 | Wrap case bodies in blocks `{ }` |
+      | `no-extra-semi` | 2 | Auto-fix with `eslint --fix` |
+      | `no-constant-condition` | 2 | Replace with explicit boolean or comment |
+      | `no-this-alias` | 1 | Refactor to use arrow function |
+      | `no-inner-declarations` | 1 | Move function to module scope |
+      | `react-hooks/exhaustive-deps` (missing plugin) | 1 | Remove rule reference or install plugin |
+
+- [ ] **Fix existing typecheck errors** — `@xnet/storage` and `@xnet/sync` currently have type errors. `turbo typecheck --affected` will block commits to those packages until fixed.
+- [ ] **Fix or skip flaky perf tests** — two timing-sensitive tests fail on loaded machines:
+  - `crypto/src/hashing.test.ts`: "should hash 1MB in under 50ms" (measured 106ms)
+  - `crypto/src/signing.test.ts`: "should verify many signatures efficiently" (measured 660ms vs 500ms threshold)
+
+  Options: bump thresholds, use `test.skipIf(process.env.CI)`, or tag them and exclude from pre-commit runs.
+
+- [ ] **Update AGENTS.md with git hooks section** — once hooks are live, agents need to know: what hooks exist, what they check, expected timing (~10-15s), and that `--no-verify` is available for emergencies. Without this, agents will be confused by commit failures.
+
 #### Phase 1: CI Fixes (immediate, no workflow change for developers)
 
 - [ ] **`ci.yml`: Use `--frozen-lockfile`** — change both `pnpm install` lines to `pnpm install --frozen-lockfile`. Catches lockfile drift at PR time instead of release time.
@@ -350,3 +376,15 @@ Most commits in this repo are made by AI coding agents (Claude Code, etc.), not 
 - **Agents benefit from guardrails** — agents sometimes forget to run `pnpm install` after changing dependencies, or introduce type errors they don't notice. Pre-commit hooks act as an automatic safety net that requires zero agent cooperation.
 
 The key principle: **catch formatting, lint, type errors, and test regressions at commit time (affected only, ~10-15s), and CI is the final backstop for full cross-package validation.**
+
+### CI as Final Backstop
+
+Even with pre-commit hooks, CI should still validate everything since hooks can be bypassed (`--no-verify`). The CI workflow should run:
+
+- `pnpm install --frozen-lockfile` (lockfile integrity)
+- `prettier --check` (formatting — not currently in CI at all)
+- `pnpm lint` (full lint, not just staged files)
+- `pnpm typecheck` (full typecheck across all packages)
+- `pnpm test` (full test suite)
+
+This means CI catches anything that slips through locally, but should _rarely_ fail because pre-commit hooks catch most issues first.
