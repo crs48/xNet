@@ -73,15 +73,12 @@ RUN mkdir -p /data && chown node:node /data
 ENV NODE_ENV=production
 ENV HUB_DATA_DIR=/data
 
-# Railway sets PORT env var; default to 4444 for local dev
+# Default port for local Docker runs (Railway overrides via startCommand)
 ENV PORT=4444
 
 EXPOSE 4444
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:${PORT}/health || exit 1
-
 USER node
 
-# Use shell form to expand $PORT (Railway sets this env var)
-CMD sh -c "node packages/hub/dist/cli.js --port $PORT --data /data"
+# Default CMD for local Docker runs; Railway uses startCommand from railway.toml
+CMD ["node", "packages/hub/dist/cli.js", "--port", "4444", "--data", "/data"]
