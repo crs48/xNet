@@ -402,9 +402,9 @@ These are test-level fixes that work with the current Vitest version:
 
 These work with Vitest 1.6.x:
 
-- [ ] **Switch to `pool: 'threads'`** — saves ~0.6s wall clock due to lower worker startup.
-- [ ] **Add `isolate: false`** — saves ~1s wall clock by eliminating per-file worker restart. Measured: 5.7s vs 6.3s.
-- [ ] **Unify Vitest version specs** — align all packages to the same `^` range to avoid confusion.
+- [x] **Switch to `pool: 'threads'`** — configured in root vitest.config.ts. Lower worker startup cost for pure TS tests.
+- [ ] **Add `isolate: false`** — deferred to Phase 3 (Vitest 4.x per-project isolation). Hub integration tests with real WebSocket servers fail under no-isolate due to shared state.
+- [x] **Unify Vitest version specs** — aligned sub-packages to `^2.0.0`, root stays at `^1.6.0` (root runner resolves to 1.6.1).
 
 **Estimated total savings: ~1.5s wall clock**
 

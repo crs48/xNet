@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    pool: 'threads',
     include: ['packages/*/src/**/*.test.ts', 'packages/*/test/**/*.test.ts'],
     exclude: [
       '**/node_modules/**',
