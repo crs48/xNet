@@ -71,15 +71,17 @@ COPY --from=builder /build/packages/sync/dist packages/sync/dist/
 RUN mkdir -p /data && chown node:node /data
 
 ENV NODE_ENV=production
-ENV HUB_PORT=4444
 ENV HUB_DATA_DIR=/data
+
+# Railway sets PORT env var; default to 4444 for local dev
+ENV PORT=4444
 
 EXPOSE 4444
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:${PORT:-4444}/health || exit 1
+  CMD wget -qO- http://localhost:${PORT}/health || exit 1
 
 USER node
 
-ENTRYPOINT ["node", "packages/hub/dist/cli.js"]
-CMD ["--port", "4444", "--data", "/data"]
+# Use shell form to expand $PORT (Railway sets this env var)
+CMD sh -c "node packages/hub/dist/cli.js --port $PORT --data /data"
