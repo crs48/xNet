@@ -554,7 +554,7 @@ These bring the web app to basic feature parity with Electron:
   - [x] Add document type icons (FileText, Database, Layout)
   - [x] Add delete button on hover
   - [x] Upgrade create button to dropdown with all types
-  - [ ] Add "Add Shared..." option
+  - [x] Add "Add Shared..." option
 
 - [ ] **Comment System**
   - [ ] Import `CommentPopover` from `@xnet/ui`
@@ -564,13 +564,13 @@ These bring the web app to basic feature parity with Electron:
   - [ ] Add comment count badge to header
   - [ ] Add new comment input modal
 
-- [ ] **Presence & Sharing**
-  - [ ] Import `DIDAvatar` from `@xnet/ui`
-  - [ ] Upgrade `PresenceAvatars` to use `DIDAvatar`
-  - [ ] Add peer count to sync indicator
-  - [ ] Create `ShareButton` component
-  - [ ] Create `AddSharedDialog` component
-  - [ ] Implement type-prefixed share IDs
+- [x] **Presence & Sharing**
+  - [x] Import `DIDAvatar` from `@xnet/ui`
+  - [x] Upgrade `PresenceAvatars` to use `DIDAvatar`
+  - [x] Add peer count to sync indicator
+  - [x] Create `ShareButton` component
+  - [x] Create `AddSharedDialog` component
+  - [x] Implement type-prefixed share IDs
 
 ### Web App: P2 (Feature Parity - Polish)
 

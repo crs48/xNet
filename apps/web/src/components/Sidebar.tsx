@@ -12,9 +12,11 @@ import {
   Trash2,
   ChevronDown,
   ChevronRight,
-  Settings
+  Settings,
+  Link as LinkIcon
 } from 'lucide-react'
 import { useState } from 'react'
+import { AddSharedDialog } from './AddSharedDialog'
 
 type DocType = 'page' | 'database' | 'canvas'
 
@@ -43,6 +45,7 @@ export function Sidebar() {
   const location = useLocation()
   const navigate = useNavigate()
   const [showCreateMenu, setShowCreateMenu] = useState(false)
+  const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Record<DocType, boolean>>({
     page: true,
     database: true,
@@ -239,6 +242,17 @@ export function Sidebar() {
                 <Layout size={14} />
                 <span>Canvas</span>
               </button>
+              <hr className="my-1 border-border" />
+              <button
+                onClick={() => {
+                  setShowCreateMenu(false)
+                  setShowAddSharedDialog(true)
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent text-left text-primary bg-transparent border-none cursor-pointer"
+              >
+                <LinkIcon size={14} />
+                <span>Add Shared...</span>
+              </button>
             </div>
           )}
         </div>
@@ -272,6 +286,9 @@ export function Sidebar() {
           <span className="text-sm">Settings</span>
         </Link>
       </div>
+
+      {/* Add Shared Dialog */}
+      <AddSharedDialog isOpen={showAddSharedDialog} onClose={() => setShowAddSharedDialog(false)} />
     </aside>
   )
 }
