@@ -263,12 +263,18 @@ importers:
       '@xnet/data':
         specifier: workspace:*
         version: link:../../packages/data
+      '@xnet/devtools':
+        specifier: workspace:*
+        version: link:../../packages/devtools
       '@xnet/editor':
         specifier: workspace:*
         version: link:../../packages/editor
       '@xnet/identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@xnet/plugins':
+        specifier: workspace:*
+        version: link:../../packages/plugins
       '@xnet/react':
         specifier: workspace:*
         version: link:../../packages/react

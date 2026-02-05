@@ -1,16 +1,27 @@
 /**
- * Settings page - expanded with theme, data, and about sections
+ * Settings page - expanded with theme, data, plugins, and about sections
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { useIdentity } from '@xnet/react'
-import { Palette, Database, Info, ChevronRight, Sun, Moon, Monitor, Download } from 'lucide-react'
+import {
+  Palette,
+  Database,
+  Info,
+  ChevronRight,
+  Sun,
+  Moon,
+  Monitor,
+  Download,
+  Puzzle
+} from 'lucide-react'
 import { useState, useCallback } from 'react'
+import { PluginManager } from '../components/PluginManager'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage
 })
 
-type SettingsSection = 'appearance' | 'data' | 'about'
+type SettingsSection = 'appearance' | 'data' | 'plugins' | 'about'
 
 interface SectionConfig {
   id: SettingsSection
@@ -31,6 +42,12 @@ const SECTIONS: SectionConfig[] = [
     label: 'Data',
     icon: <Database size={18} />,
     description: 'Storage and export'
+  },
+  {
+    id: 'plugins',
+    label: 'Plugins',
+    icon: <Puzzle size={18} />,
+    description: 'Extensions'
   },
   {
     id: 'about',
@@ -71,6 +88,7 @@ function SettingsPage() {
       <div className="flex-1 overflow-auto p-6">
         {activeSection === 'appearance' && <AppearanceSettings />}
         {activeSection === 'data' && <DataSettings />}
+        {activeSection === 'plugins' && <PluginManager />}
         {activeSection === 'about' && <AboutSettings />}
       </div>
     </div>

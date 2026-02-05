@@ -7,6 +7,7 @@
 import type { Identity, KeyBundle } from '@xnet/identity'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { IndexedDBNodeStorageAdapter, BlobService } from '@xnet/data'
+import { XNetDevToolsProvider } from '@xnet/devtools'
 import { BlobProvider } from '@xnet/editor/react'
 import { createIdentityManager } from '@xnet/identity'
 import {
@@ -182,10 +183,12 @@ export function App(): JSX.Element {
             platform: 'web'
           }}
         >
-          <BlobProvider blobService={blobService}>
-            <OfflineIndicator />
-            <RouterProvider router={router} />
-          </BlobProvider>
+          <XNetDevToolsProvider position="bottom" defaultOpen={false}>
+            <BlobProvider blobService={blobService}>
+              <OfflineIndicator />
+              <RouterProvider router={router} />
+            </BlobProvider>
+          </XNetDevToolsProvider>
         </XNetProvider>
       </ErrorBoundary>
     </ThemeProvider>

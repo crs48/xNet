@@ -602,16 +602,16 @@ These complete feature parity:
   - [ ] Add signaling server config (advanced)
   - [ ] Add auto-save toggle
 
-- [ ] **Plugin System**
-  - [ ] Add `@xnet/plugins` to dependencies
-  - [ ] Add `PluginManager` component
+- [x] **Plugin System**
+  - [x] Add `@xnet/plugins` to dependencies
+  - [x] Add `PluginManager` component
   - [ ] Add plugin sidebar item support
   - [ ] Configure bundled plugins
 
-- [ ] **DevTools**
-  - [ ] Add `@xnet/devtools` to dependencies
-  - [ ] Add `XNetDevToolsProvider`
-  - [ ] Wire devtools panel
+- [x] **DevTools**
+  - [x] Add `@xnet/devtools` to dependencies
+  - [x] Add `XNetDevToolsProvider`
+  - [x] Wire devtools panel
 
 ### Web App: Demo Polish
 
@@ -626,7 +626,7 @@ These improve the demo experience:
 
 - [x] **Error Handling**
   - [x] Add `ErrorBoundary` to root
-  - [ ] Add `OfflineIndicator` to root
+  - [x] Add `OfflineIndicator` to root
   - [ ] Add `HubStatusIndicator` to header
 
 ### Expo: WebView Migration
