@@ -277,7 +277,7 @@ App.tsx (shell)
 | Callouts                 |   Yes    |   Yes   |  No  | P2       |
 | Toggle blocks            |   Yes    |   Yes   |  No  | P2       |
 | Code blocks              |   Yes    |   Yes   |  No  | P1       |
-| Mermaid diagrams         |  Plugin  |   No    |  No  | P2       |
+| Mermaid diagrams         |  Plugin  | Plugin  |  No  | P2       |
 
 #### Comment System
 
@@ -606,7 +606,7 @@ These complete feature parity:
   - [x] Add `@xnet/plugins` to dependencies
   - [x] Add `PluginManager` component
   - [ ] Add plugin sidebar item support
-  - [ ] Configure bundled plugins
+  - [x] Configure bundled plugins (Mermaid)
 
 - [x] **DevTools**
   - [x] Add `@xnet/devtools` to dependencies

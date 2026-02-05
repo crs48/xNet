@@ -20,6 +20,7 @@ import {
 import { IndexedDBAdapter, BlobStore, ChunkManager } from '@xnet/storage'
 import { ThemeProvider } from '@xnet/ui'
 import { useState, useCallback, useEffect } from 'react'
+import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -183,6 +184,7 @@ export function App(): JSX.Element {
             platform: 'web'
           }}
         >
+          <BundledPluginInstaller />
           <XNetDevToolsProvider position="bottom" defaultOpen={false}>
             <BlobProvider blobService={blobService}>
               <OfflineIndicator />
