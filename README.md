@@ -3,7 +3,7 @@
 [![CI](https://github.com/crs48/xNet/actions/workflows/ci.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/ci.yml)
 [![Electron Release](https://github.com/crs48/xNet/actions/workflows/electron-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/electron-release.yml)
 [![Hub Release](https://github.com/crs48/xNet/actions/workflows/hub-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/hub-release.yml)
-[![Docs](https://img.shields.io/badge/docs-starlight-blue?logo=astro)](https://github.com/crs48/xNet/docs)
+[![Docs](https://img.shields.io/badge/docs-starlight-blue?logo=astro)](https://crs48.github.io/xNet/docs)
 [![GitHub Stars](https://img.shields.io/github/stars/crs48/xNet?style=flat&logo=github)](https://github.com/crs48/xNet/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
