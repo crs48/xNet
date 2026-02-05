@@ -38,10 +38,15 @@ runs:
         key: electron-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('apps/electron/package.json') }}
         restore-keys: electron-${{ runner.os }}-${{ runner.arch }}-
 
-    # Install setuptools for Python 3.12+ (provides distutils needed by native module builds)
-    # Required on Windows and macOS where Python 3.12+ removed distutils
+    # Setup Python with setuptools for native module builds (node-gyp requires distutils)
+    # Python 3.12+ removed distutils from stdlib, so we need setuptools which provides it
     - if: runner.os == 'Windows' || runner.os == 'macOS'
-      run: pip install setuptools
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - if: runner.os == 'Windows' || runner.os == 'macOS'
+      run: python -m pip install setuptools
       shell: bash
 
     - run: pnpm install --frozen-lockfile
