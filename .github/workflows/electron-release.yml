@@ -278,9 +278,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Collect all release files (excluding js-build artifacts and directories)
-          # Use null delimiter to handle filenames with spaces
-          mapfile -d '' FILES < <(find artifacts -type f \( -name "*.dmg" -o -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.yml" \) -print0 | grep -zv js-build || true)
+          # Collect all release files, deduplicate by filename (not path)
+          # Use only the primary arch artifacts to avoid duplicates
+          declare -A seen
+          declare -a FILES
+
+          while IFS= read -r -d '' file; do
+            basename=$(basename "$file")
+            if [[ -z "${seen[$basename]}" ]]; then
+              seen[$basename]=1
+              FILES+=("$file")
+            fi
+          done < <(find artifacts -type f \( -name "*.dmg" -o -name "*.zip" -o -name "*.exe" -o -name "*.AppImage" -o -name "*.deb" \) -print0 | grep -zv js-build || true)
+
+          # Also add the yml metadata files (take first occurrence)
+          for yml in latest-mac.yml latest-linux.yml latest.yml; do
+            file=$(find artifacts -name "$yml" -type f | head -1)
+            if [ -n "$file" ]; then
+              FILES+=("$file")
+            fi
+          done
 
           if [ ${#FILES[@]} -eq 0 ]; then
             echo "No release files found!"
