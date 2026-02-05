@@ -19,7 +19,7 @@ describe('SnapshotManager', () => {
       adapter,
       triggers: {
         updateCount: 100,
-        timeInterval: 60000,
+        timeInterval: Infinity, // Disable time-based triggering in tests
         storagePressure: 0.8
       },
       signingKey,
