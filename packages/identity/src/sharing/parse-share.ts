@@ -55,6 +55,11 @@ export function parseShareLink(input: string): ParsedShare {
   if (pathIndex !== -1) {
     encoded = input.slice(pathIndex + pathPrefix.length)
   }
+  // Strip query params and hash fragments if present
+  const qIndex = encoded.indexOf('?')
+  if (qIndex !== -1) encoded = encoded.slice(0, qIndex)
+  const hIndex = encoded.indexOf('#')
+  if (hIndex !== -1) encoded = encoded.slice(0, hIndex)
 
   // Decode
   let data: ShareData

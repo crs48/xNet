@@ -24,6 +24,27 @@ export type SkeletonProps = {
 
 // ─── Component ──────────────────────────────────────────────
 
+// Auto-inject keyframes on first render (no external dependency needed)
+let stylesInjected = false
+function ensureStyles(): void {
+  if (stylesInjected || typeof document === 'undefined') return
+  const id = 'xnet-skeleton-styles'
+  if (document.getElementById(id)) {
+    stylesInjected = true
+    return
+  }
+  const el = document.createElement('style')
+  el.id = id
+  el.textContent = `
+    @keyframes xnet-skeleton-pulse {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+  `
+  document.head.appendChild(el)
+  stylesInjected = true
+}
+
 export function Skeleton({
   width = '100%',
   height = '1em',
@@ -32,6 +53,8 @@ export function Skeleton({
   lines = 1,
   gap = '0.5rem'
 }: SkeletonProps): JSX.Element {
+  ensureStyles()
+
   const baseStyle: React.CSSProperties = {
     display: 'block',
     width,

@@ -93,6 +93,10 @@ export async function discoverExistingPasskey(rpId?: string): Promise<Discovered
 export async function unlockDiscoveredPasskey(
   discovered: DiscoveredPasskey
 ): Promise<PasskeyUnlockResult> {
+  if (typeof navigator === 'undefined' || !navigator.credentials) {
+    throw new Error('WebAuthn not available in this environment')
+  }
+
   const assertion = (await navigator.credentials.get({
     publicKey: {
       challenge: crypto.getRandomValues(new Uint8Array(32)),

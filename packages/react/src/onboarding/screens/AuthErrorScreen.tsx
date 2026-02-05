@@ -19,6 +19,10 @@ export function AuthErrorScreen(): JSX.Element {
         Try again
       </button>
 
+      <button className="text-button" onClick={() => send({ type: 'BACK_TO_WELCOME' })}>
+        Back to welcome
+      </button>
+
       <p className="help-text">
         Make sure your browser supports passkeys (Chrome 116+, Safari 18+, Edge 116+).
       </p>
