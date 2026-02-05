@@ -11,7 +11,13 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnet/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
 import { useNode, useComments, useIdentity } from '@xnet/react'
-import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnet/ui'
+import {
+  CommentPopover,
+  CommentsSidebar,
+  OrphanedThreadList,
+  type CommentThreadData,
+  type OrphanedThread
+} from '@xnet/ui'
 import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { BacklinksPanel } from '../components/BacklinksPanel'
@@ -87,6 +93,8 @@ function DocumentPage() {
   const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
   const [newCommentState, setNewCommentState] = useState<NewCommentState | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [orphanedIds, setOrphanedIds] = useState<string[]>([])
+  const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const editorRef = useRef<Editor | null>(null)
@@ -127,9 +135,44 @@ function DocumentPage() {
 
     if (resolved.length > 0 || orphaned.length > 0) {
       marksRestoredRef.current = true
+      setOrphanedIds(orphaned)
       console.log(`[Comments] Restored ${resolved.length} marks, ${orphaned.length} orphaned`)
     }
   }, [threads, editorReady])
+
+  // Build orphaned threads list for display
+  const orphanedThreads = useMemo((): OrphanedThread[] => {
+    const result: OrphanedThread[] = []
+
+    for (const id of orphanedIds) {
+      const thread = threads.find((t) => t.root.id === id)
+      if (!thread) continue
+
+      // Parse anchor data to get context
+      let context: string | undefined
+      try {
+        const anchor = JSON.parse(thread.root.properties.anchorData)
+        context = anchor.quotedText
+      } catch {
+        // Ignore parse errors
+      }
+
+      result.push({
+        comment: {
+          id: thread.root.id,
+          author: thread.root.properties.createdBy,
+          authorDisplayName: undefined,
+          content: thread.root.properties.content,
+          createdAt: thread.root.createdAt,
+          replyCount: thread.replies.length
+        },
+        reason: 'text-deleted',
+        context
+      })
+    }
+
+    return result
+  }, [orphanedIds, threads])
 
   // Convert threads to format expected by CommentPopover/CommentsSidebar
   const threadDataMap = useMemo(() => {
@@ -404,6 +447,42 @@ function DocumentPage() {
     [editComment]
   )
 
+  // ─── Orphaned Comment Handlers ─────────────────────────────────────────────────
+
+  const handleDismissOrphaned = useCallback(
+    async (commentId: string) => {
+      // Delete the orphaned thread entirely
+      const thread = threads.find((t) => t.root.id === commentId)
+      if (thread) {
+        // Delete replies first, then root
+        for (const reply of thread.replies) {
+          await deleteComment(reply.id)
+        }
+        await deleteComment(commentId)
+      }
+      // Remove from orphaned list
+      setOrphanedIds((prev) => prev.filter((id) => id !== commentId))
+    },
+    [threads, deleteComment]
+  )
+
+  const handleReattachOrphaned = useCallback((commentId: string) => {
+    // For now, just log - reattachment requires selecting new text
+    console.log(`[Comments] Reattach not yet implemented for ${commentId}`)
+  }, [])
+
+  const handleSelectOrphaned = useCallback(
+    (commentId: string) => {
+      // Open the popover for this orphaned comment
+      const thread = threadDataMap.get(commentId)
+      if (thread) {
+        // Since orphaned comments don't have anchor elements, open sidebar instead
+        setSidebarOpen(true)
+      }
+    },
+    [threadDataMap]
+  )
+
   // ─── Comment Extensions ───────────────────────────────────────────────────────
 
   const commentExtensions = useMemo(
@@ -504,6 +583,21 @@ function DocumentPage() {
               onEditorReady={handleEditorReady}
               onCreateComment={handleCreateComment}
             />
+
+            {/* Orphaned Comments Section */}
+            {orphanedThreads.length > 0 && (
+              <div className="mt-6">
+                <OrphanedThreadList
+                  orphanedThreads={orphanedThreads}
+                  collapsed={orphanedCollapsed}
+                  onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
+                  onDismiss={handleDismissOrphaned}
+                  onReattach={handleReattachOrphaned}
+                  onSelect={handleSelectOrphaned}
+                />
+              </div>
+            )}
+
             <BacklinksPanel docId={docId} />
           </div>
         </div>

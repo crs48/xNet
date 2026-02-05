@@ -6,7 +6,7 @@
 
 import { DatabaseSchema, type PropertyDefinition, type PropertyType } from '@xnet/data'
 import { useNode, useIdentity } from '@xnet/react'
-import { TableView, BoardView, type ViewConfig, type TableRow } from '@xnet/views'
+import { TableView, BoardView, CardDetailModal, type ViewConfig, type TableRow } from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
@@ -114,6 +114,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [rows, setRows] = useState<TableRow[]>([])
   const [tableViewConfig, setTableViewConfig] = useState<ViewConfig | null>(null)
   const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig | null>(null)
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
 
   // ─── Initialize / Load Data ─────────────────────────────────────────────
 
@@ -176,14 +177,30 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     if (!doc) return
 
     const newRow: TableRow = {
-      id: Math.random().toString(36).substring(2, 15),
-      data: { title: '' }
+      id: Math.random().toString(36).substring(2, 15)
     }
+
+    // Initialize all columns with empty/default values
+    columns.forEach((col) => {
+      switch (col.type) {
+        case 'checkbox':
+          newRow[col.id] = false
+          break
+        case 'number':
+          newRow[col.id] = null
+          break
+        case 'multiSelect':
+          newRow[col.id] = []
+          break
+        default:
+          newRow[col.id] = ''
+      }
+    })
 
     const dataMap = doc.getMap('data')
     const currentRows = (dataMap.get('rows') as TableRow[]) || []
     dataMap.set('rows', [...currentRows, newRow])
-  }, [doc])
+  }, [doc, columns])
 
   const handleUpdateRow = useCallback(
     (rowId: string, property: string, value: unknown) => {
@@ -192,7 +209,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       const dataMap = doc.getMap('data')
       const currentRows = (dataMap.get('rows') as TableRow[]) || []
       const updatedRows = currentRows.map((row) =>
-        row.id === rowId ? { ...row, data: { ...(row.data || {}), [property]: value } } : row
+        row.id === rowId ? { ...row, [property]: value } : row
       )
       dataMap.set('rows', updatedRows)
     },
@@ -220,9 +237,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       const dataMap = doc.getMap('data')
       const currentRows = (dataMap.get('rows') as TableRow[]) || []
       const updatedRows = currentRows.map((row) =>
-        row.id === rowId
-          ? { ...row, data: { ...(row.data || {}), [boardViewConfig.groupByProperty!]: toColumn } }
-          : row
+        row.id === rowId ? { ...row, [boardViewConfig.groupByProperty!]: toColumn } : row
       )
       dataMap.set('rows', updatedRows)
     },
@@ -322,6 +337,21 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     }
   }, [columns])
 
+  // Get selected row for modal
+  const selectedRow = useMemo(
+    () => (selectedCardId ? rows.find((r) => r.id === selectedCardId) || null : null),
+    [selectedCardId, rows]
+  )
+
+  // Card click handler for modal
+  const handleCardClick = useCallback((rowId: string) => {
+    setSelectedCardId(rowId)
+  }, [])
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedCardId(null)
+  }, [])
+
   // ─── Render ─────────────────────────────────────────────────────────────
 
   if (loading || !doc) {
@@ -413,9 +443,20 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             onUpdateRow={handleMoveCard}
             onUpdateView={handleUpdateView}
             onAddCard={handleAddRow}
+            onCardClick={handleCardClick}
           />
         )}
       </div>
+
+      {/* Card detail modal */}
+      <CardDetailModal
+        isOpen={selectedCardId !== null}
+        onClose={handleCloseModal}
+        row={selectedRow}
+        schema={schema}
+        onUpdateRow={handleUpdateRow}
+        onDeleteRow={handleDeleteRow}
+      />
     </div>
   )
 }
