@@ -2,9 +2,9 @@
  * Hook for the Query Debugger panel
  */
 
+import type { DevToolsEvent, QuerySubscribeEvent, QueryResultEvent } from '../../core/types'
 import { useState, useEffect, useCallback } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
-import type { DevToolsEvent, QuerySubscribeEvent, QueryResultEvent } from '../../core/types'
 
 export interface QueryStats {
   id: string

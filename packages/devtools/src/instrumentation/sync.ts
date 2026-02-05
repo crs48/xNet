@@ -5,8 +5,8 @@
  * peer-disconnected, change-received, error) and emits DevTools events.
  */
 
-import type { SyncProvider, PeerInfo, SyncStatus } from '@xnet/sync'
 import type { DevToolsEventBus } from '../core/event-bus'
+import type { SyncProvider, PeerInfo, SyncStatus } from '@xnet/sync'
 
 export function instrumentSync(
   provider: SyncProvider<unknown>,

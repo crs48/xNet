@@ -2,12 +2,12 @@
  * PluginRegistry - Central coordinator for plugin lifecycle
  */
 
-import type { NodeStore } from '@xnet/data'
-import type { Platform, Disposable } from './types'
 import type { XNetExtension } from './manifest'
-import { validateManifest, PluginValidationError } from './manifest'
-import { ContributionRegistry } from './contributions'
+import type { Platform, Disposable } from './types'
+import type { NodeStore } from '@xnet/data'
 import { createExtensionContext, type ExtensionContext } from './context'
+import { ContributionRegistry } from './contributions'
+import { validateManifest, PluginValidationError } from './manifest'
 import { MiddlewareChain } from './middleware'
 import { PluginSchema } from './schemas/plugin'
 

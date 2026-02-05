@@ -3,7 +3,6 @@
  */
 
 import type { NodePool } from '../pool/node-pool'
-import * as Y from 'yjs'
 import {
   MAX_YJS_UPDATE_SIZE,
   YjsPeerScorer,
@@ -12,6 +11,7 @@ import {
   verifyYjsEnvelope,
   type SignedYjsEnvelope
 } from '@xnet/sync'
+import * as Y from 'yjs'
 
 export type SyncMessage = {
   type: 'sync-step1' | 'sync-step2' | 'sync-update' | 'awareness'

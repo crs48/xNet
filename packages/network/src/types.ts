@@ -1,8 +1,8 @@
 /**
  * Network types for @xnet/network
  */
-import type { Libp2p } from 'libp2p'
 import type { PeerId } from '@libp2p/interface'
+import type { Libp2p } from 'libp2p'
 
 /**
  * Network node wrapping libp2p

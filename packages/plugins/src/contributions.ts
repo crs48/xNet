@@ -2,9 +2,9 @@
  * Contribution types and registry for plugin-provided extensions
  */
 
-import type { ComponentType } from 'react'
-import type { Extension } from '@tiptap/core'
 import type { Disposable } from './types'
+import type { Extension } from '@tiptap/core'
+import type { ComponentType } from 'react'
 
 // ─── Contribution Types ────────────────────────────────────────────────────
 

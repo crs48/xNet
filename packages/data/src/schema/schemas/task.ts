@@ -5,9 +5,9 @@
  * Users can create their own task-like schemas with different properties.
  */
 
+import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, checkbox, select, date, person, relation } from '../properties'
-import type { InferNode } from '../types'
 
 export const TaskSchema = defineSchema({
   name: 'Task',

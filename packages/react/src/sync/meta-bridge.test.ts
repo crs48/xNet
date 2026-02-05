@@ -5,6 +5,7 @@
  * Malicious Y.Doc meta changes must NOT reach the NodeStore.
  */
 
+import type { NodeStore, NodeChangeEvent, NodeChange } from '@xnet/data'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import {
@@ -13,7 +14,6 @@ import {
   METABRIDGE_SEED_ORIGIN,
   type MetaBridge
 } from './meta-bridge'
-import type { NodeStore, NodeChangeEvent, NodeChange } from '@xnet/data'
 
 // Mock NodeStore
 interface MockNodeStoreData {

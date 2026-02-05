@@ -1,6 +1,6 @@
+import { Node as PMNode } from '@tiptap/pm/model'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { EditorView } from '@tiptap/pm/view'
-import { Node as PMNode } from '@tiptap/pm/model'
 
 export const DragDropPluginKey = new PluginKey('dragDrop')
 

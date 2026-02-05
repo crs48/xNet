@@ -2,9 +2,9 @@
  * @xnet/hub - Peer discovery routes.
  */
 
-import type { Context, MiddlewareHandler } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { DiscoveryService } from '../services/discovery'
+import type { Context, MiddlewareHandler } from 'hono'
 import { Hono } from 'hono'
 import { DiscoveryError } from '../services/discovery'
 import { isRecord } from '../utils/validation'

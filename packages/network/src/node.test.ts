@@ -1,7 +1,7 @@
+import type { NetworkNode } from './types'
+import { generateIdentity } from '@xnet/identity'
 import { describe, it, expect, afterEach } from 'vitest'
 import { createNode, stopNode, getConnectedPeers, isStarted, getMultiaddrs } from './node'
-import { generateIdentity } from '@xnet/identity'
-import type { NetworkNode } from './types'
 
 describe('NetworkNode', () => {
   const nodes: NetworkNode[] = []

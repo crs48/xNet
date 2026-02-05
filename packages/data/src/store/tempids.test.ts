@@ -2,10 +2,15 @@
  * Tests for temp ID resolution in transactions.
  */
 
-import { describe, it, expect } from 'vitest'
+import type { TransactionOperation } from './types'
+import type { SchemaIRI } from '../schema/node'
+import type { DID } from '@xnet/core'
 import { generateSigningKeyPair } from '@xnet/crypto'
-import { NodeStore } from './store'
+import { describe, it, expect } from 'vitest'
+import { defineSchema } from '../schema/define'
+import { text, relation } from '../schema/properties'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
+import { NodeStore } from './store'
 import {
   isTempId,
   TEMP_ID_PREFIX,
@@ -13,11 +18,6 @@ import {
   createSchemaLookup,
   type SchemaLookup
 } from './tempids'
-import type { TransactionOperation } from './types'
-import type { DID } from '@xnet/core'
-import type { SchemaIRI } from '../schema/node'
-import { defineSchema } from '../schema/define'
-import { text, relation } from '../schema/properties'
 
 // ─── Test Fixtures ───────────────────────────────────────────────────────────
 

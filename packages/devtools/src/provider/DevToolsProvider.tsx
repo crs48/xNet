@@ -5,6 +5,13 @@
  * and provides context to all devtools panels.
  */
 
+import type * as Y from 'yjs'
+import { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from '@xnet/history'
+import {
+  useNodeStore,
+  InstrumentationContext,
+  type InstrumentationContextValue
+} from '@xnet/react/internal'
 import {
   useState,
   useEffect,
@@ -14,26 +21,19 @@ import {
   type ReactNode,
   type MouseEvent as ReactMouseEvent
 } from 'react'
-import type * as Y from 'yjs'
+import { DEFAULTS } from '../core/constants'
+import { DevToolsEventBus } from '../core/event-bus'
+import { QueryTracker } from '../instrumentation/query'
+import { instrumentStore } from '../instrumentation/store'
+import { instrumentTelemetry } from '../instrumentation/telemetry'
+import { instrumentYDoc } from '../instrumentation/yjs'
+import { DevToolsPanel } from '../panels/Shell'
 import {
   DevToolsContext,
   type PanelId,
   type PanelPosition,
   type YDocRegistry
 } from './DevToolsContext'
-import { DevToolsEventBus } from '../core/event-bus'
-import { DEFAULTS } from '../core/constants'
-import { instrumentStore } from '../instrumentation/store'
-import { instrumentYDoc } from '../instrumentation/yjs'
-import { instrumentTelemetry } from '../instrumentation/telemetry'
-import { QueryTracker } from '../instrumentation/query'
-import { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from '@xnet/history'
-import {
-  useNodeStore,
-  InstrumentationContext,
-  type InstrumentationContextValue
-} from '@xnet/react/internal'
-import { DevToolsPanel } from '../panels/Shell'
 
 function createYDocRegistry(
   bus: DevToolsEventBus

@@ -3,6 +3,8 @@
  */
 
 import { useState, useCallback } from 'react'
+import { CopyButton } from '../../components/CopyButton'
+import { formatBytes, formatTime, relativeTime } from '../../utils/formatters'
 import {
   useYjsInspector,
   type DocStats,
@@ -11,8 +13,6 @@ import {
   type YTreeNode,
   type StateVectorEntry
 } from './useYjsInspector'
-import { formatBytes, formatTime, relativeTime } from '../../utils/formatters'
-import { CopyButton } from '../../components/CopyButton'
 
 export function YjsInspector() {
   const {

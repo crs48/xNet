@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
-import { cn } from '../utils'
-import { Input } from '../primitives/Input'
 import { useClickOutside } from '../hooks/useClickOutside'
+import { Input } from '../primitives/Input'
+import { cn } from '../utils'
 
 export interface DatePickerProps {
   value?: Date | null

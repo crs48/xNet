@@ -5,10 +5,9 @@
  * Opens with Cmd/Ctrl+Shift+P or via the CommandPaletteTrigger component.
  */
 
-import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as icons from 'lucide-react'
-import { cn } from '../utils'
+import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import {
   Command,
   CommandInput,
@@ -18,6 +17,7 @@ import {
   CommandItem,
   CommandShortcut
 } from '../primitives/Command'
+import { cn } from '../utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

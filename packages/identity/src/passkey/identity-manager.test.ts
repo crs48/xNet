@@ -2,8 +2,8 @@
  * Tests for the createIdentityManager facade.
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createPasskeysEmulator } from 'nid-webauthn-emulator'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import 'fake-indexeddb/auto'
 import { clearStoredIdentity, getStoredIdentity } from './storage'
 

@@ -1,8 +1,8 @@
 /**
  * BLAKE3 content hashing for xNet
  */
-import { blake3 } from '@noble/hashes/blake3.js'
 import type { ContentId, ContentChunk, ContentTree, MerkleNode } from './content'
+import { blake3 } from '@noble/hashes/blake3.js'
 
 /**
  * Hash content using BLAKE3

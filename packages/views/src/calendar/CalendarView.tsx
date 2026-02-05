@@ -2,19 +2,19 @@
  * CalendarView - Main calendar view component with month/week/day modes
  */
 
-import React from 'react'
-import { cn } from '@xnet/ui'
+import type { ViewConfig } from '../types.js'
 import type { Schema } from '@xnet/data'
+import { cn } from '@xnet/ui'
+import React from 'react'
+import { CalendarDayView } from './CalendarDayView.js'
+import { CalendarMonthView } from './CalendarMonthView.js'
+import { CalendarWeekView } from './CalendarWeekView.js'
 import {
   useCalendarState,
   formatCurrentDate,
   type CalendarRow,
   type CalendarViewMode
 } from './useCalendarState.js'
-import { CalendarMonthView } from './CalendarMonthView.js'
-import { CalendarWeekView } from './CalendarWeekView.js'
-import { CalendarDayView } from './CalendarDayView.js'
-import type { ViewConfig } from '../types.js'
 
 export interface CalendarViewProps {
   /** Schema defining the calendar structure */

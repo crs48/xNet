@@ -3,9 +3,9 @@
  */
 
 import { useRef, useEffect, useCallback } from 'react'
-import { useChangeTimeline, type TimelineEvent } from './useChangeTimeline'
-import { formatTime, truncateCID } from '../../utils/formatters'
 import { CopyButton } from '../../components/CopyButton'
+import { formatTime, truncateCID } from '../../utils/formatters'
+import { useChangeTimeline, type TimelineEvent } from './useChangeTimeline'
 
 export function ChangeTimeline() {
   const {

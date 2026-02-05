@@ -2,11 +2,11 @@
  * DevTools React Context
  */
 
-import { createContext } from 'react'
 import type { DevToolsEventBus } from '../core/event-bus'
 import type { NodeStore } from '@xnet/data'
 import type { DocumentHistoryEngine } from '@xnet/history'
 import type * as Y from 'yjs'
+import { createContext } from 'react'
 
 export type PanelId =
   | 'nodes'

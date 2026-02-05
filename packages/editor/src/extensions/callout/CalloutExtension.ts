@@ -4,10 +4,10 @@
  * Supports 6 types: info, tip, warning, caution, note, quote.
  * Features: collapsible, title editing, type picker, Obsidian-style input rule.
  */
+import type { CalloutType } from './types'
 import { Node, mergeAttributes, InputRule } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { CalloutNodeView } from './CalloutNodeView'
-import type { CalloutType } from './types'
 
 export interface CalloutOptions {
   /** Default callout type */

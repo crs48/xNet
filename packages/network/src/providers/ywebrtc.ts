@@ -1,8 +1,8 @@
 /**
  * y-webrtc integration for real-time document sync
  */
-import { WebrtcProvider } from 'y-webrtc'
 import type { XDocument } from '@xnet/data'
+import { WebrtcProvider } from 'y-webrtc'
 
 /**
  * Options for y-webrtc provider

@@ -4,19 +4,19 @@
  * Uses a dark zinc theme to distinguish from app content.
  */
 
-import { useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
-import { useDevTools } from '../provider/useDevTools'
 import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
+import { useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { DEFAULTS } from '../core/constants'
-import { NodeExplorer } from './NodeExplorer/NodeExplorer'
+import { useDevTools } from '../provider/useDevTools'
 import { ChangeTimeline } from './ChangeTimeline/ChangeTimeline'
-import { SyncMonitor } from './SyncMonitor/SyncMonitor'
-import { YjsInspector } from './YjsInspector/YjsInspector'
+import { HistoryPanel } from './HistoryPanel/HistoryPanel'
+import { NodeExplorer } from './NodeExplorer/NodeExplorer'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
-import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
 import { Seed } from './Seed/Seed'
-import { HistoryPanel } from './HistoryPanel/HistoryPanel'
+import { SyncMonitor } from './SyncMonitor/SyncMonitor'
+import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
+import { YjsInspector } from './YjsInspector/YjsInspector'
 
 const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'nodes', label: 'Nodes' },

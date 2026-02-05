@@ -6,12 +6,12 @@
  */
 
 import React from 'react'
+import { BoardView } from './board/BoardView.js'
+import { CalendarView } from './calendar/CalendarView.js'
+import { GalleryView } from './gallery/GalleryView.js'
 import { viewRegistry, type ViewProps, type ViewRegistration } from './registry.js'
 import { TableView } from './table/TableView.js'
-import { BoardView } from './board/BoardView.js'
-import { GalleryView } from './gallery/GalleryView.js'
 import { TimelineView } from './timeline/TimelineView.js'
-import { CalendarView } from './calendar/CalendarView.js'
 
 // ─── Adapter Components ─────────────────────────────────────────────────────
 // These adapt the standard ViewProps to each view's specific prop interface

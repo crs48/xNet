@@ -1,6 +1,6 @@
+import { hashHex } from '@xnet/crypto'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createHub, type HubInstance } from '../src'
-import { hashHex } from '@xnet/crypto'
 
 describe('File Storage API', () => {
   let hub: HubInstance

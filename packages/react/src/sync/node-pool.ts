@@ -11,9 +11,9 @@
  * - Cold: evicted, serialized to storage (load on demand)
  */
 
-import * as Y from 'yjs'
-import type { NodeStorageAdapter } from '@xnet/data'
 import type { MetaBridge } from './meta-bridge'
+import type { NodeStorageAdapter } from '@xnet/data'
+import * as Y from 'yjs'
 
 export type PoolEntryState = 'active' | 'warm' | 'cold'
 

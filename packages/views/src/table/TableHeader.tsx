@@ -2,12 +2,12 @@
  * TableHeader - Table header component with sorting, resizing, and column editing
  */
 
-import React, { useState, useRef, useEffect } from 'react'
+import type { ColumnUpdate } from './TableView.js'
+import type { TableRow } from './useTableState.js'
+import type { PropertyType } from '@xnet/data'
 import { flexRender, type Table, type Header } from '@tanstack/react-table'
 import { cn } from '@xnet/ui'
-import type { PropertyType } from '@xnet/data'
-import type { TableRow } from './useTableState.js'
-import type { ColumnUpdate } from './TableView.js'
+import React, { useState, useRef, useEffect } from 'react'
 
 export interface TableHeaderProps {
   table: Table<TableRow>

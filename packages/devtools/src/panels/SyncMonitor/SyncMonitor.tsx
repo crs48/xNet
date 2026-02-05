@@ -3,9 +3,9 @@
  */
 
 import { useState, useCallback } from 'react'
-import { useSyncMonitor, type SyncEvent, type PeerEntry } from './useSyncMonitor'
-import { formatTime, relativeTime } from '../../utils/formatters'
 import { CopyButton } from '../../components/CopyButton'
+import { formatTime, relativeTime } from '../../utils/formatters'
+import { useSyncMonitor, type SyncEvent, type PeerEntry } from './useSyncMonitor'
 
 const SYNC_DEBUG_KEY = 'xnet:sync:debug'
 

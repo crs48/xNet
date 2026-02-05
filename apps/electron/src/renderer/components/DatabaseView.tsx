@@ -8,8 +8,6 @@
  * - doc.getMap('data').get('boardView') -> ViewConfig
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useNode, useIdentity } from '@xnet/react'
 import {
   DatabaseSchema,
   decodeAnchor,
@@ -20,6 +18,8 @@ import {
   type RowAnchor,
   type ColumnAnchor
 } from '@xnet/data'
+import { useNode, useIdentity } from '@xnet/react'
+import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnet/ui'
 import {
   TableView,
   BoardView,
@@ -30,10 +30,10 @@ import {
   type CellPresence,
   type ColumnUpdate
 } from '@xnet/views'
-import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnet/ui'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
-import { ShareButton } from './ShareButton'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
+import { ShareButton } from './ShareButton'
 
 interface DatabaseViewProps {
   docId: string

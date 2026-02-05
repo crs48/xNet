@@ -4,10 +4,10 @@
  * A settings panel with sections and plugin extension points.
  */
 
-import { useState, useMemo, type ReactNode, type ComponentType } from 'react'
 import * as icons from 'lucide-react'
-import { cn } from '../utils'
+import { useState, useMemo, type ReactNode, type ComponentType } from 'react'
 import { ScrollArea } from '../primitives/ScrollArea'
+import { cn } from '../utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

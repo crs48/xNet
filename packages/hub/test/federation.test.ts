@@ -1,10 +1,10 @@
 import type { HubInstance } from '../src'
+import { TextEncoder } from 'node:util'
+import { verify } from '@xnet/crypto'
+import { generateIdentity, parseDID } from '@xnet/identity'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
 import { createHub } from '../src'
-import { generateIdentity, parseDID } from '@xnet/identity'
-import { verify } from '@xnet/crypto'
-import { TextEncoder } from 'node:util'
 
 const connect = (port: number): Promise<WebSocket> =>
   new Promise((resolve) => {

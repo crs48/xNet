@@ -6,9 +6,7 @@
  */
 
 import type { DID } from '@xnet/core'
-import type { SchemaIRI } from '@xnet/data'
-import type { PropertyBuilder, InferCreateProps } from '@xnet/data'
-import type { NodeState } from '@xnet/data'
+import type { SchemaIRI, PropertyBuilder, InferCreateProps, NodeState } from '@xnet/data'
 
 // =============================================================================
 // Types

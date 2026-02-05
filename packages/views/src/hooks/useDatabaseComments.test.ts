@@ -4,9 +4,9 @@
  * Note: Testing the hook itself requires mocking useComments,
  * so we focus on the utility functions here.
  */
+import { encodeAnchor, type CellAnchor, type RowAnchor, type ColumnAnchor } from '@xnet/data'
 import { describe, it, expect } from 'vitest'
 import { isDatabaseAnchorOrphaned, createCellKey, parseCellKey } from './useDatabaseComments'
-import { encodeAnchor, type CellAnchor, type RowAnchor, type ColumnAnchor } from '@xnet/data'
 
 describe('useDatabaseComments utilities', () => {
   describe('createCellKey', () => {

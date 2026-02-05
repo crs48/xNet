@@ -2,10 +2,10 @@
  * DiffEngine - Compare node state between two points in time
  */
 
-import type { DID } from '@xnet/core'
-import type { NodeId } from '@xnet/data'
 import type { HistoryEngine } from './engine'
 import type { HistoryTarget, PropertyDiff, DiffResult } from './types'
+import type { DID } from '@xnet/core'
+import type { NodeId } from '@xnet/data'
 import { deepEqual } from './utils'
 
 export class DiffEngine {

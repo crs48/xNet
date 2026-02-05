@@ -3,8 +3,8 @@
  *
  * Handles preview/full mode transitions, hover delays, and dismissal.
  */
-import { useState, useCallback, useRef } from 'react'
 import type { CommentThreadData } from './CommentPopover'
+import { useState, useCallback, useRef } from 'react'
 
 export interface PopoverState {
   /** Whether the popover is visible */

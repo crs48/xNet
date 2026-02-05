@@ -1,6 +1,8 @@
 /**
  * @xnet/react/onboarding - React context provider for the onboarding flow
  */
+import type { Identity, KeyBundle } from '@xnet/identity'
+import { detectPasskeySupport, createIdentityManager } from '@xnet/identity'
 import {
   createContext,
   useContext,
@@ -10,8 +12,6 @@ import {
   useRef,
   type ReactNode
 } from 'react'
-import type { Identity, KeyBundle } from '@xnet/identity'
-import { detectPasskeySupport, createIdentityManager } from '@xnet/identity'
 import {
   onboardingReducer,
   createInitialState,

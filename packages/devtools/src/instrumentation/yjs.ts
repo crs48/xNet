@@ -5,9 +5,9 @@
  * for real-time CRDT inspection.
  */
 
-import type * as Y from 'yjs'
 import type { DevToolsEventBus } from '../core/event-bus'
 import type { YDocRegistry } from '../provider/DevToolsContext'
+import type * as Y from 'yjs'
 
 function formatOrigin(origin: unknown): string | null {
   if (origin == null) return null

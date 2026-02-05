@@ -5,8 +5,8 @@
  * has an existing xNet passkey (possibly synced from another device
  * via iCloud Keychain, Google Password Manager, etc.).
  */
-import { deriveKeyBundle } from '../keys'
 import type { PasskeyIdentity, PasskeyUnlockResult } from './types'
+import { deriveKeyBundle } from '../keys'
 import { deriveKeySeed, PRF_INPUT } from './derive'
 
 // ─── Types ───────────────────────────────────────────────────

@@ -1,9 +1,9 @@
 /**
  * @xnet/hub - File storage routes.
  */
-import { Hono } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { FileService } from '../services/files'
+import { Hono } from 'hono'
 
 type Env = { Variables: { auth: AuthContext } }
 

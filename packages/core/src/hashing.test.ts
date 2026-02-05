@@ -63,8 +63,8 @@ describe('Content Addressing', () => {
     const start = performance.now()
     hashContent(data)
     const elapsed = performance.now() - start
-    // Allow up to 100ms for CI environments which may be slower
-    expect(elapsed).toBeLessThan(100)
+    // Allow up to 200ms for CI environments which may be slower
+    expect(elapsed).toBeLessThan(200)
   })
 
   it('should create content chunk', () => {

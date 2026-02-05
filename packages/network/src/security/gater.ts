@@ -5,8 +5,8 @@
  */
 
 import type { ConnectionLimits } from './limits'
-import { ConnectionTracker } from './tracker'
 import { logSecurityEvent } from './logging'
+import { ConnectionTracker } from './tracker'
 
 /**
  * Connection gater interface.

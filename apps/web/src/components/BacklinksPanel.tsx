@@ -4,8 +4,8 @@
  * Shows all pages that link to the current page via wikilinks.
  * TODO: Implement proper backlink search using the query engine.
  */
-import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
 
 interface Backlink {
   docId: string

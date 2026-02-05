@@ -1,5 +1,5 @@
-import { forwardRef } from 'react'
 import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
+import { forwardRef } from 'react'
 import { cn } from '../utils'
 
 export interface CheckboxProps extends React.ComponentPropsWithoutRef<

@@ -5,8 +5,8 @@
  * The document then syncs via P2P and appears in their sidebar permanently.
  */
 
-import React, { useState } from 'react'
 import { Link, X } from 'lucide-react'
+import React, { useState } from 'react'
 
 interface AddSharedDialogProps {
   isOpen: boolean

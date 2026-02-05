@@ -5,8 +5,8 @@
  * to let the user choose which thread to view.
  */
 import { useEffect, useRef, useCallback } from 'react'
-import { cn } from '../../utils'
 import { DIDAvatar } from '../../components/DIDAvatar'
+import { cn } from '../../utils'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

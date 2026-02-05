@@ -4,10 +4,10 @@
  * Transforms plugin EditorContributions into TipTap extensions and toolbar items
  * that can be passed to RichTextEditor.
  */
-import { useState, useEffect, useMemo } from 'react'
+import type { ToolbarItemContribution } from '../components/FloatingToolbar'
 import type { AnyExtension } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
-import type { ToolbarItemContribution } from '../components/FloatingToolbar'
+import { useState, useEffect, useMemo } from 'react'
 
 /**
  * Editor contribution from the plugin system

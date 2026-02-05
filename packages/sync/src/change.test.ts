@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { generateSigningKeyPair } from '@xnet/crypto'
+import type { LamportTimestamp } from './clock'
 import type { DID } from '@xnet/core'
+import { generateSigningKeyPair } from '@xnet/crypto'
+import { describe, it, expect } from 'vitest'
 import {
   createUnsignedChange,
   computeChangeHash,
@@ -9,7 +10,6 @@ import {
   verifyChangeHash,
   createChangeId
 } from './change'
-import type { LamportTimestamp } from './clock'
 
 describe('Change', () => {
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID

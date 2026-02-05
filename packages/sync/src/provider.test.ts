@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
 import type { Change } from './change'
-import { BaseSyncProvider } from './provider'
 import type { SyncStatus } from './provider'
+import { describe, it, expect, vi } from 'vitest'
+import { BaseSyncProvider } from './provider'
 
 // Concrete implementation for testing
 class TestSyncProvider extends BaseSyncProvider<{ data: string }> {

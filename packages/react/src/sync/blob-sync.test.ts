@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createBlobSyncProvider, BLOB_SYNC_ROOM, type BlobStoreForSync } from './blob-sync'
 import type { ConnectionManager } from './connection-manager'
 import type { ContentId } from '@xnet/core'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createBlobSyncProvider, BLOB_SYNC_ROOM, type BlobStoreForSync } from './blob-sync'
 
 function createMockBlobStore(blobs: Map<string, Uint8Array> = new Map()): BlobStoreForSync {
   return {

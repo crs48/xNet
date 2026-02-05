@@ -1,8 +1,8 @@
 /**
  * XNet client hook for Expo
  */
-import { useState, useEffect } from 'react'
 import { createXNetClient, type XNetClient } from '@xnet/sdk'
+import { useState, useEffect } from 'react'
 import { ExpoStorageAdapter } from '../storage/ExpoStorageAdapter'
 import 'react-native-get-random-values' // Polyfill for crypto
 

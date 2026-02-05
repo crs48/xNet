@@ -2,14 +2,14 @@
  * Hook for the Yjs Inspector panel
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useDevTools } from '../../provider/useDevTools'
 import type {
   DevToolsEvent,
   YjsUpdateEvent,
   YjsMetaChangeEvent,
   YjsStateVectorEvent
 } from '../../core/types'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useDevTools } from '../../provider/useDevTools'
 
 export type YjsEvent = YjsUpdateEvent | YjsMetaChangeEvent
 

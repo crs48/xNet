@@ -1,9 +1,9 @@
 /**
  * Tests for @xnet/editor extensions
  */
-import { describe, it, expect, vi } from 'vitest'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
+import { describe, it, expect, vi } from 'vitest'
 import { Wikilink, LivePreview, MARK_SYNTAX } from './extensions'
 
 // Helper to create a test editor with our extensions

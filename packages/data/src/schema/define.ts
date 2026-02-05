@@ -3,7 +3,6 @@
  */
 
 import type { SchemaIRI, Node } from './node'
-import { createNodeId } from './node'
 import type {
   Schema,
   DocumentType,
@@ -16,6 +15,7 @@ import type {
   InferCreateProps,
   InferNode
 } from './types'
+import { createNodeId } from './node'
 
 /**
  * Options for defining a schema.

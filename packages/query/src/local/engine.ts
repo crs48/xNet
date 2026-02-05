@@ -1,9 +1,9 @@
 /**
  * Local query engine
  */
-import type { StorageAdapter } from '@xnet/storage'
-import type { XDocument } from '@xnet/data'
 import type { Query, QueryResult, Filter, Sort, FilterOperator } from '../types'
+import type { XDocument } from '@xnet/data'
+import type { StorageAdapter } from '@xnet/storage'
 
 /**
  * Local query engine interface

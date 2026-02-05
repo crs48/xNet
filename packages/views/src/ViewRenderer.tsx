@@ -4,9 +4,9 @@
  * Replaces hardcoded switch statements in apps with a registry-based lookup.
  */
 
+import type { ViewProps } from './registry.js'
 import React from 'react'
 import { useViewRegistry } from './hooks/useViewRegistry.js'
-import type { ViewProps } from './registry.js'
 
 export interface ViewRendererProps extends ViewProps {
   /** View type to render */

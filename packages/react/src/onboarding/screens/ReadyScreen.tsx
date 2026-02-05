@@ -3,8 +3,8 @@
  * Shows DID, hub status, and "Create your first page" CTA.
  */
 import { useState, useEffect, useRef } from 'react'
-import { useOnboarding } from '../OnboardingProvider'
 import { truncateDid, copyToClipboard } from '../helpers'
+import { useOnboarding } from '../OnboardingProvider'
 
 export function ReadyScreen(): JSX.Element {
   const { send, context } = useOnboarding()

@@ -14,26 +14,26 @@ if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug
   console.log('[SyncManager] Module loaded from source!')
 }
 
-import * as Y from 'yjs'
+import type { ContentId } from '@xnet/core'
+import type { NodeStore, NodeStorageAdapter } from '@xnet/data'
 import {
   Awareness,
   applyAwarenessUpdate,
   encodeAwarenessUpdate,
   removeAwarenessStates
 } from 'y-protocols/awareness'
-import type { ContentId } from '@xnet/core'
-import type { NodeStore, NodeStorageAdapter } from '@xnet/data'
-import { createMetaBridge } from './meta-bridge'
-import { createNodePool } from './node-pool'
-import { createRegistry, type RegistryStorage } from './registry'
+import * as Y from 'yjs'
+import { createBlobSyncProvider, type BlobSyncProvider, type BlobStoreForSync } from './blob-sync'
 import {
   createConnectionManager,
   type ConnectionManager,
   type ConnectionStatus
 } from './connection-manager'
-import { createOfflineQueue } from './offline-queue'
-import { createBlobSyncProvider, type BlobSyncProvider, type BlobStoreForSync } from './blob-sync'
+import { createMetaBridge } from './meta-bridge'
+import { createNodePool } from './node-pool'
 import { NodeStoreSyncProvider } from './node-store-sync-provider'
+import { createOfflineQueue } from './offline-queue'
+import { createRegistry, type RegistryStorage } from './registry'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(...args: unknown[]): void {

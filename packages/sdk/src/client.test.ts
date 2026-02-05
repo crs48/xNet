@@ -1,6 +1,6 @@
+import { MemoryAdapter } from '@xnet/storage'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createXNetClient, type XNetClient } from './client'
-import { MemoryAdapter } from '@xnet/storage'
 
 describe('XNetClient', () => {
   let client: XNetClient

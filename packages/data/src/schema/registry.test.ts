@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
-import { SchemaRegistry } from './registry'
 import { defineSchema } from './define'
 import { relation, text } from './properties'
+import { SchemaRegistry } from './registry'
 
 describe('SchemaRegistry remote resolver', () => {
   it('loads remote schema and caches it', async () => {

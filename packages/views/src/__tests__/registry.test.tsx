@@ -2,8 +2,8 @@
  * Tests for ViewRegistry
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import React from 'react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { ViewRegistry, type ViewRegistration, type ViewProps } from '../registry.js'
 
 // Mock view component

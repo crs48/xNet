@@ -4,8 +4,8 @@
  * This allows editor components (like ImageNodeView) to access blob
  * upload/download functionality without prop-drilling.
  */
-import { createContext, useContext, type ReactNode, type JSX } from 'react'
 import type { BlobService } from '@xnet/data'
+import { createContext, useContext, type ReactNode, type JSX } from 'react'
 
 export interface BlobContextValue {
   /** Upload a file and get a FileRef */

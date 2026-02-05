@@ -2,8 +2,8 @@
  * Tests for ClientID-to-DID Binding
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { generateIdentity } from '@xnet/identity'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   createClientIdAttestation,
   verifyClientIdAttestation,

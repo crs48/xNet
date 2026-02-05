@@ -12,8 +12,8 @@
  * - Graph traversal through relation edges (future)
  */
 
-import type { PropertyBuilder } from '../types'
 import type { SchemaIRI } from '../node'
+import type { PropertyBuilder } from '../types'
 
 export interface RelationOptions {
   /**

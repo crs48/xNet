@@ -3,15 +3,6 @@
  */
 
 import type {
-  SchemaIRI,
-  NodeStore,
-  NodeState,
-  NodeChangeListener as StoreChangeListener,
-  NodeChangeEvent as StoreChangeEvent
-} from '@xnet/data'
-import type { Disposable, Platform, PlatformCapabilities, ExtensionStorage } from './types'
-import { getPlatformCapabilities, createExtensionStorage } from './types'
-import type {
   ContributionRegistry,
   ViewContribution,
   CommandContribution,
@@ -22,6 +13,15 @@ import type {
   BlockContribution
 } from './contributions'
 import type { NodeStoreMiddleware } from './middleware'
+import type { Disposable, Platform, PlatformCapabilities, ExtensionStorage } from './types'
+import type {
+  SchemaIRI,
+  NodeStore,
+  NodeState,
+  NodeChangeListener as StoreChangeListener,
+  NodeChangeEvent as StoreChangeEvent
+} from '@xnet/data'
+import { getPlatformCapabilities, createExtensionStorage } from './types'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 

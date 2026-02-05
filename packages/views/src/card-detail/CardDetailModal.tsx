@@ -2,11 +2,10 @@
  * CardDetailModal - Modal for viewing and editing a card/row's properties
  */
 
-import React, { useCallback } from 'react'
-import type { Schema, PropertyDefinition } from '@xnet/data'
-
-import { getPropertyHandler } from '../properties/index.js'
 import type { TableRow } from '../table/useTableState.js'
+import type { Schema, PropertyDefinition } from '@xnet/data'
+import React, { useCallback } from 'react'
+import { getPropertyHandler } from '../properties/index.js'
 
 export interface CardDetailModalProps {
   /** Whether the modal is open */

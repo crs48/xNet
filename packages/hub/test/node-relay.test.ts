@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import type { SerializedNodeChange } from '../src/storage/interface'
 import type { DID } from '@xnet/core'
-import { WebSocket } from 'ws'
-import { createHub, type HubInstance } from '../src'
-import { createUnsignedChange, signChange, createChangeId } from '@xnet/sync'
 import { bytesToBase64, generateSigningKeyPair } from '@xnet/crypto'
 import { identityFromPrivateKey } from '@xnet/identity'
-import type { SerializedNodeChange } from '../src/storage/interface'
+import { createUnsignedChange, signChange, createChangeId } from '@xnet/sync'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { WebSocket } from 'ws'
+import { createHub, type HubInstance } from '../src'
 
 const PORT = 14461
 const ROOM = 'workspace-test-1'

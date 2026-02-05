@@ -4,6 +4,8 @@
  * Main infinite canvas component with pan, zoom, and node rendering.
  */
 
+import type { CanvasConfig, CanvasNode, Point } from '../types'
+import type * as Y from 'yjs'
 import React, {
   useRef,
   useCallback,
@@ -13,8 +15,6 @@ import React, {
   memo,
   forwardRef
 } from 'react'
-import type * as Y from 'yjs'
-import type { CanvasConfig, CanvasNode, Point } from '../types'
 
 /** Minimal Awareness interface (avoids y-protocols dependency) */
 interface AwarenessLike {
@@ -24,10 +24,10 @@ interface AwarenessLike {
   on(event: string, handler: (...args: unknown[]) => void): void
   off(event: string, handler: (...args: unknown[]) => void): void
 }
+import { CommentOverlay } from '../comments/CommentOverlay'
+import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
 import { CanvasNodeComponent } from '../nodes/CanvasNodeComponent'
-import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
-import { CommentOverlay } from '../comments/CommentOverlay'
 
 /**
  * Remote user presence on the canvas

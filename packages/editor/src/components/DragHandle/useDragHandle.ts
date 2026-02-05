@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useRef, type RefObject } from 'react'
 import type { Editor } from '@tiptap/core'
+import { useState, useCallback, useEffect, useRef, type RefObject } from 'react'
 
 export interface DragHandleState {
   visible: boolean

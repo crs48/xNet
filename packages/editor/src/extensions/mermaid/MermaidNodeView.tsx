@@ -8,10 +8,10 @@
  * - Error display for invalid syntax
  * - Theme selection
  */
-import * as React from 'react'
-import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { cn } from '../../utils'
 import type { MermaidTheme } from './types'
+import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
+import * as React from 'react'
+import { cn } from '../../utils'
 
 // Lazy load mermaid to avoid SSR issues
 let mermaidInstance: typeof import('mermaid').default | null = null

@@ -1,6 +1,6 @@
+import { ChunkManager, BlobStore, MemoryAdapter } from '@xnet/storage'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { BlobService } from './blob-service'
-import { ChunkManager, BlobStore, MemoryAdapter } from '@xnet/storage'
 
 describe('BlobService', () => {
   let blobService: BlobService

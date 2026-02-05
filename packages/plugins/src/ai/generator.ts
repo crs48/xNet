@@ -5,10 +5,10 @@
  * validates them against the sandbox rules, and provides retry logic.
  */
 
-import { validateScriptAST } from '../sandbox/ast-validator'
-import type { ScriptTriggerType } from '../schemas/script'
-import { buildScriptPrompt, buildRetryPrompt, type AIScriptRequest } from './prompt'
 import type { AIProvider } from './providers'
+import type { ScriptTriggerType } from '../schemas/script'
+import { validateScriptAST } from '../sandbox/ast-validator'
+import { buildScriptPrompt, buildRetryPrompt, type AIScriptRequest } from './prompt'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

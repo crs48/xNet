@@ -1,6 +1,9 @@
 /**
  * Document screen - rich text editor using WebView
  */
+import type { RootStackParamList } from '../navigation/types'
+import type { RouteProp } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
@@ -12,11 +15,8 @@ import {
   KeyboardAvoidingView,
   Platform
 } from 'react-native'
-import { useNode } from '../hooks/useNode'
 import { WebViewEditor } from '../components/WebViewEditor'
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import type { RouteProp } from '@react-navigation/native'
-import type { RootStackParamList } from '../navigation/types'
+import { useNode } from '../hooks/useNode'
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Document'>

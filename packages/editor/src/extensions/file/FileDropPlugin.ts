@@ -4,8 +4,8 @@
  * Handles non-image files dropped onto the editor.
  * Images are handled by the ImagePastePlugin instead.
  */
-import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { Editor } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 
 export const FileDropPluginKey = new PluginKey('fileDrop')
 

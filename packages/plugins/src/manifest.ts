@@ -2,7 +2,6 @@
  * Plugin manifest types and validation
  */
 
-import type { Platform, PluginPermissions } from './types'
 import type { ExtensionContext } from './context'
 import type {
   ViewContribution,
@@ -15,6 +14,7 @@ import type {
   SettingContribution,
   SchemaContribution
 } from './contributions'
+import type { Platform, PluginPermissions } from './types'
 
 // ─── Manifest Types ────────────────────────────────────────────────────────
 

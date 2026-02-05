@@ -19,7 +19,6 @@
  * ```
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
 import type { NodeId, NodeStorageAdapter } from '@xnet/data'
 import {
   HistoryEngine,
@@ -30,6 +29,7 @@ import {
   type TimelineEntry,
   type PropertyDiff
 } from '@xnet/history'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 
 // ─── Types ───────────────────────────────────────────────────

@@ -7,9 +7,9 @@
  * - Collaborative editing via Yjs
  */
 
+import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text } from '../properties'
-import type { InferNode } from '../types'
 
 export const CanvasSchema = defineSchema({
   name: 'Canvas',

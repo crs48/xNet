@@ -1,8 +1,8 @@
+import type { TelemetryRecord } from '../src/collection/collector'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { TelemetrySyncProvider } from '../src/sync/provider'
 import { ConsentManager } from '../src/consent/manager'
 import { MemoryConsentStorage } from '../src/consent/storage'
-import type { TelemetryRecord } from '../src/collection/collector'
+import { TelemetrySyncProvider } from '../src/sync/provider'
 
 describe('TelemetrySyncProvider', () => {
   let consent: ConsentManager

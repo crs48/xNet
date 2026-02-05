@@ -490,7 +490,8 @@ export class ProcessManager implements IProcessManager {
     const listeners = this.listeners[event] as ProcessManagerEvents[K][]
     for (const listener of listeners) {
       try {
-        ;(listener as (...args: unknown[]) => void)(...args)
+        const fn = listener as (...args: unknown[]) => void
+        fn(...args)
       } catch (err) {
         console.error(`[ProcessManager] Event listener error for '${event}':`, err)
       }

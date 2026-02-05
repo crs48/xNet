@@ -10,10 +10,10 @@
  *
  * No lucide-react: uses inline SVG and emoji for icons.
  */
-import * as React from 'react'
-import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { cn } from '../../utils'
 import type { DatabaseViewType, DatabaseEmbedOptions } from './DatabaseEmbedExtension'
+import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
+import * as React from 'react'
+import { cn } from '../../utils'
 
 const VIEW_ICONS: Record<DatabaseViewType, string> = {
   table: '\uD83D\uDCCB',

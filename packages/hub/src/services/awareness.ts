@@ -2,9 +2,9 @@
  * @xnet/hub - Awareness persistence service.
  */
 
-import * as Y from 'yjs'
-import { Awareness, applyAwarenessUpdate } from 'y-protocols/awareness'
 import type { AwarenessEntry, HubStorage } from '../storage/interface'
+import { Awareness, applyAwarenessUpdate } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 import { isRecord } from '../utils/validation'
 
 export type AwarenessConfig = {

@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { SnapshotManager } from './manager'
-import { MemoryAdapter } from '../adapters/memory'
-import { generateSigningKeyPair } from '@xnet/crypto'
 import type { SignedUpdate } from '@xnet/core'
+import { generateSigningKeyPair } from '@xnet/crypto'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { MemoryAdapter } from '../adapters/memory'
+import { SnapshotManager } from './manager'
 
 describe('SnapshotManager', () => {
   let manager: SnapshotManager

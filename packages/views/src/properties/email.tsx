@@ -2,8 +2,8 @@
  * Email property handler
  */
 
-import React, { useEffect, useRef } from 'react'
 import type { PropertyHandler, PropertyEditorProps } from '../types'
+import React, { useEffect, useRef } from 'react'
 
 /**
  * Email editor component

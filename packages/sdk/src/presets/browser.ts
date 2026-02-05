@@ -1,8 +1,8 @@
 /**
  * Browser preset for XNet client
  */
-import { createXNetClient, type XNetClientConfig, type XNetClient } from '../client'
 import { IndexedDBAdapter } from '@xnet/storage'
+import { createXNetClient, type XNetClientConfig, type XNetClient } from '../client'
 
 /**
  * Create an XNet client configured for browser environments

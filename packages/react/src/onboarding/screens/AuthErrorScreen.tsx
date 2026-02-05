@@ -1,8 +1,8 @@
 /**
  * Authentication error screen — retry only, no skip.
  */
-import { useOnboarding } from '../OnboardingProvider'
 import { getPlatformAuthName } from '../helpers'
+import { useOnboarding } from '../OnboardingProvider'
 
 export function AuthErrorScreen(): JSX.Element {
   const { send, context } = useOnboarding()

@@ -6,17 +6,17 @@
  * at any historical point.
  */
 
-import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
+import type { SchemaTimelineEntry, TimelineEntry } from './types'
 import type {
   NodeChange,
   NodeStorageAdapter,
   NodeId,
   NodeState,
   NodeStore,
-  TransactionOperation
+  TransactionOperation,
+  SchemaIRI
 } from '@xnet/data'
-import type { SchemaIRI } from '@xnet/data'
-import type { SchemaTimelineEntry, TimelineEntry } from './types'
+import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
 import { createEmptyState, applyChangeToState } from './engine'
 import { deepEqual } from './utils'
 

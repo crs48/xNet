@@ -26,9 +26,9 @@ import type {
   SearchResult,
   SerializedNodeChange
 } from './interface'
-import Database from 'better-sqlite3'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import Database from 'better-sqlite3'
 
 const assertSafePath = (base: string, key: string): string => {
   const resolved = resolve(base, key)

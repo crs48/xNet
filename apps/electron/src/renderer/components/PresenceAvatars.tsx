@@ -2,9 +2,9 @@
  * PresenceAvatars - Shows active editors as overlapping circular avatars
  */
 
-import React from 'react'
-import { DIDAvatar } from '@xnet/ui'
 import type { PresenceUser } from '@xnet/react'
+import { DIDAvatar } from '@xnet/ui'
+import React from 'react'
 
 interface PresenceAvatarsProps {
   presence: PresenceUser[]

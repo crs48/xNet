@@ -8,10 +8,10 @@
  * This is less secure than PRF (the encrypted key exists at rest) but
  * still requires biometric authentication to decrypt.
  */
-import { encrypt, decrypt, generateKey } from '@xnet/crypto'
-import { generateKeyBundle, serializeKeyBundle, deserializeKeyBundle } from '../keys'
 import type { KeyBundle } from '../types'
 import type { PasskeyIdentity, PasskeyUnlockResult, FallbackStorage } from './types'
+import { encrypt, decrypt, generateKey } from '@xnet/crypto'
+import { generateKeyBundle, serializeKeyBundle, deserializeKeyBundle } from '../keys'
 
 /**
  * Create a fallback identity without PRF.

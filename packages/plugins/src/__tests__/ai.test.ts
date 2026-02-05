@@ -2,6 +2,7 @@
  * Tests for AI script generation module
  */
 import { describe, it, expect, vi } from 'vitest'
+import { ScriptGenerator, ScriptGenerationError, generateScript } from '../ai/generator'
 import {
   buildScriptPrompt,
   buildRetryPrompt,
@@ -16,7 +17,6 @@ import {
   AIGenerationError,
   type AIProvider
 } from '../ai/providers'
-import { ScriptGenerator, ScriptGenerationError, generateScript } from '../ai/generator'
 
 // ─── Test Fixtures ───────────────────────────────────────────────────────────
 

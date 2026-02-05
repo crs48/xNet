@@ -2,9 +2,9 @@
  * Multi-select property handler
  */
 
-import React, { useState } from 'react'
 import type { PropertyHandler, PropertyEditorProps } from '../types'
 import type { SelectOption } from '@xnet/data'
+import React, { useState } from 'react'
 
 interface MultiSelectConfig {
   options?: SelectOption[]

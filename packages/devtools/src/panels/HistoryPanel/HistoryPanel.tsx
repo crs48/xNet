@@ -4,16 +4,6 @@
  * Sub-tabs: Timeline | Diff | Blame | Audit | Verification | Storage
  */
 
-import { useEffect, useState } from 'react'
-import { useHistoryPanel, type HistorySubTab, type UseHistoryPanelResult } from './useHistoryPanel'
-import {
-  formatTime,
-  relativeTime,
-  truncateDID,
-  truncateCID,
-  formatBytes,
-  formatDuration
-} from '../../utils/formatters'
 import type {
   TimelineEntry,
   BlameInfo,
@@ -22,6 +12,16 @@ import type {
   VerificationResult,
   DocumentTimelineEntry
 } from '@xnet/history'
+import { useEffect, useState } from 'react'
+import {
+  formatTime,
+  relativeTime,
+  truncateDID,
+  truncateCID,
+  formatBytes,
+  formatDuration
+} from '../../utils/formatters'
+import { useHistoryPanel, type HistorySubTab, type UseHistoryPanelResult } from './useHistoryPanel'
 
 // ─── Sub-tab Config ──────────────────────────────────────────
 

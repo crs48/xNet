@@ -14,10 +14,10 @@
  * ```
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import type { NodeId } from '@xnet/data'
 import type { DID } from '@xnet/core'
+import type { NodeId } from '@xnet/data'
 import { UndoManager, type UndoManagerOptions } from '@xnet/history'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 
 // ─── Types ───────────────────────────────────────────────────

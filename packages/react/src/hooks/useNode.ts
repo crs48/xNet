@@ -30,16 +30,16 @@
  * update({ typo: 'x' })           // Type error!
  * ```
  */
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import * as Y from 'yjs'
-import { Awareness } from 'y-protocols/awareness'
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { Awareness } from 'y-protocols/awareness'
+import * as Y from 'yjs'
+import { useInstrumentation } from '../instrumentation'
+import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN } from '../sync/meta-bridge'
+import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
+import { flattenNode, type FlatNode } from '../utils/flattenNode'
 import { useNodeStore } from './useNodeStore'
 import { useSyncManager } from './useSyncManager'
-import { useInstrumentation } from '../instrumentation'
-import { flattenNode, type FlatNode } from '../utils/flattenNode'
-import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
-import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN } from '../sync/meta-bridge'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(...args: unknown[]): void {

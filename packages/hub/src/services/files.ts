@@ -1,8 +1,8 @@
 /**
  * @xnet/hub - File storage service.
  */
-import { hashHex } from '@xnet/crypto'
 import type { FileMeta, HubStorage } from '../storage/interface'
+import { hashHex } from '@xnet/crypto'
 
 export type FileConfig = {
   maxFileSize: number

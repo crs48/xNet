@@ -1,8 +1,8 @@
 /**
  * @xnet/identity/passkey - Passkey identity creation with PRF extension
  */
-import { deriveKeyBundle } from '../keys'
 import type { PasskeyIdentity, PasskeyCreateOptions, PasskeyUnlockResult } from './types'
+import { deriveKeyBundle } from '../keys'
 import { deriveKeySeed, PRF_INPUT } from './derive'
 
 /**

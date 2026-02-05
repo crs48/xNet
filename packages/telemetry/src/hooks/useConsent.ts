@@ -2,8 +2,8 @@
  * useConsent - Hook for managing telemetry consent preferences.
  */
 
-import { useState, useEffect, useCallback } from 'react'
 import type { TelemetryConsent, TelemetryTier } from '../consent/types'
+import { useState, useEffect, useCallback } from 'react'
 import { useTelemetryContext } from './TelemetryContext'
 
 export interface UseConsentReturn {

@@ -30,7 +30,6 @@
  * ])
  * ```
  */
-import { useCallback, useState, useRef } from 'react'
 import type {
   DefinedSchema,
   PropertyBuilder,
@@ -38,8 +37,9 @@ import type {
   TransactionOperation,
   TransactionResult
 } from '@xnet/data'
-import { useNodeStore } from './useNodeStore'
+import { useCallback, useState, useRef } from 'react'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
+import { useNodeStore } from './useNodeStore'
 
 // =============================================================================
 // Types

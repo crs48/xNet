@@ -1,6 +1,6 @@
+import type { DID, SchemaIRI } from '../node'
 import { describe, it, expect } from 'vitest'
 import { CommentSchema } from './comment'
-import type { DID, SchemaIRI } from '../node'
 
 describe('CommentSchema', () => {
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID

@@ -3,9 +3,8 @@
  */
 
 import type { DID, ContentId } from '@xnet/core'
+import type { NodeChange, NodeState, NodeId, SchemaIRI } from '@xnet/data'
 import type { LamportTimestamp } from '@xnet/sync'
-import type { NodeChange, NodeState, NodeId } from '@xnet/data'
-import type { SchemaIRI } from '@xnet/data'
 
 // ─── History Targeting ───────────────────────────────────────
 

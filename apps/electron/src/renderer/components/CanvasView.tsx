@@ -4,13 +4,13 @@
  * Uses @xnet/react hooks and @xnet/canvas for the canvas component.
  */
 
-import React, { useEffect, useState, useCallback, useRef } from 'react'
-import { useNode, useIdentity } from '@xnet/react'
-import { CanvasSchema } from '@xnet/data'
 import { Canvas, createNode, createEdge, type CanvasHandle } from '@xnet/canvas'
+import { CanvasSchema } from '@xnet/data'
+import { useNode, useIdentity } from '@xnet/react'
 import { Plus, LayoutGrid, ZoomIn, Maximize2 } from 'lucide-react'
-import { ShareButton } from './ShareButton'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
+import { ShareButton } from './ShareButton'
 
 interface CanvasViewProps {
   docId: string

@@ -2,10 +2,10 @@
  * Tests for layout engine
  */
 
+import type { CanvasNode, CanvasEdge } from '../types'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { LayoutEngine, createLayoutEngine } from '../layout/index'
 import { createNode, createEdge } from '../store'
-import type { CanvasNode, CanvasEdge } from '../types'
 
 describe('LayoutEngine', () => {
   let engine: LayoutEngine

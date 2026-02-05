@@ -2,9 +2,9 @@
  * useCalendarState - Hook for managing calendar view state
  */
 
-import { useMemo, useState, useCallback } from 'react'
-import type { Schema, PropertyDefinition } from '@xnet/data'
 import type { ViewConfig } from '../types.js'
+import type { Schema, PropertyDefinition } from '@xnet/data'
+import { useMemo, useState, useCallback } from 'react'
 
 /**
  * A row in the calendar (generic node with properties)

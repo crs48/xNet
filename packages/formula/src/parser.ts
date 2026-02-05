@@ -14,8 +14,8 @@
  * 9. function call, member access
  */
 
-import type { Token, TokenType } from './lexer.js'
 import type { ASTNode } from './ast.js'
+import type { Token, TokenType } from './lexer.js'
 
 /**
  * Parser error with position information

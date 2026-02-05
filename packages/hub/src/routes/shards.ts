@@ -2,12 +2,12 @@
  * @xnet/hub - Shard registry routes.
  */
 
-import type { Context, MiddlewareHandler } from 'hono'
 import type { AuthContext } from '../auth/ucan'
-import type { ShardIngestRouter } from '../services/shard-ingest'
-import type { ShardQueryRouter } from '../services/shard-router'
 import type { ShardRegistry } from '../services/index-shards'
+import type { ShardIngestRouter } from '../services/shard-ingest'
 import type { ShardRebalancer } from '../services/shard-rebalancer'
+import type { ShardQueryRouter } from '../services/shard-router'
+import type { Context, MiddlewareHandler } from 'hono'
 import { Hono } from 'hono'
 import { isRecord, toStringArray } from '../utils/validation'
 

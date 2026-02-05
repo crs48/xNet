@@ -1,15 +1,15 @@
 /**
  * Tests for useMutate hook
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import type { DID } from '@xnet/core'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import React, { type ReactNode, useMemo } from 'react'
 import { defineSchema, text, select, MemoryNodeStorageAdapter } from '@xnet/data'
 import { generateIdentity, type Identity } from '@xnet/identity'
-import type { DID } from '@xnet/core'
+import React, { type ReactNode, useMemo } from 'react'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { XNetProvider } from '../context'
-import { useQuery } from './useQuery'
 import { useMutate } from './useMutate'
+import { useQuery } from './useQuery'
 
 // Test schemas
 const TaskSchema = defineSchema({

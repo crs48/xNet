@@ -16,7 +16,6 @@
  * ```
  */
 
-import { useState, useCallback, useRef } from 'react'
 import type { NodeId, NodeStorageAdapter } from '@xnet/data'
 import {
   HistoryEngine,
@@ -26,6 +25,7 @@ import {
   type HistoryTarget,
   type DiffResult
 } from '@xnet/history'
+import { useState, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 
 // ─── Types ───────────────────────────────────────────────────

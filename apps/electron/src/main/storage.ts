@@ -1,7 +1,6 @@
 /**
  * SQLite storage adapter for Electron
  */
-import Database from 'better-sqlite3'
 import type {
   StorageAdapter,
   DocumentData,
@@ -10,6 +9,7 @@ import type {
   Snapshot,
   SignedUpdate
 } from '@xnet/sdk'
+import Database from 'better-sqlite3'
 
 export class SQLiteAdapter implements StorageAdapter {
   private db: Database.Database

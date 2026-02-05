@@ -2,9 +2,9 @@
  * @xnet/hub - Hub configuration and instance types.
  */
 
+import type { CrawlConfig } from './services/crawl'
 import type { FederationConfig } from './services/federation'
 import type { ShardConfig } from './services/index-shards'
-import type { CrawlConfig } from './services/crawl'
 
 export type HubConfig = {
   /** WebSocket + HTTP port (default: 4444). */

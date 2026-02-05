@@ -2,8 +2,8 @@
  * Welcome screen — primary CTA is passkey creation via biometric tap.
  * No skip option. Passkey is required.
  */
-import { useOnboarding } from '../OnboardingProvider'
 import { getPlatformAuthName } from '../helpers'
+import { useOnboarding } from '../OnboardingProvider'
 
 export function WelcomeScreen(): JSX.Element {
   const { send } = useOnboarding()

@@ -1,6 +1,6 @@
+import type { SlashCommandItem } from '../../extensions/slash-command/items'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
 import { cn } from '../../utils'
-import type { SlashCommandItem } from '../../extensions/slash-command/items'
 
 interface SlashMenuProps {
   items: SlashCommandItem[]

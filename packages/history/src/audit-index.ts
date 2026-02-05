@@ -6,12 +6,9 @@
  * provides in-memory filtering.
  */
 
-import type { DID } from '@xnet/core'
-
-import type { NodeChange, NodeStorageAdapter, NodeId } from '@xnet/data'
-import type { SchemaIRI } from '@xnet/data'
-import type { NodeStore } from '@xnet/data'
 import type { AuditQuery, AuditEntry, ActivitySummary } from './types'
+import type { DID } from '@xnet/core'
+import type { NodeChange, NodeStorageAdapter, NodeId, SchemaIRI, NodeStore } from '@xnet/data'
 
 export class AuditIndex {
   constructor(private storage: NodeStorageAdapter) {}

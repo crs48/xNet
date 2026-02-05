@@ -2,14 +2,13 @@
  * BoardColumn - A single column in the Kanban board
  */
 
-import React, { useState, useRef, useEffect } from 'react'
+import type { BoardColumn as BoardColumnType } from './useBoardState.js'
+import type { Schema } from '@xnet/data'
 import { useDroppable } from '@dnd-kit/core'
-import { useSortable } from '@dnd-kit/sortable'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@xnet/ui'
-import type { Schema } from '@xnet/data'
-import type { BoardColumn as BoardColumnType } from './useBoardState.js'
+import React, { useState, useRef, useEffect } from 'react'
 import { BoardCard } from './BoardCard.js'
 
 export interface BoardColumnProps {

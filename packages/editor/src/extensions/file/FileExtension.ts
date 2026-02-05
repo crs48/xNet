@@ -6,8 +6,8 @@
  */
 import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import { FileNodeView } from './FileNodeView'
 import { createFileDropPlugin } from './FileDropPlugin'
+import { FileNodeView } from './FileNodeView'
 
 export interface FileExtensionOptions {
   /** Maximum file size in bytes (default: 100MB) */

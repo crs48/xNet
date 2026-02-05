@@ -2,12 +2,12 @@
  * BoardCard - Draggable card component for board view
  */
 
-import React from 'react'
+import type { BoardRow } from './useBoardState.js'
+import type { Schema } from '@xnet/data'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@xnet/ui'
-import type { Schema } from '@xnet/data'
-import type { BoardRow } from './useBoardState.js'
+import React from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 
 export interface BoardCardProps {

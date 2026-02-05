@@ -8,8 +8,8 @@
  * - Finding chain heads (latest changes)
  */
 
-import type { ContentId } from '@xnet/core'
 import type { Change } from './change'
+import type { ContentId } from '@xnet/core'
 import { verifyChangeHash } from './change'
 import { compareLamportTimestamps } from './clock'
 

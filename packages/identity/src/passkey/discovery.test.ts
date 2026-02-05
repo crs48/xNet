@@ -1,8 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createPasskeysEmulator } from 'nid-webauthn-emulator'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { discoverExistingPasskey, unlockDiscoveredPasskey } from './discovery'
 
 describe('discoverExistingPasskey', () => {

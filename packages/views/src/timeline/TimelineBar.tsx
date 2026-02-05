@@ -2,9 +2,9 @@
  * TimelineBar - A single bar representing an item in the timeline
  */
 
-import React from 'react'
-import { cn } from '@xnet/ui'
 import type { TimelineItem, TimelineRange, ZoomConfig } from './useTimelineState.js'
+import { cn } from '@xnet/ui'
+import React from 'react'
 import { getDatePosition, getDateWidth } from './useTimelineState.js'
 
 export interface TimelineBarProps {

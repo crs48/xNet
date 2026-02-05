@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PluginRegistry } from '../registry'
 import { ContributionRegistry, TypedRegistry } from '../contributions'
+import { PluginRegistry } from '../registry'
 
 // Mock NodeStore
 function createMockStore() {

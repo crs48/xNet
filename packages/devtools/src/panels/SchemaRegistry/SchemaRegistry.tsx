@@ -3,8 +3,8 @@
  */
 
 import { useCallback } from 'react'
-import { useSchemaRegistry, type SchemaEntry, type PropertyInfo } from './useSchemaRegistry'
 import { CopyButton } from '../../components/CopyButton'
+import { useSchemaRegistry, type SchemaEntry, type PropertyInfo } from './useSchemaRegistry'
 
 export function SchemaRegistry() {
   const { schemas, selectedSchema, setSelectedSchema, isLoading } = useSchemaRegistry()

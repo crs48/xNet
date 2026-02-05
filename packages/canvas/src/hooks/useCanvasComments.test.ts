@@ -1,6 +1,7 @@
 /**
  * Tests for useCanvasComments hook utilities.
  */
+import { encodeAnchor, type CanvasPositionAnchor, type CanvasObjectAnchor } from '@xnet/data'
 import { describe, it, expect } from 'vitest'
 import {
   viewportToCanvas,
@@ -10,7 +11,6 @@ import {
   type CanvasTransform,
   type CanvasObject
 } from './useCanvasComments'
-import { encodeAnchor, type CanvasPositionAnchor, type CanvasObjectAnchor } from '@xnet/data'
 
 describe('useCanvasComments utilities', () => {
   describe('viewportToCanvas', () => {

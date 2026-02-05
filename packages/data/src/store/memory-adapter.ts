@@ -4,7 +4,6 @@
  * Useful for testing and ephemeral data.
  */
 
-import type { ContentId } from '@xnet/core'
 import type {
   NodeId,
   NodeChange,
@@ -13,6 +12,7 @@ import type {
   ListNodesOptions,
   CountNodesOptions
 } from './types'
+import type { ContentId } from '@xnet/core'
 
 /**
  * In-memory implementation of NodeStorageAdapter.

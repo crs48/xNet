@@ -2,9 +2,9 @@
  * @xnet/hub - Crawl coordinator routes.
  */
 
-import type { Context, MiddlewareHandler } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { CrawlCoordinator } from '../services/crawl'
+import type { Context, MiddlewareHandler } from 'hono'
 import { Hono } from 'hono'
 import { isRecord, toStringArray } from '../utils/validation'
 

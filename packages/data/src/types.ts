@@ -1,8 +1,8 @@
 /**
  * Data types for @xnet/data
  */
-import * as Y from 'yjs'
 import type { SignedUpdate, VectorClock } from '@xnet/core'
+import * as Y from 'yjs'
 
 /**
  * XDocument represents a collaborative document backed by Yjs

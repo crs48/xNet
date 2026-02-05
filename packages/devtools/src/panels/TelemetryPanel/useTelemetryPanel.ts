@@ -5,8 +5,6 @@
  * Provides security events, performance metrics, consent state, and peer scores.
  */
 
-import { useState, useEffect } from 'react'
-import { useDevTools } from '../../provider/useDevTools'
 import type {
   DevToolsEvent,
   TelemetrySecurityEvent,
@@ -17,6 +15,8 @@ import type {
   TelemetryPeerScoresEvent,
   PeerScoreSnapshot
 } from '../../core/types'
+import { useState, useEffect } from 'react'
+import { useDevTools } from '../../provider/useDevTools'
 
 // ─── Types ─────────────────────────────────────────────────
 

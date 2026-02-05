@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react'
 import type { Editor } from '@tiptap/core'
+import { useEffect, useState, useCallback } from 'react'
 import { DragDropPluginKey, type DragState } from '../../extensions/drag-handle/DragDropPlugin'
 
 export interface UseDragDropOptions {

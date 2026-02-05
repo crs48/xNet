@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { BlobStore } from './blob-store'
 import { MemoryAdapter } from './adapters/memory'
+import { BlobStore } from './blob-store'
 
 describe('BlobStore', () => {
   let blobStore: BlobStore

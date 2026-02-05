@@ -2,12 +2,12 @@
  * GalleryView - Card-based gallery layout
  */
 
-import React from 'react'
-import { cn } from '@xnet/ui'
-import type { Schema } from '@xnet/data'
-import { useGalleryState, type GalleryRow } from './useGalleryState.js'
-import { GalleryCard } from './GalleryCard.js'
 import type { ViewConfig } from '../types.js'
+import type { Schema } from '@xnet/data'
+import { cn } from '@xnet/ui'
+import React from 'react'
+import { GalleryCard } from './GalleryCard.js'
+import { useGalleryState, type GalleryRow } from './useGalleryState.js'
 
 export interface GalleryViewProps {
   /** Schema defining the gallery structure */

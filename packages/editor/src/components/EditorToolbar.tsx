@@ -1,8 +1,8 @@
 /**
  * EditorToolbar - Formatting toolbar for the Tiptap editor
  */
-import type { JSX } from 'react'
 import type { Editor } from '@tiptap/react'
+import type { JSX } from 'react'
 import { cn } from '../utils'
 
 export interface EditorToolbarProps {

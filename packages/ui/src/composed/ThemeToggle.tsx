@@ -1,5 +1,5 @@
-import { useTheme } from '../theme/ThemeProvider'
 import { Button } from '../primitives/Button'
+import { useTheme } from '../theme/ThemeProvider'
 import { cn } from '../utils'
 
 export function ThemeToggle({ className }: { className?: string }) {

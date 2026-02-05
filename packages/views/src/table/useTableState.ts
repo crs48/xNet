@@ -2,7 +2,8 @@
  * useTableState - Hook for managing table state with TanStack Table
  */
 
-import { useMemo, useState, useCallback } from 'react'
+import type { ViewConfig, ColumnMeta } from '../types.js'
+import type { Schema, PropertyDefinition } from '@xnet/data'
 import {
   useReactTable,
   getCoreRowModel,
@@ -16,8 +17,7 @@ import {
   type ColumnSizingState,
   type Table
 } from '@tanstack/react-table'
-import type { Schema, PropertyDefinition } from '@xnet/data'
-import type { ViewConfig, ColumnMeta } from '../types.js'
+import { useMemo, useState, useCallback } from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 
 /**

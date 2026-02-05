@@ -5,8 +5,8 @@
  * inserts a placeholder node with upload progress, then updates it
  * with the final URL once the upload completes.
  */
-import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { Editor } from '@tiptap/core'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 
 export const ImagePastePluginKey = new PluginKey('imagePaste')
 

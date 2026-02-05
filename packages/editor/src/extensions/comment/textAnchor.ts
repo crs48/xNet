@@ -6,7 +6,6 @@
  * relativePositionToAbsolutePosition which walk the Yjs tree properly,
  * creating positions on the actual Y.XmlText nodes (not the root fragment).
  */
-import * as Y from 'yjs'
 import type { Editor } from '@tiptap/core'
 import type { TextAnchor } from '@xnet/data'
 import {
@@ -14,6 +13,7 @@ import {
   absolutePositionToRelativePosition,
   relativePositionToAbsolutePosition
 } from '@tiptap/y-tiptap'
+import * as Y from 'yjs'
 
 // ─── Base64 Utilities ──────────────────────────────────────────────────────────
 

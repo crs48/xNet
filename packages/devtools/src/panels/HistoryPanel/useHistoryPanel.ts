@@ -5,7 +5,6 @@
  * to provide timeline, diff, blame, audit, verification, and storage data.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
 import type { NodeId, NodeStorageAdapter, NodeState } from '@xnet/data'
 import {
   HistoryEngine,
@@ -31,6 +30,7 @@ import {
   type DocumentDiffResult,
   type DocumentStorageMetrics
 } from '@xnet/history'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 
 // ─── Types ───────────────────────────────────────────────────

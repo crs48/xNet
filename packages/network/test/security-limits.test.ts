@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { ConnectionTracker } from '../src/security/tracker'
 import { DEFAULT_LIMITS, STRICT_LIMITS, RELAXED_LIMITS } from '../src/security/limits'
+import { ConnectionTracker } from '../src/security/tracker'
 
 describe('ConnectionLimits presets', () => {
   it('STRICT_LIMITS should be more restrictive than DEFAULT', () => {

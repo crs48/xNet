@@ -5,8 +5,8 @@
  * Future: Could be extended to share specific rows/blocks.
  */
 
-import React, { useState } from 'react'
 import { Share2, Check, Copy } from 'lucide-react'
+import React, { useState } from 'react'
 
 interface ShareButtonProps {
   docId: string

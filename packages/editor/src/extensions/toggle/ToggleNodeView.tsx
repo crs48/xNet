@@ -6,8 +6,8 @@
  * - Double-click summary to edit
  * - Animated chevron rotation
  */
-import * as React from 'react'
 import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from '@tiptap/react'
+import * as React from 'react'
 import { cn } from '../../utils'
 
 export function ToggleNodeView({ node, updateAttributes, selected }: NodeViewProps) {

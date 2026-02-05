@@ -2,9 +2,9 @@
  * @xnet/hub - Schema registry routes.
  */
 
-import type { Context, MiddlewareHandler } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { SchemaRegistryService } from '../services/schemas'
+import type { Context, MiddlewareHandler } from 'hono'
 import { Hono } from 'hono'
 import { SchemaError } from '../services/schemas'
 import { isRecord } from '../utils/validation'

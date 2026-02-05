@@ -7,8 +7,8 @@
  */
 
 import { useState } from 'react'
-import { useDevTools } from '../../provider/useDevTools'
 import * as Y from 'yjs'
+import { useDevTools } from '../../provider/useDevTools'
 
 // Generate a simple ID
 function generateId(): string {

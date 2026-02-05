@@ -5,12 +5,11 @@
  * Includes safety checks: sync state, verification, min age, etc.
  */
 
-import { topologicalSort } from '@xnet/sync'
-import type { NodeChange, NodeStorageAdapter, NodeId } from '@xnet/data'
-import type { SchemaIRI } from '@xnet/data'
 import type { SnapshotCache } from './snapshot-cache'
-import type { VerificationEngine } from './verification'
 import type { PruningPolicy, PruneCandidate, PruneResult, PruneOptions } from './types'
+import type { VerificationEngine } from './verification'
+import type { NodeChange, NodeStorageAdapter, NodeId, SchemaIRI } from '@xnet/data'
+import { topologicalSort } from '@xnet/sync'
 
 export const DEFAULT_POLICY: PruningPolicy = {
   keepRecentChanges: 200,

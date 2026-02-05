@@ -3,8 +3,8 @@
  */
 
 import type { HubStorage, ShardAssignmentRecord } from '../storage/interface'
-import { hash } from '@xnet/crypto'
 import { TextEncoder } from 'node:util'
+import { hash } from '@xnet/crypto'
 
 export type ShardAssignment = {
   shardId: number

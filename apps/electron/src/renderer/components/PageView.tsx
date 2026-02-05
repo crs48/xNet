@@ -7,17 +7,10 @@
  * - Real-time presence indicators
  */
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import type { SyncStatus } from '@xnet/react'
 // Editor type - we use any since @tiptap/core isn't directly available
-import {
-  useNode,
-  useIdentity,
-  useEditorExtensionsSafe,
-  useComments,
-  usePluginRegistryOptional
-} from '@xnet/react'
 import { PageSchema } from '@xnet/data'
+import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
 import {
   RichTextEditor,
   useImageUpload,
@@ -25,7 +18,13 @@ import {
   useFileDownload,
   type Editor
 } from '@xnet/editor/react'
-import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
+import {
+  useNode,
+  useIdentity,
+  useEditorExtensionsSafe,
+  useComments,
+  usePluginRegistryOptional
+} from '@xnet/react'
 import {
   CommentPopover,
   CommentsSidebar,
@@ -33,6 +32,7 @@ import {
   type CommentThreadData,
   type OrphanedThread
 } from '@xnet/ui'
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { DocumentHeader } from './DocumentHeader'
 import { PresenceAvatars } from './PresenceAvatars'
 

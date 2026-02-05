@@ -2,11 +2,11 @@
  * Tests for board view components
  */
 
-import { describe, it, expect, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-import { useBoardState } from '../board/useBoardState'
-import type { Schema } from '@xnet/data'
 import type { ViewConfig } from '../types'
+import type { Schema } from '@xnet/data'
+import { renderHook, act } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { useBoardState } from '../board/useBoardState'
 
 // Mock schema with select property
 const mockSchema: Schema = {

@@ -5,9 +5,9 @@
  */
 import { Mark, Node, mergeAttributes, markInputRule, textblockTypeInputRule } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import { HeadingView } from './nodeviews/HeadingView'
-import { CodeBlockView } from './nodeviews/CodeBlockView'
 import { BlockquoteView } from './nodeviews/BlockquoteView'
+import { CodeBlockView } from './nodeviews/CodeBlockView'
+import { HeadingView } from './nodeviews/HeadingView'
 
 // ============================================================================
 // Wikilink Extension

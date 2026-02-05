@@ -2,9 +2,9 @@
  * useBoardState - Hook for managing board (Kanban) state
  */
 
-import { useMemo, useState, useCallback } from 'react'
-import type { Schema, PropertyDefinition } from '@xnet/data'
 import type { ViewConfig } from '../types.js'
+import type { Schema, PropertyDefinition } from '@xnet/data'
+import { useMemo, useState, useCallback } from 'react'
 
 /**
  * A row in the board (generic node with properties)

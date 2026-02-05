@@ -5,8 +5,8 @@
  * for creates, updates, deletes, restores, remote changes, and conflicts.
  */
 
-import type { NodeStore, NodeChangeEvent } from '@xnet/data'
 import type { DevToolsEventBus } from '../core/event-bus'
+import type { NodeStore, NodeChangeEvent } from '@xnet/data'
 import { DEFAULTS } from '../core/constants'
 
 export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => void {

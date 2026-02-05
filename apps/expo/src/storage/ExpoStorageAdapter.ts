@@ -1,7 +1,6 @@
 /**
  * Expo SQLite storage adapter
  */
-import * as SQLite from 'expo-sqlite'
 import type {
   StorageAdapter,
   DocumentData,
@@ -10,6 +9,7 @@ import type {
   Snapshot,
   SignedUpdate
 } from '@xnet/sdk'
+import * as SQLite from 'expo-sqlite'
 
 export class ExpoStorageAdapter implements StorageAdapter {
   private db: SQLite.SQLiteDatabase | null = null

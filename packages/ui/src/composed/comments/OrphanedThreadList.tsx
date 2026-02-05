@@ -4,9 +4,9 @@
  * Shows comments whose anchors can no longer be resolved (deleted text, rows, etc.)
  * with options to reattach or dismiss.
  */
-import { cn } from '../../utils'
-import { Button } from '../../primitives/Button'
 import { DIDAvatar } from '../../components/DIDAvatar'
+import { Button } from '../../primitives/Button'
+import { cn } from '../../utils'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

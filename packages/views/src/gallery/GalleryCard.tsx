@@ -2,11 +2,11 @@
  * GalleryCard - A single card in the gallery view
  */
 
-import React, { useState } from 'react'
-import { cn } from '@xnet/ui'
-import type { PropertyDefinition } from '@xnet/data'
 import type { GalleryImageFit } from '../types.js'
 import type { GalleryRow } from './useGalleryState.js'
+import type { PropertyDefinition } from '@xnet/data'
+import { cn } from '@xnet/ui'
+import React, { useState } from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 
 export interface GalleryCardProps {

@@ -1,6 +1,6 @@
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
-import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
+import react from '@vitejs/plugin-react'
+import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 
 // Support running multiple instances with different ports
 const rendererPort = parseInt(process.env.VITE_PORT || '5177', 10)

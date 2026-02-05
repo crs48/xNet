@@ -1,6 +1,8 @@
 /**
  * Home screen - document list
  */
+import type { RootStackParamList } from '../navigation/types'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
@@ -13,8 +15,6 @@ import {
   RefreshControl
 } from 'react-native'
 import { useXNet } from '../hooks/useXNet'
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import type { RootStackParamList } from '../navigation/types'
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>

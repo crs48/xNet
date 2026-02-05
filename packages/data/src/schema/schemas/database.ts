@@ -6,9 +6,9 @@
  * stores the schema definition.
  */
 
+import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, file, select } from '../properties'
-import type { InferNode } from '../types'
 
 export const DatabaseSchema = defineSchema({
   name: 'Database',

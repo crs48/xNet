@@ -5,10 +5,10 @@
  * and provides tier-checking methods.
  */
 
-import type { TelemetryTier, TelemetryConsent } from './types'
-import { DEFAULT_CONSENT, tierLevel, tierMeetsRequirement } from './types'
 import type { ConsentStorage } from './storage'
+import type { TelemetryTier, TelemetryConsent } from './types'
 import { MemoryConsentStorage } from './storage'
+import { DEFAULT_CONSENT, tierLevel, tierMeetsRequirement } from './types'
 
 type Listener<T extends unknown[]> = (...args: T) => void
 

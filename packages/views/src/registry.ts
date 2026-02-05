@@ -5,9 +5,9 @@
  * that plugins can add views to.
  */
 
-import type { ComponentType } from 'react'
-import type { Schema, SchemaIRI, NodeId } from '@xnet/data'
 import type { ViewConfig, Disposable } from './types.js'
+import type { Schema, SchemaIRI, NodeId } from '@xnet/data'
+import type { ComponentType } from 'react'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 

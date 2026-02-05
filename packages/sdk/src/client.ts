@@ -1,10 +1,8 @@
 /**
  * XNet client - unified API for all xNet operations
  */
-import type { StorageAdapter, DocumentData } from '@xnet/storage'
-import { MemoryAdapter } from '@xnet/storage'
-import { generateKeyBundle, type Identity, type KeyBundle } from '@xnet/identity'
 import type { NetworkNode, NetworkConfig } from '@xnet/network'
+import type { StorageAdapter, DocumentData } from '@xnet/storage'
 import {
   createDocument,
   loadDocument,
@@ -12,12 +10,14 @@ import {
   type XDocument,
   type DocumentType
 } from '@xnet/data'
+import { generateKeyBundle, type Identity, type KeyBundle } from '@xnet/identity'
 import {
   createLocalQueryEngine,
   createSearchIndex,
   type Query,
   type QueryResult
 } from '@xnet/query'
+import { MemoryAdapter } from '@xnet/storage'
 
 /**
  * XNet client configuration

@@ -2,14 +2,13 @@
  * @xnet/hub - Hub federation search service.
  */
 
-import type { HubStorage } from '../storage/interface'
 import type { QueryRequest, QueryResponse } from './query'
-import { createUCAN, hasCapability, verifyUCAN } from '@xnet/identity'
-import { sign, verify } from '@xnet/crypto'
-import { parseDID } from '@xnet/identity'
+import type { HubStorage } from '../storage/interface'
 import { TextEncoder } from 'node:util'
-import { QueryService } from './query'
+import { sign, verify } from '@xnet/crypto'
+import { createUCAN, hasCapability, verifyUCAN, parseDID } from '@xnet/identity'
 import { validateExternalUrl } from '../utils/url'
+import { QueryService } from './query'
 
 export type FederationPeer = {
   url: string

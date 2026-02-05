@@ -17,13 +17,13 @@
  * ```
  */
 
-import { useState, useCallback, useRef } from 'react'
 import type { NodeId, NodeStorageAdapter } from '@xnet/data'
 import {
   VerificationEngine,
   type VerificationResult,
   type VerificationOptions
 } from '@xnet/history'
+import { useState, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 
 // ─── Types ───────────────────────────────────────────────────

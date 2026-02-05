@@ -7,8 +7,8 @@
  * - Type picker dropdown
  * - Color-coded by type
  */
-import * as React from 'react'
 import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from '@tiptap/react'
+import * as React from 'react'
 import { cn } from '../../utils'
 import { CALLOUT_CONFIGS, type CalloutType } from './types'
 

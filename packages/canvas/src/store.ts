@@ -5,8 +5,8 @@
  * The canvas document uses the schema system with document: 'yjs'.
  */
 
-import * as Y from 'yjs'
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, CanvasNodeType } from './types'
+import * as Y from 'yjs'
 import { SpatialIndex, createSpatialIndex } from './spatial/index'
 
 /**

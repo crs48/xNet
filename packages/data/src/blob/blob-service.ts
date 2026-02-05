@@ -4,9 +4,9 @@
  * Provides a simple API for storing and retrieving files,
  * handling chunking, URL generation, and cleanup.
  */
+import type { FileRef } from '../schema/properties/file'
 import type { ContentId } from '@xnet/core'
 import type { ChunkManager } from '@xnet/storage'
-import type { FileRef } from '../schema/properties/file'
 
 export interface BlobServiceOptions {
   /** Maximum file size in bytes (default: 100MB) */
