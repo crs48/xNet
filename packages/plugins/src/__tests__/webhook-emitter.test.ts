@@ -283,8 +283,8 @@ describe('WebhookEmitter', () => {
 
       // crypto.subtle.sign is genuinely async — advance timers repeatedly
       // to flush both timer callbacks and microtask-based crypto operations
-      for (let i = 0; i < 10; i++) {
-        await vi.advanceTimersByTimeAsync(10)
+      for (let i = 0; i < 20; i++) {
+        await vi.advanceTimersByTimeAsync(50)
       }
 
       expect(mockFetch).toHaveBeenCalledWith(
