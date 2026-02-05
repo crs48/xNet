@@ -61,12 +61,7 @@ export interface EditorState {
 /**
  * Editor event types
  */
-export type EditorEventType =
-  | 'change'
-  | 'selection'
-  | 'focus'
-  | 'blur'
-  | 'remote-update'
+export type EditorEventType = 'change' | 'selection' | 'focus' | 'blur' | 'remote-update'
 
 /**
  * Editor event handler

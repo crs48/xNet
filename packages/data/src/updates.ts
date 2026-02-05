@@ -125,9 +125,6 @@ export function mergeDocuments(target: XDocument, sources: XDocument[]): void {
 /**
  * Get missing updates between two state vectors
  */
-export function getMissingUpdates(
-  doc: XDocument,
-  remoteStateVector: Uint8Array
-): Uint8Array {
+export function getMissingUpdates(doc: XDocument, remoteStateVector: Uint8Array): Uint8Array {
   return Y.encodeStateAsUpdate(doc.ydoc, remoteStateVector)
 }

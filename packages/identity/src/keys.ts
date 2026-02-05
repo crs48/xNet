@@ -1,7 +1,12 @@
 /**
  * Key derivation and management
  */
-import { hash, generateSigningKeyPair, generateKeyPair, getSigningPublicKeyFromPrivate } from '@xnet/crypto'
+import {
+  hash,
+  generateSigningKeyPair,
+  generateKeyPair,
+  getSigningPublicKeyFromPrivate
+} from '@xnet/crypto'
 import type { KeyBundle, Identity } from './types'
 import { createDID } from './did'
 

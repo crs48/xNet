@@ -23,7 +23,10 @@ export type BackupResult = {
 export class BackupService {
   private config: BackupConfig
 
-  constructor(private storage: HubStorage, config?: Partial<BackupConfig>) {
+  constructor(
+    private storage: HubStorage,
+    config?: Partial<BackupConfig>
+  ) {
     this.config = { ...DEFAULT_CONFIG, ...config }
   }
 

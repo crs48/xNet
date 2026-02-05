@@ -4,8 +4,7 @@
 
 import type { FederationConfig, FederationPeer } from './federation'
 
-const sleep = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms))
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 export class FederationHealthChecker {
   private interval: ReturnType<typeof setInterval> | null = null

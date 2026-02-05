@@ -203,7 +203,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 
       // Expose NodeStore to window for main process access (Electron Local API)
       if (typeof window !== 'undefined') {
-        (window as Window & { __xnetNodeStore?: NodeStore }).__xnetNodeStore = ns
+        ;(window as Window & { __xnetNodeStore?: NodeStore }).__xnetNodeStore = ns
       }
     }
 

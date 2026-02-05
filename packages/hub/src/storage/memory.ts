@@ -140,8 +140,7 @@ export const createMemoryStorage = (): HubStorage => {
     searchBodies.set(docId, text)
   }
 
-  const getFileMeta = async (cid: string): Promise<FileMeta | null> =>
-    files.get(cid)?.meta ?? null
+  const getFileMeta = async (cid: string): Promise<FileMeta | null> => files.get(cid)?.meta ?? null
 
   const putFile = async (
     cid: string,
@@ -304,10 +303,7 @@ export const createMemoryStorage = (): HubStorage => {
     shardPostings.set(key, posting)
   }
 
-  const listShardPostings = async (
-    shardId: number,
-    terms: string[]
-  ): Promise<ShardPosting[]> => {
+  const listShardPostings = async (shardId: number, terms: string[]): Promise<ShardPosting[]> => {
     const termSet = new Set(terms)
     return Array.from(shardPostings.values()).filter(
       (posting) => posting.shardId === shardId && termSet.has(posting.term)
@@ -329,10 +325,7 @@ export const createMemoryStorage = (): HubStorage => {
     }
   }
 
-  const getShardTermStats = async (
-    shardId: number,
-    terms: string[]
-  ): Promise<ShardTermStat[]> =>
+  const getShardTermStats = async (shardId: number, terms: string[]): Promise<ShardTermStat[]> =>
     terms
       .map((term) => shardTermStats.get(`${shardId}:${term}`))
       .filter((stat): stat is ShardTermStat => Boolean(stat))

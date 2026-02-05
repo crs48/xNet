@@ -15,7 +15,10 @@ export class AutoBackup {
   private debounceMs: number
   private isEnabled: () => boolean
 
-  constructor(private upload: BackupUploader, options?: AutoBackupOptions) {
+  constructor(
+    private upload: BackupUploader,
+    options?: AutoBackupOptions
+  ) {
     this.debounceMs = options?.debounceMs ?? 5000
     this.isEnabled = options?.isEnabled ?? (() => true)
   }
@@ -51,7 +54,10 @@ export class AutoBackup {
       return
     }
 
-    this.timers.set(docId, setTimeout(() => void run(), delay))
+    this.timers.set(
+      docId,
+      setTimeout(() => void run(), delay)
+    )
   }
 
   async flush(): Promise<void> {

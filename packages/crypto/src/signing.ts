@@ -31,11 +31,7 @@ export function sign(message: Uint8Array, privateKey: Uint8Array): Uint8Array {
 /**
  * Verify a signature
  */
-export function verify(
-  message: Uint8Array,
-  signature: Uint8Array,
-  publicKey: Uint8Array
-): boolean {
+export function verify(message: Uint8Array, signature: Uint8Array, publicKey: Uint8Array): boolean {
   try {
     return ed25519.verify(signature, message, publicKey)
   } catch {

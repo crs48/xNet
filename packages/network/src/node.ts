@@ -78,10 +78,7 @@ export async function connectToPeer(node: NetworkNode, multiaddr: string): Promi
 /**
  * Subscribe to peer connection events
  */
-export function onPeerConnect(
-  node: NetworkNode,
-  callback: (peerId: string) => void
-): () => void {
+export function onPeerConnect(node: NetworkNode, callback: (peerId: string) => void): () => void {
   const handler = (event: CustomEvent) => {
     callback(event.detail.toString())
   }

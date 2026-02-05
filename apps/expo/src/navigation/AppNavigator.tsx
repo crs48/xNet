@@ -13,11 +13,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>()
 export function AppNavigator() {
   return (
     <Stack.Navigator>
-      <Stack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="Document"
         component={DocumentScreen}
@@ -26,11 +22,7 @@ export function AppNavigator() {
           headerBackTitle: 'Back'
         }}
       />
-      <Stack.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: 'Settings' }}
-      />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     </Stack.Navigator>
   )
 }

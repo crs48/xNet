@@ -18,8 +18,8 @@ Object.defineProperty(window, 'matchMedia', {
     removeListener: () => {},
     addEventListener: () => {},
     removeEventListener: () => {},
-    dispatchEvent: () => false,
-  }),
+    dispatchEvent: () => false
+  })
 })
 
 // Mock ResizeObserver
@@ -39,7 +39,7 @@ window.getComputedStyle = (element: Element, pseudoElt?: string | null) => {
     getPropertyValue: (prop: string) => {
       if (prop === 'white-space') return 'normal'
       return style.getPropertyValue(prop)
-    },
+    }
   } as CSSStyleDeclaration
 }
 

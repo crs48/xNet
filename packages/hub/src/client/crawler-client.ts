@@ -26,7 +26,9 @@ export class XNetCrawler {
   }
 
   async getNextTasks(limit = 5): Promise<CrawlTask[]> {
-    const response = await this.request(`/crawl/next?did=${encodeURIComponent(this.did)}&limit=${limit}`)
+    const response = await this.request(
+      `/crawl/next?did=${encodeURIComponent(this.did)}&limit=${limit}`
+    )
     const data = (await response.json()) as { tasks?: CrawlTask[] }
     return Array.isArray(data.tasks) ? data.tasks : []
   }
