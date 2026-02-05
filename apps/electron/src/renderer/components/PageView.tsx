@@ -17,7 +17,7 @@ import {
   useComments,
   usePluginRegistryOptional
 } from '@xnet/react'
-import { PageSchema, decodeAnchor, type TextAnchor } from '@xnet/data'
+import { PageSchema } from '@xnet/data'
 import {
   RichTextEditor,
   useImageUpload,

@@ -35,7 +35,8 @@ export const MermaidPlugin: XNetExtension = {
         icon: 'git-branch',
         execute: ({ editor, range }: { editor: unknown; range: { from: number; to: number } }) => {
           // editor is typed as unknown in SlashCommandContext, cast to any for .chain()
-          ;(editor as any).chain().focus().deleteRange(range).setMermaid().run()
+          const ed = editor as any
+          ed.chain().focus().deleteRange(range).setMermaid().run()
         }
       }
     ]

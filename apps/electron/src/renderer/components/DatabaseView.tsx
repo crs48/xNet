@@ -54,7 +54,7 @@ interface StoredColumn {
 /**
  * Build a Schema object from stored columns
  */
-function buildSchema(columns: StoredColumn[], dbId: string): Schema {
+function buildSchema(columns: StoredColumn[], _dbId: string): Schema {
   const properties: PropertyDefinition[] = columns.map((col) => ({
     '@id': `xnet://xnet.fyi/DynamicDatabase#${col.id}`,
     name: col.name,
@@ -710,7 +710,9 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       // Remove from view configs
       const currentTableView = dataMap.get('tableView') as ViewConfig | undefined
       if (currentTableView) {
-        const { [columnId]: _, ...restWidths } = currentTableView.propertyWidths || {}
+        const restWidths = Object.fromEntries(
+          Object.entries(currentTableView.propertyWidths || {}).filter(([k]) => k !== columnId)
+        )
         dataMap.set('tableView', {
           ...currentTableView,
           visibleProperties: currentTableView.visibleProperties.filter((p) => p !== columnId),
@@ -734,7 +736,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       // Remove column data from all rows
       const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
       const updatedRows = currentRows.map((row) => {
-        const { [columnId]: _, ...rest } = row
+        const rest = Object.fromEntries(Object.entries(row).filter(([k]) => k !== columnId))
         return rest as TableRow
       })
       dataMap.set('rows', updatedRows)

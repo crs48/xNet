@@ -22,7 +22,10 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm prettier --check "packages/**/*.{ts,tsx}" "apps/**/*.{ts,tsx}"
 
       - name: Type check
         run: pnpm typecheck
@@ -55,7 +58,7 @@ jobs:
           cache: 'pnpm'
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Build packages
         run: pnpm build
