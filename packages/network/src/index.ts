@@ -9,7 +9,9 @@ export type {
   PeerInfo,
   SyncSession,
   SyncMessage,
-  NetworkConfig
+  NetworkConfig,
+  DemoLimits,
+  HubHandshake
 } from './types'
 export { DEFAULT_CONFIG, PRODUCTION_CONFIG, DEVELOPMENT_CONFIG } from './types'
 

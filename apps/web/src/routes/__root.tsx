@@ -2,7 +2,13 @@
  * Root layout with ErrorBoundary
  */
 import { createRootRoute, Outlet, Link, useLocation } from '@tanstack/react-router'
-import { useIdentity, ErrorBoundary, HubStatusIndicator } from '@xnet/react'
+import {
+  useIdentity,
+  ErrorBoundary,
+  HubStatusIndicator,
+  DemoBanner,
+  useDemoMode
+} from '@xnet/react'
 import { ThemeToggle } from '@xnet/ui'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { GlobalSearch } from '../components/GlobalSearch'
@@ -15,10 +21,16 @@ export const Route = createRootRoute({
 function RootLayout() {
   const { identity } = useIdentity()
   const location = useLocation()
+  const { isDemo, limits } = useDemoMode()
 
   return (
     <div className="flex flex-col h-screen">
-      <header className="h-[52px] flex items-center justify-between px-4 border-b border-border bg-background">
+      {/* Demo mode banner */}
+      {isDemo && limits && <DemoBanner evictionHours={limits.evictionHours} />}
+
+      <header
+        className={`h-[52px] flex items-center justify-between px-4 border-b border-border bg-background ${isDemo && limits ? 'mt-10' : ''}`}
+      >
         <Link
           to="/"
           className="text-lg font-semibold text-foreground no-underline hover:no-underline"
