@@ -8,12 +8,19 @@ import { Component, type ReactNode, type ErrorInfo } from 'react'
 
 // ─── Types ──────────────────────────────────────────────────
 
+export type ErrorBoundaryFallbackProps = {
+  error: Error
+  reset: () => void
+}
+
 export type ErrorBoundaryProps = {
   children: ReactNode
-  /** Custom fallback UI. If omitted, a default error screen is shown. */
-  fallback?: ReactNode
+  /** Custom fallback UI. Receives error + reset function. If omitted, a default error screen is shown. */
+  fallback?: ReactNode | ((props: ErrorBoundaryFallbackProps) => ReactNode)
   /** Callback fired when an error is caught. */
   onError?: (error: Error, errorInfo: ErrorInfo) => void
+  /** Change this value to force a reset (e.g. after navigation). */
+  resetKey?: string | number
 }
 
 type ErrorBoundaryState = {
@@ -39,12 +46,28 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.setState({ hasError: false, error: null })
   }
 
+  override componentDidUpdate(prevProps: ErrorBoundaryProps): void {
+    if (
+      this.state.hasError &&
+      this.props.resetKey !== undefined &&
+      prevProps.resetKey !== this.props.resetKey
+    ) {
+      this.handleReset()
+    }
+  }
+
   override render(): ReactNode {
     if (!this.state.hasError) {
       return this.props.children
     }
 
     if (this.props.fallback) {
+      if (typeof this.props.fallback === 'function') {
+        return this.props.fallback({
+          error: this.state.error ?? new Error('Unknown error'),
+          reset: this.handleReset
+        })
+      }
       return this.props.fallback
     }
 

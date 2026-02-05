@@ -2,20 +2,29 @@
  * Ready screen — identity created, hub connected (or offline).
  * Shows DID, hub status, and "Create your first page" CTA.
  */
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useOnboarding } from '../OnboardingProvider'
 import { truncateDid, copyToClipboard } from '../helpers'
 
 export function ReadyScreen(): JSX.Element {
   const { send, context } = useOnboarding()
   const [copied, setCopied] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
 
   const handleCopy = async (): Promise<void> => {
     if (context.identity?.did) {
       const ok = await copyToClipboard(context.identity.did)
       if (ok) {
         setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+        if (timerRef.current) clearTimeout(timerRef.current)
+        timerRef.current = setTimeout(() => setCopied(false), 2000)
       }
     }
   }

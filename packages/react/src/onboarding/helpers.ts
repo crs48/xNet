@@ -32,8 +32,12 @@ export function truncateDid(did: string, headLen = 16, tailLen = 4): string {
 
 /**
  * Copy text to clipboard, returns true on success.
+ * Returns false in SSR environments where navigator is unavailable.
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
+  if (typeof navigator === 'undefined' || !navigator.clipboard) {
+    return false
+  }
   try {
     await navigator.clipboard.writeText(text)
     return true

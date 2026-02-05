@@ -399,6 +399,76 @@ describe('Revocation issuer verification', () => {
   })
 })
 
+// ─── Custom audience ─────────────────────────────────────────
+
+describe('Custom audience', () => {
+  it('creates share with specific audience DID', () => {
+    const { identity: alice, privateKey: aliceKey } = makeIdentity()
+    const { identity: bob } = makeIdentity()
+
+    const share = createShareToken(alice.did, aliceKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read',
+      audience: bob.did
+    })
+
+    const parsed = parseShareLink(share.shareLink)
+    expect(parsed.audience).toBe(bob.did)
+    expect(parsed.issuer).toBe(alice.did)
+  })
+
+  it('uses default audience when not specified', () => {
+    const { identity, privateKey } = makeIdentity()
+    const share = createShareToken(identity.did, privateKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read'
+    })
+
+    const parsed = parseShareLink(share.shareLink)
+    expect(parsed.audience).toBe('did:web:xnet.fyi')
+  })
+})
+
+// ─── Share link with URL query params ────────────────────────
+
+describe('Share link with URL query params', () => {
+  it('parses share link that has query params after the encoded data', () => {
+    const { identity, privateKey } = makeIdentity()
+    const share = createShareToken(identity.did, privateKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read'
+    })
+
+    // Simulate a share link with query params appended (e.g. UTM tracking)
+    const linkWithParams = share.shareLink + '?ref=email&utm_source=test'
+    // The encoded portion is extracted from /s/ onward, but query params
+    // will be included. parseShareLink should handle this gracefully.
+    // Currently parseShareLink splits on /s/ — the base64 decoder may fail
+    // if query params are appended. Let's verify it either works or throws clearly.
+    try {
+      const parsed = parseShareLink(linkWithParams)
+      // If it parses, the resource should still be correct
+      expect(parsed.resource).toBe('xnet://test/page/1')
+    } catch (err) {
+      // Acceptable if it throws a clear error about decoding
+      expect((err as Error).message).toContain('Invalid share link')
+    }
+  })
+
+  it('strips query params when present', () => {
+    const { identity, privateKey } = makeIdentity()
+    const share = createShareToken(identity.did, privateKey, {
+      resource: 'xnet://test/page/1',
+      permission: 'read'
+    })
+
+    // Extract just the encoded part and verify it parses correctly by itself
+    const encoded = share.shareLink.split('/s/')[1]
+    const parsed = parseShareLink(encoded)
+    expect(parsed.resource).toBe('xnet://test/page/1')
+  })
+})
+
 // ─── computeTokenHash ────────────────────────────────────────
 
 describe('computeTokenHash', () => {

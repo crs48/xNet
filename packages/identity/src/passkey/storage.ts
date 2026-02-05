@@ -58,8 +58,9 @@ function dbDelete(db: IDBDatabase, key: string): Promise<void> {
 
 // ─── Serialization ───────────────────────────────────────────
 
-/** Uint8Arrays don't survive IndexedDB structured cloning in all browsers. */
-type SerializedRecord = {
+/** Uint8Arrays don't survive IndexedDB structured cloning in all browsers.
+ * @internal Exported for testing only */
+export type SerializedRecord = {
   passkey: {
     did: string
     publicKey: number[]
@@ -77,7 +78,8 @@ type SerializedRecord = {
   }
 }
 
-function serializeRecord(record: StoredPasskeyRecord): SerializedRecord {
+/** @internal Exported for testing only */
+export function serializeRecord(record: StoredPasskeyRecord): SerializedRecord {
   const serialized: SerializedRecord = {
     passkey: {
       did: record.passkey.did,
@@ -98,7 +100,8 @@ function serializeRecord(record: StoredPasskeyRecord): SerializedRecord {
   return serialized
 }
 
-function deserializeRecord(raw: SerializedRecord): StoredPasskeyRecord {
+/** @internal Exported for testing only */
+export function deserializeRecord(raw: SerializedRecord): StoredPasskeyRecord {
   const record: StoredPasskeyRecord = {
     passkey: {
       did: raw.passkey.did,
