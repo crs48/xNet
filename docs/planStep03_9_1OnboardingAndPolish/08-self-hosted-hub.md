@@ -752,16 +752,16 @@ describe('Self-Hosted Hub', () => {
 
 ## Validation Gate
 
-- [ ] Railway one-click deploy template works
-- [ ] Install script works on fresh Ubuntu 22.04
-- [ ] Docker Compose starts hub with Caddy
-- [ ] HTTPS certificate obtained automatically
-- [ ] Health endpoint accessible
+- [x] Railway one-click deploy template works
+- [x] Install script works on fresh Ubuntu 22.04
+- [x] Docker Compose starts hub with Caddy
+- [x] HTTPS certificate obtained automatically
+- [x] Health endpoint accessible
 - [ ] WebSocket connections work
-- [ ] Graduation path from demo hub is clear and documented
-- [ ] Documentation is clear and complete
-- [ ] Backup/restore procedure documented
-- [ ] Security hardening guide complete
+- [x] Graduation path from demo hub is clear and documented
+- [x] Documentation is clear and complete
+- [x] Backup/restore procedure documented
+- [x] Security hardening guide complete
 
 ---
 
