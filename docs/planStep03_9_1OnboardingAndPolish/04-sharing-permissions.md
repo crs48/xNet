@@ -735,12 +735,12 @@ describe('Sharing', () => {
 
 ## Validation Gate
 
-- [ ] Share dialog creates working share links
+- [x] Share dialog creates working share links
 - [ ] Recipients can access shared content via link
-- [ ] Read-only shares prevent editing
-- [ ] Write shares allow editing
-- [ ] Expired shares are rejected
-- [ ] Revoked shares stop working immediately
+- [x] Read-only shares prevent editing
+- [x] Write shares allow editing
+- [x] Expired shares are rejected
+- [x] Revoked shares stop working immediately
 - [ ] Collaborator presence shows active users
 - [ ] Share management UI lists all active shares
 
