@@ -8,6 +8,7 @@ export default {
     './src/**/*.{js,ts,jsx,tsx}',
     '../../packages/ui/src/**/*.{ts,tsx}',
     '../../packages/views/src/**/*.{ts,tsx}',
-    '../../packages/editor/src/**/*.{ts,tsx}'
+    '../../packages/editor/src/**/*.{ts,tsx}',
+    '../../packages/react/src/**/*.{ts,tsx}'
   ]
 }
