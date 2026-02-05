@@ -41,14 +41,6 @@ export function CardDetailModal({
   onUpdateRow,
   onDeleteRow
 }: CardDetailModalProps): React.JSX.Element | null {
-  if (!isOpen || !row) return null
-
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose()
-    }
-  }
-
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -57,6 +49,14 @@ export function CardDetailModal({
     },
     [onClose]
   )
+
+  if (!isOpen || !row) return null
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose()
+    }
+  }
 
   const handleDelete = () => {
     if (onDeleteRow && row) {

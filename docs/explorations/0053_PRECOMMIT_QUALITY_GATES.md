@@ -338,10 +338,10 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
 
 #### Phase 4: ESLint Hardening
 
-- [ ] **Add `eslint-plugin-react-hooks`** — the repo has heavy React usage across 6 packages but no hooks linting. Missing dependency arrays and rules-of-hooks violations are a class of bug that's hard to catch in review.
-- [ ] **Promote `no-explicit-any` to error** — currently `warn`, which means it's ignored. Either enforce it or remove the rule.
-- [ ] **Add `eslint-plugin-import`** — enforces import ordering conventions from AGENTS.md (type-only first, external, internal, local). Currently the ordering rules exist only in documentation.
-- [ ] **Consider `explicit-function-return-type` on exported functions** — AGENTS.md says "Use explicit return types on exported functions" but the ESLint rule is `off`. Could enable it as `['warn', { allowExpressions: true }]` for exported functions only.
+- [x] **Add `eslint-plugin-react-hooks`** — installed v5, added `plugin:react-hooks/recommended`. Fixed 2 rules-of-hooks violations (conditional hook in CardDetailModal, eslint-disable for test pattern).
+- [ ] **Promote `no-explicit-any` to error** — kept as `warn` for now; 190+ usages across codebase would need fixing first. Can be done incrementally.
+- [x] **Add `eslint-plugin-import`** — added import/order and import/no-duplicates rules as `warn`. Enforces type-first, alphabetized import ordering from AGENTS.md.
+- [ ] **Consider `explicit-function-return-type` on exported functions** — kept `off` for now; enabling even as `warn` adds too many warnings. Can be enabled per-package incrementally.
 
 #### Phase 5: Nice-to-Haves
 

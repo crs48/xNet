@@ -119,6 +119,7 @@ describe('useQuery', () => {
         () => ({
           mutate: useMutate(),
           // We'll query by ID after creating
+          // eslint-disable-next-line react-hooks/rules-of-hooks
           queryById: (id: string) => useQuery(TaskSchema, id)
         }),
         { wrapper }
