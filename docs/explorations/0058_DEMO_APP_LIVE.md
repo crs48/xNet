@@ -869,7 +869,7 @@ sequenceDiagram
 
 ### Documentation
 
-- [ ] Update main README with demo link
+- [x] Update main README with demo link
 - [ ] Add demo mode section to docs
 - [ ] Document demo limitations (10MB, 50 docs, 24h TTL)
 - [ ] Add troubleshooting guide for common issues
