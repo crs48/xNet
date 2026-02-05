@@ -228,10 +228,10 @@ flowchart TB
 
 **Validation Gate:**
 
-- [ ] Push to main builds and publishes Docker image
-- [ ] Image works on both x86 and ARM VPS
-- [ ] Demo Hub auto-deploys to Railway on release
-- [ ] Semantic versioning for hub releases
+- [x] Push to main builds and publishes Docker image
+- [x] Image works on both x86 and ARM VPS
+- [x] Demo Hub auto-deploys to Railway on release
+- [x] Semantic versioning for hub releases
 
 ### Phase 10: Expo Polish (Days 31-32)
 
