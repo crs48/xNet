@@ -9,7 +9,7 @@
 import React, { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react'
 import { cn } from '../../utils'
 import { Button } from '../../primitives/Button'
-import { CommentBubble, type CommentBubbleProps } from './CommentBubble'
+import { CommentBubble } from './CommentBubble'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

@@ -187,6 +187,7 @@ function formatExamples(examples: FlatNode[]): string {
 
   // Take first 3 examples, simplified
   const simplified = examples.slice(0, 3).map((node) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { id, schemaIRI, ...rest } = node
     return rest
   })

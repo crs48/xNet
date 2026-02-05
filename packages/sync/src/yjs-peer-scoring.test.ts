@@ -3,11 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  YjsPeerScorer,
-  DEFAULT_YJS_SCORING_CONFIG,
-  type YjsViolationType
-} from './yjs-peer-scoring'
+import { YjsPeerScorer, DEFAULT_YJS_SCORING_CONFIG } from './yjs-peer-scoring'
 
 describe('YjsPeerScorer', () => {
   describe('initial state', () => {

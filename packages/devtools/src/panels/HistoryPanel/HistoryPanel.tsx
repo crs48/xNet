@@ -20,7 +20,6 @@ import type {
   AuditEntry,
   PropertyDiff,
   VerificationResult,
-  PruneCandidate,
   DocumentTimelineEntry
 } from '@xnet/history'
 

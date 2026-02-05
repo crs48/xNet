@@ -17,11 +17,10 @@
 
 import { Lexer } from './lexer.js'
 import { Parser, ParseError } from './parser.js'
-import { Evaluator, EvaluationError } from './evaluator.js'
+import { Evaluator } from './evaluator.js'
 import type { EvaluatorContext } from './evaluator.js'
 import type { ASTNode } from './ast.js'
-import { functions, getFunctionNames, hasFunction } from './functions/index.js'
-import type { FormulaFunction } from './functions/index.js'
+import { functions } from './functions/index.js'
 
 // ============================================================================
 // Main API

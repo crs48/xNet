@@ -8,7 +8,6 @@ import {
   quickSafetyCheck,
   ScriptSandbox,
   ScriptValidationError,
-  ScriptTimeoutError,
   createScriptContext
 } from '../sandbox'
 import type { FlatNode } from '../sandbox'

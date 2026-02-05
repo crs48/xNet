@@ -4,13 +4,7 @@
  * Uses a dark zinc theme to distinguish from app content.
  */
 
-import {
-  useState,
-  useCallback,
-  useRef,
-  type MouseEvent as ReactMouseEvent,
-  type CSSProperties
-} from 'react'
+import { useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { useDevTools } from '../provider/useDevTools'
 import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
 import { DEFAULTS } from '../core/constants'
@@ -135,7 +129,7 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
   }
 }
 
-function EventCounter({ count, capacity }: { count: number; capacity: number }) {
+function EventCounter({ count }: { count: number; capacity?: number }) {
   return <span className="text-[10px] text-zinc-500">{count}</span>
 }
 

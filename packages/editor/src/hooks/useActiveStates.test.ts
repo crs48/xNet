@@ -4,7 +4,7 @@ import { useActiveStates } from './useActiveStates'
 
 // Mock editor with event emitter behavior
 function createMockEditor(activeMap: Record<string, boolean> = {}) {
-  const listeners: Record<string, Set<Function>> = {}
+  const listeners: Record<string, Set<(...args: unknown[]) => unknown>> = {}
 
   return {
     isActive: vi.fn((name: string, attrs?: any) => {
@@ -13,11 +13,11 @@ function createMockEditor(activeMap: Record<string, boolean> = {}) {
       }
       return activeMap[name] || false
     }),
-    on: vi.fn((event: string, handler: Function) => {
+    on: vi.fn((event: string, handler: (...args: unknown[]) => unknown) => {
       if (!listeners[event]) listeners[event] = new Set()
       listeners[event].add(handler)
     }),
-    off: vi.fn((event: string, handler: Function) => {
+    off: vi.fn((event: string, handler: (...args: unknown[]) => unknown) => {
       listeners[event]?.delete(handler)
     }),
     // Helper to emit events in tests

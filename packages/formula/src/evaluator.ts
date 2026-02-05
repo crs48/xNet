@@ -129,10 +129,11 @@ export class Evaluator {
         return toNumber(left) - toNumber(right)
       case '*':
         return toNumber(left) * toNumber(right)
-      case '/':
+      case '/': {
         const divisor = toNumber(right)
         if (divisor === 0) return Infinity
         return toNumber(left) / divisor
+      }
       case '%':
         return toNumber(left) % toNumber(right)
       case '**':

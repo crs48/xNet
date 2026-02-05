@@ -124,7 +124,7 @@ describe('verifyClientIdAttestation', () => {
   })
 
   it('rejects attestation with wrong DID (key mismatch)', () => {
-    const { identity: id1, privateKey: key1 } = generateIdentity()
+    const { privateKey: key1 } = generateIdentity()
     const { identity: id2 } = generateIdentity()
 
     // Sign with key1 but claim to be id2
@@ -452,7 +452,7 @@ describe('integration: attestation flow', () => {
 
   it('rejects forged attestation in complete flow', () => {
     const { identity: victim, privateKey: victimKey } = generateIdentity()
-    const { identity: attacker, privateKey: attackerKey } = generateIdentity()
+    const { privateKey: attackerKey } = generateIdentity()
     const map = new ClientIdMapImpl()
 
     // Victim legitimately registers

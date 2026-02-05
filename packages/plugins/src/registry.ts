@@ -9,7 +9,7 @@ import { validateManifest, PluginValidationError } from './manifest'
 import { ContributionRegistry } from './contributions'
 import { createExtensionContext, type ExtensionContext } from './context'
 import { MiddlewareChain } from './middleware'
-import { PluginSchema, type PluginNode } from './schemas/plugin'
+import { PluginSchema } from './schemas/plugin'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 

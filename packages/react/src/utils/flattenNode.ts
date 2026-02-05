@@ -77,6 +77,7 @@ export type FlatNode<P extends Record<string, PropertyBuilder>> = NodeBase & Inf
 export function flattenNode<P extends Record<string, PropertyBuilder>>(
   node: NodeState
 ): FlatNode<P> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { properties, timestamps, deletedAt, documentContent, ...base } = node
   return {
     ...base,

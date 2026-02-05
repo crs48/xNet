@@ -10,7 +10,7 @@
  * Following the Universal Social Primitives pattern from planStep03_6Comments.
  */
 import { useMemo, useCallback } from 'react'
-import { useComments, type CommentThread, type CommentNode } from '@xnet/react'
+import { useComments, type CommentThread } from '@xnet/react'
 import {
   encodeAnchor,
   decodeAnchor,
@@ -153,7 +153,6 @@ export function useCanvasComments({
 }: UseCanvasCommentsOptions): UseCanvasCommentsResult {
   // Use the universal hook (no anchorType filter - we want all canvas comments)
   const {
-    comments,
     threads,
     count,
     unresolvedCount,
@@ -362,7 +361,7 @@ export function findObjectAtPoint(
   // Iterate in reverse order to find topmost (assuming later = higher z-index)
   const entries = Array.from(objects.entries()).reverse()
 
-  for (const [_id, obj] of entries) {
+  for (const [, obj] of entries) {
     if (
       canvasX >= obj.x &&
       canvasX <= obj.x + obj.width &&

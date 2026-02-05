@@ -7,7 +7,7 @@
  * This runs as a stdio-based MCP server, typically spawned by an MCP client.
  */
 
-import type { NodeStoreAPI, SchemaRegistryAPI, NodeData } from './local-api'
+import type { NodeStoreAPI, SchemaRegistryAPI } from './local-api'
 
 // ─── MCP Protocol Types ──────────────────────────────────────────────────────
 

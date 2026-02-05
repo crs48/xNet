@@ -2,7 +2,7 @@
  * defineSchema - Create a schema definition with TypeScript inference.
  */
 
-import type { SchemaIRI, DID, Node } from './node'
+import type { SchemaIRI, Node } from './node'
 import { createNodeId } from './node'
 import type {
   Schema,

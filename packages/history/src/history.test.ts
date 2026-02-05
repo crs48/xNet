@@ -7,9 +7,9 @@ import { generateSigningKeyPair } from '@xnet/crypto'
 import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
 import type { DID } from '@xnet/core'
 import type { SchemaIRI } from '@xnet/data'
-import type { NodeId, NodeStorageAdapter, NodeChange } from '@xnet/data'
+import type { NodeStorageAdapter, NodeChange } from '@xnet/data'
 
-import { HistoryEngine, createEmptyState, applyChangeToState, inferOperation } from './engine'
+import { HistoryEngine } from './engine'
 import { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 import { AuditIndex } from './audit-index'
 import { UndoManager } from './undo-manager'
@@ -583,7 +583,7 @@ describe('AuditIndex', () => {
     })
 
     it('filters by author', async () => {
-      const node = await store.create({
+      await store.create({
         schemaId: TEST_SCHEMA,
         properties: { title: 'Test' }
       })
@@ -595,7 +595,7 @@ describe('AuditIndex', () => {
 
     it('filters by time range', async () => {
       const before = Date.now()
-      const node = await store.create({
+      await store.create({
         schemaId: TEST_SCHEMA,
         properties: { title: 'Test' }
       })
@@ -721,14 +721,12 @@ describe('AuditIndex', () => {
 
 describe('UndoManager', () => {
   let store: NodeStore
-  let adapter: MemoryNodeStorageAdapter
   let did: DID
   let undo: UndoManager
 
   beforeEach(async () => {
     const test = createTestStore()
     store = test.store
-    adapter = test.adapter
     did = test.did
     await store.initialize()
     undo = new UndoManager(store, did, { mergeInterval: 0 })
@@ -1162,7 +1160,7 @@ describe('VerificationEngine', () => {
 
 describe('Integration', () => {
   it('full workflow: create, update, timeline, materialize, diff, blame', async () => {
-    const { store, adapter, did } = createTestStore()
+    const { store, adapter } = createTestStore()
     await store.initialize()
 
     const { engine } = createHistoryEngine(adapter)
@@ -1211,7 +1209,7 @@ describe('Integration', () => {
 
 describe('setupAutoSnapshots', () => {
   it('automatically creates snapshots at interval boundaries', async () => {
-    const { store, adapter } = createTestStore()
+    const { store } = createTestStore()
     await store.initialize()
 
     const snapshotStorage = new MemorySnapshotStorage()
@@ -1262,14 +1260,12 @@ describe('setupAutoSnapshots', () => {
 
 describe('UndoManager - undoBatch', () => {
   let store: NodeStore
-  let adapter: MemoryNodeStorageAdapter
   let did: DID
   let undo: UndoManager
 
   beforeEach(async () => {
     const test = createTestStore()
     store = test.store
-    adapter = test.adapter
     did = test.did
     await store.initialize()
     undo = new UndoManager(store, did, { mergeInterval: 0 })
@@ -1324,14 +1320,12 @@ describe('UndoManager - undoBatch', () => {
 
 describe('UndoManager - delete/restore', () => {
   let store: NodeStore
-  let adapter: MemoryNodeStorageAdapter
   let did: DID
   let undo: UndoManager
 
   beforeEach(async () => {
     const test = createTestStore()
     store = test.store
-    adapter = test.adapter
     did = test.did
     await store.initialize()
     undo = new UndoManager(store, did, { mergeInterval: 0 })
@@ -1396,7 +1390,7 @@ describe('SchemaTimeline', () => {
       schemaId: TEST_SCHEMA,
       properties: { title: 'Row 1' }
     })
-    const node2 = await store.create({
+    await store.create({
       schemaId: TEST_SCHEMA,
       properties: { title: 'Row 2' }
     })
@@ -1463,7 +1457,7 @@ describe('SchemaTimeline', () => {
       })
       await store.update(node1.id, { properties: { count: 2 } })
 
-      const node2 = await store.create({
+      await store.create({
         schemaId: TEST_SCHEMA,
         properties: { title: 'Row 2' }
       })
@@ -1533,7 +1527,7 @@ describe('SchemaScrubCache', () => {
       properties: { count: 1 }
     })
     await store.update(node1.id, { properties: { count: 2 } })
-    const node2 = await store.create({
+    await store.create({
       schemaId: TEST_SCHEMA,
       properties: { count: 10 }
     })

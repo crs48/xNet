@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MCPServer, createMCPServer, type MCPRequest } from '../services/mcp-server'
-import type { NodeStoreAPI, SchemaRegistryAPI, NodeData } from '../services/local-api'
+import type { NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
 
 // ─── Mock Store ──────────────────────────────────────────────────────────────
 

@@ -68,7 +68,7 @@ describe('verifyYjsEnvelope', () => {
   })
 
   it('rejects envelope with wrong DID (key mismatch)', () => {
-    const { identity: id1, privateKey: key1 } = generateIdentity()
+    const { privateKey: key1 } = generateIdentity()
     const { identity: id2 } = generateIdentity()
 
     // Sign with key1 but claim to be id2

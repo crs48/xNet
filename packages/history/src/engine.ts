@@ -6,7 +6,7 @@
  * targeting strategies (by Lamport time, wall clock, hash, or index).
  */
 
-import type { ContentId, DID } from '@xnet/core'
+import type { DID } from '@xnet/core'
 import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
 import type {
   NodeChange,

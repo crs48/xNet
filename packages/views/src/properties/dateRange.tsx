@@ -16,6 +16,7 @@ export interface DateRangeValue {
  */
 function DateRangeEditor({
   value,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onChange,
   onBlur,
   disabled

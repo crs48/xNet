@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { EditorState } from '@tiptap/pm/state'
 import { schema } from '@tiptap/pm/schema-basic'
 import { createDragDropPlugin, DragDropPluginKey } from './DragDropPlugin'

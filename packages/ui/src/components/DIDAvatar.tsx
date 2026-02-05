@@ -73,7 +73,6 @@ export function DIDAvatar({ did, size = 32, className = '' }: DIDavatarProps) {
   const fgColor = colorFromBytes(bytes, 3)
   const pattern = generatePattern(bytes)
 
-  const cellSize = size / 5
   const padding = size * 0.1
   const innerSize = size - padding * 2
   const innerCellSize = innerSize / 5

@@ -41,7 +41,7 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
   },
 
   addProseMirrorPlugins() {
-    const extension = this
+    const extensionOptions = this.options
 
     return [
       new Plugin<CommentPluginState>({
@@ -49,7 +49,7 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
 
         state: {
           init(): CommentPluginState {
-            return { selectedCommentId: extension.options.selectedCommentId ?? null }
+            return { selectedCommentId: extensionOptions.selectedCommentId ?? null }
           },
           apply(tr, state): CommentPluginState {
             // Check for meta updates
@@ -66,10 +66,10 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
             const target = event.target as HTMLElement
             const commentSpan = target.closest('[data-comment]') as HTMLElement
 
-            if (commentSpan && extension.options.onClickComment) {
+            if (commentSpan && extensionOptions.onClickComment) {
               const commentId = commentSpan.getAttribute('data-comment-id')
               if (commentId) {
-                extension.options.onClickComment(commentId, commentSpan)
+                extensionOptions.onClickComment(commentId, commentSpan)
                 // Return false so ProseMirror still places the caret at the
                 // click position. The popover is shown as a side-effect.
                 return false
@@ -83,10 +83,10 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
               const target = event.target as HTMLElement
               const commentSpan = target.closest('[data-comment]') as HTMLElement
 
-              if (commentSpan && extension.options.onHoverComment) {
+              if (commentSpan && extensionOptions.onHoverComment) {
                 const commentId = commentSpan.getAttribute('data-comment-id')
                 if (commentId) {
-                  extension.options.onHoverComment(commentId, commentSpan)
+                  extensionOptions.onHoverComment(commentId, commentSpan)
                 }
               }
               return false
@@ -100,9 +100,9 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
               if (
                 target.closest('[data-comment]') &&
                 !relatedTarget?.closest('[data-comment]') &&
-                extension.options.onLeaveComment
+                extensionOptions.onLeaveComment
               ) {
-                extension.options.onLeaveComment()
+                extensionOptions.onLeaveComment()
               }
               return false
             }

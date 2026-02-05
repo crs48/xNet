@@ -36,7 +36,7 @@ function getAnchorPoint(node: CanvasNode, anchor: EdgeAnchor, targetPoint?: Poin
     case 'center':
       return { x: cx, y: cy }
     case 'auto':
-    default:
+    default: {
       // Find the best anchor based on target position
       if (!targetPoint) return { x: cx, y: cy }
 
@@ -50,6 +50,7 @@ function getAnchorPoint(node: CanvasNode, anchor: EdgeAnchor, targetPoint?: Poin
         // Vertical connection
         return dy > 0 ? { x: cx, y: y + height } : { x: cx, y }
       }
+    }
   }
 }
 
@@ -64,7 +65,6 @@ function generatePath(start: Point, end: Point, curved = true): string {
   // Calculate control points for a smooth curve
   const dx = end.x - start.x
   const dy = end.y - start.y
-  const midX = start.x + dx / 2
   const tension = 0.5
 
   // Determine curve direction based on relative positions

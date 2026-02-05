@@ -6,20 +6,11 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type * as Y from 'yjs'
-import type {
-  CanvasNode,
-  CanvasEdge,
-  CanvasNodePosition,
-  CanvasConfig,
-  SelectionState,
-  Point,
-  Rect,
-  ResizeHandle
-} from '../types'
+import type { CanvasNode, CanvasEdge, CanvasNodePosition, CanvasConfig, Rect } from '../types'
 import { DEFAULT_CANVAS_CONFIG } from '../types'
 import { CanvasStore, createCanvasStore } from '../store'
 import { Viewport, createViewport } from '../spatial/index'
-import { LayoutEngine, createLayoutEngine, type LayoutConfig } from '../layout/index'
+import { createLayoutEngine, type LayoutConfig } from '../layout/index'
 
 /**
  * Canvas hook options

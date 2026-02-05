@@ -12,8 +12,10 @@ describe('benchmark', () => {
     const result = benchmark(
       'test',
       () => {
+        /* eslint-disable @typescript-eslint/no-unused-vars */
         let sum = 0
         for (let i = 0; i < 100; i++) sum += i
+        /* eslint-enable @typescript-eslint/no-unused-vars */
       },
       { warmup: 2, iterations: 10 }
     )

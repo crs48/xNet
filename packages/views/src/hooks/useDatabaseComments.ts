@@ -112,7 +112,6 @@ export function useDatabaseComments({
 }: UseDatabaseCommentsOptions): UseDatabaseCommentsResult {
   // Use the universal hook (no anchorType filter - we want all database comments)
   const {
-    comments,
     threads,
     count,
     unresolvedCount,

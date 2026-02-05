@@ -10,7 +10,7 @@
 
 import { ScriptSandbox, ScriptError } from './sandbox'
 import { createScriptContext, type FlatNode } from './context'
-import type { ScriptNode, ScriptTriggerType, ScriptOutputType } from '../schemas/script'
+import type { ScriptNode, ScriptOutputType } from '../schemas/script'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -251,6 +251,7 @@ export class ScriptRunner {
    * Execute a script and handle results.
    */
   private async executeScript(script: ScriptNode, targetNode: FlatNode): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const startTime = Date.now()
 
     try {

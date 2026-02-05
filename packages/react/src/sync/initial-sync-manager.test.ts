@@ -1,9 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import {
-  createInitialSyncManager,
-  type SyncProgress,
-  type InitialSyncMessage
-} from './InitialSyncManager'
+import { createInitialSyncManager, type SyncProgress } from './InitialSyncManager'
 
 describe('InitialSyncManager', () => {
   describe('initial state', () => {

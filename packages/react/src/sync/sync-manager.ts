@@ -23,15 +23,15 @@ import {
 } from 'y-protocols/awareness'
 import type { ContentId } from '@xnet/core'
 import type { NodeStore, NodeStorageAdapter } from '@xnet/data'
-import { createMetaBridge, type MetaBridge } from './meta-bridge'
-import { createNodePool, type NodePool } from './node-pool'
-import { createRegistry, type Registry, type RegistryStorage } from './registry'
+import { createMetaBridge } from './meta-bridge'
+import { createNodePool } from './node-pool'
+import { createRegistry, type RegistryStorage } from './registry'
 import {
   createConnectionManager,
   type ConnectionManager,
   type ConnectionStatus
 } from './connection-manager'
-import { createOfflineQueue, type OfflineQueue } from './offline-queue'
+import { createOfflineQueue } from './offline-queue'
 import { createBlobSyncProvider, type BlobSyncProvider, type BlobStoreForSync } from './blob-sync'
 import { NodeStoreSyncProvider } from './node-store-sync-provider'
 

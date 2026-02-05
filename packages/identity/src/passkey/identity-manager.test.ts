@@ -28,7 +28,8 @@ function createMockCredential(prfOutput: Uint8Array | null): PublicKeyCredential
   } as unknown as PublicKeyCredential
 }
 
-function createMockAssertion(prfOutput: Uint8Array | null): PublicKeyCredential {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _createMockAssertion(prfOutput: Uint8Array | null): PublicKeyCredential {
   return {
     id: 'mock-credential-id',
     rawId: new Uint8Array([1, 2, 3, 4]).buffer,
@@ -237,7 +238,7 @@ describe('createIdentityManager (WebAuthn emulator, fallback path)', () => {
     const { createIdentityManager } = await import('./index')
     const manager = createIdentityManager()
 
-    const created = await manager.create({ rpId: 'localhost' })
+    await manager.create({ rpId: 'localhost' })
 
     // Clear cache to force unlock from storage
     await manager.clear()

@@ -5,7 +5,7 @@
  * filtering/selection state.
  */
 
-import { useState, useEffect, useCallback, useRef, useReducer } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 import type { DevToolsEvent } from '../../core/types'
 

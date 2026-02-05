@@ -13,7 +13,6 @@ import type {
   ListNodesOptions,
   CountNodesOptions
 } from './types'
-import type { SchemaIRI } from '../schema/node'
 
 /**
  * In-memory implementation of NodeStorageAdapter.
@@ -170,9 +169,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.yjsSnapshotStore.push(structuredClone(snapshot))
   }
 
-  async getYjsSnapshots(
-    nodeId: NodeId
-  ): Promise<
+  async getYjsSnapshots(nodeId: NodeId): Promise<
     {
       nodeId: NodeId
       timestamp: number

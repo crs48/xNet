@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { AutoBlocker, DEFAULT_BLOCK_THRESHOLDS } from '../src/security/auto-blocker'
+import { AutoBlocker } from '../src/security/auto-blocker'
 import { PeerScorer } from '../src/security/peer-scorer'
 import { DefaultConnectionGater } from '../src/security/gater'
 import { DEFAULT_LIMITS } from '../src/security/limits'

@@ -8,7 +8,7 @@
 import type { DID } from '@xnet/core'
 import { topologicalSort } from '@xnet/sync'
 import type { NodeStorageAdapter, NodeId } from '@xnet/data'
-import type { BlameInfo, PropertyHistoryEntry } from './types'
+import type { BlameInfo } from './types'
 
 export class BlameEngine {
   constructor(private storage: NodeStorageAdapter) {}

@@ -3,10 +3,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { PluginRegistry, PluginError } from '../registry'
+import { PluginRegistry } from '../registry'
 import { ContributionRegistry, TypedRegistry } from '../contributions'
-import { MiddlewareChain } from '../middleware'
-import type { XNetExtension } from '../manifest'
 
 // Mock NodeStore
 function createMockStore() {

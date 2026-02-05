@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { DragHandle, DragHandlePluginKey } from './DragHandle'
@@ -29,7 +29,7 @@ describe('DragHandle Extension', () => {
   })
 
   it('should register as a plugin', () => {
-    const state = DragHandlePluginKey.getState(editor.state)
+    DragHandlePluginKey.getState(editor.state)
     // Plugin exists if getState doesn't return undefined
     // (PluginKey.getState returns the plugin's state if found)
     expect(editor.state.plugins.length).toBeGreaterThan(0)

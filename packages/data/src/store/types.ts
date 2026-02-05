@@ -13,7 +13,7 @@
 
 import type { DID, ContentId } from '@xnet/core'
 import type { Change, LamportTimestamp } from '@xnet/sync'
-import type { SchemaIRI, Node } from '../schema/node'
+import type { SchemaIRI } from '../schema/node'
 import type { SchemaLookup } from './tempids'
 
 // ============================================================================

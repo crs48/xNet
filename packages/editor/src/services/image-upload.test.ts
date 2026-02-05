@@ -1,11 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import {
-  validateImageFile,
-  ALLOWED_IMAGE_TYPES,
-  uploadImage,
-  loadImageDimensions,
-  compressImage
-} from './image-upload'
+import { describe, it, expect } from 'vitest'
+import { validateImageFile, ALLOWED_IMAGE_TYPES, uploadImage, compressImage } from './image-upload'
 
 describe('image-upload', () => {
   describe('validateImageFile', () => {

@@ -398,7 +398,14 @@ function getScoreTextColor(score: number): string {
 
 // ─── Security Summary ──────────────────────────────────────
 
-function SecuritySummary({ events, health }: { events: SecurityEntry[]; health: NetworkHealth }) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function SecuritySummary({
+  events,
+  _health
+}: {
+  events: SecurityEntry[]
+  _health?: NetworkHealth
+}) {
   const severityCounts = events.reduce(
     (acc, e) => {
       acc[e.severity] = (acc[e.severity] ?? 0) + 1

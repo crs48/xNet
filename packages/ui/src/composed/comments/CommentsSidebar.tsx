@@ -116,8 +116,6 @@ export function CommentsSidebar({
     const isExpanded = expandedThreadId === thread.root.id
     const isSelected = selectedThreadId === thread.root.id
     const isReplying = replyingToId === thread.root.id
-    const allComments = [thread.root, ...thread.replies]
-
     return (
       <div
         key={thread.root.id}

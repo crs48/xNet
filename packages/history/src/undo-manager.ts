@@ -5,7 +5,7 @@
  * This is P2P-safe — peers see the undo as a normal change.
  */
 
-import type { DID, ContentId } from '@xnet/core'
+import type { DID } from '@xnet/core'
 import type { NodeChange, NodeState, NodeId, TransactionOperation } from '@xnet/data'
 import type { NodeStore } from '@xnet/data'
 import type { UndoEntry, UndoManagerOptions } from './types'
@@ -194,7 +194,7 @@ export class UndoManager {
 
   // ─── Private ─────────────────────────────────────────────────
 
-  private trackChange(change: NodeChange, nodeState: NodeState): void {
+  private trackChange(change: NodeChange, _nodeState: NodeState): void {
     const nodeId = change.payload.nodeId
     const now = Date.now()
     const lastTime = this.lastEntryTime.get(nodeId) ?? 0

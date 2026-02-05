@@ -17,7 +17,6 @@ import {
   restoreCommentMarks,
   setSelectedComment
 } from '../extensions/comment'
-import type { TextAnchor } from '@xnet/data'
 import { encodeAnchor } from '@xnet/data'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -132,7 +131,7 @@ interface PopoverState {
  */
 export function EditorComments({
   editor,
-  documentId,
+  documentId: _documentId,
   documentSchema,
   threads,
   onCreateComment,
@@ -189,6 +188,7 @@ export function EditorComments({
 
   // ─── Popover Handlers ────────────────────────────────────────────────────────
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const showPreview = useCallback((commentId: string, anchorEl: HTMLElement) => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
@@ -204,6 +204,7 @@ export function EditorComments({
     }, 300)
   }, [])
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const showFull = useCallback(
     (commentId: string, anchorEl: HTMLElement) => {
       if (hoverTimeoutRef.current) {
@@ -249,6 +250,7 @@ export function EditorComments({
     }
   }, [editor])
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const cancelPreview = useCallback(() => {
     if (hoverTimeoutRef.current) {
       clearTimeout(hoverTimeoutRef.current)
@@ -333,6 +335,7 @@ export function EditorComments({
    * Create a comment on the current text selection.
    * This should be called from a toolbar button or keyboard shortcut.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const createCommentFromSelection = useCallback(
     async (content: string): Promise<string | null> => {
       if (!editor || !onCreateComment) return null

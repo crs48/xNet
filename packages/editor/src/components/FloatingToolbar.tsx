@@ -470,6 +470,7 @@ function MobileToolbar({
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const keyboardVisible = useKeyboardVisible()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isFocused, setIsFocused] = useState(false)

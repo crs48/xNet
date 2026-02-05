@@ -4,7 +4,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { SpatialIndex, Viewport, createSpatialIndex, createViewport } from '../spatial/index'
-import type { CanvasNode, CanvasNodePosition } from '../types'
+import type { CanvasNode } from '../types'
 
 describe('SpatialIndex', () => {
   let index: SpatialIndex

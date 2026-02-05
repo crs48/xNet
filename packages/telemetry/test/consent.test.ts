@@ -6,7 +6,6 @@ import {
   tierLevel,
   tierMeetsRequirement
 } from '../src/consent'
-import type { TelemetryTier } from '../src/consent'
 
 describe('tierLevel', () => {
   it('maps tiers to progressive levels', () => {
