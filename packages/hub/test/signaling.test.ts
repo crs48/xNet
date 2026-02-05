@@ -16,18 +16,28 @@ describe('Hub Signaling', () => {
     await hub.stop()
   })
 
-  const connect = async (): Promise<WebSocket> =>
-    new Promise((resolve) => {
+  /** Connect and wait for handshake */
+  const connectAndWaitHandshake = async (): Promise<WebSocket> => {
+    return new Promise((resolve) => {
       const ws = new WebSocket(`ws://localhost:${PORT}`)
-      ws.on('open', () => resolve(ws))
+      ws.once('open', () => {
+        // Wait for handshake message before resolving
+        ws.once('message', (data) => {
+          const msg = JSON.parse(data.toString())
+          expect(msg.type).toBe('handshake')
+          resolve(ws)
+        })
+      })
     })
+  }
 
   it('responds to ping with pong', async () => {
-    const ws = await connect()
+    const ws = await connectAndWaitHandshake()
+
     ws.send(JSON.stringify({ type: 'ping' }))
 
     const msg = await new Promise<{ type: string }>((resolve) => {
-      ws.on('message', (data) => resolve(JSON.parse(data.toString())))
+      ws.once('message', (data) => resolve(JSON.parse(data.toString())))
     })
 
     expect(msg.type).toBe('pong')
@@ -35,9 +45,9 @@ describe('Hub Signaling', () => {
   })
 
   it('broadcasts publish to room subscribers', async () => {
-    const ws1 = await connect()
-    const ws2 = await connect()
-    const ws3 = await connect()
+    const ws1 = await connectAndWaitHandshake()
+    const ws2 = await connectAndWaitHandshake()
+    const ws3 = await connectAndWaitHandshake()
 
     ws1.send(JSON.stringify({ type: 'subscribe', topics: ['test-room'] }))
     ws2.send(JSON.stringify({ type: 'subscribe', topics: ['test-room'] }))
@@ -47,7 +57,7 @@ describe('Hub Signaling', () => {
     ws1.send(JSON.stringify({ type: 'publish', topic: 'test-room', data: { hello: 'world' } }))
 
     const msg = await new Promise<{ type: string; data: { hello?: string } }>((resolve) => {
-      ws2.on('message', (data) => resolve(JSON.parse(data.toString())))
+      ws2.once('message', (data) => resolve(JSON.parse(data.toString())))
     })
 
     expect(msg.type).toBe('publish')
