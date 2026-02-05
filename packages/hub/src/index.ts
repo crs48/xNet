@@ -8,7 +8,10 @@ import { DEFAULT_CONFIG } from './types'
 import { createServer } from './server'
 export { resolveConfig } from './config'
 
-export type { HubConfig, HubInstance } from './types'
+export type { HubConfig, HubInstance, DemoOverrides } from './types'
+export { DEMO_DEFAULTS } from './types'
+export { getDemoOverrides } from './config'
+export { EvictionService, type EvictionStorage } from './services/eviction'
 
 /**
  * Create an xNet Hub instance.

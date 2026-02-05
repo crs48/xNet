@@ -62,6 +62,10 @@ export type HubConfig = {
   }
   /** Shutdown grace period in ms (platform-specific). */
   shutdownGraceMs?: number
+  /** Enable demo mode with restricted quotas and eviction. */
+  demo?: boolean
+  /** Demo mode overrides (applied when demo=true). */
+  demoOverrides?: DemoOverrides
 }
 
 export const DEFAULT_CONFIG: HubConfig = {
@@ -81,6 +85,29 @@ export const DEFAULT_CONFIG: HubConfig = {
   discoveryMaxPeers: 10000,
   logLevel: 'info',
   shutdownGraceMs: 8000
+}
+
+// ─── Demo Mode ──────────────────────────────────────────────
+
+export type DemoOverrides = {
+  /** Storage quota per user (bytes). Default: 10 MB. */
+  quota: number
+  /** Max documents per user. Default: 50. */
+  maxDocs: number
+  /** Max blob size (bytes). Default: 2 MB. */
+  maxBlob: number
+  /** Inactivity TTL before eviction (ms). Default: 24 hours. */
+  evictionTtl: number
+  /** How often to run eviction check (ms). Default: 1 hour. */
+  evictionInterval: number
+}
+
+export const DEMO_DEFAULTS: DemoOverrides = {
+  quota: 10 * 1024 * 1024, // 10 MB
+  maxDocs: 50,
+  maxBlob: 2 * 1024 * 1024, // 2 MB
+  evictionTtl: 24 * 60 * 60 * 1000, // 24 hours
+  evictionInterval: 60 * 60 * 1000 // 1 hour
 }
 
 export type HubInstance = {

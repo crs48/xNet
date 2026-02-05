@@ -2,8 +2,8 @@
  * @xnet/hub - Configuration resolution.
  */
 
-import type { HubConfig } from './types'
-import { DEFAULT_CONFIG } from './types'
+import type { HubConfig, DemoOverrides } from './types'
+import { DEFAULT_CONFIG, DEMO_DEFAULTS } from './types'
 
 const toNumber = (value: string | undefined): number | undefined => {
   if (!value) return undefined
@@ -40,6 +40,22 @@ const detectPlatform = (): HubConfig['runtime'] => {
 }
 
 /**
+ * Resolve demo overrides from environment or return null if not in demo mode.
+ */
+export const getDemoOverrides = (isDemo: boolean): DemoOverrides | null => {
+  const fromEnv = process.env.HUB_MODE === 'demo'
+  if (!isDemo && !fromEnv) return null
+
+  return {
+    quota: Number(process.env.DEMO_QUOTA) || DEMO_DEFAULTS.quota,
+    maxDocs: Number(process.env.DEMO_MAX_DOCS) || DEMO_DEFAULTS.maxDocs,
+    maxBlob: Number(process.env.DEMO_MAX_BLOB) || DEMO_DEFAULTS.maxBlob,
+    evictionTtl: Number(process.env.DEMO_EVICTION_TTL) || DEMO_DEFAULTS.evictionTtl,
+    evictionInterval: Number(process.env.DEMO_EVICTION_INTERVAL) || DEMO_DEFAULTS.evictionInterval
+  }
+}
+
+/**
  * Resolve Hub configuration from environment variables, CLI flags, and defaults.
  */
 export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
@@ -55,10 +71,7 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     cliOptions.dataDir ??
     DEFAULT_CONFIG.dataDir
 
-  const auth =
-    toBoolean(process.env.HUB_AUTH) ??
-    cliOptions.auth ??
-    DEFAULT_CONFIG.auth
+  const auth = toBoolean(process.env.HUB_AUTH) ?? cliOptions.auth ?? DEFAULT_CONFIG.auth
 
   const storage =
     (process.env.HUB_STORAGE as HubConfig['storage'] | undefined) ??
@@ -74,7 +87,10 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
 
   const shutdownGraceMs =
     toNumber(process.env.RAILWAY_GRACE_MS) ??
-    (runtime.platform === 'fly' ? 4000 : DEFAULT_CONFIG.shutdownGraceMs ?? 8000)
+    (runtime.platform === 'fly' ? 4000 : (DEFAULT_CONFIG.shutdownGraceMs ?? 8000))
+
+  const demo = cliOptions.demo ?? process.env.HUB_MODE === 'demo'
+  const demoOverrides = getDemoOverrides(demo) ?? undefined
 
   return {
     ...DEFAULT_CONFIG,
@@ -86,6 +102,8 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     logLevel,
     publicUrl: process.env.HUB_PUBLIC_URL ?? cliOptions.publicUrl,
     runtime,
-    shutdownGraceMs
+    shutdownGraceMs,
+    demo,
+    demoOverrides
   }
 }

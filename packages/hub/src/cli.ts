@@ -65,6 +65,7 @@ const run = async (): Promise<void> => {
       String(DEFAULT_CONFIG.discoveryMaxPeers)
     )
     .option('--log-level <level>', 'log level (debug|info|warn|error)', DEFAULT_CONFIG.logLevel)
+    .option('--demo', 'enable demo mode (restricted quotas, auto-eviction)')
     .action(async (opts) => {
       const config: Partial<HubConfig> = {
         port: parseNumber(opts.port, DEFAULT_CONFIG.port),
@@ -86,16 +87,21 @@ const run = async (): Promise<void> => {
           DEFAULT_CONFIG.discoveryCleanupIntervalMs
         ),
         discoveryMaxPeers: parseNumber(opts.discoveryMaxPeers, DEFAULT_CONFIG.discoveryMaxPeers),
-        logLevel: opts.logLevel
+        logLevel: opts.logLevel,
+        demo: opts.demo ?? false
       }
 
       const resolved = resolveConfig(config)
       const hub = await createHub(resolved)
 
-      registerShutdownHandlers(async () => {
-        console.log('\nShutting down...')
-        await hub.stop()
-      }, console, resolved.shutdownGraceMs)
+      registerShutdownHandlers(
+        async () => {
+          console.log('\nShutting down...')
+          await hub.stop()
+        },
+        console,
+        resolved.shutdownGraceMs
+      )
 
       await hub.start()
       console.log(`xNet Hub listening on port ${hub.port}`)
@@ -103,6 +109,11 @@ const run = async (): Promise<void> => {
       console.log(`  Health:    http://localhost:${hub.port}/health`)
       console.log(`  Auth:      ${resolved.auth ? 'UCAN' : 'anonymous'}`)
       console.log(`  Storage:   ${resolved.storage} (${resolved.dataDir})`)
+      if (resolved.demo) {
+        console.log(
+          `  Mode:      DEMO (quota=${resolved.demoOverrides?.quota ?? 0} bytes, eviction=${resolved.demoOverrides?.evictionTtl ?? 0}ms TTL)`
+        )
+      }
     })
 
   await program.parseAsync(process.argv)
