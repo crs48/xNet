@@ -491,6 +491,212 @@ Expo requires a different approach due to React Native's constraints. The `@xnet
 
 This gives Expo full feature parity with web automatically — when web gains a feature, Expo gets it too.
 
+## Implementation Checklists
+
+### Web App: P0 (Critical Path)
+
+These must be done to have a functional demo at `xnet.fyi/app`:
+
+- [ ] **Identity & Auth**
+  - [ ] Add `@xnet/identity` to `apps/web/package.json`
+  - [ ] Remove hardcoded `AUTHOR_DID` and `SIGNING_KEY` from `main.tsx`
+  - [ ] Integrate `createIdentityManager()` for passkey auth
+  - [ ] Add unlock flow for returning users
+  - [ ] Handle fallback for non-PRF browsers
+
+- [ ] **Onboarding**
+  - [ ] Import `OnboardingProvider` and `OnboardingFlow` from `@xnet/react`
+  - [ ] Wire onboarding into app entry point
+  - [ ] Configure hub URL (`wss://hub.xnet.fyi`)
+  - [ ] Add template picker on `ReadyScreen`
+
+- [ ] **Hub Connection**
+  - [ ] Pass `signalingUrl` to `XNetProvider` config
+  - [ ] Remove `disableSync: true` from `useNode` calls
+  - [ ] Verify Yjs sync works end-to-end
+
+- [ ] **Deployment**
+  - [ ] Set `base: '/app/'` in `vite.config.ts`
+  - [ ] Set `basepath: '/app'` in TanStack Router
+  - [ ] Update PWA manifest `start_url` and `scope`
+  - [ ] Update `deploy-site.yml` to build web app
+  - [ ] Add SPA fallback (`404.html`)
+  - [ ] Verify deployment at `xnet.fyi/app`
+
+- [ ] **Landing Page**
+  - [ ] Add "Try it now" CTA to Hero section
+  - [ ] Add "Try it" to Nav
+  - [ ] Verify download page `/app` link works
+
+### Web App: P1 (Feature Parity - Core)
+
+These bring the web app to basic feature parity with Electron:
+
+- [ ] **Database Support**
+  - [ ] Add `@xnet/views` to dependencies
+  - [ ] Create `DatabaseView.tsx` component
+  - [ ] Import and configure `TableView`
+  - [ ] Import and configure `BoardView`
+  - [ ] Add view mode switcher
+  - [ ] Add route `/db/$dbId`
+  - [ ] Add "New Database" to create menu
+
+- [ ] **Canvas Support**
+  - [ ] Add `@xnet/canvas` to dependencies
+  - [ ] Create `CanvasView.tsx` component
+  - [ ] Import and configure `Canvas`
+  - [ ] Add toolbar (Add Node, Center)
+  - [ ] Add route `/canvas/$canvasId`
+  - [ ] Add "New Canvas" to create menu
+
+- [ ] **Sidebar Upgrade**
+  - [ ] Add collapsible sections (Pages, Databases, Canvases)
+  - [ ] Add document type icons (FileText, Database, Layout)
+  - [ ] Add delete button on hover
+  - [ ] Upgrade create button to dropdown with all types
+  - [ ] Add "Add Shared..." option
+
+- [ ] **Comment System**
+  - [ ] Import `CommentPopover` from `@xnet/ui`
+  - [ ] Import `CommentsSidebar` from `@xnet/ui`
+  - [ ] Add `useComments` hook integration
+  - [ ] Add CommentMark extension to editor
+  - [ ] Add comment count badge to header
+  - [ ] Add new comment input modal
+
+- [ ] **Presence & Sharing**
+  - [ ] Import `DIDAvatar` from `@xnet/ui`
+  - [ ] Upgrade `PresenceAvatars` to use `DIDAvatar`
+  - [ ] Add peer count to sync indicator
+  - [ ] Create `ShareButton` component
+  - [ ] Create `AddSharedDialog` component
+  - [ ] Implement type-prefixed share IDs
+
+### Web App: P2 (Feature Parity - Polish)
+
+These complete feature parity:
+
+- [ ] **Editor Enhancements**
+  - [ ] Add Mermaid plugin support
+  - [ ] Configure toolbar mode (desktop)
+
+- [ ] **Comment System (Advanced)**
+  - [ ] Add resolve/reopen functionality
+  - [ ] Add `OrphanedThreadList` component
+  - [ ] Handle orphaned comment restoration
+
+- [ ] **Database (Advanced)**
+  - [ ] Add `CardDetailModal` for row editing
+  - [ ] Add cell presence indicators
+  - [ ] Add view configuration (sorts, groups)
+
+- [ ] **Canvas (Advanced)**
+  - [ ] Add arrow/dashed edge styles
+  - [ ] Add node double-click handler
+  - [ ] Add fit-to-content action
+
+- [ ] **Settings Expansion**
+  - [ ] Add theme selector (Light/Dark/System)
+  - [ ] Add clear local data button
+  - [ ] Add export data button
+  - [ ] Add signaling server config (advanced)
+  - [ ] Add auto-save toggle
+
+- [ ] **Plugin System**
+  - [ ] Add `@xnet/plugins` to dependencies
+  - [ ] Add `PluginManager` component
+  - [ ] Add plugin sidebar item support
+  - [ ] Configure bundled plugins
+
+- [ ] **DevTools**
+  - [ ] Add `@xnet/devtools` to dependencies
+  - [ ] Add `XNetDevToolsProvider`
+  - [ ] Wire devtools panel
+
+### Web App: Demo Polish
+
+These improve the demo experience:
+
+- [ ] **Demo UI Components**
+  - [ ] Create `DemoBanner.tsx` in `@xnet/react`
+  - [ ] Create `DemoQuotaIndicator.tsx` in `@xnet/react`
+  - [ ] Create `DemoDataExpiredScreen.tsx` in `@xnet/react`
+  - [ ] Add demo mode detection from hub handshake
+  - [ ] Wire demo components into app
+
+- [ ] **Error Handling**
+  - [ ] Add `ErrorBoundary` to root
+  - [ ] Add `OfflineIndicator` to root
+  - [ ] Add `HubStatusIndicator` to header
+
+### Expo: WebView Migration
+
+These replace the CDN-based editor with the full web app:
+
+- [ ] **WebView Setup**
+  - [ ] Build `apps/web` for embedding (adjust base path)
+  - [ ] Update `WebViewEditor.tsx` to load web app bundle
+  - [ ] Or: load from hosted URL (`xnet.fyi/app`)
+
+- [ ] **PostMessage Bridge**
+  - [ ] Define message protocol types
+  - [ ] Implement `storage.query` / `storage.mutate` handlers
+  - [ ] Implement `identity.unlock` / `identity.create` handlers
+  - [ ] Implement `sync.connect` / `sync.send` handlers
+  - [ ] Implement `navigation.push` / `navigation.pop` handlers
+
+- [ ] **Native Adapters**
+  - [ ] Create `PostMessageStorageAdapter` for SQLite bridge
+  - [ ] Create `PostMessageSyncAdapter` for WebSocket bridge
+  - [ ] Create `BiometricIdentityProvider` using `expo-local-authentication`
+
+- [ ] **Navigation Integration**
+  - [ ] Sync React Navigation state with WebView routes
+  - [ ] Update native header title from WebView
+  - [ ] Handle back button / swipe gestures
+
+### Hub: Demo Hardening
+
+These make the demo more robust:
+
+- [ ] **Quota Enforcement**
+  - [ ] Create `services/quota.ts`
+  - [ ] Enforce per-DID storage limits
+  - [ ] Enforce document count limits
+  - [ ] Enforce blob size limits
+  - [ ] Return structured errors for quota exceeded
+
+- [ ] **Rate Limiting**
+  - [ ] Add demo-specific rate limit tier
+  - [ ] Configure tighter limits (100 msgs/min, 10 conn/IP)
+
+- [ ] **Initial Sync**
+  - [ ] Create `services/initial-sync.ts`
+  - [ ] Push full Y.Doc state to new devices
+  - [ ] Push node changes since last sync
+
+### Platform Convergence (Long-term)
+
+These enable the "write once, run everywhere" architecture:
+
+- [ ] **Platform Adapter Interface**
+  - [ ] Define `PlatformAdapter` type
+  - [ ] Create `BrowserAdapter` implementation
+  - [ ] Create `ElectronAdapter` implementation (refactor from IPC)
+  - [ ] Create `MobileAdapter` implementation (PostMessage)
+
+- [ ] **Electron Migration**
+  - [ ] Configure Electron to load `apps/web` build
+  - [ ] Update preload to inject adapters
+  - [ ] Remove duplicate renderer code
+  - [ ] Verify all features work
+
+- [ ] **Mobile Full Integration**
+  - [ ] Complete PostMessage bridge
+  - [ ] Test all document types in WebView
+  - [ ] Optimize WebView performance
+  - [ ] Add platform-adaptive styling
+
 ## Integration Plan
 
 ### Phase 1: Wire Up the Web App (apps/web)
