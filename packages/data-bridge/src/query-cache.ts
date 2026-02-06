@@ -1,16 +1,23 @@
 /**
- * QueryCache - In-memory cache for query results
+ * QueryCache - In-memory cache for query results with LRU eviction
  *
  * Provides:
  * - Fast synchronous access to query results (for useSyncExternalStore)
  * - Subscriber notification on cache updates
  * - Query deduplication via stable query IDs
+ * - LRU eviction for memory management
  */
 
 import type { QueryOptions, SortDirection, SystemOrderField } from './types'
 import type { NodeState, PropertyBuilder, InferCreateProps, SchemaIRI } from '@xnet/data'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+/** Default maximum number of queries to cache */
+const DEFAULT_MAX_SIZE = 100
+
+/** Minimum time (ms) before an entry can be evicted */
+const MIN_AGE_FOR_EVICTION = 30_000 // 30 seconds
 
 interface CacheEntry {
   /** Cached query result */
@@ -23,15 +30,27 @@ interface CacheEntry {
   options: QueryOptions
   /** Last update timestamp */
   lastUpdated: number
+  /** Last access timestamp (for LRU) */
+  lastAccessed: number
+}
+
+export interface QueryCacheOptions {
+  /** Maximum number of queries to cache (default: 100) */
+  maxSize?: number
 }
 
 // ─── QueryCache Class ────────────────────────────────────────────────────────
 
 /**
- * In-memory cache for query results with subscriber notification.
+ * In-memory cache for query results with subscriber notification and LRU eviction.
  */
 export class QueryCache {
   private cache = new Map<string, CacheEntry>()
+  private maxSize: number
+
+  constructor(options?: QueryCacheOptions) {
+    this.maxSize = options?.maxSize ?? DEFAULT_MAX_SIZE
+  }
 
   /**
    * Compute a stable query ID from schema and options.
@@ -81,9 +100,14 @@ export class QueryCache {
 
   /**
    * Get cached data for a query (synchronous for useSyncExternalStore).
+   * Updates lastAccessed for LRU tracking.
    */
   get(queryId: string): NodeState[] | null {
-    return this.cache.get(queryId)?.data ?? null
+    const entry = this.cache.get(queryId)
+    if (entry) {
+      entry.lastAccessed = Date.now()
+    }
+    return entry?.data ?? null
   }
 
   /**
@@ -95,21 +119,28 @@ export class QueryCache {
 
   /**
    * Set cached data for a query and notify subscribers.
+   * Triggers LRU eviction if cache exceeds maxSize.
    */
   set(queryId: string, data: NodeState[], schemaId: SchemaIRI, options: QueryOptions): void {
     const entry = this.cache.get(queryId)
+    const now = Date.now()
 
     if (entry) {
       entry.data = data
-      entry.lastUpdated = Date.now()
+      entry.lastUpdated = now
+      entry.lastAccessed = now
       this.notifySubscribers(queryId)
     } else {
+      // Evict before adding if at capacity
+      this.evictIfNeeded()
+
       this.cache.set(queryId, {
         data,
         subscribers: new Set(),
         schemaId,
         options,
-        lastUpdated: Date.now()
+        lastUpdated: now,
+        lastAccessed: now
       })
     }
   }
@@ -119,12 +150,14 @@ export class QueryCache {
    */
   initEntry(queryId: string, schemaId: SchemaIRI, options: QueryOptions): void {
     if (!this.cache.has(queryId)) {
+      const now = Date.now()
       this.cache.set(queryId, {
         data: null,
         subscribers: new Set(),
         schemaId,
         options,
-        lastUpdated: 0
+        lastUpdated: 0,
+        lastAccessed: now
       })
     }
   }
@@ -211,6 +244,55 @@ export class QueryCache {
    */
   get size(): number {
     return this.cache.size
+  }
+
+  /**
+   * Get the maximum cache size.
+   */
+  get maxCacheSize(): number {
+    return this.maxSize
+  }
+
+  // ─── LRU Eviction ──────────────────────────────────────────────────────────
+
+  /**
+   * Evict least-recently-used entries if cache exceeds maxSize.
+   * Only evicts entries with no active subscribers and older than MIN_AGE_FOR_EVICTION.
+   */
+  private evictIfNeeded(): void {
+    if (this.cache.size < this.maxSize) return
+
+    const now = Date.now()
+    const candidates: Array<{ queryId: string; lastAccessed: number }> = []
+
+    // Find eviction candidates: entries with no subscribers and old enough
+    for (const [queryId, entry] of this.cache) {
+      if (entry.subscribers.size === 0 && now - entry.lastAccessed > MIN_AGE_FOR_EVICTION) {
+        candidates.push({ queryId, lastAccessed: entry.lastAccessed })
+      }
+    }
+
+    if (candidates.length === 0) return
+
+    // Sort by lastAccessed (oldest first)
+    candidates.sort((a, b) => a.lastAccessed - b.lastAccessed)
+
+    // Evict enough entries to get below 80% of maxSize
+    const targetSize = Math.floor(this.maxSize * 0.8)
+    const toEvict = this.cache.size - targetSize
+
+    for (let i = 0; i < Math.min(toEvict, candidates.length); i++) {
+      this.cache.delete(candidates[i].queryId)
+    }
+  }
+
+  /**
+   * Manually trigger eviction (for testing or explicit cleanup).
+   */
+  evict(): number {
+    const sizeBefore = this.cache.size
+    this.evictIfNeeded()
+    return sizeBefore - this.cache.size
   }
 
   // ─── Helpers for filtering and sorting ─────────────────────────────────────
