@@ -408,7 +408,7 @@ import type { ConnectionManager } from './connection-manager'
  * - Applies received remote changes to local NodeStore
  *
  * NOTE: This uses the BSM's ConnectionManager (single multiplexed WebSocket)
- * rather than managing its own connection. See planStep03_3_1BgSync for details.
+ * rather than managing its own connection. See plan03_3_1BgSync for details.
  */
 export class NodeStoreSyncProvider {
   private lastLamport = 0

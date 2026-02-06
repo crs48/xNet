@@ -555,7 +555,7 @@ Even without porting, Clojure's philosophy informs good TypeScript:
 1. **Data-first**: Keep schemas as plain objects, not class hierarchies (we already do this with `defineSchema`)
 2. **Immutability by default**: Use `readonly` types, avoid mutations in the store layer
 3. **Reducers for state**: Event sourcing is already a reducer pattern — keep it functional
-4. **REPL-like exploration**: Build better devtools (the planStep03_2_2 DevTools plan)
+4. **REPL-like exploration**: Build better devtools (the plan03_2_2 DevTools plan)
 5. **Persistent data structures**: Consider Immer or structuredClone for history snapshots
 6. **Simplicity over complexity**: Rich Hickey's "Simple Made Easy" applies regardless of language
 

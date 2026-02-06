@@ -921,7 +921,7 @@ sequenceDiagram
 
 - [Exploration 0051: Demo Hub on Railway](./0051_DEMO_HUB_ON_RAILWAY.md)
 - [Exploration 0056: Web App Integration](./0056_WEB_APP_INTEGRATION.md)
-- [Plan: 07-demo-hub.md](../planStep03_9_1OnboardingAndPolish/07-demo-hub.md)
-- [Plan: 11-final-polish.md](../planStep03_9_1OnboardingAndPolish/11-final-polish.md)
+- [Plan: 07-demo-hub.md](../plans/plan03_9_1OnboardingAndPolish/07-demo-hub.md)
+- [Plan: 11-final-polish.md](../plans/plan03_9_1OnboardingAndPolish/11-final-polish.md)
 - [Railway Docs](https://docs.railway.app/)
 - [GitHub Pages Docs](https://docs.github.com/en/pages)

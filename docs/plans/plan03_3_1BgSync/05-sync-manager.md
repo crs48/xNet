@@ -56,7 +56,7 @@ export interface SyncManagerConfig {
   /** Author DID for awareness */
   authorDID?: string
 
-  // --- Hub-specific (optional, see planStep03_8) ---
+  // --- Hub-specific (optional, see plan03_8) ---
   /** UCAN token generator for hub auth */
   getUCANToken?: () => Promise<string>
   /** Enable NodeStore sync relay (structured data through hub) */

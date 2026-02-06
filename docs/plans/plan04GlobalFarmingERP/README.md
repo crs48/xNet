@@ -209,16 +209,16 @@ erDiagram
 
 ## Dependencies
 
-| Dependency                    | Purpose                               | New?                    |
-| ----------------------------- | ------------------------------------- | ----------------------- |
-| `@xnet/data`                  | Schema registration, NodeStore        | Existing                |
-| `@xnet/sync`                  | P2P sync, public namespaces           | Existing                |
-| `@xnet/views`                 | Table/Board/Calendar base views       | Existing                |
-| `@xnet/plugins`               | Module registration, extension points | Existing (planStep03_5) |
-| `@xnet/react`                 | Hooks for all UI                      | Existing                |
-| `@xnet/editor`                | Rich text notes on species/sites      | Existing                |
-| Chart library (recharts/visx) | Soil trend charts, yield graphs       | New (peer dep)          |
-| Spatial layout library        | Forest Map drag-drop                  | New (peer dep)          |
+| Dependency                    | Purpose                               | New?                |
+| ----------------------------- | ------------------------------------- | ------------------- |
+| `@xnet/data`                  | Schema registration, NodeStore        | Existing            |
+| `@xnet/sync`                  | P2P sync, public namespaces           | Existing            |
+| `@xnet/views`                 | Table/Board/Calendar base views       | Existing            |
+| `@xnet/plugins`               | Module registration, extension points | Existing (plan03_5) |
+| `@xnet/react`                 | Hooks for all UI                      | Existing            |
+| `@xnet/editor`                | Rich text notes on species/sites      | Existing            |
+| Chart library (recharts/visx) | Soil trend charts, yield graphs       | New (peer dep)      |
+| Spatial layout library        | Forest Map drag-drop                  | New (peer dep)      |
 
 ## Success Criteria
 
@@ -236,9 +236,9 @@ erDiagram
 ## Reference Documents
 
 - [Regenerative Farming Exploration](../explorations/0020_REGENERATIVE_FARMING_ERP.md) — Full research and design exploration
-- [Plugin Architecture](../planStep03_5Plugins/README.md) — How this module integrates
-- [ERP Framework](../planStep03ERP/README.md) — General ERP module system
-- [Data Model](../planStep02_1DataModelConsolidation/README.md) — Schema-first architecture
+- [Plugin Architecture](../plan03_5Plugins/README.md) — How this module integrates
+- [ERP Framework](../plan03ERP/README.md) — General ERP module system
+- [Data Model](../plan02_1DataModelConsolidation/README.md) — Schema-first architecture
 - [Vision](../VISION.md) — Micro-to-macro data sovereignty
 
 ---

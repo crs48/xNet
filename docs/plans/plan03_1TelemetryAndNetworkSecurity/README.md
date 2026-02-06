@@ -157,7 +157,7 @@ flowchart TB
 **Validation Gate:**
 
 - [x] Telemetry syncs to aggregators (when consented)
-- [ ] Security dashboard shows network health (deferred to planStep03_2_2 DevTools)
+- [ ] Security dashboard shows network health (deferred to plan03_2_2 DevTools)
 - [x] Documentation complete
 - [x] All tests pass
 
@@ -298,4 +298,4 @@ The current plan focuses on **local-first foundations** that make these future e
 
 ---
 
-[Back to Main Plan](../plan/README.md) | [Start Implementation](./01-telemetry-package.md)
+[Back to Main Plan](../plan00Setup/README.md) | [Start Implementation](./01-telemetry-package.md)

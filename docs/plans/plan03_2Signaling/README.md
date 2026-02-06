@@ -339,4 +339,4 @@ curl http://localhost:4444/metrics
 
 ---
 
-[Back to Main Plan](../plan/README.md) | [Start Phase 2](./01-embedded-signaling.md)
+[Back to Main Plan](../plan00Setup/README.md) | [Start Phase 2](./01-embedded-signaling.md)

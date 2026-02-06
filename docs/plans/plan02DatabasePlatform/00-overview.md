@@ -3,7 +3,7 @@
 > Architecture and goals for Phase 2
 
 **Duration:** 6 months (Months 12-18 for v1.5, Months 18-24 for v2.0)
-**Prerequisites:** planStep01MVP complete, planStep02_1DataModelConsolidation complete
+**Prerequisites:** plan01MVP complete, plan02_1DataModelConsolidation complete
 
 ## Goals
 

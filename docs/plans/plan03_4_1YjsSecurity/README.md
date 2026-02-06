@@ -276,9 +276,9 @@ This covers unauthorized access, per-update verification, author attribution, Do
 
 - [Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md) — Full threat model and research
 - [Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md) — How the secure path works
-- [Hub Phase 1 Plan](../planStep03_8HubPhase1VPS/README.md) — Hub implementation context
-- [Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) — Peer scoring infrastructure
+- [Hub Phase 1 Plan](../plan03_8HubPhase1VPS/README.md) — Hub implementation context
+- [Telemetry & Network Security](../plan03_1TelemetryAndNetworkSecurity/README.md) — Peer scoring infrastructure
 
 ---
 
-[Back to Main Plan](../plan/README.md) | [Start Implementation →](./01-signed-envelopes.md)
+[Back to Main Plan](../plan00Setup/README.md) | [Start Implementation →](./01-signed-envelopes.md)

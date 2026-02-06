@@ -1,14 +1,14 @@
 # 09 - Telemetry Panel
 
-> Display security events, peer scores, consent status, and performance metrics from planStep03_1
+> Display security events, peer scores, consent status, and performance metrics from plan03_1
 
 ## Overview
 
-The Telemetry Panel integrates with the `@xnet/telemetry` package (planStep03_1) to display security events, peer reputation scores, performance metrics, and consent status. Since telemetry data is stored as regular Nodes, we query them using the existing `useQuery` infrastructure.
+The Telemetry Panel integrates with the `@xnet/telemetry` package (plan03_1) to display security events, peer reputation scores, performance metrics, and consent status. Since telemetry data is stored as regular Nodes, we query them using the existing `useQuery` infrastructure.
 
-## Dependency on planStep03_1
+## Dependency on plan03_1
 
-This panel reads from the telemetry schemas defined in planStep03_1:
+This panel reads from the telemetry schemas defined in plan03_1:
 
 | Schema IRI                                    | Data Displayed                                            |
 | --------------------------------------------- | --------------------------------------------------------- |
@@ -329,7 +329,7 @@ export function PerformanceSubPanel() {
 
 ## Graceful Degradation
 
-If `@xnet/telemetry` is not installed or planStep03_1 is not yet implemented, the panel shows a helpful message:
+If `@xnet/telemetry` is not installed or plan03_1 is not yet implemented, the panel shows a helpful message:
 
 ```typescript
 function TelemetryNotAvailable() {

@@ -526,6 +526,6 @@ These can be added incrementally after the hub ships.
 | `packages/sync/src/change.ts`                        | How NodeChanges get signed + hashed        |
 | `packages/network/src/security/peer-scorer.ts`       | Existing peer scoring infrastructure       |
 | `packages/network/src/security/auto-blocker.ts`      | Auto-blocking misbehaving peers            |
-| `docs/planStep03_8HubPhase1VPS/02-ucan-auth.md`      | Planned UCAN auth for hub                  |
-| `docs/planStep03_8HubPhase1VPS/03-sync-relay.md`     | Hub Yjs relay — blind Y.applyUpdate        |
+| `docs/plans/plan03_8HubPhase1VPS/02-ucan-auth.md`    | Planned UCAN auth for hub                  |
+| `docs/plans/plan03_8HubPhase1VPS/03-sync-relay.md`   | Hub Yjs relay — blind Y.applyUpdate        |
 | `docs/explorations/0026_NODE_CHANGE_ARCHITECTURE.md` | How NodeChanges work (the secure path)     |

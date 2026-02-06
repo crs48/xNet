@@ -6,7 +6,7 @@
  * guarantees as structured data — signed, hashed, chain-linked, with a full
  * audit trail of who typed what and when.
  *
- * See: docs/planStep03_4_1YjsSecurity/08-hash-chain-integration.md
+ * See: docs/plans/plan03_4_1YjsSecurity/08-hash-chain-integration.md
  */
 
 import type { Change, UnsignedChange } from './change'

@@ -185,8 +185,8 @@ All changes are backward compatible, so rollback is straightforward:
 
 After this plan is complete, the codebase will be ready for:
 
-1. **planStep02DatabasePlatform** - Views, formulas, canvas with cleaner types
-2. **planStep03ERP** - Enterprise features built on unified foundation
+1. **plan02DatabasePlatform** - Views, formulas, canvas with cleaner types
+2. **plan03ERP** - Enterprise features built on unified foundation
 3. **Major version bump** - Remove deprecated APIs, clean slate
 
 ## Checklist Summary

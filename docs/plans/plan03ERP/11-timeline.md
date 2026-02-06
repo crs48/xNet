@@ -4,12 +4,12 @@
 
 This document provides the implementation timeline for the ERP platform, including dependencies, milestones, and validation gates.
 
-## Phase 0: Foundation (from planStep02)
+## Phase 0: Foundation (from plan02)
 
-Before starting Phase 3 ERP, the following must be complete from planStep02:
+Before starting Phase 3 ERP, the following must be complete from plan02:
 
 ```
-Prerequisites from planStep02DatabasePlatform:
+Prerequisites from plan02DatabasePlatform:
 ├── Database CRUD operations
 ├── Property system (text, number, select, date, relation, formula)
 ├── View system (table, board, gallery, calendar, list)
@@ -39,7 +39,7 @@ const phase3_1: ImplementationPhase = {
         'Module settings UI',
         'Module marketplace foundation'
       ],
-      dependencies: ['planStep02 complete'],
+      dependencies: ['plan02 complete'],
       validationGate: {
         tests: [
           'Can register a new module',
@@ -457,7 +457,7 @@ MT = Multi-Tenancy
 
 ```
                     ┌─────────────────────────────────────────┐
-                    │         planStep02 Complete             │
+                    │         plan02 Complete             │
                     │      (Database Platform Foundation)      │
                     └─────────────────┬───────────────────────┘
                                       │

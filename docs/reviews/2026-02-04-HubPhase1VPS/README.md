@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This review covers **49 commits** (c6d780a..e591775) implementing the Hub Phase 1 VPS milestone from `docs/planStep03_8HubPhase1VPS/`. The work adds a complete Hono-based hub server with WebSocket sync relay, REST APIs, federation, crawling, shard-based search, schema registry, awareness persistence, peer discovery, and deployment infrastructure for Railway and Fly.io. Client-side integration spans the `@xnet/react`, `@xnet/data`, `@xnet/network`, and `@xnet/identity` packages.
+This review covers **49 commits** (c6d780a..e591775) implementing the Hub Phase 1 VPS milestone from `docs/plans/plan03_8HubPhase1VPS/`. The work adds a complete Hono-based hub server with WebSocket sync relay, REST APIs, federation, crawling, shard-based search, schema registry, awareness persistence, peer discovery, and deployment infrastructure for Railway and Fly.io. Client-side integration spans the `@xnet/react`, `@xnet/data`, `@xnet/network`, and `@xnet/identity` packages.
 
 **Scope:** ~16,500 lines added/modified across 127 files. 18 new hub test files. 3 deployment configs (Dockerfile, fly.toml, railway.toml).
 

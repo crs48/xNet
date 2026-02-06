@@ -9,7 +9,7 @@
  * - Overhead/sec: 1KB → 100B
  * - Signature ops/sec: 5 → 0.5
  *
- * See: docs/planStep03_4_1YjsSecurity/08-hash-chain-integration.md
+ * See: docs/plans/plan03_4_1YjsSecurity/08-hash-chain-integration.md
  */
 
 /**

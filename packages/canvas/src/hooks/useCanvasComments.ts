@@ -7,7 +7,7 @@
  * - Object-attached pins (follow object movement)
  * - Orphaned pin detection (object deleted)
  *
- * Following the Universal Social Primitives pattern from planStep03_6Comments.
+ * Following the Universal Social Primitives pattern from plan03_6Comments.
  */
 import {
   encodeAnchor,

@@ -380,4 +380,4 @@ if (PageSchema.is(node)) {
 
 ---
 
-[Back to planStep02DatabasePlatform](../planStep02DatabasePlatform/README.md) | [Start Implementation →](./01-xnet-sync-package.md)
+[Back to plan02DatabasePlatform](../plan02DatabasePlatform/README.md) | [Start Implementation →](./01-xnet-sync-package.md)

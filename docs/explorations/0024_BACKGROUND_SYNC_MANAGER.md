@@ -16,7 +16,7 @@ This creates several concrete problems:
 | **No offline queue**   | Edit a doc, close it, lose network                  | Changes may not have synced before unmount |
 | **Awareness gaps**     | Can't show "X is editing doc Y" in sidebar          | No presence data for non-viewed docs       |
 
-The hub (planStep03_8) solves the **server-side** persistence problem — documents stay synced on the server even when no clients are online. But the **client** still needs a way to maintain sync state for documents the user owns/follows without requiring them to be rendered.
+The hub (plan03_8) solves the **server-side** persistence problem — documents stay synced on the server even when no clients are online. But the **client** still needs a way to maintain sync state for documents the user owns/follows without requiring them to be rendered.
 
 ## Architecture
 
@@ -480,7 +480,7 @@ The BSM should come after signaling (03_2) is stable and before the hub (03_8), 
 - It establishes the client-side patterns that hub integration builds on
 - The hub's client integration (08-client-integration.md) assumes a connection manager exists
 
-Recommended plan step: **`planStep03_9BackgroundSyncManager`**
+Recommended plan step: **`plan03_9BackgroundSyncManager`**
 
 ## Naming: Node is the Unit of Sync
 
@@ -531,8 +531,8 @@ Both are keyed by the same Node ID.
 
 - `packages/react/src/hooks/useDocument.ts` — Current per-component sync (`useNode`)
 - `packages/react/src/sync/WebSocketSyncProvider.ts` — Current per-Node connection
-- `docs/planStep03_8HubPhase1VPS/03-sync-relay.md` — Hub's NodePool (server analog)
-- `docs/planStep03_8HubPhase1VPS/08-client-integration.md` — Hub client connection
-- `docs/planStep03_2Signaling/README.md` — Signaling protocol (multi-room subscribe)
-- `docs/planStep03_4ExpoStorage/README.md` — Mobile offline queue requirements
+- `docs/plans/plan03_8HubPhase1VPS/03-sync-relay.md` — Hub's NodePool (server analog)
+- `docs/plans/plan03_8HubPhase1VPS/08-client-integration.md` — Hub client connection
+- `docs/plans/plan03_2Signaling/README.md` — Signaling protocol (multi-room subscribe)
+- `docs/plans/plan03_4ExpoStorage/README.md` — Mobile offline queue requirements
 - `docs/TRADEOFFS.md` — Why hybrid sync (Yjs + event-sourcing)

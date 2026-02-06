@@ -24,16 +24,16 @@ These are explicitly **deferred beyond the 6-month horizon**. They are not cance
 
 | Feature                                    | Reason for Deferral                                    |
 | ------------------------------------------ | ------------------------------------------------------ |
-| Farming ERP (planStep04)                   | No users to build for yet. Requires plugin system.     |
-| ERP Framework (planStep03)                 | Enterprise features before consumer product = death.   |
+| Farming ERP (plan04)                       | No users to build for yet. Requires plugin system.     |
+| ERP Framework (plan03)                     | Enterprise features before consumer product = death.   |
 | Decentralized Search Tier 3 (Global Index) | Requires many hubs. Premature.                         |
 | Crawl Coordination                         | Requires federation at scale. Years away.              |
-| i18n/Translation (planStep04_1)            | Premature optimization. English first.                 |
-| Plugin Architecture (planStep03_5)         | Powerful but premature. Stabilize core APIs first.     |
-| History/Time Travel (planStep03_7)         | Nice-to-have. Not blocking adoption.                   |
-| Comments (planStep03_6)                    | Collaboration feature for teams. Solo users first.     |
-| Expo/Mobile SQLite (planStep03_4)          | Mobile is a follow-on. Desktop + Web first.            |
-| Yjs Security (planStep03_4_1)              | Important for production, but not for first 100 users. |
+| i18n/Translation (plan04_1)                | Premature optimization. English first.                 |
+| Plugin Architecture (plan03_5)             | Powerful but premature. Stabilize core APIs first.     |
+| History/Time Travel (plan03_7)             | Nice-to-have. Not blocking adoption.                   |
+| Comments (plan03_6)                        | Collaboration feature for teams. Solo users first.     |
+| Expo/Mobile SQLite (plan03_4)              | Mobile is a follow-on. Desktop + Web first.            |
+| Yjs Security (plan03_4_1)                  | Important for production, but not for first 100 users. |
 | LAN mDNS Discovery                         | Desktop-only P2P. Hub makes this less critical.        |
 | Index Shards                               | Requires many hubs.                                    |
 

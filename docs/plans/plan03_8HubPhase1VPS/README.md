@@ -444,7 +444,7 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 ### Phase 16: Yjs Security
 
-> **Moved to standalone plan:** [planStep03_4_1YjsSecurity](../planStep03_4_1YjsSecurity/README.md)
+> **Moved to standalone plan:** [plan03_4_1YjsSecurity](../plan03_4_1YjsSecurity/README.md)
 >
 > Yjs security is a cross-cutting concern affecting both hub and client packages. The full 8-step implementation plan (signed envelopes, UCAN auth, size limits, MetaBridge isolation, hash-at-rest, peer scoring, clientID binding, hash chain integration) lives in its own plan step.
 
@@ -529,8 +529,8 @@ packages/
         shard-ingest.ts         # Document ingestion to shards
         crawl.ts                # Crawl coordination
         crawl-robots.ts         # Robots.txt compliance
-        yjs-security.ts         # Signed envelope verification (see planStep03_4_1YjsSecurity)
-        yjs-peer-scoring.ts     # Yjs-specific peer scoring (see planStep03_4_1YjsSecurity)
+        yjs-security.ts         # Signed envelope verification (see plan03_4_1YjsSecurity)
+        yjs-peer-scoring.ts     # Yjs-specific peer scoring (see plan03_4_1YjsSecurity)
       routes/
         backup.ts               # /backup HTTP endpoints
         files.ts                # /files HTTP endpoints
@@ -633,7 +633,7 @@ packages/
 16. **Hub federation** queries peer hubs and returns merged, deduplicated results
 17. **Global index shards** distribute search across multiple hubs with BM25 scoring
 18. **Crawl coordination** assigns URLs to volunteer crawlers and indexes results
-19. **Yjs security** — see [planStep03_4_1YjsSecurity](../planStep03_4_1YjsSecurity/README.md)
+19. **Yjs security** — see [plan03_4_1YjsSecurity](../plan03_4_1YjsSecurity/README.md)
 20. **Railway deploys** with one click and serves wss:// connections at $0-2/mo
 21. **Fly.io deploys** with `fly deploy`, supports suspend/resume and multi-region
 22. **Hub docs** provide comprehensive setup guide from one-click deploy to monitoring
@@ -642,10 +642,10 @@ packages/
 
 ### Plans
 
-- [Background Sync Manager Plan](../planStep03_3_1BgSync/README.md) — Client-side sync orchestrator (BSM subsumes HubConnection)
-- [P2P Signaling Plan](../planStep03_2Signaling/README.md) — Current signaling architecture
-- [Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) — Security layer design
-- [Yjs Security Plan](../planStep03_4_1YjsSecurity/README.md) — Signed envelopes, UCAN, size limits, peer scoring
+- [Background Sync Manager Plan](../plan03_3_1BgSync/README.md) — Client-side sync orchestrator (BSM subsumes HubConnection)
+- [P2P Signaling Plan](../plan03_2Signaling/README.md) — Current signaling architecture
+- [Telemetry & Network Security](../plan03_1TelemetryAndNetworkSecurity/README.md) — Security layer design
+- [Yjs Security Plan](../plan03_4_1YjsSecurity/README.md) — Signed envelopes, UCAN, size limits, peer scoring
 
 ### Explorations (Architecture)
 
@@ -677,4 +677,4 @@ packages/
 
 ---
 
-[Back to Main Plan](../plan/README.md) | [Start Implementation →](./01-package-scaffold.md)
+[Back to Main Plan](../plan00Setup/README.md) | [Start Implementation →](./01-package-scaffold.md)

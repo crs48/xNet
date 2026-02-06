@@ -304,7 +304,7 @@ b54d49e Add schema system with defineSchema() and property helpers
 ## Prompt to Continue
 
 ```
-The schema-first architecture for xNet is COMPLETE. Read docs/planStep02_1DataModelConsolidation/HANDOFF.md.
+The schema-first architecture for xNet is COMPLETE. Read docs/plans/plan02_1DataModelConsolidation/HANDOFF.md.
 
 Completed:
 - @xnet/sync: Lamport timestamps, Change<T>, hash chains (78 tests)

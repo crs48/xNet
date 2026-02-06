@@ -1230,7 +1230,7 @@ Rules for safe pruning:
 
 ## Integration with Plugin System
 
-The history/audit features integrate naturally with the plugin architecture from planStep03_5:
+The history/audit features integrate naturally with the plugin architecture from plan03_5:
 
 - **Scripts** can query history: `ctx.history(node.id)` returns `TimelineEntry[]`
 - **Views** can render historical state: Time Machine is just another view mode

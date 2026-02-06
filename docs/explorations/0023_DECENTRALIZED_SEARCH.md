@@ -447,7 +447,7 @@ graph TD
 
 ## The Hub as Search Infrastructure
 
-The three-tier model above assumes peers are ephemeral — laptops sleep, phones lose connectivity, browsers close tabs. In practice, Tier 2 and Tier 3 need **always-on participants** to be reliable. This is exactly what the xNet Hub provides (see [Server Infrastructure Exploration](./SERVER_INFRASTRUCTURE.md) and [planStep03_8HubPhase1VPS](../planStep03_8HubPhase1VPS/README.md)).
+The three-tier model above assumes peers are ephemeral — laptops sleep, phones lose connectivity, browsers close tabs. In practice, Tier 2 and Tier 3 need **always-on participants** to be reliable. This is exactly what the xNet Hub provides (see [Server Infrastructure Exploration](./SERVER_INFRASTRUCTURE.md) and [plan03_8HubPhase1VPS](../plans/plan03_8HubPhase1VPS/README.md)).
 
 A Hub is an xNet peer that never goes offline. It participates in the same sync protocols as any device, but runs on a VPS/container with persistent storage. The Hub is **optional** (everything works P2P without it), but it dramatically improves search availability and quality.
 
@@ -685,7 +685,7 @@ graph TD
 How the Hub's query service integrates with the three tiers:
 
 ```typescript
-// Hub query service (extends planStep03_8 Phase 5: Query Engine)
+// Hub query service (extends plan03_8 Phase 5: Query Engine)
 class HubSearchService {
   private fts: SQLiteFTS5 // Local full-text (from hub relay)
   private vectors: PgVector // Semantic search (Phase 2+)
@@ -783,7 +783,7 @@ The Hub adds convenience but introduces a trust decision:
 - Hub code is open source (MIT) → auditable, no hidden behavior
 - UCAN scoping → Hub can only access data it's been granted
 
-### How This Maps to planStep03_8 Phases
+### How This Maps to plan03_8 Phases
 
 The Hub Phase 1 plan already includes the foundation for search. Here's how search-specific features layer on:
 
@@ -929,7 +929,7 @@ gantt
     Connect @xnet/vectors to pipeline   :p1e, after p1d, 1w
 
     section Phase 2: Hub Search
-    Hub FTS5 index (planStep03_8 Ph5)   :p2a, 2026-03, 2w
+    Hub FTS5 index (plan03_8 Ph5)   :p2a, 2026-03, 2w
     Hub NodeChange indexing (Ph8)       :p2b, after p2a, 2w
     Client useSearch hub fallback       :p2c, after p2b, 1w
     Hub semantic search (pg_vector)     :p2d, after p2c, 2w
@@ -957,8 +957,8 @@ gantt
 
 ### Phase 2 Details (Hub Search)
 
-6. **Hub FTS5 index**: The Hub already plans a query engine (planStep03_8 Phase 5). Extend it with full-text indexing of relayed documents. The Hub sees all workspace content via sync relay — index it with SQLite FTS5.
-7. **Hub NodeChange indexing**: When the Hub receives NodeChanges (planStep03_8 Phase 8), index structured properties for schema-typed queries. A task's `status`, `priority`, `assignee` become filterable without the client loading all data.
+6. **Hub FTS5 index**: The Hub already plans a query engine (plan03_8 Phase 5). Extend it with full-text indexing of relayed documents. The Hub sees all workspace content via sync relay — index it with SQLite FTS5.
+7. **Hub NodeChange indexing**: When the Hub receives NodeChanges (plan03_8 Phase 8), index structured properties for schema-typed queries. A task's `status`, `priority`, `assignee` become filterable without the client loading all data.
 8. **Client `useSearch` hub fallback**: When local results are insufficient or when the user explicitly requests workspace-wide search, the client queries the Hub via the existing WebSocket connection. Progressive: show local results immediately, Hub results stream in.
 9. **Hub semantic search**: Add pg_vector (or sqlite-vss) to the Hub for "find similar" queries. The Hub generates embeddings server-side (users don't need to run ML models on-device).
 

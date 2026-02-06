@@ -767,7 +767,7 @@ flowchart TD
 
 ### Implementation as xNet Plugin
 
-The farming module fits naturally into the planStep03_5 plugin architecture:
+The farming module fits naturally into the plan03_5 plugin architecture:
 
 | Plugin Layer     | Farming Implementation                                             |
 | ---------------- | ------------------------------------------------------------------ |
@@ -923,5 +923,5 @@ The farming schemas align with established agricultural ontologies:
 - [SoilGrids](https://soilgrids.org/) — Global soil property maps
 - [Toby Hemenway, "Gaia's Garden"](https://www.chelseagreen.com/product/gaias-garden/) — Food forest guild design reference
 - [xNet Vision](../VISION.md) — Micro-to-macro data sovereignty
-- [xNet Plugin Architecture](../planStep03_5Plugins/README.md) — Extension system this module uses
-- [xNet ERP Plan](../planStep03ERP/README.md) — General ERP framework
+- [xNet Plugin Architecture](../plans/plan03_5Plugins/README.md) — Extension system this module uses
+- [xNet ERP Plan](../plans/plan03ERP/README.md) — General ERP framework

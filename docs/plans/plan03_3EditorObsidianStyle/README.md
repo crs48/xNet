@@ -298,4 +298,4 @@ packages/data/
 
 ---
 
-[Back to Main Plan](../plan/README.md) | [Start Implementation](./01-tailwind-setup.md)
+[Back to Main Plan](../plan00Setup/README.md) | [Start Implementation](./01-tailwind-setup.md)
