@@ -11,6 +11,7 @@ import type { NodeChangeEvent, NodeStorageAdapter } from '@xnet/data'
 import type { Identity } from '@xnet/identity'
 import type { ReactNode } from 'react'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnet/data'
+import { createMainThreadBridge, type DataBridge } from '@xnet/data-bridge'
 import { createUCAN } from '@xnet/identity'
 import { PluginRegistry, type Platform } from '@xnet/plugins'
 import React, {
@@ -124,6 +125,29 @@ export interface XNetContextValue {
 export const XNetContext = createContext<XNetContextValue | null>(null)
 
 /**
+ * DataBridge context for off-main-thread data access.
+ *
+ * Phase 0: Uses MainThreadBridge (direct NodeStore access)
+ * Future phases will use WorkerBridge or IPCBridge
+ *
+ * @internal
+ */
+export const DataBridgeContext = createContext<DataBridge | null>(null)
+
+/**
+ * Hook to access the DataBridge.
+ *
+ * @internal Used by useQuery/useMutate hooks - not part of public API yet.
+ */
+export function useDataBridge(): DataBridge {
+  const bridge = useContext(DataBridgeContext)
+  if (!bridge) {
+    throw new Error('useDataBridge must be used within an XNetProvider')
+  }
+  return bridge
+}
+
+/**
  * XNet provider props
  */
 export interface XNetProviderProps {
@@ -139,6 +163,7 @@ export interface XNetProviderProps {
 export function XNetProvider({ config, children }: XNetProviderProps): JSX.Element {
   const [nodeStore, setNodeStore] = useState<NodeStore | null>(null)
   const [nodeStoreReady, setNodeStoreReady] = useState(false)
+  const [dataBridge, setDataBridge] = useState<DataBridge | null>(null)
   const [syncManager, setSyncManager] = useState<SyncManager | null>(null)
   const [hubStatus, setHubStatus] = useState<SyncStatus>('disconnected')
   const [pluginRegistry, setPluginRegistry] = useState<PluginRegistry | null>(null)
@@ -206,8 +231,15 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       // Check again after second await
       if (cancelled) return
 
+      // Create DataBridge wrapping NodeStore (Phase 0: MainThreadBridge)
+      const bridge = createMainThreadBridge(ns)
+
       setNodeStore(ns)
       setNodeStoreReady(true)
+      setDataBridge(bridge)
+
+      // Store bridge ref for cleanup
+      bridgeRef = bridge
 
       // Expose NodeStore to window for main process access (Electron Local API)
       if (typeof window !== 'undefined') {
@@ -216,10 +248,16 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       }
     }
 
+    let bridgeRef: DataBridge | null = null
     initializeNodeStore()
 
     return () => {
       cancelled = true
+      // Clean up DataBridge first
+      if (bridgeRef) {
+        bridgeRef.destroy()
+      }
+      setDataBridge(null)
       setNodeStore(null)
       setNodeStoreReady(false)
 
@@ -535,9 +573,14 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   )
 
   // Wrap children with PluginRegistryContext if plugins are enabled
-  const content = pluginRegistry
+  let content = pluginRegistry
     ? React.createElement(PluginRegistryContext.Provider, { value: pluginRegistry }, children)
     : children
+
+  // Wrap with DataBridgeContext (Phase 0: MainThreadBridge)
+  if (dataBridge) {
+    content = React.createElement(DataBridgeContext.Provider, { value: dataBridge }, content)
+  }
 
   return React.createElement(XNetContext.Provider, { value }, content)
 }
