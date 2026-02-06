@@ -1082,10 +1082,12 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   - [ ] Batch IndexedDB transactions
   - [ ] Batch SQLite writes
   - [ ] Debounce delta messages
-- [ ] Memory management
-  - [ ] Query result eviction (LRU)
-  - [ ] Y.Doc pool size limits
+- [x] Memory management
+  - [x] Query result eviction (LRU) - QueryCache with maxSize=100, 30s min age
+  - [x] Y.Doc pool size limits - MAX_DOC_POOL_SIZE=50, 60s min age
   - [ ] Weak references for inactive subscriptions
+- [x] Code quality
+  - [x] Reduce excessive debug logging in useNode hook
 - [ ] Benchmarks
   - [ ] 1000 nodes query latency
   - [ ] 100 concurrent edits throughput
