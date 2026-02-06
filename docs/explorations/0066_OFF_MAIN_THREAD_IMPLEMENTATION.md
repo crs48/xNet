@@ -1078,9 +1078,9 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 - [ ] Delta transfer optimization
   - [ ] Implement delta messages for large query results
   - [ ] Binary serialization for node state
-- [ ] Batch operations
-  - [ ] Batch IndexedDB transactions
-  - [ ] Batch SQLite writes
+- [x] Batch operations
+  - [x] Batch IndexedDB transactions (IndexedDBBatchAdapter, BatchWriter)
+  - [x] Batch SQLite writes (SQLiteBatchWriter in data-process)
   - [x] Debounce Y.Doc updates (UPDATE_BATCH_WAIT=16ms, UPDATE_BATCH_MAX_WAIT=100ms)
   - [x] Delta coalescing utilities (createDeltaBatcher)
 - [x] Memory management
