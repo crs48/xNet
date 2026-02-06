@@ -239,3 +239,37 @@ export {
   attemptRepair,
   formatIntegrityReport
 } from './integrity'
+
+// Deprecation system
+export type {
+  DeprecationType,
+  DeprecationNotice,
+  DeprecationContext,
+  DeprecationWarning,
+  DeprecationCallback
+} from './deprecation'
+export {
+  DEPRECATIONS,
+  DEPRECATION_POLICY,
+  checkDeprecations,
+  checkAndLogDeprecations,
+  logDeprecation,
+  clearLoggedDeprecations,
+  configureDeprecationPolicy,
+  getDeprecationsByType,
+  getDeprecation,
+  isDeprecated,
+  isRemoved,
+  registerDeprecation,
+  formatDeprecationReport,
+  DeprecationError
+} from './deprecation'
+
+// Periodic integrity monitoring
+export type {
+  IntegrityMonitorConfig,
+  IntegrityMonitorStats,
+  IntegrityMonitor,
+  ReactIntegrityMonitorOptions
+} from './integrity-monitor'
+export { createIntegrityMonitor, createReactIntegrityMonitor } from './integrity-monitor'
