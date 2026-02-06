@@ -1086,7 +1086,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 - [x] Memory management
   - [x] Query result eviction (LRU) - QueryCache with maxSize=100, 30s min age
   - [x] Y.Doc pool size limits - MAX_DOC_POOL_SIZE=50, 60s min age
-  - [ ] Weak references for inactive subscriptions
+  - [x] Weak references for inactive subscriptions (subscribeWeak, cleanupDeadWeakRefs)
 - [x] Code quality
   - [x] Reduce excessive debug logging in useNode hook
 - [x] Benchmarks (packages/data-bridge/benchmarks/)
