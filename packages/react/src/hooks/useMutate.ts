@@ -1,5 +1,5 @@
 /**
- * useMutate - Unified write hook for Nodes
+ * useMutate - Unified write hook for Nodes via DataBridge
  *
  * A single hook for all write operations:
  * - Create nodes (requires schema)
@@ -7,8 +7,10 @@
  * - Delete nodes (by ID)
  * - Atomic transactions (multiple operations)
  *
+ * Uses DataBridge for off-main-thread data access.
+ *
  * Features:
- * - Immediate local updates (NodeStore updates UI subscribers synchronously)
+ * - Immediate local updates (bridge updates UI subscribers synchronously)
  * - Type-safe schema-bound mutations
  * - Transaction support for atomic multi-node operations
  * - Pending state tracking
@@ -30,16 +32,10 @@
  * ])
  * ```
  */
-import type {
-  DefinedSchema,
-  PropertyBuilder,
-  InferCreateProps,
-  TransactionOperation,
-  TransactionResult
-} from '@xnet/data'
+import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeState } from '@xnet/data'
 import { useCallback, useState, useRef } from 'react'
+import { useDataBridge } from '../context'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
-import { useNodeStore } from './useNodeStore'
 
 // =============================================================================
 // Types
@@ -91,9 +87,13 @@ export type MutateOp =
   | MutateDelete
   | MutateRestore
 
-// Note: MutateOptions with optimistic rollback support was removed.
-// NodeStore already provides immediate local updates - subscribers see changes synchronously.
-// If you need rollback on failure, wrap mutations in try/catch and handle manually.
+/**
+ * Result from a mutate transaction
+ */
+export interface MutateResult {
+  /** Results for each operation (NodeState or null for delete) */
+  results: (NodeState | null)[]
+}
 
 /**
  * Result from useMutate hook
@@ -145,8 +145,11 @@ export interface UseMutateResult {
   /**
    * Execute multiple operations atomically.
    * All operations succeed or fail together.
+   *
+   * Note: Transaction support requires MainThreadBridge with direct NodeStore access.
+   * WorkerBridge executes operations sequentially (not truly atomic).
    */
-  mutate: (ops: MutateOp[]) => Promise<TransactionResult | null>
+  mutate: (ops: MutateOp[]) => Promise<MutateResult | null>
 
   /**
    * Whether any mutation is currently in progress.
@@ -164,16 +167,16 @@ export interface UseMutateResult {
 // =============================================================================
 
 /**
- * Hook for all write operations on Nodes.
+ * Hook for all write operations on Nodes via DataBridge.
  *
  * Provides both convenience methods (create, update, remove) and
  * a full transaction API (mutate) for atomic multi-node operations.
  *
- * All operations update the local NodeStore immediately, and subscribers
+ * All operations update the local cache immediately, and subscribers
  * see changes synchronously. Background sync handles persistence.
  */
 export function useMutate(): UseMutateResult {
-  const { store, isReady } = useNodeStore()
+  const bridge = useDataBridge()
   const [pendingCount, setPendingCount] = useState(0)
   const pendingRef = useRef(0)
 
@@ -196,19 +199,13 @@ export function useMutate(): UseMutateResult {
       data: InferCreateProps<P>,
       id?: string
     ): Promise<FlatNode<P> | null> => {
-      if (!store || !isReady) return null
-
+      if (!bridge) return null
       return withPending(async () => {
-        const node = await store.create({
-          id,
-          schemaId: schema._schemaId,
-          properties: data as Record<string, unknown>
-        })
-
+        const node = await bridge.create(schema, data, id)
         return flattenNode<P>(node)
       })
     },
-    [store, isReady, withPending]
+    [bridge, withPending]
   )
 
   // Update an existing node (type-safe)
@@ -218,76 +215,77 @@ export function useMutate(): UseMutateResult {
       id: string,
       data: Partial<InferCreateProps<P>>
     ): Promise<FlatNode<P> | null> => {
-      if (!store || !isReady) return null
-
+      if (!bridge) return null
       return withPending(async () => {
-        const node = await store.update(id, { properties: data as Record<string, unknown> })
+        const node = await bridge.update(id, data as Record<string, unknown>)
         return flattenNode<P>(node)
       })
     },
-    [store, isReady, withPending]
+    [bridge, withPending]
   )
 
   // Delete a node
   const remove = useCallback(
     async (id: string): Promise<void> => {
-      if (!store || !isReady) return
-
+      if (!bridge) return
       return withPending(async () => {
-        await store.delete(id)
+        await bridge.delete(id)
       })
     },
-    [store, isReady, withPending]
+    [bridge, withPending]
   )
 
   // Restore a deleted node
   const restore = useCallback(
     async (id: string): Promise<FlatNode<Record<string, PropertyBuilder>> | null> => {
-      if (!store || !isReady) return null
-
+      if (!bridge) return null
       return withPending(async () => {
-        const node = await store.restore(id)
+        const node = await bridge.restore(id)
         return flattenNode<Record<string, PropertyBuilder>>(node)
       })
     },
-    [store, isReady, withPending]
+    [bridge, withPending]
   )
 
   // Execute a transaction
+  // Note: For WorkerBridge, operations are executed sequentially, not atomically.
+  // True transactions require MainThreadBridge with direct NodeStore access.
   const mutate = useCallback(
-    async (ops: MutateOp[]): Promise<TransactionResult | null> => {
-      if (!store || !isReady || ops.length === 0) return null
+    async (ops: MutateOp[]): Promise<MutateResult | null> => {
+      if (!bridge || ops.length === 0) return null
 
       return withPending(async () => {
-        // Convert MutateOp[] to TransactionOperation[]
-        const storeOps: TransactionOperation[] = ops.map((op) => {
-          switch (op.type) {
-            case 'create':
-              return {
-                type: 'create' as const,
-                options: {
-                  id: op.id,
-                  schemaId: op.schema._schemaId,
-                  properties: op.data as Record<string, unknown>
-                }
-              }
-            case 'update':
-              return {
-                type: 'update' as const,
-                nodeId: op.id,
-                options: { properties: op.data }
-              }
-            case 'delete':
-              return { type: 'delete' as const, nodeId: op.id }
-            case 'restore':
-              return { type: 'restore' as const, nodeId: op.id }
-          }
-        })
+        const results: (NodeState | null)[] = []
 
-        return store.transaction(storeOps)
+        for (const op of ops) {
+          switch (op.type) {
+            case 'create': {
+              const node = await bridge.create(op.schema, op.data as Record<string, unknown>, op.id)
+              results.push(node)
+              break
+            }
+            case 'update': {
+              const node = await bridge.update(op.id, op.data)
+              results.push(node)
+              break
+            }
+            case 'delete': {
+              await bridge.delete(op.id)
+              results.push(null)
+              break
+            }
+            case 'restore': {
+              const node = await bridge.restore(op.id)
+              results.push(node)
+              break
+            }
+          }
+        }
+
+        return { results }
       })
     },
-    [store, isReady, withPending]
+    [bridge, withPending]
   )
 
   return {

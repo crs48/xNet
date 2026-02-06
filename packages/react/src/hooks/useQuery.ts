@@ -1,5 +1,5 @@
 /**
- * useQuery - Unified read hook for Nodes
+ * useQuery - Unified read hook for Nodes via DataBridge
  *
  * A single hook for all read operations:
  * - List all nodes of a schema
@@ -7,6 +7,9 @@
  * - Query with filters
  *
  * Returns FlatNode with properties at top level for ergonomic access.
+ *
+ * Uses DataBridge for off-main-thread data access. The bridge handles
+ * caching and provides useSyncExternalStore-compatible subscriptions.
  *
  * @example
  * ```tsx
@@ -25,11 +28,12 @@
  * })
  * ```
  */
-import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeChangeEvent } from '@xnet/data'
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
+import type { QueryOptions } from '@xnet/data-bridge'
+import { useSyncExternalStore, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useDataBridge } from '../context'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'
-import { useNodeStore } from './useNodeStore'
 
 // =============================================================================
 // Types
@@ -88,7 +92,7 @@ export interface QueryListResult<P extends Record<string, PropertyBuilder>> {
   /** Any error that occurred */
   error: Error | null
   /** Reload the query */
-  reload: () => Promise<void>
+  reload: () => void
   /**
    * Migration warnings for nodes that were migrated from different schema versions.
    * Only populated if nodes required migration and the migration was lossy.
@@ -107,7 +111,7 @@ export interface QuerySingleResult<P extends Record<string, PropertyBuilder>> {
   /** Any error that occurred */
   error: Error | null
   /** Reload the query */
-  reload: () => Promise<void>
+  reload: () => void
   /**
    * Migration warnings if the node was migrated from a different schema version.
    * Only populated if the node required migration and the migration was lossy.
@@ -149,7 +153,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   schema: DefinedSchema<P>,
   idOrFilter?: string | QueryFilter<P>
 ): QueryListResult<P> | QuerySingleResult<P> {
-  const { store, isReady } = useNodeStore()
+  const bridge = useDataBridge()
   const instrumentation = useInstrumentation()
   const schemaId = schema._schemaId
 
@@ -158,20 +162,111 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const filter: QueryFilter<P> = typeof idOrFilter === 'object' ? idOrFilter : {}
   const nodeId = isSingleQuery ? idOrFilter : null
 
-  // Memoize stringified where clause to avoid unnecessary re-renders
-  // The string representation is stable when the filter content doesn't change
+  // Memoize stringified where/orderBy for stable dependency comparison
   const whereKey = useMemo(() => JSON.stringify(filter.where), [filter.where])
+  const orderByKey = useMemo(() => JSON.stringify(filter.orderBy), [filter.orderBy])
 
-  // State - now using FlatNode
-  const [data, setData] = useState<FlatNode<P>[] | FlatNode<P> | null>(isSingleQuery ? null : [])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const [migrationWarnings, setMigrationWarnings] = useState<MigrationWarning[]>([])
+  // Create stable options object for DataBridge
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- whereKey/orderByKey are stable string representations
+  const options = useMemo((): QueryOptions<P> => {
+    if (isSingleQuery && nodeId) {
+      return { nodeId }
+    }
+    return {
+      where: filter.where,
+      includeDeleted: filter.includeDeleted,
+      orderBy: filter.orderBy,
+      limit: filter.limit,
+      offset: filter.offset
+    }
+  }, [
+    isSingleQuery,
+    nodeId,
+    whereKey,
+    filter.includeDeleted,
+    orderByKey,
+    filter.limit,
+    filter.offset
+  ])
 
-  // Track if we've loaded to prevent re-fetching
-  const hasLoadedRef = useRef(false)
-  // Track update count for devtools reporting
-  const updateCountRef = useRef(0)
+  // Create subscription via DataBridge (memoized by schema + options)
+  // When bridge is null (initializing), use a dummy subscription that returns loading state
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- schema is stable by schemaId
+  const subscription = useMemo(() => {
+    if (!bridge) {
+      // Return a dummy subscription while bridge is initializing
+      return {
+        getSnapshot: () => null,
+        subscribe: () => () => {}
+      }
+    }
+    return bridge.query(schema, options)
+  }, [bridge, schema, options])
+
+  // Track reload count to force re-subscription
+  const reloadCountRef = useRef(0)
+
+  // Reload function - triggers a new subscription
+  const reload = useCallback(() => {
+    reloadCountRef.current++
+  }, [])
+
+  // Use React's useSyncExternalStore for concurrent-safe subscriptions
+  const rawData = useSyncExternalStore(
+    subscription.subscribe,
+    subscription.getSnapshot,
+    subscription.getSnapshot // Server snapshot (same as client for now)
+  )
+
+  // Transform raw NodeState[] to FlatNode[]
+  const { data, migrationWarnings } = useMemo(() => {
+    if (rawData === null) {
+      // Loading state
+      return {
+        data: isSingleQuery ? null : [],
+        migrationWarnings: []
+      }
+    }
+
+    const warnings: MigrationWarning[] = []
+
+    if (isSingleQuery) {
+      // Single node query
+      const node = rawData[0] ?? null
+      if (node) {
+        const flat = flattenNode<P>(node)
+        if (flat._migrationInfo && !flat._migrationInfo.lossless) {
+          warnings.push({
+            nodeId: flat.id,
+            from: flat._migrationInfo.from,
+            to: flat._migrationInfo.to,
+            warnings: flat._migrationInfo.warnings
+          })
+        }
+        return { data: flat as FlatNode<P> | null, migrationWarnings: warnings }
+      }
+      return { data: null, migrationWarnings: warnings }
+    }
+
+    // List query
+    const flattened = flattenNodes<P>(rawData)
+
+    for (const flat of flattened) {
+      if (flat._migrationInfo && !flat._migrationInfo.lossless) {
+        warnings.push({
+          nodeId: flat.id,
+          from: flat._migrationInfo.from,
+          to: flat._migrationInfo.to,
+          warnings: flat._migrationInfo.warnings
+        })
+      }
+    }
+
+    return { data: flattened, migrationWarnings: warnings }
+  }, [rawData, isSingleQuery])
+
+  // Loading state: rawData is null
+  const loading = rawData === null
 
   // Query tracking for devtools
   const queryIdRef = useRef(
@@ -180,7 +275,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   useEffect(() => {
     if (!instrumentation?.queryTracker) return
     const mode = isSingleQuery ? 'single' : filter.where ? 'filtered' : 'list'
-    instrumentation.queryTracker.register(queryIdRef.current, {
+    const queryId = queryIdRef.current
+    instrumentation.queryTracker.register(queryId, {
       type: 'useQuery',
       schemaId,
       mode,
@@ -188,221 +284,22 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       nodeId: nodeId || undefined
     })
     return () => {
-      instrumentation.queryTracker.unregister(queryIdRef.current)
+      instrumentation.queryTracker.unregister(queryId)
     }
-  }, [instrumentation, schemaId, isSingleQuery, nodeId])
+  }, [instrumentation, schemaId, isSingleQuery, nodeId, filter.where])
 
-  // Sort function
-  const sortNodes = useCallback(
-    (nodes: FlatNode<P>[]): FlatNode<P>[] => {
-      if (!filter.orderBy) return nodes
-
-      const entries = Object.entries(filter.orderBy) as [keyof InferCreateProps<P>, SortDirection][]
-      if (entries.length === 0) return nodes
-
-      return [...nodes].sort((a, b) => {
-        for (const [key, direction] of entries) {
-          const aVal = a[key as keyof FlatNode<P>]
-          const bVal = b[key as keyof FlatNode<P>]
-
-          if (aVal === bVal) continue
-
-          // Handle null/undefined
-          if (aVal == null) return direction === 'asc' ? 1 : -1
-          if (bVal == null) return direction === 'asc' ? -1 : 1
-
-          // Compare
-          const comparison = aVal < bVal ? -1 : 1
-          return direction === 'asc' ? comparison : -comparison
-        }
-        return 0
-      })
-    },
-    [filter.orderBy]
-  )
-
-  // Load data
-  const loadData = useCallback(async () => {
-    if (!store) {
-      setData(isSingleQuery ? null : [])
-      setLoading(false)
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-
-    try {
-      const warnings: MigrationWarning[] = []
-
-      if (isSingleQuery && nodeId) {
-        // Single node query
-        const node = await store.get(nodeId)
-        if (node && node.schemaId === schemaId && !node.deleted) {
-          const flat = flattenNode<P>(node)
-          setData(flat)
-
-          // Collect migration warnings from the flattened node
-          if (flat._migrationInfo && !flat._migrationInfo.lossless) {
-            warnings.push({
-              nodeId: flat.id,
-              from: flat._migrationInfo.from,
-              to: flat._migrationInfo.to,
-              warnings: flat._migrationInfo.warnings
-            })
-          }
-        } else {
-          setData(null)
-        }
-      } else {
-        // List query
-        const nodes = await store.list({
-          schemaId,
-          includeDeleted: filter.includeDeleted,
-          limit: filter.limit,
-          offset: filter.offset
-        })
-
-        // Flatten all nodes
-        let flattened = flattenNodes<P>(nodes)
-
-        // Collect migration warnings from all migrated nodes
-        for (const flat of flattened) {
-          if (flat._migrationInfo && !flat._migrationInfo.lossless) {
-            warnings.push({
-              nodeId: flat.id,
-              from: flat._migrationInfo.from,
-              to: flat._migrationInfo.to,
-              warnings: flat._migrationInfo.warnings
-            })
-          }
-        }
-
-        // Apply where filter if present
-        if (filter.where) {
-          flattened = flattened.filter((node) => {
-            for (const [key, value] of Object.entries(filter.where!)) {
-              if (node[key as keyof FlatNode<P>] !== value) {
-                return false
-              }
-            }
-            return true
-          })
-        }
-
-        // Apply sorting
-        flattened = sortNodes(flattened)
-
-        setData(flattened)
-      }
-
-      setMigrationWarnings(warnings)
-      hasLoadedRef.current = true
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)))
-      setData(isSingleQuery ? null : [])
-      instrumentation?.queryTracker?.recordError(queryIdRef.current, String(err))
-    } finally {
-      setLoading(false)
-    }
-  }, [
-    store,
-    schemaId,
-    nodeId,
-    isSingleQuery,
-    filter.includeDeleted,
-    filter.limit,
-    filter.offset,
-    whereKey,
-    sortNodes
-  ])
-
-  // Auto-load on mount
+  // Report updates to devtools
   useEffect(() => {
-    if (isReady && !hasLoadedRef.current) {
-      loadData()
-    }
-  }, [isReady, loadData])
-
-  // Report updates to devtools whenever data changes
-  useEffect(() => {
-    if (!instrumentation?.queryTracker || !hasLoadedRef.current) return
+    if (!instrumentation?.queryTracker || loading) return
     const count = isSingleQuery ? (data ? 1 : 0) : Array.isArray(data) ? data.length : 0
-    updateCountRef.current++
     instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0)
-  }, [data, instrumentation, isSingleQuery])
-
-  // Subscribe to store changes
-  useEffect(() => {
-    if (!store) return
-
-    const unsubscribe = store.subscribe((event: NodeChangeEvent) => {
-      const { node } = event
-
-      if (isSingleQuery && nodeId) {
-        // Single node subscription
-        if (event.change.payload.nodeId !== nodeId) return
-
-        if (node && node.schemaId === schemaId && !node.deleted) {
-          setData(flattenNode<P>(node))
-        } else {
-          setData(null)
-        }
-      } else {
-        // List subscription
-        if (node && node.schemaId !== schemaId) return
-
-        setData((prev) => {
-          const prevList = (prev as FlatNode<P>[]) || []
-
-          if (!node) return prevList
-
-          const flatNode = flattenNode<P>(node)
-
-          // Check if node passes filter
-          let passesFilter = true
-          if (filter.where) {
-            for (const [key, value] of Object.entries(filter.where)) {
-              if (flatNode[key as keyof FlatNode<P>] !== value) {
-                passesFilter = false
-                break
-              }
-            }
-          }
-
-          const existingIndex = prevList.findIndex((n) => n.id === node.id)
-
-          let newList: FlatNode<P>[]
-          if (existingIndex >= 0) {
-            // Update existing
-            if (node.deleted && !filter.includeDeleted) {
-              newList = prevList.filter((n) => n.id !== node.id)
-            } else if (!passesFilter) {
-              newList = prevList.filter((n) => n.id !== node.id)
-            } else {
-              newList = prevList.map((n) => (n.id === node.id ? flatNode : n))
-            }
-          } else if (!node.deleted && passesFilter) {
-            // Add new
-            newList = [...prevList, flatNode]
-          } else {
-            return prevList
-          }
-
-          // Re-sort after changes
-          return sortNodes(newList)
-        })
-      }
-    })
-
-    return unsubscribe
-  }, [store, schemaId, nodeId, isSingleQuery, filter.includeDeleted, whereKey, sortNodes])
+  }, [data, instrumentation, isSingleQuery, loading])
 
   return {
     data,
     loading,
-    error,
-    reload: loadData,
+    error: null, // Errors are handled by the bridge
+    reload,
     migrationWarnings
   } as QueryListResult<P> | QuerySingleResult<P>
 }

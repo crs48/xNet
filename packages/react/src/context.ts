@@ -136,15 +136,12 @@ export const DataBridgeContext = createContext<DataBridge | null>(null)
 
 /**
  * Hook to access the DataBridge.
+ * Returns null while the bridge is initializing.
  *
  * @internal Used by useQuery/useMutate hooks - not part of public API yet.
  */
-export function useDataBridge(): DataBridge {
-  const bridge = useContext(DataBridgeContext)
-  if (!bridge) {
-    throw new Error('useDataBridge must be used within an XNetProvider')
-  }
-  return bridge
+export function useDataBridge(): DataBridge | null {
+  return useContext(DataBridgeContext)
 }
 
 /**
