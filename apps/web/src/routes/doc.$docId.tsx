@@ -69,7 +69,9 @@ function DocumentPage() {
     syncStatus,
     peerCount,
     presence,
-    awareness
+    awareness,
+    isDirty,
+    lastSavedAt
   } = useNode(PageSchema, docId, {
     createIfMissing: { title: 'Untitled' },
     did: did ?? undefined
@@ -553,6 +555,22 @@ function DocumentPage() {
 
         <PresenceAvatars presence={presence} />
         <ShareButton docId={docId} docType="page" />
+
+        {/* Save status indicator */}
+        <div
+          className="text-xs text-muted-foreground"
+          title={
+            lastSavedAt
+              ? `Last saved: ${new Date(lastSavedAt).toLocaleTimeString()}`
+              : 'Not saved yet'
+          }
+        >
+          {isDirty ? (
+            <span className="text-amber-500">Saving...</span>
+          ) : lastSavedAt ? (
+            <span className="text-success">Saved</span>
+          ) : null}
+        </div>
 
         {/* Sync status indicator */}
         <div
