@@ -8,7 +8,7 @@
  * - Atomic transactions (multiple operations)
  *
  * Features:
- * - Optimistic updates (UI updates immediately)
+ * - Immediate local updates (NodeStore updates UI subscribers synchronously)
  * - Type-safe schema-bound mutations
  * - Transaction support for atomic multi-node operations
  * - Pending state tracking
@@ -17,7 +17,7 @@
  * ```tsx
  * const { create, update, remove, mutate, isPending } = useMutate()
  *
- * // Simple operations (optimistic by default)
+ * // Simple operations
  * await create(TaskSchema, { title: 'New Task', status: 'todo' })
  * await update(TaskSchema, taskId, { status: 'done' })  // Type-safe!
  * await remove(taskId)
@@ -91,17 +91,9 @@ export type MutateOp =
   | MutateDelete
   | MutateRestore
 
-/**
- * Options for mutation operations
- */
-export interface MutateOptions {
-  /**
-   * Whether to apply optimistic updates.
-   * When true (default), the UI updates immediately before persistence completes.
-   * If persistence fails, the update is rolled back.
-   */
-  optimistic?: boolean
-}
+// Note: MutateOptions with optimistic rollback support was removed.
+// NodeStore already provides immediate local updates - subscribers see changes synchronously.
+// If you need rollback on failure, wrap mutations in try/catch and handle manually.
 
 /**
  * Result from useMutate hook
@@ -117,8 +109,7 @@ export interface UseMutateResult {
   create: <P extends Record<string, PropertyBuilder>>(
     schema: DefinedSchema<P>,
     data: InferCreateProps<P>,
-    id?: string,
-    options?: MutateOptions
+    id?: string
   ) => Promise<FlatNode<P> | null>
 
   /**
@@ -136,30 +127,26 @@ export interface UseMutateResult {
   update: <P extends Record<string, PropertyBuilder>>(
     schema: DefinedSchema<P>,
     id: string,
-    data: Partial<InferCreateProps<P>>,
-    options?: MutateOptions
+    data: Partial<InferCreateProps<P>>
   ) => Promise<FlatNode<P> | null>
 
   /**
    * Delete a node by ID (soft delete).
    */
-  remove: (id: string, options?: MutateOptions) => Promise<void>
+  remove: (id: string) => Promise<void>
 
   /**
    * Restore a deleted node by ID.
    *
    * @returns The restored node (flattened), or null if restore failed
    */
-  restore: (
-    id: string,
-    options?: MutateOptions
-  ) => Promise<FlatNode<Record<string, PropertyBuilder>> | null>
+  restore: (id: string) => Promise<FlatNode<Record<string, PropertyBuilder>> | null>
 
   /**
    * Execute multiple operations atomically.
    * All operations succeed or fail together.
    */
-  mutate: (ops: MutateOp[], options?: MutateOptions) => Promise<TransactionResult | null>
+  mutate: (ops: MutateOp[]) => Promise<TransactionResult | null>
 
   /**
    * Whether any mutation is currently in progress.
@@ -182,7 +169,8 @@ export interface UseMutateResult {
  * Provides both convenience methods (create, update, remove) and
  * a full transaction API (mutate) for atomic multi-node operations.
  *
- * All operations support optimistic updates by default.
+ * All operations update the local NodeStore immediately, and subscribers
+ * see changes synchronously. Background sync handles persistence.
  */
 export function useMutate(): UseMutateResult {
   const { store, isReady } = useNodeStore()
@@ -206,8 +194,7 @@ export function useMutate(): UseMutateResult {
     async <P extends Record<string, PropertyBuilder>>(
       schema: DefinedSchema<P>,
       data: InferCreateProps<P>,
-      id?: string,
-      _options?: MutateOptions
+      id?: string
     ): Promise<FlatNode<P> | null> => {
       if (!store || !isReady) return null
 
@@ -229,8 +216,7 @@ export function useMutate(): UseMutateResult {
     async <P extends Record<string, PropertyBuilder>>(
       _schema: DefinedSchema<P>,
       id: string,
-      data: Partial<InferCreateProps<P>>,
-      _options?: MutateOptions
+      data: Partial<InferCreateProps<P>>
     ): Promise<FlatNode<P> | null> => {
       if (!store || !isReady) return null
 
@@ -244,7 +230,7 @@ export function useMutate(): UseMutateResult {
 
   // Delete a node
   const remove = useCallback(
-    async (id: string, _options?: MutateOptions): Promise<void> => {
+    async (id: string): Promise<void> => {
       if (!store || !isReady) return
 
       return withPending(async () => {
@@ -256,10 +242,7 @@ export function useMutate(): UseMutateResult {
 
   // Restore a deleted node
   const restore = useCallback(
-    async (
-      id: string,
-      _options?: MutateOptions
-    ): Promise<FlatNode<Record<string, PropertyBuilder>> | null> => {
+    async (id: string): Promise<FlatNode<Record<string, PropertyBuilder>> | null> => {
       if (!store || !isReady) return null
 
       return withPending(async () => {
@@ -272,7 +255,7 @@ export function useMutate(): UseMutateResult {
 
   // Execute a transaction
   const mutate = useCallback(
-    async (ops: MutateOp[], _options?: MutateOptions): Promise<TransactionResult | null> => {
+    async (ops: MutateOp[]): Promise<TransactionResult | null> => {
       if (!store || !isReady || ops.length === 0) return null
 
       return withPending(async () => {

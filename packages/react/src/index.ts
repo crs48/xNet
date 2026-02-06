@@ -58,8 +58,7 @@ export {
   type MutateCreate,
   type MutateUpdate,
   type MutateDelete,
-  type MutateRestore,
-  type MutateOptions
+  type MutateRestore
 } from './hooks/useMutate'
 
 /**

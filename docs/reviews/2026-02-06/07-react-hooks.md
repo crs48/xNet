@@ -330,6 +330,6 @@ graph TD
 ### Phase 3 (Production)
 
 - [x] **REACT-05:** Fix dependency array in useQuery _(fixed - memoize filter.where with useMemo to avoid string recreation)_
-- [ ] **REACT-10:** Implement optimistic updates or remove option
+- [x] **REACT-10:** Implement optimistic updates or remove option _(fixed - removed unused MutateOptions, clarified that NodeStore already provides immediate local updates)_
 - [ ] **REACT-17:** Debounce offline queue saves
 - [ ] Add tests for all hooks (useUndo, useHistory, useComments, etc.)
