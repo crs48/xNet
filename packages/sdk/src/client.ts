@@ -185,7 +185,8 @@ export async function createXNetClient(config: XNetClientConfig = {}): Promise<X
       return identity
     },
     get peers() {
-      return []
+      if (!networkNode) return []
+      return networkNode.libp2p.getPeers().map((p) => p.toString())
     },
     get syncStatus() {
       return syncStatus
@@ -281,10 +282,10 @@ export async function createXNetClient(config: XNetClientConfig = {}): Promise<X
       return results.map((r) => ({ id: r.id, title: r.title, score: r.score }))
     },
 
-    async connectToPeer(_multiaddr: string): Promise<void> {
+    async connectToPeer(multiaddr: string): Promise<void> {
       if (!networkNode) throw new Error('Network not enabled')
-      // Would connect to peer via libp2p multiaddr
-      // Implementation deferred until network is stable
+      const { connectToPeer } = await import('@xnet/network')
+      await connectToPeer(networkNode, multiaddr)
     },
 
     on(event: string, handler: (arg: string) => void): () => void {
