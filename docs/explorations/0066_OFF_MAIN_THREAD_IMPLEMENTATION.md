@@ -661,14 +661,15 @@ flowchart TB
 
 #### Checklist
 
-- [ ] Create utility process infrastructure
-  - [ ] `apps/electron/src/data-process/index.ts` - Utility process entry
-  - [ ] `apps/electron/src/data-process/data-service.ts` - BSM implementation
+- [x] Create utility process infrastructure
+  - [x] `apps/electron/src/data-process/index.ts` - Utility process entry
+  - [x] `apps/electron/src/data-process/data-service.ts` - BSM implementation
+  - [x] `apps/electron/src/main/data-process-manager.ts` - Process lifecycle management
   - [ ] MessagePort setup between renderer and utility process
-- [ ] Migrate BSM to utility process
-  - [ ] Move `bsm.ts` logic to utility process
-  - [ ] Move SQLite storage to utility process
-  - [ ] Update IPC handlers for new architecture
+- [x] Migrate BSM to utility process
+  - [x] Move `bsm.ts` logic to utility process (data-service.ts)
+  - [x] Move SQLite storage to utility process
+  - [ ] Update IPC handlers for new architecture (proxy through main)
 - [ ] Update IPCSyncManager
   - [ ] Use MessagePort for binary data (not IPC `number[]`)
   - [ ] Handle utility process lifecycle
