@@ -1359,26 +1359,26 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 
 - [x] Create `diffSchemas()` utility
 - [ ] Add schema diff to TypeScript plugin (optional)
-- [ ] Create Version DevTools panel
+- [x] Create Version DevTools panel
 - [ ] Create Migration Wizard component
-- [ ] Create schema-check GitHub Action
+- [x] Create schema-check GitHub Action
 - [ ] Document schema change classifications
 - [ ] Write DX tests
 
 ### Week 9-10: Robustness
 
-- [ ] Create `ChangeHandlerRegistry`
-- [ ] Implement version-specific handlers
-- [ ] Create `verifyIntegrity()` utility
-- [ ] Implement periodic integrity checks
-- [ ] Create `xnet doctor` command
-- [ ] Create `xnet repair` command
-- [ ] Create `xnet export` command
-- [ ] Create `xnet import` command
-- [ ] Define deprecation policy
-- [ ] Create `checkDeprecations()` utility
-- [ ] Write robustness tests
-- [ ] Write documentation
+- [x] Create `ChangeHandlerRegistry`
+- [x] Implement version-specific handlers
+- [x] Create `verifyIntegrity()` utility
+- [x] Implement periodic integrity checks
+- [x] Create `xnet doctor` command
+- [x] Create `xnet repair` command
+- [x] Create `xnet export` command
+- [x] Create `xnet import` command
+- [x] Define deprecation policy
+- [x] Create `checkDeprecations()` utility
+- [x] Write robustness tests
+- [x] Write documentation
 
 ---
 
@@ -1398,12 +1398,12 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 
 ## Documentation Deliverables
 
-- [ ] **Migration Guide** - How to evolve schemas safely
-- [ ] **Version Compatibility Matrix** - What works with what
-- [ ] **Lens Cookbook** - Common migration patterns
-- [ ] **Deprecation Policy** - How long things are supported
-- [ ] **Recovery Procedures** - What to do when things go wrong
-- [ ] **CI Integration Guide** - How to catch issues early
+- [x] **Migration Guide** - How to evolve schemas safely (`docs/sync/01-migration-guide.md`)
+- [x] **Version Compatibility Matrix** - What works with what (`docs/sync/02-version-compatibility.md`)
+- [x] **Lens Cookbook** - Common migration patterns (`docs/sync/03-lens-cookbook.md`)
+- [x] **Deprecation Policy** - How long things are supported (`docs/sync/04-deprecation-policy.md`)
+- [x] **Recovery Procedures** - What to do when things go wrong (`docs/sync/05-recovery-procedures.md`)
+- [x] **CI Integration Guide** - How to catch issues early (`docs/sync/06-ci-integration.md`)
 
 ---
 

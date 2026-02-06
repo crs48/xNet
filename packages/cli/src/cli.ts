@@ -19,6 +19,7 @@
  */
 
 import { program } from 'commander'
+import { registerDoctorCommand } from './commands/doctor.js'
 import { registerMigrateCommand } from './commands/migrate.js'
 import { registerSchemaCommand } from './commands/schema.js'
 
@@ -30,6 +31,7 @@ program
 // Register commands
 registerMigrateCommand(program)
 registerSchemaCommand(program)
+registerDoctorCommand(program)
 
 // Parse and run
 program.parse()
