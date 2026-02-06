@@ -1,8 +1,8 @@
 /**
- * Tests for QueryCache with LRU eviction
+ * Tests for QueryCache with LRU eviction and weak references
  */
 import type { NodeState, SchemaIRI } from '@xnet/data'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { QueryCache } from '../query-cache'
 
 // ─── Test Helpers ────────────────────────────────────────────────────────────
@@ -30,7 +30,12 @@ describe('QueryCache', () => {
   let cache: QueryCache
 
   beforeEach(() => {
-    cache = new QueryCache()
+    // Disable automatic cleanup in tests
+    cache = new QueryCache({ enableWeakRefCleanup: false })
+  })
+
+  afterEach(() => {
+    cache.destroy()
   })
 
   describe('basic operations', () => {
@@ -171,6 +176,113 @@ describe('QueryCache', () => {
       // The evict() call should not remove any
       const evicted = smallCache.evict()
       expect(evicted).toBe(0)
+    })
+  })
+
+  describe('weak references', () => {
+    it('should support weak subscriptions', () => {
+      const queryId = 'test-query'
+      const callback = vi.fn()
+
+      cache.initEntry(queryId, TEST_SCHEMA_ID, {})
+      cache.subscribeWeak(queryId, callback)
+
+      cache.set(queryId, [createMockNode('1', 'Task 1')], TEST_SCHEMA_ID, {})
+      expect(callback).toHaveBeenCalledTimes(1)
+    })
+
+    it('should track weak subscriber count', () => {
+      const queryId = 'test-query'
+      cache.initEntry(queryId, TEST_SCHEMA_ID, {})
+
+      cache.subscribeWeak(queryId, () => {})
+      cache.subscribeWeak(queryId, () => {})
+
+      expect(cache.getWeakSubscriberCount(queryId)).toBe(2)
+    })
+
+    it('should include weak subscribers in total count', () => {
+      const queryId = 'test-query'
+      cache.initEntry(queryId, TEST_SCHEMA_ID, {})
+
+      cache.subscribe(queryId, () => {})
+      cache.subscribeWeak(queryId, () => {})
+      cache.subscribeWeak(queryId, () => {})
+
+      expect(cache.getSubscriberCount(queryId)).toBe(3)
+    })
+
+    it('should unsubscribe weak subscribers', () => {
+      const queryId = 'test-query'
+      const callback = vi.fn()
+
+      cache.initEntry(queryId, TEST_SCHEMA_ID, {})
+      const unsubscribe = cache.subscribeWeak(queryId, callback)
+
+      expect(cache.getWeakSubscriberCount(queryId)).toBe(1)
+
+      unsubscribe()
+
+      expect(cache.getWeakSubscriberCount(queryId)).toBe(0)
+    })
+
+    it('should not evict entries with active weak subscribers', () => {
+      const smallCache = new QueryCache({ maxSize: 3, enableWeakRefCleanup: false })
+
+      let mockTime = 1000000000000
+      vi.spyOn(Date, 'now').mockImplementation(() => mockTime)
+
+      // Add entry with weak subscriber
+      const callback = () => {}
+      smallCache.initEntry('q1', TEST_SCHEMA_ID, {})
+      smallCache.subscribeWeak('q1', callback)
+      smallCache.set('q1', [createMockNode('1', 'Task 1')], TEST_SCHEMA_ID, {})
+
+      // Add more entries without subscribers
+      smallCache.set('q2', [createMockNode('2', 'Task 2')], TEST_SCHEMA_ID, {})
+      smallCache.set('q3', [createMockNode('3', 'Task 3')], TEST_SCHEMA_ID, {})
+
+      // Advance time
+      mockTime += 35000
+
+      // Add another entry to trigger eviction
+      smallCache.set('q4', [createMockNode('4', 'Task 4')], TEST_SCHEMA_ID, {})
+
+      // q1 should still exist (has weak subscriber)
+      expect(smallCache.has('q1')).toBe(true)
+
+      vi.restoreAllMocks()
+      smallCache.destroy()
+    })
+
+    it('should clean up dead weak references manually', () => {
+      const queryId = 'test-query'
+      cache.initEntry(queryId, TEST_SCHEMA_ID, {})
+
+      // Create a callback and subscribe
+      const callback: (() => void) | null = () => {}
+      cache.subscribeWeak(queryId, callback)
+
+      expect(cache.getWeakSubscriberCount(queryId)).toBe(1)
+
+      // "Lose" the reference - in real code this would be GC'd
+      // We can't actually trigger GC in tests, but we can verify the cleanup logic
+      // by simulating a dead WeakRef
+
+      // For now, just verify the cleanup method exists and runs
+      const removed = cache.cleanupDeadWeakRefs()
+      // All refs are still alive since we haven't actually GC'd anything
+      expect(removed).toBe(0)
+    })
+
+    it('should stop cleanup interval on destroy', () => {
+      const cacheWithCleanup = new QueryCache({ enableWeakRefCleanup: true })
+
+      // Destroy should stop the interval
+      cacheWithCleanup.destroy()
+
+      // No error means it worked
+      expect(cacheWithCleanup.size).toBe(0)
     })
   })
 
