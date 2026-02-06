@@ -356,14 +356,91 @@ describe('LocalAPIServer', () => {
   })
 
   describe('CORS', () => {
-    it('handles preflight requests', async () => {
+    it('handles preflight requests with allowed origin', async () => {
+      // Create a server with specific allowed origins
+      const corsPort = 30000 + Math.floor(Math.random() * 1000)
+      const corsServer = createLocalAPI({
+        port: corsPort,
+        store: mockStore,
+        schemas: mockSchemas,
+        allowedOrigins: ['http://localhost:3000']
+      })
+      await corsServer.start()
+
+      try {
+        const corsUrl = `http://127.0.0.1:${corsPort}`
+        const response = await fetch(`${corsUrl}/api/v1/nodes`, {
+          method: 'OPTIONS',
+          headers: { Origin: 'http://localhost:3000' }
+        })
+
+        expect(response.status).toBe(204)
+        expect(response.headers.get('access-control-allow-origin')).toBe('http://localhost:3000')
+        expect(response.headers.get('access-control-allow-methods')).toContain('GET')
+        expect(response.headers.get('access-control-allow-credentials')).toBe('true')
+      } finally {
+        await corsServer.stop()
+      }
+    })
+
+    it('does not set CORS headers for disallowed origins', async () => {
+      const corsPort = 30000 + Math.floor(Math.random() * 1000)
+      const corsServer = createLocalAPI({
+        port: corsPort,
+        store: mockStore,
+        schemas: mockSchemas,
+        allowedOrigins: ['http://localhost:3000']
+      })
+      await corsServer.start()
+
+      try {
+        const corsUrl = `http://127.0.0.1:${corsPort}`
+        const response = await fetch(`${corsUrl}/api/v1/nodes`, {
+          method: 'OPTIONS',
+          headers: { Origin: 'http://evil.com' }
+        })
+
+        expect(response.status).toBe(204)
+        expect(response.headers.get('access-control-allow-origin')).toBeNull()
+      } finally {
+        await corsServer.stop()
+      }
+    })
+
+    it('does not set CORS headers when allowedOrigins is empty', async () => {
+      // Default server has empty allowedOrigins
       const response = await fetch(`${baseUrl}/api/v1/nodes`, {
-        method: 'OPTIONS'
+        method: 'OPTIONS',
+        headers: { Origin: 'http://localhost:3000' }
       })
 
       expect(response.status).toBe(204)
-      expect(response.headers.get('access-control-allow-origin')).toBe('*')
-      expect(response.headers.get('access-control-allow-methods')).toContain('GET')
+      expect(response.headers.get('access-control-allow-origin')).toBeNull()
+    })
+
+    it('supports wildcard allowedOrigins', async () => {
+      const corsPort = 30000 + Math.floor(Math.random() * 1000)
+      const corsServer = createLocalAPI({
+        port: corsPort,
+        store: mockStore,
+        schemas: mockSchemas,
+        allowedOrigins: ['*']
+      })
+      await corsServer.start()
+
+      try {
+        const corsUrl = `http://127.0.0.1:${corsPort}`
+        const response = await fetch(`${corsUrl}/api/v1/nodes`, {
+          method: 'OPTIONS',
+          headers: { Origin: 'http://any-origin.com' }
+        })
+
+        expect(response.status).toBe(204)
+        // Even with wildcard config, we return the specific origin for credentials support
+        expect(response.headers.get('access-control-allow-origin')).toBe('http://any-origin.com')
+      } finally {
+        await corsServer.stop()
+      }
     })
   })
 
