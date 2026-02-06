@@ -94,7 +94,11 @@ export function createNodePool(config: NodePoolConfig): NodePool {
     )
   }
 
-  function evictIfNeeded(): void {
+  /**
+   * Evict warm entries if pool exceeds maxWarm limit.
+   * Persists documents to storage before destroying them.
+   */
+  async function evictIfNeeded(): Promise<void> {
     let warmCount = 0
     const warmEntries: [string, PoolEntry][] = []
 
@@ -111,22 +115,30 @@ export function createNodePool(config: NodePoolConfig): NodePool {
     warmEntries.sort((a, b) => a[1].lastAccess - b[1].lastAccess)
     const toEvict = warmEntries.slice(0, warmCount - maxWarm)
 
-    for (const [id, entry] of toEvict) {
-      // Persist before evicting
-      const content = Y.encodeStateAsUpdate(entry.doc)
-      config.storage.setDocumentContent(id, content).catch(() => {})
+    // Persist all documents in parallel, then destroy
+    await Promise.all(
+      toEvict.map(async ([id, entry]) => {
+        try {
+          // Persist before evicting - await to ensure data is saved
+          const content = Y.encodeStateAsUpdate(entry.doc)
+          await config.storage.setDocumentContent(id, content)
+        } catch (err) {
+          // Log error but continue eviction to prevent memory leak
+          console.error(`[NodePool] Failed to persist document ${id} during eviction:`, err)
+        }
 
-      // Cleanup meta observer
-      if (entry.unobserveMeta) {
-        entry.unobserveMeta()
-      }
+        // Cleanup meta observer
+        if (entry.unobserveMeta) {
+          entry.unobserveMeta()
+        }
 
-      config.onDocEvict?.(id, entry.doc)
+        config.onDocEvict?.(id, entry.doc)
 
-      // Destroy Y.Doc
-      entry.doc.destroy()
-      entries.delete(id)
-    }
+        // Destroy Y.Doc
+        entry.doc.destroy()
+        entries.delete(id)
+      })
+    )
   }
 
   return {
@@ -179,7 +191,10 @@ export function createNodePool(config: NodePoolConfig): NodePool {
       if (entry.refCount === 0) {
         entry.state = 'warm'
         entry.lastAccess = Date.now()
-        evictIfNeeded()
+        // Eviction is async but release() must remain sync for API compatibility.
+        // Errors are logged inside evictIfNeeded, and eviction ensures persistence
+        // completes before destroying the Y.Doc.
+        void evictIfNeeded()
       }
     },
 

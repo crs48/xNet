@@ -5,6 +5,7 @@
 import type { SchemaIRI } from '../schema/node'
 import type { DID } from '@xnet/core'
 import { generateSigningKeyPair } from '@xnet/crypto'
+import { createDID } from '@xnet/identity'
 import { describe, it, expect } from 'vitest'
 import { LensRegistry, composeLens, rename, addDefault, convert } from '../schema'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
@@ -18,16 +19,18 @@ function createTestStore(): {
   store: NodeStore
   adapter: MemoryNodeStorageAdapter
   did: DID
+  privateKey: Uint8Array
 } {
   const keyPair = generateSigningKeyPair()
-  const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
+  // Use proper did:key encoding with base58btc and Ed25519 multicodec prefix
+  const did = createDID(keyPair.publicKey) as DID
   const adapter = new MemoryNodeStorageAdapter()
   const store = new NodeStore({
     storage: adapter,
     authorDID: did,
     signingKey: keyPair.privateKey
   })
-  return { store, adapter, did }
+  return { store, adapter, did, privateKey: keyPair.privateKey }
 }
 
 describe('NodeStore', () => {
