@@ -1001,10 +1001,10 @@ sequenceDiagram
   - [x] Main thread creates mirror Y.Doc for TipTap binding
   - [x] Bidirectional update forwarding (local → worker, remote → main)
   - [x] Awareness instance per mirror doc
-- [ ] Update `useNode` hook (DEFERRED - infrastructure ready, useNode still uses SyncManager directly)
-  - [ ] Use `bridge.acquireDoc()` instead of direct Y.Doc creation
-  - [ ] Handle Transferable updates
-  - [ ] Maintain awareness sync
+- [x] Update `useNode` hook
+  - [x] Use `bridge.acquireDoc()` instead of direct Y.Doc creation (with fallback to SyncManager)
+  - [x] Handle Transferable updates (via DataBridge abstraction)
+  - [x] Maintain awareness sync (via acquired doc's awareness instance)
 - [x] Crypto in worker only (partial)
   - [x] NodeStore signing happens in worker (WorkerBridge)
   - [x] Signing key only passed to worker, never stored on main thread
