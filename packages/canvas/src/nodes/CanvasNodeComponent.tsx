@@ -5,7 +5,7 @@
  */
 
 import type { CanvasNode, ResizeHandle, Point } from '../types'
-import React, { useCallback, useRef, memo } from 'react'
+import React, { useCallback, useRef, useEffect, memo } from 'react'
 
 /**
  * Remote user presence on a specific node
@@ -155,6 +155,15 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   const nodeRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const dragStart = useRef<Point>({ x: 0, y: 0 })
+  const mountedRef = useRef(true)
+
+  // Track mounted state for cleanup of window listeners
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   const { position } = node
 
@@ -174,7 +183,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
       // Track mouse movement
       const handleMouseMove = (moveEvent: MouseEvent) => {
-        if (!isDragging.current) return
+        if (!isDragging.current || !mountedRef.current) return
         const delta = {
           x: moveEvent.clientX - dragStart.current.x,
           y: moveEvent.clientY - dragStart.current.y
@@ -185,9 +194,12 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
       const handleMouseUp = () => {
         isDragging.current = false
-        onDragEnd(node.id)
         window.removeEventListener('mousemove', handleMouseMove)
         window.removeEventListener('mouseup', handleMouseUp)
+        // Only call callback if still mounted
+        if (mountedRef.current) {
+          onDragEnd(node.id)
+        }
       }
 
       window.addEventListener('mousemove', handleMouseMove)
@@ -207,6 +219,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       onResizeStart(node.id, handle, start)
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!mountedRef.current) return
         const delta = {
           x: moveEvent.clientX - start.x,
           y: moveEvent.clientY - start.y
@@ -215,9 +228,12 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       }
 
       const handleMouseUp = () => {
-        onResizeEnd(node.id)
         window.removeEventListener('mousemove', handleMouseMove)
         window.removeEventListener('mouseup', handleMouseUp)
+        // Only call callback if still mounted
+        if (mountedRef.current) {
+          onResizeEnd(node.id)
+        }
       }
 
       window.addEventListener('mousemove', handleMouseMove)

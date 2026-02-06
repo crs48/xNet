@@ -135,7 +135,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const isDragging = useRef(false)
+  const [isDragging, setIsDragging] = useState(false)
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
 
   // Track initial positions when drag starts to prevent drift during fast drags
@@ -274,11 +274,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       onBackgroundClick?.()
 
       // Start panning
-      isDragging.current = true
+      setIsDragging(true)
       lastMousePos.current = { x: e.clientX, y: e.clientY }
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
-        if (!isDragging.current) return
         const deltaX = moveEvent.clientX - lastMousePos.current.x
         const deltaY = moveEvent.clientY - lastMousePos.current.y
         lastMousePos.current = { x: moveEvent.clientX, y: moveEvent.clientY }
@@ -286,7 +285,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       }
 
       const handleMouseUp = () => {
-        isDragging.current = false
+        setIsDragging(false)
         window.removeEventListener('mousemove', handleMouseMove)
         window.removeEventListener('mouseup', handleMouseUp)
       }
@@ -455,7 +454,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     height: '100%',
     overflow: 'hidden',
     backgroundColor: '#fafafa',
-    cursor: isDragging.current ? 'grabbing' : 'default',
+    cursor: isDragging ? 'grabbing' : 'default',
     ...style
   }
 
