@@ -259,9 +259,22 @@ export class ClientIdMapImpl implements ClientIdMap {
   }
 
   size(): number {
-    // Cleanup expired first
-    this.cleanup()
     return this.byClientId.size
+  }
+
+  /**
+   * Get the count of non-expired entries without mutating state.
+   * This is useful for accurate counts but slower than size().
+   */
+  activeCount(): number {
+    const now = Date.now()
+    let count = 0
+    for (const entry of this.byClientId.values()) {
+      if (entry.expiresAt > now) {
+        count++
+      }
+    }
+    return count
   }
 
   /**
