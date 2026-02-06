@@ -82,6 +82,16 @@ export interface Schema {
   name: string
   /** Namespace for this schema */
   namespace: string
+  /**
+   * Schema version in semver format.
+   * Included in IRI as `@version` suffix.
+   */
+  version: string
+  /**
+   * Previous schema IRI to migrate from.
+   * Used for automatic migration path discovery.
+   */
+  migrateFrom?: SchemaIRI
   /** Property definitions */
   properties: PropertyDefinition[]
   /** Parent schema IRI (for inheritance) */

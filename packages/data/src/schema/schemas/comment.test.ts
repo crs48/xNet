@@ -8,9 +8,10 @@ describe('CommentSchema', () => {
 
   describe('schema definition', () => {
     it('has correct schema IRI', () => {
-      expect(CommentSchema.schema['@id']).toBe('xnet://xnet.fyi/Comment')
+      expect(CommentSchema.schema['@id']).toBe('xnet://xnet.fyi/Comment@1.0.0')
       expect(CommentSchema.schema['@type']).toBe('xnet://xnet.fyi/Schema')
       expect(CommentSchema.schema.name).toBe('Comment')
+      expect(CommentSchema.schema.version).toBe('1.0.0')
     })
 
     it('has no document type (comments are plain text)', () => {
@@ -20,12 +21,12 @@ describe('CommentSchema', () => {
     it('has all required properties defined', () => {
       const propIds = CommentSchema.schema.properties.map((p) => p['@id'])
 
-      expect(propIds).toContain('xnet://xnet.fyi/Comment#target')
-      expect(propIds).toContain('xnet://xnet.fyi/Comment#anchorType')
-      expect(propIds).toContain('xnet://xnet.fyi/Comment#anchorData')
-      expect(propIds).toContain('xnet://xnet.fyi/Comment#content')
-      expect(propIds).toContain('xnet://xnet.fyi/Comment#inReplyTo')
-      expect(propIds).toContain('xnet://xnet.fyi/Comment#resolved')
+      expect(propIds).toContain('xnet://xnet.fyi/Comment@1.0.0#target')
+      expect(propIds).toContain('xnet://xnet.fyi/Comment@1.0.0#anchorType')
+      expect(propIds).toContain('xnet://xnet.fyi/Comment@1.0.0#anchorData')
+      expect(propIds).toContain('xnet://xnet.fyi/Comment@1.0.0#content')
+      expect(propIds).toContain('xnet://xnet.fyi/Comment@1.0.0#inReplyTo')
+      expect(propIds).toContain('xnet://xnet.fyi/Comment@1.0.0#resolved')
     })
   })
 
@@ -42,7 +43,7 @@ describe('CommentSchema', () => {
       )
 
       expect(comment.id).toBeDefined()
-      expect(comment.schemaId).toBe('xnet://xnet.fyi/Comment')
+      expect(comment.schemaId).toBe('xnet://xnet.fyi/Comment@1.0.0')
       expect(comment.target).toBe(targetNodeId)
       expect(comment.anchorType).toBe('node')
       expect(comment.anchorData).toBe('{}')

@@ -10,11 +10,25 @@
  */
 
 // Node type
-export type { Node, SchemaIRI, DID } from './node'
-export { isNode, createNodeId } from './node'
+export type { Node, SchemaIRI, DID, ParsedSchemaIRI } from './node'
+export {
+  isNode,
+  createNodeId,
+  DEFAULT_SCHEMA_VERSION,
+  parseSchemaIRI,
+  buildSchemaIRI,
+  normalizeSchemaIRI,
+  getBaseSchemaIRI,
+  isSameSchema,
+  getSchemaVersion
+} from './node'
 
 // Schema definition
-export { defineSchema, type DefineSchemaOptions } from './define'
+export {
+  defineSchema,
+  type DefineSchemaOptions,
+  DEFAULT_SCHEMA_VERSION as SCHEMA_VERSION
+} from './define'
 
 // Types
 export type {

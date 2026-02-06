@@ -61,8 +61,19 @@ export {
 
 /**
  * All built-in schemas, keyed by their IRI.
+ *
+ * Both unversioned (legacy) and versioned (@1.0.0) IRIs are supported.
+ * The unversioned IRIs are aliases for @1.0.0 versions.
  */
 export const builtInSchemas = {
+  // Versioned IRIs (canonical)
+  'xnet://xnet.fyi/Page@1.0.0': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Database@1.0.0': () => import('./database').then((m) => m.DatabaseSchema),
+  'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
+  'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
+  'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
+
+  // Legacy unversioned IRIs (aliases for @1.0.0)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
   'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),

@@ -211,14 +211,14 @@ export function createUnsignedChange<T>(options: CreateChangeOptions<T>): Unsign
 
 #### 1.2 Schema Version Field
 
-- [ ] **Add `version` field to DefineSchemaOptions**
+- [x] **Add `version` field to DefineSchemaOptions**
   - File: `packages/data/src/schema/define.ts`
   - Default: `'1.0.0'`
   - Type: semver string
-- [ ] **Include version in SchemaIRI**
+- [x] **Include version in SchemaIRI**
   - Format: `xnet://namespace/Name@1.0.0`
   - Backward compat: unversioned IRIs treated as `@1.0.0`
-- [ ] **Update SchemaRegistry to track versions**
+- [x] **Update SchemaRegistry to track versions**
   - File: `packages/data/src/schema/registry.ts`
   - Method: `getVersion(iri: SchemaIRI): string`
   - Method: `getAllVersions(baseName: string): VersionedSchema[]`
