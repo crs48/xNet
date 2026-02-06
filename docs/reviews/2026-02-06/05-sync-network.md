@@ -344,7 +344,7 @@ sequenceDiagram
 - [x] **SY-04:** Add periodic cleanup to rate limiter _(fixed - added cleanup to both @xnet/sync YjsRateLimiter and @xnet/network SyncRateLimiter)_
 - [x] **SY-05:** Remove cleanup side effect from size() _(fixed - size() no longer calls cleanup(), added activeCount() for non-mutating count)_
 - [ ] **SDK-01:** Add LRU eviction to document cache
-- [ ] **NW-02/03:** Clean up timers on destroy
+- [x] **NW-02/03:** Clean up timers on destroy _(fixed - DefaultConnectionGater now tracks denylist timers and clears them on destroy/remove)_
 
 ### Phase 3 (Multiplayer)
 
