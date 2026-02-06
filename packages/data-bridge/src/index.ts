@@ -39,6 +39,17 @@ export type {
 export { MainThreadBridge, createMainThreadBridge } from './main-thread-bridge'
 export { WorkerBridge, createWorkerBridge } from './worker-bridge'
 
+// ─── Factory Functions ────────────────────────────────────────────────────────
+
+export {
+  createDataBridge,
+  createMainThreadBridgeSync,
+  createWorkerBridgeSync,
+  isWorkerSupported,
+  isNodeEnvironment,
+  type CreateBridgeOptions
+} from './create-bridge'
+
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
 export { QueryCache } from './query-cache'
