@@ -1031,13 +1031,17 @@ jobs:
 
 #### 5.1 Version-Specific Change Handlers
 
-- [ ] **Create change handler registry**
-  - File: `packages/sync/src/handlers/` (new directory)
-  - Register handlers by change type and version
-  - Fallback to generic handler for unknown
-- [ ] **Implement backward-compatible handlers**
+- [x] **Create change handler registry**
+  - File: `packages/sync/src/handlers/index.ts` (new)
+  - Register handlers by change type and version range
+  - Fallback to handlers with `maxVersion: Infinity` for unknown versions
+  - Event subscriptions for unknown types and invalid changes
+  - 26 tests covering all functionality
+- [x] **Implement backward-compatible handlers**
   - Each handler version can process older formats
-  - Transform old format to new internally
+  - `createVersionedHandler()` for specific version ranges
+  - `createHandler()` for all-versions handlers
+  - Transform old format to new internally via handler logic
 
 ```typescript
 // packages/sync/src/handlers/index.ts
