@@ -12,6 +12,7 @@
  */
 
 import type { SchemaLookup } from './tempids'
+import type { LensRegistry } from '../schema/lens'
 import type { SchemaIRI } from '../schema/node'
 import type { DID, ContentId } from '@xnet/core'
 import type { Change, LamportTimestamp } from '@xnet/sync'
@@ -249,6 +250,12 @@ export interface NodeStoreOptions {
    * Without this, all properties are stored as known properties.
    */
   propertyLookup?: PropertyLookup
+  /**
+   * Optional lens registry for automatic schema migrations.
+   * When provided, nodes are automatically migrated to the target schema
+   * version on read (getWithMigration). Without this, nodes are returned as-is.
+   */
+  lensRegistry?: LensRegistry
 }
 
 /**
@@ -319,3 +326,40 @@ export interface NodeChangeEvent {
  * Listener for Node change events.
  */
 export type NodeChangeListener = (event: NodeChangeEvent) => void
+
+// ============================================================================
+// Migration Support
+// ============================================================================
+
+/**
+ * Options for getWithMigration.
+ */
+export interface GetWithMigrationOptions {
+  /** Target schema IRI to migrate to (required) */
+  targetSchemaId: SchemaIRI
+}
+
+/**
+ * Information about a migration that was applied.
+ */
+export interface MigrationInfo {
+  /** The original schema IRI of the stored data */
+  from: SchemaIRI
+  /** The target schema IRI */
+  to: SchemaIRI
+  /** Whether the migration preserved all data (no data loss) */
+  lossless: boolean
+  /** Warnings about potential data loss */
+  warnings: string[]
+}
+
+/**
+ * Result of getWithMigration.
+ */
+export interface MigratedNodeState extends NodeState {
+  /**
+   * Migration info if the node was migrated from a different schema version.
+   * Undefined if no migration was needed.
+   */
+  _migrationInfo?: MigrationInfo
+}

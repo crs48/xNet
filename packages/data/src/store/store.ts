@@ -25,8 +25,11 @@ import type {
   TransactionOperation,
   TransactionResult,
   NodeChangeListener,
-  PropertyLookup
+  PropertyLookup,
+  GetWithMigrationOptions,
+  MigratedNodeState
 } from './types'
+import type { LensRegistry } from '../schema/lens'
 import type { DID } from '@xnet/core'
 import {
   createLamportClock,
@@ -39,7 +42,7 @@ import {
   type LamportClock,
   type LamportTimestamp
 } from '@xnet/sync'
-import { createNodeId } from '../schema/node'
+import { createNodeId, getBaseSchemaIRI } from '../schema/node'
 import { resolveTempIds, type SchemaLookup } from './tempids'
 
 /**
@@ -54,6 +57,7 @@ export class NodeStore {
   private listeners: Set<NodeChangeListener> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
+  private lensRegistry?: LensRegistry
 
   constructor(options: NodeStoreOptions) {
     this.storage = options.storage
@@ -62,6 +66,7 @@ export class NodeStore {
     this.clock = createLamportClock(options.authorDID)
     this.schemaLookup = options.schemaLookup
     this.propertyLookup = options.propertyLookup
+    this.lensRegistry = options.lensRegistry
   }
 
   /**
@@ -116,6 +121,81 @@ export class NodeStore {
    */
   async get(id: NodeId): Promise<NodeState | null> {
     return this.storage.getNode(id)
+  }
+
+  /**
+   * Get a Node by ID with automatic schema migration.
+   *
+   * If the stored node's schema version differs from the target schema,
+   * and a migration path exists in the lens registry, the node's properties
+   * will be automatically transformed.
+   *
+   * @param id - The node ID to fetch
+   * @param options - Options including the target schema IRI
+   * @returns The node with migrated properties, or null if not found
+   *
+   * @example
+   * ```typescript
+   * // Get node and migrate to TaskSchema v2.0.0
+   * const node = await store.getWithMigration('node-123', {
+   *   targetSchemaId: TaskSchemaV2['@id']
+   * })
+   *
+   * if (node?._migrationInfo) {
+   *   console.log('Migrated from:', node._migrationInfo.from)
+   *   if (!node._migrationInfo.lossless) {
+   *     console.warn('Migration warnings:', node._migrationInfo.warnings)
+   *   }
+   * }
+   * ```
+   */
+  async getWithMigration(
+    id: NodeId,
+    options: GetWithMigrationOptions
+  ): Promise<MigratedNodeState | null> {
+    const node = await this.storage.getNode(id)
+    if (!node) return null
+
+    // Determine stored schema version
+    const storedSchemaId = node._schemaVersion
+      ? (`${getBaseSchemaIRI(node.schemaId)}@${node._schemaVersion}` as const)
+      : node.schemaId
+
+    // If same schema, no migration needed
+    if (storedSchemaId === options.targetSchemaId) {
+      return node
+    }
+
+    // Check if we have a lens registry
+    if (!this.lensRegistry) {
+      // No registry - return node as-is without migration
+      return node
+    }
+
+    // Check if migration path exists
+    if (!this.lensRegistry.canMigrate(storedSchemaId, options.targetSchemaId)) {
+      // No migration path - return node as-is
+      return node
+    }
+
+    // Perform migration
+    const result = this.lensRegistry.transformWithDetails(
+      node.properties,
+      storedSchemaId,
+      options.targetSchemaId
+    )
+
+    // Return migrated node with migration info
+    return {
+      ...node,
+      properties: result.data,
+      _migrationInfo: {
+        from: storedSchemaId,
+        to: options.targetSchemaId,
+        lossless: result.lossless,
+        warnings: result.warnings
+      }
+    }
   }
 
   /**
