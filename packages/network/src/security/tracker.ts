@@ -19,6 +19,9 @@ export interface ConnectionStats {
   connectionsPerMinute: number
 }
 
+// Cap recentConnections to prevent memory spikes during connection floods
+const MAX_RECENT_CONNECTIONS = 1000
+
 export class ConnectionTracker {
   private connections = new Map<string, ConnectionInfo>()
   private pendingConnections = new Set<string>()
@@ -189,5 +192,10 @@ export class ConnectionTracker {
   private pruneRecentConnections(): void {
     const oneMinuteAgo = Date.now() - 60_000
     this.recentConnections = this.recentConnections.filter((c) => c.timestamp > oneMinuteAgo)
+
+    // Cap array size to prevent memory spikes during connection floods
+    if (this.recentConnections.length > MAX_RECENT_CONNECTIONS) {
+      this.recentConnections = this.recentConnections.slice(-MAX_RECENT_CONNECTIONS)
+    }
   }
 }
