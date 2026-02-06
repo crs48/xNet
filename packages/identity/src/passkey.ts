@@ -20,19 +20,44 @@ export interface PasskeyStorage {
 }
 
 /**
- * Browser implementation using WebAuthn
- * Note: This is a simplified implementation. Production use would
- * integrate with actual WebAuthn credentials for key derivation.
+ * Browser implementation using WebAuthn (INSECURE - TEST/DEVELOPMENT ONLY)
+ *
+ * @warning SECURITY NOTICE: This implementation provides NO real security!
+ * The encryption key is stored in the `salt` field alongside the encrypted data.
+ * Anyone with IndexedDB access can decrypt private keys.
+ *
+ * This class is intended ONLY for:
+ * - Development and testing
+ * - Prototyping WebAuthn integration
+ * - Fallback when WebAuthn PRF extension is unavailable
+ *
+ * For production use, implement key derivation using:
+ * - WebAuthn PRF extension (prf: { eval: { first: salt } })
+ * - Hardware security keys with PRF support
+ * - Platform authenticators with secure enclave
+ *
+ * @deprecated Use a secure implementation with WebAuthn PRF for production.
  */
 export class BrowserPasskeyStorage implements PasskeyStorage {
+  private static _warnedInsecure = false
+
   isAvailable(): boolean {
     return typeof globalThis !== 'undefined' && 'crypto' in globalThis
   }
 
   async store(keyBundle: KeyBundle, credentialId: string): Promise<StoredKey> {
-    // In a real implementation, we would use WebAuthn to derive a key
-    // For now, we generate a random key and store it alongside
-    // (This would be replaced with PRF extension or similar)
+    // Warn once about insecure usage
+    if (!BrowserPasskeyStorage._warnedInsecure) {
+      BrowserPasskeyStorage._warnedInsecure = true
+      console.warn(
+        '[BrowserPasskeyStorage] SECURITY WARNING: This implementation stores the encryption key ' +
+          'alongside encrypted data and provides NO real security. Use only for development/testing. ' +
+          'For production, implement WebAuthn PRF extension for secure key derivation.'
+      )
+    }
+
+    // INSECURE: Key stored alongside encrypted data - no actual protection
+    // In a secure implementation, use WebAuthn PRF to derive key from credential
     const key = generateKey()
     const serialized = serializeKeyBundle(keyBundle)
     const encrypted = encrypt(serialized, key)
@@ -40,7 +65,7 @@ export class BrowserPasskeyStorage implements PasskeyStorage {
     return {
       id: credentialId,
       encryptedKey: concatBytes(encrypted.nonce, encrypted.ciphertext),
-      salt: key, // In real impl, this would be derived from credential
+      salt: key, // INSECURE: This defeats the purpose of encryption
       created: Date.now()
     }
   }
@@ -54,7 +79,10 @@ export class BrowserPasskeyStorage implements PasskeyStorage {
 }
 
 /**
- * In-memory passkey storage for testing
+ * In-memory passkey storage for testing only.
+ *
+ * @warning TEST USE ONLY - Data is lost on page refresh.
+ * This class stores keys in memory without any persistence or security.
  */
 export class MemoryPasskeyStorage implements PasskeyStorage {
   private keys = new Map<string, { bundle: KeyBundle; key: Uint8Array }>()

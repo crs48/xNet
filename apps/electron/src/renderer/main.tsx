@@ -62,6 +62,102 @@ function SyncInstrumentation({ syncManager }: { syncManager: IPCSyncManager }) {
   return null
 }
 
+/**
+ * SEC-03: Component that connects Local API store requests to the NodeStore.
+ *
+ * This replaces the vulnerable executeJavaScript approach in local-api.ts.
+ * Store operations are now handled via structured IPC messages, preventing
+ * code injection attacks from malicious Local API requests.
+ *
+ * Must be rendered inside XNetProvider to access the store.
+ */
+function LocalAPIStoreHandler() {
+  useEffect(() => {
+    // Register handler for Local API store requests
+    const cleanup = window.xnetLocalAPI?.onStoreRequest?.(async (request) => {
+      // Access the store via window (set by XNetProvider)
+      const store = (window as Window & { __xnetNodeStore?: any }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      const { operation, params } = request
+
+      switch (operation) {
+        case 'get': {
+          const node = await store.get(params.id as string)
+          if (!node) return null
+          return {
+            id: node.id,
+            schemaId: node.schemaId,
+            properties: node.properties,
+            deleted: node.deleted,
+            createdAt: node.createdAt,
+            updatedAt: node.updatedAt
+          }
+        }
+
+        case 'list': {
+          const nodes = await store.list({
+            schemaId: params.schemaId as string | undefined,
+            limit: params.limit as number,
+            offset: params.offset as number
+          })
+          return nodes.map((n: any) => ({
+            id: n.id,
+            schemaId: n.schemaId,
+            properties: n.properties,
+            deleted: n.deleted,
+            createdAt: n.createdAt,
+            updatedAt: n.updatedAt
+          }))
+        }
+
+        case 'create': {
+          const node = await store.create({
+            schemaId: params.schemaId as string,
+            properties: params.properties as Record<string, unknown>
+          })
+          return {
+            id: node.id,
+            schemaId: node.schemaId,
+            properties: node.properties,
+            deleted: node.deleted,
+            createdAt: node.createdAt,
+            updatedAt: node.updatedAt
+          }
+        }
+
+        case 'update': {
+          const node = await store.update(params.id as string, {
+            properties: params.properties as Record<string, unknown>
+          })
+          return {
+            id: node.id,
+            schemaId: node.schemaId,
+            properties: node.properties,
+            deleted: node.deleted,
+            createdAt: node.createdAt,
+            updatedAt: node.updatedAt
+          }
+        }
+
+        case 'delete': {
+          await store.delete(params.id as string)
+          return undefined
+        }
+
+        default:
+          throw new Error(`Unknown Local API store operation: ${operation}`)
+      }
+    })
+
+    return cleanup
+  }, [])
+
+  return null
+}
+
 async function init() {
   const startTime = performance.now()
 
@@ -113,6 +209,7 @@ async function init() {
                 consentManager={consentManager}
               >
                 <SyncInstrumentation syncManager={ipcSyncManager} />
+                <LocalAPIStoreHandler />
                 <App />
               </XNetDevToolsProvider>
             </BlobProvider>

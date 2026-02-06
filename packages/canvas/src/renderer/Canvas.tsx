@@ -375,7 +375,35 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   // Build node map for edge rendering (memoized to avoid recreating on every render)
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes])
 
+  // PERF-01: Viewport culling - only render nodes visible in the viewport
+  // Add a buffer (200px in canvas coordinates) to avoid nodes popping in/out at edges
+  const visibleNodes = useMemo(() => {
+    const visibleRect = viewport.getVisibleRect()
+    // Expand rect by buffer to include nodes just outside viewport
+    const buffer = 200 / viewport.zoom // Buffer in canvas coordinates
+    const expandedRect = {
+      x: visibleRect.x - buffer,
+      y: visibleRect.y - buffer,
+      width: visibleRect.width + buffer * 2,
+      height: visibleRect.height + buffer * 2
+    }
+    return canvas.store.getVisibleNodes(expandedRect)
+  }, [canvas.store, viewport])
+
+  // PERF-01: Set of visible node IDs for fast edge culling lookup
+  const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes])
+
+  // PERF-01: Filter edges to only those with at least one visible endpoint
+  const visibleEdges = useMemo(
+    () =>
+      edges.filter(
+        (edge) => visibleNodeIds.has(edge.sourceId) || visibleNodeIds.has(edge.targetId)
+      ),
+    [edges, visibleNodeIds]
+  )
+
   // Build comment objects map (memoized for CommentOverlay)
+  // Note: Uses all nodes for comments, not just visible ones
   const commentObjects = useMemo(
     () =>
       new Map(
@@ -423,7 +451,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         <GridBackground gridSize={config.gridSize ?? 20} zoom={viewport.zoom} />
       )}
 
-      {/* Edges layer (SVG) */}
+      {/* Edges layer (SVG) - PERF-01: Only render edges with visible endpoints */}
       <svg
         style={{
           position: 'absolute',
@@ -436,7 +464,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         }}
       >
         <g style={{ transform: viewport.getTransform() }}>
-          {edges.map((edge) => {
+          {visibleEdges.map((edge) => {
             const sourceNode = nodeMap.get(edge.sourceId)
             const targetNode = nodeMap.get(edge.targetId)
             if (!sourceNode || !targetNode) return null
@@ -455,9 +483,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         </g>
       </svg>
 
-      {/* Nodes layer */}
+      {/* Nodes layer - PERF-01: Only render nodes visible in viewport */}
       <div style={canvasLayerStyle}>
-        {nodes.map((node) => (
+        {visibleNodes.map((node) => (
           <CanvasNodeComponent
             key={node.id}
             node={node}
