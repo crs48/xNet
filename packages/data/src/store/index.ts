@@ -47,7 +47,8 @@ export type {
   TransactionOperation,
   TransactionResult,
   NodeChangeEvent,
-  NodeChangeListener
+  NodeChangeListener,
+  PropertyLookup
 } from './types'
 
 // NodeStore
@@ -59,6 +60,7 @@ export {
   TEMP_ID_PREFIX,
   resolveTempIds,
   createSchemaLookup,
+  createPropertyLookup,
   type SchemaLookup,
   type TempIdResolution
 } from './tempids'

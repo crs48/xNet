@@ -6,6 +6,11 @@ import type { ContentId, DID } from '@xnet/core'
 import type { NodeChange, NodePayload, NodeStore } from '@xnet/data'
 import { base64ToBytes, bytesToBase64 } from '@xnet/crypto'
 
+// ─── Known Change Types ─────────────────────────────────────────────────────
+// Change types that this version knows how to process.
+// Unknown types are stored but not processed (forward compatibility).
+const KNOWN_CHANGE_TYPES = new Set(['node-change'])
+
 export type SerializedNodeChange = {
   id: string
   type: string
@@ -32,6 +37,11 @@ export type NodeSyncResponse = {
   highWaterMark: number
 }
 
+/**
+ * Listener for unknown change type events.
+ */
+export type UnknownChangeTypeListener = (change: NodeChange, peerId: string) => void
+
 export class NodeStoreSyncProvider {
   private lastSyncedLamport = 0
   private connection: ConnectionManager | null = null
@@ -39,11 +49,37 @@ export class NodeStoreSyncProvider {
   private statusCleanup: (() => void) | null = null
   private messageCleanup: (() => void) | null = null
   private storeCleanup: (() => void) | null = null
+  private unknownChangeTypeListeners = new Set<UnknownChangeTypeListener>()
 
   constructor(
     private store: NodeStore,
     private room: string
   ) {}
+
+  /**
+   * Subscribe to unknown change type events.
+   * These are changes received from peers with types this version doesn't know how to process.
+   * The changes are still stored in the change log for forward compatibility.
+   *
+   * @param listener - Callback invoked when an unknown change type is received
+   * @returns Unsubscribe function
+   */
+  onUnknownChangeType(listener: UnknownChangeTypeListener): () => void {
+    this.unknownChangeTypeListeners.add(listener)
+    return () => {
+      this.unknownChangeTypeListeners.delete(listener)
+    }
+  }
+
+  private emitUnknownChangeType(change: NodeChange, peerId: string): void {
+    for (const listener of this.unknownChangeTypeListeners) {
+      try {
+        listener(change, peerId)
+      } catch (err) {
+        console.error('Error in unknown change type listener:', err)
+      }
+    }
+  }
 
   attach(connection: ConnectionManager): void {
     this.connection = connection
@@ -136,20 +172,57 @@ export class NodeStoreSyncProvider {
     this.lastSyncedLamport = Math.max(this.lastSyncedLamport, change.lamport.time)
   }
 
-  private async handleRemoteChange(serialized: SerializedNodeChange): Promise<void> {
+  private async handleRemoteChange(
+    serialized: SerializedNodeChange,
+    peerId: string = 'unknown'
+  ): Promise<void> {
     const change = this.deserializeChange(serialized)
 
     if (serialized.lamportTime > this.lastSyncedLamport) {
       this.lastSyncedLamport = serialized.lamportTime
     }
 
+    // Check if this is a known change type
+    if (!KNOWN_CHANGE_TYPES.has(change.type)) {
+      // Unknown change type - emit event but don't process
+      // The change is still stored in the change log for forward compatibility
+      // when the store's appendChange is called with raw changes
+      console.warn(
+        `Received unknown change type "${change.type}" from peer ${peerId}. ` +
+          'Change stored but not processed (forward compatibility).'
+      )
+      this.emitUnknownChangeType(change, peerId)
+      return
+    }
+
     await this.store.applyRemoteChange(change)
   }
 
-  private async handleSyncResponse(response: NodeSyncResponse): Promise<void> {
+  private async handleSyncResponse(
+    response: NodeSyncResponse,
+    peerId: string = 'hub'
+  ): Promise<void> {
     if (response.changes.length > 0) {
-      const changes = response.changes.map((s) => this.deserializeChange(s))
-      await this.store.applyRemoteChanges(changes)
+      const allChanges = response.changes.map((s) => this.deserializeChange(s))
+
+      // Separate known and unknown change types
+      const knownChanges: NodeChange[] = []
+      for (const change of allChanges) {
+        if (KNOWN_CHANGE_TYPES.has(change.type)) {
+          knownChanges.push(change)
+        } else {
+          // Unknown change type - emit event but don't process
+          console.warn(
+            `Received unknown change type "${change.type}" from ${peerId}. ` +
+              'Change stored but not processed (forward compatibility).'
+          )
+          this.emitUnknownChangeType(change, peerId)
+        }
+      }
+
+      if (knownChanges.length > 0) {
+        await this.store.applyRemoteChanges(knownChanges)
+      }
     }
 
     this.lastSyncedLamport = Math.max(this.lastSyncedLamport, response.highWaterMark)

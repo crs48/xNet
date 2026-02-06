@@ -20,7 +20,7 @@
  * ```
  */
 
-import type { TransactionOperation, NodeId } from './types'
+import type { TransactionOperation, NodeId, PropertyLookup } from './types'
 import type { DefinedSchema, PropertyBuilder } from '../schema/types'
 import { createNodeId, type SchemaIRI } from '../schema/node'
 
@@ -70,6 +70,33 @@ export function createSchemaLookup(
 
     cache.set(schemaId, relationKeys)
     return relationKeys
+  }
+}
+
+/**
+ * Build a PropertyLookup from a schema getter function.
+ * Returns the set of all property names defined in the schema.
+ * Caches results for performance.
+ */
+export function createPropertyLookup(
+  getSchema: (iri: SchemaIRI) => DefinedSchema<Record<string, PropertyBuilder>> | undefined
+): PropertyLookup {
+  const cache = new Map<SchemaIRI, Set<string>>()
+
+  return (schemaId: SchemaIRI): Set<string> | undefined => {
+    const cached = cache.get(schemaId)
+    if (cached) return cached
+
+    const schema = getSchema(schemaId)
+    if (!schema) return undefined
+
+    const propertyNames = new Set<string>()
+    for (const prop of schema.schema.properties) {
+      propertyNames.add(prop.name)
+    }
+
+    cache.set(schemaId, propertyNames)
+    return propertyNames
   }
 }
 
