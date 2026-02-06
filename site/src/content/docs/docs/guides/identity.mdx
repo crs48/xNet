@@ -224,6 +224,8 @@ Identity is provided to the app through `XNetProvider`:
 
 ```tsx
 import { XNetProvider } from '@xnet/react'
+import { XNetDevToolsProvider } from '@xnet/devtools'
+
 ;<XNetProvider
   config={{
     authorDID: identity.did,
@@ -232,7 +234,9 @@ import { XNetProvider } from '@xnet/react'
     // ...
   }}
 >
-  <App />
+  <XNetDevToolsProvider>
+    <App />
+  </XNetDevToolsProvider>
 </XNetProvider>
 ```
 

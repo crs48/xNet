@@ -565,14 +565,16 @@ The Version DevTools panel shows:
 Enable it in the DevTools:
 
 ```tsx
-import { DevTools } from '@xnet/devtools'
+import { XNetProvider } from '@xnet/react'
+import { XNetDevToolsProvider } from '@xnet/devtools'
 
 function App() {
   return (
-    <>
-      <YourApp />
-      <DevTools />
-    </>
+    <XNetProvider config={{ authorDID, signingKey }}>
+      <XNetDevToolsProvider>
+        <YourApp />
+      </XNetDevToolsProvider>
+    </XNetProvider>
   )
 }
 ```

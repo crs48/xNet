@@ -56,20 +56,26 @@ The fastest way to get a Hub running. No Docker, no SSH, no TLS setup.
 Your Hub is live. Copy the URL and configure your app:
 
 ```tsx
-<XNetProvider
+import { XNetProvider } from '@xnet/react'
+import { XNetDevToolsProvider } from '@xnet/devtools'
+;<XNetProvider
   config={{
-    hubUrl: 'wss://hub-xyz.up.railway.app',
+    hubUrl: 'wss://hub-xyz.up.railway.app'
   }}
-/>
+>
+  <XNetDevToolsProvider>
+    <App />
+  </XNetDevToolsProvider>
+</XNetProvider>
 ```
 
 ## Platform Comparison
 
-| Platform | Best for | Typical cost | Notes |
-| --- | --- | --- | --- |
-| Railway | One-click, lowest friction | $0-2/mo | Ideal default for personal Hubs |
-| Fly.io | Auto-suspend, global edge | $2-6/mo | Suspend/resume adds ~2s wake |
-| VPS | Full control | $4-5/mo | You manage TLS + upgrades |
+| Platform | Best for                   | Typical cost | Notes                           |
+| -------- | -------------------------- | ------------ | ------------------------------- |
+| Railway  | One-click, lowest friction | $0-2/mo      | Ideal default for personal Hubs |
+| Fly.io   | Auto-suspend, global edge  | $2-6/mo      | Suspend/resume adds ~2s wake    |
+| VPS      | Full control               | $4-5/mo      | You manage TLS + upgrades       |
 
 ## Alternative Deployments
 
@@ -92,6 +98,7 @@ Your Hub is live. Copy the URL and configure your app:
     Cost: ~$2-6/month depending on usage. Machines can auto-suspend when idle.
 
     For multi-region (future), add additional regions and volumes, then enable hub federation for query routing.
+
   </TabItem>
 
   <TabItem label="VPS (Docker)">
@@ -109,6 +116,7 @@ Your Hub is live. Copy the URL and configure your app:
     You'll need to configure TLS yourself (Caddy, nginx, or Cloudflare Tunnel).
 
     Cost: $4-5/month for a basic VPS (Hetzner, DigitalOcean).
+
   </TabItem>
 
   <TabItem label="Local">
@@ -119,6 +127,7 @@ Your Hub is live. Copy the URL and configure your app:
     ```
 
     No TLS, no persistence guarantees. Use for local development only.
+
   </TabItem>
 </Tabs>
 
@@ -136,35 +145,42 @@ Your Hub is live. Copy the URL and configure your app:
 
 ### CLI Flags
 
-| Flag                   | Description                        |
-| ---------------------- | ---------------------------------- |
-| `--port`               | Listen port                        |
-| `--data`               | Data directory                     |
-| `--no-auth`            | Disable UCAN authentication         |
-| `--storage`            | Storage backend: sqlite, memory |
-| `--public-url`         | Public hub URL for discovery        |
-| `--max-connections`    | Max concurrent WebSocket clients   |
-| `--max-blob-size`      | Max backup blob size               |
-| `--awareness-ttl`      | Awareness TTL in ms                |
-| `--discovery-ttl`      | Peer discovery TTL in ms           |
+| Flag                | Description                      |
+| ------------------- | -------------------------------- |
+| `--port`            | Listen port                      |
+| `--data`            | Data directory                   |
+| `--no-auth`         | Disable UCAN authentication      |
+| `--storage`         | Storage backend: sqlite, memory  |
+| `--public-url`      | Public hub URL for discovery     |
+| `--max-connections` | Max concurrent WebSocket clients |
+| `--max-blob-size`   | Max backup blob size             |
+| `--awareness-ttl`   | Awareness TTL in ms              |
+| `--discovery-ttl`   | Peer discovery TTL in ms         |
 
 ## Connect Your App
 
 ### React (Renderer)
 
 ```tsx
-<XNetProvider
+import { XNetProvider } from '@xnet/react'
+import { XNetDevToolsProvider } from '@xnet/devtools'
+
+;<XNetProvider
   config={{
-    hubUrl: 'wss://your-hub.example.com',
+    hubUrl: 'wss://your-hub.example.com'
   }}
-/>
+>
+  <XNetDevToolsProvider>
+    <App />
+  </XNetDevToolsProvider>
+</XNetProvider>
 ```
 
 ### Electron (Main)
 
 ```ts
 const manager = new SyncManager({
-  hubUrl: 'wss://your-hub.example.com',
+  hubUrl: 'wss://your-hub.example.com'
 })
 ```
 
@@ -179,27 +195,27 @@ const manager = new SyncManager({
 
 ### Core Endpoints
 
-| Endpoint | Purpose |
-| --- | --- |
-| `PUT /backup/:docId` | Upload encrypted backup |
-| `GET /backup/:docId` | Download encrypted backup |
-| `GET /backup` | List backups for your DID |
-| `PUT /files/:cid` | Upload content-addressed file |
-| `GET /files/:cid` | Download file |
-| `POST /schemas` | Publish schema |
-| `GET /schemas/resolve/:iri` | Resolve schema |
-| `POST /dids/register` | Register peer discovery |
-| `GET /dids/:did` | Resolve peer |
+| Endpoint                    | Purpose                       |
+| --------------------------- | ----------------------------- |
+| `PUT /backup/:docId`        | Upload encrypted backup       |
+| `GET /backup/:docId`        | Download encrypted backup     |
+| `GET /backup`               | List backups for your DID     |
+| `PUT /files/:cid`           | Upload content-addressed file |
+| `GET /files/:cid`           | Download file                 |
+| `POST /schemas`             | Publish schema                |
+| `GET /schemas/resolve/:iri` | Resolve schema                |
+| `POST /dids/register`       | Register peer discovery       |
+| `GET /dids/:did`            | Resolve peer                  |
 
 ### Backups
 
 The Hub stores encrypted blobs. Your app encrypts before upload.
 
-| Endpoint             | Purpose                     |
-| -------------------- | --------------------------- |
-| `PUT /backup/:docId` | Upload encrypted backup     |
-| `GET /backup/:docId` | Download encrypted backup   |
-| `GET /backup`        | List backups for your DID   |
+| Endpoint             | Purpose                   |
+| -------------------- | ------------------------- |
+| `PUT /backup/:docId` | Upload encrypted backup   |
+| `GET /backup/:docId` | Download encrypted backup |
+| `GET /backup`        | List backups for your DID |
 
 ### Query + Search
 
@@ -208,7 +224,7 @@ Queries run locally first, with Hub results filling in the gaps:
 ```ts
 const results = await queryClient.search('budget', {
   federate: true,
-  limit: 20,
+  limit: 20
 })
 ```
 
