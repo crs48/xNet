@@ -1075,9 +1075,9 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 
 #### Checklist
 
-- [ ] Delta transfer optimization
-  - [ ] Implement delta messages for large query results
-  - [ ] Binary serialization for node state
+- [x] Delta transfer optimization
+  - [x] Implement delta messages for large query results (QueryDelta in worker-types.ts)
+  - [x] Binary serialization for node state (NodeStateEncoder/Decoder, ~13ms encode, ~2ms decode for 1000 nodes)
 - [x] Batch operations
   - [x] Batch IndexedDB transactions (IndexedDBBatchAdapter, BatchWriter)
   - [x] Batch SQLite writes (SQLiteBatchWriter in data-process)
