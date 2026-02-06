@@ -362,7 +362,7 @@ gantt
 - [ ] **PERF-05:** Batch IndexedDB operations in transactions
 - [ ] **PERF-09:** Incremental comment state updates
 - [x] **PERF-10:** Use cursor with `'prev'` for `getLastChange` _(fixed a190622)_
-- [ ] **PERF-11:** Use cursor pagination for `listNodes`
+- [x] **PERF-11:** Use cursor pagination for `listNodes` _(fixed - cursor-based for unfiltered queries)_
 
 ### Phase 3 (Production)
 

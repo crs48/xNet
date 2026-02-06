@@ -222,28 +222,66 @@ export class IndexedDBNodeStorageAdapter implements NodeStorageAdapter {
   async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {
     const db = this.ensureOpen()
 
-    let nodes: NodeState[]
-
-    // Use index if filtering by schema
-    if (options?.schemaId) {
-      nodes = await db.getAllFromIndex('nodes', 'bySchema', options.schemaId)
-    } else {
-      nodes = await db.getAll('nodes')
-    }
-
-    // Filter deleted
-    if (!options?.includeDeleted) {
-      nodes = nodes.filter((n) => !n.deleted)
-    }
-
-    // Sort by creation time (newest first)
-    nodes.sort((a, b) => b.createdAt - a.createdAt)
-
-    // Pagination
     const offset = options?.offset ?? 0
-    const limit = options?.limit ?? nodes.length
+    const limit = options?.limit ?? Infinity
+    const includeDeleted = options?.includeDeleted ?? false
 
-    return nodes.slice(offset, offset + limit)
+    // For schema-filtered queries, we still need to load and filter
+    // since we can't combine two indexes efficiently
+    if (options?.schemaId) {
+      let nodes = await db.getAllFromIndex('nodes', 'bySchema', options.schemaId)
+
+      // Filter deleted
+      if (!includeDeleted) {
+        nodes = nodes.filter((n) => !n.deleted)
+      }
+
+      // Sort by creation time (newest first)
+      nodes.sort((a, b) => b.createdAt - a.createdAt)
+
+      // Pagination
+      return nodes.slice(offset, offset + limit)
+    }
+
+    // Use cursor-based pagination for unfiltered queries (most common case)
+    // This avoids loading all nodes into memory
+    const tx = db.transaction('nodes', 'readonly')
+    const index = tx.store.index('byCreatedAt')
+
+    // Use 'prev' direction to get newest first
+    let cursor = await index.openCursor(null, 'prev')
+
+    const results: NodeState[] = []
+    let skipped = 0
+
+    while (cursor) {
+      const node = cursor.value
+
+      // Skip deleted if not included
+      if (!includeDeleted && node.deleted) {
+        cursor = await cursor.continue()
+        continue
+      }
+
+      // Handle offset
+      if (skipped < offset) {
+        skipped++
+        cursor = await cursor.continue()
+        continue
+      }
+
+      // Collect results
+      results.push(node)
+
+      // Stop if we have enough
+      if (results.length >= limit) {
+        break
+      }
+
+      cursor = await cursor.continue()
+    }
+
+    return results
   }
 
   async countNodes(options?: CountNodesOptions): Promise<number> {
