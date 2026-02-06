@@ -290,8 +290,8 @@ graph TD
 
 ### Immediate
 
-- [ ] **INFRA-01:** Add pnpm override for Yjs version
-- [ ] **INFRA-02:** Add pnpm override for React version
+- [x] **INFRA-01:** Add pnpm override for Yjs version _(fixed a190622)_
+- [x] **INFRA-02:** Add pnpm override for React version _(fixed a190622)_
 - [ ] **INFRA-04:** Update @tiptap peer dependency
 
 ### Before Production

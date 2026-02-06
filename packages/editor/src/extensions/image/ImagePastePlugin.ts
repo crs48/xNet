@@ -87,7 +87,10 @@ export function createImagePastePlugin(options: ImagePastePluginOptions) {
 async function handleImageUpload(file: File, options: ImagePastePluginOptions, insertPos?: number) {
   const { editor, onUpload } = options
 
-  // Insert placeholder with upload progress
+  // Generate unique upload ID to identify this specific upload
+  const uploadId = crypto.randomUUID()
+
+  // Insert placeholder with upload progress and unique ID
   const pos = insertPos ?? editor.state.selection.from
 
   editor
@@ -98,7 +101,8 @@ async function handleImageUpload(file: File, options: ImagePastePluginOptions, i
       attrs: {
         src: null,
         alt: file.name,
-        uploadProgress: 0
+        uploadProgress: 0,
+        uploadId // Unique identifier for this upload
       }
     })
     .run()
@@ -107,13 +111,9 @@ async function handleImageUpload(file: File, options: ImagePastePluginOptions, i
     // Upload the file
     const result = await onUpload(file)
 
-    // Find the placeholder node (has uploadProgress !== null) and update it
+    // Find the placeholder node by unique uploadId and update it
     editor.state.doc.descendants((node, nodePos) => {
-      if (
-        node.type.name === 'image' &&
-        node.attrs.uploadProgress !== null &&
-        node.attrs.alt === file.name
-      ) {
+      if (node.type.name === 'image' && node.attrs.uploadId === uploadId) {
         editor.view.dispatch(
           editor.state.tr.setNodeMarkup(nodePos, undefined, {
             src: result.src,
@@ -122,7 +122,8 @@ async function handleImageUpload(file: File, options: ImagePastePluginOptions, i
             cid: result.cid || null,
             alt: file.name,
             alignment: 'center',
-            uploadProgress: null
+            uploadProgress: null,
+            uploadId: null // Clear uploadId after successful upload
           })
         )
         return false // Stop traversal
@@ -131,13 +132,9 @@ async function handleImageUpload(file: File, options: ImagePastePluginOptions, i
   } catch (error) {
     console.error('Image upload failed:', error)
 
-    // Remove placeholder on error
+    // Remove placeholder on error using unique uploadId
     editor.state.doc.descendants((node, nodePos) => {
-      if (
-        node.type.name === 'image' &&
-        node.attrs.uploadProgress !== null &&
-        node.attrs.alt === file.name
-      ) {
+      if (node.type.name === 'image' && node.attrs.uploadId === uploadId) {
         editor.view.dispatch(editor.state.tr.delete(nodePos, nodePos + node.nodeSize))
         return false
       }

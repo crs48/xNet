@@ -409,21 +409,21 @@ graph TD
 
 ### Immediate (Before Daily Use)
 
-- [ ] **SEC-01:** Enable Chromium sandbox (`sandbox: true`)
-- [ ] **SEC-02:** Add IPC channel allowlist
-- [ ] **SEC-03:** Replace `executeJavaScript` with structured IPC
-- [ ] **SEC-04:** Remove or mark BrowserPasskeyStorage as test-only
+- [x] **SEC-01:** Enable Chromium sandbox (`sandbox: true`) _(fixed bdada0a)_
+- [x] **SEC-02:** Add IPC channel allowlist _(fixed bdada0a)_
+- [x] **SEC-03:** Replace `executeJavaScript` with structured IPC _(fixed 93d07a1)_
+- [x] **SEC-04:** Remove or mark BrowserPasskeyStorage as test-only _(fixed 93d07a1)_
 
 ### Before Hub Launch
 
-- [ ] **SEC-05:** Enable token authentication on Local API
+- [x] **SEC-05:** Enable token authentication on Local API _(fixed a190622)_
 - [ ] **SEC-06:** Remove CORS wildcard from Local API
-- [ ] **SEC-09/10:** Wire signature verification into all Yjs update paths
-- [ ] **SEC-11:** Validate UCAN header algorithm field
+- [x] **SEC-09/10:** Wire signature verification into all Yjs update paths _(fixed a190622)_
+- [x] **SEC-11:** Validate UCAN header algorithm field _(fixed f378ef6)_
 
 ### Before Production
 
 - [ ] **SEC-07:** Implement plugin command allowlist
 - [ ] **SEC-08:** Move plugin execution to Web Workers
 - [ ] **SEC-12:** Fix UCAN proof chain validation
-- [ ] **SEC-14:** Use constant-time token comparison
+- [x] **SEC-14:** Use constant-time token comparison _(fixed bdada0a)_

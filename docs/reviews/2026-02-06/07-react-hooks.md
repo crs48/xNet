@@ -316,9 +316,9 @@ graph TD
 
 ### Phase 1 (Daily Driver)
 
-- [ ] **REACT-01:** Memoize XNetProvider context value (highest impact)
+- [x] **REACT-01:** Memoize XNetProvider context value (highest impact) _(fixed f378ef6)_
 - [ ] **REACT-04:** Await persistence in NodePool eviction
-- [ ] **REACT-02:** Add public API for storage access
+- [x] **REACT-02:** Add public API for storage access _(fixed a190622 - HOOK-03)_
 
 ### Phase 2 (Hub MVP)
 

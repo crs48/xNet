@@ -334,13 +334,13 @@ sequenceDiagram
 
 ### Phase 1 (Daily Driver)
 
-- [ ] **SY-01/02:** Replace `Math.random()` with `crypto.randomUUID()`
-- [ ] **SY-03:** Make `mergeUpdates` required in YjsBatcher
-- [ ] **SY-10:** Fix V1/V2 serializer base64 for large arrays
+- [x] **SY-01/02:** Replace `Math.random()` with `crypto.randomUUID()` _(already in codebase)_
+- [x] **SY-03:** Make `mergeUpdates` required in YjsBatcher _(fixed f378ef6)_
+- [x] **SY-10:** Fix V1/V2 serializer base64 for large arrays _(this session)_
 
 ### Phase 2 (Hub MVP)
 
-- [ ] **NW-01:** Wire signed envelope verification into network sync protocol
+- [x] **NW-01:** Wire signed envelope verification into network sync protocol _(fixed a190622)_
 - [ ] **SY-04:** Add periodic cleanup to rate limiter
 - [ ] **SY-05:** Remove cleanup side effect from size()
 - [ ] **SDK-01:** Add LRU eviction to document cache
