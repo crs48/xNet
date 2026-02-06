@@ -28,7 +28,25 @@ import type {
   SchemaIRI
 } from '@xnet/data'
 import { wrap, proxy, type Remote } from 'comlink'
+import { Awareness } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 import { QueryCache } from './query-cache'
+
+// ─── Mirror Doc Entry ────────────────────────────────────────────────────────
+
+/**
+ * Tracks a mirror Y.Doc on the main thread and its connection to the worker's source doc.
+ */
+interface MirrorDocEntry {
+  /** The Y.Doc on the main thread (TipTap binds to this) */
+  doc: Y.Doc
+  /** Awareness instance for cursor presence */
+  awareness: Awareness
+  /** Whether we're currently applying a remote update (to avoid loops) */
+  applyingRemote: boolean
+  /** Cleanup function for the update listener */
+  cleanup: () => void
+}
 
 // ─── WorkerBridge Class ──────────────────────────────────────────────────────
 
@@ -47,6 +65,9 @@ export class WorkerBridge implements DataBridge {
   private statusListeners = new Set<(status: SyncStatus) => void>()
   private _status: SyncStatus = 'connecting'
   private initialized = false
+
+  // Mirror Y.Docs on the main thread (for TipTap binding)
+  private mirrorDocs = new Map<string, MirrorDocEntry>()
 
   constructor(workerUrl: string | URL) {
     this.worker = new Worker(workerUrl, { type: 'module' })
@@ -226,32 +247,114 @@ export class WorkerBridge implements DataBridge {
   /**
    * Acquire a Y.Doc for editing.
    *
-   * Phase 3 TODO: Implement split Y.Doc pattern where:
-   * 1. Worker maintains "source of truth" Y.Doc
+   * Implements the split Y.Doc pattern:
+   * 1. Worker maintains "source of truth" Y.Doc (handles persistence & network sync)
    * 2. Main thread gets a mirror Y.Doc for TipTap binding
-   * 3. Updates flow bidirectionally via Transferable ArrayBuffers
-   *
-   * For now, throws to indicate this is not yet implemented.
+   * 3. Updates flow bidirectionally:
+   *    - Local edits → worker (for persistence & broadcast)
+   *    - Remote edits → main thread (for rendering)
    */
-  async acquireDoc(_nodeId: string): Promise<AcquiredDoc> {
-    throw new Error(
-      'WorkerBridge.acquireDoc is not yet implemented. ' +
-        'Phase 3 (Y.Doc Split Architecture) is required for off-main-thread document editing.'
+  async acquireDoc(nodeId: string): Promise<AcquiredDoc> {
+    if (!this.initialized) {
+      throw new Error('WorkerBridge not initialized')
+    }
+
+    // Check if we already have a mirror for this doc
+    const existing = this.mirrorDocs.get(nodeId)
+    if (existing) {
+      return {
+        doc: existing.doc,
+        awareness: existing.awareness
+      }
+    }
+
+    // Create the mirror Y.Doc on the main thread
+    const mirrorDoc = new Y.Doc({ guid: nodeId, gc: false })
+    const awareness = new Awareness(mirrorDoc)
+
+    // Track whether we're applying a remote update to avoid loops
+    let applyingRemote = false
+
+    // Acquire doc from worker - this gives us the initial state
+    // and sets up the worker to forward remote updates to us
+    const acquired = await this.remote.acquireDoc(
+      nodeId,
+      proxy((update: Uint8Array, _origin: string) => {
+        // Remote update from worker - apply to our mirror doc
+        applyingRemote = true
+        try {
+          Y.applyUpdate(mirrorDoc, update, 'remote')
+        } finally {
+          applyingRemote = false
+        }
+      })
     )
+
+    // Apply initial state from worker to our mirror doc
+    if (acquired.state.length > 0) {
+      Y.applyUpdate(mirrorDoc, acquired.state, 'initial')
+    }
+
+    // Listen for local updates and forward to worker
+    const updateHandler = (update: Uint8Array, origin: unknown) => {
+      // Don't forward updates that came from the worker (would cause loop)
+      if (applyingRemote || origin === 'remote' || origin === 'initial') {
+        return
+      }
+
+      // Forward local edit to worker
+      // The worker will persist it and broadcast to network
+      this.remote.applyLocalUpdate(nodeId, update)
+    }
+    mirrorDoc.on('update', updateHandler)
+
+    // Store the entry
+    const entry: MirrorDocEntry = {
+      doc: mirrorDoc,
+      awareness,
+      applyingRemote: false,
+      cleanup: () => {
+        mirrorDoc.off('update', updateHandler)
+        awareness.destroy()
+      }
+    }
+    this.mirrorDocs.set(nodeId, entry)
+
+    return {
+      doc: mirrorDoc,
+      awareness
+    }
   }
 
   /**
    * Release a Y.Doc when no longer editing.
-   *
-   * Phase 3 TODO: Clean up main-thread mirror Y.Doc and stop update forwarding.
+   * The worker continues syncing in the background.
    */
-  releaseDoc(_nodeId: string): void {
-    // No-op until Phase 3 is implemented
+  releaseDoc(nodeId: string): void {
+    const entry = this.mirrorDocs.get(nodeId)
+    if (!entry) return
+
+    // Clean up the mirror doc
+    entry.cleanup()
+    entry.doc.destroy()
+
+    // Remove from our map
+    this.mirrorDocs.delete(nodeId)
+
+    // Tell the worker to release (it may keep in pool for background sync)
+    this.remote.releaseDoc(nodeId)
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
   destroy(): void {
+    // Clean up all mirror docs
+    for (const entry of this.mirrorDocs.values()) {
+      entry.cleanup()
+      entry.doc.destroy()
+    }
+    this.mirrorDocs.clear()
+
     // Clean up worker
     this.remote.destroy().catch(console.error)
     this.worker.terminate()

@@ -8,6 +8,33 @@
 import type { SyncStatus } from '../types'
 import type { NodeState, SchemaIRI } from '@xnet/data'
 
+// ─── Document Types ──────────────────────────────────────────────────────────
+
+/**
+ * Result from acquiring a Y.Doc in the worker.
+ * The state is sent as a Uint8Array for efficient transfer.
+ */
+export interface WorkerAcquiredDoc {
+  /** The node ID this doc belongs to */
+  nodeId: string
+  /** Encoded Y.Doc state (Y.encodeStateAsUpdate) */
+  state: Uint8Array
+  /** Client ID for this connection */
+  clientId: number
+}
+
+/**
+ * Document update message from worker to main thread
+ */
+export interface DocUpdateMessage {
+  type: 'doc-update'
+  nodeId: string
+  /** Yjs update (Uint8Array) */
+  update: Uint8Array
+  /** Origin of the update (e.g., 'remote', 'local') */
+  origin: string
+}
+
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 /**
@@ -106,6 +133,38 @@ export interface DataWorkerAPI {
    * Get a single node by ID.
    */
   get(nodeId: string): Promise<NodeState | null>
+
+  // ─── Document Operations ────────────────────────────────────────────────────
+
+  /**
+   * Acquire a Y.Doc for editing.
+   * Returns the current state which should be applied to the main-thread mirror doc.
+   *
+   * @param nodeId - The node ID to acquire
+   * @param onUpdate - Callback for receiving updates from the worker (remote changes)
+   * @returns The initial doc state and client ID
+   */
+  acquireDoc(
+    nodeId: string,
+    onUpdate: (update: Uint8Array, origin: string) => void
+  ): Promise<WorkerAcquiredDoc>
+
+  /**
+   * Release a Y.Doc when no longer editing.
+   * The doc stays in the pool for background sync.
+   */
+  releaseDoc(nodeId: string): void
+
+  /**
+   * Apply a local update from the main-thread mirror doc to the worker's source-of-truth doc.
+   * The worker will broadcast this to the network.
+   *
+   * @param nodeId - The node ID
+   * @param update - The Yjs update (from Y.encodeStateAsUpdate or update event)
+   */
+  applyLocalUpdate(nodeId: string, update: Uint8Array): void
+
+  // ─── Status ─────────────────────────────────────────────────────────────────
 
   /**
    * Get current sync status.

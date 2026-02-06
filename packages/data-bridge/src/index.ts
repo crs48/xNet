@@ -31,7 +31,9 @@ export type {
   WorkerConfig,
   SerializedQueryOptions,
   QueryDelta,
-  DataWorkerAPI
+  DataWorkerAPI,
+  WorkerAcquiredDoc,
+  DocUpdateMessage
 } from './worker/worker-types'
 
 // ─── Implementations ─────────────────────────────────────────────────────────
