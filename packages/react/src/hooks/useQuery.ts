@@ -64,6 +64,20 @@ export interface QueryFilter<
 }
 
 /**
+ * Migration warning info
+ */
+export interface MigrationWarning {
+  /** The node ID that was migrated */
+  nodeId: string
+  /** The original schema IRI */
+  from: string
+  /** The target schema IRI */
+  to: string
+  /** Warning messages about potential data loss */
+  warnings: string[]
+}
+
+/**
  * Result when querying a list of nodes
  */
 export interface QueryListResult<P extends Record<string, PropertyBuilder>> {
@@ -75,6 +89,11 @@ export interface QueryListResult<P extends Record<string, PropertyBuilder>> {
   error: Error | null
   /** Reload the query */
   reload: () => Promise<void>
+  /**
+   * Migration warnings for nodes that were migrated from different schema versions.
+   * Only populated if nodes required migration and the migration was lossy.
+   */
+  migrationWarnings: MigrationWarning[]
 }
 
 /**
@@ -89,6 +108,11 @@ export interface QuerySingleResult<P extends Record<string, PropertyBuilder>> {
   error: Error | null
   /** Reload the query */
   reload: () => Promise<void>
+  /**
+   * Migration warnings if the node was migrated from a different schema version.
+   * Only populated if the node required migration and the migration was lossy.
+   */
+  migrationWarnings: MigrationWarning[]
 }
 
 // =============================================================================
@@ -138,6 +162,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const [data, setData] = useState<FlatNode<P>[] | FlatNode<P> | null>(isSingleQuery ? null : [])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
+  const [migrationWarnings, setMigrationWarnings] = useState<MigrationWarning[]>([])
 
   // Track if we've loaded to prevent re-fetching
   const hasLoadedRef = useRef(false)
@@ -204,11 +229,24 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     setError(null)
 
     try {
+      const warnings: MigrationWarning[] = []
+
       if (isSingleQuery && nodeId) {
         // Single node query
         const node = await store.get(nodeId)
         if (node && node.schemaId === schemaId && !node.deleted) {
-          setData(flattenNode<P>(node))
+          const flat = flattenNode<P>(node)
+          setData(flat)
+
+          // Collect migration warnings from the flattened node
+          if (flat._migrationInfo && !flat._migrationInfo.lossless) {
+            warnings.push({
+              nodeId: flat.id,
+              from: flat._migrationInfo.from,
+              to: flat._migrationInfo.to,
+              warnings: flat._migrationInfo.warnings
+            })
+          }
         } else {
           setData(null)
         }
@@ -223,6 +261,18 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
         // Flatten all nodes
         let flattened = flattenNodes<P>(nodes)
+
+        // Collect migration warnings from all migrated nodes
+        for (const flat of flattened) {
+          if (flat._migrationInfo && !flat._migrationInfo.lossless) {
+            warnings.push({
+              nodeId: flat.id,
+              from: flat._migrationInfo.from,
+              to: flat._migrationInfo.to,
+              warnings: flat._migrationInfo.warnings
+            })
+          }
+        }
 
         // Apply where filter if present
         if (filter.where) {
@@ -241,6 +291,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
         setData(flattened)
       }
+
+      setMigrationWarnings(warnings)
       hasLoadedRef.current = true
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)))
@@ -354,7 +406,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     data,
     loading,
     error,
-    reload: loadData
+    reload: loadData,
+    migrationWarnings
   } as QueryListResult<P> | QuerySingleResult<P>
 }
 
