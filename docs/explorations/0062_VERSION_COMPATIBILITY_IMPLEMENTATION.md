@@ -784,9 +784,14 @@ export class V2Serializer implements ChangeSerializer {
   - File: `packages/cli/src/utils/schema-diff.ts`
   - Compare two schema versions
   - Classify changes by risk level
-- [ ] **Integrate with TypeScript compiler**
-  - Emit warnings for breaking changes
-  - Suggest migration code
+- [x] **Integrate with TypeScript compiler**
+  - File: `packages/data/src/ts-plugin/index.ts` - TypeScript language service plugin
+  - Detects `defineSchema()` calls and tracks schema versions
+  - Emits warnings for breaking changes (error code 90001)
+  - Emits warnings for caution changes (error code 90002)
+  - Suggests lens operations for migrations
+  - 15 tests in `packages/data/src/ts-plugin/index.test.ts`
+  - Usage: Add `{ "plugins": [{ "name": "@xnet/data/ts-plugin" }] }` to tsconfig.json
 
 ```typescript
 // packages/data/src/schema/diff.ts
@@ -1369,7 +1374,7 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 ### Week 7-8: Developer Experience
 
 - [x] Create `diffSchemas()` utility
-- [ ] Add schema diff to TypeScript plugin (optional - deferred)
+- [x] Add schema diff to TypeScript plugin (`packages/data/src/ts-plugin/index.ts`)
 - [x] Create Version DevTools panel
 - [x] Create Migration Wizard component
 - [x] Create schema-check GitHub Action
