@@ -251,6 +251,7 @@ Only use `--no-verify` when hooks are genuinely broken or blocking an emergency 
 - Test UI changes in Electron with Playwright after implementing (start dev server, verify it works)
 - Always kill dev servers when done testing — never leave background processes running
 - Use `Claude.json` and not any `claude.json` for config like MCP
+- Save Playwright screenshots to `tmp/playwright/` (e.g., `tmp/playwright/my-screenshot.png`)
 
 **DON'T:**
 

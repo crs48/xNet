@@ -522,9 +522,13 @@ export function RichTextEditor({
       // Force a view update to trigger updateCursorInfo in the plugin's view.
       // Without this, the cursor position won't be broadcast until the user
       // moves the cursor or types (since focusin already happened before plugin registration).
-      if (editor.view.hasFocus()) {
-        const { tr } = editor.state
-        editor.view.dispatch(tr)
+      try {
+        if (editor.view.hasFocus()) {
+          const { tr } = editor.state
+          editor.view.dispatch(tr)
+        }
+      } catch {
+        // View may not be fully mounted yet - that's OK, cursor will update on first interaction
       }
     }
 
