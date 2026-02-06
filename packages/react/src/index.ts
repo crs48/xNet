@@ -35,7 +35,8 @@ export {
   type QueryFilter,
   type QueryListResult,
   type QuerySingleResult,
-  type SortDirection
+  type SortDirection,
+  type MigrationWarning
 } from './hooks/useQuery'
 
 /**

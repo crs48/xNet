@@ -6,7 +6,14 @@
  */
 
 import type { DID } from '@xnet/core'
-import type { SchemaIRI, PropertyBuilder, InferCreateProps, NodeState } from '@xnet/data'
+import type {
+  SchemaIRI,
+  PropertyBuilder,
+  InferCreateProps,
+  NodeState,
+  MigratedNodeState,
+  MigrationInfo
+} from '@xnet/data'
 
 // =============================================================================
 // Types
@@ -51,6 +58,20 @@ export interface NodeBase {
    * Useful for detecting when migrations might be needed.
    */
   _schemaVersion?: string
+
+  // ─── Migration Fields ──────────────────────────────────────────────────────
+
+  /**
+   * The original schema IRI this node was migrated from.
+   * Only present if the node was automatically migrated on read.
+   */
+  _migratedFrom?: SchemaIRI
+
+  /**
+   * Full migration info if the node was migrated.
+   * Includes lossless flag and any warnings about data loss.
+   */
+  _migrationInfo?: MigrationInfo
 }
 
 /**
@@ -83,6 +104,10 @@ export interface FlattenNodeOptions {
    * This happens when the node's schemaId is not registered in the current app version.
    */
   unknownSchema?: boolean
+  /**
+   * Migration info if the node was migrated from a different schema version.
+   */
+  migrationInfo?: MigrationInfo
 }
 
 /**
@@ -106,19 +131,28 @@ export interface FlattenNodeOptions {
  * ```
  */
 export function flattenNode<P extends Record<string, PropertyBuilder>>(
-  node: NodeState,
+  node: NodeState | MigratedNodeState,
   options?: FlattenNodeOptions
 ): FlatNode<P> {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { properties, timestamps, deletedAt, documentContent, _unknown, _schemaVersion, ...base } =
     node
+
+  // Get migration info from options or from MigratedNodeState
+  const migrationInfo = options?.migrationInfo ?? (node as MigratedNodeState)._migrationInfo
+
   return {
     ...base,
     ...properties,
     // Include version compatibility fields if present
     ...(options?.unknownSchema && { _unknownSchema: true }),
     ...(_unknown && Object.keys(_unknown).length > 0 && { _unknown }),
-    ...(_schemaVersion && { _schemaVersion })
+    ...(_schemaVersion && { _schemaVersion }),
+    // Include migration fields if present
+    ...(migrationInfo && {
+      _migratedFrom: migrationInfo.from,
+      _migrationInfo: migrationInfo
+    })
   } as FlatNode<P>
 }
 
@@ -126,7 +160,7 @@ export function flattenNode<P extends Record<string, PropertyBuilder>>(
  * Flatten an array of NodeState objects.
  */
 export function flattenNodes<P extends Record<string, PropertyBuilder>>(
-  nodes: NodeState[],
+  nodes: (NodeState | MigratedNodeState)[],
   options?: FlattenNodeOptions
 ): FlatNode<P>[] {
   return nodes.map((node) => flattenNode<P>(node, options))
