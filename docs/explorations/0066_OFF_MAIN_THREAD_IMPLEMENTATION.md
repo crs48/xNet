@@ -1089,10 +1089,11 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   - [ ] Weak references for inactive subscriptions
 - [x] Code quality
   - [x] Reduce excessive debug logging in useNode hook
-- [ ] Benchmarks
-  - [ ] 1000 nodes query latency
-  - [ ] 100 concurrent edits throughput
-  - [ ] Memory footprint comparison
+- [x] Benchmarks (packages/data-bridge/benchmarks/)
+  - [x] 100/1000 nodes query latency
+  - [x] Mutation performance (create, update, delete)
+  - [x] Subscription lifecycle
+  - [ ] Memory footprint comparison (manual measurement)
 
 ---
 
