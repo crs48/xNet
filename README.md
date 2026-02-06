@@ -35,7 +35,7 @@ pnpm install
 # Build all packages
 pnpm build
 
-# Run unit tests (~350 tests across ~98 test files)
+# Run unit tests (~2400 tests across 148 test files)
 pnpm test
 
 # Run integration tests (real browser via Playwright)

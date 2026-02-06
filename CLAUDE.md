@@ -69,7 +69,7 @@ apps/
 ## Testing
 
 ```bash
-pnpm vitest run                    # All tests (~350 total)
+pnpm vitest run                    # All tests (~2400 total)
 pnpm --filter @xnet/data test      # Single package
 ```
 

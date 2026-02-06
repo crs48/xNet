@@ -11,7 +11,7 @@ pnpm install
 # Build all packages
 pnpm build
 
-# Run all tests (~350 tests)
+# Run all tests (~2400 tests)
 pnpm test
 
 # Run tests for a single package
