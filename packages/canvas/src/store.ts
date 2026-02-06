@@ -329,15 +329,49 @@ export class CanvasStore {
    * Handle changes to the nodes Y.Map
    */
   private handleNodesChange(event: Y.YMapEvent<unknown>): void {
-    // Update spatial index
-    event.keysChanged.forEach((key: string) => {
+    // Update spatial index and emit events with change info
+    event.changes.keys.forEach((change, key) => {
       const node = this.nodesMap.get(key) as CanvasNode | undefined
-      if (node) {
-        this.spatialIndex.upsert(key, node.position)
-        this.emit({ type: 'node-updated', node, changes: {} })
-      } else {
+
+      if (change.action === 'add') {
+        if (node) {
+          this.spatialIndex.upsert(key, node.position)
+          this.emit({ type: 'node-added', node })
+        }
+      } else if (change.action === 'delete') {
         this.spatialIndex.remove(key)
         this.emit({ type: 'node-removed', id: key })
+      } else if (change.action === 'update') {
+        if (node) {
+          this.spatialIndex.upsert(key, node.position)
+          // Compute changes by comparing with old value
+          const oldNode = change.oldValue as CanvasNode | undefined
+          const changes: Partial<CanvasNode> = {}
+          if (oldNode) {
+            // Check each property for changes
+            const posChanged =
+              oldNode.position?.x !== node.position?.x ||
+              oldNode.position?.y !== node.position?.y ||
+              oldNode.position?.width !== node.position?.width ||
+              oldNode.position?.height !== node.position?.height ||
+              oldNode.position?.rotation !== node.position?.rotation ||
+              oldNode.position?.zIndex !== node.position?.zIndex
+            if (posChanged) {
+              changes.position = node.position
+            }
+            if (oldNode.type !== node.type) {
+              changes.type = node.type
+            }
+            if (oldNode.linkedNodeId !== node.linkedNodeId) {
+              changes.linkedNodeId = node.linkedNodeId
+            }
+            // Deep compare properties (JSON for simplicity)
+            if (JSON.stringify(oldNode.properties) !== JSON.stringify(node.properties)) {
+              changes.properties = node.properties
+            }
+          }
+          this.emit({ type: 'node-updated', node, changes })
+        }
       }
     })
   }
