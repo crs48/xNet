@@ -7,8 +7,12 @@ export type { StorageAdapter, DocumentData, DocumentMetadata, StorageStats } fro
 
 // Adapters
 export { IndexedDBAdapter } from './adapters/indexeddb'
+export { IndexedDBBatchAdapter, createIndexedDBBatchAdapter } from './adapters/indexeddb-batch'
 export { MemoryAdapter } from './adapters/memory'
 // export { SQLiteAdapter } from './adapters/sqlite' // Native only
+
+// Batch utilities
+export { BatchWriter, createBatchWriter } from './adapters/batch-writer'
 
 // Blob storage
 export { BlobStore } from './blob-store'

@@ -71,3 +71,12 @@ export {
   type DeltaBatcherOptions,
   type QueryDelta as DeltaQueryDelta
 } from './utils/debounce'
+
+// Binary serialization for efficient data transfer
+export {
+  NodeStateEncoder,
+  NodeStateDecoder,
+  encodeNodeStates,
+  decodeNodeStates,
+  shouldUseBinaryEncoding
+} from './utils/binary-state'

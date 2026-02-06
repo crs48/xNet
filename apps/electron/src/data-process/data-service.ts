@@ -24,6 +24,7 @@ import {
 import Database from 'better-sqlite3'
 import WebSocket from 'ws'
 import * as Y from 'yjs'
+import { createSQLiteBatchWriter, type SQLiteBatchWriter } from './sqlite-batch'
 import { sendEvent } from './index'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -141,6 +142,7 @@ const HEARTBEAT_INTERVAL_MS = 1111
 
 export function createDataService(config: DataServiceConfig): DataService {
   let db: Database.Database | null = null
+  let batchWriter: SQLiteBatchWriter | null = null
   let ws: WebSocket | null = null
   let status: ConnectionStatus = 'disconnected'
   let signalingUrl = ''
@@ -679,8 +681,9 @@ export function createDataService(config: DataServiceConfig): DataService {
   }
 
   async function setBlobInDb(cid: string, data: Uint8Array): Promise<void> {
-    if (!db) return
-    db.prepare('INSERT OR REPLACE INTO blobs (cid, data) VALUES (?, ?)').run(cid, Buffer.from(data))
+    if (!batchWriter) return
+    batchWriter.putBlob(cid, data)
+    // Note: putBlob schedules auto-flush, no need to await here
   }
 
   async function hasBlobInDb(cid: string): Promise<boolean> {
@@ -794,6 +797,13 @@ export function createDataService(config: DataServiceConfig): DataService {
         CREATE INDEX IF NOT EXISTS idx_updates_doc ON updates(doc_id);
       `)
 
+      // Create batch writer for efficient writes
+      batchWriter = createSQLiteBatchWriter(db, {
+        maxBatchSize: 100,
+        maxWaitMs: 50,
+        debug: debugEnabled
+      })
+
       log('Database initialized')
     },
 
@@ -814,6 +824,12 @@ export function createDataService(config: DataServiceConfig): DataService {
       pool.clear()
       subscribedRooms.clear()
       tracked.clear()
+
+      // Flush and close batch writer
+      if (batchWriter) {
+        await batchWriter.close()
+        batchWriter = null
+      }
 
       if (db) {
         db.close()
