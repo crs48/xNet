@@ -1,0 +1,222 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+---
+
+<Base title="Terms of Service - xNet" description="The terms and conditions for using xNet.">
+  <Nav />
+
+  <main class="min-h-screen bg-white dark:bg-gray-900">
+    <div class="mx-auto max-w-3xl px-6 py-16 lg:py-24">
+      <!-- Header -->
+      <header class="mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          Terms of Service
+        </h1>
+        <p class="text-lg text-gray-600 dark:text-gray-300">
+          Simple terms for a simple promise: your data is yours.
+        </p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
+          Last updated: February 6, 2026
+        </p>
+      </header>
+
+      <!-- Content -->
+      <article class="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-blue-600 dark:prose-a:text-blue-400">
+        
+        <section class="mb-12">
+          <h2>The Basics</h2>
+          <p>
+            xNet is open source software for building local-first applications. When we say "xNet," "we," or "us," 
+            we mean the xNet project and its maintainers. When we say "Services," we mean:
+          </p>
+          <ul>
+            <li>The xNet desktop application</li>
+            <li>The xNet web application at xnet.fyi/app</li>
+            <li>The hosted Hub at hub.xnet.fyi</li>
+            <li>Our documentation and website</li>
+          </ul>
+          <p>
+            By using xNet, you agree to these terms. We keep them simple because we believe in transparency.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Your Data, Your Responsibility</h2>
+          <p>
+            xNet is local-first software. Your data lives on your devices, not our servers. This means:
+          </p>
+          <ul>
+            <li><strong>You own your data</strong> — We make no claim to anything you create</li>
+            <li><strong>You're responsible for backups</strong> — If you lose your device, we can't recover your data</li>
+            <li><strong>You control sharing</strong> — Data only syncs with devices and people you choose</li>
+          </ul>
+          <p>
+            We provide tools to export your data at any time. Your content remains yours if you stop using xNet.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Acceptable Use</h2>
+          <p>
+            We built xNet to help people work and create. Don't use it to:
+          </p>
+          <ul>
+            <li>Break the law or help others break the law</li>
+            <li>Harass, abuse, or harm others</li>
+            <li>Distribute malware or spam</li>
+            <li>Attempt to breach security of the Services or other users</li>
+            <li>Overwhelm our infrastructure with automated requests</li>
+            <li>Impersonate others or misrepresent your affiliation</li>
+          </ul>
+          <p>
+            We reserve the right to suspend access to the hosted Hub for violations. 
+            Since the core application runs locally, we can't stop you from using the software itself — 
+            that's a feature, not a bug.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>The Hosted Hub</h2>
+          <p>
+            Our hosted Hub at hub.xnet.fyi is a convenience service for peer-to-peer sync. It's provided as-is:
+          </p>
+          <ul>
+            <li>We aim for high availability but don't guarantee uptime</li>
+            <li>We may need to perform maintenance with limited notice</li>
+            <li>We may rate-limit connections to ensure fair usage</li>
+            <li>We reserve the right to block abusive connections</li>
+          </ul>
+          <p>
+            For mission-critical use, we recommend <a href="/docs/guides/hub/">self-hosting your own Hub</a>.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Open Source License</h2>
+          <p>
+            xNet is released under the <a href="https://github.com/crs48/xNet/blob/main/LICENSE">MIT License</a>. This means:
+          </p>
+          <ul>
+            <li>You can use, copy, modify, and distribute the software</li>
+            <li>You can use it for commercial purposes</li>
+            <li>You must include the original copyright notice</li>
+            <li>The software is provided "as is" without warranty</li>
+          </ul>
+          <p>
+            Our documentation, branding, and hosted services have separate terms outlined here.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Intellectual Property</h2>
+          <p>
+            The xNet name, logo, and branding are ours. The source code is MIT licensed (see above). 
+            Content you create in xNet belongs to you.
+          </p>
+          <p>
+            Don't use our branding in ways that suggest we endorse or are affiliated with your project 
+            without permission. Using xNet as part of your product name is fine 
+            (like "Powered by xNet" or "Built with xNet").
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>No Warranty</h2>
+          <p>
+            xNet is provided "as is" without warranty of any kind. We work hard to make it reliable, 
+            but we can't guarantee it will be:
+          </p>
+          <ul>
+            <li>Error-free or uninterrupted</li>
+            <li>Secure against all threats</li>
+            <li>Compatible with all systems</li>
+            <li>Suitable for any particular purpose</li>
+          </ul>
+          <p>
+            Use xNet at your own risk. For important data, keep backups.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Limitation of Liability</h2>
+          <p>
+            To the maximum extent permitted by law, we are not liable for any indirect, incidental, 
+            special, consequential, or punitive damages, including:
+          </p>
+          <ul>
+            <li>Loss of data or content</li>
+            <li>Loss of profits or revenue</li>
+            <li>Business interruption</li>
+            <li>Cost of substitute services</li>
+          </ul>
+          <p>
+            This applies whether the claim is based on warranty, contract, tort, or any other legal theory. 
+            Some jurisdictions don't allow these limitations, so they may not apply to you.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Changes to These Terms</h2>
+          <p>
+            We may update these terms occasionally. When we do:
+          </p>
+          <ul>
+            <li>We'll update the date at the top of this page</li>
+            <li>For significant changes, we'll provide notice on our website</li>
+            <li>Continued use of the Services means you accept the new terms</li>
+          </ul>
+          <p>
+            You can track all changes in our <a href="https://github.com/crs48/xNet">GitHub repository</a>.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Termination</h2>
+          <p>
+            You can stop using xNet at any time. Just delete the app or stop visiting our services.
+          </p>
+          <p>
+            We can suspend or terminate your access to hosted services if you violate these terms. 
+            We'll try to give notice when possible, but may act immediately for serious violations.
+          </p>
+          <p>
+            Since xNet is local-first, termination from hosted services doesn't affect your local data 
+            or your ability to self-host.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Governing Law</h2>
+          <p>
+            These terms are governed by the laws of the jurisdiction where the project maintainers are located, 
+            without regard to conflict of law principles. Any disputes will be resolved in that jurisdiction's courts.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Contact</h2>
+          <p>
+            Questions about these terms? Reach out:
+          </p>
+          <ul>
+            <li>Email: <a href="mailto:legal@xnet.fyi">legal@xnet.fyi</a></li>
+            <li>GitHub: <a href="https://github.com/crs48/xNet/issues">Open an issue</a></li>
+          </ul>
+        </section>
+
+        <section class="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            These terms are adapted from the 
+            <a href="https://github.com/basecamp/policies" class="text-gray-600 dark:text-gray-300 underline">Basecamp open-source policies</a> 
+            / <a href="https://creativecommons.org/licenses/by/4.0/" class="text-gray-600 dark:text-gray-300 underline">CC BY 4.0</a>
+          </p>
+        </section>
+
+      </article>
+    </div>
+  </main>
+
+  <Footer />
+</Base>

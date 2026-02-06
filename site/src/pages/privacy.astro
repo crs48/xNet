@@ -1,0 +1,198 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+---
+
+<Base title="Privacy Policy - xNet" description="Your data is yours. Here's how xNet handles privacy.">
+  <Nav />
+
+  <main class="min-h-screen bg-white dark:bg-gray-900">
+    <div class="mx-auto max-w-3xl px-6 py-16 lg:py-24">
+      <!-- Header -->
+      <header class="mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          Privacy Policy
+        </h1>
+        <p class="text-lg text-gray-600 dark:text-gray-300">
+          Your data is yours, not ours. That's the whole point.
+        </p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-4">
+          Last updated: February 6, 2026
+        </p>
+      </header>
+
+      <!-- Content -->
+      <article class="prose prose-gray dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-blue-600 dark:prose-a:text-blue-400">
+        
+        <section class="mb-12">
+          <h2>The Short Version</h2>
+          <p>
+            xNet is a <strong>local-first</strong> application. Your data lives on your devices, not our servers. 
+            We don't have access to your documents, files, or personal information unless you explicitly share it with us.
+          </p>
+          <p>
+            We collect minimal data to make the service work (like crash reports if you opt in), 
+            and we never sell your data. Ever.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>How xNet is Different</h2>
+          <p>
+            Most apps store your data on their servers. xNet doesn't. Here's what that means for your privacy:
+          </p>
+          <ul>
+            <li><strong>Your data stays on your device</strong> — Documents, notes, and files are stored locally in your browser or app</li>
+            <li><strong>Peer-to-peer sync</strong> — When you sync between devices, data goes directly between them (via WebRTC), not through our servers</li>
+            <li><strong>Optional Hub relay</strong> — If you use a Hub for syncing, encrypted data passes through but we can't read it</li>
+            <li><strong>No account required</strong> — You can use xNet without creating an account or giving us your email</li>
+          </ul>
+        </section>
+
+        <section class="mb-12">
+          <h2>What We Collect</h2>
+          
+          <h3>If You Use the App Without an Account</h3>
+          <p>
+            We collect essentially nothing. Your data lives entirely on your device. 
+            We don't track you, we don't know who you are, and we can't access your content.
+          </p>
+
+          <h3>If You Use the Hosted Hub (hub.xnet.fyi)</h3>
+          <p>
+            Our hosted Hub acts as a relay for peer-to-peer sync. When you connect:
+          </p>
+          <ul>
+            <li>We see your IP address (necessary for network connections)</li>
+            <li>We see encrypted sync messages pass through (but cannot read them)</li>
+            <li>We log basic connection metadata for debugging (retained for 30 days)</li>
+          </ul>
+          <p>
+            We do <strong>not</strong> store your documents, files, or any content on our Hub servers.
+          </p>
+
+          <h3>If You Visit Our Website</h3>
+          <p>
+            For xnet.fyi, we use privacy-respecting analytics to understand how people find and use our documentation:
+          </p>
+          <ul>
+            <li>Page views and referrers (no cookies, no personal data)</li>
+            <li>General geographic region (country level, derived from IP)</li>
+            <li>Browser and device type (for compatibility testing)</li>
+          </ul>
+          <p>
+            We don't use tracking cookies, fingerprinting, or any cross-site tracking.
+          </p>
+
+          <h3>If You Contact Us</h3>
+          <p>
+            If you email us or open a GitHub issue, we keep that correspondence to help you and improve the product. 
+            We won't add you to any marketing lists without your explicit consent.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>What We Don't Do</h2>
+          <ul>
+            <li><strong>We don't sell your data</strong> — Never have, never will</li>
+            <li><strong>We don't show ads</strong> — xNet is open source and community-supported</li>
+            <li><strong>We don't track you across the web</strong> — No third-party trackers</li>
+            <li><strong>We don't read your content</strong> — We literally can't; it's encrypted and on your device</li>
+            <li><strong>We don't share your data with AI training</strong> — Your content is yours alone</li>
+          </ul>
+        </section>
+
+        <section class="mb-12">
+          <h2>Data Security</h2>
+          <p>
+            xNet uses strong cryptography throughout:
+          </p>
+          <ul>
+            <li><strong>Ed25519</strong> for digital signatures</li>
+            <li><strong>XChaCha20-Poly1305</strong> for encryption</li>
+            <li><strong>BLAKE3</strong> for hashing</li>
+            <li><strong>TLS/SSL</strong> for all network connections</li>
+          </ul>
+          <p>
+            Your cryptographic identity (DID:key) is generated on your device and never leaves it. 
+            Only you have access to your private keys.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Self-Hosting</h2>
+          <p>
+            You can run your own Hub on your own infrastructure. When self-hosting:
+          </p>
+          <ul>
+            <li>Your data never touches our servers</li>
+            <li>You control all logs and retention</li>
+            <li>You're responsible for your own security and backups</li>
+          </ul>
+          <p>
+            See our <a href="/docs/guides/hub/">Hub setup guide</a> for instructions.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Your Rights</h2>
+          <p>
+            Because xNet is local-first, you already have most data rights by default:
+          </p>
+          <ul>
+            <li><strong>Access</strong> — Your data is on your device; you have full access</li>
+            <li><strong>Portability</strong> — Export your data anytime from the app</li>
+            <li><strong>Deletion</strong> — Delete your data by removing the app or clearing browser storage</li>
+            <li><strong>Correction</strong> — Edit your data directly in the app</li>
+          </ul>
+          <p>
+            If you've used our hosted Hub and want us to delete any logs associated with your connection, 
+            contact us at <a href="mailto:privacy@xnet.fyi">privacy@xnet.fyi</a>.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Children's Privacy</h2>
+          <p>
+            xNet is not directed at children under 13. We don't knowingly collect information from children. 
+            Since xNet doesn't require accounts or collect personal data, this is largely a non-issue.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Changes to This Policy</h2>
+          <p>
+            We may update this policy occasionally. When we do, we'll update the date at the top 
+            and post a notice on our website. For significant changes, we'll provide more prominent notice.
+          </p>
+          <p>
+            You can track all changes in our <a href="https://github.com/crs48/xNet">GitHub repository</a>.
+          </p>
+        </section>
+
+        <section class="mb-12">
+          <h2>Contact Us</h2>
+          <p>
+            Questions about privacy? Reach out:
+          </p>
+          <ul>
+            <li>Email: <a href="mailto:privacy@xnet.fyi">privacy@xnet.fyi</a></li>
+            <li>GitHub: <a href="https://github.com/crs48/xNet/issues">Open an issue</a></li>
+          </ul>
+        </section>
+
+        <section class="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            This privacy policy is adapted from the 
+            <a href="https://github.com/basecamp/policies" class="text-gray-600 dark:text-gray-300 underline">Basecamp open-source policies</a> 
+            / <a href="https://creativecommons.org/licenses/by/4.0/" class="text-gray-600 dark:text-gray-300 underline">CC BY 4.0</a>
+          </p>
+        </section>
+
+      </article>
+    </div>
+  </main>
+
+  <Footer />
+</Base>
