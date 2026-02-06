@@ -31,6 +31,7 @@ import type {
 } from './types'
 import type { LensRegistry } from '../schema/lens'
 import type { DID } from '@xnet/core'
+import { parseDID } from '@xnet/identity'
 import {
   createLamportClock,
   tick,
@@ -42,6 +43,7 @@ import {
   type LamportClock,
   type LamportTimestamp
 } from '@xnet/sync'
+import { verifyChange, verifyChangeHash } from '@xnet/sync'
 import { createNodeId, getBaseSchemaIRI } from '../schema/node'
 import { resolveTempIds, type SchemaLookup } from './tempids'
 
@@ -486,8 +488,37 @@ export class NodeStore {
 
   /**
    * Apply a remote change (from sync).
+   * Verifies the change signature before applying.
+   *
+   * @throws Error if signature verification fails
    */
   async applyRemoteChange(change: NodeChange): Promise<void> {
+    // Verify hash integrity (no tampering)
+    if (!verifyChangeHash(change)) {
+      throw new Error(
+        `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
+      )
+    }
+
+    // Verify signature matches the author's public key
+    try {
+      const publicKey = parseDID(change.authorDID)
+      if (!verifyChange(change, publicKey)) {
+        throw new Error(
+          `[NodeStore] Remote change ${change.id} failed signature verification - ` +
+            `signature does not match author ${change.authorDID}`
+        )
+      }
+    } catch (err) {
+      // Re-throw verification errors, wrap other errors
+      if (err instanceof Error && err.message.includes('failed')) {
+        throw err
+      }
+      throw new Error(
+        `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
+
     // Update our clock to be at least as recent as the remote
     this.clock = receive(this.clock, change.lamport.time)
     await this.storage.setLastLamportTime(this.clock.time)
