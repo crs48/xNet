@@ -10,6 +10,11 @@
  * - Execute CRUD operations
  * - Manage Y.Doc pool for collaborative editing
  * - Handle sync and crypto (all signing/verification happens here)
+ *
+ * Performance optimizations:
+ * - Uses Comlink's transfer() for zero-copy ArrayBuffer transfers
+ * - Y.Doc updates are transferred (not copied) to main thread when possible
+ * - Initial doc state is transferred on acquire for fast loading
  */
 
 import type {
@@ -29,7 +34,7 @@ import {
   type NodeChangeEvent,
   type SchemaIRI
 } from '@xnet/data'
-import { expose, proxy } from 'comlink'
+import { expose, proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
 import { QueryCache } from '../query-cache'
 
@@ -209,9 +214,24 @@ class DataWorker implements DataWorkerAPI {
         // Forward remote updates to all registered handlers
         // (but not local updates - those came from the handler's own doc)
         if (origin === 'remote') {
-          for (const handler of entry!.updateHandlers) {
+          const handlers = Array.from(entry!.updateHandlers)
+          for (let i = 0; i < handlers.length; i++) {
             try {
-              handler(update, 'remote')
+              // For the last handler, we can transfer ownership of the buffer
+              // For previous handlers, we need to copy since transfer is destructive
+              const isLast = i === handlers.length - 1
+              const updateToSend = isLast ? update : new Uint8Array(update)
+
+              // Use Comlink's transfer() for zero-copy when possible
+              if (isLast && update.buffer.byteLength === update.byteLength) {
+                // Transfer the ArrayBuffer for zero-copy (only works if we own the whole buffer)
+                handlers[i](
+                  transfer(updateToSend, [updateToSend.buffer]) as unknown as Uint8Array,
+                  'remote'
+                )
+              } else {
+                handlers[i](updateToSend, 'remote')
+              }
             } catch (err) {
               console.error('[DataWorker] Update handler error:', err)
             }
@@ -228,13 +248,19 @@ class DataWorker implements DataWorkerAPI {
     entry.refCount++
 
     // Get current state to send to main thread
+    // Use transfer() for zero-copy transfer of the initial state
     const state = Y.encodeStateAsUpdate(entry.doc)
 
-    return {
-      nodeId,
-      state,
-      clientId: this.nextClientId++
-    }
+    // Return with the state transferred for zero-copy
+    // Note: We return the transfer-wrapped result - Comlink handles this specially
+    return transfer(
+      {
+        nodeId,
+        state,
+        clientId: this.nextClientId++
+      },
+      [state.buffer]
+    )
   }
 
   releaseDoc(nodeId: string): void {

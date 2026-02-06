@@ -27,11 +27,17 @@ export interface CreateBridgeOptions {
    * URL to the data worker script.
    * If not provided, MainThreadBridge will be used.
    *
-   * In Vite, you can get this via:
+   * In Vite, use import.meta.url to get the worker URL:
    * ```ts
-   * import DataWorker from '@xnet/data-bridge/worker?worker'
-   * const workerUrl = new URL('./worker.js', import.meta.url)
+   * // Option 1: Use the package's built worker
+   * const workerUrl = new URL('@xnet/data-bridge/worker', import.meta.url)
+   *
+   * // Option 2: Use Vite's ?worker&url import (bundles into your build)
+   * import workerUrl from '@xnet/data-bridge/dist/worker/data-worker.js?worker&url'
    * ```
+   *
+   * Note: Vite handles Web Worker bundling automatically. No additional
+   * configuration is needed - just pass the URL to WorkerBridge.
    */
   workerUrl?: URL | string
 
