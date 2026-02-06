@@ -16,6 +16,7 @@ import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
 import { Seed } from './Seed/Seed'
 import { SyncMonitor } from './SyncMonitor/SyncMonitor'
 import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
+import { VersionPanel } from './VersionPanel/VersionPanel'
 import { YjsInspector } from './YjsInspector/YjsInspector'
 
 const PANELS: Array<{ id: PanelId; label: string }> = [
@@ -26,6 +27,7 @@ const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'queries', label: 'Queries' },
   { id: 'telemetry', label: 'Telemetry' },
   { id: 'schemas', label: 'Schemas' },
+  { id: 'version', label: 'Version' },
   { id: 'seed', label: 'Seed' },
   { id: 'history', label: 'History' }
 ]
@@ -122,6 +124,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <TelemetryPanel />
     case 'schemas':
       return <SchemaRegistry />
+    case 'version':
+      return <VersionPanel />
     case 'seed':
       return <Seed />
     case 'history':
