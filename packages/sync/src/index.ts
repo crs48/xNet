@@ -216,8 +216,14 @@ export type {
   HandlerEvent,
   ProcessResult,
   RegistryStats
-} from './handlers'
-export { ChangeHandlerRegistry, createTestContext } from './handlers'
+} from './handlers/index'
+export {
+  ChangeHandlerRegistry,
+  changeHandlerRegistry,
+  createHandler,
+  createVersionedHandler,
+  createTestContext
+} from './handlers/index'
 
 // Data integrity verification
 export type {
