@@ -10,6 +10,7 @@ import { DEFAULTS } from '../core/constants'
 import { useDevTools } from '../provider/useDevTools'
 import { ChangeTimeline } from './ChangeTimeline/ChangeTimeline'
 import { HistoryPanel } from './HistoryPanel/HistoryPanel'
+import { MigrationWizard } from './MigrationWizard/MigrationWizard'
 import { NodeExplorer } from './NodeExplorer/NodeExplorer'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
 import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
@@ -28,6 +29,7 @@ const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'telemetry', label: 'Telemetry' },
   { id: 'schemas', label: 'Schemas' },
   { id: 'version', label: 'Version' },
+  { id: 'migration', label: 'Migrate' },
   { id: 'seed', label: 'Seed' },
   { id: 'history', label: 'History' }
 ]
@@ -126,6 +128,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <SchemaRegistry />
     case 'version':
       return <VersionPanel />
+    case 'migration':
+      return <MigrationWizard />
     case 'seed':
       return <Seed />
     case 'history':

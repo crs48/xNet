@@ -130,6 +130,107 @@ const TaskSchema = defineSchema({
 | Change field type               | Major        | `1.0.0` → `2.0.0` |
 | Fix bug in migration            | Patch        | `1.0.1` → `1.0.2` |
 
+### Schema change classification
+
+Every schema change falls into one of three risk categories:
+
+```mermaid
+flowchart TB
+    subgraph "SAFE - Ship Anytime"
+        SAFE1["Add optional properties"]
+        SAFE2["Add new schemas"]
+        SAFE3["Add new change types"]
+        SAFE4["Add new select options"]
+        SAFE5["Make required → optional"]
+    end
+
+    subgraph "CAUTION - Plan Ahead"
+        CAUTION1["Add required properties"]
+        CAUTION2["Remove properties"]
+        CAUTION3["Make optional → required"]
+        CAUTION4["Change property defaults"]
+    end
+
+    subgraph "BREAKING - Requires Migration"
+        DANGER1["Change property type"]
+        DANGER2["Rename properties"]
+        DANGER3["Change schema namespace"]
+        DANGER4["Remove select options"]
+    end
+
+    style SAFE1 fill:#c8e6c9
+    style SAFE2 fill:#c8e6c9
+    style SAFE3 fill:#c8e6c9
+    style SAFE4 fill:#c8e6c9
+    style SAFE5 fill:#c8e6c9
+    style CAUTION1 fill:#fff3e0
+    style CAUTION2 fill:#fff3e0
+    style CAUTION3 fill:#fff3e0
+    style CAUTION4 fill:#fff3e0
+    style DANGER1 fill:#ffcdd2
+    style DANGER2 fill:#ffcdd2
+    style DANGER3 fill:#ffcdd2
+    style DANGER4 fill:#ffcdd2
+```
+
+#### Classification matrix
+
+| Change Type            | Forward Safe | Backward Safe | Auto-Migrate | Manual Action    |
+| ---------------------- | ------------ | ------------- | ------------ | ---------------- |
+| Add optional property  | Yes          | Yes           | N/A          | None             |
+| Add required property  | No           | Yes           | Yes          | Define default   |
+| Remove property        | Yes          | No            | Yes          | None             |
+| Change property type   | No           | No            | Maybe        | Define transform |
+| Rename property        | No           | No            | Yes          | Define mapping   |
+| Add select option      | Yes          | Yes           | N/A          | None             |
+| Remove select option   | No           | No            | Maybe        | Define fallback  |
+| Make optional→required | No           | Yes           | Yes          | Define default   |
+| Make required→optional | Yes          | Yes           | N/A          | None             |
+
+**Legend:**
+
+- **Forward Safe**: Old clients can read data created by new clients
+- **Backward Safe**: New clients can read data created by old clients
+- **Auto-Migrate**: The system can generate migration code automatically
+
+#### Migration wizard
+
+Use the **Migrate** panel in DevTools to:
+
+1. **Analyze** - Scan your store for schema changes
+2. **Review** - See changes grouped by risk level
+3. **Generate** - Auto-generate lens code for migrations
+4. **Test** - Validate migrations on sample data
+5. **Apply** - Apply migrations to your store
+
+```mermaid
+flowchart TB
+    START["Schema Change Detected"]
+    ANALYZE["Analyze Changes"]
+    CLASSIFY["Classify Risk"]
+
+    START --> ANALYZE
+    ANALYZE --> CLASSIFY
+
+    CLASSIFY -->|"Safe"| AUTO["Auto-apply"]
+    CLASSIFY -->|"Caution"| REVIEW["Review & Confirm"]
+    CLASSIFY -->|"Breaking"| WIZARD["Migration Wizard"]
+
+    WIZARD --> LENS["Generate Lens Code"]
+    LENS --> TEST["Test Migration"]
+    TEST -->|"Pass"| APPLY["Apply to Store"]
+    TEST -->|"Fail"| EDIT["Edit Lens"]
+    EDIT --> TEST
+
+    AUTO --> DONE["Done"]
+    REVIEW --> APPLY
+    APPLY --> DONE
+
+    style AUTO fill:#c8e6c9
+    style REVIEW fill:#fff3e0
+    style WIZARD fill:#ffcdd2
+```
+
 ## Migrations with lenses
 
 Lenses transform data between schema versions. They're bidirectional — you can upgrade and downgrade.
