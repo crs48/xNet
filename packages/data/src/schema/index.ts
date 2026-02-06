@@ -142,3 +142,28 @@ export {
 
 // Schema registry
 export { SchemaRegistry, schemaRegistry } from './registry'
+
+// Schema lens system (migrations)
+export {
+  type SchemaLens,
+  type LensOperation,
+  type MigrationResult,
+  MigrationError,
+  LensRegistry,
+  lensRegistry
+} from './lens'
+
+// Lens builder utilities
+export {
+  rename,
+  convert,
+  addDefault,
+  remove,
+  transform,
+  copy,
+  merge,
+  when,
+  composeLens,
+  createOperations,
+  identity
+} from './lens-builders'
