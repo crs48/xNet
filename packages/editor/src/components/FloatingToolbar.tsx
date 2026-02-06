@@ -85,9 +85,14 @@ function useIsMobile(mode?: ToolbarMode): boolean {
   return isMobile
 }
 
-// Track keyboard visibility on mobile
-function useKeyboardVisible(): boolean {
-  const [isVisible, setIsVisible] = useState(false)
+// Track keyboard visibility and height on mobile
+interface KeyboardState {
+  visible: boolean
+  height: number
+}
+
+function useKeyboardVisible(): KeyboardState {
+  const [state, setState] = useState<KeyboardState>({ visible: false, height: 0 })
 
   useEffect(() => {
     // Use visualViewport API if available (modern browsers)
@@ -95,16 +100,26 @@ function useKeyboardVisible(): boolean {
     if (!viewport) return
 
     const handleResize = () => {
+      // Calculate keyboard height from the difference between window and viewport height
+      const keyboardHeight = window.innerHeight - viewport.height
       // If viewport height is significantly less than window height, keyboard is likely open
       const keyboardOpen = viewport.height < window.innerHeight * 0.75
-      setIsVisible(keyboardOpen)
+      setState({
+        visible: keyboardOpen,
+        height: keyboardOpen ? keyboardHeight : 0
+      })
     }
 
     viewport.addEventListener('resize', handleResize)
-    return () => viewport.removeEventListener('resize', handleResize)
+    // Also listen for scroll to handle iOS scroll behavior
+    viewport.addEventListener('scroll', handleResize)
+    return () => {
+      viewport.removeEventListener('resize', handleResize)
+      viewport.removeEventListener('scroll', handleResize)
+    }
   }, [])
 
-  return isVisible
+  return state
 }
 
 interface ToolbarButtonProps {
@@ -470,8 +485,7 @@ function MobileToolbar({
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const keyboardVisible = useKeyboardVisible()
+  const keyboard = useKeyboardVisible()
   const scrollRef = useRef<HTMLDivElement>(null)
   const [isFocused, setIsFocused] = useState(false)
 
@@ -506,12 +520,15 @@ function MobileToolbar({
         'fixed left-0 right-0 z-50',
         'bg-background/95 backdrop-blur-sm border-t border-border',
         'shadow-[0_-4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]',
-        'bottom-0',
         className
       )}
       style={{
-        // Use env() for safe area on iOS
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        // Position above keyboard when visible, otherwise at bottom with safe area
+        bottom: keyboard.visible ? `${keyboard.height}px` : 0,
+        // Only use safe area padding when keyboard is NOT visible (keyboard handles its own padding)
+        paddingBottom: keyboard.visible ? 0 : 'env(safe-area-inset-bottom, 0px)',
+        // Smooth transition when keyboard appears/disappears
+        transition: 'bottom 0.1s ease-out'
       }}
     >
       <div
