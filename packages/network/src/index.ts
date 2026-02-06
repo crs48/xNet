@@ -11,7 +11,9 @@ export type {
   SyncMessage,
   NetworkConfig,
   DemoLimits,
-  HubHandshake
+  HubHandshake,
+  ClientHandshake,
+  VersionMismatchError
 } from './types'
 export { DEFAULT_CONFIG, PRODUCTION_CONFIG, DEVELOPMENT_CONFIG } from './types'
 

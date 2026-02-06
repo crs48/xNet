@@ -106,6 +106,21 @@ export interface NodeState {
    * Use Y.applyUpdate(ydoc, documentContent) to hydrate.
    */
   documentContent?: Uint8Array
+
+  // ─── Version Compatibility Fields ─────────────────────────────────────────
+
+  /**
+   * Unknown properties from future schema versions.
+   * Preserved on read and passed through on write for forward compatibility.
+   * These properties exist in the change log but aren't known to the current schema.
+   */
+  _unknown?: Record<PropertyKey, unknown>
+
+  /**
+   * The schema version that last wrote to this node.
+   * Used to detect when migrations might be needed.
+   */
+  _schemaVersion?: string
 }
 
 // ============================================================================
@@ -204,6 +219,14 @@ export interface MergeConflict {
 // ============================================================================
 
 /**
+ * Callback to get the known property names for a schema.
+ * Used for unknown property preservation during version compatibility.
+ * Returns the set of property names defined in the schema,
+ * or undefined if the schema is not available (all properties treated as known).
+ */
+export type PropertyLookup = (schemaId: SchemaIRI) => Set<string> | undefined
+
+/**
  * Options for creating a NodeStore.
  */
 export interface NodeStoreOptions {
@@ -220,6 +243,12 @@ export interface NodeStoreOptions {
    * Without this, temp IDs are only resolved in operation ID fields.
    */
   schemaLookup?: SchemaLookup
+  /**
+   * Optional property lookup for unknown property preservation.
+   * When provided, properties not in the schema are stored in `_unknown`.
+   * Without this, all properties are stored as known properties.
+   */
+  propertyLookup?: PropertyLookup
 }
 
 /**

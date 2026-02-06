@@ -43,6 +43,12 @@ export interface SyncProviderEvents<T = unknown> {
   'peer-disconnected': (peerId: string) => void
   /** Fired on error */
   error: (error: Error) => void
+  /**
+   * Fired when a change with an unknown type is received.
+   * The change is still stored in the change log for forward compatibility,
+   * but cannot be processed by the current version.
+   */
+  'unknown-change-type': (change: Change<unknown>, peerId: string) => void
 }
 
 /**

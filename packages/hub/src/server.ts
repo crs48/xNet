@@ -164,6 +164,27 @@ const isAwarenessMessage = (
   )
 }
 
+const isClientHandshake = (
+  value: unknown
+): value is {
+  type: 'client-handshake'
+  did: string
+  protocolVersion: number
+  minProtocolVersion: number
+  features: string[]
+  packageVersion: string
+} => {
+  if (!isRecord(value)) return false
+  if (value.type !== 'client-handshake') return false
+  return (
+    typeof value.did === 'string' &&
+    typeof value.protocolVersion === 'number' &&
+    typeof value.minProtocolVersion === 'number' &&
+    Array.isArray(value.features) &&
+    typeof value.packageVersion === 'string'
+  )
+}
+
 const topicToResource = (topic: string): string =>
   topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
 
@@ -466,10 +487,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         metrics.increment(HUB_METRICS.WS_CONNECTIONS_TOTAL)
         let closed = false
 
-        // Send handshake message with hub info (including demo mode)
+        // Send handshake message with hub info (including demo mode and protocol version)
         const handshake: {
           type: 'handshake'
           version: string
+          protocolVersion: number
+          minProtocolVersion: number
+          features: string[]
           hubDid?: string
           isDemo: boolean
           demoLimits?: {
@@ -481,6 +505,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         } = {
           type: 'handshake',
           version: '0.0.1',
+          // Protocol versioning for forward/backward compatibility
+          protocolVersion: 1, // Current sync protocol version
+          minProtocolVersion: 1, // Minimum supported protocol version
+          features: [
+            'node-changes', // NodeChange sync
+            'yjs-updates', // Yjs CRDT sync
+            'signed-yjs-envelopes', // Signed Yjs updates
+            'batch-changes' // Transaction batching
+          ],
           hubDid: config.hubDid,
           isDemo: !!config.demo
         }
@@ -539,6 +572,53 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             const payload = safeParseJson(dataToString(data))
             if (!payload) return
             metrics.increment(HUB_METRICS.WS_MESSAGES_RECEIVED)
+
+            // Handle client handshake (version negotiation)
+            if (isClientHandshake(payload)) {
+              const hubProtocolVersion = 1
+              const hubMinProtocolVersion = 1
+
+              // Check version compatibility
+              const clientMax = payload.protocolVersion
+              const clientMin = payload.minProtocolVersion
+
+              // Find compatible version range
+              const agreedVersion = Math.min(hubProtocolVersion, clientMax)
+              const minRequired = Math.max(hubMinProtocolVersion, clientMin)
+
+              if (agreedVersion < minRequired) {
+                // Versions are incompatible
+                const suggestion =
+                  clientMax < hubMinProtocolVersion
+                    ? 'upgrade-client'
+                    : hubProtocolVersion < clientMin
+                      ? 'upgrade-hub'
+                      : 'incompatible'
+
+                ws.send(
+                  JSON.stringify({
+                    type: 'version-mismatch',
+                    hubVersion: hubProtocolVersion,
+                    clientVersion: clientMax,
+                    suggestion,
+                    message:
+                      suggestion === 'upgrade-client'
+                        ? `Client protocol v${clientMax} is too old. Please upgrade to at least v${hubMinProtocolVersion}.`
+                        : suggestion === 'upgrade-hub'
+                          ? `Hub protocol v${hubProtocolVersion} is too old for client v${clientMin}.`
+                          : 'Protocol versions are incompatible.'
+                  })
+                )
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                // Don't close the connection - just warn
+              } else if (clientMax < hubProtocolVersion) {
+                // Client is using older version - log for metrics
+                console.log(
+                  `Client ${payload.did} using older protocol v${clientMax} (hub is v${hubProtocolVersion})`
+                )
+              }
+              return
+            }
 
             if (isQueryRequest(payload)) {
               if (!authContext.can('query/read', '*')) {

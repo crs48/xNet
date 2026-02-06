@@ -13,7 +13,12 @@ const ROOM = 'workspace-test-1'
 const connect = (port: number): Promise<WebSocket> =>
   new Promise((resolve) => {
     const ws = new WebSocket(`ws://localhost:${port}`)
-    ws.on('open', () => resolve(ws))
+    ws.on('open', () => {
+      // Wait for and consume the handshake message
+      ws.once('message', () => {
+        resolve(ws)
+      })
+    })
   })
 
 const waitForMessage = (ws: WebSocket): Promise<unknown> =>

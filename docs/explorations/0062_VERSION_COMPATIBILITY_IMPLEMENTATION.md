@@ -257,18 +257,18 @@ export function defineSchema<P>(options: DefineSchemaOptions<P>): DefinedSchema<
 
 #### 1.3 Graceful Unknown Handling
 
-- [ ] **Handle unknown properties in NodeStore**
+- [x] **Handle unknown properties in NodeStore**
   - File: `packages/data/src/store/store.ts`
   - On read: preserve unknown properties in `_unknown` field
   - On write: pass through `_unknown` unchanged
-- [ ] **Handle unknown change types in SyncProvider**
-  - File: `packages/sync/src/provider.ts`
+- [x] **Handle unknown change types in SyncProvider**
+  - File: `packages/sync/src/provider.ts` and `packages/react/src/sync/node-store-sync-provider.ts`
   - On receive: store in change log, skip processing
-  - Emit event: `unknownChangeType`
-- [ ] **Handle unknown schemas in UI**
-  - File: `packages/react/src/hooks/useQuery.ts`
-  - Return data with `_unknownSchema: true` flag
-  - Render generic "Unknown data type" component
+  - Emit event: `unknown-change-type`
+- [x] **Handle unknown schemas in UI**
+  - File: `packages/react/src/utils/flattenNode.ts`
+  - Added `_unknownSchema`, `_unknown`, `_schemaVersion` to FlatNode
+  - Added `flattenUnknownSchemaNode` and `flattenNodesWithSchemaCheck` utilities
 
 ```typescript
 // packages/data/src/store/store.ts
@@ -304,19 +304,19 @@ async applyChange(change: NodeChange): Promise<void> {
 
 #### 1.4 Hub Handshake Upgrade
 
-- [ ] **Use existing version field in HubHandshake**
+- [x] **Use existing version field in HubHandshake**
   - File: `packages/network/src/types.ts`
   - Add: `protocolVersion: number`
   - Add: `minProtocolVersion: number`
   - Add: `features: string[]`
-- [ ] **Implement version check on connect**
+- [x] **Implement version check on connect**
   - File: `packages/hub/src/server.ts`
-  - Reject clients with incompatible versions
-  - Send warning for deprecated versions
-- [ ] **Add client handshake message**
-  - File: `packages/network/src/hub-client.ts`
-  - Send version info after connect
-  - Handle rejection gracefully
+  - Version negotiation with version-mismatch error response
+  - Logging for older clients
+- [x] **Add client handshake message**
+  - File: `packages/network/src/types.ts`
+  - Added `ClientHandshake` and `VersionMismatchError` interfaces
+  - Hub handles client-handshake and responds with version-mismatch if incompatible
 
 ```typescript
 // packages/network/src/types.ts

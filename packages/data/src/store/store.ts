@@ -24,7 +24,8 @@ import type {
   ListNodesOptions,
   TransactionOperation,
   TransactionResult,
-  NodeChangeListener
+  NodeChangeListener,
+  PropertyLookup
 } from './types'
 import type { DID } from '@xnet/core'
 import {
@@ -52,6 +53,7 @@ export class NodeStore {
   private conflicts: MergeConflict[] = []
   private listeners: Set<NodeChangeListener> = new Set()
   private schemaLookup?: SchemaLookup
+  private propertyLookup?: PropertyLookup
 
   constructor(options: NodeStoreOptions) {
     this.storage = options.storage
@@ -59,6 +61,7 @@ export class NodeStore {
     this.signingKey = options.signingKey
     this.clock = createLamportClock(options.authorDID)
     this.schemaLookup = options.schemaLookup
+    this.propertyLookup = options.propertyLookup
   }
 
   /**
@@ -614,8 +617,14 @@ export class NodeStore {
       }
     }
 
+    // Get known property names from schema (if available)
+    const knownProps = this.propertyLookup?.(node.schemaId)
+
     // Apply property changes with LWW
     for (const [key, value] of Object.entries(properties)) {
+      // Check if this is an unknown property (not in schema)
+      const isUnknownProperty = knownProps !== undefined && !knownProps.has(key)
+
       const existingTs = node.timestamps[key]
       const newTs: PropertyTimestamp = {
         lamport: change.lamport,
@@ -624,10 +633,23 @@ export class NodeStore {
 
       if (!existingTs || this.shouldReplace(existingTs, newTs)) {
         // New value wins
-        if (value === undefined) {
-          delete node.properties[key]
+        if (isUnknownProperty) {
+          // Store in _unknown for forward compatibility
+          if (!node._unknown) {
+            node._unknown = {}
+          }
+          if (value === undefined) {
+            delete node._unknown[key]
+          } else {
+            node._unknown[key] = value
+          }
         } else {
-          node.properties[key] = value
+          // Store in properties (known property)
+          if (value === undefined) {
+            delete node.properties[key]
+          } else {
+            node.properties[key] = value
+          }
         }
         node.timestamps[key] = newTs
 
@@ -636,7 +658,7 @@ export class NodeStore {
           this.conflicts.push({
             nodeId,
             key,
-            localValue: node.properties[key],
+            localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
             localTimestamp: existingTs,
             remoteValue: value,
             remoteTimestamp: newTs,
@@ -648,7 +670,7 @@ export class NodeStore {
         this.conflicts.push({
           nodeId,
           key,
-          localValue: node.properties[key],
+          localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
           localTimestamp: existingTs,
           remoteValue: value,
           remoteTimestamp: newTs,

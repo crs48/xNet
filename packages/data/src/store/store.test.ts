@@ -621,3 +621,162 @@ describe('MemoryNodeStorageAdapter', () => {
     expect(adapter.getChangeCount()).toBe(0)
   })
 })
+
+describe('Unknown Property Handling (Version Compatibility)', () => {
+  it('should preserve unknown properties in _unknown field when propertyLookup is provided', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
+    const adapter = new MemoryNodeStorageAdapter()
+
+    // Create a propertyLookup that only knows about 'title'
+    const knownProps = new Set(['title'])
+    const propertyLookup = () => knownProps
+
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      propertyLookup
+    })
+    await store.initialize()
+
+    // Create a node with both known and unknown properties
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: {
+        title: 'Known Property',
+        futureField: 'This is from a future version',
+        anotherFuture: 123
+      }
+    })
+
+    // Known property should be in properties
+    expect(node.properties.title).toBe('Known Property')
+
+    // Unknown properties should be in _unknown
+    expect(node._unknown).toBeDefined()
+    expect(node._unknown?.futureField).toBe('This is from a future version')
+    expect(node._unknown?.anotherFuture).toBe(123)
+
+    // Unknown properties should NOT be in properties
+    expect(node.properties.futureField).toBeUndefined()
+    expect(node.properties.anotherFuture).toBeUndefined()
+  })
+
+  it('should treat all properties as known when propertyLookup is not provided', async () => {
+    const { store } = createTestStore()
+    await store.initialize()
+
+    // Create a node with various properties
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: {
+        title: 'Test',
+        extraField: 'Should be in properties'
+      }
+    })
+
+    // All properties should be in properties (no _unknown)
+    expect(node.properties.title).toBe('Test')
+    expect(node.properties.extraField).toBe('Should be in properties')
+    expect(node._unknown).toBeUndefined()
+  })
+
+  it('should treat all properties as known when propertyLookup returns undefined', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
+    const adapter = new MemoryNodeStorageAdapter()
+
+    // PropertyLookup that returns undefined (schema not found)
+    const propertyLookup = () => undefined
+
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      propertyLookup
+    })
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: {
+        title: 'Test',
+        anyField: 'Should work'
+      }
+    })
+
+    // All properties should be in properties since schema isn't known
+    expect(node.properties.title).toBe('Test')
+    expect(node.properties.anyField).toBe('Should work')
+    expect(node._unknown).toBeUndefined()
+  })
+
+  it('should preserve unknown properties through updates', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
+    const adapter = new MemoryNodeStorageAdapter()
+
+    const knownProps = new Set(['title', 'status'])
+    const propertyLookup = () => knownProps
+
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      propertyLookup
+    })
+    await store.initialize()
+
+    // Create with unknown property
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: {
+        title: 'Original',
+        futureField: 'preserved'
+      }
+    })
+
+    // Update a known property
+    const updated = await store.update(node.id, {
+      properties: { status: 'done' }
+    })
+
+    // Original unknown property should still be there
+    expect(updated._unknown?.futureField).toBe('preserved')
+    expect(updated.properties.status).toBe('done')
+    expect(updated.properties.title).toBe('Original')
+  })
+
+  it('should allow updating unknown properties', async () => {
+    const keyPair = generateSigningKeyPair()
+    const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
+    const adapter = new MemoryNodeStorageAdapter()
+
+    const knownProps = new Set(['title'])
+    const propertyLookup = () => knownProps
+
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      propertyLookup
+    })
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: {
+        title: 'Test',
+        futureField: 'original'
+      }
+    })
+
+    // Update the unknown property
+    const updated = await store.update(node.id, {
+      properties: { futureField: 'updated value' }
+    })
+
+    expect(updated._unknown?.futureField).toBe('updated value')
+  })
+})

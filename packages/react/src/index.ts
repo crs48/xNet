@@ -239,7 +239,13 @@ export {
 // Utilities
 // =============================================================================
 
-export { flattenNode, flattenNodes } from './utils/flattenNode'
+export {
+  flattenNode,
+  flattenNodes,
+  flattenUnknownSchemaNode,
+  flattenNodesWithSchemaCheck,
+  type FlattenNodeOptions
+} from './utils/flattenNode'
 
 // =============================================================================
 // Sync
