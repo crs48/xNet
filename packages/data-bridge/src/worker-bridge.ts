@@ -16,7 +16,8 @@ import type {
   DataBridgeConfig,
   QuerySubscription,
   QueryOptions,
-  SyncStatus
+  SyncStatus,
+  AcquiredDoc
 } from './types'
 import type { DataWorkerAPI, QueryDelta, SerializedQueryOptions } from './worker/worker-types'
 import type {
@@ -218,6 +219,34 @@ export class WorkerBridge implements DataBridge {
     }
 
     return this.remote.restore(nodeId)
+  }
+
+  // ─── Documents ────────────────────────────────────────────────────────────────
+
+  /**
+   * Acquire a Y.Doc for editing.
+   *
+   * Phase 3 TODO: Implement split Y.Doc pattern where:
+   * 1. Worker maintains "source of truth" Y.Doc
+   * 2. Main thread gets a mirror Y.Doc for TipTap binding
+   * 3. Updates flow bidirectionally via Transferable ArrayBuffers
+   *
+   * For now, throws to indicate this is not yet implemented.
+   */
+  async acquireDoc(_nodeId: string): Promise<AcquiredDoc> {
+    throw new Error(
+      'WorkerBridge.acquireDoc is not yet implemented. ' +
+        'Phase 3 (Y.Doc Split Architecture) is required for off-main-thread document editing.'
+    )
+  }
+
+  /**
+   * Release a Y.Doc when no longer editing.
+   *
+   * Phase 3 TODO: Clean up main-thread mirror Y.Doc and stop update forwarding.
+   */
+  releaseDoc(_nodeId: string): void {
+    // No-op until Phase 3 is implemented
   }
 
   // ─── Lifecycle ───────────────────────────────────────────────────────────────

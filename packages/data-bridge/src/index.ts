@@ -36,7 +36,11 @@ export type {
 
 // ─── Implementations ─────────────────────────────────────────────────────────
 
-export { MainThreadBridge, createMainThreadBridge } from './main-thread-bridge'
+export {
+  MainThreadBridge,
+  createMainThreadBridge,
+  type SyncManagerLike
+} from './main-thread-bridge'
 export { WorkerBridge, createWorkerBridge } from './worker-bridge'
 
 // ─── Factory Functions ────────────────────────────────────────────────────────

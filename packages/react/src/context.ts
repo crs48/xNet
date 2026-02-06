@@ -11,7 +11,7 @@ import type { NodeChangeEvent, NodeStorageAdapter } from '@xnet/data'
 import type { Identity } from '@xnet/identity'
 import type { ReactNode } from 'react'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnet/data'
-import { createMainThreadBridge, type DataBridge } from '@xnet/data-bridge'
+import { createMainThreadBridge, MainThreadBridge, type DataBridge } from '@xnet/data-bridge'
 import { createUCAN } from '@xnet/identity'
 import { PluginRegistry, type Platform } from '@xnet/plugins'
 import React, {
@@ -433,6 +433,24 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     hubUrl,
     nodeSyncRoom
   ])
+
+  // Connect SyncManager to DataBridge for Y.Doc acquisition
+  // This allows useNode to use bridge.acquireDoc() instead of direct SyncManager access
+  useEffect(() => {
+    if (!dataBridge || !syncManager) return
+
+    // Only MainThreadBridge supports setSyncManager
+    if (dataBridge instanceof MainThreadBridge) {
+      dataBridge.setSyncManager(syncManager)
+      log('Connected SyncManager to DataBridge')
+    }
+
+    return () => {
+      if (dataBridge instanceof MainThreadBridge) {
+        dataBridge.setSyncManager(null)
+      }
+    }
+  }, [dataBridge, syncManager])
 
   // Track hub connection status from SyncManager
   useEffect(() => {

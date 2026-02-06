@@ -989,11 +989,14 @@ sequenceDiagram
 
 #### Checklist
 
-- [ ] Document lifecycle in DataBridge
-  - [ ] `acquireDoc()` returns main-thread Y.Doc
-  - [ ] Update forwarding via Transferable
-  - [ ] `releaseDoc()` cleanup
-- [ ] Update `useNode` hook
+- [x] Document lifecycle in DataBridge
+  - [x] `acquireDoc()` returns main-thread Y.Doc (MainThreadBridge delegates to SyncManager)
+  - [ ] Update forwarding via Transferable (WorkerBridge - deferred until full split Y.Doc impl)
+  - [x] `releaseDoc()` cleanup
+- [x] XNetProvider integration
+  - [x] Connect SyncManager to DataBridge via `setSyncManager()`
+  - [x] Export `SyncManagerLike` interface for type safety
+- [ ] Update `useNode` hook (DEFERRED - infrastructure ready, useNode still uses SyncManager directly)
   - [ ] Use `bridge.acquireDoc()` instead of direct Y.Doc creation
   - [ ] Handle Transferable updates
   - [ ] Maintain awareness sync
@@ -1001,9 +1004,10 @@ sequenceDiagram
   - [ ] All signing happens in worker
   - [ ] All verification happens in worker
   - [ ] Main thread never touches keys
-- [ ] Tests
-  - [ ] TipTap collaborative editing works
-  - [ ] Cursor presence works
+- [x] Tests
+  - [x] All existing tests pass (93 tests in @xnet/react)
+  - [ ] TipTap collaborative editing works (manual verification)
+  - [ ] Cursor presence works (manual verification)
   - [ ] No signature verification on main thread
 
 #### Key Code: useNode with Split Y.Doc

@@ -10,7 +10,7 @@
  * - For testing/development
  */
 
-import type { DataBridge, QuerySubscription, QueryOptions, SyncStatus } from './types'
+import type { DataBridge, QuerySubscription, QueryOptions, SyncStatus, AcquiredDoc } from './types'
 import type {
   NodeStore,
   NodeState,
@@ -21,7 +21,21 @@ import type {
   ListNodesOptions,
   SchemaIRI
 } from '@xnet/data'
+import type { Awareness } from 'y-protocols/awareness'
+import type { Doc as YDoc } from 'yjs'
 import { QueryCache } from './query-cache'
+
+// ─── SyncManager Interface ───────────────────────────────────────────────────
+
+/**
+ * Minimal SyncManager interface for Y.Doc acquisition.
+ * This avoids a direct dependency on @xnet/react's full SyncManager type.
+ */
+export interface SyncManagerLike {
+  acquire(nodeId: string): Promise<YDoc>
+  release(nodeId: string): void
+  getAwareness(nodeId: string): Awareness | null
+}
 
 // ─── MainThreadBridge Class ──────────────────────────────────────────────────
 
@@ -37,6 +51,7 @@ export class MainThreadBridge implements DataBridge {
   private cache: QueryCache
   private statusListeners = new Set<(status: SyncStatus) => void>()
   private storeUnsubscribe: (() => void) | null = null
+  private _syncManager: SyncManagerLike | null = null
 
   constructor(store: NodeStore) {
     this.store = store
@@ -46,6 +61,14 @@ export class MainThreadBridge implements DataBridge {
     this.storeUnsubscribe = this.store.subscribe((event) => {
       this.handleStoreChange(event)
     })
+  }
+
+  /**
+   * Set the SyncManager for Y.Doc acquisition.
+   * This is called by XNetProvider after the SyncManager is created.
+   */
+  setSyncManager(syncManager: SyncManagerLike | null): void {
+    this._syncManager = syncManager
   }
 
   // ─── Queries ────────────────────────────────────────────
@@ -154,6 +177,41 @@ export class MainThreadBridge implements DataBridge {
 
   async restore(nodeId: string): Promise<NodeState> {
     return this.store.restore(nodeId)
+  }
+
+  // ─── Documents ─────────────────────────────────────────
+
+  /**
+   * Acquire a Y.Doc for editing.
+   * Delegates to SyncManager if available, otherwise throws.
+   *
+   * @throws Error if SyncManager is not set
+   */
+  async acquireDoc(nodeId: string): Promise<AcquiredDoc> {
+    if (!this._syncManager) {
+      throw new Error(
+        'MainThreadBridge.acquireDoc requires SyncManager. ' +
+          'Call setSyncManager() first or use useNode with SyncManager context.'
+      )
+    }
+
+    const doc = await this._syncManager.acquire(nodeId)
+    const awareness = this._syncManager.getAwareness(nodeId)
+
+    if (!awareness) {
+      throw new Error(`Failed to get awareness for node ${nodeId}`)
+    }
+
+    return { doc, awareness }
+  }
+
+  /**
+   * Release a Y.Doc when no longer editing.
+   */
+  releaseDoc(nodeId: string): void {
+    if (this._syncManager) {
+      this._syncManager.release(nodeId)
+    }
   }
 
   // ─── Lifecycle ──────────────────────────────────────────
