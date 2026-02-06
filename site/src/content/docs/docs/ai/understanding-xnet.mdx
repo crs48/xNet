@@ -1,0 +1,193 @@
+---
+title: Understanding xNet (For AI Assistants)
+description: A guide for AI coding assistants on how xNet differs from traditional architectures
+---
+
+# Understanding xNet: A Guide for AI Assistants
+
+If you're an AI assistant helping a developer build with xNet, this guide will help you understand the fundamental paradigm differences.
+
+## The Key Insight
+
+**xNet has no backend.**
+
+This is not a simplification or a limitation — it's the core design principle. Data lives on the user's device and syncs peer-to-peer.
+
+## Mental Model Comparison
+
+### Traditional Architecture
+
+```
+User → Frontend → API → Backend → Database
+                   ↑
+              Auth Service
+```
+
+### xNet Architecture
+
+```
+User → React Hooks → Local Storage ←→ P2P Sync ←→ Other Devices
+                           ↑
+              Cryptographic Identity (built-in)
+```
+
+## What This Means Practically
+
+### There Are No API Endpoints
+
+When a user asks "create an API to save tasks", the correct response is:
+
+```typescript
+// Don't create this:
+// app.post('/api/tasks', handler)
+
+// Do this instead:
+const { create } = useMutate()
+await create(TaskSchema, { title: 'New task' })
+```
+
+The `create` function writes to local storage. Sync happens automatically.
+
+### There Is No Auth System to Implement
+
+When a user asks "add authentication", the correct response is:
+
+```typescript
+// Don't create OAuth/JWT flows
+
+// Identity is already built-in:
+const { did, displayName } = useIdentity()
+
+// DID is a cryptographic identifier like:
+// did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
+```
+
+### Offline Just Works
+
+When a user asks "handle offline mode", the correct response is:
+
+```typescript
+// Don't add service workers or cache layers
+
+// It already works:
+const { data } = useQuery(TaskSchema)
+// This reads from local storage
+// Works whether online or offline
+// Syncs when connectivity returns
+```
+
+### Real-time Is Built-in
+
+When a user asks "add real-time updates", the correct response is:
+
+```typescript
+// Don't create WebSocket connections
+
+// Hooks are already reactive:
+const { data: tasks } = useQuery(TaskSchema)
+// When another device syncs changes,
+// this component re-renders automatically
+```
+
+## Common Mistakes to Avoid
+
+| User Request     | Wrong Approach     | Correct Approach           |
+| ---------------- | ------------------ | -------------------------- |
+| "Save data"      | Create REST API    | Use `useMutate().create()` |
+| "Fetch data"     | Use fetch/axios    | Use `useQuery()`           |
+| "Add auth"       | Implement OAuth    | Use `useIdentity()`        |
+| "Handle offline" | Add service worker | Already works              |
+| "Real-time sync" | Add WebSockets     | Already built-in           |
+| "Manage state"   | Add Redux/Zustand  | Hooks handle this          |
+| "Optimistic UI"  | Manual rollback    | Built into mutations       |
+
+## The Schema System
+
+Schemas are central to xNet. They define data shapes AND provide type inference:
+
+```typescript
+import { defineSchema, text, select, relation } from '@xnet/data'
+
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://myapp/',
+  properties: {
+    title: text({ required: true }),
+    status: select({ options: ['todo', 'done'] as const }),
+    assignee: relation({ schema: 'xnet://myapp/Person' })
+  }
+})
+
+// Now hooks are fully typed:
+const { data } = useQuery(TaskSchema)
+data[0].title // string
+data[0].status // 'todo' | 'done'
+```
+
+## When to Suggest Server Code
+
+The only times server code is appropriate:
+
+1. **Hub setup** — If deploying an always-on relay (optional)
+2. **External integrations** — Webhooks, third-party APIs
+3. **Heavy computation** — AI/ML that can't run on device
+
+Even then, the Hub is just a relay — it doesn't process or store application logic.
+
+## Quick Reference
+
+### Reading Data
+
+```typescript
+// Single item
+const { data: task } = useQuery(TaskSchema, taskId)
+
+// All items
+const { data: tasks } = useQuery(TaskSchema)
+
+// Filtered
+const { data: todos } = useQuery(TaskSchema, {
+  where: { status: 'todo' }
+})
+```
+
+### Writing Data
+
+```typescript
+const { create, update, remove } = useMutate()
+
+// Create
+const id = await create(TaskSchema, { title: 'New task' })
+
+// Update
+await update(TaskSchema, id, { status: 'done' })
+
+// Delete
+await remove(id)
+```
+
+### Collaborative Editing
+
+```typescript
+const { data: page, doc } = useNode(PageSchema, pageId)
+// doc is a Y.Doc for Yjs collaborative editing
+```
+
+### User Identity
+
+```typescript
+const { did, displayName, avatarUrl } = useIdentity()
+// did:key:z6Mk... is the user's cryptographic identity
+```
+
+## Summary
+
+When helping with xNet:
+
+1. **Never suggest API endpoints** — Use hooks
+2. **Never implement auth** — It's cryptographic and built-in
+3. **Never manage state** — Hooks are reactive
+4. **Never handle offline** — It just works
+5. **Always use schemas** — They're the source of truth
+
+The paradigm shift: **data is local, sync is automatic, identity is cryptographic**.

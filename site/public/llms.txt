@@ -1,0 +1,85 @@
+# xNet
+
+> xNet is a local-first framework for building multiplayer applications with React. Data lives on the device, syncs peer-to-peer via CRDTs, and works offline. No backend required.
+
+## Key Concepts
+
+xNet is different from traditional client-server architectures:
+
+1. **Local-first**: Data is stored on the device (IndexedDB/SQLite), not a remote database
+2. **CRDT-based sync**: Conflicts are resolved automatically via Yjs (for rich text) and Lamport clocks (for structured data)
+3. **Schema-first**: Define TypeScript schemas, get full type inference in hooks
+4. **Cryptographic identity**: Users have Ed25519 key pairs, not usernames/passwords
+5. **No API layer**: Hooks read/write directly to local storage; sync happens automatically
+
+## What NOT to do
+
+- Do NOT create API endpoints or server-side code
+- Do NOT implement authentication flows (identity is built-in)
+- Do NOT use fetch/axios for data operations (use hooks)
+- Do NOT manage loading/error states manually (hooks handle this)
+- Do NOT implement WebSocket connections for real-time (automatic)
+
+## Core Packages
+
+- [@xnet/react](https://xnet.fyi/docs/hooks/overview/): React hooks API (useQuery, useMutate, useNode)
+- [@xnet/data](https://xnet.fyi/docs/schemas/overview/): Schema system with 15 property types
+- [@xnet/sync](https://xnet.fyi/docs/concepts/sync-architecture/): CRDT sync primitives
+- [@xnet/identity](https://xnet.fyi/docs/concepts/identity-model/): DID:key cryptographic identity
+
+## Quick Start
+
+- [Introduction](https://xnet.fyi/docs/introduction/): What is xNet?
+- [Quickstart](https://xnet.fyi/docs/quickstart/): Build your first app in 5 minutes
+- [Core Concepts](https://xnet.fyi/docs/core-concepts/): Local-first, CRDTs, schemas
+
+## Hooks API
+
+- [useQuery](https://xnet.fyi/docs/hooks/usequery/): Read data reactively with filters
+- [useMutate](https://xnet.fyi/docs/hooks/usemutate/): Create, update, delete operations
+- [useNode](https://xnet.fyi/docs/hooks/usenode/): Collaborative rich text editing
+- [useIdentity](https://xnet.fyi/docs/hooks/useidentity/): Current user's DID
+- [Patterns](https://xnet.fyi/docs/hooks/patterns/): Common hook patterns
+
+## Schema System
+
+- [Overview](https://xnet.fyi/docs/schemas/overview/): Schema fundamentals
+- [defineSchema](https://xnet.fyi/docs/schemas/defineschema/): Create typed schemas
+- [Property Types](https://xnet.fyi/docs/schemas/property-types/): 15 built-in types
+- [Relations](https://xnet.fyi/docs/schemas/relations/): Link nodes together
+- [Type Inference](https://xnet.fyi/docs/schemas/type-inference/): TypeScript magic
+
+## Guides
+
+- [Sync](https://xnet.fyi/docs/guides/sync/): How P2P sync works
+- [Offline Support](https://xnet.fyi/docs/guides/offline/): Works by default
+- [Identity](https://xnet.fyi/docs/guides/identity/): Cryptographic identity
+- [Collaboration](https://xnet.fyi/docs/guides/collaboration/): Real-time multiplayer
+- [Plugins](https://xnet.fyi/docs/guides/plugins/): Extend the platform
+- [Hub Setup](https://xnet.fyi/docs/guides/hub/): Optional always-on relay
+- [Canvas](https://xnet.fyi/docs/guides/canvas/): Infinite canvas
+- [Editor](https://xnet.fyi/docs/guides/editor/): Rich text editing
+- [DevTools](https://xnet.fyi/docs/guides/devtools/): Debug panels
+- [Testing](https://xnet.fyi/docs/guides/testing/): Test your app
+
+## Concepts
+
+- [Local-First](https://xnet.fyi/docs/concepts/local-first/): The paradigm
+- [CRDTs](https://xnet.fyi/docs/concepts/crdts/): Conflict-free data types
+- [Sync Architecture](https://xnet.fyi/docs/concepts/sync-architecture/): How sync works
+- [Identity Model](https://xnet.fyi/docs/concepts/identity-model/): DIDs and UCANs
+- [Cryptography](https://xnet.fyi/docs/concepts/cryptography/): BLAKE3, Ed25519, XChaCha20
+- [Data Model](https://xnet.fyi/docs/concepts/data-model/): Nodes and schemas
+- [Network](https://xnet.fyi/docs/concepts/network/): P2P networking
+
+## For AI Assistants
+
+- [Understanding xNet](https://xnet.fyi/docs/ai/understanding-xnet/): Mental model and paradigm guide for AI coding assistants
+
+## Optional
+
+- [Architecture Overview](https://xnet.fyi/docs/architecture/overview/): Deep dive
+- [Architecture Decisions](https://xnet.fyi/docs/architecture/decisions/): Why we built it this way
+- [Package Graph](https://xnet.fyi/docs/architecture/package-graph/): Package dependencies
+- [Compare to Alternatives](https://xnet.fyi/compare): vs. other frameworks
+- [Contributing](https://xnet.fyi/docs/contributing/getting-started/): How to contribute
