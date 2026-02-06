@@ -566,4 +566,4 @@ xNet is the tool that shapes a better internet.
 
 ---
 
-[Back to Main Plan](./plan/README.md) | [Implementation Details](./planStep01MVP/README.md)
+[Back to Main Plan](./plan/README.md) | [Implementation Details](./plan01MVP/README.md)

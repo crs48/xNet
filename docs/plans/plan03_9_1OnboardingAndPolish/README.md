@@ -384,14 +384,14 @@ sequenceDiagram
 
 ## Reference Documents
 
-- [Identity & Authentication Plan](../plan/13-identity-authentication.md) - Detailed passkey architecture
-- [Hub Phase 1 Plan](../planStep03_8HubPhase1VPS/README.md) - Hub implementation details
-- [Yjs Security Plan](../planStep03_4_1YjsSecurity/README.md) - Secure sync foundation
-- [Background Sync Manager](../planStep03_3_1BgSync/README.md) - Client sync architecture
+- [Identity & Authentication Plan](../plan00Setup/13-identity-authentication.md) - Detailed passkey architecture
+- [Hub Phase 1 Plan](../plan03_8HubPhase1VPS/README.md) - Hub implementation details
+- [Yjs Security Plan](../plan03_4_1YjsSecurity/README.md) - Secure sync foundation
+- [Background Sync Manager](../plan03_3_1BgSync/README.md) - Client sync architecture
 - [Exploration 0049: Hub on Railway](../explorations/0049_HUB_RAILWAY_DEPLOYMENT.md) - Railway as deployment target
 - [Exploration 0050: Web App on GitHub Pages](../explorations/0050_WEB_APP_ON_GITHUB_PAGES.md) - Static demo feasibility
 - [Exploration 0051: Demo Hub on Railway](../explorations/0051_DEMO_HUB_ON_RAILWAY.md) - Full demo architecture (passkey-first, eviction, xnet.fyi)
 
 ---
 
-[Back to Main Plan](../plan/README.md) | [Start Implementation ->](./01-passkey-auth.md)
+[Back to Main Plan](../plan00Setup/README.md) | [Start Implementation ->](./01-passkey-auth.md)

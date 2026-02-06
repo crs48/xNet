@@ -352,8 +352,8 @@ iOS gives ~30 seconds of background execution time. The BSM's `stop()` method fl
 
 Dependency chain:
 
-1. ~~P2P sync working in Electron (planStep03_2)~~ ✅
-2. ~~Background Sync Manager (planStep03_3_1BgSync)~~ ✅ (all 8 steps done)
+1. ~~P2P sync working in Electron (plan03_2)~~ ✅
+2. ~~Background Sync Manager (plan03_3_1BgSync)~~ ✅ (all 8 steps done)
 3. **This step** — wire BSM to durable mobile storage
 4. Mobile sharing flow (future)
 
@@ -363,5 +363,5 @@ Dependency chain:
 - [WebKit: Full Third-Party Cookie Blocking](https://webkit.org/blog/10218/full-third-party-cookie-blocking-and-more/)
 - [WebKit: 7-Day Cap on Script-Writable Storage](https://webkit.org/blog/8613/intelligent-tracking-prevention-2-1/)
 - [expo-sqlite docs](https://docs.expo.dev/versions/latest/sdk/sqlite/)
-- [BSM Implementation](../planStep03_3_1BgSync/README.md)
+- [BSM Implementation](../plan03_3_1BgSync/README.md)
 - [BSM Exploration](../explorations/0024_BACKGROUND_SYNC_MANAGER.md)

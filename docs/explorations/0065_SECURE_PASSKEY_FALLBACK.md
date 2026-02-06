@@ -598,7 +598,7 @@ Instead of encrypting/decrypting, could use threshold signatures where multiple 
 - [Web Crypto API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API)
 - [Passkey Sync Providers](https://passkeys.dev/device-support/)
 - Internal: `docs/reviews/2026-02-06/01-security.md` (SEC-04)
-- Internal: `docs/planStep03_9_1OnboardingAndPolish/01-passkey-auth.md`
+- Internal: `docs/plans/plan03_9_1OnboardingAndPolish/01-passkey-auth.md`
 
 ---
 

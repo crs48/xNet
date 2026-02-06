@@ -2066,7 +2066,7 @@ Two additional SQLite adapters already exist for the older `StorageAdapter` (SDK
 - `better-sqlite3` in Electron main process (`apps/electron/src/main/storage.ts`)
 - `expo-sqlite` in the Expo app (`apps/expo/src/storage/ExpoStorageAdapter.ts`)
 
-Neither implements `NodeStorageAdapter` yet. A `SQLiteNodeStorageAdapter` is [planned for mobile](../planStep03_9ExpoStorage/README.md) but not built.
+Neither implements `NodeStorageAdapter` yet. A `SQLiteNodeStorageAdapter` is [planned for mobile](../plans/plan03_9ExpoStorage/README.md) but not built.
 
 ### Why IndexedDB Is Fine for Now — and Where It Isn't
 

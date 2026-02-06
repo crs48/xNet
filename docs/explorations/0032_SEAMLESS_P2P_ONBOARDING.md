@@ -625,4 +625,4 @@ function App() {
 - [packages/identity/src/did.ts](../../packages/identity/src/did.ts)
 - [packages/identity/src/keys.ts](../../packages/identity/src/keys.ts)
 - [packages/identity/src/passkey.ts](../../packages/identity/src/passkey.ts)
-- [Hub Backup API](../planStep03_8HubPhase1VPS/05-backup-api.md)
+- [Hub Backup API](../plans/plan03_8HubPhase1VPS/05-backup-api.md)

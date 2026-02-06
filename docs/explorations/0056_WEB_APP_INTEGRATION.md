@@ -3,7 +3,7 @@
 **Status:** Proposed
 **Created:** 2026-02-05
 **Depends on:** 0050 (Web App on GitHub Pages), 0051 (Demo Hub on Railway)
-**Plan reference:** `docs/planStep03_9_1OnboardingAndPolish/`
+**Plan reference:** `docs/plans/plan03_9_1OnboardingAndPolish/`
 
 ## Problem
 

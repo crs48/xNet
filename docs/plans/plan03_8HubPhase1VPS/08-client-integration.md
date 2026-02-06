@@ -852,9 +852,9 @@ describe('Hub Connection (Client)', () => {
 
 ## Integration with Background Sync Manager (BSM)
 
-> See also: [planStep03_3_1BgSync](../planStep03_3_1BgSync/README.md)
+> See also: [plan03_3_1BgSync](../plan03_3_1BgSync/README.md)
 
-The BSM (`planStep03_3_1BgSync`) and Hub client integration define overlapping connection management. When both are implemented, they should be **unified** — not parallel systems.
+The BSM (`plan03_3_1BgSync`) and Hub client integration define overlapping connection management. When both are implemented, they should be **unified** — not parallel systems.
 
 ### Architecture: BSM Subsumes HubConnection
 
@@ -863,7 +863,7 @@ The BSM's `ConnectionManager` (multiplexed WebSocket) becomes the **single conne
 ```mermaid
 flowchart TB
     subgraph "Unified Client Architecture"
-        subgraph "BSM (planStep03_3_1)"
+        subgraph "BSM (plan03_3_1)"
             CM[Connection Manager<br/>single WebSocket to hub]
             POOL[Node Pool<br/>Y.Doc LRU]
             REG[Registry<br/>tracked nodes]
@@ -871,7 +871,7 @@ flowchart TB
             META[Meta Bridge]
         end
 
-        subgraph "Hub Features (planStep03_8)"
+        subgraph "Hub Features (plan03_8)"
             AUTH[UCAN Auth<br/>token on connect]
             BACKUP[Auto-Backup<br/>debounced snapshots]
             SEARCH[Hub Search<br/>query-request/response]
@@ -978,7 +978,7 @@ This ensures ALL tracked nodes get backed up — not just ones with active UI co
 
 ### Desktop: Main Process Wiring
 
-On desktop (Electron), the BSM runs in the main process (see `planStep03_3_1BgSync/08-desktop-main-process.md`). Hub features wire in there too:
+On desktop (Electron), the BSM runs in the main process (see `plan03_3_1BgSync/08-desktop-main-process.md`). Hub features wire in there too:
 
 ```mermaid
 flowchart TB

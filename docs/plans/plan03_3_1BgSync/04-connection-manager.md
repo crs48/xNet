@@ -54,7 +54,7 @@ export interface ConnectionManagerConfig {
   /** Max reconnect attempts (default: Infinity) */
   maxReconnects?: number
 
-  // --- Hub auth (optional, see planStep03_8) ---
+  // --- Hub auth (optional, see plan03_8) ---
   /** Static UCAN token (appended as ?token= on connect) */
   ucanToken?: string
   /** Dynamic UCAN generator (called on each connect/reconnect) */
@@ -136,7 +136,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     setStatus('connecting')
 
     try {
-      // Append UCAN token if configured (hub auth, see planStep03_8)
+      // Append UCAN token if configured (hub auth, see plan03_8)
       let url = config.url
       const token = config.ucanToken ?? (config.getUCANToken ? await config.getUCANToken() : null)
       if (token) {

@@ -1,7 +1,7 @@
 /**
  * TelemetryPanel - Security events, performance metrics, and consent status
  *
- * Integrates with @xnet/telemetry (planStep03_1) to display:
+ * Integrates with @xnet/telemetry (plan03_1) to display:
  * - Security events with severity and action badges
  * - Performance metrics with bucket distributions
  * - Consent tier status and management

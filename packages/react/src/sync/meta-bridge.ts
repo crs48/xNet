@@ -14,7 +14,7 @@
  *   Y.Doc meta → Editor UI (read-only display)
  *   Editor UI → mutate() → NodeStore (signed writes)
  *
- * See: docs/planStep03_4_1YjsSecurity/04-metabridge-isolation.md
+ * See: docs/plans/plan03_4_1YjsSecurity/04-metabridge-isolation.md
  */
 
 import type { NodeStore, NodeChangeEvent } from '@xnet/data'

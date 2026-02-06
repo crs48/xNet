@@ -13,7 +13,7 @@ Most decentralized platforms build messaging as one of their first applications.
 - **Zoom** — video conferencing, breakout rooms, screen sharing, recording
 - **Keet** (Holepunch) — fully P2P messaging and video, no servers
 
-**Key insight:** xNet's commenting system (planStep03_6Comments) already defines CommentThread and Comment as Nodes with anchoring. Chat messages are structurally identical — just Comments without a document anchor. The two systems can share schemas, UI components, and infrastructure.
+**Key insight:** xNet's commenting system (plan03_6Comments) already defines CommentThread and Comment as Nodes with anchoring. Chat messages are structurally identical — just Comments without a document anchor. The two systems can share schemas, UI components, and infrastructure.
 
 ---
 
@@ -147,7 +147,7 @@ flowchart TB
 
 ### Integration with Comments
 
-The commenting system (planStep03_6Comments) already defines:
+The commenting system (plan03_6Comments) already defines:
 
 - `CommentThread` — a target node + anchor + resolved state
 - `Comment` — a thread member with content + parent
@@ -1198,6 +1198,6 @@ flowchart LR
 - [mediasoup](https://mediasoup.org) — Node.js SFU library
 - [Insertable Streams](https://w3c.github.io/webrtc-encoded-transform/) — E2E video encryption
 - [SFrame RFC](https://datatracker.ietf.org/doc/draft-ietf-sframe-enc/) — Secure frame format
-- [planStep03_6Comments](../planStep03_6Comments/README.md) — xNet commenting system (shared Message schema)
+- [plan03_6Comments](../plans/plan03_6Comments/README.md) — xNet commenting system (shared Message schema)
 - [Yjs Security Analysis](./YJS_SECURITY_ANALYSIS.md) — Signing infrastructure reusable for chat
-- [Hub Phase 1](../planStep03_8HubPhase1VPS/README.md) — Hub relay architecture
+- [Hub Phase 1](../plans/plan03_8HubPhase1VPS/README.md) — Hub relay architecture

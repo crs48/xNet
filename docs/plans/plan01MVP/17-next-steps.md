@@ -8,7 +8,7 @@ This document outlines the long-term vision for xNet beyond the MVP. These featu
 
 ```mermaid
 flowchart TD
-    subgraph "MVP (planStep01MVP)"
+    subgraph "MVP (plan01MVP)"
         MVP["xNet MVP<br/>Months 1-12"]
     end
 
@@ -1058,11 +1058,11 @@ Recommended order after MVP:
 
 ### Detailed Specifications
 
-- [planStep02DatabasePlatform](../planStep02DatabasePlatform/README.md) - Database UI implementation guide
-- [docs/plan/05-phase-3-erp.md](../plan/05-phase-3-erp.md) - ERP platform
-- [docs/plan/10-scaling-architecture.md](../plan/10-scaling-architecture.md) - Federation & scaling
-- [docs/plan/15-enterprise-scale.md](../plan/15-enterprise-scale.md) - Enterprise architecture
-- [docs/plan/16-global-data-network.md](../plan/16-global-data-network.md) - Token economics
+- [plan02DatabasePlatform](../plan02DatabasePlatform/README.md) - Database UI implementation guide
+- [plan00Setup/05-phase-3-erp.md](../plan00Setup/05-phase-3-erp.md) - ERP platform
+- [plan00Setup/10-scaling-architecture.md](../plan00Setup/10-scaling-architecture.md) - Federation & scaling
+- [plan00Setup/15-enterprise-scale.md](../plan00Setup/15-enterprise-scale.md) - Enterprise architecture
+- [plan00Setup/16-global-data-network.md](../plan00Setup/16-global-data-network.md) - Token economics
 
 ### External References
 

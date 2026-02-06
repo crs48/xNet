@@ -372,5 +372,5 @@ Move unused libp2p code to a `feature/libp2p-scaffolding` branch. Remove from `m
 - [Exploration 0027: Landscape Analysis](./0027_LANDSCAPE_ANALYSIS.md) -- libp2p vs iroh comparison
 - [Exploration 0023: Decentralized Search](./0023_DECENTRALIZED_SEARCH.md) -- DHT-based search vision
 - [Exploration 0011: Server Infrastructure](./0011_SERVER_INFRASTRUCTURE.md) -- Original bootstrap node plan
-- [Plan: Hub Phase 1](../planStep03_8HubPhase1VPS/README.md) -- Hub as signaling replacement
+- [Plan: Hub Phase 1](../plans/plan03_8HubPhase1VPS/README.md) -- Hub as signaling replacement
 - [Tradeoffs](../TRADEOFFS.md) -- "Signaling + WebRTC (with future DHT)" architecture decision

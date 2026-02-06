@@ -6,7 +6,7 @@
  * - Helper functions to create comments on cells/rows/columns
  * - Thread retrieval by anchor position
  *
- * Following the Universal Social Primitives pattern from planStep03_6Comments.
+ * Following the Universal Social Primitives pattern from plan03_6Comments.
  */
 import {
   encodeAnchor,

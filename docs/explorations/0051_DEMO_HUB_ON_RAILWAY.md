@@ -9,7 +9,7 @@
 
 Explorations 0049 and 0050 established that the Hub runs on Railway and the web app works on GitHub Pages. But the GitHub Pages demo is limited — no sync, no sharing, no collaboration. This exploration proposes a **full-featured demo** powered by a Railway-hosted Hub behind a custom domain (`xnet.fyi`), with aggressive data limits (5-10 MB per user, 24-hour auto-eviction) that make it a try-it-out sandbox rather than a production workspace. The goal: users experience the complete xNet flow — create identity, edit content, sync across devices, share with others — then graduate to the desktop app or self-hosted Hub to keep their data.
 
-This document integrates deeply with the [Onboarding & Polish plan](../planStep03_91OnboardingAndPolish/README.md) (steps 01-11) and proposes concrete changes to make the demo the primary entry point for the entire onboarding journey.
+This document integrates deeply with the [Onboarding & Polish plan](../plans/plan03_9_1OnboardingAndPolish/README.md) (steps 01-11) and proposes concrete changes to make the demo the primary entry point for the entire onboarding journey.
 
 ---
 
@@ -464,7 +464,7 @@ interface DemoStatus {
 
 ## Integration with Onboarding Plan (Steps 01-11)
 
-The onboarding plan in `planStep03_91OnboardingAndPolish/` describes an 11-step, 35-day journey from passkey auth to final polish. Here's how each step maps to the demo:
+The onboarding plan in `plan03_9_1OnboardingAndPolish/` describes an 11-step, 35-day journey from passkey auth to final polish. Here's how each step maps to the demo:
 
 ### Step-by-Step Integration Matrix
 

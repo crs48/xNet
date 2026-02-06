@@ -498,6 +498,6 @@ This is deferred until core functionality is stable.
 
 ---
 
-**End of planStep01MVP documentation.**
+**End of plan01MVP documentation.**
 
 Return to [README.md](./README.md) for the full implementation order.

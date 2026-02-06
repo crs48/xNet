@@ -599,4 +599,4 @@ The Nostr bridge is simpler to implement than ActivityPub because:
 - [Blossom Spec](https://github.com/hzrd149/blossom)
 - [xNet Mastodon Social Networking](./MASTODON_SOCIAL_NETWORKING.md)
 - [xNet Universal Social Primitives](./UNIVERSAL_SOCIAL_PRIMITIVES.md)
-- [xNet Hub Plan](../planStep03_8HubPhase1VPS/README.md)
+- [xNet Hub Plan](../plans/plan03_8HubPhase1VPS/README.md)

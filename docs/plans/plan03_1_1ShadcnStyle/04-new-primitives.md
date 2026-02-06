@@ -4,7 +4,7 @@
 
 ## Overview
 
-These components are needed by the devtools (planStep03_2_2), the editor (planStep03_3), and general app UI. Each follows the shadcn pattern: Radix primitive + Tailwind styling + semantic tokens + `cn()` pass-through.
+These components are needed by the devtools (plan03_2_2), the editor (plan03_3), and general app UI. Each follows the shadcn pattern: Radix primitive + Tailwind styling + semantic tokens + `cn()` pass-through.
 
 ## New Dependencies
 

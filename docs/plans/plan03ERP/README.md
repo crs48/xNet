@@ -13,7 +13,7 @@
 
 ## Prerequisites
 
-Before starting this phase, ensure planStep02DatabasePlatform is complete:
+Before starting this phase, ensure plan02DatabasePlatform is complete:
 
 - [x] Schema system with 16 property types (COMPLETE in @xnet/data)
 - [x] NodeStore with LWW conflict resolution (COMPLETE)
@@ -189,4 +189,4 @@ Transform xNet into a fully customizable ERP platform (like Tesla's Warp Drive):
 
 ---
 
-[Back to planStep02DatabasePlatform](../planStep02DatabasePlatform/README.md) | [Start with Overview →](./00-overview.md)
+[Back to plan02DatabasePlatform](../plan02DatabasePlatform/README.md) | [Start with Overview →](./00-overview.md)

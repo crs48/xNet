@@ -3,7 +3,7 @@
 > Architecture and goals for Phase 3
 
 **Duration:** 12 months (Months 24-36)
-**Prerequisites:** planStep02DatabasePlatform complete
+**Prerequisites:** plan02DatabasePlatform complete
 
 > **Architecture Update (Jan 2026):**
 >

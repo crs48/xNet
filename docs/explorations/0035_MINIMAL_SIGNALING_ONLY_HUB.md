@@ -4,7 +4,7 @@
 
 ## Context
 
-The current xNet Hub plan ([planStep03_8HubPhase1VPS](../planStep03_8HubPhase1VPS/README.md)) envisions a full-featured server that:
+The current xNet Hub plan ([plan03_8HubPhase1VPS](../plans/plan03_8HubPhase1VPS/README.md)) envisions a full-featured server that:
 
 1. Handles signaling (peer discovery)
 2. Acts as a sync relay (persists Y.Doc state)
@@ -539,8 +539,8 @@ The current `WebSocketSyncProvider` works great but routes all data through the 
 
 ## References
 
-- [planStep03_2Signaling](../planStep03_2Signaling/README.md) - P2P signaling plan
-- [planStep03_8HubPhase1VPS](../planStep03_8HubPhase1VPS/README.md) - Full hub plan
+- [plan03_2Signaling](../plans/plan03_2Signaling/README.md) - P2P signaling plan
+- [plan03_8HubPhase1VPS](../plans/plan03_8HubPhase1VPS/README.md) - Full hub plan
 - [infrastructure/signaling/](../../infrastructure/signaling/) - Current signaling server
 - [packages/network/src/providers/ywebrtc.ts](../../packages/network/src/providers/ywebrtc.ts) - y-webrtc wrapper
 - [packages/react/src/sync/WebSocketSyncProvider.ts](../../packages/react/src/sync/WebSocketSyncProvider.ts) - WebSocket relay

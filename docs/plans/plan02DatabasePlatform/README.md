@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-Before starting this phase, ensure planStep01MVP is complete:
+Before starting this phase, ensure plan01MVP is complete:
 
 - [x] All @xnet/\* core packages working
 - [x] Platform POCs functional (Electron, Expo, Web)
@@ -15,7 +15,7 @@ Before starting this phase, ensure planStep01MVP is complete:
 
 ## Architecture Update
 
-> **Note:** The schema-first architecture has been implemented. See `docs/planStep02_1DataModelConsolidation/HANDOFF.md`.
+> **Note:** The schema-first architecture has been implemented. See `docs/plans/plan02_1DataModelConsolidation/HANDOFF.md`.
 >
 > Key changes:
 >
@@ -175,4 +175,4 @@ flowchart TD
 
 ---
 
-[Back to planStep01MVP](../planStep01MVP/README.md) | [Start with Overview →](./00-overview.md)
+[Back to plan01MVP](../plan01MVP/README.md) | [Start with Overview →](./00-overview.md)

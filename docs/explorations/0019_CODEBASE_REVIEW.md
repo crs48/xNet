@@ -32,28 +32,28 @@ core → crypto → identity → storage → data → network → query → vect
 
 The codebase has **16 packages**, with some divergence from the documented structure:
 
-| Package          | Documented | Implemented | Notes                                            |
-| ---------------- | ---------- | ----------- | ------------------------------------------------ |
-| `@xnet/core`     | Yes        | Yes         | Content addressing, snapshots, permissions       |
-| `@xnet/crypto`   | Yes        | Yes         | Clean primitives                                 |
-| `@xnet/identity` | Yes        | Yes         | DID:key, UCAN                                    |
-| `@xnet/storage`  | Yes        | Yes         | IndexedDB + Memory adapters                      |
-| `@xnet/data`     | Yes        | Yes         | Yjs wrapper, signed updates                      |
-| `@xnet/network`  | Yes        | Yes         | libp2p, y-webrtc                                 |
-| `@xnet/query`    | Yes        | Yes         | Local + search                                   |
-| `@xnet/vectors`  | Yes        | Partial     | Mostly placeholder                               |
-| `@xnet/react`    | Yes        | Yes         | Hooks                                            |
-| `@xnet/sdk`      | Yes        | Yes         | Unified client                                   |
-| `@xnet/records`  | Yes\*      | Yes         | Implements `@xnet/database` spec from planStep02 |
-| `@xnet/editor`   | Implied    | Yes         | Tiptap-based (part of rich text requirements)    |
-| `@xnet/ui`       | No         | Yes         | Shared UI components                             |
-| `@xnet/views`    | Yes        | Yes         | Table/Board views (planStep02)                   |
-| `@xnet/canvas`   | Yes        | Partial     | planStep02/09-infinite-canvas.md                 |
-| `@xnet/formula`  | Yes        | Partial     | planStep02/07-formula-engine.md                  |
+| Package          | Documented | Implemented | Notes                                         |
+| ---------------- | ---------- | ----------- | --------------------------------------------- |
+| `@xnet/core`     | Yes        | Yes         | Content addressing, snapshots, permissions    |
+| `@xnet/crypto`   | Yes        | Yes         | Clean primitives                              |
+| `@xnet/identity` | Yes        | Yes         | DID:key, UCAN                                 |
+| `@xnet/storage`  | Yes        | Yes         | IndexedDB + Memory adapters                   |
+| `@xnet/data`     | Yes        | Yes         | Yjs wrapper, signed updates                   |
+| `@xnet/network`  | Yes        | Yes         | libp2p, y-webrtc                              |
+| `@xnet/query`    | Yes        | Yes         | Local + search                                |
+| `@xnet/vectors`  | Yes        | Partial     | Mostly placeholder                            |
+| `@xnet/react`    | Yes        | Yes         | Hooks                                         |
+| `@xnet/sdk`      | Yes        | Yes         | Unified client                                |
+| `@xnet/records`  | Yes\*      | Yes         | Implements `@xnet/database` spec from plan02  |
+| `@xnet/editor`   | Implied    | Yes         | Tiptap-based (part of rich text requirements) |
+| `@xnet/ui`       | No         | Yes         | Shared UI components                          |
+| `@xnet/views`    | Yes        | Yes         | Table/Board views (plan02)                    |
+| `@xnet/canvas`   | Yes        | Partial     | plan02/09-infinite-canvas.md                  |
+| `@xnet/formula`  | Yes        | Partial     | plan02/07-formula-engine.md                   |
 
-\*Note: `@xnet/records` implements the `@xnet/database` specification from `planStep02DatabasePlatform/`. The package was named `records` instead of `database` during implementation.
+\*Note: `@xnet/records` implements the `@xnet/database` specification from `plan02DatabasePlatform/`. The package was named `records` instead of `database` during implementation.
 
-**Key Observation:** The `@xnet/records` package implements the Notion-like database functionality documented in `planStep02DatabasePlatform/`. It uses event-sourcing for sync, which is a deliberate choice parallel to `@xnet/data` (Yjs) for rich text.
+**Key Observation:** The `@xnet/records` package implements the Notion-like database functionality documented in `plan02DatabasePlatform/`. It uses event-sourcing for sync, which is a deliberate choice parallel to `@xnet/data` (Yjs) for rich text.
 
 ---
 
@@ -572,15 +572,15 @@ Create a single `@xnet/core/config.ts` with all config types.
 | `CLAUDE.md`                   | 95%      | Updated with all packages and relationships         |
 | `TRADEOFFS.md`                | 95%      | Excellent, explains key decisions                   |
 | `PERSISTENCE_ARCHITECTURE.md` | 90%      | Good, some code samples outdated                    |
-| `planStep01MVP/`              | 95%      | Implementation complete                             |
-| `planStep02DatabasePlatform/` | 90%      | `@xnet/records` implements this as `@xnet/database` |
+| `plan01MVP/`                  | 95%      | Implementation complete                             |
+| `plan02DatabasePlatform/`     | 90%      | `@xnet/records` implements this as `@xnet/database` |
 
 ### Recommended Updates
 
 1. ~~**Add `@xnet/records` to CLAUDE.md**~~ - Done
 2. ~~**Update package dependency diagram**~~ - Done
 3. ~~**Document the hybrid sync strategy**~~ - Done in CLAUDE.md
-4. **Add data flow diagrams** - Visual representations help (already in planStep02)
+4. **Add data flow diagrams** - Visual representations help (already in plan02)
 
 ---
 
@@ -589,7 +589,7 @@ Create a single `@xnet/core/config.ts` with all config types.
 ### High Priority (Done)
 
 1. ~~**Update CLAUDE.md** with accurate package list and relationships~~ - Completed
-2. ~~**Document `@xnet/records`**~~ - Already documented in planStep02DatabasePlatform as `@xnet/database`
+2. ~~**Document `@xnet/records`**~~ - Already documented in plan02DatabasePlatform as `@xnet/database`
 3. **Consolidate hash/verify functions** into single locations (minor improvement)
 
 ### Medium Priority (Next Sprint)

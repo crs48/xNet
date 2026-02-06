@@ -23,15 +23,15 @@ function App() {
 
 ## Design Principles
 
-| Principle                | Implementation                                                          |
-| ------------------------ | ----------------------------------------------------------------------- |
-| **Zero-config**          | Works by wrapping your app with `<DevToolsProvider>`                    |
-| **Protocol-aware**       | Understands Nodes, Changes, Lamport timestamps, hash chains             |
-| **Tree-shakeable**       | `import '@xnet/devtools'` in dev only; zero bytes in production         |
-| **Reuses existing UI**   | Leverages `@xnet/views` TableView for node browsing                     |
-| **Platform-agnostic**    | Works in Electron, Expo (via overlay), and Web                          |
-| **Telemetry-integrated** | Displays security events, peer scores, consent status from planStep03_1 |
-| **Non-invasive**         | Instrumentation via subscription/proxy, never mutates app state         |
+| Principle                | Implementation                                                      |
+| ------------------------ | ------------------------------------------------------------------- |
+| **Zero-config**          | Works by wrapping your app with `<DevToolsProvider>`                |
+| **Protocol-aware**       | Understands Nodes, Changes, Lamport timestamps, hash chains         |
+| **Tree-shakeable**       | `import '@xnet/devtools'` in dev only; zero bytes in production     |
+| **Reuses existing UI**   | Leverages `@xnet/views` TableView for node browsing                 |
+| **Platform-agnostic**    | Works in Electron, Expo (via overlay), and Web                      |
+| **Telemetry-integrated** | Displays security events, peer scores, consent status from plan03_1 |
+| **Non-invasive**         | Instrumentation via subscription/proxy, never mutates app state     |
 
 ## Architecture Overview
 
@@ -176,7 +176,7 @@ flowchart TB
 
 **Validation Gate:**
 
-- [x] Telemetry panel shows security events from planStep03_1
+- [x] Telemetry panel shows security events from plan03_1
 - [x] Peer scores display with score breakdown
 - [x] Consent status is visible and editable
 - [x] Devtools work in Electron main window
@@ -275,7 +275,7 @@ The Telemetry Panel reads from the same `NodeStore` that `@xnet/telemetry` write
 1. **Zero-config works** - `<DevToolsProvider>` with no props gives full devtools
 2. **Production-safe** - Tree-shaking removes all devtools code in prod builds
 3. **All panels functional** - 7 panels covering the full xNet protocol stack
-4. **Telemetry visible** - Security events, peer scores, and metrics from planStep03_1
+4. **Telemetry visible** - Security events, peer scores, and metrics from plan03_1
 5. **Cross-platform** - Works on Electron, Web, and Expo
 6. **Performance** - <1ms overhead per instrumented operation
 7. **Memory-bounded** - Ring buffer caps at configurable limit
@@ -285,7 +285,7 @@ The Telemetry Panel reads from the same `NodeStore` that `@xnet/telemetry` write
 
 - [Exploration: DevTools Design](../explorations/0005_DEVTOOLS_DESIGN.md) - Initial design research
 - [Exploration: LiveStore Evaluation](../explorations/0004_LIVESTORE_EVALUATION.md) - LiveStore comparison
-- [Plan: Telemetry & Network Security](../planStep03_1TelemetryAndNetworkSecurity/README.md) - Telemetry schemas and security events
+- [Plan: Telemetry & Network Security](../plan03_1TelemetryAndNetworkSecurity/README.md) - Telemetry schemas and security events
 
 ---
 

@@ -302,7 +302,7 @@ packages/ui/
 3. **Single source of truth** - One `tokens.css` defines all colors
 4. **CVA patterns** - All variants use class-variance-authority
 5. **New primitives available** - Tabs, ScrollArea, Sheet, Separator, etc.
-6. **Devtools ready** - ResizablePanel and TreeView work for planStep03_2_2
+6. **Devtools ready** - ResizablePanel and TreeView work for plan03_2_2
 7. **No visual regressions** - Apps look the same (or better) after migration
 
 ## Reference
@@ -310,7 +310,7 @@ packages/ui/
 - [shadcn/ui Theming](https://ui.shadcn.com/docs/theming) - Token architecture
 - [shadcn/ui Components](https://ui.shadcn.com/docs/components) - Component patterns
 - [CVA Documentation](https://cva.style/docs) - Variant composition
-- [planStep03_2_2 DevTools](../planStep03_2_2DevTools/README.md) - Components needed
+- [plan03_2_2 DevTools](../plan03_2_2DevTools/README.md) - Components needed
 
 ---
 

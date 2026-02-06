@@ -779,7 +779,7 @@ const { data } = useQuery(TaskSchema, { limit: 20 })
 
 ## Part 2: Remote Hub & Federated Query Support
 
-This section extends the pagination design to support querying remote hubs and federated multi-hub queries, as defined in [planStep03_8HubPhase1VPS](../planStep03_8HubPhase1VPS/README.md).
+This section extends the pagination design to support querying remote hubs and federated multi-hub queries, as defined in [plan03_8HubPhase1VPS](../plans/plan03_8HubPhase1VPS/README.md).
 
 ### Current Architecture Gap
 

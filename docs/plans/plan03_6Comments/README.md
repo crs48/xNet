@@ -337,4 +337,4 @@ Deferred to future work:
 
 ---
 
-[Back to Main Plan](../plan/README.md) | [Start Implementation](./01-comment-schemas.md)
+[Back to Main Plan](../plan00Setup/README.md) | [Start Implementation](./01-comment-schemas.md)

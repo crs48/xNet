@@ -663,7 +663,7 @@ flowchart TB
 4. **Do consider OTel for server-side aggregators** — It's excellent for that use case
 5. **Don't delay the custom system** — Waiting for OTel to solve privacy-first use cases would be indefinite
 
-The current plan in `docs/planStep03_1TelemetryAndNetworkSecurity/` is sound. The main enhancement is aligning field names with OTel semantic conventions where they overlap, and designing the aggregator layer (Phase 5 in the current plan) with an OTLP-compatible receiver.
+The current plan in `docs/plans/plan03_1TelemetryAndNetworkSecurity/` is sound. The main enhancement is aligning field names with OTel semantic conventions where they overlap, and designing the aggregator layer (Phase 5 in the current plan) with an OTLP-compatible receiver.
 
 ---
 
@@ -676,7 +676,7 @@ The current plan in `docs/planStep03_1TelemetryAndNetworkSecurity/` is sound. Th
 - [Brave P3A](https://brave.com/privacy-preserving-product-analytics-p3a/)
 - [Mozilla Glean](https://docs.telemetry.mozilla.org/concepts/glean/glean.html)
 - [xNet Telemetry Design](./TELEMETRY_DESIGN.md)
-- [xNet Plan Step 03.1](../planStep03_1TelemetryAndNetworkSecurity/README.md)
+- [xNet Plan Step 03.1](../plans/plan03_1TelemetryAndNetworkSecurity/README.md)
 
 ---
 

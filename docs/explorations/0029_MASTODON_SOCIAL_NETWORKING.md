@@ -4,7 +4,7 @@
 
 This exploration examines how to integrate Mastodon-style microblogging and social networking into xNet, leveraging the existing decentralized infrastructure (DID identity, P2P sync, schema-first data model, Hub infrastructure) while maintaining the local-first, user-owned-data philosophy. The goal is a federated social experience where posts, follows, and timelines are user-owned Nodes synced peer-to-peer through Hubs, with optional ActivityPub bridging for interop with the wider Fediverse.
 
-**Key dependency**: This design builds on the xNet Hub (`@xnet/hub`) as defined in [planStep03_8HubPhase1VPS](../planStep03_8HubPhase1VPS/README.md). The Hub provides always-on sync relay, server-side queries (SQLite FTS5), content-addressed file hosting, peer discovery, schema registry, and hub-to-hub federation -- all of which are directly leveraged for social features.
+**Key dependency**: This design builds on the xNet Hub (`@xnet/hub`) as defined in [plan03_8HubPhase1VPS](../plans/plan03_8HubPhase1VPS/README.md). The Hub provides always-on sync relay, server-side queries (SQLite FTS5), content-addressed file hosting, peer discovery, schema registry, and hub-to-hub federation -- all of which are directly leveraged for social features.
 
 ---
 
@@ -1266,7 +1266,7 @@ The main gaps to fill (beyond what Hub already provides):
 4. Social-specific React hooks and UI components
 5. Optional ActivityPub bridge as a Hub service
 
-This aligns with the Vision document's Phase 4 (Decentralize) goal of "Social Networks" and builds directly on the Hub infrastructure defined in [planStep03_8HubPhase1VPS](../planStep03_8HubPhase1VPS/README.md). The Hub provides everything a Mastodon instance does (relay, search, media, discovery) but without owning user data or identity.
+This aligns with the Vision document's Phase 4 (Decentralize) goal of "Social Networks" and builds directly on the Hub infrastructure defined in [plan03_8HubPhase1VPS](../plans/plan03_8HubPhase1VPS/README.md). The Hub provides everything a Mastodon instance does (relay, search, media, discovery) but without owning user data or identity.
 
 ### Hub Services Dependency Map
 

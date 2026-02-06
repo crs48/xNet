@@ -169,7 +169,7 @@ Three solutions:
 
 ### 3. Identity & Key Generation
 
-This is the most interesting challenge. The onboarding plan (`planStep03_91OnboardingAndPolish`) specifies passkey-based identity with PRF key derivation. Can we do this on GitHub Pages?
+This is the most interesting challenge. The onboarding plan (`plan03_9_1OnboardingAndPolish`) specifies passkey-based identity with PRF key derivation. Can we do this on GitHub Pages?
 
 ```mermaid
 flowchart TB
@@ -419,7 +419,7 @@ flowchart LR
 
 ## Onboarding Flow on GitHub Pages
 
-Based on the onboarding plan (`planStep03_91OnboardingAndPolish`), here's how the user journey maps to a GitHub Pages demo:
+Based on the onboarding plan (`plan03_9_1OnboardingAndPolish`), here's how the user journey maps to a GitHub Pages demo:
 
 ```mermaid
 sequenceDiagram
