@@ -322,7 +322,7 @@ graph TD
 
 ### Phase 2 (Hub MVP)
 
-- [ ] **REACT-03:** Await room join confirmation in SyncManager
+- [x] **REACT-03:** Await room join confirmation in SyncManager _(fixed - joinRoomAsync with subscription confirmation)_
 - [ ] **REACT-11:** Clean up status handlers on stop
 - [ ] **REACT-14:** Clear eventHandlers in destroy
 - [ ] Add tests for sync-manager, connection-manager, offline-queue

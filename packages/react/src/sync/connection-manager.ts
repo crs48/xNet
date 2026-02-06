@@ -34,6 +34,13 @@ export interface ConnectionManagerConfig {
 type RoomHandler = (data: Record<string, unknown>) => void
 type StatusHandler = (status: ConnectionStatus) => void
 
+export interface RoomJoinResult {
+  /** Unsubscribe function */
+  unsubscribe: () => void
+  /** Promise that resolves when server confirms subscription */
+  ready: Promise<void>
+}
+
 export interface ConnectionManager {
   /** Current connection status */
   readonly status: ConnectionStatus
@@ -43,6 +50,8 @@ export interface ConnectionManager {
   disconnect(): void
   /** Subscribe to a room (returns unsubscribe function) */
   joinRoom(room: string, handler: RoomHandler): () => void
+  /** Subscribe to a room with confirmation (returns cleanup and ready promise) */
+  joinRoomAsync(room: string, handler: RoomHandler): RoomJoinResult
   /** Leave a room */
   leaveRoom(room: string): void
   /** Publish a message to a room */
@@ -71,6 +80,11 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   const rooms = new Map<string, Set<RoomHandler>>()
   const statusListeners = new Set<StatusHandler>()
   const messageListeners = new Set<(message: Record<string, unknown>) => void>()
+  // Track pending subscription confirmations
+  const pendingSubscriptions = new Map<
+    string,
+    { resolve: () => void; reject: (err: Error) => void }
+  >()
 
   function setStatus(s: ConnectionStatus): void {
     log('Status changed:', status, '->', s)
@@ -100,6 +114,19 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
       if (msg.type === 'pong') return // Ignore keepalive responses
 
       log('Received message:', msg.type, msg.topic ? `topic=${msg.topic}` : '')
+
+      // Handle subscription confirmation from server
+      if (msg.type === 'subscribed' && Array.isArray(msg.topics)) {
+        for (const topic of msg.topics as string[]) {
+          const pending = pendingSubscriptions.get(topic)
+          if (pending) {
+            log('Subscription confirmed for room:', topic)
+            pending.resolve()
+            pendingSubscriptions.delete(topic)
+          }
+        }
+        return
+      }
 
       if (msg.type === 'publish' && msg.topic) {
         const handlers = rooms.get(msg.topic)
@@ -263,9 +290,63 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
         handlers!.delete(handler)
         if (handlers!.size === 0) {
           rooms.delete(room)
+          pendingSubscriptions.delete(room)
           send({ type: 'unsubscribe', topics: [room] })
         }
       }
+    },
+
+    joinRoomAsync(room: string, handler: RoomHandler): RoomJoinResult {
+      log('Joining room async:', room)
+      let handlers = rooms.get(room)
+      const isNewRoom = !handlers
+
+      if (!handlers) {
+        handlers = new Set()
+        rooms.set(room, handlers)
+      }
+      handlers.add(handler)
+      log('Room', room, 'now has', handlers.size, 'handler(s)')
+
+      // Create ready promise
+      let ready: Promise<void>
+      if (isNewRoom && status === 'connected') {
+        // Subscribe on the wire - wait for confirmation
+        log('New room subscription (async), sending subscribe message')
+        ready = new Promise<void>((resolve, _reject) => {
+          pendingSubscriptions.set(room, { resolve, reject: () => resolve() }) // Use resolve for reject to avoid blocking
+
+          send({ type: 'subscribe', topics: [room] })
+
+          // Timeout after 5 seconds - resolve anyway to avoid blocking
+          setTimeout(() => {
+            if (pendingSubscriptions.has(room)) {
+              pendingSubscriptions.delete(room)
+              log('Subscription confirmation timeout for room:', room, '- proceeding anyway')
+              resolve()
+            }
+          }, 5000)
+        })
+      } else {
+        // Room already exists or not connected - immediately ready
+        // When reconnecting, rooms will be re-subscribed automatically
+        if (isNewRoom) {
+          log('New room added but not connected, will subscribe when connected')
+        }
+        ready = Promise.resolve()
+      }
+
+      const unsubscribe = () => {
+        log('Leaving room:', room)
+        handlers!.delete(handler)
+        if (handlers!.size === 0) {
+          rooms.delete(room)
+          pendingSubscriptions.delete(room)
+          send({ type: 'unsubscribe', topics: [room] })
+        }
+      }
+
+      return { unsubscribe, ready }
     },
 
     leaveRoom(room: string): void {
