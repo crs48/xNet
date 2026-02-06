@@ -218,3 +218,24 @@ export type {
   RegistryStats
 } from './handlers'
 export { ChangeHandlerRegistry, createTestContext } from './handlers'
+
+// Data integrity verification
+export type {
+  IntegrityIssueType,
+  RepairActionType,
+  RepairAction,
+  IntegrityIssue,
+  IntegrityReport,
+  VerifyOptions
+} from './integrity'
+export {
+  verifyIntegrity,
+  quickIntegrityCheck,
+  verifySingleChange,
+  findOrphans,
+  findRoots,
+  findHeads,
+  getChainDepth,
+  attemptRepair,
+  formatIntegrityReport
+} from './integrity'
