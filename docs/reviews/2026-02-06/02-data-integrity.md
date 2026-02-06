@@ -297,9 +297,9 @@ sequenceDiagram
 ### Phase 1 (Daily Driver)
 
 - [x] **DI-01:** Make `mergeUpdates` required in YjsBatcher (critical - corrupts documents) _(fixed f378ef6)_
-- [ ] **DI-03:** Trim conflicts array when size exceeds threshold
-- [ ] **DI-08:** Add deterministic tiebreaker for equal Lamport timestamps
-- [ ] **DI-10:** Add signature verification to `applyRemoteChange`
+- [x] **DI-03:** Trim conflicts array when size exceeds threshold _(already implemented)_
+- [x] **DI-08:** Add deterministic tiebreaker for equal Lamport timestamps _(already implemented via author DID comparison)_
+- [x] **DI-10:** Add signature verification to `applyRemoteChange` _(fixed 3b16835)_
 
 ### Phase 2 (Hub MVP)
 

@@ -326,8 +326,8 @@ Iterates all operations for each update.
 
 ### Phase 1 (Daily Driver)
 
-- [ ] **DATA-02:** Add signature verification to applyRemoteChange
-- [ ] **DATA-03:** Trim conflicts array
+- [x] **DATA-02:** Add signature verification to applyRemoteChange _(fixed 3b16835)_
+- [x] **DATA-03:** Trim conflicts array _(already implemented)_
 - [x] **DATA-05/06:** Fix countNodes/listNodes to use cursors _(fixed bdada0a)_
 
 ### Phase 2 (Hub MVP)

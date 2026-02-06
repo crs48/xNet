@@ -341,9 +341,9 @@ Delete key may delete canvas nodes when typing elsewhere.
 
 ### Phase 1 (Daily Driver)
 
-- [x] **EDITOR-01:** Use unique upload IDs for placeholders _(this session)_
-- [ ] **CANVAS-01:** Track drag offset from initial positions
-- [ ] **EDITOR-02:** Fix heading regex for exact level matching
+- [x] **EDITOR-01:** Use unique upload IDs for placeholders _(fixed d7766c7)_
+- [x] **CANVAS-01:** Track drag offset from initial positions _(fixed 1c00f86)_
+- [x] **EDITOR-02:** Fix heading regex for exact level matching _(fixed 1c00f86)_
 - [x] **CANVAS-09:** Use crypto.randomUUID for node IDs _(already in codebase)_
 
 ### Phase 2 (Hub MVP)
