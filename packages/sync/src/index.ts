@@ -141,3 +141,67 @@ export {
 // Yjs security: update batching (Step 08)
 export type { YjsBatcherConfig, BatchFlushCallback, MergeUpdatesFn } from './yjs-batcher'
 export { YjsBatcher, DEFAULT_BATCHER_CONFIG } from './yjs-batcher'
+
+// Feature flags and capability negotiation
+export type {
+  FeatureFlag,
+  FeatureConfig,
+  FeatureValidationResult,
+  FeatureValidationError,
+  FeatureValidationWarning
+} from './features'
+export {
+  FEATURES,
+  ALL_FEATURES,
+  getEnabledFeatures,
+  isFeatureEnabled,
+  getRequiredFeatures,
+  getOptionalFeatures,
+  getFeatureVersion,
+  isFeatureAvailable,
+  getFeatureDependencies,
+  getFeatureConflicts,
+  getAllDependencies,
+  validateFeatureSet,
+  intersectFeatures,
+  diffFeatures,
+  addDependencies
+} from './features'
+
+// Version negotiation
+export type {
+  PeerCapabilities,
+  NegotiatedSession,
+  NegotiationFailure,
+  NegotiationWarning,
+  NegotiationResult
+} from './negotiation'
+export {
+  VersionNegotiator,
+  defaultNegotiator,
+  createLocalCapabilities,
+  parseCapabilities
+} from './negotiation'
+
+// Serializers for version-specific wire formats
+export type {
+  ChangeSerializer,
+  SerializerRegistry,
+  SerializedChange,
+  DeserializeOutcome,
+  DeserializeResult,
+  DeserializeError,
+  SerializeOptions
+} from './serializers'
+export {
+  V1Serializer,
+  v1Serializer,
+  V2Serializer,
+  v2Serializer,
+  serializerRegistry,
+  getSerializer,
+  getDefaultSerializer,
+  autoDeserialize,
+  autoSerialize,
+  createSerializerRegistry
+} from './serializers'

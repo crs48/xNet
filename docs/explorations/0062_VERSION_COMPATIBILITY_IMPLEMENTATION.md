@@ -1345,15 +1345,15 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 
 ### Week 5-6: Capability Negotiation
 
-- [ ] Define `FEATURES` registry
-- [ ] Create `getEnabledFeatures()` function
-- [ ] Implement `VersionNegotiator` class
+- [x] Define `FEATURES` registry
+- [x] Create `getEnabledFeatures()` function
+- [x] Implement `VersionNegotiator` class
 - [ ] Add negotiation to `SyncProvider`
-- [ ] Create `V1Serializer`
-- [ ] Create `V2Serializer`
-- [ ] Implement serializer selection
-- [ ] Handle capability downgrade
-- [ ] Write negotiation tests
+- [x] Create `V1Serializer`
+- [x] Create `V2Serializer`
+- [x] Implement serializer selection
+- [x] Handle capability downgrade
+- [x] Write negotiation tests
 
 ### Week 7-8: Developer Experience
 
