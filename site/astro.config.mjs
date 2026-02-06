@@ -127,6 +127,14 @@ export default defineConfig({
             { slug: 'docs/contributing/code-style' },
             { slug: 'docs/contributing/testing' }
           ]
+        },
+        {
+          label: 'Resources',
+          collapsed: true,
+          items: [
+            { label: 'Compare to Alternatives', link: '/compare' },
+            { label: 'Roadmap', link: '/#roadmap' }
+          ]
         }
       ]
     }),

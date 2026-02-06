@@ -1,0 +1,715 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+
+// ─── Table 1: Developer Frameworks ────────────────────────────────────────
+
+const infraProjects = [
+  {
+    name: 'xNet',
+    url: 'https://github.com/crs48/xNet',
+    highlight: true,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'P2P (WebRTC)',
+    crdt: 'Yjs + Lamport LWW',
+    richText: 'Yjs + TipTap',
+    schema: 'TypeScript defineSchema()',
+    hooks: 'useQuery / useMutate / useNode',
+    typeSafety: 'Full inference',
+    selfHosted: 'No server needed',
+    license: 'MIT',
+    identity: 'DID:key + UCAN',
+    plugins: '4-layer system',
+    platforms: 'Electron + Web + Expo',
+  },
+  {
+    name: 'Zero',
+    url: 'https://zerosync.dev',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'Server (sync engine)',
+    crdt: 'Server rebase',
+    richText: '—',
+    schema: 'Postgres',
+    hooks: 'useQuery',
+    typeSafety: 'Via Postgres types',
+    selfHosted: 'Server required',
+    license: 'Apache 2.0',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web',
+  },
+  {
+    name: 'Triplit',
+    url: 'https://triplit.dev',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'Server (WebSocket)',
+    crdt: 'LWW per-attribute',
+    richText: '—',
+    schema: 'TypeScript',
+    hooks: 'useQuery',
+    typeSafety: 'Full inference',
+    selfHosted: 'Server required',
+    license: 'AGPL',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web + Mobile',
+  },
+  {
+    name: 'ElectricSQL',
+    url: 'https://electric-sql.com',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'Server (Postgres CDC)',
+    crdt: 'Server rebase',
+    richText: '—',
+    schema: 'Postgres',
+    hooks: 'useShape',
+    typeSafety: 'Via Postgres types',
+    selfHosted: 'Server required',
+    license: 'Apache 2.0',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web',
+  },
+  {
+    name: 'Jazz',
+    url: 'https://jazz.tools',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'P2P via relay',
+    crdt: 'Automerge-based',
+    richText: '—',
+    schema: 'CoValues (TypeScript)',
+    hooks: 'useCoState',
+    typeSafety: 'Full inference',
+    selfHosted: 'Relay optional',
+    license: 'MIT',
+    identity: 'Built-in',
+    plugins: '—',
+    platforms: 'Web + React Native',
+  },
+  {
+    name: 'LiveStore',
+    url: 'https://github.com/livestorejs/livestore',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'Client-side events',
+    crdt: 'Event-sourced',
+    richText: '—',
+    schema: 'SQLite',
+    hooks: 'useStore',
+    typeSafety: 'Full inference',
+    selfHosted: 'Client-only',
+    license: 'MIT',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web',
+  },
+  {
+    name: 'DXOS',
+    url: 'https://dxos.org',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    sync: 'P2P (MESH)',
+    crdt: 'Automerge (ECHO)',
+    richText: 'Automerge',
+    schema: 'TypeScript (ECHO)',
+    hooks: 'useQuery',
+    typeSafety: 'Full inference',
+    selfHosted: 'P2P optional',
+    license: 'MIT',
+    identity: 'Built-in (HALO)',
+    plugins: 'Yes',
+    platforms: 'Web + Electron',
+  },
+  {
+    name: 'Convex',
+    url: 'https://convex.dev',
+    highlight: false,
+    localFirst: false,
+    offline: 'Partial',
+    sync: 'Server (reactive)',
+    crdt: 'Server authority',
+    richText: '—',
+    schema: 'TypeScript',
+    hooks: 'useQuery',
+    typeSafety: 'Full inference',
+    selfHosted: 'Cloud only',
+    license: 'Proprietary**',
+    identity: 'External',
+    plugins: '—',
+    platforms: 'Web',
+  },
+]
+
+const infraColumns = [
+  { key: 'localFirst', label: 'Local-first' },
+  { key: 'offline', label: 'Offline' },
+  { key: 'sync', label: 'Sync' },
+  { key: 'crdt', label: 'Conflict Resolution' },
+  { key: 'richText', label: 'Rich Text' },
+  { key: 'schema', label: 'Schema' },
+  { key: 'hooks', label: 'React Hooks' },
+  { key: 'typeSafety', label: 'Type Safety' },
+  { key: 'selfHosted', label: 'Self-Hosted' },
+  { key: 'license', label: 'License' },
+  { key: 'identity', label: 'Identity' },
+  { key: 'plugins', label: 'Plugins' },
+  { key: 'platforms', label: 'Platforms' },
+]
+
+// ─── Table 2: Protocols & P2P Infrastructure ──────────────────────────────
+
+const protocolProjects = [
+  {
+    name: 'xNet',
+    url: 'https://github.com/crs48/xNet',
+    highlight: true,
+    scope: 'App framework',
+    dataModel: 'Schema-typed nodes + Yjs',
+    sync: 'P2P (WebRTC)',
+    identity: 'DID:key + UCAN',
+    language: 'TypeScript',
+    status: 'Pre-release',
+    bestFor: 'Full-stack local-first apps',
+  },
+  {
+    name: 'AT Protocol',
+    url: 'https://atproto.com',
+    highlight: false,
+    scope: 'Social protocol',
+    dataModel: 'Signed repos (Lexicons)',
+    sync: 'Federated relay',
+    identity: 'DID:plc',
+    language: 'TypeScript',
+    status: 'Production (30M+ users)',
+    bestFor: 'Social networking',
+  },
+  {
+    name: 'Nostr',
+    url: 'https://nostr.com',
+    highlight: false,
+    scope: 'Event protocol',
+    dataModel: 'Signed JSON events',
+    sync: 'Relay (WebSocket)',
+    identity: 'secp256k1 keys',
+    language: 'Any',
+    status: 'Production',
+    bestFor: 'Social + payments',
+  },
+  {
+    name: 'Hypercore / Pear',
+    url: 'https://holepunch.to',
+    highlight: false,
+    scope: 'P2P runtime',
+    dataModel: 'Append-only logs',
+    sync: 'P2P (DHT)',
+    identity: 'Public keys',
+    language: 'JavaScript',
+    status: 'Production',
+    bestFor: 'P2P apps + streaming',
+  },
+  {
+    name: 'Iroh',
+    url: 'https://iroh.computer',
+    highlight: false,
+    scope: 'Networking library',
+    dataModel: 'Content-addressed blobs',
+    sync: 'P2P (QUIC)',
+    identity: 'Public keys',
+    language: 'Rust',
+    status: 'Production',
+    bestFor: 'P2P networking layer',
+  },
+  {
+    name: 'p2panda',
+    url: 'https://p2panda.org',
+    highlight: false,
+    scope: 'P2P toolkit',
+    dataModel: 'DAG of CBOR operations',
+    sync: 'P2P (QUIC / iroh)',
+    identity: 'Public keys',
+    language: 'Rust',
+    status: 'Active (v0.5)',
+    bestFor: 'Encrypted group apps',
+  },
+  {
+    name: 'Willow',
+    url: 'https://willowprotocol.org',
+    highlight: false,
+    scope: 'Sync protocol',
+    dataModel: '3D namespace model',
+    sync: 'Protocol-agnostic',
+    identity: 'Capabilities (Meadowcap)',
+    language: 'Spec + JS/Rust',
+    status: 'Active',
+    bestFor: 'Fine-grained sync + access',
+  },
+  {
+    name: 'Holochain',
+    url: 'https://holochain.org',
+    highlight: false,
+    scope: 'Agent framework',
+    dataModel: 'Agent chains + DHT',
+    sync: 'DHT gossip',
+    identity: 'Agent keys',
+    language: 'Rust (WASM)',
+    status: 'Beta (7+ years)',
+    bestFor: 'Agent-centric apps',
+  },
+  {
+    name: 'Anytype',
+    url: 'https://anytype.io',
+    highlight: false,
+    scope: 'App + protocol',
+    dataModel: 'Typed objects + DAGs',
+    sync: 'P2P (custom)',
+    identity: 'Key pairs',
+    language: 'Go + TypeScript',
+    status: 'Production (1M+ users)',
+    bestFor: 'Personal knowledge base',
+  },
+  {
+    name: 'Solid',
+    url: 'https://solidproject.org',
+    highlight: false,
+    scope: 'Data pods',
+    dataModel: 'RDF / Linked Data',
+    sync: 'Server (REST)',
+    identity: 'WebID',
+    language: 'Any',
+    status: 'Active (niche)',
+    bestFor: 'Academic / government',
+  },
+]
+
+const protocolColumns = [
+  { key: 'scope', label: 'Scope' },
+  { key: 'dataModel', label: 'Data Model' },
+  { key: 'sync', label: 'Sync' },
+  { key: 'identity', label: 'Identity' },
+  { key: 'language', label: 'Language' },
+  { key: 'status', label: 'Status' },
+  { key: 'bestFor', label: 'Best For' },
+]
+
+// ─── Table 3: Productivity Apps ───────────────────────────────────────────
+
+const productivityApps = [
+  {
+    name: 'xNet App',
+    url: 'https://github.com/crs48/xNet',
+    highlight: true,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'P2P (Yjs)',
+    richText: 'TipTap + Yjs',
+    databases: '15 property types, views',
+    canvas: 'Infinite, spatial index',
+    openSource: 'MIT',
+    selfHosted: 'Full (Hub optional)',
+    plugins: '4-layer system',
+    pricing: 'Free forever',
+    dataOwnership: 'Full — encrypted, local',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'Notion',
+    url: 'https://notion.so',
+    highlight: false,
+    localFirst: false,
+    offline: 'Partial (cache)',
+    realTimeCollab: 'Server (OT)',
+    richText: 'Block-based',
+    databases: 'Full (views, relations)',
+    canvas: 'No',
+    openSource: 'No',
+    selfHosted: 'No',
+    plugins: 'Integrations API',
+    pricing: 'Freemium ($8+/mo)',
+    dataOwnership: 'Cloud only',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'Obsidian',
+    url: 'https://obsidian.md',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'Paid plugin',
+    richText: 'Markdown',
+    databases: 'Via plugins',
+    canvas: 'Yes',
+    openSource: 'No (free for personal)',
+    selfHosted: 'Files on disk',
+    plugins: 'Community plugins',
+    pricing: 'Free / $50/yr sync',
+    dataOwnership: 'Full — local files',
+    platforms: 'Desktop, Mobile',
+  },
+  {
+    name: 'Anytype',
+    url: 'https://anytype.io',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'P2P',
+    richText: 'Block-based',
+    databases: 'Relations + views',
+    canvas: 'Yes',
+    openSource: 'Source-available',
+    selfHosted: 'Self-hosted nodes',
+    plugins: 'No',
+    pricing: 'Free (paid tiers coming)',
+    dataOwnership: 'Full — encrypted, P2P',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'Linear',
+    url: 'https://linear.app',
+    highlight: false,
+    localFirst: false,
+    offline: 'Partial (cache)',
+    realTimeCollab: 'Server',
+    richText: 'Minimal',
+    databases: 'Issue tracker',
+    canvas: 'No',
+    openSource: 'No',
+    selfHosted: 'No',
+    plugins: 'Integrations',
+    pricing: 'Free / $8+/mo',
+    dataOwnership: 'Cloud only',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'Coda',
+    url: 'https://coda.io',
+    highlight: false,
+    localFirst: false,
+    offline: 'No',
+    realTimeCollab: 'Server',
+    richText: 'Block-based',
+    databases: 'Tables + formulas',
+    canvas: 'No',
+    openSource: 'No',
+    selfHosted: 'No',
+    plugins: 'Packs (marketplace)',
+    pricing: 'Freemium ($10+/mo)',
+    dataOwnership: 'Cloud only',
+    platforms: 'Web, Mobile',
+  },
+  {
+    name: 'Airtable',
+    url: 'https://airtable.com',
+    highlight: false,
+    localFirst: false,
+    offline: 'No',
+    realTimeCollab: 'Server',
+    richText: 'Rich field type',
+    databases: 'Full (views, automations)',
+    canvas: 'Interfaces',
+    openSource: 'No',
+    selfHosted: 'No',
+    plugins: 'Extensions + scripts',
+    pricing: 'Freemium ($20+/mo)',
+    dataOwnership: 'Cloud only',
+    platforms: 'Web, Mobile',
+  },
+  {
+    name: 'AppFlowy',
+    url: 'https://appflowy.io',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'Cloud sync',
+    richText: 'Block-based',
+    databases: 'Grid, board, calendar',
+    canvas: 'No',
+    openSource: 'AGPL',
+    selfHosted: 'Full',
+    plugins: 'Flutter plugins',
+    pricing: 'Free / cloud plans',
+    dataOwnership: 'Full — local + optional cloud',
+    platforms: 'Desktop, Web, Mobile',
+  },
+  {
+    name: 'AFFiNE',
+    url: 'https://affine.pro',
+    highlight: false,
+    localFirst: true,
+    offline: 'Full',
+    realTimeCollab: 'Yjs (cloud)',
+    richText: 'BlockSuite',
+    databases: 'Table views',
+    canvas: 'Edgeless mode',
+    openSource: 'MIT',
+    selfHosted: 'Full',
+    plugins: 'Plugin system',
+    pricing: 'Free / cloud plans',
+    dataOwnership: 'Full — local + optional cloud',
+    platforms: 'Desktop, Web, Mobile',
+  },
+]
+
+const productivityColumns = [
+  { key: 'localFirst', label: 'Local-first' },
+  { key: 'offline', label: 'Offline' },
+  { key: 'realTimeCollab', label: 'Real-time Collab' },
+  { key: 'richText', label: 'Rich Text' },
+  { key: 'databases', label: 'Databases' },
+  { key: 'canvas', label: 'Canvas' },
+  { key: 'openSource', label: 'Open Source' },
+  { key: 'selfHosted', label: 'Self-Hosted' },
+  { key: 'plugins', label: 'Plugins' },
+  { key: 'pricing', label: 'Pricing' },
+  { key: 'dataOwnership', label: 'Data Ownership' },
+  { key: 'platforms', label: 'Platforms' },
+]
+---
+
+<Base
+  title="How xNet Compares — Local-First Landscape"
+  description="See how xNet compares to other local-first frameworks, productivity apps, and decentralized protocols. Detailed comparison tables for developers and users."
+>
+  <Nav />
+
+  <main class="py-24 lg:py-32">
+    <div class="mx-auto max-w-7xl px-6">
+      <!-- Hero -->
+      <div class="text-center mb-20">
+        <h1 class="text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl mb-6">
+          The Local-First Landscape
+        </h1>
+        <p class="mx-auto max-w-2xl text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
+          We're building xNet because we believe in a future where users own their data.
+          We're not alone — here are the projects pushing this vision forward.
+          We encourage you to explore them all.
+        </p>
+      </div>
+
+      <!-- Quick Summary Cards -->
+      <div class="grid gap-6 sm:grid-cols-3 mb-20">
+        <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-6 text-center">
+          <div class="text-3xl font-bold text-indigo-400 mb-2">8+</div>
+          <div class="text-sm text-gray-500">Developer Frameworks</div>
+        </div>
+        <div class="rounded-xl border border-purple-500/20 bg-purple-500/[0.03] p-6 text-center">
+          <div class="text-3xl font-bold text-purple-400 mb-2">10+</div>
+          <div class="text-sm text-gray-500">P2P Protocols</div>
+        </div>
+        <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-6 text-center">
+          <div class="text-3xl font-bold text-emerald-400 mb-2">9+</div>
+          <div class="text-sm text-gray-500">Productivity Apps</div>
+        </div>
+      </div>
+
+      <!-- Table 1: Developer Frameworks -->
+      <section class="mb-20">
+        <div class="mb-8">
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-3">
+            Developer Frameworks & Data Tools
+          </h2>
+          <p class="text-gray-500 dark:text-gray-400 max-w-3xl">
+            What you'd use to build a local-first app today. Each has different tradeoffs around
+            sync architecture, schema systems, and infrastructure requirements.
+          </p>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-border">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-border bg-surface/30 dark:bg-surface/50">
+                <th class="sticky left-0 z-10 bg-surface/80 dark:bg-surface/90 backdrop-blur-sm px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300 min-w-[100px]">Project</th>
+                {infraColumns.map(col => (
+                  <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">{col.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {infraProjects.map((project) => (
+                <tr class={`border-b border-border/50 ${project.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}>
+                  <td class={`sticky left-0 z-10 ${project.highlight ? 'bg-indigo-500/[0.06]' : 'bg-code-bg'} backdrop-blur-sm px-4 py-3 font-medium whitespace-nowrap`}>
+                    <a href={project.url} target="_blank" rel="noopener noreferrer" class={`hover:underline ${project.highlight ? 'text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:text-indigo-400'}`}>
+                      {project.name}
+                    </a>
+                  </td>
+                  {infraColumns.map(col => {
+                    const val = (project as any)[col.key]
+                    const isBoolean = typeof val === 'boolean'
+                    const isDash = val === '—'
+                    return (
+                      <td class={`px-4 py-3 whitespace-nowrap ${isDash ? 'text-gray-700' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {isBoolean ? (
+                          val ? (
+                            <span class="text-emerald-400">Yes</span>
+                          ) : (
+                            <span class="text-gray-600">No</span>
+                          )
+                        ) : val}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-3 text-xs text-gray-600">** Convex runtime is proprietary; client SDKs are open source. All other projects are fully open source.</p>
+      </section>
+
+      <!-- Table 2: Protocols -->
+      <section class="mb-20">
+        <div class="mb-8">
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-3">
+            Protocols & P2P Infrastructure
+          </h2>
+          <p class="text-gray-500 dark:text-gray-400 max-w-3xl">
+            The broader ecosystem of decentralized data. Different scopes, different goals —
+            all pushing toward user-owned data.
+          </p>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-border">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-border bg-surface/30 dark:bg-surface/50">
+                <th class="sticky left-0 z-10 bg-surface/80 dark:bg-surface/90 backdrop-blur-sm px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300 min-w-[130px]">Project</th>
+                {protocolColumns.map(col => (
+                  <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">{col.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {protocolProjects.map((project) => (
+                <tr class={`border-b border-border/50 ${project.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}>
+                  <td class={`sticky left-0 z-10 ${project.highlight ? 'bg-indigo-500/[0.06]' : 'bg-code-bg'} backdrop-blur-sm px-4 py-3 font-medium whitespace-nowrap`}>
+                    <a href={project.url} target="_blank" rel="noopener noreferrer" class={`hover:underline ${project.highlight ? 'text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:text-indigo-400'}`}>
+                      {project.name}
+                    </a>
+                  </td>
+                  {protocolColumns.map(col => (
+                    <td class="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">{(project as any)[col.key]}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Table 3: Productivity Apps -->
+      <section class="mb-20">
+        <div class="mb-8">
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-3">
+            Productivity Apps
+          </h2>
+          <p class="text-gray-500 dark:text-gray-400 max-w-3xl">
+            How xNet's built-in app compares to the tools you might already use.
+            Different philosophies — from cloud-first SaaS to local-first open source.
+          </p>
+        </div>
+        <div class="overflow-x-auto rounded-xl border border-border">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-border bg-surface/30 dark:bg-surface/50">
+                <th class="sticky left-0 z-10 bg-surface/80 dark:bg-surface/90 backdrop-blur-sm px-4 py-3 text-left font-semibold text-gray-600 dark:text-gray-300 min-w-[110px]">App</th>
+                {productivityColumns.map(col => (
+                  <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">{col.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {productivityApps.map((app) => (
+                <tr class={`border-b border-border/50 ${app.highlight ? 'bg-indigo-500/[0.04]' : 'hover:bg-surface/30'} transition-colors`}>
+                  <td class={`sticky left-0 z-10 ${app.highlight ? 'bg-indigo-500/[0.06]' : 'bg-code-bg'} backdrop-blur-sm px-4 py-3 font-medium whitespace-nowrap`}>
+                    <a href={app.url} target="_blank" rel="noopener noreferrer" class={`hover:underline ${app.highlight ? 'text-indigo-400' : 'text-gray-600 dark:text-gray-300 hover:text-indigo-400'}`}>
+                      {app.name}
+                    </a>
+                  </td>
+                  {productivityColumns.map(col => {
+                    const val = (app as any)[col.key]
+                    const isBoolean = typeof val === 'boolean'
+                    const isNo = val === 'No'
+                    return (
+                      <td class={`px-4 py-3 whitespace-nowrap ${isNo ? 'text-gray-700' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {isBoolean ? (
+                          val ? (
+                            <span class="text-emerald-400">Yes</span>
+                          ) : (
+                            <span class="text-gray-600">No</span>
+                          )
+                        ) : val}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Where xNet fits -->
+      <section class="max-w-4xl mx-auto">
+        <div class="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-8 sm:p-10">
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 text-center">
+            Where xNet Fits
+          </h2>
+          <p class="text-gray-500 dark:text-gray-400 leading-relaxed text-center mb-8">
+            xNet combines <strong class="text-gray-600 dark:text-gray-300">TypeScript-inferred schemas</strong>,
+            a <strong class="text-gray-600 dark:text-gray-300">dual CRDT strategy</strong> (Yjs for rich text + Lamport LWW for structured data),
+            <strong class="text-gray-600 dark:text-gray-300">React hooks</strong>,
+            a <strong class="text-gray-600 dark:text-gray-300">four-layer plugin system</strong>,
+            and <strong class="text-gray-600 dark:text-gray-300">true P2P sync</strong> — all in one framework.
+          </p>
+
+          <div class="grid gap-4 sm:grid-cols-2 text-sm">
+            <div class="rounded-lg border border-border bg-surface/30 p-4">
+              <p class="text-gray-500 dark:text-gray-400">
+                <strong class="text-indigo-400">Building a React app?</strong><br />
+                Want local-first with minimal boilerplate? Start here.
+              </p>
+            </div>
+            <div class="rounded-lg border border-border bg-surface/30 p-4">
+              <p class="text-gray-500 dark:text-gray-400">
+                <strong class="text-gray-600 dark:text-gray-300">Need a social protocol?</strong><br />
+                Check out <a href="https://atproto.com" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 underline">AT Protocol</a> or <a href="https://nostr.com" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 underline">Nostr</a>.
+              </p>
+            </div>
+            <div class="rounded-lg border border-border bg-surface/30 p-4">
+              <p class="text-gray-500 dark:text-gray-400">
+                <strong class="text-gray-600 dark:text-gray-300">Need low-level P2P?</strong><br />
+                Check out <a href="https://iroh.computer" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 underline">Iroh</a> or <a href="https://holepunch.to" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 underline">Hypercore</a>.
+              </p>
+            </div>
+            <div class="rounded-lg border border-border bg-surface/30 p-4">
+              <p class="text-gray-500 dark:text-gray-400">
+                <strong class="text-gray-600 dark:text-gray-300">Want a knowledge base today?</strong><br />
+                Check out <a href="https://anytype.io" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 underline">Anytype</a> or <a href="https://obsidian.md" target="_blank" rel="noopener noreferrer" class="hover:text-indigo-400 underline">Obsidian</a>.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-8 flex justify-center gap-4">
+            <a href="/" class="rounded-lg bg-indigo-600 px-6 py-3 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">
+              Back to Home
+            </a>
+            <a href="/docs/quickstart/" class="rounded-lg border border-indigo-500/50 bg-indigo-500/10 px-6 py-3 text-sm font-medium text-indigo-600 dark:text-indigo-300 hover:bg-indigo-500/20 transition-colors">
+              Get Started
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <Footer />
+</Base>
