@@ -33,12 +33,22 @@ import { expose, proxy } from 'comlink'
 import * as Y from 'yjs'
 import { QueryCache } from '../query-cache'
 
+// ─── Y.Doc Pool Configuration ────────────────────────────────────────────────
+
+/** Maximum number of Y.Docs to keep in the pool */
+const MAX_DOC_POOL_SIZE = 50
+
+/** Minimum time (ms) before an unused doc can be evicted */
+const MIN_DOC_AGE_FOR_EVICTION = 60_000 // 60 seconds
+
 // ─── Y.Doc Pool Entry ────────────────────────────────────────────────────────
 
 interface PoolEntry {
   doc: Y.Doc
   refCount: number
   updateHandlers: Set<(update: Uint8Array, origin: string) => void>
+  /** Last time this doc was accessed (for LRU eviction) */
+  lastAccessed: number
 }
 
 // ─── DataWorker Class ────────────────────────────────────────────────────────
@@ -165,7 +175,10 @@ class DataWorker implements DataWorkerAPI {
 
     let entry = this.docPool.get(nodeId)
 
-    if (!entry) {
+    if (entry) {
+      // Update last accessed time
+      entry.lastAccessed = Date.now()
+    } else {
       // Create new Y.Doc as source of truth
       const doc = new Y.Doc({ guid: nodeId, gc: false })
 
@@ -178,8 +191,12 @@ class DataWorker implements DataWorkerAPI {
       entry = {
         doc,
         refCount: 0,
-        updateHandlers: new Set()
+        updateHandlers: new Set(),
+        lastAccessed: Date.now()
       }
+
+      // Evict old unused docs if pool is at capacity
+      this.evictOldDocs()
 
       // Set up persistence - save on every update
       doc.on('update', (update: Uint8Array, origin: unknown) => {
@@ -407,6 +424,49 @@ class DataWorker implements DataWorkerAPI {
     this.status = status
     for (const handler of this.statusHandlers) {
       handler(status)
+    }
+  }
+
+  /**
+   * Evict unused Y.Docs from the pool to manage memory.
+   * Only evicts docs with refCount=0 that haven't been accessed recently.
+   */
+  private evictOldDocs(): void {
+    if (this.docPool.size < MAX_DOC_POOL_SIZE) return
+
+    const now = Date.now()
+    const candidates: Array<{ nodeId: string; lastAccessed: number }> = []
+
+    // Find eviction candidates: docs with no refs and old enough
+    for (const [nodeId, entry] of this.docPool) {
+      if (entry.refCount === 0 && now - entry.lastAccessed > MIN_DOC_AGE_FOR_EVICTION) {
+        candidates.push({ nodeId, lastAccessed: entry.lastAccessed })
+      }
+    }
+
+    if (candidates.length === 0) return
+
+    // Sort by lastAccessed (oldest first)
+    candidates.sort((a, b) => a.lastAccessed - b.lastAccessed)
+
+    // Evict enough to get below 80% of max size
+    const targetSize = Math.floor(MAX_DOC_POOL_SIZE * 0.8)
+    const toEvict = this.docPool.size - targetSize
+
+    for (let i = 0; i < Math.min(toEvict, candidates.length); i++) {
+      const nodeId = candidates[i].nodeId
+      const entry = this.docPool.get(nodeId)
+      if (entry) {
+        // Persist one final time before destroying
+        if (this.storage) {
+          const content = Y.encodeStateAsUpdate(entry.doc)
+          this.storage.setDocumentContent(nodeId, content).catch(() => {
+            // Silent fail on eviction persist
+          })
+        }
+        entry.doc.destroy()
+        this.docPool.delete(nodeId)
+      }
     }
   }
 }
