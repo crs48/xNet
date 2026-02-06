@@ -1,15 +1,28 @@
 /**
  * Document synchronization protocol
+ *
+ * NW-01: Now includes signature verification for Yjs updates.
+ * All updates should be wrapped in signed envelopes for security.
  */
 import type { NetworkNode, SyncMessage } from '../types'
 import type { XDocument } from '@xnet/data'
+import type { SignedYjsEnvelope } from '@xnet/sync'
 import { encode, decode } from '@msgpack/msgpack'
 import { getDocumentState, getStateVector } from '@xnet/data'
+import { verifyYjsEnvelope } from '@xnet/sync'
 import * as lp from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
 import * as Y from 'yjs'
 
 const SYNC_PROTOCOL = '/xnet/sync/1.0.0'
+
+// NW-01: Configuration for envelope verification
+interface SyncProtocolConfig {
+  /** Reject updates without valid signatures (default: true in production) */
+  requireSignedEnvelopes?: boolean
+  /** Callback when an update fails verification */
+  onVerificationFailed?: (reason: string, sender: string, docId: string) => void
+}
 
 /**
  * Sync protocol interface
@@ -29,9 +42,23 @@ export interface SyncProtocol {
 }
 
 /**
- * Create a sync protocol handler for the node
+ * Extended sync message with optional signed envelope (NW-01)
  */
-export function createSyncProtocol(node: NetworkNode): SyncProtocol {
+interface SyncMessageV2 extends SyncMessage {
+  /** Signed envelope containing the update (NW-01) */
+  envelope?: SignedYjsEnvelope
+}
+
+/**
+ * Create a sync protocol handler for the node
+ *
+ * NW-01: Now verifies signed envelopes before applying updates.
+ */
+export function createSyncProtocol(
+  node: NetworkNode,
+  config: SyncProtocolConfig = {}
+): SyncProtocol {
+  const { requireSignedEnvelopes = false, onVerificationFailed } = config
   const documents = new Map<string, XDocument>()
   const messageCallbacks = new Set<(msg: SyncMessage) => void>()
 
@@ -107,9 +134,34 @@ export function createSyncProtocol(node: NetworkNode): SyncProtocol {
       // Read response
       await pipe(stream.source, lp.decode, async function (source) {
         for await (const data of source) {
-          const msg = decode(data.subarray()) as SyncMessage
+          const msg = decode(data.subarray()) as SyncMessageV2
           if (msg.type === 'sync-response') {
-            Y.applyUpdate(doc.ydoc, msg.payload)
+            // NW-01: Verify signed envelope if present
+            if (msg.envelope) {
+              const result = verifyYjsEnvelope(msg.envelope)
+              if (!result.valid) {
+                onVerificationFailed?.(result.reason || 'unknown', msg.sender, msg.docId)
+                if (requireSignedEnvelopes) {
+                  console.warn(
+                    `[SyncProtocol] Rejected update from ${msg.sender}: ${result.reason}`
+                  )
+                  continue
+                }
+              }
+              // Apply verified update
+              Y.applyUpdate(doc.ydoc, msg.envelope.update, msg.envelope.authorDID)
+            } else if (requireSignedEnvelopes) {
+              // NW-01: Reject unsigned updates when signatures required
+              onVerificationFailed?.('missing_envelope', msg.sender, msg.docId)
+              console.warn(`[SyncProtocol] Rejected unsigned update from ${msg.sender}`)
+              continue
+            } else {
+              // Legacy fallback: apply unsigned update with warning
+              console.warn(
+                `[SyncProtocol] Applying unsigned update from ${msg.sender} (legacy mode)`
+              )
+              Y.applyUpdate(doc.ydoc, msg.payload)
+            }
           }
         }
       })

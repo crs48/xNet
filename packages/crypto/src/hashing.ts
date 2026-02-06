@@ -2,6 +2,7 @@
  * Cryptographic hashing functions
  */
 import { blake3 } from '@noble/hashes/blake3.js'
+import { hkdf as nobleHkdf } from '@noble/hashes/hkdf.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex } from './utils'
 
@@ -39,4 +40,33 @@ export function hashBase64(data: Uint8Array, algorithm: HashAlgorithm = 'blake3'
 function bytesToBase64url(bytes: Uint8Array): string {
   const base64 = btoa(String.fromCharCode(...bytes))
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
+}
+
+/**
+ * Derive a key using HKDF (HMAC-based Extract-and-Expand Key Derivation Function).
+ *
+ * Uses SHA-256 as the underlying hash function. This is the recommended way to
+ * derive keys from a master secret with proper entropy extraction.
+ *
+ * @param ikm - Input keying material (master secret/seed)
+ * @param info - Application-specific context string
+ * @param length - Desired output length in bytes (default: 32)
+ * @param salt - Optional salt for additional randomness
+ * @returns Derived key bytes
+ *
+ * @example
+ * ```typescript
+ * const masterSeed = randomBytes(32)
+ * const signingKey = hkdf(masterSeed, 'xnet-signing-key', 32)
+ * const encryptionKey = hkdf(masterSeed, 'xnet-encryption-key', 32)
+ * ```
+ */
+export function hkdf(
+  ikm: Uint8Array,
+  info: string,
+  length: number = 32,
+  salt?: Uint8Array
+): Uint8Array {
+  const infoBytes = new TextEncoder().encode(info)
+  return nobleHkdf(sha256, ikm, salt, infoBytes, length)
 }

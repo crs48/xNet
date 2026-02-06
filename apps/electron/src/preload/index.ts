@@ -314,6 +314,7 @@ export interface XNetServicesAPI {
 export interface XNetLocalAPIStatus {
   running: boolean
   port: number
+  token: string | null // SEC-04: API authentication token
 }
 
 export interface LocalAPIStoreRequest {

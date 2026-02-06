@@ -57,7 +57,7 @@ export function useAudit(nodeId: NodeId | null, options?: UseAuditOptions): UseA
 
   const getAudit = useCallback((): AuditIndex | null => {
     if (!store) return null
-    const storage = (store as any).storage as NodeStorageAdapter | undefined
+    const storage = store.getStorageAdapter()
     if (!storage) return null
 
     if (!auditRef.current || auditRef.current.storage !== storage) {

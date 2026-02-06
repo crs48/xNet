@@ -66,8 +66,8 @@ export function useHistory(nodeId: NodeId | null): UseHistoryResult {
 
   const getEngine = useCallback((): HistoryEngine | null => {
     if (!store) return null
-    // Access the storage adapter from store internals
-    const storage = (store as any).storage as NodeStorageAdapter | undefined
+    // Access the storage adapter via public API
+    const storage = store.getStorageAdapter()
     if (!storage) return null
 
     if (!engineRef.current || engineRef.current.storage !== storage) {

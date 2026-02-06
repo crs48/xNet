@@ -81,6 +81,19 @@ export class NodeStore {
     this.clock = { ...this.clock, time: lastTime }
   }
 
+  /**
+   * Get the underlying storage adapter.
+   *
+   * Use this to access low-level storage operations like change history,
+   * document content, and Lamport timestamps. Useful for building history,
+   * audit, and verification features.
+   *
+   * @returns The NodeStorageAdapter instance
+   */
+  getStorageAdapter(): NodeStorageAdapter {
+    return this.storage
+  }
+
   // ==========================================================================
   // CRUD Operations
   // ==========================================================================

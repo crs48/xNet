@@ -3,7 +3,7 @@
  */
 import type { KeyBundle, Identity } from './types'
 import {
-  hash,
+  hkdf,
   generateSigningKeyPair,
   generateKeyPair,
   getSigningPublicKeyFromPrivate
@@ -11,22 +11,17 @@ import {
 import { createDID } from './did'
 
 /**
- * Derive signing and encryption keys from a master seed using HKDF-like derivation
+ * Derive signing and encryption keys from a master seed using HKDF.
+ *
+ * Uses proper HKDF (RFC 5869) with SHA-256 for cryptographically sound
+ * key derivation with entropy extraction.
  */
 export function deriveKeyBundle(masterSeed: Uint8Array): KeyBundle {
-  // Derive signing key by hashing seed with context
-  const signingContext = new TextEncoder().encode('xnet-signing-key')
-  const signingInput = new Uint8Array(masterSeed.length + signingContext.length)
-  signingInput.set(masterSeed)
-  signingInput.set(signingContext, masterSeed.length)
-  const signingKey = hash(signingInput)
+  // Derive signing key using HKDF with context
+  const signingKey = hkdf(masterSeed, 'xnet-signing-key', 32)
 
-  // Derive encryption key with different context
-  const encryptionContext = new TextEncoder().encode('xnet-encryption-key')
-  const encryptionInput = new Uint8Array(masterSeed.length + encryptionContext.length)
-  encryptionInput.set(masterSeed)
-  encryptionInput.set(encryptionContext, masterSeed.length)
-  const encryptionKey = hash(encryptionInput)
+  // Derive encryption key using HKDF with different context
+  const encryptionKey = hkdf(masterSeed, 'xnet-encryption-key', 32)
 
   // Create identity from signing key
   const signingPublic = getSigningPublicKeyFromPrivate(signingKey)

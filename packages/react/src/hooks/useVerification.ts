@@ -56,7 +56,7 @@ export function useVerification(nodeId: NodeId | null): UseVerificationResult {
 
   const getEngine = useCallback((): VerificationEngine | null => {
     if (!store) return null
-    const storage = (store as any).storage as NodeStorageAdapter | undefined
+    const storage = store.getStorageAdapter()
     if (!storage) return null
 
     if (!engineRef.current || engineRef.current.storage !== storage) {
