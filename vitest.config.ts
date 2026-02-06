@@ -33,9 +33,12 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{cli,crypto,core,data,data-bridge,formula,history,identity,network,query,storage,sync,telemetry,vectors}/src/**/*.test.ts',
-            'packages/{cli,crypto,core,data,data-bridge,formula,history,identity,network,query,storage,sync,telemetry,vectors}/test/**/*.test.ts'
-          ]
+            'packages/{cli,crypto,core,data,formula,history,identity,network,query,storage,sync,telemetry,vectors}/src/**/*.test.ts',
+            'packages/{cli,crypto,core,data,formula,history,identity,network,query,storage,sync,telemetry,vectors}/test/**/*.test.ts'
+          ],
+          // data-bridge tests run separately - they have Yjs module import order issues
+          // when combined with other tests in the same worker thread
+          exclude: ['packages/data-bridge/**']
         }
       },
       {
@@ -83,6 +86,17 @@ export default defineConfig({
           isolate: true,
           setupFiles: ['./packages/editor/src/test/setup.ts'],
           include: ['packages/editor/src/**/*.test.{ts,tsx}']
+        }
+      },
+      {
+        // Data-bridge package — isolate to avoid Yjs module import conflicts
+        extends: true,
+        test: {
+          name: 'data-bridge',
+          environment: 'node',
+          pool: 'forks',
+          isolate: true,
+          include: ['packages/data-bridge/src/**/*.test.ts']
         }
       }
     ]
