@@ -331,5 +331,5 @@ graph TD
 
 - [x] **REACT-05:** Fix dependency array in useQuery _(fixed - memoize filter.where with useMemo to avoid string recreation)_
 - [x] **REACT-10:** Implement optimistic updates or remove option _(fixed - removed unused MutateOptions, clarified that NodeStore already provides immediate local updates)_
-- [ ] **REACT-17:** Debounce offline queue saves
+- [x] **REACT-17:** Debounce offline queue saves _(fixed - added 100ms debounce for enqueue saves, immediate save() cancels pending debounce)_
 - [ ] Add tests for all hooks (useUndo, useHistory, useComments, etc.)
