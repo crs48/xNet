@@ -6,6 +6,8 @@
 **Status**: Exploration
 **Prerequisites**: Understanding of current `@xnet/crypto` and `@xnet/identity` packages
 
+> **Note**: xNet is prerelease software. This exploration assumes we can make breaking changes freely - there are no production users to migrate. We should pick the best architecture from the start rather than designing for backward compatibility with the current Ed25519-only implementation.
+
 ## Executive Summary
 
 Quantum computers capable of breaking Ed25519 and other elliptic curve cryptography may arrive within a decade. NIST finalized three post-quantum cryptographic standards in August 2024:
@@ -24,13 +26,15 @@ These algorithms have **dramatically larger** key and signature sizes compared t
 | ML-DSA-87 (Dilithium5) | 2,592 bytes | 4,595 bytes | 256-bit quantum    |
 | SLH-DSA-128s           | 32 bytes    | 7,856 bytes | 128-bit quantum    |
 
-This exploration proposes a **multi-level hybrid approach**:
+This exploration proposes a **multi-level hybrid approach** with **hybrid as the default**:
 
-1. **Level 0 (Fast)**: Ed25519 only - current behavior, fastest, smallest
-2. **Level 1 (Hybrid)**: Ed25519 + ML-DSA - both signatures required
-3. **Level 2 (PQ-Only)**: ML-DSA only - maximum quantum security
+1. **Level 0 (Fast)**: Ed25519 only - for high-frequency, low-value operations (cursor updates, etc.)
+2. **Level 1 (Hybrid) - DEFAULT**: Ed25519 + ML-DSA - both signatures required
+3. **Level 2 (PQ-Only)**: ML-DSA only - maximum quantum security, no classical fallback
 
-The key insight: **DID:key can remain Ed25519-based** (compact, human-readable) while a separate **PQ Key Registry** associates each DID with its post-quantum public key. This gives us the best of both worlds.
+Since xNet is prerelease, we implement this as a **clean replacement** rather than a migration. No backward compatibility with Ed25519-only formats is needed - users simply delete their database and start fresh.
+
+The key insight: **DID:key can remain Ed25519-based** (compact, human-readable) while a separate **PQ Key Registry** associates each DID with its post-quantum public key. This gives us compact, memorable identifiers with full quantum security.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -39,12 +43,12 @@ The key insight: **DID:key can remain Ed25519-based** (compact, human-readable) 
 │                                                                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
 │  │   Level 0    │  │   Level 1    │  │   Level 2    │          │
-│  │   (Fast)     │  │   (Hybrid)   │  │  (PQ-Only)   │          │
+│  │   (Fast)     │  │  (Hybrid)    │  │  (PQ-Only)   │          │
 │  ├──────────────┤  ├──────────────┤  ├──────────────┤          │
 │  │ Ed25519 only │  │ Ed25519 +    │  │ ML-DSA only  │          │
 │  │ 64-byte sig  │  │ ML-DSA       │  │ ~3KB sig     │          │
 │  │ Fastest      │  │ ~3.4KB sig   │  │ Slowest      │          │
-│  │ Current      │  │ Transitional │  │ Future       │          │
+│  │ Opt-in perf  │  │ **DEFAULT**  │  │ Max security │          │
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
 │         │                 │                 │                   │
 │         ▼                 ▼                 ▼                   │
@@ -174,11 +178,13 @@ With hybrid signatures, the signature field would grow significantly.
 
 ### Core Design Principles
 
-1. **Backward Compatible**: Level 0 (Ed25519 only) is the current format
-2. **Opt-in Upgrade**: Applications choose their security level
+Since we're prerelease with no production users, we can design the ideal architecture without migration concerns:
+
+1. **Hybrid-First by Default**: Level 1 (Ed25519 + ML-DSA) is the new default
+2. **Opt-Down for Performance**: Applications can choose Level 0 for high-frequency, low-value operations
 3. **DID Stability**: Keep did:key:z6Mk... format for Ed25519 (compact, readable)
 4. **PQ Key Association**: Link PQ public keys to DIDs via registry/attestation
-5. **Graceful Degradation**: Systems can verify what they support
+5. **Clean Slate**: No need to support old Ed25519-only formats - just delete the DB and start fresh
 
 ### Security Levels
 
@@ -203,7 +209,7 @@ export const SECURITY_LEVELS: Record<SecurityLevel, SecurityLevelConfig> = {
   0: {
     level: 0,
     name: 'Fast',
-    description: 'Ed25519 only - current behavior, fastest, smallest',
+    description: 'Ed25519 only - for high-frequency, low-value operations',
     algorithms: {
       signing: ['ed25519'],
       keyExchange: ['x25519']
@@ -214,7 +220,7 @@ export const SECURITY_LEVELS: Record<SecurityLevel, SecurityLevelConfig> = {
   1: {
     level: 1,
     name: 'Hybrid',
-    description: 'Ed25519 + ML-DSA - both signatures required',
+    description: 'Ed25519 + ML-DSA - DEFAULT for most operations',
     algorithms: {
       signing: ['ed25519', 'ml-dsa-65'],
       keyExchange: ['x25519', 'ml-kem-768']
@@ -225,7 +231,7 @@ export const SECURITY_LEVELS: Record<SecurityLevel, SecurityLevelConfig> = {
   2: {
     level: 2,
     name: 'Post-Quantum',
-    description: 'ML-DSA only - maximum quantum security',
+    description: 'ML-DSA only - maximum quantum security, no classical fallback',
     algorithms: {
       signing: ['ml-dsa-65'],
       keyExchange: ['ml-kem-768']
@@ -234,6 +240,9 @@ export const SECURITY_LEVELS: Record<SecurityLevel, SecurityLevelConfig> = {
     verificationRequired: 'all'
   }
 }
+
+// NEW DEFAULT: Hybrid (Level 1) instead of Fast (Level 0)
+export const DEFAULT_SECURITY_LEVEL: SecurityLevel = 1
 ```
 
 ### Unified Signature Type
@@ -566,13 +575,16 @@ sequenceDiagram
 
 ## Part 5: Wire Format Changes
 
-### Change<T> V3 Format
+Since we're prerelease, we can replace the V2 format entirely rather than adding a V3 format. No migration needed - users just clear their database.
+
+### Change<T> New Format (Replaces V2)
 
 ```typescript
-// packages/sync/src/serializers/v3.ts
+// packages/sync/src/serializers/change-serializer.ts
+// NOTE: This replaces the old V2 format entirely. No backward compatibility needed.
 
-export interface ChangeV3Wire {
-  v: 3 // version bump
+export interface ChangeWire {
+  v: 3 // new version, but we don't need to support V2
   i: string // id
   t: string // type
   p: unknown // payload
@@ -580,18 +592,18 @@ export interface ChangeV3Wire {
   ph: string | null // parentHash
   a: string // authorDID
 
-  // New: Multi-level signature
+  // Multi-level signature (always present in new format)
   sig: {
-    l: SecurityLevel // level
-    e?: string // ed25519 signature (base64)
-    p?: string // pq (ml-dsa) signature (base64)
+    l: SecurityLevel // level (default: 1 for hybrid)
+    e?: string // ed25519 signature (base64) - present at Level 0 and 1
+    p?: string // pq (ml-dsa) signature (base64) - present at Level 1 and 2
   }
 
   w: number // wallTime
   l: { c: number; n: string } // lamport
 }
 
-export function serializeChangeV3<T>(change: Change<T>): ChangeV3Wire {
+export function serializeChange<T>(change: Change<T>): ChangeWire {
   return {
     v: 3,
     i: change.id,
@@ -609,6 +621,8 @@ export function serializeChangeV3<T>(change: Change<T>): ChangeV3Wire {
     l: { c: change.lamport.time, n: change.lamport.author }
   }
 }
+
+// No deserializeV2() needed - we just delete old databases
 ```
 
 ### Size Impact Analysis
@@ -631,20 +645,21 @@ export function serializeChangeV3<T>(change: Change<T>): ChangeV3Wire {
 
 ```typescript
 // packages/identity/src/ucan.ts
+// NOTE: New format replaces old EdDSA-only format. No backward compatibility.
 
-export interface UCANHeaderV2 {
-  alg: 'EdDSA' | 'Hybrid' | 'ML-DSA-65'
+export interface UCANHeader {
+  alg: 'Hybrid' | 'ML-DSA-65' | 'EdDSA' // Hybrid is new default
   typ: 'JWT'
-  lvl?: SecurityLevel // Security level (absent = Level 0 for backward compat)
+  lvl: SecurityLevel // Always present in new format
 }
 
-// Level 0: Standard JWT with EdDSA
+// Level 0: Standard JWT with EdDSA (for high-frequency ops)
 // header.payload.signature
 
-// Level 1: Hybrid - two signatures concatenated
+// Level 1 (DEFAULT): Hybrid - two signatures concatenated
 // header.payload.ed25519sig:mldsasig (colon-separated base64url)
 
-// Level 2: ML-DSA only
+// Level 2: ML-DSA only (maximum PQ security)
 // header.payload.signature (single ml-dsa signature)
 ```
 
@@ -683,9 +698,10 @@ export interface HybridKeyPair {
 }
 
 export function generateHybridKeyPair(options: { includePQ?: boolean } = {}): HybridKeyPair {
-  const { includePQ = false } = options
+  // NEW DEFAULT: Always generate PQ keys (we're prerelease, no migration concerns)
+  const { includePQ = true } = options
 
-  // Classical keys (always generated)
+  // Classical keys (always generated for Level 0/1 support)
   const ed25519Private = randomBytes(32)
   const x25519Private = randomBytes(32)
 
@@ -700,7 +716,7 @@ export function generateHybridKeyPair(options: { includePQ?: boolean } = {}): Hy
     }
   }
 
-  // Post-Quantum keys (optional)
+  // Post-Quantum keys (now generated by default)
   if (includePQ) {
     const mlDsaKeys = ml_dsa65.keygen()
     const mlKemKeys = ml_kem768.keygen()
@@ -728,7 +744,8 @@ export function deriveHybridKeyBundle(
   masterSeed: Uint8Array,
   options: { includePQ?: boolean } = {}
 ): HybridKeyBundle {
-  const { includePQ = false } = options
+  // NEW DEFAULT: Always include PQ keys (prerelease, no migration concerns)
+  const { includePQ = true } = options
 
   // Classical keys (deterministic derivation)
   const ed25519Seed = hkdf(masterSeed, 'xnet-ed25519-v1', 32)
@@ -746,10 +763,10 @@ export function deriveHybridKeyBundle(
       publicKey,
       created: Date.now()
     },
-    maxSecurityLevel: 0
+    maxSecurityLevel: includePQ ? 2 : 0
   }
 
-  // Post-Quantum keys (deterministic derivation)
+  // Post-Quantum keys (deterministic derivation) - now default
   if (includePQ) {
     // ML-DSA uses a 32-byte seed for key generation
     const mlDsaSeed = hkdf(masterSeed, 'xnet-ml-dsa-65-v1', 32)
@@ -757,7 +774,6 @@ export function deriveHybridKeyBundle(
 
     bundle.pqSigningKey = mlDsaKeys.secretKey
     bundle.pqPublicKey = mlDsaKeys.publicKey
-    bundle.maxSecurityLevel = 2
   }
 
   return bundle
@@ -861,9 +877,10 @@ export interface SecurityContext {
 }
 
 // Global context (can be overridden per-operation)
+// NEW DEFAULT: Level 1 (Hybrid) instead of Level 0
 let globalContext: SecurityContext = {
-  level: 0,
-  minVerificationLevel: 0,
+  level: 1, // Hybrid by default
+  minVerificationLevel: 0, // Accept any level for verification flexibility
   verificationPolicy: 'strict',
   pqRegistry: new MemoryPQKeyRegistry()
 }
@@ -961,10 +978,11 @@ export interface XNetProviderProps {
 }
 
 export function XNetProvider({ children, security = {} }: XNetProviderProps) {
+  // NEW DEFAULTS: Hybrid (Level 1) and always generate PQ keys
   const {
-    level = 0,
+    level = 1, // Hybrid by default
     minVerificationLevel = 0,
-    generatePQKeys = false,
+    generatePQKeys = true, // Always generate PQ keys by default
     pqRegistry = new MemoryPQKeyRegistry()
   } = security
 
@@ -1102,96 +1120,104 @@ graph LR
     L2 --> L2_100 --> L2_1000
 ```
 
-## Part 9: Migration Strategy
+## Part 9: Implementation Plan (Clean Slate)
 
-### Phase 1: Foundation (Weeks 1-4)
+Since we're prerelease, we can implement this as a clean replacement rather than a migration. Users simply delete their database and start fresh with the new hybrid crypto system.
+
+### Phase 1: Core Crypto (Weeks 1-3)
 
 - [ ] **Add @noble/post-quantum dependency**
   - [ ] Add to packages/crypto/package.json
   - [ ] Verify bundle size impact (~200KB gzipped)
   - [ ] Test in all environments (Web, Electron, Expo)
 
-- [ ] **Implement hybrid key types**
-  - [ ] `HybridKeyBundle` type
-  - [ ] `HybridKeyPair` type
-  - [ ] `UnifiedSignature` type
-  - [ ] Update serialization
-
-- [ ] **Implement core signing functions**
-  - [ ] `hybridSign()` - multi-level signing
-  - [ ] `hybridVerify()` - multi-level verification
-  - [ ] `generateHybridKeyPair()` - key generation
+- [ ] **Replace signing primitives**
+  - [ ] Replace `SigningKeyPair` with `HybridKeyPair`
+  - [ ] Replace `sign()` with `hybridSign()` (default: Level 1)
+  - [ ] Replace `verify()` with `hybridVerify()`
+  - [ ] Replace `generateSigningKeyPair()` with `generateHybridKeyPair()`
   - [ ] Unit tests for all levels
 
-### Phase 2: Key Management (Weeks 5-8)
+- [ ] **Update types**
+  - [ ] `UnifiedSignature` type
+  - [ ] `SecurityLevel` type and constants
+  - [ ] Export new types from package
 
-- [ ] **Implement PQ key derivation**
-  - [ ] `deriveHybridKeyBundle()` with PQ support
-  - [ ] Deterministic derivation from master seed
-  - [ ] Key upgrade path for existing identities
+### Phase 2: Identity & Keys (Weeks 4-6)
+
+- [ ] **Replace KeyBundle**
+  - [ ] Replace `KeyBundle` with `HybridKeyBundle` (not extend - replace)
+  - [ ] Update `deriveKeyBundle()` to generate PQ keys by default
+  - [ ] Update passkey derivation to include PQ seeds
 
 - [ ] **Implement PQ Key Registry**
   - [ ] `PQKeyAttestation` type
   - [ ] `MemoryPQKeyRegistry` implementation
   - [ ] Attestation creation and verification
-  - [ ] Registry persistence (IndexedDB)
+  - [ ] IndexedDB persistence
 
-- [ ] **Update Identity package**
-  - [ ] Extend `KeyBundle` → `HybridKeyBundle`
-  - [ ] Update passkey derivation
-  - [ ] Migration for existing identities
+- [ ] **Update DID handling**
+  - [ ] Keep DID:key format (Ed25519-based for compactness)
+  - [ ] Add PQ public key association via registry
 
-### Phase 3: Wire Format (Weeks 9-12)
+### Phase 3: Sync & Wire Format (Weeks 7-9)
 
-- [ ] **Implement V3 serializer**
-  - [ ] `ChangeV3Wire` format
-  - [ ] Backward-compatible parsing
-  - [ ] Size optimization (optional compression)
+- [ ] **Replace Change serializer**
+  - [ ] New `ChangeWire` format with multi-level signatures
+  - [ ] Delete old V2 serializer (no backward compat needed)
+  - [ ] Update `signChange()` to use hybrid signing by default
 
-- [ ] **Update sync layer**
-  - [ ] `signChange()` with security level
-  - [ ] `verifyChange()` with policy
-  - [ ] Update `SignedYjsEnvelope`
+- [ ] **Update Yjs envelope**
+  - [ ] `SignedYjsEnvelope` with multi-level signature
+  - [ ] Update `signYjsUpdate()` and `verifyYjsEnvelope()`
 
 - [ ] **Update UCAN tokens**
-  - [ ] Multi-algorithm header support
-  - [ ] Hybrid signature format
-  - [ ] Verification with fallback
+  - [ ] New header format with `lvl` field
+  - [ ] Hybrid signature format by default
+  - [ ] Delete old EdDSA-only code
 
-### Phase 4: Integration (Weeks 13-16)
+### Phase 4: React Integration (Weeks 10-11)
 
 - [ ] **Security Context API**
   - [ ] `SecurityContext` type
-  - [ ] Global and per-operation overrides
-  - [ ] React hooks (`useSecurity`)
+  - [ ] Global default: Level 1 (Hybrid)
+  - [ ] Per-operation overrides
 
-- [ ] **XNetProvider integration**
-  - [ ] Security configuration props
-  - [ ] PQ key registry injection
-  - [ ] Default level configuration
+- [ ] **XNetProvider updates**
+  - [ ] `security` prop for configuration
+  - [ ] PQ keys generated by default
+  - [ ] `useSecurity()` hook
 
 - [ ] **Developer tools**
-  - [ ] Devtools panel for security level
-  - [ ] Signature inspection
-  - [ ] Performance metrics
+  - [ ] Security level indicator in devtools
+  - [ ] Signature inspection panel
 
-### Phase 5: Optimization (Weeks 17-20)
+### Phase 5: Optimization (Weeks 12-14)
 
-- [ ] **Performance optimizations**
-  - [ ] Signature caching
-  - [ ] Batch verification
-  - [ ] Worker-based PQ operations
-  - [ ] Lazy key generation
+- [ ] **Performance**
+  - [ ] Signature verification caching
+  - [ ] Worker-based PQ operations for large batches
+  - [ ] Batch verification API
 
-- [ ] **Bandwidth optimization**
-  - [ ] Signature compression
-  - [ ] Selective level policies
-  - [ ] Batching strategies
-
-- [ ] **Testing and documentation**
+- [ ] **Testing**
   - [ ] Performance benchmarks
   - [ ] Security audit checklist
-  - [ ] Developer documentation
+  - [ ] Update all existing tests
+
+### Database Reset Notice
+
+When this lands, all users will need to:
+
+```bash
+# Clear local database (browser)
+localStorage.clear()
+indexedDB.deleteDatabase('xnet')
+
+# Or in Electron
+rm -rf ~/Library/Application\ Support/xnet/*.db
+```
+
+This is acceptable for prerelease software.
 
 ## Part 10: Security Analysis
 
@@ -1320,14 +1346,25 @@ The architecture supports future algorithm changes:
 
 ## Conclusion
 
-This exploration outlines a comprehensive plan for adding post-quantum cryptographic support to xNet while maintaining performance for everyday operations. The hybrid approach allows:
+This exploration outlines a comprehensive plan for implementing hybrid post-quantum cryptographic support in xNet from the ground up. Since we're prerelease, we can make the best architectural decisions without migration concerns:
 
-1. **Immediate use**: Level 0 continues to work as today
-2. **Gradual adoption**: Applications can upgrade to Level 1/2 as needed
-3. **Future-proof**: Ready for the quantum era
-4. **Developer choice**: Configurable per-application and per-operation
+**Key Decisions:**
 
-The key innovation is separating the compact DID:key format (Ed25519) from PQ key association (registry/attestation), allowing us to maintain human-readable identifiers while adding quantum security.
+1. **Hybrid by Default**: Level 1 (Ed25519 + ML-DSA) is the new default, not an upgrade path
+2. **PQ Keys Always Generated**: Every new identity gets ML-DSA keys automatically
+3. **Clean Replacement**: Old Ed25519-only wire formats are replaced, not extended
+4. **Opt-Down for Performance**: Level 0 (Ed25519 only) available for high-frequency, low-value ops
+
+**Benefits:**
+
+1. **Future-Proof from Day One**: All xNet data is quantum-resistant by default
+2. **Performance When Needed**: Developers can opt into Level 0 for cursor updates, etc.
+3. **Compact DIDs**: DID:key stays Ed25519-based (readable, short) with PQ keys in registry
+4. **No Technical Debt**: Clean implementation without backward compatibility cruft
+
+**Timeline**: ~14 weeks to full implementation
+
+The key innovation is separating the compact DID:key format (Ed25519) from PQ key association (registry/attestation), allowing us to maintain human-readable identifiers while adding quantum security by default.
 
 ## References
 
