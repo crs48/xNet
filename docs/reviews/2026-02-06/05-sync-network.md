@@ -349,5 +349,5 @@ sequenceDiagram
 ### Phase 3 (Multiplayer)
 
 - [x] **NW-04:** Cap recentConnections array _(fixed - added MAX_RECENT_CONNECTIONS=1000 cap)_
-- [ ] **NW-05:** Implement real peer counting in y-webrtc
+- [x] **NW-05:** Implement real peer counting in y-webrtc _(fixed - access room.webrtcConns.size for actual count)_
 - [ ] **SDK-03:** Implement connectToPeer
