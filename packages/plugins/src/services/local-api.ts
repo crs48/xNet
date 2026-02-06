@@ -84,6 +84,13 @@ export interface LocalAPIConfig {
   host?: string
   /** API token for authentication (optional) */
   token?: string
+  /**
+   * Allowed CORS origins (default: none).
+   * Set to specific origins like ['http://localhost:3000'] for local dev,
+   * or ['*'] to allow all origins (not recommended for production).
+   * Empty array or undefined disables CORS entirely.
+   */
+  allowedOrigins?: string[]
   /** NodeStore instance */
   store: NodeStoreAPI
   /** SchemaRegistry instance */
@@ -145,6 +152,7 @@ export class LocalAPIServer {
       port: config.port ?? 31415,
       host: config.host ?? '127.0.0.1',
       token: config.token,
+      allowedOrigins: config.allowedOrigins ?? [],
       store: config.store,
       schemas: config.schemas
     }
@@ -226,10 +234,21 @@ export class LocalAPIServer {
   // ─── Request Handling ────────────────────────────────────────────────────────
 
   private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-    // CORS headers for local development
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    // CORS headers - only set if allowedOrigins is configured
+    const origin = req.headers.origin
+    if (this.config.allowedOrigins.length > 0 && origin) {
+      // Check if origin is allowed (supports wildcard '*' for allow-all)
+      const isAllowed =
+        this.config.allowedOrigins.includes('*') || this.config.allowedOrigins.includes(origin)
+
+      if (isAllowed) {
+        // Use specific origin instead of '*' when credentials might be used
+        res.setHeader('Access-Control-Allow-Origin', origin)
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+      }
+    }
 
     // Handle preflight
     if (req.method === 'OPTIONS') {

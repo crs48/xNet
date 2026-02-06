@@ -417,7 +417,7 @@ graph TD
 ### Before Hub Launch
 
 - [x] **SEC-05:** Enable token authentication on Local API _(fixed a190622)_
-- [ ] **SEC-06:** Remove CORS wildcard from Local API
+- [x] **SEC-06:** Remove CORS wildcard from Local API _(fixed - configurable allowedOrigins)_
 - [x] **SEC-09/10:** Wire signature verification into all Yjs update paths _(fixed a190622)_
 - [x] **SEC-11:** Validate UCAN header algorithm field _(fixed f378ef6)_
 
