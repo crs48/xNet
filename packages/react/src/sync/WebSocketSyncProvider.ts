@@ -186,6 +186,9 @@ export class WebSocketSyncProvider {
 
     this.connected = false
     this.emit('status', { connected: false })
+
+    // Clear all event handlers to avoid memory leaks
+    this.eventHandlers.clear()
   }
 
   private _connect(): void {

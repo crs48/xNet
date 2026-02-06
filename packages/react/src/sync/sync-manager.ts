@@ -294,6 +294,8 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const broadcastDocs = new Set<string>()
   // Peer ID for deduplication
   const peerId = Math.random().toString(36).slice(2, 10)
+  // Status handler cleanup (set in start(), called in stop())
+  let statusHandlerCleanup: (() => void) | null = null
 
   function toBase64(data: Uint8Array): string {
     let binary = ''
@@ -555,7 +557,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       blobSync?.start()
 
       // When connection is established, drain offline queue and initiate sync
-      connection.onStatus((s) => {
+      statusHandlerCleanup = connection.onStatus((s) => {
         log('Connection status changed in start():', s)
         if (s === 'connected') {
           // Drain any queued offline updates first
@@ -585,6 +587,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       blobSync?.stop()
 
       nodeSyncProvider?.detach()
+
+      // Clean up status handler
+      if (statusHandlerCleanup) {
+        statusHandlerCleanup()
+        statusHandlerCleanup = null
+      }
 
       // Leave all rooms
       for (const nodeId of Array.from(roomCleanups.keys())) {
