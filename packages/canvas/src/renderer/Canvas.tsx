@@ -12,6 +12,7 @@ import React, {
   useEffect,
   useState,
   useImperativeHandle,
+  useMemo,
   memo,
   forwardRef
 } from 'react'
@@ -371,8 +372,26 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [onNodeDoubleClick]
   )
 
-  // Build node map for edge rendering
-  const nodeMap = new Map(nodes.map((n) => [n.id, n]))
+  // Build node map for edge rendering (memoized to avoid recreating on every render)
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes])
+
+  // Build comment objects map (memoized for CommentOverlay)
+  const commentObjects = useMemo(
+    () =>
+      new Map(
+        nodes.map((n) => [
+          n.id,
+          {
+            id: n.id,
+            x: n.position.x,
+            y: n.position.y,
+            width: n.position.width,
+            height: n.position.height
+          }
+        ])
+      ),
+    [nodes]
+  )
 
   // Container styles
   const containerStyle: React.CSSProperties = {
@@ -465,20 +484,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
             panY: viewport.y,
             zoom: viewport.zoom
           }}
-          objects={
-            new Map(
-              nodes.map((n) => [
-                n.id,
-                {
-                  id: n.id,
-                  x: n.position.x,
-                  y: n.position.y,
-                  width: n.position.width,
-                  height: n.position.height
-                }
-              ])
-            )
-          }
+          objects={commentObjects}
         />
       )}
 

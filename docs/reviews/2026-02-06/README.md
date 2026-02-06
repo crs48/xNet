@@ -197,27 +197,31 @@ Test Files  160 passed (160)
 
 ### Immediate (Before Daily Use)
 
-- [ ] **SEC-01:** Enable Electron sandbox (`sandbox: true`) and restrict IPC channels
-- [ ] **SEC-02:** Fix code injection in Local API executeJavaScript calls
+- [x] **SEC-01:** Enable Electron sandbox (`sandbox: true`) and restrict IPC channels _(fixed f378ef6, this commit)_
+- [x] **SEC-02:** Add IPC channel allowlist _(fixed this commit)_
+- [ ] **SEC-03:** Fix code injection in Local API executeJavaScript calls
 - [ ] **ID-01:** Remove or mark BrowserPasskeyStorage as insecure
-- [ ] **SY-03:** Make `mergeUpdates` required in YjsBatcher (remove concatenation fallback)
+- [x] **SY-03:** Make `mergeUpdates` required in YjsBatcher (remove concatenation fallback) _(fixed f378ef6)_
 - [ ] **PERF-01:** Implement viewport culling in Canvas renderer
-- [ ] **PERF-04:** Fix countNodes/listNodes to use IDB cursor-based counting
+- [x] **PERF-04:** Fix countNodes to use IDB cursor-based counting _(fixed this commit)_
 
 ### Before Hub Launch
 
-- [ ] **SEC-03:** Add authentication to Local API (uncomment token)
+- [ ] **SEC-04:** Add authentication to Local API (uncomment token)
 - [ ] **NW-01:** Wire Yjs security stack into network sync protocol
-- [ ] **CRYPTO-01:** Fix hexToBytes to validate hex characters
+- [x] **CRYPTO-02:** Fix hexToBytes to validate hex characters _(fixed f378ef6)_
 - [ ] **INFRA-01:** Standardize Yjs version across all packages
 - [ ] **INFRA-02:** Standardize React version across all packages
 
 ### Before Production
 
-- [ ] **PROV-01:** Memoize XNetProvider context value
+- [x] **PERF-06:** Memoize XNetProvider context value _(fixed f378ef6)_
+- [x] **PERF-07/08:** Memoize Canvas maps _(fixed this commit)_
+- [x] **PERF-10:** Fix getLastChange to use cursor _(fixed this commit)_
+- [x] **SEC-14:** Use constant-time token comparison _(fixed this commit)_
 - [ ] **HOOK-03:** Add public API to NodeStore for storage access
 - [ ] **ID-02:** Use proper HKDF in deriveKeyBundle
-- [ ] **ID-03:** Validate UCAN header algorithm field
+- [x] **CRYPTO-05:** Validate UCAN header algorithm field _(fixed f378ef6)_
 - [ ] Add tests for React hooks (useUndo, useHistory, useComments)
 - [ ] Add tests for offline queue and connection manager
 
