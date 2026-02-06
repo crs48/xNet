@@ -1005,10 +1005,11 @@ sequenceDiagram
   - [ ] Use `bridge.acquireDoc()` instead of direct Y.Doc creation
   - [ ] Handle Transferable updates
   - [ ] Maintain awareness sync
-- [ ] Crypto in worker only
-  - [ ] All signing happens in worker
-  - [ ] All verification happens in worker
-  - [ ] Main thread never touches keys
+- [x] Crypto in worker only (partial)
+  - [x] NodeStore signing happens in worker (WorkerBridge)
+  - [x] Signing key only passed to worker, never stored on main thread
+  - [ ] Yjs sync signing/verification (requires moving SyncManager to worker - deferred)
+  - [ ] WebSocket connections in worker (requires significant refactor - deferred)
 - [x] Tests
   - [x] All existing tests pass (93 tests in @xnet/react)
   - [ ] TipTap collaborative editing works (manual verification)
