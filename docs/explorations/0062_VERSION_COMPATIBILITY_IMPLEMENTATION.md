@@ -357,16 +357,16 @@ export interface VersionMismatchError {
 
 #### 2.1 Schema Lens System
 
-- [ ] **Create LensRegistry class**
+- [x] **Create LensRegistry class**
   - File: `packages/data/src/schema/lens.ts` (new)
   - Register bidirectional transformations
   - Find shortest path between versions
-- [ ] **Define Lens interface**
+- [x] **Define Lens interface**
   - `source: SchemaIRI`
   - `target: SchemaIRI`
   - `forward: (data) => data`
   - `backward: (data) => data`
-- [ ] **Implement pathfinding for multi-step migrations**
+- [x] **Implement pathfinding for multi-step migrations**
   - BFS through lens graph
   - Cache computed paths
   - Handle cycles (error)
@@ -429,7 +429,7 @@ export class LensRegistry {
 
 #### 2.2 Built-in Lens Helpers
 
-- [ ] **Create lens builder utilities**
+- [x] **Create lens builder utilities**
   - File: `packages/data/src/schema/lens-builders.ts` (new)
   - `rename(from, to)` - Property rename
   - `convert(prop, map)` - Value conversion
@@ -501,11 +501,11 @@ const taskV1toV2 = composeLens(
 
 #### 2.3 Automatic Migration on Read
 
-- [ ] **Integrate LensRegistry into NodeStore**
+- [x] **Integrate LensRegistry into NodeStore**
   - File: `packages/data/src/store/store.ts`
-  - On `get()`: check schema version, apply lens if needed
-  - Cache transformed results
-- [ ] **Add migration hooks to useQuery**
+  - On `getWithMigration()`: check schema version, apply lens if needed
+  - Added `GetWithMigrationOptions`, `MigrationInfo`, `MigratedNodeState` types
+- [x] **Add migration hooks to useQuery**
   - File: `packages/react/src/hooks/useQuery.ts`
   - Return `_migratedFrom?: SchemaIRI` in results
   - Expose `migrationWarnings` for lossy migrations
@@ -1311,37 +1311,37 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 
 ### Week 1-2: Foundation
 
-- [ ] Add `protocolVersion` to `Change<T>` interface
-- [ ] Update `computeChangeHash()` to include version
-- [ ] Update `verifyChange()` to handle versions
-- [ ] Add `CURRENT_PROTOCOL_VERSION` constant
-- [ ] Add `version` field to `DefineSchemaOptions`
-- [ ] Include version in `SchemaIRI` format
-- [ ] Update `SchemaRegistry` to track versions
-- [ ] Handle unknown properties in `NodeStore`
-- [ ] Handle unknown change types in `SyncProvider`
-- [ ] Handle unknown schemas in UI
-- [ ] Add `protocolVersion` to `HubHandshake`
-- [ ] Implement version check in Hub server
-- [ ] Add client handshake message
-- [ ] Write tests for all new functionality
+- [x] Add `protocolVersion` to `Change<T>` interface
+- [x] Update `computeChangeHash()` to include version
+- [x] Update `verifyChange()` to handle versions
+- [x] Add `CURRENT_PROTOCOL_VERSION` constant
+- [x] Add `version` field to `DefineSchemaOptions`
+- [x] Include version in `SchemaIRI` format
+- [x] Update `SchemaRegistry` to track versions
+- [x] Handle unknown properties in `NodeStore`
+- [x] Handle unknown change types in `SyncProvider`
+- [x] Handle unknown schemas in UI
+- [x] Add `protocolVersion` to `HubHandshake`
+- [x] Implement version check in Hub server
+- [x] Add client handshake message
+- [x] Write tests for all new functionality
 
 ### Week 3-4: Migration Framework
 
-- [ ] Create `LensRegistry` class
-- [ ] Define `SchemaLens` interface
-- [ ] Implement lens pathfinding (BFS)
-- [ ] Create `rename()` lens builder
-- [ ] Create `convert()` lens builder
-- [ ] Create `addDefault()` lens builder
-- [ ] Create `remove()` lens builder
-- [ ] Create `composeLens()` utility
-- [ ] Integrate `LensRegistry` into `NodeStore`
-- [ ] Add migration hooks to `useQuery`
+- [x] Create `LensRegistry` class
+- [x] Define `SchemaLens` interface
+- [x] Implement lens pathfinding (BFS)
+- [x] Create `rename()` lens builder
+- [x] Create `convert()` lens builder
+- [x] Create `addDefault()` lens builder
+- [x] Create `remove()` lens builder
+- [x] Create `composeLens()` utility
+- [x] Integrate `LensRegistry` into `NodeStore`
+- [x] Add migration hooks to `useQuery`
 - [ ] Create `xnet migrate analyze` command
 - [ ] Create `xnet migrate generate` command
 - [ ] Create `xnet migrate run` command
-- [ ] Write migration tests
+- [x] Write migration tests
 
 ### Week 5-6: Capability Negotiation
 
