@@ -1110,14 +1110,16 @@ export class ChangeHandlerRegistry {
 
 #### 5.2 Data Integrity Verification
 
-- [ ] **Add integrity check utility**
-  - File: `packages/sync/src/integrity.ts` (new)
-  - Verify hash chains
-  - Detect corruption
-  - Generate repair report
-- [ ] **Implement periodic integrity checks**
-  - Background task in app
-  - Alert on issues
+- [x] **Add integrity check utility**
+  - File: `packages/sync/src/integrity.ts` (466 lines)
+  - Verify hash chains, signatures, Lamport ordering
+  - Detect corruption (hash-mismatch, signature-invalid, chain-broken, etc.)
+  - Generate repair report with suggested actions
+- [x] **Implement periodic integrity checks**
+  - File: `packages/sync/src/integrity-monitor.ts` (343 lines)
+  - Background task with configurable interval
+  - React hook `createReactIntegrityMonitor` for app integration
+  - Alert on issues via callbacks
 
 ```typescript
 // packages/sync/src/integrity.ts
@@ -1199,8 +1201,10 @@ export async function verifyIntegrity(
 
 #### 5.3 Recovery Procedures
 
-- [ ] **Create recovery CLI commands**
-  - `xnet doctor` - Diagnose issues
+- [x] **Create recovery CLI commands**
+  - File: `packages/cli/src/commands/doctor.ts` - Diagnose issues
+  - File: `packages/cli/src/commands/migrate.ts` - Run migrations
+  - `xnet doctor` - Full diagnostic report
   - `xnet repair` - Attempt automatic repair
   - `xnet export --format=json` - Export all data
   - `xnet import --format=json` - Import with migration
@@ -1245,14 +1249,15 @@ Import complete.
 
 #### 5.4 Deprecation System
 
-- [ ] **Add deprecation warnings**
-  - File: `packages/sync/src/deprecation.ts` (new)
+- [x] **Add deprecation warnings**
+  - File: `packages/sync/src/deprecation.ts` (426 lines)
   - Warn on old protocol versions
-  - Warn on deprecated schemas
-  - Log to DevTools
-- [ ] **Define deprecation policy**
-  - Document support windows
-  - Automate sunset dates
+  - Warn on deprecated schemas and features
+  - Log to DevTools via `checkAndLogDeprecations()`
+- [x] **Define deprecation policy**
+  - Documented in `DEPRECATION_POLICY` constant
+  - Phases: active → deprecated (6 months) → discouraged (3 months) → removed
+  - Automate sunset dates via `sunsetDate` field
 
 ```typescript
 // packages/sync/src/deprecation.ts
@@ -1364,12 +1369,12 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 ### Week 7-8: Developer Experience
 
 - [x] Create `diffSchemas()` utility
-- [ ] Add schema diff to TypeScript plugin (optional)
+- [ ] Add schema diff to TypeScript plugin (optional - deferred)
 - [x] Create Version DevTools panel
-- [ ] Create Migration Wizard component
+- [x] Create Migration Wizard component
 - [x] Create schema-check GitHub Action
-- [ ] Document schema change classifications
-- [ ] Write DX tests
+- [x] Document schema change classifications
+- [x] Write DX tests (32 tests for Migration Wizard)
 
 ### Week 9-10: Robustness
 
