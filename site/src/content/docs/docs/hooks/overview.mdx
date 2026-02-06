@@ -17,8 +17,8 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
 
 ## The three core hooks
 
-| Hook                                       | When to use it                                   | Returns                                               |
-| ------------------------------------------ | ------------------------------------------------ | ----------------------------------------------------- |
+| Hook                                  | When to use it                                   | Returns                                               |
+| ------------------------------------- | ------------------------------------------------ | ----------------------------------------------------- |
 | [`useQuery`](/docs/hooks/usequery/)   | List or find nodes. Read-only.                   | `{ data, loading, error, reload }`                    |
 | [`useMutate`](/docs/hooks/usemutate/) | Create, update, delete nodes.                    | `{ create, update, remove, restore, mutate }`         |
 | [`useNode`](/docs/hooks/usenode/)     | Edit a single node with collaborative rich text. | `{ data, doc, update, syncStatus, remoteUsers, ... }` |
@@ -46,12 +46,12 @@ Do you need a Yjs document (rich text, canvas)?
 
 ## Supporting hooks
 
-| Hook                                           | Purpose                                    |
-| ---------------------------------------------- | ------------------------------------------ |
+| Hook                                      | Purpose                                    |
+| ----------------------------------------- | ------------------------------------------ |
 | [`useIdentity`](/docs/hooks/useidentity/) | Get the current user's DID and auth status |
-| `useComments`                                  | Thread-based comments on any node          |
-| `useHistory`                                   | Change history for a node                  |
-| `useUndo`                                      | Undo/redo for node changes                 |
+| `useComments`                             | Thread-based comments on any node          |
+| `useHistory`                              | Change history for a node                  |
+| `useUndo`                                 | Undo/redo for node changes                 |
 
 ## All hooks require `XNetProvider`
 
@@ -59,12 +59,15 @@ Every hook reads from a React context provided by `XNetProvider`. If you call a 
 
 ```tsx
 import { XNetProvider } from '@xnet/react'
+import { XNetDevToolsProvider } from '@xnet/devtools'
 
 function App() {
   return (
     <XNetProvider config={{ authorDID, signingKey }}>
-      {/* All hooks work inside here */}
-      <TaskList />
+      <XNetDevToolsProvider>
+        {/* All hooks work inside here */}
+        <TaskList />
+      </XNetDevToolsProvider>
     </XNetProvider>
   )
 }

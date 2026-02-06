@@ -135,12 +135,17 @@ function TitleInput({ id }: { id: string }) {
 Wrap xNet-powered components in error boundaries for resilience:
 
 ```tsx
+import { XNetProvider } from '@xnet/react'
+import { XNetDevToolsProvider } from '@xnet/devtools'
+
 function App() {
   return (
     <XNetProvider config={config}>
-      <ErrorBoundary fallback={<p>Something went wrong</p>}>
-        <TaskList />
-      </ErrorBoundary>
+      <XNetDevToolsProvider>
+        <ErrorBoundary fallback={<p>Something went wrong</p>}>
+          <TaskList />
+        </ErrorBoundary>
+      </XNetDevToolsProvider>
     </XNetProvider>
   )
 }

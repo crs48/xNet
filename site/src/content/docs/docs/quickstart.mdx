@@ -72,6 +72,7 @@ A task manager that works offline, syncs peer-to-peer, and persists to the brows
 
    ```tsx title="src/App.tsx"
    import { XNetProvider } from '@xnet/react'
+   import { XNetDevToolsProvider } from '@xnet/devtools'
    import { TaskList } from './TaskList'
 
    // In production, generate and persist these securely
@@ -81,7 +82,9 @@ A task manager that works offline, syncs peer-to-peer, and persists to the brows
    export function App() {
      return (
        <XNetProvider config={{ authorDID, signingKey }}>
-         <TaskList />
+         <XNetDevToolsProvider>
+           <TaskList />
+         </XNetDevToolsProvider>
        </XNetProvider>
      )
    }
@@ -168,20 +171,28 @@ Without writing a single line of backend code, you got:
 <Tabs>
   <TabItem label="Add rich text">
     Use [`useNode`](/docs/hooks/usenode/) to add a collaborative rich text editor to each task:
+
     ```tsx
     const { doc } = useNode(TaskSchema, taskId)
     // Pass doc to TipTap's Collaboration extension
     ```
+
   </TabItem>
   <TabItem label="Add P2P sync">
     Pass signaling servers to `XNetProvider` to sync across devices:
+
     ```tsx
     <XNetProvider config={{
       authorDID,
       signingKey,
       signalingServers: ['wss://your-hub.example.com'],
     }}>
+      <XNetDevToolsProvider>
+        <App />
+      </XNetDevToolsProvider>
+    </XNetProvider>
     ```
+
   </TabItem>
   <TabItem label="Learn more">
     - [Core Concepts](/docs/core-concepts/) — understand the mental model
