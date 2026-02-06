@@ -7,8 +7,20 @@
  * This is designed to run in the Electron main process.
  */
 
+import { timingSafeEqual } from 'crypto'
 import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'http'
 import { URL } from 'url'
+
+/**
+ * Constant-time string comparison to prevent timing attacks on token validation.
+ * Returns false if strings have different lengths (revealed by timing, but acceptable for auth tokens).
+ */
+function constantTimeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  const bufA = Buffer.from(a)
+  const bufB = Buffer.from(b)
+  return timingSafeEqual(bufA, bufB)
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -226,10 +238,11 @@ export class LocalAPIServer {
       return
     }
 
-    // Check authentication if token is configured
+    // Check authentication if token is configured (using constant-time comparison)
     if (this.config.token) {
       const auth = req.headers.authorization
-      if (!auth || auth !== `Bearer ${this.config.token}`) {
+      const expected = `Bearer ${this.config.token}`
+      if (!auth || !constantTimeCompare(auth, expected)) {
         this.sendError(res, 401, 'Unauthorized')
         return
       }

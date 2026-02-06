@@ -163,11 +163,26 @@ export class IndexedDBNodeStorageAdapter implements NodeStorageAdapter {
 
   async getLastChange(nodeId: NodeId): Promise<NodeChange | null> {
     const db = this.ensureOpen()
-    const changes = await db.getAllFromIndex('changes', 'byNodeId', nodeId)
-    if (changes.length === 0) return null
-    // Sort by Lamport time and return the latest
-    changes.sort((a, b) => b.lamport.time - a.lamport.time)
-    return changes[0]
+    // Use cursor to find the latest change without loading all changes
+    // First get all changes for the node, then find max by Lamport time
+    const tx = db.transaction('changes', 'readonly')
+    const index = tx.store.index('byNodeId')
+
+    let latestChange: NodeChange | null = null
+    let latestTime = -1
+
+    // Iterate through changes for this node to find the one with highest Lamport time
+    let cursor = await index.openCursor(nodeId)
+    while (cursor) {
+      const change = cursor.value
+      if (change.lamport.time > latestTime) {
+        latestTime = change.lamport.time
+        latestChange = change
+      }
+      cursor = await cursor.continue()
+    }
+
+    return latestChange
   }
 
   // ==========================================================================
@@ -234,20 +249,36 @@ export class IndexedDBNodeStorageAdapter implements NodeStorageAdapter {
   async countNodes(options?: CountNodesOptions): Promise<number> {
     const db = this.ensureOpen()
 
-    let nodes: NodeState[]
+    // If includeDeleted is true, we can use IDB's native count for efficiency
+    if (options?.includeDeleted) {
+      if (options?.schemaId) {
+        return db.countFromIndex('nodes', 'bySchema', options.schemaId)
+      }
+      return db.count('nodes')
+    }
+
+    // If we need to filter deleted nodes, use cursor to count without loading all data
+    const tx = db.transaction('nodes', 'readonly')
+    const store = tx.store
+
+    let count = 0
+    let cursor: Awaited<ReturnType<typeof store.openCursor>>
 
     if (options?.schemaId) {
-      nodes = await db.getAllFromIndex('nodes', 'bySchema', options.schemaId)
+      const index = store.index('bySchema')
+      cursor = await index.openCursor(options.schemaId)
     } else {
-      nodes = await db.getAll('nodes')
+      cursor = await store.openCursor()
     }
 
-    // Filter deleted
-    if (!options?.includeDeleted) {
-      nodes = nodes.filter((n) => !n.deleted)
+    while (cursor) {
+      if (!cursor.value.deleted) {
+        count++
+      }
+      cursor = await cursor.continue()
     }
 
-    return nodes.length
+    return count
   }
 
   // ==========================================================================
