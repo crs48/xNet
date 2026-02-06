@@ -312,7 +312,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     return bytes
   }
 
-  function joinNodeRoom(nodeId: string): void {
+  async function joinNodeRoom(nodeId: string): Promise<void> {
     if (roomCleanups.has(nodeId)) {
       log('Already joined room for node:', nodeId)
       return
@@ -321,26 +321,28 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     const room = `xnet-doc-${nodeId}`
     log('Joining room:', room)
 
-    const cleanup = connection.joinRoom(room, (data) => {
+    const { unsubscribe, ready } = connection.joinRoomAsync(room, (data) => {
       handleSyncMessage(nodeId, data)
     })
 
-    roomCleanups.set(nodeId, cleanup)
+    roomCleanups.set(nodeId, unsubscribe)
+
+    // Wait for subscription confirmation before sending sync messages
+    await ready
 
     // Send initial sync-step1 if we have a doc in the pool
     if (pool.has(nodeId)) {
       log('Doc already in pool, sending initial sync-step1')
-      pool.acquire(nodeId).then((doc) => {
-        getOrCreateAwareness(nodeId, doc)
-        const sv = Y.encodeStateVector(doc)
-        log('Sending sync-step1 for node:', nodeId, 'SV size:', sv.length)
-        connection.publish(room, {
-          type: 'sync-step1',
-          from: peerId,
-          sv: toBase64(sv)
-        })
-        pool.release(nodeId)
+      const doc = await pool.acquire(nodeId)
+      getOrCreateAwareness(nodeId, doc)
+      const sv = Y.encodeStateVector(doc)
+      log('Sending sync-step1 for node:', nodeId, 'SV size:', sv.length)
+      connection.publish(room, {
+        type: 'sync-step1',
+        from: peerId,
+        sv: toBase64(sv)
       })
+      pool.release(nodeId)
     } else {
       log('Doc not in pool yet for node:', nodeId)
     }
@@ -571,12 +573,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         }
       })
 
-      // Join rooms for all tracked Nodes
+      // Join rooms for all tracked Nodes (in parallel)
       const tracked = registry.getTracked()
       log('Joining rooms for', tracked.length, 'tracked nodes')
-      for (const entry of tracked) {
-        joinNodeRoom(entry.nodeId)
-      }
+      await Promise.all(tracked.map((entry) => joinNodeRoom(entry.nodeId)))
       log('SyncManager started')
     },
 
@@ -601,7 +601,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     track(nodeId, schemaId) {
       registry.track(nodeId, schemaId)
-      joinNodeRoom(nodeId)
+      // Fire-and-forget join - sync will happen when ready
+      joinNodeRoom(nodeId).catch((err) => {
+        log('Error joining room for track:', err)
+      })
     },
 
     untrack(nodeId) {
@@ -621,12 +624,13 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       setupDocBroadcast(nodeId, doc)
       getOrCreateAwareness(nodeId, doc)
 
-      // Join room if not already joined
+      // Join room if not already joined - await to ensure subscription is confirmed
+      // before sending sync-step1
       if (!roomCleanups.has(nodeId)) {
-        joinNodeRoom(nodeId)
+        await joinNodeRoom(nodeId)
       }
 
-      // Send sync-step1 to get any updates we missed
+      // Send sync-step1 to get any updates we missed (room join is now confirmed)
       if (connection.status === 'connected') {
         log('Connection is connected, sending sync-step1')
         sendSyncStep1(nodeId, doc)

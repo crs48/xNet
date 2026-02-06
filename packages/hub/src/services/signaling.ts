@@ -127,9 +127,13 @@ export const createSignalingService = (): SignalingService => {
     if (!intercepted) return
 
     switch (intercepted.type) {
-      case 'subscribe':
-        subscribe(ws, getMessageTopics(intercepted), topics, subscriptions)
+      case 'subscribe': {
+        const reqTopics = getMessageTopics(intercepted)
+        subscribe(ws, reqTopics, topics, subscriptions)
+        // Send confirmation so clients can await subscription
+        send(ws, { type: 'subscribed', topics: reqTopics })
         break
+      }
       case 'unsubscribe':
         unsubscribe(ws, getMessageTopics(intercepted), topics, subscriptions)
         break

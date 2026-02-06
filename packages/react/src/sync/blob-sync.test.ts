@@ -39,6 +39,16 @@ function createMockConnectionManager() {
         rooms.get(room)?.delete(handler)
       }
     },
+    joinRoomAsync(room, handler) {
+      if (!rooms.has(room)) rooms.set(room, new Set())
+      rooms.get(room)!.add(handler)
+      return {
+        unsubscribe: () => {
+          rooms.get(room)?.delete(handler)
+        },
+        ready: Promise.resolve()
+      }
+    },
     leaveRoom(room) {
       rooms.delete(room)
     },
