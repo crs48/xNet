@@ -288,6 +288,11 @@ function parseUCAN(token: string): ParsedToken | null {
 
     const [headerPart, bodyPart, sigPart] = parts
     const header = JSON.parse(fromBase64Url(headerPart)) as UCANHeader
+
+    // Validate header algorithm and type
+    if (header.alg !== 'EdDSA') return null
+    if (header.typ !== 'JWT') return null
+
     const payloadRaw = JSON.parse(fromBase64Url(bodyPart))
     const payload = parsePayload(payloadRaw)
     if (!payload) return null

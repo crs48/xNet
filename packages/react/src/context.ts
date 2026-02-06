@@ -13,7 +13,15 @@ import type { ReactNode } from 'react'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnet/data'
 import { createUCAN } from '@xnet/identity'
 import { PluginRegistry, type Platform } from '@xnet/plugins'
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react'
 import { PluginRegistryContext } from './hooks/usePlugins'
 import { AutoBackup } from './hub/auto-backup'
 import { uploadBackup } from './hub/backup'
@@ -496,20 +504,35 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     }
   }, [nodeStore, nodeStoreReady, config.disablePlugins, config.platform])
 
-  const value: XNetContextValue = {
-    nodeStore,
-    nodeStoreReady,
-    identity: config.identity,
-    authorDID: authorDID ?? null,
-    syncManager,
-    hubUrl,
-    hubStatus,
-    hubConnection: syncManager?.connection ?? null,
-    getHubAuthToken: hubUrl ? getHubAuthToken : undefined,
-    encryptionKey,
-    blobStore: config.blobStore ?? null,
-    pluginRegistry
-  }
+  const value: XNetContextValue = useMemo(
+    () => ({
+      nodeStore,
+      nodeStoreReady,
+      identity: config.identity,
+      authorDID: authorDID ?? null,
+      syncManager,
+      hubUrl,
+      hubStatus,
+      hubConnection: syncManager?.connection ?? null,
+      getHubAuthToken: hubUrl ? getHubAuthToken : undefined,
+      encryptionKey,
+      blobStore: config.blobStore ?? null,
+      pluginRegistry
+    }),
+    [
+      nodeStore,
+      nodeStoreReady,
+      config.identity,
+      authorDID,
+      syncManager,
+      hubUrl,
+      hubStatus,
+      getHubAuthToken,
+      encryptionKey,
+      config.blobStore,
+      pluginRegistry
+    ]
+  )
 
   // Wrap children with PluginRegistryContext if plugins are enabled
   const content = pluginRegistry

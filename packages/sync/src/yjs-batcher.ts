@@ -50,25 +50,13 @@ export type BatchFlushCallback = (mergedUpdate: Uint8Array, updateCount: number)
 export type MergeUpdatesFn = (updates: Uint8Array[]) => Uint8Array
 
 /**
- * Simple concatenation fallback if no merge function is provided.
- * Note: This produces less efficient results than Y.mergeUpdates.
+ * Throws an error if no merge function is provided.
+ * Merging Yjs updates requires Y.mergeUpdates to avoid data corruption.
  */
-function defaultMergeUpdates(updates: Uint8Array[]): Uint8Array {
-  // Calculate total length
-  let totalLength = 0
-  for (const update of updates) {
-    totalLength += update.length
-  }
-
-  // Concatenate all updates
-  const merged = new Uint8Array(totalLength)
-  let offset = 0
-  for (const update of updates) {
-    merged.set(update, offset)
-    offset += update.length
-  }
-
-  return merged
+function throwMergeNotProvided(): never {
+  throw new Error(
+    '[YjsBatcher] mergeUpdates function is required. Pass Y.mergeUpdates from the yjs package.'
+  )
 }
 
 /**
@@ -121,7 +109,7 @@ export class YjsBatcher {
    *
    * @param onFlush - Callback invoked when a batch is flushed
    * @param config - Optional configuration overrides
-   * @param mergeUpdates - Function to merge updates (defaults to simple concatenation)
+   * @param mergeUpdates - Function to merge updates (required - use Y.mergeUpdates from yjs)
    */
   constructor(
     onFlush: BatchFlushCallback,
@@ -133,7 +121,7 @@ export class YjsBatcher {
       ...DEFAULT_BATCHER_CONFIG,
       ...config
     }
-    this.mergeUpdates = mergeUpdates ?? defaultMergeUpdates
+    this.mergeUpdates = mergeUpdates ?? throwMergeNotProvided
   }
 
   /**

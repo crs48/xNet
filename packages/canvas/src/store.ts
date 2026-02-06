@@ -424,14 +424,14 @@ export function createCanvasDoc(id: string, title = 'Untitled Canvas'): Y.Doc {
  * Generate a unique node ID
  */
 export function generateNodeId(): string {
-  return `node_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+  return `node_${crypto.randomUUID()}`
 }
 
 /**
  * Generate a unique edge ID
  */
 export function generateEdgeId(): string {
-  return `edge_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+  return `edge_${crypto.randomUUID()}`
 }
 
 /**

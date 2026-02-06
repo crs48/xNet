@@ -5,6 +5,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { YjsBatcher, DEFAULT_BATCHER_CONFIG, type BatchFlushCallback } from './yjs-batcher'
 
+/**
+ * Test helper: Simple concatenation merge function (simulates Y.mergeUpdates behavior for tests)
+ */
+const testMergeUpdates = (updates: Uint8Array[]): Uint8Array => {
+  let totalLength = 0
+  for (const update of updates) {
+    totalLength += update.length
+  }
+  const merged = new Uint8Array(totalLength)
+  let offset = 0
+  for (const update of updates) {
+    merged.set(update, offset)
+    offset += update.length
+  }
+  return merged
+}
+
 describe('YjsBatcher', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -21,7 +38,7 @@ describe('YjsBatcher', () => {
         flushed.push({ update, count })
       }
 
-      const batcher = new YjsBatcher(onFlush, { batchWindowMs: 100 })
+      const batcher = new YjsBatcher(onFlush, { batchWindowMs: 100 }, testMergeUpdates)
 
       batcher.add(new Uint8Array([1]))
       batcher.add(new Uint8Array([2]))
@@ -42,9 +59,13 @@ describe('YjsBatcher', () => {
 
     it('resets timer when adding updates', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }), {
-        batchWindowMs: 100
-      })
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        {
+          batchWindowMs: 100
+        },
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       vi.advanceTimersByTime(50) // 50ms elapsed
@@ -65,10 +86,14 @@ describe('YjsBatcher', () => {
   describe('maxBatchSize', () => {
     it('flushes when batch size is reached', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }), {
-        maxBatchSize: 3,
-        batchWindowMs: 10000 // Long window, shouldn't trigger
-      })
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        {
+          maxBatchSize: 3,
+          batchWindowMs: 10000 // Long window, shouldn't trigger
+        },
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.add(new Uint8Array([2]))
@@ -83,10 +108,14 @@ describe('YjsBatcher', () => {
 
     it('continues accepting after max size flush', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }), {
-        maxBatchSize: 2,
-        batchWindowMs: 10000
-      })
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        {
+          maxBatchSize: 2,
+          batchWindowMs: 10000
+        },
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.add(new Uint8Array([2])) // Flush
@@ -102,10 +131,14 @@ describe('YjsBatcher', () => {
   describe('flushOnParagraph', () => {
     it('flushes on paragraph break when enabled', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }), {
-        flushOnParagraph: true,
-        batchWindowMs: 10000
-      })
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        {
+          flushOnParagraph: true,
+          batchWindowMs: 10000
+        },
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.add(new Uint8Array([2]))
@@ -119,10 +152,14 @@ describe('YjsBatcher', () => {
 
     it('does not flush on paragraph break when disabled', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }), {
-        flushOnParagraph: false,
-        batchWindowMs: 10000
-      })
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        {
+          flushOnParagraph: false,
+          batchWindowMs: 10000
+        },
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.add(new Uint8Array([2]), true) // Paragraph break, but disabled
@@ -135,9 +172,13 @@ describe('YjsBatcher', () => {
   describe('manual flush', () => {
     it('flush() empties pending updates', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }), {
-        batchWindowMs: 10000
-      })
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        {
+          batchWindowMs: 10000
+        },
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.add(new Uint8Array([2]))
@@ -152,7 +193,11 @@ describe('YjsBatcher', () => {
 
     it('flush() is safe when empty', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }))
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        undefined,
+        testMergeUpdates
+      )
 
       batcher.flush() // Should not throw
       expect(flushed).toHaveLength(0)
@@ -160,9 +205,13 @@ describe('YjsBatcher', () => {
 
     it('flush() clears pending timer', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }), {
-        batchWindowMs: 100
-      })
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        {
+          batchWindowMs: 100
+        },
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.flush()
@@ -177,9 +226,13 @@ describe('YjsBatcher', () => {
   describe('destroy', () => {
     it('destroy() flushes remaining updates', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }), {
-        batchWindowMs: 10000
-      })
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        {
+          batchWindowMs: 10000
+        },
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.add(new Uint8Array([2]))
@@ -193,7 +246,11 @@ describe('YjsBatcher', () => {
     it('ignores add() calls after destroy', () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }))
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        undefined,
+        testMergeUpdates
+      )
 
       batcher.destroy()
       batcher.add(new Uint8Array([1]))
@@ -206,7 +263,11 @@ describe('YjsBatcher', () => {
 
     it('destroy() is idempotent', () => {
       const flushed: { count: number }[] = []
-      const batcher = new YjsBatcher((_, count) => flushed.push({ count }))
+      const batcher = new YjsBatcher(
+        (_, count) => flushed.push({ count }),
+        undefined,
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.destroy()
@@ -216,7 +277,7 @@ describe('YjsBatcher', () => {
     })
 
     it('isDestroyed() returns correct state', () => {
-      const batcher = new YjsBatcher(() => {})
+      const batcher = new YjsBatcher(() => {}, undefined, testMergeUpdates)
 
       expect(batcher.isDestroyed()).toBe(false)
       batcher.destroy()
@@ -226,7 +287,7 @@ describe('YjsBatcher', () => {
 
   describe('hasPending', () => {
     it('returns correct state', () => {
-      const batcher = new YjsBatcher(() => {}, { batchWindowMs: 10000 })
+      const batcher = new YjsBatcher(() => {}, { batchWindowMs: 10000 }, testMergeUpdates)
 
       expect(batcher.hasPending()).toBe(false)
 
@@ -269,19 +330,15 @@ describe('YjsBatcher', () => {
       expect(flushed[0].update).toEqual(new Uint8Array([0xff, 1, 2, 3, 4]))
     })
 
-    it('uses default concatenation if no merge function provided', () => {
-      const flushed: { update: Uint8Array }[] = []
-
-      const batcher = new YjsBatcher((update) => flushed.push({ update }), {
+    it('throws if no merge function provided', () => {
+      const batcher = new YjsBatcher(() => {}, {
         batchWindowMs: 10000
       })
 
       batcher.add(new Uint8Array([1, 2]))
       batcher.add(new Uint8Array([3, 4]))
-      batcher.flush()
 
-      expect(flushed).toHaveLength(1)
-      expect(flushed[0].update).toEqual(new Uint8Array([1, 2, 3, 4]))
+      expect(() => batcher.flush()).toThrow('mergeUpdates function is required')
     })
   })
 
@@ -289,9 +346,13 @@ describe('YjsBatcher', () => {
     it('catches and logs errors in flush callback', () => {
       const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-      const batcher = new YjsBatcher(() => {
-        throw new Error('Callback error')
-      })
+      const batcher = new YjsBatcher(
+        () => {
+          throw new Error('Callback error')
+        },
+        undefined,
+        testMergeUpdates
+      )
 
       batcher.add(new Uint8Array([1]))
       batcher.flush() // Should not throw

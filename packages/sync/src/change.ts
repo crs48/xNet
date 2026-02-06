@@ -160,9 +160,7 @@ export function createUnsignedChange<T>(options: CreateChangeOptions<T>): Unsign
  * Generate a unique batch ID for grouping changes in a transaction.
  */
 export function createBatchId(): string {
-  const timestamp = Date.now().toString(36)
-  const random = Math.random().toString(36).substring(2, 10)
-  return `batch-${timestamp}-${random}`
+  return `batch-${crypto.randomUUID()}`
 }
 
 /**
@@ -302,11 +300,8 @@ export function verifyChangeHash<T>(change: Change<T>): boolean {
 
 /**
  * Create a unique change ID.
- * Uses timestamp + random for rough ordering and uniqueness.
- * Note: For production, consider using nanoid.
+ * Uses crypto.randomUUID for uniqueness.
  */
 export function createChangeId(): string {
-  const timestamp = Date.now().toString(36)
-  const random = Math.random().toString(36).substring(2, 10)
-  return `${timestamp}-${random}`
+  return crypto.randomUUID()
 }

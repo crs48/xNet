@@ -45,6 +45,9 @@ import {
 import { createNodeId, getBaseSchemaIRI } from '../schema/node'
 import { resolveTempIds, type SchemaLookup } from './tempids'
 
+/** Maximum number of conflicts to retain before trimming */
+const MAX_CONFLICTS = 200
+
 /**
  * NodeStore manages event-sourced Nodes with LWW conflict resolution.
  */
@@ -744,6 +747,7 @@ export class NodeStore {
             remoteTimestamp: newTs,
             resolved: 'remote'
           })
+          this.trimConflicts()
         }
       } else {
         // Existing value wins
@@ -756,6 +760,7 @@ export class NodeStore {
           remoteTimestamp: newTs,
           resolved: 'local'
         })
+        this.trimConflicts()
       }
     }
 
@@ -785,5 +790,15 @@ export class NodeStore {
    */
   private shouldReplace(existing: PropertyTimestamp, incoming: PropertyTimestamp): boolean {
     return compareLamportTimestamps(incoming.lamport, existing.lamport) > 0
+  }
+
+  /**
+   * Trim conflicts array to prevent unbounded memory growth.
+   * Keeps only the most recent MAX_CONFLICTS entries.
+   */
+  private trimConflicts(): void {
+    if (this.conflicts.length > MAX_CONFLICTS) {
+      this.conflicts = this.conflicts.slice(-MAX_CONFLICTS)
+    }
   }
 }
