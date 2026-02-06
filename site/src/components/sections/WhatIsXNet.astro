@@ -1,0 +1,80 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+const layers = [
+  {
+    title: 'A productivity app',
+    description: 'Documents, databases, canvas, tasks. Like Notion, but your data stays on your device.',
+    icon: 'app',
+    color: 'emerald',
+  },
+  {
+    title: 'A developer toolkit',
+    description: 'React hooks, TypeScript schemas, real-time sync. Build local-first apps in minutes.',
+    icon: 'sdk',
+    color: 'indigo',
+  },
+  {
+    title: 'An open ecosystem',
+    description: 'A protocol for apps to share data across devices, users, and even other apps.',
+    icon: 'protocol',
+    color: 'purple',
+  },
+]
+
+const colorMap: Record<string, { border: string; bg: string; text: string; iconBg: string }> = {
+  emerald: { border: 'border-emerald-500/30', bg: 'bg-emerald-500/[0.05]', text: 'text-emerald-400', iconBg: 'bg-emerald-500/10' },
+  indigo: { border: 'border-indigo-500/30', bg: 'bg-indigo-500/[0.05]', text: 'text-indigo-400', iconBg: 'bg-indigo-500/10' },
+  purple: { border: 'border-purple-500/30', bg: 'bg-purple-500/[0.05]', text: 'text-purple-400', iconBg: 'bg-purple-500/10' },
+}
+---
+
+<section id="what-is-xnet" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="What is xNet?"
+      subtitle="Three layers. Use just the app. Or build your own. Or join the movement."
+      align="center"
+    />
+
+    <div class="mt-12 grid gap-6 sm:grid-cols-3">
+      {layers.map((layer, index) => {
+        const c = colorMap[layer.color]
+        return (
+          <div class={`animate-on-scroll rounded-xl border ${c.border} ${c.bg} p-6 transition-all duration-300 hover:border-opacity-80`}>
+            <div class="flex items-center gap-3 mb-4">
+              <div class={`flex h-10 w-10 items-center justify-center rounded-lg ${c.iconBg} ${c.text}`}>
+                {layer.icon === 'app' && (
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  </svg>
+                )}
+                {layer.icon === 'sdk' && (
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                )}
+                {layer.icon === 'protocol' && (
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                  </svg>
+                )}
+              </div>
+              <span class={`text-xs font-medium uppercase tracking-wider ${c.text}`}>
+                {index === 0 ? 'App Layer' : index === 1 ? 'SDK Layer' : 'Protocol Layer'}
+              </span>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-2">{layer.title}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{layer.description}</p>
+          </div>
+        )
+      })}
+    </div>
+
+    <!-- Connecting text -->
+    <p class="mt-10 text-center text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+      Each layer builds on the last. The app uses the SDK. The SDK implements the protocol.
+      Start wherever makes sense for you.
+    </p>
+  </div>
+</section>
