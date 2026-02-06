@@ -348,10 +348,10 @@ Delete key may delete canvas nodes when typing elsewhere.
 
 ### Phase 2 (Hub MVP)
 
-- [ ] **CANVAS-02:** Emit actual changes in handleNodesChange
+- [x] **CANVAS-02:** Emit actual changes in handleNodesChange _(fixed - compute diff from oldValue in YMapEvent)_
 - [x] **CANVAS-03:** Use state for isDragging _(fixed - cursor updates on drag)_
 - [x] **CANVAS-05:** Check mounted state before window listener updates _(fixed - added mountedRef)_
-- [ ] **CANVAS-13:** Check canvas focus before keyboard shortcuts
+- [x] **CANVAS-13:** Check canvas focus before keyboard shortcuts _(fixed - check container.contains(activeElement) and skip if input focused)_
 
 ### Phase 3 (Production)
 

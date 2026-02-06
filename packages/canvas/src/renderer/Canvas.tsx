@@ -299,34 +299,57 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Delete selected
+      // Check if canvas container or its children have focus
+      const container = containerRef.current
+      if (!container) return
+
+      // For destructive operations (delete/backspace), only proceed if:
+      // 1. Canvas container itself has focus, OR
+      // 2. No input/textarea/contenteditable has focus
+      const activeElement = document.activeElement
+      const isInputFocused =
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement?.getAttribute('contenteditable') === 'true'
+
+      // Delete selected - only if canvas has focus or no input focused
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedNodeIds.size > 0) {
+        if (isInputFocused) return // Don't intercept if typing in an input
+        if (selectedNodeIds.size > 0 && container.contains(activeElement)) {
+          e.preventDefault()
           canvas.deleteSelected()
         }
       }
 
-      // Select all
+      // Select all - only if canvas has focus
       if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
-        e.preventDefault()
-        canvas.selectAll()
+        if (container.contains(activeElement) && !isInputFocused) {
+          e.preventDefault()
+          canvas.selectAll()
+        }
       }
 
-      // Escape to clear selection
+      // Escape to clear selection - safe to handle globally within canvas
       if (e.key === 'Escape') {
-        clearSelection()
+        if (container.contains(activeElement)) {
+          clearSelection()
+        }
       }
 
-      // Fit to content
+      // Fit to content - only if canvas has focus
       if (e.key === '1' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        canvas.fitToContent()
+        if (container.contains(activeElement)) {
+          e.preventDefault()
+          canvas.fitToContent()
+        }
       }
 
-      // Reset view
+      // Reset view - only if canvas has focus
       if (e.key === '0' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault()
-        canvas.resetView()
+        if (container.contains(activeElement)) {
+          e.preventDefault()
+          canvas.resetView()
+        }
       }
     }
 
@@ -471,6 +494,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       className={className}
       style={containerStyle}
       onMouseDown={handleMouseDown}
+      tabIndex={0} // Make container focusable for keyboard shortcuts
     >
       {/* Grid background */}
       {config.showGrid !== false && (
