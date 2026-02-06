@@ -350,4 +350,4 @@ sequenceDiagram
 
 - [x] **NW-04:** Cap recentConnections array _(fixed - added MAX_RECENT_CONNECTIONS=1000 cap)_
 - [x] **NW-05:** Implement real peer counting in y-webrtc _(fixed - access room.webrtcConns.size for actual count)_
-- [ ] **SDK-03:** Implement connectToPeer
+- [x] **SDK-03:** Implement connectToPeer _(fixed - now calls network.connectToPeer, peers getter returns actual list)_
