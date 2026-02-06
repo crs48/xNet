@@ -2,8 +2,8 @@
  * @xnet/crypto - Encryption, signing, and hashing primitives
  */
 
-// Hashing
-export { hash, hashHex, hashBase64, type HashAlgorithm } from './hashing'
+// Hashing and key derivation
+export { hash, hashHex, hashBase64, hkdf, type HashAlgorithm } from './hashing'
 
 // Symmetric encryption
 export {

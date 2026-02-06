@@ -133,7 +133,7 @@ importers:
         specifier: ^1.0.6
         version: 1.0.7(yjs@13.6.29)
       yjs:
-        specifier: ^13.6.0
+        specifier: ^13.6.24
         version: 13.6.29
     devDependencies:
       '@types/better-sqlite3':
@@ -176,10 +176,10 @@ importers:
         specifier: ^8.4.47
         version: 8.5.6
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       tailwindcss:
         specifier: ^3.4.14
@@ -297,10 +297,10 @@ importers:
         specifier: ^0.453.0
         version: 0.453.0(react@18.3.1)
       react:
-        specifier: ^18.3.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.3.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       use-debounce:
         specifier: ^10.1.0
@@ -309,7 +309,7 @@ importers:
         specifier: ^7.1.0
         version: 7.4.0
       yjs:
-        specifier: ^13.6.18
+        specifier: ^13.6.24
         version: 13.6.29
     devDependencies:
       '@tanstack/router-devtools':
@@ -370,7 +370,7 @@ importers:
         specifier: ^4.0.1
         version: 4.0.1
       yjs:
-        specifier: ^13.6.0
+        specifier: ^13.6.24
         version: 13.6.29
     devDependencies:
       '@testing-library/react':
@@ -386,10 +386,10 @@ importers:
         specifier: ^26.0.0
         version: 26.1.0
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.0.0
@@ -532,10 +532,10 @@ importers:
         specifier: ^18.2.0
         version: 18.3.7(@types/react@18.3.27)
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.0.0
@@ -547,7 +547,7 @@ importers:
         specifier: ^4.0.0
         version: 4.0.18(@types/node@20.19.30)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
       yjs:
-        specifier: ^13.6.0
+        specifier: ^13.6.24
         version: 13.6.29
 
   packages/editor:
@@ -629,10 +629,10 @@ importers:
         specifier: ^25.0.0
         version: 25.0.1
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.0.0
@@ -668,7 +668,7 @@ importers:
         specifier: workspace:*
         version: link:../sync
       yjs:
-        specifier: ^13.6.0
+        specifier: ^13.6.24
         version: 13.6.29
     devDependencies:
       '@xnet/crypto':
@@ -805,6 +805,9 @@ importers:
       '@xnet/identity':
         specifier: workspace:*
         version: link:../identity
+      '@xnet/sync':
+        specifier: workspace:*
+        version: link:../sync
       it-length-prefixed:
         specifier: ^9.1.1
         version: 9.1.1
@@ -850,7 +853,7 @@ importers:
         specifier: ^26.0.0
         version: 26.1.0
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       tsup:
         specifier: ^8.0.0
@@ -927,10 +930,10 @@ importers:
         specifier: ^26.0.0
         version: 26.1.0
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.0.0
@@ -1133,10 +1136,10 @@ importers:
         specifier: ^26.0.0
         version: 26.1.0
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       tailwindcss:
         specifier: ^3.4.14
@@ -1216,10 +1219,10 @@ importers:
         specifier: ^26.0.0
         version: 26.1.0
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       tsup:
         specifier: ^8.0.0

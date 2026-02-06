@@ -8,6 +8,7 @@
  * All parameters are passed as structured data, never interpolated into code.
  */
 
+import crypto from 'node:crypto'
 import {
   type LocalAPIServer,
   createLocalAPI,
@@ -160,6 +161,28 @@ function createSchemaRegistryProxy(): SchemaRegistryAPI {
 
 // ─── API Server Lifecycle ────────────────────────────────────────────────────
 
+// SEC-04: API authentication token
+// Generated once per session if not provided via environment
+let apiToken: string | null = null
+
+/**
+ * Get or generate the API token for authentication.
+ * SEC-04: Token is required by default for security.
+ */
+function getOrCreateApiToken(): string {
+  if (apiToken) return apiToken
+
+  // Use environment variable if provided
+  if (process.env.XNET_API_TOKEN) {
+    apiToken = process.env.XNET_API_TOKEN
+    return apiToken
+  }
+
+  // Generate a random token for this session
+  apiToken = crypto.randomUUID()
+  return apiToken
+}
+
 /**
  * Start the Local API server.
  * Call this after the app is ready.
@@ -174,18 +197,22 @@ export async function startLocalAPI(): Promise<void> {
   nodeStoreProxy = createNodeStoreProxy()
   schemaRegistryProxy = createSchemaRegistryProxy()
 
+  // SEC-04: Enable token authentication by default
+  const token = getOrCreateApiToken()
+
   // Create and start server
   apiServer = createLocalAPI({
     port: 31415,
     host: '127.0.0.1',
     store: nodeStoreProxy,
-    schemas: schemaRegistryProxy
-    // token: process.env.XNET_API_TOKEN // Optional auth
+    schemas: schemaRegistryProxy,
+    token // SEC-04: Authentication required
   })
 
   try {
     await apiServer.start()
     console.log('[LocalAPI] Server started on http://127.0.0.1:31415')
+    console.log('[LocalAPI] API Token:', token)
   } catch (err) {
     console.error('[LocalAPI] Failed to start server:', err)
     apiServer = null
@@ -220,6 +247,14 @@ export function getLocalAPIPort(): number {
   return apiServer?.port ?? 31415
 }
 
+/**
+ * Get the API token (SEC-04).
+ * Returns null if server is not running.
+ */
+export function getLocalAPIToken(): string | null {
+  return apiServer?.isRunning ? apiToken : null
+}
+
 // ─── IPC Handlers for Renderer Access ────────────────────────────────────────
 
 /**
@@ -232,12 +267,13 @@ export function getLocalAPIPort(): number {
 export function setupLocalAPIIPC(): void {
   ipcMain.handle('xnet:localapi:status', () => ({
     running: isLocalAPIRunning(),
-    port: getLocalAPIPort()
+    port: getLocalAPIPort(),
+    token: getLocalAPIToken() // SEC-04: Include token in status
   }))
 
   ipcMain.handle('xnet:localapi:start', async () => {
     await startLocalAPI()
-    return { running: isLocalAPIRunning(), port: getLocalAPIPort() }
+    return { running: isLocalAPIRunning(), port: getLocalAPIPort(), token: getLocalAPIToken() }
   })
 
   ipcMain.handle('xnet:localapi:stop', async () => {

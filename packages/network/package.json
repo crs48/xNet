@@ -31,6 +31,7 @@
     "@xnet/crypto": "workspace:*",
     "@xnet/data": "workspace:*",
     "@xnet/identity": "workspace:*",
+    "@xnet/sync": "workspace:*",
     "it-length-prefixed": "^9.1.1",
     "it-pipe": "^3.0.1",
     "libp2p": "^2.8.2",

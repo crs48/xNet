@@ -207,11 +207,11 @@ Test Files  160 passed (160)
 
 ### Before Hub Launch
 
-- [ ] **SEC-04:** Add authentication to Local API (uncomment token)
-- [ ] **NW-01:** Wire Yjs security stack into network sync protocol
+- [x] **SEC-04:** Add authentication to Local API _(fixed this commit)_
+- [x] **NW-01:** Wire Yjs security stack into network sync protocol _(fixed this commit)_
 - [x] **CRYPTO-02:** Fix hexToBytes to validate hex characters _(fixed f378ef6)_
-- [ ] **INFRA-01:** Standardize Yjs version across all packages
-- [ ] **INFRA-02:** Standardize React version across all packages
+- [x] **INFRA-01:** Standardize Yjs version across all packages _(fixed this commit)_
+- [x] **INFRA-02:** Standardize React version across all packages _(fixed this commit)_
 
 ### Before Production
 
@@ -219,8 +219,8 @@ Test Files  160 passed (160)
 - [x] **PERF-07/08:** Memoize Canvas maps _(fixed this commit)_
 - [x] **PERF-10:** Fix getLastChange to use cursor _(fixed this commit)_
 - [x] **SEC-14:** Use constant-time token comparison _(fixed this commit)_
-- [ ] **HOOK-03:** Add public API to NodeStore for storage access
-- [ ] **ID-02:** Use proper HKDF in deriveKeyBundle
+- [x] **HOOK-03:** Add public API to NodeStore for storage access _(fixed this commit)_
+- [x] **ID-02:** Use proper HKDF in deriveKeyBundle _(fixed this commit)_
 - [x] **CRYPTO-05:** Validate UCAN header algorithm field _(fixed f378ef6)_
 - [ ] Add tests for React hooks (useUndo, useHistory, useComments)
 - [ ] Add tests for offline queue and connection manager

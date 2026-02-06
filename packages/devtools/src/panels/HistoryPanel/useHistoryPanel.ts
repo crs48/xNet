@@ -194,7 +194,7 @@ export function useHistoryPanel(): UseHistoryPanelResult {
 
   const getStorage = useCallback((): NodeStorageAdapter | null => {
     if (!store) return null
-    return ((store as any).storage as NodeStorageAdapter | undefined) ?? null
+    return store.getStorageAdapter() ?? null
   }, [store])
 
   const getEngines = useCallback(() => {
