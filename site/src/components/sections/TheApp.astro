@@ -4,25 +4,25 @@ import SectionHeader from '../ui/SectionHeader.astro'
 const tools = [
   {
     title: 'Documents',
-    description: 'Rich text editor with TipTap and Yjs. Real-time collaboration, slash commands, block-based editing. Character-level conflict resolution.',
+    description: 'Write and collaborate in real-time. Slash commands, blocks, formatting — everything syncs instantly between your devices and teammates.',
     icon: 'doc',
     color: 'indigo',
   },
   {
     title: 'Databases',
-    description: '15 property types, relations, views (table, board, gallery, calendar, timeline). Filter, sort, group — all reactive, all local-first.',
+    description: 'Track anything with 15 field types. See your data as tables, boards, galleries, or calendars. Filter, sort, and group your way.',
     icon: 'db',
     color: 'emerald',
   },
   {
     title: 'Canvas',
-    description: 'Infinite canvas with spatial indexing. Drag nodes, draw connections, embed documents. Think Miro meets Obsidian Canvas.',
+    description: 'Visual thinking on an infinite whiteboard. Arrange ideas freely, draw connections, embed documents. Like Miro meets Obsidian.',
     icon: 'canvas',
     color: 'amber',
   },
   {
     title: 'Tasks',
-    description: 'Schema-first task management with status, priority, assignees, due dates. Kanban boards, list views, and calendar views.',
+    description: 'Manage projects with status, priority, assignees, and due dates. View as kanban boards, lists, or calendars.',
     icon: 'task',
     color: 'pink',
   },
@@ -39,31 +39,71 @@ const colorMap: Record<string, { border: string, bg: string, text: string, iconB
 <section id="app" class="border-y border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
-      title="A productivity app you can hack on"
-      subtitle="xNet ships with a full productivity platform — documents, databases, canvas, and tasks. It's free, self-hostable, and open source. But it's also the best way to start developing on xNet."
+      title="Documents. Databases. Canvas. Tasks."
+      subtitle="A complete productivity app that works offline, syncs across your devices, and keeps your data private. No account required. Free forever."
       align="center"
     />
 
-    <!-- Why the app exists -->
+    <!-- App preview / CTA -->
+    <div class="mt-12 max-w-4xl mx-auto animate-on-scroll">
+      <div class="relative rounded-xl border border-border overflow-hidden bg-gradient-to-b from-surface/50 to-surface/30 dark:from-surface/80 dark:to-surface/50">
+        <!-- App window mockup -->
+        <div class="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-surface/50">
+          <div class="flex gap-1.5">
+            <span class="w-3 h-3 rounded-full bg-red-500/60"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500/60"></span>
+            <span class="w-3 h-3 rounded-full bg-green-500/60"></span>
+          </div>
+          <span class="text-xs text-gray-500 ml-2">xNet</span>
+        </div>
+        <!-- Content placeholder - replace with actual screenshot -->
+        <div class="aspect-[16/10] flex items-center justify-center bg-gradient-to-br from-indigo-500/5 via-transparent to-emerald-500/5">
+          <div class="text-center px-8">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 text-indigo-400 text-sm font-medium mb-4">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              See it in action
+            </div>
+            <p class="text-gray-500 text-sm max-w-md mx-auto mb-6">
+              Documents, databases, and canvas working together. <br class="hidden sm:block" />
+              Try it free in your browser.
+            </p>
+            <a
+              href="/app"
+              class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors"
+            >
+              Try the App
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Key differentiators -->
     <div class="mx-auto mt-12 max-w-3xl animate-on-scroll">
       <div class="rounded-xl border border-border bg-surface/30 dark:bg-surface/50 p-6 sm:p-8">
         <div class="grid gap-6 sm:grid-cols-2">
           <div>
             <div class="flex items-center gap-2 mb-2">
-              <svg class="h-4 w-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">A real testing ground</h4>
+              <svg class="h-4 w-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Your data stays on your device</h4>
             </div>
             <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Every feature in xNet is battle-tested here first. The app is the proving ground for the SDK — if it works for a full productivity suite, it works for your app.
+              Unlike cloud apps, your files never leave your computer unless you want them to. No servers reading your notes. No accounts to create.
             </p>
           </div>
           <div>
             <div class="flex items-center gap-2 mb-2">
-              <svg class="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z"/></svg>
-              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">The easiest way to contribute</h4>
+              <svg class="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
+              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Works offline, syncs automatically</h4>
             </div>
             <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Want to build on xNet? Start with a plugin. Or submit a PR to improve the editor, add a database view, or build a new canvas tool. It's all TypeScript, all open.
+              Edit on a plane, in the subway, anywhere. When you're back online, changes sync between your devices without you lifting a finger.
             </p>
           </div>
         </div>
