@@ -6,6 +6,7 @@
  * - Subscriber notification on cache updates
  * - Query deduplication via stable query IDs
  * - LRU eviction for memory management
+ * - Weak references for inactive subscriptions (automatic cleanup)
  */
 
 import type { QueryOptions, SortDirection, SystemOrderField } from './types'
@@ -19,11 +20,16 @@ const DEFAULT_MAX_SIZE = 100
 /** Minimum time (ms) before an entry can be evicted */
 const MIN_AGE_FOR_EVICTION = 30_000 // 30 seconds
 
+/** Interval (ms) for checking and cleaning up dead weak references */
+const WEAK_REF_CLEANUP_INTERVAL = 60_000 // 60 seconds
+
 interface CacheEntry {
   /** Cached query result */
   data: NodeState[] | null
-  /** Subscribers to this query */
+  /** Strong subscribers to this query (active subscriptions) */
   subscribers: Set<() => void>
+  /** Weak subscribers (for long-lived but GC-able subscriptions) */
+  weakSubscribers: Map<() => void, WeakRef<() => void>>
   /** Schema IRI for this query */
   schemaId: SchemaIRI
   /** Query options */
@@ -37,6 +43,8 @@ interface CacheEntry {
 export interface QueryCacheOptions {
   /** Maximum number of queries to cache (default: 100) */
   maxSize?: number
+  /** Enable weak reference cleanup interval (default: true in browser, false in tests) */
+  enableWeakRefCleanup?: boolean
 }
 
 // ─── QueryCache Class ────────────────────────────────────────────────────────
@@ -47,9 +55,61 @@ export interface QueryCacheOptions {
 export class QueryCache {
   private cache = new Map<string, CacheEntry>()
   private maxSize: number
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null
 
   constructor(options?: QueryCacheOptions) {
     this.maxSize = options?.maxSize ?? DEFAULT_MAX_SIZE
+
+    // Start weak reference cleanup interval (only in browser environment)
+    const enableCleanup = options?.enableWeakRefCleanup ?? typeof window !== 'undefined'
+    if (enableCleanup) {
+      this.startWeakRefCleanup()
+    }
+  }
+
+  /**
+   * Start the interval that cleans up dead weak references.
+   */
+  private startWeakRefCleanup(): void {
+    if (this.cleanupInterval) return
+
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupDeadWeakRefs()
+    }, WEAK_REF_CLEANUP_INTERVAL)
+
+    // Don't prevent process from exiting in Node.js
+    if (typeof this.cleanupInterval === 'object' && 'unref' in this.cleanupInterval) {
+      this.cleanupInterval.unref()
+    }
+  }
+
+  /**
+   * Stop the weak reference cleanup interval.
+   */
+  stopCleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+    }
+  }
+
+  /**
+   * Clean up dead weak references from all cache entries.
+   * Returns the number of dead references removed.
+   */
+  cleanupDeadWeakRefs(): number {
+    let removed = 0
+
+    for (const entry of this.cache.values()) {
+      for (const [identity, ref] of entry.weakSubscribers) {
+        if (ref.deref() === undefined) {
+          entry.weakSubscribers.delete(identity)
+          removed++
+        }
+      }
+    }
+
+    return removed
   }
 
   /**
@@ -137,6 +197,7 @@ export class QueryCache {
       this.cache.set(queryId, {
         data,
         subscribers: new Set(),
+        weakSubscribers: new Map(),
         schemaId,
         options,
         lastUpdated: now,
@@ -154,6 +215,7 @@ export class QueryCache {
       this.cache.set(queryId, {
         data: null,
         subscribers: new Set(),
+        weakSubscribers: new Map(),
         schemaId,
         options,
         lastUpdated: 0,
@@ -164,6 +226,7 @@ export class QueryCache {
 
   /**
    * Subscribe to cache updates for a query.
+   * Uses strong references - callback will not be garbage collected until unsubscribed.
    */
   subscribe(queryId: string, callback: () => void): () => void {
     const entry = this.cache.get(queryId)
@@ -180,22 +243,84 @@ export class QueryCache {
   }
 
   /**
+   * Subscribe with a weak reference.
+   * The callback can be garbage collected if the owning component is unmounted
+   * and no other references to the callback exist.
+   *
+   * This is useful for long-lived subscriptions where you want automatic cleanup
+   * without explicit unsubscribe calls. However, for React components, prefer
+   * the regular subscribe() with proper cleanup in useEffect.
+   *
+   * @param queryId - The query to subscribe to
+   * @param callback - The callback to invoke on updates
+   * @returns Unsubscribe function
+   */
+  subscribeWeak(queryId: string, callback: () => void): () => void {
+    const entry = this.cache.get(queryId)
+    if (entry) {
+      entry.weakSubscribers.set(callback, new WeakRef(callback))
+    }
+
+    return () => {
+      const e = this.cache.get(queryId)
+      if (e) {
+        e.weakSubscribers.delete(callback)
+      }
+    }
+  }
+
+  /**
    * Notify all subscribers of a query that data has changed.
+   * Handles both strong and weak subscribers, cleaning up dead weak refs.
    */
   notifySubscribers(queryId: string): void {
     const entry = this.cache.get(queryId)
-    if (entry) {
-      for (const callback of entry.subscribers) {
+    if (!entry) return
+
+    // Notify strong subscribers
+    for (const callback of entry.subscribers) {
+      callback()
+    }
+
+    // Notify weak subscribers (and clean up dead ones)
+    for (const [identity, ref] of entry.weakSubscribers) {
+      const callback = ref.deref()
+      if (callback) {
         callback()
+      } else {
+        // Callback was garbage collected, remove the entry
+        entry.weakSubscribers.delete(identity)
       }
     }
   }
 
   /**
    * Get the number of active subscribers for a query.
+   * Includes both strong and live weak subscribers.
    */
   getSubscriberCount(queryId: string): number {
-    return this.cache.get(queryId)?.subscribers.size ?? 0
+    const entry = this.cache.get(queryId)
+    if (!entry) return 0
+
+    // Count strong subscribers
+    let count = entry.subscribers.size
+
+    // Count live weak subscribers
+    for (const ref of entry.weakSubscribers.values()) {
+      if (ref.deref() !== undefined) {
+        count++
+      }
+    }
+
+    return count
+  }
+
+  /**
+   * Get the number of weak subscribers (including potentially dead ones).
+   * Useful for debugging.
+   */
+  getWeakSubscriberCount(queryId: string): number {
+    return this.cache.get(queryId)?.weakSubscribers.size ?? 0
   }
 
   /**
@@ -233,9 +358,18 @@ export class QueryCache {
   }
 
   /**
-   * Clear the entire cache.
+   * Clear the entire cache and stop cleanup interval.
    */
   clear(): void {
+    this.stopCleanup()
+    this.cache.clear()
+  }
+
+  /**
+   * Destroy the cache, stopping all cleanup intervals.
+   */
+  destroy(): void {
+    this.stopCleanup()
     this.cache.clear()
   }
 
@@ -256,6 +390,20 @@ export class QueryCache {
   // ─── LRU Eviction ──────────────────────────────────────────────────────────
 
   /**
+   * Check if an entry has any active subscribers (strong or live weak).
+   */
+  private hasActiveSubscribers(entry: CacheEntry): boolean {
+    if (entry.subscribers.size > 0) return true
+
+    // Check if any weak subscribers are still alive
+    for (const ref of entry.weakSubscribers.values()) {
+      if (ref.deref() !== undefined) return true
+    }
+
+    return false
+  }
+
+  /**
    * Evict least-recently-used entries if cache exceeds maxSize.
    * Only evicts entries with no active subscribers and older than MIN_AGE_FOR_EVICTION.
    */
@@ -267,7 +415,7 @@ export class QueryCache {
 
     // Find eviction candidates: entries with no subscribers and old enough
     for (const [queryId, entry] of this.cache) {
-      if (entry.subscribers.size === 0 && now - entry.lastAccessed > MIN_AGE_FOR_EVICTION) {
+      if (!this.hasActiveSubscribers(entry) && now - entry.lastAccessed > MIN_AGE_FOR_EVICTION) {
         candidates.push({ queryId, lastAccessed: entry.lastAccessed })
       }
     }
