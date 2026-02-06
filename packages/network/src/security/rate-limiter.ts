@@ -8,6 +8,7 @@
 export class TokenBucket {
   private tokens: number
   private lastRefill: number
+  private _lastActivity: number
 
   constructor(
     /** Bucket capacity (max burst size) */
@@ -17,11 +18,18 @@ export class TokenBucket {
   ) {
     this.tokens = capacity
     this.lastRefill = Date.now()
+    this._lastActivity = Date.now()
+  }
+
+  /** Get last activity timestamp (for cleanup). */
+  get lastActivity(): number {
+    return this._lastActivity
   }
 
   /** Try to consume tokens. Returns true if allowed. */
   tryConsume(count: number = 1): boolean {
     this.refill()
+    this._lastActivity = Date.now()
     if (this.tokens >= count) {
       this.tokens -= count
       return true
@@ -38,6 +46,7 @@ export class TokenBucket {
   /** Check if bucket has tokens without consuming. */
   hasTokens(count: number = 1): boolean {
     this.refill()
+    this._lastActivity = Date.now()
     return this.tokens >= count
   }
 
@@ -74,6 +83,8 @@ export class SyncRateLimiter {
   private buckets = new Map<string, TokenBucket>()
   private defaultRate: number
   private defaultCapacity: number
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null
+  private staleThresholdMs: number
 
   constructor(
     options: {
@@ -81,10 +92,56 @@ export class SyncRateLimiter {
       defaultRate?: number
       /** Default bucket capacity (default: 50) */
       defaultCapacity?: number
+      /** How long until a bucket is considered stale (default: 5 minutes) */
+      staleThresholdMs?: number
+      /** Cleanup interval in ms (default: 60 seconds). Set to 0 to disable auto-cleanup. */
+      cleanupIntervalMs?: number
     } = {}
   ) {
     this.defaultRate = options.defaultRate ?? 10
     this.defaultCapacity = options.defaultCapacity ?? 50
+    this.staleThresholdMs = options.staleThresholdMs ?? 5 * 60 * 1000 // 5 minutes
+
+    const cleanupIntervalMs = options.cleanupIntervalMs ?? 60 * 1000 // 1 minute
+    if (cleanupIntervalMs > 0) {
+      this.startCleanup(cleanupIntervalMs)
+    }
+  }
+
+  /** Start periodic cleanup of stale entries. */
+  startCleanup(intervalMs: number = 60 * 1000): void {
+    this.stopCleanup()
+    this.cleanupInterval = setInterval(() => this.cleanupStale(), intervalMs)
+    // Unref so it doesn't prevent process from exiting
+    if (typeof this.cleanupInterval === 'object' && 'unref' in this.cleanupInterval) {
+      this.cleanupInterval.unref()
+    }
+  }
+
+  /** Stop periodic cleanup. */
+  stopCleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+    }
+  }
+
+  /** Remove entries that haven't been accessed recently. Returns count removed. */
+  cleanupStale(thresholdMs: number = this.staleThresholdMs): number {
+    const now = Date.now()
+    let removed = 0
+    for (const [peerId, bucket] of this.buckets) {
+      if (now - bucket.lastActivity > thresholdMs) {
+        this.buckets.delete(peerId)
+        removed++
+      }
+    }
+    return removed
+  }
+
+  /** Get number of tracked peers. */
+  get peerCount(): number {
+    return this.buckets.size
   }
 
   /** Check if sync request is allowed for peer (consumes a token). */
@@ -145,14 +202,25 @@ export class SyncRateLimiter {
 /** Protocol-level rate limiter with per-protocol configs. */
 export class ProtocolRateLimiter {
   private limiters = new Map<string, SyncRateLimiter>()
+  private cleanupIntervalMs: number
+  private staleThresholdMs: number
 
   constructor(
     private configs: Record<string, { rate: number; capacity: number }> = {
       '/xnet/sync/1.0.0': { rate: 10, capacity: 50 },
       '/xnet/changes/1.0.0': { rate: 20, capacity: 100 },
       '/xnet/query/1.0.0': { rate: 5, capacity: 20 }
-    }
-  ) {}
+    },
+    options: {
+      /** How long until a bucket is considered stale (default: 5 minutes) */
+      staleThresholdMs?: number
+      /** Cleanup interval in ms (default: 60 seconds). Set to 0 to disable auto-cleanup. */
+      cleanupIntervalMs?: number
+    } = {}
+  ) {
+    this.staleThresholdMs = options.staleThresholdMs ?? 5 * 60 * 1000
+    this.cleanupIntervalMs = options.cleanupIntervalMs ?? 60 * 1000
+  }
 
   /** Check if protocol request is allowed for peer. */
   canRequest(protocol: string, peerId: string): boolean {
@@ -179,11 +247,39 @@ export class ProtocolRateLimiter {
     }
   }
 
+  /** Remove peer from all protocol limiters. */
+  removePeer(peerId: string): void {
+    for (const limiter of this.limiters.values()) {
+      limiter.remove(peerId)
+    }
+  }
+
+  /** Cleanup stale entries in all protocol limiters. Returns total removed. */
+  cleanupStale(): number {
+    let total = 0
+    for (const limiter of this.limiters.values()) {
+      total += limiter.cleanupStale()
+    }
+    return total
+  }
+
+  /** Stop cleanup for all protocol limiters. */
+  stopCleanup(): void {
+    for (const limiter of this.limiters.values()) {
+      limiter.stopCleanup()
+    }
+  }
+
   private getLimiter(protocol: string): SyncRateLimiter {
     let limiter = this.limiters.get(protocol)
     if (!limiter) {
       const config = this.configs[protocol] ?? { rate: 10, capacity: 50 }
-      limiter = new SyncRateLimiter({ defaultRate: config.rate, defaultCapacity: config.capacity })
+      limiter = new SyncRateLimiter({
+        defaultRate: config.rate,
+        defaultCapacity: config.capacity,
+        staleThresholdMs: this.staleThresholdMs,
+        cleanupIntervalMs: this.cleanupIntervalMs
+      })
       this.limiters.set(protocol, limiter)
     }
     return limiter
