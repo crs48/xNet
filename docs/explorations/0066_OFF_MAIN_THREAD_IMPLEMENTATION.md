@@ -991,11 +991,16 @@ sequenceDiagram
 
 - [x] Document lifecycle in DataBridge
   - [x] `acquireDoc()` returns main-thread Y.Doc (MainThreadBridge delegates to SyncManager)
-  - [ ] Update forwarding via Transferable (WorkerBridge - deferred until full split Y.Doc impl)
+  - [x] Update forwarding via Y.Doc update events (WorkerBridge split Y.Doc pattern)
   - [x] `releaseDoc()` cleanup
 - [x] XNetProvider integration
   - [x] Connect SyncManager to DataBridge via `setSyncManager()`
   - [x] Export `SyncManagerLike` interface for type safety
+- [x] WorkerBridge Y.Doc split architecture
+  - [x] Worker maintains source-of-truth Y.Doc pool with persistence
+  - [x] Main thread creates mirror Y.Doc for TipTap binding
+  - [x] Bidirectional update forwarding (local → worker, remote → main)
+  - [x] Awareness instance per mirror doc
 - [ ] Update `useNode` hook (DEFERRED - infrastructure ready, useNode still uses SyncManager directly)
   - [ ] Use `bridge.acquireDoc()` instead of direct Y.Doc creation
   - [ ] Handle Transferable updates

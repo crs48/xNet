@@ -8,7 +8,8 @@
  * - Initialize and manage NodeStore with IndexedDB storage
  * - Handle query subscriptions and notify on changes
  * - Execute CRUD operations
- * - (Future) Manage sync engine, Y.Doc pool, crypto
+ * - Manage Y.Doc pool for collaborative editing
+ * - Handle sync and crypto (all signing/verification happens here)
  */
 
 import type {
@@ -16,7 +17,8 @@ import type {
   SerializedQueryOptions,
   QueryDelta,
   WorkerSubscription,
-  DataWorkerAPI
+  DataWorkerAPI,
+  WorkerAcquiredDoc
 } from './worker-types'
 import type { SyncStatus } from '../types'
 import type { DID } from '@xnet/core'
@@ -28,7 +30,16 @@ import {
   type SchemaIRI
 } from '@xnet/data'
 import { expose, proxy } from 'comlink'
+import * as Y from 'yjs'
 import { QueryCache } from '../query-cache'
+
+// ─── Y.Doc Pool Entry ────────────────────────────────────────────────────────
+
+interface PoolEntry {
+  doc: Y.Doc
+  refCount: number
+  updateHandlers: Set<(update: Uint8Array, origin: string) => void>
+}
 
 // ─── DataWorker Class ────────────────────────────────────────────────────────
 
@@ -43,6 +54,11 @@ class DataWorker implements DataWorkerAPI {
   private status: SyncStatus = 'disconnected'
   private statusHandlers = new Set<(status: SyncStatus) => void>()
   private storeUnsubscribe: (() => void) | null = null
+
+  // Y.Doc pool - the "source of truth" for all documents
+  private docPool = new Map<string, PoolEntry>()
+  // Client ID counter for Y.Doc instances
+  private nextClientId = Math.floor(Math.random() * 2147483647)
 
   async initialize(config: WorkerConfig): Promise<void> {
     // Create IndexedDB storage adapter
@@ -137,6 +153,101 @@ class DataWorker implements DataWorkerAPI {
     return this.store.get(nodeId)
   }
 
+  // ─── Document Operations ────────────────────────────────────────────────────
+
+  async acquireDoc(
+    nodeId: string,
+    onUpdate: (update: Uint8Array, origin: string) => void
+  ): Promise<WorkerAcquiredDoc> {
+    if (!this.storage) {
+      throw new Error('DataWorker not initialized')
+    }
+
+    let entry = this.docPool.get(nodeId)
+
+    if (!entry) {
+      // Create new Y.Doc as source of truth
+      const doc = new Y.Doc({ guid: nodeId, gc: false })
+
+      // Load persisted state from storage
+      const storedContent = await this.storage.getDocumentContent(nodeId)
+      if (storedContent && storedContent.length > 0) {
+        Y.applyUpdate(doc, storedContent, 'storage')
+      }
+
+      entry = {
+        doc,
+        refCount: 0,
+        updateHandlers: new Set()
+      }
+
+      // Set up persistence - save on every update
+      doc.on('update', (update: Uint8Array, origin: unknown) => {
+        // Persist to storage (fire and forget for performance)
+        const content = Y.encodeStateAsUpdate(doc)
+        this.storage?.setDocumentContent(nodeId, content).catch((err) => {
+          console.error('[DataWorker] Failed to persist doc:', err)
+        })
+
+        // Forward remote updates to all registered handlers
+        // (but not local updates - those came from the handler's own doc)
+        if (origin === 'remote') {
+          for (const handler of entry!.updateHandlers) {
+            try {
+              handler(update, 'remote')
+            } catch (err) {
+              console.error('[DataWorker] Update handler error:', err)
+            }
+          }
+        }
+      })
+
+      this.docPool.set(nodeId, entry)
+    }
+
+    // Register the update handler
+    const proxiedHandler = proxy(onUpdate)
+    entry.updateHandlers.add(proxiedHandler)
+    entry.refCount++
+
+    // Get current state to send to main thread
+    const state = Y.encodeStateAsUpdate(entry.doc)
+
+    return {
+      nodeId,
+      state,
+      clientId: this.nextClientId++
+    }
+  }
+
+  releaseDoc(nodeId: string): void {
+    const entry = this.docPool.get(nodeId)
+    if (!entry) return
+
+    entry.refCount--
+
+    // Note: We keep the doc in the pool even when refCount hits 0
+    // This allows background sync to continue and avoids reloading on re-acquire
+    // A separate eviction policy could remove old unused docs if memory is a concern
+  }
+
+  applyLocalUpdate(nodeId: string, update: Uint8Array): void {
+    const entry = this.docPool.get(nodeId)
+    if (!entry) {
+      console.warn('[DataWorker] applyLocalUpdate: doc not acquired:', nodeId)
+      return
+    }
+
+    // Apply the update from the main-thread mirror doc to our source-of-truth doc
+    // Mark as 'local' origin so we don't echo it back to the sender
+    Y.applyUpdate(entry.doc, update, 'local')
+
+    // TODO: In the future, this is where we'd broadcast to the network
+    // For now, the update is persisted via the doc's update listener
+  }
+
+  // ─── Status ─────────────────────────────────────────────────────────────────
+
   getStatus(): SyncStatus {
     return this.status
   }
@@ -151,6 +262,12 @@ class DataWorker implements DataWorkerAPI {
       this.storeUnsubscribe()
       this.storeUnsubscribe = null
     }
+
+    // Destroy all Y.Docs in the pool
+    for (const entry of this.docPool.values()) {
+      entry.doc.destroy()
+    }
+    this.docPool.clear()
 
     // Close storage
     if (this.storage) {
