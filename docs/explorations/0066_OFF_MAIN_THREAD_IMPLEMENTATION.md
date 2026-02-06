@@ -397,15 +397,17 @@ sequenceDiagram
 - [x] Create worker infrastructure
   - [x] `packages/data-bridge/src/worker/data-worker.ts` - Worker entry point
   - [x] `packages/data-bridge/src/worker/worker-types.ts` - Shared types for worker/main thread
-  - [ ] Vite config for worker bundling
+  - [x] Factory functions in `create-bridge.ts` for platform detection
+  - [ ] Vite config for worker bundling (built-in via `?worker` imports)
 - [x] Create `WorkerBridge` implementation
   - [x] `src/worker-bridge.ts` - Main thread side
   - [x] Comlink integration for type-safe RPC
   - [x] QueryCache with delta updates
   - [ ] Transferable ArrayBuffer handling (future optimization)
 - [ ] Move sync engine to worker (deferred to Phase 3)
-- [ ] Update `XNetProvider`
-  - [ ] Create WorkerBridge as default (currently using MainThreadBridge)
+- [x] Update `XNetProvider`
+  - [x] Add `dataBridge` config option for custom bridge injection
+  - [ ] Create WorkerBridge as default (blocked by SyncManager integration)
 - [x] Refactor hooks to use DataBridge
   - [x] `useQuery` uses `useDataBridge().query()`
   - [x] `useMutate` uses `useDataBridge().create/update/delete()`
