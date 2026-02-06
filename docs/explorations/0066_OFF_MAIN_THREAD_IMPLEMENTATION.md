@@ -1012,8 +1012,8 @@ sequenceDiagram
   - [ ] WebSocket connections in worker (requires significant refactor - deferred)
 - [x] Tests
   - [x] All existing tests pass (93 tests in @xnet/react)
-  - [ ] TipTap collaborative editing works (manual verification)
-  - [ ] Cursor presence works (manual verification)
+  - [x] TipTap collaborative editing works (manual verification - tested Feb 2026)
+  - [ ] Cursor presence works (manual verification - requires two instances)
   - [ ] No signature verification on main thread
 
 #### Key Code: useNode with Split Y.Doc
