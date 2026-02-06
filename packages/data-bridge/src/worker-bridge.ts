@@ -31,6 +31,15 @@ import { wrap, proxy, type Remote } from 'comlink'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { QueryCache } from './query-cache'
+import { createUpdateBatcher, type UpdateBatcher } from './utils/debounce'
+
+// ─── Update Batcher Configuration ─────────────────────────────────────────────
+
+/** Time in ms to wait before sending batched updates to worker */
+const UPDATE_BATCH_WAIT = 16 // ~1 frame at 60fps
+
+/** Maximum time in ms before forcing a batch flush */
+const UPDATE_BATCH_MAX_WAIT = 100 // Ensure updates are sent within 100ms
 
 // ─── Mirror Doc Entry ────────────────────────────────────────────────────────
 
@@ -44,6 +53,8 @@ interface MirrorDocEntry {
   awareness: Awareness
   /** Whether we're currently applying a remote update (to avoid loops) */
   applyingRemote: boolean
+  /** Batcher for outgoing updates to the worker */
+  updateBatcher: UpdateBatcher
   /** Cleanup function for the update listener */
   cleanup: () => void
 }
@@ -295,16 +306,26 @@ export class WorkerBridge implements DataBridge {
       Y.applyUpdate(mirrorDoc, acquired.state, 'initial')
     }
 
-    // Listen for local updates and forward to worker
+    // Create update batcher to debounce local updates
+    // This reduces message frequency during rapid typing
+    const updateBatcher = createUpdateBatcher({
+      wait: UPDATE_BATCH_WAIT,
+      maxWait: UPDATE_BATCH_MAX_WAIT,
+      onFlush: (mergedUpdate: Uint8Array) => {
+        this.remote.applyLocalUpdate(nodeId, mergedUpdate)
+      }
+    })
+
+    // Listen for local updates and forward to worker (via batcher)
     const updateHandler = (update: Uint8Array, origin: unknown) => {
       // Don't forward updates that came from the worker (would cause loop)
       if (applyingRemote || origin === 'remote' || origin === 'initial') {
         return
       }
 
-      // Forward local edit to worker
-      // The worker will persist it and broadcast to network
-      this.remote.applyLocalUpdate(nodeId, update)
+      // Batch local edits before sending to worker
+      // This merges rapid keystrokes into fewer messages
+      updateBatcher.add(update)
     }
     mirrorDoc.on('update', updateHandler)
 
@@ -313,7 +334,11 @@ export class WorkerBridge implements DataBridge {
       doc: mirrorDoc,
       awareness,
       applyingRemote: false,
+      updateBatcher,
       cleanup: () => {
+        // Flush any pending updates before cleanup
+        updateBatcher.flush()
+        updateBatcher.cancel()
         mirrorDoc.off('update', updateHandler)
         awareness.destroy()
       }
