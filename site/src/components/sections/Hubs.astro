@@ -18,38 +18,38 @@ const deployCode = [
 
 const features = [
   {
-    title: 'Always-on sync relay',
-    description: 'Peers sync directly when both are online. When one goes offline, the Hub holds updates and delivers them later. No data lost.',
+    title: 'Always-on sync',
+    description: 'Your devices sync directly when both are online. When one goes offline, the Hub holds updates until it reconnects. Nothing gets lost.',
     icon: 'sync',
   },
   {
     title: 'Encrypted backups',
-    description: 'Your data is encrypted before it leaves your device. The Hub stores ciphertext it can\'t read. Restore to any device, anytime.',
+    description: 'Your data is encrypted on your device before it reaches the Hub. Even we can\'t read it. Restore to any device, anytime.',
     icon: 'backup',
   },
   {
-    title: 'Authorization gateway',
-    description: 'UCAN-based permissions enforced at the relay. Fine-grained access control — read, write, admin — without a central auth service.',
+    title: 'Team permissions',
+    description: 'Control who can view, edit, or admin your workspaces. Permissions are enforced at the Hub — no shared passwords, no account sharing.',
     icon: 'auth',
   },
   {
-    title: 'Web UI',
-    description: 'Your Hub can serve the xNet web app directly. One URL gives your team access to everything — documents, databases, canvas — from any browser.',
+    title: 'Web access',
+    description: 'Your Hub serves the xNet app directly. Share a URL with your team and they can access everything from any browser.',
     icon: 'web',
   },
   {
-    title: 'Schema registry',
-    description: 'Publish and discover schemas across your team or community. The Hub indexes available types so apps can find and use them.',
+    title: 'Custom data types',
+    description: 'Create and share custom schemas across your team. The Hub tracks what types are available so everyone stays in sync.',
     icon: 'schema',
   },
   {
-    title: 'Blob storage',
-    description: 'Content-addressed file storage with BLAKE3 hashing. Images, attachments, exports — synced P2P between peers, with the Hub as an always-available fallback. Automatic deduplication by content hash.',
+    title: 'File storage',
+    description: 'Images, attachments, and exports sync between devices. The Hub acts as always-on storage so files are available even when teammates are offline.',
     icon: 'blob',
   },
   {
     title: 'Full-text search',
-    description: 'Server-side FTS5 search index for your workspace. Find documents, tasks, and notes by content. Queries run locally first, with Hub results filling in the gaps.',
+    description: 'Find any document, task, or note by its content. Search runs locally first for speed, with Hub results filling in the gaps.',
     icon: 'search',
   },
 ]
@@ -58,8 +58,8 @@ const features = [
 <section id="hubs" class="py-24 lg:py-32">
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
-      title="Hubs: your infrastructure, your rules"
-      subtitle="xNet works fully P2P with zero infrastructure. When you want always-on sync, backups, and team access — deploy on Railway in one click or self-host on a $5/month VPS."
+      title="For Teams: Hubs"
+      subtitle="xNet works without any servers — your devices sync directly. But when you want always-on availability, backups, and team access, add a Hub."
       align="center"
     />
 

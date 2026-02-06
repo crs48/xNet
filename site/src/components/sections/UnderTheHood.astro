@@ -5,22 +5,22 @@ const pillars = [
   {
     title: 'Sync',
     color: 'indigo',
-    items: ['Yjs CRDTs for rich text', 'Lamport LWW for structured data', 'WebRTC peer-to-peer connections', 'Ed25519-signed envelopes'],
+    items: ['Edits merge without conflicts (CRDTs)', 'Devices connect directly (P2P)', 'Changes are cryptographically signed', 'Works offline, syncs when online'],
   },
   {
-    title: 'Crypto',
+    title: 'Security',
     color: 'emerald',
-    items: ['BLAKE3 content hashing', 'Ed25519 signatures', 'XChaCha20-Poly1305 encryption', 'All browser-native'],
+    items: ['End-to-end encryption', 'Digital signatures verify authors', 'Content verification with hashes', 'All browser-native, no plugins'],
   },
   {
     title: 'Identity',
     color: 'amber',
-    items: ['DID:key self-sovereign IDs', 'UCAN delegatable tokens', 'No central auth server', 'Portable across apps'],
+    items: ['You own your keys, not us', 'Share permissions without passwords', 'No central login server', 'Portable across any xNet app'],
   },
   {
     title: 'Storage',
     color: 'pink',
-    items: ['IndexedDB on web', 'SQLite on desktop/mobile', 'Content-addressed blob storage', 'P2P file sync with BLAKE3 CIDs', 'Event-sourced history'],
+    items: ['Browser: IndexedDB', 'Desktop/Mobile: SQLite', 'Files sync peer-to-peer', 'Full history, never lose changes'],
   },
 ]
 
@@ -49,8 +49,8 @@ const colorDot: Record<string, string> = {
 <section id="under-the-hood" class="py-24 lg:py-32">
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
-      title="Under the hood"
-      subtitle="Production-tested primitives across 17 packages. Every layer designed for local-first."
+      title="How it works"
+      subtitle="Built on open standards and proven technology. No magic, no lock-in — just solid engineering."
     />
 
     <div class="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
