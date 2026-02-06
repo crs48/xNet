@@ -504,6 +504,37 @@ importers:
         specifier: ^5.4.0
         version: 5.9.3
 
+  packages/data-bridge:
+    dependencies:
+      '@xnet/core':
+        specifier: workspace:*
+        version: link:../core
+      '@xnet/data':
+        specifier: workspace:*
+        version: link:../data
+      y-protocols:
+        specifier: ^1.0.6
+        version: 1.0.7(yjs@13.6.29)
+      yjs:
+        specifier: ^13.6.24
+        version: 13.6.29
+    devDependencies:
+      '@xnet/crypto':
+        specifier: workspace:*
+        version: link:../crypto
+      '@xnet/identity':
+        specifier: workspace:*
+        version: link:../identity
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
+      typescript:
+        specifier: ^5.4.0
+        version: 5.9.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.0.18(@types/node@20.19.30)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+
   packages/devtools:
     dependencies:
       '@xnet/data':
