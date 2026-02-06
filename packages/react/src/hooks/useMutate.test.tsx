@@ -259,7 +259,7 @@ describe('useMutate', () => {
       })
 
       expect(txResult).not.toBeNull()
-      expect(txResult!.changes).toHaveLength(3)
+      expect(txResult!.results).toHaveLength(3)
 
       await act(async () => {
         await result.current.tasks.reload()

@@ -9,10 +9,14 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./worker": {
+      "import": "./dist/worker/data-worker.js",
+      "types": "./dist/worker/data-worker.d.ts"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
+    "build": "tsup src/index.ts src/worker/data-worker.ts --format esm --dts",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
@@ -21,8 +25,9 @@
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
-    "yjs": "^13.6.24",
-    "y-protocols": "^1.0.6"
+    "comlink": "^4.4.2",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.24"
   },
   "devDependencies": {
     "@xnet/crypto": "workspace:*",

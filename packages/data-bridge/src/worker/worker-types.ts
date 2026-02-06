@@ -1,0 +1,124 @@
+/**
+ * Types for worker-main thread communication
+ *
+ * These types define the contract between the DataWorker running in a
+ * Web Worker and the WorkerBridge on the main thread.
+ */
+
+import type { SyncStatus } from '../types'
+import type { NodeState, SchemaIRI } from '@xnet/data'
+
+// ─── Configuration ───────────────────────────────────────────────────────────
+
+/**
+ * Configuration passed to the worker on initialization
+ */
+export interface WorkerConfig {
+  /** Database name for IndexedDB */
+  dbName: string
+  /** Author's DID for signing changes */
+  authorDID: string
+  /** Ed25519 signing key (serialized as array for transfer) */
+  signingKey: number[]
+}
+
+// ─── Query Types ─────────────────────────────────────────────────────────────
+
+/**
+ * Serialized query options (sent to worker)
+ */
+export interface SerializedQueryOptions {
+  nodeId?: string
+  where?: Record<string, unknown>
+  includeDeleted?: boolean
+  orderBy?: Record<string, 'asc' | 'desc'>
+  limit?: number
+  offset?: number
+}
+
+/**
+ * Delta update types for incremental cache updates
+ */
+export type QueryDelta =
+  | { type: 'add'; node: NodeState; index: number }
+  | { type: 'remove'; nodeId: string }
+  | { type: 'update'; nodeId: string; node: NodeState }
+
+/**
+ * Internal subscription tracking in the worker
+ */
+export interface WorkerSubscription {
+  schemaId: SchemaIRI
+  options: SerializedQueryOptions
+  lastResult: NodeState[]
+}
+
+// ─── Worker API ──────────────────────────────────────────────────────────────
+
+/**
+ * The API exposed by the DataWorker via Comlink.
+ * This is what WorkerBridge calls on the main thread.
+ */
+export interface DataWorkerAPI {
+  /**
+   * Initialize the worker with configuration.
+   * Must be called before any other method.
+   */
+  initialize(config: WorkerConfig): Promise<void>
+
+  /**
+   * Subscribe to a query. Returns initial results.
+   * Delta updates are sent via the callback.
+   */
+  subscribe(
+    queryId: string,
+    schemaId: string,
+    options: SerializedQueryOptions,
+    onDelta: (delta: QueryDelta) => void
+  ): Promise<NodeState[]>
+
+  /**
+   * Unsubscribe from a query.
+   */
+  unsubscribe(queryId: string): Promise<void>
+
+  /**
+   * Create a new node.
+   */
+  create(schemaId: string, data: Record<string, unknown>, id?: string): Promise<NodeState>
+
+  /**
+   * Update an existing node.
+   */
+  update(nodeId: string, changes: Record<string, unknown>): Promise<NodeState>
+
+  /**
+   * Delete a node (soft delete).
+   */
+  delete(nodeId: string): Promise<void>
+
+  /**
+   * Restore a deleted node.
+   */
+  restore(nodeId: string): Promise<NodeState>
+
+  /**
+   * Get a single node by ID.
+   */
+  get(nodeId: string): Promise<NodeState | null>
+
+  /**
+   * Get current sync status.
+   */
+  getStatus(): SyncStatus
+
+  /**
+   * Subscribe to status changes.
+   */
+  onStatusChange(handler: (status: SyncStatus) => void): void
+
+  /**
+   * Clean up and close the worker.
+   */
+  destroy(): Promise<void>
+}

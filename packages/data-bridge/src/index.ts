@@ -5,10 +5,11 @@
  * accessing NodeStore data. The abstraction allows moving storage, sync,
  * and crypto off the main thread while keeping the React API unchanged.
  *
- * Phase 0: MainThreadBridge (direct NodeStore access)
- * Phase 1: WorkerBridge (Web Worker via Comlink) - future
- * Phase 2: IPCBridge (Electron utility process) - future
- * Phase 5: NativeBridge (React Native Turbo Module) - future
+ * Implementations:
+ * - MainThreadBridge: Direct NodeStore access (fallback/testing)
+ * - WorkerBridge: Web Worker via Comlink (default for web)
+ * - IPCBridge: Electron utility process (future)
+ * - NativeBridge: React Native Turbo Module (future)
  */
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -26,9 +27,17 @@ export type {
   DataBridgeConfig
 } from './types'
 
+export type {
+  WorkerConfig,
+  SerializedQueryOptions,
+  QueryDelta,
+  DataWorkerAPI
+} from './worker/worker-types'
+
 // ─── Implementations ─────────────────────────────────────────────────────────
 
 export { MainThreadBridge, createMainThreadBridge } from './main-thread-bridge'
+export { WorkerBridge, createWorkerBridge } from './worker-bridge'
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
