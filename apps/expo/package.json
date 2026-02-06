@@ -14,8 +14,12 @@
   "dependencies": {
     "@react-navigation/native": "^6.1.0",
     "@react-navigation/native-stack": "^6.9.0",
+    "@xnet/core": "workspace:*",
+    "@xnet/data": "workspace:*",
+    "@xnet/data-bridge": "workspace:*",
     "@xnet/react": "workspace:*",
     "@xnet/sdk": "workspace:*",
+    "@xnet/storage": "workspace:*",
     "expo": "~52.0.0",
     "react-native-webview": "13.12.5",
     "expo-file-system": "~18.0.0",

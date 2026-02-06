@@ -199,12 +199,24 @@ importers:
       '@react-navigation/native-stack':
         specifier: ^6.9.0
         version: 6.11.0(@react-navigation/native@6.1.18(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native-safe-area-context@4.12.0(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native-screens@4.4.0(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)
+      '@xnet/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@xnet/data':
+        specifier: workspace:*
+        version: link:../../packages/data
+      '@xnet/data-bridge':
+        specifier: workspace:*
+        version: link:../../packages/data-bridge
       '@xnet/react':
         specifier: workspace:*
         version: link:../../packages/react
       '@xnet/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@xnet/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       expo:
         specifier: ~52.0.0
         version: 52.0.48(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(encoding@0.1.13)(graphql@16.12.0)(react-native-webview@13.12.5(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)

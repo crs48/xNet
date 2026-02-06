@@ -1124,20 +1124,26 @@ flowchart TB
 
 #### Checklist
 
-- [ ] Create Turbo Module
+- [ ] Create Turbo Module (deferred - NativeBridge works without it)
   - [ ] `DataModule.kt` (Android)
   - [ ] `DataModule.swift` (iOS)
   - [ ] Query, mutation, document APIs
-- [ ] Implement NativeBridge
-  - [ ] `packages/data-bridge/src/native-bridge.ts`
-  - [ ] JSI binding generation
-  - [ ] Async bridge for queries
-- [ ] Native crypto
+- [x] Implement NativeBridge
+  - [x] `packages/data-bridge/src/native-bridge.ts` - DataBridge implementation for RN
+  - [x] Query and mutation APIs (same interface as MainThreadBridge)
+  - [ ] JSI binding generation (deferred - not needed for initial implementation)
+  - [x] Platform detection utilities (isReactNative, isExpo)
+- [x] Expo Integration
+  - [x] `apps/expo/src/storage/ExpoSQLiteAdapter.ts` - StorageAdapter using expo-sqlite
+  - [x] `apps/expo/src/context/XNetProvider.tsx` - Context provider with NativeBridge
+  - [x] useQuery, useMutate hooks for Expo
+- [ ] Native crypto (deferred)
   - [ ] Use `expo-crypto` for Ed25519
   - [ ] Consider `react-native-quick-crypto`
-- [ ] Tests
-  - [ ] iOS simulator tests
-  - [ ] Android emulator tests
+- [x] Tests
+  - [x] NativeBridge unit tests (23 tests passing)
+  - [ ] iOS simulator tests (manual testing needed)
+  - [ ] Android emulator tests (manual testing needed)
   - [ ] Performance comparison with web
 
 ---
