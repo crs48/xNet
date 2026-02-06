@@ -205,3 +205,16 @@ export {
   autoSerialize,
   createSerializerRegistry
 } from './serializers'
+
+// Version-specific change handlers
+export type {
+  ChangeHandler,
+  HandlerContext,
+  ValidationResult,
+  ValidationError,
+  ValidationWarning,
+  HandlerEvent,
+  ProcessResult,
+  RegistryStats
+} from './handlers'
+export { ChangeHandlerRegistry, createTestContext } from './handlers'
