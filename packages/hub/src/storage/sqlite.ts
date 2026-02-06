@@ -260,6 +260,7 @@ const SCHEMA_SQL = `
     parent_hash TEXT,
     payload_json TEXT NOT NULL,
     signature_b64 TEXT NOT NULL,
+    protocol_version INTEGER,
     batch_id TEXT,
     batch_index INTEGER,
     batch_size INTEGER,
@@ -475,6 +476,7 @@ type NodeChangeRow = {
   parent_hash: string | null
   payload_json: string
   signature_b64: string
+  protocol_version: number | null
   batch_id: string | null
   batch_index: number | null
   batch_size: number | null
@@ -735,9 +737,9 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       INSERT OR IGNORE INTO node_changes
         (hash, change_id, change_type, room, node_id, schema_id,
          lamport_time, lamport_author, author_did, wall_time,
-         parent_hash, payload_json, signature_b64,
+         parent_hash, payload_json, signature_b64, protocol_version,
          batch_id, batch_index, batch_size, received_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `),
     getNodeChangesSince: db.prepare(`
       SELECT * FROM node_changes
@@ -1445,6 +1447,7 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     parentHash: row.parent_hash,
     payload: JSON.parse(row.payload_json) as SerializedNodeChange['payload'],
     signatureB64: row.signature_b64,
+    protocolVersion: row.protocol_version ?? undefined,
     batchId: row.batch_id ?? undefined,
     batchIndex: row.batch_index ?? undefined,
     batchSize: row.batch_size ?? undefined
@@ -1470,6 +1473,7 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       change.parentHash ?? null,
       JSON.stringify(change.payload),
       change.signatureB64,
+      change.protocolVersion ?? null,
       change.batchId ?? null,
       change.batchIndex ?? null,
       change.batchSize ?? null,
