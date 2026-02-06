@@ -20,6 +20,7 @@
 
 import { program } from 'commander'
 import { registerMigrateCommand } from './commands/migrate.js'
+import { registerSchemaCommand } from './commands/schema.js'
 
 program
   .name('xnet')
@@ -28,6 +29,7 @@ program
 
 // Register commands
 registerMigrateCommand(program)
+registerSchemaCommand(program)
 
 // Parse and run
 program.parse()
