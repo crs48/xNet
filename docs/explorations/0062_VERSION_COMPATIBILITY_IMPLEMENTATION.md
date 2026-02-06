@@ -911,11 +911,13 @@ export function VersionPanel() {
 
 #### 4.3 Migration Guide Generator
 
-- [ ] **Create interactive migration wizard**
-  - File: `packages/devtools/src/panels/MigrationWizard.tsx` (new)
-  - Step-by-step schema upgrade
+- [x] **Create interactive migration wizard**
+  - File: `packages/devtools/src/panels/MigrationWizard/` (new)
+  - Step-by-step schema upgrade (Analyze → Review → Generate → Test → Apply)
   - Preview changes before applying
   - Generate and test lens code
+  - Added `useMigrationWizard.ts` hook for state management
+  - Added comprehensive tests in `useMigrationWizard.test.ts`
 
 ```mermaid
 flowchart TB

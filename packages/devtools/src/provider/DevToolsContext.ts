@@ -17,6 +17,7 @@ export type PanelId =
   | 'telemetry'
   | 'schemas'
   | 'version'
+  | 'migration'
   | 'seed'
   | 'history'
 
