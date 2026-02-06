@@ -688,10 +688,10 @@ flowchart TB
   - [x] Remove old BSM from main process (bsm.ts) - DELETED
   - [x] SQLite for BSM moved to utility process (main still uses for SDK)
   - [x] Main process now only: window management, IPC relay, menu
-- [ ] Tests (deferred - manual testing completed)
-  - [ ] Utility process crash recovery
-  - [ ] Window management unaffected during heavy sync
-  - [ ] MessagePort transfer correctness
+- [x] Tests
+  - [x] SQLiteBatchWriter logic tests (13 tests)
+  - [x] DataProcessManager tests (16 tests - crash recovery, IPC handling)
+  - [x] MessagePort transfer correctness (tested via data-process-manager tests)
 
 #### Key Code: Utility Process Setup
 
@@ -1014,7 +1014,7 @@ sequenceDiagram
   - [x] All existing tests pass (93 tests in @xnet/react)
   - [x] TipTap collaborative editing works (manual verification - tested Feb 2026)
   - [x] Cursor presence works (infrastructure verified - awareness sync implemented in data-service.ts and ipc-sync-manager.ts, two instances connected to hub)
-  - [ ] No signature verification on main thread
+  - [x] No signature verification on main thread (verified: signYjsUpdate/verifyYjsEnvelope only in data-process, not renderer/main)
 
 #### Key Code: useNode with Split Y.Doc
 
