@@ -135,6 +135,7 @@ export default defineConfig({
           label: 'Resources',
           collapsed: true,
           items: [
+            { slug: 'docs/ai/understanding-xnet', label: 'For AI Assistants' },
             { label: 'Compare to Alternatives', link: '/compare' },
             { label: 'Roadmap', link: '/#roadmap' }
           ]
