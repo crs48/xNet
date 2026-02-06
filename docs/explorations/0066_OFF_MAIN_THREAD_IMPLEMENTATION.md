@@ -1081,7 +1081,8 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 - [ ] Batch operations
   - [ ] Batch IndexedDB transactions
   - [ ] Batch SQLite writes
-  - [ ] Debounce delta messages
+  - [x] Debounce Y.Doc updates (UPDATE_BATCH_WAIT=16ms, UPDATE_BATCH_MAX_WAIT=100ms)
+  - [x] Delta coalescing utilities (createDeltaBatcher)
 - [x] Memory management
   - [x] Query result eviction (LRU) - QueryCache with maxSize=100, 30s min age
   - [x] Y.Doc pool size limits - MAX_DOC_POOL_SIZE=50, 60s min age

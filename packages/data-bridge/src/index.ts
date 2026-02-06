@@ -59,3 +59,15 @@ export {
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
 export { QueryCache } from './query-cache'
+export {
+  debounce,
+  createUpdateBatcher,
+  createDeltaBatcher,
+  type DebounceOptions,
+  type DebouncedFunction,
+  type UpdateBatcher,
+  type UpdateBatcherOptions,
+  type DeltaBatcher,
+  type DeltaBatcherOptions,
+  type QueryDelta as DeltaQueryDelta
+} from './utils/debounce'
