@@ -343,7 +343,7 @@ sequenceDiagram
 - [x] **NW-01:** Wire signed envelope verification into network sync protocol _(fixed a190622)_
 - [x] **SY-04:** Add periodic cleanup to rate limiter _(fixed - added cleanup to both @xnet/sync YjsRateLimiter and @xnet/network SyncRateLimiter)_
 - [x] **SY-05:** Remove cleanup side effect from size() _(fixed - size() no longer calls cleanup(), added activeCount() for non-mutating count)_
-- [ ] **SDK-01:** Add LRU eviction to document cache
+- [x] **SDK-01:** Add LRU eviction to document cache _(fixed - implemented LRUCache class with max size of 100)_
 - [x] **NW-02/03:** Clean up timers on destroy _(fixed - DefaultConnectionGater now tracks denylist timers and clears them on destroy/remove)_
 
 ### Phase 3 (Multiplayer)
