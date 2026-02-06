@@ -42,10 +42,16 @@ export function createYWebRTCProvider(
 }
 
 /**
- * Get number of connected peers (simplified)
+ * Get number of connected WebRTC peers
  */
 export function getConnectedPeers(provider: YWebRTCProvider): number {
-  return provider.provider.connected ? 1 : 0
+  // Access the internal room's webrtcConns map for actual peer count
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const room = (provider.provider as any).room
+  if (room && room.webrtcConns) {
+    return room.webrtcConns.size
+  }
+  return 0
 }
 
 /**
@@ -55,9 +61,10 @@ export function onPeersChange(
   provider: YWebRTCProvider,
   callback: (peers: string[]) => void
 ): () => void {
-  const handler = () => {
-    // Would get actual peer list from provider
-    callback([])
+  const handler = (event: { webrtcPeers: string[]; bcPeers: string[] }) => {
+    // Combine WebRTC peers and broadcast channel peers
+    const allPeers = [...event.webrtcPeers, ...event.bcPeers]
+    callback(allPeers)
   }
   provider.provider.on('peers', handler)
   return () => provider.provider.off('peers', handler)
