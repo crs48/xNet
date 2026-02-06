@@ -15,6 +15,7 @@ export function useDragDrop({ editor }: UseDragDropOptions) {
   const [dragState, setDragState] = useState<DragState>({
     draggedPos: null,
     draggedNode: null,
+    nodeFingerprint: null,
     dropPos: null,
     dropSide: null
   })
