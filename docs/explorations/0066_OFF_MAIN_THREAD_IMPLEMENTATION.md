@@ -665,19 +665,30 @@ flowchart TB
   - [x] `apps/electron/src/data-process/index.ts` - Utility process entry
   - [x] `apps/electron/src/data-process/data-service.ts` - BSM implementation
   - [x] `apps/electron/src/main/data-process-manager.ts` - Process lifecycle management
-  - [ ] MessagePort setup between renderer and utility process
+  - [x] MessagePort setup between renderer and utility process
 - [x] Migrate BSM to utility process
   - [x] Move `bsm.ts` logic to utility process (data-service.ts)
   - [x] Move SQLite storage to utility process
-  - [ ] Update IPC handlers for new architecture (proxy through main)
-- [ ] Update IPCSyncManager
-  - [ ] Use MessagePort for binary data (not IPC `number[]`)
-  - [ ] Handle utility process lifecycle
-- [ ] Update main process
-  - [ ] Remove SQLite dependency
-  - [ ] Remove Yjs dependency
-  - [ ] Keep only window management
-- [ ] Tests
+  - [x] Update IPC handlers for new architecture (proxy through main)
+- [x] Update main process
+  - [x] Import and use `spawnDataProcess()` and `setupDataProcessIPC()` from data-process-manager
+  - [x] Call `setupWindowChannel(mainWindow)` after window creation
+  - [x] Update shutdown to call `stopDataProcess()`
+- [x] Update preload
+  - [x] Handle `data-channel` MessagePort from utility process
+  - [x] Update xnetBSM API to use shared channel (multiplexed)
+  - [x] Maintain backward compatibility with per-node acquire/release
+- [x] Configure build
+  - [x] Add data-process as separate entry point in electron.vite.config.ts
+  - [x] Configure native module resolution for electron-rebuilt better-sqlite3
+- [x] Update IPCSyncManager (renderer side)
+  - [x] Uses MessagePort via data-channel for binary data
+  - [x] Handler routing by nodeId for multiplexed channel
+- [x] Clean up main process
+  - [x] Remove old BSM from main process (bsm.ts) - DELETED
+  - [x] SQLite for BSM moved to utility process (main still uses for SDK)
+  - [x] Main process now only: window management, IPC relay, menu
+- [ ] Tests (deferred - manual testing completed)
   - [ ] Utility process crash recovery
   - [ ] Window management unaffected during heavy sync
   - [ ] MessagePort transfer correctness

@@ -12,6 +12,7 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import {
   utilityProcess,
+  app,
   type UtilityProcess,
   type BrowserWindow,
   ipcMain,
@@ -21,6 +22,16 @@ import {
 // ESM __dirname shim
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+
+// Get the app's resource path for native modules
+// In dev mode, this is the app directory; in prod, it's the asar unpacked resources
+function getNodeModulesPath(): string {
+  // Use app.getAppPath() which gives us the path to the app's code
+  // For dev: /Users/crs/Code/xNet/apps/electron
+  // For prod: /path/to/app.asar or /path/to/app
+  const appPath = app.getAppPath()
+  return join(appPath, 'node_modules')
+}
 
 // Debug logging
 let debugEnabled = false
@@ -68,12 +79,23 @@ export async function spawnDataProcess(dbPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
       // Path to the compiled data-process entry point
-      const scriptPath = join(__dirname, '../data-process/index.mjs')
+      const scriptPath = join(__dirname, 'data-process/index.js')
       log('Script path:', scriptPath)
 
+      // Set NODE_PATH to ensure native modules are loaded from the rebuilt location
+      // This is necessary because pnpm hoists modules to root, but electron-rebuild
+      // only rebuilds modules in apps/electron/node_modules
+      const nodeModulesPath = getNodeModulesPath()
+      log('Node modules path:', nodeModulesPath)
+
+      const env = {
+        ...process.env,
+        NODE_PATH: nodeModulesPath
+      }
+
       dataProcess = utilityProcess.fork(scriptPath, [], {
-        serviceName: 'xnet-data'
-        // Note: sandbox is not supported yet for utility processes with native modules
+        serviceName: 'xnet-data',
+        env
       })
 
       // Handle messages from utility process

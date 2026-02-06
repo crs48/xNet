@@ -32,21 +32,65 @@ contextBridge.exposeInMainWorld('xnet', {
 
 // Expose BSM API for background sync
 // MessagePorts can't cross contextBridge, so we manage them here in preload
-const bsmPorts = new Map<string, MessagePort>()
+
+// Data channel: single MessagePort to data utility process (multiplexed)
+let dataChannel: MessagePort | null = null
+const dataChannelReadyCallbacks = new Set<() => void>()
+
+// Per-node state management
+const acquiredNodes = new Set<string>()
 const bsmPortReadyCallbacks = new Map<string, Set<() => void>>()
 const bsmMessageHandlers = new Map<string, (data: unknown) => void>()
 
-ipcRenderer.on('xnet:bsm:port', (event, { nodeId }: { nodeId: string }) => {
+// Handle data-channel setup from main process
+ipcRenderer.on('data-channel', (event, _payload: { windowId: number }) => {
   const [port] = event.ports
   if (!port) return
 
-  // Set up message forwarding to renderer
-  port.onmessage = (msgEvent) => {
-    const handler = bsmMessageHandlers.get(nodeId)
-    if (handler) handler(msgEvent.data)
+  // Close existing channel if any
+  if (dataChannel) {
+    dataChannel.close()
   }
-  port.start()
-  bsmPorts.set(nodeId, port)
+
+  dataChannel = port
+
+  // Set up message routing from data process to appropriate handlers
+  dataChannel.onmessage = (msgEvent) => {
+    const { type, nodeId, ...rest } = msgEvent.data as {
+      type: string
+      nodeId?: string
+      [key: string]: unknown
+    }
+
+    if (!nodeId) return
+
+    // Route to the appropriate handler based on message type
+    const handler = bsmMessageHandlers.get(nodeId)
+    if (handler) {
+      if (type === 'update') {
+        // Forward Yjs updates to renderer
+        handler({ type: 'update', update: rest.update })
+      } else if (type === 'awareness') {
+        handler({ type: 'awareness', update: rest.update })
+      } else if (type === 'awareness-snapshot') {
+        handler({ type: 'awareness-snapshot', users: rest.users })
+      } else if (type === 'request-awareness') {
+        handler({ type: 'request-awareness' })
+      }
+    }
+  }
+
+  dataChannel.start()
+
+  // Notify any waiting callbacks that channel is ready
+  for (const cb of dataChannelReadyCallbacks) cb()
+  dataChannelReadyCallbacks.clear()
+})
+
+// Legacy per-node port handler (for backward compatibility during transition)
+ipcRenderer.on('xnet:bsm:port', (_event, { nodeId }: { nodeId: string }) => {
+  // Mark this node as acquired (port setup happens via data-channel now)
+  acquiredNodes.add(nodeId)
 
   // Notify any waiting callbacks that port is ready
   const callbacks = bsmPortReadyCallbacks.get(nodeId)
@@ -62,13 +106,13 @@ contextBridge.exposeInMainWorld('xnetBSM', {
   stop: () => ipcRenderer.invoke('xnet:bsm:stop'),
   acquire: (nodeId: string, schemaId: string): Promise<void> => {
     return new Promise((resolve) => {
-      // If port already exists, resolve immediately
-      if (bsmPorts.has(nodeId)) {
+      // If already acquired, resolve immediately
+      if (acquiredNodes.has(nodeId)) {
         resolve()
         return
       }
 
-      // Register callback for when port is ready
+      // Register callback for when node is ready
       const callbacks = bsmPortReadyCallbacks.get(nodeId) ?? new Set()
       callbacks.add(resolve)
       bsmPortReadyCallbacks.set(nodeId, callbacks)
@@ -77,18 +121,17 @@ contextBridge.exposeInMainWorld('xnetBSM', {
     })
   },
   release: (nodeId: string) => {
-    const port = bsmPorts.get(nodeId)
-    if (port) {
-      port.close()
-      bsmPorts.delete(nodeId)
-    }
+    acquiredNodes.delete(nodeId)
     bsmMessageHandlers.delete(nodeId)
     return ipcRenderer.invoke('xnet:bsm:release', { nodeId })
   },
-  // Send a message to the main process for this node
+  // Send a message to the data process for this node via the shared channel
   postMessage: (nodeId: string, data: unknown) => {
-    const port = bsmPorts.get(nodeId)
-    if (port) port.postMessage(data)
+    if (dataChannel && acquiredNodes.has(nodeId)) {
+      // Include nodeId in the message so data process can route it
+      const payload = typeof data === 'object' && data !== null ? data : { value: data }
+      dataChannel.postMessage({ ...payload, nodeId })
+    }
   },
   // Set up a message handler for this node
   onMessage: (nodeId: string, handler: (data: unknown) => void) => {

@@ -15,7 +15,12 @@ if (process.env.NODE_ENV === 'development') {
 // ESM __dirname shim (electron-vite outputs ESM)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-import { setupBSM } from './bsm'
+import {
+  spawnDataProcess,
+  stopDataProcess,
+  setupDataProcessIPC,
+  setupWindowChannel
+} from './data-process-manager'
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { createMenu } from './menu'
@@ -36,7 +41,9 @@ if (profile !== 'default') {
 export const dataPath = join(app.getPath('userData'), 'xnet-data')
 
 let mainWindow: BrowserWindow | null = null
-let bsm: { stop: () => Promise<void> } | null = null
+
+// Database path for utility process
+const dbPath = join(app.getPath('userData'), 'xnet-data', 'data.db')
 
 async function createWindow() {
   // Show profile in title for multi-instance testing
@@ -51,7 +58,7 @@ async function createWindow() {
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 16, y: 16 },
     webPreferences: {
-      preload: join(__dirname, '../preload/index.mjs'),
+      preload: join(__dirname, '../preload/index.cjs'),
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false
@@ -73,12 +80,19 @@ async function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  // Create storage early so both IPC and BSM can use it
+  // Create storage early so IPC can use it
   const storage = getOrCreateStorage()
   await storage.open()
 
-  // Setup IPC handlers
+  // Spawn the data utility process (SQLite, Yjs, WebSocket sync)
+  // This runs data operations off the main thread
+  await spawnDataProcess(dbPath)
+
+  // Setup IPC handlers for main process operations
   setupIPC()
+
+  // Setup IPC handlers that proxy to data utility process
+  setupDataProcessIPC(() => mainWindow)
 
   // Setup service IPC for plugin background processes
   setupServiceIPC()
@@ -89,26 +103,24 @@ app.whenReady().then(async () => {
   // Start Local API server (for external integrations)
   await startLocalAPI()
 
-  // Setup Background Sync Manager with blob storage
-  bsm = setupBSM({
-    getMainWindow: () => mainWindow,
-    blobStorage: storage
-  })
-
   // Create menu
   createMenu()
 
   // Create window
   await createWindow()
 
-  // Init auto-updater (production only)
+  // Setup MessagePort channel between renderer and data process
   if (mainWindow) {
+    setupWindowChannel(mainWindow)
     initAutoUpdater(mainWindow)
   }
 
-  app.on('activate', () => {
+  app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+      await createWindow()
+      if (mainWindow) {
+        setupWindowChannel(mainWindow)
+      }
     }
   })
 })
@@ -126,9 +138,6 @@ app.on('before-quit', async () => {
   // Stop all plugin services
   await cleanupServices()
 
-  // Stop Background Sync Manager
-  if (bsm) {
-    await bsm.stop()
-    bsm = null
-  }
+  // Stop data utility process (handles BSM, SQLite, Yjs cleanup)
+  await stopDataProcess()
 })
