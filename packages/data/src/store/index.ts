@@ -48,7 +48,10 @@ export type {
   TransactionResult,
   NodeChangeEvent,
   NodeChangeListener,
-  PropertyLookup
+  PropertyLookup,
+  GetWithMigrationOptions,
+  MigrationInfo,
+  MigratedNodeState
 } from './types'
 
 // NodeStore

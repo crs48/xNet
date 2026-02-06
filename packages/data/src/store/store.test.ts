@@ -6,6 +6,7 @@ import type { SchemaIRI } from '../schema/node'
 import type { DID } from '@xnet/core'
 import { generateSigningKeyPair } from '@xnet/crypto'
 import { describe, it, expect } from 'vitest'
+import { LensRegistry, composeLens, rename, addDefault, convert } from '../schema'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
 import { NodeStore } from './store'
 
@@ -778,5 +779,213 @@ describe('Unknown Property Handling (Version Compatibility)', () => {
     })
 
     expect(updated._unknown?.futureField).toBe('updated value')
+  })
+})
+
+describe('getWithMigration (Schema Migration Support)', () => {
+  // Create a lens registry for testing
+  function createMigrationTestStore() {
+    const registry = new LensRegistry()
+
+    // Register Task v1 -> v2 migration
+    const TASK_V1 = 'xnet://xnet.fyi/Task@1.0.0' as SchemaIRI
+    const TASK_V2 = 'xnet://xnet.fyi/Task@2.0.0' as SchemaIRI
+    const TASK_V3 = 'xnet://xnet.fyi/Task@3.0.0' as SchemaIRI
+
+    // v1 -> v2: rename 'complete' to 'status', convert boolean to string
+    registry.register(
+      composeLens(
+        TASK_V1,
+        TASK_V2,
+        rename('complete', 'status'),
+        convert('status', { true: 'done', false: 'todo' }, { done: true, todo: false })
+      )
+    )
+
+    // v2 -> v3: add priority field
+    registry.register(composeLens(TASK_V2, TASK_V3, addDefault('priority', 'medium')))
+
+    const keyPair = generateSigningKeyPair()
+    const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
+    const adapter = new MemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      lensRegistry: registry
+    })
+
+    return { store, adapter, did, registry, TASK_V1, TASK_V2, TASK_V3 }
+  }
+
+  it('should return node without migration when schema matches', async () => {
+    const { store, TASK_V1 } = createMigrationTestStore()
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TASK_V1,
+      properties: { title: 'Test Task', complete: true }
+    })
+
+    // Set the _schemaVersion to match the stored version
+    await store['storage'].setNode({
+      ...(await store.get(node.id))!,
+      _schemaVersion: '1.0.0'
+    })
+
+    const fetched = await store.getWithMigration(node.id, {
+      targetSchemaId: TASK_V1
+    })
+
+    expect(fetched).not.toBeNull()
+    expect(fetched!._migrationInfo).toBeUndefined()
+    expect(fetched!.properties.complete).toBe(true)
+  })
+
+  it('should migrate node from v1 to v2', async () => {
+    const { store, TASK_V1, TASK_V2 } = createMigrationTestStore()
+    await store.initialize()
+
+    // Create a v1 node
+    const node = await store.create({
+      schemaId: TASK_V1,
+      properties: { title: 'Test Task', complete: true }
+    })
+
+    // Set the _schemaVersion to v1
+    await store['storage'].setNode({
+      ...(await store.get(node.id))!,
+      _schemaVersion: '1.0.0'
+    })
+
+    // Fetch with migration to v2
+    const migrated = await store.getWithMigration(node.id, {
+      targetSchemaId: TASK_V2
+    })
+
+    expect(migrated).not.toBeNull()
+    expect(migrated!._migrationInfo).toBeDefined()
+    expect(migrated!._migrationInfo!.from).toBe(TASK_V1)
+    expect(migrated!._migrationInfo!.to).toBe(TASK_V2)
+    expect(migrated!._migrationInfo!.lossless).toBe(true) // rename + convert are lossless
+
+    // Check properties were migrated
+    expect(migrated!.properties.status).toBe('done') // complete: true -> status: 'done'
+    expect(migrated!.properties.complete).toBeUndefined() // old property removed
+    expect(migrated!.properties.title).toBe('Test Task') // unchanged
+  })
+
+  it('should migrate node from v1 to v3 (multi-step)', async () => {
+    const { store, TASK_V1, TASK_V3 } = createMigrationTestStore()
+    await store.initialize()
+
+    // Create a v1 node
+    const node = await store.create({
+      schemaId: TASK_V1,
+      properties: { title: 'Test Task', complete: false }
+    })
+
+    // Set the _schemaVersion to v1
+    await store['storage'].setNode({
+      ...(await store.get(node.id))!,
+      _schemaVersion: '1.0.0'
+    })
+
+    // Fetch with migration to v3 (v1 -> v2 -> v3)
+    const migrated = await store.getWithMigration(node.id, {
+      targetSchemaId: TASK_V3
+    })
+
+    expect(migrated).not.toBeNull()
+    expect(migrated!._migrationInfo).toBeDefined()
+    expect(migrated!._migrationInfo!.from).toBe(TASK_V1)
+    expect(migrated!._migrationInfo!.to).toBe(TASK_V3)
+    expect(migrated!._migrationInfo!.lossless).toBe(false) // addDefault is lossy
+
+    // Check properties were migrated through both steps
+    expect(migrated!.properties.status).toBe('todo') // complete: false -> status: 'todo'
+    expect(migrated!.properties.priority).toBe('medium') // added default
+    expect(migrated!.properties.complete).toBeUndefined() // old property removed
+    expect(migrated!.properties.title).toBe('Test Task') // unchanged
+  })
+
+  it('should report lossy migration warnings', async () => {
+    const { store, TASK_V1, TASK_V3 } = createMigrationTestStore()
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TASK_V1,
+      properties: { title: 'Test', complete: true }
+    })
+
+    await store['storage'].setNode({
+      ...(await store.get(node.id))!,
+      _schemaVersion: '1.0.0'
+    })
+
+    const migrated = await store.getWithMigration(node.id, {
+      targetSchemaId: TASK_V3
+    })
+
+    expect(migrated!._migrationInfo!.warnings).toHaveLength(1)
+    expect(migrated!._migrationInfo!.warnings[0]).toContain('Lossy')
+  })
+
+  it('should return node as-is when no migration path exists', async () => {
+    const { store, TASK_V1 } = createMigrationTestStore()
+    await store.initialize()
+
+    const UNKNOWN_SCHEMA = 'xnet://xnet.fyi/Unknown@1.0.0' as SchemaIRI
+
+    const node = await store.create({
+      schemaId: TASK_V1,
+      properties: { title: 'Test', complete: true }
+    })
+
+    await store['storage'].setNode({
+      ...(await store.get(node.id))!,
+      _schemaVersion: '1.0.0'
+    })
+
+    // Try to migrate to a schema with no path
+    const result = await store.getWithMigration(node.id, {
+      targetSchemaId: UNKNOWN_SCHEMA
+    })
+
+    // Should return node as-is without migration info
+    expect(result).not.toBeNull()
+    expect(result!._migrationInfo).toBeUndefined()
+    expect(result!.properties.complete).toBe(true) // original property
+  })
+
+  it('should return null for non-existent node', async () => {
+    const { store, TASK_V2 } = createMigrationTestStore()
+    await store.initialize()
+
+    const result = await store.getWithMigration('non-existent-id', {
+      targetSchemaId: TASK_V2
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('should work without lens registry (no migrations)', async () => {
+    // Store without lens registry
+    const { store } = createTestStore()
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: 'xnet://xnet.fyi/Task@1.0.0' as SchemaIRI,
+      properties: { title: 'Test', complete: true }
+    })
+
+    const result = await store.getWithMigration(node.id, {
+      targetSchemaId: 'xnet://xnet.fyi/Task@2.0.0' as SchemaIRI
+    })
+
+    // Should return node as-is since no lens registry
+    expect(result).not.toBeNull()
+    expect(result!._migrationInfo).toBeUndefined()
+    expect(result!.properties.complete).toBe(true)
   })
 })
