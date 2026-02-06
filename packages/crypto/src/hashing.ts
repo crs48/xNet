@@ -4,7 +4,7 @@
 import { blake3 } from '@noble/hashes/blake3.js'
 import { hkdf as nobleHkdf } from '@noble/hashes/hkdf.js'
 import { sha256 } from '@noble/hashes/sha2.js'
-import { bytesToHex } from './utils'
+import { bytesToHex, bytesToBase64url } from './utils'
 
 export type HashAlgorithm = 'blake3' | 'sha256'
 
@@ -32,14 +32,6 @@ export function hashHex(data: Uint8Array, algorithm: HashAlgorithm = 'blake3'): 
  */
 export function hashBase64(data: Uint8Array, algorithm: HashAlgorithm = 'blake3'): string {
   return bytesToBase64url(hash(data, algorithm))
-}
-
-/**
- * Convert bytes to base64url
- */
-function bytesToBase64url(bytes: Uint8Array): string {
-  const base64 = btoa(String.fromCharCode(...bytes))
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
 }
 
 /**

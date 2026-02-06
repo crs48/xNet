@@ -93,7 +93,9 @@ export const ImageExtension = Node.create<ImageOptions>({
       height: { default: null },
       alignment: { default: 'center' },
       /** Upload progress (0-100), null when complete */
-      uploadProgress: { default: null }
+      uploadProgress: { default: null },
+      /** Unique upload ID for matching placeholders during concurrent uploads */
+      uploadId: { default: null }
     }
   },
 

@@ -29,11 +29,16 @@ import type { ChangeSerializer, DeserializeOutcome, SerializedChange } from './t
 
 /**
  * Base64 encode a Uint8Array.
+ * Uses loop instead of spread to avoid stack overflow on large arrays.
  */
 function encodeBase64(data: Uint8Array): string {
   // Browser-compatible base64 encoding
   if (typeof btoa === 'function') {
-    return btoa(String.fromCharCode(...data))
+    let binary = ''
+    for (let i = 0; i < data.length; i++) {
+      binary += String.fromCharCode(data[i])
+    }
+    return btoa(binary)
   }
   // Node.js fallback
   return Buffer.from(data).toString('base64')

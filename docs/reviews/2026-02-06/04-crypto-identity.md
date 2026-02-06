@@ -297,19 +297,19 @@ Missing key data creates empty encryption key instead of throwing.
 
 ### Immediate
 
-- [ ] **CRYPTO-01/07:** Remove or mark BrowserPasskeyStorage as test-only
-- [ ] **CRYPTO-02:** Add hex character validation to hexToBytes
-- [ ] **CRYPTO-03:** Fix bytesToBase64 for large arrays
+- [x] **CRYPTO-01/07:** Remove or mark BrowserPasskeyStorage as test-only _(fixed 93d07a1)_
+- [x] **CRYPTO-02:** Add hex character validation to hexToBytes _(fixed f378ef6)_
+- [x] **CRYPTO-03:** Fix bytesToBase64 for large arrays _(fixed f378ef6)_
 
 ### Before Hub Launch
 
-- [ ] **CRYPTO-04:** Use proper HKDF in deriveKeyBundle
-- [ ] **CRYPTO-05:** Validate UCAN header algorithm
+- [x] **CRYPTO-04:** Use proper HKDF in deriveKeyBundle _(fixed a190622)_
+- [x] **CRYPTO-05:** Validate UCAN header algorithm _(fixed f378ef6)_
 - [ ] **CRYPTO-06:** Fix proof chain capability aggregation
 - [ ] **CRYPTO-08:** Rename parseShareLink or require verification
 
 ### Production
 
-- [ ] **CRYPTO-10:** Add input validation to randomBytes
-- [ ] **CRYPTO-11:** Remove duplicate bytesToBase64url
+- [x] **CRYPTO-10:** Add input validation to randomBytes _(this session)_
+- [x] **CRYPTO-11:** Remove duplicate bytesToBase64url _(this session)_
 - [ ] Add tests for utils.ts and random.ts

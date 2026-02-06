@@ -350,10 +350,10 @@ gantt
 
 ### Phase 1 (Daily Driver)
 
-- [ ] **PERF-03:** Use `SpatialIndex.search(viewport)` in Canvas renderer
-- [ ] **PERF-04:** Fix `countNodes` to use `db.count()` / cursor
-- [ ] **PERF-06:** Memoize `contextValue` in `XNetProvider`
-- [ ] **PERF-07/08:** Memoize Canvas Maps
+- [x] **PERF-03:** Use `SpatialIndex.search(viewport)` in Canvas renderer _(fixed 93d07a1)_
+- [x] **PERF-04:** Fix `countNodes` to use `db.count()` / cursor _(fixed bdada0a)_
+- [x] **PERF-06:** Memoize `contextValue` in `XNetProvider` _(fixed f378ef6)_
+- [x] **PERF-07/08:** Memoize Canvas Maps _(fixed a190622)_
 
 ### Phase 2 (Hub MVP)
 
@@ -361,7 +361,7 @@ gantt
 - [ ] **PERF-02:** Implement dedicated `count()` using IDB count
 - [ ] **PERF-05:** Batch IndexedDB operations in transactions
 - [ ] **PERF-09:** Incremental comment state updates
-- [ ] **PERF-10:** Use cursor with `'prev'` for `getLastChange`
+- [x] **PERF-10:** Use cursor with `'prev'` for `getLastChange` _(fixed a190622)_
 - [ ] **PERF-11:** Use cursor pagination for `listNodes`
 
 ### Phase 3 (Production)

@@ -328,7 +328,7 @@ Iterates all operations for each update.
 
 - [ ] **DATA-02:** Add signature verification to applyRemoteChange
 - [ ] **DATA-03:** Trim conflicts array
-- [ ] **DATA-05/06:** Fix countNodes/listNodes to use cursors
+- [x] **DATA-05/06:** Fix countNodes/listNodes to use cursors _(fixed bdada0a)_
 
 ### Phase 2 (Hub MVP)
 
