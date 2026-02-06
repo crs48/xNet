@@ -540,8 +540,8 @@ async get<S extends DefinedSchema>(
 
 #### 2.4 Migration CLI Tool
 
-- [ ] **Create `xnet migrate` CLI command**
-  - File: `packages/cli/src/commands/migrate.ts` (new)
+- [x] **Create `xnet migrate` CLI command**
+  - File: `packages/cli/src/commands/migrate.ts`
   - Analyze schema changes
   - Generate lens code
   - Dry-run migrations
@@ -585,11 +585,11 @@ $ xnet migrate run --from Task@1.0.0 --to Task@2.0.0 --apply
 
 #### 3.1 Feature Flag System
 
-- [ ] **Define feature flag registry**
+- [x] **Define feature flag registry**
   - File: `packages/sync/src/features.ts` (new)
   - Register features with version introduced
   - Check if feature is enabled in negotiated set
-- [ ] **Create feature dependency graph**
+- [x] **Create feature dependency graph**
   - Some features require others
   - Warn on incompatible combinations
 
@@ -630,11 +630,11 @@ export function isFeatureEnabled(feature: FeatureFlag, negotiatedFeatures: Featu
 
 #### 3.2 Version Negotiation Protocol
 
-- [ ] **Implement negotiation in SyncProvider**
+- [x] **Implement negotiation in SyncProvider**
   - File: `packages/sync/src/provider.ts`
   - Exchange capabilities on connect
   - Store negotiated version per peer
-- [ ] **Add capability downgrade handling**
+- [x] **Add capability downgrade handling**
   - Disable features not in common set
   - Use version-specific serialization
 
@@ -707,12 +707,12 @@ export class VersionNegotiator {
 
 #### 3.3 Multi-Version Serializers
 
-- [ ] **Create version-specific serializers**
+- [x] **Create version-specific serializers**
   - File: `packages/sync/src/serializers/` (new directory)
   - `v1.ts` - Original format
   - `v2.ts` - With schema versions
   - Each serializer handles that version's format
-- [ ] **Implement serializer selection**
+- [x] **Implement serializer selection**
   - Based on negotiated version
   - Fallback to oldest compatible
 
@@ -780,8 +780,8 @@ export class V2Serializer implements ChangeSerializer {
 
 #### 4.1 Schema Change Detection
 
-- [ ] **Add schema diffing utility**
-  - File: `packages/data/src/schema/diff.ts` (new)
+- [x] **Add schema diffing utility**
+  - File: `packages/cli/src/utils/schema-diff.ts`
   - Compare two schema versions
   - Classify changes by risk level
 - [ ] **Integrate with TypeScript compiler**
@@ -857,8 +857,8 @@ export function diffSchemas(oldSchema: DefinedSchema, newSchema: DefinedSchema):
 
 #### 4.2 DevTools Version Panel
 
-- [ ] **Add Version panel to DevTools**
-  - File: `packages/devtools/src/panels/VersionPanel.tsx` (new)
+- [x] **Add Version panel to DevTools**
+  - File: `packages/devtools/src/panels/VersionPanel/VersionPanel.tsx`
   - Show current protocol version
   - Show connected peers and their versions
   - Show schema versions in use
@@ -947,8 +947,8 @@ flowchart TB
 
 #### 4.4 CI Integration
 
-- [ ] **Create schema change detection GitHub Action**
-  - File: `.github/workflows/schema-check.yml` (new)
+- [x] **Create schema change detection GitHub Action**
+  - File: `.github/workflows/schema-check.yml`
   - Compare schemas between PR and main
   - Require migration for breaking changes
   - Auto-approve safe changes
