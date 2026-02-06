@@ -10,6 +10,17 @@ import type { LamportTimestamp } from './clock'
 import type { DID, ContentId } from '@xnet/core'
 import { hashHex, sign, verify } from '@xnet/crypto'
 
+// ─── Protocol Versioning ─────────────────────────────────────────────────────
+
+/**
+ * Current protocol version for Change<T>.
+ *
+ * Version history:
+ * - 1: Initial versioned protocol (adds protocolVersion field)
+ * - 0/undefined: Legacy unversioned changes (backward compat)
+ */
+export const CURRENT_PROTOCOL_VERSION = 1
+
 /**
  * A signed change with chain linkage and Lamport ordering.
  * Generic T allows different payload types for different use cases:
@@ -24,6 +35,15 @@ import { hashHex, sign, verify } from '@xnet/crypto'
  * - Future blockchain integration (batch = transaction)
  */
 export interface Change<T = unknown> {
+  /**
+   * Protocol version of this change.
+   * - undefined: Legacy change (protocol v0, backward compat)
+   * - 1+: Versioned change with protocol version
+   *
+   * Used for version negotiation and migration paths.
+   */
+  protocolVersion?: number
+
   /** Unique change ID (nanoid) */
   id: string
 
@@ -78,6 +98,7 @@ export interface Change<T = unknown> {
  * Used as input to signChange().
  */
 export interface UnsignedChange<T = unknown> {
+  protocolVersion?: number
   id: string
   type: string
   payload: T
@@ -115,6 +136,7 @@ export interface CreateChangeOptions<T> {
  */
 export function createUnsignedChange<T>(options: CreateChangeOptions<T>): UnsignedChange<T> {
   const unsigned: UnsignedChange<T> = {
+    protocolVersion: CURRENT_PROTOCOL_VERSION,
     id: options.id,
     type: options.type,
     payload: options.payload,
@@ -163,11 +185,33 @@ function sortObjectKeys(obj: unknown): unknown {
 /**
  * Compute the hash of an unsigned change.
  * The hash is computed over a canonical JSON representation with sorted keys.
+ *
+ * Version handling:
+ * - protocolVersion 0/undefined (legacy): hash without protocolVersion field
+ * - protocolVersion 1+: include protocolVersion in hash computation
  */
 export function computeChangeHash<T>(unsigned: UnsignedChange<T>): ContentId {
+  // For legacy changes (no protocolVersion), compute hash without the field
+  // This maintains backward compatibility with existing change logs
+  let toHash: unknown
+  if (unsigned.protocolVersion === undefined || unsigned.protocolVersion === 0) {
+    // Legacy format: exclude protocolVersion from hash
+    // Create a copy without the protocolVersion field
+    const legacy: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(unsigned)) {
+      if (key !== 'protocolVersion') {
+        legacy[key] = value
+      }
+    }
+    toHash = legacy
+  } else {
+    // Versioned format: include protocolVersion in hash
+    toHash = unsigned
+  }
+
   // Create a canonical representation for hashing
   // Recursively sort all object keys for determinism
-  const canonical = JSON.stringify(sortObjectKeys(unsigned))
+  const canonical = JSON.stringify(sortObjectKeys(toHash))
   const hashBytes = new TextEncoder().encode(canonical)
   return `cid:blake3:${hashHex(hashBytes)}` as ContentId
 }
@@ -197,11 +241,26 @@ export function signChange<T>(unsigned: UnsignedChange<T>, signingKey: Uint8Arra
 /**
  * Verify a change's signature against a public key.
  *
+ * Protocol version handling:
+ * - Accepts changes with protocolVersion <= CURRENT_PROTOCOL_VERSION
+ * - Logs warning for future versions but still attempts verification
+ * - Never rejects based on version alone (graceful degradation)
+ *
  * @param change - The change to verify
  * @param publicKey - Ed25519 public key (32 bytes)
  * @returns true if the signature is valid
  */
 export function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): boolean {
+  // Warn about future protocol versions but don't reject
+  const version = change.protocolVersion ?? 0
+  if (version > CURRENT_PROTOCOL_VERSION) {
+    console.warn(
+      `[xnet/sync] Change ${change.id} uses protocol version ${version}, ` +
+        `but current version is ${CURRENT_PROTOCOL_VERSION}. ` +
+        `Consider upgrading xNet for full compatibility.`
+    )
+  }
+
   // Verify the signature matches the hash
   const hashBytes = new TextEncoder().encode(change.hash)
   return verify(hashBytes, change.signature, publicKey)
@@ -210,6 +269,8 @@ export function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): boole
 /**
  * Verify that a change's hash is correct (not tampered).
  * This re-computes the hash from the change data and compares.
+ *
+ * Handles both legacy (no protocolVersion) and versioned changes.
  */
 export function verifyChangeHash<T>(change: Change<T>): boolean {
   // Reconstruct the unsigned change with only the fields that should be hashed
@@ -221,6 +282,11 @@ export function verifyChangeHash<T>(change: Change<T>): boolean {
     authorDID: change.authorDID,
     wallTime: change.wallTime,
     lamport: change.lamport
+  }
+
+  // Include protocolVersion if present (versioned changes include it in hash)
+  if (change.protocolVersion !== undefined) {
+    unsigned.protocolVersion = change.protocolVersion
   }
 
   // Include batch fields if present (they're part of the signed data)

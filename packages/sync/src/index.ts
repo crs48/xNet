@@ -16,6 +16,7 @@
 // Change types and functions
 export type { Change, UnsignedChange, CreateChangeOptions } from './change'
 export {
+  CURRENT_PROTOCOL_VERSION,
   createUnsignedChange,
   computeChangeHash,
   signChange,

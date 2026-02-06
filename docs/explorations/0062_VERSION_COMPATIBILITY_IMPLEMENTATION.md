@@ -161,19 +161,19 @@ sequenceDiagram
 
 #### 1.1 Protocol Version in Change<T>
 
-- [ ] **Add `protocolVersion` field to Change<T> interface**
+- [x] **Add `protocolVersion` field to Change<T> interface**
   - File: `packages/sync/src/change.ts`
   - Make optional for backward compat: `protocolVersion?: number`
   - Default to `1` in `createUnsignedChange()`
-- [ ] **Update hash computation to include version**
+- [x] **Update hash computation to include version**
   - File: `packages/sync/src/change.ts:computeChangeHash()`
   - Version 0 (missing): use legacy hash (backward compat)
   - Version 1+: include `protocolVersion` in canonical JSON
-- [ ] **Update verification to handle versions**
+- [x] **Update verification to handle versions**
   - File: `packages/sync/src/change.ts:verifyChange()`
   - Accept changes with `protocolVersion <= CURRENT_VERSION`
   - Log warning for future versions, don't reject
-- [ ] **Add CURRENT_PROTOCOL_VERSION constant**
+- [x] **Add CURRENT_PROTOCOL_VERSION constant**
   - File: `packages/sync/src/change.ts`
   - Export `const CURRENT_PROTOCOL_VERSION = 1`
 
@@ -1420,3 +1420,98 @@ This implementation plan transforms the version compatibility analysis into acti
 The phased approach allows shipping value incrementally while building toward the complete vision. Each phase is independently useful and testable.
 
 **Ship often. Ship safely. Ship with confidence.**
+
+---
+
+## Docs Site Updates
+
+When Phase 1 is complete, add the following documentation to the docs site:
+
+### New Page: `/docs/sync/versioning.mdx`
+
+```mdx
+---
+title: Protocol Versioning
+description: How xNet handles version compatibility across sync protocols
+---
+
+# Protocol Versioning
+
+xNet uses protocol versioning to ensure backward and forward compatibility as the sync protocol evolves.
+
+## Current Protocol Version
+
+The current protocol version is **v1**. All new changes are created with `protocolVersion: 1`.
+
+## Version Compatibility
+
+| Your Version | Peer Version | Compatibility            |
+| ------------ | ------------ | ------------------------ |
+| v1           | v1           | Full                     |
+| v1           | v0 (legacy)  | Full (backward compat)   |
+| v1           | v2+          | Partial (warning logged) |
+
+## How It Works
+
+### Creating Changes
+
+When you create a change, xNet automatically stamps it with the current protocol version:
+
+\`\`\`typescript
+import { createUnsignedChange, CURRENT_PROTOCOL_VERSION } from '@xnet/sync'
+
+// Changes are automatically versioned
+const change = createUnsignedChange({
+id: 'change-123',
+type: 'update-item',
+payload: { ... },
+// protocolVersion: 1 is added automatically
+})
+\`\`\`
+
+### Receiving Changes
+
+When receiving changes from peers:
+
+1. **Same or older version**: Processed normally
+2. **Newer version**: Warning logged, still processed (graceful degradation)
+3. **Unknown fields**: Preserved but not processed (forward compat)
+
+### Hash Computation
+
+The protocol version is included in the hash computation for versioned changes:
+
+- **Legacy (v0)**: Hash computed without `protocolVersion` field
+- **v1+**: Hash includes `protocolVersion` for integrity
+
+This ensures existing change logs remain valid while new changes are properly versioned.
+
+## Best Practices
+
+1. **Keep xNet updated** - Newer versions handle more protocol features
+2. **Don't reject unknown data** - Pass through what you don't understand
+3. **Check warnings** - Console warnings indicate version mismatches
+4. **Test with mixed versions** - Ensure your app works with older peers
+   \`\`\`
+
+### Update: `/docs/sync/index.mdx`
+
+Add a link to the new versioning page in the sync documentation index.
+
+### Update: `/docs/api/sync.mdx`
+
+Add `CURRENT_PROTOCOL_VERSION` to the API reference:
+
+\`\`\`mdx
+
+### Constants
+
+#### CURRENT_PROTOCOL_VERSION
+
+\`\`\`typescript
+const CURRENT_PROTOCOL_VERSION: number = 1
+\`\`\`
+
+The current sync protocol version. Used for version negotiation and compatibility checks.
+\`\`\`
+```
