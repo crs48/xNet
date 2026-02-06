@@ -65,6 +65,7 @@ const makeSerializedChange = (
     parentHash: signed.parentHash,
     payload: signed.payload,
     signatureB64: bytesToBase64(signed.signature),
+    protocolVersion: signed.protocolVersion,
     batchId: signed.batchId,
     batchIndex: signed.batchIndex,
     batchSize: signed.batchSize,

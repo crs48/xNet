@@ -104,6 +104,7 @@ export class NodeRelayService {
       wallTime: serialized.wallTime,
       lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
       payload: serialized.payload,
+      protocolVersion: serialized.protocolVersion,
       batchId: serialized.batchId,
       batchIndex: serialized.batchIndex,
       batchSize: serialized.batchSize

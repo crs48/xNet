@@ -229,6 +229,7 @@ export type SerializedNodeChange = {
     deleted?: boolean
   }
   signatureB64: string
+  protocolVersion?: number
   batchId?: string
   batchIndex?: number
   batchSize?: number
