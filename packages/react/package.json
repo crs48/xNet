@@ -24,6 +24,7 @@
     "@xnet/core": "workspace:*",
     "@xnet/crypto": "workspace:*",
     "@xnet/data": "workspace:*",
+    "@xnet/data-bridge": "workspace:*",
     "@xnet/history": "workspace:*",
     "@xnet/identity": "workspace:*",
     "@xnet/plugins": "workspace:*",

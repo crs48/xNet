@@ -935,6 +935,9 @@ importers:
       '@xnet/data':
         specifier: workspace:*
         version: link:../data
+      '@xnet/data-bridge':
+        specifier: workspace:*
+        version: link:../data-bridge
       '@xnet/history':
         specifier: workspace:*
         version: link:../history

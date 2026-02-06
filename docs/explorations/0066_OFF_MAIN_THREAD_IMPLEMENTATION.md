@@ -230,21 +230,21 @@ classDiagram
 
 #### Checklist
 
-- [ ] Create `packages/data-bridge/` package
-  - [ ] `src/types.ts` - DataBridge interface, QuerySubscription, etc.
-  - [ ] `src/main-thread-bridge.ts` - Direct NodeStore access (current behavior)
-  - [ ] `src/query-cache.ts` - In-memory cache for query results
-  - [ ] `src/index.ts` - Exports
-- [ ] Update `packages/react/`
-  - [ ] Add `DataBridgeContext` and `useDataBridge()` hook
-  - [ ] Modify `XNetProvider` to create MainThreadBridge
-  - [ ] Refactor `useQuery` to use DataBridge
-  - [ ] Refactor `useMutate` to use DataBridge
-  - [ ] Keep `useNode` unchanged (Phase 3)
-- [ ] Tests
-  - [ ] Unit tests for MainThreadBridge
+- [x] Create `packages/data-bridge/` package
+  - [x] `src/types.ts` - DataBridge interface, QuerySubscription, etc.
+  - [x] `src/main-thread-bridge.ts` - Direct NodeStore access (current behavior)
+  - [x] `src/query-cache.ts` - In-memory cache for query results
+  - [x] `src/index.ts` - Exports
+- [x] Update `packages/react/`
+  - [x] Add `DataBridgeContext` and `useDataBridge()` hook
+  - [x] Modify `XNetProvider` to create MainThreadBridge
+  - [ ] Refactor `useQuery` to use DataBridge (deferred - maintaining backward compatibility)
+  - [ ] Refactor `useMutate` to use DataBridge (deferred - maintaining backward compatibility)
+  - [x] Keep `useNode` unchanged (Phase 3)
+- [x] Tests
+  - [x] Unit tests for MainThreadBridge
   - [ ] Integration tests verifying unchanged behavior
-  - [ ] Ensure all existing tests pass
+  - [x] Ensure all existing tests pass
 
 #### Key Code: MainThreadBridge
 
