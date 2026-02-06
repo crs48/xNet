@@ -178,17 +178,26 @@ export function createUpdateBatcher(options: UpdateBatcherOptions): UpdateBatche
   let pendingUpdates: Uint8Array[] = []
   let timeoutId: ReturnType<typeof setTimeout> | null = null
   let maxTimeoutId: ReturnType<typeof setTimeout> | null = null
-  // Cache the Y module after first import
+  // Cache the Y module after first import - lazy loaded to avoid module initialization issues
   let yjsModule: typeof import('yjs') | null = null
+  let yjsLoadPromise: Promise<typeof import('yjs')> | null = null
 
-  // Pre-load Yjs module (ignore errors - we'll retry when needed)
-  import('yjs')
-    .then((Y) => {
-      yjsModule = Y
-    })
-    .catch(() => {
-      // Silent fail on preload - will retry on actual merge
-    })
+  // Lazily load Yjs module (only when first update is added)
+  function loadYjs(): Promise<typeof import('yjs')> {
+    if (yjsModule) return Promise.resolve(yjsModule)
+    if (yjsLoadPromise) return yjsLoadPromise
+    yjsLoadPromise = import('yjs')
+      .then((Y) => {
+        yjsModule = Y
+        return Y
+      })
+      .catch((err) => {
+        // Reset promise so we can retry
+        yjsLoadPromise = null
+        throw err
+      })
+    return yjsLoadPromise
+  }
 
   function flush(): void {
     if (pendingUpdates.length === 0) return
@@ -215,12 +224,22 @@ export function createUpdateBatcher(options: UpdateBatcherOptions): UpdateBatche
       const merged = yjsModule.mergeUpdates(updates)
       onFlush(merged)
     } else {
-      // Fallback: dynamic import if module not loaded yet
-      import('yjs').then((Y) => {
-        yjsModule = Y
-        const merged = Y.mergeUpdates(updates)
-        onFlush(merged)
-      })
+      // Load Yjs dynamically if not yet loaded
+      loadYjs()
+        .then((Y) => {
+          const merged = Y.mergeUpdates(updates)
+          onFlush(merged)
+        })
+        .catch((err) => {
+          // If Yjs fails to load, flush updates individually
+          console.warn(
+            '[UpdateBatcher] Failed to load Yjs for merging, flushing updates individually:',
+            err
+          )
+          for (const update of updates) {
+            onFlush(update)
+          }
+        })
     }
   }
 
@@ -245,6 +264,13 @@ export function createUpdateBatcher(options: UpdateBatcherOptions): UpdateBatche
   return {
     add(update: Uint8Array): void {
       pendingUpdates.push(update)
+      // Start loading Yjs when we have 2+ updates (will need to merge)
+      if (pendingUpdates.length === 2) {
+        // Preload Yjs but ignore errors (will retry on flush)
+        loadYjs().catch(() => {
+          // Silent fail - will retry on flush
+        })
+      }
       startTimer()
       startMaxTimer()
     },
