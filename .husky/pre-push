@@ -1,2 +1,8 @@
+# Check lockfile is in sync with package.json
+pnpm install --frozen-lockfile --ignore-scripts || {
+  echo "ERROR: pnpm-lock.yaml is out of sync. Run 'pnpm install' and commit the lockfile."
+  exit 1
+}
+
 pnpm prettier --check "packages/**/*.{ts,tsx}" "apps/**/*.{ts,tsx}"
 pnpm typecheck && pnpm test
