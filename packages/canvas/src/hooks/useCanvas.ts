@@ -229,8 +229,10 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
   }, [])
 
   const selectAll = useCallback(() => {
-    setSelectedNodeIds(new Set(nodes.map((n) => n.id)))
-  }, [nodes])
+    // Read fresh nodes from store to avoid stale closure
+    const currentNodes = store.getNodes()
+    setSelectedNodeIds(new Set(currentNodes.map((n) => n.id)))
+  }, [store])
 
   const clearSelection = useCallback(() => {
     setSelectedNodeIds(new Set())
@@ -286,7 +288,10 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
 
   const autoLayout = useCallback(
     async (layoutConfig?: LayoutConfig) => {
-      const result = await layoutEngineRef.current.layout(nodes, edges, layoutConfig)
+      // Read fresh nodes/edges from store to avoid stale closure during async ELK computation
+      const currentNodes = store.getNodes()
+      const currentEdges = store.getEdges()
+      const result = await layoutEngineRef.current.layout(currentNodes, currentEdges, layoutConfig)
 
       // Apply positions
       const updates = Array.from(result.positions.entries()).map(([id, pos]) => ({
@@ -299,17 +304,20 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
       viewportRef.current.fitToRect(result.bounds, 50)
       setViewportState(viewportRef.current.clone())
     },
-    [nodes, edges, store]
+    [store]
   )
 
   const layoutSelected = useCallback(
     async (layoutConfig?: LayoutConfig) => {
       if (selectedNodeIds.size === 0) return
 
+      // Read fresh nodes/edges from store to avoid stale closure during async ELK computation
+      const currentNodes = store.getNodes()
+      const currentEdges = store.getEdges()
       const result = await layoutEngineRef.current.layoutSubset(
-        nodes,
+        currentNodes,
         selectedNodeIds,
-        edges,
+        currentEdges,
         layoutConfig
       )
 
@@ -319,7 +327,7 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
       }))
       store.updateNodePositions(updates)
     },
-    [nodes, edges, selectedNodeIds, store]
+    [selectedNodeIds, store]
   )
 
   // ============================================================================
