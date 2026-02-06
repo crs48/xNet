@@ -9,6 +9,8 @@ export interface DragState {
   draggedPos: number | null
   /** The node being dragged */
   draggedNode: PMNode | null
+  /** Fingerprint of the node for stable identification during collab */
+  nodeFingerprint: string | null
   /** Current drop target position */
   dropPos: number | null
   /** Whether drop is before or after the target */
@@ -18,8 +20,43 @@ export interface DragState {
 const INITIAL_STATE: DragState = {
   draggedPos: null,
   draggedNode: null,
+  nodeFingerprint: null,
   dropPos: null,
   dropSide: null
+}
+
+/**
+ * Create a fingerprint for a node to identify it across collab edits.
+ * Uses node type + content hash for identification.
+ */
+function createNodeFingerprint(node: PMNode): string {
+  return `${node.type.name}:${node.textContent.slice(0, 100)}:${node.nodeSize}`
+}
+
+/**
+ * Find a node in the document by its fingerprint.
+ * Searches near the expected position first, then expands search.
+ */
+function findNodeByFingerprint(doc: PMNode, fingerprint: string, hintPos: number): number | null {
+  // Search in expanding rings around the hint position
+  const maxSearchRange = 5000 // Don't search the entire doc for large documents
+  const startPos = Math.max(0, hintPos - maxSearchRange)
+  const endPos = Math.min(doc.content.size, hintPos + maxSearchRange)
+
+  let foundPos: number | null = null
+  let foundDistance = Infinity
+
+  doc.nodesBetween(startPos, endPos, (node, pos) => {
+    if (node.isBlock && createNodeFingerprint(node) === fingerprint) {
+      const distance = Math.abs(pos - hintPos)
+      if (distance < foundDistance) {
+        foundPos = pos
+        foundDistance = distance
+      }
+    }
+  })
+
+  return foundPos
 }
 
 const DRAG_DATA_TYPE = 'application/x-xnet-block'
@@ -131,6 +168,7 @@ export function createDragDropPlugin() {
 
         dragState.draggedPos = blockPos
         dragState.draggedNode = blockNode
+        dragState.nodeFingerprint = createNodeFingerprint(blockNode)
 
         // Set drag data
         if (event.dataTransfer) {
@@ -199,16 +237,34 @@ export function createDragDropPlugin() {
 
         event.preventDefault()
 
-        const { draggedPos, dropPos, dropSide } = dragState
+        const { draggedPos, dropPos, dropSide, nodeFingerprint } = dragState
 
-        if (draggedPos === null) {
+        if (draggedPos === null || nodeFingerprint === null) {
           resetDragState()
           return
         }
 
-        // Re-resolve the node from current state (important for Yjs collaboration)
+        // Find the actual current position of the dragged node using fingerprint
+        // This handles the case where collab edits shifted positions during drag
+        let actualPos = draggedPos
         const $draggedPos = editorView.state.doc.resolve(draggedPos)
-        const currentNode = $draggedPos.nodeAfter
+        const nodeAtStoredPos = $draggedPos.nodeAfter
+
+        // Verify the node at stored position matches our fingerprint
+        if (!nodeAtStoredPos || createNodeFingerprint(nodeAtStoredPos) !== nodeFingerprint) {
+          // Node moved - search for it by fingerprint
+          const foundPos = findNodeByFingerprint(editorView.state.doc, nodeFingerprint, draggedPos)
+          if (foundPos === null) {
+            // Node was deleted or changed significantly - abort drag
+            resetDragState()
+            return
+          }
+          actualPos = foundPos
+        }
+
+        // Re-resolve with the actual position
+        const $actualPos = editorView.state.doc.resolve(actualPos)
+        const currentNode = $actualPos.nodeAfter
         if (!currentNode) {
           resetDragState()
           return
@@ -227,11 +283,11 @@ export function createDragDropPlugin() {
         // Create transaction: delete then insert
         const tr = editorView.state.tr
 
-        // Delete the original node first
-        tr.delete(draggedPos, draggedPos + currentNode.nodeSize)
+        // Delete the original node first (using actualPos which accounts for collab shifts)
+        tr.delete(actualPos, actualPos + currentNode.nodeSize)
 
         // Adjust insert position if it was after the deleted node
-        if (insertPos > draggedPos) {
+        if (insertPos > actualPos) {
           insertPos -= currentNode.nodeSize
         }
 
