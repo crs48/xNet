@@ -1338,9 +1338,9 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 - [x] Create `composeLens()` utility
 - [x] Integrate `LensRegistry` into `NodeStore`
 - [x] Add migration hooks to `useQuery`
-- [ ] Create `xnet migrate analyze` command
-- [ ] Create `xnet migrate generate` command
-- [ ] Create `xnet migrate run` command
+- [x] Create `xnet migrate analyze` command
+- [x] Create `xnet migrate generate` command
+- [x] Create `xnet migrate run` command
 - [x] Write migration tests
 
 ### Week 5-6: Capability Negotiation
@@ -1357,7 +1357,7 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 
 ### Week 7-8: Developer Experience
 
-- [ ] Create `diffSchemas()` utility
+- [x] Create `diffSchemas()` utility
 - [ ] Add schema diff to TypeScript plugin (optional)
 - [ ] Create Version DevTools panel
 - [ ] Create Migration Wizard component
