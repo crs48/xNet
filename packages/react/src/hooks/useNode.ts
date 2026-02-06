@@ -34,6 +34,7 @@ import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/dat
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
+import { useDataBridge } from '../context'
 import { useInstrumentation } from '../instrumentation'
 import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN } from '../sync/meta-bridge'
 import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
@@ -238,11 +239,12 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
 
   const { store, isReady } = useNodeStore()
   const syncManager = useSyncManager()
+  const bridge = useDataBridge()
   const instrumentation = useInstrumentation()
   const schemaId = schema._schemaId
   const hasDocument = schema.schema.document === 'yjs'
-  // Track whether this instance is using the SyncManager (for cleanup)
-  const usingSyncManagerRef = useRef(false)
+  // Track whether this instance is using the DataBridge (for cleanup)
+  const usingBridgeRef = useRef(false)
 
   // State
   const [data, setData] = useState<FlatNode<P> | null>(null)
@@ -377,7 +379,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
           // Destroy previous provider and Y.Doc if switching to a different document.
           if (docRef.current) {
             instrumentation?.yDocRegistry.unregister(docRef.current.guid)
-            if (!usingSyncManagerRef.current) {
+            if (!usingBridgeRef.current) {
               // Only destroy if we own the doc (not borrowed from SyncManager)
               if (providerRef.current) {
                 providerRef.current.destroy()
@@ -390,15 +392,34 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
             }
             docRef.current = null
             setDoc(null)
-            usingSyncManagerRef.current = false
+            usingBridgeRef.current = false
           }
 
           let ydoc: Y.Doc
+          let acquiredAwareness: Awareness | null = null
 
-          if (syncManager && !disableSync) {
-            // === SyncManager path: borrow Y.Doc from the pool ===
+          if (bridge?.acquireDoc && !disableSync) {
+            // === DataBridge path: use bridge.acquireDoc() ===
+            // This abstracts away whether we're using SyncManager, Worker, or IPC
+            const acquired = await bridge.acquireDoc(id)
+            ydoc = acquired.doc
+            acquiredAwareness = acquired.awareness
+            usingBridgeRef.current = true
+
+            // Load stored content into the doc (the bridge may return an empty doc)
+            const storedContent = await store.getDocumentContent(id)
+            if (storedContent && storedContent.length > 0) {
+              Y.applyUpdate(ydoc, storedContent, 'storage')
+            }
+
+            // Track this Node for background sync (if syncManager is available)
+            if (syncManager) {
+              syncManager.track(id, schemaId)
+            }
+          } else if (syncManager && !disableSync) {
+            // === Legacy SyncManager path (fallback if bridge doesn't have acquireDoc) ===
             ydoc = await syncManager.acquire(id)
-            usingSyncManagerRef.current = true
+            usingBridgeRef.current = true
 
             // Load stored content into the doc (the SyncManager may return an empty doc)
             const storedContent = await store.getDocumentContent(id)
@@ -412,13 +433,18 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
             // === Fallback path: create our own Y.Doc (backwards compat) ===
             log('Using fallback WebSocketSyncProvider path for:', id)
             ydoc = new Y.Doc({ guid: id, gc: false })
-            usingSyncManagerRef.current = false
+            usingBridgeRef.current = false
 
             // Load stored content
             const storedContent = await store.getDocumentContent(id)
             if (storedContent && storedContent.length > 0) {
               Y.applyUpdate(ydoc, storedContent)
             }
+          }
+
+          // Store acquired awareness if we got one from the bridge
+          if (acquiredAwareness) {
+            setAwareness(acquiredAwareness)
           }
 
           docRef.current = ydoc
@@ -552,7 +578,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     }
 
     // === SyncManager path: sync is handled internally by the manager ===
-    if (usingSyncManagerRef.current && syncManager) {
+    if (usingBridgeRef.current && syncManager) {
       // Track whether we received any sync data
       let receivedSyncData = false
       let syncTimeoutId: ReturnType<typeof setTimeout> | null = null
@@ -990,13 +1016,17 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
         pendingFlushes.set(id, flushPromise)
       }
 
-      // Release doc back to SyncManager on unmount
-      if (usingSyncManagerRef.current && id && syncManager) {
-        syncManager.release(id)
-        usingSyncManagerRef.current = false
+      // Release doc back to DataBridge (or SyncManager) on unmount
+      if (usingBridgeRef.current && id) {
+        if (bridge?.releaseDoc) {
+          bridge.releaseDoc(id)
+        } else if (syncManager) {
+          syncManager.release(id)
+        }
+        usingBridgeRef.current = false
       }
     }
-  }, [store, id, syncManager])
+  }, [store, id, syncManager, bridge])
 
   // Handle page unload - flush any pending saves immediately
   // This catches refresh/close where the debounced save hasn't run yet
