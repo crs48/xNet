@@ -26,7 +26,7 @@
  * ```
  */
 import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeChangeEvent } from '@xnet/data'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'
 import { useNodeStore } from './useNodeStore'
@@ -157,6 +157,10 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const isSingleQuery = typeof idOrFilter === 'string'
   const filter: QueryFilter<P> = typeof idOrFilter === 'object' ? idOrFilter : {}
   const nodeId = isSingleQuery ? idOrFilter : null
+
+  // Memoize stringified where clause to avoid unnecessary re-renders
+  // The string representation is stable when the filter content doesn't change
+  const whereKey = useMemo(() => JSON.stringify(filter.where), [filter.where])
 
   // State - now using FlatNode
   const [data, setData] = useState<FlatNode<P>[] | FlatNode<P> | null>(isSingleQuery ? null : [])
@@ -309,7 +313,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     filter.includeDeleted,
     filter.limit,
     filter.offset,
-    JSON.stringify(filter.where),
+    whereKey,
     sortNodes
   ])
 
@@ -392,15 +396,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     })
 
     return unsubscribe
-  }, [
-    store,
-    schemaId,
-    nodeId,
-    isSingleQuery,
-    filter.includeDeleted,
-    JSON.stringify(filter.where),
-    sortNodes
-  ])
+  }, [store, schemaId, nodeId, isSingleQuery, filter.includeDeleted, whereKey, sortNodes])
 
   return {
     data,
