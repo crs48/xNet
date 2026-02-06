@@ -7,6 +7,9 @@
  */
 
 import type { Change } from './change'
+import type { FeatureFlag } from './features'
+import type { PeerCapabilities, NegotiatedSession, NegotiationResult } from './negotiation'
+import { VersionNegotiator, createLocalCapabilities } from './negotiation'
 
 /**
  * Connection status of a sync provider.
@@ -25,6 +28,10 @@ export interface PeerInfo {
   connectedAt: number
   /** Last activity timestamp */
   lastSeen: number
+  /** Peer's advertised capabilities (after handshake) */
+  capabilities?: PeerCapabilities
+  /** Negotiated session with this peer */
+  negotiatedSession?: NegotiatedSession
 }
 
 /**
@@ -49,6 +56,21 @@ export interface SyncProviderEvents<T = unknown> {
    * but cannot be processed by the current version.
    */
   'unknown-change-type': (change: Change<unknown>, peerId: string) => void
+  /**
+   * Fired when capability negotiation completes with a peer.
+   * Includes the negotiated session with common features.
+   */
+  'negotiation-complete': (peerId: string, session: NegotiatedSession) => void
+  /**
+   * Fired when capability negotiation fails with a peer.
+   * The peer will be disconnected after this event.
+   */
+  'negotiation-failed': (peerId: string, error: string, suggestion: string) => void
+  /**
+   * Fired when operating with degraded features due to peer compatibility.
+   * Includes warnings about unavailable features.
+   */
+  'capability-degraded': (peerId: string, warnings: string[]) => void
 }
 
 /**
@@ -73,6 +95,21 @@ export interface SyncProvider<T = unknown> {
 
   /** Detailed information about connected peers */
   readonly peerInfo: Map<string, PeerInfo>
+
+  /** Local peer's capabilities */
+  readonly localCapabilities: PeerCapabilities
+
+  /**
+   * Check if a feature can be used with a specific peer.
+   * Returns false if not negotiated or feature unavailable.
+   */
+  canUseFeature(peerId: string, feature: FeatureFlag): boolean
+
+  /**
+   * Get the negotiated session for a peer.
+   * Returns undefined if not yet negotiated.
+   */
+  getNegotiatedSession(peerId: string): NegotiatedSession | undefined
 
   /**
    * Connect to the sync network.
@@ -153,6 +190,19 @@ export interface SyncProviderOptions {
   maxReconnectAttempts?: number
   /** Reconnection delay in milliseconds */
   reconnectDelay?: number
+
+  // ─── Capability Negotiation Options ──────────────────────────────────────────
+
+  /** Local peer's DID for capability advertisement */
+  localDID?: string
+  /** Features to advertise (defaults to all enabled at current protocol version) */
+  enabledFeatures?: FeatureFlag[]
+  /** Minimum protocol version to accept from peers */
+  minProtocolVersion?: number
+  /** Whether to reject peers with incompatible versions (default: false, just warn) */
+  strictVersionCheck?: boolean
+  /** Package version string for debugging */
+  packageVersion?: string
 }
 
 /**
@@ -164,6 +214,30 @@ export abstract class BaseSyncProvider<T = unknown> implements SyncProvider<T> {
   protected _peers: Map<string, PeerInfo> = new Map()
   protected _listeners: Map<string, Set<(...args: unknown[]) => unknown>> = new Map()
 
+  /** Local capabilities for negotiation */
+  protected _localCapabilities: PeerCapabilities
+
+  /** Version negotiator instance */
+  protected _negotiator: VersionNegotiator
+
+  /** Provider options */
+  protected _options: SyncProviderOptions
+
+  constructor(options: SyncProviderOptions) {
+    this._options = options
+    this._negotiator = new VersionNegotiator()
+
+    // Create local capabilities from options
+    this._localCapabilities = createLocalCapabilities(
+      options.localDID ?? `anonymous-${Date.now()}`,
+      options.enabledFeatures,
+      {
+        packageVersion: options.packageVersion,
+        minProtocolVersion: options.minProtocolVersion
+      }
+    )
+  }
+
   get status(): SyncStatus {
     return this._status
   }
@@ -174,6 +248,28 @@ export abstract class BaseSyncProvider<T = unknown> implements SyncProvider<T> {
 
   get peerInfo(): Map<string, PeerInfo> {
     return new Map(this._peers)
+  }
+
+  get localCapabilities(): PeerCapabilities {
+    return this._localCapabilities
+  }
+
+  /**
+   * Check if a feature can be used with a specific peer.
+   */
+  canUseFeature(peerId: string, feature: FeatureFlag): boolean {
+    const peer = this._peers.get(peerId)
+    if (!peer?.negotiatedSession) {
+      return false
+    }
+    return peer.negotiatedSession.canUse(feature)
+  }
+
+  /**
+   * Get the negotiated session for a peer.
+   */
+  getNegotiatedSession(peerId: string): NegotiatedSession | undefined {
+    return this._peers.get(peerId)?.negotiatedSession
   }
 
   abstract connect(): Promise<void>
@@ -269,5 +365,91 @@ export abstract class BaseSyncProvider<T = unknown> implements SyncProvider<T> {
     if (peer) {
       peer.lastSeen = Date.now()
     }
+  }
+
+  /**
+   * Negotiate capabilities with a peer.
+   * Called when a peer connects and sends their capabilities.
+   *
+   * @param peerId - The peer's ID
+   * @param remoteCapabilities - The peer's advertised capabilities
+   * @returns Negotiation result (success or failure)
+   */
+  protected negotiateWithPeer(
+    peerId: string,
+    remoteCapabilities: PeerCapabilities
+  ): NegotiationResult {
+    const peer = this._peers.get(peerId)
+    if (!peer) {
+      return {
+        success: false,
+        error: 'invalid-capabilities',
+        message: `Peer ${peerId} not found`,
+        localVersion: this._localCapabilities.protocolVersion,
+        remoteVersion: remoteCapabilities.protocolVersion,
+        suggestion: 'contact-support'
+      }
+    }
+
+    // Store remote capabilities
+    peer.capabilities = remoteCapabilities
+
+    // Perform negotiation
+    const result = this._negotiator.negotiate(this._localCapabilities, remoteCapabilities)
+
+    if (result.success) {
+      // Store negotiated session
+      peer.negotiatedSession = result
+
+      // Emit success event
+      this.emit('negotiation-complete', peerId, result)
+
+      // Emit degradation warnings if any
+      if (result.warnings.length > 0) {
+        const warningMessages = result.warnings.map((w) => w.message)
+        this.emit('capability-degraded', peerId, warningMessages)
+      }
+    } else {
+      // Emit failure event
+      this.emit('negotiation-failed', peerId, result.message, result.suggestion)
+
+      // If strict mode, disconnect the peer
+      if (this._options.strictVersionCheck) {
+        this.removePeer(peerId)
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Get features available with all connected peers.
+   * Returns the intersection of all negotiated feature sets.
+   */
+  getCommonFeatures(): FeatureFlag[] {
+    const negotiatedPeers = Array.from(this._peers.values()).filter((p) => p.negotiatedSession)
+
+    if (negotiatedPeers.length === 0) {
+      // No negotiated peers, return local features
+      return this._localCapabilities.features
+    }
+
+    // Start with first peer's features
+    let common = new Set(negotiatedPeers[0].negotiatedSession!.commonFeatures)
+
+    // Intersect with all other peers
+    for (let i = 1; i < negotiatedPeers.length; i++) {
+      const peerFeatures = new Set(negotiatedPeers[i].negotiatedSession!.commonFeatures)
+      common = new Set([...common].filter((f) => peerFeatures.has(f)))
+    }
+
+    return [...common]
+  }
+
+  /**
+   * Check if a feature can be used with all connected peers.
+   */
+  canUseFeatureWithAll(feature: FeatureFlag): boolean {
+    return this.getCommonFeatures().includes(feature)
   }
 }
