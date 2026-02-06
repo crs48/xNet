@@ -131,7 +131,12 @@ describe('YjsRateLimiter', () => {
   })
 
   it('clears all state', () => {
-    const limiter = new YjsRateLimiter({ maxPerSecond: 1, maxPerMinute: 600, burstAllowance: 0 })
+    const limiter = new YjsRateLimiter({
+      maxPerSecond: 1,
+      maxPerMinute: 600,
+      burstAllowance: 0,
+      cleanupIntervalMs: 0
+    })
 
     limiter.allow('peer-1')
     limiter.allow('peer-2')
@@ -143,6 +148,99 @@ describe('YjsRateLimiter', () => {
 
     expect(limiter.allow('peer-1')).toBe(true)
     expect(limiter.allow('peer-2')).toBe(true)
+
+    limiter.stopCleanup()
+  })
+
+  it('tracks peer count', () => {
+    const limiter = new YjsRateLimiter({ cleanupIntervalMs: 0 })
+    expect(limiter.peerCount).toBe(0)
+
+    limiter.allow('peer-1')
+    expect(limiter.peerCount).toBe(1)
+
+    limiter.allow('peer-2')
+    expect(limiter.peerCount).toBe(2)
+
+    limiter.allow('peer-1') // Same peer
+    expect(limiter.peerCount).toBe(2)
+
+    limiter.stopCleanup()
+  })
+
+  it('cleanupStale removes entries with expired windows', () => {
+    const limiter = new YjsRateLimiter({
+      cleanupIntervalMs: 0,
+      staleThresholdMs: 1000 // 1 second
+    })
+
+    limiter.allow('peer-1')
+    limiter.allow('peer-2')
+    expect(limiter.peerCount).toBe(2)
+
+    // Advance past minute window expiry (60s) + stale threshold (1s) = 61s
+    // This ensures both second and minute windows are stale
+    vi.advanceTimersByTime(62_000)
+
+    // Access peer-1 to keep it fresh (creates new windows)
+    limiter.allow('peer-1')
+
+    // Cleanup should remove peer-2 (both windows stale)
+    const removed = limiter.cleanupStale()
+    expect(removed).toBeGreaterThan(0)
+    expect(limiter.peerCount).toBe(1)
+  })
+
+  it('auto-cleanup runs on interval', () => {
+    const limiter = new YjsRateLimiter({
+      cleanupIntervalMs: 100,
+      staleThresholdMs: 50
+    })
+
+    limiter.allow('peer-1')
+    expect(limiter.peerCount).toBe(1)
+
+    // Advance past minute window expiry (60s) + stale threshold (50ms) + cleanup interval (100ms)
+    vi.advanceTimersByTime(61_000)
+
+    // Auto cleanup should have run
+    expect(limiter.peerCount).toBe(0)
+
+    limiter.stopCleanup()
+  })
+
+  it('stopCleanup prevents auto cleanup', () => {
+    const limiter = new YjsRateLimiter({
+      cleanupIntervalMs: 100,
+      staleThresholdMs: 50
+    })
+
+    limiter.allow('peer-1')
+    limiter.stopCleanup()
+
+    // Advance past cleanup interval
+    vi.advanceTimersByTime(1200)
+
+    // Peer should still exist (cleanup didn't run)
+    expect(limiter.peerCount).toBe(1)
+  })
+
+  it('destroy stops cleanup and clears state', () => {
+    const limiter = new YjsRateLimiter({
+      cleanupIntervalMs: 100,
+      staleThresholdMs: 50
+    })
+
+    limiter.allow('peer-1')
+    limiter.allow('peer-2')
+    expect(limiter.peerCount).toBe(2)
+
+    limiter.destroy()
+    expect(limiter.peerCount).toBe(0)
+
+    // Advance time - should not cause errors
+    vi.advanceTimersByTime(200)
+    expect(limiter.peerCount).toBe(0)
   })
 })
 

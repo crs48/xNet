@@ -52,6 +52,16 @@ interface RateWindow {
 }
 
 /**
+ * Extended config for rate limiter with cleanup options.
+ */
+export interface YjsRateLimiterOptions extends Partial<RateLimiterConfig> {
+  /** How long until an entry is considered stale (default: 2 minutes) */
+  staleThresholdMs?: number
+  /** Cleanup interval in ms (default: 30 seconds). Set to 0 to disable auto-cleanup. */
+  cleanupIntervalMs?: number
+}
+
+/**
  * Rate limiter for Yjs updates.
  *
  * Tracks per-peer update frequency and enforces both per-second and per-minute limits.
@@ -70,9 +80,67 @@ export class YjsRateLimiter {
   private secondWindows = new Map<string, RateWindow>()
   private minuteWindows = new Map<string, RateWindow>()
   private config: RateLimiterConfig
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null
+  private staleThresholdMs: number
 
-  constructor(config: Partial<RateLimiterConfig> = {}) {
+  constructor(options: YjsRateLimiterOptions = {}) {
+    const { staleThresholdMs, cleanupIntervalMs, ...config } = options
     this.config = { ...DEFAULT_RATE_LIMITER_CONFIG, ...config }
+    this.staleThresholdMs = staleThresholdMs ?? 2 * 60 * 1000 // 2 minutes
+
+    const interval = cleanupIntervalMs ?? 30 * 1000 // 30 seconds
+    if (interval > 0) {
+      this.startCleanup(interval)
+    }
+  }
+
+  /** Start periodic cleanup of stale entries. */
+  startCleanup(intervalMs: number = 30 * 1000): void {
+    this.stopCleanup()
+    this.cleanupInterval = setInterval(() => this.cleanupStale(), intervalMs)
+    // Unref so it doesn't prevent process from exiting
+    if (typeof this.cleanupInterval === 'object' && 'unref' in this.cleanupInterval) {
+      this.cleanupInterval.unref()
+    }
+  }
+
+  /** Stop periodic cleanup. */
+  stopCleanup(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval)
+      this.cleanupInterval = null
+    }
+  }
+
+  /** Remove entries whose windows have expired. Returns count removed. */
+  cleanupStale(): number {
+    const now = Date.now()
+    const threshold = now - this.staleThresholdMs
+    let removed = 0
+
+    for (const [peerId, window] of this.secondWindows) {
+      // Remove if window expired a long time ago
+      if (window.resetAt < threshold) {
+        this.secondWindows.delete(peerId)
+        removed++
+      }
+    }
+
+    for (const [peerId, window] of this.minuteWindows) {
+      if (window.resetAt < threshold) {
+        this.minuteWindows.delete(peerId)
+        removed++
+      }
+    }
+
+    return removed
+  }
+
+  /** Get number of tracked peers. */
+  get peerCount(): number {
+    // Union of peers in both maps
+    const peers = new Set([...this.secondWindows.keys(), ...this.minuteWindows.keys()])
+    return peers.size
   }
 
   /**
@@ -138,6 +206,14 @@ export class YjsRateLimiter {
   clear(): void {
     this.secondWindows.clear()
     this.minuteWindows.clear()
+  }
+
+  /**
+   * Stop cleanup and clear all state.
+   */
+  destroy(): void {
+    this.stopCleanup()
+    this.clear()
   }
 }
 

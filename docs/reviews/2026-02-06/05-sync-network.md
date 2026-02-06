@@ -341,7 +341,7 @@ sequenceDiagram
 ### Phase 2 (Hub MVP)
 
 - [x] **NW-01:** Wire signed envelope verification into network sync protocol _(fixed a190622)_
-- [ ] **SY-04:** Add periodic cleanup to rate limiter
+- [x] **SY-04:** Add periodic cleanup to rate limiter _(fixed - added cleanup to both @xnet/sync YjsRateLimiter and @xnet/network SyncRateLimiter)_
 - [ ] **SY-05:** Remove cleanup side effect from size()
 - [ ] **SDK-01:** Add LRU eviction to document cache
 - [ ] **NW-02/03:** Clean up timers on destroy
