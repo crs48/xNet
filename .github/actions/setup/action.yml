@@ -4,7 +4,7 @@ description: 'Checkout, install pnpm, Node.js, and dependencies'
 inputs:
   node-version:
     description: 'Node.js version'
-    default: '22'
+    default: '23'
   turbo-cache:
     description: 'Enable Turbo cache persistence'
     default: 'true'
