@@ -42,7 +42,10 @@ export default defineConfig({
     starlight({
       title: 'xNet',
       customCss: ['./src/styles/docs.css'],
-      social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/crs48/xNet' }],
+      social: [
+        { icon: 'rocket', label: 'Try the App', href: '/app' },
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/crs48/xNet' }
+      ],
       editLink: {
         baseUrl: 'https://github.com/crs48/xNet/edit/main/site/'
       },
