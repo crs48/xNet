@@ -323,8 +323,8 @@ graph TD
 ### Phase 2 (Hub MVP)
 
 - [x] **REACT-03:** Await room join confirmation in SyncManager _(fixed - joinRoomAsync with subscription confirmation)_
-- [ ] **REACT-11:** Clean up status handlers on stop
-- [ ] **REACT-14:** Clear eventHandlers in destroy
+- [x] **REACT-11:** Clean up status handlers on stop _(fixed - store and call statusHandlerCleanup in stop())_
+- [x] **REACT-14:** Clear eventHandlers in destroy _(fixed - clear eventHandlers map in WebSocketSyncProvider.destroy())_
 - [ ] Add tests for sync-manager, connection-manager, offline-queue
 
 ### Phase 3 (Production)
