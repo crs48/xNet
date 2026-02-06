@@ -30,6 +30,7 @@ export class DefaultConnectionGater implements ConnectionGater {
   private tracker: ConnectionTracker
   private denylist = new Set<string>()
   private allowlist = new Set<string>()
+  private denylistTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
   constructor(limits: ConnectionLimits, options?: { denylist?: string[]; allowlist?: string[] }) {
     this.tracker = new ConnectionTracker(limits)
@@ -114,13 +115,28 @@ export class DefaultConnectionGater implements ConnectionGater {
 
   addToDenylist(id: string, options?: { duration?: number }): void {
     this.denylist.add(id)
+    // Clear any existing timer for this id
+    const existingTimer = this.denylistTimers.get(id)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+      this.denylistTimers.delete(id)
+    }
     if (options?.duration) {
-      setTimeout(() => this.denylist.delete(id), options.duration)
+      const timer = setTimeout(() => {
+        this.denylist.delete(id)
+        this.denylistTimers.delete(id)
+      }, options.duration)
+      this.denylistTimers.set(id, timer)
     }
   }
 
   removeFromDenylist(id: string): void {
     this.denylist.delete(id)
+    const timer = this.denylistTimers.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      this.denylistTimers.delete(id)
+    }
   }
 
   addToAllowlist(peerId: string): void {
@@ -156,5 +172,10 @@ export class DefaultConnectionGater implements ConnectionGater {
   /** Clean up timers. */
   destroy(): void {
     this.tracker.destroy()
+    // Clear all denylist expiry timers
+    for (const timer of this.denylistTimers.values()) {
+      clearTimeout(timer)
+    }
+    this.denylistTimers.clear()
   }
 }
