@@ -310,6 +310,14 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       return
     }
 
+    // If sync is enabled but SyncManager isn't ready yet, wait for it.
+    // This prevents creating a local Y.Doc that gets orphaned when SyncManager arrives.
+    if (hasDocument && !disableSync && !syncManager) {
+      log('Waiting for SyncManager before loading document')
+      setLoading(true)
+      return
+    }
+
     log('Loading node:', id, 'schemaId:', schemaId)
     setLoading(true)
     setError(null)
@@ -471,7 +479,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     } finally {
       setLoading(false)
     }
-  }, [store, isReady, id, schemaId, hasDocument])
+  }, [store, isReady, id, schemaId, hasDocument, syncManager, disableSync])
 
   // Save document content
   const save = useCallback(async () => {
