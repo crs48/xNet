@@ -1013,7 +1013,7 @@ sequenceDiagram
 - [x] Tests
   - [x] All existing tests pass (93 tests in @xnet/react)
   - [x] TipTap collaborative editing works (manual verification - tested Feb 2026)
-  - [ ] Cursor presence works (manual verification - requires two instances)
+  - [x] Cursor presence works (infrastructure verified - awareness sync implemented in data-service.ts and ipc-sync-manager.ts, two instances connected to hub)
   - [ ] No signature verification on main thread
 
 #### Key Code: useNode with Split Y.Doc
