@@ -171,6 +171,7 @@ function synthesizeSchema(nodes: NodeEntry[], schemaFilter: string | null): Sche
       '@type': 'xnet://xnet.fyi/Schema',
       name: schemaFilter.split('/').pop() ?? 'Node',
       namespace: 'xnet://devtools/',
+      version: '1.0.0',
       properties: [baseProperties[0], ...schemaProps, ...baseProperties.slice(2)]
     }
   }
@@ -181,6 +182,7 @@ function synthesizeSchema(nodes: NodeEntry[], schemaFilter: string | null): Sche
     '@type': 'xnet://xnet.fyi/Schema',
     name: 'Node',
     namespace: 'xnet://devtools/',
+    version: '1.0.0',
     properties: [
       ...baseProperties.slice(0, 2),
       { '@id': 'devtools#preview', name: 'preview', type: 'text', required: false },

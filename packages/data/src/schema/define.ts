@@ -18,6 +18,11 @@ import type {
 import { createNodeId } from './node'
 
 /**
+ * Default schema version when not specified.
+ */
+export const DEFAULT_SCHEMA_VERSION = '1.0.0'
+
+/**
  * Options for defining a schema.
  */
 export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> {
@@ -25,6 +30,24 @@ export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> 
   name: string
   /** Namespace (e.g., 'xnet://xnet.fyi/') */
   namespace: `xnet://${string}/`
+  /**
+   * Schema version in semver format (e.g., '1.0.0', '2.1.0').
+   * Used for schema evolution and migration paths.
+   *
+   * Defaults to '1.0.0' if not specified.
+   *
+   * The version is included in the SchemaIRI:
+   * - Without version: `xnet://xnet.fyi/Task` (treated as @1.0.0)
+   * - With version: `xnet://xnet.fyi/Task@2.0.0`
+   */
+  version?: string
+  /**
+   * Previous schema version to migrate from.
+   * Used to define automatic migration paths.
+   *
+   * Example: `xnet://xnet.fyi/Task@1.0.0`
+   */
+  migrateFrom?: SchemaIRI
   /** Property definitions */
   properties: P
   /** Parent schema to extend */
@@ -60,7 +83,10 @@ export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> 
 export function defineSchema<P extends Record<string, PropertyBuilder>>(
   options: DefineSchemaOptions<P>
 ): DefinedSchema<P> {
-  const schemaId = `${options.namespace}${options.name}` as SchemaIRI
+  const version = options.version ?? DEFAULT_SCHEMA_VERSION
+  // Build versioned SchemaIRI: xnet://namespace/Name@version
+  // For default version 1.0.0, we still include it for consistency
+  const schemaId = `${options.namespace}${options.name}@${version}` as SchemaIRI
 
   // ─── Dev-time warning: detect text() properties that look like references ───
   if (process.env.NODE_ENV !== 'production') {
@@ -95,6 +121,8 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
     '@type': 'xnet://xnet.fyi/Schema',
     name: options.name,
     namespace: options.namespace,
+    version,
+    migrateFrom: options.migrateFrom,
     properties,
     extends: options.extends?.schema['@id'],
     document: options.document

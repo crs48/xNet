@@ -17,9 +17,25 @@ describe('Schema System', () => {
         }
       })
 
-      expect(TaskSchema.schema['@id']).toBe('xnet://xnet.fyi/Task')
+      // Default version is 1.0.0
+      expect(TaskSchema.schema['@id']).toBe('xnet://xnet.fyi/Task@1.0.0')
       expect(TaskSchema.schema['@type']).toBe('xnet://xnet.fyi/Schema')
       expect(TaskSchema.schema.name).toBe('Task')
+      expect(TaskSchema.schema.version).toBe('1.0.0')
+    })
+
+    it('creates a schema with explicit version', () => {
+      const TaskSchemaV2 = defineSchema({
+        name: 'Task',
+        namespace: 'xnet://xnet.fyi/',
+        version: '2.0.0',
+        properties: {
+          title: text({ required: true })
+        }
+      })
+
+      expect(TaskSchemaV2.schema['@id']).toBe('xnet://xnet.fyi/Task@2.0.0')
+      expect(TaskSchemaV2.schema.version).toBe('2.0.0')
     })
 
     it('builds property definitions with IRIs', () => {
@@ -33,9 +49,10 @@ describe('Schema System', () => {
       })
 
       expect(TaskSchema.schema.properties).toHaveLength(2)
-      expect(TaskSchema.schema.properties[0]['@id']).toBe('xnet://xnet.fyi/Task#title')
+      // Property IRIs include version
+      expect(TaskSchema.schema.properties[0]['@id']).toBe('xnet://xnet.fyi/Task@1.0.0#title')
       expect(TaskSchema.schema.properties[0].required).toBe(true)
-      expect(TaskSchema.schema.properties[1]['@id']).toBe('xnet://xnet.fyi/Task#priority')
+      expect(TaskSchema.schema.properties[1]['@id']).toBe('xnet://xnet.fyi/Task@1.0.0#priority')
       expect(TaskSchema.schema.properties[1].required).toBe(false)
     })
 
@@ -68,7 +85,7 @@ describe('Schema System', () => {
       const task = TaskSchema.create({ title: 'Fix the bug' }, { createdBy: testDID })
 
       expect(task.id).toBeDefined()
-      expect(task.schemaId).toBe('xnet://xnet.fyi/Task')
+      expect(task.schemaId).toBe('xnet://xnet.fyi/Task@1.0.0')
       expect(task.createdAt).toBeGreaterThan(0)
       expect(task.createdBy).toBe(testDID)
       expect(task.title).toBe('Fix the bug')
@@ -122,7 +139,7 @@ describe('Schema System', () => {
     it('rejects missing required field', () => {
       const invalid = {
         id: 'test',
-        schemaId: 'xnet://xnet.fyi/Task',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
         createdAt: Date.now(),
         createdBy: testDID
         // title is missing
@@ -136,7 +153,7 @@ describe('Schema System', () => {
     it('rejects invalid property value', () => {
       const invalid = {
         id: 'test',
-        schemaId: 'xnet://xnet.fyi/Task',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
         createdAt: Date.now(),
         createdBy: testDID,
         title: 'Valid',
@@ -219,7 +236,7 @@ describe('Schema System', () => {
     it('rejects invalid option', () => {
       const invalid = {
         id: 'test',
-        schemaId: 'xnet://test/Task',
+        schemaId: 'xnet://test/Task@1.0.0',
         createdAt: Date.now(),
         createdBy: testDID,
         status: 'invalid'
@@ -316,7 +333,7 @@ describe('Schema System', () => {
 
       const valid = {
         id: 'test',
-        schemaId: 'xnet://test/Ref',
+        schemaId: 'xnet://test/Ref@1.0.0',
         createdAt: Date.now(),
         createdBy: testDID,
         target: 'some-node-id'

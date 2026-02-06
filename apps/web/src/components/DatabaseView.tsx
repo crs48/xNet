@@ -391,6 +391,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       '@type': 'xnet://xnet.fyi/Schema' as const,
       name: 'DynamicDatabase',
       namespace: 'xnet://xnet.fyi/' as const,
+      version: '1.0.0',
       properties
     }
   }, [columns])

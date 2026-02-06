@@ -8,7 +8,7 @@
  * - Validation that a node matches its schema
  */
 
-import type { SchemaIRI, Node } from './node'
+import type { SchemaIRI, Node, ParsedSchemaIRI } from './node'
 import type { SelectOption } from './properties'
 import type {
   CreateNodeOptions,
@@ -21,7 +21,7 @@ import type {
   ValidationError,
   ValidationResult
 } from './types'
-import { createNodeId } from './node'
+import { parseSchemaIRI, getBaseSchemaIRI, normalizeSchemaIRI, createNodeId } from './node'
 import {
   checkbox,
   created,
@@ -205,6 +205,84 @@ export class SchemaRegistry {
    */
   setRemoteResolver(resolver: (iri: SchemaIRI) => Promise<Schema | null>): void {
     this.remoteResolver = resolver
+  }
+
+  // ─── Version-Aware Methods ───────────────────────────────────────────────
+
+  /**
+   * Get the version of a registered schema.
+   *
+   * @param iri - The schema IRI (versioned or unversioned)
+   * @returns The version string, or undefined if not found
+   */
+  getVersion(iri: SchemaIRI): string | undefined {
+    const entry = this.schemas.get(iri) ?? this.schemas.get(normalizeSchemaIRI(iri))
+    if (entry) {
+      return entry.schema.schema.version
+    }
+    // Check built-in schemas
+    const normalizedIRI = normalizeSchemaIRI(iri)
+    if (normalizedIRI in builtInSchemas || iri in builtInSchemas) {
+      // Built-in schemas are always version 1.0.0
+      return '1.0.0'
+    }
+    return undefined
+  }
+
+  /**
+   * Get all versions of a schema by its base name.
+   *
+   * @param baseIRI - The unversioned base IRI (e.g., 'xnet://xnet.fyi/Task')
+   * @returns Array of versioned schemas, sorted by version
+   */
+  getAllVersions(
+    baseIRI: SchemaIRI
+  ): Array<{ iri: SchemaIRI; version: string; schema: DefinedSchema }> {
+    const versions: Array<{ iri: SchemaIRI; version: string; schema: DefinedSchema }> = []
+    const normalizedBase = getBaseSchemaIRI(baseIRI)
+
+    for (const [iri, entry] of this.schemas) {
+      if (getBaseSchemaIRI(iri) === normalizedBase) {
+        versions.push({
+          iri,
+          version: entry.schema.schema.version,
+          schema: entry.schema
+        })
+      }
+    }
+
+    // Check built-in schemas
+    for (const builtInIRI of Object.keys(builtInSchemas) as SchemaIRI[]) {
+      if (getBaseSchemaIRI(builtInIRI) === normalizedBase) {
+        const parsed = parseSchemaIRI(builtInIRI)
+        // Don't duplicate if already loaded
+        if (!versions.some((v) => v.iri === parsed.iri)) {
+          // We can't get the schema synchronously for unloaded built-ins
+          // Just note the version exists
+          versions.push({
+            iri: parsed.iri,
+            version: parsed.version,
+            schema: undefined as unknown as DefinedSchema // Placeholder
+          })
+        }
+      }
+    }
+
+    // Sort by version (semver-like)
+    return versions.sort((a, b) => {
+      const [aMajor, aMinor, aPatch] = a.version.split('.').map(Number)
+      const [bMajor, bMinor, bPatch] = b.version.split('.').map(Number)
+      if (aMajor !== bMajor) return aMajor - bMajor
+      if (aMinor !== bMinor) return aMinor - bMinor
+      return aPatch - bPatch
+    })
+  }
+
+  /**
+   * Parse a schema IRI into its components.
+   */
+  parseIRI(iri: SchemaIRI): ParsedSchemaIRI {
+    return parseSchemaIRI(iri)
   }
 }
 
