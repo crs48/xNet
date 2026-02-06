@@ -1348,7 +1348,7 @@ export function checkDeprecations(context: DeprecationContext): DeprecationWarni
 - [x] Define `FEATURES` registry
 - [x] Create `getEnabledFeatures()` function
 - [x] Implement `VersionNegotiator` class
-- [ ] Add negotiation to `SyncProvider`
+- [x] Add negotiation to `SyncProvider`
 - [x] Create `V1Serializer`
 - [x] Create `V2Serializer`
 - [x] Implement serializer selection
