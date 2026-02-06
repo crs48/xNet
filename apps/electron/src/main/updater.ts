@@ -6,9 +6,9 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// @ts-expect-error — electron-updater installed as production dep at build time
 import { BrowserWindow, dialog, app, ipcMain } from 'electron'
-import { autoUpdater } from 'electron-updater'
+import pkg from 'electron-updater'
+const { autoUpdater } = pkg
 
 // ─── Configuration ──────────────────────────────────────────
 
