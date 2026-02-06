@@ -1053,6 +1053,40 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
     }
   }, [store, id, syncManager])
 
+  // Handle page unload - flush any pending saves immediately
+  // This catches refresh/close where the debounced save hasn't run yet
+  useEffect(() => {
+    if (!store || !id || !hasDocument) return
+
+    const handleBeforeUnload = () => {
+      // Cancel pending debounced save
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+        saveTimeoutRef.current = null
+      }
+
+      // Synchronously encode and save the Y.Doc content
+      // Note: IndexedDB writes are async, but we start them before unload
+      // The browser usually gives enough time for small writes to complete
+      if (docRef.current) {
+        try {
+          const content = Y.encodeStateAsUpdate(docRef.current)
+          // Fire and forget - we can't await in beforeunload
+          store.setDocumentContent(id, content).catch(() => {
+            // Silent fail - page is unloading anyway
+          })
+        } catch {
+          // Silent fail on encoding error
+        }
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [store, id, hasDocument])
+
   // Subscribe to property changes
   useEffect(() => {
     if (!store || !id) return
