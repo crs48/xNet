@@ -138,6 +138,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const isDragging = useRef(false)
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
 
+  // Track initial positions when drag starts to prevent drift during fast drags
+  // Key: nodeId, Value: { x, y } at drag start
+  const dragInitialPositions = useRef<Map<string, Point>>(new Map())
+  // Track cumulative drag offset since drag started
+  const dragCumulativeOffset = useRef<Point>({ x: 0, y: 0 })
+
   // Use canvas hook
   const canvas = useCanvas({ doc, config, initialViewport })
 
@@ -337,31 +343,52 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [selectNode]
   )
 
-  const handleNodeDragStart = useCallback((_id: string, _point: Point) => {
-    // Could start undo batch here
-  }, [])
-
-  const handleNodeDrag = useCallback(
-    (id: string, delta: Point) => {
-      // Move selected nodes together
+  const handleNodeDragStart = useCallback(
+    (id: string, _point: Point) => {
+      // Capture initial positions of all nodes being dragged
       const nodesToMove = selectedNodeIds.has(id) ? Array.from(selectedNodeIds) : [id]
 
+      dragInitialPositions.current.clear()
+      dragCumulativeOffset.current = { x: 0, y: 0 }
+
       nodesToMove.forEach((nodeId) => {
-        // Read directly from store (not React state) to avoid stale position
-        // during fast drags where React batches re-renders
         const node = canvas.store.getNode(nodeId)
         if (node) {
-          updateNodePosition(nodeId, {
-            x: node.position.x + delta.x / viewport.zoom,
-            y: node.position.y + delta.y / viewport.zoom
+          dragInitialPositions.current.set(nodeId, {
+            x: node.position.x,
+            y: node.position.y
           })
         }
       })
+      // Could start undo batch here
     },
-    [selectedNodeIds, canvas.store, updateNodePosition, viewport.zoom]
+    [selectedNodeIds, canvas.store]
+  )
+
+  const handleNodeDrag = useCallback(
+    (_id: string, delta: Point) => {
+      // Accumulate offset and compute final position from initial positions.
+      // This prevents drift during fast drags where deltas might be applied
+      // before the store has updated from the previous delta.
+      dragCumulativeOffset.current = {
+        x: dragCumulativeOffset.current.x + delta.x / viewport.zoom,
+        y: dragCumulativeOffset.current.y + delta.y / viewport.zoom
+      }
+
+      dragInitialPositions.current.forEach((initialPos, nodeId) => {
+        updateNodePosition(nodeId, {
+          x: initialPos.x + dragCumulativeOffset.current.x,
+          y: initialPos.y + dragCumulativeOffset.current.y
+        })
+      })
+    },
+    [updateNodePosition, viewport.zoom]
   )
 
   const handleNodeDragEnd = useCallback((_id: string) => {
+    // Clear drag state
+    dragInitialPositions.current.clear()
+    dragCumulativeOffset.current = { x: 0, y: 0 }
     // Could end undo batch here
   }, [])
 

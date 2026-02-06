@@ -150,7 +150,9 @@ export const HeadingWithSyntax = Node.create<HeadingWithSyntaxOptions>({
   addInputRules() {
     return this.options.levels.map((level: number) =>
       textblockTypeInputRule({
-        find: new RegExp(`^(#{1,${level}})\\s$`),
+        // Use exact match for heading level to avoid ambiguity
+        // e.g., ## should only match H2, not H1
+        find: new RegExp(`^(#{${level}})\\s$`),
         type: this.type,
         getAttributes: { level }
       })
