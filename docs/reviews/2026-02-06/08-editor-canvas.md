@@ -355,7 +355,8 @@ Delete key may delete canvas nodes when typing elsewhere.
 
 ### Phase 3 (Production)
 
-- [ ] **EDITOR-03:** Adjust toolbar position when keyboard visible
-- [ ] **EDITOR-05:** Use stable node IDs in drag-drop
-- [ ] **CANVAS-04:** Read fresh nodes in autoLayout callback
+- [x] **EDITOR-03:** Adjust toolbar position when keyboard visible _(fixed - use keyboard height from visualViewport API)_
+- [x] **EDITOR-05:** Use stable node IDs in drag-drop _(fixed - use node fingerprint for identification during collab)_
+- [x] **CANVAS-04:** Read fresh nodes in autoLayout callback _(fixed - read from store inside async callback)_
+- [x] **CANVAS-10:** Fix selectAll stale closure _(bonus fix - read from store)_
 - [ ] Add component tests for Canvas and NodeViews
