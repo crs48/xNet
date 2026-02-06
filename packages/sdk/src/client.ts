@@ -20,6 +20,57 @@ import {
 import { MemoryAdapter } from '@xnet/storage'
 
 /**
+ * Simple LRU cache with configurable max size.
+ * Uses Map iteration order (insertion order) for LRU tracking.
+ */
+class LRUCache<K, V> {
+  private cache = new Map<K, V>()
+
+  constructor(private maxSize: number) {}
+
+  get(key: K): V | undefined {
+    const value = this.cache.get(key)
+    if (value !== undefined) {
+      // Move to end (most recently used)
+      this.cache.delete(key)
+      this.cache.set(key, value)
+    }
+    return value
+  }
+
+  has(key: K): boolean {
+    return this.cache.has(key)
+  }
+
+  set(key: K, value: V): void {
+    // If already exists, delete to update position
+    if (this.cache.has(key)) {
+      this.cache.delete(key)
+    }
+    this.cache.set(key, value)
+    // Evict oldest entries if over max size
+    while (this.cache.size > this.maxSize) {
+      const oldest = this.cache.keys().next().value
+      if (oldest !== undefined) {
+        this.cache.delete(oldest)
+      }
+    }
+  }
+
+  delete(key: K): boolean {
+    return this.cache.delete(key)
+  }
+
+  get size(): number {
+    return this.cache.size
+  }
+
+  clear(): void {
+    this.cache.clear()
+  }
+}
+
+/**
  * XNet client configuration
  */
 export interface XNetClientConfig {
@@ -104,8 +155,8 @@ export async function createXNetClient(config: XNetClientConfig = {}): Promise<X
     }
   }
 
-  // Document cache
-  const documentCache = new Map<string, XDocument>()
+  // Document cache with LRU eviction (max 100 documents)
+  const documentCache = new LRUCache<string, XDocument>(100)
 
   // Event handlers
   const eventHandlers = new Map<string, Set<(arg: unknown) => void>>()
