@@ -44,6 +44,14 @@ export {
   type SyncManagerLike
 } from './main-thread-bridge'
 export { WorkerBridge, createWorkerBridge } from './worker-bridge'
+export {
+  NativeBridge,
+  createNativeBridge,
+  isReactNative,
+  isExpo,
+  type NativeBridgeConfig,
+  type NativeStorageAdapter
+} from './native-bridge'
 
 // ─── Factory Functions ────────────────────────────────────────────────────────
 
