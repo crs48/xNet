@@ -260,6 +260,7 @@ Only use `--no-verify` when hooks are genuinely broken or blocking an emergency 
 - Store computed values (formula, rollup) - compute at read
 - Skip tests for core packages
 - Test electron in a browser. Only test electron with `playright-electron` MCP over CDP.
+- NEVER use `--no-verify` to bypass git hooks. If tests fail, fix them. Hooks exist to prevent broken code from being pushed.
 
 ## Sync Architecture
 
