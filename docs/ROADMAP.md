@@ -8,7 +8,7 @@
 
 ## The Brutal Truth
 
-The codebase has 18 packages with real implementations, 350+ tests, and three platform apps. The core data pipeline (crypto → identity → storage → sync → data → network → query → react → sdk) is **100% built**. The editor is rich. The schema system is unique.
+The codebase has 21 packages with real implementations, 2400+ tests, and three platform apps. The core data pipeline (crypto → identity → storage → sync → data → network → query → react → sdk) is **100% built**. The editor is rich. The schema system is unique.
 
 **But nobody uses it.**
 
