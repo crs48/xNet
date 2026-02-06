@@ -49,6 +49,9 @@ function toBase64(data: Uint8Array): string {
   return btoa(binary)
 }
 
+// Debounce delay for save operations (ms)
+const SAVE_DEBOUNCE_MS = 100
+
 export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
   const storageKey = config.storageKey ?? '_xnet_offline_queue'
   const maxSize = config.maxSize ?? 1000
@@ -56,6 +59,37 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
 
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
+
+  // Debounced save state
+  let saveTimer: ReturnType<typeof setTimeout> | null = null
+  let saveResolvers: Array<() => void> = []
+
+  const debouncedSave = (): Promise<void> => {
+    return new Promise((resolve) => {
+      saveResolvers.push(resolve)
+
+      if (saveTimer) {
+        clearTimeout(saveTimer)
+      }
+
+      saveTimer = setTimeout(async () => {
+        saveTimer = null
+        const resolvers = saveResolvers
+        saveResolvers = []
+
+        try {
+          const json = JSON.stringify(entries)
+          const bytes = encoder.encode(json)
+          await config.storage.setDocumentContent(storageKey, bytes)
+        } catch (err) {
+          console.warn('[OfflineQueue] Failed to persist:', err)
+        }
+
+        // Resolve all waiting callers
+        resolvers.forEach((r) => r())
+      }, SAVE_DEBOUNCE_MS)
+    })
+  }
 
   return {
     async enqueue(nodeId, update) {
@@ -70,8 +104,8 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
         entries = entries.slice(entries.length - maxSize)
       }
 
-      // Persist immediately (critical for crash resilience)
-      await this.save()
+      // Debounced persist - coalesces rapid enqueues
+      await debouncedSave()
     },
 
     async drain(handler) {
@@ -114,6 +148,16 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
     },
 
     async save() {
+      // Cancel any pending debounced save
+      if (saveTimer) {
+        clearTimeout(saveTimer)
+        saveTimer = null
+        // Resolve pending callers - they'll get the immediate save
+        const resolvers = saveResolvers
+        saveResolvers = []
+        resolvers.forEach((r) => r())
+      }
+
       try {
         const json = JSON.stringify(entries)
         const bytes = encoder.encode(json)
