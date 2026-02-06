@@ -89,6 +89,31 @@ export interface XNetConfig {
   platform?: Platform
   /** Disable plugin system (default: false) */
   disablePlugins?: boolean
+  /**
+   * Custom DataBridge instance.
+   *
+   * When provided, this bridge is used for data access instead of creating
+   * a MainThreadBridge. This allows using WorkerBridge or other off-main-thread
+   * implementations.
+   *
+   * The bridge must already be initialized before passing to XNetProvider.
+   *
+   * Note: When using a custom bridge, NodeStore is still created on the main
+   * thread for SyncManager and other integrations. The custom bridge is used
+   * only for React hook data access (useQuery, useMutate).
+   *
+   * @example
+   * ```tsx
+   * // Using WorkerBridge
+   * const bridge = new WorkerBridge(workerUrl)
+   * await bridge.initialize({ authorDID, signingKey, dbName: 'xnet' })
+   *
+   * <XNetProvider config={{ dataBridge: bridge, ... }}>
+   *   <App />
+   * </XNetProvider>
+   * ```
+   */
+  dataBridge?: DataBridge
 }
 
 /**
@@ -229,14 +254,15 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       if (cancelled) return
 
       // Create DataBridge wrapping NodeStore (Phase 0: MainThreadBridge)
-      const bridge = createMainThreadBridge(ns)
+      // If a custom bridge is provided via config, use it instead
+      const bridge = config.dataBridge ?? createMainThreadBridge(ns)
 
       setNodeStore(ns)
       setNodeStoreReady(true)
       setDataBridge(bridge)
 
-      // Store bridge ref for cleanup
-      bridgeRef = bridge
+      // Store bridge ref for cleanup (only if we created it)
+      bridgeRef = config.dataBridge ? null : bridge
 
       // Expose NodeStore to window for main process access (Electron Local API)
       if (typeof window !== 'undefined') {
@@ -267,7 +293,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         nodeStorageAdapter.close()
       }
     }
-  }, [authorDID, config.nodeStorage, config.signingKey])
+  }, [authorDID, config.nodeStorage, config.signingKey, config.dataBridge])
 
   // Create SyncManager when NodeStore is ready
   useEffect(() => {
