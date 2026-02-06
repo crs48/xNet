@@ -194,7 +194,37 @@ contextBridge.exposeInMainWorld('xnetStorage', {
 contextBridge.exposeInMainWorld('xnetLocalAPI', {
   status: () => ipcRenderer.invoke('xnet:localapi:status'),
   start: () => ipcRenderer.invoke('xnet:localapi:start'),
-  stop: () => ipcRenderer.invoke('xnet:localapi:stop')
+  stop: () => ipcRenderer.invoke('xnet:localapi:stop'),
+  // SEC-03: Register store request handler for Local API
+  // This enables secure IPC-based store access instead of executeJavaScript
+  onStoreRequest: (
+    handler: (request: {
+      id: number
+      operation: string
+      params: Record<string, unknown>
+    }) => Promise<unknown>
+  ) => {
+    const listener = async (
+      _: unknown,
+      request: { id: number; operation: string; params: Record<string, unknown> }
+    ) => {
+      try {
+        const result = await handler(request)
+        ipcRenderer.send('xnet:localapi:store-response', { id: request.id, result })
+      } catch (err) {
+        ipcRenderer.send('xnet:localapi:store-response', {
+          id: request.id,
+          error: err instanceof Error ? err.message : String(err)
+        })
+      }
+    }
+    ipcRenderer.on('xnet:localapi:store-request', listener as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener(
+        'xnet:localapi:store-request',
+        listener as (...args: unknown[]) => void
+      )
+  }
 })
 
 // Type declaration for renderer
@@ -286,10 +316,18 @@ export interface XNetLocalAPIStatus {
   port: number
 }
 
+export interface LocalAPIStoreRequest {
+  id: number
+  operation: string
+  params: Record<string, unknown>
+}
+
 export interface XNetLocalAPIAPI {
   status(): Promise<XNetLocalAPIStatus>
   start(): Promise<XNetLocalAPIStatus>
   stop(): Promise<{ running: boolean }>
+  /** SEC-03: Register handler for Local API store requests */
+  onStoreRequest(handler: (request: LocalAPIStoreRequest) => Promise<unknown>): () => void
 }
 
 declare global {

@@ -197,13 +197,13 @@ Test Files  160 passed (160)
 
 ### Immediate (Before Daily Use)
 
-- [x] **SEC-01:** Enable Electron sandbox (`sandbox: true`) and restrict IPC channels _(fixed f378ef6, this commit)_
-- [x] **SEC-02:** Add IPC channel allowlist _(fixed this commit)_
-- [ ] **SEC-03:** Fix code injection in Local API executeJavaScript calls
-- [ ] **ID-01:** Remove or mark BrowserPasskeyStorage as insecure
+- [x] **SEC-01:** Enable Electron sandbox (`sandbox: true`) and restrict IPC channels _(fixed f378ef6, bdada0a)_
+- [x] **SEC-02:** Add IPC channel allowlist _(fixed bdada0a)_
+- [x] **SEC-03:** Fix code injection in Local API executeJavaScript calls _(fixed this commit)_
+- [x] **ID-01:** Mark BrowserPasskeyStorage as insecure/test-only _(fixed this commit)_
 - [x] **SY-03:** Make `mergeUpdates` required in YjsBatcher (remove concatenation fallback) _(fixed f378ef6)_
-- [ ] **PERF-01:** Implement viewport culling in Canvas renderer
-- [x] **PERF-04:** Fix countNodes to use IDB cursor-based counting _(fixed this commit)_
+- [x] **PERF-01:** Implement viewport culling in Canvas renderer _(fixed this commit)_
+- [x] **PERF-04:** Fix countNodes to use IDB cursor-based counting _(fixed bdada0a)_
 
 ### Before Hub Launch
 
