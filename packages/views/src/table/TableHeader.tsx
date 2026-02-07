@@ -4,10 +4,19 @@
 
 import type { ColumnUpdate } from './TableView.js'
 import type { TableRow } from './useTableState.js'
-import type { PropertyType } from '@xnet/data'
+import type { ColumnMeta } from '../types.js'
+import type { PropertyType, SelectColor } from '@xnet/data'
 import { flexRender, type Table, type Header } from '@tanstack/react-table'
 import { cn } from '@xnet/ui'
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { SelectOptionsEditor } from '../columns/SelectOptionsEditor.js'
+
+/** Select option with typed color */
+interface SelectOption {
+  id: string
+  name: string
+  color?: SelectColor
+}
 
 export interface TableHeaderProps {
   table: Table<TableRow>
@@ -187,79 +196,107 @@ interface ColumnMenuProps {
 }
 
 /**
- * Column dropdown menu with sort, rename, change type, and delete options
+ * Column dropdown menu with sort, rename, change type, edit options, and delete
  */
 const ColumnMenu = React.forwardRef<HTMLDivElement, ColumnMenuProps>(
   ({ header, onClose, onUpdateColumn, onDeleteColumn }, ref) => {
-    const [isRenaming, setIsRenaming] = useState(false)
-    const [isChangingType, setIsChangingType] = useState(false)
+    const [mode, setMode] = useState<'main' | 'rename' | 'type' | 'options'>('main')
     const [newName, setNewName] = useState(String(header.column.columnDef.header || ''))
     const inputRef = useRef<HTMLInputElement>(null)
 
     const columnId = header.column.id
+    const columnMeta = header.column.columnDef.meta as ColumnMeta | undefined
+    const propertyType = columnMeta?.property?.type
+    const propertyConfig = columnMeta?.property?.config as Record<string, unknown> | undefined
+    const isSelectType = propertyType === 'select' || propertyType === 'multiSelect'
+
+    // Get current options for select/multiSelect
+    const currentOptions = (propertyConfig?.options as SelectOption[] | undefined) ?? []
+    const [editedOptions, setEditedOptions] = useState<SelectOption[]>(currentOptions)
+
+    // Reset edited options when config changes
+    useEffect(() => {
+      setEditedOptions(currentOptions)
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- we want to reset when propertyConfig changes, not currentOptions reference
+    }, [propertyConfig])
 
     // Focus input when renaming
     useEffect(() => {
-      if (isRenaming && inputRef.current) {
+      if (mode === 'rename' && inputRef.current) {
         inputRef.current.focus()
         inputRef.current.select()
       }
-    }, [isRenaming])
+    }, [mode])
 
-    const handleSortAsc = () => {
+    const handleSortAsc = useCallback(() => {
       header.column.toggleSorting(false)
       onClose()
-    }
+    }, [header.column, onClose])
 
-    const handleSortDesc = () => {
+    const handleSortDesc = useCallback(() => {
       header.column.toggleSorting(true)
       onClose()
-    }
+    }, [header.column, onClose])
 
-    const handleClearSort = () => {
+    const handleClearSort = useCallback(() => {
       header.column.clearSorting()
       onClose()
-    }
+    }, [header.column, onClose])
 
-    const handleHide = () => {
+    const handleHide = useCallback(() => {
       header.column.toggleVisibility(false)
       onClose()
-    }
+    }, [header.column, onClose])
 
-    const handleStartRename = () => {
-      setIsRenaming(true)
-    }
-
-    const handleRename = () => {
+    const handleRename = useCallback(() => {
       if (newName.trim() && onUpdateColumn) {
         onUpdateColumn(columnId, { name: newName.trim() })
       }
-      setIsRenaming(false)
+      setMode('main')
       onClose()
-    }
+    }, [newName, onUpdateColumn, columnId, onClose])
 
-    const handleRenameKeyDown = (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        handleRename()
-      } else if (e.key === 'Escape') {
-        setIsRenaming(false)
-      }
-    }
+    const handleRenameKeyDown = useCallback(
+      (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          handleRename()
+        } else if (e.key === 'Escape') {
+          setMode('main')
+        }
+      },
+      [handleRename]
+    )
 
-    const handleChangeType = (type: PropertyType) => {
+    const handleChangeType = useCallback(
+      (type: PropertyType) => {
+        if (onUpdateColumn) {
+          // When changing to select/multiSelect, initialize empty options
+          const config =
+            type === 'select' || type === 'multiSelect' ? { options: [], allowCreate: true } : {}
+          onUpdateColumn(columnId, { type, config })
+        }
+        setMode('main')
+        onClose()
+      },
+      [onUpdateColumn, columnId, onClose]
+    )
+
+    const handleSaveOptions = useCallback(() => {
       if (onUpdateColumn) {
-        onUpdateColumn(columnId, { type })
+        onUpdateColumn(columnId, {
+          config: { ...propertyConfig, options: editedOptions }
+        })
       }
-      setIsChangingType(false)
+      setMode('main')
       onClose()
-    }
+    }, [onUpdateColumn, columnId, propertyConfig, editedOptions, onClose])
 
-    const handleDelete = () => {
+    const handleDelete = useCallback(() => {
       if (onDeleteColumn) {
         onDeleteColumn(columnId)
       }
       onClose()
-    }
+    }, [onDeleteColumn, columnId, onClose])
 
     const menuItemClass =
       'w-full px-3 py-1.5 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
@@ -268,7 +305,7 @@ const ColumnMenu = React.forwardRef<HTMLDivElement, ColumnMenuProps>(
       'w-full px-3 py-1.5 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors'
 
     // Rename input mode
-    if (isRenaming) {
+    if (mode === 'rename') {
       return (
         <div
           ref={ref}
@@ -289,7 +326,7 @@ const ColumnMenu = React.forwardRef<HTMLDivElement, ColumnMenuProps>(
     }
 
     // Type selector mode
-    if (isChangingType) {
+    if (mode === 'type') {
       return (
         <div
           ref={ref}
@@ -308,9 +345,47 @@ const ColumnMenu = React.forwardRef<HTMLDivElement, ColumnMenuProps>(
             </button>
           ))}
           <hr className="my-1 border-gray-200 dark:border-gray-700" />
-          <button className={menuItemClass} onClick={() => setIsChangingType(false)}>
+          <button className={menuItemClass} onClick={() => setMode('main')}>
             ← Back
           </button>
+        </div>
+      )
+    }
+
+    // Options editor mode (for select/multiSelect)
+    if (mode === 'options') {
+      return (
+        <div
+          ref={ref}
+          className="absolute top-full right-0 mt-1 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20"
+        >
+          <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+              Edit Options
+            </span>
+          </div>
+          <div className="max-h-48 overflow-y-auto p-2">
+            <SelectOptionsEditor
+              options={editedOptions}
+              onChange={setEditedOptions}
+              allowCreate={true}
+              compact
+            />
+          </div>
+          <div className="flex justify-between px-3 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <button
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              onClick={() => setMode('main')}
+            >
+              ← Back
+            </button>
+            <button
+              className="px-3 py-1 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+              onClick={handleSaveOptions}
+            >
+              Save
+            </button>
+          </div>
         </div>
       )
     }
@@ -335,12 +410,17 @@ const ColumnMenu = React.forwardRef<HTMLDivElement, ColumnMenuProps>(
         <hr className="my-1 border-gray-200 dark:border-gray-700" />
         {onUpdateColumn && (
           <>
-            <button className={menuItemClass} onClick={handleStartRename}>
+            <button className={menuItemClass} onClick={() => setMode('rename')}>
               ✎ Rename
             </button>
-            <button className={menuItemClass} onClick={() => setIsChangingType(true)}>
+            <button className={menuItemClass} onClick={() => setMode('type')}>
               ⇄ Change type
             </button>
+            {isSelectType && (
+              <button className={menuItemClass} onClick={() => setMode('options')}>
+                ☰ Edit options
+              </button>
+            )}
           </>
         )}
         <button className={menuItemClass} onClick={handleHide}>

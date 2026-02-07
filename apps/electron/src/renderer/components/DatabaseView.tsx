@@ -25,10 +25,12 @@ import {
   BoardView,
   CardDetailModal,
   useDatabaseComments,
+  AddColumnModal,
   type ViewConfig,
   type TableRow,
   type CellPresence,
-  type ColumnUpdate
+  type ColumnUpdate,
+  type NewColumnDefinition
 } from '@xnet/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
@@ -134,6 +136,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [addColumnModalOpen, setAddColumnModalOpen] = useState(false)
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
 
@@ -639,39 +642,51 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     return () => dataMap.unobserve(observer)
   }, [doc])
 
-  // Add new column
+  // Open add column modal
   const handleAddColumn = useCallback(() => {
-    if (!doc) return
+    setAddColumnModalOpen(true)
+  }, [])
 
-    const newColumn: StoredColumn = {
-      id: `col_${Date.now()}`,
-      name: 'New Column',
-      type: 'text'
-    }
+  // Handle add column from modal
+  const handleAddColumnFromModal = useCallback(
+    (columnDef: NewColumnDefinition) => {
+      if (!doc) return
 
-    const dataMap = doc.getMap('data')
-    const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
-    const updatedColumns = [...currentColumns, newColumn]
-    dataMap.set('columns', updatedColumns)
+      const newColumn: StoredColumn = {
+        id: `col_${Date.now()}`,
+        name: columnDef.name,
+        type: columnDef.type as PropertyType,
+        config: columnDef.config as Record<string, unknown>
+      }
 
-    // Update view configs to include new column
-    const currentTableView = dataMap.get('tableView') as ViewConfig | undefined
-    if (currentTableView) {
-      dataMap.set('tableView', {
-        ...currentTableView,
-        visibleProperties: [...currentTableView.visibleProperties, newColumn.id],
-        propertyWidths: { ...currentTableView.propertyWidths, [newColumn.id]: 150 }
-      })
-    }
+      const dataMap = doc.getMap('data')
+      const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+      const updatedColumns = [...currentColumns, newColumn]
+      dataMap.set('columns', updatedColumns)
 
-    const currentBoardView = dataMap.get('boardView') as ViewConfig | undefined
-    if (currentBoardView) {
-      dataMap.set('boardView', {
-        ...currentBoardView,
-        visibleProperties: [...currentBoardView.visibleProperties, newColumn.id]
-      })
-    }
-  }, [doc])
+      // Update view configs to include new column
+      const currentTableView = dataMap.get('tableView') as ViewConfig | undefined
+      if (currentTableView) {
+        dataMap.set('tableView', {
+          ...currentTableView,
+          visibleProperties: [...currentTableView.visibleProperties, newColumn.id],
+          propertyWidths: {
+            ...currentTableView.propertyWidths,
+            [newColumn.id]: columnDef.width ?? 150
+          }
+        })
+      }
+
+      const currentBoardView = dataMap.get('boardView') as ViewConfig | undefined
+      if (currentBoardView) {
+        dataMap.set('boardView', {
+          ...currentBoardView,
+          visibleProperties: [...currentBoardView.visibleProperties, newColumn.id]
+        })
+      }
+    },
+    [doc]
+  )
 
   // Update column (rename, change type)
   const handleUpdateColumn = useCallback(
@@ -1295,6 +1310,13 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             </div>
           </div>
         ) : null)}
+
+      {/* Add Column Modal */}
+      <AddColumnModal
+        isOpen={addColumnModalOpen}
+        onClose={() => setAddColumnModalOpen(false)}
+        onAdd={handleAddColumnFromModal}
+      />
     </div>
   )
 }
