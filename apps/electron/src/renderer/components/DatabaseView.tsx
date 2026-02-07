@@ -31,13 +31,14 @@ import {
   CardDetailModal,
   useDatabaseComments,
   AddColumnModal,
+  SchemaInfoModal,
   type ViewConfig,
   type TableRow,
   type CellPresence,
   type ColumnUpdate,
   type NewColumnDefinition
 } from '@xnet/views'
-import { Table, LayoutGrid, Plus } from 'lucide-react'
+import { Table, LayoutGrid, Plus, Info } from 'lucide-react'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -110,6 +111,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [addColumnModalOpen, setAddColumnModalOpen] = useState(false)
+  const [schemaInfoModalOpen, setSchemaInfoModalOpen] = useState(false)
   const [schemaMetadata, setSchemaMetadata] = useState<DatabaseSchemaMetadata | null>(null)
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
@@ -636,6 +638,26 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     setAddColumnModalOpen(true)
   }, [])
 
+  // Handle schema metadata updates from SchemaInfoModal
+  const handleUpdateSchemaMetadata = useCallback(
+    (updates: Partial<Pick<DatabaseSchemaMetadata, 'name' | 'description'>>) => {
+      if (!doc) return
+
+      const dataMap = doc.getMap('data')
+      const currentMeta = dataMap.get('schema') as DatabaseSchemaMetadata | undefined
+
+      if (currentMeta) {
+        const updatedMeta: DatabaseSchemaMetadata = {
+          ...currentMeta,
+          ...updates,
+          updatedAt: Date.now()
+        }
+        dataMap.set('schema', updatedMeta)
+      }
+    },
+    [doc]
+  )
+
   // Helper to bump schema version on column changes
   const bumpVersion = useCallback(
     (operation: 'add' | 'update' | 'rename' | 'delete' | 'changeType') => {
@@ -1161,6 +1183,19 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         />
 
         <PresenceAvatars presence={presence} localDid={did} />
+
+        {/* Schema version badge */}
+        {schemaMetadata && (
+          <button
+            className="flex items-center gap-1 px-2 py-0.5 text-xs font-mono text-muted-foreground hover:text-foreground bg-accent rounded transition-colors cursor-pointer"
+            title="View schema info"
+            onClick={() => setSchemaInfoModalOpen(true)}
+          >
+            <Info size={12} />
+            <span>v{schemaMetadata.version}</span>
+          </button>
+        )}
+
         {commentUnresolvedCount > 0 && (
           <button
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
@@ -1347,6 +1382,15 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         isOpen={addColumnModalOpen}
         onClose={() => setAddColumnModalOpen(false)}
         onAdd={handleAddColumnFromModal}
+      />
+
+      {/* Schema Info Modal */}
+      <SchemaInfoModal
+        isOpen={schemaInfoModalOpen}
+        onClose={() => setSchemaInfoModalOpen(false)}
+        metadata={schemaMetadata}
+        schemaIRI={schema['@id']}
+        onUpdate={handleUpdateSchemaMetadata}
       />
     </div>
   )
