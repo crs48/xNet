@@ -1,6 +1,6 @@
-# IndexedDB to SQLite Migration: Unified Storage for xNet
+# SQLite Storage: Unified Storage for xNet
 
-> A comprehensive analysis of migrating xNet's storage layer from IndexedDB to SQLite, using better-sqlite3 in Electron and SQLite-WASM with OPFS in web browsers. This exploration evaluates the tradeoffs, library options, migration strategies, and implementation phases.
+> A clean-slate design for xNet's storage layer using SQLite across all platforms: better-sqlite3 in Electron, SQLite-WASM with OPFS in web browsers, and expo-sqlite on mobile. This is a prerelease implementation with no migration constraints.
 
 **References**:
 
@@ -9,33 +9,28 @@
 - [0067_DATABASE_DATA_MODEL_V2.md](./0067_DATABASE_DATA_MODEL_V2.md) - Database architecture
 
 **Date**: February 2026
-**Status**: Research Complete
+**Status**: Design Ready
 
 ## Executive Summary
 
-This exploration recommends **migrating from IndexedDB to SQLite** across all platforms:
+This exploration designs a **SQLite-first storage layer** for xNet across all platforms:
 
-| Platform      | Current   | Proposed           | Benefit                            |
-| ------------- | --------- | ------------------ | ---------------------------------- |
-| Electron      | IndexedDB | better-sqlite3     | 10-100x faster queries, ACID, FTS5 |
-| Web           | IndexedDB | SQLite-WASM + OPFS | Durable storage, SQL queries       |
-| Mobile (Expo) | N/A       | expo-sqlite        | Native performance                 |
+| Platform      | Implementation     | Benefit                            |
+| ------------- | ------------------ | ---------------------------------- |
+| Electron      | better-sqlite3     | 10-100x faster queries, ACID, FTS5 |
+| Web           | SQLite-WASM + OPFS | Durable storage, SQL queries       |
+| Mobile (Expo) | expo-sqlite        | Native performance                 |
 
-**Key findings:**
+**Key points:**
 
-- IndexedDB has fundamental durability and performance limitations
+- **No migration needed** - this is prerelease, we drop existing IndexedDB data
 - SQLite-WASM with OPFS is production-ready (Chrome 102+, Safari 15.2+, Firefox 111+)
 - Bundle size impact: ~300-500KB WASM (acceptable for local-first app)
-- Migration can be incremental with dual-write strategy
+- Unified SQL schema across all platforms
 
 ```mermaid
 flowchart TB
-    subgraph Current["Current Architecture"]
-        IDB1["IndexedDB<br/>@xnet/storage"]
-        IDB2["IndexedDB<br/>@xnet/data NodeStore"]
-    end
-
-    subgraph Target["Target Architecture"]
+    subgraph Architecture["SQLite Storage Architecture"]
         subgraph Electron["Electron"]
             BS3["better-sqlite3<br/>Native, Fast"]
         end
@@ -55,66 +50,14 @@ flowchart TB
         B5["Unified SQL Schema"]
     end
 
-    Current -->|"Migration"| Target
-    Target --> Benefits
+    Architecture --> Benefits
 
-    style IDB1 fill:#f44336,color:#fff
-    style IDB2 fill:#f44336,color:#fff
     style BS3 fill:#4caf50,color:#fff
-    style WASM fill:#ff9800,color:#fff
+    style WASM fill:#4caf50,color:#fff
     style EXPO fill:#4caf50,color:#fff
 ```
 
-## Current State Analysis
-
-### Existing Storage Architecture
-
-xNet currently uses **two separate IndexedDB implementations**:
-
-```mermaid
-flowchart TB
-    subgraph Storage["@xnet/storage Package"]
-        direction TB
-        IDBAdapter["IndexedDBAdapter"]
-        IDBBatch["IndexedDBBatchAdapter"]
-        MemAdapter["MemoryAdapter"]
-
-        subgraph IDBStores1["Object Stores"]
-            Docs["documents"]
-            Updates["updates"]
-            Snapshots["snapshots"]
-            Blobs["blobs"]
-        end
-    end
-
-    subgraph Data["@xnet/data Package"]
-        direction TB
-        NodeAdapter["IndexedDBNodeStorageAdapter"]
-        MemNodeAdapter["MemoryNodeStorageAdapter"]
-
-        subgraph IDBStores2["Object Stores"]
-            Nodes["nodes"]
-            Changes["changes"]
-            DocContent["documentContent"]
-            Meta["meta"]
-            YjsSnaps["yjsSnapshots"]
-        end
-    end
-
-    subgraph Hub["@xnet/hub (Server)"]
-        SQLiteHub["SQLite via better-sqlite3"]
-        FTS5["FTS5 Search Index"]
-    end
-
-    IDBAdapter --> IDBStores1
-    IDBBatch --> IDBStores1
-    NodeAdapter --> IDBStores2
-
-    style IDBAdapter fill:#f44336,color:#fff
-    style IDBBatch fill:#f44336,color:#fff
-    style NodeAdapter fill:#f44336,color:#fff
-    style SQLiteHub fill:#4caf50,color:#fff
-```
+## Why SQLite Over IndexedDB
 
 ### IndexedDB Pain Points
 
@@ -176,16 +119,6 @@ IndexedDB **cannot** do:
 - Full-text search
 - Complex WHERE clauses
 - ORDER BY on non-indexed fields
-
-### Current Code Locations
-
-| File                                               | Purpose               | Lines |
-| -------------------------------------------------- | --------------------- | ----- |
-| `packages/storage/src/adapters/indexeddb.ts`       | Document/blob storage | ~300  |
-| `packages/storage/src/adapters/indexeddb-batch.ts` | Batched writes        | ~200  |
-| `packages/data/src/store/indexeddb-adapter.ts`     | NodeStore persistence | ~400  |
-| `apps/electron/src/data-process/sqlite-batch.ts`   | Existing SQLite batch | ~150  |
-| `packages/hub/src/storage/sqlite.ts`               | Hub SQLite            | ~500  |
 
 ---
 
@@ -421,21 +354,14 @@ flowchart TD
 -- Core Tables
 -- ============================================
 
--- Documents (Pages, Databases, Canvases)
-CREATE TABLE documents (
+-- All nodes (Pages, Databases, Rows, Comments, etc.)
+CREATE TABLE nodes (
     id TEXT PRIMARY KEY,
     schema_id TEXT NOT NULL,           -- Schema IRI
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     created_by TEXT NOT NULL,          -- DID
-    deleted_at INTEGER,
-
-    -- Denormalized for fast queries
-    title TEXT,
-    icon TEXT,
-    parent_id TEXT,
-
-    FOREIGN KEY (parent_id) REFERENCES documents(id)
+    deleted_at INTEGER
 );
 
 -- Node properties (LWW per-property)
@@ -448,7 +374,7 @@ CREATE TABLE node_properties (
     updated_at INTEGER NOT NULL,
 
     PRIMARY KEY (node_id, property_key),
-    FOREIGN KEY (node_id) REFERENCES documents(id)
+    FOREIGN KEY (node_id) REFERENCES nodes(id)
 );
 
 -- Change log (event sourcing)
@@ -463,27 +389,27 @@ CREATE TABLE changes (
     author TEXT NOT NULL,              -- DID
     signature BLOB NOT NULL,           -- Ed25519
 
-    FOREIGN KEY (node_id) REFERENCES documents(id)
+    FOREIGN KEY (node_id) REFERENCES nodes(id)
 );
 
--- Y.Doc binary state
-CREATE TABLE yjs_documents (
-    doc_id TEXT PRIMARY KEY,
+-- Y.Doc binary state (for nodes with collaborative content)
+CREATE TABLE yjs_state (
+    node_id TEXT PRIMARY KEY,
     state BLOB NOT NULL,               -- Y.encodeStateAsUpdate()
     updated_at INTEGER NOT NULL,
 
-    FOREIGN KEY (doc_id) REFERENCES documents(id)
+    FOREIGN KEY (node_id) REFERENCES nodes(id)
 );
 
 -- Y.Doc incremental updates
 CREATE TABLE yjs_updates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    doc_id TEXT NOT NULL,
+    node_id TEXT NOT NULL,
     update_data BLOB NOT NULL,
     timestamp INTEGER NOT NULL,
     origin TEXT,                       -- Peer ID
 
-    FOREIGN KEY (doc_id) REFERENCES documents(id)
+    FOREIGN KEY (node_id) REFERENCES nodes(id)
 );
 
 -- Blobs (content-addressed)
@@ -506,10 +432,9 @@ CREATE TABLE sync_state (
 -- Indexes
 -- ============================================
 
-CREATE INDEX idx_documents_schema ON documents(schema_id);
-CREATE INDEX idx_documents_parent ON documents(parent_id);
-CREATE INDEX idx_documents_updated ON documents(updated_at);
-CREATE INDEX idx_documents_created_by ON documents(created_by);
+CREATE INDEX idx_nodes_schema ON nodes(schema_id);
+CREATE INDEX idx_nodes_updated ON nodes(updated_at);
+CREATE INDEX idx_nodes_created_by ON nodes(created_by);
 
 CREATE INDEX idx_properties_node ON node_properties(node_id);
 CREATE INDEX idx_properties_lamport ON node_properties(lamport_time);
@@ -518,36 +443,21 @@ CREATE INDEX idx_changes_node ON changes(node_id);
 CREATE INDEX idx_changes_lamport ON changes(lamport_time);
 CREATE INDEX idx_changes_wall_time ON changes(wall_time);
 
-CREATE INDEX idx_yjs_updates_doc ON yjs_updates(doc_id);
+CREATE INDEX idx_yjs_updates_node ON yjs_updates(node_id);
 
 -- ============================================
 -- Full-Text Search (FTS5)
 -- ============================================
 
-CREATE VIRTUAL TABLE documents_fts USING fts5(
-    id,
-    title,
+-- FTS index for searchable node content
+CREATE VIRTUAL TABLE nodes_fts USING fts5(
+    node_id,
     content,
     tokenize='porter unicode61'
 );
 
--- Triggers to keep FTS in sync
-CREATE TRIGGER documents_ai AFTER INSERT ON documents BEGIN
-    INSERT INTO documents_fts(id, title, content)
-    VALUES (new.id, new.title, '');
-END;
-
-CREATE TRIGGER documents_ad AFTER DELETE ON documents BEGIN
-    INSERT INTO documents_fts(documents_fts, id, title, content)
-    VALUES('delete', old.id, old.title, '');
-END;
-
-CREATE TRIGGER documents_au AFTER UPDATE ON documents BEGIN
-    INSERT INTO documents_fts(documents_fts, id, title, content)
-    VALUES('delete', old.id, old.title, '');
-    INSERT INTO documents_fts(id, title, content)
-    VALUES (new.id, new.title, '');
-END;
+-- Note: FTS triggers should be managed by the application layer
+-- to extract searchable text from node properties
 ```
 
 ### Platform-Specific Implementations
@@ -586,21 +496,22 @@ flowchart TB
 
 ---
 
-## Migration Strategy
+## Implementation Plan
 
-### Phase 1: Electron Migration (Lowest Risk)
+Since this is prerelease, we implement SQLite directly with no migration from IndexedDB. Existing data can be dropped.
+
+### Phase 1: Electron (better-sqlite3)
 
 ```mermaid
 flowchart LR
-    subgraph Current["Phase 1: Electron"]
-        E1["Add better-sqlite3 adapter"]
-        E2["Dual-write IDB + SQLite"]
-        E3["Read from SQLite"]
-        E4["Drop IDB writes"]
-        E5["Migration complete"]
+    subgraph Phase1["Phase 1: Electron"]
+        E1["Create SQLite adapter"]
+        E2["Implement NodeStorageAdapter"]
+        E3["Replace IndexedDB usage"]
+        E4["Add FTS5 search"]
     end
 
-    E1 --> E2 --> E3 --> E4 --> E5
+    E1 --> E2 --> E3 --> E4
 ```
 
 #### Checklist: Phase 1 - Electron
@@ -611,50 +522,35 @@ flowchart LR
   - [ ] WAL mode for durability
   - [ ] Prepared statements for performance
 
-- [ ] Add dual-write mode
-  - [ ] Write to both IDB and SQLite
-  - [ ] Read from SQLite with IDB fallback
-  - [ ] Migration status tracking
-
-- [ ] Migrate existing data
-  - [ ] Create migration script
-  - [ ] Batch migrate nodes in transactions
-  - [ ] Verify data integrity
-  - [ ] Support rollback
+- [ ] Replace IndexedDB
+  - [ ] Remove `IndexedDBNodeStorageAdapter` usage
+  - [ ] Remove `idb` dependency from Electron
+  - [ ] Update storage initialization
 
 - [ ] Performance validation
   - [ ] Benchmark listNodes queries
   - [ ] Benchmark write throughput
-  - [ ] Memory usage profiling
   - [ ] Test with large datasets (100K+ nodes)
-
-- [ ] Cut over
-  - [ ] Remove IDB writes
-  - [ ] Remove IDB fallback reads
-  - [ ] Cleanup IDB data (optional)
 
 **Files to create/modify:**
 
 - `packages/data/src/store/sqlite-adapter.ts` (new)
 - `apps/electron/src/data-process/storage.ts`
-- `apps/electron/src/main/ipc-handlers.ts`
 
 ---
 
-### Phase 2: Web Migration (Higher Risk)
+### Phase 2: Web (wa-sqlite + OPFS)
 
 ```mermaid
 flowchart LR
-    subgraph Current["Phase 2: Web"]
+    subgraph Phase2["Phase 2: Web"]
         W1["Add wa-sqlite dependency"]
         W2["Create OPFS adapter"]
         W3["Feature detection"]
-        W4["Dual-write with fallback"]
-        W5["Migrate existing data"]
-        W6["Cut over"]
+        W4["Replace IndexedDB"]
     end
 
-    W1 --> W2 --> W3 --> W4 --> W5 --> W6
+    W1 --> W2 --> W3 --> W4
 ```
 
 #### Checklist: Phase 2 - Web
@@ -671,22 +567,15 @@ flowchart LR
   - [ ] Run in Web Worker (required for sync access)
   - [ ] Comlink wrapper for main thread
 
-- [ ] Feature detection
+- [ ] Feature detection & fallback
   - [ ] Check OPFS support
   - [ ] Check SharedArrayBuffer support
-  - [ ] Check Web Worker support
-  - [ ] Graceful fallback chain
+  - [ ] Use `IDBBatchAtomicVFS` fallback when OPFS unavailable
+  - [ ] Warn users about durability on fallback
 
-- [ ] IndexedDB fallback
-  - [ ] Use `IDBBatchAtomicVFS` when OPFS unavailable
-  - [ ] Clear warning to users about durability
-  - [ ] Prompt for desktop app download
-
-- [ ] Migration from existing IDB
-  - [ ] Read all data from old IDB
-  - [ ] Insert into SQLite
-  - [ ] Verify and switch
-  - [ ] Cleanup old IDB (optional)
+- [ ] Replace IndexedDB
+  - [ ] Remove IndexedDB adapters
+  - [ ] Remove `idb` dependency
 
 - [ ] Browser-specific testing
   - [ ] Chrome (baseline)
@@ -712,7 +601,6 @@ flowchart TB
         Electron["ElectronSQLiteAdapter"]
         Web["WebSQLiteAdapter"]
         Memory["MemorySQLiteAdapter"]
-        Migration["MigrationManager"]
     end
 
     subgraph Consumers["Consumers"]
@@ -730,22 +618,19 @@ flowchart TB
   - [ ] Define `SQLiteAdapter` interface
   - [ ] Platform detection utilities
   - [ ] Shared schema definitions
-  - [ ] Migration helpers
 
-- [ ] Refactor existing packages
+- [ ] Consolidate storage
   - [ ] `@xnet/data` uses `@xnet/sqlite`
   - [ ] `@xnet/storage` uses `@xnet/sqlite`
   - [ ] `@xnet/hub` aligned schema
 
-- [ ] Remove IndexedDB
-  - [ ] Remove `@xnet/storage` IndexedDB adapters
-  - [ ] Remove `@xnet/data` IndexedDB adapter
-  - [ ] Remove `idb` dependency
+- [ ] Cleanup
+  - [ ] Remove all IndexedDB adapters
+  - [ ] Remove `idb` dependency entirely
 
 - [ ] Documentation
   - [ ] Storage architecture docs
-  - [ ] Migration guide
-  - [ ] Performance tuning
+  - [ ] Performance tuning guide
 
 ---
 
@@ -753,7 +638,7 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    subgraph Mobile["Phase 4: Expo"]
+    subgraph Phase4["Phase 4: Expo"]
         M1["Add expo-sqlite"]
         M2["Create adapter"]
         M3["Share schema"]
@@ -802,7 +687,6 @@ flowchart LR
 1. **Lazy load WASM** - Load SQLite only when first needed
 2. **Code splitting** - Keep WASM in separate chunk
 3. **CDN caching** - WASM file caches well
-4. **Progressive enhancement** - Start with IDB, upgrade to SQLite
 
 ---
 
@@ -845,30 +729,10 @@ xychart-beta
 | ---------------------- | ----------- | ------ | --------------------------- |
 | WASM bundle size       | Low         | Medium | Lazy loading, CDN           |
 | Browser compatibility  | Medium      | High   | Feature detection, fallback |
-| Migration data loss    | Low         | High   | Dual-write, backup first    |
-| Performance regression | Low         | Medium | Benchmarking, rollback plan |
+| Performance regression | Low         | Medium | Benchmarking                |
 | OPFS quota limits      | Low         | Medium | Monitor usage, warn users   |
 
-### Migration Risks
-
-```mermaid
-flowchart TD
-    subgraph Risks["Migration Risks"]
-        R1["Data corruption<br/>during migration"]
-        R2["Performance regression<br/>in some scenarios"]
-        R3["Browser compatibility<br/>issues discovered late"]
-    end
-
-    subgraph Mitigations["Mitigations"]
-        M1["Dual-write mode<br/>with verification"]
-        M2["Comprehensive benchmarks<br/>before/after"]
-        M3["Feature detection<br/>+ graceful fallback"]
-    end
-
-    R1 --> M1
-    R2 --> M2
-    R3 --> M3
-```
+**Note**: No migration risks since this is prerelease - we simply drop existing IndexedDB data.
 
 ---
 
@@ -876,52 +740,47 @@ flowchart TD
 
 ```mermaid
 gantt
-    title SQLite Migration Timeline
+    title SQLite Implementation Timeline
     dateFormat  YYYY-MM-DD
     section Phase 1: Electron
-    SQLite adapter           :p1a, 2026-02-15, 5d
-    Dual-write mode          :p1b, after p1a, 3d
-    Migration script         :p1c, after p1b, 3d
-    Testing & validation     :p1d, after p1c, 5d
-    Cut over                 :p1e, after p1d, 2d
+    SQLite adapter           :p1a, 2026-02-15, 3d
+    Replace IndexedDB        :p1b, after p1a, 2d
+    Testing & validation     :p1c, after p1b, 3d
 
     section Phase 2: Web
-    wa-sqlite setup          :p2a, after p1e, 3d
-    OPFS adapter             :p2b, after p2a, 5d
+    wa-sqlite setup          :p2a, after p1c, 3d
+    OPFS adapter             :p2b, after p2a, 4d
     Feature detection        :p2c, after p2b, 2d
-    Browser testing          :p2d, after p2c, 5d
-    Migration & cut over     :p2e, after p2d, 5d
+    Browser testing          :p2d, after p2c, 3d
 
     section Phase 3: Unified
-    Create @xnet/sqlite      :p3a, after p2e, 5d
-    Refactor packages        :p3b, after p3a, 5d
-    Remove IndexedDB         :p3c, after p3b, 3d
-    Documentation            :p3d, after p3c, 3d
+    Create @xnet/sqlite      :p3a, after p2d, 3d
+    Consolidate packages     :p3b, after p3a, 3d
+    Cleanup & docs           :p3c, after p3b, 2d
 ```
 
-**Estimated total: 8-10 weeks**
+**Estimated total: 4-5 weeks** (no migration overhead)
 
 ---
 
 ## Decision Matrix
 
-### Should We Migrate?
+### SQLite vs IndexedDB
 
-| Factor                | IndexedDB        | SQLite           | Winner    |
-| --------------------- | ---------------- | ---------------- | --------- |
-| Query performance     | Poor             | Excellent        | SQLite    |
-| Durability            | Low              | High             | SQLite    |
-| Full-text search      | No               | Yes (FTS5)       | SQLite    |
-| Complex queries       | No               | Yes (SQL)        | SQLite    |
-| Bundle size           | Small            | +300KB           | IndexedDB |
-| Browser support       | Universal        | Modern only      | IndexedDB |
-| Development effort    | Current          | High (migration) | IndexedDB |
-| Long-term maintenance | Two systems      | One system       | SQLite    |
-| Hub compatibility     | Different schema | Same schema      | SQLite    |
+| Factor                | IndexedDB        | SQLite      | Winner    |
+| --------------------- | ---------------- | ----------- | --------- |
+| Query performance     | Poor             | Excellent   | SQLite    |
+| Durability            | Low              | High        | SQLite    |
+| Full-text search      | No               | Yes (FTS5)  | SQLite    |
+| Complex queries       | No               | Yes (SQL)   | SQLite    |
+| Bundle size           | Small            | +300KB      | IndexedDB |
+| Browser support       | Universal        | Modern only | IndexedDB |
+| Long-term maintenance | Complex          | Simple      | SQLite    |
+| Hub compatibility     | Different schema | Same schema | SQLite    |
 
-**Recommendation: Migrate to SQLite**
+**Decision: SQLite**
 
-The performance and durability benefits outweigh the bundle size and migration costs. A local-first application fundamentally needs reliable storage.
+The performance and durability benefits clearly outweigh the bundle size cost. Since this is prerelease, we implement SQLite directly with no migration overhead.
 
 ---
 
