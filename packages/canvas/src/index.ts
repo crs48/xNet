@@ -39,10 +39,22 @@ export type {
   SelectionState,
   DragState,
   ResizeHandle,
-  CanvasConfig
+  CanvasConfig,
+  GridType
 } from './types'
 
 export { DEFAULT_CANVAS_CONFIG } from './types'
+
+// Rendering layers
+export {
+  WebGLGridLayer,
+  CSSGridFallback,
+  createGridLayer,
+  isWebGLAvailable,
+  DEFAULT_GRID_CONFIG,
+  type GridLayer,
+  type WebGLGridConfig
+} from './layers/index'
 
 // Spatial indexing
 export { SpatialIndex, Viewport, createSpatialIndex, createViewport } from './spatial/index'

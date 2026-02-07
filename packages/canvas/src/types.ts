@@ -136,6 +136,11 @@ export type ResizeHandle =
   | 'left'
 
 /**
+ * Grid rendering type
+ */
+export type GridType = 'lines' | 'dots' | 'none'
+
+/**
  * Canvas configuration
  */
 export interface CanvasConfig {
@@ -147,6 +152,8 @@ export interface CanvasConfig {
   gridSize?: number
   /** Show grid lines */
   showGrid?: boolean
+  /** Grid rendering type: 'lines', 'dots', or 'none' */
+  gridType?: GridType
   /** Enable infinite canvas (vs bounded) */
   infinite?: boolean
   /** Canvas bounds if not infinite */
@@ -161,6 +168,7 @@ export const DEFAULT_CANVAS_CONFIG: Required<CanvasConfig> = {
   maxZoom: 4,
   gridSize: 20,
   showGrid: true,
+  gridType: 'dots',
   infinite: true,
   bounds: { x: 0, y: 0, width: 10000, height: 10000 }
 }

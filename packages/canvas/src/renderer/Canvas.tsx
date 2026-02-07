@@ -4,7 +4,7 @@
  * Main infinite canvas component with pan, zoom, and node rendering.
  */
 
-import type { CanvasConfig, CanvasNode, Point } from '../types'
+import type { CanvasConfig, CanvasNode, GridType, Point } from '../types'
 import type * as Y from 'yjs'
 import React, {
   useRef,
@@ -13,9 +13,13 @@ import React, {
   useState,
   useImperativeHandle,
   useMemo,
-  memo,
   forwardRef
 } from 'react'
+import { CommentOverlay } from '../comments/CommentOverlay'
+import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
+import { useCanvas } from '../hooks/useCanvas'
+import { createGridLayer, type GridLayer } from '../layers'
+import { CanvasNodeComponent } from '../nodes/CanvasNodeComponent'
 
 /** Minimal Awareness interface (avoids y-protocols dependency) */
 interface AwarenessLike {
@@ -25,10 +29,6 @@ interface AwarenessLike {
   on(event: string, handler: (...args: unknown[]) => void): void
   off(event: string, handler: (...args: unknown[]) => void): void
 }
-import { CommentOverlay } from '../comments/CommentOverlay'
-import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
-import { useCanvas } from '../hooks/useCanvas'
-import { CanvasNodeComponent } from '../nodes/CanvasNodeComponent'
 
 /**
  * Remote user presence on the canvas
@@ -77,43 +77,75 @@ export interface CanvasProps {
 }
 
 /**
- * Grid background component
+ * WebGL Grid background hook
+ *
+ * Creates and manages the WebGL grid layer lifecycle.
+ * Falls back to CSS grid if WebGL is unavailable.
  */
-const GridBackground = memo(function GridBackground({
-  gridSize,
-  zoom
-}: {
-  gridSize: number
-  zoom: number
-}) {
-  const scaledSize = gridSize * zoom
-  const patternId = `canvas-grid-${gridSize}`
+function useWebGLGrid(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  config: {
+    showGrid: boolean
+    gridType: GridType
+    gridSize: number
+  },
+  viewport: { x: number; y: number; zoom: number }
+): void {
+  const gridLayerRef = useRef<GridLayer | null>(null)
 
-  return (
-    <svg
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none'
-      }}
-    >
-      <defs>
-        <pattern
-          id={patternId}
-          width={scaledSize}
-          height={scaledSize}
-          patternUnits="userSpaceOnUse"
-        >
-          <circle cx={scaledSize / 2} cy={scaledSize / 2} r={1} fill="#e0e0e0" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill={`url(#${patternId})`} />
-    </svg>
-  )
-})
+  // Initialize/cleanup grid layer
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !config.showGrid || config.gridType === 'none') {
+      // Cleanup if grid is disabled
+      gridLayerRef.current?.destroy()
+      gridLayerRef.current = null
+      return
+    }
+
+    // Create grid layer (WebGL with CSS fallback)
+    gridLayerRef.current = createGridLayer(container, {
+      type: config.gridType === 'dots' ? 'dots' : 'lines',
+      gridSpacing: config.gridSize,
+      gridColor: [0.5, 0.5, 0.5, 0.3],
+      majorGridColor: [0.5, 0.5, 0.5, 0.5],
+      majorEvery: 5
+    })
+
+    // Initial resize
+    gridLayerRef.current.resize()
+
+    return () => {
+      gridLayerRef.current?.destroy()
+      gridLayerRef.current = null
+    }
+  }, [containerRef, config.showGrid, config.gridType, config.gridSize])
+
+  // Handle resize - uses ref to avoid re-subscribing on viewport changes
+  const viewportRef = useRef(viewport)
+  viewportRef.current = viewport
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !gridLayerRef.current) return
+
+    const handleResize = () => {
+      gridLayerRef.current?.resize()
+      // Re-render after resize with current viewport from ref
+      gridLayerRef.current?.render(viewportRef.current)
+    }
+
+    const observer = new ResizeObserver(handleResize)
+    observer.observe(container)
+
+    return () => observer.disconnect()
+  }, [containerRef])
+
+  // Render on viewport change
+  useEffect(() => {
+    gridLayerRef.current?.render(viewport)
+  }, [viewport.x, viewport.y, viewport.zoom])
+}
 
 /**
  * Canvas Component
@@ -146,6 +178,23 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
   // Use canvas hook
   const canvas = useCanvas({ doc, config, initialViewport })
+
+  // Extract grid config with defaults
+  const gridConfig = useMemo(
+    () => ({
+      showGrid: config.showGrid !== false,
+      gridType: config.gridType ?? 'dots',
+      gridSize: config.gridSize ?? 20
+    }),
+    [config.showGrid, config.gridType, config.gridSize]
+  )
+
+  // Initialize WebGL grid layer (or CSS fallback)
+  useWebGLGrid(containerRef, gridConfig, {
+    x: canvas.viewport.x,
+    y: canvas.viewport.y,
+    zoom: canvas.viewport.zoom
+  })
 
   // Expose imperative methods via ref
   useImperativeHandle(
@@ -496,10 +545,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       onMouseDown={handleMouseDown}
       tabIndex={0} // Make container focusable for keyboard shortcuts
     >
-      {/* Grid background */}
-      {config.showGrid !== false && (
-        <GridBackground gridSize={config.gridSize ?? 20} zoom={viewport.zoom} />
-      )}
+      {/* Grid background is rendered via WebGL/CSS layer (useWebGLGrid hook) */}
 
       {/* Edges layer (SVG) - PERF-01: Only render edges with visible endpoints */}
       <svg
