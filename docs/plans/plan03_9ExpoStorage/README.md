@@ -1,15 +1,23 @@
 # Plan Step 03.4: Expo/Mobile Storage Durability
 
-## Status: PARTIALLY IMPLEMENTED
+## Status: COMPLETE ✅
 
-| Component                   | Status                 | Notes                                                 |
-| --------------------------- | ---------------------- | ----------------------------------------------------- |
-| `expo-sqlite` dependency    | Done                   | v15.0.0 in `apps/expo/package.json`                   |
-| `ExpoSQLiteAdapter`         | Done (wrong interface) | Implements `StorageAdapter`, not `NodeStorageAdapter` |
-| `SQLiteNodeStorageAdapter`  | **NOT DONE**           | Need to implement `NodeStorageAdapter`                |
-| Mobile lifecycle (AppState) | **NOT DONE**           | Pause/resume sync on background                       |
+> **Superseded by [plan03_9_5IndexedDBToSQLite](../plan03_9_5IndexedDBToSQLite/)** - Unified SQLite storage across all platforms.
 
-**Critical gap:** Expo uses `MemoryNodeStorageAdapter` — all data lost on restart.
+| Component                   | Status   | Notes                                                 |
+| --------------------------- | -------- | ----------------------------------------------------- |
+| `expo-sqlite` dependency    | ✅ Done  | v15.0.0 in `apps/expo/package.json`                   |
+| `ExpoSQLiteAdapter`         | ✅ Done  | `@xnet/sqlite/expo` - unified adapter                 |
+| `SQLiteNodeStorageAdapter`  | ✅ Done  | `@xnet/data` - shared across all platforms            |
+| Mobile lifecycle (AppState) | Deferred | Can be added later if needed for battery optimization |
+
+**Resolution:** The unified SQLite migration (plan03_9_5) implemented `@xnet/sqlite` package with platform-specific adapters:
+
+- `ExpoSQLiteAdapter` in `packages/sqlite/src/adapters/expo.ts`
+- `SQLiteNodeStorageAdapter` in `packages/data/src/store/sqlite-adapter.ts`
+- Expo app updated in `apps/expo/src/context/XNetProvider.tsx` to use these adapters
+
+Data is now persisted to SQLite on mobile - no more data loss on restart.
 
 ## Problem
 
