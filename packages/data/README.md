@@ -136,11 +136,39 @@ flowchart TD
     Builtin --> Store
 
     subgraph Adapters["Storage Adapters"]
+        SQLite["SQLite<br/>Adapter"]
         IDB["IndexedDB<br/>Adapter"]
         Mem["Memory<br/>Adapter"]
     end
 
     Store --> Adapters
+```
+
+### Storage Adapters
+
+| Adapter                       | Platform     | Description                          |
+| ----------------------------- | ------------ | ------------------------------------ |
+| `SQLiteNodeStorageAdapter`    | All          | Primary adapter using `@xnet/sqlite` |
+| `IndexedDBNodeStorageAdapter` | Web (legacy) | Browser IndexedDB storage            |
+| `MemoryNodeStorageAdapter`    | All          | In-memory storage for testing        |
+
+**Recommended:** Use `SQLiteNodeStorageAdapter` with the appropriate `@xnet/sqlite` adapter for your platform:
+
+```typescript
+import { NodeStore, SQLiteNodeStorageAdapter } from '@xnet/data'
+import { ElectronSQLiteAdapter } from '@xnet/sqlite/electron' // or /web, /expo
+
+const sqliteAdapter = new ElectronSQLiteAdapter()
+await sqliteAdapter.open({ path: 'xnet.db' })
+
+const storage = new SQLiteNodeStorageAdapter(sqliteAdapter)
+await storage.open()
+
+const store = new NodeStore({
+  storage,
+  authorDID: identity.did,
+  signingKey: privateKey
+})
 ```
 
 ## Modules
@@ -151,8 +179,9 @@ flowchart TD
 | `schema/node.ts`             | FlatNode type (flattened properties)   |
 | `schema/registry.ts`         | Schema registry                        |
 | `store/store.ts`             | NodeStore engine                       |
+| `store/sqlite-adapter.ts`    | SQLite NodeStore adapter (recommended) |
 | `store/memory-adapter.ts`    | In-memory NodeStore adapter            |
-| `store/indexeddb-adapter.ts` | IndexedDB NodeStore adapter            |
+| `store/indexeddb-adapter.ts` | IndexedDB NodeStore adapter (legacy)   |
 | `store/tempids.ts`           | Temp ID mapping for optimistic creates |
 | `document.ts`                | Yjs document creation/loading          |
 | `updates.ts`                 | Document state management              |
@@ -162,10 +191,10 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/crypto`, `@xnet/identity`, `@xnet/storage`, `@xnet/sync`
+- `@xnet/core`, `@xnet/crypto`, `@xnet/identity`, `@xnet/storage`, `@xnet/sync`, `@xnet/sqlite`
 - `yjs`, `y-protocols` -- CRDT engine
 - `nanoid` -- ID generation
-- `idb` -- IndexedDB
+- `idb` -- IndexedDB (legacy)
 
 ## Testing
 
