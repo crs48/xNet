@@ -163,7 +163,7 @@ sequenceDiagram
 - [ ] Chunks load progressively (nearest first)
 - [ ] Distant chunks evicted to free memory
 - [ ] Cross-chunk edges render correctly
-- [ ] Spatial index handles 100k items
+- [x] Spatial index handles 100k items
 - [ ] Memory stays under 100MB for 10k nodes
 
 ### Phase 3: Navigation & Presence (Weeks 6-7)
