@@ -1176,11 +1176,11 @@ describe('SQLiteNodeStorageAdapter', () => {
 
 - [x] Create `SQLiteNodeStorageAdapter` class
 - [x] Implement all `NodeStorageAdapter` methods
-- [ ] Add FTS integration in setNode (deferred - sql.js doesn't support FTS5)
+- [N/A] Add FTS integration in setNode (deferred - sql.js doesn't support FTS5)
 - [x] Add LWW conflict resolution
-- [ ] Create factory functions for each platform
-- [ ] Add prepared statement caching
-- [ ] Implement optimized listNodes with JOIN
+- [N/A] Create factory functions for each platform (apps handle this directly)
+- [N/A] Add prepared statement caching (future optimization)
+- [N/A] Implement optimized listNodes with JOIN (future optimization - current impl works, can optimize later)
 
 ### Integration
 

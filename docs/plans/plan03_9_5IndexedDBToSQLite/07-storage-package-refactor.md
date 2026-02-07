@@ -884,7 +884,7 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 - [ ] Delete `indexeddb.ts` (deferred to Phase 8)
 - [ ] Delete `indexeddb-batch.ts` (deferred to Phase 8)
 - [ ] Delete any IndexedDB tests (deferred to Phase 8)
-- [ ] Update any documentation
+- [x] Update any documentation (README updated with SQLite usage)
 
 ### Tests
 

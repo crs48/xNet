@@ -339,6 +339,221 @@ describe('SQLiteAdapter Interface', () => {
       expect(checkpointed).toBe(0)
     })
   })
+
+  describe('Cascade Deletes', () => {
+    const now = Date.now()
+    const nodeId = 'node-cascade-test'
+
+    beforeEach(async () => {
+      // Create a node with related data in all child tables
+      await db.run(
+        'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+        [nodeId, 'xnet://Page/1.0', now, now, 'did:key:test']
+      )
+    })
+
+    it('cascades delete to node_properties', async () => {
+      // Insert property
+      await db.run(
+        'INSERT INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [nodeId, 'title', new Uint8Array([34, 84, 101, 115, 116, 34]), 1, 'did:key:test', now]
+      )
+
+      // Verify property exists
+      const beforeCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM node_properties WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(beforeCount?.c).toBe(1)
+
+      // Delete node
+      await db.run('DELETE FROM nodes WHERE id = ?', [nodeId])
+
+      // Property should be gone
+      const afterCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM node_properties WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(afterCount?.c).toBe(0)
+    })
+
+    it('cascades delete to changes', async () => {
+      // Insert change
+      await db.run(
+        'INSERT INTO changes (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, signature) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          'hash-1',
+          nodeId,
+          new Uint8Array([1, 2, 3]),
+          1,
+          'peer-1',
+          now,
+          'did:key:test',
+          new Uint8Array([4, 5, 6])
+        ]
+      )
+
+      // Verify change exists
+      const beforeCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM changes WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(beforeCount?.c).toBe(1)
+
+      // Delete node
+      await db.run('DELETE FROM nodes WHERE id = ?', [nodeId])
+
+      // Change should be gone
+      const afterCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM changes WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(afterCount?.c).toBe(0)
+    })
+
+    it('cascades delete to yjs_state', async () => {
+      // Insert yjs state
+      await db.run('INSERT INTO yjs_state (node_id, state, updated_at) VALUES (?, ?, ?)', [
+        nodeId,
+        new Uint8Array([1, 2, 3]),
+        now
+      ])
+
+      // Verify state exists
+      const beforeCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_state WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(beforeCount?.c).toBe(1)
+
+      // Delete node
+      await db.run('DELETE FROM nodes WHERE id = ?', [nodeId])
+
+      // State should be gone
+      const afterCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_state WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(afterCount?.c).toBe(0)
+    })
+
+    it('cascades delete to yjs_updates', async () => {
+      // Insert yjs update
+      await db.run('INSERT INTO yjs_updates (node_id, update_data, timestamp) VALUES (?, ?, ?)', [
+        nodeId,
+        new Uint8Array([1, 2, 3]),
+        now
+      ])
+
+      // Verify update exists
+      const beforeCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_updates WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(beforeCount?.c).toBe(1)
+
+      // Delete node
+      await db.run('DELETE FROM nodes WHERE id = ?', [nodeId])
+
+      // Update should be gone
+      const afterCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_updates WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(afterCount?.c).toBe(0)
+    })
+
+    it('cascades delete to yjs_snapshots', async () => {
+      // Insert yjs snapshot
+      await db.run(
+        'INSERT INTO yjs_snapshots (node_id, timestamp, snapshot, doc_state, byte_size) VALUES (?, ?, ?, ?, ?)',
+        [nodeId, now, new Uint8Array([1, 2, 3]), new Uint8Array([4, 5, 6]), 6]
+      )
+
+      // Verify snapshot exists
+      const beforeCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_snapshots WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(beforeCount?.c).toBe(1)
+
+      // Delete node
+      await db.run('DELETE FROM nodes WHERE id = ?', [nodeId])
+
+      // Snapshot should be gone
+      const afterCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_snapshots WHERE node_id = ?',
+        [nodeId]
+      )
+      expect(afterCount?.c).toBe(0)
+    })
+
+    it('cascades delete to all child tables at once', async () => {
+      // Insert data into all child tables
+      await db.run(
+        'INSERT INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [nodeId, 'title', new Uint8Array([34, 84, 101, 115, 116, 34]), 1, 'did:key:test', now]
+      )
+      await db.run(
+        'INSERT INTO changes (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, signature) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          'hash-1',
+          nodeId,
+          new Uint8Array([1, 2, 3]),
+          1,
+          'peer-1',
+          now,
+          'did:key:test',
+          new Uint8Array([4, 5, 6])
+        ]
+      )
+      await db.run('INSERT INTO yjs_state (node_id, state, updated_at) VALUES (?, ?, ?)', [
+        nodeId,
+        new Uint8Array([1, 2, 3]),
+        now
+      ])
+      await db.run('INSERT INTO yjs_updates (node_id, update_data, timestamp) VALUES (?, ?, ?)', [
+        nodeId,
+        new Uint8Array([1, 2, 3]),
+        now
+      ])
+      await db.run(
+        'INSERT INTO yjs_snapshots (node_id, timestamp, snapshot, doc_state, byte_size) VALUES (?, ?, ?, ?, ?)',
+        [nodeId, now, new Uint8Array([1, 2, 3]), new Uint8Array([4, 5, 6]), 6]
+      )
+
+      // Delete node
+      await db.run('DELETE FROM nodes WHERE id = ?', [nodeId])
+
+      // All child data should be gone
+      const propCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM node_properties WHERE node_id = ?',
+        [nodeId]
+      )
+      const changeCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM changes WHERE node_id = ?',
+        [nodeId]
+      )
+      const stateCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_state WHERE node_id = ?',
+        [nodeId]
+      )
+      const updateCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_updates WHERE node_id = ?',
+        [nodeId]
+      )
+      const snapshotCount = await db.queryOne<{ c: number }>(
+        'SELECT COUNT(*) as c FROM yjs_snapshots WHERE node_id = ?',
+        [nodeId]
+      )
+
+      expect(propCount?.c).toBe(0)
+      expect(changeCount?.c).toBe(0)
+      expect(stateCount?.c).toBe(0)
+      expect(updateCount?.c).toBe(0)
+      expect(snapshotCount?.c).toBe(0)
+    })
+  })
 })
 
 describe('Query Helpers', () => {

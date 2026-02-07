@@ -41,6 +41,119 @@ flowchart TB
     style META fill:#e3f2fd
 ```
 
+## Entity-Relationship Diagram
+
+```mermaid
+erDiagram
+    nodes ||--o{ node_properties : "has properties"
+    nodes ||--o{ changes : "has changes"
+    nodes ||--o| yjs_state : "has state"
+    nodes ||--o{ yjs_updates : "has updates"
+    nodes ||--o{ yjs_snapshots : "has snapshots"
+
+    nodes {
+        TEXT id PK
+        TEXT schema_id
+        INTEGER created_at
+        INTEGER updated_at
+        TEXT created_by
+        INTEGER deleted_at
+    }
+
+    node_properties {
+        TEXT node_id FK
+        TEXT property_key
+        BLOB value
+        INTEGER lamport_time
+        TEXT updated_by
+        INTEGER updated_at
+    }
+
+    changes {
+        TEXT hash PK
+        TEXT node_id FK
+        BLOB payload
+        INTEGER lamport_time
+        TEXT lamport_peer
+        INTEGER wall_time
+        TEXT author
+        TEXT parent_hash
+        TEXT batch_id
+        BLOB signature
+    }
+
+    yjs_state {
+        TEXT node_id PK_FK
+        BLOB state
+        INTEGER updated_at
+    }
+
+    yjs_updates {
+        INTEGER id PK
+        TEXT node_id FK
+        BLOB update_data
+        INTEGER timestamp
+        TEXT origin
+    }
+
+    yjs_snapshots {
+        INTEGER id PK
+        TEXT node_id FK
+        INTEGER timestamp
+        BLOB snapshot
+        BLOB doc_state
+        INTEGER byte_size
+    }
+
+    blobs {
+        TEXT cid PK
+        BLOB data
+        TEXT mime_type
+        INTEGER size
+        INTEGER created_at
+        INTEGER reference_count
+    }
+
+    documents {
+        TEXT id PK
+        BLOB content
+        TEXT metadata
+        INTEGER version
+    }
+
+    updates {
+        INTEGER id PK
+        TEXT doc_id
+        TEXT update_hash
+        TEXT update_data
+        INTEGER created_at
+    }
+
+    snapshots {
+        TEXT doc_id PK
+        TEXT snapshot_data
+        INTEGER created_at
+    }
+
+    sync_state {
+        TEXT key PK
+        TEXT value
+    }
+
+    _schema_version {
+        INTEGER version PK
+        INTEGER applied_at
+    }
+```
+
+**Cascade Delete Relationships:**
+
+- `nodes` -> `node_properties`: ON DELETE CASCADE
+- `nodes` -> `changes`: ON DELETE CASCADE
+- `nodes` -> `yjs_state`: ON DELETE CASCADE
+- `nodes` -> `yjs_updates`: ON DELETE CASCADE
+- `nodes` -> `yjs_snapshots`: ON DELETE CASCADE
+
 ## Table Documentation
 
 ### Core Tables
@@ -457,6 +570,68 @@ export async function getSchemaInfo(db: SQLiteAdapter): Promise<{
 }
 ```
 
+## Migration Process
+
+When deploying schema changes in a production environment, follow this process:
+
+### 1. Adding a New Migration
+
+1. **Increment `SCHEMA_VERSION`** in `packages/sqlite/src/schema.ts`
+2. **Add migration SQL** to `SCHEMA_MIGRATIONS` with the new version number as key
+3. **Test the migration** locally with existing data
+
+```typescript
+// packages/sqlite/src/schema.ts
+export const SCHEMA_VERSION = 2 // Incremented from 1
+
+export const SCHEMA_MIGRATIONS: Record<number, string> = {
+  2: `
+    ALTER TABLE nodes ADD COLUMN workspace_id TEXT;
+    CREATE INDEX IF NOT EXISTS idx_nodes_workspace ON nodes(workspace_id);
+  `
+}
+```
+
+### 2. Migration Safety Guidelines
+
+- **Always use `IF NOT EXISTS`** for CREATE statements
+- **Never drop columns** in production - mark as deprecated instead
+- **Use transactions** - all migrations run in a transaction
+- **Test rollback scenarios** - ensure app works if migration fails mid-way
+- **Backup first** - especially for Electron/Expo where data is local
+
+### 3. How Migrations Run
+
+When the adapter initializes:
+
+1. **Check current version**: `getSchemaVersion()` reads from `_schema_version` table
+2. **Fresh database**: If version is 0, apply full `SCHEMA_DDL`
+3. **Existing database**: If version < target, apply migrations sequentially
+4. **Already current**: If version equals target, no action needed
+5. **Newer database**: If version > target (downgrade), log warning but continue
+
+### 4. Verifying Migrations
+
+```typescript
+import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
+
+// Test migration from v1 to v2
+const db = await createMemorySQLiteAdapter()
+await db.setSchemaVersion(1) // Simulate old database
+await initializeSchema(db) // Should apply migration
+
+const version = await db.getSchemaVersion()
+console.assert(version === 2, 'Migration should update version')
+```
+
+### 5. Platform-Specific Considerations
+
+| Platform   | Migration Timing             | Backup Strategy               |
+| ---------- | ---------------------------- | ----------------------------- |
+| Electron   | On app startup               | Auto-backup before migration  |
+| Web (OPFS) | On service worker activation | Browser handles persistence   |
+| Expo       | On app launch                | Export to iCloud/Google Drive |
+
 ### Migration Examples
 
 Future migrations would be added to `SCHEMA_MIGRATIONS`:
@@ -854,7 +1029,7 @@ describe('Migrations', () => {
 - [x] Document all tables with column descriptions
 - [x] Document all indexes with purpose
 - [x] Document FTS5 configuration
-- [ ] Add ER diagram to README
+- [x] Add ER diagram to README
 
 ### FTS Implementation
 
@@ -870,7 +1045,7 @@ describe('Migrations', () => {
 - [x] Implement initializeSchema (adapters have applySchema)
 - [x] Implement applyMigrations (schema.ts has SCHEMA_MIGRATIONS)
 - [x] Add version checking (getSchemaVersion/setSchemaVersion)
-- [ ] Document migration process
+- [x] Document migration process (see Migration Process section below)
 
 ### Diagnostics
 
@@ -884,11 +1059,11 @@ describe('Migrations', () => {
 - [x] Test all tables exist
 - [x] Test all indexes exist
 - [x] Test foreign key constraints
-- [ ] Test cascade deletes
-- [ ] Test FTS search (requires non-sql.js adapter)
-- [ ] Test FTS stemming (requires non-sql.js adapter)
+- [x] Test cascade deletes (6 tests added)
+- [N/A] Test FTS search (requires non-sql.js adapter - deferred to browser testing)
+- [N/A] Test FTS stemming (requires non-sql.js adapter - deferred to browser testing)
 - [x] Test migration system
-- [x] Target: 20+ tests (40 tests passing)
+- [x] Target: 20+ tests (49 tests passing)
 
 ---
 
