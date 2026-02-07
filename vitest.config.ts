@@ -33,8 +33,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{cli,crypto,core,data,formula,history,identity,network,query,storage,sync,telemetry,vectors}/src/**/*.test.ts',
-            'packages/{cli,crypto,core,data,formula,history,identity,network,query,storage,sync,telemetry,vectors}/test/**/*.test.ts'
+            'packages/{cli,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/src/**/*.test.ts',
+            'packages/{cli,crypto,core,data,formula,history,identity,network,query,sqlite,storage,sync,telemetry,vectors}/test/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread

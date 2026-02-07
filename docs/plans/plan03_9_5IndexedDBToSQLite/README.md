@@ -187,14 +187,14 @@ Connect NodeStore to SQLite.
 | ---- | ------------------------------------------------------------------ | ------------------------------------------- | ------ |
 | 6.1  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Create SQLiteNodeStorageAdapter             | [x]    |
 | 6.2  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Implement NodeStorageAdapter interface      | [x]    |
-| 6.3  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Add optimized queries for common operations | [ ]    |
+| 6.3  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Add optimized queries for common operations | [x]    |
 | 6.4  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Remove IndexedDBNodeStorageAdapter usage    | [ ]    |
 
 **Validation Gate:**
 
 - [x] All existing NodeStore tests pass (39 tests for SQLiteNodeStorageAdapter)
-- [ ] List operations are 10x+ faster
-- [ ] Complex queries work correctly
+- [x] List operations are 10x+ faster
+- [x] Complex queries work correctly
 - [ ] No IndexedDB code in hot paths
 
 ### Phase 6: Storage Package Cleanup (Step 07)
@@ -203,16 +203,16 @@ Refactor @xnet/storage to use SQLite.
 
 | Task | Document                                                           | Description                     | Status |
 | ---- | ------------------------------------------------------------------ | ------------------------------- | ------ |
-| 7.1  | [07-storage-package-refactor.md](./07-storage-package-refactor.md) | Update StorageAdapter interface | [ ]    |
-| 7.2  | [07-storage-package-refactor.md](./07-storage-package-refactor.md) | Create SQLiteStorageAdapter     | [ ]    |
-| 7.3  | [07-storage-package-refactor.md](./07-storage-package-refactor.md) | Migrate BlobStore to SQLite     | [ ]    |
+| 7.1  | [07-storage-package-refactor.md](./07-storage-package-refactor.md) | Update StorageAdapter interface | [x]    |
+| 7.2  | [07-storage-package-refactor.md](./07-storage-package-refactor.md) | Create SQLiteStorageAdapter     | [x]    |
+| 7.3  | [07-storage-package-refactor.md](./07-storage-package-refactor.md) | Migrate BlobStore to SQLite     | [x]    |
 | 7.4  | [07-storage-package-refactor.md](./07-storage-package-refactor.md) | Remove IndexedDB adapters       | [ ]    |
 | 7.5  | [07-storage-package-refactor.md](./07-storage-package-refactor.md) | Remove idb dependency           | [ ]    |
 
 **Validation Gate:**
 
-- [ ] All storage tests pass with SQLite
-- [ ] Blob operations work correctly
+- [x] All storage tests pass with SQLite (23 tests for SQLiteStorageAdapter)
+- [x] Blob operations work correctly
 - [ ] idb package removed from dependencies
 - [ ] No IndexedDB code in codebase
 
