@@ -64,9 +64,34 @@ export type {
 } from './provider'
 export { BaseSyncProvider } from './provider'
 
-// Yjs security: signed envelopes (Step 01)
-export type { SignedYjsEnvelope, EnvelopeVerifyResult } from './yjs-envelope'
-export { signYjsUpdate, verifyYjsEnvelope, hasSignedEnvelope, isLegacyUpdate } from './yjs-envelope'
+// Yjs security: signed envelopes (Step 01 + Multi-level signatures)
+export type {
+  SignedYjsEnvelope,
+  SignedYjsEnvelopeV1,
+  SignedYjsEnvelopeV2,
+  SignedYjsEnvelopeWire,
+  EnvelopeVerifyResult,
+  EnvelopeVerificationResult,
+  CreateEnvelopeOptions,
+  VerifyEnvelopeOptions
+} from './yjs-envelope'
+export {
+  signYjsUpdate,
+  signYjsUpdateV1,
+  signYjsUpdateV2,
+  signYjsUpdateBatch,
+  verifyYjsEnvelope,
+  verifyYjsEnvelopeV1,
+  verifyYjsEnvelopeV2,
+  verifyYjsEnvelopeQuick,
+  serializeYjsEnvelope,
+  deserializeYjsEnvelope,
+  envelopeSize,
+  isV1Envelope,
+  isV2Envelope,
+  hasSignedEnvelope,
+  isLegacyUpdate
+} from './yjs-envelope'
 
 // Yjs security: size and rate limits (Step 03)
 export type { RateLimiterConfig } from './yjs-limits'
@@ -109,15 +134,29 @@ export type {
 } from './yjs-peer-scoring'
 export { YjsPeerScorer, DEFAULT_YJS_SCORING_CONFIG } from './yjs-peer-scoring'
 
-// Yjs security: clientID-DID binding (Step 07)
+// Yjs security: clientID-DID binding (Step 07 + Multi-level signatures)
 export type {
   ClientIdAttestation,
+  ClientIdAttestationV1,
+  ClientIdAttestationV2,
+  ClientIdAttestationWire,
   AttestationVerifyResult,
+  AttestationVerificationResult,
+  CreateAttestationOptions,
+  VerifyAttestationOptions,
   ClientIdMap
 } from './clientid-attestation'
 export {
   createClientIdAttestation,
+  createClientIdAttestationV1,
+  createClientIdAttestationV2,
   verifyClientIdAttestation,
+  verifyClientIdAttestationV1,
+  verifyClientIdAttestationV2,
+  serializeClientIdAttestation,
+  deserializeClientIdAttestation,
+  isV1Attestation,
+  isV2Attestation,
   ClientIdMapImpl,
   validateClientIdOwnership
 } from './clientid-attestation'
