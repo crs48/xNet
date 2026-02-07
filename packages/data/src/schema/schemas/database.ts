@@ -4,11 +4,18 @@
  * Databases are like Notion databases - they contain items (rows)
  * that all share the same property schema. The database itself
  * stores the schema definition.
+ *
+ * The Y.Doc stores:
+ * - Column definitions (Y.Array<ColumnDefinition>)
+ * - View configurations (Y.Map<ViewConfig>)
+ * - Other collaborative state
+ *
+ * Rows are stored as separate DatabaseRow nodes for per-cell LWW.
  */
 
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text, file, select } from '../properties'
+import { text, file, select, number } from '../properties'
 
 export const DatabaseSchema = defineSchema({
   name: 'Database',
@@ -34,12 +41,16 @@ export const DatabaseSchema = defineSchema({
         { id: 'timeline', name: 'Timeline' }
       ] as const,
       default: 'table'
-    })
+    }),
 
-    // Note: The property schema for items is stored separately
-    // in the database's schema definition, not as a property value.
+    /**
+     * Cached row count for this database.
+     * Updated on row add/delete operations.
+     * Used for query routing decisions (local vs hub).
+     */
+    rowCount: number({ min: 0, integer: true })
   },
-  // Y.Doc for storing rows, view configs, and other mutable state
+  // Y.Doc for storing columns, views, and other collaborative state
   document: 'yjs'
 })
 
