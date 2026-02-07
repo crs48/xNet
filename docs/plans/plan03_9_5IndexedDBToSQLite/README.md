@@ -127,22 +127,22 @@ Establish the adapter interface and implement Electron first since it's most cri
 
 ### Phase 2: Web Browser Support (Step 03)
 
-Add wa-sqlite with OPFS for web browsers.
+Add @sqlite.org/sqlite-wasm with OPFS for web browsers.
 
 | Task | Document                                               | Description                       | Status |
 | ---- | ------------------------------------------------------ | --------------------------------- | ------ |
-| 3.1  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add wa-sqlite dependency          | [ ]    |
-| 3.2  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Implement WebSQLiteAdapter        | [ ]    |
-| 3.3  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add OPFS VFS configuration        | [ ]    |
+| 3.1  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add sqlite-wasm dependency        | [x]    |
+| 3.2  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Implement WebSQLiteAdapter        | [x]    |
+| 3.3  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add OPFS VFS configuration        | [x]    |
 | 3.4  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Configure Vite for WASM + headers | [ ]    |
-| 3.5  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add browser compatibility check   | [ ]    |
+| 3.5  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add browser compatibility check   | [x]    |
 
 **Validation Gate:**
 
-- [ ] WebSQLiteAdapter passes all interface tests
+- [x] WebSQLiteAdapter passes all interface tests
 - [ ] Web app works in Chrome, Firefox, Safari
 - [ ] OPFS persistence verified across page reloads
-- [ ] Unsupported browser shows appropriate message
+- [x] Unsupported browser shows appropriate message
 
 ### Phase 3: Expo Mobile (Step 04)
 
