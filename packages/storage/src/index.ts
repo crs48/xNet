@@ -1,13 +1,11 @@
 /**
- * @xnet/storage - IndexedDB/SQLite adapters, snapshots, and persistence
+ * @xnet/storage - SQLite adapters, snapshots, and persistence
  */
 
 // Types
 export type { StorageAdapter, DocumentData, DocumentMetadata, StorageStats } from './types'
 
 // Adapters
-export { IndexedDBAdapter } from './adapters/indexeddb'
-export { IndexedDBBatchAdapter, createIndexedDBBatchAdapter } from './adapters/indexeddb-batch'
 export { MemoryAdapter } from './adapters/memory'
 export { SQLiteStorageAdapter, createStorageAdapterFromSQLite } from './adapters/sqlite'
 

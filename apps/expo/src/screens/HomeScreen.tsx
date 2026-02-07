@@ -1,8 +1,11 @@
 /**
  * Home screen - document list
+ *
+ * Updated to use the new DataBridge API via XNetContext.
  */
 import type { RootStackParamList } from '../navigation/types'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { NodeState } from '@xnet/data'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
@@ -14,7 +17,8 @@ import {
   ActivityIndicator,
   RefreshControl
 } from 'react-native'
-import { useXNet } from '../hooks/useXNet'
+import { useXNetContext } from '../context/XNetProvider'
+import { Page } from '../schemas'
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Home'>
@@ -26,23 +30,26 @@ interface DocumentItem {
 }
 
 export function HomeScreen({ navigation }: Props) {
-  const { client, isReady, identity, error } = useXNet()
+  const { bridge, isReady, authorDID: identity, error } = useXNetContext()
   const [documents, setDocuments] = useState<DocumentItem[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   const loadDocuments = useCallback(async () => {
-    if (!client || !isReady) return
+    if (!bridge || !isReady) return
 
     try {
-      const docIds = await client.listDocuments()
-      const docs: DocumentItem[] = []
-      for (const id of docIds) {
-        const doc = await client.getDocument(id)
-        if (doc) {
-          docs.push({ id: doc.id, title: doc.metadata.title })
-        }
+      // Use the list method if available, otherwise use query
+      let nodes: NodeState[] = []
+      if (bridge.list) {
+        nodes = await bridge.list({ schemaId: Page._schemaId })
+      } else if (bridge.nodeStore) {
+        nodes = await bridge.nodeStore.list({ schemaId: Page._schemaId })
       }
+      const docs: DocumentItem[] = nodes.map((node) => ({
+        id: node.id,
+        title: (node.properties.title as string) || 'Untitled'
+      }))
       setDocuments(docs)
     } catch (e) {
       console.error('Failed to load documents:', e)
@@ -50,7 +57,7 @@ export function HomeScreen({ navigation }: Props) {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [client, isReady])
+  }, [bridge, isReady])
 
   useEffect(() => {
     if (isReady) {
@@ -64,26 +71,24 @@ export function HomeScreen({ navigation }: Props) {
   }, [loadDocuments])
 
   const createDocument = async () => {
-    if (!client) return
+    if (!bridge) return
 
     try {
-      const doc = await client.createDocument({
-        workspace: 'default',
-        type: 'page',
+      const node = await bridge.create(Page, {
         title: 'Untitled'
       })
       await loadDocuments()
-      navigation.navigate('Document', { docId: doc.id })
+      navigation.navigate('Document', { docId: node.id })
     } catch (e) {
       console.error('Failed to create document:', e)
     }
   }
 
   const deleteDocument = async (id: string) => {
-    if (!client) return
+    if (!bridge) return
 
     try {
-      await client.deleteDocument(id)
+      await bridge.delete(id)
       await loadDocuments()
     } catch (e) {
       console.error('Failed to delete document:', e)

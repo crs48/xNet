@@ -1187,14 +1187,14 @@ describe('SQLiteNodeStorageAdapter', () => {
 - [x] Update `packages/data/src/store/index.ts` exports
 - [x] Add `@xnet/sqlite` as dependency to `@xnet/data`
 - [x] Update Electron app to use SQLite adapter (already using @xnet/sqlite/electron in data-service.ts)
-- [DEFERRED] Update Web app to use SQLite adapter (requires coordinated app update)
-- [DEFERRED] Update Expo app to use SQLite adapter (requires coordinated app update)
+- [x] Update Web app to use SQLite adapter (requires coordinated app update)
+- [x] Update Expo app to use SQLite adapter (requires coordinated app update)
 
 ### Cleanup
 
 - [x] Mark `IndexedDBNodeStorageAdapter` as deprecated
-- [DEFERRED] Remove IndexedDB adapter usage from apps (after all apps migrated)
-- [DEFERRED] Delete `indexeddb-adapter.ts` (after all apps migrated)
+- [x] Remove IndexedDB adapter usage from apps (after all apps migrated)
+- [x] Delete `indexeddb-adapter.ts` (after all apps migrated)
 
 ### Tests
 

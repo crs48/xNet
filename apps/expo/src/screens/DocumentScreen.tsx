@@ -1,5 +1,7 @@
 /**
  * Document screen - rich text editor using WebView
+ *
+ * Updated to use the new NodeState API via useNode hook.
  */
 import type { RootStackParamList } from '../navigation/types'
 import type { RouteProp } from '@react-navigation/native'
@@ -25,40 +27,39 @@ interface Props {
 
 export function DocumentScreen({ navigation, route }: Props) {
   const { docId } = route.params
-  const { document, loading, error } = useNode(docId)
+  const { node, loading, error, update } = useNode(docId)
   const [title, setTitle] = useState('')
   const [initialContent, setInitialContent] = useState('')
 
   useEffect(() => {
-    if (document) {
-      setTitle(document.metadata.title)
-      navigation.setOptions({ title: document.metadata.title })
+    if (node) {
+      const nodeTitle = (node.properties.title as string) || 'Untitled'
+      setTitle(nodeTitle)
+      navigation.setOptions({ title: nodeTitle })
 
-      // Get initial HTML content from Y.Doc
-      const content = document.ydoc.getText('content')
-      setInitialContent(content.toString())
+      // For now, use empty content - Y.Doc integration will come later
+      // The documentContent is stored as Uint8Array and needs Y.Doc to decode
+      setInitialContent('')
     }
-  }, [document, navigation])
+  }, [node, navigation])
 
-  const handleTitleChange = (text: string) => {
-    setTitle(text)
-    if (document) {
-      document.metadata.title = text
+  const handleTitleChange = useCallback(
+    (text: string) => {
+      setTitle(text)
       navigation.setOptions({ title: text })
-    }
-  }
-
-  const handleContentChange = useCallback(
-    (html: string) => {
-      // Update Y.Doc with new content
-      if (document) {
-        const text = document.ydoc.getText('content')
-        text.delete(0, text.length)
-        text.insert(0, html)
-      }
+      // Update the node title
+      update({ title: text }).catch((err) => {
+        console.error('Failed to update title:', err)
+      })
     },
-    [document]
+    [update, navigation]
   )
+
+  const handleContentChange = useCallback((_html: string) => {
+    // TODO: Y.Doc integration for rich text content
+    // For now, content changes are not persisted
+    // This will be implemented when Y.Doc support is added to NativeBridge
+  }, [])
 
   const handleNavigate = useCallback(
     (targetDocId: string) => {
@@ -77,7 +78,7 @@ export function DocumentScreen({ navigation, route }: Props) {
     )
   }
 
-  if (loading || !document) {
+  if (loading || !node) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>

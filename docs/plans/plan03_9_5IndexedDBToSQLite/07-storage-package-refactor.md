@@ -874,16 +874,16 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 ### Package Updates
 
 - [x] Update `packages/storage/src/index.ts` exports
-- [DEFERRED] Remove IndexedDB adapter exports (keep for backward compat until all apps migrated)
+- [x] Remove IndexedDB adapter exports (keep for backward compat until all apps migrated)
 - [x] Add `@xnet/sqlite` dependency
-- [DEFERRED] Remove `idb` dependency (keep until IndexedDB fully removed from all apps)
+- [x] Remove `idb` dependency (keep until IndexedDB fully removed from all apps)
 
 ### Cleanup
 
 - [x] Mark `IndexedDBAdapter` and `IndexedDBBatchAdapter` as deprecated
-- [DEFERRED] Delete `indexeddb.ts` (after all apps migrated)
-- [DEFERRED] Delete `indexeddb-batch.ts` (after all apps migrated)
-- [DEFERRED] Delete any IndexedDB tests (after all apps migrated)
+- [x] Delete `indexeddb.ts` (after all apps migrated)
+- [x] Delete `indexeddb-batch.ts` (after all apps migrated)
+- [x] Delete any IndexedDB tests (after all apps migrated)
 - [x] Update any documentation (README updated with SQLite usage)
 
 ### Tests

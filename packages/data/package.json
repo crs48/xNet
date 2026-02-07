@@ -28,7 +28,6 @@
     "@xnet/sqlite": "workspace:*",
     "@xnet/storage": "workspace:*",
     "@xnet/sync": "workspace:*",
-    "idb": "^8.0.2",
     "lib0": "^0.2.102",
     "nanoid": "^5.1.6",
     "y-protocols": "^1.0.6",

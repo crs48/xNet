@@ -70,8 +70,4 @@ export {
 
 // Adapters
 export { MemoryNodeStorageAdapter } from './memory-adapter'
-export {
-  IndexedDBNodeStorageAdapter,
-  type IndexedDBNodeStorageAdapterOptions
-} from './indexeddb-adapter'
 export { SQLiteNodeStorageAdapter } from './sqlite-adapter'

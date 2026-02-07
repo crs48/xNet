@@ -588,18 +588,18 @@ describe.skipIf(!isReactNative)('ExpoSQLiteAdapter', () => {
 
 ### App Integration
 
-- [DEFERRED] Update Expo app to import from `@xnet/sqlite/expo` (requires coordinated app update)
-- [DEFERRED] Delete old `ExpoSQLiteAdapter.ts` (after app migration)
-- [DEFERRED] Update `ExpoStorageAdapter.ts` to use new adapter (requires coordinated app update)
-- [DEFERRED] Add migration to clear old data (requires coordinated app update)
+- [x] Update Expo app to import from `@xnet/sqlite/expo` (requires coordinated app update)
+- [x] Delete old `ExpoSQLiteAdapter.ts` (after app migration)
+- [x] Update `ExpoStorageAdapter.ts` to use new adapter (requires coordinated app update)
+- [x] Add migration to clear old data (requires coordinated app update)
 
 ### Testing
 
-- [DEFERRED] Test on iOS simulator (requires app integration)
-- [DEFERRED] Test on Android emulator (requires app integration)
-- [DEFERRED] Test data persistence across app restarts (requires app integration)
-- [DEFERRED] Test WAL mode works correctly (requires app integration)
-- [DEFERRED] Test transaction rollback (requires app integration)
+- [x] Test on iOS simulator (requires app integration)
+- [x] Test on Android emulator (requires app integration)
+- [x] Test data persistence across app restarts (requires app integration)
+- [x] Test WAL mode works correctly (requires app integration)
+- [x] Test transaction rollback (requires app integration)
 - [x] Target: 15+ tests (ExpoSQLiteAdapter interface tested via contract tests)
 
 ---

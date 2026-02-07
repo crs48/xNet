@@ -1,74 +1,72 @@
 /**
  * Node hook for Expo
+ *
+ * Fetches a single node by ID using the DataBridge.
  */
-import type { XDocument } from '@xnet/sdk'
+import type { NodeState } from '@xnet/data'
 import { useState, useEffect, useCallback } from 'react'
-import { useXNet } from './useXNet'
+import { useXNetContext } from '../context/XNetProvider'
 
 interface UseNodeResult {
-  document: XDocument | null
+  node: NodeState | null
   loading: boolean
   error: Error | null
-  updateTitle: (title: string) => Promise<void>
-  updateContent: (content: string) => Promise<void>
+  update: (changes: Record<string, unknown>) => Promise<void>
   refresh: () => Promise<void>
 }
 
-export function useNode(docId: string | null): UseNodeResult {
-  const { client, isReady } = useXNet()
-  const [document, setDocument] = useState<XDocument | null>(null)
+export function useNode(nodeId: string | null): UseNodeResult {
+  const { bridge, isReady } = useXNetContext()
+  const [node, setNode] = useState<NodeState | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   const load = useCallback(async () => {
-    if (!client || !docId || !isReady) {
+    if (!bridge || !nodeId || !isReady) {
       setLoading(false)
       return
     }
 
     setLoading(true)
     try {
-      const doc = await client.getDocument(docId)
-      setDocument(doc)
+      // Use the `get` method from the bridge (available on NativeBridge)
+      if (bridge.get) {
+        const fetchedNode = await bridge.get(nodeId)
+        setNode(fetchedNode)
+      } else {
+        // Fallback: use nodeStore directly if available
+        const fetchedNode = await bridge.nodeStore?.get(nodeId)
+        setNode(fetchedNode ?? null)
+      }
     } catch (e) {
       setError(e as Error)
     } finally {
       setLoading(false)
     }
-  }, [client, docId, isReady])
+  }, [bridge, nodeId, isReady])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const updateTitle = useCallback(
-    async (title: string) => {
-      if (!document) return
-      document.metadata.title = title
-      // Re-fetch to refresh state
-      await load()
+  const update = useCallback(
+    async (changes: Record<string, unknown>) => {
+      if (!bridge || !nodeId) return
+      try {
+        const updatedNode = await bridge.update(nodeId, changes)
+        setNode(updatedNode)
+      } catch (e) {
+        setError(e as Error)
+      }
     },
-    [document, load]
-  )
-
-  const updateContent = useCallback(
-    async (content: string) => {
-      if (!document) return
-      const text = document.ydoc.getText('content')
-      text.delete(0, text.length)
-      text.insert(0, content)
-      // Re-fetch to refresh state
-      await load()
-    },
-    [document, load]
+    [bridge, nodeId]
   )
 
   return {
-    document,
+    node,
     loading,
     error,
-    updateTitle,
-    updateContent,
+    update,
     refresh: load
   }
 }

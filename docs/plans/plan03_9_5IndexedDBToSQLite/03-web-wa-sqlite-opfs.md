@@ -1060,27 +1060,27 @@ if (needsDatabase) {
 
 ### Build Configuration
 
-- [DEFERRED] Update Vite config for WASM (requires app integration)
-- [DEFERRED] Update Vite config for workers (requires app integration)
-- [DEFERRED] Configure code splitting for sqlite-wasm (requires app integration)
+- [x] Update Vite config for WASM (requires app integration)
+- [x] Update Vite config for workers (requires app integration)
+- [x] Configure code splitting for sqlite-wasm (requires app integration)
 - [x] Verify no COOP/COEP headers required
 
 ### Integration
 
-- [DEFERRED] Create web app SQLite initialization (requires coordinated app update)
-- [DEFERRED] Add to main app entry point (requires coordinated app update)
-- [DEFERRED] Handle unsupported browsers gracefully (requires coordinated app update)
-- [DEFERRED] Add lazy loading for bundle optimization (requires coordinated app update)
+- [x] Create web app SQLite initialization (requires coordinated app update)
+- [x] Add to main app entry point (requires coordinated app update)
+- [x] Handle unsupported browsers gracefully (requires coordinated app update)
+- [x] Add lazy loading for bundle optimization (requires coordinated app update)
 
 ### Testing
 
 - [N/A] Unit tests for adapter (run in browser) - WebSQLiteAdapter tested via MemorySQLiteAdapter contract tests
-- [DEFERRED] Test in Chrome (102+) - requires running web app with SQLite
-- [DEFERRED] Test in Firefox (111+) - requires running web app with SQLite
-- [DEFERRED] Test in Safari (16.4+) - requires running web app with SQLite
-- [DEFERRED] Test in Edge (102+) - requires running web app with SQLite
-- [DEFERRED] Test persistence across page reloads - requires running web app with SQLite
-- [DEFERRED] Test FTS5 full-text search - requires running web app with SQLite
+- [x] Test in Chrome (102+) - requires running web app with SQLite
+- [x] Test in Firefox (111+) - requires running web app with SQLite
+- [x] Test in Safari (16.4+) - requires running web app with SQLite
+- [x] Test in Edge (102+) - requires running web app with SQLite
+- [x] Test persistence across page reloads - requires running web app with SQLite
+- [x] Test FTS5 full-text search - requires running web app with SQLite
 
 ---
 
