@@ -881,18 +881,18 @@ describe('useCell', () => {
 
 ## Validation Gate
 
-- [ ] `useDatabase` loads rows with pagination
-- [ ] `useDatabase` applies view filters and sorts
-- [ ] `useDatabase` refetches on row changes
-- [ ] `useDatabase.createRow` creates at correct position
-- [ ] `useDatabase.updateRow` updates cell values
-- [ ] `useDatabase.deleteRow` removes row
-- [ ] `useDatabase.reorderRow` changes position
-- [ ] `useDatabaseRow` loads row with cells
-- [ ] `useDatabaseRow.update` applies optimistic updates
-- [ ] `useCell` debounces saves
-- [ ] All hooks unsubscribe on unmount
-- [ ] All tests pass
+- [x] `useDatabase` loads rows with pagination
+- [ ] `useDatabase` applies view filters and sorts (TODO: add filter/sort to queryRows)
+- [x] `useDatabase` refetches on row changes
+- [x] `useDatabase.createRow` creates at correct position
+- [x] `useDatabase.updateRow` updates cell values
+- [x] `useDatabase.deleteRow` removes row
+- [x] `useDatabase.reorderRow` changes position
+- [x] `useDatabaseRow` loads row with cells
+- [x] `useDatabaseRow.update` applies optimistic updates
+- [x] `useCell` debounces saves
+- [x] All hooks unsubscribe on unmount
+- [x] All tests pass (data package tests)
 
 ---
 

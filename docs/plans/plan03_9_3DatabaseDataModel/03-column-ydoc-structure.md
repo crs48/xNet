@@ -1029,7 +1029,7 @@ describe('CRDT Behavior', () => {
 - [x] `deleteView()` removes from map
 - [x] Concurrent column edits merge correctly (CRDT)
 - [x] Column order syncs across devices
-- [ ] `useDatabaseDoc()` hook reactively updates (Task 4: React Hooks)
+- [x] `useDatabaseDoc()` hook reactively updates
 - [x] All tests pass
 
 ---

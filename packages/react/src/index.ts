@@ -86,6 +86,81 @@ export {
   type PresenceUser
 } from './hooks/useNode'
 
+// =============================================================================
+// Database Hooks
+// =============================================================================
+
+/**
+ * useDatabaseDoc - Hook for database column and view operations
+ *
+ * @example
+ * ```tsx
+ * const {
+ *   columns,
+ *   views,
+ *   createColumn,
+ *   updateColumn,
+ *   createView
+ * } = useDatabaseDoc(databaseId)
+ * ```
+ */
+export {
+  useDatabaseDoc,
+  type UseDatabaseDocResult,
+  type ColumnDefinition,
+  type ColumnType,
+  type ColumnConfig,
+  type ViewConfig,
+  type ViewType
+} from './hooks/useDatabaseDoc'
+
+/**
+ * useDatabase - Hook for database row operations with pagination
+ *
+ * @example
+ * ```tsx
+ * const {
+ *   rows,
+ *   columns,
+ *   views,
+ *   loading,
+ *   hasMore,
+ *   loadMore,
+ *   createRow
+ * } = useDatabase(databaseId)
+ * ```
+ */
+export {
+  useDatabase,
+  type UseDatabaseOptions,
+  type UseDatabaseResult,
+  type DatabaseRow
+} from './hooks/useDatabase'
+
+/**
+ * useDatabaseRow - Hook for single row operations with optimistic updates
+ *
+ * @example
+ * ```tsx
+ * const { row, update, delete: deleteRow } = useDatabaseRow(rowId)
+ * ```
+ */
+export {
+  useDatabaseRow,
+  type UseDatabaseRowResult,
+  type DatabaseRowData
+} from './hooks/useDatabaseRow'
+
+/**
+ * useCell - Hook for individual cell editing with debounced saves
+ *
+ * @example
+ * ```tsx
+ * const { value, setValue, saving } = useCell<string>(rowId, 'title')
+ * ```
+ */
+export { useCell, type UseCellResult, type UseCellOptions } from './hooks/useCell'
+
 /**
  * useComments - Universal hook for comments on any Node
  *
