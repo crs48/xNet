@@ -445,3 +445,6 @@ export async function createElectronSQLiteAdapter(
   await adapter.applySchema(SCHEMA_VERSION, SCHEMA_DDL)
   return adapter
 }
+
+// Re-export schema constants for convenience
+export { SCHEMA_VERSION, SCHEMA_DDL }

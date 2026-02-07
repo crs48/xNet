@@ -11,14 +11,14 @@ This exploration identifies **significant dead code** across the xNet codebase. 
 
 ### High-Level Summary
 
-| Category                                           | Items                   | Est. Lines | Priority     |
-| -------------------------------------------------- | ----------------------- | ---------- | ------------ |
-| Legacy storage (StorageAdapter, XDocument)         | 7 files                 | ~500       | High         |
-| Unused packages (@xnet/cli, @xnet/formula)         | 2 packages              | ~1500      | Medium       |
-| Unintegrated packages (@xnet/network, @xnet/query) | 2 packages              | ~2000      | Low (future) |
-| Dead IPC handlers (Electron)                       | 9+ handlers             | ~200       | High         |
-| Expo legacy hooks                                  | 2 hooks                 | ~130       | Medium       |
-| Deprecated sync exports                            | V1 envelope/attestation | ~400       | Low          |
+| Category                                           | Items                            | Est. Lines | Priority     |
+| -------------------------------------------------- | -------------------------------- | ---------- | ------------ |
+| Legacy storage (StorageAdapter, XDocument)         | 7 files                          | ~500       | High         |
+| Unused packages (@xnet/cli, @xnet/formula)         | 2 packages                       | ~1500      | Medium       |
+| Unintegrated packages (@xnet/network, @xnet/query) | 2 packages                       | ~2000      | Low (future) |
+| Dead IPC handlers (Electron)                       | 9+ handlers                      | ~200       | High         |
+| Expo legacy hooks                                  | 2 local hooks (useXNet, useNode) | ~130       | Medium       |
+| Deprecated sync exports                            | V1 envelope/attestation          | ~400       | Low          |
 
 ```mermaid
 flowchart TB
@@ -231,15 +231,15 @@ flowchart LR
 
 ### Definitely Legacy (Remove)
 
-| Component                       | Location                         | Reason                                             |
-| ------------------------------- | -------------------------------- | -------------------------------------------------- |
-| `XDocument`                     | `packages/data/src/types.ts`     | Not used in Electron/Web, Expo should migrate      |
-| `createDocument()`              | `packages/data/src/document.ts`  | Only used by XNetClient                            |
-| `loadDocument()`                | `packages/data/src/document.ts`  | Only used by XNetClient                            |
-| `XNetClient`                    | `packages/sdk/src/client.ts`     | Not used by Electron/Web apps                      |
-| `useXNet.ts`                    | `apps/expo/src/hooks/useXNet.ts` | Legacy hook, should use XNetProvider               |
-| `useNode.ts` (Expo)             | `apps/expo/src/hooks/useNode.ts` | Legacy, different from `@xnet/react` useNode       |
-| StorageAdapter document methods | `packages/storage/src/types.ts`  | `getDocument`, `setDocument`, `appendUpdate`, etc. |
+| Component                       | Location                         | Reason                                                                  |
+| ------------------------------- | -------------------------------- | ----------------------------------------------------------------------- |
+| `XDocument`                     | `packages/data/src/types.ts`     | Not used in Electron/Web, Expo should migrate                           |
+| `createDocument()`              | `packages/data/src/document.ts`  | Only used by XNetClient                                                 |
+| `loadDocument()`                | `packages/data/src/document.ts`  | Only used by XNetClient                                                 |
+| `XNetClient`                    | `packages/sdk/src/client.ts`     | Not used by Electron/Web apps                                           |
+| `useXNet.ts` (Expo)             | `apps/expo/src/hooks/useXNet.ts` | Legacy hook wrapping XNetClient                                         |
+| `useNode.ts` (Expo local)       | `apps/expo/src/hooks/useNode.ts` | Expo's local hook wrapping legacy useXNet (not `@xnet/react`'s useNode) |
+| StorageAdapter document methods | `packages/storage/src/types.ts`  | `getDocument`, `setDocument`, `appendUpdate`, etc.                      |
 
 ### Still Needed (Keep or Refactor)
 
@@ -281,9 +281,9 @@ flowchart LR
 
 **Tasks**:
 
-- [ ] Delete `apps/expo/src/hooks/useXNet.ts`
-- [ ] Delete `apps/expo/src/hooks/useNode.ts` (uses XDocument)
-- [ ] Update Expo screens to use `@xnet/react` hooks instead
+- [ ] Delete `apps/expo/src/hooks/useXNet.ts` (legacy XNetClient wrapper)
+- [ ] Delete `apps/expo/src/hooks/useNode.ts` (Expo's local hook that wraps legacy useXNet)
+- [ ] Update Expo screens to use `@xnet/react` hooks (useNode, useQuery, etc.)
 - [ ] Delete `apps/expo/src/storage/ExpoStorageAdapter.ts`
 - [ ] Delete `apps/expo/src/storage/ExpoSQLiteAdapter.ts`
 
@@ -661,11 +661,11 @@ packages/sync/src/clientid-attestation.ts:
 ### Phase 2: Medium Priority (Refactor First)
 
 - [ ] **Expo legacy hooks** - Migrate screens first
-  - Delete: `apps/expo/src/hooks/useXNet.ts`
-  - Delete: `apps/expo/src/hooks/useNode.ts`
+  - Delete: `apps/expo/src/hooks/useXNet.ts` (legacy XNetClient wrapper)
+  - Delete: `apps/expo/src/hooks/useNode.ts` (Expo's local hook, NOT `@xnet/react`'s useNode)
   - Delete: `apps/expo/src/storage/ExpoStorageAdapter.ts`
   - Delete: `apps/expo/src/storage/ExpoSQLiteAdapter.ts`
-  - Update screens to use `@xnet/react` hooks
+  - Update screens to use `@xnet/react` hooks (useNode, useQuery, useMutate)
 
 - [ ] **@xnet/formula package** - `packages/formula/`
   - Delete entire directory (or integrate when needed)
