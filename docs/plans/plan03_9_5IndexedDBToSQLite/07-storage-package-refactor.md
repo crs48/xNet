@@ -880,6 +880,7 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 
 ### Cleanup
 
+- [x] Mark `IndexedDBAdapter` and `IndexedDBBatchAdapter` as deprecated
 - [ ] Delete `indexeddb.ts` (deferred to Phase 8)
 - [ ] Delete `indexeddb-batch.ts` (deferred to Phase 8)
 - [ ] Delete any IndexedDB tests (deferred to Phase 8)
