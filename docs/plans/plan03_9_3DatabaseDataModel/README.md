@@ -256,7 +256,7 @@ flowchart LR
 - [x] Filters work for all column types
 - [x] Multi-column sorting works
 - [x] Group-by shows collapsible groups with aggregates
-- [ ] VirtualizedTable handles 100K rows smoothly (Y-axis done, X-axis TODO)
+- [x] VirtualizedTable handles 100K rows smoothly (X+Y virtualization complete)
 - [x] View configs persist in Y.Doc
 
 ### Phase 3: Hub Integration (Weeks 7-9)

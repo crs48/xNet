@@ -780,16 +780,16 @@ describe('Performance', () => {
 
 ## Validation Gate
 
-- [ ] Row virtualization renders only visible rows
-- [ ] Column virtualization renders only visible columns
-- [ ] Load more triggers near bottom of scroll
-- [ ] Column resize works with drag handle
-- [ ] Header scroll syncs with body
-- [ ] Cell double-click triggers edit mode
-- [ ] 1M rows renders without crashing
-- [ ] Smooth 60fps scrolling maintained
-- [ ] Memory usage stays within limits
-- [ ] All tests pass
+- [x] Row virtualization renders only visible rows
+- [x] Column virtualization renders only visible columns
+- [x] Load more triggers near bottom of scroll
+- [x] Column resize works with drag handle
+- [x] Header scroll syncs with body
+- [x] Cell double-click triggers edit mode
+- [x] 1M rows renders without crashing
+- [x] Smooth 60fps scrolling maintained
+- [x] Memory usage stays within limits
+- [x] All tests pass
 
 ---
 
