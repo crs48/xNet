@@ -197,3 +197,15 @@ export {
   type RowPickerModalProps,
   type ReverseRelationsPanelProps
 } from './relations/index.js'
+
+// Column configuration
+export {
+  AddColumnModal,
+  SelectOptionsEditor,
+  getColorBg,
+  type AddColumnModalProps,
+  type NewColumnDefinition,
+  type ColumnConfig,
+  type SelectOption,
+  type SelectOptionsEditorProps
+} from './columns/index.js'
