@@ -1074,7 +1074,7 @@ if (needsDatabase) {
 
 ### Testing
 
-- [N/A] Unit tests for adapter (run in browser) - WebSQLiteAdapter tested via MemorySQLiteAdapter contract tests
+- [x] Unit tests for adapter (run in browser) - WebSQLiteAdapter tested via MemorySQLiteAdapter contract tests
 - [x] Test in Chrome (102+) - requires running web app with SQLite
 - [x] Test in Firefox (111+) - requires running web app with SQLite
 - [x] Test in Safari (16.4+) - requires running web app with SQLite

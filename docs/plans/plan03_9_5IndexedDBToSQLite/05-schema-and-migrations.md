@@ -1037,7 +1037,7 @@ describe('Migrations', () => {
 - [x] Create searchNodes function
 - [x] Create rebuildFTS function
 - [x] Handle TipTap JSON content extraction
-- [N/A] Add FTS tests (FTS5 not supported in sql.js - tested via browser)
+- [x] Add FTS tests (FTS5 not supported in sql.js - tested via better-sqlite3 in electron.test.ts)
 
 ### Migration System
 
@@ -1060,8 +1060,8 @@ describe('Migrations', () => {
 - [x] Test all indexes exist
 - [x] Test foreign key constraints
 - [x] Test cascade deletes (6 tests added)
-- [N/A] Test FTS search (requires non-sql.js adapter - deferred to browser testing)
-- [N/A] Test FTS stemming (requires non-sql.js adapter - deferred to browser testing)
+- [x] Test FTS search (tested via better-sqlite3 in electron.test.ts)
+- [x] Test FTS stemming (tested via better-sqlite3 in electron.test.ts)
 - [x] Test migration system
 - [x] Target: 20+ tests (49 tests passing)
 

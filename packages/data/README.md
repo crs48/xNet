@@ -16,7 +16,7 @@ pnpm add @xnet/data
 - **Yjs CRDT** -- Document creation, loading, state management
 - **Awareness/presence** -- Real-time user presence
 - **Blob service** -- File upload/download with content addressing
-- **Storage adapters** -- IndexedDB and in-memory NodeStore adapters
+- **Storage adapters** -- SQLite, IndexedDB, and in-memory NodeStore adapters
 - **Temp ID mapping** -- Optimistic creates with server-assigned IDs
 
 ## Usage

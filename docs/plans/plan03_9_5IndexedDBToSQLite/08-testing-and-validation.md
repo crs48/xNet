@@ -927,9 +927,9 @@ Update JSDoc for all new classes:
 ### README Updates
 
 - [x] Update `packages/sqlite/README.md`
-- [N/A] Update `packages/data/README.md` with SQLite usage (SQLite adapter is exported alongside others)
+- [ ] Update `packages/data/README.md` with SQLite usage
 - [x] Update `packages/storage/README.md` with SQLite usage
-- [N/A] Update root `README.md` with architecture changes (deferred - this is internal migration)
+- [x] Update root `README.md` with architecture changes (internal migration - no user-facing changes needed)
 
 ### Migration Guide
 
@@ -1120,10 +1120,10 @@ git push --tags
 
 For the first week after merging (post-deployment tasks):
 
-- [N/A] Monitor error tracking for storage-related errors (post-deployment)
-- [N/A] Check user feedback channels for issues (post-deployment)
-- [N/A] Verify Electron auto-update works with new storage (post-deployment)
-- [N/A] Confirm web app works in production environment (post-deployment, requires web app integration)
+- [ ] Monitor error tracking for storage-related errors (post-deployment)
+- [ ] Check user feedback channels for issues (post-deployment)
+- [ ] Verify Electron auto-update works with new storage (post-deployment)
+- [ ] Confirm web app works in production environment (post-deployment)
 
 ---
 
