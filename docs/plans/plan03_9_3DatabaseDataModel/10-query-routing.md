@@ -659,17 +659,17 @@ describe('QueryEngine', () => {
 
 ## Validation Gate
 
-- [ ] Router routes small datasets (< 10K) to local
-- [ ] Router routes large datasets (> 100K) to hub
-- [ ] Router routes search queries to hub
-- [ ] Router falls back to local without hub
+- [x] Router routes small datasets (< 10K) to local
+- [x] Router routes large datasets (> 100K) to hub
+- [x] Router routes search queries to hub
+- [x] Router falls back to local without hub
 - [ ] QueryEngine executes local queries correctly
 - [ ] QueryEngine executes hub queries correctly
 - [ ] Hybrid queries merge pending changes
-- [ ] LRU cache limits memory usage
-- [ ] Cache invalidates on changes
+- [x] LRU cache limits memory usage
+- [x] Cache invalidates on changes
 - [ ] useDatabase exposes query source
-- [ ] All tests pass
+- [x] All tests pass (44 new tests)
 
 ---
 

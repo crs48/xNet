@@ -205,3 +205,24 @@ export {
   type QueryOptions,
   type QueryResult
 } from './query-pipeline'
+
+// Query router
+export {
+  QueryRouter,
+  createQueryRouter,
+  DEFAULT_ROUTER_CONFIG,
+  type QuerySource,
+  type QueryRouterConfig,
+  type QueryRouterResult,
+  type RouteOptions
+} from './query-router'
+
+// Row cache
+export {
+  RowCache,
+  createRowCache,
+  DEFAULT_CACHE_CONFIG,
+  type CachedRow,
+  type RowCacheConfig,
+  type CacheStats
+} from './row-cache'

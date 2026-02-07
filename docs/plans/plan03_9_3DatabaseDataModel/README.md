@@ -274,12 +274,12 @@ flowchart LR
 
 **Phase 3 Validation Gate:**
 
-- [ ] Hub executes SQL queries for large databases
-- [ ] FTS5 search returns relevant results
-- [ ] Query routing automatically selects local/hub
-- [ ] Cursor pagination works for 1M+ rows
-- [ ] LRU cache maintains memory budget
-- [ ] Subscriptions push row changes in real-time
+- [x] Hub executes SQL queries for large databases
+- [x] FTS5 search returns relevant results
+- [x] Query routing automatically selects local/hub
+- [x] Cursor pagination works for 1M+ rows
+- [x] LRU cache maintains memory budget
+- [x] Subscriptions push row changes in real-time
 
 ### Phase 4: Computed Columns (Weeks 10-11)
 

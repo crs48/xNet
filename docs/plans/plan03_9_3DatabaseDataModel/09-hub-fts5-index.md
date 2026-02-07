@@ -706,17 +706,17 @@ describe('FTS5 Search', () => {
 
 ## Validation Gate
 
-- [ ] FTS5 virtual table created correctly
-- [ ] Triggers maintain index on insert/update/delete
-- [ ] Searchable text generated from correct columns
-- [ ] Basic text search works
-- [ ] Prefix search works
+- [x] FTS5 virtual table created correctly
+- [x] Triggers maintain index on insert/update/delete
+- [x] Searchable text generated from correct columns
+- [x] Basic text search works
+- [x] Prefix search works
 - [ ] Phrase search works
 - [ ] Search results ranked by relevance
-- [ ] Index rebuild works
-- [ ] Batch insert maintains index
+- [x] Index rebuild works
+- [x] Batch insert maintains index
 - [ ] Search 100K rows < 100ms
-- [ ] All tests pass
+- [x] All tests pass (18 new tests)
 
 ---
 
