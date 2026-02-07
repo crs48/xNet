@@ -986,7 +986,7 @@ import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
 const db = await createExpoSQLiteAdapter({ path: 'xnet.db' })
 ```
 
-```
+````
 
 ## Validation Checklist
 
@@ -1047,7 +1047,97 @@ If issues are discovered post-merge:
 - [ ] Performance review passed
 - [ ] Accessibility not affected
 
+## CI/CD Validation
+
+As the final validation step, push to GitHub and verify all CI workflows complete successfully.
+
+### GitHub Actions to Verify
+
+| Workflow              | File                        | Must Pass | Description                          |
+| --------------------- | --------------------------- | --------- | ------------------------------------ |
+| **CI**                | `.github/workflows/ci.yml`  | Yes       | Lint, typecheck, unit tests          |
+| **Site Deploy**       | `.github/workflows/site.yml`| Yes       | Web app builds and deploys           |
+| **Electron Build**    | `.github/workflows/electron.yml` | Yes  | Electron app builds for all platforms|
+
+### Validation Steps
+
+```bash
+# 1. Push to a feature branch first
+git push -u origin feature/sqlite-migration
+
+# 2. Open GitHub and navigate to Actions tab
+# 3. Monitor each workflow:
+````
+
+#### CI Workflow Checklist
+
+- [ ] Workflow triggered on push
+- [ ] `pnpm install` succeeds
+- [ ] `pnpm lint` passes
+- [ ] `pnpm typecheck` passes
+- [ ] `pnpm test` passes (all ~2400 tests)
+- [ ] Overall workflow status: green
+
+#### Site Deploy Workflow Checklist
+
+- [ ] Workflow triggered
+- [ ] Dependencies install correctly
+- [ ] `pnpm build` succeeds for web app
+- [ ] sqlite-wasm assets included in bundle
+- [ ] Deploy to hosting succeeds (if configured)
+- [ ] Overall workflow status: green
+
+#### Electron Build Workflow Checklist
+
+- [ ] Workflow triggered
+- [ ] Dependencies install correctly
+- [ ] macOS build succeeds
+- [ ] Windows build succeeds
+- [ ] Linux build succeeds
+- [ ] better-sqlite3 native module compiles
+- [ ] App packages created successfully
+- [ ] Overall workflow status: green
+
+### Troubleshooting CI Failures
+
+| Failure Type              | Likely Cause                       | Fix                                     |
+| ------------------------- | ---------------------------------- | --------------------------------------- |
+| sqlite-wasm not found     | Missing dependency or wrong import | Check `@sqlite.org/sqlite-wasm` in deps |
+| better-sqlite3 build fail | Native module compilation issue    | Check node version, rebuild flags       |
+| WASM file not in bundle   | Vite config missing WASM handling  | Update vite.config.ts for WASM assets   |
+| Type errors               | Interface mismatch                 | Run `pnpm typecheck` locally first      |
+| Test failures             | Adapter not matching contract      | Run failing tests locally to debug      |
+| Bundle too large          | WASM not code-split                | Verify lazy loading configuration       |
+
+### Post-CI Merge Process
+
+Once all workflows pass:
+
+```bash
+# 1. Create PR if not already
+gh pr create --title "feat: migrate from IndexedDB to SQLite" --body "..."
+
+# 2. Request review
+
+# 3. After approval, merge to main
+gh pr merge --squash
+
+# 4. Verify CI passes on main branch
+
+# 5. Tag release if appropriate
+git tag -a v0.x.x -m "SQLite storage migration"
+git push --tags
+```
+
+### Monitoring After Merge
+
+For the first week after merging:
+
+- [ ] Monitor error tracking for storage-related errors
+- [ ] Check user feedback channels for issues
+- [ ] Verify Electron auto-update works with new storage
+- [ ] Confirm web app works in production environment
+
 ---
 
 [Back to README](./README.md) | [Previous: Storage](./07-storage-package-refactor.md)
-```
