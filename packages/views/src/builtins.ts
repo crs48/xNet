@@ -9,6 +9,7 @@ import React from 'react'
 import { BoardView } from './board/BoardView.js'
 import { CalendarView } from './calendar/CalendarView.js'
 import { GalleryView } from './gallery/GalleryView.js'
+import { ListView } from './list/ListView.js'
 import { viewRegistry, type ViewProps, type ViewRegistration } from './registry.js'
 import { TableView } from './table/TableView.js'
 import { TimelineView } from './timeline/TimelineView.js'
@@ -87,6 +88,23 @@ function CalendarViewAdapter(props: ViewProps): React.JSX.Element {
     onUpdateView: props.onUpdateView,
     onEventClick: props.onRowClick,
     onDateClick: props.onCreateRow ? (_date: Date) => props.onCreateRow?.() : undefined,
+    className: props.className
+  })
+}
+
+/**
+ * List view adapter
+ */
+function ListViewAdapter(props: ViewProps): React.JSX.Element {
+  return React.createElement(ListView, {
+    schema: props.schema,
+    view: props.view,
+    data: props.data,
+    onUpdateView: props.onUpdateView,
+    onUpdateRow: props.onUpdateRow,
+    onItemClick: props.onRowClick,
+    onAddItem: props.onCreateRow ? () => props.onCreateRow?.() : undefined,
+    onDeleteItem: props.onDeleteRow ? (id: string) => props.onDeleteRow?.(id) : undefined,
     className: props.className
   })
 }
@@ -209,6 +227,14 @@ const builtinViews: ViewRegistration[] = [
         description: 'Property containing the event date'
       }
     ]
+  },
+  {
+    type: 'list',
+    name: 'List',
+    icon: 'list',
+    component: ListViewAdapter,
+    description: 'Simple list with checkbox support',
+    configFields: []
   }
 ]
 

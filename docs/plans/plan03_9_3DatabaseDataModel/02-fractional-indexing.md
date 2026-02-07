@@ -565,15 +565,15 @@ describe('row ordering', () => {
 
 ## Validation Gate
 
-- [ ] `generateSortKey()` produces lexicographically ordered keys
-- [ ] Keys sort correctly with simple string comparison
-- [ ] Insertions between any two keys work correctly
-- [ ] 100+ sequential insertions don't break ordering
-- [ ] `rebalanceSortKeys()` generates evenly-spaced keys
-- [ ] `isValidSortKey()` validates key format
-- [ ] NodeStore queries work with `ORDER BY sortKey`
-- [ ] `moveRow()` updates position correctly
-- [ ] All tests pass
+- [x] `generateSortKey()` produces lexicographically ordered keys
+- [x] Keys sort correctly with simple string comparison
+- [x] Insertions between any two keys work correctly
+- [x] 100+ sequential insertions don't break ordering
+- [x] `rebalanceSortKeys()` generates evenly-spaced keys
+- [x] `isValidSortKey()` validates key format
+- [x] NodeStore queries work with `ORDER BY sortKey`
+- [x] `moveRow()` updates position correctly
+- [x] All tests pass
 
 ---
 
