@@ -718,18 +718,20 @@ describe('ReverseRelationsPanel', () => {
 
 ## Validation Gate
 
-- [ ] RelationCell displays linked row titles
-- [ ] Compact mode shows count
-- [ ] Link button opens picker modal
-- [ ] Remove button removes relation
-- [ ] RowPickerModal shows searchable list
-- [ ] Multi-select works correctly
-- [ ] Single-select clears previous selection
-- [ ] Create and link works
-- [ ] Load more pagination works
-- [ ] ReverseRelationsPanel shows backlinks
-- [ ] Backlinks grouped by database
-- [ ] All tests pass
+Note: These are React UI components. The data layer for relations is complete (relation column type, rollup aggregation). UI components are deferred to the React UI phase.
+
+- [ ] RelationCell displays linked row titles (React component - deferred)
+- [ ] Compact mode shows count (React component - deferred)
+- [ ] Link button opens picker modal (React component - deferred)
+- [ ] Remove button removes relation (React component - deferred)
+- [ ] RowPickerModal shows searchable list (React component - deferred)
+- [ ] Multi-select works correctly (React component - deferred)
+- [ ] Single-select clears previous selection (React component - deferred)
+- [ ] Create and link works (React component - deferred)
+- [ ] Load more pagination works (React component - deferred)
+- [ ] ReverseRelationsPanel shows backlinks (React component - deferred)
+- [ ] Backlinks grouped by database (React component - deferred)
+- [ ] All tests pass (React component - deferred)
 
 ---
 
