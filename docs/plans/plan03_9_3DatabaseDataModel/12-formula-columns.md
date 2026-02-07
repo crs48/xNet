@@ -845,18 +845,18 @@ describe('circular detection', () => {
 
 ## Validation Gate
 
-- [ ] Parser handles all expression syntax
-- [ ] Arithmetic operators work correctly
-- [ ] Comparison operators work correctly
-- [ ] Logical operators work correctly
-- [ ] All built-in functions work
-- [ ] Column references resolve correctly
-- [ ] Nested formulas evaluate correctly
-- [ ] Circular dependencies detected
-- [ ] Formula validation returns helpful errors
-- [ ] Result type coercion works
-- [ ] Cache invalidates on changes
-- [ ] All tests pass
+- [x] Parser handles all expression syntax
+- [x] Arithmetic operators work correctly
+- [x] Comparison operators work correctly
+- [x] Logical operators work correctly
+- [x] All built-in functions work (50+ functions)
+- [x] Column references resolve correctly
+- [x] Nested formulas evaluate correctly
+- [x] Circular dependencies detected
+- [x] Formula validation returns helpful errors
+- [x] Result type coercion works
+- [x] Cache invalidates on changes
+- [x] All tests pass (105 tests)
 
 ---
 

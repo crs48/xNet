@@ -180,6 +180,8 @@ export interface FormulaColumnConfig {
   expression: string
   /** Result type */
   resultType: 'text' | 'number' | 'date' | 'checkbox'
+  /** Cached dependencies (auto-computed from expression) */
+  dependencies?: string[]
 }
 
 /**

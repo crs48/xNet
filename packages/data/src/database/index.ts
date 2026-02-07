@@ -226,3 +226,59 @@ export {
   type RowCacheConfig,
   type CacheStats
 } from './row-cache'
+
+// Rollup engine
+export {
+  aggregate,
+  getEmptyValue,
+  computeRollup,
+  batchComputeRollups,
+  validateRollupConfig,
+  isNumericAggregation,
+  getAggregationResultType,
+  type RollupRow,
+  type RollupContext
+} from './rollup-engine'
+
+// Formula module
+export {
+  FormulaParser,
+  evaluate,
+  safeEvaluate,
+  FUNCTIONS,
+  isValidFunction,
+  getFunction,
+  getFunctionNames,
+  extractDependencies,
+  detectCircularDependencies,
+  wouldCreateCircular,
+  buildDependencyGraph,
+  getAffectedColumns,
+  getEvaluationOrder,
+  type ASTNode,
+  type EvalContext,
+  type FormulaFunction,
+  type CircularCheckResult,
+  type DependencyGraph
+} from './formula'
+
+// Formula service
+export {
+  FormulaService,
+  createFormulaService,
+  type FormulaRow,
+  type FormulaValidationResult
+} from './formula-service'
+
+// Computed cache
+export {
+  ComputedCache,
+  createComputedCache,
+  batchInvalidate,
+  computeInputHash,
+  isEntryValid,
+  DEFAULT_COMPUTED_CACHE_CONFIG,
+  type ComputedCacheEntry,
+  type ComputedCacheConfig,
+  type ComputedCacheStats
+} from './computed-cache'
