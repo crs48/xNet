@@ -1,367 +1,411 @@
 # Plan Step 03.4: Expo/Mobile Storage Durability
 
-## Problem Statement
+## Status: PARTIALLY IMPLEMENTED
 
-IndexedDB and other web storage APIs are **not durable on mobile platforms**:
+| Component                   | Status                 | Notes                                                 |
+| --------------------------- | ---------------------- | ----------------------------------------------------- |
+| `expo-sqlite` dependency    | Done                   | v15.0.0 in `apps/expo/package.json`                   |
+| `ExpoSQLiteAdapter`         | Done (wrong interface) | Implements `StorageAdapter`, not `NodeStorageAdapter` |
+| `SQLiteNodeStorageAdapter`  | **NOT DONE**           | Need to implement `NodeStorageAdapter`                |
+| Mobile lifecycle (AppState) | **NOT DONE**           | Pause/resume sync on background                       |
 
-### iOS (WKWebView)
+**Critical gap:** Expo uses `MemoryNodeStorageAdapter` — all data lost on restart.
 
-- **7-day eviction**: Safari's Intelligent Tracking Prevention (ITP) deletes all script-writable storage (IndexedDB, LocalStorage, SessionStorage, Cache API) after 7 days of Safari use without user interaction on the site
-- **Storage pressure**: System can evict data when device storage is low
-- **No guaranteed persistence**: Even `navigator.storage.persist()` doesn't guarantee data retention on iOS
+## Problem
 
-### Android (WebView)
+Mobile platforms evict IndexedDB data:
 
-- **System cleanup**: Android can clear WebView storage under memory pressure
-- **Less aggressive than iOS**: But still not guaranteed durable
-- **App data clearing**: Users can clear app data which removes WebView storage
+- **iOS**: 7-day eviction via ITP, storage pressure eviction
+- **Android**: Memory pressure cleanup, user data clearing
 
-### Why This Matters for xNet
+Solution: Use native SQLite via `expo-sqlite`.
 
-xNet is a local-first application where user data sovereignty is paramount. Users expect their documents, databases, and settings to persist reliably. Data loss is unacceptable for a productivity tool.
+## Reference: How Web and Electron Do It
 
-While P2P sync can recover data from peers, this requires:
-
-1. The user to have synced with another device/peer
-2. That peer to be online and reachable
-3. Network connectivity
-
-We cannot rely on sync as a backup strategy for local storage durability.
-
-## Current Architecture
-
-```mermaid
-graph TB
-  subgraph "xNet Apps"
-    E[Electron Desktop]
-    W[Web PWA]
-    X[Expo Mobile]
-  end
-
-  subgraph "Storage Layer"
-    IDB_E[IndexedDB - Durable]
-    IDB_W[IndexedDB - Best-effort]
-    IDB_X[IndexedDB - NOT DURABLE]
-  end
-
-  subgraph "Background Sync Manager"
-    SM[SyncManager]
-    NP[NodePool - LRU Y.Doc cache]
-    REG[Registry - tracked node set]
-    CM[ConnectionManager - multiplexed WS]
-    OQ[OfflineQueue - pending updates]
-    MB[MetaBridge - Y.Doc → NodeStore]
-  end
-
-  E --> IDB_E
-  W --> IDB_W
-  X --> IDB_X
-
-  SM --> NP
-  SM --> REG
-  SM --> CM
-  SM --> OQ
-  NP --> MB
-
-  NP -.->|getDocumentContent/setDocumentContent| IDB_E
-  REG -.->|JSON via setDocumentContent| IDB_E
-  OQ -.->|JSON via setDocumentContent| IDB_E
-```
-
-- **Electron**: IndexedDB is durable (no browser eviction policies apply). BSM runs in main process.
-- **Web**: IndexedDB is best-effort (acceptable for PWA with sync). BSM runs in renderer.
-- **Expo/Mobile**: IndexedDB is NOT durable (unacceptable for local-first app). **BSM needs native storage.**
-
-## Background Sync Manager (BSM) — Context
-
-The BSM (`packages/react/src/sync/`) is a fully implemented background sync system with these components:
-
-| Component             | File                    | Storage Needs                                                    |
-| --------------------- | ----------------------- | ---------------------------------------------------------------- |
-| **SyncManager**       | `sync-manager.ts`       | Orchestrator — delegates to components below                     |
-| **NodePool**          | `node-pool.ts`          | Y.Doc binary state (`getDocumentContent` / `setDocumentContent`) |
-| **Registry**          | `registry.ts`           | Tracked-node set as JSON blob (via `setDocumentContent`)         |
-| **ConnectionManager** | `connection-manager.ts` | No storage (in-memory WebSocket state)                           |
-| **OfflineQueue**      | `offline-queue.ts`      | Pending updates as JSON array (via `setDocumentContent`)         |
-| **MetaBridge**        | `meta-bridge.ts`        | No storage (bridges Y.Doc → NodeStore in-memory)                 |
-
-All persistent components use `NodeStorageAdapter` from `@xnet/data`. The actual interface (current):
+### Web App (`apps/web/src/App.tsx`)
 
 ```typescript
-// packages/data/src/store/types.ts
-export interface NodeStorageAdapter {
-  // Lifecycle
-  open?(): Promise<void>
-  close?(): Promise<void>
+// Storage singletons at module level
+const nodeStorage = new IndexedDBNodeStorageAdapter()
+const storageAdapter = new IndexedDBAdapter()
+const blobStore = new BlobStore(storageAdapter)
 
-  // Change log
-  appendChange(change: NodeChange): Promise<void>
-  getChanges(nodeId: NodeId): Promise<NodeChange[]>
-  getAllChanges(): Promise<NodeChange[]>
-  getChangeByHash(hash: ContentId): Promise<NodeChange | null>
-  getLastChange(nodeId: NodeId): Promise<NodeChange | null>
-
-  // Materialized state
-  getNode(id: NodeId): Promise<NodeState | null>
-  setNode(node: NodeState): Promise<void>
-  deleteNode(id: NodeId): Promise<void>
-  listNodes(options?: ListNodesOptions): Promise<NodeState[]>
-  countNodes(options?: CountNodesOptions): Promise<number>
-
-  // Sync state
-  getLastLamportTime(): Promise<number>
-  setLastLamportTime(time: number): Promise<void>
-
-  // Document content (Y.Doc binary state, also used for BSM metadata)
-  getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null>
-  setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>
-}
+// XNetProvider config
+<XNetProvider
+  config={{
+    nodeStorage,                    // IndexedDBNodeStorageAdapter
+    authorDID: identity.did,
+    signingKey: keyBundle.signingKey,
+    blobStore,
+    hubUrl: HUB_URL,
+    platform: 'web'
+  }}
+>
 ```
 
-The key insight: **implementing `SQLiteNodeStorageAdapter` gives us durable storage for both the NodeStore AND the entire BSM for free** — the BSM already abstracts persistence through this interface.
+**Pattern:** Storage adapters created as singletons, passed to `XNetProvider`. SyncManager created internally by provider when `hubUrl` is provided.
 
-## Recommendation
+### Electron App (`apps/electron/`)
 
-**expo-sqlite** implementing the full `NodeStorageAdapter` interface:
+```
+Renderer Process          Main Process           Data Utility Process
+─────────────────         ────────────           ────────────────────
+IndexedDB (nodes)    ──▶  IPC routing      ──▶  SQLite (blobs)
+IPCBlobStore                                     Y.Doc pool
+IPCSyncManager       ◀──  MessagePort      ◀──  WebSocket sync
+```
 
-| Platform | Storage Backend | BSM Location           | Package                 |
-| -------- | --------------- | ---------------------- | ----------------------- |
-| Electron | IndexedDB       | Main process (IPC)     | `@xnet/data` (existing) |
-| Web      | IndexedDB       | Renderer (in-process)  | `@xnet/data` (existing) |
-| iOS      | SQLite          | React Native JS thread | `expo-sqlite`           |
-| Android  | SQLite          | React Native JS thread | `expo-sqlite`           |
+```typescript
+// Renderer: apps/electron/src/renderer/main.tsx
+const nodeStorage = new IndexedDBNodeStorageAdapter({ dbName })
+const ipcBlobStore = createIPCBlobStore()
+const ipcSyncManager = createIPCSyncManager()
 
-This approach:
+<XNetProvider
+  config={{
+    nodeStorage,
+    authorDID,
+    signingKey,
+    blobStore: ipcBlobStore,       // IPC to main process
+    syncManager: ipcSyncManager,   // IPC to data utility process
+    platform: 'electron'
+  }}
+>
+```
 
-1. Keeps working code for Electron/Web unchanged
-2. Uses Expo-maintained package for mobile (better long-term support)
-3. SQLite is battle-tested and appropriate for structured + binary data
-4. Single adapter gives BSM durable storage on mobile automatically
-5. OfflineQueue survives app kill / iOS background termination
+**Pattern:** When `syncManager` is provided, XNetProvider uses it directly instead of creating one internally.
 
-## SQLite Schema
+## Target Architecture for Expo
 
-```sql
--- Node change log (event-sourced)
+Expo is simpler than Electron — single JS thread, no IPC needed:
+
+```
+┌─────────────────────────────────────┐
+│         Expo App (single thread)    │
+│                                     │
+│  ┌─────────────┐  ┌──────────────┐  │
+│  │ React UI    │  │ SyncManager  │  │
+│  │ (components)│  │ (internal)   │  │
+│  └──────┬──────┘  └──────┬───────┘  │
+│         │                │          │
+│         ▼                ▼          │
+│  ┌─────────────────────────────────┐│
+│  │   SQLiteNodeStorageAdapter      ││
+│  │   (implements NodeStorageAdapter)│
+│  └──────────────┬──────────────────┘│
+│                 ▼                   │
+│          ┌───────────┐              │
+│          │  SQLite   │              │
+│          │  xnet.db  │              │
+│          └───────────┘              │
+└─────────────────────────────────────┘
+```
+
+Follow the **web pattern**: storage adapter as singleton, SyncManager created internally.
+
+## Implementation
+
+### Step 1: Create `SQLiteNodeStorageAdapter`
+
+Create `apps/expo/src/storage/SQLiteNodeStorageAdapter.ts`:
+
+```typescript
+import * as SQLite from 'expo-sqlite'
+import type {
+  NodeStorageAdapter,
+  NodeChange,
+  NodeState,
+  NodeId,
+  ContentId,
+  ListNodesOptions,
+  CountNodesOptions
+} from '@xnet/data'
+
+const SCHEMA = `
+CREATE TABLE IF NOT EXISTS nodes (
+  id TEXT PRIMARY KEY,
+  data TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS changes (
   hash TEXT PRIMARY KEY,
   node_id TEXT NOT NULL,
   lamport INTEGER NOT NULL,
-  author TEXT NOT NULL,
-  timestamp INTEGER NOT NULL,
-  payload TEXT NOT NULL,  -- JSON-encoded NodeChange
-  UNIQUE(node_id, lamport, author)
+  data TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS idx_changes_node ON changes(node_id, lamport);
+CREATE INDEX IF NOT EXISTS idx_changes_node ON changes(node_id);
+CREATE INDEX IF NOT EXISTS idx_changes_lamport ON changes(lamport);
 
--- Materialized node state
-CREATE TABLE IF NOT EXISTS nodes (
-  id TEXT PRIMARY KEY,
-  schema_id TEXT NOT NULL,
-  properties TEXT NOT NULL,  -- JSON
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  deleted INTEGER DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS idx_nodes_schema ON nodes(schema_id);
-CREATE INDEX IF NOT EXISTS idx_nodes_updated ON nodes(updated_at);
-
--- Document content (Y.Doc binary state + BSM metadata blobs)
 CREATE TABLE IF NOT EXISTS documents (
   node_id TEXT PRIMARY KEY,
-  content BLOB NOT NULL,
-  updated_at INTEGER NOT NULL
+  content BLOB NOT NULL
 );
 
--- Sync state
-CREATE TABLE IF NOT EXISTS sync_state (
+CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
-```
+`
 
-The `documents` table stores:
+export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
+  private db: SQLite.SQLiteDatabase | null = null
 
-- Y.Doc binary snapshots (keyed by node ID)
-- BSM Registry (`_xnet_tracked_nodes` → JSON blob)
-- BSM OfflineQueue (`_xnet_offline_queue` → JSON blob)
+  constructor(private dbName = 'xnet.db') {}
 
-## Implementation Plan
+  async open(): Promise<void> {
+    this.db = await SQLite.openDatabaseAsync(this.dbName)
+    await this.db.execAsync(SCHEMA)
+  }
 
-### Step 1: `SQLiteNodeStorageAdapter`
+  async close(): Promise<void> {
+    await this.db?.closeAsync()
+    this.db = null
+  }
 
-Create `packages/data/src/store/sqlite-adapter.ts` (conditionally imported on mobile):
+  // --- Nodes ---
 
-```typescript
-import * as SQLite from 'expo-sqlite'
-import type { NodeStorageAdapter, NodeChange, NodeState } from './types'
+  async getNode(id: NodeId): Promise<NodeState | null> {
+    const row = await this.db!.getFirstAsync<{ data: string }>(
+      'SELECT data FROM nodes WHERE id = ?',
+      [id]
+    )
+    return row ? JSON.parse(row.data) : null
+  }
 
-export function createSQLiteAdapter(dbName = 'xnet.db'): NodeStorageAdapter {
-  const db = SQLite.openDatabaseSync(dbName)
+  async setNode(node: NodeState): Promise<void> {
+    await this.db!.runAsync('INSERT OR REPLACE INTO nodes (id, data) VALUES (?, ?)', [
+      node.id,
+      JSON.stringify(node)
+    ])
+  }
 
-  return {
-    async open() {
-      db.execSync(SCHEMA_SQL)
-    },
+  async deleteNode(id: NodeId): Promise<void> {
+    await this.db!.runAsync('DELETE FROM nodes WHERE id = ?', [id])
+  }
 
-    async getDocumentContent(nodeId) {
-      const row = db.getFirstSync<{ content: ArrayBuffer }>(
-        'SELECT content FROM documents WHERE node_id = ?',
-        [nodeId]
-      )
-      return row ? new Uint8Array(row.content) : null
-    },
+  async listNodes(options?: ListNodesOptions): Promise<NodeState[]> {
+    // Filter in JS for simplicity (can optimize with SQL later)
+    const rows = await this.db!.getAllAsync<{ data: string }>('SELECT data FROM nodes')
+    let nodes = rows.map((r) => JSON.parse(r.data) as NodeState)
 
-    async setDocumentContent(nodeId, content) {
-      db.runSync(
-        `INSERT OR REPLACE INTO documents (node_id, content, updated_at)
-         VALUES (?, ?, ?)`,
-        [nodeId, content, Date.now()]
+    if (options?.schemaId) {
+      nodes = nodes.filter((n) => n.schemaId === options.schemaId)
+    }
+    if (!options?.includeDeleted) {
+      nodes = nodes.filter((n) => !n.deleted)
+    }
+    if (options?.offset) {
+      nodes = nodes.slice(options.offset)
+    }
+    if (options?.limit) {
+      nodes = nodes.slice(0, options.limit)
+    }
+    return nodes
+  }
+
+  async countNodes(options?: CountNodesOptions): Promise<number> {
+    const nodes = await this.listNodes(options)
+    return nodes.length
+  }
+
+  // --- Changes ---
+
+  async appendChange(change: NodeChange): Promise<void> {
+    await this.db!.runAsync(
+      'INSERT OR IGNORE INTO changes (hash, node_id, lamport, data) VALUES (?, ?, ?, ?)',
+      [change.hash, change.payload.nodeId, change.lamport.time, JSON.stringify(change)]
+    )
+  }
+
+  async getChanges(nodeId: NodeId): Promise<NodeChange[]> {
+    const rows = await this.db!.getAllAsync<{ data: string }>(
+      'SELECT data FROM changes WHERE node_id = ? ORDER BY lamport',
+      [nodeId]
+    )
+    return rows.map((r) => JSON.parse(r.data))
+  }
+
+  async getAllChanges(): Promise<NodeChange[]> {
+    const rows = await this.db!.getAllAsync<{ data: string }>(
+      'SELECT data FROM changes ORDER BY lamport'
+    )
+    return rows.map((r) => JSON.parse(r.data))
+  }
+
+  async getChangesSince(sinceLamport: number): Promise<NodeChange[]> {
+    const rows = await this.db!.getAllAsync<{ data: string }>(
+      'SELECT data FROM changes WHERE lamport > ? ORDER BY lamport',
+      [sinceLamport]
+    )
+    return rows.map((r) => JSON.parse(r.data))
+  }
+
+  async getChangeByHash(hash: ContentId): Promise<NodeChange | null> {
+    const row = await this.db!.getFirstAsync<{ data: string }>(
+      'SELECT data FROM changes WHERE hash = ?',
+      [hash]
+    )
+    return row ? JSON.parse(row.data) : null
+  }
+
+  async getLastChange(nodeId: NodeId): Promise<NodeChange | null> {
+    const row = await this.db!.getFirstAsync<{ data: string }>(
+      'SELECT data FROM changes WHERE node_id = ? ORDER BY lamport DESC LIMIT 1',
+      [nodeId]
+    )
+    return row ? JSON.parse(row.data) : null
+  }
+
+  // --- Documents (Y.Doc binary state) ---
+
+  async getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null> {
+    const row = await this.db!.getFirstAsync<{ content: ArrayBuffer }>(
+      'SELECT content FROM documents WHERE node_id = ?',
+      [nodeId]
+    )
+    return row ? new Uint8Array(row.content) : null
+  }
+
+  async setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void> {
+    await this.db!.runAsync('INSERT OR REPLACE INTO documents (node_id, content) VALUES (?, ?)', [
+      nodeId,
+      content
+    ])
+  }
+
+  // --- Sync state ---
+
+  async getLastLamportTime(): Promise<number> {
+    const row = await this.db!.getFirstAsync<{ value: string }>(
+      "SELECT value FROM meta WHERE key = 'lastLamportTime'"
+    )
+    return row ? parseInt(row.value, 10) : 0
+  }
+
+  async setLastLamportTime(time: number): Promise<void> {
+    const current = await this.getLastLamportTime()
+    if (time > current) {
+      await this.db!.runAsync(
+        "INSERT OR REPLACE INTO meta (key, value) VALUES ('lastLamportTime', ?)",
+        [String(time)]
       )
     }
-
-    // ... remaining NodeStorageAdapter methods
   }
 }
 ```
 
-### Step 2: BSM on Mobile — No IPC Needed
+### Step 2: Delete Old Adapters
 
-On Electron, the BSM runs in the main process and communicates via IPC (`apps/electron/src/main/bsm.ts`). On mobile, this complexity is unnecessary:
+Delete these files (wrong interface, superseded):
 
-```mermaid
-graph LR
-  subgraph "Expo App (single JS thread)"
-    UI[React Components]
-    SM[SyncManager]
-    SA[SQLiteNodeStorageAdapter]
-    DB[(SQLite)]
-  end
+- `apps/expo/src/storage/ExpoSQLiteAdapter.ts`
+- `apps/expo/src/storage/ExpoStorageAdapter.ts`
 
-  UI -->|useNode acquire/release| SM
-  SM -->|getDocumentContent / setDocumentContent| SA
-  SA --> DB
-  SM <-->|WebSocket| Hub[Hub Server]
-```
+### Step 3: Update XNetProvider
 
-The renderer-side `createSyncManager()` works as-is — just pass the SQLite adapter instead of IndexedDB. No IPC bridge, no preload script, no MessagePort.
-
-### Step 3: Mobile-Specific Lifecycle
-
-Mobile apps have unique lifecycle events the BSM must handle:
+Update `apps/expo/src/context/XNetProvider.tsx` to match web pattern:
 
 ```typescript
-// apps/expo/src/sync-lifecycle.ts
-import { AppState, type AppStateStatus } from 'react-native'
+import { SQLiteNodeStorageAdapter } from '../storage/SQLiteNodeStorageAdapter'
 
-export function setupMobileSyncLifecycle(syncManager: SyncManager) {
-  let prevState: AppStateStatus = 'active'
+// Storage singleton (like web app)
+const nodeStorage = new SQLiteNodeStorageAdapter('xnet.db')
 
-  AppState.addEventListener('change', async (nextState) => {
-    if (prevState === 'active' && nextState.match(/inactive|background/)) {
-      // App backgrounded: flush dirty docs, save registry + queue
-      await syncManager.stop()
+export function XNetProvider({ children, config = {} }: XNetProviderProps) {
+  // ... existing identity loading ...
+
+  useEffect(() => {
+    async function init() {
+      // Open storage
+      await nodeStorage.open()
+
+      // Create NodeStore (like web app)
+      const nodeStore = new NodeStore({
+        authorDID: identity.did as `did:key:${string}`,
+        signingKey,
+        storage: nodeStorage
+      })
+      await nodeStore.initialize()
+
+      // ... rest of initialization ...
     }
-    if (prevState.match(/inactive|background/) && nextState === 'active') {
-      // App foregrounded: reconnect, drain offline queue
-      await syncManager.start()
+    init()
+
+    return () => {
+      nodeStorage.close()
     }
-    prevState = nextState
-  })
+  }, [])
 }
 ```
 
-### Step 4: Expo App Integration
+### Step 4: Add Mobile Lifecycle Handling
+
+Create `apps/expo/src/hooks/useSyncLifecycle.ts`:
 
 ```typescript
-// apps/expo/src/storage.ts
-import { createSQLiteAdapter } from '@xnet/data/sqlite'
-import { createNodeStore } from '@xnet/data'
-import { createSyncManager } from '@xnet/react/sync'
+import { useEffect, useRef } from 'react'
+import { AppState, type AppStateStatus } from 'react-native'
+import type { SyncManager } from '@xnet/react'
 
-const storage = createSQLiteAdapter('xnet.db')
-const nodeStore = createNodeStore({ storage })
-const syncManager = createSyncManager({
-  nodeStore,
-  storage,
-  signalingUrl: 'wss://hub.xnet.dev'
-})
+export function useSyncLifecycle(syncManager: SyncManager | null) {
+  const prevState = useRef<AppStateStatus>('active')
+
+  useEffect(() => {
+    if (!syncManager) return
+
+    const subscription = AppState.addEventListener('change', async (nextState) => {
+      const wasActive = prevState.current === 'active'
+      const isBackground = /inactive|background/.test(nextState)
+      const isActive = nextState === 'active'
+      const wasBackground = /inactive|background/.test(prevState.current)
+
+      if (wasActive && isBackground) {
+        // Flush and disconnect
+        await syncManager.stop()
+      }
+      if (wasBackground && isActive) {
+        // Reconnect and sync
+        await syncManager.start()
+      }
+
+      prevState.current = nextState
+    })
+
+    return () => subscription.remove()
+  }, [syncManager])
+}
 ```
 
-### Step 5: Expo Background Fetch (Optional Enhancement)
-
-For periodic background sync when the app is not in foreground:
+Use in XNetProvider or app root:
 
 ```typescript
-import * as BackgroundFetch from 'expo-background-fetch'
-import * as TaskManager from 'expo-task-manager'
-
-TaskManager.defineTask('XNET_BACKGROUND_SYNC', async () => {
-  const storage = createSQLiteAdapter('xnet.db')
-  const syncManager = createSyncManager({ storage, ... })
-  await syncManager.start()
-  // Sync tracked nodes, drain offline queue
-  await syncManager.stop()
-  return BackgroundFetch.BackgroundFetchResult.NewData
-})
+const { syncManager } = useXNetContext()
+useSyncLifecycle(syncManager)
 ```
 
-## Mobile-Specific Considerations
+## Schema Notes
 
-### Storage Budget
+Simplified schema stores full JSON in `data` columns:
 
-| Data Type            | Typical Size    | Storage Approach              |
-| -------------------- | --------------- | ----------------------------- |
-| Node metadata (JSON) | 1-10 KB each    | `nodes` table                 |
-| Y.Doc state (binary) | 10 KB - 10 MB   | `documents` table (BLOB)      |
-| Change log           | ~200 bytes each | `changes` table               |
-| BSM Registry         | <10 KB          | `documents` table (JSON blob) |
-| BSM Offline Queue    | 0 - 5 MB        | `documents` table (JSON blob) |
+- **Pros:** Simple implementation, forward-compatible with new fields
+- **Cons:** Can't query individual fields in SQL
 
-SQLite handles all of these well. For very large Y.Docs (>10 MB), consider file-based storage as a future optimization.
-
-### Concurrency
-
-`expo-sqlite` uses WAL mode by default, which allows concurrent reads with a single writer. This is fine for xNet's access patterns:
-
-- Multiple React components reading node data concurrently
-- Single SyncManager writing updates sequentially
-- NodePool debounces persistence (2s delay reduces write frequency)
-
-### iOS Background Execution
-
-iOS gives ~30 seconds of background execution time. The BSM's `stop()` method flushes all dirty docs, saves registry, and saves the offline queue — this should complete within seconds for typical usage.
-
-## Answered Questions
-
-1. **Should we use the same SQLite for both NodeStore and Y.Doc state?**
-   → **Yes, single DB.** The `documents` table stores Y.Doc BLOBs. WAL mode prevents locking issues. The BSM also stores its Registry and OfflineQueue here.
-
-2. **Do we need migrations for SQLite schema changes?**
-   → **Simple version check.** Store a `schema_version` in `sync_state`. On `open()`, check version and run ALTER TABLE statements if needed. Our schema is stable (Nodes + Changes + Documents).
-
-3. **How do we handle Expo Go vs production builds?**
-   → **`expo-sqlite` works in Expo Go.** No custom dev client needed.
-
-4. **What about offline-first sync queue?**
-   → **Solved by BSM's OfflineQueue.** It already persists pending Y.Doc updates via `setDocumentContent`. With the SQLite adapter, this queue survives app kills, iOS background termination, and device restarts.
+For prerelease this is fine. Optimize later if needed by extracting queryable columns.
 
 ## Priority
 
-**Medium** - Not blocking current development but required before mobile production release.
+**Medium** - Required before mobile production release.
 
-Dependency chain:
+Next steps:
 
-1. ~~P2P sync working in Electron (plan03_2)~~ ✅
-2. ~~Background Sync Manager (plan03_3_1BgSync)~~ ✅ (all 8 steps done)
-3. **This step** — wire BSM to durable mobile storage
-4. Mobile sharing flow (future)
+1. Implement `SQLiteNodeStorageAdapter`
+2. Delete old adapters
+3. Update `XNetProvider`
+4. Add `useSyncLifecycle` hook
+5. Test on iOS and Android
 
 ## References
 
-- [MDN: Storage quotas and eviction criteria](https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria)
-- [WebKit: Full Third-Party Cookie Blocking](https://webkit.org/blog/10218/full-third-party-cookie-blocking-and-more/)
-- [WebKit: 7-Day Cap on Script-Writable Storage](https://webkit.org/blog/8613/intelligent-tracking-prevention-2-1/)
 - [expo-sqlite docs](https://docs.expo.dev/versions/latest/sdk/sqlite/)
-- [BSM Implementation](../plan03_3_1BgSync/README.md)
-- [BSM Exploration](../explorations/0024_BACKGROUND_SYNC_MANAGER.md)
+- [IndexedDBNodeStorageAdapter](../../packages/data/src/store/indexeddb-adapter.ts) — reference implementation
+- [Web App storage setup](../../apps/web/src/App.tsx) — pattern to follow
