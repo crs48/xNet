@@ -81,12 +81,18 @@ export class SQLiteStorageAdapter implements StorageAdapter {
   async clear(): Promise<void> {
     this.ensureOpen()
 
-    await this.db.transaction(async () => {
+    // Use manual transaction control for web proxy compatibility
+    await this.db.beginTransaction()
+    try {
       await this.db.run('DELETE FROM updates')
       await this.db.run('DELETE FROM snapshots')
       await this.db.run('DELETE FROM documents')
       await this.db.run('DELETE FROM blobs')
-    })
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
   }
 
   // ─── Document Operations ──────────────────────────────────────────────────
@@ -123,13 +129,19 @@ export class SQLiteStorageAdapter implements StorageAdapter {
   async deleteDocument(id: string): Promise<void> {
     this.ensureOpen()
 
-    await this.db.transaction(async () => {
+    // Use manual transaction control for web proxy compatibility
+    await this.db.beginTransaction()
+    try {
       // Delete related updates and snapshots
       await this.db.run('DELETE FROM updates WHERE doc_id = ?', [id])
       await this.db.run('DELETE FROM snapshots WHERE doc_id = ?', [id])
       // Delete document
       await this.db.run('DELETE FROM documents WHERE id = ?', [id])
-    })
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
   }
 
   async listDocuments(prefix?: string): Promise<string[]> {
@@ -331,14 +343,20 @@ export class SQLiteStorageAdapter implements StorageAdapter {
 
     let deletedCount = 0
 
-    await this.db.transaction(async () => {
+    // Use manual transaction control for web proxy compatibility
+    await this.db.beginTransaction()
+    try {
       // Set new snapshot
       await this.setSnapshot(docId, mergedSnapshot)
 
       // Delete old updates
       const result = await this.db.run('DELETE FROM updates WHERE doc_id = ?', [docId])
       deletedCount = result.changes
-    })
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
 
     return deletedCount
   }

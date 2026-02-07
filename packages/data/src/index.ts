@@ -204,6 +204,7 @@ export {
   NodeStore,
   MemoryNodeStorageAdapter,
   IndexedDBNodeStorageAdapter,
+  SQLiteNodeStorageAdapter,
   type IndexedDBNodeStorageAdapterOptions,
   type NodeId,
   type PropertyKey,
