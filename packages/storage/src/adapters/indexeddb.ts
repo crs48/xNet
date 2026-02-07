@@ -1,5 +1,9 @@
 /**
  * IndexedDB storage adapter for browser
+ *
+ * @deprecated Use `SQLiteStorageAdapter` from `./sqlite` instead.
+ * This adapter will be removed in a future version.
+ * See: docs/plans/plan03_9_5IndexedDBToSQLite/
  */
 import type { StorageAdapter, DocumentData } from '../types'
 import type { ContentId, Snapshot, SignedUpdate } from '@xnet/core'
@@ -17,6 +21,8 @@ interface XNetDB {
 
 /**
  * IndexedDB-based storage adapter for browser environments
+ *
+ * @deprecated Use `SQLiteStorageAdapter` instead. This class will be removed in a future version.
  */
 export class IndexedDBAdapter implements StorageAdapter {
   private db: IDBPDatabase<XNetDB> | null = null
