@@ -282,3 +282,70 @@ export {
   type ComputedCacheConfig,
   type ComputedCacheStats
 } from './computed-cache'
+
+// Import module (CSV/JSON parsing)
+export {
+  parseCSV,
+  parseCSVLine,
+  guessColumnType,
+  parseValue,
+  parseRow,
+  inferColumnTypes,
+  parseJSON,
+  inferColumnsFromRows,
+  inferTypeFromValues,
+  toColumnDefinitions,
+  validateJsonData,
+  type ParsedCSV,
+  type CsvParseOptions,
+  type ParsedJSON,
+  type InferredColumn,
+  type JsonParseOptions
+} from './import'
+
+// Export module (CSV/JSON export)
+export {
+  exportToCsv,
+  escapeCSV,
+  formatValue,
+  createCsvBlob,
+  downloadCsv,
+  exportToJson,
+  exportToJsonArray,
+  exportToNdjson,
+  createJsonBlob,
+  downloadJson,
+  type ExportRow,
+  type CsvExportOptions,
+  type JsonExportOptions,
+  type ExportedJSON,
+  type ExportedColumn
+} from './export'
+
+// Templates module
+export {
+  BUILTIN_TEMPLATES,
+  getTemplatesByCategory,
+  searchTemplates,
+  getTemplateById,
+  getTemplateCategoryCounts,
+  instantiateTemplate,
+  createEmptyTemplate,
+  createEmptyDatabase,
+  createTemplateFromDatabase,
+  sanitizeValueForTemplate,
+  validateTemplate,
+  type DatabaseTemplate,
+  type TemplateCategory,
+  type TemplateColumn,
+  type TemplateView,
+  type TemplateSampleRow,
+  type TemplateMetadata,
+  type InstantiateOptions,
+  type InstantiatedDatabase,
+  type InstantiatedColumn,
+  type InstantiatedView,
+  type InstantiatedRow,
+  type SaveTemplateOptions,
+  type DatabaseForTemplate
+} from './templates'
