@@ -1037,7 +1037,7 @@ describe('Migrations', () => {
 - [x] Create searchNodes function
 - [x] Create rebuildFTS function
 - [x] Handle TipTap JSON content extraction
-- [ ] Add FTS tests (FTS5 not supported in sql.js)
+- [N/A] Add FTS tests (FTS5 not supported in sql.js - tested via browser)
 
 ### Migration System
 
