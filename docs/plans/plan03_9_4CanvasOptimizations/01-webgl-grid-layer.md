@@ -471,14 +471,14 @@ describe('WebGLGridLayer', () => {
 
 ## Validation Gate
 
-- [ ] WebGL grid renders at 60fps at zoom 0.1 to 4.0
-- [ ] Grid lines are anti-aliased and crisp
-- [ ] Major grid lines visible at all zoom levels
-- [ ] Minor grid lines fade out at low zoom
-- [ ] Origin axes visible and distinct
-- [ ] CSS fallback works when WebGL unavailable
-- [ ] No memory growth over time (check with DevTools)
-- [ ] Dot grid variant works as alternative
+- [x] WebGL grid renders at 60fps at zoom 0.1 to 4.0
+- [x] Grid lines are anti-aliased and crisp
+- [x] Major grid lines visible at all zoom levels
+- [x] Minor grid lines fade out at low zoom
+- [x] Origin axes visible and distinct
+- [x] CSS fallback works when WebGL unavailable
+- [x] No memory growth over time (check with DevTools)
+- [x] Dot grid variant works as alternative
 
 ---
 
