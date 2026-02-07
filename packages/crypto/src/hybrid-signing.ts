@@ -11,7 +11,10 @@ import type { SecurityLevel } from './security-level'
 import type { UnifiedSignature, VerificationResult, VerificationOptions } from './unified-signature'
 import { ed25519 } from '@noble/curves/ed25519.js'
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js'
+import { getVerificationCache } from './cache/verification-cache'
+import { hash } from './hashing'
 import { DEFAULT_SECURITY_LEVEL } from './security-level'
+import { concatBytes } from './utils'
 
 // ─── Key Types ───────────────────────────────────────────────────
 
@@ -288,6 +291,90 @@ export function canVerifyAtLevel(keys: HybridPublicKey, level: SecurityLevel): b
 export function maxSecurityLevel(keys: HybridSigningKey): SecurityLevel {
   if (keys.mlDsa) return 2
   return 0
+}
+
+// ─── Cached Verification ─────────────────────────────────────────
+
+/**
+ * Options for cached verification.
+ */
+export interface CachedVerificationOptions extends VerificationOptions {
+  /** Whether to use the cache (default: true) */
+  useCache?: boolean
+}
+
+/**
+ * Verify a hybrid signature with caching.
+ *
+ * Uses an LRU cache to avoid redundant cryptographic operations.
+ * Cache key is derived from (message hash + signature + public keys).
+ *
+ * This can provide significant performance improvements when the same
+ * signatures are verified multiple times (e.g., during sync or history replay).
+ *
+ * @param message - The original message
+ * @param signature - The UnifiedSignature to verify
+ * @param publicKeys - Public keys for verification
+ * @param options - Verification options including cache control
+ * @returns VerificationResult with validity and details
+ *
+ * @example
+ * ```typescript
+ * // First verification - performs cryptographic checks
+ * const result1 = hybridVerifyCached(message, signature, publicKeys)
+ *
+ * // Second verification of same data - returns cached result
+ * const result2 = hybridVerifyCached(message, signature, publicKeys)
+ *
+ * // Disable cache for sensitive operations
+ * const result3 = hybridVerifyCached(message, signature, publicKeys, { useCache: false })
+ * ```
+ */
+export function hybridVerifyCached(
+  message: Uint8Array,
+  signature: UnifiedSignature,
+  publicKeys: HybridPublicKey,
+  options: CachedVerificationOptions = {}
+): VerificationResult {
+  const { useCache = true, ...verifyOptions } = options
+
+  // Skip cache if disabled
+  if (!useCache) {
+    return hybridVerify(message, signature, publicKeys, verifyOptions)
+  }
+
+  const cache = getVerificationCache()
+
+  // Compute hashes for cache key
+  const messageHash = hash(message, 'blake3')
+  const publicKeyBytes = concatBytes(publicKeys.ed25519, publicKeys.mlDsa ?? new Uint8Array(0))
+  const publicKeyHash = hash(publicKeyBytes, 'blake3')
+
+  // Check cache
+  const cached = cache.get(messageHash, signature, publicKeyHash)
+  if (cached) {
+    return cached
+  }
+
+  // Perform verification
+  const result = hybridVerify(message, signature, publicKeys, verifyOptions)
+
+  // Cache the result
+  cache.set(messageHash, signature, publicKeyHash, result)
+
+  return result
+}
+
+/**
+ * Quick cached check if a signature is valid without full details.
+ */
+export function hybridVerifyCachedQuick(
+  message: Uint8Array,
+  signature: UnifiedSignature,
+  publicKeys: HybridPublicKey,
+  options: CachedVerificationOptions = {}
+): boolean {
+  return hybridVerifyCached(message, signature, publicKeys, options).valid
 }
 
 // ─── Batch Operations ────────────────────────────────────────────
