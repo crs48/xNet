@@ -601,43 +601,43 @@ Run via Playwright MCP against the Web app (`cd apps/web && pnpm dev`):
    - [DEFERRED] Verify app loads successfully
 
 2. **OPFS Check**
-   - [ ] Open DevTools > Application > Storage
-   - [ ] Verify OPFS shows xnet database files
+   - [DEFERRED] Open DevTools > Application > Storage
+   - [DEFERRED] Verify OPFS shows xnet database files
 
 ### Core Flows
 
 1. **Create and Edit Page**
-   - [ ] Click "New Page" button
-   - [ ] Type a title
-   - [ ] Add content
-   - [ ] Verify content renders
+   - [DEFERRED] Click "New Page" button
+   - [DEFERRED] Type a title
+   - [DEFERRED] Add content
+   - [DEFERRED] Verify content renders
 
 2. **Persistence Across Reload**
-   - [ ] Hard reload the page (Cmd+Shift+R / Ctrl+Shift+R)
-   - [ ] Verify page still exists
-   - [ ] Verify content persisted
+   - [DEFERRED] Hard reload the page (Cmd+Shift+R / Ctrl+Shift+R)
+   - [DEFERRED] Verify page still exists
+   - [DEFERRED] Verify content persisted
 
 3. **Persistence Across Session**
-   - [ ] Close the browser tab completely
-   - [ ] Reopen the app
-   - [ ] Verify all data persisted
+   - [DEFERRED] Close the browser tab completely
+   - [DEFERRED] Reopen the app
+   - [DEFERRED] Verify all data persisted
 
 4. **Multi-Tab (if supported)**
-   - [ ] Open app in two tabs
-   - [ ] Create a page in tab 1
-   - [ ] Refresh tab 2
-   - [ ] Verify new page appears in tab 2
+   - [DEFERRED] Open app in two tabs
+   - [DEFERRED] Create a page in tab 1
+   - [DEFERRED] Refresh tab 2
+   - [DEFERRED] Verify new page appears in tab 2
 
 ### Performance Feel
 
-- [ ] Page list loads quickly (no visible spinner beyond 500ms)
-- [ ] Typing in editor has no lag
-- [ ] Navigation between pages is instant
+- [DEFERRED] Page list loads quickly (no visible spinner beyond 500ms)
+- [DEFERRED] Typing in editor has no lag
+- [DEFERRED] Navigation between pages is instant
 
 ### Teardown
 
-- [ ] Close browser
-- [ ] Kill dev server
+- [DEFERRED] Close browser
+- [DEFERRED] Kill dev server
 ```
 
 ### Playwright MCP Commands
@@ -845,52 +845,54 @@ Run benchmarks before and after migration:
 
 ### Test Matrix
 
-| Browser | Version | Platform | opfs-sahpool | Status |
-| ------- | ------- | -------- | ------------ | ------ |
-| Chrome  | 120+    | Windows  | Required     | [ ]    |
-| Chrome  | 120+    | macOS    | Required     | [ ]    |
-| Chrome  | 120+    | Linux    | Required     | [ ]    |
-| Firefox | 120+    | Windows  | Required     | [ ]    |
-| Firefox | 120+    | macOS    | Required     | [ ]    |
-| Safari  | 17+     | macOS    | Required     | [ ]    |
-| Safari  | 17+     | iOS      | Required     | [ ]    |
-| Edge    | 120+    | Windows  | Required     | [ ]    |
+| Browser | Version | Platform | opfs-sahpool | Status     |
+| ------- | ------- | -------- | ------------ | ---------- |
+| Chrome  | 120+    | Windows  | Required     | [DEFERRED] |
+| Chrome  | 120+    | macOS    | Required     | [DEFERRED] |
+| Chrome  | 120+    | Linux    | Required     | [DEFERRED] |
+| Firefox | 120+    | Windows  | Required     | [DEFERRED] |
+| Firefox | 120+    | macOS    | Required     | [DEFERRED] |
+| Safari  | 17+     | macOS    | Required     | [DEFERRED] |
+| Safari  | 17+     | iOS      | Required     | [DEFERRED] |
+| Edge    | 120+    | Windows  | Required     | [DEFERRED] |
+
+**Note:** Browser compatibility testing requires web app SQLite integration, which is DEFERRED.
 
 ### Manual Test Checklist
 
-For each browser/platform combination:
+For each browser/platform combination (DEFERRED until web app integration):
 
 ```markdown
 ## Browser: [Name] [Version] on [Platform]
 
 ### Basic Functionality
 
-- [ ] App loads without errors
-- [ ] Can create a new page
-- [ ] Can edit page title
-- [ ] Can add content to page
-- [ ] Content persists across page reload
-- [ ] Content persists across browser restart
+- [DEFERRED] App loads without errors
+- [DEFERRED] Can create a new page
+- [DEFERRED] Can edit page title
+- [DEFERRED] Can add content to page
+- [DEFERRED] Content persists across page reload
+- [DEFERRED] Content persists across browser restart
 
 ### SQLite-Specific
 
-- [ ] No console errors about OPFS
-- [ ] No console errors about sqlite-wasm
-- [ ] Worker initializes correctly
-- [ ] Database operations complete quickly
+- [DEFERRED] No console errors about OPFS
+- [DEFERRED] No console errors about sqlite-wasm
+- [DEFERRED] Worker initializes correctly
+- [DEFERRED] Database operations complete quickly
 
 ### Edge Cases
 
-- [ ] Works in private/incognito mode
-- [ ] Handles large documents (10+ pages of content)
-- [ ] Handles many documents (100+ pages)
-- [ ] Handles concurrent edits from multiple tabs
+- [DEFERRED] Works in private/incognito mode
+- [DEFERRED] Handles large documents (10+ pages of content)
+- [DEFERRED] Handles many documents (100+ pages)
+- [DEFERRED] Handles concurrent edits from multiple tabs
 
 ### Performance
 
-- [ ] List page loads in < 500ms
-- [ ] Search results appear in < 100ms
-- [ ] No visible lag when typing
+- [DEFERRED] List page loads in < 500ms
+- [DEFERRED] Search results appear in < 100ms
+- [DEFERRED] No visible lag when typing
 ```
 
 ### Unsupported Browser Handling

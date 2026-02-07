@@ -862,7 +862,7 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 - [x] Add `deleteBlob` extended method
 - [x] Add `getStats` extended method
 - [x] Add `compactUpdates` extended method
-- [ ] Create platform factory functions (deferred - apps handle this)
+- [N/A] Create platform factory functions (apps handle this directly)
 - [x] Create shared adapter factory (`createStorageAdapterFromSQLite`)
 
 ### Update Consumers
@@ -874,16 +874,16 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 ### Package Updates
 
 - [x] Update `packages/storage/src/index.ts` exports
-- [ ] Remove IndexedDB adapter exports (deferred - keep for backward compat)
+- [DEFERRED] Remove IndexedDB adapter exports (keep for backward compat until all apps migrated)
 - [x] Add `@xnet/sqlite` dependency
-- [ ] Remove `idb` dependency (deferred - keep until IndexedDB fully removed)
+- [DEFERRED] Remove `idb` dependency (keep until IndexedDB fully removed from all apps)
 
 ### Cleanup
 
 - [x] Mark `IndexedDBAdapter` and `IndexedDBBatchAdapter` as deprecated
-- [ ] Delete `indexeddb.ts` (deferred to Phase 8)
-- [ ] Delete `indexeddb-batch.ts` (deferred to Phase 8)
-- [ ] Delete any IndexedDB tests (deferred to Phase 8)
+- [DEFERRED] Delete `indexeddb.ts` (after all apps migrated)
+- [DEFERRED] Delete `indexeddb-batch.ts` (after all apps migrated)
+- [DEFERRED] Delete any IndexedDB tests (after all apps migrated)
 - [x] Update any documentation (README updated with SQLite usage)
 
 ### Tests
