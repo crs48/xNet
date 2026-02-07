@@ -4,9 +4,10 @@
  * This package provides view components for rendering database content:
  * - TableView: Spreadsheet-like table with virtual scrolling
  * - BoardView: Kanban board with drag-and-drop
- * - GalleryView: Card gallery (coming soon)
- * - TimelineView: Gantt timeline (coming soon)
- * - CalendarView: Calendar (coming soon)
+ * - GalleryView: Card gallery with cover images
+ * - TimelineView: Gantt timeline with date ranges
+ * - CalendarView: Month/week/day calendar
+ * - ListView: Simple list with checkbox support
  */
 
 // Types
@@ -154,6 +155,18 @@ export {
   type UseCalendarStateOptions,
   type UseCalendarStateResult
 } from './calendar/index.js'
+
+// List view
+export {
+  ListView,
+  ListItem,
+  useListState,
+  type ListViewProps,
+  type ListItemProps,
+  type ListRow,
+  type UseListStateOptions,
+  type UseListStateResult
+} from './list/index.js'
 
 // Card detail modal
 export { CardDetailModal, type CardDetailModalProps } from './card-detail/index.js'

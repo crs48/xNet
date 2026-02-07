@@ -1013,19 +1013,19 @@ describe('View System', () => {
 
 ## Validation Gate
 
-- [ ] `DatabaseView` renders correct view type
-- [ ] `TableView` supports inline cell editing
-- [ ] `TableView` virtualizes large datasets
-- [ ] `BoardView` groups by select column
-- [ ] `BoardView` drag-and-drop updates row
-- [ ] `GalleryView` shows cover images
-- [ ] `CalendarView` shows events on days
-- [ ] `CalendarView` supports month/week/day
-- [ ] `TimelineView` shows date ranges
-- [ ] `TimelineView` supports zoom levels
-- [ ] `ListView` supports checkbox toggle
-- [ ] View switching works correctly
-- [ ] All tests pass
+- [x] `DatabaseView` renders correct view type (ViewRenderer in @xnet/views)
+- [x] `TableView` supports inline cell editing
+- [x] `TableView` virtualizes large datasets
+- [x] `BoardView` groups by select column
+- [x] `BoardView` drag-and-drop updates row
+- [x] `GalleryView` shows cover images
+- [x] `CalendarView` shows events on days
+- [x] `CalendarView` supports month/week/day
+- [x] `TimelineView` shows date ranges
+- [x] `TimelineView` supports zoom levels
+- [x] `ListView` supports checkbox toggle
+- [x] View switching works correctly (via ViewRegistry)
+- [x] All tests pass (125 tests)
 
 ---
 
