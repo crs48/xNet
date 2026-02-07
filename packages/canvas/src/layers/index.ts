@@ -19,6 +19,8 @@ export {
 
 export { CSSGridFallback } from './css-grid-fallback'
 
+export { EdgeRenderer, createEdgeRenderer, type EdgeRendererViewport } from './edge-renderer'
+
 // ─── Grid Layer Factory ─────────────────────────────────────────────────────
 
 import { CSSGridFallback } from './css-grid-fallback'

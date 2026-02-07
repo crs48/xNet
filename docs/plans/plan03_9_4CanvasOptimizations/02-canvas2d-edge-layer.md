@@ -647,15 +647,15 @@ describe('EdgeRenderer', () => {
 
 ## Validation Gate
 
-- [ ] Canvas 2D renders 5000 edges at 60fps
-- [ ] Path2D caching prevents redundant path creation
-- [ ] Style batching minimizes context state changes
-- [ ] Viewport culling skips off-screen edges
-- [ ] Labels hidden at zoom < 0.5
-- [ ] Arrow heads render correctly
-- [ ] Dashed edges supported
-- [ ] Curved and straight edges both work
-- [ ] Memory stable over time (no leaks)
+- [x] Canvas 2D renders 5000 edges at 60fps
+- [x] Path2D caching prevents redundant path creation
+- [x] Style batching minimizes context state changes
+- [x] Viewport culling skips off-screen edges
+- [x] Labels hidden at zoom < 0.5
+- [x] Arrow heads render correctly
+- [x] Dashed edges supported
+- [x] Curved and straight edges both work
+- [x] Memory stable over time (no leaks)
 
 ---
 

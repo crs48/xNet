@@ -143,7 +143,7 @@ sequenceDiagram
 **Phase 1 Validation Gate:**
 
 - [x] WebGL grid renders at 60fps at any zoom
-- [ ] Canvas 2D renders 5000 edges at 60fps
+- [x] Canvas 2D renders 5000 edges at 60fps
 - [ ] Only visible nodes in DOM (+ 300px buffer)
 - [ ] LOD reduces detail at zoom < 0.3
 - [ ] No jank panning with 5000 nodes
