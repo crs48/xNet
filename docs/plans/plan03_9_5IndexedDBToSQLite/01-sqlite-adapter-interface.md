@@ -1139,55 +1139,55 @@ describe('Query Helpers', () => {
 
 ### Package Setup
 
-- [ ] Create `packages/sqlite` directory structure
-- [ ] Add `package.json` with peer dependencies
-- [ ] Add `tsconfig.json`
-- [ ] Add `tsup.config.ts`
-- [ ] Add to workspace in root `pnpm-workspace.yaml`
-- [ ] Add to `turbo.json` pipeline
+- [x] Create `packages/sqlite` directory structure
+- [x] Add `package.json` with peer dependencies
+- [x] Add `tsconfig.json`
+- [x] Add `tsup.config.ts`
+- [x] Add to workspace in root `pnpm-workspace.yaml`
+- [x] Add to `turbo.json` pipeline
 
 ### Interface Implementation
 
-- [ ] Define `SQLValue` type
-- [ ] Define `SQLRow` type
-- [ ] Define `RunResult` interface
-- [ ] Define `SQLiteConfig` interface
-- [ ] Define `SQLiteAdapter` interface
-- [ ] Define `PreparedStatement` interface
+- [x] Define `SQLValue` type
+- [x] Define `SQLRow` type
+- [x] Define `RunResult` interface
+- [x] Define `SQLiteConfig` interface
+- [x] Define `SQLiteAdapter` interface
+- [x] Define `PreparedStatement` interface
 
 ### Schema
 
-- [ ] Create unified schema DDL
-- [ ] Add all table definitions
-- [ ] Add all indexes
-- [ ] Add FTS5 virtual table
-- [ ] Create schema version tracking table
-- [ ] Add migration helper functions
+- [x] Create unified schema DDL
+- [x] Add all table definitions
+- [x] Add all indexes
+- [x] Add FTS5 virtual table
+- [x] Create schema version tracking table
+- [x] Add migration helper functions
 
 ### Query Helpers
 
-- [ ] Implement `buildInsert`
-- [ ] Implement `buildUpdate`
-- [ ] Implement `buildSelect`
-- [ ] Implement `buildBatchInsert`
-- [ ] Implement `escapeLike`
+- [x] Implement `buildInsert`
+- [x] Implement `buildUpdate`
+- [x] Implement `buildSelect`
+- [x] Implement `buildBatchInsert`
+- [x] Implement `escapeLike`
 
 ### Memory Adapter
 
-- [ ] Implement `MemorySQLiteAdapter`
-- [ ] Add sql.js dev dependency
-- [ ] Implement all interface methods
-- [ ] Create factory function
+- [x] Implement `MemorySQLiteAdapter`
+- [x] Add sql.js dev dependency
+- [x] Implement all interface methods
+- [x] Create factory function
 
 ### Tests
 
-- [ ] Lifecycle tests (open, close)
-- [ ] Query execution tests
-- [ ] Transaction tests
-- [ ] Schema management tests
-- [ ] FTS tests
-- [ ] Query helper tests
-- [ ] Target: 30+ tests
+- [x] Lifecycle tests (open, close)
+- [x] Query execution tests
+- [x] Transaction tests
+- [x] Schema management tests
+- [x] FTS tests (skipped for sql.js - no FTS5 support)
+- [x] Query helper tests
+- [x] Target: 30+ tests (40 passing, 3 skipped)
 
 ---
 
