@@ -23,7 +23,12 @@ import type {
   SchemaRecord,
   SearchOptions,
   SearchResult,
-  SerializedNodeChange
+  SerializedNodeChange,
+  DatabaseRowRecord,
+  DatabaseRowQueryOptions,
+  DatabaseRowQueryResult,
+  DatabaseFilterGroup,
+  DatabaseFilterCondition
 } from './interface'
 
 export const createMemoryStorage = (): HubStorage => {
@@ -47,6 +52,7 @@ export const createMemoryStorage = (): HubStorage => {
   const crawlQueue = new Map<string, CrawlQueueEntry>()
   const crawlHistory = new Map<string, CrawlHistoryEntry>()
   const crawlDomains = new Map<string, CrawlDomainState>()
+  const databaseRows = new Map<string, DatabaseRowRecord>()
 
   const isRecord = (value: unknown): value is Record<string, unknown> =>
     Boolean(value && typeof value === 'object')
@@ -491,6 +497,199 @@ export const createMemoryStorage = (): HubStorage => {
     return changes.reduce((max, change) => Math.max(max, change.lamportTime), 0)
   }
 
+  // ─── Database Row Operations ─────────────────────────────────────────────────
+
+  const insertDatabaseRow = async (row: DatabaseRowRecord): Promise<void> => {
+    databaseRows.set(row.id, row)
+  }
+
+  const updateDatabaseRow = async (
+    rowId: string,
+    updates: Partial<Omit<DatabaseRowRecord, 'id' | 'databaseId' | 'createdAt' | 'createdBy'>>
+  ): Promise<void> => {
+    const existing = databaseRows.get(rowId)
+    if (!existing) return
+    databaseRows.set(rowId, {
+      ...existing,
+      ...updates,
+      updatedAt: updates.updatedAt ?? Date.now()
+    })
+  }
+
+  const deleteDatabaseRow = async (rowId: string): Promise<void> => {
+    databaseRows.delete(rowId)
+  }
+
+  const getDatabaseRow = async (rowId: string): Promise<DatabaseRowRecord | null> => {
+    return databaseRows.get(rowId) ?? null
+  }
+
+  const getDatabaseRowCount = async (databaseId: string): Promise<number> => {
+    let count = 0
+    for (const row of databaseRows.values()) {
+      if (row.databaseId === databaseId) count++
+    }
+    return count
+  }
+
+  const batchInsertDatabaseRows = async (rows: DatabaseRowRecord[]): Promise<void> => {
+    for (const row of rows) {
+      databaseRows.set(row.id, row)
+    }
+  }
+
+  const rebuildDatabaseRowsFts = async (_databaseId: string): Promise<void> => {
+    // No-op for memory storage (no FTS index)
+  }
+
+  const queryDatabaseRows = async (
+    options: DatabaseRowQueryOptions
+  ): Promise<DatabaseRowQueryResult> => {
+    const startTime = performance.now()
+    const { databaseId, filters, sorts, search, limit = 50, cursor } = options
+
+    // Get all rows for this database
+    let rows = Array.from(databaseRows.values()).filter((row) => row.databaseId === databaseId)
+
+    // Apply filters
+    if (filters) {
+      rows = rows.filter((row) => evaluateFilterGroup(row, filters))
+    }
+
+    // Apply full-text search
+    if (search) {
+      const searchLower = search.toLowerCase()
+      rows = rows.filter((row) => row.searchable.toLowerCase().includes(searchLower))
+    }
+
+    // Apply sorting
+    if (sorts && sorts.length > 0) {
+      rows.sort((a, b) => {
+        for (const sort of sorts) {
+          const aVal = sort.columnId === 'sortKey' ? a.sortKey : (a.data[sort.columnId] as string)
+          const bVal = sort.columnId === 'sortKey' ? b.sortKey : (b.data[sort.columnId] as string)
+          const cmp = String(aVal ?? '').localeCompare(String(bVal ?? ''))
+          if (cmp !== 0) return sort.direction === 'asc' ? cmp : -cmp
+        }
+        return a.id.localeCompare(b.id)
+      })
+    } else {
+      rows.sort((a, b) => a.sortKey.localeCompare(b.sortKey) || a.id.localeCompare(b.id))
+    }
+
+    const total = rows.length
+
+    // Apply cursor pagination
+    if (cursor) {
+      try {
+        const { sortKey, id } = JSON.parse(Buffer.from(cursor, 'base64url').toString())
+        const idx = rows.findIndex(
+          (r) => r.sortKey > sortKey || (r.sortKey === sortKey && r.id > id)
+        )
+        if (idx > 0) rows = rows.slice(idx)
+      } catch {
+        // Invalid cursor, ignore
+      }
+    }
+
+    // Apply limit
+    const hasMore = rows.length > limit
+    const resultRows = rows.slice(0, limit)
+
+    // Build next cursor
+    let nextCursor: string | undefined
+    if (hasMore && resultRows.length > 0) {
+      const lastRow = resultRows[resultRows.length - 1]
+      nextCursor = Buffer.from(
+        JSON.stringify({ sortKey: lastRow.sortKey, id: lastRow.id })
+      ).toString('base64url')
+    }
+
+    const queryTime = performance.now() - startTime
+
+    return {
+      rows: resultRows,
+      total,
+      cursor: nextCursor,
+      hasMore,
+      queryTime
+    }
+  }
+
+  // Helper: Evaluate filter group
+  function evaluateFilterGroup(row: DatabaseRowRecord, group: DatabaseFilterGroup): boolean {
+    const results = group.conditions.map((condition) => {
+      if ('conditions' in condition) {
+        return evaluateFilterGroup(row, condition as DatabaseFilterGroup)
+      }
+      return evaluateFilterCondition(row, condition as DatabaseFilterCondition)
+    })
+
+    return group.operator === 'and' ? results.every(Boolean) : results.some(Boolean)
+  }
+
+  // Helper: Evaluate single filter condition
+  function evaluateFilterCondition(
+    row: DatabaseRowRecord,
+    condition: DatabaseFilterCondition
+  ): boolean {
+    const { columnId, operator, value } = condition
+    const cellValue = row.data[columnId]
+
+    switch (operator) {
+      case 'equals':
+        return cellValue === value
+      case 'notEquals':
+        return cellValue !== value
+      case 'contains':
+        return String(cellValue ?? '').includes(String(value))
+      case 'notContains':
+        return !String(cellValue ?? '').includes(String(value))
+      case 'startsWith':
+        return String(cellValue ?? '').startsWith(String(value))
+      case 'endsWith':
+        return String(cellValue ?? '').endsWith(String(value))
+      case 'isEmpty':
+        return cellValue == null || cellValue === ''
+      case 'isNotEmpty':
+        return cellValue != null && cellValue !== ''
+      case 'greaterThan':
+        return Number(cellValue) > Number(value)
+      case 'lessThan':
+        return Number(cellValue) < Number(value)
+      case 'greaterOrEqual':
+        return Number(cellValue) >= Number(value)
+      case 'lessOrEqual':
+        return Number(cellValue) <= Number(value)
+      case 'before':
+        return String(cellValue ?? '') < String(value)
+      case 'after':
+        return String(cellValue ?? '') > String(value)
+      case 'between': {
+        const [start, end] = value as [unknown, unknown]
+        const cv = cellValue as string | number
+        return cv >= (start as string | number) && cv <= (end as string | number)
+      }
+      case 'hasAny': {
+        const arr = Array.isArray(cellValue) ? cellValue : []
+        const vals = value as unknown[]
+        return vals.some((v) => arr.includes(v))
+      }
+      case 'hasAll': {
+        const arr = Array.isArray(cellValue) ? cellValue : []
+        const vals = value as unknown[]
+        return vals.every((v) => arr.includes(v))
+      }
+      case 'hasNone': {
+        const arr = Array.isArray(cellValue) ? cellValue : []
+        const vals = value as unknown[]
+        return !vals.some((v) => arr.includes(v))
+      }
+      default:
+        return true
+    }
+  }
+
   const close = async (): Promise<void> => {
     docStates.clear()
     docMetas.clear()
@@ -512,6 +711,7 @@ export const createMemoryStorage = (): HubStorage => {
     crawlQueue.clear()
     crawlHistory.clear()
     crawlDomains.clear()
+    databaseRows.clear()
   }
 
   return {
@@ -577,6 +777,14 @@ export const createMemoryStorage = (): HubStorage => {
     getNodeChangesSince,
     getNodeChangesForNode,
     getHighWaterMark,
+    insertDatabaseRow,
+    updateDatabaseRow,
+    deleteDatabaseRow,
+    getDatabaseRow,
+    queryDatabaseRows,
+    getDatabaseRowCount,
+    batchInsertDatabaseRows,
+    rebuildDatabaseRowsFts,
     close
   }
 }

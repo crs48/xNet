@@ -24,7 +24,12 @@ import type {
   SchemaRecord,
   SearchOptions,
   SearchResult,
-  SerializedNodeChange
+  SerializedNodeChange,
+  DatabaseRowRecord,
+  DatabaseRowQueryOptions,
+  DatabaseRowQueryResult,
+  DatabaseFilterGroup,
+  DatabaseFilterCondition
 } from './interface'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -273,6 +278,47 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_node_changes_batch
     ON node_changes(batch_id) WHERE batch_id IS NOT NULL;
 
+  -- Database rows table for large database queries
+  CREATE TABLE IF NOT EXISTS database_rows (
+    id TEXT PRIMARY KEY,
+    database_id TEXT NOT NULL,
+    sort_key TEXT NOT NULL,
+    data JSON NOT NULL,
+    searchable TEXT NOT NULL DEFAULT '',
+    created_at INTEGER NOT NULL,
+    created_by TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_database_rows_db ON database_rows(database_id);
+  CREATE INDEX IF NOT EXISTS idx_database_rows_sort ON database_rows(database_id, sort_key);
+  CREATE INDEX IF NOT EXISTS idx_database_rows_updated ON database_rows(database_id, updated_at);
+
+  -- FTS5 virtual table for database row full-text search
+  CREATE VIRTUAL TABLE IF NOT EXISTS database_rows_fts USING fts5(
+    searchable,
+    content='database_rows',
+    content_rowid='rowid',
+    tokenize='porter unicode61'
+  );
+
+  -- Triggers to keep FTS index in sync
+  CREATE TRIGGER IF NOT EXISTS database_rows_ai AFTER INSERT ON database_rows BEGIN
+    INSERT INTO database_rows_fts(rowid, searchable)
+    VALUES (new.rowid, new.searchable);
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS database_rows_ad AFTER DELETE ON database_rows BEGIN
+    INSERT INTO database_rows_fts(database_rows_fts, rowid, searchable)
+    VALUES('delete', old.rowid, old.searchable);
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS database_rows_au AFTER UPDATE ON database_rows BEGIN
+    INSERT INTO database_rows_fts(database_rows_fts, rowid, searchable)
+    VALUES('delete', old.rowid, old.searchable);
+    INSERT INTO database_rows_fts(rowid, searchable)
+    VALUES (new.rowid, new.searchable);
+  END;
+
   CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(
     doc_id UNINDEXED,
     title,
@@ -488,6 +534,17 @@ type SearchRow = {
   schema_iri: string
   snippet: string
   rank: number
+}
+
+type DatabaseRowRow = {
+  id: string
+  database_id: string
+  sort_key: string
+  data: string
+  searchable: string
+  created_at: number
+  created_by: string
+  updated_at: number
 }
 
 export const createSQLiteStorage = (dataDir: string): HubStorage => {
@@ -772,6 +829,28 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     `),
     getHighWaterMark: db.prepare(`
       SELECT MAX(lamport_time) as hwm FROM node_changes WHERE room = ?
+    `),
+    // Database row statements
+    insertDatabaseRow: db.prepare(`
+      INSERT INTO database_rows
+        (id, database_id, sort_key, data, searchable, created_at, created_by, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    updateDatabaseRow: db.prepare(`
+      UPDATE database_rows
+      SET sort_key = COALESCE(?, sort_key),
+          data = COALESCE(?, data),
+          searchable = COALESCE(?, searchable),
+          updated_at = ?
+      WHERE id = ?
+    `),
+    deleteDatabaseRow: db.prepare('DELETE FROM database_rows WHERE id = ?'),
+    getDatabaseRow: db.prepare('SELECT * FROM database_rows WHERE id = ?'),
+    getDatabaseRowCount: db.prepare(
+      'SELECT COUNT(*) as count FROM database_rows WHERE database_id = ?'
+    ),
+    rebuildDatabaseRowsFts: db.prepare(`
+      INSERT INTO database_rows_fts(database_rows_fts) VALUES('rebuild')
     `)
   }
 
@@ -1524,6 +1603,303 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     db.close()
   }
 
+  // ─── Database Row Functions ────────────────────────────────────────────────
+
+  const rowToDatabaseRow = (row: DatabaseRowRow): DatabaseRowRecord => ({
+    id: row.id,
+    databaseId: row.database_id,
+    sortKey: row.sort_key,
+    data: JSON.parse(row.data) as Record<string, unknown>,
+    searchable: row.searchable,
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    updatedAt: row.updated_at
+  })
+
+  const insertDatabaseRow = async (row: DatabaseRowRecord): Promise<void> => {
+    stmts.insertDatabaseRow.run(
+      row.id,
+      row.databaseId,
+      row.sortKey,
+      JSON.stringify(row.data),
+      row.searchable,
+      row.createdAt,
+      row.createdBy,
+      row.updatedAt
+    )
+  }
+
+  const updateDatabaseRow = async (
+    rowId: string,
+    updates: Partial<Omit<DatabaseRowRecord, 'id' | 'databaseId' | 'createdAt' | 'createdBy'>>
+  ): Promise<void> => {
+    stmts.updateDatabaseRow.run(
+      updates.sortKey ?? null,
+      updates.data ? JSON.stringify(updates.data) : null,
+      updates.searchable ?? null,
+      updates.updatedAt ?? Date.now(),
+      rowId
+    )
+  }
+
+  const deleteDatabaseRow = async (rowId: string): Promise<void> => {
+    stmts.deleteDatabaseRow.run(rowId)
+  }
+
+  const getDatabaseRow = async (rowId: string): Promise<DatabaseRowRecord | null> => {
+    const row = stmts.getDatabaseRow.get(rowId) as DatabaseRowRow | undefined
+    return row ? rowToDatabaseRow(row) : null
+  }
+
+  const getDatabaseRowCount = async (databaseId: string): Promise<number> => {
+    const row = stmts.getDatabaseRowCount.get(databaseId) as { count: number } | undefined
+    return row?.count ?? 0
+  }
+
+  const batchInsertDatabaseRows = async (rows: DatabaseRowRecord[]): Promise<void> => {
+    const insertFn = db.transaction(() => {
+      for (const row of rows) {
+        stmts.insertDatabaseRow.run(
+          row.id,
+          row.databaseId,
+          row.sortKey,
+          JSON.stringify(row.data),
+          row.searchable,
+          row.createdAt,
+          row.createdBy,
+          row.updatedAt
+        )
+      }
+    })
+    insertFn()
+  }
+
+  const rebuildDatabaseRowsFts = async (_databaseId: string): Promise<void> => {
+    stmts.rebuildDatabaseRowsFts.run()
+  }
+
+  const queryDatabaseRows = async (
+    options: DatabaseRowQueryOptions
+  ): Promise<DatabaseRowQueryResult> => {
+    const startTime = performance.now()
+    const { databaseId, filters, sorts, search, limit = 50, cursor, select } = options
+
+    // Build SQL query dynamically
+    const params: unknown[] = []
+
+    // SELECT clause
+    let selectClause = '*'
+    if (select && select.length > 0) {
+      const cols = ['id', 'database_id', 'sort_key', 'created_at', 'created_by', 'updated_at']
+      for (const col of select) {
+        cols.push(`json_extract(data, '$.${col}') as "${col}"`)
+      }
+      selectClause = cols.join(', ')
+    }
+
+    let sql = `SELECT ${selectClause} FROM database_rows WHERE database_id = ?`
+    params.push(databaseId)
+
+    // Apply filters
+    if (filters) {
+      const { clause, values } = buildFilterClause(filters)
+      if (clause) {
+        sql += ` AND ${clause}`
+        params.push(...values)
+      }
+    }
+
+    // Full-text search
+    if (search) {
+      sql += ` AND rowid IN (SELECT rowid FROM database_rows_fts WHERE database_rows_fts MATCH ?)`
+      params.push(escapeFtsQuery(search))
+    }
+
+    // Cursor pagination (keyset)
+    if (cursor) {
+      try {
+        const { sortKey, id } = JSON.parse(Buffer.from(cursor, 'base64url').toString())
+        sql += ` AND (sort_key > ? OR (sort_key = ? AND id > ?))`
+        params.push(sortKey, sortKey, id)
+      } catch {
+        // Invalid cursor, ignore
+      }
+    }
+
+    // Sort clause
+    if (sorts && sorts.length > 0) {
+      const orderBy = sorts
+        .map((s) => {
+          const col =
+            s.columnId === 'sortKey' ? 'sort_key' : `json_extract(data, '$.${s.columnId}')`
+          return `${col} ${s.direction.toUpperCase()}`
+        })
+        .join(', ')
+      sql += ` ORDER BY ${orderBy}, id ASC`
+    } else {
+      sql += ` ORDER BY sort_key ASC, id ASC`
+    }
+
+    // Limit (fetch one extra to detect hasMore)
+    sql += ` LIMIT ?`
+    params.push(limit + 1)
+
+    // Execute query
+    const rows = db.prepare(sql).all(...params) as DatabaseRowRow[]
+
+    // Check if there are more rows
+    const hasMore = rows.length > limit
+    const resultRows = hasMore ? rows.slice(0, limit) : rows
+
+    // Build cursor for next page
+    let nextCursor: string | undefined
+    if (hasMore && resultRows.length > 0) {
+      const lastRow = resultRows[resultRows.length - 1]
+      nextCursor = Buffer.from(
+        JSON.stringify({ sortKey: lastRow.sort_key, id: lastRow.id })
+      ).toString('base64url')
+    }
+
+    // Get total count
+    let countSql = `SELECT COUNT(*) as count FROM database_rows WHERE database_id = ?`
+    const countParams: unknown[] = [databaseId]
+
+    if (filters) {
+      const { clause, values } = buildFilterClause(filters)
+      if (clause) {
+        countSql += ` AND ${clause}`
+        countParams.push(...values)
+      }
+    }
+
+    if (search) {
+      countSql += ` AND rowid IN (SELECT rowid FROM database_rows_fts WHERE database_rows_fts MATCH ?)`
+      countParams.push(escapeFtsQuery(search))
+    }
+
+    const countRow = db.prepare(countSql).get(...countParams) as { count: number } | undefined
+    const total = countRow?.count ?? 0
+
+    const queryTime = performance.now() - startTime
+
+    return {
+      rows: resultRows.map(rowToDatabaseRow),
+      total,
+      cursor: nextCursor,
+      hasMore,
+      queryTime
+    }
+  }
+
+  // Helper: Build filter clause for SQL
+  function buildFilterClause(group: DatabaseFilterGroup): { clause: string; values: unknown[] } {
+    const clauses: string[] = []
+    const values: unknown[] = []
+
+    for (const condition of group.conditions) {
+      if ('conditions' in condition) {
+        // Nested group
+        const nested = buildFilterClause(condition as DatabaseFilterGroup)
+        if (nested.clause) {
+          clauses.push(`(${nested.clause})`)
+          values.push(...nested.values)
+        }
+      } else {
+        // Simple condition
+        const { clause, params } = buildConditionClause(condition as DatabaseFilterCondition)
+        if (clause) {
+          clauses.push(clause)
+          values.push(...params)
+        }
+      }
+    }
+
+    if (clauses.length === 0) {
+      return { clause: '', values: [] }
+    }
+
+    const joinOp = group.operator === 'and' ? ' AND ' : ' OR '
+    return { clause: clauses.join(joinOp), values }
+  }
+
+  function buildConditionClause(condition: DatabaseFilterCondition): {
+    clause: string
+    params: unknown[]
+  } {
+    const { columnId, operator, value } = condition
+    const col = `json_extract(data, '$.${columnId}')`
+
+    switch (operator) {
+      case 'equals':
+        return { clause: `${col} = ?`, params: [value] }
+      case 'notEquals':
+        return { clause: `${col} != ?`, params: [value] }
+      case 'contains':
+        return { clause: `${col} LIKE ?`, params: [`%${value}%`] }
+      case 'notContains':
+        return { clause: `${col} NOT LIKE ?`, params: [`%${value}%`] }
+      case 'startsWith':
+        return { clause: `${col} LIKE ?`, params: [`${value}%`] }
+      case 'endsWith':
+        return { clause: `${col} LIKE ?`, params: [`%${value}`] }
+      case 'isEmpty':
+        return { clause: `(${col} IS NULL OR ${col} = '')`, params: [] }
+      case 'isNotEmpty':
+        return { clause: `(${col} IS NOT NULL AND ${col} != '')`, params: [] }
+      case 'greaterThan':
+        return { clause: `CAST(${col} AS REAL) > ?`, params: [value] }
+      case 'lessThan':
+        return { clause: `CAST(${col} AS REAL) < ?`, params: [value] }
+      case 'greaterOrEqual':
+        return { clause: `CAST(${col} AS REAL) >= ?`, params: [value] }
+      case 'lessOrEqual':
+        return { clause: `CAST(${col} AS REAL) <= ?`, params: [value] }
+      case 'before':
+        return { clause: `${col} < ?`, params: [value] }
+      case 'after':
+        return { clause: `${col} > ?`, params: [value] }
+      case 'between': {
+        const [start, end] = value as [unknown, unknown]
+        return { clause: `${col} BETWEEN ? AND ?`, params: [start, end] }
+      }
+      case 'hasAny': {
+        const anyValues = value as unknown[]
+        const anyPlaceholders = anyValues.map(() => '?').join(', ')
+        return {
+          clause: `EXISTS (SELECT 1 FROM json_each(${col}) WHERE value IN (${anyPlaceholders}))`,
+          params: anyValues
+        }
+      }
+      case 'hasAll': {
+        const allValues = value as unknown[]
+        const allClauses = allValues
+          .map(() => `EXISTS (SELECT 1 FROM json_each(${col}) WHERE value = ?)`)
+          .join(' AND ')
+        return { clause: `(${allClauses})`, params: allValues }
+      }
+      case 'hasNone': {
+        const noneValues = value as unknown[]
+        const nonePlaceholders = noneValues.map(() => '?').join(', ')
+        return {
+          clause: `NOT EXISTS (SELECT 1 FROM json_each(${col}) WHERE value IN (${nonePlaceholders}))`,
+          params: noneValues
+        }
+      }
+      default:
+        return { clause: '', params: [] }
+    }
+  }
+
+  function escapeFtsQuery(search: string): string {
+    // Tokenize and add prefix matching for FTS5
+    const terms = search
+      .trim()
+      .split(/\s+/)
+      .filter((t) => t.length > 0)
+      .map((t) => `"${t.replace(/"/g, '""')}"*`)
+    return terms.join(' OR ')
+  }
+
   return {
     getDocState,
     setDocState,
@@ -1593,6 +1969,14 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       })
       updateFn()
     },
+    insertDatabaseRow,
+    updateDatabaseRow,
+    deleteDatabaseRow,
+    getDatabaseRow,
+    queryDatabaseRows,
+    getDatabaseRowCount,
+    batchInsertDatabaseRows,
+    rebuildDatabaseRowsFts,
     close
   }
 }
