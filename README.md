@@ -2,10 +2,10 @@
 
 [![CI](https://github.com/crs48/xNet/actions/workflows/ci.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/ci.yml)
 [![npm: @xnet/react](https://img.shields.io/npm/v/@xnet/react?label=%40xnet%2Freact&logo=npm)](https://www.npmjs.com/package/@xnet/react)
-[![Electron Release](https://github.com/crs48/xNet/actions/workflows/electron-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/electron-release.yml)
-[![Hub Release](https://github.com/crs48/xNet/actions/workflows/hub-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/hub-release.yml)
-[![Demo Hub](https://img.shields.io/endpoint?url=https%3A%2F%2Fhub.xnet.fyi%2Fhealth%2Fbadge&logo=railway&logoColor=white)](https://hub.xnet.fyi/health)
+[![Electron App](https://img.shields.io/github/actions/workflow/status/crs48/xNet/electron-release.yml?label=electron%20app&logo=electron&logoColor=white)](https://github.com/crs48/xNet/actions/workflows/electron-release.yml)
 [![Demo App](https://img.shields.io/github/deployments/crs48/xNet/github-pages?label=demo%20app&logo=github)](https://xnet.fyi/app)
+[![Hub Image](https://img.shields.io/github/actions/workflow/status/crs48/xNet/hub-release.yml?label=hub%20image&logo=docker&logoColor=white)](https://github.com/crs48/xNet/actions/workflows/hub-release.yml)
+[![Demo Hub](https://img.shields.io/endpoint?url=https%3A%2F%2Fhub.xnet.fyi%2Fhealth%2Fbadge&logo=railway&logoColor=white)](https://hub.xnet.fyi/health)
 [![Docs](https://img.shields.io/badge/docs-starlight-blue?logo=astro)](https://xnet.fyi/docs)
 [![GitHub Stars](https://img.shields.io/github/stars/crs48/xNet?style=flat&logo=github)](https://github.com/crs48/xNet/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
