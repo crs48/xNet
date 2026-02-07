@@ -70,4 +70,4 @@ export {
 
 // Adapters
 export { MemoryNodeStorageAdapter } from './memory-adapter'
-export { SQLiteNodeStorageAdapter } from './sqlite-adapter'
+export { SQLiteNodeStorageAdapter, createNodeStorageAdapter } from './sqlite-adapter'

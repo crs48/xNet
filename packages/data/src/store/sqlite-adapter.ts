@@ -17,7 +17,8 @@ import type {
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnet/core'
-import type { SQLiteAdapter, SQLValue } from '@xnet/sqlite'
+import type { SQLiteAdapter, SQLValue, PreparedStatement } from '@xnet/sqlite'
+import { updateNodeFTS, deleteNodeFTS, extractSearchableContent } from '@xnet/sqlite'
 
 // ─── Row Types ──────────────────────────────────────────────────────────────
 
@@ -81,6 +82,9 @@ interface ChangeRow {
  * ```
  */
 export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
+  // Prepared statement cache for hot paths
+  private stmtCache = new Map<string, PreparedStatement>()
+
   constructor(private db: SQLiteAdapter) {}
 
   // ─── Lifecycle ────────────────────────────────────────────────────────────
@@ -93,7 +97,25 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async close(): Promise<void> {
+    // Finalize all prepared statements
+    for (const stmt of this.stmtCache.values()) {
+      await stmt.finalize()
+    }
+    this.stmtCache.clear()
     // Don't close the shared SQLiteAdapter - let the owner manage it
+  }
+
+  /**
+   * Get or create a prepared statement.
+   * Cached statements are reused for better performance.
+   */
+  private async getStatement(key: string, sql: string): Promise<PreparedStatement> {
+    let stmt = this.stmtCache.get(key)
+    if (!stmt) {
+      stmt = await this.db.prepare(sql)
+      this.stmtCache.set(key, stmt)
+    }
+    return stmt
   }
 
   // ─── Change Log Operations ────────────────────────────────────────────────
@@ -287,9 +309,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         ]
       )
     }
+
+    // Update FTS index for searchable content
+    // This is a no-op if FTS5 is not supported (e.g., sql.js)
+    const title = typeof node.properties.title === 'string' ? node.properties.title : null
+    const content = extractSearchableContent(node.properties)
+    await updateNodeFTS(this.db, node.id, title, content)
   }
 
   async deleteNode(id: NodeId): Promise<void> {
+    // Delete from FTS index first (no-op if FTS5 not supported)
+    await deleteNodeFTS(this.db, id)
     // Delete node (cascades to properties via FK)
     await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
   }
@@ -329,6 +359,113 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     return nodes
+  }
+
+  /**
+   * Optimized listNodes using a single JOIN query.
+   * Fetches nodes and properties in one query for better performance with large datasets.
+   */
+  async listNodesOptimized(options?: ListNodesOptions): Promise<NodeState[]> {
+    // Build the base query with JOIN
+    let whereClause = '1=1'
+    const params: unknown[] = []
+
+    if (options?.schemaId) {
+      whereClause += ` AND n.schema_id = ?`
+      params.push(options.schemaId)
+    }
+
+    if (!options?.includeDeleted) {
+      whereClause += ` AND n.deleted_at IS NULL`
+    }
+
+    // Use CTE for pagination, then join properties
+    let sql: string
+    if (options?.limit) {
+      sql = `
+        WITH limited_nodes AS (
+          SELECT id, schema_id, created_at, updated_at, created_by, deleted_at
+          FROM nodes n
+          WHERE ${whereClause}
+          ORDER BY updated_at DESC
+          LIMIT ? OFFSET ?
+        )
+        SELECT 
+          ln.id, ln.schema_id, ln.created_at, ln.updated_at, ln.created_by, ln.deleted_at,
+          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at
+        FROM limited_nodes ln
+        LEFT JOIN node_properties p ON ln.id = p.node_id
+        ORDER BY ln.updated_at DESC, ln.id, p.property_key
+      `
+      params.push(options.limit)
+      params.push(options.offset ?? 0)
+    } else {
+      sql = `
+        SELECT 
+          n.id, n.schema_id, n.created_at, n.updated_at, n.created_by, n.deleted_at,
+          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at
+        FROM nodes n
+        LEFT JOIN node_properties p ON n.id = p.node_id
+        WHERE ${whereClause}
+        ORDER BY n.updated_at DESC, n.id, p.property_key
+      `
+    }
+
+    interface JoinedRow {
+      id: string
+      schema_id: string
+      created_at: number
+      updated_at: number
+      created_by: string
+      deleted_at: number | null
+      property_key: string | null
+      value: Uint8Array | null
+      lamport_time: number | null
+      updated_by: string | null
+      prop_updated_at: number | null
+      [key: string]: SQLValue
+    }
+
+    const rows = await this.db.query<JoinedRow>(sql, params as never)
+
+    // Group rows by node ID
+    const nodeMap = new Map<string, NodeState>()
+
+    for (const row of rows) {
+      let node = nodeMap.get(row.id)
+
+      if (!node) {
+        node = {
+          id: row.id,
+          schemaId: row.schema_id as SchemaIRI,
+          properties: {},
+          timestamps: {},
+          deleted: row.deleted_at !== null,
+          deletedAt: row.deleted_at
+            ? { lamport: { time: 0, author: '' as DID }, wallTime: row.deleted_at }
+            : undefined,
+          createdAt: row.created_at,
+          createdBy: row.created_by as DID,
+          updatedAt: row.updated_at,
+          updatedBy: row.created_by as DID
+        }
+        nodeMap.set(row.id, node)
+      }
+
+      if (row.property_key && row.value !== null) {
+        node.properties[row.property_key] = this.deserializeValue(row.value)
+        node.timestamps[row.property_key] = {
+          lamport: { time: row.lamport_time ?? 0, author: (row.updated_by ?? '') as DID },
+          wallTime: row.prop_updated_at ?? 0
+        }
+        // Track the most recent updater
+        if ((row.prop_updated_at ?? 0) >= node.updatedAt) {
+          node.updatedBy = (row.updated_by ?? node.createdBy) as DID
+        }
+      }
+    }
+
+    return Array.from(nodeMap.values())
   }
 
   async countNodes(options?: CountNodesOptions): Promise<number> {
@@ -539,4 +676,23 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       signature: row.signature
     }
   }
+}
+
+// ─── Factory Functions ───────────────────────────────────────────────────────
+
+/**
+ * Create a SQLiteNodeStorageAdapter from an existing SQLiteAdapter.
+ * Use this when you want to share the SQLite connection with other services.
+ *
+ * @example
+ * ```typescript
+ * import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
+ * import { createNodeStorageAdapter } from '@xnet/data'
+ *
+ * const db = await createMemorySQLiteAdapter()
+ * const storage = createNodeStorageAdapter(db)
+ * ```
+ */
+export function createNodeStorageAdapter(db: SQLiteAdapter): SQLiteNodeStorageAdapter {
+  return new SQLiteNodeStorageAdapter(db)
 }
