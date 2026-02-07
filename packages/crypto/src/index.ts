@@ -117,11 +117,18 @@ export {
 } from './constants'
 
 // Hybrid signing
-export type { HybridSigningKey, HybridPublicKey, VerifyBatchItem } from './hybrid-signing'
+export type {
+  HybridSigningKey,
+  HybridPublicKey,
+  VerifyBatchItem,
+  CachedVerificationOptions
+} from './hybrid-signing'
 export {
   hybridSign,
   hybridVerify,
   hybridVerifyQuick,
+  hybridVerifyCached,
+  hybridVerifyCachedQuick,
   requiredKeysForLevel,
   canSignAtLevel,
   canVerifyAtLevel,
@@ -132,6 +139,19 @@ export {
   hybridVerifyAll,
   hybridVerifyAllAsync
 } from './hybrid-signing'
+
+// Verification cache
+export type { VerificationCacheOptions, CacheStats } from './cache/verification-cache'
+export {
+  VerificationCache,
+  getVerificationCache,
+  setVerificationCache,
+  clearVerificationCache
+} from './cache/verification-cache'
+
+// Performance metrics
+export type { CryptoMetrics, LevelMetrics, MetricAverages } from './metrics/crypto-metrics'
+export { CryptoMetricsCollector, cryptoMetrics } from './metrics/crypto-metrics'
 
 // Hybrid key generation
 export type {

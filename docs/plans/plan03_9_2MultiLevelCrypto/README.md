@@ -206,16 +206,16 @@ Optimize for production workloads.
 
 | Task | Document                                 | Description                         | Status |
 | ---- | ---------------------------------------- | ----------------------------------- | ------ |
-| 6.1  | [09-performance.md](./09-performance.md) | Verification caching (LRU)          | [ ]    |
+| 6.1  | [09-performance.md](./09-performance.md) | Verification caching (LRU)          | [x]    |
 | 6.2  | [09-performance.md](./09-performance.md) | Worker-based PQ signing for batches | [ ]    |
-| 6.3  | [09-performance.md](./09-performance.md) | Batch verification API              | [ ]    |
+| 6.3  | [09-performance.md](./09-performance.md) | Batch verification API              | [x]    |
 | 6.4  | [09-performance.md](./09-performance.md) | Lazy PQ key generation              | [ ]    |
 
 **Validation Gate:**
 
-- [ ] Verification caching reduces repeated verifications by 90%+
-- [ ] Batch signing 100 items in worker < 500ms
-- [ ] Level 0 operations show no performance regression
+- [x] Verification caching reduces repeated verifications by 90%+
+- [ ] Batch signing 100 items in worker < 500ms (deferred - workers not yet implemented)
+- [x] Level 0 operations show no performance regression
 
 ### Phase 7: Testing & Security Audit (Step 10)
 

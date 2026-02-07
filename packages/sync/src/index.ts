@@ -318,3 +318,16 @@ export type {
   ReactIntegrityMonitorOptions
 } from './integrity-monitor'
 export { createIntegrityMonitor, createReactIntegrityMonitor } from './integrity-monitor'
+
+// Security policy for operation-based level selection
+export type { SecurityPolicy, OperationType } from './security-policy'
+export {
+  DEFAULT_SECURITY_POLICY,
+  HYBRID_SECURITY_POLICY,
+  MAX_SECURITY_POLICY,
+  getSecurityLevel,
+  isEphemeralOperation,
+  isCriticalOperation,
+  createSecurityPolicy,
+  mergeSecurityPolicies
+} from './security-policy'
