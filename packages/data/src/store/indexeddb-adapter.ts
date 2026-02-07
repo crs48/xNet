@@ -2,6 +2,10 @@
  * IndexedDB storage adapter for NodeStore.
  *
  * Persistent storage for browser environments using IndexedDB.
+ *
+ * @deprecated Use `SQLiteNodeStorageAdapter` from `./sqlite-adapter` instead.
+ * This adapter will be removed in a future version.
+ * See: docs/plans/plan03_9_5IndexedDBToSQLite/
  */
 
 import type {
@@ -39,6 +43,8 @@ export interface IndexedDBNodeStorageAdapterOptions {
 
 /**
  * IndexedDB-based storage adapter for NodeStore.
+ *
+ * @deprecated Use `SQLiteNodeStorageAdapter` instead. This class will be removed in a future version.
  *
  * Provides persistent storage for:
  * - Nodes (materialized state)

@@ -6,6 +6,10 @@
  * 1. Reducing transaction overhead (commit/sync costs)
  * 2. Allowing IndexedDB to optimize multiple writes together
  * 3. Reducing IPC round-trips in web workers
+ *
+ * @deprecated Use `SQLiteStorageAdapter` from `./sqlite` instead.
+ * This adapter will be removed in a future version.
+ * See: docs/plans/plan03_9_5IndexedDBToSQLite/
  */
 
 import type { StorageAdapter, DocumentData } from '../types'
