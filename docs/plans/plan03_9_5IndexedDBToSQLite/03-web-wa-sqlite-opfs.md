@@ -1043,27 +1043,27 @@ if (needsDatabase) {
 
 ### Implementation
 
-- [ ] Add `@sqlite.org/sqlite-wasm` dependency
-- [ ] Create `WebSQLiteAdapter` class
-- [ ] Implement all `SQLiteAdapter` interface methods
-- [ ] Configure opfs-sahpool VFS
-- [ ] Create `SQLiteWorkerHandler` for Web Worker
-- [ ] Create `WebSQLiteProxy` for main thread
-- [ ] Add Comlink integration
+- [x] Add `@sqlite.org/sqlite-wasm` dependency
+- [x] Create `WebSQLiteAdapter` class
+- [x] Implement all `SQLiteAdapter` interface methods
+- [x] Configure opfs-sahpool VFS
+- [x] Create `SQLiteWorkerHandler` for Web Worker
+- [x] Create `WebSQLiteProxy` for main thread
+- [x] Add Comlink integration
 
 ### Browser Support
 
-- [ ] Implement `checkBrowserSupport()`
-- [ ] Implement `showUnsupportedBrowserMessage()`
-- [ ] Test OPFS feature detection
-- [ ] Handle fallback to in-memory gracefully
+- [x] Implement `checkBrowserSupport()`
+- [x] Implement `showUnsupportedBrowserMessage()`
+- [x] Test OPFS feature detection
+- [x] Handle fallback to in-memory gracefully
 
 ### Build Configuration
 
 - [ ] Update Vite config for WASM
 - [ ] Update Vite config for workers
 - [ ] Configure code splitting for sqlite-wasm
-- [ ] Verify no COOP/COEP headers required
+- [x] Verify no COOP/COEP headers required
 
 ### Integration
 
