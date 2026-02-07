@@ -1,3 +1,12 @@
+# Skip hooks for markdown-only changes
+CHANGED_FILES=$(git diff --name-only HEAD @{upstream} 2>/dev/null || git diff --name-only HEAD~1)
+NON_MD_FILES=$(echo "$CHANGED_FILES" | grep -v '\.md$' | grep -v '^docs/' || true)
+
+if [ -z "$NON_MD_FILES" ]; then
+  echo "Skipping pre-push hooks (only markdown/docs changes)"
+  exit 0
+fi
+
 # Check lockfile is in sync with package.json
 pnpm install --frozen-lockfile --ignore-scripts || {
   echo "ERROR: pnpm-lock.yaml is out of sync. Run 'pnpm install' and commit the lockfile."
