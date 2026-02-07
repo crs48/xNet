@@ -17,6 +17,7 @@
     "@xnet/core": "workspace:*",
     "@xnet/data": "workspace:*",
     "@xnet/data-bridge": "workspace:*",
+    "@xnet/sqlite": "workspace:*",
     "@xnet/react": "workspace:*",
     "@xnet/sdk": "workspace:*",
     "@xnet/storage": "workspace:*",
