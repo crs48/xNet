@@ -162,6 +162,30 @@ export {
 export { useCell, type UseCellResult, type UseCellOptions } from './hooks/useCell'
 
 /**
+ * useRelatedRows - Hook for loading related row data for relation columns
+ *
+ * @example
+ * ```tsx
+ * const { rows, loading, error } = useRelatedRows(['row1', 'row2'])
+ * ```
+ */
+export { useRelatedRows, type UseRelatedRowsResult } from './hooks/useRelatedRows'
+
+/**
+ * useReverseRelations - Hook for finding rows that link TO a given row
+ *
+ * @example
+ * ```tsx
+ * const { relations, loading } = useReverseRelations(rowId, databaseId)
+ * ```
+ */
+export {
+  useReverseRelations,
+  type ReverseRelation,
+  type UseReverseRelationsResult
+} from './hooks/useReverseRelations'
+
+/**
  * useComments - Universal hook for comments on any Node
  *
  * @example
