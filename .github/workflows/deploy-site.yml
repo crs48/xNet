@@ -7,6 +7,8 @@ on:
       - 'site/**'
       - 'apps/web/**'
       - 'packages/**'
+      - '!packages/**/*.md'
+      - '!apps/web/*.md'
   workflow_dispatch:
 
 permissions:

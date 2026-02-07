@@ -7,6 +7,9 @@ on:
       - 'apps/electron/**'
       - 'packages/**'
       - 'pnpm-lock.yaml'
+      - '!*.md'
+      - '!**/*.md'
+      - '!docs/**'
   workflow_dispatch:
     inputs:
       release_type:
