@@ -316,29 +316,27 @@ flowchart TB
 | Cross-tab         | Complex locking    | File locking      |
 | SQLite Compatible | Hacks only         | Native support    |
 
-### Fallback Strategy
+### No Fallback Strategy
+
+We require OPFS support. No IndexedDB fallback.
 
 ```mermaid
 flowchart TD
     Start["Initialize Storage"]
-    CheckOPFS["Check OPFS Support"]
-    CheckWorker["Check Worker Support"]
+    CheckOPFS["Check OPFS + SharedArrayBuffer"]
 
-    UseOPFS["Use OPFS + SQLite-WASM<br/>Best durability"]
-    UseIDB["Use IndexedDB + SQLite-WASM<br/>Fallback"]
-    UseIDBOnly["Use IndexedDB only<br/>Legacy"]
+    UseOPFS["Use OPFS + SQLite-WASM"]
+    Unsupported["Show 'Unsupported Browser' message<br/>Recommend desktop app"]
 
     Start --> CheckOPFS
-    CheckOPFS -->|"Supported"| CheckWorker
-    CheckOPFS -->|"Not supported"| UseIDB
-    CheckWorker -->|"Supported"| UseOPFS
-    CheckWorker -->|"Not supported"| UseIDB
-    UseIDB -->|"WASM fails"| UseIDBOnly
+    CheckOPFS -->|"Supported"| UseOPFS
+    CheckOPFS -->|"Not supported"| Unsupported
 
     style UseOPFS fill:#4caf50,color:#fff
-    style UseIDB fill:#ff9800,color:#fff
-    style UseIDBOnly fill:#f44336,color:#fff
+    style Unsupported fill:#f44336,color:#fff
 ```
+
+**Rationale**: OPFS is supported in all modern browsers (Chrome 102+, Safari 15.2+, Firefox 111+) - all released 3+ years ago. Users on older browsers should use the Electron desktop app.
 
 ---
 
@@ -422,11 +420,7 @@ CREATE TABLE blobs (
     reference_count INTEGER DEFAULT 1
 );
 
--- Sync state
-CREATE TABLE sync_state (
-    key TEXT PRIMARY KEY,
-    value BLOB NOT NULL
-);
+-- Note: Sync state is stored as a node with SyncStateSchema, not a separate table
 
 -- ============================================
 -- Indexes
@@ -567,15 +561,11 @@ flowchart LR
   - [ ] Run in Web Worker (required for sync access)
   - [ ] Comlink wrapper for main thread
 
-- [ ] Feature detection & fallback
-  - [ ] Check OPFS support
+- [ ] Browser compatibility
+  - [ ] Check OPFS support on init
   - [ ] Check SharedArrayBuffer support
-  - [ ] Use `IDBBatchAtomicVFS` fallback when OPFS unavailable
-  - [ ] Warn users about durability on fallback
-
-- [ ] Replace IndexedDB
-  - [ ] Remove IndexedDB adapters
-  - [ ] Remove `idb` dependency
+  - [ ] Show "unsupported browser" message if missing (no fallback)
+  - [ ] Recommend desktop app for unsupported browsers
 
 - [ ] Browser-specific testing
   - [ ] Chrome (baseline)
@@ -623,10 +613,6 @@ flowchart TB
   - [ ] `@xnet/data` uses `@xnet/sqlite`
   - [ ] `@xnet/storage` uses `@xnet/sqlite`
   - [ ] `@xnet/hub` aligned schema
-
-- [ ] Cleanup
-  - [ ] Remove all IndexedDB adapters
-  - [ ] Remove `idb` dependency entirely
 
 - [ ] Documentation
   - [ ] Storage architecture docs
@@ -715,7 +701,7 @@ xychart-beta
 ### Considerations
 
 1. **Cold start**: WASM initialization adds ~100-200ms on first load
-2. **Memory**: SQLite uses more memory than IDB cursor iteration
+2. **Memory**: SQLite uses more memory for large result sets
 3. **Worker overhead**: Cross-thread communication adds latency
 4. **Batching**: Batch operations see the biggest improvements
 
@@ -725,14 +711,14 @@ xychart-beta
 
 ### Technical Risks
 
-| Risk                   | Probability | Impact | Mitigation                  |
-| ---------------------- | ----------- | ------ | --------------------------- |
-| WASM bundle size       | Low         | Medium | Lazy loading, CDN           |
-| Browser compatibility  | Medium      | High   | Feature detection, fallback |
-| Performance regression | Low         | Medium | Benchmarking                |
-| OPFS quota limits      | Low         | Medium | Monitor usage, warn users   |
+| Risk                   | Probability | Impact | Mitigation                                    |
+| ---------------------- | ----------- | ------ | --------------------------------------------- |
+| WASM bundle size       | Low         | Medium | Lazy loading, CDN                             |
+| Browser compatibility  | Low         | Medium | Require OPFS, show unsupported browser screen |
+| Performance regression | Low         | Medium | Benchmarking                                  |
+| OPFS quota limits      | Low         | Medium | Monitor usage, warn users                     |
 
-**Note**: No migration risks since this is prerelease - we simply drop existing IndexedDB data.
+**Note**: No fallback to IndexedDB. Unsupported browsers show a message recommending the desktop app.
 
 ---
 
