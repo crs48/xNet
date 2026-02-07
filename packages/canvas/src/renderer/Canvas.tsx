@@ -19,7 +19,7 @@ import { CommentOverlay } from '../comments/CommentOverlay'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
 import { createGridLayer, type GridLayer } from '../layers'
-import { CanvasNodeComponent } from '../nodes/CanvasNodeComponent'
+import { CanvasNodeComponent, calculateLOD } from '../nodes/CanvasNodeComponent'
 
 /** Minimal Awareness interface (avoids y-protocols dependency) */
 interface AwarenessLike {
@@ -491,6 +491,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   // PERF-01: Set of visible node IDs for fast edge culling lookup
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes])
 
+  // PERF-02: Calculate LOD (Level of Detail) based on zoom level
+  // This reduces DOM complexity at low zoom levels for better performance
+  const lod = useMemo(() => calculateLOD(viewport.zoom), [viewport.zoom])
+
   // PERF-01: Filter edges to only those with at least one visible endpoint
   const visibleEdges = useMemo(
     () =>
@@ -580,12 +584,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       </svg>
 
       {/* Nodes layer - PERF-01: Only render nodes visible in viewport */}
+      {/* PERF-02: LOD reduces detail at low zoom levels */}
       <div style={canvasLayerStyle}>
         {visibleNodes.map((node) => (
           <CanvasNodeComponent
             key={node.id}
             node={node}
             selected={selectedNodeIds.has(node.id)}
+            lod={lod}
             remoteUsers={nodePresence.get(node.id)}
             onSelect={handleNodeSelect}
             onDragStart={handleNodeDragStart}
@@ -593,7 +599,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
             onDragEnd={handleNodeDragEnd}
             onDoubleClick={handleNodeDoubleClick}
           >
-            {renderNode?.(node)}
+            {/* Only render custom content at full LOD for performance */}
+            {lod === 'full' ? renderNode?.(node) : undefined}
           </CanvasNodeComponent>
         ))}
       </div>
