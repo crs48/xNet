@@ -2,16 +2,17 @@
  * XNetProvider for Expo/React Native
  *
  * Provides xNet context with NativeBridge for data access.
- * Uses expo-sqlite for storage and expo-crypto for cryptographic operations.
+ * Uses @xnet/sqlite for unified SQLite storage.
  */
 
 import type { NodeState, DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
 import type { DataBridge, QueryOptions } from '@xnet/data-bridge'
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+import type { SQLiteAdapter } from '@xnet/sqlite'
+import { NodeStore, SQLiteNodeStorageAdapter } from '@xnet/data'
 import { createNativeBridge } from '@xnet/data-bridge'
+import { SCHEMA_VERSION, SCHEMA_DDL } from '@xnet/sqlite'
 import * as SecureStore from 'expo-secure-store'
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
-import { ExpoSQLiteAdapter } from '../storage/ExpoSQLiteAdapter'
 import 'react-native-get-random-values' // Polyfill crypto.getRandomValues
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -40,8 +41,8 @@ export interface XNetContextValue {
   authorDID: string | null
   /** Error during initialization */
   error: Error | null
-  /** Storage adapter for direct SQLite access */
-  storage: ExpoSQLiteAdapter | null
+  /** SQLite adapter for direct access */
+  sqliteAdapter: SQLiteAdapter | null
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -140,7 +141,7 @@ export interface XNetProviderProps {
 export function XNetProvider({ children, config = {} }: XNetProviderProps) {
   const [bridge, setBridge] = useState<DataBridge | null>(null)
   const [store, setStore] = useState<NodeStore | null>(null)
-  const [storage, setStorage] = useState<ExpoSQLiteAdapter | null>(null)
+  const [sqliteAdapter, setSqliteAdapter] = useState<SQLiteAdapter | null>(null)
   const [isReady, setIsReady] = useState(false)
   const [authorDID, setAuthorDID] = useState<string | null>(null)
   const [error, setError] = useState<Error | null>(null)
@@ -151,7 +152,7 @@ export function XNetProvider({ children, config = {} }: XNetProviderProps) {
   useEffect(() => {
     let mounted = true
     let cleanupBridge: DataBridge | null = null
-    let cleanupStorage: ExpoSQLiteAdapter | null = null
+    let cleanupAdapter: SQLiteAdapter | null = null
 
     async function init() {
       try {
@@ -167,30 +168,39 @@ export function XNetProvider({ children, config = {} }: XNetProviderProps) {
 
         if (debug) console.log('[XNetProvider] Identity loaded:', identity.did)
 
-        // Create SQLite storage adapter
-        const sqliteAdapter = new ExpoSQLiteAdapter(dbName)
-        await sqliteAdapter.open()
-        cleanupStorage = sqliteAdapter
+        // Dynamically import the Expo adapter to avoid bundling issues
+        const { ExpoSQLiteAdapter } = await import('@xnet/sqlite/expo')
+
+        // Create and open SQLite adapter
+        const adapter = new ExpoSQLiteAdapter()
+        await adapter.open({ path: dbName })
+        cleanupAdapter = adapter
+
+        // Apply unified schema
+        await adapter.applySchema(SCHEMA_VERSION, SCHEMA_DDL)
 
         if (!mounted) {
-          await sqliteAdapter.close()
+          await adapter.close()
           return
         }
 
-        if (debug) console.log('[XNetProvider] Storage opened')
+        if (debug) console.log('[XNetProvider] SQLite storage opened')
 
-        // Create NodeStore with memory adapter
-        // In the future, we'll integrate SQLite-backed adapter
+        // Create SQLiteNodeStorageAdapter
+        const nodeStorageAdapter = new SQLiteNodeStorageAdapter(adapter)
+        await nodeStorageAdapter.open()
+
+        // Create NodeStore
         const signingKey = fromHex(identity.signingKeyHex)
         const nodeStore = new NodeStore({
           authorDID: identity.did as `did:key:${string}`,
           signingKey,
-          storage: new MemoryNodeStorageAdapter()
+          storage: nodeStorageAdapter
         })
         await nodeStore.initialize()
 
         if (!mounted) {
-          await sqliteAdapter.close()
+          await adapter.close()
           return
         }
 
@@ -204,14 +214,14 @@ export function XNetProvider({ children, config = {} }: XNetProviderProps) {
 
         if (!mounted) {
           nativeBridge.destroy()
-          await sqliteAdapter.close()
+          await adapter.close()
           return
         }
 
         if (debug) console.log('[XNetProvider] NativeBridge created')
 
         // Update state
-        setStorage(sqliteAdapter)
+        setSqliteAdapter(adapter)
         setStore(nodeStore)
         setBridge(nativeBridge)
         setAuthorDID(identity.did)
@@ -233,8 +243,8 @@ export function XNetProvider({ children, config = {} }: XNetProviderProps) {
       if (cleanupBridge) {
         cleanupBridge.destroy()
       }
-      if (cleanupStorage) {
-        cleanupStorage.close().catch(console.error)
+      if (cleanupAdapter) {
+        cleanupAdapter.close().catch(console.error)
       }
     }
   }, [dbName, config.authorDID, config.signingKeyHex, debug])
@@ -247,9 +257,9 @@ export function XNetProvider({ children, config = {} }: XNetProviderProps) {
       isReady,
       authorDID,
       error,
-      storage
+      sqliteAdapter
     }),
-    [bridge, store, isReady, authorDID, error, storage]
+    [bridge, store, isReady, authorDID, error, sqliteAdapter]
   )
 
   return <XNetContext.Provider value={contextValue}>{children}</XNetContext.Provider>

@@ -220,6 +220,9 @@ importers:
       '@xnet/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@xnet/sqlite':
+        specifier: workspace:*
+        version: link:../../packages/sqlite
       '@xnet/storage':
         specifier: workspace:*
         version: link:../../packages/storage

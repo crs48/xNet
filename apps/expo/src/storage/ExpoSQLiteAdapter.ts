@@ -3,6 +3,9 @@
  *
  * Implements the @xnet/storage StorageAdapter interface using expo-sqlite.
  * This adapter runs SQLite operations on a native thread for better performance.
+ *
+ * @deprecated Use @xnet/sqlite/expo instead. This file will be removed
+ * after the SQLite migration is complete.
  */
 
 import type { ContentId, Snapshot, SignedUpdate } from '@xnet/core'
