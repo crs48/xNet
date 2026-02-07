@@ -795,21 +795,21 @@ describe('Integration: sign and verify', () => {
 
 ## Checklist
 
-- [ ] Implement `HybridKeyPair` type with all key components
-- [ ] Implement `generateHybridKeyPair()` with random generation
-- [ ] Implement `deriveHybridKeyPair()` with deterministic derivation
-- [ ] Implement `extractSigningKeys()` helper
-- [ ] Implement `extractPublicKeys()` helper
-- [ ] Implement `keyPairSecurityLevel()` helper
-- [ ] Implement `keyPairCanSignAt()` helper
-- [ ] Implement `keyPairSize()` calculator
-- [ ] Implement public key serialization/deserialization
-- [ ] Implement `publicKeysEqual()` with constant-time comparison
-- [ ] Test deterministic derivation produces same keys
-- [ ] Test integration with hybridSign/hybridVerify
-- [ ] Update package exports
-- [ ] Write unit tests (target: 30+ tests)
-- [ ] Verify ML-DSA/ML-KEM deterministic keygen works correctly
+- [x] Implement `HybridKeyPair` type with all key components
+- [x] Implement `generateHybridKeyPair()` with random generation
+- [x] Implement `deriveHybridKeyPair()` with deterministic derivation
+- [x] Implement `extractSigningKeys()` helper
+- [x] Implement `extractPublicKeys()` helper
+- [x] Implement `keyPairSecurityLevel()` helper
+- [x] Implement `keyPairCanSignAt()` helper
+- [x] Implement `keyPairSize()` calculator
+- [x] Implement public key serialization/deserialization
+- [x] Implement `publicKeysEqual()` with constant-time comparison
+- [x] Test deterministic derivation produces same keys
+- [x] Test integration with hybridSign/hybridVerify
+- [x] Update package exports
+- [x] Write unit tests (target: 30+ tests) - 41 tests implemented
+- [x] Verify ML-DSA/ML-KEM deterministic keygen works correctly
 
 ---
 
