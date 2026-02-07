@@ -121,14 +121,14 @@ Add post-quantum primitives to `@xnet/crypto`.
 | ---- | ---------------------------------------------------- | ----------------------------------------- | ------ |
 | 1.1  | [01-core-crypto-types.md](./01-core-crypto-types.md) | SecurityLevel type, UnifiedSignature type | [x]    |
 | 1.2  | [01-core-crypto-types.md](./01-core-crypto-types.md) | Add @noble/post-quantum dependency        | [x]    |
-| 1.3  | [02-hybrid-signing.md](./02-hybrid-signing.md)       | hybridSign() implementation               | [ ]    |
-| 1.4  | [02-hybrid-signing.md](./02-hybrid-signing.md)       | hybridVerify() implementation             | [ ]    |
+| 1.3  | [02-hybrid-signing.md](./02-hybrid-signing.md)       | hybridSign() implementation               | [x]    |
+| 1.4  | [02-hybrid-signing.md](./02-hybrid-signing.md)       | hybridVerify() implementation             | [x]    |
 
 **Validation Gate:**
 
-- [ ] Can sign at Level 0, 1, and 2
-- [ ] Can verify signatures at all levels
-- [ ] Level 1 requires both signatures to verify (strict mode)
+- [x] Can sign at Level 0, 1, and 2
+- [x] Can verify signatures at all levels
+- [x] Level 1 requires both signatures to verify (strict mode)
 - [ ] @noble/post-quantum works in Web, Electron, and Expo
 
 ### Phase 2: Key Generation (Steps 03-04)

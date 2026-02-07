@@ -115,3 +115,20 @@ export {
   HYBRID_PUBLIC_KEY_SIZE,
   HYBRID_PRIVATE_KEY_SIZE
 } from './constants'
+
+// Hybrid signing
+export type { HybridSigningKey, HybridPublicKey, VerifyBatchItem } from './hybrid-signing'
+export {
+  hybridSign,
+  hybridVerify,
+  hybridVerifyQuick,
+  requiredKeysForLevel,
+  canSignAtLevel,
+  canVerifyAtLevel,
+  maxSecurityLevel,
+  hybridSignBatch,
+  hybridVerifyBatch,
+  hybridVerifyBatchAsync,
+  hybridVerifyAll,
+  hybridVerifyAllAsync
+} from './hybrid-signing'
