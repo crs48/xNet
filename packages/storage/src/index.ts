@@ -9,7 +9,7 @@ export type { StorageAdapter, DocumentData, DocumentMetadata, StorageStats } fro
 export { IndexedDBAdapter } from './adapters/indexeddb'
 export { IndexedDBBatchAdapter, createIndexedDBBatchAdapter } from './adapters/indexeddb-batch'
 export { MemoryAdapter } from './adapters/memory'
-// export { SQLiteAdapter } from './adapters/sqlite' // Native only
+export { SQLiteStorageAdapter, createStorageAdapterFromSQLite } from './adapters/sqlite'
 
 // Batch utilities
 export { BatchWriter, createBatchWriter } from './adapters/batch-writer'

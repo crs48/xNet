@@ -19,6 +19,7 @@
   "dependencies": {
     "@xnet/core": "workspace:*",
     "@xnet/crypto": "workspace:*",
+    "@xnet/sqlite": "workspace:*",
     "idb": "^8.0.2",
     "pako": "^2.1.0"
   },
