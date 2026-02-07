@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@sqlite.org/sqlite-wasm": "3.51.2-build6",
     "@tanstack/react-router": "^1.57.0",
     "@xnet/canvas": "workspace:*",
     "@xnet/data": "workspace:*",
@@ -19,6 +20,7 @@
     "@xnet/plugins": "workspace:*",
     "@xnet/react": "workspace:*",
     "@xnet/sdk": "workspace:*",
+    "@xnet/sqlite": "workspace:*",
     "@xnet/storage": "workspace:*",
     "@xnet/sync": "workspace:*",
     "@xnet/ui": "workspace:*",

@@ -7,9 +7,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   base: '/app/',
   build: {
-    // Target older Safari/WebKit for Orion browser compatibility
-    // Safari 14 corresponds to WebKit 605.1.15
-    target: ['es2020', 'safari14']
+    // Target modern browsers for SQLite WASM + OPFS support
+    // Safari 16.4+ is required for OPFS
+    target: ['es2022', 'safari16.4', 'chrome102', 'firefox111']
   },
   resolve: {
     alias: {
@@ -17,12 +17,19 @@ export default defineConfig({
       '@xnet/react': path.resolve(__dirname, '../../packages/react/src')
     }
   },
+  optimizeDeps: {
+    // Exclude sqlite-wasm from pre-bundling as it needs special handling
+    exclude: ['@sqlite.org/sqlite-wasm']
+  },
+  worker: {
+    format: 'es'
+  },
   plugins: [
     TanStackRouterVite(),
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'icons/*.png'],
+      includeAssets: ['favicon.ico', 'icons/*.png', '**/*.wasm'],
       manifest: {
         name: 'xNet',
         short_name: 'xNet',
@@ -46,7 +53,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,wasm}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com/,

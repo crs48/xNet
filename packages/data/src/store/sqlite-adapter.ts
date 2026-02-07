@@ -229,9 +229,15 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   async setNode(node: NodeState): Promise<void> {
-    await this.db.transaction(async () => {
+    // Use manual transaction control for web proxy compatibility
+    await this.db.beginTransaction()
+    try {
       await this._setNodeInternal(node)
-    })
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
   }
 
   /**
@@ -444,29 +450,43 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Used for sync and restore operations.
    */
   async importNodes(nodes: NodeState[]): Promise<void> {
-    await this.db.transaction(async () => {
+    // Use manual transaction control for web proxy compatibility
+    await this.db.beginTransaction()
+    try {
       for (const node of nodes) {
         await this._setNodeInternal(node)
       }
-    })
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
   }
 
   /**
    * Import multiple changes in a single transaction.
    */
   async importChanges(changes: NodeChange[]): Promise<void> {
-    await this.db.transaction(async () => {
+    // Use manual transaction control for web proxy compatibility
+    await this.db.beginTransaction()
+    try {
       for (const change of changes) {
         await this.appendChange(change)
       }
-    })
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
   }
 
   /**
    * Clear all data (for testing or reset).
    */
   async clear(): Promise<void> {
-    await this.db.transaction(async () => {
+    // Use manual transaction control for web proxy compatibility
+    await this.db.beginTransaction()
+    try {
       await this.db.run('DELETE FROM yjs_snapshots')
       await this.db.run('DELETE FROM yjs_updates')
       await this.db.run('DELETE FROM yjs_state')
@@ -474,7 +494,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       await this.db.run('DELETE FROM node_properties')
       await this.db.run('DELETE FROM nodes')
       await this.db.run("DELETE FROM sync_state WHERE key = 'lastLamportTime'")
-    })
+      await this.db.commit()
+    } catch (err) {
+      await this.db.rollback()
+      throw err
+    }
   }
 
   // ─── Private Helpers ──────────────────────────────────────────────────────

@@ -272,6 +272,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@sqlite.org/sqlite-wasm':
+        specifier: 3.51.2-build6
+        version: 3.51.2-build6
       '@tanstack/react-router':
         specifier: ^1.57.0
         version: 1.153.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -299,6 +302,9 @@ importers:
       '@xnet/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      '@xnet/sqlite':
+        specifier: workspace:*
+        version: link:../../packages/sqlite
       '@xnet/storage':
         specifier: workspace:*
         version: link:../../packages/storage
