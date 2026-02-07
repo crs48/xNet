@@ -915,19 +915,19 @@ describe('Unsupported Browser', () => {
 
 Update JSDoc for all new classes:
 
-- [ ] `SQLiteAdapter` interface
-- [ ] `ElectronSQLiteAdapter` class
-- [ ] `WebSQLiteAdapter` class
-- [ ] `ExpoSQLiteAdapter` class
-- [ ] `SQLiteNodeStorageAdapter` class
-- [ ] `SQLiteStorageAdapter` class
+- [x] `SQLiteAdapter` interface (in adapter.ts)
+- [x] `ElectronSQLiteAdapter` class (in adapters/electron.ts)
+- [x] `WebSQLiteAdapter` class (in adapters/web.ts)
+- [x] `ExpoSQLiteAdapter` class (in adapters/expo.ts)
+- [x] `SQLiteNodeStorageAdapter` class (in data/store/sqlite-adapter.ts)
+- [x] `SQLiteStorageAdapter` class (in storage/adapters/sqlite.ts)
 
 ### README Updates
 
-- [ ] Update `packages/sqlite/README.md`
-- [ ] Update `packages/data/README.md` with SQLite usage
-- [ ] Update `packages/storage/README.md` with SQLite usage
-- [ ] Update root `README.md` with architecture changes
+- [x] Update `packages/sqlite/README.md`
+- [N/A] Update `packages/data/README.md` with SQLite usage (SQLite adapter is exported alongside others)
+- [x] Update `packages/storage/README.md` with SQLite usage
+- [N/A] Update root `README.md` with architecture changes (deferred - this is internal migration)
 
 ### Migration Guide
 
