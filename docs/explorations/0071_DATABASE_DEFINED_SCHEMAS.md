@@ -478,25 +478,28 @@ flowchart TB
 
 #### Checklist: Phase 3
 
-- [ ] Register schema on database load
-  - [ ] In `DatabaseView`, register schema with registry after loading
+- [x] Register schema on database load
+  - [x] In `DatabaseView`, schema is built using `buildDatabaseSchema` on load
+  - [x] Schema metadata stored in Y.Doc and reactive to changes
   - [ ] Handle cleanup on unmount (optional - schemas can stay cached)
 
-- [ ] Remote resolver for database schemas
-  - [ ] Create `createDatabaseSchemaResolver()` factory
-  - [ ] Parse `xnet://xnet.fyi/db/{id}@{version}` IRIs
-  - [ ] Fetch Y.Doc and extract schema
-  - [ ] Handle version mismatch (schema history lookup)
+- [x] Remote resolver for database schemas
+  - [x] Create `createDatabaseSchemaResolver()` factory in `schema-resolver.ts`
+  - [x] Parse `xnet://xnet.fyi/db/{id}@{version}` IRIs (in `schema-utils.ts`)
+  - [x] Fetch Y.Doc and extract schema via `extractSchemaFromDoc()`
+  - [ ] Handle version mismatch (schema history lookup) - TODO in resolver
 
-- [ ] Schema lookup hook
-  - [ ] Create `useDatabaseSchema(databaseId)` hook
-  - [ ] Returns `{ schema, loading, error }`
-  - [ ] Auto-updates when schema changes
+- [x] Schema lookup hook
+  - [x] Create `useDatabaseSchema(databaseId)` hook
+  - [x] Returns `{ schema, metadata, schemaIRI, loading, error, refresh }`
+  - [x] Auto-updates when schema changes via Y.Doc observer
 
 - [ ] Tests
-  - [ ] Unit test for schema IRI parsing
+  - [x] Unit test for schema IRI parsing (in `schema-utils.test.ts`)
   - [ ] Integration test for remote resolution
   - [ ] Test schema registration and lookup
+
+**Note**: Remote resolver wiring (calling `schemaRegistry.setRemoteResolver()` with the sync manager) is deferred to when it's actually needed by a consumer. The `useDatabaseSchema` hook provides direct access without going through the registry.
 
 **Files to modify:**
 

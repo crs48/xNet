@@ -370,3 +370,12 @@ export {
   type SchemaVersionEntry,
   type VersionBumpType
 } from './schema-utils'
+
+// Schema resolver for database-defined schemas
+export {
+  createDatabaseSchemaResolver,
+  extractSchemaFromDoc,
+  getSchemaIRIFromDoc,
+  type DocFetcher,
+  type CreateDatabaseSchemaResolverOptions
+} from './schema-resolver'

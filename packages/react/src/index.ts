@@ -186,6 +186,17 @@ export {
 } from './hooks/useReverseRelations'
 
 /**
+ * useDatabaseSchema - Hook for database-defined schema access
+ *
+ * @example
+ * ```tsx
+ * const { schema, metadata, loading } = useDatabaseSchema(databaseId)
+ * console.log(metadata?.version) // "1.2.0"
+ * ```
+ */
+export { useDatabaseSchema, type UseDatabaseSchemaResult } from './hooks/useDatabaseSchema'
+
+/**
  * useComments - Universal hook for comments on any Node
  *
  * @example

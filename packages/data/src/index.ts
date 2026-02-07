@@ -424,7 +424,14 @@ export {
   type DatabaseSchemaMetadata,
   type StoredColumn,
   type SchemaVersionEntry,
-  type VersionBumpType
+  type VersionBumpType,
+
+  // Schema resolver for database-defined schemas
+  createDatabaseSchemaResolver,
+  extractSchemaFromDoc,
+  getSchemaIRIFromDoc,
+  type DocFetcher,
+  type CreateDatabaseSchemaResolverOptions
 } from './database'
 
 // Re-export Yjs for convenience
