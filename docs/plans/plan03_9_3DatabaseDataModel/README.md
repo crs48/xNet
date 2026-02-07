@@ -228,12 +228,12 @@ flowchart LR
 
 **Phase 1 Validation Gate:**
 
-- [ ] DatabaseRow nodes created with per-row identity
-- [ ] Cell edits are per-property LWW (no whole-row conflicts)
-- [ ] Row reordering uses fractional indexing
-- [ ] Columns stored in Y.Doc with CRDT ordering
-- [ ] useDatabase returns paginated rows with mutations
-- [ ] Unit tests pass for row CRUD and ordering
+- [x] DatabaseRow nodes created with per-row identity
+- [x] Cell edits are per-property LWW (no whole-row conflicts)
+- [x] Row reordering uses fractional indexing
+- [x] Columns stored in Y.Doc with CRDT ordering
+- [x] useDatabase returns paginated rows with mutations
+- [x] Unit tests pass for row CRUD and ordering
 
 ### Phase 2: View System (Weeks 4-6)
 
@@ -252,12 +252,12 @@ flowchart LR
 
 **Phase 2 Validation Gate:**
 
-- [ ] All 6 view types render correctly
-- [ ] Filters work for all column types
-- [ ] Multi-column sorting works
-- [ ] Group-by shows collapsible groups with aggregates
-- [ ] VirtualizedTable handles 100K rows smoothly
-- [ ] View configs persist in Y.Doc
+- [x] All 6 view types render correctly
+- [x] Filters work for all column types
+- [x] Multi-column sorting works
+- [x] Group-by shows collapsible groups with aggregates
+- [ ] VirtualizedTable handles 100K rows smoothly (Y-axis done, X-axis TODO)
+- [x] View configs persist in Y.Doc
 
 ### Phase 3: Hub Integration (Weeks 7-9)
 
