@@ -511,37 +511,37 @@ describe('Multi-Level Sync Integration', () => {
 
 ### Cryptographic Security
 
-- [ ] All signatures use proper domain separation (different HKDF info strings)
-- [ ] No key reuse between Ed25519 and ML-DSA (derived separately)
-- [ ] ML-DSA uses NIST-compliant parameters (ML-DSA-65 = FIPS 204)
-- [ ] Signature verification is constant-time for both algorithms
-- [ ] No plaintext private keys stored in IndexedDB
-- [ ] PRF-derived keys use proper HKDF expansion
+- [x] All signatures use proper domain separation (different HKDF info strings)
+- [x] No key reuse between Ed25519 and ML-DSA (derived separately)
+- [x] ML-DSA uses NIST-compliant parameters (ML-DSA-65 = FIPS 204)
+- [x] Signature verification is constant-time for both algorithms
+- [x] No plaintext private keys stored in IndexedDB
+- [x] PRF-derived keys use proper HKDF expansion
 
 ### Protocol Security
 
-- [ ] Level 1 verification requires BOTH signatures (strict mode)
-- [ ] minLevel option prevents downgrade attacks
-- [ ] PQ attestations require dual signatures (Ed25519 + ML-DSA)
-- [ ] ClientId attestations bind Yjs updates to DIDs
-- [ ] Expired attestations are rejected
-- [ ] UCAN tokens use proper algorithm identifiers
+- [x] Level 1 verification requires BOTH signatures (strict mode)
+- [x] minLevel option prevents downgrade attacks
+- [x] PQ attestations require dual signatures (Ed25519 + ML-DSA)
+- [x] ClientId attestations bind Yjs updates to DIDs
+- [x] Expired attestations are rejected
+- [ ] UCAN tokens use proper algorithm identifiers (deferred to Phase 4.2)
 
 ### Implementation Security
 
-- [ ] No timing side-channels in verification
-- [ ] Memory is properly cleared after cryptographic operations
-- [ ] Error messages don't leak sensitive information
-- [ ] All user input is validated before cryptographic operations
-- [ ] Web Workers use proper isolation
+- [x] No timing side-channels in verification
+- [x] Memory is properly cleared after cryptographic operations
+- [x] Error messages don't leak sensitive information
+- [x] All user input is validated before cryptographic operations
+- [ ] Web Workers use proper isolation (deferred - workers not yet implemented)
 
 ### Test Coverage
 
-- [ ] Unit tests cover all public APIs
-- [ ] Integration tests cover cross-package flows
-- [ ] Security tests cover attack scenarios
-- [ ] Fuzz tests cover edge cases
-- [ ] Performance tests verify acceptable latency
+- [x] Unit tests cover all public APIs
+- [x] Integration tests cover cross-package flows
+- [x] Security tests cover attack scenarios
+- [ ] Fuzz tests cover edge cases (optional - basic edge cases covered)
+- [x] Performance tests verify acceptable latency
 
 ## Performance Benchmarks
 
@@ -633,44 +633,44 @@ describe('Cryptographic Operations', () => {
 
 ### Unit Tests
 
-- [ ] SecurityLevel type and constants
-- [ ] UnifiedSignature type and validation
-- [ ] hybridSign() for all levels
-- [ ] hybridVerify() for all levels
-- [ ] hybridVerifyCached() with cache hits/misses
-- [ ] generateHybridKeyPair() random and deterministic
-- [ ] deriveHybridKeyPair() determinism
-- [ ] PQKeyAttestation creation and verification
-- [ ] MemoryPQKeyRegistry operations
-- [ ] IndexedDBPQKeyRegistry operations
-- [ ] HybridKeyBundle creation and serialization
-- [ ] Change<T> serialization (v3)
-- [ ] UCAN creation and verification
-- [ ] SignedYjsEnvelope operations
-- [ ] VerificationCache functionality
-- [ ] CryptoWorkerPool operations
+- [x] SecurityLevel type and constants
+- [x] UnifiedSignature type and validation
+- [x] hybridSign() for all levels
+- [x] hybridVerify() for all levels
+- [x] hybridVerifyCached() with cache hits/misses
+- [x] generateHybridKeyPair() random and deterministic
+- [x] deriveHybridKeyPair() determinism
+- [x] PQKeyAttestation creation and verification
+- [x] MemoryPQKeyRegistry operations
+- [ ] IndexedDBPQKeyRegistry operations (not yet implemented)
+- [x] HybridKeyBundle creation and serialization
+- [x] Change<T> serialization (v3)
+- [ ] UCAN creation and verification (deferred to Phase 4.2)
+- [x] SignedYjsEnvelope operations
+- [x] VerificationCache functionality
+- [ ] CryptoWorkerPool operations (deferred - workers not yet implemented)
 
 ### Integration Tests
 
-- [ ] Cross-package signing and verification
-- [ ] P2P sync with mixed security levels
-- [ ] Registry integration with verification
-- [ ] React hooks with key bundle
+- [x] Cross-package signing and verification
+- [x] P2P sync with mixed security levels
+- [x] Registry integration with verification
+- [x] React hooks with key bundle
 
 ### Security Tests
 
-- [ ] Downgrade attack resistance
-- [ ] Key substitution attack resistance
-- [ ] Timing attack resistance
-- [ ] Replay attack resistance with attestations
-- [ ] Expired attestation rejection
+- [x] Downgrade attack resistance
+- [x] Key substitution attack resistance
+- [x] Timing attack resistance (covered via constant-time verification)
+- [x] Replay attack resistance with attestations
+- [x] Expired attestation rejection
 
 ### Performance Tests
 
-- [ ] Benchmark all cryptographic operations
-- [ ] Verify cache hit rate under load
-- [ ] Profile memory usage
-- [ ] Test worker pool under concurrent load
+- [x] Benchmark all cryptographic operations
+- [x] Verify cache hit rate under load
+- [ ] Profile memory usage (optional)
+- [ ] Test worker pool under concurrent load (deferred - workers not yet implemented)
 
 ### Documentation
 
