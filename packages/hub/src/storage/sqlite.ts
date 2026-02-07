@@ -504,6 +504,24 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
 
   db.exec(SCHEMA_SQL)
 
+  // ─── Migrations ────────────────────────────────────────
+  // Add missing columns to node_changes table (added in later versions)
+  const tableInfo = db.prepare('PRAGMA table_info(node_changes)').all() as { name: string }[]
+  const existingColumns = new Set(tableInfo.map((col) => col.name))
+
+  if (!existingColumns.has('protocol_version')) {
+    db.exec('ALTER TABLE node_changes ADD COLUMN protocol_version INTEGER')
+  }
+  if (!existingColumns.has('batch_id')) {
+    db.exec('ALTER TABLE node_changes ADD COLUMN batch_id TEXT')
+  }
+  if (!existingColumns.has('batch_index')) {
+    db.exec('ALTER TABLE node_changes ADD COLUMN batch_index INTEGER')
+  }
+  if (!existingColumns.has('batch_size')) {
+    db.exec('ALTER TABLE node_changes ADD COLUMN batch_size INTEGER')
+  }
+
   const stmts = {
     getDocState: db.prepare('SELECT state FROM doc_state WHERE doc_id = ?'),
     getStateVector: db.prepare('SELECT state_vector FROM doc_state WHERE doc_id = ?'),
