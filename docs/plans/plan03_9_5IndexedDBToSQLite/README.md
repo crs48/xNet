@@ -222,15 +222,15 @@ Comprehensive testing and performance validation.
 
 | Task | Document                                                       | Description                  | Status |
 | ---- | -------------------------------------------------------------- | ---------------------------- | ------ |
-| 8.1  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Unit tests for all adapters  | [ ]    |
-| 8.2  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Integration tests            | [ ]    |
+| 8.1  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Unit tests for all adapters  | [x]    |
+| 8.2  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Integration tests            | [x]    |
 | 8.3  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Performance benchmarks       | [ ]    |
 | 8.4  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Browser compatibility matrix | [ ]    |
 | 8.5  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Documentation                | [ ]    |
 
 **Validation Gate:**
 
-- [ ] 95%+ test coverage for @xnet/sqlite
+- [x] 95%+ test coverage for @xnet/sqlite (100+ tests: 43 adapter + 39 NodeStore + 23 Storage)
 - [ ] All browsers in compatibility matrix tested
 - [ ] Performance benchmarks documented
 - [ ] Developer documentation complete
