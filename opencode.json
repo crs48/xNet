@@ -28,13 +28,26 @@
         "tmp/playwright"
       ],
       "enabled": true
+    },
+    "playwright-web": {
+      "type": "local",
+      "command": [
+        "pnpm",
+        "dlx",
+        "@playwright/mcp@latest",
+        "--browser",
+        "chromium",
+        "--output-dir",
+        "tmp/playwright"
+      ],
+      "enabled": true
     }
   },
   "command": {
     "do": {
-      "temperature": 0.4,
-      "template": "Implement $ARGUMENTS and if you've already started keep going. CHECK OFF CHECKLISTS in all these md files including the readme as you implement features. COMMIT REGULARLY as you work. do not forget. remind yourself regularly of this exact prompt. just KEEP WORKING until ALL checklists in these md files are complete and ALL tests pass and ALL work is commited. when you compact, put this ENTIRE prompt in your context VERBATIM. REMEMBER THIS PROMPT. Complete ALL tasks across ALL of these markdown files before pausing for user input or summarizing your work. This is CRITICAL. Do not defer any tasks or mark them as N/A. Do them all and do them in order.",
-      "description": "Implement a md plan in a file or folder. e.g. /do @docs/plans/plan01MVP/",
+      "temperature": 0.35,
+      "template": "You are an expert autonomous implementation agent. Your mission: Fully implement the plan located at $ARGUMENTS (a markdown file or folder containing plans/checklists, e.g. @docs/plans/plan01MVP/). Follow these strict rules:\n\n1. Read ALL markdown files in the target (and subfolders if directory).\n2. For each file (in logical order): process every checklist/task sequentially.\n3. For each unchecked [ ] item:\n   - Understand the task completely.\n   - Implement it fully (code, tests, docs, etc.).\n   - Handle dependencies, fix errors autonomously.\n   - Run relevant tests if mentioned in plan.\n   - Mark item as [x] in the original file.\n   - Commit with clear message (e.g. 'feat: implement user login flow from plan01MVP/task3').\n4. Continue until EVERY checklist in EVERY file is 100% complete, ALL tests pass, and all changes are committed.\n5. Do NOT pause, summarize, ask questions, or defer ANY task. Complete everything before stopping.\n6. Every ~5–8 steps, remind yourself of this full prompt in your thinking.\n7. When compacting memory/context, include this ENTIRE prompt verbatim.\n8. Final output ONLY: one-line summary like 'All tasks completed across all plans, tests passing, changes committed.'",
+      "description": "Autonomously implement markdown-based plans/checklists in full. e.g. /do @docs/plans/plan01MVP/",
       "agent": "build"
     }
   },
@@ -56,12 +69,27 @@
     "code-reviewer": {
       "description": "Reviews code after autonomous runs",
       "mode": "subagent",
-      "prompt": "Review code for security, performance, and best practices. Output suggestions only.",
+      "prompt": "Review code for security, performance, correctness, maintainability, and best practices. Output concise suggestions only. Do not implement changes.",
       "tools": {
         "write": false,
         "edit": false,
         "bash": false
       }
+    },
+    "build": {
+      "description": "Primary autonomous builder agent for implementing full plans. Uses appropriate Playwright MCP depending on target (Electron vs Web).",
+      "mode": "primary",
+      "temperature": 0.35,
+      "tools": {
+        "read": true,
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "grep": true,
+        "glob": true,
+        "mcp": true
+      },
+      "prompt": "You are the main build agent. When a task involves browser/UI automation:\n- For Electron desktop apps → use playwright-electron MCP (connects via CDP endpoint; app must be running with remote debugging).\n- For web/browser apps → use playwright-web MCP (launches fresh browser automatically).\nAlways read the MCP 'description' and 'usage_notes' fields first to choose correctly.\nFollow the do command template precisely. Commit often. Test thoroughly. Complete every task."
     }
   }
 }

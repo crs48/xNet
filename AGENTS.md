@@ -157,9 +157,15 @@ describe('ModuleName', () => {
 })
 ```
 
-## Playwright MCP (Browser Automation)
+# Playwright MCP Usage Guide
 
-Debug the Electron app at `http://localhost:5177` when dev server is running (`cd apps/electron && pnpm dev`).
+- **playwright-electron**: Connects to existing Electron/Chromium instance via CDP.
+  Launch Electron first with: --remote-debugging-port=9223
+  Use when: Automating desktop Electron apps.
+
+- **playwright-web**: Auto-launches a new browser (default Chromium).
+  Use when: Web apps, websites.
+  Do NOT add --cdp-endpoint.
 
 ### Key tools
 
