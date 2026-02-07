@@ -405,7 +405,26 @@ export {
   getTotalFromGroups,
   type QueryableRow,
   type QueryOptions,
-  type QueryResult
+  type QueryResult,
+
+  // Schema utilities for database-defined schemas
+  buildSchemaIRI,
+  parseDatabaseSchemaIRI,
+  isDatabaseSchemaIRI,
+  parseVersion,
+  bumpSchemaVersion,
+  createInitialSchemaMetadata,
+  buildDatabaseSchema,
+  createVersionEntry,
+  pruneVersionHistory,
+  getVersionBumpType,
+  DATABASE_SCHEMA_NAMESPACE,
+  DATABASE_SCHEMA_PREFIX,
+  MAX_VERSION_HISTORY,
+  type DatabaseSchemaMetadata,
+  type StoredColumn,
+  type SchemaVersionEntry,
+  type VersionBumpType
 } from './database'
 
 // Re-export Yjs for convenience
