@@ -12,6 +12,7 @@ import { fileHandler } from './file.js'
 import { multiSelectHandler } from './multiSelect.js'
 import { numberHandler } from './number.js'
 import { phoneHandler } from './phone.js'
+import { relationHandler } from './relation.js'
 import { selectHandler } from './select.js'
 import { textHandler } from './text.js'
 import { urlHandler } from './url.js'
@@ -35,9 +36,10 @@ const builtinHandlers: Partial<Record<PropertyType, PropertyHandler<any>>> = {
   email: emailHandler,
   phone: phoneHandler,
   file: fileHandler,
+  // Relation type
+  relation: relationHandler,
   // String-based types use textHandler
   person: textHandler,
-  relation: textHandler,
   // Auto properties - read-only
   created: dateHandler,
   updated: dateHandler,
@@ -153,5 +155,6 @@ export {
   urlHandler,
   emailHandler,
   phoneHandler,
-  fileHandler
+  fileHandler,
+  relationHandler
 }

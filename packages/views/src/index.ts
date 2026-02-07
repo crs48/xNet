@@ -65,7 +65,8 @@ export {
   multiSelectHandler,
   urlHandler,
   emailHandler,
-  phoneHandler
+  phoneHandler,
+  relationHandler
 } from './properties/index.js'
 
 // Table view
@@ -186,3 +187,13 @@ export { CommentIndicator, type CommentIndicatorProps } from './components/index
 
 // Filter builder
 export { FilterBuilder, type FilterBuilderProps } from './filter/index.js'
+
+// Relations
+export {
+  RelationCell,
+  RowPickerModal,
+  ReverseRelationsPanel,
+  type RelationCellProps,
+  type RowPickerModalProps,
+  type ReverseRelationsPanelProps
+} from './relations/index.js'

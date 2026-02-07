@@ -438,6 +438,500 @@ export function Seed() {
     }
   }
 
+  /**
+   * Create two related databases: Projects and Tasks
+   * - Projects has: name, status, priority, owner, tasks (relation to Tasks), budget, deadline
+   * - Tasks has: title, status, priority, assignee, project (relation to Projects), due date, estimated hours, completed
+   * - Rollup: Project shows task count and total estimated hours
+   * - Formula: Tasks show days until due
+   */
+  const createRelatedDatabases = async () => {
+    if (!store) {
+      setStatus('Error: Store not connected')
+      return
+    }
+
+    setIsCreating(true)
+    setStatus('Creating related databases (Projects + Tasks)...')
+
+    try {
+      const now = Date.now()
+      const DAY = 86400000
+
+      // ─── Create Projects Database ─────────────────────────────────────
+      const projectsDb = await store.create({
+        schemaId: 'xnet://xnet.fyi/Database',
+        properties: {
+          title: 'Projects',
+          icon: '📁',
+          defaultView: 'table'
+        }
+      })
+
+      // ─── Create Tasks Database ────────────────────────────────────────
+      const tasksDb = await store.create({
+        schemaId: 'xnet://xnet.fyi/Database',
+        properties: {
+          title: 'Tasks',
+          icon: '✅',
+          defaultView: 'table'
+        }
+      })
+
+      // Pre-generate IDs for rows
+      const projectIds = [generateId(), generateId(), generateId()]
+      const taskIds = [
+        generateId(),
+        generateId(),
+        generateId(),
+        generateId(),
+        generateId(),
+        generateId(),
+        generateId(),
+        generateId()
+      ]
+
+      // ─── Setup Projects Y.Doc ─────────────────────────────────────────
+      const projectsYdoc = new Y.Doc({ guid: projectsDb.id, gc: false })
+
+      projectsYdoc.transact(() => {
+        const dataMap = projectsYdoc.getMap('data')
+
+        const columns = [
+          { id: 'name', name: 'Project Name', type: 'text', isTitle: true },
+          {
+            id: 'status',
+            name: 'Status',
+            type: 'select',
+            config: {
+              options: [
+                { id: 'planning', name: 'Planning', color: 'gray' },
+                { id: 'active', name: 'Active', color: 'blue' },
+                { id: 'on_hold', name: 'On Hold', color: 'yellow' },
+                { id: 'completed', name: 'Completed', color: 'green' }
+              ]
+            }
+          },
+          {
+            id: 'priority',
+            name: 'Priority',
+            type: 'select',
+            config: {
+              options: [
+                { id: 'low', name: 'Low', color: 'gray' },
+                { id: 'medium', name: 'Medium', color: 'yellow' },
+                { id: 'high', name: 'High', color: 'orange' },
+                { id: 'critical', name: 'Critical', color: 'red' }
+              ]
+            }
+          },
+          { id: 'owner', name: 'Owner', type: 'person' },
+          {
+            id: 'tasks',
+            name: 'Tasks',
+            type: 'relation',
+            config: { targetDatabase: tasksDb.id, allowMultiple: true }
+          },
+          {
+            id: 'taskCount',
+            name: 'Task Count',
+            type: 'rollup',
+            config: { relationColumn: 'tasks', targetColumn: 'title', aggregation: 'count' }
+          },
+          {
+            id: 'totalHours',
+            name: 'Total Hours',
+            type: 'rollup',
+            config: { relationColumn: 'tasks', targetColumn: 'estimatedHours', aggregation: 'sum' }
+          },
+          {
+            id: 'budget',
+            name: 'Budget',
+            type: 'number',
+            config: { format: 'currency', currency: 'USD' }
+          },
+          { id: 'deadline', name: 'Deadline', type: 'date' },
+          {
+            id: 'tags',
+            name: 'Tags',
+            type: 'multiSelect',
+            config: {
+              options: [
+                { id: 'frontend', name: 'Frontend', color: 'blue' },
+                { id: 'backend', name: 'Backend', color: 'green' },
+                { id: 'design', name: 'Design', color: 'purple' },
+                { id: 'devops', name: 'DevOps', color: 'orange' }
+              ]
+            }
+          },
+          { id: 'created', name: 'Created', type: 'created' },
+          { id: 'updated', name: 'Updated', type: 'updated' }
+        ]
+
+        dataMap.set('columns', columns)
+
+        const rows = [
+          {
+            id: projectIds[0],
+            name: 'Website Redesign',
+            status: 'active',
+            priority: 'high',
+            owner: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+            tasks: [taskIds[0], taskIds[1], taskIds[2]],
+            budget: 50000,
+            deadline: '2025-03-31',
+            tags: ['frontend', 'design'],
+            created: now - DAY * 30,
+            updated: now
+          },
+          {
+            id: projectIds[1],
+            name: 'API Migration',
+            status: 'active',
+            priority: 'critical',
+            owner: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
+            tasks: [taskIds[3], taskIds[4], taskIds[5]],
+            budget: 75000,
+            deadline: '2025-02-28',
+            tags: ['backend', 'devops'],
+            created: now - DAY * 45,
+            updated: now - DAY * 2
+          },
+          {
+            id: projectIds[2],
+            name: 'Mobile App v2',
+            status: 'planning',
+            priority: 'medium',
+            owner: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+            tasks: [taskIds[6], taskIds[7]],
+            budget: 120000,
+            deadline: '2025-06-30',
+            tags: ['frontend', 'backend', 'design'],
+            created: now - DAY * 7,
+            updated: now - DAY * 1
+          }
+        ]
+
+        dataMap.set('rows', rows)
+
+        // Views
+        const columnIds = columns.map((c) => c.id)
+        dataMap.set('tableView', {
+          id: 'default-table',
+          name: 'All Projects',
+          type: 'table',
+          visibleProperties: columnIds,
+          propertyWidths: { name: 200, status: 120, priority: 120, tasks: 150, budget: 120 },
+          sorts: [{ propertyId: 'priority', direction: 'desc' }]
+        })
+
+        dataMap.set('boardView', {
+          id: 'board-by-status',
+          name: 'By Status',
+          type: 'board',
+          visibleProperties: ['name', 'priority', 'owner', 'deadline'],
+          groupByProperty: 'status'
+        })
+
+        // Meta
+        const metaMap = projectsYdoc.getMap('meta')
+        metaMap.set('_schemaId', 'xnet://xnet.fyi/Database')
+        metaMap.set('title', 'Projects')
+        metaMap.set('icon', '📁')
+      })
+
+      // Save Projects doc
+      await store.setDocumentContent(projectsDb.id, Y.encodeStateAsUpdate(projectsYdoc))
+      if (documentHistory) await documentHistory.forceCapture(projectsDb.id, projectsYdoc)
+      yDocRegistry.register(projectsDb.id, projectsYdoc)
+
+      // ─── Setup Tasks Y.Doc ────────────────────────────────────────────
+      const tasksYdoc = new Y.Doc({ guid: tasksDb.id, gc: false })
+
+      tasksYdoc.transact(() => {
+        const dataMap = tasksYdoc.getMap('data')
+
+        const columns = [
+          { id: 'title', name: 'Task', type: 'text', isTitle: true },
+          {
+            id: 'status',
+            name: 'Status',
+            type: 'select',
+            config: {
+              options: [
+                { id: 'todo', name: 'To Do', color: 'gray' },
+                { id: 'in_progress', name: 'In Progress', color: 'blue' },
+                { id: 'review', name: 'In Review', color: 'purple' },
+                { id: 'done', name: 'Done', color: 'green' }
+              ]
+            }
+          },
+          {
+            id: 'priority',
+            name: 'Priority',
+            type: 'select',
+            config: {
+              options: [
+                { id: 'low', name: 'Low', color: 'gray' },
+                { id: 'medium', name: 'Medium', color: 'yellow' },
+                { id: 'high', name: 'High', color: 'orange' },
+                { id: 'urgent', name: 'Urgent', color: 'red' }
+              ]
+            }
+          },
+          { id: 'assignee', name: 'Assignee', type: 'person' },
+          {
+            id: 'project',
+            name: 'Project',
+            type: 'relation',
+            config: { targetDatabase: projectsDb.id, allowMultiple: false }
+          },
+          { id: 'dueDate', name: 'Due Date', type: 'date' },
+          {
+            id: 'estimatedHours',
+            name: 'Est. Hours',
+            type: 'number',
+            config: { format: 'number', precision: 1 }
+          },
+          { id: 'completed', name: 'Completed', type: 'checkbox' },
+          {
+            id: 'labels',
+            name: 'Labels',
+            type: 'multiSelect',
+            config: {
+              options: [
+                { id: 'bug', name: 'Bug', color: 'red' },
+                { id: 'feature', name: 'Feature', color: 'blue' },
+                { id: 'docs', name: 'Docs', color: 'gray' },
+                { id: 'refactor', name: 'Refactor', color: 'purple' },
+                { id: 'testing', name: 'Testing', color: 'green' }
+              ]
+            }
+          },
+          { id: 'url', name: 'Link', type: 'url' },
+          { id: 'created', name: 'Created', type: 'created' },
+          { id: 'updated', name: 'Updated', type: 'updated' }
+        ]
+
+        dataMap.set('columns', columns)
+
+        const rows = [
+          // Website Redesign tasks
+          {
+            id: taskIds[0],
+            title: 'Design new homepage mockups',
+            status: 'done',
+            priority: 'high',
+            assignee: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+            project: [projectIds[0]],
+            dueDate: '2025-02-01',
+            estimatedHours: 16,
+            completed: true,
+            labels: ['feature', 'docs'],
+            url: 'https://figma.com/file/abc123',
+            created: now - DAY * 28,
+            updated: now - DAY * 5
+          },
+          {
+            id: taskIds[1],
+            title: 'Implement responsive navigation',
+            status: 'in_progress',
+            priority: 'high',
+            assignee: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
+            project: [projectIds[0]],
+            dueDate: '2025-02-15',
+            estimatedHours: 24,
+            completed: false,
+            labels: ['feature'],
+            url: '',
+            created: now - DAY * 20,
+            updated: now - DAY * 1
+          },
+          {
+            id: taskIds[2],
+            title: 'Fix mobile menu animation bug',
+            status: 'todo',
+            priority: 'medium',
+            assignee: '',
+            project: [projectIds[0]],
+            dueDate: '2025-02-20',
+            estimatedHours: 4,
+            completed: false,
+            labels: ['bug'],
+            url: 'https://github.com/issues/456',
+            created: now - DAY * 10,
+            updated: now - DAY * 10
+          },
+          // API Migration tasks
+          {
+            id: taskIds[3],
+            title: 'Document existing API endpoints',
+            status: 'done',
+            priority: 'high',
+            assignee: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
+            project: [projectIds[1]],
+            dueDate: '2025-01-15',
+            estimatedHours: 20,
+            completed: true,
+            labels: ['docs'],
+            url: '',
+            created: now - DAY * 40,
+            updated: now - DAY * 25
+          },
+          {
+            id: taskIds[4],
+            title: 'Setup new GraphQL schema',
+            status: 'in_progress',
+            priority: 'urgent',
+            assignee: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
+            project: [projectIds[1]],
+            dueDate: '2025-02-10',
+            estimatedHours: 40,
+            completed: false,
+            labels: ['feature', 'refactor'],
+            url: '',
+            created: now - DAY * 30,
+            updated: now
+          },
+          {
+            id: taskIds[5],
+            title: 'Write migration tests',
+            status: 'review',
+            priority: 'high',
+            assignee: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+            project: [projectIds[1]],
+            dueDate: '2025-02-12',
+            estimatedHours: 16,
+            completed: false,
+            labels: ['testing'],
+            url: '',
+            created: now - DAY * 15,
+            updated: now - DAY * 2
+          },
+          // Mobile App v2 tasks
+          {
+            id: taskIds[6],
+            title: 'Research competitor apps',
+            status: 'in_progress',
+            priority: 'medium',
+            assignee: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
+            project: [projectIds[2]],
+            dueDate: '2025-02-28',
+            estimatedHours: 12,
+            completed: false,
+            labels: ['docs'],
+            url: '',
+            created: now - DAY * 5,
+            updated: now - DAY * 1
+          },
+          {
+            id: taskIds[7],
+            title: 'Create wireframes',
+            status: 'todo',
+            priority: 'low',
+            assignee: '',
+            project: [projectIds[2]],
+            dueDate: '2025-03-15',
+            estimatedHours: 20,
+            completed: false,
+            labels: ['feature'],
+            url: '',
+            created: now - DAY * 3,
+            updated: now - DAY * 3
+          }
+        ]
+
+        dataMap.set('rows', rows)
+
+        // Views
+        const columnIds = columns.map((c) => c.id)
+        dataMap.set('tableView', {
+          id: 'default-table',
+          name: 'All Tasks',
+          type: 'table',
+          visibleProperties: columnIds,
+          propertyWidths: {
+            title: 250,
+            status: 120,
+            priority: 100,
+            assignee: 150,
+            project: 150,
+            dueDate: 120
+          },
+          sorts: [{ propertyId: 'dueDate', direction: 'asc' }]
+        })
+
+        dataMap.set('boardView', {
+          id: 'board-by-status',
+          name: 'Kanban',
+          type: 'board',
+          visibleProperties: ['title', 'priority', 'assignee', 'dueDate', 'labels'],
+          groupByProperty: 'status'
+        })
+
+        dataMap.set('calendarView', {
+          id: 'calendar-due',
+          name: 'Calendar',
+          type: 'calendar',
+          visibleProperties: ['title', 'status', 'priority'],
+          dateProperty: 'dueDate'
+        })
+
+        // Meta
+        const metaMap = tasksYdoc.getMap('meta')
+        metaMap.set('_schemaId', 'xnet://xnet.fyi/Database')
+        metaMap.set('title', 'Tasks')
+        metaMap.set('icon', '✅')
+      })
+
+      // Save Tasks doc
+      await store.setDocumentContent(tasksDb.id, Y.encodeStateAsUpdate(tasksYdoc))
+      if (documentHistory) await documentHistory.forceCapture(tasksDb.id, tasksYdoc)
+      yDocRegistry.register(tasksDb.id, tasksYdoc)
+
+      // ─── Create comments ──────────────────────────────────────────────
+      const commentSchemaId = 'xnet://xnet.fyi/Comment' as const
+      const dbSchemaId = 'xnet://xnet.fyi/Database'
+
+      // Comment on Projects database
+      await store.create({
+        schemaId: commentSchemaId,
+        properties: {
+          target: projectsDb.id,
+          targetSchema: dbSchemaId,
+          anchorType: 'cell',
+          anchorData: JSON.stringify({ rowId: projectIds[1], propertyKey: 'priority' }),
+          content: 'This migration is blocking other work - keep it critical priority.',
+          resolved: false,
+          edited: false
+        }
+      })
+
+      // Comment on Tasks database
+      await store.create({
+        schemaId: commentSchemaId,
+        properties: {
+          target: tasksDb.id,
+          targetSchema: dbSchemaId,
+          anchorType: 'row',
+          anchorData: JSON.stringify({ rowId: taskIds[4] }),
+          content: 'Need help with the resolver patterns here. Can we pair on this?',
+          resolved: false,
+          edited: false
+        }
+      })
+
+      setStatus(
+        `Created: Projects (${projectsDb.id.slice(0, 8)}...) with ${projectIds.length} projects, ` +
+          `Tasks (${tasksDb.id.slice(0, 8)}...) with ${taskIds.length} tasks - fully linked via relations!`
+      )
+    } catch (err) {
+      setStatus(`Error: ${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setIsCreating(false)
+    }
+  }
+
   const createSampleDatabase = async () => {
     if (!store) {
       setStatus('Error: Store not connected')
@@ -832,6 +1326,21 @@ export function Seed() {
         >
           Create Sample Database
         </button>
+
+        <button
+          onClick={createRelatedDatabases}
+          disabled={!store || isCreating}
+          className={`
+            px-4 py-2 text-xs font-medium rounded
+            ${
+              store && !isCreating
+                ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'
+            }
+          `}
+        >
+          Create Projects + Tasks
+        </button>
       </div>
 
       {!store && (
@@ -860,6 +1369,13 @@ export function Seed() {
             <strong>Sample Database:</strong> 15 columns covering all property types with 5 rows,
             comments (cell thread with reply, row comment, resolved column comment), and change
             history (6 changes: create + title/view/icon updates).
+          </div>
+          <div>
+            <strong>Projects + Tasks:</strong> Two linked databases demonstrating relations.
+            Projects has 3 rows with status, priority, budget, tags, and links to Tasks. Tasks has 8
+            rows with status, priority, assignee, due dates, labels, and links back to Projects.
+            Includes rollup columns (task count, total hours), table/board/calendar views, and
+            comments.
           </div>
         </div>
       </div>
