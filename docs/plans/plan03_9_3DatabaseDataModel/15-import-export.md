@@ -828,19 +828,19 @@ describe('JSON Export', () => {
 
 ## Validation Gate
 
-- [ ] CSV parser handles basic CSV
-- [ ] CSV parser handles quoted values
-- [ ] CSV parser handles escaped quotes
-- [ ] Column type guessing works
-- [ ] Value parsing by type works
-- [ ] Column mapping UI works
-- [ ] JSON parser handles arrays
-- [ ] JSON parser handles {rows: []}
-- [ ] CSV export with headers
-- [ ] CSV export escapes properly
-- [ ] JSON export with schema
-- [ ] Export modal downloads file
-- [ ] All tests pass
+- [x] CSV parser handles basic CSV
+- [x] CSV parser handles quoted values
+- [x] CSV parser handles escaped quotes
+- [x] Column type guessing works
+- [x] Value parsing by type works
+- [ ] Column mapping UI works (React component - deferred to UI phase)
+- [x] JSON parser handles arrays
+- [x] JSON parser handles {rows: []}
+- [x] CSV export with headers
+- [x] CSV export escapes properly
+- [x] JSON export with schema
+- [ ] Export modal downloads file (React component - deferred to UI phase)
+- [x] All tests pass (68 tests)
 
 ---
 

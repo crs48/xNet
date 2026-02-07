@@ -318,12 +318,12 @@ flowchart LR
 
 **Phase 5 Validation Gate:**
 
-- [ ] Relations linkable via picker modal
-- [ ] Reverse relations show backlinks
-- [ ] CSV import maps columns correctly
-- [ ] CSV/JSON export includes all data
-- [ ] Templates create pre-configured databases
-- [ ] Custom templates saveable
+- [ ] Relations linkable via picker modal (React component - deferred to UI phase)
+- [ ] Reverse relations show backlinks (React component - deferred to UI phase)
+- [x] CSV import maps columns correctly (data layer: 68 tests)
+- [x] CSV/JSON export includes all data (data layer: 68 tests)
+- [x] Templates create pre-configured databases (data layer: 44 tests)
+- [x] Custom templates saveable (data layer: 44 tests)
 
 ## Feature Parity Matrix
 

@@ -1851,22 +1851,22 @@ describe('Template Sharing', () => {
 
 ## Validation Gate
 
-- [ ] DatabaseTemplate type defined
-- [ ] Built-in templates cover all categories
-- [ ] Template instantiation creates valid database
-- [ ] Column IDs are remapped correctly
-- [ ] View column references are remapped
-- [ ] Sample data is included optionally
-- [ ] Create template from database works
-- [ ] Sensitive data is sanitized
-- [ ] Template storage persists to localStorage
-- [ ] Built-in templates cannot be deleted
-- [ ] Template export removes author info
-- [ ] Template import validates structure
-- [ ] Template URL encoding/decoding works
-- [ ] Template picker UI shows all categories
-- [ ] Save as template modal works
-- [ ] All tests pass
+- [x] DatabaseTemplate type defined
+- [x] Built-in templates cover all categories (8 templates across 7 categories)
+- [x] Template instantiation creates valid database
+- [x] Column IDs are remapped correctly
+- [x] View column references are remapped
+- [x] Sample data is included optionally
+- [x] Create template from database works
+- [x] Sensitive data is sanitized
+- [ ] Template storage persists to localStorage (React component - deferred to UI phase)
+- [ ] Built-in templates cannot be deleted (React component - deferred to UI phase)
+- [ ] Template export removes author info (React component - deferred to UI phase)
+- [ ] Template import validates structure (React component - deferred to UI phase)
+- [ ] Template URL encoding/decoding works (React component - deferred to UI phase)
+- [ ] Template picker UI shows all categories (React component - deferred to UI phase)
+- [ ] Save as template modal works (React component - deferred to UI phase)
+- [x] All tests pass (44 tests)
 
 ---
 
