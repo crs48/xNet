@@ -708,19 +708,19 @@ describe('SecurityProvider without PQ keys', () => {
 
 ## Checklist
 
-- [ ] Implement `SecurityContext` with state and actions
-- [ ] Implement `SecurityProvider` component
-- [ ] Implement `useSecurityContext()` hook
-- [ ] Implement `useSecurity()` hook with sign/verify
-- [ ] Add level override option to useSecurity
-- [ ] Implement `canSignAt()` capability check
-- [ ] Integrate security into `XNetProvider`
-- [ ] Create `SecurityPanel` for DevTools
-- [ ] Update `useMutate` to use security context
-- [ ] Add security level to DevTools panel
-- [ ] Update package exports
-- [ ] Write unit tests (target: 20+ tests)
-- [ ] Write integration tests with XNetProvider
+- [x] Implement `SecurityContext` with state and actions
+- [x] Implement `SecurityProvider` component
+- [x] Implement `useSecurityContext()` hook
+- [x] Implement `useSecurity()` hook with sign/verify
+- [x] Add level override option to useSecurity
+- [x] Implement `canSignAt()` capability check
+- [x] Integrate security into `XNetProvider`
+- [x] Create `SecurityPanel` for DevTools
+- [ ] Update `useMutate` to use security context (deferred - NodeStore already handles signing)
+- [x] Add security level to DevTools panel
+- [x] Update package exports
+- [x] Write unit tests (target: 20+ tests) - 21 tests written
+- [x] Write integration tests with XNetProvider
 
 ---
 

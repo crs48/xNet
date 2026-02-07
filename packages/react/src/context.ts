@@ -7,8 +7,9 @@
 import type { BlobStoreForSync } from './sync/blob-sync'
 import type { ConnectionManager } from './sync/connection-manager'
 import type { DID } from '@xnet/core'
+import type { SecurityLevel } from '@xnet/crypto'
 import type { NodeChangeEvent, NodeStorageAdapter } from '@xnet/data'
-import type { Identity } from '@xnet/identity'
+import type { Identity, PQKeyRegistry, HybridKeyBundle } from '@xnet/identity'
 import type { ReactNode } from 'react'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnet/data'
 import { createMainThreadBridge, MainThreadBridge, type DataBridge } from '@xnet/data-bridge'
@@ -23,6 +24,7 @@ import React, {
   useRef,
   useState
 } from 'react'
+import { SecurityProvider } from './context/security-context'
 import { PluginRegistryContext } from './hooks/usePlugins'
 import { AutoBackup } from './hub/auto-backup'
 import { uploadBackup } from './hub/backup'
@@ -114,6 +116,35 @@ export interface XNetConfig {
    * ```
    */
   dataBridge?: DataBridge
+  /**
+   * Security configuration for multi-level cryptography.
+   */
+  security?: {
+    /** Default security level for new signatures (default: 0 for Ed25519-only) */
+    level?: SecurityLevel
+    /** Minimum acceptable level for verification (default: 0) */
+    minVerificationLevel?: SecurityLevel
+    /** Verification policy (default: 'strict') */
+    verificationPolicy?: 'strict' | 'permissive'
+    /** Custom PQ key registry */
+    registry?: PQKeyRegistry
+  }
+  /**
+   * Hybrid key bundle for multi-level cryptography.
+   *
+   * When provided, enables signing at higher security levels (1, 2).
+   * The bundle includes Ed25519 keys and optionally ML-DSA (post-quantum) keys.
+   *
+   * @example
+   * ```tsx
+   * const bundle = createKeyBundle({ includePQ: true })
+   *
+   * <XNetProvider config={{ keyBundle: bundle, ... }}>
+   *   <App />
+   * </XNetProvider>
+   * ```
+   */
+  keyBundle?: HybridKeyBundle
 }
 
 /**
@@ -622,6 +653,16 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   if (dataBridge) {
     content = React.createElement(DataBridgeContext.Provider, { value: dataBridge }, content)
   }
+
+  // Wrap with SecurityProvider for multi-level crypto support
+  content = React.createElement(SecurityProvider, {
+    level: config.security?.level,
+    minVerificationLevel: config.security?.minVerificationLevel,
+    verificationPolicy: config.security?.verificationPolicy,
+    registry: config.security?.registry,
+    keyBundle: config.keyBundle,
+    children: content
+  })
 
   return React.createElement(XNetContext.Provider, { value }, content)
 }
