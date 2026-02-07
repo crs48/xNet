@@ -6,10 +6,10 @@
  */
 import type { NetworkNode, SyncMessage } from '../types'
 import type { XDocument } from '@xnet/data'
-import type { SignedYjsEnvelope } from '@xnet/sync'
+import type { SignedYjsEnvelopeV1 } from '@xnet/sync'
 import { encode, decode } from '@msgpack/msgpack'
 import { getDocumentState, getStateVector } from '@xnet/data'
-import { verifyYjsEnvelope } from '@xnet/sync'
+import { verifyYjsEnvelopeV1 } from '@xnet/sync'
 import * as lp from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
 import * as Y from 'yjs'
@@ -46,7 +46,7 @@ export interface SyncProtocol {
  */
 interface SyncMessageV2 extends SyncMessage {
   /** Signed envelope containing the update (NW-01) */
-  envelope?: SignedYjsEnvelope
+  envelope?: SignedYjsEnvelopeV1
 }
 
 /**
@@ -138,7 +138,7 @@ export function createSyncProtocol(
           if (msg.type === 'sync-response') {
             // NW-01: Verify signed envelope if present
             if (msg.envelope) {
-              const result = verifyYjsEnvelope(msg.envelope)
+              const result = verifyYjsEnvelopeV1(msg.envelope)
               if (!result.valid) {
                 onVerificationFailed?.(result.reason || 'unknown', msg.sender, msg.docId)
                 if (requireSignedEnvelopes) {

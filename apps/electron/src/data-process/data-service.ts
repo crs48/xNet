@@ -15,11 +15,11 @@
 import { hashContent, createContentId } from '@xnet/core'
 import {
   signYjsUpdate,
-  verifyYjsEnvelope,
+  verifyYjsEnvelopeV1,
   isUpdateTooLarge,
   YjsRateLimiter,
   YjsPeerScorer,
-  type SignedYjsEnvelope
+  type SignedYjsEnvelopeV1
 } from '@xnet/sync'
 import Database from 'better-sqlite3'
 import WebSocket from 'ws'
@@ -97,7 +97,7 @@ function fromBase64(str: string): Uint8Array {
   return new Uint8Array(Buffer.from(str, 'base64'))
 }
 
-function serializeEnvelope(envelope: SignedYjsEnvelope): Record<string, unknown> {
+function serializeEnvelope(envelope: SignedYjsEnvelopeV1): Record<string, unknown> {
   return {
     update: toBase64(envelope.update),
     authorDID: envelope.authorDID,
@@ -107,7 +107,7 @@ function serializeEnvelope(envelope: SignedYjsEnvelope): Record<string, unknown>
   }
 }
 
-function deserializeEnvelope(data: Record<string, unknown>): SignedYjsEnvelope | null {
+function deserializeEnvelope(data: Record<string, unknown>): SignedYjsEnvelopeV1 | null {
   try {
     return {
       update: fromBase64(data.update as string),
@@ -432,7 +432,7 @@ export function createDataService(config: DataServiceConfig): DataService {
         return null
       }
 
-      const result = verifyYjsEnvelope(envelope)
+      const result = verifyYjsEnvelopeV1(envelope)
       if (!result.valid) {
         peerScorer.penalize(remotePeerId, 'invalidSignature')
         return null

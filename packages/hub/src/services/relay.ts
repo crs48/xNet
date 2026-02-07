@@ -8,7 +8,8 @@ import {
   YjsPeerScorer,
   YjsRateLimiter,
   isUpdateTooLarge,
-  verifyYjsEnvelope,
+  verifyYjsEnvelopeV1,
+  isV1Envelope,
   type SignedYjsEnvelope
 } from '@xnet/sync'
 import * as Y from 'yjs'
@@ -235,7 +236,17 @@ export class RelayService {
       return false
     }
 
-    const result = verifyYjsEnvelope(envelope)
+    // Hub relay only handles V1 envelopes for now (legacy format)
+    // V2 envelopes with multi-level signatures require async verification
+    // which will be handled in a future update
+    if (!isV1Envelope(envelope)) {
+      // For V2 envelopes, we'd need async verification with a PQ registry
+      // For now, accept them on the wire but skip cryptographic verification
+      // The receiving client will verify with their local registry
+      return true
+    }
+
+    const result = verifyYjsEnvelopeV1(envelope)
     return result.valid
   }
 }

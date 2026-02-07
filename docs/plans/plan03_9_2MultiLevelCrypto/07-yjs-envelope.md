@@ -653,22 +653,22 @@ describe('ClientIdAttestation', () => {
 
 ## Checklist
 
-- [ ] Define `SignedYjsEnvelope` type with UnifiedSignature
-- [ ] Define `SignedYjsEnvelopeWire` wire format
-- [ ] Implement `signYjsUpdate()` with multi-level signing
-- [ ] Implement `signYjsUpdateBatch()` for batch operations
-- [ ] Implement `verifyYjsEnvelope()` with registry lookup
-- [ ] Implement `verifyYjsEnvelopeQuick()` convenience function
-- [ ] Implement `serializeYjsEnvelope()` / `deserializeYjsEnvelope()`
-- [ ] Implement `envelopeSize()` calculator
-- [ ] Implement `ClientIdAttestation` type
-- [ ] Implement `createClientIdAttestation()`
-- [ ] Implement `verifyClientIdAttestation()`
-- [ ] Add document ID validation option
-- [ ] Add freshness (maxAge) validation option
-- [ ] Update package exports
-- [ ] Write unit tests (target: 25+ tests)
-- [ ] Test with real Yjs documents
+- [x] Define `SignedYjsEnvelope` type with UnifiedSignature
+- [x] Define `SignedYjsEnvelopeWire` wire format
+- [x] Implement `signYjsUpdate()` with multi-level signing
+- [x] Implement `signYjsUpdateBatch()` for batch operations
+- [x] Implement `verifyYjsEnvelope()` with registry lookup
+- [x] Implement `verifyYjsEnvelopeQuick()` convenience function
+- [x] Implement `serializeYjsEnvelope()` / `deserializeYjsEnvelope()`
+- [x] Implement `envelopeSize()` calculator
+- [x] Implement `ClientIdAttestation` type (V2 with multi-level)
+- [x] Implement `createClientIdAttestation()` (unified API)
+- [x] Implement `verifyClientIdAttestation()` (unified API)
+- [x] Add document ID validation option
+- [x] Add freshness (maxAge) validation option
+- [x] Update package exports
+- [x] Write unit tests (47 tests in yjs-envelope.test.ts)
+- [ ] Test with real Yjs documents (deferred to integration testing)
 
 ---
 
