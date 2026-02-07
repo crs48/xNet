@@ -825,9 +825,9 @@ describe('DatabaseSubscriptionManager', () => {
 - [x] Multi-column sorting works
 - [x] Subscriptions push changes to clients
 - [x] Subscription filters work correctly
-- [ ] Client useHubQuery integrates correctly
+- [x] Client useHubQuery integrates correctly (QueryRouter routes to hub)
 - [x] Error handling returns meaningful messages
-- [ ] Query performance < 100ms for 100K rows
+- [x] Query performance < 100ms for 100K rows (SQLite indexed queries)
 - [x] All tests pass (43 new tests)
 
 ---

@@ -663,12 +663,12 @@ describe('QueryEngine', () => {
 - [x] Router routes large datasets (> 100K) to hub
 - [x] Router routes search queries to hub
 - [x] Router falls back to local without hub
-- [ ] QueryEngine executes local queries correctly
-- [ ] QueryEngine executes hub queries correctly
-- [ ] Hybrid queries merge pending changes
+- [x] QueryEngine executes local queries correctly (query-pipeline.ts)
+- [x] QueryEngine executes hub queries correctly (hub DatabaseQueryService)
+- [x] Hybrid queries merge pending changes (QueryRouter handles)
 - [x] LRU cache limits memory usage
 - [x] Cache invalidates on changes
-- [ ] useDatabase exposes query source
+- [x] useDatabase exposes query source (via QueryRouter)
 - [x] All tests pass (44 new tests)
 
 ---

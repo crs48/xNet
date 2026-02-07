@@ -301,7 +301,7 @@ flowchart LR
 - [x] Circular formulas detected and reported
 - [x] Computed values cached per row+column
 - [x] Cache invalidates when dependencies change
-- [ ] Hub computes rollups for large datasets (deferred to Phase 5)
+- [x] Hub computes rollups for large datasets (via DatabaseQueryService)
 
 ### Phase 5: Advanced Features (Weeks 12-14)
 

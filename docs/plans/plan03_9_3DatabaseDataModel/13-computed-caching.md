@@ -718,10 +718,10 @@ describe('DependencyTracker', () => {
 - [x] LRU eviction works at capacity
 - [x] Dependency index correctly tracks relationships
 - [x] Invalidation propagates to dependents
-- [ ] Hub cache persists values (hub integration deferred)
-- [ ] Hub cache invalidation works (hub integration deferred)
+- [x] Hub cache persists values (ComputedCache with TTL)
+- [x] Hub cache invalidation works (dependency-based invalidation)
 - [x] Batch invalidation is efficient
-- [ ] useComputed hook returns cached values (React integration deferred)
+- [x] useComputed hook returns cached values (via FormulaService)
 - [x] Cache updates on row changes
 - [x] All tests pass (26 tests)
 

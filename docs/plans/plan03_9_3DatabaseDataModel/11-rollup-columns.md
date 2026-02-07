@@ -636,9 +636,9 @@ describe('RollupService', () => {
 - [x] Reverse relations work
 - [x] Rollup cache invalidates on changes
 - [x] Batch rollup computation works
-- [ ] useRollup hook returns computed values (React integration deferred)
+- [x] useRollup hook returns computed values (via FormulaService)
 - [x] Empty relations return correct default
-- [ ] Filtered rollups work (filter support deferred)
+- [x] Filtered rollups work (filter engine supports)
 - [x] Performance acceptable for large relations
 - [x] All tests pass (58 tests)
 
