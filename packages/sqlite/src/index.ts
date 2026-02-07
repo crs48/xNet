@@ -27,6 +27,32 @@ export {
   escapeLike
 } from './query-builder'
 
+// FTS5 helpers
+export {
+  updateNodeFTS,
+  deleteNodeFTS,
+  searchNodes,
+  rebuildFTS,
+  optimizeFTS,
+  extractTextFromTipTap,
+  extractSearchableContent
+} from './fts'
+export type { FTSSearchResult, FTSSearchOptions } from './fts'
+
+// Diagnostics
+export {
+  getIndexInfo,
+  analyzeQuery,
+  analyzeTable,
+  getAllTableStats,
+  getDatabaseStats,
+  runAnalyze,
+  checkIntegrity,
+  explainQuery,
+  timeQuery
+} from './diagnostics'
+export type { IndexInfo, TableStats, QueryPlanStep, DatabaseStats } from './diagnostics'
+
 // Browser support detection
 export { checkBrowserSupport, showUnsupportedBrowserMessage } from './browser-support'
 export type { BrowserSupport } from './browser-support'

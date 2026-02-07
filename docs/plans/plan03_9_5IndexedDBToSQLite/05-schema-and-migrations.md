@@ -858,11 +858,11 @@ describe('Migrations', () => {
 
 ### FTS Implementation
 
-- [ ] Create `fts.ts` with updateNodeFTS
-- [ ] Create searchNodes function
-- [ ] Create rebuildFTS function
-- [ ] Handle TipTap JSON content extraction
-- [ ] Add FTS tests
+- [x] Create `fts.ts` with updateNodeFTS
+- [x] Create searchNodes function
+- [x] Create rebuildFTS function
+- [x] Handle TipTap JSON content extraction
+- [ ] Add FTS tests (FTS5 not supported in sql.js)
 
 ### Migration System
 
@@ -874,10 +874,10 @@ describe('Migrations', () => {
 
 ### Diagnostics
 
-- [ ] Create `diagnostics.ts`
-- [ ] Implement getIndexInfo
-- [ ] Implement analyzeTable
-- [ ] Implement explainQuery
+- [x] Create `diagnostics.ts`
+- [x] Implement getIndexInfo
+- [x] Implement analyzeTable
+- [x] Implement explainQuery
 
 ### Tests
 
