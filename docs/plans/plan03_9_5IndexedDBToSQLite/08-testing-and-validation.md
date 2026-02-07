@@ -927,7 +927,7 @@ Update JSDoc for all new classes:
 ### README Updates
 
 - [x] Update `packages/sqlite/README.md`
-- [ ] Update `packages/data/README.md` with SQLite usage
+- [x] Update `packages/data/README.md` with SQLite usage
 - [x] Update `packages/storage/README.md` with SQLite usage
 - [x] Update root `README.md` with architecture changes (internal migration - no user-facing changes needed)
 
