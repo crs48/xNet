@@ -1,6 +1,7 @@
 # xNet
 
 [![CI](https://github.com/crs48/xNet/actions/workflows/ci.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/ci.yml)
+[![npm: @xnet/react](https://img.shields.io/npm/v/@xnet/react?label=%40xnet%2Freact&logo=npm)](https://www.npmjs.com/package/@xnet/react)
 [![Electron Release](https://github.com/crs48/xNet/actions/workflows/electron-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/electron-release.yml)
 [![Hub Release](https://github.com/crs48/xNet/actions/workflows/hub-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/hub-release.yml)
 [![Demo Hub](https://img.shields.io/endpoint?url=https%3A%2F%2Fhub.xnet.fyi%2Fhealth%2Fbadge&logo=railway&logoColor=white)](https://hub.xnet.fyi/health)
@@ -11,7 +12,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-monorepo-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
 [![Turborepo](https://img.shields.io/badge/Turborepo-powered-EF4444?logo=turborepo&logoColor=white)](https://turbo.build/)
-[![npm: @xnet/react](https://img.shields.io/npm/v/@xnet/react?label=%40xnet%2Freact&logo=npm)](https://www.npmjs.com/package/@xnet/react)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/crs48/xNet/pulls)
 
 Decentralized data infrastructure and application. Local-first, P2P-synced, user-owned data.
