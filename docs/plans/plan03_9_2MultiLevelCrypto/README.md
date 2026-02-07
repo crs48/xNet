@@ -171,17 +171,17 @@ Update sync formats for multi-level signatures.
 
 | Task | Document                                   | Description                                 | Status |
 | ---- | ------------------------------------------ | ------------------------------------------- | ------ |
-| 4.1  | [06-wire-format.md](./06-wire-format.md)   | ChangeWire v3 with multi-level sig          | [ ]    |
+| 4.1  | [06-wire-format.md](./06-wire-format.md)   | ChangeWire v3 with multi-level sig          | [x]    |
 | 4.2  | [06-wire-format.md](./06-wire-format.md)   | UCAN token hybrid signature format          | [ ]    |
 | 4.3  | [07-yjs-envelope.md](./07-yjs-envelope.md) | SignedYjsEnvelope with multi-level sig      | [ ]    |
 | 4.4  | [07-yjs-envelope.md](./07-yjs-envelope.md) | Update signYjsUpdate(), verifyYjsEnvelope() | [ ]    |
 
 **Validation Gate:**
 
-- [ ] Change serialization includes multi-level signature
+- [x] Change serialization includes multi-level signature
 - [ ] UCAN tokens use hybrid signatures by default
 - [ ] Yjs envelopes verify at configurable security levels
-- [ ] Old v2 format no longer supported (clean break)
+- [ ] V2/V1 format still supported for backward compat (V3 is default)
 
 ### Phase 5: React Integration (Step 08)
 

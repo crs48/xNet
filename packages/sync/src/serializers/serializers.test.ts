@@ -3,6 +3,7 @@
  */
 import type { Change } from '../change'
 import type { DID } from '@xnet/core'
+import type { UnifiedSignature } from '@xnet/crypto'
 import { generateKeyPair } from '@xnet/crypto'
 import { describe, it, expect } from 'vitest'
 import { signChange, createUnsignedChange } from '../change'
@@ -11,6 +12,8 @@ import {
   v1Serializer,
   V2Serializer,
   v2Serializer,
+  v3Serializer,
+  V3Serializer,
   serializerRegistry,
   getSerializer,
   getDefaultSerializer,
@@ -96,6 +99,7 @@ describe('serializers', () => {
 
     it('should detect v1 format', () => {
       const change = createTestChange({ test: true })
+      change.protocolVersion = 1 // V1 expects protocolVersion 1 or undefined
       const serialized = v1Serializer.serialize(change)
 
       expect(v1Serializer.canDeserialize(serialized)).toBe(true)
@@ -203,6 +207,7 @@ describe('serializers', () => {
 
     it('should auto-detect v1 format', () => {
       const change = createTestChange({ test: 'v1' })
+      change.protocolVersion = 1 // V1 format
       const serialized = v1Serializer.serialize(change)
 
       const detected = serializerRegistry.detect(serialized)
@@ -212,6 +217,7 @@ describe('serializers', () => {
 
     it('should auto-detect v2 format', () => {
       const change = createTestChange({ test: 'v2' })
+      change.protocolVersion = 2 // V2 format
       const serialized = v2Serializer.serialize(change)
 
       const detected = serializerRegistry.detect(serialized)
@@ -241,13 +247,14 @@ describe('serializers', () => {
     it('should return default serializer', () => {
       const serializer = getDefaultSerializer()
       expect(serializer).toBeDefined()
-      expect([1, 2]).toContain(serializer.version)
+      expect([1, 2, 3]).toContain(serializer.version)
     })
   })
 
   describe('autoDeserialize', () => {
     it('should auto-detect and deserialize v1 format', () => {
       const change = createTestChange({ format: 'v1' })
+      change.protocolVersion = 1 // V1 format expects protocolVersion 1 or undefined
       const serialized = v1Serializer.serialize(change)
 
       const result = autoDeserialize(serialized)
@@ -259,6 +266,7 @@ describe('serializers', () => {
 
     it('should auto-detect and deserialize v2 format', () => {
       const change = createTestChange({ format: 'v2' })
+      change.protocolVersion = 2 // V2 format expects protocolVersion 2
       const serialized = v2Serializer.serialize(change)
 
       const result = autoDeserialize(serialized)
@@ -311,6 +319,7 @@ describe('serializers', () => {
   describe('round-trip compatibility', () => {
     it('should serialize v1 and deserialize with auto-detect', () => {
       const original = createTestChange({ round: 'trip1' })
+      original.protocolVersion = 1 // V1 format
       const serialized = v1Serializer.serialize(original)
       const result = autoDeserialize(serialized)
 
@@ -322,6 +331,7 @@ describe('serializers', () => {
 
     it('should serialize v2 and deserialize with auto-detect', () => {
       const original = createTestChange({ round: 'trip2' })
+      original.protocolVersion = 2 // V2 format
       const serialized = v2Serializer.serialize(original)
       const result = autoDeserialize(serialized)
 
@@ -329,6 +339,166 @@ describe('serializers', () => {
       if (result.success) {
         expect(result.change.payload).toEqual(original.payload)
       }
+    })
+
+    it('should serialize v3 and deserialize with auto-detect', () => {
+      const original = createTestChange({ round: 'trip3' })
+      // V3 with UnifiedSignature is the default
+      const serialized = v3Serializer.serialize(original)
+      const result = autoDeserialize(serialized)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.change.payload).toEqual(original.payload)
+      }
+    })
+  })
+
+  describe('V3Serializer', () => {
+    it('should serialize and deserialize Level 0 signature', () => {
+      const change = createTestChange({ level: 0 })
+      // Change has legacy Uint8Array signature, which V3 converts to Level 0
+
+      const serialized = v3Serializer.serialize(change)
+      const wire = serialized as Record<string, unknown>
+
+      expect(wire.v).toBe(3)
+      expect(wire.sig).toBeDefined()
+      const sig = wire.sig as { l: number; e?: string; p?: string }
+      expect(sig.l).toBe(0)
+      expect(sig.e).toBeDefined() // Ed25519 signature present
+      expect(sig.p).toBeUndefined() // No ML-DSA signature
+
+      const result = v3Serializer.deserialize(serialized)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.change.id).toBe(change.id)
+      }
+    })
+
+    it('should serialize and deserialize Level 1 hybrid signature', () => {
+      const change = createTestChange({ level: 1 })
+      // Create a hybrid signature manually
+      const sig: UnifiedSignature = {
+        level: 1,
+        ed25519: new Uint8Array(64).fill(1),
+        mlDsa: new Uint8Array(3309).fill(2)
+      }
+      ;(change as unknown as { signature: UnifiedSignature }).signature = sig
+
+      const serialized = v3Serializer.serialize(change)
+      const wire = serialized as Record<string, unknown>
+
+      expect(wire.v).toBe(3)
+      const wireSig = wire.sig as { l: number; e?: string; p?: string }
+      expect(wireSig.l).toBe(1)
+      expect(wireSig.e).toBeDefined()
+      expect(wireSig.p).toBeDefined()
+
+      const result = v3Serializer.deserialize(serialized)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        const restored = result.change.signature as unknown as UnifiedSignature
+        expect(restored.level).toBe(1)
+        expect(restored.ed25519).toBeDefined()
+        expect(restored.mlDsa).toBeDefined()
+      }
+    })
+
+    it('should serialize and deserialize Level 2 PQ-only signature', () => {
+      const change = createTestChange({ level: 2 })
+      // Create a PQ-only signature
+      const sig: UnifiedSignature = {
+        level: 2,
+        mlDsa: new Uint8Array(3309).fill(3)
+      }
+      ;(change as unknown as { signature: UnifiedSignature }).signature = sig
+
+      const serialized = v3Serializer.serialize(change)
+      const wire = serialized as Record<string, unknown>
+
+      expect(wire.v).toBe(3)
+      const wireSig = wire.sig as { l: number; e?: string; p?: string }
+      expect(wireSig.l).toBe(2)
+      expect(wireSig.e).toBeUndefined()
+      expect(wireSig.p).toBeDefined()
+
+      const result = v3Serializer.deserialize(serialized)
+      expect(result.success).toBe(true)
+      if (result.success) {
+        const restored = result.change.signature as unknown as UnifiedSignature
+        expect(restored.level).toBe(2)
+        expect(restored.ed25519).toBeUndefined()
+        expect(restored.mlDsa).toBeDefined()
+      }
+    })
+
+    it('should preserve batch fields', () => {
+      const clock = createLamportClock(testDID)
+      const [, lamport] = tick(clock)
+      const unsigned = createUnsignedChange({
+        id: 'v3-batch-001',
+        type: 'batch-type',
+        payload: { data: 'test' },
+        parentHash: null,
+        authorDID: testDID,
+        lamport,
+        batchId: 'batch-v3',
+        batchIndex: 1,
+        batchSize: 5
+      })
+      const change = signChange(unsigned, keyPair.privateKey)
+
+      const serialized = v3Serializer.serialize(change)
+      const result = v3Serializer.deserialize(serialized)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.change.batchId).toBe('batch-v3')
+        expect(result.change.batchIndex).toBe(1)
+        expect(result.change.batchSize).toBe(5)
+      }
+    })
+
+    it('should reject V2 format', () => {
+      const v2Wire = {
+        v: 2,
+        i: 'id',
+        t: 'type',
+        p: {},
+        h: 'hash',
+        ph: null,
+        a: 'did',
+        s: 'sig', // V2 uses 's' not 'sig'
+        w: 1,
+        l: { t: 1, a: 'author' }
+      }
+
+      const result = v3Serializer.deserialize(v2Wire as unknown as Record<string, unknown>)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toContain('Expected v3')
+      }
+    })
+
+    it('should correctly detect V3 format', () => {
+      expect(v3Serializer.canDeserialize({ v: 3, i: 'id', t: 'type', sig: { l: 0 } })).toBe(true)
+      expect(v3Serializer.canDeserialize({ v: 2, i: 'id', t: 'type' })).toBe(false)
+      expect(v3Serializer.canDeserialize({ id: 'id', type: 'type' })).toBe(false)
+    })
+
+    it('should auto-detect V3 format', () => {
+      const change = createTestChange({ format: 'v3' })
+      const serialized = v3Serializer.serialize(change)
+
+      const detected = serializerRegistry.detect(serialized)
+      expect(detected).toBeDefined()
+      expect(detected?.version).toBe(3)
+    })
+
+    it('should get security level from wire format', () => {
+      const wire = { v: 3 as const, sig: { l: 1 as const } } as import('./v3').V3WireFormat
+      expect(V3Serializer.getSecurityLevel(wire)).toBe(1)
     })
   })
 })

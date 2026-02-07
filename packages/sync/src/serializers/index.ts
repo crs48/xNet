@@ -2,10 +2,12 @@
  * Serializer registry and exports.
  *
  * This module provides:
- * - Version-specific serializers (V1, V2)
+ * - Version-specific serializers (V1, V2, V3)
  * - A registry for managing serializers
  * - Auto-detection for incoming data
  * - Helper function for selecting serializer by version
+ *
+ * V3 is the default for new changes (multi-level signature support).
  */
 
 import type { Change } from '../change'
@@ -18,6 +20,7 @@ import type {
 import { CURRENT_PROTOCOL_VERSION } from '../change'
 import { v1Serializer } from './v1'
 import { v2Serializer } from './v2'
+import { v3Serializer } from './v3'
 
 // Re-export types
 export type {
@@ -33,6 +36,7 @@ export type {
 // Re-export serializers
 export { V1Serializer, v1Serializer } from './v1'
 export { V2Serializer, v2Serializer } from './v2'
+export { V3Serializer, v3Serializer, type V3WireFormat } from './v3'
 
 // ─── Serializer Registry Implementation ──────────────────────────────────────
 
@@ -48,6 +52,7 @@ class DefaultSerializerRegistry implements SerializerRegistry {
     // Register built-in serializers
     this.register(v1Serializer)
     this.register(v2Serializer)
+    this.register(v3Serializer)
   }
 
   get(version: number): ChangeSerializer | undefined {

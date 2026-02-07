@@ -16,10 +16,12 @@ import { hashHex, sign, verify } from '@xnet/crypto'
  * Current protocol version for Change<T>.
  *
  * Version history:
+ * - 3: Multi-level cryptography with hybrid signatures (Ed25519 + ML-DSA)
+ * - 2: V2 compact format with abbreviated field names
  * - 1: Initial versioned protocol (adds protocolVersion field)
  * - 0/undefined: Legacy unversioned changes (backward compat)
  */
-export const CURRENT_PROTOCOL_VERSION = 1
+export const CURRENT_PROTOCOL_VERSION = 3
 
 /**
  * A signed change with chain linkage and Lamport ordering.
