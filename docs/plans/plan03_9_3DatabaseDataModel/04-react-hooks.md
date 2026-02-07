@@ -882,7 +882,7 @@ describe('useCell', () => {
 ## Validation Gate
 
 - [x] `useDatabase` loads rows with pagination
-- [ ] `useDatabase` applies view filters and sorts (TODO: add filter/sort to queryRows)
+- [x] `useDatabase` applies view filters and sorts (client-side via filterRows/sortRows)
 - [x] `useDatabase` refetches on row changes
 - [x] `useDatabase.createRow` creates at correct position
 - [x] `useDatabase.updateRow` updates cell values

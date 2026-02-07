@@ -29,7 +29,9 @@ import {
   updateCells,
   deleteRow as deleteRowOp,
   moveRow,
-  fromCellProperties
+  fromCellProperties,
+  filterRows,
+  sortRows
 } from '@xnet/data'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useDatabaseDoc } from './useDatabaseDoc'
@@ -182,12 +184,25 @@ export function useDatabase(
         }
 
         const result = await queryRows(store, databaseId, {
-          limit: pageSize,
+          limit: pageSize * 10, // Fetch more for client-side filtering
           cursor: reset ? undefined : cursor
-          // TODO: Add filter/sort support to queryRows
         })
 
-        const parsedRows = result.rows.map((node) => nodeToRow(node, columns))
+        // Parse rows
+        let parsedRows = result.rows.map((node) => nodeToRow(node, columns))
+
+        // Apply client-side filtering if filters are specified
+        if (effectiveFilters && effectiveFilters.conditions.length > 0) {
+          parsedRows = filterRows(parsedRows, columns, effectiveFilters)
+        }
+
+        // Apply client-side sorting if sorts are specified
+        if (effectiveSorts.length > 0) {
+          parsedRows = sortRows(parsedRows, columns, effectiveSorts)
+        }
+
+        // Apply pagination after filtering/sorting
+        parsedRows = parsedRows.slice(0, pageSize)
 
         if (reset) {
           setRows(parsedRows)

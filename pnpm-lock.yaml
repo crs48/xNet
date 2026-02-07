@@ -1269,6 +1269,9 @@ importers:
       '@xnet/ui':
         specifier: workspace:*
         version: link:../ui
+      lucide-react:
+        specifier: ^0.563.0
+        version: 0.563.0(react@18.3.1)
     devDependencies:
       '@testing-library/react':
         specifier: ^16.2.0
@@ -13409,6 +13412,14 @@ packages:
       }
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+
+  lucide-react@0.563.0:
+    resolution:
+      {
+        integrity: sha512-8dXPB2GI4dI8jV4MgUDGBeLdGk8ekfqVZ0BdLcrRzocGgG75ltNEmWS+gE7uokKF/0oSUuczNDT+g9hFJ23FkA==
+      }
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   lz-string@1.5.0:
     resolution:
@@ -28339,6 +28350,10 @@ snapshots:
       react: 18.3.1
 
   lucide-react@0.453.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
+  lucide-react@0.563.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 

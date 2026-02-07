@@ -1045,7 +1045,7 @@ describe('Group Engine', () => {
 - [x] Grouping creates correct groups
 - [x] Group aggregates calculate correctly
 - [x] Query pipeline executes filter -> sort -> group
-- [ ] FilterBuilder UI creates valid filters
+- [x] FilterBuilder UI creates valid filters
 - [x] Operators filtered by column type
 - [x] Empty values handled correctly
 - [x] All tests pass
