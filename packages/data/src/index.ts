@@ -360,7 +360,52 @@ export {
   showColumn,
   hideColumn,
   reorderViewColumns,
-  setColumnWidth
+  setColumnWidth,
+
+  // Filter operators
+  OPERATORS_BY_TYPE,
+  OPERATOR_LABELS,
+  getOperatorsForType,
+  isValidOperator,
+  getOperatorLabel,
+  operatorRequiresValue,
+
+  // Filter engine
+  filterRows,
+  createEqualsFilter,
+  createAnyOfFilter,
+  combineFiltersAnd,
+  combineFiltersOr,
+  type FilterableRow,
+
+  // Sort engine
+  sortRows,
+  createSort,
+  toggleSortDirection,
+  addOrToggleSort,
+  removeSort,
+  type SortableRow,
+
+  // Group engine
+  groupRows,
+  toggleGroupCollapsedState,
+  expandAllGroups,
+  collapseAllGroups,
+  type GroupableRow,
+  type GroupConfig,
+  type RowGroup,
+  type GroupAggregates,
+
+  // Query pipeline
+  executeQuery,
+  createFilterQuery,
+  createSortQuery,
+  createPaginatedQuery,
+  flattenGroups,
+  getTotalFromGroups,
+  type QueryableRow,
+  type QueryOptions,
+  type QueryResult
 } from './database'
 
 // Re-export Yjs for convenience
