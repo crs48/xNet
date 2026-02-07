@@ -21,8 +21,11 @@ import {
   bumpSchemaVersion,
   getVersionBumpType,
   cloneSchema,
+  createVersionEntry,
+  pruneVersionHistory,
   type DatabaseSchemaMetadata,
-  type StoredColumn
+  type StoredColumn,
+  type SchemaVersionEntry
 } from '@xnet/data'
 import { useNode, useIdentity, useMutate } from '@xnet/react'
 import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnet/ui'
@@ -667,11 +670,15 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   // Helper to bump schema version on column changes
   const bumpVersion = useCallback(
-    (operation: 'add' | 'update' | 'rename' | 'delete' | 'changeType') => {
+    (
+      operation: 'add' | 'update' | 'rename' | 'delete' | 'changeType',
+      changeDescription?: string
+    ) => {
       if (!doc) return
 
       const dataMap = doc.getMap('data')
       const currentMeta = dataMap.get('schema') as DatabaseSchemaMetadata | undefined
+      const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
 
       if (currentMeta) {
         const bumpType = getVersionBumpType(operation)
@@ -682,6 +689,28 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           updatedAt: Date.now()
         }
         dataMap.set('schema', updatedMeta)
+
+        // Store version history entry
+        const changeType =
+          operation === 'add'
+            ? 'add'
+            : operation === 'delete'
+              ? 'delete'
+              : operation === 'update' || operation === 'rename' || operation === 'changeType'
+                ? 'update'
+                : 'update'
+
+        const historyEntry = createVersionEntry(
+          newVersion,
+          currentColumns,
+          changeType,
+          changeDescription
+        )
+
+        const currentHistory =
+          (dataMap.get('schemaHistory') as SchemaVersionEntry[] | undefined) || []
+        const updatedHistory = pruneVersionHistory([...currentHistory, historyEntry])
+        dataMap.set('schemaHistory', updatedHistory)
       }
     },
     [doc]
@@ -790,7 +819,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       dataMap.set('columns', updatedColumns)
 
       // Bump schema version (patch for add column)
-      bumpVersion('add')
+      bumpVersion('add', `Added column "${newColumn.name}"`)
 
       // Update view configs to include new column
       const currentTableView = dataMap.get('tableView') as ViewConfig | undefined
@@ -841,13 +870,13 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
       dataMap.set('columns', updatedColumns)
 
-      // Bump schema version
+      // Bump schema version with description
       if (isTypeChange) {
-        bumpVersion('changeType') // Minor bump for type change (breaking)
+        bumpVersion('changeType', `Changed type of column "${existingColumn?.name}"`)
       } else if (isRename) {
-        bumpVersion('rename') // Patch bump for rename
+        bumpVersion('rename', `Renamed column "${existingColumn?.name}" to "${updates.name}"`)
       } else {
-        bumpVersion('update') // Patch bump for config changes
+        bumpVersion('update', `Updated column "${existingColumn?.name}"`)
       }
     },
     [doc, bumpVersion]
@@ -897,10 +926,13 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         const rest = Object.fromEntries(Object.entries(row).filter(([k]) => k !== columnId))
         return rest as TableRow
       })
+      // Get column name before deletion for description
+      const deletedColumn = currentColumns.find((col) => col.id === columnId)
+
       dataMap.set('rows', updatedRows)
 
       // Bump schema version (minor for delete - breaking change)
-      bumpVersion('delete')
+      bumpVersion('delete', `Deleted column "${deletedColumn?.name ?? columnId}"`)
     },
     [doc, bumpVersion]
   )
