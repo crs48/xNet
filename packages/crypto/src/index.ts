@@ -54,3 +54,64 @@ export {
   constantTimeEqual,
   concatBytes
 } from './utils'
+
+// ─── Multi-Level Cryptography ────────────────────────────────────
+
+// Security levels
+export type { SecurityLevel, SecurityLevelConfig } from './security-level'
+export {
+  SECURITY_LEVELS,
+  DEFAULT_SECURITY_LEVEL,
+  isSecurityLevel,
+  getSecurityLevelConfig,
+  requiresEd25519,
+  requiresMlDsa
+} from './security-level'
+
+// Unified signatures
+export type {
+  UnifiedSignature,
+  SignatureOptions,
+  VerificationResult,
+  VerificationOptions
+} from './unified-signature'
+export { validateSignature, signatureSize, isUnifiedSignature } from './unified-signature'
+
+// Signature encoding
+export type { SignatureWire } from './signature-codec'
+export {
+  encodeSignature,
+  decodeSignature,
+  encodeSignatureBinary,
+  decodeSignatureBinary,
+  estimateSignatureSize
+} from './signature-codec'
+
+// Algorithm size constants
+export {
+  // Ed25519
+  ED25519_PUBLIC_KEY_SIZE,
+  ED25519_PRIVATE_KEY_SIZE,
+  ED25519_SIGNATURE_SIZE,
+  // ML-DSA-65
+  ML_DSA_65_PUBLIC_KEY_SIZE,
+  ML_DSA_65_PRIVATE_KEY_SIZE,
+  ML_DSA_65_SIGNATURE_SIZE,
+  ML_DSA_65_SIGNATURE_SIZE_MIN,
+  ML_DSA_65_SIGNATURE_SIZE_MAX,
+  // ML-KEM-768
+  ML_KEM_768_PUBLIC_KEY_SIZE,
+  ML_KEM_768_PRIVATE_KEY_SIZE,
+  ML_KEM_768_CIPHERTEXT_SIZE,
+  ML_KEM_768_SHARED_SECRET_SIZE,
+  // X25519
+  X25519_PUBLIC_KEY_SIZE,
+  X25519_PRIVATE_KEY_SIZE,
+  X25519_SHARED_SECRET_SIZE,
+  // Hybrid
+  HYBRID_SIGNATURE_SIZE_LEVEL_0,
+  HYBRID_SIGNATURE_SIZE_LEVEL_1,
+  HYBRID_SIGNATURE_SIZE_LEVEL_2,
+  HYBRID_PUBLIC_KEY_SIZE,
+  HYBRID_PRIVATE_KEY_SIZE
+} from './constants'

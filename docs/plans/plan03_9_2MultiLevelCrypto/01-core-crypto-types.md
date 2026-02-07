@@ -886,20 +886,20 @@ describe('@noble/post-quantum', () => {
 
 ## Checklist
 
-- [ ] Add `@noble/post-quantum` to packages/crypto/package.json
+- [x] Add `@noble/post-quantum` to packages/crypto/package.json
 - [ ] Verify @noble/post-quantum works in Web (Chrome, Safari, Firefox)
 - [ ] Verify @noble/post-quantum works in Electron (main + renderer)
 - [ ] Verify @noble/post-quantum works in Expo (iOS + Android)
-- [ ] Implement `SecurityLevel` type and `SECURITY_LEVELS` config
-- [ ] Implement `UnifiedSignature` type
-- [ ] Implement `validateSignature()` function
-- [ ] Implement `signatureSize()` function
-- [ ] Implement JSON wire format encoding/decoding
-- [ ] Implement binary format encoding/decoding
-- [ ] Implement type guards (`isSecurityLevel`, `isUnifiedSignature`)
-- [ ] Add size constants for all algorithms
-- [ ] Update package exports in index.ts
-- [ ] Write unit tests (target: 30+ tests)
+- [x] Implement `SecurityLevel` type and `SECURITY_LEVELS` config
+- [x] Implement `UnifiedSignature` type
+- [x] Implement `validateSignature()` function
+- [x] Implement `signatureSize()` function
+- [x] Implement JSON wire format encoding/decoding
+- [x] Implement binary format encoding/decoding
+- [x] Implement type guards (`isSecurityLevel`, `isUnifiedSignature`)
+- [x] Add size constants for all algorithms
+- [x] Update package exports in index.ts
+- [x] Write unit tests (target: 30+ tests) - 66 tests written
 - [ ] Verify bundle size impact (< 200KB gzipped)
 
 ---

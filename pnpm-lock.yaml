@@ -468,6 +468,9 @@ importers:
       '@noble/hashes':
         specifier: ^2.0.1
         version: 2.0.1
+      '@noble/post-quantum':
+        specifier: ^0.5.4
+        version: 0.5.4
       '@xnet/core':
         specifier: workspace:*
         version: link:../core
@@ -4620,6 +4623,13 @@ packages:
     resolution:
       {
         integrity: sha512-XlOlEbQcE9fmuXxrVTXCTlG2nlRXa9Rj3rr5Ue/+tX+nmkgbX720YHh0VR3hBF9xDvwnb8D2shVGOwNx+ulArw==
+      }
+    engines: { node: '>= 20.19.0' }
+
+  '@noble/post-quantum@0.5.4':
+    resolution:
+      {
+        integrity: sha512-leww0zzIirrvwaYMPI9fj6aRIlA/c6Y0/lifQQ1YOOyHEr0MNH3yYpjXeiVG+tWdPps4XxGclFWX2INPO3Yo5w==
       }
     engines: { node: '>= 20.19.0' }
 
@@ -22005,6 +22015,11 @@ snapshots:
   '@noble/hashes@1.8.0': {}
 
   '@noble/hashes@2.0.1': {}
+
+  '@noble/post-quantum@0.5.4':
+    dependencies:
+      '@noble/curves': 2.0.1
+      '@noble/hashes': 2.0.1
 
   '@nodelib/fs.scandir@2.1.5':
     dependencies:
