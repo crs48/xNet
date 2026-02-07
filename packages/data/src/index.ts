@@ -79,6 +79,8 @@ export {
   type Page,
   DatabaseSchema,
   type Database,
+  DatabaseRowSchema,
+  type DatabaseRow,
   TaskSchema,
   type Task,
   CanvasSchema,
@@ -234,6 +236,47 @@ export {
 
 // Blob service
 export { BlobService, type BlobServiceOptions } from './blob'
+
+// Database operations
+export {
+  // Cell types and utilities
+  type CellValue,
+  type FileRef as CellFileRef,
+  type DateRange as CellDateRange,
+  CELL_PREFIX,
+  cellKey,
+  isCellKey,
+  columnIdFromKey,
+  toCellProperties,
+  fromCellProperties,
+  isDateRange as isCellDateRange,
+  isFileRef as isCellFileRef,
+  isCellValue,
+
+  // Row operations
+  type CreateRowOptions,
+  type QueryRowsOptions,
+  type QueryRowsResult,
+  type DatabaseRowNode,
+  createRow,
+  updateCell,
+  updateCells,
+  deleteRow,
+  getRow,
+  queryRows,
+  moveRow,
+
+  // Rich text cell support
+  type ColumnType,
+  type ColumnDefinition,
+  RICHTEXT_PREFIX,
+  getRichTextCell,
+  hasRichTextContent,
+  hasRichTextColumns,
+  getRichTextColumnIds,
+  deleteRichTextCell,
+  getRichTextPlainText
+} from './database'
 
 // Re-export Yjs for convenience
 export {

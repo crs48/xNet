@@ -104,6 +104,7 @@ export {
 // Built-in schemas
 export { PageSchema, type Page } from './schemas'
 export { DatabaseSchema, type Database } from './schemas'
+export { DatabaseRowSchema, type DatabaseRow } from './schemas'
 export { TaskSchema, type Task } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export { CommentSchema, type Comment } from './schemas'

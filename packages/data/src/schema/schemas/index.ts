@@ -7,6 +7,7 @@
 
 export { PageSchema, type Page } from './page'
 export { DatabaseSchema, type Database } from './database'
+export { DatabaseRowSchema, type DatabaseRow } from './database-row'
 export { TaskSchema, type Task } from './task'
 export { CanvasSchema, type Canvas } from './canvas'
 export { CommentSchema, type Comment } from './comment'
@@ -69,6 +70,8 @@ export const builtInSchemas = {
   // Versioned IRIs (canonical)
   'xnet://xnet.fyi/Page@1.0.0': () => import('./page').then((m) => m.PageSchema),
   'xnet://xnet.fyi/Database@1.0.0': () => import('./database').then((m) => m.DatabaseSchema),
+  'xnet://xnet.fyi/DatabaseRow@1.0.0': () =>
+    import('./database-row').then((m) => m.DatabaseRowSchema),
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
@@ -76,6 +79,7 @@ export const builtInSchemas = {
   // Legacy unversioned IRIs (aliases for @1.0.0)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
   'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),
+  'xnet://xnet.fyi/DatabaseRow': () => import('./database-row').then((m) => m.DatabaseRowSchema),
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema)
