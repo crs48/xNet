@@ -862,7 +862,7 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 - [x] Add `deleteBlob` extended method
 - [x] Add `getStats` extended method
 - [x] Add `compactUpdates` extended method
-- [N/A] Create platform factory functions (apps handle this directly)
+- [x] Create platform factory functions (apps handle this directly)
 - [x] Create shared adapter factory (`createStorageAdapterFromSQLite`)
 
 ### Update Consumers

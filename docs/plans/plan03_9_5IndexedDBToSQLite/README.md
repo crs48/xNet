@@ -175,7 +175,7 @@ Define unified schema with full-text search.
 **Validation Gate:**
 
 - [x] Schema creates successfully on all platforms
-- [N/A] FTS5 search returns correct results (skipped in sql.js tests - tested via browser)
+- [x] FTS5 search returns correct results (tested via better-sqlite3 in electron.test.ts)
 - [x] Schema version is tracked
 - [x] Future schema upgrades work correctly
 
