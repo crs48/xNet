@@ -714,19 +714,19 @@ describe('Rich Text Cells', () => {
 
 ## Validation Gate
 
-- [ ] `DatabaseRowSchema` defined with dynamic property support
-- [ ] `NodeStore.create()` accepts dynamic properties
-- [ ] `NodeStore.update()` handles dynamic property updates
-- [ ] Cell values stored with column ID prefix
-- [ ] `createRow()` generates sort key and stores cells
-- [ ] `updateCell()` creates per-property change
-- [ ] `deleteRow()` updates database row count
-- [ ] `queryRows()` returns paginated results
-- [ ] Concurrent cell edits merge correctly
-- [ ] Same-cell conflicts use LWW
-- [ ] Rich text cells use row Y.Doc
-- [ ] Y.Doc only created when needed
-- [ ] All tests pass
+- [x] `DatabaseRowSchema` defined with dynamic property support
+- [x] `NodeStore.create()` accepts dynamic properties
+- [x] `NodeStore.update()` handles dynamic property updates
+- [x] Cell values stored with column ID prefix
+- [x] `createRow()` generates sort key and stores cells
+- [x] `updateCell()` creates per-property change
+- [x] `deleteRow()` updates database row count
+- [x] `queryRows()` returns paginated results
+- [x] Concurrent cell edits merge correctly
+- [x] Same-cell conflicts use LWW
+- [x] Rich text cells use row Y.Doc
+- [x] Y.Doc only created when needed
+- [x] All tests pass
 
 ---
 

@@ -13,6 +13,13 @@ import type { NodeStore } from '../store/store'
 import type { NodeState } from '../store/types'
 import { DatabaseRowSchema } from '../schema/schemas/database-row'
 import { cellKey, toCellProperties, fromCellProperties } from './cell-types'
+import {
+  generateSortKey,
+  rebalanceSortKeys,
+  needsRebalancing,
+  compareSortKeys,
+  MAX_KEY_LENGTH
+} from './fractional-index'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -98,10 +105,23 @@ export interface DatabaseRowNode extends NodeState {
 export async function createRow(store: NodeStore, options: CreateRowOptions): Promise<string> {
   const { databaseId, cells = {}, before, after } = options
 
-  // Generate sort key for position
-  // For now, use a simple timestamp-based key
-  // TODO: Replace with proper fractional indexing in task 02
-  const sortKey = generateSortKey(before, after)
+  // Generate sort key for position using fractional indexing
+  // generateSortKey(before, after) returns a key that sorts after `before` and before `after`
+  let sortKey: string
+
+  if (!before && !after) {
+    // No position specified - append to end
+    // Find the last row's sortKey and generate one after it
+    const { rows } = await queryRows(store, databaseId, { limit: 1, sortDirection: 'desc' })
+    if (rows.length > 0) {
+      const lastSortKey = rows[0].properties.sortKey as string
+      sortKey = generateSortKey(lastSortKey, undefined)
+    } else {
+      sortKey = generateSortKey()
+    }
+  } else {
+    sortKey = generateSortKey(after, before)
+  }
 
   // Convert cell values to prefixed properties
   const dynamicProperties = toCellProperties(cells)
@@ -237,11 +257,11 @@ export async function queryRows(
   // Filter by database ID
   let rows = allRows.filter((row) => row.properties.database === databaseId)
 
-  // Sort by sortKey
+  // Sort by sortKey using consistent string comparison
   rows.sort((a, b) => {
     const aKey = a.properties.sortKey as string
     const bKey = b.properties.sortKey as string
-    const cmp = aKey.localeCompare(bKey)
+    const cmp = compareSortKeys(aKey, bKey)
     return sortDirection === 'asc' ? cmp : -cmp
   })
 
@@ -299,44 +319,55 @@ export async function moveRow(
   })
 }
 
-// ─── Helper Functions ────────────────────────────────────────────────────────
+// ─── Rebalancing ─────────────────────────────────────────────────────────────
 
 /**
- * Generate a sort key for a row position.
+ * Rebalance all rows in a database.
+ * Use this when sort keys get too long (> 10 chars) due to many
+ * insertions at the same position.
  *
- * This is a temporary implementation using timestamps.
- * TODO: Replace with proper fractional indexing in task 02.
+ * @example
+ * ```typescript
+ * if (await checkNeedsRebalancing(store, databaseId)) {
+ *   await rebalanceDatabase(store, databaseId)
+ * }
+ * ```
  */
-function generateSortKey(before?: string, after?: string): string {
-  if (!before && !after) {
-    // Append to end: use current timestamp
-    return Date.now().toString(36).padStart(10, '0')
-  }
+export async function rebalanceDatabase(store: NodeStore, databaseId: string): Promise<void> {
+  // Get all rows in current order
+  const { rows } = await queryRows(store, databaseId, { limit: 100000 })
+  const rowIds = rows.map((r) => r.id)
 
-  if (before && after) {
-    // Insert between: find midpoint
-    // This is a naive implementation that will be replaced
-    const beforeNum = parseInt(before, 36)
-    const afterNum = parseInt(after, 36)
-    const mid = Math.floor((beforeNum + afterNum) / 2)
-    return mid.toString(36).padStart(10, '0')
-  }
+  if (rowIds.length === 0) return
 
-  if (after) {
-    // Insert after: add small increment
-    const afterNum = parseInt(after, 36)
-    return (afterNum + 1).toString(36).padStart(10, '0')
-  }
+  // Generate new balanced keys
+  const newKeys = rebalanceSortKeys(rowIds)
 
-  if (before) {
-    // Insert before: subtract small increment
-    const beforeNum = parseInt(before, 36)
-    return (beforeNum - 1).toString(36).padStart(10, '0')
+  // Update all rows
+  for (const [rowId, sortKey] of newKeys) {
+    await store.update(rowId, {
+      properties: { sortKey }
+    })
   }
-
-  // Fallback
-  return Date.now().toString(36).padStart(10, '0')
 }
+
+/**
+ * Check if a database needs rebalancing.
+ * Returns true if any sort key exceeds the maximum recommended length.
+ *
+ * @param maxKeyLength - Maximum key length before rebalancing (default: 10)
+ */
+export async function checkNeedsRebalancing(
+  store: NodeStore,
+  databaseId: string,
+  maxKeyLength = MAX_KEY_LENGTH
+): Promise<boolean> {
+  const { rows } = await queryRows(store, databaseId, { limit: 100 })
+  const sortKeys = rows.map((row) => row.properties.sortKey as string)
+  return needsRebalancing(sortKeys) || sortKeys.some((k) => k.length > maxKeyLength)
+}
+
+// ─── Helper Functions ────────────────────────────────────────────────────────
 
 /**
  * Increment the row count for a database.
