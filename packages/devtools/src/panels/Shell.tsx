@@ -14,6 +14,7 @@ import { MigrationWizard } from './MigrationWizard/MigrationWizard'
 import { NodeExplorer } from './NodeExplorer/NodeExplorer'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
 import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
+import { SecurityPanel } from './SecurityPanel/SecurityPanel'
 import { Seed } from './Seed/Seed'
 import { SyncMonitor } from './SyncMonitor/SyncMonitor'
 import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
@@ -28,6 +29,7 @@ const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'queries', label: 'Queries' },
   { id: 'telemetry', label: 'Telemetry' },
   { id: 'schemas', label: 'Schemas' },
+  { id: 'security', label: 'Security' },
   { id: 'version', label: 'Version' },
   { id: 'migration', label: 'Migrate' },
   { id: 'seed', label: 'Seed' },
@@ -126,6 +128,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <TelemetryPanel />
     case 'schemas':
       return <SchemaRegistry />
+    case 'security':
+      return <SecurityPanel />
     case 'version':
       return <VersionPanel />
     case 'migration':

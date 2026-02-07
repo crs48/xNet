@@ -20,6 +20,7 @@ export type PanelId =
   | 'migration'
   | 'seed'
   | 'history'
+  | 'security'
 
 export type PanelPosition = 'bottom' | 'right' | 'floating'
 

@@ -189,16 +189,16 @@ Add React hooks and provider configuration.
 
 | Task | Document                                             | Description                         | Status |
 | ---- | ---------------------------------------------------- | ----------------------------------- | ------ |
-| 5.1  | [08-react-integration.md](./08-react-integration.md) | SecurityContext type                | [ ]    |
-| 5.2  | [08-react-integration.md](./08-react-integration.md) | useSecurity() hook                  | [ ]    |
-| 5.3  | [08-react-integration.md](./08-react-integration.md) | XNetProvider security configuration | [ ]    |
-| 5.4  | [08-react-integration.md](./08-react-integration.md) | DevTools security panel             | [ ]    |
+| 5.1  | [08-react-integration.md](./08-react-integration.md) | SecurityContext type                | [x]    |
+| 5.2  | [08-react-integration.md](./08-react-integration.md) | useSecurity() hook                  | [x]    |
+| 5.3  | [08-react-integration.md](./08-react-integration.md) | XNetProvider security configuration | [x]    |
+| 5.4  | [08-react-integration.md](./08-react-integration.md) | DevTools security panel             | [x]    |
 
 **Validation Gate:**
 
-- [ ] XNetProvider defaults to Level 1
-- [ ] useSecurity() allows per-operation level override
-- [ ] DevTools shows current security level and signature info
+- [x] XNetProvider defaults to Level 0 (Ed25519-only, as per strategy)
+- [x] useSecurity() allows per-operation level override
+- [x] DevTools shows current security level and signature info
 
 ### Phase 6: Performance Optimization (Step 09)
 

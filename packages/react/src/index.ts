@@ -375,6 +375,47 @@ export {
 } from './context'
 
 // =============================================================================
+// Security (Multi-Level Cryptography)
+// =============================================================================
+
+/**
+ * SecurityProvider - Global security configuration context
+ *
+ * @example
+ * ```tsx
+ * // Usually managed by XNetProvider, but can be used standalone
+ * <SecurityProvider level={1} verificationPolicy="strict">
+ *   <App />
+ * </SecurityProvider>
+ * ```
+ */
+export {
+  SecurityProvider,
+  useSecurityContext,
+  useSecurityContextOptional,
+  type SecurityContextState,
+  type SecurityContextActions,
+  type SecurityContextValue,
+  type SecurityProviderProps
+} from './context/security-context'
+
+/**
+ * useSecurity - Hook for security-aware operations
+ *
+ * @example
+ * ```tsx
+ * const { sign, verify, level, hasPQKeys } = useSecurity()
+ *
+ * // Sign data at current security level
+ * const sig = sign(data)
+ *
+ * // Override level for high-security operations
+ * const { sign: signPQ } = useSecurity({ level: 2 })
+ * ```
+ */
+export { useSecurity, type UseSecurityOptions, type UseSecurityResult } from './hooks/useSecurity'
+
+// =============================================================================
 // Plugin System
 // =============================================================================
 
