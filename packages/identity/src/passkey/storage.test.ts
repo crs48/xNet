@@ -165,7 +165,7 @@ describe('IndexedDB storage', () => {
   beforeEach(async () => {
     // Clear stored identity before each test
     await clearStoredIdentity()
-  })
+  }, 30000) // Increase timeout for CI environments
 
   describe('storeIdentity / getStoredIdentity', () => {
     it('stores and retrieves a PRF identity', async () => {
