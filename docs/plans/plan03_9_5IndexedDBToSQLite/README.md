@@ -115,7 +115,7 @@ Establish the adapter interface and implement Electron first since it's most cri
 | 1.2  | [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md) | Define unified schema DDL            | [x]    |
 | 1.3  | [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md) | Create @xnet/sqlite package scaffold | [x]    |
 | 2.1  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Implement ElectronSQLiteAdapter      | [x]    |
-| 2.2  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Integrate with data-service.ts       | [ ]    |
+| 2.2  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Integrate with data-service.ts       | [x]    |
 | 2.3  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Remove IndexedDB from Electron       | [ ]    |
 
 **Validation Gate:**
