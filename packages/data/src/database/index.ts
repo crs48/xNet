@@ -1,9 +1,11 @@
 /**
- * @xnet/data/database - Database row operations and cell types
+ * @xnet/data/database - Database operations and types
  *
  * This module provides the core data model for Notion-like databases:
  * - DatabaseRow nodes with per-cell LWW conflict resolution
  * - Cell value types and utilities
+ * - Column definitions stored in Y.Doc (CRDT ordering)
+ * - View configurations stored in Y.Doc
  * - Rich text cell support via Y.Doc
  * - Row CRUD operations
  */
@@ -36,13 +38,24 @@ export {
   deleteRow,
   getRow,
   queryRows,
-  moveRow
+  moveRow,
+  rebalanceDatabase,
+  checkNeedsRebalancing
 } from './row-operations'
+
+// Fractional indexing
+export {
+  generateSortKey,
+  generateSortKeyWithJitter,
+  isValidSortKey,
+  compareSortKeys,
+  rebalanceSortKeys,
+  needsRebalancing,
+  MAX_KEY_LENGTH
+} from './fractional-index'
 
 // Rich text cell support
 export {
-  type ColumnType,
-  type ColumnDefinition,
   RICHTEXT_PREFIX,
   getRichTextCell,
   hasRichTextContent,
@@ -51,3 +64,89 @@ export {
   deleteRichTextCell,
   getRichTextPlainText
 } from './rich-text-cell'
+
+// Column types and configs
+export {
+  type ColumnType,
+  type ColumnDefinition,
+  type ColumnConfig,
+  type EmptyConfig,
+  type TextColumnConfig,
+  type NumberColumnConfig,
+  type SelectColumnConfig,
+  type SelectOption,
+  type SelectColor,
+  type RelationColumnConfig,
+  type RollupColumnConfig,
+  type RollupAggregation,
+  type FormulaColumnConfig,
+  type DateColumnConfig,
+  type FileColumnConfig,
+  isNodeStoreColumnType,
+  isComputedColumnType,
+  isAutoColumnType,
+  isYDocColumnType
+} from './column-types'
+
+// Database doc initialization
+export {
+  initializeDatabaseDoc,
+  isDatabaseDocInitialized,
+  addDefaultTitleColumn,
+  addDefaultTableView,
+  setupNewDatabase,
+  getMeta,
+  setMeta,
+  deleteMeta
+} from './database-doc'
+
+// Column operations
+export {
+  getColumns,
+  getColumn,
+  getColumnIndex,
+  getTitleColumn,
+  createColumn,
+  updateColumn,
+  deleteColumn,
+  reorderColumn,
+  duplicateColumn
+} from './column-operations'
+
+// View types
+export {
+  type ViewType,
+  type ViewConfig,
+  type FilterGroup,
+  type FilterCondition,
+  type FilterOperator,
+  type SortConfig,
+  isFilterGroup,
+  isFilterCondition,
+  supportsGrouping,
+  requiresDateColumn
+} from './view-types'
+
+// View operations
+export {
+  getViews,
+  getView,
+  getViewByType,
+  createView,
+  updateView,
+  deleteView,
+  duplicateView,
+  setViewFilters,
+  clearViewFilters,
+  setViewSorts,
+  addViewSort,
+  removeViewSort,
+  clearViewSorts,
+  setViewGroupBy,
+  toggleGroupCollapsed,
+  setVisibleColumns,
+  showColumn,
+  hideColumn,
+  reorderViewColumns,
+  setColumnWidth
+} from './view-operations'
