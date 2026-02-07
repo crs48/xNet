@@ -235,6 +235,73 @@ export type SerializedNodeChange = {
   batchSize?: number
 }
 
+// ─── Database Row Types ──────────────────────────────────────────────────────
+
+export type DatabaseRowRecord = {
+  id: string
+  databaseId: string
+  sortKey: string
+  data: Record<string, unknown>
+  searchable: string
+  createdAt: number
+  createdBy: string
+  updatedAt: number
+}
+
+export type DatabaseRowQueryOptions = {
+  databaseId: string
+  filters?: DatabaseFilterGroup
+  sorts?: DatabaseSortConfig[]
+  search?: string
+  limit?: number
+  cursor?: string
+  select?: string[]
+}
+
+export type DatabaseFilterGroup = {
+  operator: 'and' | 'or'
+  conditions: (DatabaseFilterCondition | DatabaseFilterGroup)[]
+}
+
+export type DatabaseFilterCondition = {
+  columnId: string
+  operator: DatabaseFilterOperator
+  value: unknown
+}
+
+export type DatabaseFilterOperator =
+  | 'equals'
+  | 'notEquals'
+  | 'contains'
+  | 'notContains'
+  | 'startsWith'
+  | 'endsWith'
+  | 'isEmpty'
+  | 'isNotEmpty'
+  | 'greaterThan'
+  | 'lessThan'
+  | 'greaterOrEqual'
+  | 'lessOrEqual'
+  | 'before'
+  | 'after'
+  | 'between'
+  | 'hasAny'
+  | 'hasAll'
+  | 'hasNone'
+
+export type DatabaseSortConfig = {
+  columnId: string
+  direction: 'asc' | 'desc'
+}
+
+export type DatabaseRowQueryResult = {
+  rows: DatabaseRowRecord[]
+  total: number
+  cursor?: string
+  hasMore: boolean
+  queryTime: number
+}
+
 export type HubStorage = {
   getDocState: (docId: string) => Promise<Uint8Array | null>
   setDocState: (docId: string, state: Uint8Array) => Promise<void>
@@ -326,6 +393,19 @@ export type HubStorage = {
   getNodeChangesSince: (room: string, sinceLamport: number) => Promise<SerializedNodeChange[]>
   getNodeChangesForNode: (room: string, nodeId: string) => Promise<SerializedNodeChange[]>
   getHighWaterMark: (room: string) => Promise<number>
+
+  // Database row operations
+  insertDatabaseRow: (row: DatabaseRowRecord) => Promise<void>
+  updateDatabaseRow: (
+    rowId: string,
+    updates: Partial<Omit<DatabaseRowRecord, 'id' | 'databaseId' | 'createdAt' | 'createdBy'>>
+  ) => Promise<void>
+  deleteDatabaseRow: (rowId: string) => Promise<void>
+  getDatabaseRow: (rowId: string) => Promise<DatabaseRowRecord | null>
+  queryDatabaseRows: (options: DatabaseRowQueryOptions) => Promise<DatabaseRowQueryResult>
+  getDatabaseRowCount: (databaseId: string) => Promise<number>
+  batchInsertDatabaseRows: (rows: DatabaseRowRecord[]) => Promise<void>
+  rebuildDatabaseRowsFts: (databaseId: string) => Promise<void>
 
   close: () => Promise<void>
 }
