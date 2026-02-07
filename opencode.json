@@ -4,7 +4,7 @@
   "tui": {
     "scroll_speed": 1,
     "scroll_acceleration": {
-      "enabled": false
+      "enabled": true
     }
   },
   "permission": {
