@@ -70,3 +70,21 @@ export {
   type Revocation,
   type ParsedShare
 } from './sharing/index'
+
+// PQ Key Attestation
+export type {
+  PQAlgorithm,
+  PQKeyAttestation,
+  PQKeyAttestationWire,
+  AttestationVerificationResult
+} from './pq-attestation'
+export {
+  createPQKeyAttestation,
+  verifyPQKeyAttestation,
+  serializeAttestation,
+  deserializeAttestation
+} from './pq-attestation'
+
+// PQ Key Registry
+export type { PQKeyRegistry } from './pq-registry'
+export { MemoryPQKeyRegistry, createPQKeyRegistry } from './pq-registry'

@@ -981,19 +981,19 @@ describe('MemoryPQKeyRegistry', () => {
 
 ## Checklist
 
-- [ ] Implement `PQKeyAttestation` type
-- [ ] Implement `createPQKeyAttestation()` with dual signatures
-- [ ] Implement `verifyPQKeyAttestation()` with expiration check
-- [ ] Implement `serializeAttestation()` / `deserializeAttestation()`
-- [ ] Implement `PQKeyRegistry` interface
-- [ ] Implement `MemoryPQKeyRegistry`
-- [ ] Implement `IndexedDBPQKeyRegistry`
-- [ ] Implement `createPQKeyRegistry()` factory
-- [ ] Add subscription support for real-time updates
-- [ ] Handle attestation expiration on lookup
-- [ ] Update package exports
-- [ ] Write unit tests (target: 30+ tests)
-- [ ] Test IndexedDB implementation in browser environment
+- [x] Implement `PQKeyAttestation` type
+- [x] Implement `createPQKeyAttestation()` with dual signatures
+- [x] Implement `verifyPQKeyAttestation()` with expiration check
+- [x] Implement `serializeAttestation()` / `deserializeAttestation()`
+- [x] Implement `PQKeyRegistry` interface
+- [x] Implement `MemoryPQKeyRegistry`
+- [ ] Implement `IndexedDBPQKeyRegistry` (deferred - MemoryPQKeyRegistry sufficient for now)
+- [x] Implement `createPQKeyRegistry()` factory
+- [x] Add subscription support for real-time updates
+- [x] Handle attestation expiration on lookup
+- [x] Update package exports
+- [x] Write unit tests (target: 30+ tests) - 30 tests implemented
+- [ ] Test IndexedDB implementation in browser environment (deferred)
 
 ---
 

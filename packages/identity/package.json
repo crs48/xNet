@@ -17,6 +17,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@noble/post-quantum": "^0.5.4",
     "@xnet/core": "workspace:*",
     "@xnet/crypto": "workspace:*",
     "multiformats": "^13.4.2"
