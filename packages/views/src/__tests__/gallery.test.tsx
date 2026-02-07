@@ -14,6 +14,7 @@ const mockSchema: Schema = {
   '@type': 'xnet://xnet.fyi/Schema',
   name: 'Product',
   namespace: 'xnet.fyi',
+  version: '1.0.0',
   properties: [
     {
       '@id': 'xnet://xnet.fyi/Product#name',

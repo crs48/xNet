@@ -14,6 +14,7 @@ const mockSchema: Schema = {
   '@type': 'xnet://xnet.fyi/Schema',
   name: 'Task',
   namespace: 'xnet.fyi',
+  version: '1.0.0',
   properties: [
     {
       '@id': 'xnet://xnet.fyi/Task#title',
@@ -190,6 +191,7 @@ describe('useBoardState with multiSelect', () => {
     '@type': 'xnet://xnet.fyi/Schema',
     name: 'Task',
     namespace: 'xnet.fyi',
+    version: '1.0.0',
     properties: [
       {
         '@id': 'xnet://xnet.fyi/Task#title',

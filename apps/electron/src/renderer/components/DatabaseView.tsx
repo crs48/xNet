@@ -68,6 +68,7 @@ function buildSchema(columns: StoredColumn[], _dbId: string): Schema {
     '@type': 'xnet://xnet.fyi/Schema',
     name: 'DynamicDatabase',
     namespace: 'xnet://xnet.fyi/',
+    version: '1.0.0',
     properties
   }
 }

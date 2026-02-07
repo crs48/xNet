@@ -1,6 +1,23 @@
+import type { Plugin } from 'vite'
 import { resolve } from 'path'
 import react from '@vitejs/plugin-react'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+
+/**
+ * Vite plugin to strip CSP meta tag in dev mode for browser testing.
+ * The CSP is designed for Electron and blocks inline scripts that Vite HMR needs.
+ */
+function stripCspInDev(): Plugin {
+  return {
+    name: 'strip-csp-dev',
+    transformIndexHtml(html) {
+      // Only strip in dev mode
+      if (process.env.NODE_ENV === 'production') return html
+      // Remove the CSP meta tag
+      return html.replace(/<meta\s+http-equiv="Content-Security-Policy"[^>]*>/gi, '')
+    }
+  }
+}
 
 // Support running multiple instances with different ports
 const rendererPort = parseInt(process.env.VITE_PORT || '5177', 10)
@@ -86,6 +103,6 @@ export default defineConfig({
     optimizeDeps: {
       exclude: ['elkjs']
     },
-    plugins: [react()]
+    plugins: [react(), stripCspInDev()]
   }
 })
