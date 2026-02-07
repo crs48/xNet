@@ -522,14 +522,14 @@ describe('OrthogonalRouter', () => {
 
 ## Validation Gate
 
-- [ ] Orthogonal paths avoid node obstacles
-- [ ] Paths use right-angle bends only
-- [ ] Bend count is minimized
-- [ ] Path simplification removes redundant points
-- [ ] Auto anchors choose optimal direction
-- [ ] Performance: < 10ms for typical routes
-- [ ] Fallback to straight line when no path found
-- [ ] Edge crossings are minimized when possible
+- [x] Orthogonal paths avoid node obstacles
+- [x] Paths use right-angle bends only
+- [x] Bend count is minimized
+- [x] Path simplification removes redundant points
+- [x] Auto anchors choose optimal direction
+- [x] Performance: < 10ms for typical routes
+- [x] Fallback to straight line when no path found
+- [x] Edge crossings are minimized when possible
 
 ---
 

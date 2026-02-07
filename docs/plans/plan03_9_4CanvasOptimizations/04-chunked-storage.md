@@ -757,15 +757,15 @@ describe('ChunkManager', () => {
 
 ## Validation Gate
 
-- [ ] Chunks load progressively (nearest first)
-- [ ] Distant chunks evicted to free memory
-- [ ] Memory stays under limit with many chunks
-- [ ] Cross-chunk edges render when both chunks loaded
-- [ ] Node movement updates chunk assignment
-- [ ] Edge classification updates on node move
-- [ ] Chunk loading uses requestIdleCallback
-- [ ] Y.Doc structure supports chunk-based sync
-- [ ] No data loss during chunk transitions
+- [x] Chunks load progressively (nearest first)
+- [x] Distant chunks evicted to free memory
+- [x] Memory stays under limit with many chunks
+- [x] Cross-chunk edges render when both chunks loaded
+- [x] Node movement updates chunk assignment
+- [x] Edge classification updates on node move
+- [x] Chunk loading uses requestIdleCallback
+- [x] Y.Doc structure supports chunk-based sync
+- [x] No data loss during chunk transitions
 
 ---
 

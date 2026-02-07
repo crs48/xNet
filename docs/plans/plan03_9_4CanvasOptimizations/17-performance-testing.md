@@ -487,14 +487,14 @@ describe('Performance Monitoring', () => {
 
 ## Validation Gate
 
-- [ ] 10k nodes renders at 60fps (avg frame < 16ms)
-- [ ] 5k edges renders at 60fps
-- [ ] Viewport query < 5ms for 100k nodes
-- [ ] Bulk load < 500ms for 100k nodes
-- [ ] Memory < 100MB for 10k nodes
-- [ ] Chunk eviction keeps memory bounded
-- [ ] Frame drops < 5% during pan/zoom
-- [ ] CI perf tests pass consistently
+- [x] 10k nodes renders at 60fps (avg frame < 16ms)
+- [x] 5k edges renders at 60fps
+- [x] Viewport query < 5ms for 100k nodes
+- [x] Bulk load < 500ms for 100k nodes
+- [x] Memory < 100MB for 10k nodes
+- [x] Chunk eviction keeps memory bounded
+- [x] Frame drops < 5% during pan/zoom
+- [x] CI perf tests pass consistently
 
 ---
 

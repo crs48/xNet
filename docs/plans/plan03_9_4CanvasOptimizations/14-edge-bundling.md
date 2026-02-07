@@ -449,14 +449,14 @@ describe('EdgeBundler', () => {
 
 ## Validation Gate
 
-- [ ] Parallel edges are bundled together
-- [ ] Bundle width reflects edge count
-- [ ] Bundle count badge shows on hover
-- [ ] Separated edges remain unbundled
-- [ ] Similar angles required for bundling
-- [ ] Maximum bundle width is capped
-- [ ] Dominant color used for bundle
-- [ ] Performance: < 10ms for 1000 edges
+- [x] Parallel edges are bundled together
+- [x] Bundle width reflects edge count
+- [x] Bundle count badge shows on hover
+- [x] Separated edges remain unbundled
+- [x] Similar angles required for bundling
+- [x] Maximum bundle width is capped
+- [x] Dominant color used for bundle
+- [x] Performance: < 10ms for 1000 edges
 
 ---
 

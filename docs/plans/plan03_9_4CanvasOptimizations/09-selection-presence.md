@@ -630,15 +630,15 @@ describe('SelectionIndicator', () => {
 
 ## Validation Gate
 
-- [ ] Remote selections show colored borders
-- [ ] User name appears on selection indicator
-- [ ] Edit lock prevents concurrent editing
-- [ ] Lock icon shows when node is being edited
-- [ ] Failed lock attempt shows error message
-- [ ] Lock releases on blur/unmount
-- [ ] Multiple users can select same node (but not edit)
-- [ ] Locked nodes appear dimmed
-- [ ] Lock state syncs within 100ms
+- [x] Remote selections show colored borders
+- [x] User name appears on selection indicator
+- [x] Edit lock prevents concurrent editing
+- [x] Lock icon shows when node is being edited
+- [x] Failed lock attempt shows error message
+- [x] Lock releases on blur/unmount
+- [x] Multiple users can select same node (but not edit)
+- [x] Locked nodes appear dimmed
+- [x] Lock state syncs within 100ms
 
 ---
 

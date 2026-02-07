@@ -703,17 +703,17 @@ describe('ShapeNodeComponent', () => {
 
 ## Validation Gate
 
-- [ ] Checklist items render with correct indentation
-- [ ] Enter adds new item below current
-- [ ] Backspace on empty item deletes it
-- [ ] Tab increases indent, Shift+Tab decreases
-- [ ] Checkbox toggles item completion
-- [ ] Alt+Arrow moves items up/down
-- [ ] Embed nodes load linked content
-- [ ] Embed collapse/expand works
-- [ ] All 10 shape types render correctly
-- [ ] Shape picker allows type selection
-- [ ] Shapes support fill, stroke, and label
+- [x] Checklist items render with correct indentation
+- [x] Enter adds new item below current
+- [x] Backspace on empty item deletes it
+- [x] Tab increases indent, Shift+Tab decreases
+- [x] Checkbox toggles item completion
+- [x] Alt+Arrow moves items up/down
+- [x] Embed nodes load linked content
+- [x] Embed collapse/expand works
+- [x] All 10 shape types render correctly
+- [x] Shape picker allows type selection
+- [x] Shapes support fill, stroke, and label
 
 ---
 

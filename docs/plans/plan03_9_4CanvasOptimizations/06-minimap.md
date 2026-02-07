@@ -496,15 +496,15 @@ describe('Minimap', () => {
 
 ## Validation Gate
 
-- [ ] Minimap renders all nodes as colored rectangles
-- [ ] Minimap renders edges as lines
-- [ ] Viewport indicator shows current view area
-- [ ] Click on minimap pans main viewport
-- [ ] Drag on minimap continuously pans
-- [ ] Minimap scales to fit all content
-- [ ] Different node types have different colors
-- [ ] Minimap can be collapsed/expanded
-- [ ] Performance: renders 10k nodes smoothly
+- [x] Minimap renders all nodes as colored rectangles
+- [x] Minimap renders edges as lines
+- [x] Viewport indicator shows current view area
+- [x] Click on minimap pans main viewport
+- [x] Drag on minimap continuously pans
+- [x] Minimap scales to fit all content
+- [x] Different node types have different colors
+- [x] Minimap can be collapsed/expanded
+- [x] Performance: renders 10k nodes smoothly
 
 ---
 

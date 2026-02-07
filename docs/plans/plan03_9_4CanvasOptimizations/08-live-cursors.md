@@ -565,16 +565,16 @@ describe('PresenceOverlay', () => {
 
 ## Validation Gate
 
-- [ ] Local cursor broadcasts at 30fps max
-- [ ] Remote cursors appear within 50ms of update
-- [ ] Cursor positions are in canvas coordinates
-- [ ] Screen rendering adapts to viewport transform
-- [ ] Cursor shows user name and color
-- [ ] Stale cursors (>5s) fade out
-- [ ] Cursor clears when mouse leaves canvas
-- [ ] Activity indicators show (drawing, editing)
-- [ ] Throttling prevents network spam
-- [ ] Cleanup on component unmount
+- [x] Local cursor broadcasts at 30fps max
+- [x] Remote cursors appear within 50ms of update
+- [x] Cursor positions are in canvas coordinates
+- [x] Screen rendering adapts to viewport transform
+- [x] Cursor shows user name and color
+- [x] Stale cursors (>5s) fade out
+- [x] Cursor clears when mouse leaves canvas
+- [x] Activity indicators show (drawing, editing)
+- [x] Throttling prevents network spam
+- [x] Cleanup on component unmount
 
 ---
 

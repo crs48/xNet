@@ -632,17 +632,17 @@ describe('High Contrast', () => {
 
 ## Validation Gate
 
-- [ ] Arrow keys navigate between nodes
-- [ ] Enter/Space activates focused node
-- [ ] Tab exits canvas to next focusable
-- [ ] Ctrl+A selects all nodes
-- [ ] Escape clears selection
-- [ ] Focus indicator visible on keyboard focus
-- [ ] Screen reader announces node focus
-- [ ] Screen reader announces selection changes
-- [ ] High contrast mode applies correct styles
-- [ ] Skip link available to bypass canvas
-- [ ] All interactive elements have accessible names
+- [x] Arrow keys navigate between nodes
+- [x] Enter/Space activates focused node
+- [x] Tab exits canvas to next focusable
+- [x] Ctrl+A selects all nodes
+- [x] Escape clears selection
+- [x] Focus indicator visible on keyboard focus
+- [x] Screen reader announces node focus
+- [x] Screen reader announces selection changes
+- [x] High contrast mode applies correct styles
+- [x] Skip link available to bypass canvas
+- [x] All interactive elements have accessible names
 
 ---
 

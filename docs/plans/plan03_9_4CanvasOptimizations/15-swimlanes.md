@@ -568,15 +568,15 @@ describe('SwimlaneManager', () => {
 
 ## Validation Gate
 
-- [ ] Swimlanes render with header and content area
-- [ ] Nodes can be dragged into swimlanes
-- [ ] Node membership updates on position change
-- [ ] Collapsed swimlanes hide content
-- [ ] Auto-resize expands to fit children
-- [ ] Vertical orientation works correctly
-- [ ] Child count shows in header
-- [ ] Visual feedback on drag-over
-- [ ] Swimlanes render behind contained nodes
+- [x] Swimlanes render with header and content area
+- [x] Nodes can be dragged into swimlanes
+- [x] Node membership updates on position change
+- [x] Collapsed swimlanes hide content
+- [x] Auto-resize expands to fit children
+- [x] Vertical orientation works correctly
+- [x] Child count shows in header
+- [x] Visual feedback on drag-over
+- [x] Swimlanes render behind contained nodes
 
 ---
 
