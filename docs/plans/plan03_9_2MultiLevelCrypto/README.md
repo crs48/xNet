@@ -137,15 +137,15 @@ Generate and manage hybrid keypairs.
 
 | Task | Document                                         | Description                        | Status |
 | ---- | ------------------------------------------------ | ---------------------------------- | ------ |
-| 2.1  | [03-hybrid-keygen.md](./03-hybrid-keygen.md)     | generateHybridKeyPair() function   | [ ]    |
-| 2.2  | [03-hybrid-keygen.md](./03-hybrid-keygen.md)     | Deterministic derivation from seed | [ ]    |
+| 2.1  | [03-hybrid-keygen.md](./03-hybrid-keygen.md)     | generateHybridKeyPair() function   | [x]    |
+| 2.2  | [03-hybrid-keygen.md](./03-hybrid-keygen.md)     | Deterministic derivation from seed | [x]    |
 | 2.3  | [04-pq-key-registry.md](./04-pq-key-registry.md) | PQKeyAttestation type              | [ ]    |
 | 2.4  | [04-pq-key-registry.md](./04-pq-key-registry.md) | MemoryPQKeyRegistry implementation | [ ]    |
 
 **Validation Gate:**
 
-- [ ] Hybrid keypair generation includes ML-DSA keys by default
-- [ ] Deterministic derivation from seed produces consistent keys
+- [x] Hybrid keypair generation includes ML-DSA keys by default
+- [x] Deterministic derivation from seed produces consistent keys
 - [ ] PQ attestation links DID to PQ public key
 - [ ] Registry lookup returns PQ key for a DID
 

@@ -132,3 +132,23 @@ export {
   hybridVerifyAll,
   hybridVerifyAllAsync
 } from './hybrid-signing'
+
+// Hybrid key generation
+export type {
+  HybridKeyPair,
+  KeyGenOptions,
+  KeyDerivationOptions,
+  SerializedPublicKeys
+} from './hybrid-keygen'
+export {
+  generateHybridKeyPair,
+  deriveHybridKeyPair,
+  extractSigningKeys,
+  extractPublicKeys,
+  keyPairSecurityLevel,
+  keyPairCanSignAt,
+  keyPairSize,
+  serializePublicKeys,
+  deserializePublicKeys,
+  publicKeysEqual
+} from './hybrid-keygen'
