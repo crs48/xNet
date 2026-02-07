@@ -11,12 +11,17 @@
 import {
   DatabaseSchema,
   decodeAnchor,
-  type Schema,
-  type PropertyDefinition,
   type PropertyType,
   type CellAnchor,
   type RowAnchor,
-  type ColumnAnchor
+  type ColumnAnchor,
+  // Schema utilities for database-defined schemas
+  buildDatabaseSchema,
+  createInitialSchemaMetadata,
+  bumpSchemaVersion,
+  getVersionBumpType,
+  type DatabaseSchemaMetadata,
+  type StoredColumn
 } from '@xnet/data'
 import { useNode, useIdentity } from '@xnet/react'
 import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnet/ui'
@@ -42,38 +47,6 @@ interface DatabaseViewProps {
 }
 
 type ViewMode = 'table' | 'board'
-
-/**
- * Stored column definition (simplified PropertyDefinition for storage)
- */
-interface StoredColumn {
-  id: string
-  name: string
-  type: PropertyType
-  config?: Record<string, unknown>
-}
-
-/**
- * Build a Schema object from stored columns
- */
-function buildSchema(columns: StoredColumn[], _dbId: string): Schema {
-  const properties: PropertyDefinition[] = columns.map((col) => ({
-    '@id': `xnet://xnet.fyi/DynamicDatabase#${col.id}`,
-    name: col.name,
-    type: col.type,
-    required: false,
-    config: col.config
-  }))
-
-  return {
-    '@id': `xnet://xnet.fyi/DynamicDatabase` as const,
-    '@type': 'xnet://xnet.fyi/Schema',
-    name: 'DynamicDatabase',
-    namespace: 'xnet://xnet.fyi/',
-    version: '1.0.0',
-    properties
-  }
-}
 
 /**
  * Build default view config from columns
@@ -137,6 +110,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [addColumnModalOpen, setAddColumnModalOpen] = useState(false)
+  const [schemaMetadata, setSchemaMetadata] = useState<DatabaseSchemaMetadata | null>(null)
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
 
@@ -540,8 +514,12 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     [selectedCardId, rows]
   )
 
-  // Build schema from columns
-  const schema = useMemo(() => buildSchema(columns, docId), [columns, docId])
+  // Build schema from columns using database-scoped IRI
+  const schema = useMemo(() => {
+    // Use metadata if available, otherwise create initial metadata
+    const metadata = schemaMetadata ?? createInitialSchemaMetadata(database?.title ?? 'Untitled')
+    return buildDatabaseSchema(docId, metadata, columns)
+  }, [columns, docId, schemaMetadata, database?.title])
 
   // Ensure we have valid view configs (use stored or build default)
   const effectiveTableView = useMemo(
@@ -632,6 +610,17 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
       const storedBoardView = dataMap.get('boardView') as ViewConfig | undefined
       if (storedBoardView) setBoardViewConfig(storedBoardView)
+
+      // Load or migrate schema metadata
+      const storedSchema = dataMap.get('schema') as DatabaseSchemaMetadata | undefined
+      if (storedSchema) {
+        setSchemaMetadata(storedSchema)
+      } else {
+        // Migrate: create initial schema metadata for existing databases
+        const initialMetadata = createInitialSchemaMetadata(database?.title ?? 'Untitled Database')
+        dataMap.set('schema', initialMetadata)
+        setSchemaMetadata(initialMetadata)
+      }
     }
 
     loadData()
@@ -640,12 +629,34 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     dataMap.observe(observer)
 
     return () => dataMap.unobserve(observer)
-  }, [doc])
+  }, [doc, database?.title])
 
   // Open add column modal
   const handleAddColumn = useCallback(() => {
     setAddColumnModalOpen(true)
   }, [])
+
+  // Helper to bump schema version on column changes
+  const bumpVersion = useCallback(
+    (operation: 'add' | 'update' | 'rename' | 'delete' | 'changeType') => {
+      if (!doc) return
+
+      const dataMap = doc.getMap('data')
+      const currentMeta = dataMap.get('schema') as DatabaseSchemaMetadata | undefined
+
+      if (currentMeta) {
+        const bumpType = getVersionBumpType(operation)
+        const newVersion = bumpSchemaVersion(currentMeta.version, bumpType)
+        const updatedMeta: DatabaseSchemaMetadata = {
+          ...currentMeta,
+          version: newVersion,
+          updatedAt: Date.now()
+        }
+        dataMap.set('schema', updatedMeta)
+      }
+    },
+    [doc]
+  )
 
   // Handle add column from modal
   const handleAddColumnFromModal = useCallback(
@@ -663,6 +674,9 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
       const updatedColumns = [...currentColumns, newColumn]
       dataMap.set('columns', updatedColumns)
+
+      // Bump schema version (patch for add column)
+      bumpVersion('add')
 
       // Update view configs to include new column
       const currentTableView = dataMap.get('tableView') as ViewConfig | undefined
@@ -685,7 +699,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         })
       }
     },
-    [doc]
+    [doc, bumpVersion]
   )
 
   // Update column (rename, change type)
@@ -695,6 +709,11 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
       const dataMap = doc.getMap('data')
       const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+
+      // Determine the type of change for version bumping
+      const existingColumn = currentColumns.find((col) => col.id === columnId)
+      const isTypeChange = updates.type !== undefined && existingColumn?.type !== updates.type
+      const isRename = updates.name !== undefined && existingColumn?.name !== updates.name
 
       const updatedColumns = currentColumns.map((col) => {
         if (col.id !== columnId) return col
@@ -707,8 +726,17 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       })
 
       dataMap.set('columns', updatedColumns)
+
+      // Bump schema version
+      if (isTypeChange) {
+        bumpVersion('changeType') // Minor bump for type change (breaking)
+      } else if (isRename) {
+        bumpVersion('rename') // Patch bump for rename
+      } else {
+        bumpVersion('update') // Patch bump for config changes
+      }
     },
-    [doc]
+    [doc, bumpVersion]
   )
 
   // Delete column
@@ -756,8 +784,11 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         return rest as TableRow
       })
       dataMap.set('rows', updatedRows)
+
+      // Bump schema version (minor for delete - breaking change)
+      bumpVersion('delete')
     },
-    [doc]
+    [doc, bumpVersion]
   )
 
   // Add new row

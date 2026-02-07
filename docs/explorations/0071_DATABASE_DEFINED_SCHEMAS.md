@@ -378,25 +378,25 @@ flowchart LR
 
 #### Checklist: Phase 1
 
-- [ ] Schema IRI generation
-  - [ ] Create `buildSchemaIRI(databaseId, version)` utility
-  - [ ] Update `buildSchema()` to use database-scoped IRI
-  - [ ] Add version parameter to `buildSchema()`
+- [x] Schema IRI generation
+  - [x] Create `buildSchemaIRI(databaseId, version)` utility
+  - [x] Update `buildSchema()` to use database-scoped IRI
+  - [x] Add version parameter to `buildSchema()`
 
-- [ ] Version storage in Y.Doc
-  - [ ] Add `schema` key to data map with `DatabaseSchemaMetadata`
-  - [ ] Initialize version to `1.0.0` for new databases
-  - [ ] Migrate existing databases to have schema metadata
+- [x] Version storage in Y.Doc
+  - [x] Add `schema` key to data map with `DatabaseSchemaMetadata`
+  - [x] Initialize version to `1.0.0` for new databases
+  - [x] Migrate existing databases to have schema metadata
 
-- [ ] Auto-version on column changes
-  - [ ] `handleAddColumn` - bump patch version
-  - [ ] `handleUpdateColumn` - bump patch version
-  - [ ] `handleDeleteColumn` - bump minor version
-  - [ ] Create `bumpSchemaVersion(type: 'patch' | 'minor')` helper
+- [x] Auto-version on column changes
+  - [x] `handleAddColumn` - bump patch version
+  - [x] `handleUpdateColumn` - bump patch version (or minor for type change)
+  - [x] `handleDeleteColumn` - bump minor version
+  - [x] Create `bumpSchemaVersion(type: 'patch' | 'minor')` helper
 
-- [ ] Tests
-  - [ ] Unit test for schema IRI generation
-  - [ ] Unit test for version bumping logic
+- [x] Tests
+  - [x] Unit test for schema IRI generation
+  - [x] Unit test for version bumping logic
   - [ ] Integration test for column change -> version bump
 
 **Files to modify:**

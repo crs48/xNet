@@ -349,3 +349,24 @@ export {
   type SaveTemplateOptions,
   type DatabaseForTemplate
 } from './templates'
+
+// Schema utilities for database-defined schemas
+export {
+  buildSchemaIRI,
+  parseDatabaseSchemaIRI,
+  isDatabaseSchemaIRI,
+  parseVersion,
+  bumpSchemaVersion,
+  createInitialSchemaMetadata,
+  buildDatabaseSchema,
+  createVersionEntry,
+  pruneVersionHistory,
+  getVersionBumpType,
+  DATABASE_SCHEMA_NAMESPACE,
+  DATABASE_SCHEMA_PREFIX,
+  MAX_VERSION_HISTORY,
+  type DatabaseSchemaMetadata,
+  type StoredColumn,
+  type SchemaVersionEntry,
+  type VersionBumpType
+} from './schema-utils'
