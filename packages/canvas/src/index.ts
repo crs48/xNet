@@ -52,8 +52,11 @@ export {
   createGridLayer,
   isWebGLAvailable,
   DEFAULT_GRID_CONFIG,
+  EdgeRenderer,
+  createEdgeRenderer,
   type GridLayer,
-  type WebGLGridConfig
+  type WebGLGridConfig,
+  type EdgeRendererViewport
 } from './layers/index'
 
 // Spatial indexing
