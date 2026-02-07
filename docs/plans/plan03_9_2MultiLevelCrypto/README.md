@@ -119,8 +119,8 @@ Add post-quantum primitives to `@xnet/crypto`.
 
 | Task | Document                                             | Description                               | Status |
 | ---- | ---------------------------------------------------- | ----------------------------------------- | ------ |
-| 1.1  | [01-core-crypto-types.md](./01-core-crypto-types.md) | SecurityLevel type, UnifiedSignature type | [ ]    |
-| 1.2  | [01-core-crypto-types.md](./01-core-crypto-types.md) | Add @noble/post-quantum dependency        | [ ]    |
+| 1.1  | [01-core-crypto-types.md](./01-core-crypto-types.md) | SecurityLevel type, UnifiedSignature type | [x]    |
+| 1.2  | [01-core-crypto-types.md](./01-core-crypto-types.md) | Add @noble/post-quantum dependency        | [x]    |
 | 1.3  | [02-hybrid-signing.md](./02-hybrid-signing.md)       | hybridSign() implementation               | [ ]    |
 | 1.4  | [02-hybrid-signing.md](./02-hybrid-signing.md)       | hybridVerify() implementation             | [ ]    |
 
