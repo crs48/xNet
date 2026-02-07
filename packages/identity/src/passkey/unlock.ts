@@ -2,7 +2,7 @@
  * @xnet/identity/passkey - Unlock an existing passkey identity
  */
 import type { PasskeyIdentity, PasskeyUnlockResult } from './types'
-import { deriveKeyBundle } from '../keys'
+import { createKeyBundle } from '../key-bundle'
 import { deriveKeySeed, PRF_INPUT } from './derive'
 
 /**
@@ -19,6 +19,7 @@ import { deriveKeySeed, PRF_INPUT } from './derive'
  * const stored = await getStoredPasskey()
  * const result = await unlockPasskeyIdentity(stored)
  * // result.keyBundle.signingKey is the same every time
+ * // result.keyBundle.pqSigningKey is also deterministic
  */
 export async function unlockPasskeyIdentity(stored: PasskeyIdentity): Promise<PasskeyUnlockResult> {
   const assertion = (await navigator.credentials.get({
@@ -56,7 +57,7 @@ export async function unlockPasskeyIdentity(stored: PasskeyIdentity): Promise<Pa
 
   const prfOutput = new Uint8Array(extensions.prf.results.first)
   const seed = await deriveKeySeed(prfOutput)
-  const keyBundle = deriveKeyBundle(seed)
+  const keyBundle = createKeyBundle({ seed, includePQ: true })
 
   // Verify we derived the same identity
   if (keyBundle.identity.did !== stored.did) {

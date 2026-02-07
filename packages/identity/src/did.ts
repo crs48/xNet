@@ -1,7 +1,7 @@
 /**
  * DID:key implementation for Ed25519 keys
  */
-import type { Identity } from './types'
+import type { Identity, DID } from './types'
 import { generateSigningKeyPair, getSigningPublicKeyFromPrivate } from '@xnet/crypto'
 import { base58btc } from 'multiformats/bases/base58'
 
@@ -11,7 +11,7 @@ const ED25519_PREFIX = new Uint8Array([0xed, 0x01])
 /**
  * Create a DID:key from an Ed25519 public key
  */
-export function createDID(publicKey: Uint8Array): string {
+export function createDID(publicKey: Uint8Array): DID {
   if (publicKey.length !== 32) {
     throw new Error('Public key must be 32 bytes')
   }
@@ -19,7 +19,7 @@ export function createDID(publicKey: Uint8Array): string {
   prefixed.set(ED25519_PREFIX)
   prefixed.set(publicKey, ED25519_PREFIX.length)
   const encoded = base58btc.encode(prefixed)
-  return `did:key:${encoded}`
+  return `did:key:${encoded}` as DID
 }
 
 /**

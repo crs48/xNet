@@ -6,7 +6,8 @@
  * via iCloud Keychain, Google Password Manager, etc.).
  */
 import type { PasskeyIdentity, PasskeyUnlockResult } from './types'
-import { deriveKeyBundle } from '../keys'
+import type { DID } from '../types'
+import { createKeyBundle } from '../key-bundle'
 import { deriveKeySeed, PRF_INPUT } from './derive'
 
 // ─── Types ───────────────────────────────────────────────────
@@ -132,11 +133,12 @@ export async function unlockDiscoveredPasskey(
 
   const prfOutput = new Uint8Array(extensions.prf.results.first)
   const seed = await deriveKeySeed(prfOutput)
-  const keyBundle = deriveKeyBundle(seed)
+  const keyBundle = createKeyBundle({ seed, includePQ: true })
 
   const passkey: PasskeyIdentity = {
-    did: keyBundle.identity.did,
+    did: keyBundle.identity.did as DID,
     publicKey: keyBundle.identity.publicKey,
+    pqPublicKey: keyBundle.pqPublicKey,
     credentialId: discovered.credentialId,
     createdAt: Date.now(),
     rpId: discovered.rpId,

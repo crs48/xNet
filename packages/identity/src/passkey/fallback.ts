@@ -8,24 +8,27 @@
  * This is less secure than PRF (the encrypted key exists at rest) but
  * still requires biometric authentication to decrypt.
  */
-import type { KeyBundle } from '../types'
+import type { HybridKeyBundle, DID } from '../types'
 import type { PasskeyIdentity, PasskeyUnlockResult, FallbackStorage } from './types'
 import { encrypt, decrypt, generateKey } from '@xnet/crypto'
-import { generateKeyBundle, serializeKeyBundle, deserializeKeyBundle } from '../keys'
+import { createKeyBundle } from '../key-bundle'
+import { serializeKeyBundleToBinary, deserializeKeyBundleFromBinary } from '../key-bundle-storage'
 
 /**
  * Create a fallback identity without PRF.
  *
- * Generates a random keypair, creates a passkey (for biometric gating),
+ * Generates a random hybrid keypair, creates a passkey (for biometric gating),
  * and encrypts the key bundle using a random encryption key stored alongside.
  */
 export async function createFallbackIdentity(rpId?: string): Promise<{
-  keyBundle: KeyBundle
+  keyBundle: HybridKeyBundle
   passkey: PasskeyIdentity
   fallback: FallbackStorage
 }> {
   const resolvedRpId = rpId ?? window.location.hostname
-  const keyBundle = generateKeyBundle()
+
+  // Generate hybrid key bundle (with PQ keys by default)
+  const keyBundle = createKeyBundle({ includePQ: true })
 
   // Create passkey (no PRF)
   const credential = (await navigator.credentials.create({
@@ -57,12 +60,13 @@ export async function createFallbackIdentity(rpId?: string): Promise<{
   // The encryption key is stored alongside the encrypted data.
   // Security comes from the passkey gating access, not the encryption key secrecy.
   const encKey = generateKey()
-  const serialized = serializeKeyBundle(keyBundle)
+  const serialized = serializeKeyBundleToBinary(keyBundle)
   const encrypted = encrypt(serialized, encKey)
 
   const passkey: PasskeyIdentity = {
-    did: keyBundle.identity.did,
+    did: keyBundle.identity.did as DID,
     publicKey: keyBundle.identity.publicKey,
+    pqPublicKey: keyBundle.pqPublicKey,
     credentialId: new Uint8Array(credential.rawId),
     createdAt: Date.now(),
     rpId: resolvedRpId,
@@ -110,7 +114,7 @@ export async function unlockFallbackIdentity(
     { nonce: fallback.nonce, ciphertext: fallback.encryptedBundle },
     fallback.encKey
   )
-  const keyBundle = deserializeKeyBundle(decrypted)
+  const keyBundle = deserializeKeyBundleFromBinary(decrypted)
 
   // Verify identity matches
   if (keyBundle.identity.did !== stored.did) {

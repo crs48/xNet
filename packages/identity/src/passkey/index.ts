@@ -7,7 +7,7 @@
  * - IndexedDB persistence of public identity info
  * - In-memory caching of unlocked keys
  */
-import type { KeyBundle } from '../types'
+import type { HybridKeyBundle } from '../types'
 import type { PasskeyIdentity, PasskeyCreateOptions, FallbackStorage } from './types'
 import { createPasskeyIdentity } from './create'
 import { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
@@ -51,13 +51,13 @@ export type IdentityManager = {
   hasIdentity(): Promise<boolean>
 
   /** Create a new identity (prompts for biometric) */
-  create(options?: PasskeyCreateOptions): Promise<KeyBundle>
+  create(options?: PasskeyCreateOptions): Promise<HybridKeyBundle>
 
   /** Unlock the existing identity (prompts for biometric) */
-  unlock(): Promise<KeyBundle>
+  unlock(): Promise<HybridKeyBundle>
 
   /** Get the cached key bundle without prompting (null if locked) */
-  getCached(): KeyBundle | null
+  getCached(): HybridKeyBundle | null
 
   /** Clear stored identity and cached keys */
   clear(): Promise<void>
@@ -83,9 +83,11 @@ export type IdentityManager = {
  * } else {
  *   const keys = await manager.create() // Create passkey + Touch ID
  * }
+ *
+ * // keys.maxSecurityLevel === 2 (hybrid bundle with PQ keys)
  */
 export function createIdentityManager(): IdentityManager {
-  let cachedKeyBundle: KeyBundle | null = null
+  let cachedKeyBundle: HybridKeyBundle | null = null
   let prfSupported: boolean | null = null
 
   return {
@@ -99,13 +101,13 @@ export function createIdentityManager(): IdentityManager {
       return stored !== null
     },
 
-    async create(options?: PasskeyCreateOptions): Promise<KeyBundle> {
+    async create(options?: PasskeyCreateOptions): Promise<HybridKeyBundle> {
       // IMPORTANT: Do NOT call detectPasskeySupport() here!
       // Safari/WebKit requires WebAuthn calls to be in the synchronous call stack
       // of a user gesture. Any async operation will cause the credential creation
       // to be blocked. Support detection must happen via preflight() on mount.
 
-      let keyBundle: KeyBundle
+      let keyBundle: HybridKeyBundle
       let passkey: PasskeyIdentity
       let fallback: FallbackStorage | undefined
 
@@ -143,7 +145,7 @@ export function createIdentityManager(): IdentityManager {
       return keyBundle
     },
 
-    async unlock(): Promise<KeyBundle> {
+    async unlock(): Promise<HybridKeyBundle> {
       if (cachedKeyBundle) {
         return cachedKeyBundle
       }
@@ -153,7 +155,7 @@ export function createIdentityManager(): IdentityManager {
         throw new Error('No identity found')
       }
 
-      let keyBundle: KeyBundle
+      let keyBundle: HybridKeyBundle
 
       if (stored.fallback) {
         const result = await unlockFallbackIdentity(stored.passkey, stored.fallback)
@@ -167,7 +169,7 @@ export function createIdentityManager(): IdentityManager {
       return keyBundle
     },
 
-    getCached(): KeyBundle | null {
+    getCached(): HybridKeyBundle | null {
       return cachedKeyBundle
     },
 

@@ -3,18 +3,51 @@
  */
 
 // Types
-export type { Identity, KeyBundle, StoredKey, UCANCapability, UCANToken } from './types'
+export type {
+  DID,
+  Identity,
+  KeyBundle,
+  HybridKeyBundle,
+  CreateKeyBundleOptions,
+  StoredKey,
+  UCANCapability,
+  UCANToken
+} from './types'
 
 // DID operations
 export { createDID, parseDID, generateIdentity, identityFromPrivateKey, isValidDID } from './did'
 
-// Key management
+// Key management (legacy - use key-bundle.ts for new code)
 export {
   deriveKeyBundle,
   generateKeyBundle,
   serializeKeyBundle,
   deserializeKeyBundle
 } from './keys'
+
+// Hybrid key bundle (new)
+export {
+  createKeyBundle,
+  createKeyBundleWithAttestation,
+  signWithBundle,
+  verifyWithBundle,
+  bundleSecurityLevel,
+  bundleCanSignAt,
+  bundleSize,
+  extractPublicKeys,
+  bundlesMatch
+} from './key-bundle'
+
+// Key bundle serialization (new)
+export type { SerializedKeyBundle } from './key-bundle-storage'
+export {
+  serializeHybridKeyBundle,
+  deserializeHybridKeyBundle,
+  serializeKeyBundleToJSON,
+  deserializeKeyBundleFromJSON,
+  serializeKeyBundleToBinary,
+  deserializeKeyBundleFromBinary
+} from './key-bundle-storage'
 
 // UCAN tokens
 export {

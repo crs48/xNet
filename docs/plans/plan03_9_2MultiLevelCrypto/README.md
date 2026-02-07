@@ -155,15 +155,15 @@ Update identity package for hybrid keys.
 
 | Task | Document                                           | Description                            | Status |
 | ---- | -------------------------------------------------- | -------------------------------------- | ------ |
-| 3.1  | [05-identity-upgrade.md](./05-identity-upgrade.md) | Replace KeyBundle with HybridKeyBundle | [ ]    |
-| 3.2  | [05-identity-upgrade.md](./05-identity-upgrade.md) | Update deriveKeyBundle() for PQ keys   | [ ]    |
-| 3.3  | [05-identity-upgrade.md](./05-identity-upgrade.md) | Passkey integration with PQ derivation | [ ]    |
+| 3.1  | [05-identity-upgrade.md](./05-identity-upgrade.md) | Replace KeyBundle with HybridKeyBundle | [x]    |
+| 3.2  | [05-identity-upgrade.md](./05-identity-upgrade.md) | Update deriveKeyBundle() for PQ keys   | [x]    |
+| 3.3  | [05-identity-upgrade.md](./05-identity-upgrade.md) | Passkey integration with PQ derivation | [x]    |
 
 **Validation Gate:**
 
-- [ ] New identities have ML-DSA keys by default
-- [ ] DID:key format unchanged (still Ed25519-based)
-- [ ] Passkey PRF derivation produces hybrid keys
+- [x] New identities have ML-DSA keys by default
+- [x] DID:key format unchanged (still Ed25519-based)
+- [x] Passkey PRF derivation produces hybrid keys
 
 ### Phase 4: Wire Format Updates (Steps 06-07)
 

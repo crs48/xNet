@@ -1,7 +1,7 @@
 /**
  * @xnet/identity/passkey - WebAuthn passkey authentication types
  */
-import type { KeyBundle } from '../types'
+import type { KeyBundle, HybridKeyBundle, DID } from '../types'
 
 // ─── Passkey Identity ────────────────────────────────────────
 
@@ -11,10 +11,13 @@ import type { KeyBundle } from '../types'
  */
 export type PasskeyIdentity = {
   /** The DID derived from the public key */
-  did: string
+  did: DID
 
   /** Ed25519 public key (safe to store) */
   publicKey: Uint8Array
+
+  /** ML-DSA-65 public key (safe to store, for reference) */
+  pqPublicKey?: Uint8Array
 
   /** WebAuthn credential ID (needed for authentication) */
   credentialId: Uint8Array
@@ -33,13 +36,25 @@ export type PasskeyIdentity = {
 
 /**
  * Result of creating or unlocking a passkey identity.
- * Contains the full KeyBundle (ephemeral — don't persist the private keys!).
+ * Contains the full HybridKeyBundle (ephemeral — don't persist the private keys!).
  */
 export type PasskeyUnlockResult = {
-  /** Full key bundle with signing + encryption keys */
-  keyBundle: KeyBundle
+  /** Full hybrid key bundle with classical + PQ keys */
+  keyBundle: HybridKeyBundle
 
   /** Public identity info (safe to persist) */
+  passkey: PasskeyIdentity
+}
+
+/**
+ * @deprecated Use PasskeyUnlockResult instead
+ * Result with legacy KeyBundle for backward compatibility
+ */
+export type PasskeyUnlockResultLegacy = {
+  /** Legacy key bundle (Ed25519/X25519 only) */
+  keyBundle: KeyBundle
+
+  /** Public identity info */
   passkey: PasskeyIdentity
 }
 
