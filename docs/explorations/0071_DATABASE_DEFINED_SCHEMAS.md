@@ -5,7 +5,7 @@
 **References**: Builds on [0067_DATABASE_DATA_MODEL_V2.md](./0067_DATABASE_DATA_MODEL_V2.md) for the underlying data model.
 
 **Date**: February 2026
-**Status**: Design Ready
+**Status**: Implemented (Phases 1-4)
 
 ## Executive Summary
 
@@ -571,9 +571,11 @@ flowchart LR
 
 ---
 
-### Phase 5: Schema Version History (Optional)
+### Phase 5: Schema Version History (Optional, Deferred)
 
 **Goal:** Track schema changes over time for auditing and potential rollback.
+
+> **Note:** This phase is deferred. The `SchemaVersionEntry` type and utility functions (`createVersionEntry`, `pruneVersionHistory`) already exist in `schema-utils.ts`. Implementation would involve storing history entries on version bumps and creating a devtools panel.
 
 ```mermaid
 flowchart TB
