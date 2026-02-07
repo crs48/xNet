@@ -144,8 +144,8 @@ sequenceDiagram
 
 - [x] WebGL grid renders at 60fps at any zoom
 - [x] Canvas 2D renders 5000 edges at 60fps
-- [ ] Only visible nodes in DOM (+ 300px buffer)
-- [ ] LOD reduces detail at zoom < 0.3
+- [x] Only visible nodes in DOM (+ 300px buffer)
+- [x] LOD reduces detail at zoom < 0.3
 - [ ] No jank panning with 5000 nodes
 
 ### Phase 2: Lazy-Loading & Scale (Weeks 4-5)

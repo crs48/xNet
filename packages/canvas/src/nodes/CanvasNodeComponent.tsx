@@ -2,10 +2,30 @@
  * Canvas Node Component
  *
  * Renders individual nodes on the canvas with selection, resize handles, etc.
+ * Supports Level of Detail (LOD) rendering for performance at different zoom levels.
  */
 
 import type { CanvasNode, ResizeHandle, Point } from '../types'
 import React, { useCallback, useRef, useEffect, memo } from 'react'
+
+/**
+ * Level of Detail for node rendering
+ * - placeholder: Just a colored rectangle (zoom < 0.1)
+ * - minimal: Title only (zoom 0.1-0.3)
+ * - compact: Title + icon (zoom 0.3-0.6)
+ * - full: Complete interactive node (zoom > 0.6)
+ */
+export type LODLevel = 'placeholder' | 'minimal' | 'compact' | 'full'
+
+/**
+ * Calculate LOD level based on zoom
+ */
+export function calculateLOD(zoom: number): LODLevel {
+  if (zoom < 0.1) return 'placeholder'
+  if (zoom < 0.3) return 'minimal'
+  if (zoom < 0.6) return 'compact'
+  return 'full'
+}
 
 /**
  * Remote user presence on a specific node
@@ -19,6 +39,8 @@ export interface NodeRemoteUser {
 export interface CanvasNodeProps {
   node: CanvasNode
   selected: boolean
+  /** Level of detail for rendering (defaults to 'full') */
+  lod?: LODLevel
   /** Remote users who have this node selected */
   remoteUsers?: NodeRemoteUser[]
   onSelect: (id: string, additive: boolean) => void
@@ -101,6 +123,41 @@ function getHandleStyle(handle: ResizeHandle): React.CSSProperties {
 }
 
 /**
+ * Get a color for a node based on its type (for placeholder LOD)
+ */
+function getNodeColor(node: CanvasNode): string {
+  const colors: Record<string, string> = {
+    card: '#e3f2fd',
+    embed: '#f3e5f5',
+    mermaid: '#e8f5e9',
+    shape: '#fff3e0',
+    default: '#f5f5f5'
+  }
+  return colors[node.type] ?? colors.default
+}
+
+/**
+ * Get node title for display
+ */
+function getNodeTitle(node: CanvasNode): string {
+  return (node.properties.title as string) ?? node.type ?? 'Untitled'
+}
+
+/**
+ * Node icon based on type (for compact LOD)
+ */
+function NodeIcon({ type }: { type: string }) {
+  const icons: Record<string, string> = {
+    card: '📄',
+    embed: '🔗',
+    mermaid: '📊',
+    shape: '⬡',
+    default: '📌'
+  }
+  return <span style={{ fontSize: 14 }}>{icons[type] ?? icons.default}</span>
+}
+
+/**
  * Default node content based on type
  */
 function DefaultNodeContent({ node }: { node: CanvasNode }) {
@@ -137,10 +194,14 @@ function DefaultNodeContent({ node }: { node: CanvasNode }) {
 
 /**
  * Canvas Node Component
+ *
+ * Renders nodes with LOD (Level of Detail) support for performance optimization.
+ * At low zoom levels, simplified representations are used to reduce DOM complexity.
  */
 export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   node,
   selected,
+  lod = 'full',
   remoteUsers,
   onSelect,
   onDragStart,
@@ -167,7 +228,20 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
   const { position } = node
 
-  // Handle mouse down for drag
+  // Determine border color based on presence
+  const hasRemotePresence = remoteUsers && remoteUsers.length > 0
+  const presenceColor = hasRemotePresence ? remoteUsers[0].color : undefined
+
+  // Handle click for selection (used by all LOD levels)
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      onSelect(node.id, e.shiftKey || e.metaKey)
+    },
+    [node.id, onSelect]
+  )
+
+  // Handle mouse down for drag (full LOD only, but must be defined before conditionals)
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0) return
@@ -251,10 +325,126 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
     [node.id, onDoubleClick]
   )
 
-  // Determine border color based on presence
-  const hasRemotePresence = remoteUsers && remoteUsers.length > 0
-  const presenceColor = hasRemotePresence ? remoteUsers[0].color : undefined
+  // ─── Placeholder LOD: Just a colored rectangle ─────────────────────────
+  if (lod === 'placeholder') {
+    return (
+      <div
+        className="canvas-node canvas-node--placeholder"
+        style={{
+          position: 'absolute',
+          left: position.x,
+          top: position.y,
+          width: position.width,
+          height: position.height,
+          backgroundColor: getNodeColor(node),
+          borderRadius: 4,
+          pointerEvents: 'auto',
+          cursor: 'pointer',
+          border: selected
+            ? '2px solid #0066ff'
+            : hasRemotePresence
+              ? `2px solid ${presenceColor}`
+              : '1px solid #e0e0e0',
+          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined
+        }}
+        onClick={handleClick}
+        data-node-id={node.id}
+        data-lod="placeholder"
+      />
+    )
+  }
 
+  // ─── Minimal LOD: Title only ───────────────────────────────────────────
+  if (lod === 'minimal') {
+    return (
+      <div
+        className="canvas-node canvas-node--minimal"
+        style={{
+          position: 'absolute',
+          left: position.x,
+          top: position.y,
+          width: position.width,
+          height: position.height,
+          backgroundColor: '#fff',
+          border: selected
+            ? '2px solid #0066ff'
+            : hasRemotePresence
+              ? `2px solid ${presenceColor}`
+              : '1px solid #e0e0e0',
+          borderRadius: 4,
+          padding: 4,
+          overflow: 'hidden',
+          pointerEvents: 'auto',
+          cursor: 'pointer',
+          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined
+        }}
+        onClick={handleClick}
+        data-node-id={node.id}
+        data-lod="minimal"
+      >
+        <span
+          style={{
+            fontSize: 11,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: 'block'
+          }}
+        >
+          {getNodeTitle(node)}
+        </span>
+      </div>
+    )
+  }
+
+  // ─── Compact LOD: Title + icon ─────────────────────────────────────────
+  if (lod === 'compact') {
+    return (
+      <div
+        className="canvas-node canvas-node--compact"
+        style={{
+          position: 'absolute',
+          left: position.x,
+          top: position.y,
+          width: position.width,
+          height: position.height,
+          backgroundColor: '#fff',
+          border: selected
+            ? '2px solid #0066ff'
+            : hasRemotePresence
+              ? `2px solid ${presenceColor}`
+              : '1px solid #e0e0e0',
+          borderRadius: 6,
+          padding: 8,
+          overflow: 'hidden',
+          pointerEvents: 'auto',
+          cursor: 'pointer',
+          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6
+        }}
+        onClick={handleClick}
+        data-node-id={node.id}
+        data-lod="compact"
+      >
+        <NodeIcon type={node.type} />
+        <span
+          style={{
+            fontWeight: 500,
+            fontSize: 12,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+        >
+          {getNodeTitle(node)}
+        </span>
+      </div>
+    )
+  }
+
+  // ─── Full LOD: Complete interactive node ───────────────────────────────
   // Node styles
   const nodeStyle: React.CSSProperties = {
     position: 'absolute',
@@ -284,11 +474,13 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   return (
     <div
       ref={nodeRef}
+      className="canvas-node canvas-node--full"
       style={nodeStyle}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
       data-node-id={node.id}
       data-node-type={node.type}
+      data-lod="full"
     >
       {/* Content wrapper (clips overflow) */}
       <div style={{ overflow: 'hidden', width: '100%', height: '100%', borderRadius: 6 }}>

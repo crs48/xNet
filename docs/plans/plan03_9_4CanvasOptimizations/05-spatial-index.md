@@ -585,13 +585,13 @@ describe('SpatialIndex', () => {
 
 ## Validation Gate
 
-- [ ] Bulk load 100k items in < 500ms
-- [ ] Viewport query on 100k items in < 5ms
-- [ ] Single update doesn't trigger full rebuild
-- [ ] Batched updates apply efficiently
-- [ ] Bulk remove handles chunk eviction
+- [x] Bulk load 100k items in < 500ms
+- [x] Viewport query on 100k items in < 5ms
+- [x] Single update doesn't trigger full rebuild
+- [x] Batched updates apply efficiently
+- [x] Bulk remove handles chunk eviction
 - [ ] Memory usage scales linearly with items
-- [ ] Hit testing works for overlapping nodes
+- [x] Hit testing works for overlapping nodes
 - [ ] No memory leaks during add/remove cycles
 
 ---

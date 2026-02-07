@@ -48,14 +48,24 @@ function rectToSearchBox(rect: Rect): { minX: number; minY: number; maxX: number
 
 /**
  * Spatial index for canvas nodes
+ *
+ * Optimized for:
+ * - Bulk loading (chunk loading): O(n log n) via tree.load()
+ * - Bulk removal (chunk eviction): O(n) batch removal
+ * - Batched updates (drag operations): Deferred flush for multiple updates
+ * - Viewport queries: O(log n) via R-tree search
  */
 export class SpatialIndex {
   private tree: RBush<SpatialItem>
   private items: Map<string, SpatialItem>
+  private pendingUpdates: Map<string, SpatialItem>
+  private updateScheduled: boolean
 
   constructor() {
     this.tree = new RBush()
     this.items = new Map()
+    this.pendingUpdates = new Map()
+    this.updateScheduled = false
   }
 
   /**
@@ -90,6 +100,10 @@ export class SpatialIndex {
    * Find all nodes within a rectangle (e.g., viewport or selection box)
    */
   search(rect: Rect): string[] {
+    // Flush pending updates for accurate results
+    if (this.pendingUpdates.size > 0) {
+      this.flush()
+    }
     const results = this.tree.search(rectToSearchBox(rect))
     return results.map((item) => item.id)
   }
@@ -203,6 +217,8 @@ export class SpatialIndex {
 
   /**
    * Bulk load nodes (more efficient than individual inserts)
+   * Clears existing items and loads new ones.
+   * O(n log n) complexity via rbush bulk loading.
    */
   load(nodes: Array<{ id: string; position: CanvasNodePosition }>): void {
     this.clear()
@@ -211,6 +227,101 @@ export class SpatialIndex {
     for (const item of items) {
       this.items.set(item.id, item)
     }
+  }
+
+  /**
+   * Bulk load additional nodes without clearing existing ones.
+   * Useful for loading chunks incrementally.
+   * O(n log n) complexity.
+   */
+  bulkLoad(nodes: Array<{ id: string; position: CanvasNodePosition }>): void {
+    const items = nodes.map((n) => positionToItem(n.id, n.position))
+    this.tree.load(items)
+    for (const item of items) {
+      this.items.set(item.id, item)
+    }
+  }
+
+  /**
+   * Bulk remove nodes by IDs.
+   * Optimized for chunk eviction.
+   */
+  bulkRemove(ids: string[]): void {
+    for (const id of ids) {
+      const item = this.items.get(id)
+      if (item) {
+        this.tree.remove(item, (a, b) => a.id === b.id)
+        this.items.delete(id)
+      }
+      // Also remove from pending updates if present
+      this.pendingUpdates.delete(id)
+    }
+  }
+
+  /**
+   * Schedule a batched update for a node.
+   * Updates are deferred and applied together at the end of the frame.
+   * This prevents excessive tree rebalancing during drag operations.
+   */
+  scheduleUpdate(id: string, position: CanvasNodePosition): void {
+    const item = positionToItem(id, position)
+    this.pendingUpdates.set(id, item)
+    this.scheduleFlush()
+  }
+
+  /**
+   * Immediately apply all pending updates.
+   * Call this before queries if freshness is critical.
+   */
+  flush(): void {
+    if (this.pendingUpdates.size === 0) return
+
+    for (const [id, newItem] of this.pendingUpdates) {
+      const oldItem = this.items.get(id)
+      if (oldItem) {
+        this.tree.remove(oldItem, (a, b) => a.id === b.id)
+      }
+      this.tree.insert(newItem)
+      this.items.set(id, newItem)
+    }
+
+    this.pendingUpdates.clear()
+    this.updateScheduled = false
+  }
+
+  /**
+   * Check if there are pending updates
+   */
+  hasPendingUpdates(): boolean {
+    return this.pendingUpdates.size > 0
+  }
+
+  /**
+   * Schedule flush for end of frame
+   */
+  private scheduleFlush(): void {
+    if (this.updateScheduled) return
+    this.updateScheduled = true
+
+    // Use requestAnimationFrame if available, otherwise setTimeout
+    if (typeof requestAnimationFrame !== 'undefined') {
+      requestAnimationFrame(() => {
+        this.flush()
+      })
+    } else {
+      setTimeout(() => {
+        this.flush()
+      }, 0)
+    }
+  }
+
+  /**
+   * Check if any items intersect with a rectangle.
+   * Useful for collision detection.
+   */
+  collides(rect: Rect): boolean {
+    this.flush() // Ensure pending updates are applied
+    return this.tree.collides(rectToSearchBox(rect))
   }
 }
 

@@ -156,6 +156,108 @@ describe('SpatialIndex', () => {
       expect(index.getIds()).toEqual(['new'])
     })
   })
+
+  describe('bulkLoad', () => {
+    it('should add items without clearing existing ones', () => {
+      index.upsert('existing', { x: 0, y: 0, width: 50, height: 50 })
+      index.bulkLoad([
+        { id: 'node1', position: { x: 100, y: 0, width: 100, height: 50 } },
+        { id: 'node2', position: { x: 200, y: 0, width: 100, height: 50 } }
+      ])
+      expect(index.size()).toBe(3)
+      expect(index.getIds()).toContain('existing')
+      expect(index.getIds()).toContain('node1')
+      expect(index.getIds()).toContain('node2')
+    })
+
+    it('should handle large bulk loads efficiently', () => {
+      const nodes = Array.from({ length: 1000 }, (_, i) => ({
+        id: `node-${i}`,
+        position: { x: (i % 50) * 100, y: Math.floor(i / 50) * 100, width: 80, height: 60 }
+      }))
+      index.bulkLoad(nodes)
+      expect(index.size()).toBe(1000)
+    })
+  })
+
+  describe('bulkRemove', () => {
+    beforeEach(() => {
+      index.load([
+        { id: 'node1', position: { x: 0, y: 0, width: 100, height: 50 } },
+        { id: 'node2', position: { x: 200, y: 0, width: 100, height: 50 } },
+        { id: 'node3', position: { x: 0, y: 200, width: 100, height: 50 } }
+      ])
+    })
+
+    it('should remove multiple items at once', () => {
+      index.bulkRemove(['node1', 'node3'])
+      expect(index.size()).toBe(1)
+      expect(index.getIds()).toEqual(['node2'])
+    })
+
+    it('should handle non-existent IDs gracefully', () => {
+      index.bulkRemove(['node1', 'nonexistent', 'node3'])
+      expect(index.size()).toBe(1)
+    })
+
+    it('should update search results after bulk remove', () => {
+      index.bulkRemove(['node1'])
+      const results = index.search({ x: -50, y: -50, width: 200, height: 100 })
+      expect(results).not.toContain('node1')
+    })
+  })
+
+  describe('scheduleUpdate and flush', () => {
+    beforeEach(() => {
+      index.upsert('node1', { x: 0, y: 0, width: 100, height: 50 })
+    })
+
+    it('should batch multiple updates', () => {
+      index.scheduleUpdate('node1', { x: 100, y: 100, width: 100, height: 50 })
+      index.scheduleUpdate('node1', { x: 200, y: 200, width: 100, height: 50 })
+      index.scheduleUpdate('node1', { x: 300, y: 300, width: 100, height: 50 })
+
+      expect(index.hasPendingUpdates()).toBe(true)
+
+      // Flush applies all updates
+      index.flush()
+
+      expect(index.hasPendingUpdates()).toBe(false)
+
+      // Should find at new position
+      const results = index.search({ x: 250, y: 250, width: 200, height: 200 })
+      expect(results).toContain('node1')
+
+      // Should not find at old position
+      const oldResults = index.search({ x: -50, y: -50, width: 100, height: 100 })
+      expect(oldResults).not.toContain('node1')
+    })
+
+    it('should auto-flush pending updates on search', () => {
+      index.scheduleUpdate('node1', { x: 500, y: 500, width: 100, height: 50 })
+
+      expect(index.hasPendingUpdates()).toBe(true)
+
+      // Search should auto-flush pending updates
+      const results = index.search({ x: 450, y: 450, width: 200, height: 200 })
+      expect(results).toContain('node1')
+      expect(index.hasPendingUpdates()).toBe(false)
+    })
+  })
+
+  describe('collides', () => {
+    beforeEach(() => {
+      index.upsert('node1', { x: 0, y: 0, width: 100, height: 50 })
+    })
+
+    it('should detect collision with overlapping rect', () => {
+      expect(index.collides({ x: 50, y: 25, width: 100, height: 50 })).toBe(true)
+    })
+
+    it('should not detect collision with non-overlapping rect', () => {
+      expect(index.collides({ x: 200, y: 200, width: 100, height: 50 })).toBe(false)
+    })
+  })
 })
 
 describe('Viewport', () => {

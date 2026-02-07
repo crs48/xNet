@@ -658,16 +658,16 @@ describe('VirtualizedNodeLayer', () => {
 
 ## Validation Gate
 
-- [ ] Only visible nodes rendered in DOM (+ 300px buffer)
-- [ ] LOD transitions smoothly at zoom thresholds
-- [ ] Placeholder nodes render at zoom < 0.1
-- [ ] Minimal nodes show title at zoom 0.1-0.3
-- [ ] Compact nodes show title + icon at zoom 0.3-0.6
-- [ ] Full nodes render at zoom > 0.6
+- [x] Only visible nodes rendered in DOM (+ 300px buffer)
+- [x] LOD transitions smoothly at zoom thresholds
+- [x] Placeholder nodes render at zoom < 0.1
+- [x] Minimal nodes show title at zoom 0.1-0.3
+- [x] Compact nodes show title + icon at zoom 0.3-0.6
+- [x] Full nodes render at zoom > 0.6
 - [ ] No pop-in during normal pan speeds
 - [ ] 10,000 nodes pans at 60fps
-- [ ] Selection works at all LOD levels
-- [ ] Memoization prevents unnecessary re-renders
+- [x] Selection works at all LOD levels
+- [x] Memoization prevents unnecessary re-renders
 
 ---
 
