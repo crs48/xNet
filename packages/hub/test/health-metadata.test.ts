@@ -30,4 +30,19 @@ describe('Health metadata', () => {
     expect(body.region).toBe('ams')
     expect(body.machineId).toBe('fly-test')
   })
+
+  it('returns shields.io badge format at /health/badge', async () => {
+    const res = await fetch(`http://localhost:${PORT}/health/badge`)
+    expect(res.ok).toBe(true)
+    const body = (await res.json()) as {
+      schemaVersion: number
+      label: string
+      message: string
+      color: string
+    }
+    expect(body.schemaVersion).toBe(1)
+    expect(body.label).toBe('demo hub')
+    expect(body.message).toMatch(/^online · \d+m$|^online · \d+h \d+m$/)
+    expect(body.color).toBe('brightgreen')
+  })
 })

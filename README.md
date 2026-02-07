@@ -3,6 +3,8 @@
 [![CI](https://github.com/crs48/xNet/actions/workflows/ci.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/ci.yml)
 [![Electron Release](https://github.com/crs48/xNet/actions/workflows/electron-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/electron-release.yml)
 [![Hub Release](https://github.com/crs48/xNet/actions/workflows/hub-release.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/hub-release.yml)
+[![Demo Hub](https://img.shields.io/endpoint?url=https%3A%2F%2Fhub.xnet.fyi%2Fhealth%2Fbadge&logo=railway&logoColor=white)](https://hub.xnet.fyi/health)
+[![Demo App](https://img.shields.io/github/deployments/crs48/xNet/github-pages?label=demo%20app&logo=github)](https://xnet.fyi/app)
 [![Docs](https://img.shields.io/badge/docs-starlight-blue?logo=astro)](https://xnet.fyi/docs)
 [![GitHub Stars](https://img.shields.io/github/stars/crs48/xNet?style=flat&logo=github)](https://github.com/crs48/xNet/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)

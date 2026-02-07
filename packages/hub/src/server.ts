@@ -329,6 +329,22 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     })
   })
 
+  // Shields.io endpoint badge format for README status badges
+  // See: https://shields.io/badges/endpoint-badge
+  app.get('/health/badge', (c) => {
+    const uptime = Math.floor((Date.now() - startTime) / 1000)
+    const hours = Math.floor(uptime / 3600)
+    const minutes = Math.floor((uptime % 3600) / 60)
+    const uptimeStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+
+    return c.json({
+      schemaVersion: 1,
+      label: 'demo hub',
+      message: `online · ${uptimeStr}`,
+      color: 'brightgreen'
+    })
+  })
+
   app.get('/ready', async (c) => {
     try {
       // Verify storage is writable by performing a lightweight operation
