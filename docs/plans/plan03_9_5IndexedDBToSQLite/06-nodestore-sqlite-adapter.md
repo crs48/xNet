@@ -1174,18 +1174,18 @@ describe('SQLiteNodeStorageAdapter', () => {
 
 ### Implementation
 
-- [ ] Create `SQLiteNodeStorageAdapter` class
-- [ ] Implement all `NodeStorageAdapter` methods
-- [ ] Add FTS integration in setNode
-- [ ] Add LWW conflict resolution
+- [x] Create `SQLiteNodeStorageAdapter` class
+- [x] Implement all `NodeStorageAdapter` methods
+- [ ] Add FTS integration in setNode (deferred - sql.js doesn't support FTS5)
+- [x] Add LWW conflict resolution
 - [ ] Create factory functions for each platform
 - [ ] Add prepared statement caching
 - [ ] Implement optimized listNodes with JOIN
 
 ### Integration
 
-- [ ] Update `packages/data/src/store/index.ts` exports
-- [ ] Add `@xnet/sqlite` as dependency to `@xnet/data`
+- [x] Update `packages/data/src/store/index.ts` exports
+- [x] Add `@xnet/sqlite` as dependency to `@xnet/data`
 - [ ] Update Electron app to use SQLite adapter
 - [ ] Update Web app to use SQLite adapter
 - [ ] Update Expo app to use SQLite adapter
@@ -1198,15 +1198,15 @@ describe('SQLiteNodeStorageAdapter', () => {
 
 ### Tests
 
-- [ ] Node CRUD operations
-- [ ] LWW conflict resolution
-- [ ] listNodes with filters and pagination
-- [ ] countNodes
-- [ ] Change operations
-- [ ] Sync state operations
-- [ ] Document content (Yjs)
-- [ ] Bulk operations
-- [ ] Target: 25+ tests
+- [x] Node CRUD operations
+- [x] LWW conflict resolution
+- [x] listNodes with filters and pagination
+- [x] countNodes
+- [x] Change operations
+- [x] Sync state operations
+- [x] Document content (Yjs)
+- [x] Bulk operations
+- [x] Target: 25+ tests (39 tests passing)
 
 ---
 

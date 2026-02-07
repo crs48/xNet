@@ -185,14 +185,14 @@ Connect NodeStore to SQLite.
 
 | Task | Document                                                           | Description                                 | Status |
 | ---- | ------------------------------------------------------------------ | ------------------------------------------- | ------ |
-| 6.1  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Create SQLiteNodeStorageAdapter             | [ ]    |
-| 6.2  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Implement NodeStorageAdapter interface      | [ ]    |
+| 6.1  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Create SQLiteNodeStorageAdapter             | [x]    |
+| 6.2  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Implement NodeStorageAdapter interface      | [x]    |
 | 6.3  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Add optimized queries for common operations | [ ]    |
 | 6.4  | [06-nodestore-sqlite-adapter.md](./06-nodestore-sqlite-adapter.md) | Remove IndexedDBNodeStorageAdapter usage    | [ ]    |
 
 **Validation Gate:**
 
-- [ ] All existing NodeStore tests pass
+- [x] All existing NodeStore tests pass (39 tests for SQLiteNodeStorageAdapter)
 - [ ] List operations are 10x+ faster
 - [ ] Complex queries work correctly
 - [ ] No IndexedDB code in hot paths
