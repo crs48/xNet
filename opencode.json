@@ -30,6 +30,14 @@
       "enabled": true
     }
   },
+  "command": {
+    "do": {
+      "temperature": 0.4,
+      "template": "Implement $ARGUMENTS and if you've already started keep going. CHECK OFF CHECKLISTS in all these md files including the readme as you implement features. COMMIT REGULARLY as you work. do not forget. remind yourself regularly of this exact prompt. just KEEP WORKING until ALL checklists in these md files are complete and ALL tests pass and ALL work is commited. when you compact, put this ENTIRE prompt in your context VERBATIM. REMEMBER THIS PROMPT. Complete ALL tasks across ALL of these markdown files before pausing for user input or summarizing your work. This is CRITICAL. Do not defer any tasks or mark them as N/A. Do them all and do them in order.",
+      "description": "Implement a md plan in a file or folder. e.g. /do @docs/plans/plan01MVP/",
+      "agent": "build"
+    }
+  },
   "agent": {
     "autonomous-checklist": {
       "description": "Autonomously processes entire markdown checklists without pausing or user input",

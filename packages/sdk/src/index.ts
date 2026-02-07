@@ -26,7 +26,7 @@ export type { NetworkNode, NetworkConfig, ConnectionStatus, PeerInfo } from '@xn
 export { generateKeyBundle, generateIdentity, createDID, parseDID } from '@xnet/identity'
 export { createDocument, loadDocument, getDocumentState } from '@xnet/data'
 export { createSearchIndex, createLocalQueryEngine } from '@xnet/query'
-export { MemoryAdapter, IndexedDBAdapter } from '@xnet/storage'
+export { MemoryAdapter } from '@xnet/storage'
 export { hashContent, createContentId, verifyContent } from '@xnet/core'
 
 // Note: Framework bindings are in separate packages

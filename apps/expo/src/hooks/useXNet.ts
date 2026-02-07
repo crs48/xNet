@@ -1,54 +1,38 @@
 /**
  * XNet client hook for Expo
+ *
+ * @deprecated Use XNetProvider and useXNetContext from '../context/XNetProvider' instead.
+ * This hook is maintained for backwards compatibility.
  */
-import { createXNetClient, type XNetClient } from '@xnet/sdk'
-import { useState, useEffect } from 'react'
-import { ExpoStorageAdapter } from '../storage/ExpoStorageAdapter'
-import 'react-native-get-random-values' // Polyfill for crypto
+import { useXNetContext } from '../context/XNetProvider'
 
 interface UseXNetResult {
-  client: XNetClient | null
+  /** @deprecated Use `bridge` from useXNetContext instead */
+  client: null // Deprecated - use bridge instead
   isReady: boolean
   identity: string | null
   error: Error | null
 }
 
-let clientInstance: XNetClient | null = null
-
+/**
+ * @deprecated Use XNetProvider and useXNetContext instead.
+ *
+ * Migration:
+ * ```tsx
+ * // Old way
+ * const { client, isReady } = useXNet()
+ *
+ * // New way - wrap your app in XNetProvider, then:
+ * const { bridge, isReady, authorDID } = useXNetContext()
+ * ```
+ */
 export function useXNet(): UseXNetResult {
-  const [isReady, setIsReady] = useState(false)
-  const [identity, setIdentity] = useState<string | null>(null)
-  const [error, setError] = useState<Error | null>(null)
-
-  useEffect(() => {
-    async function init() {
-      try {
-        if (!clientInstance) {
-          const storage = new ExpoStorageAdapter('xnet.db')
-          clientInstance = await createXNetClient({
-            storage,
-            enableNetwork: false // Disabled until network is stable
-          })
-          await clientInstance.start()
-        }
-        setIdentity(clientInstance.identity.did)
-        setIsReady(true)
-      } catch (e) {
-        setError(e as Error)
-      }
-    }
-
-    init()
-
-    return () => {
-      // Don't stop client on unmount - it's shared
-    }
-  }, [])
+  const { isReady, authorDID, error } = useXNetContext()
 
   return {
-    client: clientInstance,
+    client: null, // Deprecated - use bridge from useXNetContext instead
     isReady,
-    identity,
+    identity: authorDID,
     error
   }
 }

@@ -1,15 +1,19 @@
 /**
  * DataWorker - Web Worker for off-main-thread data operations
  *
- * This worker runs NodeStore, IndexedDB, and query operations off the main thread.
+ * This worker runs NodeStore and query operations off the main thread.
  * It exposes an API via Comlink that WorkerBridge uses from the main thread.
  *
  * Key responsibilities:
- * - Initialize and manage NodeStore with IndexedDB storage
+ * - Initialize and manage NodeStore with in-memory storage
  * - Handle query subscriptions and notify on changes
  * - Execute CRUD operations
  * - Manage Y.Doc pool for collaborative editing
  * - Handle sync and crypto (all signing/verification happens here)
+ *
+ * Note: This worker uses MemoryNodeStorageAdapter for now. In the future,
+ * we could integrate with a SharedWorker-based SQLite solution, but the
+ * main app already has SQLite storage via @xnet/sqlite.
  *
  * Performance optimizations:
  * - Uses Comlink's transfer() for zero-copy ArrayBuffer transfers
@@ -29,10 +33,11 @@ import type { SyncStatus } from '../types'
 import type { DID } from '@xnet/core'
 import {
   NodeStore,
-  IndexedDBNodeStorageAdapter,
+  MemoryNodeStorageAdapter,
   type NodeState,
   type NodeChangeEvent,
-  type SchemaIRI
+  type SchemaIRI,
+  type NodeStorageAdapter
 } from '@xnet/data'
 import { expose, proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
@@ -60,7 +65,7 @@ interface PoolEntry {
 
 class DataWorker implements DataWorkerAPI {
   private store: NodeStore | null = null
-  private storage: IndexedDBNodeStorageAdapter | null = null
+  private storage: NodeStorageAdapter | null = null
   private subscriptions = new Map<
     string,
     WorkerSubscription & { onDelta: (delta: QueryDelta) => void }
@@ -76,9 +81,10 @@ class DataWorker implements DataWorkerAPI {
   private nextClientId = Math.floor(Math.random() * 2147483647)
 
   async initialize(config: WorkerConfig): Promise<void> {
-    // Create IndexedDB storage adapter
-    this.storage = new IndexedDBNodeStorageAdapter({ dbName: config.dbName })
-    await this.storage.open()
+    // Create in-memory storage adapter
+    // Note: This worker uses in-memory storage. Persistent SQLite storage
+    // is handled by the main app via @xnet/sqlite.
+    this.storage = new MemoryNodeStorageAdapter()
 
     // Create NodeStore
     this.store = new NodeStore({
@@ -312,11 +318,11 @@ class DataWorker implements DataWorkerAPI {
     }
     this.docPool.clear()
 
-    // Close storage
-    if (this.storage) {
+    // Close storage (if it supports close)
+    if (this.storage?.close) {
       await this.storage.close()
-      this.storage = null
     }
+    this.storage = null
 
     // Clear state
     this.store = null

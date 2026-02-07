@@ -514,9 +514,6 @@ importers:
       '@xnet/sync':
         specifier: workspace:*
         version: link:../sync
-      idb:
-        specifier: ^8.0.2
-        version: 8.0.3
       lib0:
         specifier: ^0.2.102
         version: 0.2.117
@@ -1097,9 +1094,6 @@ importers:
       '@xnet/sqlite':
         specifier: workspace:*
         version: link:../sqlite
-      idb:
-        specifier: ^8.0.2
-        version: 8.0.3
       pako:
         specifier: ^2.1.0
         version: 2.1.0
@@ -1107,9 +1101,6 @@ importers:
       '@types/pako':
         specifier: ^2.0.3
         version: 2.0.4
-      fake-indexeddb:
-        specifier: ^6.0.0
-        version: 6.2.5
       tsup:
         specifier: ^8.0.0
         version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
@@ -11864,12 +11855,6 @@ packages:
     resolution:
       {
         integrity: sha512-gchesWBzyvGHRO9W8tzUWFDycow5gwjvFKfyV9FF32Y7F50yZMp7mP+T2mJIWFx49zicqyC4uefHM17o6xKIVQ==
-      }
-
-  idb@8.0.3:
-    resolution:
-      {
-        integrity: sha512-LtwtVyVYO5BqRvcsKuB2iUMnHwPVByPCXFXOpuU96IZPPoPN6xjOGxZQ74pgSVVLQWtUOYgyeL4GE98BY5D3wg==
       }
 
   ieee754@1.2.1:
@@ -27521,8 +27506,6 @@ snapshots:
       safer-buffer: 2.1.2
 
   idb@7.1.1: {}
-
-  idb@8.0.3: {}
 
   ieee754@1.2.1: {}
 
