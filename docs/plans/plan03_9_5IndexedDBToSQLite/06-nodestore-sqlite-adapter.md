@@ -1192,9 +1192,9 @@ describe('SQLiteNodeStorageAdapter', () => {
 
 ### Cleanup
 
-- [ ] Mark `IndexedDBNodeStorageAdapter` as deprecated
+- [x] Mark `IndexedDBNodeStorageAdapter` as deprecated
 - [ ] Remove IndexedDB adapter usage from apps
-- [ ] Delete `indexeddb-adapter.ts` (after Phase 7)
+- [ ] Delete `indexeddb-adapter.ts` (after Phase 8)
 
 ### Tests
 
