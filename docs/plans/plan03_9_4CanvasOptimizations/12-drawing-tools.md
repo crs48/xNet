@@ -609,16 +609,16 @@ describe('DrawingToolController', () => {
 
 ## Validation Gate
 
-- [ ] Freehand strokes render smoothly
-- [ ] Pressure sensitivity affects stroke width
-- [ ] Catmull-Rom smoothing reduces jaggedness
-- [ ] Color picker changes stroke color
-- [ ] Size picker changes stroke width
-- [ ] Drawing mode can be toggled on/off
-- [ ] Paths persist after drawing completes
-- [ ] Clear removes all drawings
-- [ ] Touch/stylus input works
-- [ ] Paths render correctly after pan/zoom
+- [x] Freehand strokes render smoothly
+- [x] Pressure sensitivity affects stroke width
+- [x] Catmull-Rom smoothing reduces jaggedness
+- [x] Color picker changes stroke color
+- [x] Size picker changes stroke width
+- [x] Drawing mode can be toggled on/off
+- [x] Paths persist after drawing completes
+- [x] Clear removes all drawings
+- [x] Touch/stylus input works
+- [x] Paths render correctly after pan/zoom
 
 ---
 

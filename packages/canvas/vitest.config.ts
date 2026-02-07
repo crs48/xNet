@@ -1,3 +1,4 @@
+import path from 'path'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
@@ -5,5 +6,11 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     testTimeout: 30000
+  },
+  resolve: {
+    alias: {
+      // Mock mermaid for tests (optional peer dependency)
+      mermaid: path.resolve(__dirname, 'src/__mocks__/mermaid.ts')
+    }
   }
 })

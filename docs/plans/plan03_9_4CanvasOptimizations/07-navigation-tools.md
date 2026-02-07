@@ -643,18 +643,18 @@ describe('useCanvasKeyboard', () => {
 
 ## Validation Gate
 
-- [ ] Zoom in/out buttons work
-- [ ] Zoom slider adjusts zoom smoothly
-- [ ] Fit to content centers and scales correctly
-- [ ] Reset view returns to origin at 100%
-- [ ] Ctrl/Cmd + Plus zooms in
-- [ ] Ctrl/Cmd + Minus zooms out
-- [ ] Ctrl/Cmd + 0 resets view
-- [ ] Ctrl/Cmd + 1 fits to content
-- [ ] Arrow keys pan the viewport
-- [ ] Space + drag pans the viewport
-- [ ] Ctrl/Cmd + wheel zooms towards cursor
-- [ ] Keyboard shortcuts don't activate in inputs
+- [x] Zoom in/out buttons work
+- [x] Zoom slider adjusts zoom smoothly
+- [x] Fit to content centers and scales correctly
+- [x] Reset view returns to origin at 100%
+- [x] Ctrl/Cmd + Plus zooms in
+- [x] Ctrl/Cmd + Minus zooms out
+- [x] Ctrl/Cmd + 0 resets view
+- [x] Ctrl/Cmd + 1 fits to content
+- [x] Arrow keys pan the viewport
+- [x] Space + drag pans the viewport
+- [x] Ctrl/Cmd + wheel zooms towards cursor
+- [x] Keyboard shortcuts don't activate in inputs
 
 ---
 

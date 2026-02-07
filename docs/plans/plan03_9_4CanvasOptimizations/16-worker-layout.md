@@ -538,14 +538,14 @@ describe('useLayout', () => {
 
 ## Validation Gate
 
-- [ ] ELK.js runs in Web Worker
-- [ ] Main thread remains responsive during layout
-- [ ] Layout can be cancelled
-- [ ] All 5 algorithms work (layered, tree, radial, force, stress)
-- [ ] Loading indicator shown during computation
-- [ ] Error handling for invalid graphs
-- [ ] Fallback for environments without Workers
-- [ ] Worker terminates cleanly on unmount
+- [x] ELK.js runs in Web Worker
+- [x] Main thread remains responsive during layout
+- [x] Layout can be cancelled
+- [x] All 5 algorithms work (layered, tree, radial, force, stress)
+- [x] Loading indicator shown during computation
+- [x] Error handling for invalid graphs
+- [x] Fallback for environments without Workers
+- [x] Worker terminates cleanly on unmount
 
 ---
 

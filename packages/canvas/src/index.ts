@@ -30,7 +30,6 @@ export type {
   Rect,
   CanvasNodePosition,
   CanvasNodeType,
-  ShapeType,
   CanvasNode,
   EdgeAnchor,
   CanvasEdge,
@@ -85,6 +84,39 @@ export {
   type CanvasStoreListener
 } from './store'
 
+// Chunked storage (for infinite canvases)
+export {
+  // Configuration
+  CHUNK_SIZE,
+  LOAD_RADIUS,
+  EVICT_RADIUS,
+  MAX_LOADED_CHUNKS,
+  chunkKeyFromPosition,
+  parseChunkKey,
+  positionFromChunkKey,
+  chunkBounds,
+  chunkCenter,
+  chunkDistance,
+  getChunksInRadius,
+  getChunksForRect,
+  // Types
+  type ChunkKey,
+  type Chunk,
+  type CrossChunkEdge,
+  type ChunkData,
+  type ChunkLoadStatus,
+  type ChunkStats,
+  type ChunkEvent,
+  type ChunkEventListener,
+  type ChunkManagerOptions,
+  // Classes
+  ChunkManager,
+  createChunkManager,
+  ChunkedCanvasStore,
+  createChunkedCanvasStore,
+  createChunkedCanvasStoreFromDoc
+} from './chunks/index'
+
 // React components
 export { Canvas } from './renderer/Canvas'
 export type { CanvasProps, CanvasHandle, CanvasRemoteUser } from './renderer/Canvas'
@@ -92,8 +124,79 @@ export type { CanvasProps, CanvasHandle, CanvasRemoteUser } from './renderer/Can
 export { CanvasNodeComponent, calculateLOD } from './nodes/CanvasNodeComponent'
 export type { CanvasNodeProps, NodeRemoteUser, LODLevel } from './nodes/CanvasNodeComponent'
 
+export { MermaidNodeComponent } from './nodes/mermaid-node'
+export type { MermaidNodeData, MermaidNodeProps } from './nodes/mermaid-node'
+
+export { ChecklistNodeComponent } from './nodes/checklist-node'
+export type { ChecklistItem, ChecklistNodeData, ChecklistNodeProps } from './nodes/checklist-node'
+
+export { ShapeNodeComponent, ShapePicker, createShapePath, SHAPE_TYPES } from './nodes/shape-node'
+export type { ShapeType, ShapeNodeData, ShapeNodeProps, ShapePickerProps } from './nodes/shape-node'
+
+export { EmbedNodeComponent } from './nodes/embed-node'
+export type {
+  EmbedViewType,
+  EmbedNodeData,
+  EmbedNodeProps,
+  LinkedNodeData
+} from './nodes/embed-node'
+
 export { CanvasEdgeComponent } from './edges/CanvasEdgeComponent'
 export type { CanvasEdgeProps } from './edges/CanvasEdgeComponent'
+
+// Minimap, navigation, and presence components
+export {
+  Minimap,
+  CollapsibleMinimap,
+  NavigationTools,
+  RemoteCursor,
+  PresenceOverlay,
+  SelectionIndicator,
+  RemoteSelectionsOverlay
+} from './components/index'
+export type {
+  MinimapProps,
+  CollapsibleMinimapProps,
+  NavigationToolsProps,
+  RemoteCursorProps,
+  PresenceOverlayProps,
+  SelectionIndicatorProps,
+  RemoteSelectionsOverlayProps,
+  CanvasNode as CanvasNodeData,
+  CanvasNodePosition as CanvasNodePositionData
+} from './components/index'
+
+// Presence management
+export {
+  CanvasPresenceManager,
+  createCanvasPresenceManager,
+  SelectionLockManager,
+  createSelectionLockManager,
+  USER_COLORS,
+  getUserColor,
+  type CanvasPresence,
+  type AwarenessLike,
+  type PresenceChangeCallback,
+  type SelectionLock
+} from './presence/index'
+
+// Cursor tracking hook
+export { useCursorTracking } from './hooks/useCursorTracking'
+export type { UseCursorTrackingOptions } from './hooks/useCursorTracking'
+
+// Navigation hooks
+export { useCanvasKeyboard } from './hooks/useCanvasKeyboard'
+export type { UseCanvasKeyboardOptions } from './hooks/useCanvasKeyboard'
+
+export { useSpacePan } from './hooks/useSpacePan'
+export type { UseSpacePanOptions } from './hooks/useSpacePan'
+
+export { useWheelZoom } from './hooks/useWheelZoom'
+export type { UseWheelZoomOptions } from './hooks/useWheelZoom'
+
+// Edit lock hook
+export { useEditLock } from './hooks/useEditLock'
+export type { UseEditLockOptions, UseEditLockReturn } from './hooks/useEditLock'
 
 // React hooks
 export { useCanvas, type UseCanvasOptions, type UseCanvasReturn } from './hooks/useCanvas'
@@ -118,3 +221,113 @@ export {
   type CommentPinProps,
   type CommentOverlayProps
 } from './comments/index'
+
+// Drawing tools
+export {
+  DrawingToolController,
+  drawPath,
+  drawPaths,
+  DrawingLayer,
+  DrawingToolbar,
+  DEFAULT_DRAWING_TOOL,
+  STROKE_COLORS,
+  STROKE_SIZES
+} from './drawing/index'
+export type {
+  Point as DrawingPoint,
+  PressurePoint,
+  DrawingPath,
+  DrawingTool,
+  DrawingLayerProps,
+  DrawingLayerRef,
+  DrawingToolbarProps
+} from './drawing/index'
+
+// Edge routing
+export {
+  OrthogonalRouter,
+  createOrthogonalRouter,
+  MinHeap,
+  DEFAULT_ROUTER_CONFIG,
+  EdgeBundler,
+  createEdgeBundler,
+  DEFAULT_BUNDLE_CONFIG
+} from './routing/index'
+export type {
+  Point as RoutingPoint,
+  Rect as RoutingRect,
+  EdgeAnchor as RoutingEdgeAnchor,
+  Direction,
+  RouterConfig,
+  PathNode,
+  EdgeStyle as BundlerEdgeStyle,
+  CanvasEdge as BundlerCanvasEdge,
+  BundledEdge,
+  BundleConfig
+} from './routing/index'
+
+// Swimlanes
+export {
+  SwimlaneManager,
+  createSwimlaneManager,
+  SwimlaneNodeComponent,
+  useSwimlanes,
+  DEFAULT_SWIMLANE_CONFIG,
+  getContentBounds
+} from './swimlane/index'
+export type {
+  SwimlaneOrientation,
+  SwimlaneProperties,
+  SwimlaneNode,
+  GenericCanvasNode as SwimlaneGenericNode,
+  SwimlaneConfig,
+  ContentBounds,
+  SwimlaneNodeProps,
+  UseSwimlaneOptions,
+  UseSwimlaneReturn
+} from './swimlane/index'
+
+// Worker Layout
+export { LayoutManager, createLayoutManager, useLayout } from './workers/index'
+export type {
+  LayoutAlgorithm as WorkerLayoutAlgorithm,
+  LayoutNode,
+  LayoutEdge,
+  LayoutRequest as WorkerLayoutRequest,
+  LayoutManagerConfig,
+  UseLayoutOptions,
+  UseLayoutReturn
+} from './workers/index'
+
+// Performance utilities
+export {
+  FrameMonitor,
+  createFrameMonitor,
+  getMemoryUsage,
+  formatBytes,
+  profileMemory,
+  MemoryTracker,
+  createMemoryTracker
+} from './performance/index'
+export type { FrameStats, MemorySnapshot } from './performance/index'
+
+// Accessibility
+export {
+  KeyboardNavigator,
+  createKeyboardNavigator,
+  Announcer,
+  createAnnouncer,
+  getAnnouncer,
+  useHighContrast,
+  useReducedMotion,
+  isHighContrastEnabled,
+  isReducedMotionPreferred,
+  HIGH_CONTRAST_STYLES
+} from './accessibility/index'
+export type {
+  NavigableNode,
+  NavigationSpatialIndex,
+  KeyboardNavigationOptions,
+  AnnouncerNode,
+  HighContrastStyles
+} from './accessibility/index'

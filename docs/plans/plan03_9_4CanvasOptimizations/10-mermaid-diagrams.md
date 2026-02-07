@@ -621,16 +621,16 @@ describe('MermaidNodeComponent', () => {
 
 ## Validation Gate
 
-- [ ] Mermaid diagrams render correctly
-- [ ] SVG is cached after first render
-- [ ] Cache invalidates when code changes
-- [ ] Syntax errors show helpful message
-- [ ] Double-click enters edit mode
-- [ ] Live preview shows while editing
-- [ ] Escape exits edit mode
-- [ ] Tab inserts spaces in editor
-- [ ] Empty nodes show placeholder
-- [ ] Multiple themes supported
+- [x] Mermaid diagrams render correctly
+- [x] SVG is cached after first render
+- [x] Cache invalidates when code changes
+- [x] Syntax errors show helpful message
+- [x] Double-click enters edit mode
+- [x] Live preview shows while editing
+- [x] Escape exits edit mode
+- [x] Tab inserts spaces in editor
+- [x] Empty nodes show placeholder
+- [x] Multiple themes supported
 
 ---
 

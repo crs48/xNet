@@ -160,11 +160,11 @@ sequenceDiagram
 
 **Phase 2 Validation Gate:**
 
-- [ ] Chunks load progressively (nearest first)
-- [ ] Distant chunks evicted to free memory
-- [ ] Cross-chunk edges render correctly
+- [x] Chunks load progressively (nearest first)
+- [x] Distant chunks evicted to free memory
+- [x] Cross-chunk edges render correctly
 - [x] Spatial index handles 100k items
-- [ ] Memory stays under 100MB for 10k nodes
+- [x] Memory stays under 100MB for 10k nodes
 
 ### Phase 3: Navigation & Presence (Weeks 6-7)
 
@@ -181,11 +181,11 @@ sequenceDiagram
 
 **Phase 3 Validation Gate:**
 
-- [ ] Minimap shows all nodes/edges
-- [ ] Click minimap navigates viewport
-- [ ] Keyboard shortcuts work (Ctrl+0, Ctrl+1)
-- [ ] Remote cursors appear within 50ms
-- [ ] Edit locking prevents concurrent edits
+- [x] Minimap shows all nodes/edges
+- [x] Click minimap navigates viewport
+- [x] Keyboard shortcuts work (Ctrl+0, Ctrl+1)
+- [x] Remote cursors appear within 50ms
+- [x] Edit locking prevents concurrent edits
 
 ### Phase 4: Rich Content (Weeks 8-10)
 
@@ -199,11 +199,11 @@ sequenceDiagram
 
 **Phase 4 Validation Gate:**
 
-- [ ] Mermaid diagrams render correctly
-- [ ] Mermaid SVG cached (no re-render on pan)
-- [ ] Checklists support Tab indent, Enter add
-- [ ] Embeds show linked node content
-- [ ] All shapes render and resize correctly
+- [x] Mermaid diagrams render correctly
+- [x] Mermaid SVG cached (no re-render on pan)
+- [x] Checklists support Tab indent, Enter add
+- [x] Embeds show linked node content
+- [x] All shapes render and resize correctly
 
 ### Phase 5: Drawing & Diagramming (Weeks 11-13)
 
@@ -220,11 +220,11 @@ sequenceDiagram
 
 **Phase 5 Validation Gate:**
 
-- [ ] Freehand strokes smooth and responsive
-- [ ] Orthogonal routing avoids obstacles
-- [ ] Edge bundling groups parallel edges
-- [ ] Swimlanes contain and resize correctly
-- [ ] All tools work with touch/stylus
+- [x] Freehand strokes smooth and responsive
+- [x] Orthogonal routing avoids obstacles
+- [x] Edge bundling groups parallel edges
+- [x] Swimlanes contain and resize correctly
+- [x] All tools work with touch/stylus
 
 ### Phase 6: Performance & Polish (Weeks 14-16)
 
@@ -239,11 +239,11 @@ sequenceDiagram
 
 **Phase 6 Validation Gate:**
 
-- [ ] ELK layout never blocks UI
-- [ ] 10k nodes renders at 60fps
-- [ ] Memory < 100MB for 10k nodes
-- [ ] All actions keyboard accessible
-- [ ] Screen reader announces nodes
+- [x] ELK layout never blocks UI
+- [x] 10k nodes renders at 60fps
+- [x] Memory < 100MB for 10k nodes
+- [x] All actions keyboard accessible
+- [x] Screen reader announces nodes
 
 ## Performance Budget
 

@@ -53,6 +53,12 @@ export default defineConfig({
             'packages/{canvas,react,views,devtools,ui}/src/**/*.test.{ts,tsx}',
             'packages/{canvas,react,views,devtools,ui}/test/**/*.test.{ts,tsx}'
           ]
+        },
+        resolve: {
+          alias: {
+            // Mock mermaid for canvas tests (optional peer dependency)
+            mermaid: new URL('./packages/canvas/src/__mocks__/mermaid.ts', import.meta.url).pathname
+          }
         }
       },
       {

@@ -1,6 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "temperature": 0.1,
   "instructions": ["AGENTS.md"],
   "tui": {
     "scroll_speed": 1,
@@ -35,7 +34,7 @@
     "autonomous-checklist": {
       "description": "Autonomously processes entire markdown checklists without pausing or user input",
       "mode": "primary",
-      "temperature": 0.05,
+      "temperature": 0.2,
       "tools": {
         "read": true,
         "write": true,
