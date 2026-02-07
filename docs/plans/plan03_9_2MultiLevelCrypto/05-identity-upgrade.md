@@ -805,20 +805,20 @@ describe('Serialization', () => {
 
 ## Checklist
 
-- [ ] Define `HybridKeyBundle` type with all key components
-- [ ] Implement `createKeyBundle()` with PQ keys by default
-- [ ] Implement `createKeyBundleWithAttestation()` for registry integration
-- [ ] Update passkey creation to derive hybrid keys
-- [ ] Update passkey unlock to derive hybrid keys
-- [ ] Implement `signWithBundle()` helper
-- [ ] Implement `verifyWithBundle()` helper
-- [ ] Implement `bundleSecurityLevel()` / `bundleCanSignAt()` helpers
-- [ ] Implement `bundleSize()` calculator
-- [ ] Implement `serializeKeyBundle()` / `deserializeKeyBundle()`
-- [ ] Update all consumers of old `KeyBundle` to use `HybridKeyBundle`
-- [ ] Update package exports
-- [ ] Write unit tests (target: 30+ tests)
-- [ ] Test passkey PRF → hybrid key derivation
+- [x] Define `HybridKeyBundle` type with all key components
+- [x] Implement `createKeyBundle()` with PQ keys by default
+- [x] Implement `createKeyBundleWithAttestation()` for registry integration
+- [x] Update passkey creation to derive hybrid keys
+- [x] Update passkey unlock to derive hybrid keys
+- [x] Implement `signWithBundle()` helper
+- [x] Implement `verifyWithBundle()` helper
+- [x] Implement `bundleSecurityLevel()` / `bundleCanSignAt()` helpers
+- [x] Implement `bundleSize()` calculator
+- [x] Implement `serializeKeyBundle()` / `deserializeKeyBundle()` (JSON + binary formats)
+- [x] Update all consumers of old `KeyBundle` to use `HybridKeyBundle`
+- [x] Update package exports
+- [x] Write unit tests (42 tests achieved)
+- [x] Test passkey PRF → hybrid key derivation (via create/unlock functions)
 
 ---
 

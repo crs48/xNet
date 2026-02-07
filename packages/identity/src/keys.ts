@@ -1,7 +1,7 @@
 /**
  * Key derivation and management
  */
-import type { KeyBundle, Identity } from './types'
+import type { KeyBundle, Identity, DID } from './types'
 import {
   hkdf,
   generateSigningKeyPair,
@@ -26,7 +26,7 @@ export function deriveKeyBundle(masterSeed: Uint8Array): KeyBundle {
   // Create identity from signing key
   const signingPublic = getSigningPublicKeyFromPrivate(signingKey)
   const identity: Identity = {
-    did: createDID(signingPublic),
+    did: createDID(signingPublic) as DID,
     publicKey: signingPublic,
     created: Date.now()
   }
@@ -49,7 +49,7 @@ export function generateKeyBundle(): KeyBundle {
     signingKey,
     encryptionKey,
     identity: {
-      did: createDID(signingPublic),
+      did: createDID(signingPublic) as DID,
       publicKey: signingPublic,
       created: Date.now()
     }

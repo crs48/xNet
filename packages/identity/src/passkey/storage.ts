@@ -2,6 +2,7 @@
  * @xnet/identity/passkey - IndexedDB persistence for passkey identity records
  */
 import type { PasskeyIdentity, FallbackStorage, StoredPasskeyRecord } from './types'
+import type { DID } from '../types'
 
 const DB_NAME = 'xnet-identity'
 const DB_VERSION = 1
@@ -104,7 +105,7 @@ export function serializeRecord(record: StoredPasskeyRecord): SerializedRecord {
 export function deserializeRecord(raw: SerializedRecord): StoredPasskeyRecord {
   const record: StoredPasskeyRecord = {
     passkey: {
-      did: raw.passkey.did,
+      did: raw.passkey.did as DID,
       publicKey: new Uint8Array(raw.passkey.publicKey),
       credentialId: new Uint8Array(raw.passkey.credentialId),
       createdAt: raw.passkey.createdAt,
