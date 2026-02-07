@@ -74,3 +74,4 @@ export {
   IndexedDBNodeStorageAdapter,
   type IndexedDBNodeStorageAdapterOptions
 } from './indexeddb-adapter'
+export { SQLiteNodeStorageAdapter } from './sqlite-adapter'
