@@ -1013,11 +1013,11 @@ describe('ElectronSQLiteAdapter', () => {
 
 ### Integration
 
-- [ ] Update `data-service.ts` to use `ElectronSQLiteAdapter`
-- [ ] Replace blob operations with adapter queries
+- [x] Update `data-service.ts` to use `ElectronSQLiteAdapter`
+- [x] Replace blob operations with adapter queries
 - [ ] Update document operations with adapter queries
 - [ ] Remove old `sqlite-batch.ts` (or merge into adapter)
-- [ ] Update imports throughout Electron app
+- [x] Update imports throughout Electron app
 
 ### Performance
 
