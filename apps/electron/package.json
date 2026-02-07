@@ -30,6 +30,7 @@
     "@xnet/plugins": "workspace:*",
     "@xnet/devtools": "workspace:*",
     "@xnet/identity": "workspace:*",
+    "@xnet/sqlite": "workspace:*",
     "@xnet/storage": "workspace:*",
     "@xnet/sync": "workspace:*",
     "@xnet/editor": "workspace:*",

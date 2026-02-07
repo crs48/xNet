@@ -12,7 +12,9 @@
  * Events are sent to main process for relay to the appropriate window.
  */
 
+import { existsSync, unlinkSync } from 'fs'
 import { hashContent, createContentId } from '@xnet/core'
+import { createElectronSQLiteAdapter, ElectronSQLiteAdapter } from '@xnet/sqlite/electron'
 import {
   signYjsUpdate,
   verifyYjsEnvelopeV1,
@@ -21,10 +23,8 @@ import {
   YjsPeerScorer,
   type SignedYjsEnvelopeV1
 } from '@xnet/sync'
-import Database from 'better-sqlite3'
 import WebSocket from 'ws'
 import * as Y from 'yjs'
-import { createSQLiteBatchWriter, type SQLiteBatchWriter } from './sqlite-batch'
 import { sendEvent } from './index'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -141,8 +141,7 @@ const HEARTBEAT_INTERVAL_MS = 1111
 // ─── Data Service Factory ───────────────────────────────────────────────────
 
 export function createDataService(config: DataServiceConfig): DataService {
-  let db: Database.Database | null = null
-  let batchWriter: SQLiteBatchWriter | null = null
+  let adapter: ElectronSQLiteAdapter | null = null
   let ws: WebSocket | null = null
   let status: ConnectionStatus = 'disconnected'
   let signalingUrl = ''
@@ -606,7 +605,7 @@ export function createDataService(config: DataServiceConfig): DataService {
   }
 
   async function handleBlobSyncMessage(data: Record<string, unknown>): Promise<void> {
-    if (!db) return
+    if (!adapter) return
 
     const msgType = data.type as string
 
@@ -673,22 +672,28 @@ export function createDataService(config: DataServiceConfig): DataService {
   // ─── SQLite Operations ──────────────────────────────────────────────────
 
   async function getBlobFromDb(cid: string): Promise<Uint8Array | null> {
-    if (!db) return null
-    const row = db.prepare('SELECT data FROM blobs WHERE cid = ?').get(cid) as
-      | { data: Buffer }
-      | undefined
+    if (!adapter) return null
+    const row = await adapter.queryOne<{ data: Buffer }>('SELECT data FROM blobs WHERE cid = ?', [
+      cid
+    ])
     return row ? new Uint8Array(row.data) : null
   }
 
   async function setBlobInDb(cid: string, data: Uint8Array): Promise<void> {
-    if (!batchWriter) return
-    batchWriter.putBlob(cid, data)
-    // Note: putBlob schedules auto-flush, no need to await here
+    if (!adapter) return
+    const now = Date.now()
+    await adapter.run(
+      'INSERT OR REPLACE INTO blobs (cid, data, size, created_at) VALUES (?, ?, ?, ?)',
+      [cid, data, data.byteLength, now]
+    )
   }
 
   async function hasBlobInDb(cid: string): Promise<boolean> {
-    if (!db) return false
-    const row = db.prepare('SELECT 1 FROM blobs WHERE cid = ?').get(cid)
+    if (!adapter) return false
+    const row = await adapter.queryOne<{ exists: number }>(
+      'SELECT 1 as exists FROM blobs WHERE cid = ?',
+      [cid]
+    )
     return !!row
   }
 
@@ -765,46 +770,64 @@ export function createDataService(config: DataServiceConfig): DataService {
   return {
     async initialize(): Promise<void> {
       log('Initializing database at:', config.dbPath)
-      db = new Database(config.dbPath)
-      db.pragma('journal_mode = WAL')
 
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS documents (
-          id TEXT PRIMARY KEY,
-          content BLOB,
-          metadata TEXT,
-          version INTEGER
-        );
+      // Check if database exists and has old schema (without version tracking)
+      if (existsSync(config.dbPath)) {
+        try {
+          const tempAdapter = new ElectronSQLiteAdapter()
+          await tempAdapter.open({ path: config.dbPath })
+          const version = await tempAdapter.getSchemaVersion()
+          await tempAdapter.close()
 
-        CREATE TABLE IF NOT EXISTS updates (
-          doc_id TEXT,
-          update_hash TEXT,
-          update_data TEXT,
-          created_at INTEGER DEFAULT (strftime('%s', 'now')),
-          PRIMARY KEY (doc_id, update_hash)
-        );
+          if (version === 0) {
+            // Old database without version tracking - delete it
+            log('Found old database without version tracking, removing...')
+            try {
+              unlinkSync(config.dbPath)
+            } catch {
+              // File may not exist, ignore
+            }
+            try {
+              unlinkSync(`${config.dbPath}-wal`)
+            } catch {
+              // File may not exist, ignore
+            }
+            try {
+              unlinkSync(`${config.dbPath}-shm`)
+            } catch {
+              // File may not exist, ignore
+            }
+          }
+        } catch {
+          // Corrupted database - delete it
+          log('Found corrupted database, removing...')
+          try {
+            unlinkSync(config.dbPath)
+          } catch {
+            // File may not exist, ignore
+          }
+          try {
+            unlinkSync(`${config.dbPath}-wal`)
+          } catch {
+            // File may not exist, ignore
+          }
+          try {
+            unlinkSync(`${config.dbPath}-shm`)
+          } catch {
+            // File may not exist, ignore
+          }
+        }
+      }
 
-        CREATE TABLE IF NOT EXISTS snapshots (
-          doc_id TEXT PRIMARY KEY,
-          snapshot_data TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS blobs (
-          cid TEXT PRIMARY KEY,
-          data BLOB
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_updates_doc ON updates(doc_id);
-      `)
-
-      // Create batch writer for efficient writes
-      batchWriter = createSQLiteBatchWriter(db, {
-        maxBatchSize: 100,
-        maxWaitMs: 50,
-        debug: debugEnabled
+      // Create adapter with unified schema
+      adapter = await createElectronSQLiteAdapter({
+        path: config.dbPath,
+        walMode: true,
+        foreignKeys: true,
+        busyTimeout: 5000
       })
 
-      log('Database initialized')
+      log('Database initialized with schema version:', await adapter.getSchemaVersion())
     },
 
     async shutdown(): Promise<void> {
@@ -825,15 +848,10 @@ export function createDataService(config: DataServiceConfig): DataService {
       subscribedRooms.clear()
       tracked.clear()
 
-      // Flush and close batch writer
-      if (batchWriter) {
-        await batchWriter.close()
-        batchWriter = null
-      }
-
-      if (db) {
-        db.close()
-        db = null
+      // Close adapter (handles WAL checkpoint)
+      if (adapter) {
+        await adapter.close()
+        adapter = null
       }
     },
 
