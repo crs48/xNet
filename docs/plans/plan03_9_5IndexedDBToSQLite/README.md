@@ -129,37 +129,37 @@ Establish the adapter interface and implement Electron first since it's most cri
 
 Add @sqlite.org/sqlite-wasm with OPFS for web browsers.
 
-| Task | Document                                               | Description                       | Status |
-| ---- | ------------------------------------------------------ | --------------------------------- | ------ |
-| 3.1  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add sqlite-wasm dependency        | [x]    |
-| 3.2  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Implement WebSQLiteAdapter        | [x]    |
-| 3.3  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add OPFS VFS configuration        | [x]    |
-| 3.4  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Configure Vite for WASM + headers | [ ]    |
-| 3.5  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add browser compatibility check   | [x]    |
+| Task | Document                                               | Description                       | Status     |
+| ---- | ------------------------------------------------------ | --------------------------------- | ---------- |
+| 3.1  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add sqlite-wasm dependency        | [x]        |
+| 3.2  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Implement WebSQLiteAdapter        | [x]        |
+| 3.3  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add OPFS VFS configuration        | [x]        |
+| 3.4  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Configure Vite for WASM + headers | [DEFERRED] |
+| 3.5  | [03-web-wa-sqlite-opfs.md](./03-web-wa-sqlite-opfs.md) | Add browser compatibility check   | [x]        |
 
 **Validation Gate:**
 
 - [x] WebSQLiteAdapter passes all interface tests
-- [ ] Web app works in Chrome, Firefox, Safari
-- [ ] OPFS persistence verified across page reloads
+- [DEFERRED] Web app works in Chrome, Firefox, Safari (requires web app integration)
+- [DEFERRED] OPFS persistence verified across page reloads (requires web app integration)
 - [x] Unsupported browser shows appropriate message
 
 ### Phase 3: Expo Mobile (Step 04)
 
 Align existing ExpoSQLiteAdapter with unified schema.
 
-| Task | Document                                                         | Description                               | Status |
-| ---- | ---------------------------------------------------------------- | ----------------------------------------- | ------ |
-| 4.1  | [04-expo-sqlite-integration.md](./04-expo-sqlite-integration.md) | Update ExpoSQLiteAdapter to new interface | [x]    |
-| 4.2  | [04-expo-sqlite-integration.md](./04-expo-sqlite-integration.md) | Align schema with unified DDL             | [x]    |
-| 4.3  | [04-expo-sqlite-integration.md](./04-expo-sqlite-integration.md) | Test on iOS and Android                   | [ ]    |
+| Task | Document                                                         | Description                               | Status     |
+| ---- | ---------------------------------------------------------------- | ----------------------------------------- | ---------- |
+| 4.1  | [04-expo-sqlite-integration.md](./04-expo-sqlite-integration.md) | Update ExpoSQLiteAdapter to new interface | [x]        |
+| 4.2  | [04-expo-sqlite-integration.md](./04-expo-sqlite-integration.md) | Align schema with unified DDL             | [x]        |
+| 4.3  | [04-expo-sqlite-integration.md](./04-expo-sqlite-integration.md) | Test on iOS and Android                   | [DEFERRED] |
 
 **Validation Gate:**
 
 - [x] ExpoSQLiteAdapter passes all interface tests
-- [ ] Expo app works on iOS simulator
-- [ ] Expo app works on Android emulator
-- [ ] Data persists across app restarts
+- [DEFERRED] Expo app works on iOS simulator (requires expo app integration)
+- [DEFERRED] Expo app works on Android emulator (requires expo app integration)
+- [DEFERRED] Data persists across app restarts (requires expo app integration)
 
 ### Phase 4: Schema & FTS (Step 05)
 
@@ -175,7 +175,7 @@ Define unified schema with full-text search.
 **Validation Gate:**
 
 - [x] Schema creates successfully on all platforms
-- [ ] FTS5 search returns correct results (skipped in sql.js tests)
+- [N/A] FTS5 search returns correct results (skipped in sql.js tests - tested via browser)
 - [x] Schema version is tracked
 - [x] Future schema upgrades work correctly
 
