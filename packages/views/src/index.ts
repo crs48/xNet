@@ -210,5 +210,10 @@ export {
   type SelectOptionsEditorProps
 } from './columns/index.js'
 
-// Schema info modal
-export { SchemaInfoModal, type SchemaInfoModalProps } from './schema/index.js'
+// Schema modals
+export {
+  SchemaInfoModal,
+  type SchemaInfoModalProps,
+  CloneSchemaModal,
+  type CloneSchemaModalProps
+} from './schema/index.js'
