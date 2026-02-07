@@ -150,3 +150,58 @@ export {
   reorderViewColumns,
   setColumnWidth
 } from './view-operations'
+
+// Filter operators
+export {
+  OPERATORS_BY_TYPE,
+  OPERATOR_LABELS,
+  getOperatorsForType,
+  isValidOperator,
+  getOperatorLabel,
+  operatorRequiresValue
+} from './filter-operators'
+
+// Filter engine
+export {
+  filterRows,
+  createEqualsFilter,
+  createAnyOfFilter,
+  combineFiltersAnd,
+  combineFiltersOr,
+  type FilterableRow
+} from './filter-engine'
+
+// Sort engine
+export {
+  sortRows,
+  createSort,
+  toggleSortDirection,
+  addOrToggleSort,
+  removeSort,
+  type SortableRow
+} from './sort-engine'
+
+// Group engine
+export {
+  groupRows,
+  toggleGroupCollapsed as toggleGroupCollapsedState,
+  expandAllGroups,
+  collapseAllGroups,
+  type GroupableRow,
+  type GroupConfig,
+  type RowGroup,
+  type GroupAggregates
+} from './group-engine'
+
+// Query pipeline
+export {
+  executeQuery,
+  createFilterQuery,
+  createSortQuery,
+  createPaginatedQuery,
+  flattenGroups,
+  getTotalFromGroups,
+  type QueryableRow,
+  type QueryOptions,
+  type QueryResult
+} from './query-pipeline'
