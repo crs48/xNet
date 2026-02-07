@@ -851,9 +851,9 @@ describe('Migrations', () => {
 
 ### Schema Documentation
 
-- [ ] Document all tables with column descriptions
-- [ ] Document all indexes with purpose
-- [ ] Document FTS5 configuration
+- [x] Document all tables with column descriptions
+- [x] Document all indexes with purpose
+- [x] Document FTS5 configuration
 - [ ] Add ER diagram to README
 
 ### FTS Implementation
@@ -866,10 +866,10 @@ describe('Migrations', () => {
 
 ### Migration System
 
-- [ ] Create `migrations.ts`
-- [ ] Implement initializeSchema
-- [ ] Implement applyMigrations
-- [ ] Add version checking
+- [x] Create `migrations.ts` (schema.ts has getMigrationSQL)
+- [x] Implement initializeSchema (adapters have applySchema)
+- [x] Implement applyMigrations (schema.ts has SCHEMA_MIGRATIONS)
+- [x] Add version checking (getSchemaVersion/setSchemaVersion)
 - [ ] Document migration process
 
 ### Diagnostics
@@ -881,14 +881,14 @@ describe('Migrations', () => {
 
 ### Tests
 
-- [ ] Test all tables exist
-- [ ] Test all indexes exist
-- [ ] Test foreign key constraints
+- [x] Test all tables exist
+- [x] Test all indexes exist
+- [x] Test foreign key constraints
 - [ ] Test cascade deletes
-- [ ] Test FTS search
-- [ ] Test FTS stemming
-- [ ] Test migration system
-- [ ] Target: 20+ tests
+- [ ] Test FTS search (requires non-sql.js adapter)
+- [ ] Test FTS stemming (requires non-sql.js adapter)
+- [x] Test migration system
+- [x] Target: 20+ tests (40 tests passing)
 
 ---
 

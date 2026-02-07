@@ -578,13 +578,13 @@ describe.skipIf(!isReactNative)('ExpoSQLiteAdapter', () => {
 
 ### Implementation
 
-- [ ] Move `ExpoSQLiteAdapter` to `packages/sqlite/src/adapters/expo.ts`
-- [ ] Implement full `SQLiteAdapter` interface
-- [ ] Use unified schema DDL
-- [ ] Add proper transaction support with rollback
-- [ ] Add prepared statement support
-- [ ] Add schema versioning
-- [ ] Create `createExpoSQLiteAdapter` factory function
+- [x] Move `ExpoSQLiteAdapter` to `packages/sqlite/src/adapters/expo.ts`
+- [x] Implement full `SQLiteAdapter` interface
+- [x] Use unified schema DDL
+- [x] Add proper transaction support with rollback
+- [x] Add prepared statement support
+- [x] Add schema versioning
+- [x] Create `createExpoSQLiteAdapter` factory function
 
 ### App Integration
 
