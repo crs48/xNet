@@ -226,14 +226,14 @@ Comprehensive testing and performance validation.
 | 8.2  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Integration tests            | [x]    |
 | 8.3  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Performance benchmarks       | [ ]    |
 | 8.4  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Browser compatibility matrix | [ ]    |
-| 8.5  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Documentation                | [ ]    |
+| 8.5  | [08-testing-and-validation.md](./08-testing-and-validation.md) | Documentation                | [x]    |
 
 **Validation Gate:**
 
-- [x] 95%+ test coverage for @xnet/sqlite (100+ tests: 43 adapter + 39 NodeStore + 23 Storage)
+- [x] 95%+ test coverage for @xnet/sqlite (112+ tests: 49 adapter + 39 NodeStore + 23 Storage + FTS/diagnostics)
 - [ ] All browsers in compatibility matrix tested
 - [ ] Performance benchmarks documented
-- [ ] Developer documentation complete
+- [x] Developer documentation complete (README for sqlite and storage packages)
 
 ## Package Structure
 
