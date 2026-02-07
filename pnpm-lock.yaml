@@ -496,6 +496,9 @@ importers:
       '@xnet/identity':
         specifier: workspace:*
         version: link:../identity
+      '@xnet/sqlite':
+        specifier: workspace:*
+        version: link:../sqlite
       '@xnet/storage':
         specifier: workspace:*
         version: link:../storage
