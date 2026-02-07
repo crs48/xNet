@@ -867,9 +867,9 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 
 ### Update Consumers
 
-- [ ] Update `BlobStore.delete()` to use new method
-- [ ] Verify `ChunkManager` works with new adapter
-- [ ] Verify `SnapshotManager` works with new adapter
+- [x] Update `BlobStore.delete()` to use new method
+- [x] Verify `ChunkManager` works with new adapter
+- [x] Verify `SnapshotManager` works with new adapter
 
 ### Package Updates
 
@@ -894,9 +894,9 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 - [x] Snapshot tests
 - [x] Blob tests
 - [x] Extended method tests
-- [ ] Integration tests with BlobStore
-- [ ] Integration tests with ChunkManager
-- [x] Target: 25+ tests (23 tests passing)
+- [x] Integration tests with BlobStore
+- [x] Integration tests with ChunkManager
+- [x] Target: 25+ tests (30 tests passing)
 
 ---
 
