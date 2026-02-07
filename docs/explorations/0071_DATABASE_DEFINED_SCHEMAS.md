@@ -5,7 +5,7 @@
 **References**: Builds on [0067_DATABASE_DATA_MODEL_V2.md](./0067_DATABASE_DATA_MODEL_V2.md) for the underlying data model.
 
 **Date**: February 2026
-**Status**: Implemented (Phases 1-4)
+**Status**: Implemented (Phases 1-5)
 
 ## Executive Summary
 
@@ -571,11 +571,9 @@ flowchart LR
 
 ---
 
-### Phase 5: Schema Version History (Optional, Deferred)
+### Phase 5: Schema Version History
 
 **Goal:** Track schema changes over time for auditing and potential rollback.
-
-> **Note:** This phase is deferred. The `SchemaVersionEntry` type and utility functions (`createVersionEntry`, `pruneVersionHistory`) already exist in `schema-utils.ts`. Implementation would involve storing history entries on version bumps and creating a devtools panel.
 
 ```mermaid
 flowchart TB
@@ -595,12 +593,12 @@ flowchart TB
 
 #### Checklist: Phase 5
 
-- [ ] Version history storage
-  - [ ] Define `SchemaVersionEntry` type
-  - [ ] Store at `doc.getMap('data').get('schemaHistory')`
-  - [ ] Append entry on each version bump
+- [x] Version history storage
+  - [x] Define `SchemaVersionEntry` type (in `schema-utils.ts`)
+  - [x] Store at `doc.getMap('data').get('schemaHistory')`
+  - [x] Append entry on each version bump (in `DatabaseView.tsx` `bumpVersion()`)
 
-- [ ] History entry structure
+- [x] History entry structure (implemented in `schema-utils.ts`)
 
   ```typescript
   interface SchemaVersionEntry {
@@ -612,14 +610,14 @@ flowchart TB
   }
   ```
 
-- [ ] History UI (optional)
-  - [ ] Version history panel in devtools
-  - [ ] Timeline view of changes
-  - [ ] Column diff between versions
+- [x] History UI
+  - [x] Version history panel in devtools (`SchemaHistoryPanel`)
+  - [x] Timeline view of changes
+  - [x] Column diff between versions
 
-- [ ] History limits
-  - [ ] Cap history to last N versions (e.g., 50)
-  - [ ] Or limit by age (e.g., 90 days)
+- [x] History limits (utilities implemented)
+  - [x] Cap history to last N versions (MAX_VERSION_HISTORY = 50)
+  - [x] `pruneVersionHistory()` utility in `schema-utils.ts`
 
 **Files to modify:**
 
