@@ -631,16 +631,16 @@ describe('RollupService', () => {
 
 ## Validation Gate
 
-- [ ] All aggregation functions work correctly
-- [ ] Relation traversal finds related rows
-- [ ] Reverse relations work
-- [ ] Rollup cache invalidates on changes
-- [ ] Batch rollup computation works
-- [ ] useRollup hook returns computed values
-- [ ] Empty relations return correct default
-- [ ] Filtered rollups work
-- [ ] Performance acceptable for large relations
-- [ ] All tests pass
+- [x] All aggregation functions work correctly
+- [x] Relation traversal finds related rows
+- [x] Reverse relations work
+- [x] Rollup cache invalidates on changes
+- [x] Batch rollup computation works
+- [ ] useRollup hook returns computed values (React integration deferred)
+- [x] Empty relations return correct default
+- [ ] Filtered rollups work (filter support deferred)
+- [x] Performance acceptable for large relations
+- [x] All tests pass (58 tests)
 
 ---
 

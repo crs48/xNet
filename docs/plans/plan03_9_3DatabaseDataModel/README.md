@@ -296,12 +296,12 @@ flowchart LR
 
 **Phase 4 Validation Gate:**
 
-- [ ] Rollup aggregates (sum, avg, count, min, max, concat, unique) work
-- [ ] Formulas evaluate with {{column}} references
-- [ ] Circular formulas detected and reported
-- [ ] Computed values cached per row+column
-- [ ] Cache invalidates when dependencies change
-- [ ] Hub computes rollups for large datasets
+- [x] Rollup aggregates (sum, avg, count, min, max, concat, unique) work
+- [x] Formulas evaluate with {{column}} references
+- [x] Circular formulas detected and reported
+- [x] Computed values cached per row+column
+- [x] Cache invalidates when dependencies change
+- [ ] Hub computes rollups for large datasets (deferred to Phase 5)
 
 ### Phase 5: Advanced Features (Weeks 12-14)
 

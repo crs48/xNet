@@ -713,17 +713,17 @@ describe('DependencyTracker', () => {
 
 ## Validation Gate
 
-- [ ] In-memory cache stores and retrieves values
-- [ ] Cache expires entries after maxAge
-- [ ] LRU eviction works at capacity
-- [ ] Dependency index correctly tracks relationships
-- [ ] Invalidation propagates to dependents
-- [ ] Hub cache persists values
-- [ ] Hub cache invalidation works
-- [ ] Batch invalidation is efficient
-- [ ] useComputed hook returns cached values
-- [ ] Cache updates on row changes
-- [ ] All tests pass
+- [x] In-memory cache stores and retrieves values
+- [x] Cache expires entries after maxAge
+- [x] LRU eviction works at capacity
+- [x] Dependency index correctly tracks relationships
+- [x] Invalidation propagates to dependents
+- [ ] Hub cache persists values (hub integration deferred)
+- [ ] Hub cache invalidation works (hub integration deferred)
+- [x] Batch invalidation is efficient
+- [ ] useComputed hook returns cached values (React integration deferred)
+- [x] Cache updates on row changes
+- [x] All tests pass (26 tests)
 
 ---
 
