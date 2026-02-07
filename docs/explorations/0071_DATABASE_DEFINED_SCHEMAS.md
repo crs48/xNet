@@ -429,20 +429,20 @@ flowchart TB
 
 #### Checklist: Phase 2
 
-- [ ] Schema metadata storage
-  - [ ] Define `DatabaseSchemaMetadata` type
-  - [ ] Store at `doc.getMap('data').get('schema')`
-  - [ ] Update `updatedAt` on any column change
+- [x] Schema metadata storage
+  - [x] Define `DatabaseSchemaMetadata` type
+  - [x] Store at `doc.getMap('data').get('schema')`
+  - [x] Update `updatedAt` on any column change
 
-- [ ] Schema info UI
-  - [ ] Add "Schema Info" button to toolbar (optional)
-  - [ ] Create schema info modal/popover
-  - [ ] Editable name and description fields
-  - [ ] Read-only version and timestamps display
+- [x] Schema info UI
+  - [x] Add "Schema Info" button to toolbar (version badge with info icon)
+  - [x] Create schema info modal/popover
+  - [x] Editable name and description fields
+  - [x] Read-only version and timestamps display
 
-- [ ] Version badge (optional)
-  - [ ] Show version in toolbar or header
-  - [ ] Visual indicator when schema changes
+- [x] Version badge (optional)
+  - [x] Show version in toolbar or header
+  - [x] Visual indicator when schema changes (via version number)
 
 **Files to modify:**
 
