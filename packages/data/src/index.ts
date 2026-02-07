@@ -431,7 +431,17 @@ export {
   extractSchemaFromDoc,
   getSchemaIRIFromDoc,
   type DocFetcher,
-  type CreateDatabaseSchemaResolverOptions
+  type CreateDatabaseSchemaResolverOptions,
+
+  // Clone schema utilities
+  cloneSchema,
+  cloneColumns,
+  cloneSampleRows,
+  generateColumnIdMap,
+  remapViewColumnIds,
+  type CloneSchemaOptions,
+  type CloneSchemaResult,
+  type CloneSourceData
 } from './database'
 
 // Re-export Yjs for convenience

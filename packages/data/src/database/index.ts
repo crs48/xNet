@@ -379,3 +379,15 @@ export {
   type DocFetcher,
   type CreateDatabaseSchemaResolverOptions
 } from './schema-resolver'
+
+// Clone schema utilities
+export {
+  cloneSchema,
+  cloneColumns,
+  cloneSampleRows,
+  generateColumnIdMap,
+  remapViewColumnIds,
+  type CloneSchemaOptions,
+  type CloneSchemaResult,
+  type CloneSourceData
+} from './clone'
