@@ -1019,18 +1019,18 @@ describe('CRDT Behavior', () => {
 
 ## Validation Gate
 
-- [ ] `initializeDatabaseDoc()` creates columns array, views map, meta map
-- [ ] `createColumn()` adds Y.Map to columns array
-- [ ] `updateColumn()` modifies column properties
-- [ ] `deleteColumn()` removes from array and all views
-- [ ] `reorderColumn()` moves column to new position
-- [ ] `createView()` adds view to views map
-- [ ] `updateView()` modifies view config
-- [ ] `deleteView()` removes from map
-- [ ] Concurrent column edits merge correctly (CRDT)
-- [ ] Column order syncs across devices
-- [ ] `useDatabaseDoc()` hook reactively updates
-- [ ] All tests pass
+- [x] `initializeDatabaseDoc()` creates columns array, views map, meta map
+- [x] `createColumn()` adds Y.Map to columns array
+- [x] `updateColumn()` modifies column properties
+- [x] `deleteColumn()` removes from array and all views
+- [x] `reorderColumn()` moves column to new position
+- [x] `createView()` adds view to views map
+- [x] `updateView()` modifies view config
+- [x] `deleteView()` removes from map
+- [x] Concurrent column edits merge correctly (CRDT)
+- [x] Column order syncs across devices
+- [ ] `useDatabaseDoc()` hook reactively updates (Task 4: React Hooks)
+- [x] All tests pass
 
 ---
 

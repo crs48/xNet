@@ -9,46 +9,8 @@
  * This is determined by the database's column definitions.
  */
 
+import type { ColumnDefinition } from './column-types'
 import * as Y from 'yjs'
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-/**
- * Column type identifier.
- */
-export type ColumnType =
-  | 'text'
-  | 'number'
-  | 'checkbox'
-  | 'date'
-  | 'dateRange'
-  | 'select'
-  | 'multiSelect'
-  | 'person'
-  | 'relation'
-  | 'url'
-  | 'email'
-  | 'phone'
-  | 'file'
-  | 'richText'
-  | 'formula'
-  | 'rollup'
-
-/**
- * Column definition stored in the database's Y.Doc.
- */
-export interface ColumnDefinition {
-  /** Unique column identifier */
-  id: string
-  /** Column display name */
-  name: string
-  /** Column type */
-  type: ColumnType
-  /** Column width in pixels (for table view) */
-  width?: number
-  /** Type-specific configuration */
-  config?: Record<string, unknown>
-}
 
 // ─── Rich Text Cell Functions ────────────────────────────────────────────────
 
