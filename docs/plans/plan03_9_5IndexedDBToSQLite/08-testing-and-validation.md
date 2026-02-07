@@ -528,6 +528,149 @@ describe('SQLite Integration', () => {
 })
 ```
 
+## E2E Smoke Tests
+
+While not part of the core test suite, we need to manually verify that both Electron and Web apps work correctly with the new SQLite storage. These are quick smoke tests using Playwright MCP to click around the apps.
+
+### Electron E2E Smoke Test
+
+Run via Playwright MCP against the Electron app (`cd apps/electron && pnpm dev`):
+
+```markdown
+## Electron Smoke Test Checklist
+
+### Setup
+
+- [ ] Start dev server: `cd apps/electron && pnpm dev`
+- [ ] Connect Playwright to `http://localhost:5177`
+
+### Core Flows
+
+1. **Create and Edit Page**
+   - [ ] Click "New Page" button
+   - [ ] Type a title in the title field
+   - [ ] Add some content in the editor
+   - [ ] Verify content appears correctly
+
+2. **Persistence Check**
+   - [ ] Reload the page (Cmd+R / Ctrl+R)
+   - [ ] Verify the page and content still exist
+   - [ ] Verify title and content are correct
+
+3. **List and Navigation**
+   - [ ] Create 3+ pages with different titles
+   - [ ] Navigate to page list/sidebar
+   - [ ] Verify all pages appear in list
+   - [ ] Click on a page to open it
+   - [ ] Verify correct page content loads
+
+4. **Delete and Soft Delete**
+   - [ ] Delete a page
+   - [ ] Verify it's removed from the list
+   - [ ] Verify other pages still work
+
+5. **Console Check**
+   - [ ] Open DevTools console
+   - [ ] Check for SQLite initialization logs
+   - [ ] Verify no errors related to storage
+
+### Teardown
+
+- [ ] Close browser
+- [ ] Kill dev server: `lsof -ti:5177 | xargs kill -9`
+```
+
+### Web E2E Smoke Test
+
+Run via Playwright MCP against the Web app (`cd apps/web && pnpm dev`):
+
+```markdown
+## Web Smoke Test Checklist
+
+### Setup
+
+- [ ] Start dev server: `cd apps/web && pnpm dev`
+- [ ] Connect Playwright to `http://localhost:3000` (or configured port)
+
+### SQLite Initialization
+
+1. **First Load**
+   - [ ] Open the app in a fresh browser profile
+   - [ ] Check console for sqlite-wasm initialization logs
+   - [ ] Verify no OPFS or Worker errors
+   - [ ] Verify app loads successfully
+
+2. **OPFS Check**
+   - [ ] Open DevTools > Application > Storage
+   - [ ] Verify OPFS shows xnet database files
+
+### Core Flows
+
+1. **Create and Edit Page**
+   - [ ] Click "New Page" button
+   - [ ] Type a title
+   - [ ] Add content
+   - [ ] Verify content renders
+
+2. **Persistence Across Reload**
+   - [ ] Hard reload the page (Cmd+Shift+R / Ctrl+Shift+R)
+   - [ ] Verify page still exists
+   - [ ] Verify content persisted
+
+3. **Persistence Across Session**
+   - [ ] Close the browser tab completely
+   - [ ] Reopen the app
+   - [ ] Verify all data persisted
+
+4. **Multi-Tab (if supported)**
+   - [ ] Open app in two tabs
+   - [ ] Create a page in tab 1
+   - [ ] Refresh tab 2
+   - [ ] Verify new page appears in tab 2
+
+### Performance Feel
+
+- [ ] Page list loads quickly (no visible spinner beyond 500ms)
+- [ ] Typing in editor has no lag
+- [ ] Navigation between pages is instant
+
+### Teardown
+
+- [ ] Close browser
+- [ ] Kill dev server
+```
+
+### Playwright MCP Commands
+
+Quick reference for running these tests:
+
+```bash
+# Start Electron dev server
+cd apps/electron && pnpm dev
+
+# In another terminal, use Playwright MCP:
+# - browser_navigate to http://localhost:5177
+# - browser_snapshot to see current state
+# - browser_click to interact with elements
+# - browser_type to enter text
+# - browser_console_messages to check for errors
+# - browser_take_screenshot to capture state
+
+# When done, kill servers:
+lsof -ti:5177,4444,3000,8080 | xargs kill -9 2>/dev/null
+```
+
+### Test Frequency
+
+| When                          | Electron | Web |
+| ----------------------------- | -------- | --- |
+| After implementing adapter    | Yes      | Yes |
+| After schema changes          | Yes      | Yes |
+| Before merging to main        | Yes      | Yes |
+| After any storage-related fix | Yes      | Yes |
+
+These E2E smoke tests complement the unit and integration tests by verifying the full user experience works correctly with real SQLite persistence.
+
 ## Performance Benchmarks
 
 ### Benchmark Suite
