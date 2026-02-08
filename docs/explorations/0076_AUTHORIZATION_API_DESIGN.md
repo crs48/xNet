@@ -119,30 +119,184 @@ flowchart LR
 
 ### ElectricSQL Approach
 
-ElectricSQL uses **HTTP-level authorization** with proxy patterns:
+ElectricSQL uses **Shapes** as the core sync primitive with **HTTP-level authorization** via proxy patterns. Shapes define subsets of data to sync using table + WHERE clause + columns:
 
 ```typescript
-// ElectricSQL: Shapes are resources, auth is HTTP middleware
+// ElectricSQL: Shapes define what data to sync
 const stream = new ShapeStream({
-  url: '/api/shapes/users',
-  headers: { Authorization: `Bearer ${token}` }
+  url: 'http://localhost:3000/v1/shape',
+  params: {
+    table: 'todos',
+    where: `user_id = $1`, // Row-level filtering
+    columns: 'id,title,status', // Column-level filtering
+    params: { '1': userId }
+  }
 })
 
-// Server-side proxy sets WHERE clauses based on auth
-originUrl.searchParams.set('where', `org_id = '${user.org_id}'`)
+// Auth is handled via proxy that validates tokens and sets WHERE clauses
+// Server-side proxy example:
+if (!user.roles.includes('admin')) {
+  originUrl.searchParams.set('where', `org_id = '${user.org_id}'`)
+}
+```
+
+ElectricSQL supports **subqueries** for cross-table filtering (experimental):
+
+```typescript
+// Sync users who belong to a specific organization
+params: {
+  table: 'users',
+  where: `id IN (SELECT user_id FROM memberships WHERE org_id = $1)`,
+  params: { '1': 'org_123' }
+}
 ```
 
 **Strengths:**
 
-- Simple mental model (HTTP auth)
-- Works with existing auth systems (Auth0, etc.)
-- Server-side enforcement
+- Simple mental model (Shapes = resources, HTTP auth)
+- Row-level and column-level filtering via WHERE/columns
+- Works with existing auth systems (Auth0, Supabase, etc.)
+- Server-side enforcement with proxy pattern
+- Subqueries enable relationship-based filtering
 
 **Weaknesses:**
 
-- Requires online server for auth
+- Requires online server for auth decisions
+- No built-in delegation/sharing model
+- Authorization logic lives in proxy code, not schema
+- No offline capability verification
+
+### Supabase Approach
+
+Supabase uses **Postgres Row Level Security (RLS)** with policies defined directly in SQL:
+
+```sql
+-- Enable RLS on table
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can only see their own profile
+CREATE POLICY "Users can view own profile"
+ON profiles FOR SELECT
+TO authenticated
+USING ( (SELECT auth.uid()) = user_id );
+
+-- Policy: Users can update their own profile
+CREATE POLICY "Users can update own profile"
+ON profiles FOR UPDATE
+TO authenticated
+USING ( (SELECT auth.uid()) = user_id )
+WITH CHECK ( (SELECT auth.uid()) = user_id );
+```
+
+Supabase also supports **Custom Claims & RBAC** via Auth Hooks:
+
+```sql
+-- Create role-based permission check
+CREATE FUNCTION public.authorize(requested_permission app_permission)
+RETURNS boolean AS $$
+DECLARE
+  user_role public.app_role;
+BEGIN
+  SELECT (auth.jwt() ->> 'user_role')::public.app_role INTO user_role;
+  RETURN EXISTS (
+    SELECT 1 FROM role_permissions
+    WHERE permission = requested_permission AND role = user_role
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Use in RLS policy
+CREATE POLICY "Allow authorized delete"
+ON messages FOR DELETE
+TO authenticated
+USING ( (SELECT authorize('messages.delete')) );
+```
+
+**Strengths:**
+
+- Database-native security (RLS is battle-tested)
+- Policies are declarative SQL
+- Works with any Postgres client
+- Custom claims enable flexible RBAC
+- Column-level security also available
+- Performance optimizations well-documented
+
+**Weaknesses:**
+
+- Requires Postgres (not portable)
+- Policies are separate from application schema
+- No offline capability (requires database connection)
 - No delegation/sharing model
-- No schema integration
+- Complex policies can impact query performance
+
+### Convex Approach
+
+Convex takes a **code-first authorization** approach where auth checks are written directly in server functions:
+
+```typescript
+// Convex: Authorization via code in mutations/queries
+export const publish = mutation({
+  args: { messageId: v.id('messages') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) {
+      throw new Error('Must be authenticated')
+    }
+
+    const message = await ctx.db.get(args.messageId)
+    if (message.author !== identity.tokenIdentifier) {
+      throw new Error('Not authorized to publish this message')
+    }
+
+    await ctx.db.patch(args.messageId, { published: true })
+  }
+})
+```
+
+Convex also supports **Row-Level Security** via a helper library that wraps database access:
+
+```typescript
+// convex-helpers RLS pattern
+const rules: Rules<QueryCtx, DataModel> = {
+  messages: {
+    read: async ({ auth }, message) => {
+      const identity = await auth.getUserIdentity()
+      if (identity === null) {
+        return message.published // Anonymous can only see published
+      }
+      return true // Authenticated can see all
+    },
+    modify: async ({ auth }, message) => {
+      const identity = await auth.getUserIdentity()
+      if (identity === null) return false
+      return message.author === identity.tokenIdentifier
+    }
+  }
+}
+
+// Wrap db with RLS
+export const queryWithRLS = customQuery(
+  query,
+  customCtx(async (ctx) => ({
+    db: wrapDatabaseReader(ctx, ctx.db, await rlsRules(ctx))
+  }))
+)
+```
+
+**Strengths:**
+
+- Full flexibility of code-based auth
+- RLS abstraction available via convex-helpers
+- Server-side execution (secure)
+- Works with any auth provider (Clerk, Auth0, etc.)
+- TypeScript-native, type-safe
+
+**Weaknesses:**
+
+- Requires online server (not local-first)
+- No built-in delegation model
+- RLS is opt-in library, not native
+- Authorization scattered across functions without discipline
 
 ### SpiceDB/Zanzibar Approach
 
@@ -1119,15 +1273,32 @@ function resolvePermissionConflict(grant: Grant, revocation: Revocation): 'grant
 
 ## Comparison with Alternatives
 
-| Feature            | xNet (Proposed) | ElectricSQL   | SpiceDB   | Firebase   |
-| ------------------ | --------------- | ------------- | --------- | ---------- |
-| Schema integration | Native          | None          | Separate  | Rules file |
-| Offline support    | Full            | Limited       | None      | Limited    |
-| Delegation         | UCAN chains     | None          | None      | None       |
-| Decentralized      | Yes             | No            | No        | No         |
-| Relation-aware     | Yes             | WHERE clauses | Yes       | Limited    |
-| Revocation         | Eventual        | Immediate     | Immediate | Immediate  |
-| Developer UX       | Hooks + API     | HTTP headers  | gRPC      | SDK        |
+| Feature                 | xNet (Proposed)       | ElectricSQL        | Supabase        | Convex             | SpiceDB         | Firebase       |
+| ----------------------- | --------------------- | ------------------ | --------------- | ------------------ | --------------- | -------------- |
+| **Auth Model**          | UCAN capabilities     | HTTP proxy + WHERE | Postgres RLS    | Code + RLS wrapper | Zanzibar ReBAC  | Security Rules |
+| **Schema integration**  | Native (defineSchema) | None (proxy)       | SQL policies    | Code-based         | Separate DSL    | JSON rules     |
+| **Row-level filtering** | Yes (expressions)     | Yes (WHERE)        | Yes (RLS)       | Yes (code/RLS)     | Yes (relations) | Yes (rules)    |
+| **Column-level**        | Yes (properties)      | Yes (columns)      | Yes (Column LS) | Manual             | No              | Limited        |
+| **Offline support**     | Full (cached UCANs)   | None               | None            | None               | None            | Limited        |
+| **Delegation**          | UCAN chains           | None               | None            | None               | None            | None           |
+| **Decentralized**       | Yes                   | No                 | No              | No                 | No              | No             |
+| **Relation-aware**      | Yes (graph)           | Yes (subqueries)   | Yes (JOINs)     | Manual             | Yes (native)    | Limited        |
+| **Revocation**          | Eventual              | Immediate          | Immediate       | Immediate          | Immediate       | Immediate      |
+| **Performance**         | Cached eval           | Server-side        | DB-native       | Server-side        | Distributed     | Edge-cached    |
+| **Developer UX**        | Hooks + schema        | HTTP headers       | SQL policies    | TypeScript         | gRPC API        | SDK + rules    |
+| **Learning curve**      | Medium (DSL)          | Low (HTTP)         | Medium (SQL)    | Low (code)         | High (Zanzibar) | Medium         |
+
+### Key Insights from Each System
+
+**ElectricSQL**: Shapes provide elegant row/column filtering, but auth is external. The subquery feature for cross-table filtering is powerful and could inspire our relation-based permissions.
+
+**Supabase**: RLS policies are battle-tested and performant. The `auth.uid()` and `auth.jwt()` helper functions are a good model for our permission expressions. Their RBAC pattern with custom claims shows how to extend basic auth.
+
+**Convex**: The code-first approach with optional RLS wrapper is flexible but requires discipline. Their insight that "most apps don't need RLS" because server functions can apply auth directly is valid—but xNet's local-first nature means we can't rely on server-side checks alone. The `convex-helpers` RLS pattern of wrapping `ctx.db` is a good model for our NodeStore integration.
+
+**SpiceDB**: The relationship-based model (`user:alice#member@group:engineering`) is the gold standard for ReBAC. Our `relation()` type already provides the graph structure needed for similar patterns.
+
+**Firebase**: Security Rules show that declarative auth can work at scale, but the JSON format is limiting. Our TypeScript-native approach should be more ergonomic.
 
 ## Open Questions
 
@@ -1160,6 +1331,11 @@ The implementation is incremental: each phase delivers standalone value while bu
 
 - [UCAN Specification](https://ucan.xyz/specification/)
 - [ElectricSQL Auth Guide](https://electric-sql.com/docs/guides/auth)
+- [ElectricSQL Shapes Guide](https://electric-sql.com/docs/guides/shapes)
+- [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
+- [Supabase Custom Claims & RBAC](https://supabase.com/docs/guides/database/postgres/custom-claims-and-role-based-access-control-rbac)
+- [Convex Authentication](https://docs.convex.dev/auth)
+- [Convex Row Level Security](https://stack.convex.dev/row-level-security)
 - [SpiceDB Schema Language](https://authzed.com/docs/spicedb/concepts/schema)
 - [Google Zanzibar Paper](https://research.google/pubs/pub48190/)
 - [Exploration 0040: First-Class Relations](./0040_FIRST_CLASS_RELATIONS.md)
