@@ -31,8 +31,9 @@ The goal is to create a UI that feels like Linear meets Notion meets Apple Notes
 7. [Component Patterns](#7-component-patterns)
 8. [Responsive Design](#8-responsive-design)
 9. [Accessibility](#9-accessibility)
-10. [Implementation Plan](#10-implementation-plan)
-11. [Inspiration & References](#11-inspiration--references)
+10. [Component Library Migration](#10-component-library-migration)
+11. [Implementation Plan](#11-implementation-plan)
+12. [Inspiration & References](#12-inspiration--references)
 
 ---
 
@@ -934,7 +935,149 @@ function Sidebar() {
 
 ---
 
-## 10. Implementation Plan
+## 10. Component Library Migration
+
+### Related Exploration
+
+See **[0034_RADIX_TO_BASE_UI_MIGRATION.md](./0034_RADIX_TO_BASE_UI_MIGRATION.md)** for a detailed analysis of our current Radix UI dependency and the case for migrating to Base UI.
+
+### The Opportunity: Combine Styling Refresh with Base UI Migration
+
+The timing is right to consider migrating from Radix UI to Base UI as part of this styling overhaul. Here's why:
+
+```mermaid
+graph LR
+    subgraph "Current State"
+        RADIX["Radix UI<br/>(Zombie project)"]
+        STYLES["Ad-hoc Styling<br/>(Inconsistent)"]
+    end
+
+    subgraph "Proposed Future"
+        BASEUI["Base UI 1.0<br/>(Active, MUI-backed)"]
+        SYSTEM["Design System<br/>(This exploration)"]
+    end
+
+    RADIX -->|"Migration"| BASEUI
+    STYLES -->|"Systematize"| SYSTEM
+    BASEUI --> UNIFIED["Unified Component<br/>Library"]
+    SYSTEM --> UNIFIED
+
+    style RADIX fill:#f96
+    style BASEUI fill:#6c6
+    style UNIFIED fill:#6c6
+```
+
+### Why Migrate Now?
+
+| Factor          | Radix UI                              | Base UI                                  | Impact                       |
+| --------------- | ------------------------------------- | ---------------------------------------- | ---------------------------- |
+| **Maintenance** | Near-zero commits, 600+ open issues   | Active development, MUI-backed           | Critical                     |
+| **Animation**   | Basic, manual state tracking          | Built-in transition data attributes      | Aligns with our motion goals |
+| **API**         | `asChild` + deprecated `cloneElement` | Modern `render` prop pattern             | Cleaner code                 |
+| **React 19**    | Partial support                       | Full support                             | Future-proof                 |
+| **Team**        | Original team left                    | Radix co-creator (Colm Tuite) now at MUI | Continuity                   |
+
+### Migration Synergies
+
+Doing both the styling refresh and Base UI migration together offers several advantages:
+
+1. **Single disruption** — Touch each component once, not twice
+2. **Animation alignment** — Base UI's built-in transition support matches our motion system
+3. **Cleaner abstractions** — Build our design tokens directly into Base UI components
+4. **Fresh start** — No legacy Radix workarounds to maintain
+
+### Recommended Approach
+
+```mermaid
+flowchart TD
+    A[Phase 1: Foundation] --> B[Phase 2: Base UI Migration]
+    B --> C[Phase 3: Component Styling]
+    C --> D[Phase 4: Polish]
+
+    A --> A1["tokens.css updates"]
+    A --> A2["Animation system"]
+    A --> A3["Tailwind config"]
+
+    B --> B1["Simple components<br/>(Switch, Checkbox, Tabs)"]
+    B --> B2["Medium components<br/>(Tooltip, Popover, Accordion)"]
+    B --> B3["Complex components<br/>(Dialog, Select, Menu)"]
+
+    C --> C1["Apply new color system"]
+    C --> C2["Add motion patterns"]
+    C --> C3["Responsive updates"]
+
+    D --> D1["Accessibility audit"]
+    D --> D2["Performance testing"]
+    D --> D3["Documentation"]
+
+    style B fill:#fff3e0
+    style B1 fill:#e8f5e9
+    style B2 fill:#fff3e0
+    style B3 fill:#ffcdd2
+```
+
+### Component Migration Priority
+
+Based on the analysis in exploration 0034, here's the recommended migration order:
+
+| Priority           | Components                        | Risk   | Notes                     |
+| ------------------ | --------------------------------- | ------ | ------------------------- |
+| **1. Quick wins**  | Separator, Switch, Checkbox       | Low    | Similar APIs, easy swap   |
+| **2. Low risk**    | Tabs, Accordion, Collapsible      | Low    | Minor API differences     |
+| **3. Medium risk** | Tooltip, Popover, ScrollArea      | Medium | Some behavior differences |
+| **4. High risk**   | Dialog/Modal, Select, Menu, Sheet | High   | Significant API changes   |
+| **5. Special**     | Command (cmdk)                    | Medium | May need alternative      |
+
+### Base UI Animation Benefits
+
+Base UI provides built-in data attributes for animation states, which aligns perfectly with our motion system:
+
+```tsx
+// Base UI provides these data attributes automatically:
+// [data-starting] - Element is entering
+// [data-ending] - Element is exiting
+// [data-open] - Element is open
+// [data-closed] - Element is closed
+
+// Our CSS can hook into these:
+.dialog-content {
+  &[data-starting] {
+    animation: var(--animate-scale-in);
+  }
+
+  &[data-ending] {
+    animation: var(--animate-fade-out);
+  }
+}
+```
+
+### Decision: Proceed with Migration?
+
+**Recommendation: Yes, proceed with combined migration.**
+
+The original exploration (0034) recommended waiting 6 months (until Q3 2026). However, given that:
+
+1. We're already planning a comprehensive styling overhaul
+2. Base UI 1.0 has been stable since December 2025
+3. shadcn/ui is actively adding Base UI support
+4. The animation benefits directly support our motion goals
+
+...it makes sense to **combine the efforts** rather than touch every component twice.
+
+### Updated Timeline
+
+| Week  | Focus           | Deliverables                               |
+| ----- | --------------- | ------------------------------------------ |
+| **1** | Foundation      | Tokens, animations, Tailwind config        |
+| **2** | Base UI Setup   | Install Base UI, migrate simple components |
+| **3** | Base UI Core    | Migrate medium-risk components             |
+| **4** | Base UI Complex | Migrate Dialog, Select, Menu               |
+| **5** | Styling         | Apply new design system to all components  |
+| **6** | Polish          | Accessibility, performance, documentation  |
+
+---
+
+## 11. Implementation Plan
 
 ### Phase 1: Foundation (Week 1)
 
@@ -943,16 +1086,36 @@ function Sidebar() {
 - [ ] Update `tailwind.config.js` with custom theme
 - [ ] Create `motion.css` for animation utilities
 - [ ] Add reduced motion support
+- [ ] Install `@base-ui-components/react` alongside Radix
 
-### Phase 2: Components (Week 2)
+### Phase 2: Base UI Migration - Simple (Week 2)
 
-- [ ] Update Button component with new variants
+- [ ] Migrate Separator (or replace with native `<hr>`)
+- [ ] Migrate Switch component
+- [ ] Migrate Checkbox component
+- [ ] Migrate Tabs component
+- [ ] Apply new styling to migrated components
+- [ ] Update Button component with new variants (no Radix dependency)
 - [ ] Update Input component with refined focus states
-- [ ] Add Skeleton component for loading states
-- [ ] Update Modal/Sheet with entrance animations
-- [ ] Update Tooltip with smooth transitions
 
-### Phase 3: Layout (Week 3)
+### Phase 3: Base UI Migration - Medium (Week 3)
+
+- [ ] Migrate Accordion component
+- [ ] Migrate Collapsible component
+- [ ] Migrate Tooltip component
+- [ ] Migrate Popover component
+- [ ] Migrate ScrollArea component
+- [ ] Add Skeleton component for loading states
+
+### Phase 4: Base UI Migration - Complex (Week 4)
+
+- [ ] Migrate Dialog/Modal component
+- [ ] Migrate Sheet component
+- [ ] Migrate Select component
+- [ ] Migrate DropdownMenu → Menu component
+- [ ] Evaluate Command palette (cmdk) alternatives or keep as-is
+
+### Phase 5: Layout & Responsive (Week 5)
 
 - [ ] Refactor Sidebar with responsive behavior
 - [ ] Add mobile navigation (bottom tabs)
@@ -960,8 +1123,9 @@ function Sidebar() {
 - [ ] Add container utilities
 - [ ] Test on real devices
 
-### Phase 4: Polish (Week 4)
+### Phase 6: Polish (Week 6)
 
+- [ ] Remove all Radix UI dependencies
 - [ ] Audit all components for consistency
 - [ ] Add micro-interactions (hover, focus, active)
 - [ ] Performance testing (60fps animations)
@@ -991,7 +1155,7 @@ function Sidebar() {
 
 ---
 
-## 11. Inspiration & References
+## 12. Inspiration & References
 
 ### Apps to Study
 
@@ -1040,8 +1204,15 @@ This exploration defines a comprehensive styling system for xNet that prioritize
 3. **Mobile-first** — touch-friendly, responsive, gesture-aware
 4. **Accessibility** — WCAG 2.1 AA, reduced motion, high contrast
 5. **Performance** — 60fps animations, instant feedback
+6. **Modern foundations** — Base UI migration for active maintenance and better animation support
 
-The implementation is phased over 4 weeks, starting with the foundation (tokens, animations) and progressing through component updates, layout refinements, and final polish.
+The implementation is phased over **6 weeks**, combining the styling refresh with a migration from Radix UI to Base UI:
+
+- **Weeks 1-4**: Foundation + Base UI migration (simple → complex components)
+- **Week 5**: Layout and responsive design
+- **Week 6**: Polish, accessibility audit, and documentation
+
+This combined approach ensures we touch each component only once, resulting in a cohesive, maintainable design system built on actively-maintained primitives.
 
 The goal is a UI that feels like a precision instrument — invisible when you're working, delightful when you notice it.
 
@@ -1050,7 +1221,14 @@ The goal is a UI that feels like a precision instrument — invisible when you'r
 ## Next Steps
 
 1. **Review this exploration** with stakeholders
-2. **Create a Figma prototype** of key components with new styling
-3. **Implement Phase 1** (tokens, animations, Tailwind config)
-4. **Test on real devices** before proceeding to Phase 2
-5. **Document patterns** in a living style guide
+2. **Decide on Base UI migration** — proceed now or defer (recommendation: proceed)
+3. **Create a Figma prototype** of key components with new styling
+4. **Implement Phase 1** (tokens, animations, Tailwind config, Base UI setup)
+5. **Prototype one Base UI component** (Switch or Checkbox) to validate approach
+6. **Test on real devices** before proceeding to Phase 2
+7. **Document patterns** in a living style guide
+
+### Related Documents
+
+- **[0034_RADIX_TO_BASE_UI_MIGRATION.md](./0034_RADIX_TO_BASE_UI_MIGRATION.md)** — Detailed analysis of Radix vs Base UI
+- **[0045_LANDING_PAGE_REDESIGN.md](./0045_LANDING_PAGE_REDESIGN.md)** — Landing page design direction (shares visual philosophy)
