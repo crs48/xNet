@@ -435,6 +435,101 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
     const result = (await sendRequest('debug:get', {})) as { enabled: boolean }
     return result.enabled
   })
+
+  // ─── Node Storage IPC Handlers ────────────────────────────────────────────
+  // Routes NodeStore operations to the data process SQLite database.
+  // See: docs/explorations/0074_ELECTRON_IPC_NODE_STORAGE.md
+
+  // Forward node change events to renderer
+  onEvent('nodes:change', (data) => {
+    const win = getMainWindow()
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('xnet:nodes:change', data)
+    }
+  })
+
+  // Change log operations
+  ipcMain.handle('xnet:nodes:appendChange', async (_event, opts: { change: unknown }) => {
+    await sendRequest('nodes:appendChange', opts)
+  })
+
+  ipcMain.handle('xnet:nodes:getChanges', async (_event, opts: { nodeId: string }) => {
+    const result = (await sendRequest('nodes:getChanges', opts)) as { changes: unknown[] }
+    return result.changes
+  })
+
+  ipcMain.handle('xnet:nodes:getAllChanges', async () => {
+    const result = (await sendRequest('nodes:getAllChanges', {})) as { changes: unknown[] }
+    return result.changes
+  })
+
+  ipcMain.handle('xnet:nodes:getChangesSince', async (_event, opts: { sinceLamport: number }) => {
+    const result = (await sendRequest('nodes:getChangesSince', opts)) as { changes: unknown[] }
+    return result.changes
+  })
+
+  ipcMain.handle('xnet:nodes:getChangeByHash', async (_event, opts: { hash: string }) => {
+    const result = (await sendRequest('nodes:getChangeByHash', opts)) as { change: unknown | null }
+    return result.change
+  })
+
+  ipcMain.handle('xnet:nodes:getLastChange', async (_event, opts: { nodeId: string }) => {
+    const result = (await sendRequest('nodes:getLastChange', opts)) as { change: unknown | null }
+    return result.change
+  })
+
+  // Materialized state operations
+  ipcMain.handle('xnet:nodes:getNode', async (_event, opts: { id: string }) => {
+    const result = (await sendRequest('nodes:getNode', opts)) as { node: unknown | null }
+    return result.node
+  })
+
+  ipcMain.handle('xnet:nodes:setNode', async (_event, opts: { node: unknown }) => {
+    await sendRequest('nodes:setNode', opts)
+  })
+
+  ipcMain.handle('xnet:nodes:deleteNode', async (_event, opts: { id: string }) => {
+    await sendRequest('nodes:deleteNode', opts)
+  })
+
+  ipcMain.handle('xnet:nodes:listNodes', async (_event, opts: unknown) => {
+    const result = (await sendRequest('nodes:listNodes', opts as Record<string, unknown>)) as {
+      nodes: unknown[]
+    }
+    return result.nodes
+  })
+
+  ipcMain.handle('xnet:nodes:countNodes', async (_event, opts: unknown) => {
+    const result = (await sendRequest('nodes:countNodes', opts as Record<string, unknown>)) as {
+      count: number
+    }
+    return result.count
+  })
+
+  // Sync state operations
+  ipcMain.handle('xnet:nodes:getLastLamportTime', async () => {
+    const result = (await sendRequest('nodes:getLastLamportTime', {})) as { time: number }
+    return result.time
+  })
+
+  ipcMain.handle('xnet:nodes:setLastLamportTime', async (_event, opts: { time: number }) => {
+    await sendRequest('nodes:setLastLamportTime', opts)
+  })
+
+  // Document content operations
+  ipcMain.handle('xnet:nodes:getDocumentContent', async (_event, opts: { nodeId: string }) => {
+    const result = (await sendRequest('nodes:getDocumentContent', opts)) as {
+      content: number[] | null
+    }
+    return result.content
+  })
+
+  ipcMain.handle(
+    'xnet:nodes:setDocumentContent',
+    async (_event, opts: { nodeId: string; content: number[] }) => {
+      await sendRequest('nodes:setDocumentContent', opts)
+    }
+  )
 }
 
 /**
