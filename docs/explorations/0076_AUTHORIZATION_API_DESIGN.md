@@ -439,6 +439,161 @@ const { canEdit, canDelete } = useCan(taskId)
 
 ## Proposed Architecture
 
+### Two-Layer Permission Model
+
+A critical design question: **How do users modify permissions on a specific node if permissions are defined in the schema?**
+
+The answer is a **two-layer model** that separates policy from grants:
+
+```mermaid
+flowchart TB
+    subgraph "Layer 1: Schema (Policy)"
+        SCHEMA["Schema Definition<br/>(immutable at runtime)"]
+        RULES["Permission Rules<br/>write: 'editor | admin | owner'"]
+        ROLES["Role Definitions<br/>editor: 'properties.editors[]'"]
+    end
+
+    subgraph "Layer 2: Node (Grants)"
+        NODE["Node Instance"]
+        PROPS["Node Properties<br/>editors: [did:key:bob, did:key:carol]"]
+        GRANTS["UCAN Grants<br/>(delegation tokens)"]
+    end
+
+    SCHEMA --> RULES
+    RULES --> ROLES
+    ROLES -->|"references"| PROPS
+    NODE --> PROPS
+    NODE --> GRANTS
+
+    subgraph "Permission Check"
+        CHECK["can(alice, 'write', task123)"]
+        EVAL["Evaluate: Is alice in<br/>editors[] OR admins[] OR owner?"]
+    end
+
+    RULES --> CHECK
+    PROPS --> EVAL
+    GRANTS --> EVAL
+```
+
+**Layer 1: Schema-Level Policy (Developer-Defined)**
+
+- Defined by developers in code via `defineSchema()`
+- Specifies **what roles can do** (e.g., "editors can write")
+- Specifies **how roles are determined** (e.g., "editors come from `properties.editors`")
+- **Immutable at runtime** — users cannot change the schema
+- Applies to ALL nodes of that schema type
+
+**Layer 2: Node-Level Grants (User-Controlled)**
+
+- Controlled by users with appropriate permissions (typically `share` permission)
+- Modifies **who has each role** on a specific node
+- Two mechanisms for granting access:
+  1. **Property-based**: Add a DID to a `person()` property (e.g., add Bob to `editors`)
+  2. **UCAN-based**: Create a delegation token granting specific capabilities
+
+#### Example: Granting Edit Access to a Task
+
+```typescript
+// Schema defines: editors can write, editors come from properties.editors
+const TaskSchema = defineSchema({
+  properties: {
+    title: text({ required: true }),
+    editors: person({ multiple: true }) // <-- Users can modify this
+  },
+  permissions: {
+    write: 'editor | admin | owner',
+    share: 'admin | owner' // <-- Who can grant access
+  },
+  roles: {
+    editor: 'properties.editors[]' // <-- Role derived from property
+  }
+})
+
+// User grants access by EITHER:
+
+// Option 1: Add to editors property (if they have write permission)
+await store.update(taskId, {
+  editors: [...currentEditors, bobDid]
+})
+// Now Bob is an editor because he's in properties.editors
+
+// Option 2: Create UCAN delegation (if they have share permission)
+await store.grant({
+  to: bobDid,
+  action: 'write',
+  resource: taskId,
+  expiresIn: '7d'
+})
+// Now Bob has write access via UCAN token (doesn't modify node properties)
+```
+
+#### Property-Based vs UCAN-Based Grants
+
+| Aspect         | Property-Based                   | UCAN-Based                         |
+| -------------- | -------------------------------- | ---------------------------------- |
+| **Storage**    | In node properties               | Separate token store               |
+| **Visibility** | Visible to all who can read node | Private between grantor/grantee    |
+| **Expiration** | Permanent until removed          | Built-in expiration support        |
+| **Delegation** | Cannot be re-delegated           | Can be attenuated and re-delegated |
+| **Revocation** | Remove from property             | Publish revocation record          |
+| **Offline**    | Requires node sync               | Token works offline                |
+| **Use case**   | Team membership, assignees       | Temporary access, external sharing |
+
+#### Who Can Grant Access?
+
+The `share` permission controls who can modify access:
+
+```typescript
+permissions: {
+  share: 'admin | owner' // Only admins and owners can grant access
+}
+```
+
+Users with `share` permission can:
+
+- Add/remove DIDs from role-granting properties (e.g., `editors`, `viewers`)
+- Create UCAN delegation tokens for others
+- Revoke grants they previously issued
+
+Users **cannot**:
+
+- Modify the schema's permission rules
+- Grant permissions they don't have (UCAN attenuation enforces this)
+- Bypass the schema's role definitions
+
+#### Inheritance and Cascading
+
+When access is granted at a parent level, it cascades to children:
+
+```typescript
+// Workspace schema
+const WorkspaceSchema = defineSchema({
+  properties: {
+    members: person({ multiple: true })
+  },
+  roles: {
+    member: 'properties.members[]'
+  }
+})
+
+// Project schema inherits from workspace
+const ProjectSchema = defineSchema({
+  properties: {
+    workspace: relation({ target: WorkspaceSchema })
+  },
+  roles: {
+    viewer: 'workspace->member' // Workspace members can view projects
+  }
+})
+
+// Adding someone to workspace.members automatically grants them
+// viewer access to all projects in that workspace
+await store.update(workspaceId, {
+  members: [...currentMembers, carolDid]
+})
+// Carol can now view all projects in this workspace
+```
+
 ### Schema-Level Permissions
 
 ```typescript
