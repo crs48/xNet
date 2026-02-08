@@ -240,6 +240,165 @@ process.parentPort?.on('message', async (event) => {
         break
       }
 
+      // ─── Node Storage ─────────────────────────────────────────────────────
+      // These handlers implement the NodeStorageAdapter interface for the renderer.
+      // See: docs/explorations/0074_ELECTRON_IPC_NODE_STORAGE.md
+
+      case 'nodes:appendChange': {
+        const { change } = payload as { change: unknown }
+        if (dataService) {
+          await dataService.appendChange(change as Parameters<typeof dataService.appendChange>[0])
+        }
+        sendResponse(requestId, { success: true })
+        break
+      }
+
+      case 'nodes:getChanges': {
+        const { nodeId } = payload as { nodeId: string }
+        if (dataService) {
+          const changes = await dataService.getChanges(nodeId)
+          sendResponse(requestId, { changes })
+        } else {
+          sendResponse(requestId, { changes: [] })
+        }
+        break
+      }
+
+      case 'nodes:getAllChanges': {
+        if (dataService) {
+          const changes = await dataService.getAllChanges()
+          sendResponse(requestId, { changes })
+        } else {
+          sendResponse(requestId, { changes: [] })
+        }
+        break
+      }
+
+      case 'nodes:getChangesSince': {
+        const { sinceLamport } = payload as { sinceLamport: number }
+        if (dataService) {
+          const changes = await dataService.getChangesSince(sinceLamport)
+          sendResponse(requestId, { changes })
+        } else {
+          sendResponse(requestId, { changes: [] })
+        }
+        break
+      }
+
+      case 'nodes:getChangeByHash': {
+        const { hash } = payload as { hash: string }
+        if (dataService) {
+          const change = await dataService.getChangeByHash(hash)
+          sendResponse(requestId, { change })
+        } else {
+          sendResponse(requestId, { change: null })
+        }
+        break
+      }
+
+      case 'nodes:getLastChange': {
+        const { nodeId } = payload as { nodeId: string }
+        if (dataService) {
+          const change = await dataService.getLastChange(nodeId)
+          sendResponse(requestId, { change })
+        } else {
+          sendResponse(requestId, { change: null })
+        }
+        break
+      }
+
+      case 'nodes:getNode': {
+        const { id } = payload as { id: string }
+        if (dataService) {
+          const node = await dataService.getNode(id)
+          sendResponse(requestId, { node })
+        } else {
+          sendResponse(requestId, { node: null })
+        }
+        break
+      }
+
+      case 'nodes:setNode': {
+        const { node } = payload as { node: unknown }
+        if (dataService) {
+          await dataService.setNode(node as Parameters<typeof dataService.setNode>[0])
+        }
+        sendResponse(requestId, { success: true })
+        break
+      }
+
+      case 'nodes:deleteNode': {
+        const { id } = payload as { id: string }
+        if (dataService) {
+          await dataService.deleteNode(id)
+        }
+        sendResponse(requestId, { success: true })
+        break
+      }
+
+      case 'nodes:listNodes': {
+        if (dataService) {
+          const nodes = await dataService.listNodes(
+            payload as Parameters<typeof dataService.listNodes>[0]
+          )
+          sendResponse(requestId, { nodes })
+        } else {
+          sendResponse(requestId, { nodes: [] })
+        }
+        break
+      }
+
+      case 'nodes:countNodes': {
+        if (dataService) {
+          const count = await dataService.countNodes(
+            payload as Parameters<typeof dataService.countNodes>[0]
+          )
+          sendResponse(requestId, { count })
+        } else {
+          sendResponse(requestId, { count: 0 })
+        }
+        break
+      }
+
+      case 'nodes:getLastLamportTime': {
+        if (dataService) {
+          const time = await dataService.getLastLamportTime()
+          sendResponse(requestId, { time })
+        } else {
+          sendResponse(requestId, { time: 0 })
+        }
+        break
+      }
+
+      case 'nodes:setLastLamportTime': {
+        const { time } = payload as { time: number }
+        if (dataService) {
+          await dataService.setLastLamportTime(time)
+        }
+        sendResponse(requestId, { success: true })
+        break
+      }
+
+      case 'nodes:getDocumentContent': {
+        const { nodeId } = payload as { nodeId: string }
+        if (dataService) {
+          const content = await dataService.getDocumentContent(nodeId)
+          sendResponse(requestId, { content })
+        } else {
+          sendResponse(requestId, { content: null })
+        }
+        break
+      }
+
+      case 'nodes:setDocumentContent': {
+        const { nodeId, content } = payload as { nodeId: string; content: number[] }
+        if (dataService) {
+          await dataService.setDocumentContent(nodeId, content)
+        }
+        sendResponse(requestId, { success: true })
+        break
+      }
+
       default:
         log('Unknown message type:', type)
         sendResponse(requestId, { error: `Unknown message type: ${type}` })

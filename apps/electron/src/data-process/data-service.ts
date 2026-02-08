@@ -49,6 +49,64 @@ interface DataServiceConfig {
   dbPath: string
 }
 
+// Serialized types for IPC transport (matches renderer/lib/ipc-node-storage.ts)
+interface SerializedNodeChange {
+  protocolVersion?: number
+  id: string
+  type: string
+  hash: string
+  payload: {
+    nodeId: string
+    schemaId?: string
+    properties: Record<string, unknown>
+    deleted?: boolean
+  }
+  lamport: {
+    time: number
+    author: string
+  }
+  wallTime: number
+  authorDID: string
+  parentHash: string | null
+  batchId?: string
+  batchIndex?: number
+  batchSize?: number
+  signature: number[]
+}
+
+interface SerializedPropertyTimestamp {
+  lamport: { time: number; author: string }
+  wallTime: number
+}
+
+interface SerializedNodeState {
+  id: string
+  schemaId: string
+  properties: Record<string, unknown>
+  timestamps: Record<string, SerializedPropertyTimestamp>
+  deleted: boolean
+  deletedAt?: SerializedPropertyTimestamp
+  createdAt: number
+  createdBy: string
+  updatedAt: number
+  updatedBy: string
+  documentContent?: number[]
+  _unknown?: Record<string, unknown>
+  _schemaVersion?: string
+}
+
+interface ListNodesOptions {
+  schemaId?: string
+  includeDeleted?: boolean
+  limit?: number
+  offset?: number
+}
+
+interface CountNodesOptions {
+  schemaId?: string
+  includeDeleted?: boolean
+}
+
 export interface DataService {
   initialize(): Promise<void>
   shutdown(): Promise<void>
@@ -72,6 +130,23 @@ export interface DataService {
   hasBlob(cid: string): Promise<boolean>
   requestBlobs(cids: string[]): void
   announceBlobs(cids: string[]): void
+
+  // Node storage operations (for IPCNodeStorageAdapter)
+  appendChange(change: SerializedNodeChange): Promise<void>
+  getChanges(nodeId: string): Promise<SerializedNodeChange[]>
+  getAllChanges(): Promise<SerializedNodeChange[]>
+  getChangesSince(sinceLamport: number): Promise<SerializedNodeChange[]>
+  getChangeByHash(hash: string): Promise<SerializedNodeChange | null>
+  getLastChange(nodeId: string): Promise<SerializedNodeChange | null>
+  getNode(id: string): Promise<SerializedNodeState | null>
+  setNode(node: SerializedNodeState): Promise<void>
+  deleteNode(id: string): Promise<void>
+  listNodes(options?: ListNodesOptions): Promise<SerializedNodeState[]>
+  countNodes(options?: CountNodesOptions): Promise<number>
+  getLastLamportTime(): Promise<number>
+  setLastLamportTime(time: number): Promise<void>
+  getDocumentContent(nodeId: string): Promise<number[] | null>
+  setDocumentContent(nodeId: string, content: number[]): Promise<void>
 }
 
 // ─── Debug Logging ──────────────────────────────────────────────────────────
@@ -1015,6 +1090,399 @@ export function createDataService(config: DataServiceConfig): DataService {
         topic: BLOB_SYNC_ROOM,
         data: { type: 'blob-have', cids }
       })
+    },
+
+    // ─── Node Storage Operations ──────────────────────────────────────────────
+    // These methods implement the NodeStorageAdapter interface for the renderer.
+    // Data is stored in SQLite and changes are emitted for real-time sync.
+
+    async appendChange(change: SerializedNodeChange): Promise<void> {
+      if (!adapter) throw new Error('Database not initialized')
+
+      await adapter.run(
+        `INSERT OR REPLACE INTO changes (
+          hash, node_id, payload, lamport_time, lamport_peer, wall_time,
+          author, parent_hash, batch_id, signature
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          change.hash,
+          change.payload.nodeId,
+          JSON.stringify(change.payload),
+          change.lamport.time,
+          change.lamport.author,
+          change.wallTime,
+          change.authorDID,
+          change.parentHash,
+          change.batchId ?? null,
+          Buffer.from(change.signature)
+        ]
+      )
+
+      // Update sync state with latest Lamport time
+      await adapter.run(
+        `INSERT OR REPLACE INTO sync_state (key, value) VALUES ('lastLamportTime', ?)`,
+        [String(Math.max(change.lamport.time, await this.getLastLamportTime()))]
+      )
+
+      // Emit change event for real-time sync to other windows
+      sendEvent('nodes:change', { changes: [change] })
+
+      log('appendChange:', change.hash, 'node:', change.payload.nodeId)
+    },
+
+    async getChanges(nodeId: string): Promise<SerializedNodeChange[]> {
+      if (!adapter) return []
+
+      const rows = await adapter.query<{
+        hash: string
+        node_id: string
+        payload: string
+        lamport_time: number
+        lamport_peer: string
+        wall_time: number
+        author: string
+        parent_hash: string | null
+        batch_id: string | null
+        signature: Buffer
+      }>('SELECT * FROM changes WHERE node_id = ? ORDER BY lamport_time ASC', [nodeId])
+
+      return rows.map(rowToSerializedChange)
+    },
+
+    async getAllChanges(): Promise<SerializedNodeChange[]> {
+      if (!adapter) return []
+
+      const rows = await adapter.query<{
+        hash: string
+        node_id: string
+        payload: string
+        lamport_time: number
+        lamport_peer: string
+        wall_time: number
+        author: string
+        parent_hash: string | null
+        batch_id: string | null
+        signature: Buffer
+      }>('SELECT * FROM changes ORDER BY lamport_time ASC', [])
+
+      return rows.map(rowToSerializedChange)
+    },
+
+    async getChangesSince(sinceLamport: number): Promise<SerializedNodeChange[]> {
+      if (!adapter) return []
+
+      const rows = await adapter.query<{
+        hash: string
+        node_id: string
+        payload: string
+        lamport_time: number
+        lamport_peer: string
+        wall_time: number
+        author: string
+        parent_hash: string | null
+        batch_id: string | null
+        signature: Buffer
+      }>('SELECT * FROM changes WHERE lamport_time > ? ORDER BY lamport_time ASC', [sinceLamport])
+
+      return rows.map(rowToSerializedChange)
+    },
+
+    async getChangeByHash(hash: string): Promise<SerializedNodeChange | null> {
+      if (!adapter) return null
+
+      const row = await adapter.queryOne<{
+        hash: string
+        node_id: string
+        payload: string
+        lamport_time: number
+        lamport_peer: string
+        wall_time: number
+        author: string
+        parent_hash: string | null
+        batch_id: string | null
+        signature: Buffer
+      }>('SELECT * FROM changes WHERE hash = ?', [hash])
+
+      return row ? rowToSerializedChange(row) : null
+    },
+
+    async getLastChange(nodeId: string): Promise<SerializedNodeChange | null> {
+      if (!adapter) return null
+
+      const row = await adapter.queryOne<{
+        hash: string
+        node_id: string
+        payload: string
+        lamport_time: number
+        lamport_peer: string
+        wall_time: number
+        author: string
+        parent_hash: string | null
+        batch_id: string | null
+        signature: Buffer
+      }>('SELECT * FROM changes WHERE node_id = ? ORDER BY lamport_time DESC LIMIT 1', [nodeId])
+
+      return row ? rowToSerializedChange(row) : null
+    },
+
+    async getNode(id: string): Promise<SerializedNodeState | null> {
+      if (!adapter) return null
+
+      const row = await adapter.queryOne<{
+        id: string
+        schema_id: string
+        created_at: number
+        updated_at: number
+        created_by: string
+        deleted_at: number | null
+      }>('SELECT * FROM nodes WHERE id = ?', [id])
+
+      if (!row) return null
+
+      // Get properties
+      const propRows = await adapter.query<{
+        property_key: string
+        value: string | null
+        lamport_time: number
+        updated_by: string
+        updated_at: number
+      }>('SELECT * FROM node_properties WHERE node_id = ?', [id])
+
+      const properties: Record<string, unknown> = {}
+      const timestamps: Record<string, SerializedPropertyTimestamp> = {}
+
+      for (const prop of propRows) {
+        properties[prop.property_key] = prop.value ? JSON.parse(prop.value) : null
+        timestamps[prop.property_key] = {
+          lamport: { time: prop.lamport_time, author: prop.updated_by },
+          wallTime: prop.updated_at
+        }
+      }
+
+      // Get document content if exists
+      const yjsRow = await adapter.queryOne<{ state: Buffer }>(
+        'SELECT state FROM yjs_state WHERE node_id = ?',
+        [id]
+      )
+
+      return {
+        id: row.id,
+        schemaId: row.schema_id,
+        properties,
+        timestamps,
+        deleted: row.deleted_at !== null,
+        deletedAt: row.deleted_at
+          ? { lamport: { time: 0, author: row.created_by }, wallTime: row.deleted_at }
+          : undefined,
+        createdAt: row.created_at,
+        createdBy: row.created_by,
+        updatedAt: row.updated_at,
+        updatedBy: row.created_by, // TODO: Track updatedBy separately
+        documentContent: yjsRow ? Array.from(yjsRow.state) : undefined
+      }
+    },
+
+    async setNode(node: SerializedNodeState): Promise<void> {
+      if (!adapter) throw new Error('Database not initialized')
+
+      // Upsert node
+      await adapter.run(
+        `INSERT OR REPLACE INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          node.id,
+          node.schemaId,
+          node.createdAt,
+          node.updatedAt,
+          node.createdBy,
+          node.deleted ? (node.deletedAt?.wallTime ?? Date.now()) : null
+        ]
+      )
+
+      // Upsert properties
+      for (const [key, value] of Object.entries(node.properties)) {
+        const ts = node.timestamps[key]
+        await adapter.run(
+          `INSERT OR REPLACE INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            node.id,
+            key,
+            value !== undefined ? JSON.stringify(value) : null,
+            ts?.lamport.time ?? 0,
+            ts?.lamport.author ?? node.createdBy,
+            ts?.wallTime ?? node.updatedAt
+          ]
+        )
+      }
+
+      // Store document content if present
+      if (node.documentContent) {
+        await adapter.run(
+          `INSERT OR REPLACE INTO yjs_state (node_id, state, updated_at)
+           VALUES (?, ?, ?)`,
+          [node.id, Buffer.from(node.documentContent), Date.now()]
+        )
+      }
+
+      log('setNode:', node.id, 'schema:', node.schemaId)
+    },
+
+    async deleteNode(id: string): Promise<void> {
+      if (!adapter) throw new Error('Database not initialized')
+
+      // Delete in order to respect foreign keys
+      await adapter.run('DELETE FROM node_properties WHERE node_id = ?', [id])
+      await adapter.run('DELETE FROM yjs_state WHERE node_id = ?', [id])
+      await adapter.run('DELETE FROM changes WHERE node_id = ?', [id])
+      await adapter.run('DELETE FROM nodes WHERE id = ?', [id])
+
+      log('deleteNode:', id)
+    },
+
+    async listNodes(options?: ListNodesOptions): Promise<SerializedNodeState[]> {
+      if (!adapter) return []
+
+      let sql = 'SELECT * FROM nodes WHERE 1=1'
+      const params: (string | number)[] = []
+
+      if (options?.schemaId) {
+        sql += ' AND schema_id = ?'
+        params.push(options.schemaId)
+      }
+
+      if (!options?.includeDeleted) {
+        sql += ' AND deleted_at IS NULL'
+      }
+
+      sql += ' ORDER BY updated_at DESC'
+
+      if (options?.limit) {
+        sql += ' LIMIT ?'
+        params.push(options.limit)
+      }
+
+      if (options?.offset) {
+        sql += ' OFFSET ?'
+        params.push(options.offset)
+      }
+
+      const rows = await adapter.query<{
+        id: string
+        schema_id: string
+        created_at: number
+        updated_at: number
+        created_by: string
+        deleted_at: number | null
+      }>(sql, params)
+
+      // Fetch full node state for each
+      const nodes: SerializedNodeState[] = []
+      for (const row of rows) {
+        const node = await this.getNode(row.id)
+        if (node) nodes.push(node)
+      }
+
+      return nodes
+    },
+
+    async countNodes(options?: CountNodesOptions): Promise<number> {
+      if (!adapter) return 0
+
+      let sql = 'SELECT COUNT(*) as count FROM nodes WHERE 1=1'
+      const params: string[] = []
+
+      if (options?.schemaId) {
+        sql += ' AND schema_id = ?'
+        params.push(options.schemaId)
+      }
+
+      if (!options?.includeDeleted) {
+        sql += ' AND deleted_at IS NULL'
+      }
+
+      const row = await adapter.queryOne<{ count: number }>(sql, params)
+      return row?.count ?? 0
+    },
+
+    async getLastLamportTime(): Promise<number> {
+      if (!adapter) return 0
+
+      const row = await adapter.queryOne<{ value: string }>(
+        "SELECT value FROM sync_state WHERE key = 'lastLamportTime'",
+        []
+      )
+      return row ? parseInt(row.value, 10) : 0
+    },
+
+    async setLastLamportTime(time: number): Promise<void> {
+      if (!adapter) throw new Error('Database not initialized')
+
+      await adapter.run(
+        `INSERT OR REPLACE INTO sync_state (key, value) VALUES ('lastLamportTime', ?)`,
+        [String(time)]
+      )
+    },
+
+    async getDocumentContent(nodeId: string): Promise<number[] | null> {
+      if (!adapter) return null
+
+      const row = await adapter.queryOne<{ state: Buffer }>(
+        'SELECT state FROM yjs_state WHERE node_id = ?',
+        [nodeId]
+      )
+
+      return row ? Array.from(row.state) : null
+    },
+
+    async setDocumentContent(nodeId: string, content: number[]): Promise<void> {
+      if (!adapter) throw new Error('Database not initialized')
+
+      await adapter.run(
+        `INSERT OR REPLACE INTO yjs_state (node_id, state, updated_at)
+         VALUES (?, ?, ?)`,
+        [nodeId, Buffer.from(content), Date.now()]
+      )
+
+      log('setDocumentContent:', nodeId, 'size:', content.length)
     }
+  }
+}
+
+// ─── Helper Functions ─────────────────────────────────────────────────────────
+
+function rowToSerializedChange(row: {
+  hash: string
+  node_id: string
+  payload: string
+  lamport_time: number
+  lamport_peer: string
+  wall_time: number
+  author: string
+  parent_hash: string | null
+  batch_id: string | null
+  signature: Buffer
+}): SerializedNodeChange {
+  const payload = JSON.parse(row.payload) as {
+    nodeId: string
+    schemaId?: string
+    properties: Record<string, unknown>
+    deleted?: boolean
+  }
+
+  return {
+    id: row.hash, // Use hash as ID for now
+    type: 'node-change',
+    hash: row.hash,
+    payload,
+    lamport: {
+      time: row.lamport_time,
+      author: row.lamport_peer
+    },
+    wallTime: row.wall_time,
+    authorDID: row.author,
+    parentHash: row.parent_hash,
+    batchId: row.batch_id ?? undefined,
+    signature: Array.from(row.signature)
   }
 }

@@ -270,6 +270,47 @@ contextBridge.exposeInMainWorld('xnetLocalAPI', {
   }
 })
 
+// ─── Node Storage IPC API ────────────────────────────────────────────────────
+// Routes NodeStore operations to the data process SQLite database via IPC.
+// This enables persistent node storage in Electron (replacing MemoryNodeStorageAdapter).
+
+contextBridge.exposeInMainWorld('xnetNodes', {
+  // Change log operations
+  appendChange: (change: unknown) => ipcRenderer.invoke('xnet:nodes:appendChange', { change }),
+  getChanges: (nodeId: string) => ipcRenderer.invoke('xnet:nodes:getChanges', { nodeId }),
+  getAllChanges: () => ipcRenderer.invoke('xnet:nodes:getAllChanges'),
+  getChangesSince: (sinceLamport: number) =>
+    ipcRenderer.invoke('xnet:nodes:getChangesSince', { sinceLamport }),
+  getChangeByHash: (hash: string) => ipcRenderer.invoke('xnet:nodes:getChangeByHash', { hash }),
+  getLastChange: (nodeId: string) => ipcRenderer.invoke('xnet:nodes:getLastChange', { nodeId }),
+
+  // Materialized state operations
+  getNode: (id: string) => ipcRenderer.invoke('xnet:nodes:getNode', { id }),
+  setNode: (node: unknown) => ipcRenderer.invoke('xnet:nodes:setNode', { node }),
+  deleteNode: (id: string) => ipcRenderer.invoke('xnet:nodes:deleteNode', { id }),
+  listNodes: (options?: unknown) => ipcRenderer.invoke('xnet:nodes:listNodes', options ?? {}),
+  countNodes: (options?: unknown) => ipcRenderer.invoke('xnet:nodes:countNodes', options ?? {}),
+
+  // Sync state
+  getLastLamportTime: () => ipcRenderer.invoke('xnet:nodes:getLastLamportTime'),
+  setLastLamportTime: (time: number) =>
+    ipcRenderer.invoke('xnet:nodes:setLastLamportTime', { time }),
+
+  // Document content operations
+  getDocumentContent: (nodeId: string) =>
+    ipcRenderer.invoke('xnet:nodes:getDocumentContent', { nodeId }),
+  setDocumentContent: (nodeId: string, content: number[]) =>
+    ipcRenderer.invoke('xnet:nodes:setDocumentContent', { nodeId, content }),
+
+  // Change subscription
+  onChange: (callback: (event: { changes: unknown[] }) => void) => {
+    const handler = (_: unknown, event: { changes: unknown[] }) => callback(event)
+    ipcRenderer.on('xnet:nodes:change', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener('xnet:nodes:change', handler as (...args: unknown[]) => void)
+  }
+})
+
 // Type declaration for renderer
 export interface XNetAPI {
   getProfile(): Promise<string>
@@ -374,6 +415,35 @@ export interface XNetLocalAPIAPI {
   onStoreRequest(handler: (request: LocalAPIStoreRequest) => Promise<unknown>): () => void
 }
 
+// Node Storage API types (for IPC-based NodeStorageAdapter)
+export interface XNetNodesAPI {
+  // Change log operations
+  appendChange(change: unknown): Promise<void>
+  getChanges(nodeId: string): Promise<unknown[]>
+  getAllChanges(): Promise<unknown[]>
+  getChangesSince(sinceLamport: number): Promise<unknown[]>
+  getChangeByHash(hash: string): Promise<unknown | null>
+  getLastChange(nodeId: string): Promise<unknown | null>
+
+  // Materialized state operations
+  getNode(id: string): Promise<unknown | null>
+  setNode(node: unknown): Promise<void>
+  deleteNode(id: string): Promise<void>
+  listNodes(options?: unknown): Promise<unknown[]>
+  countNodes(options?: unknown): Promise<number>
+
+  // Sync state
+  getLastLamportTime(): Promise<number>
+  setLastLamportTime(time: number): Promise<void>
+
+  // Document content operations
+  getDocumentContent(nodeId: string): Promise<number[] | null>
+  setDocumentContent(nodeId: string, content: number[]): Promise<void>
+
+  // Change subscription
+  onChange(callback: (event: { changes: unknown[] }) => void): () => void
+}
+
 declare global {
   interface Window {
     xnet: XNetAPI
@@ -381,5 +451,6 @@ declare global {
     xnetBSM: XNetBSMAPI
     xnetServices: XNetServicesAPI
     xnetLocalAPI: XNetLocalAPIAPI
+    xnetNodes: XNetNodesAPI
   }
 }

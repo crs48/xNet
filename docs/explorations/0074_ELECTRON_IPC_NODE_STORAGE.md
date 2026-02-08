@@ -9,7 +9,7 @@
 - [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md) - Off-thread design
 
 **Date**: February 2026
-**Status**: Design Ready
+**Status**: Implemented
 
 ## Executive Summary
 
@@ -432,70 +432,70 @@ CREATE INDEX IF NOT EXISTS idx_changes_timestamp ON node_changes(timestamp);
 
 ### Phase 1: Core IPC Infrastructure
 
-- [ ] **1.1** Create `IPCNodeStorageAdapter` class
+- [x] **1.1** Create `IPCNodeStorageAdapter` class
   - File: `apps/electron/src/renderer/lib/ipc-node-storage.ts`
   - Implements `NodeStorageAdapter` interface
   - Routes all operations via `window.xnetNodes`
 
-- [ ] **1.2** Add `xnetNodes` API to preload
+- [x] **1.2** Add `xnetNodes` API to preload
   - File: `apps/electron/src/preload/index.ts`
   - Expose all node operations via `contextBridge`
   - Add TypeScript types for the API
 
-- [ ] **1.3** Add node IPC handlers to main process
+- [x] **1.3** Add node IPC handlers to main process
   - File: `apps/electron/src/main/data-process-manager.ts`
   - Handle all `xnet:nodes:*` IPC channels
   - Forward to data process via `sendRequest`
 
 ### Phase 2: Data Process Implementation
 
-- [ ] **2.1** Add node storage methods to DataService
+- [x] **2.1** Add node storage methods to DataService
   - File: `apps/electron/src/data-process/data-service.ts`
   - Implement `getNode`, `getManyNodes`, `listNodes`, `countNodes`
   - Implement `applyNodeChanges`, `getNodeChanges`, `clearNodes`
   - Add helper functions for row conversion
 
-- [ ] **2.2** Add message handlers for node operations
+- [x] **2.2** Add message handlers for node operations
   - File: `apps/electron/src/data-process/index.ts`
   - Handle `nodes:get`, `nodes:getMany`, `nodes:list`, etc.
   - Emit `nodes:change` events for subscriptions
 
-- [ ] **2.3** Verify SQLite schema includes node tables
+- [x] **2.3** Verify SQLite schema includes node tables
   - File: `packages/sqlite/src/schema.ts`
   - Ensure `nodes` and `node_changes` tables exist
   - Add any missing indexes
 
 ### Phase 3: Renderer Integration
 
-- [ ] **3.1** Update renderer to use IPCNodeStorageAdapter
+- [x] **3.1** Update renderer to use IPCNodeStorageAdapter
   - File: `apps/electron/src/renderer/main.tsx`
   - Replace `MemoryNodeStorageAdapter` with `IPCNodeStorageAdapter`
   - Remove unused imports
 
-- [ ] **3.2** Add change subscription support
+- [x] **3.2** Add change subscription support
   - Forward `nodes:change` events to NodeStore listeners
   - Ensure real-time updates work across windows
 
 ### Phase 4: Testing & Verification
 
-- [ ] **4.1** Add unit tests for IPCNodeStorageAdapter
+- [x] **4.1** Add unit tests for IPCNodeStorageAdapter
   - Mock IPC calls
   - Verify all operations work correctly
 
-- [ ] **4.2** Add integration tests
+- [x] **4.2** Add integration tests
   - Test round-trip through IPC
   - Verify persistence across app restarts
 
-- [ ] **4.3** Manual testing with Playwright
+- [x] **4.3** Manual testing with Playwright
   - Create nodes, close app, reopen
   - Verify nodes persist
   - Test multi-window scenarios
 
 ### Phase 5: Cleanup
 
-- [ ] **5.1** Remove temporary MemoryNodeStorageAdapter usage
-- [ ] **5.2** Update documentation
-- [ ] **5.3** Remove any IndexedDB-related code remnants
+- [x] **5.1** Remove temporary MemoryNodeStorageAdapter usage
+- [x] **5.2** Update documentation
+- [x] **5.3** Remove any IndexedDB-related code remnants
 
 ## Sequence Diagrams
 

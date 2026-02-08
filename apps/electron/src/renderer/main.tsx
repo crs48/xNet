@@ -1,7 +1,7 @@
 /**
  * Renderer entry point
  */
-import { MemoryNodeStorageAdapter, BlobService } from '@xnet/data'
+import { BlobService } from '@xnet/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnet/devtools'
 import { BlobProvider } from '@xnet/editor/react'
 import { identityFromPrivateKey } from '@xnet/identity'
@@ -13,6 +13,7 @@ import React, { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
+import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
 import { createIPCSyncManager, type IPCSyncManager } from './lib/ipc-sync-manager'
 import './styles.css'
 
@@ -171,9 +172,10 @@ async function init() {
   AUTHOR_DID = testIdentity.did as `did:key:${string}`
   SIGNING_KEY = testKey
 
-  // TODO: Replace with IPC-based node storage that routes to data process SQLite
-  // For now, use MemoryNodeStorageAdapter - nodes sync via data process but don't persist locally
-  const nodeStorage = new MemoryNodeStorageAdapter()
+  // IPC-based node storage that routes to data process SQLite
+  // This ensures nodes persist locally and are available for sync
+  // See: docs/explorations/0074_ELECTRON_IPC_NODE_STORAGE.md
+  const nodeStorage = new IPCNodeStorageAdapter()
 
   // Blob storage: IPC to main process → ChunkManager → BlobService
   // This routes all blob operations through IPC to main process SQLite,
