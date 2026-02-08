@@ -1,6 +1,36 @@
-import { Slot } from '@radix-ui/react-slot'
-import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import {
+  forwardRef,
+  cloneElement,
+  isValidElement,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+  type ReactElement
+} from 'react'
 import { cn, cva, type VariantProps } from '../utils'
+
+// ─── Slot Component (replaces @radix-ui/react-slot) ─────────────────────────
+
+interface SlotProps extends React.HTMLAttributes<HTMLElement> {
+  children?: ReactNode
+}
+
+/**
+ * Slot component that merges its props onto its immediate child.
+ * Used for the `asChild` pattern to render a different element.
+ */
+const Slot = forwardRef<HTMLElement, SlotProps>(({ children, ...props }, ref) => {
+  if (!isValidElement(children)) {
+    return null
+  }
+
+  return cloneElement(children as ReactElement, {
+    ...props,
+    ...children.props,
+    ref,
+    className: cn(props.className, children.props.className)
+  })
+})
+Slot.displayName = 'Slot'
 
 export const buttonVariants = cva(
   // Base styles

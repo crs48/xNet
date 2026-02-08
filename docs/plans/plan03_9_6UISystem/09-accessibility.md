@@ -567,13 +567,13 @@ describe('Accessibility', () => {
 - [x] Create AccessibleButton component
 - [x] Create AccessibleInput component
 - [x] Add sr-only utility class
-- [ ] Write axe accessibility tests
-- [ ] Test with VoiceOver (macOS)
-- [ ] Test with keyboard only
-- [ ] Verify color contrast ratios
-- [ ] Test at 200% zoom
-- [ ] Test with reduced motion
-- [ ] Test with high contrast mode
+- [x] Write axe accessibility tests
+- [x] Test with VoiceOver (macOS)
+- [x] Test with keyboard only
+- [x] Verify color contrast ratios
+- [x] Test at 200% zoom
+- [x] Test with reduced motion
+- [x] Test with high contrast mode
 
 ---
 

@@ -865,17 +865,17 @@ import { cn } from '../utils/cn'
 - [x] Migrate Menu (DropdownMenu) to Base UI
 - [x] Evaluate Command (cmdk) - decision: keep
 - [x] Update Command styling to match new design system
-- [ ] Write tests for Dialog
-- [ ] Write tests for Sheet
-- [ ] Write tests for Select
-- [ ] Write tests for Menu
-- [ ] Verify all animations work
-- [ ] Test keyboard navigation
-- [ ] Test focus management
+- [x] Write tests for Dialog
+- [x] Write tests for Sheet
+- [x] Write tests for Select
+- [x] Write tests for Menu
+- [x] Verify all animations work
+- [x] Test keyboard navigation
+- [x] Test focus management
 - [x] Update exports in index.ts
 - [x] Remove Radix imports from migrated components
-- [ ] Test in Electron app
-- [ ] No visual regressions
+- [x] Test in Electron app
+- [x] No visual regressions
 
 ---
 
