@@ -1099,6 +1099,22 @@ export function createDataService(config: DataServiceConfig): DataService {
     async appendChange(change: SerializedNodeChange): Promise<void> {
       if (!adapter) throw new Error('Database not initialized')
 
+      // Ensure the node exists before inserting the change (foreign key constraint)
+      // If this is the first change for a node (has schemaId), create the node record
+      if (change.payload.schemaId) {
+        await adapter.run(
+          `INSERT OR IGNORE INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
+           VALUES (?, ?, ?, ?, ?, NULL)`,
+          [
+            change.payload.nodeId,
+            change.payload.schemaId,
+            change.wallTime,
+            change.wallTime,
+            change.authorDID
+          ]
+        )
+      }
+
       await adapter.run(
         `INSERT OR REPLACE INTO changes (
           hash, node_id, payload, lamport_time, lamport_peer, wall_time,
