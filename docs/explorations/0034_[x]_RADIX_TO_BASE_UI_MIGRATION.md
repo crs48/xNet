@@ -2,8 +2,15 @@
 
 > Should xNet migrate from Radix UI primitives to MUI's Base UI given Radix's apparent abandonment?
 
+## Implementation Status
+
+- [x] **Migration Complete** - All Radix UI dependencies removed
+- [x] `@base-ui/react` ^1.1.0 now used in `@xnet/ui`
+- [x] All 34 components migrated from Radix primitives to Base UI
+- [x] Base UI animations CSS added (`base-ui-animations.css`)
+
 **Date**: January 2026  
-**Status**: Exploration  
+**Status**: Complete  
 **Impact**: Medium (UI package, all apps)
 
 ---
@@ -12,11 +19,7 @@
 
 Radix UI, our current headless component library, has effectively become a zombie project. The original team left after WorkOS acquired it, commit activity has nearly stopped, and 600+ issues remain unaddressed. MUI's Base UI reached 1.0 in December 2025 and is actively positioning itself as the successor. This exploration evaluates whether xNet should migrate.
 
-**Recommendation**: **Wait 6 months, then reassess.** Base UI is promising but too new. Our current Radix usage works, and the migration cost outweighs immediate benefits. However, we should:
-
-1. Avoid adding new Radix primitives
-2. Monitor Base UI's stability and adoption
-3. Plan migration path for Q3 2026
+**Update (February 2026)**: Migration completed. All Radix dependencies removed, Base UI now in use.
 
 ---
 
@@ -178,7 +181,6 @@ graph LR
 
 ```tsx
 import * as Dialog from '@radix-ui/react-dialog'
-
 ;<Dialog.Root>
   <Dialog.Trigger asChild>
     <Button>Open</Button>
@@ -200,7 +202,6 @@ import * as Dialog from '@radix-ui/react-dialog'
 
 ```tsx
 import * as Dialog from '@base-ui-components/react/dialog'
-
 ;<Dialog.Root>
   <Dialog.Trigger render={<Button />}>Open</Dialog.Trigger>
   <Dialog.Portal>
