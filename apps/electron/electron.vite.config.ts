@@ -104,7 +104,7 @@ export default defineConfig({
       }
     },
     optimizeDeps: {
-      exclude: ['elkjs']
+      exclude: ['elkjs', 'mermaid']
     },
     worker: {
       format: 'es' // Required for code-splitting in workers
