@@ -33,6 +33,7 @@ jobs:
       - name: Build web app (with hash router for GitHub Pages)
         run: pnpm --filter xnet-web build
         env:
+          VITE_BASE_PATH: '/app/'
           VITE_USE_HASH_ROUTER: 'true'
 
       - name: Cache Astro build
