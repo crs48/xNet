@@ -6,7 +6,7 @@
 [![Demo App](https://img.shields.io/github/actions/workflow/status/crs48/xNet/deploy-site.yml?label=demo%20app&logo=react&logoColor=white)](https://xnet.fyi/app)
 [![Hub Image](https://img.shields.io/github/actions/workflow/status/crs48/xNet/hub-release.yml?label=hub%20image&logo=docker&logoColor=white)](https://github.com/crs48/xNet/actions/workflows/hub-release.yml)
 [![Demo Hub](https://img.shields.io/endpoint?url=https%3A%2F%2Fhub.xnet.fyi%2Fhealth%2Fbadge&logo=railway&logoColor=white)](https://hub.xnet.fyi/health)
-[![Docs](https://img.shields.io/badge/docs-starlight-blue?logo=astro)](https://xnet.fyi/docs)
+[![Docs](https://img.shields.io/github/actions/workflow/status/crs48/xNet/deploy-site.yml?label=docs&logo=astro&logoColor=white)](https://xnet.fyi/docs)
 [![GitHub Stars](https://img.shields.io/github/stars/crs48/xNet?style=flat&logo=github)](https://github.com/crs48/xNet/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
