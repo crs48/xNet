@@ -7,7 +7,7 @@
 import type { NodeStorageAdapter } from '@xnet/data'
 import type { Identity, KeyBundle } from '@xnet/identity'
 import type { SQLiteAdapter } from '@xnet/sqlite'
-import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { RouterProvider, createRouter, createHashHistory } from '@tanstack/react-router'
 import { SQLiteNodeStorageAdapter, BlobService } from '@xnet/data'
 import { XNetDevToolsProvider } from '@xnet/devtools'
 import { BlobProvider } from '@xnet/editor/react'
@@ -33,7 +33,11 @@ import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
 // ─── Router ─────────────────────────────────────────────────────
-const router = createRouter({ routeTree, basepath: '/app' })
+const useHashRouter = import.meta.env.VITE_USE_HASH_ROUTER === 'true'
+const router = createRouter({
+  routeTree,
+  ...(useHashRouter ? { history: createHashHistory() } : { basepath: '/app' })
+})
 
 declare module '@tanstack/react-router' {
   interface Register {
