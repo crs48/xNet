@@ -4,9 +4,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// When using hash router (for site deployment), use root base path
-const useHashRouter = process.env.VITE_USE_HASH_ROUTER === 'true'
-const basePath = useHashRouter ? '/' : '/app/'
+// Base path for deployment (default: '/', set VITE_BASE_PATH for custom paths like '/app/')
+const basePath = process.env.VITE_BASE_PATH || '/'
 
 export default defineConfig({
   base: basePath,

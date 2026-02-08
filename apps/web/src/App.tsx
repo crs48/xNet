@@ -34,9 +34,10 @@ import './styles/globals.css'
 
 // ─── Router ─────────────────────────────────────────────────────
 const useHashRouter = import.meta.env.VITE_USE_HASH_ROUTER === 'true'
+const basePath = import.meta.env.BASE_URL || '/'
 const router = createRouter({
   routeTree,
-  ...(useHashRouter ? { history: createHashHistory() } : { basepath: '/app' })
+  ...(useHashRouter ? { history: createHashHistory() } : { basepath: basePath })
 })
 
 declare module '@tanstack/react-router' {
