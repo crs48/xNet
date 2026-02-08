@@ -336,15 +336,15 @@ Base UI provides data attributes that we can use for CSS animations:
 
 ## Checklist
 
-- [ ] Install `@base-ui-components/react`
-- [ ] Update package.json with new dependency
-- [ ] Create base-ui wrapper module
-- [ ] Create migration guide reference
-- [ ] Write installation verification tests
-- [ ] Create migration status tracking file
-- [ ] Verify Base UI works alongside Radix
-- [ ] Run existing tests (no regressions)
-- [ ] Build package successfully
+- [x] Install `@base-ui-components/react`
+- [x] Update package.json with new dependency
+- [x] Create base-ui wrapper module
+- [x] Create migration guide reference
+- [x] Write installation verification tests
+- [x] Create migration status tracking file
+- [x] Verify Base UI works alongside Radix
+- [x] Run existing tests (no regressions)
+- [x] Build package successfully
 
 ---
 

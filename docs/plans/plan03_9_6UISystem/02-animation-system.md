@@ -776,21 +776,21 @@ describe('Motion System', () => {
 
 ## Checklist
 
-- [ ] Create `motion.css` with easing functions
-- [ ] Add duration scale variables
-- [ ] Create animation keyframes (fade, scale, slide)
-- [ ] Add transition utility classes
-- [ ] Add reduced motion support
-- [ ] Update Tailwind config with animations
-- [ ] Create Base UI animation integration CSS
-- [ ] Add accordion/collapsible animations
-- [ ] Add dialog/modal animations
-- [ ] Add popover/tooltip animations
-- [ ] Add menu/select animations
-- [ ] Add switch/checkbox animations
-- [ ] Write unit tests
-- [ ] Verify 60fps performance
-- [ ] Test reduced motion preference
+- [x] Create `motion.css` with easing functions
+- [x] Add duration scale variables
+- [x] Create animation keyframes (fade, scale, slide)
+- [x] Add transition utility classes
+- [x] Add reduced motion support
+- [x] Update Tailwind config with animations
+- [x] Create Base UI animation integration CSS
+- [x] Add accordion/collapsible animations
+- [x] Add dialog/modal animations
+- [x] Add popover/tooltip animations
+- [x] Add menu/select animations
+- [x] Add switch/checkbox animations
+- [x] Write unit tests
+- [x] Verify 60fps performance
+- [x] Test reduced motion preference
 
 ---
 

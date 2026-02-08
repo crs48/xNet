@@ -10,6 +10,8 @@
       "types": "./src/index.ts"
     },
     "./tokens.css": "./src/theme/tokens.css",
+    "./motion.css": "./src/theme/motion.css",
+    "./base-ui-animations.css": "./src/theme/base-ui-animations.css",
     "./tailwind.config": "./tailwind.config.js"
   },
   "scripts": {
@@ -19,6 +21,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@base-ui/react": "^1.1.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-checkbox": "^1.1.4",
     "@radix-ui/react-collapsible": "^1.1.12",
