@@ -53,10 +53,11 @@ const { title, description } = Astro.props
         color: #10b981;
       }
     </style>
-    <!-- Inline script to prevent flash: read localStorage, default to dark -->
+    <!-- Inline script to prevent flash: read localStorage, fallback to system preference -->
     <script is:inline>
       (function() {
-        var theme = localStorage.getItem('xnet-lp-theme')
+        var storedTheme = localStorage.getItem('xnet-lp-theme')
+        var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
         if (theme === 'light') {
           document.documentElement.classList.remove('dark')
         }
