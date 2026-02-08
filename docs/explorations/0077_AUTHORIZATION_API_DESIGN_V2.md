@@ -18,28 +18,34 @@ xNet has working UCAN token functions that are never called at runtime. This exp
 4. **UCAN delegation chains** — Cryptographic, offline-capable sharing
 5. **Simple developer API** — `store.can()`, `store.grant()`, `useCan()` hooks
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Developer Experience                         │
-├─────────────────────────────────────────────────────────────────┤
-│  Schema Definition          React Hooks         Imperative API  │
-│  permissions: {...}         useCan()            store.can()     │
-│  roles: {...}               useGrants()         store.grant()   │
-└──────────────┬──────────────────┬─────────────────┬─────────────┘
-               │                  │                 │
-               ▼                  ▼                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Authorization Engine                           │
-├─────────────────────────────────────────────────────────────────┤
-│  Permission Evaluator ──► UCAN Token Layer ──► Capability Cache │
-└──────────────┬──────────────────┬─────────────────┬─────────────┘
-               │                  │                 │
-               ▼                  ▼                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Enforcement Points                            │
-├─────────────────────────────────────────────────────────────────┤
-│       NodeStore              Sync Layer              Hub Server  │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph DX["Developer Experience"]
+        SCHEMA["Schema Definition<br/>permissions: {...}<br/>roles: {...}"]
+        HOOKS["React Hooks<br/>useCan()<br/>useGrants()"]
+        API["Imperative API<br/>store.can()<br/>store.grant()"]
+    end
+
+    subgraph ENGINE["Authorization Engine"]
+        EVAL["Permission<br/>Evaluator"]
+        UCAN["UCAN Token<br/>Layer"]
+        CACHE["Capability<br/>Cache"]
+    end
+
+    subgraph ENFORCE["Enforcement Points"]
+        STORE["NodeStore"]
+        SYNC["Sync Layer"]
+        HUB["Hub Server"]
+    end
+
+    SCHEMA --> EVAL
+    HOOKS --> EVAL
+    API --> EVAL
+    EVAL --> UCAN
+    UCAN --> CACHE
+    CACHE --> STORE
+    CACHE --> SYNC
+    CACHE --> HUB
 ```
 
 ---
@@ -74,12 +80,38 @@ interface PermissionEvaluator {
 
 ### The Gap
 
-```
-[Enforced]                    [Dormant]                   [Missing]
-DID Identity ──► Signing ──► UCAN Functions ──► Permission Types ──► ???
-     ✓              ✓              ○                  ○              ✗
+```mermaid
+flowchart LR
+    subgraph ENFORCED["Enforced ✓"]
+        DID["DID Identity"]
+        SIGN["Ed25519 Signing"]
+        VERIFY["Signature Verification"]
+    end
 
-Legend: ✓ = working, ○ = exists but unused, ✗ = not implemented
+    subgraph DORMANT["Dormant ○"]
+        UCAN_FN["UCAN Functions"]
+        PERM_TYPES["Permission Types"]
+    end
+
+    subgraph MISSING["Missing ✗"]
+        SCHEMA_INT["Schema Integration"]
+        NODE_AUTH["Node-Level Auth"]
+        SHARE_API["Sharing API"]
+    end
+
+    DID --> SIGN --> VERIFY
+    VERIFY -.->|"gap"| UCAN_FN
+    UCAN_FN -.->|"gap"| PERM_TYPES
+    PERM_TYPES -.->|"gap"| SCHEMA_INT
+
+    style DID fill:#4ade80,color:#000
+    style SIGN fill:#4ade80,color:#000
+    style VERIFY fill:#4ade80,color:#000
+    style UCAN_FN fill:#fbbf24,color:#000
+    style PERM_TYPES fill:#fbbf24,color:#000
+    style SCHEMA_INT fill:#fecaca,color:#000
+    style NODE_AUTH fill:#fecaca,color:#000
+    style SHARE_API fill:#fecaca,color:#000
 ```
 
 The gap: signatures prove _who_ made a change, but nothing checks _whether they're allowed to_.
@@ -92,35 +124,38 @@ The gap: signatures prove _who_ made a change, but nothing checks _whether they'
 
 A critical insight: **schemas define policy, nodes store grants**. This separation enables developers to define permission rules while users control access to specific resources.
 
+```mermaid
+flowchart TB
+    subgraph LAYER1["Layer 1: Schema (Policy)"]
+        direction TB
+        L1_DESC["Defined by developers in code<br/>Immutable at runtime"]
+        L1_WHAT["Specifies WHAT roles can do"]
+        L1_HOW["Specifies HOW roles are determined"]
+        L1_EX["permissions: { write: 'editor | admin | owner' }<br/>roles: { editor: 'properties.editors[]' }"]
+    end
+
+    subgraph LAYER2["Layer 2: Node (Grants)"]
+        direction TB
+        L2_DESC["Controlled by users with 'share' permission<br/>Modifies WHO has each role"]
+        L2_PROP["Property-based:<br/>node.editors = [bob, carol]"]
+        L2_UCAN["UCAN-based:<br/>Alice → Bob (write, 7d)"]
+    end
+
+    LAYER1 -->|"references"| LAYER2
+
+    style LAYER1 fill:#e0f2fe,stroke:#0284c7
+    style LAYER2 fill:#fef3c7,stroke:#d97706
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  LAYER 1: Schema (Policy)                                       │
-│  ─────────────────────────                                      │
-│  • Defined by developers in code                                │
-│  • Immutable at runtime                                         │
-│  • Specifies WHAT roles can do                                  │
-│  • Specifies HOW roles are determined                           │
-│                                                                 │
-│  Example:                                                       │
-│    permissions: { write: 'editor | admin | owner' }             │
-│    roles: { editor: 'properties.editors[]' }                    │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  LAYER 2: Node (Grants)                                         │
-│  ──────────────────────                                         │
-│  • Controlled by users with 'share' permission                  │
-│  • Modifies WHO has each role on a specific node                │
-│  • Two mechanisms:                                              │
-│    1. Property-based: Add DID to editors[] property             │
-│    2. UCAN-based: Create delegation token                       │
-│                                                                 │
-│  Example:                                                       │
-│    node.editors = [did:key:bob, did:key:carol]                  │
-│    ucan: Alice → Bob (write, expires 7d)                        │
-└─────────────────────────────────────────────────────────────────┘
-```
+
+**Layer 1 (Schema)** — Developer-defined, immutable at runtime:
+
+- Specifies WHAT roles can do: `permissions: { write: 'editor | admin | owner' }`
+- Specifies HOW roles are determined: `roles: { editor: 'properties.editors[]' }`
+
+**Layer 2 (Node)** — User-controlled via `share` permission:
+
+- Property-based: `node.editors = [did:key:bob, did:key:carol]`
+- UCAN-based: `Alice → Bob (write, expires 7d)`
 
 ### Schema-Level Permissions
 
@@ -163,6 +198,32 @@ const TaskSchema = defineSchema({
 
 A simple DSL for expressing permission rules:
 
+```mermaid
+flowchart LR
+    subgraph LITERALS["Literals"]
+        L1["'owner'"]
+        L2["'public'"]
+        L3["'authenticated'"]
+    end
+
+    subgraph OPERATORS["Operators"]
+        O1["'a | b' (OR)"]
+        O2["'a & b' (AND)"]
+        O3["'!a' (NOT)"]
+    end
+
+    subgraph REFS["References"]
+        R1["'createdBy'"]
+        R2["'properties.assignee'"]
+        R3["'properties.team[]'"]
+    end
+
+    subgraph TRAVERSE["Traversal"]
+        T1["'project->admin'"]
+        T2["'workspace->members[]'"]
+    end
+```
+
 | Expression               | Meaning                            |
 | ------------------------ | ---------------------------------- |
 | `'owner'`                | Has the owner role                 |
@@ -176,6 +237,33 @@ A simple DSL for expressing permission rules:
 | `'properties.team[]'`    | Any match in multi-person property |
 | `'project->admin'`       | Admin of related project           |
 | `'workspace->members[]'` | Any member of related workspace    |
+
+### Action Hierarchy
+
+Actions form a hierarchy where broader actions include narrower ones:
+
+```mermaid
+flowchart TB
+    ADMIN["admin/*"] --> SHARE["share/*"]
+    ADMIN --> WRITE["write/*"]
+    ADMIN --> READ["read/*"]
+
+    SHARE --> GRANT["share/grant"]
+    SHARE --> REVOKE["share/revoke"]
+
+    WRITE --> CREATE["write/create"]
+    WRITE --> UPDATE["write/update"]
+    WRITE --> DELETE["write/delete"]
+
+    READ --> VIEW["read/view"]
+    READ --> LIST["read/list"]
+    READ --> EXPORT["read/export"]
+
+    style ADMIN fill:#4ade80,color:#000
+    style SHARE fill:#60a5fa,color:#000
+    style WRITE fill:#fbbf24,color:#000
+    style READ fill:#a78bfa,color:#000
+```
 
 ### Granting Access
 
@@ -213,23 +301,80 @@ await store.grant({
 | **Revocation** | Remove from property    | Publish revocation record       |
 | **Use case**   | Team membership         | Temporary/external sharing      |
 
+### Complete Sharing Flow
+
+```mermaid
+sequenceDiagram
+    participant Alice as Alice (Owner)
+    participant Store as NodeStore
+    participant Bob as Bob
+    participant Task as Task Node
+
+    Note over Alice: Alice owns the task
+
+    alt Property-Based Grant
+        Alice->>Store: update(taskId, { editors: [..., bobDid] })
+        Store->>Task: add Bob to editors property
+        Note over Task: Bob is now in properties.editors[]
+        Bob->>Store: can('write', taskId)
+        Store->>Store: evaluate: is Bob in editors[]?
+        Store-->>Bob: true (via property)
+    else UCAN-Based Grant
+        Alice->>Store: grant({ to: bob, action: 'write', resource: taskId })
+        Store->>Store: createUCAN(alice → bob, write)
+        Store-->>Bob: deliver UCAN token
+        Bob->>Store: can('write', taskId)
+        Store->>Store: verify UCAN chain
+        Store-->>Bob: true (via UCAN)
+    end
+```
+
 ### Relationship-Based Inheritance
 
 Permissions flow through the graph via relations:
 
-```
-Workspace (Alice = admin, Bob = member)
-    │
-    └──► Project (inherits from workspace)
-            │
-            └──► Task (inherits from project)
-                    │
-                    └──► Comment (inherits from task)
+```mermaid
+flowchart TB
+    subgraph WS["Workspace"]
+        W["Workspace Node"]
+        W_ROLES["Alice = admin<br/>Bob = member"]
+    end
 
-Result:
-  • Alice is admin of everything (inherited)
-  • Bob can view projects, tasks, comments (member → viewer)
+    subgraph PROJ["Project"]
+        P["Project Node"]
+        P_ROLES["inherits admin, viewer<br/>from workspace"]
+    end
+
+    subgraph TASK["Task"]
+        T["Task Node"]
+        T_ROLES["inherits from project"]
+    end
+
+    subgraph COMMENT["Comment"]
+        C["Comment Node"]
+        C_ROLES["inherits from task"]
+    end
+
+    W --> P --> T --> C
+
+    ALICE["👤 Alice"] -.->|"admin"| W
+    ALICE -.->|"admin (inherited)"| P
+    ALICE -.->|"admin (inherited)"| T
+    ALICE -.->|"admin (inherited)"| C
+
+    BOB["👤 Bob"] -.->|"member"| W
+    BOB -.->|"viewer (inherited)"| P
+    BOB -.->|"viewer (inherited)"| T
+    BOB -.->|"viewer (inherited)"| C
+
+    style ALICE fill:#4ade80,color:#000
+    style BOB fill:#60a5fa,color:#000
 ```
+
+**Result:**
+
+- Alice is admin of everything (inherited through the chain)
+- Bob can view projects, tasks, comments (member → viewer inheritance)
 
 Schema definition for inheritance:
 
@@ -355,6 +500,31 @@ permissions.open() // Anyone can read/write, owner can delete
 
 ### Where Permissions Are Checked
 
+```mermaid
+flowchart TB
+    subgraph CLIENT["Client Side"]
+        APP["Application"] --> STORE["NodeStore"]
+        STORE --> |"create/update/delete"| CHECK1{"Permission<br/>Check"}
+        CHECK1 -->|"✓ allowed"| APPLY1["Apply Change"]
+        CHECK1 -->|"✗ denied"| ERROR1["PermissionError"]
+    end
+
+    subgraph SYNC["Sync Layer"]
+        PEER["Peer Update"] --> CHECK2{"Permission<br/>Check"}
+        CHECK2 -->|"✓ allowed"| APPLY2["Apply Change"]
+        CHECK2 -->|"✗ denied"| REJECT["Reject Silently"]
+    end
+
+    subgraph HUB["Hub Server"]
+        WS["WebSocket Connect"] --> CHECK3{"UCAN<br/>Verify"}
+        CHECK3 -->|"✓ valid"| CONNECT["Allow Connection"]
+        CHECK3 -->|"✗ invalid"| CLOSE["Close 4401"]
+    end
+
+    APPLY1 --> SYNC
+    APPLY2 --> CLIENT
+```
+
 | Layer          | What's Checked  | When                         |
 | -------------- | --------------- | ---------------------------- |
 | **NodeStore**  | CRUD operations | Every create/update/delete   |
@@ -421,42 +591,49 @@ const authenticateConnection = async (ws: WebSocket, req: Request) => {
 
 The high-level API (`store.grant()`, `store.can()`) generates and validates UCANs transparently:
 
-```
-store.grant({ to: bob, action: 'write', resource: taskId })
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│  createUCAN({                                                   │
-│    issuer: alice.did,                                           │
-│    audience: bob.did,                                           │
-│    capabilities: [{                                             │
-│      with: 'xnet://alice.did/node/task123',                     │
-│      can: 'xnet/write'                                          │
-│    }],                                                          │
-│    expiration: now + 7days                                      │
-│  })                                                             │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-                    Stored in local token store
-                    Synced to recipient via hub
+```mermaid
+sequenceDiagram
+    participant App as Application
+    participant Store as NodeStore
+    participant UCAN as UCAN Layer
+    participant Local as Local Token Store
+    participant Hub as Hub Server
+    participant Bob as Bob's Device
+
+    App->>Store: store.grant({ to: bob, action: 'write', resource: taskId })
+    Store->>UCAN: createUCAN({ issuer: alice, audience: bob, ... })
+    UCAN-->>Store: signed token
+    Store->>Local: store token
+    Store->>Hub: sync grant
+    Hub->>Bob: deliver token
+    Bob->>Bob: store in local cache
 ```
 
 ### Delegation Chains
 
 UCAN enables transitive sharing with automatic attenuation:
 
+```mermaid
+flowchart LR
+    subgraph CHAIN["Delegation Chain"]
+        ALICE["👤 Alice<br/>(owner)"]
+        BOB["👤 Bob<br/>(write)"]
+        CAROL["👤 Carol<br/>(read)"]
+    end
+
+    ALICE -->|"grants write"| BOB
+    BOB -->|"grants read<br/>(attenuated)"| CAROL
+
+    subgraph VERIFY["Verification"]
+        V1["1. Alice → Bob (write)"]
+        V2["2. Bob → Carol (read, proof: #1)"]
+        V3["✓ Carol has read via Bob via Alice"]
+    end
+
+    CAROL -.->|"presents chain"| VERIFY
 ```
-Alice (owner) ──► Bob (write) ──► Carol (read)
-     │                │                │
-     │                │                └── Carol can only read
-     │                │                    (attenuated from write)
-     │                │
-     │                └── Bob can write, but when delegating
-     │                    to Carol, can only grant ≤ write
-     │
-     └── Alice grants write to Bob
-```
+
+**Attenuation rule:** Bob can write, but when delegating to Carol, can only grant permissions ≤ write. Carol receives read access (attenuated from write).
 
 When Carol reads the task, she presents the full chain:
 
@@ -470,12 +647,31 @@ The system verifies: Carol has read via Bob via Alice.
 ```typescript
 // Revoke a grant
 await store.revoke(grantId)
+```
 
-// Under the hood:
-// 1. Create signed revocation record
-// 2. Store locally
-// 3. Sync to hub for propagation
-// 4. All peers eventually receive revocation
+```mermaid
+sequenceDiagram
+    participant Alice as Alice (Revoker)
+    participant Local as Local Store
+    participant Hub as Hub Server
+    participant Bob as Bob (Online)
+    participant Carol as Carol (Offline)
+
+    Alice->>Local: store.revoke(grantId)
+    Local->>Local: create signed revocation
+    Local->>Hub: sync revocation
+    Hub->>Bob: propagate revocation
+    Bob->>Bob: invalidate cached token
+
+    Note over Carol: Carol is offline<br/>still has cached token
+
+    Carol->>Carol: uses stale token locally
+
+    Note over Carol: Later, comes online...
+
+    Carol->>Hub: sync
+    Hub->>Carol: revocation record
+    Carol->>Carol: invalidate token
 ```
 
 Revocation is **eventually consistent** — offline peers may use stale tokens until they sync.
@@ -485,6 +681,29 @@ Revocation is **eventually consistent** — offline peers may use stale tokens u
 ## Part 6: Offline-First Considerations
 
 ### Capability Caching
+
+```mermaid
+flowchart TB
+    subgraph ONLINE["Online Mode"]
+        CHECK1["store.can('write', taskId)"]
+        EVAL1["Evaluate permissions"]
+        CACHE1["Cache result"]
+        HUB1["Sync with hub"]
+    end
+
+    subgraph OFFLINE["Offline Mode"]
+        CHECK2["store.can('write', taskId)"]
+        CACHE2["Check local cache"]
+        TOKEN2["Verify cached UCAN"]
+        RESULT2["Return cached result"]
+    end
+
+    CHECK1 --> EVAL1 --> CACHE1 --> HUB1
+    CHECK2 --> CACHE2 --> TOKEN2 --> RESULT2
+
+    style OFFLINE fill:#fef3c7,stroke:#d97706
+    style ONLINE fill:#e0f2fe,stroke:#0284c7
+```
 
 All permission checks work offline using cached data:
 
@@ -510,6 +729,35 @@ All permission checks work offline using cached data:
 
 ## Part 7: Performance
 
+### Permission Check Flow
+
+```mermaid
+flowchart TD
+    REQ["can(did, action, nodeId)"] --> CACHE{In cache?}
+
+    CACHE -->|"Hit"| RESULT["Return cached result"]
+    CACHE -->|"Miss"| LOAD["Load node + schema"]
+
+    LOAD --> PERM["Get permission rule<br/>schema.permissions[action]"]
+    PERM --> PARSE["Parse expression"]
+    PARSE --> EVAL["Evaluate expression"]
+
+    subgraph ROLES["Role Evaluation"]
+        EVAL --> OWNER{"owner?"}
+        EVAL --> PROP{"property ref?"}
+        EVAL --> REL{"relation?"}
+        EVAL --> PUB{"public?"}
+
+        OWNER --> |"did === createdBy"| COMBINE
+        PROP --> |"did in property"| COMBINE
+        REL --> |"traverse & recurse"| COMBINE
+        PUB --> |"always true"| COMBINE
+    end
+
+    COMBINE["Combine with OR/AND/NOT"] --> STORE["Cache result"]
+    STORE --> RESULT
+```
+
 ### Latency Targets
 
 | Operation              | Target P50 | Target P99 |
@@ -522,6 +770,32 @@ All permission checks work offline using cached data:
 ### Relation Traversal Depth
 
 Deep inheritance chains are the primary performance concern:
+
+```mermaid
+flowchart LR
+    subgraph D1["Depth 1: 1-5ms"]
+        P1["project->admin"]
+    end
+
+    subgraph D2["Depth 2: 5-15ms"]
+        P2["workspace->project->admin"]
+    end
+
+    subgraph D3["Depth 3: 15-40ms"]
+        P3["org->workspace->project"]
+    end
+
+    subgraph D4["Depth 4+: 40-100ms+"]
+        P4["Deeper chains..."]
+    end
+
+    D1 --> D2 --> D3 --> D4
+
+    style D1 fill:#4ade80,color:#000
+    style D2 fill:#a3e635,color:#000
+    style D3 fill:#fbbf24,color:#000
+    style D4 fill:#f87171,color:#000
+```
 
 | Depth | Latency   | Example                          |
 | ----- | --------- | -------------------------------- |
@@ -593,6 +867,41 @@ permissions: {
 
 ## Part 9: Comparison with Alternatives
 
+```mermaid
+flowchart TB
+    subgraph XNET["xNet (This Design)"]
+        X1["UCAN Capabilities"]
+        X2["Schema-Integrated"]
+        X3["Offline-First"]
+        X4["Delegation Chains"]
+    end
+
+    subgraph ELECTRIC["ElectricSQL"]
+        E1["HTTP Proxy"]
+        E2["WHERE Clauses"]
+        E3["Server-Side Only"]
+    end
+
+    subgraph SUPA["Supabase"]
+        S1["Postgres RLS"]
+        S2["SQL Policies"]
+        S3["Server-Side Only"]
+    end
+
+    subgraph SPICE["SpiceDB"]
+        SP1["Zanzibar ReBAC"]
+        SP2["Separate DSL"]
+        SP3["Centralized"]
+    end
+
+    XNET ---|"unique"| OFFLINE["Offline Support"]
+    XNET ---|"unique"| DELEG["Delegation"]
+
+    style XNET fill:#4ade80,color:#000
+    style OFFLINE fill:#fef3c7,stroke:#d97706
+    style DELEG fill:#fef3c7,stroke:#d97706
+```
+
 | Feature                | xNet              | ElectricSQL      | Supabase     | Convex     | SpiceDB        |
 | ---------------------- | ----------------- | ---------------- | ------------ | ---------- | -------------- |
 | **Auth model**         | UCAN capabilities | HTTP proxy       | Postgres RLS | Code-based | Zanzibar ReBAC |
@@ -612,6 +921,23 @@ permissions: {
 ---
 
 ## Part 10: Implementation Roadmap
+
+```mermaid
+gantt
+    title Authorization Implementation Phases
+    dateFormat  YYYY-MM-DD
+    section Foundation
+    Phase 1: UCAN Foundation       :p1, 2026-03-01, 2w
+    section Core
+    Phase 2: Permission Evaluator  :p2, after p1, 3w
+    Phase 3: Schema Integration    :p3, after p1, 3w
+    Phase 4: NodeStore Enforcement :p4, after p2, 3w
+    section API
+    Phase 5: React Hooks           :p5, after p4, 2w
+    Phase 6: Sharing API           :p6, after p4, 3w
+    section Infrastructure
+    Phase 7: Hub Integration       :p7, after p6, 3w
+```
 
 ### Phase 1: UCAN Foundation (1-2 weeks)
 
