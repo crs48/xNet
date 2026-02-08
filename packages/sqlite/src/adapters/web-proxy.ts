@@ -39,7 +39,8 @@ export class WebSQLiteProxy implements SQLiteAdapter {
 
     // Create worker
     // The URL is resolved relative to this file's location at build time
-    this.worker = new Worker(new URL('./web-worker.ts', import.meta.url), { type: 'module' })
+    // Use .js extension for production builds (Vite handles .ts in dev)
+    this.worker = new Worker(new URL('./web-worker.js', import.meta.url), { type: 'module' })
 
     // Wrap with Comlink for RPC-style communication
     this.proxy = Comlink.wrap<SQLiteWorkerHandler>(this.worker)

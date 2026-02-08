@@ -9,7 +9,12 @@ export default defineConfig({
   build: {
     // Target modern browsers for SQLite WASM + OPFS support
     // Safari 16.4+ is required for OPFS
-    target: ['es2022', 'safari16.4', 'chrome102', 'firefox111']
+    target: ['es2022', 'safari16.4', 'chrome102', 'firefox111'],
+    rollupOptions: {
+      external: [
+        'mermaid' // Optional peer dependency - dynamically imported in @xnet/canvas
+      ]
+    }
   },
   resolve: {
     alias: {
@@ -54,6 +59,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,wasm}'],
+        // Increase limit for large bundles (elk.js, canvas, etc.)
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com/,
