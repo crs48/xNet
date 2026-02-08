@@ -9,7 +9,9 @@ export default {
     { pattern: /^bg-zinc-(800|900|950)$/ },
     { pattern: /^text-zinc-(200|400|500)$/ },
     { pattern: /^border-zinc-(700|800)$/ },
-    { pattern: /^hover:text-(zinc-200|white)$/ },
+    // Hover states for text colors
+    'hover:text-zinc-200',
+    'hover:text-white',
     'border-blue-400',
     'text-blue-400',
     // TableView dark mode inside devtools
