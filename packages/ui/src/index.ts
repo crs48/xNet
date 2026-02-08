@@ -11,7 +11,25 @@ export { cn, cva, type VariantProps } from './utils'
 // ─── Primitives (existing, migrated to semantic tokens) ───────────
 export { Button, buttonVariants, type ButtonProps } from './primitives/Button'
 export { Input, type InputProps } from './primitives/Input'
-export { Select, type SelectProps, type SelectOption } from './primitives/Select'
+export {
+  Select,
+  SelectRoot,
+  SelectGroup,
+  SelectValue,
+  SelectIcon,
+  SelectPortal,
+  SelectPositioner,
+  SelectList,
+  SelectTrigger,
+  SelectContent,
+  SelectScrollUpButton,
+  SelectScrollDownButton,
+  SelectLabel,
+  SelectItem,
+  SelectSeparator,
+  type SelectProps,
+  type SelectOption
+} from './primitives/Select'
 export { Checkbox, type CheckboxProps } from './primitives/Checkbox'
 export { Badge, badgeVariants, type BadgeProps } from './primitives/Badge'
 export { IconButton, type IconButtonProps } from './primitives/IconButton'
@@ -30,8 +48,52 @@ export {
   PopoverContent,
   type PopoverProps
 } from './primitives/Popover'
-export { Modal, type ModalProps } from './primitives/Modal'
-export { Menu, MenuItem, type MenuProps, type MenuItemProps } from './primitives/Menu'
+export {
+  Modal,
+  Dialog,
+  DialogTrigger,
+  DialogPortal,
+  DialogClose,
+  DialogOverlay,
+  DialogTitle,
+  DialogDescription,
+  DialogHeader,
+  DialogFooter,
+  DialogContent,
+  ModalComponent,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalTitle,
+  ModalDescription,
+  ModalTrigger,
+  ModalClose,
+  type ModalProps
+} from './primitives/Modal'
+export {
+  Menu,
+  MenuItem,
+  MenuSeparator,
+  MenuLabel,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuPositioner,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  type MenuProps,
+  type MenuItemProps
+} from './primitives/Menu'
 export {
   Tooltip,
   TooltipProvider,
@@ -63,11 +125,14 @@ export {
   Sheet,
   SheetTrigger,
   SheetClose,
+  SheetPortal,
+  SheetOverlay,
   SheetContent,
   SheetHeader,
   SheetFooter,
   SheetTitle,
-  SheetDescription
+  SheetDescription,
+  type SheetContentProps
 } from './primitives/Sheet'
 export {
   Accordion,

@@ -1,8 +1,21 @@
+/**
+ * Command component built on cmdk
+ *
+ * A command palette / command menu for searching and executing actions.
+ * Uses cmdk library which is actively maintained and provides excellent
+ * fuzzy search and keyboard navigation.
+ */
+
 import { Command as CommandPrimitive } from 'cmdk'
 import { Search } from 'lucide-react'
 import { forwardRef, type ComponentPropsWithoutRef, type HTMLAttributes } from 'react'
 import { cn } from '../utils'
 
+// ─── Command Root ───────────────────────────────────────────────────
+
+/**
+ * Command root - the main container for the command palette.
+ */
 const Command = forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
   ComponentPropsWithoutRef<typeof CommandPrimitive>
@@ -10,7 +23,8 @@ const Command = forwardRef<
   <CommandPrimitive
     ref={ref}
     className={cn(
-      'flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground',
+      'flex h-full w-full flex-col overflow-hidden',
+      'rounded-md bg-popover text-popover-foreground',
       className
     )}
     {...props}
@@ -18,16 +32,23 @@ const Command = forwardRef<
 ))
 Command.displayName = CommandPrimitive.displayName
 
+// ─── Command Input ──────────────────────────────────────────────────
+
+/**
+ * Command input - the search input field.
+ */
 const CommandInput = forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
-  <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
+  <div className="flex items-center border-b border-border px-3" cmdk-input-wrapper="">
     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        'flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
+        'flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-none',
+        'placeholder:text-foreground-faint',
+        'disabled:cursor-not-allowed disabled:opacity-50',
         className
       )}
       {...props}
@@ -36,6 +57,11 @@ const CommandInput = forwardRef<
 ))
 CommandInput.displayName = CommandPrimitive.Input.displayName
 
+// ─── Command List ───────────────────────────────────────────────────
+
+/**
+ * Command list - container for command items.
+ */
 const CommandList = forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.List>
@@ -48,14 +74,28 @@ const CommandList = forwardRef<
 ))
 CommandList.displayName = CommandPrimitive.List.displayName
 
+// ─── Command Empty ──────────────────────────────────────────────────
+
+/**
+ * Command empty - shown when no results are found.
+ */
 const CommandEmpty = forwardRef<
   React.ElementRef<typeof CommandPrimitive.Empty>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>
 >((props, ref) => (
-  <CommandPrimitive.Empty ref={ref} className="py-6 text-center text-sm" {...props} />
+  <CommandPrimitive.Empty
+    ref={ref}
+    className="py-6 text-center text-sm text-foreground-muted"
+    {...props}
+  />
 ))
 CommandEmpty.displayName = CommandPrimitive.Empty.displayName
 
+// ─── Command Group ──────────────────────────────────────────────────
+
+/**
+ * Command group - groups related command items.
+ */
 const CommandGroup = forwardRef<
   React.ElementRef<typeof CommandPrimitive.Group>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.Group>
@@ -63,7 +103,10 @@ const CommandGroup = forwardRef<
   <CommandPrimitive.Group
     ref={ref}
     className={cn(
-      'overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground',
+      'overflow-hidden p-1 text-foreground',
+      '[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5',
+      '[&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium',
+      '[&_[cmdk-group-heading]]:text-foreground-muted',
       className
     )}
     {...props}
@@ -71,6 +114,11 @@ const CommandGroup = forwardRef<
 ))
 CommandGroup.displayName = CommandPrimitive.Group.displayName
 
+// ─── Command Separator ──────────────────────────────────────────────
+
+/**
+ * Command separator - divider between groups or items.
+ */
 const CommandSeparator = forwardRef<
   React.ElementRef<typeof CommandPrimitive.Separator>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.Separator>
@@ -83,6 +131,11 @@ const CommandSeparator = forwardRef<
 ))
 CommandSeparator.displayName = CommandPrimitive.Separator.displayName
 
+// ─── Command Item ───────────────────────────────────────────────────
+
+/**
+ * Command item - an individual command option.
+ */
 const CommandItem = forwardRef<
   React.ElementRef<typeof CommandPrimitive.Item>,
   ComponentPropsWithoutRef<typeof CommandPrimitive.Item>
@@ -90,7 +143,11 @@ const CommandItem = forwardRef<
   <CommandPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none data-[disabled=true]:pointer-events-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+      'relative flex cursor-default gap-2 select-none items-center',
+      'rounded-sm px-2 py-1.5 text-sm outline-none',
+      'data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50',
+      'data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground',
+      '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
       className
     )}
     {...props}
@@ -98,10 +155,15 @@ const CommandItem = forwardRef<
 ))
 CommandItem.displayName = CommandPrimitive.Item.displayName
 
+// ─── Command Shortcut ───────────────────────────────────────────────
+
+/**
+ * Command shortcut - keyboard shortcut hint.
+ */
 function CommandShortcut({ className, ...props }: HTMLAttributes<HTMLSpanElement>) {
   return (
     <span
-      className={cn('ml-auto text-xs tracking-widest text-muted-foreground', className)}
+      className={cn('ml-auto text-xs tracking-widest text-foreground-muted', className)}
       {...props}
     />
   )

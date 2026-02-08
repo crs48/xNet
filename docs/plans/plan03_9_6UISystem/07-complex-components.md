@@ -859,12 +859,12 @@ import { cn } from '../utils/cn'
 
 ## Checklist
 
-- [ ] Migrate Dialog/Modal to Base UI
-- [ ] Migrate Sheet to Base UI
-- [ ] Migrate Select to Base UI
-- [ ] Migrate Menu (DropdownMenu) to Base UI
-- [ ] Evaluate Command (cmdk) - decision: keep
-- [ ] Update Command styling to match new design system
+- [x] Migrate Dialog/Modal to Base UI
+- [x] Migrate Sheet to Base UI
+- [x] Migrate Select to Base UI
+- [x] Migrate Menu (DropdownMenu) to Base UI
+- [x] Evaluate Command (cmdk) - decision: keep
+- [x] Update Command styling to match new design system
 - [ ] Write tests for Dialog
 - [ ] Write tests for Sheet
 - [ ] Write tests for Select
@@ -872,8 +872,8 @@ import { cn } from '../utils/cn'
 - [ ] Verify all animations work
 - [ ] Test keyboard navigation
 - [ ] Test focus management
-- [ ] Update exports in index.ts
-- [ ] Remove Radix imports from migrated components
+- [x] Update exports in index.ts
+- [x] Remove Radix imports from migrated components
 - [ ] Test in Electron app
 - [ ] No visual regressions
 
