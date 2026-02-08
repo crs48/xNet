@@ -15,14 +15,48 @@ export { Select, type SelectProps, type SelectOption } from './primitives/Select
 export { Checkbox, type CheckboxProps } from './primitives/Checkbox'
 export { Badge, badgeVariants, type BadgeProps } from './primitives/Badge'
 export { IconButton, type IconButtonProps } from './primitives/IconButton'
-export { Popover, type PopoverProps } from './primitives/Popover'
+export {
+  Popover,
+  PopoverRoot,
+  PopoverTrigger,
+  PopoverPortal,
+  PopoverPositioner,
+  PopoverAnchor,
+  PopoverClose,
+  PopoverTitle,
+  PopoverDescription,
+  PopoverPopup,
+  PopoverArrow,
+  PopoverContent,
+  type PopoverProps
+} from './primitives/Popover'
 export { Modal, type ModalProps } from './primitives/Modal'
 export { Menu, MenuItem, type MenuProps, type MenuItemProps } from './primitives/Menu'
-export { Tooltip, type TooltipProps } from './primitives/Tooltip'
+export {
+  Tooltip,
+  TooltipProvider,
+  TooltipRoot,
+  TooltipTrigger,
+  TooltipPortal,
+  TooltipPositioner,
+  TooltipPopup,
+  TooltipArrow,
+  TooltipContent,
+  type TooltipProps
+} from './primitives/Tooltip'
 
 // ─── Primitives (new) ─────────────────────────────────────────────
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './primitives/Tabs'
-export { ScrollArea, ScrollBar } from './primitives/ScrollArea'
+export {
+  ScrollArea,
+  ScrollBar,
+  ScrollAreaRoot,
+  ScrollAreaViewport,
+  ScrollAreaContent,
+  ScrollAreaScrollbar,
+  ScrollAreaThumb,
+  ScrollAreaCorner
+} from './primitives/ScrollArea'
 export { Separator } from './primitives/Separator'
 export { Switch } from './primitives/Switch'
 export {
@@ -63,7 +97,18 @@ export { ColorPicker, type ColorPickerProps } from './components/ColorPicker'
 export { TagInput, type TagInputProps } from './components/TagInput'
 export { SearchInput, type SearchInputProps } from './components/SearchInput'
 export { EmptyState, type EmptyStateProps } from './components/EmptyState'
-export { Skeleton, type SkeletonProps } from './components/Skeleton'
+export {
+  Skeleton,
+  SkeletonText,
+  SkeletonAvatar,
+  SkeletonCard,
+  SkeletonButton,
+  type SkeletonProps,
+  type SkeletonTextProps,
+  type SkeletonAvatarProps,
+  type SkeletonCardProps,
+  type SkeletonButtonProps
+} from './components/Skeleton'
 export { MarkdownContent, type MarkdownContentProps } from './components/MarkdownContent'
 
 // ─── DevTools Components ──────────────────────────────────────────

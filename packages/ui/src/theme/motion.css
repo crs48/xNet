@@ -190,20 +190,21 @@
 }
 
 /* Accordion-specific (for Base UI compatibility) */
+/* Base UI uses --accordion-panel-height CSS variable */
 @keyframes accordion-down {
   from {
     height: 0;
     opacity: 0;
   }
   to {
-    height: var(--accordion-content-height);
+    height: var(--accordion-panel-height);
     opacity: 1;
   }
 }
 
 @keyframes accordion-up {
   from {
-    height: var(--accordion-content-height);
+    height: var(--accordion-panel-height);
     opacity: 1;
   }
   to {
@@ -213,18 +214,19 @@
 }
 
 /* Collapsible-specific */
+/* Base UI uses --collapsible-panel-height CSS variable */
 @keyframes collapsible-down {
   from {
     height: 0;
   }
   to {
-    height: var(--collapsible-content-height);
+    height: var(--collapsible-panel-height);
   }
 }
 
 @keyframes collapsible-up {
   from {
-    height: var(--collapsible-content-height);
+    height: var(--collapsible-panel-height);
   }
   to {
     height: 0;

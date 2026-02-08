@@ -279,18 +279,18 @@ export default {
         },
         'accordion-down': {
           from: { height: '0', opacity: '0' },
-          to: { height: 'var(--accordion-content-height)', opacity: '1' }
+          to: { height: 'var(--accordion-panel-height)', opacity: '1' }
         },
         'accordion-up': {
-          from: { height: 'var(--accordion-content-height)', opacity: '1' },
+          from: { height: 'var(--accordion-panel-height)', opacity: '1' },
           to: { height: '0', opacity: '0' }
         },
         'collapsible-down': {
           from: { height: '0' },
-          to: { height: 'var(--collapsible-content-height)' }
+          to: { height: 'var(--collapsible-panel-height)' }
         },
         'collapsible-up': {
-          from: { height: 'var(--collapsible-content-height)' },
+          from: { height: 'var(--collapsible-panel-height)' },
           to: { height: '0' }
         }
       },
