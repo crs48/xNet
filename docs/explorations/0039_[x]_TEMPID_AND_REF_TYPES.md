@@ -1,8 +1,36 @@
 # Temp IDs and Reference Types for Transactional Node Creation
 
+> **Status**: ✅ IMPLEMENTED - Temp IDs are fully functional in `@xnet/data`
+
+## Implementation Status
+
+The temp ID system has been implemented at `packages/data/src/store/tempids.ts`:
+
+- [x] **Temp ID Format** - Strings starting with `~` (e.g., `~parent`, `~child`)
+- [x] **resolveTempIds()** - Resolves all temp IDs to real node IDs before execution
+- [x] **Relation Properties** - Schema-aware resolution for `relation()` typed properties
+- [x] **Array Support** - Temp IDs in arrays are resolved correctly
+- [x] **Transaction Result** - Returns `tempIds` map for looking up resolved IDs
+- [x] **Schema Lookup** - Optional callback for relation property detection
+
+Example usage:
+
+```typescript
+const result = await store.transaction([
+  { type: 'create', options: { id: '~parent', schemaId: 'Task', properties: { title: 'Parent' } } },
+  {
+    type: 'create',
+    options: { id: '~child', schemaId: 'Task', properties: { title: 'Child', parent: '~parent' } }
+  }
+])
+// result.tempIds = { '~parent': 'xK9mQ2...', '~child': 'pL3nR7...' }
+```
+
+---
+
 > How can we create multiple related nodes in a single transaction without pre-generating IDs or using workarounds? How does `relation()` serve as our universal foreign key type?
 
-## Problem Statement
+## Original Problem Statement
 
 When creating multiple related nodes in one transaction, you need to know a node's ID before it exists in order to reference it from another node. Today this requires awkward workarounds:
 

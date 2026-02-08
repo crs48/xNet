@@ -1,8 +1,31 @@
 # Commenting System Exploration
 
+> **Status**: ✅ IMPLEMENTED - Universal commenting system is fully functional
+
+## Implementation Status
+
+The commenting system has been implemented across multiple packages:
+
+- [x] **CommentSchema** - `packages/data/src/schema/schemas/comment.ts`
+- [x] **useComments Hook** - `packages/react/src/hooks/useComments.ts` for universal comments
+- [x] **useCommentCount** - `packages/react/src/hooks/useCommentCount.ts` for badges
+- [x] **useDatabaseComments** - `packages/views/src/hooks/useDatabaseComments.ts` for cell/row comments
+- [x] **useCanvasComments** - `packages/canvas/src/hooks/useCanvasComments.ts` for canvas objects
+- [x] **Editor Comments** - `packages/editor/src/extensions/comment/` for text selection comments
+- [x] **Comment Mark** - TipTap mark for inline comment highlighting
+- [x] **Comment Plugin** - ProseMirror plugin for comment management
+
+The system supports:
+
+- Text selection comments (inline/margin)
+- Database cell, row, and column comments
+- Canvas object and position comments
+- Threaded replies and resolution
+
+---
+
 > Universal commenting: comment on anything, anywhere — text selections, database cells, canvas objects, or entire nodes.
 
-**Status**: Design Exploration  
 **Last Updated**: January 2026
 
 ---
