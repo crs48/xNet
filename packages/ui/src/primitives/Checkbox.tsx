@@ -1,46 +1,52 @@
-import * as CheckboxPrimitive from '@radix-ui/react-checkbox'
-import { forwardRef } from 'react'
+import { Checkbox as BaseCheckbox } from '@base-ui/react/checkbox'
+import { Check } from 'lucide-react'
+import * as React from 'react'
 import { cn } from '../utils'
 
-export interface CheckboxProps extends React.ComponentPropsWithoutRef<
-  typeof CheckboxPrimitive.Root
-> {
+export interface CheckboxProps extends React.ComponentPropsWithoutRef<typeof BaseCheckbox.Root> {
+  className?: string
   label?: string
   description?: string
 }
 
-export const Checkbox = forwardRef<React.ElementRef<typeof CheckboxPrimitive.Root>, CheckboxProps>(
+const Checkbox = React.forwardRef<HTMLButtonElement, CheckboxProps>(
   ({ className, label, description, id, ...props }, ref) => {
-    const checkboxId = id || `checkbox-${Math.random().toString(36).slice(2)}`
+    const generatedId = React.useId()
+    const checkboxId = id || `checkbox-${generatedId}`
 
     return (
       <div className="flex items-start gap-3">
-        <CheckboxPrimitive.Root
+        <BaseCheckbox.Root
           ref={ref}
           id={checkboxId}
           className={cn(
-            'peer h-4 w-4 shrink-0 rounded-sm border border-input bg-transparent shadow',
-            'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+            // Base styles
+            'peer h-4 w-4 shrink-0 rounded-sm',
+            'border border-primary',
+            'transition-base',
+            // Focus state
+            'focus-visible:outline-none focus-visible:ring-2',
+            'focus-visible:ring-ring focus-visible:ring-offset-2',
+            'focus-visible:ring-offset-background',
+            // Checked state
+            'data-[checked]:bg-primary data-[checked]:text-primary-foreground',
+            // Disabled state
             'disabled:cursor-not-allowed disabled:opacity-50',
-            'data-[state=checked]:bg-primary data-[state=checked]:border-primary data-[state=checked]:text-primary-foreground',
             className
           )}
           {...props}
         >
-          <CheckboxPrimitive.Indicator className="flex items-center justify-center">
-            <svg
-              className="h-3 w-3"
-              viewBox="0 0 12 12"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M2.5 6L5 8.5L9.5 3.5" />
-            </svg>
-          </CheckboxPrimitive.Indicator>
-        </CheckboxPrimitive.Root>
+          <BaseCheckbox.Indicator
+            className={cn(
+              'flex items-center justify-center text-current',
+              'opacity-0 scale-75',
+              'transition-all duration-fast ease-spring',
+              'data-[checked]:opacity-100 data-[checked]:scale-100'
+            )}
+          >
+            <Check className="h-3.5 w-3.5" strokeWidth={3} />
+          </BaseCheckbox.Indicator>
+        </BaseCheckbox.Root>
         {(label || description) && (
           <div className="text-sm leading-none">
             {label && (
@@ -51,7 +57,7 @@ export const Checkbox = forwardRef<React.ElementRef<typeof CheckboxPrimitive.Roo
                 {label}
               </label>
             )}
-            {description && <p className="mt-1 text-muted-foreground">{description}</p>}
+            {description && <p className="mt-1 text-foreground-muted">{description}</p>}
           </div>
         )}
       </div>
@@ -60,3 +66,5 @@ export const Checkbox = forwardRef<React.ElementRef<typeof CheckboxPrimitive.Roo
 )
 
 Checkbox.displayName = 'Checkbox'
+
+export { Checkbox }
