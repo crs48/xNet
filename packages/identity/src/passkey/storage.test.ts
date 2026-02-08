@@ -1,7 +1,7 @@
 /**
  * Tests for passkey storage serialization/deserialization and IndexedDB operations.
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import 'fake-indexeddb/auto'
 import {
   serializeRecord,
@@ -12,6 +12,23 @@ import {
   clearStoredIdentity
 } from './storage'
 import type { StoredPasskeyRecord, PasskeyIdentity, FallbackStorage } from './types'
+
+// Database name must match storage.ts
+const DB_NAME = 'xnet-identity'
+
+/**
+ * Delete the entire database to ensure clean state between tests.
+ * This is more reliable than clearStoredIdentity() which opens a connection
+ * that can hang if there are pending transactions from previous tests.
+ */
+async function deleteDatabase(): Promise<void> {
+  return new Promise((resolve) => {
+    const request = indexedDB.deleteDatabase(DB_NAME)
+    request.onsuccess = () => resolve()
+    request.onerror = () => resolve() // Resolve even on error to not block tests
+    request.onblocked = () => resolve() // Resolve if blocked
+  })
+}
 
 // ─── Test Data ───────────────────────────────────────────────
 
@@ -163,9 +180,16 @@ describe('storage serialization', () => {
 
 describe('IndexedDB storage', () => {
   beforeEach(async () => {
-    // Clear stored identity before each test
-    await clearStoredIdentity()
-  }, 30000) // Increase timeout for CI environments
+    // Delete entire database to ensure clean state
+    // This is more reliable than clearStoredIdentity() which can hang
+    // if there are pending transactions from previous tests
+    await deleteDatabase()
+  })
+
+  afterEach(async () => {
+    // Clean up after each test
+    await deleteDatabase()
+  })
 
   describe('storeIdentity / getStoredIdentity', () => {
     it('stores and retrieves a PRF identity', async () => {

@@ -5,7 +5,22 @@
 import { createPasskeysEmulator } from 'nid-webauthn-emulator'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import 'fake-indexeddb/auto'
-import { clearStoredIdentity, getStoredIdentity } from './storage'
+import { getStoredIdentity } from './storage'
+
+// Database name must match storage.ts
+const DB_NAME = 'xnet-identity'
+
+/**
+ * Delete the entire database to ensure clean state between tests.
+ */
+async function deleteDatabase(): Promise<void> {
+  return new Promise((resolve) => {
+    const request = indexedDB.deleteDatabase(DB_NAME)
+    request.onsuccess = () => resolve()
+    request.onerror = () => resolve()
+    request.onblocked = () => resolve()
+  })
+}
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -49,7 +64,7 @@ function _createMockAssertion(prfOutput: Uint8Array | null): PublicKeyCredential
 
 describe('createIdentityManager', () => {
   beforeEach(async () => {
-    await clearStoredIdentity()
+    await deleteDatabase()
 
     // Mock navigator.credentials
     Object.defineProperty(globalThis, 'navigator', {
@@ -176,7 +191,7 @@ describe('createIdentityManager (WebAuthn emulator, fallback path)', () => {
   let emulator: ReturnType<typeof createPasskeysEmulator>
 
   beforeEach(async () => {
-    await clearStoredIdentity()
+    await deleteDatabase()
 
     emulator = createPasskeysEmulator({
       origin: 'http://localhost',
