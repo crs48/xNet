@@ -525,14 +525,14 @@ cd apps/expo && pnpm start
 
 ## Checklist
 
-- [ ] Create ResponsiveSidebar component
-- [ ] Create BottomNav component
-- [ ] Create ResponsiveTable component
-- [ ] Create ResponsiveDialog component
-- [ ] Create useMediaQuery hook
-- [ ] Add safe area utilities
-- [ ] Add touch target utilities
-- [ ] Add responsive typography utilities
+- [x] Create ResponsiveSidebar component
+- [x] Create BottomNav component
+- [x] Create ResponsiveTable component
+- [x] Create ResponsiveDialog component
+- [x] Create useMediaQuery hook
+- [x] Add safe area utilities
+- [x] Add touch target utilities
+- [x] Add responsive typography utilities
 - [ ] Update Sidebar in Electron app
 - [ ] Add bottom navigation to mobile
 - [ ] Convert tables to responsive
