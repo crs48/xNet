@@ -509,25 +509,27 @@ A simple DSL for expressing permission rules:
 
 ```mermaid
 flowchart TD
-    REQ[Permission Request<br/>can(did, action, nodeId)] --> CACHE{In cache?}
+    REQ["Permission Request
+    can(did, action, nodeId)"] --> CACHE{In cache?}
 
     CACHE -->|Hit| RESULT[Return cached result]
     CACHE -->|Miss| LOAD[Load node + schema]
 
-    LOAD --> PERM[Get permission rule<br/>schema.permissions[action]]
+    LOAD --> PERM["Get permission rule
+    schema.permissions[action]"]
     PERM --> PARSE[Parse expression]
 
     PARSE --> EVAL[Evaluate expression]
 
     subgraph "Expression Evaluation"
         EVAL --> ROLE{Check roles}
-        ROLE -->|owner| OWNER[did === node.createdBy?]
-        ROLE -->|assignee| ASSIGN[did in node.properties.assignee?]
+        ROLE -->|owner| OWNER["did === node.createdBy?"]
+        ROLE -->|assignee| ASSIGN["did in node.properties.assignee?"]
         ROLE -->|relation| REL[Traverse relation, recurse]
         ROLE -->|public| PUB[Always true]
     end
 
-    OWNER --> COMBINE[Combine with OR/AND/NOT]
+    OWNER --> COMBINE["Combine with OR/AND/NOT"]
     ASSIGN --> COMBINE
     REL --> COMBINE
     PUB --> COMBINE
@@ -543,14 +545,14 @@ The permission system generates and validates UCANs under the hood:
 ```mermaid
 flowchart LR
     subgraph "High-Level API"
-        GRANT[store.grant()]
-        CAN[store.can()]
-        REVOKE[store.revoke()]
+        GRANT["store.grant()"]
+        CAN["store.can()"]
+        REVOKE["store.revoke()"]
     end
 
     subgraph "UCAN Layer"
-        CREATE[createUCAN()]
-        VERIFY[verifyUCAN()]
+        CREATE["createUCAN()"]
+        VERIFY["verifyUCAN()"]
         CHAIN[Delegation Chain]
     end
 
@@ -1299,6 +1301,175 @@ function resolvePermissionConflict(grant: Grant, revocation: Revocation): 'grant
 **SpiceDB**: The relationship-based model (`user:alice#member@group:engineering`) is the gold standard for ReBAC. Our `relation()` type already provides the graph structure needed for similar patterns.
 
 **Firebase**: Security Rules show that declarative auth can work at scale, but the JSON format is limiting. Our TypeScript-native approach should be more ergonomic.
+
+## TypeScript Static Validation Analysis
+
+A key question for this design: **Can TypeScript statically validate permission expressions at compile time?** This section explores what's possible and what tradeoffs exist.
+
+### What We Want to Validate
+
+1. **Role references in permissions**: If `permissions.write` references `'assignee'`, that role must exist in `roles`
+2. **Property references in roles**: If `roles.assignee` is `'properties.assignee'`, that property must exist and be a `person()` type
+3. **Relation traversal**: If `roles.editor` is `'project->editor'`, the `project` property must be a `relation()` type
+4. **Built-in roles**: `'owner'`, `'public'`, `'authenticated'` should always be valid
+5. **Operators**: `|`, `&`, `!` should only combine valid role/property references
+
+### TypeScript Capabilities
+
+**Template Literal Types** can parse and validate string patterns:
+
+```typescript
+// TypeScript CAN validate literal string patterns
+type ValidRole<Roles extends string> = Roles | 'owner' | 'public' | 'authenticated'
+
+// This works for simple cases
+type PermissionExpr<R extends string> =
+  | ValidRole<R>
+  | `${ValidRole<R>} | ${ValidRole<R>}`
+  | `${ValidRole<R>} & ${ValidRole<R>}`
+```
+
+**Mapped Types** can extract property names and validate references:
+
+```typescript
+// TypeScript CAN infer property names from the schema
+type PropertyNames<P> = keyof P & string
+
+// And validate that a reference points to an existing property
+type ValidPropertyRef<P> = `properties.${PropertyNames<P>}`
+```
+
+**Conditional Types** can check property types:
+
+```typescript
+// TypeScript CAN check if a property is a specific type
+type IsPersonProperty<P, K extends keyof P> =
+  P[K] extends PropertyBuilder<DID | DID[]> ? true : false
+
+type IsRelationProperty<P, K extends keyof P> = P[K] extends { definition: { type: 'relation' } }
+  ? true
+  : false
+```
+
+### What TypeScript CAN Validate Statically
+
+| Validation                                    | Feasibility | Technique                     |
+| --------------------------------------------- | ----------- | ----------------------------- |
+| Role name exists in `roles`                   | ✅ Yes      | Template literal + keyof      |
+| Property name exists                          | ✅ Yes      | Mapped types + keyof          |
+| Property is correct type (person vs relation) | ✅ Yes      | Conditional types             |
+| Simple expressions (`'owner \| editor'`)      | ✅ Yes      | Template literal unions       |
+| Built-in roles (`owner`, `public`)            | ✅ Yes      | Literal type unions           |
+| Relation target schema has role               | ⚠️ Partial  | Requires schema registry type |
+
+### What TypeScript CANNOT Validate (or is impractical)
+
+| Validation                        | Feasibility | Reason                                                |
+| --------------------------------- | ----------- | ----------------------------------------------------- |
+| Arbitrary-depth expressions       | ❌ No       | Recursive template literals hit depth limits          |
+| Runtime-defined schemas           | ❌ No       | Database-defined schemas aren't known at compile time |
+| Cross-schema role inheritance     | ⚠️ Hard     | Requires global schema type registry                  |
+| Circular role definitions         | ❌ No       | Type system can't detect runtime cycles               |
+| Wildcard expressions (`*->admin`) | ❌ No       | Can't enumerate all possible relations                |
+
+### Practical Approach: Hybrid Validation
+
+Given TypeScript's limitations, a **hybrid approach** is recommended:
+
+**Compile-time (TypeScript):**
+
+- Validate that referenced property names exist
+- Validate that property types match usage (person for role, relation for traversal)
+- Validate that role names used in permissions are defined
+- Provide autocomplete for valid role/property names
+
+**Runtime (Schema Registration):**
+
+- Parse and validate complex expressions
+- Detect circular role definitions
+- Validate cross-schema references
+- Cache parsed permission ASTs
+
+### Type-Safe API Design
+
+To maximize static validation, the API should use **structured objects** rather than string DSL for complex cases:
+
+```typescript
+// String DSL: Limited static validation
+permissions: {
+  write: 'editor | admin | owner'  // TS can't fully parse this
+}
+
+// Structured API: Full static validation
+permissions: {
+  write: or('editor', 'admin', 'owner')  // TS validates each role exists
+}
+
+// Hybrid: Simple cases use strings, complex use builders
+permissions: {
+  read: 'public',                           // Simple literal - validated
+  write: role('editor', 'admin', 'owner'),  // Builder - fully typed
+  delete: inherit('project', 'admin')       // Relation traversal - typed
+}
+```
+
+### Recommended Type Definitions
+
+The following type structure enables maximum static validation:
+
+```typescript
+// 1. Extract role names from roles definition
+type RoleNames<R extends Record<string, string>> = keyof R & string
+
+// 2. Built-in roles that are always valid
+type BuiltinRole = 'owner' | 'public' | 'authenticated' | 'createdBy'
+
+// 3. Valid role reference is either builtin or defined
+type ValidRole<R extends Record<string, string>> = BuiltinRole | RoleNames<R>
+
+// 4. Permission value can be a single role or use builders
+type PermissionValue<R extends Record<string, string>> =
+  | ValidRole<R>
+  | { or: ValidRole<R>[] }
+  | { and: ValidRole<R>[] }
+  | { inherit: [PropertyName, ValidRole<R>] }
+
+// 5. Schema definition with validated permissions
+interface DefineSchemaOptions<
+  P extends Record<string, PropertyBuilder>,
+  R extends Record<string, string>
+> {
+  properties: P
+  roles: R & ValidRoleDefinitions<P, R> // Validate role definitions
+  permissions: Record<string, PermissionValue<R>> // Validate permission refs
+}
+```
+
+### Tradeoffs
+
+| Approach               | DX (Autocomplete) | Validation Depth   | Complexity |
+| ---------------------- | ----------------- | ------------------ | ---------- |
+| Pure string DSL        | ❌ None           | Runtime only       | Low        |
+| Template literal types | ⚠️ Limited        | Simple expressions | Medium     |
+| Structured builders    | ✅ Full           | Most cases         | Medium     |
+| Hybrid (recommended)   | ✅ Good           | Good coverage      | Medium     |
+
+### Conclusion
+
+TypeScript **can** provide meaningful static validation for permission expressions, but with limits:
+
+1. **Simple role references** (`'owner'`, `'editor'`) can be fully validated
+2. **Property references** (`'properties.assignee'`) can validate property existence and type
+3. **Complex expressions** with operators require either structured builders or runtime validation
+4. **Cross-schema references** need a type-level schema registry (complex but possible)
+
+The recommended approach is a **hybrid API** that uses:
+
+- String literals for simple, common cases (validated via template literal types)
+- Builder functions for complex expressions (fully typed)
+- Runtime validation as a safety net for edge cases
+
+This provides good developer experience (autocomplete, error messages) while maintaining the flexibility of the DSL.
 
 ## Open Questions
 
