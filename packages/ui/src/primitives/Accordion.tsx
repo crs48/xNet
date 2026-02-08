@@ -1,50 +1,111 @@
-import * as AccordionPrimitive from '@radix-ui/react-accordion'
+/**
+ * Accordion component built on Base UI
+ *
+ * A set of collapsible panels with headings.
+ */
+
+import { Accordion as BaseAccordion } from '@base-ui/react/accordion'
 import { ChevronDown } from 'lucide-react'
-import { forwardRef } from 'react'
+import * as React from 'react'
 import { cn } from '../utils'
 
-const Accordion = AccordionPrimitive.Root
+// ─── Type Definitions ──────────────────────────────────────────────
 
-const AccordionItem = forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>
+export interface AccordionProps extends Omit<
+  React.ComponentPropsWithoutRef<typeof BaseAccordion.Root>,
+  'defaultValue'
+> {
+  /** Backward compat: 'single' or 'multiple' */
+  type?: 'single' | 'multiple'
+  /** Backward compat: whether single accordion can be fully collapsed */
+  collapsible?: boolean
+  /** Default expanded item(s) */
+  defaultValue?: string | string[]
+}
+
+// ─── Accordion Root ────────────────────────────────────────────────
+
+const Accordion = React.forwardRef<HTMLDivElement, AccordionProps>(
+  ({ type, collapsible: _collapsible, defaultValue, className, ...props }, ref) => {
+    // Convert Radix-style API to Base UI
+    const multiple = type === 'multiple'
+    const normalizedDefaultValue = defaultValue
+      ? Array.isArray(defaultValue)
+        ? defaultValue
+        : [defaultValue]
+      : undefined
+
+    return (
+      <BaseAccordion.Root
+        ref={ref}
+        multiple={multiple}
+        defaultValue={normalizedDefaultValue}
+        className={cn('w-full', className)}
+        {...props}
+      />
+    )
+  }
+)
+Accordion.displayName = 'Accordion'
+
+// ─── Accordion Item ────────────────────────────────────────────────
+
+const AccordionItem = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof BaseAccordion.Item>
 >(({ className, ...props }, ref) => (
-  <AccordionPrimitive.Item ref={ref} className={cn('border-b', className)} {...props} />
+  <BaseAccordion.Item ref={ref} className={cn('border-b border-border', className)} {...props} />
 ))
 AccordionItem.displayName = 'AccordionItem'
 
-const AccordionTrigger = forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
+// ─── Accordion Trigger ─────────────────────────────────────────────
+
+const AccordionTrigger = React.forwardRef<
+  HTMLButtonElement,
+  React.ComponentPropsWithoutRef<typeof BaseAccordion.Trigger>
 >(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Header className="flex">
-    <AccordionPrimitive.Trigger
+  <BaseAccordion.Header className="flex">
+    <BaseAccordion.Trigger
       ref={ref}
       className={cn(
-        'flex flex-1 items-center justify-between py-4 text-sm font-medium transition-all hover:underline text-left [&[data-state=open]>svg]:rotate-180',
+        'flex flex-1 items-center justify-between',
+        'py-4 text-sm font-medium text-left',
+        'transition-base',
+        'hover:underline',
+        // Chevron rotation using Base UI data attribute
+        '[&>svg]:transition-transform [&>svg]:duration-slow',
+        '[&[data-panel-open]>svg]:rotate-180',
         className
       )}
       {...props}
     >
       {children}
-      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
-    </AccordionPrimitive.Trigger>
-  </AccordionPrimitive.Header>
+      <ChevronDown className="h-4 w-4 shrink-0 text-foreground-muted" />
+    </BaseAccordion.Trigger>
+  </BaseAccordion.Header>
 ))
-AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName
+AccordionTrigger.displayName = 'AccordionTrigger'
 
-const AccordionContent = forwardRef<
-  React.ElementRef<typeof AccordionPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
+// ─── Accordion Content ─────────────────────────────────────────────
+
+const AccordionContent = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof BaseAccordion.Panel>
 >(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Content
+  <BaseAccordion.Panel
     ref={ref}
-    className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+    className={cn(
+      'overflow-hidden text-sm',
+      // Animation using Base UI data attributes
+      'data-[open]:animate-accordion-down',
+      'data-[ending-style]:animate-accordion-up',
+      className
+    )}
     {...props}
   >
-    <div className={cn('pb-4 pt-0', className)}>{children}</div>
-  </AccordionPrimitive.Content>
+    <div className="pb-4 pt-0">{children}</div>
+  </BaseAccordion.Panel>
 ))
-AccordionContent.displayName = AccordionPrimitive.Content.displayName
+AccordionContent.displayName = 'AccordionContent'
 
 export { Accordion, AccordionItem, AccordionTrigger, AccordionContent }

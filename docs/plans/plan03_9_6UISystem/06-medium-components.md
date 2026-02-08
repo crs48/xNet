@@ -571,21 +571,21 @@ describe('SkeletonCard', () => {
 
 ## Checklist
 
-- [ ] Migrate Accordion to Base UI
-- [ ] Migrate Collapsible to Base UI
-- [ ] Migrate Tooltip to Base UI
-- [ ] Migrate Popover to Base UI
-- [ ] Migrate ScrollArea to Base UI
-- [ ] Create Skeleton component
-- [ ] Create SkeletonText variant
-- [ ] Create SkeletonAvatar variant
-- [ ] Create SkeletonCard variant
+- [x] Migrate Accordion to Base UI
+- [x] Migrate Collapsible to Base UI
+- [x] Migrate Tooltip to Base UI
+- [x] Migrate Popover to Base UI
+- [x] Migrate ScrollArea to Base UI
+- [x] Create Skeleton component
+- [x] Create SkeletonText variant
+- [x] Create SkeletonAvatar variant
+- [x] Create SkeletonCard variant
 - [ ] Write tests for Accordion
 - [ ] Write tests for Tooltip
 - [ ] Write tests for Skeleton
-- [ ] Verify animations work with Base UI data attributes
-- [ ] Update exports in index.ts
-- [ ] Remove Radix imports from migrated components
+- [x] Verify animations work with Base UI data attributes
+- [x] Update exports in index.ts
+- [x] Remove Radix imports from migrated components
 - [ ] Test in Electron app
 - [ ] No visual regressions
 

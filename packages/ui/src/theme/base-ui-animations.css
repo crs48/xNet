@@ -16,7 +16,7 @@
   opacity: 1;
 }
 
-.dialog-backdrop[data-ending] {
+.dialog-backdrop[data-ending-style] {
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-in);
 }
@@ -34,7 +34,7 @@
   transform: scale(1);
 }
 
-.dialog-popup[data-ending] {
+.dialog-popup[data-ending-style] {
   opacity: 0;
   transform: scale(0.95);
   transition:
@@ -59,8 +59,8 @@
   transform: translateY(0);
 }
 
-.popover-popup[data-ending],
-.tooltip-popup[data-ending] {
+.popover-popup[data-ending-style],
+.tooltip-popup[data-ending-style] {
   opacity: 0;
   transform: translateY(4px);
   transition:
@@ -95,7 +95,7 @@
   transform: scale(1);
 }
 
-.menu-popup[data-ending] {
+.menu-popup[data-ending-style] {
   opacity: 0;
   transform: scale(0.95);
 }
@@ -115,7 +115,7 @@
   transform: translateY(0);
 }
 
-.select-popup[data-ending] {
+.select-popup[data-ending-style] {
   opacity: 0;
   transform: translateY(-4px);
 }
@@ -130,7 +130,7 @@
   animation: accordion-down var(--duration-slow) var(--ease-out);
 }
 
-.accordion-panel[data-ending] {
+.accordion-panel[data-ending-style] {
   animation: accordion-up var(--duration-normal) var(--ease-in);
 }
 
@@ -144,7 +144,7 @@
   animation: collapsible-down var(--duration-slow) var(--ease-out);
 }
 
-.collapsible-panel[data-ending] {
+.collapsible-panel[data-ending-style] {
   animation: collapsible-up var(--duration-normal) var(--ease-in);
 }
 
