@@ -2,8 +2,67 @@
 
 > How do we transform xNet's canvas into a professional-grade diagramming surface that rivals Figma, Miro, and Affine? This exploration covers virtualization strategies, multi-layer WebGL rendering, lazy-loading for infinite canvases, dense graph support, live presence, and the full spectrum of features needed for a world-class collaborative whiteboard.
 
+## Implementation Status
+
+Substantial implementation exists in `packages/canvas/src/` (22 directories, 60+ files):
+
+**Multi-Layer Rendering:**
+
+- [x] WebGL grid layer with procedural shaders (`layers/webgl-grid.ts`)
+- [x] CSS grid fallback (`layers/css-grid-fallback.ts`)
+- [x] Canvas 2D edge renderer with path caching (`layers/edge-renderer.ts`)
+
+**Infinite Canvas & Chunking:**
+
+- [x] Chunk manager with LRU eviction (`chunks/chunk-manager.ts`)
+- [x] Chunked canvas store for Yjs (`chunks/chunked-canvas-store.ts`)
+- [x] Chunk configuration and utilities (`chunks/config.ts`)
+
+**Dense Graph Support:**
+
+- [x] Edge bundling algorithm (`routing/edge-bundler.ts`)
+- [x] Orthogonal router with A\* pathfinding (`routing/orthogonal-router.ts`)
+- [x] Min-heap for efficient routing (`routing/min-heap.ts`)
+
+**Live Presence:**
+
+- [x] Canvas presence manager (`presence/canvas-presence.ts`)
+- [x] Selection locking (`presence/selection-lock.ts`)
+
+**Drawing Tools:**
+
+- [x] Freehand drawing tool (`drawing/drawing-tool.ts`)
+
+**Swimlanes:**
+
+- [x] Swimlane manager (`swimlane/swimlane-manager.ts`)
+- [x] useSwimlanes hook (`swimlane/useSwimlanes.ts`)
+
+**Worker-Based Layout:**
+
+- [x] Layout worker for ELK.js (`workers/layout-worker.ts`)
+- [x] Layout manager (`workers/layout-manager.ts`)
+- [x] useLayout hook (`workers/useLayout.ts`)
+
+**Accessibility:**
+
+- [x] Keyboard navigation (`accessibility/keyboard-navigation.ts`)
+- [x] Screen reader announcer (`accessibility/announcer.ts`)
+- [x] High contrast mode (`accessibility/high-contrast.ts`)
+
+**Performance Monitoring:**
+
+- [x] Frame monitor (`performance/frame-monitor.ts`)
+- [x] Memory profiler (`performance/memory-profile.ts`)
+
+**Not Yet Implemented:**
+
+- [ ] Minimap component (tests exist, component pending)
+- [ ] Mermaid diagram embedding
+- [ ] Level-of-detail (LOD) rendering
+
 **Date**: February 2026
-**Status**: Exploration
+**Status**: Substantially Implemented
 **Prerequisites**: [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md), [0066_OFF_MAIN_THREAD_IMPLEMENTATION.md](./0066_OFF_MAIN_THREAD_IMPLEMENTATION.md)
 
 ## Executive Summary
