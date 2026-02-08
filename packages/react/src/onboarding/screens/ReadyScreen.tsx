@@ -61,7 +61,7 @@ export function ReadyScreen(): JSX.Element {
 
       {context.isDemo && (
         <div className="px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-900 dark:text-amber-100 rounded-lg text-sm mb-6">
-          Demo mode — data expires after 24h of inactivity.
+          Demo mode — data is saved locally; encrypted backups expire after 24h of inactivity.
         </div>
       )}
 

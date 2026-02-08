@@ -22,7 +22,7 @@ xNet is both the underlying infrastructure and the user-facing app — one produ
 
 **[Try the demo at xnet.fyi/app](https://xnet.fyi/app)** — no signup required, just use your device's passkey (Touch ID, Face ID, Windows Hello).
 
-> Demo mode: Data is stored on our demo hub with a 10MB quota and expires after 24 hours of inactivity. For permanent storage, [download the desktop app](https://xnet.fyi/download).
+> **Demo mode:** Your data is stored locally in your browser (local-first). Encrypted backups sync to our demo hub with a 10MB quota and expire after 24 hours of inactivity. For reliable cross-device sync and permanent backups, [download the desktop app](https://xnet.fyi/download).
 
 ## Deploy a Hub
 
