@@ -2,10 +2,66 @@
 
 > A clean-slate design for xNet's database system that achieves full feature parity with Notion and Google Sheets while supporting millions of rows through hybrid local/remote storage, server-side queries, and intelligent lazy loading.
 
+## Implementation Status
+
+Substantial implementation exists in `packages/data/src/database/` (40+ files):
+
+**Core Data Model:**
+
+- [x] DatabaseRow nodes with per-cell LWW conflict resolution
+- [x] Cell types and utilities (`cell-types.ts`)
+- [x] Fractional indexing for row ordering (`fractional-index.ts`)
+- [x] Rich text cell support via Y.Doc (`rich-text-cell.ts`)
+- [x] Column definitions in Y.Doc (`column-operations.ts`, `column-types.ts`)
+
+**Query System:**
+
+- [x] Filter engine with all operators (`filter-engine.ts`, `filter-operators.ts`)
+- [x] Sort engine (`sort-engine.ts`)
+- [x] Group engine (`group-engine.ts`)
+- [x] Query pipeline (`query-pipeline.ts`)
+- [x] Query router for local/hub routing (`query-router.ts`)
+- [x] Row cache with LRU eviction (`row-cache.ts`)
+
+**Computed Columns:**
+
+- [x] Rollup aggregation engine (`rollup-engine.ts`)
+- [x] Formula parser and evaluator (`formula/`)
+- [x] Formula service with validation (`formula-service.ts`)
+- [x] Computed cache with invalidation (`computed-cache.ts`)
+
+**Views:**
+
+- [x] View types and configs (`view-types.ts`)
+- [x] View operations (`view-operations.ts`)
+
+**Import/Export:**
+
+- [x] CSV import/export (`import/csv-parser.ts`, `export/csv-export.ts`)
+- [x] JSON import/export (`import/json-parser.ts`, `export/json-export.ts`)
+
+**Templates:**
+
+- [x] Built-in templates (`templates/builtin.ts`)
+- [x] Template instantiation (`templates/instantiate.ts`)
+
+**React Hooks (in `packages/react/`):**
+
+- [x] `useDatabase` with pagination
+- [x] `useDatabaseDoc` for columns/views
+- [x] `useDatabaseRow` for single row ops
+- [x] `useDatabaseSchema` for database-defined schemas
+
+**Not Yet Implemented:**
+
+- [ ] Hub query integration (Phase 3)
+- [ ] SQLite-WASM for large datasets
+- [ ] Virtualized table with X+Y virtualization
+
 **References**: This document supersedes the analysis in [0041_DATABASE_DATA_MODEL.md](./0041_DATABASE_DATA_MODEL.md). We're designing from scratch with no migration constraints.
 
 **Date**: February 2026
-**Status**: Design Ready
+**Status**: Substantially Implemented
 
 ## Executive Summary
 
