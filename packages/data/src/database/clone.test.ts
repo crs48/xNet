@@ -106,7 +106,8 @@ describe('cloneColumns', () => {
 
     // Mutating original should not affect clone
     if (testColumns[1].config?.options) {
-      ;(testColumns[1].config.options as Array<{ id: string; name: string }>)[0].name = 'Changed'
+      const options = testColumns[1].config.options as Array<{ id: string; name: string }>
+      options[0].name = 'Changed'
     }
 
     // Clone should still have original value
@@ -114,7 +115,8 @@ describe('cloneColumns', () => {
 
     // Reset for other tests
     if (testColumns[1].config?.options) {
-      ;(testColumns[1].config.options as Array<{ id: string; name: string }>)[0].name = 'Todo'
+      const options = testColumns[1].config.options as Array<{ id: string; name: string }>
+      options[0].name = 'Todo'
     }
   })
 })
