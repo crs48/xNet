@@ -1,8 +1,27 @@
 # Off-Main-Thread Architecture: Moving Storage, Sync, Crypto, and Queries Off the UI Thread
 
+> **Status**: ✅ IMPLEMENTED - The `@xnet/data-bridge` package provides off-main-thread architecture
+
+## Implementation Status
+
+The off-main-thread architecture has been implemented at `packages/data-bridge/`:
+
+- [x] **DataBridge Interface** - `types.ts` with unified API for all platforms
+- [x] **Main Thread Bridge** - `main-thread-bridge.ts` for direct access (fallback)
+- [x] **Worker Bridge** - `worker-bridge.ts` for Web Worker communication
+- [x] **Data Worker** - `worker/data-worker.ts` runs NodeStore off-thread
+- [x] **Native Bridge** - `native-bridge.ts` for React Native JSI
+- [x] **Query Cache** - `query-cache.ts` for efficient reactive updates
+- [x] **Binary State** - `utils/binary-state.ts` for efficient Y.Doc transfer
+- [x] **Create Bridge** - `create-bridge.ts` factory for platform detection
+
+The architecture allows React hooks to work identically whether the backend runs on the main thread, in a Web Worker, or via Electron IPC.
+
+---
+
 > Can we move all heavy computation — storage, queries, sync, crypto, Yjs merging — off the main thread, hide the complexity behind React hooks, and make the UI permanently smooth? A deep exploration of multithreading strategies across Web, Electron, and Expo.
 
-## Context
+## Original Context
 
 ### The Problem
 

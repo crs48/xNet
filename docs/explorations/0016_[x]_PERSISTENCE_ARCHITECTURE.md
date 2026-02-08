@@ -1,5 +1,26 @@
 # xNet Persistence & Durability Architecture
 
+> **Status**: ✅ IMPLEMENTED - The `@xnet/sqlite` package provides durable storage
+
+## Implementation Status
+
+The persistence architecture has been implemented at `packages/sqlite/`:
+
+- [x] **SQLite Adapter** - `adapter.ts` with unified interface
+- [x] **Electron Adapter** - `adapters/electron.ts` using better-sqlite3
+- [x] **Web Adapter** - `adapters/web.ts` using sql.js with OPFS
+- [x] **Web Worker** - `adapters/web-worker.ts` for off-main-thread
+- [x] **Expo Adapter** - `adapters/expo.ts` for React Native
+- [x] **Memory Adapter** - `adapters/memory.ts` for testing
+- [x] **Full-Text Search** - `fts.ts` for FTS5 support
+- [x] **Query Builder** - `query-builder.ts` for type-safe queries
+- [x] **Schema Management** - `schema.ts` for migrations
+- [x] **Diagnostics** - `diagnostics.ts` for debugging
+
+The storage layer in `@xnet/storage` uses these adapters to provide durable persistence across all platforms.
+
+---
+
 ## The Problem with IndexedDB
 
 IndexedDB is convenient but fundamentally unsuitable for production data that users cannot afford to lose:
@@ -33,14 +54,14 @@ flowchart TD
 
 ### Real-World Failure Scenarios
 
-| Scenario | IndexedDB Behavior | User Impact |
-|----------|-------------------|-------------|
-| Low disk space | Browser evicts data silently | Complete data loss |
-| iOS Safari | 7-day expiry for PWA data | Data disappears after a week of non-use |
-| Incognito/Private mode | Data never persisted | Users lose work |
-| Browser update | Can corrupt IDB | Potential data loss |
-| User clears cache | Includes IDB | Accidental data loss |
-| Multiple tabs | Complex locking | Potential corruption |
+| Scenario               | IndexedDB Behavior           | User Impact                             |
+| ---------------------- | ---------------------------- | --------------------------------------- |
+| Low disk space         | Browser evicts data silently | Complete data loss                      |
+| iOS Safari             | 7-day expiry for PWA data    | Data disappears after a week of non-use |
+| Incognito/Private mode | Data never persisted         | Users lose work                         |
+| Browser update         | Can corrupt IDB              | Potential data loss                     |
+| User clears cache      | Includes IDB                 | Accidental data loss                    |
+| Multiple tabs          | Complex locking              | Potential corruption                    |
 
 ---
 
@@ -105,74 +126,74 @@ SQLite is the gold standard for local-first applications:
 ```typescript
 // packages/storage/src/adapters/sqlite.ts
 
-import Database from 'better-sqlite3';
-import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import Database from 'better-sqlite3'
+import { join } from 'path'
+import { existsSync, mkdirSync } from 'fs'
 
 export interface SQLiteConfig {
-  dataDir: string;
-  walMode: boolean;
-  synchronous: 'OFF' | 'NORMAL' | 'FULL' | 'EXTRA';
-  busyTimeout: number;
+  dataDir: string
+  walMode: boolean
+  synchronous: 'OFF' | 'NORMAL' | 'FULL' | 'EXTRA'
+  busyTimeout: number
 }
 
 export class SQLiteAdapter implements StorageAdapter {
-  private db: Database.Database;
-  private config: SQLiteConfig;
+  private db: Database.Database
+  private config: SQLiteConfig
 
   constructor(config: Partial<SQLiteConfig> = {}) {
     this.config = {
       dataDir: config.dataDir || this.getDefaultDataDir(),
       walMode: config.walMode ?? true,
       synchronous: config.synchronous || 'NORMAL',
-      busyTimeout: config.busyTimeout || 5000,
-    };
+      busyTimeout: config.busyTimeout || 5000
+    }
 
-    this.ensureDataDir();
-    this.db = this.openDatabase();
-    this.initSchema();
+    this.ensureDataDir()
+    this.db = this.openDatabase()
+    this.initSchema()
   }
 
   private getDefaultDataDir(): string {
     // Platform-specific data directories
-    const platform = process.platform;
-    const appName = 'xnet';
+    const platform = process.platform
+    const appName = 'xnet'
 
     switch (platform) {
       case 'darwin':
-        return join(process.env.HOME!, 'Library', 'Application Support', appName);
+        return join(process.env.HOME!, 'Library', 'Application Support', appName)
       case 'win32':
-        return join(process.env.APPDATA!, appName);
+        return join(process.env.APPDATA!, appName)
       case 'linux':
-        return join(process.env.HOME!, '.local', 'share', appName);
+        return join(process.env.HOME!, '.local', 'share', appName)
       default:
-        return join(process.env.HOME!, `.${appName}`);
+        return join(process.env.HOME!, `.${appName}`)
     }
   }
 
   private ensureDataDir(): void {
     if (!existsSync(this.config.dataDir)) {
-      mkdirSync(this.config.dataDir, { recursive: true });
+      mkdirSync(this.config.dataDir, { recursive: true })
     }
   }
 
   private openDatabase(): Database.Database {
-    const dbPath = join(this.config.dataDir, 'xnet.db');
-    const db = new Database(dbPath);
+    const dbPath = join(this.config.dataDir, 'xnet.db')
+    const db = new Database(dbPath)
 
     // Configure for durability
     if (this.config.walMode) {
-      db.pragma('journal_mode = WAL');
+      db.pragma('journal_mode = WAL')
     }
-    db.pragma(`synchronous = ${this.config.synchronous}`);
-    db.pragma(`busy_timeout = ${this.config.busyTimeout}`);
-    db.pragma('foreign_keys = ON');
+    db.pragma(`synchronous = ${this.config.synchronous}`)
+    db.pragma(`busy_timeout = ${this.config.busyTimeout}`)
+    db.pragma('foreign_keys = ON')
 
     // Optimize for performance
-    db.pragma('cache_size = -64000'); // 64MB cache
-    db.pragma('temp_store = MEMORY');
+    db.pragma('cache_size = -64000') // 64MB cache
+    db.pragma('temp_store = MEMORY')
 
-    return db;
+    return db
   }
 
   private initSchema(): void {
@@ -257,7 +278,7 @@ export class SQLiteAdapter implements StorageAdapter {
         ON crdt_updates(document_id);
       CREATE INDEX IF NOT EXISTS idx_crdt_updates_timestamp
         ON crdt_updates(timestamp);
-    `);
+    `)
   }
 
   // ============================================
@@ -271,16 +292,20 @@ export class SQLiteAdapter implements StorageAdapter {
     const stmt = this.db.prepare(`
       INSERT INTO crdt_updates (document_id, update_data, timestamp, origin)
       VALUES (?, ?, ?, ?)
-    `);
+    `)
 
     this.db.transaction(() => {
-      stmt.run(documentId, update, Date.now(), origin);
+      stmt.run(documentId, update, Date.now(), origin)
 
       // Update the document's updated_at
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         UPDATE documents SET updated_at = ? WHERE id = ?
-      `).run(Date.now(), documentId);
-    })();
+      `
+        )
+        .run(Date.now(), documentId)
+    })()
   }
 
   /**
@@ -297,37 +322,43 @@ export class SQLiteAdapter implements StorageAdapter {
           SELECT update_data FROM crdt_updates
           WHERE document_id = ?
           ORDER BY id ASC
-        `);
+        `)
 
-    const rows = since
-      ? stmt.all(documentId, since)
-      : stmt.all(documentId);
+    const rows = since ? stmt.all(documentId, since) : stmt.all(documentId)
 
-    return rows.map((row: any) => row.update_data);
+    return rows.map((row: any) => row.update_data)
   }
 
   /**
    * Store merged state vector
    */
   storeStateVector(documentId: string, stateVector: Uint8Array): void {
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       INSERT OR REPLACE INTO crdt_state (document_id, state_vector, update_clock)
       VALUES (?, ?, COALESCE(
         (SELECT update_clock + 1 FROM crdt_state WHERE document_id = ?),
         1
       ))
-    `).run(documentId, stateVector, documentId);
+    `
+      )
+      .run(documentId, stateVector, documentId)
   }
 
   /**
    * Get state vector for sync
    */
   getStateVector(documentId: string): Uint8Array | null {
-    const row = this.db.prepare(`
+    const row = this.db
+      .prepare(
+        `
       SELECT state_vector FROM crdt_state WHERE document_id = ?
-    `).get(documentId) as { state_vector: Uint8Array } | undefined;
+    `
+      )
+      .get(documentId) as { state_vector: Uint8Array } | undefined
 
-    return row?.state_vector ?? null;
+    return row?.state_vector ?? null
   }
 
   // ============================================
@@ -341,16 +372,24 @@ export class SQLiteAdapter implements StorageAdapter {
   compactDocument(documentId: string, mergedUpdate: Uint8Array): void {
     this.db.transaction(() => {
       // Delete old updates
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         DELETE FROM crdt_updates WHERE document_id = ?
-      `).run(documentId);
+      `
+        )
+        .run(documentId)
 
       // Insert merged update
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT INTO crdt_updates (document_id, update_data, timestamp, origin)
         VALUES (?, ?, ?, 'compaction')
-      `).run(documentId, mergedUpdate, Date.now());
-    })();
+      `
+        )
+        .run(documentId, mergedUpdate, Date.now())
+    })()
   }
 
   // ============================================
@@ -361,29 +400,27 @@ export class SQLiteAdapter implements StorageAdapter {
    * Create a backup of the entire database
    */
   async backup(targetPath: string): Promise<void> {
-    await this.db.backup(targetPath);
+    await this.db.backup(targetPath)
   }
 
   /**
    * Get database file path for manual backup
    */
   getDatabasePath(): string {
-    return join(this.config.dataDir, 'xnet.db');
+    return join(this.config.dataDir, 'xnet.db')
   }
 
   /**
    * Verify database integrity
    */
   checkIntegrity(): { ok: boolean; errors: string[] } {
-    const result = this.db.pragma('integrity_check') as { integrity_check: string }[];
-    const errors = result
-      .map(r => r.integrity_check)
-      .filter(r => r !== 'ok');
+    const result = this.db.pragma('integrity_check') as { integrity_check: string }[]
+    const errors = result.map((r) => r.integrity_check).filter((r) => r !== 'ok')
 
     return {
       ok: errors.length === 0,
-      errors,
-    };
+      errors
+    }
   }
 
   // ============================================
@@ -391,14 +428,14 @@ export class SQLiteAdapter implements StorageAdapter {
   // ============================================
 
   close(): void {
-    this.db.close();
+    this.db.close()
   }
 
   /**
    * Ensure all writes are flushed to disk
    */
   checkpoint(): void {
-    this.db.pragma('wal_checkpoint(TRUNCATE)');
+    this.db.pragma('wal_checkpoint(TRUNCATE)')
   }
 }
 ```
@@ -478,52 +515,54 @@ OPFS is a newer API that provides better durability than IndexedDB:
  * - Synchronous access via OPFS in workers
  */
 
-import { SQLiteFS, createSQLiteThread } from 'wa-sqlite';
+import { SQLiteFS, createSQLiteThread } from 'wa-sqlite'
 
 export class OPFSAdapter implements StorageAdapter {
-  private sqlite: any;
-  private db: any;
-  private ready: Promise<void>;
+  private sqlite: any
+  private db: any
+  private ready: Promise<void>
 
   constructor(workspaceId: string) {
-    this.ready = this.initialize(workspaceId);
+    this.ready = this.initialize(workspaceId)
   }
 
   private async initialize(workspaceId: string): Promise<void> {
     // Check OPFS support
     if (!('storage' in navigator) || !('getDirectory' in navigator.storage)) {
-      throw new Error('OPFS not supported - falling back to IndexedDB');
+      throw new Error('OPFS not supported - falling back to IndexedDB')
     }
 
     // Get OPFS root
-    const root = await navigator.storage.getDirectory();
-    const xnetDir = await root.getDirectoryHandle('xnet', { create: true });
-    const workspaceDir = await xnetDir.getDirectoryHandle(workspaceId, { create: true });
+    const root = await navigator.storage.getDirectory()
+    const xnetDir = await root.getDirectoryHandle('xnet', { create: true })
+    const workspaceDir = await xnetDir.getDirectoryHandle(workspaceId, { create: true })
 
     // Initialize SQLite with OPFS backend
-    const { default: SQLiteESMFactory } = await import('wa-sqlite/dist/wa-sqlite.mjs');
-    const { OPFSCoopSyncVFS } = await import('wa-sqlite/src/OPFSCoopSyncVFS.js');
+    const { default: SQLiteESMFactory } = await import('wa-sqlite/dist/wa-sqlite.mjs')
+    const { OPFSCoopSyncVFS } = await import('wa-sqlite/src/OPFSCoopSyncVFS.js')
 
-    const module = await SQLiteESMFactory();
-    this.sqlite = SQLite.create(module);
+    const module = await SQLiteESMFactory()
+    this.sqlite = SQLite.create(module)
 
     // Register OPFS VFS
-    const vfs = new OPFSCoopSyncVFS('xnet-vfs', workspaceDir);
-    await vfs.isReady;
-    this.sqlite.vfs_register(vfs, true);
+    const vfs = new OPFSCoopSyncVFS('xnet-vfs', workspaceDir)
+    await vfs.isReady
+    this.sqlite.vfs_register(vfs, true)
 
     // Open database
     this.db = await this.sqlite.open_v2(
       'xnet.db',
       SQLite.SQLITE_OPEN_READWRITE | SQLite.SQLITE_OPEN_CREATE,
       'xnet-vfs'
-    );
+    )
 
-    await this.initSchema();
+    await this.initSchema()
   }
 
   private async initSchema(): Promise<void> {
-    await this.sqlite.exec(this.db, `
+    await this.sqlite.exec(
+      this.db,
+      `
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = NORMAL;
 
@@ -543,31 +582,41 @@ export class OPFSAdapter implements StorageAdapter {
 
       CREATE INDEX IF NOT EXISTS idx_updates_doc
         ON crdt_updates(document_id);
-    `);
+    `
+    )
   }
 
   async storeUpdate(documentId: string, update: Uint8Array): Promise<void> {
-    await this.ready;
+    await this.ready
 
-    await this.sqlite.exec(this.db, `
+    await this.sqlite.exec(
+      this.db,
+      `
       INSERT INTO crdt_updates (document_id, update_data, timestamp)
       VALUES (?, ?, ?)
-    `, [documentId, update, Date.now()]);
+    `,
+      [documentId, update, Date.now()]
+    )
   }
 
   async getUpdates(documentId: string): Promise<Uint8Array[]> {
-    await this.ready;
+    await this.ready
 
-    const results: Uint8Array[] = [];
-    await this.sqlite.exec(this.db, `
+    const results: Uint8Array[] = []
+    await this.sqlite.exec(
+      this.db,
+      `
       SELECT update_data FROM crdt_updates
       WHERE document_id = ?
       ORDER BY id ASC
-    `, [documentId], (row: any) => {
-      results.push(new Uint8Array(row[0]));
-    });
+    `,
+      [documentId],
+      (row: any) => {
+        results.push(new Uint8Array(row[0]))
+      }
+    )
 
-    return results;
+    return results
   }
 
   /**
@@ -575,9 +624,9 @@ export class OPFSAdapter implements StorageAdapter {
    */
   async requestPersistence(): Promise<boolean> {
     if (navigator.storage && navigator.storage.persist) {
-      return await navigator.storage.persist();
+      return await navigator.storage.persist()
     }
-    return false;
+    return false
   }
 
   /**
@@ -585,9 +634,9 @@ export class OPFSAdapter implements StorageAdapter {
    */
   async isPersisted(): Promise<boolean> {
     if (navigator.storage && navigator.storage.persisted) {
-      return await navigator.storage.persisted();
+      return await navigator.storage.persisted()
     }
-    return false;
+    return false
   }
 
   /**
@@ -595,13 +644,13 @@ export class OPFSAdapter implements StorageAdapter {
    */
   async getStorageEstimate(): Promise<{ usage: number; quota: number }> {
     if (navigator.storage && navigator.storage.estimate) {
-      const estimate = await navigator.storage.estimate();
+      const estimate = await navigator.storage.estimate()
       return {
         usage: estimate.usage || 0,
-        quota: estimate.quota || 0,
-      };
+        quota: estimate.quota || 0
+      }
     }
-    return { usage: 0, quota: 0 };
+    return { usage: 0, quota: 0 }
   }
 }
 ```
@@ -614,53 +663,52 @@ Always request persistent storage on web:
 // packages/storage/src/web/persistence.ts
 
 export async function ensurePersistentStorage(): Promise<{
-  persisted: boolean;
-  quota: number;
-  usage: number;
-  warnings: string[];
+  persisted: boolean
+  quota: number
+  usage: number
+  warnings: string[]
 }> {
-  const warnings: string[] = [];
+  const warnings: string[] = []
 
   // Check if storage API is available
   if (!navigator.storage) {
-    warnings.push('Storage API not available');
-    return { persisted: false, quota: 0, usage: 0, warnings };
+    warnings.push('Storage API not available')
+    return { persisted: false, quota: 0, usage: 0, warnings }
   }
 
   // Request persistence
-  let persisted = false;
+  let persisted = false
   if (navigator.storage.persist) {
-    persisted = await navigator.storage.persist();
+    persisted = await navigator.storage.persist()
     if (!persisted) {
       warnings.push(
         'Persistent storage denied. Your data may be cleared by the browser. ' +
-        'Consider using the desktop app for important work.'
-      );
+          'Consider using the desktop app for important work.'
+      )
     }
   }
 
   // Get quota
-  const estimate = await navigator.storage.estimate();
-  const quota = estimate.quota || 0;
-  const usage = estimate.usage || 0;
+  const estimate = await navigator.storage.estimate()
+  const quota = estimate.quota || 0
+  const usage = estimate.usage || 0
 
   // Warn if low on space
   if (quota > 0 && usage / quota > 0.8) {
     warnings.push(
-      `Storage is ${Math.round((usage / quota) * 100)}% full. ` +
-      'Consider exporting a backup.'
-    );
+      `Storage is ${Math.round((usage / quota) * 100)}% full. ` + 'Consider exporting a backup.'
+    )
   }
 
   // iOS Safari specific warning
   if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
     warnings.push(
       'iOS Safari may delete web app data after 7 days of inactivity. ' +
-      'Use the iOS app or sync to another device for reliable storage.'
-    );
+        'Use the iOS app or sync to another device for reliable storage.'
+    )
   }
 
-  return { persisted, quota, usage, warnings };
+  return { persisted, quota, usage, warnings }
 }
 ```
 
@@ -721,41 +769,41 @@ flowchart TB
 ```typescript
 // packages/storage/src/backup/auto-backup.ts
 
-import { SQLiteAdapter } from '../adapters/sqlite';
-import { join } from 'path';
-import { existsSync, mkdirSync, readdirSync, unlinkSync, statSync } from 'fs';
+import { SQLiteAdapter } from '../adapters/sqlite'
+import { join } from 'path'
+import { existsSync, mkdirSync, readdirSync, unlinkSync, statSync } from 'fs'
 
 export interface AutoBackupConfig {
-  enabled: boolean;
-  intervalMs: number;       // How often to backup
-  maxBackups: number;       // Max backups to keep
-  backupDir: string;        // Where to store backups
-  minChangeThreshold: number; // Min changes before backup
+  enabled: boolean
+  intervalMs: number // How often to backup
+  maxBackups: number // Max backups to keep
+  backupDir: string // Where to store backups
+  minChangeThreshold: number // Min changes before backup
 }
 
 export class AutoBackupManager {
-  private config: AutoBackupConfig;
-  private storage: SQLiteAdapter;
-  private timer: NodeJS.Timeout | null = null;
-  private lastBackupTime: number = 0;
-  private changesSinceBackup: number = 0;
+  private config: AutoBackupConfig
+  private storage: SQLiteAdapter
+  private timer: NodeJS.Timeout | null = null
+  private lastBackupTime: number = 0
+  private changesSinceBackup: number = 0
 
   constructor(storage: SQLiteAdapter, config: Partial<AutoBackupConfig> = {}) {
-    this.storage = storage;
+    this.storage = storage
     this.config = {
       enabled: config.enabled ?? true,
       intervalMs: config.intervalMs ?? 30 * 60 * 1000, // 30 minutes
       maxBackups: config.maxBackups ?? 10,
       backupDir: config.backupDir ?? join(storage.getDatabasePath(), '..', 'backups'),
-      minChangeThreshold: config.minChangeThreshold ?? 100,
-    };
+      minChangeThreshold: config.minChangeThreshold ?? 100
+    }
 
-    this.ensureBackupDir();
+    this.ensureBackupDir()
   }
 
   private ensureBackupDir(): void {
     if (!existsSync(this.config.backupDir)) {
-      mkdirSync(this.config.backupDir, { recursive: true });
+      mkdirSync(this.config.backupDir, { recursive: true })
     }
   }
 
@@ -763,14 +811,14 @@ export class AutoBackupManager {
    * Start automatic backups
    */
   start(): void {
-    if (!this.config.enabled || this.timer) return;
+    if (!this.config.enabled || this.timer) return
 
     this.timer = setInterval(() => {
-      this.maybeBackup();
-    }, this.config.intervalMs);
+      this.maybeBackup()
+    }, this.config.intervalMs)
 
     // Also backup on start if we have changes
-    this.maybeBackup();
+    this.maybeBackup()
   }
 
   /**
@@ -778,8 +826,8 @@ export class AutoBackupManager {
    */
   stop(): void {
     if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+      clearInterval(this.timer)
+      this.timer = null
     }
   }
 
@@ -787,7 +835,7 @@ export class AutoBackupManager {
    * Record a change (call this on each write)
    */
   recordChange(): void {
-    this.changesSinceBackup++;
+    this.changesSinceBackup++
   }
 
   /**
@@ -795,28 +843,28 @@ export class AutoBackupManager {
    */
   private async maybeBackup(): Promise<void> {
     if (this.changesSinceBackup < this.config.minChangeThreshold) {
-      return; // Not enough changes
+      return // Not enough changes
     }
 
-    await this.backup();
+    await this.backup()
   }
 
   /**
    * Force a backup now
    */
   async backup(): Promise<string> {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupPath = join(this.config.backupDir, `backup-${timestamp}.db`);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const backupPath = join(this.config.backupDir, `backup-${timestamp}.db`)
 
-    await this.storage.backup(backupPath);
+    await this.storage.backup(backupPath)
 
-    this.lastBackupTime = Date.now();
-    this.changesSinceBackup = 0;
+    this.lastBackupTime = Date.now()
+    this.changesSinceBackup = 0
 
     // Cleanup old backups
-    this.cleanupOldBackups();
+    this.cleanupOldBackups()
 
-    return backupPath;
+    return backupPath
   }
 
   /**
@@ -824,18 +872,18 @@ export class AutoBackupManager {
    */
   private cleanupOldBackups(): void {
     const files = readdirSync(this.config.backupDir)
-      .filter(f => f.startsWith('backup-') && f.endsWith('.db'))
-      .map(f => ({
+      .filter((f) => f.startsWith('backup-') && f.endsWith('.db'))
+      .map((f) => ({
         name: f,
         path: join(this.config.backupDir, f),
-        time: statSync(join(this.config.backupDir, f)).mtime.getTime(),
+        time: statSync(join(this.config.backupDir, f)).mtime.getTime()
       }))
-      .sort((a, b) => b.time - a.time); // Newest first
+      .sort((a, b) => b.time - a.time) // Newest first
 
     // Delete old backups
-    const toDelete = files.slice(this.config.maxBackups);
+    const toDelete = files.slice(this.config.maxBackups)
     for (const file of toDelete) {
-      unlinkSync(file.path);
+      unlinkSync(file.path)
     }
   }
 
@@ -844,18 +892,18 @@ export class AutoBackupManager {
    */
   listBackups(): Array<{ name: string; path: string; time: Date; size: number }> {
     return readdirSync(this.config.backupDir)
-      .filter(f => f.startsWith('backup-') && f.endsWith('.db'))
-      .map(f => {
-        const path = join(this.config.backupDir, f);
-        const stat = statSync(path);
+      .filter((f) => f.startsWith('backup-') && f.endsWith('.db'))
+      .map((f) => {
+        const path = join(this.config.backupDir, f)
+        const stat = statSync(path)
         return {
           name: f,
           path,
           time: stat.mtime,
-          size: stat.size,
-        };
+          size: stat.size
+        }
       })
-      .sort((a, b) => b.time.getTime() - a.time.getTime());
+      .sort((a, b) => b.time.getTime() - a.time.getTime())
   }
 
   /**
@@ -865,25 +913,25 @@ export class AutoBackupManager {
     // This should be called with the app in a safe state
     // (no active writes, user confirmed)
 
-    const currentPath = this.storage.getDatabasePath();
+    const currentPath = this.storage.getDatabasePath()
 
     // Close current database
-    this.storage.close();
+    this.storage.close()
 
     // Backup current (in case restore fails)
-    const emergencyBackup = `${currentPath}.emergency-${Date.now()}`;
-    await require('fs').promises.copyFile(currentPath, emergencyBackup);
+    const emergencyBackup = `${currentPath}.emergency-${Date.now()}`
+    await require('fs').promises.copyFile(currentPath, emergencyBackup)
 
     try {
       // Copy backup to current
-      await require('fs').promises.copyFile(backupPath, currentPath);
+      await require('fs').promises.copyFile(backupPath, currentPath)
     } catch (error) {
       // Restore emergency backup
-      await require('fs').promises.copyFile(emergencyBackup, currentPath);
-      throw error;
+      await require('fs').promises.copyFile(emergencyBackup, currentPath)
+      throw error
     } finally {
       // Cleanup emergency backup
-      unlinkSync(emergencyBackup);
+      unlinkSync(emergencyBackup)
     }
   }
 }
@@ -894,68 +942,68 @@ export class AutoBackupManager {
 ```typescript
 // packages/storage/src/backup/export.ts
 
-import * as Y from 'yjs';
-import { SQLiteAdapter } from '../adapters/sqlite';
+import * as Y from 'yjs'
+import { SQLiteAdapter } from '../adapters/sqlite'
 
 export interface ExportFormat {
-  version: string;
-  exportedAt: string;
+  version: string
+  exportedAt: string
   workspace: {
-    id: string;
-    name: string;
-  };
+    id: string
+    name: string
+  }
   documents: Array<{
-    id: string;
-    type: string;
-    content: any;        // JSON content
-    crdtState: string;   // Base64 encoded Yjs state
-  }>;
+    id: string
+    type: string
+    content: any // JSON content
+    crdtState: string // Base64 encoded Yjs state
+  }>
   blobs: Array<{
-    hash: string;
-    mimeType: string;
-    data: string;        // Base64 encoded
-  }>;
+    hash: string
+    mimeType: string
+    data: string // Base64 encoded
+  }>
 }
 
 export async function exportWorkspace(
   storage: SQLiteAdapter,
   workspaceId: string
 ): Promise<ExportFormat> {
-  const documents = storage.getDocuments(workspaceId);
-  const exportedDocs = [];
+  const documents = storage.getDocuments(workspaceId)
+  const exportedDocs = []
 
   for (const doc of documents) {
-    const updates = storage.getUpdates(doc.id);
+    const updates = storage.getUpdates(doc.id)
 
     // Reconstruct Yjs document
-    const ydoc = new Y.Doc();
+    const ydoc = new Y.Doc()
     for (const update of updates) {
-      Y.applyUpdate(ydoc, update);
+      Y.applyUpdate(ydoc, update)
     }
 
     exportedDocs.push({
       id: doc.id,
       type: doc.type,
       content: ydoc.toJSON(),
-      crdtState: Buffer.from(Y.encodeStateAsUpdate(ydoc)).toString('base64'),
-    });
+      crdtState: Buffer.from(Y.encodeStateAsUpdate(ydoc)).toString('base64')
+    })
   }
 
   // Export blobs
-  const blobs = storage.getBlobsForWorkspace(workspaceId);
-  const exportedBlobs = blobs.map(blob => ({
+  const blobs = storage.getBlobsForWorkspace(workspaceId)
+  const exportedBlobs = blobs.map((blob) => ({
     hash: blob.hash,
     mimeType: blob.mimeType,
-    data: Buffer.from(blob.data).toString('base64'),
-  }));
+    data: Buffer.from(blob.data).toString('base64')
+  }))
 
   return {
     version: '1.0.0',
     exportedAt: new Date().toISOString(),
     workspace: storage.getWorkspace(workspaceId),
     documents: exportedDocs,
-    blobs: exportedBlobs,
-  };
+    blobs: exportedBlobs
+  }
 }
 
 export async function importWorkspace(
@@ -963,36 +1011,36 @@ export async function importWorkspace(
   data: ExportFormat,
   options: { merge?: boolean; newWorkspaceId?: string } = {}
 ): Promise<void> {
-  const workspaceId = options.newWorkspaceId || data.workspace.id;
+  const workspaceId = options.newWorkspaceId || data.workspace.id
 
   // Create workspace if needed
   if (!options.merge) {
     storage.createWorkspace({
       id: workspaceId,
       name: data.workspace.name,
-      createdAt: Date.now(),
-    });
+      createdAt: Date.now()
+    })
   }
 
   // Import documents
   for (const doc of data.documents) {
-    const crdtState = Buffer.from(doc.crdtState, 'base64');
+    const crdtState = Buffer.from(doc.crdtState, 'base64')
 
     storage.createDocument({
       id: options.merge ? `${doc.id}-imported` : doc.id,
       workspaceId,
       type: doc.type,
       createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
+      updatedAt: Date.now()
+    })
 
-    storage.storeUpdate(doc.id, new Uint8Array(crdtState), 'import');
+    storage.storeUpdate(doc.id, new Uint8Array(crdtState), 'import')
   }
 
   // Import blobs
   for (const blob of data.blobs) {
-    const data = Buffer.from(blob.data, 'base64');
-    storage.storeBlob(blob.hash, new Uint8Array(data), blob.mimeType);
+    const data = Buffer.from(blob.data, 'base64')
+    storage.storeBlob(blob.hash, new Uint8Array(data), blob.mimeType)
   }
 }
 ```
@@ -1041,15 +1089,15 @@ flowchart LR
     style Low fill:#f44336,color:#fff
 ```
 
-| Platform | Storage | Durability | ACID | Crash-Safe | Eviction Risk |
-|----------|---------|------------|------|------------|---------------|
-| Desktop (Tauri) | SQLite | HIGH | Yes | Yes | None |
-| Desktop (Electron) | SQLite | HIGH | Yes | Yes | None |
-| iOS App | SQLite | HIGH | Yes | Yes | None |
-| Android App | SQLite | HIGH | Yes | Yes | None |
-| Web (Modern) | OPFS + SQLite | MEDIUM | Yes | Partial | Low |
-| Web (Legacy) | IndexedDB | LOW | No | No | High |
-| Web (Safari iOS) | IndexedDB | VERY LOW | No | No | Very High (7-day) |
+| Platform           | Storage       | Durability | ACID | Crash-Safe | Eviction Risk     |
+| ------------------ | ------------- | ---------- | ---- | ---------- | ----------------- |
+| Desktop (Tauri)    | SQLite        | HIGH       | Yes  | Yes        | None              |
+| Desktop (Electron) | SQLite        | HIGH       | Yes  | Yes        | None              |
+| iOS App            | SQLite        | HIGH       | Yes  | Yes        | None              |
+| Android App        | SQLite        | HIGH       | Yes  | Yes        | None              |
+| Web (Modern)       | OPFS + SQLite | MEDIUM     | Yes  | Partial    | Low               |
+| Web (Legacy)       | IndexedDB     | LOW        | No   | No         | High              |
+| Web (Safari iOS)   | IndexedDB     | VERY LOW   | No   | No         | Very High (7-day) |
 
 ---
 

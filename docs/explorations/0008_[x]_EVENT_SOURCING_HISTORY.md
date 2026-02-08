@@ -1,5 +1,26 @@
 # Event Sourcing History: Audit, Revert, and Time Travel
 
+> **Status**: ✅ IMPLEMENTED - The `@xnet/history` package provides full history capabilities
+
+## Implementation Status
+
+The history system has been implemented at `packages/history/`:
+
+- [x] **History Engine** - `engine.ts` for point-in-time reconstruction
+- [x] **Undo Manager** - `undo-manager.ts` for undo/redo stacks
+- [x] **Blame** - `blame.ts` for per-property attribution
+- [x] **Diff** - `diff.ts` for comparing states
+- [x] **Audit Index** - `audit-index.ts` for querying by author/time
+- [x] **Playback** - `playback.ts` for time-travel scrubbing
+- [x] **Snapshot Cache** - `snapshot-cache.ts` for efficient reconstruction
+- [x] **Document History** - `document-history.ts` for Yjs document history
+- [x] **Verification** - `verification.ts` for hash chain validation
+- [x] **Pruning** - `pruning.ts` for managing history size
+- [x] **React Hooks** - `useHistory`, `useUndo`, `useBlame`, `useDiff` in `@xnet/react`
+- [x] **DevTools Panel** - HistoryPanel in `@xnet/devtools`
+
+---
+
 ## Overview
 
 xNet already stores a complete, cryptographically-signed, content-addressed change log for every node. Every property change, every creation, every deletion is an immutable entry in a hash chain with Lamport timestamps and author attribution. This is a gold mine that's currently only used for sync — but it can power:

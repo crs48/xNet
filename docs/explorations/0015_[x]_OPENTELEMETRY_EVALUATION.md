@@ -2,8 +2,19 @@
 
 > Should xNet adopt OpenTelemetry instead of (or alongside) a custom telemetry system?
 
-**Status**: Design Exploration  
+**Status**: ✅ COMPLETED - Decision: Custom telemetry with OTel-inspired semantics  
 **Last Updated**: January 2026
+
+## Decision Outcome
+
+The evaluation concluded that OpenTelemetry's centralized collector model doesn't align with xNet's privacy-first, P2P architecture. The `@xnet/telemetry` package was implemented with:
+
+- Custom consent-gated collection (not OTel's always-on model)
+- P3A-style bucketing and scrubbing (privacy-preserving)
+- Telemetry as Nodes (syncs via P2P, not to central collector)
+- OTel-inspired semantic conventions where applicable
+
+---
 
 ---
 
