@@ -36,7 +36,7 @@ const reply = await store.create({
 
 ## Universal Primitive Pattern
 
-This implementation follows [0030_UNIVERSAL_SOCIAL_PRIMITIVES.md](../explorations/0030_UNIVERSAL_SOCIAL_PRIMITIVES.md):
+This implementation follows [0030_UNIVERSAL_SOCIAL_PRIMITIVES.md](../../explorations/0030_[_]_UNIVERSAL_SOCIAL_PRIMITIVES.md):
 
 | Principle                       | Implementation                                                    |
 | ------------------------------- | ----------------------------------------------------------------- |
@@ -330,8 +330,8 @@ Deferred to future work:
 
 ## Reference Documents
 
-- [0030_UNIVERSAL_SOCIAL_PRIMITIVES.md](../explorations/0030_UNIVERSAL_SOCIAL_PRIMITIVES.md) -- Universal social primitives pattern
-- [COMMENTING_SYSTEM.md](../explorations/0014_COMMENTING_SYSTEM.md) -- Full design exploration
+- [0030_UNIVERSAL_SOCIAL_PRIMITIVES.md](../../explorations/0030_[_]_UNIVERSAL_SOCIAL_PRIMITIVES.md) -- Universal social primitives pattern
+- [COMMENTING_SYSTEM.md](../../explorations/0014_[x]_COMMENTING_SYSTEM.md) -- Full design exploration
 - [TipTap Comments](https://tiptap.dev/docs/comments/getting-started/overview) -- TipTap's approach (reference)
 - [Figma Multiplayer](https://www.figma.com/blog/how-figmas-multiplayer-technology-works/) -- Canvas collaboration patterns
 

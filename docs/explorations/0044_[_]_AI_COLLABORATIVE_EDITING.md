@@ -218,7 +218,7 @@ Claude Code ──stdio──► MCP Server (standalone Node.js process)
 
 Works without xNet running. The MCP server opens the same database files directly. Dangerous for concurrent access but useful for offline/batch operations.
 
-**Recommendation**: Start with **Option B** (HTTP bridge) because the Local API already exists. Move to **Option A** when the utility process architecture from [Exploration 0043](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md) is built.
+**Recommendation**: Start with **Option B** (HTTP bridge) because the Local API already exists. Move to **Option A** when the utility process architecture from [Exploration 0043](./0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md) is built.
 
 ### Tier 1 Tools: Node CRUD + Query
 
@@ -878,7 +878,7 @@ xnet_create_plugin({
 })
 ```
 
-This is powerful but requires the plugin system from [Exploration 0006](./0006_PLUGIN_ARCHITECTURE.md) to be built first. For now, the MCP server should expose node/content CRUD.
+This is powerful but requires the plugin system from [Exploration 0006](./0006_[x]_PLUGIN_ARCHITECTURE.md) to be built first. For now, the MCP server should expose node/content CRUD.
 
 ## Part 8: Implementation Roadmap
 
@@ -917,7 +917,7 @@ Add Tier 2 tools:
 
 ### Phase 4: In-Process MCP for Electron (1 week)
 
-Move from HTTP bridge to in-process execution in the Electron utility process (per [Exploration 0043](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md)). This eliminates HTTP overhead and gives direct access to NodeStore and Y.Doc storage.
+Move from HTTP bridge to in-process execution in the Electron utility process (per [Exploration 0043](./0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md)). This eliminates HTTP overhead and gives direct access to NodeStore and Y.Doc storage.
 
 ### Phase 5 (Future): Streaming Collaboration (Tier 3)
 

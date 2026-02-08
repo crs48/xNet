@@ -41,7 +41,7 @@ We adopt [OpenTelemetry semantic conventions](https://opentelemetry.io/docs/spec
 - Future interoperability if we ever bridge to OTel backends
 - Familiar patterns for developers coming from OTel-instrumented systems
 
-We do NOT adopt the OTel SDK, Collector, or export pipeline — those assume centralized, always-on telemetry which conflicts with our local-first, consent-gated architecture. See [OPENTELEMETRY_EVALUATION.md](../explorations/0015_OPENTELEMETRY_EVALUATION.md) for the full analysis.
+We do NOT adopt the OTel SDK, Collector, or export pipeline — those assume centralized, always-on telemetry which conflicts with our local-first, consent-gated architecture. See [OPENTELEMETRY_EVALUATION.md](../../explorations/0015_[x]_OPENTELEMETRY_EVALUATION.md) for the full analysis.
 
 **Convention**: Schema field names use camelCase versions of OTel's dot-separated attribute names (e.g., `exception.type` → `exceptionType`). xNet-specific fields use the `xnet` prefix conceptually but no dot notation in property keys.
 
@@ -290,8 +290,8 @@ The current plan focuses on **local-first foundations** that make these future e
 
 ## Reference Documents
 
-- [TELEMETRY_DESIGN.md](../explorations/0007_TELEMETRY_DESIGN.md) - Full design exploration with research
-- [OPENTELEMETRY_EVALUATION.md](../explorations/0015_OPENTELEMETRY_EVALUATION.md) - OTel integration analysis (Option C: semantic conventions only)
+- [TELEMETRY_DESIGN.md](../../explorations/0007_[x]_TELEMETRY_DESIGN.md) - Full design exploration with research
+- [OPENTELEMETRY_EVALUATION.md](../../explorations/0015_[x]_OPENTELEMETRY_EVALUATION.md) - OTel integration analysis (Option C: semantic conventions only)
 - [OpenTelemetry Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) - Field naming reference
 - [libp2p DoS Mitigation](https://docs.libp2p.io/concepts/security/dos-mitigation/) - Connection limits, fail2ban
 - [Brave P3A](https://brave.com/privacy-preserving-product-analytics-p3a/) - Privacy-preserving analytics

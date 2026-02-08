@@ -2,7 +2,7 @@
 
 > A design where each database defines its own unique, versioned schema. Column changes automatically create new schema versions, and schemas can be cloned to start new databases. The schema is derived from column metadata stored in the database's Y.Doc.
 
-**References**: Builds on [0067_DATABASE_DATA_MODEL_V2.md](./0067_DATABASE_DATA_MODEL_V2.md) for the underlying data model.
+**References**: Builds on [0067_DATABASE_DATA_MODEL_V2.md](./0067_[-]_DATABASE_DATA_MODEL_V2.md) for the underlying data model.
 
 **Date**: February 2026
 **Status**: Implemented (Phases 1-5)
@@ -842,8 +842,8 @@ function useDatabaseSchema(databaseId: string): {
 
 ## References
 
-- [0067_DATABASE_DATA_MODEL_V2.md](./0067_DATABASE_DATA_MODEL_V2.md) - Database architecture
-- [0041_DATABASE_DATA_MODEL.md](./0041_DATABASE_DATA_MODEL.md) - Original exploration
+- [0067_DATABASE_DATA_MODEL_V2.md](./0067_[-]_DATABASE_DATA_MODEL_V2.md) - Database architecture
+- [0041_DATABASE_DATA_MODEL.md](./0041_[x]_DATABASE_DATA_MODEL.md) - Original exploration
 - `packages/data/src/schema/types.ts` - Schema type definitions
 - `packages/data/src/schema/registry.ts` - SchemaRegistry implementation
 - `packages/data/src/database/column-types.ts` - Column type definitions

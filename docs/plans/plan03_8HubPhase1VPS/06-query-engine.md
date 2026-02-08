@@ -15,7 +15,7 @@
 
 ### Alignment with Exploration 0042 (Unified Query API)
 
-> The query protocol sent over WebSocket should use the **JSON-serializable query descriptor** format from [Exploration 0042](../explorations/0042_UNIFIED_QUERY_API.md). This means the same `useQuery()` call can execute locally (full table scan) or be offloaded to the hub (FTS5 + indexes) transparently. The hub query engine is the server-side complement to the client-side query engine.
+> The query protocol sent over WebSocket should use the **JSON-serializable query descriptor** format from [Exploration 0042](../../explorations/0042_[_]_UNIFIED_QUERY_API.md). This means the same `useQuery()` call can execute locally (full table scan) or be offloaded to the hub (FTS5 + indexes) transparently. The hub query engine is the server-side complement to the client-side query engine.
 >
 > Key design from 0042:
 >

@@ -919,8 +919,8 @@ sequenceDiagram
 
 ## References
 
-- [Exploration 0051: Demo Hub on Railway](./0051_DEMO_HUB_ON_RAILWAY.md)
-- [Exploration 0056: Web App Integration](./0056_WEB_APP_INTEGRATION.md)
+- [Exploration 0051: Demo Hub on Railway](./0051_[x]_DEMO_HUB_ON_RAILWAY.md)
+- [Exploration 0056: Web App Integration](./0056_[x]_WEB_APP_INTEGRATION.md)
 - [Plan: 07-demo-hub.md](../plans/plan03_9_1OnboardingAndPolish/07-demo-hub.md)
 - [Plan: 11-final-polish.md](../plans/plan03_9_1OnboardingAndPolish/11-final-polish.md)
 - [Railway Docs](https://docs.railway.app/)

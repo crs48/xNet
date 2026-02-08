@@ -235,7 +235,7 @@ erDiagram
 
 ## Reference Documents
 
-- [Regenerative Farming Exploration](../explorations/0020_REGENERATIVE_FARMING_ERP.md) — Full research and design exploration
+- [Regenerative Farming Exploration](../../explorations/0020_[_]_REGENERATIVE_FARMING_ERP.md) — Full research and design exploration
 - [Plugin Architecture](../plan03_5Plugins/README.md) — How this module integrates
 - [ERP Framework](../plan03ERP/README.md) — General ERP module system
 - [Data Model](../plan02_1DataModelConsolidation/README.md) — Schema-first architecture

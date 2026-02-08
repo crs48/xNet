@@ -474,5 +474,5 @@ Both can be added **incrementally** without breaking changes:
 
 **Related Documents:**
 
-- [0069_MULTI_LEVEL_CRYPTO.md](./0069_MULTI_LEVEL_CRYPTO.md) - Hybrid signature architecture
+- [0069_MULTI_LEVEL_CRYPTO.md](./0069_[x]_MULTI_LEVEL_CRYPTO.md) - Hybrid signature architecture
 - [plan03_9_2MultiLevelCrypto/06-wire-format.md](../plans/plan03_9_2MultiLevelCrypto/06-wire-format.md) - Current V3 format

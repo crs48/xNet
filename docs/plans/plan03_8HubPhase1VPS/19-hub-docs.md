@@ -22,7 +22,7 @@
 > - `17-railway-deploy.md` — Railway one-click deploy
 > - `18-flyio-deploy.md` — Fly.io multi-region deploy
 > - `07-docker-deploy.md` — Docker + VPS deploy
-> - [Exploration 0049](../explorations/0049_HUB_RAILWAY_DEPLOYMENT.md) — Railway analysis with cost comparison
+> - [Exploration 0049](../../explorations/0049_[x]_HUB_RAILWAY_DEPLOYMENT.md) — Railway analysis with cost comparison
 
 ## Overview
 

@@ -11,8 +11,8 @@
 >
 > Relevant existing work:
 >
-> - [Exploration 0023](../explorations/0023_DECENTRALIZED_SEARCH.md) — Three-tier search design with hub federation as Tier 2/3
-> - [Exploration 0042](../explorations/0042_UNIFIED_QUERY_API.md) — JSON-serializable query descriptors that can be forwarded between hubs
+> - [Exploration 0023](../../explorations/0023_[_]_DECENTRALIZED_SEARCH.md) — Three-tier search design with hub federation as Tier 2/3
+> - [Exploration 0042](../../explorations/0042_[_]_UNIFIED_QUERY_API.md) — JSON-serializable query descriptors that can be forwarded between hubs
 > - `@xnet/crypto` Ed25519 signing — for signed federation responses
 > - `@xnet/identity` UCAN — for inter-hub delegation chains
 

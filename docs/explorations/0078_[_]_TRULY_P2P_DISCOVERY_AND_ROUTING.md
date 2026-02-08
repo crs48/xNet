@@ -915,9 +915,9 @@ This hybrid approach gives us the best of both worlds: decentralization when pos
 
 ## References
 
-- [Exploration 0052: libp2p Reintegration](./0052_LIBP2P_REINTEGRATION.md)
-- [Exploration 0035: Minimal Signaling-Only Hub](./0035_MINIMAL_SIGNALING_ONLY_HUB.md)
-- [Exploration 0023: Decentralized Search](./0023_DECENTRALIZED_SEARCH.md)
+- [Exploration 0052: libp2p Reintegration](./0052_[_]_LIBP2P_REINTEGRATION.md)
+- [Exploration 0035: Minimal Signaling-Only Hub](./0035_[x]_MINIMAL_SIGNALING_ONLY_HUB.md)
+- [Exploration 0023: Decentralized Search](./0023_[_]_DECENTRALIZED_SEARCH.md)
 - [Tailscale: How NAT Traversal Works](https://tailscale.com/blog/how-nat-traversal-works)
 - [libp2p Circuit Relay v2 Spec](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)
 - [iroh Documentation](https://iroh.computer/docs)

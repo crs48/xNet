@@ -106,19 +106,19 @@ flowchart TB
 
 ### Decisions Informed by Explorations
 
-| Exploration                                                                               | Impact on Hub                                                                                                                                                                   |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [0035 Minimal Signaling-Only Hub](../explorations/0035_MINIMAL_SIGNALING_ONLY_HUB.md)     | Hub should support **3 modes**: signaling-only, signaling+relay, full hub — selectable via CLI flag.                                                                            |
-| [0040 First-Class Relations](../explorations/0040_FIRST_CLASS_RELATIONS.md)               | UCAN has known bugs that must be fixed before hub auth. Relation index on hub enables graph queries.                                                                            |
-| [0041 Database Data Model](../explorations/0041_DATABASE_DATA_MODEL.md)                   | Database rows as Nodes requires `getChangesSince(lamport)` + pagination on NodeStorageAdapter.                                                                                  |
-| [0042 Unified Query API](../explorations/0042_UNIFIED_QUERY_API.md)                       | Hub query engine should align with the unified query descriptor format (JSON-serializable, sent over WS). Hub-side FTS5/compound indexes complement lightweight client indexes. |
-| [0043 Off-Main-Thread Architecture](../explorations/0043_OFF_MAIN_THREAD_ARCHITECTURE.md) | Hub's architecture mirrors the DataBridge/DataWorker pattern. SQLite adapter should be extracted from Electron into a shared package.                                           |
-| [0044 AI-Collaborative Editing](../explorations/0044_AI_COLLABORATIVE_EDITING.md)         | MCP server connects via Local API (port 31415) or hub HTTP API. Hub enables remote AI agents.                                                                                   |
-| [0025 Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md)               | Hub MUST verify signed Yjs envelopes before applying updates. MetaBridge must be write-only (NodeStore→Yjs, never Yjs→NodeStore).                                               |
-| [0026 Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md)         | Hub node relay = append-only `node_changes` table. Hub does NOT need materialized state or LWW resolution — clients do that.                                                    |
-| [0024 Background Sync Manager](../explorations/0024_BACKGROUND_SYNC_MANAGER.md)           | BSM's ConnectionManager is the client-side counterpart. Hub auth, backup, search, node sync all share BSM's single connection.                                                  |
-| [0023 Decentralized Search](../explorations/0023_DECENTRALIZED_SEARCH.md)                 | Three-tier search (local→hub→federated). Hub provides always-available Tier 2 FTS5 index.                                                                                       |
-| [0011 Server Infrastructure](../explorations/0011_SERVER_INFRASTRUCTURE.md)               | Hybrid Proposal C: start with Node.js monolith + SQLite → swap to Postgres/S3 → scale to multi-worker only if needed.                                                           |
+| Exploration                                                                                   | Impact on Hub                                                                                                                                                                   |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [0035 Minimal Signaling-Only Hub](../../explorations/0035_[x]_MINIMAL_SIGNALING_ONLY_HUB.md)     | Hub should support **3 modes**: signaling-only, signaling+relay, full hub — selectable via CLI flag.                                                                            |
+| [0040 First-Class Relations](../../explorations/0040_[_]_FIRST_CLASS_RELATIONS.md)               | UCAN has known bugs that must be fixed before hub auth. Relation index on hub enables graph queries.                                                                            |
+| [0041 Database Data Model](../../explorations/0041_[x]_DATABASE_DATA_MODEL.md)                   | Database rows as Nodes requires `getChangesSince(lamport)` + pagination on NodeStorageAdapter.                                                                                  |
+| [0042 Unified Query API](../../explorations/0042_[_]_UNIFIED_QUERY_API.md)                       | Hub query engine should align with the unified query descriptor format (JSON-serializable, sent over WS). Hub-side FTS5/compound indexes complement lightweight client indexes. |
+| [0043 Off-Main-Thread Architecture](../../explorations/0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md) | Hub's architecture mirrors the DataBridge/DataWorker pattern. SQLite adapter should be extracted from Electron into a shared package.                                           |
+| [0044 AI-Collaborative Editing](../../explorations/0044_[_]_AI_COLLABORATIVE_EDITING.md)         | MCP server connects via Local API (port 31415) or hub HTTP API. Hub enables remote AI agents.                                                                                   |
+| [0025 Yjs Security Analysis](../../explorations/0025_[x]_YJS_SECURITY_ANALYSIS.md)               | Hub MUST verify signed Yjs envelopes before applying updates. MetaBridge must be write-only (NodeStore→Yjs, never Yjs→NodeStore).                                               |
+| [0026 Node Change Architecture](../../explorations/0026_[x]_NODE_CHANGE_ARCHITECTURE.md)         | Hub node relay = append-only `node_changes` table. Hub does NOT need materialized state or LWW resolution — clients do that.                                                    |
+| [0024 Background Sync Manager](../../explorations/0024_[x]_BACKGROUND_SYNC_MANAGER.md)           | BSM's ConnectionManager is the client-side counterpart. Hub auth, backup, search, node sync all share BSM's single connection.                                                  |
+| [0023 Decentralized Search](../../explorations/0023_[_]_DECENTRALIZED_SEARCH.md)                 | Three-tier search (local→hub→federated). Hub provides always-available Tier 2 FTS5 index.                                                                                       |
+| [0011 Server Infrastructure](../../explorations/0011_[x]_SERVER_INFRASTRUCTURE.md)               | Hybrid Proposal C: start with Node.js monolith + SQLite → swap to Postgres/S3 → scale to multi-worker only if needed.                                                           |
 
 ## Current State (as of Feb 2026)
 
@@ -250,7 +250,7 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 | 5.3  | [06-query-engine.md](./06-query-engine.md) | Schema + property filter queries          | —                                               |
 | 5.4  | [06-query-engine.md](./06-query-engine.md) | User-controlled indexing opt-in           | —                                               |
 
-> **Query API alignment:** The query protocol should use the JSON-serializable query descriptor format from [Exploration 0042](../explorations/0042_UNIFIED_QUERY_API.md). This ensures the same `useQuery()` calls work locally and can be offloaded to the hub for heavy queries.
+> **Query API alignment:** The query protocol should use the JSON-serializable query descriptor format from [Exploration 0042](../../explorations/0042_[_]_UNIFIED_QUERY_API.md). This ensures the same `useQuery()` calls work locally and can be offloaded to the hub for heavy queries.
 
 **Validation Gate:**
 
@@ -383,7 +383,7 @@ The current architecture is **fully P2P with a dumb relay**. All intelligence (s
 
 ### Phase 13: Hub Federation Search (Days 16-18)
 
-> **Note:** Phases 13-15 are advanced distributed systems features. They are architecturally sound but should only be implemented after Phases 1-12 are stable and in production use. See [Exploration 0023](../explorations/0023_DECENTRALIZED_SEARCH.md) for the full three-tier search design.
+> **Note:** Phases 13-15 are advanced distributed systems features. They are architecturally sound but should only be implemented after Phases 1-12 are stable and in production use. See [Exploration 0023](../../explorations/0023_[_]_DECENTRALIZED_SEARCH.md) for the full three-tier search design.
 
 | Task | Document                                                     | Description                               |
 | ---- | ------------------------------------------------------------ | ----------------------------------------- |
@@ -649,31 +649,31 @@ packages/
 
 ### Explorations (Architecture)
 
-- [0011 Server Infrastructure](../explorations/0011_SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals → Hybrid Proposal C chosen
-- [0016 Persistence Architecture](../explorations/0016_PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
-- [0024 Background Sync Manager](../explorations/0024_BACKGROUND_SYNC_MANAGER.md) — BSM design decisions, platform considerations
-- [0035 Minimal Signaling-Only Hub](../explorations/0035_MINIMAL_SIGNALING_ONLY_HUB.md) — 3 hub modes (signaling-only → full hub), HybridSyncProvider
-- [0043 Off-Main-Thread Architecture](../explorations/0043_OFF_MAIN_THREAD_ARCHITECTURE.md) — DataBridge pattern, hub mirrors utility process model
+- [0011 Server Infrastructure](../../explorations/0011_[x]_SERVER_INFRASTRUCTURE.md) — Full research with 3 proposals → Hybrid Proposal C chosen
+- [0016 Persistence Architecture](../../explorations/0016_[x]_PERSISTENCE_ARCHITECTURE.md) — Storage durability tiers
+- [0024 Background Sync Manager](../../explorations/0024_[x]_BACKGROUND_SYNC_MANAGER.md) — BSM design decisions, platform considerations
+- [0035 Minimal Signaling-Only Hub](../../explorations/0035_[x]_MINIMAL_SIGNALING_ONLY_HUB.md) — 3 hub modes (signaling-only → full hub), HybridSyncProvider
+- [0043 Off-Main-Thread Architecture](../../explorations/0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md) — DataBridge pattern, hub mirrors utility process model
 
 ### Explorations (Security & Sync)
 
-- [0025 Yjs Security Analysis](../explorations/0025_YJS_SECURITY_ANALYSIS.md) — Threat model for unsigned rich text updates
-- [0026 Node Change Architecture](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md) — Event-sourced structured data, hub relay = append-only log
-- [0040 First-Class Relations](../explorations/0040_FIRST_CLASS_RELATIONS.md) — UCAN bugs identified (now fixed), relation index for graph queries
+- [0025 Yjs Security Analysis](../../explorations/0025_[x]_YJS_SECURITY_ANALYSIS.md) — Threat model for unsigned rich text updates
+- [0026 Node Change Architecture](../../explorations/0026_[x]_NODE_CHANGE_ARCHITECTURE.md) — Event-sourced structured data, hub relay = append-only log
+- [0040 First-Class Relations](../../explorations/0040_[_]_FIRST_CLASS_RELATIONS.md) — UCAN bugs identified (now fixed), relation index for graph queries
 
 ### Explorations (Data & Query)
 
-- [0041 Database Data Model](../explorations/0041_DATABASE_DATA_MODEL.md) — Rows as Nodes, pagination needed on NodeStorageAdapter
-- [0042 Unified Query API](../explorations/0042_UNIFIED_QUERY_API.md) — JSON-serializable query descriptors, hub-side FTS5/compound indexes
-- [0023 Decentralized Search](../explorations/0023_DECENTRALIZED_SEARCH.md) — Three-tier search (local → hub → federated), BM25 + social trust
+- [0041 Database Data Model](../../explorations/0041_[x]_DATABASE_DATA_MODEL.md) — Rows as Nodes, pagination needed on NodeStorageAdapter
+- [0042 Unified Query API](../../explorations/0042_[_]_UNIFIED_QUERY_API.md) — JSON-serializable query descriptors, hub-side FTS5/compound indexes
+- [0023 Decentralized Search](../../explorations/0023_[_]_DECENTRALIZED_SEARCH.md) — Three-tier search (local → hub → federated), BM25 + social trust
 
 ### Explorations (Deployment)
 
-- [0049 Hub Railway Deployment](../explorations/0049_HUB_RAILWAY_DEPLOYMENT.md) — Railway platform analysis, cost comparison, architecture compatibility
+- [0049 Hub Railway Deployment](../../explorations/0049_[x]_HUB_RAILWAY_DEPLOYMENT.md) — Railway platform analysis, cost comparison, architecture compatibility
 
 ### Explorations (AI & Integration)
 
-- [0044 AI-Collaborative Editing](../explorations/0044_AI_COLLABORATIVE_EDITING.md) — MCP server via Local API or hub HTTP, Markdown ↔ Yjs conversion
+- [0044 AI-Collaborative Editing](../../explorations/0044_[_]_AI_COLLABORATIVE_EDITING.md) — MCP server via Local API or hub HTTP, Markdown ↔ Yjs conversion
 
 ---
 

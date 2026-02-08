@@ -12,7 +12,7 @@ The codebase has 21 packages with real implementations, 2400+ tests, and three p
 
 **But nobody uses it.**
 
-Every project in the [landscape analysis](explorations/0027_LANDSCAPE_ANALYSIS.md) that succeeded followed one pattern: **ship a compelling app first, extract the protocol later.** Every project that tried infrastructure + application simultaneously took 6+ years or died.
+Every project in the [landscape analysis](explorations/0027_[x]_LANDSCAPE_ANALYSIS.md) that succeeded followed one pattern: **ship a compelling app first, extract the protocol later.** Every project that tried infrastructure + application simultaneously took 6+ years or died.
 
 xNet has the infrastructure. It does not yet have the app.
 

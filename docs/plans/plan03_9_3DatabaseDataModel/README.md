@@ -466,9 +466,9 @@ graph TD
 
 ## Reference Documents
 
-- [Database Data Model V2 Exploration](../../explorations/0067_DATABASE_DATA_MODEL_V2.md) — Original design document
-- [Database Data Model V1](../../explorations/0041_DATABASE_DATA_MODEL.md) — Previous exploration
-- [Off-Main-Thread Architecture](../../explorations/0043_OFF_MAIN_THREAD_ARCHITECTURE.md) — Worker thread design
+- [Database Data Model V2 Exploration](../../../explorations/0067_[-]_DATABASE_DATA_MODEL_V2.md) — Original design document
+- [Database Data Model V1](../../../explorations/0041_[x]_DATABASE_DATA_MODEL.md) — Previous exploration
+- [Off-Main-Thread Architecture](../../../explorations/0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md) — Worker thread design
 - [Hub Phase 1 Plan](../plan03_8HubPhase1VPS/README.md) — Hub implementation context
 - [TanStack Virtual](https://tanstack.com/virtual/latest) — Virtualization library
 - [Fractional Indexing](https://www.figma.com/blog/realtime-editing-of-ordered-sequences/) — Figma's approach

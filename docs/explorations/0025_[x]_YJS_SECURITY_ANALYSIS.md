@@ -518,14 +518,14 @@ These can be added incrementally after the hub ships.
 
 ## References
 
-| File                                                 | Relevance                                  |
-| ---------------------------------------------------- | ------------------------------------------ |
-| `packages/react/src/sync/WebSocketSyncProvider.ts`   | Current Yjs sync — no auth, no signing     |
-| `packages/react/src/sync/meta-bridge.ts`             | MetaBridge — bidirectional Yjs ↔ NodeStore |
-| `packages/react/src/sync/node-pool.ts`               | Y.Doc persistence — raw Uint8Array         |
-| `packages/sync/src/change.ts`                        | How NodeChanges get signed + hashed        |
-| `packages/network/src/security/peer-scorer.ts`       | Existing peer scoring infrastructure       |
-| `packages/network/src/security/auto-blocker.ts`      | Auto-blocking misbehaving peers            |
-| `docs/plans/plan03_8HubPhase1VPS/02-ucan-auth.md`    | Planned UCAN auth for hub                  |
-| `docs/plans/plan03_8HubPhase1VPS/03-sync-relay.md`   | Hub Yjs relay — blind Y.applyUpdate        |
-| `docs/explorations/0026_NODE_CHANGE_ARCHITECTURE.md` | How NodeChanges work (the secure path)     |
+| File                                                     | Relevance                                  |
+| -------------------------------------------------------- | ------------------------------------------ |
+| `packages/react/src/sync/WebSocketSyncProvider.ts`       | Current Yjs sync — no auth, no signing     |
+| `packages/react/src/sync/meta-bridge.ts`                 | MetaBridge — bidirectional Yjs ↔ NodeStore |
+| `packages/react/src/sync/node-pool.ts`                   | Y.Doc persistence — raw Uint8Array         |
+| `packages/sync/src/change.ts`                            | How NodeChanges get signed + hashed        |
+| `packages/network/src/security/peer-scorer.ts`           | Existing peer scoring infrastructure       |
+| `packages/network/src/security/auto-blocker.ts`          | Auto-blocking misbehaving peers            |
+| `docs/plans/plan03_8HubPhase1VPS/02-ucan-auth.md`        | Planned UCAN auth for hub                  |
+| `docs/plans/plan03_8HubPhase1VPS/03-sync-relay.md`       | Hub Yjs relay — blind Y.applyUpdate        |
+| `docs/explorations/0026_[x]_NODE_CHANGE_ARCHITECTURE.md` | How NodeChanges work (the secure path)     |

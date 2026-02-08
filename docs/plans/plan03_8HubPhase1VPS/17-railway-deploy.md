@@ -11,7 +11,7 @@
 >
 > Relevant existing work:
 >
-> - [Exploration 0049](../explorations/0049_HUB_RAILWAY_DEPLOYMENT.md) — Full Railway analysis: platform constraints, cost comparison, architecture compatibility, implementation plan
+> - [Exploration 0049](../../explorations/0049_[x]_HUB_RAILWAY_DEPLOYMENT.md) — Full Railway analysis: platform constraints, cost comparison, architecture compatibility, implementation plan
 > - `packages/hub/src/server.ts` (150 LOC) — Hono HTTP + WS server, currently hardcodes port from CLI config
 > - `packages/hub/src/cli.ts` (66 LOC) — Commander.js CLI, no env var fallback
 > - `07-docker-deploy.md` — Docker + Fly.io deployment (existing step)

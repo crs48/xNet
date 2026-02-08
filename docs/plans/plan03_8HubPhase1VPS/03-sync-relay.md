@@ -19,7 +19,7 @@
 
 ### Key Difference from BSM
 
-The BSM is a **client** — it connects to the signaling server as a peer. The hub's relay service is the **server** — it intercepts messages published through signaling and responds as a persistent peer. The BSM signs outgoing updates; the hub **verifies** incoming updates. The hub should reject unsigned updates when auth is enabled (see [Exploration 0025](../explorations/0025_YJS_SECURITY_ANALYSIS.md)).
+The BSM is a **client** — it connects to the signaling server as a peer. The hub's relay service is the **server** — it intercepts messages published through signaling and responds as a persistent peer. The BSM signs outgoing updates; the hub **verifies** incoming updates. The hub should reject unsigned updates when auth is enabled (see [Exploration 0025](../../explorations/0025_[x]_YJS_SECURITY_ANALYSIS.md)).
 
 ## Overview
 

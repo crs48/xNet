@@ -412,8 +412,8 @@ graph TD
 
 ## Reference Documents
 
-- [UI Styling System Exploration](../../explorations/0075_UI_STYLING_SYSTEM.md) — Full design research
-- [Radix to Base UI Migration](../../explorations/0034_RADIX_TO_BASE_UI_MIGRATION.md) — Migration analysis
+- [UI Styling System Exploration](../../../explorations/0075_[x]_UI_STYLING_SYSTEM.md) — Full design research
+- [Radix to Base UI Migration](../../../explorations/0034_[x]_RADIX_TO_BASE_UI_MIGRATION.md) — Migration analysis
 - [Base UI Documentation](https://base-ui.com/react/overview) — Official docs
 - [Apple HIG](https://developer.apple.com/design/human-interface-guidelines) — Touch targets, gestures
 - [WCAG 2.1](https://www.w3.org/WAI/WCAG21/quickref/) — Accessibility guidelines

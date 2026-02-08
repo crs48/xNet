@@ -808,7 +808,7 @@ xnet_create_record({
 
 ## AI-Collaborative Document Editing
 
-Beyond tool-based CRUD, the most compelling direction is AI agents that can collaboratively edit rich text documents, canvases, and databases — the same content types that humans work with in xNet. This is explored in depth in [**Exploration 0044: AI-Collaborative Editing via MCP and Yjs**](../explorations/0044_AI_COLLABORATIVE_EDITING.md), which covers how an MCP server can give AI agents the same power over xNet content that Claude Code has over an Obsidian vault — but with rich text, structured data, and real-time collaboration.
+Beyond tool-based CRUD, the most compelling direction is AI agents that can collaboratively edit rich text documents, canvases, and databases — the same content types that humans work with in xNet. This is explored in depth in [**Exploration 0044: AI-Collaborative Editing via MCP and Yjs**](../../explorations/0044_[_]_AI_COLLABORATIVE_EDITING.md), which covers how an MCP server can give AI agents the same power over xNet content that Claude Code has over an Obsidian vault — but with rich text, structured data, and real-time collaboration.
 
 ---
 

@@ -4,7 +4,7 @@
 
 **Date**: February 2026  
 **Status**: Exploration  
-**Supersedes**: [0076_AUTHORIZATION_API_DESIGN.md](./0076_AUTHORIZATION_API_DESIGN.md)
+**Supersedes**: [0076_AUTHORIZATION_API_DESIGN.md](./0076_[_]_AUTHORIZATION_API_DESIGN.md)
 
 ---
 
@@ -1021,5 +1021,5 @@ The result is an authorization system that is:
 - [Convex Authentication](https://docs.convex.dev/auth)
 - [SpiceDB Schema Language](https://authzed.com/docs/spicedb/concepts/schema)
 - [Google Zanzibar Paper](https://research.google/pubs/pub48190/)
-- [Exploration 0040: First-Class Relations](./0040_FIRST_CLASS_RELATIONS.md)
-- [Exploration 0025: Yjs Security Analysis](./0025_YJS_SECURITY_ANALYSIS.md)
+- [Exploration 0040: First-Class Relations](./0040_[_]_FIRST_CLASS_RELATIONS.md)
+- [Exploration 0025: Yjs Security Analysis](./0025_[x]_YJS_SECURITY_ANALYSIS.md)

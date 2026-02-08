@@ -455,7 +455,7 @@ rm -rf ~/Library/Application\ Support/xnet/*.db
 
 ## Reference Documents
 
-- [Multi-Level Crypto Exploration](../explorations/0069_MULTI_LEVEL_CRYPTO.md) - Full research
+- [Multi-Level Crypto Exploration](../../explorations/0069_[x]_MULTI_LEVEL_CRYPTO.md) - Full research
 - [NIST FIPS 204 (ML-DSA)](https://csrc.nist.gov/pubs/fips/204/final)
 - [NIST FIPS 203 (ML-KEM)](https://csrc.nist.gov/pubs/fips/203/final)
 - [@noble/post-quantum](https://github.com/paulmillr/noble-post-quantum)

@@ -1012,7 +1012,7 @@ function Sidebar() {
 
 ### Related Exploration
 
-See **[0034_RADIX_TO_BASE_UI_MIGRATION.md](./0034_RADIX_TO_BASE_UI_MIGRATION.md)** for a detailed analysis of our current Radix UI dependency and the case for migrating to Base UI.
+See **[0034_RADIX_TO_BASE_UI_MIGRATION.md](./0034_[x]_RADIX_TO_BASE_UI_MIGRATION.md)** for a detailed analysis of our current Radix UI dependency and the case for migrating to Base UI.
 
 ### The Opportunity: Combine Styling Refresh with Base UI Migration
 
@@ -1303,5 +1303,5 @@ The goal is a UI that feels like a precision instrument — invisible when you'r
 
 ### Related Documents
 
-- **[0034_RADIX_TO_BASE_UI_MIGRATION.md](./0034_RADIX_TO_BASE_UI_MIGRATION.md)** — Detailed analysis of Radix vs Base UI
-- **[0045_LANDING_PAGE_REDESIGN.md](./0045_LANDING_PAGE_REDESIGN.md)** — Landing page design direction (shares visual philosophy)
+- **[0034_RADIX_TO_BASE_UI_MIGRATION.md](./0034_[x]_RADIX_TO_BASE_UI_MIGRATION.md)** — Detailed analysis of Radix vs Base UI
+- **[0045_LANDING_PAGE_REDESIGN.md](./0045_[x]_LANDING_PAGE_REDESIGN.md)** — Landing page design direction (shares visual philosophy)

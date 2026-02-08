@@ -4,7 +4,7 @@
 
 ## Context
 
-xNet has a working plugin system ([Exploration 0006](./0006_PLUGIN_ARCHITECTURE.md), `@xnet/plugins`). Extensions can register schemas, views, commands, editor extensions, sidebar items, slash commands, property handlers, and blocks. Plugins are persisted as Nodes in the NodeStore. One bundled plugin (Mermaid diagrams) ships today.
+xNet has a working plugin system ([Exploration 0006](./0006_[x]_PLUGIN_ARCHITECTURE.md), `@xnet/plugins`). Extensions can register schemas, views, commands, editor extensions, sidebar items, slash commands, property handlers, and blocks. Plugins are persisted as Nodes in the NodeStore. One bundled plugin (Mermaid diagrams) ships today.
 
 What's missing is **discovery** — a way for developers to publish plugins and for users to find, install, and update them from inside the app.
 

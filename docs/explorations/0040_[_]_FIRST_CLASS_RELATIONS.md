@@ -4,7 +4,7 @@
 
 ## Context
 
-[Exploration 0039](./0039_TEMPID_AND_REF_TYPES.md) established `relation()` as xNet's universal foreign key type — the equivalent of Datomic's `:db.type/ref`. Phase 1 (temp IDs) solves the transactional creation problem. This document explores Phase 2: **what a first-class relation type makes possible across every layer of a local-first, decentralized system.**
+[Exploration 0039](./0039_[x]_TEMPID_AND_REF_TYPES.md) established `relation()` as xNet's universal foreign key type — the equivalent of Datomic's `:db.type/ref`. Phase 1 (temp IDs) solves the transactional creation problem. This document explores Phase 2: **what a first-class relation type makes possible across every layer of a local-first, decentralized system.**
 
 Today, relations are stored as forward pointers — a node holds the ID of the node it references. The system has no awareness of the graph these references form. This exploration asks: what if it did?
 
