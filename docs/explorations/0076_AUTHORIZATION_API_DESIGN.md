@@ -1471,6 +1471,215 @@ The recommended approach is a **hybrid API** that uses:
 
 This provides good developer experience (autocomplete, error messages) while maintaining the flexibility of the DSL.
 
+## Performance Impact Analysis
+
+Authorization checks are in the critical path of every request. This section analyzes performance implications for both local (client-side) and hub (server-side) enforcement, drawing on lessons from Google Zanzibar, SpiceDB, and ElectricSQL.
+
+### Performance Characteristics of Authorization Systems
+
+Google's Zanzibar paper establishes the gold standard for authorization performance at scale:
+
+| Metric       | Zanzibar (Google) | Target for xNet            |
+| ------------ | ----------------- | -------------------------- |
+| P50 latency  | 3ms               | <10ms local, <50ms hub     |
+| P99 latency  | 20ms              | <50ms local, <100ms hub    |
+| Throughput   | 10M+ requests/sec | N/A (distributed)          |
+| Availability | 99.999%           | Offline-first (100% local) |
+
+Key insight: Zanzibar achieves these numbers through **aggressive caching** at multiple layers and **request deduplication** via consistent hashing. xNet's local-first architecture gives us an inherent advantage—we can cache everything locally.
+
+### Local (Client-Side) Performance
+
+#### Permission Check Cost
+
+Each permission check involves:
+
+1. **Schema lookup**: O(1) from in-memory registry
+2. **Role resolution**: O(R) where R = number of roles in expression
+3. **Property access**: O(1) per property reference
+4. **Relation traversal**: O(D × N) where D = depth, N = avg relations per node
+
+```
+Estimated local check latency:
+- Simple role check (owner | editor): <1ms
+- Property-based role (properties.assignee): <1ms
+- Single relation traversal (project->admin): 1-5ms
+- Deep traversal (workspace->project->task): 5-20ms
+```
+
+#### Caching Strategy
+
+Local caching is critical for performance. Based on SpiceDB's architecture:
+
+| Cache Layer       | What's Cached                             | TTL               | Invalidation              |
+| ----------------- | ----------------------------------------- | ----------------- | ------------------------- |
+| Permission result | `can(did, action, nodeId) → boolean`      | 5-60s             | On node/grant change      |
+| Role membership   | `hasRole(did, role, nodeId) → boolean`    | 30-300s           | On role definition change |
+| Relation graph    | `getRelated(nodeId, relation) → NodeId[]` | Until node change | On relation change        |
+| UCAN tokens       | Parsed/verified tokens                    | Until expiration  | On revocation             |
+
+**Cache hit rates** (estimated based on Zanzibar patterns):
+
+- Permission checks on same node: 80-95% hit rate
+- Role membership: 70-90% hit rate
+- Relation traversal: 50-80% hit rate
+
+#### Memory Overhead
+
+| Component        | Memory per 1K nodes | Notes                           |
+| ---------------- | ------------------- | ------------------------------- |
+| Permission cache | ~50KB               | Assuming 50 cached results/node |
+| Role cache       | ~20KB               | Assuming 20 role checks/node    |
+| UCAN token cache | ~100KB              | Assuming 100 tokens, 1KB each   |
+| Parsed schemas   | ~10KB               | One-time cost per schema        |
+
+For a typical workspace with 10K nodes: **~2MB** additional memory for authorization caching.
+
+#### Offline Performance
+
+UCAN's key advantage is **offline capability**:
+
+- All permission checks work offline using cached tokens
+- No network round-trips for authorization
+- Revocations are eventually consistent (see tradeoffs below)
+
+### Hub (Server-Side) Performance
+
+#### Request Processing Cost
+
+Hub servers must verify authorization for every sync operation:
+
+1. **UCAN verification**: ~0.5-2ms (Ed25519 signature check)
+2. **Proof chain validation**: O(P × V) where P = proof depth, V = verification cost
+3. **Capability matching**: O(C) where C = capabilities in token
+4. **Room-level access check**: O(1) with proper indexing
+
+```
+Estimated hub verification latency:
+- Simple UCAN (no proofs): 1-3ms
+- UCAN with 1-2 proofs: 3-8ms
+- UCAN with deep chain (5+): 10-25ms
+```
+
+#### Throughput Considerations
+
+Based on ElectricSQL's benchmarks for shape-based sync:
+
+| Scenario                    | Throughput Impact                          |
+| --------------------------- | ------------------------------------------ |
+| No auth (baseline)          | 5,000 changes/sec                          |
+| Simple token verification   | 4,000-4,500 changes/sec (~10-20% overhead) |
+| Per-change permission check | 1,000-2,000 changes/sec (~60-80% overhead) |
+| Optimized (batch + cache)   | 3,500-4,000 changes/sec (~20-30% overhead) |
+
+**Recommendation**: Verify UCAN at connection time, not per-change. Use room-level access control rather than per-node checks on the hub.
+
+#### Scaling Strategies
+
+From SpiceDB's operational guidance:
+
+1. **Dispatch/Sharding**: Distribute permission checks across nodes using consistent hashing
+2. **Materialize**: Pre-compute common permission patterns (e.g., "all admins of workspace X")
+3. **Schema caching**: Cache parsed schemas to avoid repeated parsing
+4. **Request hedging**: Send duplicate requests to reduce tail latency
+
+### Relation Traversal Depth
+
+Deep relation chains are the primary performance concern:
+
+```mermaid
+flowchart LR
+    subgraph "Traversal Depth"
+        D1["Depth 1: 1-5ms"]
+        D2["Depth 2: 5-15ms"]
+        D3["Depth 3: 15-40ms"]
+        D4["Depth 4+: 40-100ms+"]
+    end
+
+    D1 --> D2 --> D3 --> D4
+```
+
+**Mitigation strategies**:
+
+1. **Depth limits**: Cap traversal at 3-4 levels (configurable per schema)
+2. **Denormalization**: Store flattened group memberships (like Zanzibar's Leopard system)
+3. **Eager evaluation**: Pre-compute inherited roles on grant/revoke
+4. **Parallel traversal**: Traverse multiple relations concurrently
+
+### Revocation Propagation
+
+Revocation creates a tradeoff between **consistency** and **performance**:
+
+| Approach         | Propagation Time | Performance Impact       | Use Case              |
+| ---------------- | ---------------- | ------------------------ | --------------------- |
+| Immediate (sync) | <1s              | High (blocks on network) | Financial, healthcare |
+| Near-real-time   | 1-30s            | Medium (background sync) | Collaboration tools   |
+| Eventual         | 1-60min          | Low (batch sync)         | Content sharing       |
+
+**xNet recommendation**: Default to near-real-time (30s) with option for immediate revocation on sensitive schemas.
+
+### Benchmarking Targets
+
+Before implementation, establish baseline benchmarks:
+
+| Operation              | Target P50 | Target P99 | Measurement Point   |
+| ---------------------- | ---------- | ---------- | ------------------- |
+| `store.can()` (cached) | <1ms       | <5ms       | Local, warm cache   |
+| `store.can()` (cold)   | <10ms      | <50ms      | Local, cache miss   |
+| `store.grant()`        | <20ms      | <100ms     | Local + hub sync    |
+| `store.revoke()`       | <20ms      | <100ms     | Local + hub sync    |
+| Hub UCAN verify        | <5ms       | <20ms      | Hub connection      |
+| Hub change auth        | <1ms       | <5ms       | Per-change (cached) |
+
+### Performance vs. Security Tradeoffs
+
+| Decision                                  | Performance        | Security              | Recommendation                          |
+| ----------------------------------------- | ------------------ | --------------------- | --------------------------------------- |
+| Cache permission results                  | ✅ Faster          | ⚠️ Stale results      | Cache with short TTL (5-30s)            |
+| Verify UCAN per-connection vs per-request | ✅ Much faster     | ⚠️ Delayed revocation | Per-connection + periodic recheck       |
+| Limit traversal depth                     | ✅ Bounded latency | ⚠️ Less expressive    | Limit to 4, allow override              |
+| Pre-compute group membership              | ✅ O(1) lookup     | ⚠️ Storage overhead   | Yes, for groups >100 members            |
+| Batch permission checks                   | ✅ Amortized cost  | ✅ Same security      | Yes, use `CheckBulkPermissions` pattern |
+
+### Implementation Priorities
+
+Based on performance analysis, prioritize:
+
+1. **Phase 1**: Local permission cache with TTL-based invalidation
+2. **Phase 2**: UCAN verification cache (avoid re-verifying same token)
+3. **Phase 3**: Relation traversal with depth limits
+4. **Phase 4**: Hub-side connection-level auth (not per-change)
+5. **Phase 5**: Denormalized group membership for large groups
+6. **Phase 6**: Pre-computed permission materialization (optional, for scale)
+
+### Monitoring & Observability
+
+Track these metrics to identify performance issues:
+
+```typescript
+// Key metrics to instrument
+interface AuthMetrics {
+  // Latency histograms
+  permissionCheckLatency: Histogram // P50, P95, P99
+  ucanVerificationLatency: Histogram
+  relationTraversalLatency: Histogram
+
+  // Cache effectiveness
+  permissionCacheHitRate: Gauge // Target: >80%
+  ucanCacheHitRate: Gauge // Target: >90%
+
+  // Throughput
+  permissionChecksPerSecond: Counter
+  grantsPerSecond: Counter
+  revocationsPerSecond: Counter
+
+  // Errors
+  permissionDenials: Counter // Track for abuse detection
+  ucanVerificationFailures: Counter
+  traversalDepthExceeded: Counter
+}
+```
+
 ## Open Questions
 
 1. **Permission expression complexity**: How complex should the DSL be? Should we support arbitrary boolean logic, or keep it simple with predefined patterns?
