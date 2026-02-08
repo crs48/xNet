@@ -1,122 +1,175 @@
 @layer base {
   :root {
-    /* ─── Layout ────────────────────────────────── */
+    /* ─── Layout ────────────────────────────────────────────────── */
     --radius: 0.5rem;
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+    --radius-full: 9999px;
 
-    /* ─── Core Backgrounds ──────────────────────── */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    /* ─── Backgrounds ───────────────────────────────────────────── */
+    --background: 0 0% 100%; /* Pure white */
+    --background-subtle: 0 0% 98%; /* Off-white for cards */
+    --background-muted: 0 0% 96%; /* Hover states */
+    --background-emphasis: 0 0% 94%; /* Active states */
 
-    /* ─── Card / Panel ──────────────────────────── */
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    /* ─── Foregrounds ───────────────────────────────────────────── */
+    --foreground: 0 0% 9%; /* Primary text */
+    --foreground-muted: 0 0% 45%; /* Secondary text */
+    --foreground-subtle: 0 0% 64%; /* Tertiary text */
+    --foreground-faint: 0 0% 78%; /* Placeholder text */
 
-    /* ─── Popover / Dropdown ────────────────────── */
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    /* ─── Borders ───────────────────────────────────────────────── */
+    --border: 0 0% 90%; /* Default borders */
+    --border-muted: 0 0% 94%; /* Subtle borders */
+    --border-emphasis: 0 0% 82%; /* Emphasized borders */
 
-    /* ─── Primary (brand action) ────────────────── */
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    /* ─── Primary (Blue) ────────────────────────────────────────── */
+    --primary: 221 83% 53%; /* Interactive elements */
+    --primary-hover: 221 83% 47%; /* Hover state */
+    --primary-active: 221 83% 42%; /* Active/pressed state */
+    --primary-muted: 221 83% 96%; /* Subtle backgrounds */
+    --primary-foreground: 0 0% 100%; /* Text on primary */
 
-    /* ─── Secondary ─────────────────────────────── */
+    /* ─── Secondary ─────────────────────────────────────────────── */
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
 
-    /* ─── Muted (subtle backgrounds/text) ───────── */
+    /* ─── Muted (for backward compat) ───────────────────────────── */
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
 
-    /* ─── Accent (hover/active states) ──────────── */
+    /* ─── Accent (for backward compat) ──────────────────────────── */
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
 
-    /* ─── Destructive (danger/error) ────────────── */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    /* ─── Semantic: Destructive ─────────────────────────────────── */
+    --destructive: 0 72% 51%;
+    --destructive-hover: 0 72% 45%;
+    --destructive-active: 0 72% 40%;
+    --destructive-muted: 0 72% 96%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* ─── Success ───────────────────────────────── */
-    --success: 142 76% 36%;
-    --success-foreground: 0 0% 98%;
+    /* ─── Semantic: Success ─────────────────────────────────────── */
+    --success: 142 71% 45%;
+    --success-hover: 142 71% 40%;
+    --success-active: 142 71% 35%;
+    --success-muted: 142 71% 96%;
+    --success-foreground: 0 0% 100%;
 
-    /* ─── Warning ───────────────────────────────── */
+    /* ─── Semantic: Warning ─────────────────────────────────────── */
     --warning: 38 92% 50%;
+    --warning-hover: 38 92% 45%;
+    --warning-active: 38 92% 40%;
+    --warning-muted: 38 92% 96%;
     --warning-foreground: 0 0% 9%;
 
-    /* ─── Borders & Inputs ──────────────────────── */
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
+    /* ─── Input & Ring ──────────────────────────────────────────── */
+    --input: 0 0% 90%;
     --ring: 221 83% 53%;
 
-    /* ─── Sidebar ───────────────────────────────── */
+    /* ─── Card / Panel (backward compat) ────────────────────────── */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+
+    /* ─── Popover / Dropdown (backward compat) ──────────────────── */
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+
+    /* ─── Sidebar ───────────────────────────────────────────────── */
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-border: 220 13% 91%;
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
 
-    /* ─── Chart colors (data visualization) ─────── */
+    /* ─── Chart colors (data visualization) ─────────────────────── */
     --chart-1: 221 83% 53%;
-    --chart-2: 142 76% 36%;
+    --chart-2: 142 71% 45%;
     --chart-3: 38 92% 50%;
     --chart-4: 280 65% 60%;
-    --chart-5: 0 84% 60%;
+    --chart-5: 0 72% 51%;
   }
 
   .dark {
-    /* ─── Core Backgrounds ──────────────────────── */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* ─── Backgrounds ───────────────────────────────────────────── */
+    --background: 0 0% 7%; /* Near-black */
+    --background-subtle: 0 0% 10%; /* Cards */
+    --background-muted: 0 0% 13%; /* Hover states */
+    --background-emphasis: 0 0% 16%; /* Active states */
 
-    /* ─── Card / Panel ──────────────────────────── */
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    /* ─── Foregrounds ───────────────────────────────────────────── */
+    --foreground: 0 0% 95%; /* Primary text */
+    --foreground-muted: 0 0% 65%; /* Secondary text */
+    --foreground-subtle: 0 0% 50%; /* Tertiary text */
+    --foreground-faint: 0 0% 35%; /* Placeholder text */
 
-    /* ─── Popover / Dropdown ────────────────────── */
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    /* ─── Borders ───────────────────────────────────────────────── */
+    --border: 0 0% 18%; /* Default borders */
+    --border-muted: 0 0% 14%; /* Subtle borders */
+    --border-emphasis: 0 0% 25%; /* Emphasized borders */
 
-    /* ─── Primary ───────────────────────────────── */
+    /* ─── Primary (Blue - brighter for dark mode) ───────────────── */
     --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
+    --primary-hover: 217 91% 65%;
+    --primary-active: 217 91% 55%;
+    --primary-muted: 217 91% 15%;
+    --primary-foreground: 0 0% 100%;
 
-    /* ─── Secondary ─────────────────────────────── */
+    /* ─── Secondary ─────────────────────────────────────────────── */
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
 
-    /* ─── Muted ─────────────────────────────────── */
+    /* ─── Muted (backward compat) ───────────────────────────────── */
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
 
-    /* ─── Accent ────────────────────────────────── */
+    /* ─── Accent (backward compat) ──────────────────────────────── */
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
 
-    /* ─── Destructive ───────────────────────────── */
+    /* ─── Semantic: Destructive ─────────────────────────────────── */
     --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive-hover: 0 62.8% 55%;
+    --destructive-active: 0 62.8% 45%;
+    --destructive-muted: 0 62.8% 15%;
+    --destructive-foreground: 0 0% 100%;
 
-    /* ─── Success ───────────────────────────────── */
+    /* ─── Semantic: Success ─────────────────────────────────────── */
     --success: 142 71% 45%;
-    --success-foreground: 0 0% 98%;
+    --success-hover: 142 71% 50%;
+    --success-active: 142 71% 40%;
+    --success-muted: 142 71% 15%;
+    --success-foreground: 0 0% 100%;
 
-    /* ─── Warning ───────────────────────────────── */
+    /* ─── Semantic: Warning ─────────────────────────────────────── */
     --warning: 38 92% 50%;
+    --warning-hover: 38 92% 55%;
+    --warning-active: 38 92% 45%;
+    --warning-muted: 38 92% 15%;
     --warning-foreground: 0 0% 9%;
 
-    /* ─── Borders & Inputs ──────────────────────── */
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
+    /* ─── Input & Ring ──────────────────────────────────────────── */
+    --input: 0 0% 18%;
     --ring: 217 91% 60%;
 
-    /* ─── Sidebar ───────────────────────────────── */
+    /* ─── Card / Panel (backward compat) ────────────────────────── */
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
+
+    /* ─── Popover / Dropdown (backward compat) ──────────────────── */
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
+
+    /* ─── Sidebar ───────────────────────────────────────────────── */
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
 
-    /* ─── Chart colors ──────────────────────────── */
+    /* ─── Chart colors ──────────────────────────────────────────── */
     --chart-1: 217 91% 60%;
     --chart-2: 142 71% 45%;
     --chart-3: 38 92% 50%;

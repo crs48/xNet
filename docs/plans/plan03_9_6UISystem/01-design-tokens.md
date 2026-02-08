@@ -480,19 +480,19 @@ describe('Design Tokens', () => {
 
 ## Checklist
 
-- [ ] Update `tokens.css` with new color system
-- [ ] Add background variants (subtle, muted, emphasis)
-- [ ] Add foreground variants (muted, subtle, faint)
-- [ ] Add border variants (muted, emphasis)
-- [ ] Add primary state variants (hover, active, muted)
-- [ ] Add semantic color variants (destructive, success, warning)
-- [ ] Maintain backward compatibility with existing tokens
-- [ ] Update Tailwind config with new color mappings
-- [ ] Write unit tests for token presence
-- [ ] Verify light mode colors
-- [ ] Verify dark mode colors
-- [ ] Test in Electron app
-- [ ] No visual regressions in existing components
+- [x] Update `tokens.css` with new color system
+- [x] Add background variants (subtle, muted, emphasis)
+- [x] Add foreground variants (muted, subtle, faint)
+- [x] Add border variants (muted, emphasis)
+- [x] Add primary state variants (hover, active, muted)
+- [x] Add semantic color variants (destructive, success, warning)
+- [x] Maintain backward compatibility with existing tokens
+- [x] Update Tailwind config with new color mappings
+- [x] Write unit tests for token presence
+- [x] Verify light mode colors
+- [x] Verify dark mode colors
+- [x] Test in Electron app
+- [x] No visual regressions in existing components
 
 ---
 

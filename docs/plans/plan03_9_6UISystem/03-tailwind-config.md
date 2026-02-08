@@ -469,19 +469,19 @@ export default {
 
 ## Checklist
 
-- [ ] Consolidate all color definitions
-- [ ] Add typography scale
-- [ ] Add spacing scale
-- [ ] Add border radius scale
-- [ ] Add box shadow scale
-- [ ] Add transition utilities
-- [ ] Add animation utilities
-- [ ] Add container configuration
-- [ ] Export config from package
-- [ ] Update app-level configs to extend base
-- [ ] Verify all utilities work
-- [ ] Test in Electron app
-- [ ] No visual regressions
+- [x] Consolidate all color definitions
+- [x] Add typography scale
+- [x] Add spacing scale
+- [x] Add border radius scale
+- [x] Add box shadow scale
+- [x] Add transition utilities
+- [x] Add animation utilities
+- [x] Add container configuration
+- [x] Export config from package
+- [x] Update app-level configs to extend base
+- [x] Verify all utilities work
+- [x] Test in Electron app
+- [x] No visual regressions
 
 ---
 
