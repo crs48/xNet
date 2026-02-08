@@ -580,14 +580,14 @@ describe('SkeletonCard', () => {
 - [x] Create SkeletonText variant
 - [x] Create SkeletonAvatar variant
 - [x] Create SkeletonCard variant
-- [ ] Write tests for Accordion
-- [ ] Write tests for Tooltip
-- [ ] Write tests for Skeleton
+- [x] Write tests for Accordion
+- [x] Write tests for Tooltip
+- [x] Write tests for Skeleton
 - [x] Verify animations work with Base UI data attributes
 - [x] Update exports in index.ts
 - [x] Remove Radix imports from migrated components
-- [ ] Test in Electron app
-- [ ] No visual regressions
+- [x] Test in Electron app
+- [x] No visual regressions
 
 ---
 

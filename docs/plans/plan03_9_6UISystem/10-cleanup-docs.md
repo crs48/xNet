@@ -309,7 +309,6 @@ import {
   DialogDescription,
   DialogFooter
 } from '@xnet/ui'
-
 ;<Dialog>
   <DialogTrigger asChild>
     <Button>Open</Button>
@@ -331,7 +330,6 @@ import {
 
 ```tsx
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@xnet/ui'
-
 ;<Tabs defaultValue="tab1">
   <TabsList>
     <TabsTrigger value="tab1">Tab 1</TabsTrigger>
@@ -361,7 +359,6 @@ Add to the top of your app:
 
 ```tsx
 import { SkipLink } from '@xnet/ui'
-
 ;<SkipLink href="#main-content" />
 ```
 
@@ -489,18 +486,18 @@ cd apps/electron && pnpm dev
 
 ## Checklist
 
-- [ ] Remove all Radix UI dependencies
-- [ ] Update package.json
-- [ ] Verify no Radix imports remain
-- [ ] Run performance benchmarks
-- [ ] Measure bundle size
-- [ ] Run all tests
-- [ ] Create DESIGN_SYSTEM.md
-- [ ] Create COMPONENT_AUDIT.md
-- [ ] Update README.md
-- [ ] Verify in Electron app
-- [ ] Verify in Web app
-- [ ] Tag release v0.1.0
+- [x] Remove all Radix UI dependencies
+- [x] Update package.json
+- [x] Verify no Radix imports remain
+- [x] Run performance benchmarks
+- [x] Measure bundle size
+- [x] Run all tests
+- [x] Create DESIGN_SYSTEM.md
+- [x] Create COMPONENT_AUDIT.md
+- [x] Update README.md
+- [x] Verify in Electron app
+- [x] Verify in Web app
+- [x] Tag release v0.1.0
 
 ## Success Criteria
 

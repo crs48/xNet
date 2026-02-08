@@ -533,14 +533,14 @@ cd apps/expo && pnpm start
 - [x] Add safe area utilities
 - [x] Add touch target utilities
 - [x] Add responsive typography utilities
-- [ ] Update Sidebar in Electron app
-- [ ] Add bottom navigation to mobile
-- [ ] Convert tables to responsive
-- [ ] Test on iPhone SE (375px)
-- [ ] Test on iPad (768px)
-- [ ] Test on desktop (1440px)
-- [ ] Verify touch targets are 44px+
-- [ ] Test with VoiceOver/TalkBack
+- [x] Update Sidebar in Electron app
+- [x] Add bottom navigation to mobile
+- [x] Convert tables to responsive
+- [x] Test on iPhone SE (375px)
+- [x] Test on iPad (768px)
+- [x] Test on desktop (1440px)
+- [x] Verify touch targets are 44px+
+- [x] Test with VoiceOver/TalkBack
 
 ---
 
