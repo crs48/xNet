@@ -4,8 +4,12 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// When using hash router (for site deployment), use root base path
+const useHashRouter = process.env.VITE_USE_HASH_ROUTER === 'true'
+const basePath = useHashRouter ? '/' : '/app/'
+
 export default defineConfig({
-  base: '/app/',
+  base: basePath,
   build: {
     // Target modern browsers for SQLite WASM + OPFS support
     // Safari 16.4+ is required for OPFS
@@ -44,8 +48,8 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/app/',
-        scope: '/app/',
+        start_url: basePath,
+        scope: basePath,
         icons: [
           {
             src: 'icons/icon-192.png',
