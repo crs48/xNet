@@ -534,20 +534,20 @@ describe('Tabs', () => {
 
 ## Checklist
 
-- [ ] Migrate Separator to native `<hr>`
-- [ ] Migrate Switch to Base UI
-- [ ] Migrate Checkbox to Base UI
-- [ ] Migrate Tabs to Base UI
-- [ ] Update Button with new variants
-- [ ] Update Input with new focus states
-- [ ] Write tests for Switch
-- [ ] Write tests for Checkbox
-- [ ] Write tests for Tabs
-- [ ] Update exports in index.ts
-- [ ] Remove Radix imports from migrated components
-- [ ] Verify animations work
-- [ ] Test in Electron app
-- [ ] No visual regressions
+- [x] Migrate Separator to native `<hr>`
+- [x] Migrate Switch to Base UI
+- [x] Migrate Checkbox to Base UI
+- [x] Migrate Tabs to Base UI
+- [x] Update Button with new variants
+- [x] Update Input with new focus states
+- [x] Write tests for Switch
+- [x] Write tests for Checkbox
+- [x] Write tests for Tabs
+- [x] Update exports in index.ts
+- [x] Remove Radix imports from migrated components
+- [x] Verify animations work
+- [x] Test in Electron app
+- [x] No visual regressions
 
 ---
 
