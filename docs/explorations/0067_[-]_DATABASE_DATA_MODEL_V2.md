@@ -58,7 +58,7 @@ Substantial implementation exists in `packages/data/src/database/` (40+ files):
 - [ ] SQLite-WASM for large datasets
 - [ ] Virtualized table with X+Y virtualization
 
-**References**: This document supersedes the analysis in [0041_DATABASE_DATA_MODEL.md](./0041_DATABASE_DATA_MODEL.md). We're designing from scratch with no migration constraints.
+**References**: This document supersedes the analysis in [0041_DATABASE_DATA_MODEL.md](./0041_[x]_DATABASE_DATA_MODEL.md). We're designing from scratch with no migration constraints.
 
 **Date**: February 2026
 **Status**: Substantially Implemented
@@ -1278,9 +1278,9 @@ const result = await hubQuery({
 
 ## References
 
-- [0041_DATABASE_DATA_MODEL.md](./0041_DATABASE_DATA_MODEL.md) - Original exploration
-- [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md) - Off-thread design
-- [0066_OFF_MAIN_THREAD_IMPLEMENTATION.md](./0066_OFF_MAIN_THREAD_IMPLEMENTATION.md) - Implementation guide
+- [0041_DATABASE_DATA_MODEL.md](./0041_[x]_DATABASE_DATA_MODEL.md) - Original exploration
+- [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md) - Off-thread design
+- [0066_OFF_MAIN_THREAD_IMPLEMENTATION.md](./0066_[x]_OFF_MAIN_THREAD_IMPLEMENTATION.md) - Implementation guide
 - [TanStack Virtual](https://tanstack.com/virtual/latest) - Virtualization library
 - [Fractional Indexing](https://www.figma.com/blog/realtime-editing-of-ordered-sequences/) - Figma's approach
 - [Notion Data Model](https://www.notion.so/blog/data-model-behind-notion) - Inspiration

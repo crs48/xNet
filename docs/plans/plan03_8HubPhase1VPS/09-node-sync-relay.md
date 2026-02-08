@@ -20,7 +20,7 @@
 ### Key Gaps
 
 > 1. **`getChangesSince(lamportTime)` does not exist** on `NodeStorageAdapter` — this is the critical addition needed for delta sync. The interface has `getAllChanges()` and `getLastLamportTime()` but no range query.
-> 2. **Hub does NOT need materialized state** — it only stores the append-only change log and serves deltas. Clients handle LWW resolution locally (see [Exploration 0026](../explorations/0026_NODE_CHANGE_ARCHITECTURE.md)).
+> 2. **Hub does NOT need materialized state** — it only stores the append-only change log and serves deltas. Clients handle LWW resolution locally (see [Exploration 0026](../../explorations/0026_[x]_NODE_CHANGE_ARCHITECTURE.md)).
 > 3. **`verifyIntegrity` in the plan only checks hash prefix** — real verification needs `@xnet/crypto` BLAKE3 + Ed25519 signature check. The `@xnet/sync` `verifyChangeHash` function should be used.
 
 ## Overview

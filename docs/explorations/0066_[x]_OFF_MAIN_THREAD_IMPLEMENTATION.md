@@ -22,7 +22,7 @@
   - Delta transfer, batch operations, LRU cache eviction
 - [ ] **Phase 5: Expo Native Bridge** - Partial (NativeBridge exists, native modules deferred)
 
-**References**: This document builds on the architectural exploration in [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md). Read that document first for background on why this architecture matters and the theoretical foundations.
+**References**: This document builds on the architectural exploration in [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md). Read that document first for background on why this architecture matters and the theoretical foundations.
 
 **Date**: February 2026
 **Status**: Substantially Complete (114/130 checkboxes done)
@@ -1437,7 +1437,7 @@ apps/electron/
 
 ## References
 
-- [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md) - Original exploration
+- [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md) - Original exploration
 - [Comlink](https://github.com/GoogleChromeLabs/comlink) - Worker RPC library
 - [Electron Utility Process](https://www.electronjs.org/docs/latest/api/utility-process)
 - [React useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore)

@@ -11,7 +11,7 @@
 >
 > Relevant existing work:
 >
-> - [Exploration 0023](../explorations/0023_DECENTRALIZED_SEARCH.md) — Crawl architecture with volunteer crawlers and reputation scoring
+> - [Exploration 0023](../../explorations/0023_[_]_DECENTRALIZED_SEARCH.md) — Crawl architecture with volunteer crawlers and reputation scoring
 > - `@xnet/crypto` BLAKE3 — CID generation for crawled content deduplication
 > - `@xnet/identity` UCAN — DID-authenticated crawler registration
 >

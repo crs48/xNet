@@ -3,7 +3,7 @@
 > **Status:** Completed
 > **Created:** 2026-02-04
 > **Tags:** demo, railway, hub, onboarding, data-eviction, custom-domain, xnet.fyi
-> **Builds on:** [0049 Hub Railway Deployment](./0049_HUB_RAILWAY_DEPLOYMENT.md), [0050 Web App on GitHub Pages](./0050_WEB_APP_ON_GITHUB_PAGES.md)
+> **Builds on:** [0049 Hub Railway Deployment](./0049_[x]_HUB_RAILWAY_DEPLOYMENT.md), [0050 Web App on GitHub Pages](./0050_[x]_WEB_APP_ON_GITHUB_PAGES.md)
 
 ## Implementation Status
 

@@ -15,7 +15,7 @@
 > - `infrastructure/signaling/Dockerfile` (24 LOC) — Multi-stage Node 20 Alpine build
 > - `07-docker-deploy.md` — Docker + Fly.io deployment plan (Dockerfile, fly.toml draft, graceful shutdown, rate limiting, metrics)
 > - `17-railway-deploy.md` — Railway deployment with `resolveConfig()` env var resolution (Hub already reads `PORT` env var after this step)
-> - [Exploration 0049](../explorations/0049_HUB_RAILWAY_DEPLOYMENT.md) — Platform comparison (Railway vs VPS vs Fly.io)
+> - [Exploration 0049](../../explorations/0049_[x]_HUB_RAILWAY_DEPLOYMENT.md) — Platform comparison (Railway vs VPS vs Fly.io)
 
 ## Overview
 

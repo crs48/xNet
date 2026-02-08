@@ -24,9 +24,9 @@ The storage layer in `@xnet/storage` uses these adapters.
 
 **References**:
 
-- [0016_PERSISTENCE_ARCHITECTURE.md](./0016_PERSISTENCE_ARCHITECTURE.md) - Previous durability analysis
-- [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md) - Off-thread design
-- [0067_DATABASE_DATA_MODEL_V2.md](./0067_DATABASE_DATA_MODEL_V2.md) - Database architecture
+- [0016_PERSISTENCE_ARCHITECTURE.md](./0016_[x]_PERSISTENCE_ARCHITECTURE.md) - Previous durability analysis
+- [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md) - Off-thread design
+- [0067_DATABASE_DATA_MODEL_V2.md](./0067_[-]_DATABASE_DATA_MODEL_V2.md) - Database architecture
 
 **Date**: February 2026
 
@@ -818,4 +818,4 @@ The performance and durability benefits clearly outweigh the bundle size cost. S
 - [CR-SQLite GitHub](https://github.com/vlcn-io/cr-sqlite)
 - [OPFS Specification](https://fs.spec.whatwg.org/)
 - [Chrome OPFS Blog Post](https://developer.chrome.com/blog/from-web-sql-to-sqlite-wasm/)
-- [0016_PERSISTENCE_ARCHITECTURE.md](./0016_PERSISTENCE_ARCHITECTURE.md)
+- [0016_PERSISTENCE_ARCHITECTURE.md](./0016_[x]_PERSISTENCE_ARCHITECTURE.md)

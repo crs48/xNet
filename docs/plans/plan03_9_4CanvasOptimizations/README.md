@@ -335,8 +335,8 @@ flowchart LR
 
 ## Reference Documents
 
-- [Canvas Optimization Exploration](../../explorations/0068_CANVAS_OPTIMIZATION.md) - Original design document
-- [Off-Main-Thread Architecture](../../explorations/0043_OFF_MAIN_THREAD_ARCHITECTURE.md) - Worker design
+- [Canvas Optimization Exploration](../../../explorations/0068_[-]_CANVAS_OPTIMIZATION.md) - Original design document
+- [Off-Main-Thread Architecture](../../../explorations/0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md) - Worker design
 - [TLDraw](https://github.com/tldraw/tldraw) - Open source canvas reference
 - [Excalidraw](https://github.com/excalidraw/excalidraw) - Whiteboard reference
 - [rbush](https://github.com/mourner/rbush) - Spatial index library

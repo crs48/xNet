@@ -457,7 +457,7 @@ gantt
 
 ## References
 
-- [Exploration: IndexedDB to SQLite](../../explorations/0072_INDEXEDDB_TO_SQLITE_MIGRATION.md)
+- [Exploration: IndexedDB to SQLite](../../../explorations/0072_[x]_INDEXEDDB_TO_SQLITE_MIGRATION.md)
 - [@sqlite.org/sqlite-wasm npm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm)
 - [SQLite WASM Documentation](https://sqlite.org/wasm/doc/trunk/index.md)
 - [SQLite WASM Persistence Options](https://sqlite.org/wasm/doc/trunk/persistence.md)

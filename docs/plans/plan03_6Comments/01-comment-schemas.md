@@ -4,7 +4,7 @@
 
 **Duration:** 1-2 days  
 **Dependencies:** `@xnet/data` (defineSchema, NodeStore)  
-**Reference:** [Universal Social Primitives](../explorations/0030_UNIVERSAL_SOCIAL_PRIMITIVES.md)
+**Reference:** [Universal Social Primitives](../../explorations/0030_[_]_UNIVERSAL_SOCIAL_PRIMITIVES.md)
 
 ## Overview
 

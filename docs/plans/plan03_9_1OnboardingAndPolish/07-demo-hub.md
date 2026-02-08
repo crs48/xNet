@@ -3,7 +3,7 @@
 > Public demo hub at hub.xnet.fyi on Railway for users to try xNet instantly
 
 **Duration:** 3 days
-**Dependencies:** Hub package from plan03_8HubPhase1VPS, [Exploration 0051](../explorations/0051_DEMO_HUB_ON_RAILWAY.md)
+**Dependencies:** Hub package from plan03*8HubPhase1VPS, [Exploration 0051](../../explorations/0051*[x]\_DEMO_HUB_ON_RAILWAY.md)
 
 ## Overview
 

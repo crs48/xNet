@@ -40,7 +40,7 @@ flowchart TB
 
 ### Universal useComments Hook
 
-Following the [Universal Social Primitives](../explorations/0030_UNIVERSAL_SOCIAL_PRIMITIVES.md) pattern:
+Following the [Universal Social Primitives](../../explorations/0030_[_]_UNIVERSAL_SOCIAL_PRIMITIVES.md) pattern:
 
 ```typescript
 // packages/react/src/hooks/useComments.ts

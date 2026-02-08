@@ -16,7 +16,7 @@
 
 ### Alignment with Exploration 0042 (Unified Query API)
 
-The `HubStorage` interface should be designed to support the query descriptor format from [Exploration 0042](../explorations/0042_UNIFIED_QUERY_API.md):
+The `HubStorage` interface should be designed to support the query descriptor format from [Exploration 0042](../../explorations/0042_[_]_UNIFIED_QUERY_API.md):
 
 - FTS5 for full-text `search()` operator
 - Property indexes for `eq()`, `gt()`, `contains()` filter operators

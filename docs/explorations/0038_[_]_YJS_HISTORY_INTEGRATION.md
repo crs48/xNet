@@ -4,7 +4,7 @@
 
 ## Context
 
-xNet nodes have **two independent data paths** (see [0026_NODE_CHANGE_ARCHITECTURE.md](./0026_NODE_CHANGE_ARCHITECTURE.md)):
+xNet nodes have **two independent data paths** (see [0026_NODE_CHANGE_ARCHITECTURE.md](./0026_[x]_NODE_CHANGE_ARCHITECTURE.md)):
 
 1. **Structured properties** (title, icon, status) — stored as `Change<NodePayload>` in the change log, synced via LWW event sourcing
 2. **Rich document content** (text, rows, diagrams) — stored as a `Y.Doc` binary blob via `setDocumentContent()`, synced via Yjs CRDT protocol

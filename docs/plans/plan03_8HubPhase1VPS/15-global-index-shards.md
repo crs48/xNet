@@ -11,7 +11,7 @@
 >
 > Relevant existing work:
 >
-> - [Exploration 0023](../explorations/0023_DECENTRALIZED_SEARCH.md) — Term-partitioned sharding with BM25 scoring design
+> - [Exploration 0023](../../explorations/0023_[_]_DECENTRALIZED_SEARCH.md) — Term-partitioned sharding with BM25 scoring design
 > - `@xnet/crypto` BLAKE3 — consistent hash function for shard assignment
 > - The canonical hub (`hub.xnet.io`) would host ALL shards initially and distribute as hubs join the network
 

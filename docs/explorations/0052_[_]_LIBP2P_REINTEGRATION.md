@@ -53,7 +53,7 @@ Every byte of sync data passes through the hub. The hub is:
 
 ### Why It Ended Up This Way
 
-The [tradeoffs doc](../TRADEOFFS.md) and [exploration 0035](./0035_MINIMAL_SIGNALING_ONLY_HUB.md) explain the decision:
+The [tradeoffs doc](../TRADEOFFS.md) and [exploration 0035](./0035_[x]_MINIMAL_SIGNALING_ONLY_HUB.md) explain the decision:
 
 1. **y-webrtc was unreliable** -- WebRTC peer connections have high failure rates behind corporate NATs, carrier-grade NAT, and symmetric NATs. Connection setup takes 2-10 seconds when it works.
 2. **WebSocket relay is simple and reliable** -- Sub-100ms connection, works everywhere, no ICE negotiation.
@@ -257,7 +257,7 @@ graph TD
 
 **Goal:** Hub federation and content routing over libp2p.
 
-This is the long-term vision from the [landscape analysis](./0027_LANDSCAPE_ANALYSIS.md):
+This is the long-term vision from the [landscape analysis](./0027_[x]_LANDSCAPE_ANALYSIS.md):
 
 ```mermaid
 graph TD
@@ -291,14 +291,14 @@ Custom libp2p protocols:
 
 - `/xnet/sync/1.0.0` -- Already scaffolded in `protocols/sync.ts`. Yjs doc sync over libp2p streams.
 - `/xnet/federation/1.0.0` -- Hub-to-hub schema sharing, federated queries.
-- `/xnet/search/1.0.0` -- Distributed search (from [exploration 0023](./0023_DECENTRALIZED_SEARCH.md)).
+- `/xnet/search/1.0.0` -- Distributed search (from [exploration 0023](./0023_[_]_DECENTRALIZED_SEARCH.md)).
 - `/xnet/identity/1.0.0` -- DID resolution over DHT `PUT`/`GET`.
 
 **Hub as a "super peer":** In this model, hubs are full libp2p nodes that participate in the DHT, serve as circuit relays, and expose custom protocols. Desktop clients are also libp2p nodes (lighter config). The web app connects to the nearest hub via WebSocket (browser can't do full libp2p).
 
 ## Alternative: iroh Instead of libp2p
 
-[Exploration 0027](./0027_LANDSCAPE_ANALYSIS.md) mentions [iroh](https://iroh.computer/) as a potential alternative to libp2p:
+[Exploration 0027](./0027_[x]_LANDSCAPE_ANALYSIS.md) mentions [iroh](https://iroh.computer/) as a potential alternative to libp2p:
 
 | Aspect             | libp2p                              | iroh                                  |
 | ------------------ | ----------------------------------- | ------------------------------------- |
@@ -368,9 +368,9 @@ Move unused libp2p code to a `feature/libp2p-scaffolding` branch. Remove from `m
 
 ## References
 
-- [Exploration 0035: Minimal Signaling-Only Hub](./0035_MINIMAL_SIGNALING_ONLY_HUB.md) -- Original analysis of P2P vs relay tradeoffs
-- [Exploration 0027: Landscape Analysis](./0027_LANDSCAPE_ANALYSIS.md) -- libp2p vs iroh comparison
-- [Exploration 0023: Decentralized Search](./0023_DECENTRALIZED_SEARCH.md) -- DHT-based search vision
-- [Exploration 0011: Server Infrastructure](./0011_SERVER_INFRASTRUCTURE.md) -- Original bootstrap node plan
+- [Exploration 0035: Minimal Signaling-Only Hub](./0035_[x]_MINIMAL_SIGNALING_ONLY_HUB.md) -- Original analysis of P2P vs relay tradeoffs
+- [Exploration 0027: Landscape Analysis](./0027_[x]_LANDSCAPE_ANALYSIS.md) -- libp2p vs iroh comparison
+- [Exploration 0023: Decentralized Search](./0023_[_]_DECENTRALIZED_SEARCH.md) -- DHT-based search vision
+- [Exploration 0011: Server Infrastructure](./0011_[x]_SERVER_INFRASTRUCTURE.md) -- Original bootstrap node plan
 - [Plan: Hub Phase 1](../plans/plan03_8HubPhase1VPS/README.md) -- Hub as signaling replacement
 - [Tradeoffs](../TRADEOFFS.md) -- "Signaling + WebRTC (with future DHT)" architecture decision

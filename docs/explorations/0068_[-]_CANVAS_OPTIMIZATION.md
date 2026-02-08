@@ -63,7 +63,7 @@ Substantial implementation exists in `packages/canvas/src/` (22 directories, 60+
 
 **Date**: February 2026
 **Status**: Substantially Implemented
-**Prerequisites**: [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_OFF_MAIN_THREAD_ARCHITECTURE.md), [0066_OFF_MAIN_THREAD_IMPLEMENTATION.md](./0066_OFF_MAIN_THREAD_IMPLEMENTATION.md)
+**Prerequisites**: [0043_OFF_MAIN_THREAD_ARCHITECTURE.md](./0043_[x]_OFF_MAIN_THREAD_ARCHITECTURE.md), [0066_OFF_MAIN_THREAD_IMPLEMENTATION.md](./0066_[x]_OFF_MAIN_THREAD_IMPLEMENTATION.md)
 
 ## Executive Summary
 
