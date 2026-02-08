@@ -12,7 +12,8 @@ export default defineConfig({
     target: ['es2022', 'safari16.4', 'chrome102', 'firefox111'],
     rollupOptions: {
       external: [
-        'mermaid' // Optional peer dependency - dynamically imported in @xnet/canvas
+        'mermaid', // Optional peer dependency - dynamically imported in @xnet/canvas
+        'web-worker' // Optional peer dependency of elkjs
       ]
     }
   },
@@ -24,7 +25,8 @@ export default defineConfig({
   },
   optimizeDeps: {
     // Exclude sqlite-wasm from pre-bundling as it needs special handling
-    exclude: ['@sqlite.org/sqlite-wasm']
+    // Exclude elkjs as it has optional web-worker dependency
+    exclude: ['@sqlite.org/sqlite-wasm', 'elkjs']
   },
   worker: {
     format: 'es'
