@@ -1,6 +1,26 @@
 # SQLite Storage: Unified Storage for xNet
 
-> A clean-slate design for xNet's storage layer using SQLite across all platforms: better-sqlite3 in Electron, SQLite-WASM with OPFS in web browsers, and expo-sqlite on mobile. This is a prerelease implementation with no migration constraints.
+> **Status**: ✅ IMPLEMENTED - The `@xnet/sqlite` package provides unified SQLite storage
+
+## Implementation Status
+
+The SQLite storage layer has been implemented at `packages/sqlite/`:
+
+- [x] **Electron Adapter** - `adapters/electron.ts` using better-sqlite3
+- [x] **Web Adapter** - `adapters/web.ts` using sql.js with OPFS
+- [x] **Web Worker** - `adapters/web-worker.ts` for off-main-thread
+- [x] **Expo Adapter** - `adapters/expo.ts` for React Native
+- [x] **Memory Adapter** - `adapters/memory.ts` for testing
+- [x] **FTS5 Support** - `fts.ts` for full-text search
+- [x] **Query Builder** - `query-builder.ts` for type-safe queries
+- [x] **Schema Management** - `schema.ts` for migrations
+- [x] **Unified Interface** - `adapter.ts` with common API
+
+The storage layer in `@xnet/storage` uses these adapters.
+
+---
+
+> A clean-slate design for xNet's storage layer using SQLite across all platforms: better-sqlite3 in Electron, SQLite-WASM with OPFS in web browsers, and expo-sqlite on mobile.
 
 **References**:
 
@@ -9,7 +29,6 @@
 - [0067_DATABASE_DATA_MODEL_V2.md](./0067_DATABASE_DATA_MODEL_V2.md) - Database architecture
 
 **Date**: February 2026
-**Status**: Design Ready
 
 ## Executive Summary
 
