@@ -1,9 +1,19 @@
 # 0055 - GitHub Actions Caching & CI Optimization
 
-> **Status:** Exploration
+> **Status:** Implemented
 > **Tags:** CI, GitHub Actions, caching, pnpm, turbo, electron, performance, cost
 > **Created:** 2026-02-05
 > **Context:** The monorepo has 5 GitHub Actions workflows totaling 14 jobs. Caching is minimal — only pnpm store via `actions/setup-node`. Turbo's cache is not persisted across runs, Electron binaries are re-downloaded every build, and identical work (install + build) is repeated across jobs. This exploration maps what's cached, what's not, and what the savings would be.
+
+## Implementation Status
+
+- [x] **Composite setup action** — `.github/actions/setup/action.yml` created with Turbo cache, Electron cache, and pnpm setup
+- [x] **Turbo cache persistence** — `actions/cache@v4` on `.turbo` directory with SHA-based keys
+- [x] **Electron binary cache** — Optional cache for `~/.cache/electron` and `~/.cache/electron-builder`
+- [x] **CI job consolidation** — Single `lint` job runs format check, build, typecheck, and lint
+- [x] **Test sharding** — Tests split across 3 shards with `vitest --shard`
+- [x] **Changed-only tests on PRs** — `vitest run --changed=origin/${{ github.base_ref }}`
+- [x] **Unified action versions** — All workflows use `pnpm/action-setup@v4` and Node 23
 
 ---
 

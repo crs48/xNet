@@ -2,6 +2,20 @@
 
 > How Nostr nailed onboarding and how xNet can do even better
 
+## Implementation Status
+
+- [x] **OnboardingProvider** — State machine with 8 steps in `packages/react/src/onboarding/`
+- [x] **OnboardingFlow** — Component that renders appropriate screen based on state
+- [x] **WelcomeScreen** — "Create with Touch ID" passkey-first entry
+- [x] **PasskeyScreen** — Passkey creation with PRF key derivation
+- [x] **HubConnectScreen** — Connect to signaling server
+- [x] **ReadyScreen** — Onboarding complete, ready to use
+- [x] **SmartWelcome** — Detects existing passkey and shows unlock vs create
+- [x] **Passkey storage** — `@xnet/identity` with `createIdentityManager()`
+- [x] **Progressive disclosure** — Profile optional, backup via passkey
+- [ ] **Hub cloud backup** — Future enhancement (passkey is primary backup)
+- [ ] **Multi-device recovery** — Future enhancement (passkey syncs via iCloud/Google)
+
 ## The Problem
 
 Traditional P2P apps have terrible onboarding:

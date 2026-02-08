@@ -1,9 +1,22 @@
 # 0051: Demo Hub on Railway — Full-Featured Try-Before-You-Install Experience
 
-> **Status:** Exploration
+> **Status:** Completed
 > **Created:** 2026-02-04
 > **Tags:** demo, railway, hub, onboarding, data-eviction, custom-domain, xnet.fyi
 > **Builds on:** [0049 Hub Railway Deployment](./0049_HUB_RAILWAY_DEPLOYMENT.md), [0050 Web App on GitHub Pages](./0050_WEB_APP_ON_GITHUB_PAGES.md)
+
+## Implementation Status
+
+- [x] **Demo mode config** — `DEMO_OVERRIDES` with 10MB quota, 50 docs, 24h eviction
+- [x] **EvictionService** — Automatic cleanup of inactive DIDs after TTL
+- [x] **Passkey-first auth** — Standard UCAN auth, no anonymous mode needed
+- [x] **Demo handshake** — Hub sends `isDemo: true` and `demoLimits` in handshake
+- [x] **DemoBanner component** — Shows eviction warning with dismiss and download CTA
+- [x] **DemoQuotaIndicator component** — Storage usage progress bar
+- [x] **useDemoMode hook** — React hook for demo state
+- [x] **railway.toml** — Config at repo root with `--demo` flag
+- [x] **xnet.fyi domain** — Custom domain with subpath `/app` for web app
+- [x] **hub.xnet.fyi subdomain** — CNAME to Railway for demo hub
 
 ## Summary
 

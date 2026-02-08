@@ -1,8 +1,22 @@
 # Documentation Site: Starlight Integration & Content Strategy
 
 > **Date**: February 2026
-> **Status**: Exploration
+> **Status**: Completed
 > **Goal**: Add a comprehensive, engaging documentation site to the existing xNet landing page using Astro Starlight
+
+## Implementation Status
+
+- [x] **Starlight integration** — `@astrojs/starlight` configured in `site/astro.config.mjs`
+- [x] **Content structure** — 40+ MDX files in `site/src/content/docs/docs/`
+- [x] **React hooks documentation** — `useQuery`, `useMutate`, `useNode`, `useIdentity` pages
+- [x] **Schema documentation** — `defineSchema`, property types, relations, type inference
+- [x] **Concept pages** — local-first, CRDTs, sync architecture, identity model, cryptography, data model
+- [x] **Guide pages** — sync, offline, collaboration, plugins, electron, testing, canvas, editor, devtools
+- [x] **Architecture pages** — overview, decisions, package graph
+- [x] **Contributing pages** — getting started, code style, testing
+- [x] **AI documentation** — understanding-xnet.mdx for AI agents
+- [x] **Theme customization** — Dark theme matching landing page
+- [x] **Navigation sidebar** — Organized by category with collapsible sections
 
 ---
 
