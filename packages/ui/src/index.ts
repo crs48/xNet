@@ -230,7 +230,57 @@ export {
 // ─── Theme ────────────────────────────────────────────────────────
 export { ThemeProvider, useTheme, type Theme } from './theme/ThemeProvider'
 
+// ─── Responsive Components ─────────────────────────────────────────
+export {
+  ResponsiveSidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarNav,
+  SidebarNavItem,
+  SidebarSection,
+  type ResponsiveSidebarProps,
+  type SidebarHeaderProps,
+  type SidebarContentProps,
+  type SidebarFooterProps,
+  type SidebarNavProps,
+  type SidebarNavItemProps,
+  type SidebarSectionProps
+} from './components/ResponsiveSidebar'
+export {
+  BottomNav,
+  BottomNavSpacer,
+  type BottomNavProps,
+  type BottomNavItem,
+  type BottomNavSpacerProps
+} from './components/BottomNav'
+export {
+  ResponsiveTable,
+  type ResponsiveTableProps,
+  type ResponsiveTableColumn
+} from './components/ResponsiveTable'
+export {
+  ResponsiveDialog,
+  ResponsiveDialogRoot,
+  ResponsiveDialogContent,
+  ResponsiveDialogHeader,
+  ResponsiveDialogTitle,
+  ResponsiveDialogDescription,
+  ResponsiveDialogFooter,
+  type ResponsiveDialogProps,
+  type ResponsiveDialogRootProps,
+  type ResponsiveDialogContentProps
+} from './components/ResponsiveDialog'
+
 // ─── Hooks ────────────────────────────────────────────────────────
 export { useClickOutside } from './hooks/useClickOutside'
 export { useDebounce } from './hooks/useDebounce'
 export { useKeyboardShortcut } from './hooks/useKeyboardShortcut'
+export {
+  useMediaQuery,
+  useIsMobile,
+  useIsTablet,
+  useIsDesktop,
+  usePrefersReducedMotion,
+  usePrefersDarkMode
+} from './hooks/useMediaQuery'
