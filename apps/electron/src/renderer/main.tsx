@@ -1,7 +1,7 @@
 /**
  * Renderer entry point
  */
-import { IndexedDBNodeStorageAdapter, BlobService } from '@xnet/data'
+import { MemoryNodeStorageAdapter, BlobService } from '@xnet/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnet/devtools'
 import { BlobProvider } from '@xnet/editor/react'
 import { identityFromPrivateKey } from '@xnet/identity'
@@ -161,10 +161,9 @@ function LocalAPIStoreHandler() {
 async function init() {
   const startTime = performance.now()
 
-  // Get profile name from main process for IndexedDB isolation
-  // This allows running multiple Electron instances with separate data
+  // Get profile name from main process for identity isolation
+  // This allows running multiple Electron instances with separate identities
   const profile = await window.xnet.getProfile()
-  const dbName = profile === 'default' ? 'xnet-electron-nodes' : `xnet-electron-nodes-${profile}`
 
   // Resolve identity per profile so each instance has a unique DID
   const testKey = makeTestKey(profile)
@@ -172,7 +171,9 @@ async function init() {
   AUTHOR_DID = testIdentity.did as `did:key:${string}`
   SIGNING_KEY = testKey
 
-  const nodeStorage = new IndexedDBNodeStorageAdapter({ dbName })
+  // TODO: Replace with IPC-based node storage that routes to data process SQLite
+  // For now, use MemoryNodeStorageAdapter - nodes sync via data process but don't persist locally
+  const nodeStorage = new MemoryNodeStorageAdapter()
 
   // Blob storage: IPC to main process → ChunkManager → BlobService
   // This routes all blob operations through IPC to main process SQLite,

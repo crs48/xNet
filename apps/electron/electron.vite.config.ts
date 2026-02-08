@@ -97,11 +97,17 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: resolve(__dirname, 'src/renderer/index.html'),
-        external: ['web-worker']
+        external: [
+          'web-worker',
+          'mermaid' // Optional peer dependency - dynamically imported in @xnet/canvas
+        ]
       }
     },
     optimizeDeps: {
       exclude: ['elkjs']
+    },
+    worker: {
+      format: 'es' // Required for code-splitting in workers
     },
     plugins: [react(), stripCspInDev()]
   }
