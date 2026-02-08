@@ -1,8 +1,12 @@
 # Landing Page Redesign for Developer Pre-Release
 
 > **Date**: February 2026
-> **Status**: Exploration
+> **Status**: Superseded by 0060
 > **Goal**: Transform the xNet landing page from a generic project overview into a compelling developer recruitment tool for pre-release contributors
+
+## Implementation Status
+
+This exploration was superseded by [0060_LANDING_PAGE_REVISION](./0060_[x]_LANDING_PAGE_REVISION.md), which implemented a refined version of these proposals. See 0060 for the actual implementation details.
 
 ---
 

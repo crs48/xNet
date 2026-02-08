@@ -1,9 +1,21 @@
 # 0060 - Landing Page Revision
 
-> **Status:** Implemented (Phases 1-5, except testimonials)
+> **Status:** Completed
 > **Tags:** marketing, UX, landing page, messaging, personas, CTAs, information architecture
 > **Created:** 2026-02-06
 > **Context:** The xNet landing page currently presents multiple products and appeals: a productivity app, React developer tooling, Hub hosting infrastructure, and a grand vision for a decentralized data layer. While comprehensive, the page can feel overwhelming and lacks clear user journeys for different audiences. This exploration analyzes the current page and proposes revisions to improve flow, clarity, and conversion.
+
+## Implementation Status
+
+- [x] **Hero revision** — Updated headline to "Your data. Your devices. Your rules." with three-path CTAs
+- [x] **"What Is xNet" section** — New `WhatIsXNet.astro` component explaining three layers (App/SDK/Protocol)
+- [x] **"The App" section moved up** — `TheApp.astro` now appears early in the page flow
+- [x] **"For Developers" consolidation** — `ForDevelopers.astro` combines hooks showcase and DX content
+- [x] **"The Vision" standalone section** — `TheVision.astro` with emotional pitch and ecosystem vision
+- [x] **Navigation simplification** — Nav updated to: App | Developers | Teams | Vision | Docs
+- [x] **CTA consolidation** — Unified "Get Started" section with three paths
+- [x] **Content polish** — Reduced jargon, added app preview placeholder
+- [ ] **Testimonials** — Deferred until post-launch (no users yet)
 
 ## Executive Summary
 

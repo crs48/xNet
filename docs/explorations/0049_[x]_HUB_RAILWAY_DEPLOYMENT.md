@@ -1,8 +1,18 @@
 # 0049: Hub Deployment on Railway — PaaS as a Competitive Alternative to VPS
 
-> **Status:** Exploration
+> **Status:** Completed
 > **Created:** 2026-02-04
 > **Tags:** hub, deployment, railway, infrastructure, pricing, PaaS
+
+## Implementation Status
+
+- [x] **railway.toml at repo root** — Config file with Dockerfile path and start command
+- [x] **PORT env var support** — Hub reads `$PORT` from Railway
+- [x] **RAILWAY_VOLUME_MOUNT_PATH support** — Data directory from volume mount
+- [x] **Demo mode flag** — `--demo` flag enables tight quotas and eviction
+- [x] **Health check endpoint** — `/health` endpoint for Railway monitoring
+- [x] **Graceful shutdown** — SIGTERM handling for clean container stops
+- [x] **Dockerfile multi-stage build** — Optimized container in `packages/hub/Dockerfile`
 
 ## Summary
 

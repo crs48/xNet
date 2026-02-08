@@ -1,8 +1,21 @@
 # 0050: Hosting xNet Web App on GitHub Pages — Free Demo at /app
 
-> **Status:** Exploration
+> **Status:** Completed
 > **Created:** 2026-02-04
 > **Tags:** web-app, github-pages, deployment, onboarding, identity, demo
+
+## Implementation Status
+
+- [x] **Vite base path** — `base: '/app/'` in `apps/web/vite.config.ts`
+- [x] **TanStack Router basepath** — `basepath: '/app'` configured
+- [x] **PWA manifest scope** — `scope: '/app/'` for service worker
+- [x] **Deploy workflow** — `deploy-site.yml` builds web app and copies to `site/dist/app/`
+- [x] **SPA fallback** — 404.html copied for client-side routing
+- [x] **CNAME** — `xnet.fyi` custom domain configured
+- [x] **Landing page CTA** — "Try it now" button links to `/app`
+- [x] **Passkey identity** — Client-side Ed25519 key generation via `@xnet/identity`
+- [x] **Progressive identity** — Onboarding flow with passkey creation
+- [x] **Hub connection** — `wss://hub.xnet.fyi` as default signaling URL
 
 ## Summary
 

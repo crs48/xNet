@@ -1,9 +1,28 @@
 # Exploration 0056: Web App Integration & Onboarding
 
-**Status:** Proposed
+**Status:** Completed
 **Created:** 2026-02-05
 **Depends on:** 0050 (Web App on GitHub Pages), 0051 (Demo Hub on Railway)
 **Plan reference:** `docs/plans/plan03_9_1OnboardingAndPolish/`
+
+## Implementation Status
+
+- [x] **Identity & Auth** — Passkey auth via `@xnet/identity`, unlock flow for returning users
+- [x] **Onboarding** — `OnboardingProvider` and `OnboardingFlow` wired into app entry point
+- [x] **Hub Connection** — `wss://hub.xnet.fyi` configured as default signaling URL
+- [x] **Deployment** — Vite base path, TanStack Router basepath, PWA manifest, deploy workflow
+- [x] **Landing Page CTAs** — "Try it now" in Hero and Nav
+- [x] **Database Support** — TableView, BoardView, CardDetailModal, view mode switcher
+- [x] **Canvas Support** — Canvas component with toolbar, nodes, edges
+- [x] **Sidebar Upgrade** — Collapsible sections, document type icons, create dropdown
+- [x] **Comment System** — CommentPopover, CommentsSidebar, CommentMark extension
+- [x] **Presence & Sharing** — DIDAvatar, ShareButton, AddSharedDialog
+- [x] **Settings Expansion** — Theme selector, clear data, export, signaling config
+- [x] **Plugin System** — PluginManager, bundled Mermaid plugin
+- [x] **DevTools** — XNetDevToolsProvider wired
+- [x] **Demo UI Components** — DemoBanner, DemoQuotaIndicator, useDemoMode hook
+- [x] **Error Handling** — ErrorBoundary, OfflineIndicator, HubStatusIndicator
+- [ ] **Expo WebView Migration** — Future work (not blocking web app)
 
 ## Problem
 
@@ -617,12 +636,12 @@ These complete feature parity:
 
 These improve the demo experience:
 
-- [ ] **Demo UI Components**
-  - [ ] Create `DemoBanner.tsx` in `@xnet/react`
-  - [ ] Create `DemoQuotaIndicator.tsx` in `@xnet/react`
-  - [ ] Create `DemoDataExpiredScreen.tsx` in `@xnet/react`
-  - [ ] Add demo mode detection from hub handshake
-  - [ ] Wire demo components into app
+- [x] **Demo UI Components**
+  - [x] Create `DemoBanner.tsx` in `@xnet/react`
+  - [x] Create `DemoQuotaIndicator.tsx` in `@xnet/react`
+  - [x] Create `DemoDataExpiredScreen.tsx` in `@xnet/react`
+  - [x] Add demo mode detection from hub handshake
+  - [x] Wire demo components into app
 
 - [x] **Error Handling**
   - [x] Add `ErrorBoundary` to root
