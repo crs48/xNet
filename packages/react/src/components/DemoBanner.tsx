@@ -40,7 +40,10 @@ export function DemoBanner({ evictionHours, onDismiss }: DemoBannerProps) {
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-2 bg-amber-100 dark:bg-amber-900/50 border-b border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 text-sm">
       <div className="flex items-center gap-2">
-        <span>Demo mode — data expires after {evictionHours}h of inactivity.</span>
+        <span>
+          Demo mode — data is saved locally; encrypted backups expire after {evictionHours}h of
+          inactivity.
+        </span>
         <a
           href="https://xnet.fyi/download"
           className="ml-2 px-2 py-0.5 bg-amber-500 hover:bg-amber-600 text-white rounded text-xs font-medium transition-colors"

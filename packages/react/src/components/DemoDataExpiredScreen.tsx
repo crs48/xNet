@@ -21,7 +21,8 @@ export function DemoDataExpiredScreen() {
       <div className="text-6xl mb-6">&#128336;</div>
       <h1 className="text-2xl font-bold mb-3 text-foreground">Your demo data has expired</h1>
       <p className="text-muted-foreground max-w-md mb-6">
-        Demo data is automatically removed after 24 hours of inactivity to keep the demo hub clean.
+        Your local data is still saved in this browser, but encrypted hub backups are removed after
+        24 hours of inactivity. Cross-device sync requires an active hub connection.
       </p>
       <div className="flex gap-3">
         <button
