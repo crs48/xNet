@@ -1,6 +1,27 @@
 # Plugin Architecture Exploration
 
-## Overview
+> **Status**: ✅ IMPLEMENTED - The `@xnet/plugins` package provides the full plugin system
+
+## Implementation Status
+
+The plugin architecture has been implemented at `packages/plugins/`:
+
+- [x] **Plugin Registry** - `registry.ts` with install/uninstall/enable/disable
+- [x] **Extension Context** - `context.ts` providing store, schema, UI registration
+- [x] **Contributions System** - `contributions.ts` for views, commands, etc.
+- [x] **Script Sandbox** - `sandbox/` with AST validation and secure execution
+- [x] **Script Schema** - `schemas/script.ts` for storing scripts as nodes
+- [x] **AI Script Generator** - `ai/generator.ts` with prompt templates
+- [x] **MCP Server** - `services/mcp-server.ts` exposing xNet as MCP tools
+- [x] **Local API** - `services/local-api.ts` REST API for external tools
+- [x] **Process Manager** - `services/process-manager.ts` for background services
+- [x] **Webhook Emitter** - `services/webhook-emitter.ts` for N8N integration
+- [x] **Plugin Schema** - `schemas/plugin.ts` for storing plugins as nodes
+- [x] **Middleware** - `middleware.ts` for NodeStore hooks
+
+---
+
+## Original Design
 
 This document explores how xNet can support a plugin/extension system that works across all platforms (Electron, Web/PWA, Mobile) while enabling users—including non-developers—to extend functionality through custom views, editor extensions, automations, and integrations.
 

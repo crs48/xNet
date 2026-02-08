@@ -2,8 +2,24 @@
 
 > Privacy-preserving observability for a decentralized system
 
-**Status**: Design Exploration  
+**Status**: ✅ IMPLEMENTED - The `@xnet/telemetry` package provides privacy-preserving telemetry  
 **Last Updated**: January 2026
+
+## Implementation Status
+
+The telemetry system has been implemented at `packages/telemetry/`:
+
+- [x] **Consent Management** - `consent/manager.ts` with tiered opt-in
+- [x] **Telemetry Schemas** - CrashReport, UsageMetric, SecurityEvent, PerformanceMetric
+- [x] **Collection** - `collection/collector.ts` with consent-gated recording
+- [x] **PII Scrubbing** - `collection/scrubbing.ts` removes identifiable info
+- [x] **Bucketing** - `collection/bucketing.ts` for privacy-preserving ranges
+- [x] **Random Timing** - `collection/timing.ts` adds jitter to prevent correlation
+- [x] **Sync Provider** - `sync/provider.ts` for opt-in sharing with aggregators
+- [x] **React Hooks** - `useTelemetry`, `useConsent` for component integration
+- [x] **DevTools Panel** - TelemetryPanel in `@xnet/devtools`
+
+---
 
 ---
 

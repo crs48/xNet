@@ -1,8 +1,28 @@
 # Background Sync Manager
 
+> **Status**: ✅ IMPLEMENTED - The `SyncManager` in `@xnet/react` provides background sync
+
+## Implementation Status
+
+The Background Sync Manager has been implemented at `packages/react/src/sync/`:
+
+- [x] **SyncManager** - `sync-manager.ts` with full lifecycle management
+- [x] **Node Pool** - Y.Doc instances managed independently of components
+- [x] **Connection Manager** - WebSocket multiplexing and reconnection
+- [x] **Meta Bridge** - Property sync between Y.Doc and NodeStore
+- [x] **Awareness Snapshots** - Presence data for non-viewed docs
+- [x] **Initial Sync Manager** - `InitialSyncManager.ts` for first-load sync
+- [x] **Blob Sync** - `blob-sync.ts` for P2P file sync
+- [x] **useSyncManager Hook** - `hooks/useSyncManager.ts` for React access
+- [x] **IPC SyncManager** - Electron IPC-based sync for desktop
+
+The SyncManager is created by XNetProvider and manages sync state for all tracked nodes, not just those currently rendered.
+
+---
+
 > Client-side sync orchestrator that keeps Nodes synced independently of UI component lifecycle
 
-## Problem Statement
+## Original Problem Statement
 
 Currently, sync is entirely **reactive and component-scoped**: `useNode` creates a `WebSocketSyncProvider` per open Node. When the component unmounts (user navigates away), the provider is destroyed and sync stops.
 

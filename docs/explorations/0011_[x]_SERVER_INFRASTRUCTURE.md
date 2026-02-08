@@ -1,8 +1,30 @@
 # Server Infrastructure Exploration
 
+> **Status**: ✅ IMPLEMENTED - The `@xnet/hub` package provides the unified server
+
+## Implementation Status
+
+The xNet Hub has been fully implemented at `packages/hub/`:
+
+- [x] **Signaling** - `services/signaling.ts` for WebRTC peer discovery
+- [x] **Sync Relay** - `services/relay.ts` and `services/node-relay.ts` for persistent sync
+- [x] **Backup** - `services/backup.ts` for encrypted off-device storage
+- [x] **Query/Search** - `services/query.ts` and `services/search-indexer.ts`
+- [x] **Federation** - `services/federation.ts` for hub-to-hub communication
+- [x] **Sharding** - `services/shard-router.ts`, `shard-rebalancer.ts`, `index-shards.ts`
+- [x] **Awareness** - `services/awareness.ts` for presence snapshots
+- [x] **Files** - `services/files.ts` for file storage
+- [x] **Schemas** - `services/schemas.ts` for schema registry
+- [x] **Crawl** - `services/crawl.ts` for web crawling
+- [x] **Auth** - `auth/ucan.ts` and `auth/capabilities.ts`
+- [x] **Storage** - SQLite and memory backends
+- [x] **CLI** - `bin/xnet-hub.ts` for running the server
+
+---
+
 > Hosted services for signaling, sync relay, node backup, and large-scale queries
 
-## Context
+## Original Context
 
 xNet is local-first P2P software -- it works with zero servers. But servers add value as **optional infrastructure** for:
 

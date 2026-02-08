@@ -1,15 +1,36 @@
 # Rich Text Editor Redesign: Obsidian/Notion-Style Experience
 
+> **Status**: ✅ IMPLEMENTED - The editor now has Obsidian-style live preview and Notion-style UI
+
+## Implementation Status
+
+The custom build approach was chosen and implemented:
+
+- [x] **Phase 1: Enhanced Inline Marks** - `extensions/live-preview/inline-marks.ts` with CSS styling
+- [x] **Phase 2: Block-Level NodeViews**
+  - [x] `nodeviews/HeadingView.tsx` - Shows `#` prefix when focused
+  - [x] `nodeviews/CodeBlockView.tsx` - Shows fences when focused
+  - [x] `nodeviews/BlockquoteView.tsx` - Shows `>` prefix when focused
+  - [x] `nodeviews/hooks/useNodeFocus.ts` - Focus detection hook
+- [x] **Phase 3: Slash Commands** - `extensions/slash-command/` with `SlashMenu` component
+- [x] **Phase 4: Enhanced Bubble Menu** - `FloatingToolbar.tsx` with animations
+- [x] **Phase 5: Drag Handles** - `components/DragHandle/` with full drag/drop support
+
+Additional features implemented beyond the original plan:
+
+- Callout blocks (`extensions/callout/`)
+- Toggle blocks (`extensions/toggle/`)
+- Mermaid diagrams (`extensions/mermaid/`)
+- Image/file uploads (`extensions/image/`, `extensions/file/`)
+- Embeds (`extensions/embed/`)
+- Comments (`extensions/comment/`)
+- Keyboard shortcuts (`extensions/keyboard-shortcuts/`)
+
+---
+
+## Original Research
+
 > **Goal**: Transform xNet's TipTap editor into a polished, Obsidian-like live preview experience with Notion-style UI elements.
-
-## Executive Summary
-
-After extensive research, the key finding is that **no off-the-shelf TipTap solution exists** for Obsidian's signature "live preview" behavior. We have two paths:
-
-1. **Build custom** - Implement the live preview system ourselves using ProseMirror decorations and custom node views
-2. **Adopt a framework** - Use [Novel](https://github.com/steven-tey/novel) (15.9k stars) or [BlockNote](https://github.com/TypeCellOS/BlockNote) (9k stars) as a base
-
-This document details the technical approaches, reference implementations, and a phased implementation plan.
 
 ---
 
@@ -827,6 +848,7 @@ export function HeadingView({ node, editor, getPos }: NodeViewProps) {
 - ```visible when editing code block
 
   ```
+
 - `>` visible when editing blockquote
 
 ### Phase 3: Slash Commands (2 days)
