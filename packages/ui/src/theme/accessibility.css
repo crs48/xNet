@@ -1,0 +1,244 @@
+/**
+ * Accessibility utilities for WCAG 2.1 AA compliance
+ *
+ * Includes focus management, high contrast mode, forced colors mode,
+ * and screen reader utilities.
+ */
+
+@layer base {
+  /* ─── Focus Visible ───────────────────────────────────────────────── */
+
+  /* Visible focus for keyboard users */
+  :focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+  }
+
+  /* Remove focus ring for mouse users */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* ─── Skip Link ───────────────────────────────────────────────────── */
+
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    padding: 8px 16px;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    z-index: 100;
+    transition: top 0.2s ease-out;
+    border-radius: 0 0 4px 0;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .skip-link:focus {
+    top: 0;
+  }
+
+  /* ─── High Contrast Mode ──────────────────────────────────────────── */
+
+  @media (prefers-contrast: high) {
+    :root {
+      --border: 0 0% 0%;
+      --foreground-muted: 0 0% 20%;
+      --foreground-subtle: 0 0% 30%;
+    }
+
+    .dark {
+      --border: 0 0% 100%;
+      --foreground-muted: 0 0% 80%;
+      --foreground-subtle: 0 0% 70%;
+    }
+
+    /* Increase border width for visibility */
+    button,
+    input,
+    select,
+    textarea,
+    [role='button'],
+    [role='checkbox'],
+    [role='switch'] {
+      border-width: 2px;
+    }
+
+    /* Ensure focus is very visible */
+    :focus-visible {
+      outline-width: 3px;
+      outline-offset: 3px;
+    }
+  }
+
+  /* ─── Forced Colors Mode (Windows High Contrast) ──────────────────── */
+
+  @media (forced-colors: active) {
+    /* Let the system handle colors */
+    * {
+      forced-color-adjust: auto;
+    }
+
+    /* Ensure focus is visible */
+    :focus-visible {
+      outline: 3px solid CanvasText;
+      outline-offset: 2px;
+    }
+
+    /* Ensure buttons are visible */
+    button,
+    [role='button'] {
+      border: 2px solid ButtonText;
+    }
+
+    /* Ensure form controls are visible */
+    input,
+    select,
+    textarea {
+      border: 2px solid CanvasText;
+    }
+
+    /* Ensure checkboxes and switches are visible */
+    [role='checkbox'],
+    [role='switch'] {
+      border: 2px solid CanvasText;
+    }
+  }
+
+  /* ─── Reduced Motion ──────────────────────────────────────────────── */
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* ─── Focus Ring Utility ──────────────────────────────────────────── */
+
+  /* Custom focus ring utility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2;
+    @apply focus-visible:ring-ring focus-visible:ring-offset-2;
+    @apply focus-visible:ring-offset-background;
+  }
+
+  /* Focus ring without offset */
+  .focus-ring-inset {
+    @apply focus-visible:outline-none focus-visible:ring-2;
+    @apply focus-visible:ring-ring focus-visible:ring-inset;
+  }
+
+  /* ─── Screen Reader Only ──────────────────────────────────────────── */
+
+  /* Screen reader only - visually hidden but accessible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Make sr-only content visible on focus */
+  .sr-only-focusable:focus,
+  .sr-only-focusable:active {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Not sr-only - for toggling visibility */
+  .not-sr-only {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* ─── Keyboard Focus Indicators ───────────────────────────────────── */
+
+  /* Visible focus indicator for interactive elements */
+  .focus-indicator {
+    @apply relative;
+  }
+
+  .focus-indicator::after {
+    content: '';
+    @apply absolute inset-0 rounded-inherit pointer-events-none;
+    @apply ring-2 ring-ring ring-offset-2 ring-offset-background;
+    @apply opacity-0 transition-opacity;
+  }
+
+  .focus-indicator:focus-visible::after {
+    @apply opacity-100;
+  }
+
+  /* ─── Accessible Hide ─────────────────────────────────────────────── */
+
+  /* Hide from everyone (visual and screen readers) */
+  .a11y-hidden {
+    display: none !important;
+  }
+
+  /* Hide visually but keep in DOM for screen readers */
+  .a11y-visual-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* ─── Live Region Utilities ───────────────────────────────────────── */
+
+  /* Polite announcements (wait for user to finish) */
+  .a11y-live-polite {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Assertive announcements (interrupt immediately) */
+  .a11y-live-assertive {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

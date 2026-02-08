@@ -272,6 +272,21 @@ export {
   type ResponsiveDialogContentProps
 } from './components/ResponsiveDialog'
 
+// ─── Accessibility Components ──────────────────────────────────────
+export { SkipLink, SkipLinks, type SkipLinkProps, type SkipLinksProps } from './components/SkipLink'
+export {
+  AccessibleButton,
+  AccessibleIconButton,
+  type AccessibleButtonProps,
+  type AccessibleIconButtonProps
+} from './components/AccessibleButton'
+export {
+  AccessibleInput,
+  AccessibleTextarea,
+  type AccessibleInputProps,
+  type AccessibleTextareaProps
+} from './components/AccessibleInput'
+
 // ─── Hooks ────────────────────────────────────────────────────────
 export { useClickOutside } from './hooks/useClickOutside'
 export { useDebounce } from './hooks/useDebounce'
@@ -284,3 +299,39 @@ export {
   usePrefersReducedMotion,
   usePrefersDarkMode
 } from './hooks/useMediaQuery'
+export {
+  useFocusTrap,
+  getFocusableElements,
+  getFirstFocusable,
+  getLastFocusable,
+  isFocusable,
+  type UseFocusTrapOptions
+} from './hooks/useFocusTrap'
+export {
+  useAnnounce,
+  announce,
+  clearAnnouncements,
+  cleanupAnnouncers,
+  type AnnouncePoliteness,
+  type UseAnnounceOptions,
+  type AnnounceFunction
+} from './hooks/useAnnounce'
+
+// ─── Accessibility Utils ───────────────────────────────────────────
+export {
+  getLuminance,
+  getLuminanceFromRGB,
+  getContrastRatio,
+  analyzeContrast,
+  meetsContrastRequirement,
+  getMinimumContrastRatio,
+  hexToRGB,
+  rgbToHex,
+  hslToRGB,
+  parseColor,
+  suggestAccessibleColor,
+  type RGB,
+  type HSL,
+  type ContrastLevel,
+  type ContrastResult
+} from './utils/contrast'

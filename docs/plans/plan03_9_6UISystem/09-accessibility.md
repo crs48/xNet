@@ -558,15 +558,15 @@ describe('Accessibility', () => {
 
 ## Checklist
 
-- [ ] Add focus-visible styles
-- [ ] Create SkipLink component
-- [ ] Create useFocusTrap hook
-- [ ] Create useAnnounce hook
-- [ ] Add high contrast mode support
-- [ ] Add forced colors mode support
-- [ ] Create AccessibleButton component
-- [ ] Create AccessibleInput component
-- [ ] Add sr-only utility class
+- [x] Add focus-visible styles
+- [x] Create SkipLink component
+- [x] Create useFocusTrap hook
+- [x] Create useAnnounce hook
+- [x] Add high contrast mode support
+- [x] Add forced colors mode support
+- [x] Create AccessibleButton component
+- [x] Create AccessibleInput component
+- [x] Add sr-only utility class
 - [ ] Write axe accessibility tests
 - [ ] Test with VoiceOver (macOS)
 - [ ] Test with keyboard only
