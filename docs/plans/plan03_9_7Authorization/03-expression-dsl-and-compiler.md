@@ -24,6 +24,24 @@ const expr = or(role('editor'), relation('project', role('admin')), publicAccess
 
 Builder output should be serializable into the same AST shape as parsed strings.
 
+Typing requirements for builders:
+
+- `role()` only accepts `RoleKey<TAuth>`.
+- `action()` (if exposed) only accepts `ActionKey<TAuth>`.
+- `relation()` path segments only accept relation keys from the current schema graph.
+- Invalid role/path references must fail at compile-time in typed usage.
+
+Example typed signatures:
+
+```ts
+declare function role<TRole extends string>(name: TRole): RoleNode<TRole>
+
+declare function relation<TSchema, TPath extends ValidRelationPath<TSchema>>(
+  path: TPath,
+  expr: AuthAstNode
+): RelationNode<TPath>
+```
+
 ### 2. Add String Parser
 
 Grammar targets:
@@ -36,6 +54,12 @@ Grammar targets:
 ### 3. AST and Type Checking
 
 Normalize both string and builder input into canonical AST nodes.
+
+Typechecking model:
+
+- Compile-time: generic constraints for typed builders.
+- Schema-time runtime: parser + validator for string DSL and persisted schema payloads.
+- Execution-time: evaluator consumes only canonical validated AST.
 
 ```mermaid
 flowchart LR
@@ -68,6 +92,7 @@ Compiler output should be a pure function with no side effects for deterministic
 - Parser conformance tests (precedence, associativity, invalid tokens).
 - Builder and string parity tests (same AST/evaluation output).
 - Fuzz tests for malformed input and depth exhaustion.
+- Type-level tests for builder constraints and inference (`expectTypeOf`/`tsd`).
 
 ## Checklist
 

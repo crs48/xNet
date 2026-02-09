@@ -56,6 +56,21 @@ During `can`:
 
 Track token identifiers (`jti`/hash) to prevent replay in invocation-style flows.
 
+### 6. Define Revocation Consistency Contract
+
+Document runtime guarantees by mode so app teams can choose policy intentionally:
+
+| Mode       | Offline Behavior                                | Online Behavior                                   | Expected Lag             |
+| ---------- | ----------------------------------------------- | ------------------------------------------------- | ------------------------ |
+| `eventual` | last-known revocation set                       | refresh on reconnect/poll                         | bounded by sync interval |
+| `strict`   | deny when revocation freshness cannot be proven | requires revocation watermark >= required version | near-zero once connected |
+
+Rules:
+
+- `eventual` is default for local-first availability.
+- `strict` is opt-in for high-risk schemas/actions.
+- Evaluator output must include freshness metadata for audit (`revocationWatermark`, `evaluatedAt`).
+
 ## Delegation Lifecycle
 
 ```mermaid
@@ -74,6 +89,8 @@ stateDiagram-v2
 - Attenuation failure tests (action/resource overreach).
 - Revocation propagation tests across sync replicas.
 - Replay detection tests with duplicate tokens.
+- Partition/reconnect tests validating `eventual` vs `strict` mode semantics.
+- Freshness-metadata tests ensuring decision traces expose revocation state.
 
 ## Checklist
 
@@ -82,6 +99,7 @@ stateDiagram-v2
 - [ ] Attenuation enforcement complete.
 - [ ] Revocation-aware evaluator path complete.
 - [ ] Replay protection tests passing.
+- [ ] Revocation consistency modes validated with partition tests.
 
 ---
 

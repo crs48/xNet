@@ -16,6 +16,17 @@
 
 Hooks should provide loading/error state and memoized permission booleans.
 
+Hook typing requirements:
+
+- `useCan<TAction extends AuthAction>(nodeId, actions)` returns typed booleans keyed by requested `TAction`.
+- When used with schema-bound helpers, action arguments narrow to that schema's action union.
+
+Consistency semantics:
+
+- `eventual` mode: hooks may temporarily show last-known decision until fresh revocation watermark arrives.
+- `strict` mode: hooks must surface `unknown`/`pending` when freshness cannot be established.
+- Expose freshness metadata (`isFresh`, `evaluatedAt`, `revocationWatermark`) for sensitive UI controls.
+
 ### 2. Add Explain API for Debugging
 
 Expose evaluator traces through store API:
@@ -62,6 +73,7 @@ flowchart TB
 - [ ] Devtools auth panel implemented.
 - [ ] Developer recipes documented.
 - [ ] Hook tests and story examples added.
+- [ ] Hook freshness semantics documented for `eventual` and `strict` modes.
 
 ---
 

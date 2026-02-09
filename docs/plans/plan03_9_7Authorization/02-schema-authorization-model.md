@@ -13,6 +13,17 @@
 
 ## Implementation
 
+### TypeScript Typing Contract
+
+Strong typechecking is required at schema authoring time:
+
+- Actions must be a literal union inferred from `authorization.actions` keys.
+- Role references in expressions must be constrained to known role keys.
+- Relation paths in builders must be constrained to valid relation-property chains.
+- `store.auth.can()` input action type must resolve to schema-specific action union when schema is known.
+
+Use `as const` + generic helpers to preserve literal types and avoid widening.
+
 ### 1. Add Typed Authorization Block
 
 Add optional `authorization` to schema types:
@@ -26,6 +37,13 @@ type AuthorizationDefinition = {
     allow: Array<'deny' | 'fieldRules' | 'conditions'>
   }
 }
+```
+
+Add type-level helpers:
+
+```ts
+type ActionKey<TAuth extends AuthorizationDefinition> = keyof TAuth['actions'] & string
+type RoleKey<TAuth extends AuthorizationDefinition> = keyof TAuth['roles'] & string
 ```
 
 ### 2. Extend `defineSchema` Input and Output
@@ -48,6 +66,17 @@ Authorization schema changes should respect existing schema version semantics:
 
 - Role/action shape changes require semver bump guidance.
 - Add migration notes for action rename compatibility.
+
+### 5. Add Legacy Compatibility Behavior
+
+Define explicit behavior for schemas that do not yet include `authorization`:
+
+- Introduce schema auth mode: `legacy | compat | enforce`.
+- `legacy`: preserve current behavior, emit diagnostics only.
+- `compat`: evaluate new auth model and emit warnings/metrics on would-deny paths.
+- `enforce`: authorization required; missing action rules deny mutating operations by default.
+
+Add repo-level feature flag strategy for moving from `legacy` -> `compat` -> `enforce`.
 
 ## Data Model Diagram
 
@@ -80,6 +109,9 @@ classDiagram
 - Extend `packages/data/src/schema/schema.test.ts` for valid/invalid authorization blocks.
 - Add property-based tests for expression parser acceptance/rejection boundaries.
 - Add snapshot tests for serialized schema output.
+- Add migration-mode tests for `legacy`, `compat`, and `enforce` behavior.
+- Add tests for default deny semantics when action mapping is missing in `enforce` mode.
+- Add type-level tests (`tsd`/`expectTypeOf`) for role/action inference and invalid builder inputs.
 
 ## Checklist
 
@@ -87,7 +119,9 @@ classDiagram
 - [ ] `defineSchema` accepts and emits authorization.
 - [ ] Schema validation catches malformed auth configs.
 - [ ] Versioning guidance documented.
+- [ ] Legacy/compat/enforce behavior implemented and documented.
 - [ ] Tests added for pass/fail cases.
+- [ ] Type-level tests added for schema auth typing guarantees.
 
 ---
 
