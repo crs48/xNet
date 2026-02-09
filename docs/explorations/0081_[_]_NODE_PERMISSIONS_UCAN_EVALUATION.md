@@ -186,44 +186,59 @@ const privateNote = {
 ### The Permission Override Spectrum
 
 ```mermaid
-flowchart LR
-    subgraph L0["Level 0: Schema-Only"]
-        L0_DESC["All nodes follow<br/>schema exactly"]
-        L0_PROS["Simple, predictable,<br/>cache-friendly"]
-        L0_CONS["No customization,<br/>can't handle edge cases"]
+flowchart TB
+    subgraph SPECTRUM["Permission Granularity Levels"]
+        direction TB
+
+        L0["🔒 Level 0: Schema-Only
+        <br/>All nodes follow schema exactly"]
+
+        L1["👥 Level 1: Role Assignment
+        <br/>Nodes customize WHO has roles"]
+
+        L2["➕ Level 2: Permission Extension
+        <br/>Nodes ADD permissions"]
+
+        L3["⚠️ Level 3: Full Override
+        <br/>Nodes completely redefine permissions"]
+
+        L4["🎛️ Level 4: Dynamic Rules
+        <br/>Permissions depend on state/time"]
     end
 
-    subgraph L1["Level 1: Role Assignment"]
-        L1_DESC["Nodes customize<br/>WHO has roles"]
-        L1_PROS["Flexible membership,<br/>still simple"]
-        L1_CONS["Can't customize<br/>WHAT roles can do"]
-    end
+    subgraph TRADEOFFS["Trade-offs"]
+        direction TB
 
-    subgraph L2["Level 2: Permission Extension"]
-        L2_DESC["Nodes ADD permissions<br/>(don't override)"]
-        L2_PROS["More sharing options,<br/>backward compatible"]
-        L2_CONS["Can't restrict,<br/>only expand"]
-    end
+        T0["✅ Simple, predictable
+        ❌ No customization"]
 
-    subgraph L3["Level 3: Full Override"]
-        L3_DESC["Nodes completely redefine<br/>permissions"]
-        L3_PROS["Maximum flexibility,<br/>handles all cases"]
-        L3_CONS["Complex, hard to cache,<br/>security risks"]
-    end
+        T1["✅ Flexible membership
+        ❌ Can't customize WHAT"]
 
-    subgraph L4["Level 4: Dynamic Rules"]
-        L4_DESC["Permissions depend on<br/>state, time, conditions"]
-        L4_PROS["Expressive, powerful,<br/>realistic workflows"]
-        L4_CONS["Hard to reason about,<br/>testing challenges"]
+        T2["✅ Backward compatible
+        ❌ Can't restrict"]
+
+        T3["✅ Maximum flexibility
+        ❌ Complex, security risks"]
+
+        T4["✅ Expressive, powerful
+        ❌ Hard to test"]
     end
 
     L0 --> L1 --> L2 --> L3 --> L4
+    L0 -.-> T0
+    L1 -.-> T1
+    L2 -.-> T2
+    L3 -.-> T3
+    L4 -.-> T4
 
-    style L0 fill:#4ade80
-    style L1 fill:#a3e635
-    style L2 fill:#fbbf24
-    style L3 fill:#f87171
-    style L4 fill:#dc2626
+    style L0 fill:#4ade80,color:#000
+    style L1 fill:#a3e635,color:#000
+    style L2 fill:#fbbf24,color:#000
+    style L3 fill:#f87171,color:#000
+    style L4 fill:#dc2626,color:#fff
+    style SPECTRUM fill:#f8fafc
+    style TRADEOFFS fill:#f8fafc
 ```
 
 **Where should xNet land on this spectrum?**
