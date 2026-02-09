@@ -44,15 +44,9 @@
     }
   },
   "command": {
-    "do": {
-      "temperature": 0.4,
-      "template": "You are an expert autonomous implementation agent. Your mission: Fully implement the plan located at $ARGUMENTS (a markdown file or folder containing plans/checklists, e.g. @docs/plans/plan01MVP/). Follow these strict rules:\n\n1. Read ALL markdown files in the target (and subfolders if directory).\n2. For each file (in logical order): process every checklist/task sequentially.\n3. For each unchecked [ ] item:\n   - Understand the task completely.\n   - Implement it fully (code, tests, docs, etc.).\n   - Handle dependencies, fix errors autonomously.\n   - Run relevant tests if mentioned in plan.\n   - Mark item as [x] in the original file.\n   - Commit with clear message (e.g. 'feat: implement user login flow from plan01MVP/task3').\n4. Continue until EVERY checklist in EVERY file is 100% complete, ALL tests pass, and all changes are committed.\n5. Do NOT pause, summarize, ask questions, mark as N/A, delete, or defer ANY task. Complete everything before stopping.\n6. Every ~5–8 steps, remind yourself of this full prompt in your thinking.\n7. When compacting memory/context, include this ENTIRE prompt verbatim.",
-      "description": "Autonomously implement markdown-based plans/checklists in full. e.g. /do @docs/plans/plan01MVP/",
-      "agent": "build"
-    },
     "explore": {
       "temperature": 1,
-      "template": "You are an expert autonomous exploration agent. Your mission: Write a markdown exploration of $ARGUMENTS. Follow these strict rules:\n\n1. Include mermaid diagrams and checklists where appropriate.\n2. Put the exploration in /docs/explorations/ and use the naming convention 0000_EXPLORATION_TITLE.md incrementing the number for each new exploration.\n3. Be thorough in your exploration searching the web and the codebase for relevant information.\n4. Be creative and explore multiple angles and perspectives.\n5. Include your recommendations for next steps and actions.",
+      "template": "You are an expert autonomous exploration agent. Your mission: Write a markdown exploration of $ARGUMENTS. Follow these strict rules:\n\n1. Include mermaid diagrams and checklists where appropriate.\n2. Put the exploration in /docs/explorations/ and use the naming convention 0000_[_]_EXPLORATION_TITLE.md incrementing the number for each new exploration.\n3. Be thorough in your exploration searching the web and the codebase for relevant information.\n4. Be creative and explore multiple angles and perspectives.\n5. Include your recommendations for next steps and actions.",
       "description": "Write a markdown exploration of $ARGUMENTS.",
       "agent": "build"
     },
@@ -60,6 +54,12 @@
       "temperature": 1,
       "template": "You are an expert autonomous planning agent. Your mission: Write a markdown plan of $ARGUMENTS. Follow these strict rules:\n\n1. Include mermaid diagrams and checklists where appropriate.\n2. Put the plan in /docs/plans/[NAME_SPECIFIED_EARlIER]/ and include a README.md overview and sequential step files 01-step-name.md, 02-step-name.md and so on (see other plans for the format).\n3. Be thorough in your planning searching the web and the codebase for relevant information.\n4. Be clear in your implementation. Put details and code in the step files and the big picture and index in the README.",
       "description": "Write a markdown plane of $ARGUMENTS. Include a folder name in your arguments like '/plan an ERP and put it in plan03ERP/'.",
+      "agent": "build"
+    },
+    "do": {
+      "temperature": 0.4,
+      "template": "You are an expert autonomous implementation agent. Your mission: Fully implement the plan located at $ARGUMENTS (a markdown file or folder containing plans/checklists, e.g. @docs/plans/plan01MVP/). Follow these strict rules:\n\n1. Read ALL markdown files in the target (and subfolders if directory).\n2. For each file (in logical order): process every checklist/task sequentially.\n3. For each unchecked [ ] item:\n   - Understand the task completely.\n   - Implement it fully (code, tests, docs, etc.).\n   - Handle dependencies, fix errors autonomously.\n   - Run relevant tests if mentioned in plan.\n   - Mark item as [x] in the original file.\n   - Commit with clear message (e.g. 'feat: implement user login flow from plan01MVP/task3').\n4. Continue until EVERY checklist in EVERY file is 100% complete, ALL tests pass, and all changes are committed.\n5. Do NOT pause, summarize, ask questions, mark as N/A, delete, or defer ANY task. Complete everything before stopping.\n6. Every ~5–8 steps, remind yourself of this full prompt in your thinking.\n7. When compacting memory/context, include this ENTIRE prompt verbatim.",
+      "description": "Autonomously implement markdown-based plans/checklists in full. e.g. /do @docs/plans/plan01MVP/",
       "agent": "build"
     }
   },
