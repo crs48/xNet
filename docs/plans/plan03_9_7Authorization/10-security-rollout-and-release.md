@@ -17,6 +17,7 @@ Must-cover scenarios:
 - revocation invalidates descendant delegations
 - relation traversal cycles terminate safely
 - remote unauthorized change rejection is deterministic
+- **hub query filtering excludes unauthorized nodes** (critical for security)
 
 ### 2. Adversarial and Fuzz Testing
 
@@ -74,6 +75,7 @@ flowchart TD
 
 - [ ] All auth conformance suites pass.
 - [ ] Performance targets met in CI benchmarks.
+- [ ] **Hub query authorization filtering correctly excludes unauthorized data**.
 - [ ] No critical findings from fuzz/adversarial runs.
 - [ ] Hub/store action mapping tests green.
 - [ ] Developer docs and migration examples published.

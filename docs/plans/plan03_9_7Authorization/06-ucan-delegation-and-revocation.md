@@ -22,11 +22,43 @@ Expose:
 - `store.auth.revoke(input)`
 - `store.auth.listGrants(input)`
 
-### 2. Define Grant Record Model
+### 2. Define Grant Record Model (Grants as Nodes)
 
-Persist grant metadata as signed node changes so grants are auditable and syncable.
+Grants are implemented as regular nodes using the existing NodeStore infrastructure. This provides CRDT merge, sync, signing, hashing, and history for free.
 
-Fields:
+```ts
+const GrantSchema = defineSchema({
+  name: 'Grant',
+  properties: {
+    issuerDid: stringProperty(),
+    audienceDid: stringProperty(),
+    resource: stringProperty(), // node ID or pattern
+    actions: arrayProperty(stringProperty()), // ['read', 'write']
+    constraints: objectProperty(), // optional conditions
+    exp: numberProperty(), // expiration timestamp
+    revokedAt: optional(numberProperty()),
+    revokedBy: optional(stringProperty()) // DID that revoked
+  },
+  authorization: {
+    actions: {
+      revoke: 'issuer | resource.owner'
+    },
+    roles: {
+      issuer: (grant) => grant.issuerDid
+    }
+  }
+})
+```
+
+**Benefits of grants-as-nodes:**
+
+- Automatic sync across replicas via existing CRDT infrastructure
+- Signed and hashed like any other change
+- Audit trail through node history
+- Revocation is just a node update (setting `revokedAt`)
+- GC policy can reuse node retention rules
+
+**Grant record fields:**
 
 - `grantId`
 - `issuerDid`
@@ -95,11 +127,13 @@ stateDiagram-v2
 ## Checklist
 
 - [ ] `store.auth` API shipped.
-- [ ] Grant records persisted and syncable.
+- [ ] Grant schema defined (grants as nodes).
+- [ ] Grant records persisted and syncable via NodeStore.
 - [ ] Attenuation enforcement complete.
 - [ ] Revocation-aware evaluator path complete.
 - [ ] Replay protection tests passing.
 - [ ] Revocation consistency modes validated with partition tests.
+- [ ] Grant GC/retention policy documented.
 
 ---
 

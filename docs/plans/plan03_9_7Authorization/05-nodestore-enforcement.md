@@ -71,11 +71,37 @@ flowchart TD
 - Regression tests ensuring cryptographic checks still run first.
 - Transaction operation tests for mixed authorized/unauthorized batches.
 
+## Transaction Batch Authorization
+
+Transactions use **all-or-nothing** semantics for simplicity and predictability:
+
+```ts
+// Before executing batch, check auth for ALL operations
+const checks = await Promise.all(batch.ops.map((op) => auth.can(subject, op.action, op.nodeId)))
+
+if (checks.some((c) => !c.allow)) {
+  throw new PermissionError({
+    code: 'BATCH_PARTIAL_DENY',
+    failedOps: checks.filter((c) => !c.allow).map((c, i) => batch.ops[i])
+    // entire batch rejected, no partial application
+  })
+}
+
+// All checks passed, apply batch atomically
+```
+
+**Rationale:**
+
+- Partial batch failure creates complex rollback scenarios
+- All-or-nothing matches database transaction semantics developers expect
+- Simpler debugging - either all ops authorized or clear failure list
+
 ## Checklist
 
 - [ ] NodeStore receives auth evaluator dependency.
 - [ ] Local CRUD guarded by `can()`.
 - [ ] Remote apply guarded by `can()`.
+- [ ] Transaction batch authorization uses all-or-nothing semantics.
 - [ ] Permission errors standardized.
 - [ ] Tests cover local, remote, and transaction paths.
 

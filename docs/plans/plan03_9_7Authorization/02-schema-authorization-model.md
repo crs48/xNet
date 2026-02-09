@@ -6,7 +6,7 @@
 **Dependencies:** [01-alignment-and-adrs.md](./01-alignment-and-adrs.md)  
 **Packages:** `packages/data/src/schema`
 
-**Sequencing note:** complete this step before [11-types-and-validation-contract.md](./11-types-and-validation-contract.md), then continue to [03-expression-dsl-and-compiler.md](./03-expression-dsl-and-compiler.md).
+**Sequencing note:** Complete this step first to provide the type foundation. [11-types-and-validation-contract.md](./11-types-and-validation-contract.md) depends on the types defined here and can be developed in parallel with [03-expression-dsl-and-compiler.md](./03-expression-dsl-and-compiler.md) once types are available.
 
 ## Current Baseline
 
@@ -69,7 +69,37 @@ Authorization schema changes should respect existing schema version semantics:
 - Role/action shape changes require semver bump guidance.
 - Add migration notes for action rename compatibility.
 
-### 5. Add Legacy Compatibility Behavior
+### 5. Add Field-Level Authorization (Optional)
+
+Support per-field write restrictions within a `write` action:
+
+```ts
+type AuthorizationDefinition = {
+  actions: Record<string, AuthExpression>
+  roles: Record<string, RoleResolverExpression>
+  fieldRules?: {
+    [fieldName: string]: {
+      allow: AuthExpression
+      deny?: AuthExpression
+    }
+  }
+  nodePolicy?: {
+    mode: 'extend'
+    allow: Array<'deny' | 'fieldRules' | 'conditions'>
+  }
+}
+```
+
+Example: restrict `secretNotes` field to owners while allowing editors to write other fields.
+
+### 6. Add Versioning Rules
+
+Authorization schema changes should respect existing schema version semantics:
+
+- Role/action shape changes require semver bump guidance.
+- Add migration notes for action rename compatibility.
+
+### 7. Add Legacy Compatibility Behavior
 
 Define explicit behavior for schemas that do not yet include `authorization`:
 
@@ -120,6 +150,7 @@ classDiagram
 - [ ] `Schema` type includes authorization.
 - [ ] `defineSchema` accepts and emits authorization.
 - [ ] Schema validation catches malformed auth configs.
+- [ ] Field-level authorization syntax defined.
 - [ ] Versioning guidance documented.
 - [ ] Legacy/compat/enforce behavior implemented and documented.
 - [ ] Tests added for pass/fail cases.
