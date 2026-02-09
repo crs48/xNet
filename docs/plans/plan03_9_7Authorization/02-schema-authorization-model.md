@@ -6,6 +6,8 @@
 **Dependencies:** [01-alignment-and-adrs.md](./01-alignment-and-adrs.md)  
 **Packages:** `packages/data/src/schema`
 
+**Sequencing note:** complete this step before [11-types-and-validation-contract.md](./11-types-and-validation-contract.md), then continue to [03-expression-dsl-and-compiler.md](./03-expression-dsl-and-compiler.md).
+
 ## Current Baseline
 
 - `DefineSchemaOptions` currently supports `name`, `namespace`, `version`, `properties`, `extends`, `document` in `packages/data/src/schema/define.ts`.
@@ -125,4 +127,4 @@ classDiagram
 
 ---
 
-[Back to README](./README.md) | [Previous: Alignment and ADRs](./01-alignment-and-adrs.md) | [Next: Expression DSL and Compiler ->](./03-expression-dsl-and-compiler.md)
+[Back to README](./README.md) | [Previous: Alignment and ADRs](./01-alignment-and-adrs.md) | [Next: Types and Validation Contract ->](./11-types-and-validation-contract.md)

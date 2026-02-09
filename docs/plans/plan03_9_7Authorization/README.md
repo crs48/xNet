@@ -133,13 +133,13 @@ This matrix is the single source of truth for action naming across store, sync, 
 
 ## Phases
 
-| Phase | Focus                                    | Step Docs                                                                                                                         |
-| ----- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Contract and schema model                | [01](./01-alignment-and-adrs.md), [02](./02-schema-authorization-model.md), [03](./03-expression-dsl-and-compiler.md)             |
-| 2     | Evaluation and enforcement core          | [04](./04-auth-evaluator-engine.md), [05](./05-nodestore-enforcement.md)                                                          |
-| 3     | Delegation and transport integration     | [06](./06-ucan-delegation-and-revocation.md), [07](./07-hub-capability-bridge.md)                                                 |
-| 4     | DX, observability, and hardening         | [08](./08-react-devtools-and-dx.md), [09](./09-performance-caching-and-benchmarks.md), [10](./10-security-rollout-and-release.md) |
-| 5     | Type contracts and validation guarantees | [11](./11-types-and-validation-contract.md)                                                                                       |
+| Phase | Focus                                     | Step Docs                                                                                                                         |
+| ----- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Contract and schema model                 | [01](./01-alignment-and-adrs.md), [02](./02-schema-authorization-model.md)                                                        |
+| 2     | Type contracts and expression foundations | [11](./11-types-and-validation-contract.md), [03](./03-expression-dsl-and-compiler.md)                                            |
+| 3     | Evaluation and enforcement core           | [04](./04-auth-evaluator-engine.md), [05](./05-nodestore-enforcement.md)                                                          |
+| 4     | Delegation and transport integration      | [06](./06-ucan-delegation-and-revocation.md), [07](./07-hub-capability-bridge.md)                                                 |
+| 5     | DX, observability, and hardening          | [08](./08-react-devtools-and-dx.md), [09](./09-performance-caching-and-benchmarks.md), [10](./10-security-rollout-and-release.md) |
 
 ## End-to-End Delivery Flow
 

@@ -3,8 +3,10 @@
 > Define the exact TypeScript contracts, inferred unions, and runtime validation boundaries for schema authorization.
 
 **Duration:** 2 days  
-**Dependencies:** [02-schema-authorization-model.md](./02-schema-authorization-model.md), [03-expression-dsl-and-compiler.md](./03-expression-dsl-and-compiler.md)  
+**Dependencies:** [02-schema-authorization-model.md](./02-schema-authorization-model.md)  
 **Packages:** `packages/data`, `packages/core`, `packages/react`
+
+**Sequencing note:** this step is intentionally early; complete it before [03-expression-dsl-and-compiler.md](./03-expression-dsl-and-compiler.md).
 
 ## Objective
 
@@ -149,4 +151,4 @@ expectTypeOf(canInput.action).toEqualTypeOf<'read' | 'write' | 'delete' | 'share
 
 ---
 
-[Back to README](./README.md) | [Previous: Security, Rollout, and Release](./10-security-rollout-and-release.md)
+[Back to README](./README.md) | [Previous: Schema Authorization Model](./02-schema-authorization-model.md) | [Next: Expression DSL and Compiler ->](./03-expression-dsl-and-compiler.md)
