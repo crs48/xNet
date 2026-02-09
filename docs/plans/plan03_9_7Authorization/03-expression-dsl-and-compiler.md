@@ -3,7 +3,7 @@
 > Implement hybrid auth DSL (string + builders), parser, AST, and compiled evaluators.
 
 **Duration:** 4 days  
-**Dependencies:** [02-schema-authorization-model.md](./02-schema-authorization-model.md)  
+**Dependencies:** [02-schema-authorization-model.md](./02-schema-authorization-model.md), [11-types-and-validation-contract.md](./11-types-and-validation-contract.md)  
 **Packages:** `packages/data` (new auth submodule)
 
 ## Design Requirements
@@ -104,4 +104,4 @@ Compiler output should be a pure function with no side effects for deterministic
 
 ---
 
-[Back to README](./README.md) | [Previous: Schema Authorization Model](./02-schema-authorization-model.md) | [Next: Auth Evaluator Engine ->](./04-auth-evaluator-engine.md)
+[Back to README](./README.md) | [Previous: Types and Validation Contract](./11-types-and-validation-contract.md) | [Next: Auth Evaluator Engine ->](./04-auth-evaluator-engine.md)

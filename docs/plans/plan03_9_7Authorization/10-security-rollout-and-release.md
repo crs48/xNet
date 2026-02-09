@@ -86,4 +86,4 @@ flowchart TD
 
 ---
 
-[Back to README](./README.md) | [Previous: Performance, Caching, and Benchmarks](./09-performance-caching-and-benchmarks.md) | [Next: Types and Validation Contract ->](./11-types-and-validation-contract.md)
+[Back to README](./README.md) | [Previous: Performance, Caching, and Benchmarks](./09-performance-caching-and-benchmarks.md)
