@@ -211,7 +211,7 @@ Use relation + person properties instead of a platform-level group primitive:
 
 ```mermaid
 flowchart LR
-  Team[Team node\nmembers/admins: person[]]
+  Team[Team node\nmembers/admins: person array]
   Project[Project node\nteam: relation Team]
   Task[Task node\nproject: relation Project]
 
@@ -259,11 +259,11 @@ Key optimizations:
 
 ```mermaid
 flowchart TD
-  R[can(subject, action, node)] --> C{Decision cache hit?}
+  R[can check request] --> C{Decision cache hit}
   C -->|yes| A[return cached]
-  C -->|no| S[load schema AST + node]
-  S --> M[resolve roles via properties/relations]
-  S --> U[verify UCAN + revocation]
+  C -->|no| S[load schema and node]
+  S --> M[resolve roles via properties and relations]
+  S --> U[verify UCAN and revocation]
   M --> D[combine with deny-first rules]
   U --> D
   D --> W[write caches]
