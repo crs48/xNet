@@ -27,7 +27,7 @@ Create ADR documents under `docs/adr/` for:
 Create shared constants package section (initially in `packages/core`) that both store and hub import:
 
 ```ts
-export const AUTH_ACTIONS = ['read', 'write', 'delete', 'share', 'admin'] as const
+export const AUTH_ACTIONS = ['read', 'write', 'delete', 'share', 'restore', 'admin'] as const
 export type AuthAction = (typeof AUTH_ACTIONS)[number]
 ```
 
@@ -35,16 +35,16 @@ Add a compatibility mapping for existing hub actions (`hub/connect`, `hub/relay`
 
 Action taxonomy must include every mutating/runtime path before implementation starts:
 
-| Surface    | API/Path                              | Canonical Action         |
-| ---------- | ------------------------------------- | ------------------------ |
-| Store      | `create`                              | `write`                  |
-| Store      | `update`                              | `write`                  |
-| Store      | `delete`                              | `delete`                 |
-| Store      | `restore`                             | `write`                  |
-| Store      | `transaction`                         | per-op derived           |
-| Sync       | `applyRemoteChange`                   | per-change derived       |
-| Delegation | `grant`, `revoke`, `listGrants`       | `share`, `share`, `read` |
-| Hub        | `hub/query`, `hub/relay`, `hub/admin` | `read`, `write`, `admin` |
+| Surface    | API/Path                              | Canonical Action                |
+| ---------- | ------------------------------------- | ------------------------------- |
+| Store      | `create`                              | `write`                         |
+| Store      | `update`                              | `write`                         |
+| Store      | `delete`                              | `delete`                        |
+| Store      | `restore`                             | `restore` (defaults to `write`) |
+| Store      | `transaction`                         | per-op derived                  |
+| Sync       | `applyRemoteChange`                   | per-change derived              |
+| Delegation | `grant`, `revoke`, `listGrants`       | `share`, `share`, `read`        |
+| Hub        | `hub/query`, `hub/relay`, `hub/admin` | `read`, `write`, `admin`        |
 
 Require an owner for each mapping entry and a contract test that fails on drift.
 

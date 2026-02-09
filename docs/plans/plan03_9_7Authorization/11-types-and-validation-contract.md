@@ -6,7 +6,7 @@
 **Dependencies:** [02-schema-authorization-model.md](./02-schema-authorization-model.md)  
 **Packages:** `packages/data`, `packages/core`, `packages/react`
 
-**Sequencing note:** this step is intentionally early; complete it before [03-expression-dsl-and-compiler.md](./03-expression-dsl-and-compiler.md).
+**Sequencing note:** Depends on [02-schema-authorization-model.md](./02-schema-authorization-model.md) for `AuthorizationDefinition` types. Can be developed in parallel with [03-expression-dsl-and-compiler.md](./03-expression-dsl-and-compiler.md) once types are available.
 
 ## Objective
 
@@ -92,6 +92,7 @@ Validator must enforce:
 - cycle detection for role indirection and relation recursion
 - expression node-count and max-depth limits
 - `public` on mutating actions blocked unless explicit opt-in
+- field-level rules reference valid field names from schema properties
 
 ### Deterministic Error Codes
 

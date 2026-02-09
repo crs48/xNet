@@ -11,6 +11,7 @@
 - Warm `can()` path: p50 < 1ms, p99 < 5ms.
 - Cold `can()` path: p50 < 10ms, p99 < 50ms.
 - Local `grant()`: p50 < 20ms.
+- **Hub query authorization filter**: p50 < 50ms for 100-node result sets (post-query filtering).
 
 ## Implementation
 
@@ -23,6 +24,8 @@ Key dimensions:
 - node/resource id
 - policy version watermark
 - revocation watermark
+
+**Hub Query Optimization:** Cache authorization decisions during query result filtering to avoid re-evaluation for nodes accessed repeatedly by the same user.
 
 ### 2. Membership Cache
 
@@ -48,6 +51,7 @@ Add repeatable benchmark suites for:
 - cold vs warm can checks
 - revocation-heavy workloads
 - mixed local/remote mutation throughput
+- **hub query authorization filtering** (result set sizes: 10, 100, 1000 nodes)
 
 Define fixed benchmark fixtures (checked into repo) so runs are comparable over time:
 
@@ -84,6 +88,7 @@ flowchart LR
 - [ ] UCAN verification cache implemented.
 - [ ] Invalidation hooks wired.
 - [ ] Benchmarks added with target assertions.
+- [ ] **Hub query filtering benchmarks added.**
 - [ ] Fixed benchmark fixtures and regression thresholds committed.
 
 ---

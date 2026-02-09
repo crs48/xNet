@@ -41,9 +41,57 @@ sequenceDiagram
 
 ### 2. Implement Relation Traversal
 
-- Read from node properties and relation fields.
-- Traverse with max depth (default 3).
-- Use visited-set cycle detection.
+**Option A: Materialized Role Membership Cache (Recommended)**
+
+Maintain a cached membership index instead of traversing on every `can()` check:
+
+```ts
+// On relation mutation (async, background)
+async function onRelationChanged(nodeId: string, relation: string, targetId: string) {
+  // Invalidate all role caches that include paths through this edge
+  await invalidateRoleCachesForEdge(nodeId, relation, targetId)
+  // Eagerly recompute for hot nodes (optional optimization)
+  await recomputeRolesForNode(nodeId)
+}
+
+// can() check becomes O(1) cache lookup
+async function can(subject, action, nodeId) {
+  const roles = await roleCache.get(`${subject}:${nodeId}`)
+  return evaluateAction(roles, action)
+}
+```
+
+**Pros**: `can()` stays fast (sub-ms), scales to 100k+ node graphs
+**Cons**: Mutation slightly slower, cache invalidation complexity
+
+**Option B: BFS with Memoization + Limits**
+
+Keep traversal but add memoization and strict limits:
+
+```ts
+const MEMO = new Map() // per-evaluation context
+
+async function resolveRoles(subject, nodeId, depth = 0, visited = new Set()) {
+  if (depth > 3 || visited.size > 100) return []
+  if (visited.has(nodeId)) return [] // cycle guard
+
+  const key = `${subject}:${nodeId}:${depth}`
+  if (MEMO.has(key)) return MEMO.get(key)
+
+  // ... traversal logic
+
+  MEMO.set(key, roles)
+  return roles
+}
+```
+
+**Trade-off**: Simpler but `can()` latency varies with graph complexity
+
+Both approaches must implement:
+
+- Max depth limit (default 3)
+- Visited-set cycle detection
+- Max nodes visited limit (e.g., 100) for fail-safe termination
 
 ### 3. Add Node Policy Constraints
 
@@ -66,7 +114,9 @@ Evaluator output must be deterministic for same inputs and model snapshot to sup
 
 - [ ] Evaluator interfaces and decision types implemented.
 - [ ] Relation traversal and cycle protection working.
+- [ ] Materialized role cache or BFS traversal implemented.
 - [ ] Deny-first merge logic in place.
+- [ ] Field-level constraint evaluation implemented.
 - [ ] Structured explain traces emitted.
 - [ ] Determinism tests passing.
 

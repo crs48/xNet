@@ -21,6 +21,34 @@ The plan is intentionally grounded in current repository reality:
 - Keep authorization model local-first and partition-tolerant while preserving least-privilege and deny-first semantics.
 - Reuse existing UCAN cryptographic infrastructure instead of replacing it.
 
+## Query Authorization Model
+
+In the local-first model, **decryption capability serves as the read permission gate**:
+
+- **Local queries**: No additional authorization check needed beyond cryptographic access control. If you can decrypt the data, you can query it.
+- **Hub queries**: Server must filter results based on authorization policy before returning. The hub evaluates `read` action permissions using the full schema authorization model (roles, relations, UCAN delegations) and excludes unauthorized nodes from query results.
+
+### Hub Query Authorization Requirements
+
+**Critical for Security and DX:** In a global decentralized system, developers cannot be responsible for writing queries that manually account for all authorization edge cases. The hub must:
+
+1. **Evaluate authorization for each candidate node** against the requesting DID's capabilities
+2. **Apply schema-defined authorization rules** (roles, relations, field-level constraints)
+3. **Verify UCAN delegation chains** for delegated permissions
+4. **Filter query results** to only include nodes where `can(did, 'read', node) === true`
+
+**Developer Experience:** Application developers write queries for the data they want. The hub's query planner handles the complex work of determining what the user is allowed to see and filtering accordingly. This provides a simple, secure API where unauthorized data is automatically excluded.
+
+**Query Planner Responsibilities:**
+
+- Parse the query to identify candidate nodes
+- For each candidate, evaluate authorization using the same `AuthEvaluator` as local stores
+- Apply result-set filtering before serialization
+- Optimize common patterns (e.g., "only my documents") with index intersection
+- Return explainable traces for debugging (why a node was excluded)
+
+This distinction preserves local-first availability while ensuring proper access control in shared/hub contexts.
+
 ## Compatibility and Rollout Defaults
 
 To avoid breaking existing apps as authorization is introduced, this plan uses a staged compatibility contract:
@@ -111,18 +139,19 @@ Required outcomes:
 
 This matrix is the single source of truth for action naming across store, sync, and hub. Step 01 defines constants; Step 07 wires hub mapping tests.
 
-| Domain | Operation                     | Canonical Action   | Notes                              |
-| ------ | ----------------------------- | ------------------ | ---------------------------------- |
-| Store  | `get`, `query`                | `read`             | Includes list/index read checks    |
-| Store  | `create`, `update`, `restore` | `write`            | `update` may add field constraints |
-| Store  | `delete`                      | `delete`           | Hard or soft delete path           |
-| Store  | `grant`                       | `share`            | Delegation issuance                |
-| Store  | `revoke`                      | `share`            | Delegation revocation              |
-| Store  | transaction batch             | `write` + per-op   | Must evaluate per operation        |
-| Sync   | `applyRemoteChange`           | derived per change | Deterministic by change type       |
-| Hub    | `hub/query`                   | `read`             | Query and subscription setup       |
-| Hub    | `hub/relay`                   | `write`            | Message/update relay paths         |
-| Hub    | `hub/admin`                   | `admin`            | Operational/admin controls         |
+| Domain | Operation           | Canonical Action   | Notes                              |
+| ------ | ------------------- | ------------------ | ---------------------------------- |
+| Store  | `get`, `query`      | `read`             | Includes list/index read checks    |
+| Store  | `create`, `update`  | `write`            | `update` may add field constraints |
+| Store  | `restore`           | `restore`          | Defaults to `write`                |
+| Store  | `delete`            | `delete`           | Hard or soft delete path           |
+| Store  | `grant`             | `share`            | Delegation issuance                |
+| Store  | `revoke`            | `share`            | Delegation revocation              |
+| Store  | transaction batch   | `write` + per-op   | Must evaluate per operation        |
+| Sync   | `applyRemoteChange` | derived per change | Deterministic by change type       |
+| Hub    | `hub/query`         | `read`             | Query and subscription setup       |
+| Hub    | `hub/relay`         | `write`            | Message/update relay paths         |
+| Hub    | `hub/admin`         | `admin`            | Operational/admin controls         |
 
 ## External Research Inputs Used
 
