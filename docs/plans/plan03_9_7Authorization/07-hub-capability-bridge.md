@@ -23,6 +23,8 @@ Create mapping between hub verbs and unified authorization actions/resources:
 | `hub/query` | `read`         | index/query scope |
 | `hub/admin` | `admin`        | hub scope         |
 
+Add mapping entries for handshake/subscription lifecycle actions (`hub/connect`, `hub/subscribe`) and define whether they evaluate as `read` or dedicated internal actions.
+
 ### 2. Normalize Capability Evaluation
 
 Replace ad hoc string checks with shared evaluator/namespace helpers so behavior is consistent with store policy semantics.
@@ -34,6 +36,8 @@ Return structured auth failure payloads for websocket and HTTP paths, not only g
 ### 4. Add Drift Detection Tests
 
 Contract tests should fail if hub action constants diverge from store action constants.
+
+Add a generated test fixture from the canonical matrix in Step 01 so updates fail fast if one side adds/removes an action without updating the other.
 
 ## Integration Diagram
 

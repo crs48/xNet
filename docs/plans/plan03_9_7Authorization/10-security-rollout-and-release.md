@@ -25,6 +25,19 @@ Must-cover scenarios:
 - replay token attempts
 - deep relation graph exhaustion attempts
 
+Add explicit abuse and DoS scenarios with fail-fast limits:
+
+- expression tree explosion attempts (node count cap)
+- relation-path explosion/cycle storms (depth + visited-node caps)
+- token flood with unique hashes (verification rate limiting)
+- oversized grant constraint payloads (input size limits)
+
+Every limit must have:
+
+- deterministic error code
+- metrics counter
+- alertable threshold in ops dashboard
+
 ### 3. Auditability Guarantees
 
 Verify grants, revokes, and policy edits are represented as signed, replayable change history with stable event schema.
@@ -73,4 +86,4 @@ flowchart TD
 
 ---
 
-[Back to README](./README.md) | [Previous: Performance, Caching, and Benchmarks](./09-performance-caching-and-benchmarks.md)
+[Back to README](./README.md) | [Previous: Performance, Caching, and Benchmarks](./09-performance-caching-and-benchmarks.md) | [Next: Types and Validation Contract ->](./11-types-and-validation-contract.md)

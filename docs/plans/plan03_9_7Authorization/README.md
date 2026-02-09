@@ -21,6 +21,15 @@ The plan is intentionally grounded in current repository reality:
 - Keep authorization model local-first and partition-tolerant while preserving least-privilege and deny-first semantics.
 - Reuse existing UCAN cryptographic infrastructure instead of replacing it.
 
+## Compatibility and Rollout Defaults
+
+To avoid breaking existing apps as authorization is introduced, this plan uses a staged compatibility contract:
+
+- Schemas without `authorization` are treated as `legacy` during migration and evaluated under a feature flag.
+- Default rollout mode is `compat` (warn + trace) before `enforce` (hard deny).
+- New schemas created after cutover must include explicit `authorization`.
+- Final state for production is deny-by-default when no action rule is defined for a mutation.
+
 Out of scope for this plan:
 
 - Full policy migration tooling for legacy schemas (pre-release assumption).
@@ -84,6 +93,37 @@ The plan locks these exploration outcomes:
 - Hybrid auth DSL: string literals for common cases plus typed builders for complex expressions.
 - Explicit deny precedence over all allows.
 
+## Type Safety Strategy
+
+TypeScript typing is a first-class requirement, not a post-implementation improvement. The plan enforces strong typing at two layers:
+
+- Type-level safety for schema authors (compile-time): action names, role references, and relation paths.
+- Runtime safety for untrusted input (schema-time validation): AST checks, cycle detection, and strict parser constraints.
+
+Required outcomes:
+
+- Typed builders infer valid role/action unions from schema definitions.
+- String DSL remains supported but is validated and normalized before execution.
+- `store.auth.can()` and hooks expose typed action arguments tied to schema action keys.
+- CI includes type-level tests (`tsd` or equivalent) for auth DSL contracts.
+
+## Canonical Action Matrix
+
+This matrix is the single source of truth for action naming across store, sync, and hub. Step 01 defines constants; Step 07 wires hub mapping tests.
+
+| Domain | Operation                     | Canonical Action   | Notes                              |
+| ------ | ----------------------------- | ------------------ | ---------------------------------- |
+| Store  | `get`, `query`                | `read`             | Includes list/index read checks    |
+| Store  | `create`, `update`, `restore` | `write`            | `update` may add field constraints |
+| Store  | `delete`                      | `delete`           | Hard or soft delete path           |
+| Store  | `grant`                       | `share`            | Delegation issuance                |
+| Store  | `revoke`                      | `share`            | Delegation revocation              |
+| Store  | transaction batch             | `write` + per-op   | Must evaluate per operation        |
+| Sync   | `applyRemoteChange`           | derived per change | Deterministic by change type       |
+| Hub    | `hub/query`                   | `read`             | Query and subscription setup       |
+| Hub    | `hub/relay`                   | `write`            | Message/update relay paths         |
+| Hub    | `hub/admin`                   | `admin`            | Operational/admin controls         |
+
 ## External Research Inputs Used
 
 - UCAN spec guidance on attenuation, time bounds, replay resistance, and memoized validation.
@@ -93,12 +133,13 @@ The plan locks these exploration outcomes:
 
 ## Phases
 
-| Phase | Focus                                | Step Docs                                                                                                                         |
-| ----- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Contract and schema model            | [01](./01-alignment-and-adrs.md), [02](./02-schema-authorization-model.md), [03](./03-expression-dsl-and-compiler.md)             |
-| 2     | Evaluation and enforcement core      | [04](./04-auth-evaluator-engine.md), [05](./05-nodestore-enforcement.md)                                                          |
-| 3     | Delegation and transport integration | [06](./06-ucan-delegation-and-revocation.md), [07](./07-hub-capability-bridge.md)                                                 |
-| 4     | DX, observability, and hardening     | [08](./08-react-devtools-and-dx.md), [09](./09-performance-caching-and-benchmarks.md), [10](./10-security-rollout-and-release.md) |
+| Phase | Focus                                    | Step Docs                                                                                                                         |
+| ----- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Contract and schema model                | [01](./01-alignment-and-adrs.md), [02](./02-schema-authorization-model.md), [03](./03-expression-dsl-and-compiler.md)             |
+| 2     | Evaluation and enforcement core          | [04](./04-auth-evaluator-engine.md), [05](./05-nodestore-enforcement.md)                                                          |
+| 3     | Delegation and transport integration     | [06](./06-ucan-delegation-and-revocation.md), [07](./07-hub-capability-bridge.md)                                                 |
+| 4     | DX, observability, and hardening         | [08](./08-react-devtools-and-dx.md), [09](./09-performance-caching-and-benchmarks.md), [10](./10-security-rollout-and-release.md) |
+| 5     | Type contracts and validation guarantees | [11](./11-types-and-validation-contract.md)                                                                                       |
 
 ## End-to-End Delivery Flow
 
@@ -129,6 +170,8 @@ sequenceDiagram
 - [ ] Decision traces are explainable for debugging and audit.
 - [ ] Benchmarks hit target budgets for warm and cold `can()` checks.
 - [ ] Conformance tests cover deny precedence, traversal limits, and conflict edge cases.
+- [ ] Compatibility mode and enforce mode both validated on schemas with and without `authorization`.
+- [ ] Canonical action matrix has 100% contract-test coverage across store/sync/hub call sites.
 
 ## Risks and Mitigations
 
