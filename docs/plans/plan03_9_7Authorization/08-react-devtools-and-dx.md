@@ -45,6 +45,28 @@ Panel should show:
 - deny reason code
 - cache hit or miss metadata
 
+### 3a. Add Dedicated Devtools `AuthZ` Tab
+
+Implement a first-class top-level tab named `AuthZ` in Devtools shell navigation.
+
+Requirements:
+
+- Add `authz` to panel ID/type definitions and tab list.
+- Route `authz` tab to an authorization-focused panel component.
+- Keep existing non-auth tabs free of auth-specific test controls to avoid duplication.
+
+### 3b. Centralize Auth Dev and Testing UI in `AuthZ`
+
+Move or co-locate authorization development/testing tools into this tab:
+
+- permission check playground (`subject`, `action`, `nodeId`, optional patch fields)
+- `store.auth.explain()` trace viewer
+- grant/revoke/list grant test controls
+- revocation freshness/consistency mode inspector (`eventual` vs `strict`)
+- recent auth decision/event timeline (allow/deny, reason codes, cache state)
+
+This tab becomes the single source of truth for auth diagnostics during implementation.
+
 ### 4. Author DX Recipes
 
 Provide cookbook examples:
@@ -63,8 +85,17 @@ flowchart TB
   D --> E[decision]
   E --> A
   D --> F[trace]
-  F --> G[Devtools Auth Panel]
+  F --> G[Devtools AuthZ Tab]
 ```
+
+## Devtools Integration Checklist
+
+- [ ] `AuthZ` tab added to shell/tab registry.
+- [ ] `authz` panel type added to context/provider typing.
+- [ ] Permission playground implemented in `AuthZ` tab.
+- [ ] Explain-trace viewer implemented in `AuthZ` tab.
+- [ ] Grant/revoke/revocation test controls implemented in `AuthZ` tab.
+- [ ] Auth diagnostics removed or redirected from non-AuthZ tabs.
 
 ## Checklist
 
@@ -74,6 +105,7 @@ flowchart TB
 - [ ] Developer recipes documented.
 - [ ] Hook tests and story examples added.
 - [ ] Hook freshness semantics documented for `eventual` and `strict` modes.
+- [ ] All auth dev/testing UI consolidated into Devtools `AuthZ` tab.
 
 ---
 

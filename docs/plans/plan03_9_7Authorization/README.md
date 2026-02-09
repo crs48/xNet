@@ -172,6 +172,7 @@ sequenceDiagram
 - [ ] Conformance tests cover deny precedence, traversal limits, and conflict edge cases.
 - [ ] Compatibility mode and enforce mode both validated on schemas with and without `authorization`.
 - [ ] Canonical action matrix has 100% contract-test coverage across store/sync/hub call sites.
+- [ ] Devtools includes a dedicated `AuthZ` tab, and all authorization dev/testing surfaces are centralized there.
 
 ## Risks and Mitigations
 
