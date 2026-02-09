@@ -1,9 +1,9 @@
 # 07: Hub Capability Bridge
 
-> Align hub UCAN authorization checks with the unified store action model, with special focus on query result filtering.
+> Align hub UCAN authorization checks with the unified store action model, with special focus on query result filtering using recipient lists from encrypted envelopes.
 
 **Duration:** 3 days  
-**Dependencies:** [06-ucan-delegation-and-revocation.md](./06-ucan-delegation-and-revocation.md)  
+**Dependencies:** [06-ucan-delegation-and-revocation.md](./06-ucan-delegation-and-revocation.md), [00-encryption-architecture.md](./00-encryption-architecture.md)  
 **Packages:** `packages/hub`, `packages/core`
 
 ## Current Baseline
@@ -11,6 +11,7 @@
 - Hub authenticates UCANs and builds auth context in `packages/hub/src/auth/ucan.ts`.
 - Capability matching exists in `packages/hub/src/auth/capabilities.ts`.
 - Query infrastructure exists but does not perform authorization filtering on results.
+- **Step 00 defines encrypted envelopes with metadata for hub filtering without decryption.**
 
 ## Implementation
 

@@ -23,31 +23,30 @@ The plan is intentionally grounded in current repository reality:
 
 ## Query Authorization Model
 
-In the local-first model, **decryption capability serves as the read permission gate**:
+In the local-first model, **decryption capability serves as the read permission gate** (see [Step 00: Encryption Architecture](./00-encryption-architecture.md)):
 
-- **Local queries**: No additional authorization check needed beyond cryptographic access control. If you can decrypt the data, you can query it.
-- **Hub queries**: Server must filter results based on authorization policy before returning. The hub evaluates `read` action permissions using the full schema authorization model (roles, relations, UCAN delegations) and excludes unauthorized nodes from query results.
+- **Local queries**: If you have the decryption key cached, you can decrypt and read the node. The authorization evaluator determines key access, but once cached, queries are local-only.
+- **Hub queries**: Server filters encrypted envelopes based on **recipient lists** in the metadata envelope. The hub never decrypts content; it only checks if the requesting DID appears in the node's `recipients` array or has a valid grant.
 
 ### Hub Query Authorization Requirements
 
 **Critical for Security and DX:** In a global decentralized system, developers cannot be responsible for writing queries that manually account for all authorization edge cases. The hub must:
 
-1. **Evaluate authorization for each candidate node** against the requesting DID's capabilities
-2. **Apply schema-defined authorization rules** (roles, relations, field-level constraints)
-3. **Verify UCAN delegation chains** for delegated permissions
-4. **Filter query results** to only include nodes where `can(did, 'read', node) === true`
+1. **Query the metadata index** using unencrypted fields (`schema`, `createdBy`, `publicProps`)
+2. **Filter by authorization** checking if the requesting DID is in `recipients` or has an active grant
+3. **Return encrypted envelopes** that only authorized clients can decrypt
 
-**Developer Experience:** Application developers write queries for the data they want. The hub's query planner handles the complex work of determining what the user is allowed to see and filtering accordingly. This provides a simple, secure API where unauthorized data is automatically excluded.
+**Developer Experience:** Application developers write queries for the data they want. The hub's query planner handles the filtering work and returns only envelopes the user can decrypt. This provides a simple, secure API where unauthorized data is automatically excluded.
 
 **Query Planner Responsibilities:**
 
-- Parse the query to identify candidate nodes
-- For each candidate, evaluate authorization using the same `AuthEvaluator` as local stores
-- Apply result-set filtering before serialization
-- Optimize common patterns (e.g., "only my documents") with index intersection
+- Parse the query and search the metadata index (no decryption needed)
+- Filter results by checking `recipients` array for the requesting DID
+- Check for active grants when recipient list doesn't include the DID directly
+- Return encrypted envelopes (client performs decryption)
 - Return explainable traces for debugging (why a node was excluded)
 
-This distinction preserves local-first availability while ensuring proper access control in shared/hub contexts.
+**Key Point:** The hub never evaluates complex authorization rules (roles, relations). It only checks recipient lists. Complex authorization evaluation happens **client-side** when determining who to add to the `recipients` list. See Step 00 for the full encryption architecture.
 
 ## Compatibility and Rollout Defaults
 
@@ -164,6 +163,7 @@ This matrix is the single source of truth for action naming across store, sync, 
 
 | Phase | Focus                                     | Step Docs                                                                                                                         |
 | ----- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | **Cryptographic foundation**              | [00](./00-encryption-architecture.md) - **START HERE**                                                                            |
 | 1     | Contract and schema model                 | [01](./01-alignment-and-adrs.md), [02](./02-schema-authorization-model.md)                                                        |
 | 2     | Type contracts and expression foundations | [11](./11-types-and-validation-contract.md), [03](./03-expression-dsl-and-compiler.md)                                            |
 | 3     | Evaluation and enforcement core           | [04](./04-auth-evaluator-engine.md), [05](./05-nodestore-enforcement.md)                                                          |

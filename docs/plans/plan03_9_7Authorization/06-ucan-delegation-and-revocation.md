@@ -1,15 +1,16 @@
 # 06: UCAN Delegation and Revocation
 
-> Implement store-level grant/revoke/list APIs using existing UCAN primitives and revocation records.
+> Implement store-level grant/revoke/list APIs using existing UCAN primitives and revocation records. **Critical prerequisite: [Step 00: Encryption Architecture](./00-encryption-architecture.md).**
 
 **Duration:** 5 days  
-**Dependencies:** [05-nodestore-enforcement.md](./05-nodestore-enforcement.md)  
+**Dependencies:** [05-nodestore-enforcement.md](./05-nodestore-enforcement.md), [00-encryption-architecture.md](./00-encryption-architecture.md)  
 **Packages:** `packages/data`, `packages/identity`
 
 ## Current Baseline
 
 - UCAN creation and verification exist in `packages/identity/src/ucan.ts`.
 - Share revocation primitives and hash-based revocation store exist in `packages/identity/src/sharing/revocation.ts`.
+- **Encryption architecture from Step 00 provides the foundation: grants distribute encrypted content keys.**
 
 ## Implementation
 
