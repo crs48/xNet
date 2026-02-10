@@ -9,7 +9,18 @@ import type { SQLiteConfig, SQLValue, SQLRow, RunResult } from '../types'
 import * as Comlink from 'comlink'
 import { WebSQLiteAdapter, createWebSQLiteAdapter } from './web'
 
-console.log('[SQLiteWorker] Worker script loaded, Comlink imported')
+const DEBUG =
+  typeof self !== 'undefined' &&
+  typeof localStorage !== 'undefined' &&
+  localStorage.getItem('xnet:sqlite:debug') === 'true'
+
+function log(...args: unknown[]): void {
+  if (DEBUG) {
+    console.log(...args)
+  }
+}
+
+log('[SQLiteWorker] Worker script loaded, Comlink imported')
 
 /**
  * SQLite worker handler that wraps the adapter for message-based communication.
@@ -18,12 +29,12 @@ class SQLiteWorkerHandler {
   private adapter: WebSQLiteAdapter | null = null
 
   async open(config: SQLiteConfig): Promise<void> {
-    console.log('[SQLiteWorkerHandler] open() called with config:', config)
+    log('[SQLiteWorkerHandler] open() called with config:', config)
     if (this.adapter) {
       throw new Error('Database already open')
     }
     this.adapter = await createWebSQLiteAdapter(config)
-    console.log('[SQLiteWorkerHandler] open() completed')
+    log('[SQLiteWorkerHandler] open() completed')
   }
 
   async close(): Promise<void> {
@@ -84,10 +95,10 @@ class SQLiteWorkerHandler {
 }
 
 const handler = new SQLiteWorkerHandler()
-console.log('[SQLiteWorker] Handler instance created')
+log('[SQLiteWorker] Handler instance created')
 
-console.log('[SQLiteWorker] Exposing handler via Comlink...')
+log('[SQLiteWorker] Exposing handler via Comlink...')
 Comlink.expose(handler)
-console.log('[SQLiteWorker] Handler exposed - worker ready!')
+log('[SQLiteWorker] Handler exposed - worker ready!')
 
 export type { SQLiteWorkerHandler }

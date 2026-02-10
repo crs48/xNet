@@ -10,6 +10,15 @@ import type { SQLiteAdapter, PreparedStatement } from '../adapter'
 import type { SQLiteConfig, SQLValue, SQLRow, RunResult } from '../types'
 import * as Comlink from 'comlink'
 
+const DEBUG =
+  typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sqlite:debug') === 'true'
+
+function log(...args: unknown[]): void {
+  if (DEBUG) {
+    console.log(...args)
+  }
+}
+
 /**
  * Comlink-wrapped worker handler type
  */
@@ -37,7 +46,7 @@ export class WebSQLiteProxy implements SQLiteAdapter {
       throw new Error('Already open. Call close() first.')
     }
 
-    console.log('[WebSQLiteProxy] Creating worker...')
+    log('[WebSQLiteProxy] Creating worker...')
 
     // Create worker
     // The URL is resolved relative to this file's location at build time
@@ -53,12 +62,12 @@ export class WebSQLiteProxy implements SQLiteAdapter {
       console.error('[WebSQLiteProxy] Worker message error:', event)
     }
 
-    console.log('[WebSQLiteProxy] Worker created, wrapping with Comlink...')
+    log('[WebSQLiteProxy] Worker created, wrapping with Comlink...')
 
     // Wrap with Comlink for RPC-style communication
     this.proxy = Comlink.wrap<SQLiteWorkerHandler>(this.worker)
 
-    console.log('[WebSQLiteProxy] Calling proxy.open()...')
+    log('[WebSQLiteProxy] Calling proxy.open()...')
 
     // Open database in worker with timeout
     const openPromise = this.proxy.open(config)
@@ -67,7 +76,7 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     )
 
     await Promise.race([openPromise, timeoutPromise])
-    console.log('[WebSQLiteProxy] proxy.open() completed')
+    log('[WebSQLiteProxy] proxy.open() completed')
 
     this._config = config
   }
