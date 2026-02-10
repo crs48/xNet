@@ -582,6 +582,9 @@ importers:
       '@xnet/react':
         specifier: workspace:*
         version: link:../react
+      '@xnet/sqlite':
+        specifier: workspace:*
+        version: link:../sqlite
       '@xnet/sync':
         specifier: workspace:*
         version: link:../sync
