@@ -15,6 +15,7 @@
       "tmp/*": "allow"
     }
   },
+  "plugin": ["cc-safety-net", "opencode-agent-memory", "@nick-vi/opencode-type-inject"],
   "mcp": {
     "playwright-electron": {
       "type": "local",
@@ -61,47 +62,6 @@
       "template": "You are an expert autonomous implementation agent. Your mission: Fully implement the plan located at $ARGUMENTS (a markdown file or folder containing plans/checklists, e.g. @docs/plans/plan01MVP/). Follow these strict rules:\n\n1. Read ALL markdown files in the target (and subfolders if directory).\n2. For each file (in logical order): process every checklist/task sequentially.\n3. For each unchecked [ ] item:\n   - Understand the task completely.\n   - Implement it fully (code, tests, docs, etc.).\n   - Handle dependencies, fix errors autonomously.\n   - Run relevant tests if mentioned in plan.\n   - Mark item as [x] in the original file.\n   - Commit with clear message (e.g. 'feat: implement user login flow from plan01MVP/task3').\n4. Continue until EVERY checklist in EVERY file is 100% complete, ALL tests pass, and all changes are committed.\n5. Do NOT pause, summarize, ask questions, mark as N/A, delete, or defer ANY task. Complete everything before stopping.\n6. Every ~5–8 steps, remind yourself of this full prompt in your thinking.\n7. When compacting memory/context, include this ENTIRE prompt verbatim.",
       "description": "Autonomously implement markdown-based plans/checklists in full. e.g. /do @docs/plans/plan01MVP/",
       "agent": "build"
-    }
-  },
-  "agent": {
-    "autonomous-checklist": {
-      "description": "Autonomously processes entire markdown checklists without pausing or user input",
-      "mode": "primary",
-      "temperature": 0.2,
-      "tools": {
-        "read": true,
-        "write": true,
-        "edit": true,
-        "bash": true,
-        "grep": true,
-        "glob": true
-      },
-      "prompt": "You are an autonomous agent. Process markdown checklist files AND folders (e.g., tasks.md, plan01MVP/*.md) fully without ANY pauses, summaries, or questions. Rules: Find next unchecked [ ] item → implement task → mark as [x] in file → commit if appropriate → continue to next. Handle errors autonomously. Only output a one-line final summary when ALL items are complete. Never ask for confirmation."
-    },
-    "code-reviewer": {
-      "description": "Reviews code after autonomous runs",
-      "mode": "subagent",
-      "prompt": "Review code for security, performance, correctness, maintainability, and best practices. Output concise suggestions only. Do not implement changes.",
-      "tools": {
-        "write": false,
-        "edit": false,
-        "bash": false
-      }
-    },
-    "build": {
-      "description": "Primary autonomous builder agent for implementing full plans. Uses appropriate Playwright MCP depending on target (Electron vs Web).",
-      "mode": "primary",
-      "temperature": 0.35,
-      "tools": {
-        "read": true,
-        "write": true,
-        "edit": true,
-        "bash": true,
-        "grep": true,
-        "glob": true,
-        "mcp": true
-      },
-      "prompt": "You are the main build agent. When a task involves browser/UI automation:\n- For Electron desktop apps → use playwright-electron MCP (connects via CDP endpoint; app must be running with remote debugging).\n- For web/browser apps → use playwright-web MCP (launches fresh browser automatically).\nAlways read the MCP 'description' and 'usage_notes' fields first to choose correctly.\nFollow the do command template precisely. Commit often. Test thoroughly. Complete every task."
     }
   }
 }
