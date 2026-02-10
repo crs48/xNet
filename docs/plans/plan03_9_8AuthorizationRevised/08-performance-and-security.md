@@ -343,4 +343,4 @@ export const AUTH_FEATURE_FLAGS = {
 
 ---
 
-[Back to README](./README.md) | [Previous: DX, DevTools, and Validation](./07-dx-devtools-and-validation.md)
+[Back to README](./README.md) | [Previous: DX, DevTools, and Validation](./07-dx-devtools-and-validation.md) | [Next: Yjs Document Authorization →](./09-yjs-document-authorization.md)

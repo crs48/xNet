@@ -26,6 +26,8 @@ Does the schema say you can write? → The client will let you create a signed c
 
 Everything else — roles, relations, UCAN delegation — is machinery for determining **who gets added to the recipients list** and **who gets the content key**.
 
+This applies to **both data paths**: structured node properties (encrypted in `EncryptedEnvelope`) and collaborative Y.Doc content (encrypted at rest in `EncryptedYjsState`, room-gated in transit). See [Step 09](./09-yjs-document-authorization.md) for how Yjs documents are covered.
+
 ```mermaid
 flowchart TB
   subgraph AUTHZ["Authorization = Encryption"]
@@ -116,6 +118,13 @@ flowchart TB
       NS4["Transparent encrypt/decrypt"]
     end
 
+    subgraph YJS["Yjs Documents"]
+      Y1["SyncManager.acquire — room gate"]
+      Y2["YjsAuthGate — per-update auth"]
+      Y3["EncryptedYjsState — at-rest encryption"]
+      Y4["Room-gated real-time sync"]
+    end
+
     subgraph REACT["React DX"]
       R1["useCan(nodeId, actions)"]
       R2["useGrants(nodeId)"]
@@ -149,6 +158,9 @@ flowchart TB
   C3 --> C4
   C4 --> H3
   NS1 --> NS4
+  Y1 --> AE1
+  Y2 --> AE1
+  Y3 --> C3
   R1 --> AE1
   R2 --> AE3
   H1 --> H2
@@ -170,6 +182,9 @@ Single source of truth for action naming across all surfaces:
 | Store  | `grant`, `revoke`   | `share`          | Delegation management              |
 | Store  | transaction batch   | per-op           | All-or-nothing semantics           |
 | Sync   | `applyRemoteChange` | derived          | Inferred from change type          |
+| Yjs    | `acquire(write)`    | `write`          | Room join gate (Step 09)           |
+| Yjs    | `acquire(read)`     | `read`           | Decrypt Y.Doc state only           |
+| Yjs    | `remoteYjsUpdate`   | `write`          | Per-update auth gate (cached)      |
 | Hub    | `hub/query`         | `read`           | Filtered by recipients list        |
 | Hub    | `hub/relay`         | `write`          | Relay encrypted envelopes          |
 | Hub    | `hub/admin`         | `admin`          | Hub operational controls           |
@@ -304,14 +319,15 @@ flowchart TD
 
 ## Phases
 
-| Phase | Focus                                                          | Steps                                                                        | Duration |
-| ----- | -------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------- |
-| 1     | **Foundation** — Types, encryption, schema model               | [01](./01-types-and-encryption.md), [02](./02-schema-authorization-model.md) | 8 days   |
-| 2     | **Engine** — Evaluator, role resolution, NodeStore enforcement | [03](./03-authorization-engine.md), [04](./04-nodestore-enforcement.md)      | 8 days   |
-| 3     | **Delegation** — Grants, UCAN bridge, revocation               | [05](./05-grants-and-delegation.md)                                          | 5 days   |
-| 4     | **Federation** — Hub filtering, peer selective sync            | [06](./06-hub-and-peer-filtering.md)                                         | 5 days   |
-| 5     | **DX** — React hooks, DevTools, recipes, AI validation         | [07](./07-dx-devtools-and-validation.md)                                     | 5 days   |
-| 6     | **Hardening** — Performance, security, rollout                 | [08](./08-performance-and-security.md)                                       | 5 days   |
+| Phase | Focus                                                            | Steps                                                                        | Duration |
+| ----- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------- |
+| 1     | **Foundation** — Types, encryption, schema model                 | [01](./01-types-and-encryption.md), [02](./02-schema-authorization-model.md) | 8 days   |
+| 2     | **Engine** — Evaluator, role resolution, NodeStore enforcement   | [03](./03-authorization-engine.md), [04](./04-nodestore-enforcement.md)      | 8 days   |
+| 3     | **Delegation** — Grants, UCAN bridge, revocation                 | [05](./05-grants-and-delegation.md)                                          | 5 days   |
+| 4     | **Federation** — Hub filtering, peer selective sync              | [06](./06-hub-and-peer-filtering.md)                                         | 5 days   |
+| 5     | **DX** — React hooks, DevTools, recipes, AI validation           | [07](./07-dx-devtools-and-validation.md)                                     | 5 days   |
+| 6     | **Hardening** — Performance, security, rollout                   | [08](./08-performance-and-security.md)                                       | 5 days   |
+| 7     | **Yjs** — Y.Doc encryption, room-gated sync, per-update auth, DX | [09](./09-yjs-document-authorization.md)                                     | 5 days   |
 
 ## End-to-End Flow
 
@@ -353,11 +369,15 @@ These decisions from prior explorations are **final**:
 - **Per-node content keys** — with optional schema-level key sharing for performance.
 - **Eager key rotation on revocation** — with lazy batching as optimization.
 - **Eventual consistency** for revocation by default — strict mode opt-in.
+- **Room-gated Yjs model** — encrypt at rest, authorize at room join, signed (not encrypted) updates in room.
 
 ## Global Validation Gates
 
 - [ ] All mutating paths enforce authorization deterministically.
 - [ ] Every node is encrypted with per-node content key before leaving client.
+- [ ] Y.Doc state is encrypted at rest with per-node content key (`EncryptedYjsState`).
+- [ ] Y.Doc sync rooms are gated by authorization — unauthorized peers cannot join.
+- [ ] Remote Yjs updates are checked against `PolicyEvaluator` before applying.
 - [ ] Hub filters query results by recipient lists without decrypting.
 - [ ] Delegation chains enforce attenuation and expiration.
 - [ ] Decision traces are structured and explainable.
@@ -369,14 +389,15 @@ These decisions from prior explorations are **final**:
 
 ## Risks and Mitigations
 
-| Risk                                    | Impact                                | Mitigation                                                |
-| --------------------------------------- | ------------------------------------- | --------------------------------------------------------- |
-| Key rotation on revocation is expensive | High latency for large recipient sets | Batch revocations, lazy rotation for low-risk schemas     |
-| Relation traversal cycles               | Non-termination                       | Visited-set + max-depth (default 3) + max-nodes (100)     |
-| Metadata leaks social graph             | Privacy concern                       | Minimize publicProps, document tradeoffs                  |
-| Expression complexity                   | Slow checks                           | Typed builders with compile-time limits, no arbitrary DSL |
-| Revocation lag offline                  | Temporary over-permission             | Explicit consistency modes, short token TTLs              |
-| Hub recipient index grows large         | Query performance                     | Bloom filter optimization, periodic compaction            |
+| Risk                                    | Impact                                | Mitigation                                                                                                              |
+| --------------------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Key rotation on revocation is expensive | High latency for large recipient sets | Batch revocations, lazy rotation for low-risk schemas                                                                   |
+| Relation traversal cycles               | Non-termination                       | Visited-set + max-depth (default 3) + max-nodes (100)                                                                   |
+| Metadata leaks social graph             | Privacy concern                       | Minimize publicProps, document tradeoffs                                                                                |
+| Expression complexity                   | Slow checks                           | Typed builders with compile-time limits, no arbitrary DSL                                                               |
+| Revocation lag offline                  | Temporary over-permission             | Explicit consistency modes, short token TTLs                                                                            |
+| Hub recipient index grows large         | Query performance                     | Bloom filter optimization, periodic compaction                                                                          |
+| Yjs room-gated trust boundary           | Peers in room see plaintext updates   | Room join requires content key proof; per-update auth gate rejects unauthorized signers; revocation kicks + rotates key |
 
 ## Success Criteria
 
@@ -389,4 +410,4 @@ These decisions from prior explorations are **final**:
 
 ---
 
-[Back to Plans](../) | [Start with Step 01 →](./01-types-and-encryption.md)
+[Back to Plans](../) | [Start with Step 01 →](./01-types-and-encryption.md) | [Yjs Authorization →](./09-yjs-document-authorization.md)
