@@ -410,4 +410,4 @@ These decisions from prior explorations are **final**:
 
 ---
 
-[Back to Plans](../) | [Start with Step 01 →](./01-types-and-encryption.md) | [Yjs Authorization →](./09-yjs-document-authorization.md)
+[Back to Plans](../) | [Start with Step 01 →](./01-types-and-encryption.md) | [Yjs Authorization →](./09-yjs-document-authorization.md) | [Plan Review →](./REVIEW.md)
