@@ -17,6 +17,7 @@ import { SchemaHistoryPanel } from './SchemaHistoryPanel/SchemaHistoryPanel'
 import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
 import { SecurityPanel } from './SecurityPanel/SecurityPanel'
 import { Seed } from './Seed/Seed'
+import { SQLitePanel } from './SQLitePanel/SQLitePanel'
 import { SyncMonitor } from './SyncMonitor/SyncMonitor'
 import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { VersionPanel } from './VersionPanel/VersionPanel'
@@ -32,6 +33,7 @@ const PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'schemas', label: 'Schemas' },
   { id: 'schema-history', label: 'Schema Hist' },
   { id: 'security', label: 'Security' },
+  { id: 'sqlite', label: 'SQLite' },
   { id: 'version', label: 'Version' },
   { id: 'migration', label: 'Migrate' },
   { id: 'seed', label: 'Seed' },
@@ -53,28 +55,30 @@ export function DevToolsPanel() {
       <ResizeHandle position={position} height={height} setHeight={setHeight} />
 
       {/* Tab Bar */}
-      <div className="flex items-center border-b border-zinc-700 px-2 shrink-0">
-        <span className="text-xs font-bold text-zinc-400 mr-3 select-none">xNet</span>
+      <div className="flex items-center border-b border-zinc-700 shrink-0 overflow-x-auto">
+        <span className="text-xs font-bold text-zinc-400 ml-2 mr-3 select-none shrink-0">xNet</span>
 
-        {PANELS.map((panel) => (
-          <button
-            key={panel.id}
-            onClick={() => setActivePanel(panel.id)}
-            className={`
-              px-3 py-1.5 text-xs font-medium border-b-2 transition-colors
-              ${
-                activePanel === panel.id
-                  ? 'border-blue-400 text-blue-400'
-                  : 'border-transparent text-zinc-400 hover:text-zinc-200'
-              }
-            `}
-          >
-            {panel.label}
-          </button>
-        ))}
+        <div className="flex items-center shrink-0">
+          {PANELS.map((panel) => (
+            <button
+              key={panel.id}
+              onClick={() => setActivePanel(panel.id)}
+              className={`
+                px-3 py-1.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap
+                ${
+                  activePanel === panel.id
+                    ? 'border-blue-400 text-blue-400'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                }
+              `}
+            >
+              {panel.label}
+            </button>
+          ))}
+        </div>
 
         {/* Right-side controls */}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 shrink-0 px-2">
           <EventCounter count={eventBus.size} capacity={eventBus.capacity} />
           <PauseButton
             isPaused={eventBus.isPaused}
@@ -134,6 +138,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <SchemaHistoryPanel />
     case 'security':
       return <SecurityPanel />
+    case 'sqlite':
+      return <SQLitePanel />
     case 'version':
       return <VersionPanel />
     case 'migration':

@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@xnet/history": "workspace:*",
+    "@xnet/sqlite": "workspace:*",
     "@xnet/ui": "workspace:*",
     "@xnet/views": "workspace:*"
   },

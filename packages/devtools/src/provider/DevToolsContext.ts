@@ -22,6 +22,7 @@ export type PanelId =
   | 'seed'
   | 'history'
   | 'security'
+  | 'sqlite'
 
 export type PanelPosition = 'bottom' | 'right' | 'floating'
 
