@@ -37,16 +37,38 @@ export class WebSQLiteProxy implements SQLiteAdapter {
       throw new Error('Already open. Call close() first.')
     }
 
+    console.log('[WebSQLiteProxy] Creating worker...')
+
     // Create worker
     // The URL is resolved relative to this file's location at build time
     // Use .js extension for production builds (Vite handles .ts in dev)
     this.worker = new Worker(new URL('./web-worker.js', import.meta.url), { type: 'module' })
 
+    // Listen for worker errors
+    this.worker.onerror = (event) => {
+      console.error('[WebSQLiteProxy] Worker error:', event)
+    }
+
+    this.worker.onmessageerror = (event) => {
+      console.error('[WebSQLiteProxy] Worker message error:', event)
+    }
+
+    console.log('[WebSQLiteProxy] Worker created, wrapping with Comlink...')
+
     // Wrap with Comlink for RPC-style communication
     this.proxy = Comlink.wrap<SQLiteWorkerHandler>(this.worker)
 
-    // Open database in worker
-    await this.proxy.open(config)
+    console.log('[WebSQLiteProxy] Calling proxy.open()...')
+
+    // Open database in worker with timeout
+    const openPromise = this.proxy.open(config)
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Worker initialization timeout after 15s')), 15000)
+    )
+
+    await Promise.race([openPromise, timeoutPromise])
+    console.log('[WebSQLiteProxy] proxy.open() completed')
+
     this._config = config
   }
 

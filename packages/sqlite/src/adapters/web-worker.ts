@@ -6,7 +6,10 @@
  */
 
 import type { SQLiteConfig, SQLValue, SQLRow, RunResult } from '../types'
+import * as Comlink from 'comlink'
 import { WebSQLiteAdapter, createWebSQLiteAdapter } from './web'
+
+console.log('[SQLiteWorker] Worker script loaded, Comlink imported')
 
 /**
  * SQLite worker handler that wraps the adapter for message-based communication.
@@ -15,10 +18,12 @@ class SQLiteWorkerHandler {
   private adapter: WebSQLiteAdapter | null = null
 
   async open(config: SQLiteConfig): Promise<void> {
+    console.log('[SQLiteWorkerHandler] open() called with config:', config)
     if (this.adapter) {
       throw new Error('Database already open')
     }
     this.adapter = await createWebSQLiteAdapter(config)
+    console.log('[SQLiteWorkerHandler] open() completed')
   }
 
   async close(): Promise<void> {
@@ -52,10 +57,6 @@ class SQLiteWorkerHandler {
     return this.adapter.exec(sql)
   }
 
-  /**
-   * Execute multiple operations in a single transaction.
-   * This is the recommended way to do transactions across the worker boundary.
-   */
   async transaction(operations: Array<{ sql: string; params?: SQLValue[] }>): Promise<void> {
     if (!this.adapter) throw new Error('Database not open')
 
@@ -82,39 +83,11 @@ class SQLiteWorkerHandler {
   }
 }
 
-// Create handler instance
 const handler = new SQLiteWorkerHandler()
+console.log('[SQLiteWorker] Handler instance created')
 
-// Use Comlink if available, otherwise use raw postMessage
-async function initWorker(): Promise<void> {
-  try {
-    // Try to use Comlink for cleaner RPC-style communication
-    const Comlink = await import('comlink')
-    Comlink.expose(handler)
-  } catch {
-    // Fall back to raw postMessage handling
-    self.onmessage = async (event: MessageEvent) => {
-      const { id, method, args } = event.data as {
-        id: number
-        method: keyof SQLiteWorkerHandler
-        args: unknown[]
-      }
+console.log('[SQLiteWorker] Exposing handler via Comlink...')
+Comlink.expose(handler)
+console.log('[SQLiteWorker] Handler exposed - worker ready!')
 
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const result = await (handler as any)[method](...args)
-        self.postMessage({ id, result })
-      } catch (error) {
-        self.postMessage({
-          id,
-          error: error instanceof Error ? error.message : String(error)
-        })
-      }
-    }
-  }
-}
-
-initWorker()
-
-// Export handler type for type inference in the proxy
 export type { SQLiteWorkerHandler }

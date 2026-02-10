@@ -91,8 +91,13 @@ export function App(): JSX.Element {
 
     async function initialize() {
       try {
+        console.log('[App] Starting initialization...')
+
         // Check browser support first
+        console.log('[App] Checking browser support...')
         const support = await checkBrowserSupport()
+        console.log('[App] Browser support check complete:', support)
+
         if (!support.supported) {
           if (cancelled) return
           setAppState({ status: 'unsupported', reason: support.reason || 'Browser not supported' })
@@ -102,14 +107,21 @@ export function App(): JSX.Element {
         const storageWarning = support.warning
 
         // Dynamically import the web proxy to enable code splitting
+        console.log('[App] Importing WebSQLiteProxy...')
         const { WebSQLiteProxy } = await import('@xnet/sqlite/web-proxy')
+        console.log('[App] WebSQLiteProxy imported')
 
         // Create and open SQLite adapter
+        console.log('[App] Creating WebSQLiteProxy instance...')
         const sqliteAdapter = new WebSQLiteProxy()
+        console.log('[App] Opening database...')
         await sqliteAdapter.open({ path: '/xnet.db' })
+        console.log('[App] Database opened')
 
         // Apply schema
+        console.log('[App] Applying schema...')
         await sqliteAdapter.applySchema(SCHEMA_VERSION, SCHEMA_DDL)
+        console.log('[App] Schema applied')
 
         // Create storage adapters
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
