@@ -13,6 +13,7 @@ import { createPasskeyIdentity } from './create'
 import { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
 import { getStoredIdentity, storeIdentity, clearStoredIdentity } from './storage'
 import { detectPasskeySupport } from './support'
+import { isTestBypassEnabled, createTestIdentityManager } from './test-bypass'
 import { unlockPasskeyIdentity } from './unlock'
 
 // ─── Public Types ────────────────────────────────────────────
@@ -37,6 +38,7 @@ export {
   unlockDiscoveredPasskey,
   type DiscoveredPasskey
 } from './discovery'
+export { isTestBypassEnabled, createTestIdentity, createTestIdentityManager } from './test-bypass'
 
 // ─── Identity Manager ────────────────────────────────────────
 
@@ -87,6 +89,11 @@ export type IdentityManager = {
  * // keys.maxSecurityLevel === 2 (hybrid bundle with PQ keys)
  */
 export function createIdentityManager(): IdentityManager {
+  // Auto-switch to test mode if bypass is enabled
+  if (isTestBypassEnabled()) {
+    return createTestIdentityManager()
+  }
+
   let cachedKeyBundle: HybridKeyBundle | null = null
   let prfSupported: boolean | null = null
 

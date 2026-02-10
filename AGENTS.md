@@ -177,6 +177,33 @@ describe('ModuleName', () => {
 navigate → snapshot (accessibility tree) → interact → screenshot → check console.
 Enable sync debug logs: `localStorage.setItem('xnet:sync:debug', 'true')`
 
+### Test Authentication Bypass
+
+**CRITICAL: All Playwright tests MUST use test bypass mode.** The app requires WebAuthn/passkey authentication, which is not available in automated browsers.
+
+```typescript
+import { setupTestAuth } from '../helpers/test-auth'
+
+test('my test', async ({ page }) => {
+  await setupTestAuth(page) // Enables bypass and waits for auth
+  // Now interact with authenticated app
+})
+```
+
+**How it works:**
+
+1. Sets `localStorage.setItem('xnet:test:bypass', 'true')` before page load
+2. Identity manager detects flag and creates deterministic test identity
+3. No WebAuthn prompt, instant authentication
+
+**Manual testing with bypass:**
+
+```javascript
+// In browser console before loading app:
+localStorage.setItem('xnet:test:bypass', 'true')
+// Then reload page - app will skip Touch ID
+```
+
 **IMPORTANT: Always kill dev servers when done.** After finishing any Playwright testing or dev server usage, shut down ALL background processes before ending:
 
 ```bash
