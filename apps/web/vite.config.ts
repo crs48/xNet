@@ -3,6 +3,7 @@ import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { coopCoepHeaders } from './vite-plugins/coop-coep-headers'
 
 // Base path for deployment (default: '/', set VITE_BASE_PATH for custom paths like '/app/')
 const basePath = process.env.VITE_BASE_PATH || '/'
@@ -35,6 +36,7 @@ export default defineConfig({
     format: 'es'
   },
   plugins: [
+    coopCoepHeaders(),
     TanStackRouterVite(),
     react(),
     VitePWA({

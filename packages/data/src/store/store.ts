@@ -716,13 +716,7 @@ export class NodeStore {
   private async applyChange(change: NodeChange): Promise<void> {
     const { nodeId, schemaId, properties, deleted } = change.payload
 
-    // Append to change log
-    await this.storage.appendChange(change)
-
-    // Update Lamport time
-    await this.storage.setLastLamportTime(this.clock.time)
-
-    // Get or create materialized state
+    // Get or create materialized state FIRST (required for foreign key constraint)
     let node = await this.storage.getNode(nodeId)
 
     if (!node) {
@@ -742,7 +736,16 @@ export class NodeStore {
         updatedAt: change.wallTime,
         updatedBy: change.authorDID
       }
+
+      // Persist the node record BEFORE appending change (FK constraint)
+      await this.storage.setNode(node)
     }
+
+    // Now append to change log (node exists, FK constraint satisfied)
+    await this.storage.appendChange(change)
+
+    // Update Lamport time
+    await this.storage.setLastLamportTime(this.clock.time)
 
     // Get known property names from schema (if available)
     const knownProps = this.propertyLookup?.(node.schemaId)

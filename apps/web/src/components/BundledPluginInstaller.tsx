@@ -10,22 +10,18 @@ import { useEffect, useRef } from 'react'
 import { BUNDLED_PLUGINS } from '../plugins'
 
 export function BundledPluginInstaller() {
-  const { pluginRegistry } = useXNet()
+  const { pluginRegistry, nodeStoreReady } = useXNet()
   const installedRef = useRef(false)
 
   useEffect(() => {
-    if (!pluginRegistry || installedRef.current) return
+    if (!pluginRegistry || !nodeStoreReady || installedRef.current) return
 
-    // Mark as installed to prevent re-running
     installedRef.current = true
 
     const installBundledPlugins = async () => {
       for (const plugin of BUNDLED_PLUGINS) {
         try {
           if (pluginRegistry.has(plugin.id)) {
-            // Plugin was loaded from store with a JSON-deserialized manifest.
-            // Rehydrate with the live manifest so extension objects (with
-            // methods like renderHTML, addNodeView) are properly available.
             await pluginRegistry.rehydrate(plugin)
           } else {
             await pluginRegistry.install(plugin)
@@ -37,7 +33,7 @@ export function BundledPluginInstaller() {
     }
 
     installBundledPlugins()
-  }, [pluginRegistry])
+  }, [pluginRegistry, nodeStoreReady])
 
   // This component doesn't render anything
   return null
