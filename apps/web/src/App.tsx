@@ -88,6 +88,7 @@ export function App(): JSX.Element {
   // Initialize SQLite and storage on mount
   useEffect(() => {
     let cancelled = false
+    let cleanupAdapter: SQLiteAdapter | null = null
 
     async function initialize() {
       try {
@@ -107,21 +108,34 @@ export function App(): JSX.Element {
 
         // Create and open SQLite adapter
         const sqliteAdapter = new WebSQLiteProxy()
+        cleanupAdapter = sqliteAdapter
+
+        if (cancelled) {
+          await sqliteAdapter.close()
+          return
+        }
+
         await sqliteAdapter.open({ path: '/xnet.db' })
+
+        if (cancelled) {
+          await sqliteAdapter.close()
+          return
+        }
 
         // Apply schema
         await sqliteAdapter.applySchema(SCHEMA_VERSION, SCHEMA_DDL)
 
-        // Create storage adapters
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
-        await nodeStorage.open()
-
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
-        await storageAdapter.open()
 
         const blobStore = new BlobStore(storageAdapter)
         const chunkManager = new ChunkManager(blobStore)
         const blobService = new BlobService(chunkManager)
+
+        if (cancelled) {
+          await sqliteAdapter.close()
+          return
+        }
 
         // Store refs for later use
         storageRef.current = {
@@ -132,14 +146,12 @@ export function App(): JSX.Element {
           blobService
         }
 
+        // Check for existing identity
+        const hasIdentity = await identityManager.hasIdentity()
         if (cancelled) {
           await sqliteAdapter.close()
           return
         }
-
-        // Check for existing identity
-        const hasIdentity = await identityManager.hasIdentity()
-        if (cancelled) return
 
         if (hasIdentity) {
           setAppState({ status: 'unlocking', storageWarning })
@@ -173,8 +185,10 @@ export function App(): JSX.Element {
 
     return () => {
       cancelled = true
-      // Cleanup on unmount
-      if (storageRef.current?.sqliteAdapter) {
+      // Cleanup: close adapter immediately to prevent OPFS access handle conflicts
+      if (cleanupAdapter) {
+        cleanupAdapter.close().catch(console.error)
+      } else if (storageRef.current?.sqliteAdapter) {
         storageRef.current.sqliteAdapter.close().catch(console.error)
       }
     }
