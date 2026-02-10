@@ -13,6 +13,17 @@ import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 // that may not be installed at build time. The actual types are checked at runtime.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+const DEBUG =
+  typeof self !== 'undefined' &&
+  typeof localStorage !== 'undefined' &&
+  localStorage.getItem('xnet:sqlite:debug') === 'true'
+
+function log(...args: unknown[]): void {
+  if (DEBUG) {
+    console.log(...args)
+  }
+}
+
 /**
  * SQLite adapter for web browsers using @sqlite.org/sqlite-wasm.
  *
@@ -44,47 +55,47 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       throw new Error('Database already open. Call close() first.')
     }
 
-    console.log('[WebSQLiteAdapter] Starting open()...')
+    log('[WebSQLiteAdapter] Starting open()...')
 
     // Dynamically import sqlite-wasm
-    console.log('[WebSQLiteAdapter] Importing sqlite-wasm...')
+    log('[WebSQLiteAdapter] Importing sqlite-wasm...')
     const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default
-    console.log('[WebSQLiteAdapter] sqlite-wasm imported')
+    log('[WebSQLiteAdapter] sqlite-wasm imported')
 
     // Initialize the module
-    console.log('[WebSQLiteAdapter] Initializing sqlite3 module...')
+    log('[WebSQLiteAdapter] Initializing sqlite3 module...')
     this.sqlite3 = await sqlite3InitModule()
-    console.log('[WebSQLiteAdapter] sqlite3 module initialized')
+    log('[WebSQLiteAdapter] sqlite3 module initialized')
 
     // Install OPFS SAH Pool VFS
     // This is the recommended VFS for single-connection apps
     try {
-      console.log('[WebSQLiteAdapter] Installing OPFS-SAHPool VFS...')
+      log('[WebSQLiteAdapter] Installing OPFS-SAHPool VFS...')
       this.poolUtil = await this.sqlite3.installOpfsSAHPoolVfs({
         name: 'opfs-sahpool',
         directory: '.xnet-sqlite',
         initialCapacity: 10, // Support ~3-4 databases with journals
         clearOnInit: false
       })
-      console.log('[WebSQLiteAdapter] OPFS-SAHPool VFS installed')
+      log('[WebSQLiteAdapter] OPFS-SAHPool VFS installed')
 
       // Ensure we have enough capacity
-      console.log('[WebSQLiteAdapter] Reserving capacity...')
+      log('[WebSQLiteAdapter] Reserving capacity...')
       await this.poolUtil.reserveMinimumCapacity(10)
-      console.log('[WebSQLiteAdapter] Capacity reserved')
+      log('[WebSQLiteAdapter] Capacity reserved')
 
       // Path must be absolute for opfs-sahpool
       const dbPath = config.path.startsWith('/') ? config.path : `/${config.path}`
 
       // Open database using the pool VFS
-      console.log('[WebSQLiteAdapter] Opening database at', dbPath)
+      log('[WebSQLiteAdapter] Opening database at', dbPath)
       this.db = new this.poolUtil.OpfsSAHPoolDb(dbPath, 'c')
-      console.log('[WebSQLiteAdapter] Database opened with OPFS-SAHPool')
+      log('[WebSQLiteAdapter] Database opened with OPFS-SAHPool')
     } catch (err) {
       // If OPFS-SAHPool fails, fall back to in-memory
       console.warn('[WebSQLiteAdapter] OPFS-SAHPool not available, using in-memory database:', err)
       this.db = new this.sqlite3.oo1.DB(':memory:', 'c')
-      console.log('[WebSQLiteAdapter] In-memory database opened')
+      log('[WebSQLiteAdapter] In-memory database opened')
     }
 
     this._config = config
