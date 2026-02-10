@@ -14,6 +14,35 @@ export interface BrowserSupport {
   supported: boolean
   /** Reason for lack of support (if not supported) */
   reason?: string
+  /** Warning message for soft failures (app can still work with fallback) */
+  warning?: string
+}
+
+/**
+ * Timeout wrapper for promises that may hang indefinitely.
+ */
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMessage: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMessage)), timeoutMs))
+  ])
+}
+
+/**
+ * Detect if the browser is Safari in Private Browsing Mode.
+ * Safari disables storage APIs in private mode, causing OPFS to fail.
+ */
+function isSafariPrivateBrowsing(): boolean {
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+  if (!isSafari) return false
+
+  try {
+    localStorage.setItem('_test', '1')
+    localStorage.removeItem('_test')
+    return false
+  } catch {
+    return true
+  }
 }
 
 /**
@@ -29,12 +58,18 @@ export interface BrowserSupport {
  * - Firefox 111+ (March 2023)
  * - Safari 16.4+ (March 2023)
  *
+ * Note: If OPFS test fails but APIs exist, we allow the app to proceed
+ * with a warning. The worker will fall back to in-memory mode if needed.
+ *
  * @example
  * ```typescript
  * const support = await checkBrowserSupport()
  * if (!support.supported) {
  *   showUnsupportedBrowserMessage(support.reason!)
  *   return
+ * }
+ * if (support.warning) {
+ *   showWarningBanner(support.warning)
  * }
  * // Proceed with SQLite initialization
  * ```
@@ -46,34 +81,47 @@ export async function checkBrowserSupport(): Promise<BrowserSupport> {
     supported: false
   }
 
-  // Check Web Worker support
+  // Check Web Worker support (hard requirement)
   if (typeof Worker === 'undefined') {
     result.worker = false
     result.reason = 'Web Workers not supported in this browser.'
     return result
   }
 
-  // Check OPFS support
+  // Check OPFS API existence (hard requirement)
   if (typeof navigator === 'undefined' || !navigator.storage?.getDirectory) {
     result.reason =
       'Origin Private File System (OPFS) not supported. Please use a modern browser (Chrome 102+, Firefox 111+, Safari 16.4+).'
     return result
   }
 
-  // Test OPFS access
+  // Test OPFS access with timeout (soft failure - warn but don't block)
   try {
-    const root = await navigator.storage.getDirectory()
-    // Try to create and delete a test file
-    const testFileName = '.xnet-support-test-' + Date.now()
-    await root.getFileHandle(testFileName, { create: true })
-    await root.removeEntry(testFileName)
+    const testOPFS = async () => {
+      const root = await navigator.storage.getDirectory()
+      const testFileName = '.xnet-support-test-' + Date.now()
+      await root.getFileHandle(testFileName, { create: true })
+      await root.removeEntry(testFileName)
+    }
+
+    await withTimeout(testOPFS(), 5000, 'OPFS access timeout')
     result.opfs = true
+    result.supported = true
   } catch (err) {
-    result.reason = `OPFS access failed: ${(err as Error).message}`
-    return result
+    const errorMessage = (err as Error).message
+
+    // Check for Safari private browsing
+    if (isSafariPrivateBrowsing()) {
+      result.warning =
+        'Safari Private Browsing detected. Storage may be limited. For full functionality, switch to normal mode or use the xNet Desktop App.'
+      result.supported = true
+    } else {
+      // Allow app to proceed with warning - worker will handle fallback
+      result.warning = `Storage access limited (${errorMessage}). Data will not persist between sessions. For full functionality, use the xNet Desktop App.`
+      result.supported = true
+    }
   }
 
-  result.supported = true
   return result
 }
 

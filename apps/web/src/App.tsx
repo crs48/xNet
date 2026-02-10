@@ -29,6 +29,7 @@ import { SQLiteStorageAdapter, BlobStore, ChunkManager } from '@xnet/storage'
 import { ThemeProvider } from '@xnet/ui'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
+import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -57,9 +58,9 @@ type AppState =
   | { status: 'initializing' }
   | { status: 'unsupported'; reason: string }
   | { status: 'loading' }
-  | { status: 'needs-onboarding' }
-  | { status: 'unlocking' }
-  | { status: 'authenticated'; identity: Identity; keyBundle: KeyBundle }
+  | { status: 'needs-onboarding'; storageWarning?: string }
+  | { status: 'unlocking'; storageWarning?: string }
+  | { status: 'authenticated'; identity: Identity; keyBundle: KeyBundle; storageWarning?: string }
   | { status: 'error'; error: Error }
 
 // ─── Storage Context ────────────────────────────────────────────
@@ -97,6 +98,8 @@ export function App(): JSX.Element {
           setAppState({ status: 'unsupported', reason: support.reason || 'Browser not supported' })
           return
         }
+
+        const storageWarning = support.warning
 
         // Dynamically import the web proxy to enable code splitting
         const { WebSQLiteProxy } = await import('@xnet/sqlite/web-proxy')
@@ -138,17 +141,22 @@ export function App(): JSX.Element {
         if (cancelled) return
 
         if (hasIdentity) {
-          setAppState({ status: 'unlocking' })
+          setAppState({ status: 'unlocking', storageWarning })
           try {
             const keyBundle = await identityManager.unlock()
             if (cancelled) return
-            setAppState({ status: 'authenticated', identity: keyBundle.identity, keyBundle })
+            setAppState({
+              status: 'authenticated',
+              identity: keyBundle.identity,
+              keyBundle,
+              storageWarning
+            })
           } catch (_err) {
             if (cancelled) return
-            setAppState({ status: 'needs-onboarding' })
+            setAppState({ status: 'needs-onboarding', storageWarning })
           }
         } else {
-          setAppState({ status: 'needs-onboarding' })
+          setAppState({ status: 'needs-onboarding', storageWarning })
         }
       } catch (err) {
         if (cancelled) return
@@ -215,6 +223,7 @@ export function App(): JSX.Element {
   if (appState.status === 'unlocking') {
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
+        {appState.storageWarning && <StorageWarningBanner message={appState.storageWarning} />}
         <div className="flex items-center justify-center h-screen bg-background">
           <div className="text-center">
             <div className="text-4xl mb-4">🔐</div>
@@ -251,6 +260,7 @@ export function App(): JSX.Element {
   if (appState.status === 'needs-onboarding') {
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
+        {appState.storageWarning && <StorageWarningBanner message={appState.storageWarning} />}
         <OnboardingProvider defaultHubUrl={HUB_URL} onComplete={handleOnboardingComplete}>
           <OnboardingFlow />
         </OnboardingProvider>
@@ -259,11 +269,12 @@ export function App(): JSX.Element {
   }
 
   // Authenticated — render main app
-  const { identity, keyBundle } = appState
+  const { identity, keyBundle, storageWarning } = appState
   const storage = storageRef.current!
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
+      {storageWarning && <StorageWarningBanner message={storageWarning} />}
       <ErrorBoundary>
         <XNetProvider
           config={{
