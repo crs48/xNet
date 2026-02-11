@@ -5,6 +5,7 @@
  */
 
 import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
+import { Tooltip } from '@xnet/ui'
 import { useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { DEFAULTS } from '../core/constants'
 import { useDevTools } from '../provider/useDevTools'
@@ -75,12 +76,14 @@ export function DevToolsPanel() {
               `}
             >
               {panel.id === 'sqlite' ? (
-                <span className="inline-flex items-center gap-1.5" title={sqliteStatus.tooltip}>
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${sqliteStatus.active ? 'bg-green-500' : 'bg-red-500'}`}
-                  />
-                  <span>{panel.label}</span>
-                </span>
+                <Tooltip content={sqliteStatus.tooltip} side="bottom" sideOffset={6}>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${sqliteStatus.active ? 'bg-green-500' : 'bg-red-500'}`}
+                    />
+                    <span>{panel.label}</span>
+                  </span>
+                </Tooltip>
               ) : (
                 panel.label
               )}
