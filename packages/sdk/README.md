@@ -1,6 +1,6 @@
 # @xnet/sdk
 
-Unified SDK client for xNet with browser and Node.js presets.
+Unified SDK bundle for xNet.
 
 ## Installation
 
@@ -11,54 +11,33 @@ pnpm add @xnet/sdk
 ## Usage
 
 ```typescript
-import { createXNetClient } from '@xnet/sdk'
+import {
+  generateIdentity,
+  createSearchIndex,
+  createLocalQueryEngine,
+  MemoryAdapter
+} from '@xnet/sdk'
 
-// Create client with auto-configuration
-const client = await createXNetClient({
-  storage: new IndexedDBAdapter(),
-  enableNetwork: false
-})
+const identity = await generateIdentity()
+const storage = new MemoryAdapter()
+const index = createSearchIndex()
+const engine = createLocalQueryEngine(
+  async () => [],
+  async () => null
+)
 
-await client.start()
-
-// Create a document
-const doc = await client.createDocument({
-  workspace: 'default',
-  type: 'page',
-  title: 'My Note'
-})
-
-// Get a document
-const loaded = await client.getDocument(doc.id)
-
-// Query
-const results = await client.query({
-  type: 'page',
-  sort: [{ field: 'updated', direction: 'desc' }]
-})
-
-// Full-text search
-const matches = await client.search('hello')
-
-// Cleanup
-await client.stop()
+console.log(identity.did, storage, index, engine)
 ```
 
-### Platform Presets
+## What This Package Exports
 
-```typescript
-import { createBrowserClient } from '@xnet/sdk'
+- Identity helpers from `@xnet/identity`
+- Query helpers from `@xnet/query`
+- Blob storage adapter from `@xnet/storage`
+- Core hashing/content helpers from `@xnet/core`
+- Shared type re-exports from core/network/query/storage/identity
 
-// Browser preset (IndexedDB + WebRTC)
-const browser = await createBrowserClient()
-```
-
-```typescript
-import { createNodeClient } from '@xnet/sdk'
-
-// Node.js preset (filesystem + WebSocket)
-const node = await createNodeClient({ dataDir: './data' })
-```
+The legacy high-level SDK client (`createXNetClient`) and platform presets were removed.
 
 ## Re-exports
 
@@ -67,18 +46,15 @@ The SDK re-exports commonly used types and utilities from:
 - `@xnet/core` -- Types, CIDs, permissions
 - `@xnet/crypto` -- Hashing, signing
 - `@xnet/identity` -- DID, UCAN, key bundles
-- `@xnet/storage` -- Storage adapters
-- `@xnet/data` -- Schemas, NodeStore, property types
+- `@xnet/storage` -- Blob storage adapter
 - `@xnet/network` -- Network node
 - `@xnet/query` -- Query engine, search
 
 ## Modules
 
-| Module               | Description                             |
-| -------------------- | --------------------------------------- |
-| `client.ts`          | `createXNetClient` factory              |
-| `presets/browser.ts` | Browser preset (IndexedDB + WebRTC)     |
-| `presets/node.ts`    | Node.js preset (filesystem + WebSocket) |
+| Module     | Description                    |
+| ---------- | ------------------------------ |
+| `index.ts` | Re-export surface for xNet SDK |
 
 ## Testing
 
