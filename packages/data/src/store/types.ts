@@ -261,6 +261,21 @@ export interface NodeStoreOptions {
   authEvaluator?: PolicyEvaluator
 
   /**
+   * Optional transparent node content cipher.
+   *
+   * When provided, NodeStore writes encrypted node payload snapshots via
+   * `setDocumentContent()` and decrypts them on read paths.
+   */
+  nodeContentCipher?: NodeContentCipher
+
+  /**
+   * Optional cache for per-node content keys used by `nodeContentCipher`.
+   *
+   * This avoids expensive key unwraps on repeated reads.
+   */
+  contentKeyCache?: ContentKeyCache
+
+  /**
    * Optional lookup for properties that can change node recipients.
    * When provided, update paths only trigger recipient recomputation hooks
    * if one of these properties is changed.
@@ -286,6 +301,35 @@ export interface NodeStoreOptions {
     action: AuthAction
     decision: AuthDecision
   }) => void
+}
+
+/**
+ * Cache for per-node content keys used during transparent decrypt/encrypt flows.
+ */
+export interface ContentKeyCache {
+  get(nodeId: NodeId): Uint8Array | undefined
+  set(nodeId: NodeId, key: Uint8Array): void
+  delete(nodeId: NodeId): void
+  clear?(): void
+}
+
+/**
+ * Pluggable cipher for transparent node payload encryption.
+ */
+export interface NodeContentCipher {
+  encrypt(input: {
+    nodeId: NodeId
+    schemaId: SchemaIRI
+    content: Uint8Array
+    cachedContentKey?: Uint8Array
+  }): Promise<{ encryptedContent: Uint8Array; contentKey?: Uint8Array }>
+
+  decrypt(input: {
+    nodeId: NodeId
+    schemaId: SchemaIRI
+    encryptedContent: Uint8Array
+    cachedContentKey?: Uint8Array
+  }): Promise<{ content: Uint8Array; contentKey?: Uint8Array }>
 }
 
 /**

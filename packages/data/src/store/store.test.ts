@@ -2,6 +2,7 @@
  * Tests for NodeStore
  */
 
+import type { ContentKeyCache, NodeContentCipher } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
 import { generateSigningKeyPair } from '@xnet/crypto'
@@ -58,6 +59,49 @@ function createAuthEvaluator(canResult: (input: AuthCheckInput) => boolean): Pol
     })),
     invalidate: vi.fn(),
     invalidateSubject: vi.fn()
+  }
+}
+
+function createMockNodeContentCipher() {
+  const encrypt = vi.fn<NodeContentCipher['encrypt']>(async ({ content }) => {
+    const encoded = new TextDecoder().decode(content)
+    return {
+      encryptedContent: new TextEncoder().encode(`enc:${encoded}`),
+      contentKey: new Uint8Array([1, 2, 3, 4])
+    }
+  })
+
+  const decrypt = vi.fn<NodeContentCipher['decrypt']>(
+    async ({ encryptedContent, cachedContentKey }) => {
+      const encoded = new TextDecoder().decode(encryptedContent)
+      const withoutPrefix = encoded.startsWith('enc:') ? encoded.slice(4) : encoded
+      return {
+        content: new TextEncoder().encode(withoutPrefix),
+        contentKey: cachedContentKey ?? new Uint8Array([1, 2, 3, 4])
+      }
+    }
+  )
+
+  return {
+    cipher: { encrypt, decrypt } satisfies NodeContentCipher,
+    encrypt,
+    decrypt
+  }
+}
+
+function createInMemoryContentKeyCache(): ContentKeyCache {
+  const cache = new Map<string, Uint8Array>()
+  return {
+    get: (nodeId) => cache.get(nodeId),
+    set: (nodeId, key) => {
+      cache.set(nodeId, key)
+    },
+    delete: (nodeId) => {
+      cache.delete(nodeId)
+    },
+    clear: () => {
+      cache.clear()
+    }
   }
 }
 
@@ -767,6 +811,67 @@ describe('authorization enforcement', () => {
     const invalidateSpy = evaluator.invalidate as ReturnType<typeof vi.fn>
     expect(invalidateSpy).toHaveBeenCalledWith(node.id)
     expect(invalidateSpy.mock.calls.length).toBeGreaterThanOrEqual(3)
+  })
+})
+
+describe('transparent encryption', () => {
+  it('encrypts node snapshots on write path', async () => {
+    const { adapter, did, privateKey } = createTestStore()
+    const { cipher, encrypt } = createMockNodeContentCipher()
+    const cache = createInMemoryContentKeyCache()
+
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: privateKey,
+      nodeContentCipher: cipher,
+      contentKeyCache: cache
+    })
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Encrypted node', status: 'todo' }
+    })
+
+    await store.update(node.id, {
+      properties: { status: 'done' }
+    })
+
+    expect(encrypt).toHaveBeenCalledTimes(2)
+
+    const encryptedSnapshot = await adapter.getDocumentContent(node.id)
+    expect(encryptedSnapshot).not.toBeNull()
+  })
+
+  it('decrypts node snapshots on read path and reuses cached content key', async () => {
+    const { adapter, did, privateKey } = createTestStore()
+    const { cipher, decrypt } = createMockNodeContentCipher()
+    const cache = createInMemoryContentKeyCache()
+
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: privateKey,
+      nodeContentCipher: cipher,
+      contentKeyCache: cache
+    })
+    await store.initialize()
+
+    const created = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Decrypt me', status: 'todo' }
+    })
+
+    const firstRead = await store.get(created.id)
+    expect(firstRead?.properties.title).toBe('Decrypt me')
+
+    const secondRead = await store.get(created.id)
+    expect(secondRead?.properties.status).toBe('todo')
+
+    expect(decrypt).toHaveBeenCalledTimes(2)
+    const secondDecryptInput = decrypt.mock.calls[1]?.[0]
+    expect(secondDecryptInput?.cachedContentKey).toEqual(new Uint8Array([1, 2, 3, 4]))
   })
 })
 
