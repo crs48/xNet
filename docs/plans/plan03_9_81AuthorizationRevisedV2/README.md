@@ -345,7 +345,7 @@ These decisions from prior explorations are **final**:
 - [ ] Hub filters query results by recipient lists without decrypting.
 - [ ] Delegation chains enforce attenuation, expiration, and depth limits (max 4).
 - [ ] Offline authorization uses explicit cache TTL (5 min default) with configurable revalidation.
-- [ ] Key recovery via seed phrase allows full access restoration on new device.
+- [x] Key recovery via seed phrase allows full access restoration on new device.
 - [ ] Decision traces are structured and explainable.
 - [ ] Benchmarks hit target budgets (warm `can()` < 1ms p50, cold < 10ms p50).
 - [ ] Conformance tests cover deny precedence, traversal limits, conflict edges.
