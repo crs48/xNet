@@ -397,8 +397,8 @@ flowchart TD
 - [x] `Schema` type extended with serialized authorization.
 - [x] `defineSchema()` validates authorization at schema creation time.
 - [x] `serializeAuthorization` / `deserializeAuthorization` implemented.
-- [ ] `PUBLIC_CONTENT_KEY` and `PUBLIC_RECIPIENT` constants defined.
-- [ ] `hasPublicAccess()` detects public read expressions.
+- [x] `PUBLIC_CONTENT_KEY` and `PUBLIC_RECIPIENT` constants defined.
+- [x] `hasPublicAccess()` detects public read expressions.
 - [ ] `computeRecipients` pipeline implemented with public node support.
 - [ ] `getAuthMode` for legacy/compat/enforce behavior.
 - [ ] `warnLegacySchema` emits console warning for schemas without auth block.
