@@ -27,10 +27,13 @@ import type {
   NodeChangeListener,
   PropertyLookup,
   GetWithMigrationOptions,
-  MigratedNodeState
+  MigratedNodeState,
+  NodeContentCipher,
+  ContentKeyCache
 } from './types'
 import type { LensRegistry } from '../schema/lens'
 import type { AuthAction, AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
+import { base64ToBytes, bytesToBase64 } from '@xnet/crypto'
 import { parseDID } from '@xnet/identity'
 import {
   createLamportClock,
@@ -50,6 +53,17 @@ import { resolveTempIds, type SchemaLookup } from './tempids'
 
 /** Maximum number of conflicts to retain before trimming */
 const MAX_CONFLICTS = 200
+const ENCRYPTED_NODE_MARKER = 'xnet:node-encrypted:v1'
+
+type EncryptedNodeSnapshot = {
+  marker: typeof ENCRYPTED_NODE_MARKER
+  payload: string
+}
+
+type SerializedNodeSnapshot = {
+  properties: Record<string, unknown>
+  unknown?: Record<string, unknown>
+}
 
 /**
  * NodeStore manages event-sourced Nodes with LWW conflict resolution.
@@ -65,6 +79,8 @@ export class NodeStore {
   private propertyLookup?: PropertyLookup
   private lensRegistry?: LensRegistry
   private authEvaluator?: PolicyEvaluator
+  private nodeContentCipher?: NodeContentCipher
+  private contentKeyCache?: ContentKeyCache
   private authRelevantPropertyLookup?: (schemaId: SchemaIRI) => Set<string> | undefined
   private onRecipientsMayNeedRecompute?: (context: {
     nodeId: string
@@ -86,6 +102,8 @@ export class NodeStore {
     this.propertyLookup = options.propertyLookup
     this.lensRegistry = options.lensRegistry
     this.authEvaluator = options.authEvaluator
+    this.nodeContentCipher = options.nodeContentCipher
+    this.contentKeyCache = options.contentKeyCache
     this.authRelevantPropertyLookup = options.authRelevantPropertyLookup
     this.onRecipientsMayNeedRecompute = options.onRecipientsMayNeedRecompute
     this.onUnauthorizedRemoteChange = options.onUnauthorizedRemoteChange
@@ -157,6 +175,8 @@ export class NodeStore {
       throw new Error(`Failed to create node: ${id}`)
     }
 
+    await this.persistEncryptedNodeSnapshot(node)
+
     // Emit change event
     this.emit(change, node, false)
     this.authEvaluator?.invalidate(node.id)
@@ -168,7 +188,8 @@ export class NodeStore {
    * Get a Node by ID.
    */
   async get(id: NodeId): Promise<NodeState | null> {
-    return this.storage.getNode(id)
+    const node = await this.storage.getNode(id)
+    return this.decryptNodeSnapshotIfPresent(node)
   }
 
   /**
@@ -201,7 +222,8 @@ export class NodeStore {
     id: NodeId,
     options: GetWithMigrationOptions
   ): Promise<MigratedNodeState | null> {
-    const node = await this.storage.getNode(id)
+    const storedNode = await this.storage.getNode(id)
+    const node = await this.decryptNodeSnapshotIfPresent(storedNode)
     if (!node) return null
 
     // Determine stored schema version
@@ -284,6 +306,8 @@ export class NodeStore {
       throw new Error(`Failed to update node: ${id}`)
     }
 
+    await this.persistEncryptedNodeSnapshot(node)
+
     // Emit change event
     this.emit(change, node, false)
     this.authEvaluator?.invalidate(node.id)
@@ -332,6 +356,8 @@ export class NodeStore {
     // Apply and persist
     await this.applyChange(change)
 
+    this.contentKeyCache?.delete(id)
+
     // Emit change event
     const deletedNode = await this.storage.getNode(id)
     this.emit(change, deletedNode, false)
@@ -376,6 +402,8 @@ export class NodeStore {
       throw new Error(`Failed to restore node: ${id}`)
     }
 
+    await this.persistEncryptedNodeSnapshot(node)
+
     // Emit change event
     this.emit(change, node, false)
     this.authEvaluator?.invalidate(node.id)
@@ -387,7 +415,11 @@ export class NodeStore {
    * List Nodes with optional filtering.
    */
   async list(options?: ListNodesOptions): Promise<NodeState[]> {
-    return this.storage.listNodes(options)
+    const nodes = await this.storage.listNodes(options)
+    const decrypted = await Promise.all(
+      nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
+    )
+    return decrypted.filter((node): node is NodeState => node !== null)
   }
 
   // ==========================================================================
@@ -459,6 +491,7 @@ export class NodeStore {
           )
           await this.applyChange(change)
           result = await this.storage.getNode(id)
+          await this.persistEncryptedNodeSnapshot(result)
           break
         }
 
@@ -482,6 +515,7 @@ export class NodeStore {
           )
           await this.applyChange(change)
           result = await this.storage.getNode(op.nodeId)
+          await this.persistEncryptedNodeSnapshot(result)
           break
         }
 
@@ -530,6 +564,7 @@ export class NodeStore {
           )
           await this.applyChange(change)
           result = await this.storage.getNode(op.nodeId)
+          await this.persistEncryptedNodeSnapshot(result)
           break
         }
       }
@@ -606,6 +641,7 @@ export class NodeStore {
 
     // Emit change event (marked as remote)
     const node = await this.storage.getNode(change.payload.nodeId)
+    await this.persistEncryptedNodeSnapshot(node)
     this.emit(change, node, true)
     this.authEvaluator?.invalidate(change.payload.nodeId)
   }
@@ -998,5 +1034,115 @@ export class NodeStore {
     }
 
     return Object.keys(patch).some((propertyName) => authRelevant.has(propertyName))
+  }
+
+  private async persistEncryptedNodeSnapshot(node: NodeState | null): Promise<void> {
+    if (!node || !this.nodeContentCipher) {
+      return
+    }
+
+    const serialized = this.serializeNodeSnapshot(node)
+    const cachedContentKey = this.contentKeyCache?.get(node.id)
+    const encrypted = await this.nodeContentCipher.encrypt({
+      nodeId: node.id,
+      schemaId: node.schemaId,
+      content: serialized,
+      cachedContentKey
+    })
+
+    if (encrypted.contentKey) {
+      this.contentKeyCache?.set(node.id, encrypted.contentKey)
+    }
+
+    const wrappedSnapshot: EncryptedNodeSnapshot = {
+      marker: ENCRYPTED_NODE_MARKER,
+      payload: bytesToBase64(encrypted.encryptedContent)
+    }
+
+    const encodedWrapper = new TextEncoder().encode(JSON.stringify(wrappedSnapshot))
+    await this.storage.setDocumentContent(node.id, encodedWrapper)
+  }
+
+  private async decryptNodeSnapshotIfPresent(node: NodeState | null): Promise<NodeState | null> {
+    if (!node || !this.nodeContentCipher) {
+      return node
+    }
+
+    const encodedSnapshot = await this.storage.getDocumentContent(node.id)
+    if (!encodedSnapshot) {
+      return node
+    }
+
+    const wrappedSnapshot = this.parseEncryptedNodeSnapshot(encodedSnapshot)
+    if (!wrappedSnapshot) {
+      return node
+    }
+
+    const cachedContentKey = this.contentKeyCache?.get(node.id)
+    const decrypted = await this.nodeContentCipher.decrypt({
+      nodeId: node.id,
+      schemaId: node.schemaId,
+      encryptedContent: base64ToBytes(wrappedSnapshot.payload),
+      cachedContentKey
+    })
+
+    if (decrypted.contentKey) {
+      this.contentKeyCache?.set(node.id, decrypted.contentKey)
+    }
+
+    const snapshot = this.deserializeNodeSnapshot(decrypted.content)
+    return {
+      ...node,
+      properties: snapshot.properties,
+      _unknown: snapshot.unknown
+    }
+  }
+
+  private serializeNodeSnapshot(node: NodeState): Uint8Array {
+    const payload: SerializedNodeSnapshot = {
+      properties: node.properties,
+      unknown: node._unknown
+    }
+    return new TextEncoder().encode(JSON.stringify(payload))
+  }
+
+  private deserializeNodeSnapshot(bytes: Uint8Array): SerializedNodeSnapshot {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown
+    } catch (error) {
+      throw new Error(
+        `[NodeStore] Failed to parse decrypted node snapshot: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+
+    if (!parsed || typeof parsed !== 'object' || !('properties' in parsed)) {
+      throw new Error('[NodeStore] Decrypted node snapshot is invalid')
+    }
+
+    const record = parsed as { properties: unknown; unknown?: unknown }
+    if (!record.properties || typeof record.properties !== 'object') {
+      throw new Error('[NodeStore] Decrypted node snapshot is missing properties')
+    }
+
+    return {
+      properties: record.properties as Record<string, unknown>,
+      unknown:
+        record.unknown && typeof record.unknown === 'object'
+          ? (record.unknown as Record<string, unknown>)
+          : undefined
+    }
+  }
+
+  private parseEncryptedNodeSnapshot(bytes: Uint8Array): EncryptedNodeSnapshot | null {
+    try {
+      const parsed = JSON.parse(new TextDecoder().decode(bytes)) as EncryptedNodeSnapshot
+      if (parsed.marker !== ENCRYPTED_NODE_MARKER || typeof parsed.payload !== 'string') {
+        return null
+      }
+      return parsed
+    } catch {
+      return null
+    }
   }
 }

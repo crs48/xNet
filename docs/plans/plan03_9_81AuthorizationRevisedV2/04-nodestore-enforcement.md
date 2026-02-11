@@ -391,9 +391,9 @@ flowchart TD
 - [x] `update` path guarded by `can()` with field-level patch.
 - [x] `delete` path guarded by `can()`.
 - [x] `applyRemoteChange` guarded after cryptographic verification — **silent rejection**.
-- [ ] Transparent encryption on write path.
-- [ ] Transparent decryption on read path.
-- [ ] Content key caching for repeated reads.
+- [x] Transparent encryption on write path.
+- [x] Transparent decryption on read path.
+- [x] Content key caching for repeated reads.
 - [x] **Smart recipient recomputation** — skips when non-auth properties change.
 - [x] Transaction batch uses all-or-nothing semantics.
 - [x] `PermissionError` with human-readable message including roles context.

@@ -49,6 +49,8 @@ export type {
   NodeChangeEvent,
   NodeChangeListener,
   PropertyLookup,
+  NodeContentCipher,
+  ContentKeyCache,
   GetWithMigrationOptions,
   MigrationInfo,
   MigratedNodeState

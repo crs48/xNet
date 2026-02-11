@@ -202,6 +202,8 @@ export {
   type TransactionResult,
   type NodeChangeEvent,
   type NodeChangeListener,
+  type NodeContentCipher,
+  type ContentKeyCache,
   type GetWithMigrationOptions,
   type MigrationInfo,
   type MigratedNodeState,
