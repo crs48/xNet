@@ -88,35 +88,6 @@ The plan's `recipients: DID[]` model maps one DID to one wrapped key. But if the
 
 ---
 
-### 🟡 B3. No Workspace-Level Authorization (Medium)
-
-The plan defines authorization at the **schema level** and **node level**. But the codebase has workspaces (`XDocument.workspace`). Common patterns like "all members of workspace X can read all pages in it" aren't shown.
-
-The plan's `role.relation('project', 'admin')` pattern could handle this — model a workspace as a node with members, then use relation traversal. But this pattern is never shown as a recipe.
-
-**Recommendation:** Add a workspace authorization recipe to Step 07 (DX) showing:
-
-```typescript
-const PageSchema = defineSchema({
-  // ...
-  properties: {
-    workspace: relation({ schema: 'xnet://myapp/Workspace' })
-  },
-  authorization: {
-    roles: {
-      workspaceMember: role.relation('workspace', 'member'),
-      workspaceAdmin: role.relation('workspace', 'admin')
-    },
-    actions: {
-      read: allow('workspaceMember', 'workspaceAdmin'),
-      write: allow('workspaceAdmin')
-    }
-  }
-})
-```
-
----
-
 ### 🟡 B4. Public Nodes Are Under-Specified (Medium)
 
 Step 02 mentions `PUBLIC` access mode and says "special handling: don't encrypt, or use a well-known key." But this isn't fleshed out. Questions unanswered:
@@ -297,7 +268,6 @@ The `explain()` API provides this detail in traces, but the error message itself
 | 🟡 P1    | Reconcile existing code          | Add section explaining relationship to @xnet/core/permissions.ts and @xnet/identity/sharing | README         |
 | 🟡 P1    | Public nodes                     | Specify concrete implementation for PUBLIC access mode                                      | 01 or 04       |
 | 🟡 P1    | Data migration                   | Add batch migration utility for encrypting existing unencrypted nodes                       | 08             |
-| 🟡 P2    | Workspace auth recipe            | Show workspace-level authorization using relation traversal                                 | 07             |
 | 🟡 P2    | Schema version migration         | Document auth rule changes across schema versions                                           | 02             |
 | 🟡 P2    | Failure mode docs                | Document when auth failures throw vs silently reject                                        | README or 04   |
 | 🟡 P2    | Recipient recompute optimization | Skip recomputation when non-auth-relevant properties change                                 | 04             |
