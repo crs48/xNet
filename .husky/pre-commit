@@ -1,3 +1,6 @@
+# Ensure pnpm is available (Cursor's Git integration has minimal PATH)
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:$HOME/.npm-global/bin"
+
 # Skip hooks for markdown-only changes
 STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR)
 NON_MD_FILES=$(echo "$STAGED_FILES" | grep -v '\.md$' | grep -v '^docs/' || true)
