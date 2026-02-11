@@ -108,6 +108,7 @@ export { DatabaseRowSchema, type DatabaseRow } from './schemas'
 export { TaskSchema, type Task } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export { CommentSchema, type Comment } from './schemas'
+export { GrantSchema, type Grant } from './schemas'
 export { builtInSchemas, type BuiltInSchemaIRI } from './schemas'
 
 // Comment anchor types

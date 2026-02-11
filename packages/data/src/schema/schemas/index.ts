@@ -11,6 +11,7 @@ export { DatabaseRowSchema, type DatabaseRow } from './database-row'
 export { TaskSchema, type Task } from './task'
 export { CanvasSchema, type Canvas } from './canvas'
 export { CommentSchema, type Comment } from './comment'
+export { GrantSchema, type Grant } from './grant'
 
 // Comment anchor types
 export {
@@ -75,6 +76,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
+  'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
 
   // Legacy unversioned IRIs (aliases for @1.0.0)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
@@ -82,7 +84,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/DatabaseRow': () => import('./database-row').then((m) => m.DatabaseRowSchema),
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
-  'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema)
+  'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
+  'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema)
 } as const
 
 /**

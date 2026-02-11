@@ -12,6 +12,7 @@
  */
 
 import type { SchemaLookup } from './tempids'
+import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnet/core'
@@ -301,6 +302,9 @@ export interface NodeStoreOptions {
     action: AuthAction
     decision: AuthDecision
   }) => void
+
+  /** Optional high-level authorization API attached as `store.auth`. */
+  auth?: StoreAuthAPI
 }
 
 /**

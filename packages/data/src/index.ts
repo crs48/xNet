@@ -87,6 +87,8 @@ export {
   type Canvas,
   CommentSchema,
   type Comment,
+  GrantSchema,
+  type Grant,
   builtInSchemas,
   type BuiltInSchemaIRI,
 
@@ -214,6 +216,28 @@ export {
   type SchemaLookup,
   type TempIdResolution
 } from './store'
+
+// Authorization helpers
+export {
+  StoreAuth,
+  GrantRateLimiter,
+  GrantExpirationCleaner,
+  DefaultPolicyEvaluator,
+  DefaultRoleResolver,
+  DecisionCache,
+  GrantIndex,
+  GRANT_SCHEMA_IRI,
+  isGrantActive,
+  DEFAULT_OFFLINE_POLICY,
+  mergeOfflinePolicy,
+  type StoreAuthAPI,
+  type StoreAuthOptions,
+  type StoreAuthStore,
+  type StoreAuthKeyManager,
+  type GrantInput,
+  type Grant as AuthGrant,
+  type OfflineAuthPolicy
+} from './auth'
 
 // Blob service
 export { BlobService, type BlobServiceOptions } from './blob'

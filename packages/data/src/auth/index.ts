@@ -114,3 +114,12 @@ export {
   type RevocationConfig
 } from './offline-policy'
 export { GrantRateLimiter, type GrantRateLimiterOptions } from './grant-rate-limit'
+export {
+  StoreAuth,
+  type StoreAuthAPI,
+  type StoreAuthOptions,
+  type StoreAuthStore,
+  type StoreAuthKeyManager,
+  type GrantInput,
+  type Grant
+} from './store-auth'
