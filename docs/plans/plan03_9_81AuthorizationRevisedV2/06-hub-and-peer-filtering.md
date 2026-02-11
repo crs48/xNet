@@ -285,7 +285,7 @@ flowchart TD
 - [x] Hub X25519 key registry endpoints (register, lookup, batch).
 - [x] Hub action bridge mapping finalized.
 - [x] UCAN capability verification for hub actions.
-- [ ] Peer selective sync filtering by recipients (uses `store.subscribe()` global listener).
+- [x] Peer selective sync filtering by recipients (uses `store.subscribe()` global listener).
 - [x] Structured hub auth error responses.
 - [x] Drift detection contract tests.
 - [ ] All tests passing.
