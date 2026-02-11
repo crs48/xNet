@@ -283,7 +283,7 @@ flowchart LR
 
 - [x] Delete `apps/expo/src/hooks/useXNet.ts` (legacy XNetClient wrapper)
 - [x] Delete `apps/expo/src/hooks/useNode.ts` (Expo's local hook that wraps legacy useXNet)
-- [ ] Update Expo screens to use `@xnet/react` hooks (useNode, useQuery, etc.)
+- [x] Update Expo screens to use `@xnet/react` hooks (useNode, useQuery, etc.)
 - [ ] Delete `apps/expo/src/storage/ExpoStorageAdapter.ts`
 - [ ] Delete `apps/expo/src/storage/ExpoSQLiteAdapter.ts`
 
