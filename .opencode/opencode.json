@@ -22,9 +22,12 @@
       "command": [
         "pnpm",
         "dlx",
-        "@playwright/mcp@latest",
+        "@playwright/mcp@0.0.52",
         "--cdp-endpoint",
         "http://127.0.0.1:9223",
+        "--headless",
+        "--output-mode",
+        "file",
         "--output-dir",
         "tmp/playwright"
       ],
@@ -35,9 +38,12 @@
       "command": [
         "pnpm",
         "dlx",
-        "@playwright/mcp@latest",
+        "@playwright/mcp@0.0.52",
         "--browser",
         "chromium",
+        "--headless",
+        "--output-mode",
+        "file",
         "--output-dir",
         "tmp/playwright"
       ],
