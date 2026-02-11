@@ -9,10 +9,12 @@ import { Tooltip } from '@xnet/ui'
 import { useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { DEFAULTS } from '../core/constants'
 import { useDevTools } from '../provider/useDevTools'
+import { AuthZPanel } from './AuthZPanel/AuthZPanel'
 import { ChangeTimeline } from './ChangeTimeline/ChangeTimeline'
 import { HistoryPanel } from './HistoryPanel/HistoryPanel'
 import { MigrationWizard } from './MigrationWizard/MigrationWizard'
 import { NodeExplorer } from './NodeExplorer/NodeExplorer'
+import { DEVTOOLS_PANELS } from './panel-registry'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
 import { SchemaHistoryPanel } from './SchemaHistoryPanel/SchemaHistoryPanel'
 import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
@@ -24,23 +26,6 @@ import { SyncMonitor } from './SyncMonitor/SyncMonitor'
 import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { VersionPanel } from './VersionPanel/VersionPanel'
 import { YjsInspector } from './YjsInspector/YjsInspector'
-
-const PANELS: Array<{ id: PanelId; label: string }> = [
-  { id: 'nodes', label: 'Nodes' },
-  { id: 'changes', label: 'Changes' },
-  { id: 'sync', label: 'Sync' },
-  { id: 'yjs', label: 'Yjs' },
-  { id: 'queries', label: 'Queries' },
-  { id: 'telemetry', label: 'Telemetry' },
-  { id: 'schemas', label: 'Schemas' },
-  { id: 'schema-history', label: 'Schema Hist' },
-  { id: 'security', label: 'Security' },
-  { id: 'sqlite', label: 'SQLite' },
-  { id: 'version', label: 'Version' },
-  { id: 'migration', label: 'Migrate' },
-  { id: 'seed', label: 'Seed' },
-  { id: 'history', label: 'History' }
-]
 
 export function DevToolsPanel() {
   const { position, height, activePanel, setActivePanel, setHeight, toggle, eventBus, store } =
@@ -63,7 +48,7 @@ export function DevToolsPanel() {
         <span className="text-xs font-bold text-zinc-400 ml-2 mr-3 select-none shrink-0">xNet</span>
 
         <div className="flex items-center shrink-0">
-          {PANELS.map((panel) => (
+          {DEVTOOLS_PANELS.map((panel) => (
             <button
               key={panel.id}
               onClick={() => setActivePanel(panel.id)}
@@ -154,6 +139,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <YjsInspector />
     case 'queries':
       return <QueryDebugger />
+    case 'authz':
+      return <AuthZPanel />
     case 'telemetry':
       return <TelemetryPanel />
     case 'schemas':

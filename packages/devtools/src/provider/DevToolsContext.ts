@@ -13,6 +13,7 @@ export type PanelId =
   | 'changes'
   | 'sync'
   | 'yjs'
+  | 'authz'
   | 'queries'
   | 'telemetry'
   | 'schemas'

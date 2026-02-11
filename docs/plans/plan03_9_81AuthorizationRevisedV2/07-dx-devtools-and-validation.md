@@ -460,15 +460,15 @@ function ShareDialog({ nodeId }: { nodeId: string }) {
 - [x] `useCan` hook with loading/error/freshness state.
 - [x] `useGrants` hook with grant/revoke callbacks.
 - [x] Both hooks use `store.subscribe()` (global listener, filter in callback).
-- [ ] DevTools `AuthZ` tab registered as 15th panel.
-- [ ] Permission Playground sub-tab.
-- [ ] Grant Manager sub-tab.
-- [ ] **Grant Timeline** sub-tab (NEW).
-- [ ] **Delegation Tree Explorer** sub-tab (NEW).
-- [ ] **Revocation Propagation** sub-tab (NEW).
-- [ ] `explain()` API returns AI-friendly structured traces.
-- [ ] Developer recipes documented.
-- [ ] All tests passing.
+- [x] DevTools `AuthZ` tab registered as 15th panel.
+- [x] Permission Playground sub-tab.
+- [x] Grant Manager sub-tab.
+- [x] **Grant Timeline** sub-tab (NEW).
+- [x] **Delegation Tree Explorer** sub-tab (NEW).
+- [x] **Revocation Propagation** sub-tab (NEW).
+- [x] `explain()` API returns AI-friendly structured traces.
+- [x] Developer recipes documented.
+- [x] All tests passing.
 
 ---
 
