@@ -172,6 +172,37 @@ describe('ModuleName', () => {
 - `browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_take_screenshot`
 - `browser_console_messages` - check for JS errors, React warnings, unhandled rejections
 
+### Codex + Playwright in OpenCode
+
+- Codex agents can use Playwright MCP directly via OpenCode tools (`playwright_browser_*` / `playwright-web_*`).
+- For web testing, prefer `playwright-web` and save screenshots/artifacts to `tmp/playwright/`.
+- Recommended sequence for Codex-driven checks: navigate -> snapshot -> interact -> screenshot -> console messages.
+- If MCP bridge is flaky in-session, use Playwright CLI as fallback for verification:
+
+```bash
+# Start app
+pnpm --filter xnet-web dev
+
+# Run focused e2e
+pnpm --filter @xnet/e2e-tests exec playwright test src/pages-crud.spec.ts
+```
+
+- Always apply test auth bypass for browser automation before asserting app flows.
+
+### Test auth bypass requirements
+
+- Browser automation cannot complete real WebAuthn/passkey prompts, so tests must opt into bypass mode first.
+- For Playwright test files, call `setupTestAuth(page)` before any app assertions or interactions.
+- For MCP/manual browser runs, set bypass before app initialization:
+
+```javascript
+localStorage.setItem('xnet:test:bypass', 'true')
+location.reload()
+```
+
+- After bypass is enabled, still advance onboarding UI if shown (`Get started with Touch ID` -> `Create your first page`) before asserting editor/page states.
+- Treat any assertion made before bypass/onboarding completion as invalid for auth-sensitive flows.
+
 ### Workflow
 
 navigate → snapshot (accessibility tree) → interact → screenshot → check console.
