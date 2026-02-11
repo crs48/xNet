@@ -228,18 +228,18 @@ interface MigrationError {
 #### Conformance Test Matrix
 
 - [ ] Deny beats allow in all combinations.
-- [ ] Delegation attenuation cannot escalate.
-- [ ] Revocation invalidates descendant delegations (cascade).
-- [ ] Relation traversal cycles terminate safely (visited-set + max-depth).
+- [x] Delegation attenuation cannot escalate.
+- [x] Revocation invalidates descendant delegations (cascade).
+- [x] Relation traversal cycles terminate safely (visited-set + max-depth).
 - [ ] Remote unauthorized change rejection is deterministic.
 - [ ] Hub query filtering excludes unauthorized nodes.
-- [ ] Expired grants are not honored.
+- [x] Expired grants are not honored.
 - [ ] Key rotation prevents revoked user from decrypting new content.
 - [ ] Envelope signature verification catches tampering.
-- [ ] Self-grant is rejected.
-- [ ] Last-admin protection prevents unrecoverable loss.
-- [ ] Expression depth > 50 rejected at schema validation time.
-- [ ] UCAN proof chain depth > 4 rejected.
+- [x] Self-grant is rejected.
+- [x] Last-admin protection prevents unrecoverable loss.
+- [x] Expression depth > 50 rejected at schema validation time.
+- [x] UCAN proof chain depth > 4 rejected.
 
 #### Adversarial Tests
 
@@ -389,7 +389,7 @@ export const AUTH_FEATURE_FLAGS = {
 - [ ] Conformance test matrix complete (13 scenarios).
 - [ ] Adversarial and fuzz tests passing.
 - [ ] Abuse limits enforced with deterministic error codes.
-- [ ] Grant rate limiting (10/min per peer).
+- [x] Grant rate limiting (10/min per peer).
 - [ ] Audit logging via telemetry (optional).
 - [x] Feature flags for staged rollout.
 - [ ] Benchmark fixtures and suite committed.

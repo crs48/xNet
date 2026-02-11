@@ -338,23 +338,23 @@ These decisions from prior explorations are **final**:
 
 - [ ] All mutating paths enforce authorization deterministically.
 - [ ] Every node is encrypted with per-node content key before leaving client.
-- [ ] Y.Doc state is encrypted at rest with per-node content key (`EncryptedYjsState`).
-- [ ] Y.Doc sync rooms are gated by authorization — unauthorized peers cannot join.
-- [ ] Remote Yjs updates are checked against `PolicyEvaluator` before applying.
-- [ ] Revocation events are wired to `YjsAuthGate.invalidatePeer()` across all active rooms.
+- [x] Y.Doc state is encrypted at rest with per-node content key (`EncryptedYjsState`).
+- [x] Y.Doc sync rooms are gated by authorization — unauthorized peers cannot join.
+- [x] Remote Yjs updates are checked against `PolicyEvaluator` before applying.
+- [x] Revocation events are wired to `YjsAuthGate.invalidatePeer()` across all active rooms.
 - [ ] Hub filters query results by recipient lists without decrypting.
-- [ ] Delegation chains enforce attenuation, expiration, and depth limits (max 4).
-- [ ] Offline authorization uses explicit cache TTL (5 min default) with configurable revalidation.
+- [x] Delegation chains enforce attenuation, expiration, and depth limits (max 4).
+- [x] Offline authorization uses explicit cache TTL (5 min default) with configurable revalidation.
 - [x] Key recovery via seed phrase allows full access restoration on new device.
-- [ ] Decision traces are structured and explainable.
+- [x] Decision traces are structured and explainable.
 - [ ] Benchmarks hit target budgets (warm `can()` < 1ms p50, cold < 10ms p50).
 - [ ] Conformance tests cover deny precedence, traversal limits, conflict edges.
 - [ ] DevTools AuthZ panel shows live authorization state with grant timeline.
-- [ ] Type-level tests validate schema auth typing guarantees.
-- [ ] AI agents can validate authorization rules via `explain()` API.
-- [ ] Last-admin protection prevents unrecoverable permission loss.
-- [ ] Public nodes use well-known content key with `PUBLIC` sentinel in recipients.
-- [ ] Legacy schemas without authorization block emit console warning in compat mode.
+- [x] Type-level tests validate schema auth typing guarantees.
+- [x] AI agents can validate authorization rules via `explain()` API.
+- [x] Last-admin protection prevents unrecoverable permission loss.
+- [x] Public nodes use well-known content key with `PUBLIC` sentinel in recipients.
+- [x] Legacy schemas without authorization block emit console warning in compat mode.
 - [x] Data migration utility can batch-encrypt existing unencrypted nodes.
 
 ## Risks and Mitigations

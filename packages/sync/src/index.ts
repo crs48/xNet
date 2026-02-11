@@ -152,6 +152,24 @@ export {
   toEncryptedData
 } from './yjs-authorization'
 
+export type {
+  YDocLike,
+  YDocCodec,
+  AuthorizedRoom,
+  AuthorizedDoc,
+  AuthorizedStateAdapter,
+  GrantEventStore,
+  ContentKeyProvider,
+  RecipientKeyResolver,
+  AuthorizedSyncManagerOptions,
+  AuthorizedYjsSyncProviderOptions
+} from './yjs-authorized-sync'
+export {
+  AuthorizedSyncManager,
+  AuthorizedYjsSyncProvider,
+  AuthorizedYjsError
+} from './yjs-authorized-sync'
+
 // Yjs security: clientID-DID binding (Step 07 + Multi-level signatures)
 export type {
   ClientIdAttestation,

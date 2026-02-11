@@ -442,18 +442,18 @@ export function useCanEdit(nodeId: string): UseCanEditResult {
 
 - [x] `EncryptedYjsState` type defined.
 - [x] `encryptYjsState()` and `decryptYjsState()` with BLAKE3 integrity.
-- [ ] `AuthorizedSyncManager.acquire()` gates Y.Doc access.
+- [x] `AuthorizedSyncManager.acquire()` gates Y.Doc access.
 - [x] `YjsAuthGate` with per-peer cached auth decisions.
-- [ ] **Revocation event wiring**: `store.subscribe()` -> `authGate.invalidatePeer()`.
-- [ ] `AuthorizedYjsSyncProvider.handleRemoteUpdate()` wired into pipeline.
-- [ ] Uses `adapter.setDocumentContent()` (correct API, not `saveYjsState`).
-- [ ] Uses `adapter.getDocumentContent()` (correct API).
-- [ ] Key rotation on revocation: generate new key, re-encrypt, kick peer.
+- [x] **Revocation event wiring**: `store.subscribe()` -> `authGate.invalidatePeer()`.
+- [x] `AuthorizedYjsSyncProvider.handleRemoteUpdate()` wired into pipeline.
+- [x] Uses `adapter.setDocumentContent()` (correct API, not `saveYjsState`).
+- [x] Uses `adapter.getDocumentContent()` (correct API).
+- [x] Key rotation on revocation: generate new key, re-encrypt, kick peer.
 - [ ] Hub stores encrypted Y.Doc state alongside envelopes.
 - [x] `YjsCheckpointer` compacts every 100 updates or 1 hour.
 - [x] `useCanEdit()` hook with read/write distinction.
 - [ ] Performance targets met.
-- [ ] All tests passing.
+- [x] All tests passing.
 
 ---
 
