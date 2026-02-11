@@ -123,3 +123,13 @@ export {
   type GrantInput,
   type Grant
 } from './store-auth'
+export {
+  AuthMigrator,
+  type EncryptionLayer,
+  type MigrationOptions,
+  type MigrationResult,
+  type MigrationError,
+  type AuthMigratorStore,
+  type AuthMigratorSchemaRegistry
+} from './auth-migrator'
+export { AUTH_FEATURE_FLAGS, type AuthFeatureFlags } from './rollout'
