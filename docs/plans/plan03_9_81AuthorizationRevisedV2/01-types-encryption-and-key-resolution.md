@@ -664,8 +664,8 @@ classDiagram
 - [x] `DefaultPublicKeyResolver` with birational + hub registry fallback.
 - [x] `generateContentKey`, `wrapKeyForRecipient`, `unwrapKey` implemented.
 - [x] `createEncryptedEnvelope` implemented with signing.
-- [ ] Hub key registry endpoints specified.
-- [ ] Type-level tests passing in CI.
+- [x] Hub key registry endpoints specified.
+- [x] Type-level tests passing in CI.
 - [x] Round-trip encryption tests passing.
 - [x] Birational conversion test vectors passing.
 
