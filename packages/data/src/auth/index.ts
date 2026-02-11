@@ -63,3 +63,17 @@ export { presets } from './presets'
 // Schema mode helpers
 export type { AuthMode } from './mode'
 export { getAuthMode, warnLegacySchema } from './mode'
+
+// Recipient computation + migration helpers
+export {
+  PUBLIC_CONTENT_KEY,
+  PUBLIC_RECIPIENT,
+  computeRecipients,
+  hasRecipientsChanged,
+  canTransitionToPublic,
+  type Recipient,
+  type GrantRecordLike,
+  type GrantIndexReader,
+  type RecipientDependencies
+} from './recipients'
+export { handleAuthMigration, type AuthMigrationDependencies } from './migration'
