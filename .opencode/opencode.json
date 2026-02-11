@@ -15,7 +15,12 @@
       "tmp/*": "allow"
     }
   },
-  "plugin": ["cc-safety-net", "opencode-agent-memory", "@nick-vi/opencode-type-inject"],
+  "plugin": [
+    "oh-my-opencode@3.4.0",
+    "cc-safety-net",
+    "opencode-agent-memory",
+    "@nick-vi/opencode-type-inject"
+  ],
   "mcp": {
     "playwright-electron": {
       "type": "local",
