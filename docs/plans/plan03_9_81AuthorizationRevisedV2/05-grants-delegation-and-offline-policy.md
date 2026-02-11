@@ -697,9 +697,9 @@ sequenceDiagram
 - [ ] `store.auth.revoke()` with key rotation and **last-admin protection**.
 - [ ] `store.auth.listGrants()` with active/expired/revoked filtering.
 - [x] `OfflineAuthPolicy` type defined with defaults.
-- [ ] Decision cache respects `decisionCacheTTL` from offline policy.
-- [ ] Max staleness check blocks operations when too stale.
-- [ ] Hybrid revalidation on reconnect with event emission.
+- [x] Decision cache respects `decisionCacheTTL` from offline policy.
+- [x] Max staleness check blocks operations when too stale.
+- [x] Hybrid revalidation on reconnect with event emission.
 - [x] Grant conflict semantics: `revokedAt > 0` dominates.
 - [x] `isGrantActive()` checks revokedAt first, then expiresAt.
 - [ ] UCAN token creation via `@xnet/identity`.

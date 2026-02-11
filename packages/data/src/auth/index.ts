@@ -90,7 +90,8 @@ export {
   type DefaultRoleResolverOptions,
   type DefaultPolicyEvaluatorOptions,
   type SchemaRegistryReader,
-  type DefinedSchemaLike
+  type DefinedSchemaLike,
+  type RevalidationEvent
 } from './evaluator'
 export {
   GrantIndex,
