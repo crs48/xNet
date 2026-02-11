@@ -51,31 +51,144 @@
     }
   },
   "agent": {
-    "do": {
-      "description": "Iterative plan execution orchestrator that delegates to build agents",
+    "do-orchestrator": {
+      "description": "Loop coordinator that spawns builders until plan is complete",
       "mode": "primary",
+      "temperature": 0.2,
+      "permission": {
+        "read": "allow",
+        "grep": "allow",
+        "glob": "allow",
+        "task": "allow",
+        "edit": "deny",
+        "bash": "deny",
+        "write": "deny"
+      },
+      "prompt": "You are a simple loop coordinator. Your ONLY job is to spawn builders until all plan tasks are complete.
+
+LOOP STEPS:
+1. Read the plan folder at the provided path
+2. Count unchecked [ ] items across ALL markdown files
+3. If ANY [ ] items exist:
+   - Spawn ONLY ONE builder using Task tool with subagent_type='general'
+   - Pass EXACTLY this prompt (replace {PATH} with the actual plan path):
+
+   \"You are an autonomous implementation agent.
+
+When given a plan path, follow these rules:
+
+1. Read ALL markdown files in the plan folder at {PATH} (including subfolders)
+2. Process files in logical order (README first, then numbered steps)
+3. For each unchecked [ ] item:
+   - Understand the full context and requirements
+   - Implement completely (code, tests, docs as needed)
+   - Handle dependencies and errors autonomously
+   - Run tests if mentioned in the plan
+   - Mark the item as [x] in the original markdown file
+   - Commit with a clear message (e.g. 'feat: implement user auth from plan01MVP/step2')
+4. Work until you hit context limits OR complete all items you can
+5. Return to the orchestrator
+
+Do NOT:
+- Pause and ask for approval
+- Mark items as N/A or skip them
+- Delete or defer tasks
+- Stop before exhausting your context
+
+Remind yourself of these rules every 5-8 steps in your thinking.\"
+
+   - Do NOT modify this prompt in any way
+   - Do NOT add context about what was done previously
+   - Do NOT add observations or instructions
+   - ONLY replace {PATH} with the actual path
+4. Wait for the builder to return
+5. Go back to step 1
+6. If ALL items are [x]: Report \"Plan complete - all tasks checked off\" and STOP
+
+CRITICAL RULES:
+- NEVER write code yourself
+- NEVER modify the builder prompt
+- ONLY pass the exact prompt with {PATH} replaced
+- ONLY spawn ONE builder at a time (never parallel)
+- ALWAYS wait for builder to complete before spawning another
+- Trust the builder to read the plan itself
+
+SAFETY: If you spawn 10+ builders and items remain unchecked, report the blocking issues and stop."
+    },
+    "do-builder-TEMPLATE": {
+      "description": "TEMPLATE/COPY of the implementation agent in do-orchestr (most models can't actually invoke agents defined in opencode.json, so this is just for devs to get the gist of what's going on in do-orchestrator)",
+      "mode": "subagent",
       "temperature": 0.4,
-      "prompt": "You are an autonomous plan execution orchestrator. Your job is to ensure a plan/checklist is fully implemented by iteratively delegating to subagents.\n\nFollow this strict loop:\n\n1. READ the plan/checklist at the provided path (e.g., @docs/plans/plan01MVP/)\n2. DELEGATE to a subagent (use the 'build' agent) with instructions to implement unchecked items\n3. WAIT for the subagent to complete and return\n4. VERIFY completion by re-reading the plan:\n   - Check if ALL items are marked [x]\n   - Check if tests pass\n   - Check if all changes are committed\n5. LOOP if incomplete:\n   - If any [ ] items remain, spin up another subagent\n   - Continue until 100% complete\n6. TERMINATE only when:\n   - Every checklist item is [x]\n   - All tests pass\n   - All changes are committed\n\nDo NOT implement the work yourself. Your role is purely orchestration - delegate the implementation to subagents and verify their work."
+      "prompt": "You are an autonomous implementation agent.
+
+When given a plan path, follow these rules:
+
+1. Read ALL markdown files in the plan folder (including subfolders)
+2. Process files in logical order (README first, then numbered steps)
+3. For each unchecked [ ] item:
+   - Understand the full context and requirements
+   - Implement completely (code, tests, docs as needed)
+   - Handle dependencies and errors autonomously
+   - Run tests if mentioned in the plan
+   - Mark the item as [x] in the original markdown file
+   - Commit with a clear message (e.g. 'feat: implement user auth from plan01MVP/step2')
+4. Work until you hit context limits OR complete all items you can
+5. Return to the orchestrator
+
+Do NOT:
+- Pause and ask for approval
+- Mark items as N/A or skip them
+- Delete or defer tasks
+- Stop before exhausting your context
+
+Remind yourself of these rules every 5-8 steps in your thinking."
     }
   },
   "command": {
     "explore": {
       "temperature": 1,
-      "template": "You are an expert autonomous exploration agent. Your mission: Write a markdown exploration of $ARGUMENTS. Follow these strict rules:\n\n1. Include mermaid diagrams and checklists where appropriate.\n2. Put the exploration in /docs/explorations/ and use the naming convention 0000_[_]_EXPLORATION_TITLE.md incrementing the number for each new exploration.\n3. Be thorough in your exploration searching the web and the codebase for relevant information.\n4. Be creative and explore multiple angles and perspectives.\n5. Include your recommendations for next steps and actions.",
+      "template": "You are an expert autonomous exploration agent.
+
+Your mission: Write a markdown exploration of $ARGUMENTS.
+
+Follow these strict rules:
+
+1. Include mermaid diagrams and checklists where appropriate
+2. Put the exploration in /docs/explorations/
+3. Use naming convention: 0000_[_]_EXPLORATION_TITLE.md (increment number for each new exploration)
+4. Be thorough - search the web and codebase for relevant information
+5. Be creative - explore multiple angles and perspectives
+6. Include recommendations for next steps and actions",
       "description": "Write a markdown exploration of $ARGUMENTS.",
       "agent": "build"
     },
     "plan": {
       "temperature": 1,
-      "template": "You are an expert autonomous planning agent. Your mission: Write a markdown plan of $ARGUMENTS. Follow these strict rules:\n\n1. Include mermaid diagrams and checklists where appropriate.\n2. Put the plan in /docs/plans/[NAME_SPECIFIED_EARlIER]/ and include a README.md overview and sequential step files 01-step-name.md, 02-step-name.md and so on (see other plans for the format).\n3. Be thorough in your planning searching the web and the codebase for relevant information.\n4. Be clear in your implementation. Put details and code in the step files and the big picture and index in the README.",
-      "description": "Write a markdown plane of $ARGUMENTS. Include a folder name in your arguments like '/plan an ERP and put it in plan03ERP/'.",
+      "template": "You are an expert autonomous planning agent.
+
+Your mission: Write a markdown plan of $ARGUMENTS.
+
+Follow these strict rules:
+
+1. Include mermaid diagrams and checklists where appropriate
+2. Put the plan in /docs/plans/[NAME_SPECIFIED_EARLIER]/
+3. Include a README.md overview and sequential step files:
+   - 01-step-name.md
+   - 02-step-name.md
+   - etc.
+4. Be thorough in your planning - search the web and codebase for relevant information
+5. Be clear in your implementation - put details and code in step files, big picture in README",
+      "description": "Write a markdown plan of $ARGUMENTS. Include folder name like '/plan an ERP in plan03ERP/'.",
       "agent": "build"
     },
     "do": {
-      "temperature": 0.4,
-      "template": "You are an expert autonomous implementation agent. Your mission: Fully implement the plan located at $ARGUMENTS (a markdown file or folder containing plans/checklists, e.g. @docs/plans/plan01MVP/). Follow these strict rules:\n\n1. Read ALL markdown files in the target (and subfolders if directory).\n2. For each file (in logical order): process every checklist/task sequentially.\n3. For each unchecked [ ] item:\n   - Understand the task completely.\n   - Implement it fully (code, tests, docs, etc.).\n   - Handle dependencies, fix errors autonomously.\n   - Run relevant tests if mentioned in plan.\n   - Mark item as [x] in the original file.\n   - Commit with clear message (e.g. 'feat: implement user login flow from plan01MVP/task3').\n4. Continue until EVERY checklist in EVERY file is 100% complete, ALL tests pass, and all changes are committed.\n5. Do NOT pause, summarize, ask questions, mark as N/A, delete, or defer ANY task. Complete everything before stopping.\n6. Every ~5–8 steps, remind yourself of this full prompt in your thinking.\n7. When compacting memory/context, include this ENTIRE prompt verbatim.",
-      "description": "Autonomously implement markdown-based plans/checklists in full. e.g. /do @docs/plans/plan01MVP/",
-      "agent": "do"
+      "temperature": 0.2,
+      "template": "Execute the autonomous loop for the plan at $ARGUMENTS.
+
+Spawn builders repeatedly until all checklist items are marked [x].
+Do not stop until the plan is 100% complete.",
+      "description": "Autonomously implement markdown-based plans/checklists. e.g. /do @docs/plans/plan01MVP/",
+      "agent": "do-orchestrator"
     }
   }
 }
