@@ -696,21 +696,21 @@ sequenceDiagram
 - [ ] `store.auth.grant()` with key distribution and self-grant prevention.
 - [ ] `store.auth.revoke()` with key rotation and **last-admin protection**.
 - [ ] `store.auth.listGrants()` with active/expired/revoked filtering.
-- [ ] `OfflineAuthPolicy` type defined with defaults.
+- [x] `OfflineAuthPolicy` type defined with defaults.
 - [ ] Decision cache respects `decisionCacheTTL` from offline policy.
 - [ ] Max staleness check blocks operations when too stale.
 - [ ] Hybrid revalidation on reconnect with event emission.
-- [ ] Grant conflict semantics: `revokedAt > 0` dominates.
-- [ ] `isGrantActive()` checks revokedAt first, then expiresAt.
+- [x] Grant conflict semantics: `revokedAt > 0` dominates.
+- [x] `isGrantActive()` checks revokedAt first, then expiresAt.
 - [ ] UCAN token creation via `@xnet/identity`.
 - [ ] Attenuation enforcement (no privilege escalation).
 - [ ] Delegation chain depth limit (max 4).
 - [ ] Cascade revocation on parent grant revoke.
 - [ ] Self-grant prevention (grantee !== grantor).
 - [ ] Grant-specific rate limit (10/min per peer).
-- [ ] `GrantExpirationCleaner` background task (every 6 hours).
-- [ ] Clock skew tolerance (60 seconds) on expiry checks.
-- [ ] Revocation consistency modes (`eventual` / `strict`).
+- [x] `GrantExpirationCleaner` background task (every 6 hours).
+- [x] Clock skew tolerance (60 seconds) on expiry checks.
+- [x] Revocation consistency modes (`eventual` / `strict`).
 - [ ] Auth cache invalidation on grant/revoke.
 - [ ] All tests passing.
 
