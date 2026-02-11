@@ -423,7 +423,7 @@ flowchart TD
 - [x] Hub backup endpoints (POST, GET, DELETE with ownership proof).
 - [x] `createRecoveryShares()` and `recoverFromShares()` with Shamir's SS.
 - [x] `createKeyBundleFromSeed()` bridges to existing HybridKeyBundle.
-- [ ] Seed phrase stored in platform secure storage (Keychain, etc.).
+- [x] Seed phrase stored in platform secure storage (Keychain, etc.).
 - [x] Identity reset documented as explicit v1 limitation.
 - [x] Ownership transfer ceremony sketched as future work.
 - [x] All tests passing.

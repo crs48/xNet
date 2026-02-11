@@ -6,6 +6,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
   getProfile: () => ipcRenderer.invoke('xnet:getProfile'),
+  setSeedPhrase: (mnemonic: string) => ipcRenderer.invoke('xnet:seed:set', { mnemonic }),
+  getSeedPhrase: () => ipcRenderer.invoke('xnet:seed:get'),
+  clearSeedPhrase: () => ipcRenderer.invoke('xnet:seed:clear'),
 
   // Menu events
   onNewPage: (callback: () => void) => {
@@ -284,6 +287,9 @@ contextBridge.exposeInMainWorld('xnetNodes', {
 // Type declaration for renderer
 export interface XNetAPI {
   getProfile(): Promise<string>
+  setSeedPhrase(mnemonic: string): Promise<{ ok: true }>
+  getSeedPhrase(): Promise<{ mnemonic: string | null }>
+  clearSeedPhrase(): Promise<{ ok: true }>
   onNewPage(callback: () => void): () => void
   onDevToolsToggle(callback: () => void): () => void
 }
