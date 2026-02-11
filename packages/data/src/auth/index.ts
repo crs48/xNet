@@ -91,7 +91,8 @@ export {
   type DefaultPolicyEvaluatorOptions,
   type SchemaRegistryReader,
   type DefinedSchemaLike,
-  type RevalidationEvent
+  type RevalidationEvent,
+  type AuthDecisionEvent
 } from './evaluator'
 export {
   GrantIndex,

@@ -336,20 +336,20 @@ These decisions from prior explorations are **final**:
 
 ## Global Validation Gates
 
-- [ ] All mutating paths enforce authorization deterministically.
+- [x] All mutating paths enforce authorization deterministically.
 - [ ] Every node is encrypted with per-node content key before leaving client.
 - [x] Y.Doc state is encrypted at rest with per-node content key (`EncryptedYjsState`).
 - [x] Y.Doc sync rooms are gated by authorization — unauthorized peers cannot join.
 - [x] Remote Yjs updates are checked against `PolicyEvaluator` before applying.
 - [x] Revocation events are wired to `YjsAuthGate.invalidatePeer()` across all active rooms.
-- [ ] Hub filters query results by recipient lists without decrypting.
+- [x] Hub filters query results by recipient lists without decrypting.
 - [x] Delegation chains enforce attenuation, expiration, and depth limits (max 4).
 - [x] Offline authorization uses explicit cache TTL (5 min default) with configurable revalidation.
 - [x] Key recovery via seed phrase allows full access restoration on new device.
 - [x] Decision traces are structured and explainable.
 - [ ] Benchmarks hit target budgets (warm `can()` < 1ms p50, cold < 10ms p50).
-- [ ] Conformance tests cover deny precedence, traversal limits, conflict edges.
-- [ ] DevTools AuthZ panel shows live authorization state with grant timeline.
+- [x] Conformance tests cover deny precedence, traversal limits, conflict edges.
+- [x] DevTools AuthZ panel shows live authorization state with grant timeline.
 - [x] Type-level tests validate schema auth typing guarantees.
 - [x] AI agents can validate authorization rules via `explain()` API.
 - [x] Last-admin protection prevents unrecoverable permission loss.

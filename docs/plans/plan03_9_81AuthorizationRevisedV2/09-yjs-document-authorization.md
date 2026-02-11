@@ -449,7 +449,7 @@ export function useCanEdit(nodeId: string): UseCanEditResult {
 - [x] Uses `adapter.setDocumentContent()` (correct API, not `saveYjsState`).
 - [x] Uses `adapter.getDocumentContent()` (correct API).
 - [x] Key rotation on revocation: generate new key, re-encrypt, kick peer.
-- [ ] Hub stores encrypted Y.Doc state alongside envelopes.
+- [x] Hub stores encrypted Y.Doc state alongside envelopes.
 - [x] `YjsCheckpointer` compacts every 100 updates or 1 hour.
 - [x] `useCanEdit()` hook with read/write distinction.
 - [ ] Performance targets met.
