@@ -282,12 +282,12 @@ flowchart TD
 - [ ] Hub metadata index schema created with recipient index.
 - [ ] Hub query authorization filter with `PUBLIC` sentinel support.
 - [ ] Hub grant index for fast active-grant lookup.
-- [ ] Hub X25519 key registry endpoints (register, lookup, batch).
-- [ ] Hub action bridge mapping finalized.
-- [ ] UCAN capability verification for hub actions.
+- [x] Hub X25519 key registry endpoints (register, lookup, batch).
+- [x] Hub action bridge mapping finalized.
+- [x] UCAN capability verification for hub actions.
 - [ ] Peer selective sync filtering by recipients (uses `store.subscribe()` global listener).
-- [ ] Structured hub auth error responses.
-- [ ] Drift detection contract tests.
+- [x] Structured hub auth error responses.
+- [x] Drift detection contract tests.
 - [ ] All tests passing.
 
 ---
