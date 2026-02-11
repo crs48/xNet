@@ -691,28 +691,28 @@ sequenceDiagram
 
 ## Checklist
 
-- [ ] `GrantSchema` defined as built-in schema.
-- [ ] `StoreAuthAPI` interface implemented on NodeStore.
-- [ ] `store.auth.grant()` with key distribution and self-grant prevention.
-- [ ] `store.auth.revoke()` with key rotation and **last-admin protection**.
-- [ ] `store.auth.listGrants()` with active/expired/revoked filtering.
+- [x] `GrantSchema` defined as built-in schema.
+- [x] `StoreAuthAPI` interface implemented on NodeStore.
+- [x] `store.auth.grant()` with key distribution and self-grant prevention.
+- [x] `store.auth.revoke()` with key rotation and **last-admin protection**.
+- [x] `store.auth.listGrants()` with active/expired/revoked filtering.
 - [x] `OfflineAuthPolicy` type defined with defaults.
 - [x] Decision cache respects `decisionCacheTTL` from offline policy.
 - [x] Max staleness check blocks operations when too stale.
 - [x] Hybrid revalidation on reconnect with event emission.
 - [x] Grant conflict semantics: `revokedAt > 0` dominates.
 - [x] `isGrantActive()` checks revokedAt first, then expiresAt.
-- [ ] UCAN token creation via `@xnet/identity`.
-- [ ] Attenuation enforcement (no privilege escalation).
-- [ ] Delegation chain depth limit (max 4).
-- [ ] Cascade revocation on parent grant revoke.
-- [ ] Self-grant prevention (grantee !== grantor).
+- [x] UCAN token creation via `@xnet/identity`.
+- [x] Attenuation enforcement (no privilege escalation).
+- [x] Delegation chain depth limit (max 4).
+- [x] Cascade revocation on parent grant revoke.
+- [x] Self-grant prevention (grantee !== grantor).
 - [x] Grant-specific rate limit (10/min per peer).
 - [x] `GrantExpirationCleaner` background task (every 6 hours).
 - [x] Clock skew tolerance (60 seconds) on expiry checks.
 - [x] Revocation consistency modes (`eventual` / `strict`).
-- [ ] Auth cache invalidation on grant/revoke.
-- [ ] All tests passing.
+- [x] Auth cache invalidation on grant/revoke.
+- [x] All tests passing.
 
 ---
 

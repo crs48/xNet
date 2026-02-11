@@ -31,6 +31,7 @@ import type {
   NodeContentCipher,
   ContentKeyCache
 } from './types'
+import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
 import type { AuthAction, AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
 import { base64ToBytes, bytesToBase64 } from '@xnet/crypto'
@@ -92,6 +93,7 @@ export class NodeStore {
     action: AuthAction
     decision: AuthDecision
   }) => void
+  readonly auth?: StoreAuthAPI
 
   constructor(options: NodeStoreOptions) {
     this.storage = options.storage
@@ -107,6 +109,7 @@ export class NodeStore {
     this.authRelevantPropertyLookup = options.authRelevantPropertyLookup
     this.onRecipientsMayNeedRecompute = options.onRecipientsMayNeedRecompute
     this.onUnauthorizedRemoteChange = options.onUnauthorizedRemoteChange
+    this.auth = options.auth
   }
 
   /**
