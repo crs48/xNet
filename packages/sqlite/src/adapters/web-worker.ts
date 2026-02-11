@@ -9,13 +9,16 @@ import type { SQLiteConfig, SQLValue, SQLRow, RunResult } from '../types'
 import * as Comlink from 'comlink'
 import { WebSQLiteAdapter, createWebSQLiteAdapter } from './web'
 
-const DEBUG =
-  typeof self !== 'undefined' &&
-  typeof localStorage !== 'undefined' &&
-  localStorage.getItem('xnet:sqlite:debug') === 'true'
+function isDebugEnabled(): boolean {
+  return (
+    typeof self !== 'undefined' &&
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem('xnet:sqlite:debug') === 'true'
+  )
+}
 
 function log(...args: unknown[]): void {
-  if (DEBUG) {
+  if (isDebugEnabled()) {
     console.log(...args)
   }
 }

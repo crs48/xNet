@@ -10,11 +10,12 @@ import type { SQLiteAdapter, PreparedStatement } from '../adapter'
 import type { SQLiteConfig, SQLValue, SQLRow, RunResult } from '../types'
 import * as Comlink from 'comlink'
 
-const DEBUG =
-  typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sqlite:debug') === 'true'
+function isDebugEnabled(): boolean {
+  return typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sqlite:debug') === 'true'
+}
 
 function log(...args: unknown[]): void {
-  if (DEBUG) {
+  if (isDebugEnabled()) {
     console.log(...args)
   }
 }

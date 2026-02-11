@@ -13,13 +13,16 @@ import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 // that may not be installed at build time. The actual types are checked at runtime.
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-const DEBUG =
-  typeof self !== 'undefined' &&
-  typeof localStorage !== 'undefined' &&
-  localStorage.getItem('xnet:sqlite:debug') === 'true'
+function isDebugEnabled(): boolean {
+  return (
+    typeof self !== 'undefined' &&
+    typeof localStorage !== 'undefined' &&
+    localStorage.getItem('xnet:sqlite:debug') === 'true'
+  )
+}
 
 function log(...args: unknown[]): void {
-  if (DEBUG) {
+  if (isDebugEnabled()) {
     console.log(...args)
   }
 }
