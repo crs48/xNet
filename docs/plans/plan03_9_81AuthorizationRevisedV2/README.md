@@ -212,7 +212,7 @@ const TaskSchema = defineSchema({
   properties: {
     title: text({ required: true }),
     assignee: person(),
-    project: relation({ schema: 'xnet://myapp/Project' }),
+    project: relation({ target: 'xnet://myapp/Project' as const }),
     editors: person({ multiple: true })
   },
   authorization: {

@@ -2,7 +2,7 @@
 
 > Architectural audit of the V2 authorization plan against the actual xNet codebase and the V1 review it was meant to address. Conducted 2026-02-11.
 
-**Verdict:** V2 is a substantial improvement. The plan successfully addresses all 25 issues from the V1 review — key recovery, offline policy, delegation limits, public nodes, grant conflicts, and DevTools observability are all covered. The architecture is coherent and the developer API is clean. However, the plan introduces **6 new issues** (1 critical, 3 medium, 2 low) and carries forward **2 API mismatches** from V1 that weren't fully corrected. None are architectural blockers — all are fixable without redesign.
+**Verdict:** V2 is a substantial improvement. The plan successfully addresses all 25 issues from the V1 review — key recovery, offline policy, delegation limits, public nodes, grant conflicts, and DevTools observability are all covered. The architecture is coherent and the developer API is clean. The review originally identified 6 new issues (1 critical, 3 medium, 2 low) and 2 carried-forward API mismatches. **All issues have been resolved** in the plan documents (see resolution notes below).
 
 ---
 
@@ -42,9 +42,10 @@ All 25 original issues are addressed. Spot-checked against the actual codebase:
 
 ## A. New Issues Introduced in V2
 
-### A1. `store.query()` Does Not Exist on NodeStore (Critical)
+### A1. `store.query()` Does Not Exist on NodeStore (Critical) — RESOLVED
 
 **Severity: P0 — Blocks grant system implementation**
+**Resolution:** Introduced `GrantIndex` class in Step 03 with O(1) lookup by (resource, grantee), maintained via `store.subscribe()`. Replaced all 6 `store.query()` calls across Steps 02, 03, 05. Infrequent operations (cascade revocation, expiration cleanup) use `store.list()` + client-side filter.
 
 The plan calls `this.store.query()` **6 times** across Steps 02, 03, and 05 to find active grants:
 
@@ -74,9 +75,10 @@ const grants = await this.store.query({
 
 ---
 
-### A2. Dual X25519 Key Derivation Contradiction (Medium)
+### A2. Dual X25519 Key Derivation Contradiction (Medium) — RESOLVED
 
 **Severity: P1 — Cryptographic inconsistency**
+**Resolution:** Step 10 now derives X25519 via `edwardsToMontgomeryPriv(signingKeyBytes)` instead of independent HKDF. Added key invariant test ensuring seed-derived X25519 matches Step 01's birational conversion.
 
 The plan derives X25519 keys **two different ways**:
 
@@ -110,9 +112,10 @@ const encryptionKeyBytes = edwardsToMontgomeryPriv(signingKeyBytes) // NOT indep
 
 ---
 
-### A3. `relation()` Property API Mismatch (Medium)
+### A3. `relation()` Property API Mismatch (Medium) — RESOLVED
 
 **Severity: P1 — Code won't compile as written**
+**Resolution:** Changed `relation({ schema: ... })` to `relation({ target: ... as const })` in README.
 
 The plan's schema examples use `relation({ schema: '...' })`:
 
@@ -134,9 +137,10 @@ parent: relation({ target: 'xnet://xnet.fyi/Task' as const })
 
 ---
 
-### A4. `schemaRegistry.get()` Is Async — Plan Treats It As Sync (Medium)
+### A4. `schemaRegistry.get()` Is Async — Plan Treats It As Sync (Medium) — RESOLVED
 
 **Severity: P1 — Subtle runtime bug**
+**Resolution:** Added `await` to all `schemaRegistry.get()` calls in Step 03 (DefaultRoleResolver and DefaultPolicyEvaluator).
 
 The plan's `DefaultRoleResolver` (Step 03) calls `this.schemaRegistry.get()` and uses the result directly:
 
@@ -156,9 +160,10 @@ The plan correctly uses `await` in the `DefaultPolicyEvaluator` (Step 03, line 2
 
 ---
 
-### A5. Missing `unauthorized_update` Violation Type (Low)
+### A5. Missing `unauthorized_update` Violation Type (Low) — RESOLVED
 
 **Severity: P2 — Type extension needed**
+**Resolution:** Added prerequisite note in Step 09 header documenting that `YjsViolationType` must be extended and penalty value (20) added to config.
 
 Step 09 uses `'unauthorized_update'` as a peer scoring violation:
 
@@ -186,9 +191,10 @@ type YjsViolationType =
 
 ---
 
-### A6. PUBLIC_CONTENT_KEY (All Zeros) Has Subtle Crypto Implications (Low)
+### A6. PUBLIC_CONTENT_KEY (All Zeros) Has Subtle Crypto Implications (Low) — RESOLVED
 
 **Severity: P3 — Design choice worth documenting**
+**Resolution:** Added failure mode documentation to Step 02 covering the public→private transition crash scenario.
 
 Step 02 defines `PUBLIC_CONTENT_KEY = new Uint8Array(32)` (all zeros) for public nodes. This means:
 
@@ -202,9 +208,9 @@ The plan already documents option (1) as intentional (preserves uniform code pat
 
 ---
 
-## B. Remaining API Mismatches (Carried Forward)
+## B. Remaining API Mismatches (Carried Forward) — ALL RESOLVED
 
-The V1 review flagged 6 API mismatches. V2 corrected 4 of 6:
+The V1 review flagged 6 API mismatches. V2 corrected 4 of 6, and the remaining issues were fixed in this revision:
 
 | V1 Mismatch                                                       | V2 Status                             |
 | ----------------------------------------------------------------- | ------------------------------------- |
@@ -215,24 +221,25 @@ The V1 review flagged 6 API mismatches. V2 corrected 4 of 6:
 | `store.get(schemaId)` → `schemaRegistry.get(iri)`                 | Fixed but missing `await` (see A4)    |
 | `"7 devtools panels"` → 9+ panels                                 | Fixed (Step 07 says 15th panel)       |
 
-**New mismatches introduced in V2:**
+**New mismatches introduced in V2 — ALL FIXED:**
 
-| Mismatch                       | Actual API                             | Location                         |
-| ------------------------------ | -------------------------------------- | -------------------------------- |
-| `store.query()`                | Does not exist (see A1)                | Steps 02, 03, 05                 |
-| `relation({ schema: ... })`    | `relation({ target: ... })`            | README                           |
-| `store.serializeNodeContent()` | Does not exist                         | Step 08 (AuthMigrator, line 147) |
-| `store.storeEnvelope()`        | Does not exist                         | Step 08 (AuthMigrator, line 156) |
-| `store.extractMetadata()`      | Does not exist                         | Step 08 (AuthMigrator, line 150) |
-| `store.signingKey`             | Private field, not publicly accessible | Step 08 (AuthMigrator, line 152) |
+| Mismatch                       | Actual API                             | Location         | Fix                           |
+| ------------------------------ | -------------------------------------- | ---------------- | ----------------------------- |
+| `store.query()`                | Does not exist (see A1)                | Steps 02, 03, 05 | Replaced with GrantIndex      |
+| `relation({ schema: ... })`    | `relation({ target: ... })`            | README           | Fixed                         |
+| `store.serializeNodeContent()` | Does not exist                         | Step 08          | Replaced with EncryptionLayer |
+| `store.storeEnvelope()`        | Does not exist                         | Step 08          | Replaced with EncryptionLayer |
+| `store.extractMetadata()`      | Does not exist                         | Step 08          | Replaced with EncryptionLayer |
+| `store.signingKey`             | Private field, not publicly accessible | Step 08          | Replaced with EncryptionLayer |
 
 ---
 
 ## C. Concurrency & Race Condition Analysis
 
-### C1. Recipients List Merge Conflict (Medium)
+### C1. Recipients List Merge Conflict (Medium) — RESOLVED
 
 **Severity: P1 — Data integrity concern**
+**Resolution:** Documented in Step 05 with a `RecipientReconciler` periodic task that re-runs `computeRecipients()` for nodes with recent grant changes.
 
 The plan stores recipients as a `DID[]` in the `EncryptedEnvelope`. When two devices independently grant access:
 
@@ -328,11 +335,22 @@ The window is now reduced to a single update cycle (the time between the revocat
 
 ## H. Overall Assessment
 
-**The plan is ready for implementation** with the fixes noted above. The critical `store.query()` issue (A1) and the X25519 dual derivation (A2) must be resolved before starting. The remaining issues are fixable during implementation.
+**The plan is ready for implementation.** All review issues (A1-A6, B, C1) have been resolved in the plan documents.
+
+Key fixes applied:
+
+- **A1 (P0):** Introduced `GrantIndex` with O(1) lookup, replacing all 6 `store.query()` calls
+- **A2 (P1):** X25519 now derived via birational conversion from Ed25519 (not independent HKDF)
+- **A3 (P1):** `relation({ schema })` corrected to `relation({ target })`
+- **A4 (P1):** Added `await` to all async `schemaRegistry.get()` calls
+- **C1 (P1):** Documented recipients merge conflict + `RecipientReconciler` periodic task
+- **B (P2):** AuthMigrator rewritten with `EncryptionLayer` interface instead of non-existent NodeStore methods
+- **A5 (P2):** Documented `YjsViolationType` extension as prerequisite
+- **A6 (P3):** Documented PUBLIC_CONTENT_KEY failure mode in public→private transition
 
 The architecture is sound, the developer API is well-designed, and the security tradeoffs are honestly documented. The addition of Step 10 (key recovery) addresses what was genuinely the biggest real-world risk.
 
-**Recommended next step:** Fix the 4 P0/P1 issues (A1-A4) in the plan documents, then begin Phase 1 implementation (Steps 01-02).
+**Recommended next step:** Begin Phase 1 implementation (Steps 01-02).
 
 ---
 

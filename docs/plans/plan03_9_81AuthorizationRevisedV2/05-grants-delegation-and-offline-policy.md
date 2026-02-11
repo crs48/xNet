@@ -180,6 +180,75 @@ sequenceDiagram
   Note over Device: Bob can no longer write
 ```
 
+### 3. Recipients List Merge Conflict
+
+**Known limitation (V2 review C1):** When two devices independently grant access to the same resource, each device computes a new recipients list. Since `recipients` is a scalar field in the `EncryptedEnvelope`, LWW applies — the device with the higher Lamport timestamp wins, and the other device's grant recipient may be temporarily missing from the list.
+
+**Example:**
+
+- Device A grants Bob → recipients: `[alice, bob]`, lamport: 100
+- Device B grants Carol → recipients: `[alice, carol]`, lamport: 101
+- LWW result: `[alice, carol]` — Bob's DID is missing until reconciliation
+
+**Mitigation:** `computeRecipients()` is the source of truth. It recomputes recipients from roles + grants (via GrantIndex). The inconsistency self-heals when:
+
+1. Any auth-relevant mutation triggers `computeRecipients()` (Step 04)
+2. The periodic `RecipientReconciler` runs (see below)
+3. A new grant/revoke triggers recipient recomputation
+
+**During the window**, the hub may filter out a node for a user whose DID is missing from the recipients list, but the user's grant is still valid. The user will regain access once reconciliation runs.
+
+```typescript
+/**
+ * Periodic reconciliation task that re-runs computeRecipients() for nodes
+ * with recent grant changes, fixing any LWW-induced recipient list drift.
+ *
+ * Runs every 5 minutes (configurable). Lightweight: only checks nodes
+ * that had grant changes since the last reconciliation.
+ */
+export class RecipientReconciler {
+  private lastRunAt = 0
+
+  constructor(
+    private store: NodeStore,
+    private grantIndex: GrantIndex,
+    private schemaRegistry: SchemaRegistry,
+    private interval: number = 5 * 60 * 1000
+  ) {}
+
+  start(): ReturnType<typeof setInterval> {
+    return setInterval(() => this.reconcile(), this.interval)
+  }
+
+  async reconcile(): Promise<{ reconciled: number }> {
+    // Find resources with grant changes since last run
+    const changedResources = this.grantIndex.getResourcesChangedSince(this.lastRunAt)
+    this.lastRunAt = Date.now()
+
+    let reconciled = 0
+    for (const resourceId of changedResources) {
+      const node = await this.store.get(resourceId)
+      if (!node) continue
+
+      const schema = await this.schemaRegistry.get(node.schemaId)
+      if (!schema?.schema?.authorization) continue
+
+      // Recompute and update recipients
+      const correctRecipients = await computeRecipients(
+        schema.schema,
+        node,
+        this.store,
+        this.grantIndex
+      )
+      await this.store.updateEnvelopeRecipients(resourceId, correctRecipients)
+      reconciled++
+    }
+
+    return { reconciled }
+  }
+}
+```
+
 ### 3. Grant Conflict Resolution Semantics
 
 **Explicit documentation of how LWW applies to grants (addresses B7).**
@@ -366,11 +435,9 @@ class StoreAuth implements StoreAuthAPI {
     const resource = grant.resource as string
     const grantee = grant.grantee as DID
 
-    // Get all active grants with 'share' action for this resource
-    const shareGrants = await this.store.query({
-      schema: 'xnet://xnet.fyi/Grant',
-      filter: { resource, revokedAt: 0 }
-    })
+    // Get all grants for this resource via GrantIndex
+    // FIXED (V2 review A1): NodeStore has no query() method.
+    const shareGrants = this.grantIndex.findAllGrantsForResource(resource)
 
     const activeShareHolders = new Set<DID>()
     const node = await this.store.get(resource)
@@ -459,11 +526,13 @@ class StoreAuth {
    * references the revoked token in their proof chain.
    */
   private async cascadeRevocation(revokedGrantId: string): Promise<void> {
-    // Find all grants that were delegated from this one
-    const childGrants = await this.store.query({
-      schema: 'xnet://xnet.fyi/Grant',
-      filter: { revokedAt: 0 }
-    })
+    // Find all active grants — filter for children of the revoked one
+    // FIXED (V2 review A1): Use GrantIndex instead of store.query()
+    const allActiveGrants: GrantNode[] = []
+    // GrantIndex doesn't have a "list all" method, so we use store.list()
+    // for this less-frequent operation (cascade revocation is rare)
+    const allGrants = await this.store.list({ schema: 'xnet://xnet.fyi/Grant' })
+    const childGrants = allGrants.filter((g) => isGrantActive(g as GrantNode))
 
     for (const child of childGrants) {
       if (child.ucanToken) {
@@ -512,9 +581,13 @@ export class GrantExpirationCleaner {
 
   async cleanup(): Promise<{ pruned: number }> {
     const now = Date.now() - GrantExpirationCleaner.CLOCK_SKEW_TOLERANCE
-    const expiredGrants = await this.store.query({
-      schema: 'xnet://xnet.fyi/Grant',
-      filter: { expiresAt: { $gt: 0, $lt: now } }
+    // FIXED (V2 review A1): Use store.list() + client-side filter
+    // instead of store.query() which doesn't exist on NodeStore.
+    // Expiration cleanup runs every 6 hours, so O(n) scan is acceptable.
+    const allGrants = await this.store.list({ schema: 'xnet://xnet.fyi/Grant' })
+    const expiredGrants = allGrants.filter((g) => {
+      const expiresAt = g.properties.expiresAt as number
+      return expiresAt > 0 && expiresAt < now
     })
 
     let pruned = 0

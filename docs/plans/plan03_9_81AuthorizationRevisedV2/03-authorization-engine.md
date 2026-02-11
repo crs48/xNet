@@ -6,6 +6,7 @@
 **Dependencies:** [02-schema-authorization-model.md](./02-schema-authorization-model.md)
 **Packages:** `packages/data/src/auth`
 **Review issues addressed:** B9 (last admin protection, circular groups), C1 (API mismatches), C2 (existing code)
+**V2 review fixes:** A1 (GrantIndex replaces store.query()), A4 (async schemaRegistry.get())
 
 ## Why This Step Exists
 
@@ -21,6 +22,130 @@ The evaluator is the heart of the authorization system. It takes a subject (DID)
 4. **Node Policy** — Apply node-level deny rules if present.
 5. **Decision Caching** — Cache decisions with event-driven invalidation.
 6. **Trace Generation** — Produce structured traces for the `explain()` API.
+7. **Grant Indexing** — Maintain an in-memory index of active grants for O(1) lookup.
+
+## Grant Index
+
+**Why this exists (V2 review fix A1):** `NodeStore` does not have a `query()` method. Queries with filters live in the separate `@xnet/query` package, which operates at a higher level. The `PolicyEvaluator` needs fast grant lookups in its hot path, so we maintain a dedicated in-memory index built from `store.subscribe()` events.
+
+```typescript
+/**
+ * In-memory index of active grants, maintained via store.subscribe().
+ *
+ * Provides O(1) lookup by (resource, grantee) — critical for the
+ * PolicyEvaluator.can() hot path. NodeStore.list() would be O(n) on all
+ * grants; the separate @xnet/query package is too high-level for use
+ * inside the data layer.
+ *
+ * The index is populated on construction by listing all Grant nodes,
+ * then kept in sync via store.subscribe() events.
+ */
+export class GrantIndex {
+  /** resource -> grantee -> Grant[] */
+  private byResourceAndGrantee = new Map<string, Map<DID, GrantNode[]>>()
+  /** resource -> Grant[] (all grants for a resource) */
+  private byResource = new Map<string, GrantNode[]>()
+  private unsubscribe: (() => void) | null = null
+
+  constructor(private store: NodeStoreReader) {}
+
+  /**
+   * Initialize the index by listing all existing Grant nodes.
+   * Must be called once before use.
+   */
+  async initialize(): Promise<void> {
+    const allGrants = await this.store.list({ schema: 'xnet://xnet.fyi/Grant' })
+    for (const grant of allGrants) {
+      this.indexGrant(grant as GrantNode)
+    }
+
+    // Stay in sync via store.subscribe()
+    this.unsubscribe = this.store.subscribe((event) => {
+      if (event.node?.schemaId !== 'xnet://xnet.fyi/Grant') return
+
+      if (event.node.deleted) {
+        this.removeGrant(event.node.id)
+      } else {
+        this.removeGrant(event.node.id) // Remove old entry
+        this.indexGrant(event.node as GrantNode) // Re-index
+      }
+    })
+  }
+
+  /** Find active grants for a resource + grantee */
+  findGrants(resource: string, grantee: DID): GrantNode[] {
+    const byGrantee = this.byResourceAndGrantee.get(resource)
+    if (!byGrantee) return []
+    return (byGrantee.get(grantee) ?? []).filter(isGrantActive)
+  }
+
+  /** Find all active grants for a resource */
+  findGrantsForResource(resource: string): GrantNode[] {
+    return (this.byResource.get(resource) ?? []).filter(isGrantActive)
+  }
+
+  /** Find all active grants where grantee matches */
+  findGrantsForGrantee(grantee: DID): GrantNode[] {
+    const results: GrantNode[] = []
+    for (const byGrantee of this.byResourceAndGrantee.values()) {
+      const grants = byGrantee.get(grantee)
+      if (grants) results.push(...grants.filter(isGrantActive))
+    }
+    return results
+  }
+
+  /** Find all grants (active or not) for a resource — used by revocation checks */
+  findAllGrantsForResource(resource: string): GrantNode[] {
+    return this.byResource.get(resource) ?? []
+  }
+
+  dispose(): void {
+    this.unsubscribe?.()
+    this.byResourceAndGrantee.clear()
+    this.byResource.clear()
+  }
+
+  private indexGrant(grant: GrantNode): void {
+    const resource = grant.properties.resource as string
+    const grantee = grant.properties.grantee as DID
+
+    // Index by resource + grantee
+    if (!this.byResourceAndGrantee.has(resource)) {
+      this.byResourceAndGrantee.set(resource, new Map())
+    }
+    const byGrantee = this.byResourceAndGrantee.get(resource)!
+    if (!byGrantee.has(grantee)) byGrantee.set(grantee, [])
+    byGrantee.get(grantee)!.push(grant)
+
+    // Index by resource
+    if (!this.byResource.has(resource)) this.byResource.set(resource, [])
+    this.byResource.get(resource)!.push(grant)
+  }
+
+  private removeGrant(grantId: string): void {
+    for (const [resource, byGrantee] of this.byResourceAndGrantee) {
+      for (const [grantee, grants] of byGrantee) {
+        const idx = grants.findIndex((g) => g.id === grantId)
+        if (idx !== -1) {
+          grants.splice(idx, 1)
+          if (grants.length === 0) byGrantee.delete(grantee)
+          break
+        }
+      }
+      if (byGrantee.size === 0) this.byResourceAndGrantee.delete(resource)
+    }
+
+    for (const [resource, grants] of this.byResource) {
+      const idx = grants.findIndex((g) => g.id === grantId)
+      if (idx !== -1) {
+        grants.splice(idx, 1)
+        if (grants.length === 0) this.byResource.delete(resource)
+        break
+      }
+    }
+  }
+}
+```
 
 ## Implementation
 
@@ -104,7 +229,8 @@ export class DefaultRoleResolver {
         const targetNode = await this.store.get(targetId)
         if (!targetNode) return []
 
-        const targetSchema = this.schemaRegistry.get(targetNode.schemaId)
+        // FIXED (V2 review A4): schemaRegistry.get() is async
+        const targetSchema = await this.schemaRegistry.get(targetNode.schemaId)
         if (!targetSchema?.authorization) return []
 
         const targetAuth = deserializeAuthorization(targetSchema.authorization)
@@ -148,8 +274,8 @@ export class DefaultRoleResolver {
         const targetNode = await this.store.get(targetId)
         if (!targetNode) return false
 
-        // Use schemaRegistry.get() — NOT store.get(schemaId)
-        const targetSchema = this.schemaRegistry.get(targetNode.schemaId)
+        // FIXED (V2 review A4): schemaRegistry.get() is async
+        const targetSchema = await this.schemaRegistry.get(targetNode.schemaId)
         if (!targetSchema?.authorization) return false
 
         const targetAuth = deserializeAuthorization(targetSchema.authorization)
@@ -211,9 +337,12 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
   private store: NodeStoreReader
   private schemaRegistry: SchemaRegistry
 
+  private grantIndex: GrantIndex
+
   constructor(options: {
     store: NodeStoreReader
     schemaRegistry: SchemaRegistry
+    grantIndex: GrantIndex
     maxDepth?: number
     maxNodes?: number
     cacheTTL?: number
@@ -221,6 +350,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
   }) {
     this.store = options.store
     this.schemaRegistry = options.schemaRegistry
+    this.grantIndex = options.grantIndex
     this.roleResolver = new DefaultRoleResolver(
       options.store,
       options.schemaRegistry,
@@ -241,7 +371,8 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     const node = input.node ?? (await this.store.get(input.nodeId))
     if (!node) return this.deny(input, ['DENY_NOT_AUTHENTICATED'], start)
 
-    const schema = this.schemaRegistry.get(node.schemaId)
+    // FIXED (V2 review A4): schemaRegistry.get() is async
+    const schema = await this.schemaRegistry.get(node.schemaId)
     if (!schema) return this.deny(input, ['DENY_NOT_AUTHENTICATED'], start)
 
     const authMode = getAuthMode(schema)
@@ -280,22 +411,14 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       return decision
     }
 
-    // 7. Check Grant nodes (grants-as-nodes via NodeStore query)
-    const grants = await this.store.query({
-      schema: 'xnet://xnet.fyi/Grant',
-      filter: {
-        resource: input.nodeId,
-        grantee: input.subject,
-        revokedAt: 0
-      }
-    })
+    // 7. Check Grant nodes via GrantIndex (FIXED: V2 review A1)
+    // GrantIndex provides O(1) lookup maintained via store.subscribe().
+    // NodeStore does not have a query() method — queries live in @xnet/query.
+    const grants = this.grantIndex.findGrants(input.nodeId, input.subject)
 
-    const now = Date.now()
     for (const grant of grants) {
-      // Check expiration
-      if (grant.expiresAt && grant.expiresAt > 0 && grant.expiresAt < now) continue
-      // Check action match
-      const actions = JSON.parse(grant.actions as string) as string[]
+      // isGrantActive() already checks revokedAt and expiresAt
+      const actions = JSON.parse(grant.properties.actions as string) as string[]
       if (actions.includes(input.action)) {
         const decision = this.decision(input, true, [...roles], start, [grant.id])
         this.cache.set(input.subject, input.action, input.nodeId, decision)
@@ -317,7 +440,8 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
 
     // Re-implement can() but record each step
     const node = input.node ?? (await this.store.get(input.nodeId))
-    const schema = node ? this.schemaRegistry.get(node.schemaId) : null
+    // FIXED (V2 review A4): schemaRegistry.get() is async
+    const schema = node ? await this.schemaRegistry.get(node.schemaId) : null
 
     // Step 1: Node deny check
     const denyStart = performance.now()
@@ -357,10 +481,8 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       // Step 4: Grant check (if not allowed by role)
       if (!allowed) {
         const grantStart = performance.now()
-        const grants = await this.store.query({
-          schema: 'xnet://xnet.fyi/Grant',
-          filter: { resource: input.nodeId, grantee: input.subject, revokedAt: 0 }
-        })
+        // FIXED (V2 review A1): Use GrantIndex instead of store.query()
+        const grants = this.grantIndex.findGrants(input.nodeId, input.subject)
         steps.push({
           phase: 'grant-check',
           input: { grantee: input.subject, resource: input.nodeId },
@@ -529,7 +651,11 @@ sequenceDiagram
 - Full pipeline: non-owner without role -> denied.
 - Full pipeline: grantee with active grant -> allowed.
 - Full pipeline: grantee with expired grant -> denied.
-- Full pipeline: uses `schemaRegistry.get()` (not `store.get(schemaId)`).
+- Full pipeline: uses `await schemaRegistry.get()` (async, not `store.get(schemaId)`).
+- GrantIndex: initializes from existing Grant nodes.
+- GrantIndex: stays in sync via store.subscribe() events.
+- GrantIndex: findGrants() returns only active grants.
+- GrantIndex: findGrantsForResource() returns all active grants for a node.
 - Cache: second call returns cached result.
 - Cache: invalidation clears relevant entries.
 - Explain: returns structured trace with all steps and correct phases.
@@ -539,6 +665,9 @@ sequenceDiagram
 
 ## Checklist
 
+- [ ] `GrantIndex` implemented with O(1) lookup by (resource, grantee).
+- [ ] `GrantIndex` initialized from `store.list({ schema: GrantSchema.iri })`.
+- [ ] `GrantIndex` maintained via `store.subscribe()` event listener.
 - [ ] `PolicyEvaluator` interface defined (supersedes `@xnet/core` `PermissionEvaluator`).
 - [ ] `DefaultRoleResolver` with property, creator, and relation resolution.
 - [ ] **Visited-set** cycle detection in relation traversal (not just max-depth).
