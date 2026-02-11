@@ -457,9 +457,9 @@ function ShareDialog({ nodeId }: { nodeId: string }) {
 
 ## Checklist
 
-- [ ] `useCan` hook with loading/error/freshness state.
-- [ ] `useGrants` hook with grant/revoke callbacks.
-- [ ] Both hooks use `store.subscribe()` (global listener, filter in callback).
+- [x] `useCan` hook with loading/error/freshness state.
+- [x] `useGrants` hook with grant/revoke callbacks.
+- [x] Both hooks use `store.subscribe()` (global listener, filter in callback).
 - [ ] DevTools `AuthZ` tab registered as 15th panel.
 - [ ] Permission Playground sub-tab.
 - [ ] Grant Manager sub-tab.

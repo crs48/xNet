@@ -297,6 +297,10 @@ export { useVerification, type UseVerificationResult } from './hooks/useVerifica
 
 export { useHubStatus } from './hooks/useHubStatus'
 
+export { useCan, type UseCanResult } from './hooks/useCan'
+
+export { useGrants, type GrantInput, type UseGrantsResult } from './hooks/useGrants'
+
 export { useBackup, type UseBackupReturn } from './hooks/useBackup'
 
 export { useFileUpload, type FileRef, type UseFileUploadReturn } from './hooks/useFileUpload'
