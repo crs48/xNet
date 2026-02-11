@@ -111,7 +111,10 @@ class CacheInvalidator {
 export class AuthMigrator {
   constructor(
     private store: NodeStore,
-    private publicKeyResolver: PublicKeyResolver
+    private schemaRegistry: SchemaRegistry,
+    private publicKeyResolver: PublicKeyResolver,
+    private grantIndex: GrantIndex,
+    private encryptionLayer: EncryptionLayer
   ) {}
 
   async migrateSchema(
@@ -119,12 +122,15 @@ export class AuthMigrator {
     options: MigrationOptions = {}
   ): Promise<MigrationResult> {
     const { batchSize = 100, onProgress } = options
-    const schema = this.store.schemaRegistry.get(schemaIri)
-    if (!schema?.authorization) {
+
+    // FIXED (V2 review B): schemaRegistry.get() is async
+    const schema = await this.schemaRegistry.get(schemaIri)
+    if (!schema?.schema?.authorization) {
       throw new Error(`Schema ${schemaIri} has no authorization block`)
     }
 
     // 1. Find all unencrypted nodes of this schema
+    // Uses store.list() — the actual NodeStore API
     const nodes = await this.store.list({ schema: schemaIri })
     const total = nodes.length
     let migrated = 0
@@ -138,22 +144,23 @@ export class AuthMigrator {
       for (const node of batch) {
         try {
           // a. Compute recipients for this node
-          const recipients = await computeRecipients(schema, node, this.store)
+          // FIXED (V2 review B): Uses grantIndex parameter
+          const recipients = await computeRecipients(
+            schema.schema,
+            node,
+            this.store,
+            this.grantIndex
+          )
 
           // b. Resolve X25519 public keys
           const publicKeys = await this.publicKeyResolver.resolveBatch(recipients)
 
           // c. Generate content key and encrypt
-          const content = this.store.serializeNodeContent(node)
-          const envelope = createEncryptedEnvelope(
-            content,
-            this.store.extractMetadata(node),
-            publicKeys,
-            this.store.signingKey
-          )
-
-          // d. Store encrypted envelope
-          await this.store.storeEnvelope(envelope)
+          // FIXED (V2 review B): NodeStore doesn't have serializeNodeContent(),
+          // storeEnvelope(), extractMetadata(), or public signingKey.
+          // Encryption is handled by a separate EncryptionLayer that wraps
+          // these operations using the actual NodeStore + crypto APIs.
+          await this.encryptionLayer.encryptAndStoreNode(node, publicKeys)
           migrated++
         } catch (err) {
           failed++
@@ -169,6 +176,33 @@ export class AuthMigrator {
 
     return { total, migrated, failed, errors }
   }
+}
+
+/**
+ * EncryptionLayer wraps the actual encryption operations.
+ *
+ * NodeStore doesn't expose serializeNodeContent(), extractMetadata(),
+ * storeEnvelope(), or signingKey directly. This layer provides those
+ * operations using the actual NodeStore + @xnet/crypto APIs.
+ *
+ * Injected into AuthMigrator and NodeStore's auth-enhanced paths.
+ */
+export interface EncryptionLayer {
+  /** Encrypt a node's content and store the resulting envelope */
+  encryptAndStoreNode(node: NodeState, recipientKeys: Map<DID, Uint8Array>): Promise<void>
+
+  /** Get or generate a content key for a node */
+  getContentKey(nodeId: string): Promise<Uint8Array>
+
+  /** Wrap a content key for a new recipient */
+  wrapKeyForRecipient(contentKey: Uint8Array, recipientPublicKey: Uint8Array): WrappedKey
+
+  /** Update envelope recipients and wrapped keys */
+  updateEnvelopeRecipients(
+    nodeId: string,
+    recipients: DID[],
+    wrappedKeys: Record<string, WrappedKey>
+  ): Promise<void>
 }
 
 interface MigrationOptions {

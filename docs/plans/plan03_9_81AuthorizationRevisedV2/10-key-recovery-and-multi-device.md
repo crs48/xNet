@@ -77,10 +77,19 @@ export async function deriveKeysFromSeed(
   const signingKeyBytes = hkdf(sha256, seed, 'xnet-salt', 'xnet-ed25519-signing', 32)
   const signingKeyPair = ed25519.utils.getExtendedPublicKey(signingKeyBytes)
 
-  // 3. Derive X25519 encryption key (birational from Ed25519, or direct derivation)
-  const encryptionKeyBytes = hkdf(sha256, seed, 'xnet-salt', 'xnet-x25519-encryption', 32)
+  // 3. Derive X25519 encryption key via BIRATIONAL CONVERSION from Ed25519
+  // FIXED (V2 review A2): Previously used independent HKDF derivation which
+  // produced a DIFFERENT X25519 key than the birational conversion in Step 01.
+  // This caused decrypt failures: content wrapped for the birational key
+  // couldn't be unwrapped with the independently-derived key.
+  //
+  // The invariant: DID -> Ed25519 pubkey -> X25519 pubkey must be deterministic.
+  // Both Step 01 (PublicKeyResolver) and Step 10 (seed derivation) must produce
+  // the same X25519 key for the same Ed25519 key.
+  const encryptionKeyBytes = edwardsToMontgomeryPriv(signingKeyBytes)
+  const encryptionPublicKey = edwardsToMontgomeryPub(signingKeyPair.point)
 
-  // 4. Derive backup encryption key
+  // 4. Derive backup encryption key (separate from signing/encryption)
   const backupKey = hkdf(sha256, seed, 'xnet-salt', 'xnet-backup-key', 32)
 
   // 5. Build DID from Ed25519 public key
@@ -92,7 +101,7 @@ export async function deriveKeysFromSeed(
     signingKey: signingKeyBytes,
     signingPublicKey: signingKeyPair.point,
     encryptionKey: encryptionKeyBytes,
-    encryptionPublicKey: x25519.getPublicKey(encryptionKeyBytes),
+    encryptionPublicKey,
     backupKey
   }
 }
@@ -393,6 +402,7 @@ flowchart TD
 - `deriveKeysFromSeed`: derived Ed25519 key produces valid signatures.
 - `deriveKeysFromSeed`: derived X25519 key works for ECDH key wrapping.
 - `deriveKeysFromSeed`: derived DID matches expected format.
+- **Key invariant**: X25519 key from seed derivation matches birational conversion of Ed25519 key (Step 01 PublicKeyResolver produces same key).
 - `createKeyBackup`: produces encrypted backup that can't be read without seed.
 - `recoverFromBackup`: correct seed decrypts and validates.
 - `recoverFromBackup`: wrong seed fails (DID mismatch).

@@ -134,6 +134,8 @@ export function hasPublicAccess(readExpr: AuthExpression): boolean {
 4. Re-encrypt all content with the real key
 5. Update the recipients list (remove `PUBLIC` sentinel)
 
+> **Failure mode (V2 review A6):** If key rotation fails midway during a public→private transition (e.g., crash after generating new key but before re-encrypting), the node is left "encrypted" with the all-zeros `PUBLIC_CONTENT_KEY` — effectively still public. The `AuthMigrator` (Step 08) handles this by checking for the null key and retrying the transition. Implementations should treat `PUBLIC_CONTENT_KEY` as a signal that encryption is incomplete, not that the node is intentionally public (check the schema's authorization block for the source of truth).
+
 ```mermaid
 flowchart LR
   subgraph PUBLIC["Public Node"]
@@ -162,7 +164,8 @@ flowchart LR
 export async function computeRecipients(
   schema: Schema,
   node: Node,
-  store: NodeStoreReader
+  store: NodeStoreReader,
+  grantIndex: GrantIndex
 ): Promise<DID[]> {
   const recipients = new Set<DID>()
 
@@ -195,15 +198,14 @@ export async function computeRecipients(
     }
   }
 
-  // 4. Add grantees from active grants (query from GrantSchema nodes)
-  const grants = await store.query({
-    schema: 'xnet://xnet.fyi/Grant',
-    filter: { resource: node.id, revokedAt: 0 }
-  })
+  // 4. Add grantees from active grants via GrantIndex
+  // FIXED (V2 review A1): NodeStore has no query() method.
+  // GrantIndex provides O(1) lookup maintained via store.subscribe().
+  const grants = grantIndex.findGrantsForResource(node.id)
   for (const grant of grants) {
-    const actions = JSON.parse(grant.actions as string) as string[]
+    const actions = JSON.parse(grant.properties.actions as string) as string[]
     if (actions.includes('read') || actions.includes('write')) {
-      recipients.add(grant.grantee as DID)
+      recipients.add(grant.properties.grantee as DID)
     }
   }
 

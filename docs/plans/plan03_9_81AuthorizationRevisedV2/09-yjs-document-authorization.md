@@ -6,6 +6,7 @@
 **Dependencies:** [04-nodestore-enforcement.md](./04-nodestore-enforcement.md), [06-hub-and-peer-filtering.md](./06-hub-and-peer-filtering.md)
 **Packages:** `packages/sync`, `packages/data`, `packages/crypto`, `packages/react`, `packages/network`
 **Review issues addressed:** A2 (Yjs room-gated trust window), C1 (API: `setDocumentContent` not `saveYjsState`)
+**Prerequisites:** Extend `YjsViolationType` with `'unauthorized_update'` and add penalty value (20) to `DEFAULT_YJS_SCORING_CONFIG`
 
 ## Why This Step Exists
 
@@ -300,6 +301,11 @@ export class AuthorizedYjsSyncProvider {
     }
 
     // 3. Authorization check (NEW)
+    // NOTE (V2 review A5): 'unauthorized_update' must be added to YjsViolationType
+    // in packages/sync/src/yjs-peer-scoring.ts. Add it to the type union:
+    //   type YjsViolationType = ... | 'unauthorized_update'
+    // And add a penalty value to DEFAULT_YJS_SCORING_CONFIG.penalties:
+    //   unauthorized_update: 20
     const authResult = await this.room.authGate.canApplyUpdate(envelope)
     if (!authResult.allowed) {
       this.peerScorer.recordViolation(peerId, 'unauthorized_update')
