@@ -24,6 +24,7 @@ import type {
   SchemaRecord,
   SearchOptions,
   SearchResult,
+  GrantIndexRecord,
   SerializedNodeChange,
   DatabaseRowRecord,
   DatabaseRowQueryOptions,
@@ -63,6 +64,26 @@ const SCHEMA_SQL = `
   );
   CREATE INDEX IF NOT EXISTS idx_doc_meta_owner ON doc_meta(owner_did);
   CREATE INDEX IF NOT EXISTS idx_doc_meta_schema ON doc_meta(schema_iri);
+
+  CREATE TABLE IF NOT EXISTS doc_recipients (
+    doc_id TEXT NOT NULL,
+    recipient TEXT NOT NULL,
+    PRIMARY KEY (doc_id, recipient)
+  );
+  CREATE INDEX IF NOT EXISTS idx_doc_recipients_recipient ON doc_recipients(recipient);
+
+  CREATE TABLE IF NOT EXISTS grant_index (
+    grant_id TEXT PRIMARY KEY,
+    grantee_did TEXT NOT NULL,
+    resource_doc_id TEXT NOT NULL,
+    actions_json TEXT NOT NULL,
+    expires_at INTEGER NOT NULL DEFAULT 0,
+    revoked_at INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+  );
+  CREATE INDEX IF NOT EXISTS idx_grant_index_grantee ON grant_index(grantee_did);
+  CREATE INDEX IF NOT EXISTS idx_grant_index_resource ON grant_index(resource_doc_id);
+  CREATE INDEX IF NOT EXISTS idx_grant_index_active ON grant_index(grantee_did, revoked_at, expires_at);
 
   CREATE TABLE IF NOT EXISTS backups (
     key TEXT PRIMARY KEY,
@@ -536,6 +557,14 @@ type SearchRow = {
   rank: number
 }
 
+type DocRecipientRow = {
+  recipient: string
+}
+
+type GrantedResourceRow = {
+  resource_doc_id: string
+}
+
 type DatabaseRowRow = {
   id: string
   database_id: string
@@ -600,6 +629,33 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
         title = excluded.title,
         properties_json = excluded.properties_json,
         updated_at = excluded.updated_at
+    `),
+    deleteDocRecipients: db.prepare('DELETE FROM doc_recipients WHERE doc_id = ?'),
+    insertDocRecipient: db.prepare(`
+      INSERT OR IGNORE INTO doc_recipients (doc_id, recipient)
+      VALUES (?, ?)
+    `),
+    listDocRecipients: db.prepare(`
+      SELECT recipient FROM doc_recipients WHERE doc_id = ? ORDER BY recipient ASC
+    `),
+    upsertGrantIndex: db.prepare(`
+      INSERT INTO grant_index (grant_id, grantee_did, resource_doc_id, actions_json, expires_at, revoked_at, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(grant_id) DO UPDATE SET
+        grantee_did = excluded.grantee_did,
+        resource_doc_id = excluded.resource_doc_id,
+        actions_json = excluded.actions_json,
+        expires_at = excluded.expires_at,
+        revoked_at = excluded.revoked_at,
+        created_at = excluded.created_at
+    `),
+    removeGrantIndex: db.prepare('DELETE FROM grant_index WHERE grant_id = ?'),
+    listGrantedDocIds: db.prepare(`
+      SELECT DISTINCT resource_doc_id
+      FROM grant_index
+      WHERE grantee_did = ?
+        AND revoked_at = 0
+        AND (expires_at = 0 OR expires_at > ?)
     `),
     insertBackup: db.prepare(`
       INSERT OR REPLACE INTO backups (key, doc_id, owner_did, size_bytes, content_type, blob_path, created_at)
@@ -1483,15 +1539,33 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
   }
 
   const setDocMeta = async (docId: string, meta: DocMeta): Promise<void> => {
-    stmts.upsertDocMeta.run(
-      docId,
-      meta.ownerDid,
-      meta.schemaIri,
-      meta.title,
-      JSON.stringify(meta.properties ?? {}),
-      meta.createdAt || Date.now(),
-      meta.updatedAt || Date.now()
-    )
+    const maybeRecipients = meta.properties?.recipients
+    const recipients: string[] = []
+    if (Array.isArray(maybeRecipients)) {
+      for (const value of maybeRecipients) {
+        if (typeof value === 'string') {
+          recipients.push(value)
+        }
+      }
+    }
+
+    const write = db.transaction(() => {
+      stmts.upsertDocMeta.run(
+        docId,
+        meta.ownerDid,
+        meta.schemaIri,
+        meta.title,
+        JSON.stringify(meta.properties ?? {}),
+        meta.createdAt || Date.now(),
+        meta.updatedAt || Date.now()
+      )
+      stmts.deleteDocRecipients.run(docId)
+      for (const recipient of recipients) {
+        stmts.insertDocRecipient.run(docId, recipient)
+      }
+    })
+
+    write()
   }
 
   const getDocMeta = async (docId: string): Promise<DocMeta | null> => {
@@ -1507,6 +1581,32 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }
+  }
+
+  const listDocRecipients = async (docId: string): Promise<string[]> => {
+    const rows = stmts.listDocRecipients.all(docId) as DocRecipientRow[]
+    return rows.map((row) => row.recipient)
+  }
+
+  const upsertGrantIndex = async (record: GrantIndexRecord): Promise<void> => {
+    stmts.upsertGrantIndex.run(
+      record.grantId,
+      record.granteeDid,
+      record.resourceDocId,
+      JSON.stringify(record.actions),
+      record.expiresAt,
+      record.revokedAt,
+      record.createdAt
+    )
+  }
+
+  const removeGrantIndex = async (grantId: string): Promise<void> => {
+    stmts.removeGrantIndex.run(grantId)
+  }
+
+  const listGrantedDocIds = async (granteeDid: string, now = Date.now()): Promise<string[]> => {
+    const rows = stmts.listGrantedDocIds.all(granteeDid, now) as GrantedResourceRow[]
+    return rows.map((row) => row.resource_doc_id)
   }
 
   const search = async (query: string, options?: SearchOptions): Promise<SearchResult[]> => {
@@ -1911,6 +2011,10 @@ export const createSQLiteStorage = (dataDir: string): HubStorage => {
     setDocMeta,
     getDocMeta,
     search,
+    listDocRecipients,
+    upsertGrantIndex,
+    removeGrantIndex,
+    listGrantedDocIds,
     getFileMeta,
     putFile,
     getFileData,
