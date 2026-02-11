@@ -451,7 +451,7 @@ export function useCanEdit(nodeId: string): UseCanEditResult {
 - [ ] Key rotation on revocation: generate new key, re-encrypt, kick peer.
 - [ ] Hub stores encrypted Y.Doc state alongside envelopes.
 - [ ] `YjsCheckpointer` compacts every 100 updates or 1 hour.
-- [ ] `useCanEdit()` hook with read/write distinction.
+- [x] `useCanEdit()` hook with read/write distinction.
 - [ ] Performance targets met.
 - [ ] All tests passing.
 

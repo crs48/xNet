@@ -6,6 +6,7 @@ import React, { type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { XNetContext } from '../context'
 import { useCan } from './useCan'
+import { useCanEdit } from './useCanEdit'
 import { useGrants } from './useGrants'
 
 const did = 'did:key:z6Mkfakesubject' as DID
@@ -157,5 +158,46 @@ describe('authorization hooks', () => {
       resource: 'node-1'
     })
     expect(setup.auth.revoke).toHaveBeenCalledWith({ grantId: 'grant-1' })
+  })
+
+  it('useCanEdit resolves edit/view mode and merged roles', async () => {
+    const setup = createWrapper({
+      can: async (action) => {
+        if (action === 'read') {
+          return {
+            ...decision('read', true),
+            roles: ['viewer']
+          }
+        }
+
+        if (action === 'write') {
+          return {
+            ...decision('write', false),
+            roles: ['viewer']
+          }
+        }
+
+        return decision(action, false)
+      }
+    })
+
+    const { result } = renderHook(() => useCanEdit('node-1'), { wrapper: setup.Wrapper })
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false)
+      expect(result.current.canEdit).toBe(false)
+      expect(result.current.canView).toBe(true)
+      expect(result.current.roles).toEqual(['viewer'])
+    })
+
+    act(() => {
+      setup.emit({
+        node: { schemaId: 'xnet://xnet.fyi/Grant', properties: { resource: 'node-1' } }
+      })
+    })
+
+    await waitFor(() => {
+      expect(setup.auth.can).toHaveBeenCalledTimes(4)
+    })
   })
 })

@@ -299,6 +299,8 @@ export { useHubStatus } from './hooks/useHubStatus'
 
 export { useCan, type UseCanResult } from './hooks/useCan'
 
+export { useCanEdit, type UseCanEditResult } from './hooks/useCanEdit'
+
 export { useGrants, type GrantInput, type UseGrantsResult } from './hooks/useGrants'
 
 export { useBackup, type UseBackupReturn } from './hooks/useBackup'
