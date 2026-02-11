@@ -134,6 +134,24 @@ export type {
 } from './yjs-peer-scoring'
 export { YjsPeerScorer, DEFAULT_YJS_SCORING_CONFIG } from './yjs-peer-scoring'
 
+// Yjs authorization primitives (Step 09)
+export type {
+  EncryptedYjsState,
+  YjsAuthDecision,
+  YjsAuthGateOptions,
+  YjsCheckpointerOptions
+} from './yjs-authorization'
+export {
+  YjsStateIntegrityError,
+  encryptYjsState,
+  decryptYjsState,
+  serializeEncryptedYjsState,
+  deserializeEncryptedYjsState,
+  YjsAuthGate,
+  YjsCheckpointer,
+  toEncryptedData
+} from './yjs-authorization'
+
 // Yjs security: clientID-DID binding (Step 07 + Multi-level signatures)
 export type {
   ClientIdAttestation,

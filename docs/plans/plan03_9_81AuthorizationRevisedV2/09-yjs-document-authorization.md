@@ -440,17 +440,17 @@ export function useCanEdit(nodeId: string): UseCanEditResult {
 
 ## Checklist
 
-- [ ] `EncryptedYjsState` type defined.
-- [ ] `encryptYjsState()` and `decryptYjsState()` with BLAKE3 integrity.
+- [x] `EncryptedYjsState` type defined.
+- [x] `encryptYjsState()` and `decryptYjsState()` with BLAKE3 integrity.
 - [ ] `AuthorizedSyncManager.acquire()` gates Y.Doc access.
-- [ ] `YjsAuthGate` with per-peer cached auth decisions.
+- [x] `YjsAuthGate` with per-peer cached auth decisions.
 - [ ] **Revocation event wiring**: `store.subscribe()` -> `authGate.invalidatePeer()`.
 - [ ] `AuthorizedYjsSyncProvider.handleRemoteUpdate()` wired into pipeline.
 - [ ] Uses `adapter.setDocumentContent()` (correct API, not `saveYjsState`).
 - [ ] Uses `adapter.getDocumentContent()` (correct API).
 - [ ] Key rotation on revocation: generate new key, re-encrypt, kick peer.
 - [ ] Hub stores encrypted Y.Doc state alongside envelopes.
-- [ ] `YjsCheckpointer` compacts every 100 updates or 1 hour.
+- [x] `YjsCheckpointer` compacts every 100 updates or 1 hour.
 - [x] `useCanEdit()` hook with read/write distinction.
 - [ ] Performance targets met.
 - [ ] All tests passing.

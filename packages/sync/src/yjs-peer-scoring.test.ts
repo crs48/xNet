@@ -49,6 +49,9 @@ describe('YjsPeerScorer', () => {
 
       scorer.penalize('p5', 'unattestedClientId')
       expect(scorer.getScore('p5')).toBe(100 - penalties.unattestedClientId)
+
+      scorer.penalize('p6', 'unauthorizedUpdate')
+      expect(scorer.getScore('p6')).toBe(100 - penalties.unauthorizedUpdate)
     })
 
     it('accumulates penalties', () => {
@@ -76,6 +79,15 @@ describe('YjsPeerScorer', () => {
       expect(metrics.invalidSignatures).toBe(2)
       expect(metrics.oversizedUpdates).toBe(1)
       expect(metrics.rateExceeded).toBe(0)
+      expect(metrics.unauthorizedUpdates).toBe(0)
+    })
+
+    it('tracks unauthorized update violations', () => {
+      const scorer = new YjsPeerScorer()
+      scorer.penalize('peer-1', 'unauthorizedUpdate')
+
+      const metrics = scorer.getMetrics('peer-1')!
+      expect(metrics.unauthorizedUpdates).toBe(1)
     })
 
     it('updates lastViolation timestamp', () => {
