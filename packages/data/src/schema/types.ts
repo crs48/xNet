@@ -3,6 +3,7 @@
  */
 
 import type { SchemaIRI, DID, Node } from './node'
+import type { SerializedAuthorization } from '../auth'
 
 /**
  * Property type identifiers.
@@ -102,6 +103,13 @@ export interface Schema {
    * that syncs separately from properties (which use LWW).
    */
   document?: DocumentType
+
+  /**
+   * Authorization rules for this schema.
+   * Defines roles, action permissions, and access control policies.
+   * When present, nodes of this schema are encrypted and access is controlled.
+   */
+  authorization?: SerializedAuthorization
 }
 
 /**
