@@ -1,12 +1,10 @@
 /**
  * Document screen - rich text editor using WebView
- *
- * Updated to use the new NodeState API via useNode hook.
  */
 import type { RootStackParamList } from '../navigation/types'
 import type { RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import type { NodeState } from '@xnet/data'
+import { useNode } from '@xnet/react'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
@@ -19,7 +17,7 @@ import {
   Platform
 } from 'react-native'
 import { WebViewEditor } from '../components/WebViewEditor'
-import { useXNetContext } from '../context/XNetProvider'
+import { Page } from '../schemas'
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Document'>
@@ -28,76 +26,15 @@ interface Props {
 
 export function DocumentScreen({ navigation, route }: Props) {
   const { docId } = route.params
-  const { bridge, isReady } = useXNetContext()
-  const [node, setNode] = useState<NodeState | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
+  const { data: node, loading, error, update } = useNode(Page, docId)
   const [title, setTitle] = useState('')
   const [initialContent, setInitialContent] = useState('')
 
-  const update = useCallback(
-    async (changes: Record<string, unknown>): Promise<void> => {
-      if (!bridge || !isReady) {
-        throw new Error('xNet is not ready')
-      }
-
-      const updated = await bridge.update(docId, changes)
-      setNode(updated)
-    },
-    [bridge, isReady, docId]
-  )
-
-  useEffect(() => {
-    let mounted = true
-
-    async function loadNode() {
-      if (!bridge || !isReady) {
-        return
-      }
-
-      setLoading(true)
-      setError(null)
-
-      try {
-        if (!bridge.get) {
-          throw new Error('Data bridge does not support get()')
-        }
-
-        const loaded = await bridge.get(docId)
-        if (!mounted) return
-
-        if (!loaded) {
-          setNode(null)
-          setError(new Error('Document not found'))
-          return
-        }
-
-        setNode(loaded)
-      } catch (err) {
-        if (!mounted) return
-        setError(err instanceof Error ? err : new Error(String(err)))
-      } finally {
-        if (mounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    loadNode()
-
-    return () => {
-      mounted = false
-    }
-  }, [bridge, isReady, docId])
-
   useEffect(() => {
     if (node) {
-      const nodeTitle = (node.properties.title as string) || 'Untitled'
+      const nodeTitle = (node.title as string) || 'Untitled'
       setTitle(nodeTitle)
       navigation.setOptions({ title: nodeTitle })
-
-      // For now, use empty content - Y.Doc integration will come later
-      // The documentContent is stored as Uint8Array and needs Y.Doc to decode
       setInitialContent('')
     }
   }, [node, navigation])
@@ -106,7 +43,6 @@ export function DocumentScreen({ navigation, route }: Props) {
     (text: string) => {
       setTitle(text)
       navigation.setOptions({ title: text })
-      // Update the node title
       update({ title: text }).catch((err: unknown) => {
         console.error('Failed to update title:', err)
       })
@@ -114,11 +50,7 @@ export function DocumentScreen({ navigation, route }: Props) {
     [update, navigation]
   )
 
-  const handleContentChange = useCallback((_html: string) => {
-    // TODO: Y.Doc integration for rich text content
-    // For now, content changes are not persisted
-    // This will be implemented when Y.Doc support is added to NativeBridge
-  }, [])
+  const handleContentChange = useCallback((_html: string) => {}, [])
 
   const handleNavigate = useCallback(
     (targetDocId: string) => {
@@ -137,7 +69,7 @@ export function DocumentScreen({ navigation, route }: Props) {
     )
   }
 
-  if (!isReady || loading || !node) {
+  if (loading || !node) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
