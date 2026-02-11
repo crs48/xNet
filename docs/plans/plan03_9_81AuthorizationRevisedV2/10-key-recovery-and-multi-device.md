@@ -418,7 +418,7 @@ flowchart TD
 
 - [x] `deriveKeysFromSeed()` implemented with BIP-39 + HKDF.
 - [x] `generateIdentity()` creates new mnemonic + derived bundle.
-- [ ] Seed phrase UI flow designed (show, confirm, store securely).
+- [x] Seed phrase UI flow designed (show, confirm, store securely).
 - [x] `createKeyBackup()` and `recoverFromBackup()` implemented.
 - [x] Hub backup endpoints (POST, GET, DELETE with ownership proof).
 - [x] `createRecoveryShares()` and `recoverFromShares()` with Shamir's SS.
@@ -426,7 +426,7 @@ flowchart TD
 - [ ] Seed phrase stored in platform secure storage (Keychain, etc.).
 - [x] Identity reset documented as explicit v1 limitation.
 - [x] Ownership transfer ceremony sketched as future work.
-- [ ] All tests passing.
+- [x] All tests passing.
 - [x] Security considerations documented.
 
 ---
