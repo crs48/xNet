@@ -347,6 +347,24 @@ flowchart TD
 2. **Soft enforcement**: Enforce on non-destructive paths (share), warn on others.
 3. **Full enforcement**: Enable on all mutation paths + hub relay/query.
 
+#### Rollback Procedure
+
+If production error rate exceeds the rollout budget, revert in this order:
+
+1. Set `AUTH_FEATURE_FLAGS.enforceHub = false` and redeploy hub services.
+2. Set `AUTH_FEATURE_FLAGS.enforceRemote = false` on clients to stop remote mutation enforcement.
+3. Set `AUTH_FEATURE_FLAGS.enforceLocal = false` on clients to return to legacy mutation behavior.
+4. Keep `AUTH_FEATURE_FLAGS.logDecisions = true` for post-incident diagnosis.
+5. Keep encryption data in place (do not decrypt migrated payloads during rollback).
+6. Export recent `auth:decision` traces and grant change events for incident analysis.
+
+Rollback verification checks:
+
+- Local create/update/delete flows succeed in legacy mode.
+- Hub query/relay requests stop enforcing auth denials.
+- No migration data is lost and encrypted payloads remain readable by previous recipients.
+- Decision mismatch telemetry remains available for root-cause analysis.
+
 #### Feature Flags
 
 ```typescript
@@ -394,7 +412,7 @@ export const AUTH_FEATURE_FLAGS = {
 - [x] Feature flags for staged rollout.
 - [ ] Benchmark fixtures and suite committed.
 - [ ] Performance targets met in CI.
-- [ ] Rollback procedure documented.
+- [x] Rollback procedure documented.
 - [ ] All tests passing.
 
 ---
