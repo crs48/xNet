@@ -14,6 +14,7 @@ import { DatabaseSchema, PageSchema, TaskSchema } from '@xnet/data'
 import { Hono } from 'hono'
 import { WebSocketServer } from 'ws'
 import { hasHubCapability } from './auth/capabilities'
+import { createHubAuthError } from './auth/errors'
 import {
   authenticateConnection,
   authenticateHttpRequest,
@@ -376,7 +377,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     const authHeader = c.req.header('authorization') ?? c.req.header('Authorization')
     const auth = authenticateHttpRequest(authHeader ?? null, config)
     if (!auth) {
-      return c.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, 401)
+      return c.json(
+        createHubAuthError({
+          code: 'UNAUTHORIZED',
+          message: 'Missing or invalid UCAN token',
+          action: 'hub/connect'
+        }),
+        401
+      )
     }
     c.set('auth', auth)
     await next()
@@ -642,8 +650,19 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
             if (isQueryRequest(payload)) {
               if (!authContext.can('query/read', '*')) {
+                const authError = createHubAuthError({
+                  code: 'FORBIDDEN',
+                  message: 'Capability does not allow querying',
+                  action: 'hub/query'
+                })
                 ws.send(
-                  JSON.stringify({ type: 'query-error', id: payload.id, error: 'Unauthorized' })
+                  JSON.stringify({
+                    type: 'query-error',
+                    id: payload.id,
+                    error: authError.message,
+                    code: authError.code,
+                    action: authError.action
+                  })
                 )
                 return
               }
@@ -660,11 +679,19 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
             if (isIndexUpdate(payload)) {
               if (!authContext.can('index/write', payload.docId)) {
+                const authError = createHubAuthError({
+                  code: 'FORBIDDEN',
+                  message: 'Capability does not allow index update',
+                  action: 'hub/relay',
+                  resource: payload.docId
+                })
                 ws.send(
                   JSON.stringify({
                     type: 'index-error',
                     docId: payload.docId,
-                    error: 'Unauthorized'
+                    error: authError.message,
+                    code: authError.code,
+                    action: authError.action
                   })
                 )
                 return
@@ -677,11 +704,19 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
             if (isIndexRemove(payload)) {
               if (!authContext.can('index/write', payload.docId)) {
+                const authError = createHubAuthError({
+                  code: 'FORBIDDEN',
+                  message: 'Capability does not allow index removal',
+                  action: 'hub/relay',
+                  resource: payload.docId
+                })
                 ws.send(
                   JSON.stringify({
                     type: 'index-error',
                     docId: payload.docId,
-                    error: 'Unauthorized'
+                    error: authError.message,
+                    code: authError.code,
+                    action: authError.action
                   })
                 )
                 return
