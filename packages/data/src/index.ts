@@ -181,6 +181,7 @@ export {
 // NodeStore - Event-sourced storage for Nodes
 export {
   NodeStore,
+  PermissionError,
   MemoryNodeStorageAdapter,
   SQLiteNodeStorageAdapter,
   type NodeId,

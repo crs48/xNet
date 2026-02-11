@@ -3,12 +3,13 @@
  */
 
 import type { SchemaIRI } from '../schema/node'
-import type { DID } from '@xnet/core'
+import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
 import { generateSigningKeyPair } from '@xnet/crypto'
 import { createDID } from '@xnet/identity'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { LensRegistry, composeLens, rename, addDefault, convert } from '../schema'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
+import { PermissionError } from './permission-error'
 import { NodeStore } from './store'
 
 // Test fixtures
@@ -31,6 +32,33 @@ function createTestStore(): {
     signingKey: keyPair.privateKey
   })
   return { store, adapter, did, privateKey: keyPair.privateKey }
+}
+
+function createAuthDecision(input: AuthCheckInput, allowed: boolean): AuthDecision {
+  return {
+    allowed,
+    action: input.action,
+    subject: input.subject,
+    resource: input.nodeId,
+    roles: allowed ? ['owner'] : [],
+    grants: [],
+    reasons: allowed ? [] : ['DENY_NO_ROLE_MATCH'],
+    cached: false,
+    evaluatedAt: Date.now(),
+    duration: 0
+  }
+}
+
+function createAuthEvaluator(canResult: (input: AuthCheckInput) => boolean): PolicyEvaluator {
+  return {
+    can: vi.fn(async (input: AuthCheckInput) => createAuthDecision(input, canResult(input))),
+    explain: vi.fn(async (input: AuthCheckInput) => ({
+      ...createAuthDecision(input, canResult(input)),
+      steps: []
+    })),
+    invalidate: vi.fn(),
+    invalidateSubject: vi.fn()
+  }
 }
 
 describe('NodeStore', () => {
@@ -583,6 +611,162 @@ describe('transaction support', () => {
     expect(events[0].title).toBe('Task 1')
     expect(events[1].title).toBe('Task 2')
     expect(events[2].title).toBe('Task 3')
+  })
+})
+
+describe('authorization enforcement', () => {
+  it('should throw PermissionError when create is denied', async () => {
+    const { adapter, did, privateKey } = createTestStore()
+    const evaluator = createAuthEvaluator(() => false)
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: privateKey,
+      authEvaluator: evaluator
+    })
+    await store.initialize()
+
+    await expect(
+      store.create({
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Denied create' }
+      })
+    ).rejects.toThrow(PermissionError)
+  })
+
+  it('should pass update patch through to auth evaluator', async () => {
+    const { adapter, did, privateKey } = createTestStore()
+    const evaluator = createAuthEvaluator(() => true)
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: privateKey,
+      authEvaluator: evaluator
+    })
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Original', status: 'todo' }
+    })
+
+    await store.update(node.id, { properties: { status: 'done' } })
+
+    const canSpy = evaluator.can as ReturnType<typeof vi.fn>
+    const updateCall = canSpy.mock.calls.find(
+      (args) => (args[0] as AuthCheckInput).nodeId === node.id && args[0].patch
+    )
+    expect(updateCall).toBeDefined()
+    expect((updateCall?.[0] as AuthCheckInput).patch).toEqual({ status: 'done' })
+  })
+
+  it('should silently reject unauthorized remote changes', async () => {
+    const local = createTestStore()
+    const remote = createTestStore()
+
+    await local.store.initialize()
+    await remote.store.initialize()
+
+    const callback = vi.fn()
+    const evaluator = createAuthEvaluator((input) => input.subject === local.did)
+    const store = new NodeStore({
+      storage: local.adapter,
+      authorDID: local.did,
+      signingKey: local.privateKey,
+      authEvaluator: evaluator,
+      onUnauthorizedRemoteChange: callback
+    })
+    await store.initialize()
+
+    const node = await remote.store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Remote node' }
+    })
+    const [change] = await remote.store.getChanges(node.id)
+
+    await store.applyRemoteChange(change)
+
+    const fetched = await store.get(node.id)
+    expect(fetched).toBeNull()
+    expect(callback).toHaveBeenCalledTimes(1)
+  })
+
+  it('should deny entire transaction when one operation is unauthorized', async () => {
+    const { adapter, did, privateKey } = createTestStore()
+    const evaluator = createAuthEvaluator((input) => input.action !== 'delete')
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: privateKey,
+      authEvaluator: evaluator
+    })
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Keep me' }
+    })
+
+    await expect(
+      store.transaction([
+        { type: 'update', nodeId: node.id, options: { properties: { title: 'Updated' } } },
+        { type: 'delete', nodeId: node.id }
+      ])
+    ).rejects.toThrow(PermissionError)
+
+    const fetched = await store.get(node.id)
+    expect(fetched?.properties.title).toBe('Keep me')
+  })
+
+  it('should trigger recipient recompute callback only for auth-relevant properties', async () => {
+    const { adapter, did, privateKey } = createTestStore()
+    const evaluator = createAuthEvaluator(() => true)
+    const recompute = vi.fn()
+
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: privateKey,
+      authEvaluator: evaluator,
+      authRelevantPropertyLookup: () => new Set(['assignee']),
+      onRecipientsMayNeedRecompute: recompute
+    })
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Task', assignee: did }
+    })
+
+    await store.update(node.id, { properties: { title: 'Renamed' } })
+    expect(recompute).toHaveBeenCalledTimes(0)
+
+    await store.update(node.id, { properties: { assignee: did } })
+    expect(recompute).toHaveBeenCalledTimes(1)
+  })
+
+  it('should invalidate auth cache after successful local mutations', async () => {
+    const { adapter, did, privateKey } = createTestStore()
+    const evaluator = createAuthEvaluator(() => true)
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: privateKey,
+      authEvaluator: evaluator
+    })
+    await store.initialize()
+
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Invalidate me' }
+    })
+
+    await store.update(node.id, { properties: { title: 'Updated' } })
+    await store.delete(node.id)
+
+    const invalidateSpy = evaluator.invalidate as ReturnType<typeof vi.fn>
+    expect(invalidateSpy).toHaveBeenCalledWith(node.id)
+    expect(invalidateSpy.mock.calls.length).toBeGreaterThanOrEqual(3)
   })
 })
 

@@ -386,20 +386,20 @@ flowchart TD
 
 ## Checklist
 
-- [ ] `NodeStoreOptions` extended with auth dependencies.
-- [ ] `create` path guarded by `can()`.
-- [ ] `update` path guarded by `can()` with field-level patch.
-- [ ] `delete` path guarded by `can()`.
-- [ ] `applyRemoteChange` guarded after cryptographic verification — **silent rejection**.
+- [x] `NodeStoreOptions` extended with auth dependencies.
+- [x] `create` path guarded by `can()`.
+- [x] `update` path guarded by `can()` with field-level patch.
+- [x] `delete` path guarded by `can()`.
+- [x] `applyRemoteChange` guarded after cryptographic verification — **silent rejection**.
 - [ ] Transparent encryption on write path.
 - [ ] Transparent decryption on read path.
 - [ ] Content key caching for repeated reads.
-- [ ] **Smart recipient recomputation** — skips when non-auth properties change.
-- [ ] Transaction batch uses all-or-nothing semantics.
-- [ ] `PermissionError` with human-readable message including roles context.
-- [ ] Auth cache invalidation on mutations.
-- [ ] Uses `adapter.appendChange()` (correct API).
-- [ ] All tests passing.
+- [x] **Smart recipient recomputation** — skips when non-auth properties change.
+- [x] Transaction batch uses all-or-nothing semantics.
+- [x] `PermissionError` with human-readable message including roles context.
+- [x] Auth cache invalidation on mutations.
+- [x] Uses `adapter.appendChange()` (correct API).
+- [x] All tests passing.
 
 ---
 

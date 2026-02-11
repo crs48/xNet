@@ -30,7 +30,7 @@ import type {
   MigratedNodeState
 } from './types'
 import type { LensRegistry } from '../schema/lens'
-import type { DID } from '@xnet/core'
+import type { AuthAction, AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
 import { parseDID } from '@xnet/identity'
 import {
   createLamportClock,
@@ -44,7 +44,8 @@ import {
   type LamportTimestamp
 } from '@xnet/sync'
 import { verifyChange, verifyChangeHash } from '@xnet/sync'
-import { createNodeId, getBaseSchemaIRI } from '../schema/node'
+import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
+import { PermissionError } from './permission-error'
 import { resolveTempIds, type SchemaLookup } from './tempids'
 
 /** Maximum number of conflicts to retain before trimming */
@@ -63,6 +64,18 @@ export class NodeStore {
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
   private lensRegistry?: LensRegistry
+  private authEvaluator?: PolicyEvaluator
+  private authRelevantPropertyLookup?: (schemaId: SchemaIRI) => Set<string> | undefined
+  private onRecipientsMayNeedRecompute?: (context: {
+    nodeId: string
+    schemaId: SchemaIRI
+    changedProperties: string[]
+  }) => Promise<void> | void
+  private onUnauthorizedRemoteChange?: (context: {
+    change: NodeChange
+    action: AuthAction
+    decision: AuthDecision
+  }) => void
 
   constructor(options: NodeStoreOptions) {
     this.storage = options.storage
@@ -72,6 +85,10 @@ export class NodeStore {
     this.schemaLookup = options.schemaLookup
     this.propertyLookup = options.propertyLookup
     this.lensRegistry = options.lensRegistry
+    this.authEvaluator = options.authEvaluator
+    this.authRelevantPropertyLookup = options.authRelevantPropertyLookup
+    this.onRecipientsMayNeedRecompute = options.onRecipientsMayNeedRecompute
+    this.onUnauthorizedRemoteChange = options.onUnauthorizedRemoteChange
   }
 
   /**
@@ -105,6 +122,18 @@ export class NodeStore {
    */
   async create(options: CreateNodeOptions): Promise<NodeState> {
     const id = options.id ?? createNodeId()
+
+    await this.assertAuthorized({
+      subject: this.authorDID,
+      action: 'write',
+      nodeId: id,
+      node: {
+        schemaId: options.schemaId,
+        createdBy: this.authorDID,
+        properties: options.properties
+      }
+    })
+
     const now = Date.now()
 
     // Tick the clock
@@ -130,6 +159,7 @@ export class NodeStore {
 
     // Emit change event
     this.emit(change, node, false)
+    this.authEvaluator?.invalidate(node.id)
 
     return node
   }
@@ -225,6 +255,13 @@ export class NodeStore {
       throw new Error(`Node not found: ${id}`)
     }
 
+    await this.assertAuthorized({
+      subject: this.authorDID,
+      action: 'write',
+      nodeId: id,
+      patch: options.properties
+    })
+
     const now = Date.now()
 
     // Tick the clock
@@ -249,6 +286,15 @@ export class NodeStore {
 
     // Emit change event
     this.emit(change, node, false)
+    this.authEvaluator?.invalidate(node.id)
+
+    if (this.shouldRecomputeRecipients(existing.schemaId, options.properties)) {
+      await this.onRecipientsMayNeedRecompute?.({
+        nodeId: id,
+        schemaId: existing.schemaId,
+        changedProperties: Object.keys(options.properties)
+      })
+    }
 
     return node
   }
@@ -261,6 +307,12 @@ export class NodeStore {
     if (!existing) {
       throw new Error(`Node not found: ${id}`)
     }
+
+    await this.assertAuthorized({
+      subject: this.authorDID,
+      action: 'delete',
+      nodeId: id
+    })
 
     const now = Date.now()
 
@@ -283,6 +335,7 @@ export class NodeStore {
     // Emit change event
     const deletedNode = await this.storage.getNode(id)
     this.emit(change, deletedNode, false)
+    this.authEvaluator?.invalidate(id)
   }
 
   /**
@@ -293,6 +346,12 @@ export class NodeStore {
     if (!existing) {
       throw new Error(`Node not found: ${id}`)
     }
+
+    await this.assertAuthorized({
+      subject: this.authorDID,
+      action: 'write',
+      nodeId: id
+    })
 
     const now = Date.now()
 
@@ -319,6 +378,7 @@ export class NodeStore {
 
     // Emit change event
     this.emit(change, node, false)
+    this.authEvaluator?.invalidate(node.id)
 
     return node
   }
@@ -361,6 +421,8 @@ export class NodeStore {
 
     // ─── Resolve temp IDs before processing ────────────────────────────────
     const { operations: resolvedOps, tempIds } = resolveTempIds(operations, this.schemaLookup)
+
+    await this.assertAuthorizedBatch(resolvedOps)
 
     const batchId = createBatchId()
     const batchSize = resolvedOps.length
@@ -477,6 +539,7 @@ export class NodeStore {
 
       // Emit change event for subscribers
       this.emit(change, result, false)
+      this.authEvaluator?.invalidate(change.payload.nodeId)
     }
 
     return { batchId, results, changes, tempIds }
@@ -519,6 +582,21 @@ export class NodeStore {
       )
     }
 
+    if (this.authEvaluator) {
+      const action = this.inferActionFromChange(change)
+      const decision = await this.authEvaluator.can({
+        subject: change.authorDID,
+        action,
+        nodeId: change.payload.nodeId,
+        patch: action === 'write' ? change.payload.properties : undefined
+      })
+
+      if (!decision.allowed) {
+        this.onUnauthorizedRemoteChange?.({ change, action, decision })
+        return
+      }
+    }
+
     // Update our clock to be at least as recent as the remote
     this.clock = receive(this.clock, change.lamport.time)
     await this.storage.setLastLamportTime(this.clock.time)
@@ -529,6 +607,7 @@ export class NodeStore {
     // Emit change event (marked as remote)
     const node = await this.storage.getNode(change.payload.nodeId)
     this.emit(change, node, true)
+    this.authEvaluator?.invalidate(change.payload.nodeId)
   }
 
   /**
@@ -847,5 +926,77 @@ export class NodeStore {
     if (this.conflicts.length > MAX_CONFLICTS) {
       this.conflicts = this.conflicts.slice(-MAX_CONFLICTS)
     }
+  }
+
+  private async assertAuthorized(input: {
+    subject: DID
+    action: AuthAction
+    nodeId: string
+    node?: { schemaId: SchemaIRI; createdBy: DID; properties?: Record<string, unknown> }
+    patch?: Record<string, unknown>
+  }): Promise<void> {
+    if (!this.authEvaluator) {
+      return
+    }
+
+    const decision = await this.authEvaluator.can(input)
+    if (!decision.allowed) {
+      throw new PermissionError(decision)
+    }
+  }
+
+  private async assertAuthorizedBatch(operations: TransactionOperation[]): Promise<void> {
+    if (!this.authEvaluator) {
+      return
+    }
+
+    for (const operation of operations) {
+      if (operation.type === 'create') {
+        await this.assertAuthorized({
+          subject: this.authorDID,
+          action: 'write',
+          nodeId: operation.options.id ?? '',
+          node: {
+            schemaId: operation.options.schemaId,
+            createdBy: this.authorDID,
+            properties: operation.options.properties
+          }
+        })
+        continue
+      }
+
+      if (operation.type === 'delete') {
+        await this.assertAuthorized({
+          subject: this.authorDID,
+          action: 'delete',
+          nodeId: operation.nodeId
+        })
+        continue
+      }
+
+      await this.assertAuthorized({
+        subject: this.authorDID,
+        action: 'write',
+        nodeId: operation.nodeId,
+        patch: operation.type === 'update' ? operation.options.properties : undefined
+      })
+    }
+  }
+
+  private inferActionFromChange(change: NodeChange): AuthAction {
+    if (change.payload.deleted === true) {
+      return 'delete'
+    }
+
+    return 'write'
+  }
+
+  private shouldRecomputeRecipients(schemaId: SchemaIRI, patch: Record<string, unknown>): boolean {
+    const authRelevant = this.authRelevantPropertyLookup?.(schemaId)
+    if (!authRelevant || authRelevant.size === 0) {
+      return false
+    }
+
+    return Object.keys(patch).some((propertyName) => authRelevant.has(propertyName))
   }
 }
