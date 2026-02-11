@@ -100,3 +100,15 @@ export {
   type GrantIndexStore,
   type GrantIndexOptions
 } from './grants'
+export {
+  GrantExpirationCleaner,
+  type GrantExpirationStore,
+  type GrantExpirationCleanerOptions
+} from './grant-expiration-cleaner'
+export {
+  DEFAULT_OFFLINE_POLICY,
+  mergeOfflinePolicy,
+  type OfflineAuthPolicy,
+  type RevocationConsistency,
+  type RevocationConfig
+} from './offline-policy'
