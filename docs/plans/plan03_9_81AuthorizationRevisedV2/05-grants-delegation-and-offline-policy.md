@@ -707,7 +707,7 @@ sequenceDiagram
 - [ ] Delegation chain depth limit (max 4).
 - [ ] Cascade revocation on parent grant revoke.
 - [ ] Self-grant prevention (grantee !== grantor).
-- [ ] Grant-specific rate limit (10/min per peer).
+- [x] Grant-specific rate limit (10/min per peer).
 - [x] `GrantExpirationCleaner` background task (every 6 hours).
 - [x] Clock skew tolerance (60 seconds) on expiry checks.
 - [x] Revocation consistency modes (`eventual` / `strict`).
