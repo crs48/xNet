@@ -236,7 +236,9 @@ export {
   type StoreAuthKeyManager,
   type GrantInput,
   type Grant as AuthGrant,
-  type OfflineAuthPolicy
+  type OfflineAuthPolicy,
+  StoreAuthError,
+  type StoreAuthErrorCode
 } from './auth'
 
 // Blob service

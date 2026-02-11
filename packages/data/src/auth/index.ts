@@ -122,7 +122,9 @@ export {
   type StoreAuthStore,
   type StoreAuthKeyManager,
   type GrantInput,
-  type Grant
+  type Grant,
+  StoreAuthError,
+  type StoreAuthErrorCode
 } from './store-auth'
 export {
   AuthMigrator,

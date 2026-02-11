@@ -94,6 +94,22 @@ export interface StoreAuthOptions {
   maxProofDepth?: number
 }
 
+export type StoreAuthErrorCode =
+  | 'AUTH_PERMISSION_DENIED'
+  | 'AUTH_RATE_LIMIT_EXCEEDED'
+  | 'AUTH_DELEGATION_DEPTH_EXCEEDED'
+  | 'AUTH_DELEGATION_ESCALATION'
+
+export class StoreAuthError extends Error {
+  readonly code: StoreAuthErrorCode
+
+  constructor(code: StoreAuthErrorCode, message: string) {
+    super(message)
+    this.name = 'StoreAuthError'
+    this.code = code
+  }
+}
+
 export class StoreAuth implements StoreAuthAPI {
   private readonly rateLimiter: GrantRateLimiter
   private readonly now: () => number
@@ -134,7 +150,7 @@ export class StoreAuth implements StoreAuthAPI {
     }
 
     if (!this.rateLimiter.allow(this.options.actorDid)) {
-      throw new Error('Grant rate limit exceeded')
+      throw new StoreAuthError('AUTH_RATE_LIMIT_EXCEEDED', 'Grant rate limit exceeded')
     }
 
     const canShare = await this.options.evaluator.can({
@@ -143,7 +159,10 @@ export class StoreAuth implements StoreAuthAPI {
       nodeId: input.resource
     })
     if (!canShare.allowed) {
-      throw new Error('Permission denied: cannot share this resource')
+      throw new StoreAuthError(
+        'AUTH_PERMISSION_DENIED',
+        'Permission denied: cannot share this resource'
+      )
     }
 
     for (const action of input.actions) {
@@ -153,7 +172,10 @@ export class StoreAuth implements StoreAuthAPI {
         nodeId: input.resource
       })
       if (!canAction.allowed) {
-        throw new Error(`Permission denied: cannot delegate action '${action}'`)
+        throw new StoreAuthError(
+          'AUTH_PERMISSION_DENIED',
+          `Permission denied: cannot delegate action '${action}'`
+        )
       }
     }
 
@@ -167,7 +189,10 @@ export class StoreAuth implements StoreAuthAPI {
       : null
     const proofDepth = this.computeProofDepth(parentGrant)
     if (proofDepth > this.maxProofDepth) {
-      throw new Error(`Delegation proof depth exceeds max ${this.maxProofDepth}`)
+      throw new StoreAuthError(
+        'AUTH_DELEGATION_DEPTH_EXCEEDED',
+        `Delegation proof depth exceeds max ${this.maxProofDepth}`
+      )
     }
 
     const expiresAt = this.computeExpiration(input.expiresIn)
@@ -359,13 +384,19 @@ export class StoreAuth implements StoreAuthAPI {
     const parentActions = parseActions(parentGrant.properties.actions)
     for (const action of input.actions) {
       if (!parentActions.includes(action)) {
-        throw new Error(`Delegation escalation blocked for action '${action}'`)
+        throw new StoreAuthError(
+          'AUTH_DELEGATION_ESCALATION',
+          `Delegation escalation blocked for action '${action}'`
+        )
       }
     }
 
     const parentExpiresAt = parseNumber(parentGrant.properties.expiresAt)
     if (parentExpiresAt > 0 && expiresAt > 0 && expiresAt > parentExpiresAt) {
-      throw new Error('Delegation expiration exceeds parent grant expiration')
+      throw new StoreAuthError(
+        'AUTH_DELEGATION_ESCALATION',
+        'Delegation expiration exceeds parent grant expiration'
+      )
     }
   }
 

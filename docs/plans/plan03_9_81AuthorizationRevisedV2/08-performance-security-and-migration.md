@@ -405,15 +405,15 @@ export const AUTH_FEATURE_FLAGS = {
 - [ ] Event-driven cache invalidation wired to store events.
 - [x] `AuthMigrator` batch migration utility implemented.
 - [x] Conformance test matrix complete (13 scenarios).
-- [ ] Adversarial and fuzz tests passing.
-- [ ] Abuse limits enforced with deterministic error codes.
+- [x] Adversarial and fuzz tests passing.
+- [x] Abuse limits enforced with deterministic error codes.
 - [x] Grant rate limiting (10/min per peer).
 - [x] Audit logging via telemetry (optional).
 - [x] Feature flags for staged rollout.
 - [x] Benchmark fixtures and suite committed.
 - [ ] Performance targets met in CI.
 - [x] Rollback procedure documented.
-- [ ] All tests passing.
+- [x] All tests passing.
 
 ---
 
