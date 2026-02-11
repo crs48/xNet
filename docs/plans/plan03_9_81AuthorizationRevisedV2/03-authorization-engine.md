@@ -665,21 +665,21 @@ sequenceDiagram
 
 ## Checklist
 
-- [ ] `GrantIndex` implemented with O(1) lookup by (resource, grantee).
-- [ ] `GrantIndex` initialized from `store.list({ schema: GrantSchema.iri })`.
-- [ ] `GrantIndex` maintained via `store.subscribe()` event listener.
-- [ ] `PolicyEvaluator` interface defined (supersedes `@xnet/core` `PermissionEvaluator`).
-- [ ] `DefaultRoleResolver` with property, creator, and relation resolution.
-- [ ] **Visited-set** cycle detection in relation traversal (not just max-depth).
-- [ ] Depth limit (default 3) and node count limit (default 100).
-- [ ] `evaluateExpression` pure function for all AST node types.
-- [ ] `DefaultPolicyEvaluator` full pipeline implemented.
-- [ ] Uses `schemaRegistry.get(iri)` for schema lookup (correct API).
-- [ ] `explain()` returns structured `AuthTrace` with per-phase timing.
-- [ ] `DecisionCache` with TTL, LRU eviction, and event invalidation.
-- [ ] Field-level constraint checking for update patches.
-- [ ] Deny reasons include helpful context (user roles vs required roles).
-- [ ] All tests passing.
+- [x] `GrantIndex` implemented with O(1) lookup by (resource, grantee).
+- [x] `GrantIndex` initialized from `store.list({ schema: GrantSchema.iri })`.
+- [x] `GrantIndex` maintained via `store.subscribe()` event listener.
+- [x] `PolicyEvaluator` interface defined (supersedes `@xnet/core` `PermissionEvaluator`).
+- [x] `DefaultRoleResolver` with property, creator, and relation resolution.
+- [x] **Visited-set** cycle detection in relation traversal (not just max-depth).
+- [x] Depth limit (default 3) and node count limit (default 100).
+- [x] `evaluateExpression` pure function for all AST node types.
+- [x] `DefaultPolicyEvaluator` full pipeline implemented.
+- [x] Uses `schemaRegistry.get(iri)` for schema lookup (correct API).
+- [x] `explain()` returns structured `AuthTrace` with per-phase timing.
+- [x] `DecisionCache` with TTL, LRU eviction, and event invalidation.
+- [x] Field-level constraint checking for update patches.
+- [x] Deny reasons include helpful context (user roles vs required roles).
+- [x] All tests passing.
 
 ---
 
