@@ -14,7 +14,7 @@
 import type { SchemaLookup } from './tempids'
 import type { LensRegistry } from '../schema/lens'
 import type { SchemaIRI } from '../schema/node'
-import type { DID, ContentId } from '@xnet/core'
+import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnet/core'
 import type { Change, LamportTimestamp } from '@xnet/sync'
 
 // ============================================================================
@@ -256,6 +256,36 @@ export interface NodeStoreOptions {
    * version on read (getWithMigration). Without this, nodes are returned as-is.
    */
   lensRegistry?: LensRegistry
+
+  /** Optional authorization evaluator used for mutation gating. */
+  authEvaluator?: PolicyEvaluator
+
+  /**
+   * Optional lookup for properties that can change node recipients.
+   * When provided, update paths only trigger recipient recomputation hooks
+   * if one of these properties is changed.
+   */
+  authRelevantPropertyLookup?: (schemaId: SchemaIRI) => Set<string> | undefined
+
+  /**
+   * Optional callback triggered when an update touches auth-relevant properties.
+   * Integrators can use this to recompute recipients and rotate keys.
+   */
+  onRecipientsMayNeedRecompute?: (context: {
+    nodeId: NodeId
+    schemaId: SchemaIRI
+    changedProperties: string[]
+  }) => Promise<void> | void
+
+  /**
+   * Optional callback for rejected unauthorized remote changes.
+   * Remote unauthorized changes are rejected silently and never applied.
+   */
+  onUnauthorizedRemoteChange?: (context: {
+    change: NodeChange
+    action: AuthAction
+    decision: AuthDecision
+  }) => void
 }
 
 /**

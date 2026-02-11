@@ -56,6 +56,7 @@ export type {
 
 // NodeStore
 export { NodeStore } from './store'
+export { PermissionError } from './permission-error'
 
 // Temp ID utilities
 export {
