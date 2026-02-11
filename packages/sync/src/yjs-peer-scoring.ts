@@ -20,6 +20,8 @@ export interface YjsPeerMetrics {
   unsignedUpdates: number
   /** Updates from unattested clientIDs (Tier 3) */
   unattestedClientIds: number
+  /** Updates rejected by authorization policy */
+  unauthorizedUpdates: number
   /** Total valid updates (for ratio calculations) */
   validUpdates: number
   /** First seen timestamp */
@@ -37,6 +39,7 @@ export type YjsViolationType =
   | 'rateExceeded'
   | 'unsignedUpdate'
   | 'unattestedClientId'
+  | 'unauthorizedUpdate'
 
 /**
  * Action to take based on peer score.
@@ -54,6 +57,7 @@ export interface YjsScoringConfig {
     rateExceeded: number
     unsignedUpdate: number
     unattestedClientId: number
+    unauthorizedUpdate: number
   }
   /** Score thresholds */
   thresholds: {
@@ -76,7 +80,8 @@ export const DEFAULT_YJS_SCORING_CONFIG: YjsScoringConfig = {
     oversizedUpdate: 10,
     rateExceeded: 5,
     unsignedUpdate: 20,
-    unattestedClientId: 15
+    unattestedClientId: 15,
+    unauthorizedUpdate: 20
   },
   thresholds: {
     warn: 50,
@@ -156,6 +161,9 @@ export class YjsPeerScorer {
         break
       case 'unattestedClientId':
         metrics.unattestedClientIds++
+        break
+      case 'unauthorizedUpdate':
+        metrics.unauthorizedUpdates++
         break
     }
 
@@ -274,7 +282,8 @@ export class YjsPeerScorer {
       metrics.oversizedUpdates +
       metrics.rateExceeded +
       metrics.unsignedUpdates +
-      metrics.unattestedClientIds
+      metrics.unattestedClientIds +
+      metrics.unauthorizedUpdates
 
     const total = violations + metrics.validUpdates
     if (total === 0) return 0
@@ -291,6 +300,7 @@ export class YjsPeerScorer {
         rateExceeded: 0,
         unsignedUpdates: 0,
         unattestedClientIds: 0,
+        unauthorizedUpdates: 0,
         validUpdates: 0,
         firstSeen: Date.now(),
         lastViolation: 0
