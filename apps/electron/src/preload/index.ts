@@ -6,16 +6,6 @@ import { contextBridge, ipcRenderer } from 'electron'
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
   getProfile: () => ipcRenderer.invoke('xnet:getProfile'),
-  init: () => ipcRenderer.invoke('xnet:init'),
-  createDocument: (options: { workspace: string; type: string; title: string }) =>
-    ipcRenderer.invoke('xnet:createDocument', options),
-  getDocument: (id: string) => ipcRenderer.invoke('xnet:getDocument', id),
-  listDocuments: (workspace?: string) => ipcRenderer.invoke('xnet:listDocuments', workspace),
-  deleteDocument: (id: string) => ipcRenderer.invoke('xnet:deleteDocument', id),
-  query: (query: unknown) => ipcRenderer.invoke('xnet:query', query),
-  search: (text: string, limit?: number) => ipcRenderer.invoke('xnet:search', text, limit),
-  getSyncStatus: () => ipcRenderer.invoke('xnet:getSyncStatus'),
-  stop: () => ipcRenderer.invoke('xnet:stop'),
 
   // Menu events
   onNewPage: (callback: () => void) => {
@@ -190,18 +180,7 @@ const ALLOWED_SERVICE_CHANNELS = new Set([
   'xnet:service:start',
   'xnet:service:stop',
   'xnet:service:status',
-  'xnet:service:list',
-  // Node operations
-  'xnet:node:create',
-  'xnet:node:get',
-  'xnet:node:update',
-  'xnet:node:delete',
-  'xnet:node:list',
-  // Schema operations
-  'xnet:schema:get',
-  'xnet:schema:list',
-  // Query operations
-  'xnet:query:execute'
+  'xnet:service:list'
 ])
 
 // Expose service API for plugin background processes
@@ -222,15 +201,6 @@ contextBridge.exposeInMainWorld('xnetServices', {
   off: (channel: string, handler: (...args: unknown[]) => void): void => {
     ipcRenderer.removeListener(channel, handler)
   }
-})
-
-// Expose storage API for @xnet/react integration
-contextBridge.exposeInMainWorld('xnetStorage', {
-  getDocument: (id: string) => ipcRenderer.invoke('xnet:storage:getDocument', id),
-  setDocument: (id: string, data: unknown) =>
-    ipcRenderer.invoke('xnet:storage:setDocument', id, data),
-  deleteDocument: (id: string) => ipcRenderer.invoke('xnet:storage:deleteDocument', id),
-  listDocuments: (prefix?: string) => ipcRenderer.invoke('xnet:storage:listDocuments', prefix)
 })
 
 // Expose Local API status/control for renderer
@@ -314,46 +284,8 @@ contextBridge.exposeInMainWorld('xnetNodes', {
 // Type declaration for renderer
 export interface XNetAPI {
   getProfile(): Promise<string>
-  init(): Promise<{ did: string }>
-  createDocument(options: {
-    workspace: string
-    type: string
-    title: string
-  }): Promise<{ id: string; title: string }>
-  getDocument(id: string): Promise<{
-    id: string
-    type: string
-    workspace: string
-    title: string
-    content: string
-  } | null>
-  listDocuments(workspace?: string): Promise<string[]>
-  deleteDocument(id: string): Promise<void>
-  query(query: unknown): Promise<unknown>
-  search(text: string, limit?: number): Promise<{ id: string; title: string; score: number }[]>
-  getSyncStatus(): Promise<{ status: string; peers: string[] }>
-  stop(): Promise<void>
   onNewPage(callback: () => void): () => void
   onDevToolsToggle(callback: () => void): () => void
-}
-
-export interface DocumentData {
-  id: string
-  content: Uint8Array
-  metadata: {
-    created: number
-    updated: number
-    type?: string
-    workspace?: string
-  }
-  version: number
-}
-
-export interface XNetStorageAPI {
-  getDocument(id: string): Promise<DocumentData | null>
-  setDocument(id: string, data: DocumentData): Promise<void>
-  deleteDocument(id: string): Promise<void>
-  listDocuments(prefix?: string): Promise<string[]>
 }
 
 export interface XNetBSMAPI {
@@ -447,7 +379,6 @@ export interface XNetNodesAPI {
 declare global {
   interface Window {
     xnet: XNetAPI
-    xnetStorage: XNetStorageAPI
     xnetBSM: XNetBSMAPI
     xnetServices: XNetServicesAPI
     xnetLocalAPI: XNetLocalAPIAPI

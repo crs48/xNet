@@ -1,8 +1,30 @@
 /**
  * Block type registry for document content
  */
-import type { Block, BlockType } from '../types'
 import * as Y from 'yjs'
+
+export type BlockType =
+  | 'paragraph'
+  | 'heading'
+  | 'list'
+  | 'todo'
+  | 'code'
+  | 'quote'
+  | 'divider'
+  | 'image'
+  | 'embed'
+  | 'table'
+  | 'callout'
+  | 'toggle'
+
+export type Block = {
+  id: string
+  type: BlockType
+  parent: string
+  content: Y.XmlFragment | Y.Map<unknown>
+  children: string[]
+  properties: Record<string, unknown>
+}
 
 /**
  * Block definition for registering new block types

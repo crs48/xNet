@@ -1,8 +1,8 @@
 /**
  * Signed update handling for document changes
  */
-import type { XDocument } from './types'
 import type { SignedUpdate, VectorClock } from '@xnet/core'
+import type { Doc } from 'yjs'
 import { sign, verify, hashHex } from '@xnet/crypto'
 import * as Y from 'yjs'
 
@@ -10,7 +10,7 @@ import * as Y from 'yjs'
  * Options for signing an update
  */
 export interface SignUpdateOptions {
-  doc: XDocument
+  doc: Doc
   update: Uint8Array
   authorDID: string
   signingKey: Uint8Array
@@ -74,16 +74,15 @@ export function verifyUpdate(
 /**
  * Apply a signed update to a document
  */
-export function applySignedUpdate(doc: XDocument, update: SignedUpdate): void {
-  Y.applyUpdate(doc.ydoc, update.update)
-  doc.metadata.updated = update.timestamp
+export function applySignedUpdate(doc: Doc, update: SignedUpdate): void {
+  Y.applyUpdate(doc, update.update)
 }
 
 /**
  * Capture an update during a callback and sign it
  */
 export function captureUpdate(
-  doc: XDocument,
+  doc: Doc,
   authorDID: string,
   signingKey: Uint8Array,
   parentHash: string,
@@ -96,9 +95,9 @@ export function captureUpdate(
     capturedUpdate = update
   }
 
-  doc.ydoc.on('update', handler)
+  doc.on('update', handler)
   callback()
-  doc.ydoc.off('update', handler)
+  doc.off('update', handler)
 
   if (!capturedUpdate) return null
 
@@ -115,16 +114,16 @@ export function captureUpdate(
 /**
  * Merge multiple documents into one, handling concurrent updates
  */
-export function mergeDocuments(target: XDocument, sources: XDocument[]): void {
+export function mergeDocuments(target: Doc, sources: Doc[]): void {
   for (const source of sources) {
-    const state = Y.encodeStateAsUpdate(source.ydoc)
-    Y.applyUpdate(target.ydoc, state)
+    const state = Y.encodeStateAsUpdate(source)
+    Y.applyUpdate(target, state)
   }
 }
 
 /**
  * Get missing updates between two state vectors
  */
-export function getMissingUpdates(doc: XDocument, remoteStateVector: Uint8Array): Uint8Array {
-  return Y.encodeStateAsUpdate(doc.ydoc, remoteStateVector)
+export function getMissingUpdates(doc: Doc, remoteStateVector: Uint8Array): Uint8Array {
+  return Y.encodeStateAsUpdate(doc, remoteStateVector)
 }

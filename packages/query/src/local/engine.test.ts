@@ -1,41 +1,31 @@
-import { createDocument, type XDocument } from '@xnet/data'
-import { generateIdentity } from '@xnet/identity'
-import { MemoryAdapter } from '@xnet/storage'
+import type { SearchableDocument } from '../search/index'
+import { YDoc } from '@xnet/data'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createLocalQueryEngine, type LocalQueryEngine } from './engine'
 
+function createTestSearchableDoc(id: string, type: string, title: string): SearchableDocument {
+  const ydoc = new YDoc({ guid: id, gc: false })
+  const meta = ydoc.getMap('metadata')
+  meta.set('title', title)
+  return { id, ydoc, type, workspace: 'ws-1', metadata: { title } }
+}
+
 describe('LocalQueryEngine', () => {
-  let storage: MemoryAdapter
-  let documents: Map<string, XDocument>
+  let documents: Map<string, SearchableDocument>
   let engine: LocalQueryEngine
 
   beforeEach(async () => {
-    storage = new MemoryAdapter()
-    await storage.open()
     documents = new Map()
 
-    const { identity, privateKey } = generateIdentity()
-
-    // Create test documents
     for (let i = 0; i < 5; i++) {
-      const doc = createDocument({
-        id: `doc-${i}`,
-        workspace: 'ws-1',
-        type: i < 3 ? 'page' : 'task',
-        title: `Document ${i}`,
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
+      const doc = createTestSearchableDoc(`doc-${i}`, i < 3 ? 'page' : 'task', `Document ${i}`)
       documents.set(doc.id, doc)
-      await storage.setDocument(doc.id, {
-        id: doc.id,
-        content: new Uint8Array(),
-        metadata: { created: Date.now(), updated: Date.now(), type: doc.type },
-        version: 1
-      })
     }
 
-    engine = createLocalQueryEngine(storage, async (id) => documents.get(id) ?? null)
+    engine = createLocalQueryEngine(
+      async () => Array.from(documents.keys()),
+      async (id) => documents.get(id) ?? null
+    )
   })
 
   describe('query', () => {

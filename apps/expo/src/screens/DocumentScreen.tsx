@@ -6,6 +6,7 @@
 import type { RootStackParamList } from '../navigation/types'
 import type { RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import type { NodeState } from '@xnet/data'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
@@ -18,7 +19,7 @@ import {
   Platform
 } from 'react-native'
 import { WebViewEditor } from '../components/WebViewEditor'
-import { useNode } from '../hooks/useNode'
+import { useXNetContext } from '../context/XNetProvider'
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Document'>
@@ -27,9 +28,67 @@ interface Props {
 
 export function DocumentScreen({ navigation, route }: Props) {
   const { docId } = route.params
-  const { node, loading, error, update } = useNode(docId)
+  const { bridge, isReady } = useXNetContext()
+  const [node, setNode] = useState<NodeState | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
   const [title, setTitle] = useState('')
   const [initialContent, setInitialContent] = useState('')
+
+  const update = useCallback(
+    async (changes: Record<string, unknown>): Promise<void> => {
+      if (!bridge || !isReady) {
+        throw new Error('xNet is not ready')
+      }
+
+      const updated = await bridge.update(docId, changes)
+      setNode(updated)
+    },
+    [bridge, isReady, docId]
+  )
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadNode() {
+      if (!bridge || !isReady) {
+        return
+      }
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        if (!bridge.get) {
+          throw new Error('Data bridge does not support get()')
+        }
+
+        const loaded = await bridge.get(docId)
+        if (!mounted) return
+
+        if (!loaded) {
+          setNode(null)
+          setError(new Error('Document not found'))
+          return
+        }
+
+        setNode(loaded)
+      } catch (err) {
+        if (!mounted) return
+        setError(err instanceof Error ? err : new Error(String(err)))
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    loadNode()
+
+    return () => {
+      mounted = false
+    }
+  }, [bridge, isReady, docId])
 
   useEffect(() => {
     if (node) {
@@ -48,7 +107,7 @@ export function DocumentScreen({ navigation, route }: Props) {
       setTitle(text)
       navigation.setOptions({ title: text })
       // Update the node title
-      update({ title: text }).catch((err) => {
+      update({ title: text }).catch((err: unknown) => {
         console.error('Failed to update title:', err)
       })
     },
@@ -78,7 +137,7 @@ export function DocumentScreen({ navigation, route }: Props) {
     )
   }
 
-  if (loading || !node) {
+  if (!isReady || loading || !node) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>

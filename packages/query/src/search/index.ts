@@ -2,16 +2,21 @@
  * Full-text search index using MiniSearch
  */
 import type { SearchQuery, SearchResult } from '../types'
-import type { XDocument } from '@xnet/data'
+import type { YDoc } from '@xnet/data'
 import MiniSearch from 'minisearch'
 
-/**
- * Search index interface
- */
+export interface SearchableDocument {
+  id: string
+  ydoc: YDoc
+  type: string
+  workspace: string
+  metadata: { title: string }
+}
+
 export interface SearchIndex {
-  add(doc: XDocument): void
+  add(doc: SearchableDocument): void
   remove(docId: string): void
-  update(doc: XDocument): void
+  update(doc: SearchableDocument): void
   search(query: SearchQuery): SearchResult[]
   clear(): void
 }
@@ -44,7 +49,7 @@ export function createSearchIndex(): SearchIndex {
   /**
    * Extract searchable text from a document
    */
-  function extractText(doc: XDocument): string {
+  function extractText(doc: SearchableDocument): string {
     // Extract text from Yjs document
     // Simplified - would walk through blocks and extract text content
     const meta = doc.ydoc.getMap('metadata')
@@ -52,7 +57,7 @@ export function createSearchIndex(): SearchIndex {
   }
 
   return {
-    add(doc: XDocument): void {
+    add(doc: SearchableDocument): void {
       const indexed: IndexedDoc = {
         id: doc.id,
         type: doc.type,
@@ -67,7 +72,7 @@ export function createSearchIndex(): SearchIndex {
       miniSearch.discard(docId)
     },
 
-    update(doc: XDocument): void {
+    update(doc: SearchableDocument): void {
       this.remove(doc.id)
       this.add(doc)
     },

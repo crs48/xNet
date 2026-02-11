@@ -1,8 +1,6 @@
-import type { XDocument } from './types'
 import { generateIdentity } from '@xnet/identity'
 import { describe, it, expect } from 'vitest'
 import * as Y from 'yjs'
-import { createDocument, getDocumentState } from './document'
 import {
   signUpdate,
   verifyUpdate,
@@ -11,21 +9,22 @@ import {
   mergeDocuments
 } from './updates'
 
+function createTestDoc(id = 'doc-1'): Y.Doc {
+  const doc = new Y.Doc({ guid: id, gc: false })
+  const meta = doc.getMap('metadata')
+  meta.set('title', 'Test')
+  meta.set('created', Date.now())
+  meta.set('updated', Date.now())
+  return doc
+}
+
 describe('Signed Updates', () => {
   describe('signUpdate and verifyUpdate', () => {
     it('should sign and verify update', () => {
       const { identity, privateKey } = generateIdentity()
+      const doc = createTestDoc()
 
-      const doc = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Test',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
-
-      const update = Y.encodeStateAsUpdate(doc.ydoc)
+      const update = Y.encodeStateAsUpdate(doc)
       const signed = signUpdate({
         doc,
         update,
@@ -45,17 +44,9 @@ describe('Signed Updates', () => {
 
     it('should reject update with unknown author', () => {
       const { identity, privateKey } = generateIdentity()
+      const doc = createTestDoc()
 
-      const doc = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Test',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
-
-      const update = Y.encodeStateAsUpdate(doc.ydoc)
+      const update = Y.encodeStateAsUpdate(doc)
       const signed = signUpdate({
         doc,
         update,
@@ -65,25 +56,15 @@ describe('Signed Updates', () => {
         vectorClock: {}
       })
 
-      // Return null for public key lookup
       const valid = verifyUpdate(signed, () => null)
-
       expect(valid).toBe(false)
     })
 
     it('should reject tampered update', () => {
       const { identity, privateKey } = generateIdentity()
+      const doc = createTestDoc()
 
-      const doc = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Test',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
-
-      const update = Y.encodeStateAsUpdate(doc.ydoc)
+      const update = Y.encodeStateAsUpdate(doc)
       const signed = signUpdate({
         doc,
         update,
@@ -93,7 +74,6 @@ describe('Signed Updates', () => {
         vectorClock: {}
       })
 
-      // Tamper with the update
       signed.update = new Uint8Array([...signed.update])
       signed.update[0] = 0xff
 
@@ -107,17 +87,9 @@ describe('Signed Updates', () => {
 
     it('should include correct vector clock', () => {
       const { identity, privateKey } = generateIdentity()
+      const doc = createTestDoc()
 
-      const doc = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Test',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
-
-      const update = Y.encodeStateAsUpdate(doc.ydoc)
+      const update = Y.encodeStateAsUpdate(doc)
       const vectorClock = { peer1: 1, peer2: 3 }
       const signed = signUpdate({
         doc,
@@ -135,15 +107,7 @@ describe('Signed Updates', () => {
   describe('captureUpdate', () => {
     it('should capture update during transaction', () => {
       const { identity, privateKey } = generateIdentity()
-
-      const doc = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Test',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
+      const doc = createTestDoc()
 
       const signed = captureUpdate(
         doc,
@@ -152,7 +116,7 @@ describe('Signed Updates', () => {
         'genesis',
         { [identity.did]: 1 },
         () => {
-          const meta = doc.ydoc.getMap('metadata')
+          const meta = doc.getMap('metadata')
           meta.set('title', 'Updated Title')
         }
       )
@@ -164,15 +128,7 @@ describe('Signed Updates', () => {
 
     it('should return null when no changes made', () => {
       const { identity, privateKey } = generateIdentity()
-
-      const doc = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Test',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
+      const doc = createTestDoc()
 
       const signed = captureUpdate(doc, identity.did, privateKey, 'genesis', {}, () => {
         // No changes
@@ -186,110 +142,45 @@ describe('Signed Updates', () => {
     it('should apply update to document', () => {
       const { identity, privateKey } = generateIdentity()
 
-      // Create source document
-      const source = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Original',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
+      const source = createTestDoc()
+      const initialState = Y.encodeStateAsUpdate(source)
 
-      // Get initial state to sync target
-      const initialState = getDocumentState(source)
-
-      // Capture the change as a signed update
       const signed = captureUpdate(source, identity.did, privateKey, 'genesis', {}, () => {
-        const meta = source.ydoc.getMap('metadata')
+        const meta = source.getMap('metadata')
         meta.set('title', 'Changed')
       })!
 
-      // Create empty target document and apply initial state
-      const targetYdoc = new Y.Doc({ guid: 'doc-1' })
-      Y.applyUpdate(targetYdoc, initialState)
+      const target = new Y.Doc({ guid: 'doc-1' })
+      Y.applyUpdate(target, initialState)
 
-      const target: XDocument = {
-        id: 'doc-1',
-        ydoc: targetYdoc,
-        workspace: 'ws-1',
-        type: 'page',
-        metadata: {
-          title: 'Original',
-          created: Date.now(),
-          updated: Date.now(),
-          createdBy: identity.did,
-          archived: false
-        }
-      }
+      const targetMeta = target.getMap('metadata')
+      expect(targetMeta.get('title')).toBe('Test')
 
-      // Verify initial state synced
-      const targetMeta = target.ydoc.getMap('metadata')
-      expect(targetMeta.get('title')).toBe('Original')
-
-      // Apply the signed update
       applySignedUpdate(target, signed)
-
-      // Now title should be changed
       expect(targetMeta.get('title')).toBe('Changed')
     })
   })
 
   describe('mergeDocuments', () => {
     it('should merge concurrent changes', () => {
-      const { identity, privateKey } = generateIdentity()
+      const base = createTestDoc()
 
-      // Create base document
-      const base = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Base',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
+      const branch1 = new Y.Doc({ guid: 'doc-1', gc: false })
+      Y.applyUpdate(branch1, Y.encodeStateAsUpdate(base))
 
-      // Create two branches
-      const branch1 = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Base',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
-      Y.applyUpdate(branch1.ydoc, getDocumentState(base))
+      const branch2 = new Y.Doc({ guid: 'doc-1', gc: false })
+      Y.applyUpdate(branch2, Y.encodeStateAsUpdate(base))
 
-      const branch2 = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Base',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
-      Y.applyUpdate(branch2.ydoc, getDocumentState(base))
-
-      // Make different changes in each branch
-      const meta1 = branch1.ydoc.getMap('metadata')
+      const meta1 = branch1.getMap('metadata')
       meta1.set('icon', '📝')
 
-      const meta2 = branch2.ydoc.getMap('metadata')
+      const meta2 = branch2.getMap('metadata')
       meta2.set('cover', 'cover.jpg')
 
-      // Merge into target
-      const target = createDocument({
-        id: 'doc-1',
-        workspace: 'ws-1',
-        type: 'page',
-        title: 'Base',
-        createdBy: identity.did,
-        signingKey: privateKey
-      })
-
+      const target = new Y.Doc({ guid: 'doc-1', gc: false })
       mergeDocuments(target, [branch1, branch2])
 
-      const targetMeta = target.ydoc.getMap('metadata')
+      const targetMeta = target.getMap('metadata')
       expect(targetMeta.get('icon')).toBe('📝')
       expect(targetMeta.get('cover')).toBe('cover.jpg')
     })

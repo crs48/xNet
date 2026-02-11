@@ -143,27 +143,6 @@ export {
   identity
 } from './schema'
 
-// Types
-export type {
-  XDocument,
-  DocumentType,
-  DocumentMetadata,
-  Block,
-  BlockType,
-  UpdateBatch
-} from './types'
-
-// Document operations
-export {
-  createDocument,
-  loadDocument,
-  getDocumentState,
-  getStateVector,
-  setDocumentTitle,
-  setDocumentArchived,
-  type CreateDocumentOptions
-} from './document'
-
 // Update handling
 export {
   signUpdate,
