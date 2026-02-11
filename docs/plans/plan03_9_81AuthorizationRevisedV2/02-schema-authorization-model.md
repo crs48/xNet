@@ -400,8 +400,8 @@ flowchart TD
 - [x] `PUBLIC_CONTENT_KEY` and `PUBLIC_RECIPIENT` constants defined.
 - [x] `hasPublicAccess()` detects public read expressions.
 - [ ] `computeRecipients` pipeline implemented with public node support.
-- [ ] `getAuthMode` for legacy/compat/enforce behavior.
-- [ ] `warnLegacySchema` emits console warning for schemas without auth block.
+- [x] `getAuthMode` for legacy/compat/enforce behavior.
+- [x] `warnLegacySchema` emits console warning for schemas without auth block.
 - [ ] `handleAuthMigration` handles auth rule changes across schema versions.
 - [x] Permission presets (`private`, `publicRead`, `collaborative`, `open`) implemented.
 - [x] Schema validation produces deterministic error codes.
