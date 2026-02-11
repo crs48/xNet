@@ -125,6 +125,21 @@ export interface EncryptedKeyBackup {
   createdAt: number
 }
 
+export interface SocialRecoveryConfig {
+  totalShares: number
+  threshold: number
+  shareLabels?: string[]
+}
+
+export interface RecoveryShare {
+  index: number
+  share: string
+  label: string
+  threshold: number
+  totalShares: number
+  groupId: string
+}
+
 /**
  * Derive identity keys from a BIP-39 mnemonic.
  */
@@ -278,4 +293,159 @@ export function createKeyBundleFromSeed(
     },
     mnemonic: derived.mnemonic
   }
+}
+
+function gfMul(a: number, b: number): number {
+  let multiplicand = a & 0xff
+  let multiplier = b & 0xff
+  let product = 0
+
+  for (let index = 0; index < 8; index++) {
+    if ((multiplier & 1) === 1) {
+      product ^= multiplicand
+    }
+    const highBit = multiplicand & 0x80
+    multiplicand = (multiplicand << 1) & 0xff
+    if (highBit) {
+      multiplicand ^= 0x1b
+    }
+    multiplier >>= 1
+  }
+
+  return product
+}
+
+function gfPow(value: number, exponent: number): number {
+  let result = 1
+  let base = value
+  let power = exponent
+
+  while (power > 0) {
+    if ((power & 1) === 1) {
+      result = gfMul(result, base)
+    }
+    base = gfMul(base, base)
+    power >>= 1
+  }
+
+  return result
+}
+
+function gfInv(value: number): number {
+  if (value === 0) {
+    throw new Error('Invalid recovery share: divide by zero')
+  }
+  return gfPow(value, 254)
+}
+
+function gfDiv(a: number, b: number): number {
+  if (b === 0) {
+    throw new Error('Invalid recovery share: divide by zero')
+  }
+  if (a === 0) return 0
+  return gfMul(a, gfInv(b))
+}
+
+function evaluatePolynomial(coeffs: Uint8Array, x: number): number {
+  let result = 0
+  let power = 1
+  for (let index = 0; index < coeffs.length; index++) {
+    result ^= gfMul(coeffs[index], power)
+    power = gfMul(power, x)
+  }
+  return result
+}
+
+export function createRecoveryShares(
+  mnemonic: string,
+  config: SocialRecoveryConfig
+): RecoveryShare[] {
+  if (config.threshold < 2) {
+    throw new Error('Recovery threshold must be >= 2')
+  }
+  if (config.totalShares < config.threshold) {
+    throw new Error('Total shares must be >= threshold')
+  }
+  if (config.totalShares > 255) {
+    throw new Error('Total shares must be <= 255')
+  }
+
+  const secret = new TextEncoder().encode(normalizeMnemonic(mnemonic))
+  const groupId = bytesToHex(randomBytes(8))
+  const shares = Array.from({ length: config.totalShares }, () => new Uint8Array(secret.length + 1))
+
+  for (let index = 0; index < config.totalShares; index++) {
+    shares[index][0] = index + 1
+  }
+
+  for (let byteIndex = 0; byteIndex < secret.length; byteIndex++) {
+    const coeffs = new Uint8Array(config.threshold)
+    coeffs[0] = secret[byteIndex]
+    if (config.threshold > 1) {
+      const randomCoeffs = randomBytes(config.threshold - 1)
+      coeffs.set(randomCoeffs, 1)
+    }
+
+    for (let index = 0; index < config.totalShares; index++) {
+      shares[index][byteIndex + 1] = evaluatePolynomial(coeffs, index + 1)
+    }
+  }
+
+  return shares.map((shareBytes, index) => ({
+    index: index + 1,
+    share: bytesToHex(shareBytes),
+    label: config.shareLabels?.[index] ?? `Share ${index + 1}`,
+    threshold: config.threshold,
+    totalShares: config.totalShares,
+    groupId
+  }))
+}
+
+export function recoverFromShares(shares: RecoveryShare[]): string {
+  if (shares.length === 0) {
+    throw new Error('No recovery shares provided')
+  }
+
+  const threshold = shares[0].threshold
+  const totalShares = shares[0].totalShares
+  const groupId = shares[0].groupId
+
+  if (shares.length < threshold) {
+    throw new Error(`Need at least ${threshold} shares, got ${shares.length}`)
+  }
+
+  for (const share of shares) {
+    if (share.threshold !== threshold || share.totalShares !== totalShares) {
+      throw new Error('Recovery shares are from different groups')
+    }
+    if (share.groupId !== groupId) {
+      throw new Error('Recovery shares are from different groups')
+    }
+  }
+
+  const selected = shares.slice(0, threshold).map((share) => hexToBytes(share.share))
+  const payloadLength = selected[0].length - 1
+  const recovered = new Uint8Array(payloadLength)
+
+  for (let byteIndex = 0; byteIndex < payloadLength; byteIndex++) {
+    let value = 0
+
+    for (let i = 0; i < selected.length; i++) {
+      const xi = selected[i][0]
+      const yi = selected[i][byteIndex + 1]
+
+      let basis = 1
+      for (let j = 0; j < selected.length; j++) {
+        if (i === j) continue
+        const xj = selected[j][0]
+        basis = gfMul(basis, gfDiv(xj, xi ^ xj))
+      }
+
+      value ^= gfMul(yi, basis)
+    }
+
+    recovered[byteIndex] = value
+  }
+
+  return new TextDecoder().decode(recovered)
 }

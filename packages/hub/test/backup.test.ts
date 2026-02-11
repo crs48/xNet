@@ -1,4 +1,11 @@
 import type { HubInstance } from '../src/index'
+import {
+  bytesToBase64,
+  createDIDFromEd25519PublicKey,
+  generateSigningKeyPair,
+  randomBytes,
+  sign
+} from '@xnet/crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createHub } from '../src/index'
 
@@ -68,5 +75,53 @@ describe('Backup API', () => {
 
     const getRes = await fetch(`${BASE}/backup/doc-del`)
     expect(getRes.status).toBe(404)
+  })
+
+  it('stores, retrieves, and protects key backups with ownership proof', async () => {
+    const signer = generateSigningKeyPair()
+    const did = createDIDFromEd25519PublicKey(signer.publicKey)
+    const encodedDid = encodeURIComponent(did)
+
+    const ownershipMessage = new TextEncoder().encode(`xnet-backup:${did}`)
+    const proof = bytesToBase64(sign(ownershipMessage, signer.privateKey))
+    const payload = {
+      did,
+      encryptedPayload: bytesToBase64(randomBytes(64)),
+      nonce: bytesToBase64(randomBytes(24)),
+      version: 1,
+      createdAt: Date.now(),
+      ownershipProof: proof
+    }
+
+    const postRes = await fetch(`${BASE}/backup/${encodedDid}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    expect(postRes.status).toBe(201)
+
+    const getRes = await fetch(`${BASE}/backup/${encodedDid}`)
+    expect(getRes.status).toBe(200)
+    const fetched = (await getRes.json()) as typeof payload
+    expect(fetched.did).toBe(did)
+    expect(fetched.encryptedPayload).toBe(payload.encryptedPayload)
+    expect(fetched.nonce).toBe(payload.nonce)
+    expect(fetched.ownershipProof).toBe(proof)
+
+    const wrongProof = bytesToBase64(randomBytes(64))
+    const deleteDenied = await fetch(`${BASE}/backup/${encodedDid}`, {
+      method: 'DELETE',
+      headers: { 'x-backup-proof': wrongProof }
+    })
+    expect(deleteDenied.status).toBe(403)
+
+    const deleteOk = await fetch(`${BASE}/backup/${encodedDid}`, {
+      method: 'DELETE',
+      headers: { 'x-backup-proof': proof }
+    })
+    expect(deleteOk.status).toBe(204)
+
+    const getAfterDelete = await fetch(`${BASE}/backup/${encodedDid}`)
+    expect(getAfterDelete.status).toBe(404)
   })
 })
