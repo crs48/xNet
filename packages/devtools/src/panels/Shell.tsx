@@ -18,6 +18,7 @@ import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
 import { SecurityPanel } from './SecurityPanel/SecurityPanel'
 import { Seed } from './Seed/Seed'
 import { SQLitePanel } from './SQLitePanel/SQLitePanel'
+import { useSQLiteStatus } from './SQLitePanel/useSQLitePanel'
 import { SyncMonitor } from './SyncMonitor/SyncMonitor'
 import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { VersionPanel } from './VersionPanel/VersionPanel'
@@ -43,6 +44,7 @@ const PANELS: Array<{ id: PanelId; label: string }> = [
 export function DevToolsPanel() {
   const { position, height, activePanel, setActivePanel, setHeight, toggle, eventBus, store } =
     useDevTools()
+  const sqliteStatus = useSQLiteStatus(store)
 
   return (
     <div
@@ -72,7 +74,16 @@ export function DevToolsPanel() {
                 }
               `}
             >
-              {panel.label}
+              {panel.id === 'sqlite' ? (
+                <span className="inline-flex items-center gap-1.5" title={sqliteStatus.tooltip}>
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${sqliteStatus.active ? 'bg-green-500' : 'bg-red-500'}`}
+                  />
+                  <span>{panel.label}</span>
+                </span>
+              ) : (
+                panel.label
+              )}
             </button>
           ))}
         </div>

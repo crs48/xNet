@@ -3,6 +3,7 @@
  */
 
 import type { DevToolsEventBus } from '../../core/event-bus'
+import type { NodeStore } from '@xnet/data'
 import { useState, useEffect, useCallback } from 'react'
 
 const DEBUG_KEY = 'xnet:sqlite:debug'
@@ -19,6 +20,88 @@ export interface SQLiteDebugInfo {
     level: 'log' | 'warn' | 'error'
     message: string
   }>
+}
+
+export interface SQLiteStatusInfo {
+  active: boolean
+  adapter: string
+  tooltip: string
+}
+
+export function useSQLiteStatus(store: NodeStore | null): SQLiteStatusInfo {
+  const [supportInfo, setSupportInfo] = useState<{
+    supported: boolean
+    reason?: string
+  } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function checkSupport() {
+      if (typeof window === 'undefined' || !('indexedDB' in window)) {
+        return
+      }
+
+      try {
+        const { checkBrowserSupport } = await import('@xnet/sqlite')
+        const result = await checkBrowserSupport()
+        if (!cancelled) {
+          setSupportInfo({
+            supported: result.supported,
+            reason: result.reason
+          })
+        }
+      } catch {
+        if (!cancelled) {
+          setSupportInfo({
+            supported: false,
+            reason: 'Unable to check browser support'
+          })
+        }
+      }
+    }
+
+    checkSupport()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const storage = (store as unknown as { storage?: unknown } | null)?.storage
+  const adapterName =
+    (storage as { constructor?: { name?: string } } | undefined)?.constructor?.name ?? 'unknown'
+  const isSQLiteAdapter = /sqlite/i.test(adapterName)
+  const isSupported = supportInfo?.supported ?? true
+  if (!store) {
+    return {
+      active: false,
+      adapter: 'unavailable',
+      tooltip: 'SQLite inactive: NodeStore is not connected'
+    }
+  }
+
+  if (!isSQLiteAdapter) {
+    return {
+      active: false,
+      adapter: adapterName,
+      tooltip: `SQLite inactive: active adapter is ${adapterName}`
+    }
+  }
+
+  if (!isSupported) {
+    return {
+      active: false,
+      adapter: adapterName,
+      tooltip: `SQLite inactive: ${supportInfo?.reason ?? 'browser support check failed'}`
+    }
+  }
+
+  return {
+    active: true,
+    adapter: adapterName,
+    tooltip: `SQLite active: ${adapterName}`
+  }
 }
 
 export function useSQLitePanel(_eventBus: DevToolsEventBus) {
