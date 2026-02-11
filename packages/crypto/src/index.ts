@@ -55,6 +55,31 @@ export {
   concatBytes
 } from './utils'
 
+// X25519 Key Resolution
+export type { DID, PublicKeyResolver } from './key-resolution'
+export {
+  extractEd25519PubKey,
+  ed25519ToX25519,
+  ed25519PrivToX25519,
+  createDIDFromEd25519PublicKey,
+  DefaultPublicKeyResolver
+} from './key-resolution'
+
+// Encrypted Envelopes
+export type { SchemaIRI, WrappedKey, EnvelopeMetadata, EncryptedEnvelope } from './envelope'
+export {
+  PUBLIC_CONTENT_KEY,
+  PUBLIC_RECIPIENT,
+  generateContentKey,
+  wrapKeyForRecipient,
+  unwrapKey,
+  createEncryptedEnvelope,
+  decryptEnvelopeContent,
+  verifyEnvelopeSignature,
+  isPublicEnvelope,
+  updateEnvelopeRecipients
+} from './envelope'
+
 // ─── Multi-Level Cryptography ────────────────────────────────────
 
 // Security levels
