@@ -419,15 +419,15 @@ flowchart TD
 - [ ] `deriveKeysFromSeed()` implemented with BIP-39 + HKDF.
 - [ ] `generateIdentity()` creates new mnemonic + derived bundle.
 - [ ] Seed phrase UI flow designed (show, confirm, store securely).
-- [ ] `createKeyBackup()` and `recoverFromBackup()` implemented.
+- [x] `createKeyBackup()` and `recoverFromBackup()` implemented.
 - [ ] Hub backup endpoints (POST, GET, DELETE with ownership proof).
 - [ ] `createRecoveryShares()` and `recoverFromShares()` with Shamir's SS.
-- [ ] `createKeyBundleFromSeed()` bridges to existing HybridKeyBundle.
+- [x] `createKeyBundleFromSeed()` bridges to existing HybridKeyBundle.
 - [ ] Seed phrase stored in platform secure storage (Keychain, etc.).
-- [ ] Identity reset documented as explicit v1 limitation.
-- [ ] Ownership transfer ceremony sketched as future work.
+- [x] Identity reset documented as explicit v1 limitation.
+- [x] Ownership transfer ceremony sketched as future work.
 - [ ] All tests passing.
-- [ ] Security considerations documented.
+- [x] Security considerations documented.
 
 ---
 
