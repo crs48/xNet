@@ -29,50 +29,11 @@ export interface SQLiteStatusInfo {
 }
 
 export function useSQLiteStatus(store: NodeStore | null): SQLiteStatusInfo {
-  const [supportInfo, setSupportInfo] = useState<{
-    supported: boolean
-    reason?: string
-  } | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function checkSupport() {
-      if (typeof window === 'undefined' || !('indexedDB' in window)) {
-        return
-      }
-
-      try {
-        const { checkBrowserSupport } = await import('@xnet/sqlite')
-        const result = await checkBrowserSupport()
-        if (!cancelled) {
-          setSupportInfo({
-            supported: result.supported,
-            reason: result.reason
-          })
-        }
-      } catch {
-        if (!cancelled) {
-          setSupportInfo({
-            supported: false,
-            reason: 'Unable to check browser support'
-          })
-        }
-      }
-    }
-
-    checkSupport()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  const storage = (store as unknown as { storage?: unknown } | null)?.storage
+  const storage = store?.getStorageAdapter()
   const adapterName =
     (storage as { constructor?: { name?: string } } | undefined)?.constructor?.name ?? 'unknown'
   const isSQLiteAdapter = /sqlite/i.test(adapterName)
-  const isSupported = supportInfo?.supported ?? true
+
   if (!store) {
     return {
       active: false,
@@ -86,14 +47,6 @@ export function useSQLiteStatus(store: NodeStore | null): SQLiteStatusInfo {
       active: false,
       adapter: adapterName,
       tooltip: `SQLite inactive: active adapter is ${adapterName}`
-    }
-  }
-
-  if (!isSupported) {
-    return {
-      active: false,
-      adapter: adapterName,
-      tooltip: `SQLite inactive: ${supportInfo?.reason ?? 'browser support check failed'}`
     }
   }
 

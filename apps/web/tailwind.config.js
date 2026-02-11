@@ -9,6 +9,7 @@ export default {
     '../../packages/ui/src/**/*.{ts,tsx}',
     '../../packages/views/src/**/*.{ts,tsx}',
     '../../packages/editor/src/**/*.{ts,tsx}',
-    '../../packages/react/src/**/*.{ts,tsx}'
+    '../../packages/react/src/**/*.{ts,tsx}',
+    '../../packages/devtools/src/**/*.{ts,tsx}'
   ]
 }

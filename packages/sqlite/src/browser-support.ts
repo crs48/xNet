@@ -96,28 +96,40 @@ export async function checkBrowserSupport(): Promise<BrowserSupport> {
   }
 
   // Test OPFS access with timeout (soft failure - warn but don't block)
+  // Keep this probe minimal for Safari compatibility: checking directory
+  // access is enough to validate OPFS availability, while create/delete
+  // probes can fail in some Safari contexts despite OPFS being usable.
   try {
     const testOPFS = async () => {
-      const root = await navigator.storage.getDirectory()
-      const testFileName = '.xnet-support-test-' + Date.now()
-      await root.getFileHandle(testFileName, { create: true })
-      await root.removeEntry(testFileName)
+      await navigator.storage.getDirectory()
     }
 
     await withTimeout(testOPFS(), 5000, 'OPFS access timeout')
     result.opfs = true
     result.supported = true
   } catch (err) {
-    const errorMessage = (err as Error).message
+    const errorMessage = err instanceof Error ? err.message : String(err)
+    const normalized = errorMessage.toLowerCase()
+    const safariStorageContextError =
+      normalized.includes('object can not be found here') ||
+      normalized.includes('object cannot be found here') ||
+      normalized.includes('operation is insecure')
 
     // Check for Safari private browsing
     if (isSafariPrivateBrowsing()) {
       result.warning =
         'Safari Private Browsing detected. Storage may be limited. For full functionality, switch to normal mode or use the xNet Desktop App.'
       result.supported = true
+    } else if (
+      /^((?!chrome|android).)*safari/i.test(navigator.userAgent) &&
+      safariStorageContextError
+    ) {
+      result.warning =
+        'Safari storage APIs are restricted in this context. xNet will continue, but persistence may be limited between sessions.'
+      result.supported = true
     } else {
       // Allow app to proceed with warning - worker will handle fallback
-      result.warning = `Storage access limited (${errorMessage}). Data will not persist between sessions. For full functionality, use the xNet Desktop App.`
+      result.warning = `Storage access limited (${errorMessage}). Data persistence may be limited between sessions. For full functionality, use the xNet Desktop App.`
       result.supported = true
     }
   }
