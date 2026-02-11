@@ -385,4 +385,163 @@ describe('DefaultPolicyEvaluator', () => {
     expect(trace.steps.some((step) => step.phase === 'schema-eval')).toBe(true)
     grantIndex.dispose()
   })
+
+  it('uses offline policy decisionCacheTTL for cache expiry', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+
+    const task = await store.create({
+      schemaId: TaskSchema.schema['@id'],
+      properties: {
+        title: 'Task',
+        assignee: bob.did
+      }
+    })
+
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(TaskSchema)
+
+    let now = 1_000
+    const cache = new DecisionCache({
+      ttlMs: 30_000,
+      now: () => now
+    })
+
+    const evaluator = new DefaultPolicyEvaluator({
+      store,
+      schemaRegistry,
+      cache,
+      now: () => now,
+      offlinePolicy: {
+        decisionCacheTTL: 10
+      }
+    })
+
+    const first = await evaluator.can({
+      subject: bob.did,
+      action: 'read',
+      nodeId: task.id
+    })
+    expect(first.cached).toBe(false)
+
+    const second = await evaluator.can({
+      subject: bob.did,
+      action: 'read',
+      nodeId: task.id
+    })
+    expect(second.cached).toBe(true)
+
+    now += 11
+    const third = await evaluator.can({
+      subject: bob.did,
+      action: 'read',
+      nodeId: task.id
+    })
+    expect(third.cached).toBe(false)
+  })
+
+  it('blocks operations when auth state is stale while online', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+
+    const task = await store.create({
+      schemaId: TaskSchema.schema['@id'],
+      properties: {
+        title: 'Task',
+        assignee: bob.did
+      }
+    })
+
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(TaskSchema)
+
+    const evaluator = new DefaultPolicyEvaluator({
+      store,
+      schemaRegistry,
+      now: () => 10_002,
+      isOnline: () => true,
+      getLastSyncedAt: () => 1,
+      offlinePolicy: {
+        maxStaleness: 10_000
+      }
+    })
+
+    const decision = await evaluator.can({
+      subject: bob.did,
+      action: 'read',
+      nodeId: task.id
+    })
+
+    expect(decision.allowed).toBe(false)
+    expect(decision.reasons).toContain('DENY_STALE_OFFLINE')
+  })
+
+  it('triggers hybrid revalidation events on reconnect', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+
+    const task = await store.create({
+      schemaId: TaskSchema.schema['@id'],
+      properties: {
+        title: 'Task',
+        assignee: bob.did
+      }
+    })
+
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(TaskSchema)
+
+    let online = true
+    const revalidationEvents: Array<{ type: string; invalidated: string }> = []
+
+    const evaluator = new DefaultPolicyEvaluator({
+      store,
+      schemaRegistry,
+      isOnline: () => online,
+      onRevalidation: (event) => {
+        revalidationEvents.push(event)
+      },
+      offlinePolicy: {
+        revalidation: 'hybrid'
+      }
+    })
+
+    const first = await evaluator.can({
+      subject: bob.did,
+      action: 'read',
+      nodeId: task.id
+    })
+    expect(first.cached).toBe(false)
+
+    const second = await evaluator.can({
+      subject: bob.did,
+      action: 'read',
+      nodeId: task.id
+    })
+    expect(second.cached).toBe(true)
+
+    online = false
+    evaluator.handleConnectivityChange(false)
+
+    online = true
+    evaluator.handleConnectivityChange(true)
+
+    expect(revalidationEvents).toHaveLength(1)
+    expect(revalidationEvents[0]).toEqual(
+      expect.objectContaining({
+        type: 'hybrid-revalidation',
+        invalidated: 'all'
+      })
+    )
+
+    const afterReconnect = await evaluator.can({
+      subject: bob.did,
+      action: 'read',
+      nodeId: task.id
+    })
+    expect(afterReconnect.cached).toBe(false)
+  })
 })

@@ -14,6 +14,11 @@ import type {
 } from '@xnet/core'
 import { GrantIndex, isGrantActive, type GrantNode } from './grants'
 import { getAuthMode } from './mode'
+import {
+  DEFAULT_OFFLINE_POLICY,
+  mergeOfflinePolicy,
+  type OfflineAuthPolicy
+} from './offline-policy'
 import { deserializeAuthorization } from './serialize'
 import { extractRoleRefs } from './validate'
 
@@ -36,7 +41,7 @@ interface DecisionCacheEntry {
 
 export class DecisionCache {
   private cache = new Map<string, DecisionCacheEntry>()
-  private readonly ttlMs: number
+  private ttlMs: number
   private readonly maxSize: number
   private readonly now: () => number
 
@@ -98,6 +103,10 @@ export class DecisionCache {
 
   clear(): void {
     this.cache.clear()
+  }
+
+  setTTL(ttlMs: number): void {
+    this.ttlMs = Math.max(0, ttlMs)
   }
 
   private key(subject: DID, action: string, nodeId: string): string {
@@ -301,6 +310,16 @@ export interface DefaultPolicyEvaluatorOptions {
   maxDepth?: number
   maxNodes?: number
   now?: () => number
+  offlinePolicy?: Partial<OfflineAuthPolicy>
+  getLastSyncedAt?: () => number
+  isOnline?: () => boolean
+  onRevalidation?: (event: RevalidationEvent) => void
+}
+
+export interface RevalidationEvent {
+  type: 'hybrid-revalidation'
+  at: number
+  invalidated: 'all'
 }
 
 export class DefaultPolicyEvaluator implements PolicyEvaluator {
@@ -308,6 +327,11 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
   private readonly cache: DecisionCache
   private readonly roleResolver: DefaultRoleResolver
   private readonly now: () => number
+  private offlinePolicy: OfflineAuthPolicy
+  private readonly getLastSyncedAt?: () => number
+  private readonly isOnline: () => boolean
+  private readonly onRevalidation?: (event: RevalidationEvent) => void
+  private lastConnectivityOnline: boolean
 
   constructor(private readonly options: DefaultPolicyEvaluatorOptions) {
     this.grantIndex = options.grantIndex
@@ -319,10 +343,21 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
         maxNodes: options.maxNodes
       })
     this.now = options.now ?? Date.now
+    this.offlinePolicy = mergeOfflinePolicy(DEFAULT_OFFLINE_POLICY, options.offlinePolicy ?? {})
+    this.getLastSyncedAt = options.getLastSyncedAt
+    this.isOnline = options.isOnline ?? (() => true)
+    this.onRevalidation = options.onRevalidation
+    this.lastConnectivityOnline = this.isOnline()
   }
 
   async can(input: AuthCheckInput): Promise<AuthDecision> {
     const start = performance.now()
+
+    this.cache.setTTL(this.offlinePolicy.decisionCacheTTL)
+
+    if (this.isAuthStateStale()) {
+      return this.deny(input, ['DENY_STALE_OFFLINE'], start)
+    }
 
     const cached = this.cache.get(input.subject, input.action, input.nodeId)
     if (cached) {
@@ -479,6 +514,32 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     this.cache.invalidateSubject(did)
   }
 
+  getOfflinePolicy(): OfflineAuthPolicy {
+    return { ...this.offlinePolicy }
+  }
+
+  setOfflinePolicy(patch: Partial<OfflineAuthPolicy>): void {
+    this.offlinePolicy = mergeOfflinePolicy(this.offlinePolicy, patch)
+  }
+
+  handleConnectivityChange(isOnline: boolean): void {
+    const cameOnline = !this.lastConnectivityOnline && isOnline
+    this.lastConnectivityOnline = isOnline
+
+    if (!cameOnline) {
+      return
+    }
+
+    if (this.offlinePolicy.revalidation === 'hybrid') {
+      this.cache.clear()
+      this.onRevalidation?.({
+        type: 'hybrid-revalidation',
+        at: this.now(),
+        invalidated: 'all'
+      })
+    }
+  }
+
   private findMatchingGrant(input: AuthCheckInput, grants: GrantNode[]): GrantNode | null {
     const now = this.now()
     for (const grant of grants) {
@@ -582,6 +643,19 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       updatedAt: this.now(),
       updatedBy: input.node.createdBy
     }
+  }
+
+  private isAuthStateStale(): boolean {
+    if (!this.getLastSyncedAt || !this.isOnline()) {
+      return false
+    }
+
+    const lastSyncedAt = this.getLastSyncedAt()
+    if (!Number.isFinite(lastSyncedAt) || lastSyncedAt <= 0) {
+      return false
+    }
+
+    return this.now() - lastSyncedAt > this.offlinePolicy.maxStaleness
   }
 }
 
