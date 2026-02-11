@@ -39,13 +39,20 @@ export {
 } from './key-bundle'
 
 // Seed recovery and multi-device key derivation
-export type { DerivedKeyBundle, EncryptedKeyBackup } from './seed-recovery'
+export type {
+  DerivedKeyBundle,
+  EncryptedKeyBackup,
+  SocialRecoveryConfig,
+  RecoveryShare
+} from './seed-recovery'
 export {
   deriveKeysFromSeed,
   generateIdentity as generateRecoverableIdentity,
   createKeyBackup,
   recoverFromBackup,
-  createKeyBundleFromSeed
+  createKeyBundleFromSeed,
+  createRecoveryShares,
+  recoverFromShares
 } from './seed-recovery'
 
 // Key bundle serialization (new)

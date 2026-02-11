@@ -11,8 +11,10 @@ import { describe, expect, it } from 'vitest'
 import {
   createKeyBackup,
   createKeyBundleFromSeed,
+  createRecoveryShares,
   deriveKeysFromSeed,
   generateIdentity,
+  recoverFromShares,
   recoverFromBackup
 } from './seed-recovery'
 
@@ -106,5 +108,43 @@ describe('seed recovery', () => {
     const ciphertext = encryptWithNonce(plaintext, bundle.backupKey, nonce)
     const decrypted = decryptWithNonce(ciphertext, bundle.backupKey, nonce)
     expect(new TextDecoder().decode(decrypted)).toContain(bundle.did)
+  })
+
+  it('createRecoveryShares reconstructs mnemonic with threshold shares', () => {
+    const shares = createRecoveryShares(MNEMONIC_A, {
+      totalShares: 5,
+      threshold: 3,
+      shareLabels: ['Alice', 'Bob', 'Carol', 'Dave', 'Eve']
+    })
+
+    expect(shares).toHaveLength(5)
+    expect(shares[0].label).toBe('Alice')
+
+    const recovered = recoverFromShares([shares[0], shares[2], shares[4]])
+    expect(recovered).toBe(MNEMONIC_A)
+  })
+
+  it('recoverFromShares fails with fewer than threshold shares', () => {
+    const shares = createRecoveryShares(MNEMONIC_A, {
+      totalShares: 4,
+      threshold: 3
+    })
+
+    expect(() => recoverFromShares([shares[0], shares[1]])).toThrow('Need at least 3 shares, got 2')
+  })
+
+  it('recoverFromShares fails for mixed share groups', () => {
+    const sharesA = createRecoveryShares(MNEMONIC_A, {
+      totalShares: 4,
+      threshold: 3
+    })
+    const sharesB = createRecoveryShares(MNEMONIC_B, {
+      totalShares: 4,
+      threshold: 3
+    })
+
+    expect(() => recoverFromShares([sharesA[0], sharesA[1], sharesB[2]])).toThrow(
+      'Recovery shares are from different groups'
+    )
   })
 })
