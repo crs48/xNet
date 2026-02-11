@@ -300,13 +300,12 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
   }
 
   async checkpoint(): Promise<number> {
-    this.ensureOpen()
+    // better-sqlite3 handles WAL checkpointing automatically
+    return 0
+  }
 
-    const result = this.db!.pragma('wal_checkpoint(PASSIVE)') as [
-      { busy: number; log: number; checkpointed: number }
-    ]
-
-    return result[0]?.checkpointed ?? 0
+  getStorageMode(): 'opfs' | 'memory' {
+    return 'opfs'
   }
 
   // ─── Helper Methods ─────────────────────────────────────────────────────

@@ -87,6 +87,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   constructor(private db: SQLiteAdapter) {}
 
+  getSQLiteAdapter(): SQLiteAdapter {
+    return this.db
+  }
+
   // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   async open(): Promise<void> {

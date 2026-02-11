@@ -46,6 +46,7 @@ export function DevToolsPanel() {
   const { position, height, activePanel, setActivePanel, setHeight, toggle, eventBus, store } =
     useDevTools()
   const sqliteStatus = useSQLiteStatus(store)
+  const sqliteDotClass = getSQLiteHealthDotClass(sqliteStatus.health)
 
   return (
     <div
@@ -78,9 +79,7 @@ export function DevToolsPanel() {
               {panel.id === 'sqlite' ? (
                 <Tooltip content={sqliteStatus.tooltip} side="bottom" sideOffset={6}>
                   <span className="inline-flex items-center gap-1.5">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${sqliteStatus.active ? 'bg-green-500' : 'bg-red-500'}`}
-                    />
+                    <span className={`w-1.5 h-1.5 rounded-full ${sqliteDotClass}`} />
                     <span>{panel.label}</span>
                   </span>
                 </Tooltip>
@@ -128,6 +127,17 @@ export function DevToolsPanel() {
       </div>
     </div>
   )
+}
+
+function getSQLiteHealthDotClass(health: 'working' | 'degraded' | 'inactive'): string {
+  switch (health) {
+    case 'working':
+      return 'bg-green-500'
+    case 'degraded':
+      return 'bg-yellow-500'
+    case 'inactive':
+      return 'bg-red-500'
+  }
 }
 
 // ─── Sub-components ────────────────────────────────────────

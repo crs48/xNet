@@ -15,7 +15,7 @@ import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { yCursorPlugin, yCursorPluginKey, ySyncPluginKey } from '@tiptap/y-tiptap'
 import * as React from 'react'
-import { useEffect, type JSX } from 'react'
+import { useEffect, useRef, type JSX } from 'react'
 import {
   Wikilink,
   LivePreview,
@@ -337,6 +337,8 @@ export function RichTextEditor({
   onEditorReady,
   onCreateComment
 }: RichTextEditorProps): JSX.Element {
+  const cursorPluginRegisteredRef = useRef(false)
+
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
 
@@ -455,12 +457,23 @@ export function RichTextEditor({
 
     // Wait for editor view to be ready and ySyncPlugin to be initialized.
     // TipTap v3 may not have the view ready on the first effect run.
+    let isCancelled = false
+
     const tryRegister = () => {
+      if (isCancelled) return
+
       // Check if ySyncPlugin is in the editor state
       const syncState = ySyncPluginKey.getState(editor.state)
       if (!syncState) {
         // Not ready yet, try again on next frame
         rafId = requestAnimationFrame(tryRegister)
+        return
+      }
+
+      // Avoid duplicate keyed plugin registration in StrictMode/HMR remount cycles.
+      // If a cursor plugin with the same key already exists, do not register another.
+      if (yCursorPluginKey.get(editor.state)) {
+        cursorPluginRegisteredRef.current = true
         return
       }
 
@@ -516,8 +529,18 @@ export function RichTextEditor({
         }
       })
 
-      editor.registerPlugin(plugin)
-      registered = true
+      try {
+        editor.registerPlugin(plugin)
+        registered = true
+        cursorPluginRegisteredRef.current = true
+      } catch (err) {
+        // ProseMirror throws when adding a keyed plugin twice.
+        // In dev StrictMode/HMR this can happen during rapid remount cycles.
+        const message = err instanceof Error ? err.message : String(err)
+        if (!message.includes('Adding different instances of a keyed plugin')) {
+          throw err
+        }
+      }
 
       // Force a view update to trigger updateCursorInfo in the plugin's view.
       // Without this, the cursor position won't be broadcast until the user
@@ -537,8 +560,12 @@ export function RichTextEditor({
     tryRegister()
 
     return () => {
+      isCancelled = true
       if (rafId !== undefined) cancelAnimationFrame(rafId)
-      if (registered) editor.unregisterPlugin(yCursorPluginKey)
+      if (registered && cursorPluginRegisteredRef.current) {
+        editor.unregisterPlugin(yCursorPluginKey)
+        cursorPluginRegisteredRef.current = false
+      }
     }
   }, [editor, awareness, did])
 

@@ -205,6 +205,10 @@ export class MemorySQLiteAdapter implements SQLiteAdapter {
     return 0 // No WAL in sql.js
   }
 
+  getStorageMode(): 'opfs' | 'memory' {
+    return 'memory'
+  }
+
   private ensureOpen(): void {
     if (!this.opened || !this.db) {
       throw new Error('Database not open. Call open() first.')

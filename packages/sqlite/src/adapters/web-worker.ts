@@ -92,6 +92,11 @@ class SQLiteWorkerHandler {
     if (!this.adapter) throw new Error('Database not open')
     return this.adapter.getDatabaseSize()
   }
+
+  async getStorageMode(): Promise<'opfs' | 'memory'> {
+    if (!this.adapter) throw new Error('Database not open')
+    return this.adapter.getStorageMode()
+  }
 }
 
 const handler = new SQLiteWorkerHandler()
