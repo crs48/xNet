@@ -113,3 +113,4 @@ export {
   type RevocationConsistency,
   type RevocationConfig
 } from './offline-policy'
+export { GrantRateLimiter, type GrantRateLimiterOptions } from './grant-rate-limit'
