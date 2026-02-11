@@ -355,7 +355,7 @@ These decisions from prior explorations are **final**:
 - [ ] Last-admin protection prevents unrecoverable permission loss.
 - [ ] Public nodes use well-known content key with `PUBLIC` sentinel in recipients.
 - [ ] Legacy schemas without authorization block emit console warning in compat mode.
-- [ ] Data migration utility can batch-encrypt existing unencrypted nodes.
+- [x] Data migration utility can batch-encrypt existing unencrypted nodes.
 
 ## Risks and Mitigations
 

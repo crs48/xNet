@@ -385,13 +385,13 @@ export const AUTH_FEATURE_FLAGS = {
 
 - [ ] L1-L5 layered caches implemented.
 - [ ] Event-driven cache invalidation wired to store events.
-- [ ] `AuthMigrator` batch migration utility implemented.
+- [x] `AuthMigrator` batch migration utility implemented.
 - [ ] Conformance test matrix complete (13 scenarios).
 - [ ] Adversarial and fuzz tests passing.
 - [ ] Abuse limits enforced with deterministic error codes.
 - [ ] Grant rate limiting (10/min per peer).
 - [ ] Audit logging via telemetry (optional).
-- [ ] Feature flags for staged rollout.
+- [x] Feature flags for staged rollout.
 - [ ] Benchmark fixtures and suite committed.
 - [ ] Performance targets met in CI.
 - [ ] Rollback procedure documented.
