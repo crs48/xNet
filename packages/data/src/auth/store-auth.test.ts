@@ -10,7 +10,7 @@ import { generateIdentity, verifyUCAN } from '@xnet/identity'
 import { describe, expect, it, vi } from 'vitest'
 import { GrantRateLimiter } from './grant-rate-limit'
 import { GRANT_SCHEMA_IRI } from './grants'
-import { StoreAuth } from './store-auth'
+import { StoreAuth, StoreAuthError } from './store-auth'
 
 type TestNode = {
   id: string
@@ -147,6 +147,42 @@ describe('StoreAuth', () => {
     ).rejects.toThrow('Cannot grant access to yourself')
   })
 
+  it('returns deterministic error code when grant rate limit is exceeded', async () => {
+    const actor = generateIdentity()
+    const grantee = generateIdentity()
+    const store = new TestStore()
+    const resourceId = 'node-rate-limit'
+    store.seed({
+      id: resourceId,
+      schemaId: 'xnet://xnet.fyi/Page',
+      createdBy: actor.identity.did,
+      properties: {}
+    })
+
+    const evaluator = new TestEvaluator(
+      createPermissions(actor.identity.did, resourceId, ['share', 'read'])
+    )
+    const rateLimiter = new GrantRateLimiter({ limitPerMinute: 0 })
+    const auth = new StoreAuth({
+      store,
+      actorDid: actor.identity.did,
+      signingKey: actor.privateKey,
+      evaluator,
+      rateLimiter
+    })
+
+    await expect(
+      auth.grant({
+        to: grantee.identity.did,
+        actions: ['read'],
+        resource: resourceId
+      })
+    ).rejects.toMatchObject({
+      name: 'StoreAuthError',
+      code: 'AUTH_RATE_LIMIT_EXCEEDED'
+    } satisfies Partial<StoreAuthError>)
+  })
+
   it('creates a grant with UCAN token and invalidates caches', async () => {
     const actor = generateIdentity()
     const grantee = generateIdentity()
@@ -247,7 +283,10 @@ describe('StoreAuth', () => {
         resource: resourceId,
         parentGrantId: 'parent-grant'
       })
-    ).rejects.toThrow('Delegation proof depth exceeds max 4')
+    ).rejects.toMatchObject({
+      name: 'StoreAuthError',
+      code: 'AUTH_DELEGATION_DEPTH_EXCEEDED'
+    } satisfies Partial<StoreAuthError>)
 
     const shallowParent = {
       ...(await store.get('parent-grant')),
@@ -265,7 +304,10 @@ describe('StoreAuth', () => {
         resource: resourceId,
         parentGrantId: 'parent-grant'
       })
-    ).rejects.toThrow("Delegation escalation blocked for action 'write'")
+    ).rejects.toMatchObject({
+      name: 'StoreAuthError',
+      code: 'AUTH_DELEGATION_ESCALATION'
+    } satisfies Partial<StoreAuthError>)
   })
 
   it('enforces last-admin protection when revocation removes final share holder', async () => {
