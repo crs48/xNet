@@ -15,6 +15,8 @@ import type {
   InferCreateProps,
   InferNode
 } from './types'
+import type { AuthorizationDefinition } from '@xnet/core'
+import { validateAuthorization, serializeAuthorization } from '../auth'
 import { createNodeId } from './node'
 
 /**
@@ -25,7 +27,10 @@ export const DEFAULT_SCHEMA_VERSION = '1.0.0'
 /**
  * Options for defining a schema.
  */
-export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> {
+export interface DefineSchemaOptions<
+  P extends Record<string, PropertyBuilder>,
+  A extends AuthorizationDefinition = AuthorizationDefinition
+> {
   /** Schema name (e.g., 'Task', 'Page') */
   name: string
   /** Namespace (e.g., 'xnet://xnet.fyi/') */
@@ -59,6 +64,12 @@ export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>> 
    * - undefined: No document, properties only
    */
   document?: DocumentType
+
+  /**
+   * Authorization rules for this schema.
+   * When present, nodes are subject to encrypted access control.
+   */
+  authorization?: A
 }
 
 /**
@@ -115,6 +126,18 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
     })
   )
 
+  const propertyMap = Object.fromEntries(properties.map((property) => [property.name, property]))
+
+  if (options.authorization) {
+    const authResult = validateAuthorization(options.authorization, propertyMap)
+    if (!authResult.valid) {
+      const message = authResult.errors
+        .map((error) => `${error.path}: [${error.code}] ${error.message}`)
+        .join(', ')
+      throw new Error(`Invalid authorization in schema '${options.name}': ${message}`)
+    }
+  }
+
   // The schema definition (JSON-LD compatible)
   const schema: Schema = {
     '@id': schemaId,
@@ -125,7 +148,8 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
     migrateFrom: options.migrateFrom,
     properties,
     extends: options.extends?.schema['@id'],
-    document: options.document
+    document: options.document,
+    authorization: options.authorization ? serializeAuthorization(options.authorization) : undefined
   }
 
   // Validation function

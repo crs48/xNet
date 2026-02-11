@@ -1,8 +1,9 @@
 import type { DID, Node } from './index'
 import { describe, it, expect, vi } from 'vitest'
+import { allow, role } from '../auth'
 import { defineSchema } from './define'
 import { isNode, createNodeId } from './node'
-import { text, number, checkbox, select, date, relation } from './properties'
+import { text, number, checkbox, select, date, relation, person } from './properties'
 
 describe('Schema System', () => {
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
@@ -67,6 +68,56 @@ describe('Schema System', () => {
       })
 
       expect(PageSchema.schema.document).toBe('yjs')
+    })
+
+    it('serializes authorization blocks into schema metadata', () => {
+      const TaskSchema = defineSchema({
+        name: 'Task',
+        namespace: 'xnet://xnet.fyi/',
+        properties: {
+          title: text({ required: true }),
+          editors: person({ multiple: true })
+        },
+        authorization: {
+          roles: {
+            owner: role.creator(),
+            editor: role.property('editors')
+          },
+          actions: {
+            read: allow('owner', 'editor'),
+            write: allow('owner', 'editor'),
+            delete: allow('owner'),
+            share: allow('owner')
+          }
+        }
+      })
+
+      expect(TaskSchema.schema.authorization).toBeDefined()
+      expect(TaskSchema.schema.authorization?.roles.owner?._tag).toBe('creator')
+      expect(TaskSchema.schema.authorization?.actions.read?._tag).toBe('allow')
+    })
+
+    it('throws when authorization references unknown roles', () => {
+      expect(() =>
+        defineSchema({
+          name: 'Task',
+          namespace: 'xnet://xnet.fyi/',
+          properties: {
+            title: text({ required: true })
+          },
+          authorization: {
+            roles: {
+              owner: role.creator()
+            },
+            actions: {
+              read: allow('owner', 'viewer'),
+              write: allow('owner'),
+              delete: allow('owner'),
+              share: allow('owner')
+            }
+          }
+        })
+      ).toThrow("Invalid authorization in schema 'Task'")
     })
   })
 

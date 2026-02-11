@@ -393,18 +393,18 @@ flowchart TD
 
 ## Checklist
 
-- [ ] `DefineSchemaOptions` extended with `authorization` field.
-- [ ] `Schema` type extended with serialized authorization.
-- [ ] `defineSchema()` validates authorization at schema creation time.
-- [ ] `serializeAuthorization` / `deserializeAuthorization` implemented.
+- [x] `DefineSchemaOptions` extended with `authorization` field.
+- [x] `Schema` type extended with serialized authorization.
+- [x] `defineSchema()` validates authorization at schema creation time.
+- [x] `serializeAuthorization` / `deserializeAuthorization` implemented.
 - [ ] `PUBLIC_CONTENT_KEY` and `PUBLIC_RECIPIENT` constants defined.
 - [ ] `hasPublicAccess()` detects public read expressions.
 - [ ] `computeRecipients` pipeline implemented with public node support.
 - [ ] `getAuthMode` for legacy/compat/enforce behavior.
 - [ ] `warnLegacySchema` emits console warning for schemas without auth block.
 - [ ] `handleAuthMigration` handles auth rule changes across schema versions.
-- [ ] Permission presets (`private`, `publicRead`, `collaborative`, `open`) implemented.
-- [ ] Schema validation produces deterministic error codes.
+- [x] Permission presets (`private`, `publicRead`, `collaborative`, `open`) implemented.
+- [x] Schema validation produces deterministic error codes.
 - [ ] Tests cover valid, invalid, legacy, public, and migration paths.
 
 ---
