@@ -59,7 +59,7 @@ export {
   deduplicatedUnion
 } from './federation'
 
-// Permissions
+// Permissions (legacy)
 export type {
   Group,
   Role,
@@ -78,6 +78,38 @@ export {
   evaluateCondition,
   getMostPermissiveCapability
 } from './permissions'
+
+// Authorization (new encryption-first model)
+export type {
+  AuthAction,
+  AuthDecision,
+  AuthDenyReason,
+  AuthTrace,
+  AuthTraceStep,
+  AuthorizationDefinition,
+  SerializedAuthorization,
+  ActionKey,
+  RoleKey,
+  SchemaAction,
+  AuthExpression,
+  SerializedAuthExpression,
+  AllowExpr,
+  DenyExpr,
+  AndExpr,
+  OrExpr,
+  NotExpr,
+  RoleRefExpr,
+  PublicExpr,
+  AuthenticatedExpr,
+  RoleResolver,
+  SerializedRoleResolver,
+  CreatorRoleResolver,
+  PropertyRoleResolver,
+  RelationRoleResolver,
+  AuthCheckInput,
+  PolicyEvaluator
+} from './auth-types'
+export { AUTH_ACTIONS } from './auth-types'
 
 // Core types
 export type DID = `did:key:${string}`

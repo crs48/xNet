@@ -651,23 +651,23 @@ classDiagram
 
 ## Checklist
 
-- [ ] `AuthAction`, `AuthDecision`, `AuthDenyReason`, `AuthTrace` types defined in `@xnet/core`.
-- [ ] `Capability` type re-exported as alias for `AuthAction` (backward compat).
-- [ ] `AuthExpression` AST union type and all node types defined.
-- [ ] `RoleResolver` union type defined.
-- [ ] `AuthorizationDefinition` generic type with `ActionKey`/`RoleKey` utilities.
-- [ ] Builder functions (`allow`, `deny`, `and`, `or`, `not`, `role.*`) implemented.
-- [ ] Schema validation function with deterministic error codes.
-- [ ] `EncryptedEnvelope` and `WrappedKey` types defined.
-- [ ] `ed25519ToX25519()` birational conversion implemented and tested.
-- [ ] `extractEd25519PubKey()` multibase decoder implemented.
-- [ ] `DefaultPublicKeyResolver` with birational + hub registry fallback.
-- [ ] `generateContentKey`, `wrapKeyForRecipient`, `unwrapKey` implemented.
-- [ ] `createEncryptedEnvelope` implemented with signing.
+- [x] `AuthAction`, `AuthDecision`, `AuthDenyReason`, `AuthTrace` types defined in `@xnet/core`.
+- [x] `Capability` type re-exported as alias for `AuthAction` (backward compat).
+- [x] `AuthExpression` AST union type and all node types defined.
+- [x] `RoleResolver` union type defined.
+- [x] `AuthorizationDefinition` generic type with `ActionKey`/`RoleKey` utilities.
+- [x] Builder functions (`allow`, `deny`, `and`, `or`, `not`, `role.*`) implemented.
+- [x] Schema validation function with deterministic error codes.
+- [x] `EncryptedEnvelope` and `WrappedKey` types defined.
+- [x] `ed25519ToX25519()` birational conversion implemented and tested.
+- [x] `extractEd25519PubKey()` multibase decoder implemented.
+- [x] `DefaultPublicKeyResolver` with birational + hub registry fallback.
+- [x] `generateContentKey`, `wrapKeyForRecipient`, `unwrapKey` implemented.
+- [x] `createEncryptedEnvelope` implemented with signing.
 - [ ] Hub key registry endpoints specified.
 - [ ] Type-level tests passing in CI.
-- [ ] Round-trip encryption tests passing.
-- [ ] Birational conversion test vectors passing.
+- [x] Round-trip encryption tests passing.
+- [x] Birational conversion test vectors passing.
 
 ---
 
