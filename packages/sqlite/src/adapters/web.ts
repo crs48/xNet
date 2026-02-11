@@ -49,6 +49,7 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
   private poolUtil: any = null
   private _config: SQLiteConfig | null = null
   private inTransaction = false
+  private storageMode: 'opfs' | 'memory' = 'memory'
 
   async open(config: SQLiteConfig): Promise<void> {
     if (this.db !== null) {
@@ -90,12 +91,36 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       // Open database using the pool VFS
       log('[WebSQLiteAdapter] Opening database at', dbPath)
       this.db = new this.poolUtil.OpfsSAHPoolDb(dbPath, 'c')
+      this.storageMode = 'opfs'
       log('[WebSQLiteAdapter] Database opened with OPFS-SAHPool')
     } catch (err) {
-      // If OPFS-SAHPool fails, fall back to in-memory
-      console.warn('[WebSQLiteAdapter] OPFS-SAHPool not available, using in-memory database:', err)
-      this.db = new this.sqlite3.oo1.DB(':memory:', 'c')
-      log('[WebSQLiteAdapter] In-memory database opened')
+      // If OPFS-SAHPool fails, try OPFS direct database before in-memory fallback.
+      // Safari can fail SAH pool setup but still support OPFS persistence.
+      console.warn('[WebSQLiteAdapter] OPFS-SAHPool not available, trying OPFS direct mode:', err)
+
+      const dbPath = config.path.startsWith('/') ? config.path : `/${config.path}`
+      const opfsDbCtor = this.sqlite3?.oo1?.OpfsDb
+
+      if (typeof opfsDbCtor === 'function') {
+        try {
+          this.db = new opfsDbCtor(dbPath, 'c')
+          this.storageMode = 'opfs'
+          log('[WebSQLiteAdapter] Database opened with OPFS direct mode')
+        } catch (opfsErr) {
+          console.warn(
+            '[WebSQLiteAdapter] OPFS direct mode not available, using in-memory database:',
+            opfsErr
+          )
+          this.db = new this.sqlite3.oo1.DB(':memory:', 'c')
+          this.storageMode = 'memory'
+          log('[WebSQLiteAdapter] In-memory database opened')
+        }
+      } else {
+        console.warn('[WebSQLiteAdapter] OPFS direct mode unavailable, using in-memory database')
+        this.db = new this.sqlite3.oo1.DB(':memory:', 'c')
+        this.storageMode = 'memory'
+        log('[WebSQLiteAdapter] In-memory database opened')
+      }
     }
 
     this._config = config
@@ -129,6 +154,10 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 
   isOpen(): boolean {
     return this.db !== null
+  }
+
+  getStorageMode(): 'opfs' | 'memory' {
+    return this.storageMode
   }
 
   async query<T extends SQLRow = SQLRow>(sql: string, params?: SQLValue[]): Promise<T[]> {

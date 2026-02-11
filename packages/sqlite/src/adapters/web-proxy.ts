@@ -201,6 +201,19 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     // opfs-sahpool handles checkpointing internally
     return 0
   }
+
+  async getStorageMode(): Promise<'opfs' | 'memory'> {
+    if (!this.proxy) throw new Error('Database not open')
+    try {
+      log('[WebSQLiteProxy] Calling proxy.getStorageMode()...')
+      const mode = await this.proxy.getStorageMode()
+      log('[WebSQLiteProxy] getStorageMode() returned:', mode)
+      return mode
+    } catch (err) {
+      console.error('[WebSQLiteProxy] getStorageMode() failed:', err)
+      throw err
+    }
+  }
 }
 
 /**

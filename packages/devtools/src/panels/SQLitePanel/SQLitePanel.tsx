@@ -10,6 +10,7 @@ export function SQLitePanel() {
   const { eventBus, store } = useDevTools()
   const { debugEnabled, toggleDebug, supportInfo, recentLogs, clearLogs } = useSQLitePanel(eventBus)
   const sqliteStatus = useSQLiteStatus(store)
+  const sqliteDotClass = getSQLiteHealthDotClass(sqliteStatus.health)
 
   return (
     <div className="h-full flex flex-col bg-zinc-900 text-zinc-200">
@@ -17,12 +18,10 @@ export function SQLitePanel() {
         <div className="flex items-center gap-2">
           <Tooltip content={sqliteStatus.tooltip} side="bottom" sideOffset={6}>
             <span className="inline-flex items-center gap-2">
-              <span
-                className={`w-2.5 h-2.5 rounded-full ${sqliteStatus.active ? 'bg-green-500' : 'bg-red-500'}`}
-              />
+              <span className={`w-2.5 h-2.5 rounded-full ${sqliteDotClass}`} />
               <h2 className="text-sm font-semibold">SQLite Debug</h2>
               <span className="text-xs text-zinc-500">
-                {sqliteStatus.active ? 'active' : 'inactive'} ({sqliteStatus.adapter})
+                {sqliteStatus.health} ({sqliteStatus.adapter}, {sqliteStatus.mode})
               </span>
             </span>
           </Tooltip>
@@ -129,4 +128,15 @@ export function SQLitePanel() {
       </div>
     </div>
   )
+}
+
+function getSQLiteHealthDotClass(health: 'working' | 'degraded' | 'inactive'): string {
+  switch (health) {
+    case 'working':
+      return 'bg-green-500'
+    case 'degraded':
+      return 'bg-yellow-500'
+    case 'inactive':
+      return 'bg-red-500'
+  }
 }

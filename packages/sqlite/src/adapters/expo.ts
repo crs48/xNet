@@ -258,6 +258,10 @@ export class ExpoSQLiteAdapter implements SQLiteAdapter {
     }
   }
 
+  getStorageMode(): 'opfs' | 'memory' {
+    return 'opfs'
+  }
+
   private ensureOpen(): void {
     if (!this.db) {
       throw new Error('Database not open. Call open() first.')

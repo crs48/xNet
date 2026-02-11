@@ -163,6 +163,13 @@ export interface SQLiteAdapter {
    * Returns the number of frames checkpointed.
    */
   checkpoint(): Promise<number>
+
+  /**
+   * Get the current storage mode of the database.
+   * Returns 'opfs' if using OPFS-backed persistent storage,
+   * or 'memory' if using in-memory fallback.
+   */
+  getStorageMode(): Promise<'opfs' | 'memory'> | 'opfs' | 'memory'
 }
 
 /**
