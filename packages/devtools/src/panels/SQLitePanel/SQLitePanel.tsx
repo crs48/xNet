@@ -3,16 +3,28 @@
  */
 
 import { useDevTools } from '../../provider/useDevTools'
-import { useSQLitePanel } from './useSQLitePanel'
+import { useSQLitePanel, useSQLiteStatus } from './useSQLitePanel'
 
 export function SQLitePanel() {
-  const { eventBus } = useDevTools()
+  const { eventBus, store } = useDevTools()
   const { debugEnabled, toggleDebug, supportInfo, recentLogs, clearLogs } = useSQLitePanel(eventBus)
+  const sqliteStatus = useSQLiteStatus(store)
 
   return (
     <div className="h-full flex flex-col bg-zinc-900 text-zinc-200">
       <div className="flex items-center justify-between p-3 border-b border-zinc-700">
-        <h2 className="text-sm font-semibold">SQLite Debug</h2>
+        <div className="flex items-center gap-2">
+          <span
+            className={`w-2.5 h-2.5 rounded-full ${sqliteStatus.active ? 'bg-green-500' : 'bg-red-500'}`}
+            title={sqliteStatus.tooltip}
+          />
+          <h2 className="text-sm font-semibold" title={sqliteStatus.tooltip}>
+            SQLite Debug
+          </h2>
+          <span className="text-xs text-zinc-500" title={sqliteStatus.tooltip}>
+            {sqliteStatus.adapter}
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 text-xs cursor-pointer">
             <input
