@@ -669,7 +669,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               const response =
                 payload.federate && federationConfig.enabled
                   ? await federation.search(payload)
-                  : await query.handleQuery(payload)
+                  : await query.handleQuery(payload, authContext.did)
               metrics.increment(HUB_METRICS.QUERY_REQUESTS_TOTAL)
               metrics.observe(HUB_METRICS.QUERY_DURATION_MS, response.took)
               ws.send(JSON.stringify(response))

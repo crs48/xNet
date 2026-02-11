@@ -28,6 +28,16 @@ export type SearchOptions = {
   offset?: number
 }
 
+export type GrantIndexRecord = {
+  grantId: string
+  granteeDid: string
+  resourceDocId: string
+  actions: string[]
+  expiresAt: number
+  revokedAt: number
+  createdAt: number
+}
+
 export type SearchResult = {
   docId: string
   title: string
@@ -316,6 +326,10 @@ export type HubStorage = {
   getDocMeta: (docId: string) => Promise<DocMeta | null>
   search: (query: string, options?: SearchOptions) => Promise<SearchResult[]>
   updateSearchBody?: (docId: string, text: string) => Promise<void>
+  listDocRecipients: (docId: string) => Promise<string[]>
+  upsertGrantIndex: (record: GrantIndexRecord) => Promise<void>
+  removeGrantIndex: (grantId: string) => Promise<void>
+  listGrantedDocIds: (granteeDid: string, now?: number) => Promise<string[]>
 
   getFileMeta: (cid: string) => Promise<FileMeta | null>
   putFile: (

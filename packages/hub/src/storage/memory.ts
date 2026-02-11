@@ -24,6 +24,7 @@ import type {
   SearchOptions,
   SearchResult,
   SerializedNodeChange,
+  GrantIndexRecord,
   DatabaseRowRecord,
   DatabaseRowQueryOptions,
   DatabaseRowQueryResult,
@@ -36,6 +37,8 @@ export const createMemoryStorage = (): HubStorage => {
   const docMetas = new Map<string, DocMeta>()
   const blobs = new Map<string, { data: Uint8Array; meta: BlobMeta }>()
   const searchBodies = new Map<string, string>()
+  const docRecipients = new Map<string, Set<string>>()
+  const grantsById = new Map<string, GrantIndexRecord>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
@@ -113,6 +116,16 @@ export const createMemoryStorage = (): HubStorage => {
 
   const setDocMeta = async (docId: string, meta: DocMeta): Promise<void> => {
     docMetas.set(docId, meta)
+    const maybeRecipients = meta.properties?.recipients
+    const recipients = new Set<string>()
+    if (Array.isArray(maybeRecipients)) {
+      for (const value of maybeRecipients) {
+        if (typeof value === 'string') {
+          recipients.add(value)
+        }
+      }
+    }
+    docRecipients.set(docId, recipients)
   }
 
   const getDocMeta = async (docId: string): Promise<DocMeta | null> => docMetas.get(docId) ?? null
@@ -144,6 +157,30 @@ export const createMemoryStorage = (): HubStorage => {
 
   const updateSearchBody = async (docId: string, text: string): Promise<void> => {
     searchBodies.set(docId, text)
+  }
+
+  const listDocRecipients = async (docId: string): Promise<string[]> =>
+    Array.from(docRecipients.get(docId) ?? [])
+
+  const upsertGrantIndex = async (record: GrantIndexRecord): Promise<void> => {
+    grantsById.set(record.grantId, record)
+  }
+
+  const removeGrantIndex = async (grantId: string): Promise<void> => {
+    grantsById.delete(grantId)
+  }
+
+  const listGrantedDocIds = async (granteeDid: string, now = Date.now()): Promise<string[]> => {
+    const resources = new Set<string>()
+
+    for (const grant of grantsById.values()) {
+      if (grant.granteeDid !== granteeDid) continue
+      if (grant.revokedAt > 0) continue
+      if (grant.expiresAt > 0 && grant.expiresAt <= now) continue
+      resources.add(grant.resourceDocId)
+    }
+
+    return Array.from(resources)
   }
 
   const getFileMeta = async (cid: string): Promise<FileMeta | null> => files.get(cid)?.meta ?? null
@@ -693,6 +730,7 @@ export const createMemoryStorage = (): HubStorage => {
   const close = async (): Promise<void> => {
     docStates.clear()
     docMetas.clear()
+    docRecipients.clear()
     blobs.clear()
     searchBodies.clear()
     nodeChangesByHash.clear()
@@ -712,6 +750,7 @@ export const createMemoryStorage = (): HubStorage => {
     crawlHistory.clear()
     crawlDomains.clear()
     databaseRows.clear()
+    grantsById.clear()
   }
 
   return {
@@ -726,6 +765,10 @@ export const createMemoryStorage = (): HubStorage => {
     getDocMeta,
     search,
     updateSearchBody,
+    listDocRecipients,
+    upsertGrantIndex,
+    removeGrantIndex,
+    listGrantedDocIds,
     getFileMeta,
     putFile,
     getFileData,
