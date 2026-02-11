@@ -2,7 +2,7 @@
  * @xnet/react/onboarding - React context provider for the onboarding flow
  */
 import type { Identity, KeyBundle } from '@xnet/identity'
-import { detectPasskeySupport, createIdentityManager } from '@xnet/identity'
+import { detectPasskeySupport, createIdentityManager, isTestBypassEnabled } from '@xnet/identity'
 import {
   createContext,
   useContext,
@@ -69,6 +69,10 @@ export function OnboardingProvider({
     // Also check basic browser support
     detectPasskeySupport()
       .then((support) => {
+        if (isTestBypassEnabled()) {
+          return
+        }
+
         if (!cancelled && (!support.webauthn || !support.platform)) {
           dispatch({ type: 'BROWSER_UNSUPPORTED' })
         }
