@@ -13,7 +13,7 @@ pnpm add @xnet/data
 - **Schema system** -- `defineSchema()` with 15 typed property types
 - **NodeStore** -- Event-sourced LWW (Last-Writer-Wins) storage engine
 - **Built-in schemas** -- Page, Database, Task, Canvas, Comment
-- **Yjs CRDT** -- Document creation, loading, state management
+- **Yjs CRDT** -- Y.Doc helpers for signed updates and merge/state-vector workflows
 - **Awareness/presence** -- Real-time user presence
 - **Blob service** -- File upload/download with content addressing
 - **Storage adapters** -- SQLite, IndexedDB, and in-memory NodeStore adapters
@@ -97,26 +97,26 @@ await store.remove(task.id)
 ### Yjs Documents
 
 ```typescript
-import { createDocument, loadDocument, getDocumentState } from '@xnet/data'
+import { YDoc, captureUpdate, applySignedUpdate, signUpdate, mergeDocuments } from '@xnet/data'
 
-// Create a Yjs document
-const doc = createDocument({
-  id: 'my-doc',
-  workspace: 'default',
-  type: 'page',
-  title: 'My Page',
-  createdBy: identity.did,
-  signingKey: keyBundle.signingKey
-})
+const authorDID = identity.did
+const signingKey = keyBundle.signingKey
+
+const docA = new YDoc()
+const docB = new YDoc()
 
 // Edit rich text content
-doc.ydoc.getText('content').insert(0, 'Hello world')
+docA.getText('content').insert(0, 'Hello world')
 
-// Persist state
-const state = getDocumentState(doc)
+// Capture and sign update bytes
+const update = captureUpdate(docA)
+const signed = signUpdate(update, { authorDID, signingKey })
 
-// Restore from state
-const loaded = loadDocument(id, workspace, type, state)
+// Verify/apply to another replica
+applySignedUpdate(docB, signed)
+
+// Merge full state from one doc into another
+mergeDocuments(docA, docB)
 ```
 
 ## Architecture
@@ -183,8 +183,7 @@ const store = new NodeStore({
 | `store/memory-adapter.ts`    | In-memory NodeStore adapter            |
 | `store/indexeddb-adapter.ts` | IndexedDB NodeStore adapter (legacy)   |
 | `store/tempids.ts`           | Temp ID mapping for optimistic creates |
-| `document.ts`                | Yjs document creation/loading          |
-| `updates.ts`                 | Document state management              |
+| `updates.ts`                 | Signed update and merge utilities      |
 | `blob/blob-service.ts`       | File blob storage                      |
 | `sync/awareness.ts`          | Presence awareness                     |
 | `blocks/registry.ts`         | Block type registry                    |
