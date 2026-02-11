@@ -227,15 +227,15 @@ interface MigrationError {
 
 #### Conformance Test Matrix
 
-- [ ] Deny beats allow in all combinations.
+- [x] Deny beats allow in all combinations.
 - [x] Delegation attenuation cannot escalate.
 - [x] Revocation invalidates descendant delegations (cascade).
 - [x] Relation traversal cycles terminate safely (visited-set + max-depth).
-- [ ] Remote unauthorized change rejection is deterministic.
-- [ ] Hub query filtering excludes unauthorized nodes.
+- [x] Remote unauthorized change rejection is deterministic.
+- [x] Hub query filtering excludes unauthorized nodes.
 - [x] Expired grants are not honored.
-- [ ] Key rotation prevents revoked user from decrypting new content.
-- [ ] Envelope signature verification catches tampering.
+- [x] Key rotation prevents revoked user from decrypting new content.
+- [x] Envelope signature verification catches tampering.
 - [x] Self-grant is rejected.
 - [x] Last-admin protection prevents unrecoverable loss.
 - [x] Expression depth > 50 rejected at schema validation time.
@@ -404,13 +404,13 @@ export const AUTH_FEATURE_FLAGS = {
 - [ ] L1-L5 layered caches implemented.
 - [ ] Event-driven cache invalidation wired to store events.
 - [x] `AuthMigrator` batch migration utility implemented.
-- [ ] Conformance test matrix complete (13 scenarios).
+- [x] Conformance test matrix complete (13 scenarios).
 - [ ] Adversarial and fuzz tests passing.
 - [ ] Abuse limits enforced with deterministic error codes.
 - [x] Grant rate limiting (10/min per peer).
-- [ ] Audit logging via telemetry (optional).
+- [x] Audit logging via telemetry (optional).
 - [x] Feature flags for staged rollout.
-- [ ] Benchmark fixtures and suite committed.
+- [x] Benchmark fixtures and suite committed.
 - [ ] Performance targets met in CI.
 - [x] Rollback procedure documented.
 - [ ] All tests passing.

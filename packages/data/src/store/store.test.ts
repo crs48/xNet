@@ -735,6 +735,38 @@ describe('authorization enforcement', () => {
     expect(callback).toHaveBeenCalledTimes(1)
   })
 
+  it('rejects the same unauthorized remote change deterministically', async () => {
+    const local = createTestStore()
+    const remote = createTestStore()
+
+    await local.store.initialize()
+    await remote.store.initialize()
+
+    const callback = vi.fn()
+    const evaluator = createAuthEvaluator((input) => input.subject === local.did)
+    const store = new NodeStore({
+      storage: local.adapter,
+      authorDID: local.did,
+      signingKey: local.privateKey,
+      authEvaluator: evaluator,
+      onUnauthorizedRemoteChange: callback
+    })
+    await store.initialize()
+
+    const node = await remote.store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Unauthorized remote node' }
+    })
+    const [change] = await remote.store.getChanges(node.id)
+
+    await store.applyRemoteChange(change)
+    await store.applyRemoteChange(change)
+
+    expect(await store.get(node.id)).toBeNull()
+    expect(await store.list({ includeDeleted: true })).toHaveLength(0)
+    expect(callback).toHaveBeenCalledTimes(2)
+  })
+
   it('should deny entire transaction when one operation is unauthorized', async () => {
     const { adapter, did, privateKey } = createTestStore()
     const evaluator = createAuthEvaluator((input) => input.action !== 'delete')

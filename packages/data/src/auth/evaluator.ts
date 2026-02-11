@@ -314,12 +314,26 @@ export interface DefaultPolicyEvaluatorOptions {
   getLastSyncedAt?: () => number
   isOnline?: () => boolean
   onRevalidation?: (event: RevalidationEvent) => void
+  onDecision?: (event: AuthDecisionEvent) => void
 }
 
 export interface RevalidationEvent {
   type: 'hybrid-revalidation'
   at: number
   invalidated: 'all'
+}
+
+export interface AuthDecisionEvent {
+  type: 'auth:decision'
+  timestamp: number
+  subject: DID
+  action: AuthDecision['action']
+  resource: string
+  allowed: boolean
+  cached: boolean
+  roles: string[]
+  reasons: AuthDenyReason[]
+  duration: number
 }
 
 export class DefaultPolicyEvaluator implements PolicyEvaluator {
@@ -331,6 +345,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
   private readonly getLastSyncedAt?: () => number
   private readonly isOnline: () => boolean
   private readonly onRevalidation?: (event: RevalidationEvent) => void
+  private readonly onDecision?: (event: AuthDecisionEvent) => void
   private lastConnectivityOnline: boolean
 
   constructor(private readonly options: DefaultPolicyEvaluatorOptions) {
@@ -347,6 +362,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     this.getLastSyncedAt = options.getLastSyncedAt
     this.isOnline = options.isOnline ?? (() => true)
     this.onRevalidation = options.onRevalidation
+    this.onDecision = options.onDecision
     this.lastConnectivityOnline = this.isOnline()
   }
 
@@ -356,28 +372,36 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     this.cache.setTTL(this.offlinePolicy.decisionCacheTTL)
 
     if (this.isAuthStateStale()) {
-      return this.deny(input, ['DENY_STALE_OFFLINE'], start)
+      const decision = this.deny(input, ['DENY_STALE_OFFLINE'], start)
+      this.emitDecision(decision)
+      return decision
     }
 
     const cached = this.cache.get(input.subject, input.action, input.nodeId)
     if (cached) {
-      return {
+      const decision = {
         ...cached,
         cached: true,
         duration: performance.now() - start
       }
+      this.emitDecision(decision)
+      return decision
     }
 
     const node = input.node
       ? await this.loadNodeFromInput(input)
       : await this.options.store.get(input.nodeId)
     if (!node) {
-      return this.deny(input, ['DENY_NOT_AUTHENTICATED'], start)
+      const decision = this.deny(input, ['DENY_NOT_AUTHENTICATED'], start)
+      this.emitDecision(decision)
+      return decision
     }
 
     const schema = await this.options.schemaRegistry.get(node.schemaId)
     if (!schema) {
-      return this.deny(input, ['DENY_NOT_AUTHENTICATED'], start)
+      const decision = this.deny(input, ['DENY_NOT_AUTHENTICATED'], start)
+      this.emitDecision(decision)
+      return decision
     }
 
     const mode = getAuthMode(schema.schema)
@@ -385,11 +409,14 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       const allowed = node.createdBy === input.subject
       const decision = this.decision(input, allowed, allowed ? ['owner'] : [], start)
       this.cache.set(input.subject, input.action, input.nodeId, decision)
+      this.emitDecision(decision)
       return decision
     }
 
     if (!schema.schema.authorization) {
-      return this.deny(input, ['DENY_NO_ROLE_MATCH'], start)
+      const decision = this.deny(input, ['DENY_NO_ROLE_MATCH'], start)
+      this.emitDecision(decision)
+      return decision
     }
 
     const auth = deserializeAuthorization(schema.schema.authorization)
@@ -397,22 +424,29 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
 
     const fieldRuleDenied = this.checkFieldRules(input, auth.fieldRules, roles)
     if (fieldRuleDenied) {
-      return this.deny(input, ['DENY_FIELD_RESTRICTED'], start, [...roles])
+      const decision = this.deny(input, ['DENY_FIELD_RESTRICTED'], start, [...roles])
+      this.emitDecision(decision)
+      return decision
     }
 
     const actionExpr = auth.actions[input.action]
     if (!actionExpr) {
-      return this.deny(input, ['DENY_NO_ROLE_MATCH'], start, [...roles])
+      const decision = this.deny(input, ['DENY_NO_ROLE_MATCH'], start, [...roles])
+      this.emitDecision(decision)
+      return decision
     }
 
-    if (actionExpr._tag === 'deny' && evaluateExpression(actionExpr, roles, true)) {
-      return this.deny(input, ['DENY_NODE_POLICY'], start, [...roles])
+    if (matchesDenyExpression(actionExpr, roles, true)) {
+      const decision = this.deny(input, ['DENY_NODE_POLICY'], start, [...roles])
+      this.emitDecision(decision)
+      return decision
     }
 
     const allowedByRole = evaluateExpression(actionExpr, roles, true)
     if (allowedByRole) {
       const decision = this.decision(input, true, [...roles], start)
       this.cache.set(input.subject, input.action, input.nodeId, decision)
+      this.emitDecision(decision)
       return decision
     }
 
@@ -423,12 +457,15 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     if (grant) {
       const decision = this.decision(input, true, [...roles], start, [grant.id])
       this.cache.set(input.subject, input.action, input.nodeId, decision)
+      this.emitDecision(decision)
       return decision
     }
 
     const reasons: AuthDenyReason[] =
       roles.size > 0 ? ['DENY_NO_ROLE_MATCH'] : ['DENY_NO_ROLE_MATCH', 'DENY_NO_GRANT']
-    return this.deny(input, reasons, start, [...roles])
+    const decision = this.deny(input, reasons, start, [...roles])
+    this.emitDecision(decision)
+    return decision
   }
 
   async explain(input: AuthCheckInput): Promise<AuthTrace> {
@@ -656,6 +693,39 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     }
 
     return this.now() - lastSyncedAt > this.offlinePolicy.maxStaleness
+  }
+
+  private emitDecision(decision: AuthDecision): void {
+    this.onDecision?.({
+      type: 'auth:decision',
+      timestamp: this.now(),
+      subject: decision.subject,
+      action: decision.action,
+      resource: decision.resource,
+      allowed: decision.allowed,
+      cached: decision.cached,
+      roles: decision.roles,
+      reasons: decision.reasons,
+      duration: decision.duration
+    })
+  }
+}
+
+function matchesDenyExpression(
+  expr: AuthExpression,
+  roles: Set<string>,
+  isAuthenticated: boolean
+): boolean {
+  switch (expr._tag) {
+    case 'deny':
+      return evaluateExpression(expr, roles, isAuthenticated)
+    case 'and':
+    case 'or':
+      return expr.exprs.some((entry) => matchesDenyExpression(entry, roles, isAuthenticated))
+    case 'not':
+      return matchesDenyExpression(expr.expr, roles, isAuthenticated)
+    default:
+      return false
   }
 }
 

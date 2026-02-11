@@ -7,7 +7,7 @@ import { relation, person, text } from '../schema/properties'
 import { SchemaRegistry } from '../schema/registry'
 import { MemoryNodeStorageAdapter } from '../store/memory-adapter'
 import { NodeStore } from '../store/store'
-import { allow, role } from './builders'
+import { allow, and, deny, or, role } from './builders'
 import { DecisionCache, DefaultPolicyEvaluator } from './evaluator'
 import { GrantIndex } from './grants'
 
@@ -58,6 +58,29 @@ const TaskSchema = defineSchema({
       title: {
         allow: allow('owner')
       }
+    }
+  }
+})
+
+const DenyPrecedenceSchema = defineSchema({
+  name: 'AuthDenyPrecedence',
+  namespace: 'xnet://tests/',
+  properties: {
+    title: text({ required: true }),
+    editors: person({ multiple: true }),
+    banned: person({ multiple: true })
+  },
+  authorization: {
+    roles: {
+      owner: role.creator(),
+      editor: role.property('editors'),
+      banned: role.property('banned')
+    },
+    actions: {
+      read: allow('owner', 'editor'),
+      write: or(allow('owner'), and(allow('editor'), deny('banned'))),
+      delete: allow('owner'),
+      share: allow('owner')
     }
   }
 })
@@ -384,6 +407,93 @@ describe('DefaultPolicyEvaluator', () => {
     expect(trace.steps.some((step) => step.phase === 'role-resolve')).toBe(true)
     expect(trace.steps.some((step) => step.phase === 'schema-eval')).toBe(true)
     grantIndex.dispose()
+  })
+
+  it('enforces deny precedence over nested allow expressions', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+
+    const node = await store.create({
+      schemaId: DenyPrecedenceSchema.schema['@id'],
+      properties: {
+        title: 'Deny wins',
+        editors: [bob.did],
+        banned: [bob.did]
+      }
+    })
+
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(DenyPrecedenceSchema)
+
+    const grantIndex = new GrantIndex(store)
+    await grantIndex.initialize()
+
+    const evaluator = new DefaultPolicyEvaluator({
+      store,
+      schemaRegistry,
+      grantIndex
+    })
+
+    const decision = await evaluator.can({
+      subject: bob.did,
+      action: 'write',
+      nodeId: node.id
+    })
+
+    expect(decision.allowed).toBe(false)
+    expect(decision.reasons).toContain('DENY_NODE_POLICY')
+    grantIndex.dispose()
+  })
+
+  it('emits auth:decision events for telemetry sinks', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+
+    const node = await store.create({
+      schemaId: TaskSchema.schema['@id'],
+      properties: {
+        title: 'Telemetry',
+        assignee: bob.did
+      }
+    })
+
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(TaskSchema)
+
+    const events: Array<{
+      type: string
+      action: string
+      allowed: boolean
+      resource: string
+      subject: DID
+    }> = []
+
+    const evaluator = new DefaultPolicyEvaluator({
+      store,
+      schemaRegistry,
+      onDecision: (event) => {
+        events.push(event)
+      }
+    })
+
+    await evaluator.can({
+      subject: bob.did,
+      action: 'read',
+      nodeId: node.id
+    })
+
+    expect(events).toHaveLength(1)
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        type: 'auth:decision',
+        action: 'read',
+        resource: node.id,
+        subject: bob.did,
+        allowed: true
+      })
+    )
   })
 
   it('uses offline policy decisionCacheTTL for cache expiry', async () => {

@@ -289,6 +289,49 @@ describe('envelope', () => {
       expect(envelope2.recipients).toContain(bob.did)
       expect(verifyEnvelopeSignature(envelope2, signingPubKey)).toBe(true)
     })
+
+    it('prevents revoked recipients from decrypting after key rotation', () => {
+      const alice = createTestRecipient(11)
+      const bob = createTestRecipient(12)
+      const { privateKey: signingKey } = generateSigningKeyPair()
+
+      const oldContent = new TextEncoder().encode('Before revocation')
+      const metadata: EnvelopeMetadata = {
+        id: 'node-rotate-1',
+        schema: 'xnet://test/Thing@1.0.0' as const,
+        createdBy: alice.did,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        lamport: 1
+      }
+
+      const initialRecipients = new Map<DID, Uint8Array>()
+      initialRecipients.set(alice.did, alice.x25519PubKey)
+      initialRecipients.set(bob.did, bob.x25519PubKey)
+      const initialEnvelope = createEncryptedEnvelope(
+        oldContent,
+        metadata,
+        initialRecipients,
+        signingKey
+      )
+
+      const before = decryptEnvelopeContent(initialEnvelope, bob.did, bob.x25519PrivKey)
+      expect(new TextDecoder().decode(before)).toBe('Before revocation')
+
+      const rotatedContentKey = generateContentKey()
+      const rotatedRecipients = new Map<DID, Uint8Array>()
+      rotatedRecipients.set(alice.did, alice.x25519PubKey)
+      const rotatedEnvelope = updateEnvelopeRecipients(
+        initialEnvelope,
+        rotatedContentKey,
+        rotatedRecipients,
+        signingKey
+      )
+
+      expect(() => decryptEnvelopeContent(rotatedEnvelope, bob.did, bob.x25519PrivKey)).toThrow(
+        `No wrapped key for recipient ${bob.did}`
+      )
+    })
   })
 
   describe('PUBLIC_CONTENT_KEY', () => {
