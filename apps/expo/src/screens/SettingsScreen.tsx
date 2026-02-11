@@ -3,6 +3,7 @@
  *
  * Updated to use the new DataBridge API via XNetContext.
  */
+import { useXNet } from '@xnet/react'
 import React from 'react'
 import {
   View,
@@ -13,10 +14,9 @@ import {
   TouchableOpacity,
   useColorScheme
 } from 'react-native'
-import { useXNetContext } from '../context/XNetProvider'
 
 export function SettingsScreen() {
-  const { authorDID: identity, bridge } = useXNetContext()
+  const { authorDID: identity, hubStatus, syncManager } = useXNet()
   const colorScheme = useColorScheme()
 
   const handleClearData = async () => {
@@ -41,11 +41,11 @@ export function SettingsScreen() {
           <Text style={styles.sectionTitle}>Sync</Text>
           <View style={styles.card}>
             <Text style={styles.label}>Status</Text>
-            <Text style={styles.value}>{bridge?.status || 'offline'}</Text>
+            <Text style={styles.value}>{hubStatus}</Text>
           </View>
           <View style={styles.card}>
             <Text style={styles.label}>Connected Peers</Text>
-            <Text style={styles.value}>0</Text>
+            <Text style={styles.value}>{syncManager?.connection?.roomCount ?? 0}</Text>
           </View>
         </View>
 

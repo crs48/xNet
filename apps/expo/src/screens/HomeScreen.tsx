@@ -5,7 +5,7 @@
  */
 import type { RootStackParamList } from '../navigation/types'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import type { NodeState } from '@xnet/data'
+import { useMutate, useQuery, useXNet } from '@xnet/react'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,
@@ -17,7 +17,6 @@ import {
   ActivityIndicator,
   RefreshControl
 } from 'react-native'
-import { useXNetContext } from '../context/XNetProvider'
 import { Page } from '../schemas'
 
 interface Props {
@@ -30,66 +29,44 @@ interface DocumentItem {
 }
 
 export function HomeScreen({ navigation }: Props) {
-  const { bridge, isReady, authorDID: identity, error } = useXNetContext()
+  const { authorDID: identity } = useXNet()
+  const { data: nodes, loading, error, reload } = useQuery(Page)
+  const { create, remove } = useMutate()
   const [documents, setDocuments] = useState<DocumentItem[]>([])
-  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
-  const loadDocuments = useCallback(async () => {
-    if (!bridge || !isReady) return
-
-    try {
-      // Use the list method if available, otherwise use query
-      let nodes: NodeState[] = []
-      if (bridge.list) {
-        nodes = await bridge.list({ schemaId: Page._schemaId })
-      } else if (bridge.nodeStore) {
-        nodes = await bridge.nodeStore.list({ schemaId: Page._schemaId })
-      }
-      const docs: DocumentItem[] = nodes.map((node) => ({
-        id: node.id,
-        title: (node.properties.title as string) || 'Untitled'
-      }))
-      setDocuments(docs)
-    } catch (e) {
-      console.error('Failed to load documents:', e)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [bridge, isReady])
-
   useEffect(() => {
-    if (isReady) {
-      loadDocuments()
-    }
-  }, [isReady, loadDocuments])
+    const docs: DocumentItem[] = (nodes ?? [])
+      .filter((node): node is NonNullable<typeof node> => node !== null)
+      .map((node) => ({
+        id: node.id,
+        title: (node.title as string) || 'Untitled'
+      }))
+    setDocuments(docs)
+  }, [nodes])
 
   const onRefresh = useCallback(() => {
     setRefreshing(true)
-    loadDocuments()
-  }, [loadDocuments])
+    reload()
+    setRefreshing(false)
+  }, [reload])
 
   const createDocument = async () => {
-    if (!bridge) return
-
     try {
-      const node = await bridge.create(Page, {
+      const node = await create(Page, {
         title: 'Untitled'
       })
-      await loadDocuments()
-      navigation.navigate('Document', { docId: node.id })
+      if (node) {
+        navigation.navigate('Document', { docId: node.id })
+      }
     } catch (e) {
       console.error('Failed to create document:', e)
     }
   }
 
   const deleteDocument = async (id: string) => {
-    if (!bridge) return
-
     try {
-      await bridge.delete(id)
-      await loadDocuments()
+      await remove(id)
     } catch (e) {
       console.error('Failed to delete document:', e)
     }
@@ -105,7 +82,7 @@ export function HomeScreen({ navigation }: Props) {
     )
   }
 
-  if (!isReady || loading) {
+  if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
