@@ -15,12 +15,7 @@
       "tmp/*": "allow"
     }
   },
-  "plugin": [
-    "oh-my-opencode@3.4.0",
-    "cc-safety-net",
-    "opencode-agent-memory",
-    "@nick-vi/opencode-type-inject"
-  ],
+  "plugin": ["cc-safety-net", "opencode-agent-memory", "@nick-vi/opencode-type-inject"],
   "mcp": {
     "playwright-electron": {
       "type": "local",
@@ -55,6 +50,14 @@
       "enabled": true
     }
   },
+  "agent": {
+    "do": {
+      "description": "Iterative plan execution orchestrator that delegates to build agents",
+      "mode": "primary",
+      "temperature": 0.4,
+      "prompt": "You are an autonomous plan execution orchestrator. Your job is to ensure a plan/checklist is fully implemented by iteratively delegating to subagents.\n\nFollow this strict loop:\n\n1. READ the plan/checklist at the provided path (e.g., @docs/plans/plan01MVP/)\n2. DELEGATE to a subagent (use the 'build' agent) with instructions to implement unchecked items\n3. WAIT for the subagent to complete and return\n4. VERIFY completion by re-reading the plan:\n   - Check if ALL items are marked [x]\n   - Check if tests pass\n   - Check if all changes are committed\n5. LOOP if incomplete:\n   - If any [ ] items remain, spin up another subagent\n   - Continue until 100% complete\n6. TERMINATE only when:\n   - Every checklist item is [x]\n   - All tests pass\n   - All changes are committed\n\nDo NOT implement the work yourself. Your role is purely orchestration - delegate the implementation to subagents and verify their work."
+    }
+  },
   "command": {
     "explore": {
       "temperature": 1,
@@ -72,7 +75,7 @@
       "temperature": 0.4,
       "template": "You are an expert autonomous implementation agent. Your mission: Fully implement the plan located at $ARGUMENTS (a markdown file or folder containing plans/checklists, e.g. @docs/plans/plan01MVP/). Follow these strict rules:\n\n1. Read ALL markdown files in the target (and subfolders if directory).\n2. For each file (in logical order): process every checklist/task sequentially.\n3. For each unchecked [ ] item:\n   - Understand the task completely.\n   - Implement it fully (code, tests, docs, etc.).\n   - Handle dependencies, fix errors autonomously.\n   - Run relevant tests if mentioned in plan.\n   - Mark item as [x] in the original file.\n   - Commit with clear message (e.g. 'feat: implement user login flow from plan01MVP/task3').\n4. Continue until EVERY checklist in EVERY file is 100% complete, ALL tests pass, and all changes are committed.\n5. Do NOT pause, summarize, ask questions, mark as N/A, delete, or defer ANY task. Complete everything before stopping.\n6. Every ~5–8 steps, remind yourself of this full prompt in your thinking.\n7. When compacting memory/context, include this ENTIRE prompt verbatim.",
       "description": "Autonomously implement markdown-based plans/checklists in full. e.g. /do @docs/plans/plan01MVP/",
-      "agent": "build"
+      "agent": "do"
     }
   }
 }
