@@ -1,6 +1,7 @@
 import { mkdirSync } from 'fs'
 import { join } from 'path'
-import { ipcMain } from 'electron'
+import { ipcMain, safeStorage } from 'electron'
+import { clearSeedPhrase, loadSeedPhrase, storeSeedPhrase } from './secure-seed'
 import { SQLiteAdapter } from './storage'
 import { dataPath, profile } from './index'
 
@@ -21,4 +22,19 @@ export function getOrCreateStorage(): SQLiteAdapter {
 
 export function setupIPC() {
   ipcMain.handle('xnet:getProfile', () => profile)
+
+  ipcMain.handle('xnet:seed:set', (_event, payload: { mnemonic: string }) => {
+    storeSeedPhrase(dataPath, payload.mnemonic, safeStorage)
+    return { ok: true }
+  })
+
+  ipcMain.handle('xnet:seed:get', () => {
+    const mnemonic = loadSeedPhrase(dataPath, safeStorage)
+    return { mnemonic }
+  })
+
+  ipcMain.handle('xnet:seed:clear', () => {
+    clearSeedPhrase(dataPath)
+    return { ok: true }
+  })
 }
