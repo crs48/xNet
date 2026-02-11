@@ -217,9 +217,16 @@ Rust is the stronger choice because:
 ### Per-Package Analysis
 
 ```mermaid
-xychart-beta
+---
+config:
+  xyChart:
+    width: 500
+    height: 400
+    plotReservedSpacePercent: 60
+---
+xychart-beta horizontal
     title "Estimated Speedup: Rust/WASM vs JavaScript"
-    x-axis ["BLAKE3\nhash", "Ed25519\nsign", "Ed25519\nverify", "ML-DSA\nsign", "HNSW\nsearch", "Formula\neval", "R-tree\nquery", "Hash chain\nvalidate", "NodeStore\nmaterialize"]
+    x-axis ["BLAKE3 hash", "Ed25519 sign", "Ed25519 verify", "ML-DSA sign", "HNSW search", "Formula eval", "R-tree query", "Chain validate", "Store materialize"]
     y-axis "Speedup Factor (x)" 0 --> 60
     bar [50, 3, 5, 20, 15, 8, 10, 5, 3]
 ```
