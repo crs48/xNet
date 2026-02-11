@@ -5,10 +5,9 @@
  * All updates should be wrapped in signed envelopes for security.
  */
 import type { NetworkNode, SyncMessage } from '../types'
-import type { XDocument } from '@xnet/data'
 import type { SignedYjsEnvelopeV1 } from '@xnet/sync'
+import type { Doc } from 'yjs'
 import { encode, decode } from '@msgpack/msgpack'
-import { getDocumentState, getStateVector } from '@xnet/data'
 import { verifyYjsEnvelopeV1 } from '@xnet/sync'
 import * as lp from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
@@ -28,8 +27,7 @@ interface SyncProtocolConfig {
  * Sync protocol interface
  */
 export interface SyncProtocol {
-  /** Register document for sync */
-  register(doc: XDocument): void
+  register(id: string, doc: Doc): void
 
   /** Unregister document */
   unregister(docId: string): void
@@ -59,7 +57,7 @@ export function createSyncProtocol(
   config: SyncProtocolConfig = {}
 ): SyncProtocol {
   const { requireSignedEnvelopes = false, onVerificationFailed } = config
-  const documents = new Map<string, XDocument>()
+  const documents = new Map<string, Doc>()
   const messageCallbacks = new Set<(msg: SyncMessage) => void>()
 
   // Handle incoming streams
@@ -80,7 +78,7 @@ export function createSyncProtocol(
           if (msg.type === 'sync-request') {
             const doc = documents.get(msg.docId)
             if (doc) {
-              const state = getDocumentState(doc)
+              const state = Y.encodeStateAsUpdate(doc)
               yield encode({
                 type: 'sync-response',
                 docId: msg.docId,
@@ -98,8 +96,8 @@ export function createSyncProtocol(
   })
 
   return {
-    register(doc: XDocument): void {
-      documents.set(doc.id, doc)
+    register(id: string, doc: Doc): void {
+      documents.set(id, doc)
     },
 
     unregister(docId: string): void {
@@ -115,7 +113,7 @@ export function createSyncProtocol(
         SYNC_PROTOCOL
       )
 
-      const stateVector = getStateVector(doc)
+      const stateVector = Y.encodeStateVector(doc)
 
       await pipe(
         [
@@ -149,7 +147,7 @@ export function createSyncProtocol(
                 }
               }
               // Apply verified update
-              Y.applyUpdate(doc.ydoc, msg.envelope.update, msg.envelope.authorDID)
+              Y.applyUpdate(doc, msg.envelope.update, msg.envelope.authorDID)
             } else if (requireSignedEnvelopes) {
               // NW-01: Reject unsigned updates when signatures required
               onVerificationFailed?.('missing_envelope', msg.sender, msg.docId)
@@ -160,7 +158,7 @@ export function createSyncProtocol(
               console.warn(
                 `[SyncProtocol] Applying unsigned update from ${msg.sender} (legacy mode)`
               )
-              Y.applyUpdate(doc.ydoc, msg.payload)
+              Y.applyUpdate(doc, msg.payload)
             }
           }
         }

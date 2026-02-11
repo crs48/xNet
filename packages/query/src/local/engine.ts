@@ -1,9 +1,8 @@
 /**
  * Local query engine
  */
+import type { SearchableDocument } from '../search/index'
 import type { Query, QueryResult, Filter, Sort, FilterOperator } from '../types'
-import type { XDocument } from '@xnet/data'
-import type { StorageAdapter } from '@xnet/storage'
 
 /**
  * Local query engine interface
@@ -17,13 +16,12 @@ export interface LocalQueryEngine {
  * Create a local query engine
  */
 export function createLocalQueryEngine(
-  storage: StorageAdapter,
-  getDocument: (id: string) => Promise<XDocument | null>
+  listDocumentIds: () => Promise<string[]>,
+  getDocument: (id: string) => Promise<SearchableDocument | null>
 ): LocalQueryEngine {
   return {
     async query<T>(q: Query): Promise<QueryResult<T>> {
-      // Get all document IDs
-      const docIds = await storage.listDocuments()
+      const docIds = await listDocumentIds()
 
       // Load and filter documents
       const items: T[] = []
@@ -129,7 +127,7 @@ function sortResults<T>(items: T[], sorts: Sort[]): void {
 /**
  * Convert document to query result format
  */
-function documentToResult(doc: XDocument): unknown {
+function documentToResult(doc: SearchableDocument): unknown {
   return {
     id: doc.id,
     type: doc.type,

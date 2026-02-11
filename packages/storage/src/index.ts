@@ -3,7 +3,7 @@
  */
 
 // Types
-export type { StorageAdapter, DocumentData, DocumentMetadata, StorageStats } from './types'
+export type { StorageAdapter } from './types'
 
 // Adapters
 export { MemoryAdapter } from './adapters/memory'
@@ -16,6 +16,3 @@ export { BatchWriter, createBatchWriter } from './adapters/batch-writer'
 export { BlobStore } from './blob-store'
 export { ChunkManager, CHUNK_SIZE, CHUNK_THRESHOLD } from './chunk-manager'
 export type { ChunkManifest, StoreResult } from './chunk-manager'
-
-// Snapshot management
-export { SnapshotManager, type SnapshotManagerOptions } from './snapshots/manager'

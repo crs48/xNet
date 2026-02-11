@@ -281,8 +281,8 @@ flowchart LR
 
 **Tasks**:
 
-- [ ] Delete `apps/expo/src/hooks/useXNet.ts` (legacy XNetClient wrapper)
-- [ ] Delete `apps/expo/src/hooks/useNode.ts` (Expo's local hook that wraps legacy useXNet)
+- [x] Delete `apps/expo/src/hooks/useXNet.ts` (legacy XNetClient wrapper)
+- [x] Delete `apps/expo/src/hooks/useNode.ts` (Expo's local hook that wraps legacy useXNet)
 - [ ] Update Expo screens to use `@xnet/react` hooks (useNode, useQuery, etc.)
 - [ ] Delete `apps/expo/src/storage/ExpoStorageAdapter.ts`
 - [ ] Delete `apps/expo/src/storage/ExpoSQLiteAdapter.ts`
@@ -291,12 +291,12 @@ flowchart LR
 
 **Tasks**:
 
-- [ ] Delete `packages/data/src/document.ts` (createDocument, loadDocument)
-- [ ] Delete `XDocument` type from `packages/data/src/types.ts`
-- [ ] Delete `DocumentType`, `DocumentMetadata` from types
-- [ ] Remove XDocument exports from `packages/data/src/index.ts`
-- [ ] Delete or refactor `packages/sdk/src/client.ts` (XNetClient)
-- [ ] Remove document-related IPC handlers from Electron main process
+- [x] Delete `packages/data/src/document.ts` (createDocument, loadDocument)
+- [x] Delete `XDocument` type from `packages/data/src/types.ts`
+- [x] Delete `DocumentType`, `DocumentMetadata` from types
+- [x] Remove XDocument exports from `packages/data/src/index.ts`
+- [x] Delete or refactor `packages/sdk/src/client.ts` (XNetClient)
+- [x] Remove document-related IPC handlers from Electron main process
 
 ### Phase 3: Simplify StorageAdapter to BlobStorageAdapter
 
@@ -337,7 +337,7 @@ flowchart TB
 - [ ] Create new `BlobStorageAdapter` interface with only blob methods
 - [ ] Migrate `BlobStore` to use `BlobStorageAdapter`
 - [ ] Migrate `IndexedDBAdapter` to implement `BlobStorageAdapter`
-- [ ] Delete document/update/snapshot methods from adapters
+- [x] Delete document/update/snapshot methods from adapters
 - [ ] Rename or deprecate `StorageAdapter`
 
 ### Phase 4: Clean Up SQLite Plan
@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS yjs_state (...)  -- Rich text content
 
 **Tasks**:
 
-- [ ] Update SQLite schema to remove `documents`, `updates`, `snapshots` tables
+- [x] Update SQLite schema to remove `documents`, `updates`, `snapshots` tables
 - [ ] Keep `blobs` table for BlobStore
 - [ ] Keep NodeStore tables (`nodes`, `node_properties`, `changes`)
 - [ ] Keep `yjs_state` for Y.Doc content (stored via NodeStore.documentContent)
@@ -648,10 +648,10 @@ packages/sync/src/clientid-attestation.ts:
 
 ### Phase 1: High Priority (Remove Now)
 
-- [ ] **Dead IPC handlers** - `apps/electron/src/main/ipc.ts`
+- [x] **Dead IPC handlers** - `apps/electron/src/main/ipc.ts`
   - Remove: `xnet:init`, `xnet:createDocument`, `xnet:getDocument`, etc.
   - Keep: `xnet:getProfile`, `xnet:onDevToolsToggle`
-- [ ] **Preload window.xnet** - `apps/electron/src/preload/index.ts`
+- [x] **Preload window.xnet** - `apps/electron/src/preload/index.ts`
   - Remove unused methods matching IPC handlers above
 
 - [ ] **@xnet/cli package** - `packages/cli/`
@@ -673,7 +673,7 @@ packages/sync/src/clientid-attestation.ts:
 - [ ] **@xnet/vectors package** - `packages/vectors/`
   - Delete entire directory (or integrate when canvas needs it)
 
-- [ ] **StorageAdapter + XDocument** (see Part 1 above)
+- [x] **StorageAdapter + XDocument** (see Part 1 above)
 
 ### Phase 3: Low Priority (Document as Future)
 

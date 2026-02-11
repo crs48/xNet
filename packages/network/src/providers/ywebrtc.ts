@@ -1,7 +1,7 @@
 /**
  * y-webrtc integration for real-time document sync
  */
-import type { XDocument } from '@xnet/data'
+import type { Doc } from 'yjs'
 import { WebrtcProvider } from 'y-webrtc'
 
 /**
@@ -25,11 +25,11 @@ export interface YWebRTCProvider {
  * Create a y-webrtc provider for a document
  */
 export function createYWebRTCProvider(
-  doc: XDocument,
+  doc: Doc,
   roomName: string,
   options: YWebRTCOptions
 ): YWebRTCProvider {
-  const provider = new WebrtcProvider(roomName, doc.ydoc, {
+  const provider = new WebrtcProvider(roomName, doc, {
     signaling: options.signalingServers,
     password: options.password,
     maxConns: options.maxConns ?? 20

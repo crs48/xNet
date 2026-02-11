@@ -1,7 +1,7 @@
 /**
  * Awareness/presence tracking for collaborative editing
  */
-import type { XDocument } from '../types'
+import type { Doc } from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
 
 /**
@@ -34,8 +34,8 @@ export interface SelectionRange {
 /**
  * Create an awareness instance for a document
  */
-export function createAwareness(doc: XDocument): Awareness {
-  return new Awareness(doc.ydoc)
+export function createAwareness(doc: Doc): Awareness {
+  return new Awareness(doc)
 }
 
 /**
