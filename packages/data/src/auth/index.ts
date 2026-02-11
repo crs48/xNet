@@ -59,3 +59,7 @@ export {
 
 // Presets
 export { presets } from './presets'
+
+// Schema mode helpers
+export type { AuthMode } from './mode'
+export { getAuthMode, warnLegacySchema } from './mode'
