@@ -347,7 +347,7 @@ These decisions from prior explorations are **final**:
 - [x] Offline authorization uses explicit cache TTL (5 min default) with configurable revalidation.
 - [x] Key recovery via seed phrase allows full access restoration on new device.
 - [x] Decision traces are structured and explainable.
-- [ ] Benchmarks hit target budgets (warm `can()` < 1ms p50, cold < 10ms p50).
+- [x] Benchmarks hit target budgets (warm `can()` < 1ms p50, cold < 10ms p50).
 - [x] Conformance tests cover deny precedence, traversal limits, conflict edges.
 - [x] DevTools AuthZ panel shows live authorization state with grant timeline.
 - [x] Type-level tests validate schema auth typing guarantees.
