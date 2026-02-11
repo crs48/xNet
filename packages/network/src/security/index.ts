@@ -39,3 +39,7 @@ export { AutoBlocker, DEFAULT_BLOCK_THRESHOLDS } from './auto-blocker'
 // Access List
 export type { DenyEntry, AllowEntry, WorkspaceAccessConfig } from './access-list'
 export { PeerAccessControl } from './access-list'
+
+// Selective Sync Authorization
+export type { RecipientEnvelope, EnvelopeReader, SyncEventStore } from './authorized-sync-provider'
+export { AuthorizedSyncProvider } from './authorized-sync-provider'

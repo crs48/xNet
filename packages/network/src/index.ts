@@ -91,5 +91,10 @@ export {
   type DenyEntry,
   type AllowEntry,
   type WorkspaceAccessConfig,
-  PeerAccessControl
+  PeerAccessControl,
+  // Selective sync authorization
+  type RecipientEnvelope,
+  type EnvelopeReader,
+  type SyncEventStore,
+  AuthorizedSyncProvider
 } from './security'
