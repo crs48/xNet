@@ -28,6 +28,7 @@ import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
+import { createKeyRegistryRoutes } from './routes/keys'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
 import { AwarenessService } from './services/awareness'
@@ -39,6 +40,7 @@ import { FederationService, type FederationConfig } from './services/federation'
 import { FederationHealthChecker } from './services/federation-health'
 import { FileService } from './services/files'
 import { ShardRegistry } from './services/index-shards'
+import { KeyRegistryService } from './services/key-registry'
 import { NodeRelayError, NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
@@ -208,6 +210,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     maxBlobSize: config.maxBlobSize
   })
   const files = new FileService(storage)
+  const keyRegistry = new KeyRegistryService()
   const query = new QueryService(storage)
   const federationDefaults = {
     enabled: false,
@@ -388,6 +391,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   app.route('/files', createFileRoutes(files))
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
+  app.route('/keys', createKeyRegistryRoutes(keyRegistry))
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
   app.route('/federation', createFederationRoutes(federation, { requireAuth }))
   if (shardConfig.enabled) {
