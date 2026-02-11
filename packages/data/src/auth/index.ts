@@ -77,3 +77,26 @@ export {
   type RecipientDependencies
 } from './recipients'
 export { handleAuthMigration, type AuthMigrationDependencies } from './migration'
+
+// Authorization engine
+export {
+  DecisionCache,
+  DefaultRoleResolver,
+  DefaultPolicyEvaluator,
+  evaluateExpression,
+  createPolicyEvaluator,
+  type NodeStoreReader,
+  type DecisionCacheOptions,
+  type DefaultRoleResolverOptions,
+  type DefaultPolicyEvaluatorOptions,
+  type SchemaRegistryReader,
+  type DefinedSchemaLike
+} from './evaluator'
+export {
+  GrantIndex,
+  GRANT_SCHEMA_IRI,
+  isGrantActive,
+  type GrantNode,
+  type GrantIndexStore,
+  type GrantIndexOptions
+} from './grants'
