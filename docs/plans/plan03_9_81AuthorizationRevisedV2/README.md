@@ -337,7 +337,7 @@ These decisions from prior explorations are **final**:
 ## Global Validation Gates
 
 - [x] All mutating paths enforce authorization deterministically.
-- [ ] Every node is encrypted with per-node content key before leaving client.
+- [x] Every node is encrypted with per-node content key before leaving client.
 - [x] Y.Doc state is encrypted at rest with per-node content key (`EncryptedYjsState`).
 - [x] Y.Doc sync rooms are gated by authorization — unauthorized peers cannot join.
 - [x] Remote Yjs updates are checked against `PolicyEvaluator` before applying.

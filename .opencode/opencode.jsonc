@@ -31,7 +31,7 @@
         "--output-dir",
         "tmp/playwright"
       ],
-      "enabled": true
+      "enabled": false
     },
     "playwright-web": {
       "type": "local",
