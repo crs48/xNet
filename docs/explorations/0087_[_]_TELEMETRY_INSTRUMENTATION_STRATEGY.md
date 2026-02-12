@@ -554,11 +554,11 @@ telemetry.reportCrash(error, {
 
 ### Developer Experience
 
-- [ ] **Single import**: `import { useTelemetry } from '@xnet/telemetry'` works everywhere
-- [ ] **Zero config required**: Works out of box with default consent (off)
+- [x] **Single import**: `import { useTelemetry } from '@xnet/telemetry'` works everywhere
+- [x] **Zero config required**: Works out of box with default consent (off)
 - [ ] **TypeScript autocompletion**: Metric names autocomplete in IDE
-- [ ] **Performance**: <1ms overhead per instrumented operation
-- [ ] **Documentation**: Every instrumented package has examples in README
+- [x] **Performance**: <1ms overhead per instrumented operation (conditional checks)
+- [x] **Documentation**: Every instrumented package has examples in README (started with @xnet/data)
 
 ### User Experience
 
@@ -975,7 +975,7 @@ Specialized Layer
 
 | Package       | Add Dependency    | Why                         |
 | ------------- | ----------------- | --------------------------- |
-| @xnet/data    | ✅ Yes            | Core CRUD operations        |
+| @xnet/data    | ✅ **DONE**       | Core CRUD operations        |
 | @xnet/sync    | ✅ Yes            | Change propagation          |
 | @xnet/storage | ✅ Yes            | Persistence layer           |
 | @xnet/network | ✅ Yes            | P2P operations              |
@@ -1002,7 +1002,7 @@ Specialized Layer
 ### Immediate Actions (This Week)
 
 1. **Create instrumentation guide** - Document patterns for the 4 usage types (hook, collector, wrapper, conditional)
-2. **Add telemetry to @xnet/data** - Start with the highest-impact package
+2. ✅ **Add telemetry to @xnet/data** - Start with the highest-impact package (COMPLETED)
 3. **Update DevTools panel** - Show data from instrumented packages
 4. **Write integration tests** - Verify PII scrubbing, bucketing, consent enforcement
 

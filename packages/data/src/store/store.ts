@@ -94,6 +94,12 @@ export class NodeStore {
     decision: AuthDecision
   }) => void
   readonly auth?: StoreAuthAPI
+  private telemetry?: {
+    reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void
+    reportUsage(metricName: string, value: number): void
+    reportCrash(error: Error, context?: { codeNamespace?: string }): void
+    reportSecurityEvent(eventName: string, severity: 'low' | 'medium' | 'high' | 'critical'): void
+  }
 
   constructor(options: NodeStoreOptions) {
     this.storage = options.storage
@@ -110,6 +116,7 @@ export class NodeStore {
     this.onRecipientsMayNeedRecompute = options.onRecipientsMayNeedRecompute
     this.onUnauthorizedRemoteChange = options.onUnauthorizedRemoteChange
     this.auth = options.auth
+    this.telemetry = options.telemetry
   }
 
   /**
@@ -142,49 +149,64 @@ export class NodeStore {
    * Create a new Node.
    */
   async create(options: CreateNodeOptions): Promise<NodeState> {
+    const start = this.telemetry ? Date.now() : 0
     const id = options.id ?? createNodeId()
 
-    await this.assertAuthorized({
-      subject: this.authorDID,
-      action: 'write',
-      nodeId: id,
-      node: {
+    try {
+      await this.assertAuthorized({
+        subject: this.authorDID,
+        action: 'write',
+        nodeId: id,
+        node: {
+          schemaId: options.schemaId,
+          createdBy: this.authorDID,
+          properties: options.properties
+        }
+      })
+
+      const now = Date.now()
+
+      // Tick the clock
+      const [newClock, lamport] = tick(this.clock)
+      this.clock = newClock
+
+      // Create the change
+      const payload: NodePayload = {
+        nodeId: id,
         schemaId: options.schemaId,
-        createdBy: this.authorDID,
         properties: options.properties
       }
-    })
 
-    const now = Date.now()
+      const change = await this.createChange('node-change', payload, lamport, now)
 
-    // Tick the clock
-    const [newClock, lamport] = tick(this.clock)
-    this.clock = newClock
+      // Apply and persist
+      await this.applyChange(change)
 
-    // Create the change
-    const payload: NodePayload = {
-      nodeId: id,
-      schemaId: options.schemaId,
-      properties: options.properties
+      const node = await this.storage.getNode(id)
+      if (!node) {
+        throw new Error(`Failed to create node: ${id}`)
+      }
+
+      await this.persistEncryptedNodeSnapshot(node)
+
+      // Emit change event
+      this.emit(change, node, false)
+      this.authEvaluator?.invalidate(node.id)
+
+      // Track performance
+      if (this.telemetry) {
+        this.telemetry.reportPerformance('data.create', Date.now() - start)
+        this.telemetry.reportUsage('data.create', 1)
+      }
+
+      return node
+    } catch (err) {
+      // Track crash
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'data.NodeStore.create'
+      })
+      throw err
     }
-
-    const change = await this.createChange('node-change', payload, lamport, now)
-
-    // Apply and persist
-    await this.applyChange(change)
-
-    const node = await this.storage.getNode(id)
-    if (!node) {
-      throw new Error(`Failed to create node: ${id}`)
-    }
-
-    await this.persistEncryptedNodeSnapshot(node)
-
-    // Emit change event
-    this.emit(change, node, false)
-    this.authEvaluator?.invalidate(node.id)
-
-    return node
   }
 
   /**
@@ -275,96 +297,128 @@ export class NodeStore {
    * Update a Node's properties.
    */
   async update(id: NodeId, options: UpdateNodeOptions): Promise<NodeState> {
-    const existing = await this.storage.getNode(id)
-    if (!existing) {
-      throw new Error(`Node not found: ${id}`)
-    }
+    const start = this.telemetry ? Date.now() : 0
 
-    await this.assertAuthorized({
-      subject: this.authorDID,
-      action: 'write',
-      nodeId: id,
-      patch: options.properties
-    })
+    try {
+      const existing = await this.storage.getNode(id)
+      if (!existing) {
+        throw new Error(`Node not found: ${id}`)
+      }
 
-    const now = Date.now()
-
-    // Tick the clock
-    const [newClock, lamport] = tick(this.clock)
-    this.clock = newClock
-
-    // Create the change with sparse properties
-    const payload: NodePayload = {
-      nodeId: id,
-      properties: options.properties
-    }
-
-    const change = await this.createChange('node-change', payload, lamport, now)
-
-    // Apply and persist
-    await this.applyChange(change)
-
-    const node = await this.storage.getNode(id)
-    if (!node) {
-      throw new Error(`Failed to update node: ${id}`)
-    }
-
-    await this.persistEncryptedNodeSnapshot(node)
-
-    // Emit change event
-    this.emit(change, node, false)
-    this.authEvaluator?.invalidate(node.id)
-
-    if (this.shouldRecomputeRecipients(existing.schemaId, options.properties)) {
-      await this.onRecipientsMayNeedRecompute?.({
+      await this.assertAuthorized({
+        subject: this.authorDID,
+        action: 'write',
         nodeId: id,
-        schemaId: existing.schemaId,
-        changedProperties: Object.keys(options.properties)
+        patch: options.properties
       })
-    }
 
-    return node
+      const now = Date.now()
+
+      // Tick the clock
+      const [newClock, lamport] = tick(this.clock)
+      this.clock = newClock
+
+      // Create the change with sparse properties
+      const payload: NodePayload = {
+        nodeId: id,
+        properties: options.properties
+      }
+
+      const change = await this.createChange('node-change', payload, lamport, now)
+
+      // Apply and persist
+      await this.applyChange(change)
+
+      const node = await this.storage.getNode(id)
+      if (!node) {
+        throw new Error(`Failed to update node: ${id}`)
+      }
+
+      await this.persistEncryptedNodeSnapshot(node)
+
+      // Emit change event
+      this.emit(change, node, false)
+      this.authEvaluator?.invalidate(node.id)
+
+      if (this.shouldRecomputeRecipients(existing.schemaId, options.properties)) {
+        await this.onRecipientsMayNeedRecompute?.({
+          nodeId: id,
+          schemaId: existing.schemaId,
+          changedProperties: Object.keys(options.properties)
+        })
+      }
+
+      // Track performance
+      if (this.telemetry) {
+        this.telemetry.reportPerformance('data.update', Date.now() - start)
+        this.telemetry.reportUsage('data.update', 1)
+      }
+
+      return node
+    } catch (err) {
+      // Track crash
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'data.NodeStore.update'
+      })
+      throw err
+    }
   }
 
   /**
    * Delete a Node (soft delete).
    */
   async delete(id: NodeId): Promise<void> {
-    const existing = await this.storage.getNode(id)
-    if (!existing) {
-      throw new Error(`Node not found: ${id}`)
+    const start = this.telemetry ? Date.now() : 0
+
+    try {
+      const existing = await this.storage.getNode(id)
+      if (!existing) {
+        throw new Error(`Node not found: ${id}`)
+      }
+
+      await this.assertAuthorized({
+        subject: this.authorDID,
+        action: 'delete',
+        nodeId: id
+      })
+
+      const now = Date.now()
+
+      // Tick the clock
+      const [newClock, lamport] = tick(this.clock)
+      this.clock = newClock
+
+      // Create the delete change
+      const payload: NodePayload = {
+        nodeId: id,
+        properties: {},
+        deleted: true
+      }
+
+      const change = await this.createChange('node-change', payload, lamport, now)
+
+      // Apply and persist
+      await this.applyChange(change)
+
+      this.contentKeyCache?.delete(id)
+
+      // Emit change event
+      const deletedNode = await this.storage.getNode(id)
+      this.emit(change, deletedNode, false)
+      this.authEvaluator?.invalidate(id)
+
+      // Track performance
+      if (this.telemetry) {
+        this.telemetry.reportPerformance('data.delete', Date.now() - start)
+        this.telemetry.reportUsage('data.delete', 1)
+      }
+    } catch (err) {
+      // Track crash
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'data.NodeStore.delete'
+      })
+      throw err
     }
-
-    await this.assertAuthorized({
-      subject: this.authorDID,
-      action: 'delete',
-      nodeId: id
-    })
-
-    const now = Date.now()
-
-    // Tick the clock
-    const [newClock, lamport] = tick(this.clock)
-    this.clock = newClock
-
-    // Create the delete change
-    const payload: NodePayload = {
-      nodeId: id,
-      properties: {},
-      deleted: true
-    }
-
-    const change = await this.createChange('node-change', payload, lamport, now)
-
-    // Apply and persist
-    await this.applyChange(change)
-
-    this.contentKeyCache?.delete(id)
-
-    // Emit change event
-    const deletedNode = await this.storage.getNode(id)
-    this.emit(change, deletedNode, false)
-    this.authEvaluator?.invalidate(id)
   }
 
   /**
@@ -418,11 +472,29 @@ export class NodeStore {
    * List Nodes with optional filtering.
    */
   async list(options?: ListNodesOptions): Promise<NodeState[]> {
-    const nodes = await this.storage.listNodes(options)
-    const decrypted = await Promise.all(
-      nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
-    )
-    return decrypted.filter((node): node is NodeState => node !== null)
+    const start = this.telemetry ? Date.now() : 0
+
+    try {
+      const nodes = await this.storage.listNodes(options)
+      const decrypted = await Promise.all(
+        nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
+      )
+      const result = decrypted.filter((node): node is NodeState => node !== null)
+
+      // Track performance
+      if (this.telemetry) {
+        this.telemetry.reportPerformance('data.list', Date.now() - start)
+        this.telemetry.reportUsage('data.list', 1)
+      }
+
+      return result
+    } catch (err) {
+      // Track crash
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'data.NodeStore.list'
+      })
+      throw err
+    }
   }
 
   // ==========================================================================
@@ -594,59 +666,80 @@ export class NodeStore {
    * @throws Error if signature verification fails
    */
   async applyRemoteChange(change: NodeChange): Promise<void> {
-    // Verify hash integrity (no tampering)
-    if (!verifyChangeHash(change)) {
-      throw new Error(
-        `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
-      )
-    }
+    const start = this.telemetry ? Date.now() : 0
 
-    // Verify signature matches the author's public key
     try {
-      const publicKey = parseDID(change.authorDID)
-      if (!verifyChange(change, publicKey)) {
+      // Verify hash integrity (no tampering)
+      if (!verifyChangeHash(change)) {
+        const error = new Error(
+          `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
+        )
+        this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
+        throw error
+      }
+
+      // Verify signature matches the author's public key
+      try {
+        const publicKey = parseDID(change.authorDID)
+        if (!verifyChange(change, publicKey)) {
+          const error = new Error(
+            `[NodeStore] Remote change ${change.id} failed signature verification - ` +
+              `signature does not match author ${change.authorDID}`
+          )
+          this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+          throw error
+        }
+      } catch (err) {
+        // Re-throw verification errors, wrap other errors
+        if (err instanceof Error && err.message.includes('failed')) {
+          throw err
+        }
         throw new Error(
-          `[NodeStore] Remote change ${change.id} failed signature verification - ` +
-            `signature does not match author ${change.authorDID}`
+          `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
         )
       }
+
+      if (this.authEvaluator) {
+        const action = this.inferActionFromChange(change)
+        const decision = await this.authEvaluator.can({
+          subject: change.authorDID,
+          action,
+          nodeId: change.payload.nodeId,
+          patch: action === 'write' ? change.payload.properties : undefined
+        })
+
+        if (!decision.allowed) {
+          this.telemetry?.reportSecurityEvent('data.unauthorized_remote_change', 'medium')
+          this.onUnauthorizedRemoteChange?.({ change, action, decision })
+          return
+        }
+      }
+
+      // Update our clock to be at least as recent as the remote
+      this.clock = receive(this.clock, change.lamport.time)
+      await this.storage.setLastLamportTime(this.clock.time)
+
+      // Apply the change
+      await this.applyChange(change)
+
+      // Emit change event (marked as remote)
+      const node = await this.storage.getNode(change.payload.nodeId)
+      await this.persistEncryptedNodeSnapshot(node)
+      this.emit(change, node, true)
+      this.authEvaluator?.invalidate(change.payload.nodeId)
+
+      // Track performance
+      if (this.telemetry) {
+        this.telemetry.reportPerformance('data.applyRemoteChange', Date.now() - start)
+        this.telemetry.reportUsage('data.sync', 1)
+      }
     } catch (err) {
-      // Re-throw verification errors, wrap other errors
-      if (err instanceof Error && err.message.includes('failed')) {
-        throw err
-      }
-      throw new Error(
-        `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
-      )
-    }
-
-    if (this.authEvaluator) {
-      const action = this.inferActionFromChange(change)
-      const decision = await this.authEvaluator.can({
-        subject: change.authorDID,
-        action,
-        nodeId: change.payload.nodeId,
-        patch: action === 'write' ? change.payload.properties : undefined
+      // Track crash
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'data.NodeStore.applyRemoteChange'
       })
-
-      if (!decision.allowed) {
-        this.onUnauthorizedRemoteChange?.({ change, action, decision })
-        return
-      }
+      throw err
     }
-
-    // Update our clock to be at least as recent as the remote
-    this.clock = receive(this.clock, change.lamport.time)
-    await this.storage.setLastLamportTime(this.clock.time)
-
-    // Apply the change
-    await this.applyChange(change)
-
-    // Emit change event (marked as remote)
-    const node = await this.storage.getNode(change.payload.nodeId)
-    await this.persistEncryptedNodeSnapshot(node)
-    this.emit(change, node, true)
-    this.authEvaluator?.invalidate(change.payload.nodeId)
   }
 
   /**

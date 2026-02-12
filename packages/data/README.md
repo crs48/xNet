@@ -171,6 +171,34 @@ const store = new NodeStore({
 })
 ```
 
+### Telemetry Integration
+
+NodeStore supports optional telemetry for tracking CRUD operations, performance, and errors:
+
+```typescript
+import { NodeStore } from '@xnet/data'
+import { TelemetryCollector, ConsentManager } from '@xnet/telemetry'
+
+const consent = new ConsentManager()
+const telemetry = new TelemetryCollector({ consent })
+
+const store = new NodeStore({
+  storage,
+  authorDID: identity.did,
+  signingKey: privateKey,
+  telemetry // <-- Add telemetry collector
+})
+```
+
+When telemetry is enabled, NodeStore automatically reports:
+
+- **Performance metrics**: `data.create`, `data.update`, `data.delete`, `data.list`, `data.applyRemoteChange`
+- **Usage metrics**: Operation counts
+- **Security events**: Hash/signature verification failures, unauthorized remote changes
+- **Crash reports**: Errors with context
+
+All telemetry respects user consent settings and privacy buckets (no exact values, no PII).
+
 ## Modules
 
 | Module                       | Description                            |
