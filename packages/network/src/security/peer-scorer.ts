@@ -7,6 +7,21 @@
 
 import { logSecurityEvent } from './logging'
 
+/**
+ * Optional telemetry collector interface for network security operations.
+ * Compatible with @xnet/telemetry TelemetryCollector.
+ * Duck-typed to avoid circular dependency on @xnet/telemetry.
+ */
+interface NetworkTelemetry {
+  reportSecurity(
+    eventName: string,
+    severity: 'low' | 'medium' | 'high' | 'critical',
+    details?: Record<string, unknown>
+  ): void
+  reportUsage(metricName: string, value: number): void
+  reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void
+}
+
 export interface PeerMetrics {
   syncSuccesses: number
   validChanges: number
@@ -84,6 +99,7 @@ export class PeerScorer {
   private thresholds: ScoreThresholds
   private decayTimer: ReturnType<typeof setInterval> | null = null
   private listeners = new Map<ScorerEventType, ScorerListener[]>()
+  private telemetry?: NetworkTelemetry
 
   constructor(
     options: {
@@ -93,10 +109,13 @@ export class PeerScorer {
       decayIntervalMs?: number
       /** Score decay factor per interval (default: 0.99) */
       decayFactor?: number
+      /** Optional telemetry collector */
+      telemetry?: NetworkTelemetry
     } = {}
   ) {
     this.weights = { ...DEFAULT_WEIGHTS, ...options.weights }
     this.thresholds = { ...DEFAULT_THRESHOLDS, ...options.thresholds }
+    this.telemetry = options.telemetry
 
     const interval = options.decayIntervalMs ?? 60_000
     const decay = options.decayFactor ?? 0.99
@@ -144,6 +163,7 @@ export class PeerScorer {
     metrics.syncSuccesses++
     metrics.lastSeen = Date.now()
     this.recalculateScore(peerId)
+    this.telemetry?.reportUsage('network.sync_success', 1)
   }
 
   recordSyncFailure(peerId: string): void {
@@ -151,6 +171,7 @@ export class PeerScorer {
     metrics.syncFailures++
     metrics.lastSeen = Date.now()
     this.recalculateScore(peerId)
+    this.telemetry?.reportUsage('network.sync_failure', 1)
   }
 
   recordValidChange(peerId: string, count: number = 1): void {
@@ -172,6 +193,12 @@ export class PeerScorer {
       peerId,
       actionTaken: 'logged'
     })
+
+    this.telemetry?.reportSecurity('network.invalid_signature', 'high', {
+      peerScore: this.bucketScore(this.getScore(peerId)),
+      actionTaken: 'logged'
+    })
+    this.telemetry?.reportUsage('network.security_violations', 1)
   }
 
   recordInvalidData(peerId: string): void {
@@ -179,6 +206,12 @@ export class PeerScorer {
     metrics.invalidData++
     metrics.lastSeen = Date.now()
     this.recalculateScore(peerId)
+
+    this.telemetry?.reportSecurity('network.invalid_data', 'medium', {
+      peerScore: this.bucketScore(this.getScore(peerId)),
+      actionTaken: 'logged'
+    })
+    this.telemetry?.reportUsage('network.security_violations', 1)
   }
 
   recordRateLimitViolation(peerId: string): void {
@@ -186,6 +219,12 @@ export class PeerScorer {
     metrics.rateLimitViolations++
     metrics.lastSeen = Date.now()
     this.recalculateScore(peerId)
+
+    this.telemetry?.reportSecurity('network.rate_limit_violation', 'medium', {
+      peerScore: this.bucketScore(this.getScore(peerId)),
+      actionTaken: 'logged'
+    })
+    this.telemetry?.reportUsage('network.security_violations', 1)
   }
 
   recordLatency(peerId: string, latencyMs: number): void {
@@ -194,6 +233,7 @@ export class PeerScorer {
     metrics.avgLatency =
       metrics.avgLatency === 0 ? latencyMs : metrics.avgLatency * (1 - alpha) + latencyMs * alpha
     this.recalculateScore(peerId)
+    this.telemetry?.reportPerformance('network.peer_latency', latencyMs, 'network.PeerScorer')
   }
 
   recordIP(peerId: string, ip: string): void {
@@ -231,6 +271,18 @@ export class PeerScorer {
   /** Force score recalculation (for testing). */
   forceDecay(factor: number): void {
     this.decayScores(factor)
+  }
+
+  /**
+   * Bucket peer score for privacy-preserving telemetry.
+   * Returns a range instead of exact score.
+   */
+  private bucketScore(score: number): string {
+    if (score >= 50) return '50+'
+    if (score >= 0) return '0-50'
+    if (score >= -20) return '-20-0'
+    if (score >= -50) return '-50--20'
+    return '<-50'
   }
 
   private emit(event: ScorerEventType, peerId: string, score: number): void {
@@ -281,10 +333,18 @@ export class PeerScorer {
         details: { score, threshold: 'disconnect' },
         actionTaken: 'blocked'
       })
+      this.telemetry?.reportSecurity('network.peer_blocked', 'high', {
+        peerScore: this.bucketScore(score),
+        reason: 'score_below_disconnect',
+        actionTaken: 'blocked'
+      })
+      this.telemetry?.reportUsage('network.peers_blocked', 1)
       this.emit('score-below-disconnect', peerId, score)
     } else if (score < this.thresholds.throttle) {
+      this.telemetry?.reportUsage('network.peers_throttled', 1)
       this.emit('score-below-throttle', peerId, score)
     } else if (score < this.thresholds.warn) {
+      this.telemetry?.reportUsage('network.peers_warned', 1)
       this.emit('score-below-warn', peerId, score)
     }
   }
