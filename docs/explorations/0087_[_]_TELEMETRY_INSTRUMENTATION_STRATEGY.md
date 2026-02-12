@@ -578,8 +578,8 @@ telemetry.reportCrash(error, {
 
 ### Operational Health
 
-- [x] **Coverage**: 2/18 prioritized packages instrumented (Phase 1 in progress)
-- [x] **Testing**: >80% test coverage for telemetry code paths (tests passing for instrumented packages)
+- [x] **Coverage**: 3/18 prioritized packages instrumented (Phase 1: 75% complete, sync added)
+- [x] **Testing**: >80% test coverage for telemetry code paths (550 tests pass in @xnet/sync)
 - [ ] **Monitoring**: Grafana dashboard for aggregated metrics
 - [ ] **Alerting**: Pagerduty alerts on critical security events
 - [x] **Compliance**: GDPR, CCPA compliant (consent, deletion, export) - telemetry system designed for this
@@ -600,9 +600,9 @@ packages/storage/    # IndexedDB operations
 packages/react/      # Hook timing
 
 # Deliverables
-- ✅ 2/4 packages instrumented (@xnet/data, @xnet/storage)
-- 🔄 @xnet/sync - requires integration with existing YjsPeerScorer
-- 🔄 @xnet/react - requires context provider pattern
+- ✅ 3/4 packages instrumented (@xnet/data, @xnet/storage, @xnet/sync)
+- ✅ @xnet/sync - YjsPeerScorer integrated with telemetry (security events, peer actions)
+- 🔄 @xnet/react - requires context provider pattern (IN PROGRESS)
 - DevTools panel shows data
 - Zero PII validation passed
 - Test coverage >80%
