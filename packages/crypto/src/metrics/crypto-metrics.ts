@@ -10,6 +10,15 @@ import type { SecurityLevel } from '../security-level'
 // ─── Types ────────────────────────────────────────────────────────
 
 /**
+ * Optional telemetry collector interface for crypto operations.
+ * Compatible with @xnet/telemetry TelemetryCollector.
+ */
+export interface CryptoTelemetry {
+  reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void
+  reportUsage(metricName: string, value: number): void
+}
+
+/**
  * Metrics for cryptographic operations.
  */
 export interface CryptoMetrics {
@@ -85,6 +94,7 @@ export interface MetricAverages {
  */
 export class CryptoMetricsCollector {
   private metrics: CryptoMetrics = this.createEmptyMetrics()
+  private telemetry?: CryptoTelemetry
 
   private createEmptyMetrics(): CryptoMetrics {
     return {
@@ -104,6 +114,14 @@ export class CryptoMetricsCollector {
   }
 
   /**
+   * Set telemetry collector for forwarding aggregated metrics.
+   * When set, metrics will be reported to telemetry periodically.
+   */
+  setTelemetry(telemetry: CryptoTelemetry | undefined): void {
+    this.telemetry = telemetry
+  }
+
+  /**
    * Record a signing operation.
    */
   recordSign(level: SecurityLevel, durationMs: number): void {
@@ -111,6 +129,10 @@ export class CryptoMetricsCollector {
     this.metrics.signTimeMs += durationMs
     this.metrics.byLevel[level].signCount++
     this.metrics.byLevel[level].signTimeMs += durationMs
+
+    // Report to telemetry if available
+    this.telemetry?.reportPerformance(`crypto.sign.level${level}`, durationMs, 'crypto')
+    this.telemetry?.reportUsage('crypto.sign', 1)
   }
 
   /**
@@ -124,9 +146,15 @@ export class CryptoMetricsCollector {
 
     if (cached) {
       this.metrics.cacheHits++
+      this.telemetry?.reportUsage('crypto.cache.hit', 1)
     } else {
       this.metrics.cacheMisses++
+      this.telemetry?.reportUsage('crypto.cache.miss', 1)
     }
+
+    // Report to telemetry if available
+    this.telemetry?.reportPerformance(`crypto.verify.level${level}`, durationMs, 'crypto')
+    this.telemetry?.reportUsage('crypto.verify', 1)
   }
 
   /**
@@ -134,6 +162,7 @@ export class CryptoMetricsCollector {
    */
   recordCacheHit(): void {
     this.metrics.cacheHits++
+    this.telemetry?.reportUsage('crypto.cache.hit', 1)
   }
 
   /**
@@ -141,6 +170,7 @@ export class CryptoMetricsCollector {
    */
   recordCacheMiss(): void {
     this.metrics.cacheMisses++
+    this.telemetry?.reportUsage('crypto.cache.miss', 1)
   }
 
   /**
@@ -148,6 +178,7 @@ export class CryptoMetricsCollector {
    */
   recordWorkerOp(): void {
     this.metrics.workerOperations++
+    this.telemetry?.reportUsage('crypto.worker.operation', 1)
   }
 
   /**
