@@ -47,6 +47,17 @@ export type YjsViolationType =
 export type PeerAction = 'allow' | 'warn' | 'throttle' | 'block'
 
 /**
+ * Optional telemetry collector interface for sync operations.
+ * Compatible with @xnet/telemetry TelemetryCollector.
+ */
+export interface SyncTelemetry {
+  reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void
+  reportUsage(metricName: string, value: number): void
+  reportCrash(error: Error, context?: { codeNamespace?: string }): void
+  reportSecurityEvent(eventName: string, severity: 'low' | 'medium' | 'high' | 'critical'): void
+}
+
+/**
  * Configuration for Yjs peer scoring.
  */
 export interface YjsScoringConfig {
@@ -69,6 +80,14 @@ export interface YjsScoringConfig {
   recoveryRate: number
   /** Immediate block after N invalid signatures */
   instantBlockAfter: number
+  /**
+   * Optional telemetry collector for security events.
+   * When provided, YjsPeerScorer will report:
+   * - Security events for violations (invalid signatures, rate limits, etc.)
+   * - Usage metrics for peer actions (block, throttle, warn)
+   * - Performance metrics for score calculations
+   */
+  telemetry?: SyncTelemetry
 }
 
 /**
@@ -119,14 +138,17 @@ export class YjsPeerScorer {
   private metrics = new Map<string, YjsPeerMetrics>()
   private scores = new Map<string, number>()
   readonly config: YjsScoringConfig
+  private telemetry?: SyncTelemetry
 
   constructor(config?: Partial<YjsScoringConfig>) {
     this.config = {
       penalties: { ...DEFAULT_YJS_SCORING_CONFIG.penalties, ...config?.penalties },
       thresholds: { ...DEFAULT_YJS_SCORING_CONFIG.thresholds, ...config?.thresholds },
       recoveryRate: config?.recoveryRate ?? DEFAULT_YJS_SCORING_CONFIG.recoveryRate,
-      instantBlockAfter: config?.instantBlockAfter ?? DEFAULT_YJS_SCORING_CONFIG.instantBlockAfter
+      instantBlockAfter: config?.instantBlockAfter ?? DEFAULT_YJS_SCORING_CONFIG.instantBlockAfter,
+      telemetry: config?.telemetry
     }
+    this.telemetry = config?.telemetry
   }
 
   /**
@@ -144,26 +166,34 @@ export class YjsPeerScorer {
     switch (reason) {
       case 'invalidSignature':
         metrics.invalidSignatures++
+        this.telemetry?.reportSecurityEvent('sync.yjs.invalid_signature', 'high')
         // Instant block after N invalid signatures
         if (metrics.invalidSignatures >= this.config.instantBlockAfter) {
           this.scores.set(peerId, 0)
+          this.telemetry?.reportSecurityEvent('sync.yjs.peer_auto_blocked', 'critical')
+          this.telemetry?.reportUsage('sync.yjs.peer_action.block', 1)
           return 'block'
         }
         break
       case 'oversizedUpdate':
         metrics.oversizedUpdates++
+        this.telemetry?.reportSecurityEvent('sync.yjs.oversized_update', 'medium')
         break
       case 'rateExceeded':
         metrics.rateExceeded++
+        this.telemetry?.reportSecurityEvent('sync.yjs.rate_exceeded', 'medium')
         break
       case 'unsignedUpdate':
         metrics.unsignedUpdates++
+        this.telemetry?.reportSecurityEvent('sync.yjs.unsigned_update', 'high')
         break
       case 'unattestedClientId':
         metrics.unattestedClientIds++
+        this.telemetry?.reportSecurityEvent('sync.yjs.unattested_client_id', 'medium')
         break
       case 'unauthorizedUpdate':
         metrics.unauthorizedUpdates++
+        this.telemetry?.reportSecurityEvent('sync.yjs.unauthorized_update', 'high')
         break
     }
 
@@ -174,7 +204,14 @@ export class YjsPeerScorer {
     const newScore = Math.max(0, currentScore - penalty)
     this.scores.set(peerId, newScore)
 
-    return this.getAction(newScore)
+    const action = this.getAction(newScore)
+
+    // Report action taken
+    if (action !== 'allow') {
+      this.telemetry?.reportUsage(`sync.yjs.peer_action.${action}`, 1)
+    }
+
+    return action
   }
 
   /**
@@ -183,6 +220,7 @@ export class YjsPeerScorer {
   recordValid(peerId: string): void {
     const metrics = this.getOrCreateMetrics(peerId)
     metrics.validUpdates++
+    this.telemetry?.reportUsage('sync.yjs.valid_update', 1)
   }
 
   /**
