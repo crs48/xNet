@@ -14,3 +14,13 @@ export interface StorageAdapter {
   close(): Promise<void>
   clear(): Promise<void>
 }
+
+/**
+ * Optional telemetry collector interface for storage operations.
+ * Compatible with @xnet/telemetry TelemetryCollector.
+ */
+export interface StorageTelemetry {
+  reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void
+  reportUsage(metricName: string, value: number): void
+  reportCrash(error: Error, context?: { codeNamespace?: string }): void
+}

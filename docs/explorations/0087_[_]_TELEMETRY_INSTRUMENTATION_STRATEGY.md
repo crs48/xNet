@@ -977,7 +977,7 @@ Specialized Layer
 | ------------- | ----------------- | --------------------------- |
 | @xnet/data    | ✅ **DONE**       | Core CRUD operations        |
 | @xnet/sync    | ✅ Yes            | Change propagation          |
-| @xnet/storage | ✅ Yes            | Persistence layer           |
+| @xnet/storage | ✅ **DONE**       | Persistence layer           |
 | @xnet/network | ✅ Yes            | P2P operations              |
 | @xnet/react   | ✅ Yes            | Hook usage patterns         |
 | @xnet/query   | ✅ Yes            | Query performance           |

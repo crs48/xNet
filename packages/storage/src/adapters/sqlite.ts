@@ -1,4 +1,4 @@
-import type { StorageAdapter } from '../types'
+import type { StorageAdapter, StorageTelemetry } from '../types'
 import type { ContentId } from '@xnet/core'
 import type { SQLiteAdapter, SQLValue } from '@xnet/sqlite'
 
@@ -12,8 +12,14 @@ interface BlobRow {
 
 export class SQLiteStorageAdapter implements StorageAdapter {
   private isOpened = false
+  private telemetry?: StorageTelemetry
 
-  constructor(private db: SQLiteAdapter) {}
+  constructor(
+    private db: SQLiteAdapter,
+    options?: { telemetry?: StorageTelemetry }
+  ) {
+    this.telemetry = options?.telemetry
+  }
 
   async open(): Promise<void> {
     if (!this.db.isOpen()) {
@@ -32,27 +38,69 @@ export class SQLiteStorageAdapter implements StorageAdapter {
   }
 
   async getBlob(cid: ContentId): Promise<Uint8Array | null> {
-    this.ensureOpen()
-    const row = await this.db.queryOne<BlobRow>('SELECT data FROM blobs WHERE cid = ?', [cid])
-    return row?.data ?? null
+    const start = this.telemetry ? Date.now() : 0
+    try {
+      this.ensureOpen()
+      const row = await this.db.queryOne<BlobRow>('SELECT data FROM blobs WHERE cid = ?', [cid])
+      const result = row?.data ?? null
+
+      if (this.telemetry) {
+        this.telemetry.reportPerformance('storage.getBlob', Date.now() - start)
+        this.telemetry.reportUsage('storage.read', 1)
+      }
+
+      return result
+    } catch (err) {
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'storage.SQLiteStorageAdapter.getBlob'
+      })
+      throw err
+    }
   }
 
   async setBlob(cid: ContentId, data: Uint8Array): Promise<void> {
-    this.ensureOpen()
-    await this.db.run(
-      `INSERT OR IGNORE INTO blobs (cid, data, size, created_at)
+    const start = this.telemetry ? Date.now() : 0
+    try {
+      this.ensureOpen()
+      await this.db.run(
+        `INSERT OR IGNORE INTO blobs (cid, data, size, created_at)
        VALUES (?, ?, ?, ?)`,
-      [cid, data, data.byteLength, Date.now()]
-    )
+        [cid, data, data.byteLength, Date.now()]
+      )
+
+      if (this.telemetry) {
+        this.telemetry.reportPerformance('storage.setBlob', Date.now() - start)
+        this.telemetry.reportUsage('storage.write', 1)
+      }
+    } catch (err) {
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'storage.SQLiteStorageAdapter.setBlob'
+      })
+      throw err
+    }
   }
 
   async hasBlob(cid: ContentId): Promise<boolean> {
-    this.ensureOpen()
-    const row = await this.db.queryOne<{ found: number; [key: string]: SQLValue }>(
-      'SELECT 1 as found FROM blobs WHERE cid = ? LIMIT 1',
-      [cid]
-    )
-    return row !== null
+    const start = this.telemetry ? Date.now() : 0
+    try {
+      this.ensureOpen()
+      const row = await this.db.queryOne<{ found: number; [key: string]: SQLValue }>(
+        'SELECT 1 as found FROM blobs WHERE cid = ? LIMIT 1',
+        [cid]
+      )
+      const result = row !== null
+
+      if (this.telemetry) {
+        this.telemetry.reportPerformance('storage.hasBlob', Date.now() - start)
+      }
+
+      return result
+    } catch (err) {
+      this.telemetry?.reportCrash(err as Error, {
+        codeNamespace: 'storage.SQLiteStorageAdapter.hasBlob'
+      })
+      throw err
+    }
   }
 
   async deleteBlob(cid: ContentId): Promise<void> {
@@ -81,6 +129,9 @@ export class SQLiteStorageAdapter implements StorageAdapter {
   }
 }
 
-export function createStorageAdapterFromSQLite(sqliteAdapter: SQLiteAdapter): SQLiteStorageAdapter {
-  return new SQLiteStorageAdapter(sqliteAdapter)
+export function createStorageAdapterFromSQLite(
+  sqliteAdapter: SQLiteAdapter,
+  options?: { telemetry?: StorageTelemetry }
+): SQLiteStorageAdapter {
+  return new SQLiteStorageAdapter(sqliteAdapter, options)
 }
