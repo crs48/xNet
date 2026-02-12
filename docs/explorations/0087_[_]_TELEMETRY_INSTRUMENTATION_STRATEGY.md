@@ -119,11 +119,11 @@ High impact, core functionality. These packages power the entire system.
 
 Telemetry as defense mechanism. Security events enable auto-response.
 
-| Package           | Why Important                                     | What to Instrument                                                                                                                                         |
-| ----------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **@xnet/network** | P2P coordination. Bad peers poison the network.   | Connection success/failure rates, peer discovery latency, WebRTC ICE failures, security events (invalid signatures, rate limits), peer score distributions |
-| **@xnet/crypto**  | Unify ad-hoc `CryptoMetrics` with telemetry.      | Sign/verify timing by security level, cache hit rates, worker offload usage, ML-DSA overhead, verification failures                                        |
-| **@xnet/hub**     | Unify Prometheus metrics with telemetry (opt-in). | Query timing, federation health, backup success/failure, FTS5 performance, rate limit rejections                                                           |
+| Package           | Status         | What Instrumented                                                                                                                |
+| ----------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **@xnet/crypto**  | ✅ **DONE**    | Sign/verify timing by security level (L0/L1/L2), cache hits/misses, worker operations via setTelemetry()                         |
+| **@xnet/network** | 🔄 In Progress | Connection success/failure rates, peer discovery latency, WebRTC ICE failures, security events (invalid signatures, rate limits) |
+| **@xnet/hub**     | ⏸️ Pending     | Query timing, federation health, backup success/failure, FTS5 performance, rate limit rejections (optional client telemetry)     |
 
 **Validation gate**: Security dashboard shows actionable metrics. Auto-blocking works. Crypto performance regressions caught.
 
@@ -578,8 +578,8 @@ telemetry.reportCrash(error, {
 
 ### Operational Health
 
-- [x] **Coverage**: 3/18 prioritized packages instrumented (Phase 1: 75% complete, sync added)
-- [x] **Testing**: >80% test coverage for telemetry code paths (550 tests pass in @xnet/sync)
+- [x] **Coverage**: 4/18 prioritized packages instrumented (Phase 1: 75%, Phase 2: started with crypto)
+- [x] **Testing**: >80% test coverage for telemetry code paths (82 crypto tests, 550 sync tests pass)
 - [ ] **Monitoring**: Grafana dashboard for aggregated metrics
 - [ ] **Alerting**: Pagerduty alerts on critical security events
 - [x] **Compliance**: GDPR, CCPA compliant (consent, deletion, export) - telemetry system designed for this
