@@ -51,6 +51,33 @@ import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
 const db = await createExpoSQLiteAdapter({ filename: 'xnet.db' })
 ```
 
+### Telemetry Integration
+
+Storage adapters support optional telemetry for tracking read/write operations and performance:
+
+```typescript
+import { SQLiteStorageAdapter } from '@xnet/storage'
+import { TelemetryCollector, ConsentManager } from '@xnet/telemetry'
+
+const consent = new ConsentManager()
+const telemetry = new TelemetryCollector({ consent })
+
+const storage = new SQLiteStorageAdapter(sqliteDb, {
+  telemetry // <-- Add telemetry collector
+})
+
+// Same for MemoryAdapter
+const memoryStorage = new MemoryAdapter({ telemetry })
+```
+
+When telemetry is enabled, storage adapters automatically report:
+
+- **Performance metrics**: `storage.getBlob`, `storage.setBlob`, `storage.hasBlob`
+- **Usage metrics**: `storage.read`, `storage.write`
+- **Crash reports**: All errors with context
+
+All telemetry respects user consent settings and privacy buckets.
+
 ### Legacy IndexedDB Storage (Deprecated)
 
 ```typescript
