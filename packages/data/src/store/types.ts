@@ -305,6 +305,22 @@ export interface NodeStoreOptions {
 
   /** Optional high-level authorization API attached as `store.auth`. */
   auth?: StoreAuthAPI
+
+  /**
+   * Optional telemetry collector for tracking CRUD operations, errors, and performance.
+   * When provided, NodeStore will report:
+   * - Performance metrics for create/update/delete/list operations
+   * - Usage metrics for operation counts
+   * - Crash reports for errors
+   *
+   * Compatible with @xnet/telemetry TelemetryCollector.
+   */
+  telemetry?: {
+    reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void
+    reportUsage(metricName: string, value: number): void
+    reportCrash(error: Error, context?: { codeNamespace?: string }): void
+    reportSecurityEvent(eventName: string, severity: 'low' | 'medium' | 'high' | 'critical'): void
+  }
 }
 
 /**
