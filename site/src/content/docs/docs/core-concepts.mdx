@@ -133,16 +133,19 @@ This dual strategy means structured fields like `title` or `status` use simple, 
 
 When you create or update a node, xNet:
 
-1. Signs the change with your **Ed25519** private key
+1. Signs the change with a **hybrid signature** (Ed25519 + ML-DSA-65 by default)
 2. Hashes the change with **BLAKE3**
 3. Stores the signed change locally
 4. Syncs the signed change to peers
 
-When a peer receives a change, they **verify the signature** before applying it. This means:
+When a peer receives a change, they **verify the hybrid signature** before applying it. This means:
 
 - You can prove who made every change
 - Tampered data is rejected
 - No server is needed to enforce trust
+- Changes are protected against quantum forgery attacks
+
+The default **Level 1 (Hybrid)** signature carries both an Ed25519 component (64 bytes) and an ML-DSA-65 component (~3.3 KB). Both must verify — if either is invalid, the change is rejected. Level 0 (Ed25519 only) is available for high-frequency paths where the smaller signature size matters more than quantum resistance.
 
 ## Identity is a key pair
 
