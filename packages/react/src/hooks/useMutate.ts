@@ -35,6 +35,7 @@
 import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeState } from '@xnet/data'
 import { useCallback, useState, useRef } from 'react'
 import { useDataBridge } from '../context'
+import { useTelemetryReporter } from '../context/telemetry-context'
 import { flattenNode, type FlatNode } from '../utils/flattenNode'
 
 // =============================================================================
@@ -177,6 +178,7 @@ export interface UseMutateResult {
  */
 export function useMutate(): UseMutateResult {
   const bridge = useDataBridge()
+  const telemetry = useTelemetryReporter()
   const [pendingCount, setPendingCount] = useState(0)
   const pendingRef = useRef(0)
 
@@ -200,12 +202,24 @@ export function useMutate(): UseMutateResult {
       id?: string
     ): Promise<FlatNode<P> | null> => {
       if (!bridge) return null
-      return withPending(async () => {
-        const node = await bridge.create(schema, data, id)
-        return flattenNode<P>(node)
-      })
+      const start = telemetry ? Date.now() : 0
+      try {
+        const result = await withPending(async () => {
+          const node = await bridge.create(schema, data, id)
+          return flattenNode<P>(node)
+        })
+        telemetry?.reportPerformance('react.useMutate.create', Date.now() - start)
+        telemetry?.reportUsage('react.useMutate.create.success', 1)
+        return result
+      } catch (err) {
+        telemetry?.reportUsage('react.useMutate.create.failure', 1)
+        telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
+          codeNamespace: 'react.useMutate.create'
+        })
+        throw err
+      }
     },
-    [bridge, withPending]
+    [bridge, telemetry, withPending]
   )
 
   // Update an existing node (type-safe)
@@ -216,35 +230,73 @@ export function useMutate(): UseMutateResult {
       data: Partial<InferCreateProps<P>>
     ): Promise<FlatNode<P> | null> => {
       if (!bridge) return null
-      return withPending(async () => {
-        const node = await bridge.update(id, data as Record<string, unknown>)
-        return flattenNode<P>(node)
-      })
+      const start = telemetry ? Date.now() : 0
+      try {
+        const result = await withPending(async () => {
+          const node = await bridge.update(id, data as Record<string, unknown>)
+          return flattenNode<P>(node)
+        })
+        telemetry?.reportPerformance('react.useMutate.update', Date.now() - start)
+        telemetry?.reportUsage('react.useMutate.update.success', 1)
+        return result
+      } catch (err) {
+        telemetry?.reportUsage('react.useMutate.update.failure', 1)
+        telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
+          codeNamespace: 'react.useMutate.update',
+          nodeId: id
+        })
+        throw err
+      }
     },
-    [bridge, withPending]
+    [bridge, telemetry, withPending]
   )
 
   // Delete a node
   const remove = useCallback(
     async (id: string): Promise<void> => {
       if (!bridge) return
-      return withPending(async () => {
-        await bridge.delete(id)
-      })
+      const start = telemetry ? Date.now() : 0
+      try {
+        await withPending(async () => {
+          await bridge.delete(id)
+        })
+        telemetry?.reportPerformance('react.useMutate.delete', Date.now() - start)
+        telemetry?.reportUsage('react.useMutate.delete.success', 1)
+      } catch (err) {
+        telemetry?.reportUsage('react.useMutate.delete.failure', 1)
+        telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
+          codeNamespace: 'react.useMutate.delete',
+          nodeId: id
+        })
+        throw err
+      }
     },
-    [bridge, withPending]
+    [bridge, telemetry, withPending]
   )
 
   // Restore a deleted node
   const restore = useCallback(
     async (id: string): Promise<FlatNode<Record<string, PropertyBuilder>> | null> => {
       if (!bridge) return null
-      return withPending(async () => {
-        const node = await bridge.restore(id)
-        return flattenNode<Record<string, PropertyBuilder>>(node)
-      })
+      const start = telemetry ? Date.now() : 0
+      try {
+        const result = await withPending(async () => {
+          const node = await bridge.restore(id)
+          return flattenNode<Record<string, PropertyBuilder>>(node)
+        })
+        telemetry?.reportPerformance('react.useMutate.restore', Date.now() - start)
+        telemetry?.reportUsage('react.useMutate.restore.success', 1)
+        return result
+      } catch (err) {
+        telemetry?.reportUsage('react.useMutate.restore.failure', 1)
+        telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
+          codeNamespace: 'react.useMutate.restore',
+          nodeId: id
+        })
+        throw err
+      }
     },
-    [bridge, withPending]
+    [bridge, telemetry, withPending]
   )
 
   // Execute a transaction
@@ -254,38 +306,55 @@ export function useMutate(): UseMutateResult {
     async (ops: MutateOp[]): Promise<MutateResult | null> => {
       if (!bridge || ops.length === 0) return null
 
-      return withPending(async () => {
-        const results: (NodeState | null)[] = []
+      const start = telemetry ? Date.now() : 0
+      try {
+        const result = await withPending(async () => {
+          const results: (NodeState | null)[] = []
 
-        for (const op of ops) {
-          switch (op.type) {
-            case 'create': {
-              const node = await bridge.create(op.schema, op.data as Record<string, unknown>, op.id)
-              results.push(node)
-              break
-            }
-            case 'update': {
-              const node = await bridge.update(op.id, op.data)
-              results.push(node)
-              break
-            }
-            case 'delete': {
-              await bridge.delete(op.id)
-              results.push(null)
-              break
-            }
-            case 'restore': {
-              const node = await bridge.restore(op.id)
-              results.push(node)
-              break
+          for (const op of ops) {
+            switch (op.type) {
+              case 'create': {
+                const node = await bridge.create(
+                  op.schema,
+                  op.data as Record<string, unknown>,
+                  op.id
+                )
+                results.push(node)
+                break
+              }
+              case 'update': {
+                const node = await bridge.update(op.id, op.data)
+                results.push(node)
+                break
+              }
+              case 'delete': {
+                await bridge.delete(op.id)
+                results.push(null)
+                break
+              }
+              case 'restore': {
+                const node = await bridge.restore(op.id)
+                results.push(node)
+                break
+              }
             }
           }
-        }
 
-        return { results }
-      })
+          return { results }
+        })
+        telemetry?.reportPerformance('react.useMutate.transaction', Date.now() - start)
+        telemetry?.reportUsage('react.useMutate.transaction.success', 1)
+        return result
+      } catch (err) {
+        telemetry?.reportUsage('react.useMutate.transaction.failure', 1)
+        telemetry?.reportCrash(err instanceof Error ? err : new Error(String(err)), {
+          codeNamespace: 'react.useMutate.transaction',
+          opCount: ops.length
+        })
+        throw err
+      }
     },
-    [bridge, withPending]
+    [bridge, telemetry, withPending]
   )
 
   return {
