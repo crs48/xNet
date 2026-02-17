@@ -10,6 +10,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createMemoryStorage } from '../src/storage/memory'
 import { createSQLiteStorage } from '../src/storage/sqlite'
 
+// Skip SQLite tests if native bindings are not available (e.g., wrong Node.js version)
+let sqliteUnavailable = false
+try {
+  const tmpDir = mkdtempSync(join(tmpdir(), 'hub-probe-'))
+  createSQLiteStorage(tmpDir).close()
+  rmSync(tmpDir, { recursive: true, force: true })
+} catch {
+  sqliteUnavailable = true
+}
+
 const createTestRow = (
   id: string,
   databaseId: string,
@@ -29,7 +39,7 @@ const createTestRow = (
 })
 
 describe('Database Row Storage', () => {
-  describe('SQLite Storage', () => {
+  describe.skipIf(sqliteUnavailable)('SQLite Storage', () => {
     let storage: HubStorage
     let tmpDir: string
 

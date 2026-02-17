@@ -6,22 +6,37 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createMemoryStorage } from '../src/storage/memory'
 import { createSQLiteStorage } from '../src/storage/sqlite'
 
+// Detect whether SQLite native bindings are available (may fail on mismatched Node.js versions)
+let sqliteAvailable = false
+try {
+  const tmpDir = mkdtempSync(join(tmpdir(), 'hub-probe-'))
+  createSQLiteStorage(tmpDir).close()
+  rmSync(tmpDir, { recursive: true, force: true })
+  sqliteAvailable = true
+} catch {
+  sqliteAvailable = false
+}
+
 type StorageFactory = {
   name: string
   create: () => { storage: HubStorage; cleanup: () => void }
 }
 
 const storageFactories: StorageFactory[] = [
-  {
-    name: 'SQLite',
-    create: () => {
-      const dir = mkdtempSync(join(tmpdir(), 'hub-test-'))
-      return {
-        storage: createSQLiteStorage(dir),
-        cleanup: () => rmSync(dir, { recursive: true, force: true })
-      }
-    }
-  },
+  ...(sqliteAvailable
+    ? [
+        {
+          name: 'SQLite',
+          create: () => {
+            const dir = mkdtempSync(join(tmpdir(), 'hub-test-'))
+            return {
+              storage: createSQLiteStorage(dir),
+              cleanup: () => rmSync(dir, { recursive: true, force: true })
+            }
+          }
+        }
+      ]
+    : []),
   {
     name: 'Memory',
     create: () => ({ storage: createMemoryStorage(), cleanup: () => {} })
