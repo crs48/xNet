@@ -54,13 +54,14 @@ function defineSchema<P extends Record<string, PropertyBuilder>>(
 
 ## Options
 
-| Field        | Type                              | Required | Description                                                                        |
-| ------------ | --------------------------------- | -------- | ---------------------------------------------------------------------------------- |
-| `name`       | `string`                          | Yes      | Schema name (e.g., `'Task'`). Used in the schema IRI.                              |
-| `namespace`  | `` `xnet://${string}/` ``         | Yes      | Namespace for grouping. Must end with `/`.                                         |
-| `properties` | `Record<string, PropertyBuilder>` | Yes      | Property definitions using builder functions.                                      |
-| `extends`    | `DefinedSchema`                   | No       | Parent schema to inherit properties from.                                          |
-| `document`   | `'yjs' \| 'automerge'`            | No       | CRDT document type. Required for [`useNode`](/docs/hooks/usenode/) rich text. |
+| Field           | Type                              | Required | Description                                                                              |
+| --------------- | --------------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `name`          | `string`                          | Yes      | Schema name (e.g., `'Task'`). Used in the schema IRI.                                    |
+| `namespace`     | `` `xnet://${string}/` ``         | Yes      | Namespace for grouping. Must end with `/`.                                               |
+| `properties`    | `Record<string, PropertyBuilder>` | Yes      | Property definitions using builder functions.                                            |
+| `extends`       | `DefinedSchema`                   | No       | Parent schema to inherit properties from.                                                |
+| `document`      | `'yjs' \| 'automerge'`            | No       | CRDT document type. Required for [`useNode`](/docs/hooks/usenode/) rich text.            |
+| `authorization` | `AuthorizationBlock`              | No       | Roles, actions, and encryption policy. See [Authorization](/docs/guides/authorization/). |
 
 ### Schema IRI
 
@@ -104,6 +105,43 @@ Validation checks:
 - `schemaId` matches the schema
 - `createdBy` starts with `did:key:`
 - Each property's constraints (required, min/max, pattern, etc.)
+
+## Adding authorization
+
+Add an `authorization` block to define who can read, write, delete, and share nodes of this schema:
+
+```ts
+import { defineSchema, text, person, relation } from '@xnet/data'
+import { allow, role } from '@xnet/data/auth'
+
+export const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true }),
+    assignee: person(),
+    project: relation({ target: 'xnet://my-app/Project' as const })
+  },
+  authorization: {
+    roles: {
+      owner: role.creator(),
+      assignee: role.property('assignee'),
+      admin: role.relation('project', 'admin')
+    },
+    actions: {
+      read: allow('owner', 'assignee', 'admin'),
+      write: allow('owner', 'admin'),
+      delete: allow('owner', 'admin'),
+      share: allow('owner', 'admin')
+    },
+    publicProps: ['title'] // these fields are readable without decryption
+  }
+})
+```
+
+Nodes are encrypted with a **per-node content key** and only users in the recipient list can decrypt them. The hub stores encrypted envelopes and filters queries by recipient list without ever decrypting content.
+
+See the [Authorization Guide](/docs/guides/authorization/) for the full model including presets, `useCan`, `useGrants`, delegation, and key recovery.
 
 ## Adding rich text support
 
@@ -173,3 +211,4 @@ In development, `defineSchema` warns if:
 - [Property Types](/docs/schemas/property-types/) — all 16 property builders
 - [Relations](/docs/schemas/relations/) — linking nodes together
 - [Type Inference](/docs/schemas/type-inference/) — how TypeScript types flow
+- [Authorization](/docs/guides/authorization/) — roles, grants, encryption, and key recovery

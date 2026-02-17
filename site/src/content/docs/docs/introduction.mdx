@@ -27,8 +27,8 @@ xNet is a **local-first framework** for React. Your data lives on the user's dev
 
 You interact with xNet through **three hooks**:
 
-| Hook                                       | Purpose                                                |
-| ------------------------------------------ | ------------------------------------------------------ |
+| Hook                                  | Purpose                                                |
+| ------------------------------------- | ------------------------------------------------------ |
 | [`useQuery`](/docs/hooks/usequery/)   | Read data reactively. Filter, sort, paginate.          |
 | [`useMutate`](/docs/hooks/usemutate/) | Create, update, delete with full type safety.          |
 | [`useNode`](/docs/hooks/usenode/)     | Open a single node for collaborative editing with Yjs. |
@@ -39,14 +39,15 @@ That's the entire API surface for most apps. Define a schema, use the hooks, and
 
 ```
 Your React App
-  └── useQuery / useMutate / useNode
-        └── NodeStore (schema-validated, type-safe)
+  └── useQuery / useMutate / useNode / useCan / useGrants
+        └── NodeStore (schema-validated, type-safe, encrypted)
               ├── IndexedDB (browser) / SQLite (desktop)
+              ├── Authorization engine (PolicyEvaluator + GrantStore)
               └── P2P Sync (WebRTC via signaling server)
                     └── Yjs CRDT (rich text) + Lamport LWW (structured data)
 ```
 
-Everything below the hooks is invisible to you. You write React components. xNet handles storage, sync, conflict resolution, and cryptographic signing.
+Everything below the hooks is invisible to you. You write React components. xNet handles storage, sync, conflict resolution, cryptographic signing, and end-to-end encryption.
 
 ## When to use xNet
 
@@ -69,17 +70,17 @@ Everything below the hooks is invisible to you. You write React components. xNet
 
 xNet is a monorepo of focused packages:
 
-| Package          | Purpose                                               |
-| ---------------- | ----------------------------------------------------- |
-| `@xnet/react`    | React hooks and `XNetProvider`                        |
-| `@xnet/data`     | Schema system, NodeStore, 16 property types           |
-| `@xnet/sync`     | Lamport clocks, `Change<T>`, Yjs security             |
-| `@xnet/crypto`   | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption |
-| `@xnet/identity` | DID:key identifiers, UCAN tokens                      |
-| `@xnet/storage`  | IndexedDB adapter                                     |
-| `@xnet/canvas`   | Infinite canvas with spatial indexing                 |
-| `@xnet/editor`   | TipTap rich text editor                               |
-| `@xnet/devtools` | 7 debug panels                                        |
+| Package          | Purpose                                                                |
+| ---------------- | ---------------------------------------------------------------------- |
+| `@xnet/react`    | React hooks: `useQuery`, `useMutate`, `useNode`, `useCan`, `useGrants` |
+| `@xnet/data`     | Schema system, NodeStore, 16 property types, authorization engine      |
+| `@xnet/sync`     | Lamport clocks, `Change<T>`, Yjs security                              |
+| `@xnet/crypto`   | BLAKE3, Ed25519, X25519, XChaCha20-Poly1305                            |
+| `@xnet/identity` | DID:key identifiers, UCAN tokens, key recovery                         |
+| `@xnet/storage`  | IndexedDB adapter                                                      |
+| `@xnet/canvas`   | Infinite canvas with spatial indexing                                  |
+| `@xnet/editor`   | TipTap rich text editor                                                |
+| `@xnet/devtools` | 9 debug panels + AuthZ panel                                           |
 
 For most apps, you only install `@xnet/react` and `@xnet/data`. Everything else is pulled in as needed.
 

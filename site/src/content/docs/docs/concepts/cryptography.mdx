@@ -1,19 +1,20 @@
 ---
 title: 'Cryptography'
 draft: false
-description: 'BLAKE3, Ed25519, and XChaCha20 in xNet.'
+description: 'BLAKE3, Ed25519, XChaCha20, and the encryption-first authorization model in xNet.'
 sidebar:
   order: 5
 ---
 
-## Three primitives
+## Primitives
 
-xNet's cryptographic stack uses three algorithms, each chosen for a specific role:
+xNet's cryptographic stack uses four algorithms, each chosen for a specific role:
 
 | Algorithm          | Purpose                  | Package        |
 | ------------------ | ------------------------ | -------------- |
 | BLAKE3             | Hashing                  | `@xnet/crypto` |
 | Ed25519            | Digital signatures       | `@xnet/crypto` |
+| X25519             | Key exchange             | `@xnet/crypto` |
 | XChaCha20-Poly1305 | Authenticated encryption | `@xnet/crypto` |
 
 All implementations come from the `@noble` library family (`@noble/hashes`, `@noble/curves`, `@noble/ciphers`), which are audited, pure-JavaScript implementations with no native dependencies.
@@ -51,14 +52,24 @@ Ed25519 is an elliptic curve signature scheme used for:
 
 ### Key derivation
 
-Ed25519 keys also serve as the basis for X25519 key exchange. The same key pair (with curve conversion) can be used for both signing and Diffie-Hellman key agreement.
+Ed25519 keys serve dual duty: the same key pair (via birational curve conversion) is used for both signatures and Diffie-Hellman key exchange. An Ed25519 public key on the Edwards curve can be converted to an X25519 public key on the Montgomery curve:
+
+```ts
+import { edwardsToMontgomeryPub, edwardsToMontgomeryPriv } from '@noble/curves/ed25519'
+
+const x25519Pub = edwardsToMontgomeryPub(ed25519Pub) // for key wrapping recipients
+const x25519Priv = edwardsToMontgomeryPriv(ed25519Priv) // for unwrapping received keys
+```
+
+This means any holder of a `did:key:` identifier automatically has an X25519 key derivable from their DID, with no additional key exchange ceremony.
 
 ## XChaCha20-Poly1305
 
 XChaCha20-Poly1305 is an authenticated encryption cipher used for:
 
 - **Key bundle storage** — Encrypting the user's private keys at rest
-- **Private node content** — Encrypting data that should only be readable by specific users
+- **Per-node content encryption** — Every private node is encrypted before leaving the device
+- **Y.Doc state at rest** — Encrypted Yjs document state stored locally
 
 ### Why XChaCha20?
 
@@ -66,39 +77,62 @@ XChaCha20-Poly1305 is an authenticated encryption cipher used for:
 - No timing side-channels (constant-time by design)
 - Poly1305 authentication tag detects any tampering
 
-### Key exchange
+### Key wrapping
 
-For sharing encrypted data between users, xNet uses X25519 Diffie-Hellman key exchange with HKDF-SHA256 key derivation:
+For sharing encrypted data between users, xNet uses X25519 key exchange (birational from Ed25519) with HKDF-SHA256 key derivation:
 
 ```
-Alice's private key + Bob's public key → shared secret
-Bob's private key + Alice's public key → same shared secret
+Alice's X25519 private + Bob's X25519 public → shared secret
+Bob's X25519 private + Alice's X25519 public → same shared secret
 ```
 
-The shared secret is used as the encryption key for XChaCha20-Poly1305.
+The shared secret wraps the per-node content key. Each authorized recipient gets their own wrapped copy — changing the recipient list just means adding/removing wrapped copies, not re-encrypting the data.
+
+## Encryption-first authorization
+
+Authorization in xNet is enforced by encryption, not server-side policy. Every private node has:
+
+- A **per-node content key** (32-byte random key, one per node)
+- An **encrypted envelope** containing the ciphertext, one wrapped key per recipient, and a public metadata header
+
+```
+EncryptedEnvelope {
+  schemaId         // public — for hub indexing
+  createdBy        // public — for routing
+  recipients       // public — list of DIDs who can read
+  wrappedKeys      // one per recipient: encrypt(contentKey, sharedSecret(recipient))
+  ciphertext       // XChaCha20-encrypted node content
+  nonce            // 24 random bytes
+  signature        // Ed25519 signature over all of the above
+}
+```
+
+The hub stores envelopes opaquely and filters queries by recipient list without decrypting. Only a recipient who holds the matching X25519 private key can unwrap the content key and read the node.
 
 ## Where crypto is used in xNet
 
-| Operation            | Hash                     | Signature                  | Encryption                 |
-| -------------------- | ------------------------ | -------------------------- | -------------------------- |
-| Create/update node   | BLAKE3 (change hash)     | Ed25519 (sign change)      | —                          |
-| Rich text edit       | BLAKE3 (update hash)     | Ed25519 (sign envelope)    | —                          |
-| Store Y.Doc state    | BLAKE3 (integrity check) | —                          | —                          |
-| ClientID attestation | BLAKE3 (message hash)    | Ed25519 (sign attestation) | —                          |
-| UCAN token           | —                        | Ed25519 (sign token)       | —                          |
-| Key storage          | —                        | —                          | XChaCha20 (encrypt bundle) |
-| Private content      | BLAKE3 (change hash)     | Ed25519 (sign change)      | XChaCha20 (encrypt data)   |
+| Operation            | Hash                     | Signature                  | Encryption                       |
+| -------------------- | ------------------------ | -------------------------- | -------------------------------- |
+| Create/update node   | BLAKE3 (change hash)     | Ed25519 (sign change)      | XChaCha20 (per-node content key) |
+| Rich text edit       | BLAKE3 (update hash)     | Ed25519 (sign envelope)    | XChaCha20 (Y.Doc at rest)        |
+| Store Y.Doc state    | BLAKE3 (integrity check) | —                          | XChaCha20 (encrypted Yjs state)  |
+| ClientID attestation | BLAKE3 (message hash)    | Ed25519 (sign attestation) | —                                |
+| UCAN token           | —                        | Ed25519 (sign token)       | —                                |
+| Key storage          | —                        | —                          | XChaCha20 (encrypt bundle)       |
+| Grant nodes          | BLAKE3 (change hash)     | Ed25519 (sign grant)       | XChaCha20 (per-node content key) |
+| Key wrapping         | HKDF-SHA256              | —                          | X25519 → XChaCha20 (wrap/unwrap) |
 
 ## Security properties
 
 - **Authenticity** — Every change is signed. You can verify who made it.
 - **Integrity** — Hash chains detect tampering. Altering a change breaks the chain.
-- **Confidentiality** — Private data is encrypted end-to-end. The signaling server never sees plaintext.
+- **Confidentiality** — Private data is encrypted end-to-end. No server ever sees plaintext.
 - **Non-repudiation** — Signatures prove authorship. The author cannot deny making a change.
-- **Forward secrecy** — Per-session X25519 key exchange means compromising one session doesn't compromise others.
+- **Read enforcement** — Cryptographically enforced. Without the content key, decryption fails.
+- **Write enforcement** — Client-side only. All writes are signed and attributable; peer scoring detects abuse.
 
 ## Further reading
 
-- [Identity Model](/docs/concepts/identity-model/) — How keys become identities
-- [Identity & Keys Guide](/docs/guides/identity/) — Practical crypto API usage
+- [Authorization Guide](/docs/guides/authorization/) — Roles, grants, and the encryption-first model
+- [Identity & Keys Guide](/docs/guides/identity/) — Practical crypto API usage, key recovery
 - [Sync Guide](/docs/guides/sync/) — How signatures protect sync
