@@ -122,17 +122,17 @@ Everything below the hooks is invisible to you. You write React components. xNet
 
 xNet is a monorepo of focused packages:
 
-| Package          | Purpose                                                                |
-| ---------------- | ---------------------------------------------------------------------- |
-| `@xnet/react`    | React hooks: `useQuery`, `useMutate`, `useNode`, `useCan`, `useGrants` |
-| `@xnet/data`     | Schema system, NodeStore, 16 property types, authorization engine      |
-| `@xnet/sync`     | Lamport clocks, `Change`, Yjs security                              |
-| `@xnet/crypto`   | BLAKE3, Ed25519, X25519, XChaCha20-Poly1305                            |
-| `@xnet/identity` | DID:key identifiers, UCAN tokens, key recovery                         |
-| `@xnet/storage`  | IndexedDB adapter                                                      |
-| `@xnet/canvas`   | Infinite canvas with spatial indexing                                  |
-| `@xnet/editor`   | TipTap rich text editor                                                |
-| `@xnet/devtools` | 9 debug panels + AuthZ panel                                           |
+| Package          | Purpose                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `@xnet/react`    | React hooks: `useQuery`, `useMutate`, `useNode`, `useCan`, `useGrants`, `useSecurity` |
+| `@xnet/data`     | Schema system, NodeStore, 16 property types, authorization engine                     |
+| `@xnet/sync`     | Lamport clocks, `Change` v3 (hybrid signatures), Yjs security                      |
+| `@xnet/crypto`   | BLAKE3, Ed25519, ML-DSA-65, X25519, ML-KEM-768, XChaCha20-Poly1305                    |
+| `@xnet/identity` | DID:key, HybridKeyBundle, PQ Key Registry, UCAN tokens, key recovery                  |
+| `@xnet/storage`  | IndexedDB adapter                                                                     |
+| `@xnet/canvas`   | Infinite canvas with spatial indexing                                                 |
+| `@xnet/editor`   | TipTap rich text editor                                                               |
+| `@xnet/devtools` | 9 debug panels + AuthZ panel + Security panel                                         |
 
 For most apps, you only install `@xnet/react` and `@xnet/data`. Everything else is pulled in as needed.
 
@@ -451,16 +451,19 @@ This dual strategy means structured fields like `title` or `status` use simple, 
 
 When you create or update a node, xNet:
 
-1. Signs the change with your **Ed25519** private key
+1. Signs the change with a **hybrid signature** (Ed25519 + ML-DSA-65 by default)
 2. Hashes the change with **BLAKE3**
 3. Stores the signed change locally
 4. Syncs the signed change to peers
 
-When a peer receives a change, they **verify the signature** before applying it. This means:
+When a peer receives a change, they **verify the hybrid signature** before applying it. This means:
 
 - You can prove who made every change
 - Tampered data is rejected
 - No server is needed to enforce trust
+- Changes are protected against quantum forgery attacks
+
+The default **Level 1 (Hybrid)** signature carries both an Ed25519 component (64 bytes) and an ML-DSA-65 component (~3.3 KB). Both must verify — if either is invalid, the change is rejected. Level 0 (Ed25519 only) is available for high-frequency paths where the smaller signature size matters more than quantum resistance.
 
 ## Identity is a key pair
 
@@ -2794,7 +2797,9 @@ If the offline queue fills up during an extended offline period, the oldest entr
 **You will learn**
 
 - How to generate Ed25519 key pairs and DID:key identifiers
-- The KeyBundle concept (signing + encryption keys)
+- The HybridKeyBundle (classical + post-quantum keys)
+- The PQ Key Registry: associating ML-DSA keys with DIDs
+- How to use `useSecurity()` to control signature level
 - How to create and verify UCAN authorization tokens
 - Key recovery via seed phrase and multi-device access
 - How identity flows through the stack (provider → hooks → sync)
@@ -2839,30 +2844,34 @@ const publicKey = parseDID('did:key:z6Mk...')
 
 ## Key bundles
 
-Each user has two key pairs bundled together:
+Every xNet identity uses a **HybridKeyBundle** — classical keys (Ed25519 + X25519) bundled with post-quantum keys (ML-DSA-65) to protect against both current and future quantum attacks.
 
-| Key            | Algorithm | Purpose                                |
-| -------------- | --------- | -------------------------------------- |
-| Signing key    | Ed25519   | Sign changes, Yjs updates, UCAN tokens |
-| Encryption key | X25519    | Key exchange, encrypted storage        |
+| Key             | Algorithm | Size (bytes) | Purpose                                |
+| --------------- | --------- | ------------ | -------------------------------------- |
+| `signingKey`    | Ed25519   | 32           | Sign changes, Yjs updates, UCAN tokens |
+| `encryptionKey` | X25519    | 32           | Classical key exchange                 |
+| `pqSigningKey`  | ML-DSA-65 | 4,032        | Post-quantum signatures (Level 1/2)    |
+| `pqPublicKey`   | ML-DSA-65 | 1,952        | PQ verification key (cached)           |
 
-The DID is derived from the signing public key.
+The DID is derived from the Ed25519 public key only — the DID format is unchanged and stays compact.
 
 ```ts
 
-// Random generation
-const bundle = generateKeyBundle()
-// bundle.signingKey    — Ed25519 private key
-// bundle.encryptionKey — X25519 private key
+// Random generation — includes PQ keys by default
+const bundle = generateHybridKeyBundle()
+// bundle.signingKey    — Ed25519 private key (32 bytes)
+// bundle.encryptionKey — X25519 private key (32 bytes)
+// bundle.pqSigningKey  — ML-DSA-65 private key (4,032 bytes)
+// bundle.pqPublicKey   — ML-DSA-65 public key (1,952 bytes)
 // bundle.identity      — { did, publicKey, created }
 
-// Deterministic from a seed (same seed = same identity)
-const bundle2 = deriveKeyBundle(masterSeed)
+// Deterministic from a seed (same seed = same identity on every device)
+const bundle2 = deriveHybridKeyBundle(masterSeed)
 ```
 
 ### Storage
 
-Key bundles are serialized, encrypted with XChaCha20-Poly1305, and stored via `PasskeyStorage`. In production, the encryption key should be derived from WebAuthn credentials.
+Key bundles are serialized, encrypted with XChaCha20-Poly1305, and stored via `PasskeyStorage`. In production, the encryption key is derived from WebAuthn/passkey credentials.
 
 ```ts
 
@@ -2880,6 +2889,60 @@ The Ed25519 signing key can be birationally converted to an X25519 encryption ke
 // Derive the X25519 public key from an Ed25519 public key
 const x25519Pub = edwardsToMontgomeryPub(ed25519PublicKey)
 ```
+
+## PQ Key Registry
+
+The DID:key format stays Ed25519-based (compact, human-readable). To support Level 1/2 verification, the **PQ Key Registry** associates each DID with its ML-DSA public key via a `PQKeyAttestation` — a self-signed proof binding the two keys together.
+
+```ts
+
+// Create an attestation binding your DID to your PQ public key
+const attestation = await createPQKeyAttestation({
+  did: bundle.identity.did,
+  pqPublicKey: bundle.pqPublicKey,
+  signingKey: bundle.signingKey, // Ed25519 signs the attestation
+  pqSigningKey: bundle.pqSigningKey // ML-DSA also signs for cross-attestation
+})
+
+// Store in registry
+const registry = new MemoryPQKeyRegistry()
+await registry.store(attestation)
+
+// Look up during verification
+const pqPub = await registry.lookup(someUserDid)
+```
+
+The hub maintains a public PQ Key Registry for all registered users. When another user encrypts data for you, they look up your ML-DSA public key here to wrap the content key at Level 1/2.
+
+## Security level in React
+
+Use `XNetProvider` to set the default signing level for your app, and `useSecurity()` to inspect or override it per-operation:
+
+```tsx
+
+// Configure default security level
+;
+  
+
+```
+
+```ts
+
+function HighSecurityAction() {
+  const { level, setLevel, canSignAtLevel } = useSecurity()
+
+  return (
+    <button
+      onClick={() => setLevel(2)}       // elevate to PQ-only for this action
+      disabled={!canSignAtLevel(2)}     // false if PQ keys not available
+    >
+      Sign with maximum security
+    </button>
+  )
+}
+```
+
+`useSecurity()` also exposes stats visible in the DevTools Security panel: current level, signature counts by level, and verification cache hit rate.
 
 ## Key recovery
 
@@ -2976,7 +3039,7 @@ const shared = deriveSharedSecret(alice.privateKey, bob.publicKey)
 
 ## UCAN tokens
 
-UCANs (User Controlled Authorization Networks) are self-signed capability tokens for decentralized authorization. They replace traditional API keys or OAuth tokens.
+UCANs (User Controlled Authorization Networks) are self-signed capability tokens for decentralized authorization. They replace traditional API keys or OAuth tokens. UCAN tokens are signed with the hybrid signature at whatever level the signer's `SecurityContext` specifies.
 
 ### Structure
 
@@ -5694,135 +5757,199 @@ The identity system has no concept of "creating an account" or "logging in" to a
 
 ## Cryptography
 
-## Primitives
+## Overview
 
-xNet's cryptographic stack uses four algorithms, each chosen for a specific role:
+xNet uses a **hybrid classical + post-quantum** cryptographic stack, hardened against both current threats and future quantum attacks. NIST finalized the post-quantum standards in August 2024 (FIPS 203/204/205). Since xNet is prerelease software, hybrid security ships as a clean implementation — no migration debt.
 
-| Algorithm          | Purpose                  | Package        |
-| ------------------ | ------------------------ | -------------- |
-| BLAKE3             | Hashing                  | `@xnet/crypto` |
-| Ed25519            | Digital signatures       | `@xnet/crypto` |
-| X25519             | Key exchange             | `@xnet/crypto` |
-| XChaCha20-Poly1305 | Authenticated encryption | `@xnet/crypto` |
+| Algorithm          | Role                     | Standard      | Package               |
+| ------------------ | ------------------------ | ------------- | --------------------- |
+| BLAKE3             | Hashing                  | —             | `@noble/hashes`       |
+| Ed25519            | Classical signing        | RFC 8037      | `@noble/curves`       |
+| ML-DSA-65          | Post-quantum signing     | NIST FIPS 204 | `@noble/post-quantum` |
+| X25519             | Classical key exchange   | RFC 7748      | `@noble/curves`       |
+| ML-KEM-768         | Post-quantum KEM         | NIST FIPS 203 | `@noble/post-quantum` |
+| XChaCha20-Poly1305 | Authenticated encryption | —             | `@noble/ciphers`      |
 
-All implementations come from the `@noble` library family (`@noble/hashes`, `@noble/curves`, `@noble/ciphers`), which are audited, pure-JavaScript implementations with no native dependencies.
+All implementations are from the `@noble` library family — audited, pure TypeScript, no WASM, no native dependencies.
+
+## Three security levels
+
+Every signed operation in xNet carries a `SecurityLevel` field. The three levels cover the full quantum threat spectrum:
+
+| Level | Name             | Algorithms          | Signature size | Threat protection      |
+| ----- | ---------------- | ------------------- | -------------- | ---------------------- |
+| 0     | Fast             | Ed25519 only        | 64 bytes       | Classical attacks      |
+| 1     | Hybrid (default) | Ed25519 + ML-DSA-65 | ~3.4 KB        | Classical + quantum    |
+| 2     | Post-Quantum     | ML-DSA-65 only      | ~3.3 KB        | Quantum (max security) |
+
+**Level 1 is the default.** Both signatures must verify (strict mode) — if either the Ed25519 or the ML-DSA component fails, the signature is rejected. This satisfies the NIST-recommended hybrid approach: if either algorithm is later broken, the other still provides protection.
+
+Level 0 is available for high-frequency, low-latency paths (e.g., per-keystroke Yjs updates) where the quantum threat model is low-risk. Switching the app-wide default is a single constant change.
+
+### Signature structure
+
+A `UnifiedSignature` carries one or both signature components, plus the level tag:
+
+```ts
+interface UnifiedSignature {
+  level: 0 | 1 | 2
+
+  // Present at Level 0 and 1
+  ed25519?: Uint8Array // 64 bytes
+
+  // Present at Level 1 and 2
+  mlDsa?: Uint8Array // ~3,293 bytes
+}
+```
+
+### Signing and verifying
+
+```ts
+
+// Sign at Level 1 (default) — requires both keys
+const signature = hybridSign(message, {
+  ed25519: signingKey,
+  mlDsa: pqSigningKey
+})
+// { level: 1, ed25519: Uint8Array(64), mlDsa: Uint8Array(3293) }
+
+// Verify — returns structured result
+const result = hybridVerify(message, signature, {
+  ed25519: publicKey,
+  mlDsa: pqPublicKey
+})
+// { valid: true, level: 1, details: { ed25519: { verified: true }, mlDsa: { verified: true } } }
+
+// Enforce minimum level
+const result = hybridVerify(message, signature, publicKeys, { minLevel: 1 })
+```
+
+### Threat model
+
+| Threat                    | Level 0    | Level 1   | Level 2   |
+| ------------------------- | ---------- | --------- | --------- |
+| Classical forgery         | Protected  | Protected | Protected |
+| Quantum forgery           | Vulnerable | Protected | Protected |
+| Harvest-now-decrypt-later | Vulnerable | Protected | Protected |
+| Downgrade attack          | N/A        | Blocked   | Blocked   |
+
+At Level 1, both components must be compromised simultaneously to forge a signature — a property no currently known attack achieves.
 
 ## BLAKE3
 
-BLAKE3 is a cryptographic hash function used throughout xNet for content addressing and integrity:
+BLAKE3 is used throughout xNet for content addressing and integrity:
 
 - **Change hashing** — Every `Change` is content-addressed with `cid:blake3:<hex>`
 - **Yjs update signing** — The BLAKE3 hash of the update bytes is what gets signed
 - **Storage integrity** — Persisted Y.Doc state is BLAKE3-hashed to detect corruption
 - **ClientID attestation** — The attestation message is BLAKE3-hashed before signing
 
-### Why BLAKE3?
-
-BLAKE3 is 3-5x faster than SHA-256 on modern hardware. Since xNet hashes every change and every Yjs update, the performance difference adds up. BLAKE3 also produces 256-bit digests suitable for content addressing.
-
-SHA-256 is available as a fallback for interoperability with external systems.
+BLAKE3 is 3–5x faster than SHA-256. SHA-256 is available as a fallback for external system interoperability.
 
 ## Ed25519
 
-Ed25519 is an elliptic curve signature scheme used for:
+Ed25519 is the classical signing algorithm:
 
-- **Change signing** — Every NodeStore mutation is signed by the author
-- **Yjs envelope signing** — Rich text updates are signed before broadcast
-- **UCAN tokens** — Authorization tokens are signed by the issuer
-- **ClientID attestation** — Binds Yjs clientIDs to DIDs
-
-### Why Ed25519?
-
-- Small keys (32 bytes public, 32 bytes private) and signatures (64 bytes)
-- Fast signing and verification
+- Small keys (32-byte public, 32-byte private) and 64-byte signatures
 - Deterministic — same message + key always produces the same signature
 - The DID:key method spec uses Ed25519 as its primary key type
 
-### Key derivation
+### Birational conversion to X25519
 
-Ed25519 keys serve dual duty: the same key pair (via birational curve conversion) is used for both signatures and Diffie-Hellman key exchange. An Ed25519 public key on the Edwards curve can be converted to an X25519 public key on the Montgomery curve:
+Ed25519 keys serve dual duty. The same keypair, via birational curve conversion, yields X25519 keys for Diffie-Hellman key exchange — no additional key material required:
 
 ```ts
 
-const x25519Pub = edwardsToMontgomeryPub(ed25519Pub) // for key wrapping recipients
-const x25519Priv = edwardsToMontgomeryPriv(ed25519Priv) // for unwrapping received keys
+const x25519Pub = edwardsToMontgomeryPub(ed25519Pub) // for key wrapping
+const x25519Priv = edwardsToMontgomeryPriv(ed25519Priv) // for unwrapping
 ```
 
-This means any holder of a `did:key:` identifier automatically has an X25519 key derivable from their DID, with no additional key exchange ceremony.
+Any holder of a `did:key:` can have their X25519 key derived directly from their DID — no out-of-band key exchange.
+
+## ML-DSA-65 (Dilithium3)
+
+ML-DSA-65 is xNet's post-quantum signing algorithm, standardized as NIST FIPS 204 (Module-Lattice Digital Signature Algorithm, formerly Dilithium3):
+
+| Property    | Value                 |
+| ----------- | --------------------- |
+| Public key  | 1,952 bytes           |
+| Private key | 4,032 bytes           |
+| Signature   | 3,293 bytes           |
+| Security    | ~128-bit post-quantum |
+
+### Performance
+
+| Operation | Ed25519 | ML-DSA-65 | Ratio      |
+| --------- | ------- | --------- | ---------- |
+| Sign      | ~0.1ms  | ~2.5ms    | 25× slower |
+| Verify    | ~0.2ms  | ~0.8ms    | 4× slower  |
+
+Level 1 combined: ~2.6ms sign, ~1.0ms verify. Verification caching reduces repeated verifications by 90%+.
+
+## ML-KEM-768 (Kyber768)
+
+ML-KEM-768 is the post-quantum key encapsulation mechanism used for hybrid key exchange in the authorization system, standardized as NIST FIPS 203:
+
+| Property      | Value       |
+| ------------- | ----------- |
+| Public key    | 1,184 bytes |
+| Private key   | 2,400 bytes |
+| Ciphertext    | 1,088 bytes |
+| Shared secret | 32 bytes    |
+
+Used alongside X25519 for hybrid key wrapping: a content key is encapsulated with both X25519 and ML-KEM-768, so a peer must break both to recover it.
 
 ## XChaCha20-Poly1305
 
-XChaCha20-Poly1305 is an authenticated encryption cipher used for:
+XChaCha20-Poly1305 is the authenticated encryption cipher:
 
-- **Key bundle storage** — Encrypting the user's private keys at rest
 - **Per-node content encryption** — Every private node is encrypted before leaving the device
 - **Y.Doc state at rest** — Encrypted Yjs document state stored locally
+- **Key bundle storage** — Encrypting the user's private keys at rest
 
 ### Why XChaCha20?
 
 - 24-byte nonce (vs. 12 for AES-GCM) — safe to use random nonces without collision risk
-- No timing side-channels (constant-time by design)
+- Constant-time by design (no timing side-channels)
 - Poly1305 authentication tag detects any tampering
 
-### Key wrapping
+### Key wrapping (hybrid)
 
-For sharing encrypted data between users, xNet uses X25519 key exchange (birational from Ed25519) with HKDF-SHA256 key derivation:
-
-```
-Alice's X25519 private + Bob's X25519 public → shared secret
-Bob's X25519 private + Alice's X25519 public → same shared secret
-```
-
-The shared secret wraps the per-node content key. Each authorized recipient gets their own wrapped copy — changing the recipient list just means adding/removing wrapped copies, not re-encrypting the data.
-
-## Encryption-first authorization
-
-Authorization in xNet is enforced by encryption, not server-side policy. Every private node has:
-
-- A **per-node content key** (32-byte random key, one per node)
-- An **encrypted envelope** containing the ciphertext, one wrapped key per recipient, and a public metadata header
+Content keys are wrapped with X25519 + ML-KEM-768 in hybrid mode. An authorized recipient must have both classical and post-quantum private keys to unwrap:
 
 ```
-EncryptedEnvelope {
-  schemaId         // public — for hub indexing
-  createdBy        // public — for routing
-  recipients       // public — list of DIDs who can read
-  wrappedKeys      // one per recipient: encrypt(contentKey, sharedSecret(recipient))
-  ciphertext       // XChaCha20-encrypted node content
-  nonce            // 24 random bytes
-  signature        // Ed25519 signature over all of the above
-}
+Alice derives X25519 sharedSecret from her private key + Bob's Ed25519 DID
+Alice encapsulates with ML-KEM-768 → kem_ciphertext + kem_secret
+wrappedKey = XChaCha20(contentKey, hkdf(sharedSecret || kem_secret))
 ```
-
-The hub stores envelopes opaquely and filters queries by recipient list without decrypting. Only a recipient who holds the matching X25519 private key can unwrap the content key and read the node.
 
 ## Where crypto is used in xNet
 
-| Operation            | Hash                     | Signature                  | Encryption                       |
-| -------------------- | ------------------------ | -------------------------- | -------------------------------- |
-| Create/update node   | BLAKE3 (change hash)     | Ed25519 (sign change)      | XChaCha20 (per-node content key) |
-| Rich text edit       | BLAKE3 (update hash)     | Ed25519 (sign envelope)    | XChaCha20 (Y.Doc at rest)        |
-| Store Y.Doc state    | BLAKE3 (integrity check) | —                          | XChaCha20 (encrypted Yjs state)  |
-| ClientID attestation | BLAKE3 (message hash)    | Ed25519 (sign attestation) | —                                |
-| UCAN token           | —                        | Ed25519 (sign token)       | —                                |
-| Key storage          | —                        | —                          | XChaCha20 (encrypt bundle)       |
-| Grant nodes          | BLAKE3 (change hash)     | Ed25519 (sign grant)       | XChaCha20 (per-node content key) |
-| Key wrapping         | HKDF-SHA256              | —                          | X25519 → XChaCha20 (wrap/unwrap) |
+| Operation            | Hash                     | Signature                 | Encryption                       |
+| -------------------- | ------------------------ | ------------------------- | -------------------------------- |
+| Create/update node   | BLAKE3 (change hash)     | hybridSign (Level 1)      | XChaCha20 (per-node content key) |
+| Rich text edit       | BLAKE3 (update hash)     | hybridSign (configurable) | XChaCha20 (Y.Doc at rest)        |
+| Store Y.Doc state    | BLAKE3 (integrity check) | —                         | XChaCha20 (encrypted Yjs state)  |
+| ClientID attestation | BLAKE3 (message hash)    | Ed25519 (Level 0)         | —                                |
+| UCAN token           | —                        | hybridSign (Level 1)      | —                                |
+| Key storage          | —                        | —                         | XChaCha20 (encrypt bundle)       |
+| Grant nodes          | BLAKE3 (change hash)     | hybridSign (Level 1)      | XChaCha20 (per-node content key) |
+| Key wrapping         | HKDF-SHA256              | —                         | X25519 + ML-KEM-768 → XChaCha20  |
 
 ## Security properties
 
 - **Authenticity** — Every change is signed. You can verify who made it.
 - **Integrity** — Hash chains detect tampering. Altering a change breaks the chain.
-- **Confidentiality** — Private data is encrypted end-to-end. No server ever sees plaintext.
+- **Confidentiality** — Private data is encrypted end-to-end. No server sees plaintext.
 - **Non-repudiation** — Signatures prove authorship. The author cannot deny making a change.
-- **Read enforcement** — Cryptographically enforced. Without the content key, decryption fails.
-- **Write enforcement** — Client-side only. All writes are signed and attributable; peer scoring detects abuse.
+- **Quantum resistance** — Level 1 signatures require breaking both Ed25519 and ML-DSA-65 simultaneously.
+- **Harvest-now-decrypt-later protection** — Data encrypted today remains safe against future quantum computers.
 
 ## Further reading
 
-- [Authorization Guide](/docs/guides/authorization/) — Roles, grants, and the encryption-first model
-- [Identity & Keys Guide](/docs/guides/identity/) — Practical crypto API usage, key recovery
-- [Sync Guide](/docs/guides/sync/) — How signatures protect sync
+- [Authorization Guide](/docs/guides/authorization/) — Encryption-first access control, key wrapping
+- [Identity & Keys Guide](/docs/guides/identity/) — HybridKeyBundle, PQ registry, key recovery
+- [Sync Guide](/docs/guides/sync/) — How hybrid signatures protect sync
 
 ---
 

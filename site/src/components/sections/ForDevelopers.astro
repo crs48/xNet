@@ -10,16 +10,45 @@ const num = (s: string) => `<span class="text-orange-400">${s}</span>`
 const cm = (s: string) => `<span class="text-gray-500">${s}</span>`
 
 const threeHooksCode = [
-  `${cm('// 1. useQuery — read data')}`,
-  `${kw('const')} { data: tasks } = ${fn('useQuery')}(TaskSchema, {`,
-  `  where: { status: ${str("'active'")} }`,
+  `${kw('import')} { defineSchema, text, person } ${kw('from')} ${str("'@xnet/data'")}`,
+  `${kw('import')} { allow, role } ${kw('from')} ${str("'@xnet/data/auth'")}`,
+  `${kw('import')} { useIdentity, useQuery, useMutate, useNode } ${kw('from')} ${str("'@xnet/react'")}`,
+  ``,
+  `${cm('// Schema with built-in authorization')}`,
+  `${kw('const')} TaskSchema = ${fn('defineSchema')}({`,
+  `  name: ${str("'Task'")},`,
+  `  namespace: ${str("'xnet://my-app/'")},`,
+  `  properties: {`,
+  `    title: ${fn('text')}({ required: ${num('true')} }),`,
+  `    assignee: ${fn('person')}()`,
+  `  },`,
+  `  authorization: {`,
+  `    roles: {`,
+  `      owner: ${fn('role.creator')}(),`,
+  `      assignee: ${fn('role.property')}(${str("'assignee'")})`,
+  `    },`,
+  `    actions: {`,
+  `      read: ${fn('allow')}(${str("'owner'")}, ${str("'assignee'")}),`,
+  `      write: ${fn('allow')}(${str("'owner'")}),`,
+  `      share: ${fn('allow')}(${str("'owner'")})`,
+  `    }`,
+  `  }`,
   `})`,
   ``,
-  `${cm('// 2. useMutate — write data')}`,
+  `${cm('// 1. useIdentity — current DID and auth state')}`,
+  `${kw('const')} { did, isAuthenticated } = ${fn('useIdentity')}()`,
+  `${kw('if')} (!isAuthenticated) ${kw('return')} ${str('null')}`,
+  ``,
+  `${cm('// 2. useQuery — read data')}`,
+  `${kw('const')} { data: tasks } = ${fn('useQuery')}(TaskSchema, {`,
+  `  where: { assignee: did }`,
+  `})`,
+  ``,
+  `${cm('// 3. useMutate — write data')}`,
   `${kw('const')} { create, update, remove } = ${fn('useMutate')}()`,
   `${fn('create')}(TaskSchema, { title: ${str("'New task'")} })`,
   ``,
-  `${cm('// 3. useNode — real-time collaboration')}`,
+  `${cm('// 4. useNode — real-time collaboration')}`,
   `${kw('const')} { doc, peerCount } = ${fn('useNode')}(PageSchema, id)`,
   `${cm('// Plug doc into TipTap, ProseMirror, etc.')}`,
 ].join('\n')
@@ -134,13 +163,19 @@ const whatYouSkip = [
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
-              <code>{'defineSchema({ ... })'}</code>
+              <code>{'defineSchema({ authorization: { ... } })'}</code>
             </div>
             <div class="flex items-center gap-2 text-emerald-400">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
               <code>useQuery(MySchema)</code>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-400">
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+              </svg>
+              <code>useIdentity()</code>
             </div>
             <div class="mt-4 pt-4 border-t border-indigo-500/10 text-indigo-300 font-medium">
               Done.
