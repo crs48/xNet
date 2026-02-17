@@ -8,7 +8,7 @@ sidebar:
 
 :::note[You will learn]
 
-- How to enable and use the 9 debug panels
+- How to enable and use the debug panels (9 core + AuthZ panel)
 - What each panel shows and how to read it
 - The event bus instrumentation system
 - How to integrate DevTools into your app
@@ -30,7 +30,7 @@ import { XNetDevToolsProvider } from '@xnet/devtools'
 
 **Toggle:** `Ctrl+Shift+D` (or `Cmd+Shift+D` on Mac), or click the floating wrench button.
 
-## The 9 panels
+## The panels
 
 ### Nodes
 
@@ -122,6 +122,16 @@ Full change history and time travel for individual nodes. Seven sub-tabs:
 - **Verification** — Check hash chain integrity. Reports valid/invalid, verified hashes, chain links, forks.
 - **Storage** — Storage metrics, prunable changes, estimated recovery bytes.
 - **Document** — Yjs snapshot timeline. Compare snapshots with size deltas and content diffs.
+
+### AuthZ
+
+Live authorization inspector for the [encryption-first access control system](/docs/guides/authorization/). Five sub-tabs:
+
+- **Playground** — Test `store.auth.can()` interactively. Select a node and action, see the decision with a full explanation trace including role resolution steps.
+- **Grants** — All active grants for the selected node: grantee DID, actions, expiry, and revocation controls. Create new grants directly from this panel.
+- **Timeline** — Chronological log of grant changes — created, revoked, expired — with timestamps and actor DIDs.
+- **Delegation tree** — Visual tree of UCAN delegation chains. Shows the full proof hierarchy with depth indicators and attenuation warnings.
+- **Revocation propagation** — Tracks revocation events across peers: which peers have received and applied a revocation, with timing deltas.
 
 ## Configuration
 

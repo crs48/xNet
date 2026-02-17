@@ -87,6 +87,7 @@ export default defineConfig({
           label: 'Guides',
           collapsed: true,
           items: [
+            { slug: 'docs/guides/authorization' },
             { slug: 'docs/guides/sync' },
             { slug: 'docs/guides/versioning' },
             { slug: 'docs/guides/offline' },

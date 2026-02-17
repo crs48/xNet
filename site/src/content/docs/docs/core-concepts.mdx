@@ -14,6 +14,7 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
 - How you interact with data (the three hooks)
 - How sync and conflict resolution work
 - How identity and signing work
+- How authorization and encryption work
   :::
 
 ## Schemas define your data
@@ -153,6 +154,40 @@ did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
 
 No accounts. No passwords. No auth server. Your key pair is your identity. You can delegate permissions to other keys using **UCAN tokens** (capability-based authorization).
 
+## Authorization is encryption
+
+xNet enforces read access cryptographically. Every private node is encrypted with a **per-node content key**. Only users in the **recipients list** can unwrap the key and read the node — the hub never decrypts anything.
+
+You define access control in the schema itself:
+
+```ts
+const TaskSchema = defineSchema({
+  // ...
+  authorization: {
+    roles: {
+      owner: role.creator(),
+      editor: role.property('editors')
+    },
+    actions: {
+      read: allow('owner', 'editor'),
+      write: allow('owner', 'editor'),
+      share: allow('owner')
+    }
+  }
+})
+```
+
+Then check permissions in components:
+
+```tsx
+const { canWrite, canShare } = useCan(taskId)
+const { grants, grant, revoke } = useGrants(taskId)
+```
+
+Grants are stored as ordinary nodes — they sync, replicate, and inherit the same CRDT conflict resolution as all your data.
+
+See the [Authorization Guide](/docs/guides/authorization/) for the full model including delegation, key recovery, and offline policy.
+
 ## Next steps
 
 <CardGrid>
@@ -175,5 +210,10 @@ No accounts. No passwords. No auth server. Your key pair is your identity. You c
     title="defineSchema"
     description="Full reference for defining schemas."
     href="/docs/schemas/defineschema/"
+  />
+  <LinkCard
+    title="Authorization"
+    description="Encryption-first access control: roles, grants, and key recovery."
+    href="/docs/guides/authorization/"
   />
 </CardGrid>
