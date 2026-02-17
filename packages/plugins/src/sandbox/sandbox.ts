@@ -13,11 +13,22 @@ import { validateScriptAST } from './ast-validator'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+/**
+ * Duck-typed telemetry interface to avoid circular dependencies.
+ */
+export interface TelemetryReporter {
+  reportPerformance(metricName: string, durationMs: number): void
+  reportUsage(metricName: string, count: number): void
+  reportCrash(error: Error, context?: Record<string, unknown>): void
+}
+
 export interface SandboxOptions {
   /** Maximum execution time in milliseconds (default: 1000) */
   timeoutMs?: number
   /** Whether to run AST validation (default: true) */
   validateAST?: boolean
+  /** Optional telemetry reporter */
+  telemetry?: TelemetryReporter
 }
 
 // ─── Error Classes ───────────────────────────────────────────────────────────
@@ -72,12 +83,13 @@ export class ScriptValidationError extends ScriptError {
  * ```
  */
 export class ScriptSandbox {
-  private options: Required<SandboxOptions>
+  private options: Required<Omit<SandboxOptions, 'telemetry'>> & { telemetry?: TelemetryReporter }
 
   constructor(options: SandboxOptions = {}) {
     this.options = {
       timeoutMs: options.timeoutMs ?? 1000,
-      validateAST: options.validateAST ?? true
+      validateAST: options.validateAST ?? true,
+      telemetry: options.telemetry
     }
   }
 
@@ -92,10 +104,13 @@ export class ScriptSandbox {
    * @throws ScriptError for other execution errors
    */
   async execute(code: string, context: ScriptContext): Promise<unknown> {
+    const start = this.options.telemetry ? Date.now() : 0
+
     // 1. Validate AST (if enabled)
     if (this.options.validateAST) {
       const validation = validateScriptAST(code)
       if (!validation.valid) {
+        this.options.telemetry?.reportUsage('plugins.ast_validation_failure', 1)
         throw new ScriptValidationError(validation.errors)
       }
     }
@@ -103,11 +118,23 @@ export class ScriptSandbox {
     // 2. Create isolated function
     const fn = this.createIsolatedFunction(code)
 
-    // 3. Execute with timeout
-    const result = await this.executeWithTimeout(fn, context)
+    try {
+      // 3. Execute with timeout
+      const result = await this.executeWithTimeout(fn, context)
 
-    // 4. Sanitize output
-    return this.sanitizeOutput(result)
+      // 4. Sanitize output
+      const sanitized = this.sanitizeOutput(result)
+
+      this.options.telemetry?.reportPerformance('plugins.execute', Date.now() - start)
+      this.options.telemetry?.reportUsage('plugins.execute', 1)
+
+      return sanitized
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      this.options.telemetry?.reportCrash(error, { codeNamespace: 'plugins.ScriptSandbox.execute' })
+      this.options.telemetry?.reportUsage('plugins.execute_failure', 1)
+      throw err
+    }
   }
 
   /**
@@ -115,10 +142,13 @@ export class ScriptSandbox {
    * Use with caution - no timeout protection in sync mode.
    */
   executeSync(code: string, context: ScriptContext): unknown {
+    const start = this.options.telemetry ? Date.now() : 0
+
     // Validate AST
     if (this.options.validateAST) {
       const validation = validateScriptAST(code)
       if (!validation.valid) {
+        this.options.telemetry?.reportUsage('plugins.ast_validation_failure', 1)
         throw new ScriptValidationError(validation.errors)
       }
     }
@@ -128,8 +158,18 @@ export class ScriptSandbox {
 
     try {
       const result = fn(context)
-      return this.sanitizeOutput(result)
+      const sanitized = this.sanitizeOutput(result)
+
+      this.options.telemetry?.reportPerformance('plugins.execute_sync', Date.now() - start)
+      this.options.telemetry?.reportUsage('plugins.execute_sync', 1)
+
+      return sanitized
     } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      this.options.telemetry?.reportCrash(error, {
+        codeNamespace: 'plugins.ScriptSandbox.executeSync'
+      })
+      this.options.telemetry?.reportUsage('plugins.execute_sync_failure', 1)
       throw new ScriptError('Script execution error', [
         err instanceof Error ? err.message : String(err)
       ])

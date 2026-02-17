@@ -10,7 +10,7 @@
 
 import type { ScriptNode, ScriptOutputType } from '../schemas/script'
 import { createScriptContext, type FlatNode } from './context'
-import { ScriptSandbox, ScriptError } from './sandbox'
+import { ScriptSandbox, ScriptError, type TelemetryReporter } from './sandbox'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -43,6 +43,8 @@ export interface ScriptRunnerOptions {
     timeoutMs?: number
     validateAST?: boolean
   }
+  /** Optional telemetry reporter */
+  telemetry?: TelemetryReporter
 }
 
 export interface ScriptExecutionResult {
@@ -81,10 +83,12 @@ export class ScriptRunner {
   private subscriptions: Array<() => void> = []
   private scriptSubscriptions = new Map<string, () => void>()
   private started = false
+  private telemetry?: TelemetryReporter
 
   constructor(options: ScriptRunnerOptions) {
     this.store = options.store
-    this.sandbox = new ScriptSandbox(options.sandboxOptions)
+    this.telemetry = options.telemetry
+    this.sandbox = new ScriptSandbox({ ...options.sandboxOptions, telemetry: options.telemetry })
   }
 
   /**
@@ -251,7 +255,6 @@ export class ScriptRunner {
    * Execute a script and handle results.
    */
   private async executeScript(script: ScriptNode, targetNode: FlatNode): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const startTime = Date.now()
 
     try {
@@ -274,6 +277,9 @@ export class ScriptRunner {
         // 'value' and 'void' outputs are not persisted automatically
       }
 
+      // Track successful script execution
+      this.telemetry?.reportPerformance('plugins.script_execution', Date.now() - startTime)
+
       // Update script status
       await this.store.update(script.id, {
         lastRun: Date.now(),
@@ -286,6 +292,9 @@ export class ScriptRunner {
           : err instanceof Error
             ? err.message
             : String(err)
+
+      // Track crash recovery event
+      this.telemetry?.reportUsage('plugins.crash_recovery', 1)
 
       // Update script with error
       await this.store.update(script.id, {

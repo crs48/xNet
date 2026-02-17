@@ -13,6 +13,18 @@ import { webSockets } from '@libp2p/websockets'
 import { createLibp2p } from 'libp2p'
 import { DEFAULT_CONFIG } from './types'
 
+// ─── Telemetry Interface ──────────────────────────────────
+
+/**
+ * Optional telemetry reporter interface for network connection operations.
+ * Duck-typed to avoid circular dependency on @xnet/telemetry.
+ */
+interface NodeTelemetry {
+  reportUsage(metricName: string, value: number): void
+  reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void
+  reportCrash(error: Error, context?: Record<string, unknown>): void
+}
+
 /**
  * Options for creating a network node
  */
@@ -20,6 +32,8 @@ export interface CreateNodeOptions {
   did: string
   privateKey: Uint8Array
   config?: Partial<NetworkConfig>
+  /** Optional telemetry reporter for connection metrics */
+  telemetry?: NodeTelemetry
 }
 
 /**
@@ -27,6 +41,7 @@ export interface CreateNodeOptions {
  */
 export async function createNode(options: CreateNodeOptions): Promise<NetworkNode> {
   const config = { ...DEFAULT_CONFIG, ...options.config }
+  const telemetry = options.telemetry
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const services: any = {
@@ -46,6 +61,17 @@ export async function createNode(options: CreateNodeOptions): Promise<NetworkNod
   })
 
   await libp2p.start()
+
+  // Track connection events for telemetry
+  if (telemetry) {
+    libp2p.addEventListener('peer:connect', () => {
+      telemetry.reportUsage('network.connection_success', 1)
+    })
+
+    libp2p.addEventListener('peer:disconnect', () => {
+      telemetry.reportUsage('network.connection_disconnect', 1)
+    })
+  }
 
   return {
     libp2p,
@@ -71,8 +97,28 @@ export function getConnectedPeers(node: NetworkNode): string[] {
 /**
  * Connect to a peer by multiaddr
  */
-export async function connectToPeer(node: NetworkNode, multiaddr: string): Promise<void> {
-  await node.libp2p.dial(multiaddr as unknown as Parameters<typeof node.libp2p.dial>[0])
+export async function connectToPeer(
+  node: NetworkNode,
+  multiaddr: string,
+  telemetry?: NodeTelemetry
+): Promise<void> {
+  const start = telemetry ? Date.now() : 0
+  try {
+    await node.libp2p.dial(multiaddr as unknown as Parameters<typeof node.libp2p.dial>[0])
+    if (telemetry) {
+      telemetry.reportPerformance('network.dial', Date.now() - start, 'network.node.connectToPeer')
+      telemetry.reportUsage('network.dial_success', 1)
+    }
+  } catch (err) {
+    if (telemetry) {
+      telemetry.reportUsage('network.dial_failure', 1)
+      telemetry.reportCrash(err instanceof Error ? err : new Error(String(err)), {
+        codeNamespace: 'network.node.connectToPeer',
+        multiaddr
+      })
+    }
+    throw err
+  }
 }
 
 /**

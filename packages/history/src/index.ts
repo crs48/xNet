@@ -41,6 +41,7 @@ export type {
 
 // ─── Core Engine ─────────────────────────────────────────────
 export { HistoryEngine, createEmptyState, applyChangeToState, inferOperation } from './engine'
+export type { TelemetryReporter as HistoryTelemetryReporter } from './engine'
 
 // ─── Snapshot Cache ──────────────────────────────────────────
 export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'

@@ -14,3 +14,7 @@ export { generateKeyBundle, generateIdentity, createDID, parseDID } from '@xnet/
 export { createSearchIndex, createLocalQueryEngine } from '@xnet/query'
 export { MemoryAdapter } from '@xnet/storage'
 export { hashContent, createContentId, verifyContent } from '@xnet/core'
+
+// Client initialization with telemetry
+export { createClient } from './client'
+export type { XNetClient, CreateClientOptions, SdkTelemetry } from './client'

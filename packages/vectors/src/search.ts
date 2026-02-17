@@ -15,6 +15,15 @@ import {
 } from './hnsw.js'
 
 /**
+ * Duck-typed telemetry interface to avoid circular dependencies.
+ */
+export interface TelemetryReporter {
+  reportPerformance(metricName: string, durationMs: number): void
+  reportUsage(metricName: string, count: number): void
+  reportCrash(error: Error, context?: Record<string, unknown>): void
+}
+
+/**
  * Configuration for semantic search
  */
 export interface SemanticSearchConfig {
@@ -32,6 +41,8 @@ export interface SemanticSearchConfig {
   chunkSize?: number
   /** Overlap between chunks */
   chunkOverlap?: number
+  /** Optional telemetry reporter */
+  telemetry?: TelemetryReporter
 }
 
 /**
@@ -54,12 +65,15 @@ export interface DocumentSearchResult extends SearchResult {
 /**
  * Default configuration
  */
-const DEFAULT_CONFIG: Required<Omit<SemanticSearchConfig, 'modelName' | 'indexConfig'>> = {
+const DEFAULT_CONFIG: Required<
+  Omit<SemanticSearchConfig, 'modelName' | 'indexConfig' | 'telemetry'>
+> & { telemetry?: TelemetryReporter } = {
   useMockModel: false,
   minScore: 0.5,
   maxResults: 20,
   chunkSize: 500,
-  chunkOverlap: 50
+  chunkOverlap: 50,
+  telemetry: undefined
 }
 
 /**
@@ -79,8 +93,8 @@ const DEFAULT_CONFIG: Required<Omit<SemanticSearchConfig, 'modelName' | 'indexCo
 export class SemanticSearch {
   private model: EmbeddingModel | null = null
   private index: VectorIndex | null = null
-  private config: Required<Omit<SemanticSearchConfig, 'modelName' | 'indexConfig'>> &
-    Pick<SemanticSearchConfig, 'modelName' | 'indexConfig'>
+  private config: Required<Omit<SemanticSearchConfig, 'modelName' | 'indexConfig' | 'telemetry'>> &
+    Pick<SemanticSearchConfig, 'modelName' | 'indexConfig'> & { telemetry?: TelemetryReporter }
   private documents: Map<string, IndexedDocument> = new Map()
   private initialized = false
 
@@ -134,6 +148,8 @@ export class SemanticSearch {
   async indexDocument(documentId: string, content: string): Promise<IndexedDocument> {
     this.ensureInitialized()
 
+    const start = this.config.telemetry ? Date.now() : 0
+
     // Remove existing document if present
     this.removeDocument(documentId)
 
@@ -154,6 +170,9 @@ export class SemanticSearch {
       indexedAt: Date.now()
     }
     this.documents.set(documentId, doc)
+
+    this.config.telemetry?.reportPerformance('vectors.index_document', Date.now() - start)
+    this.config.telemetry?.reportUsage('vectors.document_indexed', 1)
 
     return doc
   }
@@ -236,6 +255,7 @@ export class SemanticSearch {
   ): Promise<DocumentSearchResult[]> {
     this.ensureInitialized()
 
+    const start = this.config.telemetry ? Date.now() : 0
     const minScore = options.minScore ?? this.config.minScore
     const maxResults = options.maxResults ?? this.config.maxResults
 
@@ -262,9 +282,14 @@ export class SemanticSearch {
     }
 
     // Sort by score and limit results
-    return Array.from(byDocument.values())
+    const results = Array.from(byDocument.values())
       .sort((a, b) => b.score - a.score)
       .slice(0, maxResults)
+
+    this.config.telemetry?.reportPerformance('vectors.search', Date.now() - start)
+    this.config.telemetry?.reportUsage('vectors.search_results', results.length)
+
+    return results
   }
 
   /**

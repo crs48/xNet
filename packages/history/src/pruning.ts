@@ -11,6 +11,14 @@ import type { VerificationEngine } from './verification'
 import type { NodeChange, NodeStorageAdapter, NodeId, SchemaIRI } from '@xnet/data'
 import { topologicalSort } from '@xnet/sync'
 
+/**
+ * Duck-typed telemetry interface to avoid circular dependencies.
+ */
+export interface TelemetryReporter {
+  reportPerformance(metricName: string, durationMs: number): void
+  reportUsage(metricName: string, count: number): void
+}
+
 export const DEFAULT_POLICY: PruningPolicy = {
   keepRecentChanges: 200,
   minAge: 30 * 24 * 60 * 60 * 1000,
@@ -32,12 +40,17 @@ export interface PrunableStorageAdapter extends NodeStorageAdapter {
 }
 
 export class PruningEngine {
+  private telemetry?: TelemetryReporter
+
   constructor(
     private storage: PrunableStorageAdapter,
     private snapshotCache: SnapshotCache,
     private verification: VerificationEngine,
-    private policy: PruningPolicy = DEFAULT_POLICY
-  ) {}
+    private policy: PruningPolicy = DEFAULT_POLICY,
+    telemetry?: TelemetryReporter
+  ) {
+    this.telemetry = telemetry
+  }
 
   /** Identify which nodes have prunable changes */
   async findCandidates(): Promise<PruneCandidate[]> {
@@ -134,12 +147,17 @@ export class PruningEngine {
 
     options.onProgress?.(1)
 
-    return {
+    const result: PruneResult = {
       nodeId,
       deletedChanges: deleted,
       recoveredBytes: deleted * 512,
       duration: performance.now() - start
     }
+
+    this.telemetry?.reportPerformance('history.pruning', result.duration)
+    this.telemetry?.reportUsage('history.pruned_changes', deleted)
+
+    return result
   }
 
   /** Get storage metrics for a node */
