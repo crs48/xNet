@@ -20,14 +20,29 @@ import type {
 import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
 import { deepEqual } from './utils'
 
+/**
+ * Duck-typed telemetry interface to avoid circular dependencies.
+ */
+export interface TelemetryReporter {
+  reportPerformance(metricName: string, durationMs: number): void
+  reportUsage(metricName: string, count: number): void
+  reportCrash(error: Error, context?: Record<string, unknown>): void
+}
+
 export class HistoryEngine {
+  private telemetry?: TelemetryReporter
+
   constructor(
     private storage: NodeStorageAdapter,
-    private snapshots: SnapshotCache
-  ) {}
+    private snapshots: SnapshotCache,
+    telemetry?: TelemetryReporter
+  ) {
+    this.telemetry = telemetry
+  }
 
   /** Reconstruct a node's state at a specific point in history */
   async materializeAt(nodeId: NodeId, target: HistoryTarget): Promise<HistoricalState> {
+    const start = this.telemetry ? Date.now() : 0
     const allChanges = await this.storage.getChanges(nodeId)
     if (allChanges.length === 0) {
       throw new Error(`No changes found for node ${nodeId}`)
@@ -65,6 +80,8 @@ export class HistoryEngine {
         await this.snapshots.save(nodeId, targetIndex, sorted[targetIndex].hash, state)
       }
     }
+
+    this.telemetry?.reportPerformance('history.materialize', Date.now() - start)
 
     const targetChange = sorted[targetIndex]
     return {

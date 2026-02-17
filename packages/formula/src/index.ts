@@ -17,10 +17,21 @@
 
 import type { ASTNode } from './ast.js'
 import type { EvaluatorContext } from './evaluator.js'
-import { Evaluator } from './evaluator.js'
+import { Evaluator, EvaluationError } from './evaluator.js'
 import { functions } from './functions/index.js'
 import { Lexer } from './lexer.js'
 import { Parser, ParseError } from './parser.js'
+
+// ─── Telemetry Interface ─────────────────────────────────────────────────────
+
+/**
+ * Duck-typed telemetry interface to avoid circular dependencies.
+ */
+export interface TelemetryReporter {
+  reportPerformance(metricName: string, durationMs: number): void
+  reportUsage(metricName: string, count: number): void
+  reportCrash(error: Error, context?: Record<string, unknown>): void
+}
 
 // ============================================================================
 // Main API
@@ -230,6 +241,156 @@ function extractPropsFromNode(node: ASTNode, props: Set<string>): void {
       props.add(node.name)
       break
   }
+}
+
+// ============================================================================
+// FormulaEngine - Telemetry-instrumented formula evaluation
+// ============================================================================
+
+/**
+ * FormulaEngine options
+ */
+export interface FormulaEngineOptions {
+  /** Optional telemetry reporter */
+  telemetry?: TelemetryReporter
+  /** Enable parse result caching (default: true) */
+  enableCache?: boolean
+  /** Maximum cache size (default: 100) */
+  maxCacheSize?: number
+}
+
+/**
+ * FormulaEngine - Instrumented formula evaluation with caching.
+ *
+ * Wraps the core formula parsing and evaluation with:
+ * - Parse time tracking
+ * - Evaluation time tracking
+ * - Cache hit/miss tracking
+ * - Error reporting
+ *
+ * @example
+ * ```typescript
+ * const engine = new FormulaEngine({ telemetry: myTelemetry })
+ *
+ * const result = engine.evaluate('price * quantity', {
+ *   props: { price: 100, quantity: 5 }
+ * })
+ * // result: 500
+ * ```
+ */
+export class FormulaEngine {
+  private telemetry?: TelemetryReporter
+  private cache: Map<string, ASTNode>
+  private enableCache: boolean
+  private maxCacheSize: number
+
+  constructor(options: FormulaEngineOptions = {}) {
+    this.telemetry = options.telemetry
+    this.enableCache = options.enableCache ?? true
+    this.maxCacheSize = options.maxCacheSize ?? 100
+    this.cache = new Map()
+  }
+
+  /**
+   * Parse a formula expression (with caching).
+   */
+  parse(expression: string): ASTNode {
+    if (this.enableCache && this.cache.has(expression)) {
+      this.telemetry?.reportUsage('formula.cache_hit', 1)
+      return this.cache.get(expression)!
+    }
+
+    this.telemetry?.reportUsage('formula.cache_miss', 1)
+
+    const parseStart = this.telemetry ? Date.now() : 0
+    try {
+      const ast = parseFormula(expression)
+
+      if (this.enableCache) {
+        // Evict oldest entry if at max
+        if (this.cache.size >= this.maxCacheSize) {
+          const firstKey = this.cache.keys().next().value
+          if (firstKey !== undefined) this.cache.delete(firstKey)
+        }
+        this.cache.set(expression, ast)
+      }
+
+      this.telemetry?.reportPerformance('formula.parse', Date.now() - parseStart)
+      return ast
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      this.telemetry?.reportCrash(error, { codeNamespace: 'formula.FormulaEngine.parse' })
+      throw err
+    }
+  }
+
+  /**
+   * Evaluate a formula expression.
+   */
+  evaluate(expression: string, context: EvaluatorContext = { props: {} }): unknown {
+    const ast = this.parse(expression)
+    return this.evaluateAST(ast, context)
+  }
+
+  /**
+   * Evaluate a pre-parsed AST.
+   */
+  evaluateAST(ast: ASTNode, context: EvaluatorContext = { props: {} }): unknown {
+    const evalStart = this.telemetry ? Date.now() : 0
+    try {
+      const evaluator = new Evaluator(context, functions)
+      const result = evaluator.evaluate(ast)
+
+      this.telemetry?.reportPerformance('formula.eval', Date.now() - evalStart)
+
+      return result
+    } catch (err) {
+      if (err instanceof EvaluationError) {
+        this.telemetry?.reportUsage('formula.eval_error', 1)
+      }
+      throw err
+    }
+  }
+
+  /**
+   * Validate a formula expression.
+   */
+  validate(expression: string): ValidationResult {
+    try {
+      this.parse(expression)
+      return { valid: true }
+    } catch (e) {
+      if (e instanceof ParseError) {
+        return { valid: false, error: e.message, position: e.position }
+      }
+      return { valid: false, error: (e as Error).message }
+    }
+  }
+
+  /**
+   * Get cache statistics.
+   */
+  getCacheStats(): { size: number; maxSize: number; enabled: boolean } {
+    return {
+      size: this.cache.size,
+      maxSize: this.maxCacheSize,
+      enabled: this.enableCache
+    }
+  }
+
+  /**
+   * Clear the parse cache.
+   */
+  clearCache(): void {
+    this.cache.clear()
+  }
+}
+
+/**
+ * Create a FormulaEngine with optional telemetry.
+ */
+export function createFormulaEngine(options?: FormulaEngineOptions): FormulaEngine {
+  return new FormulaEngine(options)
 }
 
 // ============================================================================

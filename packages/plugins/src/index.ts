@@ -99,6 +99,7 @@ export type {
   ValidationResult,
   // Sandbox types
   SandboxOptions,
+  TelemetryReporter,
   // Runner types
   ScriptStore,
   ScriptNodeChangeEvent,

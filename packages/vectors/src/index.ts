@@ -36,7 +36,12 @@ export type { VectorIndexConfig, SearchResult, MetricType } from './hnsw.js'
 // Semantic search
 export { SemanticSearch, createSemanticSearch } from './search.js'
 
-export type { SemanticSearchConfig, IndexedDocument, DocumentSearchResult } from './search.js'
+export type {
+  SemanticSearchConfig,
+  IndexedDocument,
+  DocumentSearchResult,
+  TelemetryReporter as VectorsTelemetryReporter
+} from './search.js'
 
 // Hybrid search
 export { HybridSearch, SimpleKeywordSearch, createHybridSearch } from './hybrid.js'

@@ -26,7 +26,7 @@ export {
   executeScript,
   validateScript
 } from './sandbox'
-export type { SandboxOptions } from './sandbox'
+export type { SandboxOptions, TelemetryReporter } from './sandbox'
 
 // Runner
 export { ScriptRunner } from './runner'

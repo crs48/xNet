@@ -9,6 +9,14 @@ import type { UndoEntry, UndoManagerOptions } from './types'
 import type { DID } from '@xnet/core'
 import type { NodeChange, NodeState, NodeId, TransactionOperation, NodeStore } from '@xnet/data'
 
+/**
+ * Duck-typed telemetry interface to avoid circular dependencies.
+ */
+export interface TelemetryReporter {
+  reportPerformance(metricName: string, durationMs: number): void
+  reportUsage(metricName: string, count: number): void
+}
+
 export class UndoManager {
   private undoStacks = new Map<NodeId, UndoEntry[]>()
   private redoStacks = new Map<NodeId, UndoEntry[]>()
@@ -19,13 +27,16 @@ export class UndoManager {
   private _isUndoRedoing = false
   /** Cache of node state before each change, for capturing previousValues */
   private preChangeState = new Map<NodeId, Record<string, unknown>>()
+  private telemetry?: TelemetryReporter
 
   constructor(
     private store: NodeStore,
     localDID: DID,
-    options?: Partial<UndoManagerOptions>
+    options?: Partial<UndoManagerOptions>,
+    telemetry?: TelemetryReporter
   ) {
     this.localDID = localDID
+    this.telemetry = telemetry
     this.options = {
       maxStackSize: options?.maxStackSize ?? 100,
       localOnly: options?.localOnly ?? true,
@@ -62,6 +73,7 @@ export class UndoManager {
     if (!stack?.length) return false
 
     const entry = stack.pop()!
+    const start = this.telemetry ? Date.now() : 0
 
     this._isUndoRedoing = true
     try {
@@ -78,6 +90,9 @@ export class UndoManager {
       this._isUndoRedoing = false
     }
 
+    this.telemetry?.reportPerformance('history.undo', Date.now() - start)
+    this.telemetry?.reportUsage('history.undo', 1)
+
     const redoStack = this.getOrCreateStack(this.redoStacks, nodeId)
     redoStack.push(entry)
 
@@ -90,6 +105,7 @@ export class UndoManager {
     if (!stack?.length) return false
 
     const entry = stack.pop()!
+    const start = this.telemetry ? Date.now() : 0
 
     this._isUndoRedoing = true
     try {
@@ -105,6 +121,9 @@ export class UndoManager {
     } finally {
       this._isUndoRedoing = false
     }
+
+    this.telemetry?.reportPerformance('history.redo', Date.now() - start)
+    this.telemetry?.reportUsage('history.redo', 1)
 
     const undoStack = this.getOrCreateStack(this.undoStacks, nodeId)
     undoStack.push(entry)
