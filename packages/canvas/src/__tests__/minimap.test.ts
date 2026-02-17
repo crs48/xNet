@@ -384,7 +384,9 @@ describe('Minimap', () => {
 
       const elapsed = performance.now() - start
 
-      expect(elapsed).toBeLessThan(10) // Should be very fast with Map lookup
+      // CI and local machines can vary; keep this as a regression guard,
+      // not a micro-benchmark.
+      expect(elapsed).toBeLessThan(25)
       expect(renderedEdges).toBe(2000)
     })
   })

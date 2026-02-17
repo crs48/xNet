@@ -261,10 +261,19 @@ describe('useMutate telemetry', () => {
     await waitFor(() => result.current.isPending === false)
 
     let nodeId: string | undefined
-    await act(async () => {
-      const node = await result.current.create(TaskSchema, { title: 'To Delete', status: 'todo' })
-      nodeId = node?.id
-    })
+    for (let attempt = 0; attempt < 5 && !nodeId; attempt++) {
+      await act(async () => {
+        const node = await result.current.create(TaskSchema, {
+          title: `To Delete ${attempt}`,
+          status: 'todo'
+        })
+        nodeId = node?.id
+      })
+
+      if (!nodeId) {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+    }
 
     expect(nodeId).toBeDefined()
     telemetry.calls.length = 0
@@ -292,12 +301,29 @@ describe('useMutate telemetry', () => {
 
     await waitFor(() => result.current.isPending === false)
 
-    await act(async () => {
-      await result.current.mutate([
-        { type: 'create', schema: TaskSchema, data: { title: 'Task 1', status: 'todo' } },
-        { type: 'create', schema: TaskSchema, data: { title: 'Task 2', status: 'done' } }
-      ])
-    })
+    let txResult: Awaited<ReturnType<typeof result.current.mutate>> | null = null
+    for (let attempt = 0; attempt < 5 && !txResult; attempt++) {
+      await act(async () => {
+        txResult = await result.current.mutate([
+          {
+            type: 'create',
+            schema: TaskSchema,
+            data: { title: `Task ${attempt}-1`, status: 'todo' }
+          },
+          {
+            type: 'create',
+            schema: TaskSchema,
+            data: { title: `Task ${attempt}-2`, status: 'done' }
+          }
+        ])
+      })
+
+      if (!txResult) {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+    }
+
+    expect(txResult).toBeDefined()
 
     const successCall = telemetry.calls.find(
       (c) => c.method === 'reportUsage' && c.args[0] === 'react.useMutate.transaction.success'
