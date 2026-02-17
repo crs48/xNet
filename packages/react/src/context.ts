@@ -25,6 +25,7 @@ import React, {
   useState
 } from 'react'
 import { SecurityProvider } from './context/security-context'
+import { TelemetryContext, type TelemetryReporter } from './context/telemetry-context'
 import { PluginRegistryContext } from './hooks/usePlugins'
 import { AutoBackup } from './hub/auto-backup'
 import { uploadBackup } from './hub/backup'
@@ -145,6 +146,29 @@ export interface XNetConfig {
    * ```
    */
   keyBundle?: HybridKeyBundle
+  /**
+   * Optional telemetry reporter for hook instrumentation.
+   *
+   * When provided, useQuery and useMutate hooks will report:
+   * - Query timing (first-load latency)
+   * - Cache hit/miss rates
+   * - Mutation success/failure rates
+   * - Subscription churn (mount/unmount frequency)
+   *
+   * Uses a duck-typed interface to avoid circular dependencies with @xnet/telemetry.
+   *
+   * @example
+   * ```tsx
+   * import { TelemetryCollector, ConsentManager } from '@xnet/telemetry'
+   * const consent = new ConsentManager()
+   * const telemetry = new TelemetryCollector({ consent })
+   *
+   * <XNetProvider config={{ telemetry, ... }}>
+   *   <App />
+   * </XNetProvider>
+   * ```
+   */
+  telemetry?: TelemetryReporter
 }
 
 /**
@@ -652,6 +676,11 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   // Wrap with DataBridgeContext (Phase 0: MainThreadBridge)
   if (dataBridge) {
     content = React.createElement(DataBridgeContext.Provider, { value: dataBridge }, content)
+  }
+
+  // Wrap with TelemetryContext if telemetry is configured
+  if (config.telemetry) {
+    content = React.createElement(TelemetryContext.Provider, { value: config.telemetry }, content)
   }
 
   // Wrap with SecurityProvider for multi-level crypto support

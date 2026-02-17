@@ -562,3 +562,13 @@ export {
   type QueryTrackerLike,
   type YDocRegistryLike
 } from './instrumentation'
+
+// =============================================================================
+// Telemetry
+// =============================================================================
+
+export {
+  TelemetryContext,
+  useTelemetryReporter,
+  type TelemetryReporter
+} from './context/telemetry-context'

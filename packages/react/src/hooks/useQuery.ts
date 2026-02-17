@@ -32,6 +32,7 @@ import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/dat
 import type { QueryOptions } from '@xnet/data-bridge'
 import { useSyncExternalStore, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useDataBridge } from '../context'
+import { useTelemetryReporter } from '../context/telemetry-context'
 import { useInstrumentation } from '../instrumentation'
 import { flattenNode, flattenNodes, type FlatNode } from '../utils/flattenNode'
 
@@ -155,7 +156,10 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 ): QueryListResult<P> | QuerySingleResult<P> {
   const bridge = useDataBridge()
   const instrumentation = useInstrumentation()
+  const telemetry = useTelemetryReporter()
   const schemaId = schema._schemaId
+  // Track query start time for first-load timing
+  const queryStartRef = useRef<number>(Date.now())
 
   // Determine query mode
   const isSingleQuery = typeof idOrFilter === 'string'
@@ -294,6 +298,30 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     const count = isSingleQuery ? (data ? 1 : 0) : Array.isArray(data) ? data.length : 0
     instrumentation.queryTracker.recordUpdate(queryIdRef.current, count, 0)
   }, [data, instrumentation, isSingleQuery, loading])
+
+  // ─── Telemetry: Subscription churn (mount/unmount tracking) ───────────────
+  useEffect(() => {
+    if (!telemetry) return
+    telemetry.reportUsage('react.useQuery', 1)
+    return () => {
+      telemetry.reportUsage('react.useQuery.unmount', 1)
+    }
+  }, [telemetry]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Telemetry: Query timing (first-load latency) ─────────────────────────
+  const hasReportedTimingRef = useRef(false)
+  useEffect(() => {
+    if (!telemetry || loading || hasReportedTimingRef.current) return
+    hasReportedTimingRef.current = true
+    const elapsed = Date.now() - queryStartRef.current
+    telemetry.reportPerformance('react.useQuery', elapsed)
+    // Cache hit: data immediately available (< 5ms means it was cached)
+    if (elapsed < 5) {
+      telemetry.reportUsage('react.useQuery.cache_hit', 1)
+    } else {
+      telemetry.reportUsage('react.useQuery.cache_miss', 1)
+    }
+  }, [loading, telemetry])
 
   return {
     data,
