@@ -9,7 +9,9 @@ sidebar:
 :::note[You will learn]
 
 - How to generate Ed25519 key pairs and DID:key identifiers
-- The KeyBundle concept (signing + encryption keys)
+- The HybridKeyBundle (classical + post-quantum keys)
+- The PQ Key Registry: associating ML-DSA keys with DIDs
+- How to use `useSecurity()` to control signature level
 - How to create and verify UCAN authorization tokens
 - Key recovery via seed phrase and multi-device access
 - How identity flows through the stack (provider → hooks → sync)
@@ -56,31 +58,35 @@ const publicKey = parseDID('did:key:z6Mk...')
 
 ## Key bundles
 
-Each user has two key pairs bundled together:
+Every xNet identity uses a **HybridKeyBundle** — classical keys (Ed25519 + X25519) bundled with post-quantum keys (ML-DSA-65) to protect against both current and future quantum attacks.
 
-| Key            | Algorithm | Purpose                                |
-| -------------- | --------- | -------------------------------------- |
-| Signing key    | Ed25519   | Sign changes, Yjs updates, UCAN tokens |
-| Encryption key | X25519    | Key exchange, encrypted storage        |
+| Key             | Algorithm | Size (bytes) | Purpose                                |
+| --------------- | --------- | ------------ | -------------------------------------- |
+| `signingKey`    | Ed25519   | 32           | Sign changes, Yjs updates, UCAN tokens |
+| `encryptionKey` | X25519    | 32           | Classical key exchange                 |
+| `pqSigningKey`  | ML-DSA-65 | 4,032        | Post-quantum signatures (Level 1/2)    |
+| `pqPublicKey`   | ML-DSA-65 | 1,952        | PQ verification key (cached)           |
 
-The DID is derived from the signing public key.
+The DID is derived from the Ed25519 public key only — the DID format is unchanged and stays compact.
 
 ```ts
-import { generateKeyBundle, deriveKeyBundle } from '@xnet/identity'
+import { generateHybridKeyBundle, deriveHybridKeyBundle } from '@xnet/identity'
 
-// Random generation
-const bundle = generateKeyBundle()
-// bundle.signingKey    — Ed25519 private key
-// bundle.encryptionKey — X25519 private key
+// Random generation — includes PQ keys by default
+const bundle = generateHybridKeyBundle()
+// bundle.signingKey    — Ed25519 private key (32 bytes)
+// bundle.encryptionKey — X25519 private key (32 bytes)
+// bundle.pqSigningKey  — ML-DSA-65 private key (4,032 bytes)
+// bundle.pqPublicKey   — ML-DSA-65 public key (1,952 bytes)
 // bundle.identity      — { did, publicKey, created }
 
-// Deterministic from a seed (same seed = same identity)
-const bundle2 = deriveKeyBundle(masterSeed)
+// Deterministic from a seed (same seed = same identity on every device)
+const bundle2 = deriveHybridKeyBundle(masterSeed)
 ```
 
 ### Storage
 
-Key bundles are serialized, encrypted with XChaCha20-Poly1305, and stored via `PasskeyStorage`. In production, the encryption key should be derived from WebAuthn credentials.
+Key bundles are serialized, encrypted with XChaCha20-Poly1305, and stored via `PasskeyStorage`. In production, the encryption key is derived from WebAuthn/passkey credentials.
 
 ```ts
 import { BrowserPasskeyStorage } from '@xnet/identity'
@@ -100,6 +106,74 @@ import { edwardsToMontgomeryPub } from '@noble/curves/ed25519'
 // Derive the X25519 public key from an Ed25519 public key
 const x25519Pub = edwardsToMontgomeryPub(ed25519PublicKey)
 ```
+
+## PQ Key Registry
+
+The DID:key format stays Ed25519-based (compact, human-readable). To support Level 1/2 verification, the **PQ Key Registry** associates each DID with its ML-DSA public key via a `PQKeyAttestation` — a self-signed proof binding the two keys together.
+
+```ts
+import { MemoryPQKeyRegistry, createPQKeyAttestation } from '@xnet/identity'
+
+// Create an attestation binding your DID to your PQ public key
+const attestation = await createPQKeyAttestation({
+  did: bundle.identity.did,
+  pqPublicKey: bundle.pqPublicKey,
+  signingKey: bundle.signingKey, // Ed25519 signs the attestation
+  pqSigningKey: bundle.pqSigningKey // ML-DSA also signs for cross-attestation
+})
+
+// Store in registry
+const registry = new MemoryPQKeyRegistry()
+await registry.store(attestation)
+
+// Look up during verification
+const pqPub = await registry.lookup(someUserDid)
+```
+
+The hub maintains a public PQ Key Registry for all registered users. When another user encrypts data for you, they look up your ML-DSA public key here to wrap the content key at Level 1/2.
+
+## Security level in React
+
+Use `XNetProvider` to set the default signing level for your app, and `useSecurity()` to inspect or override it per-operation:
+
+```tsx
+import { XNetProvider } from '@xnet/react'
+
+// Configure default security level
+;<XNetProvider
+  config={{
+    authorDID: identity.did,
+    signingKey: bundle.signingKey,
+    pqSigningKey: bundle.pqSigningKey,
+    security: {
+      level: 1, // 0=Fast, 1=Hybrid(default), 2=PQ-Only
+      minVerificationLevel: 1, // reject signatures below this level
+      verificationPolicy: 'strict' // both Ed25519 AND ML-DSA must verify
+    }
+  }}
+>
+  <App />
+</XNetProvider>
+```
+
+```ts
+import { useSecurity } from '@xnet/react'
+
+function HighSecurityAction() {
+  const { level, setLevel, canSignAtLevel } = useSecurity()
+
+  return (
+    <button
+      onClick={() => setLevel(2)}       // elevate to PQ-only for this action
+      disabled={!canSignAtLevel(2)}     // false if PQ keys not available
+    >
+      Sign with maximum security
+    </button>
+  )
+}
+```
+
+`useSecurity()` also exposes stats visible in the DevTools Security panel: current level, signature counts by level, and verification cache hit rate.
 
 ## Key recovery
 
@@ -203,7 +277,7 @@ const shared = deriveSharedSecret(alice.privateKey, bob.publicKey)
 
 ## UCAN tokens
 
-UCANs (User Controlled Authorization Networks) are self-signed capability tokens for decentralized authorization. They replace traditional API keys or OAuth tokens.
+UCANs (User Controlled Authorization Networks) are self-signed capability tokens for decentralized authorization. They replace traditional API keys or OAuth tokens. UCAN tokens are signed with the hybrid signature at whatever level the signer's `SecurityContext` specifies.
 
 ### Structure
 

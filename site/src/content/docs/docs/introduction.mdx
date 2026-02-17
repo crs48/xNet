@@ -70,17 +70,17 @@ Everything below the hooks is invisible to you. You write React components. xNet
 
 xNet is a monorepo of focused packages:
 
-| Package          | Purpose                                                                |
-| ---------------- | ---------------------------------------------------------------------- |
-| `@xnet/react`    | React hooks: `useQuery`, `useMutate`, `useNode`, `useCan`, `useGrants` |
-| `@xnet/data`     | Schema system, NodeStore, 16 property types, authorization engine      |
-| `@xnet/sync`     | Lamport clocks, `Change<T>`, Yjs security                              |
-| `@xnet/crypto`   | BLAKE3, Ed25519, X25519, XChaCha20-Poly1305                            |
-| `@xnet/identity` | DID:key identifiers, UCAN tokens, key recovery                         |
-| `@xnet/storage`  | IndexedDB adapter                                                      |
-| `@xnet/canvas`   | Infinite canvas with spatial indexing                                  |
-| `@xnet/editor`   | TipTap rich text editor                                                |
-| `@xnet/devtools` | 9 debug panels + AuthZ panel                                           |
+| Package          | Purpose                                                                               |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `@xnet/react`    | React hooks: `useQuery`, `useMutate`, `useNode`, `useCan`, `useGrants`, `useSecurity` |
+| `@xnet/data`     | Schema system, NodeStore, 16 property types, authorization engine                     |
+| `@xnet/sync`     | Lamport clocks, `Change<T>` v3 (hybrid signatures), Yjs security                      |
+| `@xnet/crypto`   | BLAKE3, Ed25519, ML-DSA-65, X25519, ML-KEM-768, XChaCha20-Poly1305                    |
+| `@xnet/identity` | DID:key, HybridKeyBundle, PQ Key Registry, UCAN tokens, key recovery                  |
+| `@xnet/storage`  | IndexedDB adapter                                                                     |
+| `@xnet/canvas`   | Infinite canvas with spatial indexing                                                 |
+| `@xnet/editor`   | TipTap rich text editor                                                               |
+| `@xnet/devtools` | 9 debug panels + AuthZ panel + Security panel                                         |
 
 For most apps, you only install `@xnet/react` and `@xnet/data`. Everything else is pulled in as needed.
 
