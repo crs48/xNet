@@ -53,6 +53,7 @@ Before reading this documentation, understand that xNet works differently:
   - Code Style
   - Testing Guide
 - Understanding xNet (For AI Assistants)
+  - Authorization
   - Version Compatibility
 
 ---
@@ -78,8 +79,8 @@ xNet is a **local-first framework** for React. Your data lives on the user's dev
 
 You interact with xNet through **three hooks**:
 
-| Hook                                       | Purpose                                                |
-| ------------------------------------------ | ------------------------------------------------------ |
+| Hook                                  | Purpose                                                |
+| ------------------------------------- | ------------------------------------------------------ |
 | [`useQuery`](/docs/hooks/usequery/)   | Read data reactively. Filter, sort, paginate.          |
 | [`useMutate`](/docs/hooks/usemutate/) | Create, update, delete with full type safety.          |
 | [`useNode`](/docs/hooks/usenode/)     | Open a single node for collaborative editing with Yjs. |
@@ -90,14 +91,15 @@ That's the entire API surface for most apps. Define a schema, use the hooks, and
 
 ```
 Your React App
-  └── useQuery / useMutate / useNode
-        └── NodeStore (schema-validated, type-safe)
+  └── useQuery / useMutate / useNode / useCan / useGrants
+        └── NodeStore (schema-validated, type-safe, encrypted)
               ├── IndexedDB (browser) / SQLite (desktop)
+              ├── Authorization engine (PolicyEvaluator + GrantStore)
               └── P2P Sync (WebRTC via signaling server)
                     └── Yjs CRDT (rich text) + Lamport LWW (structured data)
 ```
 
-Everything below the hooks is invisible to you. You write React components. xNet handles storage, sync, conflict resolution, and cryptographic signing.
+Everything below the hooks is invisible to you. You write React components. xNet handles storage, sync, conflict resolution, cryptographic signing, and end-to-end encryption.
 
 ## When to use xNet
 
@@ -120,17 +122,17 @@ Everything below the hooks is invisible to you. You write React components. xNet
 
 xNet is a monorepo of focused packages:
 
-| Package          | Purpose                                               |
-| ---------------- | ----------------------------------------------------- |
-| `@xnet/react`    | React hooks and `XNetProvider`                        |
-| `@xnet/data`     | Schema system, NodeStore, 16 property types           |
-| `@xnet/sync`     | Lamport clocks, `Change`, Yjs security             |
-| `@xnet/crypto`   | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption |
-| `@xnet/identity` | DID:key identifiers, UCAN tokens                      |
-| `@xnet/storage`  | IndexedDB adapter                                     |
-| `@xnet/canvas`   | Infinite canvas with spatial indexing                 |
-| `@xnet/editor`   | TipTap rich text editor                               |
-| `@xnet/devtools` | 7 debug panels                                        |
+| Package          | Purpose                                                                |
+| ---------------- | ---------------------------------------------------------------------- |
+| `@xnet/react`    | React hooks: `useQuery`, `useMutate`, `useNode`, `useCan`, `useGrants` |
+| `@xnet/data`     | Schema system, NodeStore, 16 property types, authorization engine      |
+| `@xnet/sync`     | Lamport clocks, `Change`, Yjs security                              |
+| `@xnet/crypto`   | BLAKE3, Ed25519, X25519, XChaCha20-Poly1305                            |
+| `@xnet/identity` | DID:key identifiers, UCAN tokens, key recovery                         |
+| `@xnet/storage`  | IndexedDB adapter                                                      |
+| `@xnet/canvas`   | Infinite canvas with spatial indexing                                  |
+| `@xnet/editor`   | TipTap rich text editor                                                |
+| `@xnet/devtools` | 9 debug panels + AuthZ panel                                           |
 
 For most apps, you only install `@xnet/react` and `@xnet/data`. Everything else is pulled in as needed.
 
@@ -331,6 +333,7 @@ Without writing a single line of backend code, you got:
 - How you interact with data (the three hooks)
 - How sync and conflict resolution work
 - How identity and signing work
+- How authorization and encryption work
   
 
 ## Schemas define your data
@@ -468,6 +471,40 @@ did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK
 ```
 
 No accounts. No passwords. No auth server. Your key pair is your identity. You can delegate permissions to other keys using **UCAN tokens** (capability-based authorization).
+
+## Authorization is encryption
+
+xNet enforces read access cryptographically. Every private node is encrypted with a **per-node content key**. Only users in the **recipients list** can unwrap the key and read the node — the hub never decrypts anything.
+
+You define access control in the schema itself:
+
+```ts
+const TaskSchema = defineSchema({
+  // ...
+  authorization: {
+    roles: {
+      owner: role.creator(),
+      editor: role.property('editors')
+    },
+    actions: {
+      read: allow('owner', 'editor'),
+      write: allow('owner', 'editor'),
+      share: allow('owner')
+    }
+  }
+})
+```
+
+Then check permissions in components:
+
+```tsx
+const { canWrite, canShare } = useCan(taskId)
+const { grants, grant, revoke } = useGrants(taskId)
+```
+
+Grants are stored as ordinary nodes — they sync, replicate, and inherit the same CRDT conflict resolution as all your data.
+
+See the [Authorization Guide](/docs/guides/authorization/) for the full model including delegation, key recovery, and offline policy.
 
 ## Next steps
 
@@ -1644,13 +1681,14 @@ function defineSchema>(
 
 ## Options
 
-| Field        | Type                              | Required | Description                                                                        |
-| ------------ | --------------------------------- | -------- | ---------------------------------------------------------------------------------- |
-| `name`       | `string`                          | Yes      | Schema name (e.g., `'Task'`). Used in the schema IRI.                              |
-| `namespace`  | `` `xnet://${string}/` ``         | Yes      | Namespace for grouping. Must end with `/`.                                         |
-| `properties` | `Record<string, PropertyBuilder>` | Yes      | Property definitions using builder functions.                                      |
-| `extends`    | `DefinedSchema`                   | No       | Parent schema to inherit properties from.                                          |
-| `document`   | `'yjs' \| 'automerge'`            | No       | CRDT document type. Required for [`useNode`](/docs/hooks/usenode/) rich text. |
+| Field           | Type                              | Required | Description                                                                              |
+| --------------- | --------------------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `name`          | `string`                          | Yes      | Schema name (e.g., `'Task'`). Used in the schema IRI.                                    |
+| `namespace`     | `` `xnet://${string}/` ``         | Yes      | Namespace for grouping. Must end with `/`.                                               |
+| `properties`    | `Record<string, PropertyBuilder>` | Yes      | Property definitions using builder functions.                                            |
+| `extends`       | `DefinedSchema`                   | No       | Parent schema to inherit properties from.                                                |
+| `document`      | `'yjs' \| 'automerge'`            | No       | CRDT document type. Required for [`useNode`](/docs/hooks/usenode/) rich text.            |
+| `authorization` | `AuthorizationBlock`              | No       | Roles, actions, and encryption policy. See [Authorization](/docs/guides/authorization/). |
 
 ### Schema IRI
 
@@ -1694,6 +1732,41 @@ Validation checks:
 - `schemaId` matches the schema
 - `createdBy` starts with `did:key:`
 - Each property's constraints (required, min/max, pattern, etc.)
+
+## Adding authorization
+
+Add an `authorization` block to define who can read, write, delete, and share nodes of this schema:
+
+```ts
+
+export const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true }),
+    assignee: person(),
+    project: relation({ target: 'xnet://my-app/Project' as const })
+  },
+  authorization: {
+    roles: {
+      owner: role.creator(),
+      assignee: role.property('assignee'),
+      admin: role.relation('project', 'admin')
+    },
+    actions: {
+      read: allow('owner', 'assignee', 'admin'),
+      write: allow('owner', 'admin'),
+      delete: allow('owner', 'admin'),
+      share: allow('owner', 'admin')
+    },
+    publicProps: ['title'] // these fields are readable without decryption
+  }
+})
+```
+
+Nodes are encrypted with a **per-node content key** and only users in the recipient list can decrypt them. The hub stores encrypted envelopes and filters queries by recipient list without ever decrypting content.
+
+See the [Authorization Guide](/docs/guides/authorization/) for the full model including presets, `useCan`, `useGrants`, delegation, and key recovery.
 
 ## Adding rich text support
 
@@ -1763,6 +1836,7 @@ In development, `defineSchema` warns if:
 - [Property Types](/docs/schemas/property-types/) — all 16 property builders
 - [Relations](/docs/schemas/relations/) — linking nodes together
 - [Type Inference](/docs/schemas/type-inference/) — how TypeScript types flow
+- [Authorization](/docs/guides/authorization/) — roles, grants, encryption, and key recovery
 
 ---
 
@@ -2722,6 +2796,7 @@ If the offline queue fills up during an extended offline period, the oldest entr
 - How to generate Ed25519 key pairs and DID:key identifiers
 - The KeyBundle concept (signing + encryption keys)
 - How to create and verify UCAN authorization tokens
+- Key recovery via seed phrase and multi-device access
 - How identity flows through the stack (provider → hooks → sync)
   
 
@@ -2795,6 +2870,67 @@ const storage = new BrowserPasskeyStorage()
 const storedKey = await storage.store(bundle, credentialId)
 const recovered = await storage.retrieve(storedKey, credentialId)
 ```
+
+### X25519 from Ed25519
+
+The Ed25519 signing key can be birationally converted to an X25519 encryption key, so a single DID:key embeds both capabilities. xNet uses this conversion throughout the authorization system — the hub and other users can derive your X25519 public key directly from your DID, with no additional key exchange ceremony:
+
+```ts
+
+// Derive the X25519 public key from an Ed25519 public key
+const x25519Pub = edwardsToMontgomeryPub(ed25519PublicKey)
+```
+
+## Key recovery
+
+### Seed phrase
+
+Your identity can be derived deterministically from a BIP-39 seed phrase. Back up the seed phrase and you can always restore your identity — and regain access to all your encrypted data — on any device:
+
+```ts
+
+// Generate a new identity with a recoverable seed
+const { mnemonic, bundle } = deriveSeedPhrase()
+// mnemonic: "correct horse battery staple ..."
+
+// Recover on a new device — produces the same DID and key pair
+const recoveredBundle = recoverFromSeedPhrase(mnemonic)
+```
+
+The seed phrase generates the Ed25519 signing key, and the X25519 encryption key is derived from it via birational conversion — not independently. This ensures the DID, signing key, and encryption key are always consistent.
+
+### Social recovery
+
+As a fallback when the seed phrase is unavailable, xNet supports Shamir's Secret Sharing. Split the seed across trusted contacts (e.g., 3-of-5 threshold) so any quorum can reconstruct your identity:
+
+```ts
+
+const shares = splitSeed(mnemonic, { threshold: 3, total: 5 })
+// Distribute shares to trusted contacts
+
+const recovered = reconstructSeed(anyThreeShares) // any 3 of 5 work
+```
+
+### Encrypted hub backup
+
+With opt-in hub backup, your key bundle is stored encrypted on a hub, unlocked by a passphrase or WebAuthn credential. The hub never sees the plaintext key:
+
+```ts
+
+const backup = new HubKeyBackup(hubUrl)
+await backup.store(bundle, { passphrase: 'my-secret-passphrase' })
+const restored = await backup.retrieve({ passphrase: 'my-secret-passphrase' })
+```
+
+## Multi-device access
+
+When you sign in on a second device:
+
+1. The new device generates a device-specific key pair
+2. It derives the same primary key from your seed phrase
+3. Your primary key wraps content keys for each device
+
+All devices share the same DID — collaborators don't need to know which device you're on.
 
 ## Cryptographic primitives
 
@@ -2944,7 +3080,12 @@ function Profile() {
 }
 ```
 
-### How identity flows through the stack
+## Related
+
+- [Authorization](/docs/guides/authorization/) — Roles, grants, and encryption-first access control
+- [Cryptography](/docs/concepts/cryptography/) — Ed25519, X25519, and the encrypted envelope model
+
+## How identity flows through the stack
 
 ```mermaid
 flowchart TD
@@ -4425,7 +4566,7 @@ Railway → VPS/Fly.io is just a volume export + upload. Fly.io → Railway is t
 
 **You will learn**
 
-- How to enable and use the 9 debug panels
+- How to enable and use the debug panels (9 core + AuthZ panel)
 - What each panel shows and how to read it
 - The event bus instrumentation system
 - How to integrate DevTools into your app
@@ -4445,7 +4586,7 @@ Wrap your app with `XNetDevToolsProvider`. In production builds, it tree-shakes 
 
 **Toggle:** `Ctrl+Shift+D` (or `Cmd+Shift+D` on Mac), or click the floating wrench button.
 
-## The 9 panels
+## The panels
 
 ### Nodes
 
@@ -4537,6 +4678,16 @@ Full change history and time travel for individual nodes. Seven sub-tabs:
 - **Verification** — Check hash chain integrity. Reports valid/invalid, verified hashes, chain links, forks.
 - **Storage** — Storage metrics, prunable changes, estimated recovery bytes.
 - **Document** — Yjs snapshot timeline. Compare snapshots with size deltas and content diffs.
+
+### AuthZ
+
+Live authorization inspector for the [encryption-first access control system](/docs/guides/authorization/). Five sub-tabs:
+
+- **Playground** — Test `store.auth.can()` interactively. Select a node and action, see the decision with a full explanation trace including role resolution steps.
+- **Grants** — All active grants for the selected node: grantee DID, actions, expiry, and revocation controls. Create new grants directly from this panel.
+- **Timeline** — Chronological log of grant changes — created, revoked, expired — with timestamps and actor DIDs.
+- **Delegation tree** — Visual tree of UCAN delegation chains. Shows the full proof hierarchy with depth indicators and attenuation warnings.
+- **Revocation propagation** — Tracks revocation events across peers: which peers have received and applied a revocation, with timing deltas.
 
 ## Configuration
 
@@ -5543,14 +5694,15 @@ The identity system has no concept of "creating an account" or "logging in" to a
 
 ## Cryptography
 
-## Three primitives
+## Primitives
 
-xNet's cryptographic stack uses three algorithms, each chosen for a specific role:
+xNet's cryptographic stack uses four algorithms, each chosen for a specific role:
 
 | Algorithm          | Purpose                  | Package        |
 | ------------------ | ------------------------ | -------------- |
 | BLAKE3             | Hashing                  | `@xnet/crypto` |
 | Ed25519            | Digital signatures       | `@xnet/crypto` |
+| X25519             | Key exchange             | `@xnet/crypto` |
 | XChaCha20-Poly1305 | Authenticated encryption | `@xnet/crypto` |
 
 All implementations come from the `@noble` library family (`@noble/hashes`, `@noble/curves`, `@noble/ciphers`), which are audited, pure-JavaScript implementations with no native dependencies.
@@ -5588,14 +5740,23 @@ Ed25519 is an elliptic curve signature scheme used for:
 
 ### Key derivation
 
-Ed25519 keys also serve as the basis for X25519 key exchange. The same key pair (with curve conversion) can be used for both signing and Diffie-Hellman key agreement.
+Ed25519 keys serve dual duty: the same key pair (via birational curve conversion) is used for both signatures and Diffie-Hellman key exchange. An Ed25519 public key on the Edwards curve can be converted to an X25519 public key on the Montgomery curve:
+
+```ts
+
+const x25519Pub = edwardsToMontgomeryPub(ed25519Pub) // for key wrapping recipients
+const x25519Priv = edwardsToMontgomeryPriv(ed25519Priv) // for unwrapping received keys
+```
+
+This means any holder of a `did:key:` identifier automatically has an X25519 key derivable from their DID, with no additional key exchange ceremony.
 
 ## XChaCha20-Poly1305
 
 XChaCha20-Poly1305 is an authenticated encryption cipher used for:
 
 - **Key bundle storage** — Encrypting the user's private keys at rest
-- **Private node content** — Encrypting data that should only be readable by specific users
+- **Per-node content encryption** — Every private node is encrypted before leaving the device
+- **Y.Doc state at rest** — Encrypted Yjs document state stored locally
 
 ### Why XChaCha20?
 
@@ -5603,41 +5764,64 @@ XChaCha20-Poly1305 is an authenticated encryption cipher used for:
 - No timing side-channels (constant-time by design)
 - Poly1305 authentication tag detects any tampering
 
-### Key exchange
+### Key wrapping
 
-For sharing encrypted data between users, xNet uses X25519 Diffie-Hellman key exchange with HKDF-SHA256 key derivation:
+For sharing encrypted data between users, xNet uses X25519 key exchange (birational from Ed25519) with HKDF-SHA256 key derivation:
 
 ```
-Alice's private key + Bob's public key → shared secret
-Bob's private key + Alice's public key → same shared secret
+Alice's X25519 private + Bob's X25519 public → shared secret
+Bob's X25519 private + Alice's X25519 public → same shared secret
 ```
 
-The shared secret is used as the encryption key for XChaCha20-Poly1305.
+The shared secret wraps the per-node content key. Each authorized recipient gets their own wrapped copy — changing the recipient list just means adding/removing wrapped copies, not re-encrypting the data.
+
+## Encryption-first authorization
+
+Authorization in xNet is enforced by encryption, not server-side policy. Every private node has:
+
+- A **per-node content key** (32-byte random key, one per node)
+- An **encrypted envelope** containing the ciphertext, one wrapped key per recipient, and a public metadata header
+
+```
+EncryptedEnvelope {
+  schemaId         // public — for hub indexing
+  createdBy        // public — for routing
+  recipients       // public — list of DIDs who can read
+  wrappedKeys      // one per recipient: encrypt(contentKey, sharedSecret(recipient))
+  ciphertext       // XChaCha20-encrypted node content
+  nonce            // 24 random bytes
+  signature        // Ed25519 signature over all of the above
+}
+```
+
+The hub stores envelopes opaquely and filters queries by recipient list without decrypting. Only a recipient who holds the matching X25519 private key can unwrap the content key and read the node.
 
 ## Where crypto is used in xNet
 
-| Operation            | Hash                     | Signature                  | Encryption                 |
-| -------------------- | ------------------------ | -------------------------- | -------------------------- |
-| Create/update node   | BLAKE3 (change hash)     | Ed25519 (sign change)      | —                          |
-| Rich text edit       | BLAKE3 (update hash)     | Ed25519 (sign envelope)    | —                          |
-| Store Y.Doc state    | BLAKE3 (integrity check) | —                          | —                          |
-| ClientID attestation | BLAKE3 (message hash)    | Ed25519 (sign attestation) | —                          |
-| UCAN token           | —                        | Ed25519 (sign token)       | —                          |
-| Key storage          | —                        | —                          | XChaCha20 (encrypt bundle) |
-| Private content      | BLAKE3 (change hash)     | Ed25519 (sign change)      | XChaCha20 (encrypt data)   |
+| Operation            | Hash                     | Signature                  | Encryption                       |
+| -------------------- | ------------------------ | -------------------------- | -------------------------------- |
+| Create/update node   | BLAKE3 (change hash)     | Ed25519 (sign change)      | XChaCha20 (per-node content key) |
+| Rich text edit       | BLAKE3 (update hash)     | Ed25519 (sign envelope)    | XChaCha20 (Y.Doc at rest)        |
+| Store Y.Doc state    | BLAKE3 (integrity check) | —                          | XChaCha20 (encrypted Yjs state)  |
+| ClientID attestation | BLAKE3 (message hash)    | Ed25519 (sign attestation) | —                                |
+| UCAN token           | —                        | Ed25519 (sign token)       | —                                |
+| Key storage          | —                        | —                          | XChaCha20 (encrypt bundle)       |
+| Grant nodes          | BLAKE3 (change hash)     | Ed25519 (sign grant)       | XChaCha20 (per-node content key) |
+| Key wrapping         | HKDF-SHA256              | —                          | X25519 → XChaCha20 (wrap/unwrap) |
 
 ## Security properties
 
 - **Authenticity** — Every change is signed. You can verify who made it.
 - **Integrity** — Hash chains detect tampering. Altering a change breaks the chain.
-- **Confidentiality** — Private data is encrypted end-to-end. The signaling server never sees plaintext.
+- **Confidentiality** — Private data is encrypted end-to-end. No server ever sees plaintext.
 - **Non-repudiation** — Signatures prove authorship. The author cannot deny making a change.
-- **Forward secrecy** — Per-session X25519 key exchange means compromising one session doesn't compromise others.
+- **Read enforcement** — Cryptographically enforced. Without the content key, decryption fails.
+- **Write enforcement** — Client-side only. All writes are signed and attributable; peer scoring detects abuse.
 
 ## Further reading
 
-- [Identity Model](/docs/concepts/identity-model/) — How keys become identities
-- [Identity & Keys Guide](/docs/guides/identity/) — Practical crypto API usage
+- [Authorization Guide](/docs/guides/authorization/) — Roles, grants, and the encryption-first model
+- [Identity & Keys Guide](/docs/guides/identity/) — Practical crypto API usage, key recovery
 - [Sync Guide](/docs/guides/sync/) — How signatures protect sync
 
 ---
@@ -6850,6 +7034,395 @@ When helping with xNet:
 5. **Always use schemas** — They're the source of truth
 
 The paradigm shift: **data is local, sync is automatic, identity is cryptographic**.
+
+---
+
+## Authorization
+
+**You will learn**
+
+- The core insight: encryption IS authorization
+- How to define roles and actions in your schema
+- How to grant, revoke, and delegate access
+- How to check permissions with `useCan` and `useGrants`
+- How key recovery and multi-device access work
+- The trust model and its security tradeoffs
+  
+
+## The core insight
+
+In a decentralized system, the only meaningful access control is **the ability to decrypt**:
+
+```
+Can you decrypt it?       → You can read it.
+In the recipients list?  → The hub will serve it to you.
+Schema says you can write? → The client will let you sign a change.
+```
+
+Roles, relations, and UCAN delegation are all machinery for deciding **who gets the content key**. Once a user has the key, cryptography enforces their access — no server policy engine required.
+
+## Defining authorization in a schema
+
+Add an `authorization` block to any schema to define who can do what:
+
+```ts
+
+export const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true }),
+    assignee: person(),
+    project: relation({ target: 'xnet://my-app/Project' as const }),
+    editors: person({ multiple: true })
+  },
+  authorization: {
+    roles: {
+      owner: role.creator(), // whoever created the node
+      assignee: role.property('assignee'), // person() property value
+      editor: role.property('editors'), // person({ multiple: true }) value
+      admin: role.relation('project', 'admin'), // role from a related node
+      viewer: role.relation('project', 'viewer') // role from a related node
+    },
+    actions: {
+      read: allow('viewer', 'editor', 'admin', 'owner', 'assignee'),
+      write: allow('editor', 'admin', 'owner'),
+      delete: allow('admin', 'owner'),
+      share: allow('admin', 'owner')
+    },
+    publicProps: ['title'] // properties readable without decryption
+  }
+})
+```
+
+### Role types
+
+| Builder                          | Resolves to                                  |
+| -------------------------------- | -------------------------------------------- |
+| `role.creator()`                 | The DID that created the node                |
+| `role.property('field')`         | The DID(s) in a `person()` property          |
+| `role.relation('field', 'role')` | Anyone who has that role on the related node |
+
+### Actions
+
+| Action   | Covers                                          |
+| -------- | ----------------------------------------------- |
+| `read`   | `store.get`, `useQuery`, hub queries            |
+| `write`  | `store.create`, `store.update`, `store.restore` |
+| `delete` | `store.delete`                                  |
+| `share`  | `store.auth.grant`, `store.auth.revoke`         |
+| `admin`  | Hub operational controls                        |
+
+Explicit `deny()` always wins over `allow()`:
+
+```ts
+actions: {
+  read: allow('viewer').deny('blocked'),  // 'blocked' role can never read
+}
+```
+
+### Public nodes
+
+Set `publicProps` to expose specific fields without encryption, or use `PUBLIC` to make the entire node readable by anyone:
+
+```ts
+authorization: {
+  // ...roles and actions...
+  publicProps: ['title', 'status'],  // these fields are unencrypted
+}
+```
+
+For fully public nodes (no access control), use the built-in preset:
+
+```ts
+
+export const ArticleSchema = defineSchema({
+  // ...
+  authorization: presets.public
+})
+```
+
+### Permission presets
+
+```ts
+
+// Full owner control — only creator can do anything
+authorization: presets.ownerOnly
+
+// Owner + share — owner shares explicit read/write with others via grants
+authorization: presets.ownerWithShare
+
+// Collaborative — creator is owner, any member of a 'workspace' relation can read/write
+authorization: presets.collaborative({ relation: 'workspace' })
+
+// Fully public — all content is unencrypted and anyone can read
+authorization: presets.public
+```
+
+## Checking permissions
+
+### `useCan` hook
+
+```tsx
+
+function TaskCard({ taskId }: { taskId: string }) {
+  const { canRead, canWrite, canDelete, canShare, loading } = useCan(taskId)
+
+  if (loading) return null
+
+  return (
+    <div>
+      
+      {canWrite && }
+      {canDelete && }
+      {canShare && }
+    </div>
+  )
+}
+```
+
+`useCan` is reactive — it re-evaluates when grants change or when you switch users.
+
+### `store.auth.can()`
+
+```ts
+const decision = await store.auth.can({ action: 'write', nodeId: taskId })
+// { allowed: true, reason: 'role:owner', cached: false }
+
+const decision = await store.auth.can({ action: 'delete', nodeId: taskId })
+// { allowed: false, reason: 'no matching role or grant' }
+```
+
+### Explaining a decision
+
+For debugging or AI-assisted introspection, use `explain()`:
+
+```ts
+const trace = await store.auth.explain({ action: 'write', nodeId: taskId })
+// {
+//   allowed: true,
+//   subject: 'did:key:z6Mk...',
+//   action: 'write',
+//   nodeId: 'task_abc',
+//   roles: ['owner'],
+//   grants: [],
+//   policyTrace: [
+//     { rule: 'allow(editor, admin, owner)', matched: 'owner' }
+//   ]
+// }
+```
+
+## Granting and revoking access
+
+### `useGrants` hook
+
+```tsx
+
+function ShareDialog({ taskId }: { taskId: string }) {
+  const { grants, grant, revoke, loading } = useGrants(taskId)
+
+  return (
+    <div>
+      {grants.map((g) => (
+        <div key={g.id}>
+          {g.grantee} — {g.actions.join(', ')}
+          <button onClick={() => revoke(g.id)}>Revoke</button>
+        </div>
+      ))}
+      <button onClick={() => grant({ to: 'did:key:...', actions: ['read'] })}>Add person</button>
+    </div>
+  )
+}
+```
+
+### `store.auth` API
+
+```ts
+// Grant access with optional expiry
+await store.auth.grant({
+  to: bobDid,
+  actions: ['read', 'write'],
+  resource: taskId,
+  expiresIn: '7d' // or expiresAt: timestamp
+})
+
+// Revoke a grant (last-admin protection prevents locking yourself out)
+await store.auth.revoke({ grantId })
+
+// List all grants for a node
+const grants = await store.auth.listGrants({ nodeId: taskId })
+```
+
+Grants are stored as signed nodes in the NodeStore — they sync, replicate, and benefit from the same CRDT conflict resolution as all other data.
+
+### Delegation (UCAN chains)
+
+Any user with the `share` action can delegate their access to another user via UCAN proof chains. Delegation is **attenuated** — you can only delegate up to (not beyond) your own permissions:
+
+```ts
+// Alice (owner) grants Bob write access
+await store.auth.grant({ to: bob, actions: ['write'], resource: docId })
+
+// Bob can delegate read access to Carol (subset of Bob's write)
+await store.auth.grant({
+  to: carol,
+  actions: ['read'],
+  resource: docId
+  // Bob's grant to Alice is automatically included as proof
+})
+```
+
+Delegation chains are capped at depth 4 (`maxProofDepth = 4`). Revoking a parent grant cascades to all derived grants.
+
+### Grant expiration
+
+Grants with `expiresIn` or `expiresAt` automatically become inactive after their expiry time. A background `GrantExpirationCleaner` prunes expired grants and re-encrypts affected nodes with updated recipient lists.
+
+## How enforcement works
+
+### Local mutations
+
+When you call `store.create()`, `store.update()`, or `store.delete()`, the store checks authorization first:
+
+```ts
+try {
+  await store.update(TaskSchema, taskId, { title: 'New title' })
+} catch (err) {
+  if (err instanceof PermissionError) {
+    // err.message: "denied: action=write, subject=did:key:..., role context: [viewer]"
+  }
+}
+```
+
+### Remote changes
+
+When a remote peer's change arrives via sync, the store silently rejects unauthorized changes and emits a `change:rejected` event. The peer also receives a scoring penalty to protect against abuse.
+
+### Yjs documents
+
+Collaborative editing (via `useNode`) uses a layered auth model:
+
+1. **Room gate** — only authorized users can join a sync room
+2. **Per-update gate** — each incoming Yjs update is checked against `PolicyEvaluator`
+3. **At-rest encryption** — Y.Doc state is encrypted with the node's content key
+
+Revoking a user from a document immediately kicks them from the room and rotates the content key, so all future updates are encrypted for the new recipient set.
+
+### Hub filtering
+
+The hub never decrypts data — it filters queries by recipient lists stored in node metadata. If your DID isn't in the recipients list, the hub doesn't return the node. This is transparent to your app: you write normal queries, unauthorized data is silently excluded.
+
+## Failure modes
+
+| Context                      | When auth fails                             | Why                                    |
+| ---------------------------- | ------------------------------------------- | -------------------------------------- |
+| `store.create/update/delete` | Throws `PermissionError`                    | Developer should see and handle errors |
+| `applyRemoteChange`          | Silently rejected + `change:rejected` event | Don't crash on bad remote data         |
+| Yjs update                   | Silently rejected + peer scoring penalty    | Don't interrupt editing flow           |
+| Hub query                    | Node excluded from results (no error)       | Transparent access control             |
+
+## Trust model
+
+**Read access is cryptographically enforced.** If you don't have the content key, you cannot decrypt the data. The hub can't help you because it doesn't hold keys.
+
+**Write access is enforced client-side.** A malicious client could skip the `can()` check and broadcast a signed change. The hub and honest peers accept it because the Ed25519 signature is valid.
+
+This is an intentional tradeoff:
+
+- All changes are signed and part of a tamper-evident hash chain — unauthorized writes are attributable and detectable
+- Peer scoring penalizes unauthorized write attempts, leading to automatic blocking
+- Key rotation on revocation means revoked users lose future read access regardless of write-side enforcement
+
+For apps where write enforcement must be stronger, self-hosted hubs can add custom policy validation.
+
+## Key resolution
+
+When encrypting a node for a recipient, xNet needs their X25519 public key to perform key wrapping. It resolves this in two steps:
+
+1. **Birational conversion** — Ed25519 public keys (from DID:key) can be mathematically converted to X25519 keys without any additional lookup. This works for any DID:key holder.
+2. **Hub registry fallback** — For cases where the key holder has registered a separate X25519 key (unusual), the hub maintains a public key registry.
+
+This means sharing data with any DID:key holder requires no out-of-band key exchange.
+
+## Key recovery & multi-device
+
+### Seed phrase
+
+Your signing key can be derived deterministically from a seed phrase (BIP-39 format). The seed phrase is the root of your identity — back it up carefully.
+
+```ts
+
+// Generate a new identity with a recoverable seed
+const { mnemonic, bundle } = deriveSeedPhrase()
+// mnemonic: "correct horse battery staple ..."
+
+// Recover identity on a new device
+const recoveredBundle = recoverFromSeedPhrase(mnemonic)
+// Produces the same DID and key pair
+```
+
+### Multi-device
+
+Each device derives the same primary key from the seed, so your DID is the same across devices. When you add a second device:
+
+1. The new device generates its own device-specific encryption key
+2. It registers in a device registry (synchronized via the Hub)
+3. Your primary key wraps the content keys for each device
+
+### Social recovery
+
+As a fallback when the seed phrase is unavailable, xNet supports Shamir's Secret Sharing: split the seed across trusted contacts, any threshold (e.g., 3 of 5) can reconstruct it.
+
+### Encrypted hub backup
+
+The hub can store an encrypted backup of your key bundle, unlocked by a passphrase or WebAuthn credential. This is opt-in and the hub never sees the plaintext key.
+
+## Offline authorization
+
+By default, authorization decisions are cached with a 5-minute TTL. This means:
+
+- The app works offline — cached decisions are used while disconnected
+- Revocations take at most 5 minutes to propagate to offline users
+- On reconnect, the cache is revalidated against the current grant state
+
+Configure offline behavior per-schema:
+
+```ts
+authorization: {
+  // ...
+  offlinePolicy: {
+    cacheTTL: 300_000,          // 5 minutes (default)
+    maxStaleness: 3_600_000,    // 1 hour — refuse to use older cached decisions
+    revalidateOnReconnect: true // (default) revalidate immediately when online
+  }
+}
+```
+
+## Migration from unencrypted schemas
+
+Schemas without an `authorization` block continue to work but emit a console warning in development. To add authorization to an existing schema:
+
+1. Add the `authorization` block with your desired roles and actions
+2. Run the `AuthMigrator` utility to batch-encrypt existing nodes:
+
+```ts
+
+const migrator = new AuthMigrator(store, encryptionLayer)
+await migrator.migrateSchema(MySchema, {
+  batchSize: 50,
+  onProgress: ({ done, total }) => console.log(`${done}/${total}`)
+})
+```
+
+The migration re-encrypts nodes in batches and updates their recipient lists. Existing peers will receive the re-encrypted versions via normal sync.
+
+## Related
+
+- [defineSchema](/docs/schemas/defineschema/) — Full schema API reference
+- [Identity & Keys](/docs/guides/identity/) — DID:key, UCAN tokens, key management
+- [Cryptography](/docs/concepts/cryptography/) — BLAKE3, Ed25519, XChaCha20, X25519
+- [Offline Patterns](/docs/guides/offline/) — Offline cache behavior and sync
+- [DevTools](/docs/guides/devtools/) — AuthZ panel for live inspection
 
 ---
 
