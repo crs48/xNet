@@ -517,9 +517,6 @@ importers:
       '@xnet/sync':
         specifier: workspace:*
         version: link:../sync
-      '@xnet/telemetry':
-        specifier: workspace:*
-        version: link:../telemetry
       lib0:
         specifier: ^0.2.102
         version: 0.2.117
