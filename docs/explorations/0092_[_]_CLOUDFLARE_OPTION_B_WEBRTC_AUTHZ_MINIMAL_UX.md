@@ -261,13 +261,13 @@ flowchart TD
 
 ## Phase 1 - Link/Auth foundation (no WebRTC yet)
 
-- [ ] Introduce `SharePayloadV2` parser/encoder in renderer share utilities.
-- [ ] Introduce universal share URL builder (`https://xnet.fyi/app/share?...`).
-- [ ] Extend `ShareButton` to request scoped grant via `store.auth.grant()` before copy.
-- [ ] Extend `AddSharedDialog` to parse v2 payload and validate expiry/version.
-- [ ] Add `Paste from clipboard` helper and keep raw payload entry as fallback.
-- [ ] Add backward compatibility for legacy `type:docId` links.
-- [ ] Add `Revoke share` action mapped to `store.auth.revoke()`.
+- [x] Introduce `SharePayloadV2` parser/encoder in renderer share utilities.
+- [x] Introduce universal share URL builder (`https://xnet.fyi/app/share?...`).
+- [x] Extend `ShareButton` to request scoped grant via `store.auth.grant()` before copy.
+- [x] Extend `AddSharedDialog` to parse v2 payload and validate expiry/version.
+- [x] Add `Paste from clipboard` helper and keep raw payload entry as fallback.
+- [x] Add backward compatibility for legacy `type:docId` links.
+- [x] Add `Revoke share` action mapped to `store.auth.revoke()`.
 
 ## Phase 1.5 - Deep link plumbing (Electron + Web)
 

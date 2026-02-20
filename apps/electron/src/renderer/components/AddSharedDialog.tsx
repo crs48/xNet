@@ -7,6 +7,7 @@
 
 import { Link, X } from 'lucide-react'
 import React, { useState } from 'react'
+import { parseShareInput } from '../lib/share-payload'
 
 interface AddSharedDialogProps {
   isOpen: boolean
@@ -23,22 +24,30 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    const trimmedId = docId.trim()
-    if (!trimmedId) {
-      setError('Please enter a document ID')
-      return
-    }
+    try {
+      const parsed = parseShareInput(docId)
+      if (parsed.kind === 'legacy') {
+        onAdd(`${parsed.docType}:${parsed.docId}`)
+      } else {
+        onAdd(`${parsed.payload.docType}:${parsed.payload.resource}`)
+      }
 
-    // Basic validation - IDs are typically UUIDs or similar
-    if (trimmedId.length < 8) {
-      setError('Invalid document ID')
-      return
+      setDocId('')
+      setError(null)
+      onClose()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
     }
+  }
 
-    onAdd(trimmedId)
-    setDocId('')
-    setError(null)
-    onClose()
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      setDocId(text)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
   }
 
   const handleClose = () => {
@@ -71,12 +80,21 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-4">
           <p className="text-sm text-muted-foreground mb-4">
-            Paste a document ID that was shared with you. The document will be added to your library
-            and sync automatically.
+            Paste a secure share link, payload token, or legacy document ID. The document will be
+            added to your library and sync automatically.
           </p>
 
           <div className="mb-4">
-            <label className="block text-xs text-muted-foreground mb-1.5">Document ID</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs text-muted-foreground">Share link or payload</label>
+              <button
+                type="button"
+                onClick={handlePasteFromClipboard}
+                className="text-xs text-primary hover:underline"
+              >
+                Paste from clipboard
+              </button>
+            </div>
             <input
               type="text"
               value={docId}
@@ -84,7 +102,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps
                 setDocId(e.target.value)
                 setError(null)
               }}
-              placeholder="e.g., database:abc123-def456-..."
+              placeholder="https://xnet.fyi/app/share?payload=..."
               className="w-full px-3 py-2 text-sm font-mono bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
               autoFocus
             />
