@@ -90,14 +90,50 @@ process.parentPort?.on('message', async (event) => {
       // ─── BSM Control ─────────────────────────────────────────────────────
 
       case 'bsm:start': {
-        const { signalingUrl, authorDID, signingKey } = payload as {
-          signalingUrl: string
-          authorDID?: string
-          signingKey?: number[]
-        }
+        const { signalingUrl, authorDID, signingKey, ucanToken, transport, iceServers } =
+          payload as {
+            signalingUrl: string
+            authorDID?: string
+            signingKey?: number[]
+            ucanToken?: string
+            transport?: 'ws' | 'webrtc' | 'auto'
+            iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+          }
         log('Starting BSM with signalingUrl:', signalingUrl)
         if (dataService) {
-          await dataService.startSync(signalingUrl, authorDID, signingKey)
+          await dataService.startSync({
+            signalingUrl,
+            authorDID,
+            signingKey,
+            ucanToken,
+            transport,
+            iceServers
+          })
+        }
+        sendResponse(requestId, { success: true })
+        break
+      }
+
+      case 'bsm:reconfigure': {
+        const { signalingUrl, authorDID, signingKey, ucanToken, transport, iceServers } =
+          payload as {
+            signalingUrl: string
+            authorDID?: string
+            signingKey?: number[]
+            ucanToken?: string
+            transport?: 'ws' | 'webrtc' | 'auto'
+            iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+          }
+        if (dataService) {
+          await dataService.stopSync()
+          await dataService.startSync({
+            signalingUrl,
+            authorDID,
+            signingKey,
+            ucanToken,
+            transport,
+            iceServers
+          })
         }
         sendResponse(requestId, { success: true })
         break
@@ -119,6 +155,7 @@ process.parentPort?.on('message', async (event) => {
         } else {
           sendResponse(requestId, {
             status: 'disconnected',
+            transport: 'ws',
             poolSize: 0,
             trackedCount: 0,
             queueSize: 0,

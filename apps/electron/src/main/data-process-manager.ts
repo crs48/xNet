@@ -49,6 +49,15 @@ interface PendingRequest {
   timeout: ReturnType<typeof setTimeout>
 }
 
+type BSMStartOptions = {
+  signalingUrl: string
+  authorDID?: string
+  signingKey?: number[]
+  ucanToken?: string
+  transport?: 'ws' | 'webrtc' | 'auto'
+  iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+}
+
 // ─── State ──────────────────────────────────────────────────────────────────
 
 let dataProcess: UtilityProcess | null = null
@@ -360,14 +369,29 @@ export function setupDataProcessIPC(getMainWindow: () => BrowserWindow | null): 
     }
   })
 
+  onEvent('bsm:transport-fallback', (data) => {
+    const win = getMainWindow()
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('xnet:bsm:transport-fallback', data)
+    }
+  })
+
+  onEvent('bsm:unauthorized-update', (data) => {
+    const win = getMainWindow()
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('xnet:bsm:unauthorized-update', data)
+    }
+  })
+
   // ─── BSM IPC Handlers ─────────────────────────────────────────────────────
 
-  ipcMain.handle(
-    'xnet:bsm:start',
-    async (_event, opts: { signalingUrl: string; authorDID?: string; signingKey?: number[] }) => {
-      await sendRequest('bsm:start', opts)
-    }
-  )
+  ipcMain.handle('xnet:bsm:start', async (_event, opts: BSMStartOptions) => {
+    await sendRequest('bsm:start', opts)
+  })
+
+  ipcMain.handle('xnet:bsm:reconfigure', async (_event, opts: BSMStartOptions) => {
+    await sendRequest('bsm:reconfigure', opts)
+  })
 
   ipcMain.handle('xnet:bsm:stop', async () => {
     await sendRequest('bsm:stop', {})

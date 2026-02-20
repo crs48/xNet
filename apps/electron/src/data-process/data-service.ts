@@ -49,6 +49,23 @@ interface DataServiceConfig {
   dbPath: string
 }
 
+type SyncTransportStrategy = 'ws' | 'webrtc' | 'auto'
+
+type IceServerConfig = {
+  urls: string[]
+  username?: string
+  credential?: string
+}
+
+type StartSyncOptions = {
+  signalingUrl: string
+  authorDID?: string
+  signingKey?: number[]
+  ucanToken?: string
+  transport?: SyncTransportStrategy
+  iceServers?: IceServerConfig[]
+}
+
 // Serialized types for IPC transport (matches renderer/lib/ipc-node-storage.ts)
 interface SerializedNodeChange {
   protocolVersion?: number
@@ -112,10 +129,11 @@ export interface DataService {
   shutdown(): Promise<void>
   attachRendererPort(windowId: string, port: Electron.MessagePortMain): void
   detachRendererPort(windowId: string): void
-  startSync(signalingUrl: string, authorDID?: string, signingKey?: number[]): Promise<void>
+  startSync(options: StartSyncOptions): Promise<void>
   stopSync(): Promise<void>
   getStatus(): {
     status: ConnectionStatus
+    transport: SyncTransportStrategy
     poolSize: number
     trackedCount: number
     queueSize: number
@@ -172,6 +190,20 @@ function fromBase64(str: string): Uint8Array {
   return new Uint8Array(Buffer.from(str, 'base64'))
 }
 
+function buildSignalingUrl(signalingUrl: string, token: string): string {
+  if (!token) {
+    return signalingUrl
+  }
+
+  try {
+    const url = new URL(signalingUrl)
+    url.searchParams.set('token', token)
+    return url.toString()
+  } catch {
+    return signalingUrl
+  }
+}
+
 function serializeEnvelope(envelope: SignedYjsEnvelopeV1): Record<string, unknown> {
   return {
     update: toBase64(envelope.update),
@@ -220,6 +252,9 @@ export function createDataService(config: DataServiceConfig): DataService {
   let ws: WebSocket | null = null
   let status: ConnectionStatus = 'disconnected'
   let signalingUrl = ''
+  let ucanToken = ''
+  let transportStrategy: SyncTransportStrategy = 'ws'
+  let iceServers: IceServerConfig[] = []
   let authorDID = ''
   let signingKey: Uint8Array | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
@@ -358,11 +393,12 @@ export function createDataService(config: DataServiceConfig): DataService {
     if (destroyed || !signalingUrl) return
     if (ws) return
 
-    log('Connecting to:', signalingUrl)
+    const url = buildSignalingUrl(signalingUrl, ucanToken)
+    log('Connecting to:', url)
     setStatus('connecting')
 
     try {
-      ws = new WebSocket(signalingUrl)
+      ws = new WebSocket(url)
 
       ws.on('open', () => {
         log('WebSocket connected')
@@ -394,6 +430,22 @@ export function createDataService(config: DataServiceConfig): DataService {
         try {
           const msg = JSON.parse(data.toString())
           if (msg.type === 'pong') return
+
+          if (
+            msg.type === 'auth-denied' ||
+            (msg.type === 'node-error' &&
+              (msg.code === 'UNAUTHORIZED' ||
+                msg.code === 'TOKEN_EXPIRED' ||
+                msg.code === 'TOKEN_REVOKED'))
+          ) {
+            const action = peerScorer.penalize('hub-authz', 'unauthorizedUpdate')
+            sendEvent('bsm:unauthorized-update', {
+              code: msg.code ?? 'UNAUTHORIZED',
+              resource: msg.resource ?? null,
+              action: msg.action ?? 'hub/relay',
+              scorerAction: action
+            })
+          }
 
           log('WS message:', msg.type, msg.topic ? `topic=${msg.topic}` : '')
 
@@ -999,12 +1051,28 @@ export function createDataService(config: DataServiceConfig): DataService {
       }
     },
 
-    async startSync(url: string, author?: string, key?: number[]): Promise<void> {
+    async startSync(options: StartSyncOptions): Promise<void> {
       if (status !== 'disconnected') return
 
-      signalingUrl = url
-      authorDID = author ?? ''
-      signingKey = key ? new Uint8Array(key) : null
+      signalingUrl = options.signalingUrl
+      authorDID = options.authorDID ?? ''
+      signingKey = options.signingKey ? new Uint8Array(options.signingKey) : null
+      ucanToken = options.ucanToken ?? ''
+      iceServers = options.iceServers ?? []
+
+      const requestedTransport = options.transport ?? 'ws'
+      transportStrategy = requestedTransport
+      if (requestedTransport !== 'ws') {
+        // Utility process remains WS relay transport for deterministic fallback.
+        transportStrategy = 'ws'
+        sendEvent('bsm:transport-fallback', {
+          from: requestedTransport,
+          to: 'ws',
+          reason: 'webrtc_unavailable_in_utility_process',
+          iceServerCount: iceServers.length
+        })
+      }
+
       destroyed = false
       connect()
     },
@@ -1016,6 +1084,7 @@ export function createDataService(config: DataServiceConfig): DataService {
     getStatus() {
       return {
         status,
+        transport: transportStrategy,
         poolSize: pool.size,
         trackedCount: tracked.size,
         queueSize: 0,

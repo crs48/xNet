@@ -13,6 +13,7 @@
  */
 
 import type { SyncManager } from '@xnet/react'
+import { createYWebRTCProvider, type YWebRTCProvider } from '@xnet/network'
 import {
   Awareness,
   encodeAwarenessUpdate,
@@ -25,6 +26,7 @@ type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type StatusHandler = (status: ConnectionStatus) => void
 type AwarenessSnapshotHandler = Parameters<SyncManager['onAwarenessSnapshot']>[1]
 type AwarenessSnapshotUsers = Parameters<AwarenessSnapshotHandler>[0]
+type DocType = 'page' | 'database' | 'canvas'
 
 // DevTools event bus type (optional - for instrumentation)
 interface DevToolsEventBus {
@@ -45,6 +47,13 @@ export interface IPCSyncManager extends SyncManager {
   instrument(eventBus: DevToolsEventBus): () => void
   /** Set identity for signing outgoing updates */
   setIdentity(authorDID: string, signingKey: Uint8Array): void
+  /** Reconfigure relay + auth transport options at runtime */
+  configureShareSession(input: {
+    signalingUrl: string
+    ucanToken?: string
+    transport?: 'ws' | 'webrtc' | 'auto'
+    iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+  }): Promise<void>
 }
 
 export function createIPCSyncManager(): IPCSyncManager {
@@ -58,6 +67,8 @@ export function createIPCSyncManager(): IPCSyncManager {
   const cleanups = new Map<string, () => void>()
   // Pending acquire promises to handle concurrent calls
   const pendingAcquires = new Map<string, Promise<Y.Doc>>()
+  const trackedSchemas = new Map<string, string>()
+  const webrtcProviders = new Map<string, YWebRTCProvider>()
 
   let currentStatus: ConnectionStatus = 'disconnected'
   let previousStatus: ConnectionStatus = 'disconnected'
@@ -65,6 +76,87 @@ export function createIPCSyncManager(): IPCSyncManager {
   let statusCleanup: (() => void) | null = null
   let instrumentedEventBus: DevToolsEventBus | null = null
   let statusPollInterval: ReturnType<typeof setInterval> | null = null
+  let bsmStartOptions: {
+    signalingUrl: string
+    ucanToken?: string
+    transport?: 'ws' | 'webrtc' | 'auto'
+    iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+  } = {
+    signalingUrl: import.meta.env.VITE_HUB_URL || 'ws://localhost:4444',
+    transport:
+      (import.meta.env.VITE_XNET_SYNC_TRANSPORT as 'ws' | 'webrtc' | 'auto' | undefined) ?? 'auto'
+  }
+  const envPreferredDocTypes = import.meta.env.VITE_XNET_WEBRTC_DOC_TYPES
+  let preferredDocTypes = new Set<DocType>(['page', 'database', 'canvas'])
+  if (typeof envPreferredDocTypes === 'string' && envPreferredDocTypes.trim().length > 0) {
+    preferredDocTypes = new Set(
+      envPreferredDocTypes
+        .split(',')
+        .map((value) => value.trim())
+        .filter(
+          (value): value is DocType =>
+            value === 'page' || value === 'database' || value === 'canvas'
+        )
+    )
+  }
+
+  function schemaIdToDocType(schemaId: string): DocType | null {
+    const lower = schemaId.toLowerCase()
+    if (lower.includes('page')) return 'page'
+    if (lower.includes('database')) return 'database'
+    if (lower.includes('canvas')) return 'canvas'
+    return null
+  }
+
+  function shouldUseWebRTC(nodeId: string): boolean {
+    const strategy = bsmStartOptions.transport ?? 'auto'
+    const webrtcEnabled = import.meta.env.VITE_XNET_ENABLE_WEBRTC === 'true'
+    if (!webrtcEnabled) {
+      return false
+    }
+    if (strategy === 'ws') {
+      return false
+    }
+
+    const schemaId = trackedSchemas.get(nodeId)
+    const docType = schemaId ? schemaIdToDocType(schemaId) : null
+    if (docType && !preferredDocTypes.has(docType)) {
+      return false
+    }
+
+    return true
+  }
+
+  function setupWebRTCProvider(nodeId: string, doc: Y.Doc): void {
+    if (!shouldUseWebRTC(nodeId) || webrtcProviders.has(nodeId)) {
+      return
+    }
+
+    const signalingServer = bsmStartOptions.signalingUrl
+      .replace(/^http:/, 'ws:')
+      .replace(/^https:/, 'wss:')
+    const room = `xnet-doc-${nodeId}`
+
+    try {
+      const provider = createYWebRTCProvider(doc, room, {
+        signalingServers: [signalingServer],
+        password: bsmStartOptions.ucanToken,
+        iceServers: bsmStartOptions.iceServers
+      })
+      webrtcProviders.set(nodeId, provider)
+
+      // Downgrade immediately on auth/ICE failures.
+      provider.provider.on('status', (event: { status: string }) => {
+        if (event.status === 'failed' || event.status === 'disconnected') {
+          const existing = webrtcProviders.get(nodeId)
+          existing?.destroy()
+          webrtcProviders.delete(nodeId)
+        }
+      })
+    } catch (err) {
+      console.warn('[IPCSyncManager] WebRTC setup failed, continuing over WS relay:', err)
+    }
+  }
 
   // Identity for signing outgoing updates
   let identityAuthorDID: string | null = null
@@ -109,10 +201,9 @@ export function createIPCSyncManager(): IPCSyncManager {
       })
 
       // Tell BSM to start (it may already be running)
-      const signalingUrl = import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
       try {
         await window.xnetBSM.start({
-          signalingUrl,
+          ...bsmStartOptions,
           authorDID: identityAuthorDID ?? undefined,
           signingKey: identitySigningKey ?? undefined
         })
@@ -126,11 +217,35 @@ export function createIPCSyncManager(): IPCSyncManager {
       identitySigningKey = Array.from(signingKey)
     },
 
+    async configureShareSession(input) {
+      bsmStartOptions = {
+        signalingUrl: input.signalingUrl,
+        ucanToken: input.ucanToken,
+        transport: input.transport ?? bsmStartOptions.transport,
+        iceServers: input.iceServers
+      }
+
+      try {
+        await window.xnetBSM.reconfigure({
+          ...bsmStartOptions,
+          authorDID: identityAuthorDID ?? undefined,
+          signingKey: identitySigningKey ?? undefined
+        })
+      } catch (err) {
+        console.warn('[IPCSyncManager] Failed to reconfigure sync transport:', err)
+      }
+    },
+
     async stop() {
       // Clean up all nodes
       for (const [nodeId] of docs) {
         const cleanup = cleanups.get(nodeId)
         if (cleanup) cleanup()
+        const provider = webrtcProviders.get(nodeId)
+        if (provider) {
+          provider.destroy()
+          webrtcProviders.delete(nodeId)
+        }
         window.xnetBSM.release(nodeId)
       }
       cleanups.clear()
@@ -153,10 +268,12 @@ export function createIPCSyncManager(): IPCSyncManager {
     },
 
     track(nodeId: string, schemaId: string) {
+      trackedSchemas.set(nodeId, schemaId)
       window.xnetBSM.track(nodeId, schemaId)
     },
 
     untrack(nodeId: string) {
+      trackedSchemas.delete(nodeId)
       window.xnetBSM.untrack(nodeId)
     },
 
@@ -238,6 +355,7 @@ export function createIPCSyncManager(): IPCSyncManager {
 
         // Store doc only after fully set up, then clean up pending
         docs.set(nodeId, doc)
+        setupWebRTCProvider(nodeId, doc)
         pendingAcquires.delete(nodeId)
 
         return doc
@@ -273,6 +391,13 @@ export function createIPCSyncManager(): IPCSyncManager {
 
       awarenessSnapshots.delete(nodeId)
       awarenessSnapshotListeners.delete(nodeId)
+      trackedSchemas.delete(nodeId)
+
+      const provider = webrtcProviders.get(nodeId)
+      if (provider) {
+        provider.destroy()
+        webrtcProviders.delete(nodeId)
+      }
 
       // Destroy renderer mirror
       const doc = docs.get(nodeId)
@@ -423,6 +548,26 @@ export function createIPCSyncManager(): IPCSyncManager {
         }
       )
 
+      const transportFallbackCleanup = window.xnetBSM.onTransportFallback((payload) => {
+        eventBus.emit({
+          type: 'sync:status-change',
+          room: 'ipc-bsm',
+          previousStatus: payload.from,
+          newStatus: payload.to,
+          error: payload.reason
+        })
+      })
+
+      const unauthorizedUpdateCleanup = window.xnetBSM.onUnauthorizedUpdate((payload) => {
+        eventBus.emit({
+          type: 'sync:status-change',
+          room: payload.resource ?? 'ipc-bsm',
+          previousStatus: payload.action,
+          newStatus: payload.code,
+          error: `unauthorized_update:${payload.scorerAction}`
+        })
+      })
+
       return () => {
         if (statusPollInterval) {
           clearInterval(statusPollInterval)
@@ -431,6 +576,8 @@ export function createIPCSyncManager(): IPCSyncManager {
         statusListeners.delete(statusHandler)
         peerConnectedCleanup()
         peerDisconnectedCleanup()
+        transportFallbackCleanup()
+        unauthorizedUpdateCleanup()
         instrumentedEventBus = null
       }
     }

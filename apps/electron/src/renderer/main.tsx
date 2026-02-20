@@ -48,6 +48,14 @@ const telemetryCollector = new TelemetryCollector({ consent: consentManager })
 // IPC-based sync manager routes sync through the main process BSM
 const ipcSyncManager = createIPCSyncManager()
 
+declare global {
+  interface Window {
+    __xnetIpcSyncManager?: IPCSyncManager
+  }
+}
+
+window.__xnetIpcSyncManager = ipcSyncManager
+
 /**
  * Component that instruments the sync manager with devtools.
  * Must be rendered inside XNetDevToolsProvider to access the event bus.

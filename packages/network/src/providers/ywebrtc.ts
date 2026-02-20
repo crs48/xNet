@@ -11,6 +11,7 @@ export interface YWebRTCOptions {
   signalingServers: string[]
   password?: string
   maxConns?: number
+  iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
 }
 
 /**
@@ -29,10 +30,32 @@ export function createYWebRTCProvider(
   roomName: string,
   options: YWebRTCOptions
 ): YWebRTCProvider {
-  const provider = new WebrtcProvider(roomName, doc, {
+  const providerOptions: {
+    signaling: string[]
+    password?: string
+    maxConns: number
+    // y-webrtc forwards peerOpts to simple-peer (for ICE config).
+    peerOpts?: {
+      config?: {
+        iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+      }
+    }
+  } = {
     signaling: options.signalingServers,
     password: options.password,
     maxConns: options.maxConns ?? 20
+  }
+
+  if (options.iceServers && options.iceServers.length > 0) {
+    providerOptions.peerOpts = {
+      config: {
+        iceServers: options.iceServers
+      }
+    }
+  }
+
+  const provider = new WebrtcProvider(roomName, doc, {
+    ...providerOptions
   })
 
   return {

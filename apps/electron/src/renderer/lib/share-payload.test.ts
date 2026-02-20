@@ -63,4 +63,41 @@ describe('share-payload', () => {
 
     expect(() => parseShareInput(encoded)).toThrow('Share link has expired')
   })
+
+  it('accepts valid ICE server configuration in transport hints', () => {
+    const payload = createPayload({
+      transportHints: {
+        webrtc: true,
+        iceServers: [
+          {
+            urls: ['stun:stun.cloudflare.com:3478']
+          },
+          {
+            urls: ['turn:turn.cloudflare.com:3478?transport=udp'],
+            username: 'xnet-user',
+            credential: 'xnet-pass'
+          }
+        ]
+      }
+    })
+
+    const encoded = encodeSharePayloadV2(payload)
+    const decoded = decodeSharePayloadV2(encoded)
+
+    expect(decoded.transportHints?.iceServers).toHaveLength(2)
+  })
+
+  it('rejects malformed ICE server configuration', () => {
+    const payload = createPayload({
+      transportHints: {
+        webrtc: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        iceServers: [{ urls: [123 as any] }]
+      }
+    })
+
+    expect(() => encodeSharePayloadV2(payload)).toThrow(
+      'Share payload has invalid ICE server configuration'
+    )
+  })
 })

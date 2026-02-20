@@ -12,7 +12,7 @@ import { useDevTools } from '@xnet/devtools'
 import { useQuery, useMutate } from '@xnet/react'
 import { ThemeToggle } from '@xnet/ui'
 import React, { useCallback, useEffect, useState } from 'react'
-import { AddSharedDialog } from './components/AddSharedDialog'
+import { AddSharedDialog, type AddSharedInput } from './components/AddSharedDialog'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { CanvasView } from './components/CanvasView'
 import { DatabaseView } from './components/DatabaseView'
@@ -138,25 +138,20 @@ export function App() {
   )
 
   // Handle adding a shared document
-  // The share string is encoded as "type:docId" (e.g. "database:abc-123")
-  // Falls back to 'page' for bare IDs (backwards compatibility)
   const handleAddShared = useCallback(
-    (shareString: string) => {
-      let docType: DocType = 'page'
-      let docId = shareString
-
-      const colonIdx = shareString.indexOf(':')
-      if (colonIdx > 0) {
-        const prefix = shareString.slice(0, colonIdx)
-        if (prefix === 'page' || prefix === 'database' || prefix === 'canvas') {
-          docType = prefix
-          docId = shareString.slice(colonIdx + 1)
-        }
+    async (input: AddSharedInput) => {
+      if (input.share) {
+        await window.__xnetIpcSyncManager?.configureShareSession({
+          signalingUrl: input.share.endpoint,
+          ucanToken: input.share.token,
+          transport: input.share.transport,
+          iceServers: input.share.iceServers
+        })
       }
 
-      setSelectedDocId(docId)
-      setSelectedDocType(docType)
-      setActiveNodeId(docId)
+      setSelectedDocId(input.docId)
+      setSelectedDocType(input.docType)
+      setActiveNodeId(input.docId)
     },
     [setActiveNodeId]
   )
