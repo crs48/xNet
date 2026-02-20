@@ -10,7 +10,7 @@ import { ChunkManager } from '@xnet/storage'
 import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
 import { ThemeProvider } from '@xnet/ui'
 import React, { useEffect } from 'react'
-import { createRoot } from 'react-dom/client'
+import { createRoot, type Root } from 'react-dom/client'
 import { App } from './App'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
@@ -51,6 +51,8 @@ const ipcSyncManager = createIPCSyncManager()
 declare global {
   interface Window {
     __xnetIpcSyncManager?: IPCSyncManager
+    __xnetRoot?: Root
+    __xnetDevToolsToggleCleanup?: (() => void) | null
   }
 }
 
@@ -193,13 +195,20 @@ async function init() {
   const chunkManager = new ChunkManager(ipcBlobStore as any)
   const blobService = new BlobService(chunkManager)
 
-  // Listen for devtools toggle from main process menu
-  // Dispatches a custom event that XNetDevToolsProvider can listen to
-  window.xnet.onDevToolsToggle(() => {
+  // Listen for devtools toggle from main process menu.
+  // Keep only one active listener across HMR reloads.
+  window.__xnetDevToolsToggleCleanup?.()
+  window.__xnetDevToolsToggleCleanup = window.xnet.onDevToolsToggle(() => {
     window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
   })
 
-  const root = createRoot(document.getElementById('root')!)
+  const container = document.getElementById('root')
+  if (!container) {
+    throw new Error('Root container #root not found')
+  }
+
+  const root = window.__xnetRoot ?? createRoot(container)
+  window.__xnetRoot = root
   root.render(
     <React.StrictMode>
       <ThemeProvider defaultTheme="dark" storageKey="xnet-electron-theme">
@@ -238,3 +247,10 @@ async function init() {
 }
 
 init()
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    window.__xnetDevToolsToggleCleanup?.()
+    window.__xnetDevToolsToggleCleanup = null
+  })
+}

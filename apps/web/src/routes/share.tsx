@@ -4,17 +4,25 @@
  * Attempts to launch Electron via xnet:// deep link and falls back to the web app.
  */
 
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useMemo, useState } from 'react'
 
 const DEEP_LINK_TIMEOUT_MS = 1000
+const BASE_PATH = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
+
+type ShareDocType = 'page' | 'database' | 'canvas'
+
+type SharePayloadV2 = {
+  v: 2
+  resource: string
+  docType: ShareDocType
+}
 
 export const Route = createFileRoute('/share')({
   component: ShareBridgePage
 })
 
 function ShareBridgePage(): JSX.Element {
-  const navigate = useNavigate()
   const [status, setStatus] = useState<'launching' | 'fallback' | 'error'>('launching')
   const [error, setError] = useState<string | null>(null)
 
@@ -22,6 +30,25 @@ function ShareBridgePage(): JSX.Element {
     const parsed = new URL(window.location.href)
     return parsed.searchParams.get('payload') ?? ''
   }, [])
+
+  const parsedPayload = useMemo(() => {
+    try {
+      const json = fromBase64Url(payload)
+      const decoded = JSON.parse(json) as SharePayloadV2
+      if (
+        decoded?.v !== 2 ||
+        typeof decoded.resource !== 'string' ||
+        (decoded.docType !== 'page' &&
+          decoded.docType !== 'database' &&
+          decoded.docType !== 'canvas')
+      ) {
+        return null
+      }
+      return decoded
+    } catch {
+      return null
+    }
+  }, [payload])
 
   useEffect(() => {
     if (!payload) {
@@ -41,13 +68,20 @@ function ShareBridgePage(): JSX.Element {
 
     const timeout = window.setTimeout(() => {
       setStatus('fallback')
-      navigate({ to: '/', replace: true })
+
+      if (!parsedPayload) {
+        setStatus('error')
+        setError('Share payload is invalid')
+        return
+      }
+
+      window.location.replace(getWebFallbackPath(parsedPayload, payload))
     }, DEEP_LINK_TIMEOUT_MS)
 
     return () => {
       window.clearTimeout(timeout)
     }
-  }, [navigate, payload])
+  }, [payload, parsedPayload])
 
   const copyRawPayload = async () => {
     if (!payload) return
@@ -77,4 +111,30 @@ function ShareBridgePage(): JSX.Element {
       </button>
     </div>
   )
+}
+
+function fromBase64Url(str: string): string {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/')
+  const padding = base64.length % 4
+  if (padding) {
+    base64 += '='.repeat(4 - padding)
+  }
+  const binary = atob(base64)
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
+function getWebFallbackPath(parsedPayload: SharePayloadV2, encodedPayload: string): string {
+  const query = `payload=${encodeURIComponent(encodedPayload)}`
+  const prefix = BASE_PATH === '' ? '' : BASE_PATH
+
+  if (parsedPayload.docType === 'page') {
+    return `${prefix}/doc/${encodeURIComponent(parsedPayload.resource)}?${query}`
+  }
+
+  if (parsedPayload.docType === 'database') {
+    return `${prefix}/db/${encodeURIComponent(parsedPayload.resource)}?${query}`
+  }
+
+  return `${prefix}/canvas/${encodeURIComponent(parsedPayload.resource)}?${query}`
 }
