@@ -456,13 +456,13 @@ describe('getDayNames', () => {
 
 describe('formatCurrentDate', () => {
   it('should format month view date', () => {
-    const date = new Date('2024-06-15')
+    const date = new Date(2024, 5, 15)
     const formatted = formatCurrentDate(date, 'month')
     expect(formatted).toBe('June 2024')
   })
 
   it('should format week view date range', () => {
-    const date = new Date('2024-06-19') // Wednesday
+    const date = new Date(2024, 5, 19) // Wednesday
     const formatted = formatCurrentDate(date, 'week')
     // Should show week range like "Jun 16 - Jun 22, 2024"
     expect(formatted).toContain('Jun')
@@ -471,7 +471,7 @@ describe('formatCurrentDate', () => {
   })
 
   it('should format day view date', () => {
-    const date = new Date('2024-06-15')
+    const date = new Date(2024, 5, 15)
     const formatted = formatCurrentDate(date, 'day')
     // Should show full date like "Saturday, June 15, 2024"
     expect(formatted).toContain('Saturday')
