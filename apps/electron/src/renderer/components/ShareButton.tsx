@@ -8,7 +8,7 @@
 import type { DID, GrantInput } from '@xnet/data'
 import { useXNet } from '@xnet/react'
 import { Share2, Check, Copy } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { buildUniversalShareUrl, type ShareDocType } from '../lib/share-payload'
 
 interface ShareButtonProps {
@@ -24,6 +24,35 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
   const [shareValue, setShareValue] = useState<string>(`${docType}:${docId}`)
   const [activeGrantId, setActiveGrantId] = useState<string | null>(null)
   const [revoking, setRevoking] = useState(false)
+  const [tunnelStatus, setTunnelStatus] = useState<Awaited<
+    ReturnType<typeof window.xnetTunnel.status>
+  > | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+
+    window.xnetTunnel
+      .status()
+      .then((status) => {
+        if (mounted) {
+          setTunnelStatus(status)
+        }
+      })
+      .catch(() => {
+        // Keep UI functional if tunnel APIs are unavailable.
+      })
+
+    const unsubscribe = window.xnetTunnel.onHealthChange((status) => {
+      if (mounted) {
+        setTunnelStatus(status)
+      }
+    })
+
+    return () => {
+      mounted = false
+      unsubscribe()
+    }
+  }, [])
 
   const handleShareSecurely = async () => {
     try {
@@ -46,7 +75,17 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
         expiresIn: 30 * 60 * 1000
       } satisfies GrantInput)
 
-      const endpoint = import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
+      let endpoint = import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
+      try {
+        const status = await window.xnetTunnel.start({ mode: 'temporary' })
+        setTunnelStatus(status)
+        if (status.endpoint) {
+          endpoint = status.endpoint.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:')
+        }
+      } catch (tunnelError) {
+        console.warn('Tunnel startup failed, using default endpoint', tunnelError)
+      }
+
       const payload = {
         v: 2,
         resource: docId,
@@ -183,6 +222,16 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
               Routed via Cloudflare. End-to-end content access is controlled by xNet encryption and
               permissions.
             </p>
+
+            <details className="mt-3 rounded-md border border-border p-2">
+              <summary className="cursor-pointer text-xs text-muted-foreground">Advanced</summary>
+              <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                <p>Status: {tunnelStatus?.health ?? 'stopped'}</p>
+                <p>Mode: {tunnelStatus?.mode ?? 'n/a'}</p>
+                <p>Endpoint: {tunnelStatus?.endpoint ?? 'not available'}</p>
+                {tunnelStatus?.message && <p>Message: {tunnelStatus.message}</p>}
+              </div>
+            </details>
 
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground">

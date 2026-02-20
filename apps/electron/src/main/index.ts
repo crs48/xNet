@@ -15,6 +15,7 @@ if (process.env.NODE_ENV === 'development') {
 // ESM __dirname shim (electron-vite outputs ESM)
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
+import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
 import {
   spawnDataProcess,
   stopDataProcess,
@@ -42,6 +43,7 @@ export const dataPath = join(app.getPath('userData'), 'xnet-data')
 
 let mainWindow: BrowserWindow | null = null
 let pendingSharePayload: string | null = null
+let cleanupTunnelIPC: (() => void) | null = null
 
 const DEEP_LINK_PROTOCOL = 'xnet'
 
@@ -187,6 +189,9 @@ app.whenReady().then(async () => {
   // Setup Local API IPC handlers
   setupLocalAPIIPC()
 
+  // Setup Cloudflare tunnel IPC handlers
+  cleanupTunnelIPC = setupCloudflareTunnelIPC()
+
   // Start Local API server (for external integrations)
   await startLocalAPI()
 
@@ -224,6 +229,13 @@ app.on('before-quit', async () => {
 
   // Stop all plugin services
   await cleanupServices()
+
+  // Stop cloudflare tunnel process
+  await stopCloudflareTunnel()
+
+  // Remove tunnel event listeners
+  cleanupTunnelIPC?.()
+  cleanupTunnelIPC = null
 
   // Stop data utility process (handles BSM, SQLite, Yjs cleanup)
   await stopDataProcess()

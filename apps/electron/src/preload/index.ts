@@ -250,6 +250,33 @@ contextBridge.exposeInMainWorld('xnetLocalAPI', {
   }
 })
 
+contextBridge.exposeInMainWorld('xnetTunnel', {
+  start: (options?: {
+    mode?: 'temporary' | 'persistent'
+    targetUrl?: string
+    tunnelName?: string
+    hostname?: string
+    token?: string
+  }) => ipcRenderer.invoke('xnet:tunnel:start', options),
+  stop: () => ipcRenderer.invoke('xnet:tunnel:stop'),
+  status: () => ipcRenderer.invoke('xnet:tunnel:status'),
+  onHealthChange: (
+    callback: (status: {
+      health: 'starting' | 'ready' | 'degraded' | 'stopped'
+      mode: 'temporary' | 'persistent' | null
+      endpoint: string | null
+      pid: number | null
+      startedAt: number | null
+      message: string | null
+    }) => void
+  ) => {
+    const handler = (_: unknown, status: unknown) => callback(status as never)
+    ipcRenderer.on('xnet:tunnel:health', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener('xnet:tunnel:health', handler as (...args: unknown[]) => void)
+  }
+})
+
 // ─── Node Storage IPC API ────────────────────────────────────────────────────
 // Routes NodeStore operations to the data process SQLite database via IPC.
 // This enables persistent node storage in Electron (replacing MemoryNodeStorageAdapter).
@@ -361,6 +388,28 @@ export interface XNetLocalAPIAPI {
   onStoreRequest(handler: (request: LocalAPIStoreRequest) => Promise<unknown>): () => void
 }
 
+export interface XNetTunnelStatus {
+  health: 'starting' | 'ready' | 'degraded' | 'stopped'
+  mode: 'temporary' | 'persistent' | null
+  endpoint: string | null
+  pid: number | null
+  startedAt: number | null
+  message: string | null
+}
+
+export interface XNetTunnelAPI {
+  start(options?: {
+    mode?: 'temporary' | 'persistent'
+    targetUrl?: string
+    tunnelName?: string
+    hostname?: string
+    token?: string
+  }): Promise<XNetTunnelStatus>
+  stop(): Promise<XNetTunnelStatus>
+  status(): Promise<XNetTunnelStatus>
+  onHealthChange(callback: (status: XNetTunnelStatus) => void): () => void
+}
+
 // Node Storage API types (for IPC-based NodeStorageAdapter)
 export interface XNetNodesAPI {
   // Change log operations
@@ -396,6 +445,7 @@ declare global {
     xnetBSM: XNetBSMAPI
     xnetServices: XNetServicesAPI
     xnetLocalAPI: XNetLocalAPIAPI
+    xnetTunnel: XNetTunnelAPI
     xnetNodes: XNetNodesAPI
   }
 }
