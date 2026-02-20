@@ -101,8 +101,22 @@ ipcRenderer.on('xnet:bsm:port', (_event, { nodeId }: { nodeId: string }) => {
 })
 
 contextBridge.exposeInMainWorld('xnetBSM', {
-  start: (opts: { signalingUrl: string; authorDID?: string; signingKey?: number[] }) =>
-    ipcRenderer.invoke('xnet:bsm:start', opts),
+  start: (opts: {
+    signalingUrl: string
+    authorDID?: string
+    signingKey?: number[]
+    ucanToken?: string
+    transport?: 'ws' | 'webrtc' | 'auto'
+    iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+  }) => ipcRenderer.invoke('xnet:bsm:start', opts),
+  reconfigure: (opts: {
+    signalingUrl: string
+    authorDID?: string
+    signingKey?: number[]
+    ucanToken?: string
+    transport?: 'ws' | 'webrtc' | 'auto'
+    iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+  }) => ipcRenderer.invoke('xnet:bsm:reconfigure', opts),
   stop: () => ipcRenderer.invoke('xnet:bsm:stop'),
   acquire: (nodeId: string, schemaId: string): Promise<void> => {
     return new Promise((resolve) => {
@@ -178,6 +192,42 @@ contextBridge.exposeInMainWorld('xnetBSM', {
     ipcRenderer.on('xnet:bsm:blob-received', handler as (...args: unknown[]) => void)
     return () =>
       ipcRenderer.removeListener('xnet:bsm:blob-received', handler as (...args: unknown[]) => void)
+  },
+  onTransportFallback: (
+    callback: (payload: { from: string; to: string; reason: string }) => void
+  ) => {
+    const handler = (_: unknown, payload: { from: string; to: string; reason: string }) =>
+      callback(payload)
+    ipcRenderer.on('xnet:bsm:transport-fallback', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener(
+        'xnet:bsm:transport-fallback',
+        handler as (...args: unknown[]) => void
+      )
+  },
+  onUnauthorizedUpdate: (
+    callback: (payload: {
+      code: 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'TOKEN_REVOKED'
+      resource: string | null
+      action: string
+      scorerAction: 'allow' | 'warn' | 'throttle' | 'block'
+    }) => void
+  ) => {
+    const handler = (
+      _: unknown,
+      payload: {
+        code: 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'TOKEN_REVOKED'
+        resource: string | null
+        action: string
+        scorerAction: 'allow' | 'warn' | 'throttle' | 'block'
+      }
+    ) => callback(payload)
+    ipcRenderer.on('xnet:bsm:unauthorized-update', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener(
+        'xnet:bsm:unauthorized-update',
+        handler as (...args: unknown[]) => void
+      )
   },
   // Debug logging control
   setDebug: (enabled: boolean) => ipcRenderer.invoke('xnet:bsm:set-debug', enabled),
@@ -330,7 +380,22 @@ export interface XNetAPI {
 }
 
 export interface XNetBSMAPI {
-  start(opts: { signalingUrl: string; authorDID?: string; signingKey?: number[] }): Promise<void>
+  start(opts: {
+    signalingUrl: string
+    authorDID?: string
+    signingKey?: number[]
+    ucanToken?: string
+    transport?: 'ws' | 'webrtc' | 'auto'
+    iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+  }): Promise<void>
+  reconfigure(opts: {
+    signalingUrl: string
+    authorDID?: string
+    signingKey?: number[]
+    ucanToken?: string
+    transport?: 'ws' | 'webrtc' | 'auto'
+    iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+  }): Promise<void>
   stop(): Promise<void>
   acquire(nodeId: string, schemaId: string): Promise<void>
   release(nodeId: string): Promise<void>
@@ -340,6 +405,7 @@ export interface XNetBSMAPI {
   untrack(nodeId: string): Promise<void>
   getStatus(): Promise<{
     status: string
+    transport: 'ws' | 'webrtc' | 'auto'
     poolSize: number
     trackedCount: number
     queueSize: number
@@ -357,6 +423,17 @@ export interface XNetBSMAPI {
   putBlob(data: number[]): Promise<string>
   hasBlob(cid: string): Promise<boolean>
   onBlobReceived(callback: (cid: string) => void): () => void
+  onTransportFallback(
+    callback: (payload: { from: string; to: string; reason: string }) => void
+  ): () => void
+  onUnauthorizedUpdate(
+    callback: (payload: {
+      code: 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'TOKEN_REVOKED'
+      resource: string | null
+      action: string
+      scorerAction: 'allow' | 'warn' | 'throttle' | 'block'
+    }) => void
+  ): () => void
   // Debug logging control
   setDebug(enabled: boolean): Promise<void>
   getDebug(): Promise<boolean>

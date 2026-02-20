@@ -293,18 +293,18 @@ flowchart TD
 
 ## Phase 4 - WebRTC transport path
 
-- [ ] Add transport strategy abstraction in sync layer (`ws`, `webrtc`, `auto`).
-- [ ] Wire existing `ywebrtc` provider behind feature flag for selected doc types.
-- [ ] Reuse same token and resource scope for room join authorization.
-- [ ] Add ICE server configuration surface (default STUN; optional TURN credentials).
-- [ ] Implement immediate downgrade to WS relay on auth or ICE failures.
+- [x] Add transport strategy abstraction in sync layer (`ws`, `webrtc`, `auto`).
+- [x] Wire existing `ywebrtc` provider behind feature flag for selected doc types.
+- [x] Reuse same token and resource scope for room join authorization.
+- [x] Add ICE server configuration surface (default STUN; optional TURN credentials).
+- [x] Implement immediate downgrade to WS relay on auth or ICE failures.
 
 ## Phase 5 - Revocation + Yjs authorization integration
 
-- [ ] Wire grant-revocation events to active room auth cache invalidation.
-- [ ] Add `unauthorized_update` peer scoring category in sync pipeline.
-- [ ] Kick revoked peers from active sessions and rotate keys.
-- [ ] Verify room-gated write path checks `store.auth.can({ action: 'write' })`.
+- [x] Wire grant-revocation events to active room auth cache invalidation.
+- [x] Add `unauthorized_update` peer scoring category in sync pipeline.
+- [x] Kick revoked peers from active sessions and rotate keys.
+- [x] Verify room-gated write path checks `store.auth.can({ action: 'write' })`.
 
 ---
 

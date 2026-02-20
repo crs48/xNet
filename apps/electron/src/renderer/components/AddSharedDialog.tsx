@@ -9,10 +9,21 @@ import { Link, X } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import { parseShareInput } from '../lib/share-payload'
 
+export interface AddSharedInput {
+  docType: 'page' | 'database' | 'canvas'
+  docId: string
+  share?: {
+    endpoint: string
+    token: string
+    transport?: 'ws' | 'webrtc' | 'auto'
+    iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+  }
+}
+
 interface AddSharedDialogProps {
   isOpen: boolean
   onClose: () => void
-  onAdd: (docId: string) => void
+  onAdd: (input: AddSharedInput) => Promise<void> | void
   initialValue?: string
 }
 
@@ -30,15 +41,28 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
 
   if (!isOpen) return null
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     try {
       const parsed = parseShareInput(docId)
       if (parsed.kind === 'legacy') {
-        onAdd(`${parsed.docType}:${parsed.docId}`)
+        await onAdd({
+          docType: parsed.docType,
+          docId: parsed.docId
+        })
       } else {
-        onAdd(`${parsed.payload.docType}:${parsed.payload.resource}`)
+        const hints = parsed.payload.transportHints
+        await onAdd({
+          docType: parsed.payload.docType,
+          docId: parsed.payload.resource,
+          share: {
+            endpoint: parsed.payload.endpoint,
+            token: parsed.payload.token,
+            transport: hints?.webrtc ? 'auto' : 'ws',
+            iceServers: hints?.iceServers
+          }
+        })
       }
 
       setDocId('')

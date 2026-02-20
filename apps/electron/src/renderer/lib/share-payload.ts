@@ -152,6 +152,39 @@ function validateSharePayloadV2(payload: SharePayloadV2): void {
   if (!Number.isFinite(payload.exp) || payload.exp <= 0) {
     throw new Error('Share payload has invalid expiry')
   }
+
+  if (payload.transportHints && typeof payload.transportHints !== 'object') {
+    throw new Error('Share payload has invalid transport hints')
+  }
+
+  const iceServers = payload.transportHints?.iceServers
+  if (iceServers && !Array.isArray(iceServers)) {
+    throw new Error('Share payload has invalid ICE server configuration')
+  }
+  if (Array.isArray(iceServers)) {
+    for (const server of iceServers) {
+      if (!server || typeof server !== 'object' || !Array.isArray(server.urls)) {
+        throw new Error('Share payload has invalid ICE server configuration')
+      }
+      for (const url of server.urls) {
+        if (typeof url !== 'string' || url.length === 0) {
+          throw new Error('Share payload has invalid ICE server configuration')
+        }
+      }
+      if (
+        typeof server.username !== 'undefined' &&
+        (typeof server.username !== 'string' || server.username.length === 0)
+      ) {
+        throw new Error('Share payload has invalid ICE server configuration')
+      }
+      if (
+        typeof server.credential !== 'undefined' &&
+        (typeof server.credential !== 'string' || server.credential.length === 0)
+      ) {
+        throw new Error('Share payload has invalid ICE server configuration')
+      }
+    }
+  }
 }
 
 function toBase64Url(str: string): string {

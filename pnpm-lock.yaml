@@ -90,6 +90,9 @@ importers:
       '@xnet/identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@xnet/network':
+        specifier: workspace:*
+        version: link:../../packages/network
       '@xnet/plugins':
         specifier: workspace:*
         version: link:../../packages/plugins
