@@ -51,7 +51,78 @@ declare module '@tanstack/react-router' {
 const identityManager = createIdentityManager()
 
 // Hub URL from env or default
-const HUB_URL = import.meta.env.VITE_HUB_URL || 'wss://hub.xnet.fyi'
+const DEFAULT_HUB_URL = import.meta.env.VITE_HUB_URL || 'wss://hub.xnet.fyi'
+
+type SharePayloadV2 = {
+  v: 2
+  resource: string
+  docType: 'page' | 'database' | 'canvas'
+  endpoint: string
+  token: string
+  exp: number
+}
+
+function resolveHubUrlFromLocation(): string {
+  try {
+    const parsed = new URL(window.location.href)
+    const encodedPayload = parsed.searchParams.get('payload')
+    if (
+      !encodedPayload ||
+      encodedPayload.length > 8192 ||
+      !/^[A-Za-z0-9_-]+$/.test(encodedPayload)
+    ) {
+      return DEFAULT_HUB_URL
+    }
+
+    const payload = decodeSharePayload(encodedPayload)
+    if (!payload || payload.exp <= Date.now()) {
+      return DEFAULT_HUB_URL
+    }
+
+    const endpoint = new URL(payload.endpoint)
+    endpoint.searchParams.set('token', payload.token)
+
+    parsed.searchParams.delete('payload')
+    window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${parsed.hash}`)
+
+    return endpoint.toString()
+  } catch {
+    return DEFAULT_HUB_URL
+  }
+}
+
+function decodeSharePayload(encodedPayload: string): SharePayloadV2 | null {
+  try {
+    const json = fromBase64Url(encodedPayload)
+    const decoded = JSON.parse(json) as SharePayloadV2
+    if (
+      decoded?.v !== 2 ||
+      typeof decoded.resource !== 'string' ||
+      (decoded.docType !== 'page' &&
+        decoded.docType !== 'database' &&
+        decoded.docType !== 'canvas') ||
+      typeof decoded.endpoint !== 'string' ||
+      typeof decoded.token !== 'string' ||
+      !Number.isFinite(decoded.exp)
+    ) {
+      return null
+    }
+    return decoded
+  } catch {
+    return null
+  }
+}
+
+function fromBase64Url(str: string): string {
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/')
+  const padding = base64.length % 4
+  if (padding) {
+    base64 += '='.repeat(4 - padding)
+  }
+  const binary = atob(base64)
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
 
 // ─── Types ──────────────────────────────────────────────────────
 type AppState =
@@ -83,6 +154,7 @@ function UnsupportedBrowser({ reason }: { reason: string }): JSX.Element {
 // ─── Main App ───────────────────────────────────────────────────
 export function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: 'initializing' })
+  const [hubUrl] = useState(() => resolveHubUrlFromLocation())
   const storageRef = useRef<StorageContext | null>(null)
 
   // Initialize SQLite and storage on mount
@@ -276,7 +348,7 @@ export function App(): JSX.Element {
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
         {appState.storageWarning && <StorageWarningBanner message={appState.storageWarning} />}
-        <OnboardingProvider defaultHubUrl={HUB_URL} onComplete={handleOnboardingComplete}>
+        <OnboardingProvider defaultHubUrl={hubUrl} onComplete={handleOnboardingComplete}>
           <OnboardingFlow />
         </OnboardingProvider>
       </ThemeProvider>
@@ -297,7 +369,7 @@ export function App(): JSX.Element {
             authorDID: identity.did as `did:key:${string}`,
             signingKey: keyBundle.signingKey,
             blobStore: storage.blobStore,
-            hubUrl: HUB_URL,
+            hubUrl,
             platform: 'web'
           }}
         >
