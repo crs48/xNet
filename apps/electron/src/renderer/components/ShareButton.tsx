@@ -5,8 +5,11 @@
  * Future: Could be extended to share specific rows/blocks.
  */
 
+import type { DID, GrantInput } from '@xnet/data'
+import { useXNet } from '@xnet/react'
 import { Share2, Check, Copy } from 'lucide-react'
 import React, { useState } from 'react'
+import { buildUniversalShareUrl, type ShareDocType } from '../lib/share-payload'
 
 interface ShareButtonProps {
   docId: string
@@ -14,17 +17,87 @@ interface ShareButtonProps {
 }
 
 export function ShareButton({ docId, docType }: ShareButtonProps) {
+  const { authorDID, nodeStore } = useXNet()
   const [isOpen, setIsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [shareValue, setShareValue] = useState<string>(`${docType}:${docId}`)
+  const [activeGrantId, setActiveGrantId] = useState<string | null>(null)
+  const [revoking, setRevoking] = useState(false)
 
-  const handleCopy = async () => {
+  const handleShareSecurely = async () => {
     try {
-      // Encode type with the docId so peers open it correctly
-      await navigator.clipboard.writeText(`${docType}:${docId}`)
+      setError(null)
+
+      const fallbackShare = `${docType}:${docId}`
+      if (!nodeStore?.auth || !authorDID) {
+        setShareValue(fallbackShare)
+        await navigator.clipboard.writeText(fallbackShare)
+        setError('Auth is unavailable. Copied legacy share ID instead.')
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        return
+      }
+
+      const grant = await nodeStore.auth.grant({
+        to: authorDID as DID,
+        actions: ['read', 'write'],
+        resource: docId,
+        expiresIn: 30 * 60 * 1000
+      } satisfies GrantInput)
+
+      const endpoint = import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
+      const payload = {
+        v: 2,
+        resource: docId,
+        docType: docType as ShareDocType,
+        endpoint,
+        token: grant.ucanToken ?? grant.id,
+        exp: grant.expiresAt || Date.now() + 30 * 60 * 1000,
+        transportHints: {
+          ws: true,
+          webrtc: false
+        }
+      } as const
+
+      const universalUrl = buildUniversalShareUrl(payload)
+
+      setShareValue(universalUrl)
+      setActiveGrantId(grant.id)
+      await navigator.clipboard.writeText(universalUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
-      console.error('Failed to copy:', err)
+      const message = err instanceof Error ? err.message : String(err)
+      console.error('Failed to create secure share link:', err)
+      setError(message)
+    }
+  }
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shareValue)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const handleRevoke = async () => {
+    if (!activeGrantId || !nodeStore?.auth) {
+      return
+    }
+
+    try {
+      setRevoking(true)
+      setError(null)
+      await nodeStore.auth.revoke({ grantId: activeGrantId })
+      setActiveGrantId(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setRevoking(false)
     }
   }
 
@@ -63,15 +136,31 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
             </div>
 
             <p className="text-xs text-muted-foreground mb-3">
-              Copy this ID and share it with others. They can use "Open Shared" to access this{' '}
-              {typeLabel.toLowerCase()}.
+              Generate a secure share link with a short-lived grant. Guests can paste it in "Open
+              Shared" to access this {typeLabel.toLowerCase()}.
             </p>
+
+            <div className="flex gap-2 mb-2">
+              <button
+                onClick={handleShareSecurely}
+                className="px-3 py-2 rounded-md text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
+              >
+                Share securely
+              </button>
+              <button
+                onClick={handleRevoke}
+                disabled={!activeGrantId || revoking}
+                className="px-3 py-2 rounded-md text-sm border border-border text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {revoking ? 'Revoking...' : 'Revoke share'}
+              </button>
+            </div>
 
             <div className="flex gap-2">
               <input
                 type="text"
                 readOnly
-                value={`${docType}:${docId}`}
+                value={shareValue}
                 className="flex-1 px-3 py-2 text-xs font-mono bg-secondary border border-border rounded-md text-foreground"
                 onClick={(e) => (e.target as HTMLInputElement).select()}
               />
@@ -87,6 +176,13 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
                 {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
+
+            {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+
+            <p className="text-xs text-muted-foreground mt-2">
+              Routed via Cloudflare. End-to-end content access is controlled by xNet encryption and
+              permissions.
+            </p>
 
             <div className="mt-3 pt-3 border-t border-border">
               <p className="text-xs text-muted-foreground">
