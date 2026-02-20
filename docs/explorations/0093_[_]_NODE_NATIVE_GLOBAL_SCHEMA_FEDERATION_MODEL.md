@@ -1,492 +1,424 @@
-# 0093 - Node-Native Global Schema Federation Model
+# 0093 - Node-Native Global Schema Federation Model (Greenfield)
 
 > **Status:** Exploration  
-> **Tags:** schema, federation, node-store, event-log, ucan, authz, multi-hub, capability-security, local-first  
+> **Tags:** schema, federation, node-store, authz, ucan, multi-hub, local-first, system-metadata  
 > **Created:** 2026-02-20  
-> **Context:** Rewrite of `0091` for a greenfield implementation where nodes (signed changes + replication) are the canonical primitive for schema/system metadata exchange. Historical REST endpoint ideas are treated as non-existent for this design.
+> **Context:** Greenfield design for global schema federation where **nodes are the only canonical primitive** for schema and system-level metadata exchange between peers.
 
 ## Executive Take
 
-xNet already has most of the primitives needed to implement a node-native schema federation control plane from day one:
+For a greenfield xNet federation model, we should treat schema and system metadata exactly like user data:
 
-1. **Canonical truth should be system nodes.** Schema definitions, grants, sync policy, and presence should be represented as typed nodes in reserved namespaces.
-2. **Transport should reuse existing signed change replication.** `node-change` / `node-sync-request` channels already enforce signed, hash-verified change flow.
-3. **Authorization should be node-native first.** Use `NodeStore.auth` (`can/grant/revoke/explain/listGrants`) as the primary policy engine; keep `hub/*` capability checks as transport boundary enforcement.
-4. **Start pure node-native in v1.** SDK + sync/query channels operate directly on system nodes; optional projections can be added later only if needed.
+1. **Represent control plane state as nodes** (`SchemaDefinition`, `SchemaCompatibility`, `SyncPolicy`, `PresenceSummary`, `Grant`).
+2. **Replicate via signed node-change streams**, not bespoke endpoint protocols.
+3. **Use node-native authorization as primary policy** (`store.auth.can/grant/revoke/explain`).
+4. **Use hub capability checks as transport ingress guardrails**, not as policy source of truth.
+5. **Design multi-hub placement from day one** so schema/system state follows explicit policy.
 
-If we do this, xNet gets one mental model for user data and control plane data: **everything is a node, validated by schema, replicated by policy, authorized by node-native policy + capability boundary checks.**
-
----
-
-## What This Rewrites From 0091
-
-`0091` identified the right missing pieces (presence index, scoped authz, policy engine, discovery).  
-This rewrite keeps those goals, but assumes a greenfield build with no legacy endpoint constraints:
-
-- Define system schemas + system namespaces first.
-- Replicate all control-plane state through signed node changes.
-- Keep authorization node-native (`store.auth`) with hub capability ingress guards.
-
-```mermaid
-flowchart LR
-    A[Schema/Presence/Policy requirements] --> B[System Nodes]
-    B --> C[NodeStore + signed changes]
-    C --> D[Hub relay + federation]
-    D --> E[SDK discovery + access flows]
-```
+This gives one mental model: **everything important is a schema-validated node with signed change history**.
 
 ---
 
-## Codebase Evidence (Current Reality)
+## Problem Statement
 
-The current code already supports most of this move:
+We need global schema federation that lets peers exchange:
 
-- Universal node model with schema IRIs and globally unique IDs in `packages/data/src/schema/node.ts`.
-- Node event sourcing + LWW merge + signed changes in `packages/data/src/store/store.ts`.
-- Runtime schema registry with remote resolver support in `packages/data/src/schema/registry.ts`.
-- Hub already stores/replays serialized node changes in `packages/hub/src/storage/interface.ts`.
-- Signed node relay path already exists (`node-change`, hash verification, signature verification) in `packages/hub/src/services/node-relay.ts`.
-- Node-native auth APIs are already present in NodeStore (`store.auth.can/grant/revoke/explain/listGrants`) and enforced via `PermissionError` path in `packages/data/src/store/store.ts`.
-- Capability checks already support resource wildcards/prefixes in `packages/hub/src/auth/capabilities.ts`.
-- Hub server already processes query/index + node sync style WS messages in `packages/hub/src/server.ts`.
-- Federation already has schema exposure filtering (`peer.schemas`, `expose.schemas`) in `packages/hub/src/services/federation.ts`.
-- React provider is still single active signaling URL (`hubUrl ?? signalingServers?.[0]`) in `packages/react/src/context.ts:398`, so orchestration for multi-hub still needs first-class work.
+- Schema definitions and compatibility metadata
+- Presence/discovery metadata
+- Placement and replication policies
+- Delegated access grants
 
-Conclusion: this is a greenfield-ready design. The main work is **composition + modeling**, not inventing new primitives.
+without introducing a separate control protocol stack. If control metadata uses a different primitive than data, complexity and security drift follow.
 
 ---
 
-## Node-Native Control Plane Model
+## Design Goals
 
-### Principle
+- **Single primitive:** nodes + signed changes for both app data and system metadata.
+- **Authorization consistency:** same policy engine semantics for control and content.
+- **Offline-first:** local operation with eventual convergence across hubs.
+- **Multi-hub selective replication:** policy-driven placement by schema/namespace/sensitivity.
+- **Auditable security:** replay-resistant, signature-validated, and explainable denials.
 
-All system metadata is expressed as nodes under reserved namespaces, then replicated via existing sync channels.
+---
+
+## Current Building Blocks (Codebase Signals)
+
+The repo already has the critical primitives to support this design:
+
+- Node identity and schema IRIs in `packages/data/src/schema/node.ts`.
+- Event-sourced NodeStore with Lamport ordering and signed changes in `packages/data/src/store/store.ts`.
+- Node relay with change hash and signature verification in `packages/hub/src/services/node-relay.ts`.
+- Node-native auth API in `packages/data/src/auth/store-auth.ts` (`can`, `grant`, `revoke`, `explain`, listing APIs).
+- Hub UCAN session/auth context in `packages/hub/src/auth/ucan.ts`.
+- Hub capability wildcard/prefix resource checks in `packages/hub/src/auth/capabilities.ts`.
+- Query service with grant-aware filtering and grant indexing in `packages/hub/src/services/query.ts`.
+- Federation schema exposure controls in `packages/hub/src/services/federation.ts`.
+- React provider currently chooses one active signaling URL (`hubUrl ?? signalingServers?.[0]`) in `packages/react/src/context.ts:398`.
+
+Interpretation: most primitives exist; the missing work is a coherent system-schema model and orchestration.
+
+---
+
+## Canonical Architecture
 
 ```mermaid
 flowchart TB
-    subgraph DataPlane[Data Plane]
-      N1[User Nodes\npage/task/comment]
+    subgraph Device[Peer Device]
+      NS[NodeStore]
+      AUTH[StoreAuth / PolicyEvaluator]
+      IDX[Materialized indexes]
+      SDK[Node-native SDK]
     end
 
-    subgraph ControlPlane[Control Plane as Nodes]
-      N2[SchemaDefinition nodes]
-      N3[SchemaCompatibility nodes]
-      N4[PresenceSummary nodes]
-      N5[SyncPolicy nodes]
-      N6[Grant nodes]
+    subgraph Hubs[Federated Hubs]
+      HR[Hub relay\nnode-change/node-sync]
+      HC[Hub capability ingress checks]
+      HF[Federation filters]
     end
 
-    N1 --> E[Change Log]
-    N2 --> E
-    N3 --> E
-    N4 --> E
-    N5 --> E
-    N6 --> E
-    E --> R[Signed replication]
+    SDK --> NS
+    AUTH --> NS
+    NS --> IDX
+    NS --> HR
+    HR --> HC --> HF
 ```
 
-### Reserved system namespaces
+### Principle
 
-- `xnet://did:key:<owner>/sys/schema/*`
-- `xnet://did:key:<owner>/sys/presence/*`
-- `xnet://did:key:<owner>/sys/policy/*`
-- `xnet://did:key:<owner>/sys/authz/*`
-
-These are conventions, not hardcoded authorities. They are validated by schema + capability policy.
+- **Canonical state:** NodeStore + signed changes
+- **Canonical policy:** StoreAuth decisions
+- **Network boundary:** UCAN/capability checks at hub ingress
+- **Derived views:** local indexes and query surfaces derived from node state
 
 ---
 
-## Proposed System Schemas
+## System Schema Pack (Control Plane as Nodes)
 
-Define first-class schemas for control plane entities.
+Define a first-party schema pack for control-plane metadata.
 
 ```mermaid
 classDiagram
     class SchemaDefinition {
-      +id
       +schemaIri
       +version
-      +definition
-      +authorDid
-      +signature
+      +authority
+      +definitionBytes
+      +contentHash
       +publishedAt
       +status
     }
 
     class SchemaCompatibility {
-      +id
       +fromSchema
       +toSchema
       +mode
       +lossless
       +lensRef
+      +validatedAt
+    }
+
+    class SyncPolicy {
+      +subjectDid
+      +matchRules
+      +destinations
+      +priority
+      +revision
+      +effectiveFrom
     }
 
     class PresenceSummary {
-      +id
       +subjectDid
       +schemaIri
       +namespace
-      +nodeCountBucket
+      +countBucket
       +visibility
       +lastUpdatedAt
     }
 
-    class SyncPolicy {
-      +id
-      +subjectDid
-      +matchRules
-      +destinations
-      +effectiveFrom
-      +revision
-    }
-
     class Grant {
-      +id
       +issuer
       +grantee
       +resource
       +actions
       +expiresAt
       +revokedAt
+      +ucanToken
+      +proofDepth
     }
 
     SchemaDefinition --> SchemaCompatibility : evolves
-    SyncPolicy --> PresenceSummary : scopes by
-    Grant --> SyncPolicy : gates writes
+    SyncPolicy --> PresenceSummary : controls publish scope
+    Grant --> SyncPolicy : constrained by
 ```
 
-Note: `Grant` already maps to built-in schema patterns and grant indexing behavior in hub query service.
+### Reserved namespace conventions
+
+- `xnet://did:key:<subject>/sys/schema/*`
+- `xnet://did:key:<subject>/sys/compat/*`
+- `xnet://did:key:<subject>/sys/policy/*`
+- `xnet://did:key:<subject>/sys/presence/*`
+- `xnet://did:key:<subject>/sys/authz/*`
+
+These are policy conventions, enforced by schema validation + auth checks.
 
 ---
 
-## Protocol Shape: System Nodes Over Signed Changes
-
-### Node-native flows
-
-- Publish schema: append `SchemaDefinition` node change
-- Resolve schema: query local/replicated `SchemaDefinition` nodes by IRI/version
-- Discover schemas: query `PresenceSummary` + visible `SchemaDefinition` nodes
+## Data and Control Flow
 
 ```mermaid
 sequenceDiagram
     participant App
-    participant Wallet as Identity+Consent
-    participant Store as Local NodeStore
-    participant Hub as Hub Relay
-    participant Peer as Peer Hub
+    participant StoreAuth
+    participant NodeStore
+    participant Hub
+    participant Peer
 
-    App->>Wallet: request capability (schema/policy scope)
-    Wallet-->>App: scoped UCAN
-    App->>Store: create SchemaDefinition node
-    Store->>Hub: node-change (signed)
+    App->>StoreAuth: can(write, sys/schema/node)
+    StoreAuth-->>App: allow/deny + trace
+    App->>NodeStore: create SchemaDefinition node
+    NodeStore->>Hub: node-change (signed)
+    Hub->>Hub: verify UCAN + capability scope
     Hub->>Hub: verify hash + signature
-    Hub->>Peer: federated node relay
-    Peer->>Peer: apply + index system node
-    App->>Store: query resolved schema graph
+    Hub->>Peer: federate allowed change
+    Peer->>Peer: apply + update indexes
 ```
+
+### Key invariant
+
+No system metadata bypasses node mutation rules. If it is globally relevant, it must exist as a node/change.
 
 ---
 
-## Authorization in a Node-Native World
+## Authorization Model
 
-Use **node authorization as the source of truth** for policy decisions, with hub capabilities as a second-layer boundary for relay/query transport.
+### Layer 1: Node-native policy (source of truth)
 
-### Native node authorization baseline
+- Use `store.auth.can` before local mutations.
+- Use `store.auth.grant` / `store.auth.revoke` for delegations.
+- Use `store.auth.explain` for deterministic denial diagnostics.
+- Use proof-depth and attenuation constraints from grant model.
 
-- Use `store.auth.can({ action, nodeId, patch })` before any local control-plane mutation.
-- Use `store.auth.grant(...)` / `store.auth.revoke(...)` to manage delegations as first-class node-side policy operations.
-- Use `store.auth.explain(...)` for auditable denial reasons and UX diagnostics.
-- Persist grants as nodes (`Grant` schema) so authorization state itself is replicated and inspectable.
+### Layer 2: Hub capability ingress (mandatory boundary)
 
-### Capability examples
-
-- `can: hub/relay`, `with: xnet://did:key:alice/sys/schema/*`
-- `can: hub/query`, `with: xnet://did:key:alice/sys/presence/*`
-- `can: hub/relay`, `with: xnet://did:key:alice/work/*`
-
-### Enforcement points
-
-1. **Node layer (primary):** local create/update/delete checks via `store.auth.can` and policy evaluator.
-2. **Hub layer (boundary):** relay/query checks via `hub/*` capability + resource scope for rooms/namespaces.
-3. **Federation layer:** exposure filters for system schema namespaces and peer trust policy.
-
-### Why we still need hub capability checks
-
-Node authorization alone is not sufficient at network ingress because hubs must reject unauthorized transport operations _before_ applying changes (including malformed or hostile traffic). Hub capability checks remain necessary for:
-
-- WebSocket relay and room join/signal authorization.
-- Query-channel authorization on indexed/materialized data.
-- Defense-in-depth when peers do not share identical local node policy state.
-
-So the recommended stack is: **Node auth is canonical policy; hub capability is mandatory transport gate.**
+- Validate UCAN token audience and capability set at connect/request time.
+- Enforce resource scope with wildcard/prefix checks.
+- Reject unauthorized relay/query before mutation or disclosure.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Requested
-    Requested --> PolicyCheck
-    PolicyCheck --> Allowed: capability + namespace + hub scope
-    PolicyCheck --> Denied: missing scope
-    Allowed --> RelayCheck
-    RelayCheck --> Applied: signature/hash valid
-    RelayCheck --> Rejected: invalid signature/hash
-    Applied --> [*]
-    Denied --> [*]
+    [*] --> RequestReceived
+    RequestReceived --> HubGate
+    HubGate --> Rejected : invalid token/scope
+    HubGate --> NodePolicy : token/scope valid
+    NodePolicy --> Denied : store.auth.can false
+    NodePolicy --> Applied : store.auth.can true
+    Applied --> Replicated
+    Replicated --> [*]
     Rejected --> [*]
+    Denied --> [*]
 ```
+
+Why both layers matter:
+
+- Hub checks protect transport ingress and prevent hostile traffic from entering state transition paths.
+- Node auth keeps policy semantics consistent across local and remote mutation paths.
 
 ---
 
-## Multi-Hub Schema Federation Using Node Replication
+## Presence and Discovery Model
 
-Treat each hub as a selective replica target for both user nodes and system nodes.
+Presence should be derived, not hand-authored:
+
+1. Observe node changes.
+2. Aggregate by schema/namespace/visibility policy.
+3. Emit `PresenceSummary` nodes.
+4. Replicate summaries per policy.
+
+```mermaid
+flowchart LR
+    C[Node changes] --> A[Aggregator]
+    A --> P1[Private summary]
+    A --> P2[Trusted-app summary]
+    A --> P3[Public-metadata summary]
+    P1 --> R1[local only]
+    P2 --> R2[selected hubs]
+    P3 --> R3[broad federation]
+```
+
+Privacy posture:
+
+- Default to private summaries.
+- Use bucketed/noised counts for publishable summaries.
+- Never expose raw node IDs via public presence channels.
+
+---
+
+## Multi-Hub Replication Strategy
+
+System and user nodes should share the same replication planner but allow different policies.
 
 ```mermaid
 flowchart LR
     L[(Local NodeStore)] --> H1[(Personal Hub)]
     L --> H2[(Work Hub)]
-    L --> H3[(Community Hub)]
+    L --> H3[(Partner Hub)]
 
-    S1[sys/schema/* -> H1,H2]
-    S2[sys/policy/* -> local,H1]
-    S3[work/* -> H2 only]
-    S4[public schema metadata -> H3]
+    R1[sys/schema/* -> H1,H2]
+    R2[sys/policy/* -> local,H1]
+    R3[work/* -> H2]
+    R4[public summaries -> H1,H2,H3]
 
-    S1 -.drives.-> L
-    S2 -.drives.-> L
-    S3 -.drives.-> L
-    S4 -.drives.-> L
+    R1 -.policy.-> L
+    R2 -.policy.-> L
+    R3 -.policy.-> L
+    R4 -.policy.-> L
 ```
 
-Key design decision: **system nodes can have different replication classes** than user content.
+Design requirements:
+
+- Deterministic rule ordering (priority + first-match/merge semantics).
+- Dry-run simulation before applying policy revisions.
+- Reconciliation job to heal missed replication after partitions.
 
 ---
 
-## Presence Index as Derived System Nodes
+## Security and Threat Considerations
 
-In 0091, presence index was a missing primitive. In this rewrite, it becomes a node-native aggregation pipeline:
+### Core threats
 
-1. Observe NodeStore changes.
-2. Incrementally aggregate by `schemaId`, namespace, policy visibility.
-3. Emit/update `PresenceSummary` nodes (bucketed/noised as needed).
-4. Replicate according to policy.
+- Schema poisoning via malicious definitions.
+- Capability overreach through broad wildcard grants.
+- Replay of old but validly signed control-plane changes.
+- Metadata leakage through overly specific presence summaries.
 
-This keeps presence information inside the same signing, audit, and replication model.
+### Controls
 
-```mermaid
-flowchart TB
-    C[Incoming node change] --> A[Aggregator]
-    A --> B[PresenceSummary upsert]
-    B --> P[Policy filter]
-    P --> R1[local only]
-    P --> R2[trusted apps]
-    P --> R3[public metadata]
-```
+- Require authority verification and signature validity for schema definitions.
+- Enforce grant attenuation and max proof depth.
+- Deduplicate by change hash + monotonic Lamport checks.
+- Add visibility classes and quantized summary buckets.
+- Audit all deny/allow decisions for system namespaces.
 
 ---
 
-## Greenfield Delivery Strategy
+## External Pattern Synthesis
 
-### Stage 0 - Core system schemas
+Useful patterns from standards and federated systems:
 
-- Implement `SchemaDefinition`, `SchemaCompatibility`, `PresenceSummary`, `SyncPolicy` schemas.
-- Add namespace conventions and validation guards for `sys/*`.
-- Wire node-native authorization for control-plane mutations.
+- **ActivityStreams / ActivityPub:** globally identified objects, extensible vocabularies, collection patterns.
+- **DID Core:** portable principal identifiers and verification method binding.
+- **UCAN:** delegated capability chains and attenuation semantics.
+- **Solid WAC:** resource-centric access evaluation and inheritance concepts.
+- **IPLD:** content-addressed node/link model and graph-first interoperability.
+- **Matrix:** signed event graph replication and eventual convergence under federation.
 
-### Stage 1 - Replication + discovery
-
-- Replicate system nodes over signed node relay/federation channels.
-- Build local materialized schema/presence indexes.
-- Expose discovery/access through SDK-level node queries.
-
-### Stage 2 - Multi-hub orchestration
-
-- Add per-hub placement policies for both content and system namespaces.
-- Add policy simulation and audit trails.
-- Add reconciliation/repair flow for missed system-node replication.
-
-```mermaid
-journey
-    title Greenfield Delivery Journey
-    section Platform
-      System schemas online: 4
-      Signed federation flows: 4
-      Multi-hub orchestration: 5
-    section Developers
-      Node-native SDK adoption: 4
-      Policy + auth explainability: 5
-      End-to-end system-node workflows: 5
-```
+xNet-specific stance: use these patterns through one substrate (nodes + signed changes), not parallel protocol stacks.
 
 ---
 
-## Risk Analysis
+## Implementation Plan Checklist
 
-### Key risks
+### Phase 1 - System schema foundations
 
-- **Schema poisoning:** malicious peers publish deceptive schema nodes.
-- **Metadata leakage:** presence nodes expose sensitive activity signatures.
-- **Policy drift:** multi-hub rules accidentally over-replicate system metadata.
-- **Replay/duplication:** repeated system-node changes create inconsistent indexes.
-
-### Mitigations
-
-- Require signed `SchemaDefinition` and authority verification.
-- Visibility levels + bucketed counts for presence nodes.
-- Dry-run policy simulator before apply.
-- CID/hash deduplication and monotonic lamport checks on replay.
-
----
-
-## External Pattern Crosswalk (What To Borrow)
-
-Web and standards review points to several useful patterns:
-
-- **ActivityPub / ActivityStreams:** object-centric federation, globally unique identifiers, collection paging, and extension model via JSON-LD contexts.
-- **DID Core:** DID/DID URL model for stable principal/resource addressing and verification methods.
-- **UCAN specification:** attenuation, delegation chains, replay-prevention requirements, and capability-oriented auth in local-first systems.
-- **Solid WAC:** resource-centric authorization inheritance and effective ACL evaluation concepts.
-- **IPLD ecosystem:** node/link-first data modeling, content addressing, and schema-driven graph interoperability.
-- **Matrix architecture:** event graph synchronization with eventual consistency and room-scoped federated replication.
-
-What is unique for xNet: combine these patterns around **one universal node/change substrate** for both app data and control metadata.
-
----
-
-## Recommended Architecture (Practical)
-
-```mermaid
-flowchart TB
-    subgraph Device
-      NS[NodeStore]
-      SYS[System Schema Pack\nSchemaDefinition/Policy/Presence]
-      IDX[Materialized Indexes]
-      PE[Policy Engine]
-      CM[Consent Manager]
-    end
-
-    subgraph Network
-      RELAY[Signed node relay]
-      FED[Federation filter]
-    end
-
-    subgraph Edge
-      SDK[Node-native SDK]
-    end
-
-    NS --> SYS --> IDX
-    CM --> PE --> NS
-    NS --> RELAY --> FED
-    NS --> SDK
-```
-
----
-
-## Implementation Checklist
-
-### Phase 1 - System Schemas and Namespaces
-
-- [ ] Define schemas: `SchemaDefinition`, `SchemaCompatibility`, `PresenceSummary`, `SyncPolicy`.
+- [ ] Define and publish system schemas (`SchemaDefinition`, `SchemaCompatibility`, `SyncPolicy`, `PresenceSummary`, `Grant`).
 - [ ] Reserve and document `sys/*` namespace conventions.
-- [ ] Add validation + signature requirements for schema-definition nodes.
-- [ ] Add schema authority verification rules (did/domain authority constraints).
+- [ ] Add strict schema validation and signature requirements for `SchemaDefinition`.
+- [ ] Add schema authority resolution rules (DID and optional domain linkage policy).
 
-### Phase 2 - Node-Native Schema Registry
+### Phase 2 - Node-native authorization wiring
 
-- [ ] Build materialized schema index from system nodes.
-- [ ] Wire `SchemaRegistry` remote resolver to node-backed index queries first.
-- [ ] Add conflict handling policy for concurrent schema publications.
+- [ ] Route all control-plane mutations through `store.auth.can`.
+- [ ] Standardize grant lifecycle on `store.auth.grant/revoke`.
+- [ ] Surface `store.auth.explain` traces in developer and consent UX.
+- [ ] Enforce grant attenuation and proof-depth limits consistently.
 
-### Phase 3 - Presence + Policy as Nodes
+### Phase 3 - Relay and federation hardening
 
-- [ ] Implement local presence aggregation pipeline from NodeStore changes.
-- [ ] Emit/update `PresenceSummary` nodes with privacy buckets.
-- [ ] Model sync policy as `SyncPolicy` nodes with versioned revisions.
-- [ ] Implement policy simulation report before activation.
+- [ ] Ensure relay path validates hash/signature before persistence.
+- [ ] Enforce hub capability scope for all system namespace operations.
+- [ ] Apply federation exposure filters to system namespaces.
+- [ ] Add replay cache and anti-duplication checks for control-plane changes.
 
-### Phase 4 - AuthZ Tightening
+### Phase 4 - Presence + discovery
 
-- [ ] Wire all control-plane node mutations through `store.auth.can` (including patch-aware checks).
-- [ ] Use `store.auth.grant/revoke` as canonical grant lifecycle API and persist grant nodes.
-- [ ] Surface `store.auth.explain` traces in consent/debug tooling.
-- [ ] Extend capability patterns for `sys/*` resources with prefix matching.
-- [ ] Enforce scoped checks at local mutation, hub relay, and federation egress.
-- [ ] Add explicit denial reasons (`missing_scope`, `policy_block`, `hub_not_allowed`).
-- [ ] Add token replay cache checks and revocation propagation hooks.
+- [ ] Build incremental presence aggregator from NodeStore change stream.
+- [ ] Emit/maintain `PresenceSummary` nodes by visibility class.
+- [ ] Implement bucket/noise policy for publishable summaries.
+- [ ] Add SDK discovery APIs backed by node-derived indexes.
 
-### Phase 5 - Multi-Hub Orchestration
+### Phase 5 - Multi-hub orchestration
 
-- [ ] Add first-class multi-hub sync orchestration in React/provider layer.
-- [ ] Add per-hub destination planner for system and user namespaces.
-- [ ] Add health-aware failover policy for non-critical replicas.
-- [ ] Add reconciliation job to repair missed system-node replication.
+- [ ] Add first-class multi-hub sync orchestration (not single-server fallback selection).
+- [ ] Implement policy planner for system and user namespace destinations.
+- [ ] Add simulation endpoint/tooling for policy revisions.
+- [ ] Add reconciliation and repair workflow for partition recovery.
 
-### Phase 6 - Optional External Projection Adapters
+### Phase 6 - Developer experience and docs
 
-- [ ] Define criteria for when projection adapters are needed.
-- [ ] If needed, generate adapter reads from node-backed materialized indexes.
-- [ ] Ensure adapters are strictly derived views (never canonical writes).
-- [ ] Add conformance tests to guarantee adapter output matches node state.
+- [ ] Publish "one primitive" architecture guide for app teams.
+- [ ] Provide reference SDK flow for schema publish/discover/access request.
+- [ ] Ship error taxonomy (`missing_scope`, `policy_denied`, `invalid_signature`, `replay_rejected`).
+- [ ] Add end-to-end sample app demonstrating system-schema federation.
 
 ---
 
 ## Validation Checklist
 
-### Functional correctness
+### Functional validation
 
-- [ ] Publishing a schema as node mutation makes it discoverable locally and remotely.
-- [ ] Resolver returns correct version resolution from node-backed index.
-- [ ] Presence summaries update incrementally under create/update/delete churn.
-- [ ] Multi-hub policy routes system nodes to intended destinations only.
+- [ ] Publishing `SchemaDefinition` nodes propagates to allowed peers.
+- [ ] Schema resolution by IRI/version works from replicated node graph.
+- [ ] Presence summaries stay consistent under create/update/delete churn.
+- [ ] Policy revisions deterministically alter replication destinations.
 
-### Security and authorization
+### Authorization validation
 
-- [ ] Invalid schema signatures are rejected before indexing.
-- [ ] Unauthorized `sys/*` mutations are denied by `store.auth.can` before local commit.
-- [ ] Unauthorized relay/query attempts are denied by hub capability checks at ingress.
-- [ ] Replay of previously seen system-node changes is rejected.
-- [ ] Revoked grants remove effective write/query capability within one refresh window.
+- [ ] Unauthorized local system mutations are blocked by `store.auth.can`.
+- [ ] Unauthorized relay/query traffic is rejected at hub ingress.
+- [ ] Delegation attenuation violations are rejected.
+- [ ] Revocations take effect within one policy refresh cycle.
 
-### Privacy and leakage control
+### Security validation
 
-- [ ] Presence summaries obey visibility class (`private`, `trusted-app`, `public-metadata`).
-- [ ] Bucket/noise behavior prevents exact count leakage where configured.
-- [ ] Federation exposure filters do not leak non-exposed system schemas.
-- [ ] Audit log captures all exposure and denial decisions.
+- [ ] Invalid signatures/hashes are rejected pre-apply.
+- [ ] Replay attempts with seen change hashes are rejected.
+- [ ] Cross-namespace escalation attempts are denied and audited.
+- [ ] Presence outputs do not leak raw resource identifiers.
 
-### Resilience
+### Resilience validation
 
-- [ ] Offline-first mutation path works for system nodes and replays cleanly on reconnect.
-- [ ] Partitioned hubs converge on same schema-definition set after healing.
-- [ ] Duplicate or out-of-order changes converge to deterministic state.
-- [ ] Index rebuild from raw change log reproduces identical schema registry state.
+- [ ] Offline mutations replay correctly on reconnect.
+- [ ] Partitioned hubs converge after healing.
+- [ ] Duplicate/out-of-order deliveries converge deterministically.
+- [ ] Full index rebuild from change log reproduces live indexes.
 
-### DX and UX
+### UX/DX validation
 
-- [ ] SDK flow for access request + schema discovery is implementable quickly.
-- [ ] Error surfaces distinguish auth denied vs schema unavailable vs policy blocked.
-- [ ] Consent UX clearly shows data type, scope, destination, and duration.
-- [ ] Developers can reason about one primitive: nodes for both data and control.
-
----
-
-## Open Questions
-
-1. Should schema authority be DID-only, domain-only, or mixed with signed linkage proofs?
-2. Should `PresenceSummary` be exact locally but always bucketed remotely?
-3. Do we need separate retention policies for control-plane nodes vs user-content nodes?
-4. Should schema compatibility/lens metadata be bundled with schema nodes or separate nodes?
-5. What is the minimum viable federation contract for third-party hubs that do not implement the full system-schema pack?
+- [ ] Consent UI clearly presents what/where/how-long for access grants.
+- [ ] Developers can integrate node-native discovery + auth flow quickly.
+- [ ] Errors distinguish auth denial, data absence, and network failures.
+- [ ] Debug tooling exposes policy traces and replication decisions.
 
 ---
 
-## Recommendations and Next Actions
+## Open Decisions
 
-1. **Start with node-backed schema registry index** (highest leverage).
-2. **Add system schemas for presence + sync policy next** so control-plane data uses the same substrate.
-3. **Ship node-native SDK discovery + access APIs early** so apps adopt one primitive from the start.
-4. **Prioritize multi-hub orchestration in React/provider** to unlock practical policy-driven placement.
-5. **Publish a short "one primitive" architecture note** for internal alignment: nodes are canonical.
+1. Authority model for schema publication: DID-only vs DID+domain linkage.
+2. Presence privacy defaults: exact local counts vs mandatory remote buckets.
+3. Retention policy split: control-plane metadata vs user-content history.
+4. Compatibility metadata form: embedded in schema nodes vs separate nodes.
+5. Minimum federation profile for third-party hubs to participate safely.
+
+---
+
+## Recommended Immediate Actions
+
+1. Implement system schema pack and namespace policy first.
+2. Wire node-native auth enforcement for all control-plane mutations.
+3. Build node-derived schema index + presence aggregator.
+4. Add multi-hub orchestration in React/provider sync layer.
+5. Publish a concise internal architecture note: "control plane is nodes".
 
 ---
 
@@ -496,13 +428,13 @@ flowchart TB
 
 - `docs/explorations/0091_[_]_GLOBAL_SCHEMA_FEDERATION_MODEL.md`
 - `packages/data/src/schema/node.ts`
-- `packages/data/src/schema/registry.ts`
 - `packages/data/src/store/store.ts`
-- `packages/hub/src/server.ts`
-- `packages/hub/src/services/node-relay.ts`
+- `packages/data/src/auth/store-auth.ts`
+- `packages/hub/src/auth/ucan.ts`
 - `packages/hub/src/auth/capabilities.ts`
-- `packages/hub/src/services/federation.ts`
+- `packages/hub/src/services/node-relay.ts`
 - `packages/hub/src/services/query.ts`
+- `packages/hub/src/services/federation.ts`
 - `packages/react/src/context.ts`
 - `docs/VISION.md`
 
