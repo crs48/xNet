@@ -164,6 +164,79 @@ These are policy conventions, enforced by schema validation + auth checks.
 
 ---
 
+## Policy in Schema (Defaults) + Node Policy (Effective Rules)
+
+Yes, policy should be encoded in schema definitions, but as **defaults and constraints**, not as the only enforcement source.
+
+Recommended split:
+
+- **SchemaDefinition node:** static policy defaults and safety constraints.
+- **SyncPolicy nodes:** user/org/hub-specific placement and visibility overrides.
+- **Grant nodes:** time-bound delegated access constraints.
+- **StoreAuth evaluation:** computes effective policy at mutation/query time.
+
+### Schema-level policy defaults example
+
+```ts
+type SchemaPolicyDefaults = {
+  authz?: {
+    read: 'owner' | 'granted' | 'public'
+    write: 'owner' | 'granted'
+    share: 'owner' | 'granted'
+  }
+  placement?: {
+    replicationClass: 'local' | 'trusted-hubs' | 'federated'
+    metadataMode: 'none' | 'summary' | 'full'
+  }
+  privacy?: {
+    sensitivity: 'low' | 'medium' | 'high'
+    presenceVisibility: 'private' | 'trusted-app' | 'public-metadata'
+  }
+}
+
+type XNetSchemaDefinition = {
+  '@id': string
+  version: string
+  properties: Record<string, unknown>
+  authorization?: Record<string, unknown>
+  policyDefaults?: SchemaPolicyDefaults
+}
+```
+
+### Effective policy resolution
+
+```ts
+type EffectivePolicyInput = {
+  schemaDefaults?: SchemaPolicyDefaults
+  orgPolicyOverlays: SyncPolicy[]
+  userPolicyOverlays: SyncPolicy[]
+  activeGrants: Grant[]
+}
+
+const resolveEffectivePolicy = (input: EffectivePolicyInput) => {
+  // Precedence: schema defaults < org overlays < user overlays < grant constraints
+  // Grants can only attenuate, never expand beyond policy ceilings.
+  return mergePolicyLayers(input)
+}
+```
+
+```mermaid
+flowchart LR
+    S[Schema policyDefaults] --> E[Effective Policy]
+    O[Org SyncPolicy nodes] --> E
+    U[User SyncPolicy nodes] --> E
+    G[Active Grant nodes] --> E
+    E --> A[StoreAuth can/explain decision]
+```
+
+Why this works well:
+
+- Keeps schema expressive and self-describing.
+- Avoids schema version churn for per-user/per-hub policy changes.
+- Preserves auditable, time-scoped delegation as first-class grant nodes.
+
+---
+
 ## Data and Control Flow
 
 ```mermaid
