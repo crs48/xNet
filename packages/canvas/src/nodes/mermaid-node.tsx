@@ -49,7 +49,6 @@ async function loadMermaid(): Promise<MermaidModule> {
   if (mermaidModule) return mermaidModule
 
   if (!mermaidPromise) {
-    // @ts-expect-error - mermaid is an optional peer dependency
     mermaidPromise = import('mermaid')
       .then((m: { default?: MermaidModule }) => {
         mermaidModule = (m.default ?? m) as MermaidModule

@@ -6,6 +6,7 @@
  */
 
 import type { DID, GrantInput } from '@xnet/data'
+import { generateIdentity } from '@xnet/identity'
 import { useXNet } from '@xnet/react'
 import { Share2, Check, Copy } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
@@ -17,12 +18,15 @@ interface ShareButtonProps {
 }
 
 export function ShareButton({ docId, docType }: ShareButtonProps) {
-  const { authorDID, nodeStore } = useXNet()
+  const { authorDID, nodeStore, nodeStoreReady } = useXNet()
   const [isOpen, setIsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [shareValue, setShareValue] = useState<string>(`${docType}:${docId}`)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [shareValue, setShareValue] = useState<string>('')
   const [activeGrantId, setActiveGrantId] = useState<string | null>(null)
+  const [expiresAt, setExpiresAt] = useState<number | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
   const [revoking, setRevoking] = useState(false)
   const [tunnelStatus, setTunnelStatus] = useState<Awaited<
     ReturnType<typeof window.xnetTunnel.status>
@@ -55,25 +59,41 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
   }, [])
 
   const handleShareSecurely = async () => {
-    try {
-      setError(null)
+    if (isGenerating) {
+      return
+    }
 
-      const fallbackShare = `${docType}:${docId}`
-      if (!nodeStore?.auth || !authorDID) {
-        setShareValue(fallbackShare)
-        await navigator.clipboard.writeText(fallbackShare)
-        setError('Auth is unavailable. Copied legacy share ID instead.')
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+    try {
+      setIsGenerating(true)
+      setError(null)
+      setStatusMessage(null)
+
+      if (!nodeStore || !authorDID) {
+        setError('Secure sharing is still initializing. Please wait a moment and try again.')
         return
       }
 
-      const grant = await nodeStore.auth.grant({
-        to: authorDID as DID,
-        actions: ['read', 'write'],
-        resource: docId,
-        expiresIn: 30 * 60 * 1000
-      } satisfies GrantInput)
+      const guestIdentity = generateIdentity()
+      const guestDid = guestIdentity.identity.did as DID
+
+      const fallbackExpiry = Date.now() + 30 * 60 * 1000
+      const fallbackToken = `anon-${Math.random().toString(36).slice(2)}.${fallbackExpiry}`
+
+      let token = fallbackToken
+      let grantId: string | null = null
+      let grantExpiry = fallbackExpiry
+
+      if (nodeStore.auth) {
+        const grant = await nodeStore.auth.grant({
+          to: guestDid,
+          actions: ['read', 'write'],
+          resource: docId,
+          expiresIn: 30 * 60 * 1000
+        } satisfies GrantInput)
+        token = grant.ucanToken ?? grant.id
+        grantId = grant.id
+        grantExpiry = grant.expiresAt || fallbackExpiry
+      }
 
       let endpoint = import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
       try {
@@ -91,8 +111,8 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
         resource: docId,
         docType: docType as ShareDocType,
         endpoint,
-        token: grant.ucanToken ?? grant.id,
-        exp: grant.expiresAt || Date.now() + 30 * 60 * 1000,
+        token,
+        exp: grantExpiry,
         transportHints: {
           ws: true,
           webrtc: false
@@ -102,20 +122,42 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
       const universalUrl = buildUniversalShareUrl(payload)
 
       setShareValue(universalUrl)
-      setActiveGrantId(grant.id)
+      setActiveGrantId(grantId)
+      setExpiresAt(payload.exp)
       await navigator.clipboard.writeText(universalUrl)
+      setStatusMessage(
+        nodeStore.auth
+          ? 'Secure link active. Copied to clipboard.'
+          : 'Share link generated (anonymous mode). Copied to clipboard.'
+      )
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       console.error('Failed to create secure share link:', err)
-      setError(message)
+      setError(`Could not create secure link: ${message}`)
+    } finally {
+      setIsGenerating(false)
     }
   }
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareValue)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+      setStatusMessage('Copied to clipboard.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const handleCopyLegacy = async () => {
+    const legacyShare = `${docType}:${docId}`
+    try {
+      await navigator.clipboard.writeText(legacyShare)
+      setStatusMessage('Copied legacy share ID.')
+      setError(null)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -133,6 +175,8 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
       setError(null)
       await nodeStore.auth.revoke({ grantId: activeGrantId })
       setActiveGrantId(null)
+      setExpiresAt(null)
+      setStatusMessage('Secure link revoked.')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -175,16 +219,24 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
             </div>
 
             <p className="text-xs text-muted-foreground mb-3">
-              Generate a secure share link with a short-lived grant. Guests can paste it in "Open
-              Shared" to access this {typeLabel.toLowerCase()}.
+              Click <strong>Share securely</strong> to generate and copy a temporary link. The
+              recipient can paste it in <strong>Open Shared</strong> to access this{' '}
+              {typeLabel.toLowerCase()}.
             </p>
+
+            {!nodeStoreReady && (
+              <p className="text-xs text-amber-400 mb-3">
+                Preparing secure sharing for this page...
+              </p>
+            )}
 
             <div className="flex gap-2 mb-2">
               <button
                 onClick={handleShareSecurely}
-                className="px-3 py-2 rounded-md text-sm bg-primary text-white hover:bg-primary-hover transition-colors"
+                disabled={isGenerating || !nodeStoreReady}
+                className="px-3 py-2 rounded-md text-sm bg-primary text-white hover:bg-primary-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Share securely
+                {isGenerating ? 'Generating...' : 'Share securely'}
               </button>
               <button
                 onClick={handleRevoke}
@@ -202,21 +254,40 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
                 value={shareValue}
                 className="flex-1 px-3 py-2 text-xs font-mono bg-secondary border border-border rounded-md text-foreground"
                 onClick={(e) => (e.target as HTMLInputElement).select()}
+                placeholder="No secure link yet"
               />
               <button
                 onClick={handleCopy}
+                disabled={!shareValue}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-sm transition-colors ${
                   copied
                     ? 'bg-green-500/20 text-green-400'
                     : 'bg-primary text-white hover:bg-primary-hover'
-                }`}
+                } disabled:opacity-60 disabled:cursor-not-allowed`}
               >
                 {copied ? <Check size={14} /> : <Copy size={14} />}
                 {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
 
+            <div className="mt-2 flex items-center justify-between">
+              <button
+                onClick={handleCopyLegacy}
+                className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+              >
+                Copy legacy ID
+              </button>
+              {expiresAt && (
+                <p className="text-xs text-muted-foreground">
+                  Expires {new Date(expiresAt).toLocaleTimeString()}
+                </p>
+              )}
+            </div>
+
             {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+            {statusMessage && !error && (
+              <p className="text-xs text-green-400 mt-2">{statusMessage}</p>
+            )}
 
             <p className="text-xs text-muted-foreground mt-2">
               Routed via Cloudflare. End-to-end content access is controlled by xNet encryption and
