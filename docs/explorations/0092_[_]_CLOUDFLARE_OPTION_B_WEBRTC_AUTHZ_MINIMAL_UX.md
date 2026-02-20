@@ -278,11 +278,11 @@ flowchart TD
 
 ## Phase 2 - Cloudflare tunnel lifecycle in Electron
 
-- [ ] Add tunnel manager service in main/utility process to spawn/monitor `cloudflared`.
-- [ ] Support `Temporary Share` (Quick Tunnel) and `Persistent Share` (named tunnel).
-- [ ] Parse and persist public endpoint for active share links.
-- [ ] Ensure process cleanup on app shutdown and explicit stop.
-- [ ] Emit health telemetry/events to renderer (`starting`, `ready`, `degraded`, `stopped`).
+- [x] Add tunnel manager service in main/utility process to spawn/monitor `cloudflared`.
+- [x] Support `Temporary Share` (Quick Tunnel) and `Persistent Share` (named tunnel).
+- [x] Parse and persist public endpoint for active share links.
+- [x] Ensure process cleanup on app shutdown and explicit stop.
+- [x] Emit health telemetry/events to renderer (`starting`, `ready`, `degraded`, `stopped`).
 
 ## Phase 3 - WS relay AuthZ hardening
 
