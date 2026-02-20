@@ -11,7 +11,7 @@ import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
 import { useDevTools } from '@xnet/devtools'
 import { useQuery, useMutate } from '@xnet/react'
 import { ThemeToggle } from '@xnet/ui'
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { AddSharedDialog } from './components/AddSharedDialog'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { CanvasView } from './components/CanvasView'
@@ -34,6 +34,7 @@ export function App() {
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
   const [selectedDocType, setSelectedDocType] = useState<DocType>('page')
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
+  const [prefilledShareValue, setPrefilledShareValue] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const { setActiveNodeId } = useDevTools()
 
@@ -71,6 +72,14 @@ export function App() {
   ].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
 
   const isLoading = pagesLoading || databasesLoading || canvasesLoading
+
+  useEffect(() => {
+    const cleanup = window.xnet.onSharePayload((payload) => {
+      setPrefilledShareValue(payload)
+      setShowAddSharedDialog(true)
+    })
+    return cleanup
+  }, [])
 
   // Handle document selection
   const handleSelect = useCallback(
@@ -208,7 +217,10 @@ export function App() {
           onSelect={handleSelect}
           onDelete={handleDelete}
           onCreate={handleCreate}
-          onAddShared={() => setShowAddSharedDialog(true)}
+          onAddShared={() => {
+            setPrefilledShareValue('')
+            setShowAddSharedDialog(true)
+          }}
           onSettings={() => setShowSettings(true)}
         />
 
@@ -219,8 +231,12 @@ export function App() {
       {/* Add Shared Dialog */}
       <AddSharedDialog
         isOpen={showAddSharedDialog}
-        onClose={() => setShowAddSharedDialog(false)}
+        onClose={() => {
+          setShowAddSharedDialog(false)
+          setPrefilledShareValue('')
+        }}
         onAdd={handleAddShared}
+        initialValue={prefilledShareValue}
       />
 
       {/* Auto-install bundled plugins */}
