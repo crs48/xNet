@@ -209,6 +209,52 @@ flowchart TB
 - Microcopy: `Routed via Cloudflare. End-to-end content access is controlled by xNet encryption and permissions.`
 - Link in popover: `Learn about Cloudflare Tunnel` -> `https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/`.
 
+## Deep Link + Web Fallback
+
+Yes - this is a strong fit for Option B and improves both UX and testing ergonomics.
+
+### Recommended link format
+
+Use an HTTPS universal share URL as the thing users copy:
+
+`https://xnet.fyi/app/share?payload=<base64url-share-payload>`
+
+This page should:
+
+1. Try to open Electron via custom protocol deep link (example `xnet://share?payload=...`).
+2. If Electron is not available, continue in web app flow at `https://xnet.fyi/app`.
+3. Always offer "Copy raw share token" for manual paste.
+
+```mermaid
+flowchart TD
+    A[User opens https://xnet.fyi/app/share?... ] --> B{Electron protocol handler available?}
+    B -->|Yes| C[Open xnet://share?payload=...]
+    C --> D[Electron opens Add Shared flow]
+    B -->|No / timeout| E[Stay in web app at /app]
+    E --> F[Open shared doc in browser]
+    A --> G[Copy raw token button]
+    G --> H[Manual paste into Electron Add Shared]
+```
+
+### Electron behavior
+
+- Register protocol handler (`xnet://`) in main process.
+- Handle deep links on macOS (`open-url`) and Windows/Linux (`second-instance` argv).
+- Route payload to renderer and auto-open `Add Shared` with prefilled value.
+- If parsing fails, surface clean error and keep manual paste available.
+
+### Web behavior
+
+- `/app/share` acts as launcher/bridge page.
+- If app-launch attempt fails after short timeout (for example 800-1500ms), auto-continue in web.
+- Preserve the same `SharePayloadV2` validation rules as Electron.
+
+### Local testing / backup UX
+
+- Keep direct paste into Electron (`AddSharedDialog`) as first-class fallback.
+- Add `Paste from clipboard` shortcut button for faster local test loops.
+- Allow raw payload input in dev mode to test expiry/auth errors deterministically.
+
 ---
 
 ## Implementation Plan
@@ -216,10 +262,19 @@ flowchart TB
 ## Phase 1 - Link/Auth foundation (no WebRTC yet)
 
 - [ ] Introduce `SharePayloadV2` parser/encoder in renderer share utilities.
+- [ ] Introduce universal share URL builder (`https://xnet.fyi/app/share?...`).
 - [ ] Extend `ShareButton` to request scoped grant via `store.auth.grant()` before copy.
 - [ ] Extend `AddSharedDialog` to parse v2 payload and validate expiry/version.
+- [ ] Add `Paste from clipboard` helper and keep raw payload entry as fallback.
 - [ ] Add backward compatibility for legacy `type:docId` links.
 - [ ] Add `Revoke share` action mapped to `store.auth.revoke()`.
+
+## Phase 1.5 - Deep link plumbing (Electron + Web)
+
+- [ ] Register `xnet://` protocol handler in Electron main process.
+- [ ] Handle deep-link events (`open-url` and `second-instance`) and forward payload to renderer.
+- [ ] Add `/app/share` bridge route in web app that attempts deep-link launch then falls back to web.
+- [ ] Ensure payload never leaks to third-party origins (strict same-origin handling and no external redirects).
 
 ## Phase 2 - Cloudflare tunnel lifecycle in Electron
 
@@ -259,6 +314,8 @@ flowchart TB
 
 - [ ] Owner creates secure link in <2 clicks.
 - [ ] Guest pastes link and joins without manual endpoint setup.
+- [ ] Opening universal link launches Electron when installed.
+- [ ] Opening universal link falls back to `xnet.fyi/app` when Electron is unavailable.
 - [ ] Legacy link format still opens existing shared docs.
 - [ ] Revoke action invalidates new join attempts immediately.
 - [ ] Tunnel stop tears down access and updates UI status.
@@ -290,6 +347,7 @@ flowchart TB
 - [ ] Users understand sharing without knowing tunnel internals.
 - [ ] Cloudflare disclosure is visible but non-blocking.
 - [ ] Only one primary CTA is needed for common sharing flow.
+- [ ] Manual paste path remains obvious and reliable as backup.
 
 ---
 
