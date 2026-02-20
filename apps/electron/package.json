@@ -19,6 +19,8 @@
     "postinstall": "electron-builder install-app-deps",
     "preview": "electron-vite preview",
     "dist": "npm run build && electron-builder",
+    "dist:mac:self-signed": "./scripts/build-macos-self-signed.sh",
+    "dist:mac:self-signed:arm64": "./scripts/build-macos-self-signed.sh arm64",
     "test": "vitest run",
     "test:watch": "vitest"
   },
