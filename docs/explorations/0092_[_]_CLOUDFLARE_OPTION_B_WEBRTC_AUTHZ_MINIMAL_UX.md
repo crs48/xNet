@@ -286,10 +286,10 @@ flowchart TD
 
 ## Phase 3 - WS relay AuthZ hardening
 
-- [ ] Enforce token expiry + capability checks on connect/subscribe/relay actions.
-- [ ] Use grant-index lookup path for resource-level authorization checks.
-- [ ] Return structured denial errors (`UNAUTHORIZED`, `TOKEN_EXPIRED`, `TOKEN_REVOKED`).
-- [ ] Log auth decisions for DevTools/AuthZ timeline visibility.
+- [x] Enforce token expiry + capability checks on connect/subscribe/relay actions.
+- [x] Use grant-index lookup path for resource-level authorization checks.
+- [x] Return structured denial errors (`UNAUTHORIZED`, `TOKEN_EXPIRED`, `TOKEN_REVOKED`).
+- [x] Log auth decisions for DevTools/AuthZ timeline visibility.
 
 ## Phase 4 - WebRTC transport path
 

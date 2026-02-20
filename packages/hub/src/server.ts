@@ -3,7 +3,7 @@
  */
 
 import type { AuthSession } from './auth/ucan'
-import type { SerializedNodeChange } from './storage/interface'
+import type { HubStorage, SerializedNodeChange } from './storage/interface'
 import type { HubConfig, HubInstance } from './types'
 import type { MiddlewareHandler } from 'hono'
 import type { IncomingMessage } from 'http'
@@ -191,14 +191,144 @@ const isClientHandshake = (
 const topicToResource = (topic: string): string =>
   topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
 
-const checkRoomAuth = (session: AuthSession, topics: string[]): boolean =>
-  topics.every((topic) => {
-    const resource = topicToResource(topic)
-    return (
-      hasHubCapability(session.capabilities, 'hub/relay', resource) ||
-      hasHubCapability(session.capabilities, 'hub/signal', resource)
-    )
+type AuthzCode = 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'TOKEN_REVOKED'
+
+type AuthzDecision = {
+  allowed: boolean
+  code?: AuthzCode
+  message?: string
+  source?: 'capability' | 'grant-index'
+}
+
+const isTokenExpired = (session: AuthSession): boolean => {
+  const exp = session.token?.exp
+  if (typeof exp !== 'number') {
+    return false
+  }
+  return exp <= Math.floor(Date.now() / 1000)
+}
+
+const logAuthDecision = (input: {
+  allowed: boolean
+  did: string
+  action: string
+  resource: string
+  source?: 'capability' | 'grant-index'
+  code?: AuthzCode
+  reason?: string
+}): void => {
+  const base = `[AuthZ] ${input.allowed ? 'allow' : 'deny'} ${input.action} resource=${input.resource} did=${input.did}`
+  if (input.allowed) {
+    console.log(`${base} source=${input.source ?? 'capability'}`)
+    return
+  }
+  console.warn(
+    `${base} code=${input.code ?? 'UNAUTHORIZED'} reason=${input.reason ?? 'unauthorized'}`
+  )
+}
+
+const authorizeRoomAction = async (input: {
+  storage: HubStorage
+  session: AuthSession
+  action: 'hub/relay' | 'hub/signal'
+  topic: string
+}): Promise<AuthzDecision> => {
+  const resource = topicToResource(input.topic)
+
+  if (isTokenExpired(input.session)) {
+    const decision: AuthzDecision = {
+      allowed: false,
+      code: 'TOKEN_EXPIRED',
+      message: 'Authentication token has expired'
+    }
+    logAuthDecision({
+      allowed: false,
+      did: input.session.did,
+      action: input.action,
+      resource,
+      code: decision.code,
+      reason: decision.message
+    })
+    return decision
+  }
+
+  if (
+    hasHubCapability(input.session.capabilities, input.action, resource) ||
+    hasHubCapability(input.session.capabilities, 'hub/signal', resource)
+  ) {
+    logAuthDecision({
+      allowed: true,
+      did: input.session.did,
+      action: input.action,
+      resource,
+      source: 'capability'
+    })
+    return { allowed: true, source: 'capability' }
+  }
+
+  const grantedDocIds = await input.storage.listGrantedDocIds(input.session.did)
+  if (grantedDocIds.includes(resource)) {
+    logAuthDecision({
+      allowed: true,
+      did: input.session.did,
+      action: input.action,
+      resource,
+      source: 'grant-index'
+    })
+    return { allowed: true, source: 'grant-index' }
+  }
+
+  if (Array.isArray(input.session.token?.prf) && input.session.token.prf.length > 0) {
+    const decision: AuthzDecision = {
+      allowed: false,
+      code: 'TOKEN_REVOKED',
+      message: 'Grant token is no longer active for this resource'
+    }
+    logAuthDecision({
+      allowed: false,
+      did: input.session.did,
+      action: input.action,
+      resource,
+      code: decision.code,
+      reason: decision.message
+    })
+    return decision
+  }
+
+  const decision: AuthzDecision = {
+    allowed: false,
+    code: 'UNAUTHORIZED',
+    message: 'Capability and grant index checks denied access'
+  }
+  logAuthDecision({
+    allowed: false,
+    did: input.session.did,
+    action: input.action,
+    resource,
+    code: decision.code,
+    reason: decision.message
   })
+  return decision
+}
+
+const checkRoomAuth = async (
+  storage: HubStorage,
+  session: AuthSession,
+  topics: string[]
+): Promise<{ ok: true } | { ok: false; topic: string; decision: AuthzDecision }> => {
+  for (const topic of topics) {
+    const decision = await authorizeRoomAction({
+      storage,
+      session,
+      action: 'hub/signal',
+      topic
+    })
+    if (!decision.allowed) {
+      return { ok: false, topic, decision }
+    }
+  }
+  return { ok: true }
+}
 
 export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const app = new Hono()
@@ -728,6 +858,26 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             }
 
             if (isNodeSyncRequest(payload)) {
+              const roomDecision = await authorizeRoomAction({
+                storage,
+                session,
+                action: 'hub/relay',
+                topic: payload.room
+              })
+              if (!roomDecision.allowed) {
+                ws.send(
+                  JSON.stringify({
+                    type: 'node-error',
+                    code: roomDecision.code ?? 'UNAUTHORIZED',
+                    error: roomDecision.message ?? 'Unauthorized',
+                    action: 'hub/relay',
+                    resource: topicToResource(payload.room)
+                  })
+                )
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                return
+              }
+
               try {
                 const response = await nodeRelay.handleSyncRequest(payload, authContext)
                 ws.send(JSON.stringify(response))
@@ -746,6 +896,26 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             }
 
             if (isPublishMessage(payload) && isNodeSyncRequest(payload.data)) {
+              const roomDecision = await authorizeRoomAction({
+                storage,
+                session,
+                action: 'hub/relay',
+                topic: payload.data.room
+              })
+              if (!roomDecision.allowed) {
+                ws.send(
+                  JSON.stringify({
+                    type: 'node-error',
+                    code: roomDecision.code ?? 'UNAUTHORIZED',
+                    error: roomDecision.message ?? 'Unauthorized',
+                    action: 'hub/relay',
+                    resource: topicToResource(payload.data.room)
+                  })
+                )
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                return
+              }
+
               try {
                 const response = await nodeRelay.handleSyncRequest(payload.data, authContext)
                 ws.send(JSON.stringify(response))
@@ -765,13 +935,45 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
             if (config.auth && isSubscribeMessage(payload)) {
               const topics = parseTopics(payload.topics)
-              if (!checkRoomAuth(session, topics)) {
-                ws.close(4403, 'Insufficient capabilities for room')
+              const auth = await checkRoomAuth(storage, session, topics)
+              if (!auth.ok) {
+                const resource = topicToResource(auth.topic)
+                ws.send(
+                  JSON.stringify({
+                    type: 'auth-denied',
+                    code: auth.decision.code ?? 'UNAUTHORIZED',
+                    action: 'hub/signal',
+                    resource,
+                    error: auth.decision.message ?? 'Insufficient capabilities for room'
+                  })
+                )
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                ws.close(4403, auth.decision.message ?? 'Insufficient capabilities for room')
                 return
               }
             }
 
             if (isPublishMessage(payload) && isNodeChangePayload(payload.data)) {
+              const roomDecision = await authorizeRoomAction({
+                storage,
+                session,
+                action: 'hub/relay',
+                topic: payload.data.room
+              })
+              if (!roomDecision.allowed) {
+                ws.send(
+                  JSON.stringify({
+                    type: 'node-error',
+                    code: roomDecision.code ?? 'UNAUTHORIZED',
+                    error: roomDecision.message ?? 'Unauthorized',
+                    action: 'hub/relay',
+                    resource: topicToResource(payload.data.room)
+                  })
+                )
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                return
+              }
+
               try {
                 const isNew = await nodeRelay.handleNodeChange(payload.data, authContext)
                 if (!isNew) return

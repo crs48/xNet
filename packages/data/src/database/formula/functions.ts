@@ -150,6 +150,14 @@ const logicFunctions: Record<string, FormulaFunction> = {
 
 // ─── Date Functions ──────────────────────────────────────────────────────────
 
+const parseFormulaDate = (value: unknown): Date => {
+  const raw = String(value)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return new Date(`${raw}T00:00:00.000Z`)
+  }
+  return new Date(raw)
+}
+
 const dateFunctions: Record<string, FormulaFunction> = {
   NOW: () => new Date().toISOString(),
 
@@ -159,53 +167,53 @@ const dateFunctions: Record<string, FormulaFunction> = {
     return new Date(Number(y), Number(m) - 1, Number(d)).toISOString()
   },
 
-  YEAR: (d: unknown) => new Date(String(d)).getFullYear(),
+  YEAR: (d: unknown) => parseFormulaDate(d).getUTCFullYear(),
 
-  MONTH: (d: unknown) => new Date(String(d)).getMonth() + 1,
+  MONTH: (d: unknown) => parseFormulaDate(d).getUTCMonth() + 1,
 
-  DAY: (d: unknown) => new Date(String(d)).getDate(),
+  DAY: (d: unknown) => parseFormulaDate(d).getUTCDate(),
 
-  WEEKDAY: (d: unknown) => new Date(String(d)).getDay(),
+  WEEKDAY: (d: unknown) => parseFormulaDate(d).getUTCDay(),
 
-  HOUR: (d: unknown) => new Date(String(d)).getHours(),
+  HOUR: (d: unknown) => parseFormulaDate(d).getUTCHours(),
 
-  MINUTE: (d: unknown) => new Date(String(d)).getMinutes(),
+  MINUTE: (d: unknown) => parseFormulaDate(d).getUTCMinutes(),
 
-  SECOND: (d: unknown) => new Date(String(d)).getSeconds(),
+  SECOND: (d: unknown) => parseFormulaDate(d).getUTCSeconds(),
 
   DATEADD: (d: unknown, n: unknown, unit: unknown) => {
-    const date = new Date(String(d))
+    const date = parseFormulaDate(d)
     const amount = Number(n)
     const unitStr = String(unit).toLowerCase()
 
     switch (unitStr) {
       case 'day':
       case 'days':
-        date.setDate(date.getDate() + amount)
+        date.setUTCDate(date.getUTCDate() + amount)
         break
       case 'week':
       case 'weeks':
-        date.setDate(date.getDate() + amount * 7)
+        date.setUTCDate(date.getUTCDate() + amount * 7)
         break
       case 'month':
       case 'months':
-        date.setMonth(date.getMonth() + amount)
+        date.setUTCMonth(date.getUTCMonth() + amount)
         break
       case 'year':
       case 'years':
-        date.setFullYear(date.getFullYear() + amount)
+        date.setUTCFullYear(date.getUTCFullYear() + amount)
         break
       case 'hour':
       case 'hours':
-        date.setHours(date.getHours() + amount)
+        date.setUTCHours(date.getUTCHours() + amount)
         break
       case 'minute':
       case 'minutes':
-        date.setMinutes(date.getMinutes() + amount)
+        date.setUTCMinutes(date.getUTCMinutes() + amount)
         break
       case 'second':
       case 'seconds':
-        date.setSeconds(date.getSeconds() + amount)
+        date.setUTCSeconds(date.getUTCSeconds() + amount)
         break
     }
     return date.toISOString()
