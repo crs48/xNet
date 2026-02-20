@@ -22,18 +22,25 @@
     "@xnet/react": "workspace:*",
     "@xnet/ui": "workspace:*",
     "@xnet/vectors": "workspace:*",
-    "rbush": "^4.0.1",
     "elkjs": "^0.9.3",
+    "rbush": "^4.0.1",
     "yjs": "^13.6.24"
   },
   "peerDependencies": {
+    "mermaid": "^11.0.0",
     "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "mermaid": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@testing-library/react": "^16.2.0",
-    "@types/react": "^18.2.0",
     "@types/rbush": "^4.0.0",
+    "@types/react": "^18.2.0",
     "jsdom": "^26.0.0",
+    "mermaid": "^11.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsup": "^8.0.0",
