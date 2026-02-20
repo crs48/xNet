@@ -95,7 +95,8 @@ jobs:
           name: js-build
           path: .
 
-      - name: Validate macOS signing secrets
+      - name: Resolve macOS signing mode
+        id: signing
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -114,11 +115,15 @@ jobs:
           done
 
           if [ "$missing" -eq 1 ]; then
-            echo "Refusing to publish unsigned macOS artifacts. Configure all required Apple signing/notarization secrets."
-            exit 1
+            echo "mode=self-signed" >> "$GITHUB_OUTPUT"
+            echo "Using development self-signed macOS certificates (not notarized)."
+          else
+            echo "mode=apple" >> "$GITHUB_OUTPUT"
+            echo "Using Apple Developer ID certificate + notarization."
           fi
 
       - name: Import code signing certificates
+        if: steps.signing.outputs.mode == 'apple'
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -134,7 +139,48 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
+      - name: Create self-signed certificate (development)
+        if: steps.signing.outputs.mode == 'self-signed'
+        id: selfsigned
+        run: |
+          CERT_PASSWORD="$(openssl rand -hex 16)"
+          echo "::add-mask::$CERT_PASSWORD"
+
+          cat <<'EOF' > "$RUNNER_TEMP/xnet-dev-openssl.cnf"
+          [req]
+          distinguished_name = req_distinguished_name
+          x509_extensions = v3_codesign
+          prompt = no
+
+          [req_distinguished_name]
+          CN = xNet Dev Self-Signed
+          O = xNet Development
+
+          [v3_codesign]
+          basicConstraints = critical,CA:false
+          keyUsage = critical,digitalSignature
+          extendedKeyUsage = codeSigning
+          subjectKeyIdentifier = hash
+          authorityKeyIdentifier = keyid,issuer
+          EOF
+
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 365 \
+            -config "$RUNNER_TEMP/xnet-dev-openssl.cnf" \
+            -keyout "$RUNNER_TEMP/xnet-dev.key" \
+            -out "$RUNNER_TEMP/xnet-dev.crt"
+
+          openssl pkcs12 -export \
+            -inkey "$RUNNER_TEMP/xnet-dev.key" \
+            -in "$RUNNER_TEMP/xnet-dev.crt" \
+            -out "$RUNNER_TEMP/xnet-dev.p12" \
+            -name "xNet Dev Self-Signed" \
+            -passout "pass:$CERT_PASSWORD"
+
+          echo "csc_link=$RUNNER_TEMP/xnet-dev.p12" >> "$GITHUB_OUTPUT"
+          echo "csc_key_password=$CERT_PASSWORD" >> "$GITHUB_OUTPUT"
+
       - name: Build Electron app (signed)
+        if: steps.signing.outputs.mode == 'apple'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
@@ -145,7 +191,30 @@ jobs:
           cd apps/electron
           pnpm electron-builder --mac --${{ matrix.arch }} --publish never
 
+      - name: Build Electron app (self-signed)
+        if: steps.signing.outputs.mode == 'self-signed'
+        env:
+          CSC_LINK: ${{ steps.selfsigned.outputs.csc_link }}
+          CSC_KEY_PASSWORD: ${{ steps.selfsigned.outputs.csc_key_password }}
+          CSC_NAME: xNet Dev Self-Signed
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          cd apps/electron
+          pnpm electron-builder --mac --${{ matrix.arch }} --publish never
+
+      - name: Verify app signature
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            APP_PATH="apps/electron/dist/mac-arm64/xNet.app"
+          else
+            APP_PATH="apps/electron/dist/mac/xNet.app"
+          fi
+
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign -dvv "$APP_PATH"
+
       - name: Notarize app
+        if: steps.signing.outputs.mode == 'apple'
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
