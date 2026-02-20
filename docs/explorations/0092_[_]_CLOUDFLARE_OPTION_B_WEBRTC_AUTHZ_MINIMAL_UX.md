@@ -271,10 +271,10 @@ flowchart TD
 
 ## Phase 1.5 - Deep link plumbing (Electron + Web)
 
-- [ ] Register `xnet://` protocol handler in Electron main process.
-- [ ] Handle deep-link events (`open-url` and `second-instance`) and forward payload to renderer.
-- [ ] Add `/app/share` bridge route in web app that attempts deep-link launch then falls back to web.
-- [ ] Ensure payload never leaks to third-party origins (strict same-origin handling and no external redirects).
+- [x] Register `xnet://` protocol handler in Electron main process.
+- [x] Handle deep-link events (`open-url` and `second-instance`) and forward payload to renderer.
+- [x] Add `/app/share` bridge route in web app that attempts deep-link launch then falls back to web.
+- [x] Ensure payload never leaks to third-party origins (strict same-origin handling and no external redirects).
 
 ## Phase 2 - Cloudflare tunnel lifecycle in Electron
 

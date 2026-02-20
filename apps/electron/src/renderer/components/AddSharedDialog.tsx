@@ -6,18 +6,27 @@
  */
 
 import { Link, X } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { parseShareInput } from '../lib/share-payload'
 
 interface AddSharedDialogProps {
   isOpen: boolean
   onClose: () => void
   onAdd: (docId: string) => void
+  initialValue?: string
 }
 
-export function AddSharedDialog({ isOpen, onClose, onAdd }: AddSharedDialogProps) {
+export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSharedDialogProps) {
   const [docId, setDocId] = useState('')
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isOpen || !initialValue) {
+      return
+    }
+    setDocId(initialValue)
+    setError(null)
+  }, [initialValue, isOpen])
 
   if (!isOpen) return null
 

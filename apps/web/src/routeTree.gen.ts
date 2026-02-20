@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ShareRouteImport } from './routes/share'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DocDocIdRouteImport } from './routes/doc.$docId'
 import { Route as DbDbIdRouteImport } from './routes/db.$dbId'
 import { Route as CanvasCanvasIdRouteImport } from './routes/canvas.$canvasId'
 
+const ShareRoute = ShareRouteImport.update({
+  id: '/share',
+  path: '/share',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -44,6 +50,7 @@ const CanvasCanvasIdRoute = CanvasCanvasIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/share': typeof ShareRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/share': typeof ShareRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
@@ -59,6 +67,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/settings': typeof SettingsRoute
+  '/share': typeof ShareRoute
   '/canvas/$canvasId': typeof CanvasCanvasIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
@@ -68,15 +77,23 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/settings'
+    | '/share'
     | '/canvas/$canvasId'
     | '/db/$dbId'
     | '/doc/$docId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/settings' | '/canvas/$canvasId' | '/db/$dbId' | '/doc/$docId'
+  to:
+    | '/'
+    | '/settings'
+    | '/share'
+    | '/canvas/$canvasId'
+    | '/db/$dbId'
+    | '/doc/$docId'
   id:
     | '__root__'
     | '/'
     | '/settings'
+    | '/share'
     | '/canvas/$canvasId'
     | '/db/$dbId'
     | '/doc/$docId'
@@ -85,6 +102,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SettingsRoute: typeof SettingsRoute
+  ShareRoute: typeof ShareRoute
   CanvasCanvasIdRoute: typeof CanvasCanvasIdRoute
   DbDbIdRoute: typeof DbDbIdRoute
   DocDocIdRoute: typeof DocDocIdRoute
@@ -92,6 +110,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/share': {
+      id: '/share'
+      path: '/share'
+      fullPath: '/share'
+      preLoaderRoute: typeof ShareRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -133,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SettingsRoute: SettingsRoute,
+  ShareRoute: ShareRoute,
   CanvasCanvasIdRoute: CanvasCanvasIdRoute,
   DbDbIdRoute: DbDbIdRoute,
   DocDocIdRoute: DocDocIdRoute,

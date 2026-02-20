@@ -20,6 +20,13 @@ contextBridge.exposeInMainWorld('xnet', {
   onDevToolsToggle: (callback: () => void) => {
     ipcRenderer.on('devtools:toggle', callback)
     return () => ipcRenderer.removeListener('devtools:toggle', callback)
+  },
+
+  onSharePayload: (callback: (payload: string) => void) => {
+    const handler = (_: unknown, data: { payload: string }) => callback(data.payload)
+    ipcRenderer.on('xnet:share-payload', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener('xnet:share-payload', handler as (...args: unknown[]) => void)
   }
 })
 
@@ -292,6 +299,7 @@ export interface XNetAPI {
   clearSeedPhrase(): Promise<{ ok: true }>
   onNewPage(callback: () => void): () => void
   onDevToolsToggle(callback: () => void): () => void
+  onSharePayload(callback: (payload: string) => void): () => void
 }
 
 export interface XNetBSMAPI {
