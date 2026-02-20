@@ -139,46 +139,6 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
 
-      - name: Create self-signed certificate (development)
-        if: steps.signing.outputs.mode == 'self-signed'
-        id: selfsigned
-        run: |
-          CERT_PASSWORD="$(openssl rand -hex 16)"
-          echo "::add-mask::$CERT_PASSWORD"
-
-          cat <<'EOF' > "$RUNNER_TEMP/xnet-dev-openssl.cnf"
-          [req]
-          distinguished_name = req_distinguished_name
-          x509_extensions = v3_codesign
-          prompt = no
-
-          [req_distinguished_name]
-          CN = xNet Dev Self-Signed
-          O = xNet Development
-
-          [v3_codesign]
-          basicConstraints = critical,CA:false
-          keyUsage = critical,digitalSignature
-          extendedKeyUsage = codeSigning
-          subjectKeyIdentifier = hash
-          authorityKeyIdentifier = keyid,issuer
-          EOF
-
-          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 365 \
-            -config "$RUNNER_TEMP/xnet-dev-openssl.cnf" \
-            -keyout "$RUNNER_TEMP/xnet-dev.key" \
-            -out "$RUNNER_TEMP/xnet-dev.crt"
-
-          openssl pkcs12 -export \
-            -inkey "$RUNNER_TEMP/xnet-dev.key" \
-            -in "$RUNNER_TEMP/xnet-dev.crt" \
-            -out "$RUNNER_TEMP/xnet-dev.p12" \
-            -name "xNet Dev Self-Signed" \
-            -passout "pass:$CERT_PASSWORD"
-
-          echo "csc_link=$RUNNER_TEMP/xnet-dev.p12" >> "$GITHUB_OUTPUT"
-          echo "csc_key_password=$CERT_PASSWORD" >> "$GITHUB_OUTPUT"
-
       - name: Build Electron app (signed)
         if: steps.signing.outputs.mode == 'apple'
         env:
@@ -193,14 +153,9 @@ jobs:
 
       - name: Build Electron app (self-signed)
         if: steps.signing.outputs.mode == 'self-signed'
-        env:
-          CSC_LINK: ${{ steps.selfsigned.outputs.csc_link }}
-          CSC_KEY_PASSWORD: ${{ steps.selfsigned.outputs.csc_key_password }}
-          CSC_NAME: xNet Dev Self-Signed
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
         run: |
           cd apps/electron
-          pnpm electron-builder --mac --${{ matrix.arch }} --publish never
+          ./scripts/build-macos-self-signed.sh ${{ matrix.arch }}
 
       - name: Verify app signature
         run: |
