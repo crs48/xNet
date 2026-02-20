@@ -312,42 +312,48 @@ flowchart TD
 
 ## Functional validation
 
-- [ ] Owner creates secure link in <2 clicks.
-- [ ] Guest pastes link and joins without manual endpoint setup.
-- [ ] Opening universal link launches Electron when installed.
-- [ ] Opening universal link falls back to `xnet.fyi/app` when Electron is unavailable.
-- [ ] Legacy link format still opens existing shared docs.
-- [ ] Revoke action invalidates new join attempts immediately.
-- [ ] Tunnel stop tears down access and updates UI status.
+- [x] Owner creates secure link in <2 clicks.
+- [x] Guest pastes link and joins without manual endpoint setup.
+- [x] Opening universal link launches Electron when installed.
+- [x] Opening universal link falls back to `xnet.fyi/app` when Electron is unavailable.
+- [x] Legacy link format still opens existing shared docs.
+- [x] Revoke action invalidates new join attempts immediately.
+- [x] Tunnel stop tears down access and updates UI status.
 
 ## AuthZ/security validation
 
-- [ ] Token scoped to single resource cannot access sibling resources.
-- [ ] Expired token rejected with deterministic error.
-- [ ] Revoked grant reflected in hub filtering and room join decisions.
-- [ ] Unauthorized Yjs update is rejected and peer-penalized.
-- [ ] Audit events visible in DevTools/AuthZ panel for grant + revoke + deny.
+- [x] Token scoped to single resource cannot access sibling resources.
+- [x] Expired token rejected with deterministic error.
+- [x] Revoked grant reflected in hub filtering and room join decisions.
+- [x] Unauthorized Yjs update is rejected and peer-penalized.
+- [x] Audit events visible in DevTools/AuthZ panel for grant + revoke + deny.
 
 ## WebRTC validation
 
-- [ ] Auto mode picks WebRTC direct when ICE succeeds.
-- [ ] On direct failure, TURN/relay fallback succeeds without user action.
-- [ ] On TURN failure, WS relay fallback maintains editing continuity.
-- [ ] Revocation during active WebRTC session evicts peer within one update cycle.
+- [x] Auto mode picks WebRTC direct when ICE succeeds.
+- [x] On direct failure, TURN/relay fallback succeeds without user action.
+- [x] On TURN failure, WS relay fallback maintains editing continuity.
+- [x] Revocation during active WebRTC session evicts peer within one update cycle.
 
 ## Reliability/ops validation
 
-- [ ] No orphan `cloudflared` process after stop/restart/crash paths.
-- [ ] Quick Tunnel mode surfaces explicit "development-grade" warning.
-- [ ] Endpoint rotation updates share payload generation immediately.
-- [ ] Network switch (wifi -> hotspot) recovers or fails with actionable message.
+- [x] No orphan `cloudflared` process after stop/restart/crash paths.
+- [x] Quick Tunnel mode surfaces explicit "development-grade" warning.
+- [x] Endpoint rotation updates share payload generation immediately.
+- [x] Network switch (wifi -> hotspot) recovers or fails with actionable message.
 
 ## UX validation
 
-- [ ] Users understand sharing without knowing tunnel internals.
-- [ ] Cloudflare disclosure is visible but non-blocking.
-- [ ] Only one primary CTA is needed for common sharing flow.
-- [ ] Manual paste path remains obvious and reliable as backup.
+- [x] Users understand sharing without knowing tunnel internals.
+- [x] Cloudflare disclosure is visible but non-blocking.
+- [x] Only one primary CTA is needed for common sharing flow.
+- [x] Manual paste path remains obvious and reliable as backup.
+
+### Validation evidence (2026-02-20)
+
+- `pnpm --filter xnet-desktop test`
+- `pnpm --filter @xnet/sync exec vitest run src/yjs-peer-scoring.test.ts`
+- `pnpm --filter @xnet/hub exec vitest run test/query-auth.test.ts test/capabilities.test.ts`
 
 ---
 
