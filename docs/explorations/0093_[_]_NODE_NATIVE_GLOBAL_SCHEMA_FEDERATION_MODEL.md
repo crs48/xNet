@@ -1,36 +1,38 @@
-# 0093 - Node-Native Global Schema Federation Model (Replacing REST-Centric Control Plane)
+# 0093 - Node-Native Global Schema Federation Model
 
 > **Status:** Exploration  
 > **Tags:** schema, federation, node-store, event-log, ucan, authz, multi-hub, capability-security, local-first  
 > **Created:** 2026-02-20  
-> **Context:** Rewrite of `0091` with nodes (signed changes + replication) as the canonical primitive for schema/system metadata exchange, keeping REST only as optional projection/interop edge.
+> **Context:** Rewrite of `0091` for a greenfield implementation where nodes (signed changes + replication) are the canonical primitive for schema/system metadata exchange. Historical REST endpoint ideas are treated as non-existent for this design.
 
 ## Executive Take
 
-xNet already has most of the primitives needed to stop treating schema federation as REST-first and move to a node-native control plane:
+xNet already has most of the primitives needed to implement a node-native schema federation control plane from day one:
 
-1. **Canonical truth should be system nodes, not route handlers.** Schema definitions, grants, sync policy, and presence should be represented as typed nodes in reserved namespaces.
+1. **Canonical truth should be system nodes.** Schema definitions, grants, sync policy, and presence should be represented as typed nodes in reserved namespaces.
 2. **Transport should reuse existing signed change replication.** `node-change` / `node-sync-request` channels already enforce signed, hash-verified change flow.
-3. **Authorization should stay capability-first.** Existing `hub/*` + resource patterns can scope access to system namespaces exactly like user data.
-4. **REST should remain as projection and compatibility.** `/schemas` and similar endpoints become derived views over system-node state for external tooling.
+3. **Authorization should be node-native first.** Use `NodeStore.auth` (`can/grant/revoke/explain/listGrants`) as the primary policy engine; keep `hub/*` capability checks as transport boundary enforcement.
+4. **Start pure node-native in v1.** SDK + sync/query channels operate directly on system nodes; optional projections can be added later only if needed.
 
-If we do this, xNet gets one mental model for user data and control plane data: **everything is a node, validated by schema, replicated by policy, authorized by capability.**
+If we do this, xNet gets one mental model for user data and control plane data: **everything is a node, validated by schema, replicated by policy, authorized by node-native policy + capability boundary checks.**
 
 ---
 
 ## What This Rewrites From 0091
 
 `0091` identified the right missing pieces (presence index, scoped authz, policy engine, discovery).  
-This rewrite changes the implementation center of gravity:
+This rewrite keeps those goals, but assumes a greenfield build with no legacy endpoint constraints:
 
-- From: add more REST endpoints as primary control plane
-- To: define system schemas + system namespaces, replicate as nodes, and expose REST as optional projections
+- Define system schemas + system namespaces first.
+- Replicate all control-plane state through signed node changes.
+- Keep authorization node-native (`store.auth`) with hub capability ingress guards.
 
 ```mermaid
 flowchart LR
-    A[0091 Direction\nREST endpoints + policy APIs] --> B[0093 Direction\nNode-native system graph]
-    B --> C[Projection Layer\nREST/CLI/Graph adapters]
-    B --> D[Native Layer\nNodeStore + signed changes + UCAN]
+    A[Schema/Presence/Policy requirements] --> B[System Nodes]
+    B --> C[NodeStore + signed changes]
+    C --> D[Hub relay + federation]
+    D --> E[SDK discovery + access flows]
 ```
 
 ---
@@ -44,12 +46,13 @@ The current code already supports most of this move:
 - Runtime schema registry with remote resolver support in `packages/data/src/schema/registry.ts`.
 - Hub already stores/replays serialized node changes in `packages/hub/src/storage/interface.ts`.
 - Signed node relay path already exists (`node-change`, hash verification, signature verification) in `packages/hub/src/services/node-relay.ts`.
+- Node-native auth APIs are already present in NodeStore (`store.auth.can/grant/revoke/explain/listGrants`) and enforced via `PermissionError` path in `packages/data/src/store/store.ts`.
 - Capability checks already support resource wildcards/prefixes in `packages/hub/src/auth/capabilities.ts`.
 - Hub server already processes query/index + node sync style WS messages in `packages/hub/src/server.ts`.
 - Federation already has schema exposure filtering (`peer.schemas`, `expose.schemas`) in `packages/hub/src/services/federation.ts`.
 - React provider is still single active signaling URL (`hubUrl ?? signalingServers?.[0]`) in `packages/react/src/context.ts:398`, so orchestration for multi-hub still needs first-class work.
 
-Conclusion: this is not a greenfield concept. It is mostly a **composition + modeling** problem.
+Conclusion: this is a greenfield-ready design. The main work is **composition + modeling**, not inventing new primitives.
 
 ---
 
@@ -157,15 +160,9 @@ Note: `Grant` already maps to built-in schema patterns and grant indexing behavi
 
 ---
 
-## Protocol Rewrite: From REST Calls to Node Changes
+## Protocol Shape: System Nodes Over Signed Changes
 
-### Before (REST-primary)
-
-- Publish schema: `POST /schemas`
-- Resolve schema: `GET /schemas/resolve/*`
-- Discover schemas: `GET /schemas`
-
-### After (node-primary)
+### Node-native flows
 
 - Publish schema: append `SchemaDefinition` node change
 - Resolve schema: query local/replicated `SchemaDefinition` nodes by IRI/version
@@ -193,7 +190,14 @@ sequenceDiagram
 
 ## Authorization in a Node-Native World
 
-Use the same capability mechanism, but resource scopes reference system namespaces.
+Use **node authorization as the source of truth** for policy decisions, with hub capabilities as a second-layer boundary for relay/query transport.
+
+### Native node authorization baseline
+
+- Use `store.auth.can({ action, nodeId, patch })` before any local control-plane mutation.
+- Use `store.auth.grant(...)` / `store.auth.revoke(...)` to manage delegations as first-class node-side policy operations.
+- Use `store.auth.explain(...)` for auditable denial reasons and UX diagnostics.
+- Persist grants as nodes (`Grant` schema) so authorization state itself is replicated and inspectable.
 
 ### Capability examples
 
@@ -203,9 +207,19 @@ Use the same capability mechanism, but resource scopes reference system namespac
 
 ### Enforcement points
 
-1. Local create/update/delete authorization in NodeStore hooks.
-2. Hub relay authorization for `node-change` and sync request room/resource.
-3. Federation exposure filters for system schema namespaces.
+1. **Node layer (primary):** local create/update/delete checks via `store.auth.can` and policy evaluator.
+2. **Hub layer (boundary):** relay/query checks via `hub/*` capability + resource scope for rooms/namespaces.
+3. **Federation layer:** exposure filters for system schema namespaces and peer trust policy.
+
+### Why we still need hub capability checks
+
+Node authorization alone is not sufficient at network ingress because hubs must reject unauthorized transport operations _before_ applying changes (including malformed or hostile traffic). Hub capability checks remain necessary for:
+
+- WebSocket relay and room join/signal authorization.
+- Query-channel authorization on indexed/materialized data.
+- Defense-in-depth when peers do not share identical local node policy state.
+
+So the recommended stack is: **Node auth is canonical policy; hub capability is mandatory transport gate.**
 
 ```mermaid
 stateDiagram-v2
@@ -250,7 +264,7 @@ Key design decision: **system nodes can have different replication classes** tha
 
 ## Presence Index as Derived System Nodes
 
-In 0091, presence index was a missing primitive. In this rewrite, it becomes a projection pipeline:
+In 0091, presence index was a missing primitive. In this rewrite, it becomes a node-native aggregation pipeline:
 
 1. Observe NodeStore changes.
 2. Incrementally aggregate by `schemaId`, namespace, policy visibility.
@@ -271,47 +285,37 @@ flowchart TB
 
 ---
 
-## REST Is Still Useful (But Not Canonical)
+## Greenfield Delivery Strategy
 
-A complete REST removal is not practical. Instead:
+### Stage 0 - Core system schemas
 
-- Keep `/schemas` and related routes as read/write projections for non-native clients.
-- Internally convert REST writes into node mutations.
-- Internally serve REST reads from system-node materialized indexes.
+- Implement `SchemaDefinition`, `SchemaCompatibility`, `PresenceSummary`, `SyncPolicy` schemas.
+- Add namespace conventions and validation guards for `sys/*`.
+- Wire node-native authorization for control-plane mutations.
 
-This is the same boundary pattern identified in `0089`: interop edge is a projection, not the canonical truth.
+### Stage 1 - Replication + discovery
 
----
+- Replicate system nodes over signed node relay/federation channels.
+- Build local materialized schema/presence indexes.
+- Expose discovery/access through SDK-level node queries.
 
-## Migration Strategy
+### Stage 2 - Multi-hub orchestration
 
-### Stage 0 - Dual write/read (safe transition)
-
-- Existing `/schemas` path remains active.
-- Schema publish writes both route storage and system nodes.
-- Resolver reads prefer node-backed index, falls back to legacy store.
-
-### Stage 1 - Node-first writes
-
-- Route handlers become translation layer into NodeStore mutations.
-- Federation of schema metadata uses node replication path.
-
-### Stage 2 - Projection-only REST
-
-- REST is read projection and compatibility shim.
-- Internal workflows and SDK use node-native APIs directly.
+- Add per-hub placement policies for both content and system namespaces.
+- Add policy simulation and audit trails.
+- Add reconciliation/repair flow for missed system-node replication.
 
 ```mermaid
 journey
-    title Migration Journey
+    title Greenfield Delivery Journey
     section Platform
-      Dual-write period: 3
-      Node-first internals: 4
-      Projection-only REST: 5
+      System schemas online: 4
+      Signed federation flows: 4
+      Multi-hub orchestration: 5
     section Developers
-      Existing endpoints still work: 5
-      New SDK adopts node-native path: 4
-      Full capability-scoped model: 5
+      Node-native SDK adoption: 4
+      Policy + auth explainability: 5
+      End-to-end system-node workflows: 5
 ```
 
 ---
@@ -367,14 +371,12 @@ flowchart TB
     end
 
     subgraph Edge
-      REST[REST projection]
       SDK[Node-native SDK]
     end
 
     NS --> SYS --> IDX
     CM --> PE --> NS
     NS --> RELAY --> FED
-    IDX --> REST
     NS --> SDK
 ```
 
@@ -393,7 +395,6 @@ flowchart TB
 
 - [ ] Build materialized schema index from system nodes.
 - [ ] Wire `SchemaRegistry` remote resolver to node-backed index queries first.
-- [ ] Keep legacy route storage fallback during migration.
 - [ ] Add conflict handling policy for concurrent schema publications.
 
 ### Phase 3 - Presence + Policy as Nodes
@@ -405,6 +406,9 @@ flowchart TB
 
 ### Phase 4 - AuthZ Tightening
 
+- [ ] Wire all control-plane node mutations through `store.auth.can` (including patch-aware checks).
+- [ ] Use `store.auth.grant/revoke` as canonical grant lifecycle API and persist grant nodes.
+- [ ] Surface `store.auth.explain` traces in consent/debug tooling.
 - [ ] Extend capability patterns for `sys/*` resources with prefix matching.
 - [ ] Enforce scoped checks at local mutation, hub relay, and federation egress.
 - [ ] Add explicit denial reasons (`missing_scope`, `policy_block`, `hub_not_allowed`).
@@ -417,12 +421,12 @@ flowchart TB
 - [ ] Add health-aware failover policy for non-critical replicas.
 - [ ] Add reconciliation job to repair missed system-node replication.
 
-### Phase 6 - REST Projection Boundary
+### Phase 6 - Optional External Projection Adapters
 
-- [ ] Convert `/schemas` write path into node mutation adapter.
-- [ ] Serve `/schemas` reads from node-backed index.
-- [ ] Add deprecation timeline for legacy internal schema store usage.
-- [ ] Publish compatibility guarantees for external integrators.
+- [ ] Define criteria for when projection adapters are needed.
+- [ ] If needed, generate adapter reads from node-backed materialized indexes.
+- [ ] Ensure adapters are strictly derived views (never canonical writes).
+- [ ] Add conformance tests to guarantee adapter output matches node state.
 
 ---
 
@@ -438,7 +442,8 @@ flowchart TB
 ### Security and authorization
 
 - [ ] Invalid schema signatures are rejected before indexing.
-- [ ] Unauthorized `sys/*` mutations are denied at all enforcement points.
+- [ ] Unauthorized `sys/*` mutations are denied by `store.auth.can` before local commit.
+- [ ] Unauthorized relay/query attempts are denied by hub capability checks at ingress.
 - [ ] Replay of previously seen system-node changes is rejected.
 - [ ] Revoked grants remove effective write/query capability within one refresh window.
 
@@ -471,17 +476,17 @@ flowchart TB
 2. Should `PresenceSummary` be exact locally but always bucketed remotely?
 3. Do we need separate retention policies for control-plane nodes vs user-content nodes?
 4. Should schema compatibility/lens metadata be bundled with schema nodes or separate nodes?
-5. What is the minimum viable federation contract for third-party hubs that only support projections?
+5. What is the minimum viable federation contract for third-party hubs that do not implement the full system-schema pack?
 
 ---
 
 ## Recommendations and Next Actions
 
-1. **Start with node-backed schema registry index** (highest leverage, low migration risk).
+1. **Start with node-backed schema registry index** (highest leverage).
 2. **Add system schemas for presence + sync policy next** so control-plane data uses the same substrate.
-3. **Ship dual-path adapter for `/schemas`** to preserve compatibility while validating node-native design.
+3. **Ship node-native SDK discovery + access APIs early** so apps adopt one primitive from the start.
 4. **Prioritize multi-hub orchestration in React/provider** to unlock practical policy-driven placement.
-5. **Publish a short "one primitive" architecture note** for internal alignment: nodes are canonical; REST is projection.
+5. **Publish a short "one primitive" architecture note** for internal alignment: nodes are canonical.
 
 ---
 
@@ -490,7 +495,6 @@ flowchart TB
 ### Internal
 
 - `docs/explorations/0091_[_]_GLOBAL_SCHEMA_FEDERATION_MODEL.md`
-- `docs/explorations/0089_[_]_REST_GRAPHQL_INTEROPERABILITY_BOUNDARY.md`
 - `packages/data/src/schema/node.ts`
 - `packages/data/src/schema/registry.ts`
 - `packages/data/src/store/store.ts`
@@ -499,7 +503,6 @@ flowchart TB
 - `packages/hub/src/auth/capabilities.ts`
 - `packages/hub/src/services/federation.ts`
 - `packages/hub/src/services/query.ts`
-- `packages/hub/src/routes/schemas.ts`
 - `packages/react/src/context.ts`
 - `docs/VISION.md`
 
