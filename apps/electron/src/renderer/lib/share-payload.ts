@@ -22,8 +22,14 @@ export type ParsedShareInput =
   | { kind: 'legacy'; docType: ShareDocType; docId: string }
   | { kind: 'v2'; payload: SharePayloadV2; encodedPayload: string }
 
-const DEFAULT_SHARE_BASE_URL = 'https://xnet.fyi'
-const SHARE_BRIDGE_PATH = '/app/share'
+const DEFAULT_SHARE_BASE_URL = 'https://xnet.fyi/app'
+const DEFAULT_SHARE_PATH = '/share'
+
+export type BuildShareUrlOptions = {
+  baseUrl?: string
+  sharePath?: string
+  useHashRouting?: boolean
+}
 
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
@@ -49,11 +55,15 @@ export function decodeSharePayloadV2(encodedPayload: string): SharePayloadV2 {
 
 export function buildUniversalShareUrl(
   payload: SharePayloadV2,
-  options?: { baseUrl?: string }
+  options?: BuildShareUrlOptions
 ): string {
   const encodedPayload = encodeSharePayloadV2(payload)
   const baseUrl = options?.baseUrl ?? DEFAULT_SHARE_BASE_URL
-  return `${baseUrl}${SHARE_BRIDGE_PATH}?payload=${encodeURIComponent(encodedPayload)}`
+  const sharePath = options?.sharePath ?? DEFAULT_SHARE_PATH
+  if (options?.useHashRouting) {
+    return `${baseUrl}#${sharePath}?payload=${encodeURIComponent(encodedPayload)}`
+  }
+  return `${baseUrl}${sharePath}?payload=${encodeURIComponent(encodedPayload)}`
 }
 
 export function parseShareInput(input: string): ParsedShareInput {

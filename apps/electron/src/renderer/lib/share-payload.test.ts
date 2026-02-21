@@ -35,6 +35,13 @@ describe('share-payload', () => {
     expect(url).toContain('https://xnet.fyi/app/share?payload=')
   })
 
+  it('builds hash-routed share urls', () => {
+    const payload = createPayload()
+    const url = buildUniversalShareUrl(payload, { useHashRouting: true })
+
+    expect(url).toContain('https://xnet.fyi/app#/share?payload=')
+  })
+
   it('parses universal share URLs', () => {
     const payload = createPayload()
     const url = buildUniversalShareUrl(payload)
