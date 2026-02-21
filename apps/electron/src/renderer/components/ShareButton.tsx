@@ -121,7 +121,9 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
         }
       } as const
 
-      const universalUrl = buildUniversalShareUrl(payload)
+      const universalUrl = buildUniversalShareUrl(payload, {
+        useHashRouting: true
+      })
 
       setShareValue(universalUrl)
       setActiveGrantId(grantId)
