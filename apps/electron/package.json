@@ -16,13 +16,13 @@
     "dev:user2": "cross-env XNET_PROFILE=user2 VITE_PORT=5174 electron-vite dev",
     "dev:both": "concurrently -k -n hub,user1,user2 -c blue,green,yellow \"pnpm run dev:hub\" \"pnpm run dev:electron\" \"sleep 3 && pnpm run dev:user2\"",
     "build": "electron-vite build",
-    "postinstall": "electron-builder install-app-deps",
-    "deps:electron": "electron-builder install-app-deps",
+    "deps:electron": "pnpm dlx @electron/rebuild -f -w better-sqlite3,usearch,sharp",
+    "deps:node": "pnpm rebuild better-sqlite3 usearch sharp",
     "preview": "electron-vite preview",
     "dist": "npm run build && electron-builder",
     "dist:mac:self-signed": "./scripts/build-macos-self-signed.sh",
     "dist:mac:self-signed:arm64": "./scripts/build-macos-self-signed.sh arm64",
-    "test": "vitest run",
+    "test": "pnpm run deps:node && vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
