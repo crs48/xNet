@@ -27,6 +27,13 @@ function ShareBridgePage(): JSX.Element {
   const [error, setError] = useState<string | null>(null)
 
   const payload = useMemo(() => {
+    const hash = window.location.hash
+    const hashQuery = hash.includes('?') ? hash.split('?')[1] : ''
+    if (hashQuery) {
+      const params = new URLSearchParams(hashQuery)
+      const payloadFromHash = params.get('payload')
+      if (payloadFromHash) return payloadFromHash
+    }
     const parsed = new URL(window.location.href)
     return parsed.searchParams.get('payload') ?? ''
   }, [])

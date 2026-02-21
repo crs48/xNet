@@ -64,8 +64,18 @@ type SharePayloadV2 = {
 
 function resolveHubUrlFromLocation(): string {
   try {
-    const parsed = new URL(window.location.href)
-    const encodedPayload = parsed.searchParams.get('payload')
+    let encodedPayload: string | null = null
+
+    const hash = window.location.hash
+    const hashQuery = hash.includes('?') ? hash.split('?')[1] : ''
+    if (hashQuery) {
+      encodedPayload = new URLSearchParams(hashQuery).get('payload')
+    }
+    if (!encodedPayload) {
+      const parsed = new URL(window.location.href)
+      encodedPayload = parsed.searchParams.get('payload')
+    }
+
     if (
       !encodedPayload ||
       encodedPayload.length > 8192 ||
@@ -82,6 +92,7 @@ function resolveHubUrlFromLocation(): string {
     const endpoint = new URL(payload.endpoint)
     endpoint.searchParams.set('token', payload.token)
 
+    const parsed = new URL(window.location.href)
     parsed.searchParams.delete('payload')
     window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${parsed.hash}`)
 
