@@ -96,14 +96,16 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
       }
 
       let endpoint = import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
-      try {
-        const status = await window.xnetTunnel.start({ mode: 'temporary' })
-        setTunnelStatus(status)
-        if (status.endpoint) {
-          endpoint = status.endpoint.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:')
-        }
-      } catch (tunnelError) {
-        console.warn('Tunnel startup failed, using default endpoint', tunnelError)
+      const status = await window.xnetTunnel.start({ mode: 'temporary' })
+      setTunnelStatus(status)
+
+      if (status.health === 'degraded') {
+        setError(status.message || 'Tunnel failed to start')
+        return
+      }
+
+      if (status.endpoint) {
+        endpoint = status.endpoint.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:')
       }
 
       const payload = {

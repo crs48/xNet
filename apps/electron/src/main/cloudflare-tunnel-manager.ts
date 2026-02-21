@@ -39,6 +39,19 @@ const READY_LOG_RE =
   /registered tunnel connection|connection .* registered|your quick tunnel has been created/i
 const ENDPOINT_RE = /https:\/\/[A-Za-z0-9.-]+\.(?:trycloudflare\.com|[A-Za-z0-9.-]+)/g
 
+function getCloudflaredInstallHint(): string {
+  switch (process.platform) {
+    case 'darwin':
+      return 'Install with: brew install cloudflared'
+    case 'win32':
+      return 'Install with: winget install Cloudflare.cloudflared'
+    case 'linux':
+      return 'Install with: curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared && chmod +x cloudflared'
+    default:
+      return 'Install from: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/'
+  }
+}
+
 function getStateFilePath(): string {
   return join(app.getPath('userData'), 'xnet-data', 'cloudflare-tunnel-state.json')
 }
@@ -133,9 +146,43 @@ class CloudflareTunnelManager {
       message: 'Starting Cloudflare tunnel'
     })
 
-    const child = spawn('cloudflared', args, {
-      env: process.env
+    let child: ChildProcessWithoutNullStreams
+    try {
+      child = spawn('cloudflared', args, {
+        env: process.env
+      })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      this.setStatus({
+        health: 'degraded',
+        mode,
+        endpoint: null,
+        pid: null,
+        startedAt: null,
+        message: `Failed to spawn cloudflared: ${message}. ${getCloudflaredInstallHint()}`
+      })
+      return this.getStatus()
+    }
+
+    const spawnError = await new Promise<Error | null>((resolve) => {
+      const timeout = setTimeout(() => resolve(null), 100)
+      child.once('error', (err) => {
+        clearTimeout(timeout)
+        resolve(err)
+      })
     })
+
+    if (spawnError) {
+      this.setStatus({
+        health: 'degraded',
+        mode,
+        endpoint: null,
+        pid: null,
+        startedAt: null,
+        message: `cloudflared not found. ${getCloudflaredInstallHint()}`
+      })
+      return this.getStatus()
+    }
 
     this.process = child
     this.setStatus({
