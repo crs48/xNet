@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
-    "test": "vitest run",
+    "test": "pnpm --filter xnet-desktop run deps:node && vitest run",
     "test:editor": "pnpm --filter @xnet/editor test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
