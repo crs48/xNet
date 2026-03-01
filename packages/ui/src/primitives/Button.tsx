@@ -8,7 +8,7 @@ import {
 } from 'react'
 import { cn, cva, type VariantProps } from '../utils'
 
-// ─── Slot Component (replaces @radix-ui/react-slot) ─────────────────────────
+// ─── Slot Component (local asChild helper) ───────────────────────────────────
 
 interface SlotProps extends React.HTMLAttributes<HTMLElement> {
   children?: ReactNode
