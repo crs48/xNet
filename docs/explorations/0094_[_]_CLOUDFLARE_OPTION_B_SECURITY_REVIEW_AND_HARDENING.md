@@ -308,7 +308,7 @@ Core change: switch from “token in URL payload” to “opaque handle + redemp
 ## UX and operability tests
 
 - [ ] Confirm secure-share UX still works in <=2 clicks after hardening.
-- [ ] Confirm error copy is actionable for expired, replayed, revoked, or untrusted links.
+- [x] Confirm error copy is actionable for expired, replayed, revoked, or untrusted links.
 - [ ] Confirm support/debug flows do not require exposing secret-bearing URLs.
 
 ---

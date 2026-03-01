@@ -81,12 +81,13 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
               docType: 'page' | 'database' | 'canvas'
               exp: number
             }
-          | { error?: string }
+          | { code?: string; error?: string }
           | null
 
         if (!redeemResponse.ok || !redeemed || !('endpoint' in redeemed)) {
-          const message = redeemed && 'error' in redeemed ? redeemed.error : null
-          throw new Error(message ?? 'Secure share link could not be redeemed')
+          throw new Error(
+            getRedeemErrorMessage(redeemed && !('endpoint' in redeemed) ? redeemed : null)
+          )
         }
 
         if (!redeemed.token || redeemed.exp <= Date.now()) {
@@ -124,7 +125,8 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
       setSecurityNotice(null)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      const message = err instanceof Error ? err.message : String(err)
+      setError(formatAddSharedError(message))
     }
   }
 
@@ -169,13 +171,13 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
         {/* Content */}
         <form onSubmit={handleSubmit} className="p-4">
           <p className="text-sm text-muted-foreground mb-4">
-            Paste a secure share link, payload token, or legacy document ID. The document will be
-            added to your library and sync automatically.
+            Paste a secure share link or a legacy document ID. The document will be added to your
+            library and sync automatically.
           </p>
 
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs text-muted-foreground">Share link or payload</label>
+              <label className="block text-xs text-muted-foreground">Share link or legacy ID</label>
               <button
                 type="button"
                 onClick={handlePasteFromClipboard}
@@ -206,7 +208,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
                   setSecurityNotice(null)
                 }
               }}
-              placeholder="https://xnet.fyi/app/share?payload=..."
+              placeholder="https://xnet.fyi/app/share?handle=sh_..."
               className="w-full px-3 py-2 text-sm font-mono bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
               autoFocus
             />
@@ -251,4 +253,28 @@ function resolveHubHttpUrl(): string | null {
     return null
   }
   return configured.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/$/, '')
+}
+
+function getRedeemErrorMessage(payload: { code?: string; error?: string } | null): string {
+  const code = payload?.code ?? ''
+  switch (code) {
+    case 'TOKEN_EXPIRED':
+      return 'This secure link expired. Ask the owner to generate a new link.'
+    case 'TOKEN_REPLAYED':
+      return 'This secure link was already used. Ask the owner to generate a fresh link.'
+    case 'INVALID_HANDLE':
+      return 'This secure link is invalid. Copy it again or ask the owner for a new link.'
+    default:
+      return payload?.error ?? 'Secure share link could not be redeemed'
+  }
+}
+
+function formatAddSharedError(message: string): string {
+  if (message === 'Share payload endpoint is not trusted') {
+    return 'This link points to an untrusted sync endpoint and was blocked.'
+  }
+  if (message === 'Share link has expired') {
+    return 'This secure link expired. Ask the owner to generate a new link.'
+  }
+  return message
 }
