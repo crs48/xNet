@@ -10,6 +10,12 @@
 > - `Database` → `Schema`
 > - Sync uses **Lamport timestamps** with LWW per property (not vector clocks)
 > - Import types from `@xnet/data`, hooks from `@xnet/react`
+>
+> **Execution Rebaseline (Mar 2026):**
+>
+> - Before executing this plan as written, review the reality-check and gate-based reset in
+>   [`docs/explorations/0096_[_]_PLAN03_ERP_REALITY_CHECK_AND_EXECUTION_RESET.md`](../../explorations/0096_%5B_%5D_PLAN03_ERP_REALITY_CHECK_AND_EXECUTION_RESET.md)
+> - Treat this plan as target-state architecture unless a section has been explicitly re-baselined
 
 ## Prerequisites
 
@@ -27,6 +33,8 @@ Before starting this phase, ensure plan02DatabasePlatform is complete:
 ## Implementation Order
 
 Execute these documents in order. Each builds on the previous.
+
+> Note: Use exploration 0096 as the current execution baseline while these files are being updated.
 
 | #   | Document                                           | Description                              | Est. Time |
 | --- | -------------------------------------------------- | ---------------------------------------- | --------- |
