@@ -137,9 +137,11 @@ function ShareBridgePage(): JSX.Element {
     }
   }, [shareInput])
 
-  const copyRawInput = async () => {
+  const copySupportCode = async () => {
     if (shareInput.kind === 'missing') return
-    await navigator.clipboard.writeText(shareInput.value)
+    const value = shareInput.value
+    const masked = maskSecretValue(value)
+    await navigator.clipboard.writeText(`xnet-share-debug kind=${shareInput.kind} value=${masked}`)
   }
 
   return (
@@ -158,13 +160,23 @@ function ShareBridgePage(): JSX.Element {
       {status === 'error' && error && <p className="text-sm text-red-500 mb-4">{error}</p>}
 
       <button
-        onClick={copyRawInput}
+        onClick={copySupportCode}
         className="px-3 py-2 text-sm rounded-md border border-border hover:bg-accent"
       >
-        Copy raw share value
+        Copy support code
       </button>
     </div>
   )
+}
+
+function maskSecretValue(value: string): string {
+  const normalized = value.trim()
+  if (normalized.length <= 12) {
+    return `len:${normalized.length}`
+  }
+  const prefix = normalized.slice(0, 6)
+  const suffix = normalized.slice(-4)
+  return `${prefix}...${suffix} (len:${normalized.length})`
 }
 
 async function fallbackWithHandle(handle: string): Promise<void> {

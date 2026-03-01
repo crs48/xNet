@@ -190,7 +190,7 @@ function fromBase64(str: string): Uint8Array {
   return new Uint8Array(Buffer.from(str, 'base64'))
 }
 
-function normalizeSignalingUrl(signalingUrl: string): string {
+export function normalizeSignalingUrl(signalingUrl: string): string {
   try {
     const url = new URL(signalingUrl)
     url.searchParams.delete('token')
@@ -200,7 +200,19 @@ function normalizeSignalingUrl(signalingUrl: string): string {
   }
 }
 
-function buildWebSocketProtocols(token: string): string[] {
+export function sanitizeSignalingUrlForLogging(signalingUrl: string): string {
+  try {
+    const url = new URL(normalizeSignalingUrl(signalingUrl))
+    url.username = ''
+    url.password = ''
+    url.search = ''
+    return url.toString()
+  } catch {
+    return signalingUrl
+  }
+}
+
+export function buildWebSocketProtocols(token: string): string[] {
   const protocols = ['xnet-sync.v1']
   if (token && !/[\s,]/.test(token)) {
     protocols.push(`xnet-auth.${token}`)
@@ -398,7 +410,7 @@ export function createDataService(config: DataServiceConfig): DataService {
     if (ws) return
 
     const url = normalizeSignalingUrl(signalingUrl)
-    log('Connecting to:', url)
+    log('Connecting to:', sanitizeSignalingUrlForLogging(url))
     setStatus('connecting')
 
     try {

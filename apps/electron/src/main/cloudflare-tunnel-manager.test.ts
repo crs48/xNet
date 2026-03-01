@@ -43,6 +43,24 @@ describe('cloudflare-tunnel-manager', () => {
       const line = 'INF suspicious endpoint https://attacker.example.com'
       expect(parseEndpointFromLogLine(line)).toBeNull()
     })
+
+    it('stays stable under noisy quick-tunnel logs', () => {
+      const noisyLines: string[] = []
+      for (let i = 0; i < 250; i++) {
+        noisyLines.push(`ERR transient connection issue ${i}`)
+        noisyLines.push(`INF fallback endpoint https://attacker${i}.example.com`)
+      }
+      noisyLines.push(
+        'INF | Your quick Tunnel has been created! Visit it at https://stable.trycloudflare.com'
+      )
+
+      const parsed = noisyLines
+        .map((line) => parseEndpointFromLogLine(line))
+        .filter((value): value is string => typeof value === 'string')
+
+      expect(parsed.at(-1)).toBe('https://stable.trycloudflare.com')
+      expect(parsed.some((endpoint) => endpoint.includes('attacker'))).toBe(false)
+    })
   })
 
   describe('resolveCloudflaredCommand', () => {
