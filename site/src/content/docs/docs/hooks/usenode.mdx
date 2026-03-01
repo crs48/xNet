@@ -40,7 +40,7 @@ import Collaboration from '@tiptap/extension-collaboration'
 import { PageSchema } from './schema'
 
 function PageEditor({ pageId }: { pageId: string }) {
-  const { data, doc, update, syncStatus, remoteUsers } = useNode(PageSchema, pageId, {
+  const { data, doc, update, syncStatus, presence } = useNode(PageSchema, pageId, {
     createIfMissing: { title: 'Untitled' },
     did: currentUserDID
   })
@@ -60,7 +60,7 @@ function PageEditor({ pageId }: { pageId: string }) {
   return (
     <div>
       <input value={data.title} onChange={(e) => update({ title: e.target.value })} />
-      <div>{syncStatus === 'connected' ? `${remoteUsers.length} collaborator(s)` : syncStatus}</div>
+      <div>{syncStatus === 'connected' ? `${presence.length} collaborator(s)` : syncStatus}</div>
       <EditorContent editor={editor} />
     </div>
   )
@@ -133,10 +133,10 @@ Passing `null` for `id` disables the hook — `data` and `doc` will be `null`.
 
 ### Presence
 
-| Field         | Type                | Description                                                                 |
-| ------------- | ------------------- | --------------------------------------------------------------------------- |
-| `remoteUsers` | `RemoteUser[]`      | Other users viewing this document. Each has `clientId`, `did`, and `color`. |
-| `awareness`   | `Awareness \| null` | Yjs Awareness instance. Pass to TipTap's `CollaborationCursor` extension.   |
+| Field       | Type                | Description                                                                                                           |
+| ----------- | ------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `presence`  | `PresenceUser[]`    | Other users from live awareness + hub snapshots. Each has `did`, optional `name`, `color`, `lastSeen`, and `isStale`. |
+| `awareness` | `Awareness \| null` | Yjs Awareness instance. Pass to TipTap's `CollaborationCursor` extension.                                             |
 
 ### Actions
 
@@ -164,7 +164,7 @@ await update({ status: 'done', title: 'Shipped!' })
 import Collaboration from '@tiptap/extension-collaboration'
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
 
-const { doc, awareness, remoteUsers } = useNode(PageSchema, id, { did })
+const { doc, awareness, presence } = useNode(PageSchema, id, { did })
 
 const editor = useEditor(
   {
@@ -187,17 +187,17 @@ When using `Collaboration`, you must disable TipTap's built-in `history` extensi
 
 ### Presence awareness
 
-Pass `did` to enable presence. Remote users are reported with a deterministic color derived from their DID:
+Pass `did` to enable presence. Users are reported with a deterministic color derived from their DID:
 
 ```tsx
-const { remoteUsers, syncStatus } = useNode(PageSchema, id, {
+const { presence, syncStatus } = useNode(PageSchema, id, {
   did: currentUserDID
 })
 
 return (
   <div>
-    {remoteUsers.map((user) => (
-      <span key={user.clientId} style={{ color: user.color }}>
+    {presence.map((user) => (
+      <span key={user.did} style={{ color: user.color }}>
         {user.did.slice(8, 16)}...
       </span>
     ))}
@@ -266,11 +266,11 @@ When the component unmounts, `useNode` immediately flushes the Y.Doc to storage.
 ## Gotchas
 
 :::tip[Pass `did` for presence]
-Without the `did` option, presence awareness is disabled and `remoteUsers` will always be empty:
+Without the `did` option, awareness broadcasts are disabled and presence data is usually empty:
 
 ```tsx
 const { did } = useIdentity()
-const { remoteUsers } = useNode(PageSchema, id, { did })
+const { presence } = useNode(PageSchema, id, { did })
 ```
 
 :::

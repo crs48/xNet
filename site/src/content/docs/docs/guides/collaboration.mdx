@@ -140,7 +140,7 @@ function TaskList() {
 
   // Track all visible tasks for background sync
   useEffect(() => {
-    tasks.forEach((t) => sync.track(t.id, TaskSchema.schemaIRI))
+    tasks.forEach((t) => sync.track(t.id, TaskSchema._schemaId))
   }, [tasks])
 
   return tasks.map((t) => <TaskRow key={t.id} task={t} />)

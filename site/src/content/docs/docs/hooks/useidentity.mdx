@@ -47,7 +47,7 @@ Takes no parameters. Reads from the `XNetProvider` context.
 
 ```tsx
 const { did } = useIdentity()
-const { remoteUsers } = useNode(PageSchema, pageId, { did: did ?? undefined })
+const { presence } = useNode(PageSchema, pageId, { did: did ?? undefined })
 ```
 
 ### Conditional rendering

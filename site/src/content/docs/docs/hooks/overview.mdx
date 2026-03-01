@@ -17,11 +17,11 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
 
 ## The three core hooks
 
-| Hook                                  | When to use it                                   | Returns                                               |
-| ------------------------------------- | ------------------------------------------------ | ----------------------------------------------------- |
-| [`useQuery`](/docs/hooks/usequery/)   | List or find nodes. Read-only.                   | `{ data, loading, error, reload }`                    |
-| [`useMutate`](/docs/hooks/usemutate/) | Create, update, delete nodes.                    | `{ create, update, remove, restore, mutate }`         |
-| [`useNode`](/docs/hooks/usenode/)     | Edit a single node with collaborative rich text. | `{ data, doc, update, syncStatus, remoteUsers, ... }` |
+| Hook                                  | When to use it                                   | Returns                                            |
+| ------------------------------------- | ------------------------------------------------ | -------------------------------------------------- |
+| [`useQuery`](/docs/hooks/usequery/)   | List or find nodes. Read-only.                   | `{ data, loading, error, reload }`                 |
+| [`useMutate`](/docs/hooks/usemutate/) | Create, update, delete nodes.                    | `{ create, update, remove, restore, mutate }`      |
+| [`useNode`](/docs/hooks/usenode/)     | Edit a single node with collaborative rich text. | `{ data, doc, update, syncStatus, presence, ... }` |
 
 ### When to use which
 
@@ -30,7 +30,7 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
 - **Creating or deleting** — `useMutate`
 - **Updating properties** on a detail page — `useMutate().update` or `useNode().update`
 - **Rich text editing** (TipTap, collaborative docs) — `useNode` (gives you a `Y.Doc`)
-- **Showing who's online** (presence, cursors) — `useNode` (gives you `remoteUsers` and `awareness`)
+- **Showing who's online** (presence, cursors) — `useNode` (gives you `presence` and `awareness`)
 
 ### The decision tree
 
@@ -95,7 +95,7 @@ React Component
         └── Y.Doc (rich text)
               ├── WebRTC sync (via SyncManager or WebSocketSyncProvider)
               ├── debounced persistence to IndexedDB
-              └── awareness (remote users, cursors)
+              └── awareness (presence, cursors)
 ```
 
 ## Next steps

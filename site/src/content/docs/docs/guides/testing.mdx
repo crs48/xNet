@@ -17,7 +17,7 @@ sidebar:
 ## Running tests
 
 ```bash
-# All tests (~2400 tests across all packages)
+# All tests (~4,700 tests across all packages)
 pnpm test
 
 # Single package
@@ -64,23 +64,27 @@ describe('ModuleName', () => {
 
 ```ts
 import { describe, it, expect } from 'vitest'
-import { defineSchema, text, number, boolean } from '@xnet/data'
+import { defineSchema, text, number, checkbox } from '@xnet/data'
 
 describe('TaskSchema', () => {
-  const Task = defineSchema('task', {
-    title: text(),
-    priority: number({ default: 0 }),
-    done: boolean({ default: false })
+  const TaskSchema = defineSchema({
+    name: 'Task',
+    namespace: 'xnet://example/',
+    properties: {
+      title: text(),
+      priority: number({ default: 0 }),
+      done: checkbox({ default: false })
+    }
   })
 
-  it('should have the correct schemaIRI', () => {
-    expect(Task.schemaIRI).toContain('task')
+  it('should have the correct schema ID', () => {
+    expect(TaskSchema._schemaId).toContain('xnet://example/Task@')
   })
 
   it('should define expected properties', () => {
-    expect(Task.properties.title).toBeDefined()
-    expect(Task.properties.priority).toBeDefined()
-    expect(Task.properties.done).toBeDefined()
+    expect(TaskSchema._properties.title).toBeDefined()
+    expect(TaskSchema._properties.priority).toBeDefined()
+    expect(TaskSchema._properties.done).toBeDefined()
   })
 })
 ```

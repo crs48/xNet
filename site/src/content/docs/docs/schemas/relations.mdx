@@ -13,36 +13,55 @@ The `relation()` property stores a reference to another node by its ID. You can 
 ```ts
 import { defineSchema, relation, text } from '@xnet/data'
 
-const Task = defineSchema('task', {
-  title: text(),
-  project: relation(), // single reference to a project node
-  blockedBy: relation.many() // multiple references to other tasks
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text(),
+    project: relation({ target: 'xnet://my-app/Project@1.0.0' }), // single reference
+    blockedBy: relation({ multiple: true }) // multiple references
+  }
 })
 ```
 
-Relations support both single and multiple cardinality. Use `relation()` for a single link and `relation.many()` for an array of links. When creating nodes in a transaction, you can use temporary IDs to reference nodes that don't exist yet — the NodeStore resolves them once all nodes in the batch are committed.
+Relations support both single and multiple cardinality. Use `relation()` for a single link and `relation({ multiple: true })` for an array of links.
 
 ## person()
 
 The `person()` property links to a user by their DID (Decentralized Identifier) rather than a node ID. This is useful for ownership, assignment, and authorship fields where you need to reference an identity rather than a piece of data.
 
 ```ts
-const Task = defineSchema('task', {
-  title: text(),
-  assignee: person(), // single DID reference
-  watchers: person.many() // multiple DID references
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text(),
+    assignee: person(), // single DID reference
+    watchers: person({ multiple: true }) // multiple DID references
+  }
 })
 ```
 
-## Transactions with Temporary IDs
+## Related creates in one mutate call
 
-When creating multiple related nodes at once, you can use temporary IDs so that nodes can reference each other before they're persisted:
+When creating multiple related nodes at once, use explicit IDs so later operations can reference earlier creates in the same mutate call:
 
 ```ts
-const { commit } = store.transaction()
-const projectTempId = commit.create('project', { name: 'Acme' })
-commit.create('task', { title: 'Setup', project: projectTempId })
-await commit.execute()
+const { mutate } = useMutate()
+
+await mutate([
+  {
+    type: 'create',
+    schema: ProjectSchema,
+    id: 'project-acme',
+    data: { name: 'Acme' }
+  },
+  {
+    type: 'create',
+    schema: TaskSchema,
+    data: { title: 'Setup', project: 'project-acme' }
+  }
+])
 ```
 
-The NodeStore replaces temporary IDs with real IDs when the transaction is applied, ensuring all references are valid. This works seamlessly with sync — related nodes are sent together so that no dangling references appear on other peers.
+Because the project node is created first (with a known ID), the task can safely reference it in the next operation.
