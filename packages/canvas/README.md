@@ -20,12 +20,23 @@ pnpm add @xnet/canvas
 ## Usage
 
 ```tsx
-import { Canvas, useCanvas } from '@xnet/canvas'
+import { Canvas, useCanvas, createCanvasDoc, createNode, createEdge } from '@xnet/canvas'
 
-function MyCanvas({ canvasId }) {
-  const { nodes, edges, viewport, addNode, moveNode, connect, panTo, zoomTo } = useCanvas(canvasId)
+function MyCanvas() {
+  const doc = createCanvasDoc('canvas-1', 'My canvas')
+  const { addNode, updateNodePosition, addEdge, pan, zoomAt } = useCanvas({ doc })
 
-  return <Canvas nodes={nodes} edges={edges} viewport={viewport} />
+  // Example operations
+  const nodeA = createNode('card', { x: 100, y: 120 })
+  const nodeB = createNode('card', { x: 320, y: 200 })
+  addNode(nodeA)
+  addNode(nodeB)
+  updateNodePosition(nodeA.id, { x: 140, y: 150 })
+  addEdge(createEdge(nodeA.id, nodeB.id))
+  pan(24, 12)
+  zoomAt(0, 0, 1.1)
+
+  return <Canvas doc={doc} />
 }
 ```
 
@@ -67,11 +78,10 @@ store.addEdge({ source: '1', target: '2' })
 ### Canvas Comments
 
 ```tsx
-import { useCanvasComments, CommentPin, CommentOverlay } from '@xnet/canvas'
+import { CommentOverlay } from '@xnet/canvas'
 
-function CanvasWithComments({ canvasId }) {
-  const { comments, addComment } = useCanvasComments(canvasId)
-  return <CommentOverlay comments={comments} onAdd={addComment} />
+function CanvasWithComments({ canvasNodeId, transform, objects }) {
+  return <CommentOverlay canvasNodeId={canvasNodeId} transform={transform} objects={objects} />
 }
 ```
 

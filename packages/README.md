@@ -1,6 +1,6 @@
 # @xnet packages
 
-21 core SDK packages for the xNet decentralized infrastructure.
+Core xNet packages for decentralized data, sync, UI, and tooling.
 
 ## Packages
 
@@ -14,21 +14,21 @@
 
 ### Infrastructure
 
-| Package                    | Description                                            | Tests | Status |
-| -------------------------- | ------------------------------------------------------ | ----- | ------ |
-| [@xnet/storage](./storage) | IndexedDB/memory adapters, blob store, snapshots       | 4     | Stable |
-| [@xnet/sync](./sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security | 10    | Stable |
-| [@xnet/data](./data)       | Schema system, NodeStore, 15 property types, Yjs CRDT  | 10    | Stable |
-| [@xnet/network](./network) | libp2p node, y-webrtc provider, security suite         | 1     | Stable |
-| [@xnet/query](./query)     | Local query engine, MiniSearch FTS, federation         | 2     | Stable |
-| [@xnet/hub](./hub)         | Signaling, sync relay, backup, FTS5, sharding          | 0     | Stable |
+| Package                    | Description                                             | Tests | Status |
+| -------------------------- | ------------------------------------------------------- | ----- | ------ |
+| [@xnet/storage](./storage) | SQLite/memory adapters and blob storage                 | 4     | Stable |
+| [@xnet/sync](./sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security  | 10    | Stable |
+| [@xnet/data](./data)       | Schema system, NodeStore, 16 property helpers, Yjs CRDT | 10    | Stable |
+| [@xnet/network](./network) | libp2p node, y-webrtc provider, security suite          | 1     | Stable |
+| [@xnet/query](./query)     | Local query engine, MiniSearch FTS, federation          | 2     | Stable |
+| [@xnet/hub](./hub)         | Signaling, sync relay, backup, FTS5, sharding           | 0     | Stable |
 
 ### Application
 
 | Package                        | Description                                         | Tests | Status |
 | ------------------------------ | --------------------------------------------------- | ----- | ------ |
 | [@xnet/react](./react)         | useQuery, useMutate, useNode, hub/plugin hooks      | 2     | Stable |
-| [@xnet/sdk](./sdk)             | Unified client, browser/node presets                | 1     | Stable |
+| [@xnet/sdk](./sdk)             | Unified SDK re-exports and client bootstrap         | 1     | Stable |
 | [@xnet/editor](./editor)       | TipTap editor, slash commands, wikilinks, drag-drop | 23    | Stable |
 | [@xnet/ui](./ui)               | Radix UI primitives, composed components, theme     | 0     | Stable |
 | [@xnet/views](./views)         | Table, Board, Gallery, Timeline, Calendar           | 7     | Stable |
@@ -39,6 +39,13 @@
 | [@xnet/telemetry](./telemetry) | Privacy-preserving telemetry, tiered consent        | 0     | Stable |
 | [@xnet/formula](./formula)     | Expression parser, evaluator, built-in functions    | 4     | Stable |
 | [@xnet/vectors](./vectors)     | HNSW vector index, semantic + hybrid search         | 4     | Stable |
+
+### Tooling
+
+| Package                            | Description                                            | Tests | Status |
+| ---------------------------------- | ------------------------------------------------------ | ----- | ------ |
+| [@xnet/cli](./cli)                 | CLI commands for schema diff/migration and diagnostics | -     | Stable |
+| [@xnet/data-bridge](./data-bridge) | Bridge abstraction for off-main-thread data access     | -     | Stable |
 
 ## Dependency Graph
 

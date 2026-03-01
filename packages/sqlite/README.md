@@ -46,7 +46,7 @@ await db.close()
 import { createElectronSQLiteAdapter } from '@xnet/sqlite/electron'
 
 const db = await createElectronSQLiteAdapter({
-  filename: 'xnet.db',
+  path: 'xnet.db',
   // Optional WAL mode (default: true)
   walMode: true
 })
@@ -58,7 +58,7 @@ const db = await createElectronSQLiteAdapter({
 import { createWebSQLiteAdapter } from '@xnet/sqlite/web'
 
 const db = await createWebSQLiteAdapter({
-  filename: 'xnet.db'
+  path: 'xnet.db'
 })
 ```
 
@@ -68,7 +68,7 @@ const db = await createWebSQLiteAdapter({
 import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
 
 const db = await createExpoSQLiteAdapter({
-  filename: 'xnet.db'
+  path: 'xnet.db'
 })
 ```
 

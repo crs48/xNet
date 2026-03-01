@@ -11,7 +11,7 @@ pnpm add @xnet/react @xnet/data
 ## Quick Start
 
 ```tsx
-import { NodeStoreProvider, useQuery, useMutate, useNode } from '@xnet/react'
+import { XNetProvider, useQuery, useMutate, useNode } from '@xnet/react'
 import { MemoryNodeStorageAdapter, defineSchema, text, select } from '@xnet/data'
 
 // 1. Define your schema
@@ -32,13 +32,15 @@ const TaskSchema = defineSchema({
 // 2. Wrap your app with the provider
 function App() {
   return (
-    <NodeStoreProvider
-      storage={new MemoryNodeStorageAdapter()}
-      authorDID={identity.did}
-      signingKey={privateKey}
+    <XNetProvider
+      config={{
+        nodeStorage: new MemoryNodeStorageAdapter(),
+        authorDID: identity.did,
+        signingKey: privateKey
+      }}
     >
       <TaskApp />
-    </NodeStoreProvider>
+    </XNetProvider>
   )
 }
 ```
@@ -192,8 +194,6 @@ await mutate([
 
 Load a node with its Y.Doc for collaborative rich text editing.
 
-> **Note:** `useDocument` is available as a deprecated alias for `useNode`.
-
 ```tsx
 import { useNode } from '@xnet/react'
 import { RichTextEditor } from '@xnet/editor/react'
@@ -237,27 +237,27 @@ function DocumentEditor({ pageId }) {
 ### Comment Hooks
 
 ```tsx
-const { comments, addComment, resolveComment } = useComments(nodeId)
-const { count } = useCommentCount(nodeId)
+const { threads, addComment, resolveThread } = useComments({ nodeId })
+const count = useCommentCount(nodeId)
 ```
 
 ### History Hooks
 
 ```tsx
-const { entries, goTo } = useHistory(nodeId)
+const { timeline, materializeAt, diff } = useHistory(nodeId)
 const { undo, redo, canUndo, canRedo } = useUndo(nodeId)
-const { trail } = useAudit(nodeId)
-const { diff } = useDiff(nodeId, version1, version2)
+const { entries, activity } = useAudit(nodeId)
+const { diff: runDiff, result } = useDiff(nodeId)
 const { blame } = useBlame(nodeId)
-const { verify } = useVerification(nodeId)
+const { verify, quickCheck } = useVerification(nodeId)
 ```
 
 ### Hub Hooks
 
 ```tsx
-const { connected, latency } = useHubStatus()
-const { backup, restore } = useBackup()
-const { upload, progress } = useFileUpload()
+const status = useHubStatus()
+const { upload: uploadBackup, download: downloadBackup } = useBackup()
+const { upload, uploading, progress } = useFileUpload()
 const { search, results } = useHubSearch()
 const { schema } = useRemoteSchema(schemaId)
 const { peers } = usePeerDiscovery()

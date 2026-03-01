@@ -18,7 +18,7 @@ import {
   MemoryAdapter
 } from '@xnet/sdk'
 
-const identity = await generateIdentity()
+const { identity } = generateIdentity()
 const storage = new MemoryAdapter()
 const index = createSearchIndex()
 const engine = createLocalQueryEngine(
@@ -37,8 +37,6 @@ console.log(identity.did, storage, index, engine)
 - Core hashing/content helpers from `@xnet/core`
 - Shared type re-exports from core/network/query/storage/identity
 
-The legacy high-level SDK client (`createXNetClient`) and platform presets were removed.
-
 ## Re-exports
 
 The SDK re-exports commonly used types and utilities from:
@@ -49,6 +47,8 @@ The SDK re-exports commonly used types and utilities from:
 - `@xnet/storage` -- Blob storage adapter
 - `@xnet/network` -- Network node
 - `@xnet/query` -- Query engine, search
+
+For app bootstrap, use `createClient()` from `@xnet/sdk`.
 
 ## Modules
 

@@ -26,24 +26,36 @@ pnpm add @xnet/sync
 ## Usage
 
 ```typescript
-import { createChange, type Change } from '@xnet/sync'
+import {
+  createUnsignedChange,
+  signChange,
+  createLamportClock,
+  tick,
+  receive,
+  compareLamportTimestamps
+} from '@xnet/sync'
 
-// Create an immutable change
-const change: Change<{ title: string }> = createChange({
-  author: did,
-  data: { title: 'Updated title' },
-  clock: lamportClock.tick()
+let clock = createLamportClock(did)
+const [nextClock, lamport] = tick(clock)
+clock = nextClock
+
+const unsigned = createUnsignedChange({
+  id: crypto.randomUUID(),
+  type: 'task/update',
+  payload: { title: 'Updated title' },
+  parentHash: null,
+  authorDID: did,
+  lamport
 })
-```
 
-```typescript
-import { LamportClock } from '@xnet/sync'
+const change = signChange(unsigned, signingKey)
 
-// Logical clocks for ordering
-const clock = new LamportClock()
-const t1 = clock.tick() // Local event
-const t2 = clock.receive(t1) // Merge with remote
-const cmp = clock.compare(t1, t2) // -1, 0, or 1
+// Merge remote Lamport time into local clock
+clock = receive(clock, change.lamport.time)
+
+// Deterministic ordering
+const [, later] = tick(clock)
+const cmp = compareLamportTimestamps(change.lamport, later)
 ```
 
 ```typescript
@@ -69,7 +81,7 @@ const { valid, update } = verifyYjsEnvelope(envelope)
 flowchart TD
     subgraph Structured["Structured Data Sync"]
         Change["Change&lt;T&gt;<br/><small>Immutable sync unit</small>"]
-        Clock["LamportClock<br/><small>Causal ordering</small>"]
+        Clock["Lamport utilities<br/><small>tick, receive, compare</small>"]
         Chain["Hash Chain<br/><small>Tamper-evident log</small>"]
     end
 
