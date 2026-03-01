@@ -32,7 +32,14 @@
  * ])
  * ```
  */
-import type { DefinedSchema, PropertyBuilder, InferCreateProps, NodeState } from '@xnet/data'
+import type {
+  DefinedSchema,
+  PropertyBuilder,
+  InferCreateProps,
+  NodeState,
+  TransactionOperation
+} from '@xnet/data'
+import { isTempId } from '@xnet/data'
 import { useCallback, useState, useRef } from 'react'
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
@@ -94,6 +101,69 @@ export type MutateOp =
 export interface MutateResult {
   /** Results for each operation (NodeState or null for delete) */
   results: (NodeState | null)[]
+  /** Batch ID when transaction backend is available */
+  batchId?: string
+  /** Temp ID mapping when transaction backend is available */
+  tempIds?: Record<string, string>
+}
+
+function hasTempIdInValue(value: unknown): boolean {
+  if (isTempId(value)) return true
+  if (Array.isArray(value)) {
+    return value.some((item) => hasTempIdInValue(item))
+  }
+  if (value && typeof value === 'object') {
+    return Object.values(value).some((item) => hasTempIdInValue(item))
+  }
+  return false
+}
+
+function hasTempIdsInOps(ops: MutateOp[]): boolean {
+  return ops.some((op) => {
+    switch (op.type) {
+      case 'create':
+        return Boolean((op.id && isTempId(op.id)) || hasTempIdInValue(op.data))
+      case 'update':
+        return isTempId(op.id) || hasTempIdInValue(op.data)
+      case 'delete':
+      case 'restore':
+        return isTempId(op.id)
+    }
+  })
+}
+
+function toTransactionOperations(ops: MutateOp[]): TransactionOperation[] {
+  return ops.map((op) => {
+    switch (op.type) {
+      case 'create':
+        return {
+          type: 'create',
+          options: {
+            id: op.id,
+            schemaId: op.schema._schemaId,
+            properties: op.data as Record<string, unknown>
+          }
+        }
+      case 'update':
+        return {
+          type: 'update',
+          nodeId: op.id,
+          options: {
+            properties: op.data
+          }
+        }
+      case 'delete':
+        return {
+          type: 'delete',
+          nodeId: op.id
+        }
+      case 'restore':
+        return {
+          type: 'restore',
+          nodeId: op.id
+        }
+    }
+  })
 }
 
 /**
@@ -309,6 +379,26 @@ export function useMutate(): UseMutateResult {
       const start = telemetry ? Date.now() : 0
       try {
         const result = await withPending(async () => {
+          const nodeStore = bridge.nodeStore
+          const canUseStoreTransactions = nodeStore && typeof nodeStore.transaction === 'function'
+          const usesTempIds = hasTempIdsInOps(ops)
+
+          if (usesTempIds && !canUseStoreTransactions) {
+            throw new Error(
+              'Temp IDs in useMutate.mutate() require a transaction-capable bridge (NodeStore.transaction). ' +
+                'Current bridge executes operations sequentially and cannot resolve temp IDs.'
+            )
+          }
+
+          if (canUseStoreTransactions) {
+            const tx = await nodeStore.transaction(toTransactionOperations(ops))
+            return {
+              results: tx.results,
+              batchId: tx.batchId,
+              tempIds: tx.tempIds
+            }
+          }
+
           const results: (NodeState | null)[] = []
 
           for (const op of ops) {
