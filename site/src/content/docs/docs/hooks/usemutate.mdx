@@ -67,13 +67,13 @@ Takes no parameters. Returns methods for all mutation operations.
 
 ### Mutation methods
 
-| Method    | Signature                                                    | Description                                                                 |
-| --------- | ------------------------------------------------------------ | --------------------------------------------------------------------------- |
-| `create`  | `(schema, data, id?, options?) => Promise<FlatNode \| null>` | Create a new node. Returns the created node or `null` if store isn't ready. |
-| `update`  | `(schema, id, data, options?) => Promise<FlatNode \| null>`  | Update properties. Only changed fields are written.                         |
-| `remove`  | `(id, options?) => Promise<void>`                            | Soft-delete a node. Recoverable via `restore`.                              |
-| `restore` | `(id, options?) => Promise<FlatNode \| null>`                | Restore a soft-deleted node.                                                |
-| `mutate`  | `(ops[], options?) => Promise<TransactionResult \| null>`    | Batch multiple operations atomically.                                       |
+| Method    | Signature                                          | Description                                                                 |
+| --------- | -------------------------------------------------- | --------------------------------------------------------------------------- |
+| `create`  | `(schema, data, id?) => Promise<FlatNode \| null>` | Create a new node. Returns the created node or `null` if store isn't ready. |
+| `update`  | `(schema, id, data) => Promise<FlatNode \| null>`  | Update properties. Only changed fields are written.                         |
+| `remove`  | `(id) => Promise<void>`                            | Soft-delete a node. Recoverable via `restore`.                              |
+| `restore` | `(id) => Promise<FlatNode \| null>`                | Restore a soft-deleted node.                                                |
+| `mutate`  | `(ops[]) => Promise<MutateResult \| null>`         | Execute a batch of operations through the active data bridge.               |
 
 ### Status fields
 
@@ -81,12 +81,6 @@ Takes no parameters. Returns methods for all mutation operations.
 | -------------- | --------- | ---------------------------------------------- |
 | `isPending`    | `boolean` | `true` if any mutation is currently in flight. |
 | `pendingCount` | `number`  | Number of concurrent mutations in flight.      |
-
-### MutateOptions
-
-| Field        | Type      | Default | Description                                                                                               |
-| ------------ | --------- | ------- | --------------------------------------------------------------------------------------------------------- |
-| `optimistic` | `boolean` | `true`  | Whether to apply optimistic updates. Currently accepted but unused — all writes go directly to the store. |
 
 ## Usage patterns
 
@@ -122,7 +116,7 @@ const task = await create(TaskSchema, { title: 'Known ID' }, 'my-custom-id')
 
 ### Transactions (batch operations)
 
-Use `mutate()` to execute multiple operations atomically:
+Use `mutate()` to execute multiple operations in one call:
 
 ```tsx
 const { mutate } = useMutate()
@@ -135,39 +129,11 @@ const result = await mutate([
 ])
 ```
 
-### Transactions with temp IDs
-
-When creating related nodes in a transaction, the result includes a `tempIds` map from your provided IDs to the generated real IDs:
-
-```tsx
-const result = await mutate([
-  {
-    type: 'create',
-    schema: ProjectSchema,
-    data: { title: 'New Project' },
-    id: 'temp-project'
-  },
-  {
-    type: 'create',
-    schema: TaskSchema,
-    data: {
-      title: 'First task',
-      projectId: 'temp-project' // Reference the temp ID
-    }
-  }
-])
-
-// result.tempIds['temp-project'] → real generated ID
-```
-
-### TransactionResult
+### MutateResult
 
 ```ts
-interface TransactionResult {
-  batchId: string // Unique batch identifier
+interface MutateResult {
   results: (NodeState | null)[] // One result per operation (null for deletes)
-  changes: NodeChange[] // All changes produced
-  tempIds: Record<string, string> // Temp ID → real ID mapping
 }
 ```
 

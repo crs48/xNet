@@ -20,18 +20,23 @@ The type inference pipeline has three stages:
 
 ```ts
 // 1. Define schema — types are captured here
-const Task = defineSchema('task', {
-  title: text(),
-  done: boolean({ default: false }),
-  assignee: person()
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text(),
+    done: checkbox({ default: false }),
+    assignee: person()
+  }
 })
 
 // 2. Create — TypeScript knows title is required, done is optional
-mutate.create('task', { title: 'Ship it' }) // ✅
-mutate.create('task', {}) // ❌ missing title
+const { create } = useMutate()
+create(TaskSchema, { title: 'Ship it' }) // ✅
+create(TaskSchema, {}) // ❌ missing title
 
 // 3. Read — TypeScript knows the full shape
-const tasks = useQuery(Task)
+const { data: tasks } = useQuery(TaskSchema)
 tasks[0].title // string
 tasks[0].done // boolean
 tasks[0].id // string (from base fields)

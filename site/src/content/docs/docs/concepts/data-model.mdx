@@ -19,40 +19,41 @@ xNet's data model has three layers:
 A schema declares the properties a node can have, using typed builder functions:
 
 ```ts
-import { defineSchema, text, number, boolean, select, relation } from '@xnet/data'
+import { defineSchema, text, number, checkbox, select, relation } from '@xnet/data'
 
-const Task = defineSchema('task', {
-  title: text(),
-  priority: number({ default: 0 }),
-  done: boolean({ default: false }),
-  status: select({ options: ['todo', 'doing', 'done'] }),
-  project: relation()
+const TaskSchema = defineSchema({
+  name: 'Task',
+  namespace: 'xnet://my-app/',
+  properties: {
+    title: text({ required: true }),
+    priority: number({ default: 0 }),
+    done: checkbox({ default: false }),
+    status: select({ options: [{ id: 'todo', name: 'To Do' }] as const }),
+    project: relation({ target: 'xnet://my-app/Project@1.0.0' })
+  }
 })
 ```
 
 Each builder returns a typed descriptor that encodes the value type, default, and cardinality. TypeScript infers the full type from the schema definition — no manual type annotations needed.
 
-xNet provides 16 property types:
+xNet provides 15 property types:
 
-| Type              | Value      | Notes                      |
-| ----------------- | ---------- | -------------------------- |
-| `text()`          | `string`   | Plain text                 |
-| `number()`        | `number`   | Numeric value              |
-| `boolean()`       | `boolean`  | True/false                 |
-| `date()`          | `number`   | Unix timestamp             |
-| `select()`        | `string`   | Single choice from options |
-| `multiSelect()`   | `string[]` | Multiple choices           |
-| `url()`           | `string`   | URL string                 |
-| `email()`         | `string`   | Email address              |
-| `phone()`         | `string`   | Phone number               |
-| `relation()`      | `string`   | Reference to another node  |
-| `relation.many()` | `string[]` | Multiple references        |
-| `person()`        | `string`   | Reference to a DID         |
-| `person.many()`   | `string[]` | Multiple DID references    |
-| `checkbox()`      | `boolean`  | Alias for boolean          |
-| `file()`          | `object`   | File attachment            |
-| `formula()`       | _computed_ | Computed at read time      |
-| `rollup()`        | _computed_ | Aggregation over relations |
+| Type                           | Value      | Notes                      |
+| ------------------------------ | ---------- | -------------------------- |
+| `text()`                       | `string`   | Plain text                 |
+| `number()`                     | `number`   | Numeric value              |
+| `checkbox()`                   | `boolean`  | True/false                 |
+| `date()`                       | `number`   | Unix timestamp             |
+| `select()`                     | `string`   | Single choice from options |
+| `multiSelect()`                | `string[]` | Multiple choices           |
+| `url()`                        | `string`   | URL string                 |
+| `email()`                      | `string`   | Email address              |
+| `phone()`                      | `string`   | Phone number               |
+| `relation()`                   | `string`   | Reference to another node  |
+| `relation({ multiple: true })` | `string[]` | Multiple references        |
+| `person()`                     | `string`   | Reference to a DID         |
+| `person({ multiple: true })`   | `string[]` | Multiple DID references    |
+| `file()`                       | `object`   | File attachment            |
 
 See [Property Types](/docs/schemas/property-types/) for full details on each type.
 
@@ -63,7 +64,7 @@ A node is an instance of a schema. Every node has base fields that are managed a
 ```ts
 interface NodeBase {
   id: string // Unique node ID (auto-generated)
-  schemaIRI: string // Schema identifier
+  schemaId: string // Schema identifier
   createdAt: number // Set at creation time
   updatedAt: number // Updated on every change
   createdBy: string // Author DID
@@ -77,7 +78,7 @@ When you read a node via `useQuery` or `useNode`, you get a `FlatNode` — the b
 // FlatNode<TaskSchema>
 {
   id: 'abc123',
-  schemaIRI: 'xnet://app/task',
+  schemaId: 'xnet://app/task@1.0.0',
   createdAt: 1706000000,
   updatedAt: 1706000100,
   createdBy: 'did:key:z6Mk...',
@@ -124,23 +125,23 @@ Changes form a hash chain — each change references its parent's hash. This cre
 - **Authorship is provable** — every change is signed with Ed25519
 - **Ordering is deterministic** — Lamport timestamps provide causal ordering across peers
 
-## Transactions
+## Batched mutations
 
-For atomic multi-node operations, use transactions:
+For multi-node operations, use `useMutate().mutate(...)`:
 
 ```ts
-const result = mutate.transaction((tx) => {
-  const projectId = tx.create(ProjectSchema, { name: 'Acme' })
-  tx.create(TaskSchema, { title: 'Setup', project: projectId })
-  tx.create(TaskSchema, { title: 'Launch', project: projectId })
-})
+await mutate([
+  { type: 'create', schema: ProjectSchema, id: 'project-acme', data: { name: 'Acme' } },
+  { type: 'create', schema: TaskSchema, data: { title: 'Setup', project: 'project-acme' } },
+  { type: 'create', schema: TaskSchema, data: { title: 'Launch', project: 'project-acme' } }
+])
 ```
 
-Transactions are batched — all changes share a `batchId` and are applied atomically. Temporary IDs used within a transaction are resolved to real IDs when committed.
+The current `mutate()` API returns per-operation results and runs through the active data bridge.
 
 ## Further reading
 
 - [defineSchema](/docs/schemas/defineschema/) — Schema definition API
-- [Property Types](/docs/schemas/property-types/) — All 16 property types
+- [Property Types](/docs/schemas/property-types/) — All 15 property types
 - [Type Inference](/docs/schemas/type-inference/) — How TypeScript types flow from schemas to hooks
 - [Relations](/docs/schemas/relations/) — Linking nodes together

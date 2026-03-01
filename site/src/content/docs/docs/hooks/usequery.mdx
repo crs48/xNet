@@ -73,11 +73,11 @@ The second argument determines the overload: pass a `string` for single-node loo
 
 ## Parameters
 
-| Parameter | Type               | Description                                                                             |
-| --------- | ------------------ | --------------------------------------------------------------------------------------- |
+| Parameter | Type               | Description                                                                        |
+| --------- | ------------------ | ---------------------------------------------------------------------------------- |
 | `schema`  | `DefinedSchema<P>` | The schema to query. Created with [`defineSchema()`](/docs/schemas/defineschema/). |
-| `id`      | `string`           | _(Overload 2)_ Node ID to fetch.                                                        |
-| `filter`  | `QueryFilter<P>`   | _(Overload 3)_ Filter, sort, and pagination options.                                    |
+| `id`      | `string`           | _(Overload 2)_ Node ID to fetch.                                                   |
+| `filter`  | `QueryFilter<P>`   | _(Overload 3)_ Filter, sort, and pagination options.                               |
 
 ### QueryFilter
 
@@ -93,12 +93,12 @@ The second argument determines the overload: pass a `string` for single-node loo
 
 ### List result (overloads 1 and 3)
 
-| Field     | Type                  | Description                                                   |
-| --------- | --------------------- | ------------------------------------------------------------- |
-| `data`    | `FlatNode<P>[]`       | The query results. Properties are spread to top level.        |
-| `loading` | `boolean`             | `true` during initial load, `false` once data is available.   |
-| `error`   | `Error \| null`       | Any error during query execution.                             |
-| `reload`  | `() => Promise<void>` | Force re-fetch from store. Rarely needed — data auto-updates. |
+| Field     | Type            | Description                                                       |
+| --------- | --------------- | ----------------------------------------------------------------- |
+| `data`    | `FlatNode<P>[]` | The query results. Properties are spread to top level.            |
+| `loading` | `boolean`       | `true` during initial load, `false` once data is available.       |
+| `error`   | `Error \| null` | Any error during query execution.                                 |
+| `reload`  | `() => void`    | Force re-run the subscription. Rarely needed — data auto-updates. |
 
 ### Single result (overload 2)
 
@@ -107,7 +107,7 @@ The second argument determines the overload: pass a `string` for single-node loo
 | `data`    | `FlatNode<P> \| null` | The node, or `null` if not found or deleted. |
 | `loading` | `boolean`             | `true` during initial load.                  |
 | `error`   | `Error \| null`       | Any error during query execution.            |
-| `reload`  | `() => Promise<void>` | Force re-fetch from store.                   |
+| `reload`  | `() => void`          | Force re-run the subscription.               |
 
 ### FlatNode
 

@@ -105,7 +105,7 @@ All mutations are type-safe, validated against the schema, and automatically syn
 ### useNode — edit a single node with CRDT
 
 ```tsx
-const { data, doc, update, syncStatus, remoteUsers } = useNode(PageSchema, pageId, {
+const { data, doc, update, syncStatus, presence } = useNode(PageSchema, pageId, {
   createIfMissing: { title: 'Untitled' },
   did: currentUserDID
 })
@@ -115,7 +115,7 @@ const { data, doc, update, syncStatus, remoteUsers } = useNode(PageSchema, pageI
 
 - **Structured data** via `data` (the node's properties)
 - **A Yjs document** via `doc` (for rich text, bind to TipTap)
-- **Sync status** and **remote users** for presence UI
+- **Sync status** and **presence** for collaborator UI
 - **Automatic persistence** with debounced saves
 
 ## Two conflict resolution strategies

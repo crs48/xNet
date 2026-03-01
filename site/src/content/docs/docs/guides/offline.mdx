@@ -119,20 +119,20 @@ There are no merge conflict dialogs. The system is designed so that all peers co
 
 ### Offline-aware forms
 
-For forms that create multiple related nodes, use transactions to ensure atomicity:
+For forms that create multiple related nodes, use `mutate([...])` to execute a batched write:
 
 ```tsx
-const mutate = useMutate()
+const { mutate } = useMutate()
 
 const createProjectWithTasks = async () => {
-  const result = mutate.transaction((tx) => {
-    const projectId = tx.create(ProjectSchema, { name: 'Acme' })
-    tx.create(TaskSchema, { title: 'Setup', project: projectId })
-    tx.create(TaskSchema, { title: 'Launch', project: projectId })
-  })
+  const result = await mutate([
+    { type: 'create', schema: ProjectSchema, id: 'project-acme', data: { name: 'Acme' } },
+    { type: 'create', schema: TaskSchema, data: { title: 'Setup', project: 'project-acme' } },
+    { type: 'create', schema: TaskSchema, data: { title: 'Launch', project: 'project-acme' } }
+  ])
 
-  // All three nodes are created atomically in local storage.
-  // They sync together when connected, ensuring no dangling references.
+  // All three writes run through one mutate call.
+  // The known project ID keeps references stable while offline and after sync.
 }
 ```
 
