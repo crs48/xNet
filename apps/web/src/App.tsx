@@ -53,86 +53,50 @@ const identityManager = createIdentityManager()
 // Hub URL from env or default
 const DEFAULT_HUB_URL = import.meta.env.VITE_HUB_URL || 'wss://hub.xnet.fyi'
 
-type SharePayloadV2 = {
-  v: 2
-  resource: string
-  docType: 'page' | 'database' | 'canvas'
+type SharedHubSession = {
   endpoint: string
   token: string
   exp: number
 }
 
-function resolveHubUrlFromLocation(): string {
+function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | null } {
   try {
-    let encodedPayload: string | null = null
-
-    const hash = window.location.hash
-    const hashQuery = hash.includes('?') ? hash.split('?')[1] : ''
-    if (hashQuery) {
-      encodedPayload = new URLSearchParams(hashQuery).get('payload')
-    }
-    if (!encodedPayload) {
-      const parsed = new URL(window.location.href)
-      encodedPayload = parsed.searchParams.get('payload')
-    }
-
-    if (
-      !encodedPayload ||
-      encodedPayload.length > 8192 ||
-      !/^[A-Za-z0-9_-]+$/.test(encodedPayload)
-    ) {
-      return DEFAULT_HUB_URL
-    }
-
-    const payload = decodeSharePayload(encodedPayload)
-    if (!payload || payload.exp <= Date.now()) {
-      return DEFAULT_HUB_URL
-    }
-
-    const endpoint = new URL(payload.endpoint)
-    endpoint.searchParams.set('token', payload.token)
-
     const parsed = new URL(window.location.href)
-    parsed.searchParams.delete('payload')
-    window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${parsed.hash}`)
-
-    return endpoint.toString()
-  } catch {
-    return DEFAULT_HUB_URL
-  }
-}
-
-function decodeSharePayload(encodedPayload: string): SharePayloadV2 | null {
-  try {
-    const json = fromBase64Url(encodedPayload)
-    const decoded = JSON.parse(json) as SharePayloadV2
-    if (
-      decoded?.v !== 2 ||
-      typeof decoded.resource !== 'string' ||
-      (decoded.docType !== 'page' &&
-        decoded.docType !== 'database' &&
-        decoded.docType !== 'canvas') ||
-      typeof decoded.endpoint !== 'string' ||
-      typeof decoded.token !== 'string' ||
-      !Number.isFinite(decoded.exp)
-    ) {
-      return null
+    const shareSession = parsed.searchParams.get('shareSession')
+    if (parsed.searchParams.has('payload') || parsed.searchParams.has('handle')) {
+      parsed.searchParams.delete('payload')
+      parsed.searchParams.delete('handle')
+      window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${parsed.hash}`)
     }
-    return decoded
-  } catch {
-    return null
-  }
-}
+    if (!shareSession) {
+      return { hubUrl: DEFAULT_HUB_URL, authToken: null }
+    }
 
-function fromBase64Url(str: string): string {
-  let base64 = str.replace(/-/g, '+').replace(/_/g, '/')
-  const padding = base64.length % 4
-  if (padding) {
-    base64 += '='.repeat(4 - padding)
+    const stored = sessionStorage.getItem(`xnet:share-session:${shareSession}`)
+    parsed.searchParams.delete('shareSession')
+    window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${parsed.hash}`)
+    if (!stored) {
+      return { hubUrl: DEFAULT_HUB_URL, authToken: null }
+    }
+
+    sessionStorage.removeItem(`xnet:share-session:${shareSession}`)
+    const session = JSON.parse(stored) as SharedHubSession
+    if (
+      !session ||
+      typeof session.endpoint !== 'string' ||
+      typeof session.token !== 'string' ||
+      session.endpoint.length === 0 ||
+      session.token.length === 0 ||
+      !Number.isFinite(session.exp) ||
+      session.exp <= Date.now()
+    ) {
+      return { hubUrl: DEFAULT_HUB_URL, authToken: null }
+    }
+
+    return { hubUrl: session.endpoint, authToken: session.token }
+  } catch {
+    return { hubUrl: DEFAULT_HUB_URL, authToken: null }
   }
-  const binary = atob(base64)
-  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
-  return new TextDecoder().decode(bytes)
 }
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -165,7 +129,7 @@ function UnsupportedBrowser({ reason }: { reason: string }): JSX.Element {
 // ─── Main App ───────────────────────────────────────────────────
 export function App(): JSX.Element {
   const [appState, setAppState] = useState<AppState>({ status: 'initializing' })
-  const [hubUrl] = useState(() => resolveHubUrlFromLocation())
+  const [{ hubUrl, authToken }] = useState(() => resolveHubSessionFromLocation())
   const storageRef = useRef<StorageContext | null>(null)
 
   // Initialize SQLite and storage on mount
@@ -381,6 +345,7 @@ export function App(): JSX.Element {
             signingKey: keyBundle.signingKey,
             blobStore: storage.blobStore,
             hubUrl,
+            hubOptions: authToken ? { autoAuth: false, authToken } : undefined,
             platform: 'web'
           }}
         >

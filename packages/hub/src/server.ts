@@ -8,7 +8,7 @@ import type { HubConfig, HubInstance } from './types'
 import type { MiddlewareHandler } from 'hono'
 import type { IncomingMessage } from 'http'
 import type { RawData, WebSocket } from 'ws'
-import { randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { serve } from '@hono/node-server'
 import { DatabaseSchema, PageSchema, TaskSchema } from '@xnet/data'
 import { Hono } from 'hono'
@@ -330,6 +330,48 @@ const checkRoomAuth = async (
   return { ok: true }
 }
 
+type ShareHandleDocType = 'page' | 'database' | 'canvas'
+
+type ShareHandleRecord = {
+  handle: string
+  endpoint: string
+  endpointClaim: string
+  token: string
+  resource: string
+  docType: ShareHandleDocType
+  exp: number
+  jti: string
+  nonce: string
+  used: boolean
+  issuedAt: number
+}
+
+type RevokedReplayRecord = {
+  jti: string
+  expiresAt: number
+}
+
+const isShareDocType = (value: unknown): value is ShareHandleDocType =>
+  value === 'page' || value === 'database' || value === 'canvas'
+
+const isSecureWsEndpoint = (endpoint: string): boolean => {
+  try {
+    const parsed = new URL(endpoint)
+    if (parsed.protocol === 'wss:') {
+      return true
+    }
+    if (parsed.protocol !== 'ws:') {
+      return false
+    }
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+  } catch {
+    return false
+  }
+}
+
+const endpointClaimFor = (endpoint: string, resource: string, exp: number): string =>
+  createHash('sha256').update(`${endpoint}|${resource}|${exp}`).digest('base64url')
+
 export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const app = new Hono()
   const signaling = createSignalingService()
@@ -441,6 +483,62 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const startTime = Date.now()
   const socketTopics = new Map<WebSocket, Set<string>>()
   const socketPeers = new Map<WebSocket, Set<string>>()
+  const socketSessions = new Map<WebSocket, AuthSession>()
+  const shareHandles = new Map<string, ShareHandleRecord>()
+  const replayCache = new Map<string, RevokedReplayRecord>()
+
+  const pruneShareHandles = (): void => {
+    const now = Date.now()
+    for (const [handle, record] of shareHandles) {
+      if (record.exp <= now || (record.used && now - record.issuedAt > 5 * 60 * 1000)) {
+        shareHandles.delete(handle)
+      }
+    }
+    for (const [key, record] of replayCache) {
+      if (record.expiresAt <= now) {
+        replayCache.delete(key)
+      }
+    }
+  }
+
+  const denyAndCloseSocket = (
+    ws: WebSocket,
+    decision: AuthzDecision,
+    action: 'hub/relay' | 'hub/signal',
+    topic: string
+  ): void => {
+    ws.send(
+      JSON.stringify({
+        type: 'auth-denied',
+        code: decision.code ?? 'UNAUTHORIZED',
+        action,
+        resource: topicToResource(topic),
+        error: decision.message ?? 'Insufficient capabilities for room'
+      })
+    )
+    metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+    ws.close(4403, decision.message ?? 'Insufficient capabilities for room')
+  }
+
+  const enforceSocketTopicAuth = async (ws: WebSocket): Promise<void> => {
+    const session = socketSessions.get(ws)
+    if (!session) return
+    const topics = socketTopics.get(ws)
+    if (!topics || topics.size === 0) return
+
+    for (const topic of topics) {
+      const decision = await authorizeRoomAction({
+        storage,
+        session,
+        action: 'hub/signal',
+        topic
+      })
+      if (!decision.allowed) {
+        denyAndCloseSocket(ws, decision, 'hub/signal', topic)
+        return
+      }
+    }
+  }
 
   app.get('/health', (c) => {
     const poolStats = pool.getStats()
@@ -555,8 +653,108 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     )
   }
 
+  app.post('/shares/issue', requireAuth, async (c) => {
+    const body = await c.req.json().catch(() => null)
+    if (!isRecord(body)) {
+      return c.json({ error: 'Invalid request body' }, 400)
+    }
+
+    const endpoint = typeof body.endpoint === 'string' ? body.endpoint : ''
+    const token = typeof body.token === 'string' ? body.token : ''
+    const resource = typeof body.resource === 'string' ? body.resource : ''
+    const docType = body.docType
+    const exp = typeof body.exp === 'number' ? body.exp : NaN
+
+    if (!endpoint || !token || !resource || !isShareDocType(docType) || !Number.isFinite(exp)) {
+      return c.json({ error: 'Missing required share fields' }, 400)
+    }
+    if (!isSecureWsEndpoint(endpoint)) {
+      return c.json({ error: 'Endpoint must be wss (or localhost ws in dev)' }, 400)
+    }
+
+    const now = Date.now()
+    if (exp <= now) {
+      return c.json({ error: 'Share already expired' }, 400)
+    }
+
+    const maxTtlMs = 30 * 60 * 1000
+    const boundedExp = Math.min(exp, now + maxTtlMs)
+    const handle = `sh_${randomBytes(24).toString('base64url')}`
+    const jti = randomUUID()
+    const nonce = randomBytes(16).toString('base64url')
+    const endpointClaim = endpointClaimFor(endpoint, resource, boundedExp)
+
+    shareHandles.set(handle, {
+      handle,
+      endpoint,
+      endpointClaim,
+      token,
+      resource,
+      docType,
+      exp: boundedExp,
+      jti,
+      nonce,
+      used: false,
+      issuedAt: now
+    })
+    pruneShareHandles()
+
+    return c.json({
+      handle,
+      exp: boundedExp,
+      resource,
+      docType,
+      endpointClaim
+    })
+  })
+
+  app.post('/shares/redeem', async (c) => {
+    const body = await c.req.json().catch(() => null)
+    if (!isRecord(body) || typeof body.handle !== 'string' || body.handle.length < 16) {
+      return c.json({ code: 'INVALID_HANDLE', error: 'Share handle is invalid' }, 400)
+    }
+
+    pruneShareHandles()
+    const handle = body.handle
+    const replay = replayCache.get(handle)
+    if (replay) {
+      return c.json({ code: 'TOKEN_REPLAYED', error: 'Share handle was already redeemed' }, 409)
+    }
+
+    const record = shareHandles.get(handle)
+    if (!record) {
+      return c.json({ code: 'INVALID_HANDLE', error: 'Share handle not found' }, 404)
+    }
+
+    if (record.exp <= Date.now()) {
+      shareHandles.delete(handle)
+      return c.json({ code: 'TOKEN_EXPIRED', error: 'Share handle expired' }, 410)
+    }
+    if (record.used) {
+      replayCache.set(handle, { jti: record.jti, expiresAt: record.exp })
+      shareHandles.delete(handle)
+      return c.json({ code: 'TOKEN_REPLAYED', error: 'Share handle was already redeemed' }, 409)
+    }
+
+    record.used = true
+    replayCache.set(handle, { jti: record.jti, expiresAt: record.exp })
+    shareHandles.delete(handle)
+
+    return c.json({
+      endpoint: record.endpoint,
+      endpointClaim: record.endpointClaim,
+      token: record.token,
+      resource: record.resource,
+      docType: record.docType,
+      exp: record.exp,
+      jti: record.jti,
+      nonce: record.nonce
+    })
+  })
+
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null
+  let sessionAuthInterval: ReturnType<typeof setInterval> | null = null
 
   const start = async (): Promise<void> => {
     if (httpServer) return
@@ -611,6 +809,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
     wss = new WebSocketServer({ server: httpServer as import('http').Server })
 
+    sessionAuthInterval = setInterval(() => {
+      for (const client of wss?.clients ?? []) {
+        if (client.readyState !== 1) {
+          continue
+        }
+        void enforceSocketTopicAuth(client)
+      }
+    }, 10_000)
+
     wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
       void (async () => {
         if (!rateLimiter.canAcceptConnection()) {
@@ -621,6 +828,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
         const session = await authenticateConnection(ws, req, config)
         if (!session) return
+        socketSessions.set(ws, session)
         const authContext = toAuthContext(session)
 
         if (session.did !== 'did:key:anonymous') {
@@ -700,6 +908,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             }
           }
           socketTopics.delete(ws)
+          socketSessions.delete(ws)
           const peers = socketPeers.get(ws)
           if (peers) {
             for (const peerId of peers) {
@@ -953,6 +1162,24 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               }
             }
 
+            if (
+              config.auth &&
+              isPublishMessage(payload) &&
+              typeof payload.topic === 'string' &&
+              payload.topic.startsWith('xnet-doc-')
+            ) {
+              const publishDecision = await authorizeRoomAction({
+                storage,
+                session,
+                action: 'hub/signal',
+                topic: payload.topic
+              })
+              if (!publishDecision.allowed) {
+                denyAndCloseSocket(ws, publishDecision, 'hub/signal', payload.topic)
+                return
+              }
+            }
+
             if (isPublishMessage(payload) && isNodeChangePayload(payload.data)) {
               const roomDecision = await authorizeRoomAction({
                 storage,
@@ -1072,6 +1299,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   }
 
   const stop = async (): Promise<void> => {
+    if (sessionAuthInterval) {
+      clearInterval(sessionAuthInterval)
+      sessionAuthInterval = null
+    }
+
     if (wss) {
       for (const client of wss.clients) {
         client.close(1001, 'Server shutting down')

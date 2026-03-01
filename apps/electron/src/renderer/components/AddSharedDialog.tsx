@@ -51,8 +51,52 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
           docType: parsed.docType,
           docId: parsed.docId
         })
+      } else if (parsed.kind === 'handle') {
+        const hubHttpUrl = resolveHubHttpUrl()
+        if (!hubHttpUrl) {
+          throw new Error('Hub URL is not configured for secure share redemption')
+        }
+
+        const redeemResponse = await fetch(`${hubHttpUrl}/shares/redeem`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ handle: parsed.handle })
+        })
+
+        const redeemed = (await redeemResponse.json().catch(() => null)) as
+          | {
+              endpoint: string
+              token: string
+              resource: string
+              docType: 'page' | 'database' | 'canvas'
+              exp: number
+            }
+          | { error?: string }
+          | null
+
+        if (!redeemResponse.ok || !redeemed || !('endpoint' in redeemed)) {
+          const message = redeemed && 'error' in redeemed ? redeemed.error : null
+          throw new Error(message ?? 'Secure share link could not be redeemed')
+        }
+
+        if (!redeemed.token || redeemed.exp <= Date.now()) {
+          throw new Error('Secure share session is expired')
+        }
+
+        await onAdd({
+          docType: redeemed.docType,
+          docId: redeemed.resource,
+          share: {
+            endpoint: redeemed.endpoint,
+            token: redeemed.token,
+            transport: 'ws'
+          }
+        })
       } else {
         const hints = parsed.payload.transportHints
+        if (!parsed.payload.token) {
+          throw new Error('Secure share payload is missing token material')
+        }
         await onAdd({
           docType: parsed.payload.docType,
           docId: parsed.payload.resource,
@@ -169,4 +213,12 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
       </div>
     </>
   )
+}
+
+function resolveHubHttpUrl(): string | null {
+  const configured = import.meta.env.VITE_HUB_URL as string | undefined
+  if (!configured) {
+    return null
+  }
+  return configured.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/$/, '')
 }

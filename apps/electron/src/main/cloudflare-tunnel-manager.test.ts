@@ -30,5 +30,10 @@ describe('cloudflare-tunnel-manager', () => {
     it('returns null when no endpoint exists', () => {
       expect(parseEndpointFromLogLine('INF starting cloudflared')).toBeNull()
     })
+
+    it('rejects non-cloudflare hostnames', () => {
+      const line = 'INF suspicious endpoint https://attacker.example.com'
+      expect(parseEndpointFromLogLine(line)).toBeNull()
+    })
   })
 })

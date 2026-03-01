@@ -34,12 +34,28 @@ describe('Hub UCAN Auth', () => {
       capabilities: [{ with: '*', can: 'hub/relay' }]
     })
 
-    const ws = new WebSocket(`ws://localhost:${PORT}?token=${token}`)
+    const ws = new WebSocket(`ws://localhost:${PORT}`, ['xnet-sync.v1', `xnet-auth.${token}`])
     await new Promise<void>((resolve) => {
       ws.on('open', () => resolve())
     })
     expect(ws.readyState).toBe(WebSocket.OPEN)
     ws.close()
+  })
+
+  it('rejects query-token authentication attempts', async () => {
+    const keys = generateKeyBundle()
+    const token = createUCAN({
+      issuer: keys.identity.did,
+      issuerKey: keys.signingKey,
+      audience: 'did:key:hub',
+      capabilities: [{ with: '*', can: 'hub/relay' }]
+    })
+
+    const ws = new WebSocket(`ws://localhost:${PORT}?token=${token}`)
+    const code = await new Promise<number>((resolve) => {
+      ws.on('close', (closeCode) => resolve(closeCode))
+    })
+    expect(code).toBe(4401)
   })
 
   it('anonymous mode allows all connections', async () => {

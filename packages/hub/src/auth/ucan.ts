@@ -37,10 +37,37 @@ const createAuthContext = (session: AuthSession): AuthContext => ({
 
 export const toAuthContext = (session: AuthSession): AuthContext => createAuthContext(session)
 
+const parseWebSocketProtocols = (value: string | string[] | undefined): string[] => {
+  if (!value) return []
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((entry) => entry.split(','))
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0)
+  }
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
 const getTokenFromRequest = (req: IncomingMessage): string | null => {
-  const host = req.headers.host ?? 'localhost'
-  const url = new URL(req.url ?? '/', `http://${host}`)
-  return url.searchParams.get('token')
+  const authHeader = req.headers.authorization
+  if (typeof authHeader === 'string') {
+    const bearer = parseBearerToken(authHeader)
+    if (bearer) {
+      return bearer
+    }
+  }
+
+  const protocols = parseWebSocketProtocols(req.headers['sec-websocket-protocol'])
+  const authProtocol = protocols.find((entry) => entry.startsWith('xnet-auth.'))
+  if (!authProtocol) {
+    return null
+  }
+
+  const token = authProtocol.slice('xnet-auth.'.length)
+  return token.length > 0 ? token : null
 }
 
 /**

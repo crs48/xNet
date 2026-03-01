@@ -253,35 +253,35 @@ Core change: switch from “token in URL payload” to “opaque handle + redemp
 
 ## Link and token handling
 
-- [ ] Replace `payload`-embedded token with opaque share handle.
-- [ ] Add redeem endpoint that returns ephemeral auth material via response body only.
-- [ ] Remove `token` from WebSocket query construction.
-- [ ] Strip payload/handle from browser URL immediately after parse (`replaceState`) on all routes.
-- [ ] Set `Cache-Control: no-store` and explicit `Referrer-Policy: no-referrer` on share bridge responses.
+- [x] Replace `payload`-embedded token with opaque share handle.
+- [x] Add redeem endpoint that returns ephemeral auth material via response body only.
+- [x] Remove `token` from WebSocket query construction.
+- [x] Strip payload/handle from browser URL immediately after parse (`replaceState`) on all routes.
+- [x] Set `Cache-Control: no-store` and explicit `Referrer-Policy: no-referrer` on share bridge responses.
 
 ## Endpoint trust
 
-- [ ] Add strict endpoint validator in share payload parser (scheme, host policy, optional pinning).
-- [ ] Reject non-`wss` endpoints unless explicit localhost dev mode.
-- [ ] Add signed endpoint claims in token/handle redemption to prevent endpoint substitution.
+- [x] Add strict endpoint validator in share payload parser (scheme, host policy, optional pinning).
+- [x] Reject non-`wss` endpoints unless explicit localhost dev mode.
+- [x] Add signed endpoint claims in token/handle redemption to prevent endpoint substitution.
 
 ## Auth and revocation
 
-- [ ] Add token replay prevention (`jti` + nonce cache + short expiry).
-- [ ] Add active-session revocation hook to disconnect revoked peers immediately.
-- [ ] Re-auth check at key message boundaries and on periodic heartbeat.
-- [ ] Remove/disable anonymous fallback token mode outside test/dev.
+- [x] Add token replay prevention (`jti` + nonce cache + short expiry).
+- [x] Add active-session revocation hook to disconnect revoked peers immediately.
+- [x] Re-auth check at key message boundaries and on periodic heartbeat.
+- [x] Remove/disable anonymous fallback token mode outside test/dev.
 
 ## WebRTC hardening
 
-- [ ] Ignore untrusted `iceServers` from inbound links by default.
-- [ ] Allow only approved TURN/STUN pools from local policy.
+- [x] Ignore untrusted `iceServers` from inbound links by default.
+- [x] Allow only approved TURN/STUN pools from local policy.
 - [ ] Prefer TURN over TLS where relay is required.
 - [ ] Log and surface when peer path uses unapproved ICE infra.
 
 ## Tunnel process hardening
 
-- [ ] Tighten tunnel endpoint parsing to expected Cloudflare host patterns only.
+- [x] Tighten tunnel endpoint parsing to expected Cloudflare host patterns only.
 - [ ] Pin cloudflared binary path/signature where feasible.
 - [ ] Add explicit tunnel mode labels in UI: test-only vs production-safe.
 
@@ -292,11 +292,11 @@ Core change: switch from “token in URL payload” to “opaque handle + redemp
 ## Security tests
 
 - [ ] Verify no token appears in browser address bar, history, logs, analytics, or crash reports.
-- [ ] Verify WS auth rejects query-token attempts once migrated.
-- [ ] Verify replayed share handle/token fails with deterministic error.
+- [x] Verify WS auth rejects query-token attempts once migrated.
+- [x] Verify replayed share handle/token fails with deterministic error.
 - [ ] Verify revoked grants cause immediate connection termination for active sessions.
-- [ ] Verify malformed or untrusted endpoint in payload is rejected before network dial.
-- [ ] Verify injected ICE servers in payload are ignored unless allowlisted.
+- [x] Verify malformed or untrusted endpoint in payload is rejected before network dial.
+- [x] Verify injected ICE servers in payload are ignored unless allowlisted.
 
 ## Abuse and adversarial tests
 

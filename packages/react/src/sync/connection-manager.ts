@@ -25,7 +25,7 @@ export interface ConnectionManagerConfig {
   reconnectDelay?: number
   /** Max reconnect attempts (default: Infinity) */
   maxReconnects?: number
-  /** UCAN token for hub auth (appended as ?token=) */
+  /** UCAN token for hub auth */
   ucanToken?: string
   /** Async UCAN token provider (preferred for rotation) */
   getUCANToken?: () => Promise<string>
@@ -161,7 +161,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     }
   }
 
-  async function buildUrl(): Promise<string> {
+  async function resolveAuthToken(): Promise<string> {
     let token = config.ucanToken ?? ''
     if (!token && config.getUCANToken) {
       try {
@@ -170,10 +170,15 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
         token = ''
       }
     }
-    if (!token) return config.url
-    const url = new URL(config.url)
-    url.searchParams.set('token', token)
-    return url.toString()
+    return token
+  }
+
+  function buildProtocols(token: string): string[] {
+    const protocols = ['xnet-sync.v1']
+    if (token && !/[\s,]/.test(token)) {
+      protocols.push(`xnet-auth.${token}`)
+    }
+    return protocols
   }
 
   async function doConnect(): Promise<void> {
@@ -191,8 +196,8 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     setStatus('connecting')
 
     try {
-      const url = await buildUrl()
-      ws = new WebSocket(url)
+      const token = await resolveAuthToken()
+      ws = new WebSocket(config.url, buildProtocols(token))
 
       ws.onopen = () => {
         connectInProgress = false

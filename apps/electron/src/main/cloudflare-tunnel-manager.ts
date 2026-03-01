@@ -37,7 +37,7 @@ type PersistedTunnelState = {
 const DEFAULT_TARGET_URL = process.env.XNET_TUNNEL_TARGET_URL ?? 'http://127.0.0.1:4444'
 const READY_LOG_RE =
   /registered tunnel connection|connection .* registered|your quick tunnel has been created/i
-const ENDPOINT_RE = /https:\/\/[A-Za-z0-9.-]+\.(?:trycloudflare\.com|[A-Za-z0-9.-]+)/g
+const ENDPOINT_RE = /https:\/\/[A-Za-z0-9.-]+\.(?:trycloudflare\.com|cfargotunnel\.com)/g
 
 function getCloudflaredInstallHint(): string {
   switch (process.platform) {
@@ -65,6 +65,12 @@ export function parseEndpointFromLogLine(line: string): string | null {
   for (const match of matches) {
     try {
       const url = new URL(match)
+      if (
+        !url.hostname.endsWith('.trycloudflare.com') &&
+        !url.hostname.endsWith('.cfargotunnel.com')
+      ) {
+        continue
+      }
       return `${url.protocol}//${url.host}`
     } catch {
       // Ignore malformed URLs in noisy logs.

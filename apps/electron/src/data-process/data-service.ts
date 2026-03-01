@@ -190,18 +190,22 @@ function fromBase64(str: string): Uint8Array {
   return new Uint8Array(Buffer.from(str, 'base64'))
 }
 
-function buildSignalingUrl(signalingUrl: string, token: string): string {
-  if (!token) {
-    return signalingUrl
-  }
-
+function normalizeSignalingUrl(signalingUrl: string): string {
   try {
     const url = new URL(signalingUrl)
-    url.searchParams.set('token', token)
+    url.searchParams.delete('token')
     return url.toString()
   } catch {
     return signalingUrl
   }
+}
+
+function buildWebSocketProtocols(token: string): string[] {
+  const protocols = ['xnet-sync.v1']
+  if (token && !/[\s,]/.test(token)) {
+    protocols.push(`xnet-auth.${token}`)
+  }
+  return protocols
 }
 
 function serializeEnvelope(envelope: SignedYjsEnvelopeV1): Record<string, unknown> {
@@ -393,12 +397,14 @@ export function createDataService(config: DataServiceConfig): DataService {
     if (destroyed || !signalingUrl) return
     if (ws) return
 
-    const url = buildSignalingUrl(signalingUrl, ucanToken)
+    const url = normalizeSignalingUrl(signalingUrl)
     log('Connecting to:', url)
     setStatus('connecting')
 
     try {
-      ws = new WebSocket(url)
+      ws = new WebSocket(url, buildWebSocketProtocols(ucanToken), {
+        headers: ucanToken ? { Authorization: `Bearer ${ucanToken}` } : undefined
+      })
 
       ws.on('open', () => {
         log('WebSocket connected')
