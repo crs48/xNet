@@ -417,55 +417,35 @@ graph LR
 
 ### Where We Are Now
 
-```
-Phase 1 (MVP): ████████████████████ 95% Complete
-├── Core packages (@xnet/crypto, identity, storage, data, network)
-├── Platform POCs (Electron, Expo, Web)
-├── Basic xNet features (wiki, tasks, editor)
-└── Local P2P sync
+The project is now beyond "platform POC" status and in a product-hardening phase:
 
-Phase 2 (Database Platform): ████░░░░░░░░░░░░░░░░ 20% In Progress
-├── Property types (18 types) ✓
-├── Views (table, board, gallery, timeline, calendar)
-├── Formula engine
-├── Vector search
-└── Infinite canvas
+- Core package stack and three apps are implemented and actively maintained.
+- Web includes pages, databases, and canvas routes.
+- Hub includes sync relay, FTS5 search, file handling, schema routes, and federation primitives.
+- Share/auth flows have received security hardening (handle redemption, replay protection, stricter endpoint policy).
 
-Phase 2.1 (Data Model Consolidation): ██░░░░░░░░░░░░░░░░░░ 10% Starting
-├── Schema-first architecture
-├── Node as universal type
-├── Global namespace (IRIs)
-└── Unified sync primitives
-```
+Execution focus for the current cycle is not building first versions of capabilities; it is making them dependable, understandable, and easy to adopt.
 
 ### What's Next
 
 ```mermaid
 gantt
-    title xNet Development Roadmap
+    title xNet Current Execution Horizon
     dateFormat  YYYY-MM
     axisFormat  %b %Y
 
-    section Foundation
-    Phase 1 MVP              :done, 2025-06, 2026-01
-    Phase 2 Database         :active, 2026-01, 2026-06
-    Phase 2.1 Data Model     :active, 2026-01, 2026-03
+    section Mar-Apr 2026
+    Product reliability      :active, 2026-03, 2026-05
 
-    section Application
-    xNet v1.0              :2026-06, 2026-07
-    xNet v2.0 (Notion)     :2026-07, 2027-01
-    xNet v2.5 (Canvas)     :2027-01, 2027-06
-    xNet v3.0 (ERP)        :2027-06, 2028-01
+    section May-Jun 2026
+    Collaboration + trust    :2026-05, 2026-07
 
-    section Infrastructure
-    Federation               :2027-01, 2027-06
-    Global Namespace         :2027-06, 2028-01
-    Economic Layer           :2028-01, 2028-06
+    section Jul-Sep 2026
+    Platform clarity         :2026-07, 2026-10
 
-    section Scale
-    Distributed Search       :2028-06, 2029-01
-    Social Federation        :2028-06, 2029-01
-    Public Data Commons      :2029-01, 2029-06
+    section Beyond current cycle
+    Multi-hub federation maturity :2026-10, 2027-04
+    Ecosystem expansion (plugins/mobile/domain packs) :2027-01, 2027-09
 ```
 
 ---
