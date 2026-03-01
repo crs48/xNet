@@ -1,6 +1,6 @@
 # @xnet/storage
 
-Storage adapters, blob management, and snapshot persistence for xNet.
+Storage adapters and blob persistence for xNet.
 
 ## Installation
 
@@ -10,12 +10,11 @@ pnpm add @xnet/storage
 
 ## Features
 
-- **SQLite adapter** -- High-performance cross-platform storage via `@xnet/sqlite` (recommended)
-- **IndexedDB adapter** -- Browser-native persistent storage via `idb` (deprecated)
-- **Memory adapter** -- In-memory storage for testing
-- **Blob store** -- Large binary object storage with content addressing
-- **Chunk manager** -- Chunked blob storage for large files (streaming upload/download)
-- **Snapshot manager** -- Point-in-time state snapshots with compression (pako)
+- **SQLite adapter** -- Cross-platform blob storage via `@xnet/sqlite`
+- **Memory adapter** -- In-memory blob storage for tests and local flows
+- **Blob store** -- Content-addressed binary storage
+- **Chunk manager** -- Chunk and reassemble large payloads
+- **Batch writer** -- Buffered blob writes for higher throughput
 
 ## Usage
 
@@ -29,10 +28,12 @@ import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
 const sqliteDb = await createMemorySQLiteAdapter()
 const storage = new SQLiteStorageAdapter(sqliteDb)
 
-// Document operations
-await storage.setDocument(id, data)
-const doc = await storage.getDocument(id)
-const ids = await storage.listDocuments()
+await storage.open()
+
+// Blob operations
+await storage.setBlob(cid, bytes)
+const loaded = await storage.getBlob(cid)
+const exists = await storage.hasBlob(cid)
 ```
 
 ### Platform-Specific SQLite Adapters
@@ -40,15 +41,15 @@ const ids = await storage.listDocuments()
 ```typescript
 // Electron (better-sqlite3)
 import { createElectronSQLiteAdapter } from '@xnet/sqlite/electron'
-const db = await createElectronSQLiteAdapter({ filename: 'xnet.db' })
+const db = await createElectronSQLiteAdapter({ path: 'xnet.db' })
 
 // Web (sqlite-wasm + OPFS)
 import { createWebSQLiteAdapter } from '@xnet/sqlite/web'
-const db = await createWebSQLiteAdapter({ filename: 'xnet.db' })
+const db = await createWebSQLiteAdapter({ path: 'xnet.db' })
 
 // Expo (expo-sqlite)
 import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
-const db = await createExpoSQLiteAdapter({ filename: 'xnet.db' })
+const db = await createExpoSQLiteAdapter({ path: 'xnet.db' })
 ```
 
 ### Telemetry Integration
@@ -78,23 +79,16 @@ When telemetry is enabled, storage adapters automatically report:
 
 All telemetry respects user consent settings and privacy buckets.
 
-### Legacy IndexedDB Storage (Deprecated)
+### Memory Adapter
 
 ```typescript
-import { IndexedDBAdapter, MemoryAdapter } from '@xnet/storage'
+import { MemoryAdapter } from '@xnet/storage'
 
-// Browser storage (deprecated - use SQLiteStorageAdapter instead)
-const storage = new IndexedDBAdapter()
+const storage = new MemoryAdapter()
 await storage.open()
 
-// In-memory for testing
-const memory = new MemoryAdapter()
-await memory.open()
-
-// Document operations
-await storage.setDocument(id, data)
-const doc = await storage.getDocument(id)
-const ids = await storage.listDocuments()
+await storage.setBlob(cid, bytes)
+const loaded = await storage.getBlob(cid)
 ```
 
 ```typescript
@@ -115,43 +109,29 @@ await chunks.store(fileId, largeBuffer)
 const restored = await chunks.retrieve(fileId)
 ```
 
-```typescript
-import { SnapshotManager } from '@xnet/storage'
-
-// Compressed state snapshots
-const snapshots = new SnapshotManager(adapter)
-await snapshots.save(docId, state)
-const snapshot = await snapshots.load(docId)
-```
-
 ## Adapters
 
-| Adapter                 | Platform | Backing store | Status       |
-| ----------------------- | -------- | ------------- | ------------ |
-| `SQLiteStorageAdapter`  | All      | SQLite        | Recommended  |
-| `IndexedDBAdapter`      | Browser  | IndexedDB     | Deprecated   |
-| `IndexedDBBatchAdapter` | Browser  | IndexedDB     | Deprecated   |
-| `MemoryAdapter`         | Any      | In-memory Map | Testing only |
+| Adapter                | Platform | Backing store | Status      |
+| ---------------------- | -------- | ------------- | ----------- |
+| `SQLiteStorageAdapter` | All      | SQLite        | Recommended |
+| `MemoryAdapter`        | Any      | In-memory Map | Lightweight |
 
 ## Modules
 
-| Module                  | Description                            |
-| ----------------------- | -------------------------------------- |
-| `adapters/sqlite.ts`    | SQLite storage adapter (recommended)   |
-| `adapters/indexeddb.ts` | IndexedDB storage adapter (deprecated) |
-| `adapters/memory.ts`    | In-memory storage adapter              |
-| `blob-store.ts`         | Content-addressed blob storage         |
-| `chunk-manager.ts`      | Chunked large file storage             |
-| `snapshots/manager.ts`  | Compressed snapshot management         |
-| `types.ts`              | StorageAdapter interface               |
+| Module                     | Description                    |
+| -------------------------- | ------------------------------ |
+| `adapters/sqlite.ts`       | SQLite-backed storage adapter  |
+| `adapters/memory.ts`       | In-memory storage adapter      |
+| `adapters/batch-writer.ts` | Buffered write utilities       |
+| `blob-store.ts`            | Content-addressed blob storage |
+| `chunk-manager.ts`         | Chunked large-file storage     |
+| `types.ts`                 | Storage adapter interfaces     |
 
 ## Dependencies
 
 - `@xnet/core` -- Core types
 - `@xnet/crypto` -- Content hashing
 - `@xnet/sqlite` -- SQLite adapters (for SQLiteStorageAdapter)
-- `idb` -- IndexedDB wrapper (deprecated, will be removed)
-- `pako` -- Compression
 
 ## Testing
 

@@ -42,7 +42,7 @@ const index = new VectorIndex({ dimensions: 384 })
 index.add('doc1', vector1)
 index.add('doc2', vector2)
 
-const results = index.search(queryVector, { limit: 10 })
+const results = index.search(queryVector, 10)
 // => [{ id: 'doc1', score: 0.95 }, { id: 'doc2', score: 0.82 }]
 ```
 
@@ -51,11 +51,13 @@ const results = index.search(queryVector, { limit: 10 })
 ```typescript
 import { SemanticSearch } from '@xnet/vectors'
 
-const search = new SemanticSearch(model, index)
-await search.index('doc1', 'The quick brown fox')
-await search.index('doc2', 'A lazy dog sleeps')
+const search = new SemanticSearch({ useMockModel: true })
+await search.initialize()
 
-const results = await search.query('fast animal', { limit: 5 })
+await search.indexDocument('doc1', 'The quick brown fox')
+await search.indexDocument('doc2', 'A lazy dog sleeps')
+
+const results = await search.search('fast animal', { maxResults: 5 })
 ```
 
 ### Hybrid Search
@@ -64,11 +66,11 @@ const results = await search.query('fast animal', { limit: 5 })
 import { HybridSearch } from '@xnet/vectors'
 
 // Combines keyword matching + semantic similarity
-const hybrid = new HybridSearch(keywordIndex, semanticSearch)
+const hybrid = new HybridSearch(semanticSearch, keywordIndex)
 const results = await hybrid.search('fox jumping', {
-  limit: 10,
+  maxResults: 10,
   keywordWeight: 0.3,
-  semanticWeight: 0.7
+  vectorWeight: 0.7
 })
 ```
 

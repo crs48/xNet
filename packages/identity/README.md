@@ -22,7 +22,7 @@ pnpm add @xnet/identity
 import { generateIdentity, createDID, parseDID } from '@xnet/identity'
 
 // Generate a new identity
-const identity = generateIdentity()
+const { identity, privateKey } = generateIdentity()
 console.log(identity.did) // did:key:z6Mk...
 
 // Parse an existing DID
@@ -46,13 +46,14 @@ import { createUCAN, verifyUCAN, hasCapability } from '@xnet/identity'
 // Create a UCAN token
 const ucan = createUCAN({
   issuer: identity.did,
+  issuerKey: privateKey,
   audience: otherDid,
-  capabilities: [{ resource: 'doc/*', action: 'write' }]
+  capabilities: [{ with: 'doc/*', can: 'write' }]
 })
 
 // Verify and check capabilities
 const verified = verifyUCAN(ucan)
-const canWrite = hasCapability(ucan, { resource: 'doc/123', action: 'write' })
+const canWrite = hasCapability(ucan, { with: 'doc/123', can: 'write' })
 ```
 
 ```typescript

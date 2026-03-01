@@ -10,13 +10,13 @@ pnpm add @xnet/data
 
 ## Features
 
-- **Schema system** -- `defineSchema()` with 15 typed property types
+- **Schema system** -- `defineSchema()` with 16 typed property helpers
 - **NodeStore** -- Event-sourced LWW (Last-Writer-Wins) storage engine
 - **Built-in schemas** -- Page, Database, Task, Canvas, Comment
 - **Yjs CRDT** -- Y.Doc helpers for signed updates and merge/state-vector workflows
 - **Awareness/presence** -- Real-time user presence
 - **Blob service** -- File upload/download with content addressing
-- **Storage adapters** -- SQLite, IndexedDB, and in-memory NodeStore adapters
+- **Storage adapters** -- SQLite and in-memory NodeStore adapters
 - **Temp ID mapping** -- Optimistic creates with server-assigned IDs
 
 ## Usage
@@ -47,7 +47,7 @@ const TaskSchema = defineSchema({
 })
 ```
 
-### 15 Property Types
+### Property Helpers
 
 | Type          | Import          | Description                 |
 | ------------- | --------------- | --------------------------- |
@@ -66,6 +66,7 @@ const TaskSchema = defineSchema({
 | `file`        | `file()`        | File attachment             |
 | `created`     | `created()`     | Auto-set creation timestamp |
 | `updated`     | `updated()`     | Auto-set update timestamp   |
+| `createdBy`   | `createdBy()`   | Auto-set author DID         |
 
 ### NodeStore
 
@@ -73,7 +74,7 @@ const TaskSchema = defineSchema({
 import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
 
 const store = new NodeStore({
-  adapter: new MemoryNodeStorageAdapter(),
+  storage: new MemoryNodeStorageAdapter(),
   authorDID: identity.did,
   signingKey: privateKey
 })
@@ -123,7 +124,7 @@ mergeDocuments(docA, docB)
 
 ```mermaid
 flowchart TD
-    Schema["defineSchema()<br/><small>15 property types</small>"]
+    Schema["defineSchema()<br/><small>16 property helpers</small>"]
     Store["NodeStore<br/><small>Event-sourced LWW</small>"]
     Doc["Yjs Documents<br/><small>CRDT rich text</small>"]
     Blob["BlobService<br/><small>File attachments</small>"]
@@ -137,7 +138,6 @@ flowchart TD
 
     subgraph Adapters["Storage Adapters"]
         SQLite["SQLite<br/>Adapter"]
-        IDB["IndexedDB<br/>Adapter"]
         Mem["Memory<br/>Adapter"]
     end
 
@@ -146,11 +146,10 @@ flowchart TD
 
 ### Storage Adapters
 
-| Adapter                       | Platform     | Description                          |
-| ----------------------------- | ------------ | ------------------------------------ |
-| `SQLiteNodeStorageAdapter`    | All          | Primary adapter using `@xnet/sqlite` |
-| `IndexedDBNodeStorageAdapter` | Web (legacy) | Browser IndexedDB storage            |
-| `MemoryNodeStorageAdapter`    | All          | In-memory storage for testing        |
+| Adapter                    | Platform | Description                          |
+| -------------------------- | -------- | ------------------------------------ |
+| `SQLiteNodeStorageAdapter` | All      | Primary adapter using `@xnet/sqlite` |
+| `MemoryNodeStorageAdapter` | All      | In-memory storage for testing        |
 
 **Recommended:** Use `SQLiteNodeStorageAdapter` with the appropriate `@xnet/sqlite` adapter for your platform:
 
@@ -201,27 +200,25 @@ All telemetry respects user consent settings and privacy buckets (no exact value
 
 ## Modules
 
-| Module                       | Description                            |
-| ---------------------------- | -------------------------------------- |
-| `schema/define.ts`           | `defineSchema()` factory               |
-| `schema/node.ts`             | FlatNode type (flattened properties)   |
-| `schema/registry.ts`         | Schema registry                        |
-| `store/store.ts`             | NodeStore engine                       |
-| `store/sqlite-adapter.ts`    | SQLite NodeStore adapter (recommended) |
-| `store/memory-adapter.ts`    | In-memory NodeStore adapter            |
-| `store/indexeddb-adapter.ts` | IndexedDB NodeStore adapter (legacy)   |
-| `store/tempids.ts`           | Temp ID mapping for optimistic creates |
-| `updates.ts`                 | Signed update and merge utilities      |
-| `blob/blob-service.ts`       | File blob storage                      |
-| `sync/awareness.ts`          | Presence awareness                     |
-| `blocks/registry.ts`         | Block type registry                    |
+| Module                    | Description                            |
+| ------------------------- | -------------------------------------- |
+| `schema/define.ts`        | `defineSchema()` factory               |
+| `schema/node.ts`          | FlatNode type (flattened properties)   |
+| `schema/registry.ts`      | Schema registry                        |
+| `store/store.ts`          | NodeStore engine                       |
+| `store/sqlite-adapter.ts` | SQLite NodeStore adapter (recommended) |
+| `store/memory-adapter.ts` | In-memory NodeStore adapter            |
+| `store/tempids.ts`        | Temp ID mapping for optimistic creates |
+| `updates.ts`              | Signed update and merge utilities      |
+| `blob/blob-service.ts`    | File blob storage                      |
+| `sync/awareness.ts`       | Presence awareness                     |
+| `blocks/registry.ts`      | Block type registry                    |
 
 ## Dependencies
 
 - `@xnet/core`, `@xnet/crypto`, `@xnet/identity`, `@xnet/storage`, `@xnet/sync`, `@xnet/sqlite`
 - `yjs`, `y-protocols` -- CRDT engine
 - `nanoid` -- ID generation
-- `idb` -- IndexedDB (legacy)
 
 ## Testing
 

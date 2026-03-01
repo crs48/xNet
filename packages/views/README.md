@@ -1,6 +1,6 @@
 # @xnet/views
 
-Database view components for xNet -- five view types with property renderers, state hooks, and a view registry.
+Database view components for xNet -- built-in views, property renderers, state hooks, and a view registry.
 
 ## Installation
 
@@ -15,7 +15,7 @@ pnpm add @xnet/views
 - **Gallery** -- Card grid with cover images
 - **Timeline** -- Gantt chart with time bars
 - **Calendar** -- Month and week views
-- **Property renderers** -- 9 typed property cell renderers
+- **Property renderers** -- Typed cell renderers for common schema property types
 - **View registry** -- Register and discover view types
 - **Card detail modal** -- Full node detail overlay
 - **Comment indicators** -- Per-node comment counts
@@ -44,19 +44,28 @@ import { TableView, BoardView, GalleryView, TimelineView, CalendarView } from '@
 ### View Registry
 
 ```tsx
-import { useViewRegistry } from '@xnet/views'
+import { useState } from 'react'
+import { useViewRegistry, ViewRenderer } from '@xnet/views'
 
 function ViewSwitcher({ schema, nodes }) {
-  const { views, activeView, setActiveView } = useViewRegistry()
+  const { views } = useViewRegistry()
+  const [viewType, setViewType] = useState(views[0]?.type ?? 'table')
+  const view = {
+    id: `view-${viewType}`,
+    name: 'Default view',
+    type: viewType,
+    visibleProperties: [],
+    sorts: []
+  }
 
   return (
     <div>
       {views.map((v) => (
-        <button key={v.id} onClick={() => setActiveView(v.id)}>
+        <button key={v.type} onClick={() => setViewType(v.type)}>
           {v.name}
         </button>
       ))}
-      <ViewRenderer view={activeView} schema={schema} nodes={nodes} />
+      <ViewRenderer viewType={viewType} schema={schema} view={view} data={nodes} />
     </div>
   )
 }

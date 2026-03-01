@@ -12,20 +12,20 @@ pnpm add @xnet/query
 
 - **Local query engine** -- Filter, sort, paginate nodes from local storage
 - **Full-text search** -- MiniSearch-powered indexing and search
-- **Federated query router** -- Route queries across multiple hubs
+- **Federated query router** -- Route local queries now, remote sources when available
 
 ## Usage
 
 ```typescript
-import { LocalQueryEngine } from '@xnet/query'
+import { createLocalQueryEngine } from '@xnet/query'
 
 // Create query engine
-const engine = new LocalQueryEngine(storage, getDocument)
+const engine = createLocalQueryEngine(listDocumentIds, getDocument)
 
 // Query with filters, sorting, and pagination
 const results = await engine.query({
   type: 'page',
-  filters: [{ field: 'workspace', op: 'eq', value: 'default' }],
+  filters: [{ field: 'workspace', operator: 'eq', value: 'default' }],
   sort: [{ field: 'updated', direction: 'desc' }],
   limit: 20,
   offset: 0
@@ -33,10 +33,10 @@ const results = await engine.query({
 ```
 
 ```typescript
-import { SearchIndex } from '@xnet/query'
+import { createSearchIndex } from '@xnet/query'
 
 // Full-text search
-const index = new SearchIndex()
+const index = createSearchIndex()
 index.add(doc)
 index.add(anotherDoc)
 
@@ -44,11 +44,11 @@ const matches = index.search({ text: 'hello', limit: 10 })
 ```
 
 ```typescript
-import { FederatedQueryRouter } from '@xnet/query'
+import { createFederatedQueryRouter } from '@xnet/query'
 
-// Federated queries across hubs
-const router = new FederatedQueryRouter(hubs)
-const results = await router.query(queryParams)
+// Federated router (local execution today)
+const router = createFederatedQueryRouter(networkNode, engine)
+const results = await router.execute(queryParams)
 ```
 
 ## Architecture

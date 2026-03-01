@@ -1,6 +1,6 @@
 # @xnet/telemetry
 
-Privacy-preserving telemetry for xNet -- tiered consent, data scrubbing, k-anonymity, and optional P2P sync.
+Privacy-preserving telemetry for xNet -- tiered consent, data scrubbing, bucketing, and optional P2P sync.
 
 ## Installation
 
@@ -10,11 +10,10 @@ pnpm add @xnet/telemetry
 
 ## Features
 
-- **Tiered consent** -- Four levels: off, anonymous, pseudonymous, identified
+- **Tiered consent** -- Five levels: off, local, crashes, anonymous, identified
 - **Consent manager** -- Persistent consent state with granular controls
 - **Telemetry schemas** -- Typed event schemas for crash reports, usage metrics, security events, and performance metrics
 - **Telemetry collector** -- Collects events with automatic data scrubbing and bucketing
-- **k-anonymity** -- Ensures data cannot be linked back to individuals
 - **Data scrubbing** -- Strips PII from telemetry payloads
 - **Bucketing** -- Groups values into ranges for additional privacy
 - **Timing utilities** -- Measure operation duration
@@ -30,15 +29,17 @@ import { ConsentManager } from '@xnet/telemetry'
 
 const consent = new ConsentManager()
 
-// Set consent level
-consent.setLevel('anonymous') // 'off' | 'anonymous' | 'pseudonymous' | 'identified'
+// Set consent tier
+await consent.setTier('anonymous') // 'off' | 'local' | 'crashes' | 'anonymous' | 'identified'
 
-// Check current level
-consent.getLevel() // 'anonymous'
+// Read current preferences
+consent.current.tier // 'anonymous'
 
-// Granular controls
-consent.setCategory('crashes', true)
-consent.setCategory('usage', false)
+// Update granular preferences
+await consent.setConsent({
+  reviewBeforeSend: true,
+  autoScrub: true
+})
 ```
 
 ### Telemetry Collection
@@ -46,13 +47,13 @@ consent.setCategory('usage', false)
 ```typescript
 import { TelemetryCollector } from '@xnet/telemetry'
 
-const collector = new TelemetryCollector(consent)
+const collector = new TelemetryCollector({ consent })
 
-// Track events
-collector.trackUsage('page_view', { page: '/dashboard' })
-collector.trackPerformance('render', { duration: 45 })
-collector.trackCrash(error)
-collector.trackSecurity('auth_failure', { reason: 'expired_token' })
+// Report events
+collector.reportUsage('page_view', 1)
+collector.reportPerformance('render', 45, 'ui.dashboard')
+collector.reportCrash(error)
+collector.reportSecurityEvent('auth_failure', 'medium', { reason: 'expired_token' })
 ```
 
 ### React Integration
@@ -77,18 +78,18 @@ function App() {
 }
 
 function ConsentBanner() {
-  const { level, setLevel } = useConsent()
+  const { tier, setTier } = useConsent()
   return (
     <div>
-      <p>Current: {level}</p>
-      <button onClick={() => setLevel('anonymous')}>Allow anonymous</button>
+      <p>Current: {tier}</p>
+      <button onClick={() => setTier('anonymous')}>Allow anonymous</button>
     </div>
   )
 }
 
 function TrackedComponent() {
-  const { track } = useTelemetry()
-  return <button onClick={() => track('button_click', { id: 'save' })}>Save</button>
+  const { reportUsage } = useTelemetry()
+  return <button onClick={() => reportUsage('button_click', 1)}>Save</button>
 }
 ```
 
@@ -137,12 +138,13 @@ flowchart TD
 
 ## Consent Levels
 
-| Level          | Data Collected          | Identifiers       |
-| -------------- | ----------------------- | ----------------- |
-| `off`          | Nothing                 | None              |
-| `anonymous`    | Aggregated metrics only | None              |
-| `pseudonymous` | Detailed events         | Random session ID |
-| `identified`   | Full telemetry          | DID               |
+| Tier         | Data Collected                         | Identifiers |
+| ------------ | -------------------------------------- | ----------- |
+| `off`        | Nothing                                | None        |
+| `local`      | Local-only diagnostics                 | None        |
+| `crashes`    | Crash/error reports                    | None        |
+| `anonymous`  | Aggregated usage + performance metrics | None        |
+| `identified` | Full telemetry with attribution        | DID         |
 
 ## Modules
 
