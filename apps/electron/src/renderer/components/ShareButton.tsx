@@ -306,7 +306,7 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
               <summary className="cursor-pointer text-xs text-muted-foreground">Advanced</summary>
               <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                 <p>Status: {tunnelStatus?.health ?? 'stopped'}</p>
-                <p>Mode: {tunnelStatus?.mode ?? 'n/a'}</p>
+                <p>Mode: {formatTunnelModeLabel(tunnelStatus?.mode)}</p>
                 <p>Endpoint: {tunnelStatus?.endpoint ?? 'not available'}</p>
                 {tunnelStatus?.message && <p>Message: {tunnelStatus.message}</p>}
               </div>
@@ -327,4 +327,14 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
 
 function toHttpUrl(url: string): string {
   return url.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/$/, '')
+}
+
+function formatTunnelModeLabel(mode: 'temporary' | 'persistent' | null | undefined): string {
+  if (mode === 'temporary') {
+    return 'temporary (test-only quick tunnel)'
+  }
+  if (mode === 'persistent') {
+    return 'persistent (production-safe)'
+  }
+  return 'n/a'
 }

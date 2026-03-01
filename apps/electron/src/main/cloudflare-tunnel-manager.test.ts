@@ -1,5 +1,13 @@
+import { createHash } from 'node:crypto'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { buildCloudflaredArgs, parseEndpointFromLogLine } from './cloudflare-tunnel-manager'
+import {
+  buildCloudflaredArgs,
+  parseEndpointFromLogLine,
+  resolveCloudflaredCommand
+} from './cloudflare-tunnel-manager'
 
 describe('cloudflare-tunnel-manager', () => {
   describe('buildCloudflaredArgs', () => {
@@ -34,6 +42,34 @@ describe('cloudflare-tunnel-manager', () => {
     it('rejects non-cloudflare hostnames', () => {
       const line = 'INF suspicious endpoint https://attacker.example.com'
       expect(parseEndpointFromLogLine(line)).toBeNull()
+    })
+  })
+
+  describe('resolveCloudflaredCommand', () => {
+    it('requires absolute path when sha pinning is enabled', () => {
+      const resolved = resolveCloudflaredCommand({
+        XNET_CLOUDFLARED_PATH: 'cloudflared',
+        XNET_CLOUDFLARED_SHA256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+      })
+
+      expect(resolved.error).toBe('XNET_CLOUDFLARED_SHA256 requires absolute XNET_CLOUDFLARED_PATH')
+    })
+
+    it('accepts binary when sha256 pin matches', () => {
+      const fixtureDir = mkdtempSync(join(tmpdir(), 'xnet-cloudflared-test-'))
+      const binaryPath = join(fixtureDir, 'cloudflared')
+      try {
+        writeFileSync(binaryPath, 'cloudflared-fixture', 'utf8')
+        const digest = createHash('sha256').update('cloudflared-fixture').digest('hex')
+        const resolved = resolveCloudflaredCommand({
+          XNET_CLOUDFLARED_PATH: binaryPath,
+          XNET_CLOUDFLARED_SHA256: digest
+        })
+        expect(resolved.error).toBeUndefined()
+        expect(resolved.command).toBe(binaryPath)
+      } finally {
+        rmSync(fixtureDir, { recursive: true, force: true })
+      }
     })
   })
 })

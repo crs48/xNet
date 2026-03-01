@@ -23,7 +23,7 @@ export type SharePayloadV2 = {
 export type ParsedShareInput =
   | { kind: 'legacy'; docType: ShareDocType; docId: string }
   | { kind: 'handle'; handle: string }
-  | { kind: 'v2'; payload: SharePayloadV2; encodedPayload: string }
+  | { kind: 'v2'; payload: SharePayloadV2; encodedPayload: string; securityWarnings?: string[] }
 
 const DEFAULT_SHARE_BASE_URL = 'https://xnet.fyi/app'
 const DEFAULT_SHARE_PATH = '/share'
@@ -114,12 +114,23 @@ export function parseShareInput(input: string): ParsedShareInput {
       throw new Error('Share link has expired')
     }
 
+    const sanitizedIceResult = sanitizeInboundIceServers(payload.transportHints?.iceServers)
+    const securityWarnings: string[] = []
+    if (sanitizedIceResult.droppedCount > 0) {
+      securityWarnings.push(
+        `Ignored ${sanitizedIceResult.droppedCount} unapproved ICE URL${sanitizedIceResult.droppedCount === 1 ? '' : 's'} from share link.`
+      )
+    }
+    if (sanitizedIceResult.reorderedForRelaySecurity) {
+      securityWarnings.push('Reordered ICE candidates to prefer TURN over TLS relay paths.')
+    }
+
     const sanitizedPayload: SharePayloadV2 = {
       ...payload,
       transportHints: payload.transportHints
         ? {
             ...payload.transportHints,
-            iceServers: sanitizeInboundIceServers(payload.transportHints.iceServers)
+            iceServers: sanitizedIceResult.iceServers
           }
         : undefined
     }
@@ -127,7 +138,8 @@ export function parseShareInput(input: string): ParsedShareInput {
     return {
       kind: 'v2',
       payload: sanitizedPayload,
-      encodedPayload
+      encodedPayload,
+      securityWarnings: securityWarnings.length > 0 ? securityWarnings : undefined
     }
   } catch (error) {
     if (
@@ -311,9 +323,17 @@ function getAllowedEndpointHosts(): string[] {
 
 function sanitizeInboundIceServers(
   iceServers: Array<{ urls: string[]; username?: string; credential?: string }> | undefined
-): Array<{ urls: string[]; username?: string; credential?: string }> | undefined {
+): {
+  iceServers: Array<{ urls: string[]; username?: string; credential?: string }> | undefined
+  droppedCount: number
+  reorderedForRelaySecurity: boolean
+} {
   if (!Array.isArray(iceServers) || iceServers.length === 0) {
-    return undefined
+    return {
+      iceServers: undefined,
+      droppedCount: 0,
+      reorderedForRelaySecurity: false
+    }
   }
 
   const allowedIceHosts =
@@ -325,13 +345,24 @@ function sanitizeInboundIceServers(
           .filter((entry) => entry.length > 0)
       : []
 
+  const totalInboundUrlCount = iceServers.reduce((count, server) => count + server.urls.length, 0)
+
   if (allowedIceHosts.length === 0) {
-    return undefined
+    return {
+      iceServers: undefined,
+      droppedCount: totalInboundUrlCount,
+      reorderedForRelaySecurity: false
+    }
   }
 
   const normalized: Array<{ urls: string[]; username?: string; credential?: string }> = []
+  let reorderedForRelaySecurity = false
   for (const server of iceServers) {
-    const urls = server.urls.filter((raw) => isAllowedIceUrl(raw, allowedIceHosts))
+    const filteredUrls = server.urls.filter((raw) => isAllowedIceUrl(raw, allowedIceHosts))
+    const urls = prioritizeRelaySecureIceUrls(filteredUrls)
+    if (!reorderedForRelaySecurity && filteredUrls.length > 1) {
+      reorderedForRelaySecurity = !sameStringArray(filteredUrls, urls)
+    }
     if (urls.length === 0) {
       continue
     }
@@ -342,7 +373,46 @@ function sanitizeInboundIceServers(
     })
   }
 
-  return normalized.length > 0 ? normalized : undefined
+  const allowedUrlCount = normalized.reduce((count, server) => count + server.urls.length, 0)
+  return {
+    iceServers: normalized.length > 0 ? normalized : undefined,
+    droppedCount: Math.max(0, totalInboundUrlCount - allowedUrlCount),
+    reorderedForRelaySecurity
+  }
+}
+
+function prioritizeRelaySecureIceUrls(urls: string[]): string[] {
+  if (urls.length <= 1) {
+    return urls
+  }
+
+  return [...urls].sort((left, right) => scoreIceUrlForRelay(left) - scoreIceUrlForRelay(right))
+}
+
+function scoreIceUrlForRelay(raw: string): number {
+  const normalized = raw.trim().toLowerCase()
+  if (normalized.startsWith('turns:')) {
+    return 0
+  }
+  if (normalized.startsWith('turn:')) {
+    return normalized.includes('transport=tcp') ? 1 : 2
+  }
+  if (normalized.startsWith('stun:')) {
+    return 3
+  }
+  return 4
+}
+
+function sameStringArray(left: string[], right: string[]): boolean {
+  if (left.length !== right.length) {
+    return false
+  }
+  for (let i = 0; i < left.length; i++) {
+    if (left[i] !== right[i]) {
+      return false
+    }
+  }
+  return true
 }
 
 function isAllowedIceUrl(raw: string, allowHosts: string[]): boolean {

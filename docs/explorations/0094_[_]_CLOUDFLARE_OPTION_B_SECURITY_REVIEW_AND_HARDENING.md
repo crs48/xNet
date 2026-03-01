@@ -276,14 +276,14 @@ Core change: switch from “token in URL payload” to “opaque handle + redemp
 
 - [x] Ignore untrusted `iceServers` from inbound links by default.
 - [x] Allow only approved TURN/STUN pools from local policy.
-- [ ] Prefer TURN over TLS where relay is required.
-- [ ] Log and surface when peer path uses unapproved ICE infra.
+- [x] Prefer TURN over TLS where relay is required.
+- [x] Log and surface when peer path uses unapproved ICE infra.
 
 ## Tunnel process hardening
 
 - [x] Tighten tunnel endpoint parsing to expected Cloudflare host patterns only.
-- [ ] Pin cloudflared binary path/signature where feasible.
-- [ ] Add explicit tunnel mode labels in UI: test-only vs production-safe.
+- [x] Pin cloudflared binary path/signature where feasible.
+- [x] Add explicit tunnel mode labels in UI: test-only vs production-safe.
 
 ---
 
@@ -300,8 +300,8 @@ Core change: switch from “token in URL payload” to “opaque handle + redemp
 
 ## Abuse and adversarial tests
 
-- [ ] Fuzz payload decoder for oversized/malformed fields.
-- [ ] Attempt downgrade to `ws://` in production config and confirm hard failure.
+- [x] Fuzz payload decoder for oversized/malformed fields.
+- [x] Attempt downgrade to `ws://` in production config and confirm hard failure.
 - [ ] Simulate malicious signaling endpoint and validate no secret leakage in handshake/logs.
 - [ ] Simulate Cloudflare quick tunnel instability under load and confirm safe failure modes.
 

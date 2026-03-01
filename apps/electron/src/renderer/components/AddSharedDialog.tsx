@@ -30,6 +30,7 @@ interface AddSharedDialogProps {
 export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSharedDialogProps) {
   const [docId, setDocId] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [securityNotice, setSecurityNotice] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isOpen || !initialValue) {
@@ -37,6 +38,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
     }
     setDocId(initialValue)
     setError(null)
+    setSecurityNotice(null)
   }, [initialValue, isOpen])
 
   if (!isOpen) return null
@@ -46,6 +48,14 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
 
     try {
       const parsed = parseShareInput(docId)
+      if (parsed.kind === 'v2' && parsed.securityWarnings && parsed.securityWarnings.length > 0) {
+        const notice = parsed.securityWarnings.join(' ')
+        setSecurityNotice(notice)
+        console.warn('[AddSharedDialog] Secure-share ICE policy warning:', notice)
+      } else {
+        setSecurityNotice(null)
+      }
+
       if (parsed.kind === 'legacy') {
         await onAdd({
           docType: parsed.docType,
@@ -111,6 +121,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
 
       setDocId('')
       setError(null)
+      setSecurityNotice(null)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -130,6 +141,7 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
   const handleClose = () => {
     setDocId('')
     setError(null)
+    setSecurityNotice(null)
     onClose()
   }
 
@@ -176,14 +188,32 @@ export function AddSharedDialog({ isOpen, onClose, onAdd, initialValue }: AddSha
               type="text"
               value={docId}
               onChange={(e) => {
-                setDocId(e.target.value)
+                const nextValue = e.target.value
+                setDocId(nextValue)
                 setError(null)
+                try {
+                  const parsed = parseShareInput(nextValue)
+                  if (
+                    parsed.kind === 'v2' &&
+                    parsed.securityWarnings &&
+                    parsed.securityWarnings.length > 0
+                  ) {
+                    setSecurityNotice(parsed.securityWarnings.join(' '))
+                  } else {
+                    setSecurityNotice(null)
+                  }
+                } catch {
+                  setSecurityNotice(null)
+                }
               }}
               placeholder="https://xnet.fyi/app/share?payload=..."
               className="w-full px-3 py-2 text-sm font-mono bg-secondary border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary"
               autoFocus
             />
             {error && <p className="text-xs text-red-400 mt-1.5">{error}</p>}
+            {securityNotice && !error && (
+              <p className="text-xs text-amber-500 mt-1.5">{securityNotice}</p>
+            )}
           </div>
 
           <div className="flex justify-end gap-2">

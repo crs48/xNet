@@ -3,9 +3,10 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 import { app } from 'electron'
 
 export type TunnelMode = 'temporary' | 'persistent'
@@ -35,6 +36,10 @@ type PersistedTunnelState = {
 }
 
 const DEFAULT_TARGET_URL = process.env.XNET_TUNNEL_TARGET_URL ?? 'http://127.0.0.1:4444'
+const DEFAULT_CLOUDFLARED_COMMAND =
+  process.env.XNET_CLOUDFLARED_PATH && process.env.XNET_CLOUDFLARED_PATH.trim().length > 0
+    ? process.env.XNET_CLOUDFLARED_PATH.trim()
+    : 'cloudflared'
 const READY_LOG_RE =
   /registered tunnel connection|connection .* registered|your quick tunnel has been created/i
 const ENDPOINT_RE = /https:\/\/[A-Za-z0-9.-]+\.(?:trycloudflare\.com|cfargotunnel\.com)/g
@@ -103,6 +108,56 @@ export function buildCloudflaredArgs(options: TunnelStartOptions): string[] {
   throw new Error('Persistent tunnel requires token, tunnelName, or hostname')
 }
 
+export function resolveCloudflaredCommand(env: NodeJS.ProcessEnv = process.env): {
+  command: string
+  error?: string
+} {
+  const configured =
+    typeof env.XNET_CLOUDFLARED_PATH === 'string' && env.XNET_CLOUDFLARED_PATH.trim().length > 0
+      ? env.XNET_CLOUDFLARED_PATH.trim()
+      : DEFAULT_CLOUDFLARED_COMMAND
+
+  const expectedSha256 =
+    typeof env.XNET_CLOUDFLARED_SHA256 === 'string' ? env.XNET_CLOUDFLARED_SHA256.trim() : ''
+
+  if (!expectedSha256) {
+    return { command: configured }
+  }
+
+  if (!/^[a-f0-9]{64}$/i.test(expectedSha256)) {
+    return {
+      command: configured,
+      error: 'Invalid XNET_CLOUDFLARED_SHA256 value; expected 64-char hex digest'
+    }
+  }
+
+  if (!isAbsolute(configured)) {
+    return {
+      command: configured,
+      error: 'XNET_CLOUDFLARED_SHA256 requires absolute XNET_CLOUDFLARED_PATH'
+    }
+  }
+
+  try {
+    const binary = readFileSync(configured)
+    const actualSha256 = createHash('sha256').update(binary).digest('hex')
+    if (actualSha256 !== expectedSha256.toLowerCase()) {
+      return {
+        command: configured,
+        error: 'cloudflared binary signature mismatch for configured SHA-256 pin'
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return {
+      command: configured,
+      error: `Unable to verify cloudflared signature: ${message}`
+    }
+  }
+
+  return { command: configured }
+}
+
 class CloudflareTunnelManager {
   private process: ChildProcessWithoutNullStreams | null = null
   private status: TunnelStatus = {
@@ -140,6 +195,18 @@ class CloudflareTunnelManager {
     this.stopping = false
     const mode = options.mode ?? 'temporary'
     const args = buildCloudflaredArgs(options)
+    const cloudflared = resolveCloudflaredCommand()
+    if (cloudflared.error) {
+      this.setStatus({
+        health: 'degraded',
+        mode,
+        endpoint: null,
+        pid: null,
+        startedAt: null,
+        message: `cloudflared validation failed: ${cloudflared.error}`
+      })
+      return this.getStatus()
+    }
     const targetEndpoint =
       mode === 'persistent' && options.hostname ? `https://${options.hostname}` : null
 
@@ -154,7 +221,7 @@ class CloudflareTunnelManager {
 
     let child: ChildProcessWithoutNullStreams
     try {
-      child = spawn('cloudflared', args, {
+      child = spawn(cloudflared.command, args, {
         env: process.env
       })
     } catch (err) {
