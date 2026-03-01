@@ -9,7 +9,9 @@ export type SharePayloadV2 = {
   resource: string
   docType: ShareDocType
   endpoint: string
-  token: string
+  token?: string
+  handle?: string
+  endpointClaim?: string
   exp: number
   transportHints?: {
     ws?: boolean
@@ -20,6 +22,7 @@ export type SharePayloadV2 = {
 
 export type ParsedShareInput =
   | { kind: 'legacy'; docType: ShareDocType; docId: string }
+  | { kind: 'handle'; handle: string }
   | { kind: 'v2'; payload: SharePayloadV2; encodedPayload: string }
 
 const DEFAULT_SHARE_BASE_URL = 'https://xnet.fyi/app'
@@ -31,8 +34,14 @@ export type BuildShareUrlOptions = {
   useHashRouting?: boolean
 }
 
+export type BuildShareHandleUrlOptions = BuildShareUrlOptions & {
+  handle: string
+}
+
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
+const DEFAULT_ALLOWED_ENDPOINT_HOSTS = ['xnet.fyi', 'hub.xnet.fyi']
+const SHARE_HANDLE_RE = /^sh_[A-Za-z0-9_-]{16,}$/
 
 export function encodeSharePayloadV2(payload: SharePayloadV2): string {
   validateSharePayloadV2(payload)
@@ -66,6 +75,18 @@ export function buildUniversalShareUrl(
   return `${baseUrl}${sharePath}?payload=${encodeURIComponent(encodedPayload)}`
 }
 
+export function buildUniversalShareHandleUrl(options: BuildShareHandleUrlOptions): string {
+  const baseUrl = options.baseUrl ?? DEFAULT_SHARE_BASE_URL
+  const sharePath = options.sharePath ?? DEFAULT_SHARE_PATH
+  if (!SHARE_HANDLE_RE.test(options.handle)) {
+    throw new Error('Invalid share handle')
+  }
+  if (options.useHashRouting) {
+    return `${baseUrl}#${sharePath}?handle=${encodeURIComponent(options.handle)}`
+  }
+  return `${baseUrl}${sharePath}?handle=${encodeURIComponent(options.handle)}`
+}
+
 export function parseShareInput(input: string): ParsedShareInput {
   const normalized = input.trim()
   if (!normalized) {
@@ -77,16 +98,35 @@ export function parseShareInput(input: string): ParsedShareInput {
     return legacy
   }
 
+  const directHandle = parseShareHandle(normalized)
+  if (directHandle) {
+    return { kind: 'handle', handle: directHandle }
+  }
+
   try {
-    const encodedPayload = extractPayload(normalized)
+    const extracted = extractPayload(normalized)
+    if (extracted.kind === 'handle') {
+      return extracted
+    }
+    const encodedPayload = extracted.encodedPayload
     const payload = decodeSharePayloadV2(encodedPayload)
     if (payload.exp <= Date.now()) {
       throw new Error('Share link has expired')
     }
 
+    const sanitizedPayload: SharePayloadV2 = {
+      ...payload,
+      transportHints: payload.transportHints
+        ? {
+            ...payload.transportHints,
+            iceServers: sanitizeInboundIceServers(payload.transportHints.iceServers)
+          }
+        : undefined
+    }
+
     return {
       kind: 'v2',
-      payload,
+      payload: sanitizedPayload,
       encodedPayload
     }
   } catch (error) {
@@ -120,9 +160,16 @@ function parseLegacyShare(
   return null
 }
 
-function extractPayload(input: string): string {
+function extractPayload(
+  input: string
+): { kind: 'payload'; encodedPayload: string } | { kind: 'handle'; handle: string } {
+  const directHandle = parseShareHandle(input)
+  if (directHandle) {
+    return { kind: 'handle', handle: directHandle }
+  }
+
   if (!input.includes('://')) {
-    return input
+    return { kind: 'payload', encodedPayload: input }
   }
 
   let parsed: URL
@@ -132,11 +179,28 @@ function extractPayload(input: string): string {
     throw new Error('Invalid share URL')
   }
 
+  const handle = parsed.searchParams.get('handle')
+  if (handle) {
+    const normalized = handle.trim()
+    if (!SHARE_HANDLE_RE.test(normalized)) {
+      throw new Error('Share URL has invalid handle')
+    }
+    return { kind: 'handle', handle: normalized }
+  }
+
   const payload = parsed.searchParams.get('payload')
   if (!payload) {
-    throw new Error('Share URL is missing payload')
+    throw new Error('Share URL is missing payload or handle')
   }
-  return payload
+  return { kind: 'payload', encodedPayload: payload }
+}
+
+function parseShareHandle(input: string): string | null {
+  const normalized = input.trim()
+  if (!normalized) {
+    return null
+  }
+  return SHARE_HANDLE_RE.test(normalized) ? normalized : null
 }
 
 function validateSharePayloadV2(payload: SharePayloadV2): void {
@@ -156,8 +220,16 @@ function validateSharePayloadV2(payload: SharePayloadV2): void {
   if (!payload.endpoint || typeof payload.endpoint !== 'string') {
     throw new Error('Share payload missing endpoint')
   }
-  if (!payload.token || typeof payload.token !== 'string') {
-    throw new Error('Share payload missing token')
+  if (!validateEndpointPolicy(payload.endpoint)) {
+    throw new Error('Share payload endpoint is not trusted')
+  }
+  const hasToken = typeof payload.token === 'string' && payload.token.length > 0
+  const hasHandle = typeof payload.handle === 'string' && SHARE_HANDLE_RE.test(payload.handle)
+  if (!hasToken && !hasHandle) {
+    throw new Error('Share payload missing token or handle')
+  }
+  if (typeof payload.endpointClaim !== 'undefined' && payload.endpointClaim.length === 0) {
+    throw new Error('Share payload has invalid endpoint claim')
   }
   if (!Number.isFinite(payload.exp) || payload.exp <= 0) {
     throw new Error('Share payload has invalid expiry')
@@ -195,6 +267,92 @@ function validateSharePayloadV2(payload: SharePayloadV2): void {
       }
     }
   }
+}
+
+function validateEndpointPolicy(endpoint: string): boolean {
+  let parsed: URL
+  try {
+    parsed = new URL(endpoint)
+  } catch {
+    return false
+  }
+
+  if (parsed.protocol === 'ws:') {
+    return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+  }
+  if (parsed.protocol !== 'wss:') {
+    return false
+  }
+
+  const allowedHosts = getAllowedEndpointHosts()
+  return allowedHosts.some(
+    (host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`)
+  )
+}
+
+function getAllowedEndpointHosts(): string[] {
+  const fromEnv =
+    typeof process !== 'undefined' &&
+    process.env &&
+    typeof process.env.XNET_ALLOWED_SHARE_ENDPOINTS === 'string'
+      ? process.env.XNET_ALLOWED_SHARE_ENDPOINTS
+      : ''
+
+  const configured = fromEnv
+    .split(',')
+    .map((entry) => entry.trim().toLowerCase())
+    .filter((entry) => entry.length > 0)
+
+  if (configured.length > 0) {
+    return configured
+  }
+  return DEFAULT_ALLOWED_ENDPOINT_HOSTS
+}
+
+function sanitizeInboundIceServers(
+  iceServers: Array<{ urls: string[]; username?: string; credential?: string }> | undefined
+): Array<{ urls: string[]; username?: string; credential?: string }> | undefined {
+  if (!Array.isArray(iceServers) || iceServers.length === 0) {
+    return undefined
+  }
+
+  const allowedIceHosts =
+    typeof process !== 'undefined' &&
+    process.env &&
+    typeof process.env.XNET_ALLOWED_ICE_HOSTS === 'string'
+      ? process.env.XNET_ALLOWED_ICE_HOSTS.split(',')
+          .map((entry) => entry.trim().toLowerCase())
+          .filter((entry) => entry.length > 0)
+      : []
+
+  if (allowedIceHosts.length === 0) {
+    return undefined
+  }
+
+  const normalized: Array<{ urls: string[]; username?: string; credential?: string }> = []
+  for (const server of iceServers) {
+    const urls = server.urls.filter((raw) => isAllowedIceUrl(raw, allowedIceHosts))
+    if (urls.length === 0) {
+      continue
+    }
+    normalized.push({
+      urls,
+      username: server.username,
+      credential: server.credential
+    })
+  }
+
+  return normalized.length > 0 ? normalized : undefined
+}
+
+function isAllowedIceUrl(raw: string, allowHosts: string[]): boolean {
+  const match = raw.match(/^[a-z]+:(?:\/\/)?([^/?]+)/i)
+  if (!match) {
+    return false
+  }
+  const hostWithPort = match[1].toLowerCase()
+  const host = hostWithPort.includes(':') ? hostWithPort.split(':')[0] : hostWithPort
+  return allowHosts.some((allowed) => host === allowed || host.endsWith(`.${allowed}`))
 }
 
 function toBase64Url(str: string): string {

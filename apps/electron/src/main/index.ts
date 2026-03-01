@@ -57,6 +57,14 @@ function parseSharePayloadFromDeepLink(rawUrl: string): string | null {
       return null
     }
 
+    const handle = parsed.searchParams.get('handle')
+    if (handle) {
+      if (handle.length > 256 || !/^sh_[A-Za-z0-9_-]{16,}$/.test(handle)) {
+        return null
+      }
+      return handle
+    }
+
     const payload = parsed.searchParams.get('payload')
     if (!payload) {
       return null

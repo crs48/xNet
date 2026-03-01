@@ -69,6 +69,8 @@ export interface XNetConfig {
   hubOptions?: {
     /** Auto-generate UCAN for hub auth (default: true) */
     autoAuth?: boolean
+    /** Static UCAN token override for pre-authorized share sessions */
+    authToken?: string
     /** Enable auto-backup on document updates (default: false) */
     autoBackup?: boolean
     /** Backup debounce delay in ms (default: 5000) */
@@ -250,6 +252,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const hubUrl = config.hubUrl ?? null
   const hubOptions = config.hubOptions
   const autoAuth = hubOptions?.autoAuth ?? true
+  const staticHubAuthToken = hubOptions?.authToken?.trim() ?? ''
   const autoBackup = hubOptions?.autoBackup ?? false
   const backupDebounceMs = hubOptions?.backupDebounceMs ?? 5000
   const enableSearchIndex = hubOptions?.enableSearchIndex ?? false
@@ -257,6 +260,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const encryptionKey = config.encryptionKey ?? null
 
   const getHubAuthToken = useCallback(async (): Promise<string> => {
+    if (staticHubAuthToken) return staticHubAuthToken
     if (!hubUrl || !autoAuth) return ''
     if (!authorDID || !config.signingKey) {
       throw new Error('Missing authorDID/signingKey for hub auth')
@@ -269,7 +273,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       capabilities: HUB_CAPABILITIES as unknown as Array<{ with: string; can: string }>,
       expiration: Math.floor(Date.now() / 1000) + HUB_TOKEN_TTL_SECONDS
     })
-  }, [authorDID, autoAuth, config.signingKey, hubUrl])
+  }, [authorDID, autoAuth, config.signingKey, hubUrl, staticHubAuthToken])
 
   useEffect(() => {
     const nodeStorageAdapter = config.nodeStorage ?? new MemoryNodeStorageAdapter()
@@ -417,7 +421,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       authorDID,
       blobStore: config.blobStore,
       nodeSyncRoom: hubUrl ? nodeSyncRoom : undefined,
-      getUCANToken: hubUrl && autoAuth ? getHubAuthToken : undefined,
+      getUCANToken: hubUrl ? getHubAuthToken : undefined,
       onDocUpdate: enableAutoBackup
         ? (nodeId, doc) => {
             autoBackupManager?.handleDocUpdate(nodeId, doc)

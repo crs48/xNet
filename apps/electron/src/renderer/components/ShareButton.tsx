@@ -10,7 +10,7 @@ import { generateIdentity } from '@xnet/identity'
 import { useXNet } from '@xnet/react'
 import { Share2, Check, Copy } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import { buildUniversalShareUrl, type ShareDocType } from '../lib/share-payload'
+import { buildUniversalShareHandleUrl, type ShareDocType } from '../lib/share-payload'
 
 interface ShareButtonProps {
   docId: string
@@ -18,7 +18,7 @@ interface ShareButtonProps {
 }
 
 export function ShareButton({ docId, docType }: ShareButtonProps) {
-  const { authorDID, nodeStore, nodeStoreReady } = useXNet()
+  const { authorDID, nodeStore, nodeStoreReady, getHubAuthToken } = useXNet()
   const [isOpen, setIsOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,24 +76,21 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
       const guestIdentity = generateIdentity()
       const guestDid = guestIdentity.identity.did as DID
 
-      const fallbackExpiry = Date.now() + 30 * 60 * 1000
-      const fallbackToken = `anon-${Math.random().toString(36).slice(2)}.${fallbackExpiry}`
-
-      let token = fallbackToken
-      let grantId: string | null = null
-      let grantExpiry = fallbackExpiry
-
-      if (nodeStore.auth) {
-        const grant = await nodeStore.auth.grant({
-          to: guestDid,
-          actions: ['read', 'write'],
-          resource: docId,
-          expiresIn: 30 * 60 * 1000
-        } satisfies GrantInput)
-        token = grant.ucanToken ?? grant.id
-        grantId = grant.id
-        grantExpiry = grant.expiresAt || fallbackExpiry
+      if (!nodeStore.auth) {
+        setError('Secure sharing requires authorization. Anonymous share links are disabled.')
+        return
       }
+
+      const grant = await nodeStore.auth.grant({
+        to: guestDid,
+        actions: ['read', 'write'],
+        resource: docId,
+        expiresIn: 30 * 60 * 1000
+      } satisfies GrantInput)
+
+      const token = grant.ucanToken ?? grant.id
+      const grantId = grant.id
+      const grantExpiry = grant.expiresAt || Date.now() + 30 * 60 * 1000
 
       let endpoint = import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
       const status = await window.xnetTunnel.start({ mode: 'temporary' })
@@ -108,32 +105,39 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
         endpoint = status.endpoint.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:')
       }
 
-      const payload = {
-        v: 2,
-        resource: docId,
-        docType: docType as ShareDocType,
-        endpoint,
-        token,
-        exp: grantExpiry,
-        transportHints: {
-          ws: true,
-          webrtc: false
-        }
-      } as const
+      const hubHttpBase = toHttpUrl(endpoint)
+      const authToken = getHubAuthToken ? await getHubAuthToken() : ''
+      const issueResponse = await fetch(`${hubHttpBase}/shares/issue`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+        },
+        body: JSON.stringify({
+          endpoint,
+          token,
+          resource: docId,
+          docType: docType as ShareDocType,
+          exp: grantExpiry
+        })
+      })
 
-      const universalUrl = buildUniversalShareUrl(payload, {
+      if (!issueResponse.ok) {
+        const errBody = (await issueResponse.json().catch(() => null)) as { error?: string } | null
+        throw new Error(errBody?.error ?? 'Hub rejected secure share issuance')
+      }
+
+      const issued = (await issueResponse.json()) as { handle: string; exp: number }
+      const universalUrl = buildUniversalShareHandleUrl({
+        handle: issued.handle,
         useHashRouting: true
       })
 
       setShareValue(universalUrl)
       setActiveGrantId(grantId)
-      setExpiresAt(payload.exp)
+      setExpiresAt(issued.exp)
       await navigator.clipboard.writeText(universalUrl)
-      setStatusMessage(
-        nodeStore.auth
-          ? 'Secure link active. Copied to clipboard.'
-          : 'Share link generated (anonymous mode). Copied to clipboard.'
-      )
+      setStatusMessage('Secure link active. Copied to clipboard.')
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch (err) {
@@ -319,4 +323,8 @@ export function ShareButton({ docId, docType }: ShareButtonProps) {
       )}
     </div>
   )
+}
+
+function toHttpUrl(url: string): string {
+  return url.replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/$/, '')
 }
