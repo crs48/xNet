@@ -27,7 +27,7 @@ export interface AccordionProps extends Omit<
 
 const Accordion = React.forwardRef<HTMLDivElement, AccordionProps>(
   ({ type, collapsible: _collapsible, defaultValue, className, ...props }, ref) => {
-    // Convert Radix-style API to Base UI
+    // Normalize legacy API shape to Base UI props
     const multiple = type === 'multiple'
     const normalizedDefaultValue = defaultValue
       ? Array.isArray(defaultValue)

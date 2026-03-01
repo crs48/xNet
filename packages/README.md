@@ -30,7 +30,7 @@ Core xNet packages for decentralized data, sync, UI, and tooling.
 | [@xnet/react](./react)         | useQuery, useMutate, useNode, hub/plugin hooks      | 2     | Stable |
 | [@xnet/sdk](./sdk)             | Unified SDK re-exports and client bootstrap         | 1     | Stable |
 | [@xnet/editor](./editor)       | TipTap editor, slash commands, wikilinks, drag-drop | 23    | Stable |
-| [@xnet/ui](./ui)               | Radix UI primitives, composed components, theme     | 0     | Stable |
+| [@xnet/ui](./ui)               | Base UI primitives, composed components, theme      | 0     | Stable |
 | [@xnet/views](./views)         | Table, Board, Gallery, Timeline, Calendar           | 7     | Stable |
 | [@xnet/canvas](./canvas)       | Infinite canvas, R-tree, ELK.js layout              | 4     | Stable |
 | [@xnet/devtools](./devtools)   | 9-panel debug suite                                 | 2     | Stable |

@@ -75,23 +75,9 @@ This document tracks the status of each component in the xNet UI design system.
 
 ## Migration Status
 
-### Removed Radix Packages
+### Removed Legacy Primitive Packages
 
-All 13 Radix UI packages have been removed:
-
-- [x] @radix-ui/react-accordion
-- [x] @radix-ui/react-checkbox
-- [x] @radix-ui/react-collapsible
-- [x] @radix-ui/react-dialog
-- [x] @radix-ui/react-dropdown-menu
-- [x] @radix-ui/react-popover
-- [x] @radix-ui/react-scroll-area
-- [x] @radix-ui/react-select
-- [x] @radix-ui/react-separator
-- [x] @radix-ui/react-slot
-- [x] @radix-ui/react-switch
-- [x] @radix-ui/react-tabs
-- [x] @radix-ui/react-tooltip
+Legacy primitive packages have been removed from direct dependencies.
 
 ### Current Dependencies
 
@@ -102,14 +88,14 @@ All 13 Radix UI packages have been removed:
 
 ## Key Metrics
 
-| Metric                  | Target  | Status |
-| ----------------------- | ------- | ------ |
-| Animation FPS           | 60fps   | [x]    |
-| First Input Delay       | <100ms  | [x]    |
-| Touch target size       | 44x44px | [x]    |
-| Color contrast          | 4.5:1   | [x]    |
-| Focus visible           | 100%    | [x]    |
-| Zero Radix dependencies | 0       | [x]    |
+| Metric                     | Target  | Status |
+| -------------------------- | ------- | ------ |
+| Animation FPS              | 60fps   | [x]    |
+| First Input Delay          | <100ms  | [x]    |
+| Touch target size          | 44x44px | [x]    |
+| Color contrast             | 4.5:1   | [x]    |
+| Focus visible              | 100%    | [x]    |
+| Zero legacy primitive deps | 0       | [x]    |
 
 ## Next Steps
 

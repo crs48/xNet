@@ -1,6 +1,6 @@
 # @xnet/ui
 
-Shared UI primitives and composed components for xNet applications, built on Radix UI and Tailwind CSS.
+Shared UI primitives and composed components for xNet applications, built on Base UI and Tailwind CSS.
 
 ## Installation
 
@@ -12,7 +12,7 @@ pnpm add @xnet/ui
 
 This is a standalone UI package with no `@xnet/*` dependencies.
 
-### Primitives (Radix UI)
+### Primitives (Base UI)
 
 Button, Input, Select, Checkbox, Badge, IconButton, Popover, Modal, Menu, Tooltip, Tabs, ScrollArea, Separator, Switch, Sheet, Accordion, Collapsible, ResizablePanel, Command
 
@@ -41,7 +41,6 @@ useKeyboardShortcut('mod+k', () => openSearch())
 
 ```tsx
 import { ThemeProvider, ThemeToggle } from '@xnet/ui'
-
 ;<ThemeProvider>
   <ThemeToggle />
   <App />
@@ -71,7 +70,7 @@ import { tailwindConfig } from '@xnet/ui/tailwind.config'
 
 ## Dependencies
 
-- `@radix-ui/react-*` -- Accessible UI primitives
+- `@base-ui/react` -- Accessible headless UI primitives
 - `class-variance-authority` -- Variant styling
 - `clsx` + `tailwind-merge` -- Class name handling
 - `cmdk` -- Command palette

@@ -258,11 +258,11 @@ Minimum touch target size is 44x44px:
 </Button>
 ```
 
-## Migration from Radix
+## Migration Notes
 
-If you're migrating from Radix UI:
+If you're migrating from the previous primitive API:
 
-| Radix            | Base UI (xNet)                           |
+| Previous API     | Base UI (xNet)                           |
 | ---------------- | ---------------------------------------- |
 | `Dialog.Content` | `DialogContent` (uses `Dialog.Popup`)    |
 | `Dialog.Overlay` | `DialogOverlay` (uses `Dialog.Backdrop`) |
@@ -273,7 +273,7 @@ If you're migrating from Radix UI:
 
 Base UI uses different data attributes for animation states:
 
-| Radix                 | Base UI             |
+| Previous API          | Base UI             |
 | --------------------- | ------------------- |
 | `data-state="open"`   | `data-open`         |
 | `data-state="closed"` | (no attribute)      |

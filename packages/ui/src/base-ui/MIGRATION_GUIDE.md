@@ -1,10 +1,10 @@
-# Radix → Base UI Migration Guide
+# Legacy API -> Base UI Migration Guide
 
 ## Key API Differences
 
 ### Composition Pattern
 
-Radix uses `asChild`:
+Previous API uses `asChild`:
 
 ```tsx
 <Dialog.Trigger asChild>
@@ -20,7 +20,7 @@ Base UI uses `render`:
 
 ### Naming Changes
 
-| Radix           | Base UI         |
+| Previous API    | Base UI         |
 | --------------- | --------------- |
 | Dialog.Content  | Dialog.Popup    |
 | Dialog.Overlay  | Dialog.Backdrop |
@@ -51,7 +51,7 @@ Use in CSS:
 
 ### Portal Usage
 
-Radix:
+Previous API:
 
 ```tsx
 <Dialog.Portal>
@@ -90,7 +90,7 @@ Both support controlled and uncontrolled patterns similarly:
 ### Accordion
 
 ```tsx
-// Radix
+// Previous API
 <Accordion.Root type="single" collapsible>
   <Accordion.Item value="item-1">
     <Accordion.Trigger>...</Accordion.Trigger>
@@ -112,7 +112,7 @@ Both support controlled and uncontrolled patterns similarly:
 ### Checkbox
 
 ```tsx
-// Radix
+// Previous API
 <Checkbox.Root>
   <Checkbox.Indicator>
     <CheckIcon />
@@ -130,7 +130,7 @@ Both support controlled and uncontrolled patterns similarly:
 ### Dialog
 
 ```tsx
-// Radix
+// Previous API
 <Dialog.Root>
   <Dialog.Trigger>Open</Dialog.Trigger>
   <Dialog.Portal>
@@ -160,7 +160,7 @@ Both support controlled and uncontrolled patterns similarly:
 ### Switch
 
 ```tsx
-// Radix
+// Previous API
 <Switch.Root>
   <Switch.Thumb />
 </Switch.Root>
@@ -174,7 +174,7 @@ Both support controlled and uncontrolled patterns similarly:
 ### Tabs
 
 ```tsx
-// Radix
+// Previous API
 <Tabs.Root defaultValue="tab1">
   <Tabs.List>
     <Tabs.Trigger value="tab1">Tab 1</Tabs.Trigger>
@@ -194,7 +194,7 @@ Both support controlled and uncontrolled patterns similarly:
 ### Tooltip
 
 ```tsx
-// Radix
+// Previous API
 <Tooltip.Provider>
   <Tooltip.Root>
     <Tooltip.Trigger>Hover</Tooltip.Trigger>

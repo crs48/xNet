@@ -129,7 +129,7 @@ export function CommentPopover({
         }
       : undefined
 
-  // For element anchors, we use Radix's built-in positioning
+  // For element anchors, we use the anchor element's DOM position
   const anchorElement = 'x' in anchor ? undefined : anchor
 
   const content = (
@@ -242,7 +242,7 @@ export function CommentPopover({
   }
 
   // Position relative to the anchor element using fixed positioning.
-  // Avoids Radix Popover mount/unmount cycles that cause flicker when
+  // Avoids popover mount/unmount cycles that cause flicker when
   // ProseMirror DOM updates destroy and recreate comment mark spans.
   const rect = anchorElement?.getBoundingClientRect()
   const style: React.CSSProperties = rect
