@@ -291,10 +291,10 @@ Core change: switch from “token in URL payload” to “opaque handle + redemp
 
 ## Security tests
 
-- [ ] Verify no token appears in browser address bar, history, logs, analytics, or crash reports.
+- [x] Verify no token appears in browser address bar, history, logs, analytics, or crash reports.
 - [x] Verify WS auth rejects query-token attempts once migrated.
 - [x] Verify replayed share handle/token fails with deterministic error.
-- [ ] Verify revoked grants cause immediate connection termination for active sessions.
+- [x] Verify revoked grants cause immediate connection termination for active sessions.
 - [x] Verify malformed or untrusted endpoint in payload is rejected before network dial.
 - [x] Verify injected ICE servers in payload are ignored unless allowlisted.
 
@@ -302,14 +302,14 @@ Core change: switch from “token in URL payload” to “opaque handle + redemp
 
 - [x] Fuzz payload decoder for oversized/malformed fields.
 - [x] Attempt downgrade to `ws://` in production config and confirm hard failure.
-- [ ] Simulate malicious signaling endpoint and validate no secret leakage in handshake/logs.
-- [ ] Simulate Cloudflare quick tunnel instability under load and confirm safe failure modes.
+- [x] Simulate malicious signaling endpoint and validate no secret leakage in handshake/logs.
+- [x] Simulate Cloudflare quick tunnel instability under load and confirm safe failure modes.
 
 ## UX and operability tests
 
-- [ ] Confirm secure-share UX still works in <=2 clicks after hardening.
+- [x] Confirm secure-share UX still works in <=2 clicks after hardening.
 - [x] Confirm error copy is actionable for expired, replayed, revoked, or untrusted links.
-- [ ] Confirm support/debug flows do not require exposing secret-bearing URLs.
+- [x] Confirm support/debug flows do not require exposing secret-bearing URLs.
 
 ---
 

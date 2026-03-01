@@ -1,8 +1,12 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "instructions": [
-    "AGENTS.md"
-  ],
+  "instructions": ["AGENTS.md"],
+  "tui": {
+    "scroll_speed": 1,
+    "scroll_acceleration": {
+      "enabled": false
+    }
+  },
   "permission": {
     "edit": {
       "tmp/*": "allow"
