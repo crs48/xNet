@@ -272,12 +272,22 @@ function PageEditor({ nodeId }: { nodeId: string }) {
 | Build      | Turborepo, tsup, Vite                             |
 | Testing    | Vitest, Playwright (browser mode)                 |
 
+## Roadmap Status (Mar 2026)
+
+| Phase   | Focus                                                                           | Status      |
+| ------- | ------------------------------------------------------------------------------- | ----------- |
+| Phase 1 | Product reliability (navigation, search, daily-driver polish)                   | In progress |
+| Phase 2 | Collaboration + trust (invites, sharing UX, presence reliability)               | Next        |
+| Phase 3 | Platform clarity (package lifecycle, API simplification, multi-hub integration) | Planned     |
+
+See [`docs/ROADMAP.md`](./docs/ROADMAP.md) for the detailed execution plan.
+
 ## Documentation
 
 - [Site](./site) -- Astro + Starlight documentation website
 - [Vision](./docs/VISION.md) -- The big picture: micro-to-macro data sovereignty
 - [Tradeoffs](./docs/TRADEOFFS.md) -- Why hybrid sync (Yjs + event sourcing)
-- [Roadmap](./docs/ROADMAP.md) -- 6-month development plan
+- [Roadmap](./docs/ROADMAP.md) -- current 6-month execution plan (Mar-Sep 2026)
 
 ## License
 
