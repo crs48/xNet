@@ -2,6 +2,9 @@ name: 'Setup xNet'
 description: 'Checkout, install pnpm, Node.js, and dependencies'
 
 inputs:
+  pnpm-version:
+    description: 'pnpm version'
+    default: '10.30.3'
   node-version:
     description: 'Node.js version'
     default: '23'
@@ -16,6 +19,8 @@ runs:
   using: 'composite'
   steps:
     - uses: pnpm/action-setup@v4
+      with:
+        version: ${{ inputs.pnpm-version }}
 
     - uses: actions/setup-node@v4
       with:
