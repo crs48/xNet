@@ -6,7 +6,7 @@
  * no local changes are lost, even across app restarts.
  */
 
-import type { NodeStorageAdapter } from '@xnet/data'
+import type { NodeState, NodeStorageAdapter } from '@xnet/data'
 
 export interface QueueEntry {
   /** Node ID this update belongs to */
@@ -56,6 +56,7 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
   const storageKey = config.storageKey ?? '_xnet_offline_queue'
   const maxSize = config.maxSize ?? 1000
   let entries: QueueEntry[] = []
+  let storageNodeReady = false
 
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
@@ -63,6 +64,39 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
   // Debounced save state
   let saveTimer: ReturnType<typeof setTimeout> | null = null
   let saveResolvers: Array<() => void> = []
+
+  const ensureStorageNode = async (): Promise<void> => {
+    if (storageNodeReady) {
+      return
+    }
+
+    const existing = await config.storage.getNode(storageKey)
+    if (existing) {
+      storageNodeReady = true
+      return
+    }
+
+    const now = Date.now()
+    const systemDid = 'did:key:offline-queue'
+    const node: NodeState = {
+      id: storageKey,
+      schemaId: 'xnet://xnet.system/OfflineQueueState',
+      properties: {},
+      timestamps: {},
+      deleted: true,
+      deletedAt: {
+        lamport: { time: 0, author: systemDid },
+        wallTime: now
+      },
+      createdAt: now,
+      createdBy: systemDid,
+      updatedAt: now,
+      updatedBy: systemDid
+    }
+
+    await config.storage.setNode(node)
+    storageNodeReady = true
+  }
 
   const debouncedSave = (): Promise<void> => {
     return new Promise((resolve) => {
@@ -78,6 +112,7 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
         saveResolvers = []
 
         try {
+          await ensureStorageNode()
           const json = JSON.stringify(entries)
           const bytes = encoder.encode(json)
           await config.storage.setDocumentContent(storageKey, bytes)
@@ -159,6 +194,7 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
       }
 
       try {
+        await ensureStorageNode()
         const json = JSON.stringify(entries)
         const bytes = encoder.encode(json)
         await config.storage.setDocumentContent(storageKey, bytes)
