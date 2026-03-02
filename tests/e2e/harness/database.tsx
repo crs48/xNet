@@ -15,7 +15,7 @@
 import { DatabaseSchema, MemoryNodeStorageAdapter, type PropertyType } from '@xnet/data'
 import { identityFromPrivateKey } from '@xnet/identity'
 import { XNetProvider, useNode } from '@xnet/react'
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
 
 // ─── Parse query params ──────────────────────────────────────────────
@@ -51,6 +51,13 @@ interface TableRow {
   [key: string]: unknown
 }
 
+interface DatabaseHistorySnapshot {
+  columns: StoredColumn[]
+  rows: TableRow[]
+  tableView: Record<string, unknown> | undefined
+  boardView: Record<string, unknown> | undefined
+}
+
 // ─── Database Editor Component ───────────────────────────────────────
 
 function DatabaseEditor() {
@@ -61,6 +68,120 @@ function DatabaseEditor() {
   const [viewMode, setViewMode] = useState<'table' | 'board'>('table')
   const [columns, setColumns] = useState<StoredColumn[]>([])
   const [rows, setRows] = useState<TableRow[]>([])
+  const containerRef = useRef<HTMLDivElement>(null)
+  const historyPastRef = useRef<DatabaseHistorySnapshot[]>([])
+  const historyFutureRef = useRef<DatabaseHistorySnapshot[]>([])
+
+  const isTextInputLikeElement = useCallback((target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) return false
+    return (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target.isContentEditable
+    )
+  }, [])
+
+  const isDatabaseEditableTarget = useCallback((target: EventTarget | null): boolean => {
+    if (!(target instanceof Element)) return false
+    return target.closest('[data-xnet-db-editable="true"]') !== null
+  }, [])
+
+  const readSnapshot = useCallback(
+    (dataMap: { get: (key: string) => unknown }): DatabaseHistorySnapshot => {
+      return {
+        columns: structuredClone((dataMap.get('columns') as StoredColumn[] | undefined) ?? []),
+        rows: structuredClone((dataMap.get('rows') as TableRow[] | undefined) ?? []),
+        tableView: structuredClone(
+          (dataMap.get('tableView') as Record<string, unknown> | undefined) ?? undefined
+        ),
+        boardView: structuredClone(
+          (dataMap.get('boardView') as Record<string, unknown> | undefined) ?? undefined
+        )
+      }
+    },
+    []
+  )
+
+  const applySnapshot = useCallback(
+    (
+      dataMap: { set: (key: string, value: unknown) => void },
+      snapshot: DatabaseHistorySnapshot
+    ) => {
+      dataMap.set('columns', structuredClone(snapshot.columns))
+      dataMap.set('rows', structuredClone(snapshot.rows))
+      if (snapshot.tableView) {
+        dataMap.set('tableView', structuredClone(snapshot.tableView))
+      }
+      if (snapshot.boardView) {
+        dataMap.set('boardView', structuredClone(snapshot.boardView))
+      }
+    },
+    []
+  )
+
+  const pushHistorySnapshot = useCallback(() => {
+    if (!doc) return
+    const dataMap = doc.getMap('data')
+    historyPastRef.current.push(readSnapshot(dataMap))
+    historyFutureRef.current = []
+  }, [doc, readSnapshot])
+
+  const undo = useCallback(() => {
+    if (!doc) return
+    const dataMap = doc.getMap('data')
+    const snapshot = historyPastRef.current.pop()
+    if (!snapshot) return
+    historyFutureRef.current.push(readSnapshot(dataMap))
+    applySnapshot(dataMap, snapshot)
+  }, [applySnapshot, doc, readSnapshot])
+
+  const redo = useCallback(() => {
+    if (!doc) return
+    const dataMap = doc.getMap('data')
+    const snapshot = historyFutureRef.current.pop()
+    if (!snapshot) return
+    historyPastRef.current.push(readSnapshot(dataMap))
+    applySnapshot(dataMap, snapshot)
+  }, [applySnapshot, doc, readSnapshot])
+
+  const handleRootKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const container = containerRef.current
+      if (!container) return
+
+      const key = e.key.toLowerCase()
+      const isMod = e.metaKey || e.ctrlKey
+      if (!isMod) return
+
+      const targetIsTextInputLike = isTextInputLikeElement(e.target)
+      const activeIsTextInputLike = isTextInputLikeElement(document.activeElement)
+      const targetIsDatabaseEditable = isDatabaseEditableTarget(e.target)
+      const activeIsDatabaseEditable = isDatabaseEditableTarget(document.activeElement)
+
+      if (
+        (targetIsTextInputLike && !targetIsDatabaseEditable) ||
+        (activeIsTextInputLike && !activeIsDatabaseEditable)
+      ) {
+        return
+      }
+
+      if (key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          redo()
+        } else {
+          undo()
+        }
+        return
+      }
+
+      if (!e.metaKey && e.ctrlKey && !e.shiftKey && key === 'y') {
+        e.preventDefault()
+        redo()
+      }
+    },
+    [isDatabaseEditableTarget, isTextInputLikeElement, redo, undo]
+  )
 
   // Load data from Y.Doc
   useEffect(() => {
@@ -88,6 +209,7 @@ function DatabaseEditor() {
   // Add column
   const handleAddColumn = useCallback(() => {
     if (!doc) return
+    pushHistorySnapshot()
 
     const newColumn: StoredColumn = {
       id: `col_${Date.now()}`,
@@ -98,11 +220,12 @@ function DatabaseEditor() {
     const dataMap = doc.getMap('data')
     const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
     dataMap.set('columns', [...currentColumns, newColumn])
-  }, [doc])
+  }, [doc, pushHistorySnapshot])
 
   // Add select column for board view
   const handleAddSelectColumn = useCallback(() => {
     if (!doc) return
+    pushHistorySnapshot()
 
     const newColumn: StoredColumn = {
       id: `col_${Date.now()}`,
@@ -120,11 +243,12 @@ function DatabaseEditor() {
     const dataMap = doc.getMap('data')
     const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
     dataMap.set('columns', [...currentColumns, newColumn])
-  }, [doc])
+  }, [doc, pushHistorySnapshot])
 
   // Add row
   const handleAddRow = useCallback(() => {
     if (!doc) return
+    pushHistorySnapshot()
 
     const newRow: TableRow = {
       id: `row_${Date.now()}`
@@ -150,12 +274,13 @@ function DatabaseEditor() {
     const dataMap = doc.getMap('data')
     const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
     dataMap.set('rows', [...currentRows, newRow])
-  }, [doc, columns])
+  }, [doc, columns, pushHistorySnapshot])
 
   // Update row
   const handleUpdateCell = useCallback(
     (rowId: string, columnId: string, value: string) => {
       if (!doc) return
+      pushHistorySnapshot()
 
       const dataMap = doc.getMap('data')
       const currentRows = dataMap.get('rows') as TableRow[] | undefined
@@ -166,11 +291,109 @@ function DatabaseEditor() {
       )
       dataMap.set('rows', updatedRows)
     },
-    [doc]
+    [doc, pushHistorySnapshot]
   )
 
+  const handleSeedUndoFixture = useCallback(() => {
+    if (!doc) return
+    pushHistorySnapshot()
+
+    const dataMap = doc.getMap('data')
+    dataMap.set('columns', [
+      { id: 'title', name: 'Title', type: 'text' },
+      { id: 'tags', name: 'Tags', type: 'multiSelect', config: { options: [] } },
+      {
+        id: 'status',
+        name: 'Status',
+        type: 'select',
+        config: {
+          options: [
+            { id: 'todo', name: 'To Do', color: '#ef4444' },
+            { id: 'done', name: 'Done', color: '#22c55e' }
+          ]
+        }
+      }
+    ])
+    dataMap.set('rows', [{ id: 'row-1', title: 'Initial', tags: [], status: 'todo' }])
+  }, [doc, pushHistorySnapshot])
+
+  const handleEditTitleCell = useCallback(() => {
+    if (!doc) return
+    pushHistorySnapshot()
+    const dataMap = doc.getMap('data')
+    const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+    dataMap.set(
+      'rows',
+      currentRows.map((row) => (row.id === 'row-1' ? { ...row, title: 'Edited title' } : row))
+    )
+  }, [doc, pushHistorySnapshot])
+
+  const handleEditTagsCell = useCallback(() => {
+    if (!doc) return
+    pushHistorySnapshot()
+    const dataMap = doc.getMap('data')
+    const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+    dataMap.set(
+      'rows',
+      currentRows.map((row) => (row.id === 'row-1' ? { ...row, tags: ['opt-a', 'opt-b'] } : row))
+    )
+  }, [doc, pushHistorySnapshot])
+
+  const handleDeleteLastRow = useCallback(() => {
+    if (!doc) return
+    pushHistorySnapshot()
+    const dataMap = doc.getMap('data')
+    const currentRows = (dataMap.get('rows') as TableRow[] | undefined) || []
+    dataMap.set('rows', currentRows.slice(0, -1))
+  }, [doc, pushHistorySnapshot])
+
+  const handleChangeStatusType = useCallback(() => {
+    if (!doc) return
+    pushHistorySnapshot()
+    const dataMap = doc.getMap('data')
+    const currentColumns = (dataMap.get('columns') as StoredColumn[] | undefined) || []
+    dataMap.set(
+      'columns',
+      currentColumns.map((column) =>
+        column.id === 'status'
+          ? {
+              ...column,
+              type: 'multiSelect',
+              config: {
+                options: [
+                  { id: 'todo', name: 'To Do', color: '#ef4444' },
+                  { id: 'done', name: 'Done', color: '#22c55e' }
+                ],
+                allowCreate: true
+              }
+            }
+          : column
+      )
+    )
+  }, [doc, pushHistorySnapshot])
+
+  const handleUndo = useCallback(() => {
+    undo()
+  }, [undo])
+
+  const handleRedo = useCallback(() => {
+    redo()
+  }, [redo])
+
+  const firstRow = rows[0]
+  const firstRowTitle = typeof firstRow?.title === 'string' ? firstRow.title : ''
+  const firstRowTags = Array.isArray(firstRow?.tags) ? firstRow.tags : []
+  const statusColumnType = columns.find((column) => column.id === 'status')?.type ?? 'missing'
+
   return (
-    <div style={{ padding: '20px', fontFamily: 'system-ui' }}>
+    <div
+      ref={containerRef}
+      data-testid="editor-root"
+      data-xnet-db-editable="true"
+      tabIndex={0}
+      onKeyDownCapture={handleRootKeyDown}
+      style={{ padding: '20px', fontFamily: 'system-ui' }}
+    >
       <h1 data-testid="title">Database E2E Test</h1>
 
       <div data-testid="status" style={{ marginBottom: '10px', color: '#666' }}>
@@ -195,6 +418,27 @@ function DatabaseEditor() {
             <button data-testid="add-row" onClick={handleAddRow}>
               Add Row
             </button>
+            <button data-testid="seed-undo-fixture" onClick={handleSeedUndoFixture}>
+              Seed Undo Fixture
+            </button>
+            <button data-testid="edit-title-cell" onClick={handleEditTitleCell}>
+              Edit Title Cell
+            </button>
+            <button data-testid="edit-tags-cell" onClick={handleEditTagsCell}>
+              Edit Tags Cell
+            </button>
+            <button data-testid="delete-last-row" onClick={handleDeleteLastRow}>
+              Delete Last Row
+            </button>
+            <button data-testid="change-status-type" onClick={handleChangeStatusType}>
+              Change Status Type
+            </button>
+            <button data-testid="undo-action" onClick={handleUndo}>
+              Undo
+            </button>
+            <button data-testid="redo-action" onClick={handleRedo}>
+              Redo
+            </button>
             <div style={{ marginLeft: '20px' }}>
               <button
                 data-testid="view-table"
@@ -214,6 +458,9 @@ function DatabaseEditor() {
           </div>
 
           {/* View */}
+          <div data-testid="first-row-title">{firstRowTitle}</div>
+          <div data-testid="first-row-tags">{JSON.stringify(firstRowTags)}</div>
+          <div data-testid="status-column-type">{statusColumnType}</div>
           {columns.length === 0 ? (
             <div data-testid="empty-state">
               No columns yet. Click "Add Text Column" or "Add Status Column" to get started.
