@@ -62,6 +62,7 @@ export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(function Slash
   if (items.length === 0) {
     return (
       <div
+        data-testid="slash-menu-empty"
         className={cn(
           'slash-menu',
           'w-72 p-2',
@@ -76,6 +77,7 @@ export const SlashMenu = forwardRef<SlashMenuRef, SlashMenuProps>(function Slash
 
   return (
     <div
+      data-testid="slash-menu"
       className={cn(
         'slash-menu',
         'w-72 max-h-80 overflow-y-auto',

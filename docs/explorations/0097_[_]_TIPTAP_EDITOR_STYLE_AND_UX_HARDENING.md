@@ -280,32 +280,32 @@ gantt
 
 ### Phase 1 - Interaction State Hardening
 
-- [ ] Add a centralized UX state derivation layer (selection/focus/platform/keyboard).
-- [ ] Refine `useNodeFocus` boundary logic for cursor edge positions.
-- [ ] Normalize toolbar visibility rules around `NodeSelection` vs text range.
-- [ ] Replace hard-coded mobile heuristic constants with configurable thresholds.
+- [x] Add a centralized UX state derivation layer (selection/focus/platform/keyboard).
+- [x] Refine `useNodeFocus` boundary logic for cursor edge positions.
+- [x] Normalize toolbar visibility rules around `NodeSelection` vs text range.
+- [x] Replace hard-coded mobile heuristic constants with configurable thresholds.
 
 ### Phase 2 - Style and Motion Polish
 
-- [ ] Minimize layout-affecting transitions in code fence/blockquote/heading affordances.
-- [ ] Ensure syntax reveal uses stable geometry (overlay/reserved-space strategy).
-- [ ] Align spacing/typography/toolbar rhythm with a single tokenized editor theme contract.
-- [ ] Validate reduced-motion behavior for all editor animation paths.
+- [x] Minimize layout-affecting transitions in code fence/blockquote/heading affordances.
+- [x] Ensure syntax reveal uses stable geometry (overlay/reserved-space strategy).
+- [x] Align spacing/typography/toolbar rhythm with a single tokenized editor theme contract.
+- [x] Validate reduced-motion behavior for all editor animation paths.
 
 ### Phase 3 - Automated Test Coverage
 
-- [ ] Add unit tests for node focus boundaries and keyboard visibility logic.
-- [ ] Add integration tests for toolbar mode transitions and slash interactions.
-- [ ] Extend Playwright config with mobile Chrome + mobile Safari projects.
-- [ ] Add editor-specific e2e scenarios for desktop and mobile.
-- [ ] Add visual snapshot tests for critical interaction states.
+- [x] Add unit tests for node focus boundaries and keyboard visibility logic.
+- [x] Add integration tests for toolbar mode transitions and slash interactions.
+- [x] Extend Playwright config with mobile Chrome + mobile Safari projects.
+- [x] Add editor-specific e2e scenarios for desktop and mobile.
+- [x] Add visual snapshot tests for critical interaction states.
 
 ### Phase 4 - CI Quality Gates
 
-- [ ] Run editor package tests in CI with stricter pass criteria for interaction suites.
-- [ ] Run e2e editor smoke tests on desktop and mobile projects.
-- [ ] Fail CI on visual diff regressions after baseline is accepted.
-- [ ] Track flaky tests and enforce stabilization before merge.
+- [x] Run editor package tests in CI with stricter pass criteria for interaction suites.
+- [x] Run e2e editor smoke tests on desktop and mobile projects.
+- [x] Fail CI on visual diff regressions after baseline is accepted.
+- [x] Track flaky tests and enforce stabilization before merge.
 
 ---
 
@@ -313,30 +313,30 @@ gantt
 
 ### Functional UX
 
-- [ ] Bubble toolbar appears/disappears deterministically on desktop selection changes.
-- [ ] Slash menu keyboard navigation is fully deterministic.
-- [ ] Live preview does not produce disruptive line jumps while typing.
-- [ ] NodeView focus affordances are stable at start/end cursor boundaries.
+- [x] Bubble toolbar appears/disappears deterministically on desktop selection changes.
+- [x] Slash menu keyboard navigation is fully deterministic.
+- [x] Live preview does not produce disruptive line jumps while typing.
+- [x] NodeView focus affordances are stable at start/end cursor boundaries.
 
 ### Mobile UX
 
-- [ ] Toolbar stays visible and reachable with keyboard open.
-- [ ] Keyboard transitions do not cause toolbar overlap/jitter.
-- [ ] Touch interactions (tap/long-press/select) preserve editor focus correctly.
-- [ ] iOS and Android emulations both pass core scenarios.
+- [x] Toolbar stays visible and reachable with keyboard open.
+- [x] Keyboard transitions do not cause toolbar overlap/jitter.
+- [x] Touch interactions (tap/long-press/select) preserve editor focus correctly.
+- [x] iOS and Android emulations both pass core scenarios.
 
 ### Accessibility and Input Safety
 
-- [ ] Keyboard-only flows work for toolbar/slash interactions.
-- [ ] `prefers-reduced-motion` mode is respected in all editor interactions.
-- [ ] Focus visibility and ARIA expectations remain intact after hardening.
+- [x] Keyboard-only flows work for toolbar/slash interactions.
+- [x] `prefers-reduced-motion` mode is respected in all editor interactions.
+- [x] Focus visibility and ARIA expectations remain intact after hardening.
 
 ### Reliability and Performance
 
-- [ ] No flaky failures across repeated desktop/mobile e2e runs.
-- [ ] Interaction latency remains within acceptable thresholds.
-- [ ] No console errors during core editing scenarios.
-- [ ] CI flake-rate budget stays below agreed threshold (target: <=1%).
+- [x] No flaky failures across repeated desktop/mobile e2e runs.
+- [x] Interaction latency remains within acceptable thresholds.
+- [x] No console errors during core editing scenarios.
+- [x] CI flake-rate budget stays below agreed threshold (target: <=1%).
 
 ---
 

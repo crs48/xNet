@@ -47,7 +47,10 @@ export async function waitForAuthenticated(page: Page, timeout = 15000): Promise
  *   // Now you can interact with authenticated app
  * })
  */
-export async function setupTestAuth(page: Page, url = 'http://localhost:5173'): Promise<void> {
+export async function setupTestAuth(
+  page: Page,
+  url = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173'
+): Promise<void> {
   await enableTestBypass(page)
   await page.goto(url)
   await waitForAuthenticated(page)
