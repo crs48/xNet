@@ -170,7 +170,15 @@ sequenceDiagram
 
 ## Test Strategy: “Works Really Well” on Web Desktop + Mobile
 
-## Test pyramid for editor UX
+### Best-practice guardrails
+
+- Treat this as an **interaction reliability** project, not a feature-expansion project.
+- Keep changes incremental and observable; avoid large refactors without instrumentation.
+- For browser automation in this repo, always enable auth bypass before assertions (`setupTestAuth(page)`).
+- Add/keep deterministic `data-testid` hooks for unstable selectors in toolbar/slash/mobile states.
+- Prefer behavior assertions first, then visual snapshots as regression backstops.
+
+### Test pyramid for editor UX
 
 ```mermaid
 flowchart BT
@@ -221,7 +229,14 @@ Update Playwright projects to include:
 5. **Block editing transitions**
    - heading/code/blockquote focus affordances are smooth at node boundaries
 
-### D) Visual regression snapshots
+### D) Quality thresholds (definition of done)
+
+- Bubble menu visibility transition p95 under 120ms after selection settle.
+- Mobile toolbar reposition event-to-stable-frame under 150ms on emulated devices.
+- Editor UX suites pass with <=1% flake rate over 50 CI runs.
+- No new uncaught console errors in editor UX specs.
+
+### E) Visual regression snapshots
 
 Capture stable screenshots for:
 
@@ -321,6 +336,7 @@ gantt
 - [ ] No flaky failures across repeated desktop/mobile e2e runs.
 - [ ] Interaction latency remains within acceptable thresholds.
 - [ ] No console errors during core editing scenarios.
+- [ ] CI flake-rate budget stays below agreed threshold (target: <=1%).
 
 ---
 
