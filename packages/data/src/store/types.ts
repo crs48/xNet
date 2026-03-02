@@ -132,7 +132,7 @@ export interface NodeState {
 /**
  * Storage adapter interface for NodeStore.
  *
- * Implementations can use IndexedDB, SQLite, or memory.
+ * Implementations can use SQLite or memory.
  * The adapter stores Changes and materialized NodeState.
  */
 export interface NodeStorageAdapter {

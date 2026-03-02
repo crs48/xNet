@@ -93,7 +93,7 @@ That's the entire API surface for most apps. Define a schema, use the hooks, and
 Your React App
   └── useQuery / useMutate / useNode / useCan / useGrants
         └── NodeStore (schema-validated, type-safe, encrypted)
-              ├── IndexedDB (browser) / SQLite (desktop)
+              ├── SQLite (OPFS in browser) / SQLite (desktop)
               ├── Authorization engine (PolicyEvaluator + GrantStore)
               └── P2P Sync (WebRTC via signaling server)
                     └── Yjs CRDT (rich text) + Lamport LWW (structured data)
@@ -129,7 +129,7 @@ xNet is a monorepo of focused packages:
 | `@xnet/sync`     | Lamport clocks, `Change` v3 (hybrid signatures), Yjs security                      |
 | `@xnet/crypto`   | BLAKE3, Ed25519, ML-DSA-65, X25519, ML-KEM-768, XChaCha20-Poly1305                    |
 | `@xnet/identity` | DID:key, HybridKeyBundle, PQ Key Registry, UCAN tokens, key recovery                  |
-| `@xnet/storage`  | IndexedDB adapter                                                                     |
+| `@xnet/storage`  | SQLite adapter                                                                     |
 | `@xnet/canvas`   | Infinite canvas with spatial indexing                                                 |
 | `@xnet/editor`   | TipTap rich text editor                                                               |
 | `@xnet/devtools` | 9 debug panels + AuthZ panel + Security panel                                         |
@@ -158,7 +158,7 @@ For most apps, you only install `@xnet/react` and `@xnet/data`. Everything else 
 
 ## What you'll build
 
-A task manager that works offline, syncs peer-to-peer, and persists to the browser's IndexedDB. No server required.
+A task manager that works offline, syncs peer-to-peer, and persists to the local SQLite storage. No server required.
 
 1. **Create a React project and install xNet**
 
@@ -282,7 +282,7 @@ A task manager that works offline, syncs peer-to-peer, and persists to the brows
 
 Without writing a single line of backend code, you got:
 
-- **Persistent storage** — data lives in IndexedDB, survives refreshes
+- **Persistent storage** — data lives in local SQLite storage, survives refreshes
 - **Reactive queries** — UI updates automatically when data changes
 - **Type safety** — `task.status` is `'todo' | 'doing' | 'done'`, not `string`
 - **Schema validation** — invalid data is rejected at creation time
@@ -584,14 +584,14 @@ function App() {
 React Component
   │
   ├── useQuery(TaskSchema, filter)
-  │     └── NodeStore.list() → IndexedDB
+  │     └── NodeStore.list() → SQLite
   │           └── subscribes to NodeChangeEvents
   │
   ├── useMutate()
   │     └── NodeStore.create/update/delete()
   │           ├── validates against schema
   │           ├── signs change (Ed25519)
-  │           ├── persists to IndexedDB
+  │           ├── persists to SQLite
   │           ├── emits NodeChangeEvent → useQuery re-renders
   │           └── syncs to peers (via SyncManager)
   │
@@ -599,7 +599,7 @@ React Component
         ├── NodeStore (structured properties)
         └── Y.Doc (rich text)
               ├── WebRTC sync (via SyncManager or WebSocketSyncProvider)
-              ├── debounced persistence to IndexedDB
+              ├── debounced persistence to SQLite
               └── awareness (presence, cursors)
 ```
 
@@ -1242,7 +1242,7 @@ If you modify the Y.Doc's text content directly (e.g., via TipTap), that content
 2. **Init Y.Doc** — If schema has `document: 'yjs'`, load stored content and initialize the Yjs document.
 3. **Connect** — Acquire a sync connection from `SyncManager` (or create a `WebSocketSyncProvider` as fallback).
 4. **Editing** — User and peer changes flow through Yjs CRDT. Property changes go through the dual-write bridge.
-5. **Persist** — Y.Doc changes are debounced and saved to IndexedDB as `Y.encodeStateAsUpdate()`.
+5. **Persist** — Y.Doc changes are debounced and saved to SQLite as `Y.encodeStateAsUpdate()`.
 6. **Unmount** — Flush all pending changes immediately, release the sync connection.
 
 **Navigation flush**
@@ -2638,7 +2638,7 @@ Use `pnpm dev:both` in the Electron app to run two instances for testing sync be
 
 ## Local-first by default
 
-xNet apps don't fetch data from a server — they read from a local database (IndexedDB in the browser). This means:
+xNet apps don't fetch data from a server — they read from a local database (SQLite, OPFS-backed in modern browsers). This means:
 
 - **Queries are instant** — no loading spinners for cached data
 - **Mutations are immediate** — writes go to local storage first
@@ -2653,14 +2653,14 @@ You don't need to add special offline handling. The architecture is offline-firs
 
 ```
 User edits → Local Y.Doc update → Broadcast via WebSocket → Peers apply
-                                → Persist to IndexedDB
+                                → Persist to SQLite
 ```
 
 ### Offline operation
 
 ```
 User edits → Local Y.Doc update → OfflineQueue (persisted)
-                                → Persist to IndexedDB
+                                → Persist to SQLite
 ```
 
 ### Reconnection
@@ -2670,7 +2670,7 @@ WebSocket connects → OfflineQueue drains → Broadcast queued updates
                    → Exchange state vectors → Merge remote changes
 ```
 
-The `OfflineQueue` holds up to 1000 entries, persisted to IndexedDB immediately for crash resilience. On reconnect, entries are drained in order. If a broadcast fails, the entry stays at the front of the queue for retry.
+The `OfflineQueue` holds up to 1000 entries, persisted to SQLite immediately for crash resilience. On reconnect, entries are drained in order. If a broadcast fails, the entry stays at the front of the queue for retry.
 
 ## Patterns
 
@@ -2759,7 +2759,7 @@ const createProjectWithTasks = async () => {
 
 ## Storage
 
-xNet uses IndexedDB through the `@xnet/storage` adapter. Data is organized per-node:
+xNet uses SQLite through the `@xnet/storage` adapter. Data is organized per-node:
 
 - **Y.Doc state** — Full Yjs document state, BLAKE3-hashed for integrity
 - **Node properties** — Structured data from the NodeStore
@@ -2767,7 +2767,7 @@ xNet uses IndexedDB through the `@xnet/storage` adapter. Data is organized per-n
 - **Registry** — Tracked node set with last-synced timestamps
 - **Blobs** — File attachments stored locally
 
-The storage layer handles serialization, compression, and integrity checks. You don't interact with IndexedDB directly.
+The storage layer handles serialization, compression, and integrity checks. You don't interact with SQLite directly.
 
 ## Limits
 
@@ -2778,7 +2778,7 @@ The storage layer handles serialization, compression, and integrity checks. You 
 | Warm document pool | 50 documents in memory              |
 | Registry TTL       | 7 days (configurable)               |
 
-If the offline queue fills up during an extended offline period, the oldest entries are dropped. The Y.Doc state in IndexedDB is still preserved — only the incremental updates that haven't been broadcast are lost. On reconnect, a full state-vector exchange with peers will reconcile any gaps.
+If the offline queue fills up during an extended offline period, the oldest entries are dropped. The Y.Doc state in SQLite is still preserved — only the incremental updates that haven't been broadcast are lost. On reconnect, a full state-vector exchange with peers will reconcile any gaps.
 
 ---
 
@@ -5349,11 +5349,11 @@ Local-first software stores data on the user's device as the primary copy. The n
 
 ## How xNet implements this
 
-xNet stores all data in IndexedDB on the user's device. When you call `useQuery` or `useNode`, you're reading from a local database — not making a network request.
+xNet stores all data in SQLite on the user's device. When you call `useQuery` or `useNode`, you're reading from a local database — not making a network request.
 
 ```
 Traditional app:    Client → Server → Database → Server → Client
-xNet app:           Client → IndexedDB (done)
+xNet app:           Client → SQLite (done)
 ```
 
 Sync happens in the background via WebSocket connections to a signaling server, which relays messages between peers. The signaling server never stores your data — it only forwards encrypted messages.
@@ -5371,7 +5371,7 @@ These are well-studied algorithms that guarantee all peers converge to the same 
 
 ### Performance
 
-Reads from IndexedDB take microseconds. Reads from a server take 50-500ms. Local-first apps feel instant because the data is already there.
+Reads from local SQLite take microseconds. Reads from a server take 50-500ms. Local-first apps feel instant because the data is already there.
 
 ### Reliability
 
@@ -5579,7 +5579,7 @@ Manages Y.Doc instances in three tiers:
 | ------ | ------------- | ------------------------------------------ |
 | Active | refCount > 0  | In use by a component. Never evicted.      |
 | Warm   | refCount = 0  | Released but cached. Evicted via LRU.      |
-| Cold   | Not in memory | Persisted in IndexedDB. Loaded on acquire. |
+| Cold   | Not in memory | Persisted in SQLite. Loaded on acquire. |
 
 Default warm pool size: 50 documents.
 
@@ -6295,7 +6295,7 @@ xNet is organized as a layered stack where each package builds on the ones below
 │  Yjs security · envelopes · scoring     │
 ├─────────────────────────────────────────┤
 │  @xnet/storage                          │  Persistence
-│  IndexedDB adapter                      │
+│  SQLite adapter                         │
 ├─────────────────────────────────────────┤
 │  @xnet/identity                         │  Identity
 │  DID:key · UCAN · key management        │
@@ -6339,7 +6339,7 @@ flowchart LR
   D --> E["BLAKE3 hash"]
   E --> F["Ed25519 sign"]
   F --> G["Hash chain link"]
-  G --> H["IndexedDB"]
+  G --> H["SQLite"]
   G --> I["SyncManager"]
 ```
 
@@ -6348,7 +6348,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   A["useQuery(schema, filter)"] --> B["NodeStore.query()"]
-  B --> C["IndexedDB read"]
+  B --> C["SQLite read"]
   C --> D["FlatNode[]"]
   D --> E["Component render"]
   B -.->|subscribe| F["Change events"]
@@ -6572,7 +6572,7 @@ DID:key creation and parsing, Ed25519/X25519 key bundle management, UCAN token c
 
 **Dependencies:** `@xnet/identity`
 
-IndexedDB adapter for persisting Y.Doc state, node properties, offline queue entries, and registry data. Platform-abstracted so it can be swapped for different storage backends.
+SQLite adapter for persisting Y.Doc state, node properties, offline queue entries, and registry data across web (OPFS), desktop, and mobile.
 
 ### @xnet/sync
 
@@ -6717,7 +6717,7 @@ Launches two Electron windows connected to the same signaling server for testing
 packages/           # Core libraries (@xnet/*)
   crypto/           # BLAKE3, Ed25519, XChaCha20
   identity/         # DID:key, UCAN tokens
-  storage/          # IndexedDB adapter
+  storage/          # SQLite adapter
   sync/             # Lamport clocks, Change, Yjs security
   data/             # Schema system, NodeStore, 15 property types
   react/            # useQuery, useMutate, useNode hooks
@@ -8143,4 +8143,3 @@ function App() {
 - [DevTools](/docs/guides/devtools/) — Debugging tools
 
 ---
-

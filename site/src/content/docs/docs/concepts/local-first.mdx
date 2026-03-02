@@ -20,11 +20,11 @@ Local-first software stores data on the user's device as the primary copy. The n
 
 ## How xNet implements this
 
-xNet stores all data in IndexedDB on the user's device. When you call `useQuery` or `useNode`, you're reading from a local database — not making a network request.
+xNet stores all data in SQLite on the user's device. When you call `useQuery` or `useNode`, you're reading from a local database — not making a network request.
 
 ```
 Traditional app:    Client → Server → Database → Server → Client
-xNet app:           Client → IndexedDB (done)
+xNet app:           Client → SQLite (done)
 ```
 
 Sync happens in the background via WebSocket connections to a signaling server, which relays messages between peers. The signaling server never stores your data — it only forwards encrypted messages.
@@ -42,7 +42,7 @@ These are well-studied algorithms that guarantee all peers converge to the same 
 
 ### Performance
 
-Reads from IndexedDB take microseconds. Reads from a server take 50-500ms. Local-first apps feel instant because the data is already there.
+Reads from local SQLite take microseconds. Reads from a server take 50-500ms. Local-first apps feel instant because the data is already there.
 
 ### Reliability
 

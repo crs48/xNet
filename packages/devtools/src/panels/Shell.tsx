@@ -107,7 +107,7 @@ export function DevToolsPanel() {
         <span className="mx-2">|</span>
         <span>Store: {store ? 'connected' : 'disconnected'}</span>
         <span className="mx-2">|</span>
-        <ClearDataButton />
+        <ClearDataButton store={store} />
         <span className="ml-auto">Ctrl+Shift+D to toggle</span>
       </div>
     </div>
@@ -198,7 +198,7 @@ function ClearButton({ onClear }: { onClear: () => void }) {
   )
 }
 
-function ClearDataButton() {
+function ClearDataButton({ store }: { store: ReturnType<typeof useDevTools>['store'] }) {
   const [confirming, setConfirming] = useState(false)
 
   const handleClick = async () => {
@@ -209,14 +209,24 @@ function ClearDataButton() {
       return
     }
 
-    // Clear IndexedDB
     try {
-      const databases = await indexedDB.databases()
-      for (const db of databases) {
-        if (db.name?.startsWith('xnet-')) {
-          indexedDB.deleteDatabase(db.name)
+      const storageAdapter = store?.getStorageAdapter() as {
+        clear?: () => Promise<void>
+      } | null
+
+      if (storageAdapter && typeof storageAdapter.clear === 'function') {
+        await storageAdapter.clear()
+      }
+
+      if (typeof indexedDB !== 'undefined' && typeof indexedDB.databases === 'function') {
+        const databases = await indexedDB.databases()
+        for (const db of databases) {
+          if (db.name?.startsWith('xnet-')) {
+            indexedDB.deleteDatabase(db.name)
+          }
         }
       }
+
       // Reload the page to reset state
       window.location.reload()
     } catch (err) {
@@ -229,7 +239,7 @@ function ClearDataButton() {
     <button
       onClick={handleClick}
       className={`text-xs p-0.5 ${confirming ? 'text-red-400 hover:text-red-300' : 'text-zinc-400 hover:text-white'}`}
-      title={confirming ? 'Click again to confirm' : 'Clear all IndexedDB data'}
+      title={confirming ? 'Click again to confirm' : 'Clear all local data'}
     >
       {confirming ? 'Confirm Clear?' : 'Clear Data'}
     </button>

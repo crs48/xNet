@@ -16,7 +16,7 @@ sidebar:
 
 ## Local-first by default
 
-xNet apps don't fetch data from a server — they read from a local database (IndexedDB in the browser). This means:
+xNet apps don't fetch data from a server — they read from a local database (SQLite, OPFS-backed in modern browsers). This means:
 
 - **Queries are instant** — no loading spinners for cached data
 - **Mutations are immediate** — writes go to local storage first
@@ -31,14 +31,14 @@ You don't need to add special offline handling. The architecture is offline-firs
 
 ```
 User edits → Local Y.Doc update → Broadcast via WebSocket → Peers apply
-                                → Persist to IndexedDB
+                                → Persist to SQLite
 ```
 
 ### Offline operation
 
 ```
 User edits → Local Y.Doc update → OfflineQueue (persisted)
-                                → Persist to IndexedDB
+                                → Persist to SQLite
 ```
 
 ### Reconnection
@@ -48,7 +48,7 @@ WebSocket connects → OfflineQueue drains → Broadcast queued updates
                    → Exchange state vectors → Merge remote changes
 ```
 
-The `OfflineQueue` holds up to 1000 entries, persisted to IndexedDB immediately for crash resilience. On reconnect, entries are drained in order. If a broadcast fails, the entry stays at the front of the queue for retry.
+The `OfflineQueue` holds up to 1000 entries, persisted to SQLite immediately for crash resilience. On reconnect, entries are drained in order. If a broadcast fails, the entry stays at the front of the queue for retry.
 
 ## Patterns
 
@@ -138,7 +138,7 @@ const createProjectWithTasks = async () => {
 
 ## Storage
 
-xNet uses IndexedDB through the `@xnet/storage` adapter. Data is organized per-node:
+xNet uses SQLite through the `@xnet/storage` adapter. Data is organized per-node:
 
 - **Y.Doc state** — Full Yjs document state, BLAKE3-hashed for integrity
 - **Node properties** — Structured data from the NodeStore
@@ -146,7 +146,7 @@ xNet uses IndexedDB through the `@xnet/storage` adapter. Data is organized per-n
 - **Registry** — Tracked node set with last-synced timestamps
 - **Blobs** — File attachments stored locally
 
-The storage layer handles serialization, compression, and integrity checks. You don't interact with IndexedDB directly.
+The storage layer handles serialization, compression, and integrity checks. You don't interact with SQLite directly.
 
 ## Limits
 
@@ -157,4 +157,4 @@ The storage layer handles serialization, compression, and integrity checks. You 
 | Warm document pool | 50 documents in memory              |
 | Registry TTL       | 7 days (configurable)               |
 
-If the offline queue fills up during an extended offline period, the oldest entries are dropped. The Y.Doc state in IndexedDB is still preserved — only the incremental updates that haven't been broadcast are lost. On reconnect, a full state-vector exchange with peers will reconcile any gaps.
+If the offline queue fills up during an extended offline period, the oldest entries are dropped. The Y.Doc state in SQLite is still preserved — only the incremental updates that haven't been broadcast are lost. On reconnect, a full state-vector exchange with peers will reconcile any gaps.

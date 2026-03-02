@@ -27,7 +27,7 @@ xNet is organized as a layered stack where each package builds on the ones below
 │  Yjs security · envelopes · scoring     │
 ├─────────────────────────────────────────┤
 │  @xnet/storage                          │  Persistence
-│  IndexedDB adapter                      │
+│  SQLite adapter                        │
 ├─────────────────────────────────────────┤
 │  @xnet/identity                         │  Identity
 │  DID:key · UCAN · key management        │
@@ -71,7 +71,7 @@ flowchart LR
   D --> E["BLAKE3 hash"]
   E --> F["Ed25519 sign"]
   F --> G["Hash chain link"]
-  G --> H["IndexedDB"]
+  G --> H["SQLite"]
   G --> I["SyncManager"]
 ```
 
@@ -80,7 +80,7 @@ flowchart LR
 ```mermaid
 flowchart LR
   A["useQuery(schema, filter)"] --> B["NodeStore.query()"]
-  B --> C["IndexedDB read"]
+  B --> C["SQLite read"]
   C --> D["FlatNode[]"]
   D --> E["Component render"]
   B -.->|subscribe| F["Change events"]
