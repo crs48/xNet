@@ -6,9 +6,14 @@
  * - A sample Database with all supported property types
  */
 
+import { CommentSchema, DatabaseSchema, PageSchema } from '@xnet/data'
 import { useState } from 'react'
 import * as Y from 'yjs'
 import { useDevTools } from '../../provider/useDevTools'
+
+const PAGE_SCHEMA_ID = PageSchema._schemaId
+const DATABASE_SCHEMA_ID = DatabaseSchema._schemaId
+const COMMENT_SCHEMA_ID = CommentSchema._schemaId
 
 // Generate a simple ID
 function generateId(): string {
@@ -106,7 +111,7 @@ export function Seed() {
     try {
       // Create the page node
       const node = await store.create({
-        schemaId: 'xnet://xnet.fyi/Page',
+        schemaId: PAGE_SCHEMA_ID,
         properties: {
           title: 'Sample Page - All Block Types',
           icon: '📄'
@@ -284,7 +289,7 @@ export function Seed() {
 
         // Also populate the meta map with title
         const metaMap = ydoc.getMap('meta')
-        metaMap.set('_schemaId', 'xnet://xnet.fyi/Page')
+        metaMap.set('_schemaId', PAGE_SCHEMA_ID)
         metaMap.set('title', 'Sample Page - All Block Types')
         metaMap.set('icon', '📄')
       })
@@ -306,8 +311,8 @@ export function Seed() {
       // RelativePositions. The editor's restoreCommentMarks() will apply
       // the visual highlights when the page is opened.
 
-      const pageSchemaId = 'xnet://xnet.fyi/Page'
-      const commentSchemaId = 'xnet://xnet.fyi/Comment' as const
+      const pageSchemaId = PAGE_SCHEMA_ID
+      const commentSchemaId = COMMENT_SCHEMA_ID
       let rootComment: { id: string } | null = null
 
       // Comment 1: On the intro paragraph text (active, with a reply thread)
@@ -460,7 +465,7 @@ export function Seed() {
 
       // ─── Create Projects Database ─────────────────────────────────────
       const projectsDb = await store.create({
-        schemaId: 'xnet://xnet.fyi/Database',
+        schemaId: DATABASE_SCHEMA_ID,
         properties: {
           title: 'Projects',
           icon: '📁',
@@ -470,7 +475,7 @@ export function Seed() {
 
       // ─── Create Tasks Database ────────────────────────────────────────
       const tasksDb = await store.create({
-        schemaId: 'xnet://xnet.fyi/Database',
+        schemaId: DATABASE_SCHEMA_ID,
         properties: {
           title: 'Tasks',
           icon: '✅',
@@ -635,7 +640,7 @@ export function Seed() {
 
         // Meta
         const metaMap = projectsYdoc.getMap('meta')
-        metaMap.set('_schemaId', 'xnet://xnet.fyi/Database')
+        metaMap.set('_schemaId', DATABASE_SCHEMA_ID)
         metaMap.set('title', 'Projects')
         metaMap.set('icon', '📁')
       })
@@ -879,7 +884,7 @@ export function Seed() {
 
         // Meta
         const metaMap = tasksYdoc.getMap('meta')
-        metaMap.set('_schemaId', 'xnet://xnet.fyi/Database')
+        metaMap.set('_schemaId', DATABASE_SCHEMA_ID)
         metaMap.set('title', 'Tasks')
         metaMap.set('icon', '✅')
       })
@@ -890,8 +895,8 @@ export function Seed() {
       yDocRegistry.register(tasksDb.id, tasksYdoc)
 
       // ─── Create comments ──────────────────────────────────────────────
-      const commentSchemaId = 'xnet://xnet.fyi/Comment' as const
-      const dbSchemaId = 'xnet://xnet.fyi/Database'
+      const commentSchemaId = COMMENT_SCHEMA_ID
+      const dbSchemaId = DATABASE_SCHEMA_ID
 
       // Comment on Projects database
       await store.create({
@@ -944,7 +949,7 @@ export function Seed() {
     try {
       // Create the database node
       const node = await store.create({
-        schemaId: 'xnet://xnet.fyi/Database',
+        schemaId: DATABASE_SCHEMA_ID,
         properties: {
           title: 'Sample Database - All Property Types',
           icon: '📊',
@@ -1010,7 +1015,7 @@ export function Seed() {
             id: 'relation',
             name: 'relation',
             type: 'relation',
-            config: { targetSchema: 'xnet://xnet.fyi/Page' }
+            config: { targetSchema: PAGE_SCHEMA_ID }
           },
 
           // Rich types (4)
@@ -1170,7 +1175,7 @@ export function Seed() {
 
         // Also populate meta map
         const metaMap = ydoc.getMap('meta')
-        metaMap.set('_schemaId', 'xnet://xnet.fyi/Database')
+        metaMap.set('_schemaId', DATABASE_SCHEMA_ID)
         metaMap.set('title', 'Sample Database - All Property Types')
         metaMap.set('icon', '📊')
         metaMap.set('defaultView', 'table')
@@ -1189,8 +1194,8 @@ export function Seed() {
       yDocRegistry.register(node.id, ydoc)
 
       // ─── Create database comments ──────────────────────────────────
-      const dbSchemaId = 'xnet://xnet.fyi/Database'
-      const commentSchemaId = 'xnet://xnet.fyi/Comment' as const
+      const dbSchemaId = DATABASE_SCHEMA_ID
+      const commentSchemaId = COMMENT_SCHEMA_ID
 
       // Comment on a cell (text column, row 1)
       const cellComment = await store.create({
