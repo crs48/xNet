@@ -314,7 +314,10 @@ export function BoardView({
     .map((c) => `column-${c.id}`)
 
   return (
-    <div className={cn('h-full overflow-x-auto p-4 bg-white dark:bg-gray-900', className)}>
+    <div
+      data-xnet-db-editable="true"
+      className={cn('h-full overflow-x-auto p-4 bg-white dark:bg-gray-900', className)}
+    >
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}

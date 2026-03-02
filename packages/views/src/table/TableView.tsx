@@ -119,7 +119,10 @@ export function TableView({
     virtualRows.length > 0 ? totalHeight - virtualRows[virtualRows.length - 1].end : 0
 
   return (
-    <div className={cn('flex flex-col h-full bg-white dark:bg-gray-900', className)}>
+    <div
+      data-xnet-db-editable="true"
+      className={cn('flex flex-col h-full bg-white dark:bg-gray-900', className)}
+    >
       {/* Scrollable container */}
       <div ref={containerRef} className="flex-1 overflow-auto">
         <table className="w-full border-collapse text-sm">

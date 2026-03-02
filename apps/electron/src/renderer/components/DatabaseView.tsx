@@ -45,6 +45,7 @@ import {
 } from '@xnet/views'
 import { Table, LayoutGrid, Plus, Info, Copy } from 'lucide-react'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import * as Y from 'yjs'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -172,6 +173,89 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const commentDismissTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const commentIndicatorHoveredRef = useRef(false)
   const commentPopoverHoveredRef = useRef(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const undoManagerRef = useRef<Y.UndoManager | null>(null)
+
+  const isTextInputLikeElement = useCallback((target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) return false
+    return (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target.isContentEditable
+    )
+  }, [])
+
+  const isDatabaseEditableTarget = useCallback((target: EventTarget | null): boolean => {
+    if (!(target instanceof Element)) return false
+    return target.closest('[data-xnet-db-editable="true"]') !== null
+  }, [])
+
+  useEffect(() => {
+    if (!doc) {
+      undoManagerRef.current = null
+      return
+    }
+
+    const dataMap = doc.getMap('data')
+    const manager = new Y.UndoManager([dataMap], { captureTimeout: 300 })
+    undoManagerRef.current = manager
+
+    return () => {
+      manager.destroy()
+      if (undoManagerRef.current === manager) {
+        undoManagerRef.current = null
+      }
+    }
+  }, [doc])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const manager = undoManagerRef.current
+      const container = containerRef.current
+      if (!manager || !container) return
+
+      const key = e.key.toLowerCase()
+      const isMod = e.metaKey || e.ctrlKey
+      if (!isMod) return
+
+      const targetNode = e.target instanceof Node ? e.target : null
+      const activeElement = document.activeElement
+      const isInDatabaseView =
+        (targetNode !== null && container.contains(targetNode)) ||
+        (activeElement !== null && container.contains(activeElement))
+      if (!isInDatabaseView) return
+
+      const targetIsTextInputLike = isTextInputLikeElement(e.target)
+      const activeIsTextInputLike = isTextInputLikeElement(activeElement)
+      const targetIsDatabaseEditable = isDatabaseEditableTarget(e.target)
+      const activeIsDatabaseEditable = isDatabaseEditableTarget(activeElement)
+
+      if (
+        (targetIsTextInputLike && !targetIsDatabaseEditable) ||
+        (activeIsTextInputLike && !activeIsDatabaseEditable)
+      ) {
+        return
+      }
+
+      if (key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          manager.redo()
+        } else {
+          manager.undo()
+        }
+        return
+      }
+
+      if (!e.metaKey && e.ctrlKey && !e.shiftKey && key === 'y') {
+        e.preventDefault()
+        manager.redo()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isTextInputLikeElement, isDatabaseEditableTarget])
 
   const scheduleCommentDismiss = useCallback(() => {
     if (commentDismissTimeoutRef.current) clearTimeout(commentDismissTimeoutRef.current)
@@ -1263,7 +1347,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   // Empty state when no columns
   if (columns.length === 0) {
     return (
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
         <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
           <input
@@ -1294,7 +1378,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
       <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
         {/* Title */}

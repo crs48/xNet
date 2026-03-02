@@ -5,7 +5,6 @@
  */
 
 import type { CanvasConfig, CanvasNode, GridType, Point } from '../types'
-import type * as Y from 'yjs'
 import React, {
   useRef,
   useCallback,
@@ -15,11 +14,13 @@ import React, {
   useMemo,
   forwardRef
 } from 'react'
+import * as Y from 'yjs'
 import { CommentOverlay } from '../comments/CommentOverlay'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD } from '../nodes/CanvasNodeComponent'
+import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
 
 /** Minimal Awareness interface (avoids y-protocols dependency) */
 interface AwarenessLike {
@@ -167,6 +168,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const undoManagerRef = useRef<Y.UndoManager | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
 
@@ -347,6 +349,23 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
   // Handle keyboard shortcuts
   useEffect(() => {
+    const manager = new Y.UndoManager(
+      [doc.getMap('nodes'), doc.getMap('edges'), doc.getMap('metadata')],
+      {
+        captureTimeout: 300
+      }
+    )
+    undoManagerRef.current = manager
+
+    return () => {
+      manager.destroy()
+      if (undoManagerRef.current === manager) {
+        undoManagerRef.current = null
+      }
+    }
+  }, [doc])
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check if canvas container or its children have focus
       const container = containerRef.current
@@ -356,10 +375,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       // 1. Canvas container itself has focus, OR
       // 2. No input/textarea/contenteditable has focus
       const activeElement = document.activeElement
-      const isInputFocused =
-        activeElement instanceof HTMLInputElement ||
-        activeElement instanceof HTMLTextAreaElement ||
-        activeElement?.getAttribute('contenteditable') === 'true'
+      const isInputFocused = isTextInputLikeElement(activeElement)
+
+      if (
+        handleUndoRedoShortcut(e, container, activeElement, {
+          undo: () => undoManagerRef.current?.undo(),
+          redo: () => undoManagerRef.current?.redo()
+        })
+      ) {
+        return
+      }
 
       // Delete selected - only if canvas has focus or no input focused
       if (e.key === 'Delete' || e.key === 'Backspace') {
