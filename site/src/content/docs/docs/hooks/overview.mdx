@@ -79,14 +79,14 @@ function App() {
 React Component
   │
   ├── useQuery(TaskSchema, filter)
-  │     └── NodeStore.list() → IndexedDB
+  │     └── NodeStore.list() → SQLite
   │           └── subscribes to NodeChangeEvents
   │
   ├── useMutate()
   │     └── NodeStore.create/update/delete()
   │           ├── validates against schema
   │           ├── signs change (Ed25519)
-  │           ├── persists to IndexedDB
+  │           ├── persists to SQLite
   │           ├── emits NodeChangeEvent → useQuery re-renders
   │           └── syncs to peers (via SyncManager)
   │
@@ -94,7 +94,7 @@ React Component
         ├── NodeStore (structured properties)
         └── Y.Doc (rich text)
               ├── WebRTC sync (via SyncManager or WebSocketSyncProvider)
-              ├── debounced persistence to IndexedDB
+              ├── debounced persistence to SQLite
               └── awareness (presence, cursors)
 ```
 

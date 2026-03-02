@@ -24,7 +24,7 @@ import { Steps, Tabs, TabItem, FileTree } from '@astrojs/starlight/components'
 
 ## What you'll build
 
-A task manager that works offline, syncs peer-to-peer, and persists to the browser's IndexedDB. No server required.
+A task manager that works offline, syncs peer-to-peer, and persists to local SQLite storage. No server required.
 
 <Steps>
 
@@ -152,7 +152,7 @@ A task manager that works offline, syncs peer-to-peer, and persists to the brows
 
 Without writing a single line of backend code, you got:
 
-- **Persistent storage** — data lives in IndexedDB, survives refreshes
+- **Persistent storage** — data lives in local SQLite storage, survives refreshes
 - **Reactive queries** — UI updates automatically when data changes
 - **Type safety** — `task.status` is `'todo' | 'doing' | 'done'`, not `string`
 - **Schema validation** — invalid data is rejected at creation time

@@ -256,7 +256,7 @@ If you modify the Y.Doc's text content directly (e.g., via TipTap), that content
 2. **Init Y.Doc** — If schema has `document: 'yjs'`, load stored content and initialize the Yjs document.
 3. **Connect** — Acquire a sync connection from `SyncManager` (or create a `WebSocketSyncProvider` as fallback).
 4. **Editing** — User and peer changes flow through Yjs CRDT. Property changes go through the dual-write bridge.
-5. **Persist** — Y.Doc changes are debounced and saved to IndexedDB as `Y.encodeStateAsUpdate()`.
+5. **Persist** — Y.Doc changes are debounced and saved to SQLite as `Y.encodeStateAsUpdate()`.
 6. **Unmount** — Flush all pending changes immediately, release the sync connection.
 
 :::caution[Navigation flush]

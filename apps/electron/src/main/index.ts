@@ -33,7 +33,7 @@ import { initAutoUpdater } from './updater'
 export const profile = process.env.XNET_PROFILE || 'default'
 
 // Set separate user data path for each profile BEFORE app is ready
-// This isolates IndexedDB, localStorage, cookies, etc. between profiles
+// This isolates local app storage, localStorage, cookies, etc. between profiles
 if (profile !== 'default') {
   const userDataPath = join(app.getPath('userData'), '..', `xnet-desktop-${profile}`)
   app.setPath('userData', userDataPath)

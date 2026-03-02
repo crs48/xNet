@@ -364,7 +364,7 @@ graph LR
 
 **The protocol doesn't change** — only the infrastructure beneath it:
 
-- Personal: IndexedDB on your device
+- Personal: SQLite on your device (OPFS in modern browsers)
 - Team: P2P sync between devices
 - Enterprise: Postgres cluster + relay servers
 - Global: Incentivized storage/compute providers

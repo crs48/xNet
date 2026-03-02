@@ -47,7 +47,7 @@ cd apps/electron && pnpm dev:both
 packages/           # Core libraries (@xnet/*)
   crypto/           # BLAKE3, Ed25519, XChaCha20
   identity/         # DID:key, UCAN tokens
-  storage/          # IndexedDB adapter
+  storage/          # SQLite adapter
   sync/             # Lamport clocks, Change<T>, Yjs security
   data/             # Schema system, NodeStore, 15 property types
   react/            # useQuery, useMutate, useNode hooks

@@ -1,6 +1,6 @@
 # @xnet/tests
 
-Integration test suite for xNet. These tests run in a real browser (Chromium via Playwright) to exercise IndexedDB, WebRTC, and React hooks in an authentic environment.
+Integration test suite for xNet. These tests run in a real browser (Chromium via Playwright) to exercise SQLite (web adapter), WebRTC, and React hooks in an authentic environment.
 
 ## Structure
 
@@ -20,12 +20,12 @@ tests/
 
 ## Test Types
 
-| File                       | Scope             | What It Tests                                                          |
-| -------------------------- | ----------------- | ---------------------------------------------------------------------- |
-| `crud.test.tsx`            | React + IndexedDB | `useDocument`, `useQuery`, `useMutate` with real persistence           |
-| `sync.test.ts`             | Protocol          | Y.Doc sync encoding/decoding, signaling server connection              |
-| `document-sync.test.tsx`   | Multi-user        | Live editing, disconnect/reconnect, CRDT merge, persistence after sync |
-| `webrtc-signaling.test.ts` | Network           | Raw WebRTC data channel establishment (requires signaling server)      |
+| File                       | Scope          | What It Tests                                                          |
+| -------------------------- | -------------- | ---------------------------------------------------------------------- |
+| `crud.test.tsx`            | React + SQLite | `useDocument`, `useQuery`, `useMutate` with real persistence           |
+| `sync.test.ts`             | Protocol       | Y.Doc sync encoding/decoding, signaling server connection              |
+| `document-sync.test.tsx`   | Multi-user     | Live editing, disconnect/reconnect, CRDT merge, persistence after sync |
+| `webrtc-signaling.test.ts` | Network        | Raw WebRTC data channel establishment (requires signaling server)      |
 
 ## Running
 
@@ -40,7 +40,7 @@ pnpm --filter @xnet/integration-tests test -- --browser.headless=false
 ## How It Works
 
 - Uses **Vitest browser mode** with Playwright (not jsdom) for real browser APIs
-- Each test gets a unique IndexedDB database name for isolation
+- Each test gets an isolated local SQLite database namespace
 - React components render inside the browser via `@testing-library/react`
 - Sync tests simulate WebRTC transport by forwarding Y.Doc updates between two docs
 - Screenshots are captured per-test for visual regression baselines
@@ -64,7 +64,7 @@ flowchart LR
         I1["tests/integration/src/*.test.ts"]
         I2["Chromium (Playwright)"]
         I3["Cross-package flows"]
-        I4["Real IndexedDB, WebRTC"]
+        I4["Real SQLite, WebRTC"]
     end
 
     Unit ---|"Fast"| CI["CI Pipeline"]

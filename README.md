@@ -81,7 +81,7 @@ See the README in each directory for details:
 
 | Package                             | Description                                                             |
 | ----------------------------------- | ----------------------------------------------------------------------- |
-| [@xnet/storage](./packages/storage) | IndexedDB/memory adapters, blob store, chunk manager, snapshots         |
+| [@xnet/storage](./packages/storage) | SQLite/memory adapters, blob store, chunk manager, snapshots            |
 | [@xnet/sync](./packages/sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security layer            |
 | [@xnet/data](./packages/data)       | Schema system, NodeStore, 15 property types, Yjs CRDT, built-in schemas |
 | [@xnet/network](./packages/network) | libp2p node, y-webrtc provider, peer scoring, security suite            |
@@ -148,7 +148,7 @@ flowchart TB
 
     subgraph Infra["Infrastructure Layer"]
         Sync["@xnet/sync<br/><small>Change&lt;T&gt;, Lamport clocks,<br/>hash chains, Yjs security</small>"]
-        Storage["@xnet/storage<br/><small>IndexedDB, blobs,<br/>snapshots</small>"]
+        Storage["@xnet/storage<br/><small>SQLite, blobs,<br/>snapshots</small>"]
         Network["@xnet/network<br/><small>libp2p, y-webrtc,<br/>peer scoring</small>"]
     end
 
@@ -179,7 +179,7 @@ flowchart LR
         UI["UI"]
         NodeStore["NodeStore<br/>(structured data)"]
         YDoc["Y.Doc<br/>(rich text)"]
-        DB[("IndexedDB / SQLite")]
+        DB[("SQLite")]
     end
 
     subgraph Remote["Remote Peers"]
@@ -258,19 +258,19 @@ function PageEditor({ nodeId }: { nodeId: string }) {
 
 ## Key Technologies
 
-| Layer      | Technology                                        |
-| ---------- | ------------------------------------------------- |
-| Sync       | Event-sourced immutable logs, Lamport clocks, LWW |
-| CRDT       | Yjs (conflict-free collaboration)                 |
-| P2P        | libp2p + WebRTC                                   |
-| Storage    | IndexedDB (browser), SQLite (native)              |
-| Identity   | DID:key + UCAN authorization                      |
-| Signing    | Ed25519 (via @noble/curves)                       |
-| Hashing    | BLAKE3 (via @noble/hashes)                        |
-| Encryption | XChaCha20-Poly1305                                |
-| Search     | MiniSearch (local), FTS5 (hub)                    |
-| Build      | Turborepo, tsup, Vite                             |
-| Testing    | Vitest, Playwright (browser mode)                 |
+| Layer      | Technology                                         |
+| ---------- | -------------------------------------------------- |
+| Sync       | Event-sourced immutable logs, Lamport clocks, LWW  |
+| CRDT       | Yjs (conflict-free collaboration)                  |
+| P2P        | libp2p + WebRTC                                    |
+| Storage    | SQLite (OPFS in browser, native on desktop/mobile) |
+| Identity   | DID:key + UCAN authorization                       |
+| Signing    | Ed25519 (via @noble/curves)                        |
+| Hashing    | BLAKE3 (via @noble/hashes)                         |
+| Encryption | XChaCha20-Poly1305                                 |
+| Search     | MiniSearch (local), FTS5 (hub)                     |
+| Build      | Turborepo, tsup, Vite                              |
+| Testing    | Vitest, Playwright (browser mode)                  |
 
 ## Roadmap Status (Mar 2026)
 

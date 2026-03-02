@@ -89,7 +89,7 @@ Manages Y.Doc instances in three tiers:
 | ------ | ------------- | ------------------------------------------ |
 | Active | refCount > 0  | In use by a component. Never evicted.      |
 | Warm   | refCount = 0  | Released but cached. Evicted via LRU.      |
-| Cold   | Not in memory | Persisted in IndexedDB. Loaded on acquire. |
+| Cold   | Not in memory | Persisted in SQLite. Loaded on acquire. |
 
 Default warm pool size: 50 documents.
 

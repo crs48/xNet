@@ -18,7 +18,7 @@ pnpm preview       # Preview production build
 ## Features
 
 - Offline-first with Service Worker (Workbox)
-- IndexedDB for local storage
+- SQLite (OPFS) for local storage
 - Rich text editor
 - Pages-focused (subset of Electron features)
 - Dark mode support
