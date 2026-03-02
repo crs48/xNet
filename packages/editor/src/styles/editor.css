@@ -19,6 +19,11 @@
   --editor-warning: 245 158 11;
   --editor-destructive: 220 38 38;
   --editor-destructive-foreground: 255 255 255;
+  --editor-rhythm-1: 0.25rem;
+  --editor-rhythm-2: 0.5rem;
+  --editor-rhythm-3: 0.75rem;
+  --editor-rhythm-4: 1rem;
+  --editor-motion-fast: 150ms;
 }
 
 .dark {
@@ -103,7 +108,7 @@
 /* ─── Typography: Inline ─── */
 
 .ProseMirror p {
-  @apply my-1;
+  margin-block: var(--editor-rhythm-1);
 }
 
 .ProseMirror code {
@@ -207,8 +212,10 @@
   user-select: none;
   -webkit-user-select: none;
   pointer-events: none;
-  display: inline;
-  animation: syntax-fade-in 150ms ease-out forwards;
+  display: inline-block;
+  line-height: 1;
+  vertical-align: baseline;
+  animation: syntax-fade-in var(--editor-motion-fast) ease-out forwards;
 }
 
 @keyframes syntax-fade-in {
@@ -245,7 +252,13 @@
   color: rgb(var(--editor-muted-foreground));
   user-select: none;
   pointer-events: none;
-  animation: syntax-fade-in 150ms ease-out forwards;
+  animation: syntax-fade-in var(--editor-motion-fast) ease-out forwards;
+}
+
+.heading-line .heading-syntax,
+.code-block-wrapper .code-fence,
+.blockquote-wrapper .blockquote-syntax {
+  transition-duration: var(--editor-motion-fast);
 }
 
 .md-syntax-url {
@@ -432,7 +445,13 @@
   .ProseMirror *,
   .xnet-drag-handle-button,
   .xnet-drop-indicator,
-  .xnet-drop-indicator-dot {
+  .xnet-drop-indicator-dot,
+  .md-syntax,
+  .md-syntax-link,
+  .heading-line .heading-syntax,
+  .code-block-wrapper .code-fence,
+  .blockquote-wrapper .blockquote-syntax,
+  [data-testid='editor-mobile-toolbar'] {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

@@ -20,6 +20,22 @@ export default defineConfig({
     {
       name: 'webkit',
       use: { ...devices['Desktop Safari'] }
+    },
+    {
+      name: 'mobile-chromium',
+      use: {
+        ...devices['Pixel 7'],
+        isMobile: true,
+        hasTouch: true
+      }
+    },
+    {
+      name: 'mobile-webkit',
+      use: {
+        ...devices['iPhone 14'],
+        isMobile: true,
+        hasTouch: true
+      }
     }
   ]
 })

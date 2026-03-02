@@ -26,11 +26,11 @@ export const BlockquoteView = memo(function BlockquoteView({ editor, getPos }: N
         <span
           className={cn(
             'blockquote-syntax',
-            'flex-shrink-0 mr-2',
+            'flex-shrink-0 mr-2 w-3',
             'font-mono text-muted-foreground',
             'select-none',
-            'transition-all duration-150 ease-out',
-            isFocused ? 'opacity-50 w-auto' : 'opacity-0 w-0 overflow-hidden'
+            'transition-opacity duration-150 ease-out',
+            isFocused ? 'opacity-50' : 'opacity-0'
           )}
           contentEditable={false}
           aria-hidden="true"

@@ -1,5 +1,31 @@
 import type { Editor } from '@tiptap/react'
+import { NodeSelection } from '@tiptap/pm/state'
 import { useState, useEffect, useCallback, useRef } from 'react'
+
+export interface NodeFocusSnapshot {
+  nodePos: number
+  nodeSize: number
+  selectionFrom: number
+  selectionTo: number
+  isNodeSelection: boolean
+}
+
+export function isNodeFocused(snapshot: NodeFocusSnapshot): boolean {
+  const { nodePos, nodeSize, selectionFrom, selectionTo, isNodeSelection } = snapshot
+
+  if (isNodeSelection) {
+    return selectionFrom === nodePos
+  }
+
+  const contentStart = nodePos + 1
+  const contentEnd = nodePos + nodeSize - 1
+
+  if (selectionFrom < contentStart || selectionTo > contentEnd) {
+    return false
+  }
+
+  return true
+}
 
 /**
  * Hook to track if the cursor is within a specific node.
@@ -51,10 +77,13 @@ export function useNodeFocus(
     }
 
     const { from, to } = editor.state.selection
-    const nodeEnd = pos + node.nodeSize
-
-    // Check if selection is within this node
-    const focused = from > pos && to < nodeEnd
+    const focused = isNodeFocused({
+      nodePos: pos,
+      nodeSize: node.nodeSize,
+      selectionFrom: from,
+      selectionTo: to,
+      isNodeSelection: editor.state.selection instanceof NodeSelection
+    })
 
     if (focused !== prevFocusedRef.current) {
       setIsFocused(focused)

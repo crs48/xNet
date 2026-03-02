@@ -51,7 +51,7 @@ export const CodeBlockView = memo(function CodeBlockView({
         'code-block-wrapper',
         'my-4 rounded-lg',
         'bg-secondary border border-border',
-        'transition-all duration-150',
+        'transition-colors duration-150',
         isFocused && 'ring-2 ring-primary/20 border-primary/30'
       )}
       data-language={language}
@@ -63,10 +63,11 @@ export const CodeBlockView = memo(function CodeBlockView({
           'code-fence code-fence-open',
           'flex items-center gap-2',
           'px-4 py-2',
+          'min-h-9',
           'border-b border-border/50',
           'font-mono text-sm text-muted-foreground/60',
-          'transition-all duration-150 ease-out',
-          isFocused ? 'opacity-100 max-h-12' : 'opacity-0 max-h-0 overflow-hidden py-0 border-b-0'
+          'transition-opacity duration-150 ease-out',
+          isFocused ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         contentEditable={false}
       >
@@ -109,10 +110,11 @@ export const CodeBlockView = memo(function CodeBlockView({
         className={cn(
           'code-fence code-fence-close',
           'px-4 py-2',
+          'min-h-9',
           'border-t border-border/50',
           'font-mono text-sm text-muted-foreground/60',
-          'transition-all duration-150 ease-out',
-          isFocused ? 'opacity-100 max-h-12' : 'opacity-0 max-h-0 overflow-hidden py-0 border-t-0'
+          'transition-opacity duration-150 ease-out',
+          isFocused ? 'opacity-100' : 'opacity-0 pointer-events-none'
         )}
         contentEditable={false}
       >

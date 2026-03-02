@@ -5,14 +5,18 @@
  * Mobile: Fixed at bottom, above keyboard, horizontally scrollable
  */
 import type { Editor } from '@tiptap/react'
-import { NodeSelection } from '@tiptap/pm/state'
 import { BubbleMenu } from '@tiptap/react/menus'
-import { useState, useEffect, useRef, useCallback, type JSX } from 'react'
+import { useRef, useCallback, type JSX } from 'react'
 import { captureTextAnchor } from '../extensions/comment'
 import { cn } from '../utils'
+import {
+  shouldShowDesktopToolbar,
+  type KeyboardThresholds,
+  type ToolbarMode,
+  useEditorUxState
+} from './editor-ux-state'
 
-/** Toolbar display mode */
-export type ToolbarMode = 'auto' | 'desktop' | 'mobile'
+export type { ToolbarMode } from './editor-ux-state'
 
 /**
  * Toolbar item contribution from plugins
@@ -45,6 +49,10 @@ export interface FloatingToolbarProps {
    */
   mode?: ToolbarMode
   /**
+   * Optional keyboard visibility thresholds used in mobile mode.
+   */
+  keyboardThresholds?: Partial<KeyboardThresholds>
+  /**
    * Additional toolbar items from plugins
    */
   additionalItems?: ToolbarItemContribution[]
@@ -53,73 +61,6 @@ export interface FloatingToolbarProps {
    * Called with anchor data; should return the new comment ID.
    */
   onCreateComment?: (anchorData: string) => Promise<string | null>
-}
-
-// Check if we're on a mobile device
-function useIsMobile(mode?: ToolbarMode): boolean {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    // If mode is explicitly set, don't auto-detect
-    if (mode === 'desktop') {
-      setIsMobile(false)
-      return
-    }
-    if (mode === 'mobile') {
-      setIsMobile(true)
-      return
-    }
-
-    // Auto-detect based on device/viewport
-    const checkMobile = () => {
-      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0
-      const isNarrow = window.innerWidth < 768
-      setIsMobile(hasTouch || isNarrow)
-    }
-
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [mode])
-
-  return isMobile
-}
-
-// Track keyboard visibility and height on mobile
-interface KeyboardState {
-  visible: boolean
-  height: number
-}
-
-function useKeyboardVisible(): KeyboardState {
-  const [state, setState] = useState<KeyboardState>({ visible: false, height: 0 })
-
-  useEffect(() => {
-    // Use visualViewport API if available (modern browsers)
-    const viewport = window.visualViewport
-    if (!viewport) return
-
-    const handleResize = () => {
-      // Calculate keyboard height from the difference between window and viewport height
-      const keyboardHeight = window.innerHeight - viewport.height
-      // If viewport height is significantly less than window height, keyboard is likely open
-      const keyboardOpen = viewport.height < window.innerHeight * 0.75
-      setState({
-        visible: keyboardOpen,
-        height: keyboardOpen ? keyboardHeight : 0
-      })
-    }
-
-    viewport.addEventListener('resize', handleResize)
-    // Also listen for scroll to handle iOS scroll behavior
-    viewport.addEventListener('scroll', handleResize)
-    return () => {
-      viewport.removeEventListener('resize', handleResize)
-      viewport.removeEventListener('scroll', handleResize)
-    }
-  }, [])
-
-  return state
 }
 
 interface ToolbarButtonProps {
@@ -476,46 +417,27 @@ function ToolbarContent({
  */
 function MobileToolbar({
   editor,
+  isFocused,
+  keyboard,
   className,
   additionalItems = [],
   onCreateComment
 }: {
   editor: Editor
+  isFocused: boolean
+  keyboard: { visible: boolean; height: number }
   className?: string
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }): JSX.Element | null {
-  const keyboard = useKeyboardVisible()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [isFocused, setIsFocused] = useState(false)
-
-  // Track editor focus state
-  useEffect(() => {
-    const handleFocus = () => setIsFocused(true)
-    const handleBlur = () => {
-      // Delay blur check to allow toolbar clicks
-      setTimeout(() => {
-        if (!editor.isFocused) setIsFocused(false)
-      }, 150)
-    }
-
-    editor.on('focus', handleFocus)
-    editor.on('blur', handleBlur)
-
-    // Check initial state
-    if (editor.isFocused) setIsFocused(true)
-
-    return () => {
-      editor.off('focus', handleFocus)
-      editor.off('blur', handleBlur)
-    }
-  }, [editor])
 
   // Only show when editor is focused
   if (!isFocused) return null
 
   return (
     <div
+      data-testid="editor-mobile-toolbar"
       className={cn(
         'fixed left-0 right-0 z-50',
         'bg-background/95 backdrop-blur-sm border-t border-border',
@@ -557,11 +479,13 @@ function MobileToolbar({
  */
 function DesktopToolbar({
   editor,
+  selectionShape,
   className,
   additionalItems = [],
   onCreateComment
 }: {
   editor: Editor
+  selectionShape: 'collapsed' | 'range' | 'node'
   className?: string
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
@@ -569,18 +493,16 @@ function DesktopToolbar({
   return (
     <BubbleMenu
       editor={editor}
+      data-testid="editor-desktop-toolbar"
       options={{
         placement: 'top',
         offset: 8
       }}
-      // Only show when there's a text selection (not on empty cursor or node selection)
-      shouldShow={({ editor, from, to, state }) => {
-        // Don't show for node selections (images, files, embeds have their own toolbars)
-        if (state.selection instanceof NodeSelection) return false
-        // Don't show in code blocks
-        if (editor.isActive('codeBlock')) return false
-        // Only show when there's actual text selected
-        return from !== to
+      shouldShow={({ editor }) => {
+        return shouldShowDesktopToolbar({
+          selectionShape,
+          inCodeBlock: editor.isActive('codeBlock')
+        })
       }}
       className={cn(
         'flex items-center gap-0.5 px-1 py-1',
@@ -610,17 +532,22 @@ export function FloatingToolbar({
   editor,
   className,
   mode = 'auto',
+  keyboardThresholds,
   additionalItems = [],
   onCreateComment
 }: FloatingToolbarProps): JSX.Element | null {
-  const isMobile = useIsMobile(mode)
+  const ux = useEditorUxState(editor, mode, keyboardThresholds)
 
   if (!editor) return null
+
+  const isMobile = ux.isMobile
 
   if (isMobile) {
     return (
       <MobileToolbar
         editor={editor}
+        isFocused={ux.isFocused}
+        keyboard={ux.keyboard}
         className={className}
         additionalItems={additionalItems}
         onCreateComment={onCreateComment}
@@ -631,6 +558,7 @@ export function FloatingToolbar({
   return (
     <DesktopToolbar
       editor={editor}
+      selectionShape={ux.selectionShape}
       className={className}
       additionalItems={additionalItems}
       onCreateComment={onCreateComment}
