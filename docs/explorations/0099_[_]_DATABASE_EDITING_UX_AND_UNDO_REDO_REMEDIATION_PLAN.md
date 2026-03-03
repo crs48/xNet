@@ -401,10 +401,10 @@ Extend `tests/e2e/src/database-undo.spec.ts` and add new specs:
   - [x] Grid navigation follows expected arrow/tab conventions
   - [x] Combobox interactions follow ARIA APG patterns
   - [x] No broken focus loops or trapped focus states
-- [ ] **Performance**
-  - [ ] Typing latency remains smooth at 500+ rows
-  - [ ] Autocomplete remains responsive with large option sets
-  - [ ] Undo stack memory growth is bounded in long sessions
+- [x] **Performance**
+  - [x] Typing latency remains smooth at 500+ rows
+  - [x] Autocomplete remains responsive with large option sets
+  - [x] Undo stack memory growth is bounded in long sessions
 - [x] **Regression Safety**
   - [x] Existing database tests remain green
   - [x] New tests cover previously broken cases
