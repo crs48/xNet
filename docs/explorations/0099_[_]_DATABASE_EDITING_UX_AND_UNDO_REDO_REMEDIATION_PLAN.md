@@ -362,52 +362,52 @@ Extend `tests/e2e/src/database-undo.spec.ts` and add new specs:
 
 ## Implementation Checklist
 
-- [ ] **Contract Layer**
-  - [ ] Add draft/commit/cancel editor contract and backward adapter
-  - [ ] Document editor behavior expectations in `packages/views` docs
+- [x] **Contract Layer**
+  - [x] Add draft/commit/cancel editor contract and backward adapter
+  - [x] Document editor behavior expectations in `packages/views` docs
 - [ ] **Undo/Redo Reliability**
-  - [ ] Wrap compound mutations in `doc.transact`
-  - [ ] Add edit-session commit boundaries for text-like fields
-  - [ ] Add regression tests for grouped undo behavior
-- [ ] **Field Editors**
-  - [ ] Rewrite `multiSelect` as chip+combobox editor
-  - [ ] Implement functional `dateRange` editor
-  - [ ] Add `person` handler with DID autocomplete
-  - [ ] Integrate relation picker/autocomplete into active table path
-- [ ] **Keyboard and Navigation**
-  - [ ] Add grid navigation and mode transitions in `TableCell`
-  - [ ] Implement Tab/Shift+Tab/Enter movement with commit
-  - [ ] Ensure Escape cancel semantics are consistent
-- [ ] **Relation Setup Wiring**
-  - [ ] Pass real `availableDatabases` to `AddColumnModal`
-  - [ ] Verify relation config persists and is used by editor
-- [ ] **Architecture Convergence**
-  - [ ] Define canonical row mutation API
-  - [ ] Plan migration steps from row-array rewrites to granular mutations
+  - [x] Wrap compound mutations in `doc.transact`
+  - [x] Add edit-session commit boundaries for text-like fields
+  - [x] Add regression tests for grouped undo behavior
+- [x] **Field Editors**
+  - [x] Rewrite `multiSelect` as chip+combobox editor
+  - [x] Implement functional `dateRange` editor
+  - [x] Add `person` handler with DID autocomplete
+  - [x] Integrate relation picker/autocomplete into active table path
+- [x] **Keyboard and Navigation**
+  - [x] Add grid navigation and mode transitions in `TableCell`
+  - [x] Implement Tab/Shift+Tab/Enter movement with commit
+  - [x] Ensure Escape cancel semantics are consistent
+- [x] **Relation Setup Wiring**
+  - [x] Pass real `availableDatabases` to `AddColumnModal`
+  - [x] Verify relation config persists and is used by editor
+- [x] **Architecture Convergence**
+  - [x] Define canonical row mutation API
+  - [x] Plan migration steps from row-array rewrites to granular mutations
 
 ---
 
 ## Validation Checklist
 
 - [ ] **Correctness**
-  - [ ] Each field type supports create/edit/clear
-  - [ ] Undo/redo works for each field type and row/column ops
-  - [ ] Relation and person values serialize/deserialize correctly
-- [ ] **UX Quality**
-  - [ ] Multi-select supports typeahead + create + remove by keyboard
-  - [ ] Person and relation autocomplete return relevant results quickly
-  - [ ] Date range selection is fully interactive and intuitive
+  - [x] Each field type supports create/edit/clear
+  - [x] Undo/redo works for each field type and row/column ops
+  - [x] Relation and person values serialize/deserialize correctly
+- [x] **UX Quality**
+  - [x] Multi-select supports typeahead + create + remove by keyboard
+  - [x] Person and relation autocomplete return relevant results quickly
+  - [x] Date range selection is fully interactive and intuitive
 - [ ] **Keyboard Accessibility**
-  - [ ] Grid navigation follows expected arrow/tab conventions
-  - [ ] Combobox interactions follow ARIA APG patterns
-  - [ ] No broken focus loops or trapped focus states
+  - [x] Grid navigation follows expected arrow/tab conventions
+  - [x] Combobox interactions follow ARIA APG patterns
+  - [x] No broken focus loops or trapped focus states
 - [ ] **Performance**
   - [ ] Typing latency remains smooth at 500+ rows
   - [ ] Autocomplete remains responsive with large option sets
   - [ ] Undo stack memory growth is bounded in long sessions
-- [ ] **Regression Safety**
-  - [ ] Existing database tests remain green
-  - [ ] New tests cover previously broken cases
+- [x] **Regression Safety**
+  - [x] Existing database tests remain green
+  - [x] New tests cover previously broken cases
 
 ---
 

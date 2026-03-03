@@ -47,6 +47,8 @@ export function TableCell({
   onDeleteRow
 }: TableCellProps): React.JSX.Element {
   const [editing, setEditing] = useState(false)
+  const [draftValue, setDraftValue] = useState<unknown>(cell.getValue())
+  const [dirty, setDirty] = useState(false)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null)
   const cellRef = useRef<HTMLTableCellElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -59,6 +61,67 @@ export function TableCell({
 
   const rowId = cell.row.original.id
   const columnId = cell.column.id
+
+  const commitDraft = useCallback(() => {
+    if (!dirty) return
+    if (meta?.onUpdate) {
+      meta.onUpdate(rowId, draftValue)
+    }
+    setDirty(false)
+  }, [dirty, meta, rowId, draftValue])
+
+  const startEditing = useCallback(() => {
+    setDraftValue(value)
+    setDirty(false)
+    setEditing(true)
+    onCellFocus?.(rowId, columnId)
+  }, [value, onCellFocus, rowId, columnId])
+
+  const focusAdjacentCell = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
+    const currentCell = cellRef.current
+    if (!currentCell) return
+
+    const currentRow = currentCell.parentElement as HTMLTableRowElement | null
+    if (!currentRow) return
+
+    if (direction === 'left') {
+      let prev = currentCell.previousElementSibling
+      while (prev && !(prev instanceof HTMLTableCellElement)) {
+        prev = prev.previousElementSibling
+      }
+      if (prev instanceof HTMLTableCellElement) prev.focus()
+      return
+    }
+
+    if (direction === 'right') {
+      let next = currentCell.nextElementSibling
+      while (next && !(next instanceof HTMLTableCellElement)) {
+        next = next.nextElementSibling
+      }
+      if (next instanceof HTMLTableCellElement) next.focus()
+      return
+    }
+
+    const targetColumnId = currentCell.dataset.columnId
+    if (!targetColumnId) return
+
+    let siblingRow: Element | null =
+      direction === 'up' ? currentRow.previousElementSibling : currentRow.nextElementSibling
+
+    while (siblingRow) {
+      if (siblingRow instanceof HTMLTableRowElement) {
+        const match = siblingRow.querySelector(
+          `td[data-column-id="${targetColumnId}"]`
+        ) as HTMLTableCellElement | null
+        if (match) {
+          match.focus()
+          return
+        }
+      }
+      siblingRow =
+        direction === 'up' ? siblingRow.previousElementSibling : siblingRow.nextElementSibling
+    }
+  }, [])
 
   // Check if this is an editable property
   const isEditable =
@@ -73,35 +136,108 @@ export function TableCell({
   const handleClick = useCallback(() => {
     if (contextMenu) return
     if (!editing && isEditable) {
-      setEditing(true)
-      onCellFocus?.(rowId, columnId)
+      startEditing()
     }
-  }, [editing, isEditable, onCellFocus, rowId, columnId, contextMenu])
+  }, [editing, isEditable, contextMenu, startEditing])
 
   // Handle value change
-  const handleChange = useCallback(
-    (newValue: unknown) => {
-      if (meta?.onUpdate) {
-        meta.onUpdate(rowId, newValue)
-      }
-    },
-    [meta, rowId]
-  )
+  const handleChange = useCallback((newValue: unknown) => {
+    setDraftValue(newValue)
+    setDirty(true)
+  }, [])
 
   // Handle blur to exit editing
   const handleBlur = useCallback(() => {
+    commitDraft()
     setEditing(false)
     onCellBlur?.()
-  }, [onCellBlur])
+  }, [commitDraft, onCellBlur])
+
+  const handleEditorCommit = useCallback(
+    (nextValue?: unknown, _reason?: string) => {
+      if (nextValue !== undefined) {
+        setDraftValue(nextValue)
+        setDirty(false)
+        if (meta?.onUpdate) {
+          meta.onUpdate(rowId, nextValue)
+        }
+      } else {
+        commitDraft()
+      }
+      setEditing(false)
+      onCellBlur?.()
+    },
+    [commitDraft, meta, onCellBlur, rowId]
+  )
+
+  const handleEditorCancel = useCallback(() => {
+    setDraftValue(value)
+    setDirty(false)
+    setEditing(false)
+    onCellBlur?.()
+  }, [value, onCellBlur])
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      setEditing(false)
-    } else if (e.key === 'Enter' && !e.shiftKey) {
-      setEditing(false)
-    }
-  }, [])
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!editing && isEditable && (e.key === 'Enter' || e.key === 'F2')) {
+        e.preventDefault()
+        startEditing()
+        return
+      }
+
+      if (!editing) {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          focusAdjacentCell('left')
+          return
+        }
+        if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          focusAdjacentCell('right')
+          return
+        }
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          focusAdjacentCell('up')
+          return
+        }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          focusAdjacentCell('down')
+          return
+        }
+        return
+      }
+
+      if (editing && e.key === 'Escape') {
+        e.preventDefault()
+        setDraftValue(value)
+        setDirty(false)
+        setEditing(false)
+        onCellBlur?.()
+        return
+      }
+
+      if (editing && e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        commitDraft()
+        setEditing(false)
+        onCellBlur?.()
+        focusAdjacentCell('down')
+        return
+      }
+
+      if (editing && e.key === 'Tab') {
+        e.preventDefault()
+        commitDraft()
+        setEditing(false)
+        onCellBlur?.()
+        focusAdjacentCell(e.shiftKey ? 'left' : 'right')
+      }
+    },
+    [editing, isEditable, startEditing, value, onCellBlur, commitDraft, focusAdjacentCell]
+  )
 
   // ─── Context Menu ────────────────────────────────────────────────────────────
 
@@ -150,8 +286,24 @@ export function TableCell({
         meta.onUpdate(rowId, false)
       } else if (type === 'number') {
         meta.onUpdate(rowId, null)
+      } else if (type === 'date' || type === 'dateRange') {
+        meta.onUpdate(rowId, null)
       } else if (type === 'multiSelect') {
         meta.onUpdate(rowId, [])
+      } else if (type === 'relation') {
+        const allowMultiple =
+          typeof property?.config?.allowMultiple === 'boolean'
+            ? property.config.allowMultiple
+            : true
+        meta.onUpdate(rowId, allowMultiple ? [] : '')
+      } else if (type === 'person') {
+        const multiple =
+          typeof property?.config?.multiple === 'boolean'
+            ? property.config.multiple
+            : typeof property?.config?.allowMultiple === 'boolean'
+              ? property.config.allowMultiple
+              : false
+        meta.onUpdate(rowId, multiple ? [] : '')
       } else {
         meta.onUpdate(rowId, '')
       }
@@ -184,6 +336,13 @@ export function TableCell({
       }
     }
   }, [editing])
+
+  useEffect(() => {
+    if (!editing) {
+      setDraftValue(value)
+      setDirty(false)
+    }
+  }, [editing, value])
 
   // ─── Comment indicator helper ────────────────────────────────────────────────
 
@@ -225,8 +384,7 @@ export function TableCell({
         <button
           className="w-full px-3 py-1.5 text-left text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-2"
           onClick={() => {
-            setEditing(true)
-            onCellFocus?.(rowId, columnId)
+            startEditing()
             closeContextMenu()
           }}
         >
@@ -319,12 +477,15 @@ export function TableCell({
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       onContextMenu={handleContextMenu}
+      tabIndex={0}
     >
       {editing && isEditable ? (
         <handler.Editor
-          value={value}
+          value={draftValue as never}
           config={property.config}
           onChange={handleChange}
+          onCommit={handleEditorCommit}
+          onCancel={handleEditorCancel}
           onBlur={handleBlur}
           autoFocus
         />

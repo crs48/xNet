@@ -151,10 +151,14 @@ export interface PropertyEditorProps<T = unknown> {
   value: T | null | undefined
   config?: Record<string, unknown>
   onChange: (value: T | null) => void
+  onCommit?: (value?: T | null, reason?: EditorCommitReason) => void
+  onCancel?: () => void
   onBlur?: () => void
   autoFocus?: boolean
   disabled?: boolean
 }
+
+export type EditorCommitReason = 'enter' | 'tab' | 'blur' | 'picker-select' | 'programmatic'
 
 /**
  * Props for filter value input components
