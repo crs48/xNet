@@ -387,6 +387,22 @@ function ConfigEditor({ type, config, onChange, availableDatabases }: ConfigEdit
     )
   }
 
+  if (type === 'person') {
+    return (
+      <div className="space-y-3">
+        <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <input
+            type="checkbox"
+            checked={config.allowMultiple ?? false}
+            onChange={(e) => onChange({ ...config, allowMultiple: e.target.checked })}
+            className="rounded border-gray-300 dark:border-gray-600"
+          />
+          Allow multiple people
+        </label>
+      </div>
+    )
+  }
+
   // No config needed for this type
   return null
 }
@@ -462,6 +478,8 @@ export function AddColumnModal({
       setConfig({ format: 'number', precision: 0 })
     } else if (type === 'relation') {
       setConfig({ allowMultiple: true })
+    } else if (type === 'person') {
+      setConfig({ allowMultiple: false })
     } else if (type === 'date') {
       setConfig({ includeTime: false })
     } else {

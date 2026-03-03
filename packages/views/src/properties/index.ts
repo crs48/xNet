@@ -11,6 +11,7 @@ import { emailHandler } from './email.js'
 import { fileHandler } from './file.js'
 import { multiSelectHandler } from './multiSelect.js'
 import { numberHandler } from './number.js'
+import { personHandler } from './person.js'
 import { phoneHandler } from './phone.js'
 import { relationHandler } from './relation.js'
 import { selectHandler } from './select.js'
@@ -38,8 +39,7 @@ const builtinHandlers: Partial<Record<PropertyType, PropertyHandler<any>>> = {
   file: fileHandler,
   // Relation type
   relation: relationHandler,
-  // String-based types use textHandler
-  person: textHandler,
+  person: personHandler,
   // Auto properties - read-only
   created: dateHandler,
   updated: dateHandler,
@@ -147,6 +147,7 @@ function notifyListeners(): void {
 export {
   textHandler,
   numberHandler,
+  personHandler,
   checkboxHandler,
   dateHandler,
   dateRangeHandler,

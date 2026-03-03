@@ -175,4 +175,78 @@ describe('database yjs undo/redo behavior', () => {
     }
     expect((getRows(data)[0].title as string) ?? '').toBe('Title 19')
   })
+
+  it('respects stopCapturing boundaries for edit sessions', () => {
+    const { data } = createDatabaseDoc()
+    const undo = new Y.UndoManager([data], { captureTimeout: 300 })
+
+    data.set(
+      'rows',
+      getRows(data).map((row) => (row.id === 'row-1' ? { ...row, title: 'Draft A' } : row))
+    )
+    data.set(
+      'rows',
+      getRows(data).map((row) => (row.id === 'row-1' ? { ...row, title: 'Draft B' } : row))
+    )
+
+    undo.undo()
+    expect((getRows(data)[0].title as string) ?? '').toBe('Initial')
+
+    data.set(
+      'rows',
+      getRows(data).map((row) => (row.id === 'row-1' ? { ...row, title: 'Draft C' } : row))
+    )
+    undo.stopCapturing()
+    data.set(
+      'rows',
+      getRows(data).map((row) => (row.id === 'row-1' ? { ...row, title: 'Draft D' } : row))
+    )
+
+    undo.undo()
+    expect((getRows(data)[0].title as string) ?? '').toBe('Draft C')
+
+    undo.undo()
+    expect((getRows(data)[0].title as string) ?? '').toBe('Initial')
+  })
+
+  it('undoes/redoes relation, person, and dateRange cell edits', () => {
+    const { data, undo } = createDatabaseDoc()
+
+    data.set(
+      'rows',
+      getRows(data).map((row) =>
+        row.id === 'row-1'
+          ? {
+              ...row,
+              owner: 'did:key:z6MktestOwner',
+              links: ['row-2'],
+              schedule: { start: '2026-03-01T00:00:00.000Z', end: '2026-03-03T00:00:00.000Z' }
+            }
+          : row
+      )
+    )
+
+    const updated = getRows(data)[0]
+    expect(updated.owner).toBe('did:key:z6MktestOwner')
+    expect(updated.links).toEqual(['row-2'])
+    expect(updated.schedule).toEqual({
+      start: '2026-03-01T00:00:00.000Z',
+      end: '2026-03-03T00:00:00.000Z'
+    })
+
+    undo.undo()
+    const undone = getRows(data)[0]
+    expect(undone.owner).toBeUndefined()
+    expect(undone.links).toBeUndefined()
+    expect(undone.schedule).toBeUndefined()
+
+    undo.redo()
+    const redone = getRows(data)[0]
+    expect(redone.owner).toBe('did:key:z6MktestOwner')
+    expect(redone.links).toEqual(['row-2'])
+    expect(redone.schedule).toEqual({
+      start: '2026-03-01T00:00:00.000Z',
+      end: '2026-03-03T00:00:00.000Z'
+    })
+  })
 })

@@ -81,6 +81,22 @@ describe('Property Handlers', () => {
     })
   })
 
+  describe('dateRange handler', () => {
+    const handler = getPropertyHandler('dateRange')
+    const rangeA = { start: '2026-01-01T00:00:00.000Z', end: '2026-01-02T00:00:00.000Z' }
+    const rangeB = { start: '2026-01-03T00:00:00.000Z', end: '2026-01-04T00:00:00.000Z' }
+
+    it('should compare date ranges by start date', () => {
+      expect(handler.compare(rangeA, rangeB)).toBeLessThan(0)
+      expect(handler.compare(rangeB, rangeA)).toBeGreaterThan(0)
+    })
+
+    it('should filter empty and non-empty ranges', () => {
+      expect(handler.applyFilter(null, 'isEmpty', null)).toBe(true)
+      expect(handler.applyFilter(rangeA, 'isNotEmpty', null)).toBe(true)
+    })
+  })
+
   describe('select handler', () => {
     const handler = getPropertyHandler('select')
     const config = {
@@ -112,6 +128,35 @@ describe('Property Handlers', () => {
     it('should filter multiSelect values', () => {
       expect(handler.applyFilter(['a', 'b', 'c'], 'contains', 'b')).toBe(true)
       expect(handler.applyFilter(['a', 'b', 'c'], 'notContains', 'd')).toBe(true)
+      expect(handler.applyFilter([], 'isEmpty', null)).toBe(true)
+    })
+  })
+
+  describe('relation handler', () => {
+    const handler = getPropertyHandler('relation')
+
+    it('should compare relation values by link count', () => {
+      expect(handler.compare(['row-1'], ['row-1', 'row-2'])).toBeLessThan(0)
+      expect(handler.compare(['row-1', 'row-2'], ['row-1'])).toBeGreaterThan(0)
+    })
+
+    it('should filter relation values by empty state', () => {
+      expect(handler.applyFilter([], 'isEmpty', null)).toBe(true)
+      expect(handler.applyFilter(['row-1'], 'isNotEmpty', null)).toBe(true)
+    })
+  })
+
+  describe('person handler', () => {
+    const handler = getPropertyHandler('person')
+
+    it('should compare person values', () => {
+      expect(handler.compare('did:key:zTestA', 'did:key:zTestB')).toBeLessThan(0)
+      expect(handler.compare(['did:key:zTestB'], ['did:key:zTestA'])).toBeGreaterThan(0)
+    })
+
+    it('should filter person values', () => {
+      expect(handler.applyFilter('did:key:zTest123', 'contains', 'test')).toBe(true)
+      expect(handler.applyFilter(['did:key:zAlpha'], 'contains', 'alpha')).toBe(true)
       expect(handler.applyFilter([], 'isEmpty', null)).toBe(true)
     })
   })
@@ -156,6 +201,7 @@ describe('Property Handlers', () => {
       expect(getPropertyHandler('date').type).toBe('date')
       expect(getPropertyHandler('select').type).toBe('select')
       expect(getPropertyHandler('multiSelect').type).toBe('multiSelect')
+      expect(getPropertyHandler('person').type).toBe('person')
       expect(getPropertyHandler('url').type).toBe('url')
       expect(getPropertyHandler('email').type).toBe('email')
       expect(getPropertyHandler('phone').type).toBe('phone')

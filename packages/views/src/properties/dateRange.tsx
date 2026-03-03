@@ -3,40 +3,128 @@
  */
 
 import type { PropertyHandler, PropertyEditorProps } from '../types'
-import React from 'react'
+import React, { useEffect, useMemo, useRef } from 'react'
 
 /** DateRange value type */
 export interface DateRangeValue {
   start: string
-  end: string
+  end?: string
+}
+
+interface DateRangeConfig {
+  includeTime?: boolean
+}
+
+function toInputValue(value: string | undefined, includeTime: boolean): string {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  if (includeTime) {
+    return date.toISOString().slice(0, 16)
+  }
+  return date.toISOString().slice(0, 10)
+}
+
+function fromInputValue(value: string, includeTime: boolean): string | undefined {
+  if (!value) return undefined
+  if (includeTime) {
+    const iso = new Date(value).toISOString()
+    return Number.isNaN(new Date(iso).getTime()) ? undefined : iso
+  }
+
+  const iso = new Date(`${value}T00:00:00.000Z`).toISOString()
+  return Number.isNaN(new Date(iso).getTime()) ? undefined : iso
 }
 
 /**
- * DateRange editor component (simplified - just shows dates, editing TBD)
+ * DateRange editor component
  */
 function DateRangeEditor({
   value,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onChange,
   onBlur,
+  autoFocus,
+  config,
   disabled
 }: PropertyEditorProps<DateRangeValue>) {
-  // For now, simple text display - full editor would need date pickers
-  const displayValue = value ? `${value.start || '?'} → ${value.end || '?'}` : ''
+  const includeTime = Boolean((config as DateRangeConfig | undefined)?.includeTime)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const startRef = useRef<HTMLInputElement>(null)
+
+  const start = useMemo(() => toInputValue(value?.start, includeTime), [value?.start, includeTime])
+  const end = useMemo(() => toInputValue(value?.end, includeTime), [value?.end, includeTime])
+
+  useEffect(() => {
+    if (autoFocus && startRef.current) {
+      startRef.current.focus()
+    }
+  }, [autoFocus])
+
+  const updateRange = (nextStart: string, nextEnd: string) => {
+    const startIso = fromInputValue(nextStart, includeTime)
+    const endIso = fromInputValue(nextEnd, includeTime)
+
+    if (!startIso && !endIso) {
+      onChange(null)
+      return
+    }
+
+    if (!startIso && endIso) {
+      onChange({ start: endIso, end: endIso })
+      return
+    }
+
+    if (!startIso) {
+      onChange(null)
+      return
+    }
+
+    if (endIso && new Date(endIso).getTime() < new Date(startIso).getTime()) {
+      onChange({ start: startIso, end: startIso })
+      return
+    }
+
+    onChange({ start: startIso, ...(endIso ? { end: endIso } : {}) })
+  }
 
   return (
-    <input
-      type="text"
-      value={displayValue}
-      onChange={() => {
-        /* Read-only for now */
+    <div
+      ref={rootRef}
+      className="flex w-full items-center gap-1"
+      onBlur={(event) => {
+        const next = event.relatedTarget
+        if (next instanceof Node && rootRef.current?.contains(next)) return
+        onBlur?.()
       }}
-      onBlur={onBlur}
-      disabled={disabled}
-      readOnly
-      placeholder="Start → End"
-      className="w-full h-full px-1 py-0.5 text-sm bg-transparent text-gray-900 dark:text-gray-100 border-none outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50"
-    />
+    >
+      <input
+        ref={startRef}
+        type={includeTime ? 'datetime-local' : 'date'}
+        value={start}
+        onChange={(event) => updateRange(event.target.value, end)}
+        disabled={disabled}
+        className="min-w-[130px] flex-1 border-none bg-transparent px-1 py-0.5 text-sm text-gray-900 outline-none dark:text-gray-100"
+      />
+      <span className="text-gray-400">→</span>
+      <input
+        type={includeTime ? 'datetime-local' : 'date'}
+        value={end}
+        onChange={(event) => updateRange(start, event.target.value)}
+        disabled={disabled}
+        className="min-w-[130px] flex-1 border-none bg-transparent px-1 py-0.5 text-sm text-gray-900 outline-none dark:text-gray-100"
+      />
+      {!disabled && (start || end) && (
+        <button
+          type="button"
+          className="px-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => onChange(null)}
+          aria-label="Clear date range"
+        >
+          ×
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -47,8 +135,10 @@ function formatDateRange(value: DateRangeValue | null | undefined): string {
   if (!value) return ''
   const { start, end } = value
   if (!start && !end) return ''
-  if (start === end) return start || ''
-  return `${start || '?'} → ${end || '?'}`
+  const startText = start ? new Date(start).toLocaleDateString() : '?'
+  const endText = end ? new Date(end).toLocaleDateString() : '?'
+  if (startText === endText) return startText
+  return `${startText} → ${endText}`
 }
 
 /**
