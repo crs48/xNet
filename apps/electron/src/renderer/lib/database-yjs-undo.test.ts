@@ -249,4 +249,23 @@ describe('database yjs undo/redo behavior', () => {
       end: '2026-03-03T00:00:00.000Z'
     })
   })
+
+  it('keeps undo stack growth bounded for long edit sessions', () => {
+    const { data } = createDatabaseDoc()
+    const undo = new Y.UndoManager([data], { captureTimeout: 0 })
+
+    for (let i = 0; i < 500; i += 1) {
+      data.set(
+        'rows',
+        getRows(data).map((row) => (row.id === 'row-1' ? { ...row, title: `Edit ${i}` } : row))
+      )
+    }
+
+    const stackLength = (undo as unknown as { undoStack: unknown[] }).undoStack.length
+    expect(stackLength).toBeLessThanOrEqual(500)
+
+    undo.clear()
+    const clearedLength = (undo as unknown as { undoStack: unknown[] }).undoStack.length
+    expect(clearedLength).toBe(0)
+  })
 })

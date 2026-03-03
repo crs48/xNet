@@ -102,6 +102,16 @@ describe('VirtualizedTableView', () => {
     expect(rows.length).toBeLessThan(100) // Should only render visible + overscan
   })
 
+  it('renders 500+ row datasets within an acceptable budget', () => {
+    const data = generateMockData(750)
+    const started = Date.now()
+
+    render(<VirtualizedTableView schema={mockSchema} view={mockView} data={data} rowHeight={36} />)
+
+    const elapsedMs = Date.now() - started
+    expect(elapsedMs).toBeLessThan(400)
+  })
+
   it('renders only visible columns (X-axis virtualization)', () => {
     // Create schema with many columns
     const manyColumnsSchema: Schema = {
