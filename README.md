@@ -228,10 +228,50 @@ const InvoiceSchema = defineSchema({
 | Rich text (documents)   | Yjs CRDT            | Character-level merge |
 | Structured data (nodes) | NodeStore + Lamport | Field-level LWW       |
 
-## React Hooks
+### Identity, Roles, and Authorization
+
+xNet schemas can include an `authorization` block that maps **identity (DID)** to roles and actions.
+
+- **Identity:** Every node has `createdBy: did:key:...`
+- **Roles:** Resolved from creator, person properties, or related nodes
+- **Actions:** Canonical actions are `read`, `write`, `delete`, `share`, `admin`
+- **Delegation:** Grants (UCAN-backed) allow secure permission delegation
+
+```typescript
+const ProjectDocSchema = defineSchema({
+  name: 'ProjectDoc',
+  namespace: 'xnet://myapp/',
+  document: 'yjs',
+  properties: {
+    title: text({ required: true }),
+    owner: person(),
+    editors: person(),
+    project: relation({ schema: 'xnet://myapp/Project@1.0.0' })
+  },
+  authorization: {
+    roles: {
+      owner: role.creator(),
+      editor: role.property('editors'),
+      projectAdmin: role.relation('project', 'admin')
+    },
+    actions: {
+      read: allow('owner', 'editor', 'projectAdmin'),
+      write: allow('owner', 'editor', 'projectAdmin'),
+      delete: allow('owner', 'projectAdmin'),
+      share: allow('owner', 'projectAdmin'),
+      admin: allow('projectAdmin')
+    },
+    publicProps: ['title']
+  }
+})
+```
+
+> Authorization builders (`allow`, `role`, etc.) come from the data auth module and compile to schema-level policy metadata.
+
+## Primary React Hooks
 
 ```tsx
-import { useQuery, useMutate, useNode } from '@xnet/react'
+import { useQuery, useMutate, useNode, useIdentity, useCan, useGrants } from '@xnet/react'
 
 // Structured data
 function TaskList() {
@@ -254,7 +294,37 @@ function PageEditor({ nodeId }: { nodeId: string }) {
   if (!doc) return null
   return <RichTextEditor ydoc={doc} />
 }
+
+// Identity + permissions
+function SharingPanel({ nodeId }: { nodeId: string }) {
+  const { did } = useIdentity()
+  const { allowed: canShare } = useCan(nodeId, 'share')
+  const { grant } = useGrants(nodeId)
+
+  return (
+    <button
+      disabled={!canShare}
+      onClick={() =>
+        canShare && grant({ to: 'did:key:z6MkRecipient...', actions: ['read', 'write'] })
+      }
+    >
+      Share as {did.slice(0, 16)}...
+    </button>
+  )
+}
 ```
+
+### Hook Quick Reference
+
+| Hook          | Use for                                          |
+| ------------- | ------------------------------------------------ |
+| `useQuery`    | Read lists/single nodes with realtime updates    |
+| `useMutate`   | Create/update/delete/transactional writes        |
+| `useNode`     | Rich text nodes (`Y.Doc`), sync status, presence |
+| `useIdentity` | Current DID identity context                     |
+| `useCan`      | Check action permissions on a node               |
+| `useCanEdit`  | Quick editable state for UI gating               |
+| `useGrants`   | Grant, revoke, and inspect delegated access      |
 
 ## Key Technologies
 
