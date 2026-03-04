@@ -249,10 +249,10 @@ xNet is different from traditional client-server architectures:
 
 ## Core Packages
 
-- [@xnet/react](/docs/hooks/): React hooks API (useQuery, useMutate, useNode)
-- [@xnet/data](/docs/schemas/): Schema system with 15 property types
-- [@xnet/sync](/docs/concepts/sync-architecture/): CRDT sync primitives
-- [@xnet/identity](/docs/concepts/identity/): DID:key cryptographic identity
+- [@xnetjs/react](/docs/hooks/): React hooks API (useQuery, useMutate, useNode)
+- [@xnetjs/data](/docs/schemas/): Schema system with 15 property types
+- [@xnetjs/sync](/docs/concepts/sync-architecture/): CRDT sync primitives
+- [@xnetjs/identity](/docs/concepts/identity/): DID:key cryptographic identity
 
 ## Quick Start
 
@@ -345,7 +345,7 @@ paths:
 Always use `defineSchema()` with typed property builders:
 
 ```typescript
-import { defineSchema, text, number, select, relation } from '@xnet/data'
+import { defineSchema, text, number, select, relation } from '@xnetjs/data'
 
 const TaskSchema = defineSchema({
   name: 'Task',
@@ -535,11 +535,11 @@ describe('ModuleName', () => {
 
 ```typescript
 // Memory adapter for isolated tests
-import { MemoryNodeStorageAdapter } from '@xnet/data'
+import { MemoryNodeStorageAdapter } from '@xnetjs/data'
 const adapter = new MemoryNodeStorageAdapter()
 
 // Test identity
-import { generateKeyBundle } from '@xnet/identity'
+import { generateKeyBundle } from '@xnetjs/identity'
 const keys = await generateKeyBundle()
 ```
 
@@ -553,8 +553,8 @@ const keys = await generateKeyBundle()
 
 ```bash
 pnpm test                          # All tests
-pnpm --filter @xnet/data test      # Single package
-pnpm --filter @xnet/sync vitest run src/clock.test.ts  # Single file
+pnpm --filter @xnetjs/data test      # Single package
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts  # Single file
 ```
 
 ````
@@ -653,9 +653,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Resource: Package documentation
 server.setRequestHandler(ListResourcesRequestSchema, async () => ({
   resources: [
-    { uri: 'xnet://docs/react', name: '@xnet/react docs' },
-    { uri: 'xnet://docs/data', name: '@xnet/data docs' },
-    { uri: 'xnet://docs/sync', name: '@xnet/sync docs' },
+    { uri: 'xnet://docs/react', name: '@xnetjs/react docs' },
+    { uri: 'xnet://docs/data', name: '@xnetjs/data docs' },
+    { uri: 'xnet://docs/sync', name: '@xnetjs/sync docs' },
     { uri: 'xnet://concepts/local-first', name: 'Local-first concepts' },
     { uri: 'xnet://concepts/crdt', name: 'CRDT explanation' },
   ]
@@ -690,7 +690,7 @@ server.setRequestHandler(ListPromptsRequestSchema, async () => ({
   "mcpServers": {
     "xnet": {
       "command": "npx",
-      "args": ["-y", "@xnet/mcp"]
+      "args": ["-y", "@xnetjs/mcp"]
     }
   }
 }
@@ -813,7 +813,7 @@ const { data: tasks } = useQuery(TaskSchema)
 Schemas are central to xNet. They define data shapes AND provide type inference:
 
 ```typescript
-import { defineSchema, text, select, relation } from '@xnet/data'
+import { defineSchema, text, select, relation } from '@xnetjs/data'
 
 const TaskSchema = defineSchema({
   name: 'Task',
@@ -876,9 +876,9 @@ When helping with xNet:
 
 ### Phase 3: README Enhancement (Week 2)
 
-- [ ] Add "AI Agent Notes" to `@xnet/react` README
-- [ ] Add "AI Agent Notes" to `@xnet/data` README
-- [ ] Add "AI Agent Notes" to `@xnet/sync` README
+- [ ] Add "AI Agent Notes" to `@xnetjs/react` README
+- [ ] Add "AI Agent Notes" to `@xnetjs/data` README
+- [ ] Add "AI Agent Notes" to `@xnetjs/sync` README
 - [ ] Add "Paradigm Differences" section to main README
 - [ ] Add "Common Mistakes" section to quickstart docs
 
@@ -889,7 +889,7 @@ When helping with xNet:
 - [ ] Implement hook explanation tool
 - [ ] Implement migration guide prompts
 - [ ] Implement documentation resources
-- [ ] Publish to npm as `@xnet/mcp`
+- [ ] Publish to npm as `@xnetjs/mcp`
 - [ ] Add to MCP server directory
 
 ### Phase 5: Paradigm Documentation (Week 4)
@@ -907,7 +907,7 @@ When helping with xNet:
 |--------|----------------|--------|
 | llms.txt downloads | Server logs | 1000/month |
 | MCP server installs | npm downloads | 500/month |
-| Support questions about paradigm | Discord/GitHub | -50% |
+| Support questions about paradigm | GitHub Discussions/GitHub | -50% |
 | Successful AI-assisted PRs | PR analysis | Track |
 | Time to first working app | User surveys | <10 min |
 
@@ -1008,7 +1008,7 @@ xNet is a local-first framework. There is NO backend. Data lives on the device a
 ## Schema Definition Pattern
 
 ```typescript
-import { defineSchema, text, select, relation } from '@xnet/data'
+import { defineSchema, text, select, relation } from '@xnetjs/data'
 
 const MySchema = defineSchema({
   name: 'MyType',

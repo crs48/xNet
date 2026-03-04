@@ -35,14 +35,14 @@ This builds all packages in dependency order (crypto → identity → storage �
 pnpm test
 
 # Single package
-pnpm --filter @xnet/sync test
-pnpm --filter @xnet/data test
+pnpm --filter @xnetjs/sync test
+pnpm --filter @xnetjs/data test
 
 # Single file
-pnpm --filter @xnet/sync vitest run src/clock.test.ts
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
 
 # Watch mode
-pnpm --filter @xnet/sync test:watch
+pnpm --filter @xnetjs/sync test:watch
 ```
 
 ## Type checking
@@ -76,7 +76,7 @@ Launches two Electron windows connected to the same signaling server for testing
 ## Project structure
 
 ```
-packages/           # Core libraries (@xnet/*)
+packages/           # Core libraries (@xnetjs/*)
   crypto/           # BLAKE3, Ed25519, XChaCha20
   identity/         # DID:key, UCAN tokens
   storage/          # SQLite adapter
@@ -112,5 +112,5 @@ site/               # Documentation site (Astro + Starlight)
 | `pnpm test`                           | Run all tests            |
 | `pnpm typecheck`                      | Type check all packages  |
 | `pnpm lint`                           | Lint all packages        |
-| `pnpm --filter @xnet/sync test`       | Test a single package    |
-| `pnpm --filter @xnet/sync test:watch` | Watch mode for a package |
+| `pnpm --filter @xnetjs/sync test`       | Test a single package    |
+| `pnpm --filter @xnetjs/sync test:watch` | Watch mode for a package |

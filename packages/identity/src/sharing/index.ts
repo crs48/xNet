@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/sharing - UCAN-based sharing and permissions
+ * @xnetjs/identity/sharing - UCAN-based sharing and permissions
  */
 
 // Types

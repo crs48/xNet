@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react'
-import { PageSchema, MemoryNodeStorageAdapter, NodeStore, type DID } from '@xnet/data'
+import { PageSchema, MemoryNodeStorageAdapter, NodeStore, type DID } from '@xnetjs/data'
 import React, { type ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { XNetProvider } from '../context'

@@ -20,8 +20,8 @@
  * />
  * ```
  */
-import type { CommentThread } from '@xnet/react'
-import { cn } from '@xnet/ui'
+import type { CommentThread } from '@xnetjs/react'
+import { cn } from '@xnetjs/ui'
 import React from 'react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────

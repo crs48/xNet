@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Storage factory.
+ * @xnetjs/hub - Storage factory.
  */
 
 import type { HubStorage } from './interface'

@@ -2,8 +2,8 @@
 
 > Product catalog, warehouse management, and stock tracking
 
-**Package:** `modules/@xnet/inventory`
-**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`, `@xnet/data`
+**Package:** `modules/@xnetjs/inventory`
+**Dependencies:** `@xnetjs/modules`, `@xnetjs/workflows`, `@xnetjs/dashboard`, `@xnetjs/data`
 **Estimated Time:** 3 weeks
 
 > **Architecture Update (Jan 2026):**
@@ -24,7 +24,7 @@
 ```typescript
 // modules/inventory/src/module.ts
 
-import { ModuleDefinition } from '@xnet/modules'
+import { ModuleDefinition } from '@xnetjs/modules'
 
 export const InventoryModule: ModuleDefinition = {
   id: 'mod:inventory',
@@ -567,7 +567,7 @@ export const purchaseOrdersDatabase: DatabaseTemplate = {
 ```typescript
 // modules/inventory/src/services/StockService.ts
 
-import { DatabaseManager } from '@xnet/database'
+import { DatabaseManager } from '@xnetjs/database'
 
 export class StockService {
   constructor(private databaseManager: DatabaseManager) {}
@@ -904,7 +904,7 @@ interface StockCountResult {
 // modules/inventory/src/components/BarcodeScanner.tsx
 
 import React, { useEffect, useRef, useState } from 'react'
-import { useDatabase } from '@xnet/database'
+import { useDatabase } from '@xnetjs/database'
 
 interface BarcodeScannerProps {
   onScan: (product: Product) => void

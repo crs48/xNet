@@ -43,7 +43,7 @@ When a user creates a comment on a text selection, we capture Yjs `RelativePosit
 
 import * as Y from 'yjs'
 import { Editor } from '@tiptap/core'
-import { TextAnchor } from '@xnet/data'
+import { TextAnchor } from '@xnetjs/data'
 import { ySyncPluginKey } from 'y-prosemirror'
 
 /**
@@ -172,7 +172,7 @@ When a document is opened, we need to re-apply comment marks at the correct posi
 // packages/editor/src/comments/restore-marks.ts
 
 import { Editor } from '@tiptap/core'
-import { Comment, TextAnchor, decodeAnchor } from '@xnet/data'
+import { Comment, TextAnchor, decodeAnchor } from '@xnetjs/data'
 import { resolveTextAnchor } from './text-anchor'
 
 /**
@@ -230,7 +230,7 @@ Database anchors are stable (ID-based) and don't need CRDT-relative positioning:
 ```typescript
 // packages/views/src/comments/database-anchor.ts
 
-import { CellAnchor, RowAnchor, ColumnAnchor } from '@xnet/data'
+import { CellAnchor, RowAnchor, ColumnAnchor } from '@xnetjs/data'
 
 /**
  * Resolve a database anchor to a DOM element.
@@ -268,7 +268,7 @@ Canvas anchors resolve to viewport coordinates for popover positioning:
 ```typescript
 // packages/canvas/src/comments/canvas-anchor.ts
 
-import { CanvasPositionAnchor, CanvasObjectAnchor } from '@xnet/data'
+import { CanvasPositionAnchor, CanvasObjectAnchor } from '@xnetjs/data'
 
 interface CanvasTransform {
   panX: number

@@ -7,7 +7,7 @@
  * - run: Execute a migration (dry-run or apply)
  */
 
-import type { Schema, SchemaIRI } from '@xnet/data'
+import type { Schema, SchemaIRI } from '@xnetjs/data'
 import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Command } from 'commander'
@@ -116,7 +116,7 @@ function findSchema(schemaIRI: string, schemas: Map<string, Schema> | null): Sch
     if (schema) return schema
   }
 
-  // Try to load from @xnet/data built-in schemas
+  // Try to load from @xnetjs/data built-in schemas
   // This would require dynamic import, skipped for now
   return null
 }

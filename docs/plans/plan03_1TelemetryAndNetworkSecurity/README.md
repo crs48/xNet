@@ -90,7 +90,7 @@ flowchart TB
 
 | Task | Document                                             | Description                                            |
 | ---- | ---------------------------------------------------- | ------------------------------------------------------ |
-| 1.1  | [01-telemetry-package.md](./01-telemetry-package.md) | Create `@xnet/telemetry` package structure             |
+| 1.1  | [01-telemetry-package.md](./01-telemetry-package.md) | Create `@xnetjs/telemetry` package structure           |
 | 1.2  | [02-telemetry-schemas.md](./02-telemetry-schemas.md) | Define CrashReport, UsageMetric, SecurityEvent schemas |
 | 1.3  | [03-consent-manager.md](./03-consent-manager.md)     | Tiered consent system with persistence                 |
 
@@ -118,11 +118,11 @@ flowchart TB
 
 ### Phase 3: Network Security Foundation (Week 3-4)
 
-| Task | Document                                             | Description                                 |
-| ---- | ---------------------------------------------------- | ------------------------------------------- |
-| 3.1  | [07-connection-limits.md](./07-connection-limits.md) | Connection/stream limits in `@xnet/network` |
-| 3.2  | [08-rate-limiting.md](./08-rate-limiting.md)         | Token bucket rate limiter for sync          |
-| 3.3  | [09-security-logging.md](./09-security-logging.md)   | Canonical security event logging            |
+| Task | Document                                             | Description                                   |
+| ---- | ---------------------------------------------------- | --------------------------------------------- |
+| 3.1  | [07-connection-limits.md](./07-connection-limits.md) | Connection/stream limits in `@xnetjs/network` |
+| 3.2  | [08-rate-limiting.md](./08-rate-limiting.md)         | Token bucket rate limiter for sync            |
+| 3.3  | [09-security-logging.md](./09-security-logging.md)   | Canonical security event logging              |
 
 **Validation Gate:**
 
@@ -200,7 +200,7 @@ packages/
 ├── react/                        # MODIFIED: Add telemetry hooks
 │   └── src/
 │       └── hooks/
-│           ├── useTelemetry.ts   # Re-export from @xnet/telemetry
+│           ├── useTelemetry.ts   # Re-export from @xnetjs/telemetry
 │           └── useNetworkSecurity.ts  # Security status hook
 ```
 
@@ -273,15 +273,15 @@ The current plan focuses on **local-first foundations** that make these future e
 
 ## Dependencies
 
-| Package                    | Depends On                                  |
-| -------------------------- | ------------------------------------------- |
-| `@xnet/telemetry`          | `@xnet/data`, `@xnet/core`, `@xnet/storage` |
-| `@xnet/network` (security) | `@xnet/core`, `@xnet/crypto`                |
-| `@xnet/react` (hooks)      | `@xnet/telemetry`, `@xnet/network`          |
+| Package                      | Depends On                                        |
+| ---------------------------- | ------------------------------------------------- |
+| `@xnetjs/telemetry`          | `@xnetjs/data`, `@xnetjs/core`, `@xnetjs/storage` |
+| `@xnetjs/network` (security) | `@xnetjs/core`, `@xnetjs/crypto`                  |
+| `@xnetjs/react` (hooks)      | `@xnetjs/telemetry`, `@xnetjs/network`            |
 
 ## Quick Start
 
-1. **Start with Phase 1.1** - Create `@xnet/telemetry` package
+1. **Start with Phase 1.1** - Create `@xnetjs/telemetry` package
 2. **Run tests after each change** - `pnpm test`
 3. **Test in xNet** - Verify consent UI and telemetry collection
 4. **Add security incrementally** - Connection limits first, then scoring

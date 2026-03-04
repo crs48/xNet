@@ -5,9 +5,9 @@
 import type { ColumnUpdate } from './TableView.js'
 import type { TableRow } from './useTableState.js'
 import type { ColumnMeta } from '../types.js'
-import type { PropertyType, SelectColor } from '@xnet/data'
+import type { PropertyType, SelectColor } from '@xnetjs/data'
 import { flexRender, type Table, type Header } from '@tanstack/react-table'
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { SelectOptionsEditor } from '../columns/SelectOptionsEditor.js'
 

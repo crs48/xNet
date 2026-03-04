@@ -2,7 +2,7 @@
 
 ## Overview
 
-Review of `@xnet/editor` (TipTap-based rich text editor with Yjs collaboration) and `@xnet/canvas` (infinite canvas with spatial indexing).
+Review of `@xnetjs/editor` (TipTap-based rich text editor with Yjs collaboration) and `@xnetjs/canvas` (infinite canvas with spatial indexing).
 
 ---
 

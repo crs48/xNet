@@ -2,15 +2,15 @@
  * Hook for gathering version and capability information
  */
 
-import { schemaRegistry } from '@xnet/data'
-import { CURRENT_PROTOCOL_VERSION } from '@xnet/sync'
+import { schemaRegistry } from '@xnetjs/data'
+import { CURRENT_PROTOCOL_VERSION } from '@xnetjs/sync'
 import {
   type FeatureFlag,
   FEATURES,
   ALL_FEATURES,
   getEnabledFeatures,
   getRequiredFeatures
-} from '@xnet/sync'
+} from '@xnetjs/sync'
 import { useState, useEffect } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 

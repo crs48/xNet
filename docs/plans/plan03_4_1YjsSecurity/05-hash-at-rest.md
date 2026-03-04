@@ -3,7 +3,7 @@
 > Detect storage-level corruption of persisted Yjs document state
 
 **Duration:** 1-2 days  
-**Dependencies:** `@xnet/crypto` (BLAKE3), existing storage adapters
+**Dependencies:** `@xnetjs/crypto` (BLAKE3), existing storage adapters
 
 ## Overview
 
@@ -67,7 +67,7 @@ interface PersistedDocState {
 ```typescript
 // packages/sync/src/yjs-integrity.ts
 
-import { blake3Hex } from '@xnet/crypto'
+import { blake3Hex } from '@xnetjs/crypto'
 
 export function hashYjsState(state: Uint8Array): string {
   return blake3Hex(state)

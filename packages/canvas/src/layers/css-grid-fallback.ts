@@ -1,5 +1,5 @@
 /**
- * @xnet/canvas - CSS Grid Fallback
+ * @xnetjs/canvas - CSS Grid Fallback
  *
  * Pure CSS grid fallback for browsers without WebGL support.
  * Less performant than WebGL but provides acceptable visuals.

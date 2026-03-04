@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - Passkey identity creation with PRF extension
+ * @xnetjs/identity/passkey - Passkey identity creation with PRF extension
  */
 import type { PasskeyIdentity, PasskeyCreateOptions, PasskeyUnlockResult } from './types'
 import type { DID } from '../types'

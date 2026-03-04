@@ -457,7 +457,7 @@ classDiagram
 
 ## Checklist
 
-- [ ] `AuthAction`, `AuthDecision`, `AuthDenyReason`, `AuthTrace` types defined in `@xnet/core`.
+- [ ] `AuthAction`, `AuthDecision`, `AuthDenyReason`, `AuthTrace` types defined in `@xnetjs/core`.
 - [ ] `AuthExpression` AST union type and all node types defined.
 - [ ] `RoleResolver` union type defined.
 - [ ] `AuthorizationDefinition` generic type with `ActionKey`/`RoleKey` utilities.

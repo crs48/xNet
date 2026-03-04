@@ -141,7 +141,7 @@ jobs:
         run: pnpm xnet migrate validate --fail-on-missing
 
       - name: Test migrations
-        run: pnpm --filter @xnet/data test -- --grep "lens"
+        run: pnpm --filter @xnetjs/data test -- --grep "lens"
 ```
 
 ### Deprecation Check
@@ -248,7 +248,7 @@ jobs:
 
       # Integrity checks
       - name: Run integrity tests
-        run: pnpm --filter @xnet/sync test -- --grep "integrity"
+        run: pnpm --filter @xnetjs/sync test -- --grep "integrity"
 ```
 
 ## Pre-commit Hooks
@@ -374,9 +374,9 @@ jobs:
 
       - name: Install with specific xNet version
         run: |
-          pnpm add @xnet/sync@${{ matrix.xnet-version }} \
-                   @xnet/data@${{ matrix.xnet-version }} \
-                   @xnet/react@${{ matrix.xnet-version }}
+          pnpm add @xnetjs/sync@${{ matrix.xnet-version }} \
+                   @xnetjs/data@${{ matrix.xnet-version }} \
+                   @xnetjs/react@${{ matrix.xnet-version }}
 
       - name: Run compatibility tests
         run: pnpm test:compat

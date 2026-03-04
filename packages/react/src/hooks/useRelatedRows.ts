@@ -11,7 +11,7 @@
  */
 
 import type { DatabaseRow } from './useDatabase'
-import { fromCellProperties } from '@xnet/data'
+import { fromCellProperties } from '@xnetjs/data'
 import { useState, useEffect, useMemo } from 'react'
 import { useNodeStore } from './useNodeStore'
 

@@ -5,7 +5,7 @@
  */
 
 import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
-import { Tooltip } from '@xnet/ui'
+import { Tooltip } from '@xnetjs/ui'
 import { useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { DEFAULTS } from '../core/constants'
 import { useDevTools } from '../provider/useDevTools'

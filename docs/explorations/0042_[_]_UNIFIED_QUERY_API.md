@@ -270,7 +270,7 @@ There is no `JOIN` keyword. The shared variable `?alice` in clauses 1 and 2, and
 What if xNet had a Datalog-inspired API where **logical variables** replace explicit joins?
 
 ```typescript
-import { q, $, find, where, rule } from '@xnet/query'
+import { q, $, find, where, rule } from '@xnetjs/query'
 
 // ─── Simple: find all task titles ──────────────────────────
 const tasks = useFind(

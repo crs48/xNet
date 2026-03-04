@@ -1,5 +1,5 @@
 /**
- * @xnet/data-bridge - DataBridge abstraction for off-main-thread data access
+ * @xnetjs/data-bridge - DataBridge abstraction for off-main-thread data access
  *
  * This package provides the DataBridge interface and implementations for
  * accessing NodeStore data. The abstraction allows moving storage, sync,

@@ -1,17 +1,17 @@
-# 01: @xnet/telemetry Package
+# 01: @xnetjs/telemetry Package
 
 > Package structure and foundation for privacy-preserving telemetry
 
 **Duration:** 2-3 days  
-**Dependencies:** `@xnet/data`, `@xnet/core`, `@xnet/storage`
+**Dependencies:** `@xnetjs/data`, `@xnetjs/core`, `@xnetjs/storage`
 
 ## Overview
 
-The `@xnet/telemetry` package provides the foundation for collecting, storing, and optionally sharing telemetry data. It follows xNet's principles: local-first, user-controlled, and schema-defined.
+The `@xnetjs/telemetry` package provides the foundation for collecting, storing, and optionally sharing telemetry data. It follows xNet's principles: local-first, user-controlled, and schema-defined.
 
 ```mermaid
 flowchart TD
-    subgraph telemetry["@xnet/telemetry"]
+    subgraph telemetry["@xnetjs/telemetry"]
         SCHEMAS[Telemetry Schemas]
         CONSENT[ConsentManager]
         COLLECTOR[TelemetryCollector]
@@ -20,9 +20,9 @@ flowchart TD
     end
 
     subgraph deps["Dependencies"]
-        DATA["@xnet/data"]
-        CORE["@xnet/core"]
-        STORAGE["@xnet/storage"]
+        DATA["@xnetjs/data"]
+        CORE["@xnetjs/core"]
+        STORAGE["@xnetjs/storage"]
     end
 
     SCHEMAS --> DATA
@@ -83,7 +83,7 @@ packages/telemetry/
 ```json
 // packages/telemetry/package.json
 {
-  "name": "@xnet/telemetry",
+  "name": "@xnetjs/telemetry",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -112,9 +112,9 @@ packages/telemetry/
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/data": "workspace:*",
-    "@xnet/storage": "workspace:*"
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/storage": "workspace:*"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
@@ -228,7 +228,7 @@ mkdir -p packages/telemetry/test
 
 ### Step 2: Create package.json and tsconfig.json
 
-Use the configuration above. Copy tsconfig from `@xnet/data` as a base.
+Use the configuration above. Copy tsconfig from `@xnetjs/data` as a base.
 
 ### Step 3: Implement consent types
 
@@ -259,7 +259,7 @@ Update root `pnpm-workspace.yaml` if needed, then:
 
 ```bash
 pnpm install
-pnpm --filter @xnet/telemetry build
+pnpm --filter @xnetjs/telemetry build
 ```
 
 ## Tests

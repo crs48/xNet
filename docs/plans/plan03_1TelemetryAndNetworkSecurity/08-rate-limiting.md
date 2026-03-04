@@ -272,7 +272,7 @@ export class ProtocolRateLimiter {
 
 ```typescript
 // In sync protocol handler
-import { SyncRateLimiter } from '@xnet/network/security'
+import { SyncRateLimiter } from '@xnetjs/network/security'
 
 const rateLimiter = new SyncRateLimiter({
   defaultRate: 10, // 10 sync requests per second

@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/crypto",
+  "name": "@xnetjs/crypto",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -20,7 +20,7 @@
     "@noble/curves": "^2.0.1",
     "@noble/hashes": "^2.0.1",
     "@noble/post-quantum": "^0.5.4",
-    "@xnet/core": "workspace:*"
+    "@xnetjs/core": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

@@ -1,7 +1,7 @@
 # React Hooks API Analysis
 
 > **Status**: ✅ IMPLEMENTED - The `useNode` hook now provides the unified API proposed here  
-> **Package**: `@xnet/react`
+> **Package**: `@xnetjs/react`
 
 ## Implementation Status
 
@@ -20,7 +20,7 @@ The key proposals from this analysis have been implemented:
 
 ## Original Analysis
 
-The `@xnet/react` package provides the primary developer interface for xNet applications. The original pain points identified:
+The `@xnetjs/react` package provides the primary developer interface for xNet applications. The original pain points identified:
 
 1. **Dual provider system** complicates setup and migration
 2. **Verbose property access** (`node.properties.title` vs `node.title`) - ✅ FIXED
@@ -703,7 +703,7 @@ function DocumentPage() {
 
 ## Conclusion
 
-The current `@xnet/react` API is functional but has accumulated patterns that hurt developer experience. The proposed improvements focus on:
+The current `@xnetjs/react` API is functional but has accumulated patterns that hurt developer experience. The proposed improvements focus on:
 
 1. **Ergonomics**: Flattened property access, type-safe mutations
 2. **Completeness**: Real presence, unified sync status

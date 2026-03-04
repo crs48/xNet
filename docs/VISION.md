@@ -503,10 +503,10 @@ No special-casing for "enterprise" or "global". The same Node/Schema/Sync works 
 
 ### For Developers
 
-Build on xNet. Use `@xnet/react` to create apps where users own their data.
+Build on xNet. Use `@xnetjs/react` to create apps where users own their data.
 
 ```bash
-npm install @xnet/react
+npm install @xnetjs/react
 ```
 
 ### For Organizations

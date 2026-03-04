@@ -12,9 +12,9 @@
  *   blob-not-found: Signal unavailability
  */
 import type { ConnectionManager } from './connection-manager'
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 
-/** Minimal blob store interface for sync (satisfied by BlobStore from @xnet/storage) */
+/** Minimal blob store interface for sync (satisfied by BlobStore from @xnetjs/storage) */
 export interface BlobStoreForSync {
   get(cid: ContentId): Promise<Uint8Array | null>
   put(data: Uint8Array): Promise<ContentId>
@@ -34,7 +34,7 @@ export type BlobSyncMessage =
   | { type: 'blob-not-found'; cid: string }
 
 export interface BlobSyncProviderConfig {
-  /** Blob store for reading/writing blobs (e.g. BlobStore from @xnet/storage) */
+  /** Blob store for reading/writing blobs (e.g. BlobStore from @xnetjs/storage) */
   blobStore: BlobStoreForSync
   /** ConnectionManager from the SyncManager */
   connection: ConnectionManager

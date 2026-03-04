@@ -3,7 +3,7 @@
  *
  * References an existing xNet Database node and renders it using a callback-based
  * architecture. The consuming app provides the actual view rendering via the
- * `renderView` option, keeping @xnet/views out of the editor package's dependencies.
+ * `renderView` option, keeping @xnetjs/views out of the editor package's dependencies.
  */
 import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'

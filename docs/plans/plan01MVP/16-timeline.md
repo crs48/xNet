@@ -123,7 +123,7 @@ gantt
 
 ## Phase 1: Core Packages (Weeks 5-20)
 
-**Goal:** Build the @xnet/\* packages with full test coverage.
+**Goal:** Build the @xnetjs/\* packages with full test coverage.
 
 ### Package Build Order
 
@@ -132,26 +132,26 @@ Build packages in this exact order due to dependencies:
 ```mermaid
 flowchart TD
     subgraph "Layer 1 (Weeks 5-8)"
-        CRYPTO["@xnet/crypto<br/>2 weeks"]
+        CRYPTO["@xnetjs/crypto<br/>2 weeks"]
     end
 
     subgraph "Layer 2 (Weeks 7-12)"
-        IDENTITY["@xnet/identity<br/>3 weeks"]
-        STORAGE["@xnet/storage<br/>2 weeks"]
+        IDENTITY["@xnetjs/identity<br/>3 weeks"]
+        STORAGE["@xnetjs/storage<br/>2 weeks"]
     end
 
     subgraph "Layer 3 (Weeks 11-18)"
-        DATA["@xnet/data<br/>4 weeks"]
+        DATA["@xnetjs/data<br/>4 weeks"]
     end
 
     subgraph "Layer 4 (Weeks 15-20)"
-        NETWORK["@xnet/network<br/>3 weeks"]
-        QUERY["@xnet/query<br/>2 weeks"]
+        NETWORK["@xnetjs/network<br/>3 weeks"]
+        QUERY["@xnetjs/query<br/>2 weeks"]
     end
 
     subgraph "Layer 5 (Weeks 18-22)"
-        REACT["@xnet/react<br/>2 weeks"]
-        SDK["@xnet/sdk<br/>1 week"]
+        REACT["@xnetjs/react<br/>2 weeks"]
+        SDK["@xnetjs/sdk<br/>1 week"]
     end
 
     CRYPTO --> IDENTITY
@@ -185,28 +185,28 @@ gantt
     dateFormat  X
     axisFormat Week %W
 
-    section @xnet/crypto
+    section @xnetjs/crypto
     Hashing (BLAKE3)             :c1, 0, 3d
     Symmetric encryption         :c2, 3, 3d
     Asymmetric (X25519)          :c3, 6, 3d
     Signing (Ed25519)            :c4, 9, 3d
     Tests & docs                 :c5, 12, 2d
 
-    section @xnet/identity
+    section @xnetjs/identity
     DID:key generation           :i1, 7, 4d
     Key derivation               :i2, 11, 3d
     UCAN tokens                  :i3, 14, 5d
     Passkey storage              :i4, 19, 3d
     Tests & docs                 :i5, 22, 2d
 
-    section @xnet/storage
+    section @xnetjs/storage
     Storage interface            :s1, 7, 2d
     IndexedDB adapter            :s2, 9, 4d
     Memory adapter               :s3, 13, 2d
     Snapshot manager             :s4, 15, 4d
     Tests & docs                 :s5, 19, 2d
 
-    section @xnet/data
+    section @xnetjs/data
     Document types               :d1, 21, 3d
     Yjs integration              :d2, 24, 5d
     Signed updates               :d3, 29, 5d
@@ -214,27 +214,27 @@ gantt
     Awareness/presence           :d5, 38, 3d
     Tests & docs                 :d6, 41, 3d
 
-    section @xnet/network
+    section @xnetjs/network
     libp2p node                  :n1, 35, 5d
     Sync protocol                :n2, 40, 5d
     y-webrtc provider            :n3, 45, 4d
     DID resolution               :n4, 49, 4d
     Tests & docs                 :n5, 53, 3d
 
-    section @xnet/query
+    section @xnetjs/query
     Local query engine           :q1, 42, 4d
     Search index                 :q2, 46, 4d
     Federation (basic)           :q3, 50, 4d
     Tests & docs                 :q4, 54, 2d
 
-    section @xnet/react
+    section @xnetjs/react
     XNet context                 :r1, 49, 3d
     useDocument hook             :r2, 52, 3d
     useQuery hook                :r3, 55, 3d
     useSync/usePresence          :r4, 58, 3d
     Tests & docs                 :r5, 61, 2d
 
-    section @xnet/sdk
+    section @xnetjs/sdk
     Client class                 :k1, 56, 4d
     Presets                      :k2, 60, 2d
     Integration tests            :k3, 62, 2d
@@ -244,7 +244,7 @@ gantt
 
 Complete each package before moving to the next:
 
-#### @xnet/crypto
+#### @xnetjs/crypto
 
 - [ ] `hash()` - BLAKE3 hashing
 - [ ] `encrypt()`/`decrypt()` - XChaCha20-Poly1305
@@ -253,7 +253,7 @@ Complete each package before moving to the next:
 - [ ] > 95% test coverage
 - [ ] Performance benchmarks pass
 
-#### @xnet/identity
+#### @xnetjs/identity
 
 - [ ] `createDID()` - DID:key generation
 - [ ] `parseDID()` - DID parsing
@@ -261,14 +261,14 @@ Complete each package before moving to the next:
 - [ ] `verifyUCAN()` - Token verification
 - [ ] > 85% test coverage
 
-#### @xnet/storage
+#### @xnetjs/storage
 
 - [ ] `IndexedDBAdapter` - Browser storage
 - [ ] `MemoryAdapter` - Test storage
 - [ ] `SnapshotManager` - Snapshot creation/loading
 - [ ] > 80% test coverage
 
-#### @xnet/data
+#### @xnetjs/data
 
 - [ ] `createDocument()` - Document creation
 - [ ] `signUpdate()` - Update signing
@@ -277,7 +277,7 @@ Complete each package before moving to the next:
 - [ ] Awareness for presence
 - [ ] > 80% test coverage
 
-#### @xnet/network
+#### @xnetjs/network
 
 - [ ] `createNode()` - libp2p node
 - [ ] `createSyncProtocol()` - Sync protocol
@@ -285,14 +285,14 @@ Complete each package before moving to the next:
 - [ ] DID resolver
 - [ ] > 70% test coverage
 
-#### @xnet/query
+#### @xnetjs/query
 
 - [ ] `createLocalQueryEngine()` - Local queries
 - [ ] `createSearchIndex()` - Full-text search
 - [ ] Federation router (basic)
 - [ ] > 85% test coverage
 
-#### @xnet/react
+#### @xnetjs/react
 
 - [ ] `XNetProvider` - Context provider
 - [ ] `useDocument()` - Document hook
@@ -301,7 +301,7 @@ Complete each package before moving to the next:
 - [ ] `usePresence()` - User presence
 - [ ] > 75% test coverage
 
-#### @xnet/sdk
+#### @xnetjs/sdk
 
 - [ ] `createXNetClient()` - Unified client
 - [ ] Browser preset
@@ -318,7 +318,7 @@ Complete each package before moving to the next:
 
 ```mermaid
 flowchart LR
-    SDK["@xnet/sdk"]
+    SDK["@xnetjs/sdk"]
 
     subgraph "Platform POCs"
         ELECTRON["Electron<br/>macOS"]
@@ -637,14 +637,14 @@ gantt
     Foundations                  :2026-01-08, 4w
 
     section Phase 1
-    @xnet/crypto                 :2026-02-05, 2w
-    @xnet/identity               :2026-02-12, 3w
-    @xnet/storage                :2026-02-12, 2w
-    @xnet/data                   :2026-02-26, 4w
-    @xnet/network                :2026-03-19, 3w
-    @xnet/query                  :2026-03-26, 2w
-    @xnet/react                  :2026-04-09, 2w
-    @xnet/sdk                    :2026-04-16, 1w
+    @xnetjs/crypto                 :2026-02-05, 2w
+    @xnetjs/identity               :2026-02-12, 3w
+    @xnetjs/storage                :2026-02-12, 2w
+    @xnetjs/data                   :2026-02-26, 4w
+    @xnetjs/network                :2026-03-19, 3w
+    @xnetjs/query                  :2026-03-26, 2w
+    @xnetjs/react                  :2026-04-09, 2w
+    @xnetjs/sdk                    :2026-04-16, 1w
 
     section Phase 2
     Web POC                      :2026-04-23, 2w

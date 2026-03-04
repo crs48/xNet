@@ -1,11 +1,11 @@
-# @xnet/crypto
+# @xnetjs/crypto
 
 Cryptographic primitives for xNet, built on `@noble/hashes` and `@noble/curves`.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/crypto
+pnpm add @xnetjs/crypto
 ```
 
 ## Features
@@ -20,7 +20,7 @@ pnpm add @xnet/crypto
 ## Usage
 
 ```typescript
-import { hash, hashHex, hashBase64 } from '@xnet/crypto'
+import { hash, hashHex, hashBase64 } from '@xnetjs/crypto'
 
 // BLAKE3 hashing
 const digest = hash(data)
@@ -29,7 +29,7 @@ const b64 = hashBase64(data)
 ```
 
 ```typescript
-import { sign, verify } from '@xnet/crypto'
+import { sign, verify } from '@xnetjs/crypto'
 
 // Ed25519 signing
 const signature = sign(message, privateKey)
@@ -37,7 +37,7 @@ const isValid = verify(message, signature, publicKey)
 ```
 
 ```typescript
-import { encrypt, decrypt, generateKey } from '@xnet/crypto'
+import { encrypt, decrypt, generateKey } from '@xnetjs/crypto'
 
 // XChaCha20-Poly1305 symmetric encryption
 const key = generateKey()
@@ -46,7 +46,7 @@ const plaintext = decrypt(ciphertext, key)
 ```
 
 ```typescript
-import { generateKeyPair, deriveSharedSecret } from '@xnet/crypto'
+import { generateKeyPair, deriveSharedSecret } from '@xnetjs/crypto'
 
 // X25519 key exchange
 const alice = generateKeyPair()
@@ -69,10 +69,10 @@ const shared = deriveSharedSecret(alice.privateKey, bob.publicKey)
 
 - `@noble/hashes` -- BLAKE3
 - `@noble/curves` -- Ed25519, X25519
-- `@xnet/core` -- Core types
+- `@xnetjs/core` -- Core types
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/crypto test
+pnpm --filter @xnetjs/crypto test
 ```

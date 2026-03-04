@@ -10,9 +10,9 @@ const num = (s: string) => `<span class="text-orange-400">${s}</span>`
 const cm = (s: string) => `<span class="text-gray-500">${s}</span>`
 
 const threeHooksCode = [
-  `${kw('import')} { defineSchema, text, person } ${kw('from')} ${str("'@xnet/data'")}`,
-  `${kw('import')} { allow, role } ${kw('from')} ${str("'@xnet/data/auth'")}`,
-  `${kw('import')} { useIdentity, useQuery, useMutate, useNode } ${kw('from')} ${str("'@xnet/react'")}`,
+  `${kw('import')} { defineSchema, text, person } ${kw('from')} ${str("'@xnetjs/data'")}`,
+  `${kw('import')} { allow, role } ${kw('from')} ${str("'@xnetjs/data/auth'")}`,
+  `${kw('import')} { useIdentity, useQuery, useMutate, useNode } ${kw('from')} ${str("'@xnetjs/react'")}`,
   ``,
   `${cm('// Schema with built-in authorization')}`,
   `${kw('const')} TaskSchema = ${fn('defineSchema')}({`,
@@ -157,7 +157,7 @@ const whatYouSkip = [
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
               </svg>
-              <code>pnpm add @xnet/react</code>
+              <code>pnpm add @xnetjs/react</code>
             </div>
             <div class="flex items-center gap-2 text-emerald-400">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

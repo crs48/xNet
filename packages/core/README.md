@@ -1,11 +1,11 @@
-# @xnet/core
+# @xnetjs/core
 
-Core types, content addressing, and permission primitives for xNet. This is the leaf package -- it has no internal `@xnet/*` dependencies.
+Core types, content addressing, and permission primitives for xNet. This is the leaf package -- it has no internal `@xnetjs/*` dependencies.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/core
+pnpm add @xnetjs/core
 ```
 
 ## Features
@@ -21,7 +21,7 @@ pnpm add @xnet/core
 ## Usage
 
 ```typescript
-import { hashContent, createContentId, verifyContent, buildMerkleTree } from '@xnet/core'
+import { hashContent, createContentId, verifyContent, buildMerkleTree } from '@xnetjs/core'
 
 // Hash content with BLAKE3
 const hash = hashContent(new Uint8Array([1, 2, 3]))
@@ -37,7 +37,7 @@ const tree = buildMerkleTree(chunks)
 ```
 
 ```typescript
-import { detectFork, verifyUpdateChain } from '@xnet/core'
+import { detectFork, verifyUpdateChain } from '@xnetjs/core'
 
 // Verify an update chain
 const valid = verifyUpdateChain(updates)
@@ -62,5 +62,5 @@ const fork = detectFork(chain1, chain2)
 ## Testing
 
 ```bash
-pnpm --filter @xnet/core test
+pnpm --filter @xnetjs/core test
 ```

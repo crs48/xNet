@@ -11,7 +11,7 @@
 - [x] **HubConnectScreen** — Connect to signaling server
 - [x] **ReadyScreen** — Onboarding complete, ready to use
 - [x] **SmartWelcome** — Detects existing passkey and shows unlock vs create
-- [x] **Passkey storage** — `@xnet/identity` with `createIdentityManager()`
+- [x] **Passkey storage** — `@xnetjs/identity` with `createIdentityManager()`
 - [x] **Progressive disclosure** — Profile optional, backup via passkey
 - [ ] **Hub cloud backup** — Future enhancement (passkey is primary backup)
 - [ ] **Multi-device recovery** — Future enhancement (passkey syncs via iCloud/Google)
@@ -596,7 +596,7 @@ function useRecovery(): {
 ### Onboarding Component
 
 ```tsx
-import { OnboardingProvider, OnboardingFlow } from '@xnet/react'
+import { OnboardingProvider, OnboardingFlow } from '@xnetjs/react'
 
 function App() {
   return (

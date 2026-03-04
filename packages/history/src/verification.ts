@@ -6,9 +6,9 @@
  */
 
 import type { VerificationResult, VerificationError, VerificationOptions } from './types'
-import type { ContentId } from '@xnet/core'
-import type { NodeChange, NodeStorageAdapter, NodeId } from '@xnet/data'
-import { verifyChangeHash, topologicalSort, getChainHeads, getChainRoots } from '@xnet/sync'
+import type { ContentId } from '@xnetjs/core'
+import type { NodeChange, NodeStorageAdapter, NodeId } from '@xnetjs/data'
+import { verifyChangeHash, topologicalSort, getChainHeads, getChainRoots } from '@xnetjs/sync'
 
 export class VerificationEngine {
   constructor(private storage: NodeStorageAdapter) {}

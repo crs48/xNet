@@ -4,12 +4,12 @@
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
-> - `@xnet/records` → Removed (consolidated into `@xnet/data`)
+> - `@xnetjs/database` → Use `@xnetjs/data` (Schema system + NodeStore)
+> - `@xnetjs/records` → Removed (consolidated into `@xnetjs/data`)
 > - `DatabaseItem` → `Node`
 > - `Database` → `Schema`
 > - Sync uses **Lamport timestamps** with LWW per property (not vector clocks)
-> - Import types from `@xnet/data`, hooks from `@xnet/react`
+> - Import types from `@xnetjs/data`, hooks from `@xnetjs/react`
 >
 > **Execution Rebaseline (Mar 2026):**
 >
@@ -21,7 +21,7 @@
 
 Before starting this phase, ensure plan02DatabasePlatform is complete:
 
-- [x] Schema system with 16 property types (COMPLETE in @xnet/data)
+- [x] Schema system with 16 property types (COMPLETE in @xnetjs/data)
 - [x] NodeStore with LWW conflict resolution (COMPLETE)
 - [x] React hooks: useNode, useNodes, useNodeSync (COMPLETE)
 - [ ] All 6 view types functional (table, board, gallery, timeline, calendar, list)
@@ -105,11 +105,11 @@ Execute these documents in order. Each builds on the previous.
 ### Package Dependencies (New)
 
 ```
-@xnet/modules ───> @xnet/data, @xnet/storage
-@xnet/workflows ─> @xnet/modules, @xnet/data
-@xnet/dashboard ─> @xnet/modules, @xnet/views
-@xnet/plugins ───> @xnet/modules (sandboxed)
-@xnet/api ───────> @xnet/modules, @xnet/identity
+@xnetjs/modules ───> @xnetjs/data, @xnetjs/storage
+@xnetjs/workflows ─> @xnetjs/modules, @xnetjs/data
+@xnetjs/dashboard ─> @xnetjs/modules, @xnetjs/views
+@xnetjs/plugins ───> @xnetjs/modules (sandboxed)
+@xnetjs/api ───────> @xnetjs/modules, @xnetjs/identity
 ```
 
 ### Key Types
@@ -133,10 +133,10 @@ PluginPermission = 'read:nodes' | 'write:nodes' | 'network' | 'notifications'
 
 ```bash
 pnpm test                           # All tests
-pnpm --filter @xnet/modules test    # Module system
-pnpm --filter @xnet/workflows test  # Workflow engine
-pnpm --filter @xnet/dashboard test  # Dashboard builder
-pnpm --filter @xnet/plugins test    # Plugin system
+pnpm --filter @xnetjs/modules test    # Module system
+pnpm --filter @xnetjs/workflows test  # Workflow engine
+pnpm --filter @xnetjs/dashboard test  # Dashboard builder
+pnpm --filter @xnetjs/plugins test    # Plugin system
 pnpm test:coverage                  # With coverage
 ```
 
@@ -145,10 +145,10 @@ pnpm test:coverage                  # With coverage
 ```mermaid
 flowchart TD
     subgraph "ERP Framework"
-        MODULES["@xnet/modules<br/>Module System"]
-        WORKFLOWS["@xnet/workflows<br/>Workflow Engine"]
-        DASHBOARD["@xnet/dashboard<br/>Dashboard Builder"]
-        PLUGINS["@xnet/plugins<br/>Plugin Runtime"]
+        MODULES["@xnetjs/modules<br/>Module System"]
+        WORKFLOWS["@xnetjs/workflows<br/>Workflow Engine"]
+        DASHBOARD["@xnetjs/dashboard<br/>Dashboard Builder"]
+        PLUGINS["@xnetjs/plugins<br/>Plugin Runtime"]
     end
 
     subgraph "Business Modules"
@@ -159,15 +159,15 @@ flowchart TD
     end
 
     subgraph "Integration"
-        API["@xnet/api<br/>REST Gateway"]
+        API["@xnetjs/api<br/>REST Gateway"]
         WEBHOOKS["Webhooks"]
         SSO["SSO/OAuth"]
     end
 
     subgraph "From Phase 2"
-        DATA["@xnet/data<br/>Schema + NodeStore"]
-        VIEWS["@xnet/views"]
-        FORMULA["@xnet/formula"]
+        DATA["@xnetjs/data<br/>Schema + NodeStore"]
+        VIEWS["@xnetjs/views"]
+        FORMULA["@xnetjs/formula"]
     end
 
     DATA --> MODULES

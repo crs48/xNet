@@ -5,7 +5,7 @@
  * Malicious Y.Doc meta changes must NOT reach the NodeStore.
  */
 
-import type { NodeStore, NodeChangeEvent, NodeChange } from '@xnet/data'
+import type { NodeStore, NodeChangeEvent, NodeChange } from '@xnetjs/data'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import {

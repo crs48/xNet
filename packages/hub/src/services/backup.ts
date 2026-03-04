@@ -1,9 +1,9 @@
 /**
- * @xnet/hub - Encrypted backup service.
+ * @xnetjs/hub - Encrypted backup service.
  */
 
 import type { BlobMeta, HubStorage } from '../storage/interface'
-import { hashHex } from '@xnet/crypto'
+import { hashHex } from '@xnetjs/crypto'
 
 export type BackupConfig = {
   maxQuotaBytes: number

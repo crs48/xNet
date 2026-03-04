@@ -1,4 +1,4 @@
-import type { Identity } from '@xnet/identity'
+import type { Identity } from '@xnetjs/identity'
 import { renderHook } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { describe, it, expect } from 'vitest'

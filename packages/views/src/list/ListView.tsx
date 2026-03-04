@@ -6,8 +6,8 @@
  */
 
 import type { ViewConfig } from '../types.js'
-import type { Schema, PropertyDefinition } from '@xnet/data'
-import { cn } from '@xnet/ui'
+import type { Schema, PropertyDefinition } from '@xnetjs/data'
+import { cn } from '@xnetjs/ui'
 import React from 'react'
 import { ListItem } from './ListItem.js'
 import { useListState, type ListRow } from './useListState.js'

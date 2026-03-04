@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/sharing - Unicode-safe base64url encoding/decoding
+ * @xnetjs/identity/sharing - Unicode-safe base64url encoding/decoding
  *
  * Uses TextEncoder/TextDecoder to handle all Unicode correctly,
  * unlike raw btoa/atob which only support Latin-1.

@@ -19,7 +19,7 @@ sidebar:
 When two users open the same node, xNet automatically synchronizes their edits in real time. Rich text goes through Yjs (character-level CRDT), while properties go through the NodeStore (field-level LWW). Both channels share the same WebSocket connection.
 
 ```tsx
-import { useNode } from '@xnet/react'
+import { useNode } from '@xnetjs/react'
 
 function DocumentEditor({ nodeId }) {
   const { editor, properties, mutate, peers } = useNode(nodeId)
@@ -113,7 +113,7 @@ const debouncedUpdate = useDebouncedCallback((title: string) => {
 Show users when their changes are synced:
 
 ```tsx
-import { useNode } from '@xnet/react'
+import { useNode } from '@xnetjs/react'
 
 function SyncStatus({ nodeId }) {
   const { syncState } = useNode(nodeId)
@@ -153,7 +153,7 @@ When connectivity is restored, the offline queue drains automatically. You don't
 
 ## TipTap integration
 
-xNet's editor package (`@xnet/editor`) wraps TipTap with Yjs collaboration pre-configured. When you use the editor through `useNode`, the following extensions are active:
+xNet's editor package (`@xnetjs/editor`) wraps TipTap with Yjs collaboration pre-configured. When you use the editor through `useNode`, the following extensions are active:
 
 - **Collaboration** — Yjs document binding
 - **CollaborationCursor** — Remote cursor rendering

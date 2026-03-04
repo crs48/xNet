@@ -6,12 +6,12 @@
 
 Before starting this phase, ensure plan01MVP is complete:
 
-- [x] All @xnet/\* core packages working
+- [x] All @xnetjs/\* core packages working
 - [x] Platform POCs functional (Electron, Expo, Web)
 - [x] Basic wiki/editor features working
 - [x] P2P sync operational (Lamport timestamps, LWW conflict resolution)
 - [x] > 80% test coverage on core packages
-- [x] Schema-first Node architecture implemented (`@xnet/data`)
+- [x] Schema-first Node architecture implemented (`@xnetjs/data`)
 
 ## Architecture Update
 
@@ -20,7 +20,7 @@ Before starting this phase, ensure plan01MVP is complete:
 > Key changes:
 >
 > - Everything is a **Node** with a **Schema**
-> - `@xnet/records` has been removed - all functionality is now in `@xnet/data`
+> - `@xnetjs/records` has been removed - all functionality is now in `@xnetjs/data`
 > - Sync uses **Lamport timestamps** (not vector clocks) with LWW per property
 > - 16 property types (rollup/formula are computed at read time, not stored)
 
@@ -46,7 +46,7 @@ Execute these documents in order. Each builds on the previous.
 
 ### After Property Types
 
-- [x] All 16 property types functional (in `@xnet/data/schema/properties/`)
+- [x] All 16 property types functional (in `@xnetjs/data/schema/properties/`)
 - [x] Property validation works (via `defineSchema()`)
 - [x] LWW sync for properties works (via `NodeStore`)
 - [x] Tests pass (>80% coverage)
@@ -90,11 +90,11 @@ Execute these documents in order. Each builds on the previous.
 ### Package Dependencies
 
 ```
-@xnet/data ──────> @xnet/core, @xnet/sync, @xnet/crypto
-@xnet/views ─────> @xnet/data, @xnet/react
-@xnet/formula ───> @xnet/data
-@xnet/vectors ───> @xnet/storage
-@xnet/canvas ────> @xnet/data, @xnet/vectors
+@xnetjs/data ──────> @xnetjs/core, @xnetjs/sync, @xnetjs/crypto
+@xnetjs/views ─────> @xnetjs/data, @xnetjs/react
+@xnetjs/formula ───> @xnetjs/data
+@xnetjs/vectors ───> @xnetjs/storage
+@xnetjs/canvas ────> @xnetjs/data, @xnetjs/vectors
 ```
 
 ### Key Types
@@ -133,8 +133,8 @@ type ViewType = 'table' | 'board' | 'gallery' | 'timeline' | 'calendar' | 'list'
 ```bash
 pnpm test                           # All tests
 pnpm vitest run packages/data       # Data package (62 tests)
-pnpm --filter @xnet/views test      # Views package
-pnpm --filter @xnet/formula test    # Formula engine
+pnpm --filter @xnetjs/views test      # Views package
+pnpm --filter @xnetjs/formula test    # Formula engine
 pnpm test:coverage                  # With coverage
 ```
 
@@ -143,23 +143,23 @@ pnpm test:coverage                  # With coverage
 ```mermaid
 flowchart TD
     subgraph "Data Layer"
-        DATA["@xnet/data<br/>Schema, NodeStore, Properties"]
-        FORMULA["@xnet/formula"]
+        DATA["@xnetjs/data<br/>Schema, NodeStore, Properties"]
+        FORMULA["@xnetjs/formula"]
     end
 
     subgraph "View Layer"
-        VIEWS["@xnet/views"]
-        CANVAS["@xnet/canvas"]
+        VIEWS["@xnetjs/views"]
+        CANVAS["@xnetjs/canvas"]
     end
 
     subgraph "Search Layer"
-        VECTORS["@xnet/vectors"]
+        VECTORS["@xnetjs/vectors"]
     end
 
     subgraph "Core Infrastructure"
-        SYNC["@xnet/sync<br/>Lamport, Change<T>"]
-        STORAGE["@xnet/storage"]
-        REACT["@xnet/react<br/>useNode, useNodes"]
+        SYNC["@xnetjs/sync<br/>Lamport, Change<T>"]
+        STORAGE["@xnetjs/storage"]
+        REACT["@xnetjs/react<br/>useNode, useNodes"]
     end
 
     SYNC --> DATA

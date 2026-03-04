@@ -158,7 +158,7 @@ mindmap
       Building SaaS/tools
       Want to avoid backend complexity
       Care about: DX, type safety, hooks API
-      Entry: "pnpm add @xnet/react"
+      Entry: "pnpm add @xnetjs/react"
     Productivity Users
       Knowledge workers
       Notion/Obsidian users
@@ -336,7 +336,7 @@ sync peer-to-peer, and keep your data under your control.
 │     │  Canvas      │  │  React       │  │ for the web  │           │
 │     └──────────────┘  └──────────────┘  └──────────────┘           │
 │                                                                     │
-│                    $ pnpm add @xnet/react @xnet/data                │
+│                    $ pnpm add @xnetjs/react @xnetjs/data                │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -457,7 +457,7 @@ Build local-first apps with three React hooks.
 ```
 Before xNet:                    With xNet:
 ─────────────────────          ─────────────────────
-□ Database (Postgres)          ✓ pnpm add @xnet/react
+□ Database (Postgres)          ✓ pnpm add @xnetjs/react
 □ API layer (REST/GraphQL)     ✓ defineSchema({ ... })
 □ Auth service (Auth0)         ✓ useQuery(MySchema)
 □ Real-time (WebSockets)
@@ -574,8 +574,8 @@ Choose your path:
 │                     │ your React app      │                     │
 │                     │                     │                     │
 │ [Try in Browser]    │ $ pnpm add          │ [Star on GitHub]    │
-│ [Download Desktop]  │   @xnet/react       │ [Join Discord]      │
-│                     │   @xnet/data        │ [Read Contributing] │
+│ [Download Desktop]  │   @xnetjs/react       │ [Join GitHub Discussions]      │
+│                     │   @xnetjs/data        │ [Read Contributing] │
 │                     │                     │                     │
 │ No install needed.  │ [Read the Docs]     │ Good first issues   │
 │ Works offline.      │ [View on GitHub]    │ waiting for you.    │
@@ -854,7 +854,7 @@ What brings you to xNet?
 
 11. Community
     - Ways to contribute
-    - Discord/GitHub links
+    - GitHub Discussions/GitHub links
 
 12. Get Started
     - Three paths (Use / Build / Join)

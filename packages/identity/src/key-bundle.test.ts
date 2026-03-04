@@ -1,8 +1,8 @@
 /**
- * @xnet/identity - Key bundle tests
+ * @xnetjs/identity - Key bundle tests
  */
 import type { HybridKeyBundle } from './types'
-import { hybridVerify } from '@xnet/crypto'
+import { hybridVerify } from '@xnetjs/crypto'
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   createKeyBundle,

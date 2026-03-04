@@ -2,15 +2,15 @@
  * XNetProvider for Expo/React Native
  *
  * Provides xNet context with NativeBridge for data access.
- * Uses @xnet/sqlite for unified SQLite storage.
+ * Uses @xnetjs/sqlite for unified SQLite storage.
  */
 
-import type { NodeState, DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
-import type { DataBridge, QueryOptions } from '@xnet/data-bridge'
-import type { SQLiteAdapter } from '@xnet/sqlite'
-import { NodeStore, SQLiteNodeStorageAdapter } from '@xnet/data'
-import { createNativeBridge } from '@xnet/data-bridge'
-import { SCHEMA_VERSION, SCHEMA_DDL } from '@xnet/sqlite'
+import type { NodeState, DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
+import type { DataBridge, QueryOptions } from '@xnetjs/data-bridge'
+import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import { NodeStore, SQLiteNodeStorageAdapter } from '@xnetjs/data'
+import { createNativeBridge } from '@xnetjs/data-bridge'
+import { SCHEMA_VERSION, SCHEMA_DDL } from '@xnetjs/sqlite'
 import * as SecureStore from 'expo-secure-store'
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import 'react-native-get-random-values' // Polyfill crypto.getRandomValues
@@ -91,7 +91,7 @@ function fromHex(hex: string): Uint8Array {
 
 /**
  * Generate a DID:key from a public key.
- * Simplified version - in production use @xnet/identity.
+ * Simplified version - in production use @xnetjs/identity.
  */
 function generateDID(publicKey: Uint8Array): string {
   // Simple DID format for now
@@ -169,7 +169,7 @@ export function XNetProvider({ children, config = {} }: XNetProviderProps) {
         if (debug) console.log('[XNetProvider] Identity loaded:', identity.did)
 
         // Dynamically import the Expo adapter to avoid bundling issues
-        const { ExpoSQLiteAdapter } = await import('@xnet/sqlite/expo')
+        const { ExpoSQLiteAdapter } = await import('@xnetjs/sqlite/expo')
 
         // Create and open SQLite adapter
         const adapter = new ExpoSQLiteAdapter()

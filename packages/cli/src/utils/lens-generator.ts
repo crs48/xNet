@@ -106,8 +106,8 @@ export function generateLensCode(options: GenerateLensOptions): GeneratedLens {
  *${!isComplete ? '\n * NOTE: This lens requires manual completion. See TODO comments below.' : ''}
  */
 
-import { composeLens, rename, convert, addDefault, remove, transform } from '@xnet/data'
-import type { SchemaIRI } from '@xnet/data'
+import { composeLens, rename, convert, addDefault, remove, transform } from '@xnetjs/data'
+import type { SchemaIRI } from '@xnetjs/data'
 
 const SOURCE: SchemaIRI = '${sourceIRI}' as SchemaIRI
 const TARGET: SchemaIRI = '${targetIRI}' as SchemaIRI

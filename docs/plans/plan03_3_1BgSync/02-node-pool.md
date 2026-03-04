@@ -45,7 +45,7 @@ stateDiagram-v2
 // packages/react/src/sync/node-pool.ts
 
 import * as Y from 'yjs'
-import type { NodeStorageAdapter } from '@xnet/data'
+import type { NodeStorageAdapter } from '@xnetjs/data'
 import type { MetaBridge } from './meta-bridge'
 
 export type PoolEntryState = 'active' | 'warm' | 'cold'

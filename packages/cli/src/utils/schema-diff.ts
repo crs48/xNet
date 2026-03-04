@@ -13,13 +13,13 @@
  * ```
  */
 
-import type { Schema } from '@xnet/data'
+import type { Schema } from '@xnetjs/data'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 /**
  * Extended property definition that includes optional select options.
- * This is a superset of the base PropertyDefinition from @xnet/data
+ * This is a superset of the base PropertyDefinition from @xnetjs/data
  * to handle select/multiSelect options which may be stored in config or directly.
  */
 export interface ExtendedPropertyDefinition {

@@ -36,7 +36,7 @@ import {
   type SignatureWire,
   type UnifiedSignature,
   type SecurityLevel
-} from '@xnet/crypto'
+} from '@xnetjs/crypto'
 
 // ─── V3 Wire Format Types ────────────────────────────────────────
 

@@ -132,7 +132,7 @@ GET http://127.0.0.1:31415/api/nodes/'); require('child_process').exec('rm -rf /
 
 ### SEC-04: Passkey Fallback Stores Encryption Key with Ciphertext
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/passkey.ts:32-45`
 
 ```typescript
@@ -180,7 +180,7 @@ The HTTP API has authentication commented out. Any local process can read/write/
 
 ### SEC-06: CORS Wildcard on Local API
 
-**Package:** `@xnet/plugins`
+**Package:** `@xnetjs/plugins`
 **File:** `src/services/local-api.ts:218`
 
 ```typescript
@@ -195,7 +195,7 @@ Combined with no authentication, this enables CSRF attacks from malicious websit
 
 ### SEC-07: Plugin Process Manager Arbitrary Command Execution
 
-**Package:** `@xnet/plugins`
+**Package:** `@xnetjs/plugins`
 **File:** `src/services/process-manager.ts:73-82`
 
 ```typescript
@@ -216,7 +216,7 @@ Plugins can execute arbitrary system commands without validation.
 
 ### SEC-08: Plugin Sandbox Timeout Not Enforced for Sync Execution
 
-**Package:** `@xnet/plugins`
+**Package:** `@xnetjs/plugins`
 **File:** `src/sandbox/sandbox.ts:117-137`
 
 ```typescript
@@ -237,14 +237,14 @@ The `executeSync` method has no timeout protection. An infinite loop (`while(tru
 
 ### SEC-09: Yjs Updates Applied Without Signature Verification (Network)
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `packages/network/src/protocols/sync.ts:112`
 
 ```typescript
 Y.applyUpdate(doc.ydoc, msg.payload) // Applied without signature check
 ```
 
-The network layer applies Yjs updates without using the signed envelope verification from `@xnet/sync`.
+The network layer applies Yjs updates without using the signed envelope verification from `@xnetjs/sync`.
 
 **Fix:** Wire `verifyYjsEnvelope()` into the sync protocol.
 
@@ -268,7 +268,7 @@ Same issue in the IPC path - updates from renderer are trusted.
 
 ### SEC-11: UCAN Header Algorithm Not Validated
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/ucan.ts:284-305`
 
 ```typescript
@@ -287,7 +287,7 @@ An attacker could set `alg: "none"` in the header. While verification uses Ed255
 
 ### SEC-12: UCAN Proof Chain Only Checks Immediate Parents
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/ucan.ts:104-131`
 
 The capability attenuation check only considers the immediate parent level, not the full chain.
@@ -298,7 +298,7 @@ The capability attenuation check only considers the immediate parent level, not 
 
 ### SEC-13: parseShareLink Returns Unverified Claims
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/sharing/parse-share.ts:86-97`
 
 ```typescript
@@ -316,7 +316,7 @@ The function returns `issuer`, `audience`, `permissions` directly from unverifie
 
 ### SEC-14: Timing-Safe Comparison Not Used for Token
 
-**Package:** `@xnet/plugins`
+**Package:** `@xnetjs/plugins`
 **File:** `src/services/local-api.ts:230-235`
 
 ```typescript
@@ -325,13 +325,13 @@ if (!auth || auth !== `Bearer ${this.config.token}`) {  // Direct comparison
 
 Token comparison is vulnerable to timing attacks.
 
-**Fix:** Use `constantTimeEqual` from `@xnet/crypto`.
+**Fix:** Use `constantTimeEqual` from `@xnetjs/crypto`.
 
 ---
 
 ### SEC-15: innerHTML Usage in Editor
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `src/extensions/embed/EmbedLinkPlugin.ts:37`
 
 ```typescript
@@ -346,7 +346,7 @@ Pattern is risky if user content is added.
 
 ### SEC-16: Rate Limiter State Not Persisted
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `src/security/rate-limiter.ts`
 
 Rate limit state is in-memory only. Restart or peer ID rotation bypasses limits.
@@ -357,7 +357,7 @@ Rate limit state is in-memory only. Restart or peer ID rotation bypasses limits.
 
 ### SEC-17: SSRF Protection Incomplete for DNS Rebinding
 
-**Package:** `@xnet/hub`
+**Package:** `@xnetjs/hub`
 **File:** `src/utils/url.ts:21-25`
 
 Hostname validation doesn't prevent DNS rebinding attacks.

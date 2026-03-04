@@ -21,8 +21,8 @@
  * ```
  */
 
-import type { Schema, DatabaseSchemaMetadata } from '@xnet/data'
-import { extractSchemaFromDoc } from '@xnet/data'
+import type { Schema, DatabaseSchemaMetadata } from '@xnetjs/data'
+import { extractSchemaFromDoc } from '@xnetjs/data'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import * as Y from 'yjs'
 import { useNodeStore } from './useNodeStore'

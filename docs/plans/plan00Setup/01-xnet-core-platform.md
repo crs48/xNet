@@ -18,8 +18,8 @@ xNet is the foundational infrastructure that powers xNet and future decentralize
 graph TB
     subgraph "What Developers Use"
         direction TB
-        R1["<b>@xnet/react</b><br/>npm install @xnet/react<br/><i>Primary entry point</i>"]
-        M1["@xnet/mcp<br/><i>AI agents</i>"]
+        R1["<b>@xnetjs/react</b><br/>npm install @xnetjs/react<br/><i>Primary entry point</i>"]
+        M1["@xnetjs/mcp<br/><i>AI agents</i>"]
     end
 
     subgraph "Applications"
@@ -28,8 +28,8 @@ graph TB
         AI1[Claude Code]
     end
 
-    subgraph "@xnet/core (internal)"
-        C0["@xnet/core<br/><i>Re-exports all modules</i>"]
+    subgraph "@xnetjs/core (internal)"
+        C0["@xnetjs/core<br/><i>Re-exports all modules</i>"]
         C1["data"]
         C2["network"]
         C3["identity"]
@@ -62,10 +62,10 @@ graph TB
     style A2 fill:#e3f2fd
 ```
 
-**Key insight:** `@xnet/react` is the primary interface. It provides reactive hooks that replace data fetching libraries (like TanStack Query) and handle persistent/synced state. Use `useState` or a small Zustand store for ephemeral UI state. Most apps just need:
+**Key insight:** `@xnetjs/react` is the primary interface. It provides reactive hooks that replace data fetching libraries (like TanStack Query) and handle persistent/synced state. Use `useState` or a small Zustand store for ephemeral UI state. Most apps just need:
 
 ```bash
-npm install @xnet/react
+npm install @xnetjs/react
 ```
 
 ---
@@ -74,12 +74,12 @@ npm install @xnet/react
 
 ### Primary Packages (What Users Install)
 
-| Package         | Use Case                                     | Install                   |
-| --------------- | -------------------------------------------- | ------------------------- |
-| **@xnet/react** | React apps (recommended)                     | `npm install @xnet/react` |
-| **@xnet/core**  | Non-React apps, Node.js, custom integrations | `npm install @xnet/core`  |
+| Package           | Use Case                                     | Install                     |
+| ----------------- | -------------------------------------------- | --------------------------- |
+| **@xnetjs/react** | React apps (recommended)                     | `npm install @xnetjs/react` |
+| **@xnetjs/core**  | Non-React apps, Node.js, custom integrations | `npm install @xnetjs/core`  |
 
-Most developers only need `@xnet/react`. It includes everything.
+Most developers only need `@xnetjs/react`. It includes everything.
 
 ```
 xnet/
@@ -89,7 +89,7 @@ xnet/
 │   │  │  PRIMARY INTERFACE - Most users only need this         │
 │   │  └─────────────────────────────────────────────────────────┘
 │   │
-│   ├── react/                    # @xnet/react - THE entry point for React
+│   ├── react/                    # @xnetjs/react - THE entry point for React
 │   │   ├── src/
 │   │   │   ├── provider.tsx      # <XNetProvider> - wrap your app
 │   │   │   ├── hooks/
@@ -100,13 +100,13 @@ xnet/
 │   │   │   │   └── usePresence.ts # Real-time awareness
 │   │   │   ├── cache.ts          # Query cache + invalidation
 │   │   │   └── subscriptions.ts  # Reactive subscription manager
-│   │   └── package.json          # depends on @xnet/core
+│   │   └── package.json          # depends on @xnetjs/core
 │   │
 │   │  ┌─────────────────────────────────────────────────────────┐
-│   │  │  CORE - Internal modules (bundled into @xnet/core)     │
+│   │  │  CORE - Internal modules (bundled into @xnetjs/core)     │
 │   │  └─────────────────────────────────────────────────────────┘
 │   │
-│   ├── core/                     # @xnet/core - Unified core (re-exports all)
+│   ├── core/                     # @xnetjs/core - Unified core (re-exports all)
 │   │   ├── src/
 │   │   │   ├── client.ts         # XNetClient class
 │   │   │   ├── database.ts       # Database operations
@@ -187,7 +187,7 @@ xnet/
 │       └── package.json
 │
 ├── apps/
-│   └── mcp/                      # @xnet/mcp - AI Access Layer
+│   └── mcp/                      # @xnetjs/mcp - AI Access Layer
 │       ├── src/
 │       │   ├── index.ts          # MCP server entry point
 │       │   ├── server.ts         # MCP server setup
@@ -217,7 +217,7 @@ xnet/
 
 ## Core Module Specifications
 
-### @xnet/data - CRDT Engine
+### @xnetjs/data - CRDT Engine
 
 The data layer manages all document state using CRDTs for conflict-free synchronization.
 
@@ -273,7 +273,7 @@ classDiagram
 
 ---
 
-### @xnet/network - P2P Layer
+### @xnetjs/network - P2P Layer
 
 Handles all peer-to-peer communication using libp2p and WebRTC.
 
@@ -315,7 +315,7 @@ sequenceDiagram
 
 ---
 
-### @xnet/identity - Self-Sovereign Identity
+### @xnetjs/identity - Self-Sovereign Identity
 
 Manages decentralized identity using DIDs and UCAN tokens.
 
@@ -359,7 +359,7 @@ flowchart TD
 
 ---
 
-### @xnet/storage - Persistence
+### @xnetjs/storage - Persistence
 
 Provides durable storage across platforms with multiple backend adapters.
 
@@ -374,7 +374,7 @@ Provides durable storage across platforms with multiple backend adapters.
 
 ---
 
-### @xnet/crypto - Encryption
+### @xnetjs/crypto - Encryption
 
 Handles all cryptographic operations for security.
 
@@ -388,7 +388,7 @@ Handles all cryptographic operations for security.
 
 ---
 
-### @xnet/query - Query Engine
+### @xnetjs/query - Query Engine
 
 SQL-like query interface over CRDT documents.
 
@@ -402,7 +402,7 @@ SQL-like query interface over CRDT documents.
 
 ---
 
-### @xnet/vectors - AI/Embeddings
+### @xnetjs/vectors - AI/Embeddings
 
 On-device vector search for semantic capabilities.
 
@@ -414,7 +414,7 @@ On-device vector search for semantic capabilities.
 
 ---
 
-### @xnet/mcp - AI Access Layer
+### @xnetjs/mcp - AI Access Layer
 
 MCP (Model Context Protocol) server enabling AI agents to interact with xNet data.
 
@@ -704,7 +704,7 @@ graph TB
 ## SDK Usage Example
 
 ```typescript
-import { XNet } from '@xnet/sdk'
+import { XNet } from '@xnetjs/sdk'
 
 // Initialize xNet client
 const xnet = new XNet({

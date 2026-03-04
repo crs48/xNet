@@ -7,7 +7,7 @@
 
 ## Decision Outcome
 
-The evaluation concluded that OpenTelemetry's centralized collector model doesn't align with xNet's privacy-first, P2P architecture. The `@xnet/telemetry` package was implemented with:
+The evaluation concluded that OpenTelemetry's centralized collector model doesn't align with xNet's privacy-first, P2P architecture. The `@xnetjs/telemetry` package was implemented with:
 
 - Custom consent-gated collection (not OTel's always-on model)
 - P3A-style bucketing and scrubbing (privacy-preserving)
@@ -20,7 +20,7 @@ The evaluation concluded that OpenTelemetry's centralized collector model doesn'
 
 ## Executive Summary
 
-xNet currently plans a custom telemetry package (`@xnet/telemetry`) that treats telemetry as "just another Node type" with privacy-first consent tiers and P3A-style bucketing. This document evaluates whether OpenTelemetry (OTel) — the CNCF's vendor-neutral observability standard — should replace, supplement, or inform that design.
+xNet currently plans a custom telemetry package (`@xnetjs/telemetry`) that treats telemetry as "just another Node type" with privacy-first consent tiers and P3A-style bucketing. This document evaluates whether OpenTelemetry (OTel) — the CNCF's vendor-neutral observability standard — should replace, supplement, or inform that design.
 
 **Bottom line**: OpenTelemetry is designed for server-side distributed systems and assumes a centralized collector receiving all data. xNet is a local-first, privacy-sovereign, P2P desktop/mobile app. The paradigms don't align well. However, OTel's _data model_ and _semantic conventions_ are valuable design references, and a hybrid approach — using OTel's API internally for developer tracing while keeping the privacy-first consent layer custom — offers the best of both worlds.
 
@@ -598,7 +598,7 @@ flowchart LR
 
 | Approach                              | Additional Bundle Size | Notes                        |
 | ------------------------------------- | ---------------------- | ---------------------------- |
-| Custom only (current plan)            | ~0 KB (built in)       | Part of `@xnet/telemetry`    |
+| Custom only (current plan)            | ~0 KB (built in)       | Part of `@xnetjs/telemetry`  |
 | OTel API only                         | ~5 KB                  | Lightweight, no SDK          |
 | OTel API + Web SDK                    | ~80-120 KB             | Full trace/metric collection |
 | OTel API + SDK + auto-instrumentation | ~150-200 KB            | fetch, document load, etc.   |

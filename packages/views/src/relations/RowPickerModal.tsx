@@ -5,8 +5,8 @@
  * multi-select support and the ability to create new rows inline.
  */
 
-import type { ColumnDefinition, CellValue } from '@xnet/data'
-import { useDatabase, type DatabaseRow } from '@xnet/react'
+import type { ColumnDefinition, CellValue } from '@xnetjs/data'
+import { useDatabase, type DatabaseRow } from '@xnetjs/react'
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────

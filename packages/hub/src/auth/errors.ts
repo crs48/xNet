@@ -1,8 +1,8 @@
 /**
- * @xnet/hub - Structured authorization error payloads.
+ * @xnetjs/hub - Structured authorization error payloads.
  */
 
-import type { AuthDenyReason, AuthTraceStep } from '@xnet/core'
+import type { AuthDenyReason, AuthTraceStep } from '@xnetjs/core'
 
 export type HubAuthErrorCode = 'UNAUTHORIZED' | 'FORBIDDEN' | 'TOKEN_EXPIRED' | 'TOKEN_REVOKED'
 

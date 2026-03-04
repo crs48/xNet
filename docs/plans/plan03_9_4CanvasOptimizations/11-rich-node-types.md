@@ -4,7 +4,7 @@
 
 **Duration:** 4-5 days
 **Dependencies:** [10-mermaid-diagrams.md](./10-mermaid-diagrams.md)
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 
@@ -221,7 +221,7 @@ export const ChecklistNodeComponent = memo(function ChecklistNodeComponent({
 // packages/canvas/src/nodes/embed-node.tsx
 
 import { memo, useMemo } from 'react'
-import { useNode } from '@xnet/react'
+import { useNode } from '@xnetjs/react'
 
 interface EmbedNode extends BaseCanvasNode {
   type: 'embed'

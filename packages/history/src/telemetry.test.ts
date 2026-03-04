@@ -1,12 +1,12 @@
 /**
- * Telemetry integration tests for @xnet/history
+ * Telemetry integration tests for @xnetjs/history
  */
 
 import type { TelemetryReporter } from './engine'
-import type { DID } from '@xnet/core'
-import type { SchemaIRI } from '@xnet/data'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+import type { DID } from '@xnetjs/core'
+import type { SchemaIRI } from '@xnetjs/data'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { HistoryEngine } from './engine'
 import { SnapshotCache, MemorySnapshotStorage } from './snapshot-cache'

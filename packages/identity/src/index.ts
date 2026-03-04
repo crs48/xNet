@@ -1,5 +1,5 @@
 /**
- * @xnet/identity - DID:key identity, UCAN authorization, key management
+ * @xnetjs/identity - DID:key identity, UCAN authorization, key management
  */
 
 // Types
@@ -77,7 +77,7 @@ export {
   type VerifyResult
 } from './ucan'
 
-// Legacy passkey storage (deprecated — use @xnet/identity/passkey instead)
+// Legacy passkey storage (deprecated — use @xnetjs/identity/passkey instead)
 export { type PasskeyStorage, BrowserPasskeyStorage, MemoryPasskeyStorage } from './passkey'
 
 // Passkey authentication (WebAuthn + PRF)

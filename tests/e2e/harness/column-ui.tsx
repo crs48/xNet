@@ -8,8 +8,8 @@
  * - Creating columns
  */
 
-import type { ColumnType, SelectColor } from '@xnet/data'
-import { AddColumnModal, SelectOptionsEditor, type NewColumnDefinition } from '@xnet/views'
+import type { ColumnType, SelectColor } from '@xnetjs/data'
+import { AddColumnModal, SelectOptionsEditor, type NewColumnDefinition } from '@xnetjs/views'
 import React, { useState, useCallback } from 'react'
 import ReactDOM from 'react-dom/client'
 

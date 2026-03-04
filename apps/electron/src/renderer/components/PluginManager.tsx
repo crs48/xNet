@@ -8,8 +8,8 @@
  * - Uninstall plugins
  */
 
-import type { RegisteredPlugin } from '@xnet/plugins'
-import { useXNet } from '@xnet/react'
+import type { RegisteredPlugin } from '@xnetjs/plugins'
+import { useXNet } from '@xnetjs/react'
 import {
   Puzzle,
   Power,

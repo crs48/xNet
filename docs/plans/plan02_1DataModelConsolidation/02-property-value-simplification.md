@@ -510,7 +510,7 @@ describe('migratePropertyValue', () => {
 
 - [ ] Create migration script for existing data
 - [ ] Test migration with sample data
-- [ ] Verify all @xnet/records tests pass
+- [ ] Verify all @xnetjs/records tests pass
 - [ ] Verify storage layer works without changes
 - [ ] Verify sync works without changes
 - [ ] Update documentation
@@ -537,4 +537,4 @@ const displayDate = dateHandler.toDate(timestamp) // → Date for UI
 
 ---
 
-[← Back to @xnet/sync](./01-xnet-sync-package.md) | [Next: Unified Document Model →](./03-unified-document-model.md)
+[← Back to @xnetjs/sync](./01-xnet-sync-package.md) | [Next: Unified Document Model →](./03-unified-document-model.md)

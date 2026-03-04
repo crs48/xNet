@@ -38,8 +38,8 @@ import type {
   InferCreateProps,
   NodeState,
   TransactionOperation
-} from '@xnet/data'
-import { isTempId } from '@xnet/data'
+} from '@xnetjs/data'
+import { isTempId } from '@xnetjs/data'
 import { useCallback, useState, useRef } from 'react'
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'

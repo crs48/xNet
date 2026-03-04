@@ -80,7 +80,7 @@ The Version DevTools panel shows:
 ### Programmatic Access
 
 ```typescript
-import { checkDeprecations, type DeprecationWarning } from '@xnet/sync'
+import { checkDeprecations, type DeprecationWarning } from '@xnetjs/sync'
 
 const warnings: DeprecationWarning[] = checkDeprecations({
   protocolVersion: 0,
@@ -148,7 +148,7 @@ Major deprecations get a tracking issue with:
 ### During Development
 
 ```typescript
-import { setDeprecationHandler } from '@xnet/sync'
+import { setDeprecationHandler } from '@xnetjs/sync'
 
 // Throw on deprecation (catch issues early)
 setDeprecationHandler('throw')
@@ -163,7 +163,7 @@ setDeprecationHandler('silent')
 ### In Production
 
 ```typescript
-import { checkDeprecations } from '@xnet/sync'
+import { checkDeprecations } from '@xnetjs/sync'
 
 // Check on app startup
 const warnings = checkDeprecations(currentConfig)
@@ -197,7 +197,7 @@ In rare cases (security vulnerabilities, critical bugs), we may:
 
 Emergency deprecations will:
 
-- Be announced on all channels (GitHub, Discord, Twitter)
+- Be announced on all channels (GitHub, GitHub Discussions, Twitter)
 - Include clear security advisory
 - Provide immediate mitigation steps
 
@@ -245,7 +245,7 @@ jobs:
 For end-user-facing deprecations:
 
 ```typescript
-import { useDeprecationNotice } from '@xnet/react'
+import { useDeprecationNotice } from '@xnetjs/react'
 
 function App() {
   const notice = useDeprecationNotice()

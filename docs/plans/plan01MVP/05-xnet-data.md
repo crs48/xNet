@@ -1,9 +1,9 @@
-# 05: @xnet/data
+# 05: @xnetjs/data
 
 > Yjs CRDT engine, signed updates, document management
 
 **Duration:** 4 weeks
-**Dependencies:** @xnet/crypto, @xnet/identity, @xnet/storage, @xnet/core
+**Dependencies:** @xnetjs/crypto, @xnetjs/identity, @xnetjs/storage, @xnetjs/core
 
 ## Overview
 
@@ -15,7 +15,7 @@ This is the core data layer. Uses Yjs for CRDT operations and wraps it with sign
 cd packages/data
 pnpm add yjs lib0
 pnpm add -D vitest typescript tsup
-pnpm add @xnet/crypto@workspace:* @xnet/identity@workspace:* @xnet/storage@workspace:* @xnet/core@workspace:*
+pnpm add @xnetjs/crypto@workspace:* @xnetjs/identity@workspace:* @xnetjs/storage@workspace:* @xnetjs/core@workspace:*
 ```
 
 ## Directory Structure
@@ -50,7 +50,7 @@ packages/data/
 
 ```typescript
 import * as Y from 'yjs'
-import type { SignedUpdate, VectorClock } from '@xnet/core'
+import type { SignedUpdate, VectorClock } from '@xnetjs/core'
 
 export interface XDocument {
   id: string
@@ -107,8 +107,8 @@ export interface UpdateBatch {
 
 ```typescript
 import * as Y from 'yjs'
-import { sign, hashHex } from '@xnet/crypto'
-import type { SignedUpdate, VectorClock } from '@xnet/core'
+import { sign, hashHex } from '@xnetjs/crypto'
+import type { SignedUpdate, VectorClock } from '@xnetjs/core'
 import type { XDocument, DocumentType, DocumentMetadata, Block, BlockType } from './types'
 
 export interface CreateDocumentOptions {
@@ -203,9 +203,9 @@ export function getStateVector(doc: XDocument): Uint8Array {
 
 ```typescript
 import * as Y from 'yjs'
-import { sign, verify, hashHex } from '@xnet/crypto'
-import { parseDID } from '@xnet/identity'
-import type { SignedUpdate, VectorClock } from '@xnet/core'
+import { sign, verify, hashHex } from '@xnetjs/crypto'
+import { parseDID } from '@xnetjs/identity'
+import type { SignedUpdate, VectorClock } from '@xnetjs/core'
 import type { XDocument } from './types'
 
 export interface SignUpdateOptions {
@@ -305,8 +305,8 @@ export function captureUpdate(
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { createDocument, loadDocument, getDocumentState } from './document'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { generateIdentity } from '@xnet/identity'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { generateIdentity } from '@xnetjs/identity'
 
 describe('XDocument', () => {
   it('should create document with metadata', () => {
@@ -350,7 +350,7 @@ describe('XDocument', () => {
 import { describe, it, expect } from 'vitest'
 import { signUpdate, verifyUpdate, captureUpdate } from './updates'
 import { createDocument } from './document'
-import { generateIdentity, parseDID } from '@xnet/identity'
+import { generateIdentity, parseDID } from '@xnetjs/identity'
 import * as Y from 'yjs'
 
 describe('Signed Updates', () => {

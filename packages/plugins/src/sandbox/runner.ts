@@ -16,7 +16,7 @@ import { ScriptSandbox, ScriptError, type TelemetryReporter } from './sandbox'
 
 /**
  * Minimal store interface for the script runner.
- * This avoids a hard dependency on @xnet/data.
+ * This avoids a hard dependency on @xnetjs/data.
  */
 export interface ScriptStore {
   /** List nodes matching a query */

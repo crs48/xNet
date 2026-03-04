@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - DatabaseQueryService tests.
+ * @xnetjs/hub - DatabaseQueryService tests.
  */
 
 import type { HubStorage, DatabaseRowRecord } from '../src/storage/interface'

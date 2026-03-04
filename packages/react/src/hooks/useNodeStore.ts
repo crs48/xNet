@@ -2,9 +2,9 @@
  * useNodeStore hook - internal access to the NodeStore from XNetProvider context.
  *
  * This is NOT part of the public API. Use useQuery/useMutate/useNode instead.
- * Only @xnet/devtools uses this via the @xnet/react/internal subpath.
+ * Only @xnetjs/devtools uses this via the @xnetjs/react/internal subpath.
  */
-import type { NodeStore } from '@xnet/data'
+import type { NodeStore } from '@xnetjs/data'
 import { useContext } from 'react'
 import { XNetContext } from '../context'
 

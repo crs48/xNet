@@ -1,7 +1,7 @@
 # xNet
 
 [![CI](https://github.com/crs48/xNet/actions/workflows/ci.yml/badge.svg)](https://github.com/crs48/xNet/actions/workflows/ci.yml)
-[![npm: @xnet/react](https://img.shields.io/npm/v/@xnet/react?label=%40xnet%2Freact&logo=npm)](https://www.npmjs.com/package/@xnet/react)
+[![npm: @xnetjs/react](https://img.shields.io/npm/v/@xnetjs/react?label=%40xnetjs%2Freact&logo=npm)](https://www.npmjs.com/package/@xnetjs/react)
 [![Electron App](https://img.shields.io/github/actions/workflow/status/crs48/xNet/electron-release.yml?label=electron%20app&logo=electron&logoColor=white)](https://github.com/crs48/xNet/actions/workflows/electron-release.yml)
 [![Demo App](https://img.shields.io/github/actions/workflow/status/crs48/xNet/deploy-site.yml?label=demo%20app&logo=react&logoColor=white)](https://xnet.fyi/app)
 [![Hub Image](https://img.shields.io/github/actions/workflow/status/crs48/xNet/hub-release.yml?label=hub%20image&logo=docker&logoColor=white)](https://github.com/crs48/xNet/actions/workflows/hub-release.yml)
@@ -41,7 +41,7 @@ pnpm build
 pnpm test
 
 # Run integration tests (real browser via Playwright)
-pnpm --filter @xnet/integration-tests test
+pnpm --filter @xnetjs/integration-tests test
 
 # Type check
 pnpm typecheck
@@ -53,7 +53,7 @@ pnpm lint
 ## Monorepo Structure
 
 ```
-packages/           # 21 core SDK packages (@xnet/*)
+packages/           # 21 core SDK packages (@xnetjs/*)
 apps/               # Electron, Web, Expo applications
 site/               # Astro + Starlight documentation website
 tests/              # Browser-based integration tests (Playwright)
@@ -71,39 +71,39 @@ See the README in each directory for details:
 
 ### Foundation
 
-| Package                               | Description                                           |
-| ------------------------------------- | ----------------------------------------------------- |
-| [@xnet/core](./packages/core)         | Types, content addressing (CIDs), permissions, RBAC   |
-| [@xnet/crypto](./packages/crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption |
-| [@xnet/identity](./packages/identity) | DID:key generation, UCAN tokens, passkey storage      |
+| Package                                 | Description                                           |
+| --------------------------------------- | ----------------------------------------------------- |
+| [@xnetjs/core](./packages/core)         | Types, content addressing (CIDs), permissions, RBAC   |
+| [@xnetjs/crypto](./packages/crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption |
+| [@xnetjs/identity](./packages/identity) | DID:key generation, UCAN tokens, passkey storage      |
 
 ### Infrastructure
 
-| Package                             | Description                                                             |
-| ----------------------------------- | ----------------------------------------------------------------------- |
-| [@xnet/storage](./packages/storage) | SQLite/memory adapters, blob store, chunk manager, snapshots            |
-| [@xnet/sync](./packages/sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security layer            |
-| [@xnet/data](./packages/data)       | Schema system, NodeStore, 15 property types, Yjs CRDT, built-in schemas |
-| [@xnet/network](./packages/network) | libp2p node, y-webrtc provider, peer scoring, security suite            |
-| [@xnet/query](./packages/query)     | Local query engine, MiniSearch full-text search, federated router       |
-| [@xnet/hub](./packages/hub)         | Signaling server, sync relay, backup, FTS5 search, sharding, federation |
+| Package                               | Description                                                             |
+| ------------------------------------- | ----------------------------------------------------------------------- |
+| [@xnetjs/storage](./packages/storage) | SQLite/memory adapters, blob store, chunk manager, snapshots            |
+| [@xnetjs/sync](./packages/sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security layer            |
+| [@xnetjs/data](./packages/data)       | Schema system, NodeStore, 15 property types, Yjs CRDT, built-in schemas |
+| [@xnetjs/network](./packages/network) | libp2p node, y-webrtc provider, peer scoring, security suite            |
+| [@xnetjs/query](./packages/query)     | Local query engine, MiniSearch full-text search, federated router       |
+| [@xnetjs/hub](./packages/hub)         | Signaling server, sync relay, backup, FTS5 search, sharding, federation |
 
 ### Application
 
-| Package                                 | Description                                                                    |
-| --------------------------------------- | ------------------------------------------------------------------------------ |
-| [@xnet/react](./packages/react)         | useQuery, useMutate, useNode, hub hooks, plugin hooks, sync infrastructure     |
-| [@xnet/sdk](./packages/sdk)             | Unified client, browser/node presets, re-exports                               |
-| [@xnet/editor](./packages/editor)       | TipTap collaborative editor, slash commands, wikilinks, drag-drop, mermaid     |
-| [@xnet/ui](./packages/ui)               | Radix UI primitives, composed components, theme system, design tokens          |
-| [@xnet/views](./packages/views)         | Table, Board, Gallery, Timeline, Calendar views with property renderers        |
-| [@xnet/canvas](./packages/canvas)       | Infinite canvas, R-tree spatial indexing, ELK.js auto-layout, Yjs-backed store |
-| [@xnet/devtools](./packages/devtools)   | 9-panel debug suite (node explorer, sync monitor, Yjs inspector, ...)          |
-| [@xnet/history](./packages/history)     | Time machine, undo/redo, audit trails, blame, diff, verification               |
-| [@xnet/plugins](./packages/plugins)     | Plugin registry, sandboxed scripts, AI generation, MCP server, webhooks        |
-| [@xnet/telemetry](./packages/telemetry) | Privacy-preserving telemetry, tiered consent, k-anonymity, scrubbing           |
-| [@xnet/formula](./packages/formula)     | Expression parser, AST evaluator, built-in function library                    |
-| [@xnet/vectors](./packages/vectors)     | HNSW vector index, semantic search, hybrid keyword+semantic search             |
+| Package                                   | Description                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------ |
+| [@xnetjs/react](./packages/react)         | useQuery, useMutate, useNode, hub hooks, plugin hooks, sync infrastructure     |
+| [@xnetjs/sdk](./packages/sdk)             | Unified client, browser/node presets, re-exports                               |
+| [@xnetjs/editor](./packages/editor)       | TipTap collaborative editor, slash commands, wikilinks, drag-drop, mermaid     |
+| [@xnetjs/ui](./packages/ui)               | Radix UI primitives, composed components, theme system, design tokens          |
+| [@xnetjs/views](./packages/views)         | Table, Board, Gallery, Timeline, Calendar views with property renderers        |
+| [@xnetjs/canvas](./packages/canvas)       | Infinite canvas, R-tree spatial indexing, ELK.js auto-layout, Yjs-backed store |
+| [@xnetjs/devtools](./packages/devtools)   | 9-panel debug suite (node explorer, sync monitor, Yjs inspector, ...)          |
+| [@xnetjs/history](./packages/history)     | Time machine, undo/redo, audit trails, blame, diff, verification               |
+| [@xnetjs/plugins](./packages/plugins)     | Plugin registry, sandboxed scripts, AI generation, MCP server, webhooks        |
+| [@xnetjs/telemetry](./packages/telemetry) | Privacy-preserving telemetry, tiered consent, k-anonymity, scrubbing           |
+| [@xnetjs/formula](./packages/formula)     | Expression parser, AST evaluator, built-in function library                    |
+| [@xnetjs/vectors](./packages/vectors)     | HNSW vector index, semantic search, hybrid keyword+semantic search             |
 
 ## Apps
 
@@ -124,38 +124,38 @@ flowchart TB
     end
 
     subgraph UI["UI Layer"]
-        Editor["@xnet/editor<br/><small>TipTap, slash commands,<br/>drag-drop, mermaid</small>"]
-        Views["@xnet/views<br/><small>Table, Board, Calendar,<br/>Timeline, Gallery</small>"]
-        Canvas["@xnet/canvas<br/><small>Infinite canvas,<br/>R-tree, ELK.js</small>"]
-        UILib["@xnet/ui<br/><small>Radix primitives,<br/>theme system</small>"]
+        Editor["@xnetjs/editor<br/><small>TipTap, slash commands,<br/>drag-drop, mermaid</small>"]
+        Views["@xnetjs/views<br/><small>Table, Board, Calendar,<br/>Timeline, Gallery</small>"]
+        Canvas["@xnetjs/canvas<br/><small>Infinite canvas,<br/>R-tree, ELK.js</small>"]
+        UILib["@xnetjs/ui<br/><small>Radix primitives,<br/>theme system</small>"]
     end
 
     subgraph Client["Client Layer"]
-        React["@xnet/react<br/><small>useQuery, useMutate,<br/>useNode, SyncManager</small>"]
-        SDK["@xnet/sdk<br/><small>Unified client,<br/>browser/node presets</small>"]
-        Devtools["@xnet/devtools<br/><small>9-panel debug suite</small>"]
-        Plugins["@xnet/plugins<br/><small>Registry, sandbox,<br/>AI generation, MCP</small>"]
-        Telemetry["@xnet/telemetry<br/><small>Privacy-first,<br/>consent-gated</small>"]
-        History["@xnet/history<br/><small>Time machine,<br/>undo/redo, audit</small>"]
+        React["@xnetjs/react<br/><small>useQuery, useMutate,<br/>useNode, SyncManager</small>"]
+        SDK["@xnetjs/sdk<br/><small>Unified client,<br/>browser/node presets</small>"]
+        Devtools["@xnetjs/devtools<br/><small>9-panel debug suite</small>"]
+        Plugins["@xnetjs/plugins<br/><small>Registry, sandbox,<br/>AI generation, MCP</small>"]
+        Telemetry["@xnetjs/telemetry<br/><small>Privacy-first,<br/>consent-gated</small>"]
+        History["@xnetjs/history<br/><small>Time machine,<br/>undo/redo, audit</small>"]
     end
 
     subgraph Data["Data Layer"]
-        DataPkg["@xnet/data<br/><small>Schema system, NodeStore,<br/>Yjs CRDT, 15 property types</small>"]
-        Query["@xnet/query<br/><small>Local engine,<br/>MiniSearch FTS</small>"]
-        Vectors["@xnet/vectors<br/><small>HNSW index,<br/>hybrid search</small>"]
-        Formula["@xnet/formula<br/><small>Expression parser,<br/>computed properties</small>"]
+        DataPkg["@xnetjs/data<br/><small>Schema system, NodeStore,<br/>Yjs CRDT, 15 property types</small>"]
+        Query["@xnetjs/query<br/><small>Local engine,<br/>MiniSearch FTS</small>"]
+        Vectors["@xnetjs/vectors<br/><small>HNSW index,<br/>hybrid search</small>"]
+        Formula["@xnetjs/formula<br/><small>Expression parser,<br/>computed properties</small>"]
     end
 
     subgraph Infra["Infrastructure Layer"]
-        Sync["@xnet/sync<br/><small>Change&lt;T&gt;, Lamport clocks,<br/>hash chains, Yjs security</small>"]
-        Storage["@xnet/storage<br/><small>SQLite, blobs,<br/>snapshots</small>"]
-        Network["@xnet/network<br/><small>libp2p, y-webrtc,<br/>peer scoring</small>"]
+        Sync["@xnetjs/sync<br/><small>Change&lt;T&gt;, Lamport clocks,<br/>hash chains, Yjs security</small>"]
+        Storage["@xnetjs/storage<br/><small>SQLite, blobs,<br/>snapshots</small>"]
+        Network["@xnetjs/network<br/><small>libp2p, y-webrtc,<br/>peer scoring</small>"]
     end
 
     subgraph Foundation["Foundation"]
-        Identity["@xnet/identity<br/><small>DID:key, UCAN tokens,<br/>passkey storage</small>"]
-        Crypto["@xnet/crypto<br/><small>BLAKE3, Ed25519,<br/>XChaCha20</small>"]
-        Core["@xnet/core<br/><small>CIDs, types,<br/>permissions, RBAC</small>"]
+        Identity["@xnetjs/identity<br/><small>DID:key, UCAN tokens,<br/>passkey storage</small>"]
+        Crypto["@xnetjs/crypto<br/><small>BLAKE3, Ed25519,<br/>XChaCha20</small>"]
+        Core["@xnetjs/core<br/><small>CIDs, types,<br/>permissions, RBAC</small>"]
     end
 
     Apps --> UI & Client
@@ -165,7 +165,7 @@ flowchart TB
     Infra --> Foundation
 
     subgraph Server["Server"]
-        Hub["@xnet/hub<br/><small>Signaling, sync relay,<br/>backup, FTS5, federation</small>"]
+        Hub["@xnetjs/hub<br/><small>Signaling, sync relay,<br/>backup, FTS5, federation</small>"]
     end
 
     Network <--> Hub
@@ -201,7 +201,7 @@ flowchart LR
 Everything is a **Node** (universal container). A **Schema** defines what the Node is.
 
 ```typescript
-import { defineSchema, text, number, select } from '@xnet/data'
+import { defineSchema, text, number, select } from '@xnetjs/data'
 
 const InvoiceSchema = defineSchema({
   name: 'Invoice',
@@ -271,7 +271,7 @@ const ProjectDocSchema = defineSchema({
 ## Primary React Hooks
 
 ```tsx
-import { useQuery, useMutate, useNode, useIdentity, useCan, useGrants } from '@xnet/react'
+import { useQuery, useMutate, useNode, useIdentity, useCan, useGrants } from '@xnetjs/react'
 
 // Structured data
 function TaskList() {

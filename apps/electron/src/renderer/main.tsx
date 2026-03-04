@@ -1,14 +1,14 @@
 /**
  * Renderer entry point
  */
-import { BlobService } from '@xnet/data'
-import { XNetDevToolsProvider, useDevTools } from '@xnet/devtools'
-import { BlobProvider } from '@xnet/editor/react'
-import { identityFromPrivateKey } from '@xnet/identity'
-import { XNetProvider } from '@xnet/react'
-import { ChunkManager } from '@xnet/storage'
-import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnet/telemetry'
-import { ThemeProvider } from '@xnet/ui'
+import { BlobService } from '@xnetjs/data'
+import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
+import { BlobProvider } from '@xnetjs/editor/react'
+import { identityFromPrivateKey } from '@xnetjs/identity'
+import { XNetProvider } from '@xnetjs/react'
+import { ChunkManager } from '@xnetjs/storage'
+import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnetjs/telemetry'
+import { ThemeProvider } from '@xnetjs/ui'
 import React, { useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { App } from './App'

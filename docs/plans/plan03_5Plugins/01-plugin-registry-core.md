@@ -2,7 +2,7 @@
 
 > Core infrastructure: PluginRegistry, ExtensionContext, manifest types, lifecycle management.
 
-**Dependencies:** `@xnet/data` (NodeStore, SchemaRegistry)
+**Dependencies:** `@xnetjs/data` (NodeStore, SchemaRegistry)
 **New Package:** `packages/plugins/`
 
 ## Overview
@@ -397,7 +397,7 @@ export class PluginRegistry {
 ```typescript
 // packages/plugins/src/schemas/plugin.ts
 
-import { defineSchema, text, checkbox } from '@xnet/data'
+import { defineSchema, text, checkbox } from '@xnetjs/data'
 
 export const PluginSchema = defineSchema({
   name: 'Plugin',
@@ -471,7 +471,7 @@ class TypedRegistry<T extends { id?: string; type?: string }> {
 ```typescript
 // packages/react/src/hooks/usePlugins.ts
 
-import { PluginRegistry } from '@xnet/plugins'
+import { PluginRegistry } from '@xnetjs/plugins'
 
 const PluginRegistryContext = createContext<PluginRegistry | null>(null)
 
@@ -506,13 +506,13 @@ export function useContributions<T>(type: keyof ContributionRegistry): T[] {
 ```json
 // packages/plugins/package.json
 {
-  "name": "@xnet/plugins",
+  "name": "@xnetjs/plugins",
   "version": "0.1.0",
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
-    "@xnet/data": "workspace:*",
-    "@xnet/core": "workspace:*"
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/core": "workspace:*"
   },
   "devDependencies": {
     "vitest": "^3.0.0"
@@ -599,7 +599,7 @@ describe('PluginRegistry', () => {
 - [ ] Implement PluginRegistry (install/activate/deactivate/uninstall)
 - [ ] Implement ContributionRegistry with change notifications
 - [ ] Define PluginSchema for storing plugins as Nodes
-- [ ] Add PluginRegistryContext to `@xnet/react`
+- [ ] Add PluginRegistryContext to `@xnetjs/react`
 - [ ] Add `usePluginRegistry` and `useContributions` hooks
 - [ ] Wire PluginRegistry into XNetProvider
 - [ ] Write unit tests (target: 20+ tests)

@@ -12,7 +12,7 @@ import type {
   ListNodesOptions,
   CountNodesOptions
 } from './types'
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 
 /**
  * In-memory implementation of NodeStorageAdapter.

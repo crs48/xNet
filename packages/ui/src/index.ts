@@ -1,5 +1,5 @@
 /**
- * @xnet/ui - Shared UI primitives and components
+ * @xnetjs/ui - Shared UI primitives and components
  *
  * shadcn-style component system with HSL design tokens,
  * class-variance-authority variants, and dark/light mode support.

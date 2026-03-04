@@ -10,7 +10,7 @@
  */
 
 import type { QueryOptions, SortDirection, SystemOrderField } from './types'
-import type { NodeState, PropertyBuilder, InferCreateProps, SchemaIRI } from '@xnet/data'
+import type { NodeState, PropertyBuilder, InferCreateProps, SchemaIRI } from '@xnetjs/data'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

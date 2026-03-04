@@ -341,8 +341,8 @@ Day 5:   Add Merkle tree construction for documents
 
 **Deliverables:**
 
-- `@xnet/crypto/hashing.ts` - BLAKE3 implementation
-- `@xnet/core/content.ts` - ContentChunk, ContentTree types
+- `@xnetjs/crypto/hashing.ts` - BLAKE3 implementation
+- `@xnetjs/core/content.ts` - ContentChunk, ContentTree types
 - `docs/CONTENT_ADDRESSING.md` - Specification
 
 ### Week 2: Signed Updates + Snapshots
@@ -355,8 +355,8 @@ Day 4-5: Design and implement snapshot strategy
 
 **Deliverables:**
 
-- `@xnet/core/updates.ts` - SignedUpdate type + verification
-- `@xnet/storage/snapshots.ts` - Snapshot creation/loading
+- `@xnetjs/core/updates.ts` - SignedUpdate type + verification
+- `@xnetjs/storage/snapshots.ts` - Snapshot creation/loading
 - `docs/UPDATE_SIGNING.md` - Specification
 
 ### Week 3: DID Resolution
@@ -369,8 +369,8 @@ Day 5:   Add caching and fallback strategies
 
 **Deliverables:**
 
-- `@xnet/network/resolution.ts` - DID resolver
-- `@xnet/network/bootstrap.ts` - Bootstrap peer list
+- `@xnetjs/network/resolution.ts` - DID resolver
+- `@xnetjs/network/bootstrap.ts` - Bootstrap peer list
 - `docs/DID_RESOLUTION.md` - Specification
 
 ### Week 4: Query Federation + Permissions
@@ -383,8 +383,8 @@ Day 4-5: Implement role-based permission model
 
 **Deliverables:**
 
-- `@xnet/query/federation.ts` - Query router
-- `@xnet/core/permissions.ts` - Role-based model
+- `@xnetjs/query/federation.ts` - Query router
+- `@xnetjs/core/permissions.ts` - Role-based model
 - `docs/QUERY_FEDERATION.md` - Specification
 - `docs/PERMISSION_ROLES.md` - Specification
 

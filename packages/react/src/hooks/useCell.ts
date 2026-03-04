@@ -20,8 +20,8 @@
  * ```
  */
 
-import type { CellValue } from '@xnet/data'
-import { updateCell, cellKey } from '@xnet/data'
+import type { CellValue } from '@xnetjs/data'
+import { updateCell, cellKey } from '@xnetjs/data'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 

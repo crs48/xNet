@@ -6,8 +6,8 @@
  * how the xNet plugin system works.
  */
 
-import type { XNetExtension } from '@xnet/plugins'
-import { MermaidExtension } from '@xnet/editor/extensions'
+import type { XNetExtension } from '@xnetjs/plugins'
+import { MermaidExtension } from '@xnetjs/editor/extensions'
 
 export const MermaidPlugin: XNetExtension = {
   id: 'fyi.xnet.mermaid',

@@ -4,7 +4,7 @@
 
 ## Context
 
-xNet has a working plugin system ([Exploration 0006](./0006_[x]_PLUGIN_ARCHITECTURE.md), `@xnet/plugins`). Extensions can register schemas, views, commands, editor extensions, sidebar items, slash commands, property handlers, and blocks. Plugins are persisted as Nodes in the NodeStore. One bundled plugin (Mermaid diagrams) ships today.
+xNet has a working plugin system ([Exploration 0006](./0006_[x]_PLUGIN_ARCHITECTURE.md), `@xnetjs/plugins`). Extensions can register schemas, views, commands, editor extensions, sidebar items, slash commands, property handlers, and blocks. Plugins are persisted as Nodes in the NodeStore. One bundled plugin (Mermaid diagrams) ships today.
 
 What's missing is **discovery** — a way for developers to publish plugins and for users to find, install, and update them from inside the app.
 
@@ -867,7 +867,7 @@ xnet-plugin-template/
 ├── src/
 │   └── index.ts           # activate() + deactivate()
 ├── manifest.json           # Pre-filled with placeholders
-├── package.json            # Build deps (@xnet/plugins as devDep)
+├── package.json            # Build deps (@xnetjs/plugins as devDep)
 ├── tsconfig.json
 ├── build.mjs               # esbuild/tsup script → plugin.js
 ├── .github/
@@ -984,16 +984,16 @@ flowchart LR
 
 ### Threat Model
 
-| Threat                                           | Mitigation                                                                                    |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| Malicious plugin in registry                     | Multi-level blocklist (repo, author, plugin ID) + client-side revocation list                 |
-| Malicious author resubmits under new repo        | Author-level blocking by GitHub username — all repos from that user rejected by CI            |
-| Plugin update introduces malware                 | GitHub Release history is immutable and auditable. Users can pin versions.                    |
-| Supply chain attack (compromised author account) | GitHub 2FA encouraged. Release signatures could be added later (Ed25519 from `@xnet/crypto`). |
-| Registry repo compromised                        | `plugins.json` is committed by CI bot, changes are auditable in git history                   |
-| Typosquatting                                    | Plugin IDs use reverse-domain format (`dev.alice.kanban`), harder to squat than names         |
-| Excessive permissions                            | App shows permissions dialog before install. Users consent explicitly.                        |
-| Installed plugin removed from registry           | Client-side revocation list embedded in `plugins.json` — app warns/disables on next fetch     |
+| Threat                                           | Mitigation                                                                                      |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Malicious plugin in registry                     | Multi-level blocklist (repo, author, plugin ID) + client-side revocation list                   |
+| Malicious author resubmits under new repo        | Author-level blocking by GitHub username — all repos from that user rejected by CI              |
+| Plugin update introduces malware                 | GitHub Release history is immutable and auditable. Users can pin versions.                      |
+| Supply chain attack (compromised author account) | GitHub 2FA encouraged. Release signatures could be added later (Ed25519 from `@xnetjs/crypto`). |
+| Registry repo compromised                        | `plugins.json` is committed by CI bot, changes are auditable in git history                     |
+| Typosquatting                                    | Plugin IDs use reverse-domain format (`dev.alice.kanban`), harder to squat than names           |
+| Excessive permissions                            | App shows permissions dialog before install. Users consent explicitly.                          |
+| Installed plugin removed from registry           | Client-side revocation list embedded in `plugins.json` — app warns/disables on next fetch       |
 
 ### Blocklist & Revocation
 
@@ -1079,7 +1079,7 @@ When the trust model needs to be stronger:
 }
 ```
 
-The index builder could verify signatures and add a `verified: true` flag. The app could show a verified badge. This leverages the existing `@xnet/crypto` Ed25519 infrastructure.
+The index builder could verify signatures and add a `verified: true` flag. The app could show a verified badge. This leverages the existing `@xnetjs/crypto` Ed25519 infrastructure.
 
 ## Implementation Plan
 

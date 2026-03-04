@@ -2,8 +2,8 @@
 
 > Human Resource Management with employees, recruiting, time tracking, and payroll
 
-**Package:** `modules/@xnet/hrm`
-**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`, `@xnet/data`
+**Package:** `modules/@xnetjs/hrm`
+**Dependencies:** `@xnetjs/modules`, `@xnetjs/workflows`, `@xnetjs/dashboard`, `@xnetjs/data`
 **Estimated Time:** 3 weeks
 
 > **Architecture Update (Jan 2026):**
@@ -24,7 +24,7 @@
 ```typescript
 // modules/hrm/src/module.ts
 
-import { ModuleDefinition } from '@xnet/modules'
+import { ModuleDefinition } from '@xnetjs/modules'
 
 export const HRMModule: ModuleDefinition = {
   id: 'mod:hrm',
@@ -554,8 +554,8 @@ export const performanceReviewsDatabase: DatabaseTemplate = {
 // modules/hrm/src/components/OrgChart.tsx
 
 import React, { useMemo } from 'react'
-import { useDatabase, useRecords } from '@xnet/database'
-import { Tree, TreeNode } from '@xnet/ui'
+import { useDatabase, useRecords } from '@xnetjs/database'
+import { Tree, TreeNode } from '@xnetjs/ui'
 
 export function OrgChart() {
   const { database } = useDatabase('hrm:employees')
@@ -653,9 +653,9 @@ interface OrgNode {
 // modules/hrm/src/components/TimeOffRequest.tsx
 
 import React, { useState } from 'react'
-import { useDatabase } from '@xnet/database'
-import { useCurrentUser } from '@xnet/identity'
-import { DateRangePicker, Select, Textarea, Button } from '@xnet/ui'
+import { useDatabase } from '@xnetjs/database'
+import { useCurrentUser } from '@xnetjs/identity'
+import { DateRangePicker, Select, Textarea, Button } from '@xnetjs/ui'
 
 export function TimeOffRequestForm({ onSubmit }: { onSubmit: () => void }) {
   const { createRecord } = useDatabase('hrm:timeOff')

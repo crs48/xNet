@@ -4,7 +4,7 @@
 
 ## Executive Summary
 
-The current UI system has critical inconsistencies: hardcoded colors in shared components, mismatched dark mode strategies, disconnected CSS variables, and no theme toggle. This plan migrates `@xnet/ui` to shadcn's design token pattern - a single CSS variable layer that all components reference, with proper dark/light mode support across Electron, Web, and Expo.
+The current UI system has critical inconsistencies: hardcoded colors in shared components, mismatched dark mode strategies, disconnected CSS variables, and no theme toggle. This plan migrates `@xnetjs/ui` to shadcn's design token pattern - a single CSS variable layer that all components reference, with proper dark/light mode support across Electron, Web, and Expo.
 
 **This is NOT "install shadcn"** - it's adopting shadcn's architecture patterns (HSL tokens, CVA variants, consistent Radix wrappers) while keeping our monorepo structure and cross-platform support.
 
@@ -25,7 +25,7 @@ The current UI system has critical inconsistencies: hardcoded colors in shared c
 | Different primary colors | Electron: `#646cff`, Web: `#0066cc`          | Unified HSL token: `--primary`             |
 | No theme toggle          | None                                         | `useTheme()` hook + toggle component       |
 | Variant patterns         | Inline object literals                       | `class-variance-authority` (CVA)           |
-| Duplicated cn()          | In `@xnet/ui` and `@xnet/editor`             | Single export from `@xnet/ui`              |
+| Duplicated cn()          | In `@xnetjs/ui` and `@xnetjs/editor`         | Single export from `@xnetjs/ui`            |
 | Missing components       | No Tabs, ScrollArea, Sheet, etc.             | Full set for devtools + editor             |
 
 ## Architecture Overview
@@ -38,7 +38,7 @@ flowchart TB
         Custom["[data-theme=custom]"]
     end
 
-    subgraph UI["@xnet/ui"]
+    subgraph UI["@xnetjs/ui"]
         Utils["cn() + cva()"]
         Primitives["Primitives (Radix + Tailwind)"]
         Composed["Composed Components"]
@@ -90,9 +90,9 @@ flowchart TB
 
 **Validation Gate:**
 
-- [x] Single `cn()` export from `@xnet/ui`
+- [x] Single `cn()` export from `@xnetjs/ui`
 - [x] `cva()` available for all components
-- [x] Editor package imports cn from @xnet/ui (no duplicate)
+- [x] Editor package imports cn from @xnetjs/ui (no duplicate)
 - [x] Variant types are exported for consumer use
 
 ### Phase 3: Migrate Existing Primitives (Week 1-2)
@@ -297,7 +297,7 @@ packages/ui/
 
 ## Success Criteria
 
-1. **All components use semantic tokens** - No raw palette colors in `@xnet/ui`
+1. **All components use semantic tokens** - No raw palette colors in `@xnetjs/ui`
 2. **Dark mode works everywhere** - Toggle between light/dark in all apps
 3. **Single source of truth** - One `tokens.css` defines all colors
 4. **CVA patterns** - All variants use class-variance-authority

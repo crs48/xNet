@@ -791,7 +791,7 @@ export class V2Serializer implements ChangeSerializer {
   - Emits warnings for caution changes (error code 90002)
   - Suggests lens operations for migrations
   - 15 tests in `packages/data/src/ts-plugin/index.test.ts`
-  - Usage: Add `{ "plugins": [{ "name": "@xnet/data/ts-plugin" }] }` to tsconfig.json
+  - Usage: Add `{ "plugins": [{ "name": "@xnetjs/data/ts-plugin" }] }` to tsconfig.json
 
 ```typescript
 // packages/data/src/schema/diff.ts
@@ -1474,7 +1474,7 @@ The current protocol version is **v1**. All new changes are created with `protoc
 When you create a change, xNet automatically stamps it with the current protocol version:
 
 \`\`\`typescript
-import { createUnsignedChange, CURRENT_PROTOCOL_VERSION } from '@xnet/sync'
+import { createUnsignedChange, CURRENT_PROTOCOL_VERSION } from '@xnetjs/sync'
 
 // Changes are automatically versioned
 const change = createUnsignedChange({

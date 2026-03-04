@@ -7,18 +7,18 @@
 
 ## Codebase Status (Feb 2026)
 
-| Existing Asset                | Location                                | Reuse Strategy                                                              |
-| ----------------------------- | --------------------------------------- | --------------------------------------------------------------------------- |
-| XChaCha20-Poly1305 encryption | `packages/crypto/src/symmetric.ts`      | Client-side encryption before upload — hub never sees plaintext             |
-| BLAKE3 hashing                | `packages/crypto/src/hashing.ts`        | Content-addressing for backup blobs                                         |
-| BlobStore                     | `packages/storage/src/blob-store.ts`    | Content-addressed storage pattern — same BLAKE3 CID approach                |
-| `@xnet/storage` ChunkManager  | `packages/storage/src/chunk-manager.ts` | Large blob chunking (64KB threshold) — relevant for backup upload streaming |
+| Existing Asset                 | Location                                | Reuse Strategy                                                              |
+| ------------------------------ | --------------------------------------- | --------------------------------------------------------------------------- |
+| XChaCha20-Poly1305 encryption  | `packages/crypto/src/symmetric.ts`      | Client-side encryption before upload — hub never sees plaintext             |
+| BLAKE3 hashing                 | `packages/crypto/src/hashing.ts`        | Content-addressing for backup blobs                                         |
+| BlobStore                      | `packages/storage/src/blob-store.ts`    | Content-addressed storage pattern — same BLAKE3 CID approach                |
+| `@xnetjs/storage` ChunkManager | `packages/storage/src/chunk-manager.ts` | Large blob chunking (64KB threshold) — relevant for backup upload streaming |
 
 > **No backup API exists yet.** This is entirely new server-side code. Client-side crypto primitives are ready.
 
 ## Overview
 
-The backup API provides HTTP endpoints for storing and retrieving encrypted blobs. Clients encrypt documents locally (using `@xnet/crypto` XChaCha20-Poly1305), then upload opaque ciphertext. The hub stores blobs content-addressed by their BLAKE3 hash on the filesystem. UCAN tokens gate access per document, and configurable quotas prevent abuse.
+The backup API provides HTTP endpoints for storing and retrieving encrypted blobs. Clients encrypt documents locally (using `@xnetjs/crypto` XChaCha20-Poly1305), then upload opaque ciphertext. The hub stores blobs content-addressed by their BLAKE3 hash on the filesystem. UCAN tokens gate access per document, and configurable quotas prevent abuse.
 
 ```mermaid
 sequenceDiagram
@@ -51,7 +51,7 @@ sequenceDiagram
 ```typescript
 // packages/hub/src/services/backup.ts
 
-import { blake3 } from '@xnet/crypto'
+import { blake3 } from '@xnetjs/crypto'
 import type { HubStorage, BlobMeta } from '../storage/interface'
 
 export interface BackupConfig {
@@ -472,7 +472,7 @@ describe('Backup API', () => {
 - [x] Handle error responses (413 too large, 507 quota, 404 not found)
 - [x] Write integration tests (upload, download, list, delete)
 - [ ] Verify blobs are opaque on disk (no metadata leakage)
-- [ ] Test with actual encrypted payloads from `@xnet/crypto`
+- [ ] Test with actual encrypted payloads from `@xnetjs/crypto`
 
 ---
 

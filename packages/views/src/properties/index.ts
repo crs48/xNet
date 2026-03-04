@@ -3,7 +3,7 @@
  */
 
 import type { PropertyHandler, Disposable } from '../types'
-import type { PropertyType } from '@xnet/data'
+import type { PropertyType } from '@xnetjs/data'
 import { checkboxHandler } from './checkbox.js'
 import { dateHandler } from './date.js'
 import { dateRangeHandler } from './dateRange.js'

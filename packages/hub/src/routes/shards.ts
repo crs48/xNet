@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Shard registry routes.
+ * @xnetjs/hub - Shard registry routes.
  */
 
 import type { AuthContext } from '../auth/ucan'

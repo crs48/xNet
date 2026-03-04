@@ -3,11 +3,11 @@
  */
 
 import type { BoardColumn as BoardColumnType } from './useBoardState.js'
-import type { Schema } from '@xnet/data'
+import type { Schema } from '@xnetjs/data'
 import { useDroppable } from '@dnd-kit/core'
 import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React, { useState, useRef, useEffect } from 'react'
 import { BoardCard } from './BoardCard.js'
 

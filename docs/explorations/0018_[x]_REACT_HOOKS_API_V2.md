@@ -1,7 +1,7 @@
 # React Hooks API Analysis v2
 
 > **Date**: January 2026  
-> **Package**: `@xnet/react`  
+> **Package**: `@xnetjs/react`  
 > **Status**: ✅ IMPLEMENTED - The `useNode` hook provides the unified API proposed here
 
 ## Implementation Status
@@ -21,7 +21,7 @@ See `packages/react/src/hooks/useNode.ts` for the implementation.
 
 ## Executive Summary
 
-The `@xnet/react` package is the primary developer interface for xNet. After a thorough code review, I've identified the current architecture, bugs that need immediate fixing, and opportunities to create a truly beautiful API.
+The `@xnetjs/react` package is the primary developer interface for xNet. After a thorough code review, I've identified the current architecture, bugs that need immediate fixing, and opportunities to create a truly beautiful API.
 
 **Current State**: 3 core hooks (`useQuery`, `useMutate`, `useDocument`) with good foundations but inconsistent patterns and several bugs.
 
@@ -49,7 +49,7 @@ flowchart TB
         components[Components]
     end
 
-    subgraph React ["@xnet/react"]
+    subgraph React ["@xnetjs/react"]
         subgraph Hooks ["Core Hooks"]
             useQuery["useQuery<br/>read"]
             useMutate["useMutate<br/>write"]
@@ -66,7 +66,7 @@ flowchart TB
         end
     end
 
-    subgraph Data ["@xnet/data"]
+    subgraph Data ["@xnetjs/data"]
         NodeStore["NodeStore<br/>event-sourced"]
         Schema["Schema System"]
     end
@@ -121,7 +121,7 @@ sequenceDiagram
 
 ```tsx
 // These imports will fail at runtime!
-import { useSync } from '@xnet/react'
+import { useSync } from '@xnetjs/react'
 const { status, peerCount } = useSync() // TypeError: useSync is not a function
 ```
 
@@ -412,8 +412,8 @@ After all improvements, here's what the ideal developer experience looks like:
 
 ```tsx
 // main.tsx
-import { XNetProvider } from '@xnet/react'
-import { createIndexedDBStorage } from '@xnet/storage'
+import { XNetProvider } from '@xnetjs/react'
+import { createIndexedDBStorage } from '@xnetjs/storage'
 
 const storage = createIndexedDBStorage('my-app')
 const identity = await loadOrCreateIdentity()
@@ -428,7 +428,7 @@ createRoot(document.getElementById('root')!).render(
 ### Reading Data
 
 ```tsx
-import { useQuery } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
 import { TaskSchema } from './schemas'
 
 function TaskList() {
@@ -461,7 +461,7 @@ function TaskList() {
 ### Writing Data
 
 ```tsx
-import { useMutate } from '@xnet/react'
+import { useMutate } from '@xnetjs/react'
 import { TaskSchema } from './schemas'
 
 function TaskForm() {
@@ -510,9 +510,9 @@ function TaskItem({ taskId }) {
 ### Rich Text Documents
 
 ```tsx
-import { useDocument } from '@xnet/react'
+import { useDocument } from '@xnetjs/react'
 import { PageSchema } from './schemas'
-import { Editor } from '@xnet/editor'
+import { Editor } from '@xnetjs/editor'
 
 function DocumentPage({ pageId }) {
   const {
@@ -628,7 +628,7 @@ function ReorderTasks({ tasks }) {
 
 ## Summary
 
-The `@xnet/react` API has solid foundations but needs polish to be truly "beautiful":
+The `@xnetjs/react` API has solid foundations but needs polish to be truly "beautiful":
 
 1. **Fix the bugs** - Broken imports, memory leaks, security issues
 2. **Complete the features** - Optimistic updates, error handling

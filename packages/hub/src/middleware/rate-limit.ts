@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - WebSocket rate limiting.
+ * @xnetjs/hub - WebSocket rate limiting.
  */
 
 export type RateLimitConfig = {

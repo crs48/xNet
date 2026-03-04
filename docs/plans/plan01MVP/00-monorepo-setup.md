@@ -20,16 +20,16 @@ xnet/
 │       ├── ci.yml            # CI pipeline
 │       └── release.yml       # Release pipeline
 ├── packages/
-│   ├── core/                 # @xnet/core
-│   ├── crypto/               # @xnet/crypto
-│   ├── identity/             # @xnet/identity
-│   ├── storage/              # @xnet/storage
-│   ├── data/                 # @xnet/data
-│   ├── network/              # @xnet/network
-│   ├── query/                # @xnet/query
-│   ├── vectors/              # @xnet/vectors
-│   ├── react/                # @xnet/react
-│   └── sdk/                  # @xnet/sdk
+│   ├── core/                 # @xnetjs/core
+│   ├── crypto/               # @xnetjs/crypto
+│   ├── identity/             # @xnetjs/identity
+│   ├── storage/              # @xnetjs/storage
+│   ├── data/                 # @xnetjs/data
+│   ├── network/              # @xnetjs/network
+│   ├── query/                # @xnetjs/query
+│   ├── vectors/              # @xnetjs/vectors
+│   ├── react/                # @xnetjs/react
+│   └── sdk/                  # @xnetjs/sdk
 ├── apps/
 │   ├── electron/             # Electron macOS
 │   ├── expo/                 # Expo iOS
@@ -166,7 +166,7 @@ Package package.json template:
 
 ```json
 {
-  "name": "@xnet/crypto",
+  "name": "@xnetjs/crypto",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",

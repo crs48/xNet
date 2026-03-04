@@ -97,7 +97,7 @@ sequenceDiagram
 
 import { ipcMain, MessageChannelMain } from 'electron'
 import * as Y from 'yjs'
-import { createSyncManager, type SyncManager } from '@xnet/react/sync'
+import { createSyncManager, type SyncManager } from '@xnetjs/react/sync'
 import type { SQLiteAdapter } from './storage'
 
 interface BSMServiceConfig {

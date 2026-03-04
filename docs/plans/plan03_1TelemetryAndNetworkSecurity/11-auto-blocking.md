@@ -18,7 +18,7 @@ AutoBlocker automatically blocks peers based on:
 ```typescript
 // packages/network/src/security/auto-blocker.ts
 
-import type { PeerId } from '@xnet/core'
+import type { PeerId } from '@xnetjs/core'
 import type { PeerScorer } from './peer-scorer'
 import type { ConnectionGater } from './gater'
 import { logSecurityEvent, type SecurityEventType } from './logging'
@@ -316,7 +316,7 @@ export class AutoBlocker {
 ## Usage Example
 
 ```typescript
-import { AutoBlocker, PeerScorer, DefaultConnectionGater } from '@xnet/network/security'
+import { AutoBlocker, PeerScorer, DefaultConnectionGater } from '@xnetjs/network/security'
 
 const gater = new DefaultConnectionGater(limits)
 const scorer = new PeerScorer()

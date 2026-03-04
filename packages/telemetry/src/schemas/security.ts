@@ -4,7 +4,7 @@
  * Event names follow xnet.security.* naming convention.
  */
 
-import { defineSchema, text, select, date } from '@xnet/data'
+import { defineSchema, text, select, date } from '@xnetjs/data'
 
 export const SecurityEventSchema = defineSchema({
   name: 'SecurityEvent',

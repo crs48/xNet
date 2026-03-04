@@ -4,7 +4,7 @@
 
 **Duration:** 2-3 days
 **Dependencies:** [04-chunked-storage.md](./04-chunked-storage.md)
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

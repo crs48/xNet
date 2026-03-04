@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Adapter interface tests
+ * @xnetjs/sqlite - Adapter interface tests
  *
  * These tests verify the SQLiteAdapter interface using the MemorySQLiteAdapter.
  */

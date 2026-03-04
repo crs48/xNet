@@ -16,7 +16,7 @@ xNet has strong package modularity, but the package portfolio currently mixes:
 The biggest clarity and maintenance wins now are:
 
 1. make package lifecycle status explicit (`stable` / `experimental` / `deprecated`),
-2. remove or archive demonstrably unused packages (`@xnet/formula` likely first),
+2. remove or archive demonstrably unused packages (`@xnetjs/formula` likely first),
 3. simplify APIs that currently imply capabilities not actually implemented,
 4. tighten docs around _current_ behavior and intentional boundaries.
 
@@ -56,36 +56,36 @@ This exploration reviewed all `packages/*` and cross-checked with app usage and 
 ```mermaid
 flowchart LR
   subgraph Foundation
-    core[@xnet/core]
-    crypto[@xnet/crypto]
-    identity[@xnet/identity]
-    sqlite[@xnet/sqlite]
-    storage[@xnet/storage]
-    sync[@xnet/sync]
-    data[@xnet/data]
+    core[@xnetjs/core]
+    crypto[@xnetjs/crypto]
+    identity[@xnetjs/identity]
+    sqlite[@xnetjs/sqlite]
+    storage[@xnetjs/storage]
+    sync[@xnetjs/sync]
+    data[@xnetjs/data]
   end
 
   subgraph Runtime
-    react[@xnet/react]
-    editor[@xnet/editor]
-    canvas[@xnet/canvas]
-    views[@xnet/views]
-    ui[@xnet/ui]
-    devtools[@xnet/devtools]
-    plugins[@xnet/plugins]
-    hub[@xnet/hub]
-    network[@xnet/network]
+    react[@xnetjs/react]
+    editor[@xnetjs/editor]
+    canvas[@xnetjs/canvas]
+    views[@xnetjs/views]
+    ui[@xnetjs/ui]
+    devtools[@xnetjs/devtools]
+    plugins[@xnetjs/plugins]
+    hub[@xnetjs/hub]
+    network[@xnetjs/network]
   end
 
   subgraph Optional_or_Thin
-    sdk[@xnet/sdk]
-    query[@xnet/query]
-    databridge[@xnet/data-bridge]
-    cli[@xnet/cli]
-    formula[@xnet/formula]
-    telemetry[@xnet/telemetry]
-    history[@xnet/history]
-    vectors[@xnet/vectors]
+    sdk[@xnetjs/sdk]
+    query[@xnetjs/query]
+    databridge[@xnetjs/data-bridge]
+    cli[@xnetjs/cli]
+    formula[@xnetjs/formula]
+    telemetry[@xnetjs/telemetry]
+    history[@xnetjs/history]
+    vectors[@xnetjs/vectors]
   end
 
   core-->crypto-->identity-->sync-->data-->react
@@ -121,7 +121,7 @@ flowchart TD
 
 ### 1) Packages likely removable or archivable
 
-#### `@xnet/formula` — strongest removal candidate
+#### `@xnetjs/formula` — strongest removal candidate
 
 Evidence:
 
@@ -137,7 +137,7 @@ Recommendation:
 
 - Move to `packages-archive/formula` (or remove) with explicit changelog note.
 
-#### `@xnet/cli` — likely tooling-only, currently isolated
+#### `@xnetjs/cli` — likely tooling-only, currently isolated
 
 Evidence:
 
@@ -153,12 +153,12 @@ Recommendation:
 
 - Decide strategic intent: productized CLI vs internal tool.
 
-#### `@xnet/sdk` — currently very thin and minimally used internally
+#### `@xnetjs/sdk` — currently very thin and minimally used internally
 
 Evidence:
 
 - In-repo TS usage is minimal (appears effectively unused by app source logic)
-- Apps depend directly on `@xnet/react`, `@xnet/data`, etc.
+- Apps depend directly on `@xnetjs/react`, `@xnetjs/data`, etc.
 
 Assessment:
 
@@ -173,7 +173,7 @@ Recommendation:
 
 ### 2) APIs that overpromise current capability
 
-#### `@xnet/query` federation API
+#### `@xnetjs/query` federation API
 
 - `createFederatedQueryRouter` exposes remote route semantics but currently throws for remote path.
 - Code: `packages/query/src/federation/router.ts:43`
@@ -184,7 +184,7 @@ Recommendation:
   - `createLocalQueryRouter` (stable)
   - `createFederatedQueryRouterExperimental` (feature-flagged)
 
-#### `@xnet/data-bridge` NativeBridge docs vs capability
+#### `@xnetjs/data-bridge` NativeBridge docs vs capability
 
 - `acquireDoc` in NativeBridge is intentionally unimplemented.
 - Code: `packages/data-bridge/src/native-bridge.ts:239`
@@ -222,7 +222,7 @@ Recommendation:
 
 ### 4) Top-level API clarity drift
 
-#### `@xnet/identity`
+#### `@xnetjs/identity`
 
 - Exports both legacy key bundle APIs and new hybrid bundle APIs together.
 - Code: `packages/identity/src/index.ts:20`
@@ -230,12 +230,12 @@ Recommendation:
 Recommendation:
 
 - Create explicit subpaths:
-  - `@xnet/identity/legacy`
-  - `@xnet/identity/hybrid`
-  - `@xnet/identity/passkey`
+  - `@xnetjs/identity/legacy`
+  - `@xnetjs/identity/hybrid`
+  - `@xnetjs/identity/passkey`
 - Keep top-level exports minimal and opinionated.
 
-#### `@xnet/react` and `@xnet/ui`
+#### `@xnetjs/react` and `@xnetjs/ui`
 
 - Very large top-level export surfaces increase discoverability cost and upgrade risk.
 
@@ -256,21 +256,21 @@ quadrantChart
   quadrant-2 Keep
   quadrant-3 Observe
   quadrant-4 Remove/archive first
-  "@xnet/formula": [0.15, 0.9]
-  "@xnet/cli": [0.25, 0.78]
-  "@xnet/sdk": [0.4, 0.55]
-  "@xnet/query (federation)": [0.45, 0.5]
-  "@xnet/data-bridge": [0.7, 0.3]
-  "@xnet/react": [0.95, 0.1]
-  "@xnet/data": [0.98, 0.08]
+  "@xnetjs/formula": [0.15, 0.9]
+  "@xnetjs/cli": [0.25, 0.78]
+  "@xnetjs/sdk": [0.4, 0.55]
+  "@xnetjs/query (federation)": [0.45, 0.5]
+  "@xnetjs/data-bridge": [0.7, 0.3]
+  "@xnetjs/react": [0.95, 0.1]
+  "@xnetjs/data": [0.98, 0.08]
 ```
 
 ### Recommended disposition
 
-- `@xnet/formula`: **Archive/remove candidate now**
-- `@xnet/cli`: **Move to internal tooling or archive**, unless productized CLI is imminent
-- `@xnet/sdk`: **Do not remove yet**, but either harden as primary façade or slim/freeze
-- `@xnet/query`: **Keep local engine**, split out federated experimental path
+- `@xnetjs/formula`: **Archive/remove candidate now**
+- `@xnetjs/cli`: **Move to internal tooling or archive**, unless productized CLI is imminent
+- `@xnetjs/sdk`: **Do not remove yet**, but either harden as primary façade or slim/freeze
+- `@xnetjs/query`: **Keep local engine**, split out federated experimental path
 - Core runtime packages (`data`, `react`, `sync`, `identity`, `storage`, `sqlite`, `ui`, `editor`, `canvas`, `views`): **retain**
 
 ---
@@ -292,10 +292,10 @@ Example statuses:
 
 ```mermaid
 flowchart LR
-  Old[Single index.ts with mixed exports] --> New1[@xnet/pkg/core]
-  Old --> New2[@xnet/pkg/experimental]
-  Old --> New3[@xnet/pkg/legacy]
-  Old --> New4[@xnet/pkg/internal]
+  Old[Single index.ts with mixed exports] --> New1[@xnetjs/pkg/core]
+  Old --> New2[@xnetjs/pkg/experimental]
+  Old --> New3[@xnetjs/pkg/legacy]
+  Old --> New4[@xnetjs/pkg/internal]
 ```
 
 Benefits:
@@ -331,8 +331,8 @@ gantt
   section Phase 0 Discovery Lock
   Baseline usage + API inventory         :a1, 2026-03-03, 5d
   section Phase 1 Low-risk removals
-  Archive/remove @xnet/formula           :a2, after a1, 4d
-  Decide @xnet/cli fate                  :a3, after a1, 4d
+  Archive/remove @xnetjs/formula           :a2, after a1, 4d
+  Decide @xnetjs/cli fate                  :a3, after a1, 4d
   section Phase 2 API simplification
   Add lifecycle labels + status checks   :b1, after a2, 7d
   Split query federation experimental    :b2, after b1, 5d
@@ -348,16 +348,16 @@ gantt
 
 ## Implementation Checklist
 
-- [ ] Confirm product intent for `@xnet/formula`, `@xnet/cli`, `@xnet/sdk`
+- [ ] Confirm product intent for `@xnetjs/formula`, `@xnetjs/cli`, `@xnetjs/sdk`
 - [ ] Create package lifecycle matrix in `packages/README.md`
 - [ ] Add `@status` tags to top-level exported symbols in each `src/index.ts`
 - [ ] Introduce explicit `experimental` entrypoints for partial features
-- [ ] Split `@xnet/query` local vs federated APIs
+- [ ] Split `@xnetjs/query` local vs federated APIs
 - [ ] Add `DataBridge` capability introspection (`bridge.capabilities`)
-- [ ] Implement or rename incomplete verification flows in `@xnet/history`
+- [ ] Implement or rename incomplete verification flows in `@xnetjs/history`
 - [ ] Add V2 verification path in hub relay before claiming V2 security parity
-- [ ] Archive/remove `@xnet/formula` if approved
-- [ ] Move `@xnet/cli` to `/tools` or archive if approved
+- [ ] Archive/remove `@xnetjs/formula` if approved
+- [ ] Move `@xnetjs/cli` to `/tools` or archive if approved
 - [ ] Remove unused app package deps (e.g., SDK where not imported)
 - [ ] Update all package READMEs with stable/experimental/deprecated sections
 
@@ -377,7 +377,7 @@ gantt
 
 ## Concrete Next Actions (Recommended Order)
 
-1. Decide package fate for `@xnet/formula` and `@xnet/cli` this week.
+1. Decide package fate for `@xnetjs/formula` and `@xnetjs/cli` this week.
 2. Land lifecycle/status framework (`stable`/`experimental`/`deprecated`) across package exports.
 3. Split and label partial APIs (`query` federation, `data-bridge` native doc editing).
 4. Close correctness/security gaps (hub V2 verification, history signature verification).

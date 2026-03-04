@@ -3,7 +3,7 @@
 > Signaling servers, relay nodes, and bootstrap peers
 
 **Duration:** 3 weeks (can be deferred until P2P features needed)
-**Dependencies:** @xnet/network working
+**Dependencies:** @xnetjs/network working
 
 ## Current Status
 

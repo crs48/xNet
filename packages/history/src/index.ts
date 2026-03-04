@@ -1,5 +1,5 @@
 /**
- * @xnet/history - History, audit & time travel for xNet
+ * @xnetjs/history - History, audit & time travel for xNet
  *
  * Exposes the event-sourced change log to power Time Machine scrubbers,
  * undo/redo, audit trails, diffs, and cryptographic verification.

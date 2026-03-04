@@ -1,10 +1,10 @@
 /**
- * @xnet/history - Types for history, audit & time travel
+ * @xnetjs/history - Types for history, audit & time travel
  */
 
-import type { DID, ContentId } from '@xnet/core'
-import type { NodeChange, NodeState, NodeId, SchemaIRI } from '@xnet/data'
-import type { LamportTimestamp } from '@xnet/sync'
+import type { DID, ContentId } from '@xnetjs/core'
+import type { NodeChange, NodeState, NodeId, SchemaIRI } from '@xnetjs/data'
+import type { LamportTimestamp } from '@xnetjs/sync'
 
 // ─── History Targeting ───────────────────────────────────────
 

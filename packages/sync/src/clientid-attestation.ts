@@ -8,7 +8,7 @@
  * V2 introduces multi-level signature support (Ed25519 and/or ML-DSA-65).
  */
 
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import {
   hash,
   sign,
@@ -21,8 +21,8 @@ import {
   type SignatureWire,
   type SecurityLevel,
   DEFAULT_SECURITY_LEVEL
-} from '@xnet/crypto'
-import { parseDID, type PQKeyRegistry, type HybridKeyBundle } from '@xnet/identity'
+} from '@xnetjs/crypto'
+import { parseDID, type PQKeyRegistry, type HybridKeyBundle } from '@xnetjs/identity'
 
 // ─── V1 Types (Legacy) ────────────────────────────────────────
 

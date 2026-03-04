@@ -1,4 +1,4 @@
-import { createUCAN, generateKeyBundle } from '@xnet/identity'
+import { createUCAN, generateKeyBundle } from '@xnetjs/identity'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createHub, type HubInstance } from '../src'
 

@@ -1,9 +1,9 @@
 /**
  * Signed update handling for document changes
  */
-import type { SignedUpdate, VectorClock } from '@xnet/core'
+import type { SignedUpdate, VectorClock } from '@xnetjs/core'
 import type { Doc } from 'yjs'
-import { sign, verify, hashHex } from '@xnet/crypto'
+import { sign, verify, hashHex } from '@xnetjs/crypto'
 import * as Y from 'yjs'
 
 /**

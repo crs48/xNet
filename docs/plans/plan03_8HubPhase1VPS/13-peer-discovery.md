@@ -19,7 +19,7 @@
 
 ## Overview
 
-The `DIDResolver` in `@xnet/network` is a stub — `resolve()` returns null for all lookups. The hub fills this gap by acting as a rendezvous point: clients register their DID with their current endpoints (WebSocket URL, WebRTC signaling params), and other clients can look up peers by DID to establish connections.
+The `DIDResolver` in `@xnetjs/network` is a stub — `resolve()` returns null for all lookups. The hub fills this gap by acting as a rendezvous point: clients register their DID with their current endpoints (WebSocket URL, WebRTC signaling params), and other clients can look up peers by DID to establish connections.
 
 This also fills the empty `NetworkConfig.bootstrapPeers` array — the hub IS the bootstrap node. Clients configured with a `hubUrl` use the hub for both signaling and peer discovery.
 
@@ -684,7 +684,7 @@ describe('Peer Discovery', () => {
 - [x] Create Hono routes: POST /register, GET /:did, GET / (list)
 - [x] Auto-register peers on authenticated WebSocket connect
 - [x] Update heartbeat on WebSocket message activity
-- [x] Implement `DIDResolver` in `@xnet/network` (replace stub)
+- [x] Implement `DIDResolver` in `@xnetjs/network` (replace stub)
 - [x] Add resolution cache with TTL
 - [x] Create `usePeerDiscovery()` React hook
 - [x] Periodic cleanup of stale peer records

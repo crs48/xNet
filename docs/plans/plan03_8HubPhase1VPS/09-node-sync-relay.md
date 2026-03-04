@@ -21,7 +21,7 @@
 
 > 1. **`getChangesSince(lamportTime)` does not exist** on `NodeStorageAdapter` — this is the critical addition needed for delta sync. The interface has `getAllChanges()` and `getLastLamportTime()` but no range query.
 > 2. **Hub does NOT need materialized state** — it only stores the append-only change log and serves deltas. Clients handle LWW resolution locally (see [Exploration 0026](../../explorations/0026_[x]_NODE_CHANGE_ARCHITECTURE.md)).
-> 3. **`verifyIntegrity` in the plan only checks hash prefix** — real verification needs `@xnet/crypto` BLAKE3 + Ed25519 signature check. The `@xnet/sync` `verifyChangeHash` function should be used.
+> 3. **`verifyIntegrity` in the plan only checks hash prefix** — real verification needs `@xnetjs/crypto` BLAKE3 + Ed25519 signature check. The `@xnetjs/sync` `verifyChangeHash` function should be used.
 
 ## Overview
 
@@ -233,7 +233,7 @@ function rowToSerializedChange(row: any): SerializedNodeChange {
 ```typescript
 // packages/hub/src/services/node-relay.ts
 
-import { verifyChangeHash } from '@xnet/sync'
+import { verifyChangeHash } from '@xnetjs/sync'
 import type { HubStorage, SerializedNodeChange } from '../storage/interface'
 import type { AuthContext } from '../auth/ucan'
 
@@ -330,8 +330,8 @@ export class NodeRelayService {
    */
   private verifyIntegrity(change: SerializedNodeChange): boolean {
     // Reconstruct the unsigned change and verify hash
-    // For now, trust the hash (full verification requires @xnet/sync on hub)
-    // TODO: Import verifyChangeHash from @xnet/sync when hub depends on it
+    // For now, trust the hash (full verification requires @xnetjs/sync on hub)
+    // TODO: Import verifyChangeHash from @xnetjs/sync when hub depends on it
     return change.hash.startsWith('cid:blake3:') && change.hash.length > 20
   }
 }
@@ -396,8 +396,8 @@ export function handleNodeMessages(
 ```typescript
 // packages/react/src/sync/NodeStoreSyncProvider.ts
 
-import type { NodeChange } from '@xnet/data'
-import type { SerializedNodeChange } from '@xnet/hub/src/storage/interface'
+import type { NodeChange } from '@xnetjs/data'
+import type { SerializedNodeChange } from '@xnetjs/hub/src/storage/interface'
 import type { ConnectionManager } from './connection-manager'
 
 /**

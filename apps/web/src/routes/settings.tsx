@@ -2,7 +2,7 @@
  * Settings page - expanded with theme, data, plugins, and about sections
  */
 import { createFileRoute } from '@tanstack/react-router'
-import { useIdentity } from '@xnet/react'
+import { useIdentity } from '@xnetjs/react'
 import {
   Palette,
   Database,

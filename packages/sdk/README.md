@@ -1,11 +1,11 @@
-# @xnet/sdk
+# @xnetjs/sdk
 
 Unified SDK bundle for xNet.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/sdk
+pnpm add @xnetjs/sdk
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ import {
   createSearchIndex,
   createLocalQueryEngine,
   MemoryAdapter
-} from '@xnet/sdk'
+} from '@xnetjs/sdk'
 
 const { identity } = generateIdentity()
 const storage = new MemoryAdapter()
@@ -31,24 +31,24 @@ console.log(identity.did, storage, index, engine)
 
 ## What This Package Exports
 
-- Identity helpers from `@xnet/identity`
-- Query helpers from `@xnet/query`
-- Blob storage adapter from `@xnet/storage`
-- Core hashing/content helpers from `@xnet/core`
+- Identity helpers from `@xnetjs/identity`
+- Query helpers from `@xnetjs/query`
+- Blob storage adapter from `@xnetjs/storage`
+- Core hashing/content helpers from `@xnetjs/core`
 - Shared type re-exports from core/network/query/storage/identity
 
 ## Re-exports
 
 The SDK re-exports commonly used types and utilities from:
 
-- `@xnet/core` -- Types, CIDs, permissions
-- `@xnet/crypto` -- Hashing, signing
-- `@xnet/identity` -- DID, UCAN, key bundles
-- `@xnet/storage` -- Blob storage adapter
-- `@xnet/network` -- Network node
-- `@xnet/query` -- Query engine, search
+- `@xnetjs/core` -- Types, CIDs, permissions
+- `@xnetjs/crypto` -- Hashing, signing
+- `@xnetjs/identity` -- DID, UCAN, key bundles
+- `@xnetjs/storage` -- Blob storage adapter
+- `@xnetjs/network` -- Network node
+- `@xnetjs/query` -- Query engine, search
 
-For app bootstrap, use `createClient()` from `@xnet/sdk`.
+For app bootstrap, use `createClient()` from `@xnetjs/sdk`.
 
 ## Modules
 
@@ -59,5 +59,5 @@ For app bootstrap, use `createClient()` from `@xnet/sdk`.
 ## Testing
 
 ```bash
-pnpm --filter @xnet/sdk test
+pnpm --filter @xnetjs/sdk test
 ```

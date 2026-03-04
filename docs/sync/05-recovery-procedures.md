@@ -63,7 +63,7 @@ Run 'xnet repair --dry-run' to see fixable issues.
 ### Programmatic Diagnosis
 
 ```typescript
-import { verifyIntegrity } from '@xnet/sync'
+import { verifyIntegrity } from '@xnetjs/sync'
 
 const result = await verifyIntegrity(storage, {
   checkHashes: true,
@@ -122,7 +122,7 @@ These require manual intervention:
 ### Programmatic Repair
 
 ```typescript
-import { attemptRepair } from '@xnet/sync'
+import { attemptRepair } from '@xnetjs/sync'
 
 const result = await attemptRepair(storage, {
   dryRun: false,
@@ -175,7 +175,7 @@ xnet export --output backup.json.gz
 ### Programmatic Export
 
 ```typescript
-import { exportData } from '@xnet/sync'
+import { exportData } from '@xnetjs/sync'
 
 const data = await exportData(storage, {
   schemas: ['Task', 'Project'],
@@ -223,7 +223,7 @@ xnet import backup.json --on-conflict fail
 ### Programmatic Import
 
 ```typescript
-import { importData } from '@xnet/sync'
+import { importData } from '@xnetjs/sync'
 
 const backup = JSON.parse(await fs.readFile('backup.json', 'utf-8'))
 
@@ -293,7 +293,7 @@ xnet sync clear-pending
 ### Conflict Resolution
 
 ```typescript
-import { useConflicts } from '@xnet/react'
+import { useConflicts } from '@xnetjs/react'
 
 function ConflictResolver() {
   const { conflicts, resolve } = useConflicts()
@@ -348,7 +348,7 @@ xnet changes sync --from-peer hub.example.com
 ### Missing Changes
 
 ```typescript
-import { findMissingChanges, fetchMissingChanges } from '@xnet/sync'
+import { findMissingChanges, fetchMissingChanges } from '@xnetjs/sync'
 
 // Find gaps
 const missing = await findMissingChanges(storage)
@@ -432,7 +432,7 @@ If you suspect unauthorized access:
 Enable continuous monitoring:
 
 ```typescript
-import { createIntegrityMonitor } from '@xnet/sync'
+import { createIntegrityMonitor } from '@xnetjs/sync'
 
 const monitor = createIntegrityMonitor(storage, {
   interval: 60 * 60 * 1000, // Check hourly
@@ -447,7 +447,7 @@ monitor.start()
 ### Health Metrics
 
 ```typescript
-import { getHealthMetrics } from '@xnet/sync'
+import { getHealthMetrics } from '@xnetjs/sync'
 
 const metrics = await getHealthMetrics(storage)
 
@@ -473,7 +473,7 @@ localStorage.setItem('xnet:debug', 'sync,storage,integrity')
 ### Support Resources
 
 - **GitHub Issues**: [github.com/xnet/xnet/issues](https://github.com/xnet/xnet/issues)
-- **Discord**: #support channel
+- **GitHub Discussions**: #support channel
 - **Documentation**: [xnet.fyi/docs](https://xnet.fyi/docs)
 
 ### Collecting Diagnostics

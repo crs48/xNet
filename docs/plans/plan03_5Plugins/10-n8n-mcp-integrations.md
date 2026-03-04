@@ -29,7 +29,7 @@ flowchart LR
     end
 
     subgraph "External Services"
-        E1[Slack / Discord]
+        E1[Slack / GitHub Discussions]
         E2[Google Sheets]
         E3[GitHub]
         E4[Email]

@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Unified SQLite adapter for xNet across all platforms
+ * @xnetjs/sqlite - Unified SQLite adapter for xNet across all platforms
  */
 
 // Types

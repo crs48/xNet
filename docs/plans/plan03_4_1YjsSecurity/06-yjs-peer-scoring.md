@@ -3,7 +3,7 @@
 > Track Yjs-specific misbehavior and auto-block repeat offenders
 
 **Duration:** 2 days  
-**Dependencies:** Step 01 (signatures), Step 03 (rate limits), `@xnet/network/security/peer-scorer.ts`
+**Dependencies:** Step 01 (signatures), Step 03 (rate limits), `@xnetjs/network/security/peer-scorer.ts`
 
 ## Overview
 

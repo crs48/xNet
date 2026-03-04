@@ -8,7 +8,7 @@
  * - import: Import data from JSON with migrations
  */
 
-import type { Change, IntegrityReport } from '@xnet/sync'
+import type { Change, IntegrityReport } from '@xnetjs/sync'
 import { writeFileSync, readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import {
@@ -19,7 +19,7 @@ import {
   findRoots,
   findHeads,
   getChainDepth
-} from '@xnet/sync'
+} from '@xnetjs/sync'
 import { Command } from 'commander'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -219,7 +219,7 @@ async function doctorCommand(options: DoctorOptions): Promise<void> {
     // Schema check (placeholder)
     console.log()
     console.log(chalk.bold('Checking schema compatibility...'))
-    console.log(chalk.gray('  (Schema analysis requires @xnet/data integration)'))
+    console.log(chalk.gray('  (Schema analysis requires @xnetjs/data integration)'))
 
     // Sync state (placeholder)
     console.log()

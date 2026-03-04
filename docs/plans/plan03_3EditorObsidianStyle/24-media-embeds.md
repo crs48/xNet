@@ -432,7 +432,7 @@ export const EmbedExtension = Node.create<EmbedOptions>({
 
 import * as React from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { EMBED_PROVIDERS } from './providers'
 import { ExternalLink, Maximize2, Minimize2 } from 'lucide-react'
 
@@ -628,7 +628,7 @@ Twitter requires special handling with their widget script:
 // packages/editor/src/extensions/embed/TwitterEmbed.tsx
 
 import * as React from 'react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 
 interface TwitterEmbedProps {
   tweetId: string

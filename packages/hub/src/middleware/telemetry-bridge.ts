@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Bridge Prometheus metrics to telemetry system.
+ * @xnetjs/hub - Bridge Prometheus metrics to telemetry system.
  *
  * This bridge allows the Hub to report metrics to both:
  * 1. Prometheus (server-side, always-on, for ops monitoring)
@@ -7,7 +7,7 @@
  */
 
 import type { Metrics } from './metrics'
-import type { TelemetryCollector } from '@xnet/telemetry'
+import type { TelemetryCollector } from '@xnetjs/telemetry'
 import { HUB_METRICS } from './metrics'
 
 export type TelemetryBridgeConfig = {

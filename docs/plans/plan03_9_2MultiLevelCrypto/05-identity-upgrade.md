@@ -36,7 +36,7 @@ flowchart TD
 ```typescript
 // packages/identity/src/types.ts
 
-import type { SecurityLevel } from '@xnet/crypto'
+import type { SecurityLevel } from '@xnetjs/crypto'
 
 /**
  * Ed25519-based DID (did:key:z6Mk...)
@@ -118,7 +118,7 @@ export interface CreateKeyBundleOptions {
 ````typescript
 // packages/identity/src/key-bundle.ts
 
-import { generateHybridKeyPair, deriveHybridKeyPair, type HybridKeyPair } from '@xnet/crypto'
+import { generateHybridKeyPair, deriveHybridKeyPair, type HybridKeyPair } from '@xnetjs/crypto'
 import { createDID, parseDID } from './did'
 import type { HybridKeyBundle, CreateKeyBundleOptions, Identity } from './types'
 import { createPQKeyAttestation, type PQKeyAttestation } from './pq-attestation'
@@ -215,7 +215,7 @@ export async function createKeyBundleWithAttestation(
 ```typescript
 // packages/identity/src/passkey/create.ts (updated)
 
-import { deriveHybridKeyPair } from '@xnet/crypto'
+import { deriveHybridKeyPair } from '@xnetjs/crypto'
 import { createDID } from '../did'
 import type { HybridKeyBundle, Identity } from '../types'
 import type { PasskeyIdentity, PasskeyUnlockResult } from './types'
@@ -346,7 +346,7 @@ export async function createPasskeyIdentity(
 ```typescript
 // packages/identity/src/key-bundle.ts (continued)
 
-import { hybridSign, hybridVerify, type SecurityLevel, type UnifiedSignature } from '@xnet/crypto'
+import { hybridSign, hybridVerify, type SecurityLevel, type UnifiedSignature } from '@xnetjs/crypto'
 
 /**
  * Sign a message using the key bundle.
@@ -444,7 +444,7 @@ export function bundleSize(bundle: HybridKeyBundle): number {
 ```typescript
 // packages/identity/src/key-bundle-storage.ts
 
-import { encodeBase64, decodeBase64 } from '@xnet/crypto'
+import { encodeBase64, decodeBase64 } from '@xnetjs/crypto'
 import { createDID } from './did'
 import type { HybridKeyBundle } from './types'
 
@@ -614,7 +614,7 @@ import {
 } from './key-bundle'
 import { serializeKeyBundle, deserializeKeyBundle } from './key-bundle-storage'
 import { MemoryPQKeyRegistry } from './pq-registry'
-import { hybridVerify } from '@xnet/crypto'
+import { hybridVerify } from '@xnetjs/crypto'
 
 describe('createKeyBundle', () => {
   it('creates hybrid bundle by default', () => {

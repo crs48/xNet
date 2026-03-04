@@ -2,13 +2,13 @@
 
 > Automated business process execution with n8n integration
 
-**Package:** `@xnet/workflows`
-**Dependencies:** `@xnet/modules`, `@xnet/data`
+**Package:** `@xnetjs/workflows`
+**Dependencies:** `@xnetjs/modules`, `@xnetjs/data`
 **Estimated Time:** 4 weeks
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → `@xnet/data`
+> - `@xnetjs/database` → `@xnetjs/data`
 > - Workflow triggers use Node events (create, update, delete)
 > - Workflow state stored as Nodes
 
@@ -62,8 +62,8 @@ graph TB
 
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
-import { DatabaseManager } from '@xnet/database'
-import { verifyUCAN } from '@xnet/identity'
+import { DatabaseManager } from '@xnetjs/database'
+import { verifyUCAN } from '@xnetjs/identity'
 
 export class LocalAPIServer {
   private app: Hono
@@ -390,7 +390,7 @@ volumes:
 
 ```typescript
 // packages/workflows/src/n8n/XNetNode.ts
-// Published as @xnet/n8n-node for community installation
+// Published as @xnetjs/n8n-node for community installation
 
 import {
   IExecuteFunctions,

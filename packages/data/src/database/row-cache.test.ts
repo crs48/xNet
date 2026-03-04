@@ -1,5 +1,5 @@
 /**
- * @xnet/data - Row cache tests.
+ * @xnetjs/data - Row cache tests.
  */
 
 import type { CachedRow } from './row-cache'

@@ -2,7 +2,7 @@
 
 > Scrub through rich text document history: watch text appear, disappear, and change in real time.
 
-**Dependencies:** Step 05 (TimelineScrubber), `@xnet/editor` (RichTextEditor), Yjs
+**Dependencies:** Step 05 (TimelineScrubber), `@xnetjs/editor` (RichTextEditor), Yjs
 
 ## Overview
 

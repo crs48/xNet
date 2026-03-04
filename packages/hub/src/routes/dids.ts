@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Peer discovery routes.
+ * @xnetjs/hub - Peer discovery routes.
  */
 
 import type { AuthContext } from '../auth/ucan'

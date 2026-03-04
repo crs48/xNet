@@ -3,7 +3,7 @@
 > Editor integration, translate buttons, AI badges, stale indicators, and model download flow
 
 **Duration:** 2-3 days  
-**Dependencies:** Steps 07, 08, `@xnet/editor`
+**Dependencies:** Steps 07, 08, `@xnetjs/editor`
 
 ## Overview
 
@@ -30,8 +30,8 @@ flowchart LR
 
 ```tsx
 // packages/editor/src/components/TranslateButton.tsx
-import { useNodeTranslation, useLocale } from '@xnet/react/i18n'
-import { useTranslation } from '@xnet/react/i18n'
+import { useNodeTranslation, useLocale } from '@xnetjs/react/i18n'
+import { useTranslation } from '@xnetjs/react/i18n'
 
 interface TranslateButtonProps {
   nodeId: string

@@ -1,4 +1,4 @@
-import { generateSigningKeyPair } from '@xnet/crypto'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { describe, it, expect } from 'vitest'
 import { createDID, parseDID, generateIdentity, identityFromPrivateKey, isValidDID } from './did'
 

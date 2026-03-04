@@ -1,9 +1,9 @@
-# 04: @xnet/storage
+# 04: @xnetjs/storage
 
 > IndexedDB, SQLite adapters, snapshots, and persistence
 
 **Duration:** 2 weeks
-**Dependencies:** @xnet/crypto, @xnet/core (Phase 0)
+**Dependencies:** @xnetjs/crypto, @xnetjs/core (Phase 0)
 
 ## Overview
 
@@ -15,7 +15,7 @@ This package provides storage adapters for different platforms and implements sn
 cd packages/storage
 pnpm add idb comlink
 pnpm add -D vitest typescript tsup fake-indexeddb
-pnpm add @xnet/crypto@workspace:* @xnet/core@workspace:*
+pnpm add @xnetjs/crypto@workspace:* @xnetjs/core@workspace:*
 ```
 
 ## Directory Structure
@@ -47,7 +47,7 @@ packages/storage/
 ### Types (types.ts)
 
 ```typescript
-import type { ContentId, Snapshot, SignedUpdate } from '@xnet/core'
+import type { ContentId, Snapshot, SignedUpdate } from '@xnetjs/core'
 
 export interface StorageAdapter {
   // Document operations
@@ -103,7 +103,7 @@ export interface StorageStats {
 ```typescript
 import { openDB, type IDBPDatabase } from 'idb'
 import type { StorageAdapter, DocumentData, DocumentMetadata } from '../types'
-import type { ContentId, Snapshot, SignedUpdate } from '@xnet/core'
+import type { ContentId, Snapshot, SignedUpdate } from '@xnetjs/core'
 
 const DB_NAME = 'xnet-storage'
 const DB_VERSION = 1
@@ -304,7 +304,7 @@ describe('IndexedDBAdapter', () => {
 
 ```typescript
 import type { StorageAdapter, DocumentData } from '../types'
-import type { ContentId, Snapshot, SignedUpdate } from '@xnet/core'
+import type { ContentId, Snapshot, SignedUpdate } from '@xnetjs/core'
 
 /**
  * In-memory storage for testing
@@ -383,9 +383,9 @@ export class MemoryAdapter implements StorageAdapter {
 
 ```typescript
 import type { StorageAdapter } from '../types'
-import type { Snapshot, SignedUpdate, SnapshotTriggers } from '@xnet/core'
-import { shouldCreateSnapshot } from '@xnet/core'
-import { sign } from '@xnet/crypto'
+import type { Snapshot, SignedUpdate, SnapshotTriggers } from '@xnetjs/core'
+import { shouldCreateSnapshot } from '@xnetjs/core'
+import { sign } from '@xnetjs/crypto'
 import pako from 'pako'
 
 export interface SnapshotManagerOptions {

@@ -3,7 +3,7 @@
 > Computed values with expression parsing and function library
 
 **Duration:** 4-5 days
-**Dependencies:** `@xnet/data` (column types)
+**Dependencies:** `@xnetjs/data` (column types)
 
 ## Overview
 

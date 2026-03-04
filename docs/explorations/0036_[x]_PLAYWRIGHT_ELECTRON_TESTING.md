@@ -1146,7 +1146,7 @@ Or for Claude Code CLI, create `.mcp.json` in the project root:
   "mcpServers": {
     "xnet-electron": {
       "command": "pnpm",
-      "args": ["--filter", "@xnet/mcp-electron", "start"],
+      "args": ["--filter", "@xnetjs/mcp-electron", "start"],
       "cwd": "/path/to/xNet"
     }
   }

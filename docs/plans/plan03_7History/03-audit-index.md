@@ -2,7 +2,7 @@
 
 > Queryable change metadata: filter by author, time range, schema, operation, and property.
 
-**Dependencies:** Step 01 (HistoryEngine types), `@xnet/data` (NodeStorageAdapter)
+**Dependencies:** Step 01 (HistoryEngine types), `@xnetjs/data` (NodeStorageAdapter)
 
 ## Overview
 

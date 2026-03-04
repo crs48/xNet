@@ -1,6 +1,6 @@
 # xNet Implementation Plan - Step 03.97: Unified Authorization API V3
 
-> Consolidate explorations 0077-0085 into one implementation-ready authorization plan for `@xnet/data`, `@xnet/identity`, `@xnet/hub`, and React DX.
+> Consolidate explorations 0077-0085 into one implementation-ready authorization plan for `@xnetjs/data`, `@xnetjs/identity`, `@xnetjs/hub`, and React DX.
 
 ## Executive Summary
 

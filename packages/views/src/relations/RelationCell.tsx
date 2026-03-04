@@ -4,9 +4,9 @@
  * Displays linked row titles as chips and opens a RowPickerModal for editing.
  */
 
-import type { ColumnDefinition, RelationColumnConfig } from '@xnet/data'
-import type { DatabaseRow } from '@xnet/react'
-import { useRelatedRows } from '@xnet/react'
+import type { ColumnDefinition, RelationColumnConfig } from '@xnetjs/data'
+import type { DatabaseRow } from '@xnetjs/react'
+import { useRelatedRows } from '@xnetjs/react'
 import React, { useState, useCallback } from 'react'
 import { RowPickerModal } from './RowPickerModal.js'
 

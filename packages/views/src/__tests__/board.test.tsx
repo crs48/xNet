@@ -3,7 +3,7 @@
  */
 
 import type { ViewConfig } from '../types'
-import type { Schema } from '@xnet/data'
+import type { Schema } from '@xnetjs/data'
 import { renderHook, act } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { useBoardState } from '../board/useBoardState'

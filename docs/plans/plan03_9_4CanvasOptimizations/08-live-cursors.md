@@ -3,8 +3,8 @@
 > Real-time cursor broadcasting and rendering via Yjs Awareness
 
 **Duration:** 2-3 days
-**Dependencies:** [07-navigation-tools.md](./07-navigation-tools.md), `@xnet/sync` (Awareness)
-**Package:** `@xnet/canvas`
+**Dependencies:** [07-navigation-tools.md](./07-navigation-tools.md), `@xnetjs/sync` (Awareness)
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

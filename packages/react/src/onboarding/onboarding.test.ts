@@ -1,4 +1,4 @@
-import { generateKeyBundle } from '@xnet/identity'
+import { generateKeyBundle } from '@xnetjs/identity'
 import { describe, it, expect } from 'vitest'
 import { getPlatformAuthName, truncateDid } from './helpers'
 import {

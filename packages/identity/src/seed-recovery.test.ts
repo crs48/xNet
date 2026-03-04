@@ -6,7 +6,7 @@ import {
   randomBytes,
   unwrapKey,
   wrapKeyForRecipient
-} from '@xnet/crypto'
+} from '@xnetjs/crypto'
 import { describe, expect, it } from 'vitest'
 import {
   createKeyBackup,

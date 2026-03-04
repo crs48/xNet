@@ -1,5 +1,5 @@
 /**
- * Tests for @xnet/editor extensions
+ * Tests for @xnetjs/editor extensions
  */
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'

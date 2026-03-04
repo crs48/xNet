@@ -1,5 +1,5 @@
 /**
- * @xnet/editor - Tiptap extensions
+ * @xnetjs/editor - Tiptap extensions
  *
  * Custom extensions for the xNet editor.
  */

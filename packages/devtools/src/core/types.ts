@@ -5,8 +5,8 @@
  * Instrumentation wrappers emit these from NodeStore, SyncProvider, Y.Doc, etc.
  */
 
-import type { NodeChange, MergeConflict } from '@xnet/data'
-import type { SyncStatus, PeerInfo, LamportTimestamp } from '@xnet/sync'
+import type { NodeChange, MergeConflict } from '@xnetjs/data'
+import type { SyncStatus, PeerInfo, LamportTimestamp } from '@xnetjs/sync'
 
 // ─── Base Event ────────────────────────────────────────────
 

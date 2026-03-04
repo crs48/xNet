@@ -27,8 +27,8 @@ export function captureCallerInfo(): string | undefined {
       // Skip react internals, devtools internals
       if (
         line.includes('node_modules/react') ||
-        line.includes('@xnet/devtools') ||
-        line.includes('@xnet/react/src/hooks') ||
+        line.includes('@xnetjs/devtools') ||
+        line.includes('@xnetjs/react/src/hooks') ||
         line.includes('renderWithHooks') ||
         line.includes('mountIndeterminateComponent')
       ) {

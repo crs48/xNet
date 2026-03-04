@@ -2,7 +2,7 @@
  * Identity types for xNet
  */
 
-import type { SecurityLevel } from '@xnet/crypto'
+import type { SecurityLevel } from '@xnetjs/crypto'
 
 // ─── DID Type ────────────────────────────────────────────────
 

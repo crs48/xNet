@@ -3,8 +3,8 @@
  */
 
 import type { ViewConfig } from '../types.js'
-import type { Schema } from '@xnet/data'
-import { cn } from '@xnet/ui'
+import type { Schema } from '@xnetjs/data'
+import { cn } from '@xnetjs/ui'
 import React from 'react'
 import { CalendarDayView } from './CalendarDayView.js'
 import { CalendarMonthView } from './CalendarMonthView.js'

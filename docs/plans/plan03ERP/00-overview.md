@@ -7,7 +7,7 @@
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `@xnetjs/database` → Use `@xnetjs/data` (Schema system + NodeStore)
 > - `DatabaseItem` → `Node`
 > - `Database` → `Schema`
 > - Modules store their data as Nodes with custom Schemas
@@ -27,19 +27,19 @@ Evolve xNet into a fully customizable ERP platform, enabling businesses to build
 
 ```
 packages/
-  @xnet/modules/       # Module system and registry
-  @xnet/workflows/     # Workflow engine
-  @xnet/dashboard/     # Dashboard builder
-  @xnet/plugins/       # Plugin runtime and sandbox
-  @xnet/api/          # REST API gateway
+  @xnetjs/modules/       # Module system and registry
+  @xnetjs/workflows/     # Workflow engine
+  @xnetjs/dashboard/     # Dashboard builder
+  @xnetjs/plugins/       # Plugin runtime and sandbox
+  @xnetjs/api/          # REST API gateway
 
 modules/
-  @xnet/crm/          # CRM module
-  @xnet/hrm/          # HRM module
-  @xnet/inventory/    # Inventory module
-  @xnet/finance/      # Finance module
-  @xnet/projects/     # Project management module
-  @xnet/scm/          # Supply chain module
+  @xnetjs/crm/          # CRM module
+  @xnetjs/hrm/          # HRM module
+  @xnetjs/inventory/    # Inventory module
+  @xnetjs/finance/      # Finance module
+  @xnetjs/projects/     # Project management module
+  @xnetjs/scm/          # Supply chain module
 ```
 
 ### System Architecture
@@ -70,10 +70,10 @@ flowchart TD
     end
 
     subgraph "Data Layer (Phase 2)"
-        DATA["@xnet/data<br/>Schema + NodeStore"]
-        VIEWS["@xnet/views"]
-        FORMULA["@xnet/formula"]
-        STORAGE["@xnet/storage"]
+        DATA["@xnetjs/data<br/>Schema + NodeStore"]
+        VIEWS["@xnetjs/views"]
+        FORMULA["@xnetjs/formula"]
+        STORAGE["@xnetjs/storage"]
     end
 
     DATA --> MODULES

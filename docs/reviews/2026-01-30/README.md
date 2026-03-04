@@ -85,37 +85,37 @@ These are real issues but relate to features the roadmap explicitly defers:
 ```mermaid
 graph TD
     subgraph "Core Layer"
-        core["@xnet/core"]
-        crypto["@xnet/crypto"]
-        identity["@xnet/identity"]
-        storage["@xnet/storage"]
+        core["@xnetjs/core"]
+        crypto["@xnetjs/crypto"]
+        identity["@xnetjs/identity"]
+        storage["@xnetjs/storage"]
     end
 
     subgraph "Data Layer"
-        sync["@xnet/sync"]
-        data["@xnet/data"]
-        formula["@xnet/formula"]
+        sync["@xnetjs/sync"]
+        data["@xnetjs/data"]
+        formula["@xnetjs/formula"]
     end
 
     subgraph "Network Layer"
-        network["@xnet/network"]
-        query["@xnet/query"]
+        network["@xnetjs/network"]
+        query["@xnetjs/query"]
     end
 
     subgraph "Application Layer"
-        sdk["@xnet/sdk"]
-        plugins["@xnet/plugins"]
-        react["@xnet/react"]
-        telemetry["@xnet/telemetry"]
+        sdk["@xnetjs/sdk"]
+        plugins["@xnetjs/plugins"]
+        react["@xnetjs/react"]
+        telemetry["@xnetjs/telemetry"]
     end
 
     subgraph "UI Layer"
-        ui["@xnet/ui"]
-        views["@xnet/views"]
-        canvas["@xnet/canvas"]
-        editor["@xnet/editor"]
-        devtools["@xnet/devtools"]
-        vectors["@xnet/vectors"]
+        ui["@xnetjs/ui"]
+        views["@xnetjs/views"]
+        canvas["@xnetjs/canvas"]
+        editor["@xnetjs/editor"]
+        devtools["@xnetjs/devtools"]
+        vectors["@xnetjs/vectors"]
     end
 
     subgraph "Apps"

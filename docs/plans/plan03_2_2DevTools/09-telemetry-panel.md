@@ -4,7 +4,7 @@
 
 ## Overview
 
-The Telemetry Panel integrates with the `@xnet/telemetry` package (plan03_1) to display security events, peer reputation scores, performance metrics, and consent status. Since telemetry data is stored as regular Nodes, we query them using the existing `useQuery` infrastructure.
+The Telemetry Panel integrates with the `@xnetjs/telemetry` package (plan03_1) to display security events, peer reputation scores, performance metrics, and consent status. Since telemetry data is stored as regular Nodes, we query them using the existing `useQuery` infrastructure.
 
 ## Dependency on plan03_1
 
@@ -23,7 +23,7 @@ Additionally, it reads from the `PeerScorer` and `ConsentManager` APIs.
 
 ```mermaid
 flowchart TB
-    subgraph TelemetryPackage["@xnet/telemetry"]
+    subgraph TelemetryPackage["@xnetjs/telemetry"]
         Consent["ConsentManager"]
         Scorer["PeerScorer"]
         Collector["TelemetryCollector"]
@@ -329,7 +329,7 @@ export function PerformanceSubPanel() {
 
 ## Graceful Degradation
 
-If `@xnet/telemetry` is not installed or plan03_1 is not yet implemented, the panel shows a helpful message:
+If `@xnetjs/telemetry` is not installed or plan03_1 is not yet implemented, the panel shows a helpful message:
 
 ```typescript
 function TelemetryNotAvailable() {
@@ -337,7 +337,7 @@ function TelemetryNotAvailable() {
     <div className="flex items-center justify-center h-full text-zinc-500 text-sm">
       <div className="text-center">
         <p>Telemetry package not detected.</p>
-        <p className="text-[10px] mt-1">Install @xnet/telemetry to enable this panel.</p>
+        <p className="text-[10px] mt-1">Install @xnetjs/telemetry to enable this panel.</p>
       </div>
     </div>
   )

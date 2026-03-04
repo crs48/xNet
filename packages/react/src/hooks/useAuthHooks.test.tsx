@@ -1,6 +1,6 @@
 import type { XNetContextValue } from '../context'
-import type { AuthDecision, AuthTrace, DID } from '@xnet/core'
-import type { AuthGrant } from '@xnet/data'
+import type { AuthDecision, AuthTrace, DID } from '@xnetjs/core'
+import type { AuthGrant } from '@xnetjs/data'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'

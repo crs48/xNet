@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Federation routes.
+ * @xnetjs/hub - Federation routes.
  */
 
 import type { AuthContext } from '../auth/ucan'

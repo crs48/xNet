@@ -5,7 +5,7 @@
 import type { TableRow } from './useTableState.js'
 import type { ColumnMeta, CellPresence } from '../types.js'
 import type { Cell } from '@tanstack/react-table'
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { CommentIndicator } from '../components/CommentIndicator.js'
 

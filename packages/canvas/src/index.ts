@@ -1,5 +1,5 @@
 /**
- * @xnet/canvas - Infinite Canvas for Spatial Visualization
+ * @xnetjs/canvas - Infinite Canvas for Spatial Visualization
  *
  * Provides graph-like visualization with:
  * - Spatial indexing with R-tree (rbush)
@@ -10,7 +10,7 @@
  *
  * @example
  * ```tsx
- * import { Canvas, createCanvasDoc } from '@xnet/canvas'
+ * import { Canvas, createCanvasDoc } from '@xnetjs/canvas'
  *
  * // Create a new canvas document
  * const doc = createCanvasDoc('canvas-1', 'My Canvas')

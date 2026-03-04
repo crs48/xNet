@@ -732,10 +732,10 @@ const species = {
 ```mermaid
 flowchart TD
     subgraph "xNet Core"
-        DATA["@xnet/data<br/>Schema + NodeStore"]
-        SYNC["@xnet/sync<br/>P2P + Offline"]
-        VIEWS["@xnet/views<br/>Table/Board/Calendar"]
-        PLUGINS["@xnet/plugins<br/>Extension System"]
+        DATA["@xnetjs/data<br/>Schema + NodeStore"]
+        SYNC["@xnetjs/sync<br/>P2P + Offline"]
+        VIEWS["@xnetjs/views<br/>Table/Board/Calendar"]
+        PLUGINS["@xnetjs/plugins<br/>Extension System"]
     end
 
     subgraph "Farming Module (Plugin)"

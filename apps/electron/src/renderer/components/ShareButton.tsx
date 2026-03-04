@@ -5,9 +5,9 @@
  * Future: Could be extended to share specific rows/blocks.
  */
 
-import type { DID, GrantInput } from '@xnet/data'
-import { generateIdentity } from '@xnet/identity'
-import { useXNet } from '@xnet/react'
+import type { DID, GrantInput } from '@xnetjs/data'
+import { generateIdentity } from '@xnetjs/identity'
+import { useXNet } from '@xnetjs/react'
 import { Share2, Check, Copy } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import { buildUniversalShareHandleUrl, type ShareDocType } from '../lib/share-payload'

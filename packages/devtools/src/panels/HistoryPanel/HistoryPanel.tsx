@@ -11,7 +11,7 @@ import type {
   PropertyDiff,
   VerificationResult,
   DocumentTimelineEntry
-} from '@xnet/history'
+} from '@xnetjs/history'
 import { useEffect, useState } from 'react'
 import {
   formatTime,

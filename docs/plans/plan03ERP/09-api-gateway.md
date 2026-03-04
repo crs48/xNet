@@ -2,8 +2,8 @@
 
 > REST API, webhooks, and OAuth bridge for external integrations
 
-**Package:** `@xnet/api`
-**Dependencies:** `@xnet/modules`, `@xnet/identity`, `@xnet/workflows`, `@xnet/data`
+**Package:** `@xnetjs/api`
+**Dependencies:** `@xnetjs/modules`, `@xnetjs/identity`, `@xnetjs/workflows`, `@xnetjs/data`
 **Estimated Time:** 2 weeks
 
 > **Architecture Update (Jan 2026):**
@@ -162,9 +162,9 @@ import { logger } from 'hono/logger'
 import { secureHeaders } from 'hono/secure-headers'
 import { swaggerUI } from '@hono/swagger-ui'
 
-import { DatabaseManager } from '@xnet/database'
-import { ModuleRegistry } from '@xnet/modules'
-import { WorkflowEngine } from '@xnet/workflows'
+import { DatabaseManager } from '@xnetjs/database'
+import { ModuleRegistry } from '@xnetjs/modules'
+import { WorkflowEngine } from '@xnetjs/workflows'
 
 export class APIGateway {
   private app: Hono

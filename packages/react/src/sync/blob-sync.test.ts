@@ -1,5 +1,5 @@
 import type { ConnectionManager } from './connection-manager'
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createBlobSyncProvider, BLOB_SYNC_ROOM, type BlobStoreForSync } from './blob-sync'
 

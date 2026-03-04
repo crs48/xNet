@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - Cross-device passkey discovery
+ * @xnetjs/identity/passkey - Cross-device passkey discovery
  *
  * Uses WebAuthn conditional mediation to detect whether the user
  * has an existing xNet passkey (possibly synced from another device

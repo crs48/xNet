@@ -2,8 +2,8 @@
 
 > Customer Relationship Management with contacts, companies, deals, and pipeline
 
-**Package:** `modules/@xnet/crm`
-**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`, `@xnet/data`
+**Package:** `modules/@xnetjs/crm`
+**Dependencies:** `@xnetjs/modules`, `@xnetjs/workflows`, `@xnetjs/dashboard`, `@xnetjs/data`
 **Estimated Time:** 3 weeks
 
 > **Architecture Update (Jan 2026):**
@@ -25,7 +25,7 @@
 ```typescript
 // modules/crm/src/module.ts
 
-import { ModuleDefinition } from '@xnet/modules'
+import { ModuleDefinition } from '@xnetjs/modules'
 
 export const CRMModule: ModuleDefinition = {
   id: 'mod:crm',
@@ -470,8 +470,8 @@ export const pipelinesDatabase: DatabaseTemplate = {
 
 import React, { useCallback, useMemo } from 'react'
 import { DndContext, DragEndEvent, DragOverlay } from '@dnd-kit/core'
-import { useDatabase, useRecords } from '@xnet/database'
-import { formatCurrency } from '@xnet/utils'
+import { useDatabase, useRecords } from '@xnetjs/database'
+import { formatCurrency } from '@xnetjs/utils'
 
 interface PipelineProps {
   pipelineId: string
@@ -843,8 +843,8 @@ export const activityReminderWorkflow: WorkflowTemplate = {
 // modules/crm/src/widgets/DealValueWidget.tsx
 
 import React from 'react'
-import { useWidgetData } from '@xnet/dashboard'
-import { formatCurrency } from '@xnet/utils'
+import { useWidgetData } from '@xnetjs/dashboard'
+import { formatCurrency } from '@xnetjs/utils'
 
 export function DealValueWidget({ config }: { config: DealValueWidgetConfig }) {
   const { data, isLoading } = useWidgetData({

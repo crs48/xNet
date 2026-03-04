@@ -108,8 +108,8 @@ interface XNetContextValue {
 ```typescript
 // packages/react/src/hub/hub-connection.ts
 
-import type { KeyBundle } from '@xnet/identity'
-import { createUCAN } from '@xnet/identity'
+import type { KeyBundle } from '@xnetjs/identity'
+import { createUCAN } from '@xnetjs/identity'
 
 export type HubStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 
@@ -434,7 +434,7 @@ export function useHubStatus(): HubStatus {
 
 import { useContext, useCallback, useRef } from 'react'
 import { XNetContext } from '../provider/XNetProvider'
-import { encrypt } from '@xnet/crypto'
+import { encrypt } from '@xnetjs/crypto'
 
 export interface UseBackupReturn {
   /** Upload an encrypted backup of a document */
@@ -491,7 +491,7 @@ export function useBackup(): UseBackupReturn {
       if (!encrypted) return null
 
       // Decrypt with user's key
-      const { decrypt } = await import('@xnet/crypto')
+      const { decrypt } = await import('@xnetjs/crypto')
       return decrypt(encrypted, ctx.keyBundle.encryptionKey)
     },
     [ctx]
@@ -719,7 +719,7 @@ export function HubStatusIndicator() {
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import { createHubConnection } from '../src/hub/hub-connection'
-import { createHub, type HubInstance } from '@xnet/hub'
+import { createHub, type HubInstance } from '@xnetjs/hub'
 
 describe('Hub Connection (Client)', () => {
   let hub: HubInstance

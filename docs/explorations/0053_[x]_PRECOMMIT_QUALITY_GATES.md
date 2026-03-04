@@ -251,7 +251,7 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
       | `no-inner-declarations` | 1 | Move function to module scope |
       | `react-hooks/exhaustive-deps` (missing plugin) | 1 | Remove rule reference or install plugin |
 
-- [x] **Fix existing typecheck errors** — `@xnet/storage`, `@xnet/sync`, `@xnet/hub`, `@xnet/react`, `@xnet/editor`, `xnet-mobile`, and `xnet-web` type errors fixed. Includes DID/ContentId template literal casts, Hono route types, awareness event types, expo module config, and web noUnusedLocals removal.
+- [x] **Fix existing typecheck errors** — `@xnetjs/storage`, `@xnetjs/sync`, `@xnetjs/hub`, `@xnetjs/react`, `@xnetjs/editor`, `xnet-mobile`, and `xnet-web` type errors fixed. Includes DID/ContentId template literal casts, Hono route types, awareness event types, expo module config, and web noUnusedLocals removal.
 - [x] **Fix or skip flaky perf tests** — bumped thresholds for timing-sensitive tests:
   - `crypto/src/hashing.test.ts`: 50ms → 200ms
   - `crypto/src/signing.test.ts`: 500ms → 1000ms
@@ -282,12 +282,12 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
   - **Lockfile sync** whenever any `package.json` is staged (the original problem)
 - [x] **Pre-commit: affected tests + typecheck** — Vitest and Turbo both support running only what's affected by the current changes. Measured timings show this is fast enough for pre-commit:
 
-  | Command                                | What It Does                                           | Time                              |
-  | -------------------------------------- | ------------------------------------------------------ | --------------------------------- |
-  | `vitest related <file>`                | Runs tests that import the changed file (transitive)   | **5-8s** for a single source file |
-  | `vitest run --changed HEAD`            | Runs tests affected by uncommitted changes (git-aware) | **~8s** (scales with change size) |
-  | `turbo run typecheck --affected`       | Typechecks only packages with changes vs `main`        | **3-5s** (with Turbo cache)       |
-  | `pnpm --filter @xnet/crypto typecheck` | Typechecks a single package                            | **~3.5s**                         |
+  | Command                                  | What It Does                                           | Time                              |
+  | ---------------------------------------- | ------------------------------------------------------ | --------------------------------- |
+  | `vitest related <file>`                  | Runs tests that import the changed file (transitive)   | **5-8s** for a single source file |
+  | `vitest run --changed HEAD`              | Runs tests affected by uncommitted changes (git-aware) | **~8s** (scales with change size) |
+  | `turbo run typecheck --affected`         | Typechecks only packages with changes vs `main`        | **3-5s** (with Turbo cache)       |
+  | `pnpm --filter @xnetjs/crypto typecheck` | Typechecks a single package                            | **~3.5s**                         |
 
   Suggested hook:
 
@@ -347,7 +347,7 @@ Pre-commit hooks can't be turned on if the codebase already has errors — agent
 
 - [x] **Add `.editorconfig`** — added with 2-space indent, LF line endings, UTF-8, trailing whitespace trimming.
 - [x] **Add `format:check` script** — added to root package.json (also added as CI step in Phase 1).
-- [x] **Add editor tests to root `pnpm test`** — root `test` now runs `vitest run && pnpm --filter @xnet/editor test`. Added `test:editor` script for running editor tests alone.
+- [x] **Add editor tests to root `pnpm test`** — root `test` now runs `vitest run && pnpm --filter @xnetjs/editor test`. Added `test:editor` script for running editor tests alone.
 - [ ] **Turbo-ify linting** — deferred; would require adding lint scripts to every package.json. Current root-level lint is fast enough.
 
 ### Estimated Time Impact on Developer Workflow

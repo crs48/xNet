@@ -1,5 +1,5 @@
 /**
- * @xnet/react/sync - Initial sync manager for new device onboarding
+ * @xnetjs/react/sync - Initial sync manager for new device onboarding
  *
  * Orchestrates the full state sync when a new device connects to the hub
  * with an existing identity. Tracks progress and provides callbacks.

@@ -56,8 +56,8 @@ The fastest way to get a Hub running. No Docker, no SSH, no TLS setup.
 Your Hub is live. Copy the URL and configure your app:
 
 ```tsx
-import { XNetProvider } from '@xnet/react'
-import { XNetDevToolsProvider } from '@xnet/devtools'
+import { XNetProvider } from '@xnetjs/react'
+import { XNetDevToolsProvider } from '@xnetjs/devtools'
 ;<XNetProvider
   config={{
     hubUrl: 'wss://hub-xyz.up.railway.app'
@@ -123,7 +123,7 @@ import { XNetDevToolsProvider } from '@xnet/devtools'
     Best for development and testing.
 
     ```bash
-    npx @xnet/hub --port 4444 --data ~/.xnet-hub
+    npx @xnetjs/hub --port 4444 --data ~/.xnet-hub
     ```
 
     No TLS, no persistence guarantees. Use for local development only.
@@ -162,8 +162,8 @@ import { XNetDevToolsProvider } from '@xnet/devtools'
 ### React (Renderer)
 
 ```tsx
-import { XNetProvider } from '@xnet/react'
-import { XNetDevToolsProvider } from '@xnet/devtools'
+import { XNetProvider } from '@xnetjs/react'
+import { XNetDevToolsProvider } from '@xnetjs/devtools'
 
 ;<XNetProvider
   config={{

@@ -1,5 +1,5 @@
 import type { HubInstance } from '../src/index'
-import { createUCAN, generateKeyBundle } from '@xnet/identity'
+import { createUCAN, generateKeyBundle } from '@xnetjs/identity'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { WebSocket } from 'ws'
 import { createHub } from '../src/index'

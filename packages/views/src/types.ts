@@ -1,8 +1,8 @@
 /**
- * @xnet/views - Types for database views
+ * @xnetjs/views - Types for database views
  */
 
-import type { PropertyType, PropertyDefinition } from '@xnet/data'
+import type { PropertyType, PropertyDefinition } from '@xnetjs/data'
 
 /**
  * Disposable interface for cleanup

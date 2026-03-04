@@ -1,5 +1,5 @@
-import type { DID } from '@xnet/core'
-import type { PublicKeyResolver } from '@xnet/crypto'
+import type { DID } from '@xnetjs/core'
+import type { PublicKeyResolver } from '@xnetjs/crypto'
 import { describe, expect, it, vi } from 'vitest'
 import { AuthMigrator, type EncryptionLayer } from './auth-migrator'
 import { allow, role, PUBLIC } from './builders'

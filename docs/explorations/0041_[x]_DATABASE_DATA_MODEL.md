@@ -1,6 +1,6 @@
 # Database Data Model: Current State and Future Architectures
 
-> **Status**: ✅ IMPLEMENTED - The database system is fully functional in `@xnet/data`
+> **Status**: ✅ IMPLEMENTED - The database system is fully functional in `@xnetjs/data`
 
 ## Implementation Status
 
@@ -125,7 +125,7 @@ dataMap.set(
 
 - **Table**: `@tanstack/react-virtual` for Y-axis row virtualization. No X-axis virtualization — all visible columns render.
 - **Board**: No virtualization. All cards in all columns render.
-- **Gallery/Calendar/Timeline**: Defined in `@xnet/views` but not yet wired into the Electron app.
+- **Gallery/Calendar/Timeline**: Defined in `@xnetjs/views` but not yet wired into the Electron app.
 
 ---
 

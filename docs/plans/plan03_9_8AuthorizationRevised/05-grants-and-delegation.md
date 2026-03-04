@@ -14,7 +14,7 @@ Grants are how users share access to specific nodes. A grant does three things s
 2. **Distributes the content key** — wraps the node's content key for the grantee.
 3. **Updates the recipients list** — adds the grantee to the encrypted envelope's recipients.
 
-This step also integrates with existing UCAN infrastructure in `@xnet/identity` for cryptographic delegation chains.
+This step also integrates with existing UCAN infrastructure in `@xnetjs/identity` for cryptographic delegation chains.
 
 ## Implementation
 
@@ -23,8 +23,8 @@ This step also integrates with existing UCAN infrastructure in `@xnet/identity` 
 Grants are regular nodes using a built-in schema:
 
 ```typescript
-import { defineSchema, text, number, person } from '@xnet/data'
-import { allow, role } from '@xnet/data/auth'
+import { defineSchema, text, number, person } from '@xnetjs/data'
+import { allow, role } from '@xnetjs/data/auth'
 
 export const GrantSchema = defineSchema({
   name: 'Grant',
@@ -256,7 +256,7 @@ class StoreAuth implements StoreAuthAPI {
 
 ### 5. UCAN Integration
 
-Bridge to existing `@xnet/identity` UCAN infrastructure:
+Bridge to existing `@xnetjs/identity` UCAN infrastructure:
 
 ```typescript
 class StoreAuth {
@@ -364,7 +364,7 @@ sequenceDiagram
 - [ ] `store.auth.grant()` with key distribution.
 - [ ] `store.auth.revoke()` with key rotation.
 - [ ] `store.auth.listGrants()` with active/expired/revoked filtering.
-- [ ] UCAN token creation via `@xnet/identity`.
+- [ ] UCAN token creation via `@xnetjs/identity`.
 - [ ] Attenuation enforcement (no privilege escalation).
 - [ ] Revocation consistency modes (`eventual` / `strict`).
 - [ ] Content key caching for grantees.

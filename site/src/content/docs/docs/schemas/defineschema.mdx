@@ -20,7 +20,7 @@ sidebar:
 ## Quick example
 
 ```ts
-import { defineSchema, text, select, checkbox, relation } from '@xnet/data'
+import { defineSchema, text, select, checkbox, relation } from '@xnetjs/data'
 
 export const TaskSchema = defineSchema({
   name: 'Task',
@@ -111,8 +111,8 @@ Validation checks:
 Add an `authorization` block to define who can read, write, delete, and share nodes of this schema:
 
 ```ts
-import { defineSchema, text, person, relation } from '@xnet/data'
-import { allow, role } from '@xnet/data/auth'
+import { defineSchema, text, person, relation } from '@xnetjs/data'
+import { allow, role } from '@xnetjs/data/auth'
 
 export const TaskSchema = defineSchema({
   name: 'Task',

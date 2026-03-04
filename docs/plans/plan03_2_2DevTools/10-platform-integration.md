@@ -206,7 +206,7 @@ export function MobileDevToolsShell({ children, visible, onClose }) {
 
 ### React Native Table Fallback
 
-Since `@xnet/views` TableView uses HTML `<table>`, on React Native we need a simplified list view for the Node Explorer:
+Since `@xnetjs/views` TableView uses HTML `<table>`, on React Native we need a simplified list view for the Node Explorer:
 
 ```typescript
 // panels/NodeExplorer/NodeExplorer.native.tsx

@@ -296,7 +296,7 @@ module.exports = {
 ## New Dependency
 
 ```bash
-pnpm --filter @xnet/ui add -D tailwindcss-animate
+pnpm --filter @xnetjs/ui add -D tailwindcss-animate
 ```
 
 This Tailwind plugin provides animation utilities used by Radix components (`animate-in`, `animate-out`, `fade-in`, `slide-in-from-*`, etc.).

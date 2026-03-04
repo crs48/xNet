@@ -1,5 +1,5 @@
 /**
- * Re-export Wikilink from the shared @xnet/editor package
- * @deprecated Import from '@xnet/editor/extensions' instead
+ * Re-export Wikilink from the shared @xnetjs/editor package
+ * @deprecated Import from '@xnetjs/editor/extensions' instead
  */
-export { Wikilink } from '@xnet/editor/extensions'
+export { Wikilink } from '@xnetjs/editor/extensions'

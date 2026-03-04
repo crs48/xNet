@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - HKDF key derivation from PRF output
+ * @xnetjs/identity/passkey - HKDF key derivation from PRF output
  *
  * Shared between create.ts and unlock.ts to ensure identical derivation.
  */

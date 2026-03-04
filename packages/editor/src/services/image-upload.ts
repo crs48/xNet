@@ -4,8 +4,8 @@
  * Handles image validation, compression, dimension reading,
  * and uploading via BlobService.
  */
-import type { BlobService } from '@xnet/data'
-import type { FileRef } from '@xnet/data'
+import type { BlobService } from '@xnetjs/data'
+import type { FileRef } from '@xnetjs/data'
 
 export interface ImageUploadOptions {
   /** Maximum file size in bytes (default: 10MB) */

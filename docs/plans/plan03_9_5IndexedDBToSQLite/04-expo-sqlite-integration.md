@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Expo app already has a working `ExpoSQLiteAdapter` in `apps/expo/src/storage/ExpoSQLiteAdapter.ts`. This step moves it to the `@xnet/sqlite` package and aligns it with the unified `SQLiteAdapter` interface.
+The Expo app already has a working `ExpoSQLiteAdapter` in `apps/expo/src/storage/ExpoSQLiteAdapter.ts`. This step moves it to the `@xnetjs/sqlite` package and aligns it with the unified `SQLiteAdapter` interface.
 
 The existing implementation is solid - we mainly need to:
 
@@ -21,11 +21,11 @@ The existing implementation is solid - we mainly need to:
 flowchart TB
     subgraph "Before"
         EXPO_OLD["apps/expo/src/storage/<br/>ExpoSQLiteAdapter.ts"]
-        STORAGE_OLD["@xnet/storage<br/>StorageAdapter interface"]
+        STORAGE_OLD["@xnetjs/storage<br/>StorageAdapter interface"]
     end
 
     subgraph "After"
-        SQLITE_PKG["@xnet/sqlite"]
+        SQLITE_PKG["@xnetjs/sqlite"]
         EXPO_NEW["ExpoSQLiteAdapter"]
         IFACE["SQLiteAdapter interface"]
         SCHEMA["Unified Schema"]
@@ -354,7 +354,7 @@ export async function createExpoSQLiteAdapter(config: SQLiteConfig): Promise<Exp
 ```typescript
 // apps/expo/src/storage/index.ts
 
-import { createExpoSQLiteAdapter, type ExpoSQLiteAdapter } from '@xnet/sqlite/expo'
+import { createExpoSQLiteAdapter, type ExpoSQLiteAdapter } from '@xnetjs/sqlite/expo'
 
 let adapter: ExpoSQLiteAdapter | null = null
 
@@ -397,10 +397,10 @@ export async function closeSQLite(): Promise<void> {
 
 ### Remove Old ExpoSQLiteAdapter
 
-After moving to `@xnet/sqlite`, delete the old file:
+After moving to `@xnetjs/sqlite`, delete the old file:
 
 - `apps/expo/src/storage/ExpoSQLiteAdapter.ts` - DELETED
-- `apps/expo/src/storage/ExpoStorageAdapter.ts` - Update to use `@xnet/sqlite`
+- `apps/expo/src/storage/ExpoStorageAdapter.ts` - Update to use `@xnetjs/sqlite`
 
 ## Migration Path
 
@@ -588,7 +588,7 @@ describe.skipIf(!isReactNative)('ExpoSQLiteAdapter', () => {
 
 ### App Integration
 
-- [x] Update Expo app to import from `@xnet/sqlite/expo` (requires coordinated app update)
+- [x] Update Expo app to import from `@xnetjs/sqlite/expo` (requires coordinated app update)
 - [x] Delete old `ExpoSQLiteAdapter.ts` (after app migration)
 - [x] Update `ExpoStorageAdapter.ts` to use new adapter (requires coordinated app update)
 - [x] Add migration to clear old data (requires coordinated app update)

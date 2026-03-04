@@ -125,7 +125,7 @@ Keep infrastructure technical, make the app warm:
 │  The app:        DataGarden              │
 │  The protocol:   xNet Protocol           │
 │  The hub:        xNet Hub                │
-│  The packages:   @xnet/*                 │
+│  The packages:   @xnetjs/*                 │
 │  Developer docs: xNet                    │
 │  User docs:      DataGarden              │
 └──────────────────────────────────────────┘
@@ -140,7 +140,7 @@ Keep infrastructure technical, make the app warm:
 **Pros:**
 
 - Best of both worlds: warm user experience, credible infrastructure
-- Developers see @xnet/\*, users see DataGarden
+- Developers see @xnetjs/\*, users see DataGarden
 - Can introduce gradually (app rename first, assess response)
 - Keeps one codebase, two audiences
 
@@ -277,7 +277,7 @@ If we went with **Option B (Hybrid)**:
 | `apps/web`      | App title: "DataGarden"    | Package name stays same |
 | `apps/electron` | App name: "DataGarden"     | DMG/installer name      |
 | `apps/expo`     | App name: "DataGarden"     | App Store listing       |
-| `packages/*`    | Stay `@xnet/*`             | NPM scope unchanged     |
+| `packages/*`    | Stay `@xnetjs/*`           | NPM scope unchanged     |
 | Docs (user)     | "DataGarden Docs"          | New domain?             |
 | Docs (dev)      | "xNet Developer Docs"      | Stays technical         |
 | Marketing site  | datagarden.app?            | New domain              |

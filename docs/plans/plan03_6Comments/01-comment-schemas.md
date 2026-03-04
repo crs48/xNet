@@ -3,7 +3,7 @@
 > Universal Comment schema that works on any Node, following the Universal Social Primitives pattern
 
 **Duration:** 1-2 days  
-**Dependencies:** `@xnet/data` (defineSchema, NodeStore)  
+**Dependencies:** `@xnetjs/data` (defineSchema, NodeStore)  
 **Reference:** [Universal Social Primitives](../../explorations/0030_[_]_UNIVERSAL_SOCIAL_PRIMITIVES.md)
 
 ## Overview
@@ -384,7 +384,7 @@ cc @alice @bob
 | Rich text (Yjs)       | WYSIWYG editing                             | Heavy (Yjs doc per comment), complex sync |
 | Plain text + markdown | Simple storage, fast sync, familiar to devs | No WYSIWYG, learning curve for non-devs   |
 
-GitHub, Slack, Discord all use plain text + markdown for comments. It's proven at scale.
+GitHub, Slack, GitHub Discussions all use plain text + markdown for comments. It's proven at scale.
 
 ### Supported Markdown Features
 

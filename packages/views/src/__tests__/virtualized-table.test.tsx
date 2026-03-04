@@ -4,7 +4,7 @@
 
 import type { TableRow } from '../table/useTableState'
 import type { ViewConfig } from '../types'
-import type { Schema } from '@xnet/data'
+import type { Schema } from '@xnetjs/data'
 import { render, screen, fireEvent, renderHook, act } from '@testing-library/react'
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'

@@ -6,9 +6,9 @@
  */
 
 import type { BlameInfo } from './types'
-import type { DID } from '@xnet/core'
-import type { NodeStorageAdapter, NodeId } from '@xnet/data'
-import { topologicalSort } from '@xnet/sync'
+import type { DID } from '@xnetjs/core'
+import type { NodeStorageAdapter, NodeId } from '@xnetjs/data'
+import { topologicalSort } from '@xnetjs/sync'
 
 export class BlameEngine {
   constructor(private storage: NodeStorageAdapter) {}

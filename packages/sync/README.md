@@ -1,11 +1,11 @@
-# @xnet/sync
+# @xnetjs/sync
 
 Unified sync primitives for xNet -- Change\<T\>, Lamport clocks, hash chains, and a comprehensive Yjs security layer.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/sync
+pnpm add @xnetjs/sync
 ```
 
 ## Features
@@ -33,7 +33,7 @@ import {
   tick,
   receive,
   compareLamportTimestamps
-} from '@xnet/sync'
+} from '@xnetjs/sync'
 
 let clock = createLamportClock(did)
 const [nextClock, lamport] = tick(clock)
@@ -59,7 +59,7 @@ const cmp = compareLamportTimestamps(change.lamport, later)
 ```
 
 ```typescript
-import { validateChain, detectFork, topologicalSort } from '@xnet/sync'
+import { validateChain, detectFork, topologicalSort } from '@xnetjs/sync'
 
 // Hash chain verification
 const valid = validateChain(changes)
@@ -68,7 +68,7 @@ const sorted = topologicalSort(changes)
 ```
 
 ```typescript
-import { signYjsUpdate, verifyYjsEnvelope } from '@xnet/sync'
+import { signYjsUpdate, verifyYjsEnvelope } from '@xnetjs/sync'
 
 // Signed Yjs envelopes
 const envelope = signYjsUpdate(update, did, signingKey, clientId)
@@ -127,14 +127,14 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core` -- Core types
-- `@xnet/crypto` -- Signing, hashing
-- `@xnet/identity` -- DID operations
+- `@xnetjs/core` -- Core types
+- `@xnetjs/crypto` -- Signing, hashing
+- `@xnetjs/identity` -- DID operations
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/sync test
+pnpm --filter @xnetjs/sync test
 ```
 
 10 test files covering all modules.

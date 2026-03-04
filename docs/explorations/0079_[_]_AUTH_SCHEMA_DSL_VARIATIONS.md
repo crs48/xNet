@@ -4,7 +4,7 @@
 
 **Date**: February 2026  
 **Status**: Exploration  
-**Related**: [0077_AUTHORIZATION_API_DESIGN_V2.md](./0077\_[_]\_AUTHORIZATION_API_DESIGN_V2.md)
+**Related**: [0077_AUTHORIZATION_API_DESIGN_V2.md](./0077_[_]_AUTHORIZATION_API_DESIGN_V2.md)
 
 ---
 
@@ -369,7 +369,7 @@ import {
   PUBLIC,
   AUTHENTICATED,
   CREATED_BY
-} from '@xnet/data/permissions'
+} from '@xnetjs/data/permissions'
 
 const WorkspaceSchema = defineSchema({
   name: 'Workspace',
@@ -639,7 +639,7 @@ roles: {
 ### Complete Example
 
 ```typescript
-import { or, and, not, property, inherit, PUBLIC } from '@xnet/data/permissions'
+import { or, and, not, property, inherit, PUBLIC } from '@xnetjs/data/permissions'
 
 const WorkspaceSchema = defineSchema({
   name: 'Workspace',

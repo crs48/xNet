@@ -6,7 +6,7 @@
  * - A sample Database with all supported property types
  */
 
-import { CommentSchema, DatabaseSchema, PageSchema } from '@xnet/data'
+import { CommentSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
 import { useState } from 'react'
 import * as Y from 'yjs'
 import { useDevTools } from '../../provider/useDevTools'

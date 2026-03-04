@@ -14,7 +14,7 @@ The Registry maintains the set of Nodes the BSM should keep synced. It persists 
 ```typescript
 // packages/react/src/sync/registry.ts
 
-import type { NodeStorageAdapter } from '@xnet/data'
+import type { NodeStorageAdapter } from '@xnetjs/data'
 
 export interface TrackedNode {
   nodeId: string

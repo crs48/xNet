@@ -1,5 +1,5 @@
 /**
- * @xnet/canvas - Canvas 2D Edge Renderer
+ * @xnetjs/canvas - Canvas 2D Edge Renderer
  *
  * High-performance edge rendering with Path2D caching and style batching for 5000+ edges at 60fps.
  *

@@ -702,7 +702,7 @@ sequenceDiagram
 - [x] Hybrid revalidation on reconnect with event emission.
 - [x] Grant conflict semantics: `revokedAt > 0` dominates.
 - [x] `isGrantActive()` checks revokedAt first, then expiresAt.
-- [x] UCAN token creation via `@xnet/identity`.
+- [x] UCAN token creation via `@xnetjs/identity`.
 - [x] Attenuation enforcement (no privilege escalation).
 - [x] Delegation chain depth limit (max 4).
 - [x] Cascade revocation on parent grant revoke.

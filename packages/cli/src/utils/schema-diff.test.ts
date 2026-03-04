@@ -2,7 +2,7 @@
  * Tests for schema-diff utility
  */
 
-import type { Schema, SchemaIRI, PropertyType } from '@xnet/data'
+import type { Schema, SchemaIRI, PropertyType } from '@xnetjs/data'
 import { describe, it, expect } from 'vitest'
 import { diffSchemas, type ExtendedPropertyDefinition } from './schema-diff.js'
 

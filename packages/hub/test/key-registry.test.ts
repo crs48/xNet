@@ -1,6 +1,6 @@
 import type { HubInstance } from '../src'
-import { bytesToBase64, randomBytes } from '@xnet/crypto'
-import { generateKeyBundle } from '@xnet/identity'
+import { bytesToBase64, randomBytes } from '@xnetjs/crypto'
+import { generateKeyBundle } from '@xnetjs/identity'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createHub } from '../src'
 import { createKeyRegistryProof } from '../src/services/key-registry'

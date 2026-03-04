@@ -8,10 +8,10 @@
  * - Key bundle management
  */
 
-import type { SecurityLevel } from '@xnet/crypto'
-import type { PQKeyRegistry, HybridKeyBundle } from '@xnet/identity'
-import { DEFAULT_SECURITY_LEVEL } from '@xnet/crypto'
-import { MemoryPQKeyRegistry } from '@xnet/identity'
+import type { SecurityLevel } from '@xnetjs/crypto'
+import type { PQKeyRegistry, HybridKeyBundle } from '@xnetjs/identity'
+import { DEFAULT_SECURITY_LEVEL } from '@xnetjs/crypto'
+import { MemoryPQKeyRegistry } from '@xnetjs/identity'
 import { createContext, useContext, useState, useMemo, useEffect, type ReactNode } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────

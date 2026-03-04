@@ -9,7 +9,7 @@
     "jsx": "react-jsx",
     "types": ["vitest", "@vitest/browser/providers/playwright"],
     "paths": {
-      "@xnet/*": ["../../packages/*/src"]
+      "@xnetjs/*": ["../../packages/*/src"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]

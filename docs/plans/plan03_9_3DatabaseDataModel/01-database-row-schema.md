@@ -3,7 +3,7 @@
 > Every database row as a first-class Node with per-cell conflict resolution
 
 **Duration:** 5-7 days
-**Dependencies:** `@xnet/data` (NodeStore, schema system), `@xnet/sync` (Lamport clocks)
+**Dependencies:** `@xnetjs/data` (NodeStore, schema system), `@xnetjs/sync` (Lamport clocks)
 
 ## Overview
 

@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/integration-tests",
+  "name": "@xnetjs/integration-tests",
   "version": "0.0.1",
   "private": true,
   "description": "Integration tests for xNet sync, CRUD, and persistence",
@@ -10,10 +10,10 @@
     "test:headed": "vitest run --browser.headless=false"
   },
   "dependencies": {
-    "@xnet/data": "workspace:*",
-    "@xnet/crypto": "workspace:*",
-    "@xnet/identity": "workspace:*",
-    "@xnet/react": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
+    "@xnetjs/react": "workspace:*",
     "lib0": "^0.2.42",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

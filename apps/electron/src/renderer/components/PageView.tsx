@@ -1,5 +1,5 @@
 /**
- * Page View - Rich text editor using @xnet/react hooks
+ * Page View - Rich text editor using @xnetjs/react hooks
  *
  * Features:
  * - Collaborative editing via Yjs
@@ -7,31 +7,31 @@
  * - Real-time presence indicators
  */
 
-import type { SyncStatus } from '@xnet/react'
+import type { SyncStatus } from '@xnetjs/react'
 // Editor type - we use any since @tiptap/core isn't directly available
-import { PageSchema } from '@xnet/data'
-import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
+import { PageSchema } from '@xnetjs/data'
+import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
 import {
   RichTextEditor,
   useImageUpload,
   useFileUpload,
   useFileDownload,
   type Editor
-} from '@xnet/editor/react'
+} from '@xnetjs/editor/react'
 import {
   useNode,
   useIdentity,
   useEditorExtensionsSafe,
   useComments,
   usePluginRegistryOptional
-} from '@xnet/react'
+} from '@xnetjs/react'
 import {
   CommentPopover,
   CommentsSidebar,
   OrphanedThreadList,
   type CommentThreadData,
   type OrphanedThread
-} from '@xnet/ui'
+} from '@xnetjs/ui'
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { DocumentHeader } from './DocumentHeader'
 import { PresenceAvatars } from './PresenceAvatars'

@@ -1,7 +1,7 @@
 /**
  * DevTools instrumentation context
  *
- * Provides an optional bridge between @xnet/react hooks and @xnet/devtools.
+ * Provides an optional bridge between @xnetjs/react hooks and @xnetjs/devtools.
  * When XNetDevToolsProvider is present, it populates this context so hooks
  * can report Y.Doc registrations and query lifecycle events.
  *
@@ -12,7 +12,7 @@ import type * as Y from 'yjs'
 import { createContext, useContext } from 'react'
 
 /**
- * Query tracker interface (implemented by @xnet/devtools QueryTracker)
+ * Query tracker interface (implemented by @xnetjs/devtools QueryTracker)
  */
 export interface QueryTrackerLike {
   register(

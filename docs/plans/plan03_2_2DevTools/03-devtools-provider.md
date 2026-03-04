@@ -36,7 +36,7 @@ flowchart TB
 
 import { createContext } from 'react'
 import type { DevToolsEventBus } from '../core/event-bus'
-import type { NodeStore } from '@xnet/data'
+import type { NodeStore } from '@xnetjs/data'
 
 export interface DevToolsContextValue {
   // State
@@ -76,7 +76,7 @@ import { DevToolsContext, type PanelId, type PanelPosition } from './DevToolsCon
 import { DevToolsEventBus } from '../core/event-bus'
 import { DEFAULTS } from '../core/constants'
 import { instrumentStore } from '../instrumentation/store'
-import { useNodeStore } from '@xnet/react'
+import { useNodeStore } from '@xnetjs/react'
 import { DevToolsPanel } from '../panels/Shell'
 
 export interface DevToolsProviderProps {
@@ -343,7 +343,7 @@ export function useDevTools(): DevToolsContextValue {
 All panel UI uses Tailwind classes from the host app. The devtools do NOT bundle their own Tailwind or CSS. This means:
 
 1. The host app must have Tailwind configured (which xNet apps already do)
-2. The devtools content config must include `node_modules/@xnet/devtools/**/*.{tsx,ts}`
+2. The devtools content config must include `node_modules/@xnetjs/devtools/**/*.{tsx,ts}`
 3. All devtools use a dark theme (zinc-900/950 backgrounds) to distinguish from app content
 
 ## Checklist

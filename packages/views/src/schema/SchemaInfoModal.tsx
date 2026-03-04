@@ -9,7 +9,7 @@
  * - Created/Updated timestamps (read-only)
  */
 
-import type { DatabaseSchemaMetadata } from '@xnet/data'
+import type { DatabaseSchemaMetadata } from '@xnetjs/data'
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

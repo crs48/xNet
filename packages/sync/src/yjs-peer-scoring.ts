@@ -48,7 +48,7 @@ export type PeerAction = 'allow' | 'warn' | 'throttle' | 'block'
 
 /**
  * Optional telemetry collector interface for sync operations.
- * Compatible with @xnet/telemetry TelemetryCollector.
+ * Compatible with @xnetjs/telemetry TelemetryCollector.
  */
 export interface SyncTelemetry {
   reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void

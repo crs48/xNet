@@ -10,7 +10,7 @@ import { cn } from '../../utils'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-/** Why an anchor is orphaned (matches @xnet/data OrphanReason) */
+/** Why an anchor is orphaned (matches @xnetjs/data OrphanReason) */
 export type OrphanReason =
   | 'text-deleted'
   | 'row-deleted'

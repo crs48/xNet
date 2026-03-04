@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/devtools",
+  "name": "@xnetjs/devtools",
   "version": "0.1.0",
   "description": "Protocol-level devtools for xNet applications",
   "type": "module",
@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/index.dev.ts --format esm --dts --external react --external react-dom --external yjs --external @xnet/data --external @xnet/sync --external @xnet/react --external @xnet/ui",
+    "build": "tsup src/index.ts src/index.dev.ts --format esm --dts --external react --external react-dom --external yjs --external @xnetjs/data --external @xnetjs/sync --external @xnetjs/react --external @xnetjs/ui",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
@@ -23,15 +23,15 @@
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
     "yjs": ">=13.0.0",
-    "@xnet/data": "workspace:*",
-    "@xnet/sync": "workspace:*",
-    "@xnet/react": "workspace:*"
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/sync": "workspace:*",
+    "@xnetjs/react": "workspace:*"
   },
   "dependencies": {
-    "@xnet/history": "workspace:*",
-    "@xnet/sqlite": "workspace:*",
-    "@xnet/ui": "workspace:*",
-    "@xnet/views": "workspace:*"
+    "@xnetjs/history": "workspace:*",
+    "@xnetjs/sqlite": "workspace:*",
+    "@xnetjs/ui": "workspace:*",
+    "@xnetjs/views": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

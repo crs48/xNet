@@ -3,7 +3,7 @@
 > Progressive Web App using TanStack Router
 
 **Duration:** 2 weeks
-**Dependencies:** @xnet/sdk, @xnet/react
+**Dependencies:** @xnetjs/sdk, @xnetjs/react
 
 ## Overview
 
@@ -15,7 +15,7 @@ The web app is a PWA built with TanStack Router for fast, type-safe routing with
 cd apps/web
 pnpm create vite . --template react-ts
 pnpm add @tanstack/react-router @tanstack/router-vite-plugin
-pnpm add @xnet/sdk@workspace:* @xnet/react@workspace:*
+pnpm add @xnetjs/sdk@workspace:* @xnetjs/react@workspace:*
 pnpm add vite-plugin-pwa workbox-window
 pnpm add -D @tanstack/router-devtools
 ```
@@ -112,8 +112,8 @@ export default defineConfig({
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
-import { XNetProvider } from '@xnet/react'
-import { IndexedDBAdapter } from '@xnet/storage'
+import { XNetProvider } from '@xnetjs/react'
+import { IndexedDBAdapter } from '@xnetjs/storage'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
 
@@ -150,7 +150,7 @@ declare module '@tanstack/react-router' {
 
 ```tsx
 import { createRootRoute, Outlet, Link } from '@tanstack/react-router'
-import { useSync, useIdentity } from '@xnet/react'
+import { useSync, useIdentity } from '@xnetjs/react'
 import { Sidebar } from '../components/Sidebar'
 import { SyncIndicator } from '../components/SyncIndicator'
 
@@ -193,8 +193,8 @@ function RootLayout() {
 
 ```tsx
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useQuery } from '@xnet/react'
-import { useXNet } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
+import { useXNet } from '@xnetjs/react'
 
 export const Route = createFileRoute('/')({
   component: HomePage
@@ -252,7 +252,7 @@ function HomePage() {
 
 ```tsx
 import { createFileRoute } from '@tanstack/react-router'
-import { useDocument, usePresence } from '@xnet/react'
+import { useDocument, usePresence } from '@xnetjs/react'
 import { Editor } from '../components/Editor'
 
 export const Route = createFileRoute('/doc/$docId')({
@@ -325,7 +325,7 @@ function DocumentPage() {
 
 ```tsx
 import { Link, useLocation } from '@tanstack/react-router'
-import { useQuery } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
 
 export function Sidebar() {
   const location = useLocation()

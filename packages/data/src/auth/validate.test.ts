@@ -1,5 +1,5 @@
 import type { PropertyDefinition } from '../schema/types'
-import type { AuthExpression } from '@xnet/core'
+import type { AuthExpression } from '@xnetjs/core'
 import { describe, expect, it } from 'vitest'
 import { allow, and } from './builders'
 import { validateAuthorization } from './validate'

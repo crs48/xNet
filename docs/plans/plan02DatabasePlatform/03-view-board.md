@@ -7,10 +7,10 @@
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `@xnetjs/database` → Use `@xnetjs/data` (Schema system + NodeStore)
 > - `DatabaseItem` → `Node`
 > - `Database` → `Schema`
-> - Import types from `@xnet/data`, hooks from `@xnet/react`
+> - Import types from `@xnetjs/data`, hooks from `@xnetjs/react`
 
 ## Overview
 
@@ -71,7 +71,7 @@ flowchart TD
 // packages/views/src/board/useBoardState.ts
 
 import { useMemo, useState, useCallback } from 'react'
-import { Database, View, DatabaseItem, PropertyDefinition } from '@xnet/database'
+import { Database, View, DatabaseItem, PropertyDefinition } from '@xnetjs/database'
 
 export interface BoardColumn {
   id: string
@@ -422,7 +422,7 @@ import {
 } from '@dnd-kit/sortable'
 import { BoardColumn as BoardColumnType } from './useBoardState'
 import { BoardCard } from './BoardCard'
-import { Database, DatabaseItem } from '@xnet/database'
+import { Database, DatabaseItem } from '@xnetjs/database'
 
 interface BoardColumnProps {
   column: BoardColumnType
@@ -513,8 +513,8 @@ export function BoardColumn({
 import React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Database, DatabaseItem } from '@xnet/database'
-import { getPropertyHandler } from '@xnet/database/properties'
+import { Database, DatabaseItem } from '@xnetjs/database'
+import { getPropertyHandler } from '@xnetjs/database/properties'
 
 interface BoardCardProps {
   item: DatabaseItem

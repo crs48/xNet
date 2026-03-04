@@ -9,7 +9,7 @@
  */
 
 import type { Change } from './change'
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 import { verifyChangeHash } from './change'
 import { compareLamportTimestamps } from './clock'
 

@@ -13,7 +13,7 @@
 - [x] **SPA fallback** — 404.html copied for client-side routing
 - [x] **CNAME** — `xnet.fyi` custom domain configured
 - [x] **Landing page CTA** — "Try it now" button links to `/app`
-- [x] **Passkey identity** — Client-side Ed25519 key generation via `@xnet/identity`
+- [x] **Passkey identity** — Client-side Ed25519 key generation via `@xnetjs/identity`
 - [x] **Progressive identity** — Onboarding flow with passkey creation
 - [x] **Hub connection** — `wss://hub.xnet.fyi` as default signaling URL
 
@@ -522,15 +522,15 @@ sequenceDiagram
 
 Current web app bundle: ~985 KB raw, ~313 KB gzipped. Adding it to the Astro site:
 
-| Component                      | Size Impact              |
-| ------------------------------ | ------------------------ |
-| React + ReactDOM               | ~140 KB (already needed) |
-| TanStack Router                | ~45 KB                   |
-| TipTap Editor                  | ~350 KB (largest dep)    |
-| @xnet/data + @xnet/react       | ~120 KB                  |
-| @xnet/crypto (BLAKE3, Ed25519) | ~80 KB (WASM)            |
-| @xnet/storage (IndexedDB)      | ~30 KB                   |
-| Tailwind (shared with site)    | 0 KB (already included)  |
+| Component                        | Size Impact              |
+| -------------------------------- | ------------------------ |
+| React + ReactDOM                 | ~140 KB (already needed) |
+| TanStack Router                  | ~45 KB                   |
+| TipTap Editor                    | ~350 KB (largest dep)    |
+| @xnetjs/data + @xnetjs/react     | ~120 KB                  |
+| @xnetjs/crypto (BLAKE3, Ed25519) | ~80 KB (WASM)            |
+| @xnetjs/storage (IndexedDB)      | ~30 KB                   |
+| Tailwind (shared with site)      | 0 KB (already included)  |
 
 **Total app bundle: ~750-900 KB gzipped**, loaded only when visiting `/app`. The landing page and docs remain lightweight.
 
@@ -548,7 +548,7 @@ Using `client:only="react"` ensures the app JS is only loaded on the `/app` rout
 | **Hash routing looks unprofessional**      | URLs like `/xNet/app#/doc/abc`                      | Minor for a demo; migrate to Vercel/CF Pages for clean URLs later |
 | **Large bundle for demo**                  | ~900 KB JS on first load                            | Service worker caches after first load; subsequent visits instant |
 | **WebAuthn on GitHub Pages subdomain**     | Some browsers restrict WebAuthn to "secure context" | GitHub Pages is HTTPS — this works fine                           |
-| **Crypto WASM in browser**                 | BLAKE3/Ed25519 WASM might not load                  | All @xnet/crypto already works in browsers; tested in web app     |
+| **Crypto WASM in browser**                 | BLAKE3/Ed25519 WASM might not load                  | All @xnetjs/crypto already works in browsers; tested in web app   |
 
 ---
 
@@ -580,7 +580,7 @@ flowchart TB
 ## Key Takeaways
 
 1. **Hosting the web app on GitHub Pages at `/app` is fully feasible** — it's already a static SPA with zero server dependencies
-2. **Identity generation works client-side** — Ed25519 keys via `@xnet/crypto`, passkeys via WebAuthn (both are browser APIs, no server needed)
+2. **Identity generation works client-side** — Ed25519 keys via `@xnetjs/crypto`, passkeys via WebAuthn (both are browser APIs, no server needed)
 3. **The passkey rpId portability issue is the main concern** — passkeys created on `crs48.github.io` won't transfer to a custom domain
 4. **8 of 11 onboarding steps work without any server** — the demo is genuinely useful even without sync
 5. **Hash routing is the pragmatic choice** for GitHub Pages SPA routing

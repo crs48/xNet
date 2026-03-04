@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/history",
+  "name": "@xnetjs/history",
   "version": "0.0.1",
   "description": "History, audit & time travel for xNet (point-in-time reconstruction, undo/redo, diffs, blame, verification)",
   "type": "module",
@@ -19,13 +19,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/data": "workspace:*",
-    "@xnet/sync": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/sync": "workspace:*",
     "yjs": "^13.6.24"
   },
   "devDependencies": {
-    "@xnet/crypto": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"

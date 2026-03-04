@@ -26,9 +26,9 @@ import {
   type DatabaseSchemaMetadata,
   type StoredColumn,
   type SchemaVersionEntry
-} from '@xnet/data'
-import { useNode, useIdentity, useMutate, useQuery } from '@xnet/react'
-import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnet/ui'
+} from '@xnetjs/data'
+import { useNode, useIdentity, useMutate, useQuery } from '@xnetjs/react'
+import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnetjs/ui'
 import {
   TableView,
   BoardView,
@@ -42,7 +42,7 @@ import {
   type CellPresence,
   type ColumnUpdate,
   type NewColumnDefinition
-} from '@xnet/views'
+} from '@xnetjs/views'
 import { Table, LayoutGrid, Plus, Info, Copy } from 'lucide-react'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import * as Y from 'yjs'

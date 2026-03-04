@@ -11,7 +11,7 @@
  * ```
  */
 
-import type { Schema } from '@xnet/data'
+import type { Schema } from '@xnetjs/data'
 import type { Command } from 'commander'
 import { writeFileSync, readFileSync, existsSync } from 'fs'
 import { diffSchemas, type SchemaDiffResult, type SchemaChange } from '../utils/schema-diff.js'

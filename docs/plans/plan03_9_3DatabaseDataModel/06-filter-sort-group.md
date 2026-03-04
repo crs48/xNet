@@ -3,7 +3,7 @@
 > Query system with filter builder, multi-column sorting, and grouping
 
 **Duration:** 4-5 days
-**Dependencies:** `@xnet/data` (NodeStore queries), `@xnet/react` (hooks)
+**Dependencies:** `@xnetjs/data` (NodeStore queries), `@xnetjs/react` (hooks)
 
 ## Overview
 
@@ -653,8 +653,8 @@ export function executeQuery(
 
 import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import type { FilterGroup, FilterCondition, ColumnDefinition } from '@xnet/data'
-import { OPERATORS_BY_TYPE } from '@xnet/data'
+import type { FilterGroup, FilterCondition, ColumnDefinition } from '@xnetjs/data'
+import { OPERATORS_BY_TYPE } from '@xnetjs/data'
 
 interface FilterBuilderProps {
   columns: ColumnDefinition[]

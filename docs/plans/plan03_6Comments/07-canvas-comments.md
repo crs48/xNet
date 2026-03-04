@@ -3,7 +3,7 @@
 > Figma/Miro-style commenting with position pins and object attachment using the universal Comment schema
 
 **Duration:** 2-3 days  
-**Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), [04-comment-popover.md](./04-comment-popover.md), `@xnet/canvas`
+**Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), [04-comment-popover.md](./04-comment-popover.md), `@xnetjs/canvas`
 
 ## Overview
 
@@ -50,14 +50,14 @@ flowchart TB
 // packages/canvas/src/hooks/useCanvasComments.ts
 
 import { useMemo, useCallback } from 'react'
-import { useComments } from '@xnet/react'
+import { useComments } from '@xnetjs/react'
 import {
   Comment,
   encodeAnchor,
   decodeAnchor,
   CanvasPositionAnchor,
   CanvasObjectAnchor
-} from '@xnet/data'
+} from '@xnetjs/data'
 
 interface CanvasTransform {
   panX: number
@@ -223,7 +223,7 @@ Pins are rendered in an overlay layer above the canvas objects but below the cur
 // packages/canvas/src/comments/CommentPin.tsx
 
 import React from 'react'
-import { Comment } from '@xnet/data'
+import { Comment } from '@xnetjs/data'
 
 interface CommentPinProps {
   root: Comment
@@ -286,8 +286,8 @@ function getAuthorInitial(did?: string): string {
 
 import React from 'react'
 import { CommentPin } from './CommentPin'
-import { CommentPopover } from '@xnet/ui'
-import { useCommentPopover } from '@xnet/react'
+import { CommentPopover } from '@xnetjs/ui'
+import { useCommentPopover } from '@xnetjs/react'
 import { useCanvasComments } from '../hooks/useCanvasComments'
 
 interface CommentOverlayProps {

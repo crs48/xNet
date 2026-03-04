@@ -3,11 +3,11 @@
 > Spatial graph visualization with auto-layout
 
 **Duration:** 4 weeks
-**Dependencies:** @xnet/data, @xnet/vectors
+**Dependencies:** @xnetjs/data, @xnetjs/vectors
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `@xnetjs/database` → Use `@xnetjs/data` (Schema system + NodeStore)
 > - Canvas nodes reference `Node` IDs from NodeStore
 
 ## Overview

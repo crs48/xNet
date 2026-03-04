@@ -1,5 +1,5 @@
 /**
- * Network types for @xnet/network
+ * Network types for @xnetjs/network
  */
 import type { PeerId } from '@libp2p/interface'
 import type { Libp2p } from 'libp2p'

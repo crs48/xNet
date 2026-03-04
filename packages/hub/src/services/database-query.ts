@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Database query service for large database queries.
+ * @xnetjs/hub - Database query service for large database queries.
  *
  * Provides SQL-powered filtering, sorting, and pagination for databases
  * with 10K+ rows where client-side queries would be too slow.

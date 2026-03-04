@@ -158,7 +158,7 @@ export function createDropIndicatorPlugin() {
 // packages/editor/src/components/DragHandle/DropIndicator.tsx
 
 import * as React from 'react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 
 export interface DropIndicatorProps {
   visible: boolean
@@ -338,7 +338,7 @@ import { DragHandle } from './DragHandle/DragHandle'
 import { DropIndicator } from './DragHandle/DropIndicator'
 import { useDragHandle } from './DragHandle/useDragHandle'
 import { useDropIndicator } from './DragHandle/useDropIndicator'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 
 export function RichTextEditor(
   {

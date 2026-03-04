@@ -7,7 +7,7 @@
  * creating positions on the actual Y.XmlText nodes (not the root fragment).
  */
 import type { Editor } from '@tiptap/core'
-import type { TextAnchor } from '@xnet/data'
+import type { TextAnchor } from '@xnetjs/data'
 import {
   ySyncPluginKey,
   absolutePositionToRelativePosition,

@@ -1,6 +1,6 @@
 # 01 - Package Setup
 
-> Create `@xnet/devtools` with tree-shaking, dev-only imports, and proper dependency graph
+> Create `@xnetjs/devtools` with tree-shaking, dev-only imports, and proper dependency graph
 
 ## Overview
 
@@ -17,7 +17,7 @@ We achieve this with conditional exports, `sideEffects: false`, and a provider t
 
 ```json
 {
-  "name": "@xnet/devtools",
+  "name": "@xnetjs/devtools",
   "version": "0.1.0",
   "description": "Protocol-level devtools for xNet applications",
   "type": "module",
@@ -35,12 +35,12 @@ We achieve this with conditional exports, `sideEffects: false`, and a provider t
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
     "yjs": ">=13.0.0",
-    "@xnet/data": "workspace:*",
-    "@xnet/sync": "workspace:*",
-    "@xnet/react": "workspace:*"
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/sync": "workspace:*",
+    "@xnetjs/react": "workspace:*"
   },
   "dependencies": {
-    "@xnet/views": "workspace:*"
+    "@xnetjs/views": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",
@@ -214,10 +214,10 @@ export default defineConfig({
         'react',
         'react-dom',
         'yjs',
-        '@xnet/data',
-        '@xnet/sync',
-        '@xnet/react',
-        '@xnet/views'
+        '@xnetjs/data',
+        '@xnetjs/sync',
+        '@xnetjs/react',
+        '@xnetjs/views'
       ]
     }
   }
@@ -230,7 +230,7 @@ export default defineConfig({
 
 ```typescript
 // App.tsx
-import { DevToolsProvider } from '@xnet/devtools'
+import { DevToolsProvider } from '@xnetjs/devtools'
 
 function App() {
   return (
@@ -249,7 +249,7 @@ function App() {
 // App.tsx
 const DevTools = lazy(() =>
   process.env.NODE_ENV === 'development'
-    ? import('@xnet/devtools').then((m) => ({ default: m.DevToolsProvider }))
+    ? import('@xnetjs/devtools').then((m) => ({ default: m.DevToolsProvider }))
     : Promise.resolve({ default: ({ children }) => children })
 )
 ```

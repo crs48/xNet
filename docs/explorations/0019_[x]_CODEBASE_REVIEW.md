@@ -32,28 +32,28 @@ core → crypto → identity → storage → data → network → query → vect
 
 The codebase has **16 packages**, with some divergence from the documented structure:
 
-| Package          | Documented | Implemented | Notes                                         |
-| ---------------- | ---------- | ----------- | --------------------------------------------- |
-| `@xnet/core`     | Yes        | Yes         | Content addressing, snapshots, permissions    |
-| `@xnet/crypto`   | Yes        | Yes         | Clean primitives                              |
-| `@xnet/identity` | Yes        | Yes         | DID:key, UCAN                                 |
-| `@xnet/storage`  | Yes        | Yes         | IndexedDB + Memory adapters                   |
-| `@xnet/data`     | Yes        | Yes         | Yjs wrapper, signed updates                   |
-| `@xnet/network`  | Yes        | Yes         | libp2p, y-webrtc                              |
-| `@xnet/query`    | Yes        | Yes         | Local + search                                |
-| `@xnet/vectors`  | Yes        | Partial     | Mostly placeholder                            |
-| `@xnet/react`    | Yes        | Yes         | Hooks                                         |
-| `@xnet/sdk`      | Yes        | Yes         | Unified client                                |
-| `@xnet/records`  | Yes\*      | Yes         | Implements `@xnet/database` spec from plan02  |
-| `@xnet/editor`   | Implied    | Yes         | Tiptap-based (part of rich text requirements) |
-| `@xnet/ui`       | No         | Yes         | Shared UI components                          |
-| `@xnet/views`    | Yes        | Yes         | Table/Board views (plan02)                    |
-| `@xnet/canvas`   | Yes        | Partial     | plan02/09-infinite-canvas.md                  |
-| `@xnet/formula`  | Yes        | Partial     | plan02/07-formula-engine.md                   |
+| Package            | Documented | Implemented | Notes                                          |
+| ------------------ | ---------- | ----------- | ---------------------------------------------- |
+| `@xnetjs/core`     | Yes        | Yes         | Content addressing, snapshots, permissions     |
+| `@xnetjs/crypto`   | Yes        | Yes         | Clean primitives                               |
+| `@xnetjs/identity` | Yes        | Yes         | DID:key, UCAN                                  |
+| `@xnetjs/storage`  | Yes        | Yes         | IndexedDB + Memory adapters                    |
+| `@xnetjs/data`     | Yes        | Yes         | Yjs wrapper, signed updates                    |
+| `@xnetjs/network`  | Yes        | Yes         | libp2p, y-webrtc                               |
+| `@xnetjs/query`    | Yes        | Yes         | Local + search                                 |
+| `@xnetjs/vectors`  | Yes        | Partial     | Mostly placeholder                             |
+| `@xnetjs/react`    | Yes        | Yes         | Hooks                                          |
+| `@xnetjs/sdk`      | Yes        | Yes         | Unified client                                 |
+| `@xnetjs/records`  | Yes\*      | Yes         | Implements `@xnetjs/database` spec from plan02 |
+| `@xnetjs/editor`   | Implied    | Yes         | Tiptap-based (part of rich text requirements)  |
+| `@xnetjs/ui`       | No         | Yes         | Shared UI components                           |
+| `@xnetjs/views`    | Yes        | Yes         | Table/Board views (plan02)                     |
+| `@xnetjs/canvas`   | Yes        | Partial     | plan02/09-infinite-canvas.md                   |
+| `@xnetjs/formula`  | Yes        | Partial     | plan02/07-formula-engine.md                    |
 
-\*Note: `@xnet/records` implements the `@xnet/database` specification from `plan02DatabasePlatform/`. The package was named `records` instead of `database` during implementation.
+\*Note: `@xnetjs/records` implements the `@xnetjs/database` specification from `plan02DatabasePlatform/`. The package was named `records` instead of `database` during implementation.
 
-**Key Observation:** The `@xnet/records` package implements the Notion-like database functionality documented in `plan02DatabasePlatform/`. It uses event-sourcing for sync, which is a deliberate choice parallel to `@xnet/data` (Yjs) for rich text.
+**Key Observation:** The `@xnetjs/records` package implements the Notion-like database functionality documented in `plan02DatabasePlatform/`. It uses event-sourcing for sync, which is a deliberate choice parallel to `@xnetjs/data` (Yjs) for rich text.
 
 ---
 
@@ -72,18 +72,18 @@ flowchart TD
     subgraph DataLayer["Data Layer (Dual Sync)"]
         direction LR
         subgraph RichText["Rich Text Path"]
-            DATA["@xnet/data<br/>Yjs CRDT"]
+            DATA["@xnetjs/data<br/>Yjs CRDT"]
             SIGNED["SignedChange<br/>hash chain"]
         end
         subgraph Tabular["Tabular Data Path"]
-            RECORDS["@xnet/records<br/>Event-sourced"]
+            RECORDS["@xnetjs/records<br/>Event-sourced"]
             RECOP["RecordChange<br/>hash chain"]
         end
     end
 
     subgraph Infrastructure["Infrastructure"]
-        STORAGE["@xnet/storage<br/>IndexedDB"]
-        NETWORK["@xnet/network<br/>P2P sync"]
+        STORAGE["@xnetjs/storage<br/>IndexedDB"]
+        NETWORK["@xnetjs/network<br/>P2P sync"]
     end
 
     EDITOR --> DATA
@@ -103,7 +103,7 @@ The codebase has **two independent sync mechanisms**:
 flowchart LR
     subgraph yjs["Yjs-based (Rich Text)"]
         direction TB
-        Y1["@xnet/data wraps Yjs"]
+        Y1["@xnetjs/data wraps Yjs"]
         Y2["SignedChange + vector clocks"]
         Y3["y-webrtc sync"]
         Y4["Character-level CRDT merge"]
@@ -112,7 +112,7 @@ flowchart LR
 
     subgraph eventsource["Event-sourced (Records)"]
         direction TB
-        E1["@xnet/records change log"]
+        E1["@xnetjs/records change log"]
         E2["RecordChange + LWW"]
         E3["RecordSyncProvider"]
         E4["Field-level last-writer-wins"]
@@ -121,13 +121,13 @@ flowchart LR
 ```
 
 1. **Yjs-based (for rich text):**
-   - `@xnet/data` wraps Yjs
+   - `@xnetjs/data` wraps Yjs
    - Uses `SignedChange` with vector clocks
    - Syncs via y-webrtc
    - Character-level CRDT merge
 
 2. **Event-sourcing (for records):**
-   - `@xnet/records` implements its own change log
+   - `@xnetjs/records` implements its own change log
    - Uses `RecordChange` with LWW per-field
    - Has its own `RecordSyncProvider`
    - Field-level last-writer-wins
@@ -142,14 +142,14 @@ flowchart LR
 
 Several concepts are defined in multiple places:
 
-| Concept           | Defined In                                       | Notes                                        |
-| ----------------- | ------------------------------------------------ | -------------------------------------------- |
-| `VectorClock`     | `@xnet/core`                                     | Good - single source                         |
-| `SignedUpdate`    | `@xnet/core`                                     | For Yjs (→ Change<YjsUpdate>)                |
-| `RecordChange`    | `@xnet/records/sync/types`                       | Parallel structure (→ Change<RecordPayload>) |
-| `ContentId`       | `@xnet/core`                                     | Good - single source                         |
-| Hash verification | Both `@xnet/core` and `@xnet/records/sync/store` | Duplicated                                   |
-| DID type          | `@xnet/core`                                     | Good - re-exported                           |
+| Concept           | Defined In                                           | Notes                                        |
+| ----------------- | ---------------------------------------------------- | -------------------------------------------- |
+| `VectorClock`     | `@xnetjs/core`                                       | Good - single source                         |
+| `SignedUpdate`    | `@xnetjs/core`                                       | For Yjs (→ Change<YjsUpdate>)                |
+| `RecordChange`    | `@xnetjs/records/sync/types`                         | Parallel structure (→ Change<RecordPayload>) |
+| `ContentId`       | `@xnetjs/core`                                       | Good - single source                         |
+| Hash verification | Both `@xnetjs/core` and `@xnetjs/records/sync/store` | Duplicated                                   |
+| DID type          | `@xnetjs/core`                                       | Good - re-exported                           |
 
 ---
 
@@ -161,7 +161,7 @@ Create a unified sync abstraction that both Yjs and event-sourcing use:
 
 ```mermaid
 flowchart LR
-    subgraph sync["@xnet/sync (NEW)"]
+    subgraph sync["@xnetjs/sync (NEW)"]
         OP["change.ts<br/>Base change type"]
         CHAIN["chain.ts<br/>Hash chain linkage"]
         CLOCK["clock.ts<br/>Vector clock utils"]
@@ -170,18 +170,18 @@ flowchart LR
     end
 
     subgraph consumers["Consumers"]
-        DATA["@xnet/data<br/>Change&lt;YjsUpdate&gt;"]
-        RECORDS["@xnet/records<br/>Change&lt;RecordPayload&gt;"]
+        DATA["@xnetjs/data<br/>Change&lt;YjsUpdate&gt;"]
+        RECORDS["@xnetjs/records<br/>Change&lt;RecordPayload&gt;"]
     end
 
     sync --> DATA
     sync --> RECORDS
 ```
 
-Then `@xnet/data` and `@xnet/records` both import from `@xnet/sync`:
+Then `@xnetjs/data` and `@xnetjs/records` both import from `@xnetjs/sync`:
 
 ```typescript
-// @xnet/sync/change.ts
+// @xnetjs/sync/change.ts
 export interface Change<T = unknown> {
   id: string
   type: string
@@ -194,8 +194,8 @@ export interface Change<T = unknown> {
   vectorClock: VectorClock
 }
 
-// @xnet/data uses: Change<YjsUpdate>
-// @xnet/records uses: Change<CreateItem | UpdateItem | ...>
+// @xnetjs/data uses: Change<YjsUpdate>
+// @xnetjs/records uses: Change<CreateItem | UpdateItem | ...>
 ```
 
 **Benefit:** Single mental model for "how data syncs"
@@ -228,13 +228,13 @@ type ContentId = `blake3:${string}` // Shorter CID format
 
 I'd recommend **Option B** - use plain UUIDs internally, only add prefixes for externally-visible identifiers.
 
-### Recommendation 3: Merge `@xnet/data` and `@xnet/records`
+### Recommendation 3: Merge `@xnetjs/data` and `@xnetjs/records`
 
 These packages share the same goal (structured data with sync) but use different mechanisms. Consider:
 
 ```mermaid
 flowchart TD
-    subgraph unified["@xnet/data (Unified)"]
+    subgraph unified["@xnetjs/data (Unified)"]
         subgraph doc["document/"]
             DOC["Rich text<br/>Yjs-based"]
         end
@@ -252,9 +252,9 @@ flowchart TD
 
 The key insight: **both are just different strategies for the same problem** (conflict-free collaborative data). Keep them in one package with clear internal boundaries.
 
-### Recommendation 4: Simplify @xnet/core
+### Recommendation 4: Simplify @xnetjs/core
 
-`@xnet/core` is doing too much:
+`@xnetjs/core` is doing too much:
 
 ```typescript
 // Currently exports:
@@ -268,17 +268,17 @@ The key insight: **both are just different strategies for the same problem** (co
 
 This should be split:
 
-| Keep in `@xnet/core`         | Move elsewhere                              |
-| ---------------------------- | ------------------------------------------- |
-| Content addressing           | -                                           |
-| Basic types (DID, ContentId) | -                                           |
-| Snapshots                    | `@xnet/storage`                             |
-| Signed updates               | `@xnet/sync` (new)                          |
-| DID resolution               | `@xnet/network`                             |
-| Query federation             | `@xnet/query`                               |
-| Permissions                  | `@xnet/identity` or new `@xnet/permissions` |
+| Keep in `@xnetjs/core`       | Move elsewhere                                  |
+| ---------------------------- | ----------------------------------------------- |
+| Content addressing           | -                                               |
+| Basic types (DID, ContentId) | -                                               |
+| Snapshots                    | `@xnetjs/storage`                               |
+| Signed updates               | `@xnetjs/sync` (new)                            |
+| DID resolution               | `@xnetjs/network`                               |
+| Query federation             | `@xnetjs/query`                                 |
+| Permissions                  | `@xnetjs/identity` or new `@xnetjs/permissions` |
 
-**Result:** `@xnet/core` becomes a minimal, stable foundation.
+**Result:** `@xnetjs/core` becomes a minimal, stable foundation.
 
 ---
 
@@ -440,16 +440,16 @@ When resolving conflicts, query the operation log. This is slower for reads but 
 
 ```mermaid
 flowchart TD
-    CRYPTO["@xnet/crypto<br/>0 deps"]
-    CORE["@xnet/core"]
-    IDENTITY["@xnet/identity"]
-    STORAGE["@xnet/storage"]
-    DATA["@xnet/data"]
-    RECORDS["@xnet/records"]
-    QUERY["@xnet/query"]
-    NETWORK["@xnet/network"]
-    REACT["@xnet/react"]
-    SDK["@xnet/sdk"]
+    CRYPTO["@xnetjs/crypto<br/>0 deps"]
+    CORE["@xnetjs/core"]
+    IDENTITY["@xnetjs/identity"]
+    STORAGE["@xnetjs/storage"]
+    DATA["@xnetjs/data"]
+    RECORDS["@xnetjs/records"]
+    QUERY["@xnetjs/query"]
+    NETWORK["@xnetjs/network"]
+    REACT["@xnetjs/react"]
+    SDK["@xnetjs/sdk"]
 
     CRYPTO --> CORE
     CORE --> IDENTITY
@@ -483,28 +483,28 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph Foundation["Foundation Layer"]
-        CRYPTO["@xnet/crypto<br/>primitives"]
-        CORE["@xnet/core<br/>types, CIDs"]
-        SYNC["@xnet/sync<br/>NEW: change chains"]
+        CRYPTO["@xnetjs/crypto<br/>primitives"]
+        CORE["@xnetjs/core<br/>types, CIDs"]
+        SYNC["@xnetjs/sync<br/>NEW: change chains"]
     end
 
     subgraph Auth["Auth Layer"]
-        IDENTITY["@xnet/identity<br/>keys, DIDs, UCAN"]
+        IDENTITY["@xnetjs/identity<br/>keys, DIDs, UCAN"]
     end
 
     subgraph DataLayer["Data Layer"]
-        STORAGE["@xnet/storage<br/>persistence"]
-        DATA["@xnet/data<br/>unified: docs + databases"]
+        STORAGE["@xnetjs/storage<br/>persistence"]
+        DATA["@xnetjs/data<br/>unified: docs + databases"]
     end
 
     subgraph Services["Services Layer"]
-        QUERY["@xnet/query<br/>search, filtering"]
-        NETWORK["@xnet/network<br/>P2P transport"]
+        QUERY["@xnetjs/query<br/>search, filtering"]
+        NETWORK["@xnetjs/network<br/>P2P transport"]
     end
 
     subgraph Client["Client Layer"]
-        REACT["@xnet/react<br/>hooks"]
-        SDK["@xnet/sdk<br/>unified API"]
+        REACT["@xnetjs/react<br/>hooks"]
+        SDK["@xnetjs/sdk<br/>unified API"]
     end
 
     CRYPTO --> CORE
@@ -528,26 +528,26 @@ flowchart TD
 
 These changes provide immediate benefit with low risk:
 
-### 1. Move Vector Clock Utils to `@xnet/core`
+### 1. Move Vector Clock Utils to `@xnetjs/core`
 
-Currently defined in `@xnet/core/updates.ts` but also reimplemented in `@xnet/records`. Ensure single implementation, import everywhere.
+Currently defined in `@xnetjs/core/updates.ts` but also reimplemented in `@xnetjs/records`. Ensure single implementation, import everywhere.
 
 ### 2. Standardize Hash Functions
 
-Both `@xnet/crypto` and `@xnet/core` have hashing:
+Both `@xnetjs/crypto` and `@xnetjs/core` have hashing:
 
-- `@xnet/crypto`: `hash()`, `hashHex()`, `hashBase64()`
-- `@xnet/core`: `hashContent()`, `createContentId()`
+- `@xnetjs/crypto`: `hash()`, `hashHex()`, `hashBase64()`
+- `@xnetjs/core`: `hashContent()`, `createContentId()`
 
-Keep only `@xnet/crypto` for raw hashing, `@xnet/core` for CID formatting.
+Keep only `@xnetjs/crypto` for raw hashing, `@xnetjs/core` for CID formatting.
 
 ### 3. Remove Unused Exports
 
 Several packages export types that aren't used:
 
-- `@xnet/core`: `MerkleNode`, `ContentTree` (not implemented)
-- `@xnet/core`: `QueryRouter` interface (federation not implemented)
-- `@xnet/data`: `UpdateBatch` (not used)
+- `@xnetjs/core`: `MerkleNode`, `ContentTree` (not implemented)
+- `@xnetjs/core`: `QueryRouter` interface (federation not implemented)
+- `@xnetjs/data`: `UpdateBatch` (not used)
 
 Clean these up to reduce API surface.
 
@@ -555,11 +555,11 @@ Clean these up to reduce API surface.
 
 Multiple packages define their own config types:
 
-- `NetworkConfig` in `@xnet/network`
+- `NetworkConfig` in `@xnetjs/network`
 - `StorageConfig` (implicit in adapters)
-- `XNetClientConfig` in `@xnet/sdk`
+- `XNetClientConfig` in `@xnetjs/sdk`
 
-Create a single `@xnet/core/config.ts` with all config types.
+Create a single `@xnetjs/core/config.ts` with all config types.
 
 ---
 
@@ -567,17 +567,17 @@ Create a single `@xnet/core/config.ts` with all config types.
 
 ### Docs vs. Reality
 
-| Document                      | Accuracy | Notes                                               |
-| ----------------------------- | -------- | --------------------------------------------------- |
-| `CLAUDE.md`                   | 95%      | Updated with all packages and relationships         |
-| `TRADEOFFS.md`                | 95%      | Excellent, explains key decisions                   |
-| `PERSISTENCE_ARCHITECTURE.md` | 90%      | Good, some code samples outdated                    |
-| `plan01MVP/`                  | 95%      | Implementation complete                             |
-| `plan02DatabasePlatform/`     | 90%      | `@xnet/records` implements this as `@xnet/database` |
+| Document                      | Accuracy | Notes                                                   |
+| ----------------------------- | -------- | ------------------------------------------------------- |
+| `CLAUDE.md`                   | 95%      | Updated with all packages and relationships             |
+| `TRADEOFFS.md`                | 95%      | Excellent, explains key decisions                       |
+| `PERSISTENCE_ARCHITECTURE.md` | 90%      | Good, some code samples outdated                        |
+| `plan01MVP/`                  | 95%      | Implementation complete                                 |
+| `plan02DatabasePlatform/`     | 90%      | `@xnetjs/records` implements this as `@xnetjs/database` |
 
 ### Recommended Updates
 
-1. ~~**Add `@xnet/records` to CLAUDE.md**~~ - Done
+1. ~~**Add `@xnetjs/records` to CLAUDE.md**~~ - Done
 2. ~~**Update package dependency diagram**~~ - Done
 3. ~~**Document the hybrid sync strategy**~~ - Done in CLAUDE.md
 4. **Add data flow diagrams** - Visual representations help (already in plan02)
@@ -589,20 +589,20 @@ Create a single `@xnet/core/config.ts` with all config types.
 ### High Priority (Done)
 
 1. ~~**Update CLAUDE.md** with accurate package list and relationships~~ - Completed
-2. ~~**Document `@xnet/records`**~~ - Already documented in plan02DatabasePlatform as `@xnet/database`
+2. ~~**Document `@xnetjs/records`**~~ - Already documented in plan02DatabasePlatform as `@xnetjs/database`
 3. **Consolidate hash/verify functions** into single locations (minor improvement)
 
 ### Medium Priority (Next Sprint)
 
-4. **Create `@xnet/sync`** to unify sync primitives
+4. **Create `@xnetjs/sync`** to unify sync primitives
 5. **Simplify `PropertyValue` type** to JSON-only
 6. **Move computed properties** out of storage layer
 
 ### Low Priority (Future)
 
-7. **Merge `@xnet/data` and `@xnet/records`** (or keep separate, see TRADEOFFS.md)
+7. **Merge `@xnetjs/data` and `@xnetjs/records`** (or keep separate, see TRADEOFFS.md)
 8. **Unify Document/Item concepts**
-9. **Split `@xnet/core`** into smaller focused packages
+9. **Split `@xnetjs/core`** into smaller focused packages
 
 ---
 
@@ -620,7 +620,7 @@ flowchart TD
     end
 
     subgraph improvements["Recommended Improvements"]
-        I1["Create @xnet/sync"]
+        I1["Create @xnetjs/sync"]
         I2["Simplify PropertyValue"]
         I3["Unify Document/Item"]
     end

@@ -1,5 +1,5 @@
 /**
- * @xnet/network - libp2p networking, WebRTC transport, P2P sync
+ * @xnetjs/network - libp2p networking, WebRTC transport, P2P sync
  */
 
 // Types

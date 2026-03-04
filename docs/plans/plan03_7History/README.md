@@ -28,7 +28,7 @@ await history.revertTo(nodeId, { type: 'wall', timestamp: yesterday })
 
 ```mermaid
 flowchart TB
-    subgraph "New: @xnet/history"
+    subgraph "New: @xnetjs/history"
         HE[HistoryEngine<br/>Point-in-time reconstruction]
         SC[SnapshotCache<br/>Periodic checkpoints]
         DE[DiffEngine<br/>Compare two states]
@@ -209,11 +209,11 @@ packages/
 
 ## Dependencies
 
-| Package          | Purpose                                      | Used By             |
-| ---------------- | -------------------------------------------- | ------------------- |
-| (none new)       | Uses existing `@xnet/sync` chain utilities   | HistoryEngine       |
-| (none new)       | Uses existing `@xnet/data` NodeStore/adapter | All                 |
-| `yjs` (existing) | Document snapshot/reconstruction             | DocumentTimeMachine |
+| Package          | Purpose                                        | Used By             |
+| ---------------- | ---------------------------------------------- | ------------------- |
+| (none new)       | Uses existing `@xnetjs/sync` chain utilities   | HistoryEngine       |
+| (none new)       | Uses existing `@xnetjs/data` NodeStore/adapter | All                 |
+| `yjs` (existing) | Document snapshot/reconstruction               | DocumentTimeMachine |
 
 ## Success Criteria
 

@@ -5,8 +5,8 @@
  * to replay at most `resolution` changes per position change.
  */
 
-import type { NodeChange, NodeState, NodeStorageAdapter, NodeId } from '@xnet/data'
-import { topologicalSort } from '@xnet/sync'
+import type { NodeChange, NodeState, NodeStorageAdapter, NodeId } from '@xnetjs/data'
+import { topologicalSort } from '@xnetjs/sync'
 import { createEmptyState, applyChangeToState } from './engine'
 
 export class ScrubCache {

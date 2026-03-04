@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - SQLite storage adapter.
+ * @xnetjs/hub - SQLite storage adapter.
  */
 
 import type {

@@ -1,7 +1,7 @@
 # 0063 - Community Communication Tools
 
 > **Status:** Exploration
-> **Tags:** community, Discord, GitHub, X, Bluesky, Reddit, communication, maintainer-experience
+> **Tags:** community, GitHub Discussions, GitHub, X, Bluesky, Reddit, communication, maintainer-experience
 > **Created:** 2026-02-06
 > **Context:** xNet needs a community presence. The question is: how minimal can we go while still serving developers and users effectively? This exploration analyzes the landscape of community tools, how other local-first/OSS projects use them, and recommends an approach that respects both maintainer sanity and community needs.
 
@@ -9,7 +9,7 @@
 
 **My recommendation: GitHub + X + Bluesky. That's it.**
 
-The local-first OSS ecosystem is heavily Discord-dependent, but Discord is a trap for solo/small-team maintainers. It creates unsustainable real-time expectations, loses knowledge to chat entropy, and contradicts local-first values (centralized, closed, ephemeral).
+The local-first OSS ecosystem is heavily GitHub Discussions-dependent, but GitHub Discussions is a trap for solo/small-team maintainers. It creates unsustainable real-time expectations, loses knowledge to chat entropy, and contradicts local-first values (centralized, closed, ephemeral).
 
 If community demand grows, add **GitHub Discussions** first (async, searchable, integrated), then consider **Zulip** for real-time if truly needed.
 
@@ -39,7 +39,7 @@ flowchart LR
     FOCUS <-->|"Tension"| SOCIAL
 ```
 
-The platforms that are best for community engagement (Discord, Slack) are worst for maintainer wellbeing. The platforms that preserve knowledge (GitHub, Discourse) feel "less alive" to users.
+The platforms that are best for community engagement (GitHub Discussions, Slack) are worst for maintainer wellbeing. The platforms that preserve knowledge (GitHub, Discourse) feel "less alive" to users.
 
 ---
 
@@ -107,12 +107,12 @@ flowchart TB
 
 ---
 
-### Discord
+### GitHub Discussions
 
 **What it is:** Real-time chat with channels, voice, and rich media.
 
 **How local-first projects use it:**
-| Project | Discord | Members | Primary Use |
+| Project | GitHub Discussions | Members | Primary Use |
 |---------|---------|---------|-------------|
 | Yjs | Yes | Active | Support, collaboration |
 | Automerge | Yes | Active | Primary community hub |
@@ -120,7 +120,7 @@ flowchart TB
 | Jazz | Yes | Active | Primary support |
 | Electric SQL | Yes | Active | Community + support |
 
-**The Discord Fatigue Problem:**
+**The GitHub Discussions Fatigue Problem:**
 
 ```mermaid
 flowchart TB
@@ -144,11 +144,11 @@ flowchart TB
 
 **What maintainers say:**
 
-> "When we made the switch to Zulip a few months ago for chat, never in my wildest dreams did I imagine it was going to become the beating heart of the community." — Dan Allen, Asciidoctor (on leaving Discord)
+> "When we made the switch to Zulip a few months ago for chat, never in my wildest dreams did I imagine it was going to become the beating heart of the community." — Dan Allen, Asciidoctor (on leaving GitHub Discussions)
 
-> "Zulip's threading model is _fantastic_ and _game-changing_, and you are doing your community a disservice if you choose Slack or Discord over Zulip." — Juan Nunez-Iglesias, napari/scikit-image
+> "Zulip's threading model is _fantastic_ and _game-changing_, and you are doing your community a disservice if you choose Slack or GitHub Discussions over Zulip." — Juan Nunez-Iglesias, napari/scikit-image
 
-**The Discord Trap:**
+**The GitHub Discussions Trap:**
 
 1. **Real-time expectations** — Users expect instant responses
 2. **Knowledge loss** — Answers aren't searchable/findable
@@ -164,9 +164,9 @@ flowchart TB
 - "It's where the community is"
 
 **The Irony:**
-Discord embodies everything local-first opposes:
+GitHub Discussions embodies everything local-first opposes:
 
-- Centralized (Discord Inc. owns everything)
+- Centralized (GitHub Discussions Inc. owns everything)
 - Cloud-only (no offline, no local-first)
 - Ephemeral (messages disappear from practical access)
 - Closed (no export, no interop)
@@ -311,20 +311,20 @@ DON'T:
 - **Show and Tell** — Community projects
 - **General** — Everything else
 
-**Comparison to Discord:**
+**Comparison to GitHub Discussions:**
 
-| Aspect              | GitHub Discussions | Discord |
-| ------------------- | ------------------ | ------- |
-| Searchable          | Google indexes     | No      |
-| Async               | Yes                | No      |
-| Threaded            | Yes                | Minimal |
-| Code integration    | Native             | None    |
-| Real-time           | No                 | Yes     |
-| Community feel      | Low                | High    |
-| Maintainer burden   | Low                | High    |
-| Knowledge retention | High               | Low     |
+| Aspect              | GitHub Discussions | GitHub Discussions |
+| ------------------- | ------------------ | ------------------ |
+| Searchable          | Google indexes     | No                 |
+| Async               | Yes                | No                 |
+| Threaded            | Yes                | Minimal            |
+| Code integration    | Native             | None               |
+| Real-time           | No                 | Yes                |
+| Community feel      | Low                | High               |
+| Maintainer burden   | Low                | High               |
+| Knowledge retention | High               | Low                |
 
-**Verdict:** **Enable if demand grows**. Better than Discord for Q&A, but don't pre-optimize.
+**Verdict:** **Enable if demand grows**. Better than GitHub Discussions for Q&A, but don't pre-optimize.
 
 ---
 
@@ -377,13 +377,13 @@ flowchart TB
     subgraph "Matrix Benefits"
         OPEN["Open protocol"]
         FED["Federation"]
-        BRIDGE["Bridges to Discord, Slack, Telegram"]
+        BRIDGE["Bridges to GitHub Discussions, Slack, Telegram"]
         E2E["E2E encryption"]
         SELF["Self-hostable"]
     end
 
     subgraph "Challenges"
-        UX["UX gap vs Discord"]
+        UX["UX gap vs GitHub Discussions"]
         ONBOARD["Confusing onboarding"]
         SMALL["Smaller community"]
         RESOURCES["Resource intensive"]
@@ -397,11 +397,11 @@ flowchart TB
 
 **The bridge ecosystem:**
 
-- Discord (multiple bridges)
+- GitHub Discussions (multiple bridges)
 - Slack, Telegram, IRC
 - WhatsApp, Signal, iMessage
 
-**Verdict:** **Consider for the future**. Great for values alignment, but network effects matter. Could bridge to Discord if forced to have one.
+**Verdict:** **Consider for the future**. Great for values alignment, but network effects matter. Could bridge to GitHub Discussions if forced to have one.
 
 ---
 
@@ -414,7 +414,7 @@ flowchart TB
 |--------------|------|-----|
 | Rust Language | Large | Governance, development |
 | Lean Prover | Research | Academic community |
-| Asciidoctor | OSS | Replaced Discord |
+| Asciidoctor | OSS | Replaced GitHub Discussions |
 | Recurse Center | 500+ | Developer community |
 | Lichess | ~100 | Team communication |
 
@@ -444,7 +444,7 @@ Stream: #development
 - **Free for OSS** — Zulip Cloud Standard
 - **Self-hostable** — MIT licensed
 
-**Verdict:** **Best real-time option if needed**. Way better than Discord for async-friendly communities.
+**Verdict:** **Best real-time option if needed**. Way better than GitHub Discussions for async-friendly communities.
 
 ---
 
@@ -465,7 +465,7 @@ Stream: #development
 - Commercial OSS with paying customers
 - Legacy communities
 
-**Verdict:** **Hard no**. Worse than Discord (costs more, same problems).
+**Verdict:** **Hard no**. Worse than GitHub Discussions (costs more, same problems).
 
 ---
 
@@ -495,7 +495,7 @@ Stream: #development
 | GitHub Discussions | Low           | Low          | High                |
 | X/Bluesky          | Low           | Low          | Medium              |
 | Reddit             | Low           | Low          | Medium              |
-| Discord            | High          | High         | Low                 |
+| GitHub Discussions | High          | High         | Low                 |
 | Telegram           | High          | High         | Low                 |
 | Zulip              | Medium        | Low          | High                |
 | Matrix             | Medium        | Medium       | High                |
@@ -509,7 +509,7 @@ Stream: #development
 | GitHub Discussions | No        | Medium      | High      | Easy       |
 | X/Bluesky          | Semi      | Medium      | High      | Easy       |
 | Reddit             | No        | High        | High      | Easy       |
-| Discord            | Yes       | High        | Low       | Easy       |
+| GitHub Discussions | Yes       | High        | Low       | Easy       |
 | Telegram           | Yes       | Medium      | Low       | Easy       |
 | Zulip              | Yes       | Medium      | Low       | Medium     |
 | Matrix             | Yes       | Medium      | Low       | Hard       |
@@ -517,16 +517,16 @@ Stream: #development
 
 ### By Values Alignment (Local-First)
 
-| Platform | Open | Decentralized | Data Ownership | Offline |
-| -------- | ---- | ------------- | -------------- | ------- |
-| GitHub   | No   | No            | No             | No      |
-| Discord  | No   | No            | No             | No      |
-| Telegram | No   | No            | No             | No      |
-| Reddit   | No   | No            | No             | No      |
-| X        | No   | No            | No             | No      |
-| Bluesky  | Yes  | Yes           | Yes            | No      |
-| Matrix   | Yes  | Yes           | Yes            | No      |
-| Zulip    | Yes  | Self-host     | Yes            | No      |
+| Platform           | Open | Decentralized | Data Ownership | Offline |
+| ------------------ | ---- | ------------- | -------------- | ------- |
+| GitHub             | No   | No            | No             | No      |
+| GitHub Discussions | No   | No            | No             | No      |
+| Telegram           | No   | No            | No             | No      |
+| Reddit             | No   | No            | No             | No      |
+| X                  | No   | No            | No             | No      |
+| Bluesky            | Yes  | Yes           | Yes            | No      |
+| Matrix             | Yes  | Yes           | Yes            | No      |
+| Zulip              | Yes  | Self-host     | Yes            | No      |
 
 ---
 
@@ -535,40 +535,40 @@ Stream: #development
 ```mermaid
 flowchart TB
     subgraph "Yjs"
-        YJS_DISC["Discord ✓"]
+        YJS_DISC["GitHub Discussions ✓"]
         YJS_FORUM["Discourse (discuss.yjs.dev) ✓"]
         YJS_GH["GitHub Issues ✓"]
         YJS_X["X/Twitter ✓"]
     end
 
     subgraph "Automerge"
-        AM_DISC["Discord ✓"]
+        AM_DISC["GitHub Discussions ✓"]
         AM_GHD["GitHub Discussions ✓"]
         AM_GH["GitHub Issues ✓"]
         AM_X["X/Twitter ✓"]
     end
 
     subgraph "Electric SQL"
-        EL_DISC["Discord ✓"]
+        EL_DISC["GitHub Discussions ✓"]
         EL_GHD["GitHub Discussions ✓"]
         EL_GH["GitHub Issues ✓"]
         EL_X["X/Twitter ✓"]
     end
 
     subgraph "DXOS"
-        DX_DISC["Discord ✓"]
+        DX_DISC["GitHub Discussions ✓"]
         DX_GHD["GitHub Discussions ✓"]
         DX_GH["GitHub Issues ✓"]
     end
 ```
 
-**Pattern observed:** Everyone uses Discord + GitHub. Everyone probably wishes they didn't have Discord.
+**Pattern observed:** Everyone uses GitHub Discussions + GitHub. Everyone probably wishes they didn't have GitHub Discussions.
 
 ---
 
 ## Sentiment Analysis
 
-### Discord
+### GitHub Discussions
 
 **Positive sentiment:**
 
@@ -593,7 +593,7 @@ flowchart TB
 
 **Negative sentiment:**
 
-- "Feels dead compared to Discord"
+- "Feels dead compared to GitHub Discussions"
 - "Slower response times"
 - "Less community building"
 
@@ -654,7 +654,7 @@ flowchart TB
 | GitHub Discussions | If Q&A volume grows       | Don't pre-optimize     |
 | Zulip              | If real-time needed       | Only if demand exists  |
 
-### Why NOT Discord
+### Why NOT GitHub Discussions
 
 1. **You said it yourself** — "Chaotic and chatty"
 2. **Contradicts xNet values** — Centralized, ephemeral, cloud-only
@@ -664,7 +664,7 @@ flowchart TB
 
 ### If Forced to Add Real-Time Chat
 
-**Choose Zulip over Discord because:**
+**Choose Zulip over GitHub Discussions because:**
 
 1. Topic-based threading preserves context
 2. Async-friendly (catch up easily)
@@ -706,8 +706,8 @@ flowchart TB
 
 ### Never
 
-- [ ] ~~Discord~~ (unless overwhelming demand + you have community moderators)
-- [ ] ~~Slack~~ (expensive, worse than Discord)
+- [ ] ~~GitHub Discussions~~ (unless overwhelming demand + you have community moderators)
+- [ ] ~~Slack~~ (expensive, worse than GitHub Discussions)
 - [ ] ~~Telegram~~ (not developer-focused)
 
 ---
@@ -802,11 +802,11 @@ If xNet succeeds, community will grow. When that happens:
 1. **First sign:** Issues pile up → Enable Discussions
 2. **Second sign:** Same questions repeat → Create FAQ in Discussions
 3. **Third sign:** People want real-time → Consider Zulip
-4. **Fourth sign:** Community offers to moderate → Maybe then consider Discord
+4. **Fourth sign:** Community offers to moderate → Maybe then consider GitHub Discussions
 
 ### The Values Argument
 
-xNet is building local-first, decentralized infrastructure. Using Discord as the primary community tool is like a vegan restaurant serving beef — technically possible, but philosophically inconsistent.
+xNet is building local-first, decentralized infrastructure. Using GitHub Discussions as the primary community tool is like a vegan restaurant serving beef — technically possible, but philosophically inconsistent.
 
 Bluesky (AT Protocol) and Zulip (open source) are more aligned. Matrix is the most aligned but has UX friction.
 
@@ -816,15 +816,15 @@ Bluesky (AT Protocol) and Zulip (open source) are more aligned. Matrix is the mo
 
 You don't need to be everywhere. You need to be effective somewhere. GitHub + X + Bluesky is plenty for a pre-1.0 project. Add more only when the community demands it — and when you have people willing to help moderate.
 
-The best community tool is one you'll actually use consistently. If Discord stresses you out, it won't serve anyone well.
+The best community tool is one you'll actually use consistently. If GitHub Discussions stresses you out, it won't serve anyone well.
 
 ---
 
 ## Appendix: Quick Reference
 
-### If Someone Asks "Why No Discord?"
+### If Someone Asks "Why No GitHub Discussions?"
 
-> "xNet is local-first and async-first. Discord is centralized and real-time-first. We use GitHub Discussions for async Q&A (searchable, permanent) and post updates on Bluesky/X. If real-time chat demand grows, we'll consider Zulip (open source, topic-threaded)."
+> "xNet is local-first and async-first. GitHub Discussions is centralized and real-time-first. We use GitHub Discussions for async Q&A (searchable, permanent) and post updates on Bluesky/X. If real-time chat demand grows, we'll consider Zulip (open source, topic-threaded)."
 
 ### If Someone Asks "Where's the Community?"
 

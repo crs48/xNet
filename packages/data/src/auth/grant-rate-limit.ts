@@ -1,4 +1,4 @@
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 
 export interface GrantRateLimiterOptions {
   limitPerMinute?: number

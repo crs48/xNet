@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Main thread proxy for SQLite Web Worker
+ * @xnetjs/sqlite - Main thread proxy for SQLite Web Worker
  *
  * This provides a SQLiteAdapter-compatible interface that communicates
  * with the SQLite worker via postMessage/Comlink.

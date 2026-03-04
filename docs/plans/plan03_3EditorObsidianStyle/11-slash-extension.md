@@ -242,7 +242,7 @@ export interface SlashCommandOptions {
  *
  * @example
  * ```ts
- * import { SlashCommand } from '@xnet/editor/extensions'
+ * import { SlashCommand } from '@xnetjs/editor/extensions'
  *
  * const editor = useEditor({
  *   extensions: [
@@ -760,7 +760,7 @@ describe('SlashMenu', () => {
 
 ```typescript
 // In your app
-import { SlashCommand, COMMAND_GROUPS } from '@xnet/editor/extensions'
+import { SlashCommand, COMMAND_GROUPS } from '@xnetjs/editor/extensions'
 
 // Add custom commands
 const customCommands = [

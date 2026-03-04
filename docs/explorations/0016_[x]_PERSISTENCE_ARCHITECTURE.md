@@ -1,6 +1,6 @@
 # xNet Persistence & Durability Architecture
 
-> **Status**: ✅ IMPLEMENTED - The `@xnet/sqlite` package provides durable storage
+> **Status**: ✅ IMPLEMENTED - The `@xnetjs/sqlite` package provides durable storage
 
 ## Implementation Status
 
@@ -17,7 +17,7 @@ The persistence architecture has been implemented at `packages/sqlite/`:
 - [x] **Schema Management** - `schema.ts` for migrations
 - [x] **Diagnostics** - `diagnostics.ts` for debugging
 
-The storage layer in `@xnet/storage` uses these adapters to provide durable persistence across all platforms.
+The storage layer in `@xnetjs/storage` uses these adapters to provide durable persistence across all platforms.
 
 ---
 

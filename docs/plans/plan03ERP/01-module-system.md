@@ -3,12 +3,12 @@
 > Self-contained business function packages
 
 **Duration:** 3 weeks
-**Dependencies:** @xnet/data, @xnet/storage
+**Dependencies:** @xnetjs/data, @xnetjs/storage
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → `@xnet/data` (Schema system + NodeStore)
-> - Modules define their data using `defineSchema()` from `@xnet/data`
+> - `@xnetjs/database` → `@xnetjs/data` (Schema system + NodeStore)
+> - Modules define their data using `defineSchema()` from `@xnetjs/data`
 > - Module data stored as Nodes via NodeStore
 
 ## Overview
@@ -212,7 +212,7 @@ export interface RelationTemplate {
 // packages/modules/src/registry/ModuleRegistry.ts
 
 import { ModuleDefinition, ModuleId, ModuleVersion } from '../types'
-import { StorageAdapter } from '@xnet/storage'
+import { StorageAdapter } from '@xnetjs/storage'
 
 export interface InstalledModule {
   definition: ModuleDefinition
@@ -601,7 +601,7 @@ export class ModuleRuntime {
 
   private async registerWorkflows(): Promise<void> {
     // Register workflow templates with the workflow engine
-    // This would integrate with @xnet/workflows
+    // This would integrate with @xnetjs/workflows
   }
 
   private async unregisterWorkflows(): Promise<void> {
@@ -685,7 +685,7 @@ export class ModuleLoader {
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { ModuleRegistry } from '../src/registry/ModuleRegistry'
-import { MemoryAdapter } from '@xnet/storage'
+import { MemoryAdapter } from '@xnetjs/storage'
 
 describe('ModuleRegistry', () => {
   let registry: ModuleRegistry

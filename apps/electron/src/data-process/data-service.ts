@@ -13,8 +13,8 @@
  */
 
 import { existsSync, unlinkSync } from 'fs'
-import { hashContent, createContentId } from '@xnet/core'
-import { createElectronSQLiteAdapter, ElectronSQLiteAdapter } from '@xnet/sqlite/electron'
+import { hashContent, createContentId } from '@xnetjs/core'
+import { createElectronSQLiteAdapter, ElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import {
   signYjsUpdate,
   verifyYjsEnvelopeV1,
@@ -22,7 +22,7 @@ import {
   YjsRateLimiter,
   YjsPeerScorer,
   type SignedYjsEnvelopeV1
-} from '@xnet/sync'
+} from '@xnetjs/sync'
 import WebSocket from 'ws'
 import * as Y from 'yjs'
 import { sendEvent } from './index'

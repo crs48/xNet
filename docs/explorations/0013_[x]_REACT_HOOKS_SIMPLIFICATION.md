@@ -1,6 +1,6 @@
 # React Hooks Simplification
 
-> Audit of `@xnet/react` hooks: what's used, what's dead, and what can be removed.
+> Audit of `@xnetjs/react` hooks: what's used, what's dead, and what can be removed.
 
 **Status**: ✅ Implemented  
 **Last Updated**: January 2026  
@@ -10,7 +10,7 @@
 
 ## Current State
 
-The `@xnet/react` package exports 3 core hooks (the "new" API) plus several legacy hooks that are still exported but no longer used:
+The `@xnetjs/react` package exports 3 core hooks (the "new" API) plus several legacy hooks that are still exported but no longer used:
 
 ```mermaid
 flowchart TB
@@ -138,14 +138,14 @@ flowchart LR
 
 There's a naming collision that may be causing confusion:
 
-| `useEditor`                 | Package                                 | Purpose                                                                                      |
-| --------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `@xnet/react`'s `useEditor` | `packages/react/src/hooks/useEditor.ts` | **Dead code.** Plain-text binding to Y.Doc via `@xnet/editor`'s `createEditor()`.            |
-| TipTap's `useEditor`        | `@tiptap/react`                         | **Active.** Used by `RichTextEditor` in `packages/editor/src/components/RichTextEditor.tsx`. |
+| `useEditor`                   | Package                                 | Purpose                                                                                      |
+| ----------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `@xnetjs/react`'s `useEditor` | `packages/react/src/hooks/useEditor.ts` | **Dead code.** Plain-text binding to Y.Doc via `@xnetjs/editor`'s `createEditor()`.          |
+| TipTap's `useEditor`          | `@tiptap/react`                         | **Active.** Used by `RichTextEditor` in `packages/editor/src/components/RichTextEditor.tsx`. |
 
-The `@xnet/react` `useEditor` was a lower-level plain-text hook that predates the TipTap-based rich text editor. Apps now use `useDocument` to get a `Y.Doc`, then pass it to `<RichTextEditor ydoc={doc} />` which uses TipTap's `useEditor` internally.
+The `@xnetjs/react` `useEditor` was a lower-level plain-text hook that predates the TipTap-based rich text editor. Apps now use `useDocument` to get a `Y.Doc`, then pass it to `<RichTextEditor ydoc={doc} />` which uses TipTap's `useEditor` internally.
 
-There's no reason for `@xnet/react` to export an editor hook. The editor package owns its own React integration. This is consistent with how we don't have `useTable` or `useCanvas` hooks in the react package — each package handles its own component binding.
+There's no reason for `@xnetjs/react` to export an editor hook. The editor package owns its own React integration. This is consistent with how we don't have `useTable` or `useCanvas` hooks in the react package — each package handles its own component binding.
 
 ---
 
@@ -222,7 +222,7 @@ flowchart TB
 **Changes:**
 
 - `NodeStoreProvider` → remove as public export (or make it an internal detail of `XNetProvider`)
-- `useNodeStore()` → make internal (not exported from `@xnet/react`). Core hooks use it internally. Apps never need it directly.
+- `useNodeStore()` → make internal (not exported from `@xnetjs/react`). Core hooks use it internally. Apps never need it directly.
 - Apps check readiness via `useQuery`/`useDocument` loading states, not `useNodeStore().isReady`
 - Devtools accesses the store from `XNetProvider`'s context (same context, just not through a dedicated hook export)
 
@@ -244,11 +244,11 @@ if (loading) return <Loading />
 
 ### The Resulting API Surface
 
-After cleanup, `@xnet/react` exports exactly:
+After cleanup, `@xnetjs/react` exports exactly:
 
 ```mermaid
 flowchart TB
-    subgraph "@xnet/react Public API"
+    subgraph "@xnetjs/react Public API"
         subgraph "Data Access"
             Q["useQuery(schema, id?)"]
             M["useMutate()"]
@@ -280,18 +280,18 @@ flowchart TB
 
 ## Summary
 
-| Action          | Export              | Reason                                                                   |
-| --------------- | ------------------- | ------------------------------------------------------------------------ |
-| **Keep**        | `useQuery`          | Core read hook                                                           |
-| **Keep**        | `useMutate`         | Core write hook                                                          |
-| **Keep**        | `useDocument`       | Core document hook (includes sync)                                       |
-| **Keep**        | `useIdentity`       | Identity access                                                          |
-| **Keep**        | `XNetProvider`      | Single provider for apps                                                 |
-| **Internalize** | `useNodeStore`      | Still used by core hooks internally, but not exported                    |
-| **Remove**      | `NodeStoreProvider` | Redundant with `XNetProvider`                                            |
-| **Remove**      | `useNodeSync`       | Dead code, zero imports                                                  |
-| **Remove**      | `useDocumentSync`   | Dead code, zero imports, replaced by `useDocument`                       |
-| **Remove**      | `useEditor`         | Dead code, zero imports, replaced by `@xnet/editor`'s TipTap integration |
-| **Remove**      | `useXNet`           | Replaced by `useIdentity` + core hooks' loading states                   |
-| **Remove**      | `createXNetStore`   | Internal to provider, not a public API                                   |
-| **Update**      | CLAUDE.md           | Remove references to `useNode`, `useNodes`, `useNodeSync`                |
+| Action          | Export              | Reason                                                                     |
+| --------------- | ------------------- | -------------------------------------------------------------------------- |
+| **Keep**        | `useQuery`          | Core read hook                                                             |
+| **Keep**        | `useMutate`         | Core write hook                                                            |
+| **Keep**        | `useDocument`       | Core document hook (includes sync)                                         |
+| **Keep**        | `useIdentity`       | Identity access                                                            |
+| **Keep**        | `XNetProvider`      | Single provider for apps                                                   |
+| **Internalize** | `useNodeStore`      | Still used by core hooks internally, but not exported                      |
+| **Remove**      | `NodeStoreProvider` | Redundant with `XNetProvider`                                              |
+| **Remove**      | `useNodeSync`       | Dead code, zero imports                                                    |
+| **Remove**      | `useDocumentSync`   | Dead code, zero imports, replaced by `useDocument`                         |
+| **Remove**      | `useEditor`         | Dead code, zero imports, replaced by `@xnetjs/editor`'s TipTap integration |
+| **Remove**      | `useXNet`           | Replaced by `useIdentity` + core hooks' loading states                     |
+| **Remove**      | `createXNetStore`   | Internal to provider, not a public API                                     |
+| **Update**      | CLAUDE.md           | Remove references to `useNode`, `useNodes`, `useNodeSync`                  |

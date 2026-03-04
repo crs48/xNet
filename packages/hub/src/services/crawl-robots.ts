@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Robots.txt checker with caching.
+ * @xnetjs/hub - Robots.txt checker with caching.
  */
 
 export type RobotsConfig = {

@@ -3,7 +3,7 @@
 > Inline comment popover -- the primary interaction for viewing and replying to comments
 
 **Duration:** 2-3 days  
-**Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), `@xnet/ui` (Popover primitive)
+**Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), `@xnetjs/ui` (Popover primitive)
 
 ## Overview
 
@@ -76,7 +76,7 @@ Complete thread with all replies and input for new replies.
 
 import React, { useState, useCallback } from 'react'
 import { Popover } from '../primitives/Popover'
-import { Comment } from '@xnet/data'
+import { Comment } from '@xnetjs/data'
 
 interface CommentThread {
   root: Comment
@@ -223,7 +223,7 @@ export function CommentPopover({
 // packages/ui/src/components/CommentBubble.tsx
 
 import React, { useState } from 'react'
-import { Comment } from '@xnet/data'
+import { Comment } from '@xnetjs/data'
 import { renderGitHubMarkdown } from '../utils/markdown'
 import { formatRelativeTime } from '../utils/time'
 import { resolveUserDisplayName } from '../utils/identity'
@@ -483,7 +483,7 @@ export function CommentBubble({
 // packages/react/src/hooks/useCommentPopover.ts
 
 import { useState, useCallback, useRef } from 'react'
-import { Comment } from '@xnet/data'
+import { Comment } from '@xnetjs/data'
 
 interface CommentThread {
   root: Comment
@@ -573,7 +573,7 @@ export function useCommentPopover() {
 - [x] Add hover delay logic (300ms preview, dismiss on leave) - in `PageView.tsx`
 - [x] Create useCommentPopover hook - `packages/ui/src/composed/comments/useCommentPopover.ts`
 - [x] Add markdown rendering for comment content (plain text for now, GFM TODO)
-- [x] Style popover (light + dark mode) - uses @xnet/ui tokens
+- [x] Style popover (light + dark mode) - uses @xnetjs/ui tokens
 - [x] Tests pass (UI tests are manual per AGENTS.md)
 
 ---

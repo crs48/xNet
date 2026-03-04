@@ -753,7 +753,7 @@ xNet's identity and authorization infrastructure has three layers, each at a dif
 - `createUCAN()` — creates JWT-like `header.payload.signature` tokens
 - `verifyUCAN()` — parses and verifies signature + expiration
 - `hasCapability()` — checks if a token grants `{with: resource, can: action}`
-- These functions exist in `@xnet/identity` and pass their unit tests
+- These functions exist in `@xnetjs/identity` and pass their unit tests
 - **No code path in the app ever calls them** — not the signaling server, not the sync layer, not the NodeStore
 
 **Known issues with the current UCAN implementation:**
@@ -764,7 +764,7 @@ xNet's identity and authorization infrastructure has three layers, each at a dif
 
 **Layer 3: Permission Evaluation (Type Definitions Only, No Implementation)**
 
-- `PermissionEvaluator` interface in `@xnet/core` — `hasCapability()`, `resolveGroups()`, `getPermissions()`
+- `PermissionEvaluator` interface in `@xnetjs/core` — `hasCapability()`, `resolveGroups()`, `getPermissions()`
 - `Group`, `Role`, `PermissionGrant`, `ResourceScope`, `Condition` types
 - `STANDARD_ROLES` (viewer/editor/admin) and utility functions like `roleHasCapability()`
 - **No class implements `PermissionEvaluator`** — the interface has zero consumers

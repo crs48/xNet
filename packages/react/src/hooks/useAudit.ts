@@ -11,8 +11,8 @@
  * ```
  */
 
-import type { NodeId, NodeStorageAdapter } from '@xnet/data'
-import { AuditIndex, type AuditQuery, type AuditEntry, type ActivitySummary } from '@xnet/history'
+import type { NodeId, NodeStorageAdapter } from '@xnetjs/data'
+import { AuditIndex, type AuditQuery, type AuditEntry, type ActivitySummary } from '@xnetjs/history'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 

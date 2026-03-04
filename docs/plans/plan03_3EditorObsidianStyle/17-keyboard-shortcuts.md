@@ -484,7 +484,7 @@ export const KeyboardShortcuts = Extension.create<KeyboardShortcutsOptions>({
 // packages/editor/src/components/KeyboardShortcuts/ShortcutsHelp.tsx
 
 import * as React from 'react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import {
   KEYBOARD_SHORTCUTS,
   type KeyboardShortcut

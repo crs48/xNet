@@ -1,5 +1,5 @@
 /**
- * @xnet/devtools - Production entry point
+ * @xnetjs/devtools - Production entry point
  *
  * No-op provider that renders children unchanged.
  * In development builds, the bundler selects index.dev.ts instead.

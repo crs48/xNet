@@ -1,12 +1,12 @@
 /**
  * xNet Mobile - Main App Entry
  */
-import type { XNetConfig } from '@xnet/react'
+import type { XNetConfig } from '@xnetjs/react'
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native'
-import { SQLiteNodeStorageAdapter } from '@xnet/data'
-import { XNetProvider } from '@xnet/react'
-import { SCHEMA_DDL, SCHEMA_VERSION } from '@xnet/sqlite'
-import { ExpoSQLiteAdapter } from '@xnet/sqlite/expo'
+import { SQLiteNodeStorageAdapter } from '@xnetjs/data'
+import { XNetProvider } from '@xnetjs/react'
+import { SCHEMA_DDL, SCHEMA_VERSION } from '@xnetjs/sqlite'
+import { ExpoSQLiteAdapter } from '@xnetjs/sqlite/expo'
 import * as SecureStore from 'expo-secure-store'
 import { StatusBar } from 'expo-status-bar'
 import React, { useEffect, useMemo, useState } from 'react'

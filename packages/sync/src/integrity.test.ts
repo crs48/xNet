@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Change } from './change'
-import { generateKeyPair } from '@xnet/crypto'
+import { generateKeyPair } from '@xnetjs/crypto'
 import { describe, it, expect } from 'vitest'
 import { signChange, createUnsignedChange } from './change'
 import {

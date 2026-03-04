@@ -3,7 +3,7 @@
  *
  * @example
  * ```typescript
- * import { presets } from '@xnet/data/auth'
+ * import { presets } from '@xnetjs/data/auth'
  *
  * const NoteSchema = defineSchema({
  *   name: 'Note',
@@ -21,7 +21,7 @@
  * ```
  */
 
-import type { AuthorizationDefinition } from '@xnet/core'
+import type { AuthorizationDefinition } from '@xnetjs/core'
 import { allow, PUBLIC, AUTHENTICATED, role } from './builders'
 
 /**

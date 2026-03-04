@@ -4,7 +4,7 @@
 
 **Duration:** 3-4 days
 **Dependencies:** None (new layer)
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

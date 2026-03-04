@@ -4,8 +4,8 @@
  * Simplified version ported from apps/electron
  */
 
-import { DatabaseSchema, type PropertyDefinition, type PropertyType } from '@xnet/data'
-import { useNode, useIdentity } from '@xnet/react'
+import { DatabaseSchema, type PropertyDefinition, type PropertyType } from '@xnetjs/data'
+import { useNode, useIdentity } from '@xnetjs/react'
 import {
   TableView,
   BoardView,
@@ -13,7 +13,7 @@ import {
   type ViewConfig,
   type TableRow,
   type CellPresence
-} from '@xnet/views'
+} from '@xnetjs/views'
 import { Table, LayoutGrid, Plus } from 'lucide-react'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'

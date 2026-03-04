@@ -3,7 +3,7 @@
 > Share content with others and control access with UCAN tokens
 
 **Duration:** 3 days
-**Dependencies:** Hub infrastructure, UCAN tokens from `@xnet/identity`
+**Dependencies:** Hub infrastructure, UCAN tokens from `@xnetjs/identity`
 
 ## Overview
 
@@ -167,7 +167,7 @@ function buildCapabilities(
 // packages/react/src/sharing/ShareDialog.tsx
 
 import { useState } from 'react'
-import { createShareToken } from '@xnet/identity'
+import { createShareToken } from '@xnetjs/identity'
 import { useIdentity } from '../hooks/useIdentity'
 
 interface ShareDialogProps {
@@ -283,7 +283,7 @@ export function ShareDialog({ resource, resourceTitle, onClose }: ShareDialogPro
 
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { verifyUcan, parseShareLink } from '@xnet/identity'
+import { verifyUcan, parseShareLink } from '@xnetjs/identity'
 import { useHub } from '../hooks/useHub'
 
 export function ShareLinkHandler() {

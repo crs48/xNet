@@ -8,8 +8,8 @@
 import type { SnapshotCache } from './snapshot-cache'
 import type { PruningPolicy, PruneCandidate, PruneResult, PruneOptions } from './types'
 import type { VerificationEngine } from './verification'
-import type { NodeChange, NodeStorageAdapter, NodeId, SchemaIRI } from '@xnet/data'
-import { topologicalSort } from '@xnet/sync'
+import type { NodeChange, NodeStorageAdapter, NodeId, SchemaIRI } from '@xnetjs/data'
+import { topologicalSort } from '@xnetjs/sync'
 
 /**
  * Duck-typed telemetry interface to avoid circular dependencies.

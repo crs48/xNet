@@ -2,7 +2,7 @@
  * AuthZPanel - Authorization observability and controls.
  */
 
-import type { AuthGrant, DID, GrantInput } from '@xnet/data'
+import type { AuthGrant, DID, GrantInput } from '@xnetjs/data'
 import { useEffect, useMemo, useState } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 import { AUTHZ_TABS, type AuthZTab } from '../authz-config'

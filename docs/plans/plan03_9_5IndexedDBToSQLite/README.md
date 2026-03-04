@@ -26,11 +26,11 @@ This plan implements a **unified SQLite adapter** that works across all platform
 flowchart TB
     subgraph "Application Layer"
         NS["NodeStore"]
-        SS["@xnet/storage"]
+        SS["@xnetjs/storage"]
         DS["DataService (Electron)"]
     end
 
-    subgraph "@xnet/sqlite Package"
+    subgraph "@xnetjs/sqlite Package"
         IFACE["SQLiteAdapter Interface"]
         SCHEMA["Unified Schema DDL"]
         MIGRATE["Schema Versioning"]
@@ -90,7 +90,7 @@ pie title Code Sharing Distribution
     "Tests" : 25
 ```
 
-**Shared (new `@xnet/sqlite` package):**
+**Shared (new `@xnetjs/sqlite` package):**
 
 - `SQLiteAdapter` interface definition
 - Schema DDL (table definitions, indexes, FTS)
@@ -109,14 +109,14 @@ pie title Code Sharing Distribution
 
 Establish the adapter interface and implement Electron first since it's most critical.
 
-| Task | Document                                                           | Description                          | Status |
-| ---- | ------------------------------------------------------------------ | ------------------------------------ | ------ |
-| 1.1  | [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md) | Define SQLiteAdapter interface       | [x]    |
-| 1.2  | [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md) | Define unified schema DDL            | [x]    |
-| 1.3  | [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md) | Create @xnet/sqlite package scaffold | [x]    |
-| 2.1  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Implement ElectronSQLiteAdapter      | [x]    |
-| 2.2  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Integrate with data-service.ts       | [x]    |
-| 2.3  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Remove IndexedDB from Electron       | [x]    |
+| Task | Document                                                           | Description                            | Status |
+| ---- | ------------------------------------------------------------------ | -------------------------------------- | ------ |
+| 1.1  | [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md) | Define SQLiteAdapter interface         | [x]    |
+| 1.2  | [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md) | Define unified schema DDL              | [x]    |
+| 1.3  | [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md) | Create @xnetjs/sqlite package scaffold | [x]    |
+| 2.1  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Implement ElectronSQLiteAdapter        | [x]    |
+| 2.2  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Integrate with data-service.ts         | [x]    |
+| 2.3  | [02-electron-better-sqlite3.md](./02-electron-better-sqlite3.md)   | Remove IndexedDB from Electron         | [x]    |
 
 **Validation Gate:**
 
@@ -199,7 +199,7 @@ Connect NodeStore to SQLite.
 
 ### Phase 6: Storage Package Cleanup (Step 07)
 
-Refactor @xnet/storage to use SQLite.
+Refactor @xnetjs/storage to use SQLite.
 
 | Task | Document                                                           | Description                     | Status |
 | ---- | ------------------------------------------------------------------ | ------------------------------- | ------ |
@@ -230,7 +230,7 @@ Comprehensive testing and performance validation.
 
 **Validation Gate:**
 
-- [x] 95%+ test coverage for @xnet/sqlite (118+ tests: 49 adapter + 39 NodeStore + 30 Storage)
+- [x] 95%+ test coverage for @xnetjs/sqlite (118+ tests: 49 adapter + 39 NodeStore + 30 Storage)
 - [x] All browsers in compatibility matrix tested (web app integrates SQLite)
 - [x] Performance benchmarks documented (informal testing shows 10x+ improvement)
 - [x] Developer documentation complete (README for sqlite and storage packages)
@@ -280,8 +280,8 @@ apps/
 
   expo/
     src/storage/
-      ExpoSQLiteAdapter.ts         # MOVED to @xnet/sqlite
-      ExpoStorageAdapter.ts        # Update to use @xnet/sqlite
+      ExpoSQLiteAdapter.ts         # MOVED to @xnetjs/sqlite
+      ExpoStorageAdapter.ts        # Update to use @xnetjs/sqlite
 ```
 
 ## Dependencies

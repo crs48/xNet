@@ -8,7 +8,7 @@
 
 ## Overview
 
-`@xnet/react` is **the primary interface** for building apps with xNet. One package gives you:
+`@xnetjs/react` is **the primary interface** for building apps with xNet. One package gives you:
 
 - **Reactive database** — queries that auto-update when data changes
 - **P2P sync** — real-time collaboration without a backend
@@ -16,12 +16,12 @@
 - **Presence** — cursors, online status, live collaboration
 
 ```bash
-npm install @xnet/react   # Handles data state. Use useState for UI state.
+npm install @xnetjs/react   # Handles data state. Use useState for UI state.
 ```
 
 ### What It Replaces (and What It Doesn't)
 
-**@xnet/react handles:**
+**@xnetjs/react handles:**
 | Use Case | Before | After |
 |----------|--------|-------|
 | Persistent data (tasks, docs) | Zustand + fetch | `useQuery()` |
@@ -39,7 +39,7 @@ npm install @xnet/react   # Handles data state. Use useState for UI state.
 | Hover/focus states | `useState` |
 | Complex UI state machines | Zustand or `useReducer` |
 
-**Bottom line:** @xnet/react replaces Zustand for _data that should persist or sync_. For ephemeral UI state, use `useState` or keep a small Zustand store.
+**Bottom line:** @xnetjs/react replaces Zustand for _data that should persist or sync_. For ephemeral UI state, use `useState` or keep a small Zustand store.
 
 ### Design Goals
 
@@ -55,13 +55,13 @@ npm install @xnet/react   # Handles data state. Use useState for UI state.
 ## Package Structure
 
 ```
-@xnet/react         → Primary interface (what you install)
-  └── @xnet/core    → Bundled automatically (CRDT, sync, storage, query)
+@xnetjs/react         → Primary interface (what you install)
+  └── @xnetjs/core    → Bundled automatically (CRDT, sync, storage, query)
 
-@xnet/react-native  → Optional: Native background sync for mobile
+@xnetjs/react-native  → Optional: Native background sync for mobile
 ```
 
-Most apps only need `@xnet/react`.
+Most apps only need `@xnetjs/react`.
 
 ```mermaid
 graph TB
@@ -69,18 +69,18 @@ graph TB
         APP[React Application]
     end
 
-    subgraph "@xnet/react"
+    subgraph "@xnetjs/react"
         PROVIDER["<XNetProvider>"]
         HOOKS[Hooks Layer]
         CACHE[Query Cache]
         SUBS[Subscription Manager]
     end
 
-    subgraph "@xnet/core"
-        DATA["@xnet/data"]
-        NETWORK["@xnet/network"]
-        STORAGE["@xnet/storage"]
-        QUERY["@xnet/query"]
+    subgraph "@xnetjs/core"
+        DATA["@xnetjs/data"]
+        NETWORK["@xnetjs/network"]
+        STORAGE["@xnetjs/storage"]
+        QUERY["@xnetjs/query"]
     end
 
     APP --> PROVIDER
@@ -102,15 +102,15 @@ graph TB
 
 ```bash
 # Primary installation - this is all most users need
-npm install @xnet/react
+npm install @xnetjs/react
 
-# Automatically installs @xnet/core as dependency
+# Automatically installs @xnetjs/core as dependency
 ```
 
 For React Native with background sync:
 
 ```bash
-npm install @xnet/react @xnet/react-native
+npm install @xnetjs/react @xnetjs/react-native
 ```
 
 ---
@@ -120,7 +120,7 @@ npm install @xnet/react @xnet/react-native
 ### Provider Setup
 
 ```tsx
-import { XNetProvider } from '@xnet/react'
+import { XNetProvider } from '@xnetjs/react'
 
 function App() {
   return (
@@ -156,7 +156,7 @@ function App() {
 #### `useQuery` - Reactive Queries
 
 ```tsx
-import { useQuery } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
 
 function TaskList({ projectId }) {
   // Automatically re-renders when matching data changes
@@ -209,7 +209,7 @@ interface QueryResult<T> {
 #### `useDocument` - Single Document Subscription
 
 ```tsx
-import { useDocument } from '@xnet/react'
+import { useDocument } from '@xnetjs/react'
 
 function ProjectHeader({ projectId }) {
   const project = useDocument('projects', projectId)
@@ -241,7 +241,7 @@ interface DocumentResult<T> {
 #### `useMutation` - Write Operations
 
 ```tsx
-import { useMutation } from '@xnet/react'
+import { useMutation } from '@xnetjs/react'
 
 function CreateTaskButton({ projectId }) {
   const createTask = useMutation(
@@ -309,7 +309,7 @@ interface MutationResult<TData, TVariables> {
 #### `useSync` - Sync Status
 
 ```tsx
-import { useSync } from '@xnet/react'
+import { useSync } from '@xnetjs/react'
 
 function SyncIndicator() {
   const sync = useSync()
@@ -352,7 +352,7 @@ interface PeerInfo {
 #### `usePresence` - Real-time Awareness
 
 ```tsx
-import { usePresence } from '@xnet/react'
+import { usePresence } from '@xnetjs/react'
 
 function CollaborativeCursors() {
   const { self, others, updatePresence } = usePresence()
@@ -399,7 +399,7 @@ interface PresenceHook<T> {
 #### `useXNet` - Direct Access
 
 ```tsx
-import { useXNet } from '@xnet/react'
+import { useXNet } from '@xnetjs/react'
 
 function AdvancedFeature() {
   const xnet = useXNet()
@@ -426,7 +426,7 @@ sequenceDiagram
     participant H as useQuery Hook
     participant SM as Subscription Manager
     participant QC as Query Cache
-    participant DB as @xnet/core
+    participant DB as @xnetjs/core
 
     C->>H: useQuery(q => q.from('tasks')...)
     H->>QC: Check cache
@@ -479,7 +479,7 @@ Start with Level 1, optimize to Level 2/3 based on real usage patterns.
 
 ## Reducing Zustand Usage
 
-`@xnet/react` handles the data layer, so Zustand stores get much smaller:
+`@xnetjs/react` handles the data layer, so Zustand stores get much smaller:
 
 ### Before (Zustand)
 
@@ -527,7 +527,7 @@ function TaskList({ projectId }) {
 }
 ```
 
-### After (@xnet/react)
+### After (@xnetjs/react)
 
 ```tsx
 // component.tsx - No store needed!
@@ -551,17 +551,17 @@ function TaskList({ projectId }) {
 
 ### What Goes Where
 
-| Use Case                             | @xnet/react | useState | Zustand |
-| ------------------------------------ | ----------- | -------- | ------- |
-| Tasks, documents, user data          | ✓           |          |         |
-| Real-time synced data                | ✓           |          |         |
-| Modal open/closed                    |             | ✓        |         |
-| Current selection                    |             | ✓        | maybe   |
-| Form inputs                          |             | ✓        |         |
-| Complex UI state (multi-step wizard) |             |          | ✓       |
-| Derived state across components      |             |          | ✓       |
+| Use Case                             | @xnetjs/react | useState | Zustand |
+| ------------------------------------ | ------------- | -------- | ------- |
+| Tasks, documents, user data          | ✓             |          |         |
+| Real-time synced data                | ✓             |          |         |
+| Modal open/closed                    |               | ✓        |         |
+| Current selection                    |               | ✓        | maybe   |
+| Form inputs                          |               | ✓        |         |
+| Complex UI state (multi-step wizard) |               |          | ✓       |
+| Derived state across components      |               |          | ✓       |
 
-**Typical result:** Your Zustand store shrinks from "everything" to just UI orchestration. Data fetching, caching, sync, and persistence all move to @xnet/react.
+**Typical result:** Your Zustand store shrinks from "everything" to just UI orchestration. Data fetching, caching, sync, and persistence all move to @xnetjs/react.
 
 ---
 
@@ -571,7 +571,7 @@ function TaskList({ projectId }) {
 
 ```mermaid
 gantt
-    title @xnet/react Implementation
+    title @xnetjs/react Implementation
     dateFormat  YYYY-MM
     axisFormat  %b
 
@@ -621,7 +621,7 @@ gantt
 
 ## Migration from xWiki
 
-To remove Zustand from xWiki and use `@xnet/react`:
+To remove Zustand from xWiki and use `@xnetjs/react`:
 
 1. **Wrap app in provider**
 
@@ -660,16 +660,16 @@ To remove Zustand from xWiki and use `@xnet/react`:
 
 ## Comparison to Alternatives
 
-| Feature                  | @xnet/react | TanStack Query | Convex | Replicache |
-| ------------------------ | ----------- | -------------- | ------ | ---------- |
-| Reactive queries         | Yes         | Yes            | Yes    | Yes        |
-| P2P sync                 | **Yes**     | No             | No     | No         |
-| Offline-first            | **Yes**     | Partial        | No     | Yes        |
-| Local-first              | **Yes**     | No             | No     | Yes        |
-| No backend required      | **Yes**     | No             | No     | No         |
-| Real-time presence       | **Yes**     | No             | Yes    | Manual     |
-| CRDT conflict resolution | **Yes**     | N/A            | Server | Yes        |
-| Bundle size              | ~50KB       | ~40KB          | ~100KB | ~50KB      |
+| Feature                  | @xnetjs/react | TanStack Query | Convex | Replicache |
+| ------------------------ | ------------- | -------------- | ------ | ---------- |
+| Reactive queries         | Yes           | Yes            | Yes    | Yes        |
+| P2P sync                 | **Yes**       | No             | No     | No         |
+| Offline-first            | **Yes**       | Partial        | No     | Yes        |
+| Local-first              | **Yes**       | No             | No     | Yes        |
+| No backend required      | **Yes**       | No             | No     | No         |
+| Real-time presence       | **Yes**       | No             | Yes    | Manual     |
+| CRDT conflict resolution | **Yes**       | N/A            | Server | Yes        |
+| Bundle size              | ~50KB         | ~40KB          | ~100KB | ~50KB      |
 
 **xNet's differentiation:** Full P2P + local-first + reactive in one package, with no required backend infrastructure.
 

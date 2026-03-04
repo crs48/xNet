@@ -1,5 +1,5 @@
 /**
- * @xnet/react/onboarding - Onboarding flow for first-run experience
+ * @xnetjs/react/onboarding - Onboarding flow for first-run experience
  */
 
 // State machine

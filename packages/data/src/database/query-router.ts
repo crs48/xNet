@@ -1,5 +1,5 @@
 /**
- * @xnet/data - Query router for automatic local/hub query routing.
+ * @xnetjs/data - Query router for automatic local/hub query routing.
  *
  * Determines whether to execute queries locally (in-memory) or on the hub
  * server based on dataset size and query complexity.

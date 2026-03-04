@@ -2,9 +2,9 @@
  * NodeStoreSyncProvider - Sync NodeChange events via hub ConnectionManager.
  */
 import type { ConnectionManager } from './connection-manager'
-import type { ContentId, DID } from '@xnet/core'
-import type { NodeChange, NodePayload, NodeStore } from '@xnet/data'
-import { base64ToBytes, bytesToBase64 } from '@xnet/crypto'
+import type { ContentId, DID } from '@xnetjs/core'
+import type { NodeChange, NodePayload, NodeStore } from '@xnetjs/data'
+import { base64ToBytes, bytesToBase64 } from '@xnetjs/crypto'
 
 // ─── Known Change Types ─────────────────────────────────────────────────────
 // Change types that this version knows how to process.

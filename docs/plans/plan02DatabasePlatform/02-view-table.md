@@ -82,9 +82,9 @@ import {
   ColumnSizingState
 } from '@tanstack/react-table'
 import { useMemo, useState } from 'react'
-import { Node, Schema } from '@xnet/data'
-import { useNodes } from '@xnet/react'
-import { getPropertyHandler } from '@xnet/views/properties'
+import { Node, Schema } from '@xnetjs/data'
+import { useNodes } from '@xnetjs/react'
+import { getPropertyHandler } from '@xnetjs/views/properties'
 
 // Note: "Database" is now just a Schema; "DatabaseItem" is now "Node"
 
@@ -308,7 +308,7 @@ export function TableView({ className, ...options }: TableViewProps) {
 
 import React from 'react'
 import { Table, flexRender, Header } from '@tanstack/react-table'
-import { Node } from '@xnet/data'
+import { Node } from '@xnetjs/data'
 
 interface TableHeaderProps {
   table: Table<Node>
@@ -414,8 +414,8 @@ function ColumnMenu({ header }: { header: Header<Node, unknown> }) {
 
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { Cell, flexRender } from '@tanstack/react-table'
-import { Node } from '@xnet/data'
-import { PropertyHandler } from '@xnet/views/properties'
+import { Node } from '@xnetjs/data'
+import { PropertyHandler } from '@xnetjs/views/properties'
 
 interface TableCellProps {
   cell: Cell<Node, unknown>
@@ -494,8 +494,8 @@ export function TableCell({ cell }: TableCellProps) {
 // packages/views/src/shared/FilterBuilder.tsx
 
 import React from 'react'
-import { Schema, FilterGroup, Filter } from '@xnet/data'
-import { getPropertyHandler } from '@xnet/views/properties'
+import { Schema, FilterGroup, Filter } from '@xnetjs/data'
+import { getPropertyHandler } from '@xnetjs/views/properties'
 
 interface FilterBuilderProps {
   schema: Schema

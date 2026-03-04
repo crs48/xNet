@@ -1,11 +1,11 @@
-# @xnet/data
+# @xnetjs/data
 
 Schema system, NodeStore, and Yjs CRDT engine for xNet. This is the central data package -- it defines how structured data and rich text documents are created, stored, and synced.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/data
+pnpm add @xnetjs/data
 ```
 
 ## Features
@@ -24,7 +24,7 @@ pnpm add @xnet/data
 ### Define a Schema
 
 ```typescript
-import { defineSchema, text, number, select, date, checkbox, relation } from '@xnet/data'
+import { defineSchema, text, number, select, date, checkbox, relation } from '@xnetjs/data'
 
 const TaskSchema = defineSchema({
   name: 'Task',
@@ -71,7 +71,7 @@ const TaskSchema = defineSchema({
 ### NodeStore
 
 ```typescript
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
 
 const store = new NodeStore({
   storage: new MemoryNodeStorageAdapter(),
@@ -98,7 +98,7 @@ await store.remove(task.id)
 ### Yjs Documents
 
 ```typescript
-import { YDoc, captureUpdate, applySignedUpdate, signUpdate, mergeDocuments } from '@xnet/data'
+import { YDoc, captureUpdate, applySignedUpdate, signUpdate, mergeDocuments } from '@xnetjs/data'
 
 const authorDID = identity.did
 const signingKey = keyBundle.signingKey
@@ -146,16 +146,16 @@ flowchart TD
 
 ### Storage Adapters
 
-| Adapter                    | Platform | Description                          |
-| -------------------------- | -------- | ------------------------------------ |
-| `SQLiteNodeStorageAdapter` | All      | Primary adapter using `@xnet/sqlite` |
-| `MemoryNodeStorageAdapter` | All      | In-memory storage for testing        |
+| Adapter                    | Platform | Description                            |
+| -------------------------- | -------- | -------------------------------------- |
+| `SQLiteNodeStorageAdapter` | All      | Primary adapter using `@xnetjs/sqlite` |
+| `MemoryNodeStorageAdapter` | All      | In-memory storage for testing          |
 
-**Recommended:** Use `SQLiteNodeStorageAdapter` with the appropriate `@xnet/sqlite` adapter for your platform:
+**Recommended:** Use `SQLiteNodeStorageAdapter` with the appropriate `@xnetjs/sqlite` adapter for your platform:
 
 ```typescript
-import { NodeStore, SQLiteNodeStorageAdapter } from '@xnet/data'
-import { ElectronSQLiteAdapter } from '@xnet/sqlite/electron' // or /web, /expo
+import { NodeStore, SQLiteNodeStorageAdapter } from '@xnetjs/data'
+import { ElectronSQLiteAdapter } from '@xnetjs/sqlite/electron' // or /web, /expo
 
 const sqliteAdapter = new ElectronSQLiteAdapter()
 await sqliteAdapter.open({ path: 'xnet.db' })
@@ -175,8 +175,8 @@ const store = new NodeStore({
 NodeStore supports optional telemetry for tracking CRUD operations, performance, and errors:
 
 ```typescript
-import { NodeStore } from '@xnet/data'
-import { TelemetryCollector, ConsentManager } from '@xnet/telemetry'
+import { NodeStore } from '@xnetjs/data'
+import { TelemetryCollector, ConsentManager } from '@xnetjs/telemetry'
 
 const consent = new ConsentManager()
 const telemetry = new TelemetryCollector({ consent })
@@ -216,14 +216,14 @@ All telemetry respects user consent settings and privacy buckets (no exact value
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/crypto`, `@xnet/identity`, `@xnet/storage`, `@xnet/sync`, `@xnet/sqlite`
+- `@xnetjs/core`, `@xnetjs/crypto`, `@xnetjs/identity`, `@xnetjs/storage`, `@xnetjs/sync`, `@xnetjs/sqlite`
 - `yjs`, `y-protocols` -- CRDT engine
 - `nanoid` -- ID generation
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/data test
+pnpm --filter @xnetjs/data test
 ```
 
 10 test files covering schema system, NodeStore, comments, and blob service.

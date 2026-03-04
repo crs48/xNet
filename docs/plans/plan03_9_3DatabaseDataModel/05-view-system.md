@@ -3,7 +3,7 @@
 > Six view types: Table, Board, List, Gallery, Calendar, Timeline
 
 **Duration:** 6-8 days
-**Dependencies:** `@xnet/react` (useDatabase), `@tanstack/react-virtual`, `@dnd-kit/core`, `date-fns`
+**Dependencies:** `@xnetjs/react` (useDatabase), `@tanstack/react-virtual`, `@dnd-kit/core`, `date-fns`
 
 ## Overview
 
@@ -1013,7 +1013,7 @@ describe('View System', () => {
 
 ## Validation Gate
 
-- [x] `DatabaseView` renders correct view type (ViewRenderer in @xnet/views)
+- [x] `DatabaseView` renders correct view type (ViewRenderer in @xnetjs/views)
 - [x] `TableView` supports inline cell editing
 - [x] `TableView` virtualizes large datasets
 - [x] `BoardView` groups by select column

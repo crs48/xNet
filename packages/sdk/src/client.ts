@@ -9,14 +9,14 @@
  * const client = await createClient({ telemetry }) // generates a new identity
  */
 
-import type { Identity } from '@xnet/identity'
-import { generateIdentity, identityFromPrivateKey } from '@xnet/identity'
+import type { Identity } from '@xnetjs/identity'
+import { generateIdentity, identityFromPrivateKey } from '@xnetjs/identity'
 
 // ─── Telemetry Interface ──────────────────────────────────
 
 /**
  * Optional telemetry reporter for SDK initialization.
- * Duck-typed to avoid circular dependency on @xnet/telemetry.
+ * Duck-typed to avoid circular dependency on @xnetjs/telemetry.
  */
 export interface SdkTelemetry {
   reportUsage(metricName: string, value: number): void

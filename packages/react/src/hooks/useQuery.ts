@@ -28,8 +28,8 @@
  * })
  * ```
  */
-import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
-import type { QueryOptions } from '@xnet/data-bridge'
+import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
+import type { QueryOptions } from '@xnetjs/data-bridge'
 import { useSyncExternalStore, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'

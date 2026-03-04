@@ -1,10 +1,10 @@
 /**
  * Tests for useQuery hook
  */
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { defineSchema, text, select, MemoryNodeStorageAdapter } from '@xnet/data'
-import { generateIdentity, type Identity } from '@xnet/identity'
+import { defineSchema, text, select, MemoryNodeStorageAdapter } from '@xnetjs/data'
+import { generateIdentity, type Identity } from '@xnetjs/identity'
 import React, { type ReactNode, useMemo } from 'react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { XNetProvider } from '../context'

@@ -3,7 +3,7 @@
 > Server-side database queries with SQL, pagination, and subscriptions
 
 **Duration:** 5-6 days
-**Dependencies:** `@xnet/hub` (Hub server), SQLite
+**Dependencies:** `@xnetjs/hub` (Hub server), SQLite
 
 ## Overview
 
@@ -147,7 +147,7 @@ import type {
   DatabaseQueryResponse,
   FilterGroup,
   SortConfig
-} from '@xnet/data'
+} from '@xnetjs/data'
 
 export class DatabaseQueryService {
   constructor(private db: Database) {}
@@ -578,7 +578,7 @@ export class DatabaseHandler {
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useHub } from './useHub'
-import type { DatabaseQueryRequest, DatabaseQueryResponse } from '@xnet/data'
+import type { DatabaseQueryRequest, DatabaseQueryResponse } from '@xnetjs/data'
 
 interface UseHubQueryResult {
   rows: DatabaseRow[]

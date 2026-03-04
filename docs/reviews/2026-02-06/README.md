@@ -65,39 +65,39 @@ This document presents a comprehensive code review of the xNet monorepo -- a loc
 ```mermaid
 graph TD
     subgraph "Core Layer"
-        core["@xnet/core"]
-        crypto["@xnet/crypto"]
-        identity["@xnet/identity"]
-        storage["@xnet/storage"]
+        core["@xnetjs/core"]
+        crypto["@xnetjs/crypto"]
+        identity["@xnetjs/identity"]
+        storage["@xnetjs/storage"]
     end
 
     subgraph "Data Layer"
-        sync["@xnet/sync"]
-        data["@xnet/data"]
-        formula["@xnet/formula"]
-        history["@xnet/history"]
+        sync["@xnetjs/sync"]
+        data["@xnetjs/data"]
+        formula["@xnetjs/formula"]
+        history["@xnetjs/history"]
     end
 
     subgraph "Network Layer"
-        network["@xnet/network"]
-        query["@xnet/query"]
-        hub["@xnet/hub"]
+        network["@xnetjs/network"]
+        query["@xnetjs/query"]
+        hub["@xnetjs/hub"]
     end
 
     subgraph "Application Layer"
-        sdk["@xnet/sdk"]
-        plugins["@xnet/plugins"]
-        react["@xnet/react"]
-        telemetry["@xnet/telemetry"]
+        sdk["@xnetjs/sdk"]
+        plugins["@xnetjs/plugins"]
+        react["@xnetjs/react"]
+        telemetry["@xnetjs/telemetry"]
     end
 
     subgraph "UI Layer"
-        ui["@xnet/ui"]
-        views["@xnet/views"]
-        canvas["@xnet/canvas"]
-        editor["@xnet/editor"]
-        devtools["@xnet/devtools"]
-        vectors["@xnet/vectors"]
+        ui["@xnetjs/ui"]
+        views["@xnetjs/views"]
+        canvas["@xnetjs/canvas"]
+        editor["@xnetjs/editor"]
+        devtools["@xnetjs/devtools"]
+        vectors["@xnetjs/vectors"]
     end
 
     subgraph "Apps"
@@ -181,17 +181,17 @@ Test Files  160 passed (160)
   Duration  6.84s
 ```
 
-| Package        | Test Files | Tests | Coverage |
-| -------------- | ---------- | ----- | -------- |
-| @xnet/sync     | 19         | 251+  | HIGH     |
-| @xnet/data     | 13         | 200+  | MEDIUM   |
-| @xnet/editor   | 27         | 150+  | MEDIUM   |
-| @xnet/network  | 8          | 100+  | HIGH     |
-| @xnet/identity | 9          | 90+   | MEDIUM   |
-| @xnet/hub      | 20         | 150+  | MEDIUM   |
-| @xnet/react    | 9          | 50+   | LOW      |
-| @xnet/canvas   | 4          | 60+   | MEDIUM   |
-| @xnet/ui       | 0          | 0     | NONE     |
+| Package          | Test Files | Tests | Coverage |
+| ---------------- | ---------- | ----- | -------- |
+| @xnetjs/sync     | 19         | 251+  | HIGH     |
+| @xnetjs/data     | 13         | 200+  | MEDIUM   |
+| @xnetjs/editor   | 27         | 150+  | MEDIUM   |
+| @xnetjs/network  | 8          | 100+  | HIGH     |
+| @xnetjs/identity | 9          | 90+   | MEDIUM   |
+| @xnetjs/hub      | 20         | 150+  | MEDIUM   |
+| @xnetjs/react    | 9          | 50+   | LOW      |
+| @xnetjs/canvas   | 4          | 60+   | MEDIUM   |
+| @xnetjs/ui       | 0          | 0     | NONE     |
 
 ## Fix Priority Checklist
 

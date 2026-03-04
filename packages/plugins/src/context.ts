@@ -20,7 +20,7 @@ import type {
   NodeState,
   NodeChangeListener as StoreChangeListener,
   NodeChangeEvent as StoreChangeEvent
-} from '@xnet/data'
+} from '@xnetjs/data'
 import { getPlatformCapabilities, createExtensionStorage } from './types'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ export function createExtensionContext(options: CreateContextOptions): Extension
     },
 
     registerSchema(_schema) {
-      // Schema registration is handled by @xnet/data's schemaRegistry
+      // Schema registration is handled by @xnetjs/data's schemaRegistry
       // For now, we just track it for cleanup
       const d: Disposable = {
         dispose: () => {

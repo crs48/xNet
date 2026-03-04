@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/sdk",
+  "name": "@xnetjs/sdk",
   "version": "0.0.1",
   "type": "module",
   "main": "./src/index.ts",
@@ -17,13 +17,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*",
-    "@xnet/data": "workspace:*",
-    "@xnet/identity": "workspace:*",
-    "@xnet/network": "workspace:*",
-    "@xnet/query": "workspace:*",
-    "@xnet/storage": "workspace:*"
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
+    "@xnetjs/network": "workspace:*",
+    "@xnetjs/query": "workspace:*",
+    "@xnetjs/storage": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

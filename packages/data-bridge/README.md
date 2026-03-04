@@ -1,11 +1,11 @@
-# @xnet/data-bridge
+# @xnetjs/data-bridge
 
 DataBridge abstractions for moving xNet data operations off the main thread.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/data-bridge
+pnpm add @xnetjs/data-bridge
 ```
 
 ## What It Provides
@@ -19,7 +19,7 @@ pnpm add @xnet/data-bridge
 ## Usage
 
 ```ts
-import { createDataBridge } from '@xnet/data-bridge'
+import { createDataBridge } from '@xnetjs/data-bridge'
 
 const bridge = await createDataBridge({
   nodeStore,
@@ -28,7 +28,7 @@ const bridge = await createDataBridge({
     signingKey,
     dbName: 'xnet'
   },
-  workerUrl: new URL('@xnet/data-bridge/worker', import.meta.url),
+  workerUrl: new URL('@xnetjs/data-bridge/worker', import.meta.url),
   mode: 'auto'
 })
 
@@ -48,5 +48,5 @@ const subscription = bridge.query(TaskSchema, {
 ## Testing
 
 ```bash
-pnpm --filter @xnet/data-bridge test
+pnpm --filter @xnetjs/data-bridge test
 ```

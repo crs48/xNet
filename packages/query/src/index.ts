@@ -1,5 +1,5 @@
 /**
- * @xnet/query - Local and federated queries, full-text search
+ * @xnetjs/query - Local and federated queries, full-text search
  */
 
 // Types

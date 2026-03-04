@@ -33,7 +33,7 @@ An anchor is orphaned when its target no longer exists or can't be resolved:
 ```typescript
 // packages/data/src/comments/orphan-detection.ts
 
-import { Comment, TextAnchor, CellAnchor, CanvasObjectAnchor, decodeAnchor } from '@xnet/data'
+import { Comment, TextAnchor, CellAnchor, CanvasObjectAnchor, decodeAnchor } from '@xnetjs/data'
 
 export type OrphanReason = 'text-deleted' | 'row-deleted' | 'object-deleted' | 'node-deleted'
 
@@ -96,8 +96,8 @@ Orphaned threads appear in a "Detached Comments" section, showing the original c
 // packages/ui/src/components/OrphanedThreadList.tsx
 
 import React from 'react'
-import { OrphanedComment } from '@xnet/data'
-import { Comment } from '@xnet/data'
+import { OrphanedComment } from '@xnetjs/data'
+import { Comment } from '@xnetjs/data'
 
 interface OrphanedThreadListProps {
   orphanedComments: OrphanedComment[]
@@ -196,7 +196,7 @@ When clicking on text with multiple comment marks, show a small picker:
 // packages/ui/src/components/ThreadPicker.tsx
 
 import React from 'react'
-import { Comment } from '@xnet/data'
+import { Comment } from '@xnetjs/data'
 
 interface CommentThread {
   root: Comment
@@ -393,7 +393,7 @@ export function getMentionedUsers(content: string): string[] {
 // packages/ui/src/utils/markdown.ts
 
 import { marked } from 'marked'
-import { extractReferences } from '@xnet/data'
+import { extractReferences } from '@xnetjs/data'
 
 /**
  * Render GitHub-flavored markdown with xNet-specific extensions.

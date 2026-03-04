@@ -19,7 +19,7 @@
 
 ## Overview
 
-The `file()` property type in `@xnet/data` already defines `FileRef` objects with CID, name, mimeType, and size — but there's no infrastructure to actually upload or download these files. The hub provides a content-addressed file store: clients upload files by their BLAKE3 hash (CID), and any authorized client can download by the same CID. Files are stored on the hub's filesystem, deduplicated by content hash.
+The `file()` property type in `@xnetjs/data` already defines `FileRef` objects with CID, name, mimeType, and size — but there's no infrastructure to actually upload or download these files. The hub provides a content-addressed file store: clients upload files by their BLAKE3 hash (CID), and any authorized client can download by the same CID. Files are stored on the hub's filesystem, deduplicated by content hash.
 
 This is distinct from the backup API (which stores opaque encrypted blobs per document). File storage stores individual files that can be referenced by multiple nodes across multiple documents.
 
@@ -110,7 +110,7 @@ export interface HubStorage {
 ```typescript
 // packages/hub/src/services/files.ts
 
-import { blake3 } from '@xnet/crypto'
+import { blake3 } from '@xnetjs/crypto'
 import type { HubStorage, FileMeta } from '../storage/interface'
 
 export interface FileConfig {
@@ -391,7 +391,7 @@ export function createFileRoutes(fileService: FileService): Hono {
 // packages/react/src/hooks/useFileUpload.ts
 
 import { useContext, useCallback, useState } from 'react'
-import { blake3 } from '@xnet/crypto'
+import { blake3 } from '@xnetjs/crypto'
 import { XNetContext } from '../provider/XNetProvider'
 
 export interface FileRef {
@@ -508,7 +508,7 @@ describe('File Storage API', () => {
   })
 
   function computeCid(data: Uint8Array): string {
-    // Simplified for tests — real code uses @xnet/crypto blake3
+    // Simplified for tests — real code uses @xnetjs/crypto blake3
     const hash = Array.from(data).reduce((h, b) => ((h << 5) - h + b) | 0, 0)
     return `cid:blake3:${Math.abs(hash).toString(16).padStart(64, '0')}`
   }

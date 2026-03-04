@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Peer discovery service.
+ * @xnetjs/hub - Peer discovery service.
  */
 
 import type { HubStorage, PeerEndpoint, PeerRecord } from '../storage/interface'

@@ -8,7 +8,7 @@
 
 import type { SnapshotCache } from './snapshot-cache'
 import type { HistoryTarget, HistoricalState, TimelineEntry, PropertyDiff } from './types'
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import type {
   NodeChange,
   NodeState,
@@ -16,8 +16,8 @@ import type {
   NodeId,
   PropertyTimestamp,
   SchemaIRI
-} from '@xnet/data'
-import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
+} from '@xnetjs/data'
+import { topologicalSort, compareLamportTimestamps } from '@xnetjs/sync'
 import { deepEqual } from './utils'
 
 /**

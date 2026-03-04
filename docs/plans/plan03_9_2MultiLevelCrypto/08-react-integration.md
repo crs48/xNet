@@ -47,9 +47,9 @@ flowchart TD
 // packages/react/src/context/security-context.tsx
 
 import { createContext, useContext, useState, useMemo, type ReactNode } from 'react'
-import type { SecurityLevel, VerificationOptions } from '@xnet/crypto'
-import type { PQKeyRegistry, HybridKeyBundle } from '@xnet/identity'
-import { MemoryPQKeyRegistry } from '@xnet/identity'
+import type { SecurityLevel, VerificationOptions } from '@xnetjs/crypto'
+import type { PQKeyRegistry, HybridKeyBundle } from '@xnetjs/identity'
+import { MemoryPQKeyRegistry } from '@xnetjs/identity'
 
 /**
  * Security context state.
@@ -177,8 +177,8 @@ import {
   type SecurityLevel,
   type UnifiedSignature,
   type VerificationResult
-} from '@xnet/crypto'
-import { parseDID, type DID } from '@xnet/identity'
+} from '@xnetjs/crypto'
+import { parseDID, type DID } from '@xnetjs/identity'
 import { useSecurityContext } from '../context/security-context'
 
 /**
@@ -325,8 +325,8 @@ export function useSecurity(options: UseSecurityOptions = {}): UseSecurityResult
 
 import { type ReactNode } from 'react'
 import { SecurityProvider, type SecurityProviderProps } from '../context/security-context'
-import type { SecurityLevel } from '@xnet/crypto'
-import type { PQKeyRegistry, HybridKeyBundle } from '@xnet/identity'
+import type { SecurityLevel } from '@xnetjs/crypto'
+import type { PQKeyRegistry, HybridKeyBundle } from '@xnetjs/identity'
 
 /**
  * XNetProvider props.
@@ -391,8 +391,8 @@ export function XNetProvider({
 ```typescript
 // packages/devtools/src/panels/SecurityPanel.tsx
 
-import { useSecurity, useSecurityContext } from '@xnet/react'
-import type { SecurityLevel } from '@xnet/crypto'
+import { useSecurity, useSecurityContext } from '@xnetjs/react'
+import type { SecurityLevel } from '@xnetjs/crypto'
 
 const LEVEL_NAMES: Record<SecurityLevel, string> = {
   0: 'Fast (Ed25519)',
@@ -480,7 +480,7 @@ export function SecurityPanel() {
 
 import { useCallback } from 'react'
 import { useSecurity } from './useSecurity'
-import type { SecurityLevel } from '@xnet/crypto'
+import type { SecurityLevel } from '@xnetjs/crypto'
 
 /**
  * Options for mutations.
@@ -538,8 +538,8 @@ export { XNetProvider } from './provider/XNetProvider'
 ### Basic Usage
 
 ```tsx
-import { XNetProvider, useSecurity } from '@xnet/react'
-import { createKeyBundle } from '@xnet/identity'
+import { XNetProvider, useSecurity } from '@xnetjs/react'
+import { createKeyBundle } from '@xnetjs/identity'
 
 function App() {
   const [bundle] = useState(() => createKeyBundle())
@@ -616,7 +616,7 @@ function CursorUpdates() {
 import { describe, it, expect } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { SecurityProvider, useSecurity, useSecurityContext } from '../'
-import { createKeyBundle } from '@xnet/identity'
+import { createKeyBundle } from '@xnetjs/identity'
 
 describe('useSecurity', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => {

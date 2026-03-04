@@ -576,7 +576,7 @@ const identity = await XNet.importFromBackup(file, password)
 ## API Reference
 
 ```typescript
-// @xnet/identity
+// @xnetjs/identity
 
 // Create new identity
 function createIdentity(): Promise<Identity>

@@ -2,7 +2,7 @@
  * SQLite Debug Panel - Toggle debug logging and view SQLite-related diagnostics
  */
 
-import { Tooltip } from '@xnet/ui'
+import { Tooltip } from '@xnetjs/ui'
 import { useDevTools } from '../../provider/useDevTools'
 import { useSQLitePanel, useSQLiteStatus } from './useSQLitePanel'
 

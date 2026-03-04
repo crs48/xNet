@@ -9,9 +9,9 @@ import type {
   PropertyDefinition,
   FilterOperator as DataFilterOperator,
   ColumnType
-} from '@xnet/data'
-import { OPERATORS_BY_TYPE, getOperatorLabel, operatorRequiresValue } from '@xnet/data'
-import { cn } from '@xnet/ui'
+} from '@xnetjs/data'
+import { OPERATORS_BY_TYPE, getOperatorLabel, operatorRequiresValue } from '@xnetjs/data'
+import { cn } from '@xnetjs/ui'
 import { Plus, Trash2, X } from 'lucide-react'
 import React, { useCallback, useState, type JSX } from 'react'
 

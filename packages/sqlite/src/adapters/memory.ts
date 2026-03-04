@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - In-memory SQLite adapter for testing
+ * @xnetjs/sqlite - In-memory SQLite adapter for testing
  *
  * Uses sql.js (SQLite compiled to WASM) for Node.js testing.
  */

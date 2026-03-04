@@ -64,7 +64,7 @@ pnpm remove \
 
 ```json
 {
-  "name": "@xnet/ui",
+  "name": "@xnetjs/ui",
   "version": "0.1.0",
   "type": "module",
   "main": "./src/index.ts",
@@ -140,11 +140,11 @@ describe('Animation Performance', () => {
 
 ```bash
 # Analyze bundle size
-pnpm --filter @xnet/ui build
-pnpm --filter @xnet/ui exec -- npx bundlesize
+pnpm --filter @xnetjs/ui build
+pnpm --filter @xnetjs/ui exec -- npx bundlesize
 
 # Expected output:
-# @xnet/ui: ~45KB gzipped (down from ~60KB with Radix)
+# @xnetjs/ui: ~45KB gzipped (down from ~60KB with Radix)
 ```
 
 ### 5. Design System Documentation
@@ -170,12 +170,12 @@ A clean, minimal, timeless design system for xNet applications.
 
 ```tsx
 // Import styles
-import '@xnet/ui/tokens.css'
-import '@xnet/ui/motion.css'
-import '@xnet/ui/accessibility.css'
+import '@xnetjs/ui/tokens.css'
+import '@xnetjs/ui/motion.css'
+import '@xnetjs/ui/accessibility.css'
 
 // Import components
-import { Button, Input, Modal } from '@xnet/ui'
+import { Button, Input, Modal } from '@xnetjs/ui'
 ```
 ````
 
@@ -271,7 +271,7 @@ import { Button, Input, Modal } from '@xnet/ui'
 ### Button
 
 ```tsx
-import { Button } from '@xnet/ui'
+import { Button } from '@xnetjs/ui'
 
 // Variants
 <Button variant="default">Primary</Button>
@@ -290,7 +290,7 @@ import { Button } from '@xnet/ui'
 ### Input
 
 ```tsx
-import { Input } from '@xnet/ui'
+import { Input } from '@xnetjs/ui'
 
 <Input placeholder="Enter text..." />
 <Input type="email" />
@@ -308,7 +308,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter
-} from '@xnet/ui'
+} from '@xnetjs/ui'
 ;<Dialog>
   <DialogTrigger asChild>
     <Button>Open</Button>
@@ -329,7 +329,7 @@ import {
 ### Tabs
 
 ```tsx
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@xnet/ui'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@xnetjs/ui'
 ;<Tabs defaultValue="tab1">
   <TabsList>
     <TabsTrigger value="tab1">Tab 1</TabsTrigger>
@@ -358,7 +358,7 @@ All interactive elements have visible focus indicators:
 Add to the top of your app:
 
 ```tsx
-import { SkipLink } from '@xnet/ui'
+import { SkipLink } from '@xnetjs/ui'
 ;<SkipLink href="#main-content" />
 ```
 
@@ -453,13 +453,13 @@ See [MIGRATION_GUIDE.md](./src/base-ui/MIGRATION_GUIDE.md) for details.
 
 ```bash
 # Run all tests
-pnpm --filter @xnet/ui test
+pnpm --filter @xnetjs/ui test
 
 # Type check
-pnpm --filter @xnet/ui typecheck
+pnpm --filter @xnetjs/ui typecheck
 
 # Build
-pnpm --filter @xnet/ui build
+pnpm --filter @xnetjs/ui build
 
 # Verify no Radix imports remain
 grep -r "@radix-ui" packages/ui/src/

@@ -5,7 +5,7 @@ Quick patterns for using the authorization API in app code.
 ## Gated Actions with `useCan`
 
 ```tsx
-import { useCan } from '@xnet/react'
+import { useCan } from '@xnetjs/react'
 
 export function EditButton({ nodeId }: { nodeId: string }) {
   const { canWrite, loading } = useCan(nodeId)
@@ -21,8 +21,8 @@ export function EditButton({ nodeId }: { nodeId: string }) {
 ## Share Dialog with `useGrants`
 
 ```tsx
-import type { DID } from '@xnet/data'
-import { useCan, useGrants } from '@xnet/react'
+import type { DID } from '@xnetjs/data'
+import { useCan, useGrants } from '@xnetjs/react'
 
 export function SharePanel({ nodeId }: { nodeId: string }) {
   const { canShare } = useCan(nodeId)

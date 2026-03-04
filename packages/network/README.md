@@ -1,11 +1,11 @@
-# @xnet/network
+# @xnetjs/network
 
 P2P networking for xNet -- libp2p, WebRTC, y-webrtc provider, and a comprehensive security suite.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/network
+pnpm add @xnetjs/network
 ```
 
 ## Features
@@ -27,7 +27,7 @@ pnpm add @xnet/network
 ## Usage
 
 ```typescript
-import { createNode } from '@xnet/network'
+import { createNode } from '@xnetjs/network'
 
 // Create a network node
 const node = await createNode({
@@ -97,7 +97,7 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/crypto`, `@xnet/identity`, `@xnet/data`
+- `@xnetjs/core`, `@xnetjs/crypto`, `@xnetjs/identity`, `@xnetjs/data`
 - libp2p ecosystem (noise, yamux, webrtc, websockets, circuit-relay, kad-dht)
 - `y-webrtc`, `yjs` -- CRDT sync
 - `@chainsafe/libp2p-noise` -- Encrypted transport
@@ -107,8 +107,8 @@ flowchart TD
 PeerScorer supports optional telemetry for security monitoring and performance tracking:
 
 ```typescript
-import { PeerScorer } from '@xnet/network'
-import { TelemetryCollector } from '@xnet/telemetry'
+import { PeerScorer } from '@xnetjs/network'
+import { TelemetryCollector } from '@xnetjs/telemetry'
 
 const telemetry = new TelemetryCollector({ consent })
 
@@ -152,5 +152,5 @@ All peer-identifying information is scrubbed. Only bucketed scores and aggregate
 ## Testing
 
 ```bash
-pnpm --filter @xnet/network test
+pnpm --filter @xnetjs/network test
 ```

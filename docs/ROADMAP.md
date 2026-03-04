@@ -162,7 +162,7 @@ gantt
 ### 3.1 Package Lifecycle and Portfolio Cleanup
 
 - [ ] Add explicit lifecycle labels in package docs (`stable`, `experimental`, `deprecated`, `internal`)
-- [ ] Decide disposition of low-usage packages (starting with `@xnet/formula`, `@xnet/cli`)
+- [ ] Decide disposition of low-usage packages (starting with `@xnetjs/formula`, `@xnetjs/cli`)
 - [ ] Remove or archive packages that do not support near-term product goals
 
 ### 3.2 API Surface Simplification

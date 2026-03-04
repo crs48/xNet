@@ -186,7 +186,7 @@ export interface SettingsPanelProps {
 
 export interface SchemaContribution {
   /** The schema definition */
-  schema: unknown // DefinedSchema from @xnet/data
+  schema: unknown // DefinedSchema from @xnetjs/data
 }
 
 // ─── Typed Registry ────────────────────────────────────────────────────────

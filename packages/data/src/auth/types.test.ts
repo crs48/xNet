@@ -1,4 +1,4 @@
-import type { ActionKey, RoleKey, SchemaAction } from '@xnet/core'
+import type { ActionKey, RoleKey, SchemaAction } from '@xnetjs/core'
 import { describe, expectTypeOf, it } from 'vitest'
 import { allow, role } from './builders'
 

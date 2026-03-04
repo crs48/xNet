@@ -796,8 +796,8 @@ export default defineConfig({
 ```typescript
 // apps/web/src/storage/sqlite.ts
 
-import { checkBrowserSupport, showUnsupportedBrowserMessage } from '@xnet/sqlite'
-import { createWebSQLiteProxy, type WebSQLiteProxy } from '@xnet/sqlite/web'
+import { checkBrowserSupport, showUnsupportedBrowserMessage } from '@xnetjs/sqlite'
+import { createWebSQLiteProxy, type WebSQLiteProxy } from '@xnetjs/sqlite/web'
 
 let sqliteProxy: WebSQLiteProxy | null = null
 let initPromise: Promise<WebSQLiteProxy | null> | null = null

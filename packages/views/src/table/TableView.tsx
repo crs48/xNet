@@ -3,9 +3,9 @@
  */
 
 import type { ViewConfig, CellPresence } from '../types.js'
-import type { Schema } from '@xnet/data'
+import type { Schema } from '@xnetjs/data'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React, { useRef, type JSX } from 'react'
 import { TableCell } from './TableCell.js'
 import { TableHeader } from './TableHeader.js'

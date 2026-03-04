@@ -5,7 +5,7 @@
 ## Implementation Status
 
 - [x] **Migration Complete** - All Radix UI dependencies removed
-- [x] `@base-ui/react` ^1.1.0 now used in `@xnet/ui`
+- [x] `@base-ui/react` ^1.1.0 now used in `@xnetjs/ui`
 - [x] All 34 components migrated from Radix primitives to Base UI
 - [x] Base UI animations CSS added (`base-ui-animations.css`)
 
@@ -25,7 +25,7 @@ Radix UI, our current headless component library, has effectively become a zombi
 
 ## Current State: xNet's Radix Usage
 
-### Dependencies in `@xnet/ui`
+### Dependencies in `@xnetjs/ui`
 
 ```
 @radix-ui/react-accordion      ^1.2.12

@@ -17,7 +17,7 @@ import { DEFAULT_CONFIG } from './types'
 
 /**
  * Optional telemetry reporter interface for network connection operations.
- * Duck-typed to avoid circular dependency on @xnet/telemetry.
+ * Duck-typed to avoid circular dependency on @xnetjs/telemetry.
  */
 interface NodeTelemetry {
   reportUsage(metricName: string, value: number): void

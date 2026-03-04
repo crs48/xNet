@@ -4,7 +4,7 @@
 
 **Duration:** 3-4 days
 **Dependencies:** [03-virtualized-node-layer.md](./03-virtualized-node-layer.md)
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

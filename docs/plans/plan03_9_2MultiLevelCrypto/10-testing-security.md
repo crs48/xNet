@@ -37,7 +37,7 @@ flowchart TD
 
 ## Unit Test Coverage
 
-### 1. @xnet/crypto Tests
+### 1. @xnetjs/crypto Tests
 
 ```typescript
 // packages/crypto/src/__tests__/comprehensive.test.ts

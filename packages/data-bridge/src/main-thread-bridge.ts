@@ -20,7 +20,7 @@ import type {
   NodeChangeEvent,
   ListNodesOptions,
   SchemaIRI
-} from '@xnet/data'
+} from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
 import { QueryCache } from './query-cache'
@@ -29,7 +29,7 @@ import { QueryCache } from './query-cache'
 
 /**
  * Minimal SyncManager interface for Y.Doc acquisition.
- * This avoids a direct dependency on @xnet/react's full SyncManager type.
+ * This avoids a direct dependency on @xnetjs/react's full SyncManager type.
  */
 export interface SyncManagerLike {
   acquire(nodeId: string): Promise<YDoc>

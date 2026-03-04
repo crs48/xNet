@@ -42,7 +42,7 @@ flowchart TD
 
 ### 1. Core Authorization Types (`packages/core`)
 
-Add canonical types that all packages import. These **supersede** the existing `Capability` type in `@xnet/core/permissions.ts`:
+Add canonical types that all packages import. These **supersede** the existing `Capability` type in `@xnetjs/core/permissions.ts`:
 
 ```typescript
 // packages/core/src/auth-types.ts
@@ -343,7 +343,7 @@ This is the **critical new piece** that V1 was missing:
 
 ```typescript
 import { edwardsToMontgomeryPub } from '@noble/curves/ed25519'
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 
 /**
  * Resolve a DID to its X25519 public key for key wrapping.
@@ -651,7 +651,7 @@ classDiagram
 
 ## Checklist
 
-- [x] `AuthAction`, `AuthDecision`, `AuthDenyReason`, `AuthTrace` types defined in `@xnet/core`.
+- [x] `AuthAction`, `AuthDecision`, `AuthDenyReason`, `AuthTrace` types defined in `@xnetjs/core`.
 - [x] `Capability` type re-exported as alias for `AuthAction` (backward compat).
 - [x] `AuthExpression` AST union type and all node types defined.
 - [x] `RoleResolver` union type defined.

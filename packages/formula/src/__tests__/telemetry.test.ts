@@ -1,5 +1,5 @@
 /**
- * Telemetry integration tests for @xnet/formula
+ * Telemetry integration tests for @xnetjs/formula
  */
 
 import type { TelemetryReporter } from '../index.js'

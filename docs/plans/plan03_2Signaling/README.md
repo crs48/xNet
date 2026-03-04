@@ -99,7 +99,7 @@ infrastructure/
 
 ```
 packages/
-  signaling/     # @xnet/signaling - embeddable in Electron main process
+  signaling/     # @xnetjs/signaling - embeddable in Electron main process
 ```
 
 The `infrastructure/` directory should only contain things that **cannot** run on user devices:
@@ -311,7 +311,7 @@ Deferred to future work:
 | Component          | Depends On                                |
 | ------------------ | ----------------------------------------- |
 | Embedded signaling | `ws` (WebSocket server)                   |
-| mDNS advertise     | `@xnet/network`, native mDNS              |
+| mDNS advertise     | `@xnetjs/network`, native mDNS            |
 | mDNS discover      | `@libp2p/mdns` or `react-native-zeroconf` |
 | WebRTC             | `y-webrtc`, browser WebRTC APIs           |
 | Mobile WebRTC      | `react-native-webrtc`                     |

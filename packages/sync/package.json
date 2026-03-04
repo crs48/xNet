@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/sync",
+  "name": "@xnetjs/sync",
   "version": "0.0.1",
   "description": "Unified sync primitives for xNet (Change<T>, vector clocks, hash chains)",
   "type": "module",
@@ -19,9 +19,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*",
-    "@xnet/identity": "workspace:*"
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/identity": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

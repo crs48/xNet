@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/sharing - Parse and validate share links
+ * @xnetjs/identity/sharing - Parse and validate share links
  */
 import type { ShareData, SharePermission } from './types'
 import { verifyUCAN } from '../ucan'

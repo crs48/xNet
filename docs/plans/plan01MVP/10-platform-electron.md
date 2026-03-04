@@ -3,7 +3,7 @@
 > macOS desktop application using Electron
 
 **Duration:** 2 weeks
-**Dependencies:** @xnet/sdk
+**Dependencies:** @xnetjs/sdk
 
 ## Overview
 
@@ -14,7 +14,7 @@ The Electron app provides a native macOS experience with better performance and 
 ```bash
 cd apps/electron
 pnpm create electron-vite
-pnpm add @xnet/sdk@workspace:*
+pnpm add @xnetjs/sdk@workspace:*
 pnpm add better-sqlite3 electron-store
 pnpm add -D electron electron-builder vite @vitejs/plugin-react
 ```
@@ -120,7 +120,7 @@ app.on('window-all-closed', () => {
 
 ```typescript
 import { ipcMain } from 'electron'
-import { createXNetClient, type XNetClient } from '@xnet/sdk'
+import { createXNetClient, type XNetClient } from '@xnetjs/sdk'
 import { SQLiteAdapter } from './storage'
 import { app } from 'electron'
 import { join } from 'path'
@@ -198,8 +198,8 @@ export function setupIPC() {
 
 ```typescript
 import Database from 'better-sqlite3'
-import type { StorageAdapter, DocumentData } from '@xnet/storage'
-import type { ContentId, Snapshot, SignedUpdate } from '@xnet/core'
+import type { StorageAdapter, DocumentData } from '@xnetjs/storage'
+import type { ContentId, Snapshot, SignedUpdate } from '@xnetjs/core'
 
 export class SQLiteAdapter implements StorageAdapter {
   private db: Database.Database

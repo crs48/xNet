@@ -1,5 +1,5 @@
 /**
- * @xnet/react/onboarding - State machine for the onboarding flow
+ * @xnetjs/react/onboarding - State machine for the onboarding flow
  *
  * States:
  *   welcome → authenticating → connecting-hub → ready → complete
@@ -8,7 +8,7 @@
  *   welcome → unsupported-browser (terminal)
  *   welcome → import-identity → qr-scan/recovery-phrase → connecting-hub
  */
-import type { Identity, KeyBundle } from '@xnet/identity'
+import type { Identity, KeyBundle } from '@xnetjs/identity'
 
 // ─── States ──────────────────────────────────────────────────
 

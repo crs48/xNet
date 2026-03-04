@@ -1,4 +1,4 @@
-import { YDoc } from '@xnet/data'
+import { YDoc } from '@xnetjs/data'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createSearchIndex, type SearchIndex, type SearchableDocument } from './index'
 

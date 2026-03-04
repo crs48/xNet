@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Expo SQLite adapter using expo-sqlite
+ * @xnetjs/sqlite - Expo SQLite adapter using expo-sqlite
  *
  * expo-sqlite runs SQLite on a native thread for performance.
  * All methods are async to match the native API.

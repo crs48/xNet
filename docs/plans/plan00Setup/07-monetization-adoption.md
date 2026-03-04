@@ -185,7 +185,7 @@ flowchart TB
 
 | Platform               | Purpose                                           |
 | ---------------------- | ------------------------------------------------- |
-| **Discord**            | Developer community, support, feature discussions |
+| **GitHub Discussions** | Developer community, support, feature discussions |
 | **GitHub Discussions** | Technical RFCs, roadmap input                     |
 | **Forum**              | Long-form discussions, knowledge base             |
 
@@ -201,12 +201,12 @@ flowchart TB
 
 ### Engagement Metrics
 
-| Metric              | Target (Year 1) |
-| ------------------- | --------------- |
-| Discord members     | 10,000          |
-| GitHub stars        | 5,000           |
-| Active contributors | 100             |
-| Community modules   | 50              |
+| Metric                     | Target (Year 1) |
+| -------------------------- | --------------- |
+| GitHub Discussions members | 10,000          |
+| GitHub stars               | 5,000           |
+| Active contributors        | 100             |
+| Community modules          | 50              |
 
 ---
 

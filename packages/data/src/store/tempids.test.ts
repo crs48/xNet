@@ -4,8 +4,8 @@
 
 import type { TransactionOperation } from './types'
 import type { SchemaIRI } from '../schema/node'
-import type { DID } from '@xnet/core'
-import { generateSigningKeyPair } from '@xnet/crypto'
+import type { DID } from '@xnetjs/core'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { describe, it, expect } from 'vitest'
 import { defineSchema } from '../schema/define'
 import { text, relation } from '../schema/properties'

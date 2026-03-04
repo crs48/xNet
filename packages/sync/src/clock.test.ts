@@ -1,5 +1,5 @@
 import type { LamportTimestamp } from './clock'
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import { describe, it, expect } from 'vitest'
 import {
   createLamportClock,

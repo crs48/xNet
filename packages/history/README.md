@@ -1,11 +1,11 @@
-# @xnet/history
+# @xnetjs/history
 
 History, audit, and time travel for xNet -- point-in-time reconstruction, undo/redo, diffs, blame, and verification.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/history
+pnpm add @xnetjs/history
 ```
 
 ## Features
@@ -26,7 +26,7 @@ pnpm add @xnet/history
 ## Usage
 
 ```typescript
-import { HistoryEngine } from '@xnet/history'
+import { HistoryEngine } from '@xnetjs/history'
 
 const engine = new HistoryEngine(store)
 
@@ -43,7 +43,7 @@ engine.goTo(nodeId, version)
 ### Undo/Redo
 
 ```typescript
-import { UndoManager } from '@xnet/history'
+import { UndoManager } from '@xnetjs/history'
 
 const undo = new UndoManager(store, nodeId)
 undo.undo()
@@ -55,7 +55,7 @@ undo.canRedo // boolean
 ### Diffs
 
 ```typescript
-import { DiffEngine } from '@xnet/history'
+import { DiffEngine } from '@xnetjs/history'
 
 const differ = new DiffEngine(store)
 const diff = differ.diff(nodeId, version1, version2)
@@ -65,7 +65,7 @@ const diff = differ.diff(nodeId, version1, version2)
 ### Blame
 
 ```typescript
-import { BlameEngine } from '@xnet/history'
+import { BlameEngine } from '@xnetjs/history'
 
 const blame = new BlameEngine(store)
 const attribution = blame.blame(nodeId)
@@ -75,7 +75,7 @@ const attribution = blame.blame(nodeId)
 ### Verification
 
 ```typescript
-import { VerificationEngine } from '@xnet/history'
+import { VerificationEngine } from '@xnetjs/history'
 
 const verifier = new VerificationEngine(store)
 const result = verifier.verify(nodeId)
@@ -143,13 +143,13 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/data`, `@xnet/sync`
+- `@xnetjs/core`, `@xnetjs/data`, `@xnetjs/sync`
 - `yjs` -- Document history operations
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/history test
+pnpm --filter @xnetjs/history test
 ```
 
 3 test files covering history engine, document history, and edge cases.

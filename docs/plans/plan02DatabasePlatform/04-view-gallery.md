@@ -7,10 +7,10 @@
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `@xnetjs/database` → Use `@xnetjs/data` (Schema system + NodeStore)
 > - `DatabaseItem` → `Node`
 > - `Database` → `Schema`
-> - Import types from `@xnet/data`, hooks from `@xnet/react`
+> - Import types from `@xnetjs/data`, hooks from `@xnetjs/react`
 
 ## Overview
 
@@ -70,7 +70,7 @@ export const CARD_SIZES = {
 // packages/views/src/gallery/useGalleryState.ts
 
 import { useMemo } from 'react'
-import { Database, View, DatabaseItem } from '@xnet/database'
+import { Database, View, DatabaseItem } from '@xnetjs/database'
 import { GalleryConfig, CARD_SIZES } from './types'
 
 export interface UseGalleryStateOptions {
@@ -184,8 +184,8 @@ export function GalleryView({
 // packages/views/src/gallery/GalleryCard.tsx
 
 import React from 'react'
-import { DatabaseItem, PropertyDefinition } from '@xnet/database'
-import { getPropertyHandler } from '@xnet/database/properties'
+import { DatabaseItem, PropertyDefinition } from '@xnetjs/database'
+import { getPropertyHandler } from '@xnetjs/database/properties'
 import { GalleryConfig } from './types'
 
 interface GalleryCardProps {

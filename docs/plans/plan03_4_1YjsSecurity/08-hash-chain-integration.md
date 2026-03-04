@@ -3,7 +3,7 @@
 > Include Yjs updates in the per-node hash chain for full audit trail
 
 **Duration:** 2-3 days  
-**Dependencies:** Step 01 (envelopes), Step 07 (clientID binding), `@xnet/sync` (Change<T>)
+**Dependencies:** Step 01 (envelopes), Step 07 (clientID binding), `@xnetjs/sync` (Change<T>)
 
 ## Overview
 
@@ -44,7 +44,7 @@ flowchart TB
 ```typescript
 // packages/sync/src/yjs-change.ts
 
-import type { DID, NodeId } from '@xnet/core'
+import type { DID, NodeId } from '@xnetjs/core'
 
 export interface YjsUpdatePayload {
   /** The node this update belongs to */

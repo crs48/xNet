@@ -1,7 +1,7 @@
 /**
  * Hub backup helpers.
  */
-import { concatBytes, decrypt, encrypt, NONCE_SIZE, type EncryptedData } from '@xnet/crypto'
+import { concatBytes, decrypt, encrypt, NONCE_SIZE, type EncryptedData } from '@xnetjs/crypto'
 
 export type HubBackupConfig = {
   hubUrl: string

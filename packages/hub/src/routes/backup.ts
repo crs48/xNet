@@ -1,11 +1,11 @@
 /**
- * @xnet/hub - Backup API routes.
+ * @xnetjs/hub - Backup API routes.
  */
 
 import type { AuthContext } from '../auth/ucan'
 import type { BackupService } from '../services/backup'
-import { base64ToBytes, verify } from '@xnet/crypto'
-import { parseDID } from '@xnet/identity'
+import { base64ToBytes, verify } from '@xnetjs/crypto'
+import { parseDID } from '@xnetjs/identity'
 import { Hono } from 'hono'
 
 type Env = { Variables: { auth: AuthContext } }

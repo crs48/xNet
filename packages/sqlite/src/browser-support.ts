@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Browser support detection for OPFS-based SQLite
+ * @xnetjs/sqlite - Browser support detection for OPFS-based SQLite
  */
 
 /**

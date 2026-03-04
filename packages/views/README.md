@@ -1,11 +1,11 @@
-# @xnet/views
+# @xnetjs/views
 
 Database view components for xNet -- built-in views, property renderers, state hooks, and a view registry.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/views
+pnpm add @xnetjs/views
 ```
 
 ## Features
@@ -23,7 +23,7 @@ pnpm add @xnet/views
 ## Usage
 
 ```tsx
-import { TableView, BoardView, GalleryView, TimelineView, CalendarView } from '@xnet/views'
+import { TableView, BoardView, GalleryView, TimelineView, CalendarView } from '@xnetjs/views'
 
 // Table view
 <TableView schema={TaskSchema} nodes={tasks} onNodeClick={handleClick} />
@@ -45,7 +45,7 @@ import { TableView, BoardView, GalleryView, TimelineView, CalendarView } from '@
 
 ```tsx
 import { useState } from 'react'
-import { useViewRegistry, ViewRenderer } from '@xnet/views'
+import { useViewRegistry, ViewRenderer } from '@xnetjs/views'
 
 function ViewSwitcher({ schema, nodes }) {
   const { views } = useViewRegistry()
@@ -76,7 +76,7 @@ function ViewSwitcher({ schema, nodes }) {
 Each view has a companion state hook:
 
 ```tsx
-import { useTableState, useBoardState, useGalleryState } from '@xnet/views'
+import { useTableState, useBoardState, useGalleryState } from '@xnetjs/views'
 
 const tableState = useTableState({ schema, nodes, sorting, filters })
 const boardState = useBoardState({ schema, nodes, groupByField: 'status' })
@@ -125,7 +125,7 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/data`, `@xnet/react`, `@xnet/ui`
+- `@xnetjs/core`, `@xnetjs/data`, `@xnetjs/react`, `@xnetjs/ui`
 - `@tanstack/react-table` -- Table virtualization
 - `@tanstack/react-virtual` -- Virtual scrolling
 - `@dnd-kit/core`, `@dnd-kit/sortable` -- Drag and drop
@@ -133,7 +133,7 @@ flowchart TD
 ## Testing
 
 ```bash
-pnpm --filter @xnet/views test
+pnpm --filter @xnetjs/views test
 ```
 
 7 test files covering registry, board, gallery, timeline, calendar, and property renderers.

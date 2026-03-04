@@ -1,12 +1,12 @@
 /**
- * @xnet/hub - Node change relay service.
+ * @xnetjs/hub - Node change relay service.
  */
 import type { AuthContext } from '../auth/ucan'
 import type { HubStorage, SerializedNodeChange } from '../storage/interface'
-import type { ContentId, DID } from '@xnet/core'
-import { base64ToBytes } from '@xnet/crypto'
-import { parseDID } from '@xnet/identity'
-import { verifyChange, verifyChangeHash, type Change } from '@xnet/sync'
+import type { ContentId, DID } from '@xnetjs/core'
+import { base64ToBytes } from '@xnetjs/crypto'
+import { parseDID } from '@xnetjs/identity'
+import { verifyChange, verifyChangeHash, type Change } from '@xnetjs/sync'
 
 type NodePayload = SerializedNodeChange['payload']
 

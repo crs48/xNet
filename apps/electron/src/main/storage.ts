@@ -1,5 +1,5 @@
-import type { ContentId } from '@xnet/core'
-import type { StorageAdapter } from '@xnet/storage'
+import type { ContentId } from '@xnetjs/core'
+import type { StorageAdapter } from '@xnetjs/storage'
 import Database from 'better-sqlite3'
 
 export class SQLiteAdapter implements StorageAdapter {

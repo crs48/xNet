@@ -1,4 +1,4 @@
-# @xnet/tests
+# @xnetjs/tests
 
 Integration test suite for xNet. These tests run in a real browser (Chromium via Playwright) to exercise SQLite (web adapter), WebRTC, and React hooks in an authentic environment.
 
@@ -31,10 +31,10 @@ tests/
 
 ```bash
 # Run integration tests
-pnpm --filter @xnet/integration-tests test
+pnpm --filter @xnetjs/integration-tests test
 
 # Run with visible browser (headed mode)
-pnpm --filter @xnet/integration-tests test -- --browser.headless=false
+pnpm --filter @xnetjs/integration-tests test -- --browser.headless=false
 ```
 
 ## How It Works

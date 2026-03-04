@@ -163,7 +163,7 @@ export default {
 
 ```tsx
 // Plugin code uses the xNet-provided hook
-import { usePluginTranslation } from '@xnet/react'
+import { usePluginTranslation } from '@xnetjs/react'
 
 function InvoiceHeader({ count, amount }: Props) {
   const { t } = usePluginTranslation('erp')
@@ -218,7 +218,7 @@ class I18nRegistry {
 
 ```
 packages/
-  i18n/                          # New package: @xnet/i18n
+  i18n/                          # New package: @xnetjs/i18n
     src/
       index.ts                   # Registry, formatters, locale detection
       registry.ts                # Namespace registry
@@ -570,10 +570,10 @@ function useNodeTranslation(nodeId: string, targetLocale: string) {
 
 ### Phase 1: Core i18n (UI translations)
 
-1. Add `@xnet/i18n` package with registry, formatter, detector
+1. Add `@xnetjs/i18n` package with registry, formatter, detector
 2. Set up Lingui with SWC plugin for web, Metro transformer for Expo
 3. Extract all hardcoded English strings from apps into catalogs
-4. Add `I18nProvider` to `@xnet/react`
+4. Add `I18nProvider` to `@xnetjs/react`
 5. Implement `useTranslation()` hook
 6. Add language switcher to Settings
 

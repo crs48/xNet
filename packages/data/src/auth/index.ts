@@ -31,9 +31,9 @@ export type {
   RelationRoleResolver,
   AuthCheckInput,
   PolicyEvaluator
-} from '@xnet/core'
+} from '@xnetjs/core'
 
-export { AUTH_ACTIONS } from '@xnet/core'
+export { AUTH_ACTIONS } from '@xnetjs/core'
 
 // Builders
 export { allow, deny, and, or, not, PUBLIC, AUTHENTICATED, role, relation } from './builders'

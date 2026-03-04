@@ -4,9 +4,9 @@
 
 import type { ContentKeyCache, NodeContentCipher } from './types'
 import type { SchemaIRI } from '../schema/node'
-import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { createDID } from '@xnet/identity'
+import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, vi } from 'vitest'
 import { LensRegistry, composeLens, rename, addDefault, convert } from '../schema'
 import { MemoryNodeStorageAdapter } from './memory-adapter'

@@ -9,8 +9,8 @@
 
 The xNet codebase evolved organically with two sync mechanisms:
 
-1. **@xnet/data** - Yjs CRDT for rich text (character-level merge)
-2. **@xnet/records** - Event-sourcing for tabular data (field-level LWW)
+1. **@xnetjs/data** - Yjs CRDT for rich text (character-level merge)
+2. **@xnetjs/records** - Event-sourcing for tabular data (field-level LWW)
 
 This was a **deliberate architectural choice** (see [TRADEOFFS.md](../TRADEOFFS.md)) - rich text genuinely needs fine-grained CRDT, while databases work better with last-writer-wins per field.
 
@@ -19,8 +19,8 @@ However, the implementation created unnecessary duplication:
 ```mermaid
 flowchart TD
     subgraph duplication["Current Duplication"]
-        D1["SignedUpdate in @xnet/core"]
-        D2["RecordOperation in @xnet/records"]
+        D1["SignedUpdate in @xnetjs/core"]
+        D2["RecordOperation in @xnetjs/records"]
         D3["Hash verification in both"]
         D4["Vector clock utils in both"]
     end
@@ -46,8 +46,8 @@ interface Change<T = unknown> {
   vectorClock: VectorClock
 }
 
-// @xnet/data uses: Change<YjsUpdate>
-// @xnet/records uses: Change<CreateItem | UpdateItem | DeleteItem>
+// @xnetjs/data uses: Change<YjsUpdate>
+// @xnetjs/records uses: Change<CreateItem | UpdateItem | DeleteItem>
 ```
 
 ### Secondary Goal: JSON-Friendly Types
@@ -78,13 +78,13 @@ type PropertyValue =
 
 This consolidation explicitly does NOT:
 
-| Non-Goal                           | Rationale                                         |
-| ---------------------------------- | ------------------------------------------------- |
-| Merge @xnet/data and @xnet/records | Keep packages separate for clear responsibilities |
-| Replace Yjs with event-sourcing    | Yjs is optimal for rich text                      |
-| Replace event-sourcing with Yjs    | LWW is optimal for tabular data                   |
-| Break existing APIs                | All changes must be backward compatible           |
-| Rewrite working sync code          | Refactor abstractions, don't rebuild mechanisms   |
+| Non-Goal                               | Rationale                                         |
+| -------------------------------------- | ------------------------------------------------- |
+| Merge @xnetjs/data and @xnetjs/records | Keep packages separate for clear responsibilities |
+| Replace Yjs with event-sourcing        | Yjs is optimal for rich text                      |
+| Replace event-sourcing with Yjs        | LWW is optimal for tabular data                   |
+| Break existing APIs                    | All changes must be backward compatible           |
+| Rewrite working sync code              | Refactor abstractions, don't rebuild mechanisms   |
 
 ## Success Criteria
 
@@ -109,17 +109,17 @@ This consolidation explicitly does NOT:
 
 ```mermaid
 flowchart TD
-    subgraph core["@xnet/core"]
+    subgraph core["@xnetjs/core"]
         SIGNED["SignedUpdate"]
         CLOCK1["VectorClock utils"]
         HASH1["hashContent()"]
     end
 
-    subgraph data["@xnet/data"]
+    subgraph data["@xnetjs/data"]
         YJS["Yjs wrapper"]
     end
 
-    subgraph records["@xnet/records"]
+    subgraph records["@xnetjs/records"]
         RECOP["RecordOperation"]
         CLOCK2["VectorClock utils (copy)"]
         HASH2["hash verification (copy)"]
@@ -133,28 +133,28 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph sync["@xnet/sync (NEW)"]
+    subgraph sync["@xnetjs/sync (NEW)"]
         OP["Change&lt;T&gt;"]
         CHAIN["Hash chain utils"]
         CLOCK["VectorClock utils"]
         VERIFY["Verification"]
     end
 
-    subgraph crypto["@xnet/crypto"]
+    subgraph crypto["@xnetjs/crypto"]
         HASH["hash(), hashHex()"]
     end
 
-    subgraph core["@xnet/core (slimmed)"]
+    subgraph core["@xnetjs/core (slimmed)"]
         CID["ContentId formatting"]
         TYPES["Basic types (DID, etc)"]
     end
 
-    subgraph data["@xnet/data"]
+    subgraph data["@xnetjs/data"]
         YJS["Yjs wrapper"]
         YOPS["uses Change&lt;YjsUpdate&gt;"]
     end
 
-    subgraph records["@xnet/records"]
+    subgraph records["@xnetjs/records"]
         STORE["RecordStore"]
         ROPS["uses Change&lt;RecordChange&gt;"]
     end
@@ -178,10 +178,10 @@ flowchart TD
 
 ## Implementation Strategy
 
-### Phase 1: Create @xnet/sync (Low Risk)
+### Phase 1: Create @xnetjs/sync (Low Risk)
 
 1. Create new package with unified types (`Change<T>`)
-2. Both @xnet/data and @xnet/records import from it
+2. Both @xnetjs/data and @xnetjs/records import from it
 3. Old types remain for backward compatibility
 4. No behavior changes
 
@@ -202,7 +202,7 @@ flowchart TD
 ### Phase 4: Hash Consolidation (Low Risk)
 
 1. Remove duplicate bytesToHex
-2. @xnet/core imports from @xnet/crypto
+2. @xnetjs/core imports from @xnetjs/crypto
 3. Update all consumers
 4. No behavior changes
 
@@ -210,7 +210,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    P1["01: @xnet/sync"] --> P2["02: PropertyValue"]
+    P1["01: @xnetjs/sync"] --> P2["02: PropertyValue"]
     P2 --> P3["03: Unified Document"]
     P1 --> P4["04: Hash Consolidation"]
 ```
@@ -221,4 +221,4 @@ flowchart LR
 
 ---
 
-[← Back to README](./README.md) | [Next: @xnet/sync Package →](./01-xnet-sync-package.md)
+[← Back to README](./README.md) | [Next: @xnetjs/sync Package →](./01-xnet-sync-package.md)

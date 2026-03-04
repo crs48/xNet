@@ -21,8 +21,8 @@ Security events are logged in a canonical format that:
 ```typescript
 // packages/network/src/security/logging.ts
 
-import type { SecurityEvent } from '@xnet/telemetry/schemas'
-import { createHash } from '@xnet/crypto'
+import type { SecurityEvent } from '@xnetjs/telemetry/schemas'
+import { createHash } from '@xnetjs/crypto'
 
 /**
  * Security event types.
@@ -267,7 +267,7 @@ bantime = 86400
 ### Basic Usage
 
 ```typescript
-import { logSecurityEvent, configureSecurityLogger } from '@xnet/network/security'
+import { logSecurityEvent, configureSecurityLogger } from '@xnetjs/network/security'
 
 // Configure logger (once at startup)
 configureSecurityLogger({
@@ -293,7 +293,7 @@ logSecurityEvent({
 ### Integration with Rate Limiter
 
 ```typescript
-import { SyncRateLimiter, logSecurityEvent } from '@xnet/network/security'
+import { SyncRateLimiter, logSecurityEvent } from '@xnetjs/network/security'
 
 const rateLimiter = new SyncRateLimiter()
 

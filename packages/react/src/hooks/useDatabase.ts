@@ -22,7 +22,7 @@
  * ```
  */
 
-import type { ColumnDefinition, ViewConfig, FilterGroup, SortConfig, CellValue } from '@xnet/data'
+import type { ColumnDefinition, ViewConfig, FilterGroup, SortConfig, CellValue } from '@xnetjs/data'
 import {
   queryRows,
   createRow as createRowOp,
@@ -32,7 +32,7 @@ import {
   fromCellProperties,
   filterRows,
   sortRows
-} from '@xnet/data'
+} from '@xnetjs/data'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useDatabaseDoc } from './useDatabaseDoc'
 import { useNodeStore } from './useNodeStore'

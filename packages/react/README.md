@@ -1,18 +1,18 @@
-# @xnet/react
+# @xnetjs/react
 
 React hooks for xNet -- the primary API for building xNet applications.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/react @xnet/data
+pnpm add @xnetjs/react @xnetjs/data
 ```
 
 ## Quick Start
 
 ```tsx
-import { XNetProvider, useQuery, useMutate, useNode } from '@xnet/react'
-import { MemoryNodeStorageAdapter, defineSchema, text, select } from '@xnet/data'
+import { XNetProvider, useQuery, useMutate, useNode } from '@xnetjs/react'
+import { MemoryNodeStorageAdapter, defineSchema, text, select } from '@xnetjs/data'
 
 // 1. Define your schema
 const TaskSchema = defineSchema({
@@ -101,7 +101,7 @@ flowchart TD
 Query nodes with automatic real-time updates.
 
 ```tsx
-import { useQuery } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
 
 function TaskList() {
   const { data: tasks, loading, error } = useQuery(TaskSchema)
@@ -143,7 +143,7 @@ const { data: todoTasks } = useQuery(TaskSchema, {
 Create, update, and delete nodes.
 
 ```tsx
-import { useMutate } from '@xnet/react'
+import { useMutate } from '@xnetjs/react'
 
 function CreateTaskButton() {
   const { create, isPending } = useMutate()
@@ -195,8 +195,8 @@ await mutate([
 Load a node with its Y.Doc for collaborative rich text editing.
 
 ```tsx
-import { useNode } from '@xnet/react'
-import { RichTextEditor } from '@xnet/editor/react'
+import { useNode } from '@xnetjs/react'
+import { RichTextEditor } from '@xnetjs/editor/react'
 
 const PageSchema = defineSchema({
   name: 'Page',
@@ -320,8 +320,8 @@ Returns: `create`, `update`, `remove`, `restore`, `mutate`, `isPending`, `pendin
 
 ## Related Packages
 
-- `@xnet/data` -- Schema system and NodeStore
-- `@xnet/editor` -- Rich text editor components
-- `@xnet/history` -- Time machine and audit hooks
-- `@xnet/plugins` -- Plugin system hooks
-- `@xnet/identity` -- DID and key management
+- `@xnetjs/data` -- Schema system and NodeStore
+- `@xnetjs/editor` -- Rich text editor components
+- `@xnetjs/history` -- Time machine and audit hooks
+- `@xnetjs/plugins` -- Plugin system hooks
+- `@xnetjs/identity` -- DID and key management

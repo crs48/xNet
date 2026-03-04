@@ -13,7 +13,7 @@
  *
  * Note: This worker uses MemoryNodeStorageAdapter for now. In the future,
  * we could integrate with a SharedWorker-based SQLite solution, but the
- * main app already has SQLite storage via @xnet/sqlite.
+ * main app already has SQLite storage via @xnetjs/sqlite.
  *
  * Performance optimizations:
  * - Uses Comlink's transfer() for zero-copy ArrayBuffer transfers
@@ -30,7 +30,7 @@ import type {
   WorkerAcquiredDoc
 } from './worker-types'
 import type { SyncStatus } from '../types'
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import {
   NodeStore,
   MemoryNodeStorageAdapter,
@@ -38,7 +38,7 @@ import {
   type NodeChangeEvent,
   type SchemaIRI,
   type NodeStorageAdapter
-} from '@xnet/data'
+} from '@xnetjs/data'
 import { expose, proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
 import { QueryCache } from '../query-cache'
@@ -83,7 +83,7 @@ class DataWorker implements DataWorkerAPI {
   async initialize(config: WorkerConfig): Promise<void> {
     // Create in-memory storage adapter
     // Note: This worker uses in-memory storage. Persistent SQLite storage
-    // is handled by the main app via @xnet/sqlite.
+    // is handled by the main app via @xnetjs/sqlite.
     this.storage = new MemoryNodeStorageAdapter()
 
     // Create NodeStore

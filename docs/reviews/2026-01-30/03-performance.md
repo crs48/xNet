@@ -38,7 +38,7 @@ graph TD
 
 ### PERF-01: Every Query Performs a Full Table Scan (Critical)
 
-**Package:** `@xnet/query`
+**Package:** `@xnetjs/query`
 **File:** `packages/query/src/local/engine.ts:26-27`
 
 ```typescript
@@ -86,7 +86,7 @@ Loads all document keys into memory, then filters. Should use `IDBKeyRange.bound
 
 ### PERF-04: Canvas Renders All Nodes (No Viewport Culling)
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:442`
 
 ```typescript
@@ -155,7 +155,7 @@ A new `Map` is constructed on every render frame, invalidating downstream memoiz
 
 ### PERF-08: `getLastChange` Loads Entire Change History
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/indexeddb-adapter.ts:139-146`
 
 ```typescript
@@ -201,28 +201,28 @@ For a 10MB file (40 chunks), this means 40 sequential IndexedDB transactions. Co
 
 ### PERF-12: Full Comment Reload on Every Change
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useComments.ts:175-191`
 
 Every single change to any comment triggers a full reload: list all comments from store, filter by target, convert to threads. O(N) per change event.
 
 ### PERF-13: Node Drag Creates Per-Node Yjs Transactions
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:344-361`
 
 Multi-select drag calls `updateNodePosition` individually for each node instead of using the batch method `updateNodePositions`.
 
 ### PERF-14: `useCommentCount` Creates Full Comment Subscription Per Node
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useCommentCount.ts:29-31`
 
 Each sidebar item showing a comment badge creates a full `useComments` subscription. For 50 sidebar items, this means 50 independent store subscriptions each doing full comment listing.
 
 ### PERF-15: NodeExplorer Devtool Reloads on Every Store Event
 
-**Package:** `@xnet/devtools`
+**Package:** `@xnetjs/devtools`
 **File:** `packages/devtools/src/panels/NodeExplorer/useNodeExplorer.ts:56-97`
 
 Calls `store.list()` on every `store:create`, `store:update`, `store:delete` event AND polls every 2 seconds. No debouncing.

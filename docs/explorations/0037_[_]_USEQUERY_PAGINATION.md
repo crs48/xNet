@@ -1,12 +1,12 @@
 # 0037: useQuery Pagination
 
-> Exploration of pagination patterns for the `useQuery` hook in `@xnet/react`
+> Exploration of pagination patterns for the `useQuery` hook in `@xnetjs/react`
 
 ## Status: Exploration
 
 ## Problem Statement
 
-The current `useQuery` hook in `@xnet/react` supports basic `limit` and `offset` options for pagination, but lacks:
+The current `useQuery` hook in `@xnetjs/react` supports basic `limit` and `offset` options for pagination, but lacks:
 
 1. **No `totalCount`** - Can't show "Page 1 of 10" or progress indicators
 2. **No `hasMore`** - Can't know if more data exists without fetching
@@ -38,9 +38,9 @@ interface QueryListResult<P> {
 }
 ```
 
-### Existing `@xnet/query` Types
+### Existing `@xnetjs/query` Types
 
-The `@xnet/query` package already has a more complete `QueryResult` type:
+The `@xnetjs/query` package already has a more complete `QueryResult` type:
 
 ```typescript
 // packages/query/src/types.ts

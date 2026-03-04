@@ -20,7 +20,7 @@ Documentation for xNet's sync system, versioning, and data migration.
 Every schema should have a version:
 
 ```typescript
-import { defineSchema } from '@xnet/data'
+import { defineSchema } from '@xnetjs/data'
 
 const TaskSchema = defineSchema({
   name: 'Task',
@@ -36,7 +36,7 @@ const TaskSchema = defineSchema({
 When changing a schema, create a lens:
 
 ```typescript
-import { createLens, LensRegistry } from '@xnet/data'
+import { createLens, LensRegistry } from '@xnetjs/data'
 
 const v1ToV2 = createLens({
   from: '1.0.0',
@@ -114,7 +114,7 @@ The Version DevTools panel shows:
 
 ## Related Packages
 
-- `@xnet/sync` - Sync protocol, versioning, integrity
-- `@xnet/data` - Schema system, migrations, lenses
-- `@xnet/cli` - Command line tools
-- `@xnet/devtools` - Version DevTools panel
+- `@xnetjs/sync` - Sync protocol, versioning, integrity
+- `@xnetjs/data` - Schema system, migrations, lenses
+- `@xnetjs/cli` - Command line tools
+- `@xnetjs/devtools` - Version DevTools panel

@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Type definitions for unified SQLite adapter
+ * @xnetjs/sqlite - Type definitions for unified SQLite adapter
  */
 
 /**

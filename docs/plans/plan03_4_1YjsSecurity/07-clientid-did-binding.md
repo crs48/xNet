@@ -43,7 +43,7 @@ sequenceDiagram
 ```typescript
 // packages/sync/src/clientid-attestation.ts
 
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 
 export interface ClientIdAttestation {
   /** The Yjs clientID being attested */
@@ -94,8 +94,8 @@ interface ClientIdBindMessage {
 ```typescript
 // packages/sync/src/clientid-attestation.ts
 
-import { blake3, ed25519Sign, ed25519Verify } from '@xnet/crypto'
-import { resolveDidKey } from '@xnet/identity'
+import { blake3, ed25519Sign, ed25519Verify } from '@xnetjs/crypto'
+import { resolveDidKey } from '@xnetjs/identity'
 
 /** Create payload bytes for signing */
 function attestationPayload(

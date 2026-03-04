@@ -1,6 +1,6 @@
 # xNet DevTools Design Document
 
-> **Status**: ✅ IMPLEMENTED - The `@xnet/devtools` package is complete with 7 panels
+> **Status**: ✅ IMPLEMENTED - The `@xnetjs/devtools` package is complete with 7 panels
 
 ## Implementation Status
 
@@ -71,13 +71,13 @@ flowchart TB
         useDocument["useDocument()"]
     end
 
-    subgraph Data["Data Layer (@xnet/data)"]
+    subgraph Data["Data Layer (@xnetjs/data)"]
         NodeStore["NodeStore"]
         SchemaRegistry["SchemaRegistry"]
         YDoc["Y.Doc"]
     end
 
-    subgraph Sync["Sync Layer (@xnet/sync)"]
+    subgraph Sync["Sync Layer (@xnetjs/sync)"]
         Changes["Change&lt;T&gt;"]
         LamportClock["Lamport Clock"]
         HashChain["Hash Chain"]
@@ -598,7 +598,7 @@ packages/devtools/
 
 ```typescript
 // StoreInstrumentation.ts
-import type { NodeStore, NodeChange, NodeState, MergeConflict } from '@xnet/data'
+import type { NodeStore, NodeChange, NodeState, MergeConflict } from '@xnetjs/data'
 
 export interface StoreInstrumentationEvents {
   'change-created': (change: NodeChange) => void
@@ -689,7 +689,7 @@ export class DevToolsMessageBus {
 ```tsx
 // DevToolsProvider.tsx
 import { createContext, useContext, useEffect, useState } from 'react'
-import type { NodeStore } from '@xnet/data'
+import type { NodeStore } from '@xnetjs/data'
 import { instrumentStore } from './instrumentation/StoreInstrumentation'
 import { DevToolsPanel } from './DevToolsPanel'
 
@@ -750,7 +750,7 @@ export function useDevTools() {
 
 ```typescript
 // TimeTravel.ts
-import type { NodeStore, NodeChange } from '@xnet/data'
+import type { NodeStore, NodeChange } from '@xnetjs/data'
 
 export class TimeTravelDebugger {
   private changes: NodeChange[] = []
@@ -892,7 +892,7 @@ sequenceDiagram
 
 ### Phase 1: Core Infrastructure (Week 1-2)
 
-- [ ] Create `@xnet/devtools` package
+- [ ] Create `@xnetjs/devtools` package
 - [ ] Implement MessageBus for communication
 - [ ] Build StoreInstrumentation
 - [ ] Create basic DevToolsPanel shell
@@ -946,7 +946,7 @@ sequenceDiagram
 ### 8.1 DevToolsProvider
 
 ```tsx
-import { DevToolsProvider } from '@xnet/devtools'
+import { DevToolsProvider } from '@xnetjs/devtools'
 
 function App() {
   return (
@@ -966,7 +966,7 @@ function App() {
 ### 8.2 useDevTools Hook
 
 ```tsx
-import { useDevTools } from '@xnet/devtools'
+import { useDevTools } from '@xnetjs/devtools'
 
 function DebugButton() {
   const { isOpen, toggle } = useDevTools()
@@ -977,7 +977,7 @@ function DebugButton() {
 ### 8.3 Programmatic API
 
 ```typescript
-import { devtools } from '@xnet/devtools'
+import { devtools } from '@xnetjs/devtools'
 
 // Manually log a custom event
 devtools.log('custom-event', { data: 'something' })

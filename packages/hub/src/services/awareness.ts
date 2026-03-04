@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Awareness persistence service.
+ * @xnetjs/hub - Awareness persistence service.
  */
 
 import type { AwarenessEntry, HubStorage } from '../storage/interface'

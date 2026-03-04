@@ -7,8 +7,8 @@
  */
 
 import type { AuditQuery, AuditEntry, ActivitySummary } from './types'
-import type { DID } from '@xnet/core'
-import type { NodeChange, NodeStorageAdapter, NodeId, SchemaIRI, NodeStore } from '@xnet/data'
+import type { DID } from '@xnetjs/core'
+import type { NodeChange, NodeStorageAdapter, NodeId, SchemaIRI, NodeStore } from '@xnetjs/data'
 
 export class AuditIndex {
   constructor(private storage: NodeStorageAdapter) {}

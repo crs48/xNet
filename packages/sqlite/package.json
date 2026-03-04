@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/sqlite",
+  "name": "@xnetjs/sqlite",
   "version": "0.1.0",
   "description": "Unified SQLite adapter for xNet across all platforms",
   "type": "module",

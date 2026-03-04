@@ -1,5 +1,5 @@
 /**
- * @xnet/data - Unified data layer for xNet
+ * @xnetjs/data - Unified data layer for xNet
  *
  * This package provides:
  * - Schema system for typed Nodes (defineSchema, property helpers)

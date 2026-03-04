@@ -250,7 +250,7 @@ These suggest:
 - [ ] **Data integrity tests:** Create `data/src/schema/properties/*.test.ts` -- validate all 15 types with null, NaN, Infinity, boundaries, type mismatches
 - [ ] **Data integrity tests:** Create `data/src/store/indexeddb-adapter.test.ts` using `fake-indexeddb` -- CRUD, duplicates, concurrent ops
 - [ ] **Fix type errors:** Fix `storage/snapshots/manager.test.ts` wrong field name, `sync/yjs-change.test.ts` branded DID types, `editor` vitest-dom declarations
-- [ ] **Add test scripts:** Add `"test": "vitest run"` to `@xnet/core` and `@xnet/crypto` package.json
+- [ ] **Add test scripts:** Add `"test": "vitest run"` to `@xnetjs/core` and `@xnetjs/crypto` package.json
 
 ### Phase 2 (Hub MVP) -- Tests for sync and network reliability
 

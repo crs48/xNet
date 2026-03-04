@@ -9,7 +9,7 @@
  * 5. Apply - Apply to the store
  */
 
-import { schemaRegistry, type Schema, type SchemaIRI } from '@xnet/data'
+import { schemaRegistry, type Schema, type SchemaIRI } from '@xnetjs/data'
 import { useState, useCallback, useMemo } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 
@@ -202,7 +202,7 @@ function generateLensCode(candidate: MigrationCandidate): string {
     return `// No migration needed - all changes are safe (additive)\nidentity('${candidate.schemaIRI}@${candidate.currentVersion}', '${candidate.schemaIRI}@${candidate.targetVersion}')`
   }
 
-  return `import { composeLens, rename, convert, addDefault, remove, transform } from '@xnet/data'
+  return `import { composeLens, rename, convert, addDefault, remove, transform } from '@xnetjs/data'
 
 const ${candidate.schemaName.replace(/\s/g, '')}Migration = composeLens(
   '${candidate.schemaIRI}@${candidate.currentVersion}',

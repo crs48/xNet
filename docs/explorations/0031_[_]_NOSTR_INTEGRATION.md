@@ -493,7 +493,7 @@ graph TB
 
 ### Phase 1: Key Infrastructure (1 week)
 
-1. Add `@xnet/nostr` package with:
+1. Add `@xnetjs/nostr` package with:
    - secp256k1 key generation/derivation
    - Schnorr signing (BIP-340)
    - bech32 encoding (npub, nsec, note)

@@ -8,7 +8,7 @@ const str = (s: string) => `<span class="text-emerald-400">${s}</span>`
 const num = (s: string) => `<span class="text-orange-400">${s}</span>`
 
 const pluginCode = [
-  `${kw('import')} { definePlugin } ${kw('from')} ${str("'@xnet/sdk'")}`,
+  `${kw('import')} { definePlugin } ${kw('from')} ${str("'@xnetjs/sdk'")}`,
   ``,
   `${kw('export default')} ${fn('definePlugin')}({`,
   `  name: ${str("'word-count'")},`,

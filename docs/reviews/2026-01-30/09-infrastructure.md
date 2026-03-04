@@ -60,10 +60,10 @@ Four different major versions of vitest across the monorepo. The root declares `
 
 ### INF-02: TipTap Major Version Mismatch (Major)
 
-| Package         | TipTap Version          |
-| --------------- | ----------------------- |
-| `@xnet/editor`  | `@tiptap/core: ^3.15.3` |
-| `@xnet/plugins` | `@tiptap/core: ^2.0.0`  |
+| Package           | TipTap Version          |
+| ----------------- | ----------------------- |
+| `@xnetjs/editor`  | `@tiptap/core: ^3.15.3` |
+| `@xnetjs/plugins` | `@tiptap/core: ^2.0.0`  |
 
 Plugins that depend on TipTap 2 APIs may break when used alongside the editor's TipTap 3.
 
@@ -80,40 +80,40 @@ Plugins that depend on TipTap 2 APIs may break when used alongside the editor's 
 
 ### INF-04: jsdom Version Inconsistency (Minor)
 
-| Package                                | Version   |
-| -------------------------------------- | --------- |
-| `@xnet/editor`                         | `^25.0.0` |
-| `@xnet/canvas`, `react`, `ui`, `views` | `^26.0.0` |
+| Package                                  | Version   |
+| ---------------------------------------- | --------- |
+| `@xnetjs/editor`                         | `^25.0.0` |
+| `@xnetjs/canvas`, `react`, `ui`, `views` | `^26.0.0` |
 
 ### INF-05: `@testing-library/react` Version Split (Minor)
 
-| Package                   | Version                |
-| ------------------------- | ---------------------- |
-| `@xnet/integration-tests` | `^14.0.0`              |
-| All other packages        | `^16.0.0` or `^16.2.0` |
+| Package                     | Version                |
+| --------------------------- | ---------------------- |
+| `@xnetjs/integration-tests` | `^14.0.0`              |
+| All other packages          | `^16.0.0` or `^16.2.0` |
 
 ### INF-06: Unused Dependencies
 
-| Package          | Unused Dependency                                           |
-| ---------------- | ----------------------------------------------------------- |
-| `@xnet/crypto`   | `@xnet/core` (never imported)                               |
-| `@xnet/identity` | `@xnet/core` (never imported)                               |
-| `apps/electron`  | `@tanstack/react-router` (never used, manual state instead) |
+| Package            | Unused Dependency                                           |
+| ------------------ | ----------------------------------------------------------- |
+| `@xnetjs/crypto`   | `@xnetjs/core` (never imported)                             |
+| `@xnetjs/identity` | `@xnetjs/core` (never imported)                             |
+| `apps/electron`    | `@tanstack/react-router` (never used, manual state instead) |
 
 ---
 
 ## Configuration Issues
 
-### INF-07: `@xnet/plugins` Points to `dist/` (Major)
+### INF-07: `@xnetjs/plugins` Points to `dist/` (Major)
 
-Every package uses `"main": "./src/index.ts"` for development (workspace protocol), but `@xnet/plugins` uses `"main": "./dist/index.js"`. This means plugins must be built before any consuming package works, unlike all other packages.
+Every package uses `"main": "./src/index.ts"` for development (workspace protocol), but `@xnetjs/plugins` uses `"main": "./dist/index.js"`. This means plugins must be built before any consuming package works, unlike all other packages.
 
 ### INF-08: Missing `test` Scripts (Minor)
 
-| Package        | Has `test` script? |
-| -------------- | ------------------ |
-| `@xnet/core`   | No                 |
-| `@xnet/crypto` | No                 |
+| Package          | Has `test` script? |
+| ---------------- | ------------------ |
+| `@xnetjs/core`   | No                 |
+| `@xnetjs/crypto` | No                 |
 
 These packages rely on the root vitest config to discover their tests. `turbo run test` for these packages will no-op.
 
@@ -190,16 +190,16 @@ graph TD
 ### Phase 1 (Daily Driver) -- Unblocks reliable development
 
 - [ ] **INF-01:** Align all vitest versions to `^2.0.0` using `pnpm.overrides` in root `package.json` -- 4 different major versions cause hoisting conflicts
-- [ ] **INF-07:** Fix `@xnet/plugins` main field to `"./src/index.ts"` like all other packages -- currently requires build before dev works
-- [ ] **INF-08:** Add `"test": "vitest run"` script to `@xnet/core` and `@xnet/crypto` -- `turbo run test` currently no-ops for these
-- [ ] **INF-06:** Remove unused `@xnet/core` dependency from `@xnet/crypto` and `@xnet/identity`
+- [ ] **INF-07:** Fix `@xnetjs/plugins` main field to `"./src/index.ts"` like all other packages -- currently requires build before dev works
+- [ ] **INF-08:** Add `"test": "vitest run"` script to `@xnetjs/core` and `@xnetjs/crypto` -- `turbo run test` currently no-ops for these
+- [ ] **INF-06:** Remove unused `@xnetjs/core` dependency from `@xnetjs/crypto` and `@xnetjs/identity`
 - [ ] **INF-10:** Update AGENTS.md dependency diagram to reflect actual package relationships
 - [ ] **INF-04:** Align jsdom versions across packages (`^25.0.0` vs `^26.0.0`)
 - [ ] **INF-05:** Align `@testing-library/react` versions (`^14.0.0` vs `^16.0.0`)
 
 ### Phase 2 (Hub MVP) -- Required before plugin system launches
 
-- [ ] **INF-02:** Align TipTap versions -- upgrade `@xnet/plugins` to TipTap 3 or document the API boundary
+- [ ] **INF-02:** Align TipTap versions -- upgrade `@xnetjs/plugins` to TipTap 3 or document the API boundary
 - [ ] **INF-03:** Standardize React peer dependency ranges across all packages
 - [ ] **INF-09:** Migrate `.eslintrc.cjs` to ESLint flat config (`eslint.config.js`) before ESLint 9 becomes standard
 - [ ] **INF-11:** Add per-package coverage thresholds (start at 60%, ramp to 80%)

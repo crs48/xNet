@@ -1,17 +1,17 @@
-# 01: @xnet/i18n Package
+# 01: @xnetjs/i18n Package
 
 > Core i18n infrastructure: registry, formatter, locale detection, catalog loading
 
 **Duration:** 2-3 days  
-**Dependencies:** `@xnet/core`
+**Dependencies:** `@xnetjs/core`
 
 ## Overview
 
-The `@xnet/i18n` package provides the platform-agnostic i18n runtime. It manages namespace registries, formats ICU messages, detects locales, and lazily loads translation catalogs.
+The `@xnetjs/i18n` package provides the platform-agnostic i18n runtime. It manages namespace registries, formats ICU messages, detects locales, and lazily loads translation catalogs.
 
 ```mermaid
 flowchart TD
-    subgraph "@xnet/i18n"
+    subgraph "@xnetjs/i18n"
         REG[Registry<br/>namespace → catalogs]
         FMT[Formatter<br/>ICU MessageFormat]
         DET[Detector<br/>locale resolution]
@@ -387,7 +387,7 @@ describe('CatalogLoader', () => {
 ```json
 {
   "dependencies": {
-    "@xnet/core": "workspace:*",
+    "@xnetjs/core": "workspace:*",
     "intl-messageformat": "^10.7.0"
   }
 }

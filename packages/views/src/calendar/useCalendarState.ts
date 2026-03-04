@@ -3,7 +3,7 @@
  */
 
 import type { ViewConfig } from '../types.js'
-import type { Schema, PropertyDefinition } from '@xnet/data'
+import type { Schema, PropertyDefinition } from '@xnetjs/data'
 import { useMemo, useState, useCallback } from 'react'
 
 /**

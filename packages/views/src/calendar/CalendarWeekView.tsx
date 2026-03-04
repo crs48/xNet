@@ -3,7 +3,7 @@
  */
 
 import type { CalendarEvent, WeekStartDay } from './useCalendarState.js'
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React from 'react'
 import { getWeekStart, getDayNames, isSameDay, getHours, formatHour } from './useCalendarState.js'
 

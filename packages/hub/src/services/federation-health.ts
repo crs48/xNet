@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Federation peer health checker.
+ * @xnetjs/hub - Federation peer health checker.
  */
 
 import type { FederationConfig, FederationPeer } from './federation'

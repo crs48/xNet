@@ -2,7 +2,7 @@
 
 > Cryptographic chain verification, signature validation, and optional change log pruning for storage recovery.
 
-**Dependencies:** Step 01 (HistoryEngine), Step 02 (SnapshotCache), `@xnet/sync` (chain utilities, verifyChange, verifyChangeHash), `@xnet/crypto` (verify, hash)
+**Dependencies:** Step 01 (HistoryEngine), Step 02 (SnapshotCache), `@xnetjs/sync` (chain utilities, verifyChange, verifyChangeHash), `@xnetjs/crypto` (verify, hash)
 
 ## Overview
 
@@ -35,10 +35,10 @@ flowchart TD
 ```typescript
 // packages/history/src/verification.ts
 
-import { verifyChangeHash, verifyChange, computeChangeHash } from '@xnet/sync'
-import { verify as ed25519Verify } from '@xnet/crypto'
-import { topologicalSort, getChainHeads, getChainRoots } from '@xnet/sync'
-import type { NodeChange, NodeId, ContentId, DID } from '@xnet/data'
+import { verifyChangeHash, verifyChange, computeChangeHash } from '@xnetjs/sync'
+import { verify as ed25519Verify } from '@xnetjs/crypto'
+import { topologicalSort, getChainHeads, getChainRoots } from '@xnetjs/sync'
+import type { NodeChange, NodeId, ContentId, DID } from '@xnetjs/data'
 
 export type VerificationErrorType =
   | 'tampered-hash' // Hash doesn't match recomputed value
@@ -263,10 +263,10 @@ export class VerificationEngine {
 ```typescript
 // packages/history/src/pruning.ts
 
-import type { NodeChange, NodeId, ContentId } from '@xnet/data'
+import type { NodeChange, NodeId, ContentId } from '@xnetjs/data'
 import type { SnapshotCache, Snapshot } from './snapshot-cache'
 import type { VerificationEngine } from './verification'
-import { topologicalSort } from '@xnet/sync'
+import { topologicalSort } from '@xnetjs/sync'
 
 export interface PruningPolicy {
   /** Minimum number of recent changes to always keep */
@@ -573,7 +573,7 @@ Verification needs to resolve `did:key:` DIDs to raw Ed25519 public keys:
 ```typescript
 // packages/history/src/did-resolver.ts
 
-import { base64urlToBytes } from '@xnet/crypto'
+import { base64urlToBytes } from '@xnetjs/crypto'
 
 /**
  * Extract Ed25519 public key from a did:key identifier.

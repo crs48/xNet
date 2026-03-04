@@ -19,7 +19,7 @@
  * ```
  */
 
-import type { NodeId, NodeStorageAdapter } from '@xnet/data'
+import type { NodeId, NodeStorageAdapter } from '@xnetjs/data'
 import {
   HistoryEngine,
   SnapshotCache,
@@ -28,7 +28,7 @@ import {
   type HistoricalState,
   type TimelineEntry,
   type PropertyDiff
-} from '@xnet/history'
+} from '@xnetjs/history'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 

@@ -1,5 +1,5 @@
 import type { NodeChangeEvent, NodeState } from '../store'
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 
 export const GRANT_SCHEMA_IRI = 'xnet://xnet.fyi/Grant' as const
 

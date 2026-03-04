@@ -37,7 +37,7 @@ The public key is embedded directly in the DID, making it **self-certifying** �
 ### Generate an identity
 
 ```ts
-import { generateIdentity, isValidDID } from '@xnet/identity'
+import { generateIdentity, isValidDID } from '@xnetjs/identity'
 
 const { identity, privateKey } = generateIdentity()
 // identity.did = "did:key:z6Mk..."
@@ -50,7 +50,7 @@ isValidDID(identity.did) // true
 ### Parse a DID
 
 ```ts
-import { parseDID } from '@xnet/identity'
+import { parseDID } from '@xnetjs/identity'
 
 const publicKey = parseDID('did:key:z6Mk...')
 // Returns the 32-byte Ed25519 public key
@@ -70,7 +70,7 @@ Every xNet identity uses a **HybridKeyBundle** — classical keys (Ed25519 + X25
 The DID is derived from the Ed25519 public key only — the DID format is unchanged and stays compact.
 
 ```ts
-import { generateHybridKeyBundle, deriveHybridKeyBundle } from '@xnet/identity'
+import { generateHybridKeyBundle, deriveHybridKeyBundle } from '@xnetjs/identity'
 
 // Random generation — includes PQ keys by default
 const bundle = generateHybridKeyBundle()
@@ -89,7 +89,7 @@ const bundle2 = deriveHybridKeyBundle(masterSeed)
 Key bundles are serialized, encrypted with XChaCha20-Poly1305, and stored via `PasskeyStorage`. In production, the encryption key is derived from WebAuthn/passkey credentials.
 
 ```ts
-import { BrowserPasskeyStorage } from '@xnet/identity'
+import { BrowserPasskeyStorage } from '@xnetjs/identity'
 
 const storage = new BrowserPasskeyStorage()
 const storedKey = await storage.store(bundle, credentialId)
@@ -112,7 +112,7 @@ const x25519Pub = edwardsToMontgomeryPub(ed25519PublicKey)
 The DID:key format stays Ed25519-based (compact, human-readable). To support Level 1/2 verification, the **PQ Key Registry** associates each DID with its ML-DSA public key via a `PQKeyAttestation` — a self-signed proof binding the two keys together.
 
 ```ts
-import { MemoryPQKeyRegistry, createPQKeyAttestation } from '@xnet/identity'
+import { MemoryPQKeyRegistry, createPQKeyAttestation } from '@xnetjs/identity'
 
 // Create an attestation binding your DID to your PQ public key
 const attestation = await createPQKeyAttestation({
@@ -137,7 +137,7 @@ The hub maintains a public PQ Key Registry for all registered users. When anothe
 Use `XNetProvider` to set the default signing level for your app, and `useSecurity()` to inspect or override it per-operation:
 
 ```tsx
-import { XNetProvider } from '@xnet/react'
+import { XNetProvider } from '@xnetjs/react'
 
 // Configure default security level
 ;<XNetProvider
@@ -157,7 +157,7 @@ import { XNetProvider } from '@xnet/react'
 ```
 
 ```ts
-import { useSecurity } from '@xnet/react'
+import { useSecurity } from '@xnetjs/react'
 
 function HighSecurityAction() {
   const { level, setLevel, canSignAtLevel } = useSecurity()
@@ -182,7 +182,7 @@ function HighSecurityAction() {
 Your identity can be derived deterministically from a BIP-39 seed phrase. Back up the seed phrase and you can always restore your identity — and regain access to all your encrypted data — on any device:
 
 ```ts
-import { deriveSeedPhrase, recoverFromSeedPhrase } from '@xnet/identity'
+import { deriveSeedPhrase, recoverFromSeedPhrase } from '@xnetjs/identity'
 
 // Generate a new identity with a recoverable seed
 const { mnemonic, bundle } = deriveSeedPhrase()
@@ -199,7 +199,7 @@ The seed phrase generates the Ed25519 signing key, and the X25519 encryption key
 As a fallback when the seed phrase is unavailable, xNet supports Shamir's Secret Sharing. Split the seed across trusted contacts (e.g., 3-of-5 threshold) so any quorum can reconstruct your identity:
 
 ```ts
-import { splitSeed, reconstructSeed } from '@xnet/identity'
+import { splitSeed, reconstructSeed } from '@xnetjs/identity'
 
 const shares = splitSeed(mnemonic, { threshold: 3, total: 5 })
 // Distribute shares to trusted contacts
@@ -212,7 +212,7 @@ const recovered = reconstructSeed(anyThreeShares) // any 3 of 5 work
 With opt-in hub backup, your key bundle is stored encrypted on a hub, unlocked by a passphrase or WebAuthn credential. The hub never sees the plaintext key:
 
 ```ts
-import { HubKeyBackup } from '@xnet/identity'
+import { HubKeyBackup } from '@xnetjs/identity'
 
 const backup = new HubKeyBackup(hubUrl)
 await backup.store(bundle, { passphrase: 'my-secret-passphrase' })
@@ -231,12 +231,12 @@ All devices share the same DID — collaborators don't need to know which device
 
 ## Cryptographic primitives
 
-The `@xnet/crypto` package provides all the low-level operations:
+The `@xnetjs/crypto` package provides all the low-level operations:
 
 ### Hashing (BLAKE3)
 
 ```ts
-import { hash, hashHex } from '@xnet/crypto'
+import { hash, hashHex } from '@xnetjs/crypto'
 
 const digest = hash(data) // Uint8Array
 const hex = hashHex(data) // hex string
@@ -247,7 +247,7 @@ const sha = hash(data, 'sha256') // SHA-256 fallback
 ### Signing (Ed25519)
 
 ```ts
-import { generateSigningKeyPair, sign, verify } from '@xnet/crypto'
+import { generateSigningKeyPair, sign, verify } from '@xnetjs/crypto'
 
 const { publicKey, privateKey } = generateSigningKeyPair()
 const signature = sign(message, privateKey)
@@ -257,7 +257,7 @@ const valid = verify(message, signature, publicKey) // boolean
 ### Encryption (XChaCha20-Poly1305)
 
 ```ts
-import { generateKey, encrypt, decrypt } from '@xnet/crypto'
+import { generateKey, encrypt, decrypt } from '@xnetjs/crypto'
 
 const key = generateKey() // 32 bytes
 const encrypted = encrypt(plaintext, key) // { nonce, ciphertext }
@@ -267,7 +267,7 @@ const decrypted = decrypt(encrypted, key) // Uint8Array
 ### Key exchange (X25519 + HKDF)
 
 ```ts
-import { generateKeyPair, deriveSharedSecret } from '@xnet/crypto'
+import { generateKeyPair, deriveSharedSecret } from '@xnetjs/crypto'
 
 const alice = generateKeyPair()
 const bob = generateKeyPair()
@@ -300,7 +300,7 @@ interface UCANCapability {
 ### Create a token
 
 ```ts
-import { createUCAN } from '@xnet/identity'
+import { createUCAN } from '@xnetjs/identity'
 
 const token = createUCAN({
   issuer: alice.did,
@@ -318,7 +318,7 @@ const token = createUCAN({
 ### Verify a token
 
 ```ts
-import { verifyUCAN, hasCapability } from '@xnet/identity'
+import { verifyUCAN, hasCapability } from '@xnetjs/identity'
 
 const result = verifyUCAN(token)
 if (result.valid) {
@@ -363,8 +363,8 @@ const bobToCarol = createUCAN({
 Identity is provided to the app through `XNetProvider`:
 
 ```tsx
-import { XNetProvider } from '@xnet/react'
-import { XNetDevToolsProvider } from '@xnet/devtools'
+import { XNetProvider } from '@xnetjs/react'
+import { XNetDevToolsProvider } from '@xnetjs/devtools'
 ;<XNetProvider
   config={{
     authorDID: identity.did,
@@ -382,7 +382,7 @@ import { XNetDevToolsProvider } from '@xnet/devtools'
 The `useIdentity` hook exposes identity state to components:
 
 ```ts
-import { useIdentity } from '@xnet/react'
+import { useIdentity } from '@xnetjs/react'
 
 function Profile() {
   const { identity, isAuthenticated, did } = useIdentity()

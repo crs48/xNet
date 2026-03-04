@@ -3,7 +3,7 @@
 > Per-update signing and verification for Yjs sync messages
 
 **Duration:** 2-3 days  
-**Dependencies:** `@xnet/crypto` (BLAKE3, Ed25519), `@xnet/identity` (DID resolution)
+**Dependencies:** `@xnetjs/crypto` (BLAKE3, Ed25519), `@xnetjs/identity` (DID resolution)
 
 ## Overview
 
@@ -38,7 +38,7 @@ sequenceDiagram
 ```typescript
 // packages/sync/src/yjs-envelope.ts
 
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 
 export interface SignedYjsEnvelope {
   /** Raw Yjs update bytes */
@@ -93,9 +93,9 @@ type SyncUpdateMessage = LegacySyncUpdate | SignedSyncUpdate
 ```typescript
 // packages/sync/src/yjs-envelope.ts
 
-import { blake3 } from '@xnet/crypto'
-import { ed25519Sign, ed25519Verify, resolveDidKey } from '@xnet/identity'
-import type { DID } from '@xnet/core'
+import { blake3 } from '@xnetjs/crypto'
+import { ed25519Sign, ed25519Verify, resolveDidKey } from '@xnetjs/identity'
+import type { DID } from '@xnetjs/core'
 
 export async function signYjsUpdate(
   update: Uint8Array,

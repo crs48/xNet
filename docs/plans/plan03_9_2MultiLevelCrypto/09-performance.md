@@ -561,7 +561,7 @@ export class LazyHybridKeyPair {
 ```typescript
 // packages/sync/src/security-policy.ts
 
-import type { SecurityLevel } from '@xnet/crypto'
+import type { SecurityLevel } from '@xnetjs/crypto'
 
 /**
  * Security policy for different operation types.

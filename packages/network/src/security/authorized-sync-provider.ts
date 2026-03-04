@@ -2,7 +2,7 @@
  * Selective sync filtering based on envelope recipients.
  */
 
-import { PUBLIC_RECIPIENT } from '@xnet/crypto'
+import { PUBLIC_RECIPIENT } from '@xnetjs/crypto'
 
 export interface RecipientEnvelope {
   recipients: string[]

@@ -13,15 +13,15 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@xnet/views': resolve(rootDir, 'packages/views/src'),
-      '@xnet/data': resolve(rootDir, 'packages/data/src'),
-      '@xnet/ui': resolve(rootDir, 'packages/ui/src'),
-      '@xnet/react': resolve(rootDir, 'packages/react/src'),
-      '@xnet/core': resolve(rootDir, 'packages/core/src'),
-      '@xnet/sync': resolve(rootDir, 'packages/sync/src'),
-      '@xnet/identity': resolve(rootDir, 'packages/identity/src'),
-      '@xnet/storage': resolve(rootDir, 'packages/storage/src'),
-      '@xnet/crypto': resolve(rootDir, 'packages/crypto/src')
+      '@xnetjs/views': resolve(rootDir, 'packages/views/src'),
+      '@xnetjs/data': resolve(rootDir, 'packages/data/src'),
+      '@xnetjs/ui': resolve(rootDir, 'packages/ui/src'),
+      '@xnetjs/react': resolve(rootDir, 'packages/react/src'),
+      '@xnetjs/core': resolve(rootDir, 'packages/core/src'),
+      '@xnetjs/sync': resolve(rootDir, 'packages/sync/src'),
+      '@xnetjs/identity': resolve(rootDir, 'packages/identity/src'),
+      '@xnetjs/storage': resolve(rootDir, 'packages/storage/src'),
+      '@xnetjs/crypto': resolve(rootDir, 'packages/crypto/src')
     }
   },
   optimizeDeps: {

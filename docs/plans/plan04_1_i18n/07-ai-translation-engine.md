@@ -3,15 +3,15 @@
 > Local offline translation using platform-appropriate models with content-addressed caching
 
 **Duration:** 4-5 days  
-**Dependencies:** `@xnet/core`
+**Dependencies:** `@xnetjs/core`
 
 ## Overview
 
-The `@xnet/translation` package provides a platform-agnostic interface for translating user content using local AI models. No cloud APIs — everything runs on-device.
+The `@xnetjs/translation` package provides a platform-agnostic interface for translating user content using local AI models. No cloud APIs — everything runs on-device.
 
 ```mermaid
 flowchart TB
-    subgraph "@xnet/translation"
+    subgraph "@xnetjs/translation"
         API[TranslationEngine<br/>interface]
         DETECT[Language Detector]
         CACHE[(Translation Cache<br/>IndexedDB)]
@@ -115,7 +115,7 @@ Content-addressed caching using BLAKE3 hashes. Same text + same language pair = 
 
 ```typescript
 // cache.ts
-import { blake3 } from '@xnet/crypto'
+import { blake3 } from '@xnetjs/crypto'
 
 export interface CachedTranslation {
   translated: string
@@ -438,8 +438,8 @@ export class TranslationOrchestrator {
 ```json
 {
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*"
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*"
   },
   "optionalDependencies": {
     "@huggingface/transformers": "^3.0.0"

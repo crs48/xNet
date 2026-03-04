@@ -1,6 +1,6 @@
 # Off-Main-Thread Architecture: Moving Storage, Sync, Crypto, and Queries Off the UI Thread
 
-> **Status**: ✅ IMPLEMENTED - The `@xnet/data-bridge` package provides off-main-thread architecture
+> **Status**: ✅ IMPLEMENTED - The `@xnetjs/data-bridge` package provides off-main-thread architecture
 
 ## Implementation Status
 

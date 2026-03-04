@@ -3,7 +3,7 @@
  */
 
 import type { TableRow } from '../table/useTableState.js'
-import type { Schema, PropertyDefinition } from '@xnet/data'
+import type { Schema, PropertyDefinition } from '@xnetjs/data'
 import React, { useCallback } from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 

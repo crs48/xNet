@@ -200,7 +200,7 @@ flowchart TB
 
     subgraph "Component Layer"
         BASEUI["@base-ui-components/react<br/>Headless Primitives"]
-        PRIMITIVES["@xnet/ui primitives<br/>Styled Components"]
+        PRIMITIVES["@xnetjs/ui primitives<br/>Styled Components"]
         COMPOSED["Composed Components<br/>ColorPicker, DatePicker, etc."]
     end
 

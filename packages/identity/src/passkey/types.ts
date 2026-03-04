@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - WebAuthn passkey authentication types
+ * @xnetjs/identity/passkey - WebAuthn passkey authentication types
  */
 import type { KeyBundle, HybridKeyBundle, DID } from '../types'
 

@@ -264,7 +264,7 @@ export const DragHandle = Extension.create<DragHandleOptions>({
 
 import * as React from 'react'
 import { GripVertical } from 'lucide-react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 
 export interface DragHandleProps {
   visible: boolean

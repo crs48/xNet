@@ -2,7 +2,7 @@
 
 > Core data model: all schema definitions for regenerative farming, food forests, and permaculture.
 
-**Dependencies:** `@xnet/data` (defineSchema, property types), `@xnet/plugins` (schema registration)
+**Dependencies:** `@xnetjs/data` (defineSchema, property types), `@xnetjs/plugins` (schema registration)
 
 ## Overview
 
@@ -32,7 +32,7 @@ erDiagram
 ```typescript
 // packages/farming/src/index.ts
 
-import { definePlugin } from '@xnet/plugins'
+import { definePlugin } from '@xnetjs/plugins'
 import * as schemas from './schemas'
 
 export const FarmingPlugin = definePlugin({
@@ -49,7 +49,7 @@ export const FarmingPlugin = definePlugin({
 ```typescript
 // packages/farming/src/schemas/site.ts
 
-import { defineSchema, text, number, select, date, file, geo } from '@xnet/data'
+import { defineSchema, text, number, select, date, file, geo } from '@xnetjs/data'
 
 export const SiteSchema = defineSchema({
   name: 'Site',

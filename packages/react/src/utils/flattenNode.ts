@@ -5,7 +5,7 @@
  * can access `node.title` instead of `node.properties.title`.
  */
 
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import type {
   SchemaIRI,
   PropertyBuilder,
@@ -13,7 +13,7 @@ import type {
   NodeState,
   MigratedNodeState,
   MigrationInfo
-} from '@xnet/data'
+} from '@xnetjs/data'
 
 // =============================================================================
 // Types

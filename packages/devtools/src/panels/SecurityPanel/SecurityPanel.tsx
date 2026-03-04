@@ -4,7 +4,7 @@
  * Displays current security level, key availability, and signature info.
  */
 
-import { useSecurityContextOptional, useSecurity } from '@xnet/react'
+import { useSecurityContextOptional, useSecurity } from '@xnetjs/react'
 
 // Signature size info by level
 const SIGNATURE_SIZES = {

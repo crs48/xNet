@@ -3,7 +3,7 @@
 > Create the hub package, CLI, and port the signaling server
 
 **Dependencies:** `infrastructure/signaling/` (existing code to port)
-**New Package:** `packages/hub` (`@xnet/hub`)
+**New Package:** `packages/hub` (`@xnetjs/hub`)
 
 ## Codebase Status (Feb 2026)
 
@@ -41,7 +41,7 @@ flowchart LR
 ```json
 // packages/hub/package.json
 {
-  "name": "@xnet/hub",
+  "name": "@xnetjs/hub",
   "version": "0.0.1",
   "description": "xNet Hub - signaling, sync relay, backup, and query server",
   "type": "module",
@@ -64,9 +64,9 @@ flowchart LR
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*",
-    "@xnet/identity": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
     "better-sqlite3": "^11.0.0",
     "commander": "^12.0.0",
     "hono": "^4.0.0",

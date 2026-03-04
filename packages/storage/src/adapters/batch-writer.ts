@@ -1,5 +1,5 @@
 import type { StorageAdapter } from '../types'
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 
 type Operation = { type: 'setBlob'; cid: ContentId; data: Uint8Array }
 

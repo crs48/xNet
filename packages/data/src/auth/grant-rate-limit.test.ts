@@ -1,4 +1,4 @@
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import { describe, expect, it } from 'vitest'
 import { GrantRateLimiter } from './grant-rate-limit'
 

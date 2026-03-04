@@ -11,7 +11,7 @@ Developers should define schemas in code, right next to the property handlers:
 ```typescript
 // packages/data/src/schemas/task.ts
 
-import { defineSchema, text, select, date, person } from '@xnet/data/schema'
+import { defineSchema, text, select, date, person } from '@xnetjs/data/schema'
 
 export const TaskSchema = defineSchema({
   name: 'Task',
@@ -287,7 +287,7 @@ type InferNode<S extends DefinedSchema<any>> = {
 ```typescript
 // packages/data/src/schemas/task.ts
 
-import { defineSchema, text, select, date, person, checkbox } from '@xnet/data/schema'
+import { defineSchema, text, select, date, person, checkbox } from '@xnetjs/data/schema'
 
 // Define the schema with full validation
 export const TaskSchema = defineSchema({
@@ -390,7 +390,7 @@ export function TaskView({ task }: { task: Task }) {
 
 // packages/data/src/schemas/task/hooks.ts
 import { TaskSchema, type Task } from './schema'
-import { useNodes, useCreateNode } from '@xnet/data/hooks'
+import { useNodes, useCreateNode } from '@xnetjs/data/hooks'
 
 export function useTasks() {
   return useNodes<Task>({ schemaId: TaskSchema.schema['@id'] })
@@ -592,7 +592,7 @@ Third-party developers define schemas the same way:
 ```typescript
 // my-crm-plugin/src/schemas/contact.ts
 
-import { defineSchema, text, email, phone, relation } from '@xnet/data/schema'
+import { defineSchema, text, email, phone, relation } from '@xnetjs/data/schema'
 import { CompanySchema } from './company'
 
 export const ContactSchema = defineSchema({

@@ -1,5 +1,5 @@
 /**
- * @xnet/views - Database view components for xNet
+ * @xnetjs/views - Database view components for xNet
  *
  * This package provides view components for rendering database content:
  * - TableView: Spreadsheet-like table with virtual scrolling

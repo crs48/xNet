@@ -1,4 +1,4 @@
-# @xnet/editor
+# @xnetjs/editor
 
 Collaborative rich text editor for xNet, built on [TipTap](https://tiptap.dev/) and [Yjs](https://yjs.dev/).
 
@@ -23,15 +23,15 @@ Collaborative rich text editor for xNet, built on [TipTap](https://tiptap.dev/) 
 ## Installation
 
 ```bash
-pnpm add @xnet/editor @xnet/react @xnet/data
+pnpm add @xnetjs/editor @xnetjs/react @xnetjs/data
 ```
 
 ## Quick Start with React
 
 ```tsx
-import { useNode } from '@xnet/react'
-import { RichTextEditor } from '@xnet/editor/react'
-import { defineSchema, text } from '@xnet/data'
+import { useNode } from '@xnetjs/react'
+import { RichTextEditor } from '@xnetjs/editor/react'
+import { defineSchema, text } from '@xnetjs/data'
 
 const PageSchema = defineSchema({
   name: 'Page',
@@ -113,8 +113,7 @@ flowchart TD
 ### `RichTextEditor`
 
 ```tsx
-import { RichTextEditor } from '@xnet/editor/react'
-
+import { RichTextEditor } from '@xnetjs/editor/react'
 ;<RichTextEditor
   ydoc={doc}
   field="content"
@@ -141,7 +140,7 @@ import { RichTextEditor } from '@xnet/editor/react'
 Standalone toolbar component.
 
 ```tsx
-import { EditorToolbar, useEditor } from '@xnet/editor/react'
+import { EditorToolbar, useEditor } from '@xnetjs/editor/react'
 ```
 
 ## Keyboard Shortcuts
@@ -164,7 +163,7 @@ import { EditorToolbar, useEditor } from '@xnet/editor/react'
 ## Vanilla JavaScript
 
 ```ts
-import { createEditor } from '@xnet/editor'
+import { createEditor } from '@xnetjs/editor'
 import * as Y from 'yjs'
 
 const ydoc = new Y.Doc()
@@ -185,28 +184,28 @@ editor.destroy()
 
 ```ts
 // React components (recommended)
-import { RichTextEditor, EditorToolbar, FloatingToolbar } from '@xnet/editor/react'
+import { RichTextEditor, EditorToolbar, FloatingToolbar } from '@xnetjs/editor/react'
 
 // Re-exported from @tiptap/react
-import { useEditor, EditorContent, Editor } from '@xnet/editor/react'
+import { useEditor, EditorContent, Editor } from '@xnetjs/editor/react'
 
 // Extensions collection
-import { ... } from '@xnet/editor/extensions'
+import { ... } from '@xnetjs/editor/extensions'
 
 // Vanilla JS core
-import { createEditor, Editor } from '@xnet/editor'
+import { createEditor, Editor } from '@xnetjs/editor'
 ```
 
 ## Related Packages
 
-- `@xnet/react` -- React hooks (`useNode`, `useQuery`, `useMutate`)
-- `@xnet/data` -- Schema system and NodeStore
-- `@xnet/ui` -- Shared UI primitives
+- `@xnetjs/react` -- React hooks (`useNode`, `useQuery`, `useMutate`)
+- `@xnetjs/data` -- Schema system and NodeStore
+- `@xnetjs/ui` -- Shared UI primitives
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/editor test
+pnpm --filter @xnetjs/editor test
 ```
 
 23 test files covering extensions, components, accessibility, and performance.

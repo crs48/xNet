@@ -14,8 +14,8 @@ if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug
   console.log('[SyncManager] Module loaded from source!')
 }
 
-import type { ContentId } from '@xnet/core'
-import type { NodeStore, NodeStorageAdapter } from '@xnet/data'
+import type { ContentId } from '@xnetjs/core'
+import type { NodeStore, NodeStorageAdapter } from '@xnetjs/data'
 import {
   Awareness,
   applyAwarenessUpdate,

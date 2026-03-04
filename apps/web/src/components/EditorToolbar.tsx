@@ -1,5 +1,5 @@
 /**
- * Re-export EditorToolbar from the shared @xnet/editor package
- * @deprecated Import from '@xnet/editor/react' instead
+ * Re-export EditorToolbar from the shared @xnetjs/editor package
+ * @deprecated Import from '@xnetjs/editor/react' instead
  */
-export { EditorToolbar } from '@xnet/editor/react'
+export { EditorToolbar } from '@xnetjs/editor/react'

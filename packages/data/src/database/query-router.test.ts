@@ -1,5 +1,5 @@
 /**
- * @xnet/data - Query router tests.
+ * @xnetjs/data - Query router tests.
  */
 
 import type { FilterGroup } from './view-types'

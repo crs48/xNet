@@ -27,7 +27,7 @@ xNet provides 15 property types organized into five categories.
 A string property with optional length and pattern constraints.
 
 ```ts
-import { text } from '@xnet/data'
+import { text } from '@xnetjs/data'
 
 title: text({ required: true, maxLength: 500 })
 draft: false
@@ -53,7 +53,7 @@ slug: text({ pattern: /^[a-z0-9-]+$/ })
 A numeric property with optional range and integer constraints.
 
 ```ts
-import { number } from '@xnet/data'
+import { number } from '@xnetjs/data'
 
 priority: number({ min: 1, max: 5 })
 score: number({ min: 0, integer: true })
@@ -76,7 +76,7 @@ score: number({ min: 0, integer: true })
 A boolean property with an optional default.
 
 ```ts
-import { checkbox } from '@xnet/data'
+import { checkbox } from '@xnetjs/data'
 
 completed: checkbox({ default: false })
 isPublic: checkbox({ default: true })
@@ -99,7 +99,7 @@ isPublic: checkbox({ default: true })
 A timestamp stored as Unix milliseconds.
 
 ```ts
-import { date } from '@xnet/data'
+import { date } from '@xnetjs/data'
 
 dueDate: date()
 scheduledAt: date({ includeTime: true })
@@ -121,7 +121,7 @@ scheduledAt: date({ includeTime: true })
 A range with a start and optional end date.
 
 ```ts
-import { dateRange } from '@xnet/data'
+import { dateRange } from '@xnetjs/data'
 
 timeline: dateRange()
 sprint: dateRange({ includeTime: true })
@@ -144,7 +144,7 @@ sprint: dateRange({ includeTime: true })
 A single choice from a predefined list.
 
 ```ts
-import { select } from '@xnet/data'
+import { select } from '@xnetjs/data'
 
 status: select({
   options: [
@@ -185,7 +185,7 @@ select({ options: [{ id: 'todo', name: 'To Do' }] as const })
 Multiple choices from a predefined list.
 
 ```ts
-import { multiSelect } from '@xnet/data'
+import { multiSelect } from '@xnetjs/data'
 
 tags: multiSelect({
   options: [
@@ -214,7 +214,7 @@ tags: multiSelect({
 A reference to another node by ID.
 
 ```ts
-import { relation } from '@xnet/data'
+import { relation } from '@xnetjs/data'
 
 project: relation({ target: 'xnet://my-app/Project' })
 children: relation({ multiple: true })
@@ -238,7 +238,7 @@ See [Relations](/docs/schemas/relations/) for patterns and temp ID resolution in
 A reference to a user by DID.
 
 ```ts
-import { person } from '@xnet/data'
+import { person } from '@xnetjs/data'
 
 assignee: person()
 collaborators: person({ multiple: true })
@@ -262,7 +262,7 @@ collaborators: person({ multiple: true })
 A validated URL string.
 
 ```ts
-import { url } from '@xnet/data'
+import { url } from '@xnetjs/data'
 
 website: url()
 repository: url({ placeholder: 'https://github.com/...' })
@@ -284,7 +284,7 @@ repository: url({ placeholder: 'https://github.com/...' })
 A validated email string.
 
 ```ts
-import { email } from '@xnet/data'
+import { email } from '@xnetjs/data'
 
 contactEmail: email()
 ```
@@ -305,7 +305,7 @@ contactEmail: email()
 A validated phone number string.
 
 ```ts
-import { phone } from '@xnet/data'
+import { phone } from '@xnetjs/data'
 
 contactPhone: phone()
 ```
@@ -326,7 +326,7 @@ contactPhone: phone()
 A content-addressed file reference.
 
 ```ts
-import { file } from '@xnet/data'
+import { file } from '@xnetjs/data'
 
 avatar: file({ accept: ['image/*'], maxSize: 5 * 1024 * 1024 })
 attachments: file({ multiple: true })
@@ -365,7 +365,7 @@ These are read-only fields populated automatically by the system.
 Timestamp of when the node was created.
 
 ```ts
-import { created } from '@xnet/data'
+import { created } from '@xnetjs/data'
 
 createdAt: created()
 ```
@@ -380,7 +380,7 @@ createdAt: created()
 Timestamp of the last modification.
 
 ```ts
-import { updated } from '@xnet/data'
+import { updated } from '@xnetjs/data'
 
 updatedAt: updated()
 ```
@@ -395,7 +395,7 @@ updatedAt: updated()
 DID of the user who created the node.
 
 ```ts
-import { createdBy } from '@xnet/data'
+import { createdBy } from '@xnetjs/data'
 
 author: createdBy()
 ```

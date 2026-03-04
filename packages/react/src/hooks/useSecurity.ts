@@ -5,15 +5,15 @@
  * security level from the SecurityContext.
  */
 
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import {
   hybridSign,
   hybridVerify,
   type SecurityLevel,
   type UnifiedSignature,
   type VerificationResult
-} from '@xnet/crypto'
-import { parseDID } from '@xnet/identity'
+} from '@xnetjs/crypto'
+import { parseDID } from '@xnetjs/identity'
 import { useCallback, useMemo } from 'react'
 import { useSecurityContext } from '../context/security-context'
 

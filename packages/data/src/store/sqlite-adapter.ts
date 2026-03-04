@@ -16,9 +16,9 @@ import type {
   PropertyTimestamp
 } from './types'
 import type { SchemaIRI } from '../schema/node'
-import type { ContentId, DID } from '@xnet/core'
-import type { SQLiteAdapter, SQLValue, PreparedStatement } from '@xnet/sqlite'
-import { updateNodeFTS, deleteNodeFTS, extractSearchableContent } from '@xnet/sqlite'
+import type { ContentId, DID } from '@xnetjs/core'
+import type { SQLiteAdapter, SQLValue, PreparedStatement } from '@xnetjs/sqlite'
+import { updateNodeFTS, deleteNodeFTS, extractSearchableContent } from '@xnetjs/sqlite'
 
 // ─── Row Types ──────────────────────────────────────────────────────────────
 
@@ -69,7 +69,7 @@ interface ChangeRow {
  *
  * @example
  * ```typescript
- * import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
+ * import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
  *
  * const sqliteAdapter = await createMemorySQLiteAdapter()
  * const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
@@ -690,8 +690,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
  *
  * @example
  * ```typescript
- * import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
- * import { createNodeStorageAdapter } from '@xnet/data'
+ * import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
+ * import { createNodeStorageAdapter } from '@xnetjs/data'
  *
  * const db = await createMemorySQLiteAdapter()
  * const storage = createNodeStorageAdapter(db)

@@ -352,8 +352,8 @@ flowchart TD
 ### Validation evidence (2026-02-20)
 
 - `pnpm --filter xnet-desktop test`
-- `pnpm --filter @xnet/sync exec vitest run src/yjs-peer-scoring.test.ts`
-- `pnpm --filter @xnet/hub exec vitest run test/query-auth.test.ts test/capabilities.test.ts`
+- `pnpm --filter @xnetjs/sync exec vitest run src/yjs-peer-scoring.test.ts`
+- `pnpm --filter @xnetjs/hub exec vitest run test/query-auth.test.ts test/capabilities.test.ts`
 
 ---
 

@@ -5,8 +5,8 @@
  * handling chunking, URL generation, and cleanup.
  */
 import type { FileRef } from '../schema/properties/file'
-import type { ContentId } from '@xnet/core'
-import type { ChunkManager } from '@xnet/storage'
+import type { ContentId } from '@xnetjs/core'
+import type { ChunkManager } from '@xnetjs/storage'
 
 export interface BlobServiceOptions {
   /** Maximum file size in bytes (default: 100MB) */

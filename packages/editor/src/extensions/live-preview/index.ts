@@ -15,7 +15,7 @@ export interface LivePreviewOptions extends InlineMarksPluginOptions {
  *
  * @example
  * ```ts
- * import { LivePreview } from '@xnet/editor/extensions'
+ * import { LivePreview } from '@xnetjs/editor/extensions'
  *
  * const editor = useEditor({
  *   extensions: [

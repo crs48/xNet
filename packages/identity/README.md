@@ -1,11 +1,11 @@
-# @xnet/identity
+# @xnetjs/identity
 
 DID:key identity, UCAN authorization, and key management for xNet.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/identity
+pnpm add @xnetjs/identity
 ```
 
 ## Features
@@ -19,7 +19,7 @@ pnpm add @xnet/identity
 ## Usage
 
 ```typescript
-import { generateIdentity, createDID, parseDID } from '@xnet/identity'
+import { generateIdentity, createDID, parseDID } from '@xnetjs/identity'
 
 // Generate a new identity
 const { identity, privateKey } = generateIdentity()
@@ -30,7 +30,7 @@ const parsed = parseDID(identity.did)
 ```
 
 ```typescript
-import { generateKeyBundle, serializeKeyBundle, deserializeKeyBundle } from '@xnet/identity'
+import { generateKeyBundle, serializeKeyBundle, deserializeKeyBundle } from '@xnetjs/identity'
 
 // Full key bundle (signing + encryption keys)
 const bundle = generateKeyBundle()
@@ -41,7 +41,7 @@ const restored = deserializeKeyBundle(serialized)
 ```
 
 ```typescript
-import { createUCAN, verifyUCAN, hasCapability } from '@xnet/identity'
+import { createUCAN, verifyUCAN, hasCapability } from '@xnetjs/identity'
 
 // Create a UCAN token
 const ucan = createUCAN({
@@ -57,7 +57,7 @@ const canWrite = hasCapability(ucan, { with: 'doc/123', can: 'write' })
 ```
 
 ```typescript
-import { BrowserPasskeyStorage, MemoryPasskeyStorage } from '@xnet/identity'
+import { BrowserPasskeyStorage, MemoryPasskeyStorage } from '@xnetjs/identity'
 
 // Browser passkey storage (WebAuthn)
 const storage = new BrowserPasskeyStorage()
@@ -78,12 +78,12 @@ const memory = new MemoryPasskeyStorage()
 
 ## Dependencies
 
-- `@xnet/core` -- Core types
-- `@xnet/crypto` -- Signing and hashing
+- `@xnetjs/core` -- Core types
+- `@xnetjs/crypto` -- Signing and hashing
 - `multiformats` -- Multicodec encoding
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/identity test
+pnpm --filter @xnetjs/identity test
 ```

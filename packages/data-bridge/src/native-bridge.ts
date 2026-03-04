@@ -31,7 +31,7 @@ import type {
   NodeChangeEvent,
   ListNodesOptions,
   SchemaIRI
-} from '@xnet/data'
+} from '@xnetjs/data'
 import { QueryCache } from './query-cache'
 
 // ─── Native Storage Interface ─────────────────────────────────────────────────

@@ -24,7 +24,7 @@ pnpm dist          # Create distributable
 - Infinite canvas
 - Plugin system with sandboxed scripts
 - DevTools (9-panel debug suite)
-- Hub sync (WebSocket to @xnet/hub)
+- Hub sync (WebSocket to @xnetjs/hub)
 - History, undo/redo, audit trails
 - Comments on documents and databases
 - File uploads and blob sync
@@ -38,7 +38,7 @@ pnpm dist          # Create distributable
 - **React 18** -- UI framework
 - **TanStack Router** -- Type-safe routing
 - **Tailwind CSS** -- Styling
-- All `@xnet/*` packages (canvas, core, data, devtools, editor, history, identity, plugins, react, sdk, storage, sync, telemetry, ui, views)
+- All `@xnetjs/*` packages (canvas, core, data, devtools, editor, history, identity, plugins, react, sdk, storage, sync, telemetry, ui, views)
 
 ## Debugging
 

@@ -11,7 +11,7 @@ import type { SecurityLevel } from '../security-level'
 
 /**
  * Optional telemetry collector interface for crypto operations.
- * Compatible with @xnet/telemetry TelemetryCollector.
+ * Compatible with @xnetjs/telemetry TelemetryCollector.
  */
 export interface CryptoTelemetry {
   reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void

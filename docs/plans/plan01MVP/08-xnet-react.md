@@ -1,9 +1,9 @@
-# 08: @xnet/react
+# 08: @xnetjs/react
 
 > React hooks for xNet integration
 
 **Duration:** 2 weeks
-**Dependencies:** @xnet/data, @xnet/storage, @xnet/network, @xnet/query
+**Dependencies:** @xnetjs/data, @xnetjs/storage, @xnetjs/network, @xnetjs/query
 
 ## Overview
 
@@ -15,7 +15,7 @@ This package provides React hooks for seamless integration with xNet. It handles
 cd packages/react
 pnpm add react zustand
 pnpm add -D vitest typescript tsup @testing-library/react @types/react jsdom
-pnpm add @xnet/data@workspace:* @xnet/storage@workspace:* @xnet/network@workspace:* @xnet/query@workspace:*
+pnpm add @xnetjs/data@workspace:* @xnetjs/storage@workspace:* @xnetjs/network@workspace:* @xnetjs/query@workspace:*
 ```
 
 ## Directory Structure
@@ -47,10 +47,10 @@ packages/react/
 
 ```typescript
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import type { StorageAdapter } from '@xnet/storage'
-import type { NetworkNode } from '@xnet/network'
-import type { Identity } from '@xnet/identity'
-import type { SearchIndex } from '@xnet/query'
+import type { StorageAdapter } from '@xnetjs/storage'
+import type { NetworkNode } from '@xnetjs/network'
+import type { Identity } from '@xnetjs/identity'
+import type { SearchIndex } from '@xnetjs/query'
 import { createXNetStore, type XNetStore } from './store/xnet'
 
 export interface XNetConfig {
@@ -116,7 +116,7 @@ export function useXNet(): XNetContextValue {
 
 ```typescript
 import { create } from 'zustand'
-import type { XDocument } from '@xnet/data'
+import type { XDocument } from '@xnetjs/data'
 import type { XNetConfig } from '../context'
 
 export interface DocumentState {
@@ -173,7 +173,7 @@ export function createXNetStore(config: XNetConfig) {
         }
 
         // Create XDocument from stored data
-        // This would use @xnet/data to reconstruct
+        // This would use @xnetjs/data to reconstruct
         const doc = {
           id,
           ydoc: null as any,
@@ -294,7 +294,7 @@ export function useDocument<T = unknown>(
 ```typescript
 import { useEffect, useState, useCallback } from 'react'
 import { useXNet } from '../context'
-import { createLocalQueryEngine, type Query, type QueryResult } from '@xnet/query'
+import { createLocalQueryEngine, type Query, type QueryResult } from '@xnetjs/query'
 
 export interface UseQueryOptions {
   enabled?: boolean
@@ -435,7 +435,7 @@ export function useSync(): UseSyncResult {
 ```typescript
 import { useEffect, useState, useCallback } from 'react'
 import { useXNet } from '../context'
-import type { UserPresence } from '@xnet/data'
+import type { UserPresence } from '@xnetjs/data'
 
 export interface UsePresenceResult {
   localPresence: UserPresence | null
@@ -486,7 +486,7 @@ function generateColor(did: string): string {
 
 ```typescript
 import { useXNet } from '../context'
-import type { Identity } from '@xnet/identity'
+import type { Identity } from '@xnetjs/identity'
 
 export interface UseIdentityResult {
   identity: Identity | null
@@ -525,8 +525,8 @@ export { createXNetStore, type XNetStore, type XNetState, type XNetActions } fro
 ## Usage Example
 
 ```tsx
-import { XNetProvider, useDocument, useQuery, useSync } from '@xnet/react'
-import { IndexedDBAdapter } from '@xnet/storage'
+import { XNetProvider, useDocument, useQuery, useSync } from '@xnetjs/react'
+import { IndexedDBAdapter } from '@xnetjs/storage'
 
 // Setup
 const storage = new IndexedDBAdapter()

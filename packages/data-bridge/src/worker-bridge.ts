@@ -26,7 +26,7 @@ import type {
   PropertyBuilder,
   InferCreateProps,
   SchemaIRI
-} from '@xnet/data'
+} from '@xnetjs/data'
 import { wrap, proxy, type Remote } from 'comlink'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'

@@ -1,11 +1,11 @@
 /**
- * @xnet/editor/react - React components for the xNet editor
+ * @xnetjs/editor/react - React components for the xNet editor
  *
  * Provides ready-to-use React components for rich text editing with Yjs collaboration.
  *
  * @example
  * ```tsx
- * import { RichTextEditor, EditorToolbar } from '@xnet/editor/react'
+ * import { RichTextEditor, EditorToolbar } from '@xnetjs/editor/react'
  *
  * function DocumentEditor({ document, onNavigate }) {
  *   return (

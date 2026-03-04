@@ -283,21 +283,21 @@ flowchart LR
 
 ## Affected Packages
 
-| Package         | Changes                                       |
-| --------------- | --------------------------------------------- |
-| `@xnet/canvas`  | All rendering layers, chunk manager, presence |
-| `@xnet/sync`    | Awareness for cursor broadcasting             |
-| `@xnet/react`   | Canvas hooks, presence hooks                  |
-| `apps/electron` | Canvas integration, devtools                  |
+| Package          | Changes                                       |
+| ---------------- | --------------------------------------------- |
+| `@xnetjs/canvas` | All rendering layers, chunk manager, presence |
+| `@xnetjs/sync`   | Awareness for cursor broadcasting             |
+| `@xnetjs/react`  | Canvas hooks, presence hooks                  |
+| `apps/electron`  | Canvas integration, devtools                  |
 
 ## Dependencies
 
-| Dependency         | Package      | Purpose           |
-| ------------------ | ------------ | ----------------- |
-| `rbush`            | @xnet/canvas | Spatial indexing  |
-| `elkjs`            | @xnet/canvas | Auto-layout       |
-| `mermaid`          | @xnet/canvas | Diagram rendering |
-| `perfect-freehand` | @xnet/canvas | Stroke smoothing  |
+| Dependency         | Package        | Purpose           |
+| ------------------ | -------------- | ----------------- |
+| `rbush`            | @xnetjs/canvas | Spatial indexing  |
+| `elkjs`            | @xnetjs/canvas | Auto-layout       |
+| `mermaid`          | @xnetjs/canvas | Diagram rendering |
+| `perfect-freehand` | @xnetjs/canvas | Stroke smoothing  |
 
 ## Success Criteria
 

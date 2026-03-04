@@ -11,7 +11,7 @@ The xNet data model is being consolidated around a **schema-first, Node-based ar
 3. **Code-first schemas** - `defineSchema()` with TypeScript inference
 4. **Global namespace** - IRIs like `xnet://xnet.dev/Page`, `xnet://did:key:.../Recipe`
 5. **JSON-LD native** - Schemas ARE JSON-LD type definitions
-6. **Unified package** - `@xnet/data` absorbs `@xnet/records`
+6. **Unified package** - `@xnetjs/data` absorbs `@xnetjs/records`
 
 ## Key Architectural Decisions
 
@@ -64,7 +64,7 @@ interface Change<T> {
 ### Phase 1: Foundation - COMPLETE
 
 ```bash
-# @xnet/sync package
+# @xnetjs/sync package
 packages/sync/
 ├── src/
 │   ├── index.ts
@@ -79,7 +79,7 @@ packages/sync/
 ### Phase 2: Schema System - COMPLETE
 
 ```bash
-# Schema infrastructure in @xnet/data
+# Schema infrastructure in @xnetjs/data
 packages/data/src/schema/
 ├── node.ts            # Node type, createNodeId() (nanoid)
 ├── types.ts           # Schema, PropertyBuilder types
@@ -102,7 +102,7 @@ packages/data/src/store/
 └── index.ts           # Exports
 ```
 
-**@xnet/records package REMOVED** (not published, no backward compat needed)
+**@xnetjs/records package REMOVED** (not published, no backward compat needed)
 
 ### Phase 4: React Integration - COMPLETE
 
@@ -117,7 +117,7 @@ packages/react/src/hooks/
 
 ## What's Exported
 
-### From @xnet/data
+### From @xnetjs/data
 
 ```typescript
 import {
@@ -157,10 +157,10 @@ import {
   type NodeState,
   type NodeChange,
   type NodeStorageAdapter
-} from '@xnet/data'
+} from '@xnetjs/data'
 ```
 
-### From @xnet/react
+### From @xnetjs/react
 
 ```typescript
 import {
@@ -174,7 +174,7 @@ import {
 
   // Sync
   useNodeSync // P2P sync for NodeStore
-} from '@xnet/react'
+} from '@xnetjs/react'
 ```
 
 ## Usage Examples
@@ -182,7 +182,7 @@ import {
 ### Define a Schema
 
 ```typescript
-import { defineSchema, text, select, number } from '@xnet/data'
+import { defineSchema, text, select, number } from '@xnetjs/data'
 
 const RecipeSchema = defineSchema({
   name: 'Recipe',
@@ -204,7 +204,7 @@ const RecipeSchema = defineSchema({
 ### Use NodeStore
 
 ```typescript
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
 
 const store = new NodeStore({
   storage: new MemoryNodeStorageAdapter(),
@@ -229,7 +229,7 @@ const tasks = await store.list({ schemaId: 'xnet://xnet.dev/Task' })
 ### React Hooks
 
 ```tsx
-import { NodeStoreProvider, useNode, useNodes, useNodeSync } from '@xnet/react'
+import { NodeStoreProvider, useNode, useNodes, useNodeSync } from '@xnetjs/react'
 
 // Wrap app with provider
 ;<NodeStoreProvider authorDID={did} signingKey={key}>
@@ -287,17 +287,17 @@ This allows users to choose between:
 
 ```bash
 pnpm vitest run packages/sync packages/data  # Run 140 tests
-pnpm --filter @xnet/react build              # Build React package
+pnpm --filter @xnetjs/react build              # Build React package
 ```
 
 ## Commits
 
 ```
 0bbe4fb Add useNode and useNodes hooks for React
-027d896 Add NodeStore and remove @xnet/records package
+027d896 Add NodeStore and remove @xnetjs/records package
 75bc0c7 Update HANDOFF.md with completed Phase 1-2 status
 d03083c Complete schema system with built-in schemas and registry
-5b670b6 Refactor @xnet/sync to use Lamport timestamps instead of vector clocks
+5b670b6 Refactor @xnetjs/sync to use Lamport timestamps instead of vector clocks
 b54d49e Add schema system with defineSchema() and property helpers
 ```
 
@@ -307,10 +307,10 @@ b54d49e Add schema system with defineSchema() and property helpers
 The schema-first architecture for xNet is COMPLETE. Read docs/plans/plan02_1DataModelConsolidation/HANDOFF.md.
 
 Completed:
-- @xnet/sync: Lamport timestamps, Change<T>, hash chains (78 tests)
-- @xnet/data: Schema system + NodeStore with LWW conflict resolution (62 tests)
-- @xnet/react: NodeStoreProvider, useNode, useNodes, useNodeSync hooks
-- @xnet/records: REMOVED
+- @xnetjs/sync: Lamport timestamps, Change<T>, hash chains (78 tests)
+- @xnetjs/data: Schema system + NodeStore with LWW conflict resolution (62 tests)
+- @xnetjs/react: NodeStoreProvider, useNode, useNodes, useNodeSync hooks
+- @xnetjs/records: REMOVED
 
 Total: 140 tests passing
 

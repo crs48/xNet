@@ -21,18 +21,18 @@ sidebar:
 pnpm test
 
 # Single package
-pnpm --filter @xnet/sync test
-pnpm --filter @xnet/data test
-pnpm --filter @xnet/canvas test
+pnpm --filter @xnetjs/sync test
+pnpm --filter @xnetjs/data test
+pnpm --filter @xnetjs/canvas test
 
 # Single file
-pnpm --filter @xnet/sync vitest run src/clock.test.ts
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
 
 # Pattern match
-pnpm --filter @xnet/data vitest run -t "NodeStore"
+pnpm --filter @xnetjs/data vitest run -t "NodeStore"
 
 # Watch mode
-pnpm --filter @xnet/sync test:watch
+pnpm --filter @xnetjs/sync test:watch
 ```
 
 All tests use Vitest with the standard `describe` / `it` / `expect` structure.
@@ -64,7 +64,7 @@ describe('ModuleName', () => {
 
 ```ts
 import { describe, it, expect } from 'vitest'
-import { defineSchema, text, number, checkbox } from '@xnet/data'
+import { defineSchema, text, number, checkbox } from '@xnetjs/data'
 
 describe('TaskSchema', () => {
   const TaskSchema = defineSchema({
@@ -91,11 +91,11 @@ describe('TaskSchema', () => {
 
 ## Testing crypto and signing
 
-Generate keys in tests using `@xnet/crypto` and `@xnet/identity`:
+Generate keys in tests using `@xnetjs/crypto` and `@xnetjs/identity`:
 
 ```ts
-import { generateSigningKeyPair, sign, verify, hash } from '@xnet/crypto'
-import { generateIdentity } from '@xnet/identity'
+import { generateSigningKeyPair, sign, verify, hash } from '@xnetjs/crypto'
+import { generateIdentity } from '@xnetjs/identity'
 
 describe('Signing', () => {
   it('should sign and verify a message', () => {
@@ -120,7 +120,7 @@ describe('Signing', () => {
 ## Testing Lamport clocks
 
 ```ts
-import { createLamportClock, tick, receive, compareLamportTimestamps } from '@xnet/sync'
+import { createLamportClock, tick, receive, compareLamportTimestamps } from '@xnetjs/sync'
 
 describe('LamportClock', () => {
   it('should increment on tick', () => {
@@ -152,9 +152,9 @@ describe('LamportClock', () => {
 ## Testing Change\<T\> and hash chains
 
 ```ts
-import { signChange, verifyChange, verifyChangeHash } from '@xnet/sync'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { generateIdentity } from '@xnet/identity'
+import { signChange, verifyChange, verifyChangeHash } from '@xnetjs/sync'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { generateIdentity } from '@xnetjs/identity'
 
 describe('Change', () => {
   it('should sign and verify a change', () => {
@@ -181,8 +181,8 @@ describe('Change', () => {
 ## Testing Yjs security
 
 ```ts
-import { signYjsUpdate, verifyYjsEnvelope } from '@xnet/sync'
-import { generateIdentity } from '@xnet/identity'
+import { signYjsUpdate, verifyYjsEnvelope } from '@xnetjs/sync'
+import { generateIdentity } from '@xnetjs/identity'
 
 describe('YjsEnvelope', () => {
   it('should round-trip sign and verify', async () => {
@@ -213,7 +213,7 @@ describe('YjsEnvelope', () => {
 For multi-peer sync tests, create separate clock instances and simulate message exchange:
 
 ```ts
-import { createLamportClock, tick, receive } from '@xnet/sync'
+import { createLamportClock, tick, receive } from '@xnetjs/sync'
 
 describe('Two-peer sync', () => {
   it('should converge after message exchange', () => {
@@ -241,7 +241,7 @@ describe('Two-peer sync', () => {
 
 ```ts
 import { describe, it, expect, vi } from 'vitest'
-import { PluginRegistry } from '@xnet/plugins'
+import { PluginRegistry } from '@xnetjs/plugins'
 
 describe('PluginRegistry', () => {
   it('should install and activate a plugin', async () => {
@@ -265,7 +265,7 @@ describe('PluginRegistry', () => {
 ## Testing middleware
 
 ```ts
-import { MiddlewareChain } from '@xnet/plugins'
+import { MiddlewareChain } from '@xnetjs/plugins'
 
 describe('MiddlewareChain', () => {
   it('should execute in priority order', async () => {

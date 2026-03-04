@@ -9,7 +9,7 @@ import {
   SERVICE_IPC_CHANNELS,
   type ServiceDefinition,
   type ServiceStatus
-} from '@xnet/plugins/node'
+} from '@xnetjs/plugins/node'
 import { ipcMain, BrowserWindow } from 'electron'
 
 // ─── Process Manager Instance ────────────────────────────────────────────────

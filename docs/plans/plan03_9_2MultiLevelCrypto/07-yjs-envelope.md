@@ -39,8 +39,8 @@ flowchart TD
 ```typescript
 // packages/sync/src/yjs/envelope.ts
 
-import type { SecurityLevel, UnifiedSignature, SignatureWire } from '@xnet/crypto'
-import type { DID } from '@xnet/identity'
+import type { SecurityLevel, UnifiedSignature, SignatureWire } from '@xnetjs/crypto'
+import type { DID } from '@xnetjs/identity'
 
 /**
  * Signed envelope for Yjs updates.
@@ -107,8 +107,8 @@ import {
   hash,
   type SecurityLevel,
   DEFAULT_SECURITY_LEVEL
-} from '@xnet/crypto'
-import type { HybridKeyBundle } from '@xnet/identity'
+} from '@xnetjs/crypto'
+import type { HybridKeyBundle } from '@xnetjs/identity'
 
 /**
  * Options for creating a signed envelope.
@@ -187,8 +187,8 @@ export function signYjsUpdateBatch(
 ```typescript
 // packages/sync/src/yjs/envelope.ts (continued)
 
-import { hybridVerify, type VerificationResult, type VerificationOptions } from '@xnet/crypto'
-import { parseDID, type PQKeyRegistry } from '@xnet/identity'
+import { hybridVerify, type VerificationResult, type VerificationOptions } from '@xnetjs/crypto'
+import { parseDID, type PQKeyRegistry } from '@xnetjs/identity'
 
 /**
  * Result of envelope verification.
@@ -347,8 +347,13 @@ export function envelopeSize(envelope: SignedYjsEnvelope): number {
 ```typescript
 // packages/sync/src/yjs/client-attestation.ts
 
-import { hybridSign, hybridVerify, type SecurityLevel, DEFAULT_SECURITY_LEVEL } from '@xnet/crypto'
-import { parseDID, type HybridKeyBundle, type DID, type PQKeyRegistry } from '@xnet/identity'
+import {
+  hybridSign,
+  hybridVerify,
+  type SecurityLevel,
+  DEFAULT_SECURITY_LEVEL
+} from '@xnetjs/crypto'
+import { parseDID, type HybridKeyBundle, type DID, type PQKeyRegistry } from '@xnetjs/identity'
 
 /**
  * Attestation binding a Yjs client ID to a DID.
@@ -501,8 +506,8 @@ import {
   serializeYjsEnvelope,
   deserializeYjsEnvelope
 } from './envelope'
-import { createKeyBundle } from '@xnet/identity'
-import { MemoryPQKeyRegistry, createPQKeyAttestation } from '@xnet/identity'
+import { createKeyBundle } from '@xnetjs/identity'
+import { MemoryPQKeyRegistry, createPQKeyAttestation } from '@xnetjs/identity'
 
 describe('SignedYjsEnvelope', () => {
   it('signs and verifies Level 0 update', async () => {

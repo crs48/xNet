@@ -4,7 +4,7 @@
 
 **Duration:** 4-5 days
 **Dependencies:** [01-webgl-grid-layer.md](./01-webgl-grid-layer.md) (layer ordering)
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

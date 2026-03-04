@@ -165,7 +165,7 @@ export function ThemeDropdown({ className }: { className?: string }) {
 ```typescript
 // apps/electron/src/renderer/App.tsx
 
-import { ThemeProvider } from '@xnet/ui'
+import { ThemeProvider } from '@xnetjs/ui'
 
 export function App() {
   return (
@@ -197,7 +197,7 @@ Electron menu integration:
 ```typescript
 // apps/web/src/App.tsx
 
-import { ThemeProvider } from '@xnet/ui'
+import { ThemeProvider } from '@xnetjs/ui'
 
 export function App() {
   return (
@@ -257,11 +257,11 @@ Each app imports the tokens CSS file:
 
 ```typescript
 // apps/electron/src/renderer/main.tsx
-import '@xnet/ui/src/theme/tokens.css'
+import '@xnetjs/ui/src/theme/tokens.css'
 import './styles.css' // App-specific overrides only (titlebar, etc.)
 
 // apps/web/src/main.tsx
-import '@xnet/ui/src/theme/tokens.css'
+import '@xnetjs/ui/src/theme/tokens.css'
 import './styles.css' // App-specific layout only
 ```
 

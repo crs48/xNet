@@ -1,5 +1,5 @@
 /**
- * @xnet/react/onboarding - Main onboarding flow component
+ * @xnetjs/react/onboarding - Main onboarding flow component
  *
  * Routes to the correct screen based on the current onboarding state.
  * Must be rendered inside an <OnboardingProvider>.

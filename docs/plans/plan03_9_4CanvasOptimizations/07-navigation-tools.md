@@ -4,7 +4,7 @@
 
 **Duration:** 2 days
 **Dependencies:** [06-minimap.md](./06-minimap.md)
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

@@ -1,7 +1,7 @@
 /**
  * TelemetryPanel - Security events, performance metrics, and consent status
  *
- * Integrates with @xnet/telemetry (plan03_1) to display:
+ * Integrates with @xnetjs/telemetry (plan03_1) to display:
  * - Security events with severity and action badges
  * - Performance metrics with bucket distributions
  * - Consent tier status and management
@@ -607,7 +607,7 @@ function TelemetryNotAvailable() {
       <div className="text-center">
         <p>No telemetry data available.</p>
         <p className="text-[10px] mt-1 text-zinc-600">
-          Telemetry events will appear here once @xnet/telemetry is instrumented.
+          Telemetry events will appear here once @xnetjs/telemetry is instrumented.
         </p>
       </div>
     </div>

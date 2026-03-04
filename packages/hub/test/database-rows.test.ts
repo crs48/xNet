@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Database row storage and query tests.
+ * @xnetjs/hub - Database row storage and query tests.
  */
 
 import type { HubStorage, DatabaseRowRecord } from '../src/storage/interface'

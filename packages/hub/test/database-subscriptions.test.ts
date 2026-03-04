@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - DatabaseSubscriptionManager tests.
+ * @xnetjs/hub - DatabaseSubscriptionManager tests.
  */
 
 import type { WebSocket } from 'ws'

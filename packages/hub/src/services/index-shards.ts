@@ -1,10 +1,10 @@
 /**
- * @xnet/hub - Global shard registry (consistent hashing).
+ * @xnetjs/hub - Global shard registry (consistent hashing).
  */
 
 import type { HubStorage, ShardAssignmentRecord } from '../storage/interface'
 import { TextEncoder } from 'node:util'
-import { hash } from '@xnet/crypto'
+import { hash } from '@xnetjs/crypto'
 
 export type ShardAssignment = {
   shardId: number

@@ -3,7 +3,7 @@
 > X+Y virtualization for tables with 1M+ rows
 
 **Duration:** 4-5 days
-**Dependencies:** `@tanstack/react-virtual`, `@xnet/react` (useDatabase)
+**Dependencies:** `@tanstack/react-virtual`, `@xnetjs/react` (useDatabase)
 
 ## Overview
 
@@ -60,7 +60,7 @@ flowchart LR
 import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual'
 import { useRef, useEffect, useCallback, useMemo } from 'react'
 import { useDatabase } from '../hooks/useDatabase'
-import type { ColumnDefinition, DatabaseRow } from '@xnet/data'
+import type { ColumnDefinition, DatabaseRow } from '@xnetjs/data'
 
 interface VirtualizedTableProps {
   databaseId: string
@@ -256,7 +256,7 @@ export function VirtualizedTable({
 
 import { memo } from 'react'
 import type { Virtualizer } from '@tanstack/react-virtual'
-import type { DatabaseRow, ColumnDefinition } from '@xnet/data'
+import type { DatabaseRow, ColumnDefinition } from '@xnetjs/data'
 import { CellRenderer } from './CellRenderer'
 
 interface VirtualizedRowProps {
@@ -318,7 +318,7 @@ export const VirtualizedRow = memo(function VirtualizedRow({
 
 import { useState, useCallback, useRef } from 'react'
 import { ArrowUp, ArrowDown, GripVertical } from 'lucide-react'
-import type { ColumnDefinition } from '@xnet/data'
+import type { ColumnDefinition } from '@xnetjs/data'
 
 interface TableHeaderCellProps {
   column: ColumnDefinition
@@ -401,7 +401,7 @@ export function TableHeaderCell({
 // packages/react/src/views/CellRenderer.tsx
 
 import { memo, useState } from 'react'
-import type { DatabaseRow, ColumnDefinition } from '@xnet/data'
+import type { DatabaseRow, ColumnDefinition } from '@xnetjs/data'
 import { format } from 'date-fns'
 
 interface CellRendererProps {

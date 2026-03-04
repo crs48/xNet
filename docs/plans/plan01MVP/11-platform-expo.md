@@ -3,7 +3,7 @@
 > iOS mobile application using Expo
 
 **Duration:** 2 weeks
-**Dependencies:** @xnet/sdk
+**Dependencies:** @xnetjs/sdk
 
 ## Overview
 
@@ -14,7 +14,7 @@ The Expo app provides a native iOS experience with offline-first capabilities an
 ```bash
 cd apps/expo
 npx create-expo-app@latest --template blank-typescript
-pnpm add @xnet/sdk@workspace:*
+pnpm add @xnetjs/sdk@workspace:*
 pnpm add expo-sqlite expo-secure-store expo-file-system
 pnpm add react-native-get-random-values
 ```
@@ -55,8 +55,8 @@ apps/expo/
 
 ```typescript
 import * as SQLite from 'expo-sqlite'
-import type { StorageAdapter, DocumentData } from '@xnet/storage'
-import type { ContentId, Snapshot, SignedUpdate } from '@xnet/core'
+import type { StorageAdapter, DocumentData } from '@xnetjs/storage'
+import type { ContentId, Snapshot, SignedUpdate } from '@xnetjs/core'
 
 export class ExpoStorageAdapter implements StorageAdapter {
   private db: SQLite.SQLiteDatabase | null = null
@@ -222,7 +222,7 @@ export class ExpoStorageAdapter implements StorageAdapter {
 
 ```typescript
 import { useState, useEffect, useCallback } from 'react'
-import { createXNetClient, type XNetClient } from '@xnet/sdk'
+import { createXNetClient, type XNetClient } from '@xnetjs/sdk'
 import { ExpoStorageAdapter } from '../storage/ExpoStorageAdapter'
 import 'react-native-get-random-values' // Polyfill for crypto
 

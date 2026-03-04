@@ -1,5 +1,5 @@
 /**
- * @xnet/canvas - WebGL Grid Layer
+ * @xnetjs/canvas - WebGL Grid Layer
  *
  * Procedural infinite grid via WebGL fragment shader - zero allocations at any scale.
  * The grid adapts to zoom level: at high zoom you see fine grid lines,

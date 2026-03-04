@@ -16,7 +16,7 @@ export default defineConfig({
     target: ['es2022', 'safari16.4', 'chrome102', 'firefox111'],
     rollupOptions: {
       external: [
-        'mermaid', // Optional peer dependency - dynamically imported in @xnet/canvas
+        'mermaid', // Optional peer dependency - dynamically imported in @xnetjs/canvas
         'web-worker' // Optional peer dependency of elkjs
       ]
     }
@@ -24,7 +24,7 @@ export default defineConfig({
   resolve: {
     alias: {
       // Use source files directly for hot reload during development
-      '@xnet/react': path.resolve(__dirname, '../../packages/react/src')
+      '@xnetjs/react': path.resolve(__dirname, '../../packages/react/src')
     }
   },
   optimizeDeps: {

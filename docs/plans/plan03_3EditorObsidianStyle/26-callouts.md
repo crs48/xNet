@@ -251,7 +251,7 @@ export const CalloutExtension = Node.create<CalloutOptions>({
 
 import * as React from 'react'
 import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from '@tiptap/react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { CALLOUT_CONFIGS, type CalloutType } from './types'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 

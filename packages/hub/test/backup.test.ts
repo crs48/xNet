@@ -5,7 +5,7 @@ import {
   generateSigningKeyPair,
   randomBytes,
   sign
-} from '@xnet/crypto'
+} from '@xnetjs/crypto'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createHub } from '../src/index'
 

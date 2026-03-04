@@ -2,9 +2,9 @@
  * Tests for SQLiteStorageAdapter
  */
 
-import type { ContentId } from '@xnet/core'
-import type { SQLiteAdapter } from '@xnet/sqlite'
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
+import type { ContentId } from '@xnetjs/core'
+import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { SQLiteStorageAdapter } from './sqlite'
 

@@ -1,6 +1,6 @@
 # SQLite Storage: Unified Storage for xNet
 
-> **Status**: ✅ IMPLEMENTED - The `@xnet/sqlite` package provides unified SQLite storage
+> **Status**: ✅ IMPLEMENTED - The `@xnetjs/sqlite` package provides unified SQLite storage
 
 ## Implementation Status
 
@@ -16,7 +16,7 @@ The SQLite storage layer has been implemented at `packages/sqlite/`:
 - [x] **Schema Management** - `schema.ts` for migrations
 - [x] **Unified Interface** - `adapter.ts` with common API
 
-The storage layer in `@xnet/storage` uses these adapters.
+The storage layer in `@xnetjs/storage` uses these adapters.
 
 ---
 
@@ -605,7 +605,7 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    subgraph New["@xnet/sqlite Package"]
+    subgraph New["@xnetjs/sqlite Package"]
         Interface["SQLiteAdapter interface"]
         Electron["ElectronSQLiteAdapter"]
         Web["WebSQLiteAdapter"]
@@ -613,9 +613,9 @@ flowchart TB
     end
 
     subgraph Consumers["Consumers"]
-        DataPkg["@xnet/data"]
-        StoragePkg["@xnet/storage"]
-        HubPkg["@xnet/hub"]
+        DataPkg["@xnetjs/data"]
+        StoragePkg["@xnetjs/storage"]
+        HubPkg["@xnetjs/hub"]
     end
 
     New --> Consumers
@@ -623,15 +623,15 @@ flowchart TB
 
 #### Checklist: Phase 3 - Unified Package
 
-- [ ] Create `@xnet/sqlite` package
+- [ ] Create `@xnetjs/sqlite` package
   - [ ] Define `SQLiteAdapter` interface
   - [ ] Platform detection utilities
   - [ ] Shared schema definitions
 
 - [ ] Consolidate storage
-  - [ ] `@xnet/data` uses `@xnet/sqlite`
-  - [ ] `@xnet/storage` uses `@xnet/sqlite`
-  - [ ] `@xnet/hub` aligned schema
+  - [ ] `@xnetjs/data` uses `@xnetjs/sqlite`
+  - [ ] `@xnetjs/storage` uses `@xnetjs/sqlite`
+  - [ ] `@xnetjs/hub` aligned schema
 
 - [ ] Documentation
   - [ ] Storage architecture docs
@@ -759,7 +759,7 @@ gantt
     Browser testing          :p2d, after p2c, 3d
 
     section Phase 3: Unified
-    Create @xnet/sqlite      :p3a, after p2d, 3d
+    Create @xnetjs/sqlite      :p3a, after p2d, 3d
     Consolidate packages     :p3b, after p3a, 3d
     Cleanup & docs           :p3c, after p3b, 2d
 ```

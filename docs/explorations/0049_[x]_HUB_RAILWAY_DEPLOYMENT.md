@@ -500,7 +500,7 @@ graph TB
 
 4. **WebSocket idle timeout** — Does Railway's HTTP proxy have an idle timeout for WebSocket connections? If so, we need heartbeat/ping intervals shorter than that timeout.
 
-5. **Monorepo deployment** — The Hub is in `packages/hub/` within a monorepo. Railway supports custom Dockerfile paths (`RAILWAY_DOCKERFILE_PATH`), but we need to verify the build context includes workspace dependencies (`@xnet/core`, `@xnet/crypto`, `@xnet/identity`).
+5. **Monorepo deployment** — The Hub is in `packages/hub/` within a monorepo. Railway supports custom Dockerfile paths (`RAILWAY_DOCKERFILE_PATH`), but we need to verify the build context includes workspace dependencies (`@xnetjs/core`, `@xnetjs/crypto`, `@xnetjs/identity`).
 
 ---
 

@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Full-Text Search (FTS5) helpers
+ * @xnetjs/sqlite - Full-Text Search (FTS5) helpers
  *
  * These functions manage the FTS5 index for searchable node content.
  * FTS5 is not supported by sql.js, so these functions are no-ops

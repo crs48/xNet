@@ -55,7 +55,7 @@ pnpm add @base-ui-components/react
 
 ```json
 {
-  "name": "@xnet/ui",
+  "name": "@xnetjs/ui",
   "dependencies": {
     // Existing Radix packages (will be removed incrementally)
     "@radix-ui/react-accordion": "^1.2.12",

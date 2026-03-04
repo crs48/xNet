@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/plugins",
+  "name": "@xnetjs/plugins",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,8 +22,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/data": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/data": "workspace:*",
     "acorn": "^8.15.0"
   },
   "peerDependencies": {

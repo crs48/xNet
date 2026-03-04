@@ -6,13 +6,13 @@
  *
  * Tests both Page and Database schemas.
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import React, { useEffect, useState } from 'react'
+import type { DID } from '@xnetjs/core'
 import { render, cleanup, act } from '@testing-library/react'
-import { XNetProvider, useDocument, useQuery, useMutate } from '@xnet/react'
-import { PageSchema, DatabaseSchema, IndexedDBNodeStorageAdapter } from '@xnet/data'
-import type { DID } from '@xnet/core'
-import { generateIdentity } from '@xnet/identity'
+import { PageSchema, DatabaseSchema, IndexedDBNodeStorageAdapter } from '@xnetjs/data'
+import { generateIdentity } from '@xnetjs/identity'
+import { XNetProvider, useDocument, useQuery, useMutate } from '@xnetjs/react'
+import React, { useEffect, useState } from 'react'
+import { describe, it, expect, afterEach } from 'vitest'
 import * as Y from 'yjs'
 
 // =============================================================================
@@ -74,7 +74,7 @@ function renderWithStore<T>(
 ) {
   const dbName = options?.dbName || uniqueDbName()
   const identity = options?.identity || createTestIdentity()
-  let result: { current: T } = { current: undefined as unknown as T }
+  const result: { current: T } = { current: undefined as unknown as T }
 
   function TestComponent() {
     result.current = hook()

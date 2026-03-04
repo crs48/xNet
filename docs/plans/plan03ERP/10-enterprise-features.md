@@ -2,13 +2,13 @@
 
 > SSO, audit logging, RBAC, and multi-tenant isolation
 
-**Package:** `@xnet/enterprise`
-**Dependencies:** `@xnet/identity`, `@xnet/modules`, `@xnet/data`
+**Package:** `@xnetjs/enterprise`
+**Dependencies:** `@xnetjs/identity`, `@xnetjs/modules`, `@xnetjs/data`
 **Estimated Time:** 3 weeks
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → `@xnet/data`
+> - `@xnetjs/database` → `@xnetjs/data`
 > - Audit logs stored as Nodes with AuditEntry schema
 > - RBAC permissions apply to Node operations
 

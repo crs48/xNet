@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - In-memory storage adapter.
+ * @xnetjs/hub - In-memory storage adapter.
  */
 
 import type {

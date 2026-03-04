@@ -1,10 +1,10 @@
 /**
- * @xnet/hub - X25519 key registry routes.
+ * @xnetjs/hub - X25519 key registry routes.
  */
 
 import type { KeyRegistryService } from '../services/key-registry'
-import type { DID } from '@xnet/core'
-import { base64ToBytes, bytesToHex } from '@xnet/crypto'
+import type { DID } from '@xnetjs/core'
+import { base64ToBytes, bytesToHex } from '@xnetjs/crypto'
 import { Hono } from 'hono'
 import { KeyRegistryError } from '../services/key-registry'
 import { isRecord } from '../utils/validation'

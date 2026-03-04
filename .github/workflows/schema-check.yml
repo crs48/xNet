@@ -42,7 +42,7 @@ jobs:
         id: diff
         run: |
           # Build and run the CLI to diff schemas
-          pnpm --filter @xnet/cli build || true
+          pnpm --filter @xnetjs/cli build || true
           pnpm xnet schema diff schemas-main.json schemas-pr.json --output diff.json || echo '{"diffs":[],"summary":{"schemasChanged":0,"totalChanges":0,"breakingChanges":0,"cautionChanges":0,"safeChanges":0}}' > diff.json
 
           # Output for GitHub Actions

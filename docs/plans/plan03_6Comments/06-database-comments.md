@@ -87,7 +87,7 @@ export function CommentIndicator({
 // packages/views/src/hooks/useDatabaseComments.ts
 
 import { useMemo, useCallback } from 'react'
-import { useComments } from '@xnet/react'
+import { useComments } from '@xnetjs/react'
 import {
   Comment,
   encodeAnchor,
@@ -95,7 +95,7 @@ import {
   RowAnchor,
   ColumnAnchor,
   decodeAnchor
-} from '@xnet/data'
+} from '@xnetjs/data'
 
 interface UseDatabaseCommentsOptions {
   databaseNodeId: string
@@ -266,7 +266,7 @@ export function useDatabaseComments({
 // Integration point in the table cell component
 
 import { useDatabaseComments } from '../hooks/useDatabaseComments'
-import { useCommentPopover } from '@xnet/react'
+import { useCommentPopover } from '@xnetjs/react'
 import { CommentIndicator } from './CommentIndicator'
 
 function TableCell({ rowId, propertyKey, databaseNodeId, databaseSchema, children }) {

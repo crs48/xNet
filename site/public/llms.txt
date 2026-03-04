@@ -22,10 +22,10 @@ xNet is different from traditional client-server architectures:
 
 ## Core Packages
 
-- [@xnet/react](https://xnet.fyi/docs/hooks/overview/): React hooks API (useQuery, useMutate, useNode)
-- [@xnet/data](https://xnet.fyi/docs/schemas/overview/): Schema system with 15 property types
-- [@xnet/sync](https://xnet.fyi/docs/concepts/sync-architecture/): CRDT sync primitives
-- [@xnet/identity](https://xnet.fyi/docs/concepts/identity-model/): DID:key cryptographic identity
+- [@xnetjs/react](https://xnet.fyi/docs/hooks/overview/): React hooks API (useQuery, useMutate, useNode)
+- [@xnetjs/data](https://xnet.fyi/docs/schemas/overview/): Schema system with 15 property types
+- [@xnetjs/sync](https://xnet.fyi/docs/concepts/sync-architecture/): CRDT sync primitives
+- [@xnetjs/identity](https://xnet.fyi/docs/concepts/identity-model/): DID:key cryptographic identity
 
 ## Quick Start
 

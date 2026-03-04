@@ -6,24 +6,24 @@
 
 **Total Tests: 238** across all packages
 
-| Package        | Tests | Status          |
-| -------------- | ----- | --------------- |
-| @xnet/core     | 42    | Good            |
-| @xnet/crypto   | 71    | Good            |
-| @xnet/identity | 30    | Good            |
-| @xnet/storage  | 22    | Adequate        |
-| @xnet/data     | 16    | Needs expansion |
-| @xnet/network  | 5     | Needs expansion |
-| @xnet/query    | 23    | Adequate        |
-| @xnet/react    | 16    | Good            |
-| @xnet/sdk      | 13    | Needs expansion |
-| @xnet/vectors  | 0     | Not implemented |
+| Package          | Tests | Status          |
+| ---------------- | ----- | --------------- |
+| @xnetjs/core     | 42    | Good            |
+| @xnetjs/crypto   | 71    | Good            |
+| @xnetjs/identity | 30    | Good            |
+| @xnetjs/storage  | 22    | Adequate        |
+| @xnetjs/data     | 16    | Needs expansion |
+| @xnetjs/network  | 5     | Needs expansion |
+| @xnetjs/query    | 23    | Adequate        |
+| @xnetjs/react    | 16    | Good            |
+| @xnetjs/sdk      | 13    | Needs expansion |
+| @xnetjs/vectors  | 0     | Not implemented |
 
 **Infrastructure**: Root `vitest.config.ts` and CI pipeline (`.github/workflows/ci.yml`) are implemented and match the spec.
 
 ## Philosophy
 
-1. **Fast unit tests** for all @xnet/\* packages (>80% coverage)
+1. **Fast unit tests** for all @xnetjs/\* packages (>80% coverage)
 2. **Integration tests** for cross-package functionality
 3. **Manual testing** for UI - avoid expensive E2E tests
 4. **Modularize** code to test functionality without UI
@@ -129,7 +129,7 @@ Test how packages work together.
 // packages/sdk/test/integration.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createXNetClient } from '../src/client'
-import { MemoryAdapter } from '@xnet/storage'
+import { MemoryAdapter } from '@xnetjs/storage'
 
 describe('SDK Integration', () => {
   let client: Awaited<ReturnType<typeof createXNetClient>>
@@ -191,8 +191,8 @@ Test sync between simulated peers.
 // packages/network/test/sync.test.ts
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createNode, createSyncProtocol } from '../src'
-import { createDocument, getDocumentState } from '@xnet/data'
-import { generateIdentity } from '@xnet/identity'
+import { createDocument, getDocumentState } from '@xnetjs/data'
+import { generateIdentity } from '@xnetjs/identity'
 
 describe('P2P Sync', () => {
   let peer1: Awaited<ReturnType<typeof createNode>>
@@ -327,7 +327,7 @@ pnpm test:watch
 pnpm test:coverage
 
 # Run specific package tests
-pnpm --filter @xnet/crypto test
+pnpm --filter @xnetjs/crypto test
 
 # Run tests matching pattern
 pnpm test -- --grep "hashing"
@@ -434,17 +434,17 @@ For UI features, use this manual checklist:
 
 ## Coverage Requirements
 
-| Package        | Statement | Branch | Function |
-| -------------- | --------- | ------ | -------- |
-| @xnet/core     | 90%       | 85%    | 90%      |
-| @xnet/crypto   | 95%       | 90%    | 95%      |
-| @xnet/identity | 85%       | 80%    | 85%      |
-| @xnet/storage  | 80%       | 75%    | 80%      |
-| @xnet/data     | 80%       | 75%    | 80%      |
-| @xnet/network  | 70%       | 65%    | 70%      |
-| @xnet/query    | 85%       | 80%    | 85%      |
-| @xnet/react    | 75%       | 70%    | 75%      |
-| @xnet/sdk      | 80%       | 75%    | 80%      |
+| Package          | Statement | Branch | Function |
+| ---------------- | --------- | ------ | -------- |
+| @xnetjs/core     | 90%       | 85%    | 90%      |
+| @xnetjs/crypto   | 95%       | 90%    | 95%      |
+| @xnetjs/identity | 85%       | 80%    | 85%      |
+| @xnetjs/storage  | 80%       | 75%    | 80%      |
+| @xnetjs/data     | 80%       | 75%    | 80%      |
+| @xnetjs/network  | 70%       | 65%    | 70%      |
+| @xnetjs/query    | 85%       | 80%    | 85%      |
+| @xnetjs/react    | 75%       | 70%    | 75%      |
+| @xnetjs/sdk      | 80%       | 75%    | 80%      |
 
 ## Next Step
 

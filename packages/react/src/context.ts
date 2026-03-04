@@ -6,15 +6,15 @@
  */
 import type { BlobStoreForSync } from './sync/blob-sync'
 import type { ConnectionManager } from './sync/connection-manager'
-import type { DID } from '@xnet/core'
-import type { SecurityLevel } from '@xnet/crypto'
-import type { NodeChangeEvent, NodeStorageAdapter } from '@xnet/data'
-import type { Identity, PQKeyRegistry, HybridKeyBundle } from '@xnet/identity'
+import type { DID } from '@xnetjs/core'
+import type { SecurityLevel } from '@xnetjs/crypto'
+import type { NodeChangeEvent, NodeStorageAdapter } from '@xnetjs/data'
+import type { Identity, PQKeyRegistry, HybridKeyBundle } from '@xnetjs/identity'
 import type { ReactNode } from 'react'
-import { MemoryNodeStorageAdapter, NodeStore } from '@xnet/data'
-import { createMainThreadBridge, MainThreadBridge, type DataBridge } from '@xnet/data-bridge'
-import { createUCAN } from '@xnet/identity'
-import { PluginRegistry, type Platform } from '@xnet/plugins'
+import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
+import { createMainThreadBridge, MainThreadBridge, type DataBridge } from '@xnetjs/data-bridge'
+import { createUCAN } from '@xnetjs/identity'
+import { PluginRegistry, type Platform } from '@xnetjs/plugins'
 import React, {
   createContext,
   useCallback,
@@ -88,7 +88,7 @@ export interface XNetConfig {
    *  When provided, the internal SyncManager creation is skipped. */
   syncManager?: SyncManager
   /** Blob store for P2P blob sync (images, files). If provided, the SyncManager
-   *  will sync blobs alongside Y.Doc state. Typically a BlobStore from @xnet/storage. */
+   *  will sync blobs alongside Y.Doc state. Typically a BlobStore from @xnetjs/storage. */
   blobStore?: BlobStoreForSync
   /** Platform for plugin compatibility ('web' | 'electron' | 'mobile'). Defaults to 'web'. */
   platform?: Platform
@@ -157,11 +157,11 @@ export interface XNetConfig {
    * - Mutation success/failure rates
    * - Subscription churn (mount/unmount frequency)
    *
-   * Uses a duck-typed interface to avoid circular dependencies with @xnet/telemetry.
+   * Uses a duck-typed interface to avoid circular dependencies with @xnetjs/telemetry.
    *
    * @example
    * ```tsx
-   * import { TelemetryCollector, ConsentManager } from '@xnet/telemetry'
+   * import { TelemetryCollector, ConsentManager } from '@xnetjs/telemetry'
    * const consent = new ConsentManager()
    * const telemetry = new TelemetryCollector({ consent })
    *

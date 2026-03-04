@@ -4,7 +4,7 @@
  * Values are always bucketed (never exact counts) to preserve privacy.
  */
 
-import { defineSchema, text, select, date } from '@xnet/data'
+import { defineSchema, text, select, date } from '@xnetjs/data'
 
 export const UsageMetricSchema = defineSchema({
   name: 'UsageMetric',

@@ -37,7 +37,7 @@ flowchart TD
 
 ### DI-01: YjsBatcher defaultMergeUpdates Produces Invalid Yjs Data
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/yjs-batcher.ts:56-72`
 
 ```typescript
@@ -64,7 +64,7 @@ Concatenating Yjs update buffers does **not** produce a valid Yjs update. `Y.app
 
 ### DI-02: Transactions Are Not Atomic
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:358-465`
 
 ```typescript
@@ -87,7 +87,7 @@ async transaction(operations: TransactionOperation[]): Promise<TransactionResult
 
 ### DI-03: Memory Leak in Conflict Tracking
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:530-532`
 
 ```typescript
@@ -106,7 +106,7 @@ Conflicts are pushed indefinitely but only the last 100 are returned.
 
 ### DI-04: getChangesSince Uses Exclusive Comparison
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/indexeddb-adapter.ts:152-157`
 
 ```typescript
@@ -123,7 +123,7 @@ If two changes have the same Lamport time, the change exactly at `sinceLamport` 
 
 ### DI-05: Hash Computation Non-Deterministic for Uint8Array
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/change.ts:211-216`
 
 ```typescript
@@ -140,7 +140,7 @@ const json = JSON.stringify(sortObjectKeys(toHash))
 
 ### DI-06: Memory Adapter Allows Duplicate Changes
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/memory-adapter.ts:38-48`
 
 Unlike IndexedDB (which uses `put()` for idempotent upserts), memory adapter uses `push()`.
@@ -153,7 +153,7 @@ Unlike IndexedDB (which uses `put()` for idempotent upserts), memory adapter use
 
 ### DI-07: Snapshot Loading Ignores `since` Parameter
 
-**Package:** `@xnet/storage`
+**Package:** `@xnetjs/storage`
 **File:** `packages/storage/src/adapters/indexeddb.ts:99-103`
 
 ```typescript
@@ -170,7 +170,7 @@ async getUpdates(docId: string, _since?: string): Promise<SignedUpdate[]> {
 
 ### DI-08: LWW Doesn't Handle Equal Timestamps Deterministically
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:786-788`
 
 ```typescript
@@ -188,7 +188,7 @@ private shouldReplace(existing: PropertyTimestamp, incoming: PropertyTimestamp):
 
 ### DI-09: Chunk Reassembly Has No Integrity Verification
 
-**Package:** `@xnet/storage`
+**Package:** `@xnetjs/storage`
 **File:** `packages/storage/src/chunk-manager.ts:216-229`
 
 `reassembleChunks()` never verifies the `rootHash` from the manifest.
@@ -201,7 +201,7 @@ private shouldReplace(existing: PropertyTimestamp, incoming: PropertyTimestamp):
 
 ### DI-10: Remote Change Applied Without Signature Verification
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:474-484`
 
 ```typescript
@@ -221,7 +221,7 @@ async applyRemoteChange(change: NodeChange): Promise<void> {
 
 ### DI-11: Schema Migration Warnings Not Surfaced
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:182-199`
 
 Lossy migration warnings in `_migrationInfo` are not persisted or surfaced to users.
@@ -230,7 +230,7 @@ Lossy migration warnings in `_migrationInfo` are not persisted or surfaced to us
 
 ### DI-12: Timestamp Parsing Fragile for DIDs with Dashes
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/clock.ts:127-142`
 
 `parseTimestamp()` uses `indexOf('-')` to split, but custom DIDs might contain dashes.
@@ -239,7 +239,7 @@ Lossy migration warnings in `_migrationInfo` are not persisted or surfaced to us
 
 ### DI-13: verifyChangeHash Field Reconstruction Fragile
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/change.ts:275-301`
 
 Manual reconstruction must be updated when new fields are added.
@@ -248,7 +248,7 @@ Manual reconstruction must be updated when new fields are added.
 
 ### DI-14: Lens BFS Doesn't Prefer Lossless Paths
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/schema/lens.ts:282-317`
 
 BFS finds shortest path, not most lossless path.
@@ -257,7 +257,7 @@ BFS finds shortest path, not most lossless path.
 
 ### DI-15: Snapshot Signature Doesn't Include stateVector
 
-**Package:** `@xnet/storage`
+**Package:** `@xnetjs/storage`
 **File:** `packages/storage/src/snapshots/manager.ts:79-87`
 
 Attacker could modify stateVector without invalidating signature.

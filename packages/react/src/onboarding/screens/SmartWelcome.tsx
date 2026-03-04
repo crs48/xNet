@@ -2,7 +2,7 @@
  * Smart welcome screen — detects existing passkeys from other devices
  * and offers a "Welcome back" flow instead of the new-user flow.
  */
-import { discoverExistingPasskey } from '@xnet/identity'
+import { discoverExistingPasskey } from '@xnetjs/identity'
 import { useEffect, useState } from 'react'
 import { getPlatformAuthName } from '../helpers'
 import { useOnboarding } from '../OnboardingProvider'

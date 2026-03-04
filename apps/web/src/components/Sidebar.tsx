@@ -2,8 +2,8 @@
  * Sidebar component with collapsible sections for all document types
  */
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
-import { useQuery } from '@xnet/react'
+import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
+import { useQuery } from '@xnetjs/react'
 import {
   FileText,
   Database,

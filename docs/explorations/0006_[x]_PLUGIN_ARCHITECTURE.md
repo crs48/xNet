@@ -1,6 +1,6 @@
 # Plugin Architecture Exploration
 
-> **Status**: ✅ IMPLEMENTED - The `@xnet/plugins` package provides the full plugin system
+> **Status**: ✅ IMPLEMENTED - The `@xnetjs/plugins` package provides the full plugin system
 
 ## Implementation Status
 
@@ -605,39 +605,39 @@ class ScriptSandbox {
 
 ```mermaid
 graph TB
-    subgraph "@xnet/data"
+    subgraph "@xnetjs/data"
         SR[SchemaRegistry<br/>register/unregister]
         BR[BlockRegistry<br/>registerBlockType]
         NS[NodeStore<br/>subscribe + middleware]
         SA[StorageAdapter<br/>interface]
     end
 
-    subgraph "@xnet/editor"
+    subgraph "@xnetjs/editor"
         TE[TipTap Extensions<br/>Mark/Node/Extension.create]
         TB[Toolbar Items<br/>needs registry]
         SC[Slash Commands<br/>needs implementation]
         EE[Editor Events<br/>on change/selection/focus]
     end
 
-    subgraph "@xnet/views"
+    subgraph "@xnetjs/views"
         VR[View Registry<br/>needs creation]
         PH[PropertyHandlers<br/>needs registerFn]
         FO[Filter Operators<br/>needs extension]
     end
 
-    subgraph "@xnet/query"
+    subgraph "@xnetjs/query"
         SI[SearchIndex<br/>interface]
         QE[QueryEngine<br/>filter operators]
         FR[FederatedRouter<br/>data sources]
     end
 
-    subgraph "@xnet/network"
+    subgraph "@xnetjs/network"
         LP[libp2p Protocols<br/>handle()]
         SP[SyncProtocol<br/>message handlers]
         PD[Peer Discovery<br/>strategies]
     end
 
-    subgraph "@xnet/react"
+    subgraph "@xnetjs/react"
         XP[XNetProvider<br/>config.plugins]
         HC[Hook Composition<br/>useQuery/useMutate]
     end
@@ -702,10 +702,10 @@ export function createExtensionContext(
 
 **Key changes to existing packages:**
 
-1. `@xnet/editor` - Add `extensions` prop to `RichTextEditor`
-2. `@xnet/views` - Add `registerViewType()` and `registerPropertyHandler()`
-3. `@xnet/react` - Add `plugins` field to `XNetConfig`
-4. `@xnet/data` - Add middleware hooks to `NodeStore`
+1. `@xnetjs/editor` - Add `extensions` prop to `RichTextEditor`
+2. `@xnetjs/views` - Add `registerViewType()` and `registerPropertyHandler()`
+3. `@xnetjs/react` - Add `plugins` field to `XNetConfig`
+4. `@xnetjs/data` - Add middleware hooks to `NodeStore`
 
 ### Phase 2: Script System (Enable End-User Customization)
 
@@ -865,7 +865,7 @@ This means plugins can be shared between peers just like any other data. A user 
 ### Medium: Gantt Chart View (Extension)
 
 ```typescript
-import { defineExtension, type ViewProps } from '@xnet/plugins'
+import { defineExtension, type ViewProps } from '@xnetjs/plugins'
 
 export default defineExtension({
   id: 'com.xnet.gantt-view',
@@ -898,7 +898,7 @@ function GanttView({ nodes, viewConfig, onUpdateNode }: ViewProps) {
 ### Complex: Local AI Assistant (Service + Extension)
 
 ```typescript
-import { defineExtension } from '@xnet/plugins'
+import { defineExtension } from '@xnetjs/plugins'
 
 export default defineExtension({
   id: 'com.xnet.local-ai',

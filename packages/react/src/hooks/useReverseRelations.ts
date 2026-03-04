@@ -12,8 +12,8 @@
  */
 
 import type { DatabaseRow } from './useDatabase'
-import type { ColumnDefinition, RelationColumnConfig } from '@xnet/data'
-import { fromCellProperties, getColumns, isDatabaseDocInitialized } from '@xnet/data'
+import type { ColumnDefinition, RelationColumnConfig } from '@xnetjs/data'
+import { fromCellProperties, getColumns, isDatabaseDocInitialized } from '@xnetjs/data'
 import { useState, useEffect } from 'react'
 import * as Y from 'yjs'
 import { useNodeStore } from './useNodeStore'

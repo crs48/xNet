@@ -2,7 +2,7 @@
 
 > Stateless auth using existing DID/UCAN identity system
 
-**Dependencies:** `01-package-scaffold.md`, `@xnet/identity` (UCAN verify)
+**Dependencies:** `01-package-scaffold.md`, `@xnetjs/identity` (UCAN verify)
 **Modifies:** `packages/hub/src/server.ts`, new `packages/hub/src/auth/`
 
 ## Codebase Status (Feb 2026)
@@ -25,7 +25,7 @@
 > 3. **No attenuation checking** — a delegated UCAN can claim MORE capabilities than its parent, which violates UCAN spec.
 > 4. **UCAN is never called at runtime** — the signaling server has zero authentication. The BSM connects with a bare WebSocket URL.
 >
-> The fixes for (1)-(3) should be done in `@xnet/identity` as a prerequisite to this step.
+> The fixes for (1)-(3) should be done in `@xnetjs/identity` as a prerequisite to this step.
 
 ## Overview
 
@@ -117,7 +117,7 @@ export function hasHubCapability(
 ```typescript
 // packages/hub/src/auth/ucan.ts
 
-import { verifyUCAN, getCapabilities, type UCANToken } from '@xnet/identity'
+import { verifyUCAN, getCapabilities, type UCANToken } from '@xnetjs/identity'
 import type { WebSocket } from 'ws'
 import type { IncomingMessage } from 'http'
 import type { HubConfig } from '../types'
@@ -261,7 +261,7 @@ function checkRoomAuth(session: AuthSession, topics: string[]): boolean {
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { WebSocket } from 'ws'
 import { createHub, type HubInstance } from '../src'
-import { createUCAN, generateKeyBundle } from '@xnet/identity'
+import { createUCAN, generateKeyBundle } from '@xnetjs/identity'
 
 describe('Hub UCAN Auth', () => {
   let hub: HubInstance

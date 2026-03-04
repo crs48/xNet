@@ -2,10 +2,10 @@
  * Tests for MainThreadBridge
  */
 
-import type { DID } from '@xnet/core'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { MemoryNodeStorageAdapter, NodeStore, defineSchema, text, checkbox } from '@xnet/data'
-import { createDID } from '@xnet/identity'
+import type { DID } from '@xnetjs/core'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { MemoryNodeStorageAdapter, NodeStore, defineSchema, text, checkbox } from '@xnetjs/data'
+import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MainThreadBridge, createMainThreadBridge } from '../main-thread-bridge'
 

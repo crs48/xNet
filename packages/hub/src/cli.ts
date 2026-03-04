@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - CLI entry point.
+ * @xnetjs/hub - CLI entry point.
  */
 
 import type { HubConfig } from './types'

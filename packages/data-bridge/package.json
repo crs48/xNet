@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/data-bridge",
+  "name": "@xnetjs/data-bridge",
   "version": "0.0.1",
   "description": "DataBridge abstraction for off-main-thread data access in xNet",
   "type": "module",
@@ -23,15 +23,15 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/data": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/data": "workspace:*",
     "comlink": "^4.4.2",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.24"
   },
   "devDependencies": {
-    "@xnet/crypto": "workspace:*",
-    "@xnet/identity": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"

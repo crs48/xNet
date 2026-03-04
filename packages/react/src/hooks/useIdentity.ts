@@ -1,7 +1,7 @@
 /**
  * useIdentity hook for identity access
  */
-import type { Identity } from '@xnet/identity'
+import type { Identity } from '@xnetjs/identity'
 import { useXNet } from '../context'
 
 /**

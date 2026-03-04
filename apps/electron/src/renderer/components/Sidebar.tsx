@@ -6,7 +6,7 @@
  */
 
 import type { Document } from '../lib/types'
-import type { SidebarContribution } from '@xnet/plugins'
+import type { SidebarContribution } from '@xnetjs/plugins'
 import * as icons from 'lucide-react'
 import {
   FileText,

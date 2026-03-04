@@ -7,10 +7,10 @@
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `@xnetjs/database` → Use `@xnetjs/data` (Schema system + NodeStore)
 > - `DatabaseItem` → `Node`
 > - `Database` → `Schema`
-> - Import types from `@xnet/data`, hooks from `@xnet/react`
+> - Import types from `@xnetjs/data`, hooks from `@xnetjs/react`
 
 ## Overview
 
@@ -47,7 +47,7 @@ export type CalendarViewMode = 'month' | 'week' | 'day'
 // packages/views/src/calendar/CalendarView.tsx
 
 import React, { useMemo, useState } from 'react'
-import { Database, View, DatabaseItem } from '@xnet/database'
+import { Database, View, DatabaseItem } from '@xnetjs/database'
 import { CalendarConfig, CalendarViewMode } from './types'
 import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'

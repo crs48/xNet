@@ -15,7 +15,7 @@ import type {
   InferCreateProps,
   InferNode
 } from './types'
-import type { AuthorizationDefinition } from '@xnet/core'
+import type { AuthorizationDefinition } from '@xnetjs/core'
 import { validateAuthorization, serializeAuthorization } from '../auth'
 import { createNodeId } from './node'
 

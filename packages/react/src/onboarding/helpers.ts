@@ -1,5 +1,5 @@
 /**
- * @xnet/react/onboarding - Helper utilities
+ * @xnetjs/react/onboarding - Helper utilities
  */
 
 /**

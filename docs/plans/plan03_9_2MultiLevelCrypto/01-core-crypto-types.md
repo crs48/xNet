@@ -3,7 +3,7 @@
 > Security level definitions and unified signature types for multi-level cryptography.
 
 **Duration:** 3 days
-**Dependencies:** `@xnet/crypto` (existing)
+**Dependencies:** `@xnetjs/crypto` (existing)
 **Package:** `packages/crypto/`
 
 ## Overview
@@ -46,7 +46,7 @@ pnpm add @noble/post-quantum
 ```json
 // packages/crypto/package.json
 {
-  "name": "@xnet/crypto",
+  "name": "@xnetjs/crypto",
   "version": "0.2.0",
   "dependencies": {
     "@noble/ciphers": "^2.1.1",

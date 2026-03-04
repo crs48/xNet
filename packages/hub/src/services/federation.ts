@@ -1,12 +1,12 @@
 /**
- * @xnet/hub - Hub federation search service.
+ * @xnetjs/hub - Hub federation search service.
  */
 
 import type { QueryRequest, QueryResponse } from './query'
 import type { HubStorage } from '../storage/interface'
 import { TextEncoder } from 'node:util'
-import { sign, verify } from '@xnet/crypto'
-import { createUCAN, hasCapability, verifyUCAN, parseDID } from '@xnet/identity'
+import { sign, verify } from '@xnetjs/crypto'
+import { createUCAN, hasCapability, verifyUCAN, parseDID } from '@xnetjs/identity'
 import { validateExternalUrl } from '../utils/url'
 import { QueryService } from './query'
 

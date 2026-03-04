@@ -10,8 +10,8 @@
 
 Currently the codebase has two separate concepts for "things users create":
 
-1. **XDocument** (in @xnet/data) - Rich text documents with Yjs
-2. **DatabaseItem** (in @xnet/records) - Tabular data with properties
+1. **XDocument** (in @xnetjs/data) - Rich text documents with Yjs
+2. **DatabaseItem** (in @xnetjs/records) - Tabular data with properties
 
 But database items can also have rich text content, and documents can have metadata properties. This creates conceptual overlap.
 
@@ -87,7 +87,7 @@ flowchart TD
 // packages/core/src/document.ts
 
 import type { DID } from './did'
-import type { PropertyValue } from '@xnet/records'
+import type { PropertyValue } from '@xnetjs/records'
 
 /**
  * Document types in xNet
@@ -230,10 +230,10 @@ Maintain existing APIs while transitioning:
 ```typescript
 // packages/data/src/document.ts
 
-import type { Document, Page } from '@xnet/core'
+import type { Document, Page } from '@xnetjs/core'
 
 /**
- * @deprecated Use Document from @xnet/core instead
+ * @deprecated Use Document from @xnetjs/core instead
  * XDocument is now an alias for Page
  */
 export type XDocument = Page
@@ -268,10 +268,10 @@ export function createDocument(options: {
 ```typescript
 // packages/records/src/types.ts
 
-import type { Document, Item, Database } from '@xnet/core'
+import type { Document, Item, Database } from '@xnetjs/core'
 
 /**
- * @deprecated Use Item from @xnet/core instead
+ * @deprecated Use Item from @xnetjs/core instead
  */
 export type DatabaseItem = Item
 ```
@@ -281,7 +281,7 @@ export type DatabaseItem = Item
 ```typescript
 // packages/storage/src/adapters/document-adapter.ts
 
-import type { Document, DocumentType } from '@xnet/core'
+import type { Document, DocumentType } from '@xnetjs/core'
 
 export interface DocumentAdapter {
   /**
@@ -331,7 +331,7 @@ export interface DocumentAdapter {
 ```typescript
 // packages/react/src/hooks/useDocument.ts
 
-import type { Document, DocumentType, Page, Database, Item } from '@xnet/core'
+import type { Document, DocumentType, Page, Database, Item } from '@xnetjs/core'
 
 interface UseDocumentOptions {
   /** Enable real-time sync */
@@ -393,7 +393,7 @@ export function useItem(id: string, options?: UseDocumentOptions) {
 ```typescript
 // packages/query/src/types.ts
 
-import type { Document, DocumentType } from '@xnet/core'
+import type { Document, DocumentType } from '@xnetjs/core'
 
 export interface DocumentQuery {
   /** Filter by document type */
@@ -438,7 +438,7 @@ export function queryDocuments(query: DocumentQuery): Promise<Document[]> {
 
 ### Phase 1: Add Unified Types (No Breaking Changes)
 
-1. Add `Document` union type to @xnet/core
+1. Add `Document` union type to @xnetjs/core
 2. Add type guards
 3. Keep existing `XDocument` and `DatabaseItem` as aliases
 4. All existing code continues to work
@@ -564,13 +564,13 @@ describe('useDocument', () => {
 - [ ] Define `Page`, `Database`, `Item`, `Canvas`
 - [ ] Create `Document` union type
 - [ ] Add type guards (`isPage`, `isDatabase`, `isItem`, `isCanvas`)
-- [ ] Add to @xnet/core exports
+- [ ] Add to @xnetjs/core exports
 - [ ] Write type tests
 
 ### Day 3: Backward Compatibility
 
-- [ ] Create `XDocument` alias in @xnet/data (maps to `Page`)
-- [ ] Create `DatabaseItem` alias in @xnet/records (maps to `Item`)
+- [ ] Create `XDocument` alias in @xnetjs/data (maps to `Page`)
+- [ ] Create `DatabaseItem` alias in @xnetjs/records (maps to `Item`)
 - [ ] Add deprecation notices
 - [ ] Verify existing code compiles
 

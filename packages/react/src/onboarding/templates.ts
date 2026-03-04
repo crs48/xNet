@@ -1,5 +1,5 @@
 /**
- * @xnet/react/onboarding - Quick-start content templates
+ * @xnetjs/react/onboarding - Quick-start content templates
  */
 
 export interface QuickStartTemplate {

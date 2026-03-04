@@ -2,7 +2,7 @@
  * DID:key implementation for Ed25519 keys
  */
 import type { Identity, DID } from './types'
-import { generateSigningKeyPair, getSigningPublicKeyFromPrivate } from '@xnet/crypto'
+import { generateSigningKeyPair, getSigningPublicKeyFromPrivate } from '@xnetjs/crypto'
 import { base58btc } from 'multiformats/bases/base58'
 
 // Multicodec prefix for Ed25519 public key (0xed01)

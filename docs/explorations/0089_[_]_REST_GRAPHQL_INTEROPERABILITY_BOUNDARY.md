@@ -15,7 +15,7 @@ Yes, exposing data via REST or GraphQL can make sense for interoperability, but 
 1. xNet is fundamentally **local-first + sync-native**, not request/response-native.
 2. A full "xNet-as-REST-backend" or "xNet-as-GraphQL-backend" core pivot would likely dilute core strengths (offline behavior, peer semantics, capability-style auth, signed sync).
 3. A **narrow interoperability layer** is practical and high leverage:
-   - REST for durable, cacheable, operational endpoints (already partly true in `@xnet/hub`).
+   - REST for durable, cacheable, operational endpoints (already partly true in `@xnetjs/hub`).
    - Optional GraphQL for external consumers that need typed composition over read models.
 4. The right model is: **canonical local state + sync log** -> **derived interop views**.
 5. Recommendation: implement a staged **Interop Gateway** with explicit boundaries, quotas, and "no canonical writes bypassing NodeStore semantics".
@@ -65,7 +65,7 @@ This exploration combines:
 
 ### 1) xNet already has HTTP APIs (REST-like)
 
-`@xnet/hub` currently exposes multiple HTTP endpoints for backup/files/schema/discovery/federation/shards/crawl and health/metrics. This is already an interoperability surface.
+`@xnetjs/hub` currently exposes multiple HTTP endpoints for backup/files/schema/discovery/federation/shards/crawl and health/metrics. This is already an interoperability surface.
 
 ```mermaid
 flowchart LR

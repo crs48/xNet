@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - Fallback for authenticators without PRF support
+ * @xnetjs/identity/passkey - Fallback for authenticators without PRF support
  *
  * When the authenticator doesn't support the PRF extension, we generate
  * a random keypair, encrypt it with a key derived from the attestation
@@ -10,7 +10,7 @@
  */
 import type { HybridKeyBundle, DID } from '../types'
 import type { PasskeyIdentity, PasskeyUnlockResult, FallbackStorage } from './types'
-import { encrypt, decrypt, generateKey } from '@xnet/crypto'
+import { encrypt, decrypt, generateKey } from '@xnetjs/crypto'
 import { createKeyBundle } from '../key-bundle'
 import { serializeKeyBundleToBinary, deserializeKeyBundleFromBinary } from '../key-bundle-storage'
 

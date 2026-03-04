@@ -1,4 +1,4 @@
-import { randomBytes } from '@xnet/crypto'
+import { randomBytes } from '@xnetjs/crypto'
 import { describe, it, expect } from 'vitest'
 import {
   deriveKeyBundle,

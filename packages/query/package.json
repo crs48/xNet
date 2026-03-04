@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/query",
+  "name": "@xnetjs/query",
   "version": "0.0.1",
   "type": "module",
   "main": "./src/index.ts",
@@ -17,11 +17,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/data": "workspace:*",
-    "@xnet/identity": "workspace:*",
-    "@xnet/network": "workspace:*",
-    "@xnet/storage": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
+    "@xnetjs/network": "workspace:*",
+    "@xnetjs/storage": "workspace:*",
     "minisearch": "^7.1.2"
   },
   "devDependencies": {

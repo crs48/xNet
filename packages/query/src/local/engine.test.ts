@@ -1,5 +1,5 @@
 import type { SearchableDocument } from '../search/index'
-import { YDoc } from '@xnet/data'
+import { YDoc } from '@xnetjs/data'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createLocalQueryEngine, type LocalQueryEngine } from './engine'
 

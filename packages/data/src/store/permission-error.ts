@@ -1,4 +1,4 @@
-import type { AuthAction, AuthDecision, AuthDenyReason, DID } from '@xnet/core'
+import type { AuthAction, AuthDecision, AuthDenyReason, DID } from '@xnetjs/core'
 
 /**
  * Error thrown when a local mutation fails authorization checks.

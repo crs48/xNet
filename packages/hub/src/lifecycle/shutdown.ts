@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Graceful shutdown handler.
+ * @xnetjs/hub - Graceful shutdown handler.
  */
 
 export const registerShutdownHandlers = (

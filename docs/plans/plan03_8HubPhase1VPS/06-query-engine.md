@@ -7,11 +7,11 @@
 
 ## Codebase Status (Feb 2026)
 
-| Existing Asset        | Location                    | Relevance                                                                                   |
-| --------------------- | --------------------------- | ------------------------------------------------------------------------------------------- |
-| `useQuery` hook       | `packages/react/src/hooks/` | Currently does full table scan + client-side JS filtering. No comparison operators, no FTS. |
-| NodeStore queries     | `packages/data/src/store/`  | `listNodes()`, `countNodes()` — basic iteration only                                        |
-| `@xnet/query` package | `packages/query/`           | Exists but unclear scope — may contain query primitives                                     |
+| Existing Asset          | Location                    | Relevance                                                                                   |
+| ----------------------- | --------------------------- | ------------------------------------------------------------------------------------------- |
+| `useQuery` hook         | `packages/react/src/hooks/` | Currently does full table scan + client-side JS filtering. No comparison operators, no FTS. |
+| NodeStore queries       | `packages/data/src/store/`  | `listNodes()`, `countNodes()` — basic iteration only                                        |
+| `@xnetjs/query` package | `packages/query/`           | Exists but unclear scope — may contain query primitives                                     |
 
 ### Alignment with Exploration 0042 (Unified Query API)
 
@@ -266,7 +266,7 @@ export function handleQueryMessages(queryService: QueryService, auth: AuthContex
 
 ```typescript
 // packages/hub/src/client/query-client.ts
-// (Reference implementation — actual client code lives in @xnet/react)
+// (Reference implementation — actual client code lives in @xnetjs/react)
 
 /**
  * Helper for sending query requests over an existing WebSocket.

@@ -1,5 +1,5 @@
 /**
- * Test setup for @xnet/editor
+ * Test setup for @xnetjs/editor
  */
 import * as matchers from '@testing-library/jest-dom/matchers'
 import { expect } from 'vitest'

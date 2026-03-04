@@ -13,18 +13,18 @@ sidebar:
 pnpm test
 
 # Single package
-pnpm --filter @xnet/sync test
-pnpm --filter @xnet/data test
-pnpm --filter @xnet/canvas test
+pnpm --filter @xnetjs/sync test
+pnpm --filter @xnetjs/data test
+pnpm --filter @xnetjs/canvas test
 
 # Single file
-pnpm --filter @xnet/sync vitest run src/clock.test.ts
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
 
 # Pattern match
-pnpm --filter @xnet/data vitest run -t "NodeStore"
+pnpm --filter @xnetjs/data vitest run -t "NodeStore"
 
 # Watch mode
-pnpm --filter @xnet/sync test:watch
+pnpm --filter @xnetjs/sync test:watch
 ```
 
 ## Test structure
@@ -70,8 +70,8 @@ describe('ModuleName', () => {
 ### Generating test keys
 
 ```ts
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { generateIdentity } from '@xnet/identity'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { generateIdentity } from '@xnetjs/identity'
 
 const { publicKey, privateKey } = generateSigningKeyPair()
 const { identity, privateKey: signingKey } = generateIdentity()

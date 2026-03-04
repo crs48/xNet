@@ -124,17 +124,17 @@ xNet is a monorepo of focused packages:
 
 | Package          | Purpose                                                                               |
 | ---------------- | ------------------------------------------------------------------------------------- |
-| `@xnet/react`    | React hooks: `useQuery`, `useMutate`, `useNode`, `useCan`, `useGrants`, `useSecurity` |
-| `@xnet/data`     | Schema system, NodeStore, 15 property types, authorization engine                     |
-| `@xnet/sync`     | Lamport clocks, `Change` v3 (hybrid signatures), Yjs security                      |
-| `@xnet/crypto`   | BLAKE3, Ed25519, ML-DSA-65, X25519, ML-KEM-768, XChaCha20-Poly1305                    |
-| `@xnet/identity` | DID:key, HybridKeyBundle, PQ Key Registry, UCAN tokens, key recovery                  |
-| `@xnet/storage`  | SQLite adapter                                                                     |
-| `@xnet/canvas`   | Infinite canvas with spatial indexing                                                 |
-| `@xnet/editor`   | TipTap rich text editor                                                               |
-| `@xnet/devtools` | 9 debug panels + AuthZ panel + Security panel                                         |
+| `@xnetjs/react`    | React hooks: `useQuery`, `useMutate`, `useNode`, `useCan`, `useGrants`, `useSecurity` |
+| `@xnetjs/data`     | Schema system, NodeStore, 15 property types, authorization engine                     |
+| `@xnetjs/sync`     | Lamport clocks, `Change` v3 (hybrid signatures), Yjs security                      |
+| `@xnetjs/crypto`   | BLAKE3, Ed25519, ML-DSA-65, X25519, ML-KEM-768, XChaCha20-Poly1305                    |
+| `@xnetjs/identity` | DID:key, HybridKeyBundle, PQ Key Registry, UCAN tokens, key recovery                  |
+| `@xnetjs/storage`  | SQLite adapter                                                                     |
+| `@xnetjs/canvas`   | Infinite canvas with spatial indexing                                                 |
+| `@xnetjs/editor`   | TipTap rich text editor                                                               |
+| `@xnetjs/devtools` | 9 debug panels + AuthZ panel + Security panel                                         |
 
-For most apps, you only install `@xnet/react` and `@xnet/data`. Everything else is pulled in as needed.
+For most apps, you only install `@xnetjs/react` and `@xnetjs/data`. Everything else is pulled in as needed.
 
 ## Next steps
 
@@ -165,7 +165,7 @@ A task manager that works offline, syncs peer-to-peer, and persists to the local
    ```bash
    pnpm create vite my-app --template react-ts
    cd my-app
-   pnpm add @xnet/react @xnet/data
+   pnpm add @xnetjs/react @xnetjs/data
    ```
 
 2. **Define your schema**
@@ -173,7 +173,7 @@ A task manager that works offline, syncs peer-to-peer, and persists to the local
    Create a file that describes the shape of your data:
 
    ```ts title="src/schema.ts"
-   import { defineSchema, text, select, checkbox } from '@xnet/data'
+   import { defineSchema, text, select, checkbox } from '@xnetjs/data'
 
    export const TaskSchema = defineSchema({
      name: 'Task',
@@ -203,8 +203,8 @@ A task manager that works offline, syncs peer-to-peer, and persists to the local
    The provider initializes the NodeStore, storage, and sync system:
 
    ```tsx title="src/App.tsx"
-   import { XNetProvider } from '@xnet/react'
-   import { XNetDevToolsProvider } from '@xnet/devtools'
+   import { XNetProvider } from '@xnetjs/react'
+   import { XNetDevToolsProvider } from '@xnetjs/devtools'
    import { TaskList } from './TaskList'
 
    // In production, generate and persist these securely
@@ -223,13 +223,13 @@ A task manager that works offline, syncs peer-to-peer, and persists to the local
    ```
 
    **Identity in production**
-   For a real app, use `@xnet/identity` to generate a DID:key pair and store it securely. The Quick Start uses hardcoded values for simplicity.
+   For a real app, use `@xnetjs/identity` to generate a DID:key pair and store it securely. The Quick Start uses hardcoded values for simplicity.
    
 
 4. **Read data with `useQuery`**
 
    ```tsx title="src/TaskList.tsx"
-   import { useQuery, useMutate } from '@xnet/react'
+   import { useQuery, useMutate } from '@xnetjs/react'
    import { TaskSchema } from './schema'
 
    export function TaskList() {
@@ -2759,7 +2759,7 @@ const createProjectWithTasks = async () => {
 
 ## Storage
 
-xNet uses SQLite through the `@xnet/storage` adapter. Data is organized per-node:
+xNet uses SQLite through the `@xnetjs/storage` adapter. Data is organized per-node:
 
 - **Y.Doc state** — Full Yjs document state, BLAKE3-hashed for integrity
 - **Node properties** — Structured data from the NodeStore
@@ -2987,7 +2987,7 @@ All devices share the same DID — collaborators don't need to know which device
 
 ## Cryptographic primitives
 
-The `@xnet/crypto` package provides all the low-level operations:
+The `@xnetjs/crypto` package provides all the low-level operations:
 
 ### Hashing (BLAKE3)
 
@@ -3307,7 +3307,7 @@ When connectivity is restored, the offline queue drains automatically. You don't
 
 ## TipTap integration
 
-xNet's editor package (`@xnet/editor`) wraps TipTap with Yjs collaboration pre-configured. When you use the editor through `useNode`, the following extensions are active:
+xNet's editor package (`@xnetjs/editor`) wraps TipTap with Yjs collaboration pre-configured. When you use the editor through `useNode`, the following extensions are active:
 
 - **Collaboration** — Yjs document binding
 - **CollaborationCursor** — Remote cursor rendering
@@ -3362,7 +3362,7 @@ Most plugin development happens at Layer 2. Layers 3 and 4 are for advanced use 
    Every extension starts with an `XNetExtension` manifest. Use `defineExtension()` for validation:
 
    ```ts
-   import { defineExtension } from '@xnet/plugins'
+   import { defineExtension } from '@xnetjs/plugins'
 
    export const MyPlugin = defineExtension({
      id: 'com.example.my-plugin', // reverse-domain format
@@ -3390,7 +3390,7 @@ Most plugin development happens at Layer 2. Layers 3 and 4 are for advanced use 
    In your app setup, install the plugin with the registry:
 
    ```ts
-   import { usePluginRegistry } from '@xnet/react'
+   import { usePluginRegistry } from '@xnetjs/react'
    import { MyPlugin } from './plugins/my-plugin'
 
    function App() {
@@ -3405,7 +3405,7 @@ Most plugin development happens at Layer 2. Layers 3 and 4 are for advanced use 
 3. **Consume contributions in your UI**
 
    ```tsx
-   import { useViews, useCommands } from '@xnet/react'
+   import { useViews, useCommands } from '@xnetjs/react'
 
    function Sidebar() {
      const views = useViews()
@@ -4033,7 +4033,7 @@ If a plugin specifies `platforms` and the current platform isn't included, insta
 
 ## Overview
 
-`@xnet/canvas` provides an infinite, zoomable 2D surface where users can place, connect, and arrange nodes. The canvas supports real-time collaboration via Yjs — multiple users can simultaneously add, move, and connect nodes.
+`@xnetjs/canvas` provides an infinite, zoomable 2D surface where users can place, connect, and arrange nodes. The canvas supports real-time collaboration via Yjs — multiple users can simultaneously add, move, and connect nodes.
 
 ## Canvas component
 
@@ -4243,13 +4243,13 @@ The canvas supports spatial comments via `useCanvasComments`:
 
 ## Overview
 
-`@xnet/editor` is a collaborative rich text editor built on TipTap v3 with Yjs for real-time CRDT sync. It provides three entry points:
+`@xnetjs/editor` is a collaborative rich text editor built on TipTap v3 with Yjs for real-time CRDT sync. It provides three entry points:
 
 | Import                    | Contents                                 |
 | ------------------------- | ---------------------------------------- |
-| `@xnet/editor`            | Core `Editor` class (framework-agnostic) |
-| `@xnet/editor/react`      | React components, hooks, node views      |
-| `@xnet/editor/extensions` | All TipTap extensions and utilities      |
+| `@xnetjs/editor`            | Core `Editor` class (framework-agnostic) |
+| `@xnetjs/editor/react`      | React components, hooks, node views      |
+| `@xnetjs/editor/extensions` | All TipTap extensions and utilities      |
 
 ## RichTextEditor component
 
@@ -4498,7 +4498,7 @@ Your Hub is live. Copy the URL and configure your app:
     Best for development and testing.
 
     ```bash
-    npx @xnet/hub --port 4444 --data ~/.xnet-hub
+    npx @xnetjs/hub --port 4444 --data ~/.xnet-hub
     ```
 
     No TLS, no persistence guarantees. Use for local development only.
@@ -5032,18 +5032,18 @@ This produces platform-specific binaries. The signaling server URL and other con
 pnpm test
 
 # Single package
-pnpm --filter @xnet/sync test
-pnpm --filter @xnet/data test
-pnpm --filter @xnet/canvas test
+pnpm --filter @xnetjs/sync test
+pnpm --filter @xnetjs/data test
+pnpm --filter @xnetjs/canvas test
 
 # Single file
-pnpm --filter @xnet/sync vitest run src/clock.test.ts
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
 
 # Pattern match
-pnpm --filter @xnet/data vitest run -t "NodeStore"
+pnpm --filter @xnetjs/data vitest run -t "NodeStore"
 
 # Watch mode
-pnpm --filter @xnet/sync test:watch
+pnpm --filter @xnetjs/sync test:watch
 ```
 
 All tests use Vitest with the standard `describe` / `it` / `expect` structure.
@@ -5099,7 +5099,7 @@ describe('TaskSchema', () => {
 
 ## Testing crypto and signing
 
-Generate keys in tests using `@xnet/crypto` and `@xnet/identity`:
+Generate keys in tests using `@xnetjs/crypto` and `@xnetjs/identity`:
 
 ```ts
 
@@ -5405,8 +5405,8 @@ xNet uses two complementary CRDT strategies, each optimized for a different data
 
 | Data type       | CRDT        | Resolution                   | Package                        |
 | --------------- | ----------- | ---------------------------- | ------------------------------ |
-| Rich text       | Yjs         | Character-level merge        | `@xnet/sync` (Yjs integration) |
-| Structured data | Lamport LWW | Field-level last-writer-wins | `@xnet/sync` (clock + change)  |
+| Rich text       | Yjs         | Character-level merge        | `@xnetjs/sync` (Yjs integration) |
+| Structured data | Lamport LWW | Field-level last-writer-wins | `@xnetjs/sync` (clock + change)  |
 
 ### Why two strategies?
 
@@ -6094,7 +6094,7 @@ The current `mutate()` API returns per-operation results and runs through the ac
 
 ## Overview
 
-`@xnet/network` handles getting data between peers. It sits below the sync layer — sync decides _what_ to send, network decides _how_ to get it there.
+`@xnetjs/network` handles getting data between peers. It sits below the sync layer — sync decides _what_ to send, network decides _how_ to get it there.
 
 The package provides:
 
@@ -6282,25 +6282,25 @@ xNet is organized as a layered stack where each package builds on the ones below
 ┌─────────────────────────────────────────┐
 │  apps/electron  ·  apps/web             │  Applications
 ├─────────────────────────────────────────┤
-│  @xnet/react                            │  React bindings
+│  @xnetjs/react                            │  React bindings
 │  useQuery · useMutate · useNode         │
 │  useIdentity · XNetProvider             │
 ├─────────────────────────────────────────┤
-│  @xnet/data                             │  Data layer
+│  @xnetjs/data                             │  Data layer
 │  defineSchema · NodeStore               │
 │  15 property types · validation         │
 ├─────────────────────────────────────────┤
-│  @xnet/sync                             │  Sync primitives
+│  @xnetjs/sync                             │  Sync primitives
 │  Lamport clocks · Change · chains    │
 │  Yjs security · envelopes · scoring     │
 ├─────────────────────────────────────────┤
-│  @xnet/storage                          │  Persistence
+│  @xnetjs/storage                          │  Persistence
 │  SQLite adapter                         │
 ├─────────────────────────────────────────┤
-│  @xnet/identity                         │  Identity
+│  @xnetjs/identity                         │  Identity
 │  DID:key · UCAN · key management        │
 ├─────────────────────────────────────────┤
-│  @xnet/crypto                           │  Cryptography
+│  @xnetjs/crypto                           │  Cryptography
 │  BLAKE3 · Ed25519 · XChaCha20           │
 └─────────────────────────────────────────┘
 ```
@@ -6309,11 +6309,11 @@ xNet is organized as a layered stack where each package builds on the ones below
 
 | Package          | Purpose                                                             |
 | ---------------- | ------------------------------------------------------------------- |
-| `@xnet/plugins`  | 4-layer plugin system (scripts, extensions, services, integrations) |
-| `@xnet/canvas`   | Infinite canvas with spatial indexing                               |
-| `@xnet/editor`   | TipTap rich text editor with Yjs collaboration                      |
-| `@xnet/network`  | libp2p node, WebRTC/WebSocket transport, peer security              |
-| `@xnet/devtools` | 7 debug panels for inspecting sync, store, schema, and more         |
+| `@xnetjs/plugins`  | 4-layer plugin system (scripts, extensions, services, integrations) |
+| `@xnetjs/canvas`   | Infinite canvas with spatial indexing                               |
+| `@xnetjs/editor`   | TipTap rich text editor with Yjs collaboration                      |
+| `@xnetjs/network`  | libp2p node, WebRTC/WebSocket transport, peer security              |
+| `@xnetjs/devtools` | 7 debug panels for inspecting sync, store, schema, and more         |
 
 ## Design principles
 
@@ -6429,7 +6429,7 @@ flowchart LR
 - Parallelizable (tree hashing) for large inputs
 - No length extension attacks
 
-**Tradeoff:** SHA-256 has wider interoperability (most external systems expect it). We provide SHA-256 as a fallback option in `@xnet/crypto` for interop cases.
+**Tradeoff:** SHA-256 has wider interoperability (most external systems expect it). We provide SHA-256 as a fallback option in `@xnetjs/crypto` for interop cases.
 
 ## ADR-5: Named exports only
 
@@ -6513,17 +6513,17 @@ The core dependency chain flows upward. Lower packages cannot import from higher
 
 ```mermaid
 graph BT
-  crypto["@xnet/crypto"]
-  identity["@xnet/identity"]
-  storage["@xnet/storage"]
-  sync["@xnet/sync"]
-  data["@xnet/data"]
-  react["@xnet/react"]
-  network["@xnet/network"]
-  plugins["@xnet/plugins"]
-  editor["@xnet/editor"]
-  canvas["@xnet/canvas"]
-  devtools["@xnet/devtools"]
+  crypto["@xnetjs/crypto"]
+  identity["@xnetjs/identity"]
+  storage["@xnetjs/storage"]
+  sync["@xnetjs/sync"]
+  data["@xnetjs/data"]
+  react["@xnetjs/react"]
+  network["@xnetjs/network"]
+  plugins["@xnetjs/plugins"]
+  editor["@xnetjs/editor"]
+  canvas["@xnetjs/canvas"]
+  devtools["@xnetjs/devtools"]
 
   identity --> crypto
   storage --> identity
@@ -6556,69 +6556,69 @@ graph BT
 
 ## Package details
 
-### @xnet/crypto
+### @xnetjs/crypto
 
 **Dependencies:** `@noble/hashes`, `@noble/curves`, `@noble/ciphers`
 
 The foundation. Provides BLAKE3 hashing, Ed25519 signing, XChaCha20-Poly1305 encryption, X25519 key exchange, and encoding utilities. No xNet dependencies.
 
-### @xnet/identity
+### @xnetjs/identity
 
-**Dependencies:** `@xnet/crypto`
+**Dependencies:** `@xnetjs/crypto`
 
 DID:key creation and parsing, Ed25519/X25519 key bundle management, UCAN token creation and verification, passkey storage.
 
-### @xnet/storage
+### @xnetjs/storage
 
-**Dependencies:** `@xnet/identity`
+**Dependencies:** `@xnetjs/identity`
 
 SQLite adapter for persisting Y.Doc state, node properties, offline queue entries, and registry data across web (OPFS), desktop, and mobile.
 
-### @xnet/sync
+### @xnetjs/sync
 
-**Dependencies:** `@xnet/crypto`, `@xnet/identity`
+**Dependencies:** `@xnetjs/crypto`, `@xnetjs/identity`
 
 Core sync primitives: Lamport clocks, `Change` type, hash chains, Yjs security layer (signed envelopes, rate limiting, peer scoring, clientID attestation, update batching, integrity checking).
 
-### @xnet/data
+### @xnetjs/data
 
-**Dependencies:** `@xnet/sync`, `@xnet/crypto`
+**Dependencies:** `@xnetjs/sync`, `@xnetjs/crypto`
 
 Schema system (`defineSchema`, 15 property types), NodeStore (CRUD + change tracking), type inference (`FlatNode`, `InferCreateProps`), validation and coercion.
 
-### @xnet/react
+### @xnetjs/react
 
-**Dependencies:** `@xnet/data`, `@xnet/sync`, `@xnet/storage`, `react`
+**Dependencies:** `@xnetjs/data`, `@xnetjs/sync`, `@xnetjs/storage`, `react`
 
 React bindings: `useQuery`, `useMutate`, `useNode`, `useIdentity`, `XNetProvider`. Also contains the SyncManager, NodePool, Registry, OfflineQueue, ConnectionManager, MetaBridge, and plugin hooks.
 
-### @xnet/network
+### @xnetjs/network
 
-**Dependencies:** `@xnet/sync`, `@xnet/crypto`
+**Dependencies:** `@xnetjs/sync`, `@xnetjs/crypto`
 
 libp2p node setup, WebRTC and WebSocket transport, connection gating, peer scoring (GossipSub-inspired), auto-blocking, rate limiting at the connection level.
 
-### @xnet/plugins
+### @xnetjs/plugins
 
-**Dependencies:** `@xnet/data`, `acorn`
+**Dependencies:** `@xnetjs/data`, `acorn`
 
 Plugin system: extension manifest, registry, context, 9 contribution types, middleware chain, script sandbox (AST validation, frozen context, timeout), AI script generation, services (ProcessManager, ServiceClient), integrations (LocalAPI, MCPServer, WebhookEmitter), shortcut manager.
 
-### @xnet/editor
+### @xnetjs/editor
 
 **Dependencies:** `@tiptap/core`, Yjs
 
 TipTap editor wrapper with Yjs collaboration, custom extensions (Mermaid, etc.), slash command support.
 
-### @xnet/canvas
+### @xnetjs/canvas
 
-**Dependencies:** `@xnet/data`
+**Dependencies:** `@xnetjs/data`
 
 Infinite canvas with spatial indexing (R-tree), viewport management, zoom/pan, node positioning.
 
-### @xnet/devtools
+### @xnetjs/devtools
 
-**Dependencies:** `@xnet/react`
+**Dependencies:** `@xnetjs/react`
 
 7 debug panels: Sync, Store, Schema, Identity, Network, Plugins, Performance.
 
@@ -6626,9 +6626,9 @@ Infinite canvas with spatial indexing (R-tree), viewport management, zoom/pan, n
 
 **Lower packages cannot import from higher ones.** This ensures:
 
-- `@xnet/crypto` can be used standalone for any cryptographic operation
-- `@xnet/sync` can be used without React for server-side or CLI tools
-- `@xnet/data` can be used without a UI framework
+- `@xnetjs/crypto` can be used standalone for any cryptographic operation
+- `@xnetjs/sync` can be used without React for server-side or CLI tools
+- `@xnetjs/data` can be used without a UI framework
 - Each package is independently testable
 
 ## Applications
@@ -6638,7 +6638,7 @@ apps/electron    — Full-featured desktop app (all packages)
 apps/web         — PWA (pages only, subset of features)
 ```
 
-The Electron app uses all packages including `@xnet/plugins/node` for ProcessManager, LocalAPI, and MCP server. The web app uses the browser-safe subset.
+The Electron app uses all packages including `@xnetjs/plugins/node` for ProcessManager, LocalAPI, and MCP server. The web app uses the browser-safe subset.
 
 ---
 
@@ -6673,14 +6673,14 @@ This builds all packages in dependency order (crypto → identity → storage �
 pnpm test
 
 # Single package
-pnpm --filter @xnet/sync test
-pnpm --filter @xnet/data test
+pnpm --filter @xnetjs/sync test
+pnpm --filter @xnetjs/data test
 
 # Single file
-pnpm --filter @xnet/sync vitest run src/clock.test.ts
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
 
 # Watch mode
-pnpm --filter @xnet/sync test:watch
+pnpm --filter @xnetjs/sync test:watch
 ```
 
 ## Type checking
@@ -6714,7 +6714,7 @@ Launches two Electron windows connected to the same signaling server for testing
 ## Project structure
 
 ```
-packages/           # Core libraries (@xnet/*)
+packages/           # Core libraries (@xnetjs/*)
   crypto/           # BLAKE3, Ed25519, XChaCha20
   identity/         # DID:key, UCAN tokens
   storage/          # SQLite adapter
@@ -6750,8 +6750,8 @@ site/               # Documentation site (Astro + Starlight)
 | `pnpm test`                           | Run all tests            |
 | `pnpm typecheck`                      | Type check all packages  |
 | `pnpm lint`                           | Lint all packages        |
-| `pnpm --filter @xnet/sync test`       | Test a single package    |
-| `pnpm --filter @xnet/sync test:watch` | Watch mode for a package |
+| `pnpm --filter @xnetjs/sync test`       | Test a single package    |
+| `pnpm --filter @xnetjs/sync test:watch` | Watch mode for a package |
 
 ---
 
@@ -6804,7 +6804,7 @@ Imports follow a strict order, separated by blank lines:
 
 ```ts
 /**
- * @xnet/sync - Unified sync primitives for xNet
+ * @xnetjs/sync - Unified sync primitives for xNet
  */
 ```
 
@@ -6850,18 +6850,18 @@ Imports follow a strict order, separated by blank lines:
 pnpm test
 
 # Single package
-pnpm --filter @xnet/sync test
-pnpm --filter @xnet/data test
-pnpm --filter @xnet/canvas test
+pnpm --filter @xnetjs/sync test
+pnpm --filter @xnetjs/data test
+pnpm --filter @xnetjs/canvas test
 
 # Single file
-pnpm --filter @xnet/sync vitest run src/clock.test.ts
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
 
 # Pattern match
-pnpm --filter @xnet/data vitest run -t "NodeStore"
+pnpm --filter @xnetjs/data vitest run -t "NodeStore"
 
 # Watch mode
-pnpm --filter @xnet/sync test:watch
+pnpm --filter @xnetjs/sync test:watch
 ```
 
 ## Test structure

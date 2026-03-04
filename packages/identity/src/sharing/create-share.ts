@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/sharing - Create share tokens using UCAN
+ * @xnetjs/identity/sharing - Create share tokens using UCAN
  */
 import type { UCANCapability } from '../types'
 import type { ShareOptions, ShareToken, ShareData, SharePermission } from './types'

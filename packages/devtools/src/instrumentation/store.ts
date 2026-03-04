@@ -6,7 +6,7 @@
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
-import type { NodeStore, NodeChangeEvent } from '@xnet/data'
+import type { NodeStore, NodeChangeEvent } from '@xnetjs/data'
 import { DEFAULTS } from '../core/constants'
 
 export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => void {

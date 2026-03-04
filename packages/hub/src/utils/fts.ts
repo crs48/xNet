@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - FTS5 query sanitization.
+ * @xnetjs/hub - FTS5 query sanitization.
  */
 
 /**

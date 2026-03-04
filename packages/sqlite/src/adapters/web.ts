@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Web SQLite adapter using @sqlite.org/sqlite-wasm
+ * @xnetjs/sqlite - Web SQLite adapter using @sqlite.org/sqlite-wasm
  *
  * Uses the official SQLite WASM package with OPFS for browser-based persistence.
  * Must run in a Web Worker for OPFS access.

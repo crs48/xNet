@@ -838,7 +838,7 @@ Action: Post to #team-updates Slack channel
 For better DX, we can publish a custom n8n node:
 
 ```typescript
-// @xnet/n8n-node
+// @xnetjs/n8n-node
 // Installable in n8n as community node
 
 export class XNetNode implements INodeType {

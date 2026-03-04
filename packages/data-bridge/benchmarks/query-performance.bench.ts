@@ -4,9 +4,9 @@
  * Run with: npx vitest bench packages/data-bridge/benchmarks/
  */
 
-import type { DID } from '@xnet/core'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { NodeStore, MemoryNodeStorageAdapter, defineSchema, text, number, date } from '@xnet/data'
+import type { DID } from '@xnetjs/core'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { NodeStore, MemoryNodeStorageAdapter, defineSchema, text, number, date } from '@xnetjs/data'
 import { bench, describe, beforeAll, afterAll } from 'vitest'
 import { MainThreadBridge } from '../src/main-thread-bridge'
 

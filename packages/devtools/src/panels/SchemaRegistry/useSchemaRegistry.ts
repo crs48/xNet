@@ -2,7 +2,7 @@
  * Hook for the Schema Registry panel
  */
 
-import { schemaRegistry } from '@xnet/data'
+import { schemaRegistry } from '@xnetjs/data'
 import { useState, useEffect, useCallback } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 

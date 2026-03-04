@@ -1,7 +1,7 @@
 /**
  * NodeStore - Event-sourced storage for Nodes
  *
- * Manages Nodes using Change<T> from @xnet/sync with LWW conflict resolution.
+ * Manages Nodes using Change<T> from @xnetjs/sync with LWW conflict resolution.
  *
  * Key features:
  * - Simple CRUD API that creates Changes under the hood
@@ -33,9 +33,9 @@ import type {
 } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
-import type { AuthAction, AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
-import { base64ToBytes, bytesToBase64 } from '@xnet/crypto'
-import { parseDID } from '@xnet/identity'
+import type { AuthAction, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
+import { base64ToBytes, bytesToBase64 } from '@xnetjs/crypto'
+import { parseDID } from '@xnetjs/identity'
 import {
   createLamportClock,
   tick,
@@ -46,8 +46,8 @@ import {
   createBatchId,
   type LamportClock,
   type LamportTimestamp
-} from '@xnet/sync'
-import { verifyChange, verifyChangeHash } from '@xnet/sync'
+} from '@xnetjs/sync'
+import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
 import { PermissionError } from './permission-error'
 import { resolveTempIds, type SchemaLookup } from './tempids'

@@ -16,8 +16,8 @@
  * />
  * ```
  */
-import type { CommentThread } from '@xnet/react'
-import { CommentPopover, type CommentThreadData } from '@xnet/ui'
+import type { CommentThread } from '@xnetjs/react'
+import { CommentPopover, type CommentThreadData } from '@xnetjs/ui'
 import React, { useState, useCallback, useRef } from 'react'
 import {
   useCanvasComments,

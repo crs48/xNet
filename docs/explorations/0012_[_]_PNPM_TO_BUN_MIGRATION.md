@@ -276,19 +276,19 @@ const mockFn = mock(() => {})
 
 **Effort per package:**
 
-| Package        | Tests   | Mocks | Estimated Effort |
-| -------------- | ------- | ----- | ---------------- |
-| @xnet/core     | 1       | 0     | 5 min            |
-| @xnet/crypto   | 14      | 0     | 10 min           |
-| @xnet/identity | 9       | 0     | 10 min           |
-| @xnet/sync     | 36      | 0     | 20 min           |
-| @xnet/data     | 104     | 2     | 1 hr             |
-| @xnet/react    | 25      | 3     | 1 hr             |
-| @xnet/network  | 5       | 1     | 15 min           |
-| @xnet/query    | 12      | 0     | 15 min           |
-| @xnet/storage  | 8       | 0     | 10 min           |
-| Integration    | 24      | 1     | 30 min           |
-| **Total**      | **857** |       | **~4 hrs**       |
+| Package          | Tests   | Mocks | Estimated Effort |
+| ---------------- | ------- | ----- | ---------------- |
+| @xnetjs/core     | 1       | 0     | 5 min            |
+| @xnetjs/crypto   | 14      | 0     | 10 min           |
+| @xnetjs/identity | 9       | 0     | 10 min           |
+| @xnetjs/sync     | 36      | 0     | 20 min           |
+| @xnetjs/data     | 104     | 2     | 1 hr             |
+| @xnetjs/react    | 25      | 3     | 1 hr             |
+| @xnetjs/network  | 5       | 1     | 15 min           |
+| @xnetjs/query    | 12      | 0     | 15 min           |
+| @xnetjs/storage  | 8       | 0     | 10 min           |
+| Integration      | 24      | 1     | 30 min           |
+| **Total**        | **857** |       | **~4 hrs**       |
 
 ### Phase 3: Build System Migration
 

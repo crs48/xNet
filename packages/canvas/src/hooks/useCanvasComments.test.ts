@@ -1,7 +1,7 @@
 /**
  * Tests for useCanvasComments hook utilities.
  */
-import { encodeAnchor, type CanvasPositionAnchor, type CanvasObjectAnchor } from '@xnet/data'
+import { encodeAnchor, type CanvasPositionAnchor, type CanvasObjectAnchor } from '@xnetjs/data'
 import { describe, it, expect } from 'vitest'
 import {
   viewportToCanvas,

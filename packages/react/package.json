@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/react",
+  "name": "@xnetjs/react",
   "version": "0.0.1",
   "type": "module",
   "main": "./src/index.ts",
@@ -21,13 +21,13 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*",
-    "@xnet/data": "workspace:*",
-    "@xnet/data-bridge": "workspace:*",
-    "@xnet/history": "workspace:*",
-    "@xnet/identity": "workspace:*",
-    "@xnet/plugins": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/data-bridge": "workspace:*",
+    "@xnetjs/history": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
+    "@xnetjs/plugins": "workspace:*",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.24"
   },

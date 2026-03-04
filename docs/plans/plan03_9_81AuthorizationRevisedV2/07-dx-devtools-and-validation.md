@@ -33,7 +33,7 @@ export interface UseCanResult {
 
 export function useCan(nodeId: string): UseCanResult {
   // NOTE: uses internal useNodeStore() hook (not public useStore())
-  // useNodeStore is exported via @xnet/react/internal for devtools only
+  // useNodeStore is exported via @xnetjs/react/internal for devtools only
   const { store } = useNodeStoreInternal()
   const [state, setState] = useState<UseCanResult>({
     canRead: false,

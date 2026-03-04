@@ -274,7 +274,7 @@ These tables store collaborative document state using Yjs CRDTs.
 | `metadata` | TEXT    | JSON metadata              |
 | `version`  | INTEGER | Optimistic locking version |
 
-#### `updates` - @xnet/storage Compatibility
+#### `updates` - @xnetjs/storage Compatibility
 
 | Column        | Type       | Description              |
 | ------------- | ---------- | ------------------------ |
@@ -284,7 +284,7 @@ These tables store collaborative document state using Yjs CRDTs.
 | `update_data` | TEXT       | JSON-encoded update      |
 | `created_at`  | INTEGER    | Creation timestamp       |
 
-#### `snapshots` - @xnet/storage Compatibility
+#### `snapshots` - @xnetjs/storage Compatibility
 
 | Column          | Type    | Description           |
 | --------------- | ------- | --------------------- |
@@ -613,7 +613,7 @@ When the adapter initializes:
 ### 4. Verifying Migrations
 
 ```typescript
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 
 // Test migration from v1 to v2
 const db = await createMemorySQLiteAdapter()

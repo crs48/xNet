@@ -1,5 +1,5 @@
 /**
- * Shared utility functions for @xnet/history
+ * Shared utility functions for @xnetjs/history
  */
 
 /** Deep equality comparison for plain values */

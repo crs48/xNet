@@ -14,8 +14,8 @@ import {
   decodeAnchor,
   type CanvasPositionAnchor,
   type CanvasObjectAnchor
-} from '@xnet/data'
-import { useComments, type CommentThread } from '@xnet/react'
+} from '@xnetjs/data'
+import { useComments, type CommentThread } from '@xnetjs/react'
 import { useMemo, useCallback } from 'react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
