@@ -13,7 +13,7 @@
 
 ## Executive Summary
 
-The SQLite migration removed `IndexedDBNodeStorageAdapter` from `@xnet/data`, but the Electron renderer still needs node storage. Currently using `MemoryNodeStorageAdapter` as a temporary fix, which means **nodes don't persist locally** if the app closes before sync completes.
+The SQLite migration removed `IndexedDBNodeStorageAdapter` from `@xnetjs/data`, but the Electron renderer still needs node storage. Currently using `MemoryNodeStorageAdapter` as a temporary fix, which means **nodes don't persist locally** if the app closes before sync completes.
 
 This exploration designs an **IPC-based node storage adapter** that routes all NodeStore operations from the renderer to the data process's SQLite database.
 
@@ -148,7 +148,7 @@ A `NodeStorageAdapter` implementation that routes all operations via IPC:
 
 ```typescript
 // apps/electron/src/renderer/lib/ipc-node-storage.ts
-import type { NodeStorageAdapter, NodeState, NodeChange, ListNodesOptions } from '@xnet/data'
+import type { NodeStorageAdapter, NodeState, NodeChange, ListNodesOptions } from '@xnetjs/data'
 
 export class IPCNodeStorageAdapter implements NodeStorageAdapter {
   async get(id: string): Promise<NodeState | null> {

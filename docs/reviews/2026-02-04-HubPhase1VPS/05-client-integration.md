@@ -2,7 +2,7 @@
 
 ## Overview
 
-The hub client integration spans 25+ files across `@xnet/react`, `@xnet/data`, `@xnet/network`, and `@xnet/hub/client`. This document reviews the React hooks, sync providers, and data layer changes that connect the client to the hub.
+The hub client integration spans 25+ files across `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/network`, and `@xnetjs/hub/client`. This document reviews the React hooks, sync providers, and data layer changes that connect the client to the hub.
 
 ```mermaid
 graph TD

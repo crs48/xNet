@@ -1,6 +1,6 @@
 # 07: Storage Package Refactor
 
-> Refactor @xnet/storage to use SQLite, remove IndexedDB adapters.
+> Refactor @xnetjs/storage to use SQLite, remove IndexedDB adapters.
 
 **Duration:** 2 days
 **Dependencies:** [01-sqlite-adapter-interface.md](./01-sqlite-adapter-interface.md), [05-schema-and-migrations.md](./05-schema-and-migrations.md)
@@ -8,7 +8,7 @@
 
 ## Overview
 
-The `@xnet/storage` package provides document and blob storage abstractions. This step:
+The `@xnetjs/storage` package provides document and blob storage abstractions. This step:
 
 1. Creates `SQLiteStorageAdapter` implementing the `StorageAdapter` interface
 2. Updates `BlobStore` and `ChunkManager` to work with SQLite
@@ -104,7 +104,7 @@ export interface DocumentMetadata {
 ````typescript
 // packages/storage/src/adapters/sqlite.ts
 
-import type { SQLiteAdapter } from '@xnet/sqlite'
+import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import type { StorageAdapter, DocumentData, DocumentMetadata } from '../types'
 
 /**
@@ -115,7 +115,7 @@ import type { StorageAdapter, DocumentData, DocumentMetadata } from '../types'
  *
  * @example
  * ```typescript
- * import { createElectronSQLiteAdapter } from '@xnet/sqlite/electron'
+ * import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
  *
  * const sqliteAdapter = await createElectronSQLiteAdapter({ path: 'xnet.db' })
  * const storage = new SQLiteStorageAdapter(sqliteAdapter)
@@ -428,7 +428,7 @@ export class SQLiteStorageAdapter implements StorageAdapter {
 
   private async hashUpdate(data: Uint8Array): Promise<string> {
     // Simple hash for deduplication
-    // In production, use BLAKE3 from @xnet/crypto
+    // In production, use BLAKE3 from @xnetjs/crypto
     if (typeof crypto !== 'undefined' && crypto.subtle) {
       const hash = await crypto.subtle.digest('SHA-256', data)
       return this.encodeBase64(new Uint8Array(hash))
@@ -448,10 +448,10 @@ export class SQLiteStorageAdapter implements StorageAdapter {
 ```typescript
 // packages/storage/src/adapters/sqlite.ts (continued)
 
-import { createElectronSQLiteAdapter } from '@xnet/sqlite/electron'
-import { createWebSQLiteAdapter } from '@xnet/sqlite/web'
-import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
-import type { SQLiteConfig } from '@xnet/sqlite'
+import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
+import { createWebSQLiteAdapter } from '@xnetjs/sqlite/web'
+import { createExpoSQLiteAdapter } from '@xnetjs/sqlite/expo'
+import type { SQLiteConfig } from '@xnetjs/sqlite'
 
 /**
  * Create SQLiteStorageAdapter for Electron.
@@ -595,10 +595,10 @@ packages/storage/src/adapters/indexeddb.test.ts   # DELETE (if exists)
 
 ```diff
 {
-  "name": "@xnet/storage",
+  "name": "@xnetjs/storage",
   "dependencies": {
 -   "idb": "^8.0.0"
-+   "@xnet/sqlite": "workspace:*"
++   "@xnetjs/sqlite": "workspace:*"
   }
 }
 ```
@@ -610,8 +610,8 @@ packages/storage/src/adapters/indexeddb.test.ts   # DELETE (if exists)
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { SQLiteStorageAdapter } from './sqlite'
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
-import type { SQLiteAdapter } from '@xnet/sqlite'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
+import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import type { DocumentData } from '../types'
 
 describe('SQLiteStorageAdapter', () => {
@@ -875,7 +875,7 @@ For Electron, the existing SQLite data (if using better-sqlite3) will be migrate
 
 - [x] Update `packages/storage/src/index.ts` exports
 - [x] Remove IndexedDB adapter exports (keep for backward compat until all apps migrated)
-- [x] Add `@xnet/sqlite` dependency
+- [x] Add `@xnetjs/sqlite` dependency
 - [x] Remove `idb` dependency (keep until IndexedDB fully removed from all apps)
 
 ### Cleanup

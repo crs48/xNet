@@ -106,7 +106,7 @@ The negotiator finds the intersection of features both peers support. If a requi
 Every schema should have a semantic version:
 
 ```ts
-import { defineSchema } from '@xnet/data'
+import { defineSchema } from '@xnetjs/data'
 
 const TaskSchema = defineSchema({
   name: 'Task',
@@ -249,7 +249,7 @@ flowchart LR
 ### Creating a lens
 
 ```ts
-import { createLens, type SchemaLens } from '@xnet/data'
+import { createLens, type SchemaLens } from '@xnetjs/data'
 
 const taskV1ToV2: SchemaLens = createLens({
   from: '1.0.0',
@@ -274,7 +274,7 @@ const taskV1ToV2: SchemaLens = createLens({
 ### Registering lenses
 
 ```ts
-import { LensRegistry } from '@xnet/data'
+import { LensRegistry } from '@xnetjs/data'
 
 const registry = new LensRegistry()
 
@@ -300,7 +300,7 @@ The registry finds the shortest path between any two versions and chains the len
 ### Reading with migration
 
 ```ts
-import { NodeStore } from '@xnet/data'
+import { NodeStore } from '@xnetjs/data'
 
 const store = new NodeStore({ lensRegistry: registry })
 
@@ -377,7 +377,7 @@ const splitName = createLens({
 ### useQuery with migrations
 
 ```tsx
-import { useQuery } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
 
 function TaskList() {
   const { data: tasks } = useQuery({
@@ -539,7 +539,7 @@ flowchart LR
 Check for deprecations programmatically:
 
 ```ts
-import { checkDeprecations } from '@xnet/sync'
+import { checkDeprecations } from '@xnetjs/sync'
 
 const warnings = checkDeprecations({
   protocolVersion: 0,
@@ -565,8 +565,8 @@ The Version DevTools panel shows:
 Enable it in the DevTools:
 
 ```tsx
-import { XNetProvider } from '@xnet/react'
-import { XNetDevToolsProvider } from '@xnet/devtools'
+import { XNetProvider } from '@xnetjs/react'
+import { XNetDevToolsProvider } from '@xnetjs/devtools'
 
 function App() {
   return (

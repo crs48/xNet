@@ -23,7 +23,7 @@ Extracting it into a standalone utility enables:
 // packages/react/src/sync/meta-bridge.ts
 
 import * as Y from 'yjs'
-import type { NodeStore } from '@xnet/data'
+import type { NodeStore } from '@xnetjs/data'
 
 /**
  * Bridges Y.Doc meta map changes to the NodeStore.
@@ -119,7 +119,7 @@ return () => {
 import { describe, it, expect, vi } from 'vitest'
 import * as Y from 'yjs'
 import { createMetaBridge } from './meta-bridge'
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
 
 describe('MetaBridge', () => {
   it('should apply remote meta changes to NodeStore', async () => {

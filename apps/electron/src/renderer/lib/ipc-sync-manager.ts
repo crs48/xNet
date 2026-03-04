@@ -1,7 +1,7 @@
 /**
  * IPC-based Sync Manager for Electron renderer
  *
- * Implements the SyncManager interface from @xnet/react but routes all
+ * Implements the SyncManager interface from @xnetjs/react but routes all
  * operations through IPC to the main-process BSM. Y.Doc updates flow
  * through MessagePort channels for zero-copy binary transfer.
  *
@@ -12,8 +12,8 @@
  * which broadcasts it over WebSocket to other peers.
  */
 
-import type { SyncManager } from '@xnet/react'
-import { createYWebRTCProvider, type YWebRTCProvider } from '@xnet/network'
+import type { SyncManager } from '@xnetjs/react'
+import { createYWebRTCProvider, type YWebRTCProvider } from '@xnetjs/network'
 import {
   Awareness,
   encodeAwarenessUpdate,

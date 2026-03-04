@@ -1,5 +1,5 @@
 /**
- * @xnet/core - Core types, schemas, and content addressing
+ * @xnetjs/core - Core types, schemas, and content addressing
  */
 
 // Content addressing

@@ -9,8 +9,8 @@
  * - Auto types (created, updated, createdBy, updatedBy)
  */
 
-import type { ColumnType, SelectColor } from '@xnet/data'
-import { cn } from '@xnet/ui'
+import type { ColumnType, SelectColor } from '@xnetjs/data'
+import { cn } from '@xnetjs/ui'
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import { SelectOptionsEditor } from './SelectOptionsEditor'
 

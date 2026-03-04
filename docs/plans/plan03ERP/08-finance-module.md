@@ -2,8 +2,8 @@
 
 > Invoicing, expense management, budgets, and financial reporting
 
-**Package:** `modules/@xnet/finance`
-**Dependencies:** `@xnet/modules`, `@xnet/workflows`, `@xnet/dashboard`, `@xnet/data`
+**Package:** `modules/@xnetjs/finance`
+**Dependencies:** `@xnetjs/modules`, `@xnetjs/workflows`, `@xnetjs/dashboard`, `@xnetjs/data`
 **Estimated Time:** 3 weeks
 
 > **Architecture Update (Jan 2026):**
@@ -24,7 +24,7 @@
 ```typescript
 // modules/finance/src/module.ts
 
-import { ModuleDefinition } from '@xnet/modules'
+import { ModuleDefinition } from '@xnetjs/modules'
 
 export const FinanceModule: ModuleDefinition = {
   id: 'mod:finance',
@@ -473,7 +473,7 @@ export const budgetsDatabase: DatabaseTemplate = {
 ```typescript
 // modules/finance/src/services/InvoiceService.ts
 
-import { DatabaseManager } from '@xnet/database'
+import { DatabaseManager } from '@xnetjs/database'
 import { PDFGenerator } from './PDFGenerator'
 
 export class InvoiceService {

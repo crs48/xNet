@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Search indexer tests.
+ * @xnetjs/hub - Search indexer tests.
  */
 
 import type { HubStorage, DatabaseRowRecord } from '../src/storage/interface'

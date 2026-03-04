@@ -5,7 +5,7 @@
  * detecting storage-level corruption before it propagates.
  */
 
-import { hashHex } from '@xnet/crypto'
+import { hashHex } from '@xnetjs/crypto'
 
 /**
  * Compute a BLAKE3 hash of Yjs state bytes.

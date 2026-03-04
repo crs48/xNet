@@ -3,7 +3,7 @@
 > useDatabase and useDatabaseRow hooks for database operations
 
 **Duration:** 4-5 days
-**Dependencies:** `@xnet/react` (useNode), `@xnet/data` (NodeStore, row operations)
+**Dependencies:** `@xnetjs/react` (useNode), `@xnetjs/data` (NodeStore, row operations)
 
 ## Overview
 
@@ -49,8 +49,8 @@ flowchart TB
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useStore } from './useStore'
 import { useDatabaseDoc } from './useDatabaseDoc'
-import { queryRows, createRow, updateCell, deleteRow, moveRow } from '@xnet/data'
-import type { Node, ColumnDefinition, ViewConfig, FilterGroup, SortConfig } from '@xnet/data'
+import { queryRows, createRow, updateCell, deleteRow, moveRow } from '@xnetjs/data'
+import type { Node, ColumnDefinition, ViewConfig, FilterGroup, SortConfig } from '@xnetjs/data'
 
 export interface UseDatabaseOptions {
   /** Active view ID (uses default if not specified) */
@@ -314,8 +314,8 @@ function nodeToRow(node: Node, columns: ColumnDefinition[]): DatabaseRow {
 import { useState, useEffect, useCallback, useRef } from 'react'
 import * as Y from 'yjs'
 import { useStore } from './useStore'
-import { updateCell, deleteRow } from '@xnet/data'
-import type { Node, ColumnDefinition } from '@xnet/data'
+import { updateCell, deleteRow } from '@xnetjs/data'
+import type { Node, ColumnDefinition } from '@xnetjs/data'
 
 export interface UseDatabaseRowResult {
   /** Row data */
@@ -467,7 +467,7 @@ export function useDatabaseRow(rowId: string): UseDatabaseRowResult {
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useStore } from './useStore'
-import { updateCell } from '@xnet/data'
+import { updateCell } from '@xnetjs/data'
 
 export interface UseCellResult<T = unknown> {
   /** Cell value */

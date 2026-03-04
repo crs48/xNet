@@ -235,8 +235,8 @@ export interface HubAuthError {
 Contract tests ensure hub and store action constants stay in sync:
 
 ```typescript
-import { AUTH_ACTIONS } from '@xnet/core'
-import { HUB_ACTION_MAP } from '@xnet/hub'
+import { AUTH_ACTIONS } from '@xnetjs/core'
+import { HUB_ACTION_MAP } from '@xnetjs/hub'
 
 describe('Hub/Store Action Drift', () => {
   it('every hub action maps to a valid canonical action', () => {

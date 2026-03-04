@@ -4,7 +4,7 @@
 
 **Duration:** 2-3 days
 **Dependencies:** All previous steps
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

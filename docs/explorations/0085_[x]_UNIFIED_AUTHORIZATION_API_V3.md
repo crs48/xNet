@@ -72,12 +72,12 @@ flowchart TB
 
 Observed current state in repository:
 
-- `@xnet/identity` already has working `createUCAN`, `verifyUCAN`, proof-chain checks, and attenuation checks.
-- `@xnet/hub` already enforces UCAN on websocket/http authentication.
-- `@xnet/data` `defineSchema()` currently has no native authorization fields.
-- `@xnet/core` has permission types but they are not integrated with `NodeStore` runtime enforcement.
+- `@xnetjs/identity` already has working `createUCAN`, `verifyUCAN`, proof-chain checks, and attenuation checks.
+- `@xnetjs/hub` already enforces UCAN on websocket/http authentication.
+- `@xnetjs/data` `defineSchema()` currently has no native authorization fields.
+- `@xnetjs/core` has permission types but they are not integrated with `NodeStore` runtime enforcement.
 
-Design implication: we should add authorization first in `@xnet/data` schema/store and wire into existing UCAN + hub auth, rather than replacing UCAN infrastructure.
+Design implication: we should add authorization first in `@xnetjs/data` schema/store and wire into existing UCAN + hub auth, rather than replacing UCAN infrastructure.
 
 ---
 
@@ -286,7 +286,7 @@ flowchart TD
 
 ### Phase 1: Schema + Evaluator Foundation
 
-- [ ] Add `authorization` to `defineSchema` in `@xnet/data`.
+- [ ] Add `authorization` to `defineSchema` in `@xnetjs/data`.
 - [ ] Implement expression parsing/builders + schema-time validation.
 - [ ] Implement `AuthEvaluator` with relation traversal and explanation output.
 
@@ -298,7 +298,7 @@ flowchart TD
 
 ### Phase 3: UCAN Bridge
 
-- [ ] Implement `store.auth.grant/revoke/listGrants` on top of `@xnet/identity` UCAN.
+- [ ] Implement `store.auth.grant/revoke/listGrants` on top of `@xnetjs/identity` UCAN.
 - [ ] Add revocation record storage + sync propagation.
 - [ ] Merge membership and UCAN checks in evaluator.
 

@@ -1,11 +1,11 @@
-# @xnet/plugins
+# @xnetjs/plugins
 
 Plugin system for xNet -- registry, sandboxed script execution, AI-powered script generation, and service integrations.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/plugins
+pnpm add @xnetjs/plugins
 ```
 
 ## Features
@@ -33,7 +33,7 @@ pnpm add @xnet/plugins
 ### Plugin Registry
 
 ```typescript
-import { PluginRegistry, defineExtension, validateManifest } from '@xnet/plugins'
+import { PluginRegistry, defineExtension, validateManifest } from '@xnetjs/plugins'
 
 const registry = new PluginRegistry()
 
@@ -62,7 +62,7 @@ registry.register(myPlugin)
 ### Sandboxed Scripts
 
 ```typescript
-import { ScriptSandbox, ScriptRunner } from '@xnet/plugins'
+import { ScriptSandbox, ScriptRunner } from '@xnetjs/plugins'
 
 // Validate and run user scripts safely
 const sandbox = new ScriptSandbox()
@@ -80,7 +80,7 @@ const result = await runner.run(
 ### AI Script Generation
 
 ```typescript
-import { ScriptGenerator } from '@xnet/plugins'
+import { ScriptGenerator } from '@xnetjs/plugins'
 
 const generator = new ScriptGenerator({
   provider: 'anthropic',
@@ -95,7 +95,7 @@ const script = await generator.generate(
 ### Shortcut Manager
 
 ```typescript
-import { ShortcutManager } from '@xnet/plugins'
+import { ShortcutManager } from '@xnetjs/plugins'
 
 const shortcuts = new ShortcutManager()
 shortcuts.register('mod+shift+t', () => openTaskPanel())
@@ -106,7 +106,7 @@ shortcuts.register('mod+/', () => openSlashMenu())
 
 ```typescript
 // Import from the /node subpath
-import { MCPServer, WebhookEmitter, LocalAPIServer } from '@xnet/plugins/node'
+import { MCPServer, WebhookEmitter, LocalAPIServer } from '@xnetjs/plugins/node'
 
 // MCP server for AI tool integration
 const mcp = new MCPServer(registry, store)
@@ -190,14 +190,14 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/data`
+- `@xnetjs/core`, `@xnetjs/data`
 - `acorn` -- JavaScript AST parsing for sandbox validation
 - Peer deps: `@tiptap/core`, `react`
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/plugins test
+pnpm --filter @xnetjs/plugins test
 ```
 
 8 test files covering registry, middleware, sandbox, shortcuts, AI, local API, webhooks, and MCP.

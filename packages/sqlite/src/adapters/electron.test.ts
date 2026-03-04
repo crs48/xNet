@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Electron adapter tests with better-sqlite3
+ * @xnetjs/sqlite - Electron adapter tests with better-sqlite3
  *
  * These tests use the actual better-sqlite3 library to test:
  * - FTS5 full-text search (not available in sql.js)

@@ -1,12 +1,12 @@
 /**
- * Tests for @xnet/history
+ * Tests for @xnetjs/history
  */
 
 import type { PrunableStorageAdapter } from './pruning'
-import type { DID } from '@xnet/core'
-import type { SchemaIRI, NodeStorageAdapter, NodeChange } from '@xnet/data'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+import type { DID } from '@xnetjs/core'
+import type { SchemaIRI, NodeStorageAdapter, NodeChange } from '@xnetjs/data'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AuditIndex } from './audit-index'
 import { BlameEngine } from './blame'

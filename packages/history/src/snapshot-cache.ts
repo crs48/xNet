@@ -7,8 +7,8 @@
  */
 
 import type { Snapshot, SnapshotCacheOptions, CacheStats } from './types'
-import type { ContentId } from '@xnet/core'
-import type { NodeState, NodeId, NodeStore } from '@xnet/data'
+import type { ContentId } from '@xnetjs/core'
+import type { NodeState, NodeId, NodeStore } from '@xnetjs/data'
 
 // ─── Storage Adapter ─────────────────────────────────────────
 

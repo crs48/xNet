@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Database diagnostics and analysis utilities
+ * @xnetjs/sqlite - Database diagnostics and analysis utilities
  *
  * These functions help debug performance issues, analyze query plans,
  * and inspect database state.

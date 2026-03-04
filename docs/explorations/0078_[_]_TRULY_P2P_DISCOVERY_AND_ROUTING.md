@@ -93,7 +93,7 @@ From the codebase analysis:
 | Custom sync protocol | `packages/network/src/protocols/sync.ts`    | Dormant            |
 | WebSocket signaling  | `packages/hub/src/services/signaling.ts`    | Active             |
 
-**Key insight:** The infrastructure for P2P is already scaffolded in `@xnet/network`. It just needs to be activated and integrated.
+**Key insight:** The infrastructure for P2P is already scaffolded in `@xnetjs/network`. It just needs to be activated and integrated.
 
 ---
 

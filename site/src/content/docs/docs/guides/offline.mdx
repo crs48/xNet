@@ -81,7 +81,7 @@ function TaskList() {
 ### Connection status indicator
 
 ```tsx
-import { useSyncManager } from '@xnet/react'
+import { useSyncManager } from '@xnetjs/react'
 
 function NetworkBadge() {
   const sync = useSyncManager()
@@ -138,7 +138,7 @@ const createProjectWithTasks = async () => {
 
 ## Storage
 
-xNet uses SQLite through the `@xnet/storage` adapter. Data is organized per-node:
+xNet uses SQLite through the `@xnetjs/storage` adapter. Data is organized per-node:
 
 - **Y.Doc state** — Full Yjs document state, BLAKE3-hashed for integrity
 - **Node properties** — Structured data from the NodeStore

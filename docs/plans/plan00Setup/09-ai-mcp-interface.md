@@ -28,7 +28,7 @@ flowchart TB
         Other["Other MCP Clients"]
     end
 
-    subgraph MCP["MCP Server (@xnet/mcp)"]
+    subgraph MCP["MCP Server (@xnetjs/mcp)"]
         subgraph Tools["Tool Categories"]
             Pages["Page Tools"]
             DBTools["Database Tools"]
@@ -740,8 +740,8 @@ packages/mcp/
 ### Dependencies
 
 - `@modelcontextprotocol/sdk` - MCP server framework
-- `@xnet/storage` - Data access
-- `@xnet/query` - Search and filtering
+- `@xnetjs/storage` - Data access
+- `@xnetjs/query` - Search and filtering
 - `prosemirror-markdown` - Content conversion
 - `gray-matter` - Frontmatter parsing
 

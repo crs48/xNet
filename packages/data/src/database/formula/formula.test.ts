@@ -1,5 +1,5 @@
 /**
- * @xnet/data - Formula parser, evaluator, and dependency tests.
+ * @xnetjs/data - Formula parser, evaluator, and dependency tests.
  */
 
 import type { ColumnDefinition } from '../column-types'

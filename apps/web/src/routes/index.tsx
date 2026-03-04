@@ -2,8 +2,8 @@
  * Home page - document list with all types
  */
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
-import { useQuery } from '@xnet/react'
+import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
+import { useQuery } from '@xnetjs/react'
 import { FileText, Database, Layout, Plus, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 

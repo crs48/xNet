@@ -128,7 +128,7 @@ invoke: (channel, ...args) => {
 
 ### SEC-04: Plugin Sandbox Cannot Stop Infinite Loops
 
-**Package:** `@xnet/plugins`
+**Package:** `@xnetjs/plugins`
 **File:** `src/sandbox/sandbox.ts:219-241`
 
 ```typescript
@@ -152,7 +152,7 @@ The `setTimeout` callback can never fire while `fn(ctx)` is executing synchronou
 
 ### SEC-05: UCAN Signature Computed Over Wrong Data
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `src/ucan.ts:50-56`
 
 ```typescript
@@ -314,7 +314,7 @@ graph TD
 
 ### Phase 1 (Daily Driver) -- Fix during dog-fooding
 
-- [ ] **SEC-12:** Add hex character validation to `hexToBytes` in `@xnet/crypto` -- silent corruption affects hashing everywhere
+- [ ] **SEC-12:** Add hex character validation to `hexToBytes` in `@xnetjs/crypto` -- silent corruption affects hashing everywhere
 - [ ] **SEC-06:** Add TODO/warning comment on hardcoded test key with link to Phase 2.2 auth plan
 
 ### Phase 2 (Hub MVP) -- Fix before hub launch

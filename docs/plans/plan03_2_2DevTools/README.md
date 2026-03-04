@@ -4,11 +4,11 @@
 
 ## Executive Summary
 
-This plan creates `@xnet/devtools` - an embeddable developer toolkit for inspecting, debugging, and understanding xNet applications across all platforms. Unlike generic React devtools, this is protocol-aware: it understands Nodes, Schemas, Lamport clocks, hash chains, P2P sync, Yjs CRDTs, and the upcoming telemetry/security layer.
+This plan creates `@xnetjs/devtools` - an embeddable developer toolkit for inspecting, debugging, and understanding xNet applications across all platforms. Unlike generic React devtools, this is protocol-aware: it understands Nodes, Schemas, Lamport clocks, hash chains, P2P sync, Yjs CRDTs, and the upcoming telemetry/security layer.
 
 ```typescript
 // Drop-in integration - zero config
-import { DevToolsProvider } from '@xnet/devtools'
+import { DevToolsProvider } from '@xnetjs/devtools'
 
 function App() {
   return (
@@ -27,8 +27,8 @@ function App() {
 | ------------------------ | ------------------------------------------------------------------- |
 | **Zero-config**          | Works by wrapping your app with `<DevToolsProvider>`                |
 | **Protocol-aware**       | Understands Nodes, Changes, Lamport timestamps, hash chains         |
-| **Tree-shakeable**       | `import '@xnet/devtools'` in dev only; zero bytes in production     |
-| **Reuses existing UI**   | Leverages `@xnet/views` TableView for node browsing                 |
+| **Tree-shakeable**       | `import '@xnetjs/devtools'` in dev only; zero bytes in production   |
+| **Reuses existing UI**   | Leverages `@xnetjs/views` TableView for node browsing               |
 | **Platform-agnostic**    | Works in Electron, Expo (via overlay), and Web                      |
 | **Telemetry-integrated** | Displays security events, peer scores, consent status from plan03_1 |
 | **Non-invasive**         | Instrumentation via subscription/proxy, never mutates app state     |
@@ -45,7 +45,7 @@ flowchart TB
         YDocs["Y.Doc instances"]
     end
 
-    subgraph Instrumentation["@xnet/devtools (instrumentation)"]
+    subgraph Instrumentation["@xnetjs/devtools (instrumentation)"]
         EventBus["DevToolsEventBus"]
         StoreInstr["StoreInstrumentation"]
         SyncInstr["SyncInstrumentation"]
@@ -54,7 +54,7 @@ flowchart TB
         TelInstr["TelemetryInstrumentation"]
     end
 
-    subgraph UI["@xnet/devtools (panels)"]
+    subgraph UI["@xnetjs/devtools (panels)"]
         Shell["DevToolsPanel (tab container)"]
         NE["Node Explorer"]
         CT["Change Timeline"]
@@ -89,18 +89,18 @@ flowchart TB
 
 ## Current State
 
-| Feature              | Status  | Notes                                                                    |
-| -------------------- | ------- | ------------------------------------------------------------------------ |
-| Package scaffold     | Done    | package.json, tsconfig, conditional exports, build works                 |
-| Instrumentation bus  | Done    | Ring buffer EventBus, store/sync/yjs instrumentation                     |
-| Node Explorer        | Done    | @xnet/views TableView with virtual scrolling, schema filter, detail pane |
-| Change Timeline      | Done    | Lamport-ordered timeline with type/node filtering                        |
-| Sync Monitor         | Done    | Peer list, connection status, sync event log                             |
-| Yjs Inspector        | Done    | Doc tree structure, state vectors, update log                            |
-| Query Debugger       | Done    | QueryTracker, hook list, perf metrics, detail pane                       |
-| Telemetry Panel      | Done    | Security/performance/consent sub-tabs, instrumentation                   |
-| Schema Registry      | Done    | Schema browser with node counts                                          |
-| Platform integration | Partial | Ctrl+Shift+D + 4-finger tap + Electron menu item, Expo not tested        |
+| Feature              | Status  | Notes                                                                      |
+| -------------------- | ------- | -------------------------------------------------------------------------- |
+| Package scaffold     | Done    | package.json, tsconfig, conditional exports, build works                   |
+| Instrumentation bus  | Done    | Ring buffer EventBus, store/sync/yjs instrumentation                       |
+| Node Explorer        | Done    | @xnetjs/views TableView with virtual scrolling, schema filter, detail pane |
+| Change Timeline      | Done    | Lamport-ordered timeline with type/node filtering                          |
+| Sync Monitor         | Done    | Peer list, connection status, sync event log                               |
+| Yjs Inspector        | Done    | Doc tree structure, state vectors, update log                              |
+| Query Debugger       | Done    | QueryTracker, hook list, perf metrics, detail pane                         |
+| Telemetry Panel      | Done    | Security/performance/consent sub-tabs, instrumentation                     |
+| Schema Registry      | Done    | Schema browser with node counts                                            |
+| Platform integration | Partial | Ctrl+Shift+D + 4-finger tap + Electron menu item, Expo not tested          |
 
 ## Implementation Phases
 
@@ -113,7 +113,7 @@ flowchart TB
 
 **Validation Gate:**
 
-- [x] `@xnet/devtools` package builds successfully
+- [x] `@xnetjs/devtools` package builds successfully
 - [x] EventBus captures store CRUD events
 - [x] EventBus captures sync status changes
 - [x] Production builds tree-shake to 0 bytes
@@ -144,7 +144,7 @@ flowchart TB
 **Validation Gate:**
 
 - [x] Node Explorer shows all nodes grouped by schema
-- [x] Node Explorer uses `@xnet/views` TableView for rendering
+- [x] Node Explorer uses `@xnetjs/views` TableView for rendering
 - [x] Change Timeline shows Lamport-ordered changes
 - [x] Conflicts are highlighted with resolution info
 - [x] Sync Monitor shows live peer list with status
@@ -212,7 +212,7 @@ packages/devtools/
 │   │
 │   ├── panels/
 │   │   ├── Shell.tsx               # Tab container, resize, layout
-│   │   ├── NodeExplorer/           # Uses @xnet/views TableView
+│   │   ├── NodeExplorer/           # Uses @xnetjs/views TableView
 │   │   ├── ChangeTimeline/         # Lamport timeline + time-travel
 │   │   ├── SyncMonitor/            # P2P status + event log
 │   │   ├── YjsInspector/           # Y.Doc tree view
@@ -232,14 +232,14 @@ packages/devtools/
 
 ## Dependencies
 
-| Package       | Version   | Purpose                                  |
-| ------------- | --------- | ---------------------------------------- |
-| `@xnet/data`  | workspace | NodeStore, SchemaRegistry types          |
-| `@xnet/sync`  | workspace | Change, LamportClock, SyncProvider types |
-| `@xnet/views` | workspace | TableView for Node Explorer              |
-| `@xnet/react` | workspace | Hook types, NodeStoreContext             |
-| `react`       | ^18       | Peer dependency                          |
-| `yjs`         | ^13       | Peer dependency (Y.Doc inspection)       |
+| Package         | Version   | Purpose                                  |
+| --------------- | --------- | ---------------------------------------- |
+| `@xnetjs/data`  | workspace | NodeStore, SchemaRegistry types          |
+| `@xnetjs/sync`  | workspace | Change, LamportClock, SyncProvider types |
+| `@xnetjs/views` | workspace | TableView for Node Explorer              |
+| `@xnetjs/react` | workspace | Hook types, NodeStoreContext             |
+| `react`         | ^18       | Peer dependency                          |
+| `yjs`           | ^13       | Peer dependency (Y.Doc inspection)       |
 
 No additional external dependencies. All UI is built with Tailwind classes available from the host app.
 
@@ -253,13 +253,13 @@ Rather than wrapping NodeStore methods with Proxy (fragile, breaks types), we us
 
 The EventBus stores events in a fixed-size ring buffer (default 10,000 events). This prevents memory growth during long sessions while keeping enough history for debugging.
 
-### 3. Reuse @xnet/views TableView
+### 3. Reuse @xnetjs/views TableView
 
 Node Explorer renders using the existing `TableView` component with synthesized schemas. This gives us virtual scrolling, sorting, filtering, and column management for free.
 
 ### 4. Telemetry Integration
 
-The Telemetry Panel reads from the same `NodeStore` that `@xnet/telemetry` writes to. SecurityEvents, PerformanceMetrics, and CrashReports are just Nodes with known schemas - we query them with `useQuery`.
+The Telemetry Panel reads from the same `NodeStore` that `@xnetjs/telemetry` writes to. SecurityEvents, PerformanceMetrics, and CrashReports are just Nodes with known schemas - we query them with `useQuery`.
 
 ### 5. Platform Strategy
 
@@ -279,7 +279,7 @@ The Telemetry Panel reads from the same `NodeStore` that `@xnet/telemetry` write
 5. **Cross-platform** - Works on Electron, Web, and Expo
 6. **Performance** - <1ms overhead per instrumented operation
 7. **Memory-bounded** - Ring buffer caps at configurable limit
-8. **Reuses UI** - TableView from @xnet/views for node rendering
+8. **Reuses UI** - TableView from @xnetjs/views for node rendering
 
 ## Reference Documents
 

@@ -7,7 +7,7 @@
  * @see docs/explorations/0074_ELECTRON_IPC_NODE_STORAGE.md
  */
 
-import type { ContentId, DID } from '@xnet/core'
+import type { ContentId, DID } from '@xnetjs/core'
 import type {
   NodeStorageAdapter,
   NodeState,
@@ -16,8 +16,8 @@ import type {
   ListNodesOptions,
   CountNodesOptions,
   SchemaIRI
-} from '@xnet/data'
-import type { LamportTimestamp } from '@xnet/sync'
+} from '@xnetjs/data'
+import type { LamportTimestamp } from '@xnetjs/sync'
 
 // Debug logging - controlled by localStorage flag (same as sync debug)
 function log(...args: unknown[]): void {

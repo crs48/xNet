@@ -3,7 +3,7 @@
 > CRDT-based column definitions and view configurations
 
 **Duration:** 3-4 days
-**Dependencies:** `@xnet/sync` (Yjs integration), `@xnet/data` (Database schema)
+**Dependencies:** `@xnetjs/sync` (Yjs integration), `@xnetjs/data` (Database schema)
 
 ## Overview
 
@@ -678,8 +678,8 @@ interface SortConfig {
 import { useEffect, useState, useCallback } from 'react'
 import * as Y from 'yjs'
 import { useNode } from './useNode'
-import { getColumns, createColumn, updateColumn, deleteColumn, reorderColumn } from '@xnet/data'
-import type { ColumnDefinition, ColumnType, ColumnConfig } from '@xnet/data'
+import { getColumns, createColumn, updateColumn, deleteColumn, reorderColumn } from '@xnetjs/data'
+import type { ColumnDefinition, ColumnType, ColumnConfig } from '@xnetjs/data'
 
 export interface UseDatabaseDocResult {
   /** All column definitions */

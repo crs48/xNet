@@ -14,12 +14,12 @@ A clean, minimal, timeless design system for xNet applications.
 
 ```tsx
 // Import styles
-import '@xnet/ui/tokens.css'
-import '@xnet/ui/motion.css'
-import '@xnet/ui/accessibility.css'
+import '@xnetjs/ui/tokens.css'
+import '@xnetjs/ui/motion.css'
+import '@xnetjs/ui/accessibility.css'
 
 // Import components
-import { Button, Input, Modal } from '@xnet/ui'
+import { Button, Input, Modal } from '@xnetjs/ui'
 ```
 
 ## Color Tokens
@@ -122,7 +122,7 @@ import { Button, Input, Modal } from '@xnet/ui'
 ### Button
 
 ```tsx
-import { Button } from '@xnet/ui'
+import { Button } from '@xnetjs/ui'
 
 // Variants
 <Button variant="default">Primary</Button>
@@ -141,7 +141,7 @@ import { Button } from '@xnet/ui'
 ### Input
 
 ```tsx
-import { Input } from '@xnet/ui'
+import { Input } from '@xnetjs/ui'
 
 <Input placeholder="Enter text..." />
 <Input type="email" />
@@ -159,7 +159,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter
-} from '@xnet/ui'
+} from '@xnetjs/ui'
 ;<Dialog>
   <DialogTrigger asChild>
     <Button>Open</Button>
@@ -180,7 +180,7 @@ import {
 ### Tabs
 
 ```tsx
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@xnet/ui'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@xnetjs/ui'
 ;<Tabs defaultValue="tab1">
   <TabsList>
     <TabsTrigger value="tab1">Tab 1</TabsTrigger>
@@ -209,7 +209,7 @@ All interactive elements have visible focus indicators:
 Add to the top of your app:
 
 ```tsx
-import { SkipLink } from '@xnet/ui'
+import { SkipLink } from '@xnetjs/ui'
 ;<SkipLink href="#main-content" />
 ```
 

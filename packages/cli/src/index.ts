@@ -1,5 +1,5 @@
 /**
- * @xnet/cli - xNet CLI tools
+ * @xnetjs/cli - xNet CLI tools
  *
  * This package provides CLI tools for schema migrations, diagnostics,
  * and development utilities.

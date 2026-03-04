@@ -1,5 +1,5 @@
 /**
- * Query types for @xnet/query
+ * Query types for @xnetjs/query
  */
 
 /**

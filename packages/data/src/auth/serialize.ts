@@ -12,7 +12,7 @@ import type {
   SerializedAuthExpression,
   RoleResolver,
   SerializedRoleResolver
-} from '@xnet/core'
+} from '@xnetjs/core'
 
 // ─── Expression Serialization ─────────────────────────────────────────────────
 

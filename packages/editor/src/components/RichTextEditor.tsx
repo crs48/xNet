@@ -86,7 +86,7 @@ function generateCursorColor(did: string): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
-// --- DID Avatar generation (matches @xnet/ui DIDAvatar, but as raw SVG string) ---
+// --- DID Avatar generation (matches @xnetjs/ui DIDAvatar, but as raw SVG string) ---
 
 function hashDID(did: string): number[] {
   const bytes: number[] = []
@@ -300,7 +300,7 @@ export interface RichTextEditorProps {
  *
  * @example
  * ```tsx
- * import { RichTextEditor } from '@xnet/editor/react'
+ * import { RichTextEditor } from '@xnetjs/editor/react'
  *
  * function MyEditor({ document }) {
  *   return (

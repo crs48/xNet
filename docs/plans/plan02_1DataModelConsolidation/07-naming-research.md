@@ -87,12 +87,12 @@ The term "Document" creates confusion because:
 
 ### 6. Programming Languages
 
-| Term       | Language          | Meaning                  | Fit for xNet                        |
-| ---------- | ----------------- | ------------------------ | ----------------------------------- |
-| **Object** | JS/TS             | Key-value structure      | ⭐⭐ Overloaded                     |
-| **Record** | TS, Rust, Clojure | Typed field collection   | ⭐⭐⭐ Conflicts with @xnet/records |
-| **Struct** | Rust, C, Go       | Product type with fields | ⭐⭐ Too low-level                  |
-| **Map**    | Clojure           | Associative data         | ⭐⭐ Too generic                    |
+| Term       | Language          | Meaning                  | Fit for xNet                          |
+| ---------- | ----------------- | ------------------------ | ------------------------------------- |
+| **Object** | JS/TS             | Key-value structure      | ⭐⭐ Overloaded                       |
+| **Record** | TS, Rust, Clojure | Typed field collection   | ⭐⭐⭐ Conflicts with @xnetjs/records |
+| **Struct** | Rust, C, Go       | Product type with fields | ⭐⭐ Too low-level                    |
+| **Map**    | Clojure           | Associative data         | ⭐⭐ Too generic                      |
 
 ### 7. File Systems
 
@@ -237,7 +237,7 @@ interface Entity {
 
 **Cons:**
 
-- **Conflicts with @xnet/records package**
+- **Conflicts with @xnetjs/records package**
 - Implies tabular data specifically
 - "Record" sounds like "database row" (we have Item for that)
 

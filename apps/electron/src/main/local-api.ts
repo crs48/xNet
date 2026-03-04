@@ -15,7 +15,7 @@ import {
   type NodeStoreAPI,
   type SchemaRegistryAPI,
   type NodeData
-} from '@xnet/plugins/node'
+} from '@xnetjs/plugins/node'
 import { ipcMain, BrowserWindow } from 'electron'
 
 // ─── Module State ────────────────────────────────────────────────────────────

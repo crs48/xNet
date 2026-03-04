@@ -216,14 +216,14 @@ flowchart TB
 
 ## Affected Packages
 
-| Package          | Changes                                                   |
-| ---------------- | --------------------------------------------------------- |
-| `@xnet/crypto`   | (existing) BLAKE3, Ed25519 — no changes needed            |
-| `@xnet/identity` | (existing) resolveDidKey — no changes needed              |
-| `@xnet/sync`     | Add `YjsChange` type (Tier 3 only)                        |
-| `@xnet/react`    | WebSocketSyncProvider signing, MetaBridge isolation       |
-| `@xnet/network`  | Yjs peer scoring extension to existing PeerScorer         |
-| `@xnet/hub`      | Envelope verification, rate limits, hash-at-rest, scoring |
+| Package            | Changes                                                   |
+| ------------------ | --------------------------------------------------------- |
+| `@xnetjs/crypto`   | (existing) BLAKE3, Ed25519 — no changes needed            |
+| `@xnetjs/identity` | (existing) resolveDidKey — no changes needed              |
+| `@xnetjs/sync`     | Add `YjsChange` type (Tier 3 only)                        |
+| `@xnetjs/react`    | WebSocketSyncProvider signing, MetaBridge isolation       |
+| `@xnetjs/network`  | Yjs peer scoring extension to existing PeerScorer         |
+| `@xnetjs/hub`      | Envelope verification, rate limits, hash-at-rest, scoring |
 
 ## Performance Budget
 

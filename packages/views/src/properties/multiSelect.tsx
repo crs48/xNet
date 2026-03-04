@@ -3,7 +3,7 @@
  */
 
 import type { PropertyHandler, PropertyEditorProps } from '../types'
-import type { SelectOption } from '@xnet/data'
+import type { SelectOption } from '@xnetjs/data'
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react'
 
 interface MultiSelectConfig {

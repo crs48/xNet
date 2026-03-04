@@ -40,7 +40,7 @@ interface WebOfTrust {
 
 ### Infrastructure Ready
 
-- `@xnet/identity` provides DIDs for vouching
+- `@xnetjs/identity` provides DIDs for vouching
 - `PeerScorer` can be extended with trust inputs
 - Node-based storage can hold `Vouch` attestations
 - UCAN tokens can encode trust delegations
@@ -87,7 +87,7 @@ interface Classification {
 ### Infrastructure Ready
 
 - `SecurityEvent` schema captures training data
-- `@xnet/telemetry` can export datasets for offline training
+- `@xnetjs/telemetry` can export datasets for offline training
 - Local-first means models can run on-device (no cloud dependency)
 - Event bucketing provides feature extraction foundation
 
@@ -194,7 +194,7 @@ interface AggregatorRegistry {
 
 ### Infrastructure Ready
 
-- `@xnet/telemetry` can batch and send
+- `@xnetjs/telemetry` can batch and send
 - Consent tiers already define what can be shared
 - Scrubbing ensures aggregator never sees PII
 - Node sync could be repurposed for telemetry sync

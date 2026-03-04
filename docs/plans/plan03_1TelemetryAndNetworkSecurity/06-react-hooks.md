@@ -140,7 +140,7 @@ export function useConsent(): UseConsentReturn {
 // packages/telemetry/src/hooks/useTelemetry.ts
 
 import { useCallback, useRef, useEffect } from 'react'
-import type { SchemaIRI } from '@xnet/data'
+import type { SchemaIRI } from '@xnetjs/data'
 import type { TelemetryTier } from '../consent/types'
 import { TelemetryCollector, type ReportOptions } from '../collection/collector'
 import { useTelemetryContext } from './useConsent'
@@ -339,8 +339,8 @@ export { TelemetryErrorBoundary } from './TelemetryErrorBoundary'
 
 ```tsx
 // app/providers.tsx
-import { TelemetryProvider } from '@xnet/telemetry/hooks'
-import { ConsentManager, TelemetryCollector, LocalStorageConsentStorage } from '@xnet/telemetry'
+import { TelemetryProvider } from '@xnetjs/telemetry/hooks'
+import { ConsentManager, TelemetryCollector, LocalStorageConsentStorage } from '@xnetjs/telemetry'
 
 // Create instances
 const consent = new ConsentManager({
@@ -365,7 +365,7 @@ export function Providers({ children }: { children: ReactNode }) {
 
 ```tsx
 // components/ConsentSettings.tsx
-import { useConsent } from '@xnet/telemetry/hooks'
+import { useConsent } from '@xnetjs/telemetry/hooks'
 
 export function ConsentSettings() {
   const { tier, setTier, current, isLoaded } = useConsent()
@@ -408,7 +408,7 @@ export function ConsentSettings() {
 
 ```tsx
 // components/DataGrid.tsx
-import { useTelemetry } from '@xnet/telemetry/hooks'
+import { useTelemetry } from '@xnetjs/telemetry/hooks'
 
 export function DataGrid({ data }: { data: any[] }) {
   const telemetry = useTelemetry({ component: 'DataGrid' })

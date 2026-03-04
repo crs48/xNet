@@ -7,7 +7,7 @@
 
 ## Overview
 
-These foundations go into `@xnet/core` and are used by all other packages.
+These foundations go into `@xnetjs/core` and are used by all other packages.
 
 | Foundation         | Week | Deliverable                              |
 | ------------------ | ---- | ---------------------------------------- |
@@ -249,7 +249,7 @@ export function verifyUpdateChain(
   updates: SignedUpdate[],
   getPublicKey: (did: string) => Promise<Uint8Array>
 ): Promise<{ valid: boolean; errors: string[] }> {
-  // Implementation in @xnet/crypto
+  // Implementation in @xnetjs/crypto
 }
 ```
 

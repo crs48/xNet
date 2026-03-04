@@ -44,7 +44,7 @@ sequenceDiagram
 ```typescript
 // packages/telemetry/src/collection/collector.ts
 
-import type { NodeStore, Node, SchemaIRI } from '@xnet/data'
+import type { NodeStore, Node, SchemaIRI } from '@xnetjs/data'
 import type { ConsentManager } from '../consent/manager'
 import type { TelemetryTier } from '../consent/types'
 import { tierLevel } from '../consent/types'
@@ -412,7 +412,7 @@ export function scheduleWithJitter(
 ### Basic Crash Reporting
 
 ```typescript
-import { TelemetryCollector } from '@xnet/telemetry'
+import { TelemetryCollector } from '@xnetjs/telemetry'
 
 const collector = new TelemetryCollector({
   store: nodeStore,
@@ -472,7 +472,7 @@ for (const report of pending) {
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { TelemetryCollector } from '../src/collection/collector'
 import { ConsentManager, MemoryConsentStorage } from '../src/consent'
-import { MemoryNodeStorageAdapter, NodeStore } from '@xnet/data'
+import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 
 describe('TelemetryCollector', () => {
   let store: NodeStore

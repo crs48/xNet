@@ -303,7 +303,7 @@ switch (viewType) {
 }
 
 // AFTER:
-import { ViewRenderer } from '@xnet/views'
+import { ViewRenderer } from '@xnetjs/views'
 return <ViewRenderer viewType={viewType} {...props} />
 ```
 
@@ -311,7 +311,7 @@ return <ViewRenderer viewType={viewType} {...props} />
 
 ```typescript
 // Example plugin: gantt-view
-import { defineExtension } from '@xnet/plugins'
+import { defineExtension } from '@xnetjs/plugins'
 import { GanttChart } from './components/GanttChart'
 
 export default defineExtension({
@@ -352,7 +352,7 @@ export default defineExtension({
 - [ ] Create `ViewSwitcher` component
 - [ ] Migrate `apps/electron` DatabaseView to use `ViewRenderer`
 - [ ] Migrate `apps/web` to use `ViewRenderer`
-- [ ] Export registry and hooks from `@xnet/views`
+- [ ] Export registry and hooks from `@xnetjs/views`
 - [ ] Write unit tests for ViewRegistry
 - [ ] Update ViewConfig type to allow arbitrary string types (not just union)
 

@@ -16,7 +16,7 @@ A React-based dashboard for viewing network security status, managing blocked pe
 ```tsx
 // packages/ui/src/security/SecurityDashboard.tsx
 
-import { useNetworkSecurity } from '@xnet/react'
+import { useNetworkSecurity } from '@xnetjs/react'
 
 export function SecurityDashboard() {
   const security = useNetworkSecurity()

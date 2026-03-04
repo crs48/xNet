@@ -521,8 +521,8 @@ const delegated = await delegateUCAN(ucan, {
 ### Decision: BLAKE3 + Ed25519
 
 ```typescript
-import { blake3 } from '@xnet/crypto'
-import { sign, verify } from '@xnet/crypto'
+import { blake3 } from '@xnetjs/crypto'
+import { sign, verify } from '@xnetjs/crypto'
 
 const hash = blake3(content) // 32 bytes
 const signature = sign(hash, privateKey) // 64 bytes

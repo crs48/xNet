@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Reference crawler client.
+ * @xnetjs/hub - Reference crawler client.
  */
 
 import type { CrawlResult, CrawlTask } from '../services/crawl'

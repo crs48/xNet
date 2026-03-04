@@ -1,11 +1,11 @@
 /**
- * @xnet/vectors - Semantic Search and Embeddings
+ * @xnetjs/vectors - Semantic Search and Embeddings
  *
  * Provides vector embeddings, HNSW index, and semantic search capabilities.
  *
  * @example
  * ```typescript
- * import { SemanticSearch, createSemanticSearch } from '@xnet/vectors'
+ * import { SemanticSearch, createSemanticSearch } from '@xnetjs/vectors'
  *
  * const search = createSemanticSearch({ useMockModel: true })
  * await search.initialize()

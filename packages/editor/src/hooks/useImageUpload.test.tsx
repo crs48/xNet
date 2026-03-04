@@ -1,7 +1,7 @@
 /**
  * Tests for useImageUpload hook
  */
-import type { BlobService } from '@xnet/data'
+import type { BlobService } from '@xnetjs/data'
 import { renderHook } from '@testing-library/react'
 import React, { type ReactNode } from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'

@@ -209,7 +209,7 @@ export function is${interfaceName}(node: Node): node is ${interfaceName} {
 Page, Database, Item, Canvas, Task - these ship with xNet and have generated types:
 
 ```typescript
-import { Page, Database, Item, isPage, createPage } from '@xnet/data'
+import { Page, Database, Item, isPage, createPage } from '@xnetjs/data'
 
 const page = createPage({ title: 'Hello' })
 //    ^? Page - full autocomplete
@@ -280,7 +280,7 @@ const title = getProperty(recipe, 'prop:title', 'text')
 Full TypeScript, everything is typed:
 
 ```typescript
-import { Node, Page, Database, Item, isPage, isDatabase } from '@xnet/data'
+import { Node, Page, Database, Item, isPage, isDatabase } from '@xnetjs/data'
 
 function renderNode(node: Node) {
   if (isPage(node)) {
@@ -440,7 +440,7 @@ This means:
 
 ### Phase 3: Migrate Existing Code (Week 2-3)
 
-1. Update `@xnet/data` to use generated types
+1. Update `@xnetjs/data` to use generated types
 2. Maintain backward compatibility aliases
 3. Update React hooks to be schema-aware
 4. Update query layer

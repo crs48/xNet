@@ -1,5 +1,5 @@
 import type { StorageAdapter, StorageTelemetry } from '../types'
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 
 export class MemoryAdapter implements StorageAdapter {
   private blobs = new Map<string, Uint8Array>()

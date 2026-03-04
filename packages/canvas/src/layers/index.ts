@@ -1,5 +1,5 @@
 /**
- * @xnet/canvas - Rendering Layers
+ * @xnetjs/canvas - Rendering Layers
  *
  * Canvas rendering is composed of multiple layers:
  * 1. Grid layer (WebGL or CSS fallback) - background grid

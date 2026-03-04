@@ -99,7 +99,7 @@ type EncryptedKey = {
 Each node gets a random 256-bit content key:
 
 ```typescript
-import { generateKey } from '@xnet/crypto'
+import { generateKey } from '@xnetjs/crypto'
 
 const contentKey = generateKey() // 32 random bytes
 ```
@@ -107,7 +107,7 @@ const contentKey = generateKey() // 32 random bytes
 ### Content Encryption
 
 ```typescript
-import { encryptWithNonce } from '@xnet/crypto'
+import { encryptWithNonce } from '@xnetjs/crypto'
 
 // Serialize node properties (excluding the envelope fields)
 const plaintext = encodeNodeProperties(properties)
@@ -119,7 +119,7 @@ const { ciphertext, nonce, tag } = encryptWithNonce(plaintext, contentKey)
 ### Key Wrapping for Recipients
 
 ```typescript
-import { deriveSharedSecret, encryptWithNonce } from '@xnet/crypto'
+import { deriveSharedSecret, encryptWithNonce } from '@xnetjs/crypto'
 
 async function wrapKeyForRecipient(
   contentKey: Uint8Array,

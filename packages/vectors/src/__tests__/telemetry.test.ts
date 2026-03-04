@@ -1,5 +1,5 @@
 /**
- * Telemetry integration tests for @xnet/vectors
+ * Telemetry integration tests for @xnetjs/vectors
  */
 
 import type { TelemetryReporter } from '../search.js'

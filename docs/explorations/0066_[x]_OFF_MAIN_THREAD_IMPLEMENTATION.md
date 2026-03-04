@@ -5,7 +5,7 @@
 ## Implementation Status
 
 - [x] **Phase 0: DataBridge Abstraction** - Complete
-  - `@xnet/data-bridge` package with MainThreadBridge, WorkerBridge, NativeBridge
+  - `@xnetjs/data-bridge` package with MainThreadBridge, WorkerBridge, NativeBridge
   - React hooks refactored to use DataBridge
 - [x] **Phase 1: Web Worker Implementation** - Complete
   - WorkerBridge with Comlink integration
@@ -270,7 +270,7 @@ classDiagram
 ```typescript
 // packages/data-bridge/src/main-thread-bridge.ts
 
-import type { NodeStore, NodeState } from '@xnet/data'
+import type { NodeStore, NodeState } from '@xnetjs/data'
 import type { DataBridge, QuerySubscription, QueryOptions } from './types'
 
 export class MainThreadBridge implements DataBridge {
@@ -432,7 +432,7 @@ sequenceDiagram
   - [x] `useQuery` uses `useDataBridge().query()`
   - [x] `useMutate` uses `useDataBridge().create/update/delete()`
 - [x] Tests
-  - [x] Verify existing tests pass (93 tests in @xnet/react)
+  - [x] Verify existing tests pass (93 tests in @xnetjs/react)
 
 #### Key Code: Data Worker
 
@@ -440,8 +440,8 @@ sequenceDiagram
 // packages/data-bridge/src/worker/data-worker.ts
 
 import { expose } from 'comlink'
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
-import { IndexedDBNodeStorageAdapter } from '@xnet/storage'
+import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
+import { IndexedDBNodeStorageAdapter } from '@xnetjs/storage'
 
 class DataWorker {
   private store: NodeStore | null = null
@@ -807,7 +807,7 @@ dataService.initialize().then(() => {
 import Database from 'better-sqlite3'
 import WebSocket from 'ws'
 import * as Y from 'yjs'
-import { signYjsUpdate, verifyYjsEnvelope } from '@xnet/sync'
+import { signYjsUpdate, verifyYjsEnvelope } from '@xnetjs/sync'
 
 export function createDataService() {
   let db: Database.Database | null = null
@@ -1031,7 +1031,7 @@ sequenceDiagram
   - [ ] Yjs sync signing/verification (requires moving SyncManager to worker - deferred)
   - [ ] WebSocket connections in worker (requires significant refactor - deferred)
 - [x] Tests
-  - [x] All existing tests pass (93 tests in @xnet/react)
+  - [x] All existing tests pass (93 tests in @xnetjs/react)
   - [x] TipTap collaborative editing works (manual verification - tested Feb 2026)
   - [x] Cursor presence works (infrastructure verified - awareness sync implemented in data-service.ts and ipc-sync-manager.ts, two instances connected to hub)
   - [x] No signature verification on main thread (verified: signYjsUpdate/verifyYjsEnvelope only in data-process, not renderer/main)

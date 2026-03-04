@@ -2,13 +2,13 @@
 
 > Widget-based dashboard system with drag-drop layout and live data binding
 
-**Package:** `@xnet/dashboard`
-**Dependencies:** `@xnet/modules`, `@xnet/views`, `@xnet/data`
+**Package:** `@xnetjs/dashboard`
+**Dependencies:** `@xnetjs/modules`, `@xnetjs/views`, `@xnetjs/data`
 **Estimated Time:** 3 weeks
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → `@xnet/data`
+> - `@xnetjs/database` → `@xnetjs/data`
 > - Widgets query Nodes via `useNodes()` hook
 > - Dashboard configs stored as Nodes
 
@@ -666,8 +666,8 @@ function GridOverlay({
 ```typescript
 // packages/dashboard/src/data/DataProvider.ts
 
-import { DatabaseManager } from '@xnet/database'
-import { ViewEngine } from '@xnet/views'
+import { DatabaseManager } from '@xnetjs/database'
+import { ViewEngine } from '@xnetjs/views'
 
 export class DataProvider {
   private cache = new Map<string, CachedData>()
@@ -1115,7 +1115,7 @@ export function useFilters() {
 ```typescript
 // packages/dashboard/src/store/DashboardStore.ts
 
-import { DatabaseManager, Database } from '@xnet/database'
+import { DatabaseManager, Database } from '@xnetjs/database'
 
 export class DashboardStore {
   private database: Database | null = null

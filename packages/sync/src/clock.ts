@@ -10,7 +10,7 @@
  * ordering across all nodes without the complexity of vector clocks.
  */
 
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 
 /**
  * A Lamport timestamp with author for deterministic tie-breaking.

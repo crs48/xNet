@@ -6,7 +6,7 @@
  */
 
 import type { SyncStatus } from '../types'
-import type { NodeState, SchemaIRI } from '@xnet/data'
+import type { NodeState, SchemaIRI } from '@xnetjs/data'
 
 // ─── Document Types ──────────────────────────────────────────────────────────
 

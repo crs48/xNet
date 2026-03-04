@@ -6,7 +6,7 @@
  * no local changes are lost, even across app restarts.
  */
 
-import type { NodeState, NodeStorageAdapter } from '@xnet/data'
+import type { NodeState, NodeStorageAdapter } from '@xnetjs/data'
 
 export interface QueueEntry {
   /** Node ID this update belongs to */

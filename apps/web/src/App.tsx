@@ -4,29 +4,29 @@
  * Handles SQLite initialization, onboarding flow, and identity management.
  * Uses SQLite with OPFS for persistent local-first storage.
  */
-import type { NodeStorageAdapter } from '@xnet/data'
-import type { Identity, KeyBundle } from '@xnet/identity'
-import type { SQLiteAdapter } from '@xnet/sqlite'
+import type { NodeStorageAdapter } from '@xnetjs/data'
+import type { Identity, KeyBundle } from '@xnetjs/identity'
+import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import { RouterProvider, createRouter, createHashHistory } from '@tanstack/react-router'
-import { SQLiteNodeStorageAdapter, BlobService } from '@xnet/data'
-import { XNetDevToolsProvider } from '@xnet/devtools'
-import { BlobProvider } from '@xnet/editor/react'
-import { createIdentityManager } from '@xnet/identity'
+import { SQLiteNodeStorageAdapter, BlobService } from '@xnetjs/data'
+import { XNetDevToolsProvider } from '@xnetjs/devtools'
+import { BlobProvider } from '@xnetjs/editor/react'
+import { createIdentityManager } from '@xnetjs/identity'
 import {
   XNetProvider,
   OnboardingProvider,
   OnboardingFlow,
   ErrorBoundary,
   OfflineIndicator
-} from '@xnet/react'
+} from '@xnetjs/react'
 import {
   checkBrowserSupport,
   showUnsupportedBrowserMessage,
   SCHEMA_VERSION,
   SCHEMA_DDL
-} from '@xnet/sqlite'
-import { SQLiteStorageAdapter, BlobStore, ChunkManager } from '@xnet/storage'
-import { ThemeProvider } from '@xnet/ui'
+} from '@xnetjs/sqlite'
+import { SQLiteStorageAdapter, BlobStore, ChunkManager } from '@xnetjs/storage'
+import { ThemeProvider } from '@xnetjs/ui'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
@@ -151,7 +151,7 @@ export function App(): JSX.Element {
         const storageWarning = support.warning
 
         // Dynamically import the web proxy to enable code splitting
-        const { WebSQLiteProxy } = await import('@xnet/sqlite/web-proxy')
+        const { WebSQLiteProxy } = await import('@xnetjs/sqlite/web-proxy')
 
         // Create and open SQLite adapter
         const sqliteAdapter = new WebSQLiteProxy()

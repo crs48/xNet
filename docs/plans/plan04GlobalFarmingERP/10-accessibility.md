@@ -2,7 +2,7 @@
 
 > Multilingual schemas, icon-based UI, voice/photo input, and progressive complexity for global farmer accessibility.
 
-**Dependencies:** Steps 01-08 (all schemas and views), `@xnet/react` (hooks), Expo (mobile)
+**Dependencies:** Steps 01-08 (all schemas and views), `@xnetjs/react` (hooks), Expo (mobile)
 
 ## Overview
 

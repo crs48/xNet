@@ -6,8 +6,8 @@
  */
 
 import type { UndoEntry, UndoManagerOptions } from './types'
-import type { DID } from '@xnet/core'
-import type { NodeChange, NodeState, NodeId, TransactionOperation, NodeStore } from '@xnet/data'
+import type { DID } from '@xnetjs/core'
+import type { NodeChange, NodeState, NodeId, TransactionOperation, NodeStore } from '@xnetjs/data'
 
 /**
  * Duck-typed telemetry interface to avoid circular dependencies.

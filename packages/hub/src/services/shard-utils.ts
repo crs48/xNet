@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Shared helpers for shard ingestion/query.
+ * @xnetjs/hub - Shared helpers for shard ingestion/query.
  */
 
 const STOP_WORDS = new Set([

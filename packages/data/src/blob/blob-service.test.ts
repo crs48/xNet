@@ -1,4 +1,4 @@
-import { ChunkManager, BlobStore, MemoryAdapter } from '@xnet/storage'
+import { ChunkManager, BlobStore, MemoryAdapter } from '@xnetjs/storage'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { BlobService } from './blob-service'
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Review of `@xnet/react` - hooks, sync management, providers, and state management.
+Review of `@xnetjs/react` - hooks, sync management, providers, and state management.
 
 ```mermaid
 graph TD
@@ -48,7 +48,7 @@ graph TD
 
 ### REACT-01: XNetProvider Context Value Not Memoized
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/context.ts:499-512`
 
 ```typescript
@@ -71,7 +71,7 @@ return (
 
 ### REACT-02: Multiple Hooks Access Private store.storage
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **Files:**
 
 - `packages/react/src/hooks/useHistory.ts:70`
@@ -92,7 +92,7 @@ Relies on internal implementation of NodeStore.
 
 ### REACT-03: SyncManager Acquire Doesn't Await Room Join
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/sync-manager.ts:612-646`
 
 `joinNodeRoom(nodeId)` is synchronous but actual subscription is async. sync-step1 sent before subscription confirmed.
@@ -105,7 +105,7 @@ Relies on internal implementation of NodeStore.
 
 ### REACT-04: NodePool Eviction Doesn't Await Persistence
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/node-pool.ts:116-117`
 
 ```typescript
@@ -122,7 +122,7 @@ Fire-and-forget persistence. App crash = data loss.
 
 ### REACT-05: useQuery JSON.stringify in Dependencies
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useQuery.ts:312, 401`
 
 ```typescript
@@ -135,7 +135,7 @@ Fire-and-forget persistence. App crash = data loss.
 
 ### REACT-06: useComments Stale Closure Risk
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useComments.ts:132-167`
 
 `loadComments` accesses `queryRef.current` - pattern is correct but not obvious.
@@ -144,7 +144,7 @@ Fire-and-forget persistence. App crash = data loss.
 
 ### REACT-07: useUndo Ignores opts.options Changes
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useUndo.ts:61-72`
 
 UndoManager not recreated if options change.
@@ -153,7 +153,7 @@ UndoManager not recreated if options change.
 
 ### REACT-08: useNode update Missing schemaId Dependency
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useNode.ts:546`
 
 Uses `schemaId` but not in dependency array.
@@ -162,7 +162,7 @@ Uses `schemaId` but not in dependency array.
 
 ### REACT-09: useNode createIfMissing Race Condition
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useNode.ts:343-358`
 
 Small window between checking and setting `creatingRef`.
@@ -171,7 +171,7 @@ Small window between checking and setting `creatingRef`.
 
 ### REACT-10: useMutate optimistic Option Not Implemented
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useMutate.ts:210`
 
 `_options?: MutateOptions` accepted but never used.
@@ -180,7 +180,7 @@ Small window between checking and setting `creatingRef`.
 
 ### REACT-11: SyncManager Status Handlers Not Cleaned Up
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/sync-manager.ts:556-572`
 
 `connection.onStatus()` unsubscribe not stored or called.
@@ -189,7 +189,7 @@ Small window between checking and setting `creatingRef`.
 
 ### REACT-12: ConnectionManager Reconnect Timer Not Cleared
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/connection-manager.ts:207-216`
 
 Timer not cleared on successful connect.
@@ -198,7 +198,7 @@ Timer not cleared on successful connect.
 
 ### REACT-13: NodePool No Maximum Active Limit
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/node-pool.ts`
 
 Has `maxWarm` but no `maxActive`.
@@ -207,7 +207,7 @@ Has `maxWarm` but no `maxActive`.
 
 ### REACT-14: WebSocketSyncProvider Handlers Not Cleared
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/WebSocketSyncProvider.ts:167-189`
 
 `eventHandlers` map not cleared in destroy().
@@ -216,7 +216,7 @@ Has `maxWarm` but no `maxActive`.
 
 ### REACT-15: useNode Awareness Handler Potential Leak
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useNode.ts:704-728`
 
 Cleanup pattern slightly awkward.
@@ -225,7 +225,7 @@ Cleanup pattern slightly awkward.
 
 ### REACT-16: useQuery sortNodes Causes Extra Re-renders
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useQuery.ts:313-314`
 
 Filter object reference change causes sortNodes to change.
@@ -234,7 +234,7 @@ Filter object reference change causes sortNodes to change.
 
 ### REACT-17: OfflineQueue Saves on Every Enqueue
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/offline-queue.ts:73-75`
 
 **Fix:** Debounce save.
@@ -243,7 +243,7 @@ Filter object reference change causes sortNodes to change.
 
 ### REACT-18: Registry getTracked Recomputes TTL Every Call
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/registry.ts:104-113`
 
 O(n) on every access.
@@ -252,7 +252,7 @@ O(n) on every access.
 
 ### REACT-19: FlatNode Type Assertion
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/utils/flattenNode.ts:156`
 
 `as FlatNode<P>` bypasses type checking.

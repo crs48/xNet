@@ -3,10 +3,10 @@
  */
 
 import type { BoardRow } from './useBoardState.js'
-import type { Schema } from '@xnet/data'
+import type { Schema } from '@xnetjs/data'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 

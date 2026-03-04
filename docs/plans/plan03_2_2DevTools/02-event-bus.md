@@ -60,8 +60,8 @@ flowchart TB
 ```typescript
 // core/types.ts
 
-import type { NodeState, NodeChange, MergeConflict } from '@xnet/data'
-import type { Change, SyncStatus, PeerInfo, LamportTimestamp } from '@xnet/sync'
+import type { NodeState, NodeChange, MergeConflict } from '@xnetjs/data'
+import type { Change, SyncStatus, PeerInfo, LamportTimestamp } from '@xnetjs/sync'
 
 // ─── Base Event ────────────────────────────────────────────
 
@@ -473,7 +473,7 @@ export class DevToolsEventBus {
 ```typescript
 // instrumentation/store.ts
 
-import type { NodeStore, NodeChangeEvent } from '@xnet/data'
+import type { NodeStore, NodeChangeEvent } from '@xnetjs/data'
 import type { DevToolsEventBus } from '../core/event-bus'
 
 export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => void {
@@ -544,7 +544,7 @@ export function instrumentStore(store: NodeStore, bus: DevToolsEventBus): () => 
 ```typescript
 // instrumentation/sync.ts
 
-import type { SyncProvider, PeerInfo, SyncStatus } from '@xnet/sync'
+import type { SyncProvider, PeerInfo, SyncStatus } from '@xnetjs/sync'
 import type { DevToolsEventBus } from '../core/event-bus'
 
 export function instrumentSync(

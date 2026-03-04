@@ -22,7 +22,7 @@ import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components'
 Every piece of data in xNet is a **node**. Every node conforms to a **schema**. A schema is defined once in TypeScript and describes the shape of your data:
 
 ```ts
-import { defineSchema, text, number, select } from '@xnet/data'
+import { defineSchema, text, number, select } from '@xnetjs/data'
 
 export const ProjectSchema = defineSchema({
   name: 'Project',

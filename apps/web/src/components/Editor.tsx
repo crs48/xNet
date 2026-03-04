@@ -1,7 +1,7 @@
 /**
  * Document editor component
  *
- * Uses the shared @xnet/editor package for rich text editing.
+ * Uses the shared @xnetjs/editor package for rich text editing.
  * Supports comment extensions for inline commenting.
  */
 import type * as Y from 'yjs'
@@ -11,7 +11,7 @@ import {
   useFileUpload,
   useFileDownload,
   type Editor as TipTapEditor
-} from '@xnet/editor/react'
+} from '@xnetjs/editor/react'
 
 interface Props {
   doc: Y.Doc

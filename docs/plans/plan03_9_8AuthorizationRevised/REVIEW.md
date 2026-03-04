@@ -12,7 +12,7 @@
 
 The plan proposes a fundamentally different model from the current UCAN-based implementation:
 
-| Current Implementation (`@xnet/identity/sharing`)       | Plan (Step 05)                                       |
+| Current Implementation (`@xnetjs/identity/sharing`)     | Plan (Step 05)                                       |
 | ------------------------------------------------------- | ---------------------------------------------------- |
 | Grants are UCAN tokens (immutable, signed JWTs)         | Grants are **nodes** (GrantSchema)                   |
 | Revocations stored in `RevocationStore` (in-memory Map) | Revocations are **node updates** (`revokedAt` field) |
@@ -286,12 +286,12 @@ The plan mentions UCAN delegation but **doesn't address depth limits or revocati
 
 **Problems:**
 
-1. **No max proof chain depth**: UCAN `proofs` array in `@xnet/identity/ucan.ts` can be arbitrarily deep (100+ hops). No limit enforced.
+1. **No max proof chain depth**: UCAN `proofs` array in `@xnetjs/identity/ucan.ts` can be arbitrarily deep (100+ hops). No limit enforced.
 2. **No cascade revocation**: Revoking a parent UCAN doesn't invalidate child delegations. Alice grants Bob, Bob delegates to Carol, Alice revokes Bob — Carol still has valid token.
 3. **Self-delegation allowed**: No check preventing `issuer === audience` (user delegating to themselves).
 4. **Group-aware delegation missing**: UCAN `audience` is single DID. Can't delegate "to all members of group X".
 
-**Code gap** (`@xnet/identity/ucan.ts:104-131`):
+**Code gap** (`@xnetjs/identity/ucan.ts:104-131`):
 
 ```typescript
 // Only validates immediate parent, not full proof chain depth
@@ -366,7 +366,7 @@ These need correction across the step files:
 
 The plan creates authorization primitives from scratch but doesn't reference existing implementations:
 
-**`@xnet/core/permissions.ts`** already defines:
+**`@xnetjs/core/permissions.ts`** already defines:
 
 - `Group`, `Role`, `Capability` types
 - `PermissionGrant` type
@@ -374,7 +374,7 @@ The plan creates authorization primitives from scratch but doesn't reference exi
 - Standard roles: `viewer`, `editor`, `admin`
 - `roleHasCapability()`, `evaluateCondition()`, `getMostPermissiveCapability()`
 
-**`@xnet/identity/sharing/`** already has:
+**`@xnetjs/identity/sharing/`** already has:
 
 - `createShareToken()` — UCAN-based share link creation
 - `buildCapabilities()` — Maps permission levels to UCAN capabilities
@@ -383,9 +383,9 @@ The plan creates authorization primitives from scratch but doesn't reference exi
 
 **Recommendation:** Add a "Relationship to Existing Code" section to the README that explicitly states:
 
-1. The plan's `PolicyEvaluator` **supersedes** `@xnet/core/permissions.ts`'s `PermissionEvaluator` interface (which was never implemented)
-2. The plan's grant system **supersedes** `@xnet/identity/sharing/` for node-level access control, but sharing links may continue to work as a convenience layer on top of grants
-3. The plan's `AuthAction` type should align with `@xnet/core`'s existing `Capability` type, or the old type should be deprecated
+1. The plan's `PolicyEvaluator` **supersedes** `@xnetjs/core/permissions.ts`'s `PermissionEvaluator` interface (which was never implemented)
+2. The plan's grant system **supersedes** `@xnetjs/identity/sharing/` for node-level access control, but sharing links may continue to work as a convenience layer on top of grants
+3. The plan's `AuthAction` type should align with `@xnetjs/core`'s existing `Capability` type, or the old type should be deprecated
 
 ---
 
@@ -595,33 +595,33 @@ The plan includes `expiresIn` for grants but **doesn't address operational conce
 
 ## F. Improvement Suggestions (Priority-Ordered)
 
-| Priority | Issue                            | Action                                                                                      | Steps Affected |
-| -------- | -------------------------------- | ------------------------------------------------------------------------------------------- | -------------- |
-| 🔴 P0    | X25519 key discovery             | Add key resolution strategy to Step 01 (birational conversion + hub registry fallback)      | 01, 04, 05, 09 |
-| 🔴 P0    | Key backup/recovery              | Add new step or major section covering seed phrases, encrypted backup, recovery             | New (10) or 01 |
-| 🔴 P0    | Offline auth policy              | Define cache TTL, re-validation strategy (eager/lazy/hybrid), max staleness threshold       | 05, 08         |
-| 🟡 P1    | Delegation depth limits          | Add maxProofDepth (default 4), validate full proof chain in UCAN verification               | 05, 08         |
-| 🟡 P1    | Parent revocation cascade        | Track delegation graph, invalidate child delegations when parent revoked                    | 05, 08         |
-| 🟡 P1    | Last admin protection            | Validate revocation doesn't leave zero grantees with 'share' capability                     | 05, 08         |
-| 🟡 P1    | Multi-device keys                | Document how content keys are wrapped for multiple devices per DID                          | 01, 05         |
-| 🟡 P1    | Fix API mismatches               | Correct 6 API name mismatches to match actual codebase                                      | 03, 04, 07, 09 |
-| 🟡 P1    | Reconcile existing code          | Add section explaining relationship to @xnet/core/permissions.ts and @xnet/identity/sharing | README         |
-| 🟡 P1    | Make sync integration explicit   | Document that grants-as-nodes inherit NodeStore sync, add grant-specific rate limits        | 05, 06, 08     |
-| 🟡 P1    | Grant conflict semantics         | Clarify field-level LWW behavior, document reliance on key rotation for security            | 05, 08         |
-| 🟡 P1    | Public nodes                     | Specify concrete implementation for PUBLIC access mode                                      | 01 or 04       |
-| 🟡 P1    | Data migration                   | Add batch migration utility for encrypting existing unencrypted nodes                       | 08             |
-| 🟡 P2    | Authorization observability      | DevTools grant timeline, delegation tree, permission trace, revocation propagation status   | 07             |
-| 🟡 P2    | Self-grant prevention            | Reject grantee === grantor at grant creation time                                           | 05             |
-| 🟡 P2    | Circular group detection         | Add visited-set to relation traversal (supplement max-depth)                                | 03, 08         |
-| 🟡 P2    | Grant expiration cleanup         | Background task to prune expired grants every 6 hours                                       | 05, 08         |
-| 🟡 P2    | Schema version migration         | Document auth rule changes across schema versions                                           | 02             |
-| 🟡 P2    | Failure mode docs                | Document when auth failures throw vs silently reject                                        | README or 04   |
-| 🟡 P2    | Recipient recompute optimization | Skip recomputation when non-auth-relevant properties change                                 | 04             |
-| 🟡 P2    | Write-side trust model           | Document that write auth is client-side only                                                | README         |
-| 🟢 P3    | Audit logging                    | Emit AuthDecisionEvents to telemetry for persistent logging                                 | 08             |
-| 🟢 P3    | Legacy schema warning            | Console warning when schema has no authorization block                                      | 04             |
-| 🟢 P3    | Performance target adjustment    | Add computeRecipients() benchmark, note key resolution latency                              | 08             |
-| 🟢 P3    | Ownership transfer               | Document as limitation or add future work section                                           | README, 05     |
+| Priority | Issue                            | Action                                                                                          | Steps Affected |
+| -------- | -------------------------------- | ----------------------------------------------------------------------------------------------- | -------------- |
+| 🔴 P0    | X25519 key discovery             | Add key resolution strategy to Step 01 (birational conversion + hub registry fallback)          | 01, 04, 05, 09 |
+| 🔴 P0    | Key backup/recovery              | Add new step or major section covering seed phrases, encrypted backup, recovery                 | New (10) or 01 |
+| 🔴 P0    | Offline auth policy              | Define cache TTL, re-validation strategy (eager/lazy/hybrid), max staleness threshold           | 05, 08         |
+| 🟡 P1    | Delegation depth limits          | Add maxProofDepth (default 4), validate full proof chain in UCAN verification                   | 05, 08         |
+| 🟡 P1    | Parent revocation cascade        | Track delegation graph, invalidate child delegations when parent revoked                        | 05, 08         |
+| 🟡 P1    | Last admin protection            | Validate revocation doesn't leave zero grantees with 'share' capability                         | 05, 08         |
+| 🟡 P1    | Multi-device keys                | Document how content keys are wrapped for multiple devices per DID                              | 01, 05         |
+| 🟡 P1    | Fix API mismatches               | Correct 6 API name mismatches to match actual codebase                                          | 03, 04, 07, 09 |
+| 🟡 P1    | Reconcile existing code          | Add section explaining relationship to @xnetjs/core/permissions.ts and @xnetjs/identity/sharing | README         |
+| 🟡 P1    | Make sync integration explicit   | Document that grants-as-nodes inherit NodeStore sync, add grant-specific rate limits            | 05, 06, 08     |
+| 🟡 P1    | Grant conflict semantics         | Clarify field-level LWW behavior, document reliance on key rotation for security                | 05, 08         |
+| 🟡 P1    | Public nodes                     | Specify concrete implementation for PUBLIC access mode                                          | 01 or 04       |
+| 🟡 P1    | Data migration                   | Add batch migration utility for encrypting existing unencrypted nodes                           | 08             |
+| 🟡 P2    | Authorization observability      | DevTools grant timeline, delegation tree, permission trace, revocation propagation status       | 07             |
+| 🟡 P2    | Self-grant prevention            | Reject grantee === grantor at grant creation time                                               | 05             |
+| 🟡 P2    | Circular group detection         | Add visited-set to relation traversal (supplement max-depth)                                    | 03, 08         |
+| 🟡 P2    | Grant expiration cleanup         | Background task to prune expired grants every 6 hours                                           | 05, 08         |
+| 🟡 P2    | Schema version migration         | Document auth rule changes across schema versions                                               | 02             |
+| 🟡 P2    | Failure mode docs                | Document when auth failures throw vs silently reject                                            | README or 04   |
+| 🟡 P2    | Recipient recompute optimization | Skip recomputation when non-auth-relevant properties change                                     | 04             |
+| 🟡 P2    | Write-side trust model           | Document that write auth is client-side only                                                    | README         |
+| 🟢 P3    | Audit logging                    | Emit AuthDecisionEvents to telemetry for persistent logging                                     | 08             |
+| 🟢 P3    | Legacy schema warning            | Console warning when schema has no authorization block                                          | 04             |
+| 🟢 P3    | Performance target adjustment    | Add computeRecipients() benchmark, note key resolution latency                                  | 08             |
+| 🟢 P3    | Ownership transfer               | Document as limitation or add future work section                                               | README, 05     |
 
 ---
 

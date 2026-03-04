@@ -6,7 +6,7 @@
  * no network, DOM, or import access.
  */
 
-import { defineSchema, text, checkbox, date, select } from '@xnet/data'
+import { defineSchema, text, checkbox, date, select } from '@xnetjs/data'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

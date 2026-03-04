@@ -16,7 +16,7 @@ xNet uses a **translate-on-read** approach to schema evolution. This means:
 Every schema has a semantic version:
 
 ```typescript
-import { defineSchema } from '@xnet/data'
+import { defineSchema } from '@xnetjs/data'
 
 const TaskSchema = defineSchema({
   name: 'Task',
@@ -48,7 +48,7 @@ Lenses transform data between schema versions. They're bidirectional - you can u
 ### Basic Lens Structure
 
 ```typescript
-import { createLens, type SchemaLens } from '@xnet/data'
+import { createLens, type SchemaLens } from '@xnetjs/data'
 
 const taskV1ToV2: SchemaLens = createLens({
   from: '1.0.0',
@@ -73,7 +73,7 @@ const taskV1ToV2: SchemaLens = createLens({
 ### Registering Lenses
 
 ```typescript
-import { LensRegistry } from '@xnet/data'
+import { LensRegistry } from '@xnetjs/data'
 
 const registry = new LensRegistry()
 
@@ -88,7 +88,7 @@ registry.register('Task', taskV2ToV3)
 ### Using Migrations
 
 ```typescript
-import { NodeStore } from '@xnet/data'
+import { NodeStore } from '@xnetjs/data'
 
 const store = new NodeStore({ lensRegistry: registry })
 
@@ -207,7 +207,7 @@ const mergeAddress: SchemaLens = createLens({
 ### useQuery with Migrations
 
 ```typescript
-import { useQuery } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
 
 function TaskList() {
   const { data: tasks } = useQuery({
@@ -225,7 +225,7 @@ function TaskList() {
 ### Migration Status
 
 ```typescript
-import { useQuery } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
 
 function TaskList() {
   const { data, migrationStats } = useQuery({
@@ -399,7 +399,7 @@ for await (const batch of stream) {
 ### Debugging Lenses
 
 ```typescript
-import { LensRegistry } from '@xnet/data'
+import { LensRegistry } from '@xnetjs/data'
 
 const registry = new LensRegistry({
   debug: true // Logs all transformations

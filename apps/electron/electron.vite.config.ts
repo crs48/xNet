@@ -24,16 +24,16 @@ const rendererPort = parseInt(process.env.VITE_PORT || '5177', 10)
 
 // Common xNet packages to bundle (not externalize)
 const xnetPackages = [
-  '@xnet/sdk',
-  '@xnet/core',
-  '@xnet/crypto',
-  '@xnet/identity',
-  '@xnet/storage',
-  '@xnet/sync',
-  '@xnet/data',
-  '@xnet/query',
-  '@xnet/telemetry',
-  '@xnet/plugins'
+  '@xnetjs/sdk',
+  '@xnetjs/core',
+  '@xnetjs/crypto',
+  '@xnetjs/identity',
+  '@xnetjs/storage',
+  '@xnetjs/sync',
+  '@xnetjs/data',
+  '@xnetjs/query',
+  '@xnetjs/telemetry',
+  '@xnetjs/plugins'
 ]
 
 // Path to rebuilt native modules in local node_modules
@@ -99,7 +99,7 @@ export default defineConfig({
         input: resolve(__dirname, 'src/renderer/index.html'),
         external: [
           'web-worker',
-          'mermaid' // Optional peer dependency - dynamically imported in @xnet/canvas
+          'mermaid' // Optional peer dependency - dynamically imported in @xnetjs/canvas
         ]
       }
     },

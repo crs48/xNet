@@ -1,4 +1,4 @@
-@import '@xnet/ui/tokens.css';
+@import '@xnetjs/ui/tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -21,7 +21,7 @@
   }
 }
 
-/* Editor styles are now handled by @xnet/editor package (styles/editor.css) */
+/* Editor styles are now handled by @xnetjs/editor package (styles/editor.css) */
 /* App-specific editor overrides only */
 .editor-content .ProseMirror {
   @apply min-h-[380px] text-base leading-relaxed;

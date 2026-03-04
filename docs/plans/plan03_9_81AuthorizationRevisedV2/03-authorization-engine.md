@@ -12,7 +12,7 @@
 
 The evaluator is the heart of the authorization system. It takes a subject (DID), action, and resource (node), resolves the subject's roles from schema policy and node data, evaluates the action expression, checks grants, and returns a deterministic decision with an explainable trace.
 
-**New in V2:** Visited-set cycle detection (supplementing max-depth), correct API references to `schemaRegistry.get()` instead of `store.get(schemaId)`, and explicit supersession of `@xnet/core/permissions.ts`'s `PermissionEvaluator` interface.
+**New in V2:** Visited-set cycle detection (supplementing max-depth), correct API references to `schemaRegistry.get()` instead of `store.get(schemaId)`, and explicit supersession of `@xnetjs/core/permissions.ts`'s `PermissionEvaluator` interface.
 
 ## Responsibilities
 
@@ -26,7 +26,7 @@ The evaluator is the heart of the authorization system. It takes a subject (DID)
 
 ## Grant Index
 
-**Why this exists (V2 review fix A1):** `NodeStore` does not have a `query()` method. Queries with filters live in the separate `@xnet/query` package, which operates at a higher level. The `PolicyEvaluator` needs fast grant lookups in its hot path, so we maintain a dedicated in-memory index built from `store.subscribe()` events.
+**Why this exists (V2 review fix A1):** `NodeStore` does not have a `query()` method. Queries with filters live in the separate `@xnetjs/query` package, which operates at a higher level. The `PolicyEvaluator` needs fast grant lookups in its hot path, so we maintain a dedicated in-memory index built from `store.subscribe()` events.
 
 ```typescript
 /**
@@ -34,7 +34,7 @@ The evaluator is the heart of the authorization system. It takes a subject (DID)
  *
  * Provides O(1) lookup by (resource, grantee) — critical for the
  * PolicyEvaluator.can() hot path. NodeStore.list() would be O(n) on all
- * grants; the separate @xnet/query package is too high-level for use
+ * grants; the separate @xnetjs/query package is too high-level for use
  * inside the data layer.
  *
  * The index is populated on construction by listing all Grant nodes,
@@ -151,7 +151,7 @@ export class GrantIndex {
 
 ### 1. PolicyEvaluator Interface
 
-This **supersedes** the `PermissionEvaluator` interface in `@xnet/core/permissions.ts` which was defined but never implemented:
+This **supersedes** the `PermissionEvaluator` interface in `@xnetjs/core/permissions.ts` which was defined but never implemented:
 
 ```typescript
 export interface PolicyEvaluator {
@@ -413,7 +413,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
 
     // 7. Check Grant nodes via GrantIndex (FIXED: V2 review A1)
     // GrantIndex provides O(1) lookup maintained via store.subscribe().
-    // NodeStore does not have a query() method — queries live in @xnet/query.
+    // NodeStore does not have a query() method — queries live in @xnetjs/query.
     const grants = this.grantIndex.findGrants(input.nodeId, input.subject)
 
     for (const grant of grants) {
@@ -668,7 +668,7 @@ sequenceDiagram
 - [x] `GrantIndex` implemented with O(1) lookup by (resource, grantee).
 - [x] `GrantIndex` initialized from `store.list({ schema: GrantSchema.iri })`.
 - [x] `GrantIndex` maintained via `store.subscribe()` event listener.
-- [x] `PolicyEvaluator` interface defined (supersedes `@xnet/core` `PermissionEvaluator`).
+- [x] `PolicyEvaluator` interface defined (supersedes `@xnetjs/core` `PermissionEvaluator`).
 - [x] `DefaultRoleResolver` with property, creator, and relation resolution.
 - [x] **Visited-set** cycle detection in relation traversal (not just max-depth).
 - [x] Depth limit (default 3) and node count limit (default 100).

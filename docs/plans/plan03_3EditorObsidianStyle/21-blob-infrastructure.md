@@ -3,7 +3,7 @@
 > Content-addressed binary storage with chunking and eager sync
 
 **Duration:** 2-3 days  
-**Dependencies:** `@xnet/storage` (StorageAdapter), `@xnet/core` (hashing)
+**Dependencies:** `@xnetjs/storage` (StorageAdapter), `@xnetjs/core` (hashing)
 
 ## Overview
 
@@ -66,7 +66,7 @@ flowchart TB
 
 ### Layer 1: StorageAdapter (Existing)
 
-Already implemented in `@xnet/storage`. Provides low-level blob storage:
+Already implemented in `@xnetjs/storage`. Provides low-level blob storage:
 
 ```typescript
 // packages/storage/src/types.ts (existing)
@@ -85,8 +85,8 @@ Implements `ContentResolver` interface, adds CID computation:
 ```typescript
 // packages/storage/src/blob-store.ts
 
-import type { ContentId, ContentResolver } from '@xnet/core'
-import { hashContent, createContentId, verifyContent } from '@xnet/core'
+import type { ContentId, ContentResolver } from '@xnetjs/core'
+import { hashContent, createContentId, verifyContent } from '@xnetjs/core'
 import type { StorageAdapter } from './types'
 
 /**
@@ -153,8 +153,8 @@ Handles chunking for large files using Merkle trees:
 ```typescript
 // packages/storage/src/chunk-manager.ts
 
-import type { ContentId, ContentChunk, ContentTree, MerkleNode } from '@xnet/core'
-import { createChunk, buildMerkleTree, hashContent, createContentId } from '@xnet/core'
+import type { ContentId, ContentChunk, ContentTree, MerkleNode } from '@xnetjs/core'
+import { createChunk, buildMerkleTree, hashContent, createContentId } from '@xnetjs/core'
 import type { BlobStore } from './blob-store'
 
 /** Chunk size: 256KB - good balance for sync efficiency */
@@ -366,8 +366,8 @@ High-level API for applications:
 ```typescript
 // packages/data/src/blob/blob-service.ts
 
-import type { ContentId } from '@xnet/core'
-import type { ChunkManager } from '@xnet/storage'
+import type { ContentId } from '@xnetjs/core'
+import type { ChunkManager } from '@xnetjs/storage'
 import type { FileRef } from '../schema/properties/file'
 
 export interface BlobServiceOptions {
@@ -529,8 +529,8 @@ sequenceDiagram
 ```typescript
 // packages/sync/src/blob-sync.ts
 
-import type { ContentId } from '@xnet/core'
-import type { BlobStore } from '@xnet/storage'
+import type { ContentId } from '@xnetjs/core'
+import type { BlobStore } from '@xnetjs/storage'
 
 /**
  * Message types for blob sync
@@ -641,8 +641,8 @@ The editor uses BlobService through a React context:
 // packages/editor/src/context/BlobContext.tsx
 
 import * as React from 'react'
-import type { BlobService } from '@xnet/data'
-import type { FileRef } from '@xnet/data'
+import type { BlobService } from '@xnetjs/data'
+import type { FileRef } from '@xnetjs/data'
 
 interface BlobContextValue {
   blobService: BlobService
@@ -851,7 +851,7 @@ describe('ChunkManager', () => {
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { BlobService } from './blob-service'
-import { ChunkManager, BlobStore, MemoryStorageAdapter } from '@xnet/storage'
+import { ChunkManager, BlobStore, MemoryStorageAdapter } from '@xnetjs/storage'
 
 describe('BlobService', () => {
   let blobService: BlobService
@@ -912,9 +912,9 @@ describe('BlobService', () => {
 
 ## Checklist
 
-- [ ] Implement BlobStore in `@xnet/storage`
+- [ ] Implement BlobStore in `@xnetjs/storage`
 - [ ] Implement ChunkManager with Merkle trees
-- [ ] Implement BlobService in `@xnet/data`
+- [ ] Implement BlobService in `@xnetjs/data`
 - [ ] Add deleteBlob to StorageAdapter interface
 - [ ] Implement BlobSyncProvider
 - [ ] Create BlobContext for React integration

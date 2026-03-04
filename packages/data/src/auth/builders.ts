@@ -5,7 +5,7 @@
  *
  * @example
  * ```typescript
- * import { allow, deny, and, or, not, role, PUBLIC, AUTHENTICATED } from '@xnet/data/auth'
+ * import { allow, deny, and, or, not, role, PUBLIC, AUTHENTICATED } from '@xnetjs/data/auth'
  *
  * const TaskSchema = defineSchema({
  *   // ...
@@ -38,7 +38,7 @@ import type {
   CreatorRoleResolver,
   PropertyRoleResolver,
   RelationRoleResolver
-} from '@xnet/core'
+} from '@xnetjs/core'
 
 // ─── Expression Builders ──────────────────────────────────────────────────────
 

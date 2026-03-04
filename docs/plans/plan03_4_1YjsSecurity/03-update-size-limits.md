@@ -136,7 +136,7 @@ async verifyIncoming(msg: SyncUpdateMessage, peerId: string): Promise<VerifyResu
 ```typescript
 // packages/react/src/sync/WebSocketSyncProvider.ts
 
-import { MAX_YJS_UPDATE_SIZE, YJS_SYNC_CHUNK_SIZE } from '@xnet/sync'
+import { MAX_YJS_UPDATE_SIZE, YJS_SYNC_CHUNK_SIZE } from '@xnetjs/sync'
 
 private async _handleLocalUpdate(update: Uint8Array) {
   if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return

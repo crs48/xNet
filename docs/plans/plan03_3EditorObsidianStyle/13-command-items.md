@@ -359,7 +359,7 @@ export const commandRegistry = new CommandRegistry()
 
 ```typescript
 // In your app's setup
-import { commandRegistry } from '@xnet/editor/extensions/slash-command'
+import { commandRegistry } from '@xnetjs/editor/extensions/slash-command'
 
 // Register a custom command
 commandRegistry.registerCommand(

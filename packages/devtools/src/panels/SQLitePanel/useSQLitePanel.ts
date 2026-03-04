@@ -3,7 +3,7 @@
  */
 
 import type { DevToolsEventBus } from '../../core/event-bus'
-import type { NodeStore } from '@xnet/data'
+import type { NodeStore } from '@xnetjs/data'
 import { useState, useEffect, useCallback } from 'react'
 
 const DEBUG_KEY = 'xnet:sqlite:debug'
@@ -43,7 +43,7 @@ export function useSQLiteStatus(store: NodeStore | null): SQLiteStatusInfo {
       }
 
       try {
-        const { checkBrowserSupport } = await import('@xnet/sqlite')
+        const { checkBrowserSupport } = await import('@xnetjs/sqlite')
         const result = await checkBrowserSupport()
         if (!cancelled) {
           setSupportWarning(result.warning ?? null)
@@ -253,7 +253,7 @@ export function useSQLitePanel(_eventBus: DevToolsEventBus) {
       }
 
       try {
-        const { checkBrowserSupport } = await import('@xnet/sqlite')
+        const { checkBrowserSupport } = await import('@xnetjs/sqlite')
         const result = await checkBrowserSupport()
         setSupportInfo({
           supported: result.supported,

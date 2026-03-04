@@ -1,21 +1,21 @@
 # 01: Property Types
 
-> Implementing all 16 property types (COMPLETE - see @xnet/data)
+> Implementing all 16 property types (COMPLETE - see @xnetjs/data)
 
-**Status:** COMPLETE - implemented in `@xnet/data/schema/properties/`
+**Status:** COMPLETE - implemented in `@xnetjs/data/schema/properties/`
 **Duration:** 3 weeks (completed)
-**Dependencies:** @xnet/sync (Lamport timestamps), @xnet/storage
+**Dependencies:** @xnetjs/sync (Lamport timestamps), @xnetjs/storage
 
 ## Overview
 
-The property type system is implemented in `@xnet/data`. Each property type has:
+The property type system is implemented in `@xnetjs/data`. Each property type has:
 
 - Schema definition helper (e.g., `text()`, `select()`)
 - TypeScript type inference
 - Validation rules (at create/update time)
 - Default values
 
-> **Note:** Display/Editor components and Filter/Sort UI are part of `@xnet/views` (Phase 2).
+> **Note:** Display/Editor components and Filter/Sort UI are part of `@xnetjs/views` (Phase 2).
 > This document describes the reference implementation for those components.
 
 ## Property Type Categories
@@ -64,7 +64,7 @@ flowchart TD
 
 ## Current Implementation
 
-Properties are defined in `@xnet/data/schema/properties/` using helper functions:
+Properties are defined in `@xnetjs/data/schema/properties/` using helper functions:
 
 ```typescript
 // packages/data/src/schema/properties/index.ts
@@ -100,7 +100,7 @@ const TaskSchema = defineSchema({
 
 ## View Layer Interface (Phase 2)
 
-For `@xnet/views`, each property type needs display/editor components:
+For `@xnetjs/views`, each property type needs display/editor components:
 
 ### Base Interface
 
@@ -910,7 +910,7 @@ export const relationProperty: PropertyHandler<string[]> = {
 > **Note:** Rollup values are NOT stored - they are computed at read time by the query layer.
 > This avoids storing derived data and keeps the data model clean.
 
-Rollup aggregations are handled by `@xnet/query` when displaying views:
+Rollup aggregations are handled by `@xnetjs/query` when displaying views:
 
 ```typescript
 // Rollup computed in view layer, not stored in NodeStore
@@ -1198,7 +1198,7 @@ describe('textProperty', () => {
 
 ## Checklist
 
-### Schema Layer (COMPLETE - @xnet/data)
+### Schema Layer (COMPLETE - @xnetjs/data)
 
 - [x] `text()` helper with required/maxLength options
 - [x] `number()` helper with format options
@@ -1212,9 +1212,9 @@ describe('textProperty', () => {
 - [x] `url()`, `email()`, `phone()`, `file()` helpers
 - [x] `created()`, `updated()`, `createdBy()` auto helpers
 - [x] TypeScript inference for all property types
-- [x] Unit tests (62 tests in @xnet/data)
+- [x] Unit tests (62 tests in @xnetjs/data)
 
-### View Layer (TO BUILD - @xnet/views)
+### View Layer (TO BUILD - @xnetjs/views)
 
 - [ ] PropertyHandler interface for display/edit
 - [ ] Text property editor

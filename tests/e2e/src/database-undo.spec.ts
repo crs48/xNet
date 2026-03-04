@@ -83,7 +83,7 @@ test.describe('Database undo/redo shortcuts', () => {
       'pnpm',
       [
         '--filter',
-        '@xnet/hub',
+        '@xnetjs/hub',
         'exec',
         'tsx',
         'src/cli.ts',

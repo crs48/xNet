@@ -4,13 +4,13 @@
 
 **Date**: February 2026
 **Status**: Exploration
-**Prerequisites**: Understanding of current `@xnet/crypto` and `@xnet/identity` packages
+**Prerequisites**: Understanding of current `@xnetjs/crypto` and `@xnetjs/identity` packages
 
 ---
 
 ## Implementation Status
 
-> **Status: COMPLETE** - Multi-level cryptography is fully implemented across `@xnet/crypto`, `@xnet/identity`, `@xnet/sync`, and `@xnet/react`.
+> **Status: COMPLETE** - Multi-level cryptography is fully implemented across `@xnetjs/crypto`, `@xnetjs/identity`, `@xnetjs/sync`, and `@xnetjs/react`.
 
 ### Phase 1: Core Crypto ✅
 
@@ -187,7 +187,7 @@ SLH-DSA (SPHINCS+) uses only hash functions and could serve as a backup if latti
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                       @xnet/crypto                               │
+│                       @xnetjs/crypto                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  Signing: Ed25519 (@noble/curves)                               │
@@ -220,10 +220,10 @@ SLH-DSA (SPHINCS+) uses only hash functions and could serve as a backup if latti
 
 ### Where Signatures Are Used
 
-1. **Change<T>** (`@xnet/sync`): Every NodeStore mutation
-2. **SignedYjsEnvelope** (`@xnet/sync`): Every Yjs update batch
-3. **UCAN tokens** (`@xnet/identity`): Authorization
-4. **ClientID attestations** (`@xnet/sync`): Yjs client binding
+1. **Change<T>** (`@xnetjs/sync`): Every NodeStore mutation
+2. **SignedYjsEnvelope** (`@xnetjs/sync`): Every Yjs update batch
+3. **UCAN tokens** (`@xnetjs/identity`): Authorization
+4. **ClientID attestations** (`@xnetjs/sync`): Yjs client binding
 
 ### Current Wire Format (Change<T>)
 

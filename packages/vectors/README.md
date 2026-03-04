@@ -1,11 +1,11 @@
-# @xnet/vectors
+# @xnetjs/vectors
 
 Vector embeddings, HNSW indexing, and semantic/hybrid search for xNet.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/vectors
+pnpm add @xnetjs/vectors
 ```
 
 ## Features
@@ -22,7 +22,7 @@ pnpm add @xnet/vectors
 ### Embedding
 
 ```typescript
-import { loadEmbeddingModel, MockEmbeddingModel } from '@xnet/vectors'
+import { loadEmbeddingModel, MockEmbeddingModel } from '@xnetjs/vectors'
 
 // Load a real model (browser or Node)
 const model = await loadEmbeddingModel('all-MiniLM-L6-v2')
@@ -36,7 +36,7 @@ const testVector = await mock.embed('test input')
 ### Vector Index
 
 ```typescript
-import { VectorIndex } from '@xnet/vectors'
+import { VectorIndex } from '@xnetjs/vectors'
 
 const index = new VectorIndex({ dimensions: 384 })
 index.add('doc1', vector1)
@@ -49,7 +49,7 @@ const results = index.search(queryVector, 10)
 ### Semantic Search
 
 ```typescript
-import { SemanticSearch } from '@xnet/vectors'
+import { SemanticSearch } from '@xnetjs/vectors'
 
 const search = new SemanticSearch({ useMockModel: true })
 await search.initialize()
@@ -63,7 +63,7 @@ const results = await search.search('fast animal', { maxResults: 5 })
 ### Hybrid Search
 
 ```typescript
-import { HybridSearch } from '@xnet/vectors'
+import { HybridSearch } from '@xnetjs/vectors'
 
 // Combines keyword matching + semantic similarity
 const hybrid = new HybridSearch(semanticSearch, keywordIndex)
@@ -77,7 +77,7 @@ const results = await hybrid.search('fox jumping', {
 ### Utilities
 
 ```typescript
-import { cosineSimilarity, euclideanDistance } from '@xnet/vectors'
+import { cosineSimilarity, euclideanDistance } from '@xnetjs/vectors'
 
 const similarity = cosineSimilarity(vectorA, vectorB) // 0 to 1
 const distance = euclideanDistance(vectorA, vectorB)
@@ -116,14 +116,14 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/storage`
+- `@xnetjs/core`, `@xnetjs/storage`
 - `@xenova/transformers` -- ML model inference
 - `usearch` -- HNSW index (optional native backend)
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/vectors test
+pnpm --filter @xnetjs/vectors test
 ```
 
 4 test files covering embedding, HNSW, search, and hybrid search.

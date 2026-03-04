@@ -36,7 +36,7 @@ stateDiagram-v2
 ```typescript
 // packages/react/src/sync/offline-queue.ts
 
-import type { NodeStorageAdapter } from '@xnet/data'
+import type { NodeStorageAdapter } from '@xnetjs/data'
 
 export interface QueueEntry {
   /** Node ID this update belongs to */

@@ -4,9 +4,9 @@
 
 import type { NodeState, NodeChange, NodePayload } from './types'
 import type { SchemaIRI } from '../schema/node'
-import type { DID, ContentId } from '@xnet/core'
-import type { SQLiteAdapter } from '@xnet/sqlite'
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
+import type { DID, ContentId } from '@xnetjs/core'
+import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
 

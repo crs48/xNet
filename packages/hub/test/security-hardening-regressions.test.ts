@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Security hardening regression checks.
+ * @xnetjs/hub - Security hardening regression checks.
  */
 
 import { readFileSync } from 'node:fs'

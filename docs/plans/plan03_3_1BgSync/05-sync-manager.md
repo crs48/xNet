@@ -30,7 +30,7 @@ flowchart TB
 
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
-import type { NodeStore, NodeStorageAdapter } from '@xnet/data'
+import type { NodeStore, NodeStorageAdapter } from '@xnetjs/data'
 import { createMetaBridge, type MetaBridge } from './meta-bridge'
 import { createNodePool, type NodePool } from './node-pool'
 import { createRegistry, type Registry } from './registry'

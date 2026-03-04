@@ -1,6 +1,6 @@
 # 06: Package Naming & JSON-LD Integration Proposal
 
-> Exploring options for merging @xnet/data and @xnet/records, with JSON-LD support
+> Exploring options for merging @xnetjs/data and @xnetjs/records, with JSON-LD support
 
 **Status:** Draft for discussion
 
@@ -8,19 +8,19 @@
 
 Two separate packages with overlapping responsibilities:
 
-| Package         | Contains                       | Sync              | Use Case                |
-| --------------- | ------------------------------ | ----------------- | ----------------------- |
-| `@xnet/data`    | XDocument, Blocks, Yjs wrapper | Yjs CRDT          | Rich text documents     |
-| `@xnet/records` | Database, Item, Properties     | Event-sourced LWW | Tabular/structured data |
+| Package           | Contains                       | Sync              | Use Case                |
+| ----------------- | ------------------------------ | ----------------- | ----------------------- |
+| `@xnetjs/data`    | XDocument, Blocks, Yjs wrapper | Yjs CRDT          | Rich text documents     |
+| `@xnetjs/records` | Database, Item, Properties     | Event-sourced LWW | Tabular/structured data |
 
-**Problem:** The name `@xnet/data` suggests "all data" but only handles Yjs documents. A layperson would expect database records to also live under "data."
+**Problem:** The name `@xnetjs/data` suggests "all data" but only handles Yjs documents. A layperson would expect database records to also live under "data."
 
 ## Naming Options
 
-### Option A: Merge into unified `@xnet/data`
+### Option A: Merge into unified `@xnetjs/data`
 
 ```
-@xnet/data/
+@xnetjs/data/
 ├── document/           # Rich text (Yjs)
 │   ├── types.ts
 │   ├── blocks.ts
@@ -38,12 +38,12 @@ Two separate packages with overlapping responsibilities:
 **Imports:**
 
 ```typescript
-import { Document, Block } from '@xnet/data/document'
-import { Database, Item, Property } from '@xnet/data/record'
-import { Schema, Context } from '@xnet/data/schema'
+import { Document, Block } from '@xnetjs/data/document'
+import { Database, Item, Property } from '@xnetjs/data/record'
+import { Schema, Context } from '@xnetjs/data/schema'
 
 // Or flat:
-import { Document, Database, Item, Schema } from '@xnet/data'
+import { Document, Database, Item, Schema } from '@xnetjs/data'
 ```
 
 **Pros:**
@@ -64,15 +64,15 @@ import { Document, Database, Item, Schema } from '@xnet/data'
 ### Option B: Rename to explicit names
 
 ```
-@xnet/document   # Was @xnet/data - rich text documents
-@xnet/database   # Was @xnet/records - tabular data
+@xnetjs/document   # Was @xnetjs/data - rich text documents
+@xnetjs/database   # Was @xnetjs/records - tabular data
 ```
 
 **Imports:**
 
 ```typescript
-import { Document, Block } from '@xnet/document'
-import { Database, Item, Property } from '@xnet/database'
+import { Document, Block } from '@xnetjs/document'
+import { Database, Item, Property } from '@xnetjs/database'
 ```
 
 **Pros:**
@@ -84,7 +84,7 @@ import { Database, Item, Property } from '@xnet/database'
 **Cons:**
 
 - More packages to manage
-- `@xnet/database` might imply we have a real DB (we don't)
+- `@xnetjs/database` might imply we have a real DB (we don't)
 - Still need a place for shared JSON-LD schemas
 
 ---
@@ -92,22 +92,22 @@ import { Database, Item, Property } from '@xnet/database'
 ### Option C: Data + specific subpackages
 
 ```
-@xnet/data           # Shared schemas, base types, JSON-LD
-@xnet/data-document  # Rich text (Yjs)
-@xnet/data-record    # Tabular (Event-sourced)
+@xnetjs/data           # Shared schemas, base types, JSON-LD
+@xnetjs/data-document  # Rich text (Yjs)
+@xnetjs/data-record    # Tabular (Event-sourced)
 ```
 
 **Imports:**
 
 ```typescript
-import { Schema, Context } from '@xnet/data'
-import { Document, Block } from '@xnet/data-document'
-import { Database, Item } from '@xnet/data-record'
+import { Schema, Context } from '@xnetjs/data'
+import { Document, Block } from '@xnetjs/data-document'
+import { Database, Item } from '@xnetjs/data-record'
 ```
 
 **Pros:**
 
-- `@xnet/data` becomes the shared foundation
+- `@xnetjs/data` becomes the shared foundation
 - Explicit about what each subpackage does
 - Can use any subpackage independently
 
@@ -119,10 +119,10 @@ import { Database, Item } from '@xnet/data-record'
 
 ---
 
-### Option D: Content types under unified `@xnet/data`
+### Option D: Content types under unified `@xnetjs/data`
 
 ```
-@xnet/data/
+@xnetjs/data/
 ├── types/              # All type definitions
 │   ├── document.ts     # Page, Canvas
 │   ├── database.ts     # Database, Item
@@ -138,20 +138,20 @@ This is similar to Option A but emphasizes that everything is "content types" wi
 
 ---
 
-## Recommendation: Option A (Merge into `@xnet/data`)
+## Recommendation: Option A (Merge into `@xnetjs/data`)
 
 **Rationale:**
 
-1. **Layperson friendly** - "Where does data live? In `@xnet/data`."
+1. **Layperson friendly** - "Where does data live? In `@xnetjs/data`."
 2. **Subpaths are clean** - Modern bundlers handle subpath exports well
 3. **Room for JSON-LD** - The `schema/` directory is a natural home
 4. **Matches Notion's model** - Pages and databases are both "blocks" at some level
 
 **Migration path:**
 
-1. Move `@xnet/records` code into `@xnet/data/record/`
-2. Re-export from `@xnet/records` for backward compatibility
-3. Deprecate `@xnet/records` after a version cycle
+1. Move `@xnetjs/records` code into `@xnetjs/data/record/`
+2. Re-export from `@xnetjs/records` for backward compatibility
+3. Deprecate `@xnetjs/records` after a version cycle
 
 ---
 
@@ -178,7 +178,7 @@ The original plan specified JSON-LD schemas for blocks. This was intended but **
 ### Proposed JSON-LD Schema
 
 ```typescript
-// @xnet/data/schema/context.ts
+// @xnetjs/data/schema/context.ts
 
 export const XNET_CONTEXT = {
   '@context': {
@@ -269,7 +269,7 @@ function toJsonLd(doc: Document): JsonLdDocument {
 
 **Start with optional JSON-LD, make it native over time:**
 
-1. Add `@xnet/data/schema` with context definitions
+1. Add `@xnetjs/data/schema` with context definitions
 2. Add `toJsonLd()` and `fromJsonLd()` helpers
 3. Store `@type` and `@id` internally but don't require them in API
 4. Full JSON-LD becomes the export format
@@ -281,7 +281,7 @@ function toJsonLd(doc: Document): JsonLdDocument {
 With JSON-LD and merged packages, the unified model looks like:
 
 ```typescript
-// @xnet/data/types/base.ts
+// @xnetjs/data/types/base.ts
 
 /**
  * Base interface for all content types in xNet.
@@ -361,12 +361,12 @@ interface Canvas extends Content {
 
 ## Summary
 
-| Question         | Recommendation                        |
-| ---------------- | ------------------------------------- |
-| Merge packages?  | Yes - into `@xnet/data` with subpaths |
-| JSON-LD support? | Yes - optional now, native later      |
-| Base type name?  | Keep `Document` (already decided)     |
-| Migration?       | Gradual with backward compat          |
+| Question         | Recommendation                          |
+| ---------------- | --------------------------------------- |
+| Merge packages?  | Yes - into `@xnetjs/data` with subpaths |
+| JSON-LD support? | Yes - optional now, native later        |
+| Base type name?  | Keep `Document` (already decided)       |
+| Migration?       | Gradual with backward compat            |
 
 ---
 

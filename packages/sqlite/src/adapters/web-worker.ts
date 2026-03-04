@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Web Worker entry point for SQLite WASM
+ * @xnetjs/sqlite - Web Worker entry point for SQLite WASM
  *
  * This file runs in a Web Worker and handles all SQLite operations.
  * The main thread communicates with it via postMessage/Comlink.

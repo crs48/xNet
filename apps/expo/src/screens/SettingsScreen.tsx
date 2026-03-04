@@ -3,7 +3,7 @@
  *
  * Updated to use the new DataBridge API via XNetContext.
  */
-import { useXNet } from '@xnet/react'
+import { useXNet } from '@xnetjs/react'
 import React from 'react'
 import {
   View,

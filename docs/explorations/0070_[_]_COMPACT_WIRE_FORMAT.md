@@ -150,7 +150,7 @@ flowchart LR
 ```typescript
 // packages/sync/src/batch/merkle-batch.ts
 
-import { hash } from '@xnet/crypto'
+import { hash } from '@xnetjs/crypto'
 
 /**
  * Build a Merkle tree from change hashes.

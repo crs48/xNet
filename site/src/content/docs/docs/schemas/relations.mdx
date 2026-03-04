@@ -11,7 +11,7 @@ Relations are how you connect nodes together in xNet. Instead of embedding neste
 The `relation()` property stores a reference to another node by its ID. You can think of it like a foreign key in a relational database, except it works across peers in a local-first system. When you need to link a task to a project, or a comment to a post, `relation()` is the right choice.
 
 ```ts
-import { defineSchema, relation, text } from '@xnet/data'
+import { defineSchema, relation, text } from '@xnetjs/data'
 
 const TaskSchema = defineSchema({
   name: 'Task',

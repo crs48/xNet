@@ -1,5 +1,5 @@
 /**
- * @xnet/devtools - Development entry point
+ * @xnetjs/devtools - Development entry point
  *
  * Full XNetDevToolsProvider with all panels, instrumentation, and UI.
  * Selected by the bundler when the "development" condition is active.

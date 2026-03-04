@@ -40,7 +40,7 @@ That is a major mental model shift for both users and developers, so architectur
 
 From current implementation:
 
-- `@xnet/data` already models schemas as global IRIs (`xnet://...`) and nodes with global IDs (`createNodeId()` via nanoid): `packages/data/src/schema/node.ts`.
+- `@xnetjs/data` already models schemas as global IRIs (`xnet://...`) and nodes with global IDs (`createNodeId()` via nanoid): `packages/data/src/schema/node.ts`.
 - Runtime schema loading is supported with local + remote resolver (`SchemaRegistry.setRemoteResolver`): `packages/data/src/schema/registry.ts`.
 - Hub already has schema registry APIs (`POST /schemas`, `GET /schemas`, `GET /schemas/resolve/*`): `packages/hub/src/routes/schemas.ts` and `packages/hub/src/services/schemas.ts`.
 - Hub federation already supports per-peer schema filtering (`peer.schemas`) and exposure filtering (`config.expose.schemas`): `packages/hub/src/services/federation.ts`.

@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Database subscription manager for real-time updates.
+ * @xnetjs/hub - Database subscription manager for real-time updates.
  *
  * Manages WebSocket subscriptions to database changes and pushes
  * notifications when rows are inserted, updated, or deleted.

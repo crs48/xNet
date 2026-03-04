@@ -1,6 +1,6 @@
-# Exploration: Rewriting @xnet Packages in Zig or Rust
+# Exploration: Rewriting @xnetjs Packages in Zig or Rust
 
-> Should xNet's core packages be rewritten in a systems language? This exploration analyzes the performance benefits, complexity costs, and strategic implications of rewriting some or all of the `@xnet/*` packages in Rust or Zig.
+> Should xNet's core packages be rewritten in a systems language? This exploration analyzes the performance benefits, complexity costs, and strategic implications of rewriting some or all of the `@xnetjs/*` packages in Rust or Zig.
 
 **Status**: Design Exploration
 **Last Updated**: February 2026
@@ -30,49 +30,49 @@ pie title "Lines of Code by Category"
     "Client (react, sdk, plugins, network, telemetry)" : 20000
 ```
 
-| Package          | LOC (non-test) | Files | Category       | Pure Logic? | Rewrite Benefit  |
-| ---------------- | -------------- | ----- | -------------- | ----------- | ---------------- |
-| `@xnet/crypto`   | 2,487          | 15    | Foundation     | Yes         | **Very High**    |
-| `@xnet/core`     | 946            | 9     | Foundation     | Yes         | Low              |
-| `@xnet/identity` | 3,200          | 24    | Foundation     | Yes         | Medium           |
-| `@xnet/sync`     | 7,403          | 25    | Infrastructure | Yes         | **High**         |
-| `@xnet/data`     | 17,776         | 86    | Data           | Mostly      | **High**         |
-| `@xnet/storage`  | 583            | 7     | Infrastructure | Yes         | Low              |
-| `@xnet/sqlite`   | 3,097          | 16    | Infrastructure | Yes         | Already native   |
-| `@xnet/formula`  | 2,272          | 6     | Compute        | Yes         | **High**         |
-| `@xnet/vectors`  | 1,356          | 5     | Compute        | Yes         | **Very High**    |
-| `@xnet/query`    | 404            | 5     | Compute        | Yes         | Medium           |
-| `@xnet/canvas`   | 14,687         | 69    | UI             | Mixed       | Medium (spatial) |
-| `@xnet/editor`   | ~8,000         | 81    | UI             | No          | None             |
-| `@xnet/react`    | ~7,000         | 70    | UI             | No          | None             |
-| `@xnet/hub`      | 10,511         | 52    | Server         | Mostly      | Medium           |
-| `@xnet/network`  | 2,444          | 15    | I/O            | No          | None             |
+| Package            | LOC (non-test) | Files | Category       | Pure Logic? | Rewrite Benefit  |
+| ------------------ | -------------- | ----- | -------------- | ----------- | ---------------- |
+| `@xnetjs/crypto`   | 2,487          | 15    | Foundation     | Yes         | **Very High**    |
+| `@xnetjs/core`     | 946            | 9     | Foundation     | Yes         | Low              |
+| `@xnetjs/identity` | 3,200          | 24    | Foundation     | Yes         | Medium           |
+| `@xnetjs/sync`     | 7,403          | 25    | Infrastructure | Yes         | **High**         |
+| `@xnetjs/data`     | 17,776         | 86    | Data           | Mostly      | **High**         |
+| `@xnetjs/storage`  | 583            | 7     | Infrastructure | Yes         | Low              |
+| `@xnetjs/sqlite`   | 3,097          | 16    | Infrastructure | Yes         | Already native   |
+| `@xnetjs/formula`  | 2,272          | 6     | Compute        | Yes         | **High**         |
+| `@xnetjs/vectors`  | 1,356          | 5     | Compute        | Yes         | **Very High**    |
+| `@xnetjs/query`    | 404            | 5     | Compute        | Yes         | Medium           |
+| `@xnetjs/canvas`   | 14,687         | 69    | UI             | Mixed       | Medium (spatial) |
+| `@xnetjs/editor`   | ~8,000         | 81    | UI             | No          | None             |
+| `@xnetjs/react`    | ~7,000         | 70    | UI             | No          | None             |
+| `@xnetjs/hub`      | 10,511         | 52    | Server         | Mostly      | Medium           |
+| `@xnetjs/network`  | 2,444          | 15    | I/O            | No          | None             |
 
 ### Dependency Graph with Rewrite Candidates
 
 ```mermaid
 flowchart TD
     subgraph "Tier 1: Rewrite Candidates (Pure Compute)"
-        crypto["@xnet/crypto\n2,487 LOC\nBLAKE3, Ed25519, XChaCha20\nML-DSA hybrid signing"]
-        core["@xnet/core\n946 LOC\nCIDs, Merkle trees"]
-        formula["@xnet/formula\n2,272 LOC\nExpression parser/evaluator"]
-        vectors["@xnet/vectors\n1,356 LOC\nHNSW index, cosine similarity"]
+        crypto["@xnetjs/crypto\n2,487 LOC\nBLAKE3, Ed25519, XChaCha20\nML-DSA hybrid signing"]
+        core["@xnetjs/core\n946 LOC\nCIDs, Merkle trees"]
+        formula["@xnetjs/formula\n2,272 LOC\nExpression parser/evaluator"]
+        vectors["@xnetjs/vectors\n1,356 LOC\nHNSW index, cosine similarity"]
     end
 
     subgraph "Tier 2: Partial Rewrite (Hot Paths Only)"
-        sync["@xnet/sync\n7,403 LOC\nHash chains, Lamport clocks\nYjs security"]
-        data["@xnet/data\n17,776 LOC\nNodeStore, schema system\nChange replay"]
+        sync["@xnetjs/sync\n7,403 LOC\nHash chains, Lamport clocks\nYjs security"]
+        data["@xnetjs/data\n17,776 LOC\nNodeStore, schema system\nChange replay"]
     end
 
     subgraph "Tier 3: Keep in TypeScript"
-        identity["@xnet/identity\n3,200 LOC"]
-        storage["@xnet/storage\n583 LOC"]
-        sqlite["@xnet/sqlite\n3,097 LOC"]
-        react["@xnet/react"]
-        editor["@xnet/editor"]
-        canvas["@xnet/canvas"]
-        hub["@xnet/hub"]
-        network["@xnet/network"]
+        identity["@xnetjs/identity\n3,200 LOC"]
+        storage["@xnetjs/storage\n583 LOC"]
+        sqlite["@xnetjs/sqlite\n3,097 LOC"]
+        react["@xnetjs/react"]
+        editor["@xnetjs/editor"]
+        canvas["@xnetjs/canvas"]
+        hub["@xnetjs/hub"]
+        network["@xnetjs/network"]
     end
 
     core --> crypto
@@ -98,7 +98,7 @@ flowchart TD
 
 ## Performance Analysis: Where Are the Bottlenecks?
 
-### Current Benchmark Data (from `@xnet/crypto`)
+### Current Benchmark Data (from `@xnetjs/crypto`)
 
 xNet already has benchmark tests for its most performance-sensitive code:
 
@@ -297,23 +297,23 @@ flowchart TD
     subgraph "Option A: WASM Modules (Browser + Node)"
         A1["Rust source"] --> A2["wasm-pack build"]
         A2 --> A3["WASM binary\n+ JS glue code"]
-        A3 --> A4["npm package\n@xnet/crypto-wasm"]
-        A4 --> A5["Import in TS\nimport { hash } from '@xnet/crypto-wasm'"]
+        A3 --> A4["npm package\n@xnetjs/crypto-wasm"]
+        A4 --> A5["Import in TS\nimport { hash } from '@xnetjs/crypto-wasm'"]
     end
 
     subgraph "Option B: NAPI Native Addon (Node only)"
         B1["Rust source"] --> B2["napi build\n--platform"]
         B2 --> B3["Native .node addon\nper platform"]
         B3 --> B4["npm package with\noptionalDependencies"]
-        B4 --> B5["Import in TS\nimport { hash } from '@xnet/crypto-native'"]
+        B4 --> B5["Import in TS\nimport { hash } from '@xnetjs/crypto-native'"]
     end
 
     subgraph "Option C: Hybrid (WASM + NAPI)"
         C1["Shared Rust core"] --> C2["wasm-pack\n(browser)"]
         C1 --> C3["napi build\n(desktop)"]
-        C2 --> C4["@xnet/crypto-wasm"]
-        C3 --> C5["@xnet/crypto-native"]
-        C4 --> C6["Runtime detection\nimport crypto from '@xnet/crypto'"]
+        C2 --> C4["@xnetjs/crypto-wasm"]
+        C3 --> C5["@xnetjs/crypto-native"]
+        C4 --> C6["Runtime detection\nimport crypto from '@xnetjs/crypto'"]
         C5 --> C6
     end
 
@@ -439,7 +439,7 @@ flowchart TD
 
     subgraph "Phase 1: Backend Only"
         YRS1["yrs (Rust)\nServer-side CRDT"]
-        HUB1["@xnet/hub\nFaster merge/encode"]
+        HUB1["@xnetjs/hub\nFaster merge/encode"]
         YJS1["yjs (npm)\nBrowser CRDT unchanged"]
     end
 
@@ -464,7 +464,7 @@ flowchart TD
 
 ### Tier 1: High-Value, Low-Risk Rewrites
 
-#### `@xnet/crypto` -- The Strongest Candidate
+#### `@xnetjs/crypto` -- The Strongest Candidate
 
 - [x] Pure computation (no I/O, no DOM)
 - [x] Well-defined interface (hash, sign, verify, encrypt, decrypt)
@@ -505,8 +505,8 @@ pub fn verify_ed25519(message: &[u8], signature: &[u8], public_key: &[u8]) -> bo
 The TypeScript interface would remain identical -- only the implementation changes:
 
 ```typescript
-// @xnet/crypto/src/hashing.ts (updated)
-import { hash_blake3 } from '@xnet/crypto-wasm'
+// @xnetjs/crypto/src/hashing.ts (updated)
+import { hash_blake3 } from '@xnetjs/crypto-wasm'
 
 export function hash(data: Uint8Array, algorithm: HashAlgorithm = 'blake3'): Uint8Array {
   switch (algorithm) {
@@ -518,7 +518,7 @@ export function hash(data: Uint8Array, algorithm: HashAlgorithm = 'blake3'): Uin
 }
 ```
 
-#### `@xnet/vectors` -- High Impact, Self-Contained
+#### `@xnetjs/vectors` -- High Impact, Self-Contained
 
 - [x] Pure computation (cosine similarity, HNSW graph traversal)
 - [x] Well-defined interface (add, search, remove)
@@ -530,7 +530,7 @@ export function hash(data: Uint8Array, algorithm: HashAlgorithm = 'blake3'): Uin
 **Estimated speedup**: 10-15x for search operations
 **Risk**: Low
 
-#### `@xnet/formula` -- Clean Rewrite Target
+#### `@xnetjs/formula` -- Clean Rewrite Target
 
 - [x] Pure computation (lexer, parser, evaluator)
 - [x] Zero dependencies
@@ -544,7 +544,7 @@ export function hash(data: Uint8Array, algorithm: HashAlgorithm = 'blake3'): Uin
 
 ### Tier 2: Medium-Value, Medium-Risk
 
-#### `@xnet/sync` -- Selective Hot Paths
+#### `@xnetjs/sync` -- Selective Hot Paths
 
 Only specific functions benefit from native rewrite:
 
@@ -558,7 +558,7 @@ The rest (Change creation, SyncProvider interface, Lamport clocks) is thin enoug
 **Estimated speedup**: 3-5x for chain validation
 **Risk**: Medium (API boundary complexity)
 
-#### `@xnet/data` -- NodeStore Materialization
+#### `@xnetjs/data` -- NodeStore Materialization
 
 Only the change-replay engine benefits:
 
@@ -574,22 +574,22 @@ The schema definition API, Yjs integration, and storage adapters stay in TypeScr
 
 ### Tier 3: Low-Value or High-Risk -- Skip
 
-| Package           | Why Skip                                             |
-| ----------------- | ---------------------------------------------------- |
-| `@xnet/identity`  | Thin wrappers around crypto (benefits automatically) |
-| `@xnet/storage`   | I/O bound (SQLite, IndexedDB)                        |
-| `@xnet/sqlite`    | Already uses native better-sqlite3 + WASM            |
-| `@xnet/react`     | React hooks -- must be JavaScript                    |
-| `@xnet/editor`    | TipTap/ProseMirror -- DOM-bound                      |
-| `@xnet/canvas`    | React components (spatial index in Tier 2)           |
-| `@xnet/network`   | I/O bound (libp2p, WebSocket)                        |
-| `@xnet/hub`       | I/O bound (HTTP, WebSocket, SQLite)                  |
-| `@xnet/ui`        | React components                                     |
-| `@xnet/views`     | React components                                     |
-| `@xnet/devtools`  | Debug-only, performance irrelevant                   |
-| `@xnet/telemetry` | Low-frequency, no bottleneck                         |
-| `@xnet/plugins`   | Plugin API must be JavaScript                        |
-| `@xnet/core`      | Mostly types and simple utilities                    |
+| Package             | Why Skip                                             |
+| ------------------- | ---------------------------------------------------- |
+| `@xnetjs/identity`  | Thin wrappers around crypto (benefits automatically) |
+| `@xnetjs/storage`   | I/O bound (SQLite, IndexedDB)                        |
+| `@xnetjs/sqlite`    | Already uses native better-sqlite3 + WASM            |
+| `@xnetjs/react`     | React hooks -- must be JavaScript                    |
+| `@xnetjs/editor`    | TipTap/ProseMirror -- DOM-bound                      |
+| `@xnetjs/canvas`    | React components (spatial index in Tier 2)           |
+| `@xnetjs/network`   | I/O bound (libp2p, WebSocket)                        |
+| `@xnetjs/hub`       | I/O bound (HTTP, WebSocket, SQLite)                  |
+| `@xnetjs/ui`        | React components                                     |
+| `@xnetjs/views`     | React components                                     |
+| `@xnetjs/devtools`  | Debug-only, performance irrelevant                   |
+| `@xnetjs/telemetry` | Low-frequency, no bottleneck                         |
+| `@xnetjs/plugins`   | Plugin API must be JavaScript                        |
+| `@xnetjs/core`      | Mostly types and simple utilities                    |
 
 ---
 
@@ -630,7 +630,7 @@ gantt
     NodeStore optimization       :p5c, after p5b, 20d
 ```
 
-### Phase 1: `@xnet/crypto-wasm` (3-4 weeks)
+### Phase 1: `@xnetjs/crypto-wasm` (3-4 weeks)
 
 ```
 packages/
@@ -664,14 +664,14 @@ packages/
 - [ ] CI pipeline building WASM on every commit
 - [ ] Fallback to JS implementation if WASM fails to load
 
-### Phase 2: `@xnet/vectors-wasm` (2-3 weeks)
+### Phase 2: `@xnetjs/vectors-wasm` (2-3 weeks)
 
 - [ ] HNSW index in Rust (or wrap usearch)
 - [ ] Cosine similarity with SIMD
 - [ ] WASM bindings
 - [ ] Replace `LinearVectorIndex` and enhance `VectorIndex`
 
-### Phase 3: `@xnet/formula-wasm` (2-3 weeks)
+### Phase 3: `@xnetjs/formula-wasm` (2-3 weeks)
 
 - [ ] Lexer and parser in Rust
 - [ ] Evaluator with built-in functions
@@ -806,7 +806,7 @@ flowchart TD
 
 ## Recommendation
 
-### Start with `@xnet/crypto-wasm` (Phase 1)
+### Start with `@xnetjs/crypto-wasm` (Phase 1)
 
 This is the highest-ROI, lowest-risk starting point because:
 

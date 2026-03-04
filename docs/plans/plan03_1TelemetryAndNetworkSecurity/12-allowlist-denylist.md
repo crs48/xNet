@@ -17,7 +17,7 @@ Allow users to explicitly control which peers can sync with their workspaces:
 ```typescript
 // packages/network/src/security/access-list.ts
 
-import type { PeerId, DID } from '@xnet/core'
+import type { PeerId, DID } from '@xnetjs/core'
 
 /**
  * Deny list entry.
@@ -311,7 +311,7 @@ export class PeerAccessControl {
 ## Usage Example
 
 ```typescript
-import { PeerAccessControl } from '@xnet/network/security'
+import { PeerAccessControl } from '@xnetjs/network/security'
 
 const accessControl = new PeerAccessControl()
 

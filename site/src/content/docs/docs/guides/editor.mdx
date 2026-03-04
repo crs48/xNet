@@ -17,18 +17,18 @@ sidebar:
 
 ## Overview
 
-`@xnet/editor` is a collaborative rich text editor built on TipTap v3 with Yjs for real-time CRDT sync. It provides three entry points:
+`@xnetjs/editor` is a collaborative rich text editor built on TipTap v3 with Yjs for real-time CRDT sync. It provides three entry points:
 
 | Import                    | Contents                                 |
 | ------------------------- | ---------------------------------------- |
-| `@xnet/editor`            | Core `Editor` class (framework-agnostic) |
-| `@xnet/editor/react`      | React components, hooks, node views      |
-| `@xnet/editor/extensions` | All TipTap extensions and utilities      |
+| `@xnetjs/editor`            | Core `Editor` class (framework-agnostic) |
+| `@xnetjs/editor/react`      | React components, hooks, node views      |
+| `@xnetjs/editor/extensions` | All TipTap extensions and utilities      |
 
 ## RichTextEditor component
 
 ```tsx
-import { RichTextEditor } from '@xnet/editor/react'
+import { RichTextEditor } from '@xnetjs/editor/react'
 
 <RichTextEditor
   ydoc={ydoc}                          // Required: Yjs document

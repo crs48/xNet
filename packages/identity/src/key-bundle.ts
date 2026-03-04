@@ -1,5 +1,5 @@
 /**
- * @xnet/identity - Hybrid key bundle creation and utilities
+ * @xnetjs/identity - Hybrid key bundle creation and utilities
  *
  * This module provides functions for creating and working with HybridKeyBundle,
  * which contains both classical (Ed25519/X25519) and post-quantum (ML-DSA/ML-KEM)
@@ -15,7 +15,7 @@ import {
   type SecurityLevel,
   type UnifiedSignature,
   type HybridKeyPair
-} from '@xnet/crypto'
+} from '@xnetjs/crypto'
 import { createDID } from './did'
 import { createPQKeyAttestation, type PQKeyAttestation } from './pq-attestation'
 

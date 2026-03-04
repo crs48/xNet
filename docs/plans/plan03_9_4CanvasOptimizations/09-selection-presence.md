@@ -4,7 +4,7 @@
 
 **Duration:** 2 days
 **Dependencies:** [08-live-cursors.md](./08-live-cursors.md)
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

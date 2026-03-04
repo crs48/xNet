@@ -2,7 +2,7 @@
 
 > Core point-in-time reconstruction: materialize any node's state at any historical point.
 
-**Dependencies:** `@xnet/data` (NodeStore, NodeStorageAdapter), `@xnet/sync` (topologicalSort, LamportTimestamp)
+**Dependencies:** `@xnetjs/data` (NodeStore, NodeStorageAdapter), `@xnetjs/sync` (topologicalSort, LamportTimestamp)
 **New Package:** `packages/history/`
 
 ## Overview
@@ -81,14 +81,14 @@ export interface PropertyDiff {
 ```typescript
 // packages/history/src/engine.ts
 
-import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
+import { topologicalSort, compareLamportTimestamps } from '@xnetjs/sync'
 import type {
   NodeChange,
   NodeState,
   NodeStorageAdapter,
   NodeId,
   PropertyTimestamp
-} from '@xnet/data'
+} from '@xnetjs/data'
 import type { SnapshotCache } from './snapshot-cache'
 import type { HistoryTarget, HistoricalState, TimelineEntry, PropertyDiff } from './types'
 
@@ -477,14 +477,14 @@ describe('HistoryEngine', () => {
 ```json
 // packages/history/package.json
 {
-  "name": "@xnet/history",
+  "name": "@xnetjs/history",
   "version": "0.1.0",
   "type": "module",
   "main": "src/index.ts",
   "dependencies": {
-    "@xnet/data": "workspace:*",
-    "@xnet/sync": "workspace:*",
-    "@xnet/core": "workspace:*"
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/sync": "workspace:*",
+    "@xnetjs/core": "workspace:*"
   },
   "devDependencies": {
     "vitest": "^3.0.0"

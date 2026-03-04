@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Query client reference implementation.
+ * @xnetjs/hub - Query client reference implementation.
  */
 
 export class QueryClient {

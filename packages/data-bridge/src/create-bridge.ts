@@ -6,7 +6,7 @@
  */
 
 import type { DataBridge, DataBridgeConfig } from './types'
-import type { NodeStore } from '@xnet/data'
+import type { NodeStore } from '@xnetjs/data'
 import { MainThreadBridge } from './main-thread-bridge'
 import { WorkerBridge } from './worker-bridge'
 
@@ -30,10 +30,10 @@ export interface CreateBridgeOptions {
    * In Vite, use import.meta.url to get the worker URL:
    * ```ts
    * // Option 1: Use the package's built worker
-   * const workerUrl = new URL('@xnet/data-bridge/worker', import.meta.url)
+   * const workerUrl = new URL('@xnetjs/data-bridge/worker', import.meta.url)
    *
    * // Option 2: Use Vite's ?worker&url import (bundles into your build)
-   * import workerUrl from '@xnet/data-bridge/dist/worker/data-worker.js?worker&url'
+   * import workerUrl from '@xnetjs/data-bridge/dist/worker/data-worker.js?worker&url'
    * ```
    *
    * Note: Vite handles Web Worker bundling automatically. No additional
@@ -77,7 +77,7 @@ export function isNodeEnvironment(): boolean {
  * const bridge = await createDataBridge({
  *   nodeStore,
  *   config: { authorDID, signingKey },
- *   workerUrl: new URL('@xnet/data-bridge/worker', import.meta.url)
+ *   workerUrl: new URL('@xnetjs/data-bridge/worker', import.meta.url)
  * })
  *
  * // In tests or when workers aren't needed

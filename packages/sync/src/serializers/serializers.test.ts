@@ -2,9 +2,9 @@
  * Tests for version-specific serializers
  */
 import type { Change } from '../change'
-import type { DID } from '@xnet/core'
-import type { UnifiedSignature } from '@xnet/crypto'
-import { generateKeyPair } from '@xnet/crypto'
+import type { DID } from '@xnetjs/core'
+import type { UnifiedSignature } from '@xnetjs/crypto'
+import { generateKeyPair } from '@xnetjs/crypto'
 import { describe, it, expect } from 'vitest'
 import { signChange, createUnsignedChange } from '../change'
 import { createLamportClock, tick } from '../clock'

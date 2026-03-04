@@ -2,7 +2,7 @@
  * Plugin schema - stores plugin metadata as Nodes for P2P sync
  */
 
-import { defineSchema, text, checkbox, date } from '@xnet/data'
+import { defineSchema, text, checkbox, date } from '@xnetjs/data'
 
 export const PluginSchema = defineSchema({
   name: 'Plugin',

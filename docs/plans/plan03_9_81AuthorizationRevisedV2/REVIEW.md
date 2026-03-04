@@ -57,9 +57,9 @@ const grants = await this.store.query({
 })
 ```
 
-**Problem:** `NodeStore` does not have a `query()` method. Its API is: `create`, `update`, `delete`, `get`, `list`, `transaction`, `applyRemoteChange`, `subscribe`, `getDocumentContent`, `setDocumentContent`. Queries with filters live in the separate `@xnet/query` package.
+**Problem:** `NodeStore` does not have a `query()` method. Its API is: `create`, `update`, `delete`, `get`, `list`, `transaction`, `applyRemoteChange`, `subscribe`, `getDocumentContent`, `setDocumentContent`. Queries with filters live in the separate `@xnetjs/query` package.
 
-**NodeStore.list()** exists but only supports listing by schema, not filtering by arbitrary properties. The `@xnet/query` engine supports rich filters (`eq`, `gt`, `contains`, etc.) but operates at a higher level and isn't designed to be called from within the data layer.
+**NodeStore.list()** exists but only supports listing by schema, not filtering by arbitrary properties. The `@xnetjs/query` engine supports rich filters (`eq`, `gt`, `contains`, etc.) but operates at a higher level and isn't designed to be called from within the data layer.
 
 **Impact:** The entire `PolicyEvaluator.can()` pipeline depends on querying grants. Without a query mechanism, the evaluator can't find grants for a resource.
 

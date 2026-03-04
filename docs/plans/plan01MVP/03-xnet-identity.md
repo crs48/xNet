@@ -1,9 +1,9 @@
-# 03: @xnet/identity
+# 03: @xnetjs/identity
 
 > DID:key identity, UCAN authorization, key management
 
 **Duration:** 3 weeks
-**Dependencies:** @xnet/crypto
+**Dependencies:** @xnetjs/crypto
 
 ## Overview
 
@@ -16,7 +16,7 @@ cd packages/identity
 pnpm add @ipld/dag-cbor multiformats @ucanto/core @ucanto/principal
 pnpm add -D vitest typescript tsup
 # Add workspace dependency
-pnpm add @xnet/crypto@workspace:*
+pnpm add @xnetjs/crypto@workspace:*
 ```
 
 ## Directory Structure
@@ -81,7 +81,7 @@ export interface UCANToken {
 
 ```typescript
 import { base58btc } from 'multiformats/bases/base58'
-import { generateSigningKeyPair, getPublicKeyFromPrivate } from '@xnet/crypto'
+import { generateSigningKeyPair, getPublicKeyFromPrivate } from '@xnetjs/crypto'
 import type { Identity } from './types'
 
 // Multicodec prefix for Ed25519 public key
@@ -136,7 +136,7 @@ export function identityFromPrivateKey(privateKey: Uint8Array): Identity {
 ```typescript
 import { describe, it, expect } from 'vitest'
 import { createDID, parseDID, generateIdentity, identityFromPrivateKey } from './did'
-import { generateSigningKeyPair } from '@xnet/crypto'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
 
 describe('DID:key', () => {
   it('should generate valid DID', () => {
@@ -169,7 +169,7 @@ describe('DID:key', () => {
 ```typescript
 import { hkdf } from '@noble/hashes/hkdf'
 import { sha256 } from '@noble/hashes/sha256'
-import { generateSigningKeyPair, generateKeyPair } from '@xnet/crypto'
+import { generateSigningKeyPair, generateKeyPair } from '@xnetjs/crypto'
 import type { KeyBundle, Identity } from './types'
 import { createDID } from './did'
 
@@ -223,7 +223,7 @@ export function generateKeyBundle(): KeyBundle {
 ### UCAN Tokens (ucan.ts)
 
 ```typescript
-import { sign, verify } from '@xnet/crypto'
+import { sign, verify } from '@xnetjs/crypto'
 import type { UCANToken, UCANCapability } from './types'
 import { parseDID } from './did'
 
@@ -370,7 +370,7 @@ describe('UCAN', () => {
 ### Passkey Integration (passkey.ts)
 
 ```typescript
-import { encrypt, decrypt, generateKey } from '@xnet/crypto'
+import { encrypt, decrypt, generateKey } from '@xnetjs/crypto'
 import type { StoredKey, KeyBundle } from './types'
 
 /**

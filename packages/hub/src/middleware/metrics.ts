@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Prometheus-compatible metrics.
+ * @xnetjs/hub - Prometheus-compatible metrics.
  */
 
 export class Metrics {

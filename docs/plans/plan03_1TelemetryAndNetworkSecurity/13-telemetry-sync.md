@@ -16,7 +16,7 @@ When users opt into sharing telemetry (tier >= 'crashes'), telemetry nodes can b
 ```typescript
 // packages/telemetry/src/sync/provider.ts
 
-import type { SyncProvider, Change } from '@xnet/sync'
+import type { SyncProvider, Change } from '@xnetjs/sync'
 import type { ConsentManager } from '../consent/manager'
 import type { TelemetryRecord } from '../collection/collector'
 import { scheduleWithJitter } from '../collection/timing'
@@ -244,13 +244,13 @@ export interface AggregatorResponse {
   error?: string
 }
 
-// Protocol handler would be implemented in @xnet/network
+// Protocol handler would be implemented in @xnetjs/network
 ```
 
 ## Usage Example
 
 ```typescript
-import { TelemetrySyncProvider } from '@xnet/telemetry/sync'
+import { TelemetrySyncProvider } from '@xnetjs/telemetry/sync'
 
 // Configure sync
 const syncProvider = new TelemetrySyncProvider(

@@ -1,16 +1,16 @@
-# @xnet/storage
+# @xnetjs/storage
 
 Storage adapters and blob persistence for xNet.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/storage
+pnpm add @xnetjs/storage
 ```
 
 ## Features
 
-- **SQLite adapter** -- Cross-platform blob storage via `@xnet/sqlite`
+- **SQLite adapter** -- Cross-platform blob storage via `@xnetjs/sqlite`
 - **Memory adapter** -- In-memory blob storage for tests and local flows
 - **Blob store** -- Content-addressed binary storage
 - **Chunk manager** -- Chunk and reassemble large payloads
@@ -21,8 +21,8 @@ pnpm add @xnet/storage
 ### SQLite Storage (Recommended)
 
 ```typescript
-import { SQLiteStorageAdapter } from '@xnet/storage'
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
+import { SQLiteStorageAdapter } from '@xnetjs/storage'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 
 // Create SQLite adapter (use appropriate adapter for platform)
 const sqliteDb = await createMemorySQLiteAdapter()
@@ -40,15 +40,15 @@ const exists = await storage.hasBlob(cid)
 
 ```typescript
 // Electron (better-sqlite3)
-import { createElectronSQLiteAdapter } from '@xnet/sqlite/electron'
+import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 const db = await createElectronSQLiteAdapter({ path: 'xnet.db' })
 
 // Web (sqlite-wasm + OPFS)
-import { createWebSQLiteAdapter } from '@xnet/sqlite/web'
+import { createWebSQLiteAdapter } from '@xnetjs/sqlite/web'
 const db = await createWebSQLiteAdapter({ path: 'xnet.db' })
 
 // Expo (expo-sqlite)
-import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
+import { createExpoSQLiteAdapter } from '@xnetjs/sqlite/expo'
 const db = await createExpoSQLiteAdapter({ path: 'xnet.db' })
 ```
 
@@ -57,8 +57,8 @@ const db = await createExpoSQLiteAdapter({ path: 'xnet.db' })
 Storage adapters support optional telemetry for tracking read/write operations and performance:
 
 ```typescript
-import { SQLiteStorageAdapter } from '@xnet/storage'
-import { TelemetryCollector, ConsentManager } from '@xnet/telemetry'
+import { SQLiteStorageAdapter } from '@xnetjs/storage'
+import { TelemetryCollector, ConsentManager } from '@xnetjs/telemetry'
 
 const consent = new ConsentManager()
 const telemetry = new TelemetryCollector({ consent })
@@ -82,7 +82,7 @@ All telemetry respects user consent settings and privacy buckets.
 ### Memory Adapter
 
 ```typescript
-import { MemoryAdapter } from '@xnet/storage'
+import { MemoryAdapter } from '@xnetjs/storage'
 
 const storage = new MemoryAdapter()
 await storage.open()
@@ -92,7 +92,7 @@ const loaded = await storage.getBlob(cid)
 ```
 
 ```typescript
-import { BlobStore } from '@xnet/storage'
+import { BlobStore } from '@xnetjs/storage'
 
 // Store and retrieve binary data
 const blobStore = new BlobStore(adapter)
@@ -101,7 +101,7 @@ const blob = await blobStore.get(blobId)
 ```
 
 ```typescript
-import { ChunkManager } from '@xnet/storage'
+import { ChunkManager } from '@xnetjs/storage'
 
 // Chunked storage for large files
 const chunks = new ChunkManager(adapter)
@@ -129,12 +129,12 @@ const restored = await chunks.retrieve(fileId)
 
 ## Dependencies
 
-- `@xnet/core` -- Core types
-- `@xnet/crypto` -- Content hashing
-- `@xnet/sqlite` -- SQLite adapters (for SQLiteStorageAdapter)
+- `@xnetjs/core` -- Core types
+- `@xnetjs/crypto` -- Content hashing
+- `@xnetjs/sqlite` -- SQLite adapters (for SQLiteStorageAdapter)
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/storage test
+pnpm --filter @xnetjs/storage test
 ```

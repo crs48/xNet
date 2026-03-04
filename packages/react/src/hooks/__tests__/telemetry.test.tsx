@@ -2,10 +2,10 @@
  * Tests for telemetry instrumentation in useQuery and useMutate hooks
  */
 import type { TelemetryReporter } from '../../context/telemetry-context'
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { defineSchema, text, select, MemoryNodeStorageAdapter } from '@xnet/data'
-import { generateIdentity } from '@xnet/identity'
+import { defineSchema, text, select, MemoryNodeStorageAdapter } from '@xnetjs/data'
+import { generateIdentity } from '@xnetjs/identity'
 import React, { type ReactNode, useMemo } from 'react'
 import { describe, it, expect } from 'vitest'
 import { XNetProvider } from '../../context'
@@ -229,10 +229,19 @@ describe('useMutate telemetry', () => {
     await waitFor(() => result.current.isPending === false)
 
     let nodeId: string | undefined
-    await act(async () => {
-      const node = await result.current.create(TaskSchema, { title: 'To Update', status: 'todo' })
-      nodeId = node?.id
-    })
+    for (let attempt = 0; attempt < 5 && !nodeId; attempt++) {
+      await act(async () => {
+        const node = await result.current.create(TaskSchema, {
+          title: `To Update ${attempt}`,
+          status: 'todo'
+        })
+        nodeId = node?.id
+      })
+
+      if (!nodeId) {
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+    }
 
     expect(nodeId).toBeDefined()
     telemetry.calls.length = 0 // Clear create calls

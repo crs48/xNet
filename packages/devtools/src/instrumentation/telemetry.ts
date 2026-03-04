@@ -11,7 +11,7 @@
 import type { DevToolsEventBus } from '../core/event-bus'
 import type { PeerScoreSnapshot } from '../core/types'
 
-/** Minimal TelemetryCollector interface (avoids hard dep on @xnet/telemetry) */
+/** Minimal TelemetryCollector interface (avoids hard dep on @xnetjs/telemetry) */
 interface TelemetryCollectorLike {
   report: (schemaId: string, data: Record<string, unknown>, options?: unknown) => string | null
   reportCrash: (error: Error, context?: Record<string, unknown>) => string | null

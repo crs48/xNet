@@ -7,7 +7,7 @@ import {
   createKeyBundle,
   MemoryPQKeyRegistry,
   createPQKeyAttestation
-} from '@xnet/identity'
+} from '@xnetjs/identity'
 import { describe, it, expect } from 'vitest'
 import {
   signYjsUpdate,

@@ -67,8 +67,8 @@ graph TD
         MS["MiniSearch<br/>title-only, in-memory"]
         LQE["LocalQueryEngine<br/>full-scan, 11 filter operators"]
         FQR["FederatedQueryRouter<br/>skeleton, local-only"]
-        VS["@xnet/vectors<br/>HNSW + HybridSearch via RRF"]
-        FED["@xnet/core/federation<br/>Wire types: QueryRequest/Response"]
+        VS["@xnetjs/vectors<br/>HNSW + HybridSearch via RRF"]
+        FED["@xnetjs/core/federation<br/>Wire types: QueryRequest/Response"]
     end
 
     subgraph "Gaps"
@@ -148,7 +148,7 @@ interface LocalSearchIndex {
   }
 
   // Semantic: vector embeddings for similarity
-  vectors: HNSWIndex // From @xnet/vectors
+  vectors: HNSWIndex // From @xnetjs/vectors
 
   // Unified query: combines all three with RRF
   query(q: SearchQuery): RankedResults
@@ -926,7 +926,7 @@ gantt
     Persist MiniSearch to IndexedDB     :p1b, after p1a, 1w
     Reactive re-index on changes        :p1c, after p1b, 1w
     Integrate NodeStore with search     :p1d, after p1c, 1w
-    Connect @xnet/vectors to pipeline   :p1e, after p1d, 1w
+    Connect @xnetjs/vectors to pipeline   :p1e, after p1d, 1w
 
     section Phase 2: Hub Search
     Hub FTS5 index (plan03_8 Ph5)   :p2a, 2026-03, 2w
@@ -953,7 +953,7 @@ gantt
 2. **Persist index**: Serialize MiniSearch state to IndexedDB. Load on startup instead of full re-index.
 3. **Reactive updates**: Hook into `NodeStore.subscribe()` and `Y.Doc.observeDeep()` with 500ms debounce.
 4. **NodeStore integration**: Index `NodeState.properties` alongside XDocument metadata. Schema-aware field boosting.
-5. **Vector pipeline**: Wire `@xnet/vectors` HybridSearch into the SDK's `client.search()`.
+5. **Vector pipeline**: Wire `@xnetjs/vectors` HybridSearch into the SDK's `client.search()`.
 
 ### Phase 2 Details (Hub Search)
 
@@ -1123,7 +1123,7 @@ function SearchPage() {
 | Spam resistance   | UCAN + rate limiting         | + hub reputation scores     | Trust from capability chains. Hub reputation from federation quality.  |
 | Ranking           | BM25 + RRF                   | + social trust + Goggles    | Local relevance + social authority + user control.                     |
 | Encrypted search  | HMAC-keyed term hashing      | + multi-party PIR           | HMAC for hub workspace search. PIR for anonymous queries (future).     |
-| Vector search     | @xnet/vectors (HNSW)         | + hub-hosted ANN federation | Local HNSW now. Hub-side vector index for large-scale semantic.        |
+| Vector search     | @xnetjs/vectors (HNSW)       | + hub-hosted ANN federation | Local HNSW now. Hub-side vector index for large-scale semantic.        |
 | Crawl coordinator | —                            | Hub-assigned URL ranges     | Canonical hub distributes crawl work to volunteer hubs/peers.          |
 
 ---

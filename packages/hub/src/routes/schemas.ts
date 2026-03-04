@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Schema registry routes.
+ * @xnetjs/hub - Schema registry routes.
  */
 
 import type { AuthContext } from '../auth/ucan'

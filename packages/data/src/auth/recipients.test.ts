@@ -1,6 +1,6 @@
 import type { Schema } from '../schema/types'
 import type { NodeState } from '../store'
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 import { describe, expect, it, vi } from 'vitest'
 import { defineSchema } from '../schema'
 import { person, relation, text } from '../schema/properties'

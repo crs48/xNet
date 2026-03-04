@@ -2,8 +2,8 @@
  * useGrants - Read and mutate grants for a node.
  */
 
-import type { AuthAction, DID } from '@xnet/core'
-import type { AuthGrant } from '@xnet/data'
+import type { AuthAction, DID } from '@xnetjs/core'
+import type { AuthGrant } from '@xnetjs/data'
 import { useCallback, useEffect, useState } from 'react'
 import { useNodeStore } from './useNodeStore'
 

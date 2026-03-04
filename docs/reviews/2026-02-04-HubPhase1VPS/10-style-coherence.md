@@ -12,7 +12,7 @@ AGENTS.md specifies:
 
 1. Type-only imports first
 2. External packages
-3. Internal `@xnet/*` packages
+3. Internal `@xnetjs/*` packages
 4. Local relative imports
 
 ### Violations
@@ -135,7 +135,7 @@ AGENTS.md requires file-level JSDoc headers and section dividers.
 
 ```typescript
 /**
- * @xnet/hub - [description]
+ * @xnetjs/hub - [description]
  */
 ```
 

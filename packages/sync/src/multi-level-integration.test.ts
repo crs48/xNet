@@ -14,7 +14,7 @@ import {
   MemoryPQKeyRegistry,
   createPQKeyAttestation,
   type HybridKeyBundle
-} from '@xnet/identity'
+} from '@xnetjs/identity'
 import { describe, it, expect, beforeAll } from 'vitest'
 import { v3Serializer, autoDeserialize } from './serializers/index'
 import { signYjsUpdateV2, verifyYjsEnvelopeV2, signYjsUpdateBatch } from './yjs-envelope'

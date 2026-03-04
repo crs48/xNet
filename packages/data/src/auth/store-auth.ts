@@ -1,6 +1,6 @@
-import type { AuthAction, AuthDecision, AuthTrace, DID, PolicyEvaluator } from '@xnet/core'
-import type { PublicKeyResolver } from '@xnet/crypto'
-import { createUCAN } from '@xnet/identity'
+import type { AuthAction, AuthDecision, AuthTrace, DID, PolicyEvaluator } from '@xnetjs/core'
+import type { PublicKeyResolver } from '@xnetjs/crypto'
+import { createUCAN } from '@xnetjs/identity'
 import { GrantRateLimiter } from './grant-rate-limit'
 import { GRANT_SCHEMA_IRI, type GrantNode, type GrantIndex, isGrantActive } from './grants'
 import {

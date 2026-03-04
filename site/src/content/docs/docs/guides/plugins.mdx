@@ -40,7 +40,7 @@ Most plugin development happens at Layer 2. Layers 3 and 4 are for advanced use 
    Every extension starts with an `XNetExtension` manifest. Use `defineExtension()` for validation:
 
    ```ts
-   import { defineExtension } from '@xnet/plugins'
+   import { defineExtension } from '@xnetjs/plugins'
 
    export const MyPlugin = defineExtension({
      id: 'com.example.my-plugin', // reverse-domain format
@@ -68,7 +68,7 @@ Most plugin development happens at Layer 2. Layers 3 and 4 are for advanced use 
    In your app setup, install the plugin with the registry:
 
    ```ts
-   import { usePluginRegistry } from '@xnet/react'
+   import { usePluginRegistry } from '@xnetjs/react'
    import { MyPlugin } from './plugins/my-plugin'
 
    function App() {
@@ -83,7 +83,7 @@ Most plugin development happens at Layer 2. Layers 3 and 4 are for advanced use 
 3. **Consume contributions in your UI**
 
    ```tsx
-   import { useViews, useCommands } from '@xnet/react'
+   import { useViews, useCommands } from '@xnetjs/react'
 
    function Sidebar() {
      const views = useViews()
@@ -480,7 +480,7 @@ Before execution, scripts are parsed with `acorn` and validated against a strict
 ### Sandbox execution
 
 ```ts
-import { ScriptSandbox, createScriptContext } from '@xnet/plugins'
+import { ScriptSandbox, createScriptContext } from '@xnetjs/plugins'
 
 const sandbox = new ScriptSandbox({ timeoutMs: 1000 })
 const context = createScriptContext(node, queryFn)
@@ -494,7 +494,7 @@ The sandbox wraps code in a `new Function()` with all dangerous globals shadowed
 xNet includes an AI script generator that produces validated scripts:
 
 ```ts
-import { generateScript, createAIProvider } from '@xnet/plugins'
+import { generateScript, createAIProvider } from '@xnetjs/plugins'
 
 const provider = createAIProvider({
   type: 'anthropic',   // or 'openai', 'ollama'
@@ -549,7 +549,7 @@ interface ServiceDefinition {
 From the renderer, use the `ServiceClient`:
 
 ```ts
-import { createServiceClient } from '@xnet/plugins'
+import { createServiceClient } from '@xnetjs/plugins'
 
 const services = createServiceClient()
 await services.start(myServiceDef)
@@ -601,7 +601,7 @@ The MCP server reads from stdin and writes JSON-RPC 2.0 responses to stdout.
 Push notifications on store changes:
 
 ```ts
-import { createWebhookEmitter } from '@xnet/plugins'
+import { createWebhookEmitter } from '@xnetjs/plugins'
 
 const emitter = createWebhookEmitter(store)
 emitter.register({
@@ -622,8 +622,8 @@ Payloads are signed with HMAC-SHA256 (`x-xnet-signature-256` header). Failed del
 Here is the complete source for the built-in Mermaid diagram plugin:
 
 ```ts
-import type { XNetExtension } from '@xnet/plugins'
-import { MermaidExtension } from '@xnet/editor/extensions'
+import type { XNetExtension } from '@xnetjs/plugins'
+import { MermaidExtension } from '@xnetjs/editor/extensions'
 
 export const MermaidPlugin: XNetExtension = {
   id: 'fyi.xnet.mermaid',

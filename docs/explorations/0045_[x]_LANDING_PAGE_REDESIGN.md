@@ -44,7 +44,7 @@ This exploration catalogs specific improvements across content, structure, visua
 - **Hero is generic**: "The Decentralized Data Layer" could be any Web3 project. Doesn't grab a React developer.
 - **No narrative**: Sections are feature-list, not story. No "here's the problem → here's how we solve it" arc.
 - **Missing developer empathy**: Doesn't speak to pain points (server complexity, vendor lock-in, offline-doesn't-work, auth is hard).
-- **No social proof or community signal**: No GitHub stars, no contributor count, no Discord. Feels like it could be abandoned.
+- **No social proof or community signal**: No GitHub stars, no contributor count, no GitHub Discussions. Feels like it could be abandoned.
 - **Get Started is an afterthought**: Two commands at the bottom. No "what you'll build" framing.
 - **No pre-release framing**: Doesn't acknowledge the stage, invite contribution, or make early involvement feel special.
 - **Code examples are static HTML spans**: No proper syntax highlighting, no copy button, can't be easily maintained.
@@ -102,7 +102,7 @@ The page should tell a story in this order:
 - **Problem statement**: Lead with developer frustration, not xNet features
 - **"Before/After" code comparison**: Show a typical app architecture vs. xNet
 - **Pre-release badge/framing**: Be honest about the stage. This builds trust.
-- **Community section**: Discord, GitHub stars, contributor highlights, how to get involved
+- **Community section**: GitHub Discussions, GitHub stars, contributor highlights, how to get involved
 - **"What you can build" gallery**: Concrete examples with screenshots/mockups
 - **AI-friendly pitch**: xNet is all TypeScript — great for agentic coding, autocomplete, type inference
 - **Comparison with alternatives**: Why xNet over Firebase, Supabase, Convex, etc.
@@ -133,9 +133,9 @@ Your data lives on the device. Syncs peer-to-peer. Works offline.
 No servers to deploy. No auth to configure. No vendor to depend on.
 Just React hooks and TypeScript.
 
-[Get Started]  [View on GitHub ★ {count}]  [Join Discord]
+[Get Started]  [View on GitHub ★ {count}]  [Join GitHub Discussions]
 
-$ pnpm add @xnet/react @xnet/data
+$ pnpm add @xnetjs/react @xnetjs/data
 ```
 
 **Why this works**:
@@ -240,7 +240,7 @@ React → API Layer → Auth Service → Database → Cache → CDN
 **xNet Architecture:**
 
 ```
-React → @xnet/react hooks → Local Store → P2P Sync
+React → @xnetjs/react hooks → Local Store → P2P Sync
 ```
 
 Two packages. Zero vendors. No monthly cost. Works offline.
@@ -326,7 +326,7 @@ We're looking for developers who want to:
 - Contribute to local-first infrastructure
 - Be early to something that matters
 
-[Join the Discord]  [Browse Good First Issues]  [Read the Contribution Guide]
+[Join the GitHub Discussions]  [Browse Good First Issues]  [Read the Contribution Guide]
 ```
 
 ### 4.10 Get Started (EXPANDED)
@@ -337,7 +337,7 @@ Turn "Get Started" into a mini-tutorial:
 ## Start building in 60 seconds
 
 # 1. Install
-pnpm add @xnet/react @xnet/data
+pnpm add @xnetjs/react @xnetjs/data
 
 # 2. Define a schema
 const TaskSchema = defineSchema({
@@ -582,18 +582,18 @@ This is radically generous positioning — and that's the point. Developers resp
 
 ## Summary of Changes
 
-| Area         | Current                  | Proposed                                                           |
-| ------------ | ------------------------ | ------------------------------------------------------------------ |
-| Hero         | Generic tagline          | Concrete value prop + install command + social proof               |
-| Narrative    | Feature list             | Problem → Solution → Proof → Vision → Join                         |
-| Sections     | 7 sections               | 10 sections with new Problem, Before/After, Build, DX, Community   |
-| Code         | Manual span highlighting | Shiki + copy buttons + file tabs                                   |
-| Visual       | Static cards             | Scroll animations, gradient accents, grid background, glow effects |
-| Architecture | 703-line monolith        | ~15 focused components                                             |
-| Community    | None                     | Discord, GitHub stats, contribution CTAs, pre-release framing      |
-| Hooks        | Tabbed 4-hook display    | Scrolling narrative with richer examples and "what this replaces"  |
-| Vision       | 3-year timeline          | "What works now" + "What's next" + "Join us"                       |
-| Tone         | Documentation            | Invitation with personality                                        |
+| Area         | Current                  | Proposed                                                                 |
+| ------------ | ------------------------ | ------------------------------------------------------------------------ |
+| Hero         | Generic tagline          | Concrete value prop + install command + social proof                     |
+| Narrative    | Feature list             | Problem → Solution → Proof → Vision → Join                               |
+| Sections     | 7 sections               | 10 sections with new Problem, Before/After, Build, DX, Community         |
+| Code         | Manual span highlighting | Shiki + copy buttons + file tabs                                         |
+| Visual       | Static cards             | Scroll animations, gradient accents, grid background, glow effects       |
+| Architecture | 703-line monolith        | ~15 focused components                                                   |
+| Community    | None                     | GitHub Discussions, GitHub stats, contribution CTAs, pre-release framing |
+| Hooks        | Tabbed 4-hook display    | Scrolling narrative with richer examples and "what this replaces"        |
+| Vision       | 3-year timeline          | "What works now" + "What's next" + "Join us"                             |
+| Tone         | Documentation            | Invitation with personality                                              |
 
 ---
 

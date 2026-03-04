@@ -6,18 +6,18 @@
  * - Comment system with inline popover and sidebar
  * - Real-time presence indicators
  */
-import type { Editor } from '@xnet/editor/react'
+import type { Editor } from '@xnetjs/editor/react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { PageSchema } from '@xnet/data'
-import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnet/editor/extensions'
-import { useNode, useComments, useIdentity } from '@xnet/react'
+import { PageSchema } from '@xnetjs/data'
+import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
+import { useNode, useComments, useIdentity } from '@xnetjs/react'
 import {
   CommentPopover,
   CommentsSidebar,
   OrphanedThreadList,
   type CommentThreadData,
   type OrphanedThread
-} from '@xnet/ui'
+} from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { BacklinksPanel } from '../components/BacklinksPanel'

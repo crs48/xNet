@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Schema registry service.
+ * @xnetjs/hub - Schema registry service.
  */
 
 import type { HubStorage, SchemaRecord } from '../storage/interface'

@@ -2,7 +2,7 @@
  * Tests for DocumentHistoryEngine — Yjs document time travel
  */
 
-import type { NodeId } from '@xnet/data'
+import type { NodeId } from '@xnetjs/data'
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import {

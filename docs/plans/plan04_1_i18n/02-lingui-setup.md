@@ -3,7 +3,7 @@
 > Configure Lingui's compile-time macros, catalog extraction, and per-platform build integration
 
 **Duration:** 1-2 days  
-**Dependencies:** Step 01 (`@xnet/i18n`)
+**Dependencies:** Step 01 (`@xnetjs/i18n`)
 
 ## Overview
 
@@ -207,7 +207,7 @@ pnpm add -w @lingui/core @lingui/react
 pnpm add -wD @lingui/cli @lingui/conf @lingui/swc-plugin
 
 # Expo
-pnpm add --filter @xnet/expo @lingui/metro-transformer
+pnpm add --filter @xnetjs/expo @lingui/metro-transformer
 ```
 
 ## CI Integration

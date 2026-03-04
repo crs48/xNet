@@ -1,5 +1,5 @@
 /**
- * @xnet/editor - Core editor logic
+ * @xnetjs/editor - Core editor logic
  *
  * Framework-agnostic editor that binds to a Yjs document.
  * Can be used directly with vanilla JS/DOM or wrapped by framework bindings.

@@ -17,7 +17,7 @@
 
 ## Overview
 
-The `SchemaRegistry` in `@xnet/data` is currently local-only. When Client A creates a node with schema `xnet://did:key:z6MkAlice.../Recipe`, Client B cannot resolve that schema definition — it has no way to know what properties a "Recipe" has. The hub provides a network-accessible registry where users can publish schemas and others can discover them.
+The `SchemaRegistry` in `@xnetjs/data` is currently local-only. When Client A creates a node with schema `xnet://did:key:z6MkAlice.../Recipe`, Client B cannot resolve that schema definition — it has no way to know what properties a "Recipe" has. The hub provides a network-accessible registry where users can publish schemas and others can discover them.
 
 Schemas are immutable once published (versioned by IRI). The hub stores schema definitions as JSON, indexes them for search, and serves them via HTTP. This enables a community ecosystem of shared schemas (like npm for data types).
 
@@ -607,7 +607,7 @@ describe('Schema Registry', () => {
 - [x] Create Hono routes: POST (publish), GET /resolve/ (resolve), GET (search/list)
 - [x] Add FTS5 search for schema discovery
 - [x] Create `useRemoteSchema()` React hook
-- [x] Add `setRemoteResolver()` to `SchemaRegistry` in `@xnet/data`
+- [x] Add `setRemoteResolver()` to `SchemaRegistry` in `@xnetjs/data`
 - [x] Wire schema routes into server
 - [x] Write registry tests (publish, resolve, version, search)
 - [x] Seed built-in schemas (Page, Task, Database) on hub startup

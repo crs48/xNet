@@ -135,8 +135,8 @@ interface AuthorizationModel {
 ### Defining Schemas with Permissions
 
 ```typescript
-// @xnet/data - Schema definition with permissions
-import { defineSchema, text, person, relation, group } from '@xnet/data'
+// @xnetjs/data - Schema definition with permissions
+import { defineSchema, text, person, relation, group } from '@xnetjs/data'
 
 // Permission expression type (type-safe!)
 type PermissionExpr =
@@ -786,8 +786,8 @@ class UnifiedPermissionEvaluator implements PermissionEvaluator {
 ### The Complete Developer Experience
 
 ```typescript
-// @xnet/react - React hooks
-import { useNode, usePermission, useGroup, useShare } from '@xnet/react'
+// @xnetjs/react - React hooks
+import { useNode, usePermission, useGroup, useShare } from '@xnetjs/react'
 
 function TaskCard({ taskId }: { taskId: string }) {
   // Get node data
@@ -831,8 +831,8 @@ function ShareDialog({ taskId }: { taskId: string }) {
 ### Imperative API
 
 ```typescript
-// @xnet/data - NodeStore API
-import { createStore } from '@xnet/data'
+// @xnetjs/data - NodeStore API
+import { createStore } from '@xnetjs/data'
 
 const store = createStore({
   storage: new SQLiteAdapter('./data.db'),

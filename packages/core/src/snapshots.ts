@@ -71,6 +71,6 @@ export function shouldCreateSnapshot(
  */
 export function mergeStateVectors(base: Uint8Array, _updates: SignedUpdate[]): Uint8Array {
   // State vectors are implementation-specific to the CRDT library (Yjs)
-  // This is a placeholder - actual implementation in @xnet/data
+  // This is a placeholder - actual implementation in @xnetjs/data
   return base
 }

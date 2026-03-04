@@ -12,9 +12,9 @@
  *   ?hub=<url>  -> Hub WebSocket URL
  */
 
-import { DatabaseSchema, MemoryNodeStorageAdapter, type PropertyType } from '@xnet/data'
-import { identityFromPrivateKey } from '@xnet/identity'
-import { XNetProvider, useNode } from '@xnet/react'
+import { DatabaseSchema, MemoryNodeStorageAdapter, type PropertyType } from '@xnetjs/data'
+import { identityFromPrivateKey } from '@xnetjs/identity'
+import { XNetProvider, useNode } from '@xnetjs/react'
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import ReactDOM from 'react-dom/client'
 

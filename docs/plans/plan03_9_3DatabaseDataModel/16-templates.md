@@ -1162,7 +1162,7 @@ import {
   getTemplatesByCategory,
   type DatabaseTemplate,
   type TemplateCategory
-} from '@xnet/data'
+} from '@xnetjs/data'
 
 interface TemplatePickerProps {
   open: boolean
@@ -1409,8 +1409,8 @@ function createEmptyTemplate(): DatabaseTemplate {
 
 import { useState } from 'react'
 import { Save } from 'lucide-react'
-import { createTemplateFromDatabase, templateStorage } from '@xnet/data'
-import type { TemplateCategory } from '@xnet/data'
+import { createTemplateFromDatabase, templateStorage } from '@xnetjs/data'
+import type { TemplateCategory } from '@xnetjs/data'
 
 interface SaveAsTemplateModalProps {
   open: boolean

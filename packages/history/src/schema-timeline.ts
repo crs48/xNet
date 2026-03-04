@@ -15,8 +15,8 @@ import type {
   NodeStore,
   TransactionOperation,
   SchemaIRI
-} from '@xnet/data'
-import { topologicalSort, compareLamportTimestamps } from '@xnet/sync'
+} from '@xnetjs/data'
+import { topologicalSort, compareLamportTimestamps } from '@xnetjs/sync'
 import { createEmptyState, applyChangeToState } from './engine'
 import { deepEqual } from './utils'
 

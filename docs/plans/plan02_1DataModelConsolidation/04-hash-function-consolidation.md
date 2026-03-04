@@ -12,21 +12,21 @@ The codebase has hash-related functions in multiple packages:
 
 ```mermaid
 flowchart TD
-    subgraph crypto["@xnet/crypto"]
+    subgraph crypto["@xnetjs/crypto"]
         C1["hash() → Uint8Array"]
         C2["hashHex() → string"]
         C3["hashBase64() → string"]
         C4["bytesToHex() (internal)"]
     end
 
-    subgraph core["@xnet/core"]
+    subgraph core["@xnetjs/core"]
         K1["hashContent() → string"]
         K2["createContentId() → ContentId"]
         K3["verifyContent()"]
         K4["bytesToHex() (duplicate!)"]
     end
 
-    subgraph records["@xnet/records"]
+    subgraph records["@xnetjs/records"]
         R1["uses hashHex() from crypto ✓"]
     end
 
@@ -36,28 +36,28 @@ flowchart TD
 
 ## Problem
 
-1. **Duplicate `bytesToHex`** - Implemented in both @xnet/crypto and @xnet/core
-2. **Layering violation** - @xnet/core imports @noble/hashes directly instead of using @xnet/crypto
+1. **Duplicate `bytesToHex`** - Implemented in both @xnetjs/crypto and @xnetjs/core
+2. **Layering violation** - @xnetjs/core imports @noble/hashes directly instead of using @xnetjs/crypto
 3. **Confusion** - "Do I use `hash()` or `hashContent()`?"
 
 ## Solution
 
 Clear separation of responsibilities:
 
-| Package        | Responsibility               | Functions                                                  |
-| -------------- | ---------------------------- | ---------------------------------------------------------- |
-| `@xnet/crypto` | Raw cryptographic operations | `hash()`, `hashHex()`, `hashBase64()`                      |
-| `@xnet/core`   | Content addressing (CIDs)    | `createContentId()`, `verifyContent()`, `parseContentId()` |
+| Package          | Responsibility               | Functions                                                  |
+| ---------------- | ---------------------------- | ---------------------------------------------------------- |
+| `@xnetjs/crypto` | Raw cryptographic operations | `hash()`, `hashHex()`, `hashBase64()`                      |
+| `@xnetjs/core`   | Content addressing (CIDs)    | `createContentId()`, `verifyContent()`, `parseContentId()` |
 
 ```mermaid
 flowchart TD
-    subgraph crypto["@xnet/crypto (unchanged)"]
+    subgraph crypto["@xnetjs/crypto (unchanged)"]
         C1["hash(data) → Uint8Array"]
         C2["hashHex(data) → string"]
         C3["hashBase64(data) → string"]
     end
 
-    subgraph core["@xnet/core (updated)"]
+    subgraph core["@xnetjs/core (updated)"]
         K1["createContentId(data) → ContentId"]
         K2["verifyContent(cid, data) → boolean"]
         K3["parseContentId(cid) → string"]
@@ -68,12 +68,12 @@ flowchart TD
 
 ## Implementation
 
-### Update @xnet/core/hashing.ts
+### Update @xnetjs/core/hashing.ts
 
 ```typescript
 // packages/core/src/hashing.ts
 
-import { hashHex } from '@xnet/crypto'
+import { hashHex } from '@xnetjs/crypto'
 import type { ContentId, ContentChunk, ContentTree, MerkleNode } from './content'
 
 /**
@@ -87,7 +87,7 @@ export function createContentId(data: Uint8Array): ContentId {
 
 /**
  * Hash content and return just the hex hash (no prefix).
- * @deprecated Use hashHex from @xnet/crypto for raw hashing,
+ * @deprecated Use hashHex from @xnetjs/crypto for raw hashing,
  *             or createContentId for content addressing.
  */
 export function hashContent(data: Uint8Array): string {
@@ -169,14 +169,14 @@ export function buildMerkleTree(chunks: ContentChunk[]): ContentTree {
   }
 }
 
-// REMOVED: bytesToHex (use the one in @xnet/crypto/utils)
+// REMOVED: bytesToHex (use the one in @xnetjs/crypto/utils)
 ```
 
-### Update @xnet/core/package.json
+### Update @xnetjs/core/package.json
 
 ```json
 {
-  "name": "@xnet/core",
+  "name": "@xnetjs/core",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -193,7 +193,7 @@ export function buildMerkleTree(chunks: ContentChunk[]): ContentTree {
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/crypto": "workspace:*"
+    "@xnetjs/crypto": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.0.0",
@@ -202,9 +202,9 @@ export function buildMerkleTree(chunks: ContentChunk[]): ContentTree {
 }
 ```
 
-Note: Removed direct dependency on `@noble/hashes` - now uses `@xnet/crypto`.
+Note: Removed direct dependency on `@noble/hashes` - now uses `@xnetjs/crypto`.
 
-### Export bytesToHex from @xnet/crypto
+### Export bytesToHex from @xnetjs/crypto
 
 ```typescript
 // packages/crypto/src/index.ts
@@ -225,7 +225,7 @@ export { bytesToHex, hexToBytes } from './utils'
 
 /**
  * Convert bytes to hex string.
- * Used by other @xnet packages that need hex encoding.
+ * Used by other @xnetjs packages that need hex encoding.
  */
 export function bytesToHex(bytes: Uint8Array): string {
   return Array.from(bytes)
@@ -247,20 +247,20 @@ export function hexToBytes(hex: string): Uint8Array {
 
 ### Update Consumers
 
-Any code using `hashContent` from @xnet/core should migrate:
+Any code using `hashContent` from @xnetjs/core should migrate:
 
 ```typescript
 // Before
-import { hashContent, createContentId } from '@xnet/core'
+import { hashContent, createContentId } from '@xnetjs/core'
 const hash = hashContent(data)
 const cid = createContentId(hash)
 
 // After (option 1: for raw hash)
-import { hashHex } from '@xnet/crypto'
+import { hashHex } from '@xnetjs/crypto'
 const hash = hashHex(data)
 
 // After (option 2: for content addressing)
-import { createContentId } from '@xnet/core'
+import { createContentId } from '@xnetjs/core'
 const cid = createContentId(data) // Now takes data directly, not hash
 ```
 
@@ -268,11 +268,11 @@ const cid = createContentId(data) // Now takes data directly, not hash
 
 ```mermaid
 flowchart TD
-    CRYPTO["@xnet/crypto<br/>(no deps on xnet packages)"]
-    CORE["@xnet/core<br/>(depends on crypto)"]
-    IDENTITY["@xnet/identity<br/>(depends on crypto, core)"]
-    DATA["@xnet/data<br/>(depends on crypto, core)"]
-    RECORDS["@xnet/records<br/>(depends on crypto, core)"]
+    CRYPTO["@xnetjs/crypto<br/>(no deps on xnet packages)"]
+    CORE["@xnetjs/core<br/>(depends on crypto)"]
+    IDENTITY["@xnetjs/identity<br/>(depends on crypto, core)"]
+    DATA["@xnetjs/data<br/>(depends on crypto, core)"]
+    RECORDS["@xnetjs/records<br/>(depends on crypto, core)"]
 
     CRYPTO --> CORE
     CRYPTO --> IDENTITY
@@ -283,7 +283,7 @@ flowchart TD
     CORE --> RECORDS
 ```
 
-No cycles - `@xnet/crypto` has no dependencies on other @xnet packages.
+No cycles - `@xnetjs/crypto` has no dependencies on other @xnetjs packages.
 
 ## Tests
 
@@ -292,7 +292,7 @@ No cycles - `@xnet/crypto` has no dependencies on other @xnet packages.
 
 import { describe, it, expect } from 'vitest'
 import { createContentId, verifyContent, parseContentId } from '../src/hashing'
-import { hashHex } from '@xnet/crypto'
+import { hashHex } from '@xnetjs/crypto'
 
 describe('Content Addressing', () => {
   const testData = new TextEncoder().encode('hello world')
@@ -364,20 +364,20 @@ describe('Hex Utilities', () => {
 
 ### Day 1: Update Packages
 
-- [ ] Export `bytesToHex`, `hexToBytes` from @xnet/crypto
-- [ ] Add @xnet/crypto dependency to @xnet/core
-- [ ] Remove @noble/hashes dependency from @xnet/core
-- [ ] Update @xnet/core/hashing.ts to use @xnet/crypto
-- [ ] Remove duplicate bytesToHex from @xnet/core
+- [ ] Export `bytesToHex`, `hexToBytes` from @xnetjs/crypto
+- [ ] Add @xnetjs/crypto dependency to @xnetjs/core
+- [ ] Remove @noble/hashes dependency from @xnetjs/core
+- [ ] Update @xnetjs/core/hashing.ts to use @xnetjs/crypto
+- [ ] Remove duplicate bytesToHex from @xnetjs/core
 - [ ] Update createContentId to accept data directly
 - [ ] Mark hashContent as deprecated
 
 ### Day 2: Verify & Document
 
-- [ ] Run all @xnet/core tests
-- [ ] Run all @xnet/crypto tests
-- [ ] Run all @xnet/records tests (uses hashHex)
-- [ ] Run all @xnet/data tests
+- [ ] Run all @xnetjs/core tests
+- [ ] Run all @xnetjs/crypto tests
+- [ ] Run all @xnetjs/records tests (uses hashHex)
+- [ ] Run all @xnetjs/data tests
 - [ ] Check for circular dependency issues
 - [ ] Update documentation
 - [ ] Update CLAUDE.md "Where Things Live" table
@@ -386,7 +386,7 @@ describe('Hex Utilities', () => {
 
 After this change:
 
-1. **Single source** - All hashing from @xnet/crypto
+1. **Single source** - All hashing from @xnetjs/crypto
 2. **Clear layering** - crypto → core → others
 3. **No duplication** - One bytesToHex implementation
 4. **Simpler API** - createContentId(data) instead of createContentId(hashContent(data))

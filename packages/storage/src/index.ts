@@ -1,5 +1,5 @@
 /**
- * @xnet/storage - SQLite adapters, snapshots, and persistence
+ * @xnetjs/storage - SQLite adapters, snapshots, and persistence
  */
 
 // Types

@@ -1,7 +1,7 @@
 /**
- * @xnet/react internal exports
+ * @xnetjs/react internal exports
  *
- * Used by @xnet/devtools for store access and instrumentation wiring.
+ * Used by @xnetjs/devtools for store access and instrumentation wiring.
  * NOT part of the public API.
  */
 

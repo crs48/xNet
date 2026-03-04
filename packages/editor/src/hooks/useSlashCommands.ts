@@ -9,7 +9,7 @@ import { getAllCommands, type SlashCommandItem } from '../extensions/slash-comma
 
 /**
  * Slash command contribution from the plugin system.
- * (Matches @xnet/plugins SlashCommandContribution)
+ * (Matches @xnetjs/plugins SlashCommandContribution)
  */
 export interface SlashCommandContribution {
   /** Unique command ID */
@@ -32,7 +32,7 @@ export interface SlashCommandContribution {
 export interface UseSlashCommandsOptions {
   /**
    * Function to get all slash command contributions.
-   * Typically from useContributions('slashCommands') in @xnet/react.
+   * Typically from useContributions('slashCommands') in @xnetjs/react.
    */
   getContributions?: () => SlashCommandContribution[]
   /**
@@ -70,8 +70,8 @@ function toSlashCommandItem(contribution: SlashCommandContribution): SlashComman
  *
  * @example
  * ```tsx
- * import { useContributions } from '@xnet/react'
- * import { useSlashCommands } from '@xnet/editor/react'
+ * import { useContributions } from '@xnetjs/react'
+ * import { useSlashCommands } from '@xnetjs/editor/react'
  *
  * function Editor() {
  *   const pluginCommands = useContributions('slashCommands')

@@ -9,7 +9,7 @@
 
 There are three viable paths, each optimized for a different goal:
 
-1. **Ship-now reliability:** Keep `@xnet/hub` relay as default and add a "public hub URL + share token" flow.
+1. **Ship-now reliability:** Keep `@xnetjs/hub` relay as default and add a "public hub URL + share token" flow.
 2. **Fast ad-hoc remote access:** Add optional **Cloudflare Tunnel** launcher for one-click temporary sharing.
 3. **More open/self-hosted:** Offer **FRP/Headscale/Tailscale-style** connector mode for teams that want less vendor lock-in.
 
@@ -88,7 +88,7 @@ Practical implication: if you need "works for everyone," you always need a relay
 
 ## Option A - Public Hub First (Most Practical)
 
-Use `@xnet/hub` as the canonical internet rendezvous + relay. Make sharing explicit and secure via signed share payloads.
+Use `@xnetjs/hub` as the canonical internet rendezvous + relay. Make sharing explicit and secure via signed share payloads.
 
 ### Proposed share payload
 
@@ -216,7 +216,7 @@ graph TD
 
 ## Option D - Full P2P Reintegration (Longer-Term)
 
-This aligns with prior explorations (`0052`, `0078`) and dormant `@xnet/network` scaffolding.
+This aligns with prior explorations (`0052`, `0078`) and dormant `@xnetjs/network` scaffolding.
 
 ```mermaid
 flowchart TB

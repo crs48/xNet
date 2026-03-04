@@ -3,7 +3,7 @@
 > Aggregate values from related rows
 
 **Duration:** 3-4 days
-**Dependencies:** `@xnet/data` (relations, query engine)
+**Dependencies:** `@xnetjs/data` (relations, query engine)
 
 ## Overview
 
@@ -451,8 +451,8 @@ export class RollupService {
 
 import { useState, useEffect, useCallback } from 'react'
 import { useStore } from './useStore'
-import { RollupService } from '@xnet/data'
-import type { DatabaseRow, ColumnDefinition } from '@xnet/data'
+import { RollupService } from '@xnetjs/data'
+import type { DatabaseRow, ColumnDefinition } from '@xnetjs/data'
 
 export function useRollup(
   row: DatabaseRow | null,

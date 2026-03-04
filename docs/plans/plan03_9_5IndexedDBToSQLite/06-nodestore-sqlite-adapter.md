@@ -30,7 +30,7 @@ flowchart TB
         IDB_ADAPTER["IndexedDBNodeStorageAdapter<br/>(DELETED)"]
     end
 
-    subgraph "@xnet/sqlite"
+    subgraph "@xnetjs/sqlite"
         ADAPTER["SQLiteAdapter"]
         ELECTRON["ElectronSQLiteAdapter"]
         WEB["WebSQLiteAdapter"]
@@ -91,7 +91,7 @@ export interface NodeStorageAdapter {
 ````typescript
 // packages/data/src/store/sqlite-adapter.ts
 
-import type { SQLiteAdapter } from '@xnet/sqlite'
+import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import type {
   NodeStorageAdapter,
   NodeState,
@@ -103,7 +103,7 @@ import type {
   CountNodesOptions,
   PropertyTimestamp
 } from './types'
-import { updateNodeFTS, deleteNodeFTS } from '@xnet/sqlite/fts'
+import { updateNodeFTS, deleteNodeFTS } from '@xnetjs/sqlite/fts'
 
 /**
  * SQLite-backed storage adapter for NodeStore.
@@ -627,10 +627,10 @@ interface TipTapNode {
 ```typescript
 // packages/data/src/store/sqlite-adapter.ts (continued)
 
-import { createElectronSQLiteAdapter } from '@xnet/sqlite/electron'
-import { createWebSQLiteAdapter } from '@xnet/sqlite/web'
-import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
-import type { SQLiteConfig } from '@xnet/sqlite'
+import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
+import { createWebSQLiteAdapter } from '@xnetjs/sqlite/web'
+import { createExpoSQLiteAdapter } from '@xnetjs/sqlite/expo'
+import type { SQLiteConfig } from '@xnetjs/sqlite'
 
 /**
  * Create SQLiteNodeStorageAdapter for Electron.
@@ -839,8 +839,8 @@ class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
-import type { SQLiteAdapter } from '@xnet/sqlite'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
+import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import type { NodeState, NodeChange } from './types'
 
 describe('SQLiteNodeStorageAdapter', () => {
@@ -1176,7 +1176,7 @@ describe('SQLiteNodeStorageAdapter', () => {
 
 - [x] Create `SQLiteNodeStorageAdapter` class
 - [x] Implement all `NodeStorageAdapter` methods
-- [x] Add FTS integration in setNode (uses updateNodeFTS/deleteNodeFTS from @xnet/sqlite)
+- [x] Add FTS integration in setNode (uses updateNodeFTS/deleteNodeFTS from @xnetjs/sqlite)
 - [x] Add LWW conflict resolution
 - [x] Create factory function (`createNodeStorageAdapter`)
 - [x] Add prepared statement caching (stmtCache with getStatement helper)
@@ -1185,8 +1185,8 @@ describe('SQLiteNodeStorageAdapter', () => {
 ### Integration
 
 - [x] Update `packages/data/src/store/index.ts` exports
-- [x] Add `@xnet/sqlite` as dependency to `@xnet/data`
-- [x] Update Electron app to use SQLite adapter (already using @xnet/sqlite/electron in data-service.ts)
+- [x] Add `@xnetjs/sqlite` as dependency to `@xnetjs/data`
+- [x] Update Electron app to use SQLite adapter (already using @xnetjs/sqlite/electron in data-service.ts)
 - [x] Update Web app to use SQLite adapter (requires coordinated app update)
 - [x] Update Expo app to use SQLite adapter (requires coordinated app update)
 

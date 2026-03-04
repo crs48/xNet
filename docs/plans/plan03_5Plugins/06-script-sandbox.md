@@ -39,7 +39,7 @@ flowchart TD
 ```typescript
 // packages/plugins/src/schemas/script.ts
 
-import { defineSchema, text, checkbox, select } from '@xnet/data'
+import { defineSchema, text, checkbox, select } from '@xnetjs/data'
 
 export type ScriptTriggerType = 'manual' | 'onChange' | 'onView' | 'scheduled'
 export type ScriptOutputType = 'value' | 'mutation' | 'decoration' | 'void'
@@ -464,7 +464,7 @@ export class ScriptRunner {
 Scripts with `outputType: 'value'` can serve as computed columns in table views:
 
 ```typescript
-// Integration with @xnet/views table
+// Integration with @xnetjs/views table
 
 export function useComputedColumns(schema: DefinedSchema): ComputedColumn[] {
   const scripts = useQuery(ScriptSchema, {

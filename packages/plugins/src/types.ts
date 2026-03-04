@@ -2,7 +2,7 @@
  * Core types for the plugin system
  */
 
-import type { SchemaIRI } from '@xnet/data'
+import type { SchemaIRI } from '@xnetjs/data'
 
 // ─── Disposable ────────────────────────────────────────────────────────────
 

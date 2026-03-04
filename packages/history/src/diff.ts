@@ -4,8 +4,8 @@
 
 import type { HistoryEngine } from './engine'
 import type { HistoryTarget, PropertyDiff, DiffResult } from './types'
-import type { DID } from '@xnet/core'
-import type { NodeId } from '@xnet/data'
+import type { DID } from '@xnetjs/core'
+import type { NodeId } from '@xnetjs/data'
 import { deepEqual } from './utils'
 
 export class DiffEngine {

@@ -3,11 +3,11 @@
 > Inline xNet database views within documents
 
 **Duration:** 1.5 days  
-**Dependencies:** [11-slash-extension.md](./11-slash-extension.md), `@xnet/views` package
+**Dependencies:** [11-slash-extension.md](./11-slash-extension.md), `@xnetjs/views` package
 
 ## Overview
 
-Database embeds allow users to include xNet database views directly within documents. Unlike traditional tables that store data inline, database embeds reference an existing xNet Database node and render it using the shared table/board view components from `@xnet/views`. This enables:
+Database embeds allow users to include xNet database views directly within documents. Unlike traditional tables that store data inline, database embeds reference an existing xNet Database node and render it using the shared table/board view components from `@xnetjs/views`. This enables:
 
 - Live data that updates when the source database changes
 - Multiple views of the same data across different documents
@@ -27,7 +27,7 @@ flowchart TB
     end
 
     subgraph "View Layer"
-        VIEWS["@xnet/views"]
+        VIEWS["@xnetjs/views"]
         TABLE[TableView]
         BOARD[BoardView]
     end
@@ -172,11 +172,11 @@ export const DatabaseEmbedExtension = Node.create<DatabaseEmbedOptions>({
 
 import * as React from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { cn } from '@xnet/ui/lib/utils'
-import { useNode } from '@xnet/react'
-import { DatabaseSchema, type Database } from '@xnet/data'
-// Import from @xnet/views - the shared view components
-// import { TableView, BoardView, ViewToolbar } from '@xnet/views'
+import { cn } from '@xnetjs/ui/lib/utils'
+import { useNode } from '@xnetjs/react'
+import { DatabaseSchema, type Database } from '@xnetjs/data'
+// Import from @xnetjs/views - the shared view components
+// import { TableView, BoardView, ViewToolbar } from '@xnetjs/views'
 import {
   Table2,
   LayoutGrid,
@@ -377,7 +377,7 @@ export function DatabaseEmbedNodeView({ node, selected, updateAttributes }: Node
 
 /**
  * Renders the appropriate view component based on viewType.
- * This delegates to @xnet/views components.
+ * This delegates to @xnetjs/views components.
  */
 function DatabaseViewRenderer({
   databaseId,
@@ -388,7 +388,7 @@ function DatabaseViewRenderer({
   viewType: ViewType
   viewConfig: Record<string, unknown>
 }) {
-  // TODO: Import and use actual view components from @xnet/views
+  // TODO: Import and use actual view components from @xnetjs/views
   // For now, render a placeholder
 
   return (
@@ -396,7 +396,7 @@ function DatabaseViewRenderer({
       <p className="text-sm">
         Database view: <code>{viewType}</code>
       </p>
-      <p className="text-xs mt-1">View components from @xnet/views will be rendered here</p>
+      <p className="text-xs mt-1">View components from @xnetjs/views will be rendered here</p>
       {/* 
       Actual implementation would be:
       
@@ -422,9 +422,9 @@ function DatabaseViewRenderer({
 // packages/editor/src/extensions/database-embed/DatabasePicker.tsx
 
 import * as React from 'react'
-import { cn } from '@xnet/ui/lib/utils'
-import { useNodes } from '@xnet/react'
-import { DatabaseSchema, type Database } from '@xnet/data'
+import { cn } from '@xnetjs/ui/lib/utils'
+import { useNodes } from '@xnetjs/react'
+import { DatabaseSchema, type Database } from '@xnetjs/data'
 import { Database as DatabaseIcon, Plus, Search } from 'lucide-react'
 
 interface DatabasePickerProps {
@@ -721,7 +721,7 @@ describe('DatabaseEmbedExtension', () => {
 - [ ] Build DatabaseEmbedNodeView
 - [ ] Implement view type switching
 - [ ] Create DatabasePicker component
-- [ ] Integrate with @xnet/views components
+- [ ] Integrate with @xnetjs/views components
 - [ ] Add database to slash commands
 - [ ] Handle missing/deleted databases
 - [ ] Support embedded view configuration

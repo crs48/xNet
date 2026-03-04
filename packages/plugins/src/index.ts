@@ -1,5 +1,5 @@
 /**
- * @xnet/plugins - Plugin system for extending xNet
+ * @xnetjs/plugins - Plugin system for extending xNet
  *
  * Provides infrastructure for:
  * - Plugin registration and lifecycle management
@@ -142,7 +142,7 @@ export type {
 
 // Services (Background process management)
 // Note: Node.js-only modules (LocalAPIServer, MCPServer, ProcessManager) are
-// available via '@xnet/plugins/node' to avoid bundling Node.js APIs in browser builds.
+// available via '@xnetjs/plugins/node' to avoid bundling Node.js APIs in browser builds.
 export {
   // Webhook Emitter (uses fetch which is available everywhere)
   WebhookEmitter,

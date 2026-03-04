@@ -31,4 +31,4 @@ pnpm preview       # Preview production build
 - **TanStack Router** -- Type-safe routing
 - **Tailwind CSS** -- Styling
 - **Workbox** -- Service worker / PWA
-- `@xnet/data`, `@xnet/editor`, `@xnet/react`, `@xnet/sdk`, `@xnet/storage`, `@xnet/ui`
+- `@xnetjs/data`, `@xnetjs/editor`, `@xnetjs/react`, `@xnetjs/sdk`, `@xnetjs/storage`, `@xnetjs/ui`

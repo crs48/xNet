@@ -1,12 +1,12 @@
 /**
- * @xnet/editor - Framework-agnostic collaborative editor
+ * @xnetjs/editor - Framework-agnostic collaborative editor
  *
  * This package provides a core editor that binds to Yjs documents.
  * It can be used directly with vanilla JS or wrapped by framework bindings.
  *
  * @example
  * ```ts
- * import { createEditor } from '@xnet/editor'
+ * import { createEditor } from '@xnetjs/editor'
  * import * as Y from 'yjs'
  *
  * const ydoc = new Y.Doc()

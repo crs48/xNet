@@ -46,7 +46,7 @@ flowchart TB
 
 ## Test Requirements
 
-### 1. @xnet/sqlite Package
+### 1. @xnetjs/sqlite Package
 
 #### Adapter Interface Tests
 
@@ -326,7 +326,7 @@ export function runAdapterContractTests(name: string, createAdapter: () => Promi
 | Query Helpers         | 100%   | buildInsert, buildUpdate, buildSelect    |
 | FTS Helpers           | 100%   | updateNodeFTS, searchNodes, rebuildFTS   |
 
-### 2. @xnet/data Package
+### 2. @xnetjs/data Package
 
 #### SQLiteNodeStorageAdapter Tests
 
@@ -389,7 +389,7 @@ describe('SQLiteNodeStorageAdapter', () => {
 })
 ```
 
-### 3. @xnet/storage Package
+### 3. @xnetjs/storage Package
 
 #### SQLiteStorageAdapter Tests
 
@@ -445,10 +445,10 @@ describe('SQLiteStorageAdapter', () => {
 // tests/integration/sqlite-flow.test.ts
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
-import { SQLiteNodeStorageAdapter } from '@xnet/data/store/sqlite-adapter'
-import { SQLiteStorageAdapter } from '@xnet/storage/adapters/sqlite'
-import { NodeStore } from '@xnet/data'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
+import { SQLiteNodeStorageAdapter } from '@xnetjs/data/store/sqlite-adapter'
+import { SQLiteStorageAdapter } from '@xnetjs/storage/adapters/sqlite'
+import { NodeStore } from '@xnetjs/data'
 
 describe('SQLite Integration', () => {
   let sqliteAdapter: SQLiteAdapter
@@ -679,8 +679,8 @@ These E2E smoke tests complement the unit and integration tests by verifying the
 // tests/benchmarks/sqlite-perf.test.ts
 
 import { describe, it, beforeAll, afterAll } from 'vitest'
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
-import { SQLiteNodeStorageAdapter } from '@xnet/data/store/sqlite-adapter'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
+import { SQLiteNodeStorageAdapter } from '@xnetjs/data/store/sqlite-adapter'
 
 describe('SQLite Performance', () => {
   let adapter: SQLiteNodeStorageAdapter
@@ -950,16 +950,16 @@ Any data in IndexedDB will be left behind (prerelease software).
 Replace IndexedDB imports:
 
 ```diff
-- import { IndexedDBAdapter } from '@xnet/storage'
-+ import { SQLiteStorageAdapter, createWebStorageAdapter } from '@xnet/storage'
+- import { IndexedDBAdapter } from '@xnetjs/storage'
++ import { SQLiteStorageAdapter, createWebStorageAdapter } from '@xnetjs/storage'
 ```
 ````
 
 Replace NodeStore adapter:
 
 ```diff
-- import { IndexedDBNodeStorageAdapter } from '@xnet/data'
-+ import { SQLiteNodeStorageAdapter } from '@xnet/data'
+- import { IndexedDBNodeStorageAdapter } from '@xnetjs/data'
++ import { SQLiteNodeStorageAdapter } from '@xnetjs/data'
 ```
 
 ### Platform-Specific Setup
@@ -967,7 +967,7 @@ Replace NodeStore adapter:
 #### Electron
 
 ```typescript
-import { createElectronSQLiteAdapter } from '@xnet/sqlite/electron'
+import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 
 const db = await createElectronSQLiteAdapter({ path: 'xnet.db' })
 ```
@@ -975,7 +975,7 @@ const db = await createElectronSQLiteAdapter({ path: 'xnet.db' })
 #### Web
 
 ```typescript
-import { createWebSQLiteAdapter } from '@xnet/sqlite/web'
+import { createWebSQLiteAdapter } from '@xnetjs/sqlite/web'
 
 const db = await createWebSQLiteAdapter({ path: 'xnet.db' })
 ```
@@ -983,7 +983,7 @@ const db = await createWebSQLiteAdapter({ path: 'xnet.db' })
 #### Expo
 
 ```typescript
-import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
+import { createExpoSQLiteAdapter } from '@xnetjs/sqlite/expo'
 
 const db = await createExpoSQLiteAdapter({ path: 'xnet.db' })
 ```

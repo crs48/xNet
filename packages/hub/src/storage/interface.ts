@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Storage interface for hub persistence.
+ * @xnetjs/hub - Storage interface for hub persistence.
  */
 
 export type BlobMeta = {

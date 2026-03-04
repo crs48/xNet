@@ -31,11 +31,11 @@ const guild = await create(GuildSchema, {
 ```mermaid
 flowchart TD
     subgraph "xNet Core (existing)"
-        DATA["@xnet/data<br/>Schema + NodeStore"]
-        SYNC["@xnet/sync<br/>P2P + Offline"]
-        VIEWS["@xnet/views<br/>Table/Board/Calendar"]
-        PLUGINS["@xnet/plugins<br/>Extension System"]
-        REACT["@xnet/react<br/>Hooks"]
+        DATA["@xnetjs/data<br/>Schema + NodeStore"]
+        SYNC["@xnetjs/sync<br/>P2P + Offline"]
+        VIEWS["@xnetjs/views<br/>Table/Board/Calendar"]
+        PLUGINS["@xnetjs/plugins<br/>Extension System"]
+        REACT["@xnetjs/react<br/>Hooks"]
     end
 
     subgraph "Farming Module (new)"
@@ -211,12 +211,12 @@ erDiagram
 
 | Dependency                    | Purpose                               | New?                |
 | ----------------------------- | ------------------------------------- | ------------------- |
-| `@xnet/data`                  | Schema registration, NodeStore        | Existing            |
-| `@xnet/sync`                  | P2P sync, public namespaces           | Existing            |
-| `@xnet/views`                 | Table/Board/Calendar base views       | Existing            |
-| `@xnet/plugins`               | Module registration, extension points | Existing (plan03_5) |
-| `@xnet/react`                 | Hooks for all UI                      | Existing            |
-| `@xnet/editor`                | Rich text notes on species/sites      | Existing            |
+| `@xnetjs/data`                | Schema registration, NodeStore        | Existing            |
+| `@xnetjs/sync`                | P2P sync, public namespaces           | Existing            |
+| `@xnetjs/views`               | Table/Board/Calendar base views       | Existing            |
+| `@xnetjs/plugins`             | Module registration, extension points | Existing (plan03_5) |
+| `@xnetjs/react`               | Hooks for all UI                      | Existing            |
+| `@xnetjs/editor`              | Rich text notes on species/sites      | Existing            |
 | Chart library (recharts/visx) | Soil trend charts, yield graphs       | New (peer dep)      |
 | Spatial layout library        | Forest Map drag-drop                  | New (peer dep)      |
 

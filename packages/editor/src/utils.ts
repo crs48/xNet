@@ -1,1 +1,1 @@
-export { cn } from '@xnet/ui'
+export { cn } from '@xnetjs/ui'

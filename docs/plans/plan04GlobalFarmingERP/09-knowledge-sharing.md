@@ -2,7 +2,7 @@
 
 > Public namespaces for species and guilds, P2P sync for farmer-to-farmer knowledge transfer, confidence ratings.
 
-**Dependencies:** Steps 01-02 (schemas + species DB), `@xnet/sync` (P2P sync), `@xnet/network` (libp2p)
+**Dependencies:** Steps 01-02 (schemas + species DB), `@xnetjs/sync` (P2P sync), `@xnetjs/network` (libp2p)
 
 ## Overview
 

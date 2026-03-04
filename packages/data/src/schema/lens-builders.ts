@@ -6,7 +6,7 @@
  *
  * @example
  * ```typescript
- * import { composeLens, rename, convert, addDefault } from '@xnet/data'
+ * import { composeLens, rename, convert, addDefault } from '@xnetjs/data'
  *
  * const taskV1toV2 = composeLens(
  *   'xnet://xnet.fyi/Task@1.0.0',

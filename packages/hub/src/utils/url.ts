@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - URL validation and SSRF protection utilities.
+ * @xnetjs/hub - URL validation and SSRF protection utilities.
  */
 
 const PRIVATE_IP_RANGES = [

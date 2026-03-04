@@ -3,8 +3,8 @@
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
-import type { NodeStore } from '@xnet/data'
-import type { DocumentHistoryEngine } from '@xnet/history'
+import type { NodeStore } from '@xnetjs/data'
+import type { DocumentHistoryEngine } from '@xnetjs/history'
 import type * as Y from 'yjs'
 import { createContext } from 'react'
 

@@ -42,14 +42,14 @@ flowchart TB
         AI["AI-Generated<br/>local model output"]
     end
 
-    subgraph "@xnet/i18n"
+    subgraph "@xnetjs/i18n"
         REG[Namespace Registry]
         FMT[ICU Formatter]
         DET[Locale Detector]
         LOAD[Lazy Catalog Loader]
     end
 
-    subgraph "@xnet/react i18n"
+    subgraph "@xnetjs/react i18n"
         PROV[I18nProvider]
         UT["useTranslation()"]
         UPT["usePluginTranslation()"]
@@ -82,7 +82,7 @@ flowchart TB
 
 ```
 packages/
-  i18n/                       # @xnet/i18n — core i18n infrastructure
+  i18n/                       # @xnetjs/i18n — core i18n infrastructure
     src/
       index.ts                # Public API
       registry.ts             # Namespace catalog registry
@@ -108,7 +108,7 @@ packages/
         useNodeTranslation.ts # AI content translation hook
         Trans.tsx             # Rich-text translation component
 
-  translation/                # @xnet/translation — AI translation engine
+  translation/                # @xnetjs/translation — AI translation engine
     src/
       index.ts
       engine.ts               # Platform-agnostic interface
@@ -122,18 +122,18 @@ packages/
 
 ## Implementation Steps
 
-| #   | Task                                  | Duration | Dependencies                 |
-| --- | ------------------------------------- | -------- | ---------------------------- |
-| 01  | [@xnet/i18n package](#01)             | 2-3 days | `@xnet/core`                 |
-| 02  | [Lingui compiler setup](#02)          | 1-2 days | Step 01                      |
-| 03  | [React integration](#03)              | 2-3 days | Steps 01-02, `@xnet/react`   |
-| 04  | [String extraction](#04)              | 3-4 days | Step 03                      |
-| 05  | [Plugin namespaces](#05)              | 2-3 days | Steps 01, 03                 |
-| 06  | [Locale detection & preferences](#06) | 1-2 days | Steps 01, 03, `@xnet/data`   |
-| 07  | [AI translation engine](#07)          | 4-5 days | `@xnet/core`                 |
-| 08  | [Multilingual Node content](#08)      | 2-3 days | Steps 03, 07, `@xnet/data`   |
-| 09  | [Translation UX](#09)                 | 2-3 days | Steps 07, 08, `@xnet/editor` |
-| 10  | [Community translations](#10)         | 2-3 days | Steps 01-06                  |
+| #   | Task                                  | Duration | Dependencies                   |
+| --- | ------------------------------------- | -------- | ------------------------------ |
+| 01  | [@xnetjs/i18n package](#01)           | 2-3 days | `@xnetjs/core`                 |
+| 02  | [Lingui compiler setup](#02)          | 1-2 days | Step 01                        |
+| 03  | [React integration](#03)              | 2-3 days | Steps 01-02, `@xnetjs/react`   |
+| 04  | [String extraction](#04)              | 3-4 days | Step 03                        |
+| 05  | [Plugin namespaces](#05)              | 2-3 days | Steps 01, 03                   |
+| 06  | [Locale detection & preferences](#06) | 1-2 days | Steps 01, 03, `@xnetjs/data`   |
+| 07  | [AI translation engine](#07)          | 4-5 days | `@xnetjs/core`                 |
+| 08  | [Multilingual Node content](#08)      | 2-3 days | Steps 03, 07, `@xnetjs/data`   |
+| 09  | [Translation UX](#09)                 | 2-3 days | Steps 07, 08, `@xnetjs/editor` |
+| 10  | [Community translations](#10)         | 2-3 days | Steps 01-06                    |
 
 **Total estimated duration:** 22-31 days
 

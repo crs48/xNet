@@ -42,7 +42,7 @@ For capturing application errors and crashes. Field names align with OTel's [exc
 ```typescript
 // packages/telemetry/src/schemas/crash.ts
 
-import { defineSchema, text, select, date, number } from '@xnet/data'
+import { defineSchema, text, select, date, number } from '@xnetjs/data'
 
 export const CrashReportSchema = defineSchema({
   name: 'CrashReport',
@@ -125,7 +125,7 @@ For anonymous usage statistics (P3A-style bucketed values). Uses OTel [metrics n
 ```typescript
 // packages/telemetry/src/schemas/usage.ts
 
-import { defineSchema, text, select, date } from '@xnet/data'
+import { defineSchema, text, select, date } from '@xnetjs/data'
 
 export const UsageMetricSchema = defineSchema({
   name: 'UsageMetric',
@@ -190,7 +190,7 @@ For logging security-relevant events (used by network security layer). Uses OTel
 ```typescript
 // packages/telemetry/src/schemas/security.ts
 
-import { defineSchema, text, select, date, number } from '@xnet/data'
+import { defineSchema, text, select, date, number } from '@xnetjs/data'
 
 export const SecurityEventSchema = defineSchema({
   name: 'SecurityEvent',
@@ -271,7 +271,7 @@ For tracking performance (optional, for debugging). Uses OTel [metrics naming](h
 ```typescript
 // packages/telemetry/src/schemas/performance.ts
 
-import { defineSchema, text, select, date } from '@xnet/data'
+import { defineSchema, text, select, date } from '@xnetjs/data'
 
 export const PerformanceMetricSchema = defineSchema({
   name: 'PerformanceMetric',

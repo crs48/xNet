@@ -1,13 +1,13 @@
 /**
- * NodeExplorer panel - Browse all nodes using @xnet/views TableView
+ * NodeExplorer panel - Browse all nodes using @xnetjs/views TableView
  *
  * Uses the TableView component for virtual scrolling, sorting, filtering,
  * and column management. Synthesizes a Schema from available node data.
  */
 
-import type { PropertyDefinition, Schema } from '@xnet/data'
-import type { TableRow, ViewConfig } from '@xnet/views'
-import { TableView } from '@xnet/views'
+import type { PropertyDefinition, Schema } from '@xnetjs/data'
+import type { TableRow, ViewConfig } from '@xnetjs/views'
+import { TableView } from '@xnetjs/views'
 import { useMemo, useState, useCallback } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { truncateDID } from '../../utils/formatters'

@@ -3,11 +3,11 @@
 > I18nProvider, useTranslation hook, and Trans component for React apps
 
 **Duration:** 2-3 days  
-**Dependencies:** Steps 01-02, `@xnet/react`
+**Dependencies:** Steps 01-02, `@xnetjs/react`
 
 ## Overview
 
-Add i18n hooks to `@xnet/react` that integrate with the `@xnet/i18n` registry and Lingui's runtime. The provider wraps `XNetProvider` and makes translations available throughout the tree.
+Add i18n hooks to `@xnetjs/react` that integrate with the `@xnetjs/i18n` registry and Lingui's runtime. The provider wraps `XNetProvider` and makes translations available throughout the tree.
 
 ```mermaid
 flowchart TB
@@ -35,8 +35,8 @@ flowchart TB
 ```tsx
 // packages/react/src/i18n/I18nProvider.tsx
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import { I18nRegistry, I18nFormatter, LocaleDetector, CatalogLoader } from '@xnet/i18n'
-import type { Locale, Namespace, MessageValues } from '@xnet/i18n'
+import { I18nRegistry, I18nFormatter, LocaleDetector, CatalogLoader } from '@xnetjs/i18n'
+import type { Locale, Namespace, MessageValues } from '@xnetjs/i18n'
 
 export interface I18nConfig {
   /** Supported locales */
@@ -139,7 +139,7 @@ export function I18nProvider({ config, children }: { config: I18nConfig; childre
 // packages/react/src/i18n/useTranslation.ts
 import { useContext, useCallback } from 'react'
 import { I18nContext } from './I18nProvider'
-import type { Namespace, MessageValues } from '@xnet/i18n'
+import type { Namespace, MessageValues } from '@xnetjs/i18n'
 
 export interface UseTranslationResult {
   /** Translate a key */
@@ -181,10 +181,10 @@ export function useChangeLocale(): (locale: string) => void {
 
 ```tsx
 // apps/web/src/main.tsx
-import { XNetProvider } from '@xnet/react'
-import { I18nProvider } from '@xnet/react/i18n'
-import coreCatalogEn from '@xnet/i18n/locales/en.json'
-import coreCatalogFr from '@xnet/i18n/locales/fr.json'
+import { XNetProvider } from '@xnetjs/react'
+import { I18nProvider } from '@xnetjs/react/i18n'
+import coreCatalogEn from '@xnetjs/i18n/locales/en.json'
+import coreCatalogFr from '@xnetjs/i18n/locales/fr.json'
 
 ReactDOM.createRoot(root).render(
   <XNetProvider config={{ nodeStorage, authorDID, signingKey }}>
@@ -197,7 +197,7 @@ ReactDOM.createRoot(root).render(
         },
         loadCatalog: async (ns, locale) => {
           // Lazy-load non-bundled locales
-          const mod = await import(`@xnet/i18n/locales/${locale}.json`)
+          const mod = await import(`@xnetjs/i18n/locales/${locale}.json`)
           return mod.default
         }
       }}
@@ -211,7 +211,7 @@ ReactDOM.createRoot(root).render(
 ## Usage in Components
 
 ```tsx
-import { useTranslation } from '@xnet/react/i18n'
+import { useTranslation } from '@xnetjs/react/i18n'
 
 function Sidebar() {
   const { t } = useTranslation()
@@ -237,7 +237,7 @@ function PageList({ pages }) {
 }
 ```
 
-## Exports from @xnet/react
+## Exports from @xnetjs/react
 
 ```typescript
 // packages/react/src/index.ts (additions)

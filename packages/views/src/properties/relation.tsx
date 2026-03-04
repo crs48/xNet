@@ -3,8 +3,8 @@
  */
 
 import type { PropertyHandler, PropertyEditorProps } from '../types.js'
-import type { DatabaseRow } from '@xnet/react'
-import { useDatabase } from '@xnet/react'
+import type { DatabaseRow } from '@xnetjs/react'
+import { useDatabase } from '@xnetjs/react'
 import React, { useId, useMemo, useRef, useState } from 'react'
 
 interface RelationConfig {

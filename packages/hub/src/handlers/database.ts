@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Database WebSocket message handlers.
+ * @xnetjs/hub - Database WebSocket message handlers.
  *
  * Handles database query, subscription, and row mutation messages.
  */

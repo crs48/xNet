@@ -10,7 +10,7 @@
  * ```json
  * {
  *   "compilerOptions": {
- *     "plugins": [{ "name": "@xnet/data/ts-plugin" }]
+ *     "plugins": [{ "name": "@xnetjs/data/ts-plugin" }]
  *   }
  * }
  * ```

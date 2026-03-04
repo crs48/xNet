@@ -7,8 +7,8 @@
  */
 
 import type { LamportTimestamp } from './clock'
-import type { DID, ContentId } from '@xnet/core'
-import { hashHex, sign, verify } from '@xnet/crypto'
+import type { DID, ContentId } from '@xnetjs/core'
+import { hashHex, sign, verify } from '@xnetjs/crypto'
 
 // ─── Protocol Versioning ─────────────────────────────────────────────────────
 

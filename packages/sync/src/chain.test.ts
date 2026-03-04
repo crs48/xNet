@@ -1,7 +1,7 @@
 import type { Change } from './change'
 import type { LamportTimestamp } from './clock'
-import type { DID, ContentId } from '@xnet/core'
-import { generateSigningKeyPair } from '@xnet/crypto'
+import type { DID, ContentId } from '@xnetjs/core'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { describe, it, expect } from 'vitest'
 import {
   validateChain,

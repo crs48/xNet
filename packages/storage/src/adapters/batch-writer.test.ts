@@ -1,5 +1,5 @@
 import type { StorageAdapter } from '../types'
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { BatchWriter, createBatchWriter } from './batch-writer'
 

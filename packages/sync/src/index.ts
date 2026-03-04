@@ -1,5 +1,5 @@
 /**
- * @xnet/sync - Unified sync primitives for xNet
+ * @xnetjs/sync - Unified sync primitives for xNet
  *
  * This package provides the foundational types and utilities for
  * synchronizing data across the xNet network. It supports both:

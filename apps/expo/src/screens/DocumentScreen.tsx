@@ -4,7 +4,7 @@
 import type { RootStackParamList } from '../navigation/types'
 import type { RouteProp } from '@react-navigation/native'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { useNode } from '@xnet/react'
+import { useNode } from '@xnetjs/react'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,

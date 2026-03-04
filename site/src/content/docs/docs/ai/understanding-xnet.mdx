@@ -106,7 +106,7 @@ const { data: tasks } = useQuery(TaskSchema)
 Schemas are central to xNet. They define data shapes AND provide type inference:
 
 ```typescript
-import { defineSchema, text, select, relation } from '@xnet/data'
+import { defineSchema, text, select, relation } from '@xnetjs/data'
 
 const TaskSchema = defineSchema({
   name: 'Task',

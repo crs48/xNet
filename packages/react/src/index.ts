@@ -1,5 +1,5 @@
 /**
- * @xnet/react - React hooks for xNet
+ * @xnetjs/react - React hooks for xNet
  *
  * Core API (3 hooks):
  * - useQuery: Read nodes (list, single, filtered)

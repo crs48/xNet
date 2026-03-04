@@ -8,12 +8,12 @@
  *   ?hub=<url>  -> Hub WebSocket URL (default: ws://localhost:4444)
  */
 
+import { PageSchema, MemoryNodeStorageAdapter } from '@xnetjs/data'
+import { RichTextEditor } from '@xnetjs/editor/react'
+import { identityFromPrivateKey } from '@xnetjs/identity'
+import { XNetProvider, useNode } from '@xnetjs/react'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { XNetProvider, useNode } from '@xnet/react'
-import { PageSchema, MemoryNodeStorageAdapter } from '@xnet/data'
-import { identityFromPrivateKey } from '@xnet/identity'
-import { RichTextEditor } from '@xnet/editor/react'
 
 // ─── Parse query params ──────────────────────────────────────────────
 
@@ -37,7 +37,7 @@ const nodeStorage = new MemoryNodeStorageAdapter()
 // ─── App ──────────────────────────────────────────────────────────────
 
 function DocEditor() {
-  const { data, doc, loading, error, syncStatus, awareness } = useNode(PageSchema, docId, {
+  const { doc, loading, error, syncStatus, awareness } = useNode(PageSchema, docId, {
     createIfMissing: { title: `User ${userNum}'s doc` }
   })
 

@@ -47,7 +47,7 @@ Following the [Universal Social Primitives](../../explorations/0030_[_]_UNIVERSA
 
 import { useMemo, useCallback } from 'react'
 import { useNodes, useNodeStore } from './useNodes'
-import { Comment, decodeAnchor, TextAnchor, encodeAnchor } from '@xnet/data'
+import { Comment, decodeAnchor, TextAnchor, encodeAnchor } from '@xnetjs/data'
 
 interface UseCommentsOptions {
   /** The Node ID to get comments for (any schema) */
@@ -318,9 +318,9 @@ export const CommentPlugin = Extension.create<CommentPluginOptions>({
 // packages/editor/src/comments/create-comment.ts
 
 import { Editor } from '@tiptap/core'
-import { NodeStore } from '@xnet/data'
+import { NodeStore } from '@xnetjs/data'
 import { captureTextAnchor } from './text-anchor'
-import { encodeAnchor } from '@xnet/data'
+import { encodeAnchor } from '@xnetjs/data'
 
 export interface CreateCommentOptions {
   editor: Editor
@@ -376,7 +376,7 @@ Add a "Comment" button to the existing bubble menu that appears on text selectio
 
 import React, { useState } from 'react'
 import { Editor } from '@tiptap/core'
-import { NodeStore } from '@xnet/data'
+import { NodeStore } from '@xnetjs/data'
 import { createTextComment } from '../comments/create-comment'
 
 interface Props {
@@ -444,11 +444,11 @@ export function BubbleMenuCommentAction({ editor, targetNodeId, targetSchema, st
 
 import React from 'react'
 import { Editor } from '@tiptap/core'
-import { useComments } from '@xnet/react'
-import { CommentPopover } from '@xnet/ui'
-import { useCommentPopover } from '@xnet/react'
+import { useComments } from '@xnetjs/react'
+import { CommentPopover } from '@xnetjs/ui'
+import { useCommentPopover } from '@xnetjs/react'
 import { resolveTextAnchor } from '../comments/text-anchor'
-import { decodeAnchor, TextAnchor } from '@xnet/data'
+import { decodeAnchor, TextAnchor } from '@xnetjs/data'
 
 interface DocumentCommentsProps {
   editor: Editor
@@ -523,8 +523,8 @@ The sidebar is a secondary navigation tool for reviewing all threads at once:
 // packages/editor/src/components/CommentSidebar.tsx
 
 import React from 'react'
-import { useComments } from '@xnet/react'
-import { decodeAnchor, TextAnchor } from '@xnet/data'
+import { useComments } from '@xnetjs/react'
+import { decodeAnchor, TextAnchor } from '@xnetjs/data'
 
 interface CommentSidebarProps {
   nodeId: string

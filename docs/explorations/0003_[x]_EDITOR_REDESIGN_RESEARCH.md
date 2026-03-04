@@ -53,7 +53,7 @@ Additional features implemented beyond the original plan:
 
 ```mermaid
 graph LR
-    subgraph "Current @xnet/editor"
+    subgraph "Current @xnetjs/editor"
         A[RichTextEditor] --> B[TipTap + Yjs]
         A --> C[FloatingToolbar]
         A --> D[LivePreview Extension]

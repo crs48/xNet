@@ -33,7 +33,7 @@ A task manager that works offline, syncs peer-to-peer, and persists to local SQL
    ```bash
    pnpm create vite my-app --template react-ts
    cd my-app
-   pnpm add @xnet/react @xnet/data
+   pnpm add @xnetjs/react @xnetjs/data
    ```
 
 2. **Define your schema**
@@ -41,7 +41,7 @@ A task manager that works offline, syncs peer-to-peer, and persists to local SQL
    Create a file that describes the shape of your data:
 
    ```ts title="src/schema.ts"
-   import { defineSchema, text, select, checkbox } from '@xnet/data'
+   import { defineSchema, text, select, checkbox } from '@xnetjs/data'
 
    export const TaskSchema = defineSchema({
      name: 'Task',
@@ -71,8 +71,8 @@ A task manager that works offline, syncs peer-to-peer, and persists to local SQL
    The provider initializes the NodeStore, storage, and sync system:
 
    ```tsx title="src/App.tsx"
-   import { XNetProvider } from '@xnet/react'
-   import { XNetDevToolsProvider } from '@xnet/devtools'
+   import { XNetProvider } from '@xnetjs/react'
+   import { XNetDevToolsProvider } from '@xnetjs/devtools'
    import { TaskList } from './TaskList'
 
    // In production, generate and persist these securely
@@ -91,13 +91,13 @@ A task manager that works offline, syncs peer-to-peer, and persists to local SQL
    ```
 
    :::tip[Identity in production]
-   For a real app, use `@xnet/identity` to generate a DID:key pair and store it securely. The Quick Start uses hardcoded values for simplicity.
+   For a real app, use `@xnetjs/identity` to generate a DID:key pair and store it securely. The Quick Start uses hardcoded values for simplicity.
    :::
 
 4. **Read data with `useQuery`**
 
    ```tsx title="src/TaskList.tsx"
-   import { useQuery, useMutate } from '@xnet/react'
+   import { useQuery, useMutate } from '@xnetjs/react'
    import { TaskSchema } from './schema'
 
    export function TaskList() {

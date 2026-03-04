@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-**OpenClaw** (247k GitHub stars, MIT, created by Peter Steinberger) is an open-source personal AI assistant that orchestrates AI agents across WhatsApp, Telegram, Slack, Discord, Signal, iMessage, Matrix, IRC, and 15+ other channels. It is local-first, gateway-centric, and extensible via a skill/plugin system backed by a community registry (ClawHub).
+**OpenClaw** (247k GitHub stars, MIT, created by Peter Steinberger) is an open-source personal AI assistant that orchestrates AI agents across WhatsApp, Telegram, Slack, GitHub Discussions, Signal, iMessage, Matrix, IRC, and 15+ other channels. It is local-first, gateway-centric, and extensible via a skill/plugin system backed by a community registry (ClawHub).
 
 **xNet** is a local-first, collaborative knowledge/database platform built on top of signed, synchronized nodes (NodeStore + Yjs), DID:key identity, UCAN authorization, and a rich plugin ecosystem.
 
@@ -18,9 +18,9 @@ Integrating these two systems creates a compelling proposition:
 
 This is not a superficial webhook integration. Because xNet already has:
 
-- An **MCP server** (`@xnet/plugins/services/mcp-server`)
-- A **webhook emitter** (`@xnet/plugins/services/webhook-emitter`)
-- A **local HTTP API** (`@xnet/plugins/services/local-api`)
+- An **MCP server** (`@xnetjs/plugins/services/mcp-server`)
+- A **webhook emitter** (`@xnetjs/plugins/services/webhook-emitter`)
+- A **local HTTP API** (`@xnetjs/plugins/services/local-api`)
 - A **script sandbox** with a natural-language→JavaScript generator
 - A **full plugin system** with `ExtensionContext`
 
@@ -46,7 +46,7 @@ graph TB
         WA[WhatsApp / Baileys]
         TG[Telegram / grammY]
         SL[Slack / Bolt]
-        DC[Discord]
+        DC[GitHub Discussions]
         SIG[Signal]
         IM[iMessage / BlueBubbles]
         MAT[Matrix]
@@ -157,7 +157,7 @@ There are **six distinct integration vectors**, ranging from zero-code glue to d
 
 ### 3.1 Vector A — xNet as an OpenClaw MCP Skill (Lowest Friction)
 
-xNet already ships `@xnet/plugins/services/mcp-server`, a JSON-RPC 2.0 over stdio server exposing:
+xNet already ships `@xnetjs/plugins/services/mcp-server`, a JSON-RPC 2.0 over stdio server exposing:
 
 | MCP Tool       | Description                      |
 | -------------- | -------------------------------- |
@@ -296,7 +296,7 @@ OpenClaw webhook handler (in `openclaw.json`):
 
 ### 3.3 Vector C — xNet Local API as an OpenClaw Skill (CRUD via HTTP)
 
-The xNet Local API server (`@xnet/plugins/services/local-api`) exposes NodeStore over HTTP when running in the Electron app. An OpenClaw skill can wrap this as a tool-calling surface without needing the full MCP protocol:
+The xNet Local API server (`@xnetjs/plugins/services/local-api`) exposes NodeStore over HTTP when running in the Electron app. An OpenClaw skill can wrap this as a tool-calling surface without needing the full MCP protocol:
 
 ```mermaid
 graph LR
@@ -466,7 +466,7 @@ This is the highest-integration path: xNet becomes a first-class device in the O
 
 ### 3.6 Vector F — OpenClaw as an xNet Plugin (Bidirectional)
 
-The inverse: an xNet plugin (`@xnet/plugins`) that embeds a minimal OpenClaw Gateway client. This allows the xNet Electron app to:
+The inverse: an xNet plugin (`@xnetjs/plugins`) that embeds a minimal OpenClaw Gateway client. This allows the xNet Electron app to:
 
 - Display AI assistant conversations in a sidebar panel
 - Trigger AI actions from within the app (right-click → "Ask AI about this node")
@@ -478,7 +478,7 @@ graph TB
     subgraph xNet Electron App
         UI[React UI]
         NS[NodeStore]
-        PLUGIN[OpenClaw Plugin\n@xnet/plugins/openclaw]
+        PLUGIN[OpenClaw Plugin\n@xnetjs/plugins/openclaw]
         GW_CLIENT[Gateway WS Client\nws://127.0.0.1:18789]
     end
 
@@ -622,7 +622,7 @@ flowchart LR
 
 ---
 
-## 6. xNet Plugin: `@xnet/plugins/openclaw`
+## 6. xNet Plugin: `@xnetjs/plugins/openclaw`
 
 The cleanest long-term integration is an official xNet plugin that provides:
 
@@ -784,7 +784,7 @@ metadata:
             {
               'id': 'node',
               'kind': 'node',
-              'package': '@xnet/mcp-bridge',
+              'package': '@xnetjs/mcp-bridge',
               'bins': ['xnet-mcp'],
               'label': 'Install xNet MCP Bridge'
             }
@@ -973,15 +973,15 @@ xNet's `GrantSchema` supports team access. A Slack bot can act as a shared agent
 → bot: Created 'API performance review' for Alice (did:key:z6Mk...) due next Friday
 ```
 
-### 9.3 Discord (Community / Team Workspace)
+### 9.3 GitHub Discussions (Community / Team Workspace)
 
-OpenClaw's Discord integration + xNet Canvas makes for powerful public canvas-to-Discord flows:
+OpenClaw's GitHub Discussions integration + xNet Canvas makes for powerful public canvas-to-GitHub Discussions flows:
 
 ```mermaid
 flowchart LR
     A[New node added to\nxNet Canvas] --> B[Webhook → OpenClaw]
     B --> C[Agent: generate\nimage description]
-    C --> D[Post to #updates\nDiscord channel]
+    C --> D[Post to #updates\nGitHub Discussions channel]
 ```
 
 ### 9.4 Cron-Triggered Intelligence
@@ -1122,7 +1122,7 @@ _Bidirectional data flow_
 
 _Native integration in xNet Electron app_
 
-- [ ] **P3.1** Create `@xnet/plugins/openclaw` package
+- [ ] **P3.1** Create `@xnetjs/plugins/openclaw` package
   - Plugin manifest with commands, sidebar panel, settings
   - OpenClaw Gateway WebSocket client
   - DID provisioning and Grant creation flow
@@ -1264,7 +1264,7 @@ OpenClaw supports any model (Ollama, GPT, Claude, MiniMax). The xNet skill's SKI
 
 ### Alternative A: REST-Only (No MCP)
 
-Use xNet's Local API (`@xnet/plugins/services/local-api`) directly, without the MCP protocol. Simpler but:
+Use xNet's Local API (`@xnetjs/plugins/services/local-api`) directly, without the MCP protocol. Simpler but:
 
 - Requires curl/httpie in skill scripts
 - Loses the semantic richness of MCP tool descriptions
@@ -1366,7 +1366,7 @@ OpenClaw supports multi-agent routing (multiple AI agents in the same Gateway). 
 
 ### Immediate (This Week)
 
-1. **Prototype the xNet MCP skill locally** — write a simple `SKILL.md` and point it at the existing `@xnet/plugins/services/mcp-server` via stdio. Test "what are my tasks?" from WhatsApp or Telegram.
+1. **Prototype the xNet MCP skill locally** — write a simple `SKILL.md` and point it at the existing `@xnetjs/plugins/services/mcp-server` via stdio. Test "what are my tasks?" from WhatsApp or Telegram.
 2. **Audit the MCP server's capabilities** — does `query_nodes` support all the filter operators we need? Does it return enough metadata?
 3. **Design the OpenClaw agent DID flow** — decide on the keypair storage format and UCAN issuance UX.
 
@@ -1378,7 +1378,7 @@ OpenClaw supports multi-agent routing (multiple AI agents in the same Gateway). 
 
 ### Medium Term (Next 4-6 Weeks)
 
-1. **Build the `@xnet/plugins/openclaw` plugin** with the "Ask AI" command and sidebar panel.
+1. **Build the `@xnetjs/plugins/openclaw` plugin** with the "Ask AI" command and sidebar panel.
 2. **Publish to ClawHub** and get VirusTotal clearance.
 3. **Write integration documentation** for both xNet and OpenClaw docs.
 

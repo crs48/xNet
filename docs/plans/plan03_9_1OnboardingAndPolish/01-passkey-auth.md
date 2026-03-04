@@ -3,7 +3,7 @@
 > Biometric-protected identity with WebAuthn and PRF key derivation
 
 **Duration:** 4 days
-**Dependencies:** `@xnet/crypto` (Ed25519), `@xnet/identity` (DID:key)
+**Dependencies:** `@xnetjs/crypto` (Ed25519), `@xnetjs/identity` (DID:key)
 
 ## Overview
 
@@ -18,7 +18,7 @@ sequenceDiagram
     participant User
     participant App
     participant Passkey as Passkey Provider
-    participant Crypto as @xnet/crypto
+    participant Crypto as @xnetjs/crypto
 
     Note over User,Crypto: First Time Setup
     User->>App: "Create Identity"
@@ -164,7 +164,7 @@ export async function detectPasskeySupport(): Promise<PasskeySupport> {
 ```typescript
 // packages/identity/src/passkey/create.ts
 
-import { blake3 } from '@xnet/crypto'
+import { blake3 } from '@xnetjs/crypto'
 import { generateKeypair, publicKeyToDid } from '../keys'
 import type { PasskeyIdentity, PasskeyCreateOptions, PasskeyUnlockResult } from './types'
 
@@ -361,7 +361,7 @@ On browsers that support WebAuthn but where the specific authenticator doesn't s
 ```typescript
 // packages/identity/src/passkey/fallback.ts
 
-import { encrypt, decrypt } from '@xnet/crypto'
+import { encrypt, decrypt } from '@xnetjs/crypto'
 import type { PasskeyIdentity } from './types'
 
 interface FallbackStorage {
@@ -542,7 +542,7 @@ export function createIdentityManager(): IdentityManager {
 // packages/react/src/hooks/useIdentity.ts
 
 import { useState, useEffect, useCallback } from 'react'
-import { createIdentityManager, type Identity } from '@xnet/identity'
+import { createIdentityManager, type Identity } from '@xnetjs/identity'
 
 export interface UseIdentityResult {
   /** Current identity (null if not unlocked) */

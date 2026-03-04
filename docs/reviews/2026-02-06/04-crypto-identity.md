@@ -2,11 +2,11 @@
 
 ## Overview
 
-Review of `@xnet/crypto` and `@xnet/identity` - the security-critical foundation packages.
+Review of `@xnetjs/crypto` and `@xnetjs/identity` - the security-critical foundation packages.
 
 ```mermaid
 graph TD
-    subgraph "@xnet/crypto"
+    subgraph "@xnetjs/crypto"
         hash["BLAKE3 Hashing"]
         sign["Ed25519 Signing"]
         enc["XChaCha20-Poly1305"]
@@ -14,7 +14,7 @@ graph TD
         utils["Utility Functions"]
     end
 
-    subgraph "@xnet/identity"
+    subgraph "@xnetjs/identity"
         did["DID:key"]
         keys["Key Bundles"]
         ucan["UCAN Tokens"]
@@ -38,7 +38,7 @@ graph TD
 
 ### CRYPTO-01: BrowserPasskeyStorage Stores Key with Ciphertext
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/passkey.ts:32-45`
 
 ```typescript
@@ -60,7 +60,7 @@ return {
 
 ### CRYPTO-02: hexToBytes Doesn't Validate Hex Characters
 
-**Package:** `@xnet/crypto`
+**Package:** `@xnetjs/crypto`
 **File:** `packages/crypto/src/utils.ts:22-30`
 
 ```typescript
@@ -90,7 +90,7 @@ if (!/^[0-9a-fA-F]*$/.test(hex)) {
 
 ### CRYPTO-03: bytesToBase64 Fails on Large Arrays
 
-**Package:** `@xnet/crypto`
+**Package:** `@xnetjs/crypto`
 **File:** `packages/crypto/src/utils.ts:41-43`
 
 ```typescript
@@ -117,7 +117,7 @@ export function bytesToBase64(bytes: Uint8Array): string {
 
 ### CRYPTO-04: deriveKeyBundle Uses Weak Key Derivation
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/keys.ts:16-44`
 
 ```typescript
@@ -143,7 +143,7 @@ const signingKey = hkdf(sha256, masterSeed, undefined, 'xnet-signing-key', 32)
 
 ### CRYPTO-05: UCAN parseUCAN Doesn't Validate Algorithm Header
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/ucan.ts:284-305`
 
 ```typescript
@@ -163,7 +163,7 @@ if (header.alg !== 'EdDSA' || header.typ !== 'JWT') {
 
 ### CRYPTO-06: UCAN Proof Chain Only Checks Immediate Parents
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/ucan.ts:104-131`
 
 Capability attenuation only considers immediate parent, not full chain.
@@ -174,7 +174,7 @@ Capability attenuation only considers immediate parent, not full chain.
 
 ### CRYPTO-07: Fallback Storage Encryption Key Exposed
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/passkey/types.ts:62-84`
 
 ```typescript
@@ -193,7 +193,7 @@ Same issue as CRYPTO-01 but in type system.
 
 ### CRYPTO-08: parseShareLink Returns Unverified Claims
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/sharing/parse-share.ts:86-97`
 
 Returns `issuer`, `audience`, `permissions` from unverified token payload.
@@ -206,7 +206,7 @@ Returns `issuer`, `audience`, `permissions` from unverified token payload.
 
 ### CRYPTO-09: constantTimeEqual Length Check Timing Leak
 
-**Package:** `@xnet/crypto`
+**Package:** `@xnetjs/crypto`
 **File:** `packages/crypto/src/utils.ts:90-96`
 
 ```typescript
@@ -219,7 +219,7 @@ Leaks length information via timing.
 
 ### CRYPTO-10: randomBytes No Input Validation
 
-**Package:** `@xnet/crypto`
+**Package:** `@xnetjs/crypto`
 **File:** `packages/crypto/src/random.ts:8-12`
 
 Negative/non-integer length not validated.
@@ -228,7 +228,7 @@ Negative/non-integer length not validated.
 
 ### CRYPTO-11: Duplicate bytesToBase64url in hashing.ts
 
-**Package:** `@xnet/crypto`
+**Package:** `@xnetjs/crypto`
 **File:** `packages/crypto/src/hashing.ts:32-42`
 
 Reimplements with same spread issue.
@@ -237,7 +237,7 @@ Reimplements with same spread issue.
 
 ### CRYPTO-12: createUCAN Doesn't Validate DID Formats
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/ucan.ts:136-155`
 
 Invalid DIDs will create tokens that fail verification later.
@@ -246,7 +246,7 @@ Invalid DIDs will create tokens that fail verification later.
 
 ### CRYPTO-13: identityFromPrivateKey Misleading Created Timestamp
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/did.ts:60-67`
 
 Sets `created: Date.now()` when recreating from existing key.
@@ -255,7 +255,7 @@ Sets `created: Date.now()` when recreating from existing key.
 
 ### CRYPTO-14: discoverExistingPasskey Swallows All Errors
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/passkey/discovery.ts:57-85`
 
 All errors caught silently, hiding security issues.
@@ -264,7 +264,7 @@ All errors caught silently, hiding security issues.
 
 ### CRYPTO-15: Storage Migration Creates Empty Key on Corruption
 
-**Package:** `@xnet/identity`
+**Package:** `@xnetjs/identity`
 **File:** `packages/identity/src/passkey/storage.ts:117-122`
 
 Missing key data creates empty encryption key instead of throwing.

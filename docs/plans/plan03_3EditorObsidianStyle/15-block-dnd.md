@@ -448,7 +448,7 @@ export function useDragDrop({ editor }: UseDragDropOptions) {
 // packages/editor/src/components/RichTextEditor.tsx (drag state classes)
 
 import * as React from 'react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { useDragDrop } from './DragHandle/useDragDrop'
 
 export function RichTextEditor(

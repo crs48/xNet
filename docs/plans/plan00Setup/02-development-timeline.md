@@ -30,17 +30,17 @@ gantt
     Foundation validation           :milestone, 2026-02, 0d
 
     section xNet Core
-    @xnet/crypto (encryption)       :xc1, 2026-02, 2M
-    @xnet/identity (DID/UCAN)       :xc2, 2026-02, 3M
-    @xnet/storage (snapshots)       :xc3, 2026-03, 2M
-    @xnet/data (CRDT + signing)     :xc4, 2026-03, 4M
-    @xnet/network (libp2p basic)    :xc5, 2026-04, 3M
-    @xnet/query (local queries)     :xc6, 2026-06, 2M
-    @xnet/sdk v1.0                  :milestone, 2026-07, 0d
-    @xnet/network (relay/NAT)       :xc7, 2026-07, 3M
-    @xnet/vectors (embeddings)      :xc8, 2026-09, 2M
-    @xnet/query (federation)        :xc9, 2026-10, 3M
-    @xnet/sdk v2.0                  :milestone, 2027-01, 0d
+    @xnetjs/crypto (encryption)       :xc1, 2026-02, 2M
+    @xnetjs/identity (DID/UCAN)       :xc2, 2026-02, 3M
+    @xnetjs/storage (snapshots)       :xc3, 2026-03, 2M
+    @xnetjs/data (CRDT + signing)     :xc4, 2026-03, 4M
+    @xnetjs/network (libp2p basic)    :xc5, 2026-04, 3M
+    @xnetjs/query (local queries)     :xc6, 2026-06, 2M
+    @xnetjs/sdk v1.0                  :milestone, 2026-07, 0d
+    @xnetjs/network (relay/NAT)       :xc7, 2026-07, 3M
+    @xnetjs/vectors (embeddings)      :xc8, 2026-09, 2M
+    @xnetjs/query (federation)        :xc9, 2026-10, 3M
+    @xnetjs/sdk v2.0                  :milestone, 2027-01, 0d
 
     section Infrastructure
     Signaling server v1             :xi1, 2026-04, 2M
@@ -153,13 +153,13 @@ flowchart TB
 ### Dependency Rules
 
 0. **Phase 0 Foundations** - Must complete before any package work begins (see [Foundation Requirements](./17-foundation-requirements.md))
-1. **@xnet/crypto** depends on content addressing spec from Phase 0
-2. **@xnet/identity** depends on crypto + DID resolution spec
-3. **@xnet/storage** depends on snapshot spec from Phase 0
-4. **@xnet/data** depends on crypto, identity, storage, and signed update spec
-5. **@xnet/network** depends on data for sync protocol
-6. **@xnet/query** depends on data + query federation spec
-7. **@xnet/sdk** bundles everything for v1.0 release
+1. **@xnetjs/crypto** depends on content addressing spec from Phase 0
+2. **@xnetjs/identity** depends on crypto + DID resolution spec
+3. **@xnetjs/storage** depends on snapshot spec from Phase 0
+4. **@xnetjs/data** depends on crypto, identity, storage, and signed update spec
+5. **@xnetjs/network** depends on data for sync protocol
+6. **@xnetjs/query** depends on data + query federation spec
+7. **@xnetjs/sdk** bundles everything for v1.0 release
 
 ---
 
@@ -197,19 +197,19 @@ Critical checkpoints where xNet capabilities enable xNet features.
 | Milestone | xNet Dependency     | xNet Feature                    | Target   |
 | --------- | ------------------- | ------------------------------- | -------- |
 | **M0**    | Phase 0 Foundations | Specs validated, ready to build | Month 1  |
-| **M1**    | @xnet/storage       | Offline persistence             | Month 4  |
-| **M2**    | @xnet/data          | CRDT-based documents            | Month 5  |
-| **M3**    | @xnet/identity      | User accounts, workspaces       | Month 5  |
-| **M4**    | @xnet/network       | P2P document sync               | Month 6  |
-| **M5**    | @xnet/crypto        | E2E encryption                  | Month 7  |
-| **M6**    | @xnet/sdk v1.0      | **xNet MVP**                    | Month 8  |
-| **M7**    | @xnet/query         | Full-text search                | Month 9  |
-| **M8**    | @xnet/vectors       | Semantic search                 | Month 11 |
-| **M9**    | @xnet/sdk v2.0      | **xNet v1.0**                   | Month 13 |
-| **M10**   | @xnet/data          | Database views, formulas        | Month 19 |
-| **M11**   | @xnet/sdk v2.1      | **xNet v2.0** (Notion parity)   | Month 19 |
-| **M12**   | @xnet/canvas        | Spatial indexing, auto-layout   | Month 21 |
-| **M13**   | @xnet/sdk v2.5      | **xNet v2.5** (Infinite Canvas) | Month 23 |
+| **M1**    | @xnetjs/storage     | Offline persistence             | Month 4  |
+| **M2**    | @xnetjs/data        | CRDT-based documents            | Month 5  |
+| **M3**    | @xnetjs/identity    | User accounts, workspaces       | Month 5  |
+| **M4**    | @xnetjs/network     | P2P document sync               | Month 6  |
+| **M5**    | @xnetjs/crypto      | E2E encryption                  | Month 7  |
+| **M6**    | @xnetjs/sdk v1.0    | **xNet MVP**                    | Month 8  |
+| **M7**    | @xnetjs/query       | Full-text search                | Month 9  |
+| **M8**    | @xnetjs/vectors     | Semantic search                 | Month 11 |
+| **M9**    | @xnetjs/sdk v2.0    | **xNet v1.0**                   | Month 13 |
+| **M10**   | @xnetjs/data        | Database views, formulas        | Month 19 |
+| **M11**   | @xnetjs/sdk v2.1    | **xNet v2.0** (Notion parity)   | Month 19 |
+| **M12**   | @xnetjs/canvas      | Spatial indexing, auto-layout   | Month 21 |
+| **M13**   | @xnetjs/sdk v2.5    | **xNet v2.5** (Infinite Canvas) | Month 23 |
 
 ---
 
@@ -229,15 +229,15 @@ Critical checkpoints where xNet capabilities enable xNet features.
 
 ### Phase 1: xNet Core Sprints (Weeks 5-40)
 
-| Sprint | Duration    | Package        | Deliverable                              |
-| ------ | ----------- | -------------- | ---------------------------------------- |
-| 1-2    | Weeks 5-8   | @xnet/crypto   | Symmetric/asymmetric encryption, signing |
-| 3-4    | Weeks 9-12  | @xnet/identity | DID generation, key management           |
-| 5-6    | Weeks 13-16 | @xnet/storage  | IndexedDB adapter, blob storage          |
-| 7-10   | Weeks 17-24 | @xnet/data     | CRDT engine, schema validation           |
-| 11-14  | Weeks 25-32 | @xnet/network  | libp2p node, WebRTC transport            |
-| 15-16  | Weeks 33-36 | @xnet/query    | Local query engine, FTS                  |
-| 17-18  | Weeks 37-40 | @xnet/sdk      | SDK v1.0 integration                     |
+| Sprint | Duration    | Package          | Deliverable                              |
+| ------ | ----------- | ---------------- | ---------------------------------------- |
+| 1-2    | Weeks 5-8   | @xnetjs/crypto   | Symmetric/asymmetric encryption, signing |
+| 3-4    | Weeks 9-12  | @xnetjs/identity | DID generation, key management           |
+| 5-6    | Weeks 13-16 | @xnetjs/storage  | IndexedDB adapter, blob storage          |
+| 7-10   | Weeks 17-24 | @xnetjs/data     | CRDT engine, schema validation           |
+| 11-14  | Weeks 25-32 | @xnetjs/network  | libp2p node, WebRTC transport            |
+| 15-16  | Weeks 33-36 | @xnetjs/query    | Local query engine, FTS                  |
+| 17-18  | Weeks 37-40 | @xnetjs/sdk      | SDK v1.0 integration                     |
 
 ### Phase 1: xNet App Sprints (Weeks 5-52)
 

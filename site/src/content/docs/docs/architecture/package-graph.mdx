@@ -12,17 +12,17 @@ The core dependency chain flows upward. Lower packages cannot import from higher
 
 ```mermaid
 graph BT
-  crypto["@xnet/crypto"]
-  identity["@xnet/identity"]
-  storage["@xnet/storage"]
-  sync["@xnet/sync"]
-  data["@xnet/data"]
-  react["@xnet/react"]
-  network["@xnet/network"]
-  plugins["@xnet/plugins"]
-  editor["@xnet/editor"]
-  canvas["@xnet/canvas"]
-  devtools["@xnet/devtools"]
+  crypto["@xnetjs/crypto"]
+  identity["@xnetjs/identity"]
+  storage["@xnetjs/storage"]
+  sync["@xnetjs/sync"]
+  data["@xnetjs/data"]
+  react["@xnetjs/react"]
+  network["@xnetjs/network"]
+  plugins["@xnetjs/plugins"]
+  editor["@xnetjs/editor"]
+  canvas["@xnetjs/canvas"]
+  devtools["@xnetjs/devtools"]
 
   identity --> crypto
   storage --> identity
@@ -55,69 +55,69 @@ graph BT
 
 ## Package details
 
-### @xnet/crypto
+### @xnetjs/crypto
 
 **Dependencies:** `@noble/hashes`, `@noble/curves`, `@noble/ciphers`
 
 The foundation. Provides BLAKE3 hashing, Ed25519 signing, XChaCha20-Poly1305 encryption, X25519 key exchange, and encoding utilities. No xNet dependencies.
 
-### @xnet/identity
+### @xnetjs/identity
 
-**Dependencies:** `@xnet/crypto`
+**Dependencies:** `@xnetjs/crypto`
 
 DID:key creation and parsing, Ed25519/X25519 key bundle management, UCAN token creation and verification, passkey storage.
 
-### @xnet/storage
+### @xnetjs/storage
 
-**Dependencies:** `@xnet/identity`
+**Dependencies:** `@xnetjs/identity`
 
 SQLite adapter for persisting Y.Doc state, node properties, offline queue entries, and registry data across web (OPFS), desktop, and mobile.
 
-### @xnet/sync
+### @xnetjs/sync
 
-**Dependencies:** `@xnet/crypto`, `@xnet/identity`
+**Dependencies:** `@xnetjs/crypto`, `@xnetjs/identity`
 
 Core sync primitives: Lamport clocks, `Change<T>` type, hash chains, Yjs security layer (signed envelopes, rate limiting, peer scoring, clientID attestation, update batching, integrity checking).
 
-### @xnet/data
+### @xnetjs/data
 
-**Dependencies:** `@xnet/sync`, `@xnet/crypto`
+**Dependencies:** `@xnetjs/sync`, `@xnetjs/crypto`
 
 Schema system (`defineSchema`, 15 property types), NodeStore (CRUD + change tracking), type inference (`FlatNode`, `InferCreateProps`), validation and coercion.
 
-### @xnet/react
+### @xnetjs/react
 
-**Dependencies:** `@xnet/data`, `@xnet/sync`, `@xnet/storage`, `react`
+**Dependencies:** `@xnetjs/data`, `@xnetjs/sync`, `@xnetjs/storage`, `react`
 
 React bindings: `useQuery`, `useMutate`, `useNode`, `useIdentity`, `XNetProvider`. Also contains the SyncManager, NodePool, Registry, OfflineQueue, ConnectionManager, MetaBridge, and plugin hooks.
 
-### @xnet/network
+### @xnetjs/network
 
-**Dependencies:** `@xnet/sync`, `@xnet/crypto`
+**Dependencies:** `@xnetjs/sync`, `@xnetjs/crypto`
 
 libp2p node setup, WebRTC and WebSocket transport, connection gating, peer scoring (GossipSub-inspired), auto-blocking, rate limiting at the connection level.
 
-### @xnet/plugins
+### @xnetjs/plugins
 
-**Dependencies:** `@xnet/data`, `acorn`
+**Dependencies:** `@xnetjs/data`, `acorn`
 
 Plugin system: extension manifest, registry, context, 9 contribution types, middleware chain, script sandbox (AST validation, frozen context, timeout), AI script generation, services (ProcessManager, ServiceClient), integrations (LocalAPI, MCPServer, WebhookEmitter), shortcut manager.
 
-### @xnet/editor
+### @xnetjs/editor
 
 **Dependencies:** `@tiptap/core`, Yjs
 
 TipTap editor wrapper with Yjs collaboration, custom extensions (Mermaid, etc.), slash command support.
 
-### @xnet/canvas
+### @xnetjs/canvas
 
-**Dependencies:** `@xnet/data`
+**Dependencies:** `@xnetjs/data`
 
 Infinite canvas with spatial indexing (R-tree), viewport management, zoom/pan, node positioning.
 
-### @xnet/devtools
+### @xnetjs/devtools
 
-**Dependencies:** `@xnet/react`
+**Dependencies:** `@xnetjs/react`
 
 7 debug panels: Sync, Store, Schema, Identity, Network, Plugins, Performance.
 
@@ -125,9 +125,9 @@ Infinite canvas with spatial indexing (R-tree), viewport management, zoom/pan, n
 
 **Lower packages cannot import from higher ones.** This ensures:
 
-- `@xnet/crypto` can be used standalone for any cryptographic operation
-- `@xnet/sync` can be used without React for server-side or CLI tools
-- `@xnet/data` can be used without a UI framework
+- `@xnetjs/crypto` can be used standalone for any cryptographic operation
+- `@xnetjs/sync` can be used without React for server-side or CLI tools
+- `@xnetjs/data` can be used without a UI framework
 - Each package is independently testable
 
 ## Applications
@@ -137,4 +137,4 @@ apps/electron    — Full-featured desktop app (all packages)
 apps/web         — PWA (pages only, subset of features)
 ```
 
-The Electron app uses all packages including `@xnet/plugins/node` for ProcessManager, LocalAPI, and MCP server. The web app uses the browser-safe subset.
+The Electron app uses all packages including `@xnetjs/plugins/node` for ProcessManager, LocalAPI, and MCP server. The web app uses the browser-safe subset.

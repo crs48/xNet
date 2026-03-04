@@ -2,7 +2,7 @@
 
 ## Overview
 
-Review of `@xnet/react` covering hooks (`useQuery`, `useMutate`, `useNode`, `useComments`), context providers, sync management, and rendering patterns.
+Review of `@xnetjs/react` covering hooks (`useQuery`, `useMutate`, `useNode`, `useComments`), context providers, sync management, and rendering patterns.
 
 ```mermaid
 graph TD

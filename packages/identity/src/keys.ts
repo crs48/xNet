@@ -7,7 +7,7 @@ import {
   generateSigningKeyPair,
   generateKeyPair,
   getSigningPublicKeyFromPrivate
-} from '@xnet/crypto'
+} from '@xnetjs/crypto'
 import { createDID } from './did'
 
 /**

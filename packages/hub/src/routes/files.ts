@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - File storage routes.
+ * @xnetjs/hub - File storage routes.
  */
 import type { AuthContext } from '../auth/ucan'
 import type { FileService } from '../services/files'

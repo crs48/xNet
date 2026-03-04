@@ -1,11 +1,11 @@
-# @xnet/canvas
+# @xnetjs/canvas
 
 Infinite canvas for spatial visualization of xNet documents -- R-tree spatial indexing, ELK.js auto-layout, and Yjs-backed state.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/canvas
+pnpm add @xnetjs/canvas
 ```
 
 ## Features
@@ -20,7 +20,7 @@ pnpm add @xnet/canvas
 ## Usage
 
 ```tsx
-import { Canvas, useCanvas, createCanvasDoc, createNode, createEdge } from '@xnet/canvas'
+import { Canvas, useCanvas, createCanvasDoc, createNode, createEdge } from '@xnetjs/canvas'
 
 function MyCanvas() {
   const doc = createCanvasDoc('canvas-1', 'My canvas')
@@ -43,7 +43,7 @@ function MyCanvas() {
 ### Spatial Index
 
 ```typescript
-import { SpatialIndex } from '@xnet/canvas'
+import { SpatialIndex } from '@xnetjs/canvas'
 
 const index = new SpatialIndex()
 index.insert({ id: '1', x: 0, y: 0, width: 100, height: 50 })
@@ -55,7 +55,7 @@ const visible = index.search({ minX: -50, minY: -50, maxX: 200, maxY: 200 })
 ### Layout Engine
 
 ```typescript
-import { LayoutEngine } from '@xnet/canvas'
+import { LayoutEngine } from '@xnetjs/canvas'
 
 const engine = new LayoutEngine()
 const layout = await engine.layout(nodes, edges, {
@@ -67,7 +67,7 @@ const layout = await engine.layout(nodes, edges, {
 ### Canvas Store (Yjs)
 
 ```typescript
-import { CanvasStore } from '@xnet/canvas'
+import { CanvasStore } from '@xnetjs/canvas'
 
 // Yjs-backed canvas state
 const store = new CanvasStore(ydoc)
@@ -78,7 +78,7 @@ store.addEdge({ source: '1', target: '2' })
 ### Canvas Comments
 
 ```tsx
-import { CommentOverlay } from '@xnet/canvas'
+import { CommentOverlay } from '@xnetjs/canvas'
 
 function CanvasWithComments({ canvasNodeId, transform, objects }) {
   return <CommentOverlay canvasNodeId={canvasNodeId} transform={transform} objects={objects} />
@@ -122,7 +122,7 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/data`, `@xnet/react`, `@xnet/ui`, `@xnet/vectors`
+- `@xnetjs/core`, `@xnetjs/data`, `@xnetjs/react`, `@xnetjs/ui`, `@xnetjs/vectors`
 - `rbush` -- R-tree spatial indexing
 - `elkjs` -- Graph layout algorithms
 - `yjs` -- CRDT state
@@ -130,7 +130,7 @@ flowchart TD
 ## Testing
 
 ```bash
-pnpm --filter @xnet/canvas test
+pnpm --filter @xnetjs/canvas test
 ```
 
 4 test files covering spatial indexing, layout, store, and comments.

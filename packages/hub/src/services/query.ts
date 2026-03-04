@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Query and indexing service.
+ * @xnetjs/hub - Query and indexing service.
  */
 
 import type { DocMeta, HubStorage, SearchOptions, SearchResult } from '../storage/interface'

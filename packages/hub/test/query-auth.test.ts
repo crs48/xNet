@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Query authorization filtering tests.
+ * @xnetjs/hub - Query authorization filtering tests.
  */
 
 import { describe, expect, it } from 'vitest'

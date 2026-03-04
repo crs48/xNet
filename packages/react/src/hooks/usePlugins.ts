@@ -13,7 +13,7 @@ import type {
   PropertyHandlerContribution,
   BlockContribution,
   SettingContribution
-} from '@xnet/plugins'
+} from '@xnetjs/plugins'
 import { createContext, useContext, useState, useEffect } from 'react'
 
 // ─── Context ────────────────────────────────────────────────────────────────

@@ -5,8 +5,8 @@
  * pointing to this row, grouped by source database.
  */
 
-import type { ColumnDefinition, CellValue } from '@xnet/data'
-import { useReverseRelations, type DatabaseRow } from '@xnet/react'
+import type { ColumnDefinition, CellValue } from '@xnetjs/data'
+import { useReverseRelations, type DatabaseRow } from '@xnetjs/react'
 import React, { useMemo } from 'react'
 
 // ─── Icons ───────────────────────────────────────────────────────────────────

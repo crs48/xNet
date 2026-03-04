@@ -72,52 +72,52 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.45.0
         version: 1.153.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@xnet/canvas':
+      '@xnetjs/canvas':
         specifier: workspace:*
         version: link:../../packages/canvas
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../../packages/data
-      '@xnet/devtools':
+      '@xnetjs/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
-      '@xnet/editor':
+      '@xnetjs/editor':
         specifier: workspace:*
         version: link:../../packages/editor
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../../packages/identity
-      '@xnet/network':
+      '@xnetjs/network':
         specifier: workspace:*
         version: link:../../packages/network
-      '@xnet/plugins':
+      '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../../packages/plugins
-      '@xnet/react':
+      '@xnetjs/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@xnet/sdk':
+      '@xnetjs/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@xnet/sqlite':
+      '@xnetjs/sqlite':
         specifier: workspace:*
         version: link:../../packages/sqlite
-      '@xnet/storage':
+      '@xnetjs/storage':
         specifier: workspace:*
         version: link:../../packages/storage
-      '@xnet/sync':
+      '@xnetjs/sync':
         specifier: workspace:*
         version: link:../../packages/sync
-      '@xnet/telemetry':
+      '@xnetjs/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry
-      '@xnet/ui':
+      '@xnetjs/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@xnet/views':
+      '@xnetjs/views':
         specifier: workspace:*
         version: link:../../packages/views
       better-sqlite3:
@@ -211,25 +211,25 @@ importers:
       '@react-navigation/native-stack':
         specifier: ^6.9.0
         version: 6.11.0(@react-navigation/native@6.1.18(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native-safe-area-context@4.12.0(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native-screens@4.4.0(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1))(react-native@0.76.6(@babel/core@7.28.6)(@babel/preset-env@7.28.6(@babel/core@7.28.6))(@types/react@18.3.27)(encoding@0.1.13)(react@18.3.1))(react@18.3.1)
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../../packages/data
-      '@xnet/data-bridge':
+      '@xnetjs/data-bridge':
         specifier: workspace:*
         version: link:../../packages/data-bridge
-      '@xnet/react':
+      '@xnetjs/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@xnet/sdk':
+      '@xnetjs/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@xnet/sqlite':
+      '@xnetjs/sqlite':
         specifier: workspace:*
         version: link:../../packages/sqlite
-      '@xnet/storage':
+      '@xnetjs/storage':
         specifier: workspace:*
         version: link:../../packages/storage
       expo:
@@ -287,43 +287,43 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.57.0
         version: 1.153.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@xnet/canvas':
+      '@xnetjs/canvas':
         specifier: workspace:*
         version: link:../../packages/canvas
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../../packages/data
-      '@xnet/devtools':
+      '@xnetjs/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
-      '@xnet/editor':
+      '@xnetjs/editor':
         specifier: workspace:*
         version: link:../../packages/editor
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../../packages/identity
-      '@xnet/plugins':
+      '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../../packages/plugins
-      '@xnet/react':
+      '@xnetjs/react':
         specifier: workspace:*
         version: link:../../packages/react
-      '@xnet/sdk':
+      '@xnetjs/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@xnet/sqlite':
+      '@xnetjs/sqlite':
         specifier: workspace:*
         version: link:../../packages/sqlite
-      '@xnet/storage':
+      '@xnetjs/storage':
         specifier: workspace:*
         version: link:../../packages/storage
-      '@xnet/sync':
+      '@xnetjs/sync':
         specifier: workspace:*
         version: link:../../packages/sync
-      '@xnet/ui':
+      '@xnetjs/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@xnet/views':
+      '@xnetjs/views':
         specifier: workspace:*
         version: link:../../packages/views
       lucide-react:
@@ -381,19 +381,19 @@ importers:
 
   packages/canvas:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/react':
+      '@xnetjs/react':
         specifier: workspace:*
         version: link:../react
-      '@xnet/ui':
+      '@xnetjs/ui':
         specifier: workspace:*
         version: link:../ui
-      '@xnet/vectors':
+      '@xnetjs/vectors':
         specifier: workspace:*
         version: link:../vectors
       elkjs:
@@ -439,10 +439,10 @@ importers:
 
   packages/cli:
     dependencies:
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/sync':
+      '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync
       chalk:
@@ -492,7 +492,7 @@ importers:
       '@noble/post-quantum':
         specifier: ^0.5.4
         version: 0.5.4
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -505,22 +505,22 @@ importers:
 
   packages/data:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
-      '@xnet/sqlite':
+      '@xnetjs/sqlite':
         specifier: workspace:*
         version: link:../sqlite
-      '@xnet/storage':
+      '@xnetjs/storage':
         specifier: workspace:*
         version: link:../storage
-      '@xnet/sync':
+      '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync
       lib0:
@@ -545,10 +545,10 @@ importers:
 
   packages/data-bridge:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
       comlink:
@@ -561,10 +561,10 @@ importers:
         specifier: ^13.6.24
         version: 13.6.29
     devDependencies:
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
       tsup:
@@ -579,25 +579,25 @@ importers:
 
   packages/devtools:
     dependencies:
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/history':
+      '@xnetjs/history':
         specifier: workspace:*
         version: link:../history
-      '@xnet/react':
+      '@xnetjs/react':
         specifier: workspace:*
         version: link:../react
-      '@xnet/sqlite':
+      '@xnetjs/sqlite':
         specifier: workspace:*
         version: link:../sqlite
-      '@xnet/sync':
+      '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync
-      '@xnet/ui':
+      '@xnetjs/ui':
         specifier: workspace:*
         version: link:../ui
-      '@xnet/views':
+      '@xnetjs/views':
         specifier: workspace:*
         version: link:../views
     devDependencies:
@@ -664,10 +664,10 @@ importers:
       '@tiptap/y-tiptap':
         specifier: ^3.0.1
         version: 3.0.1(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.5)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29)
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/ui':
+      '@xnetjs/ui':
         specifier: workspace:*
         version: link:../ui
       clsx:
@@ -734,20 +734,20 @@ importers:
 
   packages/history:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/sync':
+      '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync
       yjs:
         specifier: ^13.6.24
         version: 13.6.29
     devDependencies:
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
       tsup:
@@ -765,22 +765,22 @@ importers:
       '@hono/node-server':
         specifier: ^1.0.0
         version: 1.19.9(hono@4.11.7)
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
-      '@xnet/sync':
+      '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync
-      '@xnet/telemetry':
+      '@xnetjs/telemetry':
         specifier: workspace:*
         version: link:../telemetry
       better-sqlite3:
@@ -829,10 +829,10 @@ importers:
       '@noble/post-quantum':
         specifier: ^0.5.4
         version: 0.5.4
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
       multiformats:
@@ -878,19 +878,19 @@ importers:
       '@msgpack/msgpack':
         specifier: ^3.0.0
         version: 3.1.3
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
-      '@xnet/sync':
+      '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync
       it-length-prefixed:
@@ -918,10 +918,10 @@ importers:
 
   packages/plugins:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
       acorn:
@@ -952,19 +952,19 @@ importers:
 
   packages/query:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
-      '@xnet/network':
+      '@xnetjs/network':
         specifier: workspace:*
         version: link:../network
-      '@xnet/storage':
+      '@xnetjs/storage':
         specifier: workspace:*
         version: link:../storage
       minisearch:
@@ -980,25 +980,25 @@ importers:
 
   packages/react:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/data-bridge':
+      '@xnetjs/data-bridge':
         specifier: workspace:*
         version: link:../data-bridge
-      '@xnet/history':
+      '@xnetjs/history':
         specifier: workspace:*
         version: link:../history
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
-      '@xnet/plugins':
+      '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../plugins
       y-protocols:
@@ -1035,25 +1035,25 @@ importers:
 
   packages/sdk:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
-      '@xnet/network':
+      '@xnetjs/network':
         specifier: workspace:*
         version: link:../network
-      '@xnet/query':
+      '@xnetjs/query':
         specifier: workspace:*
         version: link:../query
-      '@xnet/storage':
+      '@xnetjs/storage':
         specifier: workspace:*
         version: link:../storage
     devDependencies:
@@ -1100,13 +1100,13 @@ importers:
 
   packages/storage:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
-      '@xnet/sqlite':
+      '@xnetjs/sqlite':
         specifier: workspace:*
         version: link:../sqlite
       pako:
@@ -1125,13 +1125,13 @@ importers:
 
   packages/sync:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../crypto
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../identity
     devDependencies:
@@ -1147,10 +1147,10 @@ importers:
 
   packages/telemetry:
     dependencies:
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
       react:
@@ -1239,10 +1239,10 @@ importers:
       '@xenova/transformers':
         specifier: ^2.17.2
         version: 2.17.2
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/storage':
+      '@xnetjs/storage':
         specifier: workspace:*
         version: link:../storage
       usearch:
@@ -1276,16 +1276,16 @@ importers:
       '@tanstack/react-virtual':
         specifier: ^3.13.2
         version: 3.13.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@xnet/core':
+      '@xnetjs/core':
         specifier: workspace:*
         version: link:../core
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
-      '@xnet/react':
+      '@xnetjs/react':
         specifier: workspace:*
         version: link:../react
-      '@xnet/ui':
+      '@xnetjs/ui':
         specifier: workspace:*
         version: link:../ui
       lucide-react:
@@ -1359,16 +1359,16 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.0.0
         version: 4.7.0(vite@5.4.21(@types/node@20.19.30)(lightningcss@1.27.0)(terser@5.46.0))
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../../packages/data
-      '@xnet/editor':
+      '@xnetjs/editor':
         specifier: workspace:*
         version: link:../../packages/editor
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../../packages/identity
-      '@xnet/react':
+      '@xnetjs/react':
         specifier: workspace:*
         version: link:../../packages/react
       react:
@@ -1383,16 +1383,16 @@ importers:
 
   tests/integration:
     dependencies:
-      '@xnet/crypto':
+      '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
-      '@xnet/data':
+      '@xnetjs/data':
         specifier: workspace:*
         version: link:../../packages/data
-      '@xnet/identity':
+      '@xnetjs/identity':
         specifier: workspace:*
         version: link:../../packages/identity
-      '@xnet/react':
+      '@xnetjs/react':
         specifier: workspace:*
         version: link:../../packages/react
       lib0:

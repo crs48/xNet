@@ -1,4 +1,4 @@
-import type { BlobService } from '@xnet/data'
+import type { BlobService } from '@xnetjs/data'
 import type { ReactNode } from 'react'
 import { renderHook } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'

@@ -227,7 +227,7 @@ export function Editor({ docId }: { docId: string }) {
 ```typescript
 import { Node } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import { defineExtension } from '@xnet/plugins'
+import { defineExtension } from '@xnetjs/plugins'
 
 // TipTap Node for Mermaid blocks
 const MermaidNode = Node.create({
@@ -288,7 +288,7 @@ export default defineExtension({
 
 ```typescript
 import { Mark } from '@tiptap/core'
-import { defineExtension } from '@xnet/plugins'
+import { defineExtension } from '@xnetjs/plugins'
 
 const Highlight = Mark.create({
   name: 'highlight',

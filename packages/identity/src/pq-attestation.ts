@@ -8,7 +8,7 @@
 
 import { ed25519 } from '@noble/curves/ed25519.js'
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa.js'
-import { hash, bytesToBase64, base64ToBytes } from '@xnet/crypto'
+import { hash, bytesToBase64, base64ToBytes } from '@xnetjs/crypto'
 import { parseDID } from './did'
 
 // ─── Types ───────────────────────────────────────────────────────

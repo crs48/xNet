@@ -1,4 +1,4 @@
-import type { PropertyType } from '@xnet/data'
+import type { PropertyType } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 

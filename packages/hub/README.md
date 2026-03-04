@@ -1,11 +1,11 @@
-# @xnet/hub
+# @xnetjs/hub
 
 xNet Hub -- signaling server, sync relay, backup, query server, and federation gateway. Runs as a standalone Node.js server with a CLI.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/hub
+pnpm add @xnetjs/hub
 ```
 
 ## Quick Start
@@ -101,7 +101,7 @@ flowchart TD
 ## Usage (Programmatic)
 
 ```typescript
-import { createHub, resolveConfig } from '@xnet/hub'
+import { createHub, resolveConfig } from '@xnetjs/hub'
 
 const config = resolveConfig({
   port: 4444,
@@ -157,7 +157,7 @@ Options:
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/crypto`, `@xnet/identity`, `@xnet/data`, `@xnet/sync`
+- `@xnetjs/core`, `@xnetjs/crypto`, `@xnetjs/identity`, `@xnetjs/data`, `@xnetjs/sync`
 - `hono` + `@hono/node-server` -- HTTP framework
 - `better-sqlite3` -- SQLite database
 - `ws` -- WebSocket server
@@ -167,5 +167,5 @@ Options:
 ## Testing
 
 ```bash
-pnpm --filter @xnet/hub test
+pnpm --filter @xnetjs/hub test
 ```

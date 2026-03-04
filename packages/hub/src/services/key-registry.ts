@@ -1,9 +1,9 @@
 /**
- * @xnet/hub - X25519 key registry for DID key resolution fallback.
+ * @xnetjs/hub - X25519 key registry for DID key resolution fallback.
  */
 
-import type { DID } from '@xnet/core'
-import { bytesToHex, extractEd25519PubKey, sign, verify } from '@xnet/crypto'
+import type { DID } from '@xnetjs/core'
+import { bytesToHex, extractEd25519PubKey, sign, verify } from '@xnetjs/crypto'
 
 export type KeyRegistryRecord = {
   did: DID

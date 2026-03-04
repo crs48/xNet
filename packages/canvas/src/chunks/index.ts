@@ -5,7 +5,7 @@
  *
  * @example
  * ```ts
- * import { createChunkedCanvasStore, createChunkManager } from '@xnet/canvas'
+ * import { createChunkedCanvasStore, createChunkManager } from '@xnetjs/canvas'
  *
  * // Create store and manager
  * const store = createChunkedCanvasStore('canvas-1')

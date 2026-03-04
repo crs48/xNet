@@ -2,11 +2,11 @@
 
 ## Overview
 
-Review of `@xnet/sync`, `@xnet/network`, and `@xnet/sdk` - the synchronization and networking stack.
+Review of `@xnetjs/sync`, `@xnetjs/network`, and `@xnetjs/sdk` - the synchronization and networking stack.
 
 ```mermaid
 graph TD
-    subgraph "Sync Primitives (@xnet/sync)"
+    subgraph "Sync Primitives (@xnetjs/sync)"
         clock["LamportClock"]
         change["Change<T>"]
         chain["ChangeChain"]
@@ -17,7 +17,7 @@ graph TD
         attest["ClientIdAttestation"]
     end
 
-    subgraph "Network (@xnet/network)"
+    subgraph "Network (@xnetjs/network)"
         node["libp2p Node"]
         proto["Sync Protocol"]
         yrtc["y-webrtc Provider"]
@@ -25,7 +25,7 @@ graph TD
         ratelim["SyncRateLimiter"]
     end
 
-    subgraph "SDK (@xnet/sdk)"
+    subgraph "SDK (@xnetjs/sdk)"
         client["XNetClient"]
         cache["Document Cache"]
     end
@@ -53,7 +53,7 @@ graph TD
 
 ### SY-01: Weak Change ID Generation Uses Math.random()
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/change.ts:308-311`
 
 ```typescript
@@ -70,7 +70,7 @@ Not cryptographically secure. Predictable IDs could enable targeted attacks.
 
 ### SY-02: Weak Batch ID Generation Uses Math.random()
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/change.ts:162-166`
 
 Same issue for batch identifiers.
@@ -79,7 +79,7 @@ Same issue for batch identifiers.
 
 ### SY-03: YjsBatcher defaultMergeUpdates Corrupts Data
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/yjs-batcher.ts:56-72`
 
 ```typescript
@@ -98,14 +98,14 @@ Concatenated bytes are not a valid Yjs update.
 
 ### NW-01: Sync Protocol Bypasses Signature Verification
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `packages/network/src/protocols/sync.ts:112`
 
 ```typescript
 Y.applyUpdate(doc.ydoc, msg.payload) // No signature check!
 ```
 
-The entire signed envelope security stack in `@xnet/sync` is bypassed.
+The entire signed envelope security stack in `@xnetjs/sync` is bypassed.
 
 **Fix:** Wire `verifyYjsEnvelope()` into sync protocol.
 
@@ -115,7 +115,7 @@ The entire signed envelope security stack in `@xnet/sync` is bypassed.
 
 ### SY-04: Rate Limiter Memory Leak
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/yjs-limits.ts:69-142`
 
 Per-peer windows stored in Maps but only cleaned via `remove()`. Long-running servers accumulate stale entries.
@@ -126,7 +126,7 @@ Per-peer windows stored in Maps but only cleaned via `remove()`. Long-running se
 
 ### SY-05: ClientIdMap Cleanup in size() - Side Effect
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/clientid-attestation.ts:261-264`
 
 ```typescript
@@ -144,7 +144,7 @@ Getter modifies state unexpectedly.
 
 ### SY-06: Timestamp Parsing Fragile for DIDs with Dashes
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/clock.ts:127-142`
 
 Uses `indexOf('-')` to split timestamp-author.
@@ -155,7 +155,7 @@ Uses `indexOf('-')` to split timestamp-author.
 
 ### NW-02: Denylist Timeout Not Cleaned Up
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `packages/network/src/security/gater.ts:115-119`
 
 `setTimeout` handle not stored, can't be cancelled on destroy.
@@ -166,7 +166,7 @@ Uses `indexOf('-')` to split timestamp-author.
 
 ### NW-03: PeerScorer Decay Timer Not Stopped
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `packages/network/src/security/peer-scorer.ts:104`
 
 Interval continues even after all peers removed.
@@ -175,7 +175,7 @@ Interval continues even after all peers removed.
 
 ### NW-04: Connection Tracker Unbounded Array
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `packages/network/src/security/tracker.ts:124-126`
 
 `recentConnections` array can spike during connection flood.
@@ -184,7 +184,7 @@ Interval continues even after all peers removed.
 
 ### SDK-01: Document Cache Never Evicted
 
-**Package:** `@xnet/sdk`
+**Package:** `@xnetjs/sdk`
 **File:** `packages/sdk/src/client.ts:108`
 
 Simple Map with no eviction policy.
@@ -195,7 +195,7 @@ Simple Map with no eviction policy.
 
 ### SDK-02: Network Initialization Swallows Errors
 
-**Package:** `@xnet/sdk`
+**Package:** `@xnetjs/sdk`
 **File:** `packages/sdk/src/client.ts:102-105`
 
 ```typescript
@@ -212,7 +212,7 @@ Silent degradation makes debugging difficult.
 
 ### SY-07: Lamport Time Padding Limits to 10^16
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/clock.ts:119-121`
 
 JavaScript safe integer limit could cause overflow.
@@ -221,7 +221,7 @@ JavaScript safe integer limit could cause overflow.
 
 ### SY-08: IntegrityMonitor Division by Zero
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/integrity.ts:442`
 
 `(report.valid / report.checked) * 100` when checked is 0.
@@ -230,7 +230,7 @@ JavaScript safe integer limit could cause overflow.
 
 ### SY-09: Chain Validation Silent on Missing Parents
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/chain.ts:72-76`
 
 Missing parent is not an error - could mask sync issues.
@@ -239,7 +239,7 @@ Missing parent is not an error - could mask sync issues.
 
 ### NW-05: ywebrtc getConnectedPeers Returns Hardcoded Values
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `packages/network/src/providers/ywebrtc.ts:47-49`
 
 Returns 1 or 0 instead of actual count.
@@ -248,7 +248,7 @@ Returns 1 or 0 instead of actual count.
 
 ### NW-06: AutoBlocker Event Counts Never Pruned
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `packages/network/src/security/auto-blocker.ts:220-228`
 
 Peer IDs never removed from eventCounts.
@@ -257,7 +257,7 @@ Peer IDs never removed from eventCounts.
 
 ### NW-07: Node Creation Ignores Private Key
 
-**Package:** `@xnet/network`
+**Package:** `@xnetjs/network`
 **File:** `packages/network/src/node.ts:28-55`
 
 `privateKey` parameter accepted but not used.
@@ -266,7 +266,7 @@ Peer IDs never removed from eventCounts.
 
 ### SDK-03: connectToPeer Not Implemented
 
-**Package:** `@xnet/sdk`
+**Package:** `@xnetjs/sdk`
 **File:** `packages/sdk/src/client.ts:233-237`
 
 Throws "Network not enabled" even when enabled.
@@ -275,7 +275,7 @@ Throws "Network not enabled" even when enabled.
 
 ### SY-10: V1/V2 Serializer Base64 Stack Overflow
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/serializers/v1.ts:33-40`, `v2.ts:34-39`
 
 Same spread operator issue as crypto package.
@@ -341,7 +341,7 @@ sequenceDiagram
 ### Phase 2 (Hub MVP)
 
 - [x] **NW-01:** Wire signed envelope verification into network sync protocol _(fixed a190622)_
-- [x] **SY-04:** Add periodic cleanup to rate limiter _(fixed - added cleanup to both @xnet/sync YjsRateLimiter and @xnet/network SyncRateLimiter)_
+- [x] **SY-04:** Add periodic cleanup to rate limiter _(fixed - added cleanup to both @xnetjs/sync YjsRateLimiter and @xnetjs/network SyncRateLimiter)_
 - [x] **SY-05:** Remove cleanup side effect from size() _(fixed - size() no longer calls cleanup(), added activeCount() for non-mutating count)_
 - [x] **SDK-01:** Add LRU eviction to document cache _(fixed - implemented LRUCache class with max size of 100)_
 - [x] **NW-02/03:** Clean up timers on destroy _(fixed - DefaultConnectionGater now tracks denylist timers and clears them on destroy/remove)_

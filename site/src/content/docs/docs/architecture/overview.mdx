@@ -14,25 +14,25 @@ xNet is organized as a layered stack where each package builds on the ones below
 ┌─────────────────────────────────────────┐
 │  apps/electron  ·  apps/web             │  Applications
 ├─────────────────────────────────────────┤
-│  @xnet/react                            │  React bindings
+│  @xnetjs/react                            │  React bindings
 │  useQuery · useMutate · useNode         │
 │  useIdentity · XNetProvider             │
 ├─────────────────────────────────────────┤
-│  @xnet/data                             │  Data layer
+│  @xnetjs/data                             │  Data layer
 │  defineSchema · NodeStore               │
 │  15 property types · validation         │
 ├─────────────────────────────────────────┤
-│  @xnet/sync                             │  Sync primitives
+│  @xnetjs/sync                             │  Sync primitives
 │  Lamport clocks · Change<T> · chains    │
 │  Yjs security · envelopes · scoring     │
 ├─────────────────────────────────────────┤
-│  @xnet/storage                          │  Persistence
+│  @xnetjs/storage                          │  Persistence
 │  SQLite adapter                        │
 ├─────────────────────────────────────────┤
-│  @xnet/identity                         │  Identity
+│  @xnetjs/identity                         │  Identity
 │  DID:key · UCAN · key management        │
 ├─────────────────────────────────────────┤
-│  @xnet/crypto                           │  Cryptography
+│  @xnetjs/crypto                           │  Cryptography
 │  BLAKE3 · Ed25519 · XChaCha20           │
 └─────────────────────────────────────────┘
 ```
@@ -41,11 +41,11 @@ xNet is organized as a layered stack where each package builds on the ones below
 
 | Package          | Purpose                                                             |
 | ---------------- | ------------------------------------------------------------------- |
-| `@xnet/plugins`  | 4-layer plugin system (scripts, extensions, services, integrations) |
-| `@xnet/canvas`   | Infinite canvas with spatial indexing                               |
-| `@xnet/editor`   | TipTap rich text editor with Yjs collaboration                      |
-| `@xnet/network`  | libp2p node, WebRTC/WebSocket transport, peer security              |
-| `@xnet/devtools` | 7 debug panels for inspecting sync, store, schema, and more         |
+| `@xnetjs/plugins`  | 4-layer plugin system (scripts, extensions, services, integrations) |
+| `@xnetjs/canvas`   | Infinite canvas with spatial indexing                               |
+| `@xnetjs/editor`   | TipTap rich text editor with Yjs collaboration                      |
+| `@xnetjs/network`  | libp2p node, WebRTC/WebSocket transport, peer security              |
+| `@xnetjs/devtools` | 7 debug panels for inspecting sync, store, schema, and more         |
 
 ## Design principles
 

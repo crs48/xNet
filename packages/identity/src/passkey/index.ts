@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - Unified passkey authentication API
+ * @xnetjs/identity/passkey - Unified passkey authentication API
  *
  * Provides a single `createIdentityManager()` entry point that handles:
  * - PRF-based key derivation (primary path)

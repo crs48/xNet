@@ -3,7 +3,7 @@
 > Multi-layer locale resolution with device-local override and synced user preference
 
 **Duration:** 1-2 days  
-**Dependencies:** Steps 01, 03, `@xnet/data`
+**Dependencies:** Steps 01, 03, `@xnetjs/data`
 
 ## Overview
 
@@ -37,8 +37,8 @@ flowchart LR
 ### Language Settings Component
 
 ```tsx
-import { useTranslation, useLocale, useChangeLocale } from '@xnet/react/i18n'
-import { useMutate, useQuery } from '@xnet/react'
+import { useTranslation, useLocale, useChangeLocale } from '@xnetjs/react/i18n'
+import { useMutate, useQuery } from '@xnetjs/react'
 
 function LanguageSettings() {
   const { t } = useTranslation()
@@ -111,7 +111,7 @@ const SUPPORTED_LOCALES = [
 
 ```typescript
 // packages/data/src/schemas/user-preferences.ts
-import { defineSchema, text, select } from '@xnet/data'
+import { defineSchema, text, select } from '@xnetjs/data'
 
 export const UserPrefsSchema = defineSchema({
   name: 'UserPreferences',

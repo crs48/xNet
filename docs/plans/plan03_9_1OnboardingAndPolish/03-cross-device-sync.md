@@ -108,7 +108,7 @@ export async function discoverExistingPasskey(): Promise<DiscoveredPasskey | nul
 // packages/react/src/onboarding/SmartWelcome.tsx
 
 import { useEffect, useState } from 'react'
-import { discoverExistingPasskey } from '@xnet/identity'
+import { discoverExistingPasskey } from '@xnetjs/identity'
 import { useOnboarding } from './OnboardingProvider'
 
 export function SmartWelcome() {
@@ -371,7 +371,7 @@ For devices without passkey sync, use QR code to transfer identity:
 // packages/identity/src/linking/qr-link.ts
 
 import { generateKeypair } from '../keys'
-import { encrypt, decrypt } from '@xnet/crypto'
+import { encrypt, decrypt } from '@xnetjs/crypto'
 
 interface LinkSession {
   sessionId: string

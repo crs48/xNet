@@ -4,7 +4,7 @@
 
 This exploration examines how to integrate Mastodon-style microblogging and social networking into xNet, leveraging the existing decentralized infrastructure (DID identity, P2P sync, schema-first data model, Hub infrastructure) while maintaining the local-first, user-owned-data philosophy. The goal is a federated social experience where posts, follows, and timelines are user-owned Nodes synced peer-to-peer through Hubs, with optional ActivityPub bridging for interop with the wider Fediverse.
 
-**Key dependency**: This design builds on the xNet Hub (`@xnet/hub`) as defined in [plan03_8HubPhase1VPS](../plans/plan03_8HubPhase1VPS/README.md). The Hub provides always-on sync relay, server-side queries (SQLite FTS5), content-addressed file hosting, peer discovery, schema registry, and hub-to-hub federation -- all of which are directly leveraged for social features.
+**Key dependency**: This design builds on the xNet Hub (`@xnetjs/hub`) as defined in [plan03_8HubPhase1VPS](../plans/plan03_8HubPhase1VPS/README.md). The Hub provides always-on sync relay, server-side queries (SQLite FTS5), content-addressed file hosting, peer discovery, schema registry, and hub-to-hub federation -- all of which are directly leveraged for social features.
 
 ---
 
@@ -34,7 +34,7 @@ graph LR
 | Favourite/Like   | Like Node                | References a Post                  |
 | Reply            | Post with `inReplyTo`    | Thread via relation property       |
 | Timeline         | Computed feed            | Local query over synced Posts      |
-| Instance         | Hub (`@xnet/hub`)        | Always-on peer, not an authority   |
+| Instance         | Hub (`@xnetjs/hub`)      | Always-on peer, not an authority   |
 | Hashtag          | Tag property             | Indexed for discovery              |
 | Mention          | Person reference in Post | DID-based, not @user@server        |
 
@@ -267,7 +267,7 @@ This is possible because xNet Node IDs are globally unique (nanoid, schema-indep
 
 ### 3.1 The Hub as Social Infrastructure
 
-The xNet Hub (`@xnet/hub`) is the backbone of social networking. Unlike Mastodon's monolithic instance server, the Hub is a focused always-on peer that provides specific services. For social features, we leverage these Hub capabilities:
+The xNet Hub (`@xnetjs/hub`) is the backbone of social networking. Unlike Mastodon's monolithic instance server, the Hub is a focused always-on peer that provides specific services. For social features, we leverage these Hub capabilities:
 
 | Hub Service                       | Social Use                                                    | Hub Phase |
 | --------------------------------- | ------------------------------------------------------------- | --------- |
@@ -383,15 +383,15 @@ The Hub's **Peer Discovery** service (Phase 12) resolves Alice's DID to her WebS
 
 ### 3.4 Hub vs. Mastodon Instance
 
-| Aspect         | Mastodon Instance                    | xNet Hub                                    |
-| -------------- | ------------------------------------ | ------------------------------------------- |
-| Runs           | PostgreSQL + Redis + Sidekiq + Nginx | Single Node.js process + SQLite             |
-| Deploy         | Complex, needs $20+/mo VPS           | `npx @xnet/hub`, $5/mo VPS or free (local)  |
-| Owns user data | Yes (server is source of truth)      | No (caches + relays, user device is source) |
-| Owns identity  | Yes (@user@server)                   | No (DID is portable, Hub just resolves it)  |
-| User switching | Complex migration + redirect         | Just point client at new Hub URL            |
-| Offline use    | Impossible                           | Full offline, Hub syncs on reconnect        |
-| Moderation     | Instance admin has full power        | Hub operator sets relay policies only       |
+| Aspect         | Mastodon Instance                    | xNet Hub                                     |
+| -------------- | ------------------------------------ | -------------------------------------------- |
+| Runs           | PostgreSQL + Redis + Sidekiq + Nginx | Single Node.js process + SQLite              |
+| Deploy         | Complex, needs $20+/mo VPS           | `npx @xnetjs/hub`, $5/mo VPS or free (local) |
+| Owns user data | Yes (server is source of truth)      | No (caches + relays, user device is source)  |
+| Owns identity  | Yes (@user@server)                   | No (DID is portable, Hub just resolves it)   |
+| User switching | Complex migration + redirect         | Just point client at new Hub URL             |
+| Offline use    | Impossible                           | Full offline, Hub syncs on reconnect         |
+| Moderation     | Instance admin has full power        | Hub operator sets relay policies only        |
 
 ### 3.5 Visibility & Access Control
 
@@ -404,7 +404,7 @@ Post visibility maps to Hub relay permissions, enforced by UCAN capabilities:
 | `mentioned` | Relay only to mentioned DIDs                             | `{ with: 'xnet://did:key:.../Post/:id', can: 'read' }` |
 | `direct`    | Relay encrypted payload to recipient only                | Encrypted with recipient's X25519 key                  |
 
-For `direct` messages, we leverage `@xnet/crypto`'s XChaCha20-Poly1305 encryption:
+For `direct` messages, we leverage `@xnetjs/crypto`'s XChaCha20-Poly1305 encryption:
 
 ```typescript
 // Encrypt post content for specific recipient
@@ -548,7 +548,7 @@ async function getHomeTimelineFromHub(hubConnection: WebSocket, myDID: DID) {
   return response.posts
 }
 
-// Hub-side implementation (in @xnet/hub services/query.ts)
+// Hub-side implementation (in @xnetjs/hub services/query.ts)
 async function handleTimelineQuery(query: TimelineQuery, db: Database) {
   // Hub already has all NodeChanges persisted (Phase 8: node-relay)
   // and FTS5 indexed (Phase 5: query engine)
@@ -599,7 +599,7 @@ async function handleTimelineQuery(query: TimelineQuery, db: Database) {
 **Client-side** (for offline/local queries):
 
 ```typescript
-// MiniSearch in @xnet/query for local full-text
+// MiniSearch in @xnetjs/query for local full-text
 const localIndex = new MiniSearch({
   fields: ['content', 'tags'],
   storeFields: ['createdBy', 'publishedAt', 'visibility']
@@ -686,7 +686,7 @@ const tagFeed = await hubConnection.query({
 The Hub computes trending data from its persisted NodeChanges:
 
 ```typescript
-// Hub-side trending computation (new service in @xnet/hub)
+// Hub-side trending computation (new service in @xnetjs/hub)
 class TrendingService {
   // Runs periodically (every 5 minutes)
   computeTrending(db: Database) {
@@ -778,7 +778,7 @@ graph LR
 The bridge runs inside the same Hub process -- no separate deployment needed. It's enabled with a flag:
 
 ```bash
-npx @xnet/hub --port 4444 --activitypub --ap-domain social.example.com
+npx @xnetjs/hub --port 4444 --activitypub --ap-domain social.example.com
 ```
 
 ### 6.1 DID to ActivityPub Actor Mapping
@@ -862,7 +862,7 @@ class ActivityPubBridge {
 ### Phase 1: Core Schemas & Local Social (2-3 weeks)
 
 1. Define and register social schemas (Post, Profile, Follow, Like, Boost, Notification) via Hub's Schema Registry
-2. Implement local feed assembly queries in `@xnet/query`
+2. Implement local feed assembly queries in `@xnetjs/query`
 3. Build basic React hooks: `useTimeline()`, `useProfile()`, `useThread()`
 4. Create compose UI component for posting
 5. Profile view with post history
@@ -1009,7 +1009,7 @@ graph TB
 | Search            | Elasticsearch (optional)             | Hub FTS5 (built-in, zero config)                           |
 | Media             | S3 / local filesystem                | Hub File Storage (CID-addressed, BLAKE3 verified)          |
 | Deploy cost       | $20+/mo (Postgres + Redis + workers) | $5/mo (single process + SQLite)                            |
-| Deploy complexity | Complex (5+ services)                | `npx @xnet/hub` or `docker run xnet/hub`                   |
+| Deploy complexity | Complex (5+ services)                | `npx @xnetjs/hub` or `docker run xnet/hub`                 |
 
 ---
 
@@ -1092,7 +1092,7 @@ const { suggestions } = useSuggestions() // Follow suggestions
    - User configures Hub URL in `XNetProvider` (`hubUrl` option, Phase 7 of Hub plan)
    - Multiple Hubs possible for redundancy (connect to several)
    - Hub reputation based on uptime, federation status, community trust
-   - Users can self-host: `npx @xnet/hub` or Docker (it's just a single process)
+   - Users can self-host: `npx @xnetjs/hub` or Docker (it's just a single process)
    - Switching Hubs is instant -- just change the URL, all data syncs from device
 
 ---
@@ -1101,7 +1101,7 @@ const { suggestions } = useSuggestions() // Follow suggestions
 
 ```
 packages/
-  social/               # New package: @xnet/social (shared schemas + logic)
+  social/               # New package: @xnetjs/social (shared schemas + logic)
     src/
       schemas/
         post.ts         # Post schema definition
@@ -1129,7 +1129,7 @@ packages/
       feed.test.ts
       sync.test.ts
 
-  social-react/         # New package: @xnet/social-react (UI layer)
+  social-react/         # New package: @xnetjs/social-react (UI layer)
     src/
       hooks/
         useTimeline.ts      # Hybrid: local query OR Hub query
@@ -1152,7 +1152,7 @@ packages/
         NotificationList.tsx
       index.ts
 
-  hub/                  # EXISTING package: @xnet/hub (add social services)
+  hub/                  # EXISTING package: @xnetjs/hub (add social services)
     src/
       services/
         # --- Existing Hub services (already planned) ---
@@ -1231,7 +1231,7 @@ Adding social is primarily about:
 
 - Hub's existing **rate limiting** (Phase 6: `middleware/rate-limit.ts`) limits posts per DID per time window
 - Hub's existing **message size limits** (5MB max) prevent abuse
-- PeerScorer (from `@xnet/network/security`) rates peers by behavior
+- PeerScorer (from `@xnetjs/network/security`) rates peers by behavior
 - Hub-level blocklists (DID-based, shared between federated Hubs)
 - Community-maintained blocklists (shared as xNet Nodes via Schema Registry)
 
@@ -1260,7 +1260,7 @@ xNet's existing infrastructure -- particularly the Hub -- is remarkably well-sui
 
 The main gaps to fill (beyond what Hub already provides):
 
-1. Social schema definitions (`@xnet/social` package)
+1. Social schema definitions (`@xnetjs/social` package)
 2. Visibility-aware routing in the Hub's node-relay
 3. Trending/suggestions computation services in the Hub
 4. Social-specific React hooks and UI components
@@ -1272,13 +1272,13 @@ This aligns with the Vision document's Phase 4 (Decentralize) goal of "Social Ne
 
 ```mermaid
 graph TB
-    subgraph "@xnet/social (schemas + logic)"
+    subgraph "@xnetjs/social (schemas + logic)"
         S[Social Schemas]
         FR[Feed Rules]
         VR[Visibility Rules]
     end
 
-    subgraph "@xnet/hub (services)"
+    subgraph "@xnetjs/hub (services)"
         NR[node-relay<br/>Phase 8]
         QE[query engine<br/>Phase 5]
         FS[file storage<br/>Phase 9]

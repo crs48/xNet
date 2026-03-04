@@ -72,7 +72,7 @@ flowchart LR
     Build --> Fake
 ```
 
-**Code-defined schemas** (`@xnet/data`):
+**Code-defined schemas** (`@xnetjs/data`):
 
 ```typescript
 // System types like Database, Page, Comment

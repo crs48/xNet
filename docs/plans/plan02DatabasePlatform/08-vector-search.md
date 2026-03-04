@@ -3,7 +3,7 @@
 > Semantic search with embeddings and HNSW index
 
 **Duration:** 2 weeks
-**Dependencies:** @xnet/vectors from MVP
+**Dependencies:** @xnetjs/vectors from MVP
 
 ## Overview
 
@@ -236,7 +236,7 @@ export class VectorIndex {
 
 import { EmbeddingModel, loadEmbeddingModel } from './embedding'
 import { VectorIndex, VectorIndexConfig, SearchResult } from './hnsw'
-import { StorageAdapter } from '@xnet/storage'
+import { StorageAdapter } from '@xnetjs/storage'
 
 export interface SemanticSearchConfig {
   indexConfig?: Partial<VectorIndexConfig>
@@ -375,7 +375,7 @@ export class SemanticSearch {
 // packages/vectors/src/hybrid.ts
 
 import { SemanticSearch, SearchResult } from './search'
-import { QueryEngine } from '@xnet/query'
+import { QueryEngine } from '@xnetjs/query'
 
 export interface HybridSearchOptions {
   vectorWeight?: number // 0-1, default 0.5
@@ -436,7 +436,7 @@ export class HybridSearch {
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { SemanticSearch } from '../src/search'
-import { MemoryAdapter } from '@xnet/storage'
+import { MemoryAdapter } from '@xnetjs/storage'
 
 describe('SemanticSearch', () => {
   let search: SemanticSearch

@@ -2,8 +2,8 @@
  * Tests for binary NodeState serialization
  */
 
-import type { DID } from '@xnet/core'
-import type { NodeState } from '@xnet/data'
+import type { DID } from '@xnetjs/core'
+import type { NodeState } from '@xnetjs/data'
 import { describe, it, expect } from 'vitest'
 import { encodeNodeStates, decodeNodeStates, shouldUseBinaryEncoding } from '../utils/binary-state'
 

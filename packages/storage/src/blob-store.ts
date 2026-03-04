@@ -2,11 +2,11 @@
  * BlobStore - Content-addressed blob storage with integrity verification.
  *
  * Wraps StorageAdapter blob methods with automatic CID computation and
- * deduplication. Implements the ContentResolver interface from @xnet/core.
+ * deduplication. Implements the ContentResolver interface from @xnetjs/core.
  */
 import type { StorageAdapter } from './types'
-import type { ContentId, ContentResolver, ContentChunk, ContentTree } from '@xnet/core'
-import { hashContent, createContentId, verifyContent, buildMerkleTree } from '@xnet/core'
+import type { ContentId, ContentResolver, ContentChunk, ContentTree } from '@xnetjs/core'
+import { hashContent, createContentId, verifyContent, buildMerkleTree } from '@xnetjs/core'
 
 export class BlobStore implements ContentResolver {
   constructor(private adapter: StorageAdapter) {}

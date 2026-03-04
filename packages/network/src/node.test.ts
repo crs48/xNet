@@ -1,5 +1,5 @@
 import type { NetworkNode } from './types'
-import { generateIdentity } from '@xnet/identity'
+import { generateIdentity } from '@xnetjs/identity'
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import {
   createNode,

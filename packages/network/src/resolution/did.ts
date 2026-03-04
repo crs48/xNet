@@ -2,7 +2,7 @@
  * DID resolution over the hub network.
  */
 
-import type { DIDResolution, PeerLocation } from '@xnet/core'
+import type { DIDResolution, PeerLocation } from '@xnetjs/core'
 
 /**
  * DID resolver interface

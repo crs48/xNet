@@ -36,9 +36,9 @@ graph TD
 
 ### Critical Issues
 
-**DEPLOY-01: `@xnet/data` Package Missing**
+**DEPLOY-01: `@xnetjs/data` Package Missing**
 
-The Dockerfile copies workspace packages for the hub's dependencies but omits `@xnet/data`:
+The Dockerfile copies workspace packages for the hub's dependencies but omits `@xnetjs/data`:
 
 ```dockerfile
 # These are copied:
@@ -47,10 +47,10 @@ COPY packages/crypto/package.json packages/crypto/
 COPY packages/identity/package.json packages/identity/
 COPY packages/sync/package.json packages/sync/
 COPY packages/hub/package.json packages/hub/
-# @xnet/data is MISSING
+# @xnetjs/data is MISSING
 ```
 
-The `package.json` declares `"@xnet/data": "workspace:*"`. The `pnpm install --frozen-lockfile` step will fail with an unresolved workspace dependency.
+The `package.json` declares `"@xnetjs/data": "workspace:*"`. The `pnpm install --frozen-lockfile` step will fail with an unresolved workspace dependency.
 
 **DEPLOY-02: Container Runs as Root**
 
@@ -217,7 +217,7 @@ The `await` may not complete before the process exits. However, `shutdown` itsel
 
 ## Checklist
 
-- [ ] **DEPLOY-01** -- Add `@xnet/data` to Dockerfile copy steps
+- [ ] **DEPLOY-01** -- Add `@xnetjs/data` to Dockerfile copy steps
 - [ ] **DEPLOY-02** -- Add `USER node` to Dockerfile
 - [x] **DEPLOY-03** -- Create `.dockerignore` at repo root
 - [ ] **DEPLOY-05** -- Document/script `fly deploy` from repo root

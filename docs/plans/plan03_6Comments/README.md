@@ -319,14 +319,14 @@ Deferred to future work:
 
 ## Dependencies
 
-| Component         | Depends On                             |
-| ----------------- | -------------------------------------- |
-| Comment schema    | `@xnet/data` (defineSchema, NodeStore) |
-| CommentMark       | `@xnet/editor` (TipTap extensions)     |
-| Anchoring (text)  | `yjs` (RelativePosition)               |
-| CommentPopover    | `@xnet/ui` (Popover primitive)         |
-| Database comments | `@xnet/views` (table/board views)      |
-| Canvas comments   | `@xnet/canvas` (canvas package)        |
+| Component         | Depends On                               |
+| ----------------- | ---------------------------------------- |
+| Comment schema    | `@xnetjs/data` (defineSchema, NodeStore) |
+| CommentMark       | `@xnetjs/editor` (TipTap extensions)     |
+| Anchoring (text)  | `yjs` (RelativePosition)                 |
+| CommentPopover    | `@xnetjs/ui` (Popover primitive)         |
+| Database comments | `@xnetjs/views` (table/board views)      |
+| Canvas comments   | `@xnetjs/canvas` (canvas package)        |
 
 ## Reference Documents
 

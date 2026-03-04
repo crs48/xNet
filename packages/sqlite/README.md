@@ -1,11 +1,11 @@
-# @xnet/sqlite
+# @xnetjs/sqlite
 
 Unified SQLite adapter for xNet across all platforms (Electron, Web, Expo).
 
 ## Installation
 
 ```bash
-pnpm add @xnet/sqlite
+pnpm add @xnetjs/sqlite
 ```
 
 ## Features
@@ -21,7 +21,7 @@ pnpm add @xnet/sqlite
 ### Memory Adapter (Testing)
 
 ```typescript
-import { createMemorySQLiteAdapter } from '@xnet/sqlite/memory'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 
 const db = await createMemorySQLiteAdapter()
 
@@ -43,7 +43,7 @@ await db.close()
 ### Electron (better-sqlite3)
 
 ```typescript
-import { createElectronSQLiteAdapter } from '@xnet/sqlite/electron'
+import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 
 const db = await createElectronSQLiteAdapter({
   path: 'xnet.db',
@@ -55,7 +55,7 @@ const db = await createElectronSQLiteAdapter({
 ### Web (sqlite-wasm + OPFS)
 
 ```typescript
-import { createWebSQLiteAdapter } from '@xnet/sqlite/web'
+import { createWebSQLiteAdapter } from '@xnetjs/sqlite/web'
 
 const db = await createWebSQLiteAdapter({
   path: 'xnet.db'
@@ -65,7 +65,7 @@ const db = await createWebSQLiteAdapter({
 ### Expo (expo-sqlite)
 
 ```typescript
-import { createExpoSQLiteAdapter } from '@xnet/sqlite/expo'
+import { createExpoSQLiteAdapter } from '@xnetjs/sqlite/expo'
 
 const db = await createExpoSQLiteAdapter({
   path: 'xnet.db'
@@ -112,7 +112,7 @@ interface SQLiteAdapter {
 ### FTS5 Helpers
 
 ```typescript
-import { updateNodeFTS, searchNodes, rebuildFTS } from '@xnet/sqlite'
+import { updateNodeFTS, searchNodes, rebuildFTS } from '@xnetjs/sqlite'
 
 // Update FTS index for a node
 await updateNodeFTS(db, nodeId, title, content)
@@ -129,7 +129,7 @@ await rebuildFTS(db, (current, total) => {
 ### Diagnostics
 
 ```typescript
-import { getDatabaseStats, explainQuery, timeQuery } from '@xnet/sqlite'
+import { getDatabaseStats, explainQuery, timeQuery } from '@xnetjs/sqlite'
 
 // Get database statistics
 const stats = await getDatabaseStats(db)
@@ -166,8 +166,8 @@ The package includes a unified schema (`SCHEMA_DDL`) with the following tables:
 
 - `blobs` - Content-addressed binary storage
 - `documents` - Generic document storage
-- `updates` - @xnet/storage compatibility
-- `snapshots` - @xnet/storage compatibility
+- `updates` - @xnetjs/storage compatibility
+- `snapshots` - @xnetjs/storage compatibility
 
 ### Metadata Tables
 
@@ -198,7 +198,7 @@ The Web adapter requires:
 - Chrome 102+, Firefox 111+, Safari 16.4+, Edge 102+
 
 ```typescript
-import { checkBrowserSupport } from '@xnet/sqlite'
+import { checkBrowserSupport } from '@xnetjs/sqlite'
 
 const support = await checkBrowserSupport()
 if (!support.supported) {
@@ -209,7 +209,7 @@ if (!support.supported) {
 ## Testing
 
 ```bash
-pnpm --filter @xnet/sqlite test
+pnpm --filter @xnetjs/sqlite test
 ```
 
 ## Dependencies

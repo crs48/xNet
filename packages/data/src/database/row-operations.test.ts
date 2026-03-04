@@ -2,9 +2,9 @@
  * Tests for database row operations.
  */
 
-import type { DID } from '@xnet/core'
-import { generateSigningKeyPair } from '@xnet/crypto'
-import { createDID } from '@xnet/identity'
+import type { DID } from '@xnetjs/core'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { DatabaseSchema } from '../schema/schemas/database'
 import { MemoryNodeStorageAdapter } from '../store/memory-adapter'

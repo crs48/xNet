@@ -1,5 +1,5 @@
 /**
- * @xnet/identity - Seed-based recovery and multi-device helpers
+ * @xnetjs/identity - Seed-based recovery and multi-device helpers
  */
 
 import type { DID, HybridKeyBundle } from './types'
@@ -14,7 +14,7 @@ import {
   hexToBytes,
   hkdf,
   randomBytes
-} from '@xnet/crypto'
+} from '@xnetjs/crypto'
 import { createKeyBundle } from './key-bundle'
 
 const DEFAULT_SALT = new TextEncoder().encode('xnet-salt')

@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/canvas",
+  "name": "@xnetjs/canvas",
   "version": "0.0.1",
   "type": "module",
   "main": "./src/index.ts",
@@ -17,11 +17,11 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/data": "workspace:*",
-    "@xnet/react": "workspace:*",
-    "@xnet/ui": "workspace:*",
-    "@xnet/vectors": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/react": "workspace:*",
+    "@xnetjs/ui": "workspace:*",
+    "@xnetjs/vectors": "workspace:*",
     "elkjs": "^0.9.3",
     "rbush": "^4.0.1",
     "yjs": "^13.6.24"

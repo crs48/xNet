@@ -1,8 +1,8 @@
 /**
- * @xnet/react/onboarding - React context provider for the onboarding flow
+ * @xnetjs/react/onboarding - React context provider for the onboarding flow
  */
-import type { Identity, KeyBundle } from '@xnet/identity'
-import { detectPasskeySupport, createIdentityManager, isTestBypassEnabled } from '@xnet/identity'
+import type { Identity, KeyBundle } from '@xnetjs/identity'
+import { detectPasskeySupport, createIdentityManager, isTestBypassEnabled } from '@xnetjs/identity'
 import {
   createContext,
   useContext,

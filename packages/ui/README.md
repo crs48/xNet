@@ -1,16 +1,16 @@
-# @xnet/ui
+# @xnetjs/ui
 
 Shared UI primitives and composed components for xNet applications, built on Base UI and Tailwind CSS.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/ui
+pnpm add @xnetjs/ui
 ```
 
 ## Features
 
-This is a standalone UI package with no `@xnet/*` dependencies.
+This is a standalone UI package with no `@xnetjs/*` dependencies.
 
 ### Primitives (Base UI)
 
@@ -31,7 +31,7 @@ ThemeProvider with light/dark mode support, design tokens via CSS custom propert
 ## Usage
 
 ```tsx
-import { Button, Input, Modal, useKeyboardShortcut } from '@xnet/ui'
+import { Button, Input, Modal, useKeyboardShortcut } from '@xnetjs/ui'
 
 useKeyboardShortcut('mod+k', () => openSearch())
 
@@ -40,7 +40,7 @@ useKeyboardShortcut('mod+k', () => openSearch())
 ```
 
 ```tsx
-import { ThemeProvider, ThemeToggle } from '@xnet/ui'
+import { ThemeProvider, ThemeToggle } from '@xnetjs/ui'
 ;<ThemeProvider>
   <ThemeToggle />
   <App />
@@ -48,7 +48,7 @@ import { ThemeProvider, ThemeToggle } from '@xnet/ui'
 ```
 
 ```tsx
-import { CommandPalette, DataTable, TreeView } from '@xnet/ui'
+import { CommandPalette, DataTable, TreeView } from '@xnetjs/ui'
 
 <CommandPalette commands={commands} />
 <DataTable columns={columns} data={rows} />
@@ -59,13 +59,13 @@ import { CommandPalette, DataTable, TreeView } from '@xnet/ui'
 
 ```ts
 // Main entry -- all primitives, components, hooks
-import { Button, Modal, useDebounce } from '@xnet/ui'
+import { Button, Modal, useDebounce } from '@xnetjs/ui'
 
 // CSS tokens
-import '@xnet/ui/tokens.css'
+import '@xnetjs/ui/tokens.css'
 
 // Tailwind config preset
-import { tailwindConfig } from '@xnet/ui/tailwind.config'
+import { tailwindConfig } from '@xnetjs/ui/tailwind.config'
 ```
 
 ## Dependencies
@@ -81,5 +81,5 @@ import { tailwindConfig } from '@xnet/ui/tailwind.config'
 ## Testing
 
 ```bash
-pnpm --filter @xnet/ui test
+pnpm --filter @xnetjs/ui test
 ```

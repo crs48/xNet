@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/identity",
+  "name": "@xnetjs/identity",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -19,8 +19,8 @@
   "dependencies": {
     "@noble/curves": "^2.0.1",
     "@noble/post-quantum": "^0.5.4",
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
     "multiformats": "^13.4.2"
   },
   "devDependencies": {

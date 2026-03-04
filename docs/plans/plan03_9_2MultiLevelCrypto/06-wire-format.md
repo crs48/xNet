@@ -44,8 +44,8 @@ import {
   encodeSignature,
   decodeSignature,
   type SignatureWire
-} from '@xnet/crypto'
-import { encodeBase64, decodeBase64 } from '@xnet/crypto'
+} from '@xnetjs/crypto'
+import { encodeBase64, decodeBase64 } from '@xnetjs/crypto'
 
 /**
  * V3 wire format for Change<T> with multi-level signatures.
@@ -191,8 +191,8 @@ import {
   type SecurityLevel,
   type UnifiedSignature,
   DEFAULT_SECURITY_LEVEL
-} from '@xnet/crypto'
-import type { HybridKeyBundle } from '@xnet/identity'
+} from '@xnetjs/crypto'
+import type { HybridKeyBundle } from '@xnetjs/identity'
 import type { Change } from '../serializers/change-serializer'
 import { canonicalHash } from '../hashing'
 
@@ -272,7 +272,7 @@ export async function verifyChangeSignature<T>(
   publicKeys: { ed25519: Uint8Array; mlDsa?: Uint8Array },
   options: { minLevel?: SecurityLevel; policy?: 'strict' | 'permissive' } = {}
 ): Promise<{ valid: boolean; level: SecurityLevel; details: unknown }> {
-  const { hybridVerify } = await import('@xnet/crypto')
+  const { hybridVerify } = await import('@xnetjs/crypto')
 
   const hashBytes = new TextEncoder().encode(change.hash)
 
@@ -292,7 +292,7 @@ function generateChangeId(): string {
 ```typescript
 // packages/identity/src/ucan/types.ts
 
-import type { SecurityLevel } from '@xnet/crypto'
+import type { SecurityLevel } from '@xnetjs/crypto'
 import type { DID } from '../types'
 
 /**
@@ -358,7 +358,7 @@ import {
   decodeBase64,
   type SecurityLevel,
   DEFAULT_SECURITY_LEVEL
-} from '@xnet/crypto'
+} from '@xnetjs/crypto'
 import type { HybridKeyBundle, DID } from '../types'
 import type { UCAN, UCANHeader, UCANPayload } from './types'
 
@@ -491,7 +491,7 @@ function base64UrlEncode(data: string | Uint8Array): string {
 ```typescript
 // packages/identity/src/ucan/verify.ts
 
-import { hybridVerify, type SecurityLevel, type UnifiedSignature } from '@xnet/crypto'
+import { hybridVerify, type SecurityLevel, type UnifiedSignature } from '@xnetjs/crypto'
 import { parseDID } from '../did'
 import type { PQKeyRegistry } from '../pq-registry'
 import type { UCAN, UCANHeader, UCANPayload } from './types'
@@ -649,7 +649,7 @@ function base64UrlDecode(str: string): string {
 }
 
 function base64UrlDecodeBytes(str: string): Uint8Array {
-  const { decodeBase64 } = require('@xnet/crypto')
+  const { decodeBase64 } = require('@xnetjs/crypto')
   const base64 = str.replace(/-/g, '+').replace(/_/g, '/')
   const pad = (4 - (base64.length % 4)) % 4
   const padded = base64 + '='.repeat(pad)
@@ -657,7 +657,7 @@ function base64UrlDecodeBytes(str: string): Uint8Array {
 }
 
 function base64UrlEncode(data: string | Uint8Array): string {
-  const { encodeBase64 } = require('@xnet/crypto')
+  const { encodeBase64 } = require('@xnetjs/crypto')
   const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data
   const base64 = encodeBase64(bytes)
   return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
@@ -730,8 +730,8 @@ sequenceDiagram
 
 import { describe, it, expect } from 'vitest'
 import { serializeChange, deserializeChange, type Change } from './change-serializer'
-import { createKeyBundle, signWithBundle } from '@xnet/identity'
-import { hybridSign } from '@xnet/crypto'
+import { createKeyBundle, signWithBundle } from '@xnetjs/identity'
+import { hybridSign } from '@xnetjs/crypto'
 
 describe('Change Serialization', () => {
   it('serializes and deserializes Level 0 change', () => {

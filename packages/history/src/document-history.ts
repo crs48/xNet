@@ -16,7 +16,7 @@ import type {
   UnifiedTimelineEntry,
   TimelineEntry
 } from './types'
-import type { NodeId } from '@xnet/data'
+import type { NodeId } from '@xnetjs/data'
 import * as Y from 'yjs'
 
 // ─── Configuration ───────────────────────────────────────────

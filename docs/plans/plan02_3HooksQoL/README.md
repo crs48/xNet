@@ -1,7 +1,7 @@
 # Plan Step 02.3: React Hooks Quality of Life
 
 > **Status**: Complete  
-> **Package**: `@xnet/react`
+> **Package**: `@xnetjs/react`
 
 ## Overview
 
@@ -11,7 +11,7 @@ Simplified the React hooks API to 3 core hooks with ergonomic improvements.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        @xnet/react                               │
+│                        @xnetjs/react                               │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  useQuery      Read nodes (list or single)                      │

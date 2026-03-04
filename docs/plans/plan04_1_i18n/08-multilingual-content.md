@@ -3,7 +3,7 @@
 > Storing translations as Node properties and rich text as locale-specific Y.Doc fragments
 
 **Duration:** 2-3 days  
-**Dependencies:** Steps 03, 07, `@xnet/data`
+**Dependencies:** Steps 03, 07, `@xnetjs/data`
 
 ## Overview
 

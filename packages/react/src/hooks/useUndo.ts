@@ -14,9 +14,9 @@
  * ```
  */
 
-import type { DID } from '@xnet/core'
-import type { NodeId } from '@xnet/data'
-import { UndoManager, type UndoManagerOptions } from '@xnet/history'
+import type { DID } from '@xnetjs/core'
+import type { NodeId } from '@xnetjs/data'
+import { UndoManager, type UndoManagerOptions } from '@xnetjs/history'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 

@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - Unlock an existing passkey identity
+ * @xnetjs/identity/passkey - Unlock an existing passkey identity
  */
 import type { PasskeyIdentity, PasskeyUnlockResult } from './types'
 import { createKeyBundle } from '../key-bundle'

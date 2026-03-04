@@ -3,7 +3,7 @@
 > Wiki, tasks, and editor implementation
 
 **Duration:** 6 weeks
-**Dependencies:** Platform apps, @xnet/sdk
+**Dependencies:** Platform apps, @xnetjs/sdk
 
 ## Overview
 
@@ -37,7 +37,7 @@ import Collaboration from '@tiptap/extension-collaboration'
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor'
 import { Wikilink } from './extensions/Wikilink'
 import { TaskItem } from './extensions/TaskItem'
-import type { XDocument } from '@xnet/data'
+import type { XDocument } from '@xnetjs/data'
 import * as Y from 'yjs'
 
 interface EditorProps {
@@ -343,7 +343,7 @@ export function BacklinksPanel({ docId, searchBacklinks }: Props) {
 
 ```typescript
 // packages/query/src/backlinks.ts
-import type { XDocument } from '@xnet/data'
+import type { XDocument } from '@xnetjs/data'
 
 interface BacklinkResult {
   docId: string
@@ -492,7 +492,7 @@ export const TaskItem = Node.create({
 
 ```tsx
 // apps/web/src/components/TaskListView.tsx
-import { useQuery } from '@xnet/react'
+import { useQuery } from '@xnetjs/react'
 import { Link } from '@tanstack/react-router'
 
 interface Task {
@@ -556,7 +556,7 @@ export function TaskListView() {
 // apps/web/src/components/GlobalSearch.tsx
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { useXNet } from '@xnet/react'
+import { useXNet } from '@xnetjs/react'
 import { useDebouncedCallback } from 'use-debounce'
 
 interface SearchResult {

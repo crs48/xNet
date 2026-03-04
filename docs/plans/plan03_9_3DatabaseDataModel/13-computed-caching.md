@@ -3,7 +3,7 @@
 > Efficient caching and invalidation for rollups and formulas
 
 **Duration:** 2-3 days
-**Dependencies:** `@xnet/data` (rollup service, formula service)
+**Dependencies:** `@xnetjs/data` (rollup service, formula service)
 
 ## Overview
 
@@ -516,8 +516,8 @@ export class HubComputedCache {
 
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from './useStore'
-import { ComputedCache, RollupService, FormulaService } from '@xnet/data'
-import type { DatabaseRow, ColumnDefinition } from '@xnet/data'
+import { ComputedCache, RollupService, FormulaService } from '@xnetjs/data'
+import type { DatabaseRow, ColumnDefinition } from '@xnetjs/data'
 
 export function useComputed(
   row: DatabaseRow | null,

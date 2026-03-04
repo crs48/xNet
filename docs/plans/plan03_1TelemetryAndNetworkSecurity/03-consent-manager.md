@@ -345,7 +345,7 @@ export {
 ### Basic Usage
 
 ```typescript
-import { ConsentManager, LocalStorageConsentStorage } from '@xnet/telemetry'
+import { ConsentManager, LocalStorageConsentStorage } from '@xnetjs/telemetry'
 
 // Create manager with localStorage persistence
 const consent = new ConsentManager({

@@ -1,4 +1,4 @@
-import { AUTH_ACTIONS } from '@xnet/core'
+import { AUTH_ACTIONS } from '@xnetjs/core'
 import { describe, expect, it } from 'vitest'
 import {
   HUB_ACTION_MAP,

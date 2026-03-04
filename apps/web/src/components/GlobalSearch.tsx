@@ -4,8 +4,8 @@
  * Provides a Cmd+K searchable dialog for finding documents.
  */
 import { useNavigate } from '@tanstack/react-router'
-import { PageSchema } from '@xnet/data'
-import { useQuery } from '@xnet/react'
+import { PageSchema } from '@xnetjs/data'
+import { useQuery } from '@xnetjs/react'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDebouncedCallback } from 'use-debounce'
 

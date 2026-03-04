@@ -2,8 +2,8 @@
  * Federated query routing
  */
 import type { Query, QueryResult } from '../types'
-import type { DataSource } from '@xnet/core'
-import type { NetworkNode } from '@xnet/network'
+import type { DataSource } from '@xnetjs/core'
+import type { NetworkNode } from '@xnetjs/network'
 
 /**
  * Federated query router interface

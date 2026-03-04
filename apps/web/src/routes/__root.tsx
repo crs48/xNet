@@ -8,8 +8,8 @@ import {
   HubStatusIndicator,
   DemoBanner,
   useDemoMode
-} from '@xnet/react'
-import { ThemeToggle } from '@xnet/ui'
+} from '@xnetjs/react'
+import { ThemeToggle } from '@xnetjs/ui'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { Sidebar } from '../components/Sidebar'

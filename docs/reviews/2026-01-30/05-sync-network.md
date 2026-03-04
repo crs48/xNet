@@ -2,11 +2,11 @@
 
 ## Overview
 
-Review of `@xnet/sync`, `@xnet/network`, `@xnet/sdk`, and the Electron BSM (Background Sync Manager).
+Review of `@xnetjs/sync`, `@xnetjs/network`, `@xnetjs/sdk`, and the Electron BSM (Background Sync Manager).
 
 ```mermaid
 graph TD
-    subgraph "Sync Primitives (@xnet/sync)"
+    subgraph "Sync Primitives (@xnetjs/sync)"
         clock["LamportClock"]
         change["Change&lt;T&gt;"]
         chain["ChangeChain"]
@@ -17,7 +17,7 @@ graph TD
         attest["ClientIdAttestation"]
     end
 
-    subgraph "Network (@xnet/network)"
+    subgraph "Network (@xnetjs/network)"
         node["libp2p Node"]
         proto["Sync Protocol"]
         yrtc["y-webrtc Provider"]
@@ -26,7 +26,7 @@ graph TD
         resolver["DIDResolver"]
     end
 
-    subgraph "SDK (@xnet/sdk)"
+    subgraph "SDK (@xnetjs/sdk)"
         client["XNetClient"]
         cache["Document Cache"]
     end
@@ -58,7 +58,7 @@ graph TD
 
 ---
 
-## @xnet/sync (251 tests, all passing)
+## @xnetjs/sync (251 tests, all passing)
 
 ### Critical
 
@@ -87,7 +87,7 @@ graph TD
 
 ---
 
-## @xnet/network
+## @xnetjs/network
 
 ### Major
 
@@ -110,7 +110,7 @@ graph TD
 
 ---
 
-## @xnet/sdk
+## @xnetjs/sdk
 
 ### Major
 
@@ -178,7 +178,7 @@ sequenceDiagram
 
 **The sync layer has a well-designed security stack**, with signed envelopes, rate limiting, integrity hashing, peer scoring, and clientID attestation. However:
 
-1. **The network layer bypasses all of it.** The sync protocol in `@xnet/network` applies raw Yjs updates without going through any of the security layers defined in `@xnet/sync`.
+1. **The network layer bypasses all of it.** The sync protocol in `@xnetjs/network` applies raw Yjs updates without going through any of the security layers defined in `@xnetjs/sync`.
 
 2. **The chain validation is incomplete.** `validateChain` checks hashes but not signatures. This means a chain with correct hashes but forged authorship would pass.
 

@@ -24,7 +24,7 @@
  * />
  * ```
  */
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React from 'react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────

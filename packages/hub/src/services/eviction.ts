@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Eviction service for demo mode.
+ * @xnetjs/hub - Eviction service for demo mode.
  *
  * Tracks last activity per DID and evicts user data
  * after a configurable inactivity TTL.

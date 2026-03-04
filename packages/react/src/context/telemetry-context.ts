@@ -1,11 +1,11 @@
 /**
- * Telemetry context for @xnet/react
+ * Telemetry context for @xnetjs/react
  *
  * Provides an optional duck-typed TelemetryReporter to the React tree.
  * When present, hooks report performance timing, usage counts, and errors.
  *
  * Uses the same duck-typed interface pattern as other xNet packages to
- * avoid circular dependencies with @xnet/telemetry.
+ * avoid circular dependencies with @xnetjs/telemetry.
  */
 
 import { createContext, useContext } from 'react'
@@ -14,11 +14,11 @@ import { createContext, useContext } from 'react'
 
 /**
  * Duck-typed interface for telemetry reporting.
- * Satisfied by @xnet/telemetry's TelemetryCollector or any compatible object.
+ * Satisfied by @xnetjs/telemetry's TelemetryCollector or any compatible object.
  *
  * @example
  * ```ts
- * import { TelemetryCollector } from '@xnet/telemetry'
+ * import { TelemetryCollector } from '@xnetjs/telemetry'
  * const telemetry = new TelemetryCollector({ consent })
  * // Pass to XNetProvider via config.telemetry
  * ```

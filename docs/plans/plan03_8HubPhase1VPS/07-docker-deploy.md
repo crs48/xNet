@@ -12,13 +12,13 @@
 | Signaling Dockerfile             | `infrastructure/signaling/Dockerfile` (24 LOC) | Multi-stage pattern — adapt for hub (add `better-sqlite3` native build)              |
 | Signaling fly.toml               | `infrastructure/signaling/fly.toml` (40 LOC)   | Adapt for hub — add persistent volume for SQLite + blobs                             |
 | Signaling `/health` + `/metrics` | `infrastructure/signaling/src/server.ts`       | Same pattern — hub extends with pool stats, storage stats                            |
-| `@xnet/sync` YjsRateLimiter      | `packages/sync/yjs-limits.ts`                  | Per-update rate limiting already implemented — hub adds per-connection rate limiting |
+| `@xnetjs/sync` YjsRateLimiter    | `packages/sync/yjs-limits.ts`                  | Per-update rate limiting already implemented — hub adds per-connection rate limiting |
 
 > **No hub deployment config exists yet.** The signaling server is deployed separately on Fly.io (`app = "xnet-signaling"`, region `sjc`). The hub will eventually replace or absorb the signaling server.
 
 ## Overview
 
-The hub deploys as a single Docker container (Node 22 Alpine, <150MB). It supports Fly.io, any VPS with Docker, or bare-metal via `npx @xnet/hub`. Key production concerns: graceful shutdown (persist all Y.Docs before exit), rate limiting (per-connection + global), message size enforcement, Prometheus metrics, and health checks.
+The hub deploys as a single Docker container (Node 22 Alpine, <150MB). It supports Fly.io, any VPS with Docker, or bare-metal via `npx @xnetjs/hub`. Key production concerns: graceful shutdown (persist all Y.Docs before exit), rate limiting (per-connection + global), message size enforcement, Prometheus metrics, and health checks.
 
 ```mermaid
 flowchart TB
@@ -72,7 +72,7 @@ COPY packages/crypto/package.json packages/crypto/
 COPY packages/identity/package.json packages/identity/
 
 # Install dependencies
-RUN corepack enable && pnpm install --frozen-lockfile --filter @xnet/hub...
+RUN corepack enable && pnpm install --frozen-lockfile --filter @xnetjs/hub...
 
 # Copy source
 COPY packages/hub/ packages/hub/
@@ -82,7 +82,7 @@ COPY packages/identity/ packages/identity/
 COPY tsconfig.json ./
 
 # Build hub + dependencies
-RUN pnpm --filter @xnet/hub... build
+RUN pnpm --filter @xnetjs/hub... build
 
 # --- Runtime Stage ---
 FROM node:22-alpine AS runtime
@@ -96,7 +96,7 @@ COPY --from=builder /build/packages/core/package.json packages/core/
 COPY --from=builder /build/packages/crypto/package.json packages/crypto/
 COPY --from=builder /build/packages/identity/package.json packages/identity/
 
-RUN corepack enable && pnpm install --frozen-lockfile --prod --filter @xnet/hub...
+RUN corepack enable && pnpm install --frozen-lockfile --prod --filter @xnetjs/hub...
 
 # Copy built artifacts
 COPY --from=builder /build/packages/hub/dist packages/hub/dist/

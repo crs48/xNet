@@ -98,7 +98,7 @@ test.describe('Database functionality', () => {
       'pnpm',
       [
         '--filter',
-        '@xnet/hub',
+        '@xnetjs/hub',
         'exec',
         'tsx',
         'src/cli.ts',

@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/e2e-tests",
+  "name": "@xnetjs/e2e-tests",
   "version": "0.0.1",
   "private": true,
   "description": "Browser-based E2E tests for collaborative sync (not part of normal test suite)",
@@ -14,10 +14,10 @@
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "@vitejs/plugin-react": "^4.0.0",
-    "@xnet/data": "workspace:*",
-    "@xnet/editor": "workspace:*",
-    "@xnet/identity": "workspace:*",
-    "@xnet/react": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/editor": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
+    "@xnetjs/react": "workspace:*",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "vite": "^5.0.0"

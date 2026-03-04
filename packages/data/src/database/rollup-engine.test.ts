@@ -1,5 +1,5 @@
 /**
- * @xnet/data - Rollup engine tests.
+ * @xnetjs/data - Rollup engine tests.
  */
 
 import type { CellValue } from './cell-types'

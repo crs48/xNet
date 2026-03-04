@@ -9,7 +9,7 @@
  *
  * Usage:
  * ```typescript
- * import { VersionNegotiator, createLocalCapabilities } from '@xnet/sync'
+ * import { VersionNegotiator, createLocalCapabilities } from '@xnetjs/sync'
  *
  * const negotiator = new VersionNegotiator()
  * const local = createLocalCapabilities('did:key:z...', ['node-changes', 'yjs-updates'])

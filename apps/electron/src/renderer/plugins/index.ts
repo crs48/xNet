@@ -5,7 +5,7 @@
  * They serve as examples of how the plugin system works.
  */
 
-import type { XNetExtension } from '@xnet/plugins'
+import type { XNetExtension } from '@xnetjs/plugins'
 import { MermaidPlugin } from './mermaid-plugin'
 
 /**

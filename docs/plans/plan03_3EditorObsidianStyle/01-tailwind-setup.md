@@ -1,6 +1,6 @@
 # 01: Tailwind Setup for Editor Package
 
-> Configure Tailwind CSS for the @xnet/editor package with proper theming
+> Configure Tailwind CSS for the @xnetjs/editor package with proper theming
 
 **Duration:** 0.5 days  
 **Dependencies:** None
@@ -380,7 +380,7 @@ export function cn(...inputs: ClassValue[]): string {
 
 ```json
 {
-  "name": "@xnet/editor",
+  "name": "@xnetjs/editor",
   "dependencies": {
     // ... existing
     "clsx": "^2.1.0",
@@ -440,7 +440,7 @@ export default {
 @tailwind utilities;
 
 /* Import editor styles */
-@import '@xnet/editor/styles';
+@import '@xnetjs/editor/styles';
 
 /* Define CSS variables */
 :root {

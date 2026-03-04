@@ -5,7 +5,7 @@
  */
 import type { RootStackParamList } from '../navigation/types'
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
-import { useMutate, useQuery, useXNet } from '@xnet/react'
+import { useMutate, useQuery, useXNet } from '@xnetjs/react'
 import React, { useState, useEffect, useCallback } from 'react'
 import {
   View,

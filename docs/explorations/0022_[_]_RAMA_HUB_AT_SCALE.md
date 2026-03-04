@@ -170,7 +170,7 @@ Using Rama means:
 
 - Hub backend in Java or Clojure (different language from all other packages)
 - All Yjs integration becomes interop (Y.Doc is a JS object)
-- Cannot share `@xnet/data`, `@xnet/sync`, `@xnet/crypto` code with hub
+- Cannot share `@xnetjs/data`, `@xnetjs/sync`, `@xnetjs/crypto` code with hub
 - Two mental models, two build systems, two deployment pipelines
 
 ### 2. Commercial Licensing
@@ -197,7 +197,7 @@ Rama requires:
 - **Supervisor daemons** on each worker node
 - **Module deployment** via `.jar` files
 
-Compare to the Phase 1 hub: `npx @xnet/hub` — one command, zero dependencies.
+Compare to the Phase 1 hub: `npx @xnetjs/hub` — one command, zero dependencies.
 
 Even at scale, the Phase 3 proposal (Postgres + Redis + S3 + Node.js workers) uses well-understood, widely-available managed services. Rama introduces a novel system that few engineers know, few cloud providers support, and has a small community.
 
@@ -229,7 +229,7 @@ This is the same interop friction the Clojure exploration identified, but worse 
 | Dimension                | Node.js + Postgres + Redis       | Rama                                             |
 | ------------------------ | -------------------------------- | ------------------------------------------------ |
 | Language match           | TypeScript (same as client)      | Java/Clojure (different)                         |
-| Code sharing with client | Full (@xnet/\* packages)         | None                                             |
+| Code sharing with client | Full (@xnetjs/\* packages)       | None                                             |
 | Yjs integration          | Native (same process)            | Interop bridge required                          |
 | Operational complexity   | 4 services (app, PG, Redis, S3)  | 5+ daemons (ZK, Conductor, Supervisors, Workers) |
 | Self-hosting ease        | `docker-compose up`              | Complex multi-daemon setup                       |
@@ -393,7 +393,7 @@ Implementation options for the "mini-Rama" components:
 This gives us:
 
 - Same language (TypeScript) across client and server
-- Same packages (@xnet/data, @xnet/sync) running in hub workers
+- Same packages (@xnetjs/data, @xnetjs/sync) running in hub workers
 - Event-sourced architecture with materialized views
 - Incremental scalability (add workers)
 - No commercial license dependency

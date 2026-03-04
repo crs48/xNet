@@ -20,7 +20,7 @@ COPY packages/sync/package.json packages/sync/
 COPY patches/ patches/
 
 # Install dependencies
-RUN corepack enable && pnpm install --frozen-lockfile --filter @xnet/hub...
+RUN corepack enable && pnpm install --frozen-lockfile --filter @xnetjs/hub...
 
 # Copy source
 COPY packages/hub/ packages/hub/
@@ -34,7 +34,7 @@ COPY packages/sync/ packages/sync/
 COPY tsconfig.json ./
 
 # Build hub + dependencies
-RUN pnpm --filter @xnet/hub... build
+RUN pnpm --filter @xnetjs/hub... build
 
 # --- Runtime Stage ---
 FROM node:22-alpine AS runtime
@@ -57,8 +57,8 @@ COPY --from=builder /build/patches/ patches/
 
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
   && corepack enable \
-  && pnpm install --frozen-lockfile --prod --ignore-scripts --filter @xnet/hub... \
-  && pnpm rebuild better-sqlite3 --filter @xnet/hub... \
+  && pnpm install --frozen-lockfile --prod --ignore-scripts --filter @xnetjs/hub... \
+  && pnpm rebuild better-sqlite3 --filter @xnetjs/hub... \
   && apk del .build-deps
 
 # Copy built artifacts

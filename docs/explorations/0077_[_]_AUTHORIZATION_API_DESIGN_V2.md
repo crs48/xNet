@@ -63,7 +63,7 @@ flowchart TB
 **UCAN Functions (Implemented, Never Called)**
 
 ```typescript
-// These exist in @xnet/identity but nothing invokes them
+// These exist in @xnetjs/identity but nothing invokes them
 createUCAN({ issuer, issuerKey, audience, capabilities, expiration })
 verifyUCAN(token)
 hasCapability(token, resource, action)
@@ -72,7 +72,7 @@ hasCapability(token, resource, action)
 **Permission Types (Defined, No Implementation)**
 
 ```typescript
-// Types exist in @xnet/core with zero consumers
+// Types exist in @xnetjs/core with zero consumers
 interface PermissionEvaluator {
   hasCapability(did: DID, action: string, resource: string): boolean
 }

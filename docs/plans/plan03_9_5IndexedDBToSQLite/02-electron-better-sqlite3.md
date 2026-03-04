@@ -502,8 +502,8 @@ export async function createElectronSQLiteAdapter(
 ```typescript
 // apps/electron/src/data-process/data-service.ts changes
 
-import { createElectronSQLiteAdapter, type ElectronSQLiteAdapter } from '@xnet/sqlite/electron'
-import { SCHEMA_VERSION, SCHEMA_DDL } from '@xnet/sqlite'
+import { createElectronSQLiteAdapter, type ElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
+import { SCHEMA_VERSION, SCHEMA_DDL } from '@xnetjs/sqlite'
 
 // Replace the existing db initialization in createDataService:
 

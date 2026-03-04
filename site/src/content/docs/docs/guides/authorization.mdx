@@ -35,8 +35,8 @@ Roles, relations, and UCAN delegation are all machinery for deciding **who gets 
 Add an `authorization` block to any schema to define who can do what:
 
 ```ts
-import { defineSchema, text, person, relation } from '@xnet/data'
-import { allow, deny, role } from '@xnet/data/auth'
+import { defineSchema, text, person, relation } from '@xnetjs/data'
+import { allow, deny, role } from '@xnetjs/data/auth'
 
 export const TaskSchema = defineSchema({
   name: 'Task',
@@ -106,7 +106,7 @@ authorization: {
 For fully public nodes (no access control), use the built-in preset:
 
 ```ts
-import { presets } from '@xnet/data/auth'
+import { presets } from '@xnetjs/data/auth'
 
 export const ArticleSchema = defineSchema({
   // ...
@@ -117,7 +117,7 @@ export const ArticleSchema = defineSchema({
 ### Permission presets
 
 ```ts
-import { presets } from '@xnet/data/auth'
+import { presets } from '@xnetjs/data/auth'
 
 // Full owner control — only creator can do anything
 authorization: presets.ownerOnly
@@ -137,7 +137,7 @@ authorization: presets.public
 ### `useCan` hook
 
 ```tsx
-import { useCan } from '@xnet/react'
+import { useCan } from '@xnetjs/react'
 
 function TaskCard({ taskId }: { taskId: string }) {
   const { canRead, canWrite, canDelete, canShare, loading } = useCan(taskId)
@@ -191,7 +191,7 @@ const trace = await store.auth.explain({ action: 'write', nodeId: taskId })
 ### `useGrants` hook
 
 ```tsx
-import { useGrants } from '@xnet/react'
+import { useGrants } from '@xnetjs/react'
 
 function ShareDialog({ taskId }: { taskId: string }) {
   const { grants, grant, revoke, loading } = useGrants(taskId)
@@ -326,7 +326,7 @@ This means sharing data with any DID:key holder requires no out-of-band key exch
 Your signing key can be derived deterministically from a seed phrase (BIP-39 format). The seed phrase is the root of your identity — back it up carefully.
 
 ```ts
-import { deriveSeedPhrase, recoverFromSeedPhrase } from '@xnet/identity'
+import { deriveSeedPhrase, recoverFromSeedPhrase } from '@xnetjs/identity'
 
 // Generate a new identity with a recoverable seed
 const { mnemonic, bundle } = deriveSeedPhrase()
@@ -382,7 +382,7 @@ Schemas without an `authorization` block continue to work but emit a console war
 2. Run the `AuthMigrator` utility to batch-encrypt existing nodes:
 
 ```ts
-import { AuthMigrator } from '@xnet/data/auth'
+import { AuthMigrator } from '@xnetjs/data/auth'
 
 const migrator = new AuthMigrator(store, encryptionLayer)
 await migrator.migrateSchema(MySchema, {

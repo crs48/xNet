@@ -30,7 +30,7 @@
  * update({ typo: 'x' })           // Type error!
  * ```
  */
-import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnet/data'
+import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'

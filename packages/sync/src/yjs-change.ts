@@ -11,7 +11,7 @@
 
 import type { Change, UnsignedChange } from './change'
 import type { LamportTimestamp } from './clock'
-import type { ContentId, DID } from '@xnet/core'
+import type { ContentId, DID } from '@xnetjs/core'
 import { createUnsignedChange, signChange, createChangeId } from './change'
 
 /**

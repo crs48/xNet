@@ -633,7 +633,7 @@ export function useDemoMode(): DemoModeState {
 
 **Goal:** Integrate demo UI into the web app
 
-#### 5.1 Export Components from @xnet/react
+#### 5.1 Export Components from @xnetjs/react
 
 ```typescript
 // packages/react/src/index.ts (additions)
@@ -655,8 +655,8 @@ export type { DemoModeState, DemoLimits } from './hooks/useDemoMode'
 ```typescript
 // apps/web/src/routes/__root.tsx (additions)
 
-import { DemoBanner } from '@xnet/react'
-import { useDemoMode } from '@xnet/react'
+import { DemoBanner } from '@xnetjs/react'
+import { useDemoMode } from '@xnetjs/react'
 
 // Inside RootLayout component:
 const { isDemo, limits } = useDemoMode()
@@ -675,7 +675,7 @@ const { isDemo, limits } = useDemoMode()
 ```typescript
 // apps/web/src/components/Sidebar.tsx (additions)
 
-import { DemoQuotaIndicator, useDemoMode } from '@xnet/react'
+import { DemoQuotaIndicator, useDemoMode } from '@xnetjs/react'
 
 // In sidebar footer:
 const { isDemo, limits, usage } = useDemoMode()
@@ -836,7 +836,7 @@ sequenceDiagram
 
 - [x] Add `isDemo` to handshake response
 - [x] Add `demoLimits` to handshake response
-- [x] Export `DemoLimits` type from `@xnet/network`
+- [x] Export `DemoLimits` type from `@xnetjs/network`
 - [x] Update SyncManager to emit `demo-mode` event (via connection.onMessage)
 - [x] Test handshake with demo mode enabled (signaling tests pass)
 

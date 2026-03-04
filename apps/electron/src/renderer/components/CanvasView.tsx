@@ -1,12 +1,12 @@
 /**
  * Canvas View - Infinite canvas for spatial visualization
  *
- * Uses @xnet/react hooks and @xnet/canvas for the canvas component.
+ * Uses @xnetjs/react hooks and @xnetjs/canvas for the canvas component.
  */
 
-import { Canvas, createNode, createEdge, type CanvasHandle } from '@xnet/canvas'
-import { CanvasSchema } from '@xnet/data'
-import { useNode, useIdentity } from '@xnet/react'
+import { Canvas, createNode, createEdge, type CanvasHandle } from '@xnetjs/canvas'
+import { CanvasSchema } from '@xnetjs/data'
+import { useNode, useIdentity } from '@xnetjs/react'
 import { Plus, LayoutGrid, ZoomIn, Maximize2 } from 'lucide-react'
 import React, { useEffect, useState, useCallback, useRef } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'

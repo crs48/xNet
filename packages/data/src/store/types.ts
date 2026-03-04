@@ -1,7 +1,7 @@
 /**
  * NodeStore types - Event-sourced storage for Nodes
  *
- * The NodeStore manages Nodes using Change<T> from @xnet/sync.
+ * The NodeStore manages Nodes using Change<T> from @xnetjs/sync.
  * Each Node change is a Change with a NodePayload.
  *
  * Key design decisions:
@@ -15,8 +15,8 @@ import type { SchemaLookup } from './tempids'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
 import type { SchemaIRI } from '../schema/node'
-import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnet/core'
-import type { Change, LamportTimestamp } from '@xnet/sync'
+import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
+import type { Change, LamportTimestamp } from '@xnetjs/sync'
 
 // ============================================================================
 // Node ID Types
@@ -313,7 +313,7 @@ export interface NodeStoreOptions {
    * - Usage metrics for operation counts
    * - Crash reports for errors
    *
-   * Compatible with @xnet/telemetry TelemetryCollector.
+   * Compatible with @xnetjs/telemetry TelemetryCollector.
    */
   telemetry?: {
     reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void

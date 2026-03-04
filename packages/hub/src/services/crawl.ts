@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Crawl coordinator service.
+ * @xnetjs/hub - Crawl coordinator service.
  */
 
 import type { RobotsChecker } from './crawl-robots'

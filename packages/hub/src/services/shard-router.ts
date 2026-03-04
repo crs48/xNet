@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Shard query router with BM25 scoring.
+ * @xnetjs/hub - Shard query router with BM25 scoring.
  */
 
 import type { ShardAssignment, ShardConfig, ShardRegistry } from './index-shards'

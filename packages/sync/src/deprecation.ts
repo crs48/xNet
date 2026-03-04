@@ -22,7 +22,7 @@
 import type { FeatureFlag } from './features'
 
 /**
- * Schema IRI type (mirrors @xnet/data to avoid circular dependency).
+ * Schema IRI type (mirrors @xnetjs/data to avoid circular dependency).
  * Format: xnet://namespace/Name@version
  */
 type SchemaIRI = `xnet://${string}/${string}` | `xnet://${string}/${string}@${string}`

@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Shared validation utilities.
+ * @xnetjs/hub - Shared validation utilities.
  */
 
 /** Type guard for plain objects. */

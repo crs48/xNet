@@ -3,9 +3,9 @@
  */
 
 import type { SignedYjsEnvelopeV2, EnvelopeVerificationResult } from './yjs-envelope'
-import type { AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
-import type { WrappedKey } from '@xnet/crypto'
-import { generateContentKey, wrapKeyForRecipient } from '@xnet/crypto'
+import type { AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
+import type { WrappedKey } from '@xnetjs/crypto'
+import { generateContentKey, wrapKeyForRecipient } from '@xnetjs/crypto'
 import {
   YjsAuthGate,
   decryptYjsState,

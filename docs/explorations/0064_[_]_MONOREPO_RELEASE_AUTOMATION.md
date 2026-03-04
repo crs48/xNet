@@ -32,7 +32,7 @@ Monorepo release automation is a solved problem, but the solutions vary signific
 
 ```
 xNet Monorepo
-├── packages/           # 21 internal packages (@xnet/*)
+├── packages/           # 21 internal packages (@xnetjs/*)
 │   ├── crypto/         # Not published to npm
 │   ├── data/           # Not published to npm
 │   ├── react/          # Not published to npm (yet)
@@ -80,9 +80,9 @@ flowchart TB
     end
 
     subgraph "npm Registry"
-        NPM_SDK["@xnet/sdk"]
-        NPM_REACT["@xnet/react"]
-        NPM_DATA["@xnet/data"]
+        NPM_SDK["@xnetjs/sdk"]
+        NPM_REACT["@xnetjs/react"]
+        NPM_DATA["@xnetjs/data"]
     end
 
     subgraph "GitHub Releases"
@@ -135,9 +135,9 @@ All packages and apps share the same version number.
 
 ```
 v0.5.0
-├── @xnet/sdk@0.5.0
-├── @xnet/react@0.5.0
-├── @xnet/data@0.5.0
+├── @xnetjs/sdk@0.5.0
+├── @xnetjs/react@0.5.0
+├── @xnetjs/data@0.5.0
 ├── xnet-desktop@0.5.0
 ├── xnet-mobile@0.5.0
 └── xnet-hub@0.5.0
@@ -162,9 +162,9 @@ v0.5.0
 Each package has its own version, bumped only when it changes.
 
 ```
-├── @xnet/sdk@1.2.0        # Changed this release
-├── @xnet/react@1.1.5      # No change
-├── @xnet/data@1.3.0       # Changed this release
+├── @xnetjs/sdk@1.2.0        # Changed this release
+├── @xnetjs/react@1.1.5      # No change
+├── @xnetjs/data@1.3.0       # Changed this release
 ├── xnet-desktop@0.5.0     # App version
 ├── xnet-mobile@0.5.0      # App version (linked to desktop)
 └── xnet-hub@0.5.0         # Matches app version
@@ -199,9 +199,9 @@ flowchart TB
     end
 
     subgraph "Independent: Package Versions"
-        SDK["@xnet/sdk@1.2.0"]
-        REACT["@xnet/react@1.1.5"]
-        DATA["@xnet/data@1.3.0"]
+        SDK["@xnetjs/sdk@1.2.0"]
+        REACT["@xnetjs/react@1.1.5"]
+        DATA["@xnetjs/data@1.3.0"]
     end
 
     ELECTRON -.->|"uses"| SDK
@@ -263,8 +263,8 @@ flowchart LR
 
 ```markdown
 ---
-'@xnet/react': minor
-'@xnet/data': patch
+'@xnetjs/react': minor
+'@xnetjs/data': patch
 ---
 
 Add useOfflineStatus hook for monitoring connectivity.
@@ -495,12 +495,12 @@ pnpm changeset init
   "$schema": "https://unpkg.com/@changesets/config@3.0.0/schema.json",
   "changelog": ["@changesets/changelog-github", { "repo": "crs48/xNet" }],
   "commit": false,
-  "fixed": [["xnet-desktop", "xnet-mobile", "@xnet/hub"]],
+  "fixed": [["xnet-desktop", "xnet-mobile", "@xnetjs/hub"]],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@xnet/e2e-tests", "@xnet/integration-tests"]
+  "ignore": ["@xnetjs/e2e-tests", "@xnetjs/integration-tests"]
 }
 ```
 
@@ -700,7 +700,7 @@ Changesets generates this format automatically from changeset files.
 
 ```markdown
 ---
-'@xnet/react': minor
+'@xnetjs/react': minor
 ---
 
 Add `useOfflineStatus` hook for monitoring connectivity.
@@ -713,7 +713,7 @@ Add `useOfflineStatus` hook for monitoring connectivity.
 
 ### Minor Changes
 
-- @xnet/react: Add `useOfflineStatus` hook for monitoring connectivity.
+- @xnetjs/react: Add `useOfflineStatus` hook for monitoring connectivity.
 ```
 
 ---
@@ -741,7 +741,7 @@ Add `useOfflineStatus` hook for monitoring connectivity.
 
 ## Open Questions
 
-1. **npm package publishing timeline** - When will `@xnet/react`, `@xnet/data`, etc. be published? This determines when Changesets is needed.
+1. **npm package publishing timeline** - When will `@xnetjs/react`, `@xnetjs/data`, etc. be published? This determines when Changesets is needed.
 
 2. **Expo release cadence** - App store review cycles are slower. Should Expo releases be decoupled from Electron?
 

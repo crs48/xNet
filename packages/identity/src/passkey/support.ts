@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - Passkey support detection
+ * @xnetjs/identity/passkey - Passkey support detection
  */
 import type { PasskeySupport } from './types'
 

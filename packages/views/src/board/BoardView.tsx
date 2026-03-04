@@ -3,7 +3,7 @@
  */
 
 import type { ViewConfig } from '../types.js'
-import type { Schema } from '@xnet/data'
+import type { Schema } from '@xnetjs/data'
 import {
   DndContext,
   DragOverlay,
@@ -20,7 +20,7 @@ import {
   type CollisionDetection
 } from '@dnd-kit/core'
 import { SortableContext, horizontalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React, { useState, useCallback, useRef } from 'react'
 import { BoardCard } from './BoardCard.js'
 import { BoardColumn } from './BoardColumn.js'

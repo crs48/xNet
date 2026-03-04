@@ -2,8 +2,8 @@
 
 > Sandboxed third-party code execution with permission-based API access
 
-**Package:** `@xnet/plugins`
-**Dependencies:** `@xnet/modules`, `@xnet/data`
+**Package:** `@xnetjs/plugins`
+**Dependencies:** `@xnetjs/modules`, `@xnetjs/data`
 **Estimated Time:** 3 weeks
 
 > **Architecture Update (Jan 2026):**
@@ -582,7 +582,7 @@ export class PluginSandbox {
 ```typescript
 // packages/plugins/src/bridge/PluginBridge.ts
 
-import { DatabaseManager } from '@xnet/database'
+import { DatabaseManager } from '@xnetjs/database'
 
 export class PluginBridge {
   constructor(

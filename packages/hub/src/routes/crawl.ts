@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Crawl coordinator routes.
+ * @xnetjs/hub - Crawl coordinator routes.
  */
 
 import type { AuthContext } from '../auth/ucan'

@@ -1,11 +1,11 @@
-# @xnet/devtools
+# @xnetjs/devtools
 
 Protocol-level developer tools for xNet applications -- a 9-panel debug suite that tree-shakes to zero in production.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/devtools
+pnpm add @xnetjs/devtools
 ```
 
 ## Features
@@ -27,7 +27,7 @@ pnpm add @xnet/devtools
 ## Usage
 
 ```tsx
-import { XNetDevToolsProvider, useDevTools } from '@xnet/devtools'
+import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 
 function App() {
   return (
@@ -52,7 +52,7 @@ import {
   instrumentSync,
   instrumentYDoc,
   instrumentTelemetry
-} from '@xnet/devtools'
+} from '@xnetjs/devtools'
 
 // Tap into store operations
 instrumentStore(store, eventBus)
@@ -115,13 +115,13 @@ export { useDevTools } from './provider/useDevTools'
 
 ## Dependencies
 
-- `@xnet/history`, `@xnet/ui`, `@xnet/views` (runtime)
-- Peer deps: `@xnet/data`, `@xnet/sync`, `@xnet/react`, `react`, `react-dom`, `yjs`
+- `@xnetjs/history`, `@xnetjs/ui`, `@xnetjs/views` (runtime)
+- Peer deps: `@xnetjs/data`, `@xnetjs/sync`, `@xnetjs/react`, `react`, `react-dom`, `yjs`
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/devtools test
+pnpm --filter @xnetjs/devtools test
 ```
 
 2 test files covering no-op exports and event bus.

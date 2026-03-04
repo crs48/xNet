@@ -1,6 +1,6 @@
 # Temp IDs and Reference Types for Transactional Node Creation
 
-> **Status**: ✅ IMPLEMENTED - Temp IDs are fully functional in `@xnet/data`
+> **Status**: ✅ IMPLEMENTED - Temp IDs are fully functional in `@xnetjs/data`
 
 ## Implementation Status
 

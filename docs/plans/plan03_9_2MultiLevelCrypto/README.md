@@ -83,14 +83,14 @@ flowchart TB
 
 ## Current State
 
-| Component      | Status  | Notes                                    |
-| -------------- | ------- | ---------------------------------------- |
-| @xnet/crypto   | Ed25519 | Needs ML-DSA signing primitives          |
-| @xnet/identity | Ed25519 | Needs HybridKeyBundle, PQ registry       |
-| @xnet/sync     | V2 wire | Needs V3 with multi-level signatures     |
-| @xnet/react    | Basic   | Needs security context, useSecurity hook |
-| Yjs envelopes  | Ed25519 | Needs hybrid signature support           |
-| UCAN tokens    | EdDSA   | Needs hybrid signature format            |
+| Component        | Status  | Notes                                    |
+| ---------------- | ------- | ---------------------------------------- |
+| @xnetjs/crypto   | Ed25519 | Needs ML-DSA signing primitives          |
+| @xnetjs/identity | Ed25519 | Needs HybridKeyBundle, PQ registry       |
+| @xnetjs/sync     | V2 wire | Needs V3 with multi-level signatures     |
+| @xnetjs/react    | Basic   | Needs security context, useSecurity hook |
+| Yjs envelopes    | Ed25519 | Needs hybrid signature support           |
+| UCAN tokens      | EdDSA   | Needs hybrid signature format            |
 
 ## Size Impact Analysis
 
@@ -115,7 +115,7 @@ Mitigation strategies: compression, batching, selective levels, verification cac
 
 ### Phase 1: Core Crypto Types (Steps 01-02)
 
-Add post-quantum primitives to `@xnet/crypto`.
+Add post-quantum primitives to `@xnetjs/crypto`.
 
 | Task | Document                                             | Description                               | Status |
 | ---- | ---------------------------------------------------- | ----------------------------------------- | ------ |
@@ -239,7 +239,7 @@ Comprehensive testing and security validation.
 
 ```mermaid
 flowchart TB
-    subgraph "@xnet/crypto (Modified)"
+    subgraph "@xnetjs/crypto (Modified)"
         TYPES["SecurityLevel, UnifiedSignature"]
         SIGN["hybridSign()"]
         VERIFY["hybridVerify()"]
@@ -247,20 +247,20 @@ flowchart TB
         NOBLE["@noble/post-quantum<br/>ML-DSA-65, ML-KEM-768"]
     end
 
-    subgraph "@xnet/identity (Modified)"
+    subgraph "@xnetjs/identity (Modified)"
         BUNDLE["HybridKeyBundle"]
         REGISTRY["PQKeyRegistry"]
         ATTEST["PQKeyAttestation"]
         DERIVE["deriveKeyBundle()"]
     end
 
-    subgraph "@xnet/sync (Modified)"
+    subgraph "@xnetjs/sync (Modified)"
         CHANGE["Change<T> v3"]
         SERIAL["serializeChange()"]
         YJS["SignedYjsEnvelope"]
     end
 
-    subgraph "@xnet/react (Modified)"
+    subgraph "@xnetjs/react (Modified)"
         CTX["SecurityContext"]
         HOOK["useSecurity()"]
         PROVIDER["XNetProvider"]

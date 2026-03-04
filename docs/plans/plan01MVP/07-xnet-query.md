@@ -1,9 +1,9 @@
-# 07: @xnet/query
+# 07: @xnetjs/query
 
 > Local and federated queries, full-text search
 
 **Duration:** 2 weeks
-**Dependencies:** @xnet/data, @xnet/storage, @xnet/network
+**Dependencies:** @xnetjs/data, @xnetjs/storage, @xnetjs/network
 
 ## Overview
 
@@ -15,7 +15,7 @@ This package provides query capabilities for local and federated data queries, p
 cd packages/query
 pnpm add lunr minisearch
 pnpm add -D vitest typescript tsup @types/lunr
-pnpm add @xnet/data@workspace:* @xnet/storage@workspace:* @xnet/network@workspace:* @xnet/core@workspace:*
+pnpm add @xnetjs/data@workspace:* @xnetjs/storage@workspace:* @xnetjs/network@workspace:* @xnetjs/core@workspace:*
 ```
 
 ## Directory Structure
@@ -106,8 +106,8 @@ export interface SearchResult {
 ### Local Query Engine (local/engine.ts)
 
 ```typescript
-import type { StorageAdapter } from '@xnet/storage'
-import type { XDocument, DocumentType } from '@xnet/data'
+import type { StorageAdapter } from '@xnetjs/storage'
+import type { XDocument, DocumentType } from '@xnetjs/data'
 import type { Query, QueryResult, Filter, Sort, FilterOperator } from '../types'
 
 export interface LocalQueryEngine {
@@ -231,9 +231,9 @@ function documentToResult(doc: XDocument): unknown {
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createLocalQueryEngine } from './engine'
-import { MemoryAdapter } from '@xnet/storage'
-import { createDocument } from '@xnet/data'
-import { generateIdentity } from '@xnet/identity'
+import { MemoryAdapter } from '@xnetjs/storage'
+import { createDocument } from '@xnetjs/data'
+import { generateIdentity } from '@xnetjs/identity'
 
 describe('LocalQueryEngine', () => {
   let storage: MemoryAdapter
@@ -301,7 +301,7 @@ describe('LocalQueryEngine', () => {
 
 ```typescript
 import MiniSearch from 'minisearch'
-import type { XDocument } from '@xnet/data'
+import type { XDocument } from '@xnetjs/data'
 import type { SearchQuery, SearchResult } from '../types'
 
 export interface SearchIndex {
@@ -390,8 +390,8 @@ export function createSearchIndex(): SearchIndex {
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createSearchIndex } from './index'
-import { createDocument } from '@xnet/data'
-import { generateIdentity } from '@xnet/identity'
+import { createDocument } from '@xnetjs/data'
+import { generateIdentity } from '@xnetjs/identity'
 
 describe('SearchIndex', () => {
   let index: ReturnType<typeof createSearchIndex>
@@ -458,9 +458,9 @@ describe('SearchIndex', () => {
 ### Query Federation (federation/router.ts)
 
 ```typescript
-import type { NetworkNode, SyncMessage } from '@xnet/network'
+import type { NetworkNode, SyncMessage } from '@xnetjs/network'
 import type { Query, QueryResult, Filter } from '../types'
-import type { DataSource, QueryPlan, SubQuery } from '@xnet/core'
+import type { DataSource, QueryPlan, SubQuery } from '@xnetjs/core'
 
 export interface FederatedQueryRouter {
   /** Find sources that can answer query */

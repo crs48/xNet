@@ -1,5 +1,5 @@
 /**
- * @xnet/data - Computed cache tests.
+ * @xnetjs/data - Computed cache tests.
  */
 
 import type { ComputedCacheEntry } from './computed-cache'

@@ -5,8 +5,8 @@ import type {
   AuthTrace,
   DID,
   PolicyEvaluator
-} from '@xnet/core'
-import { generateIdentity, verifyUCAN } from '@xnet/identity'
+} from '@xnetjs/core'
+import { generateIdentity, verifyUCAN } from '@xnetjs/identity'
 import { describe, expect, it, vi } from 'vitest'
 import { GrantRateLimiter } from './grant-rate-limit'
 import { GRANT_SCHEMA_IRI } from './grants'

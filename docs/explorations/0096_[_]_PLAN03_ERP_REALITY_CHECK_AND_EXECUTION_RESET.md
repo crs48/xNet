@@ -69,22 +69,22 @@ This exploration audited all files in `docs/plans/plan03ERP/` and mapped them to
 ```mermaid
 flowchart LR
   subgraph Plan03_Target
-    pmod[@xnet/modules]
-    pwf[@xnet/workflows]
-    pdash[@xnet/dashboard]
-    papi[@xnet/api]
-    pent[@xnet/enterprise]
+    pmod[@xnetjs/modules]
+    pwf[@xnetjs/workflows]
+    pdash[@xnetjs/dashboard]
+    papi[@xnetjs/api]
+    pent[@xnetjs/enterprise]
     pmods[modules/* business packages]
   end
 
   subgraph Current_Repo
-    data[@xnet/data]
-    react[@xnet/react]
-    views[@xnet/views]
-    plugins[@xnet/plugins]
-    hub[@xnet/hub]
-    canvas[@xnet/canvas]
-    vectors[@xnet/vectors]
+    data[@xnetjs/data]
+    react[@xnetjs/react]
+    views[@xnetjs/views]
+    plugins[@xnetjs/plugins]
+    hub[@xnetjs/hub]
+    canvas[@xnetjs/canvas]
+    vectors[@xnetjs/vectors]
     electron[apps/electron]
   end
 
@@ -124,7 +124,7 @@ flowchart LR
 ## What Is Already Strong (and should be reused)
 
 1. **Node/Schema foundation is real and production-relevant**
-   - `@xnet/data` plus NodeStore-centric patterns are already reflected throughout plan text and repo.
+   - `@xnetjs/data` plus NodeStore-centric patterns are already reflected throughout plan text and repo.
 2. **All 6 view types already exist as first-class type surface**
    - `packages/views/src/types.ts:17` defines `table | board | gallery | timeline | calendar | list`.
 3. **Plugin lifecycle and extension contribution registry are implemented**
@@ -141,7 +141,7 @@ flowchart LR
 ## Primary Gaps To Close Before "ERP"
 
 1. **No explicit module runtime package boundary**
-   - There is no `@xnet/modules` package and no `modules/` directory in current workspace.
+   - There is no `@xnetjs/modules` package and no `modules/` directory in current workspace.
 2. **No dedicated workflow execution engine package**
    - Plan assumes rich orchestration, retries, schedules, and builders; codebase currently has pieces but no unified engine.
 3. **No dashboard package contract**
@@ -162,15 +162,15 @@ flowchart LR
 ```mermaid
 flowchart TD
   subgraph Existing_Core
-    DATA[@xnet/data]
-    VIEWS[@xnet/views]
-    PLUG[@xnet/plugins]
-    HUB[@xnet/hub]
-    REACT[@xnet/react]
+    DATA[@xnetjs/data]
+    VIEWS[@xnetjs/views]
+    PLUG[@xnetjs/plugins]
+    HUB[@xnetjs/hub]
+    REACT[@xnetjs/react]
   end
 
   subgraph Add_Now
-    MODR[ModuleRuntime in @xnet/plugins or new thin @xnet/modules]
+    MODR[ModuleRuntime in @xnetjs/plugins or new thin @xnetjs/modules]
     WFR[WorkflowRuntime thin package]
     DASHR[Dashboard schema + runtime adapters]
   end
@@ -416,7 +416,7 @@ flowchart LR
 ### Phase A - Re-baseline (must complete first)
 
 - [ ] Publish an updated plan03 index with "target-state" vs "implemented" markers.
-- [ ] Add canonical package map and remove stale imports/examples (`@xnet/database`, etc.).
+- [ ] Add canonical package map and remove stale imports/examples (`@xnetjs/database`, etc.).
 - [ ] Define module bundle contract (manifest + schemas + views + workflows + settings).
 
 ### Phase B - Core runtime closure
@@ -469,14 +469,14 @@ flowchart LR
 - [ ] `pnpm typecheck`
 - [ ] `pnpm lint`
 - [ ] `pnpm test`
-- [ ] Targeted package tests for changed areas (for example `pnpm --filter @xnet/plugins test`)
+- [ ] Targeted package tests for changed areas (for example `pnpm --filter @xnetjs/plugins test`)
 
 ---
 
 ## Concrete Next Actions
 
 1. Create `plan03ERP/12-rebaseline.md` that supersedes timeline assumptions with gate-based execution.
-2. Draft `@xnet/modules` as a thin contract package (or formally embed this in `@xnet/plugins` and document why).
+2. Draft `@xnetjs/modules` as a thin contract package (or formally embed this in `@xnetjs/plugins` and document why).
 3. Implement workflow runtime MVP with three trigger types and execution persistence.
 4. Deliver CRM-lite as first proof that module + workflow + dashboard contracts are viable.
 5. Defer SSO/SCIM/public API gateway breadth until Gate 4 passes.

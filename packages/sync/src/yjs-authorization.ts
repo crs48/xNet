@@ -3,7 +3,7 @@
  */
 
 import type { SignedYjsEnvelopeV2 } from './yjs-envelope'
-import type { AuthCheckInput, DID, PolicyEvaluator } from '@xnet/core'
+import type { AuthCheckInput, DID, PolicyEvaluator } from '@xnetjs/core'
 import {
   base64ToBytes,
   bytesToBase64,
@@ -12,7 +12,7 @@ import {
   encrypt,
   hash,
   type EncryptedData
-} from '@xnet/crypto'
+} from '@xnetjs/crypto'
 
 export interface EncryptedYjsState {
   nodeId: string

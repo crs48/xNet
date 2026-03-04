@@ -1181,11 +1181,11 @@ flowchart LR
 | `mediasoup`        | SFU core (C++ workers)             | Node.js API, ~6K stars      |
 | `mediasoup-client` | Browser SFU client                 | WebRTC transport management |
 | `web-push`         | Push notifications                 | Web Push protocol (VAPID)   |
-| `@xnet/crypto`     | XChaCha20, X25519, Ed25519, BLAKE3 | Already exists              |
-| `@xnet/identity`   | DID, UCAN, KeyBundle               | Already exists              |
-| `@xnet/data`       | NodeStore, schemas                 | Already exists              |
-| `@xnet/sync`       | Change<T>, Lamport, SyncProvider   | Already exists              |
-| `@xnet/react`      | WebSocketSyncProvider, Awareness   | Already exists              |
+| `@xnetjs/crypto`   | XChaCha20, X25519, Ed25519, BLAKE3 | Already exists              |
+| `@xnetjs/identity` | DID, UCAN, KeyBundle               | Already exists              |
+| `@xnetjs/data`     | NodeStore, schemas                 | Already exists              |
+| `@xnetjs/sync`     | Change<T>, Lamport, SyncProvider   | Already exists              |
+| `@xnetjs/react`    | WebSocketSyncProvider, Awareness   | Already exists              |
 
 ---
 

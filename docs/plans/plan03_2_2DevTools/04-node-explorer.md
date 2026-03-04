@@ -4,7 +4,7 @@
 
 ## Overview
 
-The Node Explorer is the primary data inspection panel. It reuses `@xnet/views` `TableView` to render nodes in a familiar table interface with virtual scrolling, sorting, and filtering. Nodes are grouped by schema, with a detail pane showing properties, Lamport timestamps, and navigation to related views.
+The Node Explorer is the primary data inspection panel. It reuses `@xnetjs/views` `TableView` to render nodes in a familiar table interface with virtual scrolling, sorting, and filtering. Nodes are grouped by schema, with a detail pane showing properties, Lamport timestamps, and navigation to related views.
 
 ## Architecture
 
@@ -13,7 +13,7 @@ flowchart TB
     subgraph NodeExplorer["Node Explorer Panel"]
         SchemaFilter["Schema Selector"]
         SearchBar["Search Input"]
-        Table["TableView (from @xnet/views)"]
+        Table["TableView (from @xnetjs/views)"]
         DetailPane["Node Detail Pane"]
     end
 
@@ -29,7 +29,7 @@ flowchart TB
     Table --> DetailPane
 ```
 
-## Reusing @xnet/views TableView
+## Reusing @xnetjs/views TableView
 
 The existing `TableView` accepts a `Schema` (for columns), `ViewConfig` (for sort/visibility), and `TableRow[]` (for data). For the devtools, we synthesize a schema dynamically based on the selected node schema.
 
@@ -38,7 +38,7 @@ The existing `TableView` accepts a `Schema` (for columns), `ViewConfig` (for sor
 ```typescript
 // panels/NodeExplorer/useNodeExplorer.ts
 
-import type { Schema, PropertyDefinition } from '@xnet/data'
+import type { Schema, PropertyDefinition } from '@xnetjs/data'
 
 /** Create a devtools-friendly schema for displaying nodes */
 function createInspectorSchema(schema: Schema | null, showSystemFields: boolean): Schema {
@@ -104,7 +104,7 @@ function nodeToRow(node: NodeState, registry: SchemaRegistry): TableRow {
 // panels/NodeExplorer/NodeExplorer.tsx
 
 import { useState, useMemo } from 'react'
-import { TableView } from '@xnet/views'
+import { TableView } from '@xnetjs/views'
 import { useDevTools } from '../../provider/useDevTools'
 import { useNodeExplorer } from './useNodeExplorer'
 

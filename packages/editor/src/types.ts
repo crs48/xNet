@@ -1,5 +1,5 @@
 /**
- * @xnet/editor - Type definitions
+ * @xnetjs/editor - Type definitions
  */
 import type * as Y from 'yjs'
 

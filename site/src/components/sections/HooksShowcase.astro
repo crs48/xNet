@@ -11,7 +11,7 @@ const typ = (s: string) => `<span class="text-amber-300">${s}</span>`
 const cm = (s: string) => `<span class="text-gray-500">${s}</span>`
 
 const useQueryCode = [
-  `${kw('import')} { useQuery } ${kw('from')} ${str("'@xnet/react'")}`,
+  `${kw('import')} { useQuery } ${kw('from')} ${str("'@xnetjs/react'")}`,
   ``,
   `${kw('function')} ${fn('TaskList')}() {`,
   `  ${cm('// Fully typed — schema defines the shape')}`,
@@ -34,7 +34,7 @@ const useQueryCode = [
 ].join('\n')
 
 const useMutateCode = [
-  `${kw('import')} { useMutate } ${kw('from')} ${str("'@xnet/react'")}`,
+  `${kw('import')} { useMutate } ${kw('from')} ${str("'@xnetjs/react'")}`,
   ``,
   `${kw('function')} ${fn('TaskActions')}() {`,
   `  ${kw('const')} { create, update, remove } = ${fn('useMutate')}()`,
@@ -57,7 +57,7 @@ const useMutateCode = [
 ].join('\n')
 
 const useNodeCode = [
-  `${kw('import')} { useNode } ${kw('from')} ${str("'@xnet/react'")}`,
+  `${kw('import')} { useNode } ${kw('from')} ${str("'@xnetjs/react'")}`,
   ``,
   `${kw('function')} ${fn('PageEditor')}({ pageId }) {`,
   `  ${kw('const')} {`,

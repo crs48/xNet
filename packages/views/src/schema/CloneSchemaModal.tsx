@@ -7,7 +7,7 @@
  * - Preview what will be cloned
  */
 
-import type { DatabaseSchemaMetadata, StoredColumn } from '@xnet/data'
+import type { DatabaseSchemaMetadata, StoredColumn } from '@xnetjs/data'
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────

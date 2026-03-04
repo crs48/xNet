@@ -9,7 +9,7 @@ Common migration patterns for schema evolution in xNet.
 The most common migration - adding a new optional field with a default value.
 
 ```typescript
-import { createLens } from '@xnet/data'
+import { createLens } from '@xnetjs/data'
 
 // Task v1 → v2: Add priority field
 const addPriority = createLens({

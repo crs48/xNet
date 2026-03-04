@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - SQLite adapter interface definitions
+ * @xnetjs/sqlite - SQLite adapter interface definitions
  */
 
 import type { SQLValue, SQLRow, RunResult, SQLiteConfig } from './types'

@@ -406,14 +406,14 @@ While Status.im proved CLJS + React Native works, the maintenance burden is real
 flowchart LR
     subgraph "Current (TS)"
         direction TB
-        P_CORE["@xnet/core"]
-        P_CRYPTO["@xnet/crypto"]
-        P_IDENTITY["@xnet/identity"]
-        P_SYNC["@xnet/sync"]
-        P_DATA["@xnet/data"]
-        P_STORAGE["@xnet/storage"]
-        P_NETWORK["@xnet/network"]
-        P_REACT["@xnet/react"]
+        P_CORE["@xnetjs/core"]
+        P_CRYPTO["@xnetjs/crypto"]
+        P_IDENTITY["@xnetjs/identity"]
+        P_SYNC["@xnetjs/sync"]
+        P_DATA["@xnetjs/data"]
+        P_STORAGE["@xnetjs/storage"]
+        P_NETWORK["@xnetjs/network"]
+        P_REACT["@xnetjs/react"]
     end
 
     subgraph "Hypothetical (CLJS)"

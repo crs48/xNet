@@ -71,7 +71,7 @@ The concern with "universal" patterns is usually that they become too abstract. 
 
 - GitHub: Same reaction system on Issues, PRs, Discussions, Comments
 - Slack: Same emoji reactions on messages, files, threads, canvas blocks
-- Discord: Same reactions on messages in any channel type
+- GitHub Discussions: Same reactions on messages in any channel type
 - Google Workspace: Same comments on Docs, Sheets, Slides, Drive files
 
 ---

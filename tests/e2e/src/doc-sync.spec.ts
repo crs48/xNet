@@ -13,9 +13,9 @@
  * Run manually:  cd tests/e2e && pnpm test
  */
 
-import { test, expect, type Page } from '@playwright/test'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
+import { test, expect, type Page } from '@playwright/test'
 
 // ─── Config ──────────────────────────────────────────────────────────
 
@@ -55,8 +55,29 @@ function spawnAndWait(
 
     let stdout = ''
 
-    // Strip ANSI escape codes for readyText matching
-    const stripAnsi = (s: string): string => s.replace(/\x1B\[[0-9;]*[a-zA-Z]/g, '')
+    // Strip ANSI escape codes for readyText matching without regex control chars
+    const stripAnsi = (s: string): string => {
+      let out = s
+      const csi = '\u001B['
+      let idx = out.indexOf(csi)
+
+      while (idx !== -1) {
+        let end = idx + csi.length
+        while (end < out.length) {
+          const code = out.charCodeAt(end)
+          if ((code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+            end += 1
+            break
+          }
+          end += 1
+        }
+
+        out = out.slice(0, idx) + out.slice(end)
+        idx = out.indexOf(csi, idx)
+      }
+
+      return out
+    }
 
     proc.stdout?.on('data', (chunk: Buffer) => {
       const text = chunk.toString()
@@ -112,7 +133,7 @@ test.describe('Browser collaborative doc sync', () => {
       'pnpm',
       [
         '--filter',
-        '@xnet/hub',
+        '@xnetjs/hub',
         'exec',
         'tsx',
         'src/cli.ts',

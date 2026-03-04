@@ -1,5 +1,5 @@
 /**
- * @xnet/crypto - Encryption, signing, and hashing primitives
+ * @xnetjs/crypto - Encryption, signing, and hashing primitives
  */
 
 // Hashing and key derivation

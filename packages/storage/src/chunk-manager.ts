@@ -6,8 +6,8 @@
  * a Merkle root hash for integrity verification.
  */
 import type { BlobStore } from './blob-store'
-import type { ContentId, ContentChunk } from '@xnet/core'
-import { buildMerkleTree } from '@xnet/core'
+import type { ContentId, ContentChunk } from '@xnetjs/core'
+import { buildMerkleTree } from '@xnetjs/core'
 
 /** Chunk size: 256KB - good balance for sync efficiency */
 export const CHUNK_SIZE = 256 * 1024

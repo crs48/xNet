@@ -5,10 +5,10 @@
  * All updates should be wrapped in signed envelopes for security.
  */
 import type { NetworkNode, SyncMessage } from '../types'
-import type { SignedYjsEnvelopeV1 } from '@xnet/sync'
+import type { SignedYjsEnvelopeV1 } from '@xnetjs/sync'
 import type { Doc } from 'yjs'
 import { encode, decode } from '@msgpack/msgpack'
-import { verifyYjsEnvelopeV1 } from '@xnet/sync'
+import { verifyYjsEnvelopeV1 } from '@xnetjs/sync'
 import * as lp from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
 import * as Y from 'yjs'

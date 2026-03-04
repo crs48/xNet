@@ -36,7 +36,7 @@ graph TD
 
 ### PERF-01: Every Query Performs a Full Table Scan
 
-**Package:** `@xnet/query`
+**Package:** `@xnetjs/query`
 **File:** `packages/query/src/local/engine.ts:25-42`
 
 ```typescript
@@ -63,7 +63,7 @@ Every query loads every document, then filters in JavaScript.
 
 ### PERF-02: `count()` Loads All Documents Just to Count
 
-**Package:** `@xnet/query`
+**Package:** `@xnetjs/query`
 **File:** `packages/query/src/local/engine.ts:62-65`
 
 ```typescript
@@ -79,7 +79,7 @@ async count(q: Query): Promise<number> {
 
 ### PERF-03: Canvas Renders ALL Nodes (No Viewport Culling)
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:441-456`
 
 ```typescript
@@ -113,7 +113,7 @@ const visibleNodes = useMemo(() => {
 
 ### PERF-04: `countNodes` Loads All Nodes Into Memory
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/indexeddb-adapter.ts:234-251`
 
 ```typescript
@@ -137,7 +137,7 @@ async countNodes(options?: CountNodesOptions): Promise<number> {
 
 ### PERF-05: N+1 Query Pattern in Transactions
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:358-404`
 
 Each transaction operation sequentially calls `storage.getNode()` and `storage.getLastChange()`.
@@ -152,7 +152,7 @@ Each transaction operation sequentially calls `storage.getNode()` and `storage.g
 
 ### PERF-06: XNetProvider Context Value Not Memoized
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/context.ts:499-512`
 
 ```typescript
@@ -175,7 +175,7 @@ return (
 
 ### PERF-07: Map Recreation on Every Canvas Render
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:375`
 
 ```typescript
@@ -188,7 +188,7 @@ const nodeMap = new Map(nodes.map((n) => [n.id, n])) // New Map every render
 
 ### PERF-08: Comment Object Map Recreation
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:469-480`
 
 ```typescript
@@ -203,7 +203,7 @@ const nodeMap = new Map(nodes.map((n) => [n.id, n])) // New Map every render
 
 ### PERF-09: Comments Hook Reloads All on Any Change
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useComments.ts:175-194`
 
 Any comment change triggers full `loadComments()` reload.
@@ -214,7 +214,7 @@ Any comment change triggers full `loadComments()` reload.
 
 ### PERF-10: `getLastChange` Loads Entire History
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/indexeddb-adapter.ts:164-171`
 
 ```typescript
@@ -231,7 +231,7 @@ return changes[0]
 
 ### PERF-11: `listNodes` Loads All Then Paginates
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/indexeddb-adapter.ts:207-232`
 
 ```typescript
@@ -246,7 +246,7 @@ return nodes.slice(offset, offset + limit) // Slice after loading
 
 ### PERF-12: useQuery Subscribes to ALL Store Changes
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useQuery.ts:332-403`
 
 Every `useQuery` hook subscribes globally and filters events in callback.
@@ -259,7 +259,7 @@ Every `useQuery` hook subscribes globally and filters events in callback.
 
 ### PERF-13: DevTools NodeExplorer Polling (2s Interval)
 
-**Package:** `@xnet/devtools`
+**Package:** `@xnetjs/devtools`
 **File:** `packages/devtools/src/panels/NodeExplorer/useNodeExplorer.ts:56-64`
 
 ```typescript
@@ -274,7 +274,7 @@ const interval = setInterval(loadNodes, 2000)
 
 ### PERF-14: Viewport Clone on Every Pan/Zoom
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/hooks/useCanvas.ts:254-265`
 
 Creates new Viewport object on every pan/zoom.
@@ -283,7 +283,7 @@ Creates new Viewport object on every pan/zoom.
 
 ### PERF-15: LRU Eviction Sorts All Warm Entries
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/node-pool.ts:97-113`
 
 **Fix:** Use proper LRU data structure.
@@ -292,7 +292,7 @@ Creates new Viewport object on every pan/zoom.
 
 ### PERF-16: NodeStore Conflict Array Grows Unbounded
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:530-531`
 
 Memory leak - `conflicts` array never trimmed.
@@ -301,7 +301,7 @@ Memory leak - `conflicts` array never trimmed.
 
 ### PERF-17: Sequential Thread Deletion
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/hooks/useComments.ts:379-386`
 
 ```typescript
@@ -316,7 +316,7 @@ for (const reply of thread.replies) {
 
 ### PERF-18: OfflineQueue Saves on Every Enqueue
 
-**Package:** `@xnet/react`
+**Package:** `@xnetjs/react`
 **File:** `packages/react/src/sync/offline-queue.ts:73-75`
 
 **Fix:** Debounce save operation.

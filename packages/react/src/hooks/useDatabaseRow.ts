@@ -19,8 +19,8 @@
  * ```
  */
 
-import type { CellValue } from '@xnet/data'
-import { getRow, updateCells, deleteRow as deleteRowOp } from '@xnet/data'
+import type { CellValue } from '@xnetjs/data'
+import { getRow, updateCells, deleteRow as deleteRowOp } from '@xnetjs/data'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import * as Y from 'yjs'
 import { useNodeStore } from './useNodeStore'

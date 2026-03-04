@@ -6,7 +6,7 @@ Status: Draft exploration
 
 ## Executive Take
 
-`@xnet/editor` already has strong fundamentals (custom nodeviews, slash menu, drag handle, Yjs collaboration), but the “glitchy” feel is likely coming from **interaction timing gaps** and **state/viewport transitions**, not missing feature breadth.
+`@xnetjs/editor` already has strong fundamentals (custom nodeviews, slash menu, drag handle, Yjs collaboration), but the “glitchy” feel is likely coming from **interaction timing gaps** and **state/viewport transitions**, not missing feature breadth.
 
 The highest-leverage strategy is:
 
@@ -359,7 +359,7 @@ gantt
 
 Potential commands for validation:
 
-- `pnpm --filter @xnet/editor test`
-- `pnpm --filter @xnet/e2e-tests test`
+- `pnpm --filter @xnetjs/editor test`
+- `pnpm --filter @xnetjs/e2e-tests test`
 - `pnpm typecheck`
 - `pnpm test`

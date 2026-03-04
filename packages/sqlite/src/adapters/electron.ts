@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Electron SQLite adapter using better-sqlite3
+ * @xnetjs/sqlite - Electron SQLite adapter using better-sqlite3
  *
  * better-sqlite3 provides synchronous SQLite access for Node.js/Electron.
  * The async interface is maintained for compatibility with other adapters.

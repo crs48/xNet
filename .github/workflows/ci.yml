@@ -73,10 +73,10 @@ jobs:
         run: pnpm turbo run build --filter='./packages/*'
 
       - name: Run focused editor interaction tests
-        run: pnpm --filter @xnet/editor vitest run src/nodeviews/hooks/useNodeFocus.test.ts src/components/FloatingToolbar.test.tsx src/components/SlashMenu.test.tsx src/components/editor-ux-state.test.ts src/extensions/live-preview/inline-marks.integration.test.ts
+        run: pnpm --filter @xnetjs/editor vitest run src/nodeviews/hooks/useNodeFocus.test.ts src/components/FloatingToolbar.test.tsx src/components/SlashMenu.test.tsx src/components/editor-ux-state.test.ts src/extensions/live-preview/inline-marks.integration.test.ts
 
       - name: Install Playwright browsers
-        run: pnpm --filter @xnet/e2e-tests exec playwright install --with-deps chromium webkit
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium webkit
 
       - name: Start web app
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
@@ -85,7 +85,7 @@ jobs:
         run: for i in {1..60}; do curl -fsS http://127.0.0.1:5173 >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; exit 1
 
       - name: Run editor UX smoke tests (desktop + mobile)
-        run: pnpm --filter @xnet/e2e-tests exec playwright test src/editor-ux.spec.ts src/editor-ux-mobile.spec.ts --project=chromium --project=mobile-chromium --fail-on-flaky-tests
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-ux.spec.ts src/editor-ux-mobile.spec.ts --project=chromium --project=mobile-chromium --fail-on-flaky-tests
         env:
           CI: 'true'
           PLAYWRIGHT_TEST_BASE_URL: 'http://127.0.0.1:5173'

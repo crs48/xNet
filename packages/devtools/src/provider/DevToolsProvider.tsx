@@ -6,12 +6,12 @@
  */
 
 import type * as Y from 'yjs'
-import { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from '@xnet/history'
+import { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from '@xnetjs/history'
 import {
   useNodeStore,
   InstrumentationContext,
   type InstrumentationContextValue
-} from '@xnet/react/internal'
+} from '@xnetjs/react/internal'
 import {
   useState,
   useEffect,

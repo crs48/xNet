@@ -3,7 +3,7 @@
 > Full-text search with SQLite FTS5
 
 **Duration:** 2-3 days
-**Dependencies:** `@xnet/hub` (Hub server), SQLite with FTS5
+**Dependencies:** `@xnetjs/hub` (Hub server), SQLite with FTS5
 
 ## Overview
 
@@ -106,7 +106,7 @@ Not all cell values should be searchable. We extract text from searchable column
 ```typescript
 // packages/hub/src/services/search-indexer.ts
 
-import type { ColumnDefinition, DatabaseRow } from '@xnet/data'
+import type { ColumnDefinition, DatabaseRow } from '@xnetjs/data'
 
 /**
  * Column types that should be included in full-text search.
@@ -189,7 +189,7 @@ function extractPlainTextFromRichText(xml: string): string {
 
 import { Database } from 'better-sqlite3'
 import { generateSearchableText } from './search-indexer'
-import type { DatabaseRow, ColumnDefinition } from '@xnet/data'
+import type { DatabaseRow, ColumnDefinition } from '@xnetjs/data'
 
 export class RowStorageService {
   constructor(private db: Database) {}

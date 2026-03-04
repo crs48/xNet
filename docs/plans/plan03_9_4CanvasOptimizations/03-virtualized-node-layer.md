@@ -4,7 +4,7 @@
 
 **Duration:** 4-5 days
 **Dependencies:** [01-webgl-grid-layer.md](./01-webgl-grid-layer.md), [02-canvas2d-edge-layer.md](./02-canvas2d-edge-layer.md)
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 
 ## Overview
 

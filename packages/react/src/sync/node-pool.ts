@@ -12,7 +12,7 @@
  */
 
 import type { MetaBridge } from './meta-bridge'
-import type { NodeStorageAdapter } from '@xnet/data'
+import type { NodeStorageAdapter } from '@xnetjs/data'
 import * as Y from 'yjs'
 
 export type PoolEntryState = 'active' | 'warm' | 'cold'

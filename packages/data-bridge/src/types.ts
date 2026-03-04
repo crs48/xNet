@@ -1,5 +1,5 @@
 /**
- * @xnet/data-bridge - Types and interfaces
+ * @xnetjs/data-bridge - Types and interfaces
  *
  * The DataBridge is the abstraction layer that hides platform-specific
  * implementation details from React hooks. It allows moving storage,
@@ -13,7 +13,7 @@ import type {
   NodeState,
   NodeChangeEvent,
   ListNodesOptions
-} from '@xnet/data'
+} from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
 
@@ -225,7 +225,7 @@ export interface DataBridge {
    * Only available in MainThreadBridge for backward compatibility.
    * Will be removed in later phases.
    */
-  readonly nodeStore?: import('@xnet/data').NodeStore
+  readonly nodeStore?: import('@xnetjs/data').NodeStore
 
   /**
    * Subscribe to store changes directly.

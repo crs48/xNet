@@ -203,8 +203,8 @@ flowchart TB
 ### Schema Definition
 
 ```typescript
-import { defineSchema, text, person, relation } from '@xnet/data'
-import { allow, deny, role, relation as rel } from '@xnet/data/auth'
+import { defineSchema, text, person, relation } from '@xnetjs/data'
+import { allow, deny, role, relation as rel } from '@xnetjs/data/auth'
 
 const TaskSchema = defineSchema({
   name: 'Task',
@@ -279,13 +279,13 @@ function TaskCard({ taskId }: { taskId: string }) {
 
 This plan explicitly supersedes or extends existing authorization code:
 
-| Existing Code                                                                          | Disposition                         | Notes                                                                                                                                   |
-| -------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `@xnet/core/permissions.ts` (`PermissionEvaluator`, `Role`, `Capability`, `Group`)     | **Superseded** by `PolicyEvaluator` | Old interface was never implemented; new evaluator replaces it. Old types deprecated with re-exports pointing to new types.             |
-| `@xnet/identity/sharing/` (`createShareToken`, `RevocationStore`, etc.)                | **Coexists** as convenience layer   | Share links continue to work as a UX convenience on top of the grant system. `createShareToken` internally creates a Grant node + UCAN. |
-| `@xnet/core` `Capability` type (`'read' \| 'write' \| 'delete' \| 'share' \| 'admin'`) | **Aligned** with `AuthAction`       | Same values. `AuthAction` is the new canonical type; `Capability` re-exports it.                                                        |
-| `@xnet/identity/ucan.ts`                                                               | **Extended**                        | UCAN creation/verification retained. Add `maxProofDepth` enforcement and cascade revocation.                                            |
-| `@xnet/sync` Yjs security layer (`SignedYjsEnvelopeV2`, peer scoring, rate limiting)   | **Extended**                        | Add `YjsAuthGate` into the existing pipeline between signature verification and `Y.applyUpdate()`.                                      |
+| Existing Code                                                                            | Disposition                         | Notes                                                                                                                                   |
+| ---------------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `@xnetjs/core/permissions.ts` (`PermissionEvaluator`, `Role`, `Capability`, `Group`)     | **Superseded** by `PolicyEvaluator` | Old interface was never implemented; new evaluator replaces it. Old types deprecated with re-exports pointing to new types.             |
+| `@xnetjs/identity/sharing/` (`createShareToken`, `RevocationStore`, etc.)                | **Coexists** as convenience layer   | Share links continue to work as a UX convenience on top of the grant system. `createShareToken` internally creates a Grant node + UCAN. |
+| `@xnetjs/core` `Capability` type (`'read' \| 'write' \| 'delete' \| 'share' \| 'admin'`) | **Aligned** with `AuthAction`       | Same values. `AuthAction` is the new canonical type; `Capability` re-exports it.                                                        |
+| `@xnetjs/identity/ucan.ts`                                                               | **Extended**                        | UCAN creation/verification retained. Add `maxProofDepth` enforcement and cascade revocation.                                            |
+| `@xnetjs/sync` Yjs security layer (`SignedYjsEnvelopeV2`, peer scoring, rate limiting)   | **Extended**                        | Add `YjsAuthGate` into the existing pipeline between signature verification and `Y.applyUpdate()`.                                      |
 
 ## Implementation Order
 

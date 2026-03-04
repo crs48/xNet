@@ -54,7 +54,7 @@ flowchart TB
 import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { FileNodeView } from './FileNodeView'
-import type { FileRef } from '@xnet/data'
+import type { FileRef } from '@xnetjs/data'
 
 export interface FileExtensionOptions {
   /** Maximum file size in bytes (default: 100MB) */
@@ -153,7 +153,7 @@ export const FileExtension = Node.create<FileExtensionOptions>({
 
 import * as React from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import {
   FileText,
   FileImage,
@@ -420,7 +420,7 @@ function FilePreviewModal({ url, name, mimeType, onClose }: FilePreviewModalProp
 
 import { Plugin, PluginKey } from '@tiptap/pm/state'
 import { EditorView } from '@tiptap/pm/view'
-import type { FileRef } from '@xnet/data'
+import type { FileRef } from '@xnetjs/data'
 
 export const FileUploadPluginKey = new PluginKey('fileUpload')
 

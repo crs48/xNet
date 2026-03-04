@@ -1,5 +1,5 @@
-import type { AuthDecision, PolicyEvaluator } from '@xnet/core'
-import { generateKey, randomBytes } from '@xnet/crypto'
+import type { AuthDecision, PolicyEvaluator } from '@xnetjs/core'
+import { generateKey, randomBytes } from '@xnetjs/crypto'
 import { describe, expect, it, vi } from 'vitest'
 import {
   YjsAuthGate,

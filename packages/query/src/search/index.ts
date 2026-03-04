@@ -2,7 +2,7 @@
  * Full-text search index using MiniSearch
  */
 import type { SearchQuery, SearchResult } from '../types'
-import type { YDoc } from '@xnet/data'
+import type { YDoc } from '@xnetjs/data'
 import MiniSearch from 'minisearch'
 
 export interface SearchableDocument {

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This review covers **49 commits** (c6d780a..e591775) implementing the Hub Phase 1 VPS milestone from `docs/plans/plan03_8HubPhase1VPS/`. The work adds a complete Hono-based hub server with WebSocket sync relay, REST APIs, federation, crawling, shard-based search, schema registry, awareness persistence, peer discovery, and deployment infrastructure for Railway and Fly.io. Client-side integration spans the `@xnet/react`, `@xnet/data`, `@xnet/network`, and `@xnet/identity` packages.
+This review covers **49 commits** (c6d780a..e591775) implementing the Hub Phase 1 VPS milestone from `docs/plans/plan03_8HubPhase1VPS/`. The work adds a complete Hono-based hub server with WebSocket sync relay, REST APIs, federation, crawling, shard-based search, schema registry, awareness persistence, peer discovery, and deployment infrastructure for Railway and Fly.io. Client-side integration spans the `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/network`, and `@xnetjs/identity` packages.
 
 **Scope:** ~16,500 lines added/modified across 127 files. 18 new hub test files. 3 deployment configs (Dockerfile, fly.toml, railway.toml).
 
@@ -15,11 +15,11 @@ Test Files  22 failed | 80 passed (102)
      Tests   2 failed | 1581 passed | 5 skipped (1588)
 ```
 
-| Failure Category             | Count | Root Cause                                                   |
-| ---------------------------- | ----- | ------------------------------------------------------------ |
-| Hub test suites fail to load | 18    | Missing `node_modules` -- deps not installed for `@xnet/hub` |
-| UCAN proof test regression   | 1     | Hardening broke test that used dummy proof string            |
-| Flaky perf test              | 1     | BLAKE3 1MB hashing threshold too tight (50ms)                |
+| Failure Category             | Count | Root Cause                                                     |
+| ---------------------------- | ----- | -------------------------------------------------------------- |
+| Hub test suites fail to load | 18    | Missing `node_modules` -- deps not installed for `@xnetjs/hub` |
+| UCAN proof test regression   | 1     | Hardening broke test that used dummy proof string              |
+| Flaky perf test              | 1     | BLAKE3 1MB hashing threshold too tight (50ms)                  |
 
 ### Findings Summary
 
@@ -42,7 +42,7 @@ Test Files  22 failed | 80 passed (102)
 | 6   | Critical | Crawl    | `Disallow: /` in robots.txt is ignored -- crawls everything                | `services/crawl-robots.ts:24`  |
 | 7   | Critical | Client   | `fromBase64` returns empty array in browser -- public keys always empty    | `network/resolution/did.ts:32` |
 | 8   | Critical | Client   | `phone` property builder used but not imported -- runtime crash            | `data/schema/registry.ts:337`  |
-| 9   | Critical | Deploy   | `@xnet/data` package missing from Dockerfile -- build fails                | `hub/Dockerfile:9-53`          |
+| 9   | Critical | Deploy   | `@xnetjs/data` package missing from Dockerfile -- build fails              | `hub/Dockerfile:9-53`          |
 | 10  | Critical | Deploy   | Container runs as root (no `USER node`)                                    | `hub/Dockerfile`               |
 | 11  | Critical | Auth     | No UCAN audience verification -- tokens for other services accepted        | `auth/ucan.ts:84`              |
 
@@ -51,10 +51,10 @@ Test Files  22 failed | 80 passed (102)
 ```mermaid
 graph TD
     subgraph "Client Layer"
-        react["@xnet/react<br/>hooks + sync"]
-        data["@xnet/data<br/>schema registry"]
-        net["@xnet/network<br/>DID resolution"]
-        id["@xnet/identity<br/>UCAN hardening"]
+        react["@xnetjs/react<br/>hooks + sync"]
+        data["@xnetjs/data<br/>schema registry"]
+        net["@xnetjs/network<br/>DID resolution"]
+        id["@xnetjs/identity<br/>UCAN hardening"]
     end
 
     subgraph "Hub Server"
@@ -169,7 +169,7 @@ graph TD
 - [x] Sanitize blob/file keys against path traversal (`storage/sqlite.ts:762,822`)
 - [x] Add UCAN audience verification (`auth/ucan.ts:84`)
 - [x] Fix `Disallow: /` handling in robots.txt parser (`services/crawl-robots.ts:24`)
-- [x] Add `@xnet/data` to Dockerfile copy steps
+- [x] Add `@xnetjs/data` to Dockerfile copy steps
 - [x] Add `USER node` to Dockerfile
 - [x] Await persistence in pool eviction (`pool/node-pool.ts:152`)
 - [x] Fix `fromBase64` browser path (`network/resolution/did.ts:32`)

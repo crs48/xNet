@@ -14,7 +14,7 @@ The hub has 18 test files with a combined ~2,200 lines. **All 18 fail due to mis
 pnpm test
   → vitest discovers packages/hub/test/*.ts via root config
     → Vite tries to resolve imports
-      → "Failed to load url ws" / "@hono/node-server" / "better-sqlite3" / "yjs" / "@xnet/crypto"
+      → "Failed to load url ws" / "@hono/node-server" / "better-sqlite3" / "yjs" / "@xnetjs/crypto"
 ```
 
 ### Why Imports Fail

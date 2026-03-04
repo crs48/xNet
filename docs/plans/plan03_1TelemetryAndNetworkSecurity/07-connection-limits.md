@@ -3,7 +3,7 @@
 > Resource limits to prevent connection/stream exhaustion attacks
 
 **Duration:** 2 days  
-**Dependencies:** `@xnet/network` existing infrastructure
+**Dependencies:** `@xnetjs/network` existing infrastructure
 
 ## Overview
 
@@ -158,7 +158,7 @@ export const RELAXED_LIMITS: ConnectionLimits = {
 ```typescript
 // packages/network/src/security/tracker.ts
 
-import type { PeerId } from '@xnet/core'
+import type { PeerId } from '@xnetjs/core'
 import type { ConnectionLimits } from './limits'
 
 interface ConnectionInfo {
@@ -371,7 +371,7 @@ export interface ConnectionStats {
 ```typescript
 // packages/network/src/security/gater.ts
 
-import type { PeerId, Multiaddr } from '@xnet/core'
+import type { PeerId, Multiaddr } from '@xnetjs/core'
 import type { ConnectionLimits } from './limits'
 import { ConnectionTracker } from './tracker'
 import { logSecurityEvent } from './logging'

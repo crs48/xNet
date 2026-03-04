@@ -3,7 +3,7 @@
  *
  * @example
  * ```typescript
- * import { NodeStore, MemoryNodeStorageAdapter } from '@xnet/data'
+ * import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
  *
  * const adapter = new MemoryNodeStorageAdapter()
  * const store = new NodeStore({

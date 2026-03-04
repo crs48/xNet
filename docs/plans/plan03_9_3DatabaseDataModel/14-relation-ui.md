@@ -3,7 +3,7 @@
 > Row picker, inline display, and reverse relations
 
 **Duration:** 3-4 days
-**Dependencies:** `@xnet/react` (hooks), `@xnet/data` (relation traversal)
+**Dependencies:** `@xnetjs/react` (hooks), `@xnetjs/data` (relation traversal)
 
 ## Overview
 
@@ -44,7 +44,7 @@ import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { useRelatedRows } from '../../hooks/useRelatedRows'
 import { RowPickerModal } from '../modals/RowPickerModal'
-import type { ColumnDefinition, RelationColumnConfig } from '@xnet/data'
+import type { ColumnDefinition, RelationColumnConfig } from '@xnetjs/data'
 
 interface RelationCellProps {
   rowId: string
@@ -367,7 +367,7 @@ export function RowPickerModal({
 // packages/react/src/views/ReverseRelationsPanel.tsx
 
 import { useReverseRelations } from '../hooks/useReverseRelations'
-import type { DatabaseRow, ColumnDefinition } from '@xnet/data'
+import type { DatabaseRow, ColumnDefinition } from '@xnetjs/data'
 
 interface ReverseRelationsPanelProps {
   rowId: string
@@ -446,7 +446,7 @@ function ReverseRelationRow({ row }: { row: DatabaseRow }) {
 
 import { useState, useEffect, useMemo } from 'react'
 import { useStore } from './useStore'
-import type { DatabaseRow } from '@xnet/data'
+import type { DatabaseRow } from '@xnetjs/data'
 
 export function useRelatedRows(rowIds: string[]): {
   rows: DatabaseRow[]
@@ -508,7 +508,7 @@ export function useRelatedRows(rowIds: string[]): {
 
 import { useState, useEffect } from 'react'
 import { useStore } from './useStore'
-import type { DatabaseRow, ColumnDefinition } from '@xnet/data'
+import type { DatabaseRow, ColumnDefinition } from '@xnetjs/data'
 
 interface ReverseRelation {
   row: DatabaseRow

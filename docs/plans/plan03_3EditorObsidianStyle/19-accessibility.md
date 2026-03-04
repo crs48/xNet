@@ -143,7 +143,7 @@ export function announce(message: string, priority: 'polite' | 'assertive' = 'po
 import * as React from 'react'
 import type { Editor } from '@tiptap/core'
 import { EditorContent } from '@tiptap/react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { announce } from '../../accessibility/announcer'
 
 export interface AccessibleEditorProps {
@@ -232,7 +232,7 @@ export function AccessibleEditor({ editor, label, description, className }: Acce
 
 import * as React from 'react'
 import type { Editor } from '@tiptap/core'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { announce } from '../../accessibility/announcer'
 
 export interface AccessibleToolbarProps {
@@ -319,7 +319,7 @@ export function AccessibleToolbar({
 // packages/editor/src/components/AccessibleToolbar/ToolbarButton.tsx
 
 import * as React from 'react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { announce } from '../../accessibility/announcer'
 
 export interface ToolbarButtonProps {
@@ -579,7 +579,7 @@ export function useFocusTrap<T extends HTMLElement>(options: UseFocusTrapOptions
 // packages/editor/src/components/SlashMenu/AccessibleSlashMenu.tsx
 
 import * as React from 'react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { useFocusTrap } from '../../accessibility/useFocusTrap'
 import { announce } from '../../accessibility/announcer'
 import type { SlashCommandItem } from '../../extensions/slash-command/types'

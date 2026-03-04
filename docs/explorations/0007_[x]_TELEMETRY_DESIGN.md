@@ -2,7 +2,7 @@
 
 > Privacy-preserving observability for a decentralized system
 
-**Status**: ✅ IMPLEMENTED - The `@xnet/telemetry` package provides privacy-preserving telemetry  
+**Status**: ✅ IMPLEMENTED - The `@xnetjs/telemetry` package provides privacy-preserving telemetry  
 **Last Updated**: January 2026
 
 ## Implementation Status
@@ -17,7 +17,7 @@ The telemetry system has been implemented at `packages/telemetry/`:
 - [x] **Random Timing** - `collection/timing.ts` adds jitter to prevent correlation
 - [x] **Sync Provider** - `sync/provider.ts` for opt-in sharing with aggregators
 - [x] **React Hooks** - `useTelemetry`, `useConsent` for component integration
-- [x] **DevTools Panel** - TelemetryPanel in `@xnet/devtools`
+- [x] **DevTools Panel** - TelemetryPanel in `@xnetjs/devtools`
 
 ---
 
@@ -70,14 +70,14 @@ xNet is a fully decentralized system where users own their data. Traditional tel
 
 ### What Others Do
 
-| System            | Approach                                                 | Privacy Level | Learnings                                            |
-| ----------------- | -------------------------------------------------------- | ------------- | ---------------------------------------------------- |
-| **Obsidian**      | Zero telemetry                                           | Maximum       | Proves viable; relies on forums/Discord for feedback |
-| **Brave P3A**     | Bucketed answers, random timing, no identifiers          | Very High     | Best-in-class for "some data, maximum privacy"       |
-| **VS Code**       | 4-level opt-in (off/crash/error/all), transparent schema | High          | Good UX for granular control                         |
-| **Mozilla Glean** | Opt-out, public data dictionary                          | Medium        | Good documentation practices                         |
-| **IPFS**          | No protocol-level telemetry, app-layer concern           | N/A           | Validates separation of concerns                     |
-| **Sentry**        | beforeSend hooks, local scrubbing                        | Configurable  | Good for crash reports                               |
+| System            | Approach                                                 | Privacy Level | Learnings                                                       |
+| ----------------- | -------------------------------------------------------- | ------------- | --------------------------------------------------------------- |
+| **Obsidian**      | Zero telemetry                                           | Maximum       | Proves viable; relies on forums/GitHub Discussions for feedback |
+| **Brave P3A**     | Bucketed answers, random timing, no identifiers          | Very High     | Best-in-class for "some data, maximum privacy"                  |
+| **VS Code**       | 4-level opt-in (off/crash/error/all), transparent schema | High          | Good UX for granular control                                    |
+| **Mozilla Glean** | Opt-out, public data dictionary                          | Medium        | Good documentation practices                                    |
+| **IPFS**          | No protocol-level telemetry, app-layer concern           | N/A           | Validates separation of concerns                                |
+| **Sentry**        | beforeSend hooks, local scrubbing                        | Configurable  | Good for crash reports                                          |
 
 ### Key Techniques
 
@@ -843,12 +843,12 @@ flowchart LR
 
 ### Layer 1: Protocol-Level Defenses
 
-These are built into `@xnet/network` and provide the first line of defense.
+These are built into `@xnetjs/network` and provide the first line of defense.
 
 #### Connection Management
 
 ```typescript
-// @xnet/network connection limits (inspired by libp2p Resource Manager)
+// @xnetjs/network connection limits (inspired by libp2p Resource Manager)
 interface ConnectionLimits {
   // System-wide limits
   maxConnections: number // Total connections allowed (default: 100)
@@ -908,7 +908,7 @@ class SyncRateLimiter {
 
 #### Signature Verification
 
-Already implemented in `@xnet/sync` - all changes are signed and verified:
+Already implemented in `@xnetjs/sync` - all changes are signed and verified:
 
 ```typescript
 // Every Change<T> includes cryptographic proof
@@ -935,7 +935,7 @@ function verifyChange<T>(change: Change<T>, publicKey: PublicKey): boolean {
 #### Peer Scoring (inspired by GossipSub v1.1)
 
 ```typescript
-// @xnet/network peer scoring
+// @xnetjs/network peer scoring
 interface PeerScore {
   peerId: PeerId
 
@@ -1445,7 +1445,7 @@ class ThreatIntelligenceAggregator {
 
 #### Phase 1: Foundation (with telemetry Phase 1)
 
-- [ ] Connection limits in `@xnet/network`
+- [ ] Connection limits in `@xnetjs/network`
 - [ ] Rate limiting for sync protocol
 - [ ] Security event logging (fail2ban compatible)
 - [ ] Basic peer scoring

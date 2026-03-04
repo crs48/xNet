@@ -416,7 +416,7 @@ Major version upgrade with architectural improvements:
 - [x] **Replace flat config with unified `projects`** — root `vitest.config.ts` now defines 4 inline projects: `unit` (threads/no-isolate), `dom` (jsdom/threads/isolate), `integration` (forks/isolate), `editor` (jsdom/setupFiles). All 148 test files / 2426 tests run in a single `vitest run` command (~7.4s).
 - [x] **Per-project isolation** — `isolate: false` for unit project (1.2s for 70 files), `isolate: true` for dom/integration/editor.
 - [x] **Per-project pool** — `threads` for unit+dom+editor, `forks` for integration (needs process isolation for WebSocket servers).
-- [x] **Per-package configs retained** — the 11 per-package `vitest.config.ts` files are kept for `pnpm --filter @xnet/sync test` usage. They don't interfere with the root projects config (inline projects, not glob-based).
+- [x] **Per-package configs retained** — the 11 per-package `vitest.config.ts` files are kept for `pnpm --filter @xnetjs/sync test` usage. They don't interfere with the root projects config (inline projects, not glob-based).
 
 ### Phase 4: CI Optimizations
 

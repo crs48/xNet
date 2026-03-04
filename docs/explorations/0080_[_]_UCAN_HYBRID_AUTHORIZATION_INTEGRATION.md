@@ -166,7 +166,7 @@ flowchart TB
 
 From the codebase analysis, xNet has a solid foundation:
 
-#### 1. UCAN Implementation (`@xnet/identity/ucan.ts`)
+#### 1. UCAN Implementation (`@xnetjs/identity/ucan.ts`)
 
 ```typescript
 // Create UCAN with proof chain support
@@ -190,7 +190,7 @@ function validateProofChain(payload: UCANPayload, proofs: UCANToken[]): Validati
 - ✅ Cycle detection in proof chains
 - ✅ Expiration validation with proof constraints
 
-#### 2. Sharing Layer (`@xnet/identity/sharing/`)
+#### 2. Sharing Layer (`@xnetjs/identity/sharing/`)
 
 ```typescript
 // Create share with UCAN

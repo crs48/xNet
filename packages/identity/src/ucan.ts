@@ -2,7 +2,7 @@
  * UCAN (User Controlled Authorization Networks) token implementation
  */
 import type { UCANCapability, UCANToken } from './types'
-import { sign, verify } from '@xnet/crypto'
+import { sign, verify } from '@xnetjs/crypto'
 import { parseDID } from './did'
 
 /**

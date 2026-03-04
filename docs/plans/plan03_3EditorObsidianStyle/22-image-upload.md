@@ -109,8 +109,8 @@ export type Blob = InferNode<(typeof BlobSchema)['_properties']>
 ```typescript
 // packages/editor/src/services/image-upload.ts
 
-import { BlobSchema, type Blob } from '@xnet/data'
-import type { NodeStore } from '@xnet/data'
+import { BlobSchema, type Blob } from '@xnetjs/data'
+import type { NodeStore } from '@xnetjs/data'
 
 export interface ImageUploadOptions {
   /** Maximum file size in bytes (default: 10MB) */
@@ -264,10 +264,10 @@ async function compressImage(
 
 /**
  * Generate content ID (CID) from data
- * Uses BLAKE3 hash from @xnet/crypto
+ * Uses BLAKE3 hash from @xnetjs/crypto
  */
 async function generateCID(data: Uint8Array): Promise<string> {
-  const { blake3 } = await import('@xnet/crypto')
+  const { blake3 } = await import('@xnetjs/crypto')
   const hash = blake3(data)
   // Return as base58 or similar URL-safe encoding
   return `bafk${base58Encode(hash)}`
@@ -446,7 +446,7 @@ export const ImageExtension = Node.create<ImageOptions>({
 
 import * as React from 'react'
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 
 const ALIGNMENTS = {
   left: 'mr-auto',

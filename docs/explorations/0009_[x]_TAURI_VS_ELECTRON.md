@@ -234,16 +234,16 @@ graph TD
 
 ### Effort Breakdown
 
-| Task                                                     | Effort          | Risk                                             |
-| -------------------------------------------------------- | --------------- | ------------------------------------------------ |
-| Replace IndexedDB with SQLite/LevelDB in `@xnet/storage` | 2-3 weeks       | Medium — need to maintain same async API         |
-| Replace browser WebRTC with node-webrtc or libp2p TCP    | 1-2 weeks       | High — node-webrtc has native compilation issues |
-| Build IPC bridge (sidecar ↔ webview)                     | 2-3 weeks       | Medium — need to serialize all node operations   |
-| Set up Tauri project + Rust boilerplate                  | 1 week          | Low                                              |
-| Bundle Node.js sidecar (pkg or Bun compile)              | 1 week          | Medium — cross-platform binary compilation       |
-| Port electron-specific code (window, menu, tray)         | 1 week          | Low                                              |
-| Testing + cross-platform validation                      | 2-3 weeks       | Medium                                           |
-| **Total**                                                | **10-16 weeks** |                                                  |
+| Task                                                       | Effort          | Risk                                             |
+| ---------------------------------------------------------- | --------------- | ------------------------------------------------ |
+| Replace IndexedDB with SQLite/LevelDB in `@xnetjs/storage` | 2-3 weeks       | Medium — need to maintain same async API         |
+| Replace browser WebRTC with node-webrtc or libp2p TCP      | 1-2 weeks       | High — node-webrtc has native compilation issues |
+| Build IPC bridge (sidecar ↔ webview)                       | 2-3 weeks       | Medium — need to serialize all node operations   |
+| Set up Tauri project + Rust boilerplate                    | 1 week          | Low                                              |
+| Bundle Node.js sidecar (pkg or Bun compile)                | 1 week          | Medium — cross-platform binary compilation       |
+| Port electron-specific code (window, menu, tray)           | 1 week          | Low                                              |
+| Testing + cross-platform validation                        | 2-3 weeks       | Medium                                           |
+| **Total**                                                  | **10-16 weeks** |                                                  |
 
 ---
 
@@ -253,7 +253,7 @@ The Node.js sidecar approach (Tauri's official recommendation) has specific issu
 
 ### 1. IndexedDB Replacement
 
-xNet's `@xnet/storage` uses IndexedDB (via `idb` wrapper). In a Node.js sidecar:
+xNet's `@xnetjs/storage` uses IndexedDB (via `idb` wrapper). In a Node.js sidecar:
 
 - **Option A**: `better-sqlite3` — synchronous, fast, but different API semantics
 - **Option B**: `level` (LevelDB) — async, key-value, closer to IndexedDB semantics
@@ -396,8 +396,8 @@ For xNet's current UI (React + Tailwind), WebKit differences are unlikely to cau
 ### What To Do Instead
 
 1. **Move protocol logic to Electron's main process** — same runtime benefits as a sidecar, zero IPC overhead
-2. **Replace IndexedDB with SQLite** in `@xnet/storage` — this is needed for background mode regardless of framework choice, and makes the storage layer portable
-3. **Abstract WebRTC** behind a transport interface in `@xnet/network` — so TCP/WebSocket/QUIC can be swapped in for non-browser contexts
+2. **Replace IndexedDB with SQLite** in `@xnetjs/storage` — this is needed for background mode regardless of framework choice, and makes the storage layer portable
+3. **Abstract WebRTC** behind a transport interface in `@xnetjs/network` — so TCP/WebSocket/QUIC can be swapped in for non-browser contexts
 4. **Implement tray-mode** in Electron with renderer destruction on window close
 5. **Keep Tauri as a future option** — once the protocol layer is runtime-agnostic (no browser APIs), switching to Tauri becomes a 2-3 week UI-only migration
 
@@ -455,8 +455,8 @@ This approach gives us:
 
 Revisit the Tauri decision when:
 
-1. ✅ `@xnet/storage` uses SQLite (not IndexedDB)
-2. ✅ `@xnet/network` has TCP/WebSocket transport (not just WebRTC)
+1. ✅ `@xnetjs/storage` uses SQLite (not IndexedDB)
+2. ✅ `@xnetjs/network` has TCP/WebSocket transport (not just WebRTC)
 3. ✅ Protocol layer has zero browser-API dependencies
 4. ✅ App download size becomes a competitive issue
 5. ✅ Tauri's WebView2/WKWebView have proven stable for rich text editors

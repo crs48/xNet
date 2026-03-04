@@ -60,7 +60,7 @@ flowchart TB
 **Layer 2: UCAN Token Functions (Implemented, Never Called)**
 
 ```typescript
-// These functions exist in @xnet/identity
+// These functions exist in @xnetjs/identity
 createUCAN({ issuer, issuerKey, audience, capabilities, expiration })
 verifyUCAN(token)
 hasCapability(token, resource, action)
@@ -71,7 +71,7 @@ hasCapability(token, resource, action)
 **Layer 3: Permission Types (Defined, No Implementation)**
 
 ```typescript
-// Types exist in @xnet/core but have zero consumers
+// Types exist in @xnetjs/core but have zero consumers
 interface PermissionEvaluator {
   hasCapability(did: DID, action: string, resource: string): boolean
   resolveGroups(did: DID): Group[]
@@ -770,7 +770,7 @@ flowchart TB
 ### Core Permission API
 
 ```typescript
-// @xnet/data - Permission checking
+// @xnetjs/data - Permission checking
 interface NodeStore {
   // Check if current user can perform action
   can(action: string, nodeId: NodeId): Promise<boolean>
@@ -815,7 +815,7 @@ interface Grant {
 ### React Hooks
 
 ```typescript
-// @xnet/react - Permission hooks
+// @xnetjs/react - Permission hooks
 
 // Check permissions for a node
 function useCan(nodeId: NodeId): {
@@ -885,7 +885,7 @@ function ShareDialog({ nodeId }: { nodeId: NodeId }) {
 ### Schema Permission Helpers
 
 ```typescript
-// @xnet/data - Schema definition helpers
+// @xnetjs/data - Schema definition helpers
 
 // Define permissions inline
 const TaskSchema = defineSchema({

@@ -3,7 +3,7 @@
 > Implementation schedule for Database Platform phase
 
 > **Note (Jan 2026):** Foundation is COMPLETE - Schema system and NodeStore
-> are implemented in `@xnet/data`. Timeline updated accordingly.
+> are implemented in `@xnetjs/data`. Timeline updated accordingly.
 
 ## Overview
 
@@ -103,10 +103,10 @@ gantt
 
 ### Internal Packages
 
-- `@xnet/data` - CRDT documents
-- `@xnet/storage` - Persistence
-- `@xnet/query` - Local queries
-- `@xnet/react` - React bindings
+- `@xnetjs/data` - CRDT documents
+- `@xnetjs/storage` - Persistence
+- `@xnetjs/query` - Local queries
+- `@xnetjs/react` - React bindings
 
 ## Validation Gates
 
@@ -156,14 +156,14 @@ gantt
 
 ```bash
 # Development
-pnpm --filter @xnet/database dev
-pnpm --filter @xnet/views dev
-pnpm --filter @xnet/formula dev
-pnpm --filter @xnet/canvas dev
+pnpm --filter @xnetjs/database dev
+pnpm --filter @xnetjs/views dev
+pnpm --filter @xnetjs/formula dev
+pnpm --filter @xnetjs/canvas dev
 
 # Testing
-pnpm --filter @xnet/database test
-pnpm --filter @xnet/views test
+pnpm --filter @xnetjs/database test
+pnpm --filter @xnetjs/views test
 pnpm test:coverage
 
 # Build

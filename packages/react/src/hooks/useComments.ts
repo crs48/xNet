@@ -13,8 +13,8 @@
  * const { threads } = useComments({ nodeId: pageId, anchorType: 'text' })
  * ```
  */
-import type { NodeState, NodeChangeEvent } from '@xnet/data'
-import { CommentSchema } from '@xnet/data'
+import type { NodeState, NodeChangeEvent } from '@xnetjs/data'
+import { CommentSchema } from '@xnetjs/data'
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 

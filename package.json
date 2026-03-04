@@ -6,15 +6,15 @@
   "scripts": {
     "build": "turbo run build",
     "test": "pnpm --filter xnet-desktop run deps:node && vitest run",
-    "test:editor": "pnpm --filter @xnet/editor test",
+    "test:editor": "pnpm --filter @xnetjs/editor test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint packages apps --ext .ts,.tsx",
     "format:check": "prettier --check \"packages/**/*.{ts,tsx}\" \"apps/**/*.{ts,tsx}\"",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean && rm -rf node_modules",
-    "test:integration": "pnpm --filter @xnet/integration-tests test",
-    "test:integration:watch": "pnpm --filter @xnet/integration-tests test:watch",
+    "test:integration": "pnpm --filter @xnetjs/integration-tests test",
+    "test:integration:watch": "pnpm --filter @xnetjs/integration-tests test:watch",
     "prepare": "husky"
   },
   "devDependencies": {

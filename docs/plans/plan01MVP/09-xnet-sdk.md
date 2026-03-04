@@ -1,9 +1,9 @@
-# 09: @xnet/sdk
+# 09: @xnetjs/sdk
 
 > Unified SDK bundle for easy integration
 
 **Duration:** 1 week
-**Dependencies:** All @xnet/\* packages
+**Dependencies:** All @xnetjs/\* packages
 
 ## Overview
 
@@ -15,9 +15,9 @@ This package bundles all xNet packages into a single, easy-to-use SDK with a uni
 cd packages/sdk
 pnpm add -D vitest typescript tsup
 # Add all workspace dependencies
-pnpm add @xnet/core@workspace:* @xnet/crypto@workspace:* @xnet/identity@workspace:*
-pnpm add @xnet/storage@workspace:* @xnet/data@workspace:* @xnet/network@workspace:*
-pnpm add @xnet/query@workspace:* @xnet/react@workspace:*
+pnpm add @xnetjs/core@workspace:* @xnetjs/crypto@workspace:* @xnetjs/identity@workspace:*
+pnpm add @xnetjs/storage@workspace:* @xnetjs/data@workspace:* @xnetjs/network@workspace:*
+pnpm add @xnetjs/query@workspace:* @xnetjs/react@workspace:*
 ```
 
 ## Directory Structure
@@ -42,24 +42,29 @@ packages/sdk/
 ### XNet Client (client.ts)
 
 ```typescript
-import { IndexedDBAdapter, MemoryAdapter, type StorageAdapter } from '@xnet/storage'
-import { generateIdentity, generateKeyBundle, type Identity, type KeyBundle } from '@xnet/identity'
-import { createNode, stopNode, type NetworkNode, type NetworkConfig } from '@xnet/network'
+import { IndexedDBAdapter, MemoryAdapter, type StorageAdapter } from '@xnetjs/storage'
+import {
+  generateIdentity,
+  generateKeyBundle,
+  type Identity,
+  type KeyBundle
+} from '@xnetjs/identity'
+import { createNode, stopNode, type NetworkNode, type NetworkConfig } from '@xnetjs/network'
 import {
   createDocument,
   loadDocument,
   getDocumentState,
   type XDocument,
   type DocumentType
-} from '@xnet/data'
+} from '@xnetjs/data'
 import {
   createLocalQueryEngine,
   createSearchIndex,
   type Query,
   type QueryResult,
   type SearchIndex
-} from '@xnet/query'
-import { SnapshotManager } from '@xnet/storage'
+} from '@xnetjs/query'
+import { SnapshotManager } from '@xnetjs/storage'
 
 export interface XNetClientConfig {
   /** Storage adapter (default: IndexedDB in browser, Memory in tests) */
@@ -291,7 +296,7 @@ export async function createXNetClient(config: XNetClientConfig = {}): Promise<X
 ```typescript
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { createXNetClient, type XNetClient } from './client'
-import { MemoryAdapter } from '@xnet/storage'
+import { MemoryAdapter } from '@xnetjs/storage'
 
 describe('XNetClient', () => {
   let client: XNetClient
@@ -365,7 +370,7 @@ describe('XNetClient', () => {
 
 ```typescript
 import { createXNetClient, type XNetClientConfig, type XNetClient } from '../client'
-import { IndexedDBAdapter } from '@xnet/storage'
+import { IndexedDBAdapter } from '@xnetjs/storage'
 
 export async function createBrowserClient(
   config: Partial<XNetClientConfig> = {}
@@ -388,20 +393,20 @@ export { createXNetClient, type XNetClient, type XNetClientConfig } from './clie
 export { createBrowserClient } from './presets/browser'
 
 // Re-export commonly used types and functions
-export type { Identity, KeyBundle } from '@xnet/identity'
-export type { XDocument, DocumentType, Block, BlockType } from '@xnet/data'
-export type { Query, QueryResult, SearchResult } from '@xnet/query'
-export type { StorageAdapter } from '@xnet/storage'
-export type { NetworkConfig, ConnectionStatus } from '@xnet/network'
+export type { Identity, KeyBundle } from '@xnetjs/identity'
+export type { XDocument, DocumentType, Block, BlockType } from '@xnetjs/data'
+export type { Query, QueryResult, SearchResult } from '@xnetjs/query'
+export type { StorageAdapter } from '@xnetjs/storage'
+export type { NetworkConfig, ConnectionStatus } from '@xnetjs/network'
 
 // Re-export React integration
-export * from '@xnet/react'
+export * from '@xnetjs/react'
 ```
 
 ## Usage Example
 
 ```typescript
-import { createBrowserClient } from '@xnet/sdk'
+import { createBrowserClient } from '@xnetjs/sdk'
 
 async function main() {
   // Create client

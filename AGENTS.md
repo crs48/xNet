@@ -15,18 +15,18 @@ pnpm build
 pnpm test
 
 # Run tests for a single package
-pnpm --filter @xnet/sync test
-pnpm --filter @xnet/data test
-pnpm --filter @xnet/canvas test
+pnpm --filter @xnetjs/sync test
+pnpm --filter @xnetjs/data test
+pnpm --filter @xnetjs/canvas test
 
 # Run a single test file
-pnpm --filter @xnet/sync vitest run src/clock.test.ts
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
 
 # Run tests matching a pattern
-pnpm --filter @xnet/data vitest run -t "NodeStore"
+pnpm --filter @xnetjs/data vitest run -t "NodeStore"
 
 # Watch mode for a package
-pnpm --filter @xnet/sync test:watch
+pnpm --filter @xnetjs/sync test:watch
 
 # Type checking
 pnpm typecheck
@@ -44,7 +44,7 @@ cd apps/electron && pnpm dev:both
 ## Project Structure
 
 ```
-packages/           # Core libraries (@xnet/*)
+packages/           # Core libraries (@xnetjs/*)
   crypto/           # BLAKE3, Ed25519, XChaCha20
   identity/         # DID:key, UCAN tokens
   storage/          # SQLite adapter
@@ -65,7 +65,7 @@ apps/
 
 1. Type-only imports first: `import type { Foo } from './types'`
 2. External packages: `import { useState } from 'react'`
-3. Internal packages: `import { hash } from '@xnet/crypto'`
+3. Internal packages: `import { hash } from '@xnetjs/crypto'`
 4. Local relative imports: `import { helper } from './utils'`
 
 ### Naming Conventions
@@ -100,7 +100,7 @@ File-level JSDoc at top:
 
 ```typescript
 /**
- * @xnet/sync - Unified sync primitives for xNet
+ * @xnetjs/sync - Unified sync primitives for xNet
  */
 ```
 
@@ -184,7 +184,7 @@ describe('ModuleName', () => {
 pnpm --filter xnet-web dev
 
 # Run focused e2e
-pnpm --filter @xnet/e2e-tests exec playwright test src/pages-crud.spec.ts
+pnpm --filter @xnetjs/e2e-tests exec playwright test src/pages-crud.spec.ts
 ```
 
 - Always apply test auth bypass for browser automation before asserting app flows.

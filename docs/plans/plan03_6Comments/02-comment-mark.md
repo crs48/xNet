@@ -3,7 +3,7 @@
 > TipTap Mark for highlighting commented text in the editor
 
 **Duration:** 1-2 days  
-**Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), `@xnet/editor`
+**Dependencies:** [01-comment-schemas.md](./01-comment-schemas.md), `@xnetjs/editor`
 
 ## Overview
 

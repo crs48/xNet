@@ -7,7 +7,7 @@
 
 ## Implementation Status
 
-- [x] **Identity & Auth** — Passkey auth via `@xnet/identity`, unlock flow for returning users
+- [x] **Identity & Auth** — Passkey auth via `@xnetjs/identity`, unlock flow for returning users
 - [x] **Onboarding** — `OnboardingProvider` and `OnboardingFlow` wired into app entry point
 - [x] **Hub Connection** — `wss://hub.xnet.fyi` configured as default signaling URL
 - [x] **Deployment** — Vite base path, TanStack Router basepath, PWA manifest, deploy workflow
@@ -30,10 +30,10 @@ The web app (`apps/web/`) exists as a functional Vite + React SPA with page CRUD
 
 Meanwhile, the infrastructure to support a live web app already exists:
 
-- **`@xnet/identity`** — passkey creation, unlock, PRF-based key derivation, fallback, discovery — all fully implemented.
-- **`@xnet/react` onboarding** — state machine, provider, 8 screens, templates — all fully implemented.
+- **`@xnetjs/identity`** — passkey creation, unlock, PRF-based key derivation, fallback, discovery — all fully implemented.
+- **`@xnetjs/react` onboarding** — state machine, provider, 8 screens, templates — all fully implemented.
 - **Demo Hub** — `hub.xnet.fyi` is live on Railway with eviction and demo config.
-- **`@xnet/react` sync** — `InitialSyncManager`, `SyncProgressOverlay`, hub status hooks — all ready.
+- **`@xnetjs/react` sync** — `InitialSyncManager`, `SyncProgressOverlay`, hub status hooks — all ready.
 
 The gap is integration. The web app uses a hardcoded DID/signing key, has no onboarding flow, no hub connection, and is not served from the site.
 
@@ -43,13 +43,13 @@ The gap is integration. The web app uses a hardcoded DID/signing key, has no onb
 block-beta
   columns 4
 
-  block:identity["@xnet/identity"]:1
+  block:identity["@xnetjs/identity"]:1
     id_passkey["Passkey Auth"]
     id_manager["Identity Manager"]
     id_sharing["Share Tokens"]
   end
 
-  block:react["@xnet/react"]:1
+  block:react["@xnetjs/react"]:1
     r_onboarding["Onboarding Flow"]
     r_hooks["18+ Hooks"]
     r_components["ErrorBoundary\nSkeleton\nOfflineIndicator"]
@@ -75,44 +75,44 @@ block-beta
 
 ### What's Built
 
-| Component                                  | Package          | Status |
-| ------------------------------------------ | ---------------- | ------ |
-| Passkey create/unlock/fallback/discovery   | `@xnet/identity` | Done   |
-| Identity manager factory                   | `@xnet/identity` | Done   |
-| Share token create/parse/verify            | `@xnet/identity` | Done   |
-| Onboarding state machine + reducer         | `@xnet/react`    | Done   |
-| OnboardingProvider + useOnboarding         | `@xnet/react`    | Done   |
-| 8 onboarding screens                       | `@xnet/react`    | Done   |
-| Quick-start templates                      | `@xnet/react`    | Done   |
-| InitialSyncManager (client-side)           | `@xnet/react`    | Done   |
-| SyncProgressOverlay                        | `@xnet/react`    | Done   |
-| ErrorBoundary, Skeleton, OfflineIndicator  | `@xnet/react`    | Done   |
-| HubStatusIndicator                         | `@xnet/react`    | Done   |
-| 18+ React hooks                            | `@xnet/react`    | Done   |
-| Demo hub live on Railway                   | `@xnet/hub`      | Done   |
-| Eviction service                           | `@xnet/hub`      | Done   |
-| Demo config + overrides                    | `@xnet/hub`      | Done   |
-| Web app routes (/, /settings, /doc/$docId) | `apps/web`       | Done   |
-| Editor, sidebar, global search, backlinks  | `apps/web`       | Done   |
+| Component                                  | Package            | Status |
+| ------------------------------------------ | ------------------ | ------ |
+| Passkey create/unlock/fallback/discovery   | `@xnetjs/identity` | Done   |
+| Identity manager factory                   | `@xnetjs/identity` | Done   |
+| Share token create/parse/verify            | `@xnetjs/identity` | Done   |
+| Onboarding state machine + reducer         | `@xnetjs/react`    | Done   |
+| OnboardingProvider + useOnboarding         | `@xnetjs/react`    | Done   |
+| 8 onboarding screens                       | `@xnetjs/react`    | Done   |
+| Quick-start templates                      | `@xnetjs/react`    | Done   |
+| InitialSyncManager (client-side)           | `@xnetjs/react`    | Done   |
+| SyncProgressOverlay                        | `@xnetjs/react`    | Done   |
+| ErrorBoundary, Skeleton, OfflineIndicator  | `@xnetjs/react`    | Done   |
+| HubStatusIndicator                         | `@xnetjs/react`    | Done   |
+| 18+ React hooks                            | `@xnetjs/react`    | Done   |
+| Demo hub live on Railway                   | `@xnetjs/hub`      | Done   |
+| Eviction service                           | `@xnetjs/hub`      | Done   |
+| Demo config + overrides                    | `@xnetjs/hub`      | Done   |
+| Web app routes (/, /settings, /doc/$docId) | `apps/web`         | Done   |
+| Editor, sidebar, global search, backlinks  | `apps/web`         | Done   |
 
 ### What's Missing
 
-| Component                      | Package       | Gap                                |
-| ------------------------------ | ------------- | ---------------------------------- |
-| Passkey auth in web app        | `apps/web`    | Hardcoded DID/key, no passkey flow |
-| Onboarding flow in web app     | `apps/web`    | OnboardingProvider not wired in    |
-| Hub connection in web app      | `apps/web`    | No WebSocket sync, purely local    |
-| `@astrojs/react` integration   | `site/`       | Not installed, not configured      |
-| `/app` route in site           | `site/`       | No page exists                     |
-| SPA fallback for `/app/*`      | `site/`       | No client-side routing support     |
-| DemoBanner component           | `@xnet/react` | Not implemented                    |
-| DemoQuotaIndicator component   | `@xnet/react` | Not implemented                    |
-| Hub quota enforcement service  | `@xnet/hub`   | Quota types exist, no enforcement  |
-| Hub initial-sync service       | `@xnet/hub`   | Client-side only, no server push   |
-| Demo-specific rate limit tiers | `@xnet/hub`   | Generic rate limiter, no demo tier |
-| ShareDialog React component    | `@xnet/react` | Logic in identity pkg, no UI       |
-| Landing page "Try it" CTA      | `site/`       | No link to /app                    |
-| CI trigger for web app changes | `.github/`    | deploy-site.yml only watches site/ |
+| Component                      | Package         | Gap                                |
+| ------------------------------ | --------------- | ---------------------------------- |
+| Passkey auth in web app        | `apps/web`      | Hardcoded DID/key, no passkey flow |
+| Onboarding flow in web app     | `apps/web`      | OnboardingProvider not wired in    |
+| Hub connection in web app      | `apps/web`      | No WebSocket sync, purely local    |
+| `@astrojs/react` integration   | `site/`         | Not installed, not configured      |
+| `/app` route in site           | `site/`         | No page exists                     |
+| SPA fallback for `/app/*`      | `site/`         | No client-side routing support     |
+| DemoBanner component           | `@xnetjs/react` | Not implemented                    |
+| DemoQuotaIndicator component   | `@xnetjs/react` | Not implemented                    |
+| Hub quota enforcement service  | `@xnetjs/hub`   | Quota types exist, no enforcement  |
+| Hub initial-sync service       | `@xnetjs/hub`   | Client-side only, no server push   |
+| Demo-specific rate limit tiers | `@xnetjs/hub`   | Generic rate limiter, no demo tier |
+| ShareDialog React component    | `@xnetjs/react` | Logic in identity pkg, no UI       |
+| Landing page "Try it" CTA      | `site/`         | No link to /app                    |
+| CI trigger for web app changes | `.github/`      | deploy-site.yml only watches site/ |
 
 ## Architecture Decision: How to Serve `/app`
 
@@ -189,11 +189,11 @@ graph LR
     style C fill:#f59e0b,color:#000
 ```
 
-| Type         | Schema           | Package        | Web Status            | Expo Status          |
-| ------------ | ---------------- | -------------- | --------------------- | -------------------- |
-| **Page**     | `PageSchema`     | `@xnet/editor` | Partial (no comments) | CDN WebView (no Yjs) |
-| **Database** | `DatabaseSchema` | `@xnet/views`  | Missing               | Missing              |
-| **Canvas**   | `CanvasSchema`   | `@xnet/canvas` | Missing               | Missing              |
+| Type         | Schema           | Package          | Web Status            | Expo Status          |
+| ------------ | ---------------- | ---------------- | --------------------- | -------------------- |
+| **Page**     | `PageSchema`     | `@xnetjs/editor` | Partial (no comments) | CDN WebView (no Yjs) |
+| **Database** | `DatabaseSchema` | `@xnetjs/views`  | Missing               | Missing              |
+| **Canvas**   | `CanvasSchema`   | `@xnetjs/canvas` | Missing               | Missing              |
 
 ### Electron App Component Tree
 
@@ -210,7 +210,7 @@ App.tsx (shell)
 │   ├── DocumentHeader (title, share button)
 │   ├── SyncIndicator (status dot, peer count)
 │   ├── PresenceAvatars (remote users)
-│   ├── RichTextEditor (@xnet/editor)
+│   ├── RichTextEditor (@xnetjs/editor)
 │   │   ├── Collaborative Yjs binding
 │   │   ├── Image/file upload hooks
 │   │   ├── Plugin extensions (mermaid, etc.)
@@ -224,12 +224,12 @@ App.tsx (shell)
 │
 ├── DatabaseView.tsx (1300 lines)
 │   ├── View mode switcher (Table / Board)
-│   ├── TableView (@xnet/views)
+│   ├── TableView (@xnetjs/views)
 │   │   ├── Virtual scrolling
 │   │   ├── Column CRUD (add, rename, delete, reorder)
 │   │   ├── Cell presence indicators
 │   │   └── Inline editing
-│   ├── BoardView (@xnet/views)
+│   ├── BoardView (@xnetjs/views)
 │   │   ├── Kanban columns from select options
 │   │   ├── Card drag-and-drop
 │   │   ├── Column reordering
@@ -238,7 +238,7 @@ App.tsx (shell)
 │   └── CommentsSidebar with cell hover highlighting
 │
 ├── CanvasView.tsx (183 lines)
-│   ├── Canvas (@xnet/canvas)
+│   ├── Canvas (@xnetjs/canvas)
 │   │   ├── Infinite pan/zoom
 │   │   ├── Grid background
 │   │   ├── Node creation (card type)
@@ -392,17 +392,17 @@ The Electron app uses the full suite of shared packages. The web and Expo apps n
 ```mermaid
 graph TD
     subgraph "Shared Packages (platform-agnostic)"
-        react["@xnet/react<br/>hooks, providers, onboarding"]
-        data["@xnet/data<br/>schemas, NodeStore"]
-        editor["@xnet/editor<br/>RichTextEditor, extensions"]
-        views["@xnet/views<br/>TableView, BoardView, CardDetailModal"]
-        canvas["@xnet/canvas<br/>Canvas, nodes, edges"]
-        ui["@xnet/ui<br/>CommentPopover, CommentsSidebar,<br/>DIDAvatar, ThemeToggle"]
-        identity["@xnet/identity<br/>passkey, DID, UCAN"]
-        sync["@xnet/sync<br/>Yjs sync, awareness"]
-        storage["@xnet/storage<br/>IndexedDB, BlobStore"]
-        devtools["@xnet/devtools<br/>debug panels"]
-        plugins["@xnet/plugins<br/>plugin system"]
+        react["@xnetjs/react<br/>hooks, providers, onboarding"]
+        data["@xnetjs/data<br/>schemas, NodeStore"]
+        editor["@xnetjs/editor<br/>RichTextEditor, extensions"]
+        views["@xnetjs/views<br/>TableView, BoardView, CardDetailModal"]
+        canvas["@xnetjs/canvas<br/>Canvas, nodes, edges"]
+        ui["@xnetjs/ui<br/>CommentPopover, CommentsSidebar,<br/>DIDAvatar, ThemeToggle"]
+        identity["@xnetjs/identity<br/>passkey, DID, UCAN"]
+        sync["@xnetjs/sync<br/>Yjs sync, awareness"]
+        storage["@xnetjs/storage<br/>IndexedDB, BlobStore"]
+        devtools["@xnetjs/devtools<br/>debug panels"]
+        plugins["@xnetjs/plugins<br/>plugin system"]
     end
 
     subgraph "Electron (uses all)"
@@ -439,11 +439,11 @@ To bring `apps/web` to parity with Electron, implement in this order:
 1. **Add missing package dependencies** to `apps/web/package.json`:
 
    ```json
-   "@xnet/identity": "workspace:*",
-   "@xnet/views": "workspace:*",
-   "@xnet/canvas": "workspace:*",
-   "@xnet/devtools": "workspace:*",
-   "@xnet/plugins": "workspace:*"
+   "@xnetjs/identity": "workspace:*",
+   "@xnetjs/views": "workspace:*",
+   "@xnetjs/canvas": "workspace:*",
+   "@xnetjs/devtools": "workspace:*",
+   "@xnetjs/plugins": "workspace:*"
    ```
 
 2. **Port the App shell** from Electron's `App.tsx`:
@@ -459,7 +459,7 @@ To bring `apps/web` to parity with Electron, implement in this order:
 
 #### Phase B: Database Support
 
-4. **Add DatabaseView** using `@xnet/views`:
+4. **Add DatabaseView** using `@xnetjs/views`:
    - Import `TableView`, `BoardView`, `CardDetailModal`
    - Port the view mode switcher
    - Port column CRUD operations
@@ -471,7 +471,7 @@ To bring `apps/web` to parity with Electron, implement in this order:
 
 #### Phase C: Canvas Support
 
-6. **Add CanvasView** using `@xnet/canvas`:
+6. **Add CanvasView** using `@xnetjs/canvas`:
    - Import `Canvas` component
    - Port toolbar (Add Node, Center)
    - Port initial content creation
@@ -481,7 +481,7 @@ To bring `apps/web` to parity with Electron, implement in this order:
 
 #### Phase D: Comment System
 
-8. **Integrate comment system** from `@xnet/ui`:
+8. **Integrate comment system** from `@xnetjs/ui`:
    - Import `CommentPopover`, `CommentsSidebar`, `OrphanedThreadList`
    - Add `useComments` hook usage
    - Port the comment mark extension integration
@@ -491,17 +491,17 @@ To bring `apps/web` to parity with Electron, implement in this order:
 
 9. **Add ShareButton** component
 10. **Add AddSharedDialog** component
-11. **Upgrade PresenceAvatars** to use `DIDAvatar` from `@xnet/ui`
+11. **Upgrade PresenceAvatars** to use `DIDAvatar` from `@xnetjs/ui`
 
 #### Phase F: Settings & Plugins
 
 12. **Expand SettingsView** with all sections from Electron
 13. **Add PluginManager** (optional for web, but enables same plugin ecosystem)
-14. **Add devtools** via `@xnet/devtools`
+14. **Add devtools** via `@xnetjs/devtools`
 
 ### Expo Parity Strategy
 
-Expo requires a different approach due to React Native's constraints. The `@xnet/editor`, `@xnet/views`, and `@xnet/canvas` packages are DOM-based and cannot run natively. The solution is the WebView-first architecture described in the Cross-Platform Convergence section:
+Expo requires a different approach due to React Native's constraints. The `@xnetjs/editor`, `@xnetjs/views`, and `@xnetjs/canvas` packages are DOM-based and cannot run natively. The solution is the WebView-first architecture described in the Cross-Platform Convergence section:
 
 1. **Replace CDN TipTap** in `WebViewEditor.tsx` with the actual `apps/web` bundle
 2. **Implement PostMessage bridge** for storage, identity, and sync
@@ -517,14 +517,14 @@ This gives Expo full feature parity with web automatically — when web gains a 
 These must be done to have a functional demo at `xnet.fyi/app`:
 
 - [x] **Identity & Auth**
-  - [x] Add `@xnet/identity` to `apps/web/package.json`
+  - [x] Add `@xnetjs/identity` to `apps/web/package.json`
   - [x] Remove hardcoded `AUTHOR_DID` and `SIGNING_KEY` from `main.tsx`
   - [x] Integrate `createIdentityManager()` for passkey auth
   - [x] Add unlock flow for returning users
   - [ ] Handle fallback for non-PRF browsers
 
 - [x] **Onboarding**
-  - [x] Import `OnboardingProvider` and `OnboardingFlow` from `@xnet/react`
+  - [x] Import `OnboardingProvider` and `OnboardingFlow` from `@xnetjs/react`
   - [x] Wire onboarding into app entry point
   - [x] Configure hub URL (`wss://hub.xnet.fyi`)
   - [ ] Add template picker on `ReadyScreen`
@@ -552,7 +552,7 @@ These must be done to have a functional demo at `xnet.fyi/app`:
 These bring the web app to basic feature parity with Electron:
 
 - [x] **Database Support**
-  - [x] Add `@xnet/views` to dependencies
+  - [x] Add `@xnetjs/views` to dependencies
   - [x] Create `DatabaseView.tsx` component
   - [x] Import and configure `TableView`
   - [x] Import and configure `BoardView`
@@ -561,7 +561,7 @@ These bring the web app to basic feature parity with Electron:
   - [x] Add "New Database" to create menu
 
 - [x] **Canvas Support**
-  - [x] Add `@xnet/canvas` to dependencies
+  - [x] Add `@xnetjs/canvas` to dependencies
   - [x] Create `CanvasView.tsx` component
   - [x] Import and configure `Canvas`
   - [x] Add toolbar (Add Node, Center)
@@ -576,15 +576,15 @@ These bring the web app to basic feature parity with Electron:
   - [x] Add "Add Shared..." option
 
 - [x] **Comment System**
-  - [x] Import `CommentPopover` from `@xnet/ui`
-  - [x] Import `CommentsSidebar` from `@xnet/ui`
+  - [x] Import `CommentPopover` from `@xnetjs/ui`
+  - [x] Import `CommentsSidebar` from `@xnetjs/ui`
   - [x] Add `useComments` hook integration
   - [x] Add CommentMark extension to editor
   - [x] Add comment count badge to header
   - [x] Add new comment input modal
 
 - [x] **Presence & Sharing**
-  - [x] Import `DIDAvatar` from `@xnet/ui`
+  - [x] Import `DIDAvatar` from `@xnetjs/ui`
   - [x] Upgrade `PresenceAvatars` to use `DIDAvatar`
   - [x] Add peer count to sync indicator
   - [x] Create `ShareButton` component
@@ -622,13 +622,13 @@ These complete feature parity:
   - [ ] Add auto-save toggle
 
 - [x] **Plugin System**
-  - [x] Add `@xnet/plugins` to dependencies
+  - [x] Add `@xnetjs/plugins` to dependencies
   - [x] Add `PluginManager` component
   - [ ] Add plugin sidebar item support
   - [x] Configure bundled plugins (Mermaid)
 
 - [x] **DevTools**
-  - [x] Add `@xnet/devtools` to dependencies
+  - [x] Add `@xnetjs/devtools` to dependencies
   - [x] Add `XNetDevToolsProvider`
   - [x] Wire devtools panel
 
@@ -637,9 +637,9 @@ These complete feature parity:
 These improve the demo experience:
 
 - [x] **Demo UI Components**
-  - [x] Create `DemoBanner.tsx` in `@xnet/react`
-  - [x] Create `DemoQuotaIndicator.tsx` in `@xnet/react`
-  - [x] Create `DemoDataExpiredScreen.tsx` in `@xnet/react`
+  - [x] Create `DemoBanner.tsx` in `@xnetjs/react`
+  - [x] Create `DemoQuotaIndicator.tsx` in `@xnetjs/react`
+  - [x] Create `DemoDataExpiredScreen.tsx` in `@xnetjs/react`
   - [x] Add demo mode detection from hub handshake
   - [x] Wire demo components into app
 
@@ -727,7 +727,7 @@ sequenceDiagram
     participant User
     participant App as Web App (/app)
     participant Onboarding as OnboardingProvider
-    participant Identity as @xnet/identity
+    participant Identity as @xnetjs/identity
     participant Hub as hub.xnet.fyi
 
     User->>App: Visit xnet.fyi/app
@@ -1168,7 +1168,7 @@ gantt
 | `apps/web/src/main.tsx`             | Replace hardcoded identity with passkey auth + onboarding + hub URL |
 | `apps/web/src/routes/__root.tsx`    | Add OfflineIndicator, HubStatusIndicator, DemoBanner                |
 | `apps/web/vite.config.ts`           | Set `base: '/app/'`, update PWA manifest scope                      |
-| `apps/web/package.json`             | Add `@xnet/identity` dependency                                     |
+| `apps/web/package.json`             | Add `@xnetjs/identity` dependency                                   |
 | `.github/workflows/deploy-site.yml` | Full workspace build + web app copy step                            |
 
 ### Must Create (Phase 1 + 2)
@@ -1202,13 +1202,13 @@ gantt
 
 ## Risks & Mitigations
 
-| Risk                                              | Impact                                              | Mitigation                                                                                                                                                                                                         |
-| ------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| GitHub Pages 404.html SPA fallback is a hack      | Incorrect status codes (404 not 200), poor SEO      | Acceptable for an SPA — search engines don't need to index `/app/doc/xyz`. Can migrate to Cloudflare Pages later for proper `_redirects`.                                                                          |
-| Passkey PRF not supported on all browsers         | Users on Firefox/older Chrome can't create identity | `@xnet/identity` already has a fallback path (`createFallbackIdentity`) that encrypts a generated key in IndexedDB. `detectPasskeySupport()` handles detection. Show appropriate UI on `UnsupportedBrowserScreen`. |
-| Demo hub eviction confuses returning users        | User returns, data is gone, they're confused        | `DemoDataExpiredScreen` explains what happened and offers clear next steps. The `DemoBanner` warns upfront.                                                                                                        |
-| Large packages/\*\* trigger deploys unnecessarily | CI cost increases                                   | Use path filtering in the workflow — only trigger on changes to packages the web app actually depends on, or use turbo's `--filter` to detect affected packages.                                                   |
-| PWA service worker caches stale assets at /app/   | Users see old version after deploy                  | `registerType: 'autoUpdate'` in VitePWA already handles this — the service worker auto-updates in the background.                                                                                                  |
+| Risk                                              | Impact                                              | Mitigation                                                                                                                                                                                                           |
+| ------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GitHub Pages 404.html SPA fallback is a hack      | Incorrect status codes (404 not 200), poor SEO      | Acceptable for an SPA — search engines don't need to index `/app/doc/xyz`. Can migrate to Cloudflare Pages later for proper `_redirects`.                                                                            |
+| Passkey PRF not supported on all browsers         | Users on Firefox/older Chrome can't create identity | `@xnetjs/identity` already has a fallback path (`createFallbackIdentity`) that encrypts a generated key in IndexedDB. `detectPasskeySupport()` handles detection. Show appropriate UI on `UnsupportedBrowserScreen`. |
+| Demo hub eviction confuses returning users        | User returns, data is gone, they're confused        | `DemoDataExpiredScreen` explains what happened and offers clear next steps. The `DemoBanner` warns upfront.                                                                                                          |
+| Large packages/\*\* trigger deploys unnecessarily | CI cost increases                                   | Use path filtering in the workflow — only trigger on changes to packages the web app actually depends on, or use turbo's `--filter` to detect affected packages.                                                     |
+| PWA service worker caches stale assets at /app/   | Users see old version after deploy                  | `registerType: 'autoUpdate'` in VitePWA already handles this — the service worker auto-updates in the background.                                                                                                    |
 
 ## Open Questions
 
@@ -1265,38 +1265,38 @@ block-beta
 
 ### Code Sharing Audit
 
-| Component          | Electron                                                        | Web                              | Expo                                                 | Shared?                                    |
-| ------------------ | --------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------- | ------------------------------------------ |
-| **Sidebar**        | 314 lines, 3 doc types, plugins, collapse                       | 65 lines, pages only             | N/A (FlatList on HomeScreen)                         | No                                         |
-| **Editor**         | `@xnet/editor` + 907-line wrapper (comments, plugins, presence) | `@xnet/editor` + 31-line wrapper | CDN TipTap in WebView (no Yjs, no custom extensions) | Partially (Electron+Web share core editor) |
-| **Database views** | Full TableView, BoardView from `@xnet/views`                    | None                             | None                                                 | No                                         |
-| **Canvas**         | `@xnet/canvas`                                                  | None                             | None                                                 | No                                         |
-| **Settings**       | 295 lines, 5 tabs                                               | 42 lines, 2 sections             | 126 lines, RN StyleSheet                             | No                                         |
-| **Identity**       | `identityFromPrivateKey()` with profile seed                    | Hardcoded DID + key              | Auto-generated via SDK                               | No                                         |
-| **Sync**           | IPC through main process BSM                                    | Disabled                         | Disabled                                             | No                                         |
-| **Onboarding**     | None                                                            | None                             | None                                                 | N/A (exists in @xnet/react but unused)     |
-| **Search**         | None                                                            | GlobalSearch (240 lines)         | None                                                 | No                                         |
-| **Presence**       | DIDAvatar from @xnet/ui                                         | Inline colored spans             | None                                                 | No                                         |
-| **Provider stack** | XNet + Blob + Theme + Telemetry + DevTools                      | XNet + Blob + Theme              | React Navigation only                                | Minimal                                    |
+| Component          | Electron                                                          | Web                                | Expo                                                 | Shared?                                    |
+| ------------------ | ----------------------------------------------------------------- | ---------------------------------- | ---------------------------------------------------- | ------------------------------------------ |
+| **Sidebar**        | 314 lines, 3 doc types, plugins, collapse                         | 65 lines, pages only               | N/A (FlatList on HomeScreen)                         | No                                         |
+| **Editor**         | `@xnetjs/editor` + 907-line wrapper (comments, plugins, presence) | `@xnetjs/editor` + 31-line wrapper | CDN TipTap in WebView (no Yjs, no custom extensions) | Partially (Electron+Web share core editor) |
+| **Database views** | Full TableView, BoardView from `@xnetjs/views`                    | None                               | None                                                 | No                                         |
+| **Canvas**         | `@xnetjs/canvas`                                                  | None                               | None                                                 | No                                         |
+| **Settings**       | 295 lines, 5 tabs                                                 | 42 lines, 2 sections               | 126 lines, RN StyleSheet                             | No                                         |
+| **Identity**       | `identityFromPrivateKey()` with profile seed                      | Hardcoded DID + key                | Auto-generated via SDK                               | No                                         |
+| **Sync**           | IPC through main process BSM                                      | Disabled                           | Disabled                                             | No                                         |
+| **Onboarding**     | None                                                              | None                               | None                                                 | N/A (exists in @xnetjs/react but unused)   |
+| **Search**         | None                                                              | GlobalSearch (240 lines)           | None                                                 | No                                         |
+| **Presence**       | DIDAvatar from @xnetjs/ui                                         | Inline colored spans               | None                                                 | No                                         |
+| **Provider stack** | XNet + Blob + Theme + Telemetry + DevTools                        | XNet + Blob + Theme                | React Navigation only                                | Minimal                                    |
 
 ### Package Usage Per Platform
 
 ```mermaid
 graph LR
     subgraph "Shared Packages"
-        react["@xnet/react"]
-        data["@xnet/data"]
-        editor["@xnet/editor"]
-        canvas["@xnet/canvas"]
-        ui["@xnet/ui"]
-        identity["@xnet/identity"]
-        sync["@xnet/sync"]
-        storage["@xnet/storage"]
-        sdk["@xnet/sdk"]
-        views["@xnet/views"]
-        devtools["@xnet/devtools"]
-        plugins["@xnet/plugins"]
-        telemetry["@xnet/telemetry"]
+        react["@xnetjs/react"]
+        data["@xnetjs/data"]
+        editor["@xnetjs/editor"]
+        canvas["@xnetjs/canvas"]
+        ui["@xnetjs/ui"]
+        identity["@xnetjs/identity"]
+        sync["@xnetjs/sync"]
+        storage["@xnetjs/storage"]
+        sdk["@xnetjs/sdk"]
+        views["@xnetjs/views"]
+        devtools["@xnetjs/devtools"]
+        plugins["@xnetjs/plugins"]
+        telemetry["@xnetjs/telemetry"]
     end
 
     subgraph "Electron"
@@ -1353,8 +1353,8 @@ This means the Electron renderer could run in any browser if the platform bridge
 Expo is the most disconnected platform:
 
 - Does **not** use `XNetProvider`, `BlobProvider`, or `ThemeProvider`
-- Does **not** use `@xnet/data`, `@xnet/editor`, `@xnet/ui`, `@xnet/views`, `@xnet/storage`, `@xnet/identity`, `@xnet/sync`, `@xnet/devtools`, or `@xnet/plugins`
-- Has its own `useXNet` and `useNode` hooks that wrap `@xnet/sdk`
+- Does **not** use `@xnetjs/data`, `@xnetjs/editor`, `@xnetjs/ui`, `@xnetjs/views`, `@xnetjs/storage`, `@xnetjs/identity`, `@xnetjs/sync`, `@xnetjs/devtools`, or `@xnetjs/plugins`
+- Has its own `useXNet` and `useNode` hooks that wrap `@xnetjs/sdk`
 - Has its own `ExpoStorageAdapter` using `expo-sqlite`
 - Loads TipTap from **CDN** in a WebView — no Yjs, no custom extensions, no collaboration
 - Uses React Native `StyleSheet` instead of Tailwind
@@ -1364,7 +1364,7 @@ The Expo app is effectively a separate product that happens to share a repo. Get
 
 ### Proposed Architecture: WebView-First Mobile
 
-The `@xnet/editor` and `@xnet/views` packages are inherently DOM-based (TipTap/ProseMirror requires a DOM). They cannot run natively in React Native. But they run perfectly in a WebView. The Expo app already uses a WebView for the editor — it's just loading a stripped-down CDN version instead of the actual shared code.
+The `@xnetjs/editor` and `@xnetjs/views` packages are inherently DOM-based (TipTap/ProseMirror requires a DOM). They cannot run natively in React Native. But they run perfectly in a WebView. The Expo app already uses a WebView for the editor — it's just loading a stripped-down CDN version instead of the actual shared code.
 
 The proposal: **Expo should load the web app (`apps/web` build) in a WebView** for all rich content (editor, databases, canvas), with a thin React Native shell for navigation, native storage, and platform-specific features (biometrics, file system, push notifications).
 
@@ -1382,9 +1382,9 @@ flowchart TD
 
         subgraph webview["WebView (apps/web bundle)"]
             app_ui["Full App UI\n(same React components)"]
-            editor2["RichTextEditor\n(@xnet/editor)"]
-            views2["Database Views\n(@xnet/views)"]
-            canvas2["Canvas\n(@xnet/canvas)"]
+            editor2["RichTextEditor\n(@xnetjs/editor)"]
+            views2["Database Views\n(@xnetjs/views)"]
+            canvas2["Canvas\n(@xnetjs/canvas)"]
         end
 
         subgraph bridge["PostMessage Bridge"]
@@ -1408,14 +1408,14 @@ flowchart TD
 ```mermaid
 graph TB
     subgraph tier1["Tier 1: Shared Packages (today)"]
-        t1_react["@xnet/react — hooks, providers, onboarding"]
-        t1_data["@xnet/data — schemas, NodeStore"]
-        t1_editor["@xnet/editor — TipTap editor"]
-        t1_views["@xnet/views — database views"]
-        t1_canvas["@xnet/canvas — infinite canvas"]
-        t1_ui["@xnet/ui — UI primitives"]
-        t1_identity["@xnet/identity — passkey auth"]
-        t1_sync["@xnet/sync — CRDT sync"]
+        t1_react["@xnetjs/react — hooks, providers, onboarding"]
+        t1_data["@xnetjs/data — schemas, NodeStore"]
+        t1_editor["@xnetjs/editor — TipTap editor"]
+        t1_views["@xnetjs/views — database views"]
+        t1_canvas["@xnetjs/canvas — infinite canvas"]
+        t1_ui["@xnetjs/ui — UI primitives"]
+        t1_identity["@xnetjs/identity — passkey auth"]
+        t1_sync["@xnetjs/sync — CRDT sync"]
     end
 
     subgraph tier2["Tier 2: Shared App Shell (target)"]
@@ -1446,15 +1446,15 @@ graph TB
 
 **Tier 3 (Platform Adapters)** — Thin wrappers that provide platform-specific storage, sync, identity, and navigation:
 
-| Concern         | Browser                        | Electron                       | Mobile                                     |
-| --------------- | ------------------------------ | ------------------------------ | ------------------------------------------ |
-| **Storage**     | IndexedDB via `@xnet/storage`  | SQLite via IPC preload bridge  | SQLite via RN postMessage bridge           |
-| **Sync**        | WebSocket direct to hub        | WebSocket via main process BSM | WebSocket via RN bridge or direct          |
-| **Identity**    | WebAuthn passkey (browser API) | Touch ID via Electron preload  | Biometrics via `expo-local-authentication` |
-| **Rendering**   | Direct DOM                     | BrowserWindow (direct DOM)     | WebView (DOM inside RN)                    |
-| **Navigation**  | TanStack Router (URL-based)    | TanStack Router or state-based | RN Navigation wrapping WebView routes      |
-| **File access** | File API / downloads           | Node.js `fs` via IPC           | `expo-file-system` via bridge              |
-| **Updates**     | Service worker                 | `electron-updater`             | App store / OTA via EAS                    |
+| Concern         | Browser                         | Electron                       | Mobile                                     |
+| --------------- | ------------------------------- | ------------------------------ | ------------------------------------------ |
+| **Storage**     | IndexedDB via `@xnetjs/storage` | SQLite via IPC preload bridge  | SQLite via RN postMessage bridge           |
+| **Sync**        | WebSocket direct to hub         | WebSocket via main process BSM | WebSocket via RN bridge or direct          |
+| **Identity**    | WebAuthn passkey (browser API)  | Touch ID via Electron preload  | Biometrics via `expo-local-authentication` |
+| **Rendering**   | Direct DOM                      | BrowserWindow (direct DOM)     | WebView (DOM inside RN)                    |
+| **Navigation**  | TanStack Router (URL-based)     | TanStack Router or state-based | RN Navigation wrapping WebView routes      |
+| **File access** | File API / downloads            | Node.js `fs` via IPC           | `expo-file-system` via bridge              |
+| **Updates**     | Service worker                  | `electron-updater`             | App store / OTA via EAS                    |
 
 ### Convergence Path
 
@@ -1464,15 +1464,15 @@ This is not a "rewrite everything" proposal. It's an incremental convergence:
 
 Bring the web app to parity with Electron's renderer by porting features from `apps/electron/src/renderer/`:
 
-1. **Port the Sidebar** — Electron's sidebar supports pages, databases, canvases, collapsible sections, plugin items, delete, and create menu. The web sidebar only lists pages. Port the Electron sidebar to the web app using the shared `@xnet/views` and `@xnet/ui` packages.
+1. **Port the Sidebar** — Electron's sidebar supports pages, databases, canvases, collapsible sections, plugin items, delete, and create menu. The web sidebar only lists pages. Port the Electron sidebar to the web app using the shared `@xnetjs/views` and `@xnetjs/ui` packages.
 
-2. **Port DatabaseView and CanvasView** — Currently only in Electron. These use `@xnet/views` and `@xnet/canvas` which are platform-agnostic React packages. They should work in the web app with no changes.
+2. **Port DatabaseView and CanvasView** — Currently only in Electron. These use `@xnetjs/views` and `@xnetjs/canvas` which are platform-agnostic React packages. They should work in the web app with no changes.
 
-3. **Port comments, presence, share** — The comment system (`CommentPopover`, `CommentsSidebar`, `OrphanedThreadList`) lives in `@xnet/ui`. The presence system uses `DIDAvatar` from `@xnet/ui`. These should be usable directly.
+3. **Port comments, presence, share** — The comment system (`CommentPopover`, `CommentsSidebar`, `OrphanedThreadList`) lives in `@xnetjs/ui`. The presence system uses `DIDAvatar` from `@xnetjs/ui`. These should be usable directly.
 
-4. **Integrate onboarding** — Wire in `OnboardingProvider` + `OnboardingFlow` from `@xnet/react` (covered in Phase 1 of this exploration).
+4. **Integrate onboarding** — Wire in `OnboardingProvider` + `OnboardingFlow` from `@xnetjs/react` (covered in Phase 1 of this exploration).
 
-5. **Add devtools** — `@xnet/devtools` is a React package, not Electron-specific. Add it to the web app for developer experience.
+5. **Add devtools** — `@xnetjs/devtools` is a React package, not Electron-specific. Add it to the web app for developer experience.
 
 #### Step 2: Abstract Platform Bridges
 
@@ -1564,27 +1564,27 @@ The web app integration (Phases 1-3 of this exploration) becomes even more impor
 
 2. **Feature parity matters** — Features added to Electron's renderer should be added to `apps/web` instead, since Electron will eventually render `apps/web`.
 
-3. **The onboarding flow is platform-agnostic** — `OnboardingProvider` from `@xnet/react` works in any React environment. Wiring it into `apps/web` means it works on all three platforms for free.
+3. **The onboarding flow is platform-agnostic** — `OnboardingProvider` from `@xnetjs/react` works in any React environment. Wiring it into `apps/web` means it works on all three platforms for free.
 
 4. **TanStack Router works everywhere** — URL-based routing works in browsers, Electron BrowserWindows, and WebViews. The basepath just changes (`/app/` for browser, `/` for Electron, `/` for WebView).
 
 ### Migration Risk Assessment
 
-| Risk                                                   | Severity | Mitigation                                                                                                                                                                                                                |
-| ------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Electron renderer rewrite is disruptive                | High     | Incremental migration: first get web app to feature parity, then switch Electron to load it. Keep old renderer as fallback.                                                                                               |
-| WebView performance on mobile                          | Medium   | Profile early. TipTap/ProseMirror is lightweight. The current Expo WebView editor already works fine. Only complex database views with many rows might need optimization (virtual scrolling is already in `@xnet/views`). |
-| PostMessage bridge latency                             | Medium   | Batch storage queries, use optimistic UI. The bridge only carries data operations, not rendering — the WebView handles all DOM work locally.                                                                              |
-| WebView doesn't feel "native" on mobile                | Medium   | The RN shell provides native navigation chrome (headers, tabs, gestures). Content inside the WebView uses the same Tailwind styles. Platform-adaptive CSS can handle differences.                                         |
-| Two build targets for `apps/web` (browser vs embedded) | Low      | Same Vite build, different `base` path. The platform adapter pattern means no code changes — just different runtime config.                                                                                               |
+| Risk                                                   | Severity | Mitigation                                                                                                                                                                                                                  |
+| ------------------------------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Electron renderer rewrite is disruptive                | High     | Incremental migration: first get web app to feature parity, then switch Electron to load it. Keep old renderer as fallback.                                                                                                 |
+| WebView performance on mobile                          | Medium   | Profile early. TipTap/ProseMirror is lightweight. The current Expo WebView editor already works fine. Only complex database views with many rows might need optimization (virtual scrolling is already in `@xnetjs/views`). |
+| PostMessage bridge latency                             | Medium   | Batch storage queries, use optimistic UI. The bridge only carries data operations, not rendering — the WebView handles all DOM work locally.                                                                                |
+| WebView doesn't feel "native" on mobile                | Medium   | The RN shell provides native navigation chrome (headers, tabs, gestures). Content inside the WebView uses the same Tailwind styles. Platform-adaptive CSS can handle differences.                                           |
+| Two build targets for `apps/web` (browser vs embedded) | Low      | Same Vite build, different `base` path. The platform adapter pattern means no code changes — just different runtime config.                                                                                                 |
 
 ## Conclusion
 
-The hardest work is already done. The identity system, onboarding flow, sync infrastructure, and hub are all implemented. The shared packages (`@xnet/react`, `@xnet/editor`, `@xnet/views`, `@xnet/ui`, `@xnet/canvas`) are platform-agnostic React libraries that work in any DOM environment.
+The hardest work is already done. The identity system, onboarding flow, sync infrastructure, and hub are all implemented. The shared packages (`@xnetjs/react`, `@xnetjs/editor`, `@xnetjs/views`, `@xnetjs/ui`, `@xnetjs/canvas`) are platform-agnostic React libraries that work in any DOM environment.
 
 ### Immediate Priority: Get `xnet.fyi/app` Live
 
-1. **Wire `apps/web/` to use `@xnet/identity` and `@xnet/react` onboarding** (~1 day)
+1. **Wire `apps/web/` to use `@xnetjs/identity` and `@xnetjs/react` onboarding** (~1 day)
 2. **Set Vite base path and TanStack basepath to `/app/`** (~1 hour)
 3. **Update the CI workflow to build and stitch both projects** (~1 hour)
 4. **Add landing page CTAs** (~1 hour)
@@ -1594,9 +1594,9 @@ The hardest work is already done. The identity system, onboarding flow, sync inf
 
 The Feature Parity section above details every capability in the Electron app. The web app needs:
 
-- **Database support** — Port `TableView`, `BoardView`, and `CardDetailModal` from `@xnet/views`
-- **Canvas support** — Port `Canvas` component from `@xnet/canvas`
-- **Comment system** — Integrate `CommentPopover`, `CommentsSidebar` from `@xnet/ui`
+- **Database support** — Port `TableView`, `BoardView`, and `CardDetailModal` from `@xnetjs/views`
+- **Canvas support** — Port `Canvas` component from `@xnetjs/canvas`
+- **Comment system** — Integrate `CommentPopover`, `CommentsSidebar` from `@xnetjs/ui`
 - **Full sidebar** — Collapsible sections, all document types, create dropdown
 - **Sharing** — `ShareButton`, `AddSharedDialog`, type-prefixed IDs
 - **Settings** — Full settings panel with all sections

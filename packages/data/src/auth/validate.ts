@@ -8,7 +8,7 @@
  */
 
 import type { PropertyDefinition } from '../schema/types'
-import type { AuthorizationDefinition, AuthExpression } from '@xnet/core'
+import type { AuthorizationDefinition, AuthExpression } from '@xnetjs/core'
 
 // ─── Validation Result Types ──────────────────────────────────────────────────
 

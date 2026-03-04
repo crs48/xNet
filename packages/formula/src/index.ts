@@ -1,12 +1,12 @@
 /**
- * @xnet/formula - Formula Engine
+ * @xnetjs/formula - Formula Engine
  *
  * Expression parser and evaluator for computed properties.
  * Supports Notion-compatible formula syntax.
  *
  * @example
  * ```typescript
- * import { evaluateFormula } from '@xnet/formula'
+ * import { evaluateFormula } from '@xnetjs/formula'
  *
  * const result = evaluateFormula('prop("price") * prop("quantity")', {
  *   props: { price: 100, quantity: 5 }

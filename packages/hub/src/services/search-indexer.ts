@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Search indexer for generating searchable text from database rows.
+ * @xnetjs/hub - Search indexer for generating searchable text from database rows.
  *
  * Extracts text from searchable column types and concatenates them
  * for FTS5 full-text search indexing.

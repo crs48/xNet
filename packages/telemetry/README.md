@@ -1,11 +1,11 @@
-# @xnet/telemetry
+# @xnetjs/telemetry
 
 Privacy-preserving telemetry for xNet -- tiered consent, data scrubbing, bucketing, and optional P2P sync.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/telemetry
+pnpm add @xnetjs/telemetry
 ```
 
 ## Features
@@ -25,7 +25,7 @@ pnpm add @xnet/telemetry
 ### Consent Management
 
 ```typescript
-import { ConsentManager } from '@xnet/telemetry'
+import { ConsentManager } from '@xnetjs/telemetry'
 
 const consent = new ConsentManager()
 
@@ -45,7 +45,7 @@ await consent.setConsent({
 ### Telemetry Collection
 
 ```typescript
-import { TelemetryCollector } from '@xnet/telemetry'
+import { TelemetryCollector } from '@xnetjs/telemetry'
 
 const collector = new TelemetryCollector({ consent })
 
@@ -64,7 +64,7 @@ import {
   useConsent,
   useTelemetry,
   TelemetryErrorBoundary
-} from '@xnet/telemetry'
+} from '@xnetjs/telemetry'
 
 function App() {
   return (
@@ -169,11 +169,11 @@ flowchart TD
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/data`
+- `@xnetjs/core`, `@xnetjs/data`
 - Optional peer dep: `react`
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/telemetry test
+pnpm --filter @xnetjs/telemetry test
 ```

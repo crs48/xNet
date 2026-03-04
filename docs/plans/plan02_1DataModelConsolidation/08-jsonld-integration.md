@@ -74,7 +74,7 @@ export type XNetContext = (typeof XNET_CONTEXT)['@context']
 ```typescript
 // packages/data/src/types/document.ts
 
-import type { DID, ContentId } from '@xnet/core'
+import type { DID, ContentId } from '@xnetjs/core'
 import type { XNetContext } from '../schema/context'
 
 /**

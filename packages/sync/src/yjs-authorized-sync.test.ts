@@ -1,6 +1,6 @@
 import type { EnvelopeVerificationResult, SignedYjsEnvelopeV2 } from './yjs-envelope'
-import type { AuthDecision, DID, PolicyEvaluator } from '@xnet/core'
-import { generateKey, randomBytes } from '@xnet/crypto'
+import type { AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
+import { generateKey, randomBytes } from '@xnetjs/crypto'
 import { describe, expect, it, vi } from 'vitest'
 import { YjsAuthGate, encryptYjsState, serializeEncryptedYjsState } from './yjs-authorization'
 import {

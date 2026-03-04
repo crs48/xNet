@@ -8,9 +8,9 @@
 import type { ViewConfig, CellPresence } from '../types.js'
 import type { ColumnUpdate } from './TableView.js'
 import type { TableRow } from './useTableState.js'
-import type { Schema, PropertyDefinition } from '@xnet/data'
+import type { Schema, PropertyDefinition } from '@xnetjs/data'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { cn } from '@xnet/ui'
+import { cn } from '@xnetjs/ui'
 import React, { useRef, useCallback, useMemo, memo, type JSX } from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 

@@ -2,7 +2,7 @@
  * Tests for ClientID-to-DID Binding
  */
 
-import { generateIdentity } from '@xnet/identity'
+import { generateIdentity } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   createClientIdAttestation,

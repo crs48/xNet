@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/data",
+  "name": "@xnetjs/data",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -22,12 +22,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*",
-    "@xnet/identity": "workspace:*",
-    "@xnet/sqlite": "workspace:*",
-    "@xnet/storage": "workspace:*",
-    "@xnet/sync": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/identity": "workspace:*",
+    "@xnetjs/sqlite": "workspace:*",
+    "@xnetjs/storage": "workspace:*",
+    "@xnetjs/sync": "workspace:*",
     "lib0": "^0.2.102",
     "nanoid": "^5.1.6",
     "y-protocols": "^1.0.6",

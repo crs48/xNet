@@ -1,11 +1,11 @@
-# @xnet/formula
+# @xnetjs/formula
 
-Formula parser and evaluator for database computed properties -- a standalone package with zero `@xnet/*` dependencies.
+Formula parser and evaluator for database computed properties -- a standalone package with zero `@xnetjs/*` dependencies.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/formula
+pnpm add @xnetjs/formula
 ```
 
 ## Features
@@ -21,7 +21,7 @@ pnpm add @xnet/formula
 ## Usage
 
 ```typescript
-import { parseFormula, evaluateFormula, validateFormula } from '@xnet/formula'
+import { parseFormula, evaluateFormula, validateFormula } from '@xnetjs/formula'
 
 // Parse and evaluate
 const result = evaluateFormula('prop("Price") * prop("Quantity")', {
@@ -33,7 +33,7 @@ const result = evaluateFormula('prop("Price") * prop("Quantity")', {
 const { valid, errors } = validateFormula('if(prop("Status") == "Done", "Complete", "Pending")')
 
 // Extract property references
-import { extractPropertyReferences } from '@xnet/formula'
+import { extractPropertyReferences } from '@xnetjs/formula'
 const refs = extractPropertyReferences('prop("Price") * prop("Quantity")')
 // => ["Price", "Quantity"]
 ```
@@ -41,7 +41,7 @@ const refs = extractPropertyReferences('prop("Price") * prop("Quantity")')
 ### Compiled Formulas
 
 ```typescript
-import { compileFormula } from '@xnet/formula'
+import { compileFormula } from '@xnetjs/formula'
 
 // Pre-compile for repeated evaluation
 const compiled = compileFormula('prop("Price") * prop("Quantity") * (1 + prop("Tax"))')
@@ -53,7 +53,7 @@ const result2 = compiled.evaluate({ props: { Price: 20, Quantity: 1, Tax: 0.2 } 
 ### Advanced: Direct AST Access
 
 ```typescript
-import { Lexer, Parser, Evaluator } from '@xnet/formula'
+import { Lexer, Parser, Evaluator } from '@xnetjs/formula'
 
 const tokens = new Lexer('1 + 2 * 3').tokenize()
 const ast = new Parser(tokens).parse()
@@ -112,7 +112,7 @@ flowchart LR
 ## Testing
 
 ```bash
-pnpm --filter @xnet/formula test
+pnpm --filter @xnetjs/formula test
 ```
 
 4 test files covering lexer, parser, evaluator, and built-in functions.

@@ -183,7 +183,7 @@ export class AuthMigrator {
  *
  * NodeStore doesn't expose serializeNodeContent(), extractMetadata(),
  * storeEnvelope(), or signingKey directly. This layer provides those
- * operations using the actual NodeStore + @xnet/crypto APIs.
+ * operations using the actual NodeStore + @xnetjs/crypto APIs.
  *
  * Injected into AuthMigrator and NodeStore's auth-enhanced paths.
  */
@@ -303,7 +303,7 @@ describe('Adversarial Tests', () => {
 ```typescript
 /**
  * Optional audit logging for authorization decisions.
- * Integrates with @xnet/telemetry for persistent logging.
+ * Integrates with @xnetjs/telemetry for persistent logging.
  *
  * Low priority — grant nodes already provide an audit trail
  * (they're regular nodes with change history). This adds

@@ -53,30 +53,30 @@ graph LR
 
 ## Coverage by Package
 
-| Package         | Test Files | Tests | Coverage | Risk   |
-| --------------- | ---------- | ----- | -------- | ------ |
-| @xnet/sync      | 19         | 251+  | HIGH     | LOW    |
-| @xnet/data      | 13         | 200+  | MEDIUM   | MEDIUM |
-| @xnet/editor    | 27         | 150+  | MEDIUM   | LOW    |
-| @xnet/network   | 8          | 100+  | HIGH     | LOW    |
-| @xnet/identity  | 9          | 90+   | MEDIUM   | MEDIUM |
-| @xnet/hub       | 20         | 150+  | MEDIUM   | MEDIUM |
-| @xnet/react     | 9          | 50+   | LOW      | HIGH   |
-| @xnet/canvas    | 4          | 60+   | MEDIUM   | LOW    |
-| @xnet/formula   | 4          | 80+   | HIGH     | LOW    |
-| @xnet/vectors   | 4          | 68+   | HIGH     | LOW    |
-| @xnet/views     | 7          | 65+   | LOW      | LOW    |
-| @xnet/devtools  | 3          | 55+   | LOW      | LOW    |
-| @xnet/plugins   | 8          | 60+   | MEDIUM   | MEDIUM |
-| @xnet/query     | 2          | 35+   | LOW      | LOW    |
-| @xnet/sdk       | 1          | 10+   | LOW      | LOW    |
-| @xnet/crypto    | 4          | 27+   | HIGH     | MEDIUM |
-| @xnet/storage   | 4          | 50+   | HIGH     | LOW    |
-| @xnet/telemetry | 5          | 80+   | MEDIUM   | LOW    |
-| @xnet/core      | 5          | 34+   | MEDIUM   | MEDIUM |
-| @xnet/ui        | 0          | 0     | NONE     | LOW    |
-| @xnet/cli       | 1          | 13+   | LOW      | LOW    |
-| @xnet/history   | 0          | 0     | NONE     | LOW    |
+| Package           | Test Files | Tests | Coverage | Risk   |
+| ----------------- | ---------- | ----- | -------- | ------ |
+| @xnetjs/sync      | 19         | 251+  | HIGH     | LOW    |
+| @xnetjs/data      | 13         | 200+  | MEDIUM   | MEDIUM |
+| @xnetjs/editor    | 27         | 150+  | MEDIUM   | LOW    |
+| @xnetjs/network   | 8          | 100+  | HIGH     | LOW    |
+| @xnetjs/identity  | 9          | 90+   | MEDIUM   | MEDIUM |
+| @xnetjs/hub       | 20         | 150+  | MEDIUM   | MEDIUM |
+| @xnetjs/react     | 9          | 50+   | LOW      | HIGH   |
+| @xnetjs/canvas    | 4          | 60+   | MEDIUM   | LOW    |
+| @xnetjs/formula   | 4          | 80+   | HIGH     | LOW    |
+| @xnetjs/vectors   | 4          | 68+   | HIGH     | LOW    |
+| @xnetjs/views     | 7          | 65+   | LOW      | LOW    |
+| @xnetjs/devtools  | 3          | 55+   | LOW      | LOW    |
+| @xnetjs/plugins   | 8          | 60+   | MEDIUM   | MEDIUM |
+| @xnetjs/query     | 2          | 35+   | LOW      | LOW    |
+| @xnetjs/sdk       | 1          | 10+   | LOW      | LOW    |
+| @xnetjs/crypto    | 4          | 27+   | HIGH     | MEDIUM |
+| @xnetjs/storage   | 4          | 50+   | HIGH     | LOW    |
+| @xnetjs/telemetry | 5          | 80+   | MEDIUM   | LOW    |
+| @xnetjs/core      | 5          | 34+   | MEDIUM   | MEDIUM |
+| @xnetjs/ui        | 0          | 0     | NONE     | LOW    |
+| @xnetjs/cli       | 1          | 13+   | LOW      | LOW    |
+| @xnetjs/history   | 0          | 0     | NONE     | LOW    |
 
 ---
 

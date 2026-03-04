@@ -1,6 +1,6 @@
 # 01: SQLite Adapter Interface
 
-> Define the unified SQLite adapter interface and create the @xnet/sqlite package scaffold.
+> Define the unified SQLite adapter interface and create the @xnetjs/sqlite package scaffold.
 
 **Duration:** 2 days
 **Dependencies:** None
@@ -58,7 +58,7 @@ mkdir -p packages/sqlite/src/adapters
 ```json
 // packages/sqlite/package.json
 {
-  "name": "@xnet/sqlite",
+  "name": "@xnetjs/sqlite",
   "version": "0.1.0",
   "description": "Unified SQLite adapter for xNet across all platforms",
   "type": "module",
@@ -504,7 +504,7 @@ CREATE TABLE IF NOT EXISTS blobs (
     reference_count INTEGER DEFAULT 1
 );
 
--- Documents (for @xnet/storage compatibility)
+-- Documents (for @xnetjs/storage compatibility)
 CREATE TABLE IF NOT EXISTS documents (
     id TEXT PRIMARY KEY,
     content BLOB NOT NULL,
@@ -512,7 +512,7 @@ CREATE TABLE IF NOT EXISTS documents (
     version INTEGER NOT NULL DEFAULT 1
 );
 
--- Signed updates (for @xnet/storage compatibility)
+-- Signed updates (for @xnetjs/storage compatibility)
 CREATE TABLE IF NOT EXISTS updates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     doc_id TEXT NOT NULL,
@@ -522,7 +522,7 @@ CREATE TABLE IF NOT EXISTS updates (
     UNIQUE(doc_id, update_hash)
 );
 
--- Snapshots (for @xnet/storage compatibility)
+-- Snapshots (for @xnetjs/storage compatibility)
 CREATE TABLE IF NOT EXISTS snapshots (
     doc_id TEXT PRIMARY KEY,
     snapshot_data TEXT NOT NULL,

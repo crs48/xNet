@@ -2,7 +2,7 @@
 
 > Spatial visualization of plantings by forest layer, with drag-and-drop placement and zone overlays.
 
-**Dependencies:** Step 01 (all schemas), Step 06 (PlantingSchema data), `@xnet/views` (view registry)
+**Dependencies:** Step 01 (all schemas), Step 06 (PlantingSchema data), `@xnetjs/views` (view registry)
 
 ## Overview
 

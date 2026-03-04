@@ -1,4 +1,4 @@
-import { generateIdentity } from '@xnet/identity'
+import { generateIdentity } from '@xnetjs/identity'
 import { describe, it, expect } from 'vitest'
 import * as Y from 'yjs'
 import {

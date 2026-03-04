@@ -1,16 +1,16 @@
-import { defineConfig } from 'vitest/config'
 import path from 'path'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   resolve: {
     alias: {
-      '@xnet/data': path.resolve(__dirname, '../../packages/data/src'),
-      '@xnet/crypto': path.resolve(__dirname, '../../packages/crypto/src'),
-      '@xnet/identity': path.resolve(__dirname, '../../packages/identity/src'),
-      '@xnet/react': path.resolve(__dirname, '../../packages/react/src'),
-      '@xnet/core': path.resolve(__dirname, '../../packages/core/src'),
-      '@xnet/storage': path.resolve(__dirname, '../../packages/storage/src'),
-      '@xnet/sync': path.resolve(__dirname, '../../packages/sync/src')
+      '@xnetjs/data': path.resolve(__dirname, '../../packages/data/src'),
+      '@xnetjs/crypto': path.resolve(__dirname, '../../packages/crypto/src'),
+      '@xnetjs/identity': path.resolve(__dirname, '../../packages/identity/src'),
+      '@xnetjs/react': path.resolve(__dirname, '../../packages/react/src'),
+      '@xnetjs/core': path.resolve(__dirname, '../../packages/core/src'),
+      '@xnetjs/storage': path.resolve(__dirname, '../../packages/storage/src'),
+      '@xnetjs/sync': path.resolve(__dirname, '../../packages/sync/src')
     }
   },
   test: {

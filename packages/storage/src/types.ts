@@ -1,7 +1,7 @@
 /**
  * Storage interfaces and types
  */
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 
 export interface StorageAdapter {
   // Blobs
@@ -17,7 +17,7 @@ export interface StorageAdapter {
 
 /**
  * Optional telemetry collector interface for storage operations.
- * Compatible with @xnet/telemetry TelemetryCollector.
+ * Compatible with @xnetjs/telemetry TelemetryCollector.
  */
 export interface StorageTelemetry {
   reportPerformance(metricName: string, durationMs: number, codeNamespace?: string): void

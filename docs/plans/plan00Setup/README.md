@@ -31,12 +31,12 @@ graph TB
 
     subgraph "xNet Core Platform"
         SDK["xNet SDK"]
-        DATA["@xnet/data"]
-        NET["@xnet/network"]
-        ID["@xnet/identity"]
-        STORE["@xnet/storage"]
-        CRYPTO["@xnet/crypto"]
-        QUERY["@xnet/query"]
+        DATA["@xnetjs/data"]
+        NET["@xnetjs/network"]
+        ID["@xnetjs/identity"]
+        STORE["@xnetjs/storage"]
+        CRYPTO["@xnetjs/crypto"]
+        QUERY["@xnetjs/query"]
         SDK --> DATA
         SDK --> NET
         SDK --> ID
@@ -80,7 +80,7 @@ graph TB
 | 9   | [AI & MCP Interface](./09-ai-mcp-interface.md)                     | MCP tools for AI agent access, export/import                                   |
 | 10  | [Scaling Architecture](./10-scaling-architecture.md)               | Federation, global namespaces, canvas, backups                                 |
 | 11  | [Versioning Strategy](./11-versioning-strategy.md)                 | Forward-compatibility, no-migration design                                     |
-| 12  | [React Integration](./12-react-integration.md)                     | @xnet/react hooks, reactive queries, reducing Zustand                          |
+| 12  | [React Integration](./12-react-integration.md)                     | @xnetjs/react hooks, reactive queries, reducing Zustand                        |
 | 13  | [Identity & Authentication](./13-identity-authentication.md)       | Passkeys, DID:key, zero-friction onboarding                                    |
 | 14  | [Notifications & Integrations](./14-notifications-integrations.md) | Push notifications, calendar sync, n8n workflows                               |
 | 15  | [Enterprise Scale](./15-enterprise-scale.md)                       | Tiered architecture, event streaming, Tesla-scale planning                     |
@@ -128,7 +128,7 @@ block-beta
 
     block:STATE["STATE & EDITORS"]
         columns 3
-        XNetReact["@xnet/react"]
+        XNetReact["@xnetjs/react"]
         Tiptap["Tiptap/ProseMirror"]
         DnD["React DnD"]
     end
@@ -177,7 +177,7 @@ block-beta
 | Choice                 | Rationale                                                                      |
 | ---------------------- | ------------------------------------------------------------------------------ |
 | **React + TypeScript** | Industry standard, massive ecosystem, strong typing                            |
-| **@xnet/react**        | Reactive hooks for data + sync; handles persistent state (Zustand for UI only) |
+| **@xnetjs/react**      | Reactive hooks for data + sync; handles persistent state (Zustand for UI only) |
 | **Tiptap/ProseMirror** | Battle-tested, excellent Yjs integration, rich plugins                         |
 | **Yjs**                | Best CRDT for text, mature WebRTC integration, small bundle                    |
 | **libp2p**             | Standard for decentralized networking (IPFS/Filecoin)                          |

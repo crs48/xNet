@@ -1,5 +1,5 @@
 /**
- * @xnet/identity - Key bundle serialization for storage
+ * @xnetjs/identity - Key bundle serialization for storage
  *
  * Provides functions to serialize and deserialize HybridKeyBundle for
  * secure storage in IndexedDB or other persistent storage.
@@ -8,7 +8,7 @@
  * with encrypted storage or secure enclaves.
  */
 import type { HybridKeyBundle, DID } from './types'
-import { bytesToBase64, base64ToBytes, getSigningPublicKeyFromPrivate } from '@xnet/crypto'
+import { bytesToBase64, base64ToBytes, getSigningPublicKeyFromPrivate } from '@xnetjs/crypto'
 import { createDID } from './did'
 
 // ─── Serialized Types ────────────────────────────────────────────

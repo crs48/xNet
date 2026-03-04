@@ -7,7 +7,7 @@
 
 import type { SchemaTimeline } from './schema-timeline'
 import type { SchemaTimelineEntry } from './types'
-import type { NodeState, SchemaIRI } from '@xnet/data'
+import type { NodeState, SchemaIRI } from '@xnetjs/data'
 
 export class SchemaScrubCache {
   private cache = new Map<number, NodeState[]>()

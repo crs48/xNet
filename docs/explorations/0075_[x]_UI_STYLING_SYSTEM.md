@@ -8,7 +8,7 @@
 
 ## Implementation Status
 
-> **Status: COMPLETE** - The UI styling system is fully implemented in `@xnet/ui` with all proposed features.
+> **Status: COMPLETE** - The UI styling system is fully implemented in `@xnetjs/ui` with all proposed features.
 
 ### Phase 1: Foundation ✅
 
@@ -175,7 +175,7 @@ Think: Ulysses, iA Writer, Bear, Things 3, Linear, Notion (at its best).
 | **Token system**      | CSS variables in `tokens.css` | Good foundation |
 | **Dark mode**         | `.dark` class toggle          | Works well      |
 | **Tailwind config**   | Shared base config            | Consistent      |
-| **Component library** | `@xnet/ui` primitives         | Solid patterns  |
+| **Component library** | `@xnetjs/ui` primitives       | Solid patterns  |
 | **Editor styling**    | Dedicated `editor.css`        | Well-structured |
 
 ### What Needs Improvement

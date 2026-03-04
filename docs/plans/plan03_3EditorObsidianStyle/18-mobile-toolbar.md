@@ -203,7 +203,7 @@ export function useVirtualKeyboard(): VirtualKeyboardState {
 
 import * as React from 'react'
 import type { Editor } from '@tiptap/core'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import {
   Bold,
   Italic,
@@ -470,7 +470,7 @@ export function MobileToolbar({ editor, className }: MobileToolbarProps) {
 // packages/editor/src/components/MobileToolbar/ToolbarButton.tsx
 
 import * as React from 'react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { hapticFeedback } from '../../utils/mobile'
 
 export interface ToolbarButtonProps {

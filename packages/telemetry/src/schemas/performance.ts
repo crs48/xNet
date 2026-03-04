@@ -2,7 +2,7 @@
  * PerformanceMetric schema - bucketed performance measurements.
  */
 
-import { defineSchema, text, select, date } from '@xnet/data'
+import { defineSchema, text, select, date } from '@xnetjs/data'
 
 export const PerformanceMetricSchema = defineSchema({
   name: 'PerformanceMetric',

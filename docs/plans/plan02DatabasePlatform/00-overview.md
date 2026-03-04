@@ -18,7 +18,7 @@ Transform xNet from a wiki/task manager into a full-featured database platform c
 
 ### Foundation (Already Complete)
 
-The schema system and NodeStore are already implemented in `@xnet/data`:
+The schema system and NodeStore are already implemented in `@xnetjs/data`:
 
 - **Schema system**: `defineSchema()` with 16 property types
 - **NodeStore**: Event-sourced CRUD with LWW conflict resolution
@@ -28,9 +28,9 @@ The schema system and NodeStore are already implemented in `@xnet/data`:
 
 ```
 packages/
-  @xnet/views/         # View components (table, board, etc.)
-  @xnet/formula/       # Formula parser and evaluator
-  @xnet/canvas/        # Infinite canvas with spatial indexing
+  @xnetjs/views/         # View components (table, board, etc.)
+  @xnetjs/formula/       # Formula parser and evaluator
+  @xnetjs/canvas/        # Infinite canvas with spatial indexing
 ```
 
 ### Package Relationships
@@ -38,18 +38,18 @@ packages/
 ```mermaid
 flowchart TD
     subgraph "Phase 2 Packages"
-        VIEWS["@xnet/views<br/>Table, Board, Gallery, etc."]
-        FORMULA["@xnet/formula<br/>Parser, Evaluator"]
-        CANVAS["@xnet/canvas<br/>Spatial Index, Layout"]
+        VIEWS["@xnetjs/views<br/>Table, Board, Gallery, etc."]
+        FORMULA["@xnetjs/formula<br/>Parser, Evaluator"]
+        CANVAS["@xnetjs/canvas<br/>Spatial Index, Layout"]
     end
 
     subgraph "Foundation (Complete)"
-        DATA["@xnet/data<br/>Schema, NodeStore, Documents"]
-        SYNC["@xnet/sync<br/>Lamport, Change&lt;T&gt;"]
-        STORAGE["@xnet/storage"]
-        REACT["@xnet/react<br/>useNode, useNodes, useNodeSync"]
-        VECTORS["@xnet/vectors"]
-        QUERY["@xnet/query"]
+        DATA["@xnetjs/data<br/>Schema, NodeStore, Documents"]
+        SYNC["@xnetjs/sync<br/>Lamport, Change&lt;T&gt;"]
+        STORAGE["@xnetjs/storage"]
+        REACT["@xnetjs/react<br/>useNode, useNodes, useNodeSync"]
+        VECTORS["@xnetjs/vectors"]
+        QUERY["@xnetjs/query"]
     end
 
     SYNC --> DATA
@@ -71,7 +71,7 @@ flowchart TD
 A Schema defines a type of Node (like a database table definition). Schemas are defined using `defineSchema()`:
 
 ```typescript
-// Already implemented in @xnet/data
+// Already implemented in @xnetjs/data
 const TaskSchema = defineSchema({
   name: 'Task',
   namespace: 'xnet://xnet.dev/',
@@ -293,7 +293,7 @@ sequenceDiagram
 Node properties use event-sourced `Change<NodePayload>` with Lamport timestamps:
 
 ```typescript
-// From @xnet/sync
+// From @xnetjs/sync
 interface Change<T> {
   id: string
   timestamp: LamportTimestamp // { counter, nodeId }

@@ -189,7 +189,7 @@ export const ToggleExtension = Node.create<ToggleOptions>({
 
 import * as React from 'react'
 import { NodeViewWrapper, NodeViewContent, type NodeViewProps } from '@tiptap/react'
-import { cn } from '@xnet/ui/lib/utils'
+import { cn } from '@xnetjs/ui/lib/utils'
 import { ChevronRight, ChevronDown } from 'lucide-react'
 
 export function ToggleNodeView({ node, updateAttributes, selected }: NodeViewProps) {

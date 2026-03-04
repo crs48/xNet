@@ -3,7 +3,7 @@
  */
 
 import { renderHook, act } from '@testing-library/react'
-import { createKeyBundle, MemoryPQKeyRegistry, type HybridKeyBundle } from '@xnet/identity'
+import { createKeyBundle, MemoryPQKeyRegistry, type HybridKeyBundle } from '@xnetjs/identity'
 import React, { type ReactNode } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { SecurityProvider, type SecurityProviderProps } from '../context/security-context'

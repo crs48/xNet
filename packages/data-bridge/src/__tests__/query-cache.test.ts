@@ -1,7 +1,7 @@
 /**
  * Tests for QueryCache with LRU eviction and weak references
  */
-import type { NodeState, SchemaIRI } from '@xnet/data'
+import type { NodeState, SchemaIRI } from '@xnetjs/data'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { QueryCache } from '../query-cache'
 

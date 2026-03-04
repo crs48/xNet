@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Yjs sync relay service.
+ * @xnetjs/hub - Yjs sync relay service.
  */
 
 import type { NodePool } from '../pool/node-pool'
@@ -11,7 +11,7 @@ import {
   verifyYjsEnvelopeV1,
   isV1Envelope,
   type SignedYjsEnvelope
-} from '@xnet/sync'
+} from '@xnetjs/sync'
 import * as Y from 'yjs'
 
 export type SyncMessage = {

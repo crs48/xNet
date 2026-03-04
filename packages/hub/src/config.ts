@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Configuration resolution.
+ * @xnetjs/hub - Configuration resolution.
  */
 
 import type { HubConfig, DemoOverrides } from './types'

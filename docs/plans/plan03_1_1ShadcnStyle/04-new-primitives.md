@@ -9,7 +9,7 @@ These components are needed by the devtools (plan03_2_2), the editor (plan03_3),
 ## New Dependencies
 
 ```bash
-pnpm --filter @xnet/ui add \
+pnpm --filter @xnetjs/ui add \
   @radix-ui/react-tabs \
   @radix-ui/react-scroll-area \
   @radix-ui/react-separator \

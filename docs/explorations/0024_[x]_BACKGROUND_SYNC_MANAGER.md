@@ -1,6 +1,6 @@
 # Background Sync Manager
 
-> **Status**: ✅ IMPLEMENTED - The `SyncManager` in `@xnet/react` provides background sync
+> **Status**: ✅ IMPLEMENTED - The `SyncManager` in `@xnetjs/react` provides background sync
 
 ## Implementation Status
 
@@ -472,7 +472,7 @@ export function createMetaBridge(store: NodeStore) {
 }
 ```
 
-### Phase 2: Node Pool + Registry (New `@xnet/sync-manager` or extend `@xnet/react`)
+### Phase 2: Node Pool + Registry (New `@xnetjs/sync-manager` or extend `@xnetjs/react`)
 
 Add the pool and tracked set. `useNode` starts borrowing from the pool instead of creating its own Y.Doc. Nodes released by the UI stay in the pool and continue syncing.
 

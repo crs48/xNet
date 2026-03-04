@@ -4,12 +4,12 @@
 
 ## Overview
 
-Currently `cn()` is duplicated in `@xnet/ui` and `@xnet/editor`. This document consolidates utilities and introduces `class-variance-authority` (CVA) for type-safe, composable component variants.
+Currently `cn()` is duplicated in `@xnetjs/ui` and `@xnetjs/editor`. This document consolidates utilities and introduces `class-variance-authority` (CVA) for type-safe, composable component variants.
 
 ## Install CVA
 
 ```bash
-pnpm --filter @xnet/ui add class-variance-authority
+pnpm --filter @xnetjs/ui add class-variance-authority
 ```
 
 ## Updated Utilities File
@@ -44,7 +44,7 @@ export function cn(...inputs: ClassValue[]): string {
 }
 
 // AFTER:
-export { cn } from '@xnet/ui'
+export { cn } from '@xnetjs/ui'
 ```
 
 ## CVA Pattern Example (Button)
@@ -142,7 +142,7 @@ const inputVariants = cva(
 )
 ```
 
-## Exports from @xnet/ui
+## Exports from @xnetjs/ui
 
 ```typescript
 // packages/ui/src/index.ts
@@ -164,7 +164,7 @@ export { Badge } from './primitives/Badge'
 This allows consumers to use variants directly:
 
 ```typescript
-import { buttonVariants } from '@xnet/ui'
+import { buttonVariants } from '@xnetjs/ui'
 
 // Use as a link styled like a button
 <Link className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
@@ -174,10 +174,10 @@ import { buttonVariants } from '@xnet/ui'
 
 ## Checklist
 
-- [ ] Install `class-variance-authority` in `@xnet/ui`
+- [ ] Install `class-variance-authority` in `@xnetjs/ui`
 - [ ] Update `packages/ui/src/utils.ts` to re-export `cva` and `VariantProps`
 - [ ] Remove duplicate `cn()` from `packages/editor/src/utils.ts`
-- [ ] Update editor to import `cn` from `@xnet/ui`
+- [ ] Update editor to import `cn` from `@xnetjs/ui`
 - [ ] Define `buttonVariants` using CVA
 - [ ] Define `badgeVariants` using CVA
 - [ ] Define `inputVariants` using CVA

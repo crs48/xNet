@@ -3,7 +3,7 @@
 > Automatic routing between local and hub queries based on dataset size
 
 **Duration:** 2-3 days
-**Dependencies:** `@xnet/react` (hooks), `@xnet/hub` (query service)
+**Dependencies:** `@xnetjs/react` (hooks), `@xnetjs/hub` (query service)
 
 ## Overview
 
@@ -424,7 +424,7 @@ export class QueryEngine {
 // packages/react/src/hooks/useDatabase.ts (updated)
 
 import { useMemo, useEffect, useState } from 'react'
-import { QueryEngine, QueryRouter } from '@xnet/data'
+import { QueryEngine, QueryRouter } from '@xnetjs/data'
 import { useStore } from './useStore'
 import { useHub } from './useHub'
 

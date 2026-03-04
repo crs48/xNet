@@ -1,6 +1,6 @@
 import type { ColumnMeta, FilterOperator } from '../types'
 import type { Cell } from '@tanstack/react-table'
-import type { PropertyDefinition, PropertyType } from '@xnet/data'
+import type { PropertyDefinition, PropertyType } from '@xnetjs/data'
 import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { describe, expect, it, vi } from 'vitest'

@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey/test-bypass - Test authentication bypass
+ * @xnetjs/identity/passkey/test-bypass - Test authentication bypass
  *
  * Allows Playwright and other automated tests to bypass WebAuthn/passkey
  * authentication by creating deterministic test identities.

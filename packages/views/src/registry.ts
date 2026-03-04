@@ -6,7 +6,7 @@
  */
 
 import type { ViewConfig, Disposable } from './types.js'
-import type { Schema, SchemaIRI, NodeId } from '@xnet/data'
+import type { Schema, SchemaIRI, NodeId } from '@xnetjs/data'
 import type { ComponentType } from 'react'
 
 // ─── Types ──────────────────────────────────────────────────────────────────

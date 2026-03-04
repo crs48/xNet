@@ -2,7 +2,7 @@
 
 ## Overview
 
-Review of `@xnet/data` covering the schema system with 15 property types, the event-sourced NodeStore, Yjs document management, blob services, and comment system.
+Review of `@xnetjs/data` covering the schema system with 15 property types, the event-sourced NodeStore, Yjs document management, blob services, and comment system.
 
 ```mermaid
 graph TD

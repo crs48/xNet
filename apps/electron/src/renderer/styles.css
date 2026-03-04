@@ -1,4 +1,4 @@
-@import '@xnet/ui/tokens.css';
+@import '@xnetjs/ui/tokens.css';
 
 @tailwind base;
 @tailwind components;

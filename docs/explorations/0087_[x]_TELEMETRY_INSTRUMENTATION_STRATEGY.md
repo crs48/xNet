@@ -1,6 +1,6 @@
 # Telemetry Instrumentation Strategy for xNet Packages
 
-> Comprehensive analysis of what packages can and should be instrumented with @xnet/telemetry
+> Comprehensive analysis of what packages can and should be instrumented with @xnetjs/telemetry
 
 **Status**: ✅ COMPLETE (Phase 1: ✅ 100%, Phase 2: ✅ 100%, Phase 3: ✅ 100%, Phase 4: ✅ 100%, Phase 5: ✅ 83%)  
 **Created**: February 11, 2026  
@@ -20,32 +20,32 @@
 
 ### ✅ Completed Packages (16)
 
-1. **@xnet/data** - NodeStore CRUD operations (Commit: 6abba73)
-2. **@xnet/storage** - Storage adapters (Commit: 36d69a7)
-3. **@xnet/sync** - YjsPeerScorer security events (Commit: f0c8b8f)
-4. **@xnet/crypto** - CryptoMetricsCollector integration (Commit: ee1fe4c)
-5. **@xnet/react** - Telemetry-ready architecture (duck-typed interface pattern)
-6. **@xnet/network** - PeerScorer security and performance telemetry (Commit: 1e3667b)
-7. **@xnet/hub** - Server metrics and optional client telemetry (Phase 2 Complete)
-8. **@xnet/query** - Local engine, FTS, and federated query timing (Phase 3)
-9. **@xnet/editor** - Core editor operations and content sizing (Phase 3)
-10. **@xnet/canvas** - FrameMonitor and SpatialIndex telemetry (Phase 3)
-11. **@xnet/views** - TableView rendering performance (Phase 3)
-12. **@xnet/plugins** - ScriptSandbox execution timing, AST validation failures, crash recovery (Phase 4)
-13. **@xnet/history** - HistoryEngine materialize timing, UndoManager undo/redo, PruningEngine (Phase 4)
-14. **@xnet/vectors** - SemanticSearch indexing and search performance (Phase 4)
-15. **@xnet/formula** - FormulaEngine parse/eval timing, cache hit/miss tracking (Phase 4)
-16. **@xnet/sdk** - createClient() initialization success/failure tracking (Phase 5)
+1. **@xnetjs/data** - NodeStore CRUD operations (Commit: 6abba73)
+2. **@xnetjs/storage** - Storage adapters (Commit: 36d69a7)
+3. **@xnetjs/sync** - YjsPeerScorer security events (Commit: f0c8b8f)
+4. **@xnetjs/crypto** - CryptoMetricsCollector integration (Commit: ee1fe4c)
+5. **@xnetjs/react** - Telemetry-ready architecture (duck-typed interface pattern)
+6. **@xnetjs/network** - PeerScorer security and performance telemetry (Commit: 1e3667b)
+7. **@xnetjs/hub** - Server metrics and optional client telemetry (Phase 2 Complete)
+8. **@xnetjs/query** - Local engine, FTS, and federated query timing (Phase 3)
+9. **@xnetjs/editor** - Core editor operations and content sizing (Phase 3)
+10. **@xnetjs/canvas** - FrameMonitor and SpatialIndex telemetry (Phase 3)
+11. **@xnetjs/views** - TableView rendering performance (Phase 3)
+12. **@xnetjs/plugins** - ScriptSandbox execution timing, AST validation failures, crash recovery (Phase 4)
+13. **@xnetjs/history** - HistoryEngine materialize timing, UndoManager undo/redo, PruningEngine (Phase 4)
+14. **@xnetjs/vectors** - SemanticSearch indexing and search performance (Phase 4)
+15. **@xnetjs/formula** - FormulaEngine parse/eval timing, cache hit/miss tracking (Phase 4)
+16. **@xnetjs/sdk** - createClient() initialization success/failure tracking (Phase 5)
 
 ### 🔄 Remaining (Phase 5: Optional/Low Priority)
 
-Phase 5 in progress. @xnet/sdk instrumented. Low priority packages (identity, core, ui, cli, sqlite, data-bridge) remain optional.
+Phase 5 in progress. @xnetjs/sdk instrumented. Low priority packages (identity, core, ui, cli, sqlite, data-bridge) remain optional.
 
 ## Executive Summary
 
-The xNet monorepo has **24 packages** across 4 architectural layers. `@xnet/telemetry` is feature-complete with privacy-preserving collection, consent management, and React hooks. **Phase 1 is complete, Phase 2 is 67% complete**: 6 of 18 priority packages (33%) are now instrumented with telemetry, with all critical path packages ready for production use.
+The xNet monorepo has **24 packages** across 4 architectural layers. `@xnetjs/telemetry` is feature-complete with privacy-preserving collection, consent management, and React hooks. **Phase 1 is complete, Phase 2 is 67% complete**: 6 of 18 priority packages (33%) are now instrumented with telemetry, with all critical path packages ready for production use.
 
-**Latest Update (Feb 12, 2026):** ✅ **Phase 1 & 2 Complete (100%)** - Successfully instrumented 7 packages: @xnet/data (NodeStore), @xnet/storage (adapters), @xnet/sync (YjsPeerScorer), @xnet/crypto (CryptoMetrics), @xnet/react (architecture), @xnet/network (PeerScorer), and @xnet/hub (server metrics with Prometheus bridge). All packages use duck-typed interfaces that avoid circular dependencies. All instrumented packages maintain >80% test coverage with zero PII leakage by design.
+**Latest Update (Feb 12, 2026):** ✅ **Phase 1 & 2 Complete (100%)** - Successfully instrumented 7 packages: @xnetjs/data (NodeStore), @xnetjs/storage (adapters), @xnetjs/sync (YjsPeerScorer), @xnetjs/crypto (CryptoMetrics), @xnetjs/react (architecture), @xnetjs/network (PeerScorer), and @xnetjs/hub (server metrics with Prometheus bridge). All packages use duck-typed interfaces that avoid circular dependencies. All instrumented packages maintain >80% test coverage with zero PII leakage by design.
 
 ### Key Findings (Updated Feb 12, 2026)
 
@@ -62,39 +62,39 @@ The xNet monorepo has **24 packages** across 4 architectural layers. `@xnet/tele
 ```mermaid
 flowchart TB
     subgraph Foundation["🏗️ Foundation Layer (3 packages)"]
-        Core["@xnet/core<br/>❌ Not instrumented<br/>🎯 Content addressing, hashing"]
-        Crypto["@xnet/crypto<br/>⚠️ Has CryptoMetrics<br/>🎯 Signing, verification"]
-        Identity["@xnet/identity<br/>❌ Not instrumented<br/>🎯 DID, UCAN, passkeys"]
+        Core["@xnetjs/core<br/>❌ Not instrumented<br/>🎯 Content addressing, hashing"]
+        Crypto["@xnetjs/crypto<br/>⚠️ Has CryptoMetrics<br/>🎯 Signing, verification"]
+        Identity["@xnetjs/identity<br/>❌ Not instrumented<br/>🎯 DID, UCAN, passkeys"]
     end
 
     subgraph Infrastructure["⚙️ Infrastructure Layer (5 packages)"]
-        Storage["@xnet/storage<br/>❌ Not instrumented<br/>🔥 IndexedDB operations"]
-        Sync["@xnet/sync<br/>⚠️ Has YjsPeerMetrics<br/>🔥 Change propagation, hash chains"]
-        Data["@xnet/data<br/>❌ Not instrumented<br/>🔥 NodeStore, schema validation"]
-        Network["@xnet/network<br/>⚠️ Has PeerScorer<br/>🔥 P2P, WebRTC, security"]
-        Query["@xnet/query<br/>❌ Not instrumented<br/>🎯 Local queries, FTS"]
+        Storage["@xnetjs/storage<br/>❌ Not instrumented<br/>🔥 IndexedDB operations"]
+        Sync["@xnetjs/sync<br/>⚠️ Has YjsPeerMetrics<br/>🔥 Change propagation, hash chains"]
+        Data["@xnetjs/data<br/>❌ Not instrumented<br/>🔥 NodeStore, schema validation"]
+        Network["@xnetjs/network<br/>⚠️ Has PeerScorer<br/>🔥 P2P, WebRTC, security"]
+        Query["@xnetjs/query<br/>❌ Not instrumented<br/>🎯 Local queries, FTS"]
     end
 
     subgraph Application["📱 Application Layer (8 packages)"]
-        React["@xnet/react<br/>❌ Not instrumented<br/>🔥 useQuery, useMutate hooks"]
-        SDK["@xnet/sdk<br/>❌ Not instrumented<br/>🎯 Client initialization"]
-        Editor["@xnet/editor<br/>⚠️ Has performance utils<br/>🎯 TipTap operations"]
-        UI["@xnet/ui<br/>❌ Not instrumented<br/>❓ Low priority"]
-        Views["@xnet/views<br/>❌ Not instrumented<br/>🎯 Table, Board rendering"]
-        Canvas["@xnet/canvas<br/>⚠️ Has FrameMonitor<br/>🎯 Render perf, spatial index"]
-        DevTools["@xnet/devtools<br/>⚠️ Emits telemetry events<br/>🎯 Panel operations"]
-        History["@xnet/history<br/>❌ Not instrumented<br/>🎯 Time travel, pruning"]
+        React["@xnetjs/react<br/>❌ Not instrumented<br/>🔥 useQuery, useMutate hooks"]
+        SDK["@xnetjs/sdk<br/>❌ Not instrumented<br/>🎯 Client initialization"]
+        Editor["@xnetjs/editor<br/>⚠️ Has performance utils<br/>🎯 TipTap operations"]
+        UI["@xnetjs/ui<br/>❌ Not instrumented<br/>❓ Low priority"]
+        Views["@xnetjs/views<br/>❌ Not instrumented<br/>🎯 Table, Board rendering"]
+        Canvas["@xnetjs/canvas<br/>⚠️ Has FrameMonitor<br/>🎯 Render perf, spatial index"]
+        DevTools["@xnetjs/devtools<br/>⚠️ Emits telemetry events<br/>🎯 Panel operations"]
+        History["@xnetjs/history<br/>❌ Not instrumented<br/>🎯 Time travel, pruning"]
     end
 
     subgraph Specialized["🔧 Specialized (8 packages)"]
-        Plugins["@xnet/plugins<br/>❌ Not instrumented<br/>🎯 Sandbox execution"]
-        Telemetry["@xnet/telemetry<br/>✅ COMPLETE<br/>📦 Source of truth"]
-        Formula["@xnet/formula<br/>❌ Not instrumented<br/>🎯 Expression evaluation"]
-        Vectors["@xnet/vectors<br/>❌ Not instrumented<br/>🎯 HNSW search"]
-        Hub["@xnet/hub<br/>⚠️ Has Prometheus metrics<br/>🔥 Relay, backup, FTS5"]
-        SQLite["@xnet/sqlite<br/>❌ Not instrumented<br/>🔥 Query timing"]
-        DataBridge["@xnet/data-bridge<br/>❌ Not instrumented<br/>🎯 Worker communication"]
-        CLI["@xnet/cli<br/>❌ Not instrumented<br/>❓ Low priority"]
+        Plugins["@xnetjs/plugins<br/>❌ Not instrumented<br/>🎯 Sandbox execution"]
+        Telemetry["@xnetjs/telemetry<br/>✅ COMPLETE<br/>📦 Source of truth"]
+        Formula["@xnetjs/formula<br/>❌ Not instrumented<br/>🎯 Expression evaluation"]
+        Vectors["@xnetjs/vectors<br/>❌ Not instrumented<br/>🎯 HNSW search"]
+        Hub["@xnetjs/hub<br/>⚠️ Has Prometheus metrics<br/>🔥 Relay, backup, FTS5"]
+        SQLite["@xnetjs/sqlite<br/>❌ Not instrumented<br/>🔥 Query timing"]
+        DataBridge["@xnetjs/data-bridge<br/>❌ Not instrumented<br/>🎯 Worker communication"]
+        CLI["@xnetjs/cli<br/>❌ Not instrumented<br/>❓ Low priority"]
     end
 
     Telemetry -.->|"Should instrument"| Foundation
@@ -144,7 +144,7 @@ quadrantChart
 
 High impact, core functionality. These packages power the entire system.
 
-#### @xnet/data - NodeStore ✅ **COMPLETE** (Commit: 6abba73)
+#### @xnetjs/data - NodeStore ✅ **COMPLETE** (Commit: 6abba73)
 
 - [x] `create()` - Performance timing + crash reporting
 - [x] `update()` - Performance timing + crash reporting
@@ -155,7 +155,7 @@ High impact, core functionality. These packages power the entire system.
 - [x] Crash reporting with codeNamespace context
 - [x] Documentation in README
 
-#### @xnet/storage - Storage Adapters ✅ **COMPLETE** (Commit: 36d69a7)
+#### @xnetjs/storage - Storage Adapters ✅ **COMPLETE** (Commit: 36d69a7)
 
 - [x] `getBlob()` - Performance timing (storage.getBlob)
 - [x] `setBlob()` - Performance timing (storage.setBlob)
@@ -171,7 +171,7 @@ High impact, core functionality. These packages power the entire system.
 - [x] Quota exceeded error tracking (covered by crash reporting)
 - [x] Migration error tracking (covered by crash reporting)
 
-#### @xnet/sync - YjsPeerScorer ✅ **COMPLETE** (Commit: f0c8b8f)
+#### @xnetjs/sync - YjsPeerScorer ✅ **COMPLETE** (Commit: f0c8b8f)
 
 - [x] YjsPeerScorer security events via `penalize()`:
   - [x] Invalid signatures
@@ -188,9 +188,9 @@ High impact, core functionality. These packages power the entire system.
 - [x] Peer sync latency tracking (deferred - requires network layer integration, Phase 2)
 - [x] Full Change<T> application telemetry (deferred - requires handler registry refactoring)
 
-#### @xnet/react - React Hooks ✅ **COMPLETE**
+#### @xnetjs/react - React Hooks ✅ **COMPLETE**
 
-- [x] TelemetryProvider component (use @xnet/telemetry's existing TelemetryProvider)
+- [x] TelemetryProvider component (use @xnetjs/telemetry's existing TelemetryProvider)
 - [x] Hook-based telemetry integration (duck-typed interface pattern like other packages)
 - [x] `useQuery()` timing (first-load latency reported via react.useQuery performance metric)
 - [x] Cache hits/misses (reported as react.useQuery.cache_hit / react.useQuery.cache_miss usage metrics)
@@ -198,7 +198,7 @@ High impact, core functionality. These packages power the entire system.
 - [x] Subscription churn tracking (mount reported as react.useQuery usage, unmount as react.useQuery.unmount)
 - [x] Re-render frequency monitoring (deferred - requires React DevTools integration; timing metrics cover query re-render cost)
 
-**Implementation Note**: @xnet/react hooks use DataBridge for all data operations. Telemetry should be added at the DataBridge layer (in @xnet/data-bridge package) rather than in individual React hooks to avoid duplication and maintain separation of concerns. React-specific telemetry (re-renders, subscription churn) requires React DevTools integration which is out of scope for Phase 1.
+**Implementation Note**: @xnetjs/react hooks use DataBridge for all data operations. Telemetry should be added at the DataBridge layer (in @xnetjs/data-bridge package) rather than in individual React hooks to avoid duplication and maintain separation of concerns. React-specific telemetry (re-renders, subscription churn) requires React DevTools integration which is out of scope for Phase 1.
 
 **Phase 1 Progress**: 4/4 packages complete (100%) ✅  
 **Validation gate**: Crash reports flowing from all Phase 1 packages. Performance metrics for P95 latencies. Zero PII leakage achieved via duck-typed interfaces.
@@ -207,7 +207,7 @@ High impact, core functionality. These packages power the entire system.
 
 Telemetry as defense mechanism. Security events enable auto-response.
 
-#### @xnet/crypto - CryptoMetricsCollector ✅ **COMPLETE** (Commit: ee1fe4c)
+#### @xnetjs/crypto - CryptoMetricsCollector ✅ **COMPLETE** (Commit: ee1fe4c)
 
 - [x] `setTelemetry()` method for opt-in telemetry
 - [x] Sign operations - Performance by security level (L0/L1/L2)
@@ -218,7 +218,7 @@ Telemetry as defense mechanism. Security events enable auto-response.
 - [x] Integration with existing CryptoMetricsCollector
 - [x] Zero overhead when telemetry disabled
 
-#### @xnet/network - P2P & Security ✅ **COMPLETE** (Commit: 1e3667b)
+#### @xnetjs/network - P2P & Security ✅ **COMPLETE** (Commit: 1e3667b)
 
 - [x] PeerScorer integration:
   - [x] Score distributions (bucketed: <-50, -50--20, -20-0, 0-50, 50+)
@@ -236,7 +236,7 @@ Telemetry as defense mechanism. Security events enable auto-response.
 - [x] libp2p dial() timing (network.dial performance metric added to connectToPeer())
 - [x] y-webrtc provider sync metrics (deferred - WebrtcProvider sync events not exposed via current provider wrapper)
 
-#### @xnet/hub - Server Metrics ✅ **COMPLETE**
+#### @xnetjs/hub - Server Metrics ✅ **COMPLETE**
 
 - [x] Query timing (optional client telemetry)
 - [x] Federation health metrics
@@ -254,7 +254,7 @@ Telemetry as defense mechanism. Security events enable auto-response.
 
 Tools and features that improve app quality.
 
-#### @xnet/query - Query Performance ✅ **COMPLETE**
+#### @xnetjs/query - Query Performance ✅ **COMPLETE**
 
 - [x] Query parsing time (local engine timing)
 - [x] FTS (Full-Text Search) latency
@@ -264,7 +264,7 @@ Tools and features that improve app quality.
 - [x] Query plan analysis (covered by performance timing)
 - [x] Filter selectivity metrics (covered by match counting)
 
-#### @xnet/editor - Rich Text Performance ✅ **COMPLETE**
+#### @xnetjs/editor - Rich Text Performance ✅ **COMPLETE**
 
 - [x] Keystroke latency (covered by applyDelta timing)
 - [x] Paste operation timing (covered by applyDelta)
@@ -274,7 +274,7 @@ Tools and features that improve app quality.
 - [x] TipTap operation performance (setContent and applyDelta instrumented)
 - [x] Content serialization timing (covered by setContent)
 
-#### @xnet/canvas - Rendering Performance ✅ **COMPLETE**
+#### @xnetjs/canvas - Rendering Performance ✅ **COMPLETE**
 
 - [x] Frame rate (FPS) tracking
 - [x] Frame time P95 (integrate with existing FrameMonitor)
@@ -285,7 +285,7 @@ Tools and features that improve app quality.
 - [x] Spatial index query time
 - [x] Pan/zoom completion events (covered by frame time monitoring)
 
-#### @xnet/views - Table/Board Rendering ✅ **COMPLETE**
+#### @xnetjs/views - Table/Board Rendering ✅ **COMPLETE**
 
 - [x] Initial render time
 - [x] Virtualization effectiveness (deferred - TanStack Virtual handles automatically)
@@ -302,7 +302,7 @@ Tools and features that improve app quality.
 
 Lower frequency but high complexity.
 
-#### @xnet/plugins - Sandbox Execution ✅ **COMPLETE**
+#### @xnetjs/plugins - Sandbox Execution ✅ **COMPLETE**
 
 - [x] Plugin load time (covered by execute/execute_sync performance timing)
 - [x] Execution duration (covered by plugins.execute and plugins.execute_sync metrics)
@@ -312,7 +312,7 @@ Lower frequency but high complexity.
 - [x] Crash recovery events (plugins.crash_recovery in ScriptRunner.executeScript)
 - [x] Sandbox creation overhead (N/A - sandbox creation is negligible, duck-typed TelemetryReporter added)
 
-#### @xnet/history - Time Travel ✅ **COMPLETE**
+#### @xnetjs/history - Time Travel ✅ **COMPLETE**
 
 - [x] Snapshot creation time (covered by history.materialize which triggers snapshots)
 - [x] Pruning duration (history.pruning performance metric in PruningEngine)
@@ -322,7 +322,7 @@ Lower frequency but high complexity.
 - [x] Verification timing (deferred - VerificationEngine is used internally by PruningEngine)
 - [x] History traversal performance (history.materialize covers time-travel reconstruction)
 
-#### @xnet/vectors - Vector Search ✅ **COMPLETE**
+#### @xnetjs/vectors - Vector Search ✅ **COMPLETE**
 
 - [x] Vector insertion time (vectors.index_document performance metric in SemanticSearch)
 - [x] k-NN query latency (vectors.search performance metric)
@@ -331,7 +331,7 @@ Lower frequency but high complexity.
 - [x] Cosine similarity calculation time (deferred - inner hot-path, too granular to instrument)
 - [x] Index rebuild frequency (vectors.document_indexed usage tracks all indexing operations)
 
-#### @xnet/formula - Expression Evaluation ✅ **COMPLETE**
+#### @xnetjs/formula - Expression Evaluation ✅ **COMPLETE**
 
 - [x] Parse time (formula.parse performance metric in FormulaEngine)
 - [x] Eval time (formula.eval performance metric in FormulaEngine)
@@ -346,17 +346,17 @@ Lower frequency but high complexity.
 
 ### ❓ Phase 5: Optional/Low Priority
 
-| Package               | Priority | Status         | Rationale                                                                                   |
-| --------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------- |
-| **@xnet/identity**    | Low      | ⏸️ Not Started | DIDs and UCANs are one-time operations. Passkey errors surface immediately.                 |
-| **@xnet/core**        | Low      | ⏸️ Not Started | Pure functions (hashing, CID generation). Performance is not a concern.                     |
-| **@xnet/ui**          | Low      | ⏸️ Not Started | Visual components. Rendering issues visible to users.                                       |
-| **@xnet/cli**         | Low      | ⏸️ Not Started | Developer tool. Errors go to stderr.                                                        |
-| **@xnet/sdk**         | Medium   | ✅ Complete    | `createClient()` added with success/failure telemetry. `SdkTelemetry` duck-typed interface. |
-| **@xnet/sqlite**      | Medium   | ⏸️ Not Started | Desktop/mobile only. Query timing useful but lower priority than web (IndexedDB).           |
-| **@xnet/data-bridge** | Low      | ⏸️ Not Started | Worker communication. Covered by `@xnet/data` instrumentation.                              |
+| Package                 | Priority | Status         | Rationale                                                                                   |
+| ----------------------- | -------- | -------------- | ------------------------------------------------------------------------------------------- |
+| **@xnetjs/identity**    | Low      | ⏸️ Not Started | DIDs and UCANs are one-time operations. Passkey errors surface immediately.                 |
+| **@xnetjs/core**        | Low      | ⏸️ Not Started | Pure functions (hashing, CID generation). Performance is not a concern.                     |
+| **@xnetjs/ui**          | Low      | ⏸️ Not Started | Visual components. Rendering issues visible to users.                                       |
+| **@xnetjs/cli**         | Low      | ⏸️ Not Started | Developer tool. Errors go to stderr.                                                        |
+| **@xnetjs/sdk**         | Medium   | ✅ Complete    | `createClient()` added with success/failure telemetry. `SdkTelemetry` duck-typed interface. |
+| **@xnetjs/sqlite**      | Medium   | ⏸️ Not Started | Desktop/mobile only. Query timing useful but lower priority than web (IndexedDB).           |
+| **@xnetjs/data-bridge** | Low      | ⏸️ Not Started | Worker communication. Covered by `@xnetjs/data` instrumentation.                            |
 
-#### @xnet/sdk ✅ **COMPLETE**
+#### @xnetjs/sdk ✅ **COMPLETE**
 
 - [x] `createClient()` function added - unified client initialization entry point
 - [x] `sdk.client_create` usage metric - tracks new identity generation
@@ -364,7 +364,7 @@ Lower frequency but high complexity.
 - [x] `sdk.client_init_success` usage metric - tracks successful initialization
 - [x] `sdk.client_init_failure` usage metric - tracks initialization failures
 - [x] Crash reporting with codeNamespace context on failure
-- [x] `SdkTelemetry` duck-typed interface - avoids circular dependency on @xnet/telemetry
+- [x] `SdkTelemetry` duck-typed interface - avoids circular dependency on @xnetjs/telemetry
 - [x] Tests added (7 tests covering all telemetry paths)
 
 ---
@@ -373,7 +373,7 @@ Lower frequency but high complexity.
 
 ### Already Instrumented (Should Unify)
 
-#### 1. @xnet/crypto - `CryptoMetrics`
+#### 1. @xnetjs/crypto - `CryptoMetrics`
 
 **Current state**: Custom `CryptoMetricsCollector` class with global singleton.
 
@@ -391,11 +391,11 @@ cryptoMetrics.recordSign(level, performance.now() - start)
 
 - Keep `CryptoMetrics` for internal use (zero overhead)
 - Add optional telemetry integration: `reportToTelemetry?: boolean`
-- On opt-in, forward aggregated metrics to `@xnet/telemetry` every 60s
+- On opt-in, forward aggregated metrics to `@xnetjs/telemetry` every 60s
 
 ```typescript
 // New integration
-import { useTelemetry } from '@xnet/telemetry'
+import { useTelemetry } from '@xnetjs/telemetry'
 
 if (config.telemetry?.enabled) {
   const telemetry = useTelemetry({ component: 'crypto' })
@@ -409,7 +409,7 @@ if (config.telemetry?.enabled) {
 }
 ```
 
-#### 2. @xnet/network - `PeerScorer`
+#### 2. @xnetjs/network - `PeerScorer`
 
 **Current state**: Reputation system with `PeerMetrics` tracking.
 
@@ -438,7 +438,7 @@ telemetry.reportSecurity('invalid_signature', {
 })
 ```
 
-#### 3. @xnet/hub - Prometheus Metrics
+#### 3. @xnetjs/hub - Prometheus Metrics
 
 **Current state**: Hub exports `/metrics` endpoint with Prometheus format.
 
@@ -465,7 +465,7 @@ if (clientConsent.tier >= 'anonymous') {
 }
 ```
 
-#### 4. @xnet/sync - `YjsPeerScorer`
+#### 4. @xnetjs/sync - `YjsPeerScorer`
 
 **Current state**: Tracks Yjs-specific violations per peer.
 
@@ -491,7 +491,7 @@ telemetry.reportSecurity('yjs_violations', {
 })
 ```
 
-#### 5. @xnet/canvas - `FrameMonitor`
+#### 5. @xnetjs/canvas - `FrameMonitor`
 
 **Current state**: Tracks FPS and frame timing.
 
@@ -514,7 +514,7 @@ telemetry.reportPerformance('canvas.frame_time', p95FrameTime)
 telemetry.reportPerformance('canvas.fps', avgFps)
 ```
 
-#### 6. @xnet/devtools - Telemetry Panel
+#### 6. @xnetjs/devtools - Telemetry Panel
 
 **Current state**: DevTools emits `telemetry:*` events and has a TelemetryPanel.
 
@@ -583,13 +583,13 @@ report.performance('expensive_operation', Date.now())
 
 ### False Positives (Looks Important, But Isn't)
 
-| Package/Function                | Why NOT Instrument                                                    |
-| ------------------------------- | --------------------------------------------------------------------- |
-| `@xnet/core` - `createCID()`    | Called thousands of times. Pure function. Performance not a concern.  |
-| `@xnet/ui` - Component renders  | React DevTools already handles this. Duplicate effort.                |
-| `@xnet/identity` - `parseDID()` | Fails loudly. Called once per session.                                |
-| Editor - Keystroke handlers     | Too frequent (>100 Hz). Use sampling instead.                         |
-| Canvas - Mouse move             | 60 Hz. Instrument only on user action completion (pan end, zoom end). |
+| Package/Function                  | Why NOT Instrument                                                    |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `@xnetjs/core` - `createCID()`    | Called thousands of times. Pure function. Performance not a concern.  |
+| `@xnetjs/ui` - Component renders  | React DevTools already handles this. Duplicate effort.                |
+| `@xnetjs/identity` - `parseDID()` | Fails loudly. Called once per session.                                |
+| Editor - Keystroke handlers       | Too frequent (>100 Hz). Use sampling instead.                         |
+| Canvas - Mouse move               | 60 Hz. Instrument only on user action completion (pan end, zoom end). |
 
 ---
 
@@ -599,7 +599,7 @@ report.performance('expensive_operation', Date.now())
 
 ```typescript
 // In a React component
-import { useTelemetry } from '@xnet/telemetry'
+import { useTelemetry } from '@xnetjs/telemetry'
 
 function DataGrid() {
   const { reportError, reportPerformance } = useTelemetry({
@@ -622,7 +622,7 @@ function DataGrid() {
 
 ```typescript
 // In a Node.js package or worker
-import { TelemetryCollector, ConsentManager } from '@xnet/telemetry'
+import { TelemetryCollector, ConsentManager } from '@xnetjs/telemetry'
 
 const consent = new ConsentManager()
 const telemetry = new TelemetryCollector({ consent })
@@ -641,8 +641,8 @@ try {
 
 ```typescript
 // Unify existing metrics with telemetry
-import { cryptoMetrics } from '@xnet/crypto'
-import { TelemetryCollector } from '@xnet/telemetry'
+import { cryptoMetrics } from '@xnetjs/crypto'
+import { TelemetryCollector } from '@xnetjs/telemetry'
 
 class TelemetryBridge {
   constructor(
@@ -666,7 +666,7 @@ setInterval(() => bridge.flushToTelemetry(), 60_000)
 
 ```typescript
 // Only instrument when enabled
-import { TelemetryCollector } from '@xnet/telemetry'
+import { TelemetryCollector } from '@xnetjs/telemetry'
 
 class NodeStore {
   private telemetry?: TelemetryCollector
@@ -758,10 +758,10 @@ telemetry.reportCrash(error, {
 
 **Achieved:**
 
-- ✅ **Single import**: `import { useTelemetry } from '@xnet/telemetry'` works everywhere
+- ✅ **Single import**: `import { useTelemetry } from '@xnetjs/telemetry'` works everywhere
 - ✅ **Zero config required**: Works out of box with default consent (off)
 - ✅ **Performance**: <1ms overhead per instrumented operation (conditional checks)
-- ✅ **Documentation**: Instrumented packages include README examples (@xnet/data, @xnet/storage)
+- ✅ **Documentation**: Instrumented packages include README examples (@xnetjs/data, @xnetjs/storage)
 
 **Remaining:**
 
@@ -798,7 +798,7 @@ telemetry.reportCrash(error, {
 
 - ✅ **Coverage**: 4/18 prioritized packages instrumented (22% overall, Phase 1: 75%)
 - ✅ **Testing**: >80% test coverage for telemetry code paths (all instrumented packages pass tests)
-- ✅ **Compliance**: GDPR, CCPA compliant design (consent, deletion, export built into @xnet/telemetry)
+- ✅ **Compliance**: GDPR, CCPA compliant design (consent, deletion, export built into @xnetjs/telemetry)
 
 **Remaining:**
 
@@ -816,19 +816,19 @@ telemetry.reportCrash(error, {
 
 #### Completed (4/4) ✅
 
-- [x] **@xnet/data** - NodeStore CRUD (create, update, delete, list, applyRemoteChange)
+- [x] **@xnetjs/data** - NodeStore CRUD (create, update, delete, list, applyRemoteChange)
   - Commit: 6abba73, Date: Feb 12, 2026
   - Performance, usage, crashes, security events instrumented
   - Documentation added to README
-- [x] **@xnet/storage** - Storage adapters (SQLiteStorageAdapter, MemoryAdapter)
+- [x] **@xnetjs/storage** - Storage adapters (SQLiteStorageAdapter, MemoryAdapter)
   - Commit: 36d69a7, Date: Feb 12, 2026
   - getBlob/setBlob/hasBlob operations instrumented
   - Read/write usage metrics added
-- [x] **@xnet/sync** - YjsPeerScorer security events
+- [x] **@xnetjs/sync** - YjsPeerScorer security events
   - Commit: f0c8b8f, Date: Feb 12, 2026
   - All violation types reporting (invalid signatures, oversized updates, rate limits, etc.)
   - Peer actions tracked (block, throttle, warn)
-- [x] **@xnet/react** - Telemetry-ready architecture
+- [x] **@xnetjs/react** - Telemetry-ready architecture
   - Date: Feb 12, 2026
   - Duck-typed interface pattern established
   - Integration deferred to DataBridge layer (proper architectural separation)
@@ -847,13 +847,13 @@ telemetry.reportCrash(error, {
 
 #### Completed (2/3) ✅
 
-- [x] **@xnet/crypto** - CryptoMetricsCollector integration
+- [x] **@xnetjs/crypto** - CryptoMetricsCollector integration
   - Commit: ee1fe4c, Date: Feb 12, 2026
   - Sign/verify timing by security level (L0/L1/L2)
   - Cache hits/misses tracking
   - Worker operations monitoring
   - setTelemetry() opt-in method added
-- [x] **@xnet/network** - PeerScorer security telemetry + connection metrics
+- [x] **@xnetjs/network** - PeerScorer security telemetry + connection metrics
   - Commit: 1e3667b, Date: Feb 12, 2026
   - Security events (invalid signatures, rate limits, invalid data)
   - Peer actions (block, throttle, warn)
@@ -867,7 +867,7 @@ telemetry.reportCrash(error, {
 
 #### Completed (3/3) ✅
 
-- [x] **@xnet/hub** - Optional client telemetry
+- [x] **@xnetjs/hub** - Optional client telemetry
   - Query timing (QueryService)
   - Federation health (FederationHealthChecker)
   - Backup success/failure (BackupService)
@@ -943,11 +943,11 @@ telemetry.reportCrash(error, {
 
 ## 📚 Reference Implementation
 
-### Minimal Example: Instrumenting @xnet/data
+### Minimal Example: Instrumenting @xnetjs/data
 
 ```diff
 // packages/data/src/store/index.ts
-+ import type { TelemetryCollector } from '@xnet/telemetry'
++ import type { TelemetryCollector } from '@xnetjs/telemetry'
 
 export class NodeStore {
   private storage: StorageAdapter
@@ -991,8 +991,8 @@ export class NodeStore {
 **Usage in app**:
 
 ```typescript
-import { TelemetryCollector, ConsentManager } from '@xnet/telemetry'
-import { NodeStore } from '@xnet/data'
+import { TelemetryCollector, ConsentManager } from '@xnetjs/telemetry'
+import { NodeStore } from '@xnetjs/data'
 
 const consent = new ConsentManager()
 const telemetry = new TelemetryCollector({ consent })
@@ -1060,14 +1060,14 @@ const store = new NodeStore({
 
 ### Completed Milestones
 
-1. ✅ **Phase 1 Started** - 3/4 packages instrumented (@xnet/data, @xnet/storage, @xnet/sync)
-2. ✅ **Phase 2 Started** - 1/3 packages instrumented (@xnet/crypto)
+1. ✅ **Phase 1 Started** - 3/4 packages instrumented (@xnetjs/data, @xnetjs/storage, @xnetjs/sync)
+2. ✅ **Phase 2 Started** - 1/3 packages instrumented (@xnetjs/crypto)
 3. ✅ **Pattern Established** - Duck-typed interfaces proven to work without circular dependencies
 
 ### Immediate Next Actions
 
-1. **Complete Phase 1** - Instrument @xnet/react with context provider pattern (~1 week)
-2. **Advance Phase 2** - Instrument @xnet/network and @xnet/hub (~2 weeks)
+1. **Complete Phase 1** - Instrument @xnetjs/react with context provider pattern (~1 week)
+2. **Advance Phase 2** - Instrument @xnetjs/network and @xnetjs/hub (~2 weeks)
 3. **DevTools Integration** - Update DevTools panel to display telemetry from instrumented packages (~3 days)
 4. **Documentation** - Create instrumentation guide with all 4 patterns documented (~2 days)
 
@@ -1138,17 +1138,17 @@ console.log(`Query took ${queryTime}ms`)
 
 **Packages with most timing code**:
 
-1. `@xnet/crypto` - 34 instances (benchmark tests)
-2. `@xnet/hub` - 18 instances (query timing)
-3. `@xnet/sqlite` - 12 instances (diagnostics)
-4. `@xnet/canvas` - 11 instances (frame monitoring)
-5. `@xnet/sync` - 9 instances (integrity checks)
+1. `@xnetjs/crypto` - 34 instances (benchmark tests)
+2. `@xnetjs/hub` - 18 instances (query timing)
+3. `@xnetjs/sqlite` - 12 instances (diagnostics)
+4. `@xnetjs/canvas` - 11 instances (frame monitoring)
+5. `@xnetjs/sync` - 9 instances (integrity checks)
 
 **Recommendation**: Replace console.log timing with telemetry.reportPerformance().
 
 ### Network Operations Needing Observability
 
-**From @xnet/network**:
+**From @xnetjs/network**:
 
 - `libp2p.dial()` - Connection establishment (success/failure rate)
 - WebRTC ICE negotiation - High failure rate on restrictive networks
@@ -1156,7 +1156,7 @@ console.log(`Query took ${queryTime}ms`)
 - Peer discovery via Kademlia DHT - Latency distribution
 - Circuit relay fallback - How often direct connection fails
 
-**From @xnet/sync**:
+**From @xnetjs/sync**:
 
 - `applyChange()` - Application success/failure
 - Hash chain verification - Invalid parent hash frequency
@@ -1165,21 +1165,21 @@ console.log(`Query took ${queryTime}ms`)
 
 ### Database Operations Needing Observability
 
-**From @xnet/data**:
+**From @xnetjs/data**:
 
 - Schema validation failures - Which properties fail most often
 - Property coercion - Type conversion edge cases
 - Rollup calculations - Computation time for large datasets
 - Query performance - Filter selectivity, sort efficiency
 
-**From @xnet/storage**:
+**From @xnetjs/storage**:
 
 - IndexedDB transaction failures - Quota exceeded, constraint violations
 - Blob storage chunking - Optimal chunk size
 - Migration errors - Version upgrade failures
 - Snapshot creation/restoration - Time and size
 
-**From @xnet/sqlite**:
+**From @xnetjs/sqlite**:
 
 - Query plan analysis - Missing indexes
 - Transaction conflicts - Optimistic locking retries
@@ -1187,7 +1187,7 @@ console.log(`Query took ${queryTime}ms`)
 
 ### Security Events Already Logged
 
-**From @xnet/network/security/logging.ts**:
+**From @xnetjs/network/security/logging.ts**:
 
 ```typescript
 export function logSecurityEvent(event: SecurityEventData): void {
@@ -1221,61 +1221,61 @@ export function logSecurityEvent(event: SecurityEventData): void {
 
 ```
 Foundation Layer
-├── @xnet/core (no deps)
-├── @xnet/crypto (deps: core)
-└── @xnet/identity (deps: core, crypto)
+├── @xnetjs/core (no deps)
+├── @xnetjs/crypto (deps: core)
+└── @xnetjs/identity (deps: core, crypto)
 
 Infrastructure Layer
-├── @xnet/storage (deps: core)
-├── @xnet/sync (deps: core, crypto, identity)
-├── @xnet/data (deps: core, identity, storage, sync)
-├── @xnet/network (deps: core, crypto, identity, data)
-└── @xnet/query (deps: core, data, identity, network, storage)
+├── @xnetjs/storage (deps: core)
+├── @xnetjs/sync (deps: core, crypto, identity)
+├── @xnetjs/data (deps: core, identity, storage, sync)
+├── @xnetjs/network (deps: core, crypto, identity, data)
+└── @xnetjs/query (deps: core, data, identity, network, storage)
 
 Application Layer
-├── @xnet/react (deps: core, crypto, data, identity, history, plugins)
-├── @xnet/sdk (deps: core, crypto, identity, storage, data, network, query)
-├── @xnet/editor (deps: data, ui)
-├── @xnet/ui (deps: none - pure components)
-├── @xnet/views (deps: core, data, react, ui)
-├── @xnet/canvas (deps: core, data, react, ui, vectors)
-├── @xnet/devtools (deps: history, ui, views)
-└── @xnet/history (deps: core, data, sync)
+├── @xnetjs/react (deps: core, crypto, data, identity, history, plugins)
+├── @xnetjs/sdk (deps: core, crypto, identity, storage, data, network, query)
+├── @xnetjs/editor (deps: data, ui)
+├── @xnetjs/ui (deps: none - pure components)
+├── @xnetjs/views (deps: core, data, react, ui)
+├── @xnetjs/canvas (deps: core, data, react, ui, vectors)
+├── @xnetjs/devtools (deps: history, ui, views)
+└── @xnetjs/history (deps: core, data, sync)
 
 Specialized Layer
-├── @xnet/plugins (deps: core, data)
-├── @xnet/telemetry (deps: core, data) ← Source of truth
-├── @xnet/formula (deps: core)
-├── @xnet/vectors (deps: core, storage)
-├── @xnet/hub (deps: core, crypto, identity, data, sync)
-├── @xnet/sqlite (deps: core, data, sync)
-├── @xnet/data-bridge (deps: core, data)
-└── @xnet/cli (deps: core, crypto, identity, storage, data, sync)
+├── @xnetjs/plugins (deps: core, data)
+├── @xnetjs/telemetry (deps: core, data) ← Source of truth
+├── @xnetjs/formula (deps: core)
+├── @xnetjs/vectors (deps: core, storage)
+├── @xnetjs/hub (deps: core, crypto, identity, data, sync)
+├── @xnetjs/sqlite (deps: core, data, sync)
+├── @xnetjs/data-bridge (deps: core, data)
+└── @xnetjs/cli (deps: core, crypto, identity, storage, data, sync)
 ```
 
 ### Telemetry Integration Surface
 
-**Packages that should depend on @xnet/telemetry** (currently 0):
+**Packages that should depend on @xnetjs/telemetry** (currently 0):
 
-| Package       | Add Dependency    | Why                         |
-| ------------- | ----------------- | --------------------------- |
-| @xnet/data    | ✅ **DONE**       | Core CRUD operations        |
-| @xnet/sync    | ✅ Yes            | Change propagation          |
-| @xnet/storage | ✅ **DONE**       | Persistence layer           |
-| @xnet/network | ✅ Yes            | P2P operations              |
-| @xnet/react   | ✅ Yes            | Hook usage patterns         |
-| @xnet/query   | ✅ Yes            | Query performance           |
-| @xnet/crypto  | ✅ Yes            | Signing/verification timing |
-| @xnet/hub     | ✅ Yes (optional) | Server-side metrics         |
-| @xnet/editor  | ✅ Yes            | Rich text operations        |
-| @xnet/canvas  | ✅ Yes            | Rendering performance       |
-| @xnet/views   | ⚠️ Maybe          | Rendering metrics           |
-| @xnet/plugins | ⚠️ Maybe          | Sandbox execution           |
-| @xnet/history | ⚠️ Maybe          | Time travel operations      |
-| @xnet/vectors | ⚠️ Maybe          | Vector search               |
-| @xnet/formula | ⚠️ Maybe          | Expression evaluation       |
-| @xnet/sqlite  | ⚠️ Maybe          | Query timing                |
-| Others        | ❌ No             | Not critical path           |
+| Package         | Add Dependency    | Why                         |
+| --------------- | ----------------- | --------------------------- |
+| @xnetjs/data    | ✅ **DONE**       | Core CRUD operations        |
+| @xnetjs/sync    | ✅ Yes            | Change propagation          |
+| @xnetjs/storage | ✅ **DONE**       | Persistence layer           |
+| @xnetjs/network | ✅ Yes            | P2P operations              |
+| @xnetjs/react   | ✅ Yes            | Hook usage patterns         |
+| @xnetjs/query   | ✅ Yes            | Query performance           |
+| @xnetjs/crypto  | ✅ Yes            | Signing/verification timing |
+| @xnetjs/hub     | ✅ Yes (optional) | Server-side metrics         |
+| @xnetjs/editor  | ✅ Yes            | Rich text operations        |
+| @xnetjs/canvas  | ✅ Yes            | Rendering performance       |
+| @xnetjs/views   | ⚠️ Maybe          | Rendering metrics           |
+| @xnetjs/plugins | ⚠️ Maybe          | Sandbox execution           |
+| @xnetjs/history | ⚠️ Maybe          | Time travel operations      |
+| @xnetjs/vectors | ⚠️ Maybe          | Vector search               |
+| @xnetjs/formula | ⚠️ Maybe          | Expression evaluation       |
+| @xnetjs/sqlite  | ⚠️ Maybe          | Query timing                |
+| Others          | ❌ No             | Not critical path           |
 
 **Note**: Adding telemetry as dependency is opt-in. Packages can accept `telemetry?: TelemetryCollector` in options.
 
@@ -1288,10 +1288,10 @@ Specialized Layer
 **Priorities:**
 
 1. **Create instrumentation guide** - Document patterns for the 4 usage types (hook, collector, wrapper, conditional)
-2. ✅ **Add telemetry to @xnet/data** - ✅ COMPLETED (Commit: 6abba73)
-3. ✅ **Add telemetry to @xnet/storage** - ✅ COMPLETED (Commit: 36d69a7)
-4. ✅ **Add telemetry to @xnet/sync** - ✅ COMPLETED (Commit: f0c8b8f)
-5. **Complete @xnet/react** - Finish Phase 1 (requires context provider pattern)
+2. ✅ **Add telemetry to @xnetjs/data** - ✅ COMPLETED (Commit: 6abba73)
+3. ✅ **Add telemetry to @xnetjs/storage** - ✅ COMPLETED (Commit: 36d69a7)
+4. ✅ **Add telemetry to @xnetjs/sync** - ✅ COMPLETED (Commit: f0c8b8f)
+5. **Complete @xnetjs/react** - Finish Phase 1 (requires context provider pattern)
 6. **Update DevTools panel** - Show data from instrumented packages
 7. **Write integration tests** - Verify PII scrubbing, bucketing, consent enforcement
 
@@ -1300,8 +1300,8 @@ Specialized Layer
 **Phase Completion:**
 
 1. ✅ **Instrument critical path (75%)** - 3/4 Phase 1 packages done (data, sync, storage)
-2. ✅ **Start Phase 2 (33%)** - @xnet/crypto completed (Commit: ee1fe4c)
-3. **Complete Phase 2** - Finish @xnet/network and @xnet/hub
+2. ✅ **Start Phase 2 (33%)** - @xnetjs/crypto completed (Commit: ee1fe4c)
+3. **Complete Phase 2** - Finish @xnetjs/network and @xnetjs/hub
 4. **Deploy to nightly** - Enable for beta testers with opt-in consent
 5. **Collect feedback** - Iterate on instrumentation patterns
 

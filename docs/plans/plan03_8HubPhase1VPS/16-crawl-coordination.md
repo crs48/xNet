@@ -12,8 +12,8 @@
 > Relevant existing work:
 >
 > - [Exploration 0023](../../explorations/0023_[_]_DECENTRALIZED_SEARCH.md) — Crawl architecture with volunteer crawlers and reputation scoring
-> - `@xnet/crypto` BLAKE3 — CID generation for crawled content deduplication
-> - `@xnet/identity` UCAN — DID-authenticated crawler registration
+> - `@xnetjs/crypto` BLAKE3 — CID generation for crawled content deduplication
+> - `@xnetjs/identity` UCAN — DID-authenticated crawler registration
 >
 > **Note:** The `CrawlStorage` interface referenced in this document is undefined — it needs to be added to the `HubStorage` interface or defined separately.
 
@@ -655,7 +655,7 @@ export class XNetCrawler {
     // BLAKE3 hash of content
     const encoder = new TextEncoder()
     const data = encoder.encode(content)
-    // In production: use @xnet/crypto blake3()
+    // In production: use @xnetjs/crypto blake3()
     // Simplified: use Web Crypto SHA-256 as placeholder
     const hash = await crypto.subtle.digest('SHA-256', data)
     const hex = [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('')

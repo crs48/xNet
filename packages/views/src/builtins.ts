@@ -250,7 +250,7 @@ let registered = false
  *
  * @example
  * ```ts
- * import { registerBuiltinViews } from '@xnet/views'
+ * import { registerBuiltinViews } from '@xnetjs/views'
  * registerBuiltinViews()
  * ```
  */

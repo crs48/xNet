@@ -3,7 +3,7 @@
  */
 
 import type { Change } from './change'
-import type { DID, ContentId } from '@xnet/core'
+import type { DID, ContentId } from '@xnetjs/core'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   createIntegrityMonitor,

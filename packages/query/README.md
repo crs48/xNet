@@ -1,11 +1,11 @@
-# @xnet/query
+# @xnetjs/query
 
 Local query engine, full-text search, and federated query routing for xNet.
 
 ## Installation
 
 ```bash
-pnpm add @xnet/query
+pnpm add @xnetjs/query
 ```
 
 ## Features
@@ -17,7 +17,7 @@ pnpm add @xnet/query
 ## Usage
 
 ```typescript
-import { createLocalQueryEngine } from '@xnet/query'
+import { createLocalQueryEngine } from '@xnetjs/query'
 
 // Create query engine
 const engine = createLocalQueryEngine(listDocumentIds, getDocument)
@@ -33,7 +33,7 @@ const results = await engine.query({
 ```
 
 ```typescript
-import { createSearchIndex } from '@xnet/query'
+import { createSearchIndex } from '@xnetjs/query'
 
 // Full-text search
 const index = createSearchIndex()
@@ -44,7 +44,7 @@ const matches = index.search({ text: 'hello', limit: 10 })
 ```
 
 ```typescript
-import { createFederatedQueryRouter } from '@xnet/query'
+import { createFederatedQueryRouter } from '@xnetjs/query'
 
 // Federated router (local execution today)
 const router = createFederatedQueryRouter(networkNode, engine)
@@ -78,11 +78,11 @@ flowchart LR
 
 ## Dependencies
 
-- `@xnet/core`, `@xnet/data`, `@xnet/identity`, `@xnet/network`, `@xnet/storage`
+- `@xnetjs/core`, `@xnetjs/data`, `@xnetjs/identity`, `@xnetjs/network`, `@xnetjs/storage`
 - `minisearch` -- Full-text search engine
 
 ## Testing
 
 ```bash
-pnpm --filter @xnet/query test
+pnpm --filter @xnetjs/query test
 ```

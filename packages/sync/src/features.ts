@@ -7,7 +7,7 @@
  *
  * Usage:
  * ```typescript
- * import { FEATURES, getEnabledFeatures, isFeatureEnabled } from '@xnet/sync'
+ * import { FEATURES, getEnabledFeatures, isFeatureEnabled } from '@xnetjs/sync'
  *
  * // Get features for a protocol version
  * const features = getEnabledFeatures(2) // ['node-changes', 'yjs-updates', ...]

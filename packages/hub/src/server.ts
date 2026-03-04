@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Hono + WebSocket server implementation.
+ * @xnetjs/hub - Hono + WebSocket server implementation.
  */
 
 import type { AuthSession } from './auth/ucan'
@@ -10,7 +10,7 @@ import type { IncomingMessage } from 'http'
 import type { RawData, WebSocket } from 'ws'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { serve } from '@hono/node-server'
-import { DatabaseSchema, PageSchema, TaskSchema } from '@xnet/data'
+import { DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import { Hono } from 'hono'
 import { WebSocketServer } from 'ws'
 import { hasHubCapability } from './auth/capabilities'

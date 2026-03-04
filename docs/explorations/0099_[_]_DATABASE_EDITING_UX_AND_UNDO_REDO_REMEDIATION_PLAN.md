@@ -4,7 +4,7 @@
 
 **Date**: March 2026  
 **Status**: Research + Execution Plan  
-**Scope**: Electron database UI first, then shared `@xnet/views` improvements  
+**Scope**: Electron database UI first, then shared `@xnetjs/views` improvements  
 **Related**: `0088_[_]_DATABASE_UI_COMPETITIVE_ARCHITECTURE.md`, `0067_[-]_DATABASE_DATA_MODEL_V2.md`
 
 ---
@@ -14,7 +14,7 @@
 The current database editing UX has a structural mismatch:
 
 1. The active Electron `DatabaseView` uses a **single Y.Map with whole-array rewrites** for rows and columns (`data.set('rows', updatedRows)`), which causes coarse undo granularity and high update churn.
-2. `@xnet/views` has **incomplete property editors** for key field types:
+2. `@xnetjs/views` has **incomplete property editors** for key field types:
    - `dateRange` is explicitly read-only/TBD.
    - `relation` in active table cells is a placeholder with a non-functional `Link` button.
    - `person` is mapped to plain `text` (no DID autocomplete/validation UX).
@@ -213,7 +213,7 @@ sequenceDiagram
 
 ## Phase 0: Define Editor Contracts (Foundation)
 
-Create a unified editor contract in `@xnet/views`:
+Create a unified editor contract in `@xnetjs/views`:
 
 - Add draft-aware editor API:
   - `onDraftChange(value)`

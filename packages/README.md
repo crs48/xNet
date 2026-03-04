@@ -1,4 +1,4 @@
-# @xnet packages
+# @xnetjs packages
 
 Core xNet packages for decentralized data, sync, UI, and tooling.
 
@@ -6,72 +6,72 @@ Core xNet packages for decentralized data, sync, UI, and tooling.
 
 ### Foundation
 
-| Package                      | Description                                           | Tests | Status |
-| ---------------------------- | ----------------------------------------------------- | ----- | ------ |
-| [@xnet/core](./core)         | Types, content addressing (CIDs), permissions, RBAC   | 5     | Stable |
-| [@xnet/crypto](./crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption | 4     | Stable |
-| [@xnet/identity](./identity) | DID:key generation, UCAN tokens, passkey storage      | 4     | Stable |
+| Package                        | Description                                           | Tests | Status |
+| ------------------------------ | ----------------------------------------------------- | ----- | ------ |
+| [@xnetjs/core](./core)         | Types, content addressing (CIDs), permissions, RBAC   | 5     | Stable |
+| [@xnetjs/crypto](./crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption | 4     | Stable |
+| [@xnetjs/identity](./identity) | DID:key generation, UCAN tokens, passkey storage      | 4     | Stable |
 
 ### Infrastructure
 
-| Package                    | Description                                             | Tests | Status |
-| -------------------------- | ------------------------------------------------------- | ----- | ------ |
-| [@xnet/storage](./storage) | SQLite/memory adapters and blob storage                 | 4     | Stable |
-| [@xnet/sync](./sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security  | 10    | Stable |
-| [@xnet/data](./data)       | Schema system, NodeStore, 16 property helpers, Yjs CRDT | 10    | Stable |
-| [@xnet/network](./network) | libp2p node, y-webrtc provider, security suite          | 1     | Stable |
-| [@xnet/query](./query)     | Local query engine, MiniSearch FTS, federation          | 2     | Stable |
-| [@xnet/hub](./hub)         | Signaling, sync relay, backup, FTS5, sharding           | 0     | Stable |
+| Package                      | Description                                             | Tests | Status |
+| ---------------------------- | ------------------------------------------------------- | ----- | ------ |
+| [@xnetjs/storage](./storage) | SQLite/memory adapters and blob storage                 | 4     | Stable |
+| [@xnetjs/sync](./sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security  | 10    | Stable |
+| [@xnetjs/data](./data)       | Schema system, NodeStore, 16 property helpers, Yjs CRDT | 10    | Stable |
+| [@xnetjs/network](./network) | libp2p node, y-webrtc provider, security suite          | 1     | Stable |
+| [@xnetjs/query](./query)     | Local query engine, MiniSearch FTS, federation          | 2     | Stable |
+| [@xnetjs/hub](./hub)         | Signaling, sync relay, backup, FTS5, sharding           | 0     | Stable |
 
 ### Application
 
-| Package                        | Description                                         | Tests | Status |
-| ------------------------------ | --------------------------------------------------- | ----- | ------ |
-| [@xnet/react](./react)         | useQuery, useMutate, useNode, hub/plugin hooks      | 2     | Stable |
-| [@xnet/sdk](./sdk)             | Unified SDK re-exports and client bootstrap         | 1     | Stable |
-| [@xnet/editor](./editor)       | TipTap editor, slash commands, wikilinks, drag-drop | 23    | Stable |
-| [@xnet/ui](./ui)               | Base UI primitives, composed components, theme      | 0     | Stable |
-| [@xnet/views](./views)         | Table, Board, Gallery, Timeline, Calendar           | 7     | Stable |
-| [@xnet/canvas](./canvas)       | Infinite canvas, R-tree, ELK.js layout              | 4     | Stable |
-| [@xnet/devtools](./devtools)   | 9-panel debug suite                                 | 2     | Stable |
-| [@xnet/history](./history)     | Time machine, undo/redo, audit, blame, diff         | 3     | Stable |
-| [@xnet/plugins](./plugins)     | Plugin registry, sandbox, AI generation, MCP        | 8     | Stable |
-| [@xnet/telemetry](./telemetry) | Privacy-preserving telemetry, tiered consent        | 0     | Stable |
-| [@xnet/formula](./formula)     | Expression parser, evaluator, built-in functions    | 4     | Stable |
-| [@xnet/vectors](./vectors)     | HNSW vector index, semantic + hybrid search         | 4     | Stable |
+| Package                          | Description                                         | Tests | Status |
+| -------------------------------- | --------------------------------------------------- | ----- | ------ |
+| [@xnetjs/react](./react)         | useQuery, useMutate, useNode, hub/plugin hooks      | 2     | Stable |
+| [@xnetjs/sdk](./sdk)             | Unified SDK re-exports and client bootstrap         | 1     | Stable |
+| [@xnetjs/editor](./editor)       | TipTap editor, slash commands, wikilinks, drag-drop | 23    | Stable |
+| [@xnetjs/ui](./ui)               | Base UI primitives, composed components, theme      | 0     | Stable |
+| [@xnetjs/views](./views)         | Table, Board, Gallery, Timeline, Calendar           | 7     | Stable |
+| [@xnetjs/canvas](./canvas)       | Infinite canvas, R-tree, ELK.js layout              | 4     | Stable |
+| [@xnetjs/devtools](./devtools)   | 9-panel debug suite                                 | 2     | Stable |
+| [@xnetjs/history](./history)     | Time machine, undo/redo, audit, blame, diff         | 3     | Stable |
+| [@xnetjs/plugins](./plugins)     | Plugin registry, sandbox, AI generation, MCP        | 8     | Stable |
+| [@xnetjs/telemetry](./telemetry) | Privacy-preserving telemetry, tiered consent        | 0     | Stable |
+| [@xnetjs/formula](./formula)     | Expression parser, evaluator, built-in functions    | 4     | Stable |
+| [@xnetjs/vectors](./vectors)     | HNSW vector index, semantic + hybrid search         | 4     | Stable |
 
 ### Tooling
 
-| Package                            | Description                                            | Tests | Status |
-| ---------------------------------- | ------------------------------------------------------ | ----- | ------ |
-| [@xnet/cli](./cli)                 | CLI commands for schema diff/migration and diagnostics | -     | Stable |
-| [@xnet/data-bridge](./data-bridge) | Bridge abstraction for off-main-thread data access     | -     | Stable |
+| Package                              | Description                                            | Tests | Status |
+| ------------------------------------ | ------------------------------------------------------ | ----- | ------ |
+| [@xnetjs/cli](./cli)                 | CLI commands for schema diff/migration and diagnostics | -     | Stable |
+| [@xnetjs/data-bridge](./data-bridge) | Bridge abstraction for off-main-thread data access     | -     | Stable |
 
 ## Dependency Graph
 
 ```mermaid
 flowchart TD
-    core["@xnet/core"]
-    crypto["@xnet/crypto"]
-    identity["@xnet/identity"]
-    storage["@xnet/storage"]
-    sync["@xnet/sync"]
-    data["@xnet/data"]
-    network["@xnet/network"]
-    query["@xnet/query"]
-    react["@xnet/react"]
-    sdk["@xnet/sdk"]
-    editor["@xnet/editor"]
-    ui["@xnet/ui"]
-    views["@xnet/views"]
-    canvas["@xnet/canvas"]
-    devtools["@xnet/devtools"]
-    history["@xnet/history"]
-    plugins["@xnet/plugins"]
-    telemetry["@xnet/telemetry"]
-    formula["@xnet/formula"]
-    vectors["@xnet/vectors"]
-    hub["@xnet/hub"]
+    core["@xnetjs/core"]
+    crypto["@xnetjs/crypto"]
+    identity["@xnetjs/identity"]
+    storage["@xnetjs/storage"]
+    sync["@xnetjs/sync"]
+    data["@xnetjs/data"]
+    network["@xnetjs/network"]
+    query["@xnetjs/query"]
+    react["@xnetjs/react"]
+    sdk["@xnetjs/sdk"]
+    editor["@xnetjs/editor"]
+    ui["@xnetjs/ui"]
+    views["@xnetjs/views"]
+    canvas["@xnetjs/canvas"]
+    devtools["@xnetjs/devtools"]
+    history["@xnetjs/history"]
+    plugins["@xnetjs/plugins"]
+    telemetry["@xnetjs/telemetry"]
+    formula["@xnetjs/formula"]
+    vectors["@xnetjs/vectors"]
+    hub["@xnetjs/hub"]
 
     core --> crypto --> identity
     core --> storage
@@ -186,16 +186,16 @@ pnpm build
 pnpm test
 
 # Test single package
-pnpm --filter @xnet/data test
+pnpm --filter @xnetjs/data test
 
 # Run a single test file
-pnpm --filter @xnet/sync vitest run src/clock.test.ts
+pnpm --filter @xnetjs/sync vitest run src/clock.test.ts
 
 # Test with pattern matching
-pnpm --filter @xnet/data vitest run -t "NodeStore"
+pnpm --filter @xnetjs/data vitest run -t "NodeStore"
 
 # Watch mode
-pnpm --filter @xnet/sync test:watch
+pnpm --filter @xnetjs/sync test:watch
 
 # Type check
 pnpm typecheck

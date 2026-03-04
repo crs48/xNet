@@ -11,7 +11,7 @@ import { useState, useEffect, useMemo } from 'react'
 
 /**
  * Editor contribution from the plugin system
- * (Matches @xnet/plugins EditorContribution)
+ * (Matches @xnetjs/plugins EditorContribution)
  */
 export interface EditorContribution {
   /** Unique extension ID */
@@ -53,7 +53,7 @@ export interface UseEditorExtensionsResult {
 export interface UseEditorExtensionsOptions {
   /**
    * Function to get all editor contributions.
-   * Typically from useContributions('editor') in @xnet/react.
+   * Typically from useContributions('editor') in @xnetjs/react.
    */
   getContributions: () => EditorContribution[]
   /**
@@ -74,8 +74,8 @@ export interface UseEditorExtensionsOptions {
  *
  * @example
  * ```tsx
- * import { useContributions } from '@xnet/react'
- * import { useEditorExtensions, RichTextEditor } from '@xnet/editor/react'
+ * import { useContributions } from '@xnetjs/react'
+ * import { useEditorExtensions, RichTextEditor } from '@xnetjs/editor/react'
  *
  * function Editor({ ydoc }) {
  *   const editorContributions = useContributions('editor')

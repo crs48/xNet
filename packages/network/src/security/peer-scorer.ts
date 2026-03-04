@@ -9,8 +9,8 @@ import { logSecurityEvent } from './logging'
 
 /**
  * Optional telemetry collector interface for network security operations.
- * Compatible with @xnet/telemetry TelemetryCollector.
- * Duck-typed to avoid circular dependency on @xnet/telemetry.
+ * Compatible with @xnetjs/telemetry TelemetryCollector.
+ * Duck-typed to avoid circular dependency on @xnetjs/telemetry.
  */
 interface NetworkTelemetry {
   reportSecurity(

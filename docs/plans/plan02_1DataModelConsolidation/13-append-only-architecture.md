@@ -110,13 +110,13 @@ type NodeChange = Change<CreatePayload | UpdatePayload | DeletePayload>
 
 ```mermaid
 flowchart LR
-    subgraph sync["@xnet/sync"]
+    subgraph sync["@xnetjs/sync"]
         CHANGE["Change&lt;T&gt;"]
         CLOCK["VectorClock"]
         CHAIN["Hash Chain"]
     end
 
-    subgraph data["@xnet/data"]
+    subgraph data["@xnetjs/data"]
         subgraph log["Change Log"]
             STORE["ChangeStore"]
             PERSIST["Persistence<br/>(IndexedDB)"]
@@ -133,7 +133,7 @@ flowchart LR
         end
     end
 
-    subgraph query["@xnet/query"]
+    subgraph query["@xnetjs/query"]
         QUERY["Query Engine"]
     end
 

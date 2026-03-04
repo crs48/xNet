@@ -22,7 +22,7 @@ Inspired by [GossipSub v1.1 peer scoring](https://github.com/libp2p/specs/blob/m
 ```typescript
 // packages/network/src/security/peer-scorer.ts
 
-import type { PeerId } from '@xnet/core'
+import type { PeerId } from '@xnetjs/core'
 import { logSecurityEvent } from './logging'
 
 /**
@@ -435,7 +435,7 @@ export class PeerScorer {
 ## Usage Example
 
 ```typescript
-import { PeerScorer } from '@xnet/network/security'
+import { PeerScorer } from '@xnetjs/network/security'
 
 const scorer = new PeerScorer({
   thresholds: {

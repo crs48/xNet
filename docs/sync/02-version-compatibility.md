@@ -83,12 +83,12 @@ signatures ──requires──> (none)
 
 Recommended package version combinations:
 
-| @xnet/sync | @xnet/data | @xnet/react | @xnet/sdk | Notes            |
-| ---------- | ---------- | ----------- | --------- | ---------------- |
-| 1.0.x      | 1.0.x      | 1.0.x       | 1.0.x     | Initial release  |
-| 1.1.x      | 1.1.x      | 1.0.x       | 1.1.x     | Added versioning |
-| 1.2.x      | 1.2.x      | 1.1.x       | 1.2.x     | Added lenses     |
-| 1.3.x      | 1.3.x      | 1.2.x       | 1.3.x     | Added integrity  |
+| @xnetjs/sync | @xnetjs/data | @xnetjs/react | @xnetjs/sdk | Notes            |
+| ------------ | ------------ | ------------- | ----------- | ---------------- |
+| 1.0.x        | 1.0.x        | 1.0.x         | 1.0.x       | Initial release  |
+| 1.1.x        | 1.1.x        | 1.0.x         | 1.1.x       | Added versioning |
+| 1.2.x        | 1.2.x        | 1.1.x         | 1.2.x       | Added lenses     |
+| 1.3.x        | 1.3.x        | 1.2.x         | 1.3.x       | Added integrity  |
 
 ### Compatibility Rules
 
@@ -188,7 +188,7 @@ const change = {
 ### Deprecation Warnings
 
 ```typescript
-import { checkDeprecations } from '@xnet/sync'
+import { checkDeprecations } from '@xnetjs/sync'
 
 const warnings = checkDeprecations({
   protocolVersion: 0,
@@ -206,7 +206,7 @@ const warnings = checkDeprecations({
 
 ```bash
 # Test with older client version
-npm install @xnet/sync@1.0.0 --save-dev
+npm install @xnetjs/sync@1.0.0 --save-dev
 
 # Run compatibility tests
 pnpm test:compat

@@ -9,8 +9,8 @@
  * - Delete options
  */
 
-import type { SelectColor } from '@xnet/data'
-import { cn } from '@xnet/ui'
+import type { SelectColor } from '@xnetjs/data'
+import { cn } from '@xnetjs/ui'
 import { nanoid } from 'nanoid'
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 

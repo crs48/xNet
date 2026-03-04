@@ -1,8 +1,8 @@
 /**
- * @xnet/identity/sharing - Share revocation
+ * @xnetjs/identity/sharing - Share revocation
  */
 import type { Revocation } from './types'
-import { sign, verify, hashHex } from '@xnet/crypto'
+import { sign, verify, hashHex } from '@xnetjs/crypto'
 import { parseDID } from '../did'
 
 // ─── Revocation Store ────────────────────────────────────────

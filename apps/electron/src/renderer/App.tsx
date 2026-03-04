@@ -1,16 +1,16 @@
 /**
  * Electron App - Main component
  *
- * Uses @xnet/react hooks for data management:
+ * Uses @xnetjs/react hooks for data management:
  * - useQuery for listing documents
  * - useNode for editing documents
  * - useMutate for creating/deleting
  */
 
-import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnet/data'
-import { useDevTools } from '@xnet/devtools'
-import { useQuery, useMutate } from '@xnet/react'
-import { ThemeToggle } from '@xnet/ui'
+import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
+import { useDevTools } from '@xnetjs/devtools'
+import { useQuery, useMutate } from '@xnetjs/react'
+import { ThemeToggle } from '@xnetjs/ui'
 import React, { useCallback, useEffect, useState } from 'react'
 import { AddSharedDialog, type AddSharedInput } from './components/AddSharedDialog'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'

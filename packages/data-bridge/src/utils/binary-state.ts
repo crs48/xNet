@@ -14,8 +14,8 @@
  * structured clone (default postMessage behavior) may be faster.
  */
 
-import type { DID } from '@xnet/core'
-import type { NodeState, PropertyTimestamp, SchemaIRI } from '@xnet/data'
+import type { DID } from '@xnetjs/core'
+import type { NodeState, PropertyTimestamp, SchemaIRI } from '@xnetjs/data'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 

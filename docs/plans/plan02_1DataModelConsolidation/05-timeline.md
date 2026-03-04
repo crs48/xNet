@@ -17,7 +17,7 @@ gantt
     axisFormat  %b %d
 
     section Phase 1
-    @xnet/sync package           :sync, 2026-01-27, 5d
+    @xnetjs/sync package           :sync, 2026-01-27, 5d
     Hash consolidation           :hash, 2026-01-27, 2d
 
     section Phase 2
@@ -40,18 +40,18 @@ gantt
 
 ### Week 1: Foundation
 
-| Day | Task                                       | Owner | Status |
-| --- | ------------------------------------------ | ----- | ------ |
-| Mon | Create @xnet/sync package structure        | -     | -      |
-| Mon | Hash consolidation (parallel)              | -     | -      |
-| Tue | Implement Change<T> type                   | -     | -      |
-| Tue | Export bytesToHex from @xnet/crypto        | -     | -      |
-| Wed | Implement vector clock utils in @xnet/sync | -     | -      |
-| Wed | Update @xnet/core to use @xnet/crypto      | -     | -      |
-| Thu | Implement chain utilities                  | -     | -      |
-| Thu | Write tests for all new code               | -     | -      |
-| Fri | Update @xnet/data to use @xnet/sync        | -     | -      |
-| Fri | Update @xnet/records to use @xnet/sync     | -     | -      |
+| Day | Task                                         | Owner | Status |
+| --- | -------------------------------------------- | ----- | ------ |
+| Mon | Create @xnetjs/sync package structure        | -     | -      |
+| Mon | Hash consolidation (parallel)                | -     | -      |
+| Tue | Implement Change<T> type                     | -     | -      |
+| Tue | Export bytesToHex from @xnetjs/crypto        | -     | -      |
+| Wed | Implement vector clock utils in @xnetjs/sync | -     | -      |
+| Wed | Update @xnetjs/core to use @xnetjs/crypto    | -     | -      |
+| Thu | Implement chain utilities                    | -     | -      |
+| Thu | Write tests for all new code                 | -     | -      |
+| Fri | Update @xnetjs/data to use @xnetjs/sync      | -     | -      |
+| Fri | Update @xnetjs/records to use @xnetjs/sync   | -     | -      |
 
 **Milestone: Types Unified** - Single Change<T> type used by both sync mechanisms
 
@@ -91,7 +91,7 @@ gantt
 ```mermaid
 flowchart LR
     subgraph parallel["Can Run in Parallel"]
-        SYNC["01: @xnet/sync"]
+        SYNC["01: @xnetjs/sync"]
         HASH["04: Hash Consolidation"]
     end
 
@@ -123,7 +123,7 @@ flowchart LR
 
 **Mitigation:**
 
-- @xnet/sync has minimal dependencies (only crypto, core types)
+- @xnetjs/sync has minimal dependencies (only crypto, core types)
 - Clear layering: crypto → sync → core → data/records
 - Test with `pnpm build` after each package change
 
@@ -166,9 +166,9 @@ flowchart LR
 
 All changes are backward compatible, so rollback is straightforward:
 
-1. **If @xnet/sync causes issues:**
+1. **If @xnetjs/sync causes issues:**
    - Keep using old types directly
-   - Remove @xnet/sync dependency
+   - Remove @xnetjs/sync dependency
    - All code continues to work
 
 2. **If PropertyValue changes cause issues:**
@@ -193,10 +193,10 @@ After this plan is complete, the codebase will be ready for:
 
 ### Week 1
 
-- [ ] @xnet/sync package created and tested
+- [ ] @xnetjs/sync package created and tested
 - [ ] Hash functions consolidated
-- [ ] @xnet/data updated
-- [ ] @xnet/records updated
+- [ ] @xnetjs/data updated
+- [ ] @xnetjs/records updated
 
 ### Week 2
 

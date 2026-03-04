@@ -6,8 +6,8 @@
  * depend on React Native-specific APIs.
  */
 
-import type { DID } from '@xnet/core'
-import { generateSigningKeyPair } from '@xnet/crypto'
+import type { DID } from '@xnetjs/core'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
 import {
   NodeStore,
   MemoryNodeStorageAdapter,
@@ -15,8 +15,8 @@ import {
   text,
   number,
   checkbox
-} from '@xnet/data'
-import { createDID } from '@xnet/identity'
+} from '@xnetjs/data'
+import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { NativeBridge, createNativeBridge, isReactNative, isExpo } from '../native-bridge'
 

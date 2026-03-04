@@ -37,7 +37,7 @@ flowchart TB
 
 ```typescript
 // plugins/erp/manifest.ts
-import type { PluginManifest } from '@xnet/plugin-api'
+import type { PluginManifest } from '@xnetjs/plugin-api'
 
 const manifest: PluginManifest = {
   id: 'com.example.erp',
@@ -97,7 +97,7 @@ export default manifest
 // packages/react/src/i18n/usePluginTranslation.ts
 import { useContext, useCallback, useEffect, useState } from 'react'
 import { I18nContext } from './I18nProvider'
-import type { MessageValues } from '@xnet/i18n'
+import type { MessageValues } from '@xnetjs/i18n'
 
 export interface UsePluginTranslationResult {
   /** Translate a key within the plugin's namespace */
@@ -205,7 +205,7 @@ export class PluginCatalogLoader {
 
 ```tsx
 // Inside a plugin component
-import { usePluginTranslation } from '@xnet/react/i18n'
+import { usePluginTranslation } from '@xnetjs/react/i18n'
 
 function InvoiceList({ invoices }: Props) {
   const { t } = usePluginTranslation('com.example.erp')

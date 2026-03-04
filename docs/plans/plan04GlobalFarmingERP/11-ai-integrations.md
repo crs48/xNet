@@ -2,7 +2,7 @@
 
 > Plant/pest identification from photos, soil test interpretation, guild suggestions, and succession planning via MCP.
 
-**Dependencies:** Steps 01-08 (schemas + data), `@xnet/plugins` (MCP integration from plan03_5)
+**Dependencies:** Steps 01-08 (schemas + data), `@xnetjs/plugins` (MCP integration from plan03_5)
 
 ## Overview
 

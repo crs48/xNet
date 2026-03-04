@@ -7,8 +7,8 @@
  * - Critical ops (key rotation) → Level 2 (maximum)
  */
 
-import type { SecurityLevel } from '@xnet/crypto'
-import { DEFAULT_SECURITY_LEVEL } from '@xnet/crypto'
+import type { SecurityLevel } from '@xnetjs/crypto'
+import { DEFAULT_SECURITY_LEVEL } from '@xnetjs/crypto'
 
 // ─── Types ────────────────────────────────────────────────────────
 

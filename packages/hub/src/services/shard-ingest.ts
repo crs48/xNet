@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Shard ingest router.
+ * @xnetjs/hub - Shard ingest router.
  */
 
 import type { ShardConfig, ShardRegistry } from './index-shards'

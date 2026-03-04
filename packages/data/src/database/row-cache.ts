@@ -1,5 +1,5 @@
 /**
- * @xnet/data - LRU row cache for hybrid queries.
+ * @xnetjs/data - LRU row cache for hybrid queries.
  *
  * Caches recently fetched rows to avoid re-fetching from the hub.
  * Uses LRU (Least Recently Used) eviction policy.

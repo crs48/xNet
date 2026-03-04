@@ -6,7 +6,7 @@
  */
 
 // Use string type for CIDs to avoid import issues
-// ContentId is just a branded string in @xnet/core
+// ContentId is just a branded string in @xnetjs/core
 type ContentId = string
 
 // Debug logging - controlled by localStorage flag (same as sync debug)
@@ -17,7 +17,7 @@ function log(...args: unknown[]): void {
 }
 
 /**
- * Minimal blob store interface for sync (matches BlobStoreForSync from @xnet/react)
+ * Minimal blob store interface for sync (matches BlobStoreForSync from @xnetjs/react)
  */
 export interface IPCBlobStore {
   get(cid: ContentId): Promise<Uint8Array | null>

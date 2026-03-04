@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Signaling service for y-webrtc compatible pub/sub.
+ * @xnetjs/hub - Signaling service for y-webrtc compatible pub/sub.
  */
 
 import type { WebSocket } from 'ws'

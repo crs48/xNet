@@ -3,7 +3,7 @@
 > CSV and JSON import/export for database data
 
 **Duration:** 3-4 days
-**Dependencies:** `@xnet/data` (database operations)
+**Dependencies:** `@xnetjs/data` (database operations)
 
 ## Overview
 
@@ -45,8 +45,8 @@ flowchart LR
 
 import { useState, useMemo } from 'react'
 import { Upload, ArrowRight } from 'lucide-react'
-import { parseCSV, guessColumnTypes } from '@xnet/data'
-import type { ColumnDefinition, ColumnType } from '@xnet/data'
+import { parseCSV, guessColumnTypes } from '@xnetjs/data'
+import type { ColumnDefinition, ColumnType } from '@xnetjs/data'
 
 interface CsvImportModalProps {
   open: boolean
@@ -608,8 +608,8 @@ export function exportToJson(
 
 import { useState } from 'react'
 import { Download } from 'lucide-react'
-import { exportToCsv, exportToJson } from '@xnet/data'
-import type { ColumnDefinition } from '@xnet/data'
+import { exportToCsv, exportToJson } from '@xnetjs/data'
+import type { ColumnDefinition } from '@xnetjs/data'
 
 interface ExportModalProps {
   open: boolean

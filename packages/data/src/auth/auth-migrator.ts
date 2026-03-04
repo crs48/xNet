@@ -2,8 +2,8 @@ import type { Schema } from '../schema'
 import type { SchemaIRI } from '../schema/node'
 import type { NodeState } from '../store'
 import type { GrantIndexReader } from './recipients'
-import type { DID } from '@xnet/core'
-import type { PublicKeyResolver } from '@xnet/crypto'
+import type { DID } from '@xnetjs/core'
+import type { PublicKeyResolver } from '@xnetjs/crypto'
 import { computeRecipients } from './recipients'
 
 export interface EncryptionLayer {

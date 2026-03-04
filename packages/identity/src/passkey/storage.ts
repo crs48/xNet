@@ -1,5 +1,5 @@
 /**
- * @xnet/identity/passkey - IndexedDB persistence for passkey identity records
+ * @xnetjs/identity/passkey - IndexedDB persistence for passkey identity records
  */
 import type { PasskeyIdentity, FallbackStorage, StoredPasskeyRecord } from './types'
 import type { DID } from '../types'

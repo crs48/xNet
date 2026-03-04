@@ -53,7 +53,7 @@ flowchart TD
 
 import { ed25519 } from '@noble/curves/ed25519'
 import { ml_dsa65 } from '@noble/post-quantum/ml-dsa'
-import { hash } from '@xnet/crypto'
+import { hash } from '@xnetjs/crypto'
 import type { DID } from './types'
 
 /**
@@ -125,7 +125,7 @@ interface AttestationPayload {
 ````typescript
 // packages/identity/src/pq-attestation.ts (continued)
 
-import { encodeBase64, decodeBase64 } from '@xnet/crypto'
+import { encodeBase64, decodeBase64 } from '@xnetjs/crypto'
 import { parseDID } from './did'
 
 /**
@@ -689,7 +689,7 @@ export { IndexedDBPQKeyRegistry } from './pq-registry-idb'
 sequenceDiagram
     participant User
     participant App
-    participant Crypto as @xnet/crypto
+    participant Crypto as @xnetjs/crypto
     participant Registry as PQKeyRegistry
 
     Note over User,Registry: Create Attestation

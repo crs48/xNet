@@ -4,7 +4,7 @@
  * This allows editor components (like ImageNodeView) to access blob
  * upload/download functionality without prop-drilling.
  */
-import type { BlobService } from '@xnet/data'
+import type { BlobService } from '@xnetjs/data'
 import { createContext, useContext, type ReactNode, type JSX } from 'react'
 
 export interface BlobContextValue {
@@ -25,8 +25,8 @@ export interface BlobProviderProps {
  *
  * @example
  * ```tsx
- * import { BlobProvider } from '@xnet/editor/react'
- * import { BlobService } from '@xnet/data'
+ * import { BlobProvider } from '@xnetjs/editor/react'
+ * import { BlobService } from '@xnetjs/data'
  *
  * function App() {
  *   const blobService = new BlobService(chunkManager)

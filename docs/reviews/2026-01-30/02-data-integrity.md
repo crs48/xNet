@@ -37,7 +37,7 @@ flowchart TD
 
 ### DI-01: Conflict Tracking Records Wrong Value
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:616-628`
 
 When resolving a LWW conflict where the remote value wins, the conflict record captures the wrong "local" value:
@@ -65,7 +65,7 @@ localValue: oldLocalValue,
 
 ### DI-02: Transactions Are Not Atomic
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:255-378`
 
 The `transaction()` method claims to provide atomic operations but applies changes sequentially without rollback:
@@ -88,7 +88,7 @@ async transaction(operations: NodeOperation[]): Promise<TransactionResult> {
 
 ### DI-03: `computeChangeHash` Cannot Serialize Uint8Array Payloads
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/change.ts:167-173`
 
 ```typescript
@@ -120,7 +120,7 @@ function prepareForHashing(obj: unknown): unknown {
 
 ### DI-04: Default Yjs Batch Merge Produces Invalid Updates
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/yjs-batcher.ts:56-72`
 
 ```typescript
@@ -161,7 +161,7 @@ The database view reads entire arrays from Yjs, modifies them in JavaScript, and
 
 ### DI-06: `getUpdates` Ignores `since` Parameter
 
-**Package:** `@xnet/storage`
+**Package:** `@xnetjs/storage`
 **Files:** `src/adapters/indexeddb.ts:97`, `src/adapters/memory.ts:50`
 
 Both storage adapters accept `since?: string` but ignore it, always returning all updates. The snapshot system (`SnapshotManager.loadDocument`) calls `getUpdates(docId)` without `since`, meaning snapshots provide no performance benefit -- all updates are loaded every time.
@@ -172,7 +172,7 @@ Both storage adapters accept `since?: string` but ignore it, always returning al
 
 ### DI-07: Conflicts Recorded for Non-Conflicting Local Updates
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/store/store.ts:606-646`
 
 Every property update through `applyChange` -- including sequential local-only changes -- pushes to `this.conflicts[]`. A user editing their own document in sequence generates "conflict" records for every keystroke.
@@ -183,7 +183,7 @@ Every property update through `applyChange` -- including sequential local-only c
 
 ### DI-08: Chunk Reassembly Has No Integrity Verification
 
-**Package:** `@xnet/storage`
+**Package:** `@xnetjs/storage`
 **File:** `packages/storage/src/chunk-manager.ts:200-214`
 
 The `store()` method computes a Merkle `rootHash` and stores it in the manifest, but `reassembleChunks()` never verifies it. Corrupted or tampered chunks are silently reassembled.
@@ -194,7 +194,7 @@ The `store()` method computes a Merkle `rootHash` and stores it in the manifest,
 
 ### DI-09: `DocumentType` Name Collision
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **Files:** `src/types.ts:21`, `src/schema/types.ts:71`
 
 Two different types with the same name are exported:
@@ -208,7 +208,7 @@ Both are re-exported from the package, causing ambiguity for consumers.
 
 ### DI-10: `createChangeId` Uses `Math.random()`
 
-**Package:** `@xnet/sync`
+**Package:** `@xnetjs/sync`
 **File:** `packages/sync/src/change.ts:242-246`
 
 Change IDs are generated with `Math.random()`, providing only ~52 bits of entropy. In a collaborative system with many concurrent changes, collisions are possible and would corrupt the hash chain.
@@ -217,7 +217,7 @@ Change IDs are generated with `Math.random()`, providing only ~52 bits of entrop
 
 ### DI-11: `captureUpdate` Only Captures Last Yjs Update
 
-**Package:** `@xnet/data`
+**Package:** `@xnetjs/data`
 **File:** `packages/data/src/updates.ts:93-101`
 
 ```typescript

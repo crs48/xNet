@@ -1,6 +1,6 @@
 # Event Sourcing History: Audit, Revert, and Time Travel
 
-> **Status**: ✅ IMPLEMENTED - The `@xnet/history` package provides full history capabilities
+> **Status**: ✅ IMPLEMENTED - The `@xnetjs/history` package provides full history capabilities
 
 ## Implementation Status
 
@@ -16,8 +16,8 @@ The history system has been implemented at `packages/history/`:
 - [x] **Document History** - `document-history.ts` for Yjs document history
 - [x] **Verification** - `verification.ts` for hash chain validation
 - [x] **Pruning** - `pruning.ts` for managing history size
-- [x] **React Hooks** - `useHistory`, `useUndo`, `useBlame`, `useDiff` in `@xnet/react`
-- [x] **DevTools Panel** - HistoryPanel in `@xnet/devtools`
+- [x] **React Hooks** - `useHistory`, `useUndo`, `useBlame`, `useDiff` in `@xnetjs/react`
+- [x] **DevTools Panel** - HistoryPanel in `@xnetjs/devtools`
 
 ---
 

@@ -2,7 +2,7 @@
 
 > Scrub through database history: watch rows appear, values change, and records come and go.
 
-**Dependencies:** Step 05 (TimelineScrubber, ScrubCache), Step 01 (HistoryEngine), `@xnet/views` (TableView, BoardView)
+**Dependencies:** Step 05 (TimelineScrubber, ScrubCache), Step 01 (HistoryEngine), `@xnetjs/views` (TableView, BoardView)
 
 ## Overview
 

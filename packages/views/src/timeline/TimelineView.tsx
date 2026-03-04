@@ -3,8 +3,8 @@
  */
 
 import type { ViewConfig } from '../types.js'
-import type { Schema } from '@xnet/data'
-import { cn } from '@xnet/ui'
+import type { Schema } from '@xnetjs/data'
+import { cn } from '@xnetjs/ui'
 import React, { useRef, useMemo } from 'react'
 import { TimelineBar } from './TimelineBar.js'
 import {

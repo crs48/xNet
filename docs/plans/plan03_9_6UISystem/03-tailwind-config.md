@@ -404,7 +404,7 @@ export default {
 ```javascript
 // apps/electron/tailwind.config.js
 
-import baseConfig from '@xnet/ui/tailwind.config'
+import baseConfig from '@xnetjs/ui/tailwind.config'
 
 /** @type {import('tailwindcss').Config} */
 export default {

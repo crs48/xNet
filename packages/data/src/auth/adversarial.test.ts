@@ -1,5 +1,5 @@
-import type { AuthDecision, AuthExpression, DID, PolicyEvaluator } from '@xnet/core'
-import { createDID, generateIdentity } from '@xnet/identity'
+import type { AuthDecision, AuthExpression, DID, PolicyEvaluator } from '@xnetjs/core'
+import { createDID, generateIdentity } from '@xnetjs/identity'
 import { describe, expect, it } from 'vitest'
 import { defineSchema } from '../schema/define'
 import { relation, text } from '../schema/properties'

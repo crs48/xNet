@@ -321,24 +321,24 @@ sequenceDiagram
 
 ## Package Changes
 
-| Package          | Changes                                               |
-| ---------------- | ----------------------------------------------------- |
-| `@xnet/identity` | Add passkey storage, PRF key derivation, unlock flow  |
-| `@xnet/react`    | Add onboarding components, share dialogs, presence UI |
-| `@xnet/hub`      | Add rate limiting, monitoring endpoints, usage quotas |
-| `apps/electron`  | Add auto-update, code signing, passkey integration    |
-| `apps/web`       | Add onboarding wizard, hub config UI                  |
-| `site/`          | Add @astrojs/react, /app route, demo UX components    |
+| Package            | Changes                                               |
+| ------------------ | ----------------------------------------------------- |
+| `@xnetjs/identity` | Add passkey storage, PRF key derivation, unlock flow  |
+| `@xnetjs/react`    | Add onboarding components, share dialogs, presence UI |
+| `@xnetjs/hub`      | Add rate limiting, monitoring endpoints, usage quotas |
+| `apps/electron`    | Add auto-update, code signing, passkey integration    |
+| `apps/web`         | Add onboarding wizard, hub config UI                  |
+| `site/`            | Add @astrojs/react, /app route, demo UX components    |
 
 ## Dependencies
 
-| Dependency                | Package        | Purpose                      |
-| ------------------------- | -------------- | ---------------------------- |
-| `@simplewebauthn/browser` | @xnet/identity | WebAuthn client-side         |
-| `@simplewebauthn/server`  | @xnet/hub      | WebAuthn server verification |
-| `@astrojs/react`          | site/          | React islands for /app route |
-| `electron-updater`        | apps/electron  | Auto-updates                 |
-| `electron-builder`        | apps/electron  | Packaging + signing          |
+| Dependency                | Package          | Purpose                      |
+| ------------------------- | ---------------- | ---------------------------- |
+| `@simplewebauthn/browser` | @xnetjs/identity | WebAuthn client-side         |
+| `@simplewebauthn/server`  | @xnetjs/hub      | WebAuthn server verification |
+| `@astrojs/react`          | site/            | React islands for /app route |
+| `electron-updater`        | apps/electron    | Auto-updates                 |
+| `electron-builder`        | apps/electron    | Packaging + signing          |
 
 ## Success Criteria
 

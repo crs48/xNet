@@ -1,9 +1,9 @@
-# 06: @xnet/network
+# 06: @xnetjs/network
 
 > libp2p networking, WebRTC transport, P2P sync
 
 **Duration:** 3 weeks
-**Dependencies:** @xnet/crypto, @xnet/identity, @xnet/data
+**Dependencies:** @xnetjs/crypto, @xnetjs/identity, @xnetjs/data
 
 ## Overview
 
@@ -18,7 +18,7 @@ pnpm add @libp2p/peer-id @chainsafe/libp2p-noise @chainsafe/libp2p-yamux
 pnpm add libp2p @multiformats/multiaddr it-pipe uint8arrays
 pnpm add y-webrtc
 pnpm add -D vitest typescript tsup
-pnpm add @xnet/crypto@workspace:* @xnet/identity@workspace:* @xnet/data@workspace:* @xnet/core@workspace:*
+pnpm add @xnetjs/crypto@workspace:* @xnetjs/identity@workspace:* @xnetjs/data@workspace:* @xnetjs/core@workspace:*
 ```
 
 ## Directory Structure
@@ -56,8 +56,8 @@ packages/network/
 ```typescript
 import type { Libp2p } from 'libp2p'
 import type { PeerId } from '@libp2p/interface'
-import type { SignedUpdate } from '@xnet/core'
-import type { XDocument } from '@xnet/data'
+import type { SignedUpdate } from '@xnetjs/core'
+import type { XDocument } from '@xnetjs/data'
 
 export interface NetworkNode {
   libp2p: Libp2p
@@ -190,9 +190,9 @@ import { pipe } from 'it-pipe'
 import * as lp from 'it-length-prefixed'
 import { encode, decode } from '@msgpack/msgpack'
 import type { NetworkNode, SyncMessage } from '../types'
-import type { SignedUpdate } from '@xnet/core'
-import type { XDocument } from '@xnet/data'
-import { getDocumentState, getStateVector, applySignedUpdate } from '@xnet/data'
+import type { SignedUpdate } from '@xnetjs/core'
+import type { XDocument } from '@xnetjs/data'
+import { getDocumentState, getStateVector, applySignedUpdate } from '@xnetjs/data'
 import * as Y from 'yjs'
 
 const SYNC_PROTOCOL = '/xnet/sync/1.0.0'
@@ -304,7 +304,7 @@ export function createSyncProtocol(node: NetworkNode): SyncProtocol {
 
 ```typescript
 import { WebrtcProvider } from 'y-webrtc'
-import type { XDocument } from '@xnet/data'
+import type { XDocument } from '@xnetjs/data'
 
 export interface YWebRTCOptions {
   signalingServers: string[]
@@ -355,7 +355,7 @@ export function onPeersChange(
 
 ```typescript
 import type { NetworkNode, PeerInfo } from '../types'
-import type { DIDResolution, ResolutionStrategy, PeerLocation } from '@xnet/core'
+import type { DIDResolution, ResolutionStrategy, PeerLocation } from '@xnetjs/core'
 
 export interface DIDResolver {
   resolve(did: string): Promise<DIDResolution | null>
@@ -415,7 +415,7 @@ export function createDIDResolver(node: NetworkNode): DIDResolver {
 ```typescript
 import { describe, it, expect, afterEach } from 'vitest'
 import { createNode, stopNode, getConnectedPeers } from './node'
-import { generateIdentity } from '@xnet/identity'
+import { generateIdentity } from '@xnetjs/identity'
 
 describe('NetworkNode', () => {
   const nodes: any[] = []

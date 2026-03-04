@@ -27,4 +27,4 @@ pnpm build         # Generate native project
 - **Expo SDK 52** -- React Native framework
 - **React Native 0.76** -- Mobile runtime
 - **React Navigation** -- Native navigation
-- `@xnet/react`, `@xnet/sdk`
+- `@xnetjs/react`, `@xnetjs/sdk`

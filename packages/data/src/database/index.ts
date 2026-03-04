@@ -1,5 +1,5 @@
 /**
- * @xnet/data/database - Database operations and types
+ * @xnetjs/data/database - Database operations and types
  *
  * This module provides the core data model for Notion-like databases:
  * - DatabaseRow nodes with per-cell LWW conflict resolution

@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - SQL query building helpers
+ * @xnetjs/sqlite - SQL query building helpers
  */
 
 /**

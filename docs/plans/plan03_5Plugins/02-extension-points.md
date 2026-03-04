@@ -143,7 +143,7 @@ export class NodeStore {
 
 ### 3. PropertyHandler Dynamic Registry
 
-Convert the static handler object in `@xnet/views` to a dynamic registry:
+Convert the static handler object in `@xnetjs/views` to a dynamic registry:
 
 ```typescript
 // packages/views/src/properties/index.ts (modified)
@@ -384,7 +384,7 @@ describe('PropertyHandler Registry', () => {
 - [ ] Add `middleware` field to `NodeStore`
 - [ ] Wrap NodeStore `create/update/delete/restore` with middleware calls
 - [ ] Convert property handler lookup to dynamic registry
-- [ ] Add `registerPropertyHandler()` and `onPropertyHandlersChange()` to `@xnet/views`
+- [ ] Add `registerPropertyHandler()` and `onPropertyHandlersChange()` to `@xnetjs/views`
 - [ ] Add `addMiddleware()` to `ExtensionContext`
 - [ ] Implement `PlatformCapabilities` discovery
 - [ ] Ensure middleware errors don't break the store (error isolation)

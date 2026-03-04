@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Node pool for Y.Doc instances.
+ * @xnetjs/hub - Node pool for Y.Doc instances.
  */
 
 import type { HubStorage } from '../storage/interface'

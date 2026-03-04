@@ -1,8 +1,8 @@
 /**
- * @xnet/hub - UCAN capability helpers.
+ * @xnetjs/hub - UCAN capability helpers.
  */
 
-import { AUTH_ACTIONS, type AuthAction } from '@xnet/core'
+import { AUTH_ACTIONS, type AuthAction } from '@xnetjs/core'
 
 type HubCapability = {
   with: string

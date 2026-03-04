@@ -1,5 +1,5 @@
 {
-  "name": "@xnet/storage",
+  "name": "@xnetjs/storage",
   "version": "0.0.1",
   "type": "module",
   "main": "./dist/index.js",
@@ -17,9 +17,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@xnet/core": "workspace:*",
-    "@xnet/crypto": "workspace:*",
-    "@xnet/sqlite": "workspace:*",
+    "@xnetjs/core": "workspace:*",
+    "@xnetjs/crypto": "workspace:*",
+    "@xnetjs/sqlite": "workspace:*",
     "pako": "^2.1.0"
   },
   "devDependencies": {

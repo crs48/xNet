@@ -7,11 +7,11 @@
 | Component                   | Status   | Notes                                                 |
 | --------------------------- | -------- | ----------------------------------------------------- |
 | `expo-sqlite` dependency    | ✅ Done  | v15.0.0 in `apps/expo/package.json`                   |
-| `ExpoSQLiteAdapter`         | ✅ Done  | `@xnet/sqlite/expo` - unified adapter                 |
-| `SQLiteNodeStorageAdapter`  | ✅ Done  | `@xnet/data` - shared across all platforms            |
+| `ExpoSQLiteAdapter`         | ✅ Done  | `@xnetjs/sqlite/expo` - unified adapter               |
+| `SQLiteNodeStorageAdapter`  | ✅ Done  | `@xnetjs/data` - shared across all platforms          |
 | Mobile lifecycle (AppState) | Deferred | Can be added later if needed for battery optimization |
 
-**Resolution:** The unified SQLite migration (plan03_9_5) implemented `@xnet/sqlite` package with platform-specific adapters:
+**Resolution:** The unified SQLite migration (plan03_9_5) implemented `@xnetjs/sqlite` package with platform-specific adapters:
 
 - `ExpoSQLiteAdapter` in `packages/sqlite/src/adapters/expo.ts`
 - `SQLiteNodeStorageAdapter` in `packages/data/src/store/sqlite-adapter.ts`
@@ -127,7 +127,7 @@ import type {
   ContentId,
   ListNodesOptions,
   CountNodesOptions
-} from '@xnet/data'
+} from '@xnetjs/data'
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS nodes (
@@ -353,7 +353,7 @@ Create `apps/expo/src/hooks/useSyncLifecycle.ts`:
 ```typescript
 import { useEffect, useRef } from 'react'
 import { AppState, type AppStateStatus } from 'react-native'
-import type { SyncManager } from '@xnet/react'
+import type { SyncManager } from '@xnetjs/react'
 
 export function useSyncLifecycle(syncManager: SyncManager | null) {
   const prevState = useRef<AppStateStatus>('active')

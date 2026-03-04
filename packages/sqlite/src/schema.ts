@@ -1,5 +1,5 @@
 /**
- * @xnet/sqlite - Unified SQLite schema for xNet
+ * @xnetjs/sqlite - Unified SQLite schema for xNet
  */
 
 /**
@@ -107,7 +107,7 @@ CREATE TABLE IF NOT EXISTS blobs (
     reference_count INTEGER DEFAULT 1
 );
 
--- Documents (for @xnet/storage compatibility)
+-- Documents (for @xnetjs/storage compatibility)
 CREATE TABLE IF NOT EXISTS documents (
     id TEXT PRIMARY KEY,
     content BLOB NOT NULL,
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS documents (
     version INTEGER NOT NULL DEFAULT 1
 );
 
--- Signed updates (for @xnet/storage compatibility)
+-- Signed updates (for @xnetjs/storage compatibility)
 CREATE TABLE IF NOT EXISTS updates (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     doc_id TEXT NOT NULL,
@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS updates (
     UNIQUE(doc_id, update_hash)
 );
 
--- Snapshots (for @xnet/storage compatibility)
+-- Snapshots (for @xnetjs/storage compatibility)
 CREATE TABLE IF NOT EXISTS snapshots (
     doc_id TEXT PRIMARY KEY,
     snapshot_data TEXT NOT NULL,

@@ -1,4 +1,4 @@
-# 01: @xnet/sync Package
+# 01: @xnetjs/sync Package
 
 > Unified sync primitives for both Yjs and event-sourcing
 
@@ -7,11 +7,11 @@
 
 ## Overview
 
-The `@xnet/sync` package provides base abstractions for all sync operations. Both `@xnet/data` (Yjs) and `@xnet/records` (event-sourcing) import from this package.
+The `@xnetjs/sync` package provides base abstractions for all sync operations. Both `@xnetjs/data` (Yjs) and `@xnetjs/records` (event-sourcing) import from this package.
 
 ```mermaid
 flowchart TD
-    subgraph sync["@xnet/sync"]
+    subgraph sync["@xnetjs/sync"]
         OP["Change&lt;T&gt;"]
         CHAIN["Chain utilities"]
         CLOCK["Lamport clock"]
@@ -19,8 +19,8 @@ flowchart TD
     end
 
     subgraph consumers["Consumers"]
-        DATA["@xnet/data<br/>Change&lt;YjsUpdate&gt;"]
-        RECORDS["@xnet/records<br/>Change&lt;RecordChange&gt;"]
+        DATA["@xnetjs/data<br/>Change&lt;YjsUpdate&gt;"]
+        RECORDS["@xnetjs/records<br/>Change&lt;RecordChange&gt;"]
     end
 
     sync --> DATA
@@ -81,7 +81,7 @@ For CRDTs, we don't need to detect whether events were concurrent - we just need
 ```typescript
 // packages/sync/src/change.ts
 
-import type { ContentId, DID } from '@xnet/core'
+import type { ContentId, DID } from '@xnetjs/core'
 import type { LamportTimestamp } from './clock'
 
 /**
@@ -123,7 +123,7 @@ export interface Change<T = unknown> {
 ```typescript
 // packages/sync/src/clock.ts
 
-import type { DID } from '@xnet/core'
+import type { DID } from '@xnetjs/core'
 
 /**
  * A Lamport timestamp with author for deterministic tie-breaking.
@@ -191,7 +191,7 @@ export function serializeTimestamp(ts: LamportTimestamp): string {
 ```typescript
 // packages/sync/src/chain.ts
 
-import type { ContentId } from '@xnet/core'
+import type { ContentId } from '@xnetjs/core'
 import type { Change } from './change'
 import { compareLamportTimestamps } from './clock'
 
@@ -262,7 +262,7 @@ import {
   createUnsignedChange,
   signChange,
   compareLamportTimestamps
-} from '@xnet/sync'
+} from '@xnetjs/sync'
 
 // Create a clock for this author
 let clock = createLamportClock('did:key:z6MkAuthor...')
@@ -301,7 +301,7 @@ changes.sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
 Run tests:
 
 ```bash
-pnpm --filter @xnet/sync test
+pnpm --filter @xnetjs/sync test
 ```
 
 ## Migration from Vector Clocks

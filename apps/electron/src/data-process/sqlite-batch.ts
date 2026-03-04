@@ -2,7 +2,7 @@
  * SQLite Batch Writer for Electron Data Process
  *
  * @deprecated This file is no longer used. The data-service.ts now uses the
- * unified @xnet/sqlite ElectronSQLiteAdapter which has built-in batch support
+ * unified @xnetjs/sqlite ElectronSQLiteAdapter which has built-in batch support
  * via ElectronBatchWriter. This file can be removed after verifying no imports.
  *
  * Batches multiple SQLite writes into single transactions for better performance.

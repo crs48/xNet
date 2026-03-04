@@ -1,4 +1,4 @@
-import { hashHex } from '@xnet/crypto'
+import { hashHex } from '@xnetjs/crypto'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createHub, type HubInstance } from '../src'
 

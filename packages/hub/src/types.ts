@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - Hub configuration and instance types.
+ * @xnetjs/hub - Hub configuration and instance types.
  */
 
 import type { CrawlConfig } from './services/crawl'

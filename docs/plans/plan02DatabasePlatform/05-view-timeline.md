@@ -7,10 +7,10 @@
 
 > **Architecture Update (Jan 2026):**
 >
-> - `@xnet/database` → Use `@xnet/data` (Schema system + NodeStore)
+> - `@xnetjs/database` → Use `@xnetjs/data` (Schema system + NodeStore)
 > - `DatabaseItem` → `Node`
 > - `Database` → `Schema`
-> - Import types from `@xnet/data`, hooks from `@xnet/react`
+> - Import types from `@xnetjs/data`, hooks from `@xnetjs/react`
 
 ## Overview
 
@@ -106,7 +106,7 @@ export const ZOOM_CONFIG = {
 // packages/views/src/timeline/useTimelineState.ts
 
 import { useMemo, useState, useCallback } from 'react'
-import { Database, View, DatabaseItem } from '@xnet/database'
+import { Database, View, DatabaseItem } from '@xnetjs/database'
 import { TimelineConfig, ZoomLevel, TimelineRange, ZOOM_CONFIG } from './types'
 
 export interface TimelineItem {

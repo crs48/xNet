@@ -2,7 +2,7 @@
 
 > Per-node undo/redo via compensating changes, with batch support and keyboard shortcuts.
 
-**Dependencies:** Step 01 (HistoryEngine), `@xnet/data` (NodeStore)
+**Dependencies:** Step 01 (HistoryEngine), `@xnetjs/data` (NodeStore)
 
 ## Overview
 

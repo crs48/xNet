@@ -178,7 +178,7 @@ That's it. Your devices will sync through the Hub when direct P2P isn't availabl
     Best for development and testing.
 
     ```bash
-    npx @xnet/hub --port 4444 --data ~/.xnet-hub
+    npx @xnetjs/hub --port 4444 --data ~/.xnet-hub
     ```
 
     No TLS, no persistence guarantees. Use for local development only.
@@ -229,7 +229,7 @@ In Settings, enter your Hub URL. The Background Sync Manager (BSM) handles conne
 ### React (Web/Custom)
 
 ```ts
-import { XNetProvider } from '@xnet/react'
+import { XNetProvider } from '@xnetjs/react'
 
 function App() {
   return (
@@ -364,7 +364,7 @@ No automated tests for documentation. Validation is:
 - [x] Add Railway as the primary (first-shown) deployment method
 - [x] Add Fly.io deployment tab with `fly launch` + `fly deploy` commands
 - [x] Keep VPS/Docker deployment tab with existing `docker run` command
-- [x] Add local development deployment option (`npx @xnet/hub`)
+- [x] Add local development deployment option (`npx @xnetjs/hub`)
 - [x] Add configuration reference (env vars + CLI flags + endpoints)
 - [x] Add client integration examples (Electron + React)
 - [x] Add monitoring section (health check + Prometheus)

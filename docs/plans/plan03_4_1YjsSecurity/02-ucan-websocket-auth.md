@@ -3,7 +3,7 @@
 > Authenticate WebSocket connections and gate room subscriptions with UCAN tokens
 
 **Duration:** 1-2 days  
-**Dependencies:** `@xnet/identity` (UCAN verification), Step 01 (envelope types)
+**Dependencies:** `@xnetjs/identity` (UCAN verification), Step 01 (envelope types)
 
 ## Overview
 
@@ -97,7 +97,7 @@ private _connect() {
 ```typescript
 // packages/hub/src/auth/ws-auth.ts
 
-import { verifyUCAN, type UCAN } from '@xnet/identity'
+import { verifyUCAN, type UCAN } from '@xnetjs/identity'
 
 export interface AuthenticatedConnection {
   did: DID

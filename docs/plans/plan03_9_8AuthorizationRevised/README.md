@@ -220,8 +220,8 @@ interface EncryptedEnvelope {
 ### Schema Definition
 
 ```typescript
-import { defineSchema, text, person, relation } from '@xnet/data'
-import { allow, deny, role, relation as rel } from '@xnet/data/auth'
+import { defineSchema, text, person, relation } from '@xnetjs/data'
+import { allow, deny, role, relation as rel } from '@xnetjs/data/auth'
 
 const TaskSchema = defineSchema({
   name: 'Task',

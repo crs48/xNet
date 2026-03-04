@@ -1,7 +1,7 @@
 import type { SchemaIRI } from '../schema/node'
 import type { Schema } from '../schema/types'
 import type { NodeState } from '../store'
-import type { DID, AuthExpression, RoleResolver } from '@xnet/core'
+import type { DID, AuthExpression, RoleResolver } from '@xnetjs/core'
 import { deserializeAuthorization } from './serialize'
 import { extractRoleRefs, hasPublicAccess } from './validate'
 

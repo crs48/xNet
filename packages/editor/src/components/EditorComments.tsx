@@ -8,7 +8,7 @@
  * - Provides comment creation from text selection
  */
 import type { Editor } from '@tiptap/core'
-import { encodeAnchor } from '@xnet/data'
+import { encodeAnchor } from '@xnetjs/data'
 import * as React from 'react'
 import { useEffect, useCallback, useState, useRef } from 'react'
 import {

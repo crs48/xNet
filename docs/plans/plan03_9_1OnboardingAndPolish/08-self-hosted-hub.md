@@ -460,7 +460,7 @@ Type=simple
 User=xnet
 Group=xnet
 WorkingDirectory=/opt/xnet-hub
-ExecStart=/usr/bin/node /opt/xnet-hub/node_modules/@xnet/hub/dist/cli.js
+ExecStart=/usr/bin/node /opt/xnet-hub/node_modules/@xnetjs/hub/dist/cli.js
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal
@@ -501,10 +501,10 @@ sudo chown -R xnet:xnet /opt/xnet-hub
 
 # Install hub
 cd /opt/xnet-hub
-sudo -u xnet npm install @xnet/hub
+sudo -u xnet npm install @xnetjs/hub
 
 # Install service
-sudo cp /opt/xnet-hub/node_modules/@xnet/hub/systemd/xnet-hub.service /etc/systemd/system/
+sudo cp /opt/xnet-hub/node_modules/@xnetjs/hub/systemd/xnet-hub.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable xnet-hub
 sudo systemctl start xnet-hub

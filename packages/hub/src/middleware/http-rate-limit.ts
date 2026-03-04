@@ -1,5 +1,5 @@
 /**
- * @xnet/hub - HTTP rate limiting middleware.
+ * @xnetjs/hub - HTTP rate limiting middleware.
  */
 
 import type { MiddlewareHandler } from 'hono'

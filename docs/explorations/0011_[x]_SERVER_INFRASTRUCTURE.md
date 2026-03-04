@@ -1,6 +1,6 @@
 # Server Infrastructure Exploration
 
-> **Status**: ✅ IMPLEMENTED - The `@xnet/hub` package provides the unified server
+> **Status**: ✅ IMPLEMENTED - The `@xnetjs/hub` package provides the unified server
 
 ## Implementation Status
 
@@ -44,7 +44,7 @@ This exploration proposes a unified server ("xNet Hub") that provides all four s
 | Signaling      | Working (dev only) | `infrastructure/signaling/` -- standalone WebSocket pub/sub on port 4444 |
 | Sync relay     | Not implemented    | Clients relay Yjs updates through signaling server (no persistence)      |
 | Backup         | Not implemented    | `PERSISTENCE_ARCHITECTURE.md` has designs, nothing deployed              |
-| Large queries  | Not implemented    | `@xnet/query` runs locally only (Lunr.js full-text search)               |
+| Large queries  | Not implemented    | `@xnetjs/query` runs locally only (Lunr.js full-text search)             |
 | Bootstrap node | Code exists        | `infrastructure/bootstrap/` -- libp2p DHT node, never deployed           |
 
 ---
@@ -208,13 +208,13 @@ Client → POST /search { text, limit }
 
 ### Pros & Cons
 
-| Pros                                              | Cons                                         |
-| ------------------------------------------------- | -------------------------------------------- |
-| Dead simple to deploy (`npx xnet-hub`)            | SQLite limits concurrent writes              |
-| Single file database, easy backup                 | No horizontal scaling                        |
-| Reuses existing packages (@xnet/data, @xnet/sync) | Memory-bound by Y.Doc count                  |
-| $5/mo VPS is enough for personal use              | Not suitable for 1000+ users on one instance |
-| Same TypeScript, same team skills                 |                                              |
+| Pros                                                  | Cons                                         |
+| ----------------------------------------------------- | -------------------------------------------- |
+| Dead simple to deploy (`npx xnet-hub`)                | SQLite limits concurrent writes              |
+| Single file database, easy backup                     | No horizontal scaling                        |
+| Reuses existing packages (@xnetjs/data, @xnetjs/sync) | Memory-bound by Y.Doc count                  |
+| $5/mo VPS is enough for personal use                  | Not suitable for 1000+ users on one instance |
+| Same TypeScript, same team skills                     |                                              |
 
 ### Cost Estimate
 
@@ -861,7 +861,7 @@ For personal use -- no Docker needed:
 
 ```bash
 # Install globally
-npm install -g @xnet/hub
+npm install -g @xnetjs/hub
 
 # Run with SQLite (zero config)
 xnet-hub
@@ -870,7 +870,7 @@ xnet-hub
 xnet-hub --port 4444 --data ~/.xnet-hub --storage sqlite
 
 # Or via npx (no install)
-npx @xnet/hub
+npx @xnetjs/hub
 ```
 
 ---
@@ -879,7 +879,7 @@ npx @xnet/hub
 
 ```
 packages/
-  hub/                          # @xnet/hub
+  hub/                          # @xnetjs/hub
     src/
       index.ts                  # Entry point, CLI
       server.ts                 # HTTP + WebSocket server
@@ -967,13 +967,13 @@ flowchart LR
 - [ ] Add backup blob endpoint (filesystem)
 - [ ] UCAN auth middleware
 - [ ] Dockerfile + fly.toml
-- [ ] CLI: `npx @xnet/hub`
+- [ ] CLI: `npx @xnetjs/hub`
 - [ ] Health/metrics endpoints
 
 ### Phase 2: Client Integration (1-2 weeks)
 
-- [ ] Update `@xnet/react` useDocument to connect to hub relay
-- [ ] Add backup sync to `@xnet/storage`
+- [ ] Update `@xnetjs/react` useDocument to connect to hub relay
+- [ ] Add backup sync to `@xnetjs/storage`
 - [ ] Hub connection config in XNetProvider
 - [ ] Sync status UI (connected to hub, peer count)
 
@@ -1020,7 +1020,7 @@ The key insight: the storage adapter pattern means we never rewrite the hub -- w
 2. SQLite storage (zero-config default)
 3. UCAN auth
 4. Dockerfile
-5. `npx @xnet/hub` CLI
+5. `npx @xnetjs/hub` CLI
 6. Move `infrastructure/signaling/` logic into hub (deprecate standalone)
 
 This gives us a deployable product on day one that replaces the existing signaling server while adding relay and backup.
@@ -1100,7 +1100,7 @@ Also fills the empty `NetworkConfig.bootstrapPeers` (`packages/network/src/types
 
 #### 6. Server-Side Vector/Semantic Search
 
-The `@xnet/vectors` package loads `Xenova/all-MiniLM-L6-v2` (384-dim) in-browser — slow and memory-intensive on mobile. The hub can pre-compute embeddings for indexed documents and serve vector search. Use `sqlite-vss` or an in-process HNSW index.
+The `@xnetjs/vectors` package loads `Xenova/all-MiniLM-L6-v2` (384-dim) in-browser — slow and memory-intensive on mobile. The hub can pre-compute embeddings for indexed documents and serve vector search. Use `sqlite-vss` or an in-process HNSW index.
 
 **Connects to:**
 
@@ -1177,7 +1177,7 @@ VISION.md's "Federated Social Network" (lines 199-240): posts live in user names
 
 #### 15. Key Recovery & Social Verification
 
-`@xnet/identity` has no recovery mechanism. If a user loses their device, DID keys are gone forever (`BrowserPasskeyStorage` in `packages/identity/src/passkey.ts` is device-bound). The hub can store encrypted key recovery shards (Shamir's Secret Sharing). Trusted contacts authorize recovery via UCAN delegations. Requires:
+`@xnetjs/identity` has no recovery mechanism. If a user loses their device, DID keys are gone forever (`BrowserPasskeyStorage` in `packages/identity/src/passkey.ts` is device-bound). The hub can store encrypted key recovery shards (Shamir's Secret Sharing). Trusted contacts authorize recovery via UCAN delegations. Requires:
 
 - Threshold cryptography
 - Social recovery UX (N-of-M contacts)
@@ -1214,26 +1214,26 @@ Hub-to-hub protocol for routing sync, queries, and schema resolution across orga
 
 ### Capability Summary
 
-| #   | Capability                      | Timeline | Effort | Primary Package                     |
-| --- | ------------------------------- | -------- | ------ | ----------------------------------- |
-| 1   | NodeChange Sync Relay           | Short    | Low    | `@xnet/data`, `@xnet/sync`          |
-| 2   | File/Blob Storage (CID)         | Short    | Low    | `@xnet/data`, `@xnet/core`          |
-| 3   | Schema Registry                 | Short    | Low    | `@xnet/data` (SchemaRegistry)       |
-| 4   | Awareness/Presence Persistence  | Short    | Low    | `@xnet/data/sync/awareness`         |
-| 5   | DID Resolution / Peer Discovery | Short    | Medium | `@xnet/network`                     |
-| 6   | Server-Side Vector Search       | Medium   | Medium | `@xnet/vectors`                     |
-| 7   | Formula/Rollup Computation      | Medium   | Medium | `@xnet/formula`, `@xnet/data`       |
-| 8   | TURN/Circuit Relay              | Medium   | Medium | `@xnet/network` (libp2p)            |
-| 9   | Federated Query Execution       | Medium   | Medium | `@xnet/query` (federation/)         |
-| 10  | Webhook/Event Notifications     | Medium   | Low    | `@xnet/data` (NodeChangeEvent)      |
-| 11  | Conflict Audit Trail            | Medium   | Low    | `@xnet/data` (MergeConflict)        |
-| 12  | Peer Reputation Aggregation     | Medium   | Medium | `@xnet/network/security`            |
-| 13  | Distributed Search Index        | Long     | High   | `@xnet/query`, Vision               |
-| 14  | Federated Social Graph          | Long     | High   | Vision, schemas                     |
-| 15  | Key Recovery / Social Verify    | Long     | High   | `@xnet/identity`                    |
-| 16  | Canvas Spatial Sharding         | Long     | High   | `@xnet/canvas`                      |
-| 17  | Economic Layer                  | Long     | V.High | Vision, all packages                |
-| 18  | Inter-Hub Federation            | Long     | High   | `@xnet/query`, `@xnet/sync`, Vision |
+| #   | Capability                      | Timeline | Effort | Primary Package                         |
+| --- | ------------------------------- | -------- | ------ | --------------------------------------- |
+| 1   | NodeChange Sync Relay           | Short    | Low    | `@xnetjs/data`, `@xnetjs/sync`          |
+| 2   | File/Blob Storage (CID)         | Short    | Low    | `@xnetjs/data`, `@xnetjs/core`          |
+| 3   | Schema Registry                 | Short    | Low    | `@xnetjs/data` (SchemaRegistry)         |
+| 4   | Awareness/Presence Persistence  | Short    | Low    | `@xnetjs/data/sync/awareness`           |
+| 5   | DID Resolution / Peer Discovery | Short    | Medium | `@xnetjs/network`                       |
+| 6   | Server-Side Vector Search       | Medium   | Medium | `@xnetjs/vectors`                       |
+| 7   | Formula/Rollup Computation      | Medium   | Medium | `@xnetjs/formula`, `@xnetjs/data`       |
+| 8   | TURN/Circuit Relay              | Medium   | Medium | `@xnetjs/network` (libp2p)              |
+| 9   | Federated Query Execution       | Medium   | Medium | `@xnetjs/query` (federation/)           |
+| 10  | Webhook/Event Notifications     | Medium   | Low    | `@xnetjs/data` (NodeChangeEvent)        |
+| 11  | Conflict Audit Trail            | Medium   | Low    | `@xnetjs/data` (MergeConflict)          |
+| 12  | Peer Reputation Aggregation     | Medium   | Medium | `@xnetjs/network/security`              |
+| 13  | Distributed Search Index        | Long     | High   | `@xnetjs/query`, Vision                 |
+| 14  | Federated Social Graph          | Long     | High   | Vision, schemas                         |
+| 15  | Key Recovery / Social Verify    | Long     | High   | `@xnetjs/identity`                      |
+| 16  | Canvas Spatial Sharding         | Long     | High   | `@xnetjs/canvas`                        |
+| 17  | Economic Layer                  | Long     | V.High | Vision, all packages                    |
+| 18  | Inter-Hub Federation            | Long     | High   | `@xnetjs/query`, `@xnetjs/sync`, Vision |
 
 ### Priority Recommendation
 

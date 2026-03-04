@@ -1,6 +1,6 @@
 import type { StorageAdapter, StorageTelemetry } from '../types'
-import type { ContentId } from '@xnet/core'
-import type { SQLiteAdapter, SQLValue } from '@xnet/sqlite'
+import type { ContentId } from '@xnetjs/core'
+import type { SQLiteAdapter, SQLValue } from '@xnetjs/sqlite'
 
 interface BlobRow {
   cid: string

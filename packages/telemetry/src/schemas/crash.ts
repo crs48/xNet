@@ -7,7 +7,7 @@
  *   exception.stacktrace → exceptionStacktrace
  */
 
-import { defineSchema, text, select, date } from '@xnet/data'
+import { defineSchema, text, select, date } from '@xnetjs/data'
 
 export const CrashReportSchema = defineSchema({
   name: 'CrashReport',

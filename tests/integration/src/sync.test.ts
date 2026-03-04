@@ -11,12 +11,12 @@
  * For real WebRTC testing across processes, use the hub's relay tests
  * at packages/hub/test/relay.test.ts
  */
-import { describe, it, expect, beforeAll } from 'vitest'
-import * as Y from 'yjs'
-import * as syncProtocol from 'y-protocols/sync'
-import * as encoding from 'lib0/encoding'
 import * as decoding from 'lib0/decoding'
+import * as encoding from 'lib0/encoding'
+import { describe, it, expect, beforeAll } from 'vitest'
+import * as syncProtocol from 'y-protocols/sync'
 import { WebrtcProvider } from 'y-webrtc'
+import * as Y from 'yjs'
 
 // Signaling server URL
 const SIGNALING_URL = 'ws://localhost:4444'
@@ -265,7 +265,7 @@ describe('WebRTC Signaling', () => {
       if (!response.ok) throw new Error('Signaling server not healthy')
     } catch {
       throw new Error(
-        'Signaling server is not running on port 4444. Start it with: pnpm --filter @xnet/signaling-server dev'
+        'Signaling server is not running on port 4444. Start it with: pnpm --filter @xnetjs/signaling-server dev'
       )
     }
   })

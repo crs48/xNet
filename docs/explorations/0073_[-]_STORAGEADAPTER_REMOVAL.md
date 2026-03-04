@@ -11,20 +11,20 @@ This exploration identifies **significant dead code** across the xNet codebase. 
 
 ### High-Level Summary
 
-| Category                                           | Items                            | Est. Lines | Priority     |
-| -------------------------------------------------- | -------------------------------- | ---------- | ------------ |
-| Legacy storage (StorageAdapter, XDocument)         | 7 files                          | ~500       | High         |
-| Unused packages (@xnet/cli, @xnet/formula)         | 2 packages                       | ~1500      | Medium       |
-| Unintegrated packages (@xnet/network, @xnet/query) | 2 packages                       | ~2000      | Low (future) |
-| Dead IPC handlers (Electron)                       | 9+ handlers                      | ~200       | High         |
-| Expo legacy hooks                                  | 2 local hooks (useXNet, useNode) | ~130       | Medium       |
-| Deprecated sync exports                            | V1 envelope/attestation          | ~400       | Low          |
+| Category                                               | Items                            | Est. Lines | Priority     |
+| ------------------------------------------------------ | -------------------------------- | ---------- | ------------ |
+| Legacy storage (StorageAdapter, XDocument)             | 7 files                          | ~500       | High         |
+| Unused packages (@xnetjs/cli, @xnetjs/formula)         | 2 packages                       | ~1500      | Medium       |
+| Unintegrated packages (@xnetjs/network, @xnetjs/query) | 2 packages                       | ~2000      | Low (future) |
+| Dead IPC handlers (Electron)                           | 9+ handlers                      | ~200       | High         |
+| Expo legacy hooks                                      | 2 local hooks (useXNet, useNode) | ~130       | Medium       |
+| Deprecated sync exports                                | V1 envelope/attestation          | ~400       | Low          |
 
 ```mermaid
 flowchart TB
     subgraph Remove["Remove (Dead Code)"]
-        R1["@xnet/cli"]
-        R2["@xnet/formula"]
+        R1["@xnetjs/cli"]
+        R2["@xnetjs/formula"]
         R3["StorageAdapter docs"]
         R4["XDocument"]
         R5["Dead IPC handlers"]
@@ -32,14 +32,14 @@ flowchart TB
     end
 
     subgraph Keep["Keep (Future Features)"]
-        K1["@xnet/network<br/>(P2P)"]
-        K2["@xnet/query<br/>(Federation)"]
-        K3["@xnet/vectors<br/>(Semantic search)"]
+        K1["@xnetjs/network<br/>(P2P)"]
+        K2["@xnetjs/query<br/>(Federation)"]
+        K3["@xnetjs/vectors<br/>(Semantic search)"]
     end
 
     subgraph Refactor["Refactor"]
-        F1["@xnet/sdk<br/>(thin wrapper)"]
-        F2["@xnet/sqlite<br/>(consolidate)"]
+        F1["@xnetjs/sdk<br/>(thin wrapper)"]
+        F2["@xnetjs/sqlite<br/>(consolidate)"]
     end
 
     style R1 fill:#ffcdd2
@@ -59,7 +59,7 @@ flowchart TB
 
 ## Part 1: StorageAdapter and XDocument
 
-The `StorageAdapter` interface (from `@xnet/storage`) and `XDocument` type (from `@xnet/data`) are **legacy code that can be safely removed**. The NodeStore architecture has replaced their functionality across all apps:
+The `StorageAdapter` interface (from `@xnetjs/storage`) and `XDocument` type (from `@xnetjs/data`) are **legacy code that can be safely removed**. The NodeStore architecture has replaced their functionality across all apps:
 
 | Component          | Status                           | Recommendation             |
 | ------------------ | -------------------------------- | -------------------------- |
@@ -70,10 +70,10 @@ The `StorageAdapter` interface (from `@xnet/storage`) and `XDocument` type (from
 ```mermaid
 flowchart TB
     subgraph Current["Current State (Messy)"]
-        SA["StorageAdapter<br/>@xnet/storage"]
-        XD["XDocument<br/>@xnet/data"]
-        NS["NodeStore<br/>@xnet/data"]
-        SDK["XNetClient<br/>@xnet/sdk"]
+        SA["StorageAdapter<br/>@xnetjs/storage"]
+        XD["XDocument<br/>@xnetjs/data"]
+        NS["NodeStore<br/>@xnetjs/data"]
+        SDK["XNetClient<br/>@xnetjs/sdk"]
 
         SA --> SDK
         XD --> SDK
@@ -82,8 +82,8 @@ flowchart TB
     end
 
     subgraph Target["Target State (Clean)"]
-        NS2["NodeStore<br/>@xnet/data"]
-        BS2["BlobStore<br/>@xnet/storage"]
+        NS2["NodeStore<br/>@xnetjs/data"]
+        BS2["BlobStore<br/>@xnetjs/storage"]
 
         NS2 --> Apps2["Apps"]
         BS2 --> Apps2
@@ -231,15 +231,15 @@ flowchart LR
 
 ### Definitely Legacy (Remove)
 
-| Component                       | Location                         | Reason                                                                  |
-| ------------------------------- | -------------------------------- | ----------------------------------------------------------------------- |
-| `XDocument`                     | `packages/data/src/types.ts`     | Not used in Electron/Web, Expo should migrate                           |
-| `createDocument()`              | `packages/data/src/document.ts`  | Only used by XNetClient                                                 |
-| `loadDocument()`                | `packages/data/src/document.ts`  | Only used by XNetClient                                                 |
-| `XNetClient`                    | `packages/sdk/src/client.ts`     | Not used by Electron/Web apps                                           |
-| `useXNet.ts` (Expo)             | `apps/expo/src/hooks/useXNet.ts` | Legacy hook wrapping XNetClient                                         |
-| `useNode.ts` (Expo local)       | `apps/expo/src/hooks/useNode.ts` | Expo's local hook wrapping legacy useXNet (not `@xnet/react`'s useNode) |
-| StorageAdapter document methods | `packages/storage/src/types.ts`  | `getDocument`, `setDocument`, `appendUpdate`, etc.                      |
+| Component                       | Location                         | Reason                                                                    |
+| ------------------------------- | -------------------------------- | ------------------------------------------------------------------------- |
+| `XDocument`                     | `packages/data/src/types.ts`     | Not used in Electron/Web, Expo should migrate                             |
+| `createDocument()`              | `packages/data/src/document.ts`  | Only used by XNetClient                                                   |
+| `loadDocument()`                | `packages/data/src/document.ts`  | Only used by XNetClient                                                   |
+| `XNetClient`                    | `packages/sdk/src/client.ts`     | Not used by Electron/Web apps                                             |
+| `useXNet.ts` (Expo)             | `apps/expo/src/hooks/useXNet.ts` | Legacy hook wrapping XNetClient                                           |
+| `useNode.ts` (Expo local)       | `apps/expo/src/hooks/useNode.ts` | Expo's local hook wrapping legacy useXNet (not `@xnetjs/react`'s useNode) |
+| StorageAdapter document methods | `packages/storage/src/types.ts`  | `getDocument`, `setDocument`, `appendUpdate`, etc.                        |
 
 ### Still Needed (Keep or Refactor)
 
@@ -264,7 +264,7 @@ flowchart LR
     subgraph After["After"]
         XP["XNetProvider"] --> NS["NodeStore"]
         UQ["useQuery"] --> XP
-        UN["useNode<br/>(@xnet/react)"] --> XP
+        UN["useNode<br/>(@xnetjs/react)"] --> XP
     end
 
     Before -->|"Migrate"| After
@@ -283,7 +283,7 @@ flowchart LR
 
 - [x] Delete `apps/expo/src/hooks/useXNet.ts` (legacy XNetClient wrapper)
 - [x] Delete `apps/expo/src/hooks/useNode.ts` (Expo's local hook that wraps legacy useXNet)
-- [x] Update Expo screens to use `@xnet/react` hooks (useNode, useQuery, etc.)
+- [x] Update Expo screens to use `@xnetjs/react` hooks (useNode, useQuery, etc.)
 - [ ] Delete `apps/expo/src/storage/ExpoStorageAdapter.ts`
 - [ ] Delete `apps/expo/src/storage/ExpoSQLiteAdapter.ts`
 
@@ -395,7 +395,7 @@ apps/electron/src/preload/index.ts                # Remove document IPC types
 apps/electron/src/main/storage.ts                 # Remove document methods
 ```
 
-### Exports to Remove from `@xnet/data`
+### Exports to Remove from `@xnetjs/data`
 
 ```typescript
 // Remove these exports:
@@ -403,7 +403,7 @@ export { createDocument, loadDocument, getDocumentState, ... } from './document'
 export type { XDocument, DocumentType, DocumentMetadata, Block } from './types'
 ```
 
-### Exports to Remove from `@xnet/storage`
+### Exports to Remove from `@xnetjs/storage`
 
 ```typescript
 // Remove from StorageAdapter interface:
@@ -444,7 +444,7 @@ The StorageAdapter (document methods) and XDocument are legacy code that NodeSto
 
 The main work is:
 
-1. Migrate Expo's legacy hooks to use `@xnet/react` hooks
+1. Migrate Expo's legacy hooks to use `@xnetjs/react` hooks
 2. Create a simpler `BlobStorageAdapter` interface
 3. Delete the legacy code
 
@@ -454,7 +454,7 @@ The main work is:
 
 ## Part 2: Unused Packages
 
-### @xnet/cli - COMPLETELY UNUSED
+### @xnetjs/cli - COMPLETELY UNUSED
 
 **Path:** `packages/cli/`
 
@@ -476,14 +476,14 @@ export { generateLensCode } from './codegen'
 
 ---
 
-### @xnet/formula - COMPLETELY UNUSED
+### @xnetjs/formula - COMPLETELY UNUSED
 
 **Path:** `packages/formula/`
 
 **Evidence:**
 
 - Not listed in any app's `package.json` dependencies
-- No imports of `@xnet/formula` found anywhere
+- No imports of `@xnetjs/formula` found anywhere
 - Complete formula engine (lexer, parser, evaluator) never used
 
 **What it contains:**
@@ -492,25 +492,25 @@ export { generateLensCode } from './codegen'
 - Expression evaluator
 - ~267+ lines of implementation
 
-**Recommendation:** Delete or integrate into @xnet/data when computed properties are needed
+**Recommendation:** Delete or integrate into @xnetjs/data when computed properties are needed
 
 ---
 
-### @xnet/vectors - UNUSED
+### @xnetjs/vectors - UNUSED
 
 **Path:** `packages/vectors/`
 
 **Evidence:**
 
-- Listed as dependency in @xnet/canvas `package.json`
-- No actual imports of `@xnet/vectors` in any `.ts` files
+- Listed as dependency in @xnetjs/canvas `package.json`
+- No actual imports of `@xnetjs/vectors` in any `.ts` files
 - Complete HNSW/semantic search implementation never used
 
 **Recommendation:** Remove until canvas needs semantic search
 
 ---
 
-### @xnet/sqlite - NOT INTEGRATED
+### @xnetjs/sqlite - NOT INTEGRATED
 
 **Path:** `packages/sqlite/`
 
@@ -528,7 +528,7 @@ export { generateLensCode } from './codegen'
 
 ## Part 3: Unintegrated Packages (Keep for Future)
 
-### @xnet/network - P2P NOT INTEGRATED
+### @xnetjs/network - P2P NOT INTEGRATED
 
 **Path:** `packages/network/`
 
@@ -536,8 +536,8 @@ export { generateLensCode } from './codegen'
 
 **Evidence:**
 
-- Only imported by `@xnet/sdk/client.ts` (behind `enableNetwork: false` flag)
-- Only imported by `@xnet/query/federation/router.ts` (which itself is unused)
+- Only imported by `@xnetjs/sdk/client.ts` (behind `enableNetwork: false` flag)
+- Only imported by `@xnetjs/query/federation/router.ts` (which itself is unused)
 - All apps explicitly set `enableNetwork: false`
 
 **Code path:**
@@ -546,7 +546,7 @@ export { generateLensCode } from './codegen'
 // packages/sdk/src/client.ts
 if (config.enableNetwork === true) {
   // Always false
-  const { createNode } = await import('@xnet/network')
+  const { createNode } = await import('@xnetjs/network')
 }
 ```
 
@@ -554,18 +554,18 @@ if (config.enableNetwork === true) {
 
 ---
 
-### @xnet/query - EFFECTIVELY UNUSED
+### @xnetjs/query - EFFECTIVELY UNUSED
 
 **Path:** `packages/query/`
 
 **Evidence:**
 
-- Only imported by @xnet/sdk (which is barely used)
+- Only imported by @xnetjs/sdk (which is barely used)
 - `LocalQueryEngine` created in SDK client but client's query methods never called
-- `FederatedQueryRouter` requires `@xnet/network` which isn't integrated
+- `FederatedQueryRouter` requires `@xnetjs/network` which isn't integrated
 - Apps use `NodeStore.query()` directly, not `sdk.query()`
 
-**Recommendation:** Keep for future federated queries, or consolidate into @xnet/data
+**Recommendation:** Keep for future federated queries, or consolidate into @xnetjs/data
 
 ---
 
@@ -639,7 +639,7 @@ packages/sync/src/clientid-attestation.ts:
 
 ```typescript
 // Line 20: Key management (legacy - use key-bundle.ts for new code)
-// Line 63: Legacy passkey storage (deprecated — use @xnet/identity/passkey instead)
+// Line 63: Legacy passkey storage (deprecated — use @xnetjs/identity/passkey instead)
 ```
 
 ---
@@ -654,7 +654,7 @@ packages/sync/src/clientid-attestation.ts:
 - [x] **Preload window.xnet** - `apps/electron/src/preload/index.ts`
   - Remove unused methods matching IPC handlers above
 
-- [ ] **@xnet/cli package** - `packages/cli/`
+- [ ] **@xnetjs/cli package** - `packages/cli/`
   - Delete entire directory
   - Remove from `pnpm-workspace.yaml` if listed
 
@@ -662,24 +662,24 @@ packages/sync/src/clientid-attestation.ts:
 
 - [ ] **Expo legacy hooks** - Migrate screens first
   - Delete: `apps/expo/src/hooks/useXNet.ts` (legacy XNetClient wrapper)
-  - Delete: `apps/expo/src/hooks/useNode.ts` (Expo's local hook, NOT `@xnet/react`'s useNode)
+  - Delete: `apps/expo/src/hooks/useNode.ts` (Expo's local hook, NOT `@xnetjs/react`'s useNode)
   - Delete: `apps/expo/src/storage/ExpoStorageAdapter.ts`
   - Delete: `apps/expo/src/storage/ExpoSQLiteAdapter.ts`
-  - Update screens to use `@xnet/react` hooks (useNode, useQuery, useMutate)
+  - Update screens to use `@xnetjs/react` hooks (useNode, useQuery, useMutate)
 
-- [ ] **@xnet/formula package** - `packages/formula/`
+- [ ] **@xnetjs/formula package** - `packages/formula/`
   - Delete entire directory (or integrate when needed)
 
-- [ ] **@xnet/vectors package** - `packages/vectors/`
+- [ ] **@xnetjs/vectors package** - `packages/vectors/`
   - Delete entire directory (or integrate when canvas needs it)
 
 - [x] **StorageAdapter + XDocument** (see Part 1 above)
 
 ### Phase 3: Low Priority (Document as Future)
 
-- [ ] **@xnet/network** - Add README noting it's for future P2P
-- [ ] **@xnet/query** - Add README noting it's for future federation
-- [ ] **@xnet/sqlite** - Decide: consolidate apps to use it, or remove
+- [ ] **@xnetjs/network** - Add README noting it's for future P2P
+- [ ] **@xnetjs/query** - Add README noting it's for future federation
+- [ ] **@xnetjs/sqlite** - Decide: consolidate apps to use it, or remove
 - [ ] **Deprecated V1 sync code** - Remove after V2 migration complete
 
 ---
@@ -692,30 +692,30 @@ flowchart TB
         direction TB
 
         subgraph Active["Active (Keep)"]
-            P1["@xnet/crypto"]
-            P2["@xnet/identity"]
-            P3["@xnet/data"]
-            P4["@xnet/react"]
-            P5["@xnet/canvas"]
-            P6["@xnet/storage<br/>(blob methods only)"]
-            P7["@xnet/sync"]
-            P8["@xnet/core"]
+            P1["@xnetjs/crypto"]
+            P2["@xnetjs/identity"]
+            P3["@xnetjs/data"]
+            P4["@xnetjs/react"]
+            P5["@xnetjs/canvas"]
+            P6["@xnetjs/storage<br/>(blob methods only)"]
+            P7["@xnetjs/sync"]
+            P8["@xnetjs/core"]
         end
 
         subgraph Dead["Dead (Remove)"]
-            D1["@xnet/cli"]
-            D2["@xnet/formula"]
-            D3["@xnet/vectors"]
+            D1["@xnetjs/cli"]
+            D2["@xnetjs/formula"]
+            D3["@xnetjs/vectors"]
         end
 
         subgraph Future["Future (Document)"]
-            F1["@xnet/network"]
-            F2["@xnet/query"]
+            F1["@xnetjs/network"]
+            F2["@xnetjs/query"]
         end
 
         subgraph Refactor["Refactor"]
-            R1["@xnet/sdk<br/>(mostly dead)"]
-            R2["@xnet/sqlite<br/>(not integrated)"]
+            R1["@xnetjs/sdk<br/>(mostly dead)"]
+            R2["@xnetjs/sqlite<br/>(not integrated)"]
         end
     end
 
@@ -734,7 +734,7 @@ flowchart TB
 
 | Phase                    | Items                                        | Effort       |
 | ------------------------ | -------------------------------------------- | ------------ |
-| Phase 1: High Priority   | IPC handlers, @xnet/cli                      | 0.5 days     |
+| Phase 1: High Priority   | IPC handlers, @xnetjs/cli                    | 0.5 days     |
 | Phase 2: Medium Priority | Expo hooks, formula, vectors, StorageAdapter | 2-3 days     |
 | Phase 3: Low Priority    | Documentation, deprecation                   | 0.5 days     |
 | **Total**                |                                              | **3-4 days** |
@@ -745,14 +745,14 @@ gantt
     dateFormat  YYYY-MM-DD
     section Phase 1
     Remove dead IPC handlers      :a1, 2026-02-08, 0.5d
-    Delete @xnet/cli              :a2, 2026-02-08, 0.25d
+    Delete @xnetjs/cli              :a2, 2026-02-08, 0.25d
     section Phase 2
     Clean up Expo hooks           :b1, after a1, 1d
-    Delete @xnet/formula          :b2, after b1, 0.25d
-    Delete @xnet/vectors          :b3, after b2, 0.25d
+    Delete @xnetjs/formula          :b2, after b1, 0.25d
+    Delete @xnetjs/vectors          :b3, after b2, 0.25d
     Remove StorageAdapter docs    :b4, after b3, 0.5d
     Remove XDocument              :b5, after b4, 0.5d
-    Simplify @xnet/sdk            :b6, after b5, 0.5d
+    Simplify @xnetjs/sdk            :b6, after b5, 0.5d
     section Phase 3
     Document future packages      :c1, after b6, 0.5d
 ```

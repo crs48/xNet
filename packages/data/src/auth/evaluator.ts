@@ -11,7 +11,7 @@ import type {
   DID,
   PolicyEvaluator,
   RoleResolver
-} from '@xnet/core'
+} from '@xnetjs/core'
 import { GrantIndex, isGrantActive, type GrantNode } from './grants'
 import { getAuthMode } from './mode'
 import {

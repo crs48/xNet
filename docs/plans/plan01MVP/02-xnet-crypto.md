@@ -1,4 +1,4 @@
-# 02: @xnet/crypto
+# 02: @xnetjs/crypto
 
 > Encryption, signing, and hashing primitives
 

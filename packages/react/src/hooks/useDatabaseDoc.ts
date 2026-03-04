@@ -30,7 +30,7 @@ import type {
   ViewType,
   FilterGroup,
   SortConfig
-} from '@xnet/data'
+} from '@xnetjs/data'
 import {
   getColumns,
   getColumn,
@@ -47,7 +47,7 @@ import {
   duplicateView as duplicateViewOp,
   initializeDatabaseDoc,
   isDatabaseDocInitialized
-} from '@xnet/data'
+} from '@xnetjs/data'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import * as Y from 'yjs'
 import { useNodeStore } from './useNodeStore'

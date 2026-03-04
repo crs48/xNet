@@ -2,11 +2,11 @@
 
 ## Overview
 
-Review of `@xnet/editor` and `@xnet/canvas` - the UI-heavy content editing packages.
+Review of `@xnetjs/editor` and `@xnetjs/canvas` - the UI-heavy content editing packages.
 
 ```mermaid
 graph TD
-    subgraph "@xnet/editor"
+    subgraph "@xnetjs/editor"
         rich["RichTextEditor"]
         ext["TipTap Extensions"]
         toolbar["Toolbar"]
@@ -15,7 +15,7 @@ graph TD
         nodeview["NodeViews"]
     end
 
-    subgraph "@xnet/canvas"
+    subgraph "@xnetjs/canvas"
         canvas["Canvas Component"]
         spatial["SpatialIndex"]
         nodes["CanvasNodeComponent"]
@@ -43,7 +43,7 @@ graph TD
 
 ### EDITOR-01: Image Placeholder Uses Filename (Not Unique)
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/extensions/image/ImagePastePlugin.ts:111-129`
 
 ```typescript
@@ -59,7 +59,7 @@ Multiple images with same filename will update wrong placeholder.
 
 ### CANVAS-01: Node Dragging Reads Stale Position
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:343-359`
 
 ```typescript
@@ -77,7 +77,7 @@ Multi-select drag can cause nodes to drift during fast drags.
 
 ### EDITOR-02: Heading Input Rules Incorrect Regex
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/extensions.ts:153-156`
 
 `#{1,1}` matches 1 hash, `#{1,2}` matches 1-2. Ambiguous matching.
@@ -88,7 +88,7 @@ Multi-select drag can cause nodes to drift during fast drags.
 
 ### EDITOR-03: Mobile Keyboard Doesn't Adjust Toolbar
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/components/FloatingToolbar.tsx:473-475`
 
 `keyboardVisible` result captured but not used.
@@ -97,7 +97,7 @@ Multi-select drag can cause nodes to drift during fast drags.
 
 ### EDITOR-04: Editor Cleanup May Destroy Prematurely
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/components/RichTextEditor.tsx:655-658`
 
 Cleanup runs on every `editor` change, not just unmount.
@@ -106,7 +106,7 @@ Cleanup runs on every `editor` change, not just unmount.
 
 ### EDITOR-05: Drag Drop Position May Be Stale After Collab Edit
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/extensions/drag-handle/DragDropPlugin.ts:202-215`
 
 Position-based lookup after async operation.
@@ -117,7 +117,7 @@ Position-based lookup after async operation.
 
 ### EDITOR-06: Redundant Event Subscriptions
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/hooks/useActiveStates.ts:109-111`
 
 Subscribes to both `selectionUpdate` and `transaction`.
@@ -126,7 +126,7 @@ Subscribes to both `selectionUpdate` and `transaction`.
 
 ### CANVAS-02: handleNodesChange Emits Empty Changes
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/store.ts:331-342`
 
 Always emits `{ changes: {} }`, listeners can't determine what changed.
@@ -137,7 +137,7 @@ Always emits `{ changes: {} }`, listeners can't determine what changed.
 
 ### CANVAS-03: Cursor Ref Doesn't Trigger Re-render
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:383-385`
 
 ```typescript
@@ -152,7 +152,7 @@ Ref changes don't cause re-render.
 
 ### CANVAS-04: autoLayout Uses Stale Closure
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/hooks/useCanvas.ts:287-302`
 
 Reads `nodes` from closure during async ELK computation.
@@ -163,7 +163,7 @@ Reads `nodes` from closure during async ELK computation.
 
 ### CANVAS-05: Global Listeners Not Cleaned on Unmount
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/nodes/CanvasNodeComponent.tsx:176-194`
 
 Window event listeners added but not checked for unmount.
@@ -172,7 +172,7 @@ Window event listeners added but not checked for unmount.
 
 ### CANVAS-06: findNodeAt Sorts on Every Call
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/spatial/index.ts:119-126`
 
 Inefficient for many overlapping nodes.
@@ -183,14 +183,14 @@ Inefficient for many overlapping nodes.
 
 ### EDITOR-07: Slash Command Any Types
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/extensions/slash-command/index.ts:78`
 
 ---
 
 ### EDITOR-08: Focus Check Boundary Issue
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/nodeviews/hooks/useNodeFocus.ts:57`
 
 Exclusive comparison misses boundary cases.
@@ -199,42 +199,42 @@ Exclusive comparison misses boundary cases.
 
 ### EDITOR-09: Image Resize Max Width Fallback
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/extensions/image/ImageNodeView.tsx:112`
 
 ---
 
 ### EDITOR-10: Slash Menu No Scroll Into View
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/components/SlashMenu/index.tsx:42-49`
 
 ---
 
 ### EDITOR-11: Callout Backspace Handler Issue
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/extensions/callout/CalloutExtension.ts:165`
 
 ---
 
 ### EDITOR-12: Dead Code in applyDelta
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/core.ts:122`
 
 ---
 
 ### EDITOR-13: LivePreviewOptions Missing syntaxClass
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/extensions/live-preview/index.ts:36-39`
 
 ---
 
 ### EDITOR-14: EditorToolbar Inline isActive Calls
 
-**Package:** `@xnet/editor`
+**Package:** `@xnetjs/editor`
 **File:** `packages/editor/src/components/EditorToolbar.tsx:40-164`
 
 Should use `useActiveStates` hook.
@@ -243,21 +243,21 @@ Should use `useActiveStates` hook.
 
 ### CANVAS-07: ResizeObserver Doesn't Trigger State Update
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:212-227`
 
 ---
 
 ### CANVAS-08: Bezier Tension Ignores Node Size
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/edges/CanvasEdgeComponent.tsx:60-81`
 
 ---
 
 ### CANVAS-09: generateNodeId Uses Math.random()
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/store.ts:426-428`
 
 **Fix:** Use `crypto.randomUUID()`.
@@ -266,28 +266,28 @@ Should use `useActiveStates` hook.
 
 ### CANVAS-10: selectAll Uses Stale Closure
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/hooks/useCanvas.ts:231-233`
 
 ---
 
 ### CANVAS-11: NodeJS.Timeout Type in Browser
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/comments/CommentOverlay.tsx:78`
 
 ---
 
 ### CANVAS-12: elkInstance Typed as Any
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/layout/index.ts:15`
 
 ---
 
 ### CANVAS-13: Keyboard Shortcuts Don't Check Focus
 
-**Package:** `@xnet/canvas`
+**Package:** `@xnetjs/canvas`
 **File:** `packages/canvas/src/renderer/Canvas.tsx:293-328`
 
 Delete key may delete canvas nodes when typing elsewhere.

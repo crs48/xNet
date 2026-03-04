@@ -13,8 +13,8 @@
 >
 > - [Exploration 0023](../../explorations/0023_[_]_DECENTRALIZED_SEARCH.md) — Three-tier search design with hub federation as Tier 2/3
 > - [Exploration 0042](../../explorations/0042_[_]_UNIFIED_QUERY_API.md) — JSON-serializable query descriptors that can be forwarded between hubs
-> - `@xnet/crypto` Ed25519 signing — for signed federation responses
-> - `@xnet/identity` UCAN — for inter-hub delegation chains
+> - `@xnetjs/crypto` Ed25519 signing — for signed federation responses
+> - `@xnetjs/identity` UCAN — for inter-hub delegation chains
 
 ## Overview
 
@@ -463,7 +463,7 @@ export class FederationService {
   private async generateHubUCAN(audience: string): Promise<string> {
     // Generate a short-lived UCAN from this hub's DID to the target hub
     // Capability: federation/query, expiry: 5 minutes
-    // Implementation depends on @xnet/identity
+    // Implementation depends on @xnetjs/identity
     return `ucan:${this.config.hubDid}:${audience}:federation/query`
   }
 
@@ -472,13 +472,13 @@ export class FederationService {
     expectedDid: string
   ): Promise<boolean> {
     // Verify Ed25519 signature over response body
-    // Implementation depends on @xnet/crypto
+    // Implementation depends on @xnetjs/crypto
     return response.hubDid === expectedDid && response.signature !== ''
   }
 
   private async signResponse(response: FederationQueryResponse): Promise<string> {
     // Sign response body with hub's Ed25519 key
-    // Implementation depends on @xnet/crypto
+    // Implementation depends on @xnetjs/crypto
     return `sig:${this.config.hubDid}:${Date.now()}`
   }
 }
@@ -706,7 +706,7 @@ const canonicalConfig: FederationConfig = {
 ## Configuration (Hub Operators)
 
 ```typescript
-import { createHub } from '@xnet/hub'
+import { createHub } from '@xnetjs/hub'
 
 const hub = await createHub({
   federation: {

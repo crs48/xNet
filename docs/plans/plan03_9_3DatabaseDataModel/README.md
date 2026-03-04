@@ -401,20 +401,20 @@ graph TD
 
 | Package         | Changes                                             |
 | --------------- | --------------------------------------------------- |
-| `@xnet/data`    | DatabaseRowSchema, dynamic properties, column types |
-| `@xnet/sync`    | Row-level Y.Doc sync for rich text cells            |
-| `@xnet/react`   | useDatabase, useDatabaseRow hooks, view components  |
-| `@xnet/hub`     | DatabaseQueryService, FTS5 index, subscriptions     |
+| `@xnetjs/data`  | DatabaseRowSchema, dynamic properties, column types |
+| `@xnetjs/sync`  | Row-level Y.Doc sync for rich text cells            |
+| `@xnetjs/react` | useDatabase, useDatabaseRow hooks, view components  |
+| `@xnetjs/hub`   | DatabaseQueryService, FTS5 index, subscriptions     |
 | `apps/electron` | Database UI integration                             |
 
 ## Dependencies
 
-| Dependency                | Package     | Purpose                  |
-| ------------------------- | ----------- | ------------------------ |
-| `@tanstack/react-virtual` | @xnet/react | X+Y virtualization       |
-| `@dnd-kit/core`           | @xnet/react | Board view drag-and-drop |
-| `fractional-indexing`     | @xnet/data  | Row ordering             |
-| `date-fns`                | @xnet/react | Calendar view            |
+| Dependency                | Package       | Purpose                  |
+| ------------------------- | ------------- | ------------------------ |
+| `@tanstack/react-virtual` | @xnetjs/react | X+Y virtualization       |
+| `@dnd-kit/core`           | @xnetjs/react | Board view drag-and-drop |
+| `fractional-indexing`     | @xnetjs/data  | Row ordering             |
+| `date-fns`                | @xnetjs/react | Calendar view            |
 
 ## Success Criteria
 

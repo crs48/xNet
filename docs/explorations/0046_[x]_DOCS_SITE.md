@@ -22,7 +22,7 @@
 
 ## Executive Summary
 
-xNet has excellent internal documentation (TRADEOFFS.md, VISION.md, 45 explorations, detailed plan docs) but almost no public-facing developer documentation. The `@xnet/react` README is the only package with real API docs. The `@xnet/data` README still describes a deprecated API. `@xnet/sync` has no README at all.
+xNet has excellent internal documentation (TRADEOFFS.md, VISION.md, 45 explorations, detailed plan docs) but almost no public-facing developer documentation. The `@xnetjs/react` README is the only package with real API docs. The `@xnetjs/data` README still describes a deprecated API. `@xnetjs/sync` has no README at all.
 
 This exploration designs a documentation site that:
 
@@ -652,7 +652,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 <Tabs>
   <TabItem label="Schema">
     ```ts title="schema.ts"
-    import { defineSchema, text, select } from '@xnet/data'
+    import { defineSchema, text, select } from '@xnetjs/data'
 
     export const TaskSchema = defineSchema({
       name: 'Task',
@@ -667,7 +667,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
   </TabItem>
   <TabItem label="Component">
     ```tsx title="TaskList.tsx"
-    import { useQuery, useMutate } from '@xnet/react'
+    import { useQuery, useMutate } from '@xnetjs/react'
     import { TaskSchema } from './schema'
 
     function TaskList() {
@@ -726,14 +726,14 @@ import { Steps } from '@astrojs/starlight/components';
 1. Install the packages
 
 ```bash
-pnpm add @xnet/react @xnet/data
+pnpm add @xnetjs/react @xnetjs/data
 ```
 ````
 
 2. Define your schema
 
    ```ts title="schema.ts"
-   import { defineSchema, text } from '@xnet/data'
+   import { defineSchema, text } from '@xnetjs/data'
 
    export const NoteSchema = defineSchema({
      name: 'Note',
@@ -745,7 +745,7 @@ pnpm add @xnet/react @xnet/data
 3. Wrap your app in `XNetProvider`
 
    ```tsx title="App.tsx" {3,8-10}
-   import { XNetProvider } from '@xnet/react'
+   import { XNetProvider } from '@xnetjs/react'
 
    function App() {
      return (
@@ -831,16 +831,16 @@ Every major concept gets a diagram. Here's the full inventory:
 
 ```mermaid
 graph BT
-    crypto["@xnet/crypto<br/>BLAKE3, Ed25519, XChaCha20"]
-    identity["@xnet/identity<br/>DID:key, UCAN"]
-    storage["@xnet/storage<br/>IndexedDB adapter"]
-    sync["@xnet/sync<br/>Lamport, Change&lt;T&gt;, Yjs"]
-    data["@xnet/data<br/>Schema, NodeStore"]
-    react["@xnet/react<br/>useQuery, useMutate, useNode"]
-    sdk["@xnet/sdk<br/>Browser + Node clients"]
-    canvas["@xnet/canvas<br/>Infinite canvas"]
-    editor["@xnet/editor<br/>TipTap rich text"]
-    devtools["@xnet/devtools<br/>7 debug panels"]
+    crypto["@xnetjs/crypto<br/>BLAKE3, Ed25519, XChaCha20"]
+    identity["@xnetjs/identity<br/>DID:key, UCAN"]
+    storage["@xnetjs/storage<br/>IndexedDB adapter"]
+    sync["@xnetjs/sync<br/>Lamport, Change&lt;T&gt;, Yjs"]
+    data["@xnetjs/data<br/>Schema, NodeStore"]
+    react["@xnetjs/react<br/>useQuery, useMutate, useNode"]
+    sdk["@xnetjs/sdk<br/>Browser + Node clients"]
+    canvas["@xnetjs/canvas<br/>Infinite canvas"]
+    editor["@xnetjs/editor<br/>TipTap rich text"]
+    devtools["@xnetjs/devtools<br/>7 debug panels"]
 
     crypto --> identity
     identity --> storage
@@ -868,7 +868,7 @@ graph LR
         UN["useNode()"]
     end
 
-    subgraph "@xnet/react"
+    subgraph "@xnetjs/react"
         NS["NodeStore"]
         YD["Yjs Y.Doc"]
     end

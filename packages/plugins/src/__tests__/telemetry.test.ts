@@ -1,5 +1,5 @@
 /**
- * Telemetry integration tests for @xnet/plugins
+ * Telemetry integration tests for @xnetjs/plugins
  */
 
 import type { TelemetryReporter, ScriptStore, FlatNode } from '../sandbox'
