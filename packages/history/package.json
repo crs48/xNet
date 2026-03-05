@@ -3,6 +3,10 @@
   "version": "0.0.2",
   "description": "History, audit & time travel for xNet (point-in-time reconstruction, undo/redo, diffs, blame, verification)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crs48/xNet"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

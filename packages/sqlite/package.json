@@ -3,6 +3,10 @@
   "version": "0.0.2",
   "description": "Unified SQLite adapter for xNet across all platforms",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crs48/xNet"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
