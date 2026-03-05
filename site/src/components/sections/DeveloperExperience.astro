@@ -2,10 +2,10 @@
 import SectionHeader from '../ui/SectionHeader.astro'
 import CodeBlock from '../ui/CodeBlock.astro'
 
-const kw = (s: string) => `<span class="text-indigo-400">${s}</span>`
-const fn = (s: string) => `<span class="text-yellow-300">${s}</span>`
-const str = (s: string) => `<span class="text-emerald-400">${s}</span>`
-const num = (s: string) => `<span class="text-orange-400">${s}</span>`
+const kw = (s: string) => `<span class="tok-keyword">${s}</span>`
+const fn = (s: string) => `<span class="tok-function">${s}</span>`
+const str = (s: string) => `<span class="tok-string">${s}</span>`
+const num = (s: string) => `<span class="tok-number">${s}</span>`
 
 const recipeCode = [
   `${kw('import')} {`,

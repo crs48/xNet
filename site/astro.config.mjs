@@ -49,6 +49,9 @@ export default defineConfig({
       editLink: {
         baseUrl: 'https://github.com/crs48/xNet/edit/main/site/'
       },
+      expressiveCode: {
+        themes: ['one-light', 'one-dark-pro']
+      },
       components: {
         SiteTitle: './src/components/docs/SiteTitle.astro',
         Head: './src/components/docs/Head.astro'
