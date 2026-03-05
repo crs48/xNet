@@ -1,0 +1,100 @@
+{
+  "publishedPackages": [
+    {
+      "name": "@xnetjs/core",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/formula",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/sqlite",
+      "version": "0.1.0"
+    },
+    {
+      "name": "@xnetjs/ui",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/crypto",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/identity",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/storage",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/sync",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/vectors",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/data",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/cli",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/data-bridge",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/editor",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/history",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/network",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/plugins",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/telemetry",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/hub",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/query",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/react",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/canvas",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/sdk",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/views",
+      "version": "0.0.1"
+    },
+    {
+      "name": "@xnetjs/devtools",
+      "version": "0.1.0"
+    }
+  ]
+}

@@ -2,6 +2,7 @@
   "name": "@xnetjs/cli",
   "version": "0.0.1",
   "description": "xNet CLI - Schema migrations, diagnostics, and development tools",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,6 +14,15 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "dev": "tsx src/cli.ts",
