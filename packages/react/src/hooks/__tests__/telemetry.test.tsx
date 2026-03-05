@@ -128,7 +128,11 @@ describe('useQuery telemetry', () => {
     renderHook(() => useQuery(TaskSchema), { wrapper: Wrapper })
 
     await waitFor(() => {
-      return telemetry.calls.some((c) => c.method === 'reportUsage')
+      return telemetry.calls.some(
+        (c) =>
+          c.method === 'reportUsage' &&
+          (c.args[0] === 'react.useQuery.cache_hit' || c.args[0] === 'react.useQuery.cache_miss')
+      )
     })
 
     // Either cache_hit or cache_miss should be reported (timing-dependent)
