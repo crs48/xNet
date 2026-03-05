@@ -854,7 +854,7 @@ gantt
 - [ ] Verify BlockSuite components can be extracted without core runtime
 - [ ] Prototype one extracted component (e.g., color picker) in xNet
 - [ ] Measure performance impact of any adapter layer
-- [ ] Confirm license compatibility (MPL 2.0 → MIT is compatible)
+- [ ] Confirm license compliance: never copy MPL 2.0 source files into xNet; reference only for design/UX patterns (MIT and MPL 2.0 are combinable but MPL-licensed files cannot be relicensed)
 - [ ] Get user feedback on whether AFFiNE UX is worth the effort
 
 ### During Implementation
