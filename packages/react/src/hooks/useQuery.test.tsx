@@ -117,26 +117,33 @@ describe('useQuery', () => {
 
       const { result } = renderHook(
         () => ({
-          mutate: useMutate(),
-          // We'll query by ID after creating
-          // eslint-disable-next-line react-hooks/rules-of-hooks
-          queryById: (id: string) => useQuery(TaskSchema, id)
+          list: useQuery(TaskSchema),
+          mutate: useMutate()
         }),
         { wrapper }
       )
 
       await waitFor(() => {
-        expect(result.current.mutate.isPending).toBe(false)
+        expect(result.current.list.loading).toBe(false)
       })
 
       // Create a task
-      let taskId: string
       await act(async () => {
-        const task = await result.current.mutate.create(TaskSchema, {
+        await result.current.mutate.create(TaskSchema, {
           title: 'Test Task',
           status: 'todo'
         })
-        taskId = task!.id
+      })
+
+      await act(async () => {
+        await result.current.list.reload()
+      })
+
+      let taskId: string | undefined
+      await waitFor(() => {
+        const created = result.current.list.data.find((task) => task.title === 'Test Task')
+        expect(created).toBeDefined()
+        taskId = created?.id
       })
 
       // Now query by ID in a new hook
