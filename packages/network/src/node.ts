@@ -8,7 +8,6 @@ import { bootstrap } from '@libp2p/bootstrap'
 import { circuitRelayTransport } from '@libp2p/circuit-relay-v2'
 import { identify } from '@libp2p/identify'
 import { kadDHT } from '@libp2p/kad-dht'
-import { webRTC } from '@libp2p/webrtc'
 import { webSockets } from '@libp2p/websockets'
 import { createLibp2p } from 'libp2p'
 import { DEFAULT_CONFIG } from './types'
@@ -36,12 +35,26 @@ export interface CreateNodeOptions {
   telemetry?: NodeTelemetry
 }
 
+async function createTransports() {
+  const transports = [webSockets(), circuitRelayTransport()]
+
+  try {
+    const { webRTC } = await import('@libp2p/webrtc')
+    transports.unshift(webRTC())
+  } catch (_error) {
+    // Skip WebRTC transport when native bindings are unavailable.
+  }
+
+  return transports
+}
+
 /**
  * Create a new libp2p network node
  */
 export async function createNode(options: CreateNodeOptions): Promise<NetworkNode> {
   const config = { ...DEFAULT_CONFIG, ...options.config }
   const telemetry = options.telemetry
+  const transports = await createTransports()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const services: any = {
@@ -52,7 +65,7 @@ export async function createNode(options: CreateNodeOptions): Promise<NetworkNod
   }
 
   const libp2p = await createLibp2p({
-    transports: [webRTC(), webSockets(), circuitRelayTransport()],
+    transports,
     connectionEncrypters: [noise()],
     streamMuxers: [yamux()],
     peerDiscovery:
