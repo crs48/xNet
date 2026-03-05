@@ -261,41 +261,49 @@ describe('WebhookEmitter', () => {
     it('adds signature header when secret is configured', async () => {
       emitter.start()
 
-      emitter.register({
-        id: 'test-webhook',
-        url: 'https://example.com/webhook',
-        events: ['updated'],
-        secret: 'my-secret-key'
-      })
+      const mockImportKey = vi
+        .spyOn(globalThis.crypto.subtle, 'importKey')
+        .mockResolvedValue({} as CryptoKey)
+      const mockSign = vi
+        .spyOn(globalThis.crypto.subtle, 'sign')
+        .mockResolvedValue(new Uint8Array([1, 2, 3, 4]).buffer)
 
-      mockStore.emit({
-        change: { type: 'node-change' },
-        node: {
-          id: 'node-1',
-          schemaId: 'xnet://xnet.dev/Task',
-          properties: {},
-          deleted: false,
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        },
-        isRemote: false
-      })
-
-      // crypto.subtle.sign is genuinely async — advance timers repeatedly
-      // to flush both timer callbacks and microtask-based crypto operations
-      for (let i = 0; i < 20; i++) {
-        await vi.advanceTimersByTimeAsync(50)
-      }
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://example.com/webhook',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'x-xnet-signature': expect.any(String),
-            'x-xnet-signature-256': expect.stringMatching(/^sha256=/)
-          })
+      try {
+        emitter.register({
+          id: 'test-webhook',
+          url: 'https://example.com/webhook',
+          events: ['updated'],
+          secret: 'my-secret-key'
         })
-      )
+
+        mockStore.emit({
+          change: { type: 'node-change' },
+          node: {
+            id: 'node-1',
+            schemaId: 'xnet://xnet.dev/Task',
+            properties: {},
+            deleted: false,
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          },
+          isRemote: false
+        })
+
+        await vi.advanceTimersByTimeAsync(50)
+
+        expect(mockFetch).toHaveBeenCalledWith(
+          'https://example.com/webhook',
+          expect.objectContaining({
+            headers: expect.objectContaining({
+              'x-xnet-signature': '01020304',
+              'x-xnet-signature-256': 'sha256=01020304'
+            })
+          })
+        )
+      } finally {
+        mockSign.mockRestore()
+        mockImportKey.mockRestore()
+      }
     })
   })
 

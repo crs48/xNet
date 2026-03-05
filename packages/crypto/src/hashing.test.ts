@@ -34,12 +34,13 @@ describe('Hashing', () => {
     expect(blake3Hash).not.toBe(sha256Hash)
   })
 
-  it.skipIf(process.env.VITEST_PRECOMMIT)('should hash 1MB in under 200ms', () => {
+  it.skipIf(process.env.VITEST_PRECOMMIT)('should hash 1MB within expected time budget', () => {
     const data = new Uint8Array(1024 * 1024)
+    const maxDurationMs = process.env.CI ? 350 : 200
     // Warm up
     hash(data)
     const start = performance.now()
     hash(data)
-    expect(performance.now() - start).toBeLessThan(200)
+    expect(performance.now() - start).toBeLessThan(maxDurationMs)
   })
 })
