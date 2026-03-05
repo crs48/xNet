@@ -44,25 +44,25 @@ const { title, description } = Astro.props
         --lp-code-type: #e5c07b;
       }
 
-      .lp-code {
+      :global(.lp-code) {
         color: var(--lp-code-fg);
       }
-      .lp-code .tok-comment {
+      :global(.lp-code .tok-comment) {
         color: var(--lp-code-comment);
       }
-      .lp-code .tok-keyword {
+      :global(.lp-code .tok-keyword) {
         color: var(--lp-code-keyword);
       }
-      .lp-code .tok-function {
+      :global(.lp-code .tok-function) {
         color: var(--lp-code-function);
       }
-      .lp-code .tok-string {
+      :global(.lp-code .tok-string) {
         color: var(--lp-code-string);
       }
-      .lp-code .tok-number {
+      :global(.lp-code .tok-number) {
         color: var(--lp-code-number);
       }
-      .lp-code .tok-type {
+      :global(.lp-code .tok-type) {
         color: var(--lp-code-type);
       }
 
