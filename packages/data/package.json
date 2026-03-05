@@ -1,6 +1,7 @@
 {
   "name": "@xnetjs/data",
   "version": "0.0.1",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,6 +15,15 @@
       "require": "./dist/ts-plugin/index.cjs",
       "import": "./dist/ts-plugin/index.js"
     }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts && tsup src/ts-plugin/index.ts --format cjs,esm --dts --outDir dist/ts-plugin",

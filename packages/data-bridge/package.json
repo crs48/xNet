@@ -2,6 +2,7 @@
   "name": "@xnetjs/data-bridge",
   "version": "0.0.1",
   "description": "DataBridge abstraction for off-main-thread data access in xNet",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,6 +15,15 @@
       "import": "./dist/worker/data-worker.js",
       "types": "./dist/worker/data-worker.d.ts"
     }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsup src/index.ts src/worker/data-worker.ts --format esm --dts",

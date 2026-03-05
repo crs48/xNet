@@ -1,7 +1,8 @@
 {
   "name": "@xnetjs/sqlite",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Unified SQLite adapter for xNet across all platforms",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -40,8 +41,14 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
@@ -53,16 +60,16 @@
     "comlink": "^4.4.2"
   },
   "devDependencies": {
-    "better-sqlite3": "^11.8.1",
     "@types/better-sqlite3": "^7.6.12",
+    "better-sqlite3": "^11.8.1",
     "sql.js": "^1.12.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^2.0.0"
   },
   "peerDependencies": {
-    "better-sqlite3": "^11.0.0",
     "@sqlite.org/sqlite-wasm": "3.51.2-build6",
+    "better-sqlite3": "^11.0.0",
     "expo-sqlite": "^14.0.0"
   },
   "peerDependenciesMeta": {
