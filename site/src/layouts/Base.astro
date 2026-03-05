@@ -22,12 +22,48 @@ const { title, description } = Astro.props
       :root {
         --lp-surface: #f5f5f7;
         --lp-border: #e0e0e6;
-        --lp-code-bg: #f0f0f4;
+        --lp-code-bg: #fafafa;
+        --lp-code-fg: #383a42;
+        --lp-code-comment: #a0a1a7;
+        --lp-code-keyword: #a626a4;
+        --lp-code-function: #4078f2;
+        --lp-code-string: #50a14f;
+        --lp-code-number: #986801;
+        --lp-code-type: #c18401;
       }
       .dark {
         --lp-surface: #12121a;
         --lp-border: #161622;
-        --lp-code-bg: #0a0a0f;
+        --lp-code-bg: #282c34;
+        --lp-code-fg: #abb2bf;
+        --lp-code-comment: #5c6370;
+        --lp-code-keyword: #c678dd;
+        --lp-code-function: #61afef;
+        --lp-code-string: #98c379;
+        --lp-code-number: #d19a66;
+        --lp-code-type: #e5c07b;
+      }
+
+      .lp-code {
+        color: var(--lp-code-fg);
+      }
+      .lp-code .tok-comment {
+        color: var(--lp-code-comment);
+      }
+      .lp-code .tok-keyword {
+        color: var(--lp-code-keyword);
+      }
+      .lp-code .tok-function {
+        color: var(--lp-code-function);
+      }
+      .lp-code .tok-string {
+        color: var(--lp-code-string);
+      }
+      .lp-code .tok-number {
+        color: var(--lp-code-number);
+      }
+      .lp-code .tok-type {
+        color: var(--lp-code-type);
       }
 
       /* Scroll-triggered animations */
