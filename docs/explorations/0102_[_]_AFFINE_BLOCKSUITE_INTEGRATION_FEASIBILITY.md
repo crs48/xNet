@@ -808,7 +808,7 @@ gantt
 | **User confusion** - Partial AFFiNE UX creates inconsistent experience | 🟡 Medium | Ensure consistent interactions; don't half-copy                  |
 | **Feature gap** - Users expect full AFFiNE features                    | 🟡 Medium | Set clear expectations; focus on core workflows                  |
 | **Legal issues** - License or trademark concerns                       | 🟢 Low    | BlockSuite is MPL 2.0 (permissive); attribute properly           |
-| **Maintenance burden** - Forked code becomes stale                     | 🟡 Medium | Budget time for ongoing polish; don't rely on BlockSuite updates |
+| **Legal issues** - License or trademark concerns                       | 🟡 Medium | BlockSuite is MPL 2.0 (weak copyleft, file-level); do not copy source files — copy only visual patterns and interactions |
 
 ---
 
