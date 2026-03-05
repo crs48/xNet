@@ -3,6 +3,10 @@
   "version": "0.0.2",
   "description": "DataBridge abstraction for off-main-thread data access in xNet",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crs48/xNet"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
