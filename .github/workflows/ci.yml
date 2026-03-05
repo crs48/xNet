@@ -48,11 +48,11 @@ jobs:
 
       - name: Run tests (shard ${{ matrix.shard }})
         if: github.event_name == 'push'
-        run: pnpm vitest run --shard=${{ matrix.shard }} --coverage --retry=2
+        run: pnpm vitest run --shard=${{ matrix.shard }} --coverage
 
       - name: Run changed tests (shard ${{ matrix.shard }})
         if: github.event_name == 'pull_request'
-        run: pnpm vitest run --changed=origin/${{ github.base_ref }} --shard=${{ matrix.shard }} --passWithNoTests --retry=2
+        run: pnpm vitest run --changed=origin/${{ github.base_ref }} --shard=${{ matrix.shard }} --passWithNoTests
 
       - name: Upload coverage
         if: matrix.shard == '1/3' && github.event_name == 'push'
