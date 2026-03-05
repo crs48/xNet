@@ -10,6 +10,7 @@ import { useRef, useCallback, type JSX } from 'react'
 import { captureTextAnchor } from '../extensions/comment'
 import { cn } from '../utils'
 import {
+  deriveSelectionShape,
   shouldShowDesktopToolbar,
   type KeyboardThresholds,
   type ToolbarMode,
@@ -479,13 +480,11 @@ function MobileToolbar({
  */
 function DesktopToolbar({
   editor,
-  selectionShape,
   className,
   additionalItems = [],
   onCreateComment
 }: {
   editor: Editor
-  selectionShape: 'collapsed' | 'range' | 'node'
   className?: string
   additionalItems?: ToolbarItemContribution[]
   onCreateComment?: (anchorData: string) => Promise<string | null>
@@ -498,9 +497,9 @@ function DesktopToolbar({
         placement: 'top',
         offset: 8
       }}
-      shouldShow={({ editor }) => {
+      shouldShow={({ editor, state }) => {
         return shouldShowDesktopToolbar({
-          selectionShape,
+          selectionShape: deriveSelectionShape(state.selection),
           inCodeBlock: editor.isActive('codeBlock')
         })
       }}
@@ -558,7 +557,6 @@ export function FloatingToolbar({
   return (
     <DesktopToolbar
       editor={editor}
-      selectionShape={ux.selectionShape}
       className={className}
       additionalItems={additionalItems}
       onCreateComment={onCreateComment}

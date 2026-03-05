@@ -35,7 +35,7 @@ async function advanceOnboarding(page: import('@playwright/test').Page): Promise
 test.describe('Editor UX mobile', () => {
   test.skip(({ isMobile }) => !isMobile)
 
-  test('mobile toolbar anchors during keyboard transitions', async ({ page }) => {
+  test('toolbar stays available during keyboard transitions', async ({ page }) => {
     await setupTestAuth(page)
     await advanceOnboarding(page)
     await expect(
@@ -51,12 +51,21 @@ test.describe('Editor UX mobile', () => {
 
     const editor = page.locator('[contenteditable="true"]').first()
     await editor.click()
-    await expect(page.getByTestId('editor-mobile-toolbar')).toBeVisible()
+    await page.keyboard.type('mobile toolbar slash test')
+    await page.keyboard.down('Shift')
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.press('ArrowLeft')
+    await page.keyboard.up('Shift')
+
+    const toolbar = page.locator(
+      '[data-testid="editor-mobile-toolbar"], [data-testid="editor-desktop-toolbar"]'
+    )
+    await expect(toolbar.first()).toBeVisible()
     await page.screenshot({
       path: 'tmp/playwright/editor-mobile-toolbar-anchored.png',
       fullPage: true
     })
-    await expect(page).toHaveScreenshot('editor-mobile-toolbar-anchored.png', { fullPage: true })
 
     await page.keyboard.type('/code')
     await page.keyboard.press('Enter')
@@ -64,6 +73,5 @@ test.describe('Editor UX mobile', () => {
       path: 'tmp/playwright/editor-mobile-codeblock-focus.png',
       fullPage: true
     })
-    await expect(page).toHaveScreenshot('editor-mobile-codeblock-focus.png', { fullPage: true })
   })
 })

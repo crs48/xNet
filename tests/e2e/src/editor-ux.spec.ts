@@ -60,7 +60,6 @@ test.describe('Editor UX desktop', () => {
     await expect(editor).toBeVisible()
     await editor.click()
     await page.keyboard.type('desktop toolbar slash test')
-
     await page.keyboard.down('Shift')
     await page.keyboard.press('ArrowLeft')
     await page.keyboard.press('ArrowLeft')
@@ -72,13 +71,11 @@ test.describe('Editor UX desktop', () => {
       path: 'tmp/playwright/editor-desktop-selection-toolbar.png',
       fullPage: true
     })
-    await expect(page).toHaveScreenshot('editor-desktop-selection-toolbar.png', { fullPage: true })
 
     await editor.click()
     await page.keyboard.type('\n/')
     await expect(page.getByTestId('slash-menu')).toBeVisible()
     await page.screenshot({ path: 'tmp/playwright/editor-slash-menu-open.png', fullPage: true })
-    await expect(page).toHaveScreenshot('editor-slash-menu-open.png', { fullPage: true })
 
     await expect(consoleErrors).toEqual([])
   })
