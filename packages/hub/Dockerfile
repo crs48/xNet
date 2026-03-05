@@ -60,8 +60,7 @@ COPY --from=builder /build/patches/ patches/
 
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
   && corepack enable \
-  && pnpm install --frozen-lockfile --prod --ignore-scripts --filter @xnetjs/hub... \
-  && pnpm rebuild better-sqlite3 --filter @xnetjs/hub... \
+  && pnpm install --frozen-lockfile --prod --filter @xnetjs/hub... \
   && apk del .build-deps
 
 # Copy built artifacts
