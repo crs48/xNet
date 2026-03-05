@@ -4,17 +4,6 @@
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { app, BrowserWindow } from 'electron'
-
-// Enable remote debugging in development for Playwright/CDP testing
-// CDP port is configurable via ELECTRON_CDP_PORT env var (default: 9223)
-if (process.env.NODE_ENV === 'development') {
-  const cdpPort = process.env.ELECTRON_CDP_PORT || '9223'
-  app.commandLine.appendSwitch('remote-debugging-port', cdpPort)
-}
-
-// ESM __dirname shim (electron-vite outputs ESM)
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
 import {
   spawnDataProcess,
@@ -27,6 +16,17 @@ import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { createMenu } from './menu'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
 import { initAutoUpdater } from './updater'
+
+// Enable remote debugging in development for Playwright/CDP testing
+// CDP port is configurable via ELECTRON_CDP_PORT env var (default: 9223)
+if (process.env.NODE_ENV === 'development') {
+  const cdpPort = process.env.ELECTRON_CDP_PORT || '9223'
+  app.commandLine.appendSwitch('remote-debugging-port', cdpPort)
+}
+
+// ESM __dirname shim (electron-vite outputs ESM)
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // Profile support for running multiple instances with separate data
 // Usage: XNET_PROFILE=user2 pnpm dev:electron

@@ -17,6 +17,35 @@ import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
 import { createIPCSyncManager, type IPCSyncManager } from './lib/ipc-sync-manager'
 import './styles.css'
 
+type LocalAPIStoreNode = {
+  id: string
+  schemaId: string
+  properties: Record<string, unknown>
+  deleted: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+type LocalAPIStore = {
+  get(id: string): Promise<LocalAPIStoreNode | null>
+  list(options: {
+    schemaId?: string
+    limit?: number
+    offset?: number
+  }): Promise<LocalAPIStoreNode[]>
+  create(options: {
+    schemaId: string
+    properties: Record<string, unknown>
+  }): Promise<LocalAPIStoreNode>
+  update(
+    id: string,
+    options: {
+      properties: Record<string, unknown>
+    }
+  ): Promise<LocalAPIStoreNode>
+  delete(id: string): Promise<void>
+}
+
 // TODO: In production, load identity from secure storage via IPC
 // For dev/testing, use a deterministic test identity derived from a fixed seed
 // This ensures the DID and signing key are cryptographically matched
@@ -87,7 +116,7 @@ function LocalAPIStoreHandler() {
     // Register handler for Local API store requests
     const cleanup = window.xnetLocalAPI?.onStoreRequest?.(async (request) => {
       // Access the store via window (set by XNetProvider)
-      const store = (window as Window & { __xnetNodeStore?: any }).__xnetNodeStore
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
       if (!store) {
         throw new Error('NodeStore not available')
       }
@@ -114,7 +143,7 @@ function LocalAPIStoreHandler() {
             limit: params.limit as number,
             offset: params.offset as number
           })
-          return nodes.map((n: any) => ({
+          return nodes.map((n) => ({
             id: n.id,
             schemaId: n.schemaId,
             properties: n.properties,
@@ -192,7 +221,8 @@ async function init() {
   // ensuring blobs are available for BSM to sync with peers
   const ipcBlobStore = createIPCBlobStore()
   // ChunkManager expects a BlobStore, but our IPC blob store has the same interface
-  const chunkManager = new ChunkManager(ipcBlobStore as any)
+  const providerBlobStore = ipcBlobStore as unknown as ConstructorParameters<typeof ChunkManager>[0]
+  const chunkManager = new ChunkManager(providerBlobStore)
   const blobService = new BlobService(chunkManager)
 
   // Listen for devtools toggle from main process menu.
@@ -218,7 +248,7 @@ async function init() {
               nodeStorage,
               authorDID: AUTHOR_DID,
               signingKey: SIGNING_KEY,
-              blobStore: ipcBlobStore as any,
+              blobStore: providerBlobStore,
               syncManager: ipcSyncManager,
               platform: 'electron'
             }}
