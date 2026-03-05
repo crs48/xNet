@@ -108,9 +108,11 @@ describe('useQuery telemetry', () => {
     renderHook(() => useQuery(TaskSchema), { wrapper: Wrapper })
 
     await waitFor(() => {
-      return telemetry.calls.some(
-        (c) => c.method === 'reportPerformance' && c.args[0] === 'react.useQuery'
-      )
+      expect(
+        telemetry.calls.some(
+          (c) => c.method === 'reportPerformance' && c.args[0] === 'react.useQuery'
+        )
+      ).toBe(true)
     })
 
     const perfCall = telemetry.calls.find(
@@ -128,11 +130,13 @@ describe('useQuery telemetry', () => {
     renderHook(() => useQuery(TaskSchema), { wrapper: Wrapper })
 
     await waitFor(() => {
-      return telemetry.calls.some(
-        (c) =>
-          c.method === 'reportUsage' &&
-          (c.args[0] === 'react.useQuery.cache_hit' || c.args[0] === 'react.useQuery.cache_miss')
-      )
+      expect(
+        telemetry.calls.some(
+          (c) =>
+            c.method === 'reportUsage' &&
+            (c.args[0] === 'react.useQuery.cache_hit' || c.args[0] === 'react.useQuery.cache_miss')
+        )
+      ).toBe(true)
     })
 
     // Either cache_hit or cache_miss should be reported (timing-dependent)
@@ -165,9 +169,9 @@ describe('useQuery telemetry', () => {
 
     // Wait for mount call
     await waitFor(() => {
-      return telemetry.calls.some(
-        (c) => c.method === 'reportUsage' && c.args[0] === 'react.useQuery'
-      )
+      expect(
+        telemetry.calls.some((c) => c.method === 'reportUsage' && c.args[0] === 'react.useQuery')
+      ).toBe(true)
     })
 
     unmount()
