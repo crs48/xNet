@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/data-bridge",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "DataBridge abstraction for off-main-thread data access in xNet",
   "license": "MIT",
   "type": "module",
