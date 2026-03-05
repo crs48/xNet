@@ -15,6 +15,7 @@ COPY packages/identity/package.json packages/identity/
 COPY packages/sqlite/package.json packages/sqlite/
 COPY packages/storage/package.json packages/storage/
 COPY packages/sync/package.json packages/sync/
+COPY packages/telemetry/package.json packages/telemetry/
 
 # Copy patches for pnpm
 COPY patches/ patches/
@@ -31,6 +32,7 @@ COPY packages/identity/ packages/identity/
 COPY packages/sqlite/ packages/sqlite/
 COPY packages/storage/ packages/storage/
 COPY packages/sync/ packages/sync/
+COPY packages/telemetry/ packages/telemetry/
 COPY tsconfig.json ./
 
 # Build hub + dependencies
@@ -51,6 +53,7 @@ COPY --from=builder /build/packages/identity/package.json packages/identity/
 COPY --from=builder /build/packages/sqlite/package.json packages/sqlite/
 COPY --from=builder /build/packages/storage/package.json packages/storage/
 COPY --from=builder /build/packages/sync/package.json packages/sync/
+COPY --from=builder /build/packages/telemetry/package.json packages/telemetry/
 
 # Copy patches for pnpm
 COPY --from=builder /build/patches/ patches/
@@ -70,6 +73,7 @@ COPY --from=builder /build/packages/identity/dist packages/identity/dist/
 COPY --from=builder /build/packages/sqlite/dist packages/sqlite/dist/
 COPY --from=builder /build/packages/storage/dist packages/storage/dist/
 COPY --from=builder /build/packages/sync/dist packages/sync/dist/
+COPY --from=builder /build/packages/telemetry/dist packages/telemetry/dist/
 
 # Create data directory (Railway volume mount will override, but useful for local)
 RUN mkdir -p /data
