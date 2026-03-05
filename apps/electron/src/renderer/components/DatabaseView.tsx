@@ -55,6 +55,29 @@ interface DatabaseViewProps {
 
 type ViewMode = 'table' | 'board'
 
+interface CommentPopoverState {
+  visible: boolean
+  mode: 'preview' | 'full'
+  threadId: string | null
+  /** Snapshotted anchor position so layout changes don't shift the popover */
+  anchorRect: { left: number; top: number; bottom: number; right: number } | null
+  /** Cell being commented on (for new comment creation) */
+  cellRowId: string | null
+  cellPropertyKey: string | null
+  /** Focus the reply textarea on open */
+  focusReply: boolean
+}
+
+const INITIAL_COMMENT_STATE: CommentPopoverState = {
+  visible: false,
+  mode: 'preview',
+  threadId: null,
+  anchorRect: null,
+  focusReply: false,
+  cellRowId: null,
+  cellPropertyKey: null
+}
+
 /**
  * Build default view config from columns
  */
@@ -151,30 +174,6 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     databaseNodeId: docId,
     databaseSchema: DatabaseSchema.schema['@id']
   })
-
-  // Comment popover state
-  interface CommentPopoverState {
-    visible: boolean
-    mode: 'preview' | 'full'
-    threadId: string | null
-    /** Snapshotted anchor position so layout changes don't shift the popover */
-    anchorRect: { left: number; top: number; bottom: number; right: number } | null
-    /** Cell being commented on (for new comment creation) */
-    cellRowId: string | null
-    cellPropertyKey: string | null
-    /** Focus the reply textarea on open */
-    focusReply: boolean
-  }
-
-  const INITIAL_COMMENT_STATE: CommentPopoverState = {
-    visible: false,
-    mode: 'preview',
-    threadId: null,
-    anchorRect: null,
-    focusReply: false,
-    cellRowId: null,
-    cellPropertyKey: null
-  }
 
   const [commentState, setCommentState] = useState<CommentPopoverState>(INITIAL_COMMENT_STATE)
   const [newCommentText, setNewCommentText] = useState('')

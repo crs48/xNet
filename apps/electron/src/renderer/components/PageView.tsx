@@ -8,7 +8,6 @@
  */
 
 import type { SyncStatus } from '@xnetjs/react'
-// Editor type - we use any since @tiptap/core isn't directly available
 import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
 import {
@@ -39,6 +38,8 @@ import { PresenceAvatars } from './PresenceAvatars'
 interface PageViewProps {
   docId: string
 }
+
+type EditorExtensions = NonNullable<React.ComponentProps<typeof RichTextEditor>['extensions']>
 
 // ─── Comment Popover State ──────────────────────────────────────────────────────
 
@@ -73,9 +74,8 @@ export function PageView({ docId }: PageViewProps) {
 
   // Get editor extensions from plugins (reactive - updates when plugins change)
   // Uses safe version that returns [] if plugin system isn't ready
-  // Cast to any to avoid TipTap version conflicts between packages
   const editorContributions = useEditorExtensionsSafe()
-  const pluginExtensions = editorContributions.map((c) => c.extension) as any[]
+  const pluginExtensions = editorContributions.map((c) => c.extension) as EditorExtensions
 
   // Wait for plugin-contributed editor extensions to be registered before
   // mounting the editor. BundledPluginInstaller installs plugins (like Mermaid)
@@ -177,10 +177,13 @@ export function PageView({ docId }: PageViewProps) {
         if (!prev.visible || !prev.threadId) return prev
         const { from } = editor.state.selection
         const resolved = editor.state.doc.resolve(from)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const inComment = resolved
-          .marks()
-          .some((m: any) => m.type.name === 'comment' && m.attrs.commentId === prev.threadId)
+        const inComment = resolved.marks().some((mark) => {
+          const typedMark = mark as {
+            type?: { name?: string }
+            attrs?: { commentId?: string }
+          }
+          return typedMark.type?.name === 'comment' && typedMark.attrs?.commentId === prev.threadId
+        })
         if (!inComment && !markHoveredRef.current && !popoverHoveredRef.current) {
           return INITIAL_POPOVER_STATE
         }
@@ -274,8 +277,10 @@ export function PageView({ docId }: PageViewProps) {
     if (!editor) return false
     const { from } = editor.state.selection
     const resolved = editor.state.doc.resolve(from)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return resolved.marks().some((m: any) => m.type.name === 'comment')
+    return resolved.marks().some((mark) => {
+      const typedMark = mark as { type?: { name?: string } }
+      return typedMark.type?.name === 'comment'
+    })
   }, [])
 
   /** Schedule a dismiss after a short delay, unless mark/popover is hovered or caret is in comment. */

@@ -46,7 +46,7 @@ vi.mock('electron', () => {
 })
 
 // Import after mocking
-import { utilityProcess, ipcMain, MessageChannelMain } from 'electron'
+const { utilityProcess, ipcMain, MessageChannelMain } = await import('electron')
 
 describe('DataProcessManager', () => {
   beforeEach(() => {
