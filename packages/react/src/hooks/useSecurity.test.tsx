@@ -5,7 +5,7 @@
 import { renderHook, act } from '@testing-library/react'
 import { createKeyBundle, MemoryPQKeyRegistry, type HybridKeyBundle } from '@xnetjs/identity'
 import React, { type ReactNode } from 'react'
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SecurityProvider, type SecurityProviderProps } from '../context/security-context'
 import { useSecurity } from './useSecurity'
 
@@ -26,7 +26,24 @@ function createLevel2Bundle(): HybridKeyBundle {
   return createKeyBundle({ includePQ: true })
 }
 
+const ORIGINAL_CONSOLE_ERROR = console.error
+
 describe('useSecurity', () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      const message = String(args[0] ?? '')
+      if (message.includes('useSecurityContext must be used within SecurityProvider')) return
+      if (message.includes('Error: Uncaught [Error: useSecurityContext')) return
+      ORIGINAL_CONSOLE_ERROR(...args)
+    })
+  })
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
+  })
+
   describe('basic functionality', () => {
     it('provides security level from context', () => {
       const bundle = createLevel0Bundle()
@@ -287,14 +304,19 @@ describe('useSecurity', () => {
 
   describe('context requirement', () => {
     it('throws when used outside SecurityProvider', () => {
-      // Suppress console.error for expected error
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { result } = renderHook(() => {
+        try {
+          useSecurity()
+          return null
+        } catch (error) {
+          return error
+        }
+      })
 
-      expect(() => {
-        renderHook(() => useSecurity())
-      }).toThrow('useSecurityContext must be used within SecurityProvider')
-
-      consoleSpy.mockRestore()
+      expect(result.current).toBeInstanceOf(Error)
+      expect((result.current as Error).message).toContain(
+        'useSecurityContext must be used within SecurityProvider'
+      )
     })
   })
 })

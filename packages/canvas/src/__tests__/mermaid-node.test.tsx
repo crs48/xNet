@@ -34,12 +34,22 @@ function createNode(overrides: Partial<MermaidNodeData['properties']> = {}): Mer
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('MermaidNodeComponent', () => {
+  const originalConsoleError = console.error
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      const message = String(args[0] ?? '')
+      if (message.includes('not wrapped in act')) return
+      originalConsoleError(...args)
+    })
+
     vi.clearAllMocks()
     mockMermaid.render.mockResolvedValue({ svg: '<svg>mock diagram</svg>' })
   })
 
   afterEach(() => {
+    consoleErrorSpy.mockRestore()
     vi.clearAllMocks()
   })
 
