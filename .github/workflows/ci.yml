@@ -73,7 +73,7 @@ jobs:
         run: pnpm turbo run build --filter='./packages/*'
 
       - name: Run focused editor interaction tests
-        run: pnpm --filter @xnetjs/editor vitest run src/nodeviews/hooks/useNodeFocus.test.ts src/components/FloatingToolbar.test.tsx src/components/SlashMenu.test.tsx src/components/editor-ux-state.test.ts src/extensions/live-preview/inline-marks.integration.test.ts
+        run: pnpm --filter @xnetjs/editor exec vitest run src/nodeviews/hooks/useNodeFocus.test.ts src/components/FloatingToolbar.test.tsx src/components/SlashMenu.test.tsx src/components/editor-ux-state.test.ts src/extensions/live-preview/inline-marks.integration.test.ts
 
       - name: Install Playwright browsers
         run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium webkit
