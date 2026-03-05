@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react'
 import { PageSchema, MemoryNodeStorageAdapter, NodeStore, type DID } from '@xnetjs/data'
 import React, { type ReactNode } from 'react'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { XNetProvider } from '../context'
 import { useNode } from './useNode'
 
@@ -17,6 +17,7 @@ vi.mock('y-webrtc', () => ({
 // Test DID and signing key
 const TEST_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as const
 const TEST_SIGNING_KEY = new Uint8Array(32).fill(1)
+const ORIGINAL_CONSOLE_ERROR = console.error
 
 interface WrapperConfig {
   storage: MemoryNodeStorageAdapter
@@ -40,8 +41,15 @@ function createWrapper(config: WrapperConfig) {
 describe('useNode', () => {
   let storage: MemoryNodeStorageAdapter
   let store: NodeStore
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(async () => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      const message = String(args[0] ?? '')
+      if (message.includes('not wrapped in act')) return
+      ORIGINAL_CONSOLE_ERROR(...args)
+    })
+
     storage = new MemoryNodeStorageAdapter()
     store = new NodeStore({
       storage,
@@ -49,6 +57,10 @@ describe('useNode', () => {
       signingKey: TEST_SIGNING_KEY
     })
     await store.initialize()
+  })
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
   })
 
   it('should return loading state initially', () => {

@@ -5,7 +5,7 @@
  * Note: WebGL tests require a DOM environment with canvas support.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
 import {
   WebGLGridLayer,
   CSSGridFallback,
@@ -16,6 +16,20 @@ import {
 } from '../layers/index'
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
+
+let canvasGetContextSpy: ReturnType<typeof vi.spyOn> | null = null
+
+beforeAll(() => {
+  if (navigator.userAgent.includes('jsdom')) {
+    canvasGetContextSpy = vi
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockImplementation(() => null)
+  }
+})
+
+afterAll(() => {
+  canvasGetContextSpy?.mockRestore()
+})
 
 function createContainer(width = 800, height = 600): HTMLDivElement {
   const container = document.createElement('div')

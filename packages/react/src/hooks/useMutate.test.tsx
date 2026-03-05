@@ -16,7 +16,7 @@ import {
 } from '@xnetjs/data'
 import { generateIdentity, type Identity } from '@xnetjs/identity'
 import React, { type ReactNode, useMemo } from 'react'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { XNetProvider } from '../context'
 import { useMutate } from './useMutate'
 import { useQuery } from './useQuery'
@@ -45,15 +45,28 @@ const TaskSchema = defineSchema({
   }
 })
 
+const ORIGINAL_CONSOLE_ERROR = console.error
+
 describe('useMutate', () => {
   let identityResult: { identity: Identity; privateKey: Uint8Array }
   let did: DID
   let storage: MemoryNodeStorageAdapter
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
+      const message = String(args[0] ?? '')
+      if (message.includes('not wrapped in act')) return
+      ORIGINAL_CONSOLE_ERROR(...args)
+    })
+
     identityResult = generateIdentity()
     did = identityResult.identity.did as DID
     storage = new MemoryNodeStorageAdapter()
+  })
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore()
   })
 
   function createWrapper(customDataBridge?: DataBridge) {
