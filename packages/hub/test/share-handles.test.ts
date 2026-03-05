@@ -5,7 +5,7 @@ import { createHub } from '../src/index'
 
 describe('Share Handle Routes', () => {
   let hub: HubInstance
-  const PORT = 14447
+  const PORT = 14463
   let ownerToken = ''
 
   beforeAll(async () => {
