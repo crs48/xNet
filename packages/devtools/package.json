@@ -42,5 +42,6 @@
     "typescript": "^5.4.0",
     "vitest": "^4.0.0",
     "yjs": "^13.6.24"
-  }
+  },
+  "private": true
 }
