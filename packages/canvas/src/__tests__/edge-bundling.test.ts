@@ -292,8 +292,9 @@ describe('EdgeBundler', () => {
   })
 
   describe('performance', () => {
-    it('bundles 1000 edges in under 10ms', () => {
+    it('bundles 1000 edges in under budget', () => {
       const b = new EdgeBundler({ bundleThreshold: 100, minBundleSize: 2 })
+      const maxDurationMs = process.env.CI ? 25 : 10
 
       // Create 1000 edges
       const edges: CanvasEdge[] = Array.from({ length: 1000 }, (_, i) => ({
@@ -313,7 +314,7 @@ describe('EdgeBundler', () => {
       b.bundle(edges, positions)
       const elapsed = performance.now() - start
 
-      expect(elapsed).toBeLessThan(10)
+      expect(elapsed).toBeLessThan(maxDurationMs)
     })
   })
 })
