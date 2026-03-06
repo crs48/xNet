@@ -16,6 +16,7 @@ import React, {
 } from 'react'
 import * as Y from 'yjs'
 import { CommentOverlay } from '../comments/CommentOverlay'
+import { NavigationTools } from '../components/NavigationTools'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
 import { createGridLayer, type GridLayer } from '../layers'
@@ -81,6 +82,16 @@ export interface CanvasProps {
   canvasNodeId?: string
   /** Schema IRI of the canvas (optimization for comments) */
   canvasSchema?: string
+  /** Render built-in canvas navigation tools */
+  showNavigationTools?: boolean
+  /** Position for the built-in navigation tools */
+  navigationToolsPosition?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
+  /** Show the zoom percentage inside the built-in navigation tools */
+  navigationToolsShowZoomLabel?: boolean
+  /** Optional class name for the built-in navigation tools */
+  navigationToolsClassName?: string
+  /** Optional style overrides for the built-in navigation tools */
+  navigationToolsStyle?: React.CSSProperties
 }
 
 /**
@@ -169,7 +180,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     className,
     style,
     canvasNodeId,
-    canvasSchema
+    canvasSchema,
+    showNavigationTools = false,
+    navigationToolsPosition = 'bottom-left',
+    navigationToolsShowZoomLabel = true,
+    navigationToolsClassName,
+    navigationToolsStyle
   },
   ref
 ) {
@@ -558,6 +574,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [nodes]
   )
 
+  const canvasBounds = useMemo(() => canvas.store.getBounds(), [canvas.store, nodes])
+
+  const handleNavigationViewportChange = useCallback(
+    (changes: { x?: number; y?: number; zoom?: number }) => {
+      const snapshot = canvas.getViewportSnapshot()
+
+      canvas.setViewportSnapshot({
+        x: changes.x ?? snapshot.x,
+        y: changes.y ?? snapshot.y,
+        zoom: changes.zoom ?? snapshot.zoom
+      })
+    },
+    [canvas]
+  )
+
   // Container styles
   const containerStyle: React.CSSProperties = {
     position: 'relative',
@@ -654,7 +685,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         />
       )}
 
-      {/* Minimap could go here */}
+      {showNavigationTools && (
+        <NavigationTools
+          viewport={viewport}
+          canvasBounds={canvasBounds}
+          onViewportChange={handleNavigationViewportChange}
+          position={navigationToolsPosition}
+          showZoomLabel={navigationToolsShowZoomLabel}
+          className={navigationToolsClassName}
+          style={navigationToolsStyle}
+        />
+      )}
     </div>
   )
 })

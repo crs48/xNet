@@ -6,8 +6,7 @@ import type { CanvasHandle, CanvasNode, Rect } from '@xnetjs/canvas'
 import { Canvas, createNode } from '@xnetjs/canvas'
 import { CanvasSchema } from '@xnetjs/data'
 import { useNode, useIdentity } from '@xnetjs/react'
-import { IconButton } from '@xnetjs/ui'
-import { Compass, Database, FileText, Maximize2, StickyNote } from 'lucide-react'
+import { Database, FileText, StickyNote } from 'lucide-react'
 import React, {
   forwardRef,
   useCallback,
@@ -19,6 +18,8 @@ import React, {
 } from 'react'
 import {
   createCanvasShellNoteProperties,
+  getCanvasShellNotePlacement,
+  getLinkedDocumentPlacement,
   isCanvasShellNote,
   shouldRenderCanvasShellCard,
   type LinkedDocType,
@@ -154,12 +155,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     const nodesMap = doc.getMap<CanvasNode>('nodes')
     const noteNode = createNode(
       'card',
-      {
-        x: viewport.x - 160,
-        y: viewport.y - 100,
-        width: 320,
-        height: 180
-      },
+      getCanvasShellNotePlacement(viewport),
       createCanvasShellNoteProperties()
     )
 
@@ -172,19 +168,10 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
       const viewport = canvasRef.current.getViewportSnapshot()
       const nodesMap = doc.getMap<CanvasNode>('nodes')
-      const linkedNode = createNode(
-        'embed',
-        {
-          x: viewport.x - (document.type === 'database' ? 220 : 180),
-          y: viewport.y - 120,
-          width: document.type === 'database' ? 440 : 360,
-          height: document.type === 'database' ? 260 : 220
-        },
-        {
-          title: document.title,
-          linkedType: document.type
-        }
-      )
+      const linkedNode = createNode('embed', getLinkedDocumentPlacement(viewport, document.type), {
+        title: document.title,
+        linkedType: document.type
+      })
       linkedNode.linkedNodeId = document.id
       nodesMap.set(linkedNode.id, linkedNode)
     },
@@ -257,25 +244,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute bottom-24 right-6 z-20 flex items-center gap-2">
-        <div className="pointer-events-auto rounded-[24px] border border-border/70 bg-background/80 p-2 shadow-xl backdrop-blur-xl">
-          <IconButton
-            icon={<Maximize2 size={16} />}
-            label="Fit canvas to content"
-            onClick={() => canvasRef.current?.fitToContent(80)}
-            className="h-10 w-10 rounded-2xl"
-          />
-        </div>
-        <div className="pointer-events-auto rounded-[24px] border border-border/70 bg-background/80 p-2 shadow-xl backdrop-blur-xl">
-          <IconButton
-            icon={<Compass size={16} />}
-            label="Reset canvas view"
-            onClick={() => canvasRef.current?.resetView()}
-            className="h-10 w-10 rounded-2xl"
-          />
-        </div>
-      </div>
-
       <div className="h-full">
         <Canvas
           ref={canvasRef}
@@ -286,6 +254,18 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             gridSize: 20,
             minZoom: 0.1,
             maxZoom: 4
+          }}
+          showNavigationTools
+          navigationToolsPosition="bottom-right"
+          navigationToolsShowZoomLabel={false}
+          navigationToolsStyle={{
+            bottom: 24,
+            right: 24,
+            borderRadius: 24,
+            background: 'rgba(255, 255, 255, 0.8)',
+            backdropFilter: 'blur(16px)',
+            boxShadow: '0 18px 38px rgba(15, 23, 42, 0.12)',
+            border: '1px solid rgba(148, 163, 184, 0.28)'
           }}
           renderNode={(node) => {
             const linkedDocument = node.linkedNodeId
