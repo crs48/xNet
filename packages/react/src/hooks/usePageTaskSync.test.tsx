@@ -11,11 +11,13 @@ import { useQuery } from './useQuery'
 describe('usePageTaskSync', () => {
   let identityResult: { identity: Identity; privateKey: Uint8Array }
   let did: DID
+  let otherDid: DID
   let storage: MemoryNodeStorageAdapter
 
   beforeEach(() => {
     identityResult = generateIdentity()
     did = identityResult.identity.did as DID
+    otherDid = generateIdentity().identity.did as DID
     storage = new MemoryNodeStorageAdapter()
   })
 
@@ -68,6 +70,8 @@ describe('usePageTaskSync', () => {
           completed: false,
           parentTaskId: null,
           sortKey: '0000',
+          assignees: [did],
+          dueDate: '2026-03-19',
           references: []
         },
         {
@@ -77,6 +81,8 @@ describe('usePageTaskSync', () => {
           completed: true,
           parentTaskId: 'task_parent',
           sortKey: '0000.0000',
+          assignees: [did, otherDid],
+          dueDate: '2026-03-20',
           references: [
             {
               url: 'https://github.com/openai/openai/issues/123',
@@ -106,7 +112,10 @@ describe('usePageTaskSync', () => {
       page: 'page-1',
       parent: 'task_parent',
       anchorBlockId: 'block_child',
-      sortKey: '0000.0000'
+      sortKey: '0000.0000',
+      assignee: did,
+      assignees: [did, otherDid],
+      dueDate: new Date(2026, 2, 20).getTime()
     })
 
     await waitFor(() => {
@@ -122,6 +131,8 @@ describe('usePageTaskSync', () => {
           completed: true,
           parentTaskId: null,
           sortKey: '0000',
+          assignees: [otherDid],
+          dueDate: '2026-03-25',
           references: []
         }
       ])
@@ -134,7 +145,10 @@ describe('usePageTaskSync', () => {
       expect(parentTask).toMatchObject({
         title: 'Parent task renamed',
         completed: true,
-        status: 'done'
+        status: 'done',
+        assignee: otherDid,
+        assignees: [otherDid],
+        dueDate: new Date(2026, 2, 25).getTime()
       })
       expect(removedChild).toBeUndefined()
       expect(result.current.tasks.data).toHaveLength(1)

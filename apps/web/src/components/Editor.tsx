@@ -11,7 +11,8 @@ import {
   useFileUpload,
   useFileDownload,
   type Editor as TipTapEditor,
-  type PageTaskSnapshot
+  type PageTaskSnapshot,
+  type TaskMentionSuggestion
 } from '@xnetjs/editor/react'
 
 interface Props {
@@ -25,6 +26,8 @@ interface Props {
   extensions?: any[]
   /** Callback when editor is ready */
   onEditorReady?: (editor: TipTapEditor) => void
+  /** People that can be inserted as mentions */
+  mentionSuggestions?: TaskMentionSuggestion[]
   /** Callback for page-backed task snapshots */
   onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
   /** Callback for creating a comment */
@@ -38,6 +41,7 @@ export function Editor({
   onNavigate,
   extensions,
   onEditorReady,
+  mentionSuggestions,
   onPageTasksChange,
   onCreateComment
 }: Props) {
@@ -60,6 +64,7 @@ export function Editor({
       onFileDownload={onFileDownload ?? undefined}
       extensions={extensions}
       onEditorReady={onEditorReady}
+      mentionSuggestions={mentionSuggestions}
       onPageTasksChange={onPageTasksChange}
       onCreateComment={onCreateComment}
     />

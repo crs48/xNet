@@ -21,6 +21,8 @@ export interface PageTaskSnapshot {
   completed: boolean
   parentTaskId: string | null
   sortKey: string
+  assignees: string[]
+  dueDate: string | null
   references: PageTaskReferenceSnapshot[]
 }
 
@@ -89,14 +91,34 @@ function readSmartReference(node: ProseMirrorNode): PageTaskReferenceSnapshot | 
 
 function extractTaskBody(taskNode: ProseMirrorNode): {
   title: string
+  assignees: string[]
+  dueDate: string | null
   references: PageTaskReferenceSnapshot[]
 } {
   const textParts: string[] = []
+  const assignees: string[] = []
   const references: PageTaskReferenceSnapshot[] = []
+  let dueDate: string | null = null
 
   const visit = (node: ProseMirrorNode): void => {
     node.forEach((child) => {
       if (child.type.name === 'taskList' || child.type.name === 'taskItem') {
+        return
+      }
+
+      if (child.type.name === 'taskMention') {
+        const mentionId = toStringValue(child.attrs.id)
+        if (mentionId && !assignees.includes(mentionId)) {
+          assignees.push(mentionId)
+        }
+        return
+      }
+
+      if (child.type.name === 'taskDueDate') {
+        const nextDueDate = toStringValue(child.attrs.date)
+        if (nextDueDate) {
+          dueDate = nextDueDate
+        }
         return
       }
 
@@ -125,7 +147,7 @@ function extractTaskBody(taskNode: ProseMirrorNode): {
       .trim() ||
     'Untitled task'
 
-  return { title, references }
+  return { title, assignees, dueDate, references }
 }
 
 function collectPageTasksFromNode(
@@ -158,7 +180,7 @@ function collectPageTasksFromNode(
         })
       }
 
-      const { title, references } = extractTaskBody(child)
+      const { title, assignees, dueDate, references } = extractTaskBody(child)
 
       tasks.push({
         taskId,
@@ -167,6 +189,8 @@ function collectPageTasksFromNode(
         completed: Boolean(child.attrs.checked),
         parentTaskId,
         sortKey: buildSortKey(path),
+        assignees,
+        dueDate,
         references
       })
 

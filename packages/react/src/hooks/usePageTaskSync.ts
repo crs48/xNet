@@ -29,6 +29,8 @@ export interface PageTaskInput {
   completed: boolean
   parentTaskId: string | null
   sortKey: string
+  assignees: string[]
+  dueDate: string | null
   references: PageTaskReferenceInput[]
 }
 
@@ -50,6 +52,8 @@ type ExternalReferenceProvider = NonNullable<ExternalReferenceCreate['provider']
 type ExternalReferenceKind = NonNullable<ExternalReferenceCreate['kind']>
 type TaskCreate = InferCreateProps<(typeof TaskSchema)['_properties']>
 type TaskStatus = NonNullable<TaskCreate['status']>
+type TaskAssignee = Exclude<TaskCreate['assignee'], undefined>
+type TaskAssignees = NonNullable<TaskCreate['assignees']>
 
 function arraysEqual(a: string[] | undefined, b: string[]): boolean {
   if (!Array.isArray(a)) return b.length === 0
@@ -89,6 +93,22 @@ function getNextStatus(currentStatus: TaskStatus | undefined, completed: boolean
   if (completed) return 'done'
   if (!currentStatus || currentStatus === 'done') return 'todo'
   return currentStatus
+}
+
+function isDid(value: string): value is TaskAssignee {
+  return /^did:[a-z]+:[a-zA-Z0-9._:-]+$/.test(value)
+}
+
+function normalizeAssignees(assignees: string[]): TaskAssignees {
+  return Array.from(new Set(assignees)).filter(isDid)
+}
+
+function toDateTimestamp(date: string | null): number | undefined {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined
+
+  const [year, month, day] = date.split('-').map(Number)
+  const timestamp = new Date(year, month - 1, day).getTime()
+  return Number.isNaN(timestamp) ? undefined : timestamp
 }
 
 function normalizeProvider(provider: string | null): ExternalReferenceProvider {
@@ -168,6 +188,9 @@ export function usePageTaskSync({
 
         for (const task of currentTasks) {
           const existingTask = existingTaskMap.get(task.taskId)
+          const assignees = normalizeAssignees(task.assignees)
+          const dueDate = toDateTimestamp(task.dueDate)
+          const primaryAssignee = assignees[0]
           const referenceIds = task.references.map((reference) => {
             const id = computeExternalReferenceId(task.taskId, reference)
 
@@ -201,6 +224,9 @@ export function usePageTaskSync({
                 anchorBlockId: task.blockId,
                 sortKey: task.sortKey,
                 source: 'page',
+                assignee: primaryAssignee,
+                assignees,
+                dueDate,
                 references: referenceIds
               }
             })
@@ -219,6 +245,8 @@ export function usePageTaskSync({
           )
 
           const updateData: Record<string, unknown> = {}
+          const nextDueDate = dueDate
+          const nextPrimaryAssignee = primaryAssignee
 
           if (existingTask.title !== task.title) updateData.title = task.title
           if (existingTask.completed !== task.completed) updateData.completed = task.completed
@@ -230,6 +258,15 @@ export function usePageTaskSync({
           if (existingTask.anchorBlockId !== task.blockId) updateData.anchorBlockId = task.blockId
           if (existingTask.sortKey !== task.sortKey) updateData.sortKey = task.sortKey
           if (existingTask.source !== 'page') updateData.source = 'page'
+          if (!arraysEqual(existingTask.assignees, assignees)) {
+            updateData.assignees = assignees
+          }
+          if ((existingTask.assignee ?? undefined) !== nextPrimaryAssignee) {
+            updateData.assignee = nextPrimaryAssignee
+          }
+          if ((existingTask.dueDate ?? undefined) !== nextDueDate) {
+            updateData.dueDate = nextDueDate
+          }
           if (!arraysEqual(existingTask.references, referenceIds)) {
             updateData.references = referenceIds
           }

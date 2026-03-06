@@ -1,7 +1,12 @@
 /**
  * RichTextEditor - Tiptap-based rich text editor with Yjs collaboration
  */
-import type { DatabaseViewType, PageTaskSnapshot, SlashCommandItem } from '../extensions'
+import type {
+  DatabaseViewType,
+  PageTaskSnapshot,
+  SlashCommandItem,
+  TaskMentionSuggestion
+} from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
@@ -32,6 +37,8 @@ import {
   EmbedExtension,
   DatabaseEmbedExtension,
   PageTaskItemExtension,
+  TaskMentionExtension,
+  TaskDueDateExtension,
   ensurePageTaskAttrs,
   getPageTasksSnapshot
 } from '../extensions'
@@ -264,6 +271,10 @@ export interface RichTextEditorProps {
    */
   onEditorReady?: (editor: Editor) => void
   /**
+   * People that can be inserted as inline rich-text mentions.
+   */
+  mentionSuggestions?: TaskMentionSuggestion[]
+  /**
    * Task snapshot handler for page-backed checklist reconciliation.
    * Called after task rows have stable ids and the editor view is in sync.
    */
@@ -343,11 +354,17 @@ export function RichTextEditor({
   toolbarItems: additionalToolbarItems = [],
   slashCommands,
   onEditorReady,
+  mentionSuggestions = [],
   onPageTasksChange,
   onCreateComment
 }: RichTextEditorProps): JSX.Element {
   const cursorPluginRegisteredRef = useRef(false)
   const pageTaskSignatureRef = useRef<string>('')
+  const mentionSuggestionsRef = useRef<TaskMentionSuggestion[]>(mentionSuggestions)
+
+  useEffect(() => {
+    mentionSuggestionsRef.current = mentionSuggestions
+  }, [mentionSuggestions])
 
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -380,6 +397,10 @@ export function RichTextEditor({
     PageTaskItemExtension.configure({
       nested: true
     }),
+    TaskMentionExtension.configure({
+      getSuggestions: () => mentionSuggestionsRef.current
+    }),
+    TaskDueDateExtension,
     Link.configure({
       openOnClick: false,
       HTMLAttributes: {
