@@ -12,7 +12,7 @@ import { Viewport } from '../spatial/index'
 
 export interface NavigationToolsProps {
   /** Current viewport state */
-  viewport: Viewport
+  viewport: Pick<Viewport, 'x' | 'y' | 'zoom' | 'width' | 'height'>
   /** Bounds of all canvas content (for fit-to-content) */
   canvasBounds: Rect | null
   /** Callback when viewport should change */
@@ -23,6 +23,8 @@ export interface NavigationToolsProps {
   showZoomLabel?: boolean
   /** Optional CSS class name */
   className?: string
+  /** Optional style overrides for the toolbar container */
+  style?: React.CSSProperties
 }
 
 // ─── Navigation Tools Component ───────────────────────────────────────────────
@@ -33,7 +35,8 @@ export function NavigationTools({
   onViewportChange,
   position = 'bottom-left',
   showZoomLabel = true,
-  className
+  className,
+  style
 }: NavigationToolsProps) {
   const zoomIn = useCallback(() => {
     const newZoom = Math.min(viewport.zoom * 1.5, 4)
@@ -74,7 +77,10 @@ export function NavigationTools({
 
   const zoomPercent = Math.round(viewport.zoom * 100)
 
-  const positionStyles = getPositionStyles(position)
+  const positionStyles = {
+    ...getPositionStyles(position),
+    ...style
+  }
 
   return (
     <div className={`navigation-tools ${className ?? ''}`} style={positionStyles}>

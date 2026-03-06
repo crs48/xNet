@@ -4,7 +4,37 @@ import { defineConfig } from 'vitest/config'
 // (each shard only sees partial coverage, so thresholds will always fail)
 const skipThresholds = process.env.CI === 'true'
 
+const workspaceAliases = {
+  '@xnetjs/canvas': new URL('./packages/canvas/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/cli': new URL('./packages/cli/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/core': new URL('./packages/core/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/crypto': new URL('./packages/crypto/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/devtools': new URL('./packages/devtools/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/editor': new URL('./packages/editor/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/formula': new URL('./packages/formula/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/history': new URL('./packages/history/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/hub': new URL('./packages/hub/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/identity': new URL('./packages/identity/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/plugins': new URL('./packages/plugins/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/query': new URL('./packages/query/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/react': new URL('./packages/react/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/sdk': new URL('./packages/sdk/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/sqlite': new URL('./packages/sqlite/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/storage': new URL('./packages/storage/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/sync': new URL('./packages/sync/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/telemetry': new URL('./packages/telemetry/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/ui': new URL('./packages/ui/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/vectors': new URL('./packages/vectors/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/views': new URL('./packages/views/src/index.ts', import.meta.url).pathname
+}
+
 export default defineConfig({
+  resolve: {
+    alias: workspaceAliases
+  },
   test: {
     globals: true,
     testTimeout: 10000,

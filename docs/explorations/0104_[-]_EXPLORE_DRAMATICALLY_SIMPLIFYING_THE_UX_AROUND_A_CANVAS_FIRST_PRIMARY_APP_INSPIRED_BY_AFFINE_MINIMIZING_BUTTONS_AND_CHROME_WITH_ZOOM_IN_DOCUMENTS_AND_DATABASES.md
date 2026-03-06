@@ -501,19 +501,19 @@ Only after the shell works:
 - [x] Represent pages and databases as linked canvas nodes using existing `linkedNodeId` direction.
 - [x] Replace hard view switching with zoom-in/zoom-out shell transitions.
 - [x] Compress `PageView` header chrome into lightweight contextual controls.
-- [ ] Compress `DatabaseView` controls into a compact dock plus popovers.
-- [ ] Reuse or adapt `NavigationTools` for persistent bottom-corner canvas navigation.
+- [x] Compress `DatabaseView` controls into a compact dock plus popovers.
+- [x] Reuse or adapt `NavigationTools` for persistent bottom-corner canvas navigation.
 - [x] Move advanced/rare actions into command palette or secondary menus.
 - [x] Add onboarding copy that teaches exactly three interactions: create, open, zoom out.
 
 ## Validation Checklist 🧪
 
 - [x] Verify the app always lands on a canvas, including first-run and empty-workspace flows.
-- [ ] Verify a new page/database appears at the current viewport center.
+- [x] Verify a new page/database appears at the current viewport center.
 - [ ] Verify opening a linked object preserves spatial context and restores it on exit.
 - [ ] Verify keyboard-only flows still work: command palette, open, rename, zoom out, undo/redo.
 - [ ] Verify comment, share, and presence affordances remain discoverable without persistent sidebars.
-- [ ] Verify database-focused workflows still expose row/view/schema operations in two interactions or fewer.
+- [x] Verify database-focused workflows still expose row/view/schema operations in two interactions or fewer.
 - [ ] Verify the shell remains usable on small laptop widths without bringing back a sidebar.
 - [ ] Verify reduced-motion mode falls back from zoom animation to clean state swaps.
 - [ ] Verify Playwright/Electron manual checks cover canvas home, page focus, database focus, and collaboration affordances.
