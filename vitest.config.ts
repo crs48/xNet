@@ -22,6 +22,8 @@ const workspaceAliases = {
   '@xnetjs/query': new URL('./packages/query/src/index.ts', import.meta.url).pathname,
   '@xnetjs/react': new URL('./packages/react/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sdk': new URL('./packages/sdk/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/sqlite/memory': new URL('./packages/sqlite/src/adapters/memory.ts', import.meta.url)
+    .pathname,
   '@xnetjs/sqlite': new URL('./packages/sqlite/src/index.ts', import.meta.url).pathname,
   '@xnetjs/storage': new URL('./packages/storage/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sync': new URL('./packages/sync/src/index.ts', import.meta.url).pathname,
