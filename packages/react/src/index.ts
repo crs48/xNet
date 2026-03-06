@@ -85,6 +85,13 @@ export {
   type SyncStatus,
   type PresenceUser
 } from './hooks/useNode'
+export {
+  usePageTaskSync,
+  type PageTaskInput,
+  type PageTaskReferenceInput,
+  type UsePageTaskSyncOptions,
+  type UsePageTaskSyncResult
+} from './hooks/usePageTaskSync'
 
 // =============================================================================
 // Database Hooks

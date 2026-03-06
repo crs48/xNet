@@ -10,7 +10,7 @@ import type { Editor } from '@xnetjs/editor/react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
-import { useNode, useComments, useIdentity } from '@xnetjs/react'
+import { useNode, useComments, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
   CommentPopover,
   CommentsSidebar,
@@ -76,6 +76,7 @@ function DocumentPage() {
     createIfMissing: { title: 'Untitled' },
     did: did ?? undefined
   })
+  const { handleTasksChange } = usePageTaskSync({ pageId: docId })
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
 
@@ -598,6 +599,7 @@ function DocumentPage() {
               onNavigate={handleNavigate}
               extensions={commentExtensions}
               onEditorReady={handleEditorReady}
+              onPageTasksChange={handleTasksChange}
               onCreateComment={handleCreateComment}
             />
 
