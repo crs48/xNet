@@ -493,18 +493,18 @@ Only after the shell works:
 
 ## Implementation Checklist 🛠️
 
-- [ ] Add a shell state model that distinguishes `canvas-home`, `page-focus`, `database-focus`, and `settings`.
-- [ ] Make a default home canvas and open it on app launch instead of rendering the current empty state.
-- [ ] Remove the persistent left sidebar from the main renderer shell.
-- [ ] Introduce a bottom-center action dock with create/search/recent actions.
+- [x] Add a shell state model that distinguishes `canvas-home`, `page-focus`, `database-focus`, and `settings`.
+- [x] Make a default home canvas and open it on app launch instead of rendering the current empty state.
+- [x] Remove the persistent left sidebar from the main renderer shell.
+- [x] Introduce a bottom-center action dock with create/search/recent actions.
 - [ ] Introduce a top-right profile/system menu containing settings, theme, share/session, and debug actions.
-- [ ] Represent pages and databases as linked canvas nodes using existing `linkedNodeId` direction.
-- [ ] Replace hard view switching with zoom-in/zoom-out shell transitions.
+- [x] Represent pages and databases as linked canvas nodes using existing `linkedNodeId` direction.
+- [x] Replace hard view switching with zoom-in/zoom-out shell transitions.
 - [ ] Compress `PageView` header chrome into lightweight contextual controls.
 - [ ] Compress `DatabaseView` controls into a compact dock plus popovers.
 - [ ] Reuse or adapt `NavigationTools` for persistent bottom-corner canvas navigation.
-- [ ] Move advanced/rare actions into command palette or secondary menus.
-- [ ] Add onboarding copy that teaches exactly three interactions: create, open, zoom out.
+- [x] Move advanced/rare actions into command palette or secondary menus.
+- [x] Add onboarding copy that teaches exactly three interactions: create, open, zoom out.
 
 ## Validation Checklist 🧪
 
