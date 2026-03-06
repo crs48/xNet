@@ -145,7 +145,10 @@ export function App(): React.ReactElement {
     if (isLoading) return
 
     if (canvases.length === 0) {
-      if (homeCanvasId || homeCanvasBootstrapError) return
+      if (homeCanvasBootstrapError) return
+      if (homeCanvasId) {
+        setHomeCanvasId(null)
+      }
       void bootstrapHomeCanvas()
       return
     }
