@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { AddSharedDialog } from './AddSharedDialog'
+import { MyTasksPanel } from './MyTasksPanel'
 
 type DocType = 'page' | 'database' | 'canvas'
 
@@ -260,6 +261,8 @@ export function Sidebar() {
 
       {/* Document list */}
       <div className="flex-1 overflow-auto p-2">
+        <MyTasksPanel />
+
         {renderSection('page', pages || [], pagesLoading)}
         {renderSection('database', databases || [], databasesLoading)}
         {renderSection('canvas', canvases || [], canvasesLoading)}

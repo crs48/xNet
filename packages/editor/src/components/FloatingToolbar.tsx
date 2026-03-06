@@ -8,6 +8,7 @@ import type { Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
 import { useRef, useCallback, type JSX } from 'react'
 import { captureTextAnchor } from '../extensions/comment'
+import { getCurrentTaskDueDate } from '../extensions/task-metadata'
 import { cn } from '../utils'
 import {
   deriveSelectionShape,
@@ -71,6 +72,61 @@ interface ToolbarButtonProps {
   children: React.ReactNode
   mobileOnly?: boolean
   isMobile: boolean
+}
+
+function isInTaskItem(editor: Editor): boolean {
+  return editor.isActive('taskItem')
+}
+
+function pickDate(initialValue: string | null): Promise<string | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'date'
+    input.value = initialValue ?? ''
+    input.style.position = 'fixed'
+    input.style.opacity = '0'
+    input.style.pointerEvents = 'none'
+    input.style.left = '-9999px'
+    input.style.top = '0'
+
+    let settled = false
+
+    const finish = (value: string | null) => {
+      if (settled) return
+      settled = true
+      input.remove()
+      resolve(value)
+    }
+
+    input.addEventListener(
+      'change',
+      () => {
+        finish(input.value || null)
+      },
+      { once: true }
+    )
+
+    input.addEventListener(
+      'blur',
+      () => {
+        requestAnimationFrame(() => finish(input.value || null))
+      },
+      { once: true }
+    )
+
+    document.body.appendChild(input)
+    input.focus()
+
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker()
+      } catch {
+        input.click()
+      }
+    } else {
+      input.click()
+    }
+  })
 }
 
 function ToolbarButton({
@@ -177,6 +233,19 @@ function ToolbarContent({
       editor.commands.setComment(commentId)
     }
   }, [editor, onCreateComment])
+
+  const handleInsertMention = useCallback(() => {
+    editor.chain().focus().insertContent('@').run()
+  }, [editor])
+
+  const handlePickDueDate = useCallback(async () => {
+    const selectedDate = await pickDate(getCurrentTaskDueDate(editor))
+    if (!selectedDate) return
+
+    editor.chain().focus().setTaskDueDate(selectedDate).run()
+  }, [editor])
+
+  const showTaskButtons = isInTaskItem(editor)
 
   return (
     <>
@@ -296,6 +365,28 @@ function ToolbarContent({
       >
         ☐
       </ToolbarButton>
+      {showTaskButtons && (
+        <ToolbarButton
+          onClick={handleInsertMention}
+          active={editor.isActive('taskMention')}
+          title="Mention Assignee"
+          isMobile={isMobile}
+        >
+          @
+        </ToolbarButton>
+      )}
+      {showTaskButtons && (
+        <ToolbarButton
+          onClick={() => {
+            void handlePickDueDate()
+          }}
+          active={getCurrentTaskDueDate(editor) !== null}
+          title="Set Due Date"
+          isMobile={isMobile}
+        >
+          📅
+        </ToolbarButton>
+      )}
 
       <ToolbarDivider isMobile={isMobile} />
 
@@ -398,10 +489,7 @@ function ToolbarContent({
 
       {/* Mention/Link - mobile only (placeholder for future) */}
       <ToolbarButton
-        onClick={() => {
-          // TODO: Open mention picker
-          editor.chain().focus().insertContent('@').run()
-        }}
+        onClick={handleInsertMention}
         active={false}
         title="Mention"
         mobileOnly
@@ -500,7 +588,8 @@ function DesktopToolbar({
       shouldShow={({ editor, state }) => {
         return shouldShowDesktopToolbar({
           selectionShape: deriveSelectionShape(state.selection),
-          inCodeBlock: editor.isActive('codeBlock')
+          inCodeBlock: editor.isActive('codeBlock'),
+          inTaskItem: editor.isActive('taskItem')
         })
       }}
       className={cn(

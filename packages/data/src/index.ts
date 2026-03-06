@@ -83,6 +83,8 @@ export {
   type DatabaseRow,
   TaskSchema,
   type Task,
+  ExternalReferenceSchema,
+  type ExternalReference,
   CanvasSchema,
   type Canvas,
   CommentSchema,

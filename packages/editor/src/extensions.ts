@@ -439,10 +439,38 @@ export { EmbedExtension } from './extensions/embed'
 export type { EmbedOptions } from './extensions/embed'
 export { EMBED_PROVIDERS, detectProvider, parseEmbedUrl } from './extensions/embed'
 export type { EmbedProvider } from './extensions/embed'
+export { SmartReferenceExtension } from './extensions/smart-reference'
+export type { SmartReferenceOptions } from './extensions/smart-reference'
+export {
+  parseSmartReferenceUrl,
+  type SmartReference,
+  type SmartReferenceKind
+} from './extensions/smart-reference'
+export {
+  PageTaskItemExtension,
+  collectPageTasks,
+  ensurePageTaskAttrs,
+  getPageTasksSnapshot
+} from './extensions/page-tasks'
+export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/page-tasks'
+export { TaskMentionExtension, TaskDueDateExtension } from './extensions/task-metadata'
+export type { TaskMentionSuggestion, TaskDueDateOptions } from './extensions/task-metadata'
+export { formatTaskDueDateLabel, getCurrentTaskDueDate } from './extensions/task-metadata'
+export { createGravatarUrl, md5 } from './utils/gravatar'
 
 // Database embed extension
 export { DatabaseEmbedExtension } from './extensions/database-embed'
 export type { DatabaseEmbedOptions, DatabaseViewType } from './extensions/database-embed'
+export { TaskViewEmbedExtension, DEFAULT_TASK_VIEW_CONFIG } from './extensions/task-view-embed'
+export type {
+  TaskViewEmbedOptions,
+  TaskViewEmbedType,
+  TaskViewConfig,
+  TaskViewScope,
+  TaskViewAssigneeFilter,
+  TaskViewDueDateFilter,
+  TaskViewStatusFilter
+} from './extensions/task-view-embed'
 
 // Mermaid diagram extension
 export { MermaidExtension } from './extensions/mermaid'

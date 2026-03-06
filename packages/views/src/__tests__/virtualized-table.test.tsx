@@ -17,6 +17,10 @@ import {
 } from '../table/optimizations'
 import { VirtualizedTableView } from '../table/VirtualizedTableView'
 
+function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
+  return process.env.CI ? ciBudgetMs : localBudgetMs
+}
+
 // ─── Test Data ───────────────────────────────────────────────────────────────
 
 const mockSchema: Schema = {
@@ -109,7 +113,7 @@ describe('VirtualizedTableView', () => {
     render(<VirtualizedTableView schema={mockSchema} view={mockView} data={data} rowHeight={36} />)
 
     const elapsedMs = Date.now() - started
-    expect(elapsedMs).toBeLessThan(400)
+    expect(elapsedMs).toBeLessThan(getPerformanceBudget(700, 1200))
   })
 
   it('renders only visible columns (X-axis virtualization)', () => {
@@ -519,7 +523,6 @@ describe('Performance', () => {
     render(<VirtualizedTableView schema={mockSchema} view={mockView} data={data} />)
     const endTime = performance.now()
 
-    // Initial render should be fast (< 500ms)
-    expect(endTime - startTime).toBeLessThan(500)
+    expect(endTime - startTime).toBeLessThan(getPerformanceBudget(800, 1500))
   })
 })

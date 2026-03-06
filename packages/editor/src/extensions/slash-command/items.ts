@@ -388,6 +388,15 @@ export const COMMAND_GROUPS: SlashCommandGroup[] = [
             }
           }
         }
+      },
+      {
+        title: 'Task View',
+        description: 'Embed a filtered task view',
+        icon: '\u2705',
+        searchTerms: ['task', 'tasks', 'list', 'assignee', 'due', 'view'],
+        command: ({ editor, range }) => {
+          editor.chain().focus().deleteRange(range).setTaskViewEmbed().run()
+        }
       }
     ]
   }
