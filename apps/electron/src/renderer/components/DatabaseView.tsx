@@ -28,7 +28,15 @@ import {
   type SchemaVersionEntry
 } from '@xnetjs/data'
 import { useNode, useIdentity, useMutate, useQuery } from '@xnetjs/react'
-import { CommentPopover, CommentsSidebar, type CommentThreadData } from '@xnetjs/ui'
+import {
+  CommentPopover,
+  CommentsSidebar,
+  Menu,
+  MenuItem,
+  MenuLabel,
+  MenuSeparator,
+  type CommentThreadData
+} from '@xnetjs/ui'
 import {
   TableView,
   BoardView,
@@ -40,10 +48,9 @@ import {
   type ViewConfig,
   type TableRow,
   type CellPresence,
-  type ColumnUpdate,
   type NewColumnDefinition
 } from '@xnetjs/views'
-import { Table, LayoutGrid, Plus, Info, Copy } from 'lucide-react'
+import { Table, LayoutGrid, Plus, Info, Copy, Ellipsis, MessageSquare } from 'lucide-react'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import * as Y from 'yjs'
 import { PresenceAvatars } from './PresenceAvatars'
@@ -115,6 +122,118 @@ function buildDefaultBoardView(columns: StoredColumn[]): ViewConfig {
     sorts: [],
     groupByProperty: selectColumn?.id
   }
+}
+
+function DatabaseViewModeToggle({
+  viewMode,
+  onChange,
+  compact = false
+}: {
+  viewMode: ViewMode
+  onChange: (mode: ViewMode) => void
+  compact?: boolean
+}): React.ReactElement {
+  return (
+    <div
+      className={[
+        'flex items-center rounded-full bg-accent/80',
+        compact ? 'p-0.5' : 'rounded-md p-1'
+      ].join(' ')}
+    >
+      <button
+        type="button"
+        onClick={() => onChange('table')}
+        className={[
+          'flex items-center gap-1 rounded-full transition-colors',
+          compact ? 'px-2.5 py-1 text-xs' : 'px-2 py-1 text-sm',
+          viewMode === 'table'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+        ].join(' ')}
+        aria-pressed={viewMode === 'table'}
+      >
+        <Table size={14} />
+        <span>Table</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={() => onChange('board')}
+        className={[
+          'flex items-center gap-1 rounded-full transition-colors',
+          compact ? 'px-2.5 py-1 text-xs' : 'px-2 py-1 text-sm',
+          viewMode === 'board'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground'
+        ].join(' ')}
+        aria-pressed={viewMode === 'board'}
+      >
+        <LayoutGrid size={14} />
+        <span>Board</span>
+      </button>
+    </div>
+  )
+}
+
+function DatabaseOverflowMenu({
+  docId,
+  columnsCount,
+  rowsCount,
+  schemaMetadata,
+  onOpenSchemaInfo,
+  onOpenCloneSchema
+}: {
+  docId: string
+  columnsCount: number
+  rowsCount: number
+  schemaMetadata: DatabaseSchemaMetadata | null
+  onOpenSchemaInfo: () => void
+  onOpenCloneSchema: () => void
+}): React.ReactElement {
+  return (
+    <Menu
+      trigger={
+        <button
+          type="button"
+          aria-label="Open database actions"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-background/80 text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground"
+        >
+          <Ellipsis size={16} />
+        </button>
+      }
+      align="end"
+      sideOffset={8}
+      className="min-w-[240px]"
+    >
+      <MenuLabel>Database</MenuLabel>
+      {schemaMetadata && (
+        <MenuItem onSelect={onOpenSchemaInfo}>
+          <span className="flex w-full items-center gap-2">
+            <Info size={14} />
+            <span className="flex-1">Schema info</span>
+            <span className="text-xs font-mono text-muted-foreground">
+              v{schemaMetadata.version}
+            </span>
+          </span>
+        </MenuItem>
+      )}
+      {columnsCount > 0 && (
+        <MenuItem onSelect={onOpenCloneSchema}>
+          <span className="flex w-full items-center gap-2">
+            <Copy size={14} />
+            <span className="flex-1">Clone schema</span>
+            <span className="text-xs text-muted-foreground">{rowsCount} rows</span>
+          </span>
+        </MenuItem>
+      )}
+
+      <MenuSeparator />
+      <MenuLabel>Share</MenuLabel>
+      <div className="px-1 py-1">
+        <ShareButton docId={docId} docType="database" />
+      </div>
+    </Menu>
+  )
 }
 
 export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps) {
@@ -1387,6 +1506,11 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     setSelectedCardId(null)
   }, [])
 
+  const minimalCommentCountLabel =
+    commentUnresolvedCount > 0
+      ? `${commentUnresolvedCount} unresolved comment${commentUnresolvedCount !== 1 ? 's' : ''}`
+      : 'Open comments'
+
   if (loading || !doc) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -1400,17 +1524,63 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     return (
       <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
         {/* Toolbar */}
-        <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
+        <div
+          className={[
+            'flex items-center gap-2 border-b border-border',
+            minimalChrome ? 'bg-background/80 px-5 py-3 backdrop-blur-xl' : 'bg-secondary p-3'
+          ].join(' ')}
+        >
           <input
             type="text"
-            className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+            className={[
+              'border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground',
+              minimalChrome ? 'text-base font-semibold' : 'text-lg font-semibold'
+            ].join(' ')}
             value={database?.title || ''}
             onChange={(e) => update({ title: e.target.value })}
             placeholder="Untitled"
           />
-          <PresenceAvatars presence={presence} localDid={did} />
+
+          {minimalChrome ? (
+            presence.length > 0 ? (
+              <div className="scale-90">
+                <PresenceAvatars presence={presence} localDid={did} />
+              </div>
+            ) : null
+          ) : (
+            <PresenceAvatars presence={presence} localDid={did} />
+          )}
+
           <div className="flex-1" />
-          <ShareButton docId={docId} docType="database" />
+
+          {minimalChrome ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setSidebarOpen((prev) => !prev)}
+                className="flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-2 text-sm text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground"
+                title={minimalCommentCountLabel}
+              >
+                <MessageSquare size={14} />
+                <span>Comments</span>
+                {commentUnresolvedCount > 0 && (
+                  <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-600">
+                    {commentUnresolvedCount}
+                  </span>
+                )}
+              </button>
+              <DatabaseOverflowMenu
+                docId={docId}
+                columnsCount={columns.length}
+                rowsCount={rows.length}
+                schemaMetadata={schemaMetadata}
+                onOpenSchemaInfo={() => setSchemaInfoModalOpen(true)}
+                onOpenCloneSchema={() => setCloneSchemaModalOpen(true)}
+              />
+            </>
+          ) : (
+            <ShareButton docId={docId} docType="database" />
+          )}
         </div>
 
         {/* Empty state */}
@@ -1449,9 +1619,16 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
           placeholder="Untitled"
         />
 
-        {!minimalChrome && <PresenceAvatars presence={presence} localDid={did} />}
+        {minimalChrome ? (
+          presence.length > 0 ? (
+            <div className="scale-90">
+              <PresenceAvatars presence={presence} localDid={did} />
+            </div>
+          ) : null
+        ) : (
+          <PresenceAvatars presence={presence} localDid={did} />
+        )}
 
-        {/* Schema version badge */}
         {!minimalChrome && schemaMetadata && (
           <button
             className="flex items-center gap-1 px-2 py-0.5 text-xs font-mono text-muted-foreground hover:text-foreground bg-accent rounded transition-colors cursor-pointer"
@@ -1463,7 +1640,6 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
           </button>
         )}
 
-        {/* Clone button */}
         {!minimalChrome && columns.length > 0 && (
           <button
             className="flex items-center gap-1 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground bg-accent rounded transition-colors cursor-pointer"
@@ -1478,7 +1654,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         {!minimalChrome && commentUnresolvedCount > 0 && (
           <button
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title={`${commentUnresolvedCount} unresolved comment${commentUnresolvedCount !== 1 ? 's' : ''}`}
+            title={minimalCommentCountLabel}
             onClick={() => setSidebarOpen((prev) => !prev)}
           >
             <span className="text-amber-500">{commentUnresolvedCount}</span>
@@ -1488,41 +1664,52 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
         <div className="flex-1" />
 
-        {/* View switcher */}
-        <div className="flex items-center rounded-md bg-accent p-1">
-          <button
-            onClick={() => setViewMode('table')}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors ${
-              viewMode === 'table'
-                ? 'bg-background text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Table size={14} />
-            <span>Table</span>
-          </button>
-          <button
-            onClick={() => setViewMode('board')}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors ${
-              viewMode === 'board'
-                ? 'bg-background text-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <LayoutGrid size={14} />
-            <span>Board</span>
-          </button>
-        </div>
+        <DatabaseViewModeToggle
+          viewMode={viewMode}
+          onChange={setViewMode}
+          compact={minimalChrome}
+        />
 
         <button
           onClick={handleAddRow}
-          className="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-md text-sm hover:bg-primary-hover transition-colors"
+          className={[
+            'flex items-center gap-1 bg-primary text-primary-foreground transition-colors hover:bg-primary/90',
+            minimalChrome ? 'rounded-full px-3.5 py-2 shadow-sm' : 'rounded-md px-3 py-1.5'
+          ].join(' ')}
         >
           <Plus size={14} />
-          <span>New</span>
+          <span>{minimalChrome ? 'Add row' : 'New'}</span>
         </button>
 
-        {!minimalChrome && <ShareButton docId={docId} docType="database" />}
+        {minimalChrome ? (
+          <button
+            type="button"
+            onClick={() => setSidebarOpen((prev) => !prev)}
+            className="flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-2 text-sm text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground"
+            title={minimalCommentCountLabel}
+          >
+            <MessageSquare size={14} />
+            <span>Comments</span>
+            {commentUnresolvedCount > 0 && (
+              <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-xs text-amber-600">
+                {commentUnresolvedCount}
+              </span>
+            )}
+          </button>
+        ) : (
+          <ShareButton docId={docId} docType="database" />
+        )}
+
+        {minimalChrome && (
+          <DatabaseOverflowMenu
+            docId={docId}
+            columnsCount={columns.length}
+            rowsCount={rows.length}
+            schemaMetadata={schemaMetadata}
+            onOpenSchemaInfo={() => setSchemaInfoModalOpen(true)}
+            onOpenCloneSchema={() => setCloneSchemaModalOpen(true)}
+          />
+        )}
       </div>
 
       {/* View content + Sidebar horizontal layout */}
