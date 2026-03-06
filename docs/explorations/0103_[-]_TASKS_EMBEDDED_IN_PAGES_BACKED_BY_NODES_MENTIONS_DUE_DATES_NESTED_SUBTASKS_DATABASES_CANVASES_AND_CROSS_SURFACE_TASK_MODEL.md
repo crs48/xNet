@@ -1,4 +1,4 @@
-# Tasks As A Universal Primitive Across Pages, Databases, And Canvas
+# [-] Tasks As A Universal Primitive Across Pages, Databases, And Canvas
 
 > Problem statement: xNet already has `Page`, `Task`, `Database`, `DatabaseRow`, `Canvas`, and `Comment` primitives, but checklist items inside rich text pages are still plain TipTap task blocks. The goal is to make page-native tasks feel excellent while ensuring each task is a first-class node that can later participate in assignment, due dates, notifications, databases, canvas, comments, and cross-workspace queries.
 
