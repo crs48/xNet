@@ -688,9 +688,11 @@ Recommendation:
 
 ## 🛠️ Implementation Checklist
 
+Legend: `[x]` complete, `[-]` partially complete.
+
 ## Phase 1: Page-native node-backed tasks
 
-- [ ] Design `TaskSchema` v2 and migration path from the current built-in schema.
+- [-] Design `TaskSchema` v2 and migration path from the current built-in schema.
 - [x] Add `assignees` multi-person support.
 - [x] Add `page`, `anchorBlockId`, `sortKey`, and task relation fields.
 - [x] Build a custom TipTap task extension that stores `taskId`.
@@ -710,15 +712,15 @@ Recommendation:
 - [x] Build "My tasks" and "Tasks on this page" views.
 - [x] Add saved filters for assignee, due date, status, and hierarchy state.
 - [x] Allow embedded task views inside pages.
-- [ ] Prototype board/calendar/timeline projections over direct `Task` queries.
-- [ ] Decide whether this is a new `SavedView` node or an extension of `Database`.
+- [-] Prototype board/calendar/timeline projections over direct `Task` queries.
+- [-] Decide whether this is a new `SavedView` node or an extension of `Database`.
 
 ## Phase 3: Canvas + automations
 
 - [ ] Replace canvas-local checklist data with task-backed cards.
 - [ ] Add dependency visualization (`blockedBy`, `blocks`) on canvas.
 - [ ] Add due-date reminders and assignment notifications.
-- [ ] Add provider resolvers for GitHub issue/PR state, Figma file metadata, and media titles.
+- [-] Add provider resolvers for GitHub issue/PR state, Figma file metadata, and media titles.
 - [ ] Add recurring task support.
 - [ ] Add automation hooks for assignee changes, overdue states, and reminder delivery.
 
@@ -726,19 +728,19 @@ Recommendation:
 
 - [x] Creating a checklist item in a page creates exactly one `Task` node.
 - [x] Toggling a checkbox updates `Task.completed` and all subscribed task views.
-- [ ] Indenting/outdenting updates parent/subtask relations deterministically.
-- [ ] Reordering sibling tasks preserves stable order across peers.
+- [-] Indenting/outdenting updates parent/subtask relations deterministically.
+- [-] Reordering sibling tasks preserves stable order across peers.
 - [x] `@mention` insertion stores canonical DIDs, not only display strings.
 - [x] Multiple mentions can populate multiple assignees without duplicate entries.
 - [x] Editing due dates inline updates all task projections immediately.
-- [ ] Pasting a GitHub, Figma, Loom, or YouTube URL into a task produces the expected inline chip or fallback link.
-- [ ] Structured references degrade gracefully when provider metadata is unavailable.
-- [ ] Full block embeds remain opt-in so task rows stay compact.
+- [-] Pasting a GitHub, Figma, Loom, or YouTube URL into a task produces the expected inline chip or fallback link.
+- [-] Structured references degrade gracefully when provider metadata is unavailable.
+- [x] Full block embeds remain opt-in so task rows stay compact.
 - [ ] Page comments, task comments, and database/canvas task views can all target the same task node.
-- [ ] Undo/redo behaves coherently for page text plus task metadata.
+- [-] Undo/redo behaves coherently for page text plus task metadata.
 - [x] Removing a task from a page follows the chosen archive/detach semantics consistently.
-- [ ] Query-backed task views remain performant with thousands of tasks.
-- [ ] No orphaned task nodes are created during rapid collaborative edits.
+- [-] Query-backed task views remain performant with thousands of tasks.
+- [-] No orphaned task nodes are created during rapid collaborative edits.
 
 ## 💡 Example Code
 
