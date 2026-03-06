@@ -58,7 +58,11 @@ export function TaskCollectionEmbed({
   status,
   showHierarchy
 }: TaskCollectionEmbedProps): JSX.Element {
-  const pageId = scope === 'current-page' ? currentPageId : undefined
+  const missingPageContext = scope === 'current-page' && !currentPageId
+  const pageId =
+    scope === 'current-page'
+      ? (currentPageId ?? '__task_collection_embed_missing_page_context__')
+      : undefined
   const assigneeDid = assignee === 'me' ? currentDid : undefined
   const statuses = status === 'done' ? (['done'] as const) : undefined
   const includeCompleted = status !== 'open'
@@ -82,7 +86,7 @@ export function TaskCollectionEmbed({
     }))
   }, [data, showHierarchy, tree])
 
-  if (scope === 'current-page' && !currentPageId) {
+  if (missingPageContext) {
     return <div className="p-4 text-sm text-muted-foreground">This view needs a page context.</div>
   }
 

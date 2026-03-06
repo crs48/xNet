@@ -803,12 +803,12 @@ gantt
 
 ### Product Risks
 
-| Risk                                                                   | Severity  | Mitigation                                                       |
-| ---------------------------------------------------------------------- | --------- | ---------------------------------------------------------------- |
-| **User confusion** - Partial AFFiNE UX creates inconsistent experience | 🟡 Medium | Ensure consistent interactions; don't half-copy                  |
-| **Feature gap** - Users expect full AFFiNE features                    | 🟡 Medium | Set clear expectations; focus on core workflows                  |
-| **Legal issues** - License or trademark concerns                       | 🟢 Low    | BlockSuite is MPL 2.0 (permissive); attribute properly           |
-| **Maintenance burden** - Forked code becomes stale                     | 🟡 Medium | Budget time for ongoing polish; don't rely on BlockSuite updates |
+| Risk                                                                   | Severity  | Mitigation                                                                                                                                 |
+| ---------------------------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **User confusion** - Partial AFFiNE UX creates inconsistent experience | 🟡 Medium | Ensure consistent interactions; don't half-copy                                                                                            |
+| **Feature gap** - Users expect full AFFiNE features                    | 🟡 Medium | Set clear expectations; focus on core workflows                                                                                            |
+| **Legal issues** - License or trademark concerns                       | 🟡 Medium | BlockSuite is MPL 2.0 (weak copyleft, file-level); do not copy source files into xNet, and attribute any referenced patterns appropriately |
+| **Maintenance burden** - Forked code becomes stale                     | 🟡 Medium | Budget time for ongoing polish; don't rely on BlockSuite updates                                                                           |
 
 ---
 
@@ -854,7 +854,7 @@ gantt
 - [ ] Verify BlockSuite components can be extracted without core runtime
 - [ ] Prototype one extracted component (e.g., color picker) in xNet
 - [ ] Measure performance impact of any adapter layer
-- [ ] Confirm license compatibility (MPL 2.0 → MIT is compatible)
+- [ ] Confirm license compliance: do not copy MPL 2.0 source files into xNet; reference only design and interaction patterns unless retaining MPL obligations intentionally
 - [ ] Get user feedback on whether AFFiNE UX is worth the effort
 
 ### During Implementation
