@@ -178,4 +178,93 @@ describe('useTasks', () => {
       expect(result.current.myTasks.data).toHaveLength(0)
     })
   })
+
+  it('filters tasks by due date presets', async () => {
+    const now = new Date('2026-03-05T12:00:00.000Z').valueOf()
+    const originalNow = Date.now
+    Date.now = () => now
+
+    try {
+      const wrapper = createWrapper()
+
+      const { result } = renderHook(
+        () => ({
+          sync: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+          overdue: useTasks({ dueDateFilter: 'overdue' }),
+          today: useTasks({ dueDateFilter: 'today' }),
+          upcoming: useTasks({ dueDateFilter: 'next-7-days' }),
+          noDueDate: useTasks({ dueDateFilter: 'none' })
+        }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.overdue.loading).toBe(false)
+        expect(result.current.today.loading).toBe(false)
+        expect(result.current.upcoming.loading).toBe(false)
+        expect(result.current.noDueDate.loading).toBe(false)
+      })
+
+      await act(async () => {
+        result.current.sync.handleTasksChange([
+          {
+            taskId: 'task-overdue',
+            blockId: 'block-overdue',
+            title: 'Overdue',
+            completed: false,
+            parentTaskId: null,
+            sortKey: '0000',
+            assignees: [],
+            dueDate: '2026-03-04',
+            references: []
+          },
+          {
+            taskId: 'task-today',
+            blockId: 'block-today',
+            title: 'Today',
+            completed: false,
+            parentTaskId: null,
+            sortKey: '0001',
+            assignees: [],
+            dueDate: '2026-03-05',
+            references: []
+          },
+          {
+            taskId: 'task-upcoming',
+            blockId: 'block-upcoming',
+            title: 'Upcoming',
+            completed: false,
+            parentTaskId: null,
+            sortKey: '0002',
+            assignees: [],
+            dueDate: '2026-03-09',
+            references: []
+          },
+          {
+            taskId: 'task-no-due-date',
+            blockId: 'block-no-due-date',
+            title: 'No due date',
+            completed: false,
+            parentTaskId: null,
+            sortKey: '0003',
+            assignees: [],
+            dueDate: null,
+            references: []
+          }
+        ])
+      })
+
+      await waitFor(() => {
+        expect(result.current.overdue.data.map((task) => task.id)).toEqual(['task-overdue'])
+        expect(result.current.today.data.map((task) => task.id)).toEqual(['task-today'])
+        expect(result.current.upcoming.data.map((task) => task.id)).toEqual([
+          'task-today',
+          'task-upcoming'
+        ])
+        expect(result.current.noDueDate.data.map((task) => task.id)).toEqual(['task-no-due-date'])
+      })
+    } finally {
+      Date.now = originalNow
+    }
+  })
 })

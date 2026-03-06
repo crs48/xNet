@@ -15,6 +15,7 @@ export interface UseTasksOptions {
   includeCompleted?: boolean
   statuses?: TaskStatus[]
   parentTaskId?: string | null
+  dueDateFilter?: 'any' | 'overdue' | 'today' | 'next-7-days' | 'none'
 }
 
 export interface TaskTreeItem {
@@ -83,6 +84,33 @@ function matchesParent(task: TaskNode, parentTaskId: string | null | undefined):
   return (task.parent ?? null) === parentTaskId
 }
 
+function getStartOfUtcDay(timestamp: number): number {
+  const date = new Date(timestamp)
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}
+
+function matchesDueDate(task: TaskNode, dueDateFilter: UseTasksOptions['dueDateFilter']): boolean {
+  if (!dueDateFilter || dueDateFilter === 'any') return true
+
+  const dueDate = typeof task.dueDate === 'number' ? task.dueDate : undefined
+  if (dueDateFilter === 'none') return dueDate == null
+  if (dueDate == null) return false
+
+  const todayStart = getStartOfUtcDay(Date.now())
+  const dueDay = getStartOfUtcDay(dueDate)
+
+  switch (dueDateFilter) {
+    case 'overdue':
+      return dueDay < todayStart
+    case 'today':
+      return dueDay === todayStart
+    case 'next-7-days':
+      return dueDay >= todayStart && dueDay <= todayStart + 6 * 24 * 60 * 60 * 1000
+    default:
+      return true
+  }
+}
+
 function buildTaskTree(tasks: TaskNode[]): TaskTreeItem[] {
   const treeById = new Map<string, TaskTreeItem>()
   const roots: TaskTreeItem[] = []
@@ -119,7 +147,8 @@ export function useTasks({
   assigneeDid,
   includeCompleted = true,
   statuses,
-  parentTaskId
+  parentTaskId,
+  dueDateFilter = 'any'
 }: UseTasksOptions = {}): UseTasksResult {
   const query = useQuery(
     TaskSchema,
@@ -136,11 +165,12 @@ export function useTasks({
       if (!matchesAssignee(task, assigneeDid)) return false
       if (!matchesStatus(task, statuses)) return false
       if (!matchesParent(task, parentTaskId)) return false
+      if (!matchesDueDate(task, dueDateFilter)) return false
       return true
     })
 
     return sortTasks(filtered, Boolean(pageId))
-  }, [assigneeDid, includeCompleted, pageId, parentTaskId, query.data, statuses])
+  }, [assigneeDid, dueDateFilter, includeCompleted, pageId, parentTaskId, query.data, statuses])
 
   const tree = useMemo(() => buildTaskTree(tasks), [tasks])
 

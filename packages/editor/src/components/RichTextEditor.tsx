@@ -5,7 +5,9 @@ import type {
   DatabaseViewType,
   PageTaskSnapshot,
   SlashCommandItem,
-  TaskMentionSuggestion
+  TaskMentionSuggestion,
+  TaskViewConfig,
+  TaskViewEmbedType
 } from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
 import type { Awareness } from 'y-protocols/awareness'
@@ -36,6 +38,7 @@ import {
   SmartReferenceExtension,
   EmbedExtension,
   DatabaseEmbedExtension,
+  TaskViewEmbedExtension,
   PageTaskItemExtension,
   TaskMentionExtension,
   TaskDueDateExtension,
@@ -250,6 +253,18 @@ export interface RichTextEditorProps {
     viewConfig: Record<string, unknown>
   }) => React.ReactNode
   /**
+   * Custom renderer for embedded task views.
+   */
+  renderTaskView?: (props: {
+    viewType: TaskViewEmbedType
+    viewConfig: TaskViewConfig
+    currentPageId: string | null
+  }) => React.ReactNode
+  /**
+   * Page ID used by page-scoped task embeds.
+   */
+  taskViewPageId?: string | null
+  /**
    * Additional TipTap extensions from plugins.
    * These are merged with the built-in extensions.
    */
@@ -350,6 +365,8 @@ export function RichTextEditor({
   onSelectDatabase,
   resolveDatabaseMeta,
   renderDatabaseView,
+  renderTaskView,
+  taskViewPageId = null,
   extensions: additionalExtensions = [],
   toolbarItems: additionalToolbarItems = [],
   slashCommands,
@@ -448,6 +465,9 @@ export function RichTextEditor({
       onSelectDatabase,
       renderView: renderDatabaseView,
       resolveDatabaseMeta
+    }),
+    TaskViewEmbedExtension.configure({
+      renderView: (props) => renderTaskView?.({ ...props, currentPageId: taskViewPageId })
     }),
     // Plugin-provided extensions (includes Mermaid when plugin is installed)
     ...additionalExtensions

@@ -622,6 +622,7 @@ function DocumentPage() {
               doc={doc}
               awareness={awareness}
               did={did}
+              pageId={docId}
               onNavigate={handleNavigate}
               extensions={commentExtensions}
               onEditorReady={handleEditorReady}

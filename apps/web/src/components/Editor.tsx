@@ -12,8 +12,11 @@ import {
   useFileDownload,
   type Editor as TipTapEditor,
   type PageTaskSnapshot,
-  type TaskMentionSuggestion
+  type TaskMentionSuggestion,
+  type TaskViewConfig,
+  type TaskViewEmbedType
 } from '@xnetjs/editor/react'
+import { TaskCollectionEmbed } from '@xnetjs/react'
 
 interface Props {
   doc: Y.Doc
@@ -30,6 +33,8 @@ interface Props {
   mentionSuggestions?: TaskMentionSuggestion[]
   /** Callback for page-backed task snapshots */
   onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
+  /** Current page ID for embedded task views */
+  pageId?: string | null
   /** Callback for creating a comment */
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }
@@ -43,6 +48,7 @@ export function Editor({
   onEditorReady,
   mentionSuggestions,
   onPageTasksChange,
+  pageId,
   onCreateComment
 }: Props) {
   const onImageUpload = useImageUpload()
@@ -66,6 +72,25 @@ export function Editor({
       onEditorReady={onEditorReady}
       mentionSuggestions={mentionSuggestions}
       onPageTasksChange={onPageTasksChange}
+      taskViewPageId={pageId ?? null}
+      renderTaskView={({
+        viewConfig,
+        currentPageId
+      }: {
+        viewType: TaskViewEmbedType
+        viewConfig: TaskViewConfig
+        currentPageId: string | null
+      }) => (
+        <TaskCollectionEmbed
+          currentPageId={currentPageId}
+          currentDid={did ?? null}
+          scope={viewConfig.scope}
+          assignee={viewConfig.assignee}
+          dueDate={viewConfig.dueDate}
+          status={viewConfig.status}
+          showHierarchy={viewConfig.showHierarchy}
+        />
+      )}
       onCreateComment={onCreateComment}
     />
   )
