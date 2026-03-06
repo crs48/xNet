@@ -44,11 +44,41 @@ export const TaskSchema = defineSchema({
     /** Due date */
     dueDate: date({}),
 
-    /** Assigned person */
+    /** Assigned person (legacy single assignee for compatibility) */
     assignee: person({}),
 
+    /** Assigned people */
+    assignees: person({ multiple: true }),
+
     /** Parent task (for subtasks) */
-    parent: relation({ target: 'xnet://xnet.fyi/Task' as const })
+    parent: relation({ target: 'xnet://xnet.fyi/Task' as const }),
+
+    /** Page that currently hosts this task */
+    page: relation({ target: 'xnet://xnet.fyi/Page@1.0.0' as const }),
+
+    /** Surface-specific block anchor inside the page document */
+    anchorBlockId: text({ maxLength: 500 }),
+
+    /** Stable sibling order key for cross-view projections */
+    sortKey: text({ maxLength: 500 }),
+
+    /** Where this task was created */
+    source: select({
+      options: [
+        { id: 'page', name: 'Page' },
+        { id: 'database', name: 'Database' },
+        { id: 'canvas', name: 'Canvas' },
+        { id: 'automation', name: 'Automation' },
+        { id: 'api', name: 'API' }
+      ] as const,
+      default: 'page'
+    }),
+
+    /** Structured external references related to this task */
+    references: relation({
+      target: 'xnet://xnet.fyi/ExternalReference@1.0.0' as const,
+      multiple: true
+    })
   },
   document: 'yjs' // Collaborative Y.Doc for description
 })

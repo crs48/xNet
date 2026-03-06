@@ -197,6 +197,36 @@
   border-bottom-style: solid;
 }
 
+/* Smart references */
+.ProseMirror a[data-smart-reference] {
+  @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 no-underline;
+  background: rgb(var(--editor-muted) / 0.75);
+  border: 1px solid rgb(var(--editor-border));
+  color: rgb(var(--editor-foreground));
+  font-size: 0.875em;
+  line-height: 1.2;
+  vertical-align: baseline;
+}
+
+.ProseMirror a[data-smart-reference]:hover {
+  background: rgb(var(--editor-muted));
+  border-color: rgb(var(--editor-primary) / 0.35);
+}
+
+.ProseMirror a[data-smart-reference][data-provider='github'] {
+  background: rgb(17 24 39 / 0.08);
+}
+
+.ProseMirror a[data-smart-reference][data-provider='figma'] {
+  background: rgb(244 63 94 / 0.08);
+}
+
+.ProseMirror a[data-smart-reference][data-provider='youtube'],
+.ProseMirror a[data-smart-reference][data-provider='loom'],
+.ProseMirror a[data-smart-reference][data-provider='vimeo'] {
+  background: rgb(239 68 68 / 0.08);
+}
+
 /* Horizontal rule */
 .ProseMirror hr {
   @apply my-8 border-t border-border;
