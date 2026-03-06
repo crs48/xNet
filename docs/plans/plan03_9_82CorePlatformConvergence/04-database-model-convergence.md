@@ -15,7 +15,8 @@ Converge xNet databases around one canonical structured-data model so that hooks
 This step intentionally builds on the earlier database plan instead of replacing it:
 
 - [`plan03_9_3DatabaseDataModel`](../plan03_9_3DatabaseDataModel/README.md) already outlines a node-native direction.
-- [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) and [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) still persist `rows`, `columns`, and view config blobs inside one Y.Map.
+- [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) still persists `rows`, `columns`, and view config blobs inside one Y.Map.
+- [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) now composes over [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts), but it still depends on a temporary legacy compatibility path for older documents.
 - [`packages/react/src/index.ts`](../../../packages/react/src/index.ts) already exports `useDatabase`, `useDatabaseDoc`, `useDatabaseRow`, and `useCell`, which implies a more granular model than the active app views actually use.
 
 That split needs to end before database UX, large tables, or canvas-to-ERP evolution can be trusted.
@@ -25,10 +26,27 @@ That split needs to end before database UX, large tables, or canvas-to-ERP evolu
 - [`packages/react/src/hooks/useDatabase.ts`](../../../packages/react/src/hooks/useDatabase.ts)
 - [`packages/react/src/hooks/useDatabaseDoc.ts`](../../../packages/react/src/hooks/useDatabaseDoc.ts)
 - [`packages/react/src/hooks/useDatabaseRow.ts`](../../../packages/react/src/hooks/useDatabaseRow.ts)
+- [`packages/data/src/database/legacy-model.ts`](../../../packages/data/src/database/legacy-model.ts)
 - [`packages/views`](../../../packages/views)
 - [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx)
 - [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx)
 - [`docs/explorations/0099_[_]_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md`](../../explorations/0099_[_]_DATABASE_EDITING_UX_AND_UNDO_REDO_REMEDIATION_PLAN.md)
+
+## Current Progress
+
+### Landed in this slice
+
+- legacy database reads and writes now funnel through one compatibility layer in [`packages/data/src/database/legacy-model.ts`](../../../packages/data/src/database/legacy-model.ts) instead of being re-implemented ad hoc in app code.
+- [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts) now own the legacy-vs-canonical branching for columns, views, and row mutations.
+- the web database surface now uses those hooks in [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) instead of mutating the database `data` Y.Map directly.
+- regression coverage now exists for the persisted legacy shape in [`packages/data/src/database/legacy-model.test.ts`](../../../packages/data/src/database/legacy-model.test.ts).
+
+### Still open before this step is complete
+
+- Electron still needs the same hook-driven refactor.
+- the temporary compatibility path still needs an explicit one-way migration/materialization flow with status recording.
+- structured undo and rich-text undo are still coupled in the Electron implementation.
+- sync correctness and cross-device migration tests for databases are still missing.
 
 ## Proposed Design
 
@@ -110,15 +128,7 @@ A node-native database model is also the cleaner foundation for:
 ## Suggested API Direction
 
 ```typescript
-const {
-  database,
-  columns,
-  rows,
-  total,
-  loadMore,
-  createRow,
-  updateRow
-} = useDatabase(databaseId)
+const { database, columns, rows, total, loadMore, createRow, updateRow } = useDatabase(databaseId)
 ```
 
 The view layer should not know whether data came from local NodeStore materialization, a worker runtime, or background sync replay.
