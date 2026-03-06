@@ -2,7 +2,8 @@
  * Canvas View - Infinite canvas for spatial visualization
  */
 
-import type { CanvasNode, Rect, Canvas, createNode, type CanvasHandle } from '@xnetjs/canvas'
+import type { CanvasHandle, CanvasNode, Rect } from '@xnetjs/canvas'
+import { Canvas, createNode } from '@xnetjs/canvas'
 import { CanvasSchema } from '@xnetjs/data'
 import { useNode, useIdentity } from '@xnetjs/react'
 import { IconButton } from '@xnetjs/ui'
@@ -119,6 +120,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
   const canvasRef = useRef<CanvasHandle>(null)
   const [canvasReady, setCanvasReady] = useState(false)
+  const [hasNodes, setHasNodes] = useState(false)
   const documentMap = useMemo(
     () => new Map(documents.map((entry) => [entry.id, entry])),
     [documents]
@@ -127,6 +129,22 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   useEffect(() => {
     if (!doc) return
     setCanvasReady(true)
+  }, [doc])
+
+  useEffect(() => {
+    if (!doc) return
+
+    const nodesMap = doc.getMap<CanvasNode>('nodes')
+    const syncHasNodes = () => {
+      setHasNodes(nodesMap.size > 0)
+    }
+
+    syncHasNodes()
+    nodesMap.observe(syncHasNodes)
+
+    return () => {
+      nodesMap.unobserve(syncHasNodes)
+    }
   }, [doc])
 
   const addCanvasNote = useCallback(() => {
@@ -227,15 +245,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         {canvas?.title || 'Workspace Canvas'}
       </div>
 
-      <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 w-full max-w-xl -translate-x-1/2 px-6">
-        <div className="mx-auto rounded-[28px] border border-border/60 bg-background/70 px-5 py-4 text-center shadow-2xl shadow-black/5 backdrop-blur-xl">
-          <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create from the bottom dock, double-click any linked card to open it, and use the Canvas
-            action to zoom back out.
-          </p>
+      {!hasNodes ? (
+        <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 w-full max-w-xl -translate-x-1/2 px-6">
+          <div className="mx-auto rounded-[28px] border border-border/60 bg-background/70 px-5 py-4 text-center shadow-2xl shadow-black/5 backdrop-blur-xl">
+            <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create from the bottom dock, double-click any linked card to open it, and use the
+              Canvas action to zoom back out.
+            </p>
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div className="pointer-events-none absolute bottom-24 right-6 z-20 flex items-center gap-2">
         <div className="pointer-events-auto rounded-[24px] border border-border/70 bg-background/80 p-2 shadow-xl backdrop-blur-xl">

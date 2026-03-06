@@ -6,7 +6,7 @@ import type { PaletteCommand } from '@xnetjs/ui'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useDevTools } from '@xnetjs/devtools'
 import { useQuery, useMutate } from '@xnetjs/react'
-import { CommandPalette, useCommandPalette } from '@xnetjs/ui'
+import { CommandPalette, useCommandPalette, usePrefersReducedMotion } from '@xnetjs/ui'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActionDock } from './components/ActionDock'
 import { AddSharedDialog, type AddSharedInput } from './components/AddSharedDialog'
@@ -41,6 +41,10 @@ interface DocumentItem {
 
 const OVERLAY_OPEN_DELAY_MS = 180
 
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error))
+}
+
 export function App(): React.ReactElement {
   const [homeCanvasId, setHomeCanvasId] = useState<string | null>(null)
   const [shellState, setShellState] = useState<ShellState>({ kind: 'canvas-home' })
@@ -49,6 +53,7 @@ export function App(): React.ReactElement {
   const { setActiveNodeId } = useDevTools()
   const { create } = useMutate()
   const { open: paletteOpen, setOpen: setPaletteOpen, show: showPalette } = useCommandPalette()
+  const prefersReducedMotion = usePrefersReducedMotion()
   const canvasViewRef = useRef<CanvasViewHandle>(null)
   const creatingHomeCanvasRef = useRef(false)
   const transitionTimerRef = useRef<number | null>(null)
@@ -119,15 +124,18 @@ export function App(): React.ReactElement {
       if (creatingHomeCanvasRef.current) return
 
       creatingHomeCanvasRef.current = true
-      void create(CanvasSchema, { title: 'Workspace Canvas' })
-        .then((canvas) => {
+      void (async () => {
+        try {
+          const canvas = await create(CanvasSchema, { title: 'Workspace Canvas' })
           if (!canvas) return
           setHomeCanvasId(canvas.id)
           setActiveNodeId(canvas.id)
-        })
-        .finally(() => {
+        } catch (error) {
+          console.error('Failed to create home canvas', toError(error))
+        } finally {
           creatingHomeCanvasRef.current = false
-        })
+        }
+      })()
       return
     }
 
@@ -148,8 +156,9 @@ export function App(): React.ReactElement {
     (docId: string, docType: Exclude<DocType, 'canvas'>, animateFromCanvas: boolean) => {
       clearTransitionTimer()
 
+      const shouldAnimateFromCanvas = animateFromCanvas && !prefersReducedMotion
       const returnViewport =
-        animateFromCanvas && canvasViewRef.current
+        shouldAnimateFromCanvas && canvasViewRef.current
           ? canvasViewRef.current.focusLinkedDocument(docId)
           : null
 
@@ -162,14 +171,14 @@ export function App(): React.ReactElement {
         setActiveNodeId(docId)
       }
 
-      if (returnViewport) {
+      if (returnViewport && !prefersReducedMotion) {
         transitionTimerRef.current = window.setTimeout(openOverlay, OVERLAY_OPEN_DELAY_MS)
         return
       }
 
       openOverlay()
     },
-    [clearTransitionTimer, setActiveNodeId]
+    [clearTransitionTimer, prefersReducedMotion, setActiveNodeId]
   )
 
   const handleOpenDocument = useCallback(
@@ -192,18 +201,22 @@ export function App(): React.ReactElement {
 
   const handleCreateLinkedDocument = useCallback(
     async (type: Exclude<DocType, 'canvas'>) => {
-      const schema = type === 'page' ? PageSchema : DatabaseSchema
-      const title = type === 'page' ? 'Untitled Page' : 'Untitled Database'
-      const newDocument = await create(schema, { title })
-      if (!newDocument) return
+      try {
+        const schema = type === 'page' ? PageSchema : DatabaseSchema
+        const title = type === 'page' ? 'Untitled Page' : 'Untitled Database'
+        const newDocument = await create(schema, { title })
+        if (!newDocument) return
 
-      canvasViewRef.current?.addLinkedDocumentNode({
-        id: newDocument.id,
-        title,
-        type
-      })
-      setShellState({ kind: 'canvas-home' })
-      setActiveNodeId(homeCanvasId)
+        canvasViewRef.current?.addLinkedDocumentNode({
+          id: newDocument.id,
+          title,
+          type
+        })
+        setShellState({ kind: 'canvas-home' })
+        setActiveNodeId(homeCanvasId)
+      } catch (error) {
+        console.error('Failed to create linked document', toError(error))
+      }
     },
     [create, homeCanvasId, setActiveNodeId]
   )
@@ -263,14 +276,14 @@ export function App(): React.ReactElement {
         name: 'Create Page',
         description: 'Create a new page and place it on the canvas',
         icon: 'file-text',
-        execute: () => handleCreateLinkedDocument('page')
+        execute: () => void handleCreateLinkedDocument('page')
       },
       {
         id: 'create-database',
         name: 'Create Database',
         description: 'Create a new database and place it on the canvas',
         icon: 'database',
-        execute: () => handleCreateLinkedDocument('database')
+        execute: () => void handleCreateLinkedDocument('database')
       },
       {
         id: 'create-note',
@@ -304,6 +317,11 @@ export function App(): React.ReactElement {
   )
 
   const renderOverlay = () => {
+    const overlaySurfaceClassName = [
+      'flex h-full overflow-hidden rounded-[32px] border border-border/70 bg-background shadow-2xl shadow-black/10',
+      prefersReducedMotion ? '' : 'animate-in fade-in zoom-in-95 duration-200'
+    ].join(' ')
+
     if (shellState.kind === 'canvas-home') {
       return null
     }
@@ -311,7 +329,7 @@ export function App(): React.ReactElement {
     if (shellState.kind === 'settings') {
       return (
         <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
-          <div className="flex h-full overflow-hidden rounded-[32px] border border-border/70 bg-background shadow-2xl shadow-black/10 animate-in fade-in zoom-in-95 duration-200">
+          <div className={overlaySurfaceClassName}>
             <SettingsView onClose={handleReturnHome} />
           </div>
         </div>
@@ -327,7 +345,7 @@ export function App(): React.ReactElement {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[32px] border border-border/70 bg-background shadow-2xl shadow-black/10 animate-in fade-in zoom-in-95 duration-200">
+          <div className={['min-h-0 flex-1', overlaySurfaceClassName].join(' ')}>
             {shellState.kind === 'page-focus' ? (
               <PageView docId={shellState.docId} minimalChrome />
             ) : (
@@ -362,6 +380,9 @@ export function App(): React.ReactElement {
               setPrefilledShareValue('')
               setShowAddSharedDialog(true)
             }}
+            onToggleDebugPanel={() => {
+              window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
+            }}
           />
         </div>
       </header>
@@ -369,10 +390,13 @@ export function App(): React.ReactElement {
       <main className="relative h-full overflow-hidden pt-[38px]">
         <div
           className={[
-            'absolute inset-0 transition-all duration-200',
+            'absolute inset-0',
+            prefersReducedMotion ? '' : 'transition-all duration-200',
             shellState.kind === 'canvas-home'
               ? 'opacity-100'
-              : 'pointer-events-none scale-[0.985] opacity-70'
+              : prefersReducedMotion
+                ? 'pointer-events-none opacity-70'
+                : 'pointer-events-none scale-[0.985] opacity-70'
           ].join(' ')}
         >
           <CanvasView

@@ -4,7 +4,7 @@
 
 import type { Theme } from '@xnetjs/ui'
 import { Menu, MenuItem, MenuLabel, MenuSeparator, useTheme } from '@xnetjs/ui'
-import { Check, Ellipsis, Moon, Plus, Settings, Share2, Sun } from 'lucide-react'
+import { Bug, Check, Ellipsis, Monitor, Moon, Settings, Share2, Sun } from 'lucide-react'
 import React from 'react'
 
 interface RecentDocument {
@@ -18,6 +18,7 @@ interface SystemMenuProps {
   onOpenDocument: (docId: string) => void
   onOpenSettings: () => void
   onAddShared: () => void
+  onToggleDebugPanel: () => void
 }
 
 function ThemeMenuItem({
@@ -57,7 +58,8 @@ export function SystemMenu({
   recentDocuments,
   onOpenDocument,
   onOpenSettings,
-  onAddShared
+  onAddShared,
+  onToggleDebugPanel
 }: SystemMenuProps): React.ReactElement {
   const { theme, setTheme } = useTheme()
 
@@ -93,6 +95,12 @@ export function SystemMenu({
           Add shared item
         </span>
       </MenuItem>
+      <MenuItem onSelect={onToggleDebugPanel}>
+        <span className="flex items-center gap-2">
+          <Bug size={14} />
+          Toggle debug panel
+        </span>
+      </MenuItem>
 
       <MenuSeparator />
       <MenuLabel>Theme</MenuLabel>
@@ -111,7 +119,7 @@ export function SystemMenu({
       <ThemeMenuItem
         active={theme === 'system'}
         label={labelForTheme('system')}
-        icon={<Plus size={14} />}
+        icon={<Monitor size={14} />}
         onSelect={() => setTheme('system')}
       />
 

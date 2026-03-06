@@ -497,7 +497,7 @@ Only after the shell works:
 - [x] Make a default home canvas and open it on app launch instead of rendering the current empty state.
 - [x] Remove the persistent left sidebar from the main renderer shell.
 - [x] Introduce a bottom-center action dock with create/search/recent actions.
-- [ ] Introduce a top-right profile/system menu containing settings, theme, share/session, and debug actions.
+- [x] Introduce a top-right profile/system menu containing settings, theme, share/session, and debug actions.
 - [x] Represent pages and databases as linked canvas nodes using existing `linkedNodeId` direction.
 - [x] Replace hard view switching with zoom-in/zoom-out shell transitions.
 - [x] Compress `PageView` header chrome into lightweight contextual controls.

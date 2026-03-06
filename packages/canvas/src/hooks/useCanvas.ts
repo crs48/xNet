@@ -299,12 +299,20 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
     }
   }, [])
 
-  const setViewportSnapshot = useCallback((snapshot: { x: number; y: number; zoom: number }) => {
-    viewportRef.current.x = snapshot.x
-    viewportRef.current.y = snapshot.y
-    viewportRef.current.zoom = snapshot.zoom
-    setViewportState(viewportRef.current.clone())
-  }, [])
+  const setViewportSnapshot = useCallback(
+    (snapshot: { x: number; y: number; zoom: number }) => {
+      const x = Number.isFinite(snapshot.x) ? snapshot.x : 0
+      const y = Number.isFinite(snapshot.y) ? snapshot.y : 0
+      const requestedZoom = Number.isFinite(snapshot.zoom) ? snapshot.zoom : 1
+      const zoom = Math.min(fullConfig.maxZoom, Math.max(fullConfig.minZoom, requestedZoom))
+
+      viewportRef.current.x = x
+      viewportRef.current.y = y
+      viewportRef.current.zoom = zoom
+      setViewportState(viewportRef.current.clone())
+    },
+    [fullConfig.maxZoom, fullConfig.minZoom]
+  )
 
   // ============================================================================
   // Layout
