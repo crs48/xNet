@@ -31,7 +31,7 @@ type ShellState =
   | { kind: 'database-focus'; docId: string; returnViewport: ViewportSnapshot | null }
   | { kind: 'settings' }
 
-interface DocumentItem {
+type DocumentItem = {
   id: string
   title: string
   type: DocType
@@ -47,6 +47,7 @@ function toError(error: unknown): Error {
 
 export function App(): React.ReactElement {
   const [homeCanvasId, setHomeCanvasId] = useState<string | null>(null)
+  const [homeCanvasBootstrapError, setHomeCanvasBootstrapError] = useState<Error | null>(null)
   const [shellState, setShellState] = useState<ShellState>({ kind: 'canvas-home' })
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [prefilledShareValue, setPrefilledShareValue] = useState('')
@@ -117,26 +118,40 @@ export function App(): React.ReactElement {
     }
   }, [clearTransitionTimer])
 
+  const bootstrapHomeCanvas = useCallback(async () => {
+    if (creatingHomeCanvasRef.current) return
+
+    creatingHomeCanvasRef.current = true
+    setHomeCanvasBootstrapError(null)
+
+    try {
+      const canvas = await create(CanvasSchema, { title: 'Workspace Canvas' })
+      if (!canvas) {
+        throw new Error('Home canvas was not created')
+      }
+
+      setHomeCanvasId(canvas.id)
+      setActiveNodeId(canvas.id)
+    } catch (error) {
+      const normalizedError = toError(error)
+      console.error('Failed to create home canvas', normalizedError)
+      setHomeCanvasBootstrapError(normalizedError)
+    } finally {
+      creatingHomeCanvasRef.current = false
+    }
+  }, [create, setActiveNodeId])
+
   useEffect(() => {
     if (isLoading) return
 
     if (canvases.length === 0) {
-      if (creatingHomeCanvasRef.current) return
-
-      creatingHomeCanvasRef.current = true
-      void (async () => {
-        try {
-          const canvas = await create(CanvasSchema, { title: 'Workspace Canvas' })
-          if (!canvas) return
-          setHomeCanvasId(canvas.id)
-          setActiveNodeId(canvas.id)
-        } catch (error) {
-          console.error('Failed to create home canvas', toError(error))
-        } finally {
-          creatingHomeCanvasRef.current = false
-        }
-      })()
+      if (homeCanvasId || homeCanvasBootstrapError) return
+      void bootstrapHomeCanvas()
       return
+    }
+
+    if (homeCanvasBootstrapError) {
+      setHomeCanvasBootstrapError(null)
     }
 
     if (!homeCanvasId || !canvases.some((canvas) => canvas.id === homeCanvasId)) {
@@ -150,7 +165,14 @@ export function App(): React.ReactElement {
         setActiveNodeId(defaultCanvas.id)
       }
     }
-  }, [canvases, create, homeCanvasId, isLoading, setActiveNodeId])
+  }, [
+    bootstrapHomeCanvas,
+    canvases,
+    homeCanvasBootstrapError,
+    homeCanvasId,
+    isLoading,
+    setActiveNodeId
+  ])
 
   const focusDocument = useCallback(
     (docId: string, docType: Exclude<DocType, 'canvas'>, animateFromCanvas: boolean) => {
@@ -269,6 +291,11 @@ export function App(): React.ReactElement {
     return null
   }, [shellState.kind])
 
+  const handleOpenSettings = useCallback(() => {
+    clearTransitionTimer()
+    setShellState({ kind: 'settings' })
+  }, [clearTransitionTimer])
+
   const paletteCommands = useMemo<PaletteCommand[]>(
     () => [
       {
@@ -297,9 +324,9 @@ export function App(): React.ReactElement {
         name: 'Open Settings',
         description: 'Open the system settings overlay',
         icon: 'settings',
-        execute: () => setShellState({ kind: 'settings' })
+        execute: handleOpenSettings
       },
-      ...documents.map((document) => ({
+      ...recentDocuments.map((document) => ({
         id: `open-${document.id}`,
         name: document.title,
         description: `Open ${document.type}`,
@@ -313,7 +340,13 @@ export function App(): React.ReactElement {
         execute: () => handleOpenDocument(document.id)
       }))
     ],
-    [documents, handleCreateCanvasNote, handleCreateLinkedDocument, handleOpenDocument]
+    [
+      handleCreateCanvasNote,
+      handleCreateLinkedDocument,
+      handleOpenDocument,
+      handleOpenSettings,
+      recentDocuments
+    ]
   )
 
   const renderOverlay = () => {
@@ -357,6 +390,24 @@ export function App(): React.ReactElement {
     )
   }
 
+  if (homeCanvasBootstrapError && !homeCanvasId) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+        <div className="space-y-2">
+          <p className="text-foreground">Unable to create your workspace canvas.</p>
+          <p className="text-sm text-muted-foreground">{homeCanvasBootstrapError.message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void bootstrapHomeCanvas()}
+          className="rounded-full bg-foreground px-4 py-2 text-sm text-background transition-colors hover:opacity-90"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
   if (isLoading || !homeCanvasId) {
     return (
       <div className="flex h-screen flex-col items-center justify-center bg-background">
@@ -375,7 +426,7 @@ export function App(): React.ReactElement {
           <SystemMenu
             recentDocuments={recentDocuments}
             onOpenDocument={handleOpenDocument}
-            onOpenSettings={() => setShellState({ kind: 'settings' })}
+            onOpenSettings={handleOpenSettings}
             onAddShared={() => {
               setPrefilledShareValue('')
               setShowAddSharedDialog(true)

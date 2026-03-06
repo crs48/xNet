@@ -10,12 +10,12 @@ import { IconButton } from '@xnetjs/ui'
 import { Compass, Database, FileText, Maximize2, StickyNote } from 'lucide-react'
 import React, {
   forwardRef,
-  useEffect,
-  useState,
   useCallback,
-  useRef,
+  useEffect,
   useImperativeHandle,
-  useMemo
+  useMemo,
+  useRef,
+  useState
 } from 'react'
 import {
   createCanvasShellNoteProperties,
@@ -25,19 +25,19 @@ import {
   type LinkedDocumentItem
 } from '../lib/canvas-shell'
 
-interface ViewportSnapshot {
+type ViewportSnapshot = {
   x: number
   y: number
   zoom: number
 }
 
-interface CanvasViewProps {
+type CanvasViewProps = {
   docId: string
   documents?: LinkedDocumentItem[]
   onOpenDocument?: (docId: string, docType: Exclude<LinkedDocType, 'canvas'>) => void
 }
 
-export interface CanvasViewHandle {
+export type CanvasViewHandle = {
   addLinkedDocumentNode: (document: LinkedDocumentItem) => void
   addCanvasNote: () => void
   focusLinkedDocument: (docId: string) => ViewportSnapshot | null
@@ -81,7 +81,7 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
           <Icon size={12} />
           {subtitle}
         </span>
-        {node.linkedNodeId ? (
+        {node.linkedNodeId && linkedType !== 'canvas' ? (
           <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Open
           </span>

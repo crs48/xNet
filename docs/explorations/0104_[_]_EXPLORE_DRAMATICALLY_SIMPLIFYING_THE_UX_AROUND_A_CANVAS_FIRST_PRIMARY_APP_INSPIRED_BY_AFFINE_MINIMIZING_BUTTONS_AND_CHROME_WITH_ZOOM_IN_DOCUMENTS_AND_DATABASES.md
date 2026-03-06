@@ -508,7 +508,7 @@ Only after the shell works:
 
 ## Validation Checklist 🧪
 
-- [ ] Verify the app always lands on a canvas, including first-run and empty-workspace flows.
+- [x] Verify the app always lands on a canvas, including first-run and empty-workspace flows.
 - [ ] Verify a new page/database appears at the current viewport center.
 - [ ] Verify opening a linked object preserves spatial context and restores it on exit.
 - [ ] Verify keyboard-only flows still work: command palette, open, rename, zoom out, undo/redo.
@@ -517,6 +517,12 @@ Only after the shell works:
 - [ ] Verify the shell remains usable on small laptop widths without bringing back a sidebar.
 - [ ] Verify reduced-motion mode falls back from zoom animation to clean state swaps.
 - [ ] Verify Playwright/Electron manual checks cover canvas home, page focus, database focus, and collaboration affordances.
+
+Validation notes:
+
+- Automated validation completed on March 6, 2026 with `pnpm typecheck`, `pnpm test`, `pnpm --filter xnet-desktop build`, and `pnpm --filter @xnetjs/canvas build`.
+- Manual Electron validation on March 6, 2026 confirmed the first-run shell lands on the workspace canvas with a fresh `XNET_PROFILE=codex-pr5` and `XNET_TEST_BYPASS=true`; screenshot saved to `tmp/playwright/pr5-canvas-home.png`.
+- Manual Electron validation is still required for the UX-specific items above before squash-and-merge.
 
 ## Example Code 💡
 
@@ -549,7 +555,7 @@ export function createLinkedNodeAtViewport(
   intent: CreateIntent,
   viewport: ViewportSnapshot
 ): {
-  type: 'card' | 'embed'
+  type: 'embed'
   linkedSchema: 'page' | 'database' | 'canvas'
   position: { x: number; y: number; width: number; height: number }
 } {

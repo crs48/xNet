@@ -2,7 +2,7 @@ import type { CanvasNode } from '@xnetjs/canvas'
 
 export type LinkedDocType = 'page' | 'database' | 'canvas'
 
-export interface LinkedDocumentItem {
+export type LinkedDocumentItem = {
   id: string
   title: string
   type: LinkedDocType
