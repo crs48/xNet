@@ -14,6 +14,8 @@ interface DocumentHeaderProps {
   onTitleChange: (title: string) => void
   placeholder?: string
   children?: React.ReactNode
+  compact?: boolean
+  showShareButton?: boolean
 }
 
 export function DocumentHeader({
@@ -22,7 +24,9 @@ export function DocumentHeader({
   title,
   onTitleChange,
   placeholder = 'Untitled',
-  children
+  children,
+  compact = false,
+  showShareButton = true
 }: DocumentHeaderProps) {
   // Local state for the input to prevent cursor jumping
   const [localTitle, setLocalTitle] = useState(title)
@@ -56,20 +60,28 @@ export function DocumentHeader({
   }, [title])
 
   return (
-    <div className="flex items-start justify-between gap-4 px-6 pt-6">
+    <div
+      className={[
+        'flex items-start justify-between gap-4',
+        compact ? 'px-5 pt-4' : 'px-6 pt-6'
+      ].join(' ')}
+    >
       <input
         ref={inputRef}
         type="text"
-        className="flex-1 text-3xl font-semibold border-none bg-transparent text-foreground w-full outline-none placeholder:text-muted-foreground"
+        className={[
+          'w-full flex-1 border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground',
+          compact ? 'text-2xl font-semibold' : 'text-3xl font-semibold'
+        ].join(' ')}
         value={localTitle}
         onChange={handleChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
         placeholder={placeholder}
       />
-      <div className="flex items-center gap-3">
+      <div className={compact ? 'flex items-center gap-2' : 'flex items-center gap-3'}>
         {children}
-        <ShareButton docId={docId} docType={docType} />
+        {showShareButton ? <ShareButton docId={docId} docType={docType} /> : null}
       </div>
     </div>
   )

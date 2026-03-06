@@ -329,9 +329,9 @@ export function App(): React.ReactElement {
 
           <div className="min-h-0 flex-1 overflow-hidden rounded-[32px] border border-border/70 bg-background shadow-2xl shadow-black/10 animate-in fade-in zoom-in-95 duration-200">
             {shellState.kind === 'page-focus' ? (
-              <PageView docId={shellState.docId} />
+              <PageView docId={shellState.docId} minimalChrome />
             ) : (
-              <DatabaseView docId={shellState.docId} />
+              <DatabaseView docId={shellState.docId} minimalChrome />
             )}
           </div>
         </div>

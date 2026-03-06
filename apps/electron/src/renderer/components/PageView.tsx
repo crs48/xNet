@@ -41,6 +41,7 @@ import { PresenceAvatars } from './PresenceAvatars'
 
 interface PageViewProps {
   docId: string
+  minimalChrome?: boolean
 }
 
 type EditorExtensions = NonNullable<React.ComponentProps<typeof RichTextEditor>['extensions']>
@@ -70,7 +71,7 @@ interface NewCommentState {
   selectionTo: number
 }
 
-export function PageView({ docId }: PageViewProps) {
+export function PageView({ docId, minimalChrome = false }: PageViewProps) {
   const { did } = useIdentity()
   const onImageUpload = useImageUpload()
   const onFileUpload = useFileUpload()
@@ -722,9 +723,11 @@ export function PageView({ docId }: PageViewProps) {
         title={page?.title || ''}
         onTitleChange={(title) => update({ title })}
         placeholder="Untitled Page"
+        compact={minimalChrome}
+        showShareButton={!minimalChrome}
       >
-        <SyncIndicator status={syncStatus} peerCount={peerCount} />
-        {unresolvedCount > 0 && (
+        {!minimalChrome && <SyncIndicator status={syncStatus} peerCount={peerCount} />}
+        {!minimalChrome && unresolvedCount > 0 && (
           <button
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={`${unresolvedCount} unresolved comment${unresolvedCount !== 1 ? 's' : ''}`}
@@ -734,13 +737,17 @@ export function PageView({ docId }: PageViewProps) {
             <span>comment{unresolvedCount !== 1 ? 's' : ''}</span>
           </button>
         )}
-        <PresenceAvatars presence={presence} localDid={did} />
+        {!minimalChrome && <PresenceAvatars presence={presence} localDid={did} />}
       </DocumentHeader>
 
       {/* Editor + Sidebar horizontal layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Editor */}
-        <div className="flex-1 overflow-auto px-6 py-4">
+        <div
+          className={
+            minimalChrome ? 'flex-1 overflow-auto px-5 py-4' : 'flex-1 overflow-auto px-6 py-4'
+          }
+        >
           <RichTextEditor
             ydoc={doc}
             field="content"

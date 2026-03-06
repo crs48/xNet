@@ -500,7 +500,7 @@ Only after the shell works:
 - [ ] Introduce a top-right profile/system menu containing settings, theme, share/session, and debug actions.
 - [x] Represent pages and databases as linked canvas nodes using existing `linkedNodeId` direction.
 - [x] Replace hard view switching with zoom-in/zoom-out shell transitions.
-- [ ] Compress `PageView` header chrome into lightweight contextual controls.
+- [x] Compress `PageView` header chrome into lightweight contextual controls.
 - [ ] Compress `DatabaseView` controls into a compact dock plus popovers.
 - [ ] Reuse or adapt `NavigationTools` for persistent bottom-corner canvas navigation.
 - [x] Move advanced/rare actions into command palette or secondary menus.
