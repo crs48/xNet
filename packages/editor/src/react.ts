@@ -85,6 +85,7 @@ export type {
 export { useSlashCommands } from './hooks/useSlashCommands'
 export type { SlashCommandContribution, UseSlashCommandsOptions } from './hooks/useSlashCommands'
 export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/page-tasks'
+export type { TaskMentionSuggestion } from './extensions/task-metadata'
 
 // Re-export hooks from @tiptap/react for convenience
 export { useEditor, EditorContent } from '@tiptap/react'

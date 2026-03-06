@@ -694,15 +694,15 @@ Recommendation:
 - [x] Add `assignees` multi-person support.
 - [x] Add `page`, `anchorBlockId`, `sortKey`, and task relation fields.
 - [x] Build a custom TipTap task extension that stores `taskId`.
-- [ ] Add rich-text mention support that resolves to DIDs.
-- [ ] Add inline due-date and assignee chips to task rows.
+- [x] Add rich-text mention support that resolves to DIDs.
+- [x] Add inline due-date and assignee chips to task rows.
 - [x] Add inline smart-reference chips for supported URLs inside task lines.
 - [x] Reuse the existing embed provider registry for first-pass provider detection.
 - [x] Define normalized `ExternalReference` metadata shape and relation strategy.
 - [x] Create a page task reconciler that maps editor operations to node mutations.
 - [x] Persist parent/subtask relations from indentation.
 - [x] Decide delete semantics: archive vs detach vs hard delete.
-- [ ] Add task-specific tests for page editing, indentation, reassignment, due-date edits, and URL-to-chip conversion.
+- [x] Add task-specific tests for page editing, indentation, reassignment, due-date edits, and URL-to-chip conversion.
 
 ## Phase 2: Cross-surface views
 
@@ -728,9 +728,9 @@ Recommendation:
 - [ ] Toggling a checkbox updates `Task.completed` and all subscribed task views.
 - [ ] Indenting/outdenting updates parent/subtask relations deterministically.
 - [ ] Reordering sibling tasks preserves stable order across peers.
-- [ ] `@mention` insertion stores canonical DIDs, not only display strings.
-- [ ] Multiple mentions can populate multiple assignees without duplicate entries.
-- [ ] Editing due dates inline updates all task projections immediately.
+- [x] `@mention` insertion stores canonical DIDs, not only display strings.
+- [x] Multiple mentions can populate multiple assignees without duplicate entries.
+- [x] Editing due dates inline updates all task projections immediately.
 - [ ] Pasting a GitHub, Figma, Loom, or YouTube URL into a task produces the expected inline chip or fallback link.
 - [ ] Structured references degrade gracefully when provider metadata is unavailable.
 - [ ] Full block embeds remain opt-in so task rows stay compact.

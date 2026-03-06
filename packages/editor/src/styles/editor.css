@@ -227,6 +227,37 @@
   background: rgb(239 68 68 / 0.08);
 }
 
+/* Task metadata chips */
+.ProseMirror span[data-task-mention],
+.ProseMirror time[data-task-due-date] {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 no-underline;
+  border: 1px solid rgb(var(--editor-border));
+  font-size: 0.8em;
+  font-weight: 500;
+  line-height: 1.2;
+  vertical-align: baseline;
+}
+
+.ProseMirror span[data-task-mention] {
+  background: rgb(var(--editor-primary) / 0.08);
+  color: rgb(var(--editor-primary));
+}
+
+.ProseMirror time[data-task-due-date] {
+  background: rgb(var(--editor-warning) / 0.1);
+  color: rgb(146 64 14);
+}
+
+.dark .ProseMirror time[data-task-due-date] {
+  color: rgb(253 230 138);
+}
+
+.ProseMirror time[data-task-due-date][data-overdue='true'] {
+  background: rgb(var(--editor-destructive) / 0.12);
+  border-color: rgb(var(--editor-destructive) / 0.3);
+  color: rgb(var(--editor-destructive));
+}
+
 /* Horizontal rule */
 .ProseMirror hr {
   @apply my-8 border-t border-border;

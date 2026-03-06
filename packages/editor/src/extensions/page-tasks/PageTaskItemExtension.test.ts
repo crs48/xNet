@@ -3,10 +3,13 @@ import TaskList from '@tiptap/extension-task-list'
 import StarterKit from '@tiptap/starter-kit'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { SmartReferenceExtension } from '../smart-reference'
+import { TaskDueDateExtension, TaskMentionExtension } from '../task-metadata'
 import { PageTaskItemExtension, collectPageTasks, ensurePageTaskAttrs } from './index'
 
 describe('PageTaskItemExtension', () => {
   let editor: Editor
+  const aliceDid = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'
+  const bobDid = 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH'
 
   beforeEach(() => {
     editor = new Editor({
@@ -15,7 +18,11 @@ describe('PageTaskItemExtension', () => {
         StarterKit,
         TaskList,
         PageTaskItemExtension.configure({ nested: true }),
-        SmartReferenceExtension
+        SmartReferenceExtension,
+        TaskMentionExtension.configure({
+          getSuggestions: () => []
+        }),
+        TaskDueDateExtension
       ],
       content: {
         type: 'doc',
@@ -42,6 +49,26 @@ describe('PageTaskItemExtension', () => {
                             type: 'paragraph',
                             content: [
                               { type: 'text', text: 'Child task ' },
+                              {
+                                type: 'taskMention',
+                                attrs: {
+                                  id: aliceDid,
+                                  label: 'alice'
+                                }
+                              },
+                              {
+                                type: 'taskMention',
+                                attrs: {
+                                  id: bobDid,
+                                  label: 'bob'
+                                }
+                              },
+                              {
+                                type: 'taskDueDate',
+                                attrs: {
+                                  date: '2026-03-20'
+                                }
+                              },
                               {
                                 type: 'smartReference',
                                 attrs: {
@@ -109,7 +136,9 @@ describe('PageTaskItemExtension', () => {
       title: 'Child task',
       completed: true,
       parentTaskId: tasks[0].taskId,
-      sortKey: '0000.0000'
+      sortKey: '0000.0000',
+      assignees: [aliceDid, bobDid],
+      dueDate: '2026-03-20'
     })
     expect(tasks[1].references).toEqual([
       expect.objectContaining({
