@@ -1,4 +1,4 @@
-# 0103 - Canvas-First Minimal UX for the Primary App
+# 0104 - Canvas-First Minimal UX for the Primary App
 
 > **Status:** Exploration  
 > **Date:** 2026-03-05  
