@@ -6,6 +6,7 @@ export interface TaskMentionSuggestion {
   label: string
   subtitle?: string
   color?: string
+  avatarUrl?: string
 }
 
 interface TaskMentionMenuProps {
@@ -101,15 +102,24 @@ export const TaskMentionMenu = forwardRef<TaskMentionMenuRef, TaskMentionMenuPro
               index === selectedIndex ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
             )}
           >
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
-              style={{
-                backgroundColor: item.color ?? 'rgb(37 99 235 / 0.12)',
-                color: item.color ? 'white' : 'rgb(37 99 235)'
-              }}
-            >
-              {item.label.slice(0, 1).toUpperCase()}
-            </span>
+            {item.avatarUrl ? (
+              <img
+                src={item.avatarUrl}
+                alt={`Avatar for ${item.label}`}
+                className="h-8 w-8 rounded-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span
+                className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold"
+                style={{
+                  backgroundColor: item.color ?? 'rgb(37 99 235 / 0.12)',
+                  color: item.color ? 'white' : 'rgb(37 99 235)'
+                }}
+              >
+                {item.label.slice(0, 1).toUpperCase()}
+              </span>
+            )}
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">@{item.label}</span>
               <span className="block truncate text-xs text-muted-foreground">
