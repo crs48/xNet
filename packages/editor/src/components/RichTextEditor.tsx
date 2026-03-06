@@ -1,14 +1,13 @@
 /**
  * RichTextEditor - Tiptap-based rich text editor with Yjs collaboration
  */
-import type { DatabaseViewType, SlashCommandItem } from '../extensions'
+import type { DatabaseViewType, PageTaskSnapshot, SlashCommandItem } from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
 import Collaboration from '@tiptap/extension-collaboration'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
-import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
 import Typography from '@tiptap/extension-typography'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
@@ -31,7 +30,10 @@ import {
   FileExtension,
   SmartReferenceExtension,
   EmbedExtension,
-  DatabaseEmbedExtension
+  DatabaseEmbedExtension,
+  PageTaskItemExtension,
+  ensurePageTaskAttrs,
+  getPageTasksSnapshot
 } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
 import '../styles/editor.css'
@@ -262,6 +264,11 @@ export interface RichTextEditorProps {
    */
   onEditorReady?: (editor: Editor) => void
   /**
+   * Task snapshot handler for page-backed checklist reconciliation.
+   * Called after task rows have stable ids and the editor view is in sync.
+   */
+  onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
+  /**
    * Comment creation handler. When provided, shows a Comment button in the toolbar.
    * Called with anchor data when user clicks Comment; should return the new comment ID.
    * The editor will then apply the comment mark to the selection.
@@ -336,9 +343,11 @@ export function RichTextEditor({
   toolbarItems: additionalToolbarItems = [],
   slashCommands,
   onEditorReady,
+  onPageTasksChange,
   onCreateComment
 }: RichTextEditorProps): JSX.Element {
   const cursorPluginRegisteredRef = useRef(false)
+  const pageTaskSignatureRef = useRef<string>('')
 
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -368,7 +377,7 @@ export function RichTextEditor({
       fragment
     }),
     TaskList,
-    TaskItem.configure({
+    PageTaskItemExtension.configure({
       nested: true
     }),
     Link.configure({
@@ -447,6 +456,28 @@ export function RichTextEditor({
       onEditorReady(editor)
     }
   }, [editor, onEditorReady])
+
+  useEffect(() => {
+    if (!editor || !onPageTasksChange) return
+
+    const publishPageTasks = () => {
+      if (ensurePageTaskAttrs(editor)) return
+
+      const tasks = getPageTasksSnapshot(editor)
+      const signature = JSON.stringify(tasks)
+      if (signature === pageTaskSignatureRef.current) return
+
+      pageTaskSignatureRef.current = signature
+      onPageTasksChange(tasks)
+    }
+
+    publishPageTasks()
+    editor.on('update', publishPageTasks)
+
+    return () => {
+      editor.off('update', publishPageTasks)
+    }
+  }, [editor, onPageTasksChange])
 
   // Add cursor plugin dynamically when awareness becomes available.
   // We use yCursorPlugin directly (instead of CollaborationCursor extension) to avoid

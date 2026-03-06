@@ -66,14 +66,14 @@
 
 ### Current mismatch
 
-| Area | Current behavior | Limitation |
-| --- | --- | --- |
-| Page checklist | TipTap-only task items | no node identity, no queryability, no notifications, no cross-surface reuse |
-| Task schema | first-class node exists | single assignee, no page anchor, no ordering key, no origin metadata |
-| Mentions | comment parsing and DB person suggestions exist | no rich-text mention entity in page editor |
-| External links | block embeds and link previews exist | no inline smart-reference chip model for tasks |
-| Database views | powerful projections exist | only database-backed today, not query-backed task collections |
-| Canvas checklist | local checklist data | cannot share identity with page/database tasks |
+| Area             | Current behavior                                | Limitation                                                                  |
+| ---------------- | ----------------------------------------------- | --------------------------------------------------------------------------- |
+| Page checklist   | TipTap-only task items                          | no node identity, no queryability, no notifications, no cross-surface reuse |
+| Task schema      | first-class node exists                         | single assignee, no page anchor, no ordering key, no origin metadata        |
+| Mentions         | comment parsing and DB person suggestions exist | no rich-text mention entity in page editor                                  |
+| External links   | block embeds and link previews exist            | no inline smart-reference chip model for tasks                              |
+| Database views   | powerful projections exist                      | only database-backed today, not query-backed task collections               |
+| Canvas checklist | local checklist data                            | cannot share identity with page/database tasks                              |
 
 ### Important architectural precedent
 
@@ -578,17 +578,17 @@ sequenceDiagram
 
 ## Data ownership rules
 
-| Field | Canonical owner | Why |
-| --- | --- | --- |
-| task identity | `Task` node | global referenceability |
-| status / due date / assignees | `Task` node | query + notifications |
-| external provider metadata | `ExternalReference` node | sync, dedupe, provider-aware rendering |
-| page placement | page Yjs + task `page` relation | both surface and global query need it |
-| parent/subtask relation | `Task` node | cross-view hierarchy |
-| sibling visual order in page | `sortKey` on `Task` node | stable across projections |
-| inline rich title text | page Yjs, mirrored to node title | preserves rich editing ergonomics |
-| inline smart-reference chip placement | page Yjs task block | preserves authoring ergonomics |
-| expanded notes | task Yjs doc later | avoids overloading page block |
+| Field                                 | Canonical owner                  | Why                                    |
+| ------------------------------------- | -------------------------------- | -------------------------------------- |
+| task identity                         | `Task` node                      | global referenceability                |
+| status / due date / assignees         | `Task` node                      | query + notifications                  |
+| external provider metadata            | `ExternalReference` node         | sync, dedupe, provider-aware rendering |
+| page placement                        | page Yjs + task `page` relation  | both surface and global query need it  |
+| parent/subtask relation               | `Task` node                      | cross-view hierarchy                   |
+| sibling visual order in page          | `sortKey` on `Task` node         | stable across projections              |
+| inline rich title text                | page Yjs, mirrored to node title | preserves rich editing ergonomics      |
+| inline smart-reference chip placement | page Yjs task block              | preserves authoring ergonomics         |
+| expanded notes                        | task Yjs doc later               | avoids overloading page block          |
 
 ## Risks And Open Questions
 
@@ -691,17 +691,17 @@ Recommendation:
 ## Phase 1: Page-native node-backed tasks
 
 - [ ] Design `TaskSchema` v2 and migration path from the current built-in schema.
-- [ ] Add `assignees` multi-person support.
-- [ ] Add `page`, `anchorBlockId`, `sortKey`, and task relation fields.
-- [ ] Build a custom TipTap task extension that stores `taskId`.
+- [x] Add `assignees` multi-person support.
+- [x] Add `page`, `anchorBlockId`, `sortKey`, and task relation fields.
+- [x] Build a custom TipTap task extension that stores `taskId`.
 - [ ] Add rich-text mention support that resolves to DIDs.
 - [ ] Add inline due-date and assignee chips to task rows.
-- [ ] Add inline smart-reference chips for supported URLs inside task lines.
-- [ ] Reuse the existing embed provider registry for first-pass provider detection.
-- [ ] Define normalized `ExternalReference` metadata shape and relation strategy.
-- [ ] Create a page task reconciler that maps editor operations to node mutations.
-- [ ] Persist parent/subtask relations from indentation.
-- [ ] Decide delete semantics: archive vs detach vs hard delete.
+- [x] Add inline smart-reference chips for supported URLs inside task lines.
+- [x] Reuse the existing embed provider registry for first-pass provider detection.
+- [x] Define normalized `ExternalReference` metadata shape and relation strategy.
+- [x] Create a page task reconciler that maps editor operations to node mutations.
+- [x] Persist parent/subtask relations from indentation.
+- [x] Decide delete semantics: archive vs detach vs hard delete.
 - [ ] Add task-specific tests for page editing, indentation, reassignment, due-date edits, and URL-to-chip conversion.
 
 ## Phase 2: Cross-surface views
@@ -724,7 +724,7 @@ Recommendation:
 
 ## 🧪 Validation Checklist
 
-- [ ] Creating a checklist item in a page creates exactly one `Task` node.
+- [x] Creating a checklist item in a page creates exactly one `Task` node.
 - [ ] Toggling a checkbox updates `Task.completed` and all subscribed task views.
 - [ ] Indenting/outdenting updates parent/subtask relations deterministically.
 - [ ] Reordering sibling tasks preserves stable order across peers.
@@ -736,7 +736,7 @@ Recommendation:
 - [ ] Full block embeds remain opt-in so task rows stay compact.
 - [ ] Page comments, task comments, and database/canvas task views can all target the same task node.
 - [ ] Undo/redo behaves coherently for page text plus task metadata.
-- [ ] Removing a task from a page follows the chosen archive/detach semantics consistently.
+- [x] Removing a task from a page follows the chosen archive/detach semantics consistently.
 - [ ] Query-backed task views remain performant with thousands of tasks.
 - [ ] No orphaned task nodes are created during rapid collaborative edits.
 

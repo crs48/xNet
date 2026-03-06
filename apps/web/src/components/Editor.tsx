@@ -10,7 +10,8 @@ import {
   useImageUpload,
   useFileUpload,
   useFileDownload,
-  type Editor as TipTapEditor
+  type Editor as TipTapEditor,
+  type PageTaskSnapshot
 } from '@xnetjs/editor/react'
 
 interface Props {
@@ -24,6 +25,8 @@ interface Props {
   extensions?: any[]
   /** Callback when editor is ready */
   onEditorReady?: (editor: TipTapEditor) => void
+  /** Callback for page-backed task snapshots */
+  onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
   /** Callback for creating a comment */
   onCreateComment?: (anchorData: string) => Promise<string | null>
 }
@@ -35,6 +38,7 @@ export function Editor({
   onNavigate,
   extensions,
   onEditorReady,
+  onPageTasksChange,
   onCreateComment
 }: Props) {
   const onImageUpload = useImageUpload()
@@ -56,6 +60,7 @@ export function Editor({
       onFileDownload={onFileDownload ?? undefined}
       extensions={extensions}
       onEditorReady={onEditorReady}
+      onPageTasksChange={onPageTasksChange}
       onCreateComment={onCreateComment}
     />
   )

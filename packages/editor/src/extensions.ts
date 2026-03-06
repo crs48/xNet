@@ -446,6 +446,13 @@ export {
   type SmartReference,
   type SmartReferenceKind
 } from './extensions/smart-reference'
+export {
+  PageTaskItemExtension,
+  collectPageTasks,
+  ensurePageTaskAttrs,
+  getPageTasksSnapshot
+} from './extensions/page-tasks'
+export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/page-tasks'
 
 // Database embed extension
 export { DatabaseEmbedExtension } from './extensions/database-embed'

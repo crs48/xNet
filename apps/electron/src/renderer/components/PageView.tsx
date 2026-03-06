@@ -22,7 +22,8 @@ import {
   useIdentity,
   useEditorExtensionsSafe,
   useComments,
-  usePluginRegistryOptional
+  usePluginRegistryOptional,
+  usePageTaskSync
 } from '@xnetjs/react'
 import {
   CommentPopover,
@@ -100,6 +101,7 @@ export function PageView({ docId }: PageViewProps) {
     createIfMissing: { title: 'Untitled Page' },
     did: did ?? undefined
   })
+  const { handleTasksChange } = usePageTaskSync({ pageId: docId })
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
 
@@ -746,6 +748,7 @@ export function PageView({ docId }: PageViewProps) {
             extensions={allExtensions}
             onCreateComment={handleCreateComment}
             onEditorReady={handleEditorReady}
+            onPageTasksChange={handleTasksChange}
           />
 
           {/* Orphaned Comments Section */}
