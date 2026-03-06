@@ -16,14 +16,13 @@ import React, {
   useImperativeHandle,
   useMemo
 } from 'react'
-
-type LinkedDocType = 'page' | 'database' | 'canvas'
-
-interface LinkedDocumentItem {
-  id: string
-  title: string
-  type: LinkedDocType
-}
+import {
+  createCanvasShellNoteProperties,
+  isCanvasShellNote,
+  shouldRenderCanvasShellCard,
+  type LinkedDocType,
+  type LinkedDocumentItem
+} from '../lib/canvas-shell'
 
 interface ViewportSnapshot {
   x: number
@@ -68,7 +67,7 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
       ? 'Document'
       : linkedType === 'database'
         ? 'Database'
-        : node.type === 'card'
+        : isCanvasShellNote(node)
           ? 'Canvas note'
           : 'Canvas'
 
@@ -143,9 +142,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         width: 320,
         height: 180
       },
-      {
-        title: 'Untitled Note'
-      }
+      createCanvasShellNoteProperties()
     )
 
     nodesMap.set(noteNode.id, noteNode)
@@ -274,7 +271,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             const linkedDocument = node.linkedNodeId
               ? documentMap.get(node.linkedNodeId)
               : undefined
-            if (linkedDocument || node.type === 'card') {
+            if (shouldRenderCanvasShellCard(node, linkedDocument)) {
               return renderNodeCard(node, linkedDocument)
             }
             return undefined
