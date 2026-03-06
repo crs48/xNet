@@ -4,7 +4,7 @@
  * Main infinite canvas component with pan, zoom, and node rendering.
  */
 
-import type { CanvasConfig, CanvasNode, GridType, Point } from '../types'
+import type { CanvasConfig, CanvasNode, GridType, Point, Rect } from '../types'
 import React, {
   useRef,
   useCallback,
@@ -48,8 +48,14 @@ export interface CanvasRemoteUser {
 export interface CanvasHandle {
   /** Fit the viewport to show all content */
   fitToContent: (padding?: number) => void
+  /** Fit the viewport to a specific rectangle */
+  fitToRect: (rect: Rect, padding?: number) => void
   /** Reset viewport to origin at zoom 1 */
   resetView: () => void
+  /** Get the current viewport state */
+  getViewportSnapshot: () => { x: number; y: number; zoom: number }
+  /** Restore a previous viewport state */
+  setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) => void
 }
 
 export interface CanvasProps {
@@ -203,7 +209,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     ref,
     () => ({
       fitToContent: (padding?: number) => canvas.fitToContent(padding),
-      resetView: () => canvas.resetView()
+      fitToRect: (rect: Rect, padding?: number) => canvas.fitToRect(rect, padding),
+      resetView: () => canvas.resetView(),
+      getViewportSnapshot: () => canvas.getViewportSnapshot(),
+      setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) =>
+        canvas.setViewportSnapshot(snapshot)
     }),
     [canvas]
   )

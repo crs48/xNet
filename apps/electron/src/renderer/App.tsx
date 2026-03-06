@@ -1,28 +1,37 @@
 /**
  * Electron App - Main component
- *
- * Uses @xnetjs/react hooks for data management:
- * - useQuery for listing documents
- * - useNode for editing documents
- * - useMutate for creating/deleting
  */
 
+import type { PaletteCommand } from '@xnetjs/ui'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useDevTools } from '@xnetjs/devtools'
 import { useQuery, useMutate } from '@xnetjs/react'
-import { ThemeToggle } from '@xnetjs/ui'
-import React, { useCallback, useEffect, useState } from 'react'
+import { CommandPalette, useCommandPalette, usePrefersReducedMotion } from '@xnetjs/ui'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ActionDock } from './components/ActionDock'
 import { AddSharedDialog, type AddSharedInput } from './components/AddSharedDialog'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
-import { CanvasView } from './components/CanvasView'
+import { CanvasView, type CanvasViewHandle } from './components/CanvasView'
 import { DatabaseView } from './components/DatabaseView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
-import { Sidebar } from './components/Sidebar'
+import { SystemMenu } from './components/SystemMenu'
 
 type DocType = 'page' | 'database' | 'canvas'
 
-interface DocumentItem {
+type ViewportSnapshot = {
+  x: number
+  y: number
+  zoom: number
+}
+
+type ShellState =
+  | { kind: 'canvas-home' }
+  | { kind: 'page-focus'; docId: string; returnViewport: ViewportSnapshot | null }
+  | { kind: 'database-focus'; docId: string; returnViewport: ViewportSnapshot | null }
+  | { kind: 'settings' }
+
+type DocumentItem = {
   id: string
   title: string
   type: DocType
@@ -30,48 +39,70 @@ interface DocumentItem {
   updatedAt?: number
 }
 
-export function App() {
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
-  const [selectedDocType, setSelectedDocType] = useState<DocType>('page')
+const OVERLAY_OPEN_DELAY_MS = 180
+
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error))
+}
+
+export function App(): React.ReactElement {
+  const [homeCanvasId, setHomeCanvasId] = useState<string | null>(null)
+  const [homeCanvasBootstrapError, setHomeCanvasBootstrapError] = useState<Error | null>(null)
+  const [shellState, setShellState] = useState<ShellState>({ kind: 'canvas-home' })
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [prefilledShareValue, setPrefilledShareValue] = useState('')
-  const [showSettings, setShowSettings] = useState(false)
   const { setActiveNodeId } = useDevTools()
+  const { create } = useMutate()
+  const { open: paletteOpen, setOpen: setPaletteOpen, show: showPalette } = useCommandPalette()
+  const prefersReducedMotion = usePrefersReducedMotion()
+  const canvasViewRef = useRef<CanvasViewHandle>(null)
+  const creatingHomeCanvasRef = useRef(false)
+  const transitionTimerRef = useRef<number | null>(null)
 
-  // Query all document types
   const { data: pages, loading: pagesLoading } = useQuery(PageSchema, { limit: 100 })
   const { data: databases, loading: databasesLoading } = useQuery(DatabaseSchema, { limit: 100 })
   const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema, { limit: 100 })
 
-  // Mutations
-  const { create, remove } = useMutate()
-
-  // Combine all documents into a single list
-  const documents: DocumentItem[] = [
-    ...pages.map((p) => ({
-      id: p.id,
-      title: p.title || 'Untitled',
-      type: 'page' as DocType,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt
-    })),
-    ...databases.map((d) => ({
-      id: d.id,
-      title: d.title || 'Untitled',
-      type: 'database' as DocType,
-      createdAt: d.createdAt,
-      updatedAt: d.updatedAt
-    })),
-    ...canvases.map((c) => ({
-      id: c.id,
-      title: c.title || 'Untitled',
-      type: 'canvas' as DocType,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt
-    }))
-  ].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+  const documents: DocumentItem[] = useMemo(
+    () =>
+      [
+        ...pages.map((page) => ({
+          id: page.id,
+          title: page.title || 'Untitled Page',
+          type: 'page' as const,
+          createdAt: page.createdAt,
+          updatedAt: page.updatedAt
+        })),
+        ...databases.map((database) => ({
+          id: database.id,
+          title: database.title || 'Untitled Database',
+          type: 'database' as const,
+          createdAt: database.createdAt,
+          updatedAt: database.updatedAt
+        })),
+        ...canvases.map((canvas) => ({
+          id: canvas.id,
+          title: canvas.title || 'Workspace Canvas',
+          type: 'canvas' as const,
+          createdAt: canvas.createdAt,
+          updatedAt: canvas.updatedAt
+        }))
+      ].sort(
+        (left, right) =>
+          (right.updatedAt || right.createdAt || 0) - (left.updatedAt || left.createdAt || 0)
+      ),
+    [canvases, databases, pages]
+  )
 
   const isLoading = pagesLoading || databasesLoading || canvasesLoading
+  const recentDocuments = useMemo(() => documents.slice(0, 6), [documents])
+
+  const clearTransitionTimer = useCallback(() => {
+    if (transitionTimerRef.current !== null) {
+      window.clearTimeout(transitionTimerRef.current)
+      transitionTimerRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     const cleanup = window.xnet.onSharePayload((payload) => {
@@ -81,112 +112,316 @@ export function App() {
     return cleanup
   }, [])
 
-  // Handle document selection
-  const handleSelect = useCallback(
-    (id: string) => {
-      const doc = documents.find((d) => d.id === id)
-      if (doc) {
-        setSelectedDocId(id)
-        setSelectedDocType(doc.type)
-        setActiveNodeId(id)
+  useEffect(() => {
+    return () => {
+      clearTransitionTimer()
+    }
+  }, [clearTransitionTimer])
+
+  const bootstrapHomeCanvas = useCallback(async () => {
+    if (creatingHomeCanvasRef.current) return
+
+    creatingHomeCanvasRef.current = true
+    setHomeCanvasBootstrapError(null)
+
+    try {
+      const canvas = await create(CanvasSchema, { title: 'Workspace Canvas' })
+      if (!canvas) {
+        throw new Error('Home canvas was not created')
       }
+
+      setHomeCanvasId(canvas.id)
+      setActiveNodeId(canvas.id)
+    } catch (error) {
+      const normalizedError = toError(error)
+      console.error('Failed to create home canvas', normalizedError)
+      setHomeCanvasBootstrapError(normalizedError)
+    } finally {
+      creatingHomeCanvasRef.current = false
+    }
+  }, [create, setActiveNodeId])
+
+  useEffect(() => {
+    if (isLoading) return
+
+    if (canvases.length === 0) {
+      if (homeCanvasBootstrapError) return
+      if (homeCanvasId) {
+        setHomeCanvasId(null)
+      }
+      void bootstrapHomeCanvas()
+      return
+    }
+
+    if (homeCanvasBootstrapError) {
+      setHomeCanvasBootstrapError(null)
+    }
+
+    if (!homeCanvasId || !canvases.some((canvas) => canvas.id === homeCanvasId)) {
+      const defaultCanvas = [...canvases].sort(
+        (left, right) =>
+          (right.updatedAt || right.createdAt || 0) - (left.updatedAt || left.createdAt || 0)
+      )[0]
+
+      if (defaultCanvas) {
+        setHomeCanvasId(defaultCanvas.id)
+        setActiveNodeId(defaultCanvas.id)
+      }
+    }
+  }, [
+    bootstrapHomeCanvas,
+    canvases,
+    homeCanvasBootstrapError,
+    homeCanvasId,
+    isLoading,
+    setActiveNodeId
+  ])
+
+  const focusDocument = useCallback(
+    (docId: string, docType: Exclude<DocType, 'canvas'>, animateFromCanvas: boolean) => {
+      clearTransitionTimer()
+
+      const shouldAnimateFromCanvas = animateFromCanvas && !prefersReducedMotion
+      const returnViewport =
+        shouldAnimateFromCanvas && canvasViewRef.current
+          ? canvasViewRef.current.focusLinkedDocument(docId)
+          : null
+
+      const openOverlay = () => {
+        setShellState(
+          docType === 'page'
+            ? { kind: 'page-focus', docId, returnViewport }
+            : { kind: 'database-focus', docId, returnViewport }
+        )
+        setActiveNodeId(docId)
+      }
+
+      if (returnViewport && !prefersReducedMotion) {
+        transitionTimerRef.current = window.setTimeout(openOverlay, OVERLAY_OPEN_DELAY_MS)
+        return
+      }
+
+      openOverlay()
     },
-    [documents, setActiveNodeId]
+    [clearTransitionTimer, prefersReducedMotion, setActiveNodeId]
   )
 
-  // Handle document creation
-  const handleCreate = useCallback(
-    async (type: DocType) => {
-      const titleMap: Record<DocType, string> = {
-        page: 'Untitled Page',
-        database: 'Untitled Database',
-        canvas: 'Untitled Canvas'
+  const handleOpenDocument = useCallback(
+    (docId: string) => {
+      const document = documents.find((entry) => entry.id === docId)
+      if (!document) return
+
+      if (document.type === 'canvas') {
+        clearTransitionTimer()
+        setHomeCanvasId(document.id)
+        setShellState({ kind: 'canvas-home' })
+        setActiveNodeId(document.id)
+        return
       }
 
-      let newDoc
-      switch (type) {
-        case 'page':
-          newDoc = await create(PageSchema, { title: titleMap[type] })
-          break
-        case 'database':
-          newDoc = await create(DatabaseSchema, { title: titleMap[type] })
-          break
-        case 'canvas':
-          newDoc = await create(CanvasSchema, { title: titleMap[type] })
-          break
-      }
-
-      if (newDoc) {
-        setSelectedDocId(newDoc.id)
-        setSelectedDocType(type)
-        setActiveNodeId(newDoc.id)
-      }
+      focusDocument(document.id, document.type, true)
     },
-    [create, setActiveNodeId]
+    [clearTransitionTimer, documents, focusDocument, setActiveNodeId]
   )
 
-  // Handle document deletion
-  const handleDelete = useCallback(
-    async (id: string) => {
-      await remove(id)
-      if (selectedDocId === id) {
-        setSelectedDocId(null)
-        setActiveNodeId(null)
+  const handleCreateLinkedDocument = useCallback(
+    async (type: Exclude<DocType, 'canvas'>) => {
+      clearTransitionTimer()
+
+      try {
+        const schema = type === 'page' ? PageSchema : DatabaseSchema
+        const title = type === 'page' ? 'Untitled Page' : 'Untitled Database'
+        const newDocument = await create(schema, { title })
+        if (!newDocument) return
+
+        canvasViewRef.current?.addLinkedDocumentNode({
+          id: newDocument.id,
+          title,
+          type
+        })
+        setShellState({ kind: 'canvas-home' })
+        setActiveNodeId(homeCanvasId)
+      } catch (error) {
+        console.error('Failed to create linked document', toError(error))
       }
     },
-    [remove, selectedDocId, setActiveNodeId]
+    [clearTransitionTimer, create, homeCanvasId, setActiveNodeId]
   )
 
-  // Handle adding a shared document
+  const handleCreateCanvasNote = useCallback(() => {
+    clearTransitionTimer()
+    canvasViewRef.current?.addCanvasNote()
+    setShellState({ kind: 'canvas-home' })
+    setActiveNodeId(homeCanvasId)
+  }, [clearTransitionTimer, homeCanvasId, setActiveNodeId])
+
+  const handleReturnHome = useCallback(() => {
+    clearTransitionTimer()
+    if (shellState.kind === 'page-focus' || shellState.kind === 'database-focus') {
+      if (shellState.returnViewport) {
+        canvasViewRef.current?.restoreViewport(shellState.returnViewport)
+      }
+    }
+
+    setShellState({ kind: 'canvas-home' })
+    setActiveNodeId(homeCanvasId)
+  }, [clearTransitionTimer, homeCanvasId, setActiveNodeId, shellState])
+
   const handleAddShared = useCallback(
     async (input: AddSharedInput) => {
       if (input.share) {
-        await window.__xnetIpcSyncManager?.configureShareSession({
-          signalingUrl: input.share.endpoint,
-          ucanToken: input.share.token,
-          transport: input.share.transport,
-          iceServers: input.share.iceServers
-        })
+        try {
+          await window.__xnetIpcSyncManager?.configureShareSession({
+            signalingUrl: input.share.endpoint,
+            ucanToken: input.share.token,
+            transport: input.share.transport,
+            iceServers: input.share.iceServers
+          })
+        } catch (error) {
+          console.error('Failed to configure shared session', toError(error))
+        }
       }
 
-      setSelectedDocId(input.docId)
-      setSelectedDocType(input.docType)
-      setActiveNodeId(input.docId)
+      if (input.docType === 'canvas') {
+        clearTransitionTimer()
+        setHomeCanvasId(input.docId)
+        setShellState({ kind: 'canvas-home' })
+        setActiveNodeId(input.docId)
+        return
+      }
+
+      focusDocument(input.docId, input.docType, false)
     },
-    [setActiveNodeId]
+    [clearTransitionTimer, focusDocument, setActiveNodeId]
   )
 
-  // Render content based on document type or settings
-  const renderContent = () => {
-    // Show settings if open
-    if (showSettings) {
-      return <SettingsView onClose={() => setShowSettings(false)} />
+  const overlayTitle = useMemo(() => {
+    if (shellState.kind === 'page-focus') return 'Document'
+    if (shellState.kind === 'database-focus') return 'Database'
+    if (shellState.kind === 'settings') return 'Settings'
+    return null
+  }, [shellState.kind])
+
+  const handleOpenSettings = useCallback(() => {
+    clearTransitionTimer()
+    setShellState({ kind: 'settings' })
+  }, [clearTransitionTimer])
+
+  const paletteCommands = useMemo<PaletteCommand[]>(
+    () => [
+      {
+        id: 'create-page',
+        name: 'Create Page',
+        description: 'Create a new page and place it on the canvas',
+        icon: 'file-text',
+        execute: () => void handleCreateLinkedDocument('page')
+      },
+      {
+        id: 'create-database',
+        name: 'Create Database',
+        description: 'Create a new database and place it on the canvas',
+        icon: 'database',
+        execute: () => void handleCreateLinkedDocument('database')
+      },
+      {
+        id: 'create-note',
+        name: 'Create Canvas Note',
+        description: 'Add a lightweight note card to the workspace',
+        icon: 'sparkles',
+        execute: () => handleCreateCanvasNote()
+      },
+      {
+        id: 'open-settings',
+        name: 'Open Settings',
+        description: 'Open the system settings overlay',
+        icon: 'settings',
+        execute: handleOpenSettings
+      },
+      ...recentDocuments.map((document) => ({
+        id: `open-${document.id}`,
+        name: document.title,
+        description: `Open ${document.type}`,
+        icon:
+          document.type === 'page'
+            ? 'file-text'
+            : document.type === 'database'
+              ? 'database'
+              : 'layout',
+        group: 'Recent',
+        execute: () => handleOpenDocument(document.id)
+      }))
+    ],
+    [
+      handleCreateCanvasNote,
+      handleCreateLinkedDocument,
+      handleOpenDocument,
+      handleOpenSettings,
+      recentDocuments
+    ]
+  )
+
+  const renderOverlay = () => {
+    const overlaySurfaceClassName = [
+      'flex h-full overflow-hidden rounded-[32px] border border-border/70 bg-background shadow-2xl shadow-black/10',
+      prefersReducedMotion ? '' : 'animate-in fade-in zoom-in-95 duration-200'
+    ].join(' ')
+
+    if (shellState.kind === 'canvas-home') {
+      return null
     }
 
-    if (!selectedDocId) {
+    if (shellState.kind === 'settings') {
       return (
-        <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-          <p className="text-lg mb-2">Welcome to xNet</p>
-          <p className="text-sm">Select a document or create a new one</p>
+        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className={overlaySurfaceClassName}>
+            <SettingsView onClose={handleReturnHome} />
+          </div>
         </div>
       )
     }
 
-    switch (selectedDocType) {
-      case 'page':
-        return <PageView docId={selectedDocId} />
-      case 'database':
-        return <DatabaseView docId={selectedDocId} />
-      case 'canvas':
-        return <CanvasView docId={selectedDocId} />
-      default:
-        return null
-    }
+    return (
+      <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+        <div className="flex h-full flex-col gap-4">
+          <div className="pointer-events-none flex justify-center">
+            <div className="rounded-full border border-border/70 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl">
+              {overlayTitle}
+            </div>
+          </div>
+
+          <div className={['min-h-0 flex-1', overlaySurfaceClassName].join(' ')}>
+            {shellState.kind === 'page-focus' ? (
+              <PageView docId={shellState.docId} minimalChrome />
+            ) : (
+              <DatabaseView docId={shellState.docId} minimalChrome />
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  if (isLoading) {
+  if (homeCanvasBootstrapError && !homeCanvasId) {
     return (
-      <div className="flex flex-col items-center justify-center h-full bg-background">
+      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-background px-6 text-center">
+        <div className="space-y-2">
+          <p className="text-foreground">Unable to create your workspace canvas.</p>
+          <p className="text-sm text-muted-foreground">{homeCanvasBootstrapError.message}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => void bootstrapHomeCanvas()}
+          className="rounded-full bg-foreground px-4 py-2 text-sm text-background transition-colors hover:opacity-90"
+        >
+          Retry
+        </button>
+      </div>
+    )
+  }
+
+  if (isLoading || !homeCanvasId) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-background">
         <div className="animate-pulse">
           <p className="text-muted-foreground">Loading xNet...</p>
         </div>
@@ -195,35 +430,58 @@ export function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Titlebar */}
-      <header className="h-[38px] bg-secondary flex items-center justify-between px-4 pr-20 border-b border-border relative">
+    <div className="relative h-screen overflow-hidden bg-background">
+      <header className="absolute inset-x-0 top-0 z-50 h-[38px]">
         <div className="absolute inset-0 titlebar-drag" />
-        <h1 className="text-sm font-semibold z-10 text-foreground">xNet</h1>
-        <ThemeToggle className="z-10 h-7 w-7 titlebar-no-drag" />
+        <div className="relative flex h-full items-center justify-end px-3">
+          <SystemMenu
+            recentDocuments={recentDocuments}
+            onOpenDocument={handleOpenDocument}
+            onOpenSettings={handleOpenSettings}
+            onAddShared={() => {
+              setPrefilledShareValue('')
+              setShowAddSharedDialog(true)
+            }}
+            onToggleDebugPanel={() => {
+              window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
+            }}
+          />
+        </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar
-          documents={documents}
-          selectedId={selectedDocId}
-          onSelect={handleSelect}
-          onDelete={handleDelete}
-          onCreate={handleCreate}
-          onAddShared={() => {
-            setPrefilledShareValue('')
-            setShowAddSharedDialog(true)
-          }}
-          onSettings={() => setShowSettings(true)}
-        />
+      <main className="relative h-full overflow-hidden pt-[38px]">
+        <div
+          className={[
+            'absolute inset-0',
+            prefersReducedMotion ? '' : 'transition-all duration-200',
+            shellState.kind === 'canvas-home'
+              ? 'opacity-100'
+              : prefersReducedMotion
+                ? 'pointer-events-none opacity-70'
+                : 'pointer-events-none scale-[0.985] opacity-70'
+          ].join(' ')}
+        >
+          <CanvasView
+            ref={canvasViewRef}
+            docId={homeCanvasId}
+            documents={documents}
+            onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
+          />
+        </div>
 
-        {/* Content area */}
-        <section className="flex-1 flex flex-col overflow-hidden">{renderContent()}</section>
+        {renderOverlay()}
+
+        <ActionDock
+          mode={shellState.kind === 'canvas-home' ? 'canvas-home' : 'focused'}
+          onCreatePage={() => void handleCreateLinkedDocument('page')}
+          onCreateDatabase={() => void handleCreateLinkedDocument('database')}
+          onCreateNote={handleCreateCanvasNote}
+          onOpenRecent={showPalette}
+          onOpenSearch={showPalette}
+          onReturnHome={handleReturnHome}
+        />
       </main>
 
-      {/* Add Shared Dialog */}
       <AddSharedDialog
         isOpen={showAddSharedDialog}
         onClose={() => {
@@ -234,7 +492,8 @@ export function App() {
         initialValue={prefilledShareValue}
       />
 
-      {/* Auto-install bundled plugins */}
+      <CommandPalette commands={paletteCommands} open={paletteOpen} onOpenChange={setPaletteOpen} />
+
       <BundledPluginInstaller />
     </div>
   )

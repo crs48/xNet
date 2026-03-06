@@ -60,7 +60,10 @@ export interface UseCanvasReturn {
   pan: (deltaX: number, deltaY: number) => void
   zoomAt: (x: number, y: number, factor: number) => void
   fitToContent: (padding?: number) => void
+  fitToRect: (rect: Rect, padding?: number) => void
   resetView: () => void
+  getViewportSnapshot: () => { x: number; y: number; zoom: number }
+  setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) => void
 
   // Layout
   autoLayout: (config?: LayoutConfig) => Promise<void>
@@ -277,10 +280,39 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
     [store]
   )
 
+  const fitToRect = useCallback((rect: Rect, padding = 50) => {
+    viewportRef.current.fitToRect(rect, padding)
+    setViewportState(viewportRef.current.clone())
+  }, [])
+
   const resetView = useCallback(() => {
     viewportRef.current.reset()
     setViewportState(viewportRef.current.clone())
   }, [])
+
+  const getViewportSnapshot = useCallback(() => {
+    const snapshot = viewportRef.current.clone()
+    return {
+      x: snapshot.x,
+      y: snapshot.y,
+      zoom: snapshot.zoom
+    }
+  }, [])
+
+  const setViewportSnapshot = useCallback(
+    (snapshot: { x: number; y: number; zoom: number }) => {
+      const x = Number.isFinite(snapshot.x) ? snapshot.x : 0
+      const y = Number.isFinite(snapshot.y) ? snapshot.y : 0
+      const requestedZoom = Number.isFinite(snapshot.zoom) ? snapshot.zoom : 1
+      const zoom = Math.min(fullConfig.maxZoom, Math.max(fullConfig.minZoom, requestedZoom))
+
+      viewportRef.current.x = x
+      viewportRef.current.y = y
+      viewportRef.current.zoom = zoom
+      setViewportState(viewportRef.current.clone())
+    },
+    [fullConfig.maxZoom, fullConfig.minZoom]
+  )
 
   // ============================================================================
   // Layout
@@ -384,7 +416,10 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
     pan,
     zoomAt,
     fitToContent,
+    fitToRect,
     resetView,
+    getViewportSnapshot,
+    setViewportSnapshot,
 
     // Layout
     autoLayout,

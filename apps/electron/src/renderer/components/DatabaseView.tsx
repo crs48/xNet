@@ -51,6 +51,7 @@ import { ShareButton } from './ShareButton'
 
 interface DatabaseViewProps {
   docId: string
+  minimalChrome?: boolean
 }
 
 type ViewMode = 'table' | 'board'
@@ -116,7 +117,7 @@ function buildDefaultBoardView(columns: StoredColumn[]): ViewConfig {
   }
 }
 
-export function DatabaseView({ docId }: DatabaseViewProps) {
+export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps) {
   const { did } = useIdentity()
 
   const {
@@ -1430,20 +1431,28 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   return (
     <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
       {/* Toolbar */}
-      <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
+      <div
+        className={[
+          'flex items-center gap-2 border-b border-border',
+          minimalChrome ? 'bg-background/80 px-5 py-3 backdrop-blur-xl' : 'bg-secondary p-3'
+        ].join(' ')}
+      >
         {/* Title */}
         <input
           type="text"
-          className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+          className={[
+            'border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground',
+            minimalChrome ? 'text-base font-semibold' : 'text-lg font-semibold'
+          ].join(' ')}
           value={database?.title || ''}
           onChange={(e) => update({ title: e.target.value })}
           placeholder="Untitled"
         />
 
-        <PresenceAvatars presence={presence} localDid={did} />
+        {!minimalChrome && <PresenceAvatars presence={presence} localDid={did} />}
 
         {/* Schema version badge */}
-        {schemaMetadata && (
+        {!minimalChrome && schemaMetadata && (
           <button
             className="flex items-center gap-1 px-2 py-0.5 text-xs font-mono text-muted-foreground hover:text-foreground bg-accent rounded transition-colors cursor-pointer"
             title="View schema info"
@@ -1455,7 +1464,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         )}
 
         {/* Clone button */}
-        {columns.length > 0 && (
+        {!minimalChrome && columns.length > 0 && (
           <button
             className="flex items-center gap-1 px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground bg-accent rounded transition-colors cursor-pointer"
             title="Clone schema to new database"
@@ -1466,7 +1475,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           </button>
         )}
 
-        {commentUnresolvedCount > 0 && (
+        {!minimalChrome && commentUnresolvedCount > 0 && (
           <button
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title={`${commentUnresolvedCount} unresolved comment${commentUnresolvedCount !== 1 ? 's' : ''}`}
@@ -1480,7 +1489,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         <div className="flex-1" />
 
         {/* View switcher */}
-        <div className="flex items-center bg-accent rounded-md p-1">
+        <div className="flex items-center rounded-md bg-accent p-1">
           <button
             onClick={() => setViewMode('table')}
             className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors ${
@@ -1513,7 +1522,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           <span>New</span>
         </button>
 
-        <ShareButton docId={docId} docType="database" />
+        {!minimalChrome && <ShareButton docId={docId} docType="database" />}
       </div>
 
       {/* View content + Sidebar horizontal layout */}
