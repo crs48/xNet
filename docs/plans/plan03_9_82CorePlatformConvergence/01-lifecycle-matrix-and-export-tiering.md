@@ -38,21 +38,21 @@ This step depends on repository evidence that already exists:
 
 Adopt four explicit labels and use them consistently across package docs, changelogs, and export maps:
 
-| Label | Meaning | Commitments |
-| --- | --- | --- |
-| `stable` | default recommended API | semver-respecting changes, strong tests, docs/examples must stay current |
-| `experimental` | shipped but still converging | may change in minor releases, must be opt-in by name or subpath |
-| `deprecated` | supported transition surface | must document migration path and removal target |
-| `internal` | not public contract | no semver guarantee, not re-exported from main docs |
+| Label          | Meaning                      | Commitments                                                              |
+| -------------- | ---------------------------- | ------------------------------------------------------------------------ |
+| `stable`       | default recommended API      | semver-respecting changes, strong tests, docs/examples must stay current |
+| `experimental` | shipped but still converging | may change in minor releases, must be opt-in by name or subpath          |
+| `deprecated`   | supported transition surface | must document migration path and removal target                          |
+| `internal`     | not public contract          | no semver guarantee, not re-exported from main docs                      |
 
 ### Initial package recommendations
 
-| Package | Current issue | Proposed outcome |
-| --- | --- | --- |
-| `@xnetjs/react` | one large entrypoint mixes core hooks, database hooks, onboarding, plugin, and sync-adjacent surfaces | keep `useQuery`, `useMutate`, `useNode`, provider, and identity hooks at the stable root; move database, onboarding, and experimental runtime helpers behind named subpaths if they are not yet ready for stable labeling |
-| `@xnetjs/data` | schema, store, updates, awareness, comments, migration lenses, and built-in schema helpers all export from one barrel | keep schema/store primitives stable at the root; move niche or still-evolving surfaces into focused subpaths such as `@xnetjs/data/updates`, `@xnetjs/data/awareness`, `@xnetjs/data/comments`, `@xnetjs/data/lenses` |
-| `@xnetjs/identity` | older and newer passkey/key-bundle surfaces coexist in one entrypoint | separate stable identity bootstrap from advanced key-bundle or test-only helpers |
-| `@xnetjs/data-bridge` | package is documented as stable while the worker-first path is not yet the default production path | mark root bridge contract as experimental until Step 08 release gates pass |
+| Package               | Current issue                                                                                                         | Proposed outcome                                                                                                                                                                                                          |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@xnetjs/react`       | one large entrypoint mixes core hooks, database hooks, onboarding, plugin, and sync-adjacent surfaces                 | keep `useQuery`, `useMutate`, `useNode`, provider, and identity hooks at the stable root; move database, onboarding, and experimental runtime helpers behind named subpaths if they are not yet ready for stable labeling |
+| `@xnetjs/data`        | schema, store, updates, awareness, comments, migration lenses, and built-in schema helpers all export from one barrel | keep schema/store primitives stable at the root; move niche or still-evolving surfaces into focused subpaths such as `@xnetjs/data/updates`, `@xnetjs/data/awareness`, `@xnetjs/data/comments`, `@xnetjs/data/lenses`     |
+| `@xnetjs/identity`    | older and newer passkey/key-bundle surfaces coexist in one entrypoint                                                 | separate stable identity bootstrap from advanced key-bundle or test-only helpers                                                                                                                                          |
+| `@xnetjs/data-bridge` | package is documented as stable while the worker-first path is not yet the default production path                    | mark root bridge contract as experimental until Step 08 release gates pass                                                                                                                                                |
 
 ## Architecture Sketch
 
@@ -139,10 +139,10 @@ Every moved or deprecated export should have:
 
 ## Step Checklist
 
-- [ ] Inventory current exports for the target packages.
-- [ ] Assign lifecycle labels per export group.
-- [ ] Update `packages/README.md` to reflect the real package maturity.
-- [ ] Add or tighten `package.json` export maps for explicit stable and experimental subpaths.
-- [ ] Write migration notes for any moved or deprecated imports.
-- [ ] Add type-level or example-level coverage for stable entrypoints.
-- [ ] Remove any remaining documentation that implies broader stability than the code currently supports.
+- [x] Inventory current exports for the target packages.
+- [x] Assign lifecycle labels per export group.
+- [x] Update `packages/README.md` to reflect the real package maturity.
+- [x] Add or tighten `package.json` export maps for explicit stable and experimental subpaths.
+- [x] Write migration notes for any moved or deprecated imports.
+- [x] Add type-level or example-level coverage for stable entrypoints.
+- [x] Remove any remaining documentation that implies broader stability than the code currently supports.

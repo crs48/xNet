@@ -2,6 +2,12 @@
 
 DID:key identity, UCAN authorization, and key management for xNet.
 
+> **Status:** Mixed
+> Stable entrypoints: `@xnetjs/identity/did`, `@xnetjs/identity/ucan`, `@xnetjs/identity/key-bundle`, `@xnetjs/identity/passkey`
+> Deprecated compatibility entrypoint: `@xnetjs/identity/legacy`
+
+The root barrel remains available for compatibility, but new code should prefer the narrower entrypoints above. See [`docs/reference/api-lifecycle-matrix.md`](../../docs/reference/api-lifecycle-matrix.md) for the current matrix.
+
 ## Installation
 
 ```bash

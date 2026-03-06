@@ -2,6 +2,12 @@
 
 Schema system, NodeStore, and Yjs CRDT engine for xNet. This is the central data package -- it defines how structured data and rich text documents are created, stored, and synced.
 
+> **Status:** Mixed
+> Stable entrypoints: `@xnetjs/data/schema`, `@xnetjs/data/store`, `@xnetjs/data/updates`, `@xnetjs/data/awareness`
+> Experimental entrypoints: `@xnetjs/data/database`, `@xnetjs/data/auth`
+
+The root `@xnetjs/data` barrel remains supported for compatibility, but new code should prefer the narrower entrypoints above. See [`docs/reference/api-lifecycle-matrix.md`](../../docs/reference/api-lifecycle-matrix.md) for the current matrix.
+
 ## Installation
 
 ```bash

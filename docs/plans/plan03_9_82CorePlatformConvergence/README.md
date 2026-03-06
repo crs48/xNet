@@ -56,15 +56,15 @@ If xNet expands product scope before those seams are tightened, every new surfac
 
 ### Where the current platform is still split
 
-| Area | Observed repository state | Why it matters |
-| --- | --- | --- |
-| Public lifecycle labels | [`packages/README.md`](../../../packages/README.md) marks nearly the whole portfolio `Stable` while [`docs/ROADMAP.md`](../../ROADMAP.md) still calls lifecycle clarity unfinished work | external users cannot distinguish dependable contracts from active construction |
-| React runtime default | [`packages/react/src/context.ts`](../../../packages/react/src/context.ts) still creates `MainThreadBridge` by default and documents worker/IPC bridges as future paths | the default app path does not yet match the intended performance architecture |
-| Query invalidation | [`packages/data-bridge/src/main-thread-bridge.ts`](../../../packages/data-bridge/src/main-thread-bridge.ts) reloads every cached query for a schema; [`packages/react/src/hooks/useQuery.ts`](../../../packages/react/src/hooks/useQuery.ts) still stringifies filter inputs and its `reload()` ref does not currently trigger a re-subscribe | query fanout and cache churn will become the main bottleneck for larger workspaces |
-| Local query engine | [`packages/query/src/local/engine.ts`](../../../packages/query/src/local/engine.ts) full-scans documents for query and count | search, backlinks, and derived navigation will not scale well without materialization |
-| Database editing model | [`packages/react/src/index.ts`](../../../packages/react/src/index.ts) exports a node-centric database hook family, while [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) and [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) still write whole `rows` and `columns` arrays into one Y.Map | API clarity, undo semantics, and multi-device correctness stay ambiguous |
-| Web durability | [`apps/web/src/App.tsx`](../../../apps/web/src/App.tsx) uses OPFS-backed SQLite but the app does not request persistent storage; [`apps/web/src/components/GlobalSearch.tsx`](../../../apps/web/src/components/GlobalSearch.tsx) still performs title-only search over a fixed page list | the first product experience still reveals core-platform limitations |
-| Test and docs drift | integration tests and docs still reference `useDocument` and `IndexedDBNodeStorageAdapter` in multiple places under [`tests/integration`](../../../tests/integration) and [`tests/README.md`](../../../tests/README.md) | public confidence depends on docs, examples, and tests matching the current API |
+| Area                    | Observed repository state                                                                                                                                                                                                                                                                                                                                                                                             | Why it matters                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Public lifecycle labels | [`packages/README.md`](../../../packages/README.md) marks nearly the whole portfolio `Stable` while [`docs/ROADMAP.md`](../../ROADMAP.md) still calls lifecycle clarity unfinished work                                                                                                                                                                                                                               | external users cannot distinguish dependable contracts from active construction       |
+| React runtime default   | [`packages/react/src/context.ts`](../../../packages/react/src/context.ts) still creates `MainThreadBridge` by default and documents worker/IPC bridges as future paths                                                                                                                                                                                                                                                | the default app path does not yet match the intended performance architecture         |
+| Query invalidation      | [`packages/data-bridge/src/main-thread-bridge.ts`](../../../packages/data-bridge/src/main-thread-bridge.ts) reloads every cached query for a schema; [`packages/react/src/hooks/useQuery.ts`](../../../packages/react/src/hooks/useQuery.ts) still stringifies filter inputs and its `reload()` ref does not currently trigger a re-subscribe                                                                         | query fanout and cache churn will become the main bottleneck for larger workspaces    |
+| Local query engine      | [`packages/query/src/local/engine.ts`](../../../packages/query/src/local/engine.ts) full-scans documents for query and count                                                                                                                                                                                                                                                                                          | search, backlinks, and derived navigation will not scale well without materialization |
+| Database editing model  | [`packages/react/src/index.ts`](../../../packages/react/src/index.ts) exports a node-centric database hook family, while [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) and [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) still write whole `rows` and `columns` arrays into one Y.Map | API clarity, undo semantics, and multi-device correctness stay ambiguous              |
+| Web durability          | [`apps/web/src/App.tsx`](../../../apps/web/src/App.tsx) uses OPFS-backed SQLite but the app does not request persistent storage; [`apps/web/src/components/GlobalSearch.tsx`](../../../apps/web/src/components/GlobalSearch.tsx) still performs title-only search over a fixed page list                                                                                                                              | the first product experience still reveals core-platform limitations                  |
+| Test and docs drift     | integration tests and docs still reference `useDocument` and `IndexedDBNodeStorageAdapter` in multiple places under [`tests/integration`](../../../tests/integration) and [`tests/README.md`](../../../tests/README.md)                                                                                                                                                                                               | public confidence depends on docs, examples, and tests matching the current API       |
 
 ### Relationship to earlier plans
 
@@ -129,16 +129,16 @@ flowchart TD
 
 ## Step Index
 
-| Step | File | Outcome |
-| --- | --- | --- |
-| 1 | [01-lifecycle-matrix-and-export-tiering.md](./01-lifecycle-matrix-and-export-tiering.md) | explicit stable, experimental, deprecated, and internal API tiers |
-| 2 | [02-provider-runtime-and-bridge-defaults.md](./02-provider-runtime-and-bridge-defaults.md) | one clear bootstrap/runtime story across main-thread, worker, and IPC modes |
-| 3 | [03-live-query-runtime-and-invalidation.md](./03-live-query-runtime-and-invalidation.md) | incremental live queries with targeted invalidation and a real `reload()` path |
-| 4 | [04-database-model-convergence.md](./04-database-model-convergence.md) | one canonical database representation for web, Electron, hooks, and sync |
-| 5 | [05-background-sync-and-security-hardening.md](./05-background-sync-and-security-hardening.md) | durable background sync, reconnect semantics, and signed-by-default replication |
-| 6 | [06-web-durability-and-performance-proving-ground.md](./06-web-durability-and-performance-proving-ground.md) | worker-first web runtime, persistent storage handling, and app-level proof points |
-| 7 | [07-tests-devtools-and-documentation-alignment.md](./07-tests-devtools-and-documentation-alignment.md) | hook/runtime coverage, docs cleanup, and observability for the new platform |
-| 8 | [08-rollout-benchmarks-and-release-gates.md](./08-rollout-benchmarks-and-release-gates.md) | staged rollout criteria and measurable release gates |
+| Step | File                                                                                                         | Outcome                                                                           |
+| ---- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| 1    | [01-lifecycle-matrix-and-export-tiering.md](./01-lifecycle-matrix-and-export-tiering.md)                     | explicit stable, experimental, deprecated, and internal API tiers                 |
+| 2    | [02-provider-runtime-and-bridge-defaults.md](./02-provider-runtime-and-bridge-defaults.md)                   | one clear bootstrap/runtime story across main-thread, worker, and IPC modes       |
+| 3    | [03-live-query-runtime-and-invalidation.md](./03-live-query-runtime-and-invalidation.md)                     | incremental live queries with targeted invalidation and a real `reload()` path    |
+| 4    | [04-database-model-convergence.md](./04-database-model-convergence.md)                                       | one canonical database representation for web, Electron, hooks, and sync          |
+| 5    | [05-background-sync-and-security-hardening.md](./05-background-sync-and-security-hardening.md)               | durable background sync, reconnect semantics, and signed-by-default replication   |
+| 6    | [06-web-durability-and-performance-proving-ground.md](./06-web-durability-and-performance-proving-ground.md) | worker-first web runtime, persistent storage handling, and app-level proof points |
+| 7    | [07-tests-devtools-and-documentation-alignment.md](./07-tests-devtools-and-documentation-alignment.md)       | hook/runtime coverage, docs cleanup, and observability for the new platform       |
+| 8    | [08-rollout-benchmarks-and-release-gates.md](./08-rollout-benchmarks-and-release-gates.md)                   | staged rollout criteria and measurable release gates                              |
 
 ## Risks and Open Questions
 
@@ -151,7 +151,7 @@ flowchart TD
 
 ## Implementation Checklist
 
-- [ ] Complete the lifecycle audit and publish an explicit API matrix for `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/identity`, and `@xnetjs/data-bridge`.
+- [x] Complete the lifecycle audit and publish an explicit API matrix for `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/identity`, and `@xnetjs/data-bridge`.
 - [ ] Introduce an explicit runtime mode model for `XNetProvider` and app bootstrapping.
 - [ ] Implement targeted live-query invalidation and remove the current schema-wide reload behavior.
 - [ ] Adopt one canonical database model and migrate active app database views onto it.

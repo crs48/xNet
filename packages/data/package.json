@@ -14,6 +14,30 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./schema": {
+      "import": "./dist/schema/index.js",
+      "types": "./dist/schema/index.d.ts"
+    },
+    "./store": {
+      "import": "./dist/store/index.js",
+      "types": "./dist/store/index.d.ts"
+    },
+    "./database": {
+      "import": "./dist/database/index.js",
+      "types": "./dist/database/index.d.ts"
+    },
+    "./auth": {
+      "import": "./dist/auth/index.js",
+      "types": "./dist/auth/index.d.ts"
+    },
+    "./updates": {
+      "import": "./dist/updates.js",
+      "types": "./dist/updates.d.ts"
+    },
+    "./awareness": {
+      "import": "./dist/sync/awareness.js",
+      "types": "./dist/sync/awareness.d.ts"
+    },
     "./ts-plugin": {
       "types": "./dist/ts-plugin/index.d.ts",
       "require": "./dist/ts-plugin/index.cjs",
@@ -30,7 +54,7 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts && tsup src/ts-plugin/index.ts --format cjs,esm --dts --outDir dist/ts-plugin",
+    "build": "tsup src/index.ts src/schema/index.ts src/store/index.ts src/database/index.ts src/auth/index.ts src/updates.ts src/sync/awareness.ts --format esm --dts && tsup src/ts-plugin/index.ts --format cjs,esm --dts --outDir dist/ts-plugin",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"

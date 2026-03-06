@@ -59,6 +59,15 @@ But the highest-leverage gaps are still at the **developer-facing boundary**:
 5. **Electron canvas-first shell**
 6. **AI integrations and vertical apps**
 
+### Implementation progress
+
+- [x] API and package-surface convergence: publish the lifecycle matrix, relabel package maturity, and add explicit subpath entrypoints for `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/identity`, and `@xnetjs/data-bridge`
+- [ ] Reactive query and background-sync hardening
+- [ ] Web durability and performance guarantees
+- [ ] Web daily-driver UX
+- [ ] Electron canvas-first shell
+- [ ] AI integrations and vertical apps
+
 ### What not to prioritize yet
 
 Do **not** make farming ERP, social, voice chat, or broad AI automation the next top-level focus. Those are good future directions, but they will benefit far more from a stable kernel than from being built on partially converged APIs.
@@ -161,13 +170,13 @@ Inference:
 
 Measured locally in this repo:
 
-| Area | Test files | Source files | Signal |
-| --- | ---: | ---: | --- |
-| `packages/react/src/hooks` | 9 | 44 | thin for the main public API |
-| `packages/sync/src` | 22 | 50 | strong |
-| `packages/data/src` | 44 | 150 | solid but broad surface |
-| `packages/canvas/src` | 22 | 92 | respectable |
-| `packages/identity/src` | 12 | 39 | decent but security-critical |
+| Area                       | Test files | Source files | Signal                       |
+| -------------------------- | ---------: | -----------: | ---------------------------- |
+| `packages/react/src/hooks` |          9 |           44 | thin for the main public API |
+| `packages/sync/src`        |         22 |           50 | strong                       |
+| `packages/data/src`        |         44 |          150 | solid but broad surface      |
+| `packages/canvas/src`      |         22 |           92 | respectable                  |
+| `packages/identity/src`    |         12 |           39 | decent but security-critical |
 
 This matches the qualitative picture from [`docs/reviews/2026-02-06/10-test-coverage.md`](../../docs/reviews/2026-02-06/10-test-coverage.md): the kernel is tested best at the primitive layer, less at the hook/runtime boundary.
 

@@ -2,6 +2,13 @@
 
 React hooks for xNet -- the primary API for building xNet applications.
 
+> **Status:** Mixed
+> Stable root contract: `XNetProvider`, `useXNet`, `useQuery`, `useMutate`, `useNode`, `useIdentity`, `ErrorBoundary`, `OfflineIndicator`
+> Experimental entrypoints: `@xnetjs/react/database`, `@xnetjs/react/experimental`
+> Internal entrypoint: `@xnetjs/react/internal`
+
+See [`docs/reference/api-lifecycle-matrix.md`](../../docs/reference/api-lifecycle-matrix.md) for the current lifecycle table and migration guidance.
+
 ## Installation
 
 ```bash
