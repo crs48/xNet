@@ -10,7 +10,7 @@
 xNet's primary Electron app currently behaves like a conventional document app:
 
 - a permanent left sidebar for navigation and creation
-- a top titlebar plus per-view top toolbars
+- a top title bar plus per-view top toolbars
 - separate page, database, and canvas surfaces
 
 That is functional, but it fights the product direction the user described:
@@ -51,7 +51,7 @@ This is the cleanest route to a much calmer UX without discarding the current xN
 
 Today the Electron renderer composes a classic sidebar-driven application in [`apps/electron/src/renderer/App.tsx`](../../apps/electron/src/renderer/App.tsx):
 
-- top titlebar with app name and theme toggle
+- top title bar with app name and theme toggle
 - left [`Sidebar`](../../apps/electron/src/renderer/components/Sidebar.tsx)
 - content area that switches between `PageView`, `DatabaseView`, `CanvasView`, and `SettingsView`
 - empty state when nothing is selected
@@ -417,7 +417,7 @@ mindmap
 #### 1. Global shell rules
 
 - No permanent left sidebar.
-- No permanent titlebar text besides platform drag affordance if needed.
+- No permanent title bar text besides platform drag affordance if needed.
 - Theme toggle moves into the profile/system menu.
 - Native desktop menu bar handles standard file/edit/view actions.
 
@@ -520,8 +520,8 @@ Only after the shell works:
 
 Validation notes:
 
-- Automated validation completed on March 6, 2026 with `pnpm typecheck`, `pnpm test`, `pnpm --filter xnet-desktop build`, and `pnpm --filter @xnetjs/canvas build`.
-- Manual Electron validation on March 6, 2026 confirmed the first-run shell lands on the workspace canvas with a fresh `XNET_PROFILE=codex-pr5` and `XNET_TEST_BYPASS=true`; screenshot saved to `tmp/playwright/pr5-canvas-home.png`.
+- Automated validation completed on March 6, 2026, with `pnpm typecheck`, `pnpm test`, `pnpm --filter xnet-desktop build`, and `pnpm --filter @xnetjs/canvas build`.
+- Manual Electron validation on March 6, 2026, confirmed the first-run shell lands on the workspace canvas with a fresh `XNET_PROFILE=codex-pr5` and `XNET_TEST_BYPASS=true`; screenshot saved to `tmp/playwright/pr5-canvas-home.png`.
 - Manual Electron validation is still required for the UX-specific items above before squash-and-merge.
 
 ## Example Code 💡
@@ -532,7 +532,7 @@ The shell can be simplified without rewriting the underlying views by introducin
 /**
  * Minimal shell state for a canvas-first workspace.
  */
-export type ShellMode =
+export type NonSettingsShellMode =
   | { kind: 'canvas-home'; canvasId: string }
   | { kind: 'page-focus'; canvasId: string; pageId: string; returnViewport: ViewportSnapshot }
   | {
@@ -541,7 +541,10 @@ export type ShellMode =
       databaseId: string
       returnViewport: ViewportSnapshot
     }
-  | { kind: 'settings'; canvasId: string }
+
+export type ShellMode =
+  | NonSettingsShellMode
+  | { kind: 'settings'; canvasId: string; previous: NonSettingsShellMode }
 
 export type ViewportSnapshot = {
   x: number
@@ -606,10 +609,11 @@ export function reduceShellAction(
       return { kind: 'canvas-home', canvasId: state.canvasId }
 
     case 'open-settings':
-      return { kind: 'settings', canvasId: state.canvasId }
+      if (state.kind === 'settings') return state
+      return { kind: 'settings', canvasId: state.canvasId, previous: state }
 
     case 'close-settings':
-      return { kind: 'canvas-home', canvasId: state.canvasId }
+      return state.kind === 'settings' ? state.previous : state
   }
 }
 ```

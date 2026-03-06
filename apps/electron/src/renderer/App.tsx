@@ -223,6 +223,8 @@ export function App(): React.ReactElement {
 
   const handleCreateLinkedDocument = useCallback(
     async (type: Exclude<DocType, 'canvas'>) => {
+      clearTransitionTimer()
+
       try {
         const schema = type === 'page' ? PageSchema : DatabaseSchema
         const title = type === 'page' ? 'Untitled Page' : 'Untitled Database'
@@ -240,14 +242,15 @@ export function App(): React.ReactElement {
         console.error('Failed to create linked document', toError(error))
       }
     },
-    [create, homeCanvasId, setActiveNodeId]
+    [clearTransitionTimer, create, homeCanvasId, setActiveNodeId]
   )
 
   const handleCreateCanvasNote = useCallback(() => {
+    clearTransitionTimer()
     canvasViewRef.current?.addCanvasNote()
     setShellState({ kind: 'canvas-home' })
     setActiveNodeId(homeCanvasId)
-  }, [homeCanvasId, setActiveNodeId])
+  }, [clearTransitionTimer, homeCanvasId, setActiveNodeId])
 
   const handleReturnHome = useCallback(() => {
     clearTransitionTimer()
@@ -264,15 +267,20 @@ export function App(): React.ReactElement {
   const handleAddShared = useCallback(
     async (input: AddSharedInput) => {
       if (input.share) {
-        await window.__xnetIpcSyncManager?.configureShareSession({
-          signalingUrl: input.share.endpoint,
-          ucanToken: input.share.token,
-          transport: input.share.transport,
-          iceServers: input.share.iceServers
-        })
+        try {
+          await window.__xnetIpcSyncManager?.configureShareSession({
+            signalingUrl: input.share.endpoint,
+            ucanToken: input.share.token,
+            transport: input.share.transport,
+            iceServers: input.share.iceServers
+          })
+        } catch (error) {
+          console.error('Failed to configure shared session', toError(error))
+        }
       }
 
       if (input.docType === 'canvas') {
+        clearTransitionTimer()
         setHomeCanvasId(input.docId)
         setShellState({ kind: 'canvas-home' })
         setActiveNodeId(input.docId)
@@ -281,7 +289,7 @@ export function App(): React.ReactElement {
 
       focusDocument(input.docId, input.docType, false)
     },
-    [focusDocument, setActiveNodeId]
+    [clearTransitionTimer, focusDocument, setActiveNodeId]
   )
 
   const overlayTitle = useMemo(() => {
