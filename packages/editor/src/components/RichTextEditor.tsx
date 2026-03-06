@@ -512,8 +512,8 @@ export function RichTextEditor({
       onPageTasksChange(tasks)
     }
 
-    publishPageTasks()
     editor.on('update', publishPageTasks)
+    publishPageTasks()
 
     return () => {
       editor.off('update', publishPageTasks)

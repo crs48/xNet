@@ -1,3 +1,6 @@
+/**
+ * @xnetjs/editor - Task due date inline metadata
+ */
 import type { Editor } from '@tiptap/core'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { Node, mergeAttributes } from '@tiptap/core'
@@ -99,7 +102,7 @@ export function getCurrentTaskDueDate(editor: Editor): string | null {
   return typeof currentDueDate.node.attrs.date === 'string' ? currentDueDate.node.attrs.date : null
 }
 
-export interface TaskDueDateOptions {
+export type TaskDueDateOptions = {
   HTMLAttributes: Record<string, string>
 }
 
@@ -164,8 +167,10 @@ export const TaskDueDateExtension = Node.create<TaskDueDateOptions>({
           const normalized = normalizeDateString(date)
           if (!normalized) return false
 
-          const dueDateNode = this.type.create({ date: normalized })
           const currentTask = findCurrentTaskItem(editor)
+          if (!currentTask) return false
+
+          const dueDateNode = this.type.create({ date: normalized })
           const existing = currentTask ? findDueDateNode(currentTask.node, currentTask.pos) : null
           let tr = state.tr
 

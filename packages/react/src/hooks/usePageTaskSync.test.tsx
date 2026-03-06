@@ -154,4 +154,42 @@ describe('usePageTaskSync', () => {
       expect(result.current.tasks.data).toHaveLength(1)
     })
   })
+
+  it('ignores invalid due date strings when syncing task nodes', async () => {
+    const wrapper = createWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        sync: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        tasks: useQuery(TaskSchema, { where: { page: 'page-1' } })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    await act(async () => {
+      result.current.sync.handleTasksChange([
+        {
+          taskId: 'task-invalid-date',
+          blockId: 'block-invalid-date',
+          title: 'Invalid date task',
+          completed: false,
+          parentTaskId: null,
+          sortKey: '0000',
+          assignees: [],
+          dueDate: '2026-02-31',
+          references: []
+        }
+      ])
+    })
+
+    await waitFor(() => {
+      expect(result.current.tasks.data).toHaveLength(1)
+    })
+
+    expect(result.current.tasks.data[0]?.dueDate).toBeUndefined()
+  })
 })

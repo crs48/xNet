@@ -8,7 +8,7 @@ export type TaskViewAssigneeFilter = 'any' | 'me'
 export type TaskViewDueDateFilter = 'any' | 'overdue' | 'today' | 'next-7-days' | 'none'
 export type TaskViewStatusFilter = 'open' | 'done' | 'all'
 
-export interface TaskViewConfig {
+export type TaskViewConfig = {
   scope: TaskViewScope
   assignee: TaskViewAssigneeFilter
   dueDate: TaskViewDueDateFilter
@@ -16,7 +16,7 @@ export interface TaskViewConfig {
   showHierarchy: boolean
 }
 
-export interface TaskViewEmbedOptions {
+export type TaskViewEmbedOptions = {
   renderView?: (props: {
     viewType: TaskViewEmbedType
     viewConfig: TaskViewConfig
@@ -32,12 +32,28 @@ const DEFAULT_TASK_VIEW_CONFIG: TaskViewConfig = {
   showHierarchy: true
 }
 
+function cloneDefaultTaskViewConfig(): TaskViewConfig {
+  return { ...DEFAULT_TASK_VIEW_CONFIG }
+}
+
+function mergeTaskViewConfig(
+  ...configs: Array<Partial<TaskViewConfig> | null | undefined>
+): TaskViewConfig {
+  return configs.reduce<TaskViewConfig>(
+    (current, config) => ({
+      ...current,
+      ...(config ?? {})
+    }),
+    cloneDefaultTaskViewConfig()
+  )
+}
+
 function parseTaskViewConfig(raw: string | null): TaskViewConfig {
-  if (!raw) return DEFAULT_TASK_VIEW_CONFIG
+  if (!raw) return cloneDefaultTaskViewConfig()
 
   try {
     const parsed = JSON.parse(raw) as Partial<TaskViewConfig>
-    return {
+    return mergeTaskViewConfig({
       scope: parsed.scope === 'all' ? 'all' : 'current-page',
       assignee: parsed.assignee === 'me' ? 'me' : 'any',
       dueDate:
@@ -49,9 +65,9 @@ function parseTaskViewConfig(raw: string | null): TaskViewConfig {
           : 'any',
       status: parsed.status === 'all' || parsed.status === 'done' ? parsed.status : 'open',
       showHierarchy: parsed.showHierarchy !== false
-    }
+    })
   } catch {
-    return DEFAULT_TASK_VIEW_CONFIG
+    return cloneDefaultTaskViewConfig()
   }
 }
 
@@ -90,11 +106,13 @@ export const TaskViewEmbedExtension = Node.create<TaskViewEmbedOptions>({
     return {
       viewType: { default: 'list' },
       viewConfig: {
-        default: DEFAULT_TASK_VIEW_CONFIG,
+        default: cloneDefaultTaskViewConfig(),
         parseHTML: (element: HTMLElement) =>
           parseTaskViewConfig(element.getAttribute('data-task-view-config')),
         renderHTML: (attributes: Record<string, unknown>) => ({
-          'data-task-view-config': JSON.stringify(attributes.viewConfig ?? DEFAULT_TASK_VIEW_CONFIG)
+          'data-task-view-config': JSON.stringify(
+            mergeTaskViewConfig(attributes.viewConfig as Partial<TaskViewConfig> | undefined)
+          )
         })
       },
       showTitle: { default: true },
@@ -130,25 +148,21 @@ export const TaskViewEmbedExtension = Node.create<TaskViewEmbedOptions>({
             type: this.name,
             attrs: {
               viewType: options.viewType ?? 'list',
-              viewConfig: {
-                ...DEFAULT_TASK_VIEW_CONFIG,
-                ...(options.viewConfig ?? {})
-              }
+              viewConfig: mergeTaskViewConfig(options.viewConfig)
             }
           })
         },
 
       updateTaskViewEmbed:
         (options) =>
-        ({ commands }) => {
+        ({ commands, editor }) => {
+          const existingAttributes = editor.getAttributes(this.name) as {
+            viewConfig?: Partial<TaskViewConfig>
+          }
+
           return commands.updateAttributes(this.name, {
             ...(options.viewType !== undefined && { viewType: options.viewType }),
-            ...(options.viewConfig !== undefined && {
-              viewConfig: {
-                ...DEFAULT_TASK_VIEW_CONFIG,
-                ...(options.viewConfig ?? {})
-              }
-            })
+            viewConfig: mergeTaskViewConfig(existingAttributes.viewConfig, options.viewConfig)
           })
         }
     }

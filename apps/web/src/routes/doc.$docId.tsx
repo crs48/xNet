@@ -9,7 +9,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
-import { createGravatarUrl, type Editor } from '@xnetjs/editor/react'
+import { buildTaskMentionSuggestions, type Editor } from '@xnetjs/editor/react'
 import { useNode, useComments, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
   CommentPopover,
@@ -78,32 +78,10 @@ function DocumentPage() {
     did: did ?? undefined
   })
   const { handleTasksChange } = usePageTaskSync({ pageId: docId })
-  const mentionSuggestions = useMemo(() => {
-    const suggestions = new Map<
-      string,
-      { id: string; label: string; subtitle?: string; color?: string; avatarUrl?: string }
-    >()
-
-    const addSuggestion = (
-      entry: { did: string; name?: string; color?: string; avatar?: string } | null | undefined,
-      isLocal = false
-    ) => {
-      if (!entry?.did || suggestions.has(entry.did)) return
-
-      suggestions.set(entry.did, {
-        id: entry.did,
-        label: entry.name?.trim() || `${entry.did.slice(8, 16)}...`,
-        subtitle: isLocal ? 'You' : entry.did,
-        color: entry.color,
-        avatarUrl: entry.avatar || createGravatarUrl(entry.did)
-      })
-    }
-
-    addSuggestion(did ? { did } : null, true)
-    presence.forEach((user) => addSuggestion(user))
-
-    return Array.from(suggestions.values())
-  }, [did, presence])
+  const mentionSuggestions = useMemo(
+    () => buildTaskMentionSuggestions(presence, did),
+    [did, presence]
+  )
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
 

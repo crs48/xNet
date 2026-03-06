@@ -1,7 +1,10 @@
+/**
+ * @xnetjs/react - Embedded task collection renderer
+ */
 import { useMemo, type JSX } from 'react'
 import { useTasks, type TaskTreeItem } from '../hooks/useTasks'
 
-export interface TaskCollectionEmbedProps {
+export type TaskCollectionEmbedProps = {
   currentPageId: string | null
   currentDid: string | null
   scope: 'current-page' | 'all'
@@ -26,6 +29,11 @@ function formatDueDate(timestamp: number | undefined): string | null {
     month: 'short',
     day: 'numeric'
   })
+}
+
+function getStartOfUtcDay(timestamp: number): number {
+  const date = new Date(timestamp)
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 }
 
 function flattenTree(items: TaskTreeItem[], depth = 0): RenderableTaskRow[] {
@@ -96,7 +104,9 @@ export function TaskCollectionEmbed({
         {rows.map((task) => {
           const dueDateLabel = formatDueDate(task.dueDate)
           const overdue =
-            typeof task.dueDate === 'number' && !task.completed && task.dueDate < Date.now()
+            typeof task.dueDate === 'number' &&
+            !task.completed &&
+            getStartOfUtcDay(task.dueDate) < getStartOfUtcDay(Date.now())
 
           return (
             <li key={task.id}>

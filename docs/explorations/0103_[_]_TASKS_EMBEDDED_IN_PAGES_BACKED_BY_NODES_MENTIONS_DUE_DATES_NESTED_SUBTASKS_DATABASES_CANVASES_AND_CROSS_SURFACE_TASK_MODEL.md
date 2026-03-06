@@ -217,7 +217,7 @@ For xNet, this points to:
 
 Users want to:
 
-- type `[] `,
+- type `[]`,
 - indent with `Tab`,
 - `@mention` assignees inline,
 - set due dates without leaving the editor,

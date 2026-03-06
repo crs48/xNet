@@ -108,7 +108,18 @@ function toDateTimestamp(date: string | null): number | undefined {
 
   const [year, month, day] = date.split('-').map(Number)
   const timestamp = Date.UTC(year, month - 1, day)
-  return Number.isNaN(timestamp) ? undefined : timestamp
+  if (Number.isNaN(timestamp)) return undefined
+
+  const normalized = new Date(timestamp)
+  if (
+    normalized.getUTCFullYear() !== year ||
+    normalized.getUTCMonth() !== month - 1 ||
+    normalized.getUTCDate() !== day
+  ) {
+    return undefined
+  }
+
+  return timestamp
 }
 
 function normalizeProvider(provider: string | null): ExternalReferenceProvider {
@@ -152,6 +163,7 @@ export function usePageTaskSync({
     includeDeleted: true
   })
   const taskSnapshotsRef = useRef<PageTaskInput[]>([])
+  const syncRunIdRef = useRef(0)
   const [revision, setRevision] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -172,6 +184,8 @@ export function usePageTaskSync({
 
     const timer = setTimeout(() => {
       const run = async () => {
+        const runId = syncRunIdRef.current + 1
+        syncRunIdRef.current = runId
         const currentTasks = taskSnapshotsRef.current
         const nextTaskIds = new Set(currentTasks.map((task) => task.taskId))
         const tasksToCreate: Array<{
@@ -191,10 +205,14 @@ export function usePageTaskSync({
           const assignees = normalizeAssignees(task.assignees)
           const dueDate = toDateTimestamp(task.dueDate)
           const primaryAssignee = assignees[0]
+          const nextReferenceUpserts: Array<{
+            id: string
+            data: ExternalReferenceCreate
+          }> = []
           const referenceIds = task.references.map((reference) => {
             const id = computeExternalReferenceId(task.taskId, reference)
 
-            referenceUpserts.push({
+            nextReferenceUpserts.push({
               id,
               data: {
                 url: reference.url,
@@ -230,6 +248,7 @@ export function usePageTaskSync({
                 references: referenceIds
               }
             })
+            referenceUpserts.push(...nextReferenceUpserts)
             continue
           }
 
@@ -269,6 +288,7 @@ export function usePageTaskSync({
           }
           if (!arraysEqual(existingTask.references, referenceIds)) {
             updateData.references = referenceIds
+            referenceUpserts.push(...nextReferenceUpserts)
           }
 
           if (Object.keys(updateData).length > 0) {
@@ -307,6 +327,8 @@ export function usePageTaskSync({
 
         try {
           for (const reference of referenceUpserts) {
+            if (cancelled || runId !== syncRunIdRef.current) return
+
             try {
               await update(ExternalReferenceSchema, reference.id, reference.data)
             } catch {
@@ -315,18 +337,22 @@ export function usePageTaskSync({
           }
 
           for (const taskId of tasksToRestore) {
+            if (cancelled || runId !== syncRunIdRef.current) return
             await restore(taskId)
           }
 
           for (const task of tasksToCreate) {
+            if (cancelled || runId !== syncRunIdRef.current) return
             await create(TaskSchema, task.data, task.id)
           }
 
           for (const task of taskUpdates) {
+            if (cancelled || runId !== syncRunIdRef.current) return
             await update(TaskSchema, task.id, task.data)
           }
 
           for (const taskId of taskDeletes) {
+            if (cancelled || runId !== syncRunIdRef.current) return
             await remove(taskId)
           }
           if (!cancelled) {

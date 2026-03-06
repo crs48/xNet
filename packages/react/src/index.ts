@@ -502,6 +502,7 @@ export {
   type XNetContextValue,
   type XNetProviderProps
 } from './context'
+export { PageTasksPanel, type PageTasksPanelProps } from './components/PageTasksPanel'
 export {
   TaskCollectionEmbed,
   type TaskCollectionEmbedProps

@@ -88,6 +88,7 @@ export type { SlashCommandContribution, UseSlashCommandsOptions } from './hooks/
 export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/page-tasks'
 export type { TaskMentionSuggestion } from './extensions/task-metadata'
 export { createGravatarUrl } from './utils/gravatar'
+export { buildTaskMentionSuggestions } from './utils/taskMentionSuggestions'
 export type {
   TaskViewConfig,
   TaskViewEmbedType,
