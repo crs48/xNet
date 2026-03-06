@@ -152,7 +152,7 @@ flowchart TD
 ## Implementation Checklist
 
 - [x] Complete the lifecycle audit and publish an explicit API matrix for `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/identity`, and `@xnetjs/data-bridge`.
-- [ ] Introduce an explicit runtime mode model for `XNetProvider` and app bootstrapping.
+- [x] Introduce an explicit runtime mode model for `XNetProvider` and app bootstrapping.
 - [ ] Implement targeted live-query invalidation and remove the current schema-wide reload behavior.
 - [ ] Adopt one canonical database model and migrate active app database views onto it.
 - [ ] Make background sync state, signed replication, and reconnect behavior deterministic and observable.
@@ -163,7 +163,7 @@ flowchart TD
 ## Validation Checklist
 
 - [ ] A new developer can identify stable entrypoints within 5 minutes from package docs alone.
-- [ ] The default web runtime uses the intended bridge mode and exposes any fallback explicitly.
+- [x] The default web runtime uses the intended bridge mode and exposes any fallback explicitly.
 - [ ] `useQuery()` updates only the queries affected by a change and `reload()` demonstrably refreshes data.
 - [ ] Search, backlinks, and navigation use the same converged query/runtime boundary.
 - [ ] Database edits preserve correctness and undo semantics across web and Electron.

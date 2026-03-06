@@ -346,6 +346,11 @@ export function App(): JSX.Element {
             blobStore: storage.blobStore,
             hubUrl,
             hubOptions: authToken ? { autoAuth: false, authToken } : undefined,
+            runtime: {
+              mode: 'worker',
+              fallback: 'main-thread',
+              diagnostics: import.meta.env.DEV
+            },
             platform: 'web'
           }}
         >

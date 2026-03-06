@@ -4,6 +4,7 @@
  * Provides NodeStore and optional identity to the React tree.
  * All data access happens through useQuery/useMutate/useNode hooks.
  */
+import type { XNetRuntimeConfig, XNetRuntimeStatus, XNetRuntimeMode } from './runtime'
 import type { BlobStoreForSync } from './sync/blob-sync'
 import type { ConnectionManager } from './sync/connection-manager'
 import type { DID } from '@xnetjs/core'
@@ -12,7 +13,14 @@ import type { NodeChangeEvent, NodeStorageAdapter } from '@xnetjs/data'
 import type { Identity, PQKeyRegistry, HybridKeyBundle } from '@xnetjs/identity'
 import type { ReactNode } from 'react'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
-import { createMainThreadBridge, MainThreadBridge, type DataBridge } from '@xnetjs/data-bridge'
+import {
+  createDataBridge,
+  createMainThreadBridge,
+  MainThreadBridge,
+  WorkerBridge,
+  type DataBridge,
+  type SyncManagerLike
+} from '@xnetjs/data-bridge'
 import { createUCAN } from '@xnetjs/identity'
 import { PluginRegistry, type Platform } from '@xnetjs/plugins'
 import React, {
@@ -29,6 +37,7 @@ import { TelemetryContext, type TelemetryReporter } from './context/telemetry-co
 import { PluginRegistryContext } from './hooks/usePlugins'
 import { AutoBackup } from './hub/auto-backup'
 import { uploadBackup } from './hub/backup'
+import { createRuntimeStatus, resolveRuntimeConfig } from './runtime'
 import { createSyncManager, type SyncManager, type SyncStatus } from './sync/sync-manager'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
@@ -48,6 +57,186 @@ const HUB_CAPABILITIES = [
 
 const HUB_TOKEN_TTL_SECONDS = 60 * 60 * 24
 const HUB_INDEX_DEBOUNCE_MS = 2000
+
+type RuntimeResolution = {
+  bridge: DataBridge | null
+  createdInternally: boolean
+  status: XNetRuntimeStatus
+}
+
+type SyncManagedBridge = DataBridge & {
+  setSyncManager?: (syncManager: SyncManagerLike | null) => void
+}
+
+function getRuntimeErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+function inferBridgeMode(bridge: DataBridge): XNetRuntimeMode | null {
+  if (bridge instanceof WorkerBridge) return 'worker'
+  if (bridge instanceof MainThreadBridge) return 'main-thread'
+  return null
+}
+
+function reportRuntimeStatus(
+  telemetry: TelemetryReporter | undefined,
+  status: XNetRuntimeStatus
+): void {
+  telemetry?.reportUsage(`react.runtime.request.${status.requestedMode}`, 1)
+
+  if (status.activeMode) {
+    telemetry?.reportUsage(`react.runtime.active.${status.activeMode}`, 1)
+  }
+
+  if (status.usedFallback && status.fallbackMode) {
+    telemetry?.reportUsage(`react.runtime.fallback.${status.fallbackMode}`, 1)
+  }
+}
+
+function logRuntimeStatus(runtime: XNetRuntimeConfig, status: XNetRuntimeStatus): void {
+  if (!runtime.diagnostics) return
+
+  if (status.phase === 'error') {
+    console.error('[XNetProvider] Runtime initialization failed:', status)
+    return
+  }
+
+  if (status.usedFallback) {
+    console.warn('[XNetProvider] Runtime fallback activated:', status)
+    return
+  }
+
+  console.info('[XNetProvider] Runtime ready:', status)
+}
+
+function resolveRuntimeFailure(
+  runtime: XNetRuntimeConfig,
+  nodeStore: NodeStore,
+  reason: string
+): RuntimeResolution {
+  if (runtime.fallback === 'main-thread') {
+    return {
+      bridge: createMainThreadBridge(nodeStore),
+      createdInternally: true,
+      status: createRuntimeStatus(runtime, {
+        activeMode: 'main-thread',
+        fallbackMode: 'main-thread',
+        usedFallback: true,
+        phase: 'ready',
+        reason
+      })
+    }
+  }
+
+  return {
+    bridge: null,
+    createdInternally: false,
+    status: createRuntimeStatus(runtime, {
+      phase: 'error',
+      reason
+    })
+  }
+}
+
+async function resolveRuntimeBridge(input: {
+  runtime: XNetRuntimeConfig
+  nodeStore: NodeStore
+  authorDID: DID
+  signingKey: Uint8Array
+  signalingUrl?: string
+  dataBridge?: DataBridge
+  syncManager?: SyncManager
+}): Promise<RuntimeResolution> {
+  const { runtime, nodeStore, authorDID, signingKey, signalingUrl, dataBridge, syncManager } = input
+
+  if (runtime.mode === 'ipc') {
+    if (!syncManager) {
+      return resolveRuntimeFailure(
+        runtime,
+        nodeStore,
+        'IPC runtime requires config.syncManager to be provided explicitly.'
+      )
+    }
+
+    return {
+      bridge: dataBridge ?? createMainThreadBridge(nodeStore),
+      createdInternally: !dataBridge,
+      status: createRuntimeStatus(runtime, {
+        activeMode: 'ipc',
+        phase: 'ready'
+      })
+    }
+  }
+
+  if (dataBridge) {
+    const activeMode = inferBridgeMode(dataBridge) ?? runtime.mode
+    const usedFallback = activeMode !== runtime.mode
+
+    return {
+      bridge: dataBridge,
+      createdInternally: false,
+      status: createRuntimeStatus(runtime, {
+        activeMode,
+        fallbackMode: usedFallback ? activeMode : null,
+        usedFallback,
+        phase: 'ready',
+        reason: usedFallback
+          ? `Configured runtime "${runtime.mode}" resolved to "${activeMode}" through the supplied dataBridge.`
+          : null
+      })
+    }
+  }
+
+  if (runtime.mode === 'worker') {
+    try {
+      const bridge = await createDataBridge({
+        nodeStore,
+        config: {
+          dbName: runtime.worker?.dbName,
+          authorDID,
+          signingKey,
+          signalingUrl: runtime.worker?.signalingUrl ?? signalingUrl
+        },
+        workerUrl: runtime.worker?.url,
+        mode: 'worker'
+      })
+
+      return {
+        bridge,
+        createdInternally: true,
+        status: createRuntimeStatus(runtime, {
+          activeMode: 'worker',
+          phase: 'ready'
+        })
+      }
+    } catch (err) {
+      return resolveRuntimeFailure(
+        runtime,
+        nodeStore,
+        `Worker runtime unavailable: ${getRuntimeErrorMessage(err)}`
+      )
+    }
+  }
+
+  const bridge = await createDataBridge({
+    nodeStore,
+    config: {
+      authorDID,
+      signingKey,
+      signalingUrl
+    },
+    mode: 'main-thread'
+  })
+
+  return {
+    bridge,
+    createdInternally: true,
+    status: createRuntimeStatus(runtime, {
+      activeMode: 'main-thread',
+      phase: 'ready'
+    })
+  }
+}
 
 /**
  * XNet configuration
@@ -94,6 +283,10 @@ export interface XNetConfig {
   platform?: Platform
   /** Disable plugin system (default: false) */
   disablePlugins?: boolean
+  /**
+   * Explicit runtime selection for bridge and sync bootstrap.
+   */
+  runtime?: XNetRuntimeConfig
   /**
    * Custom DataBridge instance.
    *
@@ -201,16 +394,15 @@ export interface XNetContextValue {
   blobStore: BlobStoreForSync | null
   /** Plugin Registry (null if disabled or not yet initialized) */
   pluginRegistry: PluginRegistry | null
+  /** Runtime mode request, fallback behavior, and active runtime status */
+  runtimeStatus: XNetRuntimeStatus
 }
 
 /** @internal Exported for useNodeStore hook - not part of public API */
 export const XNetContext = createContext<XNetContextValue | null>(null)
 
 /**
- * DataBridge context for off-main-thread data access.
- *
- * Phase 0: Uses MainThreadBridge (direct NodeStore access)
- * Future phases will use WorkerBridge or IPCBridge
+ * DataBridge context for runtime-backed data access.
  *
  * @internal
  */
@@ -248,6 +440,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const [pluginRegistry, setPluginRegistry] = useState<PluginRegistry | null>(null)
   const nodeStorageRef = useRef<NodeStorageAdapter | null>(null)
 
+  const platform = config.platform ?? 'web'
   const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
   const hubUrl = config.hubUrl ?? null
   const hubOptions = config.hubOptions
@@ -258,6 +451,22 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   const enableSearchIndex = hubOptions?.enableSearchIndex ?? false
   const nodeSyncRoom = hubOptions?.nodeSyncRoom ?? authorDID ?? 'default'
   const encryptionKey = config.encryptionKey ?? null
+  const runtimeWorkerUrlKey = config.runtime?.worker?.url ? String(config.runtime.worker.url) : ''
+  const runtimeConfig = useMemo(
+    () => resolveRuntimeConfig(config.runtime, platform),
+    [
+      config.runtime?.mode,
+      config.runtime?.fallback,
+      config.runtime?.diagnostics,
+      config.runtime?.worker?.dbName,
+      config.runtime?.worker?.signalingUrl,
+      runtimeWorkerUrlKey,
+      platform
+    ]
+  )
+  const [runtimeStatus, setRuntimeStatus] = useState<XNetRuntimeStatus>(() =>
+    createRuntimeStatus(runtimeConfig)
+  )
 
   const getHubAuthToken = useCallback(async (): Promise<string> => {
     if (staticHubAuthToken) return staticHubAuthToken
@@ -279,12 +488,19 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     const nodeStorageAdapter = config.nodeStorage ?? new MemoryNodeStorageAdapter()
     nodeStorageRef.current = nodeStorageAdapter
     const signingKey = config.signingKey
+    setRuntimeStatus(createRuntimeStatus(runtimeConfig))
 
     // Skip NodeStore initialization if credentials not provided
     if (!authorDID || !signingKey) {
       console.warn(
         'XNetProvider: authorDID and signingKey not provided. NodeStore will not be initialized. ' +
           'Provide these via config.authorDID/config.signingKey or config.identity.'
+      )
+      setRuntimeStatus(
+        createRuntimeStatus(runtimeConfig, {
+          phase: 'error',
+          reason: 'authorDID and signingKey are required to initialize the runtime.'
+        })
       )
       return
     }
@@ -312,16 +528,48 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       // Check again after second await
       if (cancelled) return
 
-      // Create DataBridge wrapping NodeStore (Phase 0: MainThreadBridge)
-      // If a custom bridge is provided via config, use it instead
-      const bridge = config.dataBridge ?? createMainThreadBridge(ns)
+      const resolvedRuntime = await resolveRuntimeBridge({
+        runtime: runtimeConfig,
+        nodeStore: ns,
+        authorDID: authorDID as DID,
+        signingKey,
+        signalingUrl: hubUrl ?? config.signalingServers?.[0],
+        dataBridge: config.dataBridge,
+        syncManager: config.syncManager
+      })
+
+      if (cancelled) {
+        if (resolvedRuntime.createdInternally && resolvedRuntime.bridge) {
+          resolvedRuntime.bridge.destroy()
+        }
+        return
+      }
+
+      setRuntimeStatus(resolvedRuntime.status)
+      reportRuntimeStatus(config.telemetry, resolvedRuntime.status)
+      logRuntimeStatus(runtimeConfig, resolvedRuntime.status)
+
+      if (resolvedRuntime.status.phase !== 'ready' || !resolvedRuntime.bridge) {
+        config.telemetry?.reportCrash(
+          new Error(resolvedRuntime.status.reason ?? 'Runtime failed'),
+          {
+            codeNamespace: 'react.runtime.initialize',
+            requestedMode: resolvedRuntime.status.requestedMode
+          }
+        )
+        setNodeStore(null)
+        setNodeStoreReady(false)
+        setDataBridge(null)
+        bridgeRef = null
+        return
+      }
 
       setNodeStore(ns)
       setNodeStoreReady(true)
-      setDataBridge(bridge)
+      setDataBridge(resolvedRuntime.bridge)
 
       // Store bridge ref for cleanup (only if we created it)
-      bridgeRef = config.dataBridge ? null : bridge
+      bridgeRef = resolvedRuntime.createdInternally ? resolvedRuntime.bridge : null
 
       // Expose NodeStore to window for main process access (Electron Local API)
       if (typeof window !== 'undefined') {
@@ -352,7 +600,18 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
         nodeStorageAdapter.close()
       }
     }
-  }, [authorDID, config.nodeStorage, config.signingKey, config.dataBridge])
+  }, [
+    authorDID,
+    config.nodeStorage,
+    config.signingKey,
+    config.dataBridge,
+    config.signalingServers,
+    config.syncManager,
+    config.telemetry,
+    hubUrl,
+    runtimeConfig,
+    runtimeWorkerUrlKey
+  ])
 
   // Create SyncManager when NodeStore is ready
   useEffect(() => {
@@ -498,15 +757,16 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
   useEffect(() => {
     if (!dataBridge || !syncManager) return
 
-    // Only MainThreadBridge supports setSyncManager
-    if (dataBridge instanceof MainThreadBridge) {
-      dataBridge.setSyncManager(syncManager)
+    const bridge = dataBridge as SyncManagedBridge
+
+    if (typeof bridge.setSyncManager === 'function') {
+      bridge.setSyncManager(syncManager)
       log('Connected SyncManager to DataBridge')
     }
 
     return () => {
-      if (dataBridge instanceof MainThreadBridge) {
-        dataBridge.setSyncManager(null)
+      if (typeof bridge.setSyncManager === 'function') {
+        bridge.setSyncManager(null)
       }
     }
   }, [dataBridge, syncManager])
@@ -617,7 +877,6 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       return
     }
 
-    const platform = config.platform ?? 'web'
     log('Creating PluginRegistry with platform:', platform)
 
     const registry = new PluginRegistry(nodeStore, platform)
@@ -655,7 +914,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       getHubAuthToken: hubUrl ? getHubAuthToken : undefined,
       encryptionKey,
       blobStore: config.blobStore ?? null,
-      pluginRegistry
+      pluginRegistry,
+      runtimeStatus
     }),
     [
       nodeStore,
@@ -668,7 +928,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       getHubAuthToken,
       encryptionKey,
       config.blobStore,
-      pluginRegistry
+      pluginRegistry,
+      runtimeStatus
     ]
   )
 

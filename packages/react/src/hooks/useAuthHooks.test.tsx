@@ -84,7 +84,15 @@ function createWrapper(input?: {
     hubConnection: null,
     encryptionKey: null,
     blobStore: null,
-    pluginRegistry: null
+    pluginRegistry: null,
+    runtimeStatus: {
+      requestedMode: 'main-thread',
+      activeMode: 'main-thread',
+      fallbackMode: null,
+      usedFallback: false,
+      phase: 'ready',
+      reason: null
+    }
   }
 
   const Wrapper = ({ children }: { children: ReactNode }) => (

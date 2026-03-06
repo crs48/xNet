@@ -43,7 +43,11 @@ function App() {
       config={{
         nodeStorage: new MemoryNodeStorageAdapter(),
         authorDID: identity.did,
-        signingKey: privateKey
+        signingKey: privateKey,
+        runtime: {
+          mode: 'worker',
+          fallback: 'main-thread'
+        }
       }}
     >
       <TaskApp />
@@ -51,6 +55,8 @@ function App() {
   )
 }
 ```
+
+`XNetProvider` now exposes runtime policy explicitly. Use `useXNet().runtimeStatus` to inspect the requested mode, active mode, and any visible fallback when bootstrapping web, Electron, or test environments.
 
 ## Hook Categories
 

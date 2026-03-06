@@ -179,17 +179,12 @@ export interface DataBridge {
   /**
    * Acquire a Y.Doc for editing. Returns the doc with current state.
    * The doc receives updates from the data thread via the bridge.
-   *
-   * Note: Phase 0 (MainThreadBridge) does not implement this method.
-   * It will be implemented in Phase 3 when Y.Doc split architecture is added.
    */
   acquireDoc?(nodeId: string): Promise<AcquiredDoc>
 
   /**
    * Release a Y.Doc when no longer editing.
    * The data thread continues syncing in the background.
-   *
-   * Note: Phase 0 (MainThreadBridge) does not implement this method.
    */
   releaseDoc?(nodeId: string): void
 

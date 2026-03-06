@@ -1,9 +1,12 @@
+import type { SyncManager } from './sync/sync-manager'
 import type { DID } from '@xnetjs/core'
 import type { Identity } from '@xnetjs/identity'
 import { renderHook, waitFor } from '@testing-library/react'
 import { MemoryNodeStorageAdapter } from '@xnetjs/data'
 import React, { type ReactNode } from 'react'
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { Awareness } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 import { XNetProvider, useXNet, type XNetConfig } from './context'
 
 const TEST_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
@@ -12,6 +15,27 @@ const TEST_KEY = new Uint8Array(32).fill(1)
 function createWrapper(config: XNetConfig) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return React.createElement(XNetProvider, { config, children })
+  }
+}
+
+function createSyncManagerStub(): SyncManager {
+  return {
+    start: vi.fn(async () => undefined),
+    stop: vi.fn(async () => undefined),
+    track: vi.fn(),
+    untrack: vi.fn(),
+    acquire: vi.fn(async () => new Y.Doc()),
+    release: vi.fn(),
+    getAwareness: vi.fn(() => new Awareness(new Y.Doc())),
+    onAwarenessSnapshot: vi.fn(() => () => {}),
+    requestBlobs: vi.fn(async () => undefined),
+    announceBlobs: vi.fn(),
+    status: 'connected',
+    poolSize: 0,
+    trackedCount: 0,
+    queueSize: 0,
+    pendingBlobCount: 0,
+    on: vi.fn(() => () => {})
   }
 }
 
@@ -41,6 +65,9 @@ describe('XNetContext', () => {
 
     expect(result.current.nodeStore).not.toBeNull()
     expect(result.current.identity).toBeUndefined()
+    expect(result.current.runtimeStatus.requestedMode).toBe('worker')
+    expect(result.current.runtimeStatus.activeMode).toBe('main-thread')
+    expect(result.current.runtimeStatus.usedFallback).toBe(true)
   })
 
   it('should provide identity when configured', async () => {
@@ -60,5 +87,75 @@ describe('XNetContext', () => {
     })
 
     expect(result.current.identity).toBe(mockIdentity)
+  })
+
+  it('should expose worker fallback instead of silently drifting', async () => {
+    const { result } = renderHook(() => useXNet(), {
+      wrapper: createWrapper({
+        nodeStorage: new MemoryNodeStorageAdapter(),
+        authorDID: TEST_DID,
+        signingKey: TEST_KEY,
+        runtime: {
+          mode: 'worker',
+          fallback: 'main-thread'
+        }
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.runtimeStatus.phase).toBe('ready')
+      expect(result.current.runtimeStatus.usedFallback).toBe(true)
+    })
+
+    expect(result.current.runtimeStatus.requestedMode).toBe('worker')
+    expect(result.current.runtimeStatus.activeMode).toBe('main-thread')
+    expect(result.current.runtimeStatus.reason).toContain('Worker runtime unavailable')
+  })
+
+  it('should fail closed when fallback is disabled', async () => {
+    const { result } = renderHook(() => useXNet(), {
+      wrapper: createWrapper({
+        nodeStorage: new MemoryNodeStorageAdapter(),
+        authorDID: TEST_DID,
+        signingKey: TEST_KEY,
+        runtime: {
+          mode: 'worker',
+          fallback: 'error'
+        }
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.runtimeStatus.phase).toBe('error')
+    })
+
+    expect(result.current.nodeStore).toBeNull()
+    expect(result.current.nodeStoreReady).toBe(false)
+    expect(result.current.runtimeStatus.activeMode).toBeNull()
+    expect(result.current.runtimeStatus.reason).toContain('Worker runtime unavailable')
+  })
+
+  it('should respect explicit ipc runtime when an external sync manager is provided', async () => {
+    const syncManager = createSyncManagerStub()
+
+    const { result } = renderHook(() => useXNet(), {
+      wrapper: createWrapper({
+        nodeStorage: new MemoryNodeStorageAdapter(),
+        authorDID: TEST_DID,
+        signingKey: TEST_KEY,
+        runtime: {
+          mode: 'ipc',
+          fallback: 'error'
+        },
+        syncManager
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.runtimeStatus.phase).toBe('ready')
+      expect(result.current.runtimeStatus.activeMode).toBe('ipc')
+    })
+
+    expect(result.current.runtimeStatus.usedFallback).toBe(false)
   })
 })
