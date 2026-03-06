@@ -30,7 +30,8 @@ import type {
   ViewType,
   FilterGroup,
   SortConfig,
-  DatabaseDocumentModel
+  DatabaseDocumentModel,
+  LegacyDatabaseMigrationStatus
 } from '@xnetjs/data'
 import {
   getColumns,
@@ -49,6 +50,8 @@ import {
   initializeDatabaseDoc,
   isDatabaseDocInitialized,
   getDatabaseDocumentModel,
+  getLegacyDatabaseMigrationStatus,
+  migrateLegacyDatabaseDocument,
   prefersLegacyDatabaseModel,
   getLegacyColumns,
   getLegacyColumn,
@@ -81,6 +84,12 @@ export interface UseDatabaseDocResult {
   /** Which document storage model currently backs this database */
   storageMode: DatabaseDocumentModel
 
+  /** Current legacy migration status, if the doc still carries legacy state */
+  migrationStatus: LegacyDatabaseMigrationStatus | null
+
+  /** Whether this doc can still be explicitly materialized into the canonical model */
+  canMigrateLegacyModel: boolean
+
   /** Whether the doc is loading */
   loading: boolean
 
@@ -112,6 +121,9 @@ export interface UseDatabaseDocResult {
   duplicateView: (viewId: string, newName?: string) => string | null
   /** Get a single view by ID */
   getView: (viewId: string) => ViewConfig | null
+
+  /** Materialize legacy rows/columns/views into the canonical model */
+  migrateLegacyModel: () => Promise<LegacyDatabaseMigrationStatus | null>
 }
 
 // ─── Hook Implementation ─────────────────────────────────────────────────────
@@ -129,10 +141,13 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
   const [columns, setColumns] = useState<ColumnDefinition[]>([])
   const [views, setViews] = useState<ViewConfig[]>([])
   const [storageMode, setStorageMode] = useState<DatabaseDocumentModel>('empty')
+  const [migrationStatus, setMigrationStatus] = useState<LegacyDatabaseMigrationStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   // Keep doc ref for callbacks
+  const storeRef = useRef(store)
+  storeRef.current = store
   const docRef = useRef<Y.Doc | null>(null)
   docRef.current = doc
   const storageModeRef = useRef<DatabaseDocumentModel>('empty')
@@ -145,6 +160,7 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
     setStorageMode(model)
     setColumns(useLegacy ? getLegacyColumns(currentDoc) : getColumns(currentDoc))
     setViews(useLegacy ? getLegacyViews(currentDoc) : getViews(currentDoc))
+    setMigrationStatus(getLegacyDatabaseMigrationStatus(currentDoc))
   }, [])
 
   // Load the database's Y.Doc
@@ -154,6 +170,7 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
       setColumns([])
       setViews([])
       setStorageMode('empty')
+      setMigrationStatus(null)
       setLoading(false)
       return
     }
@@ -394,11 +411,29 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
     return getView(docRef.current, viewId)
   }, [])
 
+  const handleMigrateLegacyModel =
+    useCallback(async (): Promise<LegacyDatabaseMigrationStatus | null> => {
+      if (!storeRef.current || !docRef.current) return null
+
+      const status = await migrateLegacyDatabaseDocument(
+        storeRef.current,
+        databaseId,
+        docRef.current
+      )
+      refreshStateFromDoc(docRef.current)
+      setMigrationStatus(status)
+      return status
+    }, [databaseId, refreshStateFromDoc])
+
   return {
     columns,
     views,
     doc,
     storageMode,
+    migrationStatus,
+    canMigrateLegacyModel:
+      (storageMode === 'legacy' || storageMode === 'mixed') &&
+      migrationStatus?.state !== 'completed',
     loading,
     error,
 
@@ -415,7 +450,8 @@ export function useDatabaseDoc(databaseId: string): UseDatabaseDocResult {
     updateView: handleUpdateView,
     deleteView: handleDeleteView,
     duplicateView: handleDuplicateView,
-    getView: handleGetView
+    getView: handleGetView,
+    migrateLegacyModel: handleMigrateLegacyModel
   }
 }
 
@@ -427,5 +463,6 @@ export type {
   ViewConfig,
   ViewType,
   FilterGroup,
-  SortConfig
+  SortConfig,
+  LegacyDatabaseMigrationStatus
 }

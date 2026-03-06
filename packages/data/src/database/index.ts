@@ -125,6 +125,13 @@ export {
   type LegacyDatabaseRow
 } from './legacy-model'
 
+// Explicit legacy migration
+export {
+  getLegacyDatabaseMigrationStatus,
+  migrateLegacyDatabaseDocument,
+  type LegacyDatabaseMigrationStatus
+} from './legacy-migration'
+
 // Column operations
 export {
   getColumns,

@@ -465,6 +465,11 @@ export {
   type DocFetcher,
   type CreateDatabaseSchemaResolverOptions,
 
+  // Explicit legacy migration
+  getLegacyDatabaseMigrationStatus,
+  migrateLegacyDatabaseDocument,
+  type LegacyDatabaseMigrationStatus,
+
   // Clone schema utilities
   cloneSchema,
   cloneColumns,

@@ -146,14 +146,16 @@ Observed facts:
 
 - `@xnetjs/react` exposes `useDatabase`, `useDatabaseDoc`, `useDatabaseRow`, and cell-level hooks in [`packages/react/src/index.ts`](../../packages/react/src/index.ts).
 - the web database view now composes over those hooks, with legacy compatibility centralized in [`packages/data/src/database/legacy-model.ts`](../../packages/data/src/database/legacy-model.ts) and consumed from [`apps/web/src/components/DatabaseView.tsx`](../../apps/web/src/components/DatabaseView.tsx).
+- explicit legacy-to-canonical materialization now exists in [`packages/data/src/database/legacy-migration.ts`](../../packages/data/src/database/legacy-migration.ts), and [`useDatabaseDoc()`](../../packages/react/src/hooks/useDatabaseDoc.ts) now surfaces migration status plus a deliberate migration action.
 - the active Electron database view still stores rows/columns in a single Y.Map and performs whole-array writes in [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../apps/electron/src/renderer/components/DatabaseView.tsx).
 
 Inference:
 
 - xNet is now partway through the convergence:
   - the web surface is on the hook-driven path,
+  - the explicit one-way migration/materialization path now exists,
   - Electron still uses document-centric whole-array Y.Doc writes,
-  - and the explicit one-way migration/materialization path still needs to be built.
+  - and undo plus cross-device proving still need to catch up to the converged model.
 
 That is a tax on API clarity, correctness, undo behavior, and future performance.
 
