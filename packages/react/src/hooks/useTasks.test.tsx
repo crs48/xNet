@@ -267,4 +267,57 @@ describe('useTasks', () => {
       Date.now = originalNow
     }
   })
+
+  it('computes hierarchy depth independently of task sort order', async () => {
+    const wrapper = createWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        sync: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        tasks: useTasks({ includeCompleted: true })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    await act(async () => {
+      result.current.sync.handleTasksChange([
+        {
+          taskId: 'task-parent',
+          blockId: 'block-parent',
+          title: 'Parent',
+          completed: false,
+          parentTaskId: null,
+          sortKey: '0001',
+          assignees: [did],
+          dueDate: '2026-03-20',
+          references: []
+        },
+        {
+          taskId: 'task-child',
+          blockId: 'block-child',
+          title: 'Child',
+          completed: false,
+          parentTaskId: 'task-parent',
+          sortKey: '0000',
+          assignees: [did],
+          dueDate: '2026-03-05',
+          references: []
+        }
+      ])
+    })
+
+    await waitFor(() => {
+      expect(result.current.tasks.data).toHaveLength(2)
+    })
+
+    expect(result.current.tasks.tree).toHaveLength(1)
+    expect(result.current.tasks.tree[0]?.task.id).toBe('task-parent')
+    expect(result.current.tasks.tree[0]?.depth).toBe(0)
+    expect(result.current.tasks.tree[0]?.children[0]?.task.id).toBe('task-child')
+    expect(result.current.tasks.tree[0]?.children[0]?.depth).toBe(1)
+  })
 })

@@ -50,7 +50,13 @@ describe('TaskViewEmbedExtension', () => {
   })
 
   it('updates the current task view embed filters', () => {
-    editor.commands.setTaskViewEmbed()
+    editor.commands.setTaskViewEmbed({
+      viewConfig: {
+        scope: 'all',
+        assignee: 'me',
+        dueDate: 'overdue'
+      }
+    })
 
     let embedPosition = -1
     editor.state.doc.descendants((node, pos) => {
@@ -72,8 +78,8 @@ describe('TaskViewEmbedExtension', () => {
     const embedNode = json.content?.find((node) => node.type === 'taskViewEmbed')
 
     expect(embedNode?.attrs?.viewConfig).toMatchObject({
-      scope: 'current-page',
-      assignee: 'any',
+      scope: 'all',
+      assignee: 'me',
       dueDate: 'today',
       status: 'all',
       showHierarchy: true

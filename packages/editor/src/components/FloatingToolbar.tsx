@@ -117,7 +117,11 @@ function pickDate(initialValue: string | null): Promise<string | null> {
     input.focus()
 
     if (typeof input.showPicker === 'function') {
-      input.showPicker()
+      try {
+        input.showPicker()
+      } catch {
+        input.click()
+      }
     } else {
       input.click()
     }

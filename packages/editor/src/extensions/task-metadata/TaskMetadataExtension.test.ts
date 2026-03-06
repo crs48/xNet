@@ -89,4 +89,26 @@ describe('task metadata extensions', () => {
 
     expect(dueDates).toEqual(['2026-03-21'])
   })
+
+  it('does not insert due dates outside task items', () => {
+    const plainEditor = new Editor({
+      element: document.createElement('div'),
+      extensions: [StarterKit, TaskDueDateExtension],
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'Plain paragraph' }]
+          }
+        ]
+      }
+    })
+
+    plainEditor.commands.focus('end')
+
+    expect(plainEditor.commands.setTaskDueDate('2026-03-20')).toBe(false)
+
+    plainEditor.destroy()
+  })
 })

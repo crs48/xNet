@@ -4,6 +4,7 @@
  * Uses the shared @xnetjs/editor package for rich text editing.
  * Supports comment extensions for inline commenting.
  */
+import type { JSX } from 'react'
 import type * as Y from 'yjs'
 import {
   RichTextEditor,
@@ -50,7 +51,7 @@ export function Editor({
   onPageTasksChange,
   pageId,
   onCreateComment
-}: Props) {
+}: Props): JSX.Element {
   const onImageUpload = useImageUpload()
   const onFileUpload = useFileUpload()
   const onFileDownload = useFileDownload()

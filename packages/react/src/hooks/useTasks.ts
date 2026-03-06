@@ -9,7 +9,7 @@ import { useQuery, type FlatNode } from './useQuery'
 type TaskNode = FlatNode<(typeof TaskSchema)['_properties']>
 type TaskStatus = NonNullable<InferCreateProps<(typeof TaskSchema)['_properties']>['status']>
 
-export interface UseTasksOptions {
+export type UseTasksOptions = {
   pageId?: string | null
   assigneeDid?: string | null
   includeCompleted?: boolean
@@ -18,13 +18,13 @@ export interface UseTasksOptions {
   dueDateFilter?: 'any' | 'overdue' | 'today' | 'next-7-days' | 'none'
 }
 
-export interface TaskTreeItem {
+export type TaskTreeItem = {
   task: TaskNode
   depth: number
   children: TaskTreeItem[]
 }
 
-export interface UseTasksResult {
+export type UseTasksResult = {
   data: TaskNode[]
   tree: TaskTreeItem[]
   loading: boolean
@@ -135,8 +135,19 @@ function buildTaskTree(tasks: TaskNode[]): TaskTreeItem[] {
       continue
     }
 
-    current.depth = parent.depth + 1
     parent.children.push(current)
+  }
+
+  const setDepth = (node: TaskTreeItem, depth: number): void => {
+    node.depth = depth
+
+    for (const child of node.children) {
+      setDepth(child, depth + 1)
+    }
+  }
+
+  for (const root of roots) {
+    setDepth(root, 0)
   }
 
   return roots

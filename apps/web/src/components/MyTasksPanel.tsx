@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import { useIdentity, useQuery, useTasks } from '@xnetjs/react'
 import { Calendar, CheckSquare2, ChevronDown, ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type JSX } from 'react'
 
 function formatDueDate(timestamp: number | undefined): string | null {
   if (typeof timestamp !== 'number') return null
@@ -14,15 +14,21 @@ function formatDueDate(timestamp: number | undefined): string | null {
 }
 
 function isOverdue(timestamp: number | undefined, completed: boolean): boolean {
-  return typeof timestamp === 'number' && !completed && timestamp < Date.now()
+  if (typeof timestamp !== 'number' || completed) return false
+
+  const dueDate = new Date(timestamp)
+  const dueDay = Date.UTC(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate())
+  const now = new Date()
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  return dueDay < today
 }
 
-export function MyTasksPanel() {
+export function MyTasksPanel(): JSX.Element | null {
   const { identity } = useIdentity()
   const did = identity?.did ?? null
   const [expanded, setExpanded] = useState(true)
   const { data: tasks, loading } = useTasks({ assigneeDid: did, includeCompleted: false })
-  const { data: pages } = useQuery(PageSchema, { limit: 200 })
+  const { data: pages } = useQuery(PageSchema)
 
   const pageTitles = useMemo(() => {
     return new Map(pages.map((page) => [page.id, page.title || 'Untitled']))

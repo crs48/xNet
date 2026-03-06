@@ -1,7 +1,10 @@
+/**
+ * @xnetjs/editor - Task mention menu component
+ */
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from 'react'
 import { cn } from '../utils'
 
-export interface TaskMentionSuggestion {
+export type TaskMentionSuggestion = {
   id: string
   label: string
   subtitle?: string
@@ -9,12 +12,12 @@ export interface TaskMentionSuggestion {
   avatarUrl?: string
 }
 
-interface TaskMentionMenuProps {
+type TaskMentionMenuProps = {
   items: TaskMentionSuggestion[]
   command: (item: TaskMentionSuggestion) => void
 }
 
-export interface TaskMentionMenuRef {
+export type TaskMentionMenuRef = {
   onKeyDown: (event: KeyboardEvent) => boolean
 }
 
@@ -38,6 +41,8 @@ export const TaskMentionMenu = forwardRef<TaskMentionMenuRef, TaskMentionMenuPro
 
     useImperativeHandle(ref, () => ({
       onKeyDown: (event: KeyboardEvent) => {
+        if (items.length === 0) return false
+
         if (event.key === 'ArrowUp') {
           event.preventDefault()
           setSelectedIndex((prev) => (prev - 1 + items.length) % items.length)
@@ -52,7 +57,9 @@ export const TaskMentionMenu = forwardRef<TaskMentionMenuRef, TaskMentionMenuPro
 
         if (event.key === 'Enter') {
           event.preventDefault()
-          selectItem(selectedIndex)
+          if (items.length > 0) {
+            selectItem(selectedIndex)
+          }
           return true
         }
 
