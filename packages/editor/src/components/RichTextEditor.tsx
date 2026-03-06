@@ -29,6 +29,7 @@ import {
   CalloutExtension,
   ToggleExtension,
   FileExtension,
+  SmartReferenceExtension,
   EmbedExtension,
   DatabaseEmbedExtension
 } from '../extensions'
@@ -408,6 +409,8 @@ export function RichTextEditor({
       onUpload: onFileUpload,
       onDownload: onFileDownload
     }),
+    // Compact inline references for URLs pasted inside tasks
+    SmartReferenceExtension,
     // Media embeds (YouTube, Spotify, Vimeo, etc.)
     EmbedExtension,
     // Database embeds (inline table/board/list views)

@@ -439,6 +439,13 @@ export { EmbedExtension } from './extensions/embed'
 export type { EmbedOptions } from './extensions/embed'
 export { EMBED_PROVIDERS, detectProvider, parseEmbedUrl } from './extensions/embed'
 export type { EmbedProvider } from './extensions/embed'
+export { SmartReferenceExtension } from './extensions/smart-reference'
+export type { SmartReferenceOptions } from './extensions/smart-reference'
+export {
+  parseSmartReferenceUrl,
+  type SmartReference,
+  type SmartReferenceKind
+} from './extensions/smart-reference'
 
 // Database embed extension
 export { DatabaseEmbedExtension } from './extensions/database-embed'
