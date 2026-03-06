@@ -270,9 +270,15 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             minZoom: 0.1,
             maxZoom: 4
           }}
-          renderNode={(node) =>
-            renderNodeCard(node, node.linkedNodeId ? documentMap.get(node.linkedNodeId) : undefined)
-          }
+          renderNode={(node) => {
+            const linkedDocument = node.linkedNodeId
+              ? documentMap.get(node.linkedNodeId)
+              : undefined
+            if (linkedDocument || node.type === 'card') {
+              return renderNodeCard(node, linkedDocument)
+            }
+            return undefined
+          }}
           onNodeDoubleClick={(id) => {
             const nodesMap = doc.getMap<CanvasNode>('nodes')
             const targetNode = nodesMap.get(id)
