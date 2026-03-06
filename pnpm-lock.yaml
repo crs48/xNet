@@ -973,6 +973,9 @@ importers:
       minisearch:
         specifier: ^7.1.2
         version: 7.2.0
+      yjs:
+        specifier: ^13.6.24
+        version: 13.6.29
     devDependencies:
       tsup:
         specifier: ^8.0.0

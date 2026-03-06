@@ -12,18 +12,20 @@ Replace coarse schema-wide query reloads with targeted live-query invalidation, 
 
 ## Progress Update
 
-As of **March 6, 2026**, the core runtime work for this step has landed:
+As of **March 6, 2026**, this step is functionally complete:
 
 - `@xnetjs/data-bridge` now has a shared `QueryDescriptor` normalization and serialization layer.
 - `MainThreadBridge`, `NativeBridge`, and `WorkerBridge` all expose a real `reloadQuery()` path.
 - schema-wide invalidation has been replaced with descriptor matching plus bounded reload fallback for paginated windows.
 - `useQuery()` now keys subscriptions off the canonical descriptor and delegates reloads to the active bridge.
+- `GlobalSearch`, `Sidebar`, and `BacklinksPanel` now consume the converged runtime path instead of fixed-size local filtering.
+- the query package now provides shared page-document search/backlink extraction, and worker doc retention has explicit coverage.
 
-The remaining open work in this step is the proving-surface follow-through:
+The remaining follow-through after this step is no longer correctness work inside Step 03. It moves into:
 
-- migrate search and backlinks onto the converged runtime,
-- add higher-level integration coverage beyond hook/bridge unit tests,
-- and record query fanout benchmarks.
+- benchmark and release-gate recording in Step 08,
+- local query-engine product decisions in later API/docs work,
+- and broader background-sync hardening in Step 05.
 
 ## Scope and Dependencies
 
@@ -145,19 +147,19 @@ Pagination-sensitive queries may still require targeted reload, but only for the
 
 Search, sidebar navigation, and backlinks should stop doing bespoke local filtering over fixed lists once the live-query runtime exists.
 
-`GlobalSearch` is the immediate proving case because it currently:
+That proving work now routes through:
 
-- fetches a limited page list,
-- scores only titles,
-- and lives outside the stronger query/search runtime.
+- `useQuery(PageSchema)` for the live page set,
+- shared page-document extraction in `@xnetjs/query`,
+- and live doc acquisition via the sync/runtime layer for search and backlink updates.
 
 ## Testing and Validation Approach
 
 - Add unit tests for descriptor normalization and key stability.
 - Add query-matcher tests that cover create, update, delete, restore, and filter transitions.
 - Add `useQuery()` tests for `reload()` semantics and subscription churn.
-- Add integration tests covering search and backlinks under ongoing edits.
-- Record query fanout metrics before and after the change.
+- Add search/backlink extraction tests and doc-retention coverage for shared runtime consumers.
+- Record query fanout metrics before and after the change during rollout gates.
 
 ## Risks, Edge Cases, and Migration Concerns
 
@@ -172,5 +174,5 @@ Search, sidebar navigation, and backlinks should stop doing bespoke local filter
 - [x] Replace schema-wide invalidation with descriptor matching.
 - [x] Implement delta updates where ordering and pagination allow it.
 - [x] Keep bounded reload as the fallback for complex cases.
-- [ ] Route search, backlinks, and navigation onto the converged query/runtime path.
-- [ ] Add unit and integration coverage for live-query correctness and fanout.
+- [x] Route search, backlinks, and navigation onto the converged query/runtime path.
+- [x] Add unit and integration coverage for live-query correctness and fanout.

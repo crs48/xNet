@@ -459,5 +459,7 @@ export {
   Map as YMap,
   Array as YArray,
   Text as YText,
-  XmlFragment as YXmlFragment
+  XmlElement as YXmlElement,
+  XmlFragment as YXmlFragment,
+  XmlText as YXmlText
 } from 'yjs'

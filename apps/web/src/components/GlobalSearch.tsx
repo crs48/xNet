@@ -1,139 +1,74 @@
 /**
- * Global search component
+ * Global search component.
  *
  * Provides a Cmd+K searchable dialog for finding documents.
  */
+import type { SearchResult } from '@xnetjs/sdk'
 import { useNavigate } from '@tanstack/react-router'
-import { PageSchema } from '@xnetjs/data'
-import { useQuery } from '@xnetjs/react'
-import { useState, useCallback, useRef, useEffect } from 'react'
-import { useDebouncedCallback } from 'use-debounce'
-
-interface SearchResult {
-  id: string
-  title: string
-  snippet: string
-  score: number
-}
+import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
+import { usePageSearchSurface } from '../hooks/usePageSearchSurface'
 
 export function GlobalSearch() {
   const [isOpen, setIsOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
-  const [loading, setLoading] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
-  const { data: allPages, loading: pagesLoading } = useQuery(PageSchema, { limit: 200 })
+  const deferredQuery = useDeferredValue(query)
+  const { indexedPages, loading, search, totalPages } = usePageSearchSurface({ enabled: isOpen })
+  const results = useMemo<SearchResult[]>(() => {
+    if (!deferredQuery.trim()) return []
+    return search(deferredQuery, 10)
+  }, [deferredQuery, search])
 
-  // Keyboard shortcut to open search (Cmd+K or Ctrl+K)
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
+    const handler = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault()
         setIsOpen(true)
-        // Focus input after modal opens
         setTimeout(() => inputRef.current?.focus(), 10)
       }
-      if (e.key === 'Escape' && isOpen) {
-        e.preventDefault()
+
+      if (event.key === 'Escape' && isOpen) {
+        event.preventDefault()
         setIsOpen(false)
         setQuery('')
-        setResults([])
       }
     }
+
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [isOpen])
 
-  // Reset selected index when results change
   useEffect(() => {
     setSelectedIndex(0)
   }, [results])
 
-  // Debounced search function
-  const performSearch = useDebouncedCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim() || pagesLoading) {
-      setResults([])
-      return
-    }
-
-    setLoading(true)
-    try {
-      const queryLower = searchQuery.toLowerCase()
-      const searchResults: SearchResult[] = []
-
-      for (const page of allPages) {
-        const title = page.title || 'Untitled'
-        const titleLower = title.toLowerCase()
-
-        // Calculate relevance score (title-based for now)
-        let score = 0
-        if (titleLower.includes(queryLower)) {
-          score += 10
-          if (titleLower === queryLower) score += 5
-        }
-
-        if (score > 0) {
-          searchResults.push({
-            id: page.id,
-            title,
-            snippet: title,
-            score
-          })
-        }
-      }
-
-      // Sort by relevance score
-      searchResults.sort((a, b) => b.score - a.score)
-      setResults(searchResults.slice(0, 10))
-    } catch (error) {
-      console.error('Search error:', error)
-      setResults([])
-    } finally {
-      setLoading(false)
-    }
-  }, 200)
-
-  // Handle input change
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value
-      setQuery(value)
-      performSearch(value)
-    },
-    [performSearch]
-  )
-
-  // Handle result selection
   const handleSelect = (result: SearchResult) => {
     setIsOpen(false)
     setQuery('')
-    setResults([])
     navigate({ to: '/doc/$docId', params: { docId: result.id } })
   }
 
-  // Handle keyboard navigation
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setSelectedIndex((i) => Math.min(i + 1, results.length - 1))
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setSelectedIndex((i) => Math.max(i - 1, 0))
-    } else if (e.key === 'Enter' && results[selectedIndex]) {
-      e.preventDefault()
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setSelectedIndex((index) => Math.min(index + 1, results.length - 1))
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setSelectedIndex((index) => Math.max(index - 1, 0))
+    } else if (event.key === 'Enter' && results[selectedIndex]) {
+      event.preventDefault()
       handleSelect(results[selectedIndex])
     }
   }
 
-  // Handle creating a new document from search
   const handleCreate = () => {
     if (!query.trim()) return
+
     const newId = `default/${query.toLowerCase().replace(/\s+/g, '-')}`
     setIsOpen(false)
     setQuery('')
-    setResults([])
     navigate({ to: '/doc/$docId', params: { docId: newId } })
   }
 
@@ -162,14 +97,19 @@ export function GlobalSearch() {
     >
       <div
         className="w-full max-w-xl bg-background rounded-xl shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
       >
         <input
           ref={inputRef}
           type="text"
           placeholder="Search documents..."
           value={query}
-          onChange={handleInputChange}
+          onChange={(event) => {
+            const value = event.target.value
+            startTransition(() => {
+              setQuery(value)
+            })
+          }}
           onKeyDown={handleKeyDown}
           className="w-full px-5 py-4 border-none text-lg outline-none bg-transparent text-foreground placeholder:text-muted-foreground"
           autoComplete="off"
@@ -177,7 +117,7 @@ export function GlobalSearch() {
 
         {loading && (
           <div className="px-5 py-4 text-sm text-muted-foreground border-t border-border">
-            Searching...
+            Indexing pages... {indexedPages}/{totalPages}
           </div>
         )}
 
@@ -193,7 +133,9 @@ export function GlobalSearch() {
                 onMouseEnter={() => setSelectedIndex(index)}
               >
                 <strong className="block font-medium mb-1">{result.title}</strong>
-                <p className="text-sm text-muted-foreground m-0 truncate">{result.snippet}</p>
+                <p className="text-sm text-muted-foreground m-0 truncate">
+                  {result.snippet || result.title}
+                </p>
               </li>
             ))}
           </ul>
