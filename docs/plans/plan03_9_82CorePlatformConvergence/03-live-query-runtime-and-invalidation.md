@@ -10,6 +10,21 @@
 
 Replace coarse schema-wide query reloads with targeted live-query invalidation, canonical query descriptors, and delta-aware subscriptions that scale to search, navigation, and background updates.
 
+## Progress Update
+
+As of **March 6, 2026**, the core runtime work for this step has landed:
+
+- `@xnetjs/data-bridge` now has a shared `QueryDescriptor` normalization and serialization layer.
+- `MainThreadBridge`, `NativeBridge`, and `WorkerBridge` all expose a real `reloadQuery()` path.
+- schema-wide invalidation has been replaced with descriptor matching plus bounded reload fallback for paginated windows.
+- `useQuery()` now keys subscriptions off the canonical descriptor and delegates reloads to the active bridge.
+
+The remaining open work in this step is the proving-surface follow-through:
+
+- migrate search and backlinks onto the converged runtime,
+- add higher-level integration coverage beyond hook/bridge unit tests,
+- and record query fanout benchmarks.
+
 ## Scope and Dependencies
 
 The relevant current state is visible in three places:
@@ -152,10 +167,10 @@ Search, sidebar navigation, and backlinks should stop doing bespoke local filter
 
 ## Step Checklist
 
-- [ ] Introduce a canonical query descriptor and serializer.
-- [ ] Make `useQuery().reload()` trigger an actual reload path.
-- [ ] Replace schema-wide invalidation with descriptor matching.
-- [ ] Implement delta updates where ordering and pagination allow it.
-- [ ] Keep bounded reload as the fallback for complex cases.
+- [x] Introduce a canonical query descriptor and serializer.
+- [x] Make `useQuery().reload()` trigger an actual reload path.
+- [x] Replace schema-wide invalidation with descriptor matching.
+- [x] Implement delta updates where ordering and pagination allow it.
+- [x] Keep bounded reload as the fallback for complex cases.
 - [ ] Route search, backlinks, and navigation onto the converged query/runtime path.
 - [ ] Add unit and integration coverage for live-query correctness and fanout.

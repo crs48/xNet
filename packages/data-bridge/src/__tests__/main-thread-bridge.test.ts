@@ -138,6 +138,27 @@ describe('MainThreadBridge', () => {
       expect(snapshot![0].properties.title).toBe('Task 2')
     })
 
+    it('should avoid notifying filtered queries for unrelated changes', async () => {
+      const subscription = bridge.query(TestTaskSchema, {
+        where: { done: true }
+      })
+      const callback = vi.fn()
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).not.toBeNull()
+      })
+
+      const unsubscribe = subscription.subscribe(callback)
+
+      await bridge.create(TestTaskSchema, { title: 'Open task', done: false })
+      await new Promise((resolve) => setTimeout(resolve, 25))
+
+      expect(subscription.getSnapshot()).toEqual([])
+      expect(callback).not.toHaveBeenCalled()
+
+      unsubscribe()
+    })
+
     it('should sort by orderBy', async () => {
       // Create nodes
       await bridge.create(TestTaskSchema, { title: 'B Task' })
@@ -160,6 +181,33 @@ describe('MainThreadBridge', () => {
       expect(snapshot![0].properties.title).toBe('A Task')
       expect(snapshot![1].properties.title).toBe('B Task')
       expect(snapshot![2].properties.title).toBe('C Task')
+    })
+
+    it('should reload bounded query windows when ordering changes membership', async () => {
+      const first = await bridge.create(TestTaskSchema, { title: 'A Task' })
+      await bridge.create(TestTaskSchema, { title: 'B Task' })
+
+      const subscription = bridge.query(TestTaskSchema, {
+        orderBy: { title: 'asc' },
+        limit: 1
+      })
+      const callback = vi.fn()
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('A Task')
+      })
+
+      const unsubscribe = subscription.subscribe(callback)
+
+      await bridge.update(first.id, { title: 'Z Task' })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('B Task')
+      })
+
+      expect(callback).toHaveBeenCalled()
+
+      unsubscribe()
     })
 
     it('should unsubscribe correctly', async () => {

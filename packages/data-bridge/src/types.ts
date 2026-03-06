@@ -51,6 +51,27 @@ export interface QueryOptions<
 }
 
 /**
+ * Canonical descriptor for a live query.
+ * Shared across hooks and bridge implementations.
+ */
+export interface QueryDescriptor {
+  /** Schema IRI for the query */
+  schemaId: import('@xnetjs/data').SchemaIRI
+  /** Optional single-node query */
+  nodeId?: string
+  /** Normalized property filters */
+  where?: Record<string, unknown>
+  /** Whether soft-deleted nodes are included */
+  includeDeleted: boolean
+  /** Normalized ordering rules */
+  orderBy?: Record<string, SortDirection>
+  /** Limit applied after filtering and sorting */
+  limit?: number
+  /** Offset applied after filtering and sorting */
+  offset?: number
+}
+
+/**
  * A subscription to a query result.
  * Compatible with React's useSyncExternalStore pattern.
  *
@@ -147,6 +168,11 @@ export interface DataBridge {
     schema: DefinedSchema<P>,
     options?: QueryOptions<P>
   ): QuerySubscription<P>
+
+  /**
+   * Force a reload for a canonical query descriptor.
+   */
+  reloadQuery?(descriptor: QueryDescriptor): Promise<void>
 
   // ─── Mutations ──────────────────────────────────────────
 

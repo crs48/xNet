@@ -9,8 +9,13 @@
  * - Weak references for inactive subscriptions (automatic cleanup)
  */
 
-import type { QueryOptions, SortDirection, SystemOrderField } from './types'
+import type { QueryDescriptor, QueryOptions, SortDirection, SystemOrderField } from './types'
 import type { NodeState, PropertyBuilder, InferCreateProps, SchemaIRI } from '@xnetjs/data'
+import {
+  createQueryDescriptor,
+  queryDescriptorToOptions,
+  serializeQueryDescriptor
+} from './query-descriptor'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -32,6 +37,8 @@ interface CacheEntry {
   weakSubscribers: Map<() => void, WeakRef<() => void>>
   /** Schema IRI for this query */
   schemaId: SchemaIRI
+  /** Canonical descriptor for this query */
+  descriptor: QueryDescriptor
   /** Query options */
   options: QueryOptions
   /** Last update timestamp */
@@ -117,45 +124,15 @@ export class QueryCache {
    * Same query params should produce the same ID for deduplication.
    */
   computeQueryId<P extends Record<string, PropertyBuilder>>(
-    schemaId: string,
+    schemaId: string | QueryDescriptor,
     options?: QueryOptions<P>
   ): string {
-    const parts = [schemaId]
+    const descriptor =
+      typeof schemaId === 'string'
+        ? createQueryDescriptor(schemaId as SchemaIRI, options)
+        : schemaId
 
-    if (options?.nodeId) {
-      parts.push(`id:${options.nodeId}`)
-    }
-
-    if (options?.where) {
-      // Sort keys for stable ordering
-      const sortedWhere = Object.keys(options.where)
-        .sort()
-        .map((k) => `${k}:${JSON.stringify(options.where![k as keyof typeof options.where])}`)
-        .join(',')
-      parts.push(`where:{${sortedWhere}}`)
-    }
-
-    if (options?.includeDeleted) {
-      parts.push('deleted:true')
-    }
-
-    if (options?.orderBy) {
-      const sortedOrder = Object.entries(options.orderBy)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([k, v]) => `${k}:${v}`)
-        .join(',')
-      parts.push(`order:{${sortedOrder}}`)
-    }
-
-    if (options?.limit !== undefined) {
-      parts.push(`limit:${options.limit}`)
-    }
-
-    if (options?.offset !== undefined) {
-      parts.push(`offset:${options.offset}`)
-    }
-
-    return parts.join('|')
+    return serializeQueryDescriptor(descriptor)
   }
 
   /**
@@ -181,16 +158,34 @@ export class QueryCache {
    * Set cached data for a query and notify subscribers.
    * Triggers LRU eviction if cache exceeds maxSize.
    */
-  set(queryId: string, data: NodeState[], schemaId: SchemaIRI, options: QueryOptions): void {
+  set(
+    queryId: string,
+    data: NodeState[],
+    schemaIdOrDescriptor?: SchemaIRI | QueryDescriptor,
+    options?: QueryOptions
+  ): void {
     const entry = this.cache.get(queryId)
     const now = Date.now()
+    const descriptor =
+      typeof schemaIdOrDescriptor === 'string'
+        ? createQueryDescriptor(schemaIdOrDescriptor, options)
+        : schemaIdOrDescriptor
 
     if (entry) {
       entry.data = data
+      if (descriptor) {
+        entry.schemaId = descriptor.schemaId
+        entry.descriptor = descriptor
+        entry.options = queryDescriptorToOptions(descriptor)
+      }
       entry.lastUpdated = now
       entry.lastAccessed = now
       this.notifySubscribers(queryId)
     } else {
+      if (!descriptor) {
+        throw new Error(`QueryCache.set requires a descriptor when creating "${queryId}"`)
+      }
+
       // Evict before adding if at capacity
       this.evictIfNeeded()
 
@@ -198,8 +193,9 @@ export class QueryCache {
         data,
         subscribers: new Set(),
         weakSubscribers: new Map(),
-        schemaId,
-        options,
+        schemaId: descriptor.schemaId,
+        descriptor,
+        options: queryDescriptorToOptions(descriptor),
         lastUpdated: now,
         lastAccessed: now
       })
@@ -209,15 +205,25 @@ export class QueryCache {
   /**
    * Initialize a cache entry (called when starting a subscription).
    */
-  initEntry(queryId: string, schemaId: SchemaIRI, options: QueryOptions): void {
+  initEntry(
+    queryId: string,
+    schemaIdOrDescriptor: SchemaIRI | QueryDescriptor,
+    options?: QueryOptions
+  ): void {
     if (!this.cache.has(queryId)) {
       const now = Date.now()
+      const descriptor =
+        typeof schemaIdOrDescriptor === 'string'
+          ? createQueryDescriptor(schemaIdOrDescriptor, options)
+          : schemaIdOrDescriptor
+
       this.cache.set(queryId, {
         data: null,
         subscribers: new Set(),
         weakSubscribers: new Map(),
-        schemaId,
-        options,
+        schemaId: descriptor.schemaId,
+        descriptor,
+        options: queryDescriptorToOptions(descriptor),
         lastUpdated: 0,
         lastAccessed: now
       })
@@ -336,7 +342,7 @@ export class QueryCache {
   getQueriesForSchema(schemaId: SchemaIRI): string[] {
     const matches: string[] = []
     for (const [queryId, entry] of this.cache) {
-      if (entry.schemaId === schemaId) {
+      if (entry.descriptor.schemaId === schemaId) {
         matches.push(queryId)
       }
     }
@@ -344,10 +350,44 @@ export class QueryCache {
   }
 
   /**
+   * Get all cached entries for a schema.
+   */
+  getEntriesForSchema(schemaId: SchemaIRI): Array<{
+    queryId: string
+    descriptor: QueryDescriptor
+    data: NodeState[] | null
+  }> {
+    const matches: Array<{
+      queryId: string
+      descriptor: QueryDescriptor
+      data: NodeState[] | null
+    }> = []
+
+    for (const [queryId, entry] of this.cache) {
+      if (entry.descriptor.schemaId === schemaId) {
+        matches.push({
+          queryId,
+          descriptor: entry.descriptor,
+          data: entry.data
+        })
+      }
+    }
+
+    return matches
+  }
+
+  /**
    * Get the schema IRI for a cached query.
    */
   getSchemaId(queryId: string): SchemaIRI | undefined {
-    return this.cache.get(queryId)?.schemaId
+    return this.cache.get(queryId)?.descriptor.schemaId
+  }
+
+  /**
+   * Get the descriptor for a cached query.
+   */
+  getDescriptor(queryId: string): QueryDescriptor | undefined {
+    return this.cache.get(queryId)?.descriptor
   }
 
   /**
