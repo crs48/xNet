@@ -6,10 +6,10 @@
  * - Comment system with inline popover and sidebar
  * - Real-time presence indicators
  */
-import type { Editor } from '@xnetjs/editor/react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
+import { createGravatarUrl, type Editor } from '@xnetjs/editor/react'
 import { useNode, useComments, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
   CommentPopover,
@@ -81,11 +81,11 @@ function DocumentPage() {
   const mentionSuggestions = useMemo(() => {
     const suggestions = new Map<
       string,
-      { id: string; label: string; subtitle?: string; color?: string }
+      { id: string; label: string; subtitle?: string; color?: string; avatarUrl?: string }
     >()
 
     const addSuggestion = (
-      entry: { did: string; name?: string; color?: string } | null | undefined,
+      entry: { did: string; name?: string; color?: string; avatar?: string } | null | undefined,
       isLocal = false
     ) => {
       if (!entry?.did || suggestions.has(entry.did)) return
@@ -94,7 +94,8 @@ function DocumentPage() {
         id: entry.did,
         label: entry.name?.trim() || `${entry.did.slice(8, 16)}...`,
         subtitle: isLocal ? 'You' : entry.did,
-        color: entry.color
+        color: entry.color,
+        avatarUrl: entry.avatar || createGravatarUrl(entry.did)
       })
     }
 

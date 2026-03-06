@@ -12,6 +12,7 @@ import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
 import {
   RichTextEditor,
+  createGravatarUrl,
   useImageUpload,
   useFileUpload,
   useFileDownload,
@@ -107,11 +108,11 @@ export function PageView({ docId }: PageViewProps) {
   const mentionSuggestions = useMemo(() => {
     const suggestions = new Map<
       string,
-      { id: string; label: string; subtitle?: string; color?: string }
+      { id: string; label: string; subtitle?: string; color?: string; avatarUrl?: string }
     >()
 
     const addSuggestion = (
-      entry: { did: string; name?: string; color?: string } | null | undefined,
+      entry: { did: string; name?: string; color?: string; avatar?: string } | null | undefined,
       isLocal = false
     ) => {
       if (!entry?.did || suggestions.has(entry.did)) return
@@ -120,7 +121,8 @@ export function PageView({ docId }: PageViewProps) {
         id: entry.did,
         label: entry.name?.trim() || `${entry.did.slice(8, 16)}...`,
         subtitle: isLocal ? 'You' : entry.did,
-        color: entry.color
+        color: entry.color,
+        avatarUrl: entry.avatar || createGravatarUrl(entry.did)
       })
     }
 

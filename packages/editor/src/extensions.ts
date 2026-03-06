@@ -456,6 +456,7 @@ export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/p
 export { TaskMentionExtension, TaskDueDateExtension } from './extensions/task-metadata'
 export type { TaskMentionSuggestion, TaskDueDateOptions } from './extensions/task-metadata'
 export { formatTaskDueDateLabel, getCurrentTaskDueDate } from './extensions/task-metadata'
+export { createGravatarUrl, md5 } from './utils/gravatar'
 
 // Database embed extension
 export { DatabaseEmbedExtension } from './extensions/database-embed'
