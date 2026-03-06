@@ -460,6 +460,16 @@ export { formatTaskDueDateLabel, getCurrentTaskDueDate } from './extensions/task
 // Database embed extension
 export { DatabaseEmbedExtension } from './extensions/database-embed'
 export type { DatabaseEmbedOptions, DatabaseViewType } from './extensions/database-embed'
+export { TaskViewEmbedExtension, DEFAULT_TASK_VIEW_CONFIG } from './extensions/task-view-embed'
+export type {
+  TaskViewEmbedOptions,
+  TaskViewEmbedType,
+  TaskViewConfig,
+  TaskViewScope,
+  TaskViewAssigneeFilter,
+  TaskViewDueDateFilter,
+  TaskViewStatusFilter
+} from './extensions/task-view-embed'
 
 // Mermaid diagram extension
 export { MermaidExtension } from './extensions/mermaid'

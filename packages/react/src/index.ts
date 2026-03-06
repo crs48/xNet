@@ -502,6 +502,10 @@ export {
   type XNetContextValue,
   type XNetProviderProps
 } from './context'
+export {
+  TaskCollectionEmbed,
+  type TaskCollectionEmbedProps
+} from './components/TaskCollectionEmbed'
 
 // =============================================================================
 // Security (Multi-Level Cryptography)

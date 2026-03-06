@@ -708,8 +708,8 @@ Recommendation:
 
 - [x] Add `useTasks` / schema-query helpers for `TaskSchema`.
 - [x] Build "My tasks" and "Tasks on this page" views.
-- [ ] Add saved filters for assignee, due date, status, and hierarchy state.
-- [ ] Allow embedded task views inside pages.
+- [x] Add saved filters for assignee, due date, status, and hierarchy state.
+- [x] Allow embedded task views inside pages.
 - [ ] Prototype board/calendar/timeline projections over direct `Task` queries.
 - [ ] Decide whether this is a new `SavedView` node or an extension of `Database`.
 

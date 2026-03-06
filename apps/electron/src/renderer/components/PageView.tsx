@@ -18,6 +18,7 @@ import {
   type Editor
 } from '@xnetjs/editor/react'
 import {
+  TaskCollectionEmbed,
   useNode,
   useIdentity,
   useEditorExtensionsSafe,
@@ -776,6 +777,18 @@ export function PageView({ docId }: PageViewProps) {
             onEditorReady={handleEditorReady}
             mentionSuggestions={mentionSuggestions}
             onPageTasksChange={handleTasksChange}
+            taskViewPageId={docId}
+            renderTaskView={({ viewConfig, currentPageId }) => (
+              <TaskCollectionEmbed
+                currentPageId={currentPageId}
+                currentDid={did ?? null}
+                scope={viewConfig.scope}
+                assignee={viewConfig.assignee}
+                dueDate={viewConfig.dueDate}
+                status={viewConfig.status}
+                showHierarchy={viewConfig.showHierarchy}
+              />
+            )}
           />
 
           {/* Orphaned Comments Section */}
