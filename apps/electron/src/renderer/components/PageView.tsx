@@ -34,6 +34,7 @@ import {
 } from '@xnetjs/ui'
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { DocumentHeader } from './DocumentHeader'
+import { PageTasksPanel } from './PageTasksPanel'
 import { PresenceAvatars } from './PresenceAvatars'
 
 interface PageViewProps {
@@ -790,6 +791,8 @@ export function PageView({ docId }: PageViewProps) {
               />
             </div>
           )}
+
+          <PageTasksPanel pageId={docId} />
         </div>
 
         {/* Comments Sidebar */}

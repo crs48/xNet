@@ -107,7 +107,7 @@ function toDateTimestamp(date: string | null): number | undefined {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return undefined
 
   const [year, month, day] = date.split('-').map(Number)
-  const timestamp = new Date(year, month - 1, day).getTime()
+  const timestamp = Date.UTC(year, month - 1, day)
   return Number.isNaN(timestamp) ? undefined : timestamp
 }
 
@@ -306,6 +306,14 @@ export function usePageTaskSync({
         }
 
         try {
+          for (const reference of referenceUpserts) {
+            try {
+              await update(ExternalReferenceSchema, reference.id, reference.data)
+            } catch {
+              await create(ExternalReferenceSchema, reference.data, reference.id)
+            }
+          }
+
           for (const taskId of tasksToRestore) {
             await restore(taskId)
           }
@@ -321,15 +329,6 @@ export function usePageTaskSync({
           for (const taskId of taskDeletes) {
             await remove(taskId)
           }
-
-          for (const reference of referenceUpserts) {
-            try {
-              await update(ExternalReferenceSchema, reference.id, reference.data)
-            } catch {
-              await create(ExternalReferenceSchema, reference.data, reference.id)
-            }
-          }
-
           if (!cancelled) {
             setSyncing(false)
           }
