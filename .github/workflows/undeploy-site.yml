@@ -4,27 +4,50 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
+  group: pages-branch
   cancel-in-progress: true
 
 jobs:
   undeploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
     steps:
-      - name: Create empty site
-        run: mkdir -p empty && echo '<html><body><p>Site offline.</p></body></html>' > empty/index.html
+      - uses: actions/checkout@v4
 
-      - name: Upload empty artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: empty
+      - name: Replace gh-pages contents with offline page
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Deploy empty page
-        uses: actions/deploy-pages@v4
+          rm -rf /tmp/xnet-gh-pages
+          git fetch origin gh-pages || true
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git worktree add -B gh-pages /tmp/xnet-gh-pages origin/gh-pages
+          else
+            git worktree add -B gh-pages /tmp/xnet-gh-pages HEAD
+          fi
+
+          find /tmp/xnet-gh-pages -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp site/public/CNAME /tmp/xnet-gh-pages/CNAME
+          touch /tmp/xnet-gh-pages/.nojekyll
+          cat <<'EOF' > /tmp/xnet-gh-pages/index.html
+          <html>
+            <body>
+              <p>Site offline.</p>
+            </body>
+          </html>
+          EOF
+
+          cd /tmp/xnet-gh-pages
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No undeploy changes to publish."
+            exit 0
+          fi
+
+          git commit -m "deploy(site): publish offline placeholder"
+          git push origin HEAD:gh-pages
