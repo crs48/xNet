@@ -197,6 +197,67 @@
   border-bottom-style: solid;
 }
 
+/* Smart references */
+.ProseMirror a[data-smart-reference] {
+  @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 no-underline;
+  background: rgb(var(--editor-muted) / 0.75);
+  border: 1px solid rgb(var(--editor-border));
+  color: rgb(var(--editor-foreground));
+  font-size: 0.875em;
+  line-height: 1.2;
+  vertical-align: baseline;
+}
+
+.ProseMirror a[data-smart-reference]:hover {
+  background: rgb(var(--editor-muted));
+  border-color: rgb(var(--editor-primary) / 0.35);
+}
+
+.ProseMirror a[data-smart-reference][data-provider='github'] {
+  background: rgb(17 24 39 / 0.08);
+}
+
+.ProseMirror a[data-smart-reference][data-provider='figma'] {
+  background: rgb(244 63 94 / 0.08);
+}
+
+.ProseMirror a[data-smart-reference][data-provider='youtube'],
+.ProseMirror a[data-smart-reference][data-provider='loom'],
+.ProseMirror a[data-smart-reference][data-provider='vimeo'] {
+  background: rgb(239 68 68 / 0.08);
+}
+
+/* Task metadata chips */
+.ProseMirror span[data-task-mention],
+.ProseMirror time[data-task-due-date] {
+  @apply inline-flex items-center rounded-full px-2 py-0.5 no-underline;
+  border: 1px solid rgb(var(--editor-border));
+  font-size: 0.8em;
+  font-weight: 500;
+  line-height: 1.2;
+  vertical-align: baseline;
+}
+
+.ProseMirror span[data-task-mention] {
+  background: rgb(var(--editor-primary) / 0.08);
+  color: rgb(var(--editor-primary));
+}
+
+.ProseMirror time[data-task-due-date] {
+  background: rgb(var(--editor-warning) / 0.1);
+  color: rgb(146 64 14);
+}
+
+.dark .ProseMirror time[data-task-due-date] {
+  color: rgb(253 230 138);
+}
+
+.ProseMirror time[data-task-due-date][data-overdue='true'] {
+  background: rgb(var(--editor-destructive) / 0.12);
+  border-color: rgb(var(--editor-destructive) / 0.3);
+  color: rgb(var(--editor-destructive));
+}
+
 /* Horizontal rule */
 .ProseMirror hr {
   @apply my-8 border-t border-border;

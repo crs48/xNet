@@ -12,17 +12,20 @@ import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
 import {
   RichTextEditor,
+  buildTaskMentionSuggestions,
   useImageUpload,
   useFileUpload,
   useFileDownload,
   type Editor
 } from '@xnetjs/editor/react'
 import {
+  TaskCollectionEmbed,
   useNode,
   useIdentity,
   useEditorExtensionsSafe,
   useComments,
-  usePluginRegistryOptional
+  usePluginRegistryOptional,
+  usePageTaskSync
 } from '@xnetjs/react'
 import {
   CommentPopover,
@@ -33,6 +36,7 @@ import {
 } from '@xnetjs/ui'
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { DocumentHeader } from './DocumentHeader'
+import { PageTasksPanel } from './PageTasksPanel'
 import { PresenceAvatars } from './PresenceAvatars'
 
 interface PageViewProps {
@@ -100,6 +104,11 @@ export function PageView({ docId }: PageViewProps) {
     createIfMissing: { title: 'Untitled Page' },
     did: did ?? undefined
   })
+  const { handleTasksChange } = usePageTaskSync({ pageId: docId })
+  const mentionSuggestions = useMemo(
+    () => buildTaskMentionSuggestions(presence, did),
+    [did, presence]
+  )
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
 
@@ -746,6 +755,20 @@ export function PageView({ docId }: PageViewProps) {
             extensions={allExtensions}
             onCreateComment={handleCreateComment}
             onEditorReady={handleEditorReady}
+            mentionSuggestions={mentionSuggestions}
+            onPageTasksChange={handleTasksChange}
+            taskViewPageId={docId}
+            renderTaskView={({ viewConfig, currentPageId }) => (
+              <TaskCollectionEmbed
+                currentPageId={currentPageId}
+                currentDid={did ?? null}
+                scope={viewConfig.scope}
+                assignee={viewConfig.assignee}
+                dueDate={viewConfig.dueDate}
+                status={viewConfig.status}
+                showHierarchy={viewConfig.showHierarchy}
+              />
+            )}
           />
 
           {/* Orphaned Comments Section */}
@@ -761,6 +784,8 @@ export function PageView({ docId }: PageViewProps) {
               />
             </div>
           )}
+
+          <PageTasksPanel pageId={docId} />
         </div>
 
         {/* Comments Sidebar */}

@@ -6,11 +6,11 @@
  * - Comment system with inline popover and sidebar
  * - Real-time presence indicators
  */
-import type { Editor } from '@xnetjs/editor/react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
-import { useNode, useComments, useIdentity } from '@xnetjs/react'
+import { buildTaskMentionSuggestions, type Editor } from '@xnetjs/editor/react'
+import { useNode, useComments, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
   CommentPopover,
   CommentsSidebar,
@@ -22,6 +22,7 @@ import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { BacklinksPanel } from '../components/BacklinksPanel'
 import { Editor as EditorComponent } from '../components/Editor'
+import { PageTasksPanel } from '../components/PageTasksPanel'
 import { PresenceAvatars } from '../components/PresenceAvatars'
 import { ShareButton } from '../components/ShareButton'
 
@@ -76,6 +77,11 @@ function DocumentPage() {
     createIfMissing: { title: 'Untitled' },
     did: did ?? undefined
   })
+  const { handleTasksChange } = usePageTaskSync({ pageId: docId })
+  const mentionSuggestions = useMemo(
+    () => buildTaskMentionSuggestions(presence, did),
+    [did, presence]
+  )
 
   // ─── Comments Integration ─────────────────────────────────────────────────────
 
@@ -595,9 +601,12 @@ function DocumentPage() {
               doc={doc}
               awareness={awareness}
               did={did}
+              pageId={docId}
               onNavigate={handleNavigate}
               extensions={commentExtensions}
               onEditorReady={handleEditorReady}
+              mentionSuggestions={mentionSuggestions}
+              onPageTasksChange={handleTasksChange}
               onCreateComment={handleCreateComment}
             />
 
@@ -615,6 +624,7 @@ function DocumentPage() {
               </div>
             )}
 
+            <PageTasksPanel pageId={docId} />
             <BacklinksPanel docId={docId} />
           </div>
         </div>

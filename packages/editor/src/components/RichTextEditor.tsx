@@ -1,14 +1,20 @@
 /**
  * RichTextEditor - Tiptap-based rich text editor with Yjs collaboration
  */
-import type { DatabaseViewType, SlashCommandItem } from '../extensions'
+import type {
+  DatabaseViewType,
+  PageTaskSnapshot,
+  SlashCommandItem,
+  TaskMentionSuggestion,
+  TaskViewConfig,
+  TaskViewEmbedType
+} from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
 import Collaboration from '@tiptap/extension-collaboration'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
-import TaskItem from '@tiptap/extension-task-item'
 import TaskList from '@tiptap/extension-task-list'
 import Typography from '@tiptap/extension-typography'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
@@ -29,8 +35,15 @@ import {
   CalloutExtension,
   ToggleExtension,
   FileExtension,
+  SmartReferenceExtension,
   EmbedExtension,
-  DatabaseEmbedExtension
+  DatabaseEmbedExtension,
+  TaskViewEmbedExtension,
+  PageTaskItemExtension,
+  TaskMentionExtension,
+  TaskDueDateExtension,
+  ensurePageTaskAttrs,
+  getPageTasksSnapshot
 } from '../extensions'
 import { FloatingToolbar, type ToolbarMode } from './FloatingToolbar'
 import '../styles/editor.css'
@@ -240,6 +253,18 @@ export interface RichTextEditorProps {
     viewConfig: Record<string, unknown>
   }) => React.ReactNode
   /**
+   * Custom renderer for embedded task views.
+   */
+  renderTaskView?: (props: {
+    viewType: TaskViewEmbedType
+    viewConfig: TaskViewConfig
+    currentPageId: string | null
+  }) => React.ReactNode
+  /**
+   * Page ID used by page-scoped task embeds.
+   */
+  taskViewPageId?: string | null
+  /**
    * Additional TipTap extensions from plugins.
    * These are merged with the built-in extensions.
    */
@@ -260,6 +285,15 @@ export interface RichTextEditorProps {
    * for advanced integrations like comment system.
    */
   onEditorReady?: (editor: Editor) => void
+  /**
+   * People that can be inserted as inline rich-text mentions.
+   */
+  mentionSuggestions?: TaskMentionSuggestion[]
+  /**
+   * Task snapshot handler for page-backed checklist reconciliation.
+   * Called after task rows have stable ids and the editor view is in sync.
+   */
+  onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
   /**
    * Comment creation handler. When provided, shows a Comment button in the toolbar.
    * Called with anchor data when user clicks Comment; should return the new comment ID.
@@ -331,13 +365,23 @@ export function RichTextEditor({
   onSelectDatabase,
   resolveDatabaseMeta,
   renderDatabaseView,
+  renderTaskView,
+  taskViewPageId = null,
   extensions: additionalExtensions = [],
   toolbarItems: additionalToolbarItems = [],
   slashCommands,
   onEditorReady,
+  mentionSuggestions = [],
+  onPageTasksChange,
   onCreateComment
 }: RichTextEditorProps): JSX.Element {
   const cursorPluginRegisteredRef = useRef(false)
+  const pageTaskSignatureRef = useRef<string>('')
+  const mentionSuggestionsRef = useRef<TaskMentionSuggestion[]>(mentionSuggestions)
+
+  useEffect(() => {
+    mentionSuggestionsRef.current = mentionSuggestions
+  }, [mentionSuggestions])
 
   // Get or create the content fragment for Yjs collaboration
   const fragment = ydoc.getXmlFragment(field)
@@ -367,9 +411,13 @@ export function RichTextEditor({
       fragment
     }),
     TaskList,
-    TaskItem.configure({
+    PageTaskItemExtension.configure({
       nested: true
     }),
+    TaskMentionExtension.configure({
+      getSuggestions: () => mentionSuggestionsRef.current
+    }),
+    TaskDueDateExtension,
     Link.configure({
       openOnClick: false,
       HTMLAttributes: {
@@ -408,6 +456,8 @@ export function RichTextEditor({
       onUpload: onFileUpload,
       onDownload: onFileDownload
     }),
+    // Compact inline references for URLs pasted inside tasks
+    SmartReferenceExtension,
     // Media embeds (YouTube, Spotify, Vimeo, etc.)
     EmbedExtension,
     // Database embeds (inline table/board/list views)
@@ -415,6 +465,9 @@ export function RichTextEditor({
       onSelectDatabase,
       renderView: renderDatabaseView,
       resolveDatabaseMeta
+    }),
+    TaskViewEmbedExtension.configure({
+      renderView: (props) => renderTaskView?.({ ...props, currentPageId: taskViewPageId })
     }),
     // Plugin-provided extensions (includes Mermaid when plugin is installed)
     ...additionalExtensions
@@ -444,6 +497,28 @@ export function RichTextEditor({
       onEditorReady(editor)
     }
   }, [editor, onEditorReady])
+
+  useEffect(() => {
+    if (!editor || !onPageTasksChange) return
+
+    const publishPageTasks = () => {
+      if (ensurePageTaskAttrs(editor)) return
+
+      const tasks = getPageTasksSnapshot(editor)
+      const signature = JSON.stringify(tasks)
+      if (signature === pageTaskSignatureRef.current) return
+
+      pageTaskSignatureRef.current = signature
+      onPageTasksChange(tasks)
+    }
+
+    editor.on('update', publishPageTasks)
+    publishPageTasks()
+
+    return () => {
+      editor.off('update', publishPageTasks)
+    }
+  }, [editor, onPageTasksChange])
 
   // Add cursor plugin dynamically when awareness becomes available.
   // We use yCursorPlugin directly (instead of CollaborationCursor extension) to avoid

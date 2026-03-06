@@ -85,6 +85,19 @@ export {
   type SyncStatus,
   type PresenceUser
 } from './hooks/useNode'
+export {
+  usePageTaskSync,
+  type PageTaskInput,
+  type PageTaskReferenceInput,
+  type UsePageTaskSyncOptions,
+  type UsePageTaskSyncResult
+} from './hooks/usePageTaskSync'
+export {
+  useTasks,
+  type UseTasksOptions,
+  type UseTasksResult,
+  type TaskTreeItem
+} from './hooks/useTasks'
 
 // =============================================================================
 // Database Hooks
@@ -489,6 +502,11 @@ export {
   type XNetContextValue,
   type XNetProviderProps
 } from './context'
+export { PageTasksPanel, type PageTasksPanelProps } from './components/PageTasksPanel'
+export {
+  TaskCollectionEmbed,
+  type TaskCollectionEmbedProps
+} from './components/TaskCollectionEmbed'
 
 // =============================================================================
 // Security (Multi-Level Cryptography)

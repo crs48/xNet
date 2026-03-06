@@ -171,7 +171,10 @@ export function useEditorUxState(
 export function shouldShowDesktopToolbar(opts: {
   selectionShape: SelectionShape
   inCodeBlock: boolean
+  inTaskItem?: boolean
 }): boolean {
   if (opts.inCodeBlock) return false
-  return opts.selectionShape === 'range'
+  return (
+    opts.selectionShape === 'range' || (opts.selectionShape === 'collapsed' && !!opts.inTaskItem)
+  )
 }

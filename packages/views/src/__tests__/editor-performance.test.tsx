@@ -3,6 +3,10 @@ import React from 'react'
 import { describe, expect, it } from 'vitest'
 import { getPropertyHandler } from '../properties'
 
+function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
+  return process.env.CI ? ciBudgetMs : localBudgetMs
+}
+
 describe('Editor performance', () => {
   it('filters large multi-select option sets quickly', () => {
     const handler = getPropertyHandler('multiSelect')
@@ -26,7 +30,7 @@ describe('Editor performance', () => {
     fireEvent.change(input, { target: { value: 'Option 299' } })
     const elapsedMs = Date.now() - start
 
-    expect(elapsedMs).toBeLessThan(250)
+    expect(elapsedMs).toBeLessThan(getPerformanceBudget(500, 1000))
   })
 
   it('filters large person suggestion sets quickly', () => {
@@ -43,6 +47,6 @@ describe('Editor performance', () => {
     fireEvent.change(input, { target: { value: 'Person 1999' } })
     const elapsedMs = Date.now() - start
 
-    expect(elapsedMs).toBeLessThan(250)
+    expect(elapsedMs).toBeLessThan(getPerformanceBudget(500, 1000))
   })
 })

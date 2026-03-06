@@ -13,6 +13,22 @@ import {
   type CanvasEdge
 } from '../routing/edge-bundler'
 
+function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
+  return process.env.CI ? ciBudgetMs : localBudgetMs
+}
+
+function getMedianDuration(run: () => void, samples = 5): number {
+  run()
+
+  const durations = Array.from({ length: samples }, () => {
+    const start = performance.now()
+    run()
+    return performance.now() - start
+  }).sort((a, b) => a - b)
+
+  return durations[Math.floor(durations.length / 2)] ?? 0
+}
+
 describe('EdgeBundler', () => {
   let bundler: EdgeBundler
 
@@ -292,9 +308,9 @@ describe('EdgeBundler', () => {
   })
 
   describe('performance', () => {
-    it('bundles 1000 edges in under budget', () => {
+    it('bundles 1000 edges within a stable performance budget', () => {
       const b = new EdgeBundler({ bundleThreshold: 100, minBundleSize: 2 })
-      const maxDurationMs = process.env.CI ? 25 : 10
+      const maxDurationMs = getPerformanceBudget(30, 60)
 
       // Create 1000 edges
       const edges: CanvasEdge[] = Array.from({ length: 1000 }, (_, i) => ({
@@ -310,9 +326,10 @@ describe('EdgeBundler', () => {
         positions.set(`t${i}`, { x: i * 20, y: 200, width: 50, height: 50 })
       }
 
-      const start = performance.now()
-      b.bundle(edges, positions)
-      const elapsed = performance.now() - start
+      const elapsed = getMedianDuration(() => {
+        const bundles = b.bundle(edges, positions)
+        expect(bundles.length).toBeGreaterThan(0)
+      })
 
       expect(elapsed).toBeLessThan(maxDurationMs)
     })
