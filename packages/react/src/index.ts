@@ -92,6 +92,12 @@ export {
   type UsePageTaskSyncOptions,
   type UsePageTaskSyncResult
 } from './hooks/usePageTaskSync'
+export {
+  useTasks,
+  type UseTasksOptions,
+  type UseTasksResult,
+  type TaskTreeItem
+} from './hooks/useTasks'
 
 // =============================================================================
 // Database Hooks

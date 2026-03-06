@@ -22,6 +22,7 @@ import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { BacklinksPanel } from '../components/BacklinksPanel'
 import { Editor as EditorComponent } from '../components/Editor'
+import { PageTasksPanel } from '../components/PageTasksPanel'
 import { PresenceAvatars } from '../components/PresenceAvatars'
 import { ShareButton } from '../components/ShareButton'
 
@@ -643,6 +644,7 @@ function DocumentPage() {
               </div>
             )}
 
+            <PageTasksPanel pageId={docId} />
             <BacklinksPanel docId={docId} />
           </div>
         </div>

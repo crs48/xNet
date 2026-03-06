@@ -115,7 +115,7 @@ describe('usePageTaskSync', () => {
       sortKey: '0000.0000',
       assignee: did,
       assignees: [did, otherDid],
-      dueDate: new Date(2026, 2, 20).getTime()
+      dueDate: Date.UTC(2026, 2, 20)
     })
 
     await waitFor(() => {
@@ -148,7 +148,7 @@ describe('usePageTaskSync', () => {
         status: 'done',
         assignee: otherDid,
         assignees: [otherDid],
-        dueDate: new Date(2026, 2, 25).getTime()
+        dueDate: Date.UTC(2026, 2, 25)
       })
       expect(removedChild).toBeUndefined()
       expect(result.current.tasks.data).toHaveLength(1)

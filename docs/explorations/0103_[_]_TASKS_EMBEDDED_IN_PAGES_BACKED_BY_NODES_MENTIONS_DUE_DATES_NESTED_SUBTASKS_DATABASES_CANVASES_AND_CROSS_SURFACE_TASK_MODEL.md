@@ -706,8 +706,8 @@ Recommendation:
 
 ## Phase 2: Cross-surface views
 
-- [ ] Add `useTasks` / schema-query helpers for `TaskSchema`.
-- [ ] Build "My tasks" and "Tasks on this page" views.
+- [x] Add `useTasks` / schema-query helpers for `TaskSchema`.
+- [x] Build "My tasks" and "Tasks on this page" views.
 - [ ] Add saved filters for assignee, due date, status, and hierarchy state.
 - [ ] Allow embedded task views inside pages.
 - [ ] Prototype board/calendar/timeline projections over direct `Task` queries.
@@ -725,7 +725,7 @@ Recommendation:
 ## 🧪 Validation Checklist
 
 - [x] Creating a checklist item in a page creates exactly one `Task` node.
-- [ ] Toggling a checkbox updates `Task.completed` and all subscribed task views.
+- [x] Toggling a checkbox updates `Task.completed` and all subscribed task views.
 - [ ] Indenting/outdenting updates parent/subtask relations deterministically.
 - [ ] Reordering sibling tasks preserves stable order across peers.
 - [x] `@mention` insertion stores canonical DIDs, not only display strings.
