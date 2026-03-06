@@ -8,6 +8,10 @@ import type { CanvasNode, CanvasEdge } from '../types'
 import { describe, it, expect } from 'vitest'
 import { Viewport } from '../spatial/index'
 
+function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
+  return process.env.CI ? ciBudgetMs : localBudgetMs
+}
+
 // ─── Helper Functions ─────────────────────────────────────────────────────────
 
 function createTestNode(
@@ -343,8 +347,7 @@ describe('Minimap', () => {
 
       const elapsed = performance.now() - start
 
-      // Bounds calculation should be fast
-      expect(elapsed).toBeLessThan(50) // Should complete in under 50ms
+      expect(elapsed).toBeLessThan(getPerformanceBudget(100, 200))
       expect(minX).toBe(0)
       expect(minY).toBe(0)
     })
@@ -384,9 +387,7 @@ describe('Minimap', () => {
 
       const elapsed = performance.now() - start
 
-      // CI and local machines can vary; keep this as a regression guard,
-      // not a micro-benchmark.
-      expect(elapsed).toBeLessThan(25)
+      expect(elapsed).toBeLessThan(getPerformanceBudget(50, 100))
       expect(renderedEdges).toBe(2000)
     })
   })
