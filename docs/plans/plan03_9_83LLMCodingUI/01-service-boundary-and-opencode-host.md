@@ -203,9 +203,9 @@ const openCodeService = {
 
 ## Step Checklist
 
-- [ ] Replace hard-coded preload allowlist strings with shared service channel constants
-- [ ] Expose the full service client contract to the renderer
-- [ ] Add OpenCode CLI detection and friendly failure UX
-- [ ] Add `OpenCodeService` lifecycle wrapper in Electron main
-- [ ] Add CSP allowances for localhost OpenCode and preview surfaces
+- [x] Replace hard-coded preload allowlist strings with shared service channel constants
+- [x] Expose the full service client contract to the renderer
+- [x] Add OpenCode CLI detection and friendly failure UX
+- [x] Add `OpenCodeService` lifecycle wrapper in Electron main
+- [x] Add CSP allowances for localhost OpenCode and preview surfaces
 - [ ] Validate clean startup/shutdown and duplicate-start protection

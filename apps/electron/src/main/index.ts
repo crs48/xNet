@@ -14,6 +14,7 @@ import {
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { createMenu } from './menu'
+import { setupOpenCodeIPC, stopOpenCodeHost } from './opencode-service'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
 import { initAutoUpdater } from './updater'
 
@@ -193,6 +194,7 @@ app.whenReady().then(async () => {
 
   // Setup service IPC for plugin background processes
   setupServiceIPC()
+  setupOpenCodeIPC()
 
   // Setup Local API IPC handlers
   setupLocalAPIIPC()
@@ -236,6 +238,7 @@ app.on('before-quit', async () => {
   await stopLocalAPI()
 
   // Stop all plugin services
+  await stopOpenCodeHost()
   await cleanupServices()
 
   // Stop cloudflare tunnel process

@@ -6,7 +6,7 @@
 
 ## 1. Title and Short Summary
 
-This plan turns the MVP exploration in [0109_[_]_ELECTRON_MVP_SELF_EDITING_WORKSPACE_CHEAP_PERFORMANCE_WINS_OPENCODE_WORKTREES_RIGHT_CLICK_CONTEXT.md](../../explorations/0109_[_]_ELECTRON_MVP_SELF_EDITING_WORKSPACE_CHEAP_PERFORMANCE_WINS_OPENCODE_WORKTREES_RIGHT_CLICK_CONTEXT.md) into an execution sequence for the repository.
+This plan turns the MVP exploration in [0109*[*]\_ELECTRON_MVP_SELF_EDITING_WORKSPACE_CHEAP_PERFORMANCE_WINS_OPENCODE_WORKTREES_RIGHT_CLICK_CONTEXT.md](../../explorations/0109_[_]_ELECTRON_MVP_SELF_EDITING_WORKSPACE_CHEAP_PERFORMANCE_WINS_OPENCODE_WORKTREES_RIGHT_CLICK_CONTEXT.md) into an execution sequence for the repository.
 
 The target product is an Electron-native coding workspace with:
 
@@ -141,8 +141,8 @@ flowchart LR
 
 ## 8. Implementation Checklist
 
-- [ ] Fix the Electron service IPC / preload mismatch.
-- [ ] Add OpenCode service lifecycle management in Electron main.
+- [x] Fix the Electron service IPC / preload mismatch.
+- [x] Add OpenCode service lifecycle management in Electron main.
 - [ ] Add xNet-backed `SessionSummary` storage and hooks.
 - [ ] Add a coding-workspace shell mode to the renderer.
 - [ ] Embed or host OpenCode Web in the center panel.

@@ -1,8 +1,15 @@
 /**
  * Preload script - exposes xNet API to renderer
  */
+import type { ServiceIpcChannel } from '../shared/service-ipc'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
+import {
+  OPENCODE_HOST_IPC_CHANNELS,
+  type OpenCodeHostOutputEvent,
+  type OpenCodeHostStatus
+} from '../shared/opencode-host'
+import { isAllowedServiceChannel } from '../shared/service-ipc'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
@@ -237,32 +244,90 @@ contextBridge.exposeInMainWorld('xnetBSM', {
   getDebug: () => ipcRenderer.invoke('xnet:bsm:get-debug')
 })
 
-// Allowed IPC channels for xnetServices (SEC-02: prevent arbitrary IPC access)
-const ALLOWED_SERVICE_CHANNELS = new Set([
-  // Plugin service channels
-  'xnet:service:start',
-  'xnet:service:stop',
-  'xnet:service:status',
-  'xnet:service:list'
-])
+const serviceChannelListeners = new Map<
+  string,
+  Map<(...args: unknown[]) => void, (_event: unknown, ...args: unknown[]) => void>
+>()
+
+const getServiceChannelListeners = (
+  channel: string
+): Map<(...args: unknown[]) => void, (_event: unknown, ...args: unknown[]) => void> => {
+  const existing = serviceChannelListeners.get(channel)
+  if (existing) {
+    return existing
+  }
+
+  const next = new Map<
+    (...args: unknown[]) => void,
+    (_event: unknown, ...args: unknown[]) => void
+  >()
+  serviceChannelListeners.set(channel, next)
+  return next
+}
 
 // Expose service API for plugin background processes
 contextBridge.exposeInMainWorld('xnetServices', {
   invoke: <T>(channel: string, ...args: unknown[]): Promise<T> => {
-    if (!ALLOWED_SERVICE_CHANNELS.has(channel)) {
+    if (!isAllowedServiceChannel(channel)) {
       return Promise.reject(new Error(`IPC channel not allowed: ${channel}`))
     }
     return ipcRenderer.invoke(channel, ...args)
   },
   on: (channel: string, handler: (...args: unknown[]) => void): void => {
-    if (!ALLOWED_SERVICE_CHANNELS.has(channel)) {
+    if (!isAllowedServiceChannel(channel)) {
       console.warn(`IPC channel not allowed for subscription: ${channel}`)
       return
     }
-    ipcRenderer.on(channel, (_event, ...args) => handler(...args))
+
+    const listeners = getServiceChannelListeners(channel)
+    if (listeners.has(handler)) {
+      return
+    }
+
+    const wrapped = (_event: unknown, ...args: unknown[]) => handler(...args)
+    listeners.set(handler, wrapped)
+    ipcRenderer.on(channel, wrapped as (...args: unknown[]) => void)
   },
   off: (channel: string, handler: (...args: unknown[]) => void): void => {
-    ipcRenderer.removeListener(channel, handler)
+    if (!isAllowedServiceChannel(channel)) {
+      return
+    }
+
+    const listeners = getServiceChannelListeners(channel)
+    const wrapped = listeners.get(handler)
+    if (!wrapped) {
+      return
+    }
+
+    ipcRenderer.removeListener(channel, wrapped as (...args: unknown[]) => void)
+    listeners.delete(handler)
+  }
+})
+
+contextBridge.exposeInMainWorld('xnetOpenCode', {
+  ensure: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.ENSURE),
+  status: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.STATUS),
+  stop: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.STOP),
+  onStatusChange: (callback: (status: OpenCodeHostStatus) => void) => {
+    const handler = (_: unknown, status: OpenCodeHostStatus) => callback(status)
+    ipcRenderer.on(
+      OPENCODE_HOST_IPC_CHANNELS.STATUS_CHANGE,
+      handler as (...args: unknown[]) => void
+    )
+    return () =>
+      ipcRenderer.removeListener(
+        OPENCODE_HOST_IPC_CHANNELS.STATUS_CHANGE,
+        handler as (...args: unknown[]) => void
+      )
+  },
+  onOutput: (callback: (event: OpenCodeHostOutputEvent) => void) => {
+    const handler = (_: unknown, event: OpenCodeHostOutputEvent) => callback(event)
+    ipcRenderer.on(OPENCODE_HOST_IPC_CHANNELS.OUTPUT, handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener(
+        OPENCODE_HOST_IPC_CHANNELS.OUTPUT,
+        handler as (...args: unknown[]) => void
+      )
   }
 })
 
@@ -450,6 +515,16 @@ export interface XNetServicesAPI {
   off(channel: string, handler: (...args: unknown[]) => void): void
 }
 
+export type XNetServiceChannel = ServiceIpcChannel
+
+export interface XNetOpenCodeAPI {
+  ensure(): Promise<OpenCodeHostStatus>
+  status(): Promise<OpenCodeHostStatus>
+  stop(): Promise<OpenCodeHostStatus>
+  onStatusChange(callback: (status: OpenCodeHostStatus) => void): () => void
+  onOutput(callback: (event: OpenCodeHostOutputEvent) => void): () => void
+}
+
 export interface XNetLocalAPIStatus {
   running: boolean
   port: number
@@ -526,6 +601,7 @@ declare global {
     xnet: XNetAPI
     xnetBSM: XNetBSMAPI
     xnetServices: XNetServicesAPI
+    xnetOpenCode: XNetOpenCodeAPI
     xnetLocalAPI: XNetLocalAPIAPI
     xnetTunnel: XNetTunnelAPI
     xnetNodes: XNetNodesAPI
