@@ -145,13 +145,15 @@ Inference:
 Observed facts:
 
 - `@xnetjs/react` exposes `useDatabase`, `useDatabaseDoc`, `useDatabaseRow`, and cell-level hooks in [`packages/react/src/index.ts`](../../packages/react/src/index.ts).
+- the web database view now composes over those hooks, with legacy compatibility centralized in [`packages/data/src/database/legacy-model.ts`](../../packages/data/src/database/legacy-model.ts) and consumed from [`apps/web/src/components/DatabaseView.tsx`](../../apps/web/src/components/DatabaseView.tsx).
 - the active Electron database view still stores rows/columns in a single Y.Map and performs whole-array writes in [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../apps/electron/src/renderer/components/DatabaseView.tsx).
 
 Inference:
 
-- xNet still has two partially overlapping database directions:
-  - row/node-centric React hooks,
-  - document-centric Y.Doc table editing.
+- xNet is now partway through the convergence:
+  - the web surface is on the hook-driven path,
+  - Electron still uses document-centric whole-array Y.Doc writes,
+  - and the explicit one-way migration/materialization path still needs to be built.
 
 That is a tax on API clarity, correctness, undo behavior, and future performance.
 
@@ -213,6 +215,7 @@ flowchart TD
   Worker --> Store
 
   DBHooks["useDatabase* hooks"] -. "parallel path" .-> DBModelA["row/node model"]
+  WebDB["Web DatabaseView"] --> DBHooks
   ElectronDB["Electron DatabaseView"] -. "active path" .-> DBModelB["single Y.Map row arrays"]
 
   style Bridge fill:#fee2e2

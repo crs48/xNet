@@ -1,21 +1,26 @@
 /**
- * Database View - Table/Board view with dynamic schema
- *
- * Simplified version ported from apps/electron
+ * Database View - Table/Board surface driven by the shared database hooks.
  */
 
-import { DatabaseSchema, type PropertyDefinition, type PropertyType } from '@xnetjs/data'
-import { useNode, useIdentity } from '@xnetjs/react'
-import {
-  TableView,
-  BoardView,
-  CardDetailModal,
-  type ViewConfig,
-  type TableRow,
-  type CellPresence
+import type {
+  CellValue,
+  ColumnDefinition,
+  PropertyDefinition,
+  PropertyType,
+  Schema,
+  ViewConfig as DataViewConfig
+} from '@xnetjs/data'
+import type {
+  CellPresence,
+  FilterOperator as SurfaceFilterOperator,
+  TableRow,
+  ViewConfig as SurfaceViewConfig
 } from '@xnetjs/views'
-import { Table, LayoutGrid, Plus } from 'lucide-react'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { DatabaseSchema } from '@xnetjs/data'
+import { useDatabase, useDatabaseDoc, useIdentity, useNode } from '@xnetjs/react'
+import { BoardView, CardDetailModal, TableView } from '@xnetjs/views'
+import { LayoutGrid, Plus, Table } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -25,89 +30,205 @@ interface DatabaseViewProps {
 
 type ViewMode = 'table' | 'board'
 
-/**
- * Stored column definition
- */
-interface StoredColumn {
-  id: string
-  name: string
-  type: PropertyType
-  config?: Record<string, unknown>
-}
+const SURFACE_FILTER_OPERATORS = new Set([
+  'equals',
+  'notEquals',
+  'contains',
+  'notContains',
+  'startsWith',
+  'endsWith',
+  'greaterThan',
+  'lessThan',
+  'greaterOrEqual',
+  'lessOrEqual',
+  'isEmpty',
+  'isNotEmpty',
+  'before',
+  'after',
+  'between'
+])
 
-/**
- * Build default view config from columns
- */
-function buildDefaultTableView(columns: StoredColumn[]): ViewConfig {
-  const visibleProperties = columns.map((c) => c.id)
-  const propertyWidths: Record<string, number> = {}
-  columns.forEach((c) => {
-    propertyWidths[c.id] = c.type === 'text' ? 200 : 120
-  })
-
-  const selectColumn = columns.find((c) => c.type === 'select')
-
-  return {
-    id: 'default-table',
-    name: 'Table View',
-    type: 'table',
-    visibleProperties,
-    propertyWidths,
-    sorts: [],
-    groupByProperty: selectColumn?.id
-  }
-}
-
-function buildDefaultBoardView(columns: StoredColumn[]): ViewConfig {
-  const visibleProperties = columns.map((c) => c.id)
-  const selectColumn = columns.find((c) => c.type === 'select')
-
-  return {
-    id: 'default-board',
-    name: 'Board View',
-    type: 'board',
-    visibleProperties,
-    sorts: [],
-    groupByProperty: selectColumn?.id
-  }
-}
-
-const DEFAULT_COLUMNS: StoredColumn[] = [
-  { id: 'title', name: 'Title', type: 'text' },
+const DEFAULT_COLUMNS: Array<Omit<ColumnDefinition, 'id'>> = [
   {
-    id: 'status',
+    name: 'Title',
+    type: 'text',
+    config: {},
+    isTitle: true,
+    width: 240
+  },
+  {
     name: 'Status',
     type: 'select',
     config: {
       options: [
-        { id: 'todo', label: 'To Do', color: '#6b7280' },
-        { id: 'in-progress', label: 'In Progress', color: '#3b82f6' },
-        { id: 'done', label: 'Done', color: '#22c55e' }
+        { id: 'todo', name: 'To Do', color: 'gray' },
+        { id: 'in-progress', name: 'In Progress', color: 'blue' },
+        { id: 'done', name: 'Done', color: 'green' }
       ]
     }
   },
   {
-    id: 'priority',
     name: 'Priority',
     type: 'select',
     config: {
       options: [
-        { id: 'low', label: 'Low', color: '#6b7280' },
-        { id: 'medium', label: 'Medium', color: '#f59e0b' },
-        { id: 'high', label: 'High', color: '#ef4444' }
+        { id: 'low', name: 'Low', color: 'gray' },
+        { id: 'medium', name: 'Medium', color: 'yellow' },
+        { id: 'high', name: 'High', color: 'red' }
       ]
     }
   },
-  { id: 'dueDate', name: 'Due Date', type: 'date' }
+  {
+    name: 'Due Date',
+    type: 'date',
+    config: {}
+  }
 ]
 
-export function DatabaseView({ docId }: DatabaseViewProps) {
-  const { identity } = useIdentity()
-  const did = identity?.did
+function toSurfaceViewConfig(view: DataViewConfig): SurfaceViewConfig {
+  return {
+    id: view.id,
+    name: view.name,
+    type: view.type,
+    visibleProperties: view.visibleColumns,
+    propertyWidths: view.columnWidths,
+    sorts: (view.sorts ?? []).map((sort) => ({
+      propertyId: sort.columnId,
+      direction: sort.direction
+    })),
+    filter: view.filters
+      ? {
+          type: view.filters.operator,
+          filters: view.filters.conditions.flatMap((condition) =>
+            'conditions' in condition
+              ? []
+              : SURFACE_FILTER_OPERATORS.has(condition.operator)
+                ? [
+                    {
+                      id: `${condition.columnId}:${condition.operator}`,
+                      propertyId: condition.columnId,
+                      operator: condition.operator as SurfaceFilterOperator,
+                      value: condition.value
+                    }
+                  ]
+                : []
+          )
+        }
+      : undefined,
+    groupByProperty: view.groupBy ?? undefined,
+    coverProperty: view.coverColumn,
+    dateProperty: view.dateColumn,
+    endDateProperty: view.endDateColumn
+  }
+}
 
+function toDataViewChanges(
+  changes: Partial<SurfaceViewConfig>
+): Partial<Omit<DataViewConfig, 'id'>> {
+  return {
+    ...(changes.name !== undefined ? { name: changes.name } : {}),
+    ...(changes.type !== undefined ? { type: changes.type } : {}),
+    ...(changes.visibleProperties !== undefined
+      ? { visibleColumns: changes.visibleProperties }
+      : {}),
+    ...(changes.propertyWidths !== undefined ? { columnWidths: changes.propertyWidths } : {}),
+    ...(changes.sorts !== undefined
+      ? {
+          sorts: changes.sorts.map((sort) => ({
+            columnId: sort.propertyId,
+            direction: sort.direction
+          }))
+        }
+      : {}),
+    ...(changes.filter !== undefined
+      ? {
+          filters: changes.filter
+            ? {
+                operator: changes.filter.type,
+                conditions: changes.filter.filters.map((filter) => ({
+                  columnId: filter.propertyId,
+                  operator: filter.operator,
+                  value: filter.value
+                }))
+              }
+            : null
+        }
+      : {}),
+    ...(changes.groupByProperty !== undefined ? { groupBy: changes.groupByProperty } : {}),
+    ...(changes.coverProperty !== undefined ? { coverColumn: changes.coverProperty } : {}),
+    ...(changes.dateProperty !== undefined ? { dateColumn: changes.dateProperty } : {}),
+    ...(changes.endDateProperty !== undefined ? { endDateColumn: changes.endDateProperty } : {})
+  }
+}
+
+function buildSchema(columns: ColumnDefinition[]): Schema {
+  const properties: PropertyDefinition[] = columns.map((column) => ({
+    '@id': `xnet://xnet.fyi/DynamicDatabase#${column.id}`,
+    name: column.name,
+    type: column.type as PropertyType,
+    required: false,
+    config: column.config as Record<string, unknown>
+  }))
+
+  return {
+    '@id': 'xnet://xnet.fyi/DynamicDatabase' as const,
+    '@type': 'xnet://xnet.fyi/Schema' as const,
+    name: 'DynamicDatabase',
+    namespace: 'xnet://xnet.fyi/' as const,
+    version: '1.0.0',
+    properties
+  }
+}
+
+function buildDefaultViews(columnIds: string[]): Array<Omit<DataViewConfig, 'id'>> {
+  return [
+    {
+      name: 'Table View',
+      type: 'table',
+      visibleColumns: columnIds,
+      columnWidths: Object.fromEntries(columnIds.map((columnId) => [columnId, 160])),
+      sorts: []
+    },
+    {
+      name: 'Board View',
+      type: 'board',
+      visibleColumns: columnIds,
+      sorts: [],
+      groupBy: columnIds[1] ?? columnIds[0] ?? null
+    }
+  ]
+}
+
+function flattenRows(rows: Array<{ id: string; cells: Record<string, CellValue> }>): TableRow[] {
+  return rows.map((row) => ({
+    id: row.id,
+    ...row.cells
+  }))
+}
+
+function getDefaultCellValue(column: ColumnDefinition): CellValue {
+  switch (column.type) {
+    case 'checkbox':
+      return false
+    case 'multiSelect':
+    case 'relation':
+      return []
+    case 'number':
+    case 'date':
+    case 'dateRange':
+    case 'select':
+    case 'person':
+    case 'file':
+      return null
+    default:
+      return ''
+  }
+}
+
+export function DatabaseView({ docId }: DatabaseViewProps) {
+  const { did } = useIdentity()
   const {
     data: database,
-    doc,
     loading,
     update,
     presence,
@@ -116,95 +237,70 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     createIfMissing: { title: 'Untitled Database' },
     did: did ?? undefined
   })
+  const {
+    columns,
+    views,
+    loading: schemaLoading,
+    createColumn,
+    updateColumn,
+    deleteColumn,
+    createView,
+    updateView
+  } = useDatabaseDoc(docId)
+  const { rows, loading: rowsLoading, createRow, updateRow, deleteRow } = useDatabase(docId)
 
   const [viewMode, setViewMode] = useState<ViewMode>('table')
-  const [columns, setColumns] = useState<StoredColumn[]>([])
-  const [rows, setRows] = useState<TableRow[]>([])
-  const [tableViewConfig, setTableViewConfig] = useState<ViewConfig | null>(null)
-  const [boardViewConfig, setBoardViewConfig] = useState<ViewConfig | null>(null)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
-
-  // ─── Initialize / Load Data ─────────────────────────────────────────────
+  const bootstrappedRef = useRef(false)
 
   useEffect(() => {
-    if (!doc) return
-
-    const dataMap = doc.getMap('data')
-
-    // Load or initialize columns
-    let storedColumns = dataMap.get('columns') as StoredColumn[] | undefined
-    if (!storedColumns || storedColumns.length === 0) {
-      storedColumns = DEFAULT_COLUMNS
-      dataMap.set('columns', storedColumns)
+    if (database?.defaultView === 'board') {
+      setViewMode('board')
     }
-    setColumns(storedColumns)
+  }, [database?.defaultView])
 
-    // Load or initialize rows
-    let storedRows = dataMap.get('rows') as TableRow[] | undefined
-    if (!storedRows) {
-      storedRows = []
-      dataMap.set('rows', storedRows)
-    }
-    setRows(storedRows)
+  useEffect(() => {
+    if (schemaLoading || bootstrappedRef.current) return
+    if (columns.length > 0 || views.length > 0) return
 
-    // Load or initialize view configs
-    let tableConfig = dataMap.get('tableView') as ViewConfig | undefined
-    if (!tableConfig) {
-      tableConfig = buildDefaultTableView(storedColumns)
-      dataMap.set('tableView', tableConfig)
-    }
-    setTableViewConfig(tableConfig)
+    bootstrappedRef.current = true
 
-    let boardConfig = dataMap.get('boardView') as ViewConfig | undefined
-    if (!boardConfig) {
-      boardConfig = buildDefaultBoardView(storedColumns)
-      dataMap.set('boardView', boardConfig)
-    }
-    setBoardViewConfig(boardConfig)
+    const columnIds = DEFAULT_COLUMNS.map((definition) => createColumn(definition)).filter(
+      (columnId): columnId is string => columnId !== null
+    )
 
-    // Observe changes
-    const observer = () => {
-      const cols = dataMap.get('columns') as StoredColumn[] | undefined
-      const rws = dataMap.get('rows') as TableRow[] | undefined
-      const tbl = dataMap.get('tableView') as ViewConfig | undefined
-      const brd = dataMap.get('boardView') as ViewConfig | undefined
-
-      if (cols) setColumns(cols)
-      if (rws) setRows(rws)
-      if (tbl) setTableViewConfig(tbl)
-      if (brd) setBoardViewConfig(brd)
+    if (columnIds.length === 0) {
+      return
     }
 
-    dataMap.observe(observer)
-    return () => dataMap.unobserve(observer)
-  }, [doc])
-
-  // ─── Cell Presence ────────────────────────────────────────────────────────
+    buildDefaultViews(columnIds).forEach((view) => {
+      createView(view)
+    })
+  }, [columns.length, createColumn, createView, schemaLoading, views.length])
 
   useEffect(() => {
     if (!awareness) return
 
     const updatePresences = () => {
-      const states = awareness.getStates()
-      const presences: CellPresence[] = []
-
-      states.forEach((state: Record<string, unknown>, clientId: number) => {
+      const next: CellPresence[] = []
+      awareness.getStates().forEach((state: Record<string, unknown>, clientId: number) => {
         if (clientId === awareness.clientID) return
+
         const user = state.user as { did?: string; color?: string; name?: string } | undefined
-        const cell = state.cell as { rowId: string; columnId: string } | undefined
-        if (user?.did && cell) {
-          presences.push({
-            rowId: cell.rowId,
-            columnId: cell.columnId,
-            color: user.color || '#999',
-            did: user.did,
-            name: user.name || 'Anonymous'
-          })
-        }
+        const cell = state.cell as { rowId?: string; columnId?: string } | undefined
+        if (!user?.did || !cell?.rowId || !cell?.columnId) return
+
+        next.push({
+          rowId: cell.rowId,
+          columnId: cell.columnId,
+          color: user.color ?? '#999999',
+          did: user.did,
+          name: user.name ?? 'Anonymous'
+        })
       })
 
-      setCellPresences(presences)
+      setCellPresences(next)
     }
 
     awareness.on('change', updatePresences)
@@ -215,194 +311,95 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     }
   }, [awareness])
 
-  // Broadcast focused cell via awareness
   const handleCellFocus = useCallback(
     (rowId: string, columnId: string) => {
-      if (!awareness) return
-      awareness.setLocalStateField('cell', { rowId, columnId })
+      awareness?.setLocalStateField('cell', { rowId, columnId })
     },
     [awareness]
   )
 
   const handleCellBlur = useCallback(() => {
-    if (!awareness) return
-    awareness.setLocalStateField('cell', null)
+    awareness?.setLocalStateField('cell', null)
   }, [awareness])
 
-  // ─── Row Operations ─────────────────────────────────────────────────────
-
-  const handleAddRow = useCallback(() => {
-    if (!doc) return
-
-    const newRow: TableRow = {
-      id: Math.random().toString(36).substring(2, 15)
-    }
-
-    // Initialize all columns with empty/default values
-    columns.forEach((col) => {
-      switch (col.type) {
-        case 'checkbox':
-          newRow[col.id] = false
-          break
-        case 'number':
-          newRow[col.id] = null
-          break
-        case 'multiSelect':
-          newRow[col.id] = []
-          break
-        default:
-          newRow[col.id] = ''
-      }
-    })
-
-    const dataMap = doc.getMap('data')
-    const currentRows = (dataMap.get('rows') as TableRow[]) || []
-    dataMap.set('rows', [...currentRows, newRow])
-  }, [doc, columns])
+  const handleAddRow = useCallback(async () => {
+    const values = Object.fromEntries(
+      columns.map((column) => [column.id, getDefaultCellValue(column)])
+    ) as Record<string, CellValue>
+    await createRow(values)
+  }, [columns, createRow])
 
   const handleUpdateRow = useCallback(
-    (rowId: string, property: string, value: unknown) => {
-      if (!doc) return
-
-      const dataMap = doc.getMap('data')
-      const currentRows = (dataMap.get('rows') as TableRow[]) || []
-      const updatedRows = currentRows.map((row) =>
-        row.id === rowId ? { ...row, [property]: value } : row
-      )
-      dataMap.set('rows', updatedRows)
+    async (rowId: string, property: string, value: unknown) => {
+      await updateRow(rowId, { [property]: value as CellValue })
     },
-    [doc]
+    [updateRow]
   )
 
   const handleDeleteRow = useCallback(
-    (rowId: string) => {
-      if (!doc) return
-
-      const dataMap = doc.getMap('data')
-      const currentRows = (dataMap.get('rows') as TableRow[]) || []
-      dataMap.set(
-        'rows',
-        currentRows.filter((r) => r.id !== rowId)
-      )
+    async (rowId: string) => {
+      await deleteRow(rowId)
     },
-    [doc]
+    [deleteRow]
   )
-
-  const handleMoveCard = useCallback(
-    (rowId: string, toColumn: string) => {
-      if (!doc || !boardViewConfig?.groupByProperty) return
-
-      const dataMap = doc.getMap('data')
-      const currentRows = (dataMap.get('rows') as TableRow[]) || []
-      const updatedRows = currentRows.map((row) =>
-        row.id === rowId ? { ...row, [boardViewConfig.groupByProperty!]: toColumn } : row
-      )
-      dataMap.set('rows', updatedRows)
-    },
-    [doc, boardViewConfig]
-  )
-
-  // ─── Column Operations ─────────────────────────────────────────────────
 
   const handleAddColumn = useCallback(() => {
-    if (!doc) return
-
-    const dataMap = doc.getMap('data')
-    const currentColumns = (dataMap.get('columns') as StoredColumn[]) || []
-
-    const newCol: StoredColumn = {
-      id: Math.random().toString(36).substring(2, 15),
+    createColumn({
       name: 'New Column',
-      type: 'text'
-    }
-    dataMap.set('columns', [...currentColumns, newCol])
-
-    // Update view configs
-    const tbl = (dataMap.get('tableView') as ViewConfig) || buildDefaultTableView(currentColumns)
-    dataMap.set('tableView', {
-      ...tbl,
-      visibleProperties: [...tbl.visibleProperties, newCol.id]
+      type: 'text',
+      config: {}
     })
-  }, [doc])
+  }, [createColumn])
 
   const handleUpdateColumn = useCallback(
     (
       columnId: string,
       updates: { name?: string; type?: string; config?: Record<string, unknown> }
     ) => {
-      if (!doc) return
-
-      const dataMap = doc.getMap('data')
-      const currentColumns = (dataMap.get('columns') as StoredColumn[]) || []
-      const updatedCols = currentColumns.map((c) =>
-        c.id === columnId
-          ? {
-              ...c,
-              ...(updates.name && { name: updates.name }),
-              ...(updates.type && { type: updates.type as PropertyType })
-            }
-          : c
-      )
-      dataMap.set('columns', updatedCols)
+      updateColumn(columnId, {
+        ...(updates.name !== undefined ? { name: updates.name } : {}),
+        ...(updates.type !== undefined ? { type: updates.type as ColumnDefinition['type'] } : {}),
+        ...(updates.config !== undefined ? { config: updates.config } : {})
+      })
     },
-    [doc]
+    [updateColumn]
   )
 
   const handleDeleteColumn = useCallback(
     (columnId: string) => {
-      if (!doc) return
-
-      const dataMap = doc.getMap('data')
-      const currentColumns = (dataMap.get('columns') as StoredColumn[]) || []
-      dataMap.set(
-        'columns',
-        currentColumns.filter((c) => c.id !== columnId)
-      )
+      deleteColumn(columnId)
     },
-    [doc]
+    [deleteColumn]
+  )
+
+  const tableView = useMemo(() => views.find((view) => view.type === 'table') ?? null, [views])
+  const boardView = useMemo(() => views.find((view) => view.type === 'board') ?? null, [views])
+
+  const schema = useMemo(() => buildSchema(columns), [columns])
+  const flatRows = useMemo(() => flattenRows(rows), [rows])
+  const selectedRow = useMemo(
+    () => flatRows.find((row) => row.id === selectedCardId) ?? null,
+    [flatRows, selectedCardId]
+  )
+
+  const tableViewConfig = useMemo(
+    () => (tableView ? toSurfaceViewConfig(tableView) : null),
+    [tableView]
+  )
+  const boardViewConfig = useMemo(
+    () => (boardView ? toSurfaceViewConfig(boardView) : null),
+    [boardView]
   )
 
   const handleUpdateView = useCallback(
-    (changes: Partial<ViewConfig>) => {
-      if (!doc) return
-
-      const dataMap = doc.getMap('data')
-      const configKey = viewMode === 'table' ? 'tableView' : 'boardView'
-      const currentConfig = dataMap.get(configKey) as ViewConfig | undefined
-      if (currentConfig) {
-        dataMap.set(configKey, { ...currentConfig, ...changes })
-      }
+    (changes: Partial<SurfaceViewConfig>) => {
+      const targetView = viewMode === 'table' ? tableView : boardView
+      if (!targetView) return
+      updateView(targetView.id, toDataViewChanges(changes))
     },
-    [doc, viewMode]
+    [boardView, tableView, updateView, viewMode]
   )
 
-  // Build schema from columns
-  const schema = useMemo(() => {
-    const properties: PropertyDefinition[] = columns.map((col) => ({
-      '@id': `xnet://xnet.fyi/DynamicDatabase#${col.id}`,
-      name: col.name,
-      type: col.type,
-      required: false,
-      config: col.config
-    }))
-
-    return {
-      '@id': 'xnet://xnet.fyi/DynamicDatabase' as const,
-      '@type': 'xnet://xnet.fyi/Schema' as const,
-      name: 'DynamicDatabase',
-      namespace: 'xnet://xnet.fyi/' as const,
-      version: '1.0.0',
-      properties
-    }
-  }, [columns])
-
-  // Get selected row for modal
-  const selectedRow = useMemo(
-    () => (selectedCardId ? rows.find((r) => r.id === selectedCardId) || null : null),
-    [selectedCardId, rows]
-  )
-
-  // Card click handler for modal
   const handleCardClick = useCallback((rowId: string) => {
     setSelectedCardId(rowId)
   }, [])
@@ -411,9 +408,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     setSelectedCardId(null)
   }, [])
 
-  // ─── Render ─────────────────────────────────────────────────────────────
-
-  if (loading || !doc) {
+  if (loading || schemaLoading || rowsLoading) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-muted-foreground">Loading database...</p>
@@ -423,26 +418,20 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden h-full -m-6">
-      {/* Toolbar */}
       <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
-        {/* Title */}
         <input
           type="text"
           className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
           value={database?.title || ''}
-          onChange={(e) => update({ title: e.target.value })}
+          onChange={(event) => update({ title: event.target.value })}
           placeholder="Untitled"
         />
 
         <div className="flex-1" />
 
-        {/* Presence avatars */}
         <PresenceAvatars presence={presence} />
-
-        {/* Share button */}
         <ShareButton docId={docId} docType="database" />
 
-        {/* View mode toggle */}
         <div className="flex items-center border border-border rounded-md overflow-hidden">
           <button
             onClick={() => setViewMode('table')}
@@ -469,7 +458,9 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         </div>
 
         <button
-          onClick={handleAddRow}
+          onClick={() => {
+            void handleAddRow()
+          }}
           className="flex items-center gap-1 px-3 py-1.5 bg-primary text-white rounded-md text-sm hover:bg-primary/90 transition-colors"
         >
           <Plus size={14} />
@@ -477,20 +468,25 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         </button>
       </div>
 
-      {/* View content */}
       <div className="flex-1 overflow-auto">
         {viewMode === 'table' && tableViewConfig && (
           <TableView
             schema={schema}
             view={tableViewConfig}
-            data={rows}
-            onUpdateRow={handleUpdateRow}
+            data={flatRows}
+            onUpdateRow={(rowId, property, value) => {
+              void handleUpdateRow(rowId, property, value)
+            }}
             onUpdateView={handleUpdateView}
             onAddColumn={handleAddColumn}
             onUpdateColumn={handleUpdateColumn}
             onDeleteColumn={handleDeleteColumn}
-            onAddRow={handleAddRow}
-            onDeleteRow={handleDeleteRow}
+            onAddRow={() => {
+              void handleAddRow()
+            }}
+            onDeleteRow={(rowId) => {
+              void handleDeleteRow(rowId)
+            }}
             cellPresences={cellPresences}
             onCellFocus={handleCellFocus}
             onCellBlur={handleCellBlur}
@@ -501,23 +497,30 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           <BoardView
             schema={schema}
             view={boardViewConfig}
-            data={rows}
-            onUpdateRow={handleMoveCard}
+            data={flatRows}
+            onUpdateRow={(rowId, property, value) => {
+              void handleUpdateRow(rowId, property, value)
+            }}
             onUpdateView={handleUpdateView}
-            onAddCard={handleAddRow}
+            onAddCard={() => {
+              void handleAddRow()
+            }}
             onCardClick={handleCardClick}
           />
         )}
       </div>
 
-      {/* Card detail modal */}
       <CardDetailModal
         isOpen={selectedCardId !== null}
         onClose={handleCloseModal}
         row={selectedRow}
         schema={schema}
-        onUpdateRow={handleUpdateRow}
-        onDeleteRow={handleDeleteRow}
+        onUpdateRow={(rowId, property, value) => {
+          void handleUpdateRow(rowId, property, value)
+        }}
+        onDeleteRow={(rowId) => {
+          void handleDeleteRow(rowId)
+        }}
       />
     </div>
   )

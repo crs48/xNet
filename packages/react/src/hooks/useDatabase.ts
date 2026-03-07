@@ -22,7 +22,14 @@
  * ```
  */
 
-import type { ColumnDefinition, ViewConfig, FilterGroup, SortConfig, CellValue } from '@xnetjs/data'
+import type {
+  ColumnDefinition,
+  ViewConfig,
+  FilterGroup,
+  SortConfig,
+  CellValue,
+  DatabaseDocumentModel
+} from '@xnetjs/data'
 import {
   queryRows,
   createRow as createRowOp,
@@ -31,9 +38,16 @@ import {
   moveRow,
   fromCellProperties,
   filterRows,
-  sortRows
+  sortRows,
+  hasLegacyRows,
+  getLegacyRows,
+  createLegacyRow,
+  updateLegacyRow,
+  deleteLegacyRow,
+  moveLegacyRow
 } from '@xnetjs/data'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import * as Y from 'yjs'
 import { useDatabaseDoc } from './useDatabaseDoc'
 import { useNodeStore } from './useNodeStore'
 
@@ -141,7 +155,7 @@ export function useDatabase(
   options: UseDatabaseOptions = {}
 ): UseDatabaseResult {
   const { store, isReady } = useNodeStore()
-  const { columns, views } = useDatabaseDoc(databaseId)
+  const { columns, views, doc, storageMode } = useDatabaseDoc(databaseId)
 
   const [rows, setRows] = useState<DatabaseRow[]>([])
   const [total, setTotal] = useState(0)
@@ -157,6 +171,11 @@ export function useDatabase(
   // Keep store ref for callbacks
   const storeRef = useRef(store)
   storeRef.current = store
+  const docRef = useRef(doc)
+  docRef.current = doc
+  const storageModeRef = useRef<DatabaseDocumentModel>(storageMode)
+  storageModeRef.current = storageMode
+  const rowSourceRef = useRef<'canonical' | 'legacy'>('canonical')
 
   // Get active view config
   const activeView = useMemo(() => {
@@ -167,8 +186,11 @@ export function useDatabase(
   }, [views, activeViewId])
 
   // Merge options with view config
-  const effectiveFilters = filters ?? activeView?.filters ?? null
-  const effectiveSorts = sorts ?? activeView?.sorts ?? []
+  const effectiveFilters = useMemo(
+    () => filters ?? activeView?.filters ?? null,
+    [filters, activeView]
+  )
+  const effectiveSorts = useMemo(() => sorts ?? activeView?.sorts ?? [], [sorts, activeView])
 
   // Query rows
   const fetchRows = useCallback(
@@ -183,13 +205,26 @@ export function useDatabase(
           setLoadingMore(true)
         }
 
-        const result = await queryRows(store, databaseId, {
-          limit: pageSize * 10, // Fetch more for client-side filtering
+        const currentDoc = docRef.current
+        const currentStorageMode = storageModeRef.current
+        const canonicalResult = await queryRows(store, databaseId, {
+          limit: pageSize * 10,
           cursor: reset ? undefined : cursor
         })
 
-        // Parse rows
-        let parsedRows = result.rows.map((node) => nodeToRow(node, columns))
+        const useLegacyRows =
+          currentDoc !== null &&
+          (currentStorageMode === 'legacy' ||
+            (currentStorageMode === 'mixed' &&
+              hasLegacyRows(currentDoc) &&
+              canonicalResult.rows.length === 0))
+
+        let parsedRows = useLegacyRows
+          ? readLegacyRowsPage(currentDoc, {
+              limit: pageSize * 10,
+              cursor: reset ? undefined : cursor
+            }).rows
+          : canonicalResult.rows.map((node) => nodeToRow(node, columns))
 
         // Apply client-side filtering if filters are specified
         if (effectiveFilters && effectiveFilters.conditions.length > 0) {
@@ -211,8 +246,19 @@ export function useDatabase(
         }
 
         setTotal(parsedRows.length)
-        setCursor(result.cursor)
-        setHasMore(result.hasMore)
+        if (useLegacyRows) {
+          const legacyPage = readLegacyRowsPage(currentDoc, {
+            limit: pageSize,
+            cursor: reset ? undefined : cursor
+          })
+          rowSourceRef.current = 'legacy'
+          setCursor(legacyPage.cursor)
+          setHasMore(legacyPage.hasMore)
+        } else {
+          rowSourceRef.current = 'canonical'
+          setCursor(canonicalResult.cursor)
+          setHasMore(canonicalResult.hasMore)
+        }
         setError(null)
       } catch (err) {
         setError(err instanceof Error ? err : new Error(String(err)))
@@ -221,7 +267,7 @@ export function useDatabase(
         setLoadingMore(false)
       }
     },
-    [store, isReady, databaseId, pageSize, cursor, columns]
+    [store, isReady, databaseId, pageSize, cursor, columns, effectiveFilters, effectiveSorts]
   )
 
   // Initial fetch when columns are loaded
@@ -230,7 +276,7 @@ export function useDatabase(
       fetchRows(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [databaseId, columns.length])
+  }, [databaseId, columns.length, doc, storageMode])
 
   // Refetch when filters/sorts change
   useEffect(() => {
@@ -238,7 +284,7 @@ export function useDatabase(
       fetchRows(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveFilters, effectiveSorts, search])
+  }, [effectiveFilters, effectiveSorts, search, doc, storageMode])
 
   // Subscribe to row changes
   useEffect(() => {
@@ -257,8 +303,20 @@ export function useDatabase(
       }
     })
 
-    return unsubscribe
-  }, [store, databaseId, fetchRows])
+    const currentDoc = doc
+    const handleDocUpdate = () => {
+      if (rowSourceRef.current === 'legacy') {
+        fetchRows(true)
+      }
+    }
+
+    currentDoc?.on('update', handleDocUpdate)
+
+    return () => {
+      unsubscribe()
+      currentDoc?.off('update', handleDocUpdate)
+    }
+  }, [store, databaseId, fetchRows, doc])
 
   // Load more
   const loadMore = useCallback(async () => {
@@ -270,6 +328,10 @@ export function useDatabase(
   const handleCreateRow = useCallback(
     async (values?: Record<string, CellValue>): Promise<string> => {
       if (!storeRef.current) throw new Error('Store not ready')
+
+      if (rowSourceRef.current === 'legacy' && docRef.current) {
+        return createLegacyRow(docRef.current, values ?? {})
+      }
 
       const lastRow = rows[rows.length - 1]
 
@@ -287,6 +349,10 @@ export function useDatabase(
   // Update row
   const handleUpdateRow = useCallback(
     async (rowId: string, values: Record<string, CellValue>): Promise<void> => {
+      if (rowSourceRef.current === 'legacy' && docRef.current) {
+        updateLegacyRow(docRef.current, rowId, values)
+        return
+      }
       if (!storeRef.current) throw new Error('Store not ready')
       await updateCells(storeRef.current, rowId, values)
     },
@@ -295,6 +361,10 @@ export function useDatabase(
 
   // Delete row
   const handleDeleteRow = useCallback(async (rowId: string): Promise<void> => {
+    if (rowSourceRef.current === 'legacy' && docRef.current) {
+      deleteLegacyRow(docRef.current, rowId)
+      return
+    }
     if (!storeRef.current) throw new Error('Store not ready')
     await deleteRowOp(storeRef.current, rowId)
   }, [])
@@ -302,6 +372,10 @@ export function useDatabase(
   // Reorder row
   const handleReorderRow = useCallback(
     async (rowId: string, before?: string, after?: string): Promise<void> => {
+      if (rowSourceRef.current === 'legacy' && docRef.current) {
+        moveLegacyRow(docRef.current, rowId, { beforeId: before, afterId: after })
+        return
+      }
       if (!storeRef.current) throw new Error('Store not ready')
       await moveRow(storeRef.current, rowId, { before, after })
     },
@@ -310,6 +384,12 @@ export function useDatabase(
 
   // Delete multiple rows
   const handleDeleteRows = useCallback(async (rowIds: string[]): Promise<void> => {
+    if (rowSourceRef.current === 'legacy' && docRef.current) {
+      for (const rowId of rowIds) {
+        deleteLegacyRow(docRef.current, rowId)
+      }
+      return
+    }
     if (!storeRef.current) throw new Error('Store not ready')
     await Promise.all(rowIds.map((id) => deleteRowOp(storeRef.current!, id)))
   }, [])
@@ -353,6 +433,35 @@ function nodeToRow(
     cells,
     createdAt: node.createdAt,
     createdBy: node.createdBy
+  }
+}
+
+function readLegacyRowsPage(
+  doc: Y.Doc,
+  options: { limit: number; cursor?: string }
+): { rows: DatabaseRow[]; cursor?: string; hasMore: boolean } {
+  let rows = getLegacyRows(doc).map((row) => ({
+    id: row.id,
+    sortKey: row.sortKey,
+    cells: row.cells,
+    createdAt: row.createdAt,
+    createdBy: row.createdBy
+  }))
+
+  if (options.cursor) {
+    const cursorIndex = rows.findIndex((row) => row.id === options.cursor)
+    if (cursorIndex !== -1) {
+      rows = rows.slice(cursorIndex + 1)
+    }
+  }
+
+  const hasMore = rows.length > options.limit
+  const page = hasMore ? rows.slice(0, options.limit) : rows
+
+  return {
+    rows: page,
+    cursor: hasMore ? page[page.length - 1]?.id : undefined,
+    hasMore
   }
 }
 

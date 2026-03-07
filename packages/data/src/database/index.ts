@@ -100,6 +100,31 @@ export {
   deleteMeta
 } from './database-doc'
 
+// Legacy database compatibility
+export {
+  getDatabaseDocumentModel,
+  prefersLegacyDatabaseModel,
+  hasLegacyRows,
+  getLegacyColumns,
+  getLegacyColumn,
+  createLegacyColumn,
+  updateLegacyColumn,
+  deleteLegacyColumn,
+  reorderLegacyColumn,
+  getLegacyViews,
+  getLegacyView,
+  createLegacyView,
+  updateLegacyView,
+  deleteLegacyView,
+  getLegacyRows,
+  createLegacyRow,
+  updateLegacyRow,
+  deleteLegacyRow,
+  moveLegacyRow,
+  type DatabaseDocumentModel,
+  type LegacyDatabaseRow
+} from './legacy-model'
+
 // Column operations
 export {
   getColumns,
