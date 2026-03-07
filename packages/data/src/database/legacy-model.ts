@@ -107,12 +107,7 @@ function hasLegacySchemaState(doc: Y.Doc): boolean {
   const dataMap = getLegacyDataMap(doc)
   if (!dataMap) return false
 
-  return (
-    dataMap.has('columns') ||
-    LEGACY_VIEW_KEYS.some((key) => dataMap.has(key)) ||
-    dataMap.has('schema') ||
-    dataMap.has('schemaHistory')
-  )
+  return dataMap.has('columns') || LEGACY_VIEW_KEYS.some((key) => dataMap.has(key))
 }
 
 function hasCanonicalSchemaState(doc: Y.Doc): boolean {

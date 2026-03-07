@@ -176,6 +176,8 @@ export function useDatabase(
   const storageModeRef = useRef<DatabaseDocumentModel>(storageMode)
   storageModeRef.current = storageMode
   const rowSourceRef = useRef<'canonical' | 'legacy'>('canonical')
+  const rowsRef = useRef<DatabaseRow[]>([])
+  rowsRef.current = rows
 
   // Get active view config
   const activeView = useMemo(() => {
@@ -377,7 +379,18 @@ export function useDatabase(
         return
       }
       if (!storeRef.current) throw new Error('Store not ready')
-      await moveRow(storeRef.current, rowId, { before, after })
+
+      const resolveBoundary = (value: string | undefined): string | undefined => {
+        if (!value) return undefined
+
+        const matchingRow = rowsRef.current.find((row) => row.id === value || row.sortKey === value)
+        return matchingRow?.sortKey ?? value
+      }
+
+      await moveRow(storeRef.current, rowId, {
+        before: resolveBoundary(before),
+        after: resolveBoundary(after)
+      })
     },
     []
   )

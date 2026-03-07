@@ -10,8 +10,19 @@ import { DatabaseView } from './DatabaseView'
 
 const mockUpdate = vi.fn()
 const mockCreate = vi.fn()
+const mockCreateColumn = vi.fn()
+const mockUpdateColumn = vi.fn()
+const mockDeleteColumn = vi.fn()
+const mockCreateView = vi.fn()
+const mockUpdateView = vi.fn()
+const mockCreateRow = vi.fn()
+const mockUpdateRow = vi.fn()
+const mockDeleteRow = vi.fn()
+const mockReorderRow = vi.fn()
 
 const mockUseNode = vi.fn()
+const mockUseDatabaseDoc = vi.fn()
+const mockUseDatabase = vi.fn()
 const mockUseIdentity = vi.fn()
 const mockUseMutate = vi.fn()
 const mockUseQuery = vi.fn()
@@ -49,6 +60,8 @@ vi.mock('@xnetjs/data', () => ({
 }))
 
 vi.mock('@xnetjs/react', () => ({
+  useDatabaseDoc: (...args: unknown[]) => mockUseDatabaseDoc(...args),
+  useDatabase: (...args: unknown[]) => mockUseDatabase(...args),
   useNode: (...args: unknown[]) => mockUseNode(...args),
   useIdentity: (...args: unknown[]) => mockUseIdentity(...args),
   useMutate: (...args: unknown[]) => mockUseMutate(...args),
@@ -143,15 +156,11 @@ function createDatabaseDoc(): Y.Doc {
       id: 'status',
       name: 'Status',
       type: 'select',
-      options: ['Todo', 'Done']
-    }
-  ])
-  dataMap.set('rows', [
-    {
-      id: 'row-1',
-      values: {
-        title: 'First row',
-        status: 'Todo'
+      config: {
+        options: [
+          { id: 'todo', name: 'Todo' },
+          { id: 'done', name: 'Done' }
+        ]
       }
     }
   ])
@@ -166,10 +175,70 @@ function createDatabaseDoc(): Y.Doc {
   return doc
 }
 
+const mockColumns = [
+  {
+    id: 'title',
+    name: 'Title',
+    type: 'text' as const,
+    width: 240,
+    config: {}
+  },
+  {
+    id: 'status',
+    name: 'Status',
+    type: 'select' as const,
+    width: 140,
+    config: {
+      options: [
+        { id: 'todo', name: 'Todo' },
+        { id: 'done', name: 'Done' }
+      ]
+    }
+  }
+]
+
+const mockViews = [
+  {
+    id: 'table-view',
+    name: 'Table View',
+    type: 'table' as const,
+    visibleColumns: ['title', 'status'],
+    columnWidths: { title: 240, status: 140 },
+    sorts: []
+  },
+  {
+    id: 'board-view',
+    name: 'Board View',
+    type: 'board' as const,
+    visibleColumns: ['title', 'status'],
+    sorts: [],
+    groupBy: 'status'
+  }
+]
+
+const mockRows = [
+  {
+    id: 'row-1',
+    cells: {
+      title: 'First row',
+      status: 'todo'
+    }
+  }
+]
+
 describe('DatabaseView minimal chrome', () => {
   beforeEach(() => {
     mockUpdate.mockReset()
     mockCreate.mockReset()
+    mockCreateColumn.mockReset()
+    mockUpdateColumn.mockReset()
+    mockDeleteColumn.mockReset()
+    mockCreateView.mockReset()
+    mockUpdateView.mockReset()
+    mockCreateRow.mockReset()
+    mockUpdateRow.mockReset()
+    mockDeleteRow.mockReset()
+    mockReorderRow.mockReset()
 
     mockUseIdentity.mockReturnValue({ did: 'did:xnet:test' })
     mockUseMutate.mockReturnValue({ create: mockCreate })
@@ -188,11 +257,29 @@ describe('DatabaseView minimal chrome', () => {
     })
     mockUseNode.mockReturnValue({
       data: { title: 'Focus DB' },
-      doc: createDatabaseDoc(),
       loading: false,
       update: mockUpdate,
       presence: [{ did: 'did:xnet:peer', color: '#22c55e' }],
       awareness: createAwarenessMock()
+    })
+    mockUseDatabaseDoc.mockReturnValue({
+      columns: mockColumns,
+      views: mockViews,
+      doc: createDatabaseDoc(),
+      loading: false,
+      createColumn: mockCreateColumn,
+      updateColumn: mockUpdateColumn,
+      deleteColumn: mockDeleteColumn,
+      createView: mockCreateView,
+      updateView: mockUpdateView
+    })
+    mockUseDatabase.mockReturnValue({
+      rows: mockRows,
+      loading: false,
+      createRow: mockCreateRow,
+      updateRow: mockUpdateRow,
+      deleteRow: mockDeleteRow,
+      reorderRow: mockReorderRow
     })
   })
 
