@@ -2,6 +2,11 @@
 
 DataBridge abstractions for moving xNet data operations off the main thread.
 
+> **Status:** Experimental
+> Platform entrypoints: `@xnetjs/data-bridge/worker`, `@xnetjs/data-bridge/native`, `@xnetjs/data-bridge/types`
+
+The root barrel remains available, but this package is still converging around the final worker and IPC runtime model. See [`docs/reference/api-lifecycle-matrix.md`](../../docs/reference/api-lifecycle-matrix.md) for the current matrix.
+
 ## Installation
 
 ```bash

@@ -10,7 +10,7 @@ Core xNet packages for decentralized data, sync, UI, and tooling.
 | ------------------------------ | ----------------------------------------------------- | ----- | ------ |
 | [@xnetjs/core](./core)         | Types, content addressing (CIDs), permissions, RBAC   | 5     | Stable |
 | [@xnetjs/crypto](./crypto)     | BLAKE3 hashing, Ed25519 signing, XChaCha20 encryption | 4     | Stable |
-| [@xnetjs/identity](./identity) | DID:key generation, UCAN tokens, passkey storage      | 4     | Stable |
+| [@xnetjs/identity](./identity) | DID:key generation, UCAN tokens, passkey storage      | 4     | Mixed  |
 
 ### Infrastructure
 
@@ -18,7 +18,7 @@ Core xNet packages for decentralized data, sync, UI, and tooling.
 | ---------------------------- | ------------------------------------------------------- | ----- | ------ |
 | [@xnetjs/storage](./storage) | SQLite/memory adapters and blob storage                 | 4     | Stable |
 | [@xnetjs/sync](./sync)       | Change\<T\>, Lamport clocks, hash chains, Yjs security  | 10    | Stable |
-| [@xnetjs/data](./data)       | Schema system, NodeStore, 16 property helpers, Yjs CRDT | 10    | Stable |
+| [@xnetjs/data](./data)       | Schema system, NodeStore, 16 property helpers, Yjs CRDT | 10    | Mixed  |
 | [@xnetjs/network](./network) | libp2p node, y-webrtc provider, security suite          | 1     | Stable |
 | [@xnetjs/query](./query)     | Local query engine, MiniSearch FTS, federation          | 2     | Stable |
 | [@xnetjs/hub](./hub)         | Signaling, sync relay, backup, FTS5, sharding           | 0     | Stable |
@@ -27,7 +27,7 @@ Core xNet packages for decentralized data, sync, UI, and tooling.
 
 | Package                          | Description                                         | Tests | Status |
 | -------------------------------- | --------------------------------------------------- | ----- | ------ |
-| [@xnetjs/react](./react)         | useQuery, useMutate, useNode, hub/plugin hooks      | 2     | Stable |
+| [@xnetjs/react](./react)         | useQuery, useMutate, useNode, hub/plugin hooks      | 2     | Mixed  |
 | [@xnetjs/sdk](./sdk)             | Unified SDK re-exports and client bootstrap         | 1     | Stable |
 | [@xnetjs/editor](./editor)       | TipTap editor, slash commands, wikilinks, drag-drop | 23    | Stable |
 | [@xnetjs/ui](./ui)               | Base UI primitives, composed components, theme      | 0     | Stable |
@@ -42,10 +42,16 @@ Core xNet packages for decentralized data, sync, UI, and tooling.
 
 ### Tooling
 
-| Package                              | Description                                            | Tests | Status |
-| ------------------------------------ | ------------------------------------------------------ | ----- | ------ |
-| [@xnetjs/cli](./cli)                 | CLI commands for schema diff/migration and diagnostics | -     | Stable |
-| [@xnetjs/data-bridge](./data-bridge) | Bridge abstraction for off-main-thread data access     | -     | Stable |
+| Package                              | Description                                            | Tests | Status       |
+| ------------------------------------ | ------------------------------------------------------ | ----- | ------------ |
+| [@xnetjs/cli](./cli)                 | CLI commands for schema diff/migration and diagnostics | -     | Stable       |
+| [@xnetjs/data-bridge](./data-bridge) | Bridge abstraction for off-main-thread data access     | -     | Experimental |
+
+## Lifecycle Notes
+
+- `Mixed` means the package keeps a backward-compatible root barrel, but only part of that root surface is the recommended stable contract for new code.
+- `Experimental` means the package or entrypoint is shipped but still actively converging.
+- The current entrypoint matrix lives in [`docs/reference/api-lifecycle-matrix.md`](../docs/reference/api-lifecycle-matrix.md).
 
 ## Dependency Graph
 
