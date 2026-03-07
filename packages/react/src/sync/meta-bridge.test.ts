@@ -48,6 +48,7 @@ function createMockNodeStore(): NodeStore & {
     _emitChange(nodeId: string, properties: Record<string, unknown>) {
       // Update internal state
       const existing = data.nodes.get(nodeId)
+      const previousNode = existing ? { properties: { ...existing.properties } } : null
       if (existing) {
         existing.properties = { ...existing.properties, ...properties }
       } else {
@@ -62,6 +63,7 @@ function createMockNodeStore(): NodeStore & {
             properties
           }
         } as NodeChange,
+        previousNode: previousNode as any,
         node: data.nodes.get(nodeId) as any,
         isRemote: false
       }

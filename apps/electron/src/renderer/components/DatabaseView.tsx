@@ -40,6 +40,7 @@ import {
   MenuSeparator,
   type CommentThreadData
 } from '@xnetjs/ui'
+import { useUndoScope } from '@xnetjs/react/internal'
 import {
   TableView,
   BoardView,
@@ -80,6 +81,8 @@ interface CommentPopoverState {
   /** Focus the reply textarea on open */
   focusReply: boolean
 }
+
+type UndoDomain = 'structured' | 'document'
 
 const INITIAL_COMMENT_STATE: CommentPopoverState = {
   visible: false,
@@ -287,6 +290,13 @@ function inferMovedRow(currentOrder: string[], nextOrder: string[]): string | nu
   return nextOrder[start] ?? null
 }
 
+function getYjsStackDepth(manager: Y.UndoManager | null, stack: 'undoStack' | 'redoStack'): number {
+  if (!manager) return 0
+
+  const entries = (manager as unknown as Record<'undoStack' | 'redoStack', unknown[]>)[stack]
+  return Array.isArray(entries) ? entries.length : 0
+}
+
 function DatabaseViewModeToggle({
   viewMode,
   onChange,
@@ -431,6 +441,15 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     deleteRow,
     reorderRow
   } = useDatabase(docId)
+  const undoScope = useMemo(() => [docId, ...rows.map((row) => row.id)], [docId, rows])
+  const {
+    undo: undoStructured,
+    redo: redoStructured,
+    canUndo: canUndoStructured,
+    canRedo: canRedoStructured
+  } = useUndoScope(undoScope, {
+    localDID: did ?? null
+  })
 
   const [viewMode, setViewMode] = useState<ViewMode>('table')
   const [cellPresences, setCellPresences] = useState<CellPresence[]>([])
@@ -479,7 +498,8 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
   const commentIndicatorHoveredRef = useRef(false)
   const commentPopoverHoveredRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
-  const undoManagerRef = useRef<Y.UndoManager | null>(null)
+  const documentUndoManagerRef = useRef<Y.UndoManager | null>(null)
+  const lastUndoDomainRef = useRef<UndoDomain>('document')
 
   const isTextInputLikeElement = useCallback((target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) return false
@@ -497,27 +517,83 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
   useEffect(() => {
     if (!databaseDoc) {
-      undoManagerRef.current = null
+      documentUndoManagerRef.current = null
       return
     }
 
     const dataMap = databaseDoc.getMap('data')
     const manager = new Y.UndoManager([dataMap], { captureTimeout: 300 })
-    undoManagerRef.current = manager
+    documentUndoManagerRef.current = manager
 
     return () => {
       manager.destroy()
-      if (undoManagerRef.current === manager) {
-        undoManagerRef.current = null
+      if (documentUndoManagerRef.current === manager) {
+        documentUndoManagerRef.current = null
       }
     }
   }, [databaseDoc])
 
+  const markDocumentUndoActivity = useCallback(() => {
+    lastUndoDomainRef.current = 'document'
+  }, [])
+
+  const markStructuredUndoActivity = useCallback(() => {
+    lastUndoDomainRef.current = 'structured'
+  }, [])
+
+  const runScopedUndo = useCallback(
+    async (direction: 'undo' | 'redo'): Promise<void> => {
+      const canDocument =
+        getYjsStackDepth(
+          documentUndoManagerRef.current,
+          direction === 'undo' ? 'undoStack' : 'redoStack'
+        ) > 0
+      const canStructured = direction === 'undo' ? canUndoStructured : canRedoStructured
+
+      if (lastUndoDomainRef.current === 'structured') {
+        if (canStructured) {
+          const handled = direction === 'undo' ? await undoStructured() : await redoStructured()
+          if (handled) {
+            lastUndoDomainRef.current = 'structured'
+            return
+          }
+        }
+
+        if (canDocument && documentUndoManagerRef.current) {
+          if (direction === 'undo') {
+            documentUndoManagerRef.current.undo()
+          } else {
+            documentUndoManagerRef.current.redo()
+          }
+          lastUndoDomainRef.current = 'document'
+        }
+        return
+      }
+
+      if (canDocument && documentUndoManagerRef.current) {
+        if (direction === 'undo') {
+          documentUndoManagerRef.current.undo()
+        } else {
+          documentUndoManagerRef.current.redo()
+        }
+        lastUndoDomainRef.current = 'document'
+        return
+      }
+
+      if (canStructured) {
+        const handled = direction === 'undo' ? await undoStructured() : await redoStructured()
+        if (handled) {
+          lastUndoDomainRef.current = 'structured'
+        }
+      }
+    },
+    [canRedoStructured, canUndoStructured, redoStructured, undoStructured]
+  )
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const manager = undoManagerRef.current
       const container = containerRef.current
-      if (!manager || !container) return
+      if (!container) return
 
       const key = e.key.toLowerCase()
       const isMod = e.metaKey || e.ctrlKey
@@ -544,26 +620,22 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
       if (key === 'z') {
         e.preventDefault()
-        if (e.shiftKey) {
-          manager.redo()
-        } else {
-          manager.undo()
-        }
+        void runScopedUndo(e.shiftKey ? 'redo' : 'undo')
         return
       }
 
       if (!e.metaKey && e.ctrlKey && !e.shiftKey && key === 'y') {
         e.preventDefault()
-        manager.redo()
+        void runScopedUndo('redo')
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isTextInputLikeElement, isDatabaseEditableTarget])
+  }, [isTextInputLikeElement, isDatabaseEditableTarget, runScopedUndo])
 
   const stopUndoCapture = useCallback(() => {
-    undoManagerRef.current?.stopCapturing()
+    documentUndoManagerRef.current?.stopCapturing()
   }, [])
 
   const scheduleCommentDismiss = useCallback(() => {
@@ -1089,6 +1161,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
   const handleUpdateSchemaMetadata = useCallback(
     (updates: Partial<Pick<DatabaseSchemaMetadata, 'name' | 'description'>>) => {
       if (!databaseDoc) return
+      markDocumentUndoActivity()
 
       const currentMeta =
         schemaMetadata ?? createInitialSchemaMetadata(database?.title ?? 'Untitled Database')
@@ -1099,7 +1172,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         updatedAt: Date.now()
       })
     },
-    [database?.title, databaseDoc, schemaMetadata, writeSchemaMetadata]
+    [database?.title, databaseDoc, markDocumentUndoActivity, schemaMetadata, writeSchemaMetadata]
   )
 
   const handleCloneSchema = useCallback(
@@ -1173,6 +1246,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
   const handleAddColumnFromModal = useCallback(
     (columnDef: NewColumnDefinition) => {
+      markDocumentUndoActivity()
       stopUndoCapture()
 
       const normalizedConfig: Record<string, unknown> = {
@@ -1202,7 +1276,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         `Added column "${columnDef.name}"`
       )
     },
-    [columns, createColumn, recordSchemaVersion, stopUndoCapture]
+    [columns, createColumn, markDocumentUndoActivity, recordSchemaVersion, stopUndoCapture]
   )
 
   const handleUpdateColumn = useCallback(
@@ -1210,6 +1284,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
       const existingColumn = columns.find((column) => column.id === columnId)
       if (!existingColumn) return
 
+      markDocumentUndoActivity()
       stopUndoCapture()
 
       const nextColumns = columns.map((column) =>
@@ -1251,7 +1326,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
       recordSchemaVersion('update', nextColumns, `Updated column "${existingColumn.name}"`)
     },
-    [columns, recordSchemaVersion, stopUndoCapture, updateColumn]
+    [columns, markDocumentUndoActivity, recordSchemaVersion, stopUndoCapture, updateColumn]
   )
 
   const handleDeleteColumn = useCallback(
@@ -1259,6 +1334,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
       const deletedColumn = columns.find((column) => column.id === columnId)
       if (!deletedColumn) return
 
+      markDocumentUndoActivity()
       stopUndoCapture()
       deleteColumn(columnId)
       recordSchemaVersion(
@@ -1267,7 +1343,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         `Deleted column "${deletedColumn.name}"`
       )
     },
-    [columns, deleteColumn, recordSchemaVersion, stopUndoCapture]
+    [columns, deleteColumn, markDocumentUndoActivity, recordSchemaVersion, stopUndoCapture]
   )
 
   const handleAddRow = useCallback(async () => {
@@ -1275,39 +1351,44 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
       columns.map((column) => [column.id, getDefaultCellValue(column)])
     ) as Record<string, CellValue>
 
+    markStructuredUndoActivity()
     await createRow(values)
-  }, [columns, createRow, getDefaultCellValue])
+  }, [columns, createRow, getDefaultCellValue, markStructuredUndoActivity])
 
   const handleUpdateRow = useCallback(
     async (rowId: string, propertyId: string, value: unknown) => {
+      markStructuredUndoActivity()
       await updateRow(rowId, { [propertyId]: value as CellValue })
     },
-    [updateRow]
+    [markStructuredUndoActivity, updateRow]
   )
 
   const handleDeleteRow = useCallback(
     async (rowId: string) => {
+      markStructuredUndoActivity()
       await deleteRow(rowId)
     },
-    [deleteRow]
+    [deleteRow, markStructuredUndoActivity]
   )
 
   const handleUpdateTableView = useCallback(
     (changes: Partial<SurfaceViewConfig>) => {
       const viewId = ensureView('table')
       if (!viewId) return
+      markDocumentUndoActivity()
       updateView(viewId, toDataViewChanges(changes))
     },
-    [ensureView, updateView]
+    [ensureView, markDocumentUndoActivity, updateView]
   )
 
   const handleUpdateBoardView = useCallback(
     (changes: Partial<SurfaceViewConfig>) => {
       const viewId = ensureView('board')
       if (!viewId) return
+      markDocumentUndoActivity()
       updateView(viewId, toDataViewChanges(changes))
     },
-    [ensureView, updateView]
+    [ensureView, markDocumentUndoActivity, updateView]
   )
 
   const handleAddCard = useCallback(
@@ -1324,9 +1405,16 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         ])
       ) as Record<string, CellValue>
 
+      markStructuredUndoActivity()
       await createRow(values)
     },
-    [columns, createRow, effectiveBoardView.groupByProperty, getDefaultCellValue]
+    [
+      columns,
+      createRow,
+      effectiveBoardView.groupByProperty,
+      getDefaultCellValue,
+      markStructuredUndoActivity
+    ]
   )
 
   const handleAddBoardColumn = useCallback(() => {
@@ -1341,6 +1429,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     const options =
       (groupColumn.config?.options as Array<{ id: string; name: string; color?: string }>) ?? []
 
+    markDocumentUndoActivity()
     stopUndoCapture()
     updateColumn(groupByProp, {
       config: {
@@ -1355,7 +1444,13 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         ]
       }
     })
-  }, [columns, effectiveBoardView.groupByProperty, stopUndoCapture, updateColumn])
+  }, [
+    columns,
+    effectiveBoardView.groupByProperty,
+    markDocumentUndoActivity,
+    stopUndoCapture,
+    updateColumn
+  ])
 
   const handleRenameBoardColumn = useCallback(
     (columnId: string, newName: string) => {
@@ -1368,6 +1463,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
       const options =
         (groupColumn.config?.options as Array<{ id: string; name: string; color?: string }>) ?? []
 
+      markDocumentUndoActivity()
       stopUndoCapture()
       updateColumn(groupByProp, {
         config: {
@@ -1378,7 +1474,13 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         }
       })
     },
-    [columns, effectiveBoardView.groupByProperty, stopUndoCapture, updateColumn]
+    [
+      columns,
+      effectiveBoardView.groupByProperty,
+      markDocumentUndoActivity,
+      stopUndoCapture,
+      updateColumn
+    ]
   )
 
   const handleDeleteBoardColumn = useCallback(
@@ -1392,6 +1494,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
       const options =
         (groupColumn.config?.options as Array<{ id: string; name: string; color?: string }>) ?? []
 
+      markDocumentUndoActivity()
       stopUndoCapture()
       updateColumn(groupByProp, {
         config: {
@@ -1420,7 +1523,15 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         })
       )
     },
-    [columns, effectiveBoardView.groupByProperty, rows, stopUndoCapture, updateColumn, updateRow]
+    [
+      columns,
+      effectiveBoardView.groupByProperty,
+      markDocumentUndoActivity,
+      rows,
+      stopUndoCapture,
+      updateColumn,
+      updateRow
+    ]
   )
 
   const handleReorderBoardColumns = useCallback(
@@ -1434,6 +1545,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
       const options =
         (groupColumn.config?.options as Array<{ id: string; name: string; color?: string }>) ?? []
 
+      markDocumentUndoActivity()
       stopUndoCapture()
       updateColumn(groupByProp, {
         config: {
@@ -1447,7 +1559,13 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         }
       })
     },
-    [columns, effectiveBoardView.groupByProperty, stopUndoCapture, updateColumn]
+    [
+      columns,
+      effectiveBoardView.groupByProperty,
+      markDocumentUndoActivity,
+      stopUndoCapture,
+      updateColumn
+    ]
   )
 
   const handleReorderCards = useCallback(
@@ -1459,9 +1577,10 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
       const targetIndex = newRowOrder.indexOf(movedRowId)
       if (targetIndex === -1) return
 
+      markStructuredUndoActivity()
       await reorderRow(movedRowId, newRowOrder[targetIndex + 1], newRowOrder[targetIndex - 1])
     },
-    [reorderRow, rows]
+    [markStructuredUndoActivity, reorderRow, rows]
   )
 
   const handleCardClick = useCallback((itemId: string) => {

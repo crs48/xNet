@@ -147,8 +147,10 @@ Observed facts:
 - `@xnetjs/react` exposes `useDatabase`, `useDatabaseDoc`, `useDatabaseRow`, and cell-level hooks in [`packages/react/src/index.ts`](../../packages/react/src/index.ts).
 - the web database view now composes over those hooks, with legacy compatibility centralized in [`packages/data/src/database/legacy-model.ts`](../../packages/data/src/database/legacy-model.ts) and consumed from [`apps/web/src/components/DatabaseView.tsx`](../../apps/web/src/components/DatabaseView.tsx).
 - explicit legacy-to-canonical materialization now exists in [`packages/data/src/database/legacy-migration.ts`](../../packages/data/src/database/legacy-migration.ts), and [`useDatabaseDoc()`](../../packages/react/src/hooks/useDatabaseDoc.ts) now surfaces migration status plus a deliberate migration action.
-- the Electron database view now also composes over [`useDatabaseDoc()`](../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../packages/react/src/hooks/useDatabase.ts) in [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../apps/electron/src/renderer/components/DatabaseView.tsx), while schema metadata/history and undo wiring still remain partially document-centric.
+- the Electron database view now also composes over [`useDatabaseDoc()`](../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../packages/react/src/hooks/useDatabase.ts) in [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../apps/electron/src/renderer/components/DatabaseView.tsx), with row-backed edits routed through structured undo scope while schema/rich-text document undo remains Yjs-scoped.
 - canonical row reordering now accepts row ids at the hook boundary in [`packages/react/src/hooks/useDatabase.ts`](../../packages/react/src/hooks/useDatabase.ts), backed by corrected fractional-index positioning in [`packages/data/src/database/row-operations.ts`](../../packages/data/src/database/row-operations.ts).
+- package-level proof now exists for cross-device row ordering, row-count convergence, and idempotent legacy materialization after canonical rows sync in [`packages/data/src/database/row-operations.test.ts`](../../packages/data/src/database/row-operations.test.ts) and [`packages/data/src/database/legacy-migration.test.ts`](../../packages/data/src/database/legacy-migration.test.ts).
+- history and hook coverage now proves intention-based structured undo for row edits and row-create batches in [`packages/history/src/history.test.ts`](../../packages/history/src/history.test.ts), [`packages/react/src/hooks/useUndoScope.test.tsx`](../../packages/react/src/hooks/useUndoScope.test.tsx), and [`packages/react/src/hooks/useUndo.test.tsx`](../../packages/react/src/hooks/useUndo.test.tsx).
 
 Inference:
 
@@ -156,9 +158,9 @@ Inference:
   - the web surface is on the hook-driven path,
   - the explicit one-way migration/materialization path now exists,
   - Electron now uses the same row/column/view hook model,
-  - and undo plus cross-device proving still need to catch up to the converged model.
+  - and structured undo now matches the converged row model.
 
-That is a tax on API clarity, correctness, undo behavior, and future performance.
+The remaining database question is narrower now: whether schema metadata stays Yjs-backed behind the hook layer or eventually becomes fully node-native as well.
 
 ### 4. The public API surface is too large to honestly call fully stable
 
@@ -670,7 +672,7 @@ gantt
 - [ ] Large workspaces remain responsive in sidebar/search flows
 - [ ] Offline edits survive refresh, reconnect, and multi-device replay in repeatable tests
 - [ ] Browser storage durability state is surfaced to users, not left implicit
-- [ ] Database undo/redo behavior is intention-based rather than array-rewrite dependent
+- [x] Database undo/redo behavior is intention-based rather than array-rewrite dependent
 - [ ] Share/revoke/reconnect scenarios behave predictably under automated tests
 - [ ] Web app can serve as a daily driver before major Electron shell expansion
 

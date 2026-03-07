@@ -6,7 +6,14 @@ import type { PrunableStorageAdapter } from './pruning'
 import type { DID } from '@xnetjs/core'
 import type { SchemaIRI, NodeStorageAdapter, NodeChange } from '@xnetjs/data'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
-import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
+import {
+  NodeStore,
+  MemoryNodeStorageAdapter,
+  DatabaseSchema,
+  createRow,
+  updateCells,
+  cellKey
+} from '@xnetjs/data'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AuditIndex } from './audit-index'
 import { BlameEngine } from './blame'
@@ -749,6 +756,21 @@ describe('UndoManager', () => {
     expect(after!.properties.count).toBe(1)
   })
 
+  it('captures previous values automatically from store events', async () => {
+    const node = await store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { count: 1 }
+    })
+
+    await store.update(node.id, { properties: { count: 2 } })
+
+    expect(undo.canUndo(node.id)).toBe(true)
+    await undo.undo(node.id)
+
+    const after = await store.get(node.id)
+    expect(after!.properties.count).toBe(1)
+  })
+
   it('can redo after undo', async () => {
     const node = await store.create({
       schemaId: TEST_SCHEMA,
@@ -775,6 +797,138 @@ describe('UndoManager', () => {
   it('returns false when nothing to redo', async () => {
     const result = await undo.redo('nonexistent')
     expect(result).toBe(false)
+  })
+
+  it('undoes and redoes node creation as delete/restore', async () => {
+    const node = await store.create({
+      id: 'created-node',
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Created' }
+    })
+
+    expect(undo.canUndo(node.id)).toBe(true)
+
+    await undo.undo(node.id)
+    const afterUndo = await store.get(node.id)
+    expect(afterUndo!.deleted).toBe(true)
+
+    await undo.redo(node.id)
+    const afterRedo = await store.get(node.id)
+    expect(afterRedo!.deleted).toBe(false)
+    expect(afterRedo!.properties.title).toBe('Created')
+  })
+
+  it('keeps creation and subsequent updates as separate undo steps inside the merge window', async () => {
+    undo.stop()
+    undo = new UndoManager(store, did, { mergeInterval: 1_000 })
+    undo.start()
+
+    const node = await store.create({
+      id: 'created-node-with-update',
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Alpha' }
+    })
+
+    await store.update(node.id, { properties: { title: 'Beta' } })
+
+    await undo.undo(node.id)
+    const afterFirstUndo = await store.get(node.id)
+    expect(afterFirstUndo!.deleted).toBe(false)
+    expect(afterFirstUndo!.properties.title).toBe('Alpha')
+
+    await undo.undo(node.id)
+    const afterSecondUndo = await store.get(node.id)
+    expect(afterSecondUndo!.deleted).toBe(true)
+  })
+
+  it('undoes and redoes the latest batch across a node scope', async () => {
+    const parent = await store.create({
+      id: 'parent-node',
+      schemaId: TEST_SCHEMA,
+      properties: { count: 0 }
+    })
+
+    await store.transaction([
+      {
+        type: 'create',
+        options: {
+          id: 'child-node',
+          schemaId: TEST_SCHEMA,
+          properties: { title: 'Child' }
+        }
+      },
+      {
+        type: 'update',
+        nodeId: parent.id,
+        options: { properties: { count: 1 } }
+      }
+    ])
+
+    expect(undo.canUndoAny([parent.id, 'child-node'])).toBe(true)
+
+    await undo.undoLatest([parent.id, 'child-node'])
+
+    const parentAfterUndo = await store.get(parent.id)
+    const childAfterUndo = await store.get('child-node')
+    expect(parentAfterUndo!.properties.count).toBe(0)
+    expect(childAfterUndo!.deleted).toBe(true)
+
+    expect(undo.canRedoAny([parent.id, 'child-node'])).toBe(true)
+
+    await undo.redoLatest([parent.id, 'child-node'])
+
+    const parentAfterRedo = await store.get(parent.id)
+    const childAfterRedo = await store.get('child-node')
+    expect(parentAfterRedo!.properties.count).toBe(1)
+    expect(childAfterRedo!.deleted).toBe(false)
+    expect(childAfterRedo!.properties.title).toBe('Child')
+  })
+
+  it('prefers the latest row edit over the earlier row-create batch in a database scope', async () => {
+    const database = await store.create({
+      id: 'database-node',
+      schemaId: DatabaseSchema.schema['@id'],
+      properties: { title: 'Tasks', rowCount: 0 }
+    })
+
+    undo.stop()
+    undo = new UndoManager(store, did, { mergeInterval: 1_000 })
+    undo.start()
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1_000)
+
+    try {
+      const rowId = await createRow(store, {
+        databaseId: database.id,
+        cells: { title: 'Alpha' }
+      })
+
+      await updateCells(store, rowId, { title: 'Beta' })
+
+      const stacks = undo as unknown as {
+        undoStacks: Map<string, Array<{ wallTime: number; batchId?: string; wasCreate?: boolean }>>
+      }
+      const rowStack = stacks.undoStacks.get(rowId) ?? []
+      const databaseStack = stacks.undoStacks.get(database.id) ?? []
+
+      expect(rowStack).toHaveLength(2)
+      expect(rowStack[0]?.wasCreate).toBe(true)
+      expect(rowStack[1]?.wasCreate).toBe(false)
+      expect(databaseStack).toHaveLength(1)
+
+      await undo.undoLatest([database.id, rowId])
+
+      const rowAfterUndo = await store.get(rowId)
+      expect(rowAfterUndo!.deleted).toBe(false)
+      expect(rowAfterUndo!.properties[cellKey('title')]).toBe('Alpha')
+
+      await undo.redoLatest([database.id, rowId])
+
+      const rowAfterRedo = await store.get(rowId)
+      expect(rowAfterRedo!.deleted).toBe(false)
+      expect(rowAfterRedo!.properties[cellKey('title')]).toBe('Beta')
+    } finally {
+      nowSpy.mockRestore()
+    }
   })
 
   it('clears redo stack on new change', async () => {

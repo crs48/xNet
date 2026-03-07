@@ -141,6 +141,10 @@ export class NodeStore {
     return this.storage
   }
 
+  private cloneNodeState(node: NodeState | null): NodeState | null {
+    return node ? structuredClone(node) : null
+  }
+
   // ==========================================================================
   // CRUD Operations
   // ==========================================================================
@@ -190,7 +194,7 @@ export class NodeStore {
       await this.persistEncryptedNodeSnapshot(node)
 
       // Emit change event
-      this.emit(change, node, false)
+      this.emit(change, node, null, false)
       this.authEvaluator?.invalidate(node.id)
 
       // Track performance
@@ -300,7 +304,7 @@ export class NodeStore {
     const start = this.telemetry ? Date.now() : 0
 
     try {
-      const existing = await this.storage.getNode(id)
+      const existing = this.cloneNodeState(await this.storage.getNode(id))
       if (!existing) {
         throw new Error(`Node not found: ${id}`)
       }
@@ -337,7 +341,7 @@ export class NodeStore {
       await this.persistEncryptedNodeSnapshot(node)
 
       // Emit change event
-      this.emit(change, node, false)
+      this.emit(change, node, existing, false)
       this.authEvaluator?.invalidate(node.id)
 
       if (this.shouldRecomputeRecipients(existing.schemaId, options.properties)) {
@@ -371,7 +375,7 @@ export class NodeStore {
     const start = this.telemetry ? Date.now() : 0
 
     try {
-      const existing = await this.storage.getNode(id)
+      const existing = this.cloneNodeState(await this.storage.getNode(id))
       if (!existing) {
         throw new Error(`Node not found: ${id}`)
       }
@@ -404,7 +408,7 @@ export class NodeStore {
 
       // Emit change event
       const deletedNode = await this.storage.getNode(id)
-      this.emit(change, deletedNode, false)
+      this.emit(change, deletedNode, existing, false)
       this.authEvaluator?.invalidate(id)
 
       // Track performance
@@ -425,7 +429,7 @@ export class NodeStore {
    * Restore a deleted Node.
    */
   async restore(id: NodeId): Promise<NodeState> {
-    const existing = await this.storage.getNode(id)
+    const existing = this.cloneNodeState(await this.storage.getNode(id))
     if (!existing) {
       throw new Error(`Node not found: ${id}`)
     }
@@ -462,7 +466,7 @@ export class NodeStore {
     await this.persistEncryptedNodeSnapshot(node)
 
     // Emit change event
-    this.emit(change, node, false)
+    this.emit(change, node, existing, false)
     this.authEvaluator?.invalidate(node.id)
 
     return node
@@ -546,6 +550,7 @@ export class NodeStore {
       const op = resolvedOps[i]
       let change: NodeChange
       let result: NodeState | null = null
+      let previousNode: NodeState | null = null
 
       switch (op.type) {
         case 'create': {
@@ -571,10 +576,11 @@ export class NodeStore {
         }
 
         case 'update': {
-          const existing = await this.storage.getNode(op.nodeId)
+          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
+          previousNode = existing
           const payload: NodePayload = {
             nodeId: op.nodeId,
             properties: op.options.properties
@@ -595,10 +601,11 @@ export class NodeStore {
         }
 
         case 'delete': {
-          const existing = await this.storage.getNode(op.nodeId)
+          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
+          previousNode = existing
           const payload: NodePayload = {
             nodeId: op.nodeId,
             properties: {},
@@ -619,10 +626,11 @@ export class NodeStore {
         }
 
         case 'restore': {
-          const existing = await this.storage.getNode(op.nodeId)
+          const existing = this.cloneNodeState(await this.storage.getNode(op.nodeId))
           if (!existing) {
             throw new Error(`Node not found: ${op.nodeId}`)
           }
+          previousNode = existing
           const payload: NodePayload = {
             nodeId: op.nodeId,
             properties: {},
@@ -648,7 +656,7 @@ export class NodeStore {
       results.push(result)
 
       // Emit change event for subscribers
-      this.emit(change, result, false)
+      this.emit(change, result, previousNode, false)
       this.authEvaluator?.invalidate(change.payload.nodeId)
     }
 
@@ -720,12 +728,13 @@ export class NodeStore {
       await this.storage.setLastLamportTime(this.clock.time)
 
       // Apply the change
+      const previousNode = this.cloneNodeState(await this.storage.getNode(change.payload.nodeId))
       await this.applyChange(change)
 
       // Emit change event (marked as remote)
       const node = await this.storage.getNode(change.payload.nodeId)
       await this.persistEncryptedNodeSnapshot(node)
-      this.emit(change, node, true)
+      this.emit(change, node, previousNode, true)
       this.authEvaluator?.invalidate(change.payload.nodeId)
 
       // Track performance
@@ -844,8 +853,13 @@ export class NodeStore {
   /**
    * Emit a change event to all listeners.
    */
-  private emit(change: NodeChange, node: NodeState | null, isRemote: boolean): void {
-    const event = { change, node, isRemote }
+  private emit(
+    change: NodeChange,
+    node: NodeState | null,
+    previousNode: NodeState | null,
+    isRemote: boolean
+  ): void {
+    const event = { change, previousNode, node, isRemote }
     for (const listener of this.listeners) {
       try {
         listener(event)

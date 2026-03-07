@@ -17,7 +17,7 @@
 import type { DID } from '@xnetjs/core'
 import type { NodeId } from '@xnetjs/data'
 import { UndoManager, type UndoManagerOptions } from '@xnetjs/history'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNodeStore } from './useNodeStore'
 
 // ─── Types ───────────────────────────────────────────────────
@@ -56,12 +56,23 @@ export function useUndo(nodeId: NodeId | null, opts: UseUndoOptions): UseUndoRes
   const [redoCount, setRedoCount] = useState(0)
 
   const managerRef = useRef<UndoManager | null>(null)
+  const normalizedOptions = useMemo(
+    () =>
+      opts.options
+        ? {
+            localOnly: opts.options.localOnly,
+            maxStackSize: opts.options.maxStackSize,
+            mergeInterval: opts.options.mergeInterval
+          }
+        : undefined,
+    [opts.options?.localOnly, opts.options?.maxStackSize, opts.options?.mergeInterval]
+  )
 
   // Create and start UndoManager
   useEffect(() => {
     if (!store) return
 
-    const manager = new UndoManager(store, opts.localDID, opts.options)
+    const manager = new UndoManager(store, opts.localDID, normalizedOptions)
     manager.start()
     managerRef.current = manager
 
@@ -69,7 +80,7 @@ export function useUndo(nodeId: NodeId | null, opts: UseUndoOptions): UseUndoRes
       manager.stop()
       managerRef.current = null
     }
-  }, [store, opts.localDID])
+  }, [store, opts.localDID, normalizedOptions])
 
   // Sync counts when node changes or after undo/redo
   const syncCounts = useCallback(() => {

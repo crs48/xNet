@@ -10,7 +10,7 @@
 
 import type { CellValue } from './cell-types'
 import type { NodeStore } from '../store/store'
-import type { NodeState } from '../store/types'
+import type { NodeState, TransactionOperation } from '../store/types'
 import { DatabaseRowSchema } from '../schema/schemas/database-row'
 import { cellKey, toCellProperties, fromCellProperties } from './cell-types'
 import {
@@ -126,20 +126,41 @@ export async function createRow(store: NodeStore, options: CreateRowOptions): Pr
   // Convert cell values to prefixed properties
   const dynamicProperties = toCellProperties(cells)
 
-  // Create the row node
-  const node = await store.create({
-    schemaId: DatabaseRowSchema.schema['@id'],
-    properties: {
-      database: databaseId,
-      sortKey,
-      ...dynamicProperties
+  const database = await store.get(databaseId)
+  const operations: TransactionOperation[] = [
+    {
+      type: 'create' as const,
+      options: {
+        schemaId: DatabaseRowSchema.schema['@id'],
+        properties: {
+          database: databaseId,
+          sortKey,
+          ...dynamicProperties
+        }
+      }
     }
-  })
+  ]
 
-  // Update database row count
-  await incrementRowCount(store, databaseId)
+  if (database) {
+    operations.push({
+      type: 'update' as const,
+      nodeId: databaseId,
+      options: {
+        properties: {
+          rowCount: ((database.properties.rowCount as number) ?? 0) + 1
+        }
+      }
+    })
+  }
 
-  return node.id
+  const result = await store.transaction(operations)
+  const row = result.results[0]
+
+  if (!row) {
+    throw new Error('Failed to create database row')
+  }
+
+  return row.id
 }
 
 /**
@@ -198,11 +219,22 @@ export async function deleteRow(store: NodeStore, rowId: string): Promise<void> 
   if (!row) return
 
   const databaseId = row.properties.database as string
+  const database = await store.get(databaseId)
+  const operations: TransactionOperation[] = [{ type: 'delete', nodeId: rowId }]
 
-  await store.delete(rowId)
+  if (database) {
+    operations.push({
+      type: 'update' as const,
+      nodeId: databaseId,
+      options: {
+        properties: {
+          rowCount: Math.max(0, ((database.properties.rowCount as number) ?? 0) - 1)
+        }
+      }
+    })
+  }
 
-  // Update database row count
-  await decrementRowCount(store, databaseId)
+  await store.transaction(operations)
 }
 
 /**
@@ -365,32 +397,4 @@ export async function checkNeedsRebalancing(
   const { rows } = await queryRows(store, databaseId, { limit: 100 })
   const sortKeys = rows.map((row) => row.properties.sortKey as string)
   return needsRebalancing(sortKeys) || sortKeys.some((k) => k.length > maxKeyLength)
-}
-
-// ─── Helper Functions ────────────────────────────────────────────────────────
-
-/**
- * Increment the row count for a database.
- */
-async function incrementRowCount(store: NodeStore, databaseId: string): Promise<void> {
-  const db = await store.get(databaseId)
-  if (!db) return
-
-  const currentCount = (db.properties.rowCount as number) ?? 0
-  await store.update(databaseId, {
-    properties: { rowCount: currentCount + 1 }
-  })
-}
-
-/**
- * Decrement the row count for a database.
- */
-async function decrementRowCount(store: NodeStore, databaseId: string): Promise<void> {
-  const db = await store.get(databaseId)
-  if (!db) return
-
-  const currentCount = (db.properties.rowCount as number) ?? 0
-  await store.update(databaseId, {
-    properties: { rowCount: Math.max(0, currentCount - 1) }
-  })
 }

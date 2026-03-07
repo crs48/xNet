@@ -48,6 +48,15 @@ async function createTestDatabase(store: NodeStore): Promise<string> {
   return db.id
 }
 
+async function syncChanges(source: NodeStore, target: NodeStore, sinceLamport = 0): Promise<void> {
+  const changes =
+    sinceLamport === 0 ? await source.getAllChanges() : await source.getChangesSince(sinceLamport)
+
+  for (const change of changes) {
+    await target.applyRemoteChange(change)
+  }
+}
+
 describe('Row Operations', () => {
   let store: NodeStore
   let databaseId: string
@@ -344,6 +353,7 @@ describe('Conflict Resolution', () => {
     for (const change of changes1) {
       await setup2.store.applyRemoteChange(change)
     }
+    const syncPoint = setup1.store.getCurrentLamportTime()
 
     // Store 1 updates name
     await updateCell(setup1.store, rowId, 'name', 'Alice')
@@ -352,8 +362,8 @@ describe('Conflict Resolution', () => {
     await updateCell(setup2.store, rowId, 'status', 'active')
 
     // Sync both ways
-    const store1Changes = await setup1.store.getChangesSince(changes1.length)
-    const store2Changes = await setup2.store.getChangesSince(changes1.length)
+    const store1Changes = await setup1.store.getChangesSince(syncPoint)
+    const store2Changes = await setup2.store.getChangesSince(syncPoint)
 
     for (const change of store1Changes) {
       await setup2.store.applyRemoteChange(change)
@@ -390,19 +400,21 @@ describe('Conflict Resolution', () => {
     for (const change of changes1) {
       await setup2.store.applyRemoteChange(change)
     }
+    const syncPoint = setup1.store.getCurrentLamportTime()
 
     // Store 1 updates name
     await updateCell(setup1.store, rowId, 'name', 'Alice')
 
     // Sync store 1's update to store 2 first
-    const store1Update = (await setup1.store.getChangesSince(changes1.length))[0]
+    const store1Update = (await setup1.store.getChangesSince(syncPoint))[0]
     await setup2.store.applyRemoteChange(store1Update)
 
     // Now store 2 updates (will have higher Lamport time)
+    const store2SyncPoint = setup2.store.getCurrentLamportTime()
     await updateCell(setup2.store, rowId, 'name', 'Bob')
 
     // Sync store 2's update back to store 1
-    const store2Changes = await setup2.store.getChangesSince(changes1.length + 1)
+    const store2Changes = await setup2.store.getChangesSince(store2SyncPoint)
     for (const change of store2Changes) {
       await setup1.store.applyRemoteChange(change)
     }
@@ -413,5 +425,47 @@ describe('Conflict Resolution', () => {
 
     expect(row1!.cells.name).toBe('Bob')
     expect(row2!.cells.name).toBe('Bob')
+  })
+
+  it('syncs row ordering and row count changes across devices', async () => {
+    const setup1 = createTestStore()
+    const setup2 = createTestStore()
+    await setup1.store.initialize()
+    await setup2.store.initialize()
+
+    const databaseId = await createTestDatabase(setup1.store)
+    const rowA = await createRow(setup1.store, {
+      databaseId,
+      cells: { name: 'A' }
+    })
+    const rowB = await createRow(setup1.store, {
+      databaseId,
+      cells: { name: 'B' }
+    })
+    const rowC = await createRow(setup1.store, {
+      databaseId,
+      cells: { name: 'C' }
+    })
+
+    await syncChanges(setup1.store, setup2.store)
+    const syncPoint = setup1.store.getCurrentLamportTime()
+
+    const rowABeforeMove = await setup1.store.get(rowA)
+    await moveRow(setup1.store, rowC, {
+      before: rowABeforeMove?.properties.sortKey as string
+    })
+    await deleteRow(setup1.store, rowB)
+
+    await syncChanges(setup1.store, setup2.store, syncPoint)
+
+    const rows1 = await queryRows(setup1.store, databaseId)
+    const rows2 = await queryRows(setup2.store, databaseId)
+    const database1 = await setup1.store.get(databaseId)
+    const database2 = await setup2.store.get(databaseId)
+
+    expect(rows1.rows.map((row) => row.id)).toEqual([rowC, rowA])
+    expect(rows2.rows.map((row) => row.id)).toEqual([rowC, rowA])
+    expect(database1?.properties.rowCount).toBe(2)
+    expect(database2?.properties.rowCount).toBe(2)
   })
 })
