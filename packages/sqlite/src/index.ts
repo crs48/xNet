@@ -54,8 +54,12 @@ export {
 export type { IndexInfo, TableStats, QueryPlanStep, DatabaseStats } from './diagnostics'
 
 // Browser support detection
-export { checkBrowserSupport, showUnsupportedBrowserMessage } from './browser-support'
-export type { BrowserSupport } from './browser-support'
+export {
+  checkBrowserSupport,
+  requestPersistentStorage,
+  showUnsupportedBrowserMessage
+} from './browser-support'
+export type { BrowserSupport, PersistentStorageStatus } from './browser-support'
 
 // Re-export adapters for convenience (tree-shakeable)
 // Users should prefer importing from subpaths for smaller bundles

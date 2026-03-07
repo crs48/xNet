@@ -20,6 +20,7 @@
  *                                                          Hub/Signaling
  */
 
+import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { createDataService, type DataService } from './data-service'
 
 // Debug logging - controllable via message from main process
@@ -90,21 +91,30 @@ process.parentPort?.on('message', async (event) => {
       // ─── BSM Control ─────────────────────────────────────────────────────
 
       case 'bsm:start': {
-        const { signalingUrl, authorDID, signingKey, ucanToken, transport, iceServers } =
-          payload as {
-            signalingUrl: string
-            authorDID?: string
-            signingKey?: number[]
-            ucanToken?: string
-            transport?: 'ws' | 'webrtc' | 'auto'
-            iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
-          }
+        const {
+          signalingUrl,
+          authorDID,
+          signingKey,
+          replication,
+          ucanToken,
+          transport,
+          iceServers
+        } = payload as {
+          signalingUrl: string
+          authorDID?: string
+          signingKey?: number[]
+          replication?: SyncReplicationConfig
+          ucanToken?: string
+          transport?: 'ws' | 'webrtc' | 'auto'
+          iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+        }
         log('Starting BSM with signalingUrl:', signalingUrl)
         if (dataService) {
           await dataService.startSync({
             signalingUrl,
             authorDID,
             signingKey,
+            replication,
             ucanToken,
             transport,
             iceServers
@@ -115,21 +125,30 @@ process.parentPort?.on('message', async (event) => {
       }
 
       case 'bsm:reconfigure': {
-        const { signalingUrl, authorDID, signingKey, ucanToken, transport, iceServers } =
-          payload as {
-            signalingUrl: string
-            authorDID?: string
-            signingKey?: number[]
-            ucanToken?: string
-            transport?: 'ws' | 'webrtc' | 'auto'
-            iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
-          }
+        const {
+          signalingUrl,
+          authorDID,
+          signingKey,
+          replication,
+          ucanToken,
+          transport,
+          iceServers
+        } = payload as {
+          signalingUrl: string
+          authorDID?: string
+          signingKey?: number[]
+          replication?: SyncReplicationConfig
+          ucanToken?: string
+          transport?: 'ws' | 'webrtc' | 'auto'
+          iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
+        }
         if (dataService) {
           await dataService.stopSync()
           await dataService.startSync({
             signalingUrl,
             authorDID,
             signingKey,
+            replication,
             ucanToken,
             transport,
             iceServers

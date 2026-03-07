@@ -9,6 +9,7 @@ import type * as Y from 'yjs'
 import { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from '@xnetjs/history'
 import {
   useNodeStore,
+  useXNet,
   InstrumentationContext,
   type InstrumentationContextValue
 } from '@xnetjs/react/internal'
@@ -32,8 +33,24 @@ import {
   DevToolsContext,
   type PanelId,
   type PanelPosition,
+  type RuntimeDiagnostics,
+  type StorageDurabilityInfo,
+  type SyncDiagnostics,
   type YDocRegistry
 } from './DevToolsContext'
+
+function createSyncDiagnostics(
+  syncManager: ReturnType<typeof useXNet>['syncManager']
+): SyncDiagnostics {
+  return {
+    status: syncManager?.status ?? 'disconnected',
+    lifecyclePhase: syncManager?.lifecycle.phase ?? 'idle',
+    queueSize: syncManager?.queueSize ?? 0,
+    trackedCount: syncManager?.trackedCount ?? 0,
+    pendingBlobCount: syncManager?.pendingBlobCount ?? 0,
+    lastVerificationFailure: syncManager?.lastVerificationFailure ?? null
+  }
+}
 
 function createYDocRegistry(
   bus: DevToolsEventBus
@@ -178,6 +195,8 @@ export interface XNetDevToolsProviderProps {
   telemetryCollector?: any
   /** ConsentManager instance for telemetry panel instrumentation */
   consentManager?: any
+  /** Optional storage durability status supplied by the host app */
+  storageDurability?: StorageDurabilityInfo | null
 }
 
 const STORAGE_KEY_OPEN = 'xnet:devtools:open'
@@ -232,8 +251,10 @@ export function XNetDevToolsProvider({
   height: initialHeight = DEFAULTS.PANEL_HEIGHT,
   maxEvents = DEFAULTS.MAX_EVENTS,
   telemetryCollector,
-  consentManager
+  consentManager,
+  storageDurability = null
 }: XNetDevToolsProviderProps) {
+  const { runtimeStatus, syncManager } = useXNet()
   const [isOpen, setIsOpenState] = useState(() => loadStoredOpen(defaultOpen))
   const [activePanel, setActivePanelState] = useState<PanelId>(() => loadStoredPanel(defaultPanel))
   const [position, setPositionState] = useState<PanelPosition>(() =>
@@ -241,6 +262,9 @@ export function XNetDevToolsProvider({
   )
   const [height, setHeight] = useState(initialHeight)
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null)
+  const [syncDiagnostics, setSyncDiagnostics] = useState<SyncDiagnostics>(() =>
+    createSyncDiagnostics(syncManager)
+  )
 
   // Persist open state
   const setIsOpen = (open: boolean | ((prev: boolean) => boolean)) => {
@@ -302,6 +326,28 @@ export function XNetDevToolsProvider({
     }
   }, [store])
 
+  useEffect(() => {
+    setSyncDiagnostics(createSyncDiagnostics(syncManager))
+
+    if (!syncManager) {
+      return
+    }
+
+    const refresh = () => {
+      setSyncDiagnostics(createSyncDiagnostics(syncManager))
+    }
+
+    const cleanups = [
+      syncManager.on('status', refresh),
+      syncManager.on('lifecycle', refresh),
+      syncManager.on('verification-failure', refresh)
+    ]
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup())
+    }
+  }, [syncManager])
+
   // Set up telemetry instrumentation when collector and consent are available
   useEffect(() => {
     if (!telemetryCollector || !consentManager) return
@@ -357,22 +403,41 @@ export function XNetDevToolsProvider({
 
   const toggle = useCallback(() => setIsOpen((prev) => !prev), [])
 
-  const contextValue = {
-    isOpen,
-    activePanel,
-    position,
-    height,
-    toggle,
-    setActivePanel,
-    setPosition,
-    setHeight,
-    eventBus: busRef.current,
-    store,
-    yDocRegistry: yDocRegistryRef.current,
-    activeNodeId,
-    setActiveNodeId,
-    documentHistory: documentHistoryRef.current
-  }
+  const contextValue = useMemo(
+    () => ({
+      isOpen,
+      activePanel,
+      position,
+      height,
+      toggle,
+      setActivePanel,
+      setPosition,
+      setHeight,
+      eventBus: busRef.current,
+      store,
+      yDocRegistry: yDocRegistryRef.current,
+      activeNodeId,
+      setActiveNodeId,
+      documentHistory: documentHistoryRef.current,
+      runtimeStatus: runtimeStatus as RuntimeDiagnostics,
+      syncDiagnostics,
+      storageDurability
+    }),
+    [
+      isOpen,
+      activePanel,
+      position,
+      height,
+      toggle,
+      setActivePanel,
+      setPosition,
+      store,
+      activeNodeId,
+      runtimeStatus,
+      syncDiagnostics,
+      storageDurability
+    ]
+  )
 
   // Instrumentation context for hooks (useNode, useQuery, useMutate)
   const instrumentationValue: InstrumentationContextValue = useMemo(

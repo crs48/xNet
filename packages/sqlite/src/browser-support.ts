@@ -18,6 +18,23 @@ export interface BrowserSupport {
   warning?: string
 }
 
+export interface PersistentStorageStatus {
+  /** Browser exposes persistence APIs. */
+  supported: boolean
+  /** Whether the site is currently persisted. */
+  persisted: boolean | null
+  /** Whether the explicit persistence request was granted. */
+  granted: boolean | null
+  /** Durable-storage state for UI and diagnostics. */
+  state: 'granted' | 'not-granted' | 'unsupported' | 'error'
+  /** User-facing explanation of the result. */
+  message: string
+  /** Optional usage estimate in bytes. */
+  usageBytes?: number
+  /** Optional quota estimate in bytes. */
+  quotaBytes?: number
+}
+
 /**
  * Timeout wrapper for promises that may hang indefinitely.
  */
@@ -135,6 +152,81 @@ export async function checkBrowserSupport(): Promise<BrowserSupport> {
   }
 
   return result
+}
+
+/**
+ * Request persistent storage where supported and summarize the result.
+ */
+export async function requestPersistentStorage(): Promise<PersistentStorageStatus> {
+  if (typeof navigator === 'undefined' || !navigator.storage) {
+    return {
+      supported: false,
+      persisted: null,
+      granted: null,
+      state: 'unsupported',
+      message:
+        'This browser does not expose storage persistence APIs. Local data can still work, but the browser may evict it under storage pressure.'
+    }
+  }
+
+  const estimate = await navigator.storage.estimate?.().catch(() => undefined)
+
+  const usageBytes = estimate?.usage
+  const quotaBytes = estimate?.quota
+
+  if (!navigator.storage.persist || !navigator.storage.persisted) {
+    return {
+      supported: false,
+      persisted: null,
+      granted: null,
+      state: 'unsupported',
+      message:
+        'This browser cannot explicitly request durable storage. Local data can still work, but the browser may evict it under storage pressure.',
+      usageBytes,
+      quotaBytes
+    }
+  }
+
+  try {
+    const alreadyPersisted = await navigator.storage.persisted()
+    const granted = alreadyPersisted ? true : await navigator.storage.persist()
+    const persisted = granted ? true : await navigator.storage.persisted()
+
+    if (persisted) {
+      return {
+        supported: true,
+        persisted,
+        granted,
+        state: 'granted',
+        message:
+          'Durable local storage is enabled. This browser agreed to keep your xNet workspace unless you explicitly clear site data.',
+        usageBytes,
+        quotaBytes
+      }
+    }
+
+    return {
+      supported: true,
+      persisted,
+      granted,
+      state: 'not-granted',
+      message:
+        'This browser did not grant durable storage. xNet will keep working, but local data may be evicted under storage pressure or aggressive cleanup.',
+      usageBytes,
+      quotaBytes
+    }
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err)
+    return {
+      supported: true,
+      persisted: null,
+      granted: null,
+      state: 'error',
+      message: `xNet could not confirm durable storage (${reason}). Local data may still work, but persistence guarantees are unclear.`,
+      usageBytes,
+      quotaBytes
+    }
+  }
 }
 
 /**

@@ -34,7 +34,7 @@ import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/d
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-import { useDataBridge } from '../context'
+import { useDataBridge, useXNetInternal } from '../context'
 import { useInstrumentation } from '../instrumentation'
 import { METABRIDGE_ORIGIN, METABRIDGE_SEED_ORIGIN } from '../sync/meta-bridge'
 import { WebSocketSyncProvider } from '../sync/WebSocketSyncProvider'
@@ -240,6 +240,11 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
   const { store, isReady } = useNodeStore()
   const syncManager = useSyncManager()
   const bridge = useDataBridge()
+  const {
+    authorDID: syncAuthorDID,
+    signingKey: syncSigningKey,
+    sync: syncConfig
+  } = useXNetInternal()
   const instrumentation = useInstrumentation()
   const schemaId = schema._schemaId
   const hasDocument = schema.schema.document === 'yjs'
@@ -295,6 +300,7 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       type: 'useNode',
       schemaId,
       mode: 'document',
+      descriptorKey: `node:${schemaId}:${id}`,
       nodeId: id
     })
     return () => {
@@ -784,7 +790,10 @@ export function useNode<P extends Record<string, PropertyBuilder>>(
       setSyncStatus('connecting')
       const provider = new WebSocketSyncProvider(doc, {
         url: signalingServers[0],
-        room: `xnet-doc-${id}`
+        room: `xnet-doc-${id}`,
+        authorDID: syncAuthorDID ?? did ?? undefined,
+        signingKey: syncSigningKey ?? undefined,
+        replication: syncConfig
       })
       providerRef.current = provider
 

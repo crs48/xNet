@@ -1,5 +1,7 @@
 # Hub Phase 1 VPS Code Review - February 4, 2026
 
+> Historical snapshot. For current API/runtime guidance, start with [`docs/reviews/README.md`](../README.md), [`docs/reference/api-lifecycle-matrix.md`](../../reference/api-lifecycle-matrix.md), and [`docs/plans/plan03_9_82CorePlatformConvergence/README.md`](../../plans/plan03_9_82CorePlatformConvergence/README.md).
+
 ## Executive Summary
 
 This review covers **49 commits** (c6d780a..e591775) implementing the Hub Phase 1 VPS milestone from `docs/plans/plan03_8HubPhase1VPS/`. The work adds a complete Hono-based hub server with WebSocket sync relay, REST APIs, federation, crawling, shard-based search, schema registry, awareness persistence, peer discovery, and deployment infrastructure for Railway and Fly.io. Client-side integration spans the `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/network`, and `@xnetjs/identity` packages.

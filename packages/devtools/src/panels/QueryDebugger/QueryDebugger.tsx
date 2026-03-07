@@ -70,6 +70,14 @@ export function QueryDebugger() {
               <DetailRow label="Hook" value={selectedQuery.type} />
               <DetailRow label="Schema" value={selectedQuery.schemaId} />
               <DetailRow label="Mode" value={selectedQuery.mode} />
+              {selectedQuery.descriptorKey && (
+                <div>
+                  <div className="text-zinc-500">Descriptor:</div>
+                  <pre className="text-zinc-400 mt-0.5 bg-zinc-900 p-1 rounded text-[9px] overflow-x-auto">
+                    {selectedQuery.descriptorKey}
+                  </pre>
+                </div>
+              )}
               {selectedQuery.callerInfo && (
                 <DetailRow label="Source" value={selectedQuery.callerInfo} />
               )}
@@ -166,6 +174,11 @@ function QueryEntry({
         )}
         {query.lastUpdateAt && <span className="ml-auto">{relativeTime(query.lastUpdateAt)}</span>}
       </div>
+      {query.descriptorKey && (
+        <div className="text-[8px] text-zinc-600 mt-1 font-mono truncate">
+          {query.descriptorKey}
+        </div>
+      )}
     </div>
   )
 }

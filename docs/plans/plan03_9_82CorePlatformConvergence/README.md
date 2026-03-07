@@ -156,9 +156,9 @@ flowchart TD
 - [x] Introduce an explicit runtime mode model for `XNetProvider` and app bootstrapping.
 - [x] Implement targeted live-query invalidation and remove the current schema-wide reload behavior.
 - [x] Adopt one canonical database model and migrate active app database views onto it.
-- [ ] Make background sync state, signed replication, and reconnect behavior deterministic and observable.
-- [ ] Request and surface persistent storage state in the web app.
-- [ ] Rewrite stale integration tests and public docs to the current hook/storage stack.
+- [x] Make background sync state, signed replication, and reconnect behavior deterministic and observable.
+- [x] Request and surface persistent storage state in the web app.
+- [x] Rewrite stale integration tests and public docs to the current hook/storage stack.
 - [ ] Run the benchmark and release-gate sequence before relabeling any package surface as fully stable.
 
 ## Validation Checklist
@@ -169,9 +169,9 @@ flowchart TD
 - [x] Search, backlinks, and navigation use the same converged query/runtime boundary.
 - [ ] Database edits preserve correctness and undo semantics across web and Electron.
 - [ ] Multi-device reconnect and background sync behave predictably under offline and recovery scenarios.
-- [ ] Unsigned replication is no longer accepted by default in production paths.
-- [ ] The web app requests durable storage where supported and explains the result to the user.
-- [ ] Public tests and docs no longer depend on removed or legacy APIs such as `useDocument` as the current recommendation.
+- [x] Unsigned replication is no longer accepted by default in production paths.
+- [x] The web app requests durable storage where supported and explains the result to the user.
+- [x] Public tests and docs no longer depend on removed or legacy APIs such as `useDocument` as the current recommendation.
 - [ ] Release decisions are backed by recorded latency, correctness, and durability baselines.
 
 ## References

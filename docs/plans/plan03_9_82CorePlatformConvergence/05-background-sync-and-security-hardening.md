@@ -27,8 +27,11 @@ This step turns those primitives into a dependable device-sync contract.
 - [`apps/electron/src/renderer/lib/ipc-sync-manager.ts`](../../../apps/electron/src/renderer/lib/ipc-sync-manager.ts) now derives the same lifecycle phases in the renderer-facing API so Electron and web no longer diverge on basic sync-state semantics.
 - deterministic coverage now exists for lifecycle derivation, reconnect/resubscribe behavior, offline queue replay, and sync-manager replay/presence cleanup in [`packages/sync/src/sync-runtime.test.ts`](../../../packages/sync/src/sync-runtime.test.ts), [`packages/react/src/sync/connection-manager.test.ts`](../../../packages/react/src/sync/connection-manager.test.ts), [`packages/react/src/sync/offline-queue.test.ts`](../../../packages/react/src/sync/offline-queue.test.ts), and [`packages/react/src/sync/sync-manager.test.ts`](../../../packages/react/src/sync/sync-manager.test.ts).
 - [`packages/react/package.json`](../../../packages/react/package.json) now declares the explicit `@xnetjs/sync` dependency required by the shared lifecycle runtime.
+- signed replication is now the default path across the web relay, Electron BSM bridge, and hub relay, with compatibility gated explicitly behind `compatibility.allowUnsignedReplication` in [`packages/sync/src/replication-policy.ts`](../../../packages/sync/src/replication-policy.ts), [`packages/react/src/sync/WebSocketSyncProvider.ts`](../../../packages/react/src/sync/WebSocketSyncProvider.ts), [`apps/electron/src/data-process/data-service.ts`](../../../apps/electron/src/data-process/data-service.ts), and [`packages/hub/src/services/relay.ts`](../../../packages/hub/src/services/relay.ts).
+- persisted queue state plus runtime diagnostics now expose pending replay work and the last verification failure through [`packages/react/src/sync/offline-queue.ts`](../../../packages/react/src/sync/offline-queue.ts), [`packages/react/src/sync/sync-manager.ts`](../../../packages/react/src/sync/sync-manager.ts), and [`packages/devtools/src/panels/SyncMonitor/SyncMonitor.tsx`](../../../packages/devtools/src/panels/SyncMonitor/SyncMonitor.tsx).
+- signature-enforcement coverage now extends through the web provider and hub relay in [`packages/react/src/sync/WebSocketSyncProvider.test.ts`](../../../packages/react/src/sync/WebSocketSyncProvider.test.ts) and [`packages/hub/test/relay.test.ts`](../../../packages/hub/test/relay.test.ts).
 
-Still open in this step: signed-by-default Yjs replication, explicit unsigned compatibility gates, durable sync checkpoints/diagnostics beyond queue persistence, and multi-device proving in real Electron/web paths.
+Still open in this step: broader multi-device proving in real Electron paths and the release-gate benchmark pass that belongs to Step 08.
 
 ## Relevant Codebase Touchpoints
 
@@ -159,9 +162,9 @@ This plan does not re-open the full authorization redesign from `plan03_9_81Auth
 ## Step Checklist
 
 - [x] Define a canonical sync lifecycle state machine.
-- [ ] Make signed document replication the default production behavior.
-- [ ] Gate unsigned compatibility behind an explicit temporary flag.
+- [x] Make signed document replication the default production behavior.
+- [x] Gate unsigned compatibility behind an explicit temporary flag.
 - [x] Centralize reconnect, replay, and presence cleanup behavior.
-- [ ] Persist enough sync state to make recovery deterministic and observable.
-- [ ] Add automated tests for reconnect, replay, and signature enforcement.
+- [x] Persist enough sync state to make recovery deterministic and observable.
+- [x] Add automated tests for reconnect, replay, and signature enforcement.
 - [ ] Validate multi-device behavior in Electron and web proving paths.

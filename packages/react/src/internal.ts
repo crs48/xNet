@@ -18,4 +18,6 @@ export {
   type QueryTrackerLike,
   type YDocRegistryLike
 } from './instrumentation'
-export { useDataBridge } from './context'
+export { useDataBridge, useXNet } from './context'
+export type { XNetContextValue } from './context'
+export type { XNetRuntimeStatus } from './runtime'

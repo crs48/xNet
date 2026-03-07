@@ -3,6 +3,7 @@
 > **Written**: March 2026  
 > **Horizon**: March-September 2026  
 > **Thesis**: Convert broad technical capability into a reliable, adopted daily-driver product.
+> **Current execution plan**: [`docs/plans/plan03_9_82CorePlatformConvergence/README.md`](./plans/plan03_9_82CorePlatformConvergence/README.md)
 
 ---
 
@@ -28,20 +29,22 @@ The roadmap is no longer "build core capabilities from scratch." It is now:
 ### What Is Already Shipped
 
 - [x] Web app includes database and canvas experiences (`apps/web/src/routes/db.$dbId.tsx`, `apps/web/src/routes/canvas.$canvasId.tsx`)
-- [x] Web app has Cmd/Ctrl+K quick search entrypoint (`apps/web/src/components/GlobalSearch.tsx`)
+- [x] Web app has Cmd/Ctrl+K quick search with body/snippet indexing (`apps/web/src/components/GlobalSearch.tsx`)
 - [x] PWA infrastructure is wired (manifest + service worker via VitePWA) (`apps/web/vite.config.ts`)
 - [x] Hub package is real, not scaffold-only (`packages/hub/src/server.ts`)
 - [x] Hub search is FTS5-backed (`packages/hub/src/storage/sqlite.ts`, `packages/hub/src/services/query.ts`)
 - [x] Sharing and authz hardening has landed (`packages/hub/src/server.ts`, `apps/web/src/routes/share.tsx`)
 - [x] Presence/awareness pathways exist in desktop sync flow (`apps/electron/src/renderer/lib/ipc-sync-manager.ts`)
+- [x] Package lifecycle labels and explicit entrypoint guidance are published (`packages/README.md`, `docs/reference/api-lifecycle-matrix.md`)
+- [x] Worker-first web runtime now exposes visible fallback state and storage durability status (`apps/web/src/App.tsx`, `packages/react/src/context.ts`)
 
 ### What Is Partially Done or Still Missing
 
 - [ ] Navigation depth in web is still shallow (no nested hierarchy, breadcrumb, pinned/recent)
-- [ ] Web global search is title-only scoring today (no body-level search/snippets)
+- [ ] Large-workspace navigation and search baselines still need formal measurement
 - [ ] Invites/membership UX and role lifecycle are not fully productized
 - [ ] Federation exists in pieces, but not yet a complete multi-hub operator story
-- [ ] API surface and package lifecycle labels are still unclear for external consumers
+- [ ] Multi-device recovery and long-running sync need broader proving beyond focused package tests
 
 ---
 
@@ -96,9 +99,9 @@ gantt
 
 - [ ] Add nested page relationships and tree rendering in web sidebar
 - [ ] Add breadcrumb navigation for page/database/canvas context
-- [ ] Upgrade global search from title-only to title + body + snippets
-- [ ] Index rich text body content for local mode and hub-backed mode
-- [ ] Keep search reactive under ongoing edits
+- [x] Upgrade global search from title-only to title + body + snippets
+- [x] Index rich text body content for local mode and hub-backed mode
+- [x] Keep search reactive under ongoing edits
 
 ### 1.2 Daily-Driver UX Polish
 
@@ -161,13 +164,13 @@ gantt
 
 ### 3.1 Package Lifecycle and Portfolio Cleanup
 
-- [ ] Add explicit lifecycle labels in package docs (`stable`, `experimental`, `deprecated`, `internal`)
+- [x] Add explicit lifecycle labels in package docs (`stable`, `experimental`, `deprecated`, `internal`)
 - [ ] Decide disposition of low-usage packages (starting with `@xnetjs/formula`, `@xnetjs/cli`)
 - [ ] Remove or archive packages that do not support near-term product goals
 
 ### 3.2 API Surface Simplification
 
-- [ ] Split stable vs experimental entrypoints where behavior is partial
+- [x] Split stable vs experimental entrypoints where behavior is partial
 - [ ] Reduce top-level "kitchen sink" exports in major packages
 - [ ] Align docs to only claim capabilities proven in current code
 
@@ -210,6 +213,6 @@ gantt
 
 ## Immediate Next Actions (This Week)
 
-1. Finish web search upgrade plan (body indexing + snippets + performance targets).
-2. Define and publish package lifecycle matrix in `packages/README.md`.
+1. Finish the remaining convergence validation work: multi-device reconnect, long-running sync proving, and benchmark baselines.
+2. Close the web navigation gap with hierarchy, breadcrumbs, and recent/pinned surfaces.
 3. Build a collaboration acceptance checklist (invite -> share -> revoke -> reconnect) and run it end-to-end.

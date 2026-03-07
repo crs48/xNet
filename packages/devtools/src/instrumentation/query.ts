@@ -66,6 +66,7 @@ export interface TrackedQuery {
   schemaId: string
   mode: 'list' | 'single' | 'filtered' | 'document'
   filter?: Record<string, unknown>
+  descriptorKey?: string
   nodeId?: string
   /** Source location where the hook was called (component name + file:line) */
   callerInfo?: string
@@ -93,6 +94,7 @@ export class QueryTracker {
       schemaId: string
       mode: TrackedQuery['mode']
       filter?: Record<string, unknown>
+      descriptorKey?: string
       nodeId?: string
       callerInfo?: string
     }
@@ -116,6 +118,7 @@ export class QueryTracker {
       schemaId: meta.schemaId,
       mode: meta.mode === 'document' ? 'single' : meta.mode,
       filter: meta.filter,
+      descriptorKey: meta.descriptorKey,
       callerInfo: meta.callerInfo
     })
   }

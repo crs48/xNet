@@ -1,6 +1,7 @@
 /**
  * Preload script - exposes xNet API to renderer
  */
+import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
 
 // Expose xNet API to renderer
@@ -105,6 +106,7 @@ contextBridge.exposeInMainWorld('xnetBSM', {
     signalingUrl: string
     authorDID?: string
     signingKey?: number[]
+    replication?: SyncReplicationConfig
     ucanToken?: string
     transport?: 'ws' | 'webrtc' | 'auto'
     iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
@@ -113,6 +115,7 @@ contextBridge.exposeInMainWorld('xnetBSM', {
     signalingUrl: string
     authorDID?: string
     signingKey?: number[]
+    replication?: SyncReplicationConfig
     ucanToken?: string
     transport?: 'ws' | 'webrtc' | 'auto'
     iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
@@ -384,6 +387,7 @@ export interface XNetBSMAPI {
     signalingUrl: string
     authorDID?: string
     signingKey?: number[]
+    replication?: SyncReplicationConfig
     ucanToken?: string
     transport?: 'ws' | 'webrtc' | 'auto'
     iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
@@ -392,6 +396,7 @@ export interface XNetBSMAPI {
     signalingUrl: string
     authorDID?: string
     signingKey?: number[]
+    replication?: SyncReplicationConfig
     ucanToken?: string
     transport?: 'ws' | 'webrtc' | 'auto'
     iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>

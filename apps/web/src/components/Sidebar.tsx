@@ -20,6 +20,13 @@ import { AddSharedDialog } from './AddSharedDialog'
 import { MyTasksPanel } from './MyTasksPanel'
 
 type DocType = 'page' | 'database' | 'canvas'
+type SidebarDoc = {
+  id: string
+  title?: string
+  updatedAt?: number
+}
+
+const SECTION_PAGE_SIZE = 20
 
 const typeConfig = {
   page: {
@@ -47,19 +54,43 @@ export function Sidebar() {
   const navigate = useNavigate()
   const [showCreateMenu, setShowCreateMenu] = useState(false)
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
+  const [sectionLimits, setSectionLimits] = useState<Record<DocType, number>>({
+    page: SECTION_PAGE_SIZE,
+    database: SECTION_PAGE_SIZE,
+    canvas: SECTION_PAGE_SIZE
+  })
   const [expandedSections, setExpandedSections] = useState<Record<DocType, boolean>>({
     page: true,
     database: true,
     canvas: true
   })
 
-  // Query all document types
-  const { data: pages, loading: pagesLoading } = useQuery(PageSchema)
-  const { data: databases, loading: databasesLoading } = useQuery(DatabaseSchema)
-  const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema)
+  const pageQueryLimit = sectionLimits.page + 1
+  const databaseQueryLimit = sectionLimits.database + 1
+  const canvasQueryLimit = sectionLimits.canvas + 1
+
+  const { data: pages, loading: pagesLoading } = useQuery(PageSchema, {
+    orderBy: { updatedAt: 'desc' },
+    limit: pageQueryLimit
+  })
+  const { data: databases, loading: databasesLoading } = useQuery(DatabaseSchema, {
+    orderBy: { updatedAt: 'desc' },
+    limit: databaseQueryLimit
+  })
+  const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema, {
+    orderBy: { updatedAt: 'desc' },
+    limit: canvasQueryLimit
+  })
 
   const toggleSection = (type: DocType) => {
     setExpandedSections((prev) => ({ ...prev, [type]: !prev[type] }))
+  }
+
+  const showMore = (type: DocType) => {
+    setSectionLimits((prev) => ({
+      ...prev,
+      [type]: prev[type] + SECTION_PAGE_SIZE
+    }))
   }
 
   const handleCreate = (type: DocType) => {
@@ -160,13 +191,10 @@ export function Sidebar() {
     )
   }
 
-  const renderSection = (
-    type: DocType,
-    docs: Array<{ id: string; title?: string }>,
-    loading: boolean
-  ) => {
+  const renderSection = (type: DocType, docs: SidebarDoc[], hasMore: boolean, loading: boolean) => {
     const config = typeConfig[type]
     const isExpanded = expandedSections[type]
+    const visibleDocs = docs.slice(0, sectionLimits[type])
 
     if (loading) {
       return (
@@ -176,7 +204,7 @@ export function Sidebar() {
       )
     }
 
-    if (docs.length === 0) return null
+    if (visibleDocs.length === 0) return null
 
     return (
       <div key={type} className="mb-2">
@@ -187,15 +215,29 @@ export function Sidebar() {
         >
           {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           <span className="uppercase font-medium tracking-wider">{config.label}</span>
-          <span className="ml-auto opacity-50">{docs.length}</span>
+          <span className="ml-auto opacity-50">
+            {visibleDocs.length}
+            {hasMore ? '+' : ''}
+          </span>
         </button>
 
         {/* Documents */}
         {isExpanded && (
           <ul className="list-none p-0 m-0">
-            {docs.map((doc) => (
+            {visibleDocs.map((doc) => (
               <li key={doc.id}>{renderDocLink(type, doc)}</li>
             ))}
+            {hasMore && (
+              <li className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => showMore(type)}
+                  className="w-full px-2 py-1.5 text-left text-xs text-primary hover:text-primary/80 transition-colors bg-transparent border-none cursor-pointer"
+                >
+                  Show more {config.label.toLowerCase()}
+                </button>
+              </li>
+            )}
           </ul>
         )}
       </div>
@@ -263,9 +305,24 @@ export function Sidebar() {
       <div className="flex-1 overflow-auto p-2">
         <MyTasksPanel />
 
-        {renderSection('page', pages || [], pagesLoading)}
-        {renderSection('database', databases || [], databasesLoading)}
-        {renderSection('canvas', canvases || [], canvasesLoading)}
+        {renderSection(
+          'page',
+          pages || [],
+          (pages?.length || 0) > sectionLimits.page,
+          pagesLoading
+        )}
+        {renderSection(
+          'database',
+          databases || [],
+          (databases?.length || 0) > sectionLimits.database,
+          databasesLoading
+        )}
+        {renderSection(
+          'canvas',
+          canvases || [],
+          (canvases?.length || 0) > sectionLimits.canvas,
+          canvasesLoading
+        )}
 
         {!pagesLoading &&
           !databasesLoading &&

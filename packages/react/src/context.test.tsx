@@ -42,6 +42,7 @@ function createSyncManagerStub(): SyncManager {
     trackedCount: 0,
     queueSize: 0,
     pendingBlobCount: 0,
+    lastVerificationFailure: null,
     on: vi.fn(() => () => {})
   }
 }

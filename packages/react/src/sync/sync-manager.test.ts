@@ -1,4 +1,6 @@
 import type { NodeStore, NodeStorageAdapter } from '@xnetjs/data'
+import { generateIdentity } from '@xnetjs/identity'
+import { signYjsUpdate } from '@xnetjs/sync'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
@@ -28,6 +30,7 @@ let roomReadyPromise: Promise<void> = Promise.resolve()
 let mockOfflineQueueSize = 0
 let drainDeferred: Deferred<number> | null = null
 let sharedDoc = new Y.Doc()
+const roomHandlers = new Map<string, (data: Record<string, unknown>) => void>()
 
 const mockConnection = {
   connect: vi.fn(() => {
@@ -37,10 +40,15 @@ const mockConnection = {
     emitConnectionStatus('disconnected')
   }),
   joinRoom: vi.fn(() => () => {}),
-  joinRoomAsync: vi.fn(() => ({
-    unsubscribe: vi.fn(),
-    ready: roomReadyPromise
-  })),
+  joinRoomAsync: vi.fn((room: string, handler: (data: Record<string, unknown>) => void) => {
+    roomHandlers.set(room, handler)
+    return {
+      unsubscribe: vi.fn(() => {
+        roomHandlers.delete(room)
+      }),
+      ready: roomReadyPromise
+    }
+  }),
   leaveRoom: vi.fn(),
   publish: vi.fn(),
   sendRaw: vi.fn(),
@@ -142,6 +150,7 @@ describe('createSyncManager', () => {
     mockOfflineQueueSize = 0
     drainDeferred = null
     connectionStatusListeners.clear()
+    roomHandlers.clear()
     sharedDoc = new Y.Doc()
 
     mockConnection.connect.mockClear()
@@ -227,5 +236,113 @@ describe('createSyncManager', () => {
 
     const remainingClientIds = Array.from(awareness!.getStates().keys())
     expect(remainingClientIds).toEqual([awareness!.clientID])
+  })
+
+  it('signs outgoing sync updates by default', async () => {
+    const identity = generateIdentity()
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444',
+      authorDID: identity.identity.did,
+      signingKey: identity.privateKey
+    })
+
+    await manager.start()
+    emitConnectionStatus('connected')
+    await manager.acquire('node-1')
+
+    sharedDoc.getText('content').insert(0, 'signed')
+
+    const syncUpdateCall = mockConnection.publish.mock.calls.find(
+      ([, data]) => data?.type === 'sync-update'
+    )
+    expect(syncUpdateCall).toBeDefined()
+    expect(syncUpdateCall?.[1]).toMatchObject({
+      type: 'sync-update',
+      envelope: expect.objectContaining({
+        authorDID: identity.identity.did,
+        signature: expect.any(String)
+      })
+    })
+    expect(syncUpdateCall?.[1].update).toBeUndefined()
+  })
+
+  it('rejects unsigned incoming updates by default', async () => {
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+
+    await manager.start()
+    await manager.acquire('node-1')
+
+    const baseline = sharedDoc.getText('content').toString()
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-1',
+      update: btoa(String.fromCharCode(1, 2, 3))
+    })
+
+    expect(sharedDoc.getText('content').toString()).toBe(baseline)
+  })
+
+  it('accepts unsigned incoming updates only in explicit compatibility mode', async () => {
+    const sourceDoc = new Y.Doc()
+    sourceDoc.getText('content').insert(0, 'legacy')
+
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444',
+      replication: {
+        compatibility: {
+          allowUnsignedReplication: true
+        }
+      }
+    })
+
+    await manager.start()
+    await manager.acquire('node-1')
+
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-legacy',
+      update: btoa(String.fromCharCode(...Y.encodeStateAsUpdate(sourceDoc)))
+    })
+
+    expect(sharedDoc.getText('content').toString()).toBe('legacy')
+  })
+
+  it('accepts valid signed incoming updates', async () => {
+    const identity = generateIdentity()
+    const sourceDoc = new Y.Doc()
+    sourceDoc.getText('content').insert(0, 'remote')
+    const update = Y.encodeStateAsUpdate(sourceDoc)
+    const envelope = signYjsUpdate(update, identity.identity.did, identity.privateKey, 7)
+
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+
+    await manager.start()
+    await manager.acquire('node-1')
+
+    await roomHandlers.get('xnet-doc-node-1')?.({
+      type: 'sync-update',
+      from: 'peer-signed',
+      envelope: {
+        update: btoa(String.fromCharCode(...envelope.update)),
+        authorDID: envelope.authorDID,
+        signature: btoa(String.fromCharCode(...envelope.signature)),
+        timestamp: envelope.timestamp,
+        clientId: envelope.clientId
+      }
+    })
+
+    expect(sharedDoc.getText('content').toString()).toBe('remote')
   })
 })

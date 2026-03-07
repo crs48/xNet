@@ -32,11 +32,11 @@ This step addresses visible drift that already exists:
 
 ### Coverage pyramid for the converged platform
 
-| Layer | Main concern | Examples |
-| --- | --- | --- |
-| Unit | descriptor normalization, bridge matching, sync state transitions | `useQuery`, query matcher, sync state machine |
-| Integration | provider bootstrap, live query updates, sync replay, database migrations | worker boot, multi-device data convergence |
-| App proof | real user flows in web and Electron | search, edit, reconnect, recover |
+| Layer       | Main concern                                                             | Examples                                      |
+| ----------- | ------------------------------------------------------------------------ | --------------------------------------------- |
+| Unit        | descriptor normalization, bridge matching, sync state transitions        | `useQuery`, query matcher, sync state machine |
+| Integration | provider bootstrap, live query updates, sync replay, database migrations | worker boot, multi-device data convergence    |
+| App proof   | real user flows in web and Electron                                      | search, edit, reconnect, recover              |
 
 ### Devtools additions
 
@@ -119,8 +119,8 @@ Do not rewrite every old exploration or plan. Instead:
 
 ## Step Checklist
 
-- [ ] Rewrite stale integration tests to current hooks and storage paths.
-- [ ] Add stable-entrypoint contract tests and/or doc-backed examples.
-- [ ] Extend devtools for runtime mode, query descriptors, sync status, and storage durability.
-- [ ] Update public package docs and top-level roadmap references to the current API surface.
-- [ ] Mark or segregate historical docs so they are not mistaken for current guidance.
+- [x] Rewrite stale integration tests to current hooks and storage paths.
+- [x] Add stable-entrypoint contract tests and/or doc-backed examples.
+- [x] Extend devtools for runtime mode, query descriptors, sync status, and storage durability.
+- [x] Update public package docs and top-level roadmap references to the current API surface.
+- [x] Mark or segregate historical docs so they are not mistaken for current guidance.

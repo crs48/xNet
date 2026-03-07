@@ -13,6 +13,8 @@ export interface QueueEntry {
   nodeId: string
   /** Serialized Y.Doc update (base64 encoded) */
   update: string
+  /** Original Yjs client ID when the update was queued */
+  clientId?: number
   /** Timestamp when queued */
   queuedAt: number
 }
@@ -28,7 +30,7 @@ export interface OfflineQueueConfig {
 
 export interface OfflineQueue {
   /** Enqueue an update for later broadcast */
-  enqueue(nodeId: string, update: Uint8Array): Promise<void>
+  enqueue(nodeId: string, update: Uint8Array, clientId?: number): Promise<void>
   /** Drain the queue, calling handler for each entry. Returns count drained. */
   drain(handler: (entry: QueueEntry) => Promise<void>): Promise<number>
   /** Number of entries in the queue */
@@ -127,10 +129,11 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
   }
 
   return {
-    async enqueue(nodeId, update) {
+    async enqueue(nodeId, update, clientId) {
       entries.push({
         nodeId,
         update: toBase64(update),
+        clientId,
         queuedAt: Date.now()
       })
 

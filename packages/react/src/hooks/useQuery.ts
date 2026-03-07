@@ -281,6 +281,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
       schemaId,
       mode,
       filter: filter.where as Record<string, unknown> | undefined,
+      descriptorKey: queryKey,
       nodeId: nodeId || undefined
     })
     return () => {

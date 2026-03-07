@@ -23,6 +23,10 @@ const run = async (): Promise<void> => {
     .option('-d, --data <path>', 'data directory', DEFAULT_CONFIG.dataDir)
     .option('--no-auth', 'disable UCAN authentication (anonymous mode)')
     .option('--storage <type>', 'storage backend (sqlite|memory)', DEFAULT_CONFIG.storage)
+    .option(
+      '--allow-unsigned-replication',
+      'temporary compatibility mode for legacy unsigned Yjs replication'
+    )
     .option('--public-url <url>', 'public hub URL for discovery', DEFAULT_CONFIG.publicUrl ?? '')
     .option(
       '--max-connections <number>',
@@ -72,6 +76,9 @@ const run = async (): Promise<void> => {
         dataDir: opts.data,
         auth: opts.auth !== false,
         storage: opts.storage,
+        sync: opts.allowUnsignedReplication
+          ? { compatibility: { allowUnsignedReplication: true } }
+          : undefined,
         publicUrl: opts.publicUrl || undefined,
         maxConnections: parseNumber(opts.maxConnections, DEFAULT_CONFIG.maxConnections),
         maxBlobSize: parseNumber(opts.maxBlobSize, DEFAULT_CONFIG.maxBlobSize),

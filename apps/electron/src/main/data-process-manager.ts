@@ -8,6 +8,7 @@
  * - Setting up MessagePort channels between renderer and utility
  */
 
+import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import {
@@ -53,6 +54,7 @@ type BSMStartOptions = {
   signalingUrl: string
   authorDID?: string
   signingKey?: number[]
+  replication?: SyncReplicationConfig
   ucanToken?: string
   transport?: 'ws' | 'webrtc' | 'auto'
   iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>

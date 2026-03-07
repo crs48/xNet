@@ -5,10 +5,10 @@
  * All updates should be wrapped in signed envelopes for security.
  */
 import type { NetworkNode, SyncMessage } from '../types'
-import type { SignedYjsEnvelopeV1 } from '@xnetjs/sync'
+import type { SignedYjsEnvelopeV1, SyncReplicationConfig } from '@xnetjs/sync'
 import type { Doc } from 'yjs'
 import { encode, decode } from '@msgpack/msgpack'
-import { verifyYjsEnvelopeV1 } from '@xnetjs/sync'
+import { resolveSyncReplicationPolicy, signYjsUpdate, verifyYjsEnvelopeV1 } from '@xnetjs/sync'
 import * as lp from 'it-length-prefixed'
 import { pipe } from 'it-pipe'
 import * as Y from 'yjs'
@@ -17,8 +17,13 @@ const SYNC_PROTOCOL = '/xnet/sync/1.0.0'
 
 // NW-01: Configuration for envelope verification
 interface SyncProtocolConfig {
-  /** Reject updates without valid signatures (default: true in production) */
-  requireSignedEnvelopes?: boolean
+  /** Replication compatibility policy */
+  replication?: SyncReplicationConfig
+  /** Identity used to sign outgoing sync responses */
+  signing?: {
+    authorDID: string
+    signingKey: Uint8Array
+  }
   /** Callback when an update fails verification */
   onVerificationFailed?: (reason: string, sender: string, docId: string) => void
 }
@@ -56,7 +61,8 @@ export function createSyncProtocol(
   node: NetworkNode,
   config: SyncProtocolConfig = {}
 ): SyncProtocol {
-  const { requireSignedEnvelopes = false, onVerificationFailed } = config
+  const { onVerificationFailed } = config
+  const replicationPolicy = resolveSyncReplicationPolicy(config.replication)
   const documents = new Map<string, Doc>()
   const messageCallbacks = new Set<(msg: SyncMessage) => void>()
 
@@ -79,13 +85,33 @@ export function createSyncProtocol(
             const doc = documents.get(msg.docId)
             if (doc) {
               const state = Y.encodeStateAsUpdate(doc)
-              yield encode({
-                type: 'sync-response',
-                docId: msg.docId,
-                payload: state,
-                sender: node.did,
-                timestamp: Date.now()
-              } satisfies SyncMessage)
+              const response = config.signing
+                ? ({
+                    type: 'sync-response',
+                    docId: msg.docId,
+                    payload: state,
+                    envelope: signYjsUpdate(
+                      state,
+                      config.signing.authorDID,
+                      config.signing.signingKey,
+                      doc.clientID
+                    ),
+                    sender: node.did,
+                    timestamp: Date.now()
+                  } satisfies SyncMessageV2)
+                : ({
+                    type: 'sync-response',
+                    docId: msg.docId,
+                    payload: state,
+                    sender: node.did,
+                    timestamp: Date.now()
+                  } satisfies SyncMessage)
+
+              if (!config.signing && replicationPolicy.requireSignedReplication) {
+                continue
+              }
+
+              yield encode(response)
             }
           }
         }
@@ -139,7 +165,7 @@ export function createSyncProtocol(
               const result = verifyYjsEnvelopeV1(msg.envelope)
               if (!result.valid) {
                 onVerificationFailed?.(result.reason || 'unknown', msg.sender, msg.docId)
-                if (requireSignedEnvelopes) {
+                if (replicationPolicy.requireSignedReplication) {
                   console.warn(
                     `[SyncProtocol] Rejected update from ${msg.sender}: ${result.reason}`
                   )
@@ -148,7 +174,7 @@ export function createSyncProtocol(
               }
               // Apply verified update
               Y.applyUpdate(doc, msg.envelope.update, msg.envelope.authorDID)
-            } else if (requireSignedEnvelopes) {
+            } else if (replicationPolicy.requireSignedReplication) {
               // NW-01: Reject unsigned updates when signatures required
               onVerificationFailed?.('missing_envelope', msg.sender, msg.docId)
               console.warn(`[SyncProtocol] Rejected unsigned update from ${msg.sender}`)
