@@ -6,6 +6,7 @@ import { Badge, Button, ResizableHandle, ResizablePanel, ResizablePanelGroup } f
 import { ArrowLeft, Code2, RefreshCcw, Settings, Trash2 } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useActiveSession } from './hooks/useActiveSession'
+import { usePreviewSelectedContext } from './hooks/usePreviewSelectedContext'
 import { useSessionCommands } from './hooks/useSessionCommands'
 import { useWorkspaceSessionSync } from './hooks/useWorkspaceSessionSync'
 import { OpenCodePanel } from './OpenCodePanel'
@@ -39,6 +40,7 @@ export function DevWorkspaceShell({
     summaries,
     activeSessionId
   })
+  usePreviewSelectedContext(activeSession)
 
   const handleCreateSession = useCallback(async () => {
     const nextIndex = summaries.length + 1

@@ -6,17 +6,25 @@ import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
 import {
   OPENCODE_HOST_IPC_CHANNELS,
+  type OpenCodeAppendPromptInput,
   type OpenCodeHostOutputEvent,
   type OpenCodeHostStatus
 } from '../shared/opencode-host'
 import { isAllowedServiceChannel } from '../shared/service-ipc'
 import {
   WORKSPACE_SESSION_IPC_CHANNELS,
+  type CaptureWorkspaceSessionScreenshotInput,
+  type CaptureWorkspaceSessionScreenshotResult,
+  type CreateWorkspaceSessionPullRequestInput,
+  type CreateWorkspaceSessionPullRequestResult,
   type CreateWorkspaceSessionInput,
   type RefreshWorkspaceSessionInput,
   type RemoveWorkspaceSessionInput,
   type RemoveWorkspaceSessionResult,
+  type StoreSelectedContextInput,
+  type StoreSelectedContextResult,
   type SyncWorkspaceSessionsInput,
+  type WorkspaceSessionReview,
   type WorkspaceSessionSnapshot,
   type WorkspaceSessionStatusEvent
 } from '../shared/workspace-session'
@@ -318,6 +326,8 @@ contextBridge.exposeInMainWorld('xnetOpenCode', {
   ensure: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.ENSURE),
   status: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.STATUS),
   stop: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.STOP),
+  appendPrompt: (input: OpenCodeAppendPromptInput) =>
+    ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.APPEND_PROMPT, input),
   onStatusChange: (callback: (status: OpenCodeHostStatus) => void) => {
     const handler = (_: unknown, status: OpenCodeHostStatus) => callback(status)
     ipcRenderer.on(
@@ -350,6 +360,18 @@ contextBridge.exposeInMainWorld('xnetWorkspaceSessions', {
     ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.REFRESH, input),
   restartPreview: (input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> =>
     ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.RESTART_PREVIEW, input),
+  review: (input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionReview> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.REVIEW, input),
+  storeSelectedContext: (input: StoreSelectedContextInput): Promise<StoreSelectedContextResult> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.STORE_SELECTED_CONTEXT, input),
+  captureScreenshot: (
+    input: CaptureWorkspaceSessionScreenshotInput
+  ): Promise<CaptureWorkspaceSessionScreenshotResult> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.CAPTURE_SCREENSHOT, input),
+  createPullRequest: (
+    input: CreateWorkspaceSessionPullRequestInput
+  ): Promise<CreateWorkspaceSessionPullRequestResult> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.CREATE_PULL_REQUEST, input),
   remove: (input: RemoveWorkspaceSessionInput): Promise<RemoveWorkspaceSessionResult> =>
     ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.REMOVE, input),
   onStatusChange: (callback: (event: WorkspaceSessionStatusEvent) => void) => {
@@ -556,6 +578,7 @@ export interface XNetOpenCodeAPI {
   ensure(): Promise<OpenCodeHostStatus>
   status(): Promise<OpenCodeHostStatus>
   stop(): Promise<OpenCodeHostStatus>
+  appendPrompt(input: OpenCodeAppendPromptInput): Promise<{ ok: true }>
   onStatusChange(callback: (status: OpenCodeHostStatus) => void): () => void
   onOutput(callback: (event: OpenCodeHostOutputEvent) => void): () => void
 }
@@ -565,6 +588,14 @@ export interface XNetWorkspaceSessionsAPI {
   sync(input: SyncWorkspaceSessionsInput): Promise<WorkspaceSessionSnapshot[]>
   refresh(input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot>
   restartPreview(input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot>
+  review(input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionReview>
+  storeSelectedContext(input: StoreSelectedContextInput): Promise<StoreSelectedContextResult>
+  captureScreenshot(
+    input: CaptureWorkspaceSessionScreenshotInput
+  ): Promise<CaptureWorkspaceSessionScreenshotResult>
+  createPullRequest(
+    input: CreateWorkspaceSessionPullRequestInput
+  ): Promise<CreateWorkspaceSessionPullRequestResult>
   remove(input: RemoveWorkspaceSessionInput): Promise<RemoveWorkspaceSessionResult>
   onStatusChange(callback: (event: WorkspaceSessionStatusEvent) => void): () => void
 }

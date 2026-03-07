@@ -3,10 +3,15 @@
  */
 
 import type {
+  CaptureWorkspaceSessionScreenshotResult,
   CreateWorkspaceSessionInput,
+  CreateWorkspaceSessionPullRequestResult,
   RefreshWorkspaceSessionInput,
   RemoveWorkspaceSessionResult,
+  SelectedContext,
+  StoreSelectedContextResult,
   SyncWorkspaceSessionsInput,
+  WorkspaceSessionReview,
   WorkspaceSessionSnapshot
 } from '../../../shared/workspace-session'
 import type {
@@ -241,6 +246,53 @@ export function useSessionCommands() {
     [removeSessionSummary]
   )
 
+  const reviewWorkspaceSession = useCallback(
+    async (session: SessionSummaryNode): Promise<WorkspaceSessionReview> => {
+      return window.xnetWorkspaceSessions.review(toWorkspaceRefreshInput(session))
+    },
+    []
+  )
+
+  const storeWorkspaceSelectedContext = useCallback(
+    async (
+      session: SessionSummaryNode,
+      context: SelectedContext
+    ): Promise<StoreSelectedContextResult> => {
+      return window.xnetWorkspaceSessions.storeSelectedContext({
+        worktreePath: session.worktreePath ?? '',
+        context
+      })
+    },
+    []
+  )
+
+  const captureWorkspaceScreenshot = useCallback(
+    async (session: SessionSummaryNode): Promise<CaptureWorkspaceSessionScreenshotResult> => {
+      const result = await window.xnetWorkspaceSessions.captureScreenshot({
+        sessionId: session.id,
+        worktreePath: session.worktreePath ?? ''
+      })
+      await refreshWorkspaceSession(session)
+      return result
+    },
+    [refreshWorkspaceSession]
+  )
+
+  const createWorkspacePullRequest = useCallback(
+    async (
+      session: SessionSummaryNode,
+      draft: { title: string; body: string }
+    ): Promise<CreateWorkspaceSessionPullRequestResult> => {
+      return window.xnetWorkspaceSessions.createPullRequest({
+        sessionId: session.id,
+        worktreePath: session.worktreePath ?? '',
+        title: draft.title,
+        body: draft.body
+      })
+    },
+    []
+  )
+
   return {
     ensureWorkspaceShellState,
     createSessionSummary,
@@ -252,6 +304,10 @@ export function useSessionCommands() {
     restartWorkspacePreview,
     removeSessionSummary,
     removeWorkspaceSession,
+    reviewWorkspaceSession,
+    storeWorkspaceSelectedContext,
+    captureWorkspaceScreenshot,
+    createWorkspacePullRequest,
     selectSession
   }
 }

@@ -3,7 +3,7 @@
  */
 
 import { execFile } from 'node:child_process'
-import { access, constants, cp, mkdir, symlink } from 'node:fs/promises'
+import { access, constants, cp, mkdir, readFile, symlink } from 'node:fs/promises'
 import { basename, dirname, join, sep } from 'node:path'
 import { promisify } from 'node:util'
 import {
@@ -31,6 +31,11 @@ export type GitStatusSummary = {
   changedFilesCount: number
   isDirty: boolean
   files: string[]
+}
+
+export type GitFileChange = {
+  path: string
+  status: string
 }
 
 export type GitRepoContext = {
@@ -196,19 +201,24 @@ export function parseWorktreeListOutput(output: string): WorktreeInfo[] {
 }
 
 export function parseGitStatusSummary(output: string): GitStatusSummary {
-  const files = uniqueStrings(
-    output
-      .split('\n')
-      .map((line) => line.trimEnd())
-      .filter(Boolean)
-      .map((line) => line.slice(3).trim())
-  )
+  const files = uniqueStrings(parseGitFileChanges(output).map((entry) => entry.path))
 
   return {
     changedFilesCount: files.length,
     isDirty: files.length > 0,
     files
   }
+}
+
+export function parseGitFileChanges(output: string): GitFileChange[] {
+  return output
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .filter(Boolean)
+    .map((line) => ({
+      status: line.slice(0, 2).trim() || '??',
+      path: line.slice(3).trim()
+    }))
 }
 
 export function deriveWorktreeName(branch: string, sessionId: string): string {
@@ -288,6 +298,21 @@ export class GitService {
   async getDiffStat(cwd: string): Promise<string> {
     const result = await this.runGit(['diff', '--stat', '--no-ext-diff'], cwd)
     return trimCommandOutput(result.stdout)
+  }
+
+  async getDiffPatch(cwd: string): Promise<string> {
+    const result = await this.runGit(['diff', '--no-ext-diff'], cwd)
+    return result.stdout
+  }
+
+  async listChangedFiles(cwd: string): Promise<GitFileChange[]> {
+    const result = await this.runGit(['status', '--porcelain=v1', '--untracked-files=all'], cwd)
+    return parseGitFileChanges(result.stdout)
+  }
+
+  async readRelativeFile(cwd: string, relativePath: string): Promise<string> {
+    const absolutePath = join(cwd, relativePath)
+    return readFile(absolutePath, 'utf8')
   }
 
   async createCommit(cwd: string, message: string): Promise<void> {

@@ -14,9 +14,14 @@ export const OPENCODE_HOST_IPC_CHANNELS = {
   ENSURE: 'xnet:opencode:ensure',
   STATUS: 'xnet:opencode:status',
   STOP: 'xnet:opencode:stop',
+  APPEND_PROMPT: 'xnet:opencode:append-prompt',
   STATUS_CHANGE: 'xnet:opencode:status-change',
   OUTPUT: 'xnet:opencode:output'
 } as const
+
+export type OpenCodeAppendPromptInput = {
+  prompt: string
+}
 
 export type OpenCodeHostConfig = {
   host: string

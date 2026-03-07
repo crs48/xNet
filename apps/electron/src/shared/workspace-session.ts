@@ -10,10 +10,15 @@ export const WORKSPACE_SESSION_IPC_CHANNELS = {
   REMOVE: 'xnet:workspace-session:remove',
   REFRESH: 'xnet:workspace-session:refresh',
   RESTART_PREVIEW: 'xnet:workspace-session:restart-preview',
+  REVIEW: 'xnet:workspace-session:review',
+  STORE_SELECTED_CONTEXT: 'xnet:workspace-session:store-selected-context',
+  CAPTURE_SCREENSHOT: 'xnet:workspace-session:capture-screenshot',
+  CREATE_PULL_REQUEST: 'xnet:workspace-session:create-pull-request',
   STATUS_CHANGE: 'xnet:workspace-session:status-change'
 } as const
 
 export type WorkspaceSessionState = 'idle' | 'running' | 'previewing' | 'error'
+export const PREVIEW_SELECTED_CONTEXT_MESSAGE_TYPE = 'xnet:preview:selected-context' as const
 
 export type WorkspaceSessionDescriptor = {
   sessionId: string
@@ -54,6 +59,11 @@ export type RemoveWorkspaceSessionResult = {
   message: string
 }
 
+export type WorkspaceFileChange = {
+  path: string
+  status: string
+}
+
 export type WorkspaceSessionSnapshot = {
   sessionId: string
   title: string
@@ -70,6 +80,85 @@ export type WorkspaceSessionSnapshot = {
 
 export type WorkspaceSessionStatusEvent = {
   session: WorkspaceSessionSnapshot
+}
+
+export type WorkspaceSessionReview = {
+  sessionId: string
+  changedFiles: WorkspaceFileChange[]
+  diffStat: string
+  diffPatch: string
+  markdownPreview: {
+    path: string
+    content: string
+  } | null
+  prDraft: {
+    title: string
+    body: string
+    screenshotPath: string | null
+  }
+}
+
+export type SelectedContextBounds = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type SelectedContext = {
+  sessionId: string
+  routeId: string | null
+  targetId: string | null
+  targetLabel: string | null
+  fileHint: string | null
+  documentId: string | null
+  bounds: SelectedContextBounds | null
+  nearbyText: string | null
+  screenshotPath: string | null
+  capturedAt: number
+}
+
+export type PreviewSelectedContextMessage = {
+  type: typeof PREVIEW_SELECTED_CONTEXT_MESSAGE_TYPE
+  routeId: string | null
+  targetId: string | null
+  targetLabel: string | null
+  fileHint: string | null
+  documentId: string | null
+  bounds: SelectedContextBounds | null
+  nearbyText: string | null
+}
+
+export type StoreSelectedContextInput = {
+  worktreePath: string
+  context: SelectedContext
+}
+
+export type StoreSelectedContextResult = {
+  path: string
+}
+
+export type CaptureWorkspaceSessionScreenshotInput = {
+  sessionId: string
+  worktreePath: string
+}
+
+export type CaptureWorkspaceSessionScreenshotResult = {
+  path: string
+}
+
+export type CreateWorkspaceSessionPullRequestInput = {
+  sessionId: string
+  worktreePath: string
+  title: string
+  body: string
+}
+
+export type CreateWorkspaceSessionPullRequestResult = {
+  created: boolean
+  url: string | null
+  bodyFilePath: string
+  error: string | null
 }
 
 export function sanitizeWorkspaceBranchSegment(value: string): string {

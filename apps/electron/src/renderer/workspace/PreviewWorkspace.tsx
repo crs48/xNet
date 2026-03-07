@@ -1,24 +1,22 @@
 /**
- * Right-side native preview workspace for preview, diff, files, markdown, and PR surfaces.
+ * Right-side native preview workspace for preview, review, markdown, and PR flows.
  */
 
 import type { SessionSummaryNode } from './state/active-session'
-import {
-  Badge,
-  Button,
-  MarkdownContent,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from '@xnetjs/ui'
+import { Badge, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@xnetjs/ui'
 import { RefreshCcw, RotateCw } from 'lucide-react'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useSessionCommands } from './hooks/useSessionCommands'
+import { useWorkspaceReview } from './hooks/useWorkspaceReview'
+import { ChangedFilesPanel } from './panels/ChangedFilesPanel'
+import { DiffPanel } from './panels/DiffPanel'
+import { MarkdownPreviewPanel } from './panels/MarkdownPreviewPanel'
+import { PrDraftPanel } from './panels/PrDraftPanel'
 
 type PreviewWorkspaceProps = {
   activeSession: SessionSummaryNode | null
-  onRefreshSession?: () => void
-  onRestartPreview?: () => void
+  onRefreshSession?: () => void | Promise<void>
+  onRestartPreview?: () => void | Promise<void>
 }
 
 function buildSessionBrief(session: SessionSummaryNode): string {
@@ -32,30 +30,7 @@ function buildSessionBrief(session: SessionSummaryNode): string {
     '',
     '## Current prompt context',
     '',
-    session.lastMessagePreview ?? '_No prompt checkpoint recorded yet._',
-    '',
-    '## Next integrations',
-    '',
-    '- Git worktree creation and cleanup',
-    '- Warm preview runtimes',
-    '- Screenshot capture and PR drafting'
-  ].join('\n')
-}
-
-function buildPrDraft(session: SessionSummaryNode): string {
-  return [
-    `feat(workspace): iterate on ${session.title ?? 'coding workspace shell'}`,
-    '',
-    '## Summary',
-    '',
-    '- update the coding workspace shell layout',
-    '- carry the session metadata into the native preview surface',
-    '- capture a screenshot before opening the PR flow',
-    '',
-    '## Notes',
-    '',
-    `- branch: ${session.branch ?? 'pending branch'}`,
-    `- changed files: ${String(session.changedFilesCount ?? 0)}`
+    session.lastMessagePreview ?? '_No prompt checkpoint recorded yet._'
   ].join('\n')
 }
 
@@ -75,11 +50,61 @@ export function PreviewWorkspace({
   onRefreshSession,
   onRestartPreview
 }: PreviewWorkspaceProps): React.ReactElement {
+  const { captureWorkspaceScreenshot, createWorkspacePullRequest } = useSessionCommands()
+  const { review, loading, error, refresh } = useWorkspaceReview(activeSession)
+  const [capturingScreenshot, setCapturingScreenshot] = useState(false)
+  const [creatingPullRequest, setCreatingPullRequest] = useState(false)
+  const [prStatus, setPrStatus] = useState<string | null>(null)
+
   const sessionBrief = useMemo(
     () => (activeSession ? buildSessionBrief(activeSession) : ''),
     [activeSession]
   )
-  const prDraft = useMemo(() => (activeSession ? buildPrDraft(activeSession) : ''), [activeSession])
+
+  const handleCaptureScreenshot = async (): Promise<void> => {
+    if (!activeSession) {
+      return
+    }
+
+    setCapturingScreenshot(true)
+    setPrStatus(null)
+
+    try {
+      const result = await captureWorkspaceScreenshot(activeSession)
+      setPrStatus(`Captured screenshot at ${result.path}`)
+      await refresh()
+    } catch (nextError) {
+      const message = nextError instanceof Error ? nextError.message : String(nextError)
+      setPrStatus(`Screenshot capture failed: ${message}`)
+    } finally {
+      setCapturingScreenshot(false)
+    }
+  }
+
+  const handleCreatePullRequest = async (): Promise<void> => {
+    if (!activeSession || !review) {
+      return
+    }
+
+    setCreatingPullRequest(true)
+    setPrStatus(null)
+
+    try {
+      const result = await createWorkspacePullRequest(activeSession, review.prDraft)
+      if (result.created) {
+        setPrStatus(result.url ? `Created PR: ${result.url}` : 'Created PR draft successfully.')
+      } else {
+        setPrStatus(
+          `PR creation failed. Draft saved to ${result.bodyFilePath}. ${result.error ?? ''}`.trim()
+        )
+      }
+    } catch (nextError) {
+      const message = nextError instanceof Error ? nextError.message : String(nextError)
+      setPrStatus(`PR creation failed: ${message}`)
+    } finally {
+      setCreatingPullRequest(false)
+    }
+  }
 
   return (
     <section className="flex h-full flex-col bg-background/70 backdrop-blur-xl">
@@ -139,7 +164,7 @@ export function PreviewWorkspace({
             {!activeSession ? (
               <PlaceholderCard
                 title="No preview selected"
-                body="The preview tab will render the warm runtime or cached frame for the selected worktree in Step 04."
+                body="The preview tab renders the warm runtime for the selected worktree."
               />
             ) : activeSession.state === 'error' ? (
               <PlaceholderCard
@@ -162,92 +187,30 @@ export function PreviewWorkspace({
             ) : (
               <PlaceholderCard
                 title="Preview runtime not attached yet"
-                body="This session already carries denormalized shell state. Preview boot orchestration and warm switching land in Step 04."
+                body="This session is ready for review data, but its live preview is not attached yet."
               />
             )}
           </TabsContent>
 
-          <TabsContent value="diff" className="min-h-0 flex-1">
+          <TabsContent value="diff" className="min-h-0 flex-1 overflow-y-auto">
             {!activeSession ? (
               <PlaceholderCard
                 title="No diff available"
-                body="Select a session to show changed-file counts, staged diffs, and review surfaces."
+                body="Select a session to inspect its git diff and patch."
               />
             ) : (
-              <div className="grid h-full gap-4 md:grid-cols-[1.05fr,0.95fr]">
-                <div className="rounded-[28px] border border-border/70 bg-background/80 p-5">
-                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Current status
-                  </p>
-                  <div className="mt-4 flex items-end gap-3">
-                    <span className="text-4xl font-semibold text-foreground">
-                      {String(activeSession.changedFilesCount ?? 0)}
-                    </span>
-                    <span className="pb-1 text-sm text-muted-foreground">
-                      files flagged for review
-                    </span>
-                  </div>
-                  <p className="mt-4 text-sm leading-6 text-muted-foreground">
-                    Real git diff ingestion is not wired yet. This tab is already reading the
-                    xNet-backed summary record so the shell can update instantly once git metadata
-                    starts flowing in.
-                  </p>
-                </div>
-
-                <div className="rounded-[28px] border border-border/70 bg-background/80 p-5">
-                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Next feed
-                  </p>
-                  <ul className="mt-4 space-y-3 text-sm text-foreground">
-                    <li>Inline diff summary from `git diff --stat`</li>
-                    <li>Uncommitted file list for the right-panel file browser</li>
-                    <li>Screenshot attachment and PR metadata</li>
-                  </ul>
-                </div>
-              </div>
+              <DiffPanel review={review} loading={loading} error={error} />
             )}
           </TabsContent>
 
-          <TabsContent value="files" className="min-h-0 flex-1">
+          <TabsContent value="files" className="min-h-0 flex-1 overflow-y-auto">
             {!activeSession ? (
               <PlaceholderCard
                 title="No file surface yet"
-                body="This area will host file previews and markdown rendering for the selected worktree."
+                body="Select a session to review changed files from its worktree."
               />
             ) : (
-              <div className="grid h-full gap-4">
-                <div className="rounded-[28px] border border-border/70 bg-background/80 p-5">
-                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                    Session metadata
-                  </p>
-                  <dl className="mt-4 grid gap-3 text-sm">
-                    <div className="grid gap-1">
-                      <dt className="text-muted-foreground">Worktree path</dt>
-                      <dd className="font-mono text-foreground">
-                        {activeSession.worktreePath ?? 'pending'}
-                      </dd>
-                    </div>
-                    <div className="grid gap-1">
-                      <dt className="text-muted-foreground">OpenCode URL</dt>
-                      <dd className="font-mono text-foreground">
-                        {activeSession.openCodeUrl ?? 'pending'}
-                      </dd>
-                    </div>
-                    <div className="grid gap-1">
-                      <dt className="text-muted-foreground">Preview URL</dt>
-                      <dd className="font-mono text-foreground">
-                        {activeSession.previewUrl ?? 'not attached'}
-                      </dd>
-                    </div>
-                    <div className="grid gap-1">
-                      <dt className="text-muted-foreground">Last screenshot</dt>
-                      <dd className="font-mono text-foreground">
-                        {activeSession.lastScreenshotPath ?? 'not captured'}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-              </div>
+              <ChangedFilesPanel review={review} loading={loading} error={error} />
             )}
           </TabsContent>
 
@@ -255,27 +218,38 @@ export function PreviewWorkspace({
             {!activeSession ? (
               <PlaceholderCard
                 title="No markdown snapshot"
-                body="The markdown tab will render generated notes, prompts, and PR descriptions for the selected session."
+                body="The markdown tab renders changed markdown files or the selected context prompt."
               />
             ) : (
-              <div className="h-full overflow-y-auto rounded-[28px] border border-border/70 bg-background/85 p-5">
-                <MarkdownContent content={sessionBrief} className="prose prose-invert max-w-none" />
-              </div>
+              <MarkdownPreviewPanel
+                review={review}
+                loading={loading}
+                error={error}
+                fallbackContent={sessionBrief}
+              />
             )}
           </TabsContent>
 
-          <TabsContent value="pr" className="min-h-0 flex-1">
+          <TabsContent value="pr" className="min-h-0 flex-1 overflow-y-auto">
             {!activeSession ? (
               <PlaceholderCard
                 title="No PR draft"
-                body="Once a session has diff and screenshot artifacts, this tab will assemble a `gh pr create` draft."
+                body="Once a session has review data, this tab can capture a screenshot and call `gh pr create`."
               />
             ) : (
-              <div className="h-full overflow-y-auto rounded-[28px] border border-border/70 bg-background/85 p-5">
-                <pre className="whitespace-pre-wrap text-sm leading-6 text-foreground">
-                  {prDraft}
-                </pre>
-              </div>
+              <PrDraftPanel
+                review={review}
+                prStatus={prStatus}
+                loading={loading}
+                creatingPullRequest={creatingPullRequest}
+                capturingScreenshot={capturingScreenshot}
+                onCaptureScreenshot={() => {
+                  void handleCaptureScreenshot()
+                }}
+                onCreatePullRequest={() => {
+                  void handleCreatePullRequest()
+                }}
+              />
             )}
           </TabsContent>
         </Tabs>

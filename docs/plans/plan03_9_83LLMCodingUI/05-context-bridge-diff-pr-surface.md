@@ -182,9 +182,9 @@ Please improve this UI while keeping the current interaction model.
 
 ## Step Checklist
 
-- [ ] Add `data-xnet-target-*` conventions to targetable surfaces
-- [ ] Add selected-context capture and screenshot support
-- [ ] Implement prompt prefill into the active OpenCode session
-- [ ] Add a follow-up custom-tool path for selected context
-- [ ] Build Files / Diff / Markdown / PR tabs with existing xNet UI primitives
-- [ ] Add screenshot-backed PR draft generation and `gh pr create` flow
+- [x] Add `data-xnet-target-*` conventions to targetable surfaces
+- [x] Add selected-context capture and screenshot support
+- [x] Implement prompt prefill into the active OpenCode session
+- [x] Add a follow-up custom-tool path for selected context
+- [x] Build Files / Diff / Markdown / PR tabs with existing xNet UI primitives
+- [x] Add screenshot-backed PR draft generation and `gh pr create` flow

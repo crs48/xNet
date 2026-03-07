@@ -148,9 +148,9 @@ flowchart LR
 - [x] Embed or host OpenCode Web in the center panel.
 - [x] Add `GitService` worktree lifecycle commands.
 - [x] Add `PreviewManager` with warm-session behavior.
-- [ ] Add right-click target metadata conventions and capture flow.
+- [x] Add right-click target metadata conventions and capture flow.
 - [x] Add diff/file/markdown/PR tabs on the right panel.
-- [ ] Add screenshot capture and PR drafting.
+- [x] Add screenshot capture and PR drafting.
 - [ ] Add cleanup, failure handling, and performance instrumentation.
 
 ## 9. Validation Checklist

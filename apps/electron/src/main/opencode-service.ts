@@ -13,6 +13,7 @@ import {
   OPENCODE_SERVICE_ID,
   createOpenCodeHostConfig,
   createOpenCodeMissingBinaryRecovery,
+  type OpenCodeAppendPromptInput,
   type OpenCodeBinaryResolution,
   type OpenCodeHealthPayload,
   type OpenCodeHostConfig,
@@ -22,9 +23,35 @@ import { createOpenCodeHostController } from './opencode-host-controller'
 import { getProcessManager } from './service-ipc'
 
 const OPENCODE_HEALTH_PATH = '/global/health'
+const OPENCODE_APPEND_PROMPT_PATH = '/tui/append-prompt'
 
 let ipcRegistered = false
 let serviceEventsRegistered = false
+
+function getOpenCodeAuthHeaders(config: OpenCodeHostConfig): HeadersInit | undefined {
+  if (!config.password) {
+    return undefined
+  }
+
+  return {
+    authorization: `Basic ${Buffer.from(`${config.username}:${config.password}`).toString('base64')}`
+  }
+}
+
+async function waitForOpenCodeHealth(config: OpenCodeHostConfig): Promise<void> {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const health = await probeOpenCodeHealth(config)
+    if (health) {
+      return
+    }
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, 250)
+    })
+  }
+
+  throw new Error('OpenCode host is not ready to accept prompt updates')
+}
 
 const publishOpenCodeStatus = (status: OpenCodeHostStatus): void => {
   BrowserWindow.getAllWindows().forEach((win) => {
@@ -144,14 +171,8 @@ async function probeOpenCodeHealth(
   const timeout = setTimeout(() => controller.abort(), 2000)
 
   try {
-    const headers = config.password
-      ? {
-          authorization: `Basic ${Buffer.from(`${config.username}:${config.password}`).toString('base64')}`
-        }
-      : undefined
-
     const response = await fetch(`${config.baseUrl}${OPENCODE_HEALTH_PATH}`, {
-      headers,
+      headers: getOpenCodeAuthHeaders(config),
       signal: controller.signal
     })
 
@@ -204,6 +225,37 @@ export function setupOpenCodeIPC(): void {
   ipcMain.handle(OPENCODE_HOST_IPC_CHANNELS.ENSURE, async () => controller.ensure())
   ipcMain.handle(OPENCODE_HOST_IPC_CHANNELS.STATUS, async () => controller.status())
   ipcMain.handle(OPENCODE_HOST_IPC_CHANNELS.STOP, async () => controller.stop())
+  ipcMain.handle(
+    OPENCODE_HOST_IPC_CHANNELS.APPEND_PROMPT,
+    async (_event, input: OpenCodeAppendPromptInput) => {
+      const ensured = await controller.ensure()
+      if (ensured.state !== 'ready' && ensured.state !== 'starting') {
+        throw new Error('OpenCode host is not available for prompt prefill')
+      }
+
+      const config = createOpenCodeHostConfig(process.env)
+      await waitForOpenCodeHealth(config)
+
+      const response = await fetch(`${config.baseUrl}${OPENCODE_APPEND_PROMPT_PATH}`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(getOpenCodeAuthHeaders(config) ?? {})
+        },
+        body: JSON.stringify({
+          prompt: input.prompt,
+          text: input.prompt
+        })
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        throw new Error(`OpenCode prompt append failed: ${response.status} ${text}`)
+      }
+
+      return { ok: true as const }
+    }
+  )
 
   ipcRegistered = true
 }

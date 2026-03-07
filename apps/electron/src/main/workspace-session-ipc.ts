@@ -3,21 +3,28 @@
  */
 
 import type {
+  CaptureWorkspaceSessionScreenshotInput,
+  CaptureWorkspaceSessionScreenshotResult,
+  CreateWorkspaceSessionInput,
+  CreateWorkspaceSessionPullRequestInput,
+  CreateWorkspaceSessionPullRequestResult,
   RefreshWorkspaceSessionInput,
   RemoveWorkspaceSessionInput,
   RemoveWorkspaceSessionResult,
+  StoreSelectedContextInput,
+  StoreSelectedContextResult,
+  SyncWorkspaceSessionsInput,
   WorkspaceSessionDescriptor,
+  WorkspaceSessionReview,
   WorkspaceSessionSnapshot,
-  WorkspaceSessionStatusEvent,
-  WORKSPACE_SESSION_IPC_CHANNELS,
-  type CreateWorkspaceSessionInput,
-  type SyncWorkspaceSessionsInput
+  WorkspaceSessionStatusEvent
 } from '../shared/workspace-session'
-import { access, constants } from 'node:fs/promises'
-import { join } from 'node:path'
+import { access, constants, mkdir, writeFile } from 'node:fs/promises'
+import { dirname, join } from 'node:path'
 import { BrowserWindow, ipcMain } from 'electron'
 import { createOpenCodeHostConfig } from '../shared/opencode-host'
-import { createGitService } from './git-service'
+import { WORKSPACE_SESSION_IPC_CHANNELS } from '../shared/workspace-session'
+import { createGitService, type GitFileChange } from './git-service'
 import {
   createPreviewManager,
   previewRuntimeToWorkspaceState,
@@ -43,6 +50,12 @@ const fileExists = async (path: string): Promise<boolean> => {
 }
 
 const getOpenCodeUrl = (): string => createOpenCodeHostConfig(process.env).baseUrl
+const getScreenshotPath = (sessionId: string, worktreePath: string): string =>
+  join(worktreePath, 'tmp', 'playwright', `${sessionId}.png`)
+const getSelectedContextPath = (worktreePath: string): string =>
+  join(worktreePath, '.xnet', 'selected-context.json')
+const getPullRequestBodyPath = (sessionId: string, worktreePath: string): string =>
+  join(worktreePath, '.xnet', 'pr', `${sessionId}.md`)
 
 const publishWorkspaceSession = (session: WorkspaceSessionSnapshot): void => {
   const event: WorkspaceSessionStatusEvent = { session }
@@ -56,7 +69,7 @@ async function buildSessionSnapshot(
   previewStatus: PreviewRuntimeStatus
 ): Promise<WorkspaceSessionSnapshot> {
   const gitStatus = await gitService.getStatus(session.worktreePath)
-  const screenshotPath = join(session.worktreePath, 'tmp', 'playwright', `${session.sessionId}.png`)
+  const screenshotPath = getScreenshotPath(session.sessionId, session.worktreePath)
   const hasScreenshot = await fileExists(screenshotPath)
 
   return {
@@ -76,6 +89,77 @@ async function buildSessionSnapshot(
   }
 }
 
+function buildPullRequestDraft(
+  session: WorkspaceSessionDescriptor,
+  changedFiles: readonly GitFileChange[],
+  diffStat: string,
+  screenshotPath: string | null
+): { title: string; body: string } {
+  const bulletFiles = changedFiles.slice(0, 10).map((file) => `- ${file.path}`)
+
+  return {
+    title: `feat(workspace): update ${session.title.toLowerCase()}`,
+    body: [
+      '## Summary',
+      '',
+      `- update ${session.title}`,
+      `- review worktree-backed shell changes on ${session.branch}`,
+      '',
+      '## Changed Files',
+      '',
+      ...(bulletFiles.length > 0 ? bulletFiles : ['- No changed files detected']),
+      '',
+      '## Diff Summary',
+      '',
+      diffStat || '_No diff summary available._',
+      '',
+      '## Screenshot',
+      '',
+      screenshotPath ? `- ${screenshotPath}` : '- No screenshot captured yet'
+    ].join('\n')
+  }
+}
+
+async function buildWorkspaceReview(
+  session: WorkspaceSessionDescriptor
+): Promise<WorkspaceSessionReview> {
+  const changedFiles = await gitService.listChangedFiles(session.worktreePath)
+  const diffStat = await gitService.getDiffStat(session.worktreePath)
+  const diffPatch = await gitService.getDiffPatch(session.worktreePath)
+  const screenshotPath = getScreenshotPath(session.sessionId, session.worktreePath)
+  const hasScreenshot = await fileExists(screenshotPath)
+  const markdownFile = changedFiles.find(
+    (entry) => entry.path.endsWith('.md') || entry.path.endsWith('.mdx')
+  )
+  const markdownPreview = markdownFile
+    ? await gitService
+        .readRelativeFile(session.worktreePath, markdownFile.path)
+        .then((content) => ({
+          path: markdownFile.path,
+          content
+        }))
+        .catch(() => null)
+    : null
+  const prDraft = buildPullRequestDraft(
+    session,
+    changedFiles,
+    diffStat,
+    hasScreenshot ? screenshotPath : null
+  )
+
+  return {
+    sessionId: session.sessionId,
+    changedFiles,
+    diffStat,
+    diffPatch,
+    markdownPreview,
+    prDraft: {
+      ...prDraft,
+      screenshotPath: hasScreenshot ? screenshotPath : null
+    }
+  }
+}
+
 async function refreshSessionSnapshot(
   session: WorkspaceSessionDescriptor
 ): Promise<WorkspaceSessionSnapshot> {
@@ -83,6 +167,62 @@ async function refreshSessionSnapshot(
   const snapshot = await buildSessionSnapshot(session, previewStatus)
   publishWorkspaceSession(snapshot)
   return snapshot
+}
+
+async function storeSelectedContext(
+  input: StoreSelectedContextInput
+): Promise<StoreSelectedContextResult> {
+  const outputPath = getSelectedContextPath(input.worktreePath)
+  await mkdir(dirname(outputPath), { recursive: true })
+  await writeFile(outputPath, JSON.stringify(input.context, null, 2), 'utf8')
+  return { path: outputPath }
+}
+
+async function captureWorkspaceSessionScreenshot(
+  browserWindow: BrowserWindow | null,
+  input: CaptureWorkspaceSessionScreenshotInput
+): Promise<CaptureWorkspaceSessionScreenshotResult> {
+  if (!browserWindow) {
+    throw new Error('Unable to capture screenshot without an active window')
+  }
+
+  const image = await browserWindow.webContents.capturePage()
+  const outputPath = getScreenshotPath(input.sessionId, input.worktreePath)
+  await mkdir(dirname(outputPath), { recursive: true })
+  await writeFile(outputPath, image.toPNG())
+  return { path: outputPath }
+}
+
+async function createWorkspaceSessionPullRequest(
+  input: CreateWorkspaceSessionPullRequestInput
+): Promise<CreateWorkspaceSessionPullRequestResult> {
+  const bodyFilePath = getPullRequestBodyPath(input.sessionId, input.worktreePath)
+  await mkdir(dirname(bodyFilePath), { recursive: true })
+  await writeFile(bodyFilePath, input.body, 'utf8')
+
+  try {
+    const output = await gitService.createPullRequest(input.worktreePath, [
+      '--title',
+      input.title,
+      '--body-file',
+      bodyFilePath
+    ])
+    const urlMatch = output.match(/https:\/\/\S+/)
+
+    return {
+      created: true,
+      url: urlMatch ? urlMatch[0] : null,
+      bodyFilePath,
+      error: null
+    }
+  } catch (error) {
+    return {
+      created: false,
+      url: null,
+      bodyFilePath,
+      error: error instanceof Error ? error.message : String(error)
+    }
+  }
 }
 
 const registerPreviewEventForwarding = (): void => {
@@ -194,6 +334,59 @@ export function setupWorkspaceSessionIPC(): void {
       const snapshot = await buildSessionSnapshot(session, previewStatus)
       publishWorkspaceSession(snapshot)
       return snapshot
+    }
+  )
+
+  ipcMain.handle(
+    WORKSPACE_SESSION_IPC_CHANNELS.REVIEW,
+    async (_event, input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionReview> => {
+      const session: WorkspaceSessionDescriptor = {
+        sessionId: input.sessionId,
+        title: input.title,
+        branch: input.branch,
+        worktreeName: input.worktreeName,
+        worktreePath: input.worktreePath
+      }
+
+      sessionRegistry.set(session.sessionId, session)
+      return buildWorkspaceReview(session)
+    }
+  )
+
+  ipcMain.handle(
+    WORKSPACE_SESSION_IPC_CHANNELS.STORE_SELECTED_CONTEXT,
+    async (_event, input: StoreSelectedContextInput): Promise<StoreSelectedContextResult> => {
+      return storeSelectedContext(input)
+    }
+  )
+
+  ipcMain.handle(
+    WORKSPACE_SESSION_IPC_CHANNELS.CAPTURE_SCREENSHOT,
+    async (
+      event,
+      input: CaptureWorkspaceSessionScreenshotInput
+    ): Promise<CaptureWorkspaceSessionScreenshotResult> => {
+      const browserWindow = BrowserWindow.fromWebContents(event.sender)
+      const result = await captureWorkspaceSessionScreenshot(browserWindow, input)
+      const descriptor = sessionRegistry.get(input.sessionId)
+      if (descriptor) {
+        const snapshot = await buildSessionSnapshot(
+          descriptor,
+          previewManager.getStatus(input.sessionId)
+        )
+        publishWorkspaceSession(snapshot)
+      }
+      return result
+    }
+  )
+
+  ipcMain.handle(
+    WORKSPACE_SESSION_IPC_CHANNELS.CREATE_PULL_REQUEST,
+    async (
+      _event,
+      input: CreateWorkspaceSessionPullRequestInput
+    ): Promise<CreateWorkspaceSessionPullRequestResult> => {
+      return createWorkspaceSessionPullRequest(input)
     }
   )
 
