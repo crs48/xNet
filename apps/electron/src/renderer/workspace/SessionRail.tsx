@@ -59,6 +59,11 @@ function createSessionNode(
       ),
     badge: (
       <span className="flex items-center gap-2">
+        {session.isDirty ? (
+          <Badge variant="outline" className="border-amber-500/50 px-1.5 py-0 text-[10px]">
+            dirty
+          </Badge>
+        ) : null}
         <Badge variant={badgeVariantForState(session.state)} className="px-1.5 py-0 text-[10px]">
           {session.state ?? 'idle'}
         </Badge>
@@ -140,7 +145,7 @@ export function SessionRail({
               <p className="text-xs text-muted-foreground">
                 {activeSession
                   ? `${activeSession.branch ?? 'no-branch'} · ${activeSession.worktreePath ?? 'pending worktree'}`
-                  : 'Create a placeholder session now. Real worktree wiring lands in Step 04.'}
+                  : 'Create a worktree-backed session to attach a branch, preview runtime, and chat context.'}
               </p>
             </div>
           </div>

@@ -20,7 +20,14 @@ import type {
   SessionSummaryInput
 } from '../state/active-session'
 import { useMutate, useQuery } from '@xnetjs/react'
+import { useTelemetry } from '@xnetjs/telemetry'
 import { useCallback } from 'react'
+import {
+  clearWorkspacePerformanceMarks,
+  clearWorkspacePreviewRestoreMark,
+  markWorkspacePreviewRestore,
+  markWorkspaceSessionSelection
+} from '../performance'
 import { SessionSummarySchema, WorkspaceShellStateSchema } from '../schemas'
 import {
   createSessionSummaryInputFromWorkspaceSnapshot,
@@ -77,6 +84,33 @@ function toWorkspaceSyncInput(
 export function useSessionCommands() {
   const { create, update, remove } = useMutate()
   const shellStateQuery = useQuery(WorkspaceShellStateSchema, WORKSPACE_SHELL_STATE_NODE_ID)
+  const telemetry = useTelemetry({ component: 'electron.workspace.commands' })
+
+  const measureCommand = useCallback(
+    async <T>(
+      metricName: string,
+      task: () => Promise<T>,
+      context: Record<string, unknown> = {}
+    ): Promise<T> => {
+      const start = performance.now()
+
+      try {
+        const result = await task()
+        telemetry.reportPerformance(metricName, performance.now() - start, 'electron.workspace')
+        telemetry.reportUsage(`${metricName}.success`, 1)
+        return result
+      } catch (error) {
+        telemetry.reportUsage(`${metricName}.failure`, 1)
+        telemetry.reportCrash(error instanceof Error ? error : new Error(String(error)), {
+          codeNamespace: 'electron.workspace',
+          codeFunction: metricName,
+          ...context
+        })
+        throw error
+      }
+    },
+    [telemetry]
+  )
 
   const ensureWorkspaceShellState =
     useCallback(async (): Promise<WorkspaceShellStateNode | null> => {
@@ -106,11 +140,29 @@ export function useSessionCommands() {
         return null
       }
 
-      return update(WorkspaceShellStateSchema, shellState.id, {
-        activeSession: sessionId ?? undefined
-      })
+      if (sessionId) {
+        markWorkspaceSessionSelection(sessionId)
+      } else {
+        clearWorkspacePerformanceMarks()
+      }
+
+      try {
+        return await measureCommand(
+          'workspace.session.select',
+          async () =>
+            update(WorkspaceShellStateSchema, shellState.id, {
+              activeSession: sessionId ?? undefined
+            }),
+          {
+            sessionId: sessionId ?? 'none'
+          }
+        )
+      } catch (error) {
+        clearWorkspacePerformanceMarks()
+        throw error
+      }
     },
-    [ensureWorkspaceShellState, update]
+    [ensureWorkspaceShellState, measureCommand, update]
   )
 
   const createSessionSummary = useCallback(
@@ -142,9 +194,13 @@ export function useSessionCommands() {
       sessionId: string,
       patch: Partial<SessionSummaryInput>
     ): Promise<SessionSummaryNode | null> => {
-      return update(SessionSummarySchema, sessionId, createSessionSummaryPatch(patch))
+      return measureCommand(
+        'workspace.session.summary.update',
+        async () => update(SessionSummarySchema, sessionId, createSessionSummaryPatch(patch)),
+        { sessionId }
+      )
     },
-    [update]
+    [measureCommand, update]
   )
 
   const applyWorkspaceSessionSnapshot = useCallback(
@@ -169,14 +225,21 @@ export function useSessionCommands() {
         branchSlug: options.branchSlug ?? undefined,
         baseRef: options.baseRef ?? undefined
       }
-      const snapshot = await window.xnetWorkspaceSessions.create(request)
+      const snapshot = await measureCommand(
+        'workspace.session.create',
+        async () => window.xnetWorkspaceSessions.create(request),
+        {
+          sessionId,
+          title: options.title
+        }
+      )
 
       return createSessionSummary(createSessionSummaryInputFromWorkspaceSnapshot(snapshot), {
         id: sessionId,
         select: createOptions.select
       })
     },
-    [createSessionSummary]
+    [createSessionSummary, measureCommand]
   )
 
   const syncWorkspaceSessions = useCallback(
@@ -185,7 +248,14 @@ export function useSessionCommands() {
       activeSessionId: string | null
     ): Promise<WorkspaceSessionSnapshot[]> => {
       const input = toWorkspaceSyncInput(summaries, activeSessionId)
-      const snapshots = await window.xnetWorkspaceSessions.sync(input)
+      const snapshots = await measureCommand(
+        'workspace.session.sync',
+        async () => window.xnetWorkspaceSessions.sync(input),
+        {
+          activeSessionId: activeSessionId ?? 'none',
+          sessionCount: summaries.length
+        }
+      )
 
       await Promise.all(
         snapshots.map((snapshot) =>
@@ -198,25 +268,51 @@ export function useSessionCommands() {
 
       return snapshots
     },
-    [updateSessionSummary]
+    [measureCommand, updateSessionSummary]
   )
 
   const refreshWorkspaceSession = useCallback(
     async (session: SessionSummaryNode): Promise<SessionSummaryNode | null> => {
-      const snapshot = await window.xnetWorkspaceSessions.refresh(toWorkspaceRefreshInput(session))
-      return applyWorkspaceSessionSnapshot(snapshot)
+      markWorkspacePreviewRestore(session.id)
+
+      try {
+        const snapshot = await measureCommand(
+          'workspace.session.refresh',
+          async () => window.xnetWorkspaceSessions.refresh(toWorkspaceRefreshInput(session)),
+          {
+            sessionId: session.id,
+            branch: session.branch ?? 'unknown'
+          }
+        )
+        return applyWorkspaceSessionSnapshot(snapshot)
+      } catch (error) {
+        clearWorkspacePreviewRestoreMark()
+        throw error
+      }
     },
-    [applyWorkspaceSessionSnapshot]
+    [applyWorkspaceSessionSnapshot, measureCommand]
   )
 
   const restartWorkspacePreview = useCallback(
     async (session: SessionSummaryNode): Promise<SessionSummaryNode | null> => {
-      const snapshot = await window.xnetWorkspaceSessions.restartPreview(
-        toWorkspaceRefreshInput(session)
-      )
-      return applyWorkspaceSessionSnapshot(snapshot)
+      markWorkspacePreviewRestore(session.id)
+
+      try {
+        const snapshot = await measureCommand(
+          'workspace.preview.restart',
+          async () => window.xnetWorkspaceSessions.restartPreview(toWorkspaceRefreshInput(session)),
+          {
+            sessionId: session.id,
+            branch: session.branch ?? 'unknown'
+          }
+        )
+        return applyWorkspaceSessionSnapshot(snapshot)
+      } catch (error) {
+        clearWorkspacePreviewRestoreMark()
+        throw error
+      }
     },
-    [applyWorkspaceSessionSnapshot]
+    [applyWorkspaceSessionSnapshot, measureCommand]
   )
 
   const removeSessionSummary = useCallback(
@@ -232,10 +328,15 @@ export function useSessionCommands() {
 
   const removeWorkspaceSession = useCallback(
     async (session: SessionSummaryNode): Promise<RemoveWorkspaceSessionResult> => {
-      const result = await window.xnetWorkspaceSessions.remove({
-        sessionId: session.id,
-        worktreePath: session.worktreePath ?? ''
-      })
+      const result = await measureCommand(
+        'workspace.session.remove',
+        async () =>
+          window.xnetWorkspaceSessions.remove({
+            sessionId: session.id,
+            worktreePath: session.worktreePath ?? ''
+          }),
+        { sessionId: session.id }
+      )
 
       if (result.removed) {
         await removeSessionSummary(session.id)
@@ -243,14 +344,18 @@ export function useSessionCommands() {
 
       return result
     },
-    [removeSessionSummary]
+    [measureCommand, removeSessionSummary]
   )
 
   const reviewWorkspaceSession = useCallback(
     async (session: SessionSummaryNode): Promise<WorkspaceSessionReview> => {
-      return window.xnetWorkspaceSessions.review(toWorkspaceRefreshInput(session))
+      return measureCommand(
+        'workspace.review.request',
+        async () => window.xnetWorkspaceSessions.review(toWorkspaceRefreshInput(session)),
+        { sessionId: session.id }
+      )
     },
-    []
+    [measureCommand]
   )
 
   const storeWorkspaceSelectedContext = useCallback(
@@ -258,24 +363,34 @@ export function useSessionCommands() {
       session: SessionSummaryNode,
       context: SelectedContext
     ): Promise<StoreSelectedContextResult> => {
-      return window.xnetWorkspaceSessions.storeSelectedContext({
-        worktreePath: session.worktreePath ?? '',
-        context
-      })
+      return measureCommand(
+        'workspace.context.store',
+        async () =>
+          window.xnetWorkspaceSessions.storeSelectedContext({
+            worktreePath: session.worktreePath ?? '',
+            context
+          }),
+        { sessionId: session.id, targetId: context.targetId ?? 'unknown' }
+      )
     },
-    []
+    [measureCommand]
   )
 
   const captureWorkspaceScreenshot = useCallback(
     async (session: SessionSummaryNode): Promise<CaptureWorkspaceSessionScreenshotResult> => {
-      const result = await window.xnetWorkspaceSessions.captureScreenshot({
-        sessionId: session.id,
-        worktreePath: session.worktreePath ?? ''
-      })
+      const result = await measureCommand(
+        'workspace.screenshot.capture',
+        async () =>
+          window.xnetWorkspaceSessions.captureScreenshot({
+            sessionId: session.id,
+            worktreePath: session.worktreePath ?? ''
+          }),
+        { sessionId: session.id }
+      )
       await refreshWorkspaceSession(session)
       return result
     },
-    [refreshWorkspaceSession]
+    [measureCommand, refreshWorkspaceSession]
   )
 
   const createWorkspacePullRequest = useCallback(
@@ -283,14 +398,19 @@ export function useSessionCommands() {
       session: SessionSummaryNode,
       draft: { title: string; body: string }
     ): Promise<CreateWorkspaceSessionPullRequestResult> => {
-      return window.xnetWorkspaceSessions.createPullRequest({
-        sessionId: session.id,
-        worktreePath: session.worktreePath ?? '',
-        title: draft.title,
-        body: draft.body
-      })
+      return measureCommand(
+        'workspace.pr.create',
+        async () =>
+          window.xnetWorkspaceSessions.createPullRequest({
+            sessionId: session.id,
+            worktreePath: session.worktreePath ?? '',
+            title: draft.title,
+            body: draft.body
+          }),
+        { sessionId: session.id }
+      )
     },
-    []
+    [measureCommand]
   )
 
   return {

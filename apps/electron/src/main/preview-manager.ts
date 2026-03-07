@@ -8,6 +8,7 @@ import { EventEmitter } from 'node:events'
 import { access, constants } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
+import { formatCommandFailure } from './command-errors'
 
 const DEFAULT_PREVIEW_HOST = '127.0.0.1'
 const DEFAULT_PREVIEW_BASE_PORT = 4310
@@ -343,7 +344,12 @@ export class PreviewManager {
 
       child.once('error', (error) => {
         runtime.state = 'error'
-        runtime.lastError = error.message
+        runtime.lastError = formatCommandFailure(
+          'pnpm',
+          ['exec', 'vite', '--host', this.host, '--port', String(port), '--strictPort'],
+          previewAppPath,
+          error
+        )
         this.emitStatus(session.sessionId)
       })
 
@@ -382,7 +388,12 @@ export class PreviewManager {
         runtime.process.kill('SIGKILL')
       }
       runtime.state = 'error'
-      runtime.lastError = error instanceof Error ? error.message : String(error)
+      runtime.lastError = formatCommandFailure(
+        'pnpm',
+        ['exec', 'vite', '--host', this.host, '--port', String(port), '--strictPort'],
+        previewAppPath,
+        error
+      )
       this.emitStatus(session.sessionId)
     }
 

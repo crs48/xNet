@@ -7,6 +7,7 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import { MemoryNodeStorageAdapter } from '@xnetjs/data'
 import { generateIdentity } from '@xnetjs/identity'
 import { XNetProvider } from '@xnetjs/react'
+import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnetjs/telemetry'
 import React, { type ReactNode, useMemo } from 'react'
 import { describe, expect, it } from 'vitest'
 import { useActiveSession } from './useActiveSession'
@@ -21,25 +22,30 @@ type WorkspaceHooks = {
 
 function createWrapper(storage: MemoryNodeStorageAdapter) {
   const identity = generateIdentity()
+  const consent = new ConsentManager()
+  consent.setTier('anonymous')
+  const collector = new TelemetryCollector({ consent })
 
   return function Wrapper({ children }: { children: ReactNode }) {
     const stableStorage = useMemo(() => storage, [])
 
     return (
-      <XNetProvider
-        config={{
-          nodeStorage: stableStorage,
-          authorDID: identity.identity.did,
-          signingKey: identity.privateKey,
-          disableSyncManager: true,
-          runtime: {
-            mode: 'main-thread',
-            fallback: 'main-thread'
-          }
-        }}
-      >
-        {children}
-      </XNetProvider>
+      <TelemetryProvider consent={consent} collector={collector}>
+        <XNetProvider
+          config={{
+            nodeStorage: stableStorage,
+            authorDID: identity.identity.did,
+            signingKey: identity.privateKey,
+            disableSyncManager: true,
+            runtime: {
+              mode: 'main-thread',
+              fallback: 'main-thread'
+            }
+          }}
+        >
+          {children}
+        </XNetProvider>
+      </TelemetryProvider>
     )
   }
 }

@@ -2,7 +2,7 @@
  * App-local schemas for the Electron coding workspace shell.
  */
 
-import { defineSchema, number, relation, select, text } from '@xnetjs/data'
+import { checkbox, defineSchema, number, relation, select, text } from '@xnetjs/data'
 
 export const SESSION_SUMMARY_STATE_OPTIONS = [
   { id: 'idle', name: 'Idle' },
@@ -23,7 +23,9 @@ export const SessionSummarySchema = defineSchema({
     previewUrl: text(),
     lastMessagePreview: text(),
     lastScreenshotPath: text(),
+    lastError: text(),
     changedFilesCount: number({ integer: true, min: 0 }),
+    isDirty: checkbox({ default: false }),
     state: select({
       options: SESSION_SUMMARY_STATE_OPTIONS,
       default: 'idle'

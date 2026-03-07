@@ -2,20 +2,27 @@
  * Three-panel coding workspace shell for the Electron app.
  */
 
+import { useTelemetry } from '@xnetjs/telemetry'
 import { Badge, Button, ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@xnetjs/ui'
 import { ArrowLeft, Code2, RefreshCcw, Settings, Trash2 } from 'lucide-react'
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useActiveSession } from './hooks/useActiveSession'
 import { usePreviewSelectedContext } from './hooks/usePreviewSelectedContext'
 import { useSessionCommands } from './hooks/useSessionCommands'
 import { useWorkspaceSessionSync } from './hooks/useWorkspaceSessionSync'
 import { OpenCodePanel } from './OpenCodePanel'
+import { consumeWorkspaceSessionSelectionDuration } from './performance'
 import { PreviewWorkspace } from './PreviewWorkspace'
 import { SessionRail } from './SessionRail'
 
 type DevWorkspaceShellProps = {
   onReturnToCanvas: () => void
   onOpenSettings: () => void
+}
+
+type ShellNotice = {
+  tone: 'warning' | 'error'
+  message: string
 }
 
 function createWorkspaceSessionTitle(index: number): string {
@@ -26,6 +33,7 @@ export function DevWorkspaceShell({
   onReturnToCanvas,
   onOpenSettings
 }: DevWorkspaceShellProps): React.ReactElement {
+  const telemetry = useTelemetry({ component: 'electron.workspace.shell' })
   const { activeSession, activeSessionId, summaries, summariesLoading, summariesError, reload } =
     useActiveSession()
   const {
@@ -35,6 +43,7 @@ export function DevWorkspaceShell({
     restartWorkspacePreview,
     selectSession
   } = useSessionCommands()
+  const [shellNotice, setShellNotice] = useState<ShellNotice | null>(null)
 
   useWorkspaceSessionSync({
     summaries,
@@ -42,21 +51,54 @@ export function DevWorkspaceShell({
   })
   usePreviewSelectedContext(activeSession)
 
-  const handleCreateSession = useCallback(async () => {
-    const nextIndex = summaries.length + 1
-    await createWorkspaceSession({
-      title: createWorkspaceSessionTitle(nextIndex)
-    })
-  }, [createWorkspaceSession, summaries.length])
-
-  const handleRefresh = useCallback(async () => {
-    if (activeSession) {
-      await refreshWorkspaceSession(activeSession)
+  useEffect(() => {
+    if (!activeSessionId) {
       return
     }
 
-    await reload()
-  }, [activeSession, refreshWorkspaceSession, reload])
+    const duration = consumeWorkspaceSessionSelectionDuration(activeSessionId)
+    if (duration === null) {
+      return
+    }
+
+    telemetry.reportPerformance('workspace.session.switch.visible', duration, 'electron.workspace')
+    if (duration > 50) {
+      telemetry.reportUsage('workspace.session.switch.slow', 1)
+    }
+  }, [activeSessionId, telemetry])
+
+  const captureShellError = useCallback((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error)
+    setShellNotice({
+      tone: 'error',
+      message
+    })
+  }, [])
+
+  const handleCreateSession = useCallback(async () => {
+    const nextIndex = summaries.length + 1
+    try {
+      await createWorkspaceSession({
+        title: createWorkspaceSessionTitle(nextIndex)
+      })
+      setShellNotice(null)
+    } catch (error) {
+      captureShellError(error)
+    }
+  }, [captureShellError, createWorkspaceSession, summaries.length])
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      if (activeSession) {
+        await refreshWorkspaceSession(activeSession)
+      } else {
+        await reload()
+      }
+      setShellNotice(null)
+    } catch (error) {
+      captureShellError(error)
+    }
+  }, [activeSession, captureShellError, refreshWorkspaceSession, reload])
 
   const handleRemoveActiveSession = useCallback(async () => {
     if (!activeSession) {
@@ -70,19 +112,46 @@ export function DevWorkspaceShell({
       return
     }
 
-    const result = await removeWorkspaceSession(activeSession)
-    if (!result.removed) {
-      window.alert(result.message)
+    try {
+      const result = await removeWorkspaceSession(activeSession)
+      if (!result.removed) {
+        setShellNotice({
+          tone: result.dirty ? 'warning' : 'error',
+          message: result.message
+        })
+        return
+      }
+
+      setShellNotice(null)
+    } catch (error) {
+      captureShellError(error)
     }
-  }, [activeSession, removeWorkspaceSession])
+  }, [activeSession, captureShellError, removeWorkspaceSession])
 
   const handleRestartPreview = useCallback(async () => {
     if (!activeSession) {
       return
     }
 
-    await restartWorkspacePreview(activeSession)
-  }, [activeSession, restartWorkspacePreview])
+    try {
+      await restartWorkspacePreview(activeSession)
+      setShellNotice(null)
+    } catch (error) {
+      captureShellError(error)
+    }
+  }, [activeSession, captureShellError, restartWorkspacePreview])
+
+  const handleSelectSession = useCallback(
+    async (sessionId: string): Promise<void> => {
+      try {
+        await selectSession(sessionId)
+        setShellNotice(null)
+      } catch (error) {
+        captureShellError(error)
+      }
+    },
+    [captureShellError, selectSession]
+  )
 
   return (
     <div className="relative h-screen overflow-hidden bg-background">
@@ -147,47 +216,61 @@ export function DevWorkspaceShell({
         </div>
       </header>
 
-      <main className="relative h-full overflow-hidden pt-[38px]">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          <ResizablePanel defaultSize={18} minSize={16}>
-            <SessionRail
-              sessions={summaries}
-              activeSession={activeSession}
-              activeSessionId={activeSessionId}
-              loading={summariesLoading}
-              error={summariesError}
-              onCreateSession={() => {
-                void handleCreateSession()
-              }}
-              onRemoveSession={() => {
-                void handleRemoveActiveSession()
-              }}
-              onSelectSession={(sessionId) => {
-                void selectSession(sessionId)
-              }}
-            />
-          </ResizablePanel>
+      <main className="relative flex h-full flex-col overflow-hidden pt-[38px]">
+        {shellNotice ? (
+          <div
+            className={`border-b px-4 py-2 text-sm ${
+              shellNotice.tone === 'warning'
+                ? 'border-amber-500/30 bg-amber-500/10 text-amber-100'
+                : 'border-destructive/30 bg-destructive/10 text-destructive'
+            }`}
+          >
+            {shellNotice.message}
+          </div>
+        ) : null}
 
-          <ResizableHandle withHandle />
+        <div className="min-h-0 flex-1">
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={18} minSize={16}>
+              <SessionRail
+                sessions={summaries}
+                activeSession={activeSession}
+                activeSessionId={activeSessionId}
+                loading={summariesLoading}
+                error={summariesError}
+                onCreateSession={() => {
+                  void handleCreateSession()
+                }}
+                onRemoveSession={() => {
+                  void handleRemoveActiveSession()
+                }}
+                onSelectSession={(sessionId) => {
+                  void handleSelectSession(sessionId)
+                }}
+              />
+            </ResizablePanel>
 
-          <ResizablePanel defaultSize={34} minSize={24}>
-            <OpenCodePanel activeSession={activeSession} />
-          </ResizablePanel>
+            <ResizableHandle withHandle />
 
-          <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={34} minSize={24}>
+              <OpenCodePanel activeSession={activeSession} />
+            </ResizablePanel>
 
-          <ResizablePanel defaultSize={48} minSize={28}>
-            <PreviewWorkspace
-              activeSession={activeSession}
-              onRefreshSession={() => {
-                void handleRefresh()
-              }}
-              onRestartPreview={() => {
-                void handleRestartPreview()
-              }}
-            />
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            <ResizableHandle withHandle />
+
+            <ResizablePanel defaultSize={48} minSize={28}>
+              <PreviewWorkspace
+                activeSession={activeSession}
+                onRefreshSession={() => {
+                  void handleRefresh()
+                }}
+                onRestartPreview={() => {
+                  void handleRestartPreview()
+                }}
+              />
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
       </main>
     </div>
   )

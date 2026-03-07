@@ -27,7 +27,9 @@ export type SessionSummaryInput = {
   previewUrl?: string | null
   lastMessagePreview?: string | null
   lastScreenshotPath?: string | null
+  lastError?: string | null
   changedFilesCount?: number
+  isDirty?: boolean
   state?: SessionSummaryState
   modelId?: string | null
 }
@@ -50,7 +52,9 @@ export function createSessionSummaryInput(
     previewUrl: input.previewUrl?.trim() || undefined,
     lastMessagePreview: input.lastMessagePreview?.trim() || undefined,
     lastScreenshotPath: input.lastScreenshotPath?.trim() || undefined,
+    lastError: input.lastError?.trim() || undefined,
     changedFilesCount: Math.max(0, Math.trunc(input.changedFilesCount ?? 0)),
+    isDirty: Boolean(input.isDirty),
     state: input.state ?? 'idle',
     modelId: input.modelId?.trim() || undefined
   }
@@ -60,6 +64,8 @@ export function createSessionSummaryPatch(
   patch: Partial<SessionSummaryInput>
 ): Partial<InferCreateProps<(typeof SessionSummarySchema)['_properties']>> {
   const next: Partial<InferCreateProps<(typeof SessionSummarySchema)['_properties']>> = {}
+  const has = <K extends keyof SessionSummaryInput>(key: K): boolean =>
+    Object.prototype.hasOwnProperty.call(patch, key)
 
   if (patch.title !== undefined) {
     next.title = patch.title.trim()
@@ -81,27 +87,35 @@ export function createSessionSummaryPatch(
     next.openCodeUrl = patch.openCodeUrl.trim()
   }
 
-  if (patch.previewUrl !== undefined) {
+  if (has('previewUrl')) {
     next.previewUrl = patch.previewUrl?.trim() || undefined
   }
 
-  if (patch.lastMessagePreview !== undefined) {
+  if (has('lastMessagePreview')) {
     next.lastMessagePreview = patch.lastMessagePreview?.trim() || undefined
   }
 
-  if (patch.lastScreenshotPath !== undefined) {
+  if (has('lastScreenshotPath')) {
     next.lastScreenshotPath = patch.lastScreenshotPath?.trim() || undefined
+  }
+
+  if (has('lastError')) {
+    next.lastError = patch.lastError?.trim() || undefined
   }
 
   if (patch.changedFilesCount !== undefined) {
     next.changedFilesCount = Math.max(0, Math.trunc(patch.changedFilesCount))
   }
 
+  if (patch.isDirty !== undefined) {
+    next.isDirty = Boolean(patch.isDirty)
+  }
+
   if (patch.state !== undefined) {
     next.state = patch.state
   }
 
-  if (patch.modelId !== undefined) {
+  if (has('modelId')) {
     next.modelId = patch.modelId?.trim() || undefined
   }
 
@@ -119,7 +133,9 @@ export function createSessionSummaryInputFromWorkspaceSnapshot(
     openCodeUrl: snapshot.openCodeUrl,
     previewUrl: snapshot.previewUrl,
     lastScreenshotPath: snapshot.lastScreenshotPath,
+    lastError: snapshot.lastError,
     changedFilesCount: snapshot.changedFilesCount,
+    isDirty: snapshot.isDirty,
     state: snapshot.state
   }
 }
@@ -135,7 +151,9 @@ export function createSessionSummaryPatchFromWorkspaceSnapshot(
     openCodeUrl: snapshot.openCodeUrl,
     previewUrl: snapshot.previewUrl,
     lastScreenshotPath: snapshot.lastScreenshotPath,
+    lastError: snapshot.lastError,
     changedFilesCount: snapshot.changedFilesCount,
+    isDirty: snapshot.isDirty,
     state: snapshot.state
   }
 }

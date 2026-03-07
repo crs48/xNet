@@ -4,9 +4,10 @@
 
 import type { SessionSummaryNode } from './state/active-session'
 import type { OpenCodeHostOutputEvent, OpenCodeHostStatus } from '../../shared/opencode-host'
+import { useTelemetry } from '@xnetjs/telemetry'
 import { Badge, Button } from '@xnetjs/ui'
 import { Code2, LoaderCircle, RefreshCcw, SquareTerminal } from 'lucide-react'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { OPENCODE_INSTALL_URL } from '../../shared/opencode-host'
 
 type OpenCodePanelProps = {
@@ -41,21 +42,33 @@ function getLastOutputLine(event: OpenCodeHostOutputEvent): string {
 }
 
 export function OpenCodePanel({ activeSession }: OpenCodePanelProps): React.ReactElement {
+  const telemetry = useTelemetry({ component: 'electron.workspace.opencode' })
   const [status, setStatus] = useState<OpenCodeHostStatus | null>(null)
   const [lastOutput, setLastOutput] = useState('')
   const [busy, setBusy] = useState(false)
+  const ensureStartRef = useRef<number | null>(null)
+  const reportedStateRef = useRef<OpenCodeHostStatus['state'] | null>(null)
 
-  const ensureHost = useCallback(async () => {
+  const ensureHost = useCallback(async (): Promise<OpenCodeHostStatus | null> => {
     setBusy(true)
+    ensureStartRef.current = performance.now()
 
     try {
       const nextStatus = await window.xnetOpenCode.ensure()
       setStatus(nextStatus)
       return nextStatus
+    } catch (error) {
+      const normalized = error instanceof Error ? error : new Error(String(error))
+      setLastOutput(normalized.message)
+      telemetry.reportCrash(normalized, {
+        codeNamespace: 'electron.workspace',
+        codeFunction: 'workspace.opencode.ensure'
+      })
+      return null
     } finally {
       setBusy(false)
     }
-  }, [])
+  }, [telemetry])
 
   useEffect(() => {
     let active = true
@@ -95,6 +108,40 @@ export function OpenCodePanel({ activeSession }: OpenCodePanelProps): React.Reac
       stopOutput()
     }
   }, [ensureHost])
+
+  useEffect(() => {
+    if (!status) {
+      return
+    }
+
+    if (status.state === reportedStateRef.current) {
+      return
+    }
+
+    reportedStateRef.current = status.state
+
+    if (status.state === 'ready' && ensureStartRef.current !== null) {
+      const duration = performance.now() - ensureStartRef.current
+      telemetry.reportPerformance('workspace.opencode.ready', duration, 'electron.workspace')
+      if (duration > 50) {
+        telemetry.reportUsage('workspace.opencode.ready.slow', 1)
+      }
+      ensureStartRef.current = null
+      return
+    }
+
+    if (status.state === 'missing-binary') {
+      telemetry.reportUsage('workspace.opencode.missing_binary', 1)
+      return
+    }
+
+    if (status.state === 'error') {
+      telemetry.reportCrash(new Error(status.error), {
+        codeNamespace: 'electron.workspace',
+        codeFunction: 'workspace.opencode.ready'
+      })
+    }
+  }, [status, telemetry])
 
   const chrome = useMemo(() => {
     if (!status) {

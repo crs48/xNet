@@ -7,6 +7,8 @@ Electron desktop app for macOS, Windows, and Linux -- the primary development ta
 ```bash
 pnpm dev           # Start hub + app concurrently
 pnpm dev:both      # Two instances for sync testing
+pnpm run deps:node # Rebuild native deps for plain Node tests
+pnpm run deps:electron # Rebuild native deps for Electron runtime
 ```
 
 ## Build
@@ -48,3 +50,26 @@ Dev server runs at `http://localhost:5177`. Connect with Playwright MCP for auto
 # Enable sync debug logs in the browser console
 localStorage.setItem('xnet:sync:debug', 'true')
 ```
+
+## Coding Workspace Shell
+
+The Electron coding workspace shell is the dogfood target for the self-editing MVP.
+
+- Left rail: xNet-backed session summaries, dirty-state badges, and worktree selection
+- Center panel: shared OpenCode Web host
+- Right panel: preview, diff, files, markdown, screenshots, and PR draft flows
+
+### Local dependencies
+
+- `git` on PATH for worktrees, diffs, and cleanup
+- `pnpm` on PATH for preview runtimes
+- `gh` on PATH plus `gh auth login` for PR creation
+- `opencode` on PATH, or `XNET_OPENCODE_BINARY=/absolute/path/to/opencode`
+
+### Recovery flows
+
+- OpenCode missing: install from [OpenCode docs](https://opencode.ai/docs/install), then refresh the center panel
+- Preview startup failure: run `pnpm install`, then `pnpm run deps:electron`, then restart the preview from the right panel
+- If `pnpm run deps:electron` fails inside `@electron/rebuild` with `util.styleText is not a function`, rebuild the native module directly with `npm rebuild better-sqlite3 --runtime=electron --target=33.4.11 --arch=arm64 --dist-url=https://electronjs.org/headers`
+- PR creation failure: ensure GitHub CLI is installed and authenticated with `gh auth login`
+- Worktree removal blocked: review the diff, commit, or revert local changes before removing the session

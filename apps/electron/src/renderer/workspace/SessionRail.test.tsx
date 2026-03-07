@@ -88,4 +88,27 @@ describe('SessionRail', () => {
 
     expect(handleSelectSession).toHaveBeenCalledWith('session-other')
   })
+
+  it('shows a dirty badge for sessions with local changes', () => {
+    render(
+      <SessionRail
+        sessions={[
+          createSession({
+            id: 'session-dirty',
+            isDirty: true,
+            changedFilesCount: 3
+          })
+        ]}
+        activeSession={null}
+        activeSessionId={null}
+        loading={false}
+        error={null}
+        onCreateSession={vi.fn()}
+        onRemoveSession={vi.fn()}
+        onSelectSession={vi.fn()}
+      />
+    )
+
+    expect(screen.getByText('dirty')).toBeTruthy()
+  })
 })

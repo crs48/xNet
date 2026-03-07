@@ -11,6 +11,7 @@ import {
   sanitizeWorkspaceBranchSegment,
   WORKSPACE_SESSION_BRANCH_PREFIX
 } from '../shared/workspace-session'
+import { formatCommandFailure } from './command-errors'
 
 const execFileAsync = promisify(execFile)
 
@@ -433,8 +434,7 @@ export class GitService {
         stderr: result.stderr ?? ''
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      throw new Error(`${command} ${args.join(' ')} failed in ${cwd}: ${message}`)
+      throw new Error(formatCommandFailure(command, args, cwd, error))
     }
   }
 

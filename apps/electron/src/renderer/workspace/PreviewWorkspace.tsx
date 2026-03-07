@@ -3,15 +3,17 @@
  */
 
 import type { SessionSummaryNode } from './state/active-session'
+import { useTelemetry } from '@xnetjs/telemetry'
 import { Badge, Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@xnetjs/ui'
 import { RefreshCcw, RotateCw } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useSessionCommands } from './hooks/useSessionCommands'
 import { useWorkspaceReview } from './hooks/useWorkspaceReview'
 import { ChangedFilesPanel } from './panels/ChangedFilesPanel'
 import { DiffPanel } from './panels/DiffPanel'
 import { MarkdownPreviewPanel } from './panels/MarkdownPreviewPanel'
 import { PrDraftPanel } from './panels/PrDraftPanel'
+import { consumeWorkspacePreviewRestoreDuration } from './performance'
 
 type PreviewWorkspaceProps = {
   activeSession: SessionSummaryNode | null
@@ -50,6 +52,7 @@ export function PreviewWorkspace({
   onRefreshSession,
   onRestartPreview
 }: PreviewWorkspaceProps): React.ReactElement {
+  const telemetry = useTelemetry({ component: 'electron.workspace.preview' })
   const { captureWorkspaceScreenshot, createWorkspacePullRequest } = useSessionCommands()
   const { review, loading, error, refresh } = useWorkspaceReview(activeSession)
   const [capturingScreenshot, setCapturingScreenshot] = useState(false)
@@ -61,6 +64,22 @@ export function PreviewWorkspace({
     [activeSession]
   )
 
+  useEffect(() => {
+    if (!activeSession?.previewUrl) {
+      return
+    }
+
+    const duration = consumeWorkspacePreviewRestoreDuration(activeSession.id)
+    if (duration === null) {
+      return
+    }
+
+    telemetry.reportPerformance('workspace.preview.restore', duration, 'electron.workspace')
+    if (duration > 100) {
+      telemetry.reportUsage('workspace.preview.restore.slow', 1)
+    }
+  }, [activeSession?.id, activeSession?.previewUrl, telemetry])
+
   const handleCaptureScreenshot = async (): Promise<void> => {
     if (!activeSession) {
       return
@@ -68,14 +87,25 @@ export function PreviewWorkspace({
 
     setCapturingScreenshot(true)
     setPrStatus(null)
+    const start = performance.now()
 
     try {
       const result = await captureWorkspaceScreenshot(activeSession)
       setPrStatus(`Captured screenshot at ${result.path}`)
+      telemetry.reportPerformance(
+        'workspace.screenshot.capture.visible',
+        performance.now() - start,
+        'electron.workspace'
+      )
       await refresh()
     } catch (nextError) {
       const message = nextError instanceof Error ? nextError.message : String(nextError)
       setPrStatus(`Screenshot capture failed: ${message}`)
+      telemetry.reportCrash(nextError instanceof Error ? nextError : new Error(String(nextError)), {
+        codeNamespace: 'electron.workspace',
+        codeFunction: 'workspace.screenshot.capture.visible',
+        sessionId: activeSession.id
+      })
     } finally {
       setCapturingScreenshot(false)
     }
@@ -88,6 +118,7 @@ export function PreviewWorkspace({
 
     setCreatingPullRequest(true)
     setPrStatus(null)
+    const start = performance.now()
 
     try {
       const result = await createWorkspacePullRequest(activeSession, review.prDraft)
@@ -98,9 +129,19 @@ export function PreviewWorkspace({
           `PR creation failed. Draft saved to ${result.bodyFilePath}. ${result.error ?? ''}`.trim()
         )
       }
+      telemetry.reportPerformance(
+        'workspace.pr.create.visible',
+        performance.now() - start,
+        'electron.workspace'
+      )
     } catch (nextError) {
       const message = nextError instanceof Error ? nextError.message : String(nextError)
       setPrStatus(`PR creation failed: ${message}`)
+      telemetry.reportCrash(nextError instanceof Error ? nextError : new Error(String(nextError)), {
+        codeNamespace: 'electron.workspace',
+        codeFunction: 'workspace.pr.create.visible',
+        sessionId: activeSession.id
+      })
     } finally {
       setCreatingPullRequest(false)
     }
@@ -126,6 +167,11 @@ export function PreviewWorkspace({
         <div className="flex items-center gap-2">
           {activeSession ? (
             <>
+              {activeSession.isDirty ? (
+                <Badge variant="outline" className="border-amber-500/50">
+                  Dirty
+                </Badge>
+              ) : null}
               <Badge variant="outline">{String(activeSession.changedFilesCount ?? 0)} files</Badge>
               <Button
                 type="button"
@@ -151,6 +197,12 @@ export function PreviewWorkspace({
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden p-4">
+        {activeSession?.lastError ? (
+          <div className="mb-4 rounded-[24px] border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            {activeSession.lastError}
+          </div>
+        ) : null}
+
         <Tabs defaultValue="preview" className="flex h-full flex-col">
           <TabsList className="w-full justify-start">
             <TabsTrigger value="preview">Preview</TabsTrigger>
@@ -169,7 +221,10 @@ export function PreviewWorkspace({
             ) : activeSession.state === 'error' ? (
               <PlaceholderCard
                 title="Preview needs attention"
-                body="The selected session hit a preview runtime error. Use the restart control in the header to bring the warm preview back."
+                body={
+                  activeSession.lastError ||
+                  'The selected session hit a preview runtime error. Use the restart control in the header to bring the warm preview back.'
+                }
               />
             ) : activeSession.state === 'running' ? (
               <PlaceholderCard

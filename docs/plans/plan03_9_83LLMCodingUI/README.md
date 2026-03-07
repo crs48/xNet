@@ -151,7 +151,7 @@ flowchart LR
 - [x] Add right-click target metadata conventions and capture flow.
 - [x] Add diff/file/markdown/PR tabs on the right panel.
 - [x] Add screenshot capture and PR drafting.
-- [ ] Add cleanup, failure handling, and performance instrumentation.
+- [x] Add cleanup, failure handling, and performance instrumentation.
 
 ## 9. Validation Checklist
 

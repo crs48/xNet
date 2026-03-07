@@ -68,24 +68,42 @@ async function buildSessionSnapshot(
   session: WorkspaceSessionDescriptor,
   previewStatus: PreviewRuntimeStatus
 ): Promise<WorkspaceSessionSnapshot> {
-  const gitStatus = await gitService.getStatus(session.worktreePath)
   const screenshotPath = getScreenshotPath(session.sessionId, session.worktreePath)
   const hasScreenshot = await fileExists(screenshotPath)
 
-  return {
-    sessionId: session.sessionId,
-    title: session.title,
-    branch: session.branch,
-    worktreeName: session.worktreeName,
-    worktreePath: session.worktreePath,
-    openCodeUrl: getOpenCodeUrl(),
-    ...(previewStatus.url && previewStatus.state === 'ready'
-      ? { previewUrl: previewStatus.url }
-      : {}),
-    ...(hasScreenshot ? { lastScreenshotPath: screenshotPath } : {}),
-    changedFilesCount: gitStatus.changedFilesCount,
-    state: previewRuntimeToWorkspaceState(previewStatus),
-    isDirty: gitStatus.isDirty
+  try {
+    const gitStatus = await gitService.getStatus(session.worktreePath)
+
+    return {
+      sessionId: session.sessionId,
+      title: session.title,
+      branch: session.branch,
+      worktreeName: session.worktreeName,
+      worktreePath: session.worktreePath,
+      openCodeUrl: getOpenCodeUrl(),
+      ...(previewStatus.url && previewStatus.state === 'ready'
+        ? { previewUrl: previewStatus.url }
+        : {}),
+      ...(hasScreenshot ? { lastScreenshotPath: screenshotPath } : {}),
+      changedFilesCount: gitStatus.changedFilesCount,
+      state: previewRuntimeToWorkspaceState(previewStatus),
+      isDirty: gitStatus.isDirty,
+      ...(previewStatus.lastError ? { lastError: previewStatus.lastError } : {})
+    }
+  } catch (error) {
+    return {
+      sessionId: session.sessionId,
+      title: session.title,
+      branch: session.branch,
+      worktreeName: session.worktreeName,
+      worktreePath: session.worktreePath,
+      openCodeUrl: getOpenCodeUrl(),
+      ...(hasScreenshot ? { lastScreenshotPath: screenshotPath } : {}),
+      changedFilesCount: 0,
+      state: 'error',
+      isDirty: false,
+      lastError: error instanceof Error ? error.message : String(error)
+    }
   }
 }
 
@@ -393,23 +411,32 @@ export function setupWorkspaceSessionIPC(): void {
   ipcMain.handle(
     WORKSPACE_SESSION_IPC_CHANNELS.REMOVE,
     async (_event, input: RemoveWorkspaceSessionInput): Promise<RemoveWorkspaceSessionResult> => {
-      const gitStatus = await gitService.getStatus(input.worktreePath)
-      if (gitStatus.isDirty) {
+      try {
+        const gitStatus = await gitService.getStatus(input.worktreePath)
+        if (gitStatus.isDirty) {
+          return {
+            removed: false,
+            dirty: true,
+            message:
+              'Worktree has uncommitted changes. Review the diff, commit, or revert before removing it.'
+          }
+        }
+
+        sessionRegistry.delete(input.sessionId)
+        await previewManager.stopSession(input.sessionId)
+        await gitService.removeWorktree(input.worktreePath)
+
+        return {
+          removed: true,
+          dirty: false,
+          message: 'Removed worktree and stopped the preview runtime.'
+        }
+      } catch (error) {
         return {
           removed: false,
-          dirty: true,
-          message: 'Worktree has uncommitted changes. Commit or revert them before removing it.'
+          dirty: false,
+          message: error instanceof Error ? error.message : String(error)
         }
-      }
-
-      sessionRegistry.delete(input.sessionId)
-      await previewManager.stopSession(input.sessionId)
-      await gitService.removeWorktree(input.worktreePath)
-
-      return {
-        removed: true,
-        dirty: false,
-        message: 'Removed worktree and stopped the preview runtime.'
       }
     }
   )

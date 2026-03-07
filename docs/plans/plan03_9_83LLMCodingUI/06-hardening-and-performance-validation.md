@@ -42,13 +42,13 @@ Out of scope:
 
 Target budgets for the MVP:
 
-| Interaction | Budget |
-| --- | --- |
-| Switch active session rail state | < 50 ms visible update |
-| Show cached preview snapshot | < 100 ms |
-| Reconnect warm preview | < 250 ms |
-| Open Files / Diff / Markdown tab from cached state | < 100 ms |
-| Show OpenCode “ready / streaming” feedback after prompt submit | < 50 ms |
+| Interaction                                                    | Budget                 |
+| -------------------------------------------------------------- | ---------------------- |
+| Switch active session rail state                               | < 50 ms visible update |
+| Show cached preview snapshot                                   | < 100 ms               |
+| Reconnect warm preview                                         | < 250 ms               |
+| Open Files / Diff / Markdown tab from cached state             | < 100 ms               |
+| Show OpenCode “ready / streaming” feedback after prompt submit | < 50 ms                |
 
 ### 2. Measure the right things
 
@@ -154,11 +154,52 @@ flowchart TD
 - OpenCode upgrades may change web behavior or CLI flows; keep the integration boundary narrow.
 - If performance misses budget, fix lifecycle churn and local state shape before considering a language/runtime rewrite.
 
+## Implementation Status
+
+Completed in this step:
+
+- renderer telemetry around session selection, preview restore, OpenCode readiness, review generation, screenshot capture, and PR creation
+- main-process recovery messaging for missing `git`, `gh`, and `pnpm`
+- persisted dirty/error session state in the xNet-backed session summary model
+- shell-level cleanup feedback instead of `alert()`-only failure paths
+- Electron README updates for local dependencies, recovery flows, and the direct native-rebuild workaround
+
+Not promoted into shared xNet packages yet:
+
+- workspace timing marks remain app-local in `apps/electron/src/renderer/workspace/performance.ts`
+- command recovery helpers remain app-local in `apps/electron/src/main/command-errors.ts`
+
+Reasoning:
+
+- the patterns are proven for this shell, but they still encode Electron/OpenCode/worktree assumptions
+- promotion should wait for a second shell or host runtime that needs the same abstractions
+
+## Manual Validation Notes
+
+Validation run on March 7, 2026:
+
+| Scenario                              | Result                 | Notes                                                                                                                                                                                                              |
+| ------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Focused Electron workspace unit tests | Pass                   | Added coverage for timing marks, command recovery formatting, dirty badge rendering, and session-state patch clearing                                                                                              |
+| `apps/electron` production build      | Pass                   | Renderer, preload, and main bundles built successfully                                                                                                                                                             |
+| Electron live startup                 | Pass with caveats      | App booted, renderer dev server came up, Local API server started, and Electron exposed CDP on `ws://127.0.0.1:9223/...`                                                                                           |
+| OpenCode binary availability          | Pass                   | `opencode` resolved from `/Users/crs/.opencode/bin/opencode`                                                                                                                                                       |
+| Git / gh / pnpm availability          | Pass                   | All three binaries resolved from `/opt/homebrew/bin/*`                                                                                                                                                             |
+| Hub dev script                        | Blocked by environment | `pnpm run dev:hub` executed under Node `20.4.0` and hit an `esbuild` architecture mismatch unrelated to the coding-workspace shell code                                                                            |
+| Electron native module rebuild path   | Pass with workaround   | `pnpm run deps:electron` still fails because `pnpm dlx @electron/rebuild` picks a Node runtime without `util.styleText`; direct rebuild via local `@electron/rebuild` plus `npm rebuild better-sqlite3 ...` worked |
+
+What was not fully exercised in this environment:
+
+- end-to-end right-click context flow into a live OpenCode chat
+- multi-session switching with two concurrent live worktrees
+- live `gh pr create` against an authenticated repo remote
+- deliberate preview crash / deleted-worktree recovery via UI interaction
+
 ## Step Checklist
 
-- [ ] Add instrumentation for session switching, preview restore, and panel readiness
-- [ ] Verify the shell survives missing binaries and crashed child processes
-- [ ] Add dirty-worktree protection and explicit cleanup UX
-- [ ] Document local dependencies and recovery flows
-- [ ] Run a manual Electron MVP validation matrix
-- [ ] Decide which performance helpers, if any, deserve promotion into shared xNet packages
+- [x] Add instrumentation for session switching, preview restore, and panel readiness
+- [x] Verify the shell survives missing binaries and crashed child processes
+- [x] Add dirty-worktree protection and explicit cleanup UX
+- [x] Document local dependencies and recovery flows
+- [x] Run a manual Electron MVP validation matrix
+- [x] Decide which performance helpers, if any, deserve promotion into shared xNet packages

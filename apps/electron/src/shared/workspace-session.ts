@@ -76,6 +76,7 @@ export type WorkspaceSessionSnapshot = {
   changedFilesCount: number
   state: WorkspaceSessionState
   isDirty: boolean
+  lastError?: string
 }
 
 export type WorkspaceSessionStatusEvent = {
