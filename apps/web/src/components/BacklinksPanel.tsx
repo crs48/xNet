@@ -1,35 +1,31 @@
 /**
- * Backlinks panel component
+ * Backlinks panel component.
  *
  * Shows all pages that link to the current page via wikilinks.
- * TODO: Implement proper backlink search using the query engine.
  */
 import { Link } from '@tanstack/react-router'
-import { useState } from 'react'
-
-interface Backlink {
-  docId: string
-  title: string
-  context: string
-}
+import { useMemo, useState } from 'react'
+import { usePageSearchSurface } from '../hooks/usePageSearchSurface'
 
 interface Props {
   docId: string
 }
 
-export function BacklinksPanel({ docId: _docId }: Props) {
-  // TODO: Implement backlink search using NodeStore + query
-  // For now, this is a placeholder that shows no backlinks
+export function BacklinksPanel({ docId }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const backlinks: Backlink[] = []
-  const loading = false
+  const { getBacklinks, indexedPages, loading, totalPages } = usePageSearchSurface({
+    enabled: expanded
+  })
+  const backlinks = useMemo(() => getBacklinks(docId), [docId, getBacklinks])
 
   if (loading) {
     return (
       <div className="mt-8 border border-border rounded-lg overflow-hidden">
         <div className="p-4 bg-secondary">
           <h3 className="text-sm font-semibold">Backlinks</h3>
-          <p className="text-sm text-muted-foreground mt-2">Searching...</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Indexing pages... {indexedPages}/{totalPages}
+          </p>
         </div>
       </div>
     )
@@ -39,11 +35,11 @@ export function BacklinksPanel({ docId: _docId }: Props) {
     <div className="mt-8 border border-border rounded-lg overflow-hidden">
       <button
         className="w-full p-3 px-4 bg-secondary border-none cursor-pointer text-left"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setExpanded((value) => !value)}
         type="button"
       >
         <h3 className="text-sm font-semibold text-foreground flex justify-between items-center m-0">
-          Backlinks ({backlinks.length})
+          Backlinks{expanded || backlinks.length > 0 ? ` (${backlinks.length})` : ''}
           <span className="text-lg text-muted-foreground">{expanded ? '−' : '+'}</span>
         </h3>
       </button>
@@ -64,7 +60,12 @@ export function BacklinksPanel({ docId: _docId }: Props) {
                     <strong className="block font-medium">{link.title}</strong>
                     {link.context && (
                       <span className="block text-sm text-muted-foreground mt-1">
-                        ...{link.context}...
+                        {link.context}
+                      </span>
+                    )}
+                    {link.matchCount > 1 && (
+                      <span className="block text-xs text-muted-foreground mt-1">
+                        {link.matchCount} matches
                       </span>
                     )}
                   </Link>

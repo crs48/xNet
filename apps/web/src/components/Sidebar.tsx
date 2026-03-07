@@ -54,9 +54,9 @@ export function Sidebar() {
   })
 
   // Query all document types
-  const { data: pages, loading: pagesLoading } = useQuery(PageSchema, { limit: 50 })
-  const { data: databases, loading: databasesLoading } = useQuery(DatabaseSchema, { limit: 50 })
-  const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema, { limit: 50 })
+  const { data: pages, loading: pagesLoading } = useQuery(PageSchema)
+  const { data: databases, loading: databasesLoading } = useQuery(DatabaseSchema)
+  const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema)
 
   const toggleSection = (type: DocType) => {
     setExpandedSections((prev) => ({ ...prev, [type]: !prev[type] }))

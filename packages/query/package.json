@@ -22,7 +22,8 @@
     "@xnetjs/identity": "workspace:*",
     "@xnetjs/network": "workspace:*",
     "@xnetjs/storage": "workspace:*",
-    "minisearch": "^7.1.2"
+    "minisearch": "^7.1.2",
+    "yjs": "^13.6.24"
   },
   "devDependencies": {
     "tsup": "^8.0.0",

@@ -13,3 +13,4 @@ export {
   type QueryTrackerLike,
   type YDocRegistryLike
 } from './instrumentation'
+export { useDataBridge } from './context'

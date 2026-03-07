@@ -133,12 +133,12 @@ Observed facts:
 - `MainThreadBridge`, `NativeBridge`, and `WorkerBridge` now converge on a shared `QueryDescriptor`, descriptor matching, and bounded reload fallback in [`packages/data-bridge/src/main-thread-bridge.ts`](../../packages/data-bridge/src/main-thread-bridge.ts), [`packages/data-bridge/src/native-bridge.ts`](../../packages/data-bridge/src/native-bridge.ts), and [`packages/data-bridge/src/worker-bridge.ts`](../../packages/data-bridge/src/worker-bridge.ts).
 - `useQuery()` now derives canonical descriptor keys and delegates `reload()` to the active bridge in [`packages/react/src/hooks/useQuery.ts`](../../packages/react/src/hooks/useQuery.ts).
 - the standalone local query engine still full-scans documents in [`packages/query/src/local/engine.ts`](../../packages/query/src/local/engine.ts).
-- global search is still title-only and page-limited in [`apps/web/src/components/GlobalSearch.tsx`](../../apps/web/src/components/GlobalSearch.tsx).
-- backlinks are still TODO in [`apps/web/src/components/BacklinksPanel.tsx`](../../apps/web/src/components/BacklinksPanel.tsx).
+- global search now indexes body text and snippets through the shared page-document search path in [`apps/web/src/components/GlobalSearch.tsx`](../../apps/web/src/components/GlobalSearch.tsx) and [`packages/query/src/search/document.ts`](../../packages/query/src/search/document.ts).
+- backlinks now use the same live page/runtime surface as search in [`apps/web/src/components/BacklinksPanel.tsx`](../../apps/web/src/components/BacklinksPanel.tsx) and [`apps/web/src/hooks/usePageSearchSurface.ts`](../../apps/web/src/hooks/usePageSearchSurface.ts).
 
 Inference:
 
-- the live-query kernel is materially stronger now, but search/backlinks proving work and query-engine convergence are still required before this area is truly "bulletproof."
+- the live-query kernel is materially stronger now, and the main remaining work is benchmark/release-gate proof plus deeper background-sync hardening rather than basic search/backlink correctness.
 
 ### 3. The database stack still has parallel models
 
@@ -189,9 +189,9 @@ This matches the qualitative picture from [`docs/reviews/2026-02-06/10-test-cove
 Observed facts:
 
 - the root shell is already usable in [`apps/web/src/routes/__root.tsx`](../../apps/web/src/routes/__root.tsx).
-- global search is still title-only and page-limited in [`apps/web/src/components/GlobalSearch.tsx`](../../apps/web/src/components/GlobalSearch.tsx).
-- the sidebar queries fixed-size lists in [`apps/web/src/components/Sidebar.tsx`](../../apps/web/src/components/Sidebar.tsx).
-- backlinks are still TODO in [`apps/web/src/components/BacklinksPanel.tsx`](../../apps/web/src/components/BacklinksPanel.tsx).
+- global search now uses shared body/snippet indexing in [`apps/web/src/components/GlobalSearch.tsx`](../../apps/web/src/components/GlobalSearch.tsx).
+- the sidebar no longer applies fixed-size query caps in [`apps/web/src/components/Sidebar.tsx`](../../apps/web/src/components/Sidebar.tsx).
+- backlinks now resolve through the same runtime-backed page surface in [`apps/web/src/components/BacklinksPanel.tsx`](../../apps/web/src/components/BacklinksPanel.tsx).
 - the web app uses OPFS-backed SQLite in [`apps/web/src/App.tsx`](../../apps/web/src/App.tsx), but I did not find a `navigator.storage.persist()` request in the web app.
 
 Inference:
@@ -632,6 +632,9 @@ gantt
 - [x] Fix `useQuery.reload()` to actually refresh the subscription/snapshot
 - [x] Replace schema-wide invalidation with narrower query matching where feasible
 - [x] Define one worker-backed default bridge path for the web app
+- [x] Upgrade global search to body/snippet search
+- [x] Remove arbitrary list limits from primary navigation flows
+- [x] Finish backlinks and related-content discovery
 - [ ] Benchmark `useQuery`, sidebar loading, and global search on 1k/10k-node datasets
 - [ ] Decide whether `@xnetjs/query` is the long-term local query engine or a secondary surface
 
@@ -645,10 +648,10 @@ gantt
 
 ## Phase 4: Web UX
 
-- [ ] Upgrade global search to body/snippet search
+- [x] Upgrade global search to body/snippet search
 - [ ] Add hierarchy/breadcrumb/recent/pinned navigation
-- [ ] Remove arbitrary list limits from primary navigation flows
-- [ ] Finish backlinks and related-content discovery
+- [x] Remove arbitrary list limits from primary navigation flows
+- [x] Finish backlinks and related-content discovery
 - [ ] Converge database editing on the chosen canonical model
 
 ---

@@ -1,11 +1,13 @@
 import { YDoc } from '@xnetjs/data'
 import { describe, it, expect, beforeEach } from 'vitest'
+import * as Y from 'yjs'
 import { createSearchIndex, type SearchIndex, type SearchableDocument } from './index'
 
-function createTestDoc(id: string, type: string, title: string): SearchableDocument {
+function createTestDoc(id: string, type: string, title: string, body = title): SearchableDocument {
   const ydoc = new YDoc({ guid: id, gc: false })
-  const meta = ydoc.getMap('metadata')
-  meta.set('title', title)
+  const paragraph = new Y.XmlElement('paragraph')
+  paragraph.insert(0, [new Y.XmlText(body)])
+  ydoc.getXmlFragment('content').insert(0, [paragraph])
   return { id, ydoc, type, workspace: 'ws-1', metadata: { title } }
 }
 
@@ -30,6 +32,22 @@ describe('SearchIndex', () => {
       index.add(createTestDoc('doc-2', 'page', 'Project Notes'))
       const results = index.search({ text: 'project' })
       expect(results).toHaveLength(2)
+    })
+
+    it('should search document body text and produce a snippet', () => {
+      index.add(
+        createTestDoc(
+          'doc-1',
+          'page',
+          'Field Notes',
+          'Harvest logistics depend on the south orchard irrigation schedule.'
+        )
+      )
+
+      const results = index.search({ text: 'irrigation' })
+
+      expect(results).toHaveLength(1)
+      expect(results[0].snippet).toContain('irrigation')
     })
   })
 

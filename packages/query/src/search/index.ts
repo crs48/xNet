@@ -4,6 +4,7 @@
 import type { SearchQuery, SearchResult } from '../types'
 import type { YDoc } from '@xnetjs/data'
 import MiniSearch from 'minisearch'
+import { createSearchSnippet, extractDocumentText } from './document'
 
 export interface SearchableDocument {
   id: string
@@ -38,7 +39,7 @@ interface IndexedDoc {
 export function createSearchIndex(): SearchIndex {
   const miniSearch = new MiniSearch<IndexedDoc>({
     fields: ['title', 'content'],
-    storeFields: ['id', 'type', 'title', 'workspace'],
+    storeFields: ['id', 'type', 'title', 'workspace', 'content'],
     searchOptions: {
       boost: { title: 2 },
       fuzzy: 0.2,
@@ -46,23 +47,13 @@ export function createSearchIndex(): SearchIndex {
     }
   })
 
-  /**
-   * Extract searchable text from a document
-   */
-  function extractText(doc: SearchableDocument): string {
-    // Extract text from Yjs document
-    // Simplified - would walk through blocks and extract text content
-    const meta = doc.ydoc.getMap('metadata')
-    return (meta.get('title') as string) ?? ''
-  }
-
   return {
     add(doc: SearchableDocument): void {
       const indexed: IndexedDoc = {
         id: doc.id,
         type: doc.type,
         title: doc.metadata.title,
-        content: extractText(doc),
+        content: extractDocumentText(doc.ydoc),
         workspace: doc.workspace
       }
       miniSearch.add(indexed)
@@ -91,7 +82,7 @@ export function createSearchIndex(): SearchIndex {
         id: result.id,
         type: result.type as string,
         title: result.title as string,
-        snippet: '', // Would generate snippet from content
+        snippet: createSearchSnippet(String(result.content ?? ''), query.text),
         score: result.score
       }))
     },

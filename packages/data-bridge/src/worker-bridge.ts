@@ -51,6 +51,8 @@ interface MirrorDocEntry {
   doc: Y.Doc
   /** Awareness instance for cursor presence */
   awareness: Awareness
+  /** Number of active retainers for this mirror doc */
+  refCount: number
   /** Whether we're currently applying a remote update (to avoid loops) */
   applyingRemote: boolean
   /** Batcher for outgoing updates to the worker */
@@ -295,6 +297,7 @@ export class WorkerBridge implements DataBridge {
     // Check if we already have a mirror for this doc
     const existing = this.mirrorDocs.get(nodeId)
     if (existing) {
+      existing.refCount += 1
       return {
         doc: existing.doc,
         awareness: existing.awareness
@@ -355,6 +358,7 @@ export class WorkerBridge implements DataBridge {
     const entry: MirrorDocEntry = {
       doc: mirrorDoc,
       awareness,
+      refCount: 1,
       applyingRemote: false,
       updateBatcher,
       cleanup: () => {
@@ -380,6 +384,11 @@ export class WorkerBridge implements DataBridge {
   releaseDoc(nodeId: string): void {
     const entry = this.mirrorDocs.get(nodeId)
     if (!entry) return
+
+    entry.refCount = Math.max(0, entry.refCount - 1)
+    if (entry.refCount > 0) {
+      return
+    }
 
     // Clean up the mirror doc
     entry.cleanup()
