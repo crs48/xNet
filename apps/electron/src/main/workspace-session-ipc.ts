@@ -20,11 +20,11 @@ import type {
   WorkspaceSessionStatusEvent
 } from '../shared/workspace-session'
 import { access, constants, mkdir, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { BrowserWindow, ipcMain } from 'electron'
 import { createOpenCodeHostConfig } from '../shared/opencode-host'
 import { WORKSPACE_SESSION_IPC_CHANNELS } from '../shared/workspace-session'
-import { createGitService, type GitFileChange } from './git-service'
+import { createGitService, isManagedWorktreePath, type GitFileChange } from './git-service'
 import {
   createPreviewManager,
   previewRuntimeToWorkspaceState,
@@ -57,6 +57,26 @@ const getSelectedContextPath = (worktreePath: string): string =>
 const getPullRequestBodyPath = (sessionId: string, worktreePath: string): string =>
   join(worktreePath, '.xnet', 'pr', `${sessionId}.md`)
 
+async function assertManagedWorktreePath(worktreePath: string): Promise<string> {
+  const candidatePath = resolve(worktreePath.trim())
+  const repoContext = await gitService.resolveRepoContext()
+
+  if (!isManagedWorktreePath(repoContext.repoRoot, candidatePath)) {
+    throw new Error(`Refusing to access unmanaged worktree path: ${candidatePath}`)
+  }
+
+  return candidatePath
+}
+
+async function normalizeSessionDescriptor(
+  session: WorkspaceSessionDescriptor
+): Promise<WorkspaceSessionDescriptor> {
+  return {
+    ...session,
+    worktreePath: await assertManagedWorktreePath(session.worktreePath)
+  }
+}
+
 const publishWorkspaceSession = (session: WorkspaceSessionSnapshot): void => {
   const event: WorkspaceSessionStatusEvent = { session }
   BrowserWindow.getAllWindows().forEach((win) => {
@@ -68,18 +88,19 @@ async function buildSessionSnapshot(
   session: WorkspaceSessionDescriptor,
   previewStatus: PreviewRuntimeStatus
 ): Promise<WorkspaceSessionSnapshot> {
-  const screenshotPath = getScreenshotPath(session.sessionId, session.worktreePath)
+  const worktreePath = await assertManagedWorktreePath(session.worktreePath)
+  const screenshotPath = getScreenshotPath(session.sessionId, worktreePath)
   const hasScreenshot = await fileExists(screenshotPath)
 
   try {
-    const gitStatus = await gitService.getStatus(session.worktreePath)
+    const gitStatus = await gitService.getStatus(worktreePath)
 
     return {
       sessionId: session.sessionId,
       title: session.title,
       branch: session.branch,
       worktreeName: session.worktreeName,
-      worktreePath: session.worktreePath,
+      worktreePath,
       openCodeUrl: getOpenCodeUrl(),
       ...(previewStatus.url && previewStatus.state === 'ready'
         ? { previewUrl: previewStatus.url }
@@ -96,7 +117,7 @@ async function buildSessionSnapshot(
       title: session.title,
       branch: session.branch,
       worktreeName: session.worktreeName,
-      worktreePath: session.worktreePath,
+      worktreePath,
       openCodeUrl: getOpenCodeUrl(),
       ...(hasScreenshot ? { lastScreenshotPath: screenshotPath } : {}),
       changedFilesCount: 0,
@@ -141,17 +162,18 @@ function buildPullRequestDraft(
 async function buildWorkspaceReview(
   session: WorkspaceSessionDescriptor
 ): Promise<WorkspaceSessionReview> {
-  const changedFiles = await gitService.listChangedFiles(session.worktreePath)
-  const diffStat = await gitService.getDiffStat(session.worktreePath)
-  const diffPatch = await gitService.getDiffPatch(session.worktreePath)
-  const screenshotPath = getScreenshotPath(session.sessionId, session.worktreePath)
+  const worktreePath = await assertManagedWorktreePath(session.worktreePath)
+  const changedFiles = await gitService.listChangedFiles(worktreePath)
+  const diffStat = await gitService.getDiffStat(worktreePath)
+  const diffPatch = await gitService.getDiffPatch(worktreePath)
+  const screenshotPath = getScreenshotPath(session.sessionId, worktreePath)
   const hasScreenshot = await fileExists(screenshotPath)
   const markdownFile = changedFiles.find(
     (entry) => entry.path.endsWith('.md') || entry.path.endsWith('.mdx')
   )
   const markdownPreview = markdownFile
     ? await gitService
-        .readRelativeFile(session.worktreePath, markdownFile.path)
+        .readRelativeFile(worktreePath, markdownFile.path)
         .then((content) => ({
           path: markdownFile.path,
           content
@@ -181,8 +203,9 @@ async function buildWorkspaceReview(
 async function refreshSessionSnapshot(
   session: WorkspaceSessionDescriptor
 ): Promise<WorkspaceSessionSnapshot> {
-  const previewStatus = await previewManager.refreshSession(session)
-  const snapshot = await buildSessionSnapshot(session, previewStatus)
+  const normalizedSession = await normalizeSessionDescriptor(session)
+  const previewStatus = await previewManager.refreshSession(normalizedSession)
+  const snapshot = await buildSessionSnapshot(normalizedSession, previewStatus)
   publishWorkspaceSession(snapshot)
   return snapshot
 }
@@ -190,7 +213,8 @@ async function refreshSessionSnapshot(
 async function storeSelectedContext(
   input: StoreSelectedContextInput
 ): Promise<StoreSelectedContextResult> {
-  const outputPath = getSelectedContextPath(input.worktreePath)
+  const worktreePath = await assertManagedWorktreePath(input.worktreePath)
+  const outputPath = getSelectedContextPath(worktreePath)
   await mkdir(dirname(outputPath), { recursive: true })
   await writeFile(outputPath, JSON.stringify(input.context, null, 2), 'utf8')
   return { path: outputPath }
@@ -205,7 +229,8 @@ async function captureWorkspaceSessionScreenshot(
   }
 
   const image = await browserWindow.webContents.capturePage()
-  const outputPath = getScreenshotPath(input.sessionId, input.worktreePath)
+  const worktreePath = await assertManagedWorktreePath(input.worktreePath)
+  const outputPath = getScreenshotPath(input.sessionId, worktreePath)
   await mkdir(dirname(outputPath), { recursive: true })
   await writeFile(outputPath, image.toPNG())
   return { path: outputPath }
@@ -214,12 +239,13 @@ async function captureWorkspaceSessionScreenshot(
 async function createWorkspaceSessionPullRequest(
   input: CreateWorkspaceSessionPullRequestInput
 ): Promise<CreateWorkspaceSessionPullRequestResult> {
-  const bodyFilePath = getPullRequestBodyPath(input.sessionId, input.worktreePath)
+  const worktreePath = await assertManagedWorktreePath(input.worktreePath)
+  const bodyFilePath = getPullRequestBodyPath(input.sessionId, worktreePath)
   await mkdir(dirname(bodyFilePath), { recursive: true })
   await writeFile(bodyFilePath, input.body, 'utf8')
 
   try {
-    const output = await gitService.createPullRequest(input.worktreePath, [
+    const output = await gitService.createPullRequest(worktreePath, [
       '--title',
       input.title,
       '--body-file',
@@ -298,21 +324,25 @@ export function setupWorkspaceSessionIPC(): void {
   ipcMain.handle(
     WORKSPACE_SESSION_IPC_CHANNELS.SYNC,
     async (_event, input: SyncWorkspaceSessionsInput): Promise<WorkspaceSessionSnapshot[]> => {
-      input.sessions.forEach((session) => {
+      const sessions = await Promise.all(
+        input.sessions.map((session) => normalizeSessionDescriptor(session))
+      )
+
+      sessions.forEach((session) => {
         sessionRegistry.set(session.sessionId, session)
       })
 
-      const knownIds = new Set(input.sessions.map((session) => session.sessionId))
+      const knownIds = new Set(sessions.map((session) => session.sessionId))
       ;[...sessionRegistry.keys()]
         .filter((sessionId) => !knownIds.has(sessionId))
         .forEach((sessionId) => {
           sessionRegistry.delete(sessionId)
         })
 
-      await previewManager.syncSessions(input.sessions)
+      await previewManager.syncSessions(sessions)
 
       return Promise.all(
-        input.sessions.map(async (session) => {
+        sessions.map(async (session) => {
           const previewStatus = previewManager.getStatus(session.sessionId)
           return buildSessionSnapshot(session, previewStatus)
         })
@@ -323,13 +353,13 @@ export function setupWorkspaceSessionIPC(): void {
   ipcMain.handle(
     WORKSPACE_SESSION_IPC_CHANNELS.REFRESH,
     async (_event, input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> => {
-      const session: WorkspaceSessionDescriptor = {
+      const session = await normalizeSessionDescriptor({
         sessionId: input.sessionId,
         title: input.title,
         branch: input.branch,
         worktreeName: input.worktreeName,
         worktreePath: input.worktreePath
-      }
+      })
 
       sessionRegistry.set(session.sessionId, session)
       return refreshSessionSnapshot(session)
@@ -339,13 +369,13 @@ export function setupWorkspaceSessionIPC(): void {
   ipcMain.handle(
     WORKSPACE_SESSION_IPC_CHANNELS.RESTART_PREVIEW,
     async (_event, input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> => {
-      const session: WorkspaceSessionDescriptor = {
+      const session = await normalizeSessionDescriptor({
         sessionId: input.sessionId,
         title: input.title,
         branch: input.branch,
         worktreeName: input.worktreeName,
         worktreePath: input.worktreePath
-      }
+      })
 
       sessionRegistry.set(session.sessionId, session)
       const previewStatus = await previewManager.restartSession(session)
@@ -358,13 +388,13 @@ export function setupWorkspaceSessionIPC(): void {
   ipcMain.handle(
     WORKSPACE_SESSION_IPC_CHANNELS.REVIEW,
     async (_event, input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionReview> => {
-      const session: WorkspaceSessionDescriptor = {
+      const session = await normalizeSessionDescriptor({
         sessionId: input.sessionId,
         title: input.title,
         branch: input.branch,
         worktreeName: input.worktreeName,
         worktreePath: input.worktreePath
-      }
+      })
 
       sessionRegistry.set(session.sessionId, session)
       return buildWorkspaceReview(session)
@@ -412,7 +442,8 @@ export function setupWorkspaceSessionIPC(): void {
     WORKSPACE_SESSION_IPC_CHANNELS.REMOVE,
     async (_event, input: RemoveWorkspaceSessionInput): Promise<RemoveWorkspaceSessionResult> => {
       try {
-        const gitStatus = await gitService.getStatus(input.worktreePath)
+        const worktreePath = await assertManagedWorktreePath(input.worktreePath)
+        const gitStatus = await gitService.getStatus(worktreePath)
         if (gitStatus.isDirty) {
           return {
             removed: false,
@@ -424,7 +455,7 @@ export function setupWorkspaceSessionIPC(): void {
 
         sessionRegistry.delete(input.sessionId)
         await previewManager.stopSession(input.sessionId)
-        await gitService.removeWorktree(input.worktreePath)
+        await gitService.removeWorktree(worktreePath)
 
         return {
           removed: true,

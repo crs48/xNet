@@ -93,10 +93,14 @@ async function isPortAvailable(host: string, port: number): Promise<boolean> {
   })
 }
 
-async function findAvailablePort(host: string, startPort: number): Promise<number> {
+async function findAvailableManagedPort(
+  host: string,
+  startPort: number,
+  claimedPorts: ReadonlySet<number>
+): Promise<number> {
   let port = startPort
 
-  while (!(await isPortAvailable(host, port))) {
+  while (claimedPorts.has(port) || !(await isPortAvailable(host, port))) {
     port += 1
   }
 
@@ -152,6 +156,7 @@ export function previewRuntimeToWorkspaceState(
 export class PreviewManager {
   private readonly events = new EventEmitter()
   private readonly runtimes = new Map<string, PreviewRuntime>()
+  private readonly reservedPorts = new Map<string, number>()
   private readonly host: string
   private readonly basePort: number
   private readonly keepWarmCount: number
@@ -299,6 +304,7 @@ export class PreviewManager {
     const previewAppExists = await fileExists(previewAppPath)
     if (!previewAppExists) {
       const runtime = this.createRuntime(session, port)
+      this.releaseReservedPort(session.sessionId)
       runtime.state = 'error'
       runtime.lastError = `Preview app not found at ${previewAppPath}`
       this.runtimes.set(session.sessionId, runtime)
@@ -307,6 +313,7 @@ export class PreviewManager {
     }
 
     const runtime = this.createRuntime(session, port)
+    this.releaseReservedPort(session.sessionId)
     this.runtimes.set(session.sessionId, runtime)
     this.emitStatus(session.sessionId)
 
@@ -422,8 +429,22 @@ export class PreviewManager {
       return existingRuntime.port
     }
 
-    const nextPort = this.basePort + this.runtimes.size
-    return findAvailablePort(this.host, nextPort)
+    const existingReservation = this.reservedPorts.get(sessionId)
+    if (existingReservation) {
+      return existingReservation
+    }
+
+    const claimedPorts = new Set<number>([
+      ...this.reservedPorts.values(),
+      ...[...this.runtimes.values()].map((runtime) => runtime.port)
+    ])
+    const nextPort = await findAvailableManagedPort(this.host, this.basePort, claimedPorts)
+    this.reservedPorts.set(sessionId, nextPort)
+    return nextPort
+  }
+
+  private releaseReservedPort(sessionId: string): void {
+    this.reservedPorts.delete(sessionId)
   }
 
   private async waitForReady(runtime: PreviewRuntime): Promise<void> {

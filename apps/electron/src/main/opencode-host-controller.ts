@@ -122,7 +122,7 @@ export function createOpenCodeHostController(
 
   const ensure = async (): Promise<OpenCodeHostStatus> => {
     const current = deps.getServiceStatus(OPENCODE_SERVICE_ID)
-    if (current && current.state !== 'error') {
+    if (current && current.state !== 'error' && current.state !== 'stopped') {
       return refresh()
     }
 

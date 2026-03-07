@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildKeepWarmSessionIds, previewRuntimeToWorkspaceState } from './preview-manager'
+import {
+  buildKeepWarmSessionIds,
+  createPreviewManager,
+  previewRuntimeToWorkspaceState
+} from './preview-manager'
 
 describe('preview-manager', () => {
   describe('buildKeepWarmSessionIds', () => {
@@ -60,6 +64,21 @@ describe('preview-manager', () => {
           state: 'stopped'
         })
       ).toBe('idle')
+    })
+  })
+
+  describe('port reservations', () => {
+    it('reserves unique ports before runtimes are registered', async () => {
+      const manager = createPreviewManager({
+        basePort: 4630
+      }) as unknown as {
+        allocatePort(sessionId: string): Promise<number>
+      }
+
+      const first = await manager.allocatePort('session-1')
+      const second = await manager.allocatePort('session-2')
+
+      expect(second).toBe(first + 1)
     })
   })
 })

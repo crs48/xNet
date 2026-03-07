@@ -130,4 +130,28 @@ describe('createOpenCodeHostController', () => {
     expect(startService).not.toHaveBeenCalled()
     expect(restartService).not.toHaveBeenCalled()
   })
+
+  it('should restart a stopped service instead of returning an idle status', async () => {
+    const config = createOpenCodeHostConfig({
+      XNET_OPENCODE_PORT: '4103'
+    })
+
+    const restartService = vi.fn(async () => createServiceStatus(config))
+
+    const controller = createOpenCodeHostController({
+      getConfig: () => config,
+      getServiceStatus: () => createServiceStatus(config, { state: 'stopped' }),
+      startService: vi.fn(),
+      restartService,
+      stopService: vi.fn(),
+      resolveBinary: vi.fn(async () => createBinaryResolution('/usr/local/bin/opencode')),
+      probeHealth: vi.fn(async () => ({ healthy: true, version: '1.2.4' })),
+      publishStatus: vi.fn()
+    })
+
+    const status = await controller.ensure()
+
+    expect(status.state).toBe('ready')
+    expect(restartService).toHaveBeenCalledTimes(1)
+  })
 })

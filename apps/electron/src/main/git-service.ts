@@ -4,7 +4,7 @@
 
 import { execFile } from 'node:child_process'
 import { access, constants, cp, mkdir, readFile, symlink } from 'node:fs/promises'
-import { basename, dirname, join, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { promisify } from 'node:util'
 import {
   normalizeWorkspaceBranchSlug,
@@ -85,6 +85,30 @@ const fileExists = async (path: string): Promise<boolean> => {
 const trimCommandOutput = (value: string): string => value.trim()
 
 const uniqueStrings = (values: readonly string[]): string[] => [...new Set(values)]
+
+const normalizePath = (path: string): string => resolve(path.trim())
+
+export function deriveWorktreeContainerPath(repoRoot: string): string {
+  const normalizedRepoRoot = normalizePath(repoRoot)
+  return join(
+    dirname(normalizedRepoRoot),
+    WORKTREE_CONTAINER_DIRNAME,
+    sanitizeWorkspaceBranchSegment(basename(normalizedRepoRoot))
+  )
+}
+
+export function isManagedWorktreePath(repoRoot: string, worktreePath: string): boolean {
+  const containerPath = deriveWorktreeContainerPath(repoRoot)
+  const candidatePath = normalizePath(worktreePath)
+  const relativePath = relative(containerPath, candidatePath)
+
+  return (
+    relativePath === '' ||
+    (!isAbsolute(relativePath) &&
+      !relativePath.startsWith('..') &&
+      !relativePath.startsWith(`..${sep}`))
+  )
+}
 
 async function copyNodeModulesSkeleton(sourcePath: string, targetPath: string): Promise<void> {
   if (!(await fileExists(sourcePath)) || (await fileExists(targetPath))) {
@@ -172,7 +196,7 @@ export function parseWorktreeListOutput(output: string): WorktreeInfo[] {
       continue
     }
 
-    if (line.startsWith('branch ')) {
+    if (line.startsWith('branch refs/heads/')) {
       current.branch = line.slice('branch refs/heads/'.length).trim()
       continue
     }
@@ -257,11 +281,7 @@ export class GitService {
       input.sessionId
     )
     const worktreeName = deriveWorktreeName(branch, input.sessionId)
-    const worktreeContainer = join(
-      dirname(repoContext.repoRoot),
-      WORKTREE_CONTAINER_DIRNAME,
-      sanitizeWorkspaceBranchSegment(basename(repoContext.repoRoot))
-    )
+    const worktreeContainer = deriveWorktreeContainerPath(repoContext.repoRoot)
     const worktreePath = join(worktreeContainer, worktreeName)
 
     await mkdir(worktreeContainer, { recursive: true })

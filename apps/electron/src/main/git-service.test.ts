@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { deriveWorktreeName, parseGitStatusSummary, parseWorktreeListOutput } from './git-service'
+import {
+  deriveWorktreeContainerPath,
+  deriveWorktreeName,
+  isManagedWorktreePath,
+  parseGitStatusSummary,
+  parseWorktreeListOutput
+} from './git-service'
 
 describe('git-service', () => {
   describe('parseWorktreeListOutput', () => {
@@ -37,6 +43,22 @@ describe('git-service', () => {
         }
       ])
     })
+
+    it('ignores unexpected branch formats instead of slicing corrupt names', () => {
+      const output = ['worktree /tmp/xnet', 'HEAD abc123', 'branch detached-head', ''].join('\n')
+
+      expect(parseWorktreeListOutput(output)).toEqual([
+        {
+          path: '/tmp/xnet',
+          head: 'abc123',
+          branch: null,
+          bare: false,
+          detached: false,
+          locked: false,
+          prunable: false
+        }
+      ])
+    })
   })
 
   describe('parseGitStatusSummary', () => {
@@ -60,6 +82,24 @@ describe('git-service', () => {
       expect(deriveWorktreeName('codex/layout-pass', 'xnet:workspace-session:abc123')).toBe(
         'layout-pass-xnet-wor'
       )
+    })
+  })
+
+  describe('managed worktree paths', () => {
+    it('derives the managed worktree container from the repo root', () => {
+      expect(deriveWorktreeContainerPath('/Users/crs/src/xNet')).toBe(
+        '/Users/crs/src/.xnet-worktrees/xnet'
+      )
+    })
+
+    it('accepts only worktrees inside the managed container', () => {
+      const repoRoot = '/Users/crs/src/xNet'
+
+      expect(
+        isManagedWorktreePath(repoRoot, '/Users/crs/src/.xnet-worktrees/xnet/layout-pass-xnet-wor')
+      ).toBe(true)
+      expect(isManagedWorktreePath(repoRoot, '/Users/crs/src/xNet')).toBe(false)
+      expect(isManagedWorktreePath(repoRoot, '/tmp/layout-pass-xnet-wor')).toBe(false)
     })
   })
 })
