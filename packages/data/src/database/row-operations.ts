@@ -313,7 +313,7 @@ export async function moveRow(
   rowId: string,
   position: { before?: string; after?: string }
 ): Promise<void> {
-  const sortKey = generateSortKey(position.before, position.after)
+  const sortKey = generateSortKey(position.after, position.before)
   await store.update(rowId, {
     properties: { sortKey }
   })

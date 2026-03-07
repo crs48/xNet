@@ -15,7 +15,7 @@ Converge xNet databases around one canonical structured-data model so that hooks
 This step intentionally builds on the earlier database plan instead of replacing it:
 
 - [`plan03_9_3DatabaseDataModel`](../plan03_9_3DatabaseDataModel/README.md) already outlines a node-native direction.
-- [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) still persists `rows`, `columns`, and view config blobs inside one Y.Map.
+- [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) now composes over [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts), but it still retains Y.Doc-backed schema metadata and undo wiring that need a deliberate final convergence story.
 - [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) now composes over [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts), but it still depends on a temporary legacy compatibility path for older documents.
 - [`packages/react/src/index.ts`](../../../packages/react/src/index.ts) already exports `useDatabase`, `useDatabaseDoc`, `useDatabaseRow`, and `useCell`, which implies a more granular model than the active app views actually use.
 
@@ -41,10 +41,12 @@ That split needs to end before database UX, large tables, or canvas-to-ERP evolu
 - the web database surface now uses those hooks in [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) instead of mutating the database `data` Y.Map directly.
 - regression coverage now exists for the persisted legacy shape in [`packages/data/src/database/legacy-model.test.ts`](../../../packages/data/src/database/legacy-model.test.ts).
 - explicit legacy materialization now lives in [`packages/data/src/database/legacy-migration.ts`](../../../packages/data/src/database/legacy-migration.ts), with status recording surfaced through [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and migration coverage in [`packages/data/src/database/legacy-migration.test.ts`](../../../packages/data/src/database/legacy-migration.test.ts).
+- the Electron database surface now uses the same hook layer in [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) for rows, columns, views, and board reordering instead of writing whole `rows`/`columns` arrays into the document `data` map.
+- canonical row reordering now resolves row ids inside [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts) and is backed by corrected fractional-index positioning in [`packages/data/src/database/row-operations.ts`](../../../packages/data/src/database/row-operations.ts), with focused coverage in [`packages/react/src/hooks/useDatabase.test.tsx`](../../../packages/react/src/hooks/useDatabase.test.tsx) and [`packages/data/src/database/row-operations.test.ts`](../../../packages/data/src/database/row-operations.test.ts).
+- legacy-model detection no longer treats schema metadata alone as proof of legacy storage state in [`packages/data/src/database/legacy-model.ts`](../../../packages/data/src/database/legacy-model.ts), which keeps canonical docs from being stuck in `mixed` purely because Electron still records schema metadata/history in `data`.
 
 ### Still open before this step is complete
 
-- Electron still needs the same hook-driven refactor.
 - structured undo and rich-text undo are still coupled in the Electron implementation.
 - sync correctness and cross-device migration tests for databases are still missing.
 
@@ -151,7 +153,7 @@ The view layer should not know whether data came from local NodeStore materializ
 
 - [ ] Reaffirm the canonical node-native database model from the earlier plan.
 - [x] Design an explicit migration path from legacy Y.Map-backed database documents.
-- [ ] Move web and Electron database views onto the hook-driven model.
+- [x] Move web and Electron database views onto the hook-driven model.
 - [ ] Separate structured undo semantics from rich-text Yjs undo semantics.
 - [ ] Add sync and migration tests for database correctness.
-- [ ] Remove direct whole-array database persistence from app components once migration is complete.
+- [x] Remove direct whole-array database persistence from app components once migration is complete.

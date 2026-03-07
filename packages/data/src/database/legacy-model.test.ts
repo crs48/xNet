@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
+import { initializeDatabaseDoc } from './database-doc'
 import {
   createLegacyColumn,
   createLegacyRow,
@@ -46,6 +47,21 @@ describe('legacy-model', () => {
     expect(getDatabaseDocumentModel(decoded)).toBe('legacy')
     expect(getLegacyColumns(decoded)).toHaveLength(1)
     expect(getLegacyViews(decoded)).toHaveLength(1)
+  })
+
+  it('does not treat schema metadata alone as legacy state', () => {
+    const doc = new Y.Doc()
+    initializeDatabaseDoc(doc)
+
+    const data = doc.getMap('data')
+    data.set('schema', {
+      name: 'Projects',
+      version: '1.0.0',
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    })
+
+    expect(getDatabaseDocumentModel(doc)).toBe('canonical')
   })
 
   it('normalizes legacy columns and views into canonical database types', () => {

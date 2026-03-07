@@ -309,6 +309,18 @@ describe('Row Operations', () => {
       const movedRow = await store.get(rowId)
       expect(movedRow!.properties.sortKey).not.toBe(originalSortKey)
     })
+
+    it('should move a row before the provided sibling sort key', async () => {
+      const rowA = await createRow(store, { databaseId, cells: { name: 'A' } })
+      const rowB = await createRow(store, { databaseId, cells: { name: 'B' } })
+      const rowC = await createRow(store, { databaseId, cells: { name: 'C' } })
+
+      const target = await store.get(rowA)
+      await moveRow(store, rowB, { before: target?.properties.sortKey as string })
+
+      const { rows } = await queryRows(store, databaseId)
+      expect(rows.map((row) => row.id)).toEqual([rowB, rowA, rowC])
+    })
   })
 })
 
