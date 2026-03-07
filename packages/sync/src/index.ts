@@ -73,6 +73,13 @@ export type {
 } from './sync-runtime'
 export { createSyncLifecycleState, deriveSyncLifecyclePhase } from './sync-runtime'
 
+export type {
+  SyncCompatibilityConfig,
+  SyncReplicationConfig,
+  ResolvedSyncReplicationPolicy
+} from './replication-policy'
+export { resolveSyncReplicationPolicy } from './replication-policy'
+
 // Yjs security: signed envelopes (Step 01 + Multi-level signatures)
 export type {
   SignedYjsEnvelope,

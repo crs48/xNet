@@ -5,6 +5,7 @@
 import type { CrawlConfig } from './services/crawl'
 import type { FederationConfig } from './services/federation'
 import type { ShardConfig } from './services/index-shards'
+import type { SyncReplicationConfig } from '@xnetjs/sync'
 
 export type HubConfig = {
   /** WebSocket + HTTP port (default: 4444). */
@@ -29,6 +30,8 @@ export type HubConfig = {
   awarenessCleanupIntervalMs: number
   /** Max awareness users stored per room (default: 100). */
   awarenessMaxUsers: number
+  /** Document replication policy. */
+  sync?: SyncReplicationConfig
   /** Hub's own DID for UCAN audience verification (optional). */
   hubDid?: string
   /** Public hub URL for peer discovery (optional). */

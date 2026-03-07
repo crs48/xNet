@@ -128,9 +128,9 @@ The sidebar and related navigation surfaces should rely on:
 
 ## Step Checklist
 
-- [ ] Request persistent storage explicitly in supported browsers.
-- [ ] Surface persistence state and fallback implications in the app UI.
-- [ ] Use the intended worker runtime as the default web path.
-- [ ] Route search, sidebar, and backlinks through the converged live-query layer.
-- [ ] Validate large-workspace navigation behavior with pagination or virtualization.
+- [x] Request persistent storage explicitly in supported browsers.
+- [x] Surface persistence state and fallback implications in the app UI.
+- [x] Use the intended worker runtime as the default web path.
+- [x] Route search, sidebar, and backlinks through the converged live-query layer.
+- [x] Validate large-workspace navigation behavior with pagination or virtualization.
 - [ ] Record web durability and responsiveness baselines for Step 08 release gates.

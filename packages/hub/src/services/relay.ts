@@ -8,9 +8,12 @@ import {
   YjsPeerScorer,
   YjsRateLimiter,
   isUpdateTooLarge,
+  resolveSyncReplicationPolicy,
+  signYjsUpdate,
   verifyYjsEnvelopeV1,
   isV1Envelope,
-  type SignedYjsEnvelope
+  type SignedYjsEnvelope,
+  type SyncReplicationConfig
 } from '@xnetjs/sync'
 import * as Y from 'yjs'
 
@@ -24,7 +27,11 @@ export type SyncMessage = {
 }
 
 type RelayOptions = {
-  requireSignedUpdates?: boolean
+  replication?: SyncReplicationConfig
+  signing: {
+    authorDID: string
+    signingKey: Uint8Array
+  }
 }
 
 type UpdateResult = {
@@ -76,13 +83,13 @@ const isSyncMessage = (data: unknown): data is SyncMessage => {
 export class RelayService {
   private rateLimiter = new YjsRateLimiter()
   private peerScorer = new YjsPeerScorer()
-  private requireSignedUpdates: boolean
+  private replicationPolicy: ReturnType<typeof resolveSyncReplicationPolicy>
 
   constructor(
     private pool: NodePool,
-    options?: RelayOptions
+    private options: RelayOptions
   ) {
-    this.requireSignedUpdates = options?.requireSignedUpdates ?? false
+    this.replicationPolicy = resolveSyncReplicationPolicy(options.replication)
   }
 
   async handleSyncMessage(
@@ -104,11 +111,23 @@ export class RelayService {
         const diff = Y.encodeStateAsUpdate(doc, remoteSV)
 
         if (diff.length > 2) {
+          const envelope = signYjsUpdate(
+            diff,
+            this.options.signing.authorDID,
+            this.options.signing.signingKey,
+            doc.clientID
+          )
           sendToRoom(topic, {
             type: 'sync-step2',
             from: HUB_PEER_ID,
             to: data.from,
-            update: toBase64(diff)
+            envelope: {
+              update: toBase64(envelope.update),
+              authorDID: envelope.authorDID,
+              signature: toBase64(envelope.signature),
+              timestamp: envelope.timestamp,
+              clientId: envelope.clientId
+            }
           })
         }
 
@@ -215,7 +234,7 @@ export class RelayService {
       return { update: envelope.update, peerId }
     }
 
-    if (this.requireSignedUpdates) {
+    if (this.replicationPolicy.requireSignedReplication) {
       this.peerScorer.penalize(peerId, 'unsignedUpdate')
       return null
     }

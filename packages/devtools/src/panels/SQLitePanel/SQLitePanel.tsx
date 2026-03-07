@@ -6,8 +6,23 @@ import { Tooltip } from '@xnetjs/ui'
 import { useDevTools } from '../../provider/useDevTools'
 import { useSQLitePanel, useSQLiteStatus } from './useSQLitePanel'
 
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+
+  const units = ['KB', 'MB', 'GB', 'TB']
+  let value = bytes
+  let unitIndex = -1
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024
+    unitIndex += 1
+  }
+
+  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`
+}
+
 export function SQLitePanel() {
-  const { eventBus, store } = useDevTools()
+  const { eventBus, runtimeStatus, storageDurability, store } = useDevTools()
   const { debugEnabled, toggleDebug, supportInfo, recentLogs, clearLogs } = useSQLitePanel(eventBus)
   const sqliteStatus = useSQLiteStatus(store)
   const sqliteDotClass = getSQLiteHealthDotClass(sqliteStatus.health)
@@ -51,6 +66,50 @@ export function SQLitePanel() {
       </div>
 
       <div className="flex-1 overflow-auto p-3 space-y-4">
+        <div className="bg-zinc-800 rounded p-3 space-y-2">
+          <h3 className="text-xs font-semibold text-zinc-400 uppercase">Runtime Mode</h3>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            <span className="text-zinc-500">Requested</span>
+            <span>{runtimeStatus.requestedMode}</span>
+            <span className="text-zinc-500">Active</span>
+            <span>{runtimeStatus.activeMode ?? 'unavailable'}</span>
+            <span className="text-zinc-500">Phase</span>
+            <span>{runtimeStatus.phase}</span>
+            <span className="text-zinc-500">Fallback</span>
+            <span>
+              {runtimeStatus.usedFallback ? (runtimeStatus.fallbackMode ?? 'yes') : 'none'}
+            </span>
+          </div>
+          {runtimeStatus.reason && (
+            <p className="text-xs text-amber-300 bg-amber-950/20 border border-amber-900 rounded p-2">
+              {runtimeStatus.reason}
+            </p>
+          )}
+        </div>
+
+        {storageDurability && (
+          <div className="bg-zinc-800 rounded p-3 space-y-2">
+            <h3 className="text-xs font-semibold text-zinc-400 uppercase">Persistent Storage</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <span className="text-zinc-500">State</span>
+              <span>{storageDurability.state}</span>
+              {typeof storageDurability.usageBytes === 'number' && (
+                <>
+                  <span className="text-zinc-500">Usage</span>
+                  <span>{formatBytes(storageDurability.usageBytes)}</span>
+                </>
+              )}
+              {typeof storageDurability.quotaBytes === 'number' && (
+                <>
+                  <span className="text-zinc-500">Quota</span>
+                  <span>{formatBytes(storageDurability.quotaBytes)}</span>
+                </>
+              )}
+            </div>
+            <p className="text-xs text-zinc-300">{storageDurability.message}</p>
+          </div>
+        )}
+
         {supportInfo && (
           <div className="bg-zinc-800 rounded p-3 space-y-2">
             <h3 className="text-xs font-semibold text-zinc-400 uppercase">Browser Support</h3>

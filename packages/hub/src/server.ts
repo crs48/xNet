@@ -11,6 +11,7 @@ import type { RawData, WebSocket } from 'ws'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { serve } from '@hono/node-server'
 import { DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
+import { generateIdentity } from '@xnetjs/identity'
 import { Hono } from 'hono'
 import { WebSocketServer } from 'ws'
 import { hasHubCapability } from './auth/capabilities'
@@ -377,7 +378,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const signaling = createSignalingService()
   const storage = await createStorage(config.storage, config.dataDir)
   const pool = new NodePool(storage)
-  const relay = new RelayService(pool, { requireSignedUpdates: config.auth })
+  const relayIdentity = generateIdentity()
+  const relay = new RelayService(pool, {
+    replication: config.sync,
+    signing: {
+      authorDID: relayIdentity.identity.did,
+      signingKey: relayIdentity.privateKey
+    }
+  })
   const backup = new BackupService(storage, {
     maxQuotaBytes: config.defaultQuota,
     maxBlobSize: config.maxBlobSize

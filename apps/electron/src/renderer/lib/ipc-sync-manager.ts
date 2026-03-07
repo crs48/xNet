@@ -13,7 +13,7 @@
  */
 
 import type { SyncManager } from '@xnetjs/react'
-import type { SyncLifecycleInput, SyncLifecycleState } from '@xnetjs/sync'
+import type { SyncLifecycleInput, SyncLifecycleState, SyncReplicationConfig } from '@xnetjs/sync'
 import { createYWebRTCProvider, type YWebRTCProvider } from '@xnetjs/network'
 import { createSyncLifecycleState } from '@xnetjs/sync'
 import {
@@ -50,10 +50,13 @@ export interface IPCSyncManager extends SyncManager {
   instrument(eventBus: DevToolsEventBus): () => void
   /** Set identity for signing outgoing updates */
   setIdentity(authorDID: string, signingKey: Uint8Array): void
+  /** Configure explicit replication compatibility policy */
+  configureReplication(config: SyncReplicationConfig | undefined): void
   /** Reconfigure relay + auth transport options at runtime */
   configureShareSession(input: {
     signalingUrl: string
     ucanToken?: string
+    replication?: SyncReplicationConfig
     transport?: 'ws' | 'webrtc' | 'auto'
     iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
   }): Promise<void>
@@ -92,6 +95,7 @@ export function createIPCSyncManager(): IPCSyncManager {
   let bsmStartOptions: {
     signalingUrl: string
     ucanToken?: string
+    replication?: SyncReplicationConfig
     transport?: 'ws' | 'webrtc' | 'auto'
     iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
   } = {
@@ -301,10 +305,18 @@ export function createIPCSyncManager(): IPCSyncManager {
       identitySigningKey = Array.from(signingKey)
     },
 
+    configureReplication(config) {
+      bsmStartOptions = {
+        ...bsmStartOptions,
+        replication: config
+      }
+    },
+
     async configureShareSession(input) {
       bsmStartOptions = {
         signalingUrl: input.signalingUrl,
         ucanToken: input.ucanToken,
+        replication: input.replication ?? bsmStartOptions.replication,
         transport: input.transport ?? bsmStartOptions.transport,
         iceServers: input.iceServers
       }

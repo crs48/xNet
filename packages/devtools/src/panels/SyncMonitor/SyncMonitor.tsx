@@ -4,6 +4,7 @@
 
 import { useState, useCallback } from 'react'
 import { CopyButton } from '../../components/CopyButton'
+import { useDevTools } from '../../provider/useDevTools'
 import { formatTime, relativeTime } from '../../utils/formatters'
 import { useSyncMonitor, type SyncEvent, type PeerEntry } from './useSyncMonitor'
 
@@ -39,12 +40,13 @@ function useSyncDebugLogging() {
 }
 
 export function SyncMonitor() {
+  const { syncDiagnostics } = useDevTools()
   const { events, peers, connectionStatus, stats } = useSyncMonitor()
   const { enabled: debugEnabled, toggle: toggleDebug } = useSyncDebugLogging()
 
   const getEventsData = useCallback(
-    () => ({ events, peers, connectionStatus, stats }),
-    [events, peers, connectionStatus, stats]
+    () => ({ events, peers, connectionStatus, stats, syncDiagnostics }),
+    [events, peers, connectionStatus, stats, syncDiagnostics]
   )
 
   return (
@@ -55,6 +57,9 @@ export function SyncMonitor() {
         <span className="text-xs text-zinc-400">
           {peers.filter((p) => p.status === 'connected').length} peers connected
         </span>
+        <span className="text-xs text-zinc-500">Lifecycle: {syncDiagnostics.lifecyclePhase}</span>
+        <span className="text-xs text-zinc-500">Queue: {syncDiagnostics.queueSize}</span>
+        <span className="text-xs text-zinc-500">Tracked: {syncDiagnostics.trackedCount}</span>
         <div className="ml-auto flex items-center gap-3 text-[10px] text-zinc-500">
           <span>Sent: {stats.sent}</span>
           <span>Recv: {stats.received}</span>
@@ -73,6 +78,15 @@ export function SyncMonitor() {
           <CopyButton getData={getEventsData} label="Copy Events" />
         </div>
       </div>
+      {syncDiagnostics.lastVerificationFailure && (
+        <div className="px-3 py-2 border-b border-zinc-800 bg-red-950/20 text-[10px] text-red-300">
+          Rejected replication for {syncDiagnostics.lastVerificationFailure.nodeId}:{' '}
+          {syncDiagnostics.lastVerificationFailure.reason}
+          {syncDiagnostics.lastVerificationFailure.sender
+            ? ` from ${syncDiagnostics.lastVerificationFailure.sender}`
+            : ''}
+        </div>
+      )}
 
       {/* Main content: peers + event log */}
       <div className="flex-1 flex overflow-hidden">

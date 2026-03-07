@@ -11,6 +11,7 @@ import type { DID } from '@xnetjs/core'
 import type { SecurityLevel } from '@xnetjs/crypto'
 import type { NodeChangeEvent, NodeStorageAdapter } from '@xnetjs/data'
 import type { Identity, PQKeyRegistry, HybridKeyBundle } from '@xnetjs/identity'
+import type { SyncReplicationConfig } from '@xnetjs/sync'
 import type { ReactNode } from 'react'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import {
@@ -281,6 +282,8 @@ export interface XNetConfig {
   blobStore?: BlobStoreForSync
   /** Platform for plugin compatibility ('web' | 'electron' | 'mobile'). Defaults to 'web'. */
   platform?: Platform
+  /** Signed replication policy for document sync. */
+  sync?: SyncReplicationConfig
   /** Disable plugin system (default: false) */
   disablePlugins?: boolean
   /**
@@ -398,8 +401,19 @@ export interface XNetContextValue {
   runtimeStatus: XNetRuntimeStatus
 }
 
+type XNetInternalContextValue = {
+  authorDID: string | null
+  signingKey: Uint8Array | null
+  sync: SyncReplicationConfig | undefined
+}
+
 /** @internal Exported for useNodeStore hook - not part of public API */
 export const XNetContext = createContext<XNetContextValue | null>(null)
+const XNetInternalContext = createContext<XNetInternalContextValue>({
+  authorDID: null,
+  signingKey: null,
+  sync: undefined
+})
 
 /**
  * DataBridge context for runtime-backed data access.
@@ -624,9 +638,13 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       // set the identity before starting so updates can be signed
       const sm = config.syncManager as SyncManager & {
         setIdentity?: (authorDID: string, signingKey: Uint8Array) => void
+        configureReplication?: (config: SyncReplicationConfig | undefined) => void
       }
       if (sm.setIdentity && authorDID && config.signingKey) {
         sm.setIdentity(authorDID, config.signingKey)
+      }
+      if (sm.configureReplication) {
+        sm.configureReplication(config.sync)
       }
 
       config.syncManager.start().catch((err) => {
@@ -678,6 +696,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       storage,
       signalingUrl,
       authorDID,
+      signingKey: config.signingKey,
+      replication: config.sync,
       blobStore: config.blobStore,
       nodeSyncRoom: hubUrl ? nodeSyncRoom : undefined,
       getUCANToken: hubUrl ? getHubAuthToken : undefined,
@@ -742,6 +762,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     config.syncManager,
     config.signalingServers,
     config.blobStore,
+    config.sync,
     authorDID,
     autoAuth,
     autoBackup,
@@ -933,6 +954,15 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     ]
   )
 
+  const internalValue: XNetInternalContextValue = useMemo(
+    () => ({
+      authorDID: authorDID ?? null,
+      signingKey: config.signingKey ?? null,
+      sync: config.sync
+    }),
+    [authorDID, config.signingKey, config.sync]
+  )
+
   // Wrap children with PluginRegistryContext if plugins are enabled
   let content = pluginRegistry
     ? React.createElement(PluginRegistryContext.Provider, { value: pluginRegistry }, children)
@@ -958,6 +988,8 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
     children: content
   })
 
+  content = React.createElement(XNetInternalContext.Provider, { value: internalValue }, content)
+
   return React.createElement(XNetContext.Provider, { value }, content)
 }
 
@@ -972,4 +1004,11 @@ export function useXNet(): XNetContextValue {
     throw new Error('useXNet must be used within an XNetProvider')
   }
   return context
+}
+
+/**
+ * @internal Internal access to sync credentials and replication policy.
+ */
+export function useXNetInternal(): XNetInternalContextValue {
+  return useContext(XNetInternalContext)
 }

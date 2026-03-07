@@ -27,6 +27,36 @@ export type PanelId =
 
 export type PanelPosition = 'bottom' | 'right' | 'floating'
 
+export interface RuntimeDiagnostics {
+  requestedMode: 'main-thread' | 'worker' | 'ipc'
+  activeMode: 'main-thread' | 'worker' | 'ipc' | null
+  fallbackMode: 'main-thread' | 'worker' | 'ipc' | null
+  usedFallback: boolean
+  phase: 'initializing' | 'ready' | 'error'
+  reason: string | null
+}
+
+export interface SyncDiagnostics {
+  status: string
+  lifecyclePhase: string
+  queueSize: number
+  trackedCount: number
+  pendingBlobCount: number
+  lastVerificationFailure: {
+    nodeId: string
+    sender: string | null
+    reason: string
+    at: number
+  } | null
+}
+
+export interface StorageDurabilityInfo {
+  state: 'granted' | 'not-granted' | 'unsupported' | 'error'
+  message: string
+  usageBytes?: number
+  quotaBytes?: number
+}
+
 /** Registry of Y.Doc instances being tracked */
 export interface YDocRegistry {
   /** Get all tracked docs */
@@ -70,6 +100,12 @@ export interface DevToolsContextValue {
 
   /** Document history engine for Yjs snapshot-based time travel */
   documentHistory: DocumentHistoryEngine | null
+  /** Current runtime bootstrap status from XNetProvider */
+  runtimeStatus: RuntimeDiagnostics
+  /** Current sync lifecycle/status snapshot */
+  syncDiagnostics: SyncDiagnostics
+  /** Current storage durability status, if the host app provides it */
+  storageDurability: StorageDurabilityInfo | null
 }
 
 export const DevToolsContext = createContext<DevToolsContextValue | null>(null)

@@ -21,7 +21,9 @@ import {
   isUpdateTooLarge,
   YjsRateLimiter,
   YjsPeerScorer,
-  type SignedYjsEnvelopeV1
+  resolveSyncReplicationPolicy,
+  type SignedYjsEnvelopeV1,
+  type SyncReplicationConfig
 } from '@xnetjs/sync'
 import WebSocket from 'ws'
 import * as Y from 'yjs'
@@ -61,6 +63,7 @@ type StartSyncOptions = {
   signalingUrl: string
   authorDID?: string
   signingKey?: number[]
+  replication?: SyncReplicationConfig
   ucanToken?: string
   transport?: SyncTransportStrategy
   iceServers?: IceServerConfig[]
@@ -273,6 +276,7 @@ export function createDataService(config: DataServiceConfig): DataService {
   let iceServers: IceServerConfig[] = []
   let authorDID = ''
   let signingKey: Uint8Array | null = null
+  let replicationConfig: SyncReplicationConfig | undefined
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
 
@@ -546,10 +550,15 @@ export function createDataService(config: DataServiceConfig): DataService {
   function createOutgoingUpdate(
     update: Uint8Array,
     doc: Y.Doc
-  ): { envelope: Record<string, unknown> } | { update: string } {
+  ): { envelope: Record<string, unknown> } | { update: string } | null {
+    const replicationPolicy = resolveSyncReplicationPolicy(replicationConfig)
     if (signingKey && authorDID) {
       const envelope = signYjsUpdate(update, authorDID, signingKey, doc.clientID)
       return { envelope: serializeEnvelope(envelope) }
+    }
+    if (!replicationPolicy.allowUnsignedReplication) {
+      log('Rejected unsigned outgoing update because signed replication is required')
+      return null
     }
     return { update: toBase64(update) }
   }
@@ -558,6 +567,7 @@ export function createDataService(config: DataServiceConfig): DataService {
     remotePeerId: string,
     data: Record<string, unknown>
   ): Uint8Array | null {
+    const replicationPolicy = resolveSyncReplicationPolicy(replicationConfig)
     if (!rateLimiter.allow(remotePeerId)) {
       const action = peerScorer.penalize(remotePeerId, 'rateExceeded')
       log('Rate limit exceeded for peer:', remotePeerId, 'action:', action)
@@ -588,6 +598,10 @@ export function createDataService(config: DataServiceConfig): DataService {
 
     // Legacy unsigned format
     if (typeof data.update === 'string') {
+      if (!replicationPolicy.allowUnsignedReplication) {
+        peerScorer.penalize(remotePeerId, 'unsignedUpdate')
+        return null
+      }
       const update = fromBase64(data.update)
       if (isUpdateTooLarge(update)) {
         peerScorer.penalize(remotePeerId, 'oversizedUpdate')
@@ -628,11 +642,13 @@ export function createDataService(config: DataServiceConfig): DataService {
         const diff = Y.encodeStateAsUpdate(doc, remoteSV)
 
         const updateData = createOutgoingUpdate(diff, doc)
-        wsSend({
-          type: 'publish',
-          topic: room,
-          data: { type: 'sync-step2', from: peerId, to: data.from, ...updateData }
-        })
+        if (updateData) {
+          wsSend({
+            type: 'publish',
+            topic: room,
+            data: { type: 'sync-step2', from: peerId, to: data.from, ...updateData }
+          })
+        }
 
         requestAwarenessFromRenderer(nodeId)
         break
@@ -889,11 +905,13 @@ export function createDataService(config: DataServiceConfig): DataService {
       if (status === 'connected') {
         const room = `xnet-doc-${nodeId}`
         const updateData = createOutgoingUpdate(update, doc)
-        wsSend({
-          type: 'publish',
-          topic: room,
-          data: { type: 'sync-update', from: peerId, ...updateData }
-        })
+        if (updateData) {
+          wsSend({
+            type: 'publish',
+            topic: room,
+            data: { type: 'sync-update', from: peerId, ...updateData }
+          })
+        }
       }
     })
 
@@ -1029,11 +1047,13 @@ export function createDataService(config: DataServiceConfig): DataService {
           if (status === 'connected') {
             const room = `xnet-doc-${nodeId}`
             const updateData = createOutgoingUpdate(u8, entry.doc)
-            wsSend({
-              type: 'publish',
-              topic: room,
-              data: { type: 'sync-update', from: peerId, ...updateData }
-            })
+            if (updateData) {
+              wsSend({
+                type: 'publish',
+                topic: room,
+                data: { type: 'sync-update', from: peerId, ...updateData }
+              })
+            }
           }
         } else if (type === 'awareness' && update) {
           // Forward awareness to network
@@ -1075,6 +1095,7 @@ export function createDataService(config: DataServiceConfig): DataService {
       signalingUrl = options.signalingUrl
       authorDID = options.authorDID ?? ''
       signingKey = options.signingKey ? new Uint8Array(options.signingKey) : null
+      replicationConfig = options.replication
       ucanToken = options.ucanToken ?? ''
       iceServers = options.iceServers ?? []
 

@@ -7,7 +7,7 @@
     "strict": true,
     "skipLibCheck": true,
     "jsx": "react-jsx",
-    "types": ["vitest", "@vitest/browser/providers/playwright"],
+    "types": ["vitest", "vitest/browser", "@vitest/browser-playwright"],
     "paths": {
       "@xnetjs/*": ["../../packages/*/src"]
     }

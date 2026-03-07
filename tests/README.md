@@ -1,6 +1,8 @@
 # @xnetjs/tests
 
-Integration test suite for xNet. These tests run in a real browser (Chromium via Playwright) to exercise SQLite (web adapter), WebRTC, and React hooks in an authentic environment.
+Browser-mode integration tests for xNet's current hook and sync contracts.
+
+These suites run under Vitest browser mode with Playwright-backed Chromium so cross-package flows execute against real browser APIs. The current focus is the converged React hook stack (`useNode`, `useQuery`, `useMutate`), Y.Doc sync behavior, and signaling/protocol boundaries.
 
 ## Structure
 
@@ -20,12 +22,12 @@ tests/
 
 ## Test Types
 
-| File                       | Scope          | What It Tests                                                          |
-| -------------------------- | -------------- | ---------------------------------------------------------------------- |
-| `crud.test.tsx`            | React + SQLite | `useDocument`, `useQuery`, `useMutate` with real persistence           |
-| `sync.test.ts`             | Protocol       | Y.Doc sync encoding/decoding, signaling server connection              |
-| `document-sync.test.tsx`   | Multi-user     | Live editing, disconnect/reconnect, CRDT merge, persistence after sync |
-| `webrtc-signaling.test.ts` | Network        | Raw WebRTC data channel establishment (requires signaling server)      |
+| File                       | Scope       | What It Tests                                                         |
+| -------------------------- | ----------- | --------------------------------------------------------------------- |
+| `crud.test.tsx`            | React hooks | `useNode`, `useQuery`, `useMutate` over the current provider contract |
+| `sync.test.ts`             | Protocol    | Y.Doc sync encoding/decoding and signaling protocol coverage          |
+| `document-sync.test.tsx`   | Multi-user  | `useNode` sync, offline merge, and remount persistence semantics      |
+| `webrtc-signaling.test.ts` | Network     | Raw WebRTC data channel establishment (requires signaling server)     |
 
 ## Running
 
@@ -39,15 +41,15 @@ pnpm --filter @xnetjs/integration-tests test -- --browser.headless=false
 
 ## How It Works
 
-- Uses **Vitest browser mode** with Playwright (not jsdom) for real browser APIs
-- Each test gets an isolated local SQLite database namespace
+- Uses **Vitest browser mode** with Playwright-backed Chromium, not jsdom
 - React components render inside the browser via `@testing-library/react`
-- Sync tests simulate WebRTC transport by forwarding Y.Doc updates between two docs
-- Screenshots are captured per-test for visual regression baselines
+- CRUD and document-sync suites use `MemoryNodeStorageAdapter` so the current hook contract stays under deterministic coverage
+- Sync-oriented suites forward Y.Doc updates directly to exercise merge and reconnect behavior without relying on removed legacy hook paths
+- Networking coverage stays focused on protocol/signaling boundaries that require real browser APIs
 
 ## Relationship to Unit Tests
 
-Unit tests live co-located with source code in each package (`packages/*/src/**/*.test.ts`). They run in Node via the root `vitest.config.ts`. Integration tests here run in a real browser to cover cross-package flows that depend on browser-only APIs.
+Unit tests live co-located with source code in each package (`packages/*/src/**/*.test.ts`). They run in Node via the root `vitest.config.ts`. Integration tests here run in a real browser to cover cross-package flows that depend on browser APIs or multi-package hook/runtime wiring.
 
 ```mermaid
 flowchart LR

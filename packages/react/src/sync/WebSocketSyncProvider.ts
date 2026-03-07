@@ -23,6 +23,8 @@
  * 3. On receiving awareness: apply to local awareness instance
  * 4. On disconnect: peers remove the disconnected client's state
  */
+import type { SignedYjsEnvelopeV1, SyncReplicationConfig } from '@xnetjs/sync'
+import { resolveSyncReplicationPolicy, signYjsUpdate, verifyYjsEnvelopeV1 } from '@xnetjs/sync'
 import {
   Awareness,
   applyAwarenessUpdate,
@@ -63,11 +65,51 @@ function fromBase64(str: string): Uint8Array {
   return bytes
 }
 
+function serializeEnvelope(envelope: SignedYjsEnvelopeV1): Record<string, unknown> {
+  return {
+    update: toBase64(envelope.update),
+    authorDID: envelope.authorDID,
+    signature: toBase64(envelope.signature),
+    timestamp: envelope.timestamp,
+    clientId: envelope.clientId
+  }
+}
+
+function deserializeEnvelope(data: Record<string, unknown>): SignedYjsEnvelopeV1 | null {
+  try {
+    return {
+      update: fromBase64(data.update as string),
+      authorDID: data.authorDID as string,
+      signature: fromBase64(data.signature as string),
+      timestamp: data.timestamp as number,
+      clientId: data.clientId as number
+    }
+  } catch {
+    return null
+  }
+}
+
+function hasEnvelope(data: Record<string, unknown>): boolean {
+  return (
+    typeof data.envelope === 'object' &&
+    data.envelope !== null &&
+    'update' in (data.envelope as object) &&
+    'authorDID' in (data.envelope as object) &&
+    'signature' in (data.envelope as object)
+  )
+}
+
 export interface WebSocketSyncProviderOptions {
   /** WebSocket URL of the signaling/relay server */
   url: string
   /** Room name (peers in the same room sync together) */
   room: string
+  /** Author DID for signed replication */
+  authorDID?: string
+  /** Signing key for signed replication */
+  signingKey?: Uint8Array
+  /** Replication compatibility policy */
+  replication?: SyncReplicationConfig
   /** Reconnect delay in ms (default: 2000) */
   reconnectDelay?: number
   /** Maximum reconnect attempts (default: Infinity) */
@@ -107,13 +149,17 @@ export class WebSocketSyncProvider {
   private peerId: string
   private remotePeerIds = new Set<string>()
   private eventHandlers = new Map<SyncEventType, Set<SyncEventHandler>>()
+  private readonly options: WebSocketSyncProviderOptions
+  private readonly replicationPolicy: ReturnType<typeof resolveSyncReplicationPolicy>
 
   constructor(doc: Y.Doc, options: WebSocketSyncProviderOptions) {
     this.doc = doc
     this.room = options.room
     this.url = options.url
+    this.options = options
     this.reconnectDelay = options.reconnectDelay ?? 2000
     this.maxReconnectAttempts = options.maxReconnectAttempts ?? Infinity
+    this.replicationPolicy = resolveSyncReplicationPolicy(options.replication)
 
     // Generate a unique peer ID for this provider instance
     this.peerId = Math.random().toString(36).slice(2, 10)
@@ -282,6 +328,53 @@ export class WebSocketSyncProvider {
     })
   }
 
+  private _createOutgoingPayload(
+    update: Uint8Array
+  ): { envelope: Record<string, unknown> } | { update: string } | null {
+    if (this.options.authorDID && this.options.signingKey) {
+      return {
+        envelope: serializeEnvelope(
+          signYjsUpdate(update, this.options.authorDID, this.options.signingKey, this.doc.clientID)
+        )
+      }
+    }
+
+    if (this.replicationPolicy.allowUnsignedReplication) {
+      return { update: toBase64(update) }
+    }
+
+    console.warn(
+      '[WebSocketSyncProvider] Signed replication is required, but no signing identity was provided.'
+    )
+    return null
+  }
+
+  private _extractIncomingUpdate(data: Record<string, unknown>): Uint8Array | null {
+    if (hasEnvelope(data)) {
+      const envelope = deserializeEnvelope(data.envelope as Record<string, unknown>)
+      if (!envelope) {
+        return null
+      }
+
+      const verification = verifyYjsEnvelopeV1(envelope)
+      if (!verification.valid) {
+        return null
+      }
+
+      return envelope.update
+    }
+
+    if (this.replicationPolicy.requireSignedReplication) {
+      return null
+    }
+
+    if (typeof data.update !== 'string') {
+      return null
+    }
+
+    return fromBase64(data.update)
+  }
+
   /** Handle incoming sync messages from other peers */
   private _handleSyncMessage(data: Record<string, unknown>): void {
     if (!data || data.from === this.peerId) return // Ignore own messages
@@ -312,12 +405,15 @@ export class WebSocketSyncProvider {
 
         // Send sync-step2 (the actual update data)
         log(this, 'Sending sync-step2 to peer:', data.from, 'update size:', diff.length)
-        this._publish({
-          type: 'sync-step2',
-          from: this.peerId,
-          to: data.from,
-          update: toBase64(diff)
-        })
+        const payload = this._createOutgoingPayload(diff)
+        if (payload) {
+          this._publish({
+            type: 'sync-step2',
+            from: this.peerId,
+            to: data.from,
+            ...payload
+          })
+        }
 
         // Also send our state vector so they can send us what we're missing
         if (!this.synced) {
@@ -347,7 +443,10 @@ export class WebSocketSyncProvider {
           return
         }
 
-        const update = fromBase64(data.update as string)
+        const update = this._extractIncomingUpdate(data)
+        if (!update) {
+          return
+        }
         log(
           this,
           'Received sync-step2, applying update size:',
@@ -375,7 +474,10 @@ export class WebSocketSyncProvider {
 
       case 'sync-update': {
         // Incremental update from a peer
-        const update = fromBase64(data.update as string)
+        const update = this._extractIncomingUpdate(data)
+        if (!update) {
+          return
+        }
         log(this, 'Received sync-update, size:', update.length)
         Y.applyUpdate(this.doc, update, this)
         break
@@ -403,11 +505,14 @@ export class WebSocketSyncProvider {
     if (origin === this) return
 
     if (this.connected) {
-      this._publish({
-        type: 'sync-update',
-        from: this.peerId,
-        update: toBase64(update)
-      })
+      const payload = this._createOutgoingPayload(update)
+      if (payload) {
+        this._publish({
+          type: 'sync-update',
+          from: this.peerId,
+          ...payload
+        })
+      }
     }
   }
 

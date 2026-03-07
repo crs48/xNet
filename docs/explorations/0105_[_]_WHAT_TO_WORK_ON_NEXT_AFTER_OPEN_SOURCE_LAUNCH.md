@@ -629,11 +629,11 @@ gantt
 
 ## Phase 1: API Clarity
 
-- [ ] Add package lifecycle labels to [`packages/README.md`](../../packages/README.md)
-- [ ] Document a stable/experimental/internal export policy for major packages
-- [ ] Add curated entrypoints for `@xnetjs/react`
-- [ ] Split legacy and modern identity surfaces into explicit subpaths
-- [ ] Decide and document the canonical database architecture
+- [x] Add package lifecycle labels to [`packages/README.md`](../../packages/README.md)
+- [x] Document a stable/experimental/internal export policy for major packages
+- [x] Add curated entrypoints for `@xnetjs/react`
+- [x] Split legacy and modern identity surfaces into explicit subpaths
+- [x] Decide and document the canonical database architecture
 
 ## Phase 2: Runtime And Query
 
@@ -649,9 +649,9 @@ gantt
 ## Phase 3: Sync, Security, Durability
 
 - [x] Add missing tests for `sync-manager`, `connection-manager`, and `offline-queue`
-- [ ] Add end-to-end two-peer tests for page, database, and reconnect flows
-- [ ] Add explicit storage persistence request + status handling for the web app
-- [ ] Tighten production policy for unsigned/legacy sync compatibility
+- [x] Add end-to-end two-peer tests for page, database, and reconnect flows
+- [x] Add explicit storage persistence request + status handling for the web app
+- [x] Tighten production policy for unsigned/legacy sync compatibility
 - [ ] Continue deprecating insecure passkey fallback assumptions
 
 ## Phase 4: Web UX
@@ -667,11 +667,11 @@ gantt
 ## Validation Checklist 🧪
 
 - [ ] A new app developer can identify the stable React API in under 5 minutes
-- [ ] `@xnetjs/react` public docs no longer mix stable and partial behaviors without labeling
+- [x] `@xnetjs/react` public docs no longer mix stable and partial behaviors without labeling
 - [x] Web app queries do not require whole-schema reloads for routine updates
 - [ ] Large workspaces remain responsive in sidebar/search flows
 - [ ] Offline edits survive refresh, reconnect, and multi-device replay in repeatable tests
-- [ ] Browser storage durability state is surfaced to users, not left implicit
+- [x] Browser storage durability state is surfaced to users, not left implicit
 - [x] Database undo/redo behavior is intention-based rather than array-rewrite dependent
 - [ ] Share/revoke/reconnect scenarios behave predictably under automated tests
 - [ ] Web app can serve as a daily driver before major Electron shell expansion

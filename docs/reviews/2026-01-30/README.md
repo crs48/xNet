@@ -1,5 +1,7 @@
 # xNet Codebase Review - January 30, 2026
 
+> Historical snapshot. For current API/runtime guidance, start with [`docs/reviews/README.md`](../README.md), [`docs/reference/api-lifecycle-matrix.md`](../../reference/api-lifecycle-matrix.md), and [`docs/plans/plan03_9_82CorePlatformConvergence/README.md`](../../plans/plan03_9_82CorePlatformConvergence/README.md).
+
 ## Executive Summary
 
 This document presents a comprehensive code review of the xNet monorepo -- a local-first data platform built on CRDTs, Ed25519 cryptography, and peer-to-peer sync. The review covers **19 packages**, **3 applications**, and **2 infrastructure services** comprising approximately **50,000+ lines** of TypeScript.

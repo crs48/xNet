@@ -154,6 +154,7 @@ export interface QuerySubscribeEvent extends DevToolsEventBase {
   schemaId: string
   mode: 'list' | 'single' | 'filtered'
   filter?: Record<string, unknown>
+  descriptorKey?: string
   callerInfo?: string
 }
 

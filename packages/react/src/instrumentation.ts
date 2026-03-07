@@ -22,6 +22,7 @@ export interface QueryTrackerLike {
       schemaId: string
       mode: 'list' | 'single' | 'filtered' | 'document'
       filter?: Record<string, unknown>
+      descriptorKey?: string
       nodeId?: string
       callerInfo?: string
     }

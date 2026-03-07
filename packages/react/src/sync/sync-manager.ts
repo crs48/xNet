@@ -16,8 +16,18 @@ if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug
 
 import type { ContentId } from '@xnetjs/core'
 import type { NodeStore, NodeStorageAdapter } from '@xnetjs/data'
-import type { SyncLifecycleInput, SyncLifecycleState } from '@xnetjs/sync'
-import { createSyncLifecycleState } from '@xnetjs/sync'
+import type {
+  SignedYjsEnvelopeV1,
+  SyncLifecycleInput,
+  SyncLifecycleState,
+  SyncReplicationConfig
+} from '@xnetjs/sync'
+import {
+  createSyncLifecycleState,
+  resolveSyncReplicationPolicy,
+  signYjsUpdate,
+  verifyYjsEnvelopeV1
+} from '@xnetjs/sync'
 import {
   Awareness,
   applyAwarenessUpdate,
@@ -60,6 +70,10 @@ export interface SyncManagerConfig {
   trackTTL?: number
   /** Author DID for awareness */
   authorDID?: string
+  /** Signing key for signed Yjs replication */
+  signingKey?: Uint8Array
+  /** Replication compatibility policy */
+  replication?: SyncReplicationConfig
   /** Blob store for P2P blob sync (optional — if omitted, blob sync is disabled) */
   blobStore?: BlobStoreForSync
   /** Optional UCAN token for hub auth */
@@ -112,10 +126,26 @@ export interface SyncManager {
   readonly queueSize: number
   /** Pending blob requests */
   readonly pendingBlobCount: number
+  /** Last rejected replication payload, if any */
+  readonly lastVerificationFailure: {
+    nodeId: string
+    sender: string | null
+    reason: string
+    at: number
+  } | null
 
   /** Listen for events */
   on(event: 'status', handler: (status: SyncStatus) => void): () => void
   on(event: 'lifecycle', handler: (state: SyncLifecycleState) => void): () => void
+  on(
+    event: 'verification-failure',
+    handler: (failure: {
+      nodeId: string
+      sender: string | null
+      reason: string
+      at: number
+    }) => void
+  ): () => void
   /** Underlying ConnectionManager (if available) */
   readonly connection?: ConnectionManager
 }
@@ -158,6 +188,52 @@ function createRegistryStorageAdapter(storage: NodeStorageAdapter): RegistryStor
       await storage.setDocumentContent(key, bytes)
     }
   }
+}
+
+function serializeEnvelope(envelope: SignedYjsEnvelopeV1): Record<string, unknown> {
+  let update = ''
+  for (let i = 0; i < envelope.update.length; i++) {
+    update += String.fromCharCode(envelope.update[i])
+  }
+
+  let signature = ''
+  for (let i = 0; i < envelope.signature.length; i++) {
+    signature += String.fromCharCode(envelope.signature[i])
+  }
+
+  return {
+    update: btoa(update),
+    authorDID: envelope.authorDID,
+    signature: btoa(signature),
+    timestamp: envelope.timestamp,
+    clientId: envelope.clientId
+  }
+}
+
+function deserializeEnvelope(data: Record<string, unknown>): SignedYjsEnvelopeV1 | null {
+  try {
+    const update = data.update as string
+    const signature = data.signature as string
+    return {
+      update: Uint8Array.from(atob(update), (char) => char.charCodeAt(0)),
+      authorDID: data.authorDID as string,
+      signature: Uint8Array.from(atob(signature), (char) => char.charCodeAt(0)),
+      timestamp: data.timestamp as number,
+      clientId: data.clientId as number
+    }
+  } catch {
+    return null
+  }
+}
+
+function hasEnvelope(data: Record<string, unknown>): boolean {
+  return (
+    typeof data.envelope === 'object' &&
+    data.envelope !== null &&
+    'update' in (data.envelope as object) &&
+    'authorDID' in (data.envelope as object) &&
+    'signature' in (data.envelope as object)
+  )
 }
 
 /**
@@ -259,6 +335,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     ucanToken: config.ucanToken,
     getUCANToken: config.getUCANToken
   })
+  const replicationPolicy = resolveSyncReplicationPolicy(config.replication)
   const offlineQueue = createOfflineQueue({
     storage: config.storage
   })
@@ -302,6 +379,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const peerId = Math.random().toString(36).slice(2, 10)
   const statusListeners = new Set<(status: SyncStatus) => void>()
   const lifecycleListeners = new Set<(state: SyncLifecycleState) => void>()
+  const verificationFailureListeners = new Set<
+    (failure: { nodeId: string; sender: string | null; reason: string; at: number }) => void
+  >()
   let status: SyncStatus = connection.status
   let lifecycleInput: SyncLifecycleInput = {
     started: false,
@@ -313,6 +393,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   }
   let lifecycle = createSyncLifecycleState(lifecycleInput)
   let connectedRecovery: Promise<void> | null = null
+  let lastVerificationFailure: {
+    nodeId: string
+    sender: string | null
+    reason: string
+    at: number
+  } | null = null
 
   function toBase64(data: Uint8Array): string {
     let binary = ''
@@ -331,6 +417,75 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     return bytes
   }
 
+  function createOutgoingSyncPayload(
+    update: Uint8Array,
+    clientId: number
+  ): { envelope: Record<string, unknown> } | { update: string } | null {
+    if (config.signingKey && config.authorDID) {
+      return {
+        envelope: serializeEnvelope(
+          signYjsUpdate(update, config.authorDID, config.signingKey, clientId)
+        )
+      }
+    }
+
+    if (replicationPolicy.allowUnsignedReplication) {
+      return { update: toBase64(update) }
+    }
+
+    console.warn(
+      '[SyncManager] Dropping Yjs replication payload because signed replication is required and no signing identity is configured.'
+    )
+    return null
+  }
+
+  function verifyIncomingUpdate(nodeId: string, data: Record<string, unknown>): Uint8Array | null {
+    if (hasEnvelope(data)) {
+      const envelope = deserializeEnvelope(data.envelope as Record<string, unknown>)
+      if (!envelope) {
+        lastVerificationFailure = {
+          nodeId,
+          sender: typeof data.from === 'string' ? data.from : null,
+          reason: 'invalid_envelope',
+          at: Date.now()
+        }
+        emitVerificationFailure(lastVerificationFailure)
+        return null
+      }
+
+      const verification = verifyYjsEnvelopeV1(envelope)
+      if (!verification.valid) {
+        lastVerificationFailure = {
+          nodeId,
+          sender: typeof data.from === 'string' ? data.from : null,
+          reason: verification.reason ?? 'invalid_signature',
+          at: Date.now()
+        }
+        emitVerificationFailure(lastVerificationFailure)
+        return null
+      }
+
+      return envelope.update
+    }
+
+    if (replicationPolicy.requireSignedReplication) {
+      lastVerificationFailure = {
+        nodeId,
+        sender: typeof data.from === 'string' ? data.from : null,
+        reason: 'missing_envelope',
+        at: Date.now()
+      }
+      emitVerificationFailure(lastVerificationFailure)
+      return null
+    }
+
+    if (typeof data.update !== 'string') {
+      return null
+    }
+
+    return fromBase64(data.update)
+  }
+
   function emitStatus(nextStatus: SyncStatus): void {
     for (const handler of statusListeners) {
       try {
@@ -345,6 +500,21 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     for (const handler of lifecycleListeners) {
       try {
         handler(nextLifecycle)
+      } catch {
+        // Listener errors don't break the manager.
+      }
+    }
+  }
+
+  function emitVerificationFailure(failure: {
+    nodeId: string
+    sender: string | null
+    reason: string
+    at: number
+  }): void {
+    for (const handler of verificationFailureListeners) {
+      try {
+        handler(failure)
       } catch {
         // Listener errors don't break the manager.
       }
@@ -504,11 +674,15 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
             'sending diff size:',
             diff.length
           )
+          const payload = createOutgoingSyncPayload(diff, doc.clientID)
+          if (!payload) {
+            break
+          }
           connection.publish(room, {
             type: 'sync-step2',
             from: peerId,
             to: data.from,
-            update: toBase64(diff)
+            ...payload
           })
           // DON'T send sync-step1 back here - that causes an infinite loop.
           // If we need content from them, we'll get it from our initial sync-step1
@@ -522,7 +696,11 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
             log('Ignoring sync-step2 addressed to different peer:', data.to)
             break
           }
-          const update = fromBase64(data.update as string)
+          const update = verifyIncomingUpdate(nodeId, data)
+          if (!update) {
+            log('Rejected sync-step2 for node:', nodeId, 'last failure:', lastVerificationFailure)
+            break
+          }
           log('Received sync-step2, applying update size:', update.length)
           log('Doc state before update - meta keys:', doc.getMap('meta').size)
           Y.applyUpdate(doc, update, 'remote')
@@ -534,7 +712,11 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
         case 'sync-update': {
           // Incremental update from a peer
-          const update = fromBase64(data.update as string)
+          const update = verifyIncomingUpdate(nodeId, data)
+          if (!update) {
+            log('Rejected sync-update for node:', nodeId, 'last failure:', lastVerificationFailure)
+            break
+          }
           log('Received sync-update, size:', update.length)
           Y.applyUpdate(doc, update, 'remote')
           break
@@ -569,14 +751,17 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
       if (connection.status === 'connected') {
         // Online: broadcast immediately
-        connection.publish(room, {
-          type: 'sync-update',
-          from: peerId,
-          update: toBase64(update)
-        })
+        const payload = createOutgoingSyncPayload(update, doc.clientID)
+        if (payload) {
+          connection.publish(room, {
+            type: 'sync-update',
+            from: peerId,
+            ...payload
+          })
+        }
       } else {
         // Offline: queue for later
-        void offlineQueue.enqueue(nodeId, update)
+        void offlineQueue.enqueue(nodeId, update, doc.clientID)
       }
     })
   }
@@ -590,10 +775,24 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     try {
       await offlineQueue.drain(async (entry) => {
         const room = `xnet-doc-${entry.nodeId}`
+        if (replicationPolicy.requireSignedReplication) {
+          const payload = createOutgoingSyncPayload(fromBase64(entry.update), entry.clientId ?? 0)
+          if (!payload) {
+            throw new Error('signed replication required')
+          }
+
+          connection.publish(room, {
+            type: 'sync-update',
+            from: peerId,
+            ...payload
+          })
+          return
+        }
+
         connection.publish(room, {
           type: 'sync-update',
           from: peerId,
-          update: entry.update // Already base64 encoded
+          update: entry.update
         })
       })
     } finally {
@@ -836,6 +1035,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     get pendingBlobCount() {
       return blobSync?.pendingCount ?? 0
     },
+    get lastVerificationFailure() {
+      return lastVerificationFailure
+    },
 
     on(event, handler) {
       if (event === 'status') {
@@ -848,6 +1050,17 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         const lifecycleHandler = handler as (state: SyncLifecycleState) => void
         lifecycleListeners.add(lifecycleHandler)
         return () => lifecycleListeners.delete(lifecycleHandler)
+      }
+
+      if (event === 'verification-failure') {
+        const verificationHandler = handler as (failure: {
+          nodeId: string
+          sender: string | null
+          reason: string
+          at: number
+        }) => void
+        verificationFailureListeners.add(verificationHandler)
+        return () => verificationFailureListeners.delete(verificationHandler)
       }
 
       return () => {}

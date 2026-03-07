@@ -82,6 +82,10 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     (process.env.HUB_LOG_LEVEL as HubConfig['logLevel'] | undefined) ??
     cliOptions.logLevel ??
     DEFAULT_CONFIG.logLevel
+  const allowUnsignedReplication =
+    toBoolean(process.env.HUB_ALLOW_UNSIGNED_REPLICATION) ??
+    cliOptions.sync?.compatibility?.allowUnsignedReplication ??
+    false
 
   const runtime = detectPlatform()
 
@@ -100,6 +104,9 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     auth,
     storage,
     logLevel,
+    sync: allowUnsignedReplication
+      ? { compatibility: { allowUnsignedReplication: true } }
+      : cliOptions.sync,
     publicUrl: process.env.HUB_PUBLIC_URL ?? cliOptions.publicUrl,
     runtime,
     shutdownGraceMs,

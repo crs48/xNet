@@ -6,7 +6,7 @@
  */
 import type { NodeStorageAdapter } from '@xnetjs/data'
 import type { Identity, KeyBundle } from '@xnetjs/identity'
-import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import type { PersistentStorageStatus, SQLiteAdapter } from '@xnetjs/sqlite'
 import { RouterProvider, createRouter, createHashHistory } from '@tanstack/react-router'
 import { SQLiteNodeStorageAdapter, BlobService } from '@xnetjs/data'
 import { XNetDevToolsProvider } from '@xnetjs/devtools'
@@ -21,6 +21,7 @@ import {
 } from '@xnetjs/react'
 import {
   checkBrowserSupport,
+  requestPersistentStorage,
   showUnsupportedBrowserMessage,
   SCHEMA_VERSION,
   SCHEMA_DDL
@@ -104,9 +105,15 @@ type AppState =
   | { status: 'initializing' }
   | { status: 'unsupported'; reason: string }
   | { status: 'loading' }
-  | { status: 'needs-onboarding'; storageWarning?: string }
-  | { status: 'unlocking'; storageWarning?: string }
-  | { status: 'authenticated'; identity: Identity; keyBundle: KeyBundle; storageWarning?: string }
+  | { status: 'needs-onboarding'; storageWarning?: string; storageStatus?: PersistentStorageStatus }
+  | { status: 'unlocking'; storageWarning?: string; storageStatus?: PersistentStorageStatus }
+  | {
+      status: 'authenticated'
+      identity: Identity
+      keyBundle: KeyBundle
+      storageWarning?: string
+      storageStatus?: PersistentStorageStatus
+    }
   | { status: 'error'; error: Error }
 
 // ─── Storage Context ────────────────────────────────────────────
@@ -116,6 +123,68 @@ interface StorageContext {
   storageAdapter: SQLiteStorageAdapter
   blobStore: BlobStore
   blobService: BlobService
+}
+
+type StorageBannerTone = 'success' | 'warning' | 'info'
+
+type StorageBannerDescriptor = {
+  tone: StorageBannerTone
+  title: string
+  message: string
+  usageBytes?: number
+  quotaBytes?: number
+}
+
+function getStorageBanner(input: {
+  storageWarning?: string
+  storageStatus?: PersistentStorageStatus
+}): StorageBannerDescriptor | null {
+  const { storageWarning, storageStatus } = input
+
+  if (storageWarning) {
+    return {
+      tone: storageStatus?.state === 'granted' ? 'info' : 'warning',
+      title: 'Storage may be limited',
+      message:
+        storageStatus && storageStatus.state !== 'granted'
+          ? `${storageWarning} ${storageStatus.message}`
+          : storageWarning,
+      usageBytes: storageStatus?.usageBytes,
+      quotaBytes: storageStatus?.quotaBytes
+    }
+  }
+
+  if (!storageStatus) {
+    return null
+  }
+
+  switch (storageStatus.state) {
+    case 'granted':
+      return {
+        tone: 'success',
+        title: 'Durable local storage enabled',
+        message: storageStatus.message,
+        usageBytes: storageStatus.usageBytes,
+        quotaBytes: storageStatus.quotaBytes
+      }
+    case 'not-granted':
+      return {
+        tone: 'warning',
+        title: 'Durable storage not granted',
+        message: storageStatus.message,
+        usageBytes: storageStatus.usageBytes,
+        quotaBytes: storageStatus.quotaBytes
+      }
+    case 'unsupported':
+    case 'error':
+      return {
+        tone: 'info',
+        title: 'Storage durability unavailable',
+        message: storageStatus.message,
+        usageBytes: storageStatus.usageBytes,
+        quotaBytes: storageStatus.quotaBytes
+      }
+  }
 }
 
 // ─── Unsupported Browser Component ──────────────────────────────
@@ -149,6 +218,7 @@ export function App(): JSX.Element {
         }
 
         const storageWarning = support.warning
+        const storageStatus = await requestPersistentStorage()
 
         // Dynamically import the web proxy to enable code splitting
         const { WebSQLiteProxy } = await import('@xnetjs/sqlite/web-proxy')
@@ -201,7 +271,7 @@ export function App(): JSX.Element {
         }
 
         if (hasIdentity) {
-          setAppState({ status: 'unlocking', storageWarning })
+          setAppState({ status: 'unlocking', storageWarning, storageStatus })
           try {
             const keyBundle = await identityManager.unlock()
             if (cancelled) return
@@ -209,14 +279,15 @@ export function App(): JSX.Element {
               status: 'authenticated',
               identity: keyBundle.identity,
               keyBundle,
-              storageWarning
+              storageWarning,
+              storageStatus
             })
           } catch (_err) {
             if (cancelled) return
-            setAppState({ status: 'needs-onboarding', storageWarning })
+            setAppState({ status: 'needs-onboarding', storageWarning, storageStatus })
           }
         } else {
-          setAppState({ status: 'needs-onboarding', storageWarning })
+          setAppState({ status: 'needs-onboarding', storageWarning, storageStatus })
         }
       } catch (err) {
         if (cancelled) return
@@ -243,7 +314,13 @@ export function App(): JSX.Element {
 
   // Handle onboarding completion
   const handleOnboardingComplete = useCallback((identity: Identity, keyBundle: KeyBundle) => {
-    setAppState({ status: 'authenticated', identity, keyBundle })
+    setAppState((current) => ({
+      status: 'authenticated',
+      identity,
+      keyBundle,
+      storageWarning: 'storageWarning' in current ? current.storageWarning : undefined,
+      storageStatus: 'storageStatus' in current ? current.storageStatus : undefined
+    }))
   }, [])
 
   // ─── Render ─────────────────────────────────────────────────────
@@ -283,9 +360,10 @@ export function App(): JSX.Element {
 
   // Unlocking state (Touch ID prompt)
   if (appState.status === 'unlocking') {
+    const storageBanner = getStorageBanner(appState)
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-        {appState.storageWarning && <StorageWarningBanner message={appState.storageWarning} />}
+        {storageBanner && <StorageWarningBanner {...storageBanner} />}
         <div className="flex items-center justify-center h-screen bg-background">
           <div className="text-center">
             <div className="text-4xl mb-4">🔐</div>
@@ -320,9 +398,10 @@ export function App(): JSX.Element {
 
   // Onboarding flow
   if (appState.status === 'needs-onboarding') {
+    const storageBanner = getStorageBanner(appState)
     return (
       <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-        {appState.storageWarning && <StorageWarningBanner message={appState.storageWarning} />}
+        {storageBanner && <StorageWarningBanner {...storageBanner} />}
         <OnboardingProvider defaultHubUrl={hubUrl} onComplete={handleOnboardingComplete}>
           <OnboardingFlow />
         </OnboardingProvider>
@@ -331,12 +410,13 @@ export function App(): JSX.Element {
   }
 
   // Authenticated — render main app
-  const { identity, keyBundle, storageWarning } = appState
+  const { identity, keyBundle } = appState
+  const storageBanner = getStorageBanner(appState)
   const storage = storageRef.current!
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
-      {storageWarning && <StorageWarningBanner message={storageWarning} />}
+      {storageBanner && <StorageWarningBanner {...storageBanner} />}
       <ErrorBoundary>
         <XNetProvider
           config={{
@@ -355,7 +435,11 @@ export function App(): JSX.Element {
           }}
         >
           <BundledPluginInstaller />
-          <XNetDevToolsProvider position="bottom" defaultOpen={false}>
+          <XNetDevToolsProvider
+            position="bottom"
+            defaultOpen={false}
+            storageDurability={appState.storageStatus ?? null}
+          >
             <BlobProvider blobService={storage.blobService}>
               <OfflineIndicator />
               <RouterProvider router={router} />
