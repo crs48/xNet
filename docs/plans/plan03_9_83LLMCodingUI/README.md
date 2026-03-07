@@ -144,12 +144,12 @@ flowchart LR
 - [x] Fix the Electron service IPC / preload mismatch.
 - [x] Add OpenCode service lifecycle management in Electron main.
 - [x] Add xNet-backed `SessionSummary` storage and hooks.
-- [ ] Add a coding-workspace shell mode to the renderer.
-- [ ] Embed or host OpenCode Web in the center panel.
+- [x] Add a coding-workspace shell mode to the renderer.
+- [x] Embed or host OpenCode Web in the center panel.
 - [ ] Add `GitService` worktree lifecycle commands.
 - [ ] Add `PreviewManager` with warm-session behavior.
 - [ ] Add right-click target metadata conventions and capture flow.
-- [ ] Add diff/file/markdown/PR tabs on the right panel.
+- [x] Add diff/file/markdown/PR tabs on the right panel.
 - [ ] Add screenshot capture and PR drafting.
 - [ ] Add cleanup, failure handling, and performance instrumentation.
 

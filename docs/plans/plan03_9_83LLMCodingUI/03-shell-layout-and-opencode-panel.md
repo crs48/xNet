@@ -161,9 +161,9 @@ In this step, allow stub or placeholder tabs if the underlying data is not wired
 
 ## Step Checklist
 
-- [ ] Add a dedicated coding-workspace shell mode in the renderer
-- [ ] Extract shell UI into workspace-specific components
-- [ ] Build the left rail from app-local session hooks
-- [ ] Add the OpenCode center panel host
-- [ ] Add right-panel tabs for preview, diff, files, markdown, and PR
+- [x] Add a dedicated coding-workspace shell mode in the renderer
+- [x] Extract shell UI into workspace-specific components
+- [x] Build the left rail from app-local session hooks
+- [x] Add the OpenCode center panel host
+- [x] Add right-panel tabs for preview, diff, files, markdown, and PR
 - [ ] Validate low-churn panel switching and resize behavior

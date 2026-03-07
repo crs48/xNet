@@ -5,15 +5,17 @@
 import type {
   SessionSummaryNode,
   WorkspaceShellStateNode,
-  createSessionSummaryInput,
-  createSessionSummaryPatch,
-  createWorkspaceShellStateInput,
-  type SessionSummaryInput,
-  WORKSPACE_SHELL_STATE_NODE_ID
+  SessionSummaryInput
 } from '../state/active-session'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useCallback } from 'react'
 import { SessionSummarySchema, WorkspaceShellStateSchema } from '../schemas'
+import {
+  createSessionSummaryInput,
+  createSessionSummaryPatch,
+  createWorkspaceShellStateInput,
+  WORKSPACE_SHELL_STATE_NODE_ID
+} from '../state/active-session'
 
 type CreateSessionOptions = {
   id?: string
