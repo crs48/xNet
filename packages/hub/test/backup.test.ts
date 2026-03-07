@@ -6,16 +6,43 @@ import {
   randomBytes,
   sign
 } from '@xnetjs/crypto'
+import { createServer } from 'node:net'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createHub } from '../src/index'
 
+async function reservePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer()
+
+    server.once('error', reject)
+    server.listen(0, () => {
+      const address = server.address()
+      if (!address || typeof address === 'string') {
+        server.close(() => reject(new Error('Failed to reserve a TCP port')))
+        return
+      }
+
+      const { port } = address
+      server.close((error) => {
+        if (error) {
+          reject(error)
+          return
+        }
+        resolve(port)
+      })
+    })
+  })
+}
+
 describe('Backup API', () => {
   let hub: HubInstance
-  const PORT = 14447
-  const BASE = `http://localhost:${PORT}`
+  let port = 0
+  let base = ''
 
   beforeAll(async () => {
-    hub = await createHub({ port: PORT, auth: false, storage: 'memory' })
+    port = await reservePort()
+    base = `http://localhost:${port}`
+    hub = await createHub({ port, auth: false, storage: 'memory' })
     await hub.start()
   })
 
@@ -26,7 +53,7 @@ describe('Backup API', () => {
   it('stores and retrieves a backup blob', async () => {
     const data = new Uint8Array([0xde, 0xad, 0xbe, 0xef, 0x01, 0x02, 0x03])
 
-    const putRes = await fetch(`${BASE}/backup/doc-1`, {
+    const putRes = await fetch(`${base}/backup/doc-1`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/octet-stream' },
       body: data
@@ -36,23 +63,23 @@ describe('Backup API', () => {
     expect(key).toBeTruthy()
     expect(sizeBytes).toBe(7)
 
-    const getRes = await fetch(`${BASE}/backup/doc-1`)
+    const getRes = await fetch(`${base}/backup/doc-1`)
     expect(getRes.status).toBe(200)
     const blob = new Uint8Array(await getRes.arrayBuffer())
     expect(blob).toEqual(data)
   })
 
   it('lists backups for a user', async () => {
-    await fetch(`${BASE}/backup/doc-a`, {
+    await fetch(`${base}/backup/doc-a`, {
       method: 'PUT',
       body: new Uint8Array([1, 2, 3])
     })
-    await fetch(`${BASE}/backup/doc-b`, {
+    await fetch(`${base}/backup/doc-b`, {
       method: 'PUT',
       body: new Uint8Array([4, 5, 6])
     })
 
-    const listRes = await fetch(`${BASE}/backup`)
+    const listRes = await fetch(`${base}/backup`)
     expect(listRes.status).toBe(200)
     const payload = (await listRes.json()) as { backups: unknown[]; usage: { count: number } }
     expect(payload.backups.length).toBeGreaterThanOrEqual(2)
@@ -60,20 +87,20 @@ describe('Backup API', () => {
   })
 
   it('returns 404 for missing backup', async () => {
-    const res = await fetch(`${BASE}/backup/nonexistent-doc`)
+    const res = await fetch(`${base}/backup/nonexistent-doc`)
     expect(res.status).toBe(404)
   })
 
   it('deletes a backup', async () => {
-    await fetch(`${BASE}/backup/doc-del`, {
+    await fetch(`${base}/backup/doc-del`, {
       method: 'PUT',
       body: new Uint8Array([99])
     })
 
-    const delRes = await fetch(`${BASE}/backup/doc-del`, { method: 'DELETE' })
+    const delRes = await fetch(`${base}/backup/doc-del`, { method: 'DELETE' })
     expect(delRes.status).toBe(204)
 
-    const getRes = await fetch(`${BASE}/backup/doc-del`)
+    const getRes = await fetch(`${base}/backup/doc-del`)
     expect(getRes.status).toBe(404)
   })
 
@@ -93,14 +120,14 @@ describe('Backup API', () => {
       ownershipProof: proof
     }
 
-    const postRes = await fetch(`${BASE}/backup/${encodedDid}`, {
+    const postRes = await fetch(`${base}/backup/${encodedDid}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(payload)
     })
     expect(postRes.status).toBe(201)
 
-    const getRes = await fetch(`${BASE}/backup/${encodedDid}`)
+    const getRes = await fetch(`${base}/backup/${encodedDid}`)
     expect(getRes.status).toBe(200)
     const fetched = (await getRes.json()) as typeof payload
     expect(fetched.did).toBe(did)
@@ -109,19 +136,19 @@ describe('Backup API', () => {
     expect(fetched.ownershipProof).toBe(proof)
 
     const wrongProof = bytesToBase64(randomBytes(64))
-    const deleteDenied = await fetch(`${BASE}/backup/${encodedDid}`, {
+    const deleteDenied = await fetch(`${base}/backup/${encodedDid}`, {
       method: 'DELETE',
       headers: { 'x-backup-proof': wrongProof }
     })
     expect(deleteDenied.status).toBe(403)
 
-    const deleteOk = await fetch(`${BASE}/backup/${encodedDid}`, {
+    const deleteOk = await fetch(`${base}/backup/${encodedDid}`, {
       method: 'DELETE',
       headers: { 'x-backup-proof': proof }
     })
     expect(deleteOk.status).toBe(204)
 
-    const getAfterDelete = await fetch(`${BASE}/backup/${encodedDid}`)
+    const getAfterDelete = await fetch(`${base}/backup/${encodedDid}`)
     expect(getAfterDelete.status).toBe(404)
   })
 })
