@@ -143,7 +143,7 @@ flowchart LR
 
 - [x] Fix the Electron service IPC / preload mismatch.
 - [x] Add OpenCode service lifecycle management in Electron main.
-- [ ] Add xNet-backed `SessionSummary` storage and hooks.
+- [x] Add xNet-backed `SessionSummary` storage and hooks.
 - [ ] Add a coding-workspace shell mode to the renderer.
 - [ ] Embed or host OpenCode Web in the center panel.
 - [ ] Add `GitService` worktree lifecycle commands.
@@ -155,7 +155,7 @@ flowchart LR
 
 ## 9. Validation Checklist
 
-- [ ] Session switching restores from local xNet-backed state without a network round trip.
+- [x] Session switching restores from local xNet-backed state without a network round trip.
 - [ ] OpenCode stays usable without building a custom chat UI.
 - [ ] Two sessions can target separate worktrees without clobbering each other.
 - [ ] Preview switching shows an immediate cached state before the live runtime is ready.

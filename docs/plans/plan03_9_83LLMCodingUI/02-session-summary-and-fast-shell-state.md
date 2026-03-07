@@ -211,8 +211,8 @@ export function useSessionCommands() {
 
 ## Step Checklist
 
-- [ ] Add app-local session summary schema(s)
-- [ ] Add app-local hooks for session summaries and commands
-- [ ] Use denormalized summary records for rail and shell state
-- [ ] Keep token streaming out of xNet’s hot path
-- [ ] Validate instant local restoration of session summaries
+- [x] Add app-local session summary schema(s)
+- [x] Add app-local hooks for session summaries and commands
+- [x] Use denormalized summary records for rail and shell state
+- [x] Keep token streaming out of xNet’s hot path
+- [x] Validate instant local restoration of session summaries
