@@ -17,12 +17,14 @@ import {
   type NodeData
 } from '@xnetjs/plugins/node'
 import { ipcMain, BrowserWindow } from 'electron'
+import { DEFAULT_LOCAL_API_PORT, resolveLocalAPIPort } from './local-api-config'
 
 // ─── Module State ────────────────────────────────────────────────────────────
 
 let apiServer: LocalAPIServer | null = null
 let nodeStoreProxy: NodeStoreAPI | null = null
 let schemaRegistryProxy: SchemaRegistryAPI | null = null
+let configuredPort = DEFAULT_LOCAL_API_PORT
 
 // Pending request callbacks - used to receive responses from renderer
 let requestId = 0
@@ -199,10 +201,11 @@ export async function startLocalAPI(): Promise<void> {
 
   // SEC-04: Enable token authentication by default
   const token = getOrCreateApiToken()
+  configuredPort = resolveLocalAPIPort()
 
   // Create and start server
   apiServer = createLocalAPI({
-    port: 31415,
+    port: configuredPort,
     host: '127.0.0.1',
     store: nodeStoreProxy,
     schemas: schemaRegistryProxy,
@@ -211,7 +214,7 @@ export async function startLocalAPI(): Promise<void> {
 
   try {
     await apiServer.start()
-    console.log('[LocalAPI] Server started on http://127.0.0.1:31415')
+    console.log(`[LocalAPI] Server started on http://127.0.0.1:${configuredPort}`)
     console.log('[LocalAPI] API Token:', token)
   } catch (err) {
     console.error('[LocalAPI] Failed to start server:', err)
@@ -244,7 +247,7 @@ export function isLocalAPIRunning(): boolean {
  * Get the API server port.
  */
 export function getLocalAPIPort(): number {
-  return apiServer?.port ?? 31415
+  return apiServer?.port ?? configuredPort
 }
 
 /**

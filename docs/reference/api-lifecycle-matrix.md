@@ -15,6 +15,18 @@ This matrix makes the contract explicit:
 
 Root imports remain backward-compatible for now unless otherwise noted. When a narrower subpath exists, prefer it for new code.
 
+## New App Start Here
+
+If you are evaluating xNet for the first time, the safest path is:
+
+- `@xnetjs/react` for provider/bootstrap plus `useQuery`, `useMutate`, `useNode`, and `useIdentity`
+- `@xnetjs/data/schema` for schema definitions and built-in schemas
+- `@xnetjs/data/store` for `NodeStore` and storage adapters
+- `@xnetjs/data/updates` for signed Yjs update helpers
+- `@xnetjs/identity/did`, `@xnetjs/identity/key-bundle`, and `@xnetjs/identity/passkey` for identity/auth bootstrap
+
+Treat `@xnetjs/react/database`, `@xnetjs/data/database`, `@xnetjs/data/auth`, and `@xnetjs/data-bridge` as intentionally narrower or still-converging surfaces.
+
 ## Package Summary
 
 | Package               | Status       | Recommended entrypoints                                                                                                                     |

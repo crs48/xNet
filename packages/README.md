@@ -33,7 +33,7 @@ Core xNet packages for decentralized data, sync, UI, and tooling.
 | [@xnetjs/ui](./ui)               | Base UI primitives, composed components, theme      | 0     | Stable |
 | [@xnetjs/views](./views)         | Table, Board, Gallery, Timeline, Calendar           | 7     | Stable |
 | [@xnetjs/canvas](./canvas)       | Infinite canvas, R-tree, ELK.js layout              | 4     | Stable |
-| [@xnetjs/devtools](./devtools)   | 9-panel debug suite                                 | 2     | Stable |
+| [@xnetjs/devtools](./devtools)   | 15-panel debug suite                                | 2     | Stable |
 | [@xnetjs/history](./history)     | Time machine, undo/redo, audit, blame, diff         | 3     | Stable |
 | [@xnetjs/plugins](./plugins)     | Plugin registry, sandbox, AI generation, MCP        | 8     | Stable |
 | [@xnetjs/telemetry](./telemetry) | Privacy-preserving telemetry, tiered consent        | 0     | Stable |

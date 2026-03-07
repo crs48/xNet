@@ -63,8 +63,8 @@ But the highest-leverage gaps are still at the **developer-facing boundary**:
 
 - [x] API and package-surface convergence: publish the lifecycle matrix, relabel package maturity, and add explicit subpath entrypoints for `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/identity`, and `@xnetjs/data-bridge`
 - [x] Reactive runtime convergence: add explicit `XNetProvider` runtime modes, visible fallback state, and platform-specific runtime intent for web and Electron
-- [ ] Reactive query and background-sync hardening
-- [ ] Web durability and performance guarantees
+- [x] Reactive query and background-sync hardening
+- [x] Web durability and performance guarantees
 - [ ] Web daily-driver UX
 - [ ] Electron canvas-first shell
 - [ ] AI integrations and vertical apps
@@ -643,8 +643,8 @@ gantt
 - [x] Upgrade global search to body/snippet search
 - [x] Remove arbitrary list limits from primary navigation flows
 - [x] Finish backlinks and related-content discovery
-- [ ] Benchmark `useQuery`, sidebar loading, and global search on 1k/10k-node datasets
-- [ ] Decide whether `@xnetjs/query` is the long-term local query engine or a secondary surface
+- [x] Benchmark `useQuery`, sidebar loading, and global search on 1k/10k-node datasets
+- [x] Decide whether `@xnetjs/query` is the long-term local query engine or a secondary surface
 
 ## Phase 3: Sync, Security, Durability
 
@@ -660,17 +660,17 @@ gantt
 - [ ] Add hierarchy/breadcrumb/recent/pinned navigation
 - [x] Remove arbitrary list limits from primary navigation flows
 - [x] Finish backlinks and related-content discovery
-- [ ] Converge database editing on the chosen canonical model
+- [x] Converge database editing on the chosen canonical model
 
 ---
 
 ## Validation Checklist 🧪
 
-- [ ] A new app developer can identify the stable React API in under 5 minutes
+- [x] A new app developer can identify the stable React API in under 5 minutes
 - [x] `@xnetjs/react` public docs no longer mix stable and partial behaviors without labeling
 - [x] Web app queries do not require whole-schema reloads for routine updates
-- [ ] Large workspaces remain responsive in sidebar/search flows
-- [ ] Offline edits survive refresh, reconnect, and multi-device replay in repeatable tests
+- [x] Large workspaces remain responsive in sidebar/search flows
+- [x] Offline edits survive refresh, reconnect, and multi-device replay in repeatable tests
 - [x] Browser storage durability state is surfaced to users, not left implicit
 - [x] Database undo/redo behavior is intention-based rather than array-rewrite dependent
 - [ ] Share/revoke/reconnect scenarios behave predictably under automated tests

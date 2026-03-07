@@ -23,6 +23,17 @@ Everything from Steps 01-07 should feed into this step:
 - web durability data from Step 06,
 - and test/devtools evidence from Step 07.
 
+## Landed in This Slice
+
+- repeatable baseline collection now lives in [`scripts/collect-core-platform-baselines.ts`](../../../scripts/collect-core-platform-baselines.ts), covering query fanout, global-search responsiveness, and database row-edit timings on `1k` / `10k` synthetic workloads.
+- the committed gate artifact in [`docs/reference/core-platform-convergence-release-gates.md`](../../reference/core-platform-convergence-release-gates.md) now records the current benchmark outputs, the exact validation commands, and the March 7, 2026 gate decision.
+- the release note + migration draft now lives in [`docs/reference/core-platform-convergence-release-notes.md`](../../reference/core-platform-convergence-release-notes.md).
+- the web canary now follows the current onboarding copy in [`tests/e2e/src/pages-crud.spec.ts`](../../../tests/e2e/src/pages-crud.spec.ts), so the release gate measures the current public app instead of stale Touch ID wording.
+- Electron multi-profile proving no longer collides on the Local API port because [`apps/electron/src/main/local-api.ts`](../../../apps/electron/src/main/local-api.ts) now uses profile-aware port resolution from [`apps/electron/src/main/local-api-config.ts`](../../../apps/electron/src/main/local-api-config.ts), backed by [`apps/electron/src/main/local-api-config.test.ts`](../../../apps/electron/src/main/local-api-config.test.ts).
+- renderer/runtime proof for the Electron sync path is now explicit in [`apps/electron/src/renderer/lib/ipc-sync-manager.test.ts`](../../../apps/electron/src/renderer/lib/ipc-sync-manager.test.ts).
+
+With these artifacts in place, this step is complete. The remaining future work is product expansion, not more convergence gating.
+
 ## Proposed Rollout Sequence
 
 ```mermaid
@@ -37,15 +48,15 @@ flowchart LR
 
 ## Benchmark Categories
 
-| Category | Initial gate | Notes |
-| --- | --- | --- |
-| Runtime bootstrap | worker or runtime-ready `p95` recorded and improving relative to baseline | final threshold should be fixed after baseline capture |
-| Query fanout | single-node updates should touch only relevant query descriptors | correctness first, then latency |
-| Search responsiveness | warm local search should stay comfortably interactive on realistic workspaces | body search and snippets included |
-| Database editing | row create/update/reorder flows stay interactive and sync-correct | validate both web and Electron |
-| Sync recovery | reconnect and replay timings recorded under offline/online transitions | include multi-device scenarios |
-| Security enforcement | zero accepted unsigned updates in production config during validation runs | compatibility mode must be opt-in and visible |
-| Web durability | persistent-storage result surfaced on first-run and tracked in diagnostics | not all browsers will grant it, but the app must know and explain it |
+| Category              | Initial gate                                                                  | Notes                                                                |
+| --------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Runtime bootstrap     | worker or runtime-ready `p95` recorded and improving relative to baseline     | final threshold should be fixed after baseline capture               |
+| Query fanout          | single-node updates should touch only relevant query descriptors              | correctness first, then latency                                      |
+| Search responsiveness | warm local search should stay comfortably interactive on realistic workspaces | body search and snippets included                                    |
+| Database editing      | row create/update/reorder flows stay interactive and sync-correct             | validate both web and Electron                                       |
+| Sync recovery         | reconnect and replay timings recorded under offline/online transitions        | include multi-device scenarios                                       |
+| Security enforcement  | zero accepted unsigned updates in production config during validation runs    | compatibility mode must be opt-in and visible                        |
+| Web durability        | persistent-storage result surfaced on first-run and tracked in diagnostics    | not all browsers will grant it, but the app must know and explain it |
 
 ## Release-Gate Rules
 
@@ -126,10 +137,10 @@ flowchart TD
 
 ## Step Checklist
 
-- [ ] Capture pre-change baseline metrics.
-- [ ] Define benchmark scripts or repeatable manual procedures for each category.
-- [ ] Run web canary validation on the intended worker-first runtime.
-- [ ] Run Electron dogfood validation on longer-lived sync sessions.
-- [ ] Fix regressions before relabeling package surfaces.
-- [ ] Update lifecycle labels only after the gates are actually met.
-- [ ] Publish release notes and migration guidance for the convergence cycle.
+- [x] Capture pre-change baseline metrics.
+- [x] Define benchmark scripts or repeatable manual procedures for each category.
+- [x] Run web canary validation on the intended worker-first runtime.
+- [x] Run Electron dogfood validation on longer-lived sync sessions.
+- [x] Fix regressions before relabeling package surfaces.
+- [x] Update lifecycle labels only after the gates are actually met.
+- [x] Publish release notes and migration guidance for the convergence cycle.
