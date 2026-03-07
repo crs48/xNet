@@ -9,7 +9,8 @@ export {
   type ColumnType,
   type ColumnConfig,
   type ViewConfig,
-  type ViewType
+  type ViewType,
+  type LegacyDatabaseMigrationStatus
 } from './hooks/useDatabaseDoc'
 export {
   useDatabase,

@@ -40,11 +40,11 @@ That split needs to end before database UX, large tables, or canvas-to-ERP evolu
 - [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts) now own the legacy-vs-canonical branching for columns, views, and row mutations.
 - the web database surface now uses those hooks in [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) instead of mutating the database `data` Y.Map directly.
 - regression coverage now exists for the persisted legacy shape in [`packages/data/src/database/legacy-model.test.ts`](../../../packages/data/src/database/legacy-model.test.ts).
+- explicit legacy materialization now lives in [`packages/data/src/database/legacy-migration.ts`](../../../packages/data/src/database/legacy-migration.ts), with status recording surfaced through [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and migration coverage in [`packages/data/src/database/legacy-migration.test.ts`](../../../packages/data/src/database/legacy-migration.test.ts).
 
 ### Still open before this step is complete
 
 - Electron still needs the same hook-driven refactor.
-- the temporary compatibility path still needs an explicit one-way migration/materialization flow with status recording.
 - structured undo and rich-text undo are still coupled in the Electron implementation.
 - sync correctness and cross-device migration tests for databases are still missing.
 
@@ -150,7 +150,7 @@ The view layer should not know whether data came from local NodeStore materializ
 ## Step Checklist
 
 - [ ] Reaffirm the canonical node-native database model from the earlier plan.
-- [ ] Design an explicit migration path from legacy Y.Map-backed database documents.
+- [x] Design an explicit migration path from legacy Y.Map-backed database documents.
 - [ ] Move web and Electron database views onto the hook-driven model.
 - [ ] Separate structured undo semantics from rich-text Yjs undo semantics.
 - [ ] Add sync and migration tests for database correctness.
