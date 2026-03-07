@@ -75,6 +75,8 @@ export {
   createSyncManager,
   type SyncManager,
   type SyncManagerConfig,
+  type SyncLifecyclePhase,
+  type SyncLifecycleState,
   type SyncStatus as SyncManagerStatus
 } from './sync/sync-manager'
 export { useSyncManager } from './hooks/useSyncManager'

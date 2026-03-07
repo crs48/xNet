@@ -1007,6 +1007,9 @@ importers:
       '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../plugins
+      '@xnetjs/sync':
+        specifier: workspace:*
+        version: link:../sync
       lucide-react:
         specifier: ^0.453.0
         version: 0.453.0(react@18.3.1)

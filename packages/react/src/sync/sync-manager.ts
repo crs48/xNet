@@ -16,6 +16,8 @@ if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug
 
 import type { ContentId } from '@xnetjs/core'
 import type { NodeStore, NodeStorageAdapter } from '@xnetjs/data'
+import type { SyncLifecycleInput, SyncLifecycleState } from '@xnetjs/sync'
+import { createSyncLifecycleState } from '@xnetjs/sync'
 import {
   Awareness,
   applyAwarenessUpdate,
@@ -43,6 +45,7 @@ function log(...args: unknown[]): void {
 }
 
 export type SyncStatus = ConnectionStatus
+export type { SyncLifecyclePhase, SyncLifecycleState } from '@xnetjs/sync'
 
 export interface SyncManagerConfig {
   /** NodeStore for meta bridge */
@@ -99,6 +102,8 @@ export interface SyncManager {
 
   /** Connection status */
   readonly status: SyncStatus
+  /** Canonical background-sync lifecycle */
+  readonly lifecycle: SyncLifecycleState
   /** Pool stats */
   readonly poolSize: number
   /** Tracked count */
@@ -110,6 +115,7 @@ export interface SyncManager {
 
   /** Listen for events */
   on(event: 'status', handler: (status: SyncStatus) => void): () => void
+  on(event: 'lifecycle', handler: (state: SyncLifecycleState) => void): () => void
   /** Underlying ConnectionManager (if available) */
   readonly connection?: ConnectionManager
 }
@@ -294,8 +300,19 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const broadcastDocs = new Set<string>()
   // Peer ID for deduplication
   const peerId = Math.random().toString(36).slice(2, 10)
-  // Status handler cleanup (set in start(), called in stop())
-  let statusHandlerCleanup: (() => void) | null = null
+  const statusListeners = new Set<(status: SyncStatus) => void>()
+  const lifecycleListeners = new Set<(state: SyncLifecycleState) => void>()
+  let status: SyncStatus = connection.status
+  let lifecycleInput: SyncLifecycleInput = {
+    started: false,
+    stopped: false,
+    localReady: false,
+    everConnected: false,
+    connectionStatus: status,
+    replaying: false
+  }
+  let lifecycle = createSyncLifecycleState(lifecycleInput)
+  let connectedRecovery: Promise<void> | null = null
 
   function toBase64(data: Uint8Array): string {
     let binary = ''
@@ -312,6 +329,62 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       bytes[i] = binary.charCodeAt(i)
     }
     return bytes
+  }
+
+  function emitStatus(nextStatus: SyncStatus): void {
+    for (const handler of statusListeners) {
+      try {
+        handler(nextStatus)
+      } catch {
+        // Listener errors don't break the manager.
+      }
+    }
+  }
+
+  function emitLifecycle(nextLifecycle: SyncLifecycleState): void {
+    for (const handler of lifecycleListeners) {
+      try {
+        handler(nextLifecycle)
+      } catch {
+        // Listener errors don't break the manager.
+      }
+    }
+  }
+
+  function updateLifecycle(patch: Partial<SyncLifecycleInput> = {}): void {
+    lifecycleInput = {
+      ...lifecycleInput,
+      ...patch
+    }
+
+    const nextLifecycle = createSyncLifecycleState(lifecycleInput, lifecycle)
+    const changed =
+      nextLifecycle.phase !== lifecycle.phase ||
+      nextLifecycle.connectionStatus !== lifecycle.connectionStatus ||
+      nextLifecycle.replaying !== lifecycle.replaying ||
+      nextLifecycle.lastTransitionAt !== lifecycle.lastTransitionAt
+
+    lifecycle = nextLifecycle
+
+    if (changed) {
+      emitLifecycle(nextLifecycle)
+    }
+  }
+
+  function clearRemotePresence(): void {
+    for (const [nodeId, awareness] of awarenessMap) {
+      const remoteClientIds = Array.from(awareness.getStates().keys()).filter(
+        (clientId) => clientId !== awareness.clientID
+      )
+
+      if (remoteClientIds.length > 0) {
+        removeAwarenessStates(awareness, remoteClientIds, 'connection-lost')
+      }
+
+      if (awarenessSnapshots.has(nodeId)) {
+        emitAwarenessSnapshot(nodeId, [])
+      }
+    }
   }
 
   async function joinNodeRoom(nodeId: string): Promise<void> {
@@ -503,7 +576,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         })
       } else {
         // Offline: queue for later
-        offlineQueue.enqueue(nodeId, update)
+        void offlineQueue.enqueue(nodeId, update)
       }
     })
   }
@@ -512,14 +585,20 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   async function drainOfflineQueue(): Promise<void> {
     if (offlineQueue.size === 0) return
 
-    await offlineQueue.drain(async (entry) => {
-      const room = `xnet-doc-${entry.nodeId}`
-      connection.publish(room, {
-        type: 'sync-update',
-        from: peerId,
-        update: entry.update // Already base64 encoded
+    updateLifecycle({ replaying: true })
+
+    try {
+      await offlineQueue.drain(async (entry) => {
+        const room = `xnet-doc-${entry.nodeId}`
+        connection.publish(room, {
+          type: 'sync-update',
+          from: peerId,
+          update: entry.update // Already base64 encoded
+        })
       })
-    })
+    } finally {
+      updateLifecycle({ replaying: false })
+    }
   }
 
   /** Send sync-step1 for a node (initiate sync handshake) */
@@ -541,13 +620,73 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     })
   }
 
+  async function handleConnected(): Promise<void> {
+    if (connectedRecovery) {
+      await connectedRecovery
+      return
+    }
+
+    connectedRecovery = (async () => {
+      await drainOfflineQueue()
+
+      for (const nodeId of roomCleanups.keys()) {
+        if (!pool.has(nodeId)) continue
+
+        const doc = await pool.acquire(nodeId)
+        try {
+          sendSyncStep1(nodeId, doc)
+        } finally {
+          pool.release(nodeId)
+        }
+      }
+    })().finally(() => {
+      connectedRecovery = null
+    })
+
+    await connectedRecovery
+  }
+
+  connection.onStatus((nextStatus) => {
+    if (status !== nextStatus) {
+      status = nextStatus
+      emitStatus(nextStatus)
+    }
+
+    const everConnected = lifecycleInput.everConnected || nextStatus === 'connected'
+    updateLifecycle({
+      connectionStatus: nextStatus,
+      everConnected
+    })
+
+    if (
+      lifecycleInput.started &&
+      !lifecycleInput.stopped &&
+      (nextStatus === 'disconnected' || nextStatus === 'error')
+    ) {
+      clearRemotePresence()
+    }
+
+    if (nextStatus === 'connected') {
+      void handleConnected()
+    }
+  })
+
   return {
     async start() {
       log('Starting SyncManager...')
+      updateLifecycle({
+        started: true,
+        stopped: false,
+        localReady: false,
+        everConnected: false,
+        connectionStatus: status,
+        replaying: false
+      })
       await registry.load()
       log('Registry loaded, tracked nodes:', registry.getTracked().length)
       await offlineQueue.load()
       log('Offline queue loaded, size:', offlineQueue.size)
+      updateLifecycle({ localReady: true })
       log('Connecting to signaling server...')
       connection.connect()
 
@@ -555,25 +694,6 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
       // Start blob sync if configured
       blobSync?.start()
-
-      // When connection is established, drain offline queue and initiate sync
-      statusHandlerCleanup = connection.onStatus((s) => {
-        log('Connection status changed in start():', s)
-        if (s === 'connected') {
-          // Drain any queued offline updates first
-          drainOfflineQueue()
-
-          // Re-send sync-step1 for all docs in pool
-          for (const nodeId of roomCleanups.keys()) {
-            if (pool.has(nodeId)) {
-              pool.acquire(nodeId).then((doc) => {
-                sendSyncStep1(nodeId, doc)
-                pool.release(nodeId)
-              })
-            }
-          }
-        }
-      })
 
       // Join rooms for all tracked Nodes (in parallel)
       const tracked = registry.getTracked()
@@ -583,16 +703,15 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     },
 
     async stop() {
+      updateLifecycle({
+        stopped: true,
+        replaying: false
+      })
+
       // Stop blob sync
       blobSync?.stop()
 
       nodeSyncProvider?.detach()
-
-      // Clean up status handler
-      if (statusHandlerCleanup) {
-        statusHandlerCleanup()
-        statusHandlerCleanup = null
-      }
 
       // Leave all rooms
       for (const nodeId of Array.from(roomCleanups.keys())) {
@@ -697,7 +816,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     },
 
     get status() {
-      return connection.status
+      return status
+    },
+    get lifecycle() {
+      return lifecycle
     },
     get connection() {
       return connection
@@ -717,8 +839,17 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     on(event, handler) {
       if (event === 'status') {
-        return connection.onStatus(handler)
+        const statusHandler = handler as (status: SyncStatus) => void
+        statusListeners.add(statusHandler)
+        return () => statusListeners.delete(statusHandler)
       }
+
+      if (event === 'lifecycle') {
+        const lifecycleHandler = handler as (state: SyncLifecycleState) => void
+        lifecycleListeners.add(lifecycleHandler)
+        return () => lifecycleListeners.delete(lifecycleHandler)
+      }
+
       return () => {}
     }
   }
