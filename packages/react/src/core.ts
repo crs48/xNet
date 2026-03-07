@@ -35,6 +35,14 @@ export {
   type XNetContextValue,
   type XNetProviderProps
 } from './context'
+export {
+  type XNetRuntimeConfig,
+  type XNetRuntimeFallback,
+  type XNetRuntimeMode,
+  type XNetRuntimePhase,
+  type XNetRuntimeStatus,
+  type XNetRuntimeWorkerConfig
+} from './runtime'
 export { ErrorBoundary, type ErrorBoundaryProps } from './components/ErrorBoundary'
 export {
   OfflineIndicator,

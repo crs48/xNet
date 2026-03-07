@@ -249,6 +249,11 @@ async function init() {
               authorDID: AUTHOR_DID,
               signingKey: SIGNING_KEY,
               blobStore: providerBlobStore,
+              runtime: {
+                mode: 'ipc',
+                fallback: 'error',
+                diagnostics: import.meta.env.DEV
+              },
               syncManager: ipcSyncManager,
               platform: 'electron'
             }}

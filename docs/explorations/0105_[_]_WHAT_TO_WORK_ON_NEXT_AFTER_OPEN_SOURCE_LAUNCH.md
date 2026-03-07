@@ -62,6 +62,7 @@ But the highest-leverage gaps are still at the **developer-facing boundary**:
 ### Implementation progress
 
 - [x] API and package-surface convergence: publish the lifecycle matrix, relabel package maturity, and add explicit subpath entrypoints for `@xnetjs/react`, `@xnetjs/data`, `@xnetjs/identity`, and `@xnetjs/data-bridge`
+- [x] Reactive runtime convergence: add explicit `XNetProvider` runtime modes, visible fallback state, and platform-specific runtime intent for web and Electron
 - [ ] Reactive query and background-sync hardening
 - [ ] Web durability and performance guarantees
 - [ ] Web daily-driver UX

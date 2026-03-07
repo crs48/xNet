@@ -10,6 +10,13 @@
 
 Converge `XNetProvider` and app bootstrap around explicit runtime modes so that web, Electron, and future IPC-backed environments all share the same conceptual model.
 
+## Landing Notes
+
+- Added `XNetRuntimeConfig` and `XNetRuntimeStatus` to `@xnetjs/react` as public provider types.
+- Refactored `XNetProvider` bootstrap to resolve runtime mode explicitly and report visible fallback or failure.
+- Declared web bootstrap intent as `worker` with explicit `main-thread` fallback, and Electron bootstrap intent as `ipc`.
+- Added provider tests that assert runtime fallback, fail-closed behavior, and explicit IPC activation.
+
 ## Scope and Dependencies
 
 The current runtime boundary is directionally correct but still transitional:
@@ -61,11 +68,11 @@ And expose it in provider setup:
 
 ### Runtime policy by platform
 
-| Platform | Default mode | Fallback | Notes |
-| --- | --- | --- | --- |
-| Web | `worker` | `main-thread` only when explicitly supported and observable | UI responsiveness is the primary concern |
-| Electron renderer | `ipc` or `worker`, depending on finalized architecture | no hidden main-thread fallback | long-running tasks should live outside the renderer where possible |
-| Tests | explicit per suite | none by default | test failures should reveal accidental fallbacks |
+| Platform          | Default mode                                           | Fallback                                                    | Notes                                                              |
+| ----------------- | ------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| Web               | `worker`                                               | `main-thread` only when explicitly supported and observable | UI responsiveness is the primary concern                           |
+| Electron renderer | `ipc` or `worker`, depending on finalized architecture | no hidden main-thread fallback                              | long-running tasks should live outside the renderer where possible |
+| Tests             | explicit per suite                                     | none by default                                             | test failures should reveal accidental fallbacks                   |
 
 ## Boot Sequence
 
@@ -137,10 +144,10 @@ Do not leave comments that imply worker/IPC is "future" once this step lands. Up
 
 ## Step Checklist
 
-- [ ] Define the runtime mode types and public provider contract.
-- [ ] Refactor provider initialization to consume explicit runtime config.
-- [ ] Make worker mode the default intended web path.
-- [ ] Define Electron's explicit runtime mode instead of leaving renderer behavior implicit.
-- [ ] Surface fallback and runtime diagnostics through provider state and telemetry.
-- [ ] Align document acquire/release semantics across bridge implementations.
-- [ ] Add bootstrap tests that fail on unexpected runtime drift.
+- [x] Define the runtime mode types and public provider contract.
+- [x] Refactor provider initialization to consume explicit runtime config.
+- [x] Make worker mode the default intended web path.
+- [x] Define Electron's explicit runtime mode instead of leaving renderer behavior implicit.
+- [x] Surface fallback and runtime diagnostics through provider state and telemetry.
+- [x] Align document acquire/release semantics across bridge implementations.
+- [x] Add bootstrap tests that fail on unexpected runtime drift.
