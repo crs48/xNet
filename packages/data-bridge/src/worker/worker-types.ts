@@ -5,7 +5,7 @@
  * Web Worker and the WorkerBridge on the main thread.
  */
 
-import type { SyncStatus } from '../types'
+import type { QueryDescriptor, SyncStatus } from '../types'
 import type { NodeState, SchemaIRI } from '@xnetjs/data'
 
 // ─── Document Types ──────────────────────────────────────────────────────────
@@ -70,12 +70,14 @@ export type QueryDelta =
   | { type: 'add'; node: NodeState; index: number }
   | { type: 'remove'; nodeId: string }
   | { type: 'update'; nodeId: string; node: NodeState }
+  | { type: 'reload'; data: NodeState[] }
 
 /**
  * Internal subscription tracking in the worker
  */
 export interface WorkerSubscription {
   schemaId: SchemaIRI
+  descriptor: QueryDescriptor
   options: SerializedQueryOptions
   lastResult: NodeState[]
 }
@@ -108,6 +110,11 @@ export interface DataWorkerAPI {
    * Unsubscribe from a query.
    */
   unsubscribe(queryId: string): Promise<void>
+
+  /**
+   * Force a targeted reload for an existing subscription.
+   */
+  reloadQuery(queryId: string): Promise<NodeState[]>
 
   /**
    * Create a new node.

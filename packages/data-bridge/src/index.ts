@@ -16,6 +16,7 @@
 
 export type {
   DataBridge,
+  QueryDescriptor,
   QuerySubscription,
   QueryOptions,
   SortDirection,
@@ -67,6 +68,18 @@ export {
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
 export { QueryCache } from './query-cache'
+export {
+  createQueryDescriptor,
+  queryDescriptorToOptions,
+  serializeQueryDescriptor,
+  matchesQueryDescriptor,
+  filterQueryNodes,
+  sortQueryNodes,
+  applyQueryDescriptor,
+  queryDescriptorNeedsBoundedReload,
+  applyNodeChangeToQueryResult,
+  type QueryResultDelta
+} from './query-descriptor'
 export {
   debounce,
   createUpdateBatcher,

@@ -30,6 +30,11 @@
  */
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
 import type { QueryOptions } from '@xnetjs/data-bridge'
+import {
+  createQueryDescriptor,
+  queryDescriptorToOptions,
+  serializeQueryDescriptor
+} from '@xnetjs/data-bridge'
 import { useSyncExternalStore, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useDataBridge } from '../context'
 import { useTelemetryReporter } from '../context/telemetry-context'
@@ -170,20 +175,13 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   const whereKey = useMemo(() => JSON.stringify(filter.where), [filter.where])
   const orderByKey = useMemo(() => JSON.stringify(filter.orderBy), [filter.orderBy])
 
-  // Create stable options object for DataBridge
+  // Create a canonical descriptor for stable cache keys and reload semantics.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- whereKey/orderByKey are stable string representations
-  const options = useMemo((): QueryOptions<P> => {
-    if (isSingleQuery && nodeId) {
-      return { nodeId }
-    }
-    return {
-      where: filter.where,
-      includeDeleted: filter.includeDeleted,
-      orderBy: filter.orderBy,
-      limit: filter.limit,
-      offset: filter.offset
-    }
+  const descriptor = useMemo(() => {
+    const options: QueryOptions<P> = isSingleQuery && nodeId ? { nodeId } : filter
+    return createQueryDescriptor(schemaId, options)
   }, [
+    schemaId,
     isSingleQuery,
     nodeId,
     whereKey,
@@ -192,10 +190,10 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     filter.limit,
     filter.offset
   ])
+  const queryKey = useMemo(() => serializeQueryDescriptor(descriptor), [descriptor])
 
   // Create subscription via DataBridge (memoized by schema + options)
   // When bridge is null (initializing), use a dummy subscription that returns loading state
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- schema is stable by schemaId
   const subscription = useMemo(() => {
     if (!bridge) {
       // Return a dummy subscription while bridge is initializing
@@ -204,16 +202,14 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
         subscribe: () => () => {}
       }
     }
-    return bridge.query(schema, options)
-  }, [bridge, schema, options])
+    return bridge.query(schema, queryDescriptorToOptions<P>(descriptor))
+  }, [bridge, schema, descriptor, queryKey])
 
-  // Track reload count to force re-subscription
-  const reloadCountRef = useRef(0)
-
-  // Reload function - triggers a new subscription
+  // Reload function - delegates to the bridge for the active canonical descriptor.
   const reload = useCallback(() => {
-    reloadCountRef.current++
-  }, [])
+    if (!bridge?.reloadQuery) return
+    void bridge.reloadQuery(descriptor)
+  }, [bridge, descriptor])
 
   // Use React's useSyncExternalStore for concurrent-safe subscriptions
   const rawData = useSyncExternalStore(
@@ -310,6 +306,11 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
 
   // ─── Telemetry: Query timing (first-load latency) ─────────────────────────
   const hasReportedTimingRef = useRef(false)
+  useEffect(() => {
+    queryStartRef.current = Date.now()
+    hasReportedTimingRef.current = false
+  }, [queryKey])
+
   useEffect(() => {
     if (!telemetry || loading || hasReportedTimingRef.current) return
     hasReportedTimingRef.current = true

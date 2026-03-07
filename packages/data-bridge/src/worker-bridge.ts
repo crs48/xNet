@@ -14,23 +14,23 @@
 import type {
   DataBridge,
   DataBridgeConfig,
+  QueryDescriptor,
   QuerySubscription,
   QueryOptions,
   SyncStatus,
   AcquiredDoc
 } from './types'
 import type { DataWorkerAPI, QueryDelta, SerializedQueryOptions } from './worker/worker-types'
-import type {
-  NodeState,
-  DefinedSchema,
-  PropertyBuilder,
-  InferCreateProps,
-  SchemaIRI
-} from '@xnetjs/data'
+import type { NodeState, DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
 import { wrap, proxy, type Remote } from 'comlink'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { QueryCache } from './query-cache'
+import {
+  createQueryDescriptor,
+  queryDescriptorToOptions,
+  serializeQueryDescriptor
+} from './query-descriptor'
 import { createUpdateBatcher, type UpdateBatcher } from './utils/debounce'
 
 // ─── Update Batcher Configuration ─────────────────────────────────────────────
@@ -72,7 +72,7 @@ export class WorkerBridge implements DataBridge {
   private remote: Remote<DataWorkerAPI>
   private cache = new QueryCache()
   private subscriptions = new Map<string, Set<() => void>>()
-  private queryCounter = 0
+  private activeRemoteSubscriptions = new Set<string>()
   private statusListeners = new Set<(status: SyncStatus) => void>()
   private _status: SyncStatus = 'connecting'
   private initialized = false
@@ -115,16 +115,16 @@ export class WorkerBridge implements DataBridge {
     schema: DefinedSchema<P>,
     options?: QueryOptions<P>
   ): QuerySubscription<P> {
-    const schemaId = schema._schemaId
-    const queryId = `q${this.queryCounter++}`
-    const serializedOptions = this.serializeOptions(options)
+    const descriptor = createQueryDescriptor(schema._schemaId, options)
+    const queryId = serializeQueryDescriptor(descriptor)
 
     // Initialize cache entry
-    this.cache.initEntry(queryId, schemaId, serializedOptions)
+    this.cache.initEntry(queryId, descriptor)
 
     // Start subscription in worker (async)
-    if (this.initialized) {
-      this.startWorkerSubscription(queryId, schemaId, serializedOptions)
+    if (this.initialized && !this.activeRemoteSubscriptions.has(queryId)) {
+      this.activeRemoteSubscriptions.add(queryId)
+      void this.startWorkerSubscription(queryId, descriptor)
     }
 
     return {
@@ -144,34 +144,53 @@ export class WorkerBridge implements DataBridge {
           if (subs.size === 0) {
             this.subscriptions.delete(queryId)
             // Unsubscribe from worker
-            this.remote.unsubscribe(queryId).catch(console.error)
+            if (this.activeRemoteSubscriptions.delete(queryId)) {
+              this.remote.unsubscribe(queryId).catch(console.error)
+            }
           }
         }
       }
     }
   }
 
+  async reloadQuery(descriptor: QueryDescriptor): Promise<void> {
+    if (!this.initialized) {
+      throw new Error('WorkerBridge not initialized')
+    }
+
+    const queryId = serializeQueryDescriptor(descriptor)
+    if (!this.activeRemoteSubscriptions.has(queryId)) {
+      this.cache.initEntry(queryId, descriptor)
+      this.activeRemoteSubscriptions.add(queryId)
+      await this.startWorkerSubscription(queryId, descriptor)
+      return
+    }
+
+    const data = await this.remote.reloadQuery(queryId)
+    this.cache.set(queryId, data, descriptor)
+  }
+
   private async startWorkerSubscription(
     queryId: string,
-    schemaId: SchemaIRI,
-    options: SerializedQueryOptions
+    descriptor: QueryDescriptor
   ): Promise<void> {
     try {
       const initial = await this.remote.subscribe(
         queryId,
-        schemaId,
-        options,
+        descriptor.schemaId,
+        this.serializeOptions(queryDescriptorToOptions(descriptor)),
         proxy((delta: QueryDelta) => {
           this.applyDelta(queryId, delta)
         })
       )
 
       // Update cache with initial data
-      this.cache.set(queryId, initial, schemaId, options)
+      this.cache.set(queryId, initial, descriptor)
     } catch (err) {
       console.error('[WorkerBridge] Failed to subscribe:', err)
+      this.activeRemoteSubscriptions.delete(queryId)
       // Set empty result on error
-      this.cache.set(queryId, [], schemaId, options)
+      this.cache.set(queryId, [], descriptor)
     }
   }
 
@@ -189,14 +208,17 @@ export class WorkerBridge implements DataBridge {
       case 'update':
         updated = current.map((n) => (n.id === delta.nodeId ? delta.node : n))
         break
+      case 'reload':
+        updated = delta.data
+        break
     }
 
-    const schemaId = this.cache.getSchemaId(queryId)
+    const descriptor = this.cache.getDescriptor(queryId)
     const options = this.cache.getOptions(queryId)
-    if (schemaId && options) {
+    if (descriptor && options) {
       // Re-sort after delta
       updated = this.cache.sortNodes(updated, options)
-      this.cache.set(queryId, updated, schemaId, options)
+      this.cache.set(queryId, updated, descriptor)
     }
   }
 

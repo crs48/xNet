@@ -41,7 +41,12 @@ import {
 } from '@xnetjs/data'
 import { expose, proxy, transfer } from 'comlink'
 import * as Y from 'yjs'
-import { QueryCache } from '../query-cache'
+import {
+  applyNodeChangeToQueryResult,
+  applyQueryDescriptor,
+  createQueryDescriptor,
+  matchesQueryDescriptor
+} from '../query-descriptor'
 
 // ─── Y.Doc Pool Configuration ────────────────────────────────────────────────
 
@@ -70,7 +75,6 @@ class DataWorker implements DataWorkerAPI {
     string,
     WorkerSubscription & { onDelta: (delta: QueryDelta) => void }
   >()
-  private cache = new QueryCache()
   private status: SyncStatus = 'disconnected'
   private statusHandlers = new Set<(status: SyncStatus) => void>()
   private storeUnsubscribe: (() => void) | null = null
@@ -113,11 +117,13 @@ class DataWorker implements DataWorkerAPI {
     }
 
     // Load initial data
-    const nodes = await this.loadQuery(schemaId as SchemaIRI, options)
+    const descriptor = createQueryDescriptor(schemaId as SchemaIRI, options)
+    const nodes = await this.loadQuery(descriptor)
 
     // Store subscription with proxied callback
     this.subscriptions.set(queryId, {
       schemaId: schemaId as SchemaIRI,
+      descriptor,
       options,
       lastResult: nodes,
       onDelta: proxy(onDelta)
@@ -128,6 +134,17 @@ class DataWorker implements DataWorkerAPI {
 
   async unsubscribe(queryId: string): Promise<void> {
     this.subscriptions.delete(queryId)
+  }
+
+  async reloadQuery(queryId: string): Promise<NodeState[]> {
+    const sub = this.subscriptions.get(queryId)
+    if (!sub) {
+      return []
+    }
+
+    const reloaded = await this.loadQuery(sub.descriptor)
+    sub.lastResult = reloaded
+    return reloaded
   }
 
   async create(schemaId: string, data: Record<string, unknown>, id?: string): Promise<NodeState> {
@@ -327,7 +344,6 @@ class DataWorker implements DataWorkerAPI {
     // Clear state
     this.store = null
     this.subscriptions.clear()
-    this.cache.clear()
     this.statusHandlers.clear()
 
     this.setStatus('disconnected')
@@ -335,35 +351,24 @@ class DataWorker implements DataWorkerAPI {
 
   // ─── Private Methods ─────────────────────────────────────────────────────────
 
-  private async loadQuery(
-    schemaId: SchemaIRI,
-    options: SerializedQueryOptions
-  ): Promise<NodeState[]> {
+  private async loadQuery(descriptor: WorkerSubscription['descriptor']): Promise<NodeState[]> {
     if (!this.store) return []
 
     let nodes: NodeState[]
 
-    if (options.nodeId) {
+    if (descriptor.nodeId) {
       // Single node query
-      const node = await this.store.get(options.nodeId)
-      nodes = node && node.schemaId === schemaId && !node.deleted ? [node] : []
+      const node = await this.store.get(descriptor.nodeId)
+      nodes = node ? [node] : []
     } else {
       // List query
       nodes = await this.store.list({
-        schemaId,
-        includeDeleted: options.includeDeleted,
-        limit: options.limit,
-        offset: options.offset
+        schemaId: descriptor.schemaId,
+        includeDeleted: descriptor.includeDeleted
       })
     }
 
-    // Apply filtering
-    nodes = this.cache.filterNodes(nodes, options)
-
-    // Apply sorting
-    nodes = this.cache.sortNodes(nodes, options)
-
-    return nodes
+    return applyQueryDescriptor(nodes, descriptor)
   }
 
   private handleStoreChange(event: NodeChangeEvent): void {
@@ -376,79 +381,54 @@ class DataWorker implements DataWorkerAPI {
     for (const [queryId, sub] of this.subscriptions) {
       if (sub.schemaId !== schemaId) continue
 
-      // Compute delta
-      const delta = this.computeDelta(event, sub)
-      if (delta) {
-        // Update lastResult
-        this.applyDeltaToSubscription(queryId, delta)
-        // Notify main thread
-        sub.onDelta(delta)
-      }
+      void this.applyStoreChangeToSubscription(queryId, sub, change.payload.nodeId, node ?? null)
     }
   }
 
-  private computeDelta(event: NodeChangeEvent, sub: WorkerSubscription): QueryDelta | null {
-    const { node, change } = event
+  private async applyStoreChangeToSubscription(
+    _queryId: string,
+    sub: WorkerSubscription & { onDelta: (delta: QueryDelta) => void },
+    nodeId: string,
+    nextNode: NodeState | null
+  ): Promise<void> {
+    const currentContains = sub.lastResult.some((node) => node.id === nodeId)
+    const nextMatches = matchesQueryDescriptor(sub.descriptor, nextNode)
+    const delta = applyNodeChangeToQueryResult({
+      descriptor: sub.descriptor,
+      currentData: sub.lastResult,
+      nodeId,
+      nextNode
+    })
 
-    // Check if node passes the subscription's filter
-    const passesFilter = node ? this.nodeMatchesFilter(node, sub.options) : false
-
-    // Find existing node in lastResult
-    const existingIndex = sub.lastResult.findIndex((n) => n.id === change.payload.nodeId)
-
-    // Determine delta type
-    if (existingIndex >= 0) {
-      // Node was in previous result
-      if (!node || node.deleted || !passesFilter) {
-        // Node was removed or no longer matches
-        return { type: 'remove', nodeId: change.payload.nodeId }
-      } else {
-        // Node was updated
-        return { type: 'update', nodeId: node.id, node }
-      }
-    } else {
-      // Node was not in previous result
-      if (node && !node.deleted && passesFilter) {
-        // Node should be added
-        return { type: 'add', node, index: sub.lastResult.length }
-      }
+    if (delta.kind === 'noop') {
+      return
     }
 
-    return null
-  }
-
-  private nodeMatchesFilter(node: NodeState, options: SerializedQueryOptions): boolean {
-    // Check deleted
-    if (node.deleted && !options.includeDeleted) {
-      return false
+    if (delta.kind === 'reload') {
+      const reloaded = await this.loadQuery(sub.descriptor)
+      sub.lastResult = reloaded
+      sub.onDelta({ type: 'reload', data: reloaded })
+      return
     }
 
-    // Check where clause
-    if (options.where) {
-      for (const [key, value] of Object.entries(options.where)) {
-        if (node.properties[key] !== value) {
-          return false
-        }
-      }
+    sub.lastResult = delta.data
+
+    if (!currentContains && nextMatches && nextNode) {
+      sub.onDelta({
+        type: 'add',
+        node: nextNode,
+        index: delta.data.findIndex((node) => node.id === nextNode.id)
+      })
+      return
     }
 
-    return true
-  }
+    if (currentContains && !nextMatches) {
+      sub.onDelta({ type: 'remove', nodeId })
+      return
+    }
 
-  private applyDeltaToSubscription(queryId: string, delta: QueryDelta): void {
-    const sub = this.subscriptions.get(queryId)
-    if (!sub) return
-
-    switch (delta.type) {
-      case 'add':
-        sub.lastResult = [...sub.lastResult, delta.node]
-        break
-      case 'remove':
-        sub.lastResult = sub.lastResult.filter((n) => n.id !== delta.nodeId)
-        break
-      case 'update':
-        sub.lastResult = sub.lastResult.map((n) => (n.id === delta.nodeId ? delta.node : n))
-        break
+    if (currentContains && nextMatches && nextNode) {
+      sub.onDelta({ type: 'update', nodeId, node: nextNode })
     }
   }
 

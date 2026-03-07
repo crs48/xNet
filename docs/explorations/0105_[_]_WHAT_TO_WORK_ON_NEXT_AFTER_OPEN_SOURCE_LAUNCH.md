@@ -118,24 +118,27 @@ The next step is not invention. It is **convergence**.
 
 Observed facts:
 
-- `XNetProvider` still creates a `MainThreadBridge` by default in [`packages/react/src/context.ts`](../../packages/react/src/context.ts).
-- the `WorkerBridge` exists in [`packages/data-bridge/src/worker-bridge.ts`](../../packages/data-bridge/src/worker-bridge.ts), but the web app is not wiring it by default in [`apps/web/src/App.tsx`](../../apps/web/src/App.tsx).
+- `XNetProvider` now exposes explicit runtime mode selection, fallback policy, and visible runtime status in [`packages/react/src/context.ts`](../../packages/react/src/context.ts).
+- the web app now requests worker mode with explicit main-thread fallback in [`apps/web/src/App.tsx`](../../apps/web/src/App.tsx).
+- the `WorkerBridge` path exists and is active in the web runtime, but it still needs deeper proving around benchmarks, search flows, and larger workspaces in [`packages/data-bridge/src/worker-bridge.ts`](../../packages/data-bridge/src/worker-bridge.ts).
 
 Inference:
 
-- xNet has the right abstraction for off-main-thread data, but the default production path is still closer to **Phase 0 compatibility** than to the final performance architecture.
+- xNet now has an explicit runtime story instead of an implicit one, but the worker-first path still needs more durability and performance proof before it can be treated as fully settled.
 
 ### 2. Query invalidation is still too coarse for the experience you want
 
 Observed facts:
 
-- `MainThreadBridge.handleStoreChange()` reloads all cached queries for a schema in [`packages/data-bridge/src/main-thread-bridge.ts`](../../packages/data-bridge/src/main-thread-bridge.ts).
-- `useQuery()` still relies on `JSON.stringify()` keys and currently has a `reload()` function that increments a ref that is never consumed in [`packages/react/src/hooks/useQuery.ts`](../../packages/react/src/hooks/useQuery.ts).
+- `MainThreadBridge`, `NativeBridge`, and `WorkerBridge` now converge on a shared `QueryDescriptor`, descriptor matching, and bounded reload fallback in [`packages/data-bridge/src/main-thread-bridge.ts`](../../packages/data-bridge/src/main-thread-bridge.ts), [`packages/data-bridge/src/native-bridge.ts`](../../packages/data-bridge/src/native-bridge.ts), and [`packages/data-bridge/src/worker-bridge.ts`](../../packages/data-bridge/src/worker-bridge.ts).
+- `useQuery()` now derives canonical descriptor keys and delegates `reload()` to the active bridge in [`packages/react/src/hooks/useQuery.ts`](../../packages/react/src/hooks/useQuery.ts).
 - the standalone local query engine still full-scans documents in [`packages/query/src/local/engine.ts`](../../packages/query/src/local/engine.ts).
+- global search is still title-only and page-limited in [`apps/web/src/components/GlobalSearch.tsx`](../../apps/web/src/components/GlobalSearch.tsx).
+- backlinks are still TODO in [`apps/web/src/components/BacklinksPanel.tsx`](../../apps/web/src/components/BacklinksPanel.tsx).
 
 Inference:
 
-- the public query API is directionally good, but the current invalidation/materialization model is not yet strong enough to support "bulletproof" background sync, search, and large workspaces without more targeted work.
+- the live-query kernel is materially stronger now, but search/backlinks proving work and query-engine convergence are still required before this area is truly "bulletproof."
 
 ### 3. The database stack still has parallel models
 
@@ -626,9 +629,9 @@ gantt
 
 ## Phase 2: Runtime And Query
 
-- [ ] Fix `useQuery.reload()` to actually refresh the subscription/snapshot
-- [ ] Replace schema-wide invalidation with narrower query matching where feasible
-- [ ] Define one worker-backed default bridge path for the web app
+- [x] Fix `useQuery.reload()` to actually refresh the subscription/snapshot
+- [x] Replace schema-wide invalidation with narrower query matching where feasible
+- [x] Define one worker-backed default bridge path for the web app
 - [ ] Benchmark `useQuery`, sidebar loading, and global search on 1k/10k-node datasets
 - [ ] Decide whether `@xnetjs/query` is the long-term local query engine or a secondary surface
 
@@ -654,7 +657,7 @@ gantt
 
 - [ ] A new app developer can identify the stable React API in under 5 minutes
 - [ ] `@xnetjs/react` public docs no longer mix stable and partial behaviors without labeling
-- [ ] Web app queries do not require whole-schema reloads for routine updates
+- [x] Web app queries do not require whole-schema reloads for routine updates
 - [ ] Large workspaces remain responsive in sidebar/search flows
 - [ ] Offline edits survive refresh, reconnect, and multi-device replay in repeatable tests
 - [ ] Browser storage durability state is surfaced to users, not left implicit

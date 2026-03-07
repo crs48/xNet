@@ -10,7 +10,14 @@
  * - For testing/development
  */
 
-import type { DataBridge, QuerySubscription, QueryOptions, SyncStatus, AcquiredDoc } from './types'
+import type {
+  DataBridge,
+  QueryDescriptor,
+  QuerySubscription,
+  QueryOptions,
+  SyncStatus,
+  AcquiredDoc
+} from './types'
 import type {
   NodeStore,
   NodeState,
@@ -24,6 +31,12 @@ import type {
 import type { Awareness } from 'y-protocols/awareness'
 import type { Doc as YDoc } from 'yjs'
 import { QueryCache } from './query-cache'
+import {
+  applyNodeChangeToQueryResult,
+  applyQueryDescriptor,
+  createQueryDescriptor,
+  serializeQueryDescriptor
+} from './query-descriptor'
 
 // ─── SyncManager Interface ───────────────────────────────────────────────────
 
@@ -77,15 +90,15 @@ export class MainThreadBridge implements DataBridge {
     schema: DefinedSchema<P>,
     options?: QueryOptions<P>
   ): QuerySubscription<P> {
-    const schemaId = schema._schemaId
-    const queryId = this.cache.computeQueryId(schemaId, options)
+    const descriptor = createQueryDescriptor(schema._schemaId, options)
+    const queryId = serializeQueryDescriptor(descriptor)
 
     // Initialize cache entry if not exists
-    this.cache.initEntry(queryId, schemaId, options ?? {})
+    this.cache.initEntry(queryId, descriptor)
 
     // Start loading data if not cached
-    if (!this.cache.has(queryId) || this.cache.get(queryId) === null) {
-      this.loadQuery(queryId, schemaId, options)
+    if (this.cache.get(queryId) === null) {
+      void this.loadQuery(queryId, descriptor)
     }
 
     return {
@@ -94,42 +107,34 @@ export class MainThreadBridge implements DataBridge {
     }
   }
 
+  async reloadQuery(descriptor: QueryDescriptor): Promise<void> {
+    await this.loadQuery(serializeQueryDescriptor(descriptor), descriptor)
+  }
+
   /**
    * Load query data from the store and update cache.
    */
-  private async loadQuery<P extends Record<string, PropertyBuilder>>(
-    queryId: string,
-    schemaId: SchemaIRI,
-    options?: QueryOptions<P>
-  ): Promise<void> {
+  private async loadQuery(queryId: string, descriptor: QueryDescriptor): Promise<void> {
     try {
       let nodes: NodeState[]
 
-      if (options?.nodeId) {
+      if (descriptor.nodeId) {
         // Single node query
-        const node = await this.store.get(options.nodeId)
-        nodes = node && node.schemaId === schemaId && !node.deleted ? [node] : []
+        const node = await this.store.get(descriptor.nodeId)
+        nodes = node ? [node] : []
       } else {
         // List query
         nodes = await this.store.list({
-          schemaId,
-          includeDeleted: options?.includeDeleted,
-          limit: options?.limit,
-          offset: options?.offset
+          schemaId: descriptor.schemaId,
+          includeDeleted: descriptor.includeDeleted
         })
       }
 
-      // Apply filtering and sorting
-      nodes = this.cache.filterNodes(nodes, options)
-      nodes = this.cache.sortNodes(nodes, options)
-
-      // Note: pagination is already applied in store.list()
-
-      this.cache.set(queryId, nodes, schemaId, options ?? {})
+      this.cache.set(queryId, applyQueryDescriptor(nodes, descriptor), descriptor)
     } catch (err) {
       console.error('[MainThreadBridge] Failed to load query:', err)
       // Set empty array on error so we don't keep retrying
-      this.cache.set(queryId, [], schemaId, options ?? {})
+      this.cache.set(queryId, [], descriptor)
     }
   }
 
@@ -143,13 +148,27 @@ export class MainThreadBridge implements DataBridge {
 
     if (!schemaId) return
 
-    // Get all queries for this schema
-    const affectedQueries = this.cache.getQueriesForSchema(schemaId)
+    for (const entry of this.cache.getEntriesForSchema(schemaId)) {
+      if (entry.data === null) {
+        void this.loadQuery(entry.queryId, entry.descriptor)
+        continue
+      }
 
-    // Reload each affected query
-    for (const queryId of affectedQueries) {
-      const options = this.cache.getOptions(queryId)
-      this.loadQuery(queryId, schemaId, options)
+      const delta = applyNodeChangeToQueryResult({
+        descriptor: entry.descriptor,
+        currentData: entry.data,
+        nodeId: change.payload.nodeId,
+        nextNode: node
+      })
+
+      if (delta.kind === 'reload') {
+        void this.loadQuery(entry.queryId, entry.descriptor)
+        continue
+      }
+
+      if (delta.kind === 'set') {
+        this.cache.set(entry.queryId, delta.data)
+      }
     }
   }
 

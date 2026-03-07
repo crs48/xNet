@@ -2,12 +2,22 @@
  * Tests for useQuery hook
  */
 import type { DID } from '@xnetjs/core'
+import type { DataBridge, QueryDescriptor } from '@xnetjs/data-bridge'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { defineSchema, text, select, MemoryNodeStorageAdapter } from '@xnetjs/data'
+import {
+  defineSchema,
+  text,
+  select,
+  MemoryNodeStorageAdapter,
+  type DefinedSchema,
+  type NodeState,
+  type PropertyBuilder
+} from '@xnetjs/data'
+import { createQueryDescriptor, serializeQueryDescriptor } from '@xnetjs/data-bridge'
 import { generateIdentity, type Identity } from '@xnetjs/identity'
 import React, { type ReactNode, useMemo } from 'react'
-import { describe, it, expect, beforeEach } from 'vitest'
-import { XNetProvider } from '../context'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { DataBridgeContext, XNetProvider } from '../context'
 import { useMutate } from './useMutate'
 import { useQuery } from './useQuery'
 
@@ -53,6 +63,128 @@ describe('useQuery', () => {
           {children}
         </XNetProvider>
       )
+    }
+  }
+
+  function createTaskNode(
+    id: string,
+    title: string,
+    status: 'todo' | 'in-progress' | 'done'
+  ): NodeState {
+    const now = Date.now()
+
+    return {
+      id,
+      schemaId: TaskSchema._schemaId,
+      properties: { title, status },
+      timestamps: {
+        title: { lamport: { time: 1, author: did }, wallTime: now },
+        status: { lamport: { time: 1, author: did }, wallTime: now }
+      },
+      createdAt: now,
+      createdBy: did,
+      updatedAt: now,
+      updatedBy: did,
+      deleted: false
+    }
+  }
+
+  function createMockBridge() {
+    const snapshots = new Map<string, NodeState[] | null>()
+    const listeners = new Map<string, Set<() => void>>()
+    const pendingReloads = new Map<string, NodeState[]>()
+
+    const notify = (queryId: string) => {
+      for (const listener of listeners.get(queryId) ?? []) {
+        listener()
+      }
+    }
+
+    const getQueryId = <P extends Record<string, PropertyBuilder>>(
+      schema: DefinedSchema<P>,
+      filter?: string | Record<string, unknown>
+    ) => {
+      const options =
+        typeof filter === 'string'
+          ? { nodeId: filter }
+          : (filter as Record<string, unknown> | undefined)
+
+      return serializeQueryDescriptor(
+        createQueryDescriptor(
+          schema._schemaId,
+          options as Parameters<typeof createQueryDescriptor>[1]
+        )
+      )
+    }
+
+    const reloadQuery = vi.fn(async (descriptor: QueryDescriptor) => {
+      const queryId = serializeQueryDescriptor(descriptor)
+      snapshots.set(queryId, pendingReloads.get(queryId) ?? [])
+      notify(queryId)
+    })
+
+    const bridge: DataBridge = {
+      query(schema, options) {
+        const descriptor = createQueryDescriptor(schema._schemaId, options)
+        const queryId = serializeQueryDescriptor(descriptor)
+
+        if (!snapshots.has(queryId)) {
+          snapshots.set(queryId, [])
+        }
+
+        return {
+          getSnapshot: () => snapshots.get(queryId) ?? null,
+          subscribe: (listener) => {
+            const queryListeners = listeners.get(queryId) ?? new Set()
+            queryListeners.add(listener)
+            listeners.set(queryId, queryListeners)
+
+            return () => {
+              queryListeners.delete(listener)
+              if (queryListeners.size === 0) {
+                listeners.delete(queryId)
+              }
+            }
+          }
+        }
+      },
+      reloadQuery,
+      async create() {
+        throw new Error('Not implemented in mock bridge')
+      },
+      async update() {
+        throw new Error('Not implemented in mock bridge')
+      },
+      async delete() {
+        throw new Error('Not implemented in mock bridge')
+      },
+      async restore() {
+        throw new Error('Not implemented in mock bridge')
+      },
+      destroy() {},
+      status: 'connected',
+      on() {
+        return () => {}
+      }
+    }
+
+    return {
+      bridge,
+      reloadQuery,
+      setSnapshot<P extends Record<string, PropertyBuilder>>(
+        schema: DefinedSchema<P>,
+        filter: string | Record<string, unknown> | undefined,
+        data: NodeState[] | null
+      ) {
+        snapshots.set(getQueryId(schema, filter), data)
+      },
+      setReloadResult<P extends Record<string, PropertyBuilder>>(
+        schema: DefinedSchema<P>,
+        filter: string | Record<string, unknown> | undefined,
+        data: NodeState[]
+      ) {
+        pendingReloads.set(getQueryId(schema, filter), data)
+      }
     }
   }
 
@@ -193,6 +325,42 @@ describe('useQuery', () => {
 
       expect(result.current.all.data).toHaveLength(3)
       expect(result.current.done.data).toHaveLength(2)
+    })
+  })
+
+  describe('reload', () => {
+    it('should call bridge.reloadQuery with the canonical descriptor and refresh data', async () => {
+      const mock = createMockBridge()
+      const doneNode = createTaskNode('done-1', 'Done Task', 'done')
+      mock.setSnapshot(TaskSchema, { where: { status: 'done' } }, [])
+      mock.setReloadResult(TaskSchema, { where: { status: 'done' } }, [doneNode])
+
+      const wrapper = ({ children }: { children: ReactNode }) => (
+        <DataBridgeContext.Provider value={mock.bridge}>{children}</DataBridgeContext.Provider>
+      )
+
+      const { result } = renderHook(() => useQuery(TaskSchema, { where: { status: 'done' } }), {
+        wrapper
+      })
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false)
+      })
+
+      act(() => {
+        result.current.reload()
+      })
+
+      await waitFor(() => {
+        expect(result.current.data).toHaveLength(1)
+      })
+
+      expect(mock.reloadQuery).toHaveBeenCalledWith(
+        createQueryDescriptor(TaskSchema._schemaId, {
+          where: { status: 'done' }
+        })
+      )
+      expect(result.current.data[0]?.title).toBe('Done Task')
     })
   })
 })
