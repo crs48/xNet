@@ -52,7 +52,7 @@ export class UndoManager {
       if (this.options.localOnly && event.change.authorDID !== this.localDID) return
       if (this._isUndoRedoing) return
 
-      this.trackChange(event.change, event.node)
+      this.trackChange(event.change, event.previousNode)
     })
   }
 
@@ -77,15 +77,7 @@ export class UndoManager {
 
     this._isUndoRedoing = true
     try {
-      if (entry.wasDelete) {
-        // Undo a delete → restore the node
-        await this.store.restore(nodeId)
-      } else if (entry.wasRestore) {
-        // Undo a restore → delete the node again
-        await this.store.delete(nodeId)
-      } else {
-        await this.store.update(nodeId, { properties: entry.previousValues })
-      }
+      await this.applyUndoEntry(nodeId, entry)
     } finally {
       this._isUndoRedoing = false
     }
@@ -109,15 +101,7 @@ export class UndoManager {
 
     this._isUndoRedoing = true
     try {
-      if (entry.wasDelete) {
-        // Redo a delete → delete the node again
-        await this.store.delete(nodeId)
-      } else if (entry.wasRestore) {
-        // Redo a restore → restore the node again
-        await this.store.restore(nodeId)
-      } else {
-        await this.store.update(nodeId, { properties: entry.currentValues })
-      }
+      await this.applyRedoEntry(nodeId, entry)
     } finally {
       this._isUndoRedoing = false
     }
@@ -133,33 +117,13 @@ export class UndoManager {
 
   /** Undo all changes in a batch/transaction */
   async undoBatch(batchId: string): Promise<boolean> {
-    // Find all entries with this batchId across all nodes
-    const entries: { nodeId: NodeId; entry: UndoEntry; stackIndex: number }[] = []
-
-    for (const [nodeId, stack] of this.undoStacks) {
-      for (let i = stack.length - 1; i >= 0; i--) {
-        if (stack[i].batchId === batchId) {
-          entries.push({ nodeId, entry: stack[i], stackIndex: i })
-        }
-      }
-    }
+    const entries = this.getBatchEntries(this.undoStacks, batchId)
 
     if (entries.length === 0) return false
 
-    // Remove from undo stacks
-    for (const { nodeId, stackIndex } of entries) {
-      const stack = this.undoStacks.get(nodeId)!
-      stack.splice(stackIndex, 1)
-    }
+    this.removeBatchEntries(this.undoStacks, entries)
+    const operations = entries.map(({ nodeId, entry }) => this.toUndoOperation(nodeId, entry))
 
-    // Build transaction operations
-    const operations: TransactionOperation[] = entries.map(({ nodeId, entry }) => ({
-      type: 'update' as const,
-      nodeId,
-      options: { properties: entry.previousValues }
-    }))
-
-    // Apply all reverts as a single transaction
     this._isUndoRedoing = true
     try {
       await this.store.transaction(operations)
@@ -176,6 +140,46 @@ export class UndoManager {
     return true
   }
 
+  /** Redo all changes in a batch/transaction */
+  async redoBatch(batchId: string): Promise<boolean> {
+    const entries = this.getBatchEntries(this.redoStacks, batchId)
+
+    if (entries.length === 0) return false
+
+    this.removeBatchEntries(this.redoStacks, entries)
+    const operations = entries.map(({ nodeId, entry }) => this.toRedoOperation(nodeId, entry))
+
+    this._isUndoRedoing = true
+    try {
+      await this.store.transaction(operations)
+    } finally {
+      this._isUndoRedoing = false
+    }
+
+    for (const { nodeId, entry } of entries) {
+      const undoStack = this.getOrCreateStack(this.undoStacks, nodeId)
+      undoStack.push(entry)
+    }
+
+    return true
+  }
+
+  /** Undo the most recent change across a scope of nodes */
+  async undoLatest(nodeIds?: NodeId[]): Promise<boolean> {
+    const latest = this.getLatestScopedEntry(this.undoStacks, nodeIds)
+    if (!latest) return false
+
+    return latest.entry.batchId ? this.undoBatch(latest.entry.batchId) : this.undo(latest.nodeId)
+  }
+
+  /** Redo the most recent undone change across a scope of nodes */
+  async redoLatest(nodeIds?: NodeId[]): Promise<boolean> {
+    const latest = this.getLatestScopedEntry(this.redoStacks, nodeIds)
+    if (!latest) return false
+
+    return latest.entry.batchId ? this.redoBatch(latest.entry.batchId) : this.redo(latest.nodeId)
+  }
+
   /** Check if undo is available */
   canUndo(nodeId: NodeId): boolean {
     return (this.undoStacks.get(nodeId)?.length ?? 0) > 0
@@ -184,6 +188,16 @@ export class UndoManager {
   /** Check if redo is available */
   canRedo(nodeId: NodeId): boolean {
     return (this.redoStacks.get(nodeId)?.length ?? 0) > 0
+  }
+
+  /** Check if undo is available for any node in a scope */
+  canUndoAny(nodeIds: NodeId[]): boolean {
+    return nodeIds.some((nodeId) => this.canUndo(nodeId))
+  }
+
+  /** Check if redo is available for any node in a scope */
+  canRedoAny(nodeIds: NodeId[]): boolean {
+    return nodeIds.some((nodeId) => this.canRedo(nodeId))
   }
 
   /** Get undo stack size */
@@ -212,20 +226,18 @@ export class UndoManager {
 
   // ─── Private ─────────────────────────────────────────────────
 
-  private trackChange(change: NodeChange, _nodeState: NodeState): void {
+  private trackChange(change: NodeChange, previousNode: NodeState | null): void {
     const nodeId = change.payload.nodeId
     const now = Date.now()
     const lastTime = this.lastEntryTime.get(nodeId) ?? 0
 
-    // Compute previous values from pre-change cache or current state
     const previousValues: Record<string, unknown> = {}
     const currentValues: Record<string, unknown> = {}
     const cached = this.preChangeState.get(nodeId)
 
     for (const [key, value] of Object.entries(change.payload.properties ?? {})) {
       currentValues[key] = value
-      // Use cached pre-change state if available
-      previousValues[key] = cached?.[key]
+      previousValues[key] = cached?.[key] ?? previousNode?.properties[key]
     }
 
     this.preChangeState.delete(nodeId)
@@ -237,19 +249,24 @@ export class UndoManager {
       currentValues,
       batchId: change.batchId,
       wallTime: change.wallTime,
+      wasCreate: previousNode === null && change.payload.deleted === undefined,
       wasDelete: change.payload.deleted === true,
       wasRestore: change.payload.deleted === false
     }
 
     // Merge with previous entry if within merge interval
     const stack = this.getOrCreateStack(this.undoStacks, nodeId)
-    if (stack.length > 0 && now - lastTime < this.options.mergeInterval) {
-      const prev = stack[stack.length - 1]
+    const previousEntry = stack[stack.length - 1]
+    if (
+      previousEntry &&
+      now - lastTime < this.options.mergeInterval &&
+      this.canMergeEntries(previousEntry, entry)
+    ) {
       for (const [key, value] of Object.entries(currentValues)) {
-        if (!(key in prev.previousValues)) {
-          prev.previousValues[key] = previousValues[key]
+        if (!(key in previousEntry.previousValues)) {
+          previousEntry.previousValues[key] = previousValues[key]
         }
-        prev.currentValues[key] = value
+        previousEntry.currentValues[key] = value
       }
     } else {
       stack.push(entry)
@@ -267,5 +284,151 @@ export class UndoManager {
   private getOrCreateStack(map: Map<NodeId, UndoEntry[]>, nodeId: NodeId): UndoEntry[] {
     if (!map.has(nodeId)) map.set(nodeId, [])
     return map.get(nodeId)!
+  }
+
+  private canMergeEntries(previousEntry: UndoEntry, nextEntry: UndoEntry): boolean {
+    if (previousEntry.batchId !== nextEntry.batchId) {
+      return false
+    }
+
+    if (
+      previousEntry.wasCreate ||
+      previousEntry.wasDelete ||
+      previousEntry.wasRestore ||
+      nextEntry.wasCreate ||
+      nextEntry.wasDelete ||
+      nextEntry.wasRestore
+    ) {
+      return false
+    }
+
+    return true
+  }
+
+  private async applyUndoEntry(nodeId: NodeId, entry: UndoEntry): Promise<void> {
+    if (entry.wasCreate) {
+      await this.store.delete(nodeId)
+      return
+    }
+
+    if (entry.wasDelete) {
+      await this.store.restore(nodeId)
+      return
+    }
+
+    if (entry.wasRestore) {
+      await this.store.delete(nodeId)
+      return
+    }
+
+    await this.store.update(nodeId, { properties: entry.previousValues })
+  }
+
+  private async applyRedoEntry(nodeId: NodeId, entry: UndoEntry): Promise<void> {
+    if (entry.wasCreate) {
+      await this.store.restore(nodeId)
+      return
+    }
+
+    if (entry.wasDelete) {
+      await this.store.delete(nodeId)
+      return
+    }
+
+    if (entry.wasRestore) {
+      await this.store.restore(nodeId)
+      return
+    }
+
+    await this.store.update(nodeId, { properties: entry.currentValues })
+  }
+
+  private toUndoOperation(nodeId: NodeId, entry: UndoEntry): TransactionOperation {
+    if (entry.wasCreate) {
+      return { type: 'delete', nodeId }
+    }
+
+    if (entry.wasDelete) {
+      return { type: 'restore', nodeId }
+    }
+
+    if (entry.wasRestore) {
+      return { type: 'delete', nodeId }
+    }
+
+    return {
+      type: 'update',
+      nodeId,
+      options: { properties: entry.previousValues }
+    }
+  }
+
+  private toRedoOperation(nodeId: NodeId, entry: UndoEntry): TransactionOperation {
+    if (entry.wasCreate) {
+      return { type: 'restore', nodeId }
+    }
+
+    if (entry.wasDelete) {
+      return { type: 'delete', nodeId }
+    }
+
+    if (entry.wasRestore) {
+      return { type: 'restore', nodeId }
+    }
+
+    return {
+      type: 'update',
+      nodeId,
+      options: { properties: entry.currentValues }
+    }
+  }
+
+  private getBatchEntries(
+    map: Map<NodeId, UndoEntry[]>,
+    batchId: string
+  ): Array<{ nodeId: NodeId; entry: UndoEntry; stackIndex: number }> {
+    const entries: Array<{ nodeId: NodeId; entry: UndoEntry; stackIndex: number }> = []
+
+    for (const [nodeId, stack] of map) {
+      for (let i = stack.length - 1; i >= 0; i -= 1) {
+        if (stack[i].batchId === batchId) {
+          entries.push({ nodeId, entry: stack[i], stackIndex: i })
+        }
+      }
+    }
+
+    return entries
+  }
+
+  private removeBatchEntries(
+    map: Map<NodeId, UndoEntry[]>,
+    entries: Array<{ nodeId: NodeId; stackIndex: number }>
+  ): void {
+    for (const { nodeId, stackIndex } of entries) {
+      const stack = map.get(nodeId)
+      if (!stack) continue
+      stack.splice(stackIndex, 1)
+    }
+  }
+
+  private getLatestScopedEntry(
+    map: Map<NodeId, UndoEntry[]>,
+    nodeIds?: NodeId[]
+  ): { nodeId: NodeId; entry: UndoEntry } | null {
+    const scope = nodeIds ? new Set(nodeIds) : null
+    let latest: { nodeId: NodeId; entry: UndoEntry } | null = null
+
+    for (const [nodeId, stack] of map) {
+      if (scope && !scope.has(nodeId)) continue
+
+      const entry = stack[stack.length - 1]
+      if (!entry) continue
+
+      if (!latest || entry.wallTime > latest.entry.wallTime) {
+        latest = { nodeId, entry }
+      }
+    }
+
+    return latest
   }
 }

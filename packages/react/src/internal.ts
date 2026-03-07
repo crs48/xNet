@@ -7,6 +7,11 @@
 
 export { useNodeStore, type NodeStoreContextValue } from './hooks/useNodeStore'
 export {
+  useUndoScope,
+  type UseUndoScopeOptions,
+  type UseUndoScopeResult
+} from './hooks/useUndoScope'
+export {
   InstrumentationContext,
   useInstrumentation,
   type InstrumentationContextValue,

@@ -20,6 +20,7 @@ const workspaceAliases = {
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins': new URL('./packages/plugins/src/index.ts', import.meta.url).pathname,
   '@xnetjs/query': new URL('./packages/query/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/react/internal': new URL('./packages/react/src/internal.ts', import.meta.url).pathname,
   '@xnetjs/react': new URL('./packages/react/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sdk': new URL('./packages/sdk/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sqlite/memory': new URL('./packages/sqlite/src/adapters/memory.ts', import.meta.url)

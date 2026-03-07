@@ -15,7 +15,7 @@ Converge xNet databases around one canonical structured-data model so that hooks
 This step intentionally builds on the earlier database plan instead of replacing it:
 
 - [`plan03_9_3DatabaseDataModel`](../plan03_9_3DatabaseDataModel/README.md) already outlines a node-native direction.
-- [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) now composes over [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts), but it still retains Y.Doc-backed schema metadata and undo wiring that need a deliberate final convergence story.
+- [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) now composes over [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts), but it still retains Y.Doc-backed schema metadata that need a deliberate final convergence story.
 - [`apps/web/src/components/DatabaseView.tsx`](../../../apps/web/src/components/DatabaseView.tsx) now composes over [`useDatabaseDoc()`](../../../packages/react/src/hooks/useDatabaseDoc.ts) and [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts), but it still depends on a temporary legacy compatibility path for older documents.
 - [`packages/react/src/index.ts`](../../../packages/react/src/index.ts) already exports `useDatabase`, `useDatabaseDoc`, `useDatabaseRow`, and `useCell`, which implies a more granular model than the active app views actually use.
 
@@ -44,11 +44,16 @@ That split needs to end before database UX, large tables, or canvas-to-ERP evolu
 - the Electron database surface now uses the same hook layer in [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx) for rows, columns, views, and board reordering instead of writing whole `rows`/`columns` arrays into the document `data` map.
 - canonical row reordering now resolves row ids inside [`useDatabase()`](../../../packages/react/src/hooks/useDatabase.ts) and is backed by corrected fractional-index positioning in [`packages/data/src/database/row-operations.ts`](../../../packages/data/src/database/row-operations.ts), with focused coverage in [`packages/react/src/hooks/useDatabase.test.tsx`](../../../packages/react/src/hooks/useDatabase.test.tsx) and [`packages/data/src/database/row-operations.test.ts`](../../../packages/data/src/database/row-operations.test.ts).
 - legacy-model detection no longer treats schema metadata alone as proof of legacy storage state in [`packages/data/src/database/legacy-model.ts`](../../../packages/data/src/database/legacy-model.ts), which keeps canonical docs from being stuck in `mixed` purely because Electron still records schema metadata/history in `data`.
+- database sync and migration proof now covers cross-device row ordering and row-count convergence in [`packages/data/src/database/row-operations.test.ts`](../../../packages/data/src/database/row-operations.test.ts) plus idempotent legacy materialization after canonical rows sync to another device in [`packages/data/src/database/legacy-migration.test.ts`](../../../packages/data/src/database/legacy-migration.test.ts).
+- NodeStore change events now surface `previousNode` snapshots in [`packages/data/src/store/types.ts`](../../../packages/data/src/store/types.ts) and [`packages/data/src/store/store.ts`](../../../packages/data/src/store/store.ts), which lets history capture structured pre-change state without manual bookkeeping.
+- [`UndoManager`](../../../packages/history/src/undo-manager.ts) now preserves create/update boundaries inside the merge window, supports create/delete/restore batch replay across scopes, and is covered by database-specific regression cases in [`packages/history/src/history.test.ts`](../../../packages/history/src/history.test.ts).
+- row creation and deletion now batch row-lifecycle and `rowCount` mutations together inside [`packages/data/src/database/row-operations.ts`](../../../packages/data/src/database/row-operations.ts), so structured undo replays database counts and row state as one intent.
+- scoped structured undo is now exposed through [`useUndoScope()`](../../../packages/react/src/hooks/useUndoScope.ts) and stabilized for inline option objects alongside [`useUndo()`](../../../packages/react/src/hooks/useUndo.ts), with focused hook coverage in [`packages/react/src/hooks/useUndoScope.test.tsx`](../../../packages/react/src/hooks/useUndoScope.test.tsx) and [`packages/react/src/hooks/useUndo.test.tsx`](../../../packages/react/src/hooks/useUndo.test.tsx).
+- the Electron database surface now routes row-backed mutations through structured undo scope while keeping document-level Yjs undo for schema/rich-text edits in [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx).
 
 ### Still open before this step is complete
 
-- structured undo and rich-text undo are still coupled in the Electron implementation.
-- sync correctness and cross-device migration tests for databases are still missing.
+- formally reaffirm whether columns/views/database metadata stay Yjs-backed behind the hook layer or move fully to node-native entities in a follow-on cut, then validate that choice against both app surfaces.
 
 ## Proposed Design
 
@@ -154,6 +159,6 @@ The view layer should not know whether data came from local NodeStore materializ
 - [ ] Reaffirm the canonical node-native database model from the earlier plan.
 - [x] Design an explicit migration path from legacy Y.Map-backed database documents.
 - [x] Move web and Electron database views onto the hook-driven model.
-- [ ] Separate structured undo semantics from rich-text Yjs undo semantics.
-- [ ] Add sync and migration tests for database correctness.
+- [x] Separate structured undo semantics from rich-text Yjs undo semantics.
+- [x] Add sync and migration tests for database correctness.
 - [x] Remove direct whole-array database persistence from app components once migration is complete.

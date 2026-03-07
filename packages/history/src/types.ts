@@ -301,6 +301,8 @@ export interface UndoEntry {
   currentValues: Record<string, unknown>
   batchId?: string
   wallTime: number
+  /** True if this entry represents a create operation */
+  wasCreate?: boolean
   /** True if this entry represents a delete operation */
   wasDelete?: boolean
   /** True if this entry represents a restore operation */

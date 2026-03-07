@@ -410,6 +410,8 @@ export interface TransactionResult {
 export interface NodeChangeEvent {
   /** The change that was applied */
   change: NodeChange
+  /** The node state before the change was applied */
+  previousNode: NodeState | null
   /** The resulting Node state */
   node: NodeState | null
   /** Whether this was a remote change (from sync) */

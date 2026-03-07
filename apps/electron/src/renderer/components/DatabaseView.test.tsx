@@ -27,6 +27,7 @@ const mockUseIdentity = vi.fn()
 const mockUseMutate = vi.fn()
 const mockUseQuery = vi.fn()
 const mockUseDatabaseComments = vi.fn()
+const mockUseUndoScope = vi.fn()
 
 vi.mock('@xnetjs/data', () => ({
   DatabaseSchema: {
@@ -66,6 +67,10 @@ vi.mock('@xnetjs/react', () => ({
   useIdentity: (...args: unknown[]) => mockUseIdentity(...args),
   useMutate: (...args: unknown[]) => mockUseMutate(...args),
   useQuery: (...args: unknown[]) => mockUseQuery(...args)
+}))
+
+vi.mock('@xnetjs/react/internal', () => ({
+  useUndoScope: (...args: unknown[]) => mockUseUndoScope(...args)
 }))
 
 vi.mock('@xnetjs/views', () => ({
@@ -243,6 +248,12 @@ describe('DatabaseView minimal chrome', () => {
     mockUseIdentity.mockReturnValue({ did: 'did:xnet:test' })
     mockUseMutate.mockReturnValue({ create: mockCreate })
     mockUseQuery.mockReturnValue({ data: [] })
+    mockUseUndoScope.mockReturnValue({
+      undo: vi.fn(async () => false),
+      redo: vi.fn(async () => false),
+      canUndo: false,
+      canRedo: false
+    })
     mockUseDatabaseComments.mockReturnValue({
       threads: [],
       cellCommentCounts: new Map(),
