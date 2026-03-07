@@ -11,7 +11,8 @@ import {
   GitBranch,
   LoaderCircle,
   MessageSquarePlus,
-  Sparkles
+  Sparkles,
+  Trash2
 } from 'lucide-react'
 import React, { useMemo } from 'react'
 
@@ -22,6 +23,7 @@ type SessionRailProps = {
   loading: boolean
   error: Error | null
   onCreateSession: () => void
+  onRemoveSession: () => void
   onSelectSession: (sessionId: string) => void
 }
 
@@ -76,6 +78,7 @@ export function SessionRail({
   loading,
   error,
   onCreateSession,
+  onRemoveSession,
   onSelectSession
 }: SessionRailProps): React.ReactElement {
   const treeNodes = useMemo(() => {
@@ -142,15 +145,28 @@ export function SessionRail({
             </div>
           </div>
 
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            leftIcon={<MessageSquarePlus />}
-            onClick={onCreateSession}
-          >
-            New
-          </Button>
+          <div className="flex items-center gap-2">
+            {activeSession ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                leftIcon={<Trash2 />}
+                onClick={onRemoveSession}
+              >
+                Remove
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              leftIcon={<MessageSquarePlus />}
+              onClick={onCreateSession}
+            >
+              New
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -168,8 +184,8 @@ export function SessionRail({
             <div className="space-y-2">
               <p className="text-sm font-medium text-foreground">No coding sessions yet</p>
               <p className="text-xs leading-5 text-muted-foreground">
-                Start with a placeholder session so the shell can hold chats, worktrees, and preview
-                state before the real git orchestration lands.
+                Create a worktree-backed session to attach a branch, preview runtime, and shared
+                OpenCode chat surface.
               </p>
             </div>
             <Button

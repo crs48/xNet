@@ -2,12 +2,12 @@
  * Three-panel coding workspace shell for the Electron app.
  */
 
-import type { SessionSummaryInput } from './state/active-session'
 import { Badge, Button, ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@xnetjs/ui'
-import { ArrowLeft, Code2, RefreshCcw, Settings } from 'lucide-react'
+import { ArrowLeft, Code2, RefreshCcw, Settings, Trash2 } from 'lucide-react'
 import React, { useCallback } from 'react'
 import { useActiveSession } from './hooks/useActiveSession'
 import { useSessionCommands } from './hooks/useSessionCommands'
+import { useWorkspaceSessionSync } from './hooks/useWorkspaceSessionSync'
 import { OpenCodePanel } from './OpenCodePanel'
 import { PreviewWorkspace } from './PreviewWorkspace'
 import { SessionRail } from './SessionRail'
@@ -17,20 +17,8 @@ type DevWorkspaceShellProps = {
   onOpenSettings: () => void
 }
 
-function createPlaceholderSessionInput(index: number): SessionSummaryInput {
-  const paddedIndex = String(index).padStart(2, '0')
-  const slug = `workspace-session-${paddedIndex}`
-
-  return {
-    title: `Workspace Session ${paddedIndex}`,
-    branch: `codex/${slug}`,
-    worktreeName: slug,
-    worktreePath: `.xnet/worktrees/${slug}`,
-    openCodeUrl: 'http://127.0.0.1:4096',
-    lastMessagePreview: 'Describe the layout or interaction you want to change.',
-    changedFilesCount: 0,
-    state: 'idle'
-  }
+function createWorkspaceSessionTitle(index: number): string {
+  return `Workspace Session ${String(index).padStart(2, '0')}`
 }
 
 export function DevWorkspaceShell({
@@ -39,12 +27,60 @@ export function DevWorkspaceShell({
 }: DevWorkspaceShellProps): React.ReactElement {
   const { activeSession, activeSessionId, summaries, summariesLoading, summariesError, reload } =
     useActiveSession()
-  const { createSessionSummary, selectSession } = useSessionCommands()
+  const {
+    createWorkspaceSession,
+    refreshWorkspaceSession,
+    removeWorkspaceSession,
+    restartWorkspacePreview,
+    selectSession
+  } = useSessionCommands()
+
+  useWorkspaceSessionSync({
+    summaries,
+    activeSessionId
+  })
 
   const handleCreateSession = useCallback(async () => {
     const nextIndex = summaries.length + 1
-    await createSessionSummary(createPlaceholderSessionInput(nextIndex))
-  }, [createSessionSummary, summaries.length])
+    await createWorkspaceSession({
+      title: createWorkspaceSessionTitle(nextIndex)
+    })
+  }, [createWorkspaceSession, summaries.length])
+
+  const handleRefresh = useCallback(async () => {
+    if (activeSession) {
+      await refreshWorkspaceSession(activeSession)
+      return
+    }
+
+    await reload()
+  }, [activeSession, refreshWorkspaceSession, reload])
+
+  const handleRemoveActiveSession = useCallback(async () => {
+    if (!activeSession) {
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Remove ${activeSession.title ?? 'this session'} and its worktree? Clean worktrees only.`
+    )
+    if (!confirmed) {
+      return
+    }
+
+    const result = await removeWorkspaceSession(activeSession)
+    if (!result.removed) {
+      window.alert(result.message)
+    }
+  }, [activeSession, removeWorkspaceSession])
+
+  const handleRestartPreview = useCallback(async () => {
+    if (!activeSession) {
+      return
+    }
+
+    await restartWorkspacePreview(activeSession)
+  }, [activeSession, restartWorkspacePreview])
 
   return (
     <div className="relative h-screen overflow-hidden bg-background">
@@ -74,10 +110,25 @@ export function DevWorkspaceShell({
               size="sm"
               variant="outline"
               leftIcon={<RefreshCcw />}
-              onClick={() => void reload()}
+              onClick={() => {
+                void handleRefresh()
+              }}
             >
               Refresh
             </Button>
+            {activeSession ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                leftIcon={<Trash2 />}
+                onClick={() => {
+                  void handleRemoveActiveSession()
+                }}
+              >
+                Remove
+              </Button>
+            ) : null}
             <Button
               type="button"
               size="sm"
@@ -106,6 +157,9 @@ export function DevWorkspaceShell({
               onCreateSession={() => {
                 void handleCreateSession()
               }}
+              onRemoveSession={() => {
+                void handleRemoveActiveSession()
+              }}
               onSelectSession={(sessionId) => {
                 void selectSession(sessionId)
               }}
@@ -121,7 +175,15 @@ export function DevWorkspaceShell({
           <ResizableHandle withHandle />
 
           <ResizablePanel defaultSize={48} minSize={28}>
-            <PreviewWorkspace activeSession={activeSession} />
+            <PreviewWorkspace
+              activeSession={activeSession}
+              onRefreshSession={() => {
+                void handleRefresh()
+              }}
+              onRestartPreview={() => {
+                void handleRestartPreview()
+              }}
+            />
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>

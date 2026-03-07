@@ -181,9 +181,9 @@ Recommended artifact path:
 
 ## Step Checklist
 
-- [ ] Add `GitService` wrappers around worktree, status, diff, commit, and PR commands
-- [ ] Use `codex/` as the default generated branch prefix
-- [ ] Add `PreviewManager` with per-session port allocation
-- [ ] Keep active and recent preview sessions warm
-- [ ] Persist `previewUrl`, `changedFilesCount`, and `lastScreenshotPath` back into session summaries
-- [ ] Add safe cleanup flows for stopped previews and removable worktrees
+- [x] Add `GitService` wrappers around worktree, status, diff, commit, and PR commands
+- [x] Use `codex/` as the default generated branch prefix
+- [x] Add `PreviewManager` with per-session port allocation
+- [x] Keep active and recent preview sessions warm
+- [x] Persist `previewUrl`, `changedFilesCount`, and `lastScreenshotPath` back into session summaries
+- [x] Add safe cleanup flows for stopped previews and removable worktrees

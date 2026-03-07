@@ -146,8 +146,8 @@ flowchart LR
 - [x] Add xNet-backed `SessionSummary` storage and hooks.
 - [x] Add a coding-workspace shell mode to the renderer.
 - [x] Embed or host OpenCode Web in the center panel.
-- [ ] Add `GitService` worktree lifecycle commands.
-- [ ] Add `PreviewManager` with warm-session behavior.
+- [x] Add `GitService` worktree lifecycle commands.
+- [x] Add `PreviewManager` with warm-session behavior.
 - [ ] Add right-click target metadata conventions and capture flow.
 - [x] Add diff/file/markdown/PR tabs on the right panel.
 - [ ] Add screenshot capture and PR drafting.

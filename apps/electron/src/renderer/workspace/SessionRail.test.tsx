@@ -40,6 +40,7 @@ describe('SessionRail', () => {
         loading={false}
         error={null}
         onCreateSession={handleCreateSession}
+        onRemoveSession={vi.fn()}
         onSelectSession={vi.fn()}
       />
     )
@@ -75,6 +76,7 @@ describe('SessionRail', () => {
         loading={false}
         error={null}
         onCreateSession={vi.fn()}
+        onRemoveSession={vi.fn()}
         onSelectSession={handleSelectSession}
       />
     )

@@ -10,6 +10,16 @@ import {
   type OpenCodeHostStatus
 } from '../shared/opencode-host'
 import { isAllowedServiceChannel } from '../shared/service-ipc'
+import {
+  WORKSPACE_SESSION_IPC_CHANNELS,
+  type CreateWorkspaceSessionInput,
+  type RefreshWorkspaceSessionInput,
+  type RemoveWorkspaceSessionInput,
+  type RemoveWorkspaceSessionResult,
+  type SyncWorkspaceSessionsInput,
+  type WorkspaceSessionSnapshot,
+  type WorkspaceSessionStatusEvent
+} from '../shared/workspace-session'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
@@ -331,6 +341,31 @@ contextBridge.exposeInMainWorld('xnetOpenCode', {
   }
 })
 
+contextBridge.exposeInMainWorld('xnetWorkspaceSessions', {
+  create: (input: CreateWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.CREATE, input),
+  sync: (input: SyncWorkspaceSessionsInput): Promise<WorkspaceSessionSnapshot[]> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.SYNC, input),
+  refresh: (input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.REFRESH, input),
+  restartPreview: (input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.RESTART_PREVIEW, input),
+  remove: (input: RemoveWorkspaceSessionInput): Promise<RemoveWorkspaceSessionResult> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.REMOVE, input),
+  onStatusChange: (callback: (event: WorkspaceSessionStatusEvent) => void) => {
+    const handler = (_: unknown, event: WorkspaceSessionStatusEvent) => callback(event)
+    ipcRenderer.on(
+      WORKSPACE_SESSION_IPC_CHANNELS.STATUS_CHANGE,
+      handler as (...args: unknown[]) => void
+    )
+    return () =>
+      ipcRenderer.removeListener(
+        WORKSPACE_SESSION_IPC_CHANNELS.STATUS_CHANGE,
+        handler as (...args: unknown[]) => void
+      )
+  }
+})
+
 // Expose Local API status/control for renderer
 contextBridge.exposeInMainWorld('xnetLocalAPI', {
   status: () => ipcRenderer.invoke('xnet:localapi:status'),
@@ -525,6 +560,15 @@ export interface XNetOpenCodeAPI {
   onOutput(callback: (event: OpenCodeHostOutputEvent) => void): () => void
 }
 
+export interface XNetWorkspaceSessionsAPI {
+  create(input: CreateWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot>
+  sync(input: SyncWorkspaceSessionsInput): Promise<WorkspaceSessionSnapshot[]>
+  refresh(input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot>
+  restartPreview(input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot>
+  remove(input: RemoveWorkspaceSessionInput): Promise<RemoveWorkspaceSessionResult>
+  onStatusChange(callback: (event: WorkspaceSessionStatusEvent) => void): () => void
+}
+
 export interface XNetLocalAPIStatus {
   running: boolean
   port: number
@@ -602,6 +646,7 @@ declare global {
     xnetBSM: XNetBSMAPI
     xnetServices: XNetServicesAPI
     xnetOpenCode: XNetOpenCodeAPI
+    xnetWorkspaceSessions: XNetWorkspaceSessionsAPI
     xnetLocalAPI: XNetLocalAPIAPI
     xnetTunnel: XNetTunnelAPI
     xnetNodes: XNetNodesAPI

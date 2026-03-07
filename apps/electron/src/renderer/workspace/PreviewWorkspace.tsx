@@ -3,11 +3,22 @@
  */
 
 import type { SessionSummaryNode } from './state/active-session'
-import { Badge, MarkdownContent, Tabs, TabsContent, TabsList, TabsTrigger } from '@xnetjs/ui'
+import {
+  Badge,
+  Button,
+  MarkdownContent,
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@xnetjs/ui'
+import { RefreshCcw, RotateCw } from 'lucide-react'
 import React, { useMemo } from 'react'
 
 type PreviewWorkspaceProps = {
   activeSession: SessionSummaryNode | null
+  onRefreshSession?: () => void
+  onRestartPreview?: () => void
 }
 
 function buildSessionBrief(session: SessionSummaryNode): string {
@@ -59,7 +70,11 @@ function PlaceholderCard({ title, body }: { title: string; body: string }): Reac
   )
 }
 
-export function PreviewWorkspace({ activeSession }: PreviewWorkspaceProps): React.ReactElement {
+export function PreviewWorkspace({
+  activeSession,
+  onRefreshSession,
+  onRestartPreview
+}: PreviewWorkspaceProps): React.ReactElement {
   const sessionBrief = useMemo(
     () => (activeSession ? buildSessionBrief(activeSession) : ''),
     [activeSession]
@@ -83,9 +98,31 @@ export function PreviewWorkspace({ activeSession }: PreviewWorkspaceProps): Reac
           </p>
         </div>
 
-        {activeSession ? (
-          <Badge variant="outline">{String(activeSession.changedFilesCount ?? 0)} files</Badge>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {activeSession ? (
+            <>
+              <Badge variant="outline">{String(activeSession.changedFilesCount ?? 0)} files</Badge>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                leftIcon={<RefreshCcw />}
+                onClick={onRefreshSession}
+              >
+                Refresh
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                leftIcon={<RotateCw />}
+                onClick={onRestartPreview}
+              >
+                Restart preview
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-hidden p-4">
@@ -103,6 +140,16 @@ export function PreviewWorkspace({ activeSession }: PreviewWorkspaceProps): Reac
               <PlaceholderCard
                 title="No preview selected"
                 body="The preview tab will render the warm runtime or cached frame for the selected worktree in Step 04."
+              />
+            ) : activeSession.state === 'error' ? (
+              <PlaceholderCard
+                title="Preview needs attention"
+                body="The selected session hit a preview runtime error. Use the restart control in the header to bring the warm preview back."
+              />
+            ) : activeSession.state === 'running' ? (
+              <PlaceholderCard
+                title="Starting preview runtime"
+                body="The worktree preview is booting in the background. The panel will swap in as soon as the warm runtime is ready."
               />
             ) : activeSession.previewUrl ? (
               <div className="h-full overflow-hidden rounded-[28px] border border-border/70 bg-background shadow-2xl shadow-black/10">

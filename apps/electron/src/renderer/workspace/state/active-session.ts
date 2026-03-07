@@ -2,6 +2,7 @@
  * Shared state helpers for workspace session selection.
  */
 
+import type { WorkspaceSessionSnapshot } from '../../../shared/workspace-session'
 import type { InferCreateProps } from '@xnetjs/data'
 import type { FlatNode } from '@xnetjs/react'
 import { SessionSummarySchema, WorkspaceShellStateSchema } from '../schemas'
@@ -105,6 +106,38 @@ export function createSessionSummaryPatch(
   }
 
   return next
+}
+
+export function createSessionSummaryInputFromWorkspaceSnapshot(
+  snapshot: WorkspaceSessionSnapshot
+): SessionSummaryInput {
+  return {
+    title: snapshot.title,
+    branch: snapshot.branch,
+    worktreeName: snapshot.worktreeName,
+    worktreePath: snapshot.worktreePath,
+    openCodeUrl: snapshot.openCodeUrl,
+    previewUrl: snapshot.previewUrl,
+    lastScreenshotPath: snapshot.lastScreenshotPath,
+    changedFilesCount: snapshot.changedFilesCount,
+    state: snapshot.state
+  }
+}
+
+export function createSessionSummaryPatchFromWorkspaceSnapshot(
+  snapshot: WorkspaceSessionSnapshot
+): Partial<SessionSummaryInput> {
+  return {
+    title: snapshot.title,
+    branch: snapshot.branch,
+    worktreeName: snapshot.worktreeName,
+    worktreePath: snapshot.worktreePath,
+    openCodeUrl: snapshot.openCodeUrl,
+    previewUrl: snapshot.previewUrl,
+    lastScreenshotPath: snapshot.lastScreenshotPath,
+    changedFilesCount: snapshot.changedFilesCount,
+    state: snapshot.state
+  }
 }
 
 export function getSessionActivityAt(session: SessionSummaryNode): number {

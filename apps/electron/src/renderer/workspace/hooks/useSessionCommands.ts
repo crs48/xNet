@@ -3,6 +3,13 @@
  */
 
 import type {
+  CreateWorkspaceSessionInput,
+  RefreshWorkspaceSessionInput,
+  RemoveWorkspaceSessionResult,
+  SyncWorkspaceSessionsInput,
+  WorkspaceSessionSnapshot
+} from '../../../shared/workspace-session'
+import type {
   SessionSummaryNode,
   WorkspaceShellStateNode,
   SessionSummaryInput
@@ -11,6 +18,8 @@ import { useMutate, useQuery } from '@xnetjs/react'
 import { useCallback } from 'react'
 import { SessionSummarySchema, WorkspaceShellStateSchema } from '../schemas'
 import {
+  createSessionSummaryInputFromWorkspaceSnapshot,
+  createSessionSummaryPatchFromWorkspaceSnapshot,
   createSessionSummaryInput,
   createSessionSummaryPatch,
   createWorkspaceShellStateInput,
@@ -22,7 +31,43 @@ type CreateSessionOptions = {
   select?: boolean
 }
 
+type CreateWorkspaceSessionOptions = {
+  title: string
+  branchSlug?: string | null
+  baseRef?: string | null
+}
+
 let pendingShellStateCreation: Promise<WorkspaceShellStateNode | null> | null = null
+
+function createRendererSessionId(): string {
+  return `xnet:workspace-session:${crypto.randomUUID()}`
+}
+
+function toWorkspaceRefreshInput(session: SessionSummaryNode): RefreshWorkspaceSessionInput {
+  return {
+    sessionId: session.id,
+    title: session.title ?? 'Untitled session',
+    branch: session.branch ?? 'unknown',
+    worktreeName: session.worktreeName ?? session.title ?? 'workspace-session',
+    worktreePath: session.worktreePath ?? ''
+  }
+}
+
+function toWorkspaceSyncInput(
+  summaries: readonly SessionSummaryNode[],
+  activeSessionId: string | null
+): SyncWorkspaceSessionsInput {
+  return {
+    activeSessionId,
+    sessions: summaries.map((session) => ({
+      sessionId: session.id,
+      title: session.title ?? 'Untitled session',
+      branch: session.branch ?? 'unknown',
+      worktreeName: session.worktreeName ?? session.title ?? 'workspace-session',
+      worktreePath: session.worktreePath ?? ''
+    }))
+  }
+}
 
 export function useSessionCommands() {
   const { create, update, remove } = useMutate()
@@ -97,6 +142,78 @@ export function useSessionCommands() {
     [update]
   )
 
+  const applyWorkspaceSessionSnapshot = useCallback(
+    async (snapshot: WorkspaceSessionSnapshot): Promise<SessionSummaryNode | null> => {
+      return updateSessionSummary(
+        snapshot.sessionId,
+        createSessionSummaryPatchFromWorkspaceSnapshot(snapshot)
+      )
+    },
+    [updateSessionSummary]
+  )
+
+  const createWorkspaceSession = useCallback(
+    async (
+      options: CreateWorkspaceSessionOptions,
+      createOptions: CreateSessionOptions = {}
+    ): Promise<SessionSummaryNode | null> => {
+      const sessionId = createOptions.id ?? createRendererSessionId()
+      const request: CreateWorkspaceSessionInput = {
+        sessionId,
+        title: options.title,
+        branchSlug: options.branchSlug ?? undefined,
+        baseRef: options.baseRef ?? undefined
+      }
+      const snapshot = await window.xnetWorkspaceSessions.create(request)
+
+      return createSessionSummary(createSessionSummaryInputFromWorkspaceSnapshot(snapshot), {
+        id: sessionId,
+        select: createOptions.select
+      })
+    },
+    [createSessionSummary]
+  )
+
+  const syncWorkspaceSessions = useCallback(
+    async (
+      summaries: readonly SessionSummaryNode[],
+      activeSessionId: string | null
+    ): Promise<WorkspaceSessionSnapshot[]> => {
+      const input = toWorkspaceSyncInput(summaries, activeSessionId)
+      const snapshots = await window.xnetWorkspaceSessions.sync(input)
+
+      await Promise.all(
+        snapshots.map((snapshot) =>
+          updateSessionSummary(
+            snapshot.sessionId,
+            createSessionSummaryPatchFromWorkspaceSnapshot(snapshot)
+          )
+        )
+      )
+
+      return snapshots
+    },
+    [updateSessionSummary]
+  )
+
+  const refreshWorkspaceSession = useCallback(
+    async (session: SessionSummaryNode): Promise<SessionSummaryNode | null> => {
+      const snapshot = await window.xnetWorkspaceSessions.refresh(toWorkspaceRefreshInput(session))
+      return applyWorkspaceSessionSnapshot(snapshot)
+    },
+    [applyWorkspaceSessionSnapshot]
+  )
+
+  const restartWorkspacePreview = useCallback(
+    async (session: SessionSummaryNode): Promise<SessionSummaryNode | null> => {
+      const snapshot = await window.xnetWorkspaceSessions.restartPreview(
+        toWorkspaceRefreshInput(session)
+      )
+      return applyWorkspaceSessionSnapshot(snapshot)
+    },
+    [applyWorkspaceSessionSnapshot]
+  )
+
   const removeSessionSummary = useCallback(
     async (sessionId: string): Promise<void> => {
       if (shellStateQuery.data?.activeSession === sessionId) {
@@ -108,11 +225,33 @@ export function useSessionCommands() {
     [remove, selectSession, shellStateQuery.data?.activeSession]
   )
 
+  const removeWorkspaceSession = useCallback(
+    async (session: SessionSummaryNode): Promise<RemoveWorkspaceSessionResult> => {
+      const result = await window.xnetWorkspaceSessions.remove({
+        sessionId: session.id,
+        worktreePath: session.worktreePath ?? ''
+      })
+
+      if (result.removed) {
+        await removeSessionSummary(session.id)
+      }
+
+      return result
+    },
+    [removeSessionSummary]
+  )
+
   return {
     ensureWorkspaceShellState,
     createSessionSummary,
+    createWorkspaceSession,
     updateSessionSummary,
+    applyWorkspaceSessionSnapshot,
+    syncWorkspaceSessions,
+    refreshWorkspaceSession,
+    restartWorkspacePreview,
     removeSessionSummary,
+    removeWorkspaceSession,
     selectSession
   }
 }
