@@ -51,9 +51,15 @@ That split needs to end before database UX, large tables, or canvas-to-ERP evolu
 - scoped structured undo is now exposed through [`useUndoScope()`](../../../packages/react/src/hooks/useUndoScope.ts) and stabilized for inline option objects alongside [`useUndo()`](../../../packages/react/src/hooks/useUndo.ts), with focused hook coverage in [`packages/react/src/hooks/useUndoScope.test.tsx`](../../../packages/react/src/hooks/useUndoScope.test.tsx) and [`packages/react/src/hooks/useUndo.test.tsx`](../../../packages/react/src/hooks/useUndo.test.tsx).
 - the Electron database surface now routes row-backed mutations through structured undo scope while keeping document-level Yjs undo for schema/rich-text edits in [`apps/electron/src/renderer/components/DatabaseView.tsx`](../../../apps/electron/src/renderer/components/DatabaseView.tsx).
 
-### Still open before this step is complete
+### Canonical-model reaffirmation
 
-- formally reaffirm whether columns/views/database metadata stay Yjs-backed behind the hook layer or move fully to node-native entities in a follow-on cut, then validate that choice against both app surfaces.
+This cycle reaffirms the earlier node-native direction:
+
+- rows, row ordering, and structured cell values are canonical NodeStore-backed state,
+- app surfaces must mutate databases through the hook and row-operation layer,
+- and Yjs-backed database metadata remains an implementation detail behind that hook layer for collaborative document/view state and legacy compatibility, not the primary app-facing persistence model.
+
+That keeps the public contract coherent now without pretending the internal metadata shape is already the final long-term endpoint.
 
 ## Proposed Design
 
@@ -156,7 +162,7 @@ The view layer should not know whether data came from local NodeStore materializ
 
 ## Step Checklist
 
-- [ ] Reaffirm the canonical node-native database model from the earlier plan.
+- [x] Reaffirm the canonical node-native database model from the earlier plan.
 - [x] Design an explicit migration path from legacy Y.Map-backed database documents.
 - [x] Move web and Electron database views onto the hook-driven model.
 - [x] Separate structured undo semantics from rich-text Yjs undo semantics.

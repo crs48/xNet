@@ -37,14 +37,14 @@ The roadmap is no longer "build core capabilities from scratch." It is now:
 - [x] Presence/awareness pathways exist in desktop sync flow (`apps/electron/src/renderer/lib/ipc-sync-manager.ts`)
 - [x] Package lifecycle labels and explicit entrypoint guidance are published (`packages/README.md`, `docs/reference/api-lifecycle-matrix.md`)
 - [x] Worker-first web runtime now exposes visible fallback state and storage durability status (`apps/web/src/App.tsx`, `packages/react/src/context.ts`)
+- [x] Convergence release gates are recorded with benchmarks, web canary proof, and Electron multi-profile validation (`docs/reference/core-platform-convergence-release-gates.md`)
 
 ### What Is Partially Done or Still Missing
 
 - [ ] Navigation depth in web is still shallow (no nested hierarchy, breadcrumb, pinned/recent)
-- [ ] Large-workspace navigation and search baselines still need formal measurement
 - [ ] Invites/membership UX and role lifecycle are not fully productized
 - [ ] Federation exists in pieces, but not yet a complete multi-hub operator story
-- [ ] Multi-device recovery and long-running sync need broader proving beyond focused package tests
+- [ ] Collaboration acceptance still needs invite/share/revoke/reconnect product-level proving beyond the core convergence gate
 
 ---
 
@@ -213,6 +213,6 @@ gantt
 
 ## Immediate Next Actions (This Week)
 
-1. Finish the remaining convergence validation work: multi-device reconnect, long-running sync proving, and benchmark baselines.
-2. Close the web navigation gap with hierarchy, breadcrumbs, and recent/pinned surfaces.
-3. Build a collaboration acceptance checklist (invite -> share -> revoke -> reconnect) and run it end-to-end.
+1. Close the web navigation gap with hierarchy, breadcrumbs, and recent/pinned surfaces.
+2. Build a collaboration acceptance checklist (invite -> share -> revoke -> reconnect) and run it end-to-end.
+3. Start the daily-driver polish loop for create/open flows, loading states, and keyboard consistency.

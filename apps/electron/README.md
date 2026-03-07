@@ -23,7 +23,7 @@ pnpm dist          # Create distributable
 - Database views (table, board, gallery, timeline, calendar)
 - Infinite canvas
 - Plugin system with sandboxed scripts
-- DevTools (9-panel debug suite)
+- DevTools (15-panel debug suite)
 - Hub sync (WebSocket to @xnetjs/hub)
 - History, undo/redo, audit trails
 - Comments on documents and databases

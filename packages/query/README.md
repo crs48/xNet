@@ -2,6 +2,9 @@
 
 Local query engine, full-text search, and federated query routing for xNet.
 
+> **Status:** Stable secondary surface
+> Primary app-facing query/runtime work should go through `@xnetjs/react` and the bridge/runtime contract. `@xnetjs/query` remains the lower-level search/query toolkit used underneath those app surfaces.
+
 ## Installation
 
 ```bash

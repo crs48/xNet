@@ -133,4 +133,4 @@ The sidebar and related navigation surfaces should rely on:
 - [x] Use the intended worker runtime as the default web path.
 - [x] Route search, sidebar, and backlinks through the converged live-query layer.
 - [x] Validate large-workspace navigation behavior with pagination or virtualization.
-- [ ] Record web durability and responsiveness baselines for Step 08 release gates.
+- [x] Record web durability and responsiveness baselines for Step 08 release gates.

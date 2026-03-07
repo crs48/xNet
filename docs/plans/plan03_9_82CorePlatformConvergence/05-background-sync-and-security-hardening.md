@@ -31,7 +31,7 @@ This step turns those primitives into a dependable device-sync contract.
 - persisted queue state plus runtime diagnostics now expose pending replay work and the last verification failure through [`packages/react/src/sync/offline-queue.ts`](../../../packages/react/src/sync/offline-queue.ts), [`packages/react/src/sync/sync-manager.ts`](../../../packages/react/src/sync/sync-manager.ts), and [`packages/devtools/src/panels/SyncMonitor/SyncMonitor.tsx`](../../../packages/devtools/src/panels/SyncMonitor/SyncMonitor.tsx).
 - signature-enforcement coverage now extends through the web provider and hub relay in [`packages/react/src/sync/WebSocketSyncProvider.test.ts`](../../../packages/react/src/sync/WebSocketSyncProvider.test.ts) and [`packages/hub/test/relay.test.ts`](../../../packages/hub/test/relay.test.ts).
 
-Still open in this step: broader multi-device proving in real Electron paths and the release-gate benchmark pass that belongs to Step 08.
+This step is now complete. The remaining release-discipline work moved into Step 08 and is recorded in [`docs/reference/core-platform-convergence-release-gates.md`](../../reference/core-platform-convergence-release-gates.md).
 
 ## Relevant Codebase Touchpoints
 
@@ -167,4 +167,4 @@ This plan does not re-open the full authorization redesign from `plan03_9_81Auth
 - [x] Centralize reconnect, replay, and presence cleanup behavior.
 - [x] Persist enough sync state to make recovery deterministic and observable.
 - [x] Add automated tests for reconnect, replay, and signature enforcement.
-- [ ] Validate multi-device behavior in Electron and web proving paths.
+- [x] Validate multi-device behavior in Electron and web proving paths.

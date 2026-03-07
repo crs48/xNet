@@ -7,7 +7,7 @@ test.describe('Pages CRUD with SQLite', () => {
 
     const advanceOnboarding = async () => {
       for (let i = 0; i < 4; i++) {
-        const start = page.getByRole('button', { name: /Get started with Touch ID/i })
+        const start = page.getByRole('button', { name: /Get started with/i })
         if ((await start.count()) > 0 && (await start.first().isVisible())) {
           await start.first().click()
           await page.waitForTimeout(1000)
@@ -40,7 +40,9 @@ test.describe('Pages CRUD with SQLite', () => {
     await setupTestAuth(page)
     await advanceOnboarding()
 
-    await page.waitForTimeout(3000)
+    await expect(page.locator('#root')).not.toContainText('Welcome to xNet', {
+      timeout: 30_000
+    })
 
     await page.screenshot({ path: 'tmp/playwright/after-auth.png', fullPage: true })
 
