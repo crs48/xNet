@@ -20,6 +20,16 @@ The platform already has strong primitives, but the default behavior still needs
 
 This step turns those primitives into a dependable device-sync contract.
 
+## Landed in This Slice
+
+- [`packages/sync/src/sync-runtime.ts`](../../../packages/sync/src/sync-runtime.ts) now defines the canonical lifecycle phases and shared `SyncLifecycleState` snapshots for reconnect/replay observability.
+- [`packages/react/src/sync/sync-manager.ts`](../../../packages/react/src/sync/sync-manager.ts) now exposes lifecycle state alongside connection status, drives replay transitions from the offline queue, and clears remote awareness state on disconnect/error instead of leaving stale presence behind.
+- [`apps/electron/src/renderer/lib/ipc-sync-manager.ts`](../../../apps/electron/src/renderer/lib/ipc-sync-manager.ts) now derives the same lifecycle phases in the renderer-facing API so Electron and web no longer diverge on basic sync-state semantics.
+- deterministic coverage now exists for lifecycle derivation, reconnect/resubscribe behavior, offline queue replay, and sync-manager replay/presence cleanup in [`packages/sync/src/sync-runtime.test.ts`](../../../packages/sync/src/sync-runtime.test.ts), [`packages/react/src/sync/connection-manager.test.ts`](../../../packages/react/src/sync/connection-manager.test.ts), [`packages/react/src/sync/offline-queue.test.ts`](../../../packages/react/src/sync/offline-queue.test.ts), and [`packages/react/src/sync/sync-manager.test.ts`](../../../packages/react/src/sync/sync-manager.test.ts).
+- [`packages/react/package.json`](../../../packages/react/package.json) now declares the explicit `@xnetjs/sync` dependency required by the shared lifecycle runtime.
+
+Still open in this step: signed-by-default Yjs replication, explicit unsigned compatibility gates, durable sync checkpoints/diagnostics beyond queue persistence, and multi-device proving in real Electron/web paths.
+
 ## Relevant Codebase Touchpoints
 
 - [`packages/react/src/sync`](../../../packages/react/src/sync)
@@ -148,10 +158,10 @@ This plan does not re-open the full authorization redesign from `plan03_9_81Auth
 
 ## Step Checklist
 
-- [ ] Define a canonical sync lifecycle state machine.
+- [x] Define a canonical sync lifecycle state machine.
 - [ ] Make signed document replication the default production behavior.
 - [ ] Gate unsigned compatibility behind an explicit temporary flag.
-- [ ] Centralize reconnect, replay, and presence cleanup behavior.
+- [x] Centralize reconnect, replay, and presence cleanup behavior.
 - [ ] Persist enough sync state to make recovery deterministic and observable.
 - [ ] Add automated tests for reconnect, replay, and signature enforcement.
 - [ ] Validate multi-device behavior in Electron and web proving paths.

@@ -64,6 +64,15 @@ export type {
 } from './provider'
 export { BaseSyncProvider } from './provider'
 
+// Sync runtime lifecycle
+export type {
+  SyncConnectionStatus,
+  SyncLifecycleInput,
+  SyncLifecyclePhase,
+  SyncLifecycleState
+} from './sync-runtime'
+export { createSyncLifecycleState, deriveSyncLifecyclePhase } from './sync-runtime'
+
 // Yjs security: signed envelopes (Step 01 + Multi-level signatures)
 export type {
   SignedYjsEnvelope,

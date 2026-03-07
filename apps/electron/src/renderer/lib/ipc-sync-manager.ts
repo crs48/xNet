@@ -13,7 +13,9 @@
  */
 
 import type { SyncManager } from '@xnetjs/react'
+import type { SyncLifecycleInput, SyncLifecycleState } from '@xnetjs/sync'
 import { createYWebRTCProvider, type YWebRTCProvider } from '@xnetjs/network'
+import { createSyncLifecycleState } from '@xnetjs/sync'
 import {
   Awareness,
   encodeAwarenessUpdate,
@@ -24,6 +26,7 @@ import * as Y from 'yjs'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type StatusHandler = (status: ConnectionStatus) => void
+type LifecycleHandler = (state: SyncLifecycleState) => void
 type AwarenessSnapshotHandler = Parameters<SyncManager['onAwarenessSnapshot']>[1]
 type AwarenessSnapshotUsers = Parameters<AwarenessSnapshotHandler>[0]
 type DocType = 'page' | 'database' | 'canvas'
@@ -73,6 +76,16 @@ export function createIPCSyncManager(): IPCSyncManager {
   let currentStatus: ConnectionStatus = 'disconnected'
   let previousStatus: ConnectionStatus = 'disconnected'
   const statusListeners = new Set<StatusHandler>()
+  const lifecycleListeners = new Set<LifecycleHandler>()
+  let lifecycleInput: SyncLifecycleInput = {
+    started: false,
+    stopped: false,
+    localReady: false,
+    everConnected: false,
+    connectionStatus: currentStatus,
+    replaying: false
+  }
+  let lifecycle = createSyncLifecycleState(lifecycleInput)
   let statusCleanup: (() => void) | null = null
   let instrumentedEventBus: DevToolsEventBus | null = null
   let statusPollInterval: ReturnType<typeof setInterval> | null = null
@@ -162,10 +175,69 @@ export function createIPCSyncManager(): IPCSyncManager {
   let identityAuthorDID: string | null = null
   let identitySigningKey: number[] | null = null
 
+  function emitLifecycle(nextLifecycle: SyncLifecycleState): void {
+    for (const handler of lifecycleListeners) {
+      try {
+        handler(nextLifecycle)
+      } catch {
+        // Listener errors don't break the manager.
+      }
+    }
+  }
+
+  function updateLifecycle(patch: Partial<SyncLifecycleInput> = {}): void {
+    lifecycleInput = {
+      ...lifecycleInput,
+      ...patch
+    }
+
+    const nextLifecycle = createSyncLifecycleState(lifecycleInput, lifecycle)
+    const changed =
+      nextLifecycle.phase !== lifecycle.phase ||
+      nextLifecycle.connectionStatus !== lifecycle.connectionStatus ||
+      nextLifecycle.replaying !== lifecycle.replaying ||
+      nextLifecycle.lastTransitionAt !== lifecycle.lastTransitionAt
+
+    lifecycle = nextLifecycle
+
+    if (changed) {
+      emitLifecycle(nextLifecycle)
+    }
+  }
+
+  function clearRemotePresence(): void {
+    for (const [nodeId, awareness] of awarenessMap) {
+      const remoteClientIds = Array.from(awareness.getStates().keys()).filter(
+        (clientId) => clientId !== awareness.clientID
+      )
+
+      if (remoteClientIds.length > 0) {
+        removeAwarenessStates(awareness, remoteClientIds, 'connection-lost')
+      }
+
+      if (awarenessSnapshots.has(nodeId)) {
+        emitAwarenessSnapshot(nodeId, [])
+      }
+    }
+  }
+
   function notifyStatus(s: ConnectionStatus): void {
     if (s === currentStatus) return // Skip duplicate status updates
     previousStatus = currentStatus
     currentStatus = s
+    updateLifecycle({
+      connectionStatus: s,
+      everConnected: lifecycleInput.everConnected || s === 'connected'
+    })
+
+    if (
+      lifecycleInput.started &&
+      !lifecycleInput.stopped &&
+      (s === 'disconnected' || s === 'error')
+    ) {
+      clearRemotePresence()
+    }
+
     for (const handler of statusListeners) {
       try {
         handler(s)
@@ -195,10 +267,20 @@ export function createIPCSyncManager(): IPCSyncManager {
         return
       }
 
+      updateLifecycle({
+        started: true,
+        stopped: false,
+        localReady: false,
+        everConnected: false,
+        connectionStatus: currentStatus,
+        replaying: false
+      })
+
       // Listen for status changes from main process
       statusCleanup = window.xnetBSM.onStatusChange((status) => {
         notifyStatus(status as ConnectionStatus)
       })
+      updateLifecycle({ localReady: true })
 
       // Tell BSM to start (it may already be running)
       try {
@@ -207,6 +289,8 @@ export function createIPCSyncManager(): IPCSyncManager {
           authorDID: identityAuthorDID ?? undefined,
           signingKey: identitySigningKey ?? undefined
         })
+        const status = await window.xnetBSM.getStatus()
+        notifyStatus(status.status as ConnectionStatus)
       } catch (err) {
         console.warn('[IPCSyncManager] Failed to start:', err)
       }
@@ -237,6 +321,11 @@ export function createIPCSyncManager(): IPCSyncManager {
     },
 
     async stop() {
+      updateLifecycle({
+        stopped: true,
+        replaying: false
+      })
+
       // Clean up all nodes
       for (const [nodeId] of docs) {
         const cleanup = cleanups.get(nodeId)
@@ -445,6 +534,9 @@ export function createIPCSyncManager(): IPCSyncManager {
     get status() {
       return currentStatus
     },
+    get lifecycle() {
+      return lifecycle
+    },
     get poolSize() {
       return docs.size
     },
@@ -458,10 +550,16 @@ export function createIPCSyncManager(): IPCSyncManager {
       return 0 // Managed by main process
     },
 
-    on(event: 'status', handler: (status: ConnectionStatus) => void): () => void {
+    on(event, handler) {
       if (event === 'status') {
-        statusListeners.add(handler)
-        return () => statusListeners.delete(handler)
+        const statusHandler = handler as (status: ConnectionStatus) => void
+        statusListeners.add(statusHandler)
+        return () => statusListeners.delete(statusHandler)
+      }
+      if (event === 'lifecycle') {
+        const lifecycleHandler = handler as (state: SyncLifecycleState) => void
+        lifecycleListeners.add(lifecycleHandler)
+        return () => lifecycleListeners.delete(lifecycleHandler)
       }
       return () => {}
     },

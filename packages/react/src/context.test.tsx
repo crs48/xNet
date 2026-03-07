@@ -11,6 +11,12 @@ import { XNetProvider, useXNet, type XNetConfig } from './context'
 
 const TEST_DID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
 const TEST_KEY = new Uint8Array(32).fill(1)
+const CONNECTED_LIFECYCLE = {
+  phase: 'healthy' as const,
+  connectionStatus: 'connected' as const,
+  replaying: false,
+  lastTransitionAt: 0
+}
 
 function createWrapper(config: XNetConfig) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -31,6 +37,7 @@ function createSyncManagerStub(): SyncManager {
     requestBlobs: vi.fn(async () => undefined),
     announceBlobs: vi.fn(),
     status: 'connected',
+    lifecycle: CONNECTED_LIFECYCLE,
     poolSize: 0,
     trackedCount: 0,
     queueSize: 0,

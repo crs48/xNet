@@ -648,7 +648,7 @@ gantt
 
 ## Phase 3: Sync, Security, Durability
 
-- [ ] Add missing tests for `sync-manager`, `connection-manager`, and `offline-queue`
+- [x] Add missing tests for `sync-manager`, `connection-manager`, and `offline-queue`
 - [ ] Add end-to-end two-peer tests for page, database, and reconnect flows
 - [ ] Add explicit storage persistence request + status handling for the web app
 - [ ] Tighten production policy for unsigned/legacy sync compatibility
