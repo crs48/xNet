@@ -4,6 +4,7 @@
 
 import type { SessionSummaryNode } from '../state/active-session'
 import { startTransition, useEffect, useMemo, useRef } from 'react'
+import { logWorkspaceDebug } from '../debug'
 import { useSessionCommands } from './useSessionCommands'
 
 type UseWorkspaceSessionSyncOptions = {
@@ -48,6 +49,11 @@ export function useWorkspaceSessionSync({
 
   useEffect(() => {
     let active = true
+    logWorkspaceDebug('sync.effect', 'run', {
+      activeSessionId,
+      summaryIds: structuralSummariesRef.current.map((session) => session.id),
+      syncKey
+    })
 
     void syncWorkspaceSessionsRef
       .current(structuralSummariesRef.current, activeSessionId)
@@ -56,6 +62,10 @@ export function useWorkspaceSessionSync({
           return
         }
 
+        logWorkspaceDebug('sync.effect', 'failed', {
+          activeSessionId,
+          error: error instanceof Error ? error.message : String(error)
+        })
         console.error('[WorkspaceSessionSync] Failed to sync session resources', error)
       })
 
@@ -66,6 +76,13 @@ export function useWorkspaceSessionSync({
 
   useEffect(() => {
     return window.xnetWorkspaceSessions.onStatusChange((event) => {
+      logWorkspaceDebug('sync.status', 'received', {
+        sessionId: event.session.sessionId,
+        state: event.session.state,
+        changedFilesCount: event.session.changedFilesCount,
+        previewUrl: event.session.previewUrl ?? null,
+        isDirty: event.session.isDirty
+      })
       startTransition(() => {
         void applyWorkspaceSessionSnapshotRef.current(event.session)
       })

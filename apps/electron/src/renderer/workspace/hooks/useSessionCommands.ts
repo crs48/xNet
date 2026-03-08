@@ -22,6 +22,7 @@ import type {
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useTelemetry } from '@xnetjs/telemetry'
 import { useCallback, useEffect, useRef } from 'react'
+import { logWorkspaceDebug } from '../debug'
 import {
   clearWorkspacePerformanceMarks,
   clearWorkspacePreviewRestoreMark,
@@ -248,19 +249,42 @@ export function useSessionCommands() {
       const existingSession =
         sessionSummariesRef.current.find((session) => session.id === snapshot.sessionId) ?? null
       if (existingSession && matchesWorkspaceSessionSnapshot(existingSession, snapshot)) {
+        logWorkspaceDebug('session.snapshot', 'noop', {
+          sessionId: snapshot.sessionId,
+          state: snapshot.state,
+          changedFilesCount: snapshot.changedFilesCount,
+          isDirty: snapshot.isDirty
+        })
         return existingSession
       }
 
       try {
+        logWorkspaceDebug('session.snapshot', 'update', {
+          sessionId: snapshot.sessionId,
+          state: snapshot.state,
+          changedFilesCount: snapshot.changedFilesCount,
+          isDirty: snapshot.isDirty,
+          previewUrl: snapshot.previewUrl ?? null
+        })
         return await updateSessionSummary(
           snapshot.sessionId,
           createSessionSummaryPatchFromWorkspaceSnapshot(snapshot)
         )
       } catch (error) {
         if (!isMissingNodeError(error, snapshot.sessionId)) {
+          logWorkspaceDebug('session.snapshot', 'update-failed', {
+            sessionId: snapshot.sessionId,
+            error: error instanceof Error ? error.message : String(error)
+          })
           throw error
         }
 
+        logWorkspaceDebug('session.snapshot', 'create', {
+          sessionId: snapshot.sessionId,
+          state: snapshot.state,
+          changedFilesCount: snapshot.changedFilesCount,
+          isDirty: snapshot.isDirty
+        })
         return createSessionSummary(createSessionSummaryInputFromWorkspaceSnapshot(snapshot), {
           id: snapshot.sessionId,
           select: false
@@ -308,6 +332,10 @@ export function useSessionCommands() {
       activeSessionId: string | null
     ): Promise<WorkspaceSessionSnapshot[]> => {
       const input = toWorkspaceSyncInput(summaries, activeSessionId)
+      logWorkspaceDebug('session.sync', 'request', {
+        activeSessionId,
+        sessionIds: summaries.map((session) => session.id)
+      })
       const snapshots = await measureCommand(
         'workspace.session.sync',
         async () => window.xnetWorkspaceSessions.sync(input),
@@ -317,6 +345,16 @@ export function useSessionCommands() {
         }
       )
 
+      logWorkspaceDebug('session.sync', 'response', {
+        activeSessionId,
+        snapshots: snapshots.map((snapshot) => ({
+          sessionId: snapshot.sessionId,
+          state: snapshot.state,
+          changedFilesCount: snapshot.changedFilesCount,
+          isDirty: snapshot.isDirty,
+          previewUrl: snapshot.previewUrl ?? null
+        }))
+      })
       await Promise.all(snapshots.map((snapshot) => applyWorkspaceSessionSnapshot(snapshot)))
 
       return snapshots
