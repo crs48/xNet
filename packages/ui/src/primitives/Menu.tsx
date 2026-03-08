@@ -115,11 +115,7 @@ export function MenuSeparator() {
  * A label for use with the simple Menu component.
  */
 export function MenuLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <BaseMenu.GroupLabel className="px-2 py-1.5 text-xs font-semibold text-foreground-muted">
-      {children}
-    </BaseMenu.GroupLabel>
-  )
+  return <div className="px-2 py-1.5 text-xs font-semibold text-foreground-muted">{children}</div>
 }
 
 // ─── Compound Components (for advanced usage) ───────────────────────
