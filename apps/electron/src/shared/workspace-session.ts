@@ -83,6 +83,26 @@ export type WorkspaceSessionStatusEvent = {
   session: WorkspaceSessionSnapshot
 }
 
+export function areWorkspaceSessionSnapshotsEqual(
+  left: WorkspaceSessionSnapshot,
+  right: WorkspaceSessionSnapshot
+): boolean {
+  return (
+    left.sessionId === right.sessionId &&
+    left.title === right.title &&
+    left.branch === right.branch &&
+    left.worktreeName === right.worktreeName &&
+    left.worktreePath === right.worktreePath &&
+    left.openCodeUrl === right.openCodeUrl &&
+    (left.previewUrl ?? null) === (right.previewUrl ?? null) &&
+    (left.lastScreenshotPath ?? null) === (right.lastScreenshotPath ?? null) &&
+    left.changedFilesCount === right.changedFilesCount &&
+    left.state === right.state &&
+    left.isDirty === right.isDirty &&
+    (left.lastError ?? null) === (right.lastError ?? null)
+  )
+}
+
 export type WorkspaceSessionReview = {
   sessionId: string
   changedFiles: WorkspaceFileChange[]

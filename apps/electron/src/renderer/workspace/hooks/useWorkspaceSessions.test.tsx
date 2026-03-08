@@ -189,4 +189,49 @@ describe('workspace session hooks', () => {
     expect(result.current.summaries.data[0]?.changedFilesCount).toBe(3)
     expect(result.current.summaries.data[0]?.isDirty).toBe(true)
   })
+
+  it('treats identical runtime snapshots as no-ops', async () => {
+    const { result } = renderWorkspaceHooks()
+
+    await waitForWorkspaceReady(result)
+
+    await act(async () => {
+      await result.current.commands.ensureWorkspaceShellState()
+      await result.current.commands.applyWorkspaceSessionSnapshot({
+        sessionId: 'xnet:workspace-session:dedupe-test',
+        title: 'Dedupe Test',
+        branch: 'codex/dedupe-test',
+        worktreeName: 'dedupe-test',
+        worktreePath: '/tmp/worktrees/dedupe-test',
+        openCodeUrl: 'http://127.0.0.1:4096',
+        previewUrl: 'http://127.0.0.1:4310',
+        changedFilesCount: 1,
+        state: 'previewing',
+        isDirty: false
+      })
+    })
+
+    const initialSession = result.current.summaries.data[0]
+    expect(initialSession?.id).toBe('xnet:workspace-session:dedupe-test')
+
+    await act(async () => {
+      await result.current.commands.applyWorkspaceSessionSnapshot({
+        sessionId: 'xnet:workspace-session:dedupe-test',
+        title: 'Dedupe Test',
+        branch: 'codex/dedupe-test',
+        worktreeName: 'dedupe-test',
+        worktreePath: '/tmp/worktrees/dedupe-test',
+        openCodeUrl: 'http://127.0.0.1:4096',
+        previewUrl: 'http://127.0.0.1:4310',
+        changedFilesCount: 1,
+        state: 'previewing',
+        isDirty: false
+      })
+    })
+
+    const nextSession = result.current.summaries.data[0]
+    expect(nextSession?.id).toBe(initialSession?.id)
+    expect(nextSession?.updatedAt).toBe(initialSession?.updatedAt)
+    expect(result.current.summaries.data).toHaveLength(1)
+  })
 })

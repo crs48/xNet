@@ -5,7 +5,7 @@
 import type { WorkspaceSessionReview } from '../../../shared/workspace-session'
 import type { SessionSummaryNode } from '../state/active-session'
 import { useTelemetry } from '@xnetjs/telemetry'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSessionCommands } from './useSessionCommands'
 
 type UseWorkspaceReviewResult = {
@@ -23,6 +23,27 @@ export function useWorkspaceReview(
   const [review, setReview] = useState<WorkspaceSessionReview | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const reviewKey = useMemo(
+    () =>
+      activeSession
+        ? JSON.stringify([
+            activeSession.id,
+            activeSession.branch ?? '',
+            activeSession.worktreePath ?? '',
+            activeSession.changedFilesCount ?? 0,
+            activeSession.lastScreenshotPath ?? '',
+            activeSession.state ?? 'idle'
+          ])
+        : 'none',
+    [
+      activeSession?.branch,
+      activeSession?.changedFilesCount,
+      activeSession?.id,
+      activeSession?.lastScreenshotPath,
+      activeSession?.state,
+      activeSession?.worktreePath
+    ]
+  )
 
   const refresh = useCallback(async (): Promise<void> => {
     if (!activeSession) {
@@ -61,7 +82,7 @@ export function useWorkspaceReview(
 
   useEffect(() => {
     void refresh()
-  }, [refresh])
+  }, [refresh, reviewKey])
 
   return {
     review,

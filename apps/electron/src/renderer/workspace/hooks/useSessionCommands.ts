@@ -35,6 +35,8 @@ import {
   createSessionSummaryInput,
   createSessionSummaryPatch,
   createWorkspaceShellStateInput,
+  matchesWorkspaceSessionSnapshot,
+  SESSION_SUMMARY_QUERY,
   WORKSPACE_SHELL_STATE_NODE_ID
 } from '../state/active-session'
 
@@ -92,6 +94,7 @@ function toWorkspaceSyncInput(
 export function useSessionCommands() {
   const { create, update, remove } = useMutate()
   const shellStateQuery = useQuery(WorkspaceShellStateSchema, WORKSPACE_SHELL_STATE_NODE_ID)
+  const sessionSummaryQuery = useQuery(SessionSummarySchema, SESSION_SUMMARY_QUERY)
   const telemetry = useTelemetry({ component: 'electron.workspace.commands' })
 
   const measureCommand = useCallback(
@@ -213,6 +216,12 @@ export function useSessionCommands() {
 
   const applyWorkspaceSessionSnapshot = useCallback(
     async (snapshot: WorkspaceSessionSnapshot): Promise<SessionSummaryNode | null> => {
+      const existingSession =
+        sessionSummaryQuery.data.find((session) => session.id === snapshot.sessionId) ?? null
+      if (existingSession && matchesWorkspaceSessionSnapshot(existingSession, snapshot)) {
+        return existingSession
+      }
+
       try {
         return await updateSessionSummary(
           snapshot.sessionId,
@@ -229,7 +238,7 @@ export function useSessionCommands() {
         })
       }
     },
-    [createSessionSummary, updateSessionSummary]
+    [createSessionSummary, sessionSummaryQuery.data, updateSessionSummary]
   )
 
   const createWorkspaceSession = useCallback(

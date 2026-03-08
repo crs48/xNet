@@ -23,7 +23,10 @@ import { access, constants, mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { BrowserWindow, ipcMain } from 'electron'
 import { createOpenCodeHostConfig } from '../shared/opencode-host'
-import { WORKSPACE_SESSION_IPC_CHANNELS } from '../shared/workspace-session'
+import {
+  areWorkspaceSessionSnapshotsEqual,
+  WORKSPACE_SESSION_IPC_CHANNELS
+} from '../shared/workspace-session'
 import { createGitService, isManagedWorktreePath, type GitFileChange } from './git-service'
 import {
   createPreviewManager,
@@ -36,6 +39,7 @@ const gitService = createGitService({
 })
 const previewManager = createPreviewManager()
 const sessionRegistry = new Map<string, WorkspaceSessionDescriptor>()
+const lastPublishedSnapshots = new Map<string, WorkspaceSessionSnapshot>()
 
 let ipcRegistered = false
 let previewEventsRegistered = false
@@ -78,6 +82,12 @@ async function normalizeSessionDescriptor(
 }
 
 const publishWorkspaceSession = (session: WorkspaceSessionSnapshot): void => {
+  const previousSnapshot = lastPublishedSnapshots.get(session.sessionId)
+  if (previousSnapshot && areWorkspaceSessionSnapshotsEqual(previousSnapshot, session)) {
+    return
+  }
+
+  lastPublishedSnapshots.set(session.sessionId, session)
   const event: WorkspaceSessionStatusEvent = { session }
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send(WORKSPACE_SESSION_IPC_CHANNELS.STATUS_CHANGE, event)
@@ -454,6 +464,7 @@ export function setupWorkspaceSessionIPC(): void {
         }
 
         sessionRegistry.delete(input.sessionId)
+        lastPublishedSnapshots.delete(input.sessionId)
         await previewManager.stopSession(input.sessionId)
         await gitService.removeWorktree(worktreePath)
 
@@ -478,4 +489,5 @@ export function setupWorkspaceSessionIPC(): void {
 export async function stopWorkspaceSessions(): Promise<void> {
   await previewManager.stopAll()
   sessionRegistry.clear()
+  lastPublishedSnapshots.clear()
 }

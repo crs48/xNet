@@ -158,6 +158,25 @@ export function createSessionSummaryPatchFromWorkspaceSnapshot(
   }
 }
 
+export function matchesWorkspaceSessionSnapshot(
+  session: SessionSummaryNode,
+  snapshot: WorkspaceSessionSnapshot
+): boolean {
+  return (
+    (session.title ?? '') === snapshot.title &&
+    (session.branch ?? '') === snapshot.branch &&
+    (session.worktreeName ?? '') === snapshot.worktreeName &&
+    (session.worktreePath ?? '') === snapshot.worktreePath &&
+    (session.openCodeUrl ?? '') === snapshot.openCodeUrl &&
+    (session.previewUrl ?? null) === (snapshot.previewUrl ?? null) &&
+    (session.lastScreenshotPath ?? null) === (snapshot.lastScreenshotPath ?? null) &&
+    (session.lastError ?? null) === (snapshot.lastError ?? null) &&
+    (session.changedFilesCount ?? 0) === snapshot.changedFilesCount &&
+    Boolean(session.isDirty) === snapshot.isDirty &&
+    (session.state ?? 'idle') === snapshot.state
+  )
+}
+
 export function getSessionActivityAt(session: SessionSummaryNode): number {
   return session.updatedAt || session.createdAt || 0
 }
