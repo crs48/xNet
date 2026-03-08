@@ -5,7 +5,7 @@
 import type { WorkspaceSessionReview } from '../../../shared/workspace-session'
 import type { SessionSummaryNode } from '../state/active-session'
 import { useTelemetry } from '@xnetjs/telemetry'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSessionCommands } from './useSessionCommands'
 
 type UseWorkspaceReviewResult = {
@@ -23,6 +23,7 @@ export function useWorkspaceReview(
   const [review, setReview] = useState<WorkspaceSessionReview | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const activeSessionRef = useRef(activeSession)
   const reviewKey = useMemo(
     () =>
       activeSession
@@ -45,8 +46,13 @@ export function useWorkspaceReview(
     ]
   )
 
+  useEffect(() => {
+    activeSessionRef.current = activeSession
+  }, [activeSession])
+
   const refresh = useCallback(async (): Promise<void> => {
-    if (!activeSession) {
+    const session = activeSessionRef.current
+    if (!session) {
       setReview(null)
       setError(null)
       setLoading(false)
@@ -58,7 +64,7 @@ export function useWorkspaceReview(
     const start = performance.now()
 
     try {
-      const nextReview = await reviewWorkspaceSession(activeSession)
+      const nextReview = await reviewWorkspaceSession(session)
       setReview(nextReview)
       telemetry.reportPerformance(
         'workspace.review.generate',
@@ -73,12 +79,12 @@ export function useWorkspaceReview(
       telemetry.reportCrash(normalized, {
         codeNamespace: 'electron.workspace',
         codeFunction: 'workspace.review.generate',
-        sessionId: activeSession.id
+        sessionId: session.id
       })
     } finally {
       setLoading(false)
     }
-  }, [activeSession, reviewWorkspaceSession, telemetry])
+  }, [reviewWorkspaceSession, telemetry])
 
   useEffect(() => {
     void refresh()

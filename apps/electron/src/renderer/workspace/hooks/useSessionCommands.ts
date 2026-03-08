@@ -21,7 +21,7 @@ import type {
 } from '../state/active-session'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useTelemetry } from '@xnetjs/telemetry'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import {
   clearWorkspacePerformanceMarks,
   clearWorkspacePreviewRestoreMark,
@@ -96,6 +96,11 @@ export function useSessionCommands() {
   const shellStateQuery = useQuery(WorkspaceShellStateSchema, WORKSPACE_SHELL_STATE_NODE_ID)
   const sessionSummaryQuery = useQuery(SessionSummarySchema, SESSION_SUMMARY_QUERY)
   const telemetry = useTelemetry({ component: 'electron.workspace.commands' })
+  const sessionSummariesRef = useRef(sessionSummaryQuery.data)
+
+  useEffect(() => {
+    sessionSummariesRef.current = sessionSummaryQuery.data
+  }, [sessionSummaryQuery.data])
 
   const measureCommand = useCallback(
     async <T>(
@@ -217,7 +222,7 @@ export function useSessionCommands() {
   const applyWorkspaceSessionSnapshot = useCallback(
     async (snapshot: WorkspaceSessionSnapshot): Promise<SessionSummaryNode | null> => {
       const existingSession =
-        sessionSummaryQuery.data.find((session) => session.id === snapshot.sessionId) ?? null
+        sessionSummariesRef.current.find((session) => session.id === snapshot.sessionId) ?? null
       if (existingSession && matchesWorkspaceSessionSnapshot(existingSession, snapshot)) {
         return existingSession
       }
@@ -238,7 +243,7 @@ export function useSessionCommands() {
         })
       }
     },
-    [createSessionSummary, sessionSummaryQuery.data, updateSessionSummary]
+    [createSessionSummary, updateSessionSummary]
   )
 
   const createWorkspaceSession = useCallback(
