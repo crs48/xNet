@@ -8,7 +8,11 @@ import { coopCoepHeaders } from './vite-plugins/coop-coep-headers'
 
 // Base path for deployment (default: '/', set VITE_BASE_PATH for custom paths like '/app/')
 const basePath = process.env.VITE_BASE_PATH || '/'
-const workspacePackagesDir = path.resolve(__dirname, '../../packages')
+const previewSourceRepoRoot = process.env.XNET_PREVIEW_SOURCE_REPO_ROOT?.trim()
+const workspaceSourceRoot = previewSourceRepoRoot
+  ? path.resolve(previewSourceRepoRoot)
+  : path.resolve(__dirname, '../..')
+const workspacePackagesDir = path.resolve(workspaceSourceRoot, 'packages')
 
 type PackageJsonExports =
   | string

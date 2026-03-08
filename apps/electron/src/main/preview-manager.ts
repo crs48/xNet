@@ -7,7 +7,8 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { EventEmitter } from 'node:events'
 import { access, constants } from 'node:fs/promises'
 import { createServer } from 'node:net'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { formatCommandFailure } from './command-errors'
 
 const DEFAULT_PREVIEW_HOST = '127.0.0.1'
@@ -15,6 +16,9 @@ const DEFAULT_PREVIEW_BASE_PORT = 4310
 const DEFAULT_KEEP_WARM_COUNT = 2
 const DEFAULT_READY_TIMEOUT_MS = 30_000
 const DEFAULT_HEALTH_INTERVAL_MS = 5_000
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const PREVIEW_SOURCE_REPO_ROOT = resolve(__dirname, '../../../..')
 
 export type PreviewRuntimeState = 'stopped' | 'starting' | 'ready' | 'error'
 
@@ -327,7 +331,9 @@ export class PreviewManager {
             ...process.env,
             BROWSER: 'none',
             CI: '1',
-            FORCE_COLOR: '0'
+            FORCE_COLOR: '0',
+            XNET_PREVIEW_SOURCE_REPO_ROOT:
+              process.env.XNET_PREVIEW_SOURCE_REPO_ROOT ?? PREVIEW_SOURCE_REPO_ROOT
           }
         }
       )
