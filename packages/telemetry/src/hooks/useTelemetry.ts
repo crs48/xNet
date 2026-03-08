@@ -4,7 +4,7 @@
 
 import type { ReportOptions } from '../collection/collector'
 import type { TelemetryTier } from '../consent/types'
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useTelemetryContext } from './TelemetryContext'
 
 export interface UseTelemetryOptions {
@@ -134,12 +134,15 @@ export function useTelemetry(options: UseTelemetryOptions = {}): UseTelemetryRet
     [collector]
   )
 
-  return {
-    isEnabled,
-    report,
-    reportCrash,
-    reportUsage,
-    reportPerformance,
-    reportSecurity
-  }
+  return useMemo(
+    () => ({
+      isEnabled,
+      report,
+      reportCrash,
+      reportUsage,
+      reportPerformance,
+      reportSecurity
+    }),
+    [isEnabled, report, reportCrash, reportUsage, reportPerformance, reportSecurity]
+  )
 }

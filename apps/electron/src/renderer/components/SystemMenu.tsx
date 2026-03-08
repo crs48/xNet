@@ -4,7 +4,7 @@
 
 import type { Theme } from '@xnetjs/ui'
 import { Menu, MenuItem, MenuLabel, MenuSeparator, useTheme } from '@xnetjs/ui'
-import { Bug, Check, Ellipsis, Monitor, Moon, Settings, Share2, Sun } from 'lucide-react'
+import { Bug, Check, Code2, Ellipsis, Monitor, Moon, Settings, Share2, Sun } from 'lucide-react'
 import React from 'react'
 
 interface RecentDocument {
@@ -17,6 +17,7 @@ interface SystemMenuProps {
   recentDocuments: RecentDocument[]
   onOpenDocument: (docId: string) => void
   onOpenSettings: () => void
+  onOpenCodingWorkspace?: () => void
   onAddShared: () => void
   onToggleDebugPanel: () => void
 }
@@ -58,6 +59,7 @@ export function SystemMenu({
   recentDocuments,
   onOpenDocument,
   onOpenSettings,
+  onOpenCodingWorkspace,
   onAddShared,
   onToggleDebugPanel
 }: SystemMenuProps): React.ReactElement {
@@ -83,6 +85,14 @@ export function SystemMenu({
       className="min-w-[240px]"
     >
       <MenuLabel>Workspace</MenuLabel>
+      {onOpenCodingWorkspace ? (
+        <MenuItem onSelect={onOpenCodingWorkspace}>
+          <span className="flex items-center gap-2">
+            <Code2 size={14} />
+            Coding workspace
+          </span>
+        </MenuItem>
+      ) : null}
       <MenuItem onSelect={onOpenSettings}>
         <span className="flex items-center gap-2">
           <Settings size={14} />

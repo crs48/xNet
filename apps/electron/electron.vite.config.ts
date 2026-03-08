@@ -22,6 +22,11 @@ function stripCspInDev(): Plugin {
 // Support running multiple instances with different ports
 const rendererPort = parseInt(process.env.VITE_PORT || '5177', 10)
 
+const xnetPluginNodeAlias = {
+  find: '@xnetjs/plugins/node',
+  replacement: resolve(__dirname, '../../packages/plugins/src/services/node.ts')
+}
+
 // Common xNet packages to bundle (not externalize)
 const xnetPackages = [
   '@xnetjs/sdk',
@@ -72,10 +77,7 @@ export default defineConfig({
       }
     },
     resolve: {
-      alias: {
-        // Resolve better-sqlite3 to local rebuilt version during bundling
-        'better-sqlite3': betterSqlite3Path
-      }
+      alias: [xnetPluginNodeAlias, { find: 'better-sqlite3', replacement: betterSqlite3Path }]
     }
   },
   preload: {

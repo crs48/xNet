@@ -12,6 +12,7 @@ import {
 import { ThemeToggle } from '@xnetjs/ui'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { GlobalSearch } from '../components/GlobalSearch'
+import { PreviewContextBridge } from '../components/PreviewContextBridge'
 import { Sidebar } from '../components/Sidebar'
 
 export const Route = createRootRoute({
@@ -24,12 +25,16 @@ function RootLayout() {
   const { isDemo, limits } = useDemoMode()
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen" data-xnet-route-id={location.pathname}>
+      <PreviewContextBridge routeId={location.pathname} />
       {/* Demo mode banner */}
       {isDemo && limits && <DemoBanner evictionHours={limits.evictionHours} />}
 
       <header
         className={`h-[52px] flex items-center justify-between px-4 border-b border-border bg-background ${isDemo && limits ? 'mt-10' : ''}`}
+        data-xnet-target-id="app-header"
+        data-xnet-target-label="App header"
+        data-xnet-file-hint="apps/web/src/routes/__root.tsx"
       >
         <Link
           to="/"
@@ -51,7 +56,12 @@ function RootLayout() {
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main
+          className="flex-1 overflow-y-auto p-6"
+          data-xnet-target-id="route-main"
+          data-xnet-target-label="Route content"
+          data-xnet-file-hint="apps/web/src/routes/__root.tsx"
+        >
           <ErrorBoundary
             resetKey={location.pathname}
             fallback={({ error, reset }) => <ErrorFallback error={error} reset={reset} />}

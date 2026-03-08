@@ -417,8 +417,19 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden h-full -m-6">
-      <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
+    <div
+      className="flex-1 flex flex-col overflow-hidden h-full -m-6"
+      data-xnet-target-id="database-view"
+      data-xnet-target-label="Database view"
+      data-xnet-file-hint="apps/web/src/components/DatabaseView.tsx"
+      data-xnet-document-id={docId}
+    >
+      <div
+        className="flex items-center gap-2 p-3 border-b border-border bg-secondary"
+        data-xnet-target-id="database-toolbar"
+        data-xnet-target-label="Database toolbar"
+        data-xnet-file-hint="apps/web/src/components/DatabaseView.tsx"
+      >
         <input
           type="text"
           className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
@@ -440,6 +451,9 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
                 ? 'bg-primary text-white'
                 : 'bg-transparent text-foreground hover:bg-accent'
             }`}
+            data-xnet-target-id="database-table-toggle"
+            data-xnet-target-label="Table view toggle"
+            data-xnet-file-hint="apps/web/src/components/DatabaseView.tsx"
           >
             <Table size={14} />
             <span>Table</span>
@@ -451,6 +465,9 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
                 ? 'bg-primary text-white'
                 : 'bg-transparent text-foreground hover:bg-accent'
             }`}
+            data-xnet-target-id="database-board-toggle"
+            data-xnet-target-label="Board view toggle"
+            data-xnet-file-hint="apps/web/src/components/DatabaseView.tsx"
           >
             <LayoutGrid size={14} />
             <span>Board</span>

@@ -15,6 +15,7 @@ import { App } from './App'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
 import { createIPCSyncManager, type IPCSyncManager } from './lib/ipc-sync-manager'
+import { WorkspaceStateBootstrap } from './workspace/WorkspaceStateBootstrap'
 import './styles.css'
 
 type LocalAPIStoreNode = {
@@ -265,6 +266,7 @@ async function init() {
               >
                 <SyncInstrumentation syncManager={ipcSyncManager} />
                 <LocalAPIStoreHandler />
+                <WorkspaceStateBootstrap />
                 <App />
               </XNetDevToolsProvider>
             </BlobProvider>

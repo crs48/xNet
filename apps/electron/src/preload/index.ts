@@ -1,8 +1,33 @@
 /**
  * Preload script - exposes xNet API to renderer
  */
+import type { ServiceIpcChannel } from '../shared/service-ipc'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import { contextBridge, ipcRenderer } from 'electron'
+import {
+  OPENCODE_HOST_IPC_CHANNELS,
+  type OpenCodeAppendPromptInput,
+  type OpenCodeHostOutputEvent,
+  type OpenCodeHostStatus
+} from '../shared/opencode-host'
+import { isAllowedServiceChannel } from '../shared/service-ipc'
+import {
+  WORKSPACE_SESSION_IPC_CHANNELS,
+  type CaptureWorkspaceSessionScreenshotInput,
+  type CaptureWorkspaceSessionScreenshotResult,
+  type CreateWorkspaceSessionPullRequestInput,
+  type CreateWorkspaceSessionPullRequestResult,
+  type CreateWorkspaceSessionInput,
+  type RefreshWorkspaceSessionInput,
+  type RemoveWorkspaceSessionInput,
+  type RemoveWorkspaceSessionResult,
+  type StoreSelectedContextInput,
+  type StoreSelectedContextResult,
+  type SyncWorkspaceSessionsInput,
+  type WorkspaceSessionReview,
+  type WorkspaceSessionSnapshot,
+  type WorkspaceSessionStatusEvent
+} from '../shared/workspace-session'
 
 // Expose xNet API to renderer
 contextBridge.exposeInMainWorld('xnet', {
@@ -237,32 +262,129 @@ contextBridge.exposeInMainWorld('xnetBSM', {
   getDebug: () => ipcRenderer.invoke('xnet:bsm:get-debug')
 })
 
-// Allowed IPC channels for xnetServices (SEC-02: prevent arbitrary IPC access)
-const ALLOWED_SERVICE_CHANNELS = new Set([
-  // Plugin service channels
-  'xnet:service:start',
-  'xnet:service:stop',
-  'xnet:service:status',
-  'xnet:service:list'
-])
+const serviceChannelListeners = new Map<
+  string,
+  Map<(...args: unknown[]) => void, (_event: unknown, ...args: unknown[]) => void>
+>()
+
+const getServiceChannelListeners = (
+  channel: string
+): Map<(...args: unknown[]) => void, (_event: unknown, ...args: unknown[]) => void> => {
+  const existing = serviceChannelListeners.get(channel)
+  if (existing) {
+    return existing
+  }
+
+  const next = new Map<
+    (...args: unknown[]) => void,
+    (_event: unknown, ...args: unknown[]) => void
+  >()
+  serviceChannelListeners.set(channel, next)
+  return next
+}
 
 // Expose service API for plugin background processes
 contextBridge.exposeInMainWorld('xnetServices', {
   invoke: <T>(channel: string, ...args: unknown[]): Promise<T> => {
-    if (!ALLOWED_SERVICE_CHANNELS.has(channel)) {
+    if (!isAllowedServiceChannel(channel)) {
       return Promise.reject(new Error(`IPC channel not allowed: ${channel}`))
     }
     return ipcRenderer.invoke(channel, ...args)
   },
   on: (channel: string, handler: (...args: unknown[]) => void): void => {
-    if (!ALLOWED_SERVICE_CHANNELS.has(channel)) {
+    if (!isAllowedServiceChannel(channel)) {
       console.warn(`IPC channel not allowed for subscription: ${channel}`)
       return
     }
-    ipcRenderer.on(channel, (_event, ...args) => handler(...args))
+
+    const listeners = getServiceChannelListeners(channel)
+    if (listeners.has(handler)) {
+      return
+    }
+
+    const wrapped = (_event: unknown, ...args: unknown[]) => handler(...args)
+    listeners.set(handler, wrapped)
+    ipcRenderer.on(channel, wrapped as (...args: unknown[]) => void)
   },
   off: (channel: string, handler: (...args: unknown[]) => void): void => {
-    ipcRenderer.removeListener(channel, handler)
+    if (!isAllowedServiceChannel(channel)) {
+      return
+    }
+
+    const listeners = getServiceChannelListeners(channel)
+    const wrapped = listeners.get(handler)
+    if (!wrapped) {
+      return
+    }
+
+    ipcRenderer.removeListener(channel, wrapped as (...args: unknown[]) => void)
+    listeners.delete(handler)
+  }
+})
+
+contextBridge.exposeInMainWorld('xnetOpenCode', {
+  ensure: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.ENSURE),
+  status: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.STATUS),
+  stop: (): Promise<OpenCodeHostStatus> => ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.STOP),
+  appendPrompt: (input: OpenCodeAppendPromptInput) =>
+    ipcRenderer.invoke(OPENCODE_HOST_IPC_CHANNELS.APPEND_PROMPT, input),
+  onStatusChange: (callback: (status: OpenCodeHostStatus) => void) => {
+    const handler = (_: unknown, status: OpenCodeHostStatus) => callback(status)
+    ipcRenderer.on(
+      OPENCODE_HOST_IPC_CHANNELS.STATUS_CHANGE,
+      handler as (...args: unknown[]) => void
+    )
+    return () =>
+      ipcRenderer.removeListener(
+        OPENCODE_HOST_IPC_CHANNELS.STATUS_CHANGE,
+        handler as (...args: unknown[]) => void
+      )
+  },
+  onOutput: (callback: (event: OpenCodeHostOutputEvent) => void) => {
+    const handler = (_: unknown, event: OpenCodeHostOutputEvent) => callback(event)
+    ipcRenderer.on(OPENCODE_HOST_IPC_CHANNELS.OUTPUT, handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener(
+        OPENCODE_HOST_IPC_CHANNELS.OUTPUT,
+        handler as (...args: unknown[]) => void
+      )
+  }
+})
+
+contextBridge.exposeInMainWorld('xnetWorkspaceSessions', {
+  create: (input: CreateWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.CREATE, input),
+  sync: (input: SyncWorkspaceSessionsInput): Promise<WorkspaceSessionSnapshot[]> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.SYNC, input),
+  refresh: (input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.REFRESH, input),
+  restartPreview: (input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.RESTART_PREVIEW, input),
+  review: (input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionReview> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.REVIEW, input),
+  storeSelectedContext: (input: StoreSelectedContextInput): Promise<StoreSelectedContextResult> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.STORE_SELECTED_CONTEXT, input),
+  captureScreenshot: (
+    input: CaptureWorkspaceSessionScreenshotInput
+  ): Promise<CaptureWorkspaceSessionScreenshotResult> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.CAPTURE_SCREENSHOT, input),
+  createPullRequest: (
+    input: CreateWorkspaceSessionPullRequestInput
+  ): Promise<CreateWorkspaceSessionPullRequestResult> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.CREATE_PULL_REQUEST, input),
+  remove: (input: RemoveWorkspaceSessionInput): Promise<RemoveWorkspaceSessionResult> =>
+    ipcRenderer.invoke(WORKSPACE_SESSION_IPC_CHANNELS.REMOVE, input),
+  onStatusChange: (callback: (event: WorkspaceSessionStatusEvent) => void) => {
+    const handler = (_: unknown, event: WorkspaceSessionStatusEvent) => callback(event)
+    ipcRenderer.on(
+      WORKSPACE_SESSION_IPC_CHANNELS.STATUS_CHANGE,
+      handler as (...args: unknown[]) => void
+    )
+    return () =>
+      ipcRenderer.removeListener(
+        WORKSPACE_SESSION_IPC_CHANNELS.STATUS_CHANGE,
+        handler as (...args: unknown[]) => void
+      )
   }
 })
 
@@ -450,6 +572,34 @@ export interface XNetServicesAPI {
   off(channel: string, handler: (...args: unknown[]) => void): void
 }
 
+export type XNetServiceChannel = ServiceIpcChannel
+
+export interface XNetOpenCodeAPI {
+  ensure(): Promise<OpenCodeHostStatus>
+  status(): Promise<OpenCodeHostStatus>
+  stop(): Promise<OpenCodeHostStatus>
+  appendPrompt(input: OpenCodeAppendPromptInput): Promise<{ ok: true }>
+  onStatusChange(callback: (status: OpenCodeHostStatus) => void): () => void
+  onOutput(callback: (event: OpenCodeHostOutputEvent) => void): () => void
+}
+
+export interface XNetWorkspaceSessionsAPI {
+  create(input: CreateWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot>
+  sync(input: SyncWorkspaceSessionsInput): Promise<WorkspaceSessionSnapshot[]>
+  refresh(input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot>
+  restartPreview(input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionSnapshot>
+  review(input: RefreshWorkspaceSessionInput): Promise<WorkspaceSessionReview>
+  storeSelectedContext(input: StoreSelectedContextInput): Promise<StoreSelectedContextResult>
+  captureScreenshot(
+    input: CaptureWorkspaceSessionScreenshotInput
+  ): Promise<CaptureWorkspaceSessionScreenshotResult>
+  createPullRequest(
+    input: CreateWorkspaceSessionPullRequestInput
+  ): Promise<CreateWorkspaceSessionPullRequestResult>
+  remove(input: RemoveWorkspaceSessionInput): Promise<RemoveWorkspaceSessionResult>
+  onStatusChange(callback: (event: WorkspaceSessionStatusEvent) => void): () => void
+}
+
 export interface XNetLocalAPIStatus {
   running: boolean
   port: number
@@ -526,6 +676,8 @@ declare global {
     xnet: XNetAPI
     xnetBSM: XNetBSMAPI
     xnetServices: XNetServicesAPI
+    xnetOpenCode: XNetOpenCodeAPI
+    xnetWorkspaceSessions: XNetWorkspaceSessionsAPI
     xnetLocalAPI: XNetLocalAPIAPI
     xnetTunnel: XNetTunnelAPI
     xnetNodes: XNetNodesAPI
