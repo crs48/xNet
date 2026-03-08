@@ -55,6 +55,14 @@ function createRendererSessionId(): string {
   return `xnet:workspace-session:${crypto.randomUUID()}`
 }
 
+function isMissingNodeError(error: unknown, nodeId: string): boolean {
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return error.message.includes(`Node not found: ${nodeId}`)
+}
+
 function toWorkspaceRefreshInput(session: SessionSummaryNode): RefreshWorkspaceSessionInput {
   return {
     sessionId: session.id,
@@ -205,12 +213,23 @@ export function useSessionCommands() {
 
   const applyWorkspaceSessionSnapshot = useCallback(
     async (snapshot: WorkspaceSessionSnapshot): Promise<SessionSummaryNode | null> => {
-      return updateSessionSummary(
-        snapshot.sessionId,
-        createSessionSummaryPatchFromWorkspaceSnapshot(snapshot)
-      )
+      try {
+        return await updateSessionSummary(
+          snapshot.sessionId,
+          createSessionSummaryPatchFromWorkspaceSnapshot(snapshot)
+        )
+      } catch (error) {
+        if (!isMissingNodeError(error, snapshot.sessionId)) {
+          throw error
+        }
+
+        return createSessionSummary(createSessionSummaryInputFromWorkspaceSnapshot(snapshot), {
+          id: snapshot.sessionId,
+          select: false
+        })
+      }
     },
-    [updateSessionSummary]
+    [createSessionSummary, updateSessionSummary]
   )
 
   const createWorkspaceSession = useCallback(
@@ -234,12 +253,15 @@ export function useSessionCommands() {
         }
       )
 
-      return createSessionSummary(createSessionSummaryInputFromWorkspaceSnapshot(snapshot), {
-        id: sessionId,
-        select: createOptions.select
-      })
+      const session = await applyWorkspaceSessionSnapshot(snapshot)
+
+      if ((createOptions.select ?? true) && session) {
+        await selectSession(session.id)
+      }
+
+      return session
     },
-    [createSessionSummary, measureCommand]
+    [applyWorkspaceSessionSnapshot, measureCommand, selectSession]
   )
 
   const syncWorkspaceSessions = useCallback(
@@ -257,18 +279,11 @@ export function useSessionCommands() {
         }
       )
 
-      await Promise.all(
-        snapshots.map((snapshot) =>
-          updateSessionSummary(
-            snapshot.sessionId,
-            createSessionSummaryPatchFromWorkspaceSnapshot(snapshot)
-          )
-        )
-      )
+      await Promise.all(snapshots.map((snapshot) => applyWorkspaceSessionSnapshot(snapshot)))
 
       return snapshots
     },
-    [measureCommand, updateSessionSummary]
+    [applyWorkspaceSessionSnapshot, measureCommand]
   )
 
   const refreshWorkspaceSession = useCallback(

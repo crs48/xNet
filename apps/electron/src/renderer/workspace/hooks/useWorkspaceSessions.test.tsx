@@ -157,4 +157,36 @@ describe('workspace session hooks', () => {
     expect(remounted.result.current.summaries.activeSessionId).toBe(restoredId)
     expect(remounted.result.current.active.activeSession?.id).toBe(restoredId)
   })
+
+  it('upserts runtime snapshots before the session summary exists locally', async () => {
+    const { result } = renderWorkspaceHooks()
+
+    await waitForWorkspaceReady(result)
+
+    await act(async () => {
+      await result.current.commands.ensureWorkspaceShellState()
+    })
+
+    await act(async () => {
+      await result.current.commands.applyWorkspaceSessionSnapshot({
+        sessionId: 'xnet:workspace-session:race-test',
+        title: 'Race Test',
+        branch: 'codex/race-test',
+        worktreeName: 'race-test',
+        worktreePath: '/tmp/worktrees/race-test',
+        openCodeUrl: 'http://127.0.0.1:4096',
+        previewUrl: 'http://127.0.0.1:4010',
+        changedFilesCount: 3,
+        state: 'running',
+        isDirty: true
+      })
+    })
+
+    expect(result.current.summaries.data).toHaveLength(1)
+    expect(result.current.summaries.data[0]?.id).toBe('xnet:workspace-session:race-test')
+    expect(result.current.summaries.data[0]?.title).toBe('Race Test')
+    expect(result.current.summaries.data[0]?.branch).toBe('codex/race-test')
+    expect(result.current.summaries.data[0]?.changedFilesCount).toBe(3)
+    expect(result.current.summaries.data[0]?.isDirty).toBe(true)
+  })
 })
