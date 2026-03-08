@@ -12,6 +12,37 @@ type UseWorkspaceSessionSyncOptions = {
   activeSessionId: string | null
 }
 
+function orderSyncSummaries(
+  summaries: readonly SessionSummaryNode[],
+  activeSessionId: string | null
+): SessionSummaryNode[] {
+  return [...summaries].sort((left, right) => {
+    const leftActive = left.id === activeSessionId
+    const rightActive = right.id === activeSessionId
+
+    if (leftActive !== rightActive) {
+      return leftActive ? -1 : 1
+    }
+
+    const leftKey = [
+      left.id,
+      left.title ?? '',
+      left.branch ?? '',
+      left.worktreeName ?? '',
+      left.worktreePath ?? ''
+    ].join('\u0000')
+    const rightKey = [
+      right.id,
+      right.title ?? '',
+      right.branch ?? '',
+      right.worktreeName ?? '',
+      right.worktreePath ?? ''
+    ].join('\u0000')
+
+    return leftKey.localeCompare(rightKey)
+  })
+}
+
 export function useWorkspaceSessionSync({
   summaries,
   activeSessionId
@@ -21,10 +52,14 @@ export function useWorkspaceSessionSync({
   const structuralSummariesRef = useRef(summaries)
   const syncWorkspaceSessionsRef = useRef(syncWorkspaceSessions)
   const applyWorkspaceSessionSnapshotRef = useRef(applyWorkspaceSessionSnapshot)
+  const stableSummaries = useMemo(
+    () => orderSyncSummaries(summaries, activeSessionId),
+    [activeSessionId, summaries]
+  )
   const syncKey = useMemo(
     () =>
       JSON.stringify(
-        summaries.map((session) => [
+        stableSummaries.map((session) => [
           session.id,
           session.title ?? '',
           session.branch ?? '',
@@ -32,12 +67,12 @@ export function useWorkspaceSessionSync({
           session.worktreePath ?? ''
         ])
       ),
-    [summaries]
+    [stableSummaries]
   )
 
   useEffect(() => {
-    structuralSummariesRef.current = summaries
-  }, [summaries, syncKey])
+    structuralSummariesRef.current = stableSummaries
+  }, [stableSummaries, syncKey])
 
   useEffect(() => {
     syncWorkspaceSessionsRef.current = syncWorkspaceSessions

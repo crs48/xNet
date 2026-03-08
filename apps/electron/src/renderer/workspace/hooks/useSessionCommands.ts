@@ -22,6 +22,7 @@ import type {
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useTelemetry } from '@xnetjs/telemetry'
 import { useCallback, useEffect, useRef } from 'react'
+import { areWorkspaceSessionSnapshotsEqual } from '../../../shared/workspace-session'
 import { logWorkspaceDebug } from '../debug'
 import {
   clearWorkspacePerformanceMarks,
@@ -102,6 +103,16 @@ export function useSessionCommands() {
   const removeRef = useRef(remove)
   const shellStateRef = useRef(shellStateQuery.data)
   const sessionSummariesRef = useRef(sessionSummaryQuery.data)
+  const pendingSnapshotsRef = useRef(
+    new Map<
+      string,
+      {
+        snapshot: WorkspaceSessionSnapshot
+        promise: Promise<SessionSummaryNode | null>
+      }
+    >()
+  )
+  const appliedSnapshotsRef = useRef(new Map<string, WorkspaceSessionSnapshot>())
 
   useEffect(() => {
     createRef.current = create
@@ -258,38 +269,84 @@ export function useSessionCommands() {
         return existingSession
       }
 
-      try {
-        logWorkspaceDebug('session.snapshot', 'update', {
-          sessionId: snapshot.sessionId,
-          state: snapshot.state,
-          changedFilesCount: snapshot.changedFilesCount,
-          isDirty: snapshot.isDirty,
-          previewUrl: snapshot.previewUrl ?? null
-        })
-        return await updateSessionSummary(
-          snapshot.sessionId,
-          createSessionSummaryPatchFromWorkspaceSnapshot(snapshot)
-        )
-      } catch (error) {
-        if (!isMissingNodeError(error, snapshot.sessionId)) {
-          logWorkspaceDebug('session.snapshot', 'update-failed', {
-            sessionId: snapshot.sessionId,
-            error: error instanceof Error ? error.message : String(error)
-          })
-          throw error
-        }
-
-        logWorkspaceDebug('session.snapshot', 'create', {
+      const appliedSnapshot = appliedSnapshotsRef.current.get(snapshot.sessionId)
+      if (appliedSnapshot && areWorkspaceSessionSnapshotsEqual(appliedSnapshot, snapshot)) {
+        logWorkspaceDebug('session.snapshot', 'dedupe-applied', {
           sessionId: snapshot.sessionId,
           state: snapshot.state,
           changedFilesCount: snapshot.changedFilesCount,
           isDirty: snapshot.isDirty
         })
-        return createSessionSummary(createSessionSummaryInputFromWorkspaceSnapshot(snapshot), {
-          id: snapshot.sessionId,
-          select: false
-        })
+        return existingSession
       }
+
+      const pendingSnapshot = pendingSnapshotsRef.current.get(snapshot.sessionId)
+      if (
+        pendingSnapshot &&
+        areWorkspaceSessionSnapshotsEqual(pendingSnapshot.snapshot, snapshot)
+      ) {
+        logWorkspaceDebug('session.snapshot', 'dedupe-pending', {
+          sessionId: snapshot.sessionId,
+          state: snapshot.state,
+          changedFilesCount: snapshot.changedFilesCount,
+          isDirty: snapshot.isDirty
+        })
+        return pendingSnapshot.promise
+      }
+
+      const promise = (async (): Promise<SessionSummaryNode | null> => {
+        try {
+          logWorkspaceDebug('session.snapshot', 'update', {
+            sessionId: snapshot.sessionId,
+            state: snapshot.state,
+            changedFilesCount: snapshot.changedFilesCount,
+            isDirty: snapshot.isDirty,
+            previewUrl: snapshot.previewUrl ?? null
+          })
+          const updatedSession = await updateSessionSummary(
+            snapshot.sessionId,
+            createSessionSummaryPatchFromWorkspaceSnapshot(snapshot)
+          )
+          appliedSnapshotsRef.current.set(snapshot.sessionId, snapshot)
+          return updatedSession
+        } catch (error) {
+          if (!isMissingNodeError(error, snapshot.sessionId)) {
+            logWorkspaceDebug('session.snapshot', 'update-failed', {
+              sessionId: snapshot.sessionId,
+              error: error instanceof Error ? error.message : String(error)
+            })
+            throw error
+          }
+
+          logWorkspaceDebug('session.snapshot', 'create', {
+            sessionId: snapshot.sessionId,
+            state: snapshot.state,
+            changedFilesCount: snapshot.changedFilesCount,
+            isDirty: snapshot.isDirty
+          })
+          const createdSession = await createSessionSummary(
+            createSessionSummaryInputFromWorkspaceSnapshot(snapshot),
+            {
+              id: snapshot.sessionId,
+              select: false
+            }
+          )
+          appliedSnapshotsRef.current.set(snapshot.sessionId, snapshot)
+          return createdSession
+        } finally {
+          const currentPending = pendingSnapshotsRef.current.get(snapshot.sessionId)
+          if (currentPending?.promise === promise) {
+            pendingSnapshotsRef.current.delete(snapshot.sessionId)
+          }
+        }
+      })()
+
+      pendingSnapshotsRef.current.set(snapshot.sessionId, {
+        snapshot,
+        promise
+      })
+
+      return promise
     },
     [createSessionSummary, updateSessionSummary]
   )

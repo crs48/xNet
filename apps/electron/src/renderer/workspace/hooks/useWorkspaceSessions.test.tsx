@@ -236,6 +236,66 @@ describe('workspace session hooks', () => {
     expect(result.current.summaries.data).toHaveLength(1)
   })
 
+  it('dedupes concurrent identical runtime snapshots while an update is in flight', async () => {
+    const { result } = renderWorkspaceHooks()
+
+    await waitForWorkspaceReady(result)
+
+    await act(async () => {
+      await result.current.commands.ensureWorkspaceShellState()
+      await result.current.commands.applyWorkspaceSessionSnapshot({
+        sessionId: 'xnet:workspace-session:pending-dedupe-test',
+        title: 'Pending Dedupe Test',
+        branch: 'codex/pending-dedupe-test',
+        worktreeName: 'pending-dedupe-test',
+        worktreePath: '/tmp/worktrees/pending-dedupe-test',
+        openCodeUrl: 'http://127.0.0.1:4096',
+        previewUrl: 'http://127.0.0.1:4410',
+        changedFilesCount: 0,
+        state: 'running',
+        isDirty: false
+      })
+    })
+
+    let firstResult: SessionSummaryNode | null = null
+    let secondResult: SessionSummaryNode | null = null
+
+    await act(async () => {
+      ;[firstResult, secondResult] = await Promise.all([
+        result.current.commands.applyWorkspaceSessionSnapshot({
+          sessionId: 'xnet:workspace-session:pending-dedupe-test',
+          title: 'Pending Dedupe Test',
+          branch: 'codex/pending-dedupe-test',
+          worktreeName: 'pending-dedupe-test',
+          worktreePath: '/tmp/worktrees/pending-dedupe-test',
+          openCodeUrl: 'http://127.0.0.1:4096',
+          previewUrl: 'http://127.0.0.1:4411',
+          changedFilesCount: 2,
+          state: 'previewing',
+          isDirty: true
+        }),
+        result.current.commands.applyWorkspaceSessionSnapshot({
+          sessionId: 'xnet:workspace-session:pending-dedupe-test',
+          title: 'Pending Dedupe Test',
+          branch: 'codex/pending-dedupe-test',
+          worktreeName: 'pending-dedupe-test',
+          worktreePath: '/tmp/worktrees/pending-dedupe-test',
+          openCodeUrl: 'http://127.0.0.1:4096',
+          previewUrl: 'http://127.0.0.1:4411',
+          changedFilesCount: 2,
+          state: 'previewing',
+          isDirty: true
+        })
+      ])
+    })
+
+    expect(firstResult).toBe(secondResult)
+    expect(result.current.summaries.data).toHaveLength(1)
+    expect(result.current.summaries.data[0]?.previewUrl).toBe('http://127.0.0.1:4411')
+    expect(result.current.summaries.data[0]?.changedFilesCount).toBe(2)
+    expect(result.current.summaries.data[0]?.isDirty).toBe(true)
+  })
+
   it('does not resync workspace sessions on equivalent rerenders', async () => {
     const sync = vi.fn<() => Promise<[]>>().mockResolvedValue([])
     const onStatusChange = vi.fn<(handler: (event: { session: never }) => void) => () => void>(
@@ -290,6 +350,85 @@ describe('workspace session hooks', () => {
     const settledCallCount = sync.mock.calls.length
 
     rendered.rerender({ nextSummaries: summaries })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 50))
+    })
+
+    expect(sync).toHaveBeenCalledTimes(settledCallCount)
+  })
+
+  it('does not resync workspace sessions when summaries only reorder by activity', async () => {
+    const sync = vi.fn<() => Promise<[]>>().mockResolvedValue([])
+    const onStatusChange = vi.fn<(handler: (event: { session: never }) => void) => () => void>(
+      () => () => {}
+    )
+
+    Object.assign(window, {
+      xnetWorkspaceSessions: {
+        sync,
+        onStatusChange
+      }
+    })
+
+    const alpha: SessionSummaryNode = {
+      id: 'xnet:workspace-session:alpha',
+      schemaId: 'xnet://xnet.dev/electron/workspace/WorkspaceSessionSummary@1.0.0',
+      createdAt: 1,
+      updatedAt: 10,
+      title: 'Alpha',
+      branch: 'codex/alpha',
+      worktreeName: 'alpha',
+      worktreePath: '/tmp/worktrees/alpha',
+      openCodeUrl: 'http://127.0.0.1:4096',
+      changedFilesCount: 0,
+      isDirty: false,
+      state: 'idle'
+    }
+    const beta: SessionSummaryNode = {
+      id: 'xnet:workspace-session:beta',
+      schemaId: 'xnet://xnet.dev/electron/workspace/WorkspaceSessionSummary@1.0.0',
+      createdAt: 2,
+      updatedAt: 20,
+      title: 'Beta',
+      branch: 'codex/beta',
+      worktreeName: 'beta',
+      worktreePath: '/tmp/worktrees/beta',
+      openCodeUrl: 'http://127.0.0.1:4096',
+      changedFilesCount: 0,
+      isDirty: false,
+      state: 'idle'
+    }
+
+    const rendered = renderHook(
+      ({ nextSummaries }) => {
+        useWorkspaceSessionSync({
+          summaries: nextSummaries,
+          activeSessionId: alpha.id
+        })
+      },
+      {
+        initialProps: { nextSummaries: [beta, alpha] },
+        wrapper: createWrapper(new MemoryNodeStorageAdapter())
+      }
+    )
+
+    await waitFor(() => {
+      expect(sync.mock.calls.length).toBeGreaterThan(0)
+    })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 50))
+    })
+
+    const settledCallCount = sync.mock.calls.length
+
+    rendered.rerender({
+      nextSummaries: [
+        { ...alpha, updatedAt: 30 },
+        { ...beta, updatedAt: 5 }
+      ]
+    })
 
     await act(async () => {
       await new Promise((resolve) => window.setTimeout(resolve, 50))
