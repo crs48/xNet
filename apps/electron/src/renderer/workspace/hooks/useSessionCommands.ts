@@ -96,7 +96,27 @@ export function useSessionCommands() {
   const shellStateQuery = useQuery(WorkspaceShellStateSchema, WORKSPACE_SHELL_STATE_NODE_ID)
   const sessionSummaryQuery = useQuery(SessionSummarySchema, SESSION_SUMMARY_QUERY)
   const telemetry = useTelemetry({ component: 'electron.workspace.commands' })
+  const createRef = useRef(create)
+  const updateRef = useRef(update)
+  const removeRef = useRef(remove)
+  const shellStateRef = useRef(shellStateQuery.data)
   const sessionSummariesRef = useRef(sessionSummaryQuery.data)
+
+  useEffect(() => {
+    createRef.current = create
+  }, [create])
+
+  useEffect(() => {
+    updateRef.current = update
+  }, [update])
+
+  useEffect(() => {
+    removeRef.current = remove
+  }, [remove])
+
+  useEffect(() => {
+    shellStateRef.current = shellStateQuery.data
+  }, [shellStateQuery.data])
 
   useEffect(() => {
     sessionSummariesRef.current = sessionSummaryQuery.data
@@ -130,24 +150,27 @@ export function useSessionCommands() {
 
   const ensureWorkspaceShellState =
     useCallback(async (): Promise<WorkspaceShellStateNode | null> => {
-      if (shellStateQuery.data) {
-        return shellStateQuery.data
+      const existingShellState = shellStateRef.current
+      if (existingShellState) {
+        return existingShellState
       }
 
       if (pendingShellStateCreation) {
         return pendingShellStateCreation
       }
 
-      pendingShellStateCreation = create(
-        WorkspaceShellStateSchema,
-        createWorkspaceShellStateInput(),
-        WORKSPACE_SHELL_STATE_NODE_ID
-      ).finally(() => {
-        pendingShellStateCreation = null
-      })
+      pendingShellStateCreation = createRef
+        .current(
+          WorkspaceShellStateSchema,
+          createWorkspaceShellStateInput(),
+          WORKSPACE_SHELL_STATE_NODE_ID
+        )
+        .finally(() => {
+          pendingShellStateCreation = null
+        })
 
       return pendingShellStateCreation
-    }, [create, shellStateQuery.data])
+    }, [])
 
   const selectSession = useCallback(
     async (sessionId: string | null): Promise<WorkspaceShellStateNode | null> => {
@@ -166,7 +189,7 @@ export function useSessionCommands() {
         return await measureCommand(
           'workspace.session.select',
           async () =>
-            update(WorkspaceShellStateSchema, shellState.id, {
+            updateRef.current(WorkspaceShellStateSchema, shellState.id, {
               activeSession: sessionId ?? undefined
             }),
           {
@@ -186,7 +209,7 @@ export function useSessionCommands() {
       input: SessionSummaryInput,
       options: CreateSessionOptions = {}
     ): Promise<SessionSummaryNode | null> => {
-      const session = await create(
+      const session = await createRef.current(
         SessionSummarySchema,
         createSessionSummaryInput(input),
         options.id
@@ -202,7 +225,7 @@ export function useSessionCommands() {
 
       return session
     },
-    [create, selectSession]
+    [selectSession]
   )
 
   const updateSessionSummary = useCallback(
@@ -212,11 +235,12 @@ export function useSessionCommands() {
     ): Promise<SessionSummaryNode | null> => {
       return measureCommand(
         'workspace.session.summary.update',
-        async () => update(SessionSummarySchema, sessionId, createSessionSummaryPatch(patch)),
+        async () =>
+          updateRef.current(SessionSummarySchema, sessionId, createSessionSummaryPatch(patch)),
         { sessionId }
       )
     },
-    [measureCommand, update]
+    [measureCommand]
   )
 
   const applyWorkspaceSessionSnapshot = useCallback(
@@ -346,13 +370,13 @@ export function useSessionCommands() {
 
   const removeSessionSummary = useCallback(
     async (sessionId: string): Promise<void> => {
-      if (shellStateQuery.data?.activeSession === sessionId) {
+      if (shellStateRef.current?.activeSession === sessionId) {
         await selectSession(null)
       }
 
-      await remove(sessionId)
+      await removeRef.current(sessionId)
     },
-    [remove, selectSession, shellStateQuery.data?.activeSession]
+    [selectSession]
   )
 
   const removeWorkspaceSession = useCallback(

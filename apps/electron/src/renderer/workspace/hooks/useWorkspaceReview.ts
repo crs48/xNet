@@ -24,6 +24,8 @@ export function useWorkspaceReview(
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
   const activeSessionRef = useRef(activeSession)
+  const reviewWorkspaceSessionRef = useRef(reviewWorkspaceSession)
+  const telemetryRef = useRef(telemetry)
   const reviewKey = useMemo(
     () =>
       activeSession
@@ -50,8 +52,17 @@ export function useWorkspaceReview(
     activeSessionRef.current = activeSession
   }, [activeSession])
 
+  useEffect(() => {
+    reviewWorkspaceSessionRef.current = reviewWorkspaceSession
+  }, [reviewWorkspaceSession])
+
+  useEffect(() => {
+    telemetryRef.current = telemetry
+  }, [telemetry])
+
   const refresh = useCallback(async (): Promise<void> => {
     const session = activeSessionRef.current
+    const currentTelemetry = telemetryRef.current
     if (!session) {
       setReview(null)
       setError(null)
@@ -64,19 +75,19 @@ export function useWorkspaceReview(
     const start = performance.now()
 
     try {
-      const nextReview = await reviewWorkspaceSession(session)
+      const nextReview = await reviewWorkspaceSessionRef.current(session)
       setReview(nextReview)
-      telemetry.reportPerformance(
+      currentTelemetry.reportPerformance(
         'workspace.review.generate',
         performance.now() - start,
         'electron.workspace'
       )
-      telemetry.reportUsage('workspace.review.generate.success', 1)
+      currentTelemetry.reportUsage('workspace.review.generate.success', 1)
     } catch (nextError) {
       const normalized = nextError instanceof Error ? nextError : new Error(String(nextError))
       setError(normalized)
-      telemetry.reportUsage('workspace.review.generate.failure', 1)
-      telemetry.reportCrash(normalized, {
+      currentTelemetry.reportUsage('workspace.review.generate.failure', 1)
+      currentTelemetry.reportCrash(normalized, {
         codeNamespace: 'electron.workspace',
         codeFunction: 'workspace.review.generate',
         sessionId: session.id
@@ -84,7 +95,7 @@ export function useWorkspaceReview(
     } finally {
       setLoading(false)
     }
-  }, [reviewWorkspaceSession, telemetry])
+  }, [])
 
   useEffect(() => {
     void refresh()

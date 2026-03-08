@@ -18,6 +18,8 @@ export function useWorkspaceSessionSync({
   const { applyWorkspaceSessionSnapshot, syncWorkspaceSessions } = useSessionCommands()
 
   const structuralSummariesRef = useRef(summaries)
+  const syncWorkspaceSessionsRef = useRef(syncWorkspaceSessions)
+  const applyWorkspaceSessionSnapshotRef = useRef(applyWorkspaceSessionSnapshot)
   const syncKey = useMemo(
     () =>
       JSON.stringify(
@@ -37,26 +39,36 @@ export function useWorkspaceSessionSync({
   }, [summaries, syncKey])
 
   useEffect(() => {
+    syncWorkspaceSessionsRef.current = syncWorkspaceSessions
+  }, [syncWorkspaceSessions])
+
+  useEffect(() => {
+    applyWorkspaceSessionSnapshotRef.current = applyWorkspaceSessionSnapshot
+  }, [applyWorkspaceSessionSnapshot])
+
+  useEffect(() => {
     let active = true
 
-    void syncWorkspaceSessions(structuralSummariesRef.current, activeSessionId).catch((error) => {
-      if (!active) {
-        return
-      }
+    void syncWorkspaceSessionsRef
+      .current(structuralSummariesRef.current, activeSessionId)
+      .catch((error) => {
+        if (!active) {
+          return
+        }
 
-      console.error('[WorkspaceSessionSync] Failed to sync session resources', error)
-    })
+        console.error('[WorkspaceSessionSync] Failed to sync session resources', error)
+      })
 
     return () => {
       active = false
     }
-  }, [activeSessionId, syncKey, syncWorkspaceSessions])
+  }, [activeSessionId, syncKey])
 
   useEffect(() => {
     return window.xnetWorkspaceSessions.onStatusChange((event) => {
       startTransition(() => {
-        void applyWorkspaceSessionSnapshot(event.session)
+        void applyWorkspaceSessionSnapshotRef.current(event.session)
       })
     })
-  }, [applyWorkspaceSessionSnapshot])
+  }, [])
 }

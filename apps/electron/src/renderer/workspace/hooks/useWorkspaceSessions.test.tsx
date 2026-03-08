@@ -9,10 +9,11 @@ import { generateIdentity } from '@xnetjs/identity'
 import { XNetProvider } from '@xnetjs/react'
 import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnetjs/telemetry'
 import React, { type ReactNode, useMemo } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { useActiveSession } from './useActiveSession'
 import { useSessionCommands } from './useSessionCommands'
 import { useSessionSummaries } from './useSessionSummaries'
+import { useWorkspaceSessionSync } from './useWorkspaceSessionSync'
 
 type WorkspaceHooks = {
   active: ReturnType<typeof useActiveSession>
@@ -233,5 +234,67 @@ describe('workspace session hooks', () => {
     expect(nextSession?.id).toBe(initialSession?.id)
     expect(nextSession?.updatedAt).toBe(initialSession?.updatedAt)
     expect(result.current.summaries.data).toHaveLength(1)
+  })
+
+  it('does not resync workspace sessions on equivalent rerenders', async () => {
+    const sync = vi.fn<() => Promise<[]>>().mockResolvedValue([])
+    const onStatusChange = vi.fn<(handler: (event: { session: never }) => void) => () => void>(
+      () => () => {}
+    )
+
+    Object.assign(window, {
+      xnetWorkspaceSessions: {
+        sync,
+        onStatusChange
+      }
+    })
+
+    const summaries: SessionSummaryNode[] = [
+      {
+        id: 'xnet:workspace-session:sync-test',
+        schemaId: 'xnet://xnet.dev/electron/workspace/WorkspaceSessionSummary@1.0.0',
+        createdAt: 1,
+        updatedAt: 1,
+        title: 'Sync Test',
+        branch: 'codex/sync-test',
+        worktreeName: 'sync-test',
+        worktreePath: '/tmp/worktrees/sync-test',
+        openCodeUrl: 'http://127.0.0.1:4096',
+        changedFilesCount: 0,
+        isDirty: false,
+        state: 'idle'
+      }
+    ]
+
+    const rendered = renderHook(
+      ({ nextSummaries }) => {
+        useWorkspaceSessionSync({
+          summaries: nextSummaries,
+          activeSessionId: nextSummaries[0]?.id ?? null
+        })
+      },
+      {
+        initialProps: { nextSummaries: summaries },
+        wrapper: createWrapper(new MemoryNodeStorageAdapter())
+      }
+    )
+
+    await waitFor(() => {
+      expect(sync.mock.calls.length).toBeGreaterThan(0)
+    })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 50))
+    })
+
+    const settledCallCount = sync.mock.calls.length
+
+    rendered.rerender({ nextSummaries: summaries })
+
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 50))
+    })
+
+    expect(sync).toHaveBeenCalledTimes(settledCallCount)
   })
 })
