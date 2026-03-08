@@ -14,8 +14,10 @@ import {
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { createMenu } from './menu'
+import { setupOpenCodeIPC, stopOpenCodeHost } from './opencode-service'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
 import { initAutoUpdater } from './updater'
+import { setupWorkspaceSessionIPC, stopWorkspaceSessions } from './workspace-session-ipc'
 
 // Enable remote debugging in development for Playwright/CDP testing
 // CDP port is configurable via ELECTRON_CDP_PORT env var (default: 9223)
@@ -193,6 +195,8 @@ app.whenReady().then(async () => {
 
   // Setup service IPC for plugin background processes
   setupServiceIPC()
+  setupOpenCodeIPC()
+  setupWorkspaceSessionIPC()
 
   // Setup Local API IPC handlers
   setupLocalAPIIPC()
@@ -236,6 +240,8 @@ app.on('before-quit', async () => {
   await stopLocalAPI()
 
   // Stop all plugin services
+  await stopWorkspaceSessions()
+  await stopOpenCodeHost()
   await cleanupServices()
 
   // Stop cloudflare tunnel process

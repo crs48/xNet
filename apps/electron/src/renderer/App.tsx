@@ -16,6 +16,7 @@ import { DatabaseView } from './components/DatabaseView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
 import { SystemMenu } from './components/SystemMenu'
+import { DevWorkspaceShell } from './workspace/DevWorkspaceShell'
 
 type DocType = 'page' | 'database' | 'canvas'
 
@@ -39,6 +40,8 @@ type DocumentItem = {
   updatedAt?: number
 }
 
+type AppMode = 'canvas' | 'coding-workspace'
+
 const OVERLAY_OPEN_DELAY_MS = 180
 
 function toError(error: unknown): Error {
@@ -46,6 +49,7 @@ function toError(error: unknown): Error {
 }
 
 export function App(): React.ReactElement {
+  const [appMode, setAppMode] = useState<AppMode>('canvas')
   const [homeCanvasId, setHomeCanvasId] = useState<string | null>(null)
   const [homeCanvasBootstrapError, setHomeCanvasBootstrapError] = useState<Error | null>(null)
   const [shellState, setShellState] = useState<ShellState>({ kind: 'canvas-home' })
@@ -307,6 +311,27 @@ export function App(): React.ReactElement {
     setShellState({ kind: 'settings' })
   }, [clearTransitionTimer])
 
+  const handleOpenCodingWorkspace = useCallback(() => {
+    clearTransitionTimer()
+    setShowAddSharedDialog(false)
+    setPrefilledShareValue('')
+    setShellState({ kind: 'canvas-home' })
+    setAppMode('coding-workspace')
+  }, [clearTransitionTimer])
+
+  const handleReturnToCanvasWorkspace = useCallback(() => {
+    clearTransitionTimer()
+    setAppMode('canvas')
+    setShellState({ kind: 'canvas-home' })
+    setActiveNodeId(homeCanvasId)
+  }, [clearTransitionTimer, homeCanvasId, setActiveNodeId])
+
+  const handleOpenSettingsFromWorkspace = useCallback(() => {
+    clearTransitionTimer()
+    setAppMode('canvas')
+    setShellState({ kind: 'settings' })
+  }, [clearTransitionTimer])
+
   const paletteCommands = useMemo<PaletteCommand[]>(
     () => [
       {
@@ -337,6 +362,13 @@ export function App(): React.ReactElement {
         icon: 'settings',
         execute: handleOpenSettings
       },
+      {
+        id: 'open-coding-workspace',
+        name: 'Open Coding Workspace',
+        description: 'Switch to the three-panel coding shell',
+        icon: 'code',
+        execute: handleOpenCodingWorkspace
+      },
       ...recentDocuments.map((document) => ({
         id: `open-${document.id}`,
         name: document.title,
@@ -354,6 +386,7 @@ export function App(): React.ReactElement {
     [
       handleCreateCanvasNote,
       handleCreateLinkedDocument,
+      handleOpenCodingWorkspace,
       handleOpenDocument,
       handleOpenSettings,
       recentDocuments
@@ -429,6 +462,29 @@ export function App(): React.ReactElement {
     )
   }
 
+  if (appMode === 'coding-workspace') {
+    return (
+      <>
+        <DevWorkspaceShell
+          onReturnToCanvas={handleReturnToCanvasWorkspace}
+          onOpenSettings={handleOpenSettingsFromWorkspace}
+        />
+
+        <AddSharedDialog
+          isOpen={showAddSharedDialog}
+          onClose={() => {
+            setShowAddSharedDialog(false)
+            setPrefilledShareValue('')
+          }}
+          onAdd={handleAddShared}
+          initialValue={prefilledShareValue}
+        />
+
+        <BundledPluginInstaller />
+      </>
+    )
+  }
+
   return (
     <div className="relative h-screen overflow-hidden bg-background">
       <header className="absolute inset-x-0 top-0 z-50 h-[38px]">
@@ -438,6 +494,7 @@ export function App(): React.ReactElement {
             recentDocuments={recentDocuments}
             onOpenDocument={handleOpenDocument}
             onOpenSettings={handleOpenSettings}
+            onOpenCodingWorkspace={handleOpenCodingWorkspace}
             onAddShared={() => {
               setPrefilledShareValue('')
               setShowAddSharedDialog(true)

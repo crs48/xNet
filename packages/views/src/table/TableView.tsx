@@ -121,6 +121,9 @@ export function TableView({
   return (
     <div
       data-xnet-db-editable="true"
+      data-xnet-target-id="table-view"
+      data-xnet-target-label="Table view"
+      data-xnet-file-hint="packages/views/src/table/TableView.tsx"
       className={cn('flex flex-col h-full bg-white dark:bg-gray-900', className)}
     >
       {/* Scrollable container */}

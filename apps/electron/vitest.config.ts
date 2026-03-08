@@ -24,6 +24,7 @@ export default defineConfig({
       '@xnetjs/data': resolve(__dirname, '../../packages/data/src/index.ts'),
       '@xnetjs/devtools': resolve(__dirname, '../../packages/devtools/src/index.ts'),
       '@xnetjs/identity': resolve(__dirname, '../../packages/identity/src/index.ts'),
+      '@xnetjs/plugins/node': resolve(__dirname, '../../packages/plugins/src/services/node.ts'),
       '@xnetjs/react/internal': resolve(__dirname, '../../packages/react/src/internal.ts'),
       '@xnetjs/react': resolve(__dirname, '../../packages/react/src/index.ts'),
       '@xnetjs/ui': resolve(__dirname, '../../packages/ui/src/index.ts'),

@@ -316,6 +316,9 @@ export function BoardView({
   return (
     <div
       data-xnet-db-editable="true"
+      data-xnet-target-id="board-view"
+      data-xnet-target-label="Board view"
+      data-xnet-file-hint="packages/views/src/board/BoardView.tsx"
       className={cn('h-full overflow-x-auto p-4 bg-white dark:bg-gray-900', className)}
     >
       <DndContext

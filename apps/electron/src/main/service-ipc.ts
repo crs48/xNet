@@ -8,7 +8,9 @@ import {
   ProcessManager,
   SERVICE_IPC_CHANNELS,
   type ServiceDefinition,
-  type ServiceStatus
+  type ServiceOutputEvent,
+  type ServiceStatus,
+  type ServiceStatusEvent
 } from '@xnetjs/plugins/node'
 import { ipcMain, BrowserWindow } from 'electron'
 
@@ -24,14 +26,14 @@ export function getProcessManager(): ProcessManager {
     processManager = new ProcessManager()
 
     // Forward status events to all renderer windows
-    processManager.on('service:status', (event) => {
+    processManager.on('service:status', (event: ServiceStatusEvent) => {
       BrowserWindow.getAllWindows().forEach((win) => {
         win.webContents.send(SERVICE_IPC_CHANNELS.STATUS_UPDATE, event)
       })
     })
 
     // Forward output events to all renderer windows
-    processManager.on('service:output', (event) => {
+    processManager.on('service:output', (event: ServiceOutputEvent) => {
       BrowserWindow.getAllWindows().forEach((win) => {
         win.webContents.send(SERVICE_IPC_CHANNELS.OUTPUT, event)
       })
