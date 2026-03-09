@@ -1,6 +1,6 @@
 # 🧪 Storybook For xNet’s Shared UI And Electron IDE Direction
 
-**Date**: March 8, 2026  
+**Date**: March 9, 2026  
 **Status**: Exploration  
 **Scope**: `@xnetjs/ui`, `apps/web`, `apps/electron`, and the `codex/llm-coding-ui-mvp` branch direction  
 **Problem**: xNet has a meaningful shared React UI surface, duplicated app-level components, and an emerging Electron coding-workspace shell, but no isolation environment for component development, documentation, layout debugging, or story-driven testing.
@@ -11,31 +11,28 @@
 
 - ✅ xNet is a strong fit for Storybook now, not later. The repo already has a real shared design system in [`packages/ui/src/index.ts`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/src/index.ts) and the UI audit already lists Storybook docs, visual regression, and performance benchmarking as next steps in [`packages/ui/COMPONENT_AUDIT.md:100`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/COMPONENT_AUDIT.md#L100).
 - ✅ The right baseline is **Storybook 10.2 with `@storybook/react-vite`**, because both `apps/web` and the Electron renderer are Vite-based today.
-- ✅ The right architecture is **package-first plus composition**, not one giant app-only Storybook:
-  - `packages/ui` becomes the canonical component workshop.
-  - `apps/web` and `apps/electron` each get thin, app-specific stories for route shells and integration surfaces.
-  - A top-level Storybook composes them for one “xNet Workshop”.
-- ✅ The `codex/llm-coding-ui-mvp` branch already contains the substrate needed to make Storybook a first-class Electron IDE surface:
-  - a three-panel coding workspace shell
-  - a preview runtime manager that launches per-worktree web previews
-  - a preview context bridge for passing DOM/file context back into the workspace
+- ✅ The chosen direction is now **one root Storybook plus dev-only embedded access inside xNet**, not a production workshop surface and not a composition-first rollout.
+- ✅ Electron and Web should both expose Storybook from inside the app shell, but only in development:
+  - Electron gets menu + command-palette entry points and an embedded Storybook view
+  - Web gets a dev-only route such as `/__stories`
+  - the real Storybook UI is embedded, rather than building a custom workshop shell in v1
+- ✅ The first pass should include **shared `@xnetjs/ui` stories plus selected app stories**, with mocks for renderer-safe app surfaces.
 - ⚠️ The “performance panel” should be treated as a **local diagnostics tool**, not a merge gate. It is useful for interactive profiling, but Storybook’s own docs and the performance addon both imply that stable CI perf comparisons need stricter controls.
-- 🥇 Recommendation: ship this in three stages:
-  1. `packages/ui` Storybook with core addons and portable-story testing
-  2. composed root workshop plus app stories
-  3. Electron coding workspace integration so each worktree can boot Storybook directly inside the right-hand preview panel
+- 🥇 Recommendation: ship this in four implementation chunks:
+  1. root Storybook config and shared decorators
+  2. initial shared UI + app stories
+  3. Electron dev-only embedded Storybook surface
+  4. Web dev-only embedded Storybook route
 
 ```mermaid
 flowchart TD
-  A["packages/ui storybook"] --> B["shared component contracts"]
-  C["apps/web storybook"] --> D["web-specific shells and routes"]
-  E["apps/electron storybook"] --> F["electron-specific mocked surfaces"]
-  B --> G["root composed xNet workshop"]
-  D --> G
-  F --> G
-  G --> H["publish to GitHub Pages or Chromatic"]
-  G --> I["open inside Electron coding workspace"]
-  I --> J["LLM-assisted feature work with live isolated previews"]
+  A["Root Storybook runtime"] --> B["packages/ui stories"]
+  A --> C["selected web stories"]
+  A --> D["selected electron renderer stories"]
+  A --> E["dev-only embedded iframe"]
+  E --> F["Electron menu and palette entry"]
+  E --> G["Web dev route"]
+  A --> H["a11y, Vitest, performance addon"]
 ```
 
 ---
@@ -50,6 +47,18 @@ xNet needs a component-driven development surface that does four jobs well:
 4. Turn the emerging Electron coding workspace into a true product-development shell instead of only a chat-plus-preview shell.
 
 Today, the repo has the ingredients for this but not the workflow.
+
+## ✅ Direction Lock (March 9, 2026)
+
+The implementation direction for this exploration is now fixed:
+
+- **Use Storybook**
+- **Use one root Storybook runtime**
+- **Embed the real Storybook UI**
+- **Expose it only in development**
+- **Integrate it into both Electron and Web**
+- **Include shared UI stories plus curated app stories**
+- **Do not build a custom native workshop shell in v1**
 
 ---
 
@@ -197,8 +206,8 @@ graph LR
 1. **Storybook should be aligned to xNet’s package boundaries, not app routes alone.**  
    `@xnetjs/ui` is mature enough to justify canonical stories, while Electron/Web should carry only stories that need app-specific context.
 
-2. **Composition is the unlock for this monorepo.**  
-   A composed workshop avoids forcing every story into one process and maps cleanly onto `packages/ui`, `apps/web`, and `apps/electron`.
+2. **A single root Storybook is the best v1 tradeoff.**  
+   It keeps the setup understandable, gives xNet one canonical dev server, and still lets both Electron and Web embed the same story surface.
 
 3. **The `codex/llm-coding-ui-mvp` branch makes Storybook-in-Electron realistic.**  
    xNet already has a preview-runtime concept, session management, and a UI shell for multiple dev surfaces.
@@ -219,107 +228,99 @@ graph LR
 | Option | Shape | Pros | Cons | Verdict |
 | --- | --- | --- | --- | --- |
 | A. `packages/ui` only | One Storybook for shared primitives/composed components | Fastest path, highest leverage, low risk | App shells and Electron-specific flows remain undocumented | Good first increment |
-| B. One monolithic root Storybook | One config, one process, all stories | Simple to explain | Heavy config, harder mocking, more drift risk, slower startup | Not ideal |
-| C. Per-surface Storybooks + composition | `packages/ui`, `apps/web`, `apps/electron`, plus a composed root | Best fit for monorepo boundaries, scales with IDE integration, supports partial ownership | Slightly more setup | Best overall |
+| B. One root Storybook embedded in dev | One config, one process, all stories, embedded in Electron/Web | Simple, consistent, easy to open from inside xNet, matches the chosen UX | Requires good mocks and careful story curation | Chosen v1 |
+| C. Per-surface Storybooks + composition | `packages/ui`, `apps/web`, `apps/electron`, plus a composed root | Strong ownership boundaries and long-term scale | More setup and more moving parts than needed for v1 | Good later |
 | D. Internal preview routes instead of Storybook | Build custom “dev routes” in Web/Electron | Full control, no external tool semantics | Reinvents controls/docs/testing/composition, higher maintenance | Poor use of time |
-| E. Electron-only Storybook shell | Develop components directly only inside desktop app | Matches long-term IDE vision | Blocks web contributors and CI hosting flows; ties everything to Electron | Good later, bad starting point |
+| E. Electron-only Storybook shell | Develop components directly only inside desktop app | Matches long-term IDE vision | Blocks web contributors and CI hosting flows; ties everything to Electron | Too narrow for v1 |
 
 ```mermaid
 sequenceDiagram
   participant Dev as Developer
-  participant IDE as Electron Coding Workspace
-  participant PM as Preview Manager
+  participant ELEC as Electron App
+  participant WEB as Web App
   participant SB as Storybook Runtime
-  participant Repo as Worktree
+  participant Repo as Repo Root
 
-  Dev->>IDE: Select "UI workshop" target for session
-  IDE->>PM: Start preview for worktree + mode=storybook
-  PM->>Repo: Bootstrap dependencies
-  PM->>SB: Run storybook dev on assigned port
-  SB-->>IDE: Serve isolated stories
-  Dev->>IDE: Inspect component state / interactions / a11y
-  IDE->>Repo: Save story or implementation change
+  Dev->>SB: Run pnpm dev:stories
+  SB->>Repo: Load root config and stories
+  Dev->>ELEC: Open Stories from menu or palette
+  ELEC->>SB: Embed manager UI in iframe
+  Dev->>WEB: Open /__stories
+  WEB->>SB: Embed manager UI in iframe
+  Dev->>ELEC: Inspect component state / interactions / a11y
+  Dev->>Repo: Save story or implementation change
 ```
 
 ---
 
 ## 🥇 Recommendation
 
-### Recommended Architecture
+### Chosen Architecture
 
-Implement **Option C: per-surface Storybooks plus a composed root workshop**, rolled out in phases.
+Implement a **single root Storybook runtime** and make it feel native by **embedding the actual Storybook UI inside Electron and Web in development only**.
 
-#### Phase 1: `packages/ui` canonical workshop
+This is a deliberate shift away from the earlier composition-heavy direction.
 
-- Add Storybook under `packages/ui` using `@storybook/react-vite`.
-- Treat this as the source of truth for:
-  - primitives
-  - composed components
-  - theme variations
-  - responsive states
-  - accessibility states
-- Add only minimal mocks here. Keep it pure.
+#### Why this is the right fit
 
-#### Phase 2: app-surface Storybooks
+- It is the simplest path that still gives xNet the full Storybook ecosystem.
+- It avoids shipping Storybook as a normal product surface.
+- It keeps the UX integrated into the existing app shell.
+- It avoids inventing a custom workshop framework before proving that the workflow is useful.
+- It works in both Electron and Web with a shared story source and shared dev tooling.
 
-- Add `apps/web/.storybook` for:
-  - route-shell stories
-  - app-level components
-  - data/identity/plugin mocked states
-- Add `apps/electron/.storybook` for:
-  - renderer-only stories
-  - preload-mocked components
-  - titlebar/system-shell surfaces
-- Keep Electron main-process behavior out of story execution. Mock preload contracts instead.
+### Runtime Model
 
-#### Phase 3: root-composed workshop
+#### Root Storybook
 
-- Create a top-level Storybook whose main job is composition:
-  - `packages/ui` local Storybook
-  - `apps/web` local Storybook
-  - `apps/electron` local Storybook
-- This becomes the single URL for humans and CI artifacts.
+- Add Storybook once at the repo root under `.storybook/`.
+- Use root-level scripts:
+  - `pnpm dev:stories`
+  - `pnpm build:stories`
+  - `pnpm test:stories`
+- Include story globs for:
+  - `packages/ui`
+  - curated `apps/web` stories
+  - curated `apps/electron/src/renderer` stories
 
-#### Phase 4: Electron IDE integration
+#### Electron
 
-- Generalize the preview manager from “launch `apps/web` Vite” to “launch a preview target”.
-- Supported preview targets should become:
-  - `web`
-  - `storybook-ui`
-  - `storybook-web`
-  - `storybook-electron`
-- Add a toggle in `PreviewWorkspace` for “App”, “Stories”, and later “Tests”.
-- Reuse the branch’s preview context bridge pattern so story selections can feed richer file/component context back into the coding panel.
+- Add a dev-only shell state for Stories in the renderer app.
+- Add entry points in:
+  - `SystemMenu`
+  - command palette
+- Embed Storybook with an `iframe`.
+- Start Storybook from the Electron main process on demand and expose status via preload IPC.
+
+#### Web
+
+- Add a dev-only route such as `/__stories`.
+- Embed Storybook with an `iframe`.
+- Read the target URL from `VITE_STORYBOOK_URL`.
+- Do not auto-start Storybook from the browser app.
+
+#### Production behavior
+
+- No visible Stories entry in production.
+- No Storybook runtime dependency in production navigation.
+- No custom user-facing workshop mode in v1.
 
 ### Recommended Addon Stack
 
-#### Start with these
-
 - `@storybook/addon-essentials`
-  - Controls
-  - Docs/Autodocs
-  - Viewport
-  - Measure & outline
 - `@storybook/addon-a11y`
-- Vitest addon
-
-#### Add carefully
-
+- `@storybook/addon-vitest`
 - `storybook-addon-performance`
-  - Use for local diagnostics and story-level interactions
-  - Do not make it a blocking perf gate initially
 
-#### Consider after baseline is healthy
+### Story Scope
 
-- Chromatic publishing / visual review
-- design-token or design-reference addons if the team wants tighter design handoff
-
-### Why this is the right fit
-
-- It matches xNet’s monorepo boundaries.
-- It uses the toolchain xNet already has.
-- It supports both browser-based review and the long-term Electron IDE.
-- It gives a migration path from isolated component work to live worktree-based feature development.
+- Start with `@xnetjs/ui` stories.
+- Add selected app stories immediately after:
+  - dialogs
+  - sidebars
+  - settings surfaces
+  - renderer-safe app components
+- Exclude stories that require real Electron main-process, real sync, or live storage until they have stable mocks.
 
 ---
 
@@ -327,83 +328,85 @@ Implement **Option C: per-surface Storybooks plus a composed root workshop**, ro
 
 ```mermaid
 stateDiagram-v2
-  [*] --> UIStories
-  UIStories: packages/ui Storybook
-  UIStories --> AppStories
-  AppStories: web + electron stories
-  AppStories --> ComposedWorkshop
-  ComposedWorkshop: root Storybook Composition
-  ComposedWorkshop --> ElectronPreviewTarget
-  ElectronPreviewTarget: Storybook selectable inside PreviewWorkspace
-  ElectronPreviewTarget --> LLMIDE
-  LLMIDE: context-aware story-driven coding loop
-  LLMIDE --> [*]
+  [*] --> RootStorybook
+  RootStorybook: root Storybook config and scripts
+  RootStorybook --> InitialStories
+  InitialStories: shared UI and curated app stories
+  InitialStories --> ElectronEmbed
+  ElectronEmbed: dev-only menu, palette, iframe, IPC
+  ElectronEmbed --> WebEmbed
+  WebEmbed: dev-only route and iframe
+  WebEmbed --> Validation
+  Validation: addon, build, and embedded workflow checks
+  Validation --> [*]
 ```
 
 ### Target UX
 
-- A designer/dev can open xNet Workshop in a browser or in Electron.
-- A component author can switch theme, viewport, controls, and a11y results instantly.
-- A coding-session preview can choose between the real app and isolated stories for the same worktree.
-- An LLM-assisted workflow can target a specific story, not only a page route.
+- In development, a developer can open Stories from inside Electron without leaving the app.
+- In development, a developer can jump to `/__stories` inside the Web shell.
+- The embedded surface is the real Storybook manager UI, including docs, controls, a11y, and addons.
+- Production users never see the Stories surface.
 
 ---
 
 ## ✅ Implementation Checklist
 
-- [ ] Add `@storybook/react-vite` to `packages/ui`.
-- [ ] Create `packages/ui/.storybook/main.ts` and `preview.ts`.
-- [ ] Create baseline stories for:
-  - [ ] primitives
-  - [ ] comments UI
-  - [ ] command palette
-  - [ ] settings surfaces
-  - [ ] responsive shell components
-- [ ] Configure shared theme imports and globals for light/dark/system.
+- [x] Decide that Storybook is worth pursuing for xNet.
+- [x] Choose a dev-only surface instead of a production workshop mode.
+- [x] Choose one root Storybook runtime instead of a composition-first rollout.
+- [x] Choose embedded real Storybook UI instead of a custom native workshop shell.
+- [x] Choose Electron and Web as the first host surfaces.
+- [x] Choose shared UI plus selected app stories as the initial scope.
+- [ ] Add root Storybook dependencies and scripts at the repo root.
+- [ ] Create `.storybook/main.ts`, `preview.ts`, and supporting shared decorators.
+- [ ] Add initial story files for:
+  - [ ] `packages/ui` primitives
+  - [ ] `packages/ui` composed components
+  - [ ] selected Web components
+  - [ ] selected Electron renderer components
+- [ ] Add shared story mocks for:
+  - [ ] theme providers
+  - [ ] router state
+  - [ ] preload-backed Electron APIs
+  - [ ] renderer-safe app context
 - [ ] Enable `@storybook/addon-essentials`.
 - [ ] Enable `@storybook/addon-a11y`.
-- [ ] Enable the Vitest addon and align it with existing Vitest usage.
-- [ ] Add a small set of story tags for:
-  - [ ] `stable`
-  - [ ] `wip`
-  - [ ] `perf`
-  - [ ] `electron`
-  - [ ] `web`
-- [ ] Add `apps/web` Storybook with mocked app context.
-- [ ] Add `apps/electron` Storybook with mocked preload contracts.
-- [ ] Add a root-composed Storybook that references the package/app Storybooks.
-- [ ] Add a GitHub Actions workflow to build the composed Storybook.
-- [ ] Publish to:
-  - [ ] GitHub Pages first, or
-  - [ ] Chromatic if visual review should be part of PR checks
-- [ ] Generalize the coding-workspace preview manager to accept preview targets beyond `apps/web`.
-- [ ] Add a “Stories” tab or target selector in the Electron `PreviewWorkspace`.
-- [ ] Add story-aware preview context messages so the coding panel can reason about `storyId`, component path, and nearby DOM context.
+- [ ] Enable `@storybook/addon-vitest`.
+- [ ] Enable `storybook-addon-performance`.
+- [ ] Add Electron Storybook lifecycle management in main/preload.
+- [ ] Add a Stories shell state/view in the Electron renderer.
+- [ ] Add a dev-only `Open Stories` item to `SystemMenu`.
+- [ ] Add a dev-only `Open Stories` command to the command palette.
+- [ ] Add a dev-only Web route for embedded Storybook.
+- [ ] Add a dev-only Web navigation entry for Stories.
+- [ ] Update this exploration as implementation progresses and check off completed items.
 
 ---
 
 ## 🧪 Validation Checklist
 
-- [ ] `packages/ui` stories boot locally with theme assets identical to app usage.
-- [ ] Core stories render in both light and dark themes without token regressions.
-- [ ] Responsive shell components work across mobile/tablet/desktop viewports.
-- [ ] a11y results appear in the UI and in CI for designated stories.
-- [ ] Story-driven Vitest runs execute successfully in browser mode.
-- [ ] Duplicated Electron/Web components reveal clear extraction opportunities.
-- [ ] Root composition can aggregate multiple local Storybooks without broken navigation.
-- [ ] Built Storybook publishes successfully to the chosen host.
-- [ ] Electron workspace can switch a session preview between app runtime and Storybook runtime.
-- [ ] Storybook preview startup/restore is fast enough to feel native inside the coding workspace.
+- [ ] Root Storybook boots with the shared xNet theme assets.
+- [ ] Shared UI stories render in both light and dark themes.
+- [ ] Selected app stories render with mocks and no renderer crashes.
+- [ ] a11y results appear in the Storybook UI.
+- [ ] Vitest addon runs portable-story tests.
+- [ ] Performance addon renders for designated stories.
+- [ ] Electron dev build can start Storybook on demand and display it in-app.
+- [ ] Electron loading and failure states are clear when Storybook is unavailable.
+- [ ] Web dev route can embed Storybook from `VITE_STORYBOOK_URL`.
+- [ ] Web missing-server state is clear and non-fatal.
+- [ ] Production builds do not expose Stories UI.
 - [ ] No background dev servers are left running after verification workflows.
 
 ---
 
 ## 💡 Example Code
 
-### 1. `packages/ui` Storybook baseline
+### 1. Root Storybook baseline
 
 ```ts
-// packages/ui/.storybook/main.ts
+// .storybook/main.ts
 import type { StorybookConfig } from '@storybook/react-vite'
 import path from 'node:path'
 
@@ -412,7 +415,11 @@ const config: StorybookConfig = {
     name: '@storybook/react-vite',
     options: {}
   },
-  stories: ['../src/**/*.stories.@(ts|tsx|mdx)'],
+  stories: [
+    '../packages/ui/src/**/*.stories.@(ts|tsx|mdx)',
+    '../apps/web/src/**/*.stories.@(ts|tsx|mdx)',
+    '../apps/electron/src/renderer/**/*.stories.@(ts|tsx|mdx)'
+  ],
   addons: [
     '@storybook/addon-essentials',
     '@storybook/addon-a11y',
@@ -425,7 +432,7 @@ const config: StorybookConfig = {
       ...viteConfig.resolve,
       alias: {
         ...viteConfig.resolve?.alias,
-        '@xnetjs/ui': path.resolve(__dirname, '../src')
+        '@xnetjs/ui': path.resolve(__dirname, '../packages/ui/src')
       }
     }
   })
@@ -435,15 +442,15 @@ export default config
 ```
 
 ```tsx
-// packages/ui/.storybook/preview.ts
+// .storybook/preview.ts
 import type { Preview } from '@storybook/react-vite'
-import '../src/theme/tokens.css'
-import '../src/theme/motion.css'
-import '../src/theme/accessibility.css'
-import '../src/theme/responsive.css'
-import '../src/theme/base-ui-animations.css'
+import '../packages/ui/src/theme/tokens.css'
+import '../packages/ui/src/theme/motion.css'
+import '../packages/ui/src/theme/accessibility.css'
+import '../packages/ui/src/theme/responsive.css'
+import '../packages/ui/src/theme/base-ui-animations.css'
 
-import { ThemeProvider } from '../src/theme/ThemeProvider'
+import { ThemeProvider } from '../packages/ui/src/theme/ThemeProvider'
 
 const preview: Preview = {
   parameters: {
@@ -464,66 +471,49 @@ const preview: Preview = {
 export default preview
 ```
 
-### 2. Root composition config
+### 2. Electron preload contract
 
 ```ts
-// .storybook/main.ts
-import type { StorybookConfig } from '@storybook/react-vite'
-
-const config: StorybookConfig = {
-  framework: '@storybook/react-vite',
-  stories: [],
-  refs: {
-    ui: {
-      title: 'UI',
-      url: 'http://127.0.0.1:6101'
-    },
-    web: {
-      title: 'Web',
-      url: 'http://127.0.0.1:6102'
-    },
-    electron: {
-      title: 'Electron',
-      url: 'http://127.0.0.1:6103'
-    }
-  }
+type StorybookStatus = {
+  state: 'stopped' | 'starting' | 'ready' | 'error'
+  url?: string
+  error?: string
 }
 
-export default config
+interface XNetStorybookAPI {
+  status(): Promise<StorybookStatus>
+  ensure(): Promise<StorybookStatus>
+  stop(): Promise<StorybookStatus>
+}
 ```
 
-### 3. Preview-manager direction for the Electron IDE
+### 3. Electron renderer shell state
 
 ```ts
-type PreviewTarget = 'web' | 'storybook-ui' | 'storybook-web' | 'storybook-electron'
+type ShellState =
+  | { kind: 'canvas-home' }
+  | { kind: 'page-focus'; docId: string; returnViewport: ViewportSnapshot | null }
+  | { kind: 'database-focus'; docId: string; returnViewport: ViewportSnapshot | null }
+  | { kind: 'settings' }
+  | { kind: 'stories' }
+```
 
-function resolvePreviewCommand(sessionPath: string, target: PreviewTarget): {
-  cwd: string
-  args: string[]
-} {
-  switch (target) {
-    case 'storybook-ui':
-      return {
-        cwd: `${sessionPath}/packages/ui`,
-        args: ['exec', 'storybook', 'dev', '--ci', '--port', '0']
-      }
-    case 'storybook-web':
-      return {
-        cwd: `${sessionPath}/apps/web`,
-        args: ['exec', 'storybook', 'dev', '--ci', '--port', '0']
-      }
-    case 'storybook-electron':
-      return {
-        cwd: `${sessionPath}/apps/electron`,
-        args: ['exec', 'storybook', 'dev', '--ci', '--port', '0']
-      }
-    case 'web':
-    default:
-      return {
-        cwd: `${sessionPath}/apps/web`,
-        args: ['exec', 'vite', '--host', '127.0.0.1', '--port', '0']
-      }
+### 4. Web route idea
+
+```tsx
+// apps/web/src/routes/__stories.tsx
+export function StoriesRoute(): React.ReactElement {
+  const storybookUrl = import.meta.env.VITE_STORYBOOK_URL
+
+  if (!import.meta.env.DEV) {
+    return <Navigate to="/" />
   }
+
+  if (!storybookUrl) {
+    return <div>Set VITE_STORYBOOK_URL and run pnpm dev:stories.</div>
+  }
+
+  return <iframe title="Storybook" src={storybookUrl} className="h-full w-full border-0" />
 }
 ```
 
@@ -541,11 +531,11 @@ function resolvePreviewCommand(sessionPath: string, target: PreviewTarget): {
 
 ## 🚀 Next Actions
 
-1. Start with `packages/ui` only and prove the value quickly.
-2. Pick 8-12 representative stories, not every component at once.
-3. Wire in a11y + Vitest before adding fancy addons.
-4. Use the resulting stories to decide which duplicated Electron/Web components deserve extraction.
-5. After the workshop is stable, generalize the `codex/llm-coding-ui-mvp` preview runtime so Storybook is a selectable target inside the Electron IDE.
+1. Add the root Storybook runtime and scripts.
+2. Land the first story set for shared UI plus a small set of app stories.
+3. Wire Electron embedded Storybook access.
+4. Wire the Web dev-only Stories route.
+5. Revisit deeper Electron workspace integration only after this simpler path proves useful.
 
 ---
 
