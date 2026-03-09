@@ -1,7 +1,8 @@
 import { Button } from '@xnetjs/ui'
 import React, { useCallback, useEffect, useState } from 'react'
 
-type StorybookStatus = Awaited<ReturnType<typeof window.xnetStorybook.status>>
+type StorybookBridge = NonNullable<typeof window.xnetStorybook>
+type StorybookStatus = Awaited<ReturnType<StorybookBridge['status']>>
 
 const STATUS_POLL_INTERVAL_MS = 1500
 
@@ -10,19 +11,28 @@ const DEFAULT_STATUS: StorybookStatus = {
 }
 
 export function StorybookView(): React.ReactElement {
+  const storybook = window.xnetStorybook
   const [status, setStatus] = useState<StorybookStatus>(DEFAULT_STATUS)
 
   const refreshStatus = useCallback(async () => {
-    const nextStatus = await window.xnetStorybook.status()
+    if (!storybook) {
+      return DEFAULT_STATUS
+    }
+
+    const nextStatus = await storybook.status()
     setStatus(nextStatus)
     return nextStatus
-  }, [])
+  }, [storybook])
 
   const ensureStorybook = useCallback(async () => {
-    const nextStatus = await window.xnetStorybook.ensure()
+    if (!storybook) {
+      return DEFAULT_STATUS
+    }
+
+    const nextStatus = await storybook.ensure()
     setStatus(nextStatus)
     return nextStatus
-  }, [])
+  }, [storybook])
 
   useEffect(() => {
     if (!import.meta.env.DEV) {
@@ -54,6 +64,19 @@ export function StorybookView(): React.ReactElement {
           <p className="text-sm font-medium text-foreground">Stories are only available in dev.</p>
           <p className="text-xs text-muted-foreground">
             The embedded Storybook surface is intentionally hidden from production builds.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!storybook) {
+    return (
+      <div className="flex h-full items-center justify-center bg-background px-8 text-center">
+        <div className="max-w-md space-y-2">
+          <p className="text-sm font-medium text-foreground">Storybook bridge is unavailable.</p>
+          <p className="text-xs text-muted-foreground">
+            Restart the Electron dev shell so the preload can expose the dev-only Storybook API.
           </p>
         </div>
       </div>

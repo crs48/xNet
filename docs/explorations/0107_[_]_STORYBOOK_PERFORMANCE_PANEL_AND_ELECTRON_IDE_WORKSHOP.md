@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-- ✅ xNet is a strong fit for Storybook now, not later. The repo already has a real shared design system in [`packages/ui/src/index.ts`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/src/index.ts) and the UI audit already lists Storybook docs, visual regression, and performance benchmarking as next steps in [`packages/ui/COMPONENT_AUDIT.md:100`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/COMPONENT_AUDIT.md#L100).
+- ✅ xNet is a strong fit for Storybook now, not later. The repo already has a real shared design system in [`packages/ui/src/index.ts`](../../packages/ui/src/index.ts) and the UI audit already lists Storybook docs, visual regression, and performance benchmarking as next steps in [`packages/ui/COMPONENT_AUDIT.md:100`](../../packages/ui/COMPONENT_AUDIT.md#L100).
 - ✅ The right baseline is **Storybook 10.2 with `@storybook/react-vite`**, because both `apps/web` and the Electron renderer are Vite-based today.
 - ✅ The chosen direction is now **one root Storybook plus dev-only embedded access inside xNet**, not a production workshop surface and not a composition-first rollout.
 - ✅ Storybook now loads the shared token CSS **and Tailwind utilities** in preview, so utility-class-based components render with the same styling contract used by the Web and Electron apps.
@@ -78,7 +78,7 @@ The implementation direction for this exploration is now fixed:
 
 ### Observed facts
 
-- `@xnetjs/ui` is already a meaningful shared design system with primitives, composed components, comments UI, responsive shells, and theming exported from [`packages/ui/src/index.ts:1`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/src/index.ts#L1).
+- `@xnetjs/ui` is already a meaningful shared design system with primitives, composed components, comments UI, responsive shells, and theming exported from [`packages/ui/src/index.ts:1`](../../packages/ui/src/index.ts#L1).
 - Root Storybook coverage now spans:
   - `packages/ui` catalogs for primitives, components, comments, settings, and devtools
   - `packages/editor` workbench stories for the rich text editor
@@ -88,13 +88,13 @@ The implementation direction for this exploration is now fixed:
   - “Add Storybook documentation”
   - “Add visual regression tests”
   - “Performance benchmarking”
-  - Source: [`packages/ui/COMPONENT_AUDIT.md:100`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/COMPONENT_AUDIT.md#L100)
+  - Source: [`packages/ui/COMPONENT_AUDIT.md:100`](../../packages/ui/COMPONENT_AUDIT.md#L100)
 - Both app surfaces already align with a React + Vite Storybook stack:
-  - Electron uses `electron-vite`, React 18, and Vite 5 in [`apps/electron/package.json:12`](/Users/crs/.codex/worktrees/724b/xNet/apps/electron/package.json#L12) and [`apps/electron/electron.vite.config.ts:44`](/Users/crs/.codex/worktrees/724b/xNet/apps/electron/electron.vite.config.ts#L44).
-  - Web uses Vite 5 and React 18 in [`apps/web/package.json:6`](/Users/crs/.codex/worktrees/724b/xNet/apps/web/package.json#L6) and [`apps/web/vite.config.ts:11`](/Users/crs/.codex/worktrees/724b/xNet/apps/web/vite.config.ts#L11).
+  - Electron uses `electron-vite`, React 18, and Vite 5 in [`apps/electron/package.json:12`](../../apps/electron/package.json#L12) and [`apps/electron/electron.vite.config.ts:44`](../../apps/electron/electron.vite.config.ts#L44).
+  - Web uses Vite 5 and React 18 in [`apps/web/package.json:6`](../../apps/web/package.json#L6) and [`apps/web/vite.config.ts:11`](../../apps/web/vite.config.ts#L11).
 - The shared theme already exists and is consumed by both apps:
-  - Electron imports `@xnetjs/ui` theme assets from [`apps/electron/src/renderer/styles.css:1`](/Users/crs/.codex/worktrees/724b/xNet/apps/electron/src/renderer/styles.css#L1)
-  - Web imports them from [`apps/web/src/styles/globals.css:1`](/Users/crs/.codex/worktrees/724b/xNet/apps/web/src/styles/globals.css#L1)
+  - Electron imports `@xnetjs/ui` theme assets from [`apps/electron/src/renderer/styles.css:1`](../../apps/electron/src/renderer/styles.css#L1)
+  - Web imports them from [`apps/web/src/styles/globals.css:1`](../../apps/web/src/styles/globals.css#L1)
 - There is measurable duplication between Electron and Web app components. Matching file names exist for:
   - `AddSharedDialog`
   - `BundledPluginInstaller`
@@ -131,7 +131,7 @@ graph LR
 
 ### Repository Fit Notes
 
-- `packages/ui` is the natural home for canonical stories because it has no `@xnetjs/*` dependencies in [`packages/ui/README.md`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/README.md).
+- `packages/ui` is the natural home for canonical stories because it has no `@xnetjs/*` dependencies in [`packages/ui/README.md`](../../packages/ui/README.md).
 - Electron renderer and Web app both use Vite-based toolchains, so `@storybook/react-vite` avoids builder fragmentation.
 - The branch preview manager currently hardcodes `apps/web` as the preview app target, which is a strong opportunity: generalize it and Storybook becomes just another preview runtime.
 
@@ -591,14 +591,14 @@ export function StoriesRoute(): React.ReactElement {
 
 ### Repository references
 
-- [`packages/ui/src/index.ts`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/src/index.ts)
-- [`packages/ui/COMPONENT_AUDIT.md`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/COMPONENT_AUDIT.md)
-- [`packages/ui/README.md`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/README.md)
-- [`packages/ui/DESIGN_SYSTEM.md`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/DESIGN_SYSTEM.md)
-- [`apps/electron/package.json`](/Users/crs/.codex/worktrees/724b/xNet/apps/electron/package.json)
-- [`apps/electron/electron.vite.config.ts`](/Users/crs/.codex/worktrees/724b/xNet/apps/electron/electron.vite.config.ts)
-- [`apps/web/package.json`](/Users/crs/.codex/worktrees/724b/xNet/apps/web/package.json)
-- [`apps/web/vite.config.ts`](/Users/crs/.codex/worktrees/724b/xNet/apps/web/vite.config.ts)
+- [`packages/ui/src/index.ts`](../../packages/ui/src/index.ts)
+- [`packages/ui/COMPONENT_AUDIT.md`](../../packages/ui/COMPONENT_AUDIT.md)
+- [`packages/ui/README.md`](../../packages/ui/README.md)
+- [`packages/ui/DESIGN_SYSTEM.md`](../../packages/ui/DESIGN_SYSTEM.md)
+- [`apps/electron/package.json`](../../apps/electron/package.json)
+- [`apps/electron/electron.vite.config.ts`](../../apps/electron/electron.vite.config.ts)
+- [`apps/web/package.json`](../../apps/web/package.json)
+- [`apps/web/vite.config.ts`](../../apps/web/vite.config.ts)
 - `codex/llm-coding-ui-mvp:apps/electron/src/renderer/workspace/DevWorkspaceShell.tsx`
 - `codex/llm-coding-ui-mvp:apps/electron/src/renderer/workspace/PreviewWorkspace.tsx`
 - `codex/llm-coding-ui-mvp:apps/electron/src/main/preview-manager.ts`

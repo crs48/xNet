@@ -202,7 +202,9 @@ app.whenReady().then(async () => {
   cleanupTunnelIPC = setupCloudflareTunnelIPC()
 
   // Setup dev-only Storybook IPC handlers
-  setupStorybookIPC()
+  if (process.env.NODE_ENV === 'development') {
+    setupStorybookIPC()
+  }
 
   // Start Local API server (for external integrations)
   await startLocalAPI()

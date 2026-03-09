@@ -66,6 +66,10 @@ async function waitForStorybookReady(): Promise<void> {
   const startedAt = Date.now()
 
   while (Date.now() - startedAt < STORYBOOK_READY_TIMEOUT_MS) {
+    if (stopRequested) {
+      return
+    }
+
     if (await probeStorybook()) {
       return
     }
@@ -149,11 +153,16 @@ async function ensureStorybook(): Promise<StorybookStatus> {
       const output = normalizeOutput(chunk.toString())
       if (output) {
         lastOutput = output
-        lastError = output
       }
     })
 
     child.once('error', (error) => {
+      if (stopRequested) {
+        runtimeState = 'stopped'
+        lastError = null
+        return
+      }
+
       runtimeState = 'error'
       lastError = error instanceof Error ? error.message : String(error)
     })
@@ -175,11 +184,18 @@ async function ensureStorybook(): Promise<StorybookStatus> {
 
     try {
       await waitForStorybookReady()
-      runtimeState = 'ready'
-      lastError = null
+      if (stopRequested) {
+        runtimeState = 'stopped'
+        lastError = null
+      } else {
+        runtimeState = 'ready'
+        lastError = null
+      }
     } catch (error) {
-      runtimeState = 'error'
-      lastError = error instanceof Error ? error.message : String(error)
+      if (!stopRequested) {
+        runtimeState = 'error'
+        lastError = error instanceof Error ? error.message : String(error)
+      }
     } finally {
       ensureTask = null
     }
