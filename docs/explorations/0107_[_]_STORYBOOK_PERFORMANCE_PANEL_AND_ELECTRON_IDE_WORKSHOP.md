@@ -17,7 +17,7 @@
   - Web gets a dev-only route such as `/stories`
   - the real Storybook UI is embedded, rather than building a custom workshop shell in v1
 - ✅ The first pass should include **shared `@xnetjs/ui` stories plus selected app stories**, with mocks for renderer-safe app surfaces.
-- ⚠️ The “performance panel” should be treated as a **local diagnostics tool**, not a merge gate. It is useful for interactive profiling, but Storybook’s own docs and the performance addon both imply that stable CI perf comparisons need stricter controls.
+- ⚠️ The “performance panel” should be treated as a **deferred diagnostics tool**, not a merge gate. The currently available addon path is not Storybook 10-compatible in this repo, so it should stay out of the active config until a compatible option is identified.
 - 🥇 Recommendation: ship this in four implementation chunks:
   1. root Storybook config and shared decorators
   2. initial shared UI + app stories
@@ -32,7 +32,7 @@ flowchart TD
   A --> E["dev-only embedded iframe"]
   E --> F["Electron menu and palette entry"]
   E --> G["Web dev route"]
-  A --> H["a11y, Vitest, performance addon"]
+  A --> H["a11y and Vitest addons"]
 ```
 
 ---
@@ -309,7 +309,7 @@ This is a deliberate shift away from the earlier composition-heavy direction.
 
 - `@storybook/addon-a11y`
 - `@storybook/addon-vitest`
-- `storybook-addon-performance`
+- Performance profiling should be deferred until a Storybook 10-compatible addon or alternate workflow is selected.
 - Storybook 10.2 no longer publishes a matching `@storybook/addon-essentials` package for this setup, so v1 should rely on the default manager/docs surface plus targeted addons instead of forcing an outdated install.
 
 ### Story Scope
@@ -373,7 +373,7 @@ stateDiagram-v2
 - [x] Enable Storybook 10’s default manager/docs surface without forcing `@storybook/addon-essentials`.
 - [x] Enable `@storybook/addon-a11y`.
 - [x] Enable `@storybook/addon-vitest`.
-- [x] Enable `storybook-addon-performance`.
+- [ ] Re-introduce a Storybook 10-compatible performance addon or alternate profiling workflow.
 - [x] Add Electron Storybook lifecycle management in main/preload.
 - [x] Add a Stories shell state/view in the Electron renderer.
 - [x] Add a dev-only `Open Stories` item to `SystemMenu`.
@@ -391,7 +391,7 @@ stateDiagram-v2
 - [ ] Selected app stories render with mocks and no renderer crashes.
 - [x] a11y results appear in the Storybook UI.
 - [ ] Vitest addon runs portable-story tests.
-- [x] Performance addon renders for designated stories.
+- [ ] A Storybook 10-compatible performance workflow is selected and verified.
 - [ ] Electron dev build can start Storybook on demand and display it in-app.
 - [ ] Electron loading and failure states are clear when Storybook is unavailable.
 - [x] Web dev route can embed Storybook from `VITE_STORYBOOK_URL`.
@@ -420,7 +420,7 @@ const config: StorybookConfig = {
     '../apps/web/src/**/*.stories.@(ts|tsx|mdx)',
     '../apps/electron/src/renderer/**/*.stories.@(ts|tsx|mdx)'
   ],
-  addons: ['@storybook/addon-a11y', '@storybook/addon-vitest', 'storybook-addon-performance'],
+  addons: ['@storybook/addon-a11y', '@storybook/addon-vitest'],
   viteFinal: async (viteConfig) => ({
     ...viteConfig,
     resolve: {

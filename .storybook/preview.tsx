@@ -1,4 +1,5 @@
 import type { Preview } from '@storybook/react-vite'
+import React from 'react'
 import { ThemeProvider } from '../packages/ui/src/theme/ThemeProvider'
 import '../packages/ui/src/theme/tokens.css'
 import '../packages/ui/src/theme/motion.css'
