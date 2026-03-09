@@ -38,5 +38,5 @@ module.exports = {
     ],
     'import/no-duplicates': 'warn'
   },
-  ignorePatterns: ['dist', 'node_modules', '*.js', '*.cjs']
+  ignorePatterns: ['dist', 'node_modules', '*.js', '*.cjs', '!.storybook', '!.storybook/**']
 }

@@ -12,12 +12,15 @@
 - ✅ xNet is a strong fit for Storybook now, not later. The repo already has a real shared design system in [`packages/ui/src/index.ts`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/src/index.ts) and the UI audit already lists Storybook docs, visual regression, and performance benchmarking as next steps in [`packages/ui/COMPONENT_AUDIT.md:100`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/COMPONENT_AUDIT.md#L100).
 - ✅ The right baseline is **Storybook 10.2 with `@storybook/react-vite`**, because both `apps/web` and the Electron renderer are Vite-based today.
 - ✅ The chosen direction is now **one root Storybook plus dev-only embedded access inside xNet**, not a production workshop surface and not a composition-first rollout.
+- ✅ Storybook now loads the shared token CSS **and Tailwind utilities** in preview, so utility-class-based components render with the same styling contract used by the Web and Electron apps.
 - ✅ Electron and Web should both expose Storybook from inside the app shell, but only in development:
   - Electron gets menu + command-palette entry points and an embedded Storybook view
   - Web gets a dev-only route such as `/stories`
   - the real Storybook UI is embedded, rather than building a custom workshop shell in v1
 - ✅ The first pass should include **shared `@xnetjs/ui` stories plus selected app stories**, with mocks for renderer-safe app surfaces.
+- ✅ The shared UI catalog now covers the exported `@xnetjs/ui` component surface: primitives, composed devtools surfaces, comments UI, responsive shells, accessibility helpers, and a deliberate heavy story for local performance analysis.
 - ✅ The active addon stack now includes `@github-ui/storybook-addon-performance-panel` alongside `@storybook/addon-a11y`, `@storybook/addon-vitest`, `@storybook/addon-themes`, and `@storybook/addon-links`.
+- ✅ `withPerformanceMonitor` is now wired explicitly in `.storybook/preview.tsx`, while a local preset shim registers the manager panel without hiding the instrumentation path.
 - ⚠️ The performance panel should stay a **local diagnostics tool**, not a merge gate. xNet can use it interactively for component profiling, but CI-grade performance enforcement still needs a stricter benchmark path.
 - ⚠️ The GitHub addon currently declares a `react@^19` peer dependency, but it built and ran successfully against xNet’s React 18 Storybook setup during validation.
 - 🥇 Recommendation: ship this in four implementation chunks:
@@ -69,7 +72,7 @@ The implementation direction for this exploration is now fixed:
 ### Observed facts
 
 - `@xnetjs/ui` is already a meaningful shared design system with primitives, composed components, comments UI, responsive shells, and theming exported from [`packages/ui/src/index.ts:1`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/src/index.ts#L1).
-- `packages/ui` has no existing story files. A repo-wide search for `*.stories.*` returned nothing.
+- `packages/ui` now has root-level catalog stories spanning primitives, composed surfaces, comments, settings, and performance-oriented benchmark coverage.
 - The UI audit explicitly calls out the next steps:
   - “Add Storybook documentation”
   - “Add visual regression tests”
@@ -215,7 +218,7 @@ graph LR
    xNet already has a preview-runtime concept, session management, and a UI shell for multiple dev surfaces.
 
 4. **The right addon stack is not “all addons”; it is a focused quality stack.**  
-   Start with `essentials`, `a11y`, `vitest`, and performance only where it answers a real question.
+   Start with `a11y`, `themes`, `links`, `vitest`, and performance instrumentation only where it answers a real question.
 
 5. **Performance needs two layers.**  
    Storybook’s performance panel is useful for local component profiling. CI-grade regression detection still belongs in dedicated benchmarks or visual/test workflows, not in ad hoc local timings alone.
@@ -366,7 +369,8 @@ stateDiagram-v2
 - [x] Choose shared UI plus selected app stories as the initial scope.
 - [x] Add root Storybook dependencies and scripts at the repo root.
 - [x] Create `.storybook/main.ts`, `preview.ts`, and supporting shared decorators.
-- [ ] Add initial story files for:
+- [x] Load shared Tailwind utilities and theme CSS in Storybook preview.
+- [x] Add initial story files for:
   - [x] `packages/ui` primitives
   - [x] `packages/ui` composed components
   - [x] selected Web components
@@ -381,8 +385,9 @@ stateDiagram-v2
 - [x] Enable `@storybook/addon-links`.
 - [x] Enable `@storybook/addon-themes`.
 - [x] Enable `@github-ui/storybook-addon-performance-panel`.
+- [x] Register `withPerformanceMonitor` explicitly in preview so the instrumentation path is visible in-repo.
 - [x] Enable `@storybook/addon-vitest`.
-- [ ] Add story-level performance scenarios and profiling guidance for high-value components.
+- [x] Add story-level performance scenarios and profiling guidance for high-value components.
 - [x] Add Electron Storybook lifecycle management in main/preload.
 - [x] Add a Stories shell state/view in the Electron renderer.
 - [x] Add a dev-only `Open Stories` item to `SystemMenu`.
@@ -396,12 +401,13 @@ stateDiagram-v2
 ## 🧪 Validation Checklist
 
 - [x] Root Storybook boots with the shared xNet theme assets.
+- [x] Tailwind utility classes render correctly inside Storybook preview.
 - [x] Shared UI stories render in both light and dark themes.
 - [ ] Selected app stories render with mocks and no renderer crashes.
 - [x] a11y results appear in the Storybook UI.
 - [ ] Vitest addon runs portable-story tests.
 - [x] Performance panel renders in the Storybook addon tray.
-- [ ] Performance readings are documented for at least one intentionally heavy story.
+- [x] Performance readings are documented for at least one intentionally heavy story.
 - [ ] Electron dev build can start Storybook on demand and display it in-app.
 - [ ] Electron loading and failure states are clear when Storybook is unavailable.
 - [x] Web dev route can embed Storybook from `VITE_STORYBOOK_URL`.
@@ -434,7 +440,7 @@ const config: StorybookConfig = {
     '@storybook/addon-a11y',
     '@storybook/addon-links',
     '@storybook/addon-themes',
-    '@github-ui/storybook-addon-performance-panel/preset',
+    './performance-panel-preset.ts',
     '@storybook/addon-vitest'
   ],
   viteFinal: async (viteConfig) => ({
@@ -454,6 +460,7 @@ export default config
 
 ```tsx
 // .storybook/preview.ts
+import { withPerformanceMonitor } from '@github-ui/storybook-addon-performance-panel'
 import type { Preview } from '@storybook/react-vite'
 import { withThemeByClassName } from '@storybook/addon-themes'
 import '../packages/ui/src/theme/tokens.css'
@@ -471,6 +478,7 @@ const preview: Preview = {
     a11y: { test: 'todo' }
   },
   decorators: [
+    withPerformanceMonitor,
     withThemeByClassName({
       defaultTheme: 'system',
       themes: {

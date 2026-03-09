@@ -1,4 +1,7 @@
 import type { StorybookConfig } from '@storybook/react-vite'
+import { fileURLToPath } from 'node:url'
+import autoprefixer from 'autoprefixer'
+import tailwindcss from 'tailwindcss'
 import { workspaceAliases } from './workspace-aliases.ts'
 
 const config: StorybookConfig = {
@@ -15,11 +18,22 @@ const config: StorybookConfig = {
     '@storybook/addon-a11y',
     '@storybook/addon-links',
     '@storybook/addon-themes',
-    '@github-ui/storybook-addon-performance-panel/preset',
+    './performance-panel-preset.ts',
     '@storybook/addon-vitest'
   ],
   viteFinal: async (viteConfig) => ({
     ...viteConfig,
+    css: {
+      ...viteConfig.css,
+      postcss: {
+        plugins: [
+          tailwindcss({
+            config: fileURLToPath(new URL('./tailwind.config.js', import.meta.url))
+          }),
+          autoprefixer()
+        ]
+      }
+    },
     resolve: {
       ...viteConfig.resolve,
       alias: {

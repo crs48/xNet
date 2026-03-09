@@ -1,12 +1,9 @@
 import type { Preview } from '@storybook/react-vite'
+import { withPerformanceMonitor } from '@github-ui/storybook-addon-performance-panel'
 import { withThemeByClassName } from '@storybook/addon-themes'
 import React from 'react'
 import { ThemeProvider, type Theme } from '../packages/ui/src/theme/ThemeProvider'
-import '../packages/ui/src/theme/tokens.css'
-import '../packages/ui/src/theme/motion.css'
-import '../packages/ui/src/theme/accessibility.css'
-import '../packages/ui/src/theme/responsive.css'
-import '../packages/ui/src/theme/base-ui-animations.css'
+import './storybook.css'
 
 const toStoryTheme = (value: unknown): Theme => {
   if (value === 'light' || value === 'dark' || value === 'system') {
@@ -28,6 +25,7 @@ const preview: Preview = {
     }
   },
   decorators: [
+    withPerformanceMonitor,
     withThemeByClassName({
       defaultTheme: 'system',
       themes: {
