@@ -2,6 +2,23 @@
 
 Core xNet packages for decentralized data, sync, UI, and tooling.
 
+## Storybook Workbenches
+
+The monorepo now includes a root Storybook runtime for isolated package development:
+
+```bash
+pnpm dev:stories
+pnpm build:stories
+pnpm test:stories
+```
+
+Current package workbench coverage includes:
+
+- `@xnetjs/ui` catalogs for primitives, composed components, comments, settings, and devtools surfaces
+- `@xnetjs/editor` rich collaborative editor workbench with embeds, comments, and awareness states
+- `@xnetjs/views` database surface workbench
+- `@xnetjs/canvas` canvas workbench
+
 ## Packages
 
 ### Foundation

@@ -13,6 +13,9 @@ Platform-specific applications built on the xNet SDK.
 ## Development
 
 ```bash
+# Root Storybook catalog and workbenches
+pnpm dev:stories
+
 # Electron (primary -- starts hub + app concurrently)
 cd apps/electron
 pnpm dev
@@ -30,6 +33,15 @@ cd apps/expo
 pnpm start
 pnpm ios
 ```
+
+## Embedded Stories
+
+The monorepo now uses one root Storybook runtime for isolated component development.
+
+- Storybook serves from the repo root on `http://127.0.0.1:6006`.
+- Electron exposes a dev-only embedded Stories surface through `Open Stories` in the menu and command palette.
+- Web exposes a dev-only embedded Stories route at `/stories`.
+- Story coverage currently spans shared UI plus workbenches for the editor, database views, and canvas.
 
 ## Package Dependencies
 

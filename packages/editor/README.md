@@ -19,6 +19,7 @@ Collaborative rich text editor for xNet, built on [TipTap](https://tiptap.dev/) 
 - **Accessibility** -- Focus trapping, screen reader announcements
 - **Floating toolbar** -- Context-aware formatting toolbar
 - **Comments** -- Inline comment annotations
+- **Storybook workbench** -- Feature-rich isolated editor scenario for development
 
 ## Installation
 
@@ -209,3 +210,20 @@ pnpm --filter @xnetjs/editor test
 ```
 
 23 test files covering extensions, components, accessibility, and performance.
+
+## Storybook Workbench
+
+Run the root Storybook workspace from the repo root:
+
+```bash
+pnpm dev:stories
+```
+
+The editor package now includes a dense workbench story that exercises:
+
+- collaborative cursor and selection states
+- inline comments and anchors
+- rich marks, links, and smart references
+- image, file, and rich embed nodes
+- database and task-view embeds
+- nested toggles and callouts
