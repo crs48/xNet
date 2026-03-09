@@ -4,7 +4,7 @@
 
 import type { CanvasHandle, CanvasNode, Rect } from '@xnetjs/canvas'
 import { Canvas, createNode } from '@xnetjs/canvas'
-import { CanvasSchema } from '@xnetjs/data'
+import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
 import { useNode, useIdentity } from '@xnetjs/react'
 import { Database, FileText, StickyNote } from 'lucide-react'
 import React, {
@@ -18,9 +18,11 @@ import React, {
 } from 'react'
 import {
   createCanvasShellNoteProperties,
+  getCanvasShellDisplayType,
+  getCanvasShellSourceId,
+  getCanvasShellSourceType,
   getCanvasShellNotePlacement,
   getLinkedDocumentPlacement,
-  isCanvasShellNote,
   shouldRenderCanvasShellCard,
   type LinkedDocType,
   type LinkedDocumentItem
@@ -35,21 +37,17 @@ type ViewportSnapshot = {
 type CanvasViewProps = {
   docId: string
   documents?: LinkedDocumentItem[]
+  pendingInsert?: {
+    requestId: string
+    document: LinkedDocumentItem
+  } | null
+  onPendingInsertConsumed?: (requestId: string) => void
   onOpenDocument?: (docId: string, docType: Exclude<LinkedDocType, 'canvas'>) => void
 }
 
 export type CanvasViewHandle = {
-  addLinkedDocumentNode: (document: LinkedDocumentItem) => void
-  addCanvasNote: () => void
   focusLinkedDocument: (docId: string) => ViewportSnapshot | null
   restoreViewport: (snapshot: ViewportSnapshot) => void
-}
-
-function getLinkedType(node: CanvasNode): LinkedDocType | null {
-  const linkedType = node.properties.linkedType
-  return linkedType === 'page' || linkedType === 'database' || linkedType === 'canvas'
-    ? linkedType
-    : null
 }
 
 function getNodeRect(node: CanvasNode): Rect {
@@ -62,18 +60,24 @@ function getNodeRect(node: CanvasNode): Rect {
 }
 
 function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.ReactElement {
-  const linkedType = document?.type ?? getLinkedType(node) ?? 'canvas'
-  const linkedTitle = document?.title ?? (node.properties.title as string) ?? 'Untitled'
+  const displayType = getCanvasShellDisplayType(node, document)
+  const sourceId = getCanvasShellSourceId(node)
+  const linkedTitle =
+    node.alias ?? document?.title ?? (node.properties.title as string) ?? 'Untitled'
   const subtitle =
-    linkedType === 'page'
+    displayType === 'page'
       ? 'Document'
-      : linkedType === 'database'
+      : displayType === 'database'
         ? 'Database'
-        : isCanvasShellNote(node)
+        : displayType === 'note'
           ? 'Canvas note'
           : 'Canvas'
 
-  const Icon = linkedType === 'page' ? FileText : linkedType === 'database' ? Database : StickyNote
+  const Icon =
+    displayType === 'page' ? FileText : displayType === 'database' ? Database : StickyNote
+  const isOpenable = Boolean(
+    sourceId && (displayType === 'page' || displayType === 'database' || displayType === 'note')
+  )
 
   return (
     <div className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background/95 p-4 shadow-lg shadow-black/5">
@@ -82,7 +86,7 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
           <Icon size={12} />
           {subtitle}
         </span>
-        {node.linkedNodeId && linkedType !== 'canvas' ? (
+        {isOpenable ? (
           <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Open
           </span>
@@ -92,9 +96,9 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
       <div className="space-y-2">
         <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          {linkedType === 'database'
+          {displayType === 'database'
             ? 'Open a focused database surface from the canvas.'
-            : linkedType === 'page'
+            : displayType === 'page'
               ? 'Open a focused writing surface from the canvas.'
               : 'A lightweight note pinned directly to the workspace.'}
         </p>
@@ -104,7 +108,13 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
 }
 
 export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function CanvasView(
-  { docId, documents = [], onOpenDocument }: CanvasViewProps,
+  {
+    docId,
+    documents = [],
+    pendingInsert,
+    onPendingInsertConsumed,
+    onOpenDocument
+  }: CanvasViewProps,
   ref
 ): React.ReactElement {
   const { did } = useIdentity()
@@ -120,6 +130,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   })
 
   const canvasRef = useRef<CanvasHandle>(null)
+  const handledInsertIdsRef = useRef<Set<string>>(new Set())
+  const lastViewportSnapshotRef = useRef<ViewportSnapshot>({
+    x: 0,
+    y: 0,
+    zoom: 1
+  })
   const [canvasReady, setCanvasReady] = useState(false)
   const [hasNodes, setHasNodes] = useState(false)
   const documentMap = useMemo(
@@ -131,6 +147,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     if (!doc) return
     setCanvasReady(true)
   }, [doc])
+
+  useEffect(() => {
+    if (!canvasReady || !canvasRef.current) return
+    lastViewportSnapshotRef.current = canvasRef.current.getViewportSnapshot()
+  }, [canvasReady])
 
   useEffect(() => {
     if (!doc) return
@@ -148,35 +169,61 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     }
   }, [doc])
 
-  const addCanvasNote = useCallback(() => {
-    if (!doc || !canvasRef.current) return
-
-    const viewport = canvasRef.current.getViewportSnapshot()
-    const nodesMap = doc.getMap<CanvasNode>('nodes')
-    const noteNode = createNode(
-      'card',
-      getCanvasShellNotePlacement(viewport),
-      createCanvasShellNoteProperties()
-    )
-
-    nodesMap.set(noteNode.id, noteNode)
-  }, [doc])
-
   const addLinkedDocumentNode = useCallback(
-    (document: LinkedDocumentItem) => {
-      if (!doc || !canvasRef.current) return
+    (document: LinkedDocumentItem): boolean => {
+      if (!doc || document.type === 'canvas') return false
 
-      const viewport = canvasRef.current.getViewportSnapshot()
+      const viewport = canvasRef.current?.getViewportSnapshot() ?? lastViewportSnapshotRef.current
       const nodesMap = doc.getMap<CanvasNode>('nodes')
-      const linkedNode = createNode('embed', getLinkedDocumentPlacement(viewport, document.type), {
-        title: document.title,
-        linkedType: document.type
-      })
-      linkedNode.linkedNodeId = document.id
+      const canvasKind = document.canvasKind ?? document.type
+      const properties =
+        canvasKind === 'note'
+          ? {
+              ...createCanvasShellNoteProperties(),
+              title: document.title
+            }
+          : { title: document.title }
+      const placement =
+        canvasKind === 'note'
+          ? getCanvasShellNotePlacement(viewport)
+          : getLinkedDocumentPlacement(viewport, document.type)
+      const linkedNode = createNode(canvasKind, placement, properties)
+
+      linkedNode.sourceNodeId = document.id
+      linkedNode.sourceSchemaId =
+        document.type === 'page' ? PageSchema._schemaId : DatabaseSchema._schemaId
+
       nodesMap.set(linkedNode.id, linkedNode)
+      return true
     },
     [doc]
   )
+
+  const addCanvasNote = useCallback(
+    (document: LinkedDocumentItem): boolean => {
+      if (document.type !== 'page') return false
+      return addLinkedDocumentNode({ ...document, canvasKind: 'note' })
+    },
+    [addLinkedDocumentNode]
+  )
+
+  useEffect(() => {
+    if (!pendingInsert || handledInsertIdsRef.current.has(pendingInsert.requestId)) {
+      return
+    }
+
+    const inserted =
+      pendingInsert.document.canvasKind === 'note'
+        ? addCanvasNote(pendingInsert.document)
+        : addLinkedDocumentNode(pendingInsert.document)
+
+    if (!inserted) {
+      return
+    }
+
+    handledInsertIdsRef.current.add(pendingInsert.requestId)
+    onPendingInsertConsumed?.(pendingInsert.requestId)
+  }, [addCanvasNote, addLinkedDocumentNode, onPendingInsertConsumed, pendingInsert])
 
   const focusLinkedDocument = useCallback(
     (linkedDocumentId: string): ViewportSnapshot | null => {
@@ -184,11 +231,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
       const nodesMap = doc.getMap<CanvasNode>('nodes')
       const targetNode = Array.from(nodesMap.values()).find(
-        (node) => node.linkedNodeId === linkedDocumentId
+        (node) => getCanvasShellSourceId(node) === linkedDocumentId
       )
       if (!targetNode) return null
 
       const snapshot = canvasRef.current.getViewportSnapshot()
+      lastViewportSnapshotRef.current = snapshot
       canvasRef.current.fitToRect(getNodeRect(targetNode), 140)
       return snapshot
     },
@@ -196,18 +244,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   )
 
   const restoreViewport = useCallback((snapshot: ViewportSnapshot) => {
+    lastViewportSnapshotRef.current = snapshot
     canvasRef.current?.setViewportSnapshot(snapshot)
   }, [])
 
   useImperativeHandle(
     ref,
     () => ({
-      addLinkedDocumentNode,
-      addCanvasNote,
       focusLinkedDocument,
       restoreViewport
     }),
-    [addCanvasNote, addLinkedDocumentNode, focusLinkedDocument, restoreViewport]
+    [focusLinkedDocument, restoreViewport]
   )
 
   if (loading || !doc) {
@@ -227,7 +274,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div className="relative h-full flex-1 overflow-hidden">
       <div className="pointer-events-none absolute left-6 top-6 z-20 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl">
         {canvas?.title || 'Workspace Canvas'}
       </div>
@@ -255,6 +302,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             minZoom: 0.1,
             maxZoom: 4
           }}
+          showMinimap
           showNavigationTools
           navigationToolsPosition="bottom-right"
           navigationToolsShowZoomLabel={false}
@@ -268,9 +316,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             border: '1px solid rgba(148, 163, 184, 0.28)'
           }}
           renderNode={(node) => {
-            const linkedDocument = node.linkedNodeId
-              ? documentMap.get(node.linkedNodeId)
-              : undefined
+            const sourceNodeId = getCanvasShellSourceId(node)
+            const linkedDocument = sourceNodeId ? documentMap.get(sourceNodeId) : undefined
             if (shouldRenderCanvasShellCard(node, linkedDocument)) {
               return renderNodeCard(node, linkedDocument)
             }
@@ -279,9 +326,10 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           onNodeDoubleClick={(id) => {
             const nodesMap = doc.getMap<CanvasNode>('nodes')
             const targetNode = nodesMap.get(id)
-            const linkedType = targetNode ? getLinkedType(targetNode) : null
-            if (targetNode?.linkedNodeId && linkedType && linkedType !== 'canvas') {
-              onOpenDocument?.(targetNode.linkedNodeId, linkedType)
+            const sourceId = targetNode ? getCanvasShellSourceId(targetNode) : undefined
+            const sourceType = targetNode ? getCanvasShellSourceType(targetNode) : null
+            if (sourceId && sourceType) {
+              onOpenDocument?.(sourceId, sourceType)
             }
           }}
         />

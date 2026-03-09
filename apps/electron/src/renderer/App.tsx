@@ -2,6 +2,7 @@
  * Electron App - Main component
  */
 
+import type { LinkedDocumentItem } from './lib/canvas-shell'
 import type { PaletteCommand } from '@xnetjs/ui'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useDevTools } from '@xnetjs/devtools'
@@ -52,6 +53,10 @@ export function App(): React.ReactElement {
   const [homeCanvasId, setHomeCanvasId] = useState<string | null>(null)
   const [homeCanvasBootstrapError, setHomeCanvasBootstrapError] = useState<Error | null>(null)
   const [shellState, setShellState] = useState<ShellState>({ kind: 'canvas-home' })
+  const [pendingCanvasInsert, setPendingCanvasInsert] = useState<{
+    requestId: string
+    document: LinkedDocumentItem
+  } | null>(null)
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [prefilledShareValue, setPrefilledShareValue] = useState('')
   const { setActiveNodeId } = useDevTools()
@@ -237,10 +242,13 @@ export function App(): React.ReactElement {
         const newDocument = await create(schema, { title })
         if (!newDocument) return
 
-        canvasViewRef.current?.addLinkedDocumentNode({
-          id: newDocument.id,
-          title,
-          type
+        setPendingCanvasInsert({
+          requestId: `${type}-${newDocument.id}-${Date.now()}`,
+          document: {
+            id: newDocument.id,
+            title,
+            type
+          }
         })
         setShellState({ kind: 'canvas-home' })
         setActiveNodeId(homeCanvasId)
@@ -252,11 +260,31 @@ export function App(): React.ReactElement {
   )
 
   const handleCreateCanvasNote = useCallback(() => {
-    clearTransitionTimer()
-    canvasViewRef.current?.addCanvasNote()
-    setShellState({ kind: 'canvas-home' })
-    setActiveNodeId(homeCanvasId)
-  }, [clearTransitionTimer, homeCanvasId, setActiveNodeId])
+    const createCanvasNote = async () => {
+      clearTransitionTimer()
+
+      try {
+        const note = await create(PageSchema, { title: 'Untitled Note' })
+        if (!note) return
+
+        setPendingCanvasInsert({
+          requestId: `note-${note.id}-${Date.now()}`,
+          document: {
+            id: note.id,
+            title: note.title || 'Untitled Note',
+            type: 'page',
+            canvasKind: 'note'
+          }
+        })
+        setShellState({ kind: 'canvas-home' })
+        setActiveNodeId(homeCanvasId)
+      } catch (error) {
+        console.error('Failed to create canvas note', toError(error))
+      }
+    }
+
+    void createCanvasNote()
+  }, [clearTransitionTimer, create, homeCanvasId, setActiveNodeId])
 
   const handleReturnHome = useCallback(() => {
     clearTransitionTimer()
@@ -337,7 +365,7 @@ export function App(): React.ReactElement {
       {
         id: 'create-note',
         name: 'Create Canvas Note',
-        description: 'Add a lightweight note card to the workspace',
+        description: 'Create a page-backed note and place it on the canvas',
         icon: 'sparkles',
         execute: () => handleCreateCanvasNote()
       },
@@ -500,6 +528,12 @@ export function App(): React.ReactElement {
             ref={canvasViewRef}
             docId={homeCanvasId}
             documents={documents}
+            pendingInsert={pendingCanvasInsert}
+            onPendingInsertConsumed={(requestId) => {
+              setPendingCanvasInsert((current) =>
+                current?.requestId === requestId ? null : current
+              )
+            }}
             onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
           />
         </div>

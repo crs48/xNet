@@ -16,6 +16,7 @@ import React, {
 } from 'react'
 import * as Y from 'yjs'
 import { CommentOverlay } from '../comments/CommentOverlay'
+import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
@@ -84,6 +85,18 @@ export interface CanvasProps {
   canvasSchema?: string
   /** Render built-in canvas navigation tools */
   showNavigationTools?: boolean
+  /** Render the built-in canvas minimap */
+  showMinimap?: boolean
+  /** Whether the minimap starts expanded */
+  minimapDefaultExpanded?: boolean
+  /** Minimap width in pixels */
+  minimapWidth?: number
+  /** Minimap height in pixels */
+  minimapHeight?: number
+  /** Show edge lines in the minimap */
+  minimapShowEdges?: boolean
+  /** Optional class name for the built-in minimap */
+  minimapClassName?: string
   /** Position for the built-in navigation tools */
   navigationToolsPosition?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'
   /** Show the zoom percentage inside the built-in navigation tools */
@@ -182,6 +195,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     canvasNodeId,
     canvasSchema,
     showNavigationTools = false,
+    showMinimap = false,
+    minimapDefaultExpanded = true,
+    minimapWidth = 200,
+    minimapHeight = 150,
+    minimapShowEdges = true,
+    minimapClassName,
     navigationToolsPosition = 'bottom-left',
     navigationToolsShowZoomLabel = true,
     navigationToolsClassName,
@@ -575,6 +594,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   )
 
   const canvasBounds = useMemo(() => canvas.store.getBounds(), [canvas.store, nodes])
+  const navigationToolsInsetRight =
+    showMinimap && navigationToolsPosition === 'bottom-right' ? minimapWidth + 40 : 16
 
   const handleNavigationViewportChange = useCallback(
     (changes: { x?: number; y?: number; zoom?: number }) => {
@@ -694,6 +715,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
           showZoomLabel={navigationToolsShowZoomLabel}
           className={navigationToolsClassName}
           style={navigationToolsStyle}
+          insetRight={navigationToolsInsetRight}
+        />
+      )}
+
+      {showMinimap && (
+        <CollapsibleMinimap
+          nodes={nodes}
+          edges={edges}
+          viewport={viewport}
+          width={minimapWidth}
+          height={minimapHeight}
+          onViewportChange={handleNavigationViewportChange}
+          showEdges={minimapShowEdges}
+          className={minimapClassName}
+          defaultExpanded={minimapDefaultExpanded}
         />
       )}
     </div>

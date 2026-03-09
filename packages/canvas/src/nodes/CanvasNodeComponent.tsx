@@ -127,6 +127,11 @@ function getHandleStyle(handle: ResizeHandle): React.CSSProperties {
  */
 function getNodeColor(node: CanvasNode): string {
   const colors: Record<string, string> = {
+    page: '#e3f2fd',
+    database: '#e8f5e9',
+    'external-reference': '#fce7f3',
+    media: '#ede9fe',
+    note: '#fff7ed',
     card: '#e3f2fd',
     embed: '#f3e5f5',
     mermaid: '#e8f5e9',
@@ -140,7 +145,7 @@ function getNodeColor(node: CanvasNode): string {
  * Get node title for display
  */
 function getNodeTitle(node: CanvasNode): string {
-  return (node.properties.title as string) ?? node.type ?? 'Untitled'
+  return node.alias ?? (node.properties.title as string) ?? node.type ?? 'Untitled'
 }
 
 /**
@@ -148,6 +153,11 @@ function getNodeTitle(node: CanvasNode): string {
  */
 function NodeIcon({ type }: { type: string }) {
   const icons: Record<string, string> = {
+    page: '📄',
+    database: '🗃️',
+    'external-reference': '🔗',
+    media: '🖼️',
+    note: '📝',
     card: '📄',
     embed: '🔗',
     mermaid: '📊',
@@ -183,9 +193,9 @@ function DefaultNodeContent({ node }: { node: CanvasNode }) {
       >
         {title}
       </div>
-      {node.linkedNodeId && (
+      {(node.sourceNodeId ?? node.linkedNodeId) && (
         <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-          Linked: {node.linkedNodeId.slice(0, 8)}...
+          Source: {(node.sourceNodeId ?? node.linkedNodeId)?.slice(0, 8)}...
         </div>
       )}
     </div>

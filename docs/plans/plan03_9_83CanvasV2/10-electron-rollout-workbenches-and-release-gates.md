@@ -80,6 +80,11 @@ Track:
 - query counts/churn,
 - memory profile.
 
+The release process should include both:
+
+- **Electron CDP e2e flows** for real shell behavior and shortcut ergonomics.
+- **Large-scene perf suites** for seeded canvases that stress the hybrid renderer without opening focused editors.
+
 ### 4. Manual validation gates
 
 Because this is a rich interactive surface, manual Electron validation is required for:
@@ -98,14 +103,14 @@ Only after Electron passes the gates should the team adapt the new shell/runtime
 
 ## Suggested Validation Matrix
 
-| Area | Gate |
-| --- | --- |
-| Scene model | only Canvas V2 object kinds are used in the active path |
-| Performance | large-scene pan/zoom stays smooth and DOM remains bounded |
-| Content | page editing and database preview/open flows are stable |
-| UX | hotkeys, command palette, minimap, and selection HUD are coherent |
-| Collaboration | presence and undo boundaries behave predictably |
-| Accessibility | keyboard traversal and focus treatment are complete |
+| Area          | Gate                                                              |
+| ------------- | ----------------------------------------------------------------- |
+| Scene model   | only Canvas V2 object kinds are used in the active path           |
+| Performance   | large-scene pan/zoom stays smooth and DOM remains bounded         |
+| Content       | page editing and database preview/open flows are stable           |
+| UX            | hotkeys, command palette, minimap, and selection HUD are coherent |
+| Collaboration | presence and undo boundaries behave predictably                   |
+| Accessibility | keyboard traversal and focus treatment are complete               |
 
 ## Implementation Notes
 
@@ -121,6 +126,7 @@ Suggested commands:
 pnpm --filter @xnetjs/canvas test
 pnpm --filter @xnetjs/react test
 pnpm --filter @xnetjs/data test
+cd tests/e2e && pnpm exec playwright test src/electron-canvas.spec.ts --project=chromium
 pnpm dev:stories
 cd apps/electron && pnpm dev
 cd apps/electron && pnpm dev:both
@@ -137,6 +143,21 @@ Manual validation should include:
 - test lock/group/align/tidy on dense selections,
 - verify collaboration and undo boundaries.
 
+Automated validation should include:
+
+- Electron CDP smoke coverage for:
+  - shell boot
+  - dock creation
+  - command-palette creation
+  - minimap toggle
+  - page/database focus-return flows
+- Electron CDP performance coverage for:
+  - dense seeded scenes
+  - bounded DOM node counts
+  - no editor/table mounts on the home surface
+  - minimap interaction under load
+  - query/frame telemetry capture
+
 ## Risks and Edge Cases
 
 - Storybook scenes can drift from the real app if the runtime shell is forked across package and app code.
@@ -148,6 +169,8 @@ Manual validation should include:
 - [ ] Replace the active Electron canvas path with Canvas V2.
 - [ ] Build realistic Storybook/workbench scenes for every major object family and density class.
 - [ ] Add repeatable performance scenes and capture frame/DOM/query metrics.
+- [ ] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
+- [ ] Add Electron CDP large-scene performance coverage and record thresholds.
 - [ ] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
 - [ ] Document and enforce release gates before web rollout.
 - [ ] Start web adaptation only after Electron passes the full gate set.

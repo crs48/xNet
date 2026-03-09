@@ -36,6 +36,16 @@ export interface MinimapProps {
 
 function getNodeMinimapColor(node: CanvasNode): string {
   switch (node.type) {
+    case 'page':
+      return 'rgba(59, 130, 246, 0.7)'
+    case 'database':
+      return 'rgba(16, 185, 129, 0.7)'
+    case 'external-reference':
+      return 'rgba(236, 72, 153, 0.7)'
+    case 'media':
+      return 'rgba(139, 92, 246, 0.7)'
+    case 'note':
+      return 'rgba(245, 158, 11, 0.7)'
     case 'card':
       return 'rgba(59, 130, 246, 0.7)' // Blue
     case 'frame':

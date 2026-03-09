@@ -39,6 +39,18 @@ beforeAll(() => {
   }
 
   vi.stubGlobal('ResizeObserver', ResizeObserverMock)
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    configurable: true,
+    value: vi.fn(() => ({
+      scale: vi.fn(),
+      fillRect: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+      strokeRect: vi.fn()
+    }))
+  })
   Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
     configurable: true,
     get() {
@@ -119,6 +131,22 @@ describe('Canvas navigation shell', () => {
     expect(screen.getByRole('button', { name: /fit to content/i })).toBeTruthy()
     expect(screen.getByRole('button', { name: /reset view/i })).toBeTruthy()
     expect(screen.queryByText('100%')).toBeNull()
+  })
+
+  it('renders the shared minimap when requested', () => {
+    mockUseCanvas.mockReturnValue(createCanvasMock())
+
+    render(
+      <Canvas
+        doc={new Y.Doc()}
+        showNavigationTools
+        showMinimap
+        navigationToolsPosition="bottom-right"
+      />
+    )
+
+    expect(screen.getByRole('button', { name: /hide minimap/i })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /zoom in/i })).toBeTruthy()
   })
 
   it('routes navigation tool actions through the viewport snapshot API', () => {

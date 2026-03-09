@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   createCanvasShellNoteProperties,
+  getCanvasShellDisplayType,
+  getCanvasShellSourceId,
+  getCanvasShellSourceType,
   getCanvasShellNotePlacement,
   getLinkedDocumentPlacement,
   isCanvasShellNote,
@@ -9,27 +12,27 @@ import {
 
 describe('canvas-shell', () => {
   describe('isCanvasShellNote', () => {
-    it('returns true for shell-created note cards', () => {
+    it('returns true for shell-created note nodes', () => {
       const node = {
-        type: 'card',
+        type: 'note',
         properties: createCanvasShellNoteProperties()
       }
 
       expect(isCanvasShellNote(node)).toBe(true)
     })
 
-    it('returns false for generic card nodes', () => {
+    it('returns false for generic page nodes', () => {
       const node = {
-        type: 'card',
+        type: 'page',
         properties: { title: 'Generic card' }
       }
 
       expect(isCanvasShellNote(node)).toBe(false)
     })
 
-    it('returns false for non-card nodes', () => {
+    it('returns false for non-note nodes', () => {
       const node = {
-        type: 'embed',
+        type: 'database',
         properties: { title: 'Linked page' }
       }
 
@@ -38,11 +41,11 @@ describe('canvas-shell', () => {
   })
 
   describe('shouldRenderCanvasShellCard', () => {
-    it('renders linked documents with shell cards', () => {
+    it('renders page objects with shell chrome', () => {
       const node = {
-        type: 'embed',
+        type: 'page',
         properties: { title: 'Linked page' },
-        linkedNodeId: 'page-1'
+        sourceNodeId: 'page-1'
       }
 
       expect(shouldRenderCanvasShellCard(node, { id: 'page-1', title: 'Page', type: 'page' })).toBe(
@@ -50,13 +53,59 @@ describe('canvas-shell', () => {
       )
     })
 
-    it('does not render generic cards with shell chrome', () => {
+    it('renders note objects even without a loaded linked document', () => {
       const node = {
-        type: 'card',
-        properties: { title: 'Generic card' }
+        type: 'note',
+        properties: createCanvasShellNoteProperties()
+      }
+
+      expect(shouldRenderCanvasShellCard(node)).toBe(true)
+    })
+
+    it('does not render unrelated shape objects with shell chrome', () => {
+      const node = {
+        type: 'shape',
+        properties: { title: 'Rectangle' }
       }
 
       expect(shouldRenderCanvasShellCard(node)).toBe(false)
+    })
+  })
+
+  describe('source helpers', () => {
+    it('derives note display type separately from its page source', () => {
+      const node = {
+        type: 'note',
+        sourceNodeId: 'page-1',
+        sourceSchemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: createCanvasShellNoteProperties()
+      }
+
+      expect(getCanvasShellDisplayType(node)).toBe('note')
+      expect(getCanvasShellSourceType(node)).toBe('page')
+      expect(getCanvasShellSourceId(node)).toBe('page-1')
+    })
+
+    it('uses source schema ids to resolve document types', () => {
+      const node = {
+        type: 'media',
+        sourceNodeId: 'db-1',
+        sourceSchemaId: 'xnet://xnet.fyi/Database@1.0.0',
+        properties: {}
+      }
+
+      expect(getCanvasShellSourceType(node)).toBe('database')
+    })
+
+    it('falls back to the legacy linked node id', () => {
+      const node = {
+        type: 'embed',
+        linkedNodeId: 'page-legacy',
+        properties: { linkedType: 'page' }
+      }
+
+      expect(getCanvasShellSourceId(node)).toBe('page-legacy')
+      expect(getCanvasShellSourceType(node)).toBe('page')
     })
   })
 

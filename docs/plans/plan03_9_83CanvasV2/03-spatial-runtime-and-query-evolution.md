@@ -95,6 +95,11 @@ The likely future descriptor shape should support:
 - `nearPoint`
 - `orderByDistance`
 
+Canvas V2 should use this step to harden `useQuery` for **two-dimensional search semantics** without bypassing the hook stack:
+
+- first for viewport/windowed object lookup,
+- later for scene-aware `GeoSearch` or coordinate-aware ranking when xNet adds reusable spatial indexes outside the canvas.
+
 Longer-term location support can become a hook/query concern too, but only after the basic viewport window semantics are stable.
 
 ### 5. Telemetry and frame budgets
@@ -128,6 +133,11 @@ type SpatialQueryDescriptor = QueryDescriptor & {
 ## Testing and Validation Approach
 
 - Add unit coverage for visible-object queries and chunk/display-list behavior.
+- Add Electron CDP large-scene tests that seed dense canvases and verify:
+  - bounded DOM object count
+  - no unexpected `contenteditable` or table mounts on the home surface
+  - stable minimap interaction while panning
+  - no query explosion during viewport movement
 - Add benchmark fixtures for:
   - 1,000 objects
   - 5,000 objects
@@ -154,4 +164,5 @@ pnpm --filter @xnetjs/react test
 - [ ] Build overview and interactive display lists from a shared visibility pipeline.
 - [ ] Gate DOM mounts behind visibility, zoom, and interaction state.
 - [ ] Extend `useQuery`/`QueryDescriptor` only where Canvas V2 genuinely benefits.
+- [ ] Add viewport-window and future geospatial query coverage around `useQuery`.
 - [ ] Add telemetry and benchmark coverage for display-list and query behavior.

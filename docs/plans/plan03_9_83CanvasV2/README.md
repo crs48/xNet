@@ -65,13 +65,13 @@ Canvas V2 should fix that by making the canvas useful for real work immediately 
 
 ### Where the current product is still split
 
-| Area | Observed repository state | Why Canvas V2 must change it |
-| --- | --- | --- |
-| Scene model | [`packages/canvas/src/types.ts`](../../../packages/canvas/src/types.ts) still defines `card`, `frame`, `shape`, `image`, `embed`, `group` | too generic for content-first rendering and object-specific policies |
-| App shell | [`apps/electron/src/renderer/components/CanvasView.tsx`](../../../apps/electron/src/renderer/components/CanvasView.tsx) still renders linked cards rather than live page/database surfaces | the canvas still feels like a launcher, not a workspace |
-| Drop model | URLs/files/internal drags are not unified into one ingestion pipeline | the canvas cannot yet behave like a universal spatial drop target |
-| Renderer contract | the package exposes layer/chunk/LOD primitives, but the active app path does not fully route through them | performance work exists but is not yet the primary runtime |
-| Data access | the app already has `useNode`, `useDatabase`, and `useQuery`, but the canvas does not yet drive their next evolution | the canvas should strengthen the hook/runtime platform, not bypass it |
+| Area              | Observed repository state                                                                                                                                                                  | Why Canvas V2 must change it                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| Scene model       | [`packages/canvas/src/types.ts`](../../../packages/canvas/src/types.ts) still defines `card`, `frame`, `shape`, `image`, `embed`, `group`                                                  | too generic for content-first rendering and object-specific policies  |
+| App shell         | [`apps/electron/src/renderer/components/CanvasView.tsx`](../../../apps/electron/src/renderer/components/CanvasView.tsx) still renders linked cards rather than live page/database surfaces | the canvas still feels like a launcher, not a workspace               |
+| Drop model        | URLs/files/internal drags are not unified into one ingestion pipeline                                                                                                                      | the canvas cannot yet behave like a universal spatial drop target     |
+| Renderer contract | the package exposes layer/chunk/LOD primitives, but the active app path does not fully route through them                                                                                  | performance work exists but is not yet the primary runtime            |
+| Data access       | the app already has `useNode`, `useDatabase`, and `useQuery`, but the canvas does not yet drive their next evolution                                                                       | the canvas should strengthen the hook/runtime platform, not bypass it |
 
 ### Product-quality observations to carry forward
 
@@ -201,29 +201,53 @@ flowchart TD
 
 ### Performance targets
 
-| Area | Target |
-| --- | --- |
-| Pan/zoom on 60Hz displays | stay comfortably within `16.67ms` frame budget |
-| Pan/zoom on 120Hz displays | aim for `8.33ms` effective frame budget |
-| Interactive DOM count | keep near-field DOM objects bounded and measurable |
-| Far-field rendering | no inline editor mounts outside the near-field window |
-| Large-scene navigation | chunk load/evict and display-list recompute must not cause visible hitching |
-| Database preview | bounded preview rows/cells with virtualization for heavy previews |
+| Area                       | Target                                                                      |
+| -------------------------- | --------------------------------------------------------------------------- |
+| Pan/zoom on 60Hz displays  | stay comfortably within `16.67ms` frame budget                              |
+| Pan/zoom on 120Hz displays | aim for `8.33ms` effective frame budget                                     |
+| Interactive DOM count      | keep near-field DOM objects bounded and measurable                          |
+| Far-field rendering        | no inline editor mounts outside the near-field window                       |
+| Large-scene navigation     | chunk load/evict and display-list recompute must not cause visible hitching |
+| Database preview           | bounded preview rows/cells with virtualization for heavy previews           |
+
+## Test Strategy
+
+```mermaid
+flowchart LR
+  Unit["Unit and renderer tests"] --> E2E["Electron CDP e2e flows"]
+  E2E --> Perf["Large-scene perf harnesses"]
+  Perf --> Gates["Release gates"]
+```
+
+- Use **package-level unit and renderer tests** for scene-model contracts, minimap/grid behavior, shortcut dispatch, and store/query math.
+- Use **Electron CDP Playwright tests** for real shell behavior:
+  - canvas boot
+  - dock + command-palette creation flows
+  - minimap visibility/toggle
+  - focus/return transitions
+  - drag/drop smoke flows
+  - shortcut and typing-guard behavior
+- Use **large-scene performance harnesses** for:
+  - bounded DOM count
+  - no unexpected editor/table mounts on the home canvas
+  - frame/query telemetry capture
+  - chunk load/evict timing and minimap responsiveness
+- Keep performance gates tied to reproducible synthetic scenes and explicit thresholds recorded in PR notes.
 
 ## Step Index
 
-| Step | File | Outcome |
-| --- | --- | --- |
-| 1 | [01-scene-graph-and-node-primitives.md](./01-scene-graph-and-node-primitives.md) | typed Canvas V2 scene model, source-node contracts, and clean cutover rules |
-| 2 | [02-hybrid-shell-and-renderer-runtime.md](./02-hybrid-shell-and-renderer-runtime.md) | primary hybrid runtime shell with explicit layer responsibilities |
-| 3 | [03-spatial-runtime-and-query-evolution.md](./03-spatial-runtime-and-query-evolution.md) | chunked/cullable display lists plus hook/query evolution for viewport-driven loading |
-| 4 | [04-drop-ingestion-and-source-object-creation.md](./04-drop-ingestion-and-source-object-creation.md) | universal drop pipeline and node-backed URL/media creation flows |
-| 5 | [05-page-cards-inline-editing-and-peek.md](./05-page-cards-inline-editing-and-peek.md) | live page cards with inline editing, LOD, and center-peek flows |
-| 6 | [06-database-cards-preview-focus-and-split.md](./06-database-cards-preview-focus-and-split.md) | database preview cards with focus/open/split workflows |
-| 7 | [07-connectors-shapes-groups-and-polish.md](./07-connectors-shapes-groups-and-polish.md) | bindings, shapes, groups, locks, tidy-up, aliases, and backlink polish |
-| 8 | [08-navigation-shortcuts-and-minimal-ux.md](./08-navigation-shortcuts-and-minimal-ux.md) | minimal chrome, hotkeys, command palette integration, and navigation UX |
-| 9 | [09-collaboration-undo-accessibility-and-comments.md](./09-collaboration-undo-accessibility-and-comments.md) | collaboration scopes, undo boundaries, accessibility, and comment anchoring |
-| 10 | [10-electron-rollout-workbenches-and-release-gates.md](./10-electron-rollout-workbenches-and-release-gates.md) | Electron-first rollout, Storybook workbenches, benchmarks, and release gates |
+| Step | File                                                                                                           | Outcome                                                                              |
+| ---- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 1    | [01-scene-graph-and-node-primitives.md](./01-scene-graph-and-node-primitives.md)                               | typed Canvas V2 scene model, source-node contracts, and clean cutover rules          |
+| 2    | [02-hybrid-shell-and-renderer-runtime.md](./02-hybrid-shell-and-renderer-runtime.md)                           | primary hybrid runtime shell with explicit layer responsibilities                    |
+| 3    | [03-spatial-runtime-and-query-evolution.md](./03-spatial-runtime-and-query-evolution.md)                       | chunked/cullable display lists plus hook/query evolution for viewport-driven loading |
+| 4    | [04-drop-ingestion-and-source-object-creation.md](./04-drop-ingestion-and-source-object-creation.md)           | universal drop pipeline and node-backed URL/media creation flows                     |
+| 5    | [05-page-cards-inline-editing-and-peek.md](./05-page-cards-inline-editing-and-peek.md)                         | live page cards with inline editing, LOD, and center-peek flows                      |
+| 6    | [06-database-cards-preview-focus-and-split.md](./06-database-cards-preview-focus-and-split.md)                 | database preview cards with focus/open/split workflows                               |
+| 7    | [07-connectors-shapes-groups-and-polish.md](./07-connectors-shapes-groups-and-polish.md)                       | bindings, shapes, groups, locks, tidy-up, aliases, and backlink polish               |
+| 8    | [08-navigation-shortcuts-and-minimal-ux.md](./08-navigation-shortcuts-and-minimal-ux.md)                       | minimal chrome, hotkeys, command palette integration, and navigation UX              |
+| 9    | [09-collaboration-undo-accessibility-and-comments.md](./09-collaboration-undo-accessibility-and-comments.md)   | collaboration scopes, undo boundaries, accessibility, and comment anchoring          |
+| 10   | [10-electron-rollout-workbenches-and-release-gates.md](./10-electron-rollout-workbenches-and-release-gates.md) | Electron-first rollout, Storybook workbenches, benchmarks, and release gates         |
 
 ## Risks and Open Questions
 
@@ -238,7 +262,7 @@ flowchart TD
 ## Implementation Checklist
 
 - [ ] Replace the current generic canvas object contract with a typed scene graph.
-- [ ] Add a reusable `MediaAsset`-style node schema for dropped images/files.
+- [x] Add a reusable `MediaAsset`-style node schema for dropped images/files.
 - [ ] Replace the current linked-card shell with a hybrid renderer shell.
 - [ ] Route the main runtime through chunking, culling, and explicit layer display lists.
 - [ ] Add universal drop ingestion for internal drags, URLs, text, images, and files.
@@ -248,6 +272,8 @@ flowchart TD
 - [ ] Define and implement the full shortcut/command surface for Canvas V2.
 - [ ] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
 - [ ] Build Storybook and manual validation scenes that reflect the real Canvas V2 object model.
+- [ ] Add Electron CDP e2e coverage for canvas creation, minimap, command palette, drag/drop, and focused-surface transitions.
+- [ ] Add large-scene performance harnesses with DOM-count, query-churn, and frame-budget assertions.
 - [ ] Validate Electron-first performance and interaction budgets before web rollout.
 
 ## Validation Checklist
@@ -259,6 +285,8 @@ flowchart TD
 - [ ] Pan/zoom remains smooth on large scenes with chunk load/evict active.
 - [ ] The background grid and minimap remain outside the main DOM path.
 - [ ] Far-field objects do not mount rich editors or oversized DOM subtrees.
+- [ ] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.
+- [ ] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
 - [ ] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
 - [ ] Undo/redo behaves correctly across canvas-object moves and inline content edits.
 - [ ] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.

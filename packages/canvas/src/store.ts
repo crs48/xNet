@@ -365,6 +365,18 @@ export class CanvasStore {
             if (oldNode.linkedNodeId !== node.linkedNodeId) {
               changes.linkedNodeId = node.linkedNodeId
             }
+            if (oldNode.sourceNodeId !== node.sourceNodeId) {
+              changes.sourceNodeId = node.sourceNodeId
+            }
+            if (oldNode.sourceSchemaId !== node.sourceSchemaId) {
+              changes.sourceSchemaId = node.sourceSchemaId
+            }
+            if (oldNode.alias !== node.alias) {
+              changes.alias = node.alias
+            }
+            if (oldNode.locked !== node.locked) {
+              changes.locked = node.locked
+            }
             // Deep compare properties (JSON for simplicity)
             if (JSON.stringify(oldNode.properties) !== JSON.stringify(node.properties)) {
               changes.properties = node.properties
@@ -476,18 +488,44 @@ export function createNode(
   position: Partial<CanvasNodePosition> = {},
   properties: Record<string, unknown> = {}
 ): CanvasNode {
+  const defaultSize = getDefaultNodeSize(type)
+
   return {
     id: generateNodeId(),
     type,
     position: {
       x: position.x ?? 0,
       y: position.y ?? 0,
-      width: position.width ?? 200,
-      height: position.height ?? 100,
+      width: position.width ?? defaultSize.width,
+      height: position.height ?? defaultSize.height,
       rotation: position.rotation,
       zIndex: position.zIndex ?? 0
     },
     properties
+  }
+}
+
+function getDefaultNodeSize(type: CanvasNodeType): { width: number; height: number } {
+  switch (type) {
+    case 'page':
+      return { width: 360, height: 220 }
+    case 'database':
+      return { width: 440, height: 260 }
+    case 'note':
+      return { width: 320, height: 180 }
+    case 'external-reference':
+      return { width: 360, height: 180 }
+    case 'media':
+      return { width: 320, height: 240 }
+    case 'group':
+      return { width: 320, height: 220 }
+    case 'shape':
+    case 'card':
+    case 'frame':
+    case 'image':
+    case 'embed':
+    default:
+      return { width: 200, height: 100 }
   }
 }
 

@@ -36,9 +36,27 @@ export interface CanvasNodePosition {
 }
 
 /**
- * Canvas node types
+ * Legacy canvas node types kept temporarily while the active app path
+ * moves to Canvas V2 object kinds.
  */
-export type CanvasNodeType = 'card' | 'frame' | 'shape' | 'image' | 'embed' | 'group'
+export type LegacyCanvasNodeType = 'card' | 'frame' | 'image' | 'embed'
+
+/**
+ * Canvas V2 object kinds.
+ */
+export type CanvasObjectKind =
+  | 'page'
+  | 'database'
+  | 'external-reference'
+  | 'media'
+  | 'shape'
+  | 'note'
+  | 'group'
+
+/**
+ * Canvas node types.
+ */
+export type CanvasNodeType = CanvasObjectKind | LegacyCanvasNodeType
 
 /**
  * Shape types for shape nodes
@@ -51,8 +69,16 @@ export type ShapeType = 'rectangle' | 'ellipse' | 'diamond' | 'triangle' | 'line
 export interface CanvasNode {
   id: string
   type: CanvasNodeType
-  /** Reference to linked xNet node (optional) */
+  /** Reference to linked xNet node (legacy field, prefer sourceNodeId) */
   linkedNodeId?: string
+  /** Stable reference to the source xNet node */
+  sourceNodeId?: string
+  /** Stable reference to the source schema IRI */
+  sourceSchemaId?: string
+  /** Optional canvas-local alias for the source object */
+  alias?: string
+  /** Whether this object is locked against accidental edits/moves */
+  locked?: boolean
   /** Position and dimensions */
   position: CanvasNodePosition
   /** Node-specific properties */

@@ -66,31 +66,31 @@ without hunting through visible UI.
 
 Recommended default hotkeys:
 
-| Action | Shortcut |
-| --- | --- |
-| Open command palette | `Cmd/Ctrl+Shift+P` |
-| Shortcut help | `?` |
-| Zoom in | `Cmd/Ctrl+=` |
-| Zoom out | `Cmd/Ctrl+-` |
-| Reset view | `Cmd/Ctrl+0` |
-| Fit content | `Cmd/Ctrl+1` |
-| Pan with keyboard | Arrow keys |
-| Pan temporarily | `Space` + drag |
-| Create page | `P` |
-| Create database | `D` |
-| Rectangle | `R` |
-| Ellipse | `O` |
-| Connector tool | `L` |
-| Frame/group tool | `F` |
-| Enter peek/edit | `Enter` |
-| Open focused surface | `Cmd/Ctrl+Enter` |
-| Exit edit/peek | `Escape` |
-| Group | `G` |
-| Ungroup | `Shift+G` |
-| Lock/unlock | `Cmd/Ctrl+Shift+L` |
-| Nudge | Arrow keys with selection |
-| Large nudge | `Shift` + arrow keys |
-| Bring forward/back | `]` / `[` |
+| Action               | Shortcut                  |
+| -------------------- | ------------------------- |
+| Open command palette | `Cmd/Ctrl+Shift+P`        |
+| Shortcut help        | `?`                       |
+| Zoom in              | `Cmd/Ctrl+=`              |
+| Zoom out             | `Cmd/Ctrl+-`              |
+| Reset view           | `Cmd/Ctrl+0`              |
+| Fit content          | `Cmd/Ctrl+1`              |
+| Pan with keyboard    | Arrow keys                |
+| Pan temporarily      | `Space` + drag            |
+| Create page          | `P`                       |
+| Create database      | `D`                       |
+| Rectangle            | `R`                       |
+| Ellipse              | `O`                       |
+| Connector tool       | `L`                       |
+| Frame/group tool     | `F`                       |
+| Enter peek/edit      | `Enter`                   |
+| Open focused surface | `Cmd/Ctrl+Enter`          |
+| Exit edit/peek       | `Escape`                  |
+| Group                | `G`                       |
+| Ungroup              | `Shift+G`                 |
+| Lock/unlock          | `Cmd/Ctrl+Shift+L`        |
+| Nudge                | Arrow keys with selection |
+| Large nudge          | `Shift` + arrow keys      |
+| Bring forward/back   | `]` / `[`                 |
 
 Implementation note:
 
@@ -138,6 +138,11 @@ type CanvasCommand = {
 ## Testing and Validation Approach
 
 - Add unit coverage for shortcut dispatch and “typing guard” behavior.
+- Add Electron CDP e2e coverage for:
+  - `Cmd/Ctrl+Shift+P` palette open
+  - page/database/note creation from shortcuts or palette
+  - minimap hide/show
+  - Escape/Enter focused-surface transitions
 - Verify that shortcuts remain discoverable via palette/HUD/help overlay.
 - Manually verify keyboard-first flows in Electron.
 
@@ -162,3 +167,4 @@ pnpm --filter @xnetjs/ui test
 - [ ] Add a discoverable shortcut help overlay.
 - [ ] Implement the selection HUD with only context-relevant actions.
 - [ ] Ensure keyboard-first creation/edit/navigation flows work without interfering with editor typing.
+- [ ] Back the shortcut layer with Electron CDP e2e coverage for hotkeys and typing guards.

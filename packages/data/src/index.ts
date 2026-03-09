@@ -85,6 +85,8 @@ export {
   type Task,
   ExternalReferenceSchema,
   type ExternalReference,
+  MediaAssetSchema,
+  type MediaAsset,
   CanvasSchema,
   type Canvas,
   CommentSchema,

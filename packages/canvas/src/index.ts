@@ -29,6 +29,8 @@ export type {
   Point,
   Rect,
   CanvasNodePosition,
+  CanvasObjectKind,
+  LegacyCanvasNodeType,
   CanvasNodeType,
   CanvasNode,
   EdgeAnchor,

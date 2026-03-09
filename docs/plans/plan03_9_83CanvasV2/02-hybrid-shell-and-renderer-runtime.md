@@ -133,6 +133,11 @@ function CanvasRuntime(props: CanvasRuntimeProps): React.ReactElement {
 ## Testing and Validation Approach
 
 - Add renderer-layer tests where feasible in `packages/canvas`.
+- Add Electron CDP tests for:
+  - shell boot
+  - minimap visibility/toggle
+  - dock + command-palette creation flows
+  - hybrid-layer smoke assertions (`canvas` overview layers + DOM object cards)
 - Verify that minimap, grid, DOM objects, and overlays continue to stack correctly.
 - Manually verify viewport updates and overlay alignment in Electron.
 
@@ -152,7 +157,7 @@ pnpm dev:stories
 ## Step Checklist
 
 - [ ] Introduce the Canvas V2 runtime host and make it the primary render entry.
-- [ ] Move the grid and minimap into the default shell path.
+- [x] Move the grid and minimap into the default shell path.
 - [ ] Define explicit responsibilities for background, overview, DOM, and overlay layers.
 - [ ] Replace the current custom linked-card shell rendering with runtime-fed object rendering.
 - [ ] Keep persistent shell chrome minimal and contextual.

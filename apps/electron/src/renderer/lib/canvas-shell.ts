@@ -1,4 +1,5 @@
-import type { CanvasNode } from '@xnetjs/canvas'
+import type { CanvasNode, CanvasObjectKind } from '@xnetjs/canvas'
+import { DatabaseSchema, PageSchema } from '@xnetjs/data'
 
 export type LinkedDocType = 'page' | 'database' | 'canvas'
 
@@ -6,6 +7,7 @@ export type LinkedDocumentItem = {
   id: string
   title: string
   type: LinkedDocType
+  canvasKind?: Extract<CanvasObjectKind, 'page' | 'database' | 'note'>
 }
 
 export type CanvasViewportSnapshot = {
@@ -43,14 +45,63 @@ export function createCanvasShellNoteProperties(): Record<string, unknown> {
 }
 
 export function isCanvasShellNote(node: CanvasNode): boolean {
-  return node.type === 'card' && node.properties.shellRole === SHELL_NOTE_ROLE
+  return node.type === 'note' && node.properties.shellRole === SHELL_NOTE_ROLE
+}
+
+export function getCanvasShellSourceType(
+  node: CanvasNode,
+  linkedDocument?: LinkedDocumentItem
+): Exclude<LinkedDocType, 'canvas'> | null {
+  if (linkedDocument?.type === 'page' || linkedDocument?.type === 'database') {
+    return linkedDocument.type
+  }
+
+  if (node.type === 'database') {
+    return 'database'
+  }
+
+  if (node.type === 'page' || node.type === 'note') {
+    return 'page'
+  }
+
+  if (node.sourceSchemaId === DatabaseSchema._schemaId) {
+    return 'database'
+  }
+
+  if (node.sourceSchemaId === PageSchema._schemaId) {
+    return 'page'
+  }
+
+  const linkedType = node.properties.linkedType
+  return linkedType === 'page' || linkedType === 'database' ? linkedType : null
+}
+
+export function getCanvasShellDisplayType(
+  node: CanvasNode,
+  linkedDocument?: LinkedDocumentItem
+): LinkedDocType | 'note' {
+  if (isCanvasShellNote(node)) {
+    return 'note'
+  }
+
+  const sourceType = getCanvasShellSourceType(node, linkedDocument)
+  if (sourceType) {
+    return sourceType
+  }
+
+  return 'canvas'
+}
+
+export function getCanvasShellSourceId(node: CanvasNode): string | undefined {
+  return node.sourceNodeId ?? node.linkedNodeId
 }
 
 export function shouldRenderCanvasShellCard(
   node: CanvasNode,
   linkedDocument?: LinkedDocumentItem
 ): boolean {
-  return Boolean(linkedDocument) || isCanvasShellNote(node)
+  const displayType = getCanvasShellDisplayType(node, linkedDocument)
+  return displayType === 'page' || displayType === 'database' || displayType === 'note'
 }
 
 export function getCanvasShellNotePlacement(viewport: CanvasViewportSnapshot): {

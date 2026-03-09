@@ -25,6 +25,8 @@ export interface NavigationToolsProps {
   className?: string
   /** Optional style overrides for the toolbar container */
   style?: React.CSSProperties
+  /** Right inset used for bottom-right positioning */
+  insetRight?: number
 }
 
 // ─── Navigation Tools Component ───────────────────────────────────────────────
@@ -36,7 +38,8 @@ export function NavigationTools({
   position = 'bottom-left',
   showZoomLabel = true,
   className,
-  style
+  style,
+  insetRight = 16
 }: NavigationToolsProps) {
   const zoomIn = useCallback(() => {
     const newZoom = Math.min(viewport.zoom * 1.5, 4)
@@ -78,7 +81,7 @@ export function NavigationTools({
   const zoomPercent = Math.round(viewport.zoom * 100)
 
   const positionStyles = {
-    ...getPositionStyles(position),
+    ...getPositionStyles(position, insetRight),
     ...style
   }
 
@@ -148,7 +151,7 @@ export function NavigationTools({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-function getPositionStyles(position: string): React.CSSProperties {
+function getPositionStyles(position: string, insetRight: number): React.CSSProperties {
   const base: React.CSSProperties = {
     position: 'absolute',
     display: 'flex',
@@ -166,7 +169,7 @@ function getPositionStyles(position: string): React.CSSProperties {
     case 'bottom-left':
       return { ...base, bottom: 16, left: 16 }
     case 'bottom-right':
-      return { ...base, bottom: 16, right: 240 } // Offset for minimap
+      return { ...base, bottom: 16, right: insetRight }
     case 'top-left':
       return { ...base, top: 16, left: 16 }
     case 'top-right':
