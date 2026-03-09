@@ -60,7 +60,7 @@ localStorage.setItem('xnet:sync:debug', 'true')
 
 In development, Electron can open the root Storybook catalog inside the app shell.
 
-- Open `Stories` from the system menu or the command palette.
+- Open `Open Stories` from the system menu or the command palette.
 - The renderer asks the main process to start Storybook on demand if it is not already running.
 - The embedded surface shows startup, retry, and error states instead of assuming the server is already available.
 - The catalog includes shared UI, Electron renderer stories, and workbenches for the editor, database views, and canvas.
