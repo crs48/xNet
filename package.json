@@ -27,6 +27,7 @@
     "@changesets/cli": "^2.29.7",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
+    "@github-ui/storybook-addon-performance-panel": "^1.1.4",
     "@storybook/addon-a11y": "^10.2.16",
     "@storybook/addon-links": "^10.2.16",
     "@storybook/addon-themes": "^10.2.16",

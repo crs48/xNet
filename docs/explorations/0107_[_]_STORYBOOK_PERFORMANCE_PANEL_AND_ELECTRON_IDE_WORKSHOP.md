@@ -17,8 +17,9 @@
   - Web gets a dev-only route such as `/stories`
   - the real Storybook UI is embedded, rather than building a custom workshop shell in v1
 - ✅ The first pass should include **shared `@xnetjs/ui` stories plus selected app stories**, with mocks for renderer-safe app surfaces.
-- ✅ The active addon stack should stay on **Storybook 10-compatible addons only**. xNet now uses `@storybook/addon-a11y`, `@storybook/addon-vitest`, `@storybook/addon-themes`, and `@storybook/addon-links`.
-- ⚠️ The “performance panel” should be treated as a **deferred diagnostics tool**, not a merge gate. The currently available addon path is not Storybook 10-compatible in this repo, so it should stay out of the active config until a compatible option is identified.
+- ✅ The active addon stack now includes `@github-ui/storybook-addon-performance-panel` alongside `@storybook/addon-a11y`, `@storybook/addon-vitest`, `@storybook/addon-themes`, and `@storybook/addon-links`.
+- ⚠️ The performance panel should stay a **local diagnostics tool**, not a merge gate. xNet can use it interactively for component profiling, but CI-grade performance enforcement still needs a stricter benchmark path.
+- ⚠️ The GitHub addon currently declares a `react@^19` peer dependency, but it built and ran successfully against xNet’s React 18 Storybook setup during validation.
 - 🥇 Recommendation: ship this in four implementation chunks:
   1. root Storybook config and shared decorators
   2. initial shared UI + app stories
@@ -33,7 +34,7 @@ flowchart TD
   A --> E["dev-only embedded iframe"]
   E --> F["Electron menu and palette entry"]
   E --> G["Web dev route"]
-  A --> H["a11y, themes, links, and Vitest addons"]
+  A --> H["a11y, themes, links, Vitest, and performance addons"]
 ```
 
 ---
@@ -311,8 +312,10 @@ This is a deliberate shift away from the earlier composition-heavy direction.
 - `@storybook/addon-a11y`
 - `@storybook/addon-links`
 - `@storybook/addon-themes`
+- `@github-ui/storybook-addon-performance-panel`
 - `@storybook/addon-vitest`
-- Performance profiling should be deferred until a Storybook 10-compatible addon or alternate workflow is selected.
+- The GitHub performance panel is now the active local profiling addon in this repo.
+- It currently reports a React 19 peer range, so xNet should keep validating it when Storybook or React is upgraded.
 - Storybook 10.2 no longer publishes a matching `@storybook/addon-essentials` package for this setup, so v1 should rely on the default manager/docs surface plus targeted addons instead of forcing an outdated install.
 
 ### Story Scope
@@ -377,8 +380,9 @@ stateDiagram-v2
 - [x] Enable `@storybook/addon-a11y`.
 - [x] Enable `@storybook/addon-links`.
 - [x] Enable `@storybook/addon-themes`.
+- [x] Enable `@github-ui/storybook-addon-performance-panel`.
 - [x] Enable `@storybook/addon-vitest`.
-- [ ] Re-introduce a Storybook 10-compatible performance addon or alternate profiling workflow.
+- [ ] Add story-level performance scenarios and profiling guidance for high-value components.
 - [x] Add Electron Storybook lifecycle management in main/preload.
 - [x] Add a Stories shell state/view in the Electron renderer.
 - [x] Add a dev-only `Open Stories` item to `SystemMenu`.
@@ -396,7 +400,8 @@ stateDiagram-v2
 - [ ] Selected app stories render with mocks and no renderer crashes.
 - [x] a11y results appear in the Storybook UI.
 - [ ] Vitest addon runs portable-story tests.
-- [ ] A Storybook 10-compatible performance workflow is selected and verified.
+- [x] Performance panel renders in the Storybook addon tray.
+- [ ] Performance readings are documented for at least one intentionally heavy story.
 - [ ] Electron dev build can start Storybook on demand and display it in-app.
 - [ ] Electron loading and failure states are clear when Storybook is unavailable.
 - [x] Web dev route can embed Storybook from `VITE_STORYBOOK_URL`.
@@ -429,6 +434,7 @@ const config: StorybookConfig = {
     '@storybook/addon-a11y',
     '@storybook/addon-links',
     '@storybook/addon-themes',
+    '@github-ui/storybook-addon-performance-panel/preset',
     '@storybook/addon-vitest'
   ],
   viteFinal: async (viteConfig) => ({

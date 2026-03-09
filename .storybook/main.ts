@@ -15,6 +15,7 @@ const config: StorybookConfig = {
     '@storybook/addon-a11y',
     '@storybook/addon-links',
     '@storybook/addon-themes',
+    '@github-ui/storybook-addon-performance-panel/preset',
     '@storybook/addon-vitest'
   ],
   viteFinal: async (viteConfig) => ({
