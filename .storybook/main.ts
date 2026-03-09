@@ -11,6 +11,9 @@ const config: StorybookConfig = {
   },
   stories: [
     '../packages/ui/src/**/*.stories.@(ts|tsx|mdx)',
+    '../packages/editor/src/**/*.stories.@(ts|tsx|mdx)',
+    '../packages/views/src/**/*.stories.@(ts|tsx|mdx)',
+    '../packages/canvas/src/**/*.stories.@(ts|tsx|mdx)',
     '../apps/web/src/**/*.stories.@(ts|tsx|mdx)',
     '../apps/electron/src/renderer/**/*.stories.@(ts|tsx|mdx)'
   ],

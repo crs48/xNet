@@ -13,11 +13,17 @@
 - ✅ The right baseline is **Storybook 10.2 with `@storybook/react-vite`**, because both `apps/web` and the Electron renderer are Vite-based today.
 - ✅ The chosen direction is now **one root Storybook plus dev-only embedded access inside xNet**, not a production workshop surface and not a composition-first rollout.
 - ✅ Storybook now loads the shared token CSS **and Tailwind utilities** in preview, so utility-class-based components render with the same styling contract used by the Web and Electron apps.
+- ✅ Storybook now includes **core product workbenches** for the editor, database views, and canvas renderer, so the main interaction surfaces can be exercised in isolation.
 - ✅ Electron and Web should both expose Storybook from inside the app shell, but only in development:
   - Electron gets menu + command-palette entry points and an embedded Storybook view
   - Web gets a dev-only route such as `/stories`
   - the real Storybook UI is embedded, rather than building a custom workshop shell in v1
-- ✅ The first pass should include **shared `@xnetjs/ui` stories plus selected app stories**, with mocks for renderer-safe app surfaces.
+- ✅ The first pass now includes **shared package stories plus selected app stories**:
+  - `@xnetjs/ui` catalogs
+  - `@xnetjs/editor` playground
+  - `@xnetjs/views` database workbench
+  - `@xnetjs/canvas` workbench
+  - renderer-safe app surfaces where light mocks are enough
 - ✅ The shared UI catalog now covers the exported `@xnetjs/ui` component surface: primitives, composed devtools surfaces, comments UI, responsive shells, accessibility helpers, and a deliberate heavy story for local performance analysis.
 - ✅ The active addon stack now includes `@github-ui/storybook-addon-performance-panel` alongside `@storybook/addon-a11y`, `@storybook/addon-vitest`, `@storybook/addon-themes`, and `@storybook/addon-links`.
 - ✅ `withPerformanceMonitor` is now wired explicitly in `.storybook/preview.tsx`, while a local preset shim registers the manager panel without hiding the instrumentation path.
@@ -72,7 +78,11 @@ The implementation direction for this exploration is now fixed:
 ### Observed facts
 
 - `@xnetjs/ui` is already a meaningful shared design system with primitives, composed components, comments UI, responsive shells, and theming exported from [`packages/ui/src/index.ts:1`](/Users/crs/.codex/worktrees/724b/xNet/packages/ui/src/index.ts#L1).
-- `packages/ui` now has root-level catalog stories spanning primitives, composed surfaces, comments, settings, and performance-oriented benchmark coverage.
+- Root Storybook coverage now spans:
+  - `packages/ui` catalogs for primitives, components, comments, settings, and devtools
+  - `packages/editor` workbench stories for the rich text editor
+  - `packages/views` workbench stories for database table and board surfaces
+  - `packages/canvas` workbench stories for the spatial renderer
 - The UI audit explicitly calls out the next steps:
   - “Add Storybook documentation”
   - “Add visual regression tests”
@@ -373,6 +383,9 @@ stateDiagram-v2
 - [x] Add initial story files for:
   - [x] `packages/ui` primitives
   - [x] `packages/ui` composed components
+  - [x] `packages/editor` rich text editor playground
+  - [x] `packages/views` database workbench
+  - [x] `packages/canvas` workbench
   - [x] selected Web components
   - [x] selected Electron renderer components
 - [ ] Add shared story mocks for:
@@ -403,6 +416,7 @@ stateDiagram-v2
 - [x] Root Storybook boots with the shared xNet theme assets.
 - [x] Tailwind utility classes render correctly inside Storybook preview.
 - [x] Shared UI stories render in both light and dark themes.
+- [x] Core editor, database, and canvas package stories render in isolation.
 - [ ] Selected app stories render with mocks and no renderer crashes.
 - [x] a11y results appear in the Storybook UI.
 - [ ] Vitest addon runs portable-story tests.

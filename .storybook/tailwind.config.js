@@ -6,11 +6,12 @@ export default {
   content: [
     '.storybook/**/*.{js,ts,jsx,tsx,mdx}',
     'packages/ui/src/**/*.{ts,tsx,mdx}',
+    'packages/editor/src/**/*.{ts,tsx,mdx}',
     'apps/web/src/**/*.{ts,tsx,mdx}',
     'apps/electron/src/renderer/**/*.{ts,tsx,mdx}',
-    'packages/views/src/**/*.{ts,tsx}',
-    'packages/editor/src/**/*.{ts,tsx}',
-    'packages/react/src/**/*.{ts,tsx}',
-    'packages/devtools/src/**/*.{ts,tsx}'
+    'packages/views/src/**/*.{ts,tsx,mdx}',
+    'packages/canvas/src/**/*.{ts,tsx,mdx}',
+    'packages/react/src/**/*.{ts,tsx,mdx}',
+    'packages/devtools/src/**/*.{ts,tsx,mdx}'
   ]
 }
