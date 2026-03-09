@@ -14,7 +14,7 @@
 - ✅ The chosen direction is now **one root Storybook plus dev-only embedded access inside xNet**, not a production workshop surface and not a composition-first rollout.
 - ✅ Electron and Web should both expose Storybook from inside the app shell, but only in development:
   - Electron gets menu + command-palette entry points and an embedded Storybook view
-  - Web gets a dev-only route such as `/__stories`
+  - Web gets a dev-only route such as `/stories`
   - the real Storybook UI is embedded, rather than building a custom workshop shell in v1
 - ✅ The first pass should include **shared `@xnetjs/ui` stories plus selected app stories**, with mocks for renderer-safe app surfaces.
 - ⚠️ The “performance panel” should be treated as a **local diagnostics tool**, not a merge gate. It is useful for interactive profiling, but Storybook’s own docs and the performance addon both imply that stable CI perf comparisons need stricter controls.
@@ -225,13 +225,13 @@ graph LR
 
 ## 🛠 Options And Tradeoffs
 
-| Option | Shape | Pros | Cons | Verdict |
-| --- | --- | --- | --- | --- |
-| A. `packages/ui` only | One Storybook for shared primitives/composed components | Fastest path, highest leverage, low risk | App shells and Electron-specific flows remain undocumented | Good first increment |
-| B. One root Storybook embedded in dev | One config, one process, all stories, embedded in Electron/Web | Simple, consistent, easy to open from inside xNet, matches the chosen UX | Requires good mocks and careful story curation | Chosen v1 |
-| C. Per-surface Storybooks + composition | `packages/ui`, `apps/web`, `apps/electron`, plus a composed root | Strong ownership boundaries and long-term scale | More setup and more moving parts than needed for v1 | Good later |
-| D. Internal preview routes instead of Storybook | Build custom “dev routes” in Web/Electron | Full control, no external tool semantics | Reinvents controls/docs/testing/composition, higher maintenance | Poor use of time |
-| E. Electron-only Storybook shell | Develop components directly only inside desktop app | Matches long-term IDE vision | Blocks web contributors and CI hosting flows; ties everything to Electron | Too narrow for v1 |
+| Option                                          | Shape                                                            | Pros                                                                     | Cons                                                                      | Verdict              |
+| ----------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------- | -------------------- |
+| A. `packages/ui` only                           | One Storybook for shared primitives/composed components          | Fastest path, highest leverage, low risk                                 | App shells and Electron-specific flows remain undocumented                | Good first increment |
+| B. One root Storybook embedded in dev           | One config, one process, all stories, embedded in Electron/Web   | Simple, consistent, easy to open from inside xNet, matches the chosen UX | Requires good mocks and careful story curation                            | Chosen v1            |
+| C. Per-surface Storybooks + composition         | `packages/ui`, `apps/web`, `apps/electron`, plus a composed root | Strong ownership boundaries and long-term scale                          | More setup and more moving parts than needed for v1                       | Good later           |
+| D. Internal preview routes instead of Storybook | Build custom “dev routes” in Web/Electron                        | Full control, no external tool semantics                                 | Reinvents controls/docs/testing/composition, higher maintenance           | Poor use of time     |
+| E. Electron-only Storybook shell                | Develop components directly only inside desktop app              | Matches long-term IDE vision                                             | Blocks web contributors and CI hosting flows; ties everything to Electron | Too narrow for v1    |
 
 ```mermaid
 sequenceDiagram
@@ -245,7 +245,7 @@ sequenceDiagram
   SB->>Repo: Load root config and stories
   Dev->>ELEC: Open Stories from menu or palette
   ELEC->>SB: Embed manager UI in iframe
-  Dev->>WEB: Open /__stories
+  Dev->>WEB: Open /stories
   WEB->>SB: Embed manager UI in iframe
   Dev->>ELEC: Inspect component state / interactions / a11y
   Dev->>Repo: Save story or implementation change
@@ -294,7 +294,7 @@ This is a deliberate shift away from the earlier composition-heavy direction.
 
 #### Web
 
-- Add a dev-only route such as `/__stories`.
+- Add a dev-only route such as `/stories`.
 - Embed Storybook with an `iframe`.
 - Read the target URL from `VITE_STORYBOOK_URL`.
 - Do not auto-start Storybook from the browser app.
@@ -307,10 +307,10 @@ This is a deliberate shift away from the earlier composition-heavy direction.
 
 ### Recommended Addon Stack
 
-- `@storybook/addon-essentials`
 - `@storybook/addon-a11y`
 - `@storybook/addon-vitest`
 - `storybook-addon-performance`
+- Storybook 10.2 no longer publishes a matching `@storybook/addon-essentials` package for this setup, so v1 should rely on the default manager/docs surface plus targeted addons instead of forcing an outdated install.
 
 ### Story Scope
 
@@ -344,7 +344,7 @@ stateDiagram-v2
 ### Target UX
 
 - In development, a developer can open Stories from inside Electron without leaving the app.
-- In development, a developer can jump to `/__stories` inside the Web shell.
+- In development, a developer can jump to `/stories` inside the Web shell.
 - The embedded surface is the real Storybook manager UI, including docs, controls, a11y, and addons.
 - Production users never see the Stories surface.
 
@@ -358,44 +358,44 @@ stateDiagram-v2
 - [x] Choose embedded real Storybook UI instead of a custom native workshop shell.
 - [x] Choose Electron and Web as the first host surfaces.
 - [x] Choose shared UI plus selected app stories as the initial scope.
-- [ ] Add root Storybook dependencies and scripts at the repo root.
-- [ ] Create `.storybook/main.ts`, `preview.ts`, and supporting shared decorators.
+- [x] Add root Storybook dependencies and scripts at the repo root.
+- [x] Create `.storybook/main.ts`, `preview.ts`, and supporting shared decorators.
 - [ ] Add initial story files for:
-  - [ ] `packages/ui` primitives
-  - [ ] `packages/ui` composed components
-  - [ ] selected Web components
-  - [ ] selected Electron renderer components
+  - [x] `packages/ui` primitives
+  - [x] `packages/ui` composed components
+  - [x] selected Web components
+  - [x] selected Electron renderer components
 - [ ] Add shared story mocks for:
-  - [ ] theme providers
+  - [x] theme providers
   - [ ] router state
-  - [ ] preload-backed Electron APIs
+  - [x] preload-backed Electron APIs
   - [ ] renderer-safe app context
-- [ ] Enable `@storybook/addon-essentials`.
-- [ ] Enable `@storybook/addon-a11y`.
-- [ ] Enable `@storybook/addon-vitest`.
-- [ ] Enable `storybook-addon-performance`.
-- [ ] Add Electron Storybook lifecycle management in main/preload.
-- [ ] Add a Stories shell state/view in the Electron renderer.
-- [ ] Add a dev-only `Open Stories` item to `SystemMenu`.
-- [ ] Add a dev-only `Open Stories` command to the command palette.
-- [ ] Add a dev-only Web route for embedded Storybook.
-- [ ] Add a dev-only Web navigation entry for Stories.
-- [ ] Update this exploration as implementation progresses and check off completed items.
+- [x] Enable Storybook 10’s default manager/docs surface without forcing `@storybook/addon-essentials`.
+- [x] Enable `@storybook/addon-a11y`.
+- [x] Enable `@storybook/addon-vitest`.
+- [x] Enable `storybook-addon-performance`.
+- [x] Add Electron Storybook lifecycle management in main/preload.
+- [x] Add a Stories shell state/view in the Electron renderer.
+- [x] Add a dev-only `Open Stories` item to `SystemMenu`.
+- [x] Add a dev-only `Open Stories` command to the command palette.
+- [x] Add a dev-only Web route for embedded Storybook.
+- [x] Add a dev-only Web navigation entry for Stories.
+- [x] Update this exploration as implementation progresses and check off completed items.
 
 ---
 
 ## 🧪 Validation Checklist
 
-- [ ] Root Storybook boots with the shared xNet theme assets.
+- [x] Root Storybook boots with the shared xNet theme assets.
 - [ ] Shared UI stories render in both light and dark themes.
 - [ ] Selected app stories render with mocks and no renderer crashes.
-- [ ] a11y results appear in the Storybook UI.
+- [x] a11y results appear in the Storybook UI.
 - [ ] Vitest addon runs portable-story tests.
-- [ ] Performance addon renders for designated stories.
+- [x] Performance addon renders for designated stories.
 - [ ] Electron dev build can start Storybook on demand and display it in-app.
 - [ ] Electron loading and failure states are clear when Storybook is unavailable.
-- [ ] Web dev route can embed Storybook from `VITE_STORYBOOK_URL`.
-- [ ] Web missing-server state is clear and non-fatal.
+- [x] Web dev route can embed Storybook from `VITE_STORYBOOK_URL`.
+- [x] Web missing-server state is clear and non-fatal.
 - [ ] Production builds do not expose Stories UI.
 - [ ] No background dev servers are left running after verification workflows.
 
@@ -420,12 +420,7 @@ const config: StorybookConfig = {
     '../apps/web/src/**/*.stories.@(ts|tsx|mdx)',
     '../apps/electron/src/renderer/**/*.stories.@(ts|tsx|mdx)'
   ],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-a11y',
-    '@storybook/addon-vitest',
-    'storybook-addon-performance'
-  ],
+  addons: ['@storybook/addon-a11y', '@storybook/addon-vitest', 'storybook-addon-performance'],
   viteFinal: async (viteConfig) => ({
     ...viteConfig,
     resolve: {
@@ -501,7 +496,7 @@ type ShellState =
 ### 4. Web route idea
 
 ```tsx
-// apps/web/src/routes/__stories.tsx
+// apps/web/src/routes/stories.tsx
 export function StoriesRoute(): React.ReactElement {
   const storybookUrl = import.meta.env.VITE_STORYBOOK_URL
 
@@ -534,7 +529,7 @@ export function StoriesRoute(): React.ReactElement {
 1. Add the root Storybook runtime and scripts.
 2. Land the first story set for shared UI plus a small set of app stories.
 3. Wire Electron embedded Storybook access.
-4. Wire the Web dev-only Stories route.
+4. Wire the Web dev-only Stories route (`/stories` in practice because TanStack file routes reserve the `__*` filename pattern).
 5. Revisit deeper Electron workspace integration only after this simpler path proves useful.
 
 ---

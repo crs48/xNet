@@ -15,6 +15,7 @@ import { CanvasView, type CanvasViewHandle } from './components/CanvasView'
 import { DatabaseView } from './components/DatabaseView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
+import { StorybookView } from './components/StorybookView'
 import { SystemMenu } from './components/SystemMenu'
 
 type DocType = 'page' | 'database' | 'canvas'
@@ -30,6 +31,7 @@ type ShellState =
   | { kind: 'page-focus'; docId: string; returnViewport: ViewportSnapshot | null }
   | { kind: 'database-focus'; docId: string; returnViewport: ViewportSnapshot | null }
   | { kind: 'settings' }
+  | { kind: 'stories' }
 
 type DocumentItem = {
   id: string
@@ -40,6 +42,7 @@ type DocumentItem = {
 }
 
 const OVERLAY_OPEN_DELAY_MS = 180
+const STORIES_ENABLED = import.meta.env.DEV
 
 function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error))
@@ -299,12 +302,20 @@ export function App(): React.ReactElement {
     if (shellState.kind === 'page-focus') return 'Document'
     if (shellState.kind === 'database-focus') return 'Database'
     if (shellState.kind === 'settings') return 'Settings'
+    if (shellState.kind === 'stories') return 'Stories'
     return null
   }, [shellState.kind])
 
   const handleOpenSettings = useCallback(() => {
     clearTransitionTimer()
     setShellState({ kind: 'settings' })
+  }, [clearTransitionTimer])
+
+  const handleOpenStories = useCallback(() => {
+    if (!STORIES_ENABLED) return
+
+    clearTransitionTimer()
+    setShellState({ kind: 'stories' })
   }, [clearTransitionTimer])
 
   const paletteCommands = useMemo<PaletteCommand[]>(
@@ -337,6 +348,18 @@ export function App(): React.ReactElement {
         icon: 'settings',
         execute: handleOpenSettings
       },
+      ...(STORIES_ENABLED
+        ? [
+            {
+              id: 'open-stories',
+              name: 'Open Stories',
+              description: 'Open the dev-only embedded Storybook surface',
+              icon: 'layout',
+              group: 'Developer',
+              execute: handleOpenStories
+            } satisfies PaletteCommand
+          ]
+        : []),
       ...recentDocuments.map((document) => ({
         id: `open-${document.id}`,
         name: document.title,
@@ -356,6 +379,7 @@ export function App(): React.ReactElement {
       handleCreateLinkedDocument,
       handleOpenDocument,
       handleOpenSettings,
+      handleOpenStories,
       recentDocuments
     ]
   )
@@ -375,6 +399,16 @@ export function App(): React.ReactElement {
         <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
           <div className={overlaySurfaceClassName}>
             <SettingsView onClose={handleReturnHome} />
+          </div>
+        </div>
+      )
+    }
+
+    if (shellState.kind === 'stories') {
+      return (
+        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className={overlaySurfaceClassName}>
+            <StorybookView />
           </div>
         </div>
       )
@@ -438,6 +472,7 @@ export function App(): React.ReactElement {
             recentDocuments={recentDocuments}
             onOpenDocument={handleOpenDocument}
             onOpenSettings={handleOpenSettings}
+            onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
             onAddShared={() => {
               setPrefilledShareValue('')
               setShowAddSharedDialog(true)
