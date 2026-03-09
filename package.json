@@ -28,6 +28,8 @@
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@storybook/addon-a11y": "^10.2.16",
+    "@storybook/addon-links": "^10.2.16",
+    "@storybook/addon-themes": "^10.2.16",
     "@storybook/addon-vitest": "^10.2.16",
     "@storybook/react-vite": "^10.2.16",
     "@types/node": "^20.0.0",

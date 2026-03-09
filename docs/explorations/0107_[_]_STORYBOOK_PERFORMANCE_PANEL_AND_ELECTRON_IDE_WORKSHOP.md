@@ -17,6 +17,7 @@
   - Web gets a dev-only route such as `/stories`
   - the real Storybook UI is embedded, rather than building a custom workshop shell in v1
 - ✅ The first pass should include **shared `@xnetjs/ui` stories plus selected app stories**, with mocks for renderer-safe app surfaces.
+- ✅ The active addon stack should stay on **Storybook 10-compatible addons only**. xNet now uses `@storybook/addon-a11y`, `@storybook/addon-vitest`, `@storybook/addon-themes`, and `@storybook/addon-links`.
 - ⚠️ The “performance panel” should be treated as a **deferred diagnostics tool**, not a merge gate. The currently available addon path is not Storybook 10-compatible in this repo, so it should stay out of the active config until a compatible option is identified.
 - 🥇 Recommendation: ship this in four implementation chunks:
   1. root Storybook config and shared decorators
@@ -32,7 +33,7 @@ flowchart TD
   A --> E["dev-only embedded iframe"]
   E --> F["Electron menu and palette entry"]
   E --> G["Web dev route"]
-  A --> H["a11y and Vitest addons"]
+  A --> H["a11y, themes, links, and Vitest addons"]
 ```
 
 ---
@@ -308,6 +309,8 @@ This is a deliberate shift away from the earlier composition-heavy direction.
 ### Recommended Addon Stack
 
 - `@storybook/addon-a11y`
+- `@storybook/addon-links`
+- `@storybook/addon-themes`
 - `@storybook/addon-vitest`
 - Performance profiling should be deferred until a Storybook 10-compatible addon or alternate workflow is selected.
 - Storybook 10.2 no longer publishes a matching `@storybook/addon-essentials` package for this setup, so v1 should rely on the default manager/docs surface plus targeted addons instead of forcing an outdated install.
@@ -372,6 +375,8 @@ stateDiagram-v2
   - [ ] renderer-safe app context
 - [x] Enable Storybook 10’s default manager/docs surface without forcing `@storybook/addon-essentials`.
 - [x] Enable `@storybook/addon-a11y`.
+- [x] Enable `@storybook/addon-links`.
+- [x] Enable `@storybook/addon-themes`.
 - [x] Enable `@storybook/addon-vitest`.
 - [ ] Re-introduce a Storybook 10-compatible performance addon or alternate profiling workflow.
 - [x] Add Electron Storybook lifecycle management in main/preload.
@@ -387,7 +392,7 @@ stateDiagram-v2
 ## 🧪 Validation Checklist
 
 - [x] Root Storybook boots with the shared xNet theme assets.
-- [ ] Shared UI stories render in both light and dark themes.
+- [x] Shared UI stories render in both light and dark themes.
 - [ ] Selected app stories render with mocks and no renderer crashes.
 - [x] a11y results appear in the Storybook UI.
 - [ ] Vitest addon runs portable-story tests.
@@ -420,7 +425,12 @@ const config: StorybookConfig = {
     '../apps/web/src/**/*.stories.@(ts|tsx|mdx)',
     '../apps/electron/src/renderer/**/*.stories.@(ts|tsx|mdx)'
   ],
-  addons: ['@storybook/addon-a11y', '@storybook/addon-vitest'],
+  addons: [
+    '@storybook/addon-a11y',
+    '@storybook/addon-links',
+    '@storybook/addon-themes',
+    '@storybook/addon-vitest'
+  ],
   viteFinal: async (viteConfig) => ({
     ...viteConfig,
     resolve: {
@@ -439,6 +449,7 @@ export default config
 ```tsx
 // .storybook/preview.ts
 import type { Preview } from '@storybook/react-vite'
+import { withThemeByClassName } from '@storybook/addon-themes'
 import '../packages/ui/src/theme/tokens.css'
 import '../packages/ui/src/theme/motion.css'
 import '../packages/ui/src/theme/accessibility.css'
@@ -448,13 +459,26 @@ import '../packages/ui/src/theme/base-ui-animations.css'
 import { ThemeProvider } from '../packages/ui/src/theme/ThemeProvider'
 
 const preview: Preview = {
+  tags: ['autodocs'],
   parameters: {
     controls: { expanded: true },
     a11y: { test: 'todo' }
   },
   decorators: [
-    (Story) => (
-      <ThemeProvider defaultTheme="system" storageKey="xnet-storybook-theme">
+    withThemeByClassName({
+      defaultTheme: 'system',
+      themes: {
+        system: '',
+        light: 'light',
+        dark: 'dark'
+      }
+    }),
+    (Story, context) => (
+      <ThemeProvider
+        key={String(context.globals.theme ?? 'system')}
+        defaultTheme={(context.globals.theme as 'light' | 'dark' | 'system') ?? 'system'}
+        storageKey={`xnet-storybook-theme:${String(context.globals.theme ?? 'system')}`}
+      >
         <div className="min-h-screen bg-background p-6 text-foreground">
           <Story />
         </div>

@@ -11,7 +11,12 @@ const config: StorybookConfig = {
     '../apps/web/src/**/*.stories.@(ts|tsx|mdx)',
     '../apps/electron/src/renderer/**/*.stories.@(ts|tsx|mdx)'
   ],
-  addons: ['@storybook/addon-a11y', '@storybook/addon-vitest'],
+  addons: [
+    '@storybook/addon-a11y',
+    '@storybook/addon-links',
+    '@storybook/addon-themes',
+    '@storybook/addon-vitest'
+  ],
   viteFinal: async (viteConfig) => ({
     ...viteConfig,
     resolve: {
