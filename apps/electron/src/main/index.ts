@@ -15,6 +15,7 @@ import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { createMenu } from './menu'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
+import { setupStorybookIPC, stopStorybook } from './storybook-ipc'
 import { initAutoUpdater } from './updater'
 
 // Enable remote debugging in development for Playwright/CDP testing
@@ -200,6 +201,11 @@ app.whenReady().then(async () => {
   // Setup Cloudflare tunnel IPC handlers
   cleanupTunnelIPC = setupCloudflareTunnelIPC()
 
+  // Setup dev-only Storybook IPC handlers
+  if (process.env.NODE_ENV === 'development') {
+    setupStorybookIPC()
+  }
+
   // Start Local API server (for external integrations)
   await startLocalAPI()
 
@@ -244,6 +250,9 @@ app.on('before-quit', async () => {
   // Remove tunnel event listeners
   cleanupTunnelIPC?.()
   cleanupTunnelIPC = null
+
+  // Stop Storybook dev runtime
+  await stopStorybook()
 
   // Stop data utility process (handles BSM, SQLite, Yjs cleanup)
   await stopDataProcess()

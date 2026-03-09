@@ -4,7 +4,7 @@
 
 import type { Theme } from '@xnetjs/ui'
 import { Menu, MenuItem, MenuLabel, MenuSeparator, useTheme } from '@xnetjs/ui'
-import { Bug, Check, Ellipsis, Monitor, Moon, Settings, Share2, Sun } from 'lucide-react'
+import { Bug, Check, Ellipsis, Layers3, Monitor, Moon, Settings, Share2, Sun } from 'lucide-react'
 import React from 'react'
 
 interface RecentDocument {
@@ -17,6 +17,7 @@ interface SystemMenuProps {
   recentDocuments: RecentDocument[]
   onOpenDocument: (docId: string) => void
   onOpenSettings: () => void
+  onOpenStories?: () => void
   onAddShared: () => void
   onToggleDebugPanel: () => void
 }
@@ -58,6 +59,7 @@ export function SystemMenu({
   recentDocuments,
   onOpenDocument,
   onOpenSettings,
+  onOpenStories,
   onAddShared,
   onToggleDebugPanel
 }: SystemMenuProps): React.ReactElement {
@@ -95,6 +97,14 @@ export function SystemMenu({
           Add shared item
         </span>
       </MenuItem>
+      {onOpenStories ? (
+        <MenuItem onSelect={onOpenStories}>
+          <span className="flex items-center gap-2">
+            <Layers3 size={14} />
+            Open Stories
+          </span>
+        </MenuItem>
+      ) : null}
       <MenuItem onSelect={onToggleDebugPanel}>
         <span className="flex items-center gap-2">
           <Bug size={14} />

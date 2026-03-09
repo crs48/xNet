@@ -39,6 +39,14 @@ function RootLayout() {
         </Link>
         <GlobalSearch />
         <div className="flex items-center gap-3">
+          {import.meta.env.DEV && (
+            <Link
+              to="/stories"
+              className="text-xs text-muted-foreground no-underline hover:no-underline hover:text-foreground"
+            >
+              Stories
+            </Link>
+          )}
           <HubStatusIndicator />
           <ThemeToggle />
           {identity && (

@@ -31,6 +31,14 @@ contextBridge.exposeInMainWorld('xnet', {
   }
 })
 
+if (process.env.NODE_ENV === 'development') {
+  contextBridge.exposeInMainWorld('xnetStorybook', {
+    status: () => ipcRenderer.invoke('xnet:storybook:status'),
+    ensure: () => ipcRenderer.invoke('xnet:storybook:ensure'),
+    stop: () => ipcRenderer.invoke('xnet:storybook:stop')
+  })
+}
+
 // Expose BSM API for background sync
 // MessagePorts can't cross contextBridge, so we manage them here in preload
 
@@ -382,6 +390,19 @@ export interface XNetAPI {
   onSharePayload(callback: (payload: string) => void): () => void
 }
 
+export interface XNetStorybookStatus {
+  state: 'stopped' | 'starting' | 'ready' | 'error'
+  url?: string
+  error?: string
+  lastOutput?: string
+}
+
+export interface XNetStorybookAPI {
+  status(): Promise<XNetStorybookStatus>
+  ensure(): Promise<XNetStorybookStatus>
+  stop(): Promise<XNetStorybookStatus>
+}
+
 export interface XNetBSMAPI {
   start(opts: {
     signalingUrl: string
@@ -524,6 +545,7 @@ export interface XNetNodesAPI {
 declare global {
   interface Window {
     xnet: XNetAPI
+    xnetStorybook?: XNetStorybookAPI
     xnetBSM: XNetBSMAPI
     xnetServices: XNetServicesAPI
     xnetLocalAPI: XNetLocalAPIAPI

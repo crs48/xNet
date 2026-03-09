@@ -1,0 +1,23 @@
+@import '../packages/ui/src/theme/tokens.css';
+@import '../packages/ui/src/theme/motion.css';
+@import '../packages/ui/src/theme/accessibility.css';
+@import '../packages/ui/src/theme/responsive.css';
+@import '../packages/ui/src/theme/base-ui-animations.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-background text-foreground antialiased;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground font-sans leading-relaxed;
+  }
+
+  #storybook-root {
+    @apply min-h-screen;
+  }
+}

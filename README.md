@@ -34,6 +34,12 @@ xNet is both the underlying infrastructure and the user-facing app — one produ
 # Install dependencies
 pnpm install
 
+# Run the root Storybook catalog and workbenches
+pnpm dev:stories
+
+# Build the static Storybook site
+pnpm build:stories
+
 # Build all packages
 pnpm build
 
@@ -49,6 +55,23 @@ pnpm typecheck
 # Lint
 pnpm lint
 ```
+
+## Component Development
+
+xNet now ships a root Storybook workspace for isolated component development across shared UI and app-facing surfaces.
+
+- Run `pnpm dev:stories` from the repo root to launch Storybook on `http://127.0.0.1:6006`.
+- Use `pnpm build:stories` to produce the static catalog and `pnpm test:stories` to run Storybook tests against a running server.
+- In Electron dev builds, open the embedded Storybook surface from `Open Stories` in the system menu or command palette.
+- In Web dev builds, open the embedded route at `/stories`.
+
+Current Storybook coverage includes:
+
+- `@xnetjs/ui` primitives, composed components, comments, settings, and devtools catalogs
+- `@xnetjs/editor` rich collaborative editor workbench
+- `@xnetjs/views` database surface workbench
+- `@xnetjs/canvas` canvas workbench
+- selected Electron and Web renderer stories
 
 ## Monorepo Structure
 

@@ -19,6 +19,7 @@ pnpm add @xnetjs/views
 - **View registry** -- Register and discover view types
 - **Card detail modal** -- Full node detail overlay
 - **Comment indicators** -- Per-node comment counts
+- **Storybook workbench** -- Isolated database surface for view development
 
 ## Usage
 
@@ -137,3 +138,13 @@ pnpm --filter @xnetjs/views test
 ```
 
 7 test files covering registry, board, gallery, timeline, calendar, and property renderers.
+
+## Storybook Workbench
+
+Run the root Storybook workspace from the repo root:
+
+```bash
+pnpm dev:stories
+```
+
+`@xnetjs/views` now ships a `DatabaseSurface` story that exercises the shared database UI in isolation rather than relying on the Electron SQLite runtime.

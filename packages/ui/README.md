@@ -12,6 +12,8 @@ pnpm add @xnetjs/ui
 
 This is a standalone UI package with no `@xnetjs/*` dependencies.
 
+The package is also the primary Storybook catalog source for shared xNet UI.
+
 ### Primitives (Base UI)
 
 Button, Input, Select, Checkbox, Badge, IconButton, Popover, Modal, Menu, Tooltip, Tabs, ScrollArea, Separator, Switch, Sheet, Accordion, Collapsible, ResizablePanel, Command
@@ -83,3 +85,18 @@ import { tailwindConfig } from '@xnetjs/ui/tailwind.config'
 ```bash
 pnpm --filter @xnetjs/ui test
 ```
+
+## Storybook
+
+Run the root Storybook workspace from the repo root:
+
+```bash
+pnpm dev:stories
+```
+
+`@xnetjs/ui` currently provides the largest Storybook surface in the repo, including:
+
+- primitive catalogs
+- composed component catalogs
+- comments UI catalogs
+- settings and devtools showcases

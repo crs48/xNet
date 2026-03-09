@@ -9,6 +9,12 @@ pnpm dev           # Start hub + app concurrently
 pnpm dev:both      # Two instances for sync testing
 ```
 
+From the repo root you can also run the shared Storybook runtime directly:
+
+```bash
+pnpm dev:stories
+```
+
 ## Build
 
 ```bash
@@ -31,6 +37,7 @@ pnpm dist          # Create distributable
 - Telemetry with tiered consent
 - Native OS titlebar
 - Keyboard shortcuts
+- Dev-only embedded Storybook surface for isolated UI development
 
 ## Tech Stack
 
@@ -48,3 +55,12 @@ Dev server runs at `http://localhost:5177`. Connect with Playwright MCP for auto
 # Enable sync debug logs in the browser console
 localStorage.setItem('xnet:sync:debug', 'true')
 ```
+
+## Stories Workbench
+
+In development, Electron can open the root Storybook catalog inside the app shell.
+
+- Open `Open Stories` from the system menu or the command palette.
+- The renderer asks the main process to start Storybook on demand if it is not already running.
+- The embedded surface shows startup, retry, and error states instead of assuming the server is already available.
+- The catalog includes shared UI, Electron renderer stories, and workbenches for the editor, database views, and canvas.

@@ -16,6 +16,7 @@ pnpm add @xnetjs/canvas
 - **Pan/zoom** -- Smooth viewport navigation
 - **Canvas comments** -- Spatial comment pins with overlay
 - **React hooks** -- `useCanvas`, `useCanvasComments`
+- **Storybook workbench** -- Isolated canvas scenario for interaction and layout tuning
 
 ## Usage
 
@@ -134,3 +135,13 @@ pnpm --filter @xnetjs/canvas test
 ```
 
 4 test files covering spatial indexing, layout, store, and comments.
+
+## Storybook Workbench
+
+Run the root Storybook workspace from the repo root:
+
+```bash
+pnpm dev:stories
+```
+
+`@xnetjs/canvas` now includes a dedicated Storybook workbench for the canvas renderer so layout, navigation, and presentation changes can be iterated without launching the full app shell.
