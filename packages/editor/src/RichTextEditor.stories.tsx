@@ -1,17 +1,52 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import type { JSONContent } from '@tiptap/core'
+import type { AnyExtension, JSONContent } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
 import type { Schema } from '@xnetjs/data'
 import type { TableRow, ViewConfig } from '@xnetjs/views'
+import { getSchema } from '@tiptap/core'
+import Link from '@tiptap/extension-link'
+import Placeholder from '@tiptap/extension-placeholder'
+import TaskList from '@tiptap/extension-task-list'
+import Typography from '@tiptap/extension-typography'
+import StarterKit from '@tiptap/starter-kit'
+import { prosemirrorJSONToYDoc } from '@tiptap/y-tiptap'
 import { Badge, Button } from '@xnetjs/ui'
-import { BoardView, TableView } from '@xnetjs/views'
+import {
+  BoardView,
+  CalendarView,
+  GalleryView,
+  ListView,
+  TableView,
+  TimelineView
+} from '@xnetjs/views'
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { RichTextEditor } from './components/RichTextEditor'
 import {
+  BlockquoteWithSyntax,
+  CalloutExtension,
+  CodeBlockWithSyntax,
+  CommentMark,
+  CommentPlugin,
   DEFAULT_TASK_VIEW_CONFIG,
+  DatabaseEmbedExtension,
+  DragHandleExtension,
+  EmbedExtension,
+  FileExtension,
+  HeadingWithSyntax,
+  ImageExtension,
+  KeyboardShortcutsExtension,
+  LivePreview,
   parseEmbedUrl,
+  PageTaskItemExtension,
+  SlashCommand,
+  SmartReferenceExtension,
+  TaskDueDateExtension,
+  TaskMentionExtension,
+  TaskViewEmbedExtension,
+  ToggleExtension,
+  Wikilink,
   type DatabaseViewType,
   type TaskMentionSuggestion,
   type TaskViewConfig,
@@ -45,8 +80,15 @@ type CollaborationSession = {
   awarenesses: [Awareness, Awareness, Awareness]
 }
 
+type CommentThreadState = {
+  id: string
+  label: string
+  state: 'active' | 'resolved' | 'orphaned'
+}
+
 const DOC_SYNC_ORIGIN = Symbol('storybook-doc-sync')
 const AWARENESS_SYNC_ORIGIN = Symbol('storybook-awareness-sync')
+const STORY_FIELD = 'content'
 
 const collaborators: Collaborator[] = [
   {
@@ -78,6 +120,24 @@ const mentionSuggestions: TaskMentionSuggestion[] = collaborators.map((collabora
   subtitle: collaborator.role,
   color: collaborator.color
 }))
+
+const storyCommentThreads: CommentThreadState[] = [
+  {
+    id: 'comment-live-selection',
+    label: 'Active design feedback on the launch section',
+    state: 'active'
+  },
+  {
+    id: 'comment-resolved-reference',
+    label: 'Resolved GitHub smart-reference wording',
+    state: 'resolved'
+  },
+  {
+    id: 'comment-orphaned-import',
+    label: 'Orphaned import note after content moved',
+    state: 'orphaned'
+  }
+]
 
 const databaseSchema: Schema = {
   '@id': 'xnet://storybook/EmbeddedFeatureDatabase' as const,
@@ -142,6 +202,20 @@ const databaseSchema: Schema = {
       config: {}
     },
     {
+      '@id': 'xnet://storybook/EmbeddedFeatureDatabase#scheduleStart',
+      name: 'Schedule Start',
+      type: 'date',
+      required: false,
+      config: {}
+    },
+    {
+      '@id': 'xnet://storybook/EmbeddedFeatureDatabase#scheduleEnd',
+      name: 'Schedule End',
+      type: 'date',
+      required: false,
+      config: {}
+    },
+    {
       '@id': 'xnet://storybook/EmbeddedFeatureDatabase#owner',
       name: 'Owner',
       type: 'text',
@@ -161,6 +235,13 @@ const databaseSchema: Schema = {
       type: 'email',
       required: false,
       config: {}
+    },
+    {
+      '@id': 'xnet://storybook/EmbeddedFeatureDatabase#cover',
+      name: 'Cover',
+      type: 'file',
+      required: false,
+      config: {}
     }
   ]
 }
@@ -174,9 +255,14 @@ const databaseRows: TableRow[] = [
     estimate: 5,
     shipped: false,
     launchDate: '2026-03-14',
+    scheduleStart: new Date('2026-03-10T09:00:00.000Z').getTime(),
+    scheduleEnd: new Date('2026-03-16T18:00:00.000Z').getTime(),
     owner: 'Pat',
     repository: 'https://github.com/xnetjs/xNet/pull/312',
-    contact: 'desktop@xnet.fyi'
+    contact: 'desktop@xnet.fyi',
+    cover: {
+      url: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=80'
+    }
   },
   {
     id: 'row-2',
@@ -186,9 +272,14 @@ const databaseRows: TableRow[] = [
     estimate: 3,
     shipped: false,
     launchDate: '2026-03-12',
+    scheduleStart: new Date('2026-03-12T13:00:00.000Z').getTime(),
+    scheduleEnd: new Date('2026-03-18T16:00:00.000Z').getTime(),
     owner: 'Morgan',
     repository: 'https://github.com/xnetjs/xNet/issues/289',
-    contact: 'design@xnet.fyi'
+    contact: 'design@xnet.fyi',
+    cover: {
+      url: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=900&q=80'
+    }
   },
   {
     id: 'row-3',
@@ -198,9 +289,31 @@ const databaseRows: TableRow[] = [
     estimate: 8,
     shipped: true,
     launchDate: '2026-03-08',
+    scheduleStart: new Date('2026-03-07T15:00:00.000Z').getTime(),
+    scheduleEnd: new Date('2026-03-20T17:00:00.000Z').getTime(),
     owner: 'Chris',
     repository: 'https://github.com/xnetjs/xNet/issues/301',
-    contact: 'product@xnet.fyi'
+    contact: 'product@xnet.fyi',
+    cover: {
+      url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=900&q=80'
+    }
+  },
+  {
+    id: 'row-4',
+    title: 'Preview orphaned comment recovery',
+    status: 'todo',
+    priority: 'low',
+    estimate: 2,
+    shipped: false,
+    launchDate: '2026-03-21',
+    scheduleStart: new Date('2026-03-21T11:00:00.000Z').getTime(),
+    scheduleEnd: new Date('2026-03-24T16:00:00.000Z').getTime(),
+    owner: 'Alex',
+    repository: 'https://github.com/xnetjs/xNet/issues/333',
+    contact: 'comments@xnet.fyi',
+    cover: {
+      url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=900&q=80'
+    }
   }
 ]
 
@@ -215,6 +328,8 @@ const tableView: ViewConfig = {
     'estimate',
     'shipped',
     'launchDate',
+    'scheduleStart',
+    'scheduleEnd',
     'owner',
     'repository',
     'contact'
@@ -226,6 +341,8 @@ const tableView: ViewConfig = {
     estimate: 100,
     shipped: 110,
     launchDate: 150,
+    scheduleStart: 150,
+    scheduleEnd: 150,
     owner: 120,
     repository: 240,
     contact: 220
@@ -242,11 +359,132 @@ const boardView: ViewConfig = {
   groupByProperty: 'status'
 }
 
-function createCollaborationSession(): CollaborationSession {
+const listView: ViewConfig = {
+  id: 'embedded-list',
+  name: 'Embedded List',
+  type: 'list',
+  visibleProperties: ['title', 'priority', 'owner', 'shipped'],
+  sorts: []
+}
+
+const galleryView: ViewConfig = {
+  id: 'embedded-gallery',
+  name: 'Embedded Gallery',
+  type: 'gallery',
+  visibleProperties: ['title', 'status', 'priority', 'owner'],
+  sorts: [],
+  coverProperty: 'cover',
+  galleryCardSize: 'small',
+  galleryImageFit: 'cover',
+  galleryShowTitle: true
+}
+
+const calendarView: ViewConfig = {
+  id: 'embedded-calendar',
+  name: 'Embedded Calendar',
+  type: 'calendar',
+  visibleProperties: ['title', 'status', 'owner'],
+  sorts: [],
+  dateProperty: 'scheduleStart',
+  endDateProperty: 'scheduleEnd'
+}
+
+const timelineView: ViewConfig = {
+  id: 'embedded-timeline',
+  name: 'Embedded Timeline',
+  type: 'timeline',
+  visibleProperties: ['title', 'status', 'owner', 'priority'],
+  sorts: [],
+  dateProperty: 'scheduleStart',
+  endDateProperty: 'scheduleEnd'
+}
+
+const storyCommentExtensions: AnyExtension[] = [
+  CommentMark,
+  CommentPlugin.configure({
+    onClickComment: () => undefined,
+    onHoverComment: () => undefined,
+    onLeaveComment: () => undefined
+  })
+]
+
+function createStorySeedExtensions(): AnyExtension[] {
+  return [
+    StarterKit.configure({
+      undoRedo: false,
+      link: false,
+      heading: false,
+      codeBlock: false,
+      blockquote: false,
+      dropcursor: false
+    }),
+    HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+    CodeBlockWithSyntax,
+    BlockquoteWithSyntax,
+    Typography,
+    Placeholder.configure({
+      placeholder: 'Start writing...',
+      emptyEditorClass: 'is-editor-empty'
+    }),
+    TaskList,
+    PageTaskItemExtension.configure({
+      nested: true
+    }),
+    TaskMentionExtension.configure({
+      getSuggestions: () => mentionSuggestions
+    }),
+    TaskDueDateExtension,
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: {
+        class: 'text-primary hover:underline cursor-pointer'
+      }
+    }),
+    Wikilink.configure({
+      onNavigate: () => undefined
+    }),
+    LivePreview.configure({
+      marks: ['bold', 'italic', 'strike', 'code'],
+      links: true
+    }),
+    SlashCommand.configure({
+      commands: undefined
+    }),
+    DragHandleExtension.configure({
+      enableDragDrop: true,
+      showDropIndicator: true
+    }),
+    KeyboardShortcutsExtension,
+    ImageExtension.configure({
+      onUpload: undefined
+    }),
+    CalloutExtension,
+    ToggleExtension,
+    FileExtension.configure({
+      onUpload: undefined,
+      onDownload: undefined
+    }),
+    SmartReferenceExtension,
+    EmbedExtension,
+    DatabaseEmbedExtension.configure({
+      onSelectDatabase: async () => null,
+      renderView: () => null,
+      resolveDatabaseMeta: async () => null
+    }),
+    TaskViewEmbedExtension.configure({
+      renderView: () => null
+    }),
+    CommentMark
+  ]
+}
+
+const storySeedSchema = getSchema(createStorySeedExtensions())
+
+function createCollaborationSession(initialContent: JSONContent): CollaborationSession {
   const docs: [Y.Doc, Y.Doc, Y.Doc] = [
-    new Y.Doc({ gc: false }),
-    new Y.Doc({ gc: false }),
-    new Y.Doc({ gc: false })
+    createSeededStoryDoc(initialContent),
+    createSeededStoryDoc(initialContent),
+    createSeededStoryDoc(initialContent)
   ]
   const awarenesses = docs.map((doc) => new Awareness(doc)) as [Awareness, Awareness, Awareness]
 
@@ -286,6 +524,10 @@ function createFeatureIllustrationDataUri(title: string, accent: string): string
   `
 
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+function createSeededStoryDoc(content: JSONContent): Y.Doc {
+  return prosemirrorJSONToYDoc(storySeedSchema, content, STORY_FIELD)
 }
 
 function createText(text: string, marks?: JSONContent['marks']): JSONContent {
@@ -361,6 +603,9 @@ function createTaskMentionNode(mention: TaskMentionSuggestion): JSONContent {
 }
 
 function createFeatureDocument(imageSrc: string): JSONContent {
+  const detailImage = createFeatureIllustrationDataUri('Embedded Media Matrix', '#22c55e')
+  const wideImage = createFeatureIllustrationDataUri('Database And Canvas Linkages', '#f97316')
+
   return {
     type: 'doc',
     content: [
@@ -403,6 +648,8 @@ function createFeatureDocument(imageSrc: string): JSONContent {
         createSmartReferenceNode('https://github.com/xnetjs/xNet/issues/301'),
         createText(' '),
         createSmartReferenceNode('https://github.com/xnetjs/xNet/pull/312'),
+        createText(' '),
+        createSmartReferenceNode('https://www.figma.com/file/abc123def/storybook-rich-editor-spec'),
         createText(' plus a normal docs link to '),
         createText('Storybook 10 docs', [
           { type: 'link', attrs: { href: 'https://storybook.js.org/docs' } }
@@ -417,6 +664,11 @@ function createFeatureDocument(imageSrc: string): JSONContent {
       ]),
       createEmbedNode('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 640),
       createEmbedNode('https://x.com/storybookjs/status/1606321052308658177', 520),
+      createEmbedNode('https://vimeo.com/123456789', 640),
+      createEmbedNode('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M', 640),
+      createEmbedNode('https://www.figma.com/file/abc123def/storybook-rich-editor-spec', 700),
+      createEmbedNode('https://codesandbox.io/s/my-sandbox-abc123', 700),
+      createEmbedNode('https://www.loom.com/share/abc123def456', 640),
       createHeading(2, [createText('Images And Attachments')]),
       {
         type: 'image',
@@ -428,6 +680,47 @@ function createFeatureDocument(imageSrc: string): JSONContent {
           height: 503,
           alignment: 'center',
           cid: 'cid:feature-map'
+        }
+      },
+      createParagraph([
+        createText(
+          'The story also includes left-aligned, right-aligned, and full-width images so resizing and alignment controls can be exercised immediately.'
+        )
+      ]),
+      {
+        type: 'image',
+        attrs: {
+          src: detailImage,
+          alt: 'Detail matrix illustration',
+          title: 'Detail matrix',
+          width: 360,
+          height: 211,
+          alignment: 'left',
+          cid: 'cid:detail-matrix'
+        }
+      },
+      {
+        type: 'image',
+        attrs: {
+          src: detailImage,
+          alt: 'Right-aligned detail matrix illustration',
+          title: 'Right matrix',
+          width: 360,
+          height: 211,
+          alignment: 'right',
+          cid: 'cid:right-matrix'
+        }
+      },
+      {
+        type: 'image',
+        attrs: {
+          src: wideImage,
+          alt: 'Wide integration illustration',
+          title: 'Wide integration map',
+          width: 1180,
+          height: 692,
+          alignment: 'full',
+          cid: 'cid:wide-map'
         }
       },
       {
@@ -466,6 +759,46 @@ function createFeatureDocument(imageSrc: string): JSONContent {
           }
         }
       },
+      {
+        type: 'databaseEmbed',
+        attrs: {
+          databaseId: 'roadmap-db',
+          viewType: 'list',
+          viewConfig: {
+            ...listView
+          }
+        }
+      },
+      {
+        type: 'databaseEmbed',
+        attrs: {
+          databaseId: 'roadmap-db',
+          viewType: 'gallery',
+          viewConfig: {
+            ...galleryView
+          }
+        }
+      },
+      {
+        type: 'databaseEmbed',
+        attrs: {
+          databaseId: 'roadmap-db',
+          viewType: 'calendar',
+          viewConfig: {
+            ...calendarView
+          }
+        }
+      },
+      {
+        type: 'databaseEmbed',
+        attrs: {
+          databaseId: 'roadmap-db',
+          viewType: 'timeline',
+          viewConfig: {
+            ...timelineView
+          }
+        }
+      },
       createHeading(2, [createText('Task Views And Workflow Blocks')]),
       {
         type: 'taskViewEmbed',
@@ -479,6 +812,7 @@ function createFeatureDocument(imageSrc: string): JSONContent {
           }
         }
       },
+      createHeading(2, [createText('Nested Toggles And Callouts')]),
       {
         type: 'toggle',
         attrs: {
@@ -490,9 +824,52 @@ function createFeatureDocument(imageSrc: string): JSONContent {
             createText(
               'The toggle block is useful for hiding verbose implementation context while keeping it close to the document. Try collapsing it, then drag it elsewhere.'
             )
-          ])
+          ]),
+          {
+            type: 'callout',
+            attrs: {
+              type: 'warning',
+              title: 'Nested note',
+              collapsed: false
+            },
+            content: [
+              createParagraph([
+                createText(
+                  'This nested callout previews stacked block compositions inside a toggle.'
+                )
+              ])
+            ]
+          },
+          {
+            type: 'toggle',
+            attrs: {
+              summary: 'Nested toggle',
+              open: true
+            },
+            content: [
+              createParagraph([
+                createText(
+                  'Nested toggles let the story exercise deeper block tree editing states.'
+                )
+              ])
+            ]
+          }
         ]
       },
+      createHeading(2, [createText('Comment Anchor States')]),
+      createParagraph([
+        createText('This sentence contains an '),
+        createText('active comment anchor', [
+          { type: 'comment', attrs: { commentId: 'comment-live-selection', resolved: false } }
+        ]),
+        createText(' plus a '),
+        createText('resolved comment anchor', [
+          { type: 'comment', attrs: { commentId: 'comment-resolved-reference', resolved: true } }
+        ]),
+        createText(
+          '. The orphaned comment state is surfaced in the sidebar because it no longer maps to text.'
+        )
+      ]),
       {
         type: 'blockquote',
         content: [
@@ -609,6 +986,65 @@ function EmbeddedDatabasePreview({
     )
   }
 
+  if (viewType === 'list') {
+    return (
+      <div className="h-[320px] overflow-hidden rounded-2xl border border-border bg-background">
+        <ListView
+          schema={databaseSchema}
+          view={listView}
+          data={rows}
+          onUpdateRow={updateRow}
+          onAddItem={() => undefined}
+          onItemClick={() => undefined}
+          onDeleteItem={() => undefined}
+        />
+      </div>
+    )
+  }
+
+  if (viewType === 'gallery') {
+    return (
+      <div className="h-[320px] overflow-hidden rounded-2xl border border-border bg-background">
+        <GalleryView
+          schema={databaseSchema}
+          view={galleryView}
+          data={rows}
+          onAddCard={() => undefined}
+          onCardClick={() => undefined}
+        />
+      </div>
+    )
+  }
+
+  if (viewType === 'calendar') {
+    return (
+      <div className="h-[320px] overflow-hidden rounded-2xl border border-border bg-background">
+        <CalendarView
+          schema={databaseSchema}
+          view={calendarView}
+          data={rows}
+          onUpdateRow={updateRow}
+          onEventClick={() => undefined}
+          onDateClick={() => undefined}
+        />
+      </div>
+    )
+  }
+
+  if (viewType === 'timeline') {
+    return (
+      <div className="h-[320px] overflow-hidden rounded-2xl border border-border bg-background">
+        <TimelineView
+          schema={databaseSchema}
+          view={timelineView}
+          data={rows}
+          onUpdateRow={updateRow}
+          onItemClick={() => undefined}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="rounded-2xl border border-dashed border-border bg-background-subtle p-4 text-sm text-foreground-muted">
       <p className="font-medium text-foreground">
@@ -680,11 +1116,12 @@ function CollaboratorPane({
       <div className="h-[220px]">
         <RichTextEditor
           ydoc={doc}
-          field="content"
+          field={STORY_FIELD}
           awareness={awareness}
           did={collaborator.did}
           showToolbar={false}
           placeholder={`${collaborator.name} can move the cursor here...`}
+          extensions={storyCommentExtensions}
           onEditorReady={onEditorReady}
         />
       </div>
@@ -693,7 +1130,10 @@ function CollaboratorPane({
 }
 
 function RichTextEditorWorkbench(): ReactElement {
-  const [session] = useState(createCollaborationSession)
+  const featureImage = useRef(createFeatureIllustrationDataUri('Editor Story Surface', '#8b5cf6'))
+  const [session] = useState(() =>
+    createCollaborationSession(createFeatureDocument(featureImage.current))
+  )
   const [events, setEvents] = useState<EditorEvent[]>([])
   const [readOnly, setReadOnly] = useState(false)
   const [pageTasks, setPageTasks] = useState<string[]>([])
@@ -705,7 +1145,6 @@ function RichTextEditorWorkbench(): ReactElement {
     reviewer: null,
     designer: null
   })
-  const featureImage = useRef(createFeatureIllustrationDataUri('Editor Story Surface', '#8b5cf6'))
 
   const appendEvent = (message: string): void => {
     setEvents((current) => [{ id: nextEventIdRef.current++, message }, ...current].slice(0, 12))
@@ -784,11 +1223,12 @@ function RichTextEditorWorkbench(): ReactElement {
     }, 350)
   }
 
-  const handleMainEditorReady = (editor: Editor): void => {
+  const handleMainEditorReady = (_editor: Editor): void => {
     if (!seededRef.current) {
       seededRef.current = true
-      editor.commands.setContent(createFeatureDocument(featureImage.current))
-      appendEvent('Loaded feature-rich document with media, embeds, files, and databases')
+      appendEvent(
+        'Loaded seeded collaboration document with embeds, comments, files, and databases'
+      )
     }
 
     appendEvent('Main editor mounted and collaboration is ready')
@@ -830,12 +1270,13 @@ function RichTextEditorWorkbench(): ReactElement {
         <div className="min-h-[880px] bg-background">
           <RichTextEditor
             ydoc={session.docs[0]}
-            field="content"
+            field={STORY_FIELD}
             placeholder="Start writing..."
             toolbarMode="desktop"
             awareness={session.awarenesses[0]}
             did={collaborators[0].did}
             readOnly={readOnly}
+            extensions={storyCommentExtensions}
             mentionSuggestions={mentionSuggestions}
             onNavigate={(docId) => appendEvent(`Navigate to ${docId}`)}
             onSelectDatabase={async () => {
@@ -901,10 +1342,16 @@ function RichTextEditorWorkbench(): ReactElement {
               'images',
               'files',
               'YouTube',
+              'Vimeo',
+              'Spotify',
+              'Figma',
+              'CodeSandbox',
+              'Loom',
               'tweets',
               'GitHub refs',
               'database embeds',
               'task views',
+              'comment anchors',
               'cursors',
               'range selection'
             ].map((capability) => (
@@ -934,6 +1381,33 @@ function RichTextEditorWorkbench(): ReactElement {
               awareness={session.awarenesses[2]}
               onEditorReady={handleRemoteEditorReady('designer', collaborators[2].name)}
             />
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-background p-4">
+          <p className="text-sm font-medium text-foreground">Comment anchor states</p>
+          <div className="mt-3 space-y-2">
+            {storyCommentThreads.map((thread) => (
+              <div
+                key={thread.id}
+                className="rounded-lg border border-border bg-background-subtle px-3 py-2"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-foreground">{thread.label}</span>
+                  <Badge
+                    variant={
+                      thread.state === 'resolved'
+                        ? 'secondary'
+                        : thread.state === 'orphaned'
+                          ? 'outline'
+                          : 'success'
+                    }
+                  >
+                    {thread.state}
+                  </Badge>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
