@@ -77,6 +77,7 @@ describe('useDatabase', () => {
 
     await waitFor(() => {
       expect(result.current.databaseDoc.loading).toBe(false)
+      expect(result.current.databaseDoc.doc).not.toBeNull()
     })
 
     let titleColumnId: string | null = null
