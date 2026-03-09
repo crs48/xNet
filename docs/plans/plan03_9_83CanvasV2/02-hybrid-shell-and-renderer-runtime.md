@@ -159,6 +159,6 @@ pnpm dev:stories
 - [ ] Introduce the Canvas V2 runtime host and make it the primary render entry.
 - [x] Move the grid and minimap into the default shell path.
 - [ ] Define explicit responsibilities for background, overview, DOM, and overlay layers.
-- [ ] Replace the current custom linked-card shell rendering with runtime-fed object rendering.
+- [x] Replace the current custom linked-card shell rendering with runtime-fed object rendering.
 - [ ] Keep persistent shell chrome minimal and contextual.
 - [ ] Centralize frame scheduling and redraw ownership.

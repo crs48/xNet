@@ -556,7 +556,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       height: visibleRect.height + buffer * 2
     }
     return canvas.store.getVisibleNodes(expandedRect)
-  }, [canvas.store, viewport])
+  }, [canvas.store, nodes, viewport])
 
   // PERF-01: Set of visible node IDs for fast edge culling lookup
   const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes])
@@ -633,6 +633,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       ref={containerRef}
       className={className}
       style={containerStyle}
+      data-canvas-surface="true"
+      data-node-count={nodes.length}
+      data-visible-node-count={visibleNodes.length}
+      data-edge-count={edges.length}
+      data-visible-edge-count={visibleEdges.length}
+      data-viewport-x={viewport.x}
+      data-viewport-y={viewport.y}
+      data-viewport-zoom={viewport.zoom}
+      data-viewport-width={viewport.width}
+      data-viewport-height={viewport.height}
       onMouseDown={handleMouseDown}
       tabIndex={0} // Make container focusable for keyboard shortcuts
     >

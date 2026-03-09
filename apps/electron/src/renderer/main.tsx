@@ -262,6 +262,7 @@ async function init() {
               <XNetDevToolsProvider
                 telemetryCollector={telemetryCollector}
                 consentManager={consentManager}
+                fabInitialOffset={{ x: 16, y: 220 }}
               >
                 <SyncInstrumentation syncManager={ipcSyncManager} />
                 <LocalAPIStoreHandler />

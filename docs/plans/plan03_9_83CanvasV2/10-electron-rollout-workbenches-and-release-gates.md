@@ -169,7 +169,7 @@ Automated validation should include:
 - [ ] Replace the active Electron canvas path with Canvas V2.
 - [ ] Build realistic Storybook/workbench scenes for every major object family and density class.
 - [ ] Add repeatable performance scenes and capture frame/DOM/query metrics.
-- [ ] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
+- [x] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
 - [ ] Add Electron CDP large-scene performance coverage and record thresholds.
 - [ ] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
 - [ ] Document and enforce release gates before web rollout.

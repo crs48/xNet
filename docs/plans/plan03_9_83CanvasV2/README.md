@@ -263,7 +263,7 @@ flowchart LR
 
 - [ ] Replace the current generic canvas object contract with a typed scene graph.
 - [x] Add a reusable `MediaAsset`-style node schema for dropped images/files.
-- [ ] Replace the current linked-card shell with a hybrid renderer shell.
+- [x] Replace the current linked-card shell with a hybrid renderer shell.
 - [ ] Route the main runtime through chunking, culling, and explicit layer display lists.
 - [ ] Add universal drop ingestion for internal drags, URLs, text, images, and files.
 - [ ] Ship live page cards with inline editing and peek behavior.
@@ -283,7 +283,7 @@ flowchart LR
 - [ ] Dropping a URL creates or reuses an `ExternalReference` node and renders the correct fallback chain.
 - [ ] Dropping an image or file creates a reusable media node and preserves it after reload.
 - [ ] Pan/zoom remains smooth on large scenes with chunk load/evict active.
-- [ ] The background grid and minimap remain outside the main DOM path.
+- [x] The background grid and minimap remain outside the main DOM path.
 - [ ] Far-field objects do not mount rich editors or oversized DOM subtrees.
 - [ ] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.
 - [ ] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
