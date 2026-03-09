@@ -14,6 +14,7 @@
 - ✅ The chosen direction is now **one root Storybook plus dev-only embedded access inside xNet**, not a production workshop surface and not a composition-first rollout.
 - ✅ Storybook now loads the shared token CSS **and Tailwind utilities** in preview, so utility-class-based components render with the same styling contract used by the Web and Electron apps.
 - ✅ Storybook now includes **core product workbenches** for the editor, database views, and canvas renderer, so the main interaction surfaces can be exercised in isolation.
+  - the editor workbench now seeds media embeds, smart references, files, inline databases, task views, and linked collaborator panes to exercise live cursor and selection overlays
 - ✅ Electron and Web should both expose Storybook from inside the app shell, but only in development:
   - Electron gets menu + command-palette entry points and an embedded Storybook view
   - Web gets a dev-only route such as `/stories`

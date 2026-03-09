@@ -55,6 +55,7 @@
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.0",
     "@types/react": "^18.2.0",
+    "@xnetjs/views": "workspace:*",
     "jsdom": "^25.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
