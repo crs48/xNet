@@ -51,6 +51,9 @@ type LocalAPIStore = {
 }
 
 type CanvasTestHarness = {
+  registerCanvasDoc: (canvasId: string, doc: Y.Doc | null) => void
+  moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
+  removeCanvasNode: (input: { nodeId: string }) => Promise<void>
   seedPerformanceScene: (input?: {
     canvasId?: string
     title?: string
@@ -66,6 +69,7 @@ type CanvasTestHarness = {
     bounds: { x: number; y: number; width: number; height: number }
     kindCounts: Record<string, number>
   }>
+  duplicateCanvasNodeReference: (input: { nodeId: string; alias?: string }) => Promise<string>
 }
 
 // TODO: In production, load identity from secure storage via IPC
@@ -111,7 +115,80 @@ declare global {
 window.__xnetIpcSyncManager = ipcSyncManager
 
 function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness {
+  const liveDocs = new Map<string, Y.Doc>()
+
   return {
+    registerCanvasDoc(canvasId, doc) {
+      if (doc) {
+        liveDocs.set(canvasId, doc)
+        return
+      }
+
+      liveDocs.delete(canvasId)
+    },
+
+    async moveCanvasNode(input) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = doc.getMap<{
+          id: string
+          position: {
+            x: number
+            y: number
+            width: number
+            height: number
+          }
+        }>('nodes')
+        const node = nodesMap.get(input.nodeId)
+        if (!node) {
+          continue
+        }
+
+        doc.transact(() => {
+          nodesMap.set(input.nodeId, {
+            ...node,
+            position: {
+              ...node.position,
+              x: node.position.x + input.dx,
+              y: node.position.y + input.dy
+            }
+          })
+        })
+
+        await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
+        return
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
+    },
+
+    async removeCanvasNode(input) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = doc.getMap('nodes')
+        if (!nodesMap.has(input.nodeId)) {
+          continue
+        }
+
+        doc.transact(() => {
+          nodesMap.delete(input.nodeId)
+        })
+
+        await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
+        return
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
+    },
+
     async seedPerformanceScene(input = {}) {
       const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
       if (!store) {
@@ -131,8 +208,11 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
         throw new Error('No canvas available to seed')
       }
 
-      syncManager.track(targetCanvas.id, CanvasSchema._schemaId)
-      const doc = await syncManager.acquire(targetCanvas.id)
+      const liveDoc = liveDocs.get(targetCanvas.id)
+      if (!liveDoc) {
+        syncManager.track(targetCanvas.id, CanvasSchema._schemaId)
+      }
+      const doc = liveDoc ?? (await syncManager.acquire(targetCanvas.id))
       const summary = seedCanvasPerformanceScene(doc, {
         columns: input.columns,
         rows: input.rows,
@@ -159,6 +239,50 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
           Object.entries(summary.kindCounts).map(([key, value]) => [key, value ?? 0])
         )
       }
+    },
+
+    async duplicateCanvasNodeReference(input) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = doc.getMap<{
+          id: string
+          alias?: string
+          position: {
+            x: number
+            y: number
+            width: number
+            height: number
+          }
+          properties: Record<string, unknown>
+        }>('nodes')
+        const sourceNode = nodesMap.get(input.nodeId)
+        if (!sourceNode) {
+          continue
+        }
+
+        const duplicateId = `node_${crypto.randomUUID()}`
+        doc.transact(() => {
+          nodesMap.set(duplicateId, {
+            ...sourceNode,
+            id: duplicateId,
+            alias: input.alias,
+            position: {
+              ...sourceNode.position,
+              x: sourceNode.position.x + 420,
+              y: sourceNode.position.y + 60
+            }
+          })
+        })
+
+        await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
+        return duplicateId
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
     }
   }
 }

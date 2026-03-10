@@ -141,5 +141,5 @@ pnpm --filter @xnetjs/canvas test
 - [x] Promote shape/frame/group tools into the Canvas V2 object model.
 - [x] Add lock/unlock behavior for dense-board safety.
 - [x] Add align/distribute/tidy-up operations for multi-object selections.
-- [ ] Add alias and backlink support for source-backed objects.
+- [x] Add alias and backlink support for source-backed objects.
 - [x] Reserve stable anchor IDs for comments and future block/deep-link support.

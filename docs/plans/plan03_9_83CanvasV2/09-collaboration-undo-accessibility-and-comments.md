@@ -135,6 +135,6 @@ cd apps/electron && pnpm dev:both
 - [ ] Separate canvas presence state from source-content presence state.
 - [ ] Define explicit transitions between move/resize/peek/edit/comment intents.
 - [ ] Use `useUndo` and `useUndoScope` to enforce clear undo boundaries.
-- [ ] Add object-level comment anchors and graceful orphan handling.
+- [x] Add object-level comment anchors and graceful orphan handling.
 - [ ] Extend keyboard accessibility to the full Canvas V2 object model.
 - [ ] Validate collaborative behavior with multi-user Electron testing.

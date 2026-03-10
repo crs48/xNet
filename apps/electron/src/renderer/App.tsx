@@ -449,6 +449,71 @@ export function App(): React.ReactElement {
         }
       },
       {
+        id: 'canvas-rename-alias',
+        name: 'Rename Canvas Alias',
+        description:
+          canvasCommandState.selectedTitle && canvasCommandState.selectionCount === 1
+            ? `Rename the canvas copy of ${canvasCommandState.selectedTitle}`
+            : 'Rename the selected canvas object without changing the source title',
+        icon: 'pencil',
+        shortcut: 'Mod+Shift+A',
+        group: 'Canvas',
+        keywords: ['alias', 'rename', 'selection', 'canvas'],
+        when: () =>
+          isCanvasInteractiveShell &&
+          canvasCommandState.selectionCount === 1 &&
+          Boolean(canvasCommandState.selectedSourceId),
+        execute: () => {
+          canvasViewRef.current?.openAliasEditor()
+        }
+      },
+      {
+        id: 'canvas-clear-alias',
+        name: 'Clear Canvas Alias',
+        description: 'Remove the canvas-local alias from the selected object',
+        icon: 'x',
+        group: 'Canvas',
+        keywords: ['alias', 'clear', 'selection', 'canvas'],
+        when: () =>
+          isCanvasInteractiveShell &&
+          canvasCommandState.selectionCount === 1 &&
+          Boolean(canvasCommandState.selectedSourceId),
+        execute: () => {
+          canvasViewRef.current?.clearSelectionAlias()
+        }
+      },
+      {
+        id: 'canvas-comment-selection',
+        name: 'Comment on Selection',
+        description:
+          canvasCommandState.selectedTitle && canvasCommandState.selectionCount === 1
+            ? `Add a canvas-anchored comment to ${canvasCommandState.selectedTitle}`
+            : 'Add a canvas-anchored comment to the selected object',
+        icon: 'message-square',
+        shortcut: 'Mod+Shift+C',
+        group: 'Canvas',
+        keywords: ['comment', 'selection', 'canvas', 'feedback'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount === 1,
+        execute: () => {
+          canvasViewRef.current?.openCommentComposer()
+        }
+      },
+      {
+        id: 'canvas-show-linked-copies',
+        name: 'Show Linked Copies',
+        description: 'Inspect other canvas objects that point at the same source node',
+        icon: 'copy',
+        group: 'Canvas',
+        keywords: ['references', 'copies', 'linked', 'canvas'],
+        when: () =>
+          isCanvasInteractiveShell &&
+          canvasCommandState.selectionCount === 1 &&
+          Boolean(canvasCommandState.selectedSourceId),
+        execute: () => {
+          canvasViewRef.current?.toggleSourceReferences(true)
+        }
+      },
+      {
         id: 'canvas-peek-selection',
         name: 'Peek Selected Object',
         description:

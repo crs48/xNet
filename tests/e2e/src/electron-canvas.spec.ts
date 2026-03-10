@@ -14,6 +14,8 @@ const RENDERER_URLS = [`http://localhost:${RENDERER_PORT}`, `http://127.0.0.1:${
 const COMMAND_PALETTE_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+P' : 'Control+Shift+P'
 const FOCUSED_OPEN_SHORTCUT = process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter'
 const SPLIT_OPEN_SHORTCUT = 'Alt+Enter'
+const ALIAS_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+A' : 'Control+Shift+A'
+const COMMENT_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+C' : 'Control+Shift+C'
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 const ELECTRON_PROFILE_PATH = join(
   homedir(),
@@ -657,6 +659,76 @@ async function getCanvasNodeCount(page: Page, type: string): Promise<number> {
   return page.locator(`.canvas-node[data-node-type="${type}"]`).count()
 }
 
+async function duplicateCanvasNodeReference(
+  page: Page,
+  nodeId: string,
+  alias?: string
+): Promise<string> {
+  return page.evaluate(
+    async (input) => {
+      const harness = (
+        window as Window & {
+          __xnetCanvasTestHarness?: {
+            duplicateCanvasNodeReference: (input: {
+              nodeId: string
+              alias?: string
+            }) => Promise<string>
+          } | null
+        }
+      ).__xnetCanvasTestHarness
+
+      if (!harness) {
+        throw new Error('Canvas duplication helpers are not available')
+      }
+
+      return harness.duplicateCanvasNodeReference(input)
+    },
+    { nodeId, alias }
+  )
+}
+
+async function moveCanvasNode(page: Page, nodeId: string, dx: number, dy: number): Promise<void> {
+  await page.evaluate(
+    async (input) => {
+      const harness = (
+        window as Window & {
+          __xnetCanvasTestHarness?: {
+            moveCanvasNode: (input: typeof input) => Promise<void>
+          }
+        }
+      ).__xnetCanvasTestHarness
+
+      if (!harness) {
+        throw new Error('Canvas test harness not available')
+      }
+
+      await harness.moveCanvasNode(input)
+    },
+    { nodeId, dx, dy }
+  )
+}
+
+async function removeCanvasNode(page: Page, nodeId: string): Promise<void> {
+  await page.evaluate(
+    async (input) => {
+      const harness = (
+        window as Window & {
+          __xnetCanvasTestHarness?: {
+            removeCanvasNode: (input: typeof input) => Promise<void>
+          }
+        }
+      ).__xnetCanvasTestHarness
+
+      if (!harness) {
+        throw new Error('Canvas test harness not available')
+      }
+
+      await harness.removeCanvasNode(input)
+    },
+    { nodeId }
+  )
+}
+
 test.describe('Electron canvas shell', () => {
   test.describe.configure({ mode: 'serial' })
   test.setTimeout(240_000)
@@ -813,6 +885,7 @@ test.describe('Electron canvas shell', () => {
   test('creates page, database, and note objects while keeping the home shell lightweight', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
+    const pageCountBefore = await getCanvasNodeCount(page, 'page')
 
     await logShellDebugState(page, 'before-create')
     await page.getByRole('button', { name: 'Page' }).click({ force: true })
@@ -831,7 +904,7 @@ test.describe('Electron canvas shell', () => {
     await commandInput.fill('Create Page')
     await page.keyboard.press('Enter')
 
-    await expect(page.getByText('Untitled Page')).toHaveCount(2, { timeout: 30_000 })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'page')).toBe(pageCountBefore + 2)
 
     await page
       .getByRole('button', { name: /hide minimap/i })
@@ -913,6 +986,124 @@ test.describe('Electron canvas shell', () => {
     })
   })
 
+  test('renames source-backed canvas objects and shows linked copies in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const pageCountBefore = await getCanvasNodeCount(page, 'page')
+    await page.getByRole('button', { name: 'Page' }).click({ force: true })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'page')).toBe(pageCountBefore + 1)
+
+    const newPageNode = page.locator('.canvas-node[data-node-type="page"]').nth(pageCountBefore)
+    await expect(newPageNode).toBeVisible({ timeout: 30_000 })
+    const newPageNodeId = await newPageNode.getAttribute('data-node-id')
+    if (!newPageNodeId) {
+      throw new Error('Unable to resolve the new page node id')
+    }
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', pageCountBefore)
+    await page.locator('[data-canvas-surface="true"]').focus()
+    await page.keyboard.press(ALIAS_SHORTCUT)
+
+    const aliasEditor = page.locator('[data-canvas-alias-editor="true"]')
+    await expect(aliasEditor).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-canvas-alias-input="true"]').fill('Canvas Alias')
+    await page.keyboard.press('Enter')
+
+    await expect(page.locator('[data-canvas-selection-hud="true"]')).toContainText('Canvas Alias', {
+      timeout: 30_000
+    })
+
+    await duplicateCanvasNodeReference(page, newPageNodeId, 'Sibling Alias')
+    await page.locator('[data-canvas-selection-action="references"]').click()
+
+    const referencesPanel = page.locator('[data-canvas-source-references="true"]')
+    await expect(referencesPanel).toBeVisible({ timeout: 30_000 })
+    await expect(referencesPanel).toContainText('Sibling Alias', { timeout: 30_000 })
+
+    await page.locator('[data-canvas-source-reference-action="reveal"]').first().click()
+    await expect(page.locator('[data-canvas-selection-hud="true"]')).toContainText(
+      'Sibling Alias',
+      {
+        timeout: 30_000
+      }
+    )
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-aliases.png`,
+      fullPage: true
+    })
+  })
+
+  test('anchors canvas comments to objects and keeps orphaned threads reachable in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const noteCountBefore = await getCanvasNodeCount(page, 'note')
+    await page.getByRole('button', { name: 'Note' }).click({ force: true })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 1)
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
+    const noteNodeId = await noteNode.getAttribute('data-node-id')
+    if (!noteNodeId) {
+      throw new Error('Unable to resolve the note node id')
+    }
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await surface.focus()
+    await page.keyboard.press(COMMENT_SHORTCUT)
+
+    const commentEditor = page.locator('[data-canvas-comment-editor="true"]')
+    await expect(commentEditor).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-canvas-comment-input="true"]').fill('Electron anchored feedback')
+    await page.locator('[data-canvas-comment-save="true"]').click()
+
+    const commentPin = page.locator('[data-canvas-comment-pin="true"]')
+    await expect(commentPin).toBeVisible({ timeout: 30_000 })
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    const noteBeforeMove = await noteNode.boundingBox()
+    const pinBeforeMove = await commentPin.boundingBox()
+    expect(noteBeforeMove).not.toBeNull()
+    expect(pinBeforeMove).not.toBeNull()
+
+    await moveCanvasNode(page, noteNodeId, 120, 0)
+
+    await expect
+      .poll(async () => (await noteNode.boundingBox())?.x ?? null, {
+        timeout: 30_000
+      })
+      .toBeGreaterThan((noteBeforeMove?.x ?? 0) + 40)
+
+    const noteAfterMove = await noteNode.boundingBox()
+    const pinAfterMove = await commentPin.boundingBox()
+    expect(noteAfterMove).not.toBeNull()
+    expect(pinAfterMove).not.toBeNull()
+    expect(
+      Math.abs(
+        (pinAfterMove?.x ?? 0) -
+          (noteAfterMove?.x ?? 0) -
+          ((pinBeforeMove?.x ?? 0) - (noteBeforeMove?.x ?? 0))
+      )
+    ).toBeLessThan(20)
+
+    await removeCanvasNode(page, noteNodeId)
+
+    const orphanTray = page.locator('[data-canvas-comment-orphan-tray="true"]')
+    await expect(orphanTray).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-canvas-comment-orphan="true"]').click()
+    await expect(
+      page
+        .getByLabel('Comment pins')
+        .locator('.markdown-content')
+        .getByText('Electron anchored feedback')
+    ).toBeVisible({ timeout: 30_000 })
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-comments.png`,
+      fullPage: true
+    })
+  })
+
   test('mounts a single inline page editor only for the active canvas object', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
@@ -934,10 +1125,8 @@ test.describe('Electron canvas shell', () => {
     await page.keyboard.type('Canvas body text')
     await expect(pageSurface).toContainText('Canvas body text')
 
-    await page.locator('[data-canvas-surface="true"]').click({
-      position: { x: 24, y: 240 },
-      force: true
-    })
+    await page.locator('[data-canvas-surface="true"]').focus()
+    await page.keyboard.press('Escape')
     await expect
       .poll(async () => getContentEditableCount(page), {
         timeout: 15_000

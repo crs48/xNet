@@ -18,7 +18,7 @@
  */
 import type { CommentThread } from '@xnetjs/react'
 import { CommentPopover, type CommentThreadData } from '@xnetjs/ui'
-import React, { useState, useCallback, useRef } from 'react'
+import React, { useState, useCallback, useMemo, useRef } from 'react'
 import {
   useCanvasComments,
   type CanvasTransform,
@@ -65,17 +65,25 @@ export function CommentOverlay({
   transform,
   objects
 }: CommentOverlayProps) {
-  const { activePins, replyTo, resolveThread, reopenThread, deleteComment, editComment } =
-    useCanvasComments({
-      canvasNodeId,
-      canvasSchema,
-      transform,
-      objects
-    })
+  const {
+    activePins,
+    orphanedPins,
+    replyTo,
+    resolveThread,
+    reopenThread,
+    deleteComment,
+    editComment
+  } = useCanvasComments({
+    canvasNodeId,
+    canvasSchema,
+    transform,
+    objects
+  })
 
   // Popover state
   const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const orphanTrayAnchorRef = useRef<HTMLButtonElement | null>(null)
 
   // ─── Popover Handlers ─────────────────────────────────────────────────────────
 
@@ -130,6 +138,16 @@ export function CommentOverlay({
 
   const upgradeToFull = useCallback(() => {
     setPopoverState((prev) => ({ ...prev, mode: 'full' }))
+  }, [])
+
+  const openOrphanThread = useCallback((thread: CommentThread) => {
+    const rect = orphanTrayAnchorRef.current?.getBoundingClientRect()
+    setPopoverState({
+      visible: true,
+      mode: 'full',
+      thread,
+      anchor: rect ? { x: rect.left, y: rect.top - 8 } : { x: 32, y: 32 }
+    })
   }, [])
 
   // ─── Comment Actions ──────────────────────────────────────────────────────────
@@ -190,6 +208,19 @@ export function CommentOverlay({
         resolved: popoverState.thread.root.properties.resolved
       }
     : null
+  const orphanedThreadPreview = useMemo(() => {
+    if (orphanedPins.length === 0) {
+      return null
+    }
+
+    const [firstPin] = orphanedPins
+    const rootContent = firstPin.thread.root.properties.content.trim()
+    if (!rootContent) {
+      return 'Open orphaned comment'
+    }
+
+    return rootContent.length > 42 ? `${rootContent.slice(0, 39)}...` : rootContent
+  }, [orphanedPins])
 
   return (
     <div
@@ -215,6 +246,32 @@ export function CommentOverlay({
           />
         </div>
       ))}
+
+      {orphanedPins.length > 0 ? (
+        <div
+          className="pointer-events-none absolute bottom-6 left-6 flex max-w-[min(26rem,calc(100%-3rem))] justify-start"
+          data-canvas-comment-orphan-tray="true"
+        >
+          <button
+            ref={orphanTrayAnchorRef}
+            type="button"
+            className="pointer-events-auto inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-background/92 px-3 py-2 text-left text-xs text-foreground shadow-lg shadow-black/10 backdrop-blur-xl transition-colors hover:bg-background"
+            onClick={() => openOrphanThread(orphanedPins[0].thread)}
+            data-canvas-comment-orphan="true"
+            data-canvas-comment-orphan-count={String(orphanedPins.length)}
+            aria-label={`Open ${orphanedPins.length} orphaned comment${orphanedPins.length === 1 ? '' : 's'}`}
+          >
+            <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/15 px-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+              {orphanedPins.length}
+            </span>
+            <span className="truncate">
+              {orphanedPins.length === 1
+                ? orphanedThreadPreview
+                : `${orphanedPins.length} orphaned comments`}
+            </span>
+          </button>
+        </div>
+      ) : null}
 
       {/* Comment Popover */}
       {threadData && popoverState.anchor && (

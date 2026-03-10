@@ -11,6 +11,8 @@
  * - P / D / N / R / F: Create page, database, note, rectangle, frame
  * - Enter / Alt+Enter / Ctrl+Enter: Peek, split, or open selection
  * - Ctrl/Cmd + Shift + F: Wrap the selection in a frame
+ * - Ctrl/Cmd + Shift + A: Edit the selection alias
+ * - Ctrl/Cmd + Shift + C: Comment on the selection
  * - ?: Toggle shortcut help
  */
 
@@ -55,6 +57,10 @@ export interface UseCanvasKeyboardOptions {
   onShiftSelectionLayer?: (direction: CanvasLayerDirection) => void
   /** Callback for wrapping the current selection in a frame container */
   onWrapSelectionInFrame?: () => void
+  /** Callback for editing a canvas-local alias for the current selection */
+  onEditSelectionAlias?: () => void
+  /** Callback for creating a comment anchored to the current selection */
+  onCreateSelectionComment?: () => void
   /** Callback for single-key object creation */
   onCreateObject?: (kind: CanvasCreationShortcut) => void
   /** Callback for peek/open actions on the current selection */
@@ -93,6 +99,8 @@ export function useCanvasKeyboard({
   onAlignSelection,
   onShiftSelectionLayer,
   onWrapSelectionInFrame,
+  onEditSelectionAlias,
+  onCreateSelectionComment,
   onCreateObject,
   onOpenSelection,
   onToggleShortcutHelp,
@@ -195,6 +203,18 @@ export function useCanvasKeyboard({
         if (normalizedKey === 'f') {
           e.preventDefault()
           onWrapSelectionInFrame?.()
+          return
+        }
+
+        if (normalizedKey === 'a') {
+          e.preventDefault()
+          onEditSelectionAlias?.()
+          return
+        }
+
+        if (normalizedKey === 'c') {
+          e.preventDefault()
+          onCreateSelectionComment?.()
           return
         }
 

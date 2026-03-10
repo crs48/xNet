@@ -73,6 +73,8 @@ export function CommentPin({
         isSelected && 'z-[101]',
         className
       )}
+      data-canvas-comment-pin="true"
+      data-canvas-comment-thread-id={thread.root.id}
       style={{
         left: viewportX,
         top: viewportY,

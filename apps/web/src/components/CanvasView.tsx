@@ -2,18 +2,35 @@
  * Canvas View - Web canvas surface with source-backed drops.
  */
 
-import type { CanvasHandle, CanvasNode, ShapeType } from '@xnetjs/canvas'
+import type { CanvasHandle, CanvasNode, CanvasSelectionSnapshot, ShapeType } from '@xnetjs/canvas'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
+  createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
   useCanvasObjectIngestion,
   useCanvasThemeTokens
 } from '@xnetjs/canvas'
-import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
+import {
+  CanvasSchema,
+  DatabaseSchema,
+  PageSchema,
+  decodeAnchor,
+  encodeAnchor,
+  type CanvasObjectAnchor
+} from '@xnetjs/data'
 import { useBlobService } from '@xnetjs/editor/react'
-import { useIdentity, useMutate, useNode } from '@xnetjs/react'
-import { FileImage, FileText, Link2, Maximize2, Plus, StickyNote, Table2 } from 'lucide-react'
+import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
+import {
+  FileImage,
+  FileText,
+  Link2,
+  Maximize2,
+  MessageSquare,
+  Plus,
+  StickyNote,
+  Table2
+} from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -172,13 +189,78 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   })
 
   const canvasRef = useRef<CanvasHandle>(null)
+  const aliasInputRef = useRef<HTMLInputElement | null>(null)
+  const commentInputRef = useRef<HTMLTextAreaElement | null>(null)
   const [canvasReady, setCanvasReady] = useState(false)
   const [hasNodes, setHasNodes] = useState(false)
+  const [sceneRevision, setSceneRevision] = useState(0)
+  const [selection, setSelection] = useState<CanvasSelectionSnapshot>({
+    nodeIds: [],
+    edgeIds: []
+  })
+  const [aliasEditorOpen, setAliasEditorOpen] = useState(false)
+  const [aliasDraft, setAliasDraft] = useState('')
+  const [commentEditorOpen, setCommentEditorOpen] = useState(false)
+  const [commentDraft, setCommentDraft] = useState('')
   const { placeSourceObject, placePrimitiveObject, ingestDataTransfer } = useCanvasObjectIngestion({
     doc,
     blobService,
     getViewportSnapshot: () => canvasRef.current?.getViewportSnapshot() ?? { x: 0, y: 0, zoom: 1 }
   })
+  const { threads: canvasObjectCommentThreads, addComment: addCanvasComment } = useComments({
+    nodeId: docId,
+    anchorType: 'canvas-object'
+  })
+
+  const selectedCanvasNode = useMemo(() => {
+    if (!doc || selection.nodeIds.length !== 1) {
+      return null
+    }
+
+    const node = doc.getMap<CanvasNode>('nodes').get(selection.nodeIds[0])
+    if (!node) {
+      return null
+    }
+
+    return {
+      node,
+      title: node.alias ?? (node.properties.title as string) ?? 'Untitled'
+    }
+  }, [doc, sceneRevision, selection.nodeIds])
+
+  const selectedCanvasObject = useMemo(() => {
+    if (!selectedCanvasNode) {
+      return null
+    }
+
+    const node = selectedCanvasNode.node
+    const sourceNodeId = node.sourceNodeId ?? node.linkedNodeId
+    if (!sourceNodeId) {
+      return null
+    }
+
+    return {
+      node,
+      sourceNodeId,
+      title: selectedCanvasNode.title
+    }
+  }, [selectedCanvasNode])
+  const selectedObjectCommentCount = useMemo(() => {
+    if (!selectedCanvasNode) {
+      return 0
+    }
+
+    return canvasObjectCommentThreads.filter((thread) => {
+      try {
+        return (
+          decodeAnchor<CanvasObjectAnchor>(thread.root.properties.anchorData).objectId ===
+          selectedCanvasNode.node.id
+        )
+      } catch {
+        return false
+      }
+    }).length
+  }, [canvasObjectCommentThreads, selectedCanvasNode])
 
   useEffect(() => {
     if (!doc) {
@@ -190,6 +272,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     const nodesMap = doc.getMap<CanvasNode>('nodes')
     const syncHasNodes = () => {
       setHasNodes(nodesMap.size > 0)
+      setSceneRevision((current) => current + 1)
     }
 
     syncHasNodes()
@@ -386,6 +469,131 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     [hasNodes]
   )
 
+  const closeAliasEditor = useCallback(() => {
+    setAliasEditorOpen(false)
+  }, [])
+
+  const closeCommentEditor = useCallback(() => {
+    setCommentEditorOpen(false)
+  }, [])
+
+  const openAliasEditor = useCallback(() => {
+    if (!selectedCanvasObject) {
+      return
+    }
+
+    setAliasDraft(selectedCanvasObject.node.alias ?? '')
+    setAliasEditorOpen(true)
+  }, [selectedCanvasObject])
+
+  const openCommentEditor = useCallback(() => {
+    if (!selectedCanvasNode) {
+      return
+    }
+
+    setCommentDraft('')
+    setCommentEditorOpen(true)
+  }, [selectedCanvasNode])
+
+  const setSelectedAlias = useCallback(
+    (nextAlias: string | null) => {
+      if (!doc || !selectedCanvasObject) {
+        return
+      }
+
+      const nodesMap = doc.getMap<CanvasNode>('nodes')
+      const current = nodesMap.get(selectedCanvasObject.node.id)
+      if (!current) {
+        return
+      }
+
+      const normalized = nextAlias?.trim() ?? ''
+      const resolvedAlias = normalized.length > 0 ? normalized : undefined
+
+      doc.transact(() => {
+        nodesMap.set(current.id, {
+          ...current,
+          alias: resolvedAlias
+        })
+      })
+
+      closeAliasEditor()
+    },
+    [closeAliasEditor, doc, selectedCanvasObject]
+  )
+
+  const submitSelectedComment = useCallback(async () => {
+    if (!selectedCanvasNode) {
+      return
+    }
+
+    const content = commentDraft.trim()
+    if (!content) {
+      return
+    }
+
+    const anchor: CanvasObjectAnchor = {
+      objectId: selectedCanvasNode.node.id,
+      anchorId: createCanvasObjectAnchorId({
+        objectId: selectedCanvasNode.node.id,
+        placement: 'right'
+      }),
+      placement: 'right'
+    }
+
+    const createdCommentId = await addCanvasComment({
+      content,
+      anchorType: 'canvas-object',
+      anchorData: encodeAnchor(anchor),
+      targetSchema: CanvasSchema._schemaId
+    })
+
+    if (!createdCommentId) {
+      return
+    }
+
+    setCommentDraft('')
+    closeCommentEditor()
+  }, [addCanvasComment, closeCommentEditor, commentDraft, selectedCanvasNode])
+
+  useEffect(() => {
+    if (!selectedCanvasNode) {
+      setAliasEditorOpen(false)
+      setAliasDraft('')
+      setCommentEditorOpen(false)
+      setCommentDraft('')
+      return
+    }
+
+    if (selectedCanvasObject) {
+      setAliasDraft(selectedCanvasObject.node.alias ?? '')
+    } else {
+      setAliasDraft('')
+      setAliasEditorOpen(false)
+    }
+  }, [selectedCanvasNode, selectedCanvasObject])
+
+  useEffect(() => {
+    if (!aliasEditorOpen) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      aliasInputRef.current?.focus()
+      aliasInputRef.current?.select()
+    })
+  }, [aliasEditorOpen])
+
+  useEffect(() => {
+    if (!commentEditorOpen) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      commentInputRef.current?.focus()
+    })
+  }, [commentEditorOpen])
+
   if (loading || !doc) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -451,6 +659,182 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           {canvasHint}
         </div>
 
+        {selectedCanvasNode ? (
+          <div className="pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4">
+            <div
+              className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/60 bg-background/84 px-3 py-2 shadow-lg backdrop-blur-xl"
+              data-web-canvas-selection-pill="true"
+              data-canvas-theme={theme.mode}
+            >
+              <span className="max-w-[min(52vw,420px)] truncate px-2 text-sm text-foreground">
+                {selectedCanvasNode.title}
+              </span>
+              {selectedCanvasObject ? (
+                <button
+                  type="button"
+                  onClick={openAliasEditor}
+                  className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  data-web-canvas-selection-action="alias"
+                >
+                  Alias
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={openCommentEditor}
+                className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                data-web-canvas-selection-action="comment"
+              >
+                <MessageSquare size={12} />
+                Comment{selectedObjectCommentCount > 0 ? ` ${selectedObjectCommentCount}` : ''}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {aliasEditorOpen && selectedCanvasObject ? (
+          <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center px-4">
+            <div
+              className="pointer-events-auto w-[min(92vw,520px)] rounded-[24px] border border-border/60 bg-background/88 p-4 shadow-2xl shadow-black/10 backdrop-blur-xl"
+              data-web-canvas-alias-editor="true"
+              data-canvas-theme={theme.mode}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Canvas alias</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Rename just this canvas copy without changing the source title.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeAliasEditor}
+                  className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                <input
+                  ref={aliasInputRef}
+                  type="text"
+                  value={aliasDraft}
+                  onChange={(event) => setAliasDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      setSelectedAlias(aliasDraft)
+                      return
+                    }
+
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      closeAliasEditor()
+                    }
+                  }}
+                  placeholder={selectedCanvasObject.title}
+                  className="min-w-0 flex-1 rounded-2xl border border-border/60 bg-background px-4 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                  data-web-canvas-alias-input="true"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedAlias(aliasDraft)}
+                  className="rounded-full border border-border/60 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  data-web-canvas-alias-save="true"
+                >
+                  Save
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedAlias(null)}
+                  className="rounded-full border border-border/60 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                  data-web-canvas-alias-clear="true"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {commentEditorOpen && selectedCanvasNode ? (
+          <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center px-4">
+            <div
+              className="pointer-events-auto w-[min(92vw,520px)] rounded-[24px] border border-border/60 bg-background/88 p-4 shadow-2xl shadow-black/10 backdrop-blur-xl"
+              data-web-canvas-comment-editor="true"
+              data-canvas-theme={theme.mode}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Canvas comment</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Pin feedback to this object. The comment follows moves and falls back to the
+                    orphan tray if the object is removed.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={closeCommentEditor}
+                  className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="mt-3 rounded-2xl bg-muted/35 px-3 py-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                {selectedObjectCommentCount > 0
+                  ? `${selectedObjectCommentCount} existing thread${
+                      selectedObjectCommentCount === 1 ? '' : 's'
+                    } on this object`
+                  : 'No existing threads on this object yet'}
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <textarea
+                  ref={commentInputRef}
+                  value={commentDraft}
+                  onChange={(event) => setCommentDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+                      event.preventDefault()
+                      void submitSelectedComment()
+                      return
+                    }
+
+                    if (event.key === 'Escape') {
+                      event.preventDefault()
+                      closeCommentEditor()
+                    }
+                  }}
+                  placeholder={`Comment on ${selectedCanvasNode.title}`}
+                  className="min-h-[104px] w-full rounded-[24px] border border-border/60 bg-background px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                  data-web-canvas-comment-input="true"
+                />
+
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">Mod+Enter to submit, Esc to close</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void submitSelectedComment()
+                    }}
+                    className="rounded-full border border-border/60 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={commentDraft.trim().length === 0}
+                    data-web-canvas-comment-save="true"
+                  >
+                    Add comment
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {!hasNodes ? (
           <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex justify-center px-6">
             <div
@@ -481,9 +865,27 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           showNavigationTools
           navigationToolsPosition="bottom-right"
           navigationToolsShowZoomLabel={false}
+          onSelectionChange={setSelection}
           onCreateObject={handleCreateObject}
+          onEditSelectionAlias={openAliasEditor}
+          onCreateSelectionComment={openCommentEditor}
+          onDismissTransientUi={() => {
+            if (commentEditorOpen) {
+              closeCommentEditor()
+              return true
+            }
+
+            if (aliasEditorOpen) {
+              closeAliasEditor()
+              return true
+            }
+
+            return false
+          }}
           onSurfaceDrop={handleSurfaceDrop}
           onSurfacePaste={handleSurfacePaste}
+          canvasNodeId={docId}
+          canvasSchema={CanvasSchema._schemaId}
           renderNode={(node) => {
             if (
               node.type === 'page' ||

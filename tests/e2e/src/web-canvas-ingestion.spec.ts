@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test'
 import { setupTestAuth } from '../helpers/test-auth'
 
 const FRAME_SELECTION_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+F' : 'Control+Shift+F'
+const ALIAS_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+A' : 'Control+Shift+A'
+const COMMENT_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+C' : 'Control+Shift+C'
 
 async function advanceOnboarding(page: import('@playwright/test').Page): Promise<void> {
   for (let index = 0; index < 4; index += 1) {
@@ -82,6 +84,56 @@ async function seedPerformanceScene(
 
     return harness.seedPerformanceScene(sceneInput)
   }, input)
+}
+
+async function moveCanvasNode(
+  page: import('@playwright/test').Page,
+  nodeId: string,
+  dx: number,
+  dy: number
+): Promise<void> {
+  await page.evaluate(
+    async (input) => {
+      const harness = (
+        window as Window & {
+          __xnetCanvasTestHarness?: {
+            moveCanvasNode: (input: typeof input) => Promise<void>
+          }
+        }
+      ).__xnetCanvasTestHarness
+
+      if (!harness) {
+        throw new Error('Canvas test harness not available')
+      }
+
+      await harness.moveCanvasNode(input)
+    },
+    { nodeId, dx, dy }
+  )
+}
+
+async function removeCanvasNode(
+  page: import('@playwright/test').Page,
+  nodeId: string
+): Promise<void> {
+  await page.evaluate(
+    async (input) => {
+      const harness = (
+        window as Window & {
+          __xnetCanvasTestHarness?: {
+            removeCanvasNode: (input: typeof input) => Promise<void>
+          }
+        }
+      ).__xnetCanvasTestHarness
+
+      if (!harness) {
+        throw new Error('Canvas test harness not available')
+      }
+
+      await harness.removeCanvasNode(input)
+    },
+    { nodeId }
+  )
 }
 
 async function waitForCanvasDocument(
@@ -392,6 +444,130 @@ test.describe('Web canvas ingestion', () => {
 
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-primitives.png',
+      fullPage: true
+    })
+  })
+
+  test('renames a source-backed object with a canvas-local alias on the web', async ({ page }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    const noteCountBefore = await page.locator('.canvas-node[data-node-type="note"]').count()
+    await page.getByRole('button', { name: 'Note' }).click()
+    await expect(page.locator('.canvas-node[data-node-type="note"]')).toHaveCount(
+      noteCountBefore + 1,
+      {
+        timeout: 30_000
+      }
+    )
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    await surface.focus()
+    await page.keyboard.press(ALIAS_SHORTCUT)
+
+    const aliasEditor = page.locator('[data-web-canvas-alias-editor="true"]')
+    await expect(aliasEditor).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-web-canvas-alias-input="true"]').fill('Quick Alias')
+    await page.keyboard.press('Enter')
+
+    await expect(page.locator('[data-web-canvas-selection-pill="true"]')).toContainText(
+      'Quick Alias',
+      {
+        timeout: 30_000
+      }
+    )
+    await expect(page.locator('[data-canvas-node-card="true"]').last()).toContainText(
+      'Quick Alias',
+      {
+        timeout: 30_000
+      }
+    )
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-aliases.png',
+      fullPage: true
+    })
+  })
+
+  test('anchors canvas comments to objects and keeps orphaned threads reachable on the web', async ({
+    page
+  }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    const noteCountBefore = await page.locator('.canvas-node[data-node-type="note"]').count()
+    await page.getByRole('button', { name: 'Note' }).click()
+    await expect(page.locator('.canvas-node[data-node-type="note"]')).toHaveCount(
+      noteCountBefore + 1,
+      {
+        timeout: 30_000
+      }
+    )
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
+    const noteNodeId = await noteNode.getAttribute('data-node-id')
+    if (!noteNodeId) {
+      throw new Error('Unable to resolve the note node id')
+    }
+    await surface.focus()
+    await page.keyboard.press(COMMENT_SHORTCUT)
+
+    const commentEditor = page.locator('[data-web-canvas-comment-editor="true"]')
+    await expect(commentEditor).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-web-canvas-comment-input="true"]').fill('Board anchored feedback')
+    await page.locator('[data-web-canvas-comment-save="true"]').click()
+
+    const commentPin = page.locator('[data-canvas-comment-pin="true"]')
+    await expect(commentPin).toBeVisible({ timeout: 30_000 })
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    const noteBeforeMove = await noteNode.boundingBox()
+    const pinBeforeMove = await commentPin.boundingBox()
+    expect(noteBeforeMove).not.toBeNull()
+    expect(pinBeforeMove).not.toBeNull()
+
+    await moveCanvasNode(page, noteNodeId, 120, 0)
+
+    await expect
+      .poll(async () => (await noteNode.boundingBox())?.x ?? null, {
+        timeout: 30_000
+      })
+      .toBeGreaterThan((noteBeforeMove?.x ?? 0) + 40)
+
+    const noteAfterMove = await noteNode.boundingBox()
+    const pinAfterMove = await commentPin.boundingBox()
+    expect(noteAfterMove).not.toBeNull()
+    expect(pinAfterMove).not.toBeNull()
+    expect(
+      Math.abs(
+        (pinAfterMove?.x ?? 0) -
+          (noteAfterMove?.x ?? 0) -
+          ((pinBeforeMove?.x ?? 0) - (noteBeforeMove?.x ?? 0))
+      )
+    ).toBeLessThan(20)
+
+    await removeCanvasNode(page, noteNodeId)
+
+    const orphanTray = page.locator('[data-canvas-comment-orphan-tray="true"]')
+    await expect(orphanTray).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-canvas-comment-orphan="true"]').click()
+    await expect(
+      page
+        .getByLabel('Comment pins')
+        .locator('.markdown-content')
+        .getByText('Board anchored feedback')
+    ).toBeVisible({ timeout: 30_000 })
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-comments.png',
       fullPage: true
     })
   })

@@ -268,7 +268,7 @@ flowchart LR
 - [x] Add universal drop ingestion for internal drags, URLs, text, images, and files.
 - [x] Ship live page cards with inline editing and peek behavior.
 - [x] Ship database preview cards with focus/open and split workflows.
-- [ ] Add connector bindings, shapes, groups, and aliases/backlinks.
+- [x] Add connector bindings, shapes, groups, and aliases/backlinks.
 - [x] Add lock/unlock plus align/distribute/tidy operations for dense-board management.
 - [ ] Define and implement the full shortcut/command surface for Canvas V2.
 - [ ] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
@@ -292,7 +292,7 @@ flowchart LR
 - [ ] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
 - [ ] Undo/redo behaves correctly across canvas-object moves and inline content edits.
 - [ ] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.
-- [ ] Comment anchors survive object moves/resizes and degrade cleanly when underlying anchors disappear.
+- [x] Comment anchors survive object moves/resizes and degrade cleanly when underlying anchors disappear.
 - [ ] The Electron shell is stable before any parity work starts in the web app.
 
 ## References

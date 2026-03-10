@@ -17,6 +17,8 @@ type WebCanvasNodeRecord = {
 
 type WebCanvasTestHarness = {
   registerCanvasDoc: (canvasId: string, doc: Y.Doc | null) => void
+  moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
+  removeCanvasNode: (input: { nodeId: string }) => Promise<void>
   seedPerformanceScene: (input?: {
     canvasId?: string
     title?: string
@@ -69,6 +71,68 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
       }
 
       liveDocs.delete(canvasId)
+    },
+
+    async moveCanvasNode(input) {
+      const store = window.__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = doc.getMap<{
+          id: string
+          position: {
+            x: number
+            y: number
+            width: number
+            height: number
+          }
+        }>('nodes')
+        const node = nodesMap.get(input.nodeId)
+        if (!node) {
+          continue
+        }
+
+        doc.transact(() => {
+          nodesMap.set(input.nodeId, {
+            ...node,
+            position: {
+              ...node.position,
+              x: node.position.x + input.dx,
+              y: node.position.y + input.dy
+            }
+          })
+        })
+
+        await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
+        return
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
+    },
+
+    async removeCanvasNode(input) {
+      const store = window.__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = doc.getMap('nodes')
+        if (!nodesMap.has(input.nodeId)) {
+          continue
+        }
+
+        doc.transact(() => {
+          nodesMap.delete(input.nodeId)
+        })
+
+        await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
+        return
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
     },
 
     async seedPerformanceScene(input = {}) {

@@ -408,6 +408,8 @@ describe('Canvas navigation shell', () => {
     const onCreateObject = vi.fn()
     const onOpenSelection = vi.fn()
     const onToggleShortcutHelp = vi.fn()
+    const onEditSelectionAlias = vi.fn()
+    const onCreateSelectionComment = vi.fn()
 
     render(
       <Canvas
@@ -415,6 +417,8 @@ describe('Canvas navigation shell', () => {
         onCreateObject={onCreateObject}
         onOpenSelection={onOpenSelection}
         onToggleShortcutHelp={onToggleShortcutHelp}
+        onEditSelectionAlias={onEditSelectionAlias}
+        onCreateSelectionComment={onCreateSelectionComment}
       />
     )
 
@@ -425,6 +429,8 @@ describe('Canvas navigation shell', () => {
     fireEvent.keyDown(window, { key: 'P' })
     fireEvent.keyDown(window, { key: 'R' })
     fireEvent.keyDown(window, { key: 'F' })
+    fireEvent.keyDown(window, { key: 'A', metaKey: true, shiftKey: true })
+    fireEvent.keyDown(window, { key: 'C', metaKey: true, shiftKey: true })
     fireEvent.keyDown(window, { key: '/', shiftKey: true })
     fireEvent.keyDown(window, { key: 'Enter', altKey: true })
     fireEvent.keyDown(window, { key: 'Enter', metaKey: true })
@@ -433,6 +439,8 @@ describe('Canvas navigation shell', () => {
     expect(onCreateObject).toHaveBeenCalledWith('page')
     expect(onCreateObject).toHaveBeenCalledWith('shape')
     expect(onCreateObject).toHaveBeenCalledWith('frame')
+    expect(onEditSelectionAlias).toHaveBeenCalledOnce()
+    expect(onCreateSelectionComment).toHaveBeenCalledOnce()
     expect(onToggleShortcutHelp).toHaveBeenCalledOnce()
     expect(onOpenSelection).toHaveBeenNthCalledWith(1, 'split')
     expect(onOpenSelection).toHaveBeenNthCalledWith(2, 'focus')

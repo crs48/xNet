@@ -87,6 +87,8 @@ export interface CanvasHandle {
   setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) => void
   /** Clear the current selection */
   clearSelection: () => void
+  /** Replace the current node selection */
+  selectNodes: (nodeIds: string[]) => void
   /** Lock or unlock the current selection */
   toggleSelectionLock: () => boolean
   /** Align the current selection */
@@ -134,6 +136,10 @@ export interface CanvasProps {
   onOpenSelection?: (mode: 'peek' | 'focus' | 'split') => void
   /** Callback when the user toggles canvas shortcut help */
   onToggleShortcutHelp?: () => void
+  /** Callback when the user wants to edit the selection alias */
+  onEditSelectionAlias?: () => void
+  /** Callback when the user wants to create a comment on the selection */
+  onCreateSelectionComment?: () => void
   /** Callback when transient canvas UI should be dismissed before clearing selection */
   onDismissTransientUi?: () => boolean | void
   /** Callback when content is dropped on the canvas surface */
@@ -287,6 +293,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onCreateObject,
     onOpenSelection,
     onToggleShortcutHelp,
+    onEditSelectionAlias,
+    onCreateSelectionComment,
     onDismissTransientUi,
     onSurfaceDrop,
     onSurfacePaste,
@@ -466,6 +474,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) =>
         canvas.setViewportSnapshot(snapshot),
       clearSelection: () => clearSelection(),
+      selectNodes: (nodeIds: string[]) => {
+        canvas.selectNodes(nodeIds)
+      },
       toggleSelectionLock: () => handleToggleSelectionLock(),
       alignSelection: (alignment: CanvasAlignment) => handleAlignSelection(alignment),
       distributeSelection: (axis: CanvasDistributionAxis) => handleDistributeSelection(axis),
@@ -931,6 +942,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onAlignSelection: handleAlignSelection,
     onShiftSelectionLayer: handleShiftSelectionLayer,
     onWrapSelectionInFrame: handleWrapSelectionInFrame,
+    onEditSelectionAlias,
+    onCreateSelectionComment,
     onCreateObject,
     onOpenSelection,
     onToggleShortcutHelp,
