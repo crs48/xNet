@@ -488,6 +488,70 @@ async function getCanvasShellMetrics(page: Page): Promise<{
   })
 }
 
+async function getCanvasThemeDiagnostics(page: Page): Promise<{
+  surfaceTheme: string | null
+  navigationTheme: string | null
+  minimapTheme: string | null
+  surfaceBackground: string
+  navigationBackground: string
+  minimapDismissBackground: string
+}> {
+  return page.evaluate(() => {
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    const navigationTools = document.querySelector<HTMLElement>('.navigation-tools')
+    const minimap = document.querySelector<HTMLElement>('[data-canvas-minimap="true"]')
+    const minimapDismissButton = document.querySelector<HTMLElement>(
+      '[data-canvas-minimap-toggle="hide"]'
+    )
+
+    if (!surface || !navigationTools || !minimap || !minimapDismissButton) {
+      throw new Error('Canvas theme diagnostics are not ready')
+    }
+
+    return {
+      surfaceTheme: surface.dataset.canvasTheme ?? null,
+      navigationTheme: navigationTools.dataset.canvasTheme ?? null,
+      minimapTheme: minimap.dataset.canvasTheme ?? null,
+      surfaceBackground: window.getComputedStyle(surface).backgroundColor,
+      navigationBackground: window.getComputedStyle(navigationTools).backgroundColor,
+      minimapDismissBackground: window.getComputedStyle(minimapDismissButton).backgroundColor
+    }
+  })
+}
+
+async function setElectronTheme(page: Page, theme: 'light' | 'dark' | 'system'): Promise<void> {
+  const expectedTheme =
+    theme === 'system'
+      ? await page.evaluate(() =>
+          window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        )
+      : theme
+
+  await page.evaluate((nextTheme) => {
+    localStorage.setItem('xnet-electron-theme', nextTheme)
+
+    const root = document.documentElement
+    root.classList.remove('light', 'dark')
+
+    if (nextTheme === 'system') {
+      root.classList.add(
+        window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      )
+      return
+    }
+
+    root.classList.add(nextTheme)
+  }, theme)
+
+  await expect
+    .poll(async () => {
+      return await page.evaluate(() => {
+        return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
+      })
+    })
+    .toBe(expectedTheme)
+}
+
 async function measureCanvasFrameBudget(
   page: Page,
   stepCount = 18
@@ -606,6 +670,40 @@ test.describe('Electron canvas shell', () => {
         // port already clear
       }
     }
+  })
+
+  test('adapts canvas chrome across light and dark themes in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    await expect(page.locator('.navigation-tools')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-canvas-minimap="true"]')).toBeVisible({ timeout: 30_000 })
+
+    const darkDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(darkDiagnostics.surfaceTheme).toBe('dark')
+    expect(darkDiagnostics.navigationTheme).toBe('dark')
+    expect(darkDiagnostics.minimapTheme).toBe('dark')
+
+    await setElectronTheme(page, 'light')
+
+    await expect
+      .poll(async () => (await getCanvasThemeDiagnostics(page)).surfaceTheme, { timeout: 30_000 })
+      .toBe('light')
+
+    const lightDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(lightDiagnostics.navigationTheme).toBe('light')
+    expect(lightDiagnostics.minimapTheme).toBe('light')
+    expect(lightDiagnostics.surfaceBackground).not.toBe(darkDiagnostics.surfaceBackground)
+    expect(lightDiagnostics.navigationBackground).not.toBe(darkDiagnostics.navigationBackground)
+    expect(lightDiagnostics.minimapDismissBackground).not.toBe(
+      darkDiagnostics.minimapDismissBackground
+    )
+
+    await setElectronTheme(page, 'dark')
+
+    await expect
+      .poll(async () => (await getCanvasThemeDiagnostics(page)).surfaceTheme, { timeout: 30_000 })
+      .toBe('dark')
   })
 
   test('creates page, database, and note objects while keeping the home shell lightweight', async () => {

@@ -23,6 +23,7 @@ const LINES_FRAGMENT_SHADER = `
   uniform float u_zoom;
   uniform vec4 u_gridColor;
   uniform vec4 u_majorGridColor;
+  uniform vec4 u_axisColor;
   uniform float u_gridSpacing;
   uniform float u_majorEvery;
 
@@ -66,8 +67,7 @@ const LINES_FRAGMENT_SHADER = `
     float axisWidth = 2.0 / u_zoom;
     float xAxis = smoothstep(axisWidth, 0.0, abs(canvasPos.y));
     float yAxis = smoothstep(axisWidth, 0.0, abs(canvasPos.x));
-    vec4 axisColor = vec4(0.4, 0.4, 0.8, 0.5);
-    color = mix(color, axisColor, max(xAxis, yAxis));
+    color = mix(color, u_axisColor, max(xAxis, yAxis));
 
     gl_FragColor = color;
   }
@@ -130,6 +130,8 @@ export interface WebGLGridConfig {
   gridColor: [number, number, number, number]
   /** Major grid line/dot color as RGBA 0-1 */
   majorGridColor: [number, number, number, number]
+  /** Axis line color as RGBA 0-1 */
+  axisColor: [number, number, number, number]
   /** Grid spacing in canvas units */
   gridSpacing: number
   /** Major line every N minor lines */
@@ -156,6 +158,7 @@ export interface GridLayer {
 export const DEFAULT_GRID_CONFIG: WebGLGridConfig = {
   gridColor: [0.5, 0.5, 0.5, 0.15],
   majorGridColor: [0.5, 0.5, 0.5, 0.3],
+  axisColor: [0.231, 0.51, 0.965, 0.28],
   gridSpacing: 20,
   majorEvery: 5,
   type: 'lines'
@@ -173,6 +176,7 @@ export class WebGLGridLayer implements GridLayer {
     zoom: WebGLUniformLocation | null
     gridColor: WebGLUniformLocation | null
     majorGridColor: WebGLUniformLocation | null
+    axisColor: WebGLUniformLocation | null
     gridSpacing: WebGLUniformLocation | null
     majorEvery: WebGLUniformLocation | null
   }
@@ -281,6 +285,7 @@ export class WebGLGridLayer implements GridLayer {
       zoom: gl.getUniformLocation(program, 'u_zoom'),
       gridColor: gl.getUniformLocation(program, 'u_gridColor'),
       majorGridColor: gl.getUniformLocation(program, 'u_majorGridColor'),
+      axisColor: gl.getUniformLocation(program, 'u_axisColor'),
       gridSpacing: gl.getUniformLocation(program, 'u_gridSpacing'),
       majorEvery: gl.getUniformLocation(program, 'u_majorEvery')
     }
@@ -295,6 +300,9 @@ export class WebGLGridLayer implements GridLayer {
     }
     if (this.uniforms.majorGridColor) {
       gl.uniform4fv(this.uniforms.majorGridColor, this.config.majorGridColor)
+    }
+    if (this.uniforms.axisColor) {
+      gl.uniform4fv(this.uniforms.axisColor, this.config.axisColor)
     }
     if (this.uniforms.gridSpacing) {
       gl.uniform1f(this.uniforms.gridSpacing, this.config.gridSpacing)

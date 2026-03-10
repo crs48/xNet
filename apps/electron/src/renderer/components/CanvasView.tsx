@@ -937,10 +937,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             bottom: 24,
             right: 24,
             borderRadius: 24,
-            background: 'rgba(255, 255, 255, 0.8)',
-            backdropFilter: 'blur(16px)',
-            boxShadow: '0 18px 38px rgba(15, 23, 42, 0.12)',
-            border: '1px solid rgba(148, 163, 184, 0.28)'
+            backdropFilter: 'blur(16px)'
           }}
           renderNode={(node, context) => {
             const sourceNodeId = getCanvasShellSourceId(node)

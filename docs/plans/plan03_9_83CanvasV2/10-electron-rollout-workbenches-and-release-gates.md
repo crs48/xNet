@@ -170,9 +170,11 @@ Automated validation should include:
   - dock creation
   - command-palette creation
   - minimap toggle
+  - theme transitions across the shared canvas surface, navigation cluster, and minimap controls
   - page/database focus-return flows
   - database split-view open/close flows
 - Web Playwright smoke coverage for:
+  - light/dark theme transitions across the shared canvas surface, navigation cluster, and minimap controls
   - URL drops creating source-backed `ExternalReference` cards
   - image/file drops creating source-backed `MediaAsset` cards
 - Electron CDP performance coverage for:
@@ -194,6 +196,7 @@ Automated validation should include:
 - [ ] Build realistic Storybook/workbench scenes for every major object family and density class.
 - [x] Add repeatable performance scenes and capture frame/DOM/query metrics.
 - [x] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
+- [x] Add Electron and web theme-regression coverage for shared canvas chrome.
 - [x] Add Electron CDP large-scene performance coverage and record thresholds.
 - [ ] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
 - [ ] Document and enforce release gates before web rollout.

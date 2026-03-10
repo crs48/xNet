@@ -7,6 +7,7 @@
 import type { Rect } from '../types'
 import { useCallback } from 'react'
 import { Viewport } from '../spatial/index'
+import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ export function NavigationTools({
   style,
   insetRight = 16
 }: NavigationToolsProps) {
+  const theme = useCanvasThemeTokens()
+
   const zoomIn = useCallback(() => {
     const newZoom = Math.min(viewport.zoom * 1.5, 4)
     onViewportChange({ zoom: newZoom })
@@ -81,15 +84,35 @@ export function NavigationTools({
   const zoomPercent = Math.round(viewport.zoom * 100)
 
   const positionStyles = {
-    ...getPositionStyles(position, insetRight),
+    ...getPositionStyles(position, insetRight, theme),
     ...style
   }
 
+  const getButtonStyle = (disabled: boolean): React.CSSProperties => ({
+    ...styles.button,
+    color: disabled ? theme.panelButtonDisabled : theme.panelIconColor,
+    cursor: disabled ? 'not-allowed' : 'pointer'
+  })
+
+  const dividerStyle: React.CSSProperties = {
+    ...styles.divider,
+    background: theme.panelDivider
+  }
+
+  const zoomLabelStyle: React.CSSProperties = {
+    ...styles.zoomLabel,
+    color: theme.panelMutedText
+  }
+
   return (
-    <div className={`navigation-tools ${className ?? ''}`} style={positionStyles}>
+    <div
+      className={`navigation-tools ${className ?? ''}`}
+      style={positionStyles}
+      data-canvas-theme={theme.mode}
+    >
       <div style={styles.toolGroup}>
         <button
-          style={styles.button}
+          style={getButtonStyle(viewport.zoom >= 4)}
           onClick={zoomIn}
           title="Zoom In (Ctrl/Cmd +)"
           disabled={viewport.zoom >= 4}
@@ -109,11 +132,11 @@ export function NavigationTools({
             title={`${zoomPercent}%`}
             aria-label="Zoom level"
           />
-          {showZoomLabel && <span style={styles.zoomLabel}>{zoomPercent}%</span>}
+          {showZoomLabel && <span style={zoomLabelStyle}>{zoomPercent}%</span>}
         </div>
 
         <button
-          style={styles.button}
+          style={getButtonStyle(viewport.zoom <= 0.1)}
           onClick={zoomOut}
           title="Zoom Out (Ctrl/Cmd -)"
           disabled={viewport.zoom <= 0.1}
@@ -123,11 +146,11 @@ export function NavigationTools({
         </button>
       </div>
 
-      <div style={styles.divider} />
+      <div style={dividerStyle} />
 
       <div style={styles.toolGroup}>
         <button
-          style={styles.button}
+          style={getButtonStyle(!canvasBounds)}
           onClick={fitToContent}
           title="Fit to Content (Ctrl/Cmd 1)"
           disabled={!canvasBounds}
@@ -137,7 +160,7 @@ export function NavigationTools({
         </button>
 
         <button
-          style={styles.button}
+          style={getButtonStyle(false)}
           onClick={resetView}
           title="Reset View (Ctrl/Cmd 0)"
           aria-label="Reset view"
@@ -151,17 +174,21 @@ export function NavigationTools({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-function getPositionStyles(position: string, insetRight: number): React.CSSProperties {
+function getPositionStyles(
+  position: string,
+  insetRight: number,
+  theme: ReturnType<typeof useCanvasThemeTokens>
+): React.CSSProperties {
   const base: React.CSSProperties = {
     position: 'absolute',
     display: 'flex',
     alignItems: 'center',
     gap: 8,
     padding: '8px 12px',
-    background: 'white',
+    background: theme.panelBackground,
     borderRadius: 8,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    border: '1px solid #e5e7eb',
+    boxShadow: theme.panelShadow,
+    border: `1px solid ${theme.panelBorder}`,
     zIndex: 10
   }
 
@@ -191,11 +218,9 @@ const styles: Record<string, React.CSSProperties> = {
     border: 'none',
     background: 'transparent',
     borderRadius: 4,
-    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    color: '#374151'
+    justifyContent: 'center'
   },
   sliderContainer: {
     display: 'flex',
@@ -209,14 +234,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   zoomLabel: {
     fontSize: 11,
-    color: '#6b7280',
     minWidth: 32,
     textAlign: 'right' as const
   },
   divider: {
     width: 1,
     height: 20,
-    background: '#e5e7eb',
     margin: '0 4px'
   }
 }

@@ -117,7 +117,82 @@ async function getCanvasMetrics(page: import('@playwright/test').Page): Promise<
   })
 }
 
+async function getCanvasThemeDiagnostics(page: import('@playwright/test').Page): Promise<{
+  surfaceTheme: string | null
+  navigationTheme: string | null
+  minimapTheme: string | null
+  surfaceBackground: string
+  navigationBackground: string
+  minimapDismissBackground: string
+}> {
+  return page.evaluate(() => {
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    const navigationTools = document.querySelector<HTMLElement>('.navigation-tools')
+    const minimap = document.querySelector<HTMLElement>('[data-canvas-minimap="true"]')
+    const minimapDismissButton = document.querySelector<HTMLElement>(
+      '[data-canvas-minimap-toggle="hide"]'
+    )
+
+    if (!surface || !navigationTools || !minimap || !minimapDismissButton) {
+      throw new Error('Canvas theme diagnostics are not ready')
+    }
+
+    return {
+      surfaceTheme: surface.dataset.canvasTheme ?? null,
+      navigationTheme: navigationTools.dataset.canvasTheme ?? null,
+      minimapTheme: minimap.dataset.canvasTheme ?? null,
+      surfaceBackground: window.getComputedStyle(surface).backgroundColor,
+      navigationBackground: window.getComputedStyle(navigationTools).backgroundColor,
+      minimapDismissBackground: window.getComputedStyle(minimapDismissButton).backgroundColor
+    }
+  })
+}
+
 test.describe('Web canvas ingestion', () => {
+  test('adapts canvas chrome across light and dark themes on the web', async ({ page }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('xnet-web-theme', 'light')
+    })
+
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('.navigation-tools')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-canvas-minimap="true"]')).toBeVisible({ timeout: 30_000 })
+
+    const lightDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(lightDiagnostics.surfaceTheme).toBe('light')
+    expect(lightDiagnostics.navigationTheme).toBe('light')
+    expect(lightDiagnostics.minimapTheme).toBe('light')
+
+    await page.evaluate(() => {
+      localStorage.setItem('xnet-web-theme', 'dark')
+      document.documentElement.classList.remove('light')
+      document.documentElement.classList.add('dark')
+    })
+
+    await expect
+      .poll(async () => (await getCanvasThemeDiagnostics(page)).surfaceTheme, { timeout: 30_000 })
+      .toBe('dark')
+
+    const darkDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(darkDiagnostics.navigationTheme).toBe('dark')
+    expect(darkDiagnostics.minimapTheme).toBe('dark')
+    expect(darkDiagnostics.surfaceBackground).not.toBe(lightDiagnostics.surfaceBackground)
+    expect(darkDiagnostics.navigationBackground).not.toBe(lightDiagnostics.navigationBackground)
+    expect(darkDiagnostics.minimapDismissBackground).not.toBe(
+      lightDiagnostics.minimapDismissBackground
+    )
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-themes.png',
+      fullPage: true
+    })
+  })
+
   test('creates source-backed URL and media objects from drops', async ({ page }) => {
     await setupTestAuth(page)
     await advanceOnboarding(page)

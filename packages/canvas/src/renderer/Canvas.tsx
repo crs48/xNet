@@ -23,6 +23,7 @@ import { useCanvas } from '../hooks/useCanvas'
 import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
+import { useCanvasThemeTokens } from '../theme/canvas-theme'
 import { createCanvasDisplayList } from './display-list'
 import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
 import { OverviewCanvasLayer } from './OverviewCanvasLayer'
@@ -165,6 +166,9 @@ function useWebGLGrid(
     showGrid: boolean
     gridType: GridType
     gridSize: number
+    gridColor: [number, number, number, number]
+    majorGridColor: [number, number, number, number]
+    axisColor: [number, number, number, number]
   },
   viewport: { x: number; y: number; zoom: number }
 ): void {
@@ -184,8 +188,9 @@ function useWebGLGrid(
     gridLayerRef.current = createGridLayer(container, {
       type: config.gridType === 'dots' ? 'dots' : 'lines',
       gridSpacing: config.gridSize,
-      gridColor: [0.5, 0.5, 0.5, 0.3],
-      majorGridColor: [0.5, 0.5, 0.5, 0.5],
+      gridColor: config.gridColor,
+      majorGridColor: config.majorGridColor,
+      axisColor: config.axisColor,
       majorEvery: 5
     })
 
@@ -196,7 +201,15 @@ function useWebGLGrid(
       gridLayerRef.current?.destroy()
       gridLayerRef.current = null
     }
-  }, [containerRef, config.showGrid, config.gridType, config.gridSize])
+  }, [
+    containerRef,
+    config.showGrid,
+    config.gridType,
+    config.gridSize,
+    config.gridColor,
+    config.majorGridColor,
+    config.axisColor
+  ])
 
   // Handle resize - uses ref to avoid re-subscribing on viewport changes
   const viewportRef = useRef(viewport)
@@ -266,6 +279,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const undoManagerRef = useRef<Y.UndoManager | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
+  const theme = useCanvasThemeTokens()
 
   // Track initial positions when drag starts to prevent drift during fast drags
   // Key: nodeId, Value: { x, y } at drag start
@@ -281,9 +295,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     () => ({
       showGrid: config.showGrid !== false,
       gridType: config.gridType ?? 'dots',
-      gridSize: config.gridSize ?? 20
+      gridSize: config.gridSize ?? 20,
+      gridColor: theme.gridColor,
+      majorGridColor: theme.majorGridColor,
+      axisColor: theme.axisColor
     }),
-    [config.showGrid, config.gridType, config.gridSize]
+    [
+      config.showGrid,
+      config.gridType,
+      config.gridSize,
+      theme.axisColor,
+      theme.gridColor,
+      theme.majorGridColor
+    ]
   )
 
   // Initialize WebGL grid layer (or CSS fallback)
@@ -786,7 +810,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     width: '100%',
     height: '100%',
     overflow: 'hidden',
-    backgroundColor: '#fafafa',
+    backgroundColor: theme.surfaceBackground,
     cursor: isDragging ? 'grabbing' : 'default',
     ...style
   }
@@ -804,6 +828,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       className={className}
       style={containerStyle}
       data-canvas-surface="true"
+      data-canvas-theme={theme.mode}
       data-node-count={nodes.length}
       data-loaded-node-count={renderNodes.length}
       data-visible-node-count={visibleNodes.length}

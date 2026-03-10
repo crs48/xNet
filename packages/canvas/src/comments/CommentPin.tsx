@@ -105,7 +105,9 @@ export function CommentPin({
         <span
           className={cn(
             'w-5 h-5 rounded-full flex items-center justify-center text-[10px]',
-            isResolved ? 'bg-muted-foreground/30' : 'bg-white/30'
+            isResolved
+              ? 'bg-foreground/10 text-muted-foreground'
+              : 'bg-primary-foreground/20 text-primary-foreground'
           )}
         >
           {authorInitial}

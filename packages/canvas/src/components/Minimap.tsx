@@ -8,6 +8,7 @@
 import type { CanvasNode, CanvasEdge } from '../types'
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
 import { Viewport } from '../spatial/index'
+import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -88,12 +89,14 @@ export function Minimap({
   height = 150,
   onViewportChange,
   className,
-  backgroundColor = 'rgba(249, 250, 251, 0.95)',
+  backgroundColor,
   showEdges = true
 }: MinimapProps) {
+  const theme = useCanvasThemeTokens()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDraggingRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const resolvedBackgroundColor = backgroundColor ?? theme.minimapBackground
 
   // Calculate bounds of all content
   const canvasBounds = useMemo(() => {
@@ -230,12 +233,12 @@ export function Minimap({
     ctx.scale(dpr, dpr)
 
     // Clear background
-    ctx.fillStyle = backgroundColor
+    ctx.fillStyle = resolvedBackgroundColor
     ctx.fillRect(0, 0, width, height)
 
     // Draw edges
     if (shouldRenderEdges && edges.length > 0) {
-      ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)'
+      ctx.strokeStyle = theme.minimapEdge
       ctx.lineWidth = 1
       ctx.beginPath()
 
@@ -293,16 +296,16 @@ export function Minimap({
     const vh = visibleRect.height * scale
 
     // Viewport fill
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.1)'
+    ctx.fillStyle = theme.minimapViewportFill
     ctx.fillRect(vx, vy, vw, vh)
 
     // Viewport border
-    ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)'
+    ctx.strokeStyle = theme.minimapViewportStroke
     ctx.lineWidth = 2
     ctx.strokeRect(vx, vy, vw, vh)
 
     // Minimap border
-    ctx.strokeStyle = 'rgba(209, 213, 219, 1)'
+    ctx.strokeStyle = theme.minimapBorder
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
   }, [
@@ -314,7 +317,11 @@ export function Minimap({
     renderNodes,
     width,
     height,
-    backgroundColor,
+    resolvedBackgroundColor,
+    theme.minimapBorder,
+    theme.minimapEdge,
+    theme.minimapViewportFill,
+    theme.minimapViewportStroke,
     shouldRenderEdges
   ])
 
@@ -387,11 +394,12 @@ export function Minimap({
         right: 16,
         borderRadius: 8,
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        boxShadow: theme.panelShadow,
         cursor: 'crosshair',
         userSelect: 'none'
       }}
       data-canvas-minimap="true"
+      data-canvas-theme={theme.mode}
       data-canvas-minimap-node-count={nodes.length}
       data-canvas-minimap-rendered-node-count={renderNodes.length}
       data-canvas-minimap-edge-count={edges.length}
@@ -417,10 +425,10 @@ export function Minimap({
 
 function MapIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="2" width="12" height="12" rx="1" stroke="#6b7280" strokeWidth="1.5" />
-      <rect x="4" y="4" width="4" height="3" fill="#3b82f6" />
-      <rect x="9" y="8" width="3" height="2" fill="#3b82f6" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="4" y="4" width="4" height="3" fill="currentColor" opacity="0.6" />
+      <rect x="9" y="8" width="3" height="2" fill="currentColor" opacity="0.6" />
     </svg>
   )
 }
@@ -433,6 +441,7 @@ export interface CollapsibleMinimapProps extends MinimapProps {
 }
 
 export function CollapsibleMinimap({ defaultExpanded = true, ...props }: CollapsibleMinimapProps) {
+  const theme = useCanvasThemeTokens()
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
   return (
@@ -462,14 +471,14 @@ export function CollapsibleMinimap({ defaultExpanded = true, ...props }: Collaps
               width: 20,
               height: 20,
               border: 'none',
-              background: 'rgba(255,255,255,0.9)',
+              background: theme.minimapOverlayBackground,
               borderRadius: 4,
               cursor: 'pointer',
               fontSize: 14,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#6b7280',
+              color: theme.panelMutedText,
               zIndex: 1
             }}
             title="Hide minimap"
@@ -487,14 +496,16 @@ export function CollapsibleMinimap({ defaultExpanded = true, ...props }: Collaps
           style={{
             width: 32,
             height: 32,
-            border: '1px solid #e5e7eb',
-            background: 'white',
+            border: `1px solid ${theme.panelBorder}`,
+            background: theme.panelBackground,
             borderRadius: 8,
             cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            boxShadow: theme.panelShadow,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            color: theme.panelMutedText,
+            backdropFilter: 'blur(16px)'
           }}
           title="Show minimap"
           aria-label="Show minimap"

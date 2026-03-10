@@ -87,6 +87,7 @@ The shell should keep always-visible UI small:
 - collapsible minimap/navigation cluster
 - optional selection HUD only when something is selected
 - command palette trigger via shortcut rather than a large toolbar
+- shared light/dark-aware canvas chrome so grid, minimap, and navigation controls stay legible in both themes
 
 Do not add a permanent inspector-first layout in the initial cut.
 
@@ -137,6 +138,7 @@ function CanvasRuntime(props: CanvasRuntimeProps): React.ReactElement {
   - shell boot
   - minimap visibility/toggle
   - dock + command-palette creation flows
+  - light/dark theme transitions across surface background, navigation tools, and minimap controls
   - hybrid-layer smoke assertions (`canvas` overview layers + DOM object cards)
 - Verify that minimap, grid, DOM objects, and overlays continue to stack correctly.
 - Manually verify viewport updates and overlay alignment in Electron.
@@ -162,5 +164,6 @@ PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests e
 - [x] Move the grid and minimap into the default shell path.
 - [x] Define explicit responsibilities for background, overview, DOM, and overlay layers.
 - [x] Replace the current custom linked-card shell rendering with runtime-fed object rendering.
+- [x] Keep shared canvas chrome readable in both light and dark themes.
 - [ ] Keep persistent shell chrome minimal and contextual.
 - [ ] Centralize frame scheduling and redraw ownership.

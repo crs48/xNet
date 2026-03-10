@@ -29,16 +29,17 @@ export class CSSGridFallback implements GridLayer {
   }
 
   private applyGridStyle(): void {
-    const { gridSpacing, majorEvery, gridColor, type } = this.config
+    const { gridSpacing, majorEvery, gridColor, majorGridColor, type } = this.config
 
     if (type === 'dots') {
       // Dot grid using radial gradients
       const minorColor = `rgba(${Math.round(gridColor[0] * 255)}, ${Math.round(gridColor[1] * 255)}, ${Math.round(gridColor[2] * 255)}, ${gridColor[3]})`
+      const majorColor = `rgba(${Math.round(majorGridColor[0] * 255)}, ${Math.round(majorGridColor[1] * 255)}, ${Math.round(majorGridColor[2] * 255)}, ${majorGridColor[3]})`
       const majorSpacing = gridSpacing * majorEvery
 
       this.element.style.backgroundImage = `
         radial-gradient(circle, ${minorColor} 1px, transparent 1px),
-        radial-gradient(circle, ${minorColor} 2px, transparent 2px)
+        radial-gradient(circle, ${majorColor} 2px, transparent 2px)
       `
       this.element.style.backgroundSize = `
         ${gridSpacing}px ${gridSpacing}px,
@@ -47,7 +48,7 @@ export class CSSGridFallback implements GridLayer {
     } else {
       // Line grid using linear gradients
       const minorColor = `rgba(${Math.round(gridColor[0] * 255)}, ${Math.round(gridColor[1] * 255)}, ${Math.round(gridColor[2] * 255)}, ${gridColor[3] * 0.5})`
-      const majorColor = `rgba(${Math.round(gridColor[0] * 255)}, ${Math.round(gridColor[1] * 255)}, ${Math.round(gridColor[2] * 255)}, ${gridColor[3]})`
+      const majorColor = `rgba(${Math.round(majorGridColor[0] * 255)}, ${Math.round(majorGridColor[1] * 255)}, ${Math.round(majorGridColor[2] * 255)}, ${majorGridColor[3]})`
       const majorSpacing = gridSpacing * majorEvery
 
       this.element.style.backgroundImage = `

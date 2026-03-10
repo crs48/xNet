@@ -111,6 +111,7 @@ describe('WebGLGridLayer', () => {
       gridSpacing: 40,
       majorEvery: 10,
       gridColor: [0.2, 0.2, 0.8, 0.3],
+      axisColor: [0.8, 0.3, 0.2, 0.4],
       type: 'lines'
     }
 
@@ -245,6 +246,23 @@ describe('CSSGridFallback', () => {
 
     const gridElement = container.querySelector('div > div') as HTMLDivElement
     expect(gridElement.style.backgroundImage).toContain('linear-gradient')
+
+    grid.destroy()
+  })
+
+  it('uses the major grid color for emphasized CSS lines', () => {
+    const grid = new CSSGridFallback(container, {
+      ...DEFAULT_GRID_CONFIG,
+      type: 'lines',
+      gridColor: [0.1, 0.2, 0.3, 0.2],
+      majorGridColor: [0.7, 0.6, 0.2, 0.4]
+    })
+
+    grid.render({ x: 0, y: 0, zoom: 1 })
+
+    const gridElement = container.querySelector('div') as HTMLDivElement
+    expect(gridElement.style.backgroundImage).toContain('rgba(26, 51, 77, 0.1)')
+    expect(gridElement.style.backgroundImage).toContain('rgba(179, 153, 51, 0.4)')
 
     grid.destroy()
   })
