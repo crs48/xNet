@@ -265,7 +265,7 @@ flowchart LR
 - [x] Add a reusable `MediaAsset`-style node schema for dropped images/files.
 - [x] Replace the current linked-card shell with a hybrid renderer shell.
 - [ ] Route the main runtime through chunking, culling, and explicit layer display lists.
-- [ ] Add universal drop ingestion for internal drags, URLs, text, images, and files.
+- [x] Add universal drop ingestion for internal drags, URLs, text, images, and files.
 - [ ] Ship live page cards with inline editing and peek behavior.
 - [ ] Ship database preview cards with focus/open and split workflows.
 - [ ] Add connector bindings, shapes, groups, locks, align/tidy operations, and aliases/backlinks.
@@ -282,6 +282,7 @@ flowchart LR
 - [x] Creating a database on the canvas immediately creates a real `Database` node and shows a bounded live preview.
 - [ ] Dropping a URL creates or reuses an `ExternalReference` node and renders the correct fallback chain.
 - [ ] Dropping an image or file creates a reusable media node and preserves it after reload.
+- [x] Web Playwright smoke coverage verifies URL and image drops create source-backed canvas objects.
 - [ ] Pan/zoom remains smooth on large scenes with chunk load/evict active.
 - [x] The background grid and minimap remain outside the main DOM path.
 - [x] Far-field objects do not mount rich editors or oversized DOM subtrees.

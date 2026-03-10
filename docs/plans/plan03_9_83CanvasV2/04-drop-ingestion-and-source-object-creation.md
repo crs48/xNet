@@ -127,8 +127,10 @@ async function ingestCanvasPayload(
 Suggested commands:
 
 ```bash
+pnpm --filter @xnetjs/canvas exec vitest run src/__tests__/ingestion.test.ts src/__tests__/canvas-navigation-shell.test.tsx
 pnpm --filter @xnetjs/data test
 pnpm --filter @xnetjs/react test
+pnpm --filter @xnetjs/e2e-tests exec playwright test src/web-canvas-ingestion.spec.ts --project=chromium
 ```
 
 ## Risks and Edge Cases
@@ -139,9 +141,9 @@ pnpm --filter @xnetjs/react test
 
 ## Step Checklist
 
-- [ ] Build a unified canvas ingestion boundary for drags, drops, paste, and create commands.
-- [ ] Reuse source-node identity for internal page/database drags.
-- [ ] Create or reuse `ExternalReference` nodes for URL drops.
-- [ ] Upload files/images through `BlobService` and create `MediaAsset` nodes.
-- [ ] Share one placement pipeline between command creation and drop-based creation.
-- [ ] Add optimistic placement with async preview/media resolution.
+- [x] Build a unified canvas ingestion boundary for drags, drops, paste, and create commands.
+- [x] Reuse source-node identity for internal page/database drags.
+- [x] Create or reuse `ExternalReference` nodes for URL drops.
+- [x] Upload files/images through `BlobService` and create `MediaAsset` nodes.
+- [x] Share one placement pipeline between command creation and drop-based creation.
+- [x] Add optimistic placement with async preview/media resolution.

@@ -142,6 +142,7 @@ Suggested commands:
 pnpm --filter @xnetjs/canvas test
 pnpm --filter @xnetjs/react test
 pnpm --filter @xnetjs/data test
+pnpm --filter @xnetjs/e2e-tests exec playwright test src/web-canvas-ingestion.spec.ts --project=chromium
 cd tests/e2e && pnpm exec playwright test src/electron-canvas.spec.ts --project=chromium
 pnpm dev:stories
 cd apps/electron && pnpm dev
@@ -167,6 +168,9 @@ Automated validation should include:
   - command-palette creation
   - minimap toggle
   - page/database focus-return flows
+- Web Playwright smoke coverage for:
+  - URL drops creating source-backed `ExternalReference` cards
+  - image/file drops creating source-backed `MediaAsset` cards
 - Electron CDP performance coverage for:
   - dense seeded scenes
   - bounded DOM node counts

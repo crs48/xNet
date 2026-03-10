@@ -9,10 +9,11 @@ import type {
   CanvasSelectionSnapshot,
   Rect
 } from '@xnetjs/canvas'
-import { Canvas, createNode } from '@xnetjs/canvas'
+import { Canvas, extractCanvasIngressPayloads, useCanvasObjectIngestion } from '@xnetjs/canvas'
 import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
+import { useBlobService } from '@xnetjs/editor/react'
 import { useNode, useIdentity } from '@xnetjs/react'
-import { Command, Database, Eye, FileText, StickyNote, X } from 'lucide-react'
+import { Command, Database, Eye, FileImage, FileText, Link2, StickyNote, X } from 'lucide-react'
 import React, {
   forwardRef,
   useCallback,
@@ -27,8 +28,6 @@ import {
   getCanvasShellDisplayType,
   getCanvasShellSourceId,
   getCanvasShellSourceType,
-  getCanvasShellNotePlacement,
-  getLinkedDocumentPlacement,
   shouldRenderCanvasShellCard,
   type LinkedDocType,
   type LinkedDocumentItem
@@ -62,7 +61,7 @@ export type CanvasViewCommandState = {
   selectedNodeId: string | null
   selectedSourceId: string | null
   selectedSourceType: Exclude<LinkedDocType, 'canvas'> | null
-  selectedDisplayType: LinkedDocType | 'note' | null
+  selectedDisplayType: LinkedDocType | 'note' | 'external-reference' | 'media' | null
   selectedTitle: string | null
   shortcutHelpOpen: boolean
 }
@@ -85,8 +84,19 @@ function getNodeRect(node: CanvasNode): Rect {
   }
 }
 
+function getCanvasViewDisplayType(
+  node: CanvasNode,
+  document?: LinkedDocumentItem
+): LinkedDocType | 'note' | 'external-reference' | 'media' {
+  if (node.type === 'external-reference' || node.type === 'media') {
+    return node.type
+  }
+
+  return getCanvasShellDisplayType(node, document)
+}
+
 function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.ReactElement {
-  const displayType = getCanvasShellDisplayType(node, document)
+  const displayType = getCanvasViewDisplayType(node, document)
   const sourceId = getCanvasShellSourceId(node)
   const linkedTitle =
     node.alias ?? document?.title ?? (node.properties.title as string) ?? 'Untitled'
@@ -97,13 +107,38 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
         ? 'Database'
         : displayType === 'note'
           ? 'Canvas note'
-          : 'Canvas'
+          : displayType === 'external-reference'
+            ? 'Link preview'
+            : 'Media asset'
 
   const Icon =
-    displayType === 'page' ? FileText : displayType === 'database' ? Database : StickyNote
+    displayType === 'page'
+      ? FileText
+      : displayType === 'database'
+        ? Database
+        : displayType === 'note'
+          ? StickyNote
+          : displayType === 'external-reference'
+            ? Link2
+            : FileImage
   const isOpenable = Boolean(
     sourceId && (displayType === 'page' || displayType === 'database' || displayType === 'note')
   )
+  const status = typeof node.properties.status === 'string' ? node.properties.status : null
+  const summary =
+    displayType === 'database'
+      ? 'Open a focused database surface from the canvas.'
+      : displayType === 'page'
+        ? 'Open a focused writing surface from the canvas.'
+        : displayType === 'note'
+          ? 'A lightweight note pinned directly to the workspace.'
+          : displayType === 'external-reference'
+            ? typeof node.properties.url === 'string'
+              ? node.properties.url
+              : 'Dropped link preview'
+            : typeof node.properties.mimeType === 'string'
+              ? `${String(node.properties.kind ?? 'file')} · ${node.properties.mimeType}`
+              : 'Dropped media or file'
 
   return (
     <div className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background/95 p-4 shadow-lg shadow-black/5">
@@ -116,18 +151,21 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
           <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Open
           </span>
+        ) : status ? (
+          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            {status}
+          </span>
         ) : null}
       </div>
 
       <div className="space-y-2">
         <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {displayType === 'database'
-            ? 'Open a focused database surface from the canvas.'
-            : displayType === 'page'
-              ? 'Open a focused writing surface from the canvas.'
-              : 'A lightweight note pinned directly to the workspace.'}
-        </p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
+        {displayType === 'external-reference' && typeof node.properties.subtitle === 'string' ? (
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            {node.properties.subtitle}
+          </p>
+        ) : null}
       </div>
     </div>
   )
@@ -192,6 +230,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   ref
 ): React.ReactElement {
   const { did } = useIdentity()
+  const blobService = useBlobService()
 
   const {
     data: canvas,
@@ -221,6 +260,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     () => new Map(documents.map((entry) => [entry.id, entry])),
     [documents]
   )
+  const { placeSourceObject, ingestDataTransfer } = useCanvasObjectIngestion({
+    doc,
+    blobService,
+    getViewportSnapshot: () =>
+      canvasRef.current?.getViewportSnapshot() ?? lastViewportSnapshotRef.current
+  })
 
   const selectedCanvasObject = useMemo(() => {
     if (!doc || selection.nodeIds.length !== 1) {
@@ -234,7 +279,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
     const sourceId = getCanvasShellSourceId(node)
     const linkedDocument = sourceId ? documentMap.get(sourceId) : undefined
-    const displayType = getCanvasShellDisplayType(node, linkedDocument)
+    const displayType = getCanvasViewDisplayType(node, linkedDocument)
     const sourceType = getCanvasShellSourceType(node, linkedDocument)
     const title =
       node.alias ?? linkedDocument?.title ?? (node.properties.title as string) ?? 'Untitled'
@@ -274,12 +319,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     }
   }, [doc])
 
-  const addLinkedDocumentNode = useCallback(
+  const placeLinkedDocumentNode = useCallback(
     (document: LinkedDocumentItem): boolean => {
-      if (!doc || document.type === 'canvas') return false
+      if (document.type === 'canvas') {
+        return false
+      }
 
-      const viewport = canvasRef.current?.getViewportSnapshot() ?? lastViewportSnapshotRef.current
-      const nodesMap = doc.getMap<CanvasNode>('nodes')
       const canvasKind = document.canvasKind ?? document.type
       const properties =
         canvasKind === 'note'
@@ -288,28 +333,19 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
               title: document.title
             }
           : { title: document.title }
-      const placement =
-        canvasKind === 'note'
-          ? getCanvasShellNotePlacement(viewport)
-          : getLinkedDocumentPlacement(viewport, document.type)
-      const linkedNode = createNode(canvasKind, placement, properties)
 
-      linkedNode.sourceNodeId = document.id
-      linkedNode.sourceSchemaId =
-        document.type === 'page' ? PageSchema._schemaId : DatabaseSchema._schemaId
-
-      nodesMap.set(linkedNode.id, linkedNode)
-      return true
+      return Boolean(
+        placeSourceObject({
+          objectKind: canvasKind,
+          sourceNodeId: document.id,
+          sourceSchemaId:
+            document.type === 'page' ? PageSchema._schemaId : DatabaseSchema._schemaId,
+          title: document.title,
+          properties
+        })
+      )
     },
-    [doc]
-  )
-
-  const addCanvasNote = useCallback(
-    (document: LinkedDocumentItem): boolean => {
-      if (document.type !== 'page') return false
-      return addLinkedDocumentNode({ ...document, canvasKind: 'note' })
-    },
-    [addLinkedDocumentNode]
+    [placeSourceObject]
   )
 
   useEffect(() => {
@@ -317,10 +353,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       return
     }
 
-    const inserted =
-      pendingInsert.document.canvasKind === 'note'
-        ? addCanvasNote(pendingInsert.document)
-        : addLinkedDocumentNode(pendingInsert.document)
+    const inserted = placeLinkedDocumentNode(pendingInsert.document)
 
     if (!inserted) {
       return
@@ -328,7 +361,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
     handledInsertIdsRef.current.add(pendingInsert.requestId)
     onPendingInsertConsumed?.(pendingInsert.requestId)
-  }, [addCanvasNote, addLinkedDocumentNode, onPendingInsertConsumed, pendingInsert])
+  }, [onPendingInsertConsumed, pendingInsert, placeLinkedDocumentNode])
 
   const focusLinkedDocument = useCallback(
     (linkedDocumentId: string): ViewportSnapshot | null => {
@@ -392,7 +425,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       if (mode === 'peek') {
         const didFit = fitSelection()
 
-        if (selectedCanvasObject.sourceId) {
+        if (
+          selectedCanvasObject.sourceId &&
+          (selectedCanvasObject.displayType === 'page' ||
+            selectedCanvasObject.displayType === 'database' ||
+            selectedCanvasObject.displayType === 'note')
+        ) {
           focusSelectionSurface(selectedCanvasObject.sourceId, selectedCanvasObject.displayType)
         }
 
@@ -407,6 +445,39 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       return true
     },
     [fitSelection, focusSelectionSurface, onOpenDocument, selectedCanvasObject]
+  )
+
+  const handleSurfaceDrop = useCallback(
+    (
+      event: React.DragEvent<HTMLDivElement>,
+      context: {
+        screenToCanvas: (clientX: number, clientY: number) => { x: number; y: number }
+      }
+    ) => {
+      void ingestDataTransfer(event.dataTransfer, {
+        canvasPoint: context.screenToCanvas(event.clientX, event.clientY)
+      })
+    },
+    [ingestDataTransfer]
+  )
+
+  const handleSurfacePaste = useCallback(
+    (
+      event: React.ClipboardEvent<HTMLDivElement>,
+      _context: {
+        screenToCanvas: (clientX: number, clientY: number) => { x: number; y: number }
+      }
+    ) => {
+      const payloads = extractCanvasIngressPayloads(event.clipboardData)
+      const hasMeaningfulPaste = payloads.some((payload) => payload.kind !== 'text')
+      if (!hasMeaningfulPaste) {
+        return
+      }
+
+      event.preventDefault()
+      void ingestDataTransfer(event.clipboardData)
+    },
+    [ingestDataTransfer]
   )
 
   const toggleShortcutHelp = useCallback((open?: boolean) => {
@@ -503,7 +574,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           >
             <span className="truncate px-2 text-sm text-foreground">
               {selectedCanvasObject
-                ? `${selectedCanvasObject.displayType === 'note' ? 'Note' : selectedCanvasObject.displayType === 'database' ? 'Database' : 'Page'} · ${selectedCanvasObject.title}`
+                ? `${
+                    selectedCanvasObject.displayType === 'note'
+                      ? 'Note'
+                      : selectedCanvasObject.displayType === 'database'
+                        ? 'Database'
+                        : selectedCanvasObject.displayType === 'external-reference'
+                          ? 'Link'
+                          : selectedCanvasObject.displayType === 'media'
+                            ? 'Media'
+                            : 'Page'
+                  } · ${selectedCanvasObject.title}`
                 : `${selection.nodeIds.length} selected`}
             </span>
 
@@ -518,25 +599,32 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                   data-canvas-selection-action="peek"
                 >
                   <Eye size={12} />
-                  {selectedCanvasObject.displayType === 'database' ? 'Peek' : 'Edit'}
+                  {selectedCanvasObject.displayType === 'database'
+                    ? 'Peek'
+                    : selectedCanvasObject.displayType === 'external-reference' ||
+                        selectedCanvasObject.displayType === 'media'
+                      ? 'Center'
+                      : 'Edit'}
                   <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                     Enter
                   </span>
                 </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => {
-                    void openSelection('focus')
-                  }}
-                  data-canvas-selection-action="focus"
-                >
-                  <Command size={12} />
-                  Open
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                    Mod+Enter
-                  </span>
-                </button>
+                {selectedCanvasObject.sourceId && selectedCanvasObject.sourceType ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    onClick={() => {
+                      void openSelection('focus')
+                    }}
+                    data-canvas-selection-action="focus"
+                  >
+                    <Command size={12} />
+                    Open
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Mod+Enter
+                    </span>
+                  </button>
+                ) : null}
               </>
             ) : null}
 
@@ -638,6 +726,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           onOpenSelection={openSelection}
           onToggleShortcutHelp={toggleShortcutHelp}
           onDismissTransientUi={handleDismissTransientUi}
+          onSurfaceDrop={handleSurfaceDrop}
+          onSurfacePaste={handleSurfacePaste}
           navigationToolsStyle={{
             bottom: 24,
             right: 24,
@@ -650,7 +740,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           renderNode={(node, context) => {
             const sourceNodeId = getCanvasShellSourceId(node)
             const linkedDocument = sourceNodeId ? documentMap.get(sourceNodeId) : undefined
-            const displayType = getCanvasShellDisplayType(node, linkedDocument)
+            const displayType = getCanvasViewDisplayType(node, linkedDocument)
 
             if (sourceNodeId && shouldActivateInlinePageSurface(node, context, linkedDocument)) {
               return (
@@ -676,7 +766,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
               )
             }
 
-            if (shouldRenderCanvasShellCard(node, linkedDocument)) {
+            if (
+              node.type === 'external-reference' ||
+              node.type === 'media' ||
+              shouldRenderCanvasShellCard(node, linkedDocument)
+            ) {
               return renderNodeCard(node, linkedDocument)
             }
             return undefined

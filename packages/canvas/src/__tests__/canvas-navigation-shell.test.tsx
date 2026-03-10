@@ -189,6 +189,33 @@ describe('Canvas navigation shell', () => {
     })
   })
 
+  it('provides drop callbacks with a surface coordinate transformer', () => {
+    mockUseCanvas.mockReturnValue(createCanvasMock())
+    const onSurfaceDrop = vi.fn()
+
+    render(<Canvas doc={new Y.Doc()} onSurfaceDrop={onSurfaceDrop} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    expect(surface).toBeTruthy()
+
+    fireEvent.drop(surface as HTMLElement, {
+      clientX: 400,
+      clientY: 300,
+      dataTransfer: {
+        files: [],
+        getData: () => ''
+      }
+    })
+
+    expect(onSurfaceDrop).toHaveBeenCalledTimes(1)
+    const [, context] = onSurfaceDrop.mock.calls[0] as [
+      React.DragEvent<HTMLDivElement>,
+      { screenToCanvas: (clientX: number, clientY: number) => { x: number; y: number } }
+    ]
+
+    expect(context.screenToCanvas(400, 300)).toEqual({ x: 100, y: 80 })
+  })
+
   it('passes render context to full-detail node renderers', () => {
     const node = {
       id: 'page-1',

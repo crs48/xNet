@@ -46,6 +46,31 @@ export type {
 
 export { DEFAULT_CANVAS_CONFIG } from './types'
 
+export {
+  CANVAS_INTERNAL_NODE_MIME,
+  serializeCanvasInternalNodeDragData,
+  parseCanvasInternalNodeDragData,
+  normalizeExternalReferenceUrl,
+  describeExternalReference,
+  inferMediaKind,
+  getMediaRect,
+  readImageDimensions,
+  getCanvasObjectKindFromSchema,
+  resolveCanvasPlacementRect,
+  createSourceBackedCanvasNode,
+  extractCanvasIngressPayloads
+} from './ingestion'
+export type {
+  CanvasViewportSnapshot,
+  CanvasInternalNodeDragData,
+  CanvasIngressPayload,
+  CanvasExternalReferenceProvider,
+  CanvasExternalReferenceKind,
+  CanvasExternalReferenceDescriptor,
+  CanvasMediaKind,
+  CanvasSourceBackedNodeInput
+} from './ingestion'
+
 // Rendering layers
 export {
   WebGLGridLayer,
@@ -134,6 +159,7 @@ export type {
   CanvasProps,
   CanvasHandle,
   CanvasSelectionSnapshot,
+  CanvasSurfaceEventContext,
   CanvasRemoteUser,
   CanvasNodeRenderContext
 } from './renderer/Canvas'
@@ -204,6 +230,13 @@ export type { UseCursorTrackingOptions } from './hooks/useCursorTracking'
 // Navigation hooks
 export { useCanvasKeyboard } from './hooks/useCanvasKeyboard'
 export type { UseCanvasKeyboardOptions } from './hooks/useCanvasKeyboard'
+
+export { useCanvasObjectIngestion } from './hooks/useCanvasObjectIngestion'
+export type {
+  UseCanvasObjectIngestionOptions,
+  PlaceCanvasSourceObjectInput,
+  CanvasIngestionResult
+} from './hooks/useCanvasObjectIngestion'
 
 export { useSpacePan } from './hooks/useSpacePan'
 export type { UseSpacePanOptions } from './hooks/useSpacePan'

@@ -61,11 +61,18 @@ export interface CanvasHandle {
   setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) => void
   /** Clear the current selection */
   clearSelection: () => void
+  /** Convert a client-space point to canvas coordinates */
+  screenToCanvas: (clientX: number, clientY: number) => Point
 }
 
 export interface CanvasSelectionSnapshot {
   nodeIds: string[]
   edgeIds: string[]
+}
+
+export interface CanvasSurfaceEventContext {
+  viewportSnapshot: { x: number; y: number; zoom: number }
+  screenToCanvas: (clientX: number, clientY: number) => Point
 }
 
 export interface CanvasProps {
@@ -91,6 +98,18 @@ export interface CanvasProps {
   onToggleShortcutHelp?: () => void
   /** Callback when transient canvas UI should be dismissed before clearing selection */
   onDismissTransientUi?: () => boolean | void
+  /** Callback when content is dropped on the canvas surface */
+  onSurfaceDrop?: (
+    event: React.DragEvent<HTMLDivElement>,
+    context: CanvasSurfaceEventContext
+  ) => void
+  /** Callback when the user pastes content into the focused canvas surface */
+  onSurfacePaste?: (
+    event: React.ClipboardEvent<HTMLDivElement>,
+    context: CanvasSurfaceEventContext
+  ) => void
+  /** Callback during drag-over for custom drop affordances */
+  onSurfaceDragOver?: (event: React.DragEvent<HTMLDivElement>) => void
   /** Yjs Awareness instance for presence (optional) */
   awareness?: AwarenessLike | null
   /** CSS class name */
@@ -219,6 +238,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onOpenSelection,
     onToggleShortcutHelp,
     onDismissTransientUi,
+    onSurfaceDrop,
+    onSurfacePaste,
+    onSurfaceDragOver,
     awareness,
     className,
     style,
@@ -282,6 +304,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     zoomAt
   } = canvas
 
+  const clientToCanvas = useCallback(
+    (clientX: number, clientY: number): Point => {
+      const container = containerRef.current
+      if (!container) {
+        return { x: viewport.x, y: viewport.y }
+      }
+
+      const rect = container.getBoundingClientRect()
+      return viewport.screenToCanvas(clientX - rect.left, clientY - rect.top)
+    },
+    [viewport]
+  )
+
   // Expose imperative methods via ref
   useImperativeHandle(
     ref,
@@ -292,9 +327,18 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       getViewportSnapshot: () => canvas.getViewportSnapshot(),
       setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) =>
         canvas.setViewportSnapshot(snapshot),
-      clearSelection: () => clearSelection()
+      clearSelection: () => clearSelection(),
+      screenToCanvas: (clientX: number, clientY: number) => clientToCanvas(clientX, clientY)
     }),
-    [canvas, clearSelection]
+    [canvas, clearSelection, clientToCanvas]
+  )
+
+  const createSurfaceEventContext = useCallback(
+    (): CanvasSurfaceEventContext => ({
+      viewportSnapshot: canvas.getViewportSnapshot(),
+      screenToCanvas: clientToCanvas
+    }),
+    [canvas, clientToCanvas]
   )
 
   // === Presence: track remote users' selected nodes ===
@@ -431,6 +475,41 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       window.addEventListener('mouseup', handleMouseUp)
     },
     [clearSelection, onBackgroundClick, pan]
+  )
+
+  const handleSurfaceDragOver = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (onSurfaceDrop) {
+        event.preventDefault()
+      }
+
+      onSurfaceDragOver?.(event)
+    },
+    [onSurfaceDrop, onSurfaceDragOver]
+  )
+
+  const handleSurfaceDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!onSurfaceDrop) {
+        return
+      }
+
+      event.preventDefault()
+      containerRef.current?.focus()
+      onSurfaceDrop(event, createSurfaceEventContext())
+    },
+    [createSurfaceEventContext, onSurfaceDrop]
+  )
+
+  const handleSurfacePaste = useCallback(
+    (event: React.ClipboardEvent<HTMLDivElement>) => {
+      if (!onSurfacePaste) {
+        return
+      }
+
+      onSurfacePaste(event, createSurfaceEventContext())
+    },
+    [createSurfaceEventContext, onSurfacePaste]
   )
 
   const handleStepSelection = useCallback(
@@ -723,6 +802,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-viewport-width={viewport.width}
       data-viewport-height={viewport.height}
       onMouseDown={handleMouseDown}
+      onDragOver={handleSurfaceDragOver}
+      onDrop={handleSurfaceDrop}
+      onPaste={handleSurfacePaste}
       tabIndex={0} // Make container focusable for keyboard shortcuts
     >
       {/* Grid background is rendered via WebGL/CSS layer (useWebGLGrid hook) */}

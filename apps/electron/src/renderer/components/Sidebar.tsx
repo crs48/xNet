@@ -7,6 +7,8 @@
 
 import type { Document } from '../lib/types'
 import type { SidebarContribution } from '@xnetjs/plugins'
+import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
+import { DatabaseSchema, PageSchema } from '@xnetjs/data'
 import * as icons from 'lucide-react'
 import {
   FileText,
@@ -45,6 +47,11 @@ const typeLabels: Record<Document['type'], string> = {
   database: 'Database',
   canvas: 'Canvas'
 }
+
+const schemaByType = {
+  page: PageSchema._schemaId,
+  database: DatabaseSchema._schemaId
+} as const
 
 /**
  * Render an icon from a string name or component
@@ -217,9 +224,28 @@ export function Sidebar({
                     <li
                       key={doc.id}
                       onClick={() => onSelect(doc.id)}
+                      draggable={doc.type !== 'canvas'}
+                      onDragStart={(event) => {
+                        if (doc.type === 'canvas') {
+                          return
+                        }
+
+                        event.dataTransfer.effectAllowed = 'copy'
+                        event.dataTransfer.setData(
+                          CANVAS_INTERNAL_NODE_MIME,
+                          serializeCanvasInternalNodeDragData({
+                            nodeId: doc.id,
+                            schemaId: schemaByType[doc.type],
+                            title: doc.title
+                          })
+                        )
+                        event.dataTransfer.setData('text/plain', doc.title)
+                      }}
                       className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer mb-0.5 group transition-colors ${
                         selectedId === doc.id ? 'bg-accent' : 'hover:bg-accent/50'
                       }`}
+                      data-sidebar-document-id={doc.id}
+                      data-sidebar-document-type={doc.type}
                     >
                       <Icon size={14} className="text-muted-foreground flex-shrink-0" />
                       <span className="text-sm truncate flex-1">{doc.title}</span>
