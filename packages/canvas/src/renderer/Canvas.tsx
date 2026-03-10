@@ -48,6 +48,8 @@ import {
   type AwarenessLike as CanvasPresenceAwarenessLike,
   type CanvasActivity
 } from '../presence'
+import { ensureCanvasDocMaps } from '../scene/doc-layout'
+import { getCanvasResolvedNodeKind } from '../scene/node-kind'
 import {
   createAlignmentUpdates,
   createDistributionUpdates,
@@ -143,6 +145,10 @@ export interface CanvasHandle {
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
   /** Wrap the current selection in a frame container */
   wrapSelectionInFrame: () => boolean
+  /** Undo the latest canvas-scene operation */
+  undo: () => boolean
+  /** Redo the latest canvas-scene operation */
+  redo: () => boolean
   /** Convert a client-space point to canvas coordinates */
   screenToCanvas: (clientX: number, clientY: number) => Point
 }
@@ -184,6 +190,10 @@ export interface CanvasProps {
   onCreateSelectionComment?: () => void
   /** Callback when transient canvas UI should be dismissed before clearing selection */
   onDismissTransientUi?: () => boolean | void
+  /** Callback when undo or redo should be handled by a parent runtime first */
+  onUndoRedoShortcut?: (direction: 'undo' | 'redo') => boolean
+  /** Callback when a scene mutation commits at an undo boundary */
+  onSceneMutation?: () => void
   /** Callback when content is dropped on the canvas surface */
   onSurfaceDrop?: (
     event: React.DragEvent<HTMLDivElement>,
@@ -241,8 +251,9 @@ export interface CanvasNodeRenderContext {
 
 function getCanvasAccessibleNodeLabel(node: CanvasNode): string {
   const title = node.alias ?? (node.properties.title as string) ?? 'Untitled'
+  const resolvedKind = getCanvasResolvedNodeKind(node)
 
-  switch (node.type) {
+  switch (resolvedKind) {
     case 'page':
       return `Page: ${title}${node.locked ? ', locked' : ''}`
     case 'database':
@@ -256,11 +267,24 @@ function getCanvasAccessibleNodeLabel(node: CanvasNode): string {
     case 'shape':
       return `Shape: ${title}${node.locked ? ', locked' : ''}`
     case 'frame':
-    case 'group':
       return `Frame: ${title}${node.locked ? ', locked' : ''}`
+    case 'group':
+      return `Group: ${title}${node.locked ? ', locked' : ''}`
     default:
       return `Canvas object: ${title}${node.locked ? ', locked' : ''}`
   }
+}
+
+function getUndoManagerStackDepth(
+  manager: Y.UndoManager | null,
+  stack: 'undoStack' | 'redoStack'
+): number {
+  if (!manager) {
+    return 0
+  }
+
+  const entries = (manager as unknown as Record<'undoStack' | 'redoStack', unknown[]>)[stack]
+  return Array.isArray(entries) ? entries.length : 0
 }
 
 /**
@@ -364,6 +388,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onEditSelectionAlias,
     onCreateSelectionComment,
     onDismissTransientUi,
+    onUndoRedoShortcut,
+    onSceneMutation,
     onSurfaceDrop,
     onSurfacePaste,
     onSurfaceDragOver,
@@ -398,6 +424,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
   const [lastAnnouncement, setLastAnnouncement] = useState('')
   const [remoteUsers, setRemoteUsers] = useState<CanvasRemoteUser[]>([])
+  const [sceneUndoDepth, setSceneUndoDepth] = useState(0)
+  const [sceneRedoDepth, setSceneRedoDepth] = useState(0)
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
   const selectionAnnouncementReadyRef = useRef(false)
   const selectionActivityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -436,11 +464,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const dragInitialPositions = useRef<Map<string, Point>>(new Map())
   // Track cumulative drag offset since drag started
   const dragCumulativeOffset = useRef<Point>({ x: 0, y: 0 })
+  const dragDidMutateRef = useRef(false)
   const resizeSessionRef = useRef<{
     nodeId: string
     handle: ResizeHandle
     initialPosition: CanvasNode['position']
   } | null>(null)
+  const resizeDidMutateRef = useRef(false)
 
   // Use canvas hook
   const canvas = useCanvas({ doc, config, initialViewport })
@@ -531,10 +561,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     (operation: () => boolean): boolean => {
       separateSceneUndoBoundary()
       const didApply = operation()
+      if (didApply) {
+        onSceneMutation?.()
+      }
       separateSceneUndoBoundary()
       return didApply
     },
-    [separateSceneUndoBoundary]
+    [onSceneMutation, separateSceneUndoBoundary]
   )
 
   const handleToggleSelectionLock = useCallback((): boolean => {
@@ -608,6 +641,29 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     })
   }, [canvas, runSceneOperation])
 
+  const runSceneUndo = useCallback((direction: 'undo' | 'redo'): boolean => {
+    const manager = undoManagerRef.current
+    if (!manager) {
+      return false
+    }
+
+    const stackDepth = getUndoManagerStackDepth(
+      manager,
+      direction === 'undo' ? 'undoStack' : 'redoStack'
+    )
+    if (stackDepth === 0) {
+      return false
+    }
+
+    if (direction === 'undo') {
+      manager.undo()
+      return true
+    }
+
+    manager.redo()
+    return true
+  }, [])
+
   // Expose imperative methods via ref
   useImperativeHandle(
     ref,
@@ -629,6 +685,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       shiftSelectionLayer: (direction: CanvasLayerDirection) =>
         handleShiftSelectionLayer(direction),
       wrapSelectionInFrame: () => handleWrapSelectionInFrame(),
+      undo: () => runSceneUndo('undo'),
+      redo: () => runSceneUndo('redo'),
       screenToCanvas: (clientX: number, clientY: number) => clientToCanvas(clientX, clientY)
     }),
     [
@@ -640,7 +698,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       handleShiftSelectionLayer,
       handleTidySelection,
       handleToggleSelectionLock,
-      handleWrapSelectionInFrame
+      handleWrapSelectionInFrame,
+      runSceneUndo
     ]
   )
 
@@ -1148,6 +1207,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         handle,
         initialPosition: { ...node.position }
       }
+      resizeDidMutateRef.current = false
       setPointerActivity('resizing')
     },
     [canvas.store, separateSceneUndoBoundary]
@@ -1182,6 +1242,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       )
 
       canvas.updateNodePositions([resizeUpdate])
+      resizeDidMutateRef.current = true
     },
     [canvas, viewport.zoom]
   )
@@ -1189,24 +1250,38 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const handleNodeResizeEnd = useCallback(() => {
     resizeSessionRef.current = null
     setPointerActivity('idle')
+    if (resizeDidMutateRef.current) {
+      onSceneMutation?.()
+    }
+    resizeDidMutateRef.current = false
     separateSceneUndoBoundary()
-  }, [separateSceneUndoBoundary])
+  }, [onSceneMutation, separateSceneUndoBoundary])
 
   // Handle keyboard shortcuts
   useEffect(() => {
-    const manager = new Y.UndoManager(
-      [doc.getMap('nodes'), doc.getMap('edges'), doc.getMap('metadata')],
-      {
-        captureTimeout: 300
-      }
-    )
+    const maps = ensureCanvasDocMaps(doc)
+    const manager = new Y.UndoManager([maps.objects, maps.connectors, maps.groups, maps.metadata], {
+      captureTimeout: 300
+    })
     undoManagerRef.current = manager
+    setSceneUndoDepth(getUndoManagerStackDepth(manager, 'undoStack'))
+    setSceneRedoDepth(getUndoManagerStackDepth(manager, 'redoStack'))
+
+    const syncUndoDepths = () => {
+      setSceneUndoDepth(getUndoManagerStackDepth(manager, 'undoStack'))
+      setSceneRedoDepth(getUndoManagerStackDepth(manager, 'redoStack'))
+    }
+
+    doc.on('afterTransaction', syncUndoDepths)
 
     return () => {
+      doc.off('afterTransaction', syncUndoDepths)
       manager.destroy()
       if (undoManagerRef.current === manager) {
         undoManagerRef.current = null
       }
+      setSceneUndoDepth(0)
+      setSceneRedoDepth(0)
     }
   }, [doc])
 
@@ -1224,8 +1299,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
       if (
         handleUndoRedoShortcut(e, container, activeElement, {
-          undo: () => undoManagerRef.current?.undo(),
-          redo: () => undoManagerRef.current?.redo()
+          undo: () => {
+            if (onUndoRedoShortcut?.('undo')) {
+              return
+            }
+
+            runSceneUndo('undo')
+          },
+          redo: () => {
+            if (onUndoRedoShortcut?.('redo')) {
+              return
+            }
+
+            runSceneUndo('redo')
+          }
         })
       ) {
         return
@@ -1239,7 +1326,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canvas])
+  }, [canvas, onUndoRedoShortcut, runSceneUndo])
 
   // Node event handlers
   const handleNodeSelect = useCallback(
@@ -1260,6 +1347,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
       dragInitialPositions.current.clear()
       dragCumulativeOffset.current = { x: 0, y: 0 }
+      dragDidMutateRef.current = false
 
       nodesToMove.forEach((nodeId) => {
         const node = canvas.store.getNode(nodeId)
@@ -1295,6 +1383,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       )
 
       applySelectionPositionUpdates(updates)
+      dragDidMutateRef.current = true
     },
     [applySelectionPositionUpdates, viewport.zoom]
   )
@@ -1305,9 +1394,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       dragInitialPositions.current.clear()
       dragCumulativeOffset.current = { x: 0, y: 0 }
       setPointerActivity('idle')
+      if (dragDidMutateRef.current) {
+        onSceneMutation?.()
+      }
+      dragDidMutateRef.current = false
       separateSceneUndoBoundary()
     },
-    [separateSceneUndoBoundary]
+    [onSceneMutation, separateSceneUndoBoundary]
   )
 
   const handleNodeDoubleClick = useCallback(
@@ -1626,6 +1719,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-canvas-focused-node-id={focusedNodeId ?? ''}
       data-canvas-last-announcement={lastAnnouncement}
       data-canvas-remote-user-count={remoteUsers.length}
+      data-canvas-scene-undo-depth={sceneUndoDepth}
+      data-canvas-scene-redo-depth={sceneRedoDepth}
       data-canvas-remote-cursor-count={remoteCursorIndicators.length}
       data-selection-bounds-width={selectionBounds?.width ?? 0}
       data-selection-bounds-height={selectionBounds?.height ?? 0}

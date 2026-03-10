@@ -1,7 +1,7 @@
 /**
  * Renderer entry point
  */
-import { seedCanvasPerformanceScene } from '@xnetjs/canvas'
+import { getCanvasObjectsMap, seedCanvasPerformanceScene } from '@xnetjs/canvas'
 import { BlobService, CanvasSchema } from '@xnetjs/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
@@ -178,7 +178,7 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
       }
 
       for (const [canvasId, doc] of liveDocs.entries()) {
-        const nodesMap = doc.getMap<{
+        const nodesMap = getCanvasObjectsMap<{
           id: string
           position: {
             x: number
@@ -186,7 +186,7 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
             width: number
             height: number
           }
-        }>('nodes')
+        }>(doc)
         const node = nodesMap.get(input.nodeId)
         if (!node) {
           continue
@@ -212,14 +212,14 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
 
     async getCanvasNodeRect(input) {
       for (const [canvasId, doc] of liveDocs.entries()) {
-        const nodesMap = doc.getMap<{
+        const nodesMap = getCanvasObjectsMap<{
           position: {
             x: number
             y: number
             width: number
             height: number
           }
-        }>('nodes')
+        }>(doc)
         const node = nodesMap.get(input.nodeId)
         if (!node) {
           continue
@@ -244,7 +244,7 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
       }
 
       for (const [canvasId, doc] of liveDocs.entries()) {
-        const nodesMap = doc.getMap('nodes')
+        const nodesMap = getCanvasObjectsMap(doc)
         if (!nodesMap.has(input.nodeId)) {
           continue
         }
@@ -352,7 +352,7 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
       }
 
       for (const [canvasId, doc] of liveDocs.entries()) {
-        const nodesMap = doc.getMap<{
+        const nodesMap = getCanvasObjectsMap<{
           id: string
           alias?: string
           position: {
@@ -362,7 +362,7 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
             height: number
           }
           properties: Record<string, unknown>
-        }>('nodes')
+        }>(doc)
         const sourceNode = nodesMap.get(input.nodeId)
         if (!sourceNode) {
           continue

@@ -5,9 +5,22 @@
  * The canvas document uses the schema system with document: 'yjs'.
  */
 
-import type { CanvasNode, CanvasEdge, CanvasNodePosition, CanvasNodeType } from './types'
+import type {
+  CanvasNode,
+  CanvasEdge,
+  CanvasNodePosition,
+  CanvasNodeType,
+  CanvasSceneNodeKind,
+  LegacyCanvasNodeType
+} from './types'
 import * as Y from 'yjs'
 import { normalizeCanvasEdgeBindings, getCanvasEdgeNodeIds } from './edges/bindings'
+import {
+  ensureCanvasDocMaps,
+  getCanvasConnectorsMap,
+  getCanvasMetadataMap,
+  getCanvasObjectsMap
+} from './scene/doc-layout'
 import { SpatialIndex, createSpatialIndex } from './spatial/index'
 
 type CanvasNodeChanges = Partial<Omit<CanvasNode, 'id'>>
@@ -24,8 +37,9 @@ function mergeNodeChanges(node: CanvasNode, changes: CanvasNodeChanges): CanvasN
 /**
  * Y.Doc structure for canvas:
  * - metadata: Y.Map (title, created, etc.)
- * - nodes: Y.Map<string, CanvasNode>
- * - edges: Y.Map<string, CanvasEdge>
+ * - objects: Y.Map<string, CanvasNode>
+ * - connectors: Y.Map<string, CanvasEdge>
+ * - groups: Y.Map<string, unknown> (reserved for future group metadata)
  * - viewport: Y.Map (shared viewport state - optional)
  */
 
@@ -61,9 +75,10 @@ export class CanvasStore {
 
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
-    this.nodesMap = ydoc.getMap('nodes')
-    this.edgesMap = ydoc.getMap('edges')
-    this.metaMap = ydoc.getMap('metadata')
+    const maps = ensureCanvasDocMaps(ydoc)
+    this.nodesMap = maps.objects
+    this.edgesMap = maps.connectors
+    this.metaMap = maps.metadata
     this.spatialIndex = createSpatialIndex()
     this.listeners = new Set()
 
@@ -499,14 +514,15 @@ export function createCanvasDoc(id: string, title = 'Untitled Canvas'): Y.Doc {
   const ydoc = new Y.Doc({ guid: id, gc: false })
 
   // Initialize metadata
-  const meta = ydoc.getMap('metadata')
+  const meta = getCanvasMetadataMap(ydoc)
   meta.set('title', title)
   meta.set('created', Date.now())
   meta.set('updated', Date.now())
 
   // Initialize empty maps
-  ydoc.getMap('nodes')
-  ydoc.getMap('edges')
+  getCanvasObjectsMap(ydoc)
+  getCanvasConnectorsMap(ydoc)
+  ensureCanvasDocMaps(ydoc)
 
   return ydoc
 }
@@ -526,15 +542,37 @@ export function generateEdgeId(): string {
 }
 
 /**
- * Create a new canvas node
+ * Create a new Canvas V2 scene node.
  */
 export function createNode(
-  type: CanvasNodeType,
+  type: CanvasSceneNodeKind,
   position: Partial<CanvasNodePosition> = {},
   properties: Record<string, unknown> = {}
 ): CanvasNode {
-  const defaultSize = getDefaultNodeSize(type)
+  const defaultSize = getDefaultSceneNodeSize(type)
 
+  return createCanvasNode(type, position, properties, defaultSize)
+}
+
+/**
+ * Create a legacy canvas node for isolated legacy stories/tests.
+ */
+export function createLegacyNode(
+  type: LegacyCanvasNodeType,
+  position: Partial<CanvasNodePosition> = {},
+  properties: Record<string, unknown> = {}
+): CanvasNode {
+  const defaultSize = getDefaultLegacyNodeSize(type)
+
+  return createCanvasNode(type, position, properties, defaultSize)
+}
+
+function createCanvasNode(
+  type: CanvasNodeType,
+  position: Partial<CanvasNodePosition>,
+  properties: Record<string, unknown>,
+  defaultSize: { width: number; height: number }
+): CanvasNode {
   return {
     id: generateNodeId(),
     type,
@@ -550,7 +588,7 @@ export function createNode(
   }
 }
 
-function getDefaultNodeSize(type: CanvasNodeType): { width: number; height: number } {
+function getDefaultSceneNodeSize(type: CanvasSceneNodeKind): { width: number; height: number } {
   switch (type) {
     case 'page':
       return { width: 360, height: 220 }
@@ -565,6 +603,12 @@ function getDefaultNodeSize(type: CanvasNodeType): { width: number; height: numb
     case 'group':
       return { width: 320, height: 220 }
     case 'shape':
+      return { width: 200, height: 100 }
+  }
+}
+
+function getDefaultLegacyNodeSize(type: LegacyCanvasNodeType): { width: number; height: number } {
+  switch (type) {
     case 'card':
     case 'frame':
     case 'image':

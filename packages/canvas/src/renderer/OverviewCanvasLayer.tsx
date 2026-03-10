@@ -8,6 +8,7 @@
 import type { Viewport } from '../spatial'
 import type { CanvasNode } from '../types'
 import React, { useEffect, useMemo, useRef } from 'react'
+import { getCanvasResolvedNodeKind } from '../scene/node-kind'
 
 export interface OverviewCanvasLayerProps {
   nodes: CanvasNode[]
@@ -15,7 +16,7 @@ export interface OverviewCanvasLayerProps {
 }
 
 function getNodeFill(node: CanvasNode): string {
-  switch (node.type) {
+  switch (getCanvasResolvedNodeKind(node)) {
     case 'page':
       return 'rgba(59, 130, 246, 0.18)'
     case 'database':
@@ -38,7 +39,7 @@ function getNodeFill(node: CanvasNode): string {
 }
 
 function getNodeStroke(node: CanvasNode): string {
-  switch (node.type) {
+  switch (getCanvasResolvedNodeKind(node)) {
     case 'page':
       return 'rgba(37, 99, 235, 0.55)'
     case 'database':

@@ -12,11 +12,12 @@ import type { ChunkKey } from './config'
 import type { ChunkData, CrossChunkEdge } from './types'
 import type { CanvasNode, CanvasEdge, CanvasNodePosition } from '../types'
 import * as Y from 'yjs'
+import { CANVAS_CONNECTORS_MAP_KEY, CANVAS_OBJECTS_MAP_KEY } from '../scene/doc-layout'
 
 /**
  * Y.Doc structure for chunked canvas:
  * - metadata: Y.Map (title, created, etc.)
- * - chunks: Y.Map<ChunkKey, Y.Map> (each chunk contains nodes and edges)
+ * - chunks: Y.Map<ChunkKey, Y.Map> (each chunk contains objects and connectors)
  * - crossEdges: Y.Map<edgeId, CrossChunkEdge>
  * - index: Y.Map<nodeId, ChunkKey> (node-to-chunk lookup)
  */
@@ -61,8 +62,8 @@ export class ChunkedCanvasStore {
       return { nodes: [], edges: [] }
     }
 
-    const nodesMap = chunkMap.get('nodes') as Y.Map<unknown> | undefined
-    const edgesMap = chunkMap.get('edges') as Y.Map<unknown> | undefined
+    const nodesMap = chunkMap.get(CANVAS_OBJECTS_MAP_KEY) as Y.Map<unknown> | undefined
+    const edgesMap = chunkMap.get(CANVAS_CONNECTORS_MAP_KEY) as Y.Map<unknown> | undefined
 
     const nodes: CanvasNode[] = []
     const edges: CanvasEdge[] = []
@@ -101,8 +102,8 @@ export class ChunkedCanvasStore {
     let chunk = this.chunks.get(chunkKey)
     if (!chunk) {
       chunk = new Y.Map()
-      chunk.set('nodes', new Y.Map())
-      chunk.set('edges', new Y.Map())
+      chunk.set(CANVAS_OBJECTS_MAP_KEY, new Y.Map())
+      chunk.set(CANVAS_CONNECTORS_MAP_KEY, new Y.Map())
       this.chunks.set(chunkKey, chunk)
     }
     return chunk
@@ -116,7 +117,7 @@ export class ChunkedCanvasStore {
   addNode(node: CanvasNode, chunkKey: ChunkKey): void {
     this.ydoc.transact(() => {
       const chunk = this.ensureChunk(chunkKey)
-      const nodes = chunk.get('nodes') as Y.Map<unknown>
+      const nodes = chunk.get(CANVAS_OBJECTS_MAP_KEY) as Y.Map<unknown>
       nodes.set(node.id, node)
       this.index.set(node.id, chunkKey)
     })
@@ -139,7 +140,7 @@ export class ChunkedCanvasStore {
     const chunk = this.chunks.get(chunkKey as ChunkKey)
     if (!chunk) return
 
-    const nodes = chunk.get('nodes') as Y.Map<unknown>
+    const nodes = chunk.get(CANVAS_OBJECTS_MAP_KEY) as Y.Map<unknown>
     const node = nodes.get(nodeId) as CanvasNode
     if (!node) return
 
@@ -162,7 +163,7 @@ export class ChunkedCanvasStore {
       const oldChunk = this.chunks.get(fromKey)
       if (!oldChunk) return
 
-      const oldNodes = oldChunk.get('nodes') as Y.Map<unknown>
+      const oldNodes = oldChunk.get(CANVAS_OBJECTS_MAP_KEY) as Y.Map<unknown>
       const node = oldNodes.get(nodeId) as CanvasNode
       if (!node) return
 
@@ -171,7 +172,7 @@ export class ChunkedCanvasStore {
 
       // Add to new chunk
       const newChunk = this.ensureChunk(toKey)
-      const newNodes = newChunk.get('nodes') as Y.Map<unknown>
+      const newNodes = newChunk.get(CANVAS_OBJECTS_MAP_KEY) as Y.Map<unknown>
       newNodes.set(nodeId, { ...node, position: newPosition })
 
       // Update index
@@ -189,7 +190,7 @@ export class ChunkedCanvasStore {
     this.ydoc.transact(() => {
       const chunk = this.chunks.get(chunkKey as ChunkKey)
       if (chunk) {
-        const nodes = chunk.get('nodes') as Y.Map<unknown>
+        const nodes = chunk.get(CANVAS_OBJECTS_MAP_KEY) as Y.Map<unknown>
         nodes.delete(nodeId)
       }
       this.index.delete(nodeId)
@@ -209,7 +210,7 @@ export class ChunkedCanvasStore {
     const chunk = this.chunks.get(chunkKey as ChunkKey)
     if (!chunk) return null
 
-    const nodes = chunk.get('nodes') as Y.Map<unknown>
+    const nodes = chunk.get(CANVAS_OBJECTS_MAP_KEY) as Y.Map<unknown>
     return (nodes.get(nodeId) as CanvasNode) ?? null
   }
 
@@ -225,7 +226,7 @@ export class ChunkedCanvasStore {
         // Same chunk edge - store with the chunk
         const chunk = this.chunks.get(sourceChunk)
         if (chunk) {
-          const edges = chunk.get('edges') as Y.Map<unknown>
+          const edges = chunk.get(CANVAS_CONNECTORS_MAP_KEY) as Y.Map<unknown>
           edges.set(edge.id, edge)
         }
       } else {
@@ -252,7 +253,7 @@ export class ChunkedCanvasStore {
 
       // Search in all chunks
       this.chunks.forEach((chunk) => {
-        const edges = chunk.get('edges') as Y.Map<unknown>
+        const edges = chunk.get(CANVAS_CONNECTORS_MAP_KEY) as Y.Map<unknown>
         if (edges.has(edgeId)) {
           edges.delete(edgeId)
         }
@@ -278,7 +279,7 @@ export class ChunkedCanvasStore {
 
     // Remove in-chunk edges involving this node
     this.chunks.forEach((chunk) => {
-      const edges = chunk.get('edges') as Y.Map<unknown>
+      const edges = chunk.get(CANVAS_CONNECTORS_MAP_KEY) as Y.Map<unknown>
       const edgesToRemove: string[] = []
       edges.forEach((value, key) => {
         const edge = value as CanvasEdge
@@ -308,7 +309,7 @@ export class ChunkedCanvasStore {
       } else {
         // Search in chunks
         this.chunks.forEach((chunk) => {
-          const edges = chunk.get('edges') as Y.Map<unknown>
+          const edges = chunk.get(CANVAS_CONNECTORS_MAP_KEY) as Y.Map<unknown>
           if (edges.has(edgeId)) {
             edge = edges.get(edgeId) as CanvasEdge
             edges.delete(edgeId)
@@ -322,7 +323,7 @@ export class ChunkedCanvasStore {
       if (sourceChunk === targetChunk) {
         // Now a same-chunk edge
         const chunk = this.ensureChunk(sourceChunk)
-        const edges = chunk.get('edges') as Y.Map<unknown>
+        const edges = chunk.get(CANVAS_CONNECTORS_MAP_KEY) as Y.Map<unknown>
         edges.set(edgeId, edge)
       } else {
         // Now a cross-chunk edge
@@ -402,7 +403,7 @@ export class ChunkedCanvasStore {
   getStats(): { chunkCount: number; nodeCount: number; crossEdgeCount: number } {
     let nodeCount = 0
     this.chunks.forEach((chunk) => {
-      const nodes = chunk.get('nodes') as Y.Map<unknown>
+      const nodes = chunk.get(CANVAS_OBJECTS_MAP_KEY) as Y.Map<unknown>
       nodeCount += nodes.size
     })
 

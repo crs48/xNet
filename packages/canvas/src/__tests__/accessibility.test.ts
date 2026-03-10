@@ -236,7 +236,7 @@ describe('Announcer', () => {
     it('announces node focus', () => {
       const announcer = new Announcer()
       expect(() => {
-        announcer.announceNodeFocus({ type: 'card', properties: { title: 'My Card' } })
+        announcer.announceNodeFocus({ type: 'page', properties: { title: 'My Page' } })
       }).not.toThrow()
       announcer.destroy()
     })

@@ -1,7 +1,7 @@
 /**
  * xNet Web - Entry Point
  */
-import { seedCanvasPerformanceScene } from '@xnetjs/canvas'
+import { getCanvasObjectsMap, seedCanvasPerformanceScene } from '@xnetjs/canvas'
 import { CanvasSchema } from '@xnetjs/data'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
@@ -124,7 +124,7 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
       }
 
       for (const [canvasId, doc] of liveDocs.entries()) {
-        const nodesMap = doc.getMap<{
+        const nodesMap = getCanvasObjectsMap<{
           id: string
           position: {
             x: number
@@ -132,7 +132,7 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
             width: number
             height: number
           }
-        }>('nodes')
+        }>(doc)
         const node = nodesMap.get(input.nodeId)
         if (!node) {
           continue
@@ -158,14 +158,14 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
 
     async getCanvasNodeRect(input) {
       for (const [canvasId, doc] of liveDocs.entries()) {
-        const nodesMap = doc.getMap<{
+        const nodesMap = getCanvasObjectsMap<{
           position: {
             x: number
             y: number
             width: number
             height: number
           }
-        }>('nodes')
+        }>(doc)
         const node = nodesMap.get(input.nodeId)
         if (!node) {
           continue
@@ -190,7 +190,7 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
       }
 
       for (const [canvasId, doc] of liveDocs.entries()) {
-        const nodesMap = doc.getMap('nodes')
+        const nodesMap = getCanvasObjectsMap(doc)
         if (!nodesMap.has(input.nodeId)) {
           continue
         }

@@ -17,6 +17,7 @@ import {
   Canvas,
   createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
+  getCanvasObjectsMap,
   getSelectionBounds,
   useCanvasThemeTokens,
   useCanvasObjectIngestion
@@ -30,7 +31,8 @@ import {
   type CanvasObjectAnchor
 } from '@xnetjs/data'
 import { useBlobService } from '@xnetjs/editor/react'
-import { useComments, useNode, useIdentity } from '@xnetjs/react'
+import { useComments, useDatabaseDoc, useIdentity, useNode, useUndo } from '@xnetjs/react'
+import { useUndoScope } from '@xnetjs/react/internal'
 import {
   Command,
   Database,
@@ -51,6 +53,7 @@ import React, {
   useRef,
   useState
 } from 'react'
+import * as Y from 'yjs'
 import {
   useCanvasSourceReferences,
   type CanvasSourceReference
@@ -83,6 +86,8 @@ type CanvasPeekState = {
 
 type CanvasSelectionPanel = 'alias' | 'references' | 'comment' | null
 
+type CanvasUndoDomain = 'scene' | 'source-node' | 'source-scope' | 'source-document'
+
 type CanvasViewProps = {
   docId: string
   documents?: LinkedDocumentItem[]
@@ -97,6 +102,24 @@ type CanvasViewProps = {
   onCreateDatabase?: () => void
   onCreateNote?: () => void
   onCommandStateChange?: (state: CanvasViewCommandState) => void
+}
+
+function getYjsStackDepth(manager: Y.UndoManager | null, stack: 'undoStack' | 'redoStack'): number {
+  if (!manager) {
+    return 0
+  }
+
+  const entries = (manager as unknown as Record<'undoStack' | 'redoStack', unknown[]>)[stack]
+  return Array.isArray(entries) ? entries.length : 0
+}
+
+function createUndoOrderMap(): Record<CanvasUndoDomain, number[]> {
+  return {
+    scene: [],
+    'source-node': [],
+    'source-scope': [],
+    'source-document': []
+  }
 }
 
 export type CanvasViewCommandState = {
@@ -401,6 +424,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   const aliasInputRef = useRef<HTMLInputElement | null>(null)
   const [commentDraft, setCommentDraft] = useState('')
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null)
+  const selectedDatabaseUndoManagerRef = useRef<Y.UndoManager | null>(null)
+  const undoOrderSequenceRef = useRef(0)
+  const undoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
+  const redoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
+  const [activeUndoDomain, setActiveUndoDomain] = useState<CanvasUndoDomain>('scene')
   const documentMap = useMemo(
     () => new Map(documents.map((entry) => [entry.id, entry])),
     [documents]
@@ -432,7 +460,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       return null
     }
 
-    const node = doc.getMap<CanvasNode>('nodes').get(selection.nodeIds[0])
+    const node = getCanvasObjectsMap<CanvasNode>(doc).get(selection.nodeIds[0])
     if (!node) {
       return null
     }
@@ -471,7 +499,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       return []
     }
 
-    const nodes = doc.getMap<CanvasNode>('nodes')
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
     return selection.nodeIds
       .map((nodeId) => nodes.get(nodeId))
       .filter((node): node is CanvasNode => node !== undefined)
@@ -479,6 +507,42 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
   const selectionAllLocked = selectedNodes.length > 0 && selectedNodes.every((node) => node.locked)
   const selectionAnyLocked = selectedNodes.some((node) => node.locked)
+  const selectedSourceNodeIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          selectedNodes
+            .map((node) => getCanvasShellSourceId(node))
+            .filter((sourceId): sourceId is string => typeof sourceId === 'string')
+        )
+      ),
+    [selectedNodes]
+  )
+  const selectedDatabaseSourceId =
+    selectedCanvasObject?.displayType === 'database' ? (selectedCanvasObject.sourceId ?? '') : ''
+  const { doc: selectedDatabaseDoc } = useDatabaseDoc(selectedDatabaseSourceId)
+  const {
+    undo: undoSelectedSource,
+    redo: redoSelectedSource,
+    canUndo: canUndoSelectedSource,
+    canRedo: canRedoSelectedSource
+  } = useUndo(selectedSourceNodeIds.length === 1 ? selectedSourceNodeIds[0] : null, {
+    localDID: did ?? null,
+    options: {
+      mergeInterval: 750
+    }
+  })
+  const {
+    undo: undoSelectedSourceScope,
+    redo: redoSelectedSourceScope,
+    canUndo: canUndoSelectedSourceScope,
+    canRedo: canRedoSelectedSourceScope
+  } = useUndoScope(selectedSourceNodeIds, {
+    localDID: did ?? null,
+    options: {
+      mergeInterval: 750
+    }
+  })
 
   const currentCanvasSourceReferences = useMemo(() => {
     void sceneRevision
@@ -488,7 +552,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     }
 
     const refs: CanvasSourceReference[] = []
-    const nodesMap = doc.getMap<CanvasNode>('nodes')
+    const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
 
     nodesMap.forEach((value: unknown, key: string) => {
       const node = value as CanvasNode
@@ -554,6 +618,33 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       }
     }).length
   }, [canvasObjectCommentThreads, selectedCanvasObject])
+  const recordUndoBoundary = useCallback((domain: CanvasUndoDomain) => {
+    undoOrderSequenceRef.current += 1
+    undoOrderRef.current[domain].push(undoOrderSequenceRef.current)
+    redoOrderRef.current = createUndoOrderMap()
+    setActiveUndoDomain(domain)
+  }, [])
+  const getUndoBoundaryOrder = useCallback(
+    (domain: CanvasUndoDomain, direction: 'undo' | 'redo'): number => {
+      const stack =
+        direction === 'undo' ? undoOrderRef.current[domain] : redoOrderRef.current[domain]
+      return stack.length > 0 ? (stack.at(-1) ?? -1) : -1
+    },
+    []
+  )
+  const applyUndoBoundary = useCallback((domain: CanvasUndoDomain, direction: 'undo' | 'redo') => {
+    const sourceStack =
+      direction === 'undo' ? undoOrderRef.current[domain] : redoOrderRef.current[domain]
+    const targetStack =
+      direction === 'undo' ? redoOrderRef.current[domain] : undoOrderRef.current[domain]
+    const boundaryOrder = sourceStack.pop()
+
+    if (typeof boundaryOrder === 'number') {
+      targetStack.push(boundaryOrder)
+    }
+
+    setActiveUndoDomain(domain)
+  }, [])
   const canvasPresenceIntent = useMemo(() => {
     if (peekState) {
       return {
@@ -594,6 +685,24 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       ? selectedCanvasObject
       : null
   }, [peekState, selectedCanvasObject])
+
+  useEffect(() => {
+    if (!selectedDatabaseDoc) {
+      selectedDatabaseUndoManagerRef.current = null
+      return
+    }
+
+    const dataMap = selectedDatabaseDoc.getMap('data')
+    const manager = new Y.UndoManager([dataMap], { captureTimeout: 300 })
+    selectedDatabaseUndoManagerRef.current = manager
+
+    return () => {
+      manager.destroy()
+      if (selectedDatabaseUndoManagerRef.current === manager) {
+        selectedDatabaseUndoManagerRef.current = null
+      }
+    }
+  }, [selectedDatabaseDoc])
 
   useEffect(() => {
     if (!doc) return
@@ -641,7 +750,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   useEffect(() => {
     if (!doc) return
 
-    const nodesMap = doc.getMap<CanvasNode>('nodes')
+    const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
     const syncHasNodes = () => {
       setHasNodes(nodesMap.size > 0)
       setSceneRevision((current) => current + 1)
@@ -687,7 +796,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             }
           : { title: document.title }
 
-      return Boolean(
+      const placed = Boolean(
         placeSourceObject({
           objectKind: canvasKind,
           sourceNodeId: document.id,
@@ -697,8 +806,14 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           properties
         })
       )
+
+      if (placed) {
+        recordUndoBoundary('scene')
+      }
+
+      return placed
     },
-    [placeSourceObject]
+    [placeSourceObject, recordUndoBoundary]
   )
 
   useEffect(() => {
@@ -720,7 +835,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     (linkedDocumentId: string): ViewportSnapshot | null => {
       if (!doc || !canvasRef.current) return null
 
-      const nodesMap = doc.getMap<CanvasNode>('nodes')
+      const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
       const targetNode = Array.from(nodesMap.values()).find(
         (node) => getCanvasShellSourceId(node) === linkedDocumentId
       )
@@ -962,6 +1077,109 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     [focusCanvasSurface, shortcutHelpOpen]
   )
 
+  const runCanvasScopedUndo = useCallback(
+    (direction: 'undo' | 'redo'): boolean => {
+      const canSelectedSource = direction === 'undo' ? canUndoSelectedSource : canRedoSelectedSource
+      const canSelectedSourceScope =
+        direction === 'undo' ? canUndoSelectedSourceScope : canRedoSelectedSourceScope
+      const canSelectedSourceDocument =
+        getYjsStackDepth(
+          selectedDatabaseUndoManagerRef.current,
+          direction === 'undo' ? 'undoStack' : 'redoStack'
+        ) > 0
+
+      const runScene = (): boolean => {
+        const handled =
+          direction === 'undo'
+            ? (canvasRef.current?.undo() ?? false)
+            : (canvasRef.current?.redo() ?? false)
+
+        if (handled) {
+          applyUndoBoundary('scene', direction)
+        }
+
+        return handled
+      }
+
+      const runSelectedSource = (): boolean => {
+        if (!canSelectedSource) {
+          return false
+        }
+
+        applyUndoBoundary('source-node', direction)
+        void (direction === 'undo' ? undoSelectedSource() : redoSelectedSource())
+        return true
+      }
+
+      const runSelectedSourceScope = (): boolean => {
+        if (!canSelectedSourceScope) {
+          return false
+        }
+
+        applyUndoBoundary('source-scope', direction)
+        void (direction === 'undo' ? undoSelectedSourceScope() : redoSelectedSourceScope())
+        return true
+      }
+
+      const runSelectedSourceDocument = (): boolean => {
+        if (!canSelectedSourceDocument || !selectedDatabaseUndoManagerRef.current) {
+          return false
+        }
+
+        applyUndoBoundary('source-document', direction)
+        if (direction === 'undo') {
+          selectedDatabaseUndoManagerRef.current.undo()
+        } else {
+          selectedDatabaseUndoManagerRef.current.redo()
+        }
+        return true
+      }
+
+      const orderedDomains = (
+        [
+          { domain: 'scene', available: true, run: runScene },
+          {
+            domain: 'source-document',
+            available: canSelectedSourceDocument,
+            run: runSelectedSourceDocument
+          },
+          {
+            domain: 'source-scope',
+            available: canSelectedSourceScope,
+            run: runSelectedSourceScope
+          },
+          { domain: 'source-node', available: canSelectedSource, run: runSelectedSource }
+        ] as const
+      )
+        .filter((entry) => entry.available)
+        .sort(
+          (left, right) =>
+            getUndoBoundaryOrder(right.domain, direction) -
+            getUndoBoundaryOrder(left.domain, direction)
+        )
+
+      for (const entry of orderedDomains) {
+        if (entry.run()) {
+          return true
+        }
+      }
+
+      return false
+    },
+    [
+      applyUndoBoundary,
+      canRedoSelectedSource,
+      canRedoSelectedSourceScope,
+      canUndoSelectedSource,
+      canUndoSelectedSourceScope,
+      getUndoBoundaryOrder,
+      redoSelectedSource,
+      redoSelectedSourceScope,
+      undoSelectedSource,
+      undoSelectedSourceScope
+    ]
+  )
+
   const handleDismissTransientUi = useCallback((): boolean => {
     if (selectionPanel) {
       closeSelectionPanel()
@@ -987,7 +1205,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         return false
       }
 
-      const nodesMap = doc.getMap<CanvasNode>('nodes')
+      const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
       const current = nodesMap.get(selectedCanvasObject.node.id)
       if (!current) {
         return false
@@ -1008,10 +1226,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         })
       })
 
+      recordUndoBoundary('scene')
+
       closeSelectionPanel()
       return true
     },
-    [closeSelectionPanel, doc, selectedCanvasObject]
+    [closeSelectionPanel, doc, recordUndoBoundary, selectedCanvasObject]
   )
 
   const openAliasEditor = useCallback((): boolean => {
@@ -1059,7 +1279,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         return false
       }
 
-      const node = doc.getMap<CanvasNode>('nodes').get(objectId)
+      const node = getCanvasObjectsMap<CanvasNode>(doc).get(objectId)
       if (!node) {
         return false
       }
@@ -1131,7 +1351,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
   const createShape = useCallback(
     (shapeType: ShapeType = 'rectangle'): boolean => {
-      return Boolean(
+      const created = Boolean(
         placePrimitiveObject({
           objectKind: 'shape',
           title: getShapeLabel(shapeType),
@@ -1142,12 +1362,18 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           }
         })
       )
+
+      if (created) {
+        recordUndoBoundary('scene')
+      }
+
+      return created
     },
-    [placePrimitiveObject]
+    [placePrimitiveObject, recordUndoBoundary]
   )
 
   const createFrame = useCallback((): boolean => {
-    return Boolean(
+    const created = Boolean(
       placePrimitiveObject({
         objectKind: 'group',
         title: 'Frame',
@@ -1163,7 +1389,13 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         }
       })
     )
-  }, [placePrimitiveObject])
+
+    if (created) {
+      recordUndoBoundary('scene')
+    }
+
+    return created
+  }, [placePrimitiveObject, recordUndoBoundary])
 
   const wrapSelectionInFrame = useCallback((): boolean => {
     return canvasRef.current?.wrapSelectionInFrame() ?? false
@@ -1278,7 +1510,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }
 
   return (
-    <div className="relative h-full flex-1 overflow-hidden" data-canvas-theme={theme.mode}>
+    <div
+      className="relative h-full flex-1 overflow-hidden"
+      data-canvas-view="true"
+      data-canvas-theme={theme.mode}
+      data-canvas-undo-domain={activeUndoDomain}
+    >
       <div
         className="pointer-events-none absolute left-6 top-6 z-20 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl"
         data-canvas-home-badge="true"
@@ -1836,6 +2073,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                   node={peekedCanvasObject.node}
                   docId={peekedCanvasObject.sourceId}
                   mode="peek"
+                  onSourceNodeMutated={() => {
+                    recordUndoBoundary('source-node')
+                  }}
+                  onSourceDocumentMutated={() => {
+                    recordUndoBoundary('source-document')
+                  }}
                   onOpenDocument={(targetDocId) => {
                     closePeekSurface()
                     onOpenDocument?.(targetDocId, 'database')
@@ -1851,6 +2094,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                   docId={peekedCanvasObject.sourceId}
                   variant={peekedCanvasObject.displayType === 'note' ? 'note' : 'page'}
                   mode="peek"
+                  onSourceNodeMutated={() => {
+                    recordUndoBoundary('source-node')
+                  }}
                   onOpenDocument={(targetDocId) => {
                     closePeekSurface()
                     onOpenDocument?.(targetDocId, 'page')
@@ -1901,6 +2147,10 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           onEditSelectionAlias={openAliasEditor}
           onCreateSelectionComment={openCommentComposer}
           onDismissTransientUi={handleDismissTransientUi}
+          onUndoRedoShortcut={runCanvasScopedUndo}
+          onSceneMutation={() => {
+            recordUndoBoundary('scene')
+          }}
           onSurfaceDrop={handleSurfaceDrop}
           onSurfacePaste={handleSurfacePaste}
           canvasNodeId={docId}
@@ -1927,6 +2177,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                   node={node}
                   docId={sourceNodeId}
                   variant={displayType === 'note' ? 'note' : 'page'}
+                  onSourceNodeMutated={() => {
+                    recordUndoBoundary('source-node')
+                  }}
                   onOpenDocument={(targetDocId) => onOpenDocument?.(targetDocId, 'page')}
                 />
               )
@@ -1941,6 +2194,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                 <CanvasDatabasePreviewSurface
                   node={node}
                   docId={sourceNodeId}
+                  onSourceNodeMutated={() => {
+                    recordUndoBoundary('source-node')
+                  }}
+                  onSourceDocumentMutated={() => {
+                    recordUndoBoundary('source-document')
+                  }}
                   onOpenDocument={(targetDocId) => onOpenDocument?.(targetDocId, 'database')}
                   onSplitDocument={onOpenDatabaseSplit}
                 />
@@ -1957,7 +2216,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             return undefined
           }}
           onNodeDoubleClick={(id) => {
-            const nodesMap = doc.getMap<CanvasNode>('nodes')
+            const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
             const targetNode = nodesMap.get(id)
             const sourceId = targetNode ? getCanvasShellSourceId(targetNode) : undefined
             const sourceType = targetNode ? getCanvasShellSourceType(targetNode) : null

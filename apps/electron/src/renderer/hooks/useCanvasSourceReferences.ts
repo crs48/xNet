@@ -1,7 +1,8 @@
 import type { CanvasNode } from '@xnetjs/canvas'
+import { getCanvasObjectsMap } from '@xnetjs/canvas'
 import { useSyncManager } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
 import * as Y from 'yjs'
 
 type CanvasDocHandle = {
@@ -121,7 +122,7 @@ export function useCanvasSourceReferences({
   const refsBySourceRef = useRef(new Map<string, CanvasSourceReference[]>())
   const refreshScheduledRef = useRef(false)
   const [pendingDocs, setPendingDocs] = useState(0)
-  const [revision, setRevision] = useState(0)
+  const [, setRevision] = useState(0)
 
   const scheduleRefresh = useCallback((): void => {
     if (refreshScheduledRef.current) {
@@ -160,7 +161,7 @@ export function useCanvasSourceReferences({
       }
 
       const refs: CanvasSourceReference[] = []
-      const nodesMap = handle.doc.getMap<CanvasNode>('nodes')
+      const nodesMap = getCanvasObjectsMap<CanvasNode>(handle.doc)
 
       nodesMap.forEach((value: unknown, key: string) => {
         const node = value as CanvasNode
@@ -293,14 +294,16 @@ export function useCanvasSourceReferences({
   }, [canvases, enabled, indexCanvas, isReady, releaseCanvas, store, syncManager])
 
   useEffect(() => {
+    const handles = handlesRef.current
+
     return () => {
-      for (const canvasId of Array.from(handlesRef.current.keys())) {
+      for (const canvasId of Array.from(handles.keys())) {
         releaseCanvas(canvasId)
       }
     }
   }, [releaseCanvas])
 
-  const indexedCanvases = useMemo(() => handlesRef.current.size, [revision])
+  const indexedCanvases = handlesRef.current.size
   const totalCanvases = canvases.length
 
   const getReferences = useCallback(
@@ -316,7 +319,7 @@ export function useCanvasSourceReferences({
         .slice()
         .sort(sortCanvasReferences)
     },
-    [revision]
+    []
   )
 
   return {

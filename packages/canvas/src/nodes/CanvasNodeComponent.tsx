@@ -7,6 +7,7 @@
 
 import type { CanvasNode, ResizeHandle, Point } from '../types'
 import React, { useCallback, useRef, useEffect, memo } from 'react'
+import { getCanvasResolvedNodeKind } from '../scene/node-kind'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
 /**
@@ -142,13 +143,12 @@ function getNodeColor(node: CanvasNode): string {
     'external-reference': '#fce7f3',
     media: '#ede9fe',
     note: '#fff7ed',
-    card: '#e3f2fd',
-    embed: '#f3e5f5',
-    mermaid: '#e8f5e9',
+    frame: '#ecfdf5',
+    group: '#f5f5f5',
     shape: '#fff3e0',
     default: '#f5f5f5'
   }
-  return colors[node.type] ?? colors.default
+  return colors[getCanvasResolvedNodeKind(node)] ?? colors.default
 }
 
 /**
@@ -159,7 +159,7 @@ function getNodeTitle(node: CanvasNode): string {
 }
 
 function getNodeTypeLabel(node: CanvasNode): string {
-  switch (node.type) {
+  switch (getCanvasResolvedNodeKind(node)) {
     case 'page':
       return 'Page'
     case 'database':
@@ -225,9 +225,8 @@ function NodeIcon({ type }: { type: string }) {
     'external-reference': '🔗',
     media: '🖼️',
     note: '📝',
-    card: '📄',
-    embed: '🔗',
-    mermaid: '📊',
+    frame: '🗂️',
+    group: '🧩',
     shape: '⬡',
     default: '📌'
   }
@@ -239,6 +238,7 @@ function NodeIcon({ type }: { type: string }) {
  */
 function DefaultNodeContent({ node }: { node: CanvasNode }) {
   const title = (node.properties.title as string) ?? node.type
+  const sourceId = node.sourceNodeId ?? node.linkedNodeId
 
   return (
     <div
@@ -260,9 +260,9 @@ function DefaultNodeContent({ node }: { node: CanvasNode }) {
       >
         {title}
       </div>
-      {(node.sourceNodeId ?? node.linkedNodeId) && (
+      {sourceId && (
         <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-          Source: {(node.sourceNodeId ?? node.linkedNodeId)?.slice(0, 8)}...
+          Source: {sourceId.slice(0, 8)}...
         </div>
       )}
     </div>
@@ -310,7 +310,9 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   // Determine border color based on presence
   const hasRemotePresence = remoteUsers && remoteUsers.length > 0
   const presenceColor = hasRemotePresence ? remoteUsers[0].color : undefined
-  const isPrimitiveShell = node.type === 'shape' || node.type === 'group' || node.type === 'frame'
+  const resolvedKind = getCanvasResolvedNodeKind(node)
+  const isPrimitiveShell =
+    resolvedKind === 'shape' || resolvedKind === 'group' || resolvedKind === 'frame'
   const defaultBorder = `1px solid ${theme.panelBorder}`
   const selectionBorder = '2px solid #3b82f6'
   const remoteBorder = hasRemotePresence ? `2px solid ${presenceColor}` : defaultBorder
@@ -563,7 +565,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         data-lod="compact"
         data-canvas-node-label={getNodeAccessibleLabel(node)}
       >
-        <NodeIcon type={node.type} />
+        <NodeIcon type={resolvedKind} />
         <span
           style={{
             fontWeight: 500,

@@ -8,6 +8,7 @@ import {
   Canvas,
   createCanvasObjectAnchorId,
   extractCanvasIngressPayloads,
+  getCanvasObjectsMap,
   useCanvasObjectIngestion,
   useCanvasThemeTokens
 } from '@xnetjs/canvas'
@@ -219,7 +220,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       return null
     }
 
-    const node = doc.getMap<CanvasNode>('nodes').get(selection.nodeIds[0])
+    const node = getCanvasObjectsMap<CanvasNode>(doc).get(selection.nodeIds[0])
     if (!node) {
       return null
     }
@@ -292,7 +293,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
 
     setCanvasReady(true)
 
-    const nodesMap = doc.getMap<CanvasNode>('nodes')
+    const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
     const syncHasNodes = () => {
       setHasNodes(nodesMap.size > 0)
       setSceneRevision((current) => current + 1)
@@ -466,7 +467,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
 
   const handleNodeDoubleClick = useCallback(
     (nodeId: string) => {
-      const node = doc?.getMap<CanvasNode>('nodes').get(nodeId)
+      const node = doc ? getCanvasObjectsMap<CanvasNode>(doc).get(nodeId) : undefined
       if (!node?.sourceNodeId) {
         return
       }
@@ -527,7 +528,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         return
       }
 
-      const nodesMap = doc.getMap<CanvasNode>('nodes')
+      const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
       const current = nodesMap.get(selectedCanvasObject.node.id)
       if (!current) {
         return

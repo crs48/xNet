@@ -140,6 +140,7 @@ Suggested commands:
 
 ```bash
 pnpm --filter @xnetjs/canvas test
+pnpm build:stories
 pnpm --filter xnet-desktop exec vitest run src/renderer/components/CanvasDatabasePreviewSurface.test.tsx
 pnpm --filter xnet-desktop build
 pnpm --filter @xnetjs/e2e-tests exec playwright test src/web-canvas-ingestion.spec.ts --project=chromium
@@ -200,12 +201,13 @@ Automated validation should include:
 ## Step Checklist
 
 - [ ] Replace the active Electron canvas path with Canvas V2.
-- [ ] Build realistic Storybook/workbench scenes for every major object family and density class.
+- [x] Build realistic Storybook/workbench scenes for every major object family and density class.
 - [x] Add repeatable performance scenes and capture frame/DOM/query metrics.
 - [x] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
 - [x] Add Electron and web theme-regression coverage for shared canvas chrome.
 - [x] Add Electron and web resize-persistence regression coverage for pointer-driven transforms.
 - [x] Add Electron and web keyboard-focus regression coverage for shared canvas traversal.
+- [x] Add Electron and web end-to-end coverage for undo-boundary ordering on canvas-backed content.
 - [x] Add Electron CDP large-scene performance coverage and record thresholds.
 - [ ] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
 - [ ] Document and enforce release gates before web rollout.

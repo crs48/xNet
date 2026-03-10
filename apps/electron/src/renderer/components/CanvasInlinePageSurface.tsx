@@ -25,13 +25,19 @@ type CanvasInlinePageSurfaceProps = {
   variant: 'page' | 'note'
   mode?: 'inline' | 'peek'
   onOpenDocument?: (docId: string) => void
+  onSourceNodeMutated?: () => void
 }
 
 type EditorExtensions = NonNullable<React.ComponentProps<typeof RichTextEditor>['extensions']>
 
-function useStableTitle(initialTitle: string, onCommit: (title: string) => Promise<void>) {
+function useStableTitle(
+  initialTitle: string,
+  onCommit: (title: string) => Promise<void>,
+  onMutationCommitted?: () => void
+) {
   const [localTitle, setLocalTitle] = useState(initialTitle)
   const isEditingRef = useRef(false)
+  const hasPendingMutationRef = useRef(false)
 
   useEffect(() => {
     if (!isEditingRef.current) {
@@ -43,6 +49,7 @@ function useStableTitle(initialTitle: string, onCommit: (title: string) => Promi
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const nextTitle = event.target.value
       setLocalTitle(nextTitle)
+      hasPendingMutationRef.current = true
       await onCommit(nextTitle)
     },
     [onCommit]
@@ -54,8 +61,12 @@ function useStableTitle(initialTitle: string, onCommit: (title: string) => Promi
 
   const handleBlur = useCallback(() => {
     isEditingRef.current = false
+    if (hasPendingMutationRef.current) {
+      hasPendingMutationRef.current = false
+      onMutationCommitted?.()
+    }
     setLocalTitle(initialTitle)
-  }, [initialTitle])
+  }, [initialTitle, onMutationCommitted])
 
   return {
     localTitle,
@@ -70,7 +81,8 @@ export function CanvasInlinePageSurface({
   docId,
   variant,
   mode = 'inline',
-  onOpenDocument
+  onOpenDocument,
+  onSourceNodeMutated
 }: CanvasInlinePageSurfaceProps): React.ReactElement {
   const theme = useCanvasThemeTokens()
   const { did } = useIdentity()
@@ -117,7 +129,11 @@ export function CanvasInlinePageSurface({
     async (nextTitle: string) => update({ title: nextTitle }),
     [update]
   )
-  const { localTitle, handleChange, handleFocus, handleBlur } = useStableTitle(title, commitTitle)
+  const { localTitle, handleChange, handleFocus, handleBlur } = useStableTitle(
+    title,
+    commitTitle,
+    onSourceNodeMutated
+  )
 
   return (
     <div

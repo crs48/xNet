@@ -212,9 +212,9 @@ pnpm --filter @xnetjs/data test
 
 ## Step Checklist
 
-- [ ] Replace the current public canvas object union with Canvas V2 scene types.
+- [x] Replace the current public canvas object union with Canvas V2 scene types.
 - [x] Introduce a `MediaAsset`-style schema in `@xnetjs/data`.
 - [x] Add stable `sourceNodeId` and `sourceSchemaId` references for source-backed objects.
-- [ ] Add connector/binding record types and storage.
-- [ ] Define the canvas Y.Doc layout for objects, connectors, groups, and metadata.
-- [ ] Remove Canvas V2 dependencies on the old generic `card/embed/image` semantics.
+- [x] Add connector/binding record types and storage.
+- [x] Define the canvas Y.Doc layout for objects, connectors, groups, and metadata.
+- [x] Remove Canvas V2 dependencies on the old generic `card/embed/image` semantics.

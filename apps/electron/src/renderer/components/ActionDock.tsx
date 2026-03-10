@@ -33,6 +33,7 @@ function DockButton({
     <button
       type="button"
       onClick={onClick}
+      data-action-dock-button={label.toLowerCase().replace(/\s+/g, '-')}
       className={[
         'flex min-w-[76px] flex-col items-center gap-1 rounded-2xl px-3 py-2 text-[11px]',
         'transition-all duration-200 hover:-translate-y-0.5',
@@ -59,7 +60,10 @@ export function ActionDock({
   onReturnHome
 }: ActionDockProps): React.ReactElement {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-5">
+    <div
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-5"
+      data-action-dock={mode}
+    >
       <div className="pointer-events-auto flex items-center gap-2 rounded-[28px] border border-border/70 bg-background/80 px-3 py-3 shadow-2xl shadow-black/10 backdrop-blur-xl">
         {mode === 'focused' ? (
           <DockButton

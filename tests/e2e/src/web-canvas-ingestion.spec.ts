@@ -36,12 +36,54 @@ async function createCanvas(page: import('@playwright/test').Page): Promise<stri
 
   await page.waitForURL(/\/canvas\//, { timeout: 30_000 })
 
+  await dismissStorageWarning(page)
+
   const match = page.url().match(/\/canvas\/([^/?#]+)/)
   if (!match) {
     throw new Error(`Unable to resolve canvas id from ${page.url()}`)
   }
 
   return match[1]
+}
+
+async function dismissStorageWarning(page: import('@playwright/test').Page): Promise<void> {
+  const dismissButton = page.locator('button[aria-label="Dismiss"]').first()
+  if ((await dismissButton.count()) === 0 || !(await dismissButton.isVisible())) {
+    return
+  }
+
+  await dismissButton.click()
+  await expect(dismissButton).toBeHidden({ timeout: 30_000 })
+}
+
+async function createCanvasNote(page: import('@playwright/test').Page): Promise<number> {
+  await dismissStorageWarning(page)
+
+  const noteLocator = page.locator('.canvas-node[data-node-type="note"]')
+  const noteCountBefore = await noteLocator.count()
+  const targetCount = noteCountBefore + 1
+  const surface = page.locator('[data-canvas-surface="true"]')
+  await expect(surface).toBeVisible({ timeout: 30_000 })
+  await surface.click({
+    position: { x: 180, y: 220 },
+    force: true
+  })
+  await surface.focus()
+  await page.keyboard.press('N')
+
+  try {
+    await expect.poll(async () => await noteLocator.count(), { timeout: 2_500 }).toBe(targetCount)
+  } catch {
+    await dismissStorageWarning(page)
+    await page
+      .locator('[data-web-canvas-create-note="true"]')
+      .evaluate((button: HTMLButtonElement) => button.click())
+    await expect(noteLocator).toHaveCount(targetCount, {
+      timeout: 30_000
+    })
+  }
+
+  return noteCountBefore
 }
 
 async function seedPerformanceScene(
@@ -404,7 +446,7 @@ test.describe('Web canvas ingestion', () => {
     expect(lightDiagnostics.hintTheme).toBe('light')
     expect(lightDiagnostics.emptyStateTheme).toBe('light')
 
-    await page.getByRole('button', { name: 'Note' }).click()
+    await createCanvasNote(page)
     await expect(page.locator('[data-canvas-node-card="true"]').first()).toBeVisible({
       timeout: 30_000
     })
@@ -613,14 +655,7 @@ test.describe('Web canvas ingestion', () => {
     const surface = page.locator('[data-canvas-surface="true"]')
     await expect(surface).toBeVisible({ timeout: 30_000 })
 
-    const noteCountBefore = await page.locator('.canvas-node[data-node-type="note"]').count()
-    await page.getByRole('button', { name: 'Note' }).click()
-    await expect(page.locator('.canvas-node[data-node-type="note"]')).toHaveCount(
-      noteCountBefore + 1,
-      {
-        timeout: 30_000
-      }
-    )
+    const noteCountBefore = await createCanvasNote(page)
 
     await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
     await surface.focus()
@@ -660,14 +695,7 @@ test.describe('Web canvas ingestion', () => {
     const surface = page.locator('[data-canvas-surface="true"]')
     await expect(surface).toBeVisible({ timeout: 30_000 })
 
-    const noteCountBefore = await page.locator('.canvas-node[data-node-type="note"]').count()
-    await page.getByRole('button', { name: 'Note' }).click()
-    await expect(page.locator('.canvas-node[data-node-type="note"]')).toHaveCount(
-      noteCountBefore + 1,
-      {
-        timeout: 30_000
-      }
-    )
+    const noteCountBefore = await createCanvasNote(page)
 
     await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
     const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
@@ -737,14 +765,7 @@ test.describe('Web canvas ingestion', () => {
     const surface = page.locator('[data-canvas-surface="true"]')
     await expect(surface).toBeVisible({ timeout: 30_000 })
 
-    const noteCountBefore = await page.locator('.canvas-node[data-node-type="note"]').count()
-    await page.getByRole('button', { name: 'Note' }).click()
-    await expect(page.locator('.canvas-node[data-node-type="note"]')).toHaveCount(
-      noteCountBefore + 1,
-      {
-        timeout: 30_000
-      }
-    )
+    const noteCountBefore = await createCanvasNote(page)
 
     await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
     const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
@@ -793,14 +814,7 @@ test.describe('Web canvas ingestion', () => {
     const surface = page.locator('[data-canvas-surface="true"]')
     await expect(surface).toBeVisible({ timeout: 30_000 })
 
-    const noteCountBefore = await page.locator('.canvas-node[data-node-type="note"]').count()
-    await page.getByRole('button', { name: 'Note' }).click()
-    await expect(page.locator('.canvas-node[data-node-type="note"]')).toHaveCount(
-      noteCountBefore + 1,
-      {
-        timeout: 30_000
-      }
-    )
+    const noteCountBefore = await createCanvasNote(page)
 
     await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
     const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)

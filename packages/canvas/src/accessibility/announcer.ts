@@ -4,6 +4,8 @@
  * Provides screen reader announcements for canvas state changes.
  */
 
+import { getCanvasResolvedNodeKind } from '../scene/node-kind'
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -23,22 +25,17 @@ export interface AnnouncerNode {
 const NODE_TYPE_LABELS: Record<string, string> = {
   page: 'Page',
   note: 'Note',
-  card: 'Card',
-  document: 'Document',
   database: 'Database',
   'external-reference': 'Link preview',
   media: 'Media asset',
-  mermaid: 'Diagram',
-  embed: 'Embedded content',
   shape: 'Shape',
   frame: 'Frame',
   group: 'Group',
-  checklist: 'Checklist',
-  swimlane: 'Swimlane'
+  legacy: 'Canvas object'
 }
 
-function getNodeTypeLabel(type: string): string {
-  return NODE_TYPE_LABELS[type] ?? 'Node'
+function getNodeTypeLabel(node: AnnouncerNode): string {
+  return NODE_TYPE_LABELS[getCanvasResolvedNodeKind(node)] ?? 'Node'
 }
 
 // ─── Announcer ─────────────────────────────────────────────────────────────────
@@ -114,7 +111,7 @@ export class Announcer {
    * Announce node focus.
    */
   announceNodeFocus(node: AnnouncerNode): void {
-    const type = getNodeTypeLabel(node.type)
+    const type = getNodeTypeLabel(node)
     const title = node.properties?.title ?? 'Untitled'
     const locked = node.properties?.locked ? ', locked' : ''
     this.announce(`${type}: ${title}${locked}`)

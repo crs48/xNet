@@ -12,6 +12,8 @@ type CanvasDatabasePreviewSurfaceProps = {
   mode?: 'inline' | 'peek'
   onOpenDocument?: (docId: string) => void
   onSplitDocument?: (docId: string) => void
+  onSourceNodeMutated?: () => void
+  onSourceDocumentMutated?: () => void
 }
 
 const PREVIEW_INITIAL_ROWS = 12
@@ -20,9 +22,14 @@ const PREVIEW_ROW_HEIGHT = 44
 const PREVIEW_OVERSCAN = 3
 const PREVIEW_DEFAULT_VIEWPORT_HEIGHT = PREVIEW_ROW_HEIGHT * 5
 
-function useStableTitle(initialTitle: string, onCommit: (title: string) => Promise<void>) {
+function useStableTitle(
+  initialTitle: string,
+  onCommit: (title: string) => Promise<void>,
+  onMutationCommitted?: () => void
+) {
   const [localTitle, setLocalTitle] = useState(initialTitle)
   const isEditingRef = useRef(false)
+  const hasPendingMutationRef = useRef(false)
 
   useEffect(() => {
     if (!isEditingRef.current) {
@@ -34,6 +41,7 @@ function useStableTitle(initialTitle: string, onCommit: (title: string) => Promi
     async (event: React.ChangeEvent<HTMLInputElement>) => {
       const nextTitle = event.target.value
       setLocalTitle(nextTitle)
+      hasPendingMutationRef.current = true
       await onCommit(nextTitle)
     },
     [onCommit]
@@ -45,8 +53,12 @@ function useStableTitle(initialTitle: string, onCommit: (title: string) => Promi
 
   const handleBlur = useCallback(() => {
     isEditingRef.current = false
+    if (hasPendingMutationRef.current) {
+      hasPendingMutationRef.current = false
+      onMutationCommitted?.()
+    }
     setLocalTitle(initialTitle)
-  }, [initialTitle])
+  }, [initialTitle, onMutationCommitted])
 
   return {
     localTitle,
@@ -119,7 +131,9 @@ export function CanvasDatabasePreviewSurface({
   docId,
   mode = 'inline',
   onOpenDocument,
-  onSplitDocument
+  onSplitDocument,
+  onSourceNodeMutated,
+  onSourceDocumentMutated
 }: CanvasDatabasePreviewSurfaceProps): React.ReactElement {
   const theme = useCanvasThemeTokens()
   const { did } = useIdentity()
@@ -170,7 +184,11 @@ export function CanvasDatabasePreviewSurface({
     async (nextTitle: string) => update({ title: nextTitle }),
     [update]
   )
-  const { localTitle, handleChange, handleFocus, handleBlur } = useStableTitle(title, commitTitle)
+  const { localTitle, handleChange, handleFocus, handleBlur } = useStableTitle(
+    title,
+    commitTitle,
+    onSourceNodeMutated
+  )
 
   const handleOpenDocument = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -213,6 +231,8 @@ export function CanvasDatabasePreviewSurface({
           })
         }
 
+        onSourceDocumentMutated?.()
+
         return
       }
 
@@ -228,9 +248,11 @@ export function CanvasDatabasePreviewSurface({
           filters: null,
           groupBy: null
         })
+
+        onSourceDocumentMutated?.()
       }
     },
-    [columns, createColumn, createView, views.length]
+    [columns, createColumn, createView, onSourceDocumentMutated, views.length]
   )
 
   const activeViewType = activeView?.type ?? database?.defaultView ?? 'table'

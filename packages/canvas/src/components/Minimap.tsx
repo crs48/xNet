@@ -8,6 +8,7 @@
 import type { CanvasNode, CanvasEdge } from '../types'
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
 import { getCanvasEdgeSourceObjectId, getCanvasEdgeTargetObjectId } from '../edges/bindings'
+import { getCanvasResolvedNodeKind, isFrameLikeCanvasNode } from '../scene/node-kind'
 import { Viewport } from '../spatial/index'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
@@ -19,6 +20,7 @@ const MINIMAP_BUCKET_SIZE_PX = 6
 type MinimapRenderNode = {
   id: string
   type: CanvasNode['type']
+  properties?: CanvasNode['properties']
   position: {
     x: number
     y: number
@@ -51,8 +53,10 @@ export interface MinimapProps {
 
 // ─── Color Helpers ────────────────────────────────────────────────────────────
 
-function getNodeMinimapColor(node: Pick<CanvasNode, 'type'>): string {
-  switch (node.type) {
+function getNodeMinimapColor(
+  node: Pick<CanvasNode, 'type'> & { properties?: Record<string, unknown> }
+): string {
+  switch (getCanvasResolvedNodeKind(node)) {
     case 'page':
       return 'rgba(59, 130, 246, 0.7)'
     case 'database':
@@ -63,16 +67,10 @@ function getNodeMinimapColor(node: Pick<CanvasNode, 'type'>): string {
       return 'rgba(139, 92, 246, 0.7)'
     case 'note':
       return 'rgba(245, 158, 11, 0.7)'
-    case 'card':
-      return 'rgba(59, 130, 246, 0.7)' // Blue
     case 'frame':
       return 'rgba(16, 185, 129, 0.5)' // Green (lighter for frames)
     case 'shape':
       return 'rgba(245, 158, 11, 0.7)' // Amber
-    case 'image':
-      return 'rgba(139, 92, 246, 0.7)' // Purple
-    case 'embed':
-      return 'rgba(236, 72, 153, 0.7)' // Pink
     case 'group':
       return 'rgba(107, 114, 128, 0.3)' // Gray (lighter for groups)
     default:
@@ -266,8 +264,10 @@ export function Minimap({
 
     // Draw nodes (frames/groups first, then regular nodes on top)
     const sortedNodes = [...renderNodes].sort((a, b) => {
-      const aIsContainer = a.type === 'frame' || a.type === 'group'
-      const bIsContainer = b.type === 'frame' || b.type === 'group'
+      const aKind = getCanvasResolvedNodeKind(a)
+      const bKind = getCanvasResolvedNodeKind(b)
+      const aIsContainer = aKind === 'frame' || aKind === 'group'
+      const bIsContainer = bKind === 'frame' || bKind === 'group'
       if (aIsContainer && !bIsContainer) return -1
       if (!aIsContainer && bIsContainer) return 1
       return (a.position.zIndex ?? 0) - (b.position.zIndex ?? 0)
@@ -282,7 +282,7 @@ export function Minimap({
       ctx.fillStyle = getNodeMinimapColor(node)
 
       // Frames get a border instead of fill
-      if (node.type === 'frame') {
+      if (isFrameLikeCanvasNode(node)) {
         ctx.strokeStyle = getNodeMinimapColor(node)
         ctx.lineWidth = 1
         ctx.strokeRect(x, y, w, h)
@@ -313,6 +313,7 @@ export function Minimap({
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
   }, [
     edges,
+    nodes,
     viewport,
     canvasBounds,
     scale,

@@ -36,12 +36,6 @@ export interface CanvasNodePosition {
 }
 
 /**
- * Legacy canvas node types kept temporarily while the active app path
- * moves to Canvas V2 object kinds.
- */
-export type LegacyCanvasNodeType = 'card' | 'frame' | 'image' | 'embed'
-
-/**
  * Canvas V2 object kinds.
  */
 export type CanvasObjectKind =
@@ -54,9 +48,67 @@ export type CanvasObjectKind =
   | 'group'
 
 /**
- * Canvas node types.
+ * Primary Canvas V2 scene node kinds.
  */
-export type CanvasNodeType = CanvasObjectKind | LegacyCanvasNodeType
+export type CanvasSceneNodeKind = CanvasObjectKind
+
+/**
+ * Legacy canvas node types kept only for isolated legacy components/tests.
+ */
+export type LegacyCanvasNodeType = 'card' | 'frame' | 'image' | 'embed'
+
+/**
+ * Canvas node types.
+ *
+ * Canvas V2 should prefer CanvasSceneNodeKind everywhere in the active
+ * product path. Legacy node types remain only as a compatibility escape
+ * hatch for isolated legacy components.
+ */
+export type CanvasNodeType = CanvasSceneNodeKind | LegacyCanvasNodeType
+
+export type CanvasSourceBackedNodeKind =
+  | 'page'
+  | 'database'
+  | 'external-reference'
+  | 'media'
+  | 'note'
+
+export type CanvasDisplayDensity = 'far' | 'mid' | 'near'
+
+export type CanvasDisplayState = {
+  collapsed?: boolean
+  previewDensity?: CanvasDisplayDensity
+  styleVariant?: string
+}
+
+export type CanvasNodeProperties = Record<string, unknown>
+
+export type CanvasTitledNodeProperties = CanvasNodeProperties & {
+  title?: string
+  subtitle?: string
+  status?: string
+}
+
+export type CanvasExternalReferenceNodeProperties = CanvasTitledNodeProperties & {
+  url?: string
+  provider?: string
+  refId?: string
+}
+
+export type CanvasMediaNodeProperties = CanvasTitledNodeProperties & {
+  alt?: string
+  mimeType?: string
+  kind?: string
+}
+
+export type CanvasShapeNodeProperties = CanvasTitledNodeProperties & {
+  shapeType?: ShapeType
+}
+
+export type CanvasGroupNodeProperties = CanvasTitledNodeProperties & {
+  containerRole?: 'frame' | 'group'
+  memberIds?: string[]
+}
 
 /**
  * Selection alignment operations.
@@ -88,12 +140,12 @@ export type ShapeType =
   | 'cylinder'
   | 'cloud'
 
-/**
- * Canvas node as stored in Yjs
- */
-export interface CanvasNode {
+export interface CanvasNodeBase<
+  TType extends CanvasNodeType = CanvasNodeType,
+  TProperties extends CanvasNodeProperties = CanvasNodeProperties
+> {
   id: string
-  type: CanvasNodeType
+  type: TType
   /** Reference to linked xNet node (legacy field, prefer sourceNodeId) */
   linkedNodeId?: string
   /** Stable reference to the source xNet node */
@@ -104,11 +156,56 @@ export interface CanvasNode {
   alias?: string
   /** Whether this object is locked against accidental edits/moves */
   locked?: boolean
+  /** Canvas-local display metadata */
+  display?: CanvasDisplayState
   /** Position and dimensions */
   position: CanvasNodePosition
   /** Node-specific properties */
-  properties: Record<string, unknown>
+  properties: TProperties
 }
+
+export type CanvasPageNode = CanvasNodeBase<'page', CanvasTitledNodeProperties>
+
+export type CanvasDatabaseNode = CanvasNodeBase<'database', CanvasTitledNodeProperties>
+
+export type CanvasExternalReferenceNode = CanvasNodeBase<
+  'external-reference',
+  CanvasExternalReferenceNodeProperties
+>
+
+export type CanvasMediaNode = CanvasNodeBase<'media', CanvasMediaNodeProperties>
+
+export type CanvasNoteNode = CanvasNodeBase<'note', CanvasTitledNodeProperties>
+
+export type CanvasShapeNode = CanvasNodeBase<'shape', CanvasShapeNodeProperties>
+
+export type CanvasGroupNode = CanvasNodeBase<'group', CanvasGroupNodeProperties>
+
+export type CanvasFrameNode = CanvasGroupNode & {
+  properties: CanvasGroupNodeProperties & {
+    containerRole: 'frame'
+  }
+}
+
+export type CanvasSceneNode =
+  | CanvasPageNode
+  | CanvasDatabaseNode
+  | CanvasExternalReferenceNode
+  | CanvasMediaNode
+  | CanvasNoteNode
+  | CanvasShapeNode
+  | CanvasGroupNode
+
+export type CanvasSceneObject = CanvasSceneNode
+
+export type CanvasLegacyNode = CanvasNodeBase<LegacyCanvasNodeType>
+
+/**
+ * Canvas node as stored in Yjs.
+ *
+ * The active Canvas V2 product path should prefer `CanvasSceneNode`.
+ */
+export type CanvasNode = CanvasSceneNode | CanvasLegacyNode
 
 /**
  * Edge connection point
@@ -165,6 +262,10 @@ export interface CanvasEdge {
   label?: string
   style?: EdgeStyle
 }
+
+export type CanvasConnector = CanvasEdge
+
+export type CanvasConnectorEndpoint = CanvasEdgeEndpoint
 
 /**
  * Edge styling

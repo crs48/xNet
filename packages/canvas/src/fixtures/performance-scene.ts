@@ -2,8 +2,13 @@
  * Dense canvas scene fixtures for large-scene workbenches and performance tests.
  */
 
-import type { CanvasEdge, CanvasNode, CanvasNodeType, Rect } from '../types'
+import type { CanvasEdge, CanvasNode, CanvasSceneNodeKind, Rect } from '../types'
 import * as Y from 'yjs'
+import {
+  getCanvasConnectorsMap,
+  getCanvasMetadataMap,
+  getCanvasObjectsMap
+} from '../scene/doc-layout'
 import { createCanvasDoc, createEdge, createNode } from '../store'
 
 export interface CanvasPerformanceSceneOptions {
@@ -25,7 +30,7 @@ export interface CanvasPerformanceSceneSummary {
   nodeCount: number
   edgeCount: number
   bounds: Rect
-  kindCounts: Partial<Record<CanvasNodeType, number>>
+  kindCounts: Partial<Record<CanvasSceneNodeKind, number>>
 }
 
 export interface CanvasPerformanceSceneSeedResult extends CanvasPerformanceSceneSummary {
@@ -48,7 +53,7 @@ const DEFAULT_OPTIONS: Required<CanvasPerformanceSceneOptions> = {
   includeGroups: true
 }
 
-const CONTENT_NODE_SEQUENCE: CanvasNodeType[] = [
+const CONTENT_NODE_SEQUENCE: CanvasSceneNodeKind[] = [
   'page',
   'database',
   'note',
@@ -156,8 +161,8 @@ function calculateBounds(nodes: CanvasNode[]): Rect {
 }
 
 function incrementKindCount(
-  kindCounts: Partial<Record<CanvasNodeType, number>>,
-  kind: CanvasNodeType
+  kindCounts: Partial<Record<CanvasSceneNodeKind, number>>,
+  kind: CanvasSceneNodeKind
 ): void {
   kindCounts[kind] = (kindCounts[kind] ?? 0) + 1
 }
@@ -168,7 +173,7 @@ export function buildCanvasPerformanceScene(
   const resolved = resolveOptions(options)
   const nodes: CanvasNode[] = []
   const edges: CanvasEdge[] = []
-  const kindCounts: Partial<Record<CanvasNodeType, number>> = {}
+  const kindCounts: Partial<Record<CanvasSceneNodeKind, number>> = {}
 
   if (resolved.includeGroups) {
     const clusterColumns = Math.ceil(resolved.columns / resolved.clusterColumns)
@@ -179,7 +184,7 @@ export function buildCanvasPerformanceScene(
         const clusterIndex = clusterRow * clusterColumns + clusterColumn
         const group = createClusterGroup(clusterIndex, clusterRow, clusterColumn, resolved)
         nodes.push(group)
-        incrementKindCount(kindCounts, group.type)
+        incrementKindCount(kindCounts, group.type as CanvasSceneNodeKind)
       }
     }
   }
@@ -194,7 +199,7 @@ export function buildCanvasPerformanceScene(
       const node = createContentNode(index, row, column, resolved)
       rowNodes.push(node)
       nodes.push(node)
-      incrementKindCount(kindCounts, node.type)
+      incrementKindCount(kindCounts, node.type as CanvasSceneNodeKind)
     }
 
     gridNodes.push(rowNodes)
@@ -246,9 +251,9 @@ export function seedCanvasPerformanceScene(
   options: CanvasPerformanceSceneOptions = {}
 ): CanvasPerformanceSceneSummary {
   const scene = buildCanvasPerformanceScene(options)
-  const nodesMap = doc.getMap<CanvasNode>('nodes')
-  const edgesMap = doc.getMap<CanvasEdge>('edges')
-  const metadata = doc.getMap('metadata')
+  const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
+  const edgesMap = getCanvasConnectorsMap<CanvasEdge>(doc)
+  const metadata = getCanvasMetadataMap(doc)
 
   doc.transact(() => {
     nodesMap.clear()

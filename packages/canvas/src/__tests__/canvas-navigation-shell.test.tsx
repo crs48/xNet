@@ -415,6 +415,24 @@ describe('Canvas navigation shell', () => {
     expect(surface?.dataset.canvasLocalActivity).toBe('idle')
   })
 
+  it('lets a parent runtime intercept undo and redo shortcuts', () => {
+    mockUseCanvas.mockReturnValue(createCanvasMock())
+    const onUndoRedoShortcut = vi.fn(() => true)
+
+    render(<Canvas doc={new Y.Doc()} onUndoRedoShortcut={onUndoRedoShortcut} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    expect(surface).toBeTruthy()
+
+    surface?.focus()
+
+    fireEvent.keyDown(window, { key: 'z', metaKey: true })
+    fireEvent.keyDown(window, { key: 'z', metaKey: true, shiftKey: true })
+
+    expect(onUndoRedoShortcut).toHaveBeenNthCalledWith(1, 'undo')
+    expect(onUndoRedoShortcut).toHaveBeenNthCalledWith(2, 'redo')
+  })
+
   it('supports spatial keyboard focus with live announcements', async () => {
     const nodes = [
       {

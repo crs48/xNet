@@ -29,17 +29,41 @@ export type {
   Point,
   Rect,
   CanvasNodePosition,
+  CanvasSceneNodeKind,
   CanvasObjectKind,
+  CanvasSourceBackedNodeKind,
   LegacyCanvasNodeType,
   CanvasNodeType,
+  CanvasDisplayDensity,
+  CanvasDisplayState,
+  CanvasNodeProperties,
+  CanvasTitledNodeProperties,
+  CanvasExternalReferenceNodeProperties,
+  CanvasMediaNodeProperties,
+  CanvasShapeNodeProperties,
+  CanvasGroupNodeProperties,
   CanvasAlignment,
   CanvasDistributionAxis,
   CanvasLayerDirection,
+  CanvasNodeBase,
+  CanvasPageNode,
+  CanvasDatabaseNode,
+  CanvasExternalReferenceNode,
+  CanvasMediaNode,
+  CanvasNoteNode,
+  CanvasShapeNode,
+  CanvasGroupNode,
+  CanvasFrameNode,
+  CanvasSceneNode,
+  CanvasSceneObject,
+  CanvasLegacyNode,
   CanvasNode,
   EdgeAnchor,
   CanvasObjectAnchorPlacement,
   CanvasEdgeEndpoint,
+  CanvasConnectorEndpoint,
   CanvasEdge,
+  CanvasConnector,
   EdgeStyle,
   ViewportState,
   SelectionState,
@@ -50,6 +74,26 @@ export type {
 } from './types'
 
 export { DEFAULT_CANVAS_CONFIG } from './types'
+export {
+  CANVAS_OBJECTS_MAP_KEY,
+  CANVAS_CONNECTORS_MAP_KEY,
+  CANVAS_GROUPS_MAP_KEY,
+  CANVAS_METADATA_MAP_KEY,
+  ensureCanvasDocMaps,
+  getCanvasObjectsMap,
+  getCanvasConnectorsMap,
+  getCanvasGroupsMap,
+  getCanvasMetadataMap
+} from './scene/doc-layout'
+export type { CanvasDocMaps } from './scene/doc-layout'
+
+export {
+  CANVAS_SCENE_NODE_KINDS,
+  getCanvasResolvedNodeKind,
+  isCanvasObjectKind,
+  isFrameLikeCanvasNode
+} from './scene/node-kind'
+export type { CanvasResolvedNodeKind } from './scene/node-kind'
 
 export {
   createAlignmentUpdates,
@@ -137,6 +181,7 @@ export {
   generateNodeId,
   generateEdgeId,
   createNode,
+  createLegacyNode,
   createEdge,
   type CanvasStoreEvent,
   type CanvasStoreListener

@@ -10,6 +10,7 @@ import type * as Y from 'yjs'
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createChunkManager, createFlatCanvasChunkStore } from '../chunks'
 import { createLayoutEngine, type LayoutConfig } from '../layout/index'
+import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { Viewport, createViewport } from '../spatial/index'
 import { CanvasStore, createCanvasStore } from '../store'
 import { DEFAULT_CANVAS_CONFIG } from '../types'
@@ -139,8 +140,8 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
   // Sync state from store
   useEffect(() => {
     let active = true
-    const nodesMap = doc.getMap<CanvasNode>('nodes')
-    const edgesMap = doc.getMap<CanvasEdge>('edges')
+    const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
+    const edgesMap = getCanvasConnectorsMap<CanvasEdge>(doc)
 
     const handleSceneChange = () => {
       syncSceneState()

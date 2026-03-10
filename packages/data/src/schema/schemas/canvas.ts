@@ -2,8 +2,8 @@
  * CanvasSchema - Infinite canvas for spatial visualization.
  *
  * Canvases support:
- * - Nodes (cards, shapes, embeds)
- * - Edges (connections between nodes)
+ * - Scene objects (pages, databases, notes, links, media, shapes, groups)
+ * - Connectors (connections between scene objects)
  * - Collaborative editing via Yjs
  */
 

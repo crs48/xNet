@@ -1,8 +1,8 @@
 /**
  * Flat Canvas Chunk Store
  *
- * Provides chunked load/evict semantics on top of the current flat `nodes`
- * and `edges` Yjs maps. This activates the chunk runtime without requiring an
+ * Provides chunked load/evict semantics on top of the current flat `objects`
+ * and `connectors` Yjs maps. This activates the chunk runtime without requiring an
  * immediate persisted-document migration.
  */
 
@@ -15,6 +15,7 @@ import {
   getCanvasEdgeTargetObjectId,
   normalizeCanvasEdgeBindings
 } from '../edges/bindings'
+import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { chunkKeyFromPosition } from './config'
 
 type EdgeLocation =
@@ -72,8 +73,8 @@ export class FlatCanvasChunkStore implements ChunkStoreAdapter {
 
   constructor(ydoc: Y.Doc) {
     this.ydoc = ydoc
-    this.nodes = ydoc.getMap<CanvasNode>('nodes')
-    this.edges = ydoc.getMap<CanvasEdge>('edges')
+    this.nodes = getCanvasObjectsMap<CanvasNode>(ydoc)
+    this.edges = getCanvasConnectorsMap<CanvasEdge>(ydoc)
     this.handleNodesObserved = this.onNodesObserved.bind(this)
     this.handleEdgesObserved = this.onEdgesObserved.bind(this)
 

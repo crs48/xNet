@@ -16,6 +16,7 @@ const FOCUSED_OPEN_SHORTCUT = process.platform === 'darwin' ? 'Meta+Enter' : 'Co
 const SPLIT_OPEN_SHORTCUT = 'Alt+Enter'
 const ALIAS_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+A' : 'Control+Shift+A'
 const COMMENT_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+C' : 'Control+Shift+C'
+const UNDO_SHORTCUT = process.platform === 'darwin' ? 'Meta+Z' : 'Control+Z'
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 const ELECTRON_PROFILE_PATH = join(
   homedir(),
@@ -257,7 +258,9 @@ async function advanceOnboardingIfNeeded(page: Page): Promise<void> {
 }
 
 async function waitForCanvasShell(page: Page): Promise<void> {
-  await expect(page.getByRole('button', { name: 'Page' })).toBeVisible({ timeout: 30_000 })
+  await expect(
+    page.locator('[data-action-dock="canvas-home"] [data-action-dock-button="page"]')
+  ).toBeVisible({ timeout: 30_000 })
   await expect(page.getByRole('button', { name: /hide minimap/i })).toBeVisible({
     timeout: 30_000
   })
@@ -696,6 +699,39 @@ async function getCanvasNodeCount(page: Page, type: string): Promise<number> {
   return page.locator(`.canvas-node[data-node-type="${type}"]`).count()
 }
 
+async function createCanvasObjectFromDock(
+  page: Page,
+  kind: 'page' | 'database' | 'note'
+): Promise<number> {
+  const countBefore = await getCanvasNodeCount(page, kind)
+  const targetCount = countBefore + 1
+  const dockButton = page.locator(
+    `[data-action-dock="canvas-home"] [data-action-dock-button="${kind}"]`
+  )
+
+  await dockButton.click({ force: true })
+
+  try {
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, kind), { timeout: 2_500 })
+      .toBe(targetCount)
+  } catch {
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+    await surface.click({
+      position: { x: 220, y: 240 },
+      force: true
+    })
+    await surface.focus()
+    await page.keyboard.press(kind === 'page' ? 'P' : kind === 'database' ? 'D' : 'N')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, kind), { timeout: 30_000 })
+      .toBe(targetCount)
+  }
+
+  return countBefore
+}
+
 async function duplicateCanvasNodeReference(
   page: Page,
   nodeId: string,
@@ -743,6 +779,30 @@ async function moveCanvasNode(page: Page, nodeId: string, dx: number, dy: number
     },
     { nodeId, dx, dy }
   )
+}
+
+async function dragCanvasNode(
+  page: Page,
+  selector: string,
+  index: number,
+  dx: number,
+  dy: number
+): Promise<void> {
+  const locator = page.locator(selector).nth(index)
+  await expect(locator).toBeVisible({ timeout: 30_000 })
+
+  const box = await locator.boundingBox()
+  if (!box) {
+    throw new Error('Canvas node bounding box is unavailable')
+  }
+
+  const startX = box.x + 12
+  const startY = box.y + 12
+
+  await page.mouse.move(startX, startY)
+  await page.mouse.down()
+  await page.mouse.move(startX + dx, startY + dy)
+  await page.mouse.up()
 }
 
 async function getCanvasNodeRect(
@@ -871,7 +931,9 @@ test.describe('Electron canvas shell', () => {
     expect(darkDiagnostics.homeBadgeTheme).toBe('dark')
 
     const pageCountBefore = await getCanvasNodeCount(page, 'page')
-    await page.getByRole('button', { name: 'Page' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="page"]')
+      .click({ force: true })
     await expect.poll(async () => await getCanvasNodeCount(page, 'page')).toBe(pageCountBefore + 1)
     await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', pageCountBefore)
     await expect(page.locator('[data-canvas-page-surface="true"]').first()).toBeVisible({
@@ -923,7 +985,9 @@ test.describe('Electron canvas shell', () => {
       timeout: 30_000
     })
     const databaseCountBefore = await getCanvasNodeCount(page, 'database')
-    await page.getByRole('button', { name: 'Database' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="database"]')
+      .click({ force: true })
     await expect
       .poll(async () => await getCanvasNodeCount(page, 'database'))
       .toBe(databaseCountBefore + 1)
@@ -959,17 +1023,27 @@ test.describe('Electron canvas shell', () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
     const pageCountBefore = await getCanvasNodeCount(page, 'page')
+    const databaseCountBefore = await getCanvasNodeCount(page, 'database')
+    const noteCountBefore = await getCanvasNodeCount(page, 'note')
 
     await logShellDebugState(page, 'before-create')
-    await page.getByRole('button', { name: 'Page' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="page"]')
+      .click({ force: true })
     await logShellDebugState(page, 'after-page-click')
-    await expect(page.getByText('Untitled Page')).toBeVisible({ timeout: 30_000 })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'page')).toBe(pageCountBefore + 1)
 
-    await page.getByRole('button', { name: 'Database' }).click({ force: true })
-    await expect(page.getByText('Untitled Database')).toBeVisible({ timeout: 30_000 })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="database"]')
+      .click({ force: true })
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'database'))
+      .toBe(databaseCountBefore + 1)
 
-    await page.getByRole('button', { name: 'Note' }).click({ force: true })
-    await expect(page.getByText('Untitled Note')).toBeVisible({ timeout: 30_000 })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="note"]')
+      .click({ force: true })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 1)
 
     await page.keyboard.press(COMMAND_PALETTE_SHORTCUT)
     const commandInput = page.getByPlaceholder('Type a command or search...')
@@ -1064,7 +1138,9 @@ test.describe('Electron canvas shell', () => {
     const page = electronPage!
 
     const pageCountBefore = await getCanvasNodeCount(page, 'page')
-    await page.getByRole('button', { name: 'Page' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="page"]')
+      .click({ force: true })
     await expect.poll(async () => await getCanvasNodeCount(page, 'page')).toBe(pageCountBefore + 1)
 
     const newPageNode = page.locator('.canvas-node[data-node-type="page"]').nth(pageCountBefore)
@@ -1113,7 +1189,9 @@ test.describe('Electron canvas shell', () => {
     const page = electronPage!
 
     const noteCountBefore = await getCanvasNodeCount(page, 'note')
-    await page.getByRole('button', { name: 'Note' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="note"]')
+      .click({ force: true })
     await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 1)
 
     await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
@@ -1181,12 +1259,9 @@ test.describe('Electron canvas shell', () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
 
-    const noteCountBefore = await getCanvasNodeCount(page, 'note')
-    await page.getByRole('button', { name: 'Note' }).click({ force: true })
-    await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 1)
-
-    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
-    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
+    const noteIndex = await createCanvasObjectFromDock(page, 'note')
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteIndex)
+    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteIndex)
     const noteNodeId = await noteNode.getAttribute('data-node-id')
     if (!noteNodeId) {
       throw new Error('Unable to resolve the note node id')
@@ -1204,7 +1279,9 @@ test.describe('Electron canvas shell', () => {
     await expect(surface).toHaveAttribute('data-canvas-remote-user-count', '0')
 
     await page.locator('[data-canvas-comment-editor="true"] button').first().click()
-    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', 0)
+    const existingPageCount = await getCanvasNodeCount(page, 'page')
+    const pageIndex = existingPageCount > 0 ? 0 : await createCanvasObjectFromDock(page, 'page')
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', pageIndex)
     await expect(page.locator('[data-canvas-page-surface="true"]').first()).toBeVisible({
       timeout: 30_000
     })
@@ -1224,7 +1301,9 @@ test.describe('Electron canvas shell', () => {
     const page = electronPage!
 
     const noteCountBefore = await getCanvasNodeCount(page, 'note')
-    await page.getByRole('button', { name: 'Note' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="note"]')
+      .click({ force: true })
     await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 1)
 
     await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
@@ -1269,7 +1348,15 @@ test.describe('Electron canvas shell', () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
 
-    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]')
+    const pageIndex = await createCanvasObjectFromDock(page, 'page')
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', pageIndex)
+    const pageNodeId = await page
+      .locator('.canvas-node[data-node-type="page"]')
+      .nth(pageIndex)
+      .getAttribute('data-node-id')
+    if (!pageNodeId) {
+      throw new Error('Unable to resolve the page node id')
+    }
     const pageSurface = page.locator('[data-canvas-page-surface="true"]').first()
     await expect(pageSurface).toBeVisible({ timeout: 30_000 })
     await expect
@@ -1293,9 +1380,12 @@ test.describe('Electron canvas shell', () => {
         timeout: 15_000
       })
       .toBe(0)
-    await expect(page.getByText('Canvas draft')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator(`.canvas-node[data-node-id="${pageNodeId}"]`)).toContainText(
+      'Canvas draft',
+      { timeout: 30_000 }
+    )
 
-    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]')
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', pageIndex)
     await expect(pageSurface).toContainText('Canvas body text', { timeout: 30_000 })
     await expect
       .poll(async () => getContentEditableCount(page), {
@@ -1313,7 +1403,15 @@ test.describe('Electron canvas shell', () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
 
-    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]')
+    const pageIndex = await createCanvasObjectFromDock(page, 'page')
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', pageIndex)
+    const pageNodeId = await page
+      .locator('.canvas-node[data-node-type="page"]')
+      .nth(pageIndex)
+      .getAttribute('data-node-id')
+    if (!pageNodeId) {
+      throw new Error('Unable to resolve the page node id for peek validation')
+    }
     await page.locator('[data-canvas-surface="true"]').focus()
     await page.keyboard.press('Enter')
 
@@ -1366,9 +1464,16 @@ test.describe('Electron canvas shell', () => {
       timeout: 30_000
     })
 
-    await page.getByRole('button', { name: 'Canvas' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="focused"] [data-action-dock-button="canvas"]')
+      .click({ force: true })
     await expect(peekSurface).toHaveCount(0, { timeout: 30_000 })
-    await expect(page.getByText('Peek Draft')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-canvas-page-title="true"]').first()).toHaveValue(
+      'Peek Draft',
+      {
+        timeout: 30_000
+      }
+    )
 
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-page-peek.png`,
@@ -1379,36 +1484,42 @@ test.describe('Electron canvas shell', () => {
   test('supports canvas-scoped hotkeys, command commands, and typing guards', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
+    const canvasSurface = page.locator('[data-canvas-surface="true"]')
 
-    await page.locator('[data-canvas-surface="true"]').click({
+    await canvasSurface.click({
       position: { x: 28, y: 260 },
       force: true
     })
-
-    await page.keyboard.press('Shift+/')
+    await canvasSurface.focus()
+    await page.keyboard.down('Shift')
+    await page.keyboard.press('/')
+    await page.keyboard.up('Shift')
     await expect(page.locator('[data-canvas-shortcut-help="true"]')).toBeVisible({
       timeout: 15_000
     })
     await page.keyboard.press('Escape')
     await expect(page.locator('[data-canvas-shortcut-help="true"]')).toHaveCount(0)
 
-    await page.locator('[data-canvas-surface="true"]').focus()
+    const shapeCountBefore = await getCanvasNodeCount(page, 'shape')
+    await canvasSurface.focus()
     await page.keyboard.press('R')
-    await expect(page.locator('.canvas-node[data-node-type="shape"]')).toHaveCount(1, {
-      timeout: 15_000
-    })
-    await selectCanvasNode(page, '.canvas-node[data-node-type="shape"]')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'shape'), {
+        timeout: 15_000
+      })
+      .toBe(shapeCountBefore + 1)
+    await selectCanvasNode(page, '.canvas-node[data-node-type="shape"]', shapeCountBefore)
     await expect(page.locator('[data-canvas-selection-hud="true"]')).toBeVisible({
       timeout: 15_000
     })
 
-    await page.locator('[data-canvas-surface="true"]').focus()
+    await canvasSurface.focus()
     await page.keyboard.press('Escape')
     await expect(page.locator('[data-canvas-selection-hud="true"]')).toHaveCount(0, {
       timeout: 15_000
     })
 
-    await page.locator('[data-canvas-surface="true"]').focus()
+    await canvasSurface.focus()
     await page.keyboard.press('Tab')
     await expect(page.locator('[data-canvas-selection-hud="true"]')).toBeVisible({
       timeout: 15_000
@@ -1429,29 +1540,31 @@ test.describe('Electron canvas shell', () => {
     const databaseCountBefore = await getCanvasNodeCount(page, 'database')
     const noteCountBefore = await getCanvasNodeCount(page, 'note')
 
-    const canvasSurface = page.locator('[data-canvas-surface="true"]')
-
     await canvasSurface.click({
       position: { x: 36, y: 320 },
       force: true
     })
+    await canvasSurface.focus()
     await page.keyboard.press('P')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'page'), {
+        timeout: 15_000
+      })
+      .toBe(pageCountBefore + 1)
     await canvasSurface.focus()
     await page.keyboard.press('D')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'database'), {
+        timeout: 15_000
+      })
+      .toBe(databaseCountBefore + 1)
     await canvasSurface.focus()
     await page.keyboard.press('N')
-
     await expect
-      .poll(async () => ({
-        page: await getCanvasNodeCount(page, 'page'),
-        database: await getCanvasNodeCount(page, 'database'),
-        note: await getCanvasNodeCount(page, 'note')
-      }))
-      .toEqual({
-        page: pageCountBefore + 1,
-        database: databaseCountBefore + 1,
-        note: noteCountBefore + 1
+      .poll(async () => await getCanvasNodeCount(page, 'note'), {
+        timeout: 15_000
       })
+      .toBe(noteCountBefore + 1)
 
     const newestPageIndex = (await getCanvasNodeCount(page, 'page')) - 1
     await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', newestPageIndex)
@@ -1465,7 +1578,9 @@ test.describe('Electron canvas shell', () => {
     ).toBeVisible({
       timeout: 30_000
     })
-    await page.getByRole('button', { name: 'Canvas' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="focused"] [data-action-dock-button="canvas"]')
+      .click({ force: true })
     await expect(
       page.locator('[data-page-view="true"][data-page-view-chrome="minimal"]')
     ).toHaveCount(0, {
@@ -1482,11 +1597,109 @@ test.describe('Electron canvas shell', () => {
     await expect(page.locator('[data-canvas-shortcut-help="true"]')).toHaveCount(0)
   })
 
+  test('keeps scene and source undo boundaries stable in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await expect(page.locator('[data-canvas-surface="true"]')).toBeVisible({
+      timeout: 30_000
+    })
+
+    const canvasSurface = page.locator('[data-canvas-surface="true"]')
+    const canvasView = page.locator('[data-canvas-view="true"]')
+    const pageCountBefore = await getCanvasNodeCount(page, 'page')
+
+    await canvasSurface.focus()
+    await page.keyboard.press('P')
+    await expect.poll(async () => await getCanvasNodeCount(page, 'page')).toBe(pageCountBefore + 1)
+
+    const newestPageIndex = (await getCanvasNodeCount(page, 'page')) - 1
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', newestPageIndex)
+
+    const pageNode = page.locator('.canvas-node[data-node-type="page"]').nth(newestPageIndex)
+    const pageNodeId = await pageNode.getAttribute('data-node-id')
+    if (!pageNodeId) {
+      throw new Error('Unable to resolve the new page node id')
+    }
+
+    const titleInput = page.locator('[data-canvas-page-title="true"]').first()
+    await expect(titleInput).toHaveValue('Untitled Page', { timeout: 30_000 })
+    await titleInput.fill('Undo boundary page')
+    await canvasSurface.focus()
+    await expect(canvasView).toHaveAttribute('data-canvas-undo-domain', 'source-node', {
+      timeout: 30_000
+    })
+    await page.waitForTimeout(400)
+
+    const initialRect = await getCanvasNodeRect(page, pageNodeId)
+    const sceneUndoDepthBeforeDrag = Number(
+      (await canvasSurface.getAttribute('data-canvas-scene-undo-depth')) ?? '0'
+    )
+    await dragCanvasNode(page, '.canvas-node[data-node-type="page"]', newestPageIndex, 180, 96)
+
+    await expect
+      .poll(async () => await getCanvasNodeRect(page, pageNodeId), {
+        timeout: 30_000
+      })
+      .toMatchObject({
+        x: initialRect.x + 180,
+        y: initialRect.y + 96,
+        width: initialRect.width,
+        height: initialRect.height
+      })
+    await expect
+      .poll(
+        async () =>
+          Number((await canvasSurface.getAttribute('data-canvas-scene-undo-depth')) ?? '0'),
+        {
+          timeout: 30_000
+        }
+      )
+      .toBeGreaterThan(sceneUndoDepthBeforeDrag)
+    await expect(canvasView).toHaveAttribute('data-canvas-undo-domain', 'scene', {
+      timeout: 30_000
+    })
+
+    await canvasSurface.press(UNDO_SHORTCUT)
+
+    await expect
+      .poll(async () => await getCanvasNodeRect(page, pageNodeId), {
+        timeout: 30_000
+      })
+      .toMatchObject({
+        x: initialRect.x,
+        y: initialRect.y,
+        width: initialRect.width,
+        height: initialRect.height
+      })
+    await expect(titleInput).toHaveValue('Undo boundary page', { timeout: 30_000 })
+
+    await canvasSurface.press(UNDO_SHORTCUT)
+
+    await expect(page.locator(`.canvas-node[data-node-id="${pageNodeId}"]`)).toHaveAttribute(
+      'data-canvas-node-label',
+      /Untitled Page/,
+      {
+        timeout: 30_000
+      }
+    )
+    await expect(canvasView).toHaveAttribute('data-canvas-undo-domain', 'source-node', {
+      timeout: 30_000
+    })
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-undo-boundary.png`,
+      fullPage: true
+    })
+  })
+
   test('keeps database preview bounded and supports open-return workflows', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
 
-    await selectCanvasNode(page, '.canvas-node[data-node-type="database"]')
+    const databaseIndex = await createCanvasObjectFromDock(page, 'database')
+    await selectCanvasNode(page, '.canvas-node[data-node-type="database"]', databaseIndex)
     const databaseSurface = page.locator('[data-canvas-database-surface="true"]').first()
     await expect(databaseSurface).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('[data-canvas-page-surface="true"]')).toHaveCount(0)
@@ -1561,9 +1774,13 @@ test.describe('Electron canvas shell', () => {
     await expect(
       page.locator('[data-database-view="true"][data-database-view-chrome="minimal"]')
     ).toBeVisible({ timeout: 30_000 })
-    await expect(page.getByRole('button', { name: 'Canvas' })).toBeVisible({ timeout: 30_000 })
+    await expect(
+      page.locator('[data-action-dock="focused"] [data-action-dock-button="canvas"]')
+    ).toBeVisible({ timeout: 30_000 })
 
-    await page.getByRole('button', { name: 'Canvas' }).click({ force: true })
+    await page
+      .locator('[data-action-dock="focused"] [data-action-dock-button="canvas"]')
+      .click({ force: true })
     await expect(
       page.locator('[data-database-view="true"][data-database-view-chrome="minimal"]')
     ).toHaveCount(0, {

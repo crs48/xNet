@@ -261,7 +261,7 @@ flowchart LR
 
 ## Implementation Checklist
 
-- [ ] Replace the current generic canvas object contract with a typed scene graph.
+- [x] Replace the current generic canvas object contract with a typed scene graph.
 - [x] Add a reusable `MediaAsset`-style node schema for dropped images/files.
 - [x] Replace the current linked-card shell with a hybrid renderer shell.
 - [x] Route the main runtime through chunking, culling, and explicit layer display lists.
@@ -272,7 +272,7 @@ flowchart LR
 - [x] Add lock/unlock plus align/distribute/tidy operations for dense-board management.
 - [ ] Define and implement the full shortcut/command surface for Canvas V2.
 - [ ] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
-- [ ] Build Storybook and manual validation scenes that reflect the real Canvas V2 object model.
+- [x] Build Storybook and manual validation scenes that reflect the real Canvas V2 object model.
 - [x] Add Electron CDP e2e coverage for canvas creation, minimap, command palette, drag/drop, and focused-surface transitions.
 - [x] Add large-scene performance harnesses with DOM-count, query-churn, and frame-budget assertions.
 - [ ] Validate Electron-first performance and interaction budgets before web rollout.
@@ -290,7 +290,7 @@ flowchart LR
 - [x] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.
 - [x] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
 - [x] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
-- [ ] Undo/redo behaves correctly across canvas-object moves and inline content edits.
+- [x] Undo/redo behaves correctly across canvas-object moves and inline content edits.
 - [x] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.
 - [x] Comment anchors survive object moves/resizes and degrade cleanly when underlying anchors disappear.
 - [ ] The Electron shell is stable before any parity work starts in the web app.

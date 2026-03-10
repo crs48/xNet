@@ -2,6 +2,7 @@ import type { CanvasEdge, CanvasNode } from '../types'
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 import { createChunkManager, createFlatCanvasChunkStore } from '../chunks'
+import { getCanvasConnectorsMap, getCanvasObjectsMap } from '../scene/doc-layout'
 import { Viewport } from '../spatial'
 
 function createNode(id: string, x: number, y: number, width = 120, height = 80): CanvasNode {
@@ -24,8 +25,8 @@ function createEdge(id: string, sourceId: string, targetId: string): CanvasEdge 
 describe('FlatCanvasChunkStore', () => {
   it('loads chunk-local nodes and cross-chunk edges from flat canvas maps', async () => {
     const doc = new Y.Doc()
-    const nodes = doc.getMap<CanvasNode>('nodes')
-    const edges = doc.getMap<CanvasEdge>('edges')
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const edges = getCanvasConnectorsMap<CanvasEdge>(doc)
 
     const leftA = createNode('left-a', 100, 120)
     const leftB = createNode('left-b', 320, 200)
@@ -54,8 +55,8 @@ describe('FlatCanvasChunkStore', () => {
 
   it('reclassifies edges when node movement changes chunk membership', async () => {
     const doc = new Y.Doc()
-    const nodes = doc.getMap<CanvasNode>('nodes')
-    const edges = doc.getMap<CanvasEdge>('edges')
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
+    const edges = getCanvasConnectorsMap<CanvasEdge>(doc)
 
     const left = createNode('left', 120, 120)
     const right = createNode('right', 2200, 180)
@@ -88,7 +89,7 @@ describe('FlatCanvasChunkStore', () => {
 
   it('persists width and height updates for nodes inserted directly into the doc', async () => {
     const doc = new Y.Doc()
-    const nodes = doc.getMap<CanvasNode>('nodes')
+    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
     const store = createFlatCanvasChunkStore(doc)
     const manager = createChunkManager(store)
     const node = createNode('resizable', 120, 120, 320, 180)

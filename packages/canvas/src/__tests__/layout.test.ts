@@ -17,10 +17,10 @@ describe('LayoutEngine', () => {
   describe('layoutGrid', () => {
     it('should layout nodes in a grid', () => {
       const nodes: CanvasNode[] = [
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 })
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 })
       ]
 
       const positions = engine.layoutGrid(nodes, { columns: 2, spacing: 20 })
@@ -41,9 +41,9 @@ describe('LayoutEngine', () => {
 
     it('should respect custom columns', () => {
       const nodes: CanvasNode[] = [
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 })
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 })
       ]
 
       const positions = engine.layoutGrid(nodes, { columns: 3 })
@@ -61,10 +61,10 @@ describe('LayoutEngine', () => {
   describe('layoutCircle', () => {
     it('should layout nodes in a circle', () => {
       const nodes: CanvasNode[] = [
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 })
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 })
       ]
 
       const positions = engine.layoutCircle(nodes, { radius: 200, center: { x: 0, y: 0 } })
@@ -87,7 +87,7 @@ describe('LayoutEngine', () => {
     })
 
     it('should position first node at top', () => {
-      const nodes: CanvasNode[] = [createNode('card', { width: 100, height: 50 })]
+      const nodes: CanvasNode[] = [createNode('shape', { width: 100, height: 50 })]
 
       const positions = engine.layoutCircle(nodes, { radius: 200, center: { x: 0, y: 0 } })
       const pos = positions.get(nodes[0].id)
@@ -100,9 +100,9 @@ describe('LayoutEngine', () => {
   describe('layout (ELK)', () => {
     it('should layout nodes with edges', async () => {
       const nodes: CanvasNode[] = [
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 })
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 })
       ]
 
       const edges: CanvasEdge[] = [
@@ -119,8 +119,8 @@ describe('LayoutEngine', () => {
 
     it('should layout without edges', async () => {
       const nodes: CanvasNode[] = [
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 })
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 })
       ]
 
       const result = await engine.layout(nodes, [], { algorithm: 'box' })
@@ -137,8 +137,8 @@ describe('LayoutEngine', () => {
 
     it('should respect layout direction', async () => {
       const nodes: CanvasNode[] = [
-        createNode('card', { width: 100, height: 50 }),
-        createNode('card', { width: 100, height: 50 })
+        createNode('shape', { width: 100, height: 50 }),
+        createNode('shape', { width: 100, height: 50 })
       ]
 
       const edges: CanvasEdge[] = [createEdge(nodes[0].id, nodes[1].id)]
@@ -168,9 +168,9 @@ describe('LayoutEngine', () => {
   describe('layoutSubset', () => {
     it('should only layout specified nodes', async () => {
       const nodes: CanvasNode[] = [
-        createNode('card', { x: 0, y: 0, width: 100, height: 50 }),
-        createNode('card', { x: 100, y: 100, width: 100, height: 50 }),
-        createNode('card', { x: 200, y: 200, width: 100, height: 50 })
+        createNode('shape', { x: 0, y: 0, width: 100, height: 50 }),
+        createNode('shape', { x: 100, y: 100, width: 100, height: 50 }),
+        createNode('shape', { x: 200, y: 200, width: 100, height: 50 })
       ]
 
       const edges: CanvasEdge[] = [createEdge(nodes[0].id, nodes[1].id)]

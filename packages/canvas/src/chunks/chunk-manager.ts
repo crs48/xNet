@@ -460,7 +460,28 @@ export class ChunkManager {
 
     try {
       const data = await this.store.loadChunk(key)
-      const chunk = this.chunks.get(key)!
+      if (this.disposed) {
+        return
+      }
+
+      const chunk =
+        this.chunks.get(key) ??
+        (() => {
+          const { chunkX, chunkY } = parseChunkKey(key)
+          const restoredChunk: Chunk = {
+            key,
+            x: chunkX,
+            y: chunkY,
+            nodes: [],
+            edges: [],
+            loaded: false,
+            loading: false,
+            lastAccessed: Date.now()
+          }
+          this.chunks.set(key, restoredChunk)
+          return restoredChunk
+        })()
+
       chunk.nodes = data.nodes
       chunk.edges = data.edges
       chunk.loaded = true
@@ -469,6 +490,9 @@ export class ChunkManager {
 
       // Load cross-chunk edges that reference nodes in this chunk
       const newCrossEdges = await this.store.loadCrossChunkEdgesFor(key)
+      if (this.disposed) {
+        return
+      }
 
       // Only add edges we don't already have
       for (const edge of newCrossEdges) {

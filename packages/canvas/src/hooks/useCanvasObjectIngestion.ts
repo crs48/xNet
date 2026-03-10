@@ -24,6 +24,7 @@ import {
   inferMediaKind,
   readImageDimensions
 } from '../ingestion'
+import { getCanvasObjectsMap } from '../scene/doc-layout'
 
 export interface UseCanvasObjectIngestionOptions {
   doc: Y.Doc | null
@@ -62,7 +63,7 @@ function getNodesMap(doc: Y.Doc | null): Y.Map<CanvasNode> | null {
     return null
   }
 
-  return doc.getMap<CanvasNode>('nodes')
+  return getCanvasObjectsMap<CanvasNode>(doc)
 }
 
 function toExternalReferenceProperties(
