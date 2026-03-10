@@ -173,11 +173,12 @@ function getPositionStyles(
     display: 'flex',
     alignItems: 'center',
     gap: 0,
-    padding: '6px 8px',
+    padding: 4,
     background: theme.panelBackground,
     borderRadius: 999,
     boxShadow: theme.panelShadow,
     border: `1px solid ${theme.panelBorder}`,
+    overflow: 'hidden',
     zIndex: 10
   }
 
@@ -199,28 +200,30 @@ const styles: Record<string, React.CSSProperties> = {
   toolGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: 2
+    gap: 1
   },
   button: {
-    width: 30,
-    height: 30,
+    width: 28,
+    height: 28,
     border: 'none',
-    borderRadius: 999,
+    borderRadius: 10,
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    transition: 'background-color 120ms ease'
   },
   zoomLabel: {
-    fontSize: 11,
-    minWidth: 40,
+    fontSize: 10,
+    minWidth: 36,
+    padding: '0 4px',
     textAlign: 'center' as const,
     fontVariantNumeric: 'tabular-nums',
     userSelect: 'none'
   },
   divider: {
     width: 1,
-    height: 18,
-    margin: '0 6px'
+    height: 16,
+    margin: '0 4px'
   }
 }
 

@@ -646,6 +646,25 @@ test.describe('Web canvas ingestion', () => {
     await expect(surface).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('.navigation-tools')).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('[data-canvas-minimap="true"]')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-web-canvas-quick-actions="true"]')).toBeVisible({
+      timeout: 30_000
+    })
+    await expect(page.locator('[data-web-canvas-quick-action="page"]')).toHaveAttribute(
+      'title',
+      'Create page (P)'
+    )
+    await expect(page.locator('[data-web-canvas-quick-action="database"]')).toHaveAttribute(
+      'title',
+      'Create database (D)'
+    )
+    await expect(page.locator('[data-web-canvas-create-note="true"]')).toHaveAttribute(
+      'title',
+      'Create note (N)'
+    )
+    await expect(page.locator('[data-web-canvas-fit="true"]')).toHaveAttribute(
+      'title',
+      'Fit to content (Ctrl/Cmd 1)'
+    )
     await expect(page.locator('[data-web-canvas-empty-state="true"]')).toBeVisible({
       timeout: 30_000
     })

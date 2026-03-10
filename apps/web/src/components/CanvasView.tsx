@@ -28,7 +28,6 @@ import {
   Link2,
   Maximize2,
   MessageSquare,
-  Plus,
   StickyNote,
   Table2
 } from 'lucide-react'
@@ -651,12 +650,59 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     )
   }
 
+  const quickActions = [
+    {
+      id: 'page',
+      title: 'Create page (P)',
+      label: 'Create page',
+      onClick: () => {
+        void handleCreatePage()
+      },
+      icon: <FileText size={14} />,
+      dataAttributes: {}
+    },
+    {
+      id: 'database',
+      title: 'Create database (D)',
+      label: 'Create database',
+      onClick: () => {
+        void handleCreateDatabase()
+      },
+      icon: <Table2 size={14} />,
+      dataAttributes: {}
+    },
+    {
+      id: 'note',
+      title: 'Create note (N)',
+      label: 'Create note',
+      onClick: () => {
+        void handleCreateNote()
+      },
+      icon: <StickyNote size={14} />,
+      dataAttributes: {
+        'data-web-canvas-create-note': 'true'
+      }
+    },
+    {
+      id: 'fit',
+      title: 'Fit to content (Ctrl/Cmd 1)',
+      label: 'Fit to content',
+      onClick: () => {
+        canvasRef.current?.fitToContent(80)
+      },
+      icon: <Maximize2 size={14} />,
+      dataAttributes: {
+        'data-web-canvas-fit': 'true'
+      }
+    }
+  ] as const
+
   return (
     <div
       className="flex h-full flex-1 flex-col overflow-hidden -m-6"
       data-canvas-theme={theme.mode}
     >
-      <div className="flex items-center gap-3 border-b border-border bg-secondary px-4 py-3">
+      <div className="flex items-center gap-3 border-b border-border bg-secondary px-4 py-2.5">
         <input
           type="text"
           className="min-w-0 flex-1 border-none bg-transparent text-lg font-semibold text-foreground outline-none placeholder:text-muted-foreground"
@@ -669,26 +715,29 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         <PresenceAvatars presence={presence} />
         <ShareButton docId={docId} docType="canvas" />
 
-        <button
-          type="button"
-          onClick={() => {
-            void handleCreateNote()
-          }}
-          className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-sm text-white transition-colors hover:bg-primary/90"
-          data-web-canvas-create-note="true"
+        <div
+          className="inline-flex items-center overflow-hidden rounded-full border border-border/70 bg-background/88 shadow-sm shadow-black/5 backdrop-blur-xl"
+          data-web-canvas-quick-actions="true"
+          data-canvas-theme={theme.mode}
         >
-          <Plus size={14} />
-          <span>Note</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => canvasRef.current?.fitToContent(80)}
-          className="inline-flex items-center gap-1 rounded-md border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
-        >
-          <Maximize2 size={14} />
-          <span>Center</span>
-        </button>
+          {quickActions.map((action, index) => (
+            <button
+              key={action.id}
+              type="button"
+              onClick={action.onClick}
+              title={action.title}
+              aria-label={action.label}
+              data-web-canvas-quick-action={action.id}
+              className={`inline-flex h-9 w-9 items-center justify-center text-foreground transition-colors hover:bg-accent ${
+                index > 0 ? 'border-l border-border/60' : ''
+              }`}
+              {...action.dataAttributes}
+            >
+              {action.icon}
+              <span className="sr-only">{action.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="relative flex-1">
