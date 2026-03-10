@@ -150,6 +150,19 @@ export {
   identity
 } from './schema'
 
+// External reference and embed parsing
+export {
+  EMBED_PROVIDERS,
+  type EmbedProvider,
+  type ExternalReferenceDescriptor,
+  type ExternalReferenceKind,
+  type ExternalReferenceProvider,
+  detectEmbedProvider,
+  normalizeExternalReferenceUrl,
+  parseEmbedUrl,
+  parseExternalReferenceUrl
+} from './external-references'
+
 // Update handling
 export {
   signUpdate,

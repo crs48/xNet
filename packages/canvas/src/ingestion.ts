@@ -6,7 +6,19 @@
  */
 
 import type { ShapeType, CanvasNode, CanvasObjectKind, Point, Rect } from './types'
-import { DatabaseSchema, ExternalReferenceSchema, MediaAssetSchema, PageSchema } from '@xnetjs/data'
+import type {
+  ExternalReferenceDescriptor,
+  ExternalReferenceKind,
+  ExternalReferenceProvider
+} from '@xnetjs/data'
+import {
+  DatabaseSchema,
+  ExternalReferenceSchema,
+  MediaAssetSchema,
+  PageSchema,
+  normalizeExternalReferenceUrl as normalizeReferenceUrl,
+  parseExternalReferenceUrl
+} from '@xnetjs/data'
 import { createNode } from './store'
 
 export const CANVAS_INTERNAL_NODE_MIME = 'application/x-xnet-canvas-node'
@@ -36,38 +48,9 @@ export type CanvasIngressPayload =
   | { kind: 'file'; file: File }
   | { kind: 'text'; text: string }
 
-export type CanvasExternalReferenceProvider =
-  | 'github'
-  | 'figma'
-  | 'youtube'
-  | 'loom'
-  | 'vimeo'
-  | 'codesandbox'
-  | 'spotify'
-  | 'twitter'
-  | 'generic'
-
-export type CanvasExternalReferenceKind =
-  | 'issue'
-  | 'pull-request'
-  | 'design'
-  | 'video'
-  | 'sandbox'
-  | 'social'
-  | 'audio'
-  | 'link'
-
-export type CanvasExternalReferenceDescriptor = {
-  normalizedUrl: string
-  provider: CanvasExternalReferenceProvider
-  kind: CanvasExternalReferenceKind
-  refId?: string
-  title: string
-  subtitle?: string
-  icon?: string
-  embedUrl?: string
-  metadata: Record<string, string>
-}
+export type CanvasExternalReferenceProvider = ExternalReferenceProvider
+export type CanvasExternalReferenceKind = ExternalReferenceKind
+export type CanvasExternalReferenceDescriptor = ExternalReferenceDescriptor
 
 export type CanvasMediaKind = 'image' | 'video' | 'audio' | 'document' | 'file'
 
@@ -139,253 +122,12 @@ export function parseCanvasInternalNodeDragData(
   }
 }
 
-export function normalizeExternalReferenceUrl(input: string): string | null {
-  const trimmed = input.trim()
-  if (trimmed.length === 0) {
-    return null
-  }
-
-  const candidate = /^https?:\/\//i.test(trimmed)
-    ? trimmed
-    : /^[a-z0-9.-]+\.[a-z]{2,}(?:[/?#].*)?$/i.test(trimmed)
-      ? `https://${trimmed}`
-      : null
-
-  if (!candidate) {
-    return null
-  }
-
-  try {
-    const url = new URL(candidate)
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      return null
-    }
-
-    url.username = ''
-    url.password = ''
-    url.hash = ''
-
-    const pathname = url.pathname === '/' ? '' : url.pathname.replace(/\/+$/, '')
-    return `${url.protocol}//${url.host}${pathname}${url.search}`
-  } catch {
-    return null
-  }
-}
-
-function createGenericExternalReferenceDescriptor(
-  normalizedUrl: string
-): CanvasExternalReferenceDescriptor {
-  const url = new URL(normalizedUrl)
-  const hostname = url.hostname.replace(/^www\./i, '')
-  const pathLabel = `${url.pathname}${url.search}`.trim() || normalizedUrl
-
-  return {
-    normalizedUrl,
-    provider: 'generic',
-    kind: 'link',
-    title: hostname || normalizedUrl,
-    subtitle: pathLabel === normalizedUrl ? undefined : pathLabel,
-    icon: 'LINK',
-    metadata: {
-      hostname,
-      path: url.pathname
-    }
-  }
-}
-
 export function describeExternalReference(input: string): CanvasExternalReferenceDescriptor | null {
-  const normalizedUrl = normalizeExternalReferenceUrl(input)
-  if (!normalizedUrl) {
-    return null
-  }
+  return parseExternalReferenceUrl(input)
+}
 
-  const githubIssueMatch = normalizedUrl.match(
-    /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)(?:[/?].*)?$/i
-  )
-  if (githubIssueMatch) {
-    const [, owner, repo, number] = githubIssueMatch
-    return {
-      normalizedUrl,
-      provider: 'github',
-      kind: 'issue',
-      refId: `${owner}/${repo}#${number}`,
-      title: `${repo}#${number}`,
-      subtitle: owner,
-      icon: 'GH',
-      metadata: {
-        owner,
-        repo,
-        number,
-        entity: 'issue'
-      }
-    }
-  }
-
-  const githubPrMatch = normalizedUrl.match(
-    /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)(?:[/?].*)?$/i
-  )
-  if (githubPrMatch) {
-    const [, owner, repo, number] = githubPrMatch
-    return {
-      normalizedUrl,
-      provider: 'github',
-      kind: 'pull-request',
-      refId: `${owner}/${repo}#${number}`,
-      title: `${repo} PR #${number}`,
-      subtitle: owner,
-      icon: 'PR',
-      metadata: {
-        owner,
-        repo,
-        number,
-        entity: 'pull-request'
-      }
-    }
-  }
-
-  const figmaMatch = normalizedUrl.match(
-    /^https?:\/\/(?:www\.)?figma\.com\/(file|proto)\/([a-z0-9]+)(?:[/?].*)?$/i
-  )
-  if (figmaMatch) {
-    const [, entity, fileId] = figmaMatch
-    return {
-      normalizedUrl,
-      provider: 'figma',
-      kind: 'design',
-      refId: `${entity}/${fileId}`,
-      title: `Figma ${entity}`,
-      subtitle: fileId,
-      icon: 'FG',
-      embedUrl: `https://www.figma.com/embed?embed_host=xnet&url=https://www.figma.com/${entity}/${fileId}`,
-      metadata: {
-        entity,
-        fileId
-      }
-    }
-  }
-
-  const youtubeMatch = normalizedUrl.match(
-    /^https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtu\.be\/)([a-z0-9_-]+)/i
-  )
-  if (youtubeMatch) {
-    const [, videoId] = youtubeMatch
-    return {
-      normalizedUrl,
-      provider: 'youtube',
-      kind: 'video',
-      refId: videoId,
-      title: `YouTube ${videoId}`,
-      subtitle: 'YouTube',
-      icon: 'YT',
-      embedUrl: `https://www.youtube.com/embed/${videoId}`,
-      metadata: {
-        videoId
-      }
-    }
-  }
-
-  const vimeoMatch = normalizedUrl.match(
-    /^https?:\/\/(?:player\.)?vimeo\.com\/(?:video\/)?(\d+)(?:[/?].*)?$/i
-  )
-  if (vimeoMatch) {
-    const [, videoId] = vimeoMatch
-    return {
-      normalizedUrl,
-      provider: 'vimeo',
-      kind: 'video',
-      refId: videoId,
-      title: `Vimeo ${videoId}`,
-      subtitle: 'Vimeo',
-      icon: 'VI',
-      embedUrl: `https://player.vimeo.com/video/${videoId}`,
-      metadata: {
-        videoId
-      }
-    }
-  }
-
-  const loomMatch = normalizedUrl.match(
-    /^https?:\/\/(?:www\.)?loom\.com\/(?:share|embed)\/([a-f0-9]+)(?:[/?].*)?$/i
-  )
-  if (loomMatch) {
-    const [, loomId] = loomMatch
-    return {
-      normalizedUrl,
-      provider: 'loom',
-      kind: 'video',
-      refId: loomId,
-      title: `Loom ${loomId.slice(0, 8)}`,
-      subtitle: 'Loom',
-      icon: 'LO',
-      embedUrl: `https://www.loom.com/embed/${loomId}`,
-      metadata: {
-        loomId
-      }
-    }
-  }
-
-  const sandboxMatch = normalizedUrl.match(
-    /^https?:\/\/(?:www\.)?codesandbox\.io\/(?:s|embed)\/([a-z0-9-]+)(?:[/?].*)?$/i
-  )
-  if (sandboxMatch) {
-    const [, sandboxId] = sandboxMatch
-    return {
-      normalizedUrl,
-      provider: 'codesandbox',
-      kind: 'sandbox',
-      refId: sandboxId,
-      title: `Sandbox ${sandboxId}`,
-      subtitle: 'CodeSandbox',
-      icon: 'CS',
-      embedUrl: `https://codesandbox.io/embed/${sandboxId}?fontsize=14&hidenavigation=1&theme=dark`,
-      metadata: {
-        sandboxId
-      }
-    }
-  }
-
-  const spotifyMatch = normalizedUrl.match(
-    /^https?:\/\/open\.spotify\.com\/(track|album|playlist|episode|show)\/([a-z0-9]+)(?:[/?].*)?$/i
-  )
-  if (spotifyMatch) {
-    const [, entity, mediaId] = spotifyMatch
-    return {
-      normalizedUrl,
-      provider: 'spotify',
-      kind: 'audio',
-      refId: `${entity}/${mediaId}`,
-      title: `Spotify ${entity}`,
-      subtitle: mediaId,
-      icon: 'SP',
-      embedUrl: `https://open.spotify.com/embed/${entity}/${mediaId}`,
-      metadata: {
-        entity,
-        mediaId
-      }
-    }
-  }
-
-  const twitterMatch = normalizedUrl.match(
-    /^https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/[^/]+\/status\/(\d+)(?:[/?].*)?$/i
-  )
-  if (twitterMatch) {
-    const [, postId] = twitterMatch
-    return {
-      normalizedUrl,
-      provider: 'twitter',
-      kind: 'social',
-      refId: postId,
-      title: `Post ${postId}`,
-      subtitle: 'X',
-      icon: 'X',
-      embedUrl: `https://platform.twitter.com/embed/Tweet.html?id=${postId}`,
-      metadata: {
-        postId
-      }
-    }
-  }
-
-  return createGenericExternalReferenceDescriptor(normalizedUrl)
+export function normalizeExternalReferenceUrl(input: string): string | null {
+  return normalizeReferenceUrl(input)
 }
 
 export function inferMediaKind(file: File): CanvasMediaKind {
