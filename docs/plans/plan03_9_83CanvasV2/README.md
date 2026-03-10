@@ -271,7 +271,7 @@ flowchart LR
 - [x] Add connector bindings, shapes, groups, and aliases/backlinks.
 - [x] Add lock/unlock plus align/distribute/tidy operations for dense-board management.
 - [ ] Define and implement the full shortcut/command surface for Canvas V2.
-- [ ] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
+- [x] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
 - [x] Build Storybook and manual validation scenes that reflect the real Canvas V2 object model.
 - [x] Add Electron CDP e2e coverage for canvas creation, minimap, command palette, drag/drop, and focused-surface transitions.
 - [x] Add large-scene performance harnesses with DOM-count, query-churn, and frame-budget assertions.

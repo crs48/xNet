@@ -61,6 +61,21 @@ type CanvasTestHarness = {
   registerCanvasAwareness: (canvasId: string, awareness: Awareness | null) => void
   registerCanvasHandle: (canvasId: string, handle: CanvasHandle | null) => void
   moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
+  moveCanvasNodeAsRemote: (input: {
+    canvasId?: string
+    key: string
+    nodeId: string
+    dx: number
+    dy: number
+    state?: Record<string, unknown> | null
+  }) => Promise<{
+    canvasId: string
+    clientId: number | null
+    x: number
+    y: number
+    width: number
+    height: number
+  }>
   getCanvasNodeRect: (input: { nodeId: string }) => Promise<{
     canvasId: string
     x: number
@@ -145,6 +160,7 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
   const liveAwareness = new Map<string, Awareness>()
   const liveHandles = new Map<string, CanvasHandle>()
   const remotePeers = new Map<string, Map<string, Awareness>>()
+  const remotePeerDocs = new Map<string, Map<string, Y.Doc>>()
 
   const resolveCanvasId = (canvasId?: string): string => {
     if (canvasId) {
@@ -172,6 +188,7 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
       }
 
       liveDocs.delete(canvasId)
+      remotePeerDocs.delete(canvasId)
     },
 
     registerCanvasAwareness(canvasId, awareness) {
@@ -230,6 +247,99 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
       }
 
       throw new Error(`Node ${input.nodeId} not found`)
+    },
+
+    async moveCanvasNodeAsRemote(input) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      const canvasId = resolveCanvasId(input.canvasId)
+      const liveDoc = liveDocs.get(canvasId)
+      if (!liveDoc) {
+        throw new Error(`No live canvas doc registered for ${canvasId}`)
+      }
+
+      const peersForCanvas = remotePeerDocs.get(canvasId) ?? new Map<string, Y.Doc>()
+      remotePeerDocs.set(canvasId, peersForCanvas)
+
+      let remoteDoc = peersForCanvas.get(input.key)
+      if (!remoteDoc) {
+        remoteDoc = new Y.Doc()
+        peersForCanvas.set(input.key, remoteDoc)
+      }
+
+      const syncUpdate = Y.encodeStateAsUpdate(liveDoc, Y.encodeStateVector(remoteDoc))
+      if (syncUpdate.byteLength > 0) {
+        Y.applyUpdate(remoteDoc, syncUpdate, 'sync')
+      }
+
+      const nodesMap = getCanvasObjectsMap<{
+        id: string
+        position: {
+          x: number
+          y: number
+          width: number
+          height: number
+        }
+      }>(remoteDoc)
+      const node = nodesMap.get(input.nodeId)
+      if (!node) {
+        throw new Error(`Node ${input.nodeId} not found in canvas ${canvasId}`)
+      }
+
+      const liveStateVector = Y.encodeStateVector(liveDoc)
+
+      remoteDoc.transact(() => {
+        nodesMap.set(input.nodeId, {
+          ...node,
+          position: {
+            ...node.position,
+            x: node.position.x + input.dx,
+            y: node.position.y + input.dy
+          }
+        })
+      }, `remote:${input.key}`)
+
+      const remoteUpdate = Y.encodeStateAsUpdate(remoteDoc, liveStateVector)
+      if (remoteUpdate.byteLength > 0) {
+        Y.applyUpdate(liveDoc, remoteUpdate, `remote:${input.key}`)
+      }
+
+      let clientId: number | null = null
+      if (input.state !== undefined) {
+        const result = await this.setCanvasRemotePresence({
+          canvasId,
+          key: input.key,
+          state: input.state
+        })
+        clientId = result.clientId
+      }
+
+      await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(liveDoc))
+
+      const updatedNode = getCanvasObjectsMap<{
+        position: {
+          x: number
+          y: number
+          width: number
+          height: number
+        }
+      }>(liveDoc).get(input.nodeId)
+
+      if (!updatedNode) {
+        throw new Error(`Node ${input.nodeId} disappeared after remote move`)
+      }
+
+      return {
+        canvasId,
+        clientId,
+        x: updatedNode.position.x,
+        y: updatedNode.position.y,
+        width: updatedNode.position.width,
+        height: updatedNode.position.height
+      }
     },
 
     async getCanvasNodeRect(input) {

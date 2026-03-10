@@ -797,6 +797,76 @@ async function moveCanvasNode(page: Page, nodeId: string, dx: number, dy: number
   )
 }
 
+async function setCanvasRemotePresence(
+  page: Page,
+  input: {
+    canvasId?: string
+    key: string
+    state: Record<string, unknown> | null
+  }
+): Promise<{ canvasId: string; clientId: number }> {
+  return page.evaluate(async (presenceInput) => {
+    const harness = (
+      window as Window & {
+        __xnetCanvasTestHarness?: {
+          setCanvasRemotePresence: (input: typeof presenceInput) => Promise<{
+            canvasId: string
+            clientId: number
+          }>
+        } | null
+      }
+    ).__xnetCanvasTestHarness
+
+    if (!harness) {
+      throw new Error('Canvas remote presence helpers are not available')
+    }
+
+    return harness.setCanvasRemotePresence(presenceInput)
+  }, input)
+}
+
+async function moveCanvasNodeAsRemote(
+  page: Page,
+  input: {
+    canvasId?: string
+    key: string
+    nodeId: string
+    dx: number
+    dy: number
+    state?: Record<string, unknown> | null
+  }
+): Promise<{
+  canvasId: string
+  clientId: number | null
+  x: number
+  y: number
+  width: number
+  height: number
+}> {
+  return page.evaluate(async (remoteMoveInput) => {
+    const harness = (
+      window as Window & {
+        __xnetCanvasTestHarness?: {
+          moveCanvasNodeAsRemote: (input: typeof remoteMoveInput) => Promise<{
+            canvasId: string
+            clientId: number | null
+            x: number
+            y: number
+            width: number
+            height: number
+          }>
+        } | null
+      }
+    ).__xnetCanvasTestHarness
+
+    if (!harness) {
+      throw new Error('Canvas remote move helpers are not available')
+    }
+
+    return harness.moveCanvasNodeAsRemote(remoteMoveInput)
+  }, input)
+}
+
 async function dragCanvasNode(
   page: Page,
   selector: string,
@@ -1309,6 +1379,82 @@ test.describe('Electron canvas shell', () => {
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-presence.png`,
       fullPage: true
+    })
+  })
+
+  test('applies remote canvas moves without interrupting local editing in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const noteIndex = await createCanvasObjectFromDock(page, 'note')
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteIndex)
+    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteIndex)
+    const noteNodeId = await noteNode.getAttribute('data-node-id')
+    if (!noteNodeId) {
+      throw new Error('Unable to resolve the note node id')
+    }
+
+    const noteRectBefore = await getCanvasNodeRect(page, noteNodeId)
+
+    const pageIndex = await createCanvasObjectFromDock(page, 'page')
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', pageIndex)
+    const pageNode = page.locator('.canvas-node[data-node-type="page"]').nth(pageIndex)
+    const pageNodeId = await pageNode.getAttribute('data-node-id')
+    if (!pageNodeId) {
+      throw new Error('Unable to resolve the page node id')
+    }
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    const inlinePageSurface = page.locator('[data-canvas-page-surface="true"]').first()
+    await expect(inlinePageSurface).toBeVisible({ timeout: 30_000 })
+    await page.locator('[data-canvas-page-title="true"]').first().focus()
+    await page.keyboard.type('Local canvas collaborator')
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'editing', {
+      timeout: 30_000
+    })
+    await expect(surface).toHaveAttribute('data-canvas-editing-node-id', pageNodeId, {
+      timeout: 30_000
+    })
+
+    const remoteMove = await moveCanvasNodeAsRemote(page, {
+      key: 'remote-canvas-peer',
+      nodeId: noteNodeId,
+      dx: 160,
+      dy: 96,
+      state: {
+        user: {
+          did: 'did:key:electron-canvas-peer',
+          name: 'Canvas Collaborator',
+          color: '#22c55e'
+        },
+        selection: [noteNodeId],
+        cursor: {
+          x: noteRectBefore.x + 32,
+          y: noteRectBefore.y + 24
+        },
+        activity: 'moving',
+        editingNodeId: noteNodeId
+      }
+    })
+    expect(remoteMove.clientId).not.toBeNull()
+
+    await expect
+      .poll(async () => (await getCanvasNodeRect(page, noteNodeId)).x, { timeout: 30_000 })
+      .toBe(noteRectBefore.x + 160)
+    await expect
+      .poll(async () => (await getCanvasNodeRect(page, noteNodeId)).y, { timeout: 30_000 })
+      .toBe(noteRectBefore.y + 96)
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'editing')
+    await expect(surface).toHaveAttribute('data-canvas-editing-node-id', pageNodeId)
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-collaboration.png`,
+      fullPage: true
+    })
+
+    await setCanvasRemotePresence(page, {
+      key: 'remote-canvas-peer',
+      state: null
     })
   })
 

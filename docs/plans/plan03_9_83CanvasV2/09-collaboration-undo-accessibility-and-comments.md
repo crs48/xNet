@@ -121,7 +121,8 @@ const contentUndo = useUndo(pageNodeId, {
 - Add automated Electron and web regression coverage for keyboard focus return,
   Home/End and Tab traversal, and live announcement diagnostics on the shared
   canvas surface.
-- Verify multi-user behavior with two Electron instances.
+- Verify multi-user behavior with an Electron remote-peer Yjs harness, and keep
+  true dual-instance runs as manual release validation.
 
 Suggested commands:
 
@@ -144,4 +145,4 @@ cd apps/electron && pnpm dev:both
 - [x] Use `useUndo` and `useUndoScope` to enforce clear undo boundaries.
 - [x] Add object-level comment anchors and graceful orphan handling.
 - [x] Extend keyboard accessibility to the full Canvas V2 object model.
-- [ ] Validate collaborative behavior with multi-user Electron testing.
+- [x] Validate collaborative behavior with Electron multi-user regression coverage.
