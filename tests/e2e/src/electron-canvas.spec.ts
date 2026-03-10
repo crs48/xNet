@@ -1408,6 +1408,24 @@ test.describe('Electron canvas shell', () => {
         minHeight: 380
       },
       {
+        url: 'https://www.instagram.com/p/C-qi579y7M9/',
+        provider: 'instagram',
+        frameSrc: 'https://www.instagram.com/p/C-qi579y7M9/embed/captioned',
+        clientX: 700,
+        clientY: 360,
+        minWidth: 340,
+        minHeight: 380
+      },
+      {
+        url: 'https://www.tiktok.com/@scout2015/video/6718335390845095173',
+        provider: 'tiktok',
+        frameSrc: 'https://www.tiktok.com/player/v1/6718335390845095173',
+        clientX: 900,
+        clientY: 440,
+        minWidth: 340,
+        minHeight: 380
+      },
+      {
         url: 'https://www.figma.com/file/abc123def/storybook-rich-editor-spec',
         provider: 'figma',
         frameSrc:

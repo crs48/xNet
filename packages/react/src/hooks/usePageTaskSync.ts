@@ -132,6 +132,8 @@ function normalizeProvider(provider: string | null): ExternalReferenceProvider {
     case 'codesandbox':
     case 'spotify':
     case 'twitter':
+    case 'instagram':
+    case 'tiktok':
       return provider
     default:
       return 'generic'

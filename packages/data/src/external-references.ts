@@ -15,6 +15,8 @@ export type ExternalReferenceProvider =
   | 'codesandbox'
   | 'spotify'
   | 'twitter'
+  | 'instagram'
+  | 'tiktok'
   | 'generic'
 
 export type ExternalReferenceKind =
@@ -111,6 +113,42 @@ export const EMBED_PROVIDERS: EmbedProvider[] = [
     getEmbedUrl: (id: string) => `https://platform.twitter.com/embed/Tweet.html?id=${id}`
   },
   {
+    name: 'instagram',
+    displayName: 'Instagram',
+    icon: '\uD83D\uDCF7',
+    patterns: [/(?:instagram\.com)\/(p|reel|tv)\/([a-zA-Z0-9_-]+)/],
+    extractId: (url: string) => {
+      const match = url.match(/(?:instagram\.com)\/(p|reel|tv)\/([a-zA-Z0-9_-]+)/)
+      return match ? `${match[1]}/${match[2]}` : null
+    },
+    getEmbedUrl: (id: string) => {
+      const [entity, shortcode] = id.split('/')
+      return `https://www.instagram.com/${entity}/${shortcode}/embed/captioned`
+    }
+  },
+  {
+    name: 'tiktok',
+    displayName: 'TikTok',
+    icon: '\u266B',
+    patterns: [
+      /(?:tiktok\.com)\/(@[^/]+)\/video\/(\d+)/,
+      /(?:tiktok\.com)\/(?:player\/v1|embed\/v2)\/(\d+)/
+    ],
+    extractId: (url: string) => {
+      const videoMatch = url.match(/(?:tiktok\.com)\/(@[^/]+)\/video\/(\d+)/)
+      if (videoMatch) {
+        return `${videoMatch[1]}/${videoMatch[2]}`
+      }
+
+      const embedMatch = url.match(/(?:tiktok\.com)\/(?:player\/v1|embed\/v2)\/(\d+)/)
+      return embedMatch ? `video/${embedMatch[1]}` : null
+    },
+    getEmbedUrl: (id: string) => {
+      const [, videoId = id] = id.split('/')
+      return `https://www.tiktok.com/player/v1/${videoId}`
+    }
+  },
+  {
     name: 'figma',
     displayName: 'Figma',
     icon: '\uD83C\uDFA8',
@@ -186,6 +224,8 @@ function inferReferenceKind(provider: EmbedProvider): ExternalReferenceKind {
     case 'spotify':
       return 'audio'
     case 'twitter':
+    case 'instagram':
+    case 'tiktok':
       return 'social'
     default:
       return 'link'
@@ -301,6 +341,42 @@ function describeEmbedReference(
           postId: parsed.id
         }
       }
+    case 'instagram': {
+      const [entity = 'p', mediaId = parsed.id] = parsed.id.split('/')
+      const entityLabel = entity === 'reel' ? 'reel' : entity === 'tv' ? 'video' : 'post'
+      return {
+        normalizedUrl,
+        provider: parsed.provider.name,
+        kind: inferReferenceKind(parsed.provider),
+        refId: parsed.id,
+        title: `Instagram ${entityLabel}`,
+        subtitle: mediaId,
+        icon: 'IG',
+        embedUrl: parsed.embedUrl,
+        metadata: {
+          entity,
+          mediaId
+        }
+      }
+    }
+    case 'tiktok': {
+      const [author = 'video', videoId = parsed.id] = parsed.id.split('/')
+      const authorLabel = author === 'video' ? 'TikTok' : author
+      return {
+        normalizedUrl,
+        provider: parsed.provider.name,
+        kind: inferReferenceKind(parsed.provider),
+        refId: parsed.id,
+        title: `${authorLabel} video`,
+        subtitle: videoId,
+        icon: 'TT',
+        embedUrl: parsed.embedUrl,
+        metadata: {
+          author,
+          videoId
+        }
+      }
+    }
     default:
       return {
         normalizedUrl,

@@ -52,6 +52,20 @@ describe('canvas ingestion utilities', () => {
         'https://www.figma.com/embed?embed_host=xnet&url=https://www.figma.com/file/abc123def'
     })
 
+    expect(describeExternalReference('https://www.instagram.com/p/C-qi579y7M9/')).toMatchObject({
+      provider: 'instagram',
+      kind: 'social',
+      embedUrl: 'https://www.instagram.com/p/C-qi579y7M9/embed/captioned'
+    })
+
+    expect(
+      describeExternalReference('https://www.tiktok.com/@scout2015/video/6718335390845095173')
+    ).toMatchObject({
+      provider: 'tiktok',
+      kind: 'social',
+      embedUrl: 'https://www.tiktok.com/player/v1/6718335390845095173'
+    })
+
     expect(describeExternalReference('https://www.example.com/some/path')).toMatchObject({
       provider: 'generic',
       kind: 'link',
@@ -121,6 +135,16 @@ describe('canvas ingestion utilities', () => {
       kind: 'social',
       embedUrl: 'https://platform.twitter.com/embed/Tweet.html?id=1606321052308658177'
     })
+    const instagramRect = getExternalReferenceRect({
+      provider: 'instagram',
+      kind: 'social',
+      embedUrl: 'https://www.instagram.com/p/C-qi579y7M9/embed/captioned'
+    })
+    const tiktokRect = getExternalReferenceRect({
+      provider: 'tiktok',
+      kind: 'social',
+      embedUrl: 'https://www.tiktok.com/player/v1/6718335390845095173'
+    })
     const genericRect = getExternalReferenceRect({
       provider: 'generic',
       kind: 'link',
@@ -129,6 +153,8 @@ describe('canvas ingestion utilities', () => {
 
     expect(youtubeRect).toEqual({ width: 420, height: 352 })
     expect(twitterRect).toEqual({ width: 360, height: 420 })
+    expect(instagramRect).toEqual({ width: 360, height: 420 })
+    expect(tiktokRect).toEqual({ width: 360, height: 420 })
     expect(genericRect).toEqual({ width: 360, height: 180 })
   })
 

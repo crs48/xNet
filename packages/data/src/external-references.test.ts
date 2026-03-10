@@ -9,12 +9,14 @@ import {
 
 describe('external reference parsing', () => {
   it('exports the supported embed providers', () => {
-    expect(EMBED_PROVIDERS).toHaveLength(7)
+    expect(EMBED_PROVIDERS).toHaveLength(9)
     expect(EMBED_PROVIDERS.map((provider) => provider.name)).toEqual([
       'youtube',
       'vimeo',
       'spotify',
       'twitter',
+      'instagram',
+      'tiktok',
       'figma',
       'codesandbox',
       'loom'
@@ -31,6 +33,12 @@ describe('external reference parsing', () => {
   it('detects embed providers from supported urls', () => {
     expect(detectEmbedProvider('https://youtu.be/dQw4w9WgXcQ')?.name).toBe('youtube')
     expect(detectEmbedProvider('https://x.com/user/status/1234567890')?.name).toBe('twitter')
+    expect(detectEmbedProvider('https://www.instagram.com/reel/C-qi579y7M9/')?.name).toBe(
+      'instagram'
+    )
+    expect(
+      detectEmbedProvider('https://www.tiktok.com/@scout2015/video/6718335390845095173')?.name
+    ).toBe('tiktok')
     expect(detectEmbedProvider('https://example.com')).toBeNull()
   })
 
@@ -44,6 +52,18 @@ describe('external reference parsing', () => {
       parseEmbedUrl('https://www.figma.com/file/abc123def/storybook-rich-editor-spec')
     ).toMatchObject({
       id: 'file/abc123def'
+    })
+
+    expect(parseEmbedUrl('https://www.instagram.com/p/C-qi579y7M9/')).toMatchObject({
+      id: 'p/C-qi579y7M9',
+      embedUrl: 'https://www.instagram.com/p/C-qi579y7M9/embed/captioned'
+    })
+
+    expect(
+      parseEmbedUrl('https://www.tiktok.com/@scout2015/video/6718335390845095173')
+    ).toMatchObject({
+      id: '@scout2015/6718335390845095173',
+      embedUrl: 'https://www.tiktok.com/player/v1/6718335390845095173'
     })
   })
 
@@ -85,6 +105,20 @@ describe('external reference parsing', () => {
       kind: 'design',
       embedUrl:
         'https://www.figma.com/embed?embed_host=xnet&url=https://www.figma.com/file/abc123def'
+    })
+
+    expect(parseExternalReferenceUrl('https://www.instagram.com/p/C-qi579y7M9/')).toMatchObject({
+      provider: 'instagram',
+      kind: 'social',
+      embedUrl: 'https://www.instagram.com/p/C-qi579y7M9/embed/captioned'
+    })
+
+    expect(
+      parseExternalReferenceUrl('https://www.tiktok.com/@scout2015/video/6718335390845095173')
+    ).toMatchObject({
+      provider: 'tiktok',
+      kind: 'social',
+      embedUrl: 'https://www.tiktok.com/player/v1/6718335390845095173'
     })
   })
 
