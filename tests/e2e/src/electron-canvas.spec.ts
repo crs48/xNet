@@ -1104,6 +1104,48 @@ test.describe('Electron canvas shell', () => {
     })
   })
 
+  test('surfaces canvas activity diagnostics in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const noteCountBefore = await getCanvasNodeCount(page, 'note')
+    await page.getByRole('button', { name: 'Note' }).click({ force: true })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 1)
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
+    const noteNodeId = await noteNode.getAttribute('data-node-id')
+    if (!noteNodeId) {
+      throw new Error('Unable to resolve the note node id')
+    }
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+
+    await surface.focus()
+    await page.keyboard.press(COMMENT_SHORTCUT)
+    await expect(page.locator('[data-canvas-comment-editor="true"]')).toBeVisible({
+      timeout: 30_000
+    })
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'commenting')
+    await expect(surface).toHaveAttribute('data-canvas-editing-node-id', noteNodeId)
+    await expect(surface).toHaveAttribute('data-canvas-remote-user-count', '0')
+
+    await page.locator('[data-canvas-comment-editor="true"] button').first().click()
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', 0)
+    await expect(page.locator('[data-canvas-page-surface="true"]').first()).toBeVisible({
+      timeout: 30_000
+    })
+    await page.locator('[data-canvas-page-title="true"]').first().focus()
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'editing', {
+      timeout: 30_000
+    })
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-presence.png`,
+      fullPage: true
+    })
+  })
+
   test('mounts a single inline page editor only for the active canvas object', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!

@@ -330,7 +330,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       window.addEventListener('mousemove', handleMouseMove)
       window.addEventListener('mouseup', handleMouseUp)
     },
-    [node.id, onSelect, onDragStart, onDrag, onDragEnd]
+    [node.id, node.locked, onSelect, onDragStart, onDrag, onDragEnd]
   )
 
   // Handle resize
@@ -556,6 +556,8 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
             <div
               key={user.clientId}
               title={user.did.slice(0, 20) + '...'}
+              data-canvas-node-remote-user="true"
+              data-canvas-node-remote-client-id={user.clientId}
               style={{
                 width: 16,
                 height: 16,

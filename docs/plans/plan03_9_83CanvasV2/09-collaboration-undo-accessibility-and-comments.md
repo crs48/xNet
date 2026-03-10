@@ -132,7 +132,7 @@ cd apps/electron && pnpm dev:both
 
 ## Step Checklist
 
-- [ ] Separate canvas presence state from source-content presence state.
+- [x] Separate canvas presence state from source-content presence state.
 - [ ] Define explicit transitions between move/resize/peek/edit/comment intents.
 - [ ] Use `useUndo` and `useUndoScope` to enforce clear undo boundaries.
 - [x] Add object-level comment anchors and graceful orphan handling.

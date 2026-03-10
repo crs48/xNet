@@ -136,6 +136,34 @@ async function removeCanvasNode(
   )
 }
 
+async function setCanvasRemotePresence(
+  page: import('@playwright/test').Page,
+  input: {
+    canvasId?: string
+    key: string
+    state: Record<string, unknown> | null
+  }
+): Promise<{ canvasId: string; clientId: number }> {
+  return page.evaluate(async (presenceInput) => {
+    const harness = (
+      window as Window & {
+        __xnetCanvasTestHarness?: {
+          setCanvasRemotePresence: (input: typeof presenceInput) => Promise<{
+            canvasId: string
+            clientId: number
+          }>
+        }
+      }
+    ).__xnetCanvasTestHarness
+
+    if (!harness) {
+      throw new Error('Canvas test harness not available')
+    }
+
+    return harness.setCanvasRemotePresence(presenceInput)
+  }, input)
+}
+
 async function waitForCanvasDocument(
   page: import('@playwright/test').Page,
   canvasId: string
@@ -569,6 +597,82 @@ test.describe('Web canvas ingestion', () => {
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-comments.png',
       fullPage: true
+    })
+  })
+
+  test('renders remote canvas presence overlays and activity diagnostics on the web', async ({
+    page
+  }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+
+    const canvasId = await createCanvas(page)
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    const noteCountBefore = await page.locator('.canvas-node[data-node-type="note"]').count()
+    await page.getByRole('button', { name: 'Note' }).click()
+    await expect(page.locator('.canvas-node[data-node-type="note"]')).toHaveCount(
+      noteCountBefore + 1,
+      {
+        timeout: 30_000
+      }
+    )
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
+    const noteNodeId = await noteNode.getAttribute('data-node-id')
+    if (!noteNodeId) {
+      throw new Error('Unable to resolve the note node id')
+    }
+
+    const metrics = await getCanvasMetrics(page)
+    await setCanvasRemotePresence(page, {
+      canvasId,
+      key: 'presence-peer',
+      state: {
+        user: {
+          did: 'did:key:canvas-peer',
+          name: 'Canvas Peer',
+          color: '#22c55e'
+        },
+        selection: [noteNodeId],
+        cursor: {
+          x: metrics.viewportX + 96,
+          y: metrics.viewportY + 48
+        },
+        activity: 'editing',
+        editingNodeId: noteNodeId
+      }
+    })
+
+    await expect(surface).toHaveAttribute('data-canvas-remote-user-count', '1')
+    await expect(page.locator('[data-canvas-remote-cursor="true"]')).toContainText('Canvas Peer', {
+      timeout: 30_000
+    })
+    await expect(noteNode.locator('[data-canvas-node-remote-user="true"]')).toHaveCount(1, {
+      timeout: 30_000
+    })
+
+    await surface.focus()
+    await page.keyboard.press(COMMENT_SHORTCUT)
+    await expect(page.locator('[data-web-canvas-comment-editor="true"]')).toBeVisible({
+      timeout: 30_000
+    })
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'commenting')
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-presence.png',
+      fullPage: true
+    })
+
+    await setCanvasRemotePresence(page, {
+      canvasId,
+      key: 'presence-peer',
+      state: null
+    })
+    await expect(surface).toHaveAttribute('data-canvas-remote-user-count', '0', {
+      timeout: 30_000
     })
   })
 

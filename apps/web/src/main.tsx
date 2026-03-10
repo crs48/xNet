@@ -5,6 +5,7 @@ import { seedCanvasPerformanceScene } from '@xnetjs/canvas'
 import { CanvasSchema } from '@xnetjs/data'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
 
@@ -17,8 +18,14 @@ type WebCanvasNodeRecord = {
 
 type WebCanvasTestHarness = {
   registerCanvasDoc: (canvasId: string, doc: Y.Doc | null) => void
+  registerCanvasAwareness: (canvasId: string, awareness: Awareness | null) => void
   moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
   removeCanvasNode: (input: { nodeId: string }) => Promise<void>
+  setCanvasRemotePresence: (input: {
+    canvasId?: string
+    key: string
+    state: Record<string, unknown> | null
+  }) => Promise<{ canvasId: string; clientId: number }>
   seedPerformanceScene: (input?: {
     canvasId?: string
     title?: string
@@ -62,6 +69,26 @@ declare global {
 
 function createCanvasTestHarness(): WebCanvasTestHarness {
   const liveDocs = new Map<string, Y.Doc>()
+  const liveAwareness = new Map<string, Awareness>()
+  const remotePeers = new Map<string, Map<string, Awareness>>()
+
+  const resolveCanvasId = (canvasId?: string): string => {
+    if (canvasId) {
+      return canvasId
+    }
+
+    const lastAwarenessCanvasId = [...liveAwareness.keys()].at(-1)
+    if (lastAwarenessCanvasId) {
+      return lastAwarenessCanvasId
+    }
+
+    const lastDocCanvasId = [...liveDocs.keys()].at(-1)
+    if (lastDocCanvasId) {
+      return lastDocCanvasId
+    }
+
+    throw new Error('No live canvas registered')
+  }
 
   return {
     registerCanvasDoc(canvasId, doc) {
@@ -71,6 +98,16 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
       }
 
       liveDocs.delete(canvasId)
+    },
+
+    registerCanvasAwareness(canvasId, awareness) {
+      if (awareness) {
+        liveAwareness.set(canvasId, awareness)
+        return
+      }
+
+      liveAwareness.delete(canvasId)
+      remotePeers.delete(canvasId)
     },
 
     async moveCanvasNode(input) {
@@ -133,6 +170,39 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
       }
 
       throw new Error(`Node ${input.nodeId} not found`)
+    },
+
+    async setCanvasRemotePresence(input) {
+      const canvasId = resolveCanvasId(input.canvasId)
+      const targetAwareness = liveAwareness.get(canvasId)
+      if (!targetAwareness) {
+        throw new Error(`No awareness registered for canvas ${canvasId}`)
+      }
+
+      const peersForCanvas = remotePeers.get(canvasId) ?? new Map<string, Awareness>()
+      remotePeers.set(canvasId, peersForCanvas)
+
+      let peerAwareness = peersForCanvas.get(input.key)
+      if (!peerAwareness) {
+        peerAwareness = new Awareness(new Y.Doc())
+        peersForCanvas.set(input.key, peerAwareness)
+      }
+
+      peerAwareness.setLocalState(input.state)
+      const update = encodeAwarenessUpdate(peerAwareness, [peerAwareness.clientID])
+      applyAwarenessUpdate(targetAwareness, update, 'remote')
+
+      if (input.state === null) {
+        peersForCanvas.delete(input.key)
+        if (peersForCanvas.size === 0) {
+          remotePeers.delete(canvasId)
+        }
+      }
+
+      return {
+        canvasId,
+        clientId: peerAwareness.clientID
+      }
     },
 
     async seedPerformanceScene(input = {}) {

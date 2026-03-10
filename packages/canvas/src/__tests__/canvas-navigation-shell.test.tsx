@@ -146,6 +146,52 @@ function createCanvasMockBase() {
   }
 }
 
+function createMockAwareness() {
+  let localState: Record<string, unknown> | null = {
+    user: {
+      did: 'did:key:local',
+      name: 'Local',
+      color: '#3b82f6'
+    }
+  }
+  const states = new Map<number, Record<string, unknown>>([[1, localState]])
+  const listeners = new Set<() => void>()
+
+  return {
+    clientID: 1,
+    getLocalState: () => localState,
+    setLocalState: (state: Record<string, unknown> | null) => {
+      localState = state
+      if (state) {
+        states.set(1, state)
+      } else {
+        states.delete(1)
+      }
+      listeners.forEach((listener) => listener())
+    },
+    setLocalStateField: (field: string, value: unknown) => {
+      const nextState = {
+        ...(localState ?? {}),
+        [field]: value
+      }
+      localState = nextState
+      states.set(1, nextState)
+      listeners.forEach((listener) => listener())
+    },
+    getStates: () => states,
+    on: (_event: string, handler: () => void) => {
+      listeners.add(handler)
+    },
+    off: (_event: string, handler: () => void) => {
+      listeners.delete(handler)
+    },
+    setRemoteState: (clientId: number, state: Record<string, unknown>) => {
+      states.set(clientId, state)
+      listeners.forEach((listener) => listener())
+    }
+  }
+}
+
 describe('Canvas navigation shell', () => {
   beforeEach(() => {
     mockUseCanvas.mockReset()
@@ -232,6 +278,45 @@ describe('Canvas navigation shell', () => {
     ]
 
     expect(context.screenToCanvas(400, 300)).toEqual({ x: 100, y: 80 })
+  })
+
+  it('renders remote cursor overlays and surface activity diagnostics', () => {
+    const awareness = createMockAwareness()
+    const canvasMock = createCanvasMock()
+    canvasMock.viewport.canvasToScreen = vi.fn((x: number, y: number) => ({
+      x: x - 40,
+      y: y - 20
+    }))
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    awareness.setRemoteState(2, {
+      user: {
+        did: 'did:key:peer',
+        name: 'Peer',
+        color: '#22c55e'
+      },
+      selection: ['page-1'],
+      cursor: { x: 200, y: 140 },
+      activity: 'editing',
+      editingNodeId: 'page-1'
+    })
+
+    render(
+      <Canvas
+        doc={new Y.Doc()}
+        awareness={awareness}
+        presenceIntent={{
+          activity: 'commenting',
+          editingNodeId: 'page-1'
+        }}
+      />
+    )
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    expect(surface?.dataset.canvasLocalActivity).toBe('commenting')
+    expect(surface?.dataset.canvasRemoteUserCount).toBe('1')
+    expect(document.querySelector('[data-canvas-remote-cursor="true"]')).toBeTruthy()
+    expect(document.querySelector('[data-canvas-remote-activity="editing"]')).toBeTruthy()
   })
 
   it('passes render context to full-detail node renderers', () => {

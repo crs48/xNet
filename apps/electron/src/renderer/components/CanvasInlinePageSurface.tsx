@@ -128,6 +128,8 @@ export function CanvasInlinePageSurface({
       data-canvas-page-surface-mode={mode}
       data-canvas-page-variant={variant}
       data-canvas-source-id={docId}
+      data-canvas-editing-surface="true"
+      data-canvas-object-id={node.id}
       data-canvas-theme={theme.mode}
     >
       <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">

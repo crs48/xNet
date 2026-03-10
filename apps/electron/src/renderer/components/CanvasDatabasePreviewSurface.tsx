@@ -316,6 +316,8 @@ export function CanvasDatabasePreviewSurface({
       data-canvas-database-surface-mode={mode}
       data-canvas-database-empty={isEmpty ? 'true' : 'false'}
       data-canvas-source-id={docId}
+      data-canvas-editing-surface="true"
+      data-canvas-object-id={node.id}
       data-canvas-theme={theme.mode}
     >
       <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-3">

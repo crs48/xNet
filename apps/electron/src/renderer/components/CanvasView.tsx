@@ -426,6 +426,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     anchorType: 'canvas-object'
   })
   const selectedCanvasObject = useMemo(() => {
+    void sceneRevision
+
     if (!doc || selection.nodeIds.length !== 1) {
       return null
     }
@@ -463,6 +465,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   })
 
   const selectedNodes = useMemo(() => {
+    void sceneRevision
+
     if (!doc || selection.nodeIds.length === 0) {
       return []
     }
@@ -477,6 +481,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   const selectionAnyLocked = selectedNodes.some((node) => node.locked)
 
   const currentCanvasSourceReferences = useMemo(() => {
+    void sceneRevision
+
     if (!doc || !selectedCanvasObject?.sourceId) {
       return []
     }
@@ -548,6 +554,34 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       }
     }).length
   }, [canvasObjectCommentThreads, selectedCanvasObject])
+  const canvasPresenceIntent = useMemo(() => {
+    if (peekState) {
+      return {
+        activity: 'peeking' as const,
+        editingNodeId: peekState.nodeId
+      }
+    }
+
+    if (!selectedCanvasObject) {
+      return null
+    }
+
+    if (selectionPanel === 'comment') {
+      return {
+        activity: 'commenting' as const,
+        editingNodeId: selectedCanvasObject.node.id
+      }
+    }
+
+    if (selectionPanel === 'alias') {
+      return {
+        activity: 'editing' as const,
+        editingNodeId: selectedCanvasObject.node.id
+      }
+    }
+
+    return null
+  }, [peekState, selectedCanvasObject, selectionPanel])
 
   const peekedCanvasObject = useMemo(() => {
     if (!peekState || !selectedCanvasObject) {
@@ -625,15 +659,18 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     const testHarness = window as Window & {
       __xnetCanvasTestHarness?: {
         registerCanvasDoc?: (canvasId: string, doc: import('yjs').Doc | null) => void
+        registerCanvasAwareness?: (canvasId: string, awareness: unknown | null) => void
       } | null
     }
 
     testHarness.__xnetCanvasTestHarness?.registerCanvasDoc?.(docId, doc)
+    testHarness.__xnetCanvasTestHarness?.registerCanvasAwareness?.(docId, awareness ?? null)
 
     return () => {
       testHarness.__xnetCanvasTestHarness?.registerCanvasDoc?.(docId, null)
+      testHarness.__xnetCanvasTestHarness?.registerCanvasAwareness?.(docId, null)
     }
-  }, [doc, docId])
+  }, [awareness, doc, docId])
 
   const placeLinkedDocumentNode = useCallback(
     (document: LinkedDocumentItem): boolean => {
@@ -1830,6 +1867,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           ref={canvasRef}
           doc={doc}
           awareness={awareness}
+          presenceIntent={canvasPresenceIntent}
           config={{
             showGrid: true,
             gridSize: 20,

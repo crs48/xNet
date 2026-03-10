@@ -35,6 +35,11 @@ import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
 import { CanvasPrimitiveNodeContent } from '../nodes/CanvasPrimitiveNodeContent'
 import {
+  createCanvasPresenceManager,
+  type AwarenessLike as CanvasPresenceAwarenessLike,
+  type CanvasActivity
+} from '../presence'
+import {
   createAlignmentUpdates,
   createDistributionUpdates,
   createFrameSelectionNode,
@@ -51,9 +56,8 @@ import { createCanvasDisplayList } from './display-list'
 import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
 import { OverviewCanvasLayer } from './OverviewCanvasLayer'
 
-/** Minimal Awareness interface (avoids y-protocols dependency) */
-interface AwarenessLike {
-  clientID: number
+/** Minimal Awareness interface (avoids a direct y-protocols dependency). */
+interface AwarenessLike extends CanvasPresenceAwarenessLike {
   getStates(): Map<number, Record<string, unknown>>
   setLocalStateField(field: string, value: unknown): void
   on(event: string, handler: (...args: unknown[]) => void): void
@@ -66,9 +70,23 @@ interface AwarenessLike {
 export interface CanvasRemoteUser {
   clientId: number
   did: string
+  name: string
   color: string
   /** Node IDs this user has selected */
   selectedNodes?: string[]
+  /** Canvas-space cursor position when the user is active on this canvas */
+  cursor?: Point
+  /** User viewport for future overview/minimap affordances */
+  viewport?: { x: number; y: number; zoom: number }
+  /** Current interaction intent on the canvas */
+  activity?: CanvasActivity
+  /** Canvas object currently being edited by this user */
+  editingNodeId?: string
+}
+
+export interface CanvasPresenceIntent {
+  activity: Exclude<CanvasActivity, 'dragging' | 'panning' | 'resizing' | 'selecting'>
+  editingNodeId?: string | null
 }
 
 /**
@@ -156,6 +174,8 @@ export interface CanvasProps {
   onSurfaceDragOver?: (event: React.DragEvent<HTMLDivElement>) => void
   /** Yjs Awareness instance for presence (optional) */
   awareness?: AwarenessLike | null
+  /** App-shell presence intent that should override canvas-local gesture state */
+  presenceIntent?: CanvasPresenceIntent | null
   /** CSS class name */
   className?: string
   /** CSS styles */
@@ -274,7 +294,7 @@ function useWebGLGrid(
 
   // Render on viewport change
   useEffect(() => {
-    gridLayerRef.current?.render(viewport)
+    gridLayerRef.current?.render(viewportRef.current)
   }, [viewport.x, viewport.y, viewport.zoom])
 }
 
@@ -300,6 +320,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onSurfacePaste,
     onSurfaceDragOver,
     awareness,
+    presenceIntent,
     className,
     style,
     canvasNodeId,
@@ -320,8 +341,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
   const undoManagerRef = useRef<Y.UndoManager | null>(null)
+  const presenceManagerRef = useRef<ReturnType<typeof createCanvasPresenceManager> | null>(null)
   const [isDragging, setIsDragging] = useState(false)
+  const [pointerActivity, setPointerActivity] = useState<CanvasActivity>('idle')
+  const [focusedEditingNodeId, setFocusedEditingNodeId] = useState<string | null>(null)
+  const [remoteUsers, setRemoteUsers] = useState<CanvasRemoteUser[]>([])
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
+  const selectionActivityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const focusSyncFrameRef = useRef<number | null>(null)
   const theme = useCanvasThemeTokens()
 
   // Track initial positions when drag starts to prevent drift during fast drags
@@ -509,12 +536,147 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
   // === Presence: track remote users' selected nodes ===
   const [nodePresence, setNodePresence] = useState<Map<string, CanvasRemoteUser[]>>(new Map())
+  const scheduleTransientActivity = useCallback((activity: CanvasActivity, duration = 420) => {
+    setPointerActivity(activity)
+    if (selectionActivityTimeoutRef.current) {
+      clearTimeout(selectionActivityTimeoutRef.current)
+    }
+    selectionActivityTimeoutRef.current = setTimeout(() => {
+      setPointerActivity((current) => (current === activity ? 'idle' : current))
+      selectionActivityTimeoutRef.current = null
+    }, duration)
+  }, [])
 
-  // Broadcast local selection to awareness
+  const resolvedPresenceActivity = useMemo<CanvasActivity>(() => {
+    if (presenceIntent?.activity) {
+      return presenceIntent.activity
+    }
+
+    if (focusedEditingNodeId) {
+      return 'editing'
+    }
+
+    return pointerActivity
+  }, [focusedEditingNodeId, pointerActivity, presenceIntent?.activity])
+
+  const resolvedEditingNodeId = presenceIntent?.editingNodeId ?? focusedEditingNodeId
+
   useEffect(() => {
-    if (!awareness) return
-    awareness.setLocalStateField('canvasSelection', Array.from(selectedNodeIds))
-  }, [awareness, selectedNodeIds])
+    return () => {
+      if (selectionActivityTimeoutRef.current) {
+        clearTimeout(selectionActivityTimeoutRef.current)
+      }
+      if (focusSyncFrameRef.current !== null) {
+        cancelAnimationFrame(focusSyncFrameRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!awareness) {
+      presenceManagerRef.current?.dispose()
+      presenceManagerRef.current = null
+      return
+    }
+
+    const manager = createCanvasPresenceManager(awareness)
+    presenceManagerRef.current = manager
+
+    return () => {
+      if (presenceManagerRef.current === manager) {
+        presenceManagerRef.current = null
+      }
+      manager.dispose()
+    }
+  }, [awareness])
+
+  useEffect(() => {
+    presenceManagerRef.current?.updateSelection(Array.from(selectedNodeIds))
+  }, [selectedNodeIds])
+
+  useEffect(() => {
+    presenceManagerRef.current?.updateViewport({
+      x: viewport.x,
+      y: viewport.y,
+      zoom: viewport.zoom
+    })
+  }, [viewport.x, viewport.y, viewport.zoom])
+
+  useEffect(() => {
+    presenceManagerRef.current?.updateActivity(resolvedPresenceActivity)
+  }, [resolvedPresenceActivity])
+
+  useEffect(() => {
+    presenceManagerRef.current?.updateEditingNodeId(resolvedEditingNodeId ?? null)
+  }, [resolvedEditingNodeId])
+
+  const syncFocusedEditingSurface = useCallback(() => {
+    if (focusSyncFrameRef.current !== null) {
+      cancelAnimationFrame(focusSyncFrameRef.current)
+    }
+
+    focusSyncFrameRef.current = requestAnimationFrame(() => {
+      const container = containerRef.current
+      const activeElement = document.activeElement
+      if (
+        !container ||
+        !(activeElement instanceof HTMLElement) ||
+        !container.contains(activeElement)
+      ) {
+        setFocusedEditingNodeId(null)
+        focusSyncFrameRef.current = null
+        return
+      }
+
+      const editingSurface = activeElement.closest<HTMLElement>(
+        '[data-canvas-editing-surface="true"][data-canvas-object-id]'
+      )
+      setFocusedEditingNodeId(editingSurface?.dataset.canvasObjectId ?? null)
+      focusSyncFrameRef.current = null
+    })
+  }, [])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
+    const handleFocusChange = () => {
+      syncFocusedEditingSurface()
+    }
+
+    container.addEventListener('focusin', handleFocusChange)
+    container.addEventListener('focusout', handleFocusChange)
+
+    return () => {
+      container.removeEventListener('focusin', handleFocusChange)
+      container.removeEventListener('focusout', handleFocusChange)
+    }
+  }, [syncFocusedEditingSurface])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      presenceManagerRef.current?.updateCursor(clientToCanvas(event.clientX, event.clientY))
+    }
+
+    const handleMouseLeave = () => {
+      presenceManagerRef.current?.updateCursor(null)
+    }
+
+    container.addEventListener('mousemove', handleMouseMove)
+    container.addEventListener('mouseleave', handleMouseLeave)
+
+    return () => {
+      container.removeEventListener('mousemove', handleMouseMove)
+      container.removeEventListener('mouseleave', handleMouseLeave)
+    }
+  }, [clientToCanvas])
 
   useEffect(() => {
     onSelectionChange?.({
@@ -530,30 +692,75 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     const updatePresence = () => {
       const states = awareness.getStates()
       const presenceMap = new Map<string, CanvasRemoteUser[]>()
+      const nextRemoteUsers: CanvasRemoteUser[] = []
 
       states.forEach((state: Record<string, unknown>, clientId: number) => {
         if (clientId === awareness.clientID) return // skip self
-        const user = state.user as { did?: string; color?: string } | undefined
+        const user = state.user as { did?: string; name?: string; color?: string } | undefined
         if (!user?.did) return
 
-        const selectedNodes = state.canvasSelection as string[] | undefined
-        if (!selectedNodes || selectedNodes.length === 0) return
+        const selectedNodes = Array.isArray(state.selection)
+          ? (state.selection as string[])
+          : Array.isArray(state.canvasSelection)
+            ? (state.canvasSelection as string[])
+            : undefined
+        const cursor =
+          state.cursor &&
+          typeof state.cursor === 'object' &&
+          typeof (state.cursor as Point).x === 'number' &&
+          typeof (state.cursor as Point).y === 'number'
+            ? { x: (state.cursor as Point).x, y: (state.cursor as Point).y }
+            : undefined
+        const remoteViewport =
+          state.viewport &&
+          typeof state.viewport === 'object' &&
+          typeof (state.viewport as { x: number }).x === 'number' &&
+          typeof (state.viewport as { y: number }).y === 'number' &&
+          typeof (state.viewport as { zoom: number }).zoom === 'number'
+            ? {
+                x: (state.viewport as { x: number }).x,
+                y: (state.viewport as { y: number }).y,
+                zoom: (state.viewport as { zoom: number }).zoom
+              }
+            : undefined
+        const activity =
+          typeof state.activity === 'string' ? (state.activity as CanvasActivity) : undefined
+        const editingNodeId =
+          typeof state.editingNodeId === 'string' ? state.editingNodeId : undefined
 
         const remoteUser: CanvasRemoteUser = {
           clientId,
           did: user.did,
+          name: user.name ?? user.did.slice(0, 12),
           color: user.color || '#888',
-          selectedNodes
+          selectedNodes,
+          cursor,
+          viewport: remoteViewport,
+          activity,
+          editingNodeId
         }
 
-        for (const nodeId of selectedNodes) {
-          const existing = presenceMap.get(nodeId) || []
-          existing.push(remoteUser)
-          presenceMap.set(nodeId, existing)
+        if (
+          (selectedNodes && selectedNodes.length > 0) ||
+          cursor ||
+          remoteViewport ||
+          activity ||
+          editingNodeId
+        ) {
+          nextRemoteUsers.push(remoteUser)
+        }
+
+        if (selectedNodes && selectedNodes.length > 0) {
+          for (const nodeId of selectedNodes) {
+            const existing = presenceMap.get(nodeId) || []
+            existing.push(remoteUser)
+            presenceMap.set(nodeId, existing)
+          }
         }
       })
 
       setNodePresence(presenceMap)
+      setRemoteUsers(nextRemoteUsers)
     }
 
     updatePresence()
@@ -599,13 +806,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         zoomAt(x, y, factor)
       } else {
         // Pan
+        scheduleTransientActivity('panning')
         pan(-e.deltaX, -e.deltaY)
       }
     }
 
     container.addEventListener('wheel', handleWheel, { passive: false })
     return () => container.removeEventListener('wheel', handleWheel)
-  }, [pan, zoomAt])
+  }, [pan, scheduleTransientActivity, zoomAt])
 
   // Handle background mouse down for pan and far-field hit testing
   const handleMouseDown = useCallback(
@@ -619,6 +827,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       const hitNode = canvas.findNodeAt(canvasPoint.x, canvasPoint.y)
 
       if (hitNode) {
+        scheduleTransientActivity('selecting')
         selectNode(hitNode.id, e.shiftKey || e.metaKey)
         return
       }
@@ -629,6 +838,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
       // Start panning
       setIsDragging(true)
+      setPointerActivity('panning')
       lastMousePos.current = { x: e.clientX, y: e.clientY }
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -640,6 +850,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
       const handleMouseUp = () => {
         setIsDragging(false)
+        setPointerActivity('idle')
         window.removeEventListener('mousemove', handleMouseMove)
         window.removeEventListener('mouseup', handleMouseUp)
       }
@@ -647,7 +858,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       window.addEventListener('mousemove', handleMouseMove)
       window.addEventListener('mouseup', handleMouseUp)
     },
-    [canvas, clearSelection, clientToCanvas, onBackgroundClick, pan, selectNode]
+    [
+      canvas,
+      clearSelection,
+      clientToCanvas,
+      onBackgroundClick,
+      pan,
+      scheduleTransientActivity,
+      selectNode
+    ]
   )
 
   const handleBackgroundDoubleClick = useCallback(
@@ -723,6 +942,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
       if (selectedNodeIds.size !== 1) {
         const fallbackNode = direction > 0 ? orderedNodes[0] : orderedNodes[orderedNodes.length - 1]
+        scheduleTransientActivity('selecting')
         selectNode(fallbackNode.id)
         return
       }
@@ -731,9 +951,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       const currentIndex = orderedNodes.findIndex((node) => node.id === currentId)
       const resolvedIndex = currentIndex >= 0 ? currentIndex : 0
       const nextIndex = (resolvedIndex + direction + orderedNodes.length) % orderedNodes.length
+      scheduleTransientActivity('selecting')
       selectNode(orderedNodes[nextIndex].id)
     },
-    [nodes, renderNodes, selectNode, selectedNodeIds]
+    [nodes, renderNodes, scheduleTransientActivity, selectNode, selectedNodeIds]
   )
 
   const handleNudgeSelection = useCallback(
@@ -806,13 +1027,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   // Node event handlers
   const handleNodeSelect = useCallback(
     (id: string, additive: boolean) => {
+      scheduleTransientActivity('selecting')
       selectNode(id, additive)
     },
-    [selectNode]
+    [scheduleTransientActivity, selectNode]
   )
 
   const handleNodeDragStart = useCallback(
     (id: string, _point: Point) => {
+      setPointerActivity('dragging')
       // Capture initial positions of all nodes being dragged
       const nodesToMove = selectedNodeIds.has(id) ? Array.from(selectedNodeIds) : [id]
 
@@ -862,6 +1085,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     // Clear drag state
     dragInitialPositions.current.clear()
     dragCumulativeOffset.current = { x: 0, y: 0 }
+    setPointerActivity('idle')
     // Could end undo batch here
   }, [])
 
@@ -910,8 +1134,29 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes])
   const selectionBounds = useMemo(() => getSelectionBounds(selectedNodes), [selectedNodes])
   const selectionLockState = useMemo(() => getSelectionLockState(selectedNodes), [selectedNodes])
+  const remoteCursorIndicators = useMemo(
+    () =>
+      remoteUsers
+        .filter((user) => user.cursor)
+        .map((user) => {
+          const screenPoint = viewport.canvasToScreen(user.cursor!.x, user.cursor!.y)
 
-  const canvasBounds = useMemo(() => canvas.store.getBounds(), [canvas.store, nodes])
+          return {
+            ...user,
+            screenPoint
+          }
+        })
+        .filter(
+          (user) =>
+            user.screenPoint.x >= -48 &&
+            user.screenPoint.x <= viewport.width + 48 &&
+            user.screenPoint.y >= -48 &&
+            user.screenPoint.y <= viewport.height + 48
+        ),
+    [remoteUsers, viewport]
+  )
+
+  const canvasBounds = useMemo(() => canvas.store.getBounds(), [canvas.store])
   const navigationToolsInsetRight =
     showMinimap && navigationToolsPosition === 'bottom-right' ? minimapWidth + 40 : 16
   const handleNavigationViewportChange = useCallback(
@@ -996,6 +1241,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-selection-count={selectedNodes.length}
       data-selection-all-locked={selectionLockState.allLocked ? 'true' : 'false'}
       data-selection-any-locked={selectionLockState.anyLocked ? 'true' : 'false'}
+      data-canvas-local-activity={resolvedPresenceActivity}
+      data-canvas-editing-node-id={resolvedEditingNodeId ?? ''}
+      data-canvas-remote-user-count={remoteUsers.length}
+      data-canvas-remote-cursor-count={remoteCursorIndicators.length}
       data-selection-bounds-width={selectionBounds?.width ?? 0}
       data-selection-bounds-height={selectionBounds?.height ?? 0}
       onMouseDown={handleMouseDown}
@@ -1042,6 +1291,72 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       </svg>
 
       <OverviewCanvasLayer nodes={overviewNodes} viewport={viewport} />
+
+      {remoteCursorIndicators.length > 0 ? (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            overflow: 'hidden'
+          }}
+          data-canvas-remote-cursors="true"
+        >
+          {remoteCursorIndicators.map((user) => (
+            <div
+              key={user.clientId}
+              style={{
+                position: 'absolute',
+                left: user.screenPoint.x,
+                top: user.screenPoint.y,
+                transform: 'translate(-2px, -2px)'
+              }}
+              data-canvas-remote-cursor="true"
+              data-canvas-remote-client-id={user.clientId}
+              data-canvas-remote-activity={user.activity ?? 'idle'}
+              data-canvas-remote-editing-node-id={user.editingNodeId ?? ''}
+            >
+              <div
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: '999px',
+                  backgroundColor: user.color,
+                  boxShadow:
+                    theme.mode === 'dark'
+                      ? '0 0 0 2px rgba(10, 10, 10, 0.9)'
+                      : '0 0 0 2px rgba(255, 255, 255, 0.96)'
+                }}
+              />
+              <div
+                style={{
+                  marginTop: 6,
+                  marginLeft: 8,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  borderRadius: 999,
+                  padding: '4px 10px',
+                  background: theme.minimapOverlayBackground,
+                  color: theme.panelText,
+                  border: `1px solid ${theme.panelBorder}`,
+                  boxShadow: theme.panelShadow,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <span>{user.name}</span>
+                {user.activity && user.activity !== 'idle' ? (
+                  <span style={{ color: theme.panelMutedText, fontWeight: 500 }}>
+                    {user.activity}
+                  </span>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {/* Nodes layer - PERF-01: Only render DOM islands for the interactive subset */}
       {/* PERF-02: LOD reduces detail at low zoom levels */}

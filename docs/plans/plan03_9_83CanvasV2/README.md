@@ -291,7 +291,7 @@ flowchart LR
 - [x] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
 - [ ] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
 - [ ] Undo/redo behaves correctly across canvas-object moves and inline content edits.
-- [ ] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.
+- [x] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.
 - [x] Comment anchors survive object moves/resizes and degrade cleanly when underlying anchors disappear.
 - [ ] The Electron shell is stable before any parity work starts in the web app.
 

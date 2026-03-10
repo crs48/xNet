@@ -213,6 +213,8 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   })
 
   const selectedCanvasNode = useMemo(() => {
+    void sceneRevision
+
     if (!doc || selection.nodeIds.length !== 1) {
       return null
     }
@@ -261,6 +263,27 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
       }
     }).length
   }, [canvasObjectCommentThreads, selectedCanvasNode])
+  const canvasPresenceIntent = useMemo(() => {
+    if (!selectedCanvasNode) {
+      return null
+    }
+
+    if (commentEditorOpen) {
+      return {
+        activity: 'commenting' as const,
+        editingNodeId: selectedCanvasNode.node.id
+      }
+    }
+
+    if (aliasEditorOpen) {
+      return {
+        activity: 'editing' as const,
+        editingNodeId: selectedCanvasNode.node.id
+      }
+    }
+
+    return null
+  }, [aliasEditorOpen, commentEditorOpen, selectedCanvasNode])
 
   useEffect(() => {
     if (!doc) {
@@ -287,15 +310,18 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     const testHarness = window as Window & {
       __xnetCanvasTestHarness?: {
         registerCanvasDoc?: (canvasId: string, doc: import('yjs').Doc | null) => void
+        registerCanvasAwareness?: (canvasId: string, awareness: unknown | null) => void
       } | null
     }
 
     testHarness.__xnetCanvasTestHarness?.registerCanvasDoc?.(docId, doc)
+    testHarness.__xnetCanvasTestHarness?.registerCanvasAwareness?.(docId, awareness ?? null)
 
     return () => {
       testHarness.__xnetCanvasTestHarness?.registerCanvasDoc?.(docId, null)
+      testHarness.__xnetCanvasTestHarness?.registerCanvasAwareness?.(docId, null)
     }
-  }, [doc, docId])
+  }, [awareness, doc, docId])
 
   const handleCreateNote = useCallback(async () => {
     const note = await create(PageSchema, { title: 'Untitled Note' })
@@ -855,6 +881,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           ref={canvasRef}
           doc={doc}
           awareness={awareness}
+          presenceIntent={canvasPresenceIntent}
           config={{
             showGrid: true,
             gridSize: 20,
