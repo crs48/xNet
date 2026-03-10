@@ -29,7 +29,7 @@ const LINES_FRAGMENT_SHADER = `
 
   void main() {
     // Transform screen coordinates to canvas coordinates
-    vec2 screenPos = gl_FragCoord.xy;
+    vec2 screenPos = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y);
     vec2 canvasPos = (screenPos - u_resolution * 0.5) / u_zoom + u_pan;
 
     // Calculate grid lines with adaptive spacing
@@ -85,7 +85,7 @@ const DOTS_FRAGMENT_SHADER = `
   uniform float u_majorEvery;
 
   void main() {
-    vec2 screenPos = gl_FragCoord.xy;
+    vec2 screenPos = vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y);
     vec2 canvasPos = (screenPos - u_resolution * 0.5) / u_zoom + u_pan;
 
     // Adaptive spacing at low zoom

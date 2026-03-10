@@ -9,6 +9,25 @@ import type { GridLayer, ViewportState, WebGLGridConfig } from './webgl-grid'
 
 // ─── CSS Grid Fallback ──────────────────────────────────────────────────────
 
+export function getViewportOriginOffset(
+  viewport: ViewportState,
+  size: { width: number; height: number }
+): { x: number; y: number } {
+  return {
+    x: size.width * 0.5 - viewport.x * viewport.zoom,
+    y: size.height * 0.5 - viewport.y * viewport.zoom
+  }
+}
+
+export function normalizeGridOffset(value: number, spacing: number): number {
+  if (!Number.isFinite(spacing) || spacing <= 0) {
+    return 0
+  }
+
+  const normalized = ((value % spacing) + spacing) % spacing
+  return Math.round(normalized * 1000) / 1000
+}
+
 export class CSSGridFallback implements GridLayer {
   private element: HTMLDivElement
   private config: WebGLGridConfig
@@ -75,39 +94,50 @@ export class CSSGridFallback implements GridLayer {
     // CSS handles resizing automatically
   }
 
+  private getViewportOriginOffset(viewport: ViewportState): { x: number; y: number } {
+    const rect = this.element.getBoundingClientRect()
+
+    return getViewportOriginOffset(viewport, {
+      width: rect.width,
+      height: rect.height
+    })
+  }
+
+  private normalizeOffset(value: number, spacing: number): number {
+    return normalizeGridOffset(value, spacing)
+  }
+
   render(viewport: ViewportState): void {
     const { gridSpacing, majorEvery, type } = this.config
     const majorSpacing = gridSpacing * majorEvery
 
-    // Calculate offset based on viewport pan
-    const offsetX = -viewport.x * viewport.zoom
-    const offsetY = -viewport.y * viewport.zoom
-
     // Scale grid with zoom
     const scaledMinor = gridSpacing * viewport.zoom
     const scaledMajor = majorSpacing * viewport.zoom
+    const originOffset = this.getViewportOriginOffset(viewport)
+    const minorPosition = `${this.normalizeOffset(originOffset.x, scaledMinor)}px ${this.normalizeOffset(originOffset.y, scaledMinor)}px`
+    const majorPosition = `${this.normalizeOffset(originOffset.x, scaledMajor)}px ${this.normalizeOffset(originOffset.y, scaledMajor)}px`
 
     // Hide minor grid at low zoom to reduce visual noise
     const showMinor = viewport.zoom >= 0.5
-    const pos = `${offsetX}px ${offsetY}px`
 
     if (type === 'dots') {
       if (showMinor) {
         this.element.style.backgroundSize = `${scaledMinor}px ${scaledMinor}px, ${scaledMajor}px ${scaledMajor}px`
-        this.element.style.backgroundPosition = `${pos}, ${pos}`
+        this.element.style.backgroundPosition = `${minorPosition}, ${majorPosition}`
       } else {
         // Only show major dots
         this.element.style.backgroundSize = `0px 0px, ${scaledMajor}px ${scaledMajor}px`
-        this.element.style.backgroundPosition = `0px 0px, ${pos}`
+        this.element.style.backgroundPosition = `0px 0px, ${majorPosition}`
       }
     } else {
       if (showMinor) {
         this.element.style.backgroundSize = `${scaledMinor}px ${scaledMinor}px, ${scaledMinor}px ${scaledMinor}px, ${scaledMajor}px ${scaledMajor}px, ${scaledMajor}px ${scaledMajor}px`
-        this.element.style.backgroundPosition = `${pos}, ${pos}, ${pos}, ${pos}`
+        this.element.style.backgroundPosition = `${minorPosition}, ${minorPosition}, ${majorPosition}, ${majorPosition}`
       } else {
         // Only show major lines
         this.element.style.backgroundSize = `0px 0px, 0px 0px, ${scaledMajor}px ${scaledMajor}px, ${scaledMajor}px ${scaledMajor}px`
-        this.element.style.backgroundPosition = `0px 0px, 0px 0px, ${pos}, ${pos}`
+        this.element.style.backgroundPosition = `0px 0px, 0px 0px, ${majorPosition}, ${majorPosition}`
       }
     }
   }

@@ -12,6 +12,8 @@ import {
   createGridLayer,
   isWebGLAvailable,
   DEFAULT_GRID_CONFIG,
+  getViewportOriginOffset,
+  normalizeGridOffset,
   type WebGLGridConfig
 } from '../layers/index'
 
@@ -36,6 +38,17 @@ function createContainer(width = 800, height = 600): HTMLDivElement {
   container.style.width = `${width}px`
   container.style.height = `${height}px`
   container.style.position = 'relative'
+  container.getBoundingClientRect = vi.fn(() => ({
+    width,
+    height,
+    top: 0,
+    right: width,
+    bottom: height,
+    left: 0,
+    x: 0,
+    y: 0,
+    toJSON: () => ({})
+  })) as typeof container.getBoundingClientRect
   document.body.appendChild(container)
   return container
 }
@@ -217,6 +230,28 @@ describe('CSSGridFallback', () => {
     // so we just verify render doesn't throw and styling is applied
 
     grid.destroy()
+  })
+
+  it('keeps grid offsets aligned to the viewport center during pan and zoom', () => {
+    const firstOrigin = getViewportOriginOffset(
+      { x: 95, y: 55, zoom: 1 },
+      { width: 800, height: 600 }
+    )
+    expect(firstOrigin).toEqual({ x: 305, y: 245 })
+    expect(normalizeGridOffset(firstOrigin.x, 20)).toBe(5)
+    expect(normalizeGridOffset(firstOrigin.y, 20)).toBe(5)
+    expect(normalizeGridOffset(firstOrigin.x, 100)).toBe(5)
+    expect(normalizeGridOffset(firstOrigin.y, 100)).toBe(45)
+
+    const secondOrigin = getViewportOriginOffset(
+      { x: 92.5, y: 57.5, zoom: 2 },
+      { width: 800, height: 600 }
+    )
+    expect(secondOrigin).toEqual({ x: 215, y: 185 })
+    expect(normalizeGridOffset(secondOrigin.x, 40)).toBe(15)
+    expect(normalizeGridOffset(secondOrigin.y, 40)).toBe(25)
+    expect(normalizeGridOffset(secondOrigin.x, 200)).toBe(15)
+    expect(normalizeGridOffset(secondOrigin.y, 200)).toBe(185)
   })
 
   it('scales grid size with zoom', () => {

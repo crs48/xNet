@@ -20,6 +20,7 @@ import React, {
   useRef,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useId,
   useState,
   useImperativeHandle,
@@ -361,7 +362,7 @@ function useWebGLGrid(
   const gridLayerRef = useRef<GridLayer | null>(null)
 
   // Initialize/cleanup grid layer
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = containerRef.current
     if (!container || !config.showGrid || config.gridType === 'none') {
       // Cleanup if grid is disabled
@@ -418,7 +419,7 @@ function useWebGLGrid(
   }, [containerRef])
 
   // Render on viewport change
-  useEffect(() => {
+  useLayoutEffect(() => {
     gridLayerRef.current?.render(viewportRef.current)
   }, [viewport.x, viewport.y, viewport.zoom])
 }
