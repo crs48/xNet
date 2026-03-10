@@ -1392,6 +1392,23 @@ test.describe('Electron canvas shell', () => {
     await page.keyboard.press('Escape')
     await expect(page.locator('[data-canvas-shortcut-help="true"]')).toHaveCount(0)
 
+    await page.locator('[data-canvas-surface="true"]').focus()
+    await page.keyboard.press('R')
+    await expect(page.locator('.canvas-node[data-node-type="shape"]')).toHaveCount(1, {
+      timeout: 15_000
+    })
+    await selectCanvasNode(page, '.canvas-node[data-node-type="shape"]')
+    await expect(page.locator('[data-canvas-selection-hud="true"]')).toBeVisible({
+      timeout: 15_000
+    })
+
+    await page.locator('[data-canvas-surface="true"]').focus()
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-canvas-selection-hud="true"]')).toHaveCount(0, {
+      timeout: 15_000
+    })
+
+    await page.locator('[data-canvas-surface="true"]').focus()
     await page.keyboard.press('Tab')
     await expect(page.locator('[data-canvas-selection-hud="true"]')).toBeVisible({
       timeout: 15_000

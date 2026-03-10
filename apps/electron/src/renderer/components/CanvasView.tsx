@@ -739,13 +739,21 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     canvasRef.current?.setViewportSnapshot(snapshot)
   }, [])
 
+  const focusCanvasSurface = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('[data-canvas-surface="true"]')?.focus()
+    })
+  }, [])
+
   const closePeekSurface = useCallback(() => {
     setPeekState(null)
-  }, [])
+    focusCanvasSurface()
+  }, [focusCanvasSurface])
 
   const closeSelectionPanel = useCallback(() => {
     setSelectionPanel(null)
-  }, [])
+    focusCanvasSurface()
+  }, [focusCanvasSurface])
 
   const clearCanvasSelection = useCallback(() => {
     closeSelectionPanel()
@@ -942,9 +950,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     }
   }, [closePeekSurface, peekedCanvasObject])
 
-  const toggleShortcutHelp = useCallback((open?: boolean) => {
-    setShortcutHelpOpen((current) => (typeof open === 'boolean' ? open : !current))
-  }, [])
+  const toggleShortcutHelp = useCallback(
+    (open?: boolean) => {
+      const nextOpen = typeof open === 'boolean' ? open : !shortcutHelpOpen
+      setShortcutHelpOpen(nextOpen)
+
+      if (!nextOpen) {
+        focusCanvasSurface()
+      }
+    },
+    [focusCanvasSurface, shortcutHelpOpen]
+  )
 
   const handleDismissTransientUi = useCallback((): boolean => {
     if (selectionPanel) {

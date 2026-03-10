@@ -40,6 +40,7 @@ export interface NodeRemoteUser {
 export interface CanvasNodeProps {
   node: CanvasNode
   selected: boolean
+  focused?: boolean
   /** Level of detail for rendering (defaults to 'full') */
   lod?: LODLevel
   /** Remote users who have this node selected */
@@ -157,6 +158,39 @@ function getNodeTitle(node: CanvasNode): string {
   return node.alias ?? (node.properties.title as string) ?? node.type ?? 'Untitled'
 }
 
+function getNodeTypeLabel(node: CanvasNode): string {
+  switch (node.type) {
+    case 'page':
+      return 'Page'
+    case 'database':
+      return 'Database'
+    case 'note':
+      return 'Note'
+    case 'external-reference':
+      return 'Link preview'
+    case 'media':
+      return 'Media asset'
+    case 'frame':
+      return 'Frame'
+    case 'group':
+      return 'Group'
+    case 'shape':
+      return 'Shape'
+    default:
+      return 'Canvas object'
+  }
+}
+
+function getNodeAccessibleLabel(node: CanvasNode): string {
+  const segments = [`${getNodeTypeLabel(node)}: ${getNodeTitle(node)}`]
+
+  if (node.locked) {
+    segments.push('Locked')
+  }
+
+  return segments.join('. ')
+}
+
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false
@@ -244,6 +278,7 @@ function DefaultNodeContent({ node }: { node: CanvasNode }) {
 export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   node,
   selected,
+  focused = false,
   lod = 'full',
   remoteUsers,
   onSelect,
@@ -283,6 +318,10 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   const activeBorder = selected ? selectionBorder : remoteBorder
   const inactiveBorder = hasRemotePresence ? remoteBorder : neutralBorder
   const panelShadow = theme.panelShadow
+  const focusRingShadow =
+    theme.mode === 'dark'
+      ? '0 0 0 3px rgba(96, 165, 250, 0.42)'
+      : '0 0 0 3px rgba(59, 130, 246, 0.24)'
   const resizeHandleColors = {
     background: theme.panelBackground,
     border: '#3b82f6',
@@ -423,13 +462,19 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           pointerEvents: 'auto',
           cursor: 'pointer',
           border: selected ? selectionBorder : hasRemotePresence ? remoteBorder : defaultBorder,
-          boxShadow: selected ? '0 0 0 2px rgba(59,130,246,0.2)' : undefined
+          boxShadow: selected
+            ? '0 0 0 2px rgba(59,130,246,0.2)'
+            : focused
+              ? focusRingShadow
+              : undefined
         }}
         onClick={handleClick}
         data-node-id={node.id}
         data-selected={selected ? 'true' : 'false'}
+        data-focused={focused ? 'true' : 'false'}
         data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="placeholder"
+        data-canvas-node-label={getNodeAccessibleLabel(node)}
       />
     )
   }
@@ -453,13 +498,19 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           overflow: 'hidden',
           pointerEvents: 'auto',
           cursor: 'pointer',
-          boxShadow: selected ? '0 0 0 2px rgba(59,130,246,0.2)' : panelShadow
+          boxShadow: selected
+            ? '0 0 0 2px rgba(59,130,246,0.2)'
+            : focused
+              ? `${focusRingShadow}, ${panelShadow}`
+              : panelShadow
         }}
         onClick={handleClick}
         data-node-id={node.id}
         data-selected={selected ? 'true' : 'false'}
+        data-focused={focused ? 'true' : 'false'}
         data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="minimal"
+        data-canvas-node-label={getNodeAccessibleLabel(node)}
       >
         <span
           style={{
@@ -495,7 +546,11 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           overflow: 'hidden',
           pointerEvents: 'auto',
           cursor: 'pointer',
-          boxShadow: selected ? '0 0 0 2px rgba(59,130,246,0.2)' : panelShadow,
+          boxShadow: selected
+            ? '0 0 0 2px rgba(59,130,246,0.2)'
+            : focused
+              ? `${focusRingShadow}, ${panelShadow}`
+              : panelShadow,
           display: 'flex',
           alignItems: 'center',
           gap: 6
@@ -503,8 +558,10 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         onClick={handleClick}
         data-node-id={node.id}
         data-selected={selected ? 'true' : 'false'}
+        data-focused={focused ? 'true' : 'false'}
         data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="compact"
+        data-canvas-node-label={getNodeAccessibleLabel(node)}
       >
         <NodeIcon type={node.type} />
         <span
@@ -538,11 +595,13 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
     borderRadius: 8,
     boxShadow: selected
       ? '0 0 0 2px rgba(59,130,246,0.2)'
-      : hasRemotePresence
-        ? `0 0 0 2px ${presenceColor}33`
-        : isPrimitiveShell
-          ? 'none'
-          : panelShadow,
+      : focused
+        ? `${focusRingShadow}, ${hasRemotePresence ? `0 0 0 2px ${presenceColor}33` : isPrimitiveShell ? 'none' : panelShadow}`
+        : hasRemotePresence
+          ? `0 0 0 2px ${presenceColor}33`
+          : isPrimitiveShell
+            ? 'none'
+            : panelShadow,
     cursor: node.locked ? 'default' : 'move',
     userSelect: 'none',
     overflow: 'visible',
@@ -559,8 +618,10 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       data-node-id={node.id}
       data-node-type={node.type}
       data-selected={selected ? 'true' : 'false'}
+      data-focused={focused ? 'true' : 'false'}
       data-node-locked={node.locked ? 'true' : 'false'}
       data-lod="full"
+      data-canvas-node-label={getNodeAccessibleLabel(node)}
     >
       {/* Content wrapper (clips overflow) */}
       <div style={{ overflow: 'hidden', width: '100%', height: '100%', borderRadius: 6 }}>

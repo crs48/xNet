@@ -19,12 +19,20 @@ import React, {
   useRef,
   useCallback,
   useEffect,
+  useId,
   useState,
   useImperativeHandle,
   useMemo,
   forwardRef
 } from 'react'
 import * as Y from 'yjs'
+import {
+  createAnnouncer,
+  createKeyboardNavigator,
+  type KeyboardNavigator,
+  type NavigableNode,
+  type NavigationSpatialIndex
+} from '../accessibility'
 import { CommentOverlay } from '../comments/CommentOverlay'
 import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
@@ -60,6 +68,17 @@ import { OverviewCanvasLayer } from './OverviewCanvasLayer'
 
 const MIN_RESIZE_WIDTH = 96
 const MIN_RESIZE_HEIGHT = 72
+const SCREEN_READER_ONLY_STYLE: React.CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0
+}
 
 /** Minimal Awareness interface (avoids a direct y-protocols dependency). */
 interface AwarenessLike extends CanvasPresenceAwarenessLike {
@@ -220,6 +239,30 @@ export interface CanvasNodeRenderContext {
   viewportZoom: number
 }
 
+function getCanvasAccessibleNodeLabel(node: CanvasNode): string {
+  const title = node.alias ?? (node.properties.title as string) ?? 'Untitled'
+
+  switch (node.type) {
+    case 'page':
+      return `Page: ${title}${node.locked ? ', locked' : ''}`
+    case 'database':
+      return `Database: ${title}${node.locked ? ', locked' : ''}`
+    case 'note':
+      return `Note: ${title}${node.locked ? ', locked' : ''}`
+    case 'external-reference':
+      return `Link preview: ${title}${node.locked ? ', locked' : ''}`
+    case 'media':
+      return `Media asset: ${title}${node.locked ? ', locked' : ''}`
+    case 'shape':
+      return `Shape: ${title}${node.locked ? ', locked' : ''}`
+    case 'frame':
+    case 'group':
+      return `Frame: ${title}${node.locked ? ', locked' : ''}`
+    default:
+      return `Canvas object: ${title}${node.locked ? ', locked' : ''}`
+  }
+}
+
 /**
  * WebGL Grid background hook
  *
@@ -347,14 +390,46 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const containerRef = useRef<HTMLDivElement>(null)
   const undoManagerRef = useRef<Y.UndoManager | null>(null)
   const presenceManagerRef = useRef<ReturnType<typeof createCanvasPresenceManager> | null>(null)
+  const announcerRef = useRef<ReturnType<typeof createAnnouncer> | null>(null)
+  const keyboardNavigatorRef = useRef<KeyboardNavigator | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [pointerActivity, setPointerActivity] = useState<CanvasActivity>('idle')
   const [focusedEditingNodeId, setFocusedEditingNodeId] = useState<string | null>(null)
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
+  const [lastAnnouncement, setLastAnnouncement] = useState('')
   const [remoteUsers, setRemoteUsers] = useState<CanvasRemoteUser[]>([])
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
+  const selectionAnnouncementReadyRef = useRef(false)
   const selectionActivityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const focusSyncFrameRef = useRef<number | null>(null)
+  const instructionsId = useId()
   const theme = useCanvasThemeTokens()
+
+  const announceCanvasMessage = useCallback(
+    (message: string, mode: 'polite' | 'assertive' = 'polite') => {
+      setLastAnnouncement(message)
+
+      if (mode === 'assertive') {
+        announcerRef.current?.announceAssertive(message)
+        return
+      }
+
+      announcerRef.current?.announce(message)
+    },
+    []
+  )
+
+  useEffect(() => {
+    const announcer = createAnnouncer()
+    announcerRef.current = announcer
+
+    return () => {
+      announcer.destroy()
+      if (announcerRef.current === announcer) {
+        announcerRef.current = null
+      }
+    }
+  }, [])
 
   // Track initial positions when drag starts to prevent drift during fast drags
   // Key: nodeId, Value: { x, y } at drag start
@@ -732,6 +807,42 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     })
   }, [onSelectionChange, selectedEdgeIds, selectedNodeIds])
 
+  useEffect(() => {
+    const selectedIds = Array.from(selectedNodeIds)
+
+    setFocusedNodeId((currentFocusedNodeId) => {
+      if (selectedIds.length === 0) {
+        return null
+      }
+
+      if (selectedIds.length === 1) {
+        return selectedIds[0]
+      }
+
+      if (currentFocusedNodeId && selectedNodeIds.has(currentFocusedNodeId)) {
+        return currentFocusedNodeId
+      }
+
+      return selectedIds[0] ?? null
+    })
+  }, [selectedNodeIds])
+
+  useEffect(() => {
+    if (!selectionAnnouncementReadyRef.current) {
+      selectionAnnouncementReadyRef.current = true
+      return
+    }
+
+    if (selectedNodeIds.size === 0) {
+      announceCanvasMessage('Selection cleared')
+      return
+    }
+
+    if (selectedNodeIds.size > 1) {
+      announceCanvasMessage(`${selectedNodeIds.size} objects selected`)
+    }
+  }, [announceCanvasMessage, selectedNodeIds])
+
   // Listen for remote awareness changes
   useEffect(() => {
     if (!awareness) return
@@ -875,11 +986,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
       if (hitNode) {
         scheduleTransientActivity('selecting')
+        setFocusedNodeId(hitNode.id)
         selectNode(hitNode.id, e.shiftKey || e.metaKey)
         return
       }
 
       // Clicked on background
+      setFocusedNodeId(null)
       clearSelection()
       onBackgroundClick?.()
 
@@ -1132,6 +1245,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const handleNodeSelect = useCallback(
     (id: string, additive: boolean) => {
       scheduleTransientActivity('selecting')
+      setFocusedNodeId(id)
       selectNode(id, additive)
     },
     [scheduleTransientActivity, selectNode]
@@ -1219,6 +1333,54 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [canvas.store, renderEdges, renderNodes, selectedNodeIds, viewport]
   )
   const { nodeMap, visibleNodes, visibleEdges, domNodes, overviewNodes } = displayList
+  const navigableNodes = useMemo<NavigableNode[]>(() => {
+    const sourceNodes =
+      visibleNodes.length > 0 ? visibleNodes : renderNodes.length > 0 ? renderNodes : nodes
+
+    const orderedNodes = [...sourceNodes].sort((left, right) => {
+      const leftZ = left.position.zIndex ?? 0
+      const rightZ = right.position.zIndex ?? 0
+
+      if (leftZ !== rightZ) {
+        return leftZ - rightZ
+      }
+
+      if (left.position.y !== right.position.y) {
+        return left.position.y - right.position.y
+      }
+
+      return left.position.x - right.position.x
+    })
+
+    return orderedNodes.map((node) => ({
+      id: node.id,
+      position: {
+        x: node.position.x,
+        y: node.position.y,
+        width: node.position.width,
+        height: node.position.height
+      }
+    }))
+  }, [nodes, renderNodes, visibleNodes])
+  const navigationSpatialIndex = useMemo<NavigationSpatialIndex>(
+    () => ({
+      search: (bounds) =>
+        navigableNodes
+          .filter((node) => {
+            const centerX = node.position.x + node.position.width / 2
+            const centerY = node.position.y + node.position.height / 2
+
+            return (
+              centerX >= bounds.minX &&
+              centerX <= bounds.maxX &&
+              centerY >= bounds.minY &&
+              centerY <= bounds.maxY
+            )
+          })
+          .map((node) => node.id)
+    }),
+    [navigableNodes]
+  )
 
   // Build comment objects map (memoized for CommentOverlay)
   // Note: Uses all nodes for comments, not just visible ones
@@ -1241,6 +1403,20 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes])
   const selectionBounds = useMemo(() => getSelectionBounds(selectedNodes), [selectedNodes])
   const selectionLockState = useMemo(() => getSelectionLockState(selectedNodes), [selectedNodes])
+
+  useEffect(() => {
+    if (!focusedNodeId) {
+      return
+    }
+
+    const focusedNode = canvas.store.getNode(focusedNodeId)
+    if (!focusedNode) {
+      return
+    }
+
+    announceCanvasMessage(getCanvasAccessibleNodeLabel(focusedNode))
+  }, [announceCanvasMessage, canvas.store, focusedNodeId])
+
   const remoteCursorIndicators = useMemo(
     () =>
       remoteUsers
@@ -1278,6 +1454,103 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     },
     [canvas]
   )
+
+  useEffect(() => {
+    if (!keyboardNavigatorRef.current) {
+      keyboardNavigatorRef.current = createKeyboardNavigator({
+        nodes: navigableNodes,
+        selectedIds: selectedNodeIds,
+        focusedId: focusedNodeId,
+        spatialIndex: navigationSpatialIndex,
+        onFocusChange: setFocusedNodeId,
+        onSelectionChange: (nodeIds) => {
+          if (nodeIds.length === 0) {
+            clearSelection()
+            return
+          }
+
+          canvas.selectNodes(nodeIds)
+        },
+        onNodeActivate: (nodeId) => {
+          setFocusedNodeId(nodeId)
+          canvas.selectNodes([nodeId])
+          onOpenSelection?.('peek')
+        }
+      })
+      return
+    }
+
+    keyboardNavigatorRef.current.updateOptions({
+      nodes: navigableNodes,
+      selectedIds: selectedNodeIds,
+      focusedId: focusedNodeId,
+      spatialIndex: navigationSpatialIndex,
+      onFocusChange: setFocusedNodeId,
+      onSelectionChange: (nodeIds) => {
+        if (nodeIds.length === 0) {
+          clearSelection()
+          return
+        }
+
+        canvas.selectNodes(nodeIds)
+      },
+      onNodeActivate: (nodeId) => {
+        setFocusedNodeId(nodeId)
+        canvas.selectNodes([nodeId])
+        onOpenSelection?.('peek')
+      }
+    })
+  }, [
+    canvas,
+    clearSelection,
+    focusedNodeId,
+    navigableNodes,
+    navigationSpatialIndex,
+    onOpenSelection,
+    selectedNodeIds
+  ])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) {
+      return
+    }
+
+    const handleAccessibilityKeyDown = (event: KeyboardEvent) => {
+      const activeElement = document.activeElement
+      if (!container.contains(activeElement)) {
+        return
+      }
+
+      if (isTextInputLikeElement(activeElement)) {
+        return
+      }
+
+      const isModifierPressed = event.metaKey || event.ctrlKey
+      const shouldHandleDirectionalNavigation =
+        event.altKey &&
+        !isModifierPressed &&
+        !event.shiftKey &&
+        ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)
+      const shouldHandleBoundaryNavigation =
+        !event.altKey &&
+        !isModifierPressed &&
+        !event.shiftKey &&
+        ['Home', 'End'].includes(event.key)
+
+      if (!shouldHandleDirectionalNavigation && !shouldHandleBoundaryNavigation) {
+        return
+      }
+
+      const handled = keyboardNavigatorRef.current?.handleKeyDown(event) ?? false
+      if (handled) {
+        scheduleTransientActivity('selecting')
+      }
+    }
+
+    window.addEventListener('keydown', handleAccessibilityKeyDown)
+    return () => window.removeEventListener('keydown', handleAccessibilityKeyDown)
+  }, [scheduleTransientActivity])
 
   useCanvasKeyboard({
     containerRef,
@@ -1350,10 +1623,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-selection-any-locked={selectionLockState.anyLocked ? 'true' : 'false'}
       data-canvas-local-activity={resolvedPresenceActivity}
       data-canvas-editing-node-id={resolvedEditingNodeId ?? ''}
+      data-canvas-focused-node-id={focusedNodeId ?? ''}
+      data-canvas-last-announcement={lastAnnouncement}
       data-canvas-remote-user-count={remoteUsers.length}
       data-canvas-remote-cursor-count={remoteCursorIndicators.length}
       data-selection-bounds-width={selectionBounds?.width ?? 0}
       data-selection-bounds-height={selectionBounds?.height ?? 0}
+      role="region"
+      aria-label="Canvas workspace"
+      aria-roledescription="infinite canvas"
+      aria-describedby={instructionsId}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleBackgroundDoubleClick}
       onDragOver={handleSurfaceDragOver}
@@ -1361,6 +1640,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       onPaste={handleSurfacePaste}
       tabIndex={0} // Make container focusable for keyboard shortcuts
     >
+      <div id={instructionsId} style={SCREEN_READER_ONLY_STYLE}>
+        Use Tab to step through nearby objects, Alt plus arrow keys for spatial focus, Enter to peek
+        the selection, Alt plus Enter to open split view, and question mark for shortcuts.
+      </div>
+
       {/* Grid background is rendered via WebGL/CSS layer (useWebGLGrid hook) */}
 
       {/* Edges layer (SVG) - PERF-01: Only render edges with visible endpoints */}
@@ -1482,6 +1766,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
               key={node.id}
               node={node}
               selected={selected}
+              focused={focusedNodeId === node.id}
               lod={lod}
               remoteUsers={nodePresence.get(node.id)}
               onSelect={handleNodeSelect}

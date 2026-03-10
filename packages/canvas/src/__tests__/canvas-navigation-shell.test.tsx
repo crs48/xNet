@@ -33,18 +33,26 @@ vi.mock('../nodes/CanvasNodeComponent', () => ({
     node,
     children,
     selected,
+    focused,
     onResizeStart,
     onResize,
     onResizeEnd
   }: {
     node: { id: string; type: string }
     selected?: boolean
+    focused?: boolean
     onResizeStart?: (id: string, handle: string, point: { x: number; y: number }) => void
     onResize?: (id: string, handle: string, delta: { x: number; y: number }) => void
     onResizeEnd?: (id: string) => void
     children?: React.ReactNode
   }) => (
-    <div className="canvas-node" data-node-id={node.id} data-node-type={node.type}>
+    <div
+      className="canvas-node"
+      data-node-id={node.id}
+      data-node-type={node.type}
+      data-focused={focused ? 'true' : 'false'}
+      data-selected={selected ? 'true' : 'false'}
+    >
       {children}
       {selected && onResizeStart && onResize && onResizeEnd ? (
         <button
@@ -405,6 +413,49 @@ describe('Canvas navigation shell', () => {
     fireEvent.mouseUp(document)
 
     expect(surface?.dataset.canvasLocalActivity).toBe('idle')
+  })
+
+  it('supports spatial keyboard focus with live announcements', async () => {
+    const nodes = [
+      {
+        id: 'page-1',
+        type: 'page',
+        position: { x: 20, y: 40, width: 320, height: 200 },
+        properties: { title: 'Alpha' }
+      },
+      {
+        id: 'page-2',
+        type: 'page',
+        position: { x: 420, y: 40, width: 320, height: 200 },
+        properties: { title: 'Bravo' }
+      }
+    ]
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = nodes
+    canvasMock.renderNodes = nodes
+    canvasMock.store.getNode = vi.fn((nodeId: string) => nodes.find((node) => node.id === nodeId))
+    canvasMock.store.getNodesMap = vi.fn(() => new Map(nodes.map((node) => [node.id, node])))
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    expect(surface).toBeTruthy()
+
+    surface?.focus()
+
+    fireEvent.keyDown(window, { key: 'Home' })
+
+    expect(canvasMock.selectNodes).toHaveBeenNthCalledWith(1, ['page-1'])
+    expect(surface?.dataset.canvasFocusedNodeId).toBe('page-1')
+    expect(surface?.dataset.canvasLastAnnouncement).toContain('Page: Alpha')
+
+    fireEvent.keyDown(window, { key: 'ArrowRight', altKey: true })
+
+    expect(canvasMock.selectNodes).toHaveBeenNthCalledWith(2, ['page-2'])
+    expect(surface?.dataset.canvasFocusedNodeId).toBe('page-2')
+    expect(surface?.dataset.canvasLastAnnouncement).toContain('Page: Bravo')
   })
 
   it('passes render context to full-detail node renderers', () => {

@@ -186,6 +186,10 @@ Automated validation should include:
   - no editor/table mounts on the home surface
   - minimap interaction under load
   - query/frame telemetry capture
+- Shared shell regression coverage for:
+  - keyboard focus return after dismissing transient UI
+  - Home/End and Tab object traversal on the canvas surface
+  - live announcement diagnostics for keyboard-driven selection changes
 
 ## Risks and Edge Cases
 
@@ -201,6 +205,7 @@ Automated validation should include:
 - [x] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
 - [x] Add Electron and web theme-regression coverage for shared canvas chrome.
 - [x] Add Electron and web resize-persistence regression coverage for pointer-driven transforms.
+- [x] Add Electron and web keyboard-focus regression coverage for shared canvas traversal.
 - [x] Add Electron CDP large-scene performance coverage and record thresholds.
 - [ ] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
 - [ ] Document and enforce release gates before web rollout.

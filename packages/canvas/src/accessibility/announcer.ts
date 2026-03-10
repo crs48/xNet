@@ -13,20 +13,26 @@ export interface AnnouncerNode {
   type: string
   properties?: {
     title?: string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    [key: string]: any
+    locked?: boolean
+    [key: string]: unknown
   }
 }
 
 // ─── Node Type Labels ──────────────────────────────────────────────────────────
 
 const NODE_TYPE_LABELS: Record<string, string> = {
+  page: 'Page',
+  note: 'Note',
   card: 'Card',
   document: 'Document',
   database: 'Database',
+  'external-reference': 'Link preview',
+  media: 'Media asset',
   mermaid: 'Diagram',
   embed: 'Embedded content',
   shape: 'Shape',
+  frame: 'Frame',
+  group: 'Group',
   checklist: 'Checklist',
   swimlane: 'Swimlane'
 }
@@ -110,7 +116,8 @@ export class Announcer {
   announceNodeFocus(node: AnnouncerNode): void {
     const type = getNodeTypeLabel(node.type)
     const title = node.properties?.title ?? 'Untitled'
-    this.announce(`${type}: ${title}`)
+    const locked = node.properties?.locked ? ', locked' : ''
+    this.announce(`${type}: ${title}${locked}`)
   }
 
   /**

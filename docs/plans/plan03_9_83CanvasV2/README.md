@@ -289,7 +289,7 @@ flowchart LR
 - [x] Far-field objects do not mount rich editors or oversized DOM subtrees.
 - [x] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.
 - [x] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
-- [ ] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
+- [x] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
 - [ ] Undo/redo behaves correctly across canvas-object moves and inline content edits.
 - [x] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.
 - [x] Comment anchors survive object moves/resizes and degrade cleanly when underlying anchors disappear.

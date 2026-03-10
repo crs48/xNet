@@ -549,6 +549,62 @@ test.describe('Web canvas ingestion', () => {
     })
   })
 
+  test('supports spatial keyboard focus and announcements on the web canvas', async ({ page }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    await surface.click({
+      position: { x: 180, y: 220 },
+      force: true
+    })
+
+    await page.keyboard.press('R')
+    await page.keyboard.press('R')
+
+    const shapes = page.locator('.canvas-node[data-node-type="shape"]')
+    await expect(shapes).toHaveCount(2, { timeout: 30_000 })
+
+    await surface.focus()
+    await page.keyboard.press('Home')
+
+    await expect
+      .poll(async () => await surface.getAttribute('data-canvas-focused-node-id'), {
+        timeout: 30_000
+      })
+      .not.toBe('')
+
+    const firstFocusedNodeId = await surface.getAttribute('data-canvas-focused-node-id')
+    expect(firstFocusedNodeId).toBeTruthy()
+
+    const firstAnnouncement = await surface.getAttribute('data-canvas-last-announcement')
+    expect(firstAnnouncement).toContain('Shape: Rectangle')
+
+    await page.keyboard.press('End')
+
+    await expect
+      .poll(async () => await surface.getAttribute('data-canvas-focused-node-id'), {
+        timeout: 30_000
+      })
+      .not.toBe(firstFocusedNodeId)
+
+    const focusedNodeId = await surface.getAttribute('data-canvas-focused-node-id')
+    expect(focusedNodeId).toBeTruthy()
+    await expect(page.locator(`.canvas-node[data-node-id="${focusedNodeId}"]`)).toHaveAttribute(
+      'data-focused',
+      'true'
+    )
+    await expect(surface).toHaveAttribute('data-canvas-last-announcement', /Shape: Rectangle/)
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-keyboard-focus.png',
+      fullPage: true
+    })
+  })
+
   test('renames a source-backed object with a canvas-local alias on the web', async ({ page }) => {
     await setupTestAuth(page)
     await advanceOnboarding(page)
