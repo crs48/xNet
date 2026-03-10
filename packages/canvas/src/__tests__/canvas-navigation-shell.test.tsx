@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
+import { buildCanvasPerformanceScene } from '../fixtures/performance-scene'
 import { Canvas } from '../renderer/Canvas'
 import { createViewport } from '../spatial'
 
@@ -28,7 +29,17 @@ vi.mock('../edges/CanvasEdgeComponent', () => ({
 }))
 
 vi.mock('../nodes/CanvasNodeComponent', () => ({
-  CanvasNodeComponent: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  CanvasNodeComponent: ({
+    node,
+    children
+  }: {
+    node: { id: string; type: string }
+    children?: React.ReactNode
+  }) => (
+    <div className="canvas-node" data-node-id={node.id} data-node-type={node.type}>
+      {children}
+    </div>
+  ),
   calculateLOD: () => 'full'
 }))
 
@@ -206,5 +217,36 @@ describe('Canvas navigation shell', () => {
         viewportZoom: 1.25
       })
     )
+  })
+
+  it('keeps dense scenes bounded to visible nodes while retaining minimap diagnostics', () => {
+    const scene = buildCanvasPerformanceScene({
+      columns: 42,
+      rows: 28,
+      clusterColumns: 6,
+      clusterRows: 4
+    })
+    const visibleNodes = scene.nodes.slice(0, 28)
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = scene.nodes
+    canvasMock.edges = scene.edges
+    canvasMock.store.getVisibleNodes = vi.fn(() => visibleNodes)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    const renderNode = vi.fn(() => <div data-testid="dense-node" />)
+
+    render(<Canvas doc={new Y.Doc()} renderNode={renderNode} showMinimap />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    const minimap = document.querySelector<HTMLElement>('[data-canvas-minimap="true"]')
+
+    expect(surface?.dataset.nodeCount).toBe(String(scene.nodeCount))
+    expect(surface?.dataset.visibleNodeCount).toBe(String(visibleNodes.length))
+    expect(Number(surface?.dataset.visibleEdgeCount ?? 0)).toBeLessThanOrEqual(scene.edgeCount)
+    expect(document.querySelectorAll('.canvas-node')).toHaveLength(visibleNodes.length)
+    expect(renderNode).toHaveBeenCalledTimes(visibleNodes.length)
+    expect(minimap?.dataset.canvasMinimapNodeCount).toBe(String(scene.nodeCount))
+    expect(minimap?.dataset.canvasMinimapEdgeCount).toBe(String(scene.edgeCount))
   })
 })

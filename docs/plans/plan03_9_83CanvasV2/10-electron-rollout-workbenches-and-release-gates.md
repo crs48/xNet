@@ -61,6 +61,10 @@ Build dedicated Canvas V2 stories that cover:
 - shape/connector dense canvas,
 - very large synthetic scene for performance testing.
 
+The current workbench baseline should include a dense seeded-scene story that reuses the same
+fixture as the Electron performance harness so DOM-count and minimap regressions can be inspected
+without booting the full shell.
+
 ### 3. Performance harnesses
 
 Create repeatable scenes for:
@@ -79,6 +83,16 @@ Track:
 - minimap responsiveness,
 - query counts/churn,
 - memory profile.
+
+Current seeded-scene gate for Electron CDP:
+
+- shared dense scene fixture with `48 x 36` content objects plus cluster groups (`1,800` total nodes),
+- visible home-surface DOM nodes stay under `120` locally and under `180` in CI,
+- active query count stays at or below `5`,
+- no `contenteditable` or `table` mounts appear on the home canvas,
+- minimap hide/show and minimap click navigation both remain responsive,
+- requestAnimationFrame pan samples stay under `24ms` average / `50ms` max locally and
+  `40ms` average / `80ms` max in CI.
 
 The release process should include both:
 
@@ -117,6 +131,8 @@ Only after Electron passes the gates should the team adapt the new shell/runtime
 - Update Storybook workbenches as the scene model changes; do not leave stories wired to the old generic object contract.
 - Use frame and query devtools during manual validation rather than relying on subjective feel alone.
 - Record benchmark scenes and release gates in the plan/PR notes so performance claims remain traceable.
+- Keep the Storybook large-scene workbench and the Electron seeded-scene helper on the same fixture
+  contract so any threshold drift can be reproduced quickly.
 
 ## Testing and Validation Approach
 
@@ -168,9 +184,9 @@ Automated validation should include:
 
 - [ ] Replace the active Electron canvas path with Canvas V2.
 - [ ] Build realistic Storybook/workbench scenes for every major object family and density class.
-- [ ] Add repeatable performance scenes and capture frame/DOM/query metrics.
+- [x] Add repeatable performance scenes and capture frame/DOM/query metrics.
 - [x] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
-- [ ] Add Electron CDP large-scene performance coverage and record thresholds.
+- [x] Add Electron CDP large-scene performance coverage and record thresholds.
 - [ ] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
 - [ ] Document and enforce release gates before web rollout.
 - [ ] Start web adaptation only after Electron passes the full gate set.

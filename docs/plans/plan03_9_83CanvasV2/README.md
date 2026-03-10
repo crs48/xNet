@@ -273,7 +273,7 @@ flowchart LR
 - [ ] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
 - [ ] Build Storybook and manual validation scenes that reflect the real Canvas V2 object model.
 - [ ] Add Electron CDP e2e coverage for canvas creation, minimap, command palette, drag/drop, and focused-surface transitions.
-- [ ] Add large-scene performance harnesses with DOM-count, query-churn, and frame-budget assertions.
+- [x] Add large-scene performance harnesses with DOM-count, query-churn, and frame-budget assertions.
 - [ ] Validate Electron-first performance and interaction budgets before web rollout.
 
 ## Validation Checklist
@@ -286,7 +286,7 @@ flowchart LR
 - [x] The background grid and minimap remain outside the main DOM path.
 - [x] Far-field objects do not mount rich editors or oversized DOM subtrees.
 - [x] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.
-- [ ] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
+- [x] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
 - [ ] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
 - [ ] Undo/redo behaves correctly across canvas-object moves and inline content edits.
 - [ ] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.

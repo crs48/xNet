@@ -86,6 +86,15 @@ export {
   type CanvasStoreListener
 } from './store'
 
+export {
+  createCanvasPerformanceSceneDoc,
+  buildCanvasPerformanceScene,
+  seedCanvasPerformanceScene,
+  type CanvasPerformanceSceneOptions,
+  type CanvasPerformanceSceneSummary,
+  type CanvasPerformanceSceneSeedResult
+} from './fixtures/performance-scene'
+
 // Chunked storage (for infinite canvases)
 export {
   // Configuration

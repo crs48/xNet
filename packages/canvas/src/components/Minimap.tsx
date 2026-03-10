@@ -304,6 +304,10 @@ export function Minimap({
         cursor: 'crosshair',
         userSelect: 'none'
       }}
+      data-canvas-minimap="true"
+      data-canvas-minimap-node-count={nodes.length}
+      data-canvas-minimap-edge-count={edges.length}
+      data-canvas-minimap-show-edges={showEdges ? 'true' : 'false'}
     >
       <canvas
         ref={canvasRef}
@@ -313,6 +317,7 @@ export function Minimap({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        data-canvas-minimap-canvas="true"
       />
     </div>
   )
@@ -348,6 +353,8 @@ export function CollapsibleMinimap({ defaultExpanded = true, ...props }: Collaps
         bottom: 16,
         right: 16
       }}
+      data-canvas-minimap-shell="true"
+      data-canvas-minimap-expanded={isExpanded ? 'true' : 'false'}
     >
       {isExpanded ? (
         <div style={{ position: 'relative' }}>
@@ -377,6 +384,7 @@ export function CollapsibleMinimap({ defaultExpanded = true, ...props }: Collaps
             }}
             title="Hide minimap"
             aria-label="Hide minimap"
+            data-canvas-minimap-toggle="hide"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
               <path d="M2 5.5h8v1H2z" />
@@ -400,6 +408,7 @@ export function CollapsibleMinimap({ defaultExpanded = true, ...props }: Collaps
           }}
           title="Show minimap"
           aria-label="Show minimap"
+          data-canvas-minimap-toggle="show"
         >
           <MapIcon />
         </button>

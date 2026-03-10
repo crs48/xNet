@@ -29,6 +29,10 @@ test.skip(
   'Electron CDP validation only runs on Chromium'
 )
 
+function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
+  return process.env.CI ? ciBudgetMs : localBudgetMs
+}
+
 function appendLogLine(buffer: string[], line: string): void {
   buffer.push(line)
   if (buffer.length > MAX_LOG_LINES) {
@@ -331,6 +335,174 @@ async function getContentEditableCount(page: Page): Promise<number> {
   return page.evaluate(() => document.querySelectorAll('[contenteditable="true"]').length)
 }
 
+async function seedPerformanceScene(
+  page: Page,
+  input: {
+    canvasId?: string
+    title?: string
+    columns?: number
+    rows?: number
+    clusterColumns?: number
+    clusterRows?: number
+  } = {}
+): Promise<{
+  canvasId: string
+  title: string
+  nodeCount: number
+  edgeCount: number
+  bounds: { x: number; y: number; width: number; height: number }
+  kindCounts: Record<string, number>
+}> {
+  return page.evaluate(async (sceneInput) => {
+    const harness = (
+      window as Window & {
+        __xnetCanvasTestHarness?: {
+          seedPerformanceScene: (input?: typeof sceneInput) => Promise<{
+            canvasId: string
+            title: string
+            nodeCount: number
+            edgeCount: number
+            bounds: { x: number; y: number; width: number; height: number }
+            kindCounts: Record<string, number>
+          }>
+        }
+      }
+    ).__xnetCanvasTestHarness
+
+    if (!harness) {
+      throw new Error('Canvas test harness not available')
+    }
+
+    return harness.seedPerformanceScene(sceneInput)
+  }, input)
+}
+
+async function getActiveQueryDiagnostics(page: Page): Promise<
+  Array<{
+    id: string
+    type: string
+    schemaId: string
+    mode: string
+    descriptorKey?: string
+    nodeId?: string
+    updateCount: number
+    resultCount: number
+  }>
+> {
+  return page.evaluate(() => {
+    const diagnostics = (
+      window as Window & {
+        __xnetDevToolsDiagnostics?: {
+          getActiveNodeId: () => string | null
+          getActiveQueries: () => Array<{
+            id: string
+            type: string
+            schemaId: string
+            mode: string
+            descriptorKey?: string
+            nodeId?: string
+            updateCount: number
+            resultCount: number
+          }>
+        }
+      }
+    ).__xnetDevToolsDiagnostics
+
+    return diagnostics ? diagnostics.getActiveQueries() : []
+  })
+}
+
+async function getActiveCanvasNodeId(page: Page): Promise<string | null> {
+  return page.evaluate(() => {
+    const diagnostics = (
+      window as Window & {
+        __xnetDevToolsDiagnostics?: {
+          getActiveNodeId: () => string | null
+        }
+      }
+    ).__xnetDevToolsDiagnostics
+
+    return diagnostics ? diagnostics.getActiveNodeId() : null
+  })
+}
+
+async function getCanvasShellMetrics(page: Page): Promise<{
+  nodeCount: number
+  visibleNodeCount: number
+  edgeCount: number
+  visibleEdgeCount: number
+  viewportX: number
+  viewportY: number
+  viewportZoom: number
+  canvasNodeElements: number
+  canvasElements: number
+  contentEditableElements: number
+  tableElements: number
+  minimapVisible: boolean
+}> {
+  return page.evaluate(() => {
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    if (!surface) {
+      throw new Error('Canvas surface not found')
+    }
+
+    return {
+      nodeCount: Number(surface.dataset.nodeCount ?? 0),
+      visibleNodeCount: Number(surface.dataset.visibleNodeCount ?? 0),
+      edgeCount: Number(surface.dataset.edgeCount ?? 0),
+      visibleEdgeCount: Number(surface.dataset.visibleEdgeCount ?? 0),
+      viewportX: Number(surface.dataset.viewportX ?? 0),
+      viewportY: Number(surface.dataset.viewportY ?? 0),
+      viewportZoom: Number(surface.dataset.viewportZoom ?? 0),
+      canvasNodeElements: document.querySelectorAll('.canvas-node').length,
+      canvasElements: document.querySelectorAll('canvas').length,
+      contentEditableElements: document.querySelectorAll('[contenteditable="true"]').length,
+      tableElements: document.querySelectorAll('table').length,
+      minimapVisible: document.querySelector('[data-canvas-minimap="true"]') !== null
+    }
+  })
+}
+
+async function measureCanvasFrameBudget(
+  page: Page,
+  stepCount = 18
+): Promise<{ samples: number; averageMs: number; maxMs: number }> {
+  return page.evaluate(async (steps) => {
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    if (!surface) {
+      throw new Error('Canvas surface not found')
+    }
+
+    const nextFrame = async (): Promise<number> =>
+      await new Promise((resolve) => requestAnimationFrame((timestamp) => resolve(timestamp)))
+
+    const samples: number[] = []
+    let previous = await nextFrame()
+
+    for (let index = 0; index < steps; index += 1) {
+      surface.dispatchEvent(
+        new WheelEvent('wheel', {
+          bubbles: true,
+          cancelable: true,
+          deltaX: index % 2 === 0 ? 140 : -120,
+          deltaY: index % 3 === 0 ? 90 : -70
+        })
+      )
+
+      const current = await nextFrame()
+      samples.push(current - previous)
+      previous = current
+    }
+
+    const total = samples.reduce((sum, value) => sum + value, 0)
+    return {
+      samples: samples.length,
+      averageMs: samples.length > 0 ? total / samples.length : 0,
+      maxMs: samples.reduce((max, value) => Math.max(max, value), 0)
+    }
+  }, stepCount)
+}
+
 async function selectCanvasNode(page: Page, selector: string, index = 0): Promise<void> {
   const locator = page.locator(selector).nth(index)
   await expect(locator).toBeVisible({ timeout: 30_000 })
@@ -571,6 +743,108 @@ test.describe('Electron canvas shell', () => {
 
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-database-preview.png`,
+      fullPage: true
+    })
+  })
+
+  test('keeps dense seeded scenes virtualized while minimap and query metrics stay stable', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+    await expect
+      .poll(async () => getActiveCanvasNodeId(page), {
+        timeout: 15_000
+      })
+      .not.toBeNull()
+    const activeCanvasId = await getActiveCanvasNodeId(page)
+
+    const seededScene = await seedPerformanceScene(page, {
+      canvasId: activeCanvasId ?? undefined,
+      title: 'Canvas Performance Validation',
+      columns: 48,
+      rows: 36,
+      clusterColumns: 6,
+      clusterRows: 4
+    })
+
+    await expect
+      .poll(async () => (await getCanvasShellMetrics(page)).nodeCount, {
+        timeout: 30_000
+      })
+      .toBe(seededScene.nodeCount)
+
+    await logShellDebugState(page, 'after-seed-performance-scene')
+
+    await page
+      .getByRole('button', { name: /hide minimap/i })
+      .evaluate((button: HTMLButtonElement) => button.click())
+    await expect(page.locator('[data-canvas-minimap="true"]')).toHaveCount(0)
+    await page
+      .getByRole('button', { name: /show minimap/i })
+      .evaluate((button: HTMLButtonElement) => button.click())
+    await expect(page.locator('[data-canvas-minimap="true"]')).toHaveCount(1, {
+      timeout: 15_000
+    })
+
+    const initialMetrics = await getCanvasShellMetrics(page)
+    const initialQueries = await getActiveQueryDiagnostics(page)
+
+    expect(initialMetrics.visibleNodeCount).toBeGreaterThan(0)
+    expect(initialMetrics.visibleNodeCount).toBeLessThan(getPerformanceBudget(120, 180))
+    expect(initialMetrics.canvasNodeElements).toBe(initialMetrics.visibleNodeCount)
+    expect(initialMetrics.edgeCount).toBe(seededScene.edgeCount)
+    expect(initialMetrics.visibleEdgeCount).toBeLessThanOrEqual(initialMetrics.edgeCount)
+    expect(initialMetrics.canvasElements).toBeGreaterThanOrEqual(2)
+    expect(initialMetrics.contentEditableElements).toBe(0)
+    expect(initialMetrics.tableElements).toBe(0)
+    expect(initialMetrics.minimapVisible).toBe(true)
+    expect(initialQueries.length).toBeLessThanOrEqual(5)
+
+    const initialQueryIds = [...initialQueries].map((query) => query.id).sort()
+    const initialViewport = {
+      x: initialMetrics.viewportX,
+      y: initialMetrics.viewportY
+    }
+
+    await page
+      .locator('[data-canvas-minimap-canvas="true"]')
+      .evaluate((canvas: HTMLCanvasElement) => {
+        const rect = canvas.getBoundingClientRect()
+        const eventInit = {
+          bubbles: true,
+          cancelable: true,
+          button: 0,
+          clientX: rect.left + rect.width - 12,
+          clientY: rect.top + rect.height - 12
+        }
+
+        canvas.dispatchEvent(new MouseEvent('mousedown', eventInit))
+        canvas.dispatchEvent(new MouseEvent('mouseup', eventInit))
+      })
+
+    await expect
+      .poll(async () => {
+        const metrics = await getCanvasShellMetrics(page)
+        return `${metrics.viewportX}:${metrics.viewportY}`
+      })
+      .not.toBe(`${initialViewport.x}:${initialViewport.y}`)
+
+    const postMinimapMetrics = await getCanvasShellMetrics(page)
+    const postMinimapQueryIds = [...(await getActiveQueryDiagnostics(page))]
+      .map((query) => query.id)
+      .sort()
+
+    expect(postMinimapMetrics.visibleNodeCount).toBeLessThan(getPerformanceBudget(120, 180))
+    expect(postMinimapMetrics.canvasNodeElements).toBe(postMinimapMetrics.visibleNodeCount)
+    expect(postMinimapQueryIds).toEqual(initialQueryIds)
+
+    const frameBudget = await measureCanvasFrameBudget(page, 18)
+
+    expect(frameBudget.samples).toBe(18)
+    expect(frameBudget.averageMs).toBeLessThan(getPerformanceBudget(24, 40))
+    expect(frameBudget.maxMs).toBeLessThan(getPerformanceBudget(50, 80))
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-performance-scene.png`,
       fullPage: true
     })
   })

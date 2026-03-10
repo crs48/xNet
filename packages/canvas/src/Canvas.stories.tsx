@@ -2,6 +2,7 @@ import type { CanvasNode } from './types'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Badge, Button } from '@xnetjs/ui'
 import { useRef, useState, type ReactElement } from 'react'
+import { createCanvasPerformanceSceneDoc } from './fixtures/performance-scene'
 import { Canvas, type CanvasHandle } from './renderer/Canvas'
 import { createCanvasDoc, createEdge, createNode } from './store'
 
@@ -177,4 +178,95 @@ export const Playground: Story = {
     }
   },
   render: () => <CanvasWorkbench />
+}
+
+function LargeSceneWorkbench(): ReactElement {
+  const [doc] = useState(() =>
+    createCanvasPerformanceSceneDoc(
+      'storybook-canvas-performance',
+      'Canvas Performance Workbench',
+      {
+        columns: 54,
+        rows: 30,
+        clusterColumns: 6,
+        clusterRows: 5
+      }
+    )
+  )
+  const canvasRef = useRef<CanvasHandle>(null)
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-border bg-background-subtle px-5 py-4">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Large-scene workbench</p>
+          <p className="text-sm text-foreground-muted">
+            Dense seeded canvas for bounded-DOM, minimap, and frame-budget tuning.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary">1,640+ objects</Badge>
+          <Button variant="outline" size="sm" onClick={() => canvasRef.current?.fitToContent(180)}>
+            Fit content
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => canvasRef.current?.resetView()}>
+            Reset view
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="h-[820px] overflow-hidden rounded-[28px] border border-border bg-background shadow-sm">
+          <Canvas
+            ref={canvasRef}
+            doc={doc}
+            config={{
+              showGrid: true,
+              gridSize: 24,
+              minZoom: 0.08,
+              maxZoom: 4
+            }}
+            showMinimap
+            showNavigationTools
+            navigationToolsPosition="bottom-right"
+            navigationToolsShowZoomLabel={false}
+          />
+        </div>
+
+        <aside className="space-y-4 rounded-[28px] border border-border bg-background-subtle p-5">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Suggested checks</p>
+            <p className="mt-1 text-sm text-foreground-muted">
+              Pan across clusters, hide and reopen the minimap, then profile frame timing while
+              staying zoomed to the home canvas.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-background p-4 text-sm text-foreground-muted">
+            This scene is intentionally seeded with page, database, note, external-reference, media,
+            shape, and group objects so the minimap and culling paths stay honest.
+          </div>
+
+          <div className="rounded-2xl border border-border bg-background p-4 text-sm text-foreground-muted">
+            The workbench should keep the DOM bounded even though the total scene is much larger
+            than the current viewport.
+          </div>
+        </aside>
+      </div>
+    </div>
+  )
+}
+
+export const LargeScene: Story = {
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        story:
+          'Dense performance workbench for validating large-scene culling, minimap interaction, and grid rendering from the shared seeded-scene fixture.'
+      }
+    }
+  },
+  render: () => <LargeSceneWorkbench />
 }

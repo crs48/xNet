@@ -1,7 +1,8 @@
 /**
  * Renderer entry point
  */
-import { BlobService } from '@xnetjs/data'
+import { seedCanvasPerformanceScene } from '@xnetjs/canvas'
+import { BlobService, CanvasSchema } from '@xnetjs/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
@@ -11,6 +12,7 @@ import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnetjs/t
 import { ThemeProvider } from '@xnetjs/ui'
 import React, { useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import * as Y from 'yjs'
 import { App } from './App'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
@@ -44,6 +46,26 @@ type LocalAPIStore = {
     }
   ): Promise<LocalAPIStoreNode>
   delete(id: string): Promise<void>
+  getDocumentContent(nodeId: string): Promise<Uint8Array | null>
+  setDocumentContent(nodeId: string, content: Uint8Array): Promise<void>
+}
+
+type CanvasTestHarness = {
+  seedPerformanceScene: (input?: {
+    canvasId?: string
+    title?: string
+    columns?: number
+    rows?: number
+    clusterColumns?: number
+    clusterRows?: number
+  }) => Promise<{
+    canvasId: string
+    title: string
+    nodeCount: number
+    edgeCount: number
+    bounds: { x: number; y: number; width: number; height: number }
+    kindCounts: Record<string, number>
+  }>
 }
 
 // TODO: In production, load identity from secure storage via IPC
@@ -80,12 +102,66 @@ const ipcSyncManager = createIPCSyncManager()
 declare global {
   interface Window {
     __xnetIpcSyncManager?: IPCSyncManager
+    __xnetCanvasTestHarness?: CanvasTestHarness | null
     __xnetRoot?: Root
     __xnetDevToolsToggleCleanup?: (() => void) | null
   }
 }
 
 window.__xnetIpcSyncManager = ipcSyncManager
+
+function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness {
+  return {
+    async seedPerformanceScene(input = {}) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      const canvases = await store.list({
+        schemaId: CanvasSchema._schemaId,
+        limit: 50,
+        offset: 0
+      })
+      const targetCanvas =
+        (input.canvasId ? await store.get(input.canvasId) : null) ??
+        [...canvases].sort((left, right) => right.updatedAt - left.updatedAt)[0]
+
+      if (!targetCanvas) {
+        throw new Error('No canvas available to seed')
+      }
+
+      syncManager.track(targetCanvas.id, CanvasSchema._schemaId)
+      const doc = await syncManager.acquire(targetCanvas.id)
+      const summary = seedCanvasPerformanceScene(doc, {
+        columns: input.columns,
+        rows: input.rows,
+        clusterColumns: input.clusterColumns,
+        clusterRows: input.clusterRows
+      })
+      const title = input.title ?? `Canvas Performance Scene (${summary.nodeCount} nodes)`
+
+      await store.update(targetCanvas.id, {
+        properties: {
+          ...targetCanvas.properties,
+          title
+        }
+      })
+      await store.setDocumentContent(targetCanvas.id, Y.encodeStateAsUpdate(doc))
+
+      return {
+        canvasId: targetCanvas.id,
+        title,
+        nodeCount: summary.nodeCount,
+        edgeCount: summary.edgeCount,
+        bounds: summary.bounds,
+        kindCounts: Object.fromEntries(
+          Object.entries(summary.kindCounts).map(([key, value]) => [key, value ?? 0])
+        )
+      }
+    }
+  }
+}
 
 /**
  * Component that instruments the sync manager with devtools.
@@ -231,6 +307,7 @@ async function init() {
   window.__xnetDevToolsToggleCleanup = window.xnet.onDevToolsToggle(() => {
     window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
   })
+  window.__xnetCanvasTestHarness = createCanvasTestHarness(ipcSyncManager)
 
   const container = document.getElementById('root')
   if (!container) {
@@ -286,6 +363,7 @@ init()
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
+    window.__xnetCanvasTestHarness = null
     window.__xnetDevToolsToggleCleanup?.()
     window.__xnetDevToolsToggleCleanup = null
   })
