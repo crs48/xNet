@@ -13,6 +13,7 @@ import type {
 } from '@xnetjs/data'
 import {
   DatabaseSchema,
+  EMBED_PROVIDERS,
   ExternalReferenceSchema,
   MediaAssetSchema,
   PageSchema,
@@ -26,6 +27,11 @@ const CANVAS_STACK_OFFSET = 28
 const DEFAULT_MEDIA_RECT = { width: 320, height: 240 }
 const MAX_MEDIA_PREVIEW_WIDTH = 420
 const MAX_MEDIA_PREVIEW_HEIGHT = 320
+const DEFAULT_EXTERNAL_REFERENCE_RECT = { width: 360, height: 180 }
+const DEFAULT_EMBED_RECT = { width: 420, height: 352 }
+const DEFAULT_SOCIAL_EMBED_RECT = { width: 360, height: 420 }
+const DEFAULT_AUDIO_EMBED_RECT = { width: 360, height: 300 }
+const DEFAULT_EMBED_CHROME_HEIGHT = 116
 const DEFAULT_SHAPE_RECT = { width: 240, height: 160 }
 const DEFAULT_FRAME_RECT = { width: 640, height: 420 }
 
@@ -174,6 +180,81 @@ export function getMediaRect(dimensions?: { width?: number; height?: number } | 
   }
 }
 
+function normalizeExternalReferenceSizingInput(
+  input:
+    | CanvasExternalReferenceDescriptor
+    | {
+        provider?: string | null
+        kind?: string | null
+        embedUrl?: string | null
+      }
+    | null
+    | undefined
+): {
+  provider: string | null
+  kind: string | null
+  embedUrl: string | null
+} {
+  if (!input) {
+    return {
+      provider: null,
+      kind: null,
+      embedUrl: null
+    }
+  }
+
+  return {
+    provider: typeof input.provider === 'string' ? input.provider : null,
+    kind: typeof input.kind === 'string' ? input.kind : null,
+    embedUrl: typeof input.embedUrl === 'string' ? input.embedUrl : null
+  }
+}
+
+export function getExternalReferenceRect(
+  input:
+    | CanvasExternalReferenceDescriptor
+    | {
+        provider?: string | null
+        kind?: string | null
+        embedUrl?: string | null
+      }
+    | null
+    | undefined
+): {
+  width: number
+  height: number
+} {
+  const normalized = normalizeExternalReferenceSizingInput(input)
+
+  if (!normalized.embedUrl) {
+    return DEFAULT_EXTERNAL_REFERENCE_RECT
+  }
+
+  if (normalized.provider === 'twitter' || normalized.kind === 'social') {
+    return DEFAULT_SOCIAL_EMBED_RECT
+  }
+
+  if (normalized.provider === 'spotify' || normalized.kind === 'audio') {
+    return DEFAULT_AUDIO_EMBED_RECT
+  }
+
+  const provider = normalized.provider
+    ? EMBED_PROVIDERS.find((candidate) => candidate.name === normalized.provider)
+    : null
+
+  if (!provider?.aspectRatio) {
+    return DEFAULT_EMBED_RECT
+  }
+
+  const width = DEFAULT_EMBED_RECT.width
+  const embedHeight = Math.round(width / provider.aspectRatio)
+
+  return {
+    width,
+    height: embedHeight + DEFAULT_EMBED_CHROME_HEIGHT
+  }
+}
+
 export async function readImageDimensions(
   file: File
 ): Promise<{ width: number; height: number } | null> {
@@ -238,12 +319,26 @@ export function resolveCanvasPlacementRect(input: {
   canvasPoint?: Point | null
   spreadIndex?: number
   rect?: Partial<Rect>
+  properties?: Record<string, unknown>
 }): Rect {
   const spreadIndex = input.spreadIndex ?? 0
   const offset = spreadIndex * CANVAS_STACK_OFFSET
-  const baseNode = createNode(input.objectKind, input.rect)
-  const width = input.rect?.width ?? baseNode.position.width
-  const height = input.rect?.height ?? baseNode.position.height
+  const baseRect =
+    input.objectKind === 'external-reference'
+      ? {
+          ...getExternalReferenceRect({
+            provider:
+              typeof input.properties?.provider === 'string' ? input.properties.provider : null,
+            kind: typeof input.properties?.kind === 'string' ? input.properties.kind : null,
+            embedUrl:
+              typeof input.properties?.embedUrl === 'string' ? input.properties.embedUrl : null
+          }),
+          ...(input.rect ?? {})
+        }
+      : input.rect
+  const baseNode = createNode(input.objectKind, baseRect)
+  const width = baseRect?.width ?? baseNode.position.width
+  const height = baseRect?.height ?? baseNode.position.height
   const centerX = input.canvasPoint?.x ?? input.viewport.x
   const centerY = input.canvasPoint?.y ?? input.viewport.y
 
@@ -293,7 +388,8 @@ export function createSourceBackedCanvasNode(input: CanvasSourceBackedNodeInput)
     viewport: input.viewport,
     canvasPoint: input.canvasPoint,
     spreadIndex: input.spreadIndex,
-    rect: input.rect
+    rect: input.rect,
+    properties: input.properties
   })
 
   const node = createNode(input.objectKind, rect, {

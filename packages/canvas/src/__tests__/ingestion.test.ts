@@ -7,6 +7,7 @@ import {
   describeExternalReference,
   extractCanvasIngressPayloads,
   getCanvasObjectKindFromSchema,
+  getExternalReferenceRect,
   getMediaRect,
   normalizeExternalReferenceUrl,
   serializeCanvasInternalNodeDragData
@@ -107,6 +108,48 @@ describe('canvas ingestion utilities', () => {
     expect(node.position.height).toBe(220)
     expect(node.position.x).toBe(220)
     expect(node.position.y).toBe(190)
+  })
+
+  it('sizes embeddable external references using shared provider metadata', () => {
+    const youtubeRect = getExternalReferenceRect({
+      provider: 'youtube',
+      kind: 'video',
+      embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+    })
+    const twitterRect = getExternalReferenceRect({
+      provider: 'twitter',
+      kind: 'social',
+      embedUrl: 'https://platform.twitter.com/embed/Tweet.html?id=1606321052308658177'
+    })
+    const genericRect = getExternalReferenceRect({
+      provider: 'generic',
+      kind: 'link',
+      embedUrl: null
+    })
+
+    expect(youtubeRect).toEqual({ width: 420, height: 352 })
+    expect(twitterRect).toEqual({ width: 360, height: 420 })
+    expect(genericRect).toEqual({ width: 360, height: 180 })
+  })
+
+  it('creates source-backed embed nodes with provider-aware default placement rects', () => {
+    const youtubeNode = createSourceBackedCanvasNode({
+      objectKind: 'external-reference',
+      viewport: { x: 400, y: 300, zoom: 1 },
+      title: 'YouTube video',
+      properties: {
+        provider: 'youtube',
+        kind: 'video',
+        embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+      }
+    })
+
+    expect(youtubeNode.position).toMatchObject({
+      width: 420,
+      height: 352,
+      x: 190,
+      y: 124
+    })
   })
 
   it('creates primitive canvas nodes with shape and frame defaults', () => {

@@ -797,6 +797,26 @@ async function setCanvasViewport(page: Page, input: CanvasViewportInput): Promis
   }, input)
 }
 
+async function getCanvasEmbedBounds(
+  page: Page,
+  provider: string
+): Promise<{ width: number; height: number }> {
+  return await page
+    .locator(`[data-canvas-embed-node="true"][data-canvas-embed-provider="${provider}"]`)
+    .evaluate((element) => {
+      const host = element.closest<HTMLElement>('.canvas-node')
+      if (!host) {
+        throw new Error('Canvas node host not found for embed provider')
+      }
+
+      const rect = host.getBoundingClientRect()
+      return {
+        width: Math.round(rect.width),
+        height: Math.round(rect.height)
+      }
+    })
+}
+
 async function createCanvasObjectFromDock(
   page: Page,
   kind: 'page' | 'database' | 'note'
@@ -1374,15 +1394,28 @@ test.describe('Electron canvas shell', () => {
         provider: 'youtube',
         frameSrc: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
         clientX: 320,
-        clientY: 220
+        clientY: 220,
+        minWidth: 400,
+        minHeight: 320
+      },
+      {
+        url: 'https://x.com/storybookjs/status/1606321052308658177',
+        provider: 'twitter',
+        frameSrc: 'https://platform.twitter.com/embed/Tweet.html?id=1606321052308658177',
+        clientX: 540,
+        clientY: 300,
+        minWidth: 340,
+        minHeight: 380
       },
       {
         url: 'https://www.figma.com/file/abc123def/storybook-rich-editor-spec',
         provider: 'figma',
         frameSrc:
           'https://www.figma.com/embed?embed_host=xnet&url=https://www.figma.com/file/abc123def',
-        clientX: 620,
-        clientY: 320
+        clientX: 760,
+        clientY: 380,
+        minWidth: 400,
+        minHeight: 320
       }
     ] as const
 
@@ -1409,6 +1442,10 @@ test.describe('Electron canvas shell', () => {
         drop.frameSrc,
         { timeout: 30_000 }
       )
+
+      const bounds = await getCanvasEmbedBounds(page, drop.provider)
+      expect(bounds.width).toBeGreaterThanOrEqual(drop.minWidth)
+      expect(bounds.height).toBeGreaterThanOrEqual(drop.minHeight)
     }
 
     await page.screenshot({

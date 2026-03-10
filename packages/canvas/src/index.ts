@@ -123,6 +123,7 @@ export {
   parseCanvasInternalNodeDragData,
   normalizeExternalReferenceUrl,
   describeExternalReference,
+  getExternalReferenceRect,
   inferMediaKind,
   getMediaRect,
   readImageDimensions,
