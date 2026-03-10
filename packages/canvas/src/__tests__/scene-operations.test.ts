@@ -1,11 +1,15 @@
 import type { CanvasNode } from '../types'
 import { describe, expect, it } from 'vitest'
 import {
+  createFrameSelectionNode,
   createAlignmentUpdates,
   createDistributionUpdates,
   createLayerShiftUpdates,
   createLockUpdates,
   createTidySelectionUpdates,
+  expandContainerPositionUpdates,
+  getCanvasContainerMemberIds,
+  getCanvasContainerRole,
   getSelectionBounds,
   getSelectionLockState,
   getUnlockedSelection
@@ -124,6 +128,86 @@ describe('scene operations', () => {
     expect(createLayerShiftUpdates(nodes, 'backward')).toEqual([
       { id: 'a', position: { zIndex: 1 } },
       { id: 'b', position: { zIndex: 0 } }
+    ])
+  })
+
+  it('creates a frame container around the current selection', () => {
+    const frame = createFrameSelectionNode([
+      createNode('a', { x: 40, y: 30, width: 100, height: 80, zIndex: 4 }),
+      createNode('b', { x: 220, y: 160, width: 140, height: 120, zIndex: 7 })
+    ])
+
+    expect(frame).not.toBeNull()
+    expect(frame?.type).toBe('group')
+    expect(getCanvasContainerRole(frame!)).toBe('frame')
+    expect(getCanvasContainerMemberIds(frame!)).toEqual(['a', 'b'])
+    expect(frame?.position).toMatchObject({
+      x: -8,
+      y: -18,
+      width: 416,
+      height: 346,
+      zIndex: 3
+    })
+  })
+
+  it('propagates container moves and layer shifts to member nodes', () => {
+    const frame = {
+      id: 'frame-1',
+      type: 'group',
+      position: {
+        x: 80,
+        y: 60,
+        width: 360,
+        height: 240,
+        zIndex: 2
+      },
+      properties: {
+        title: 'Frame',
+        containerRole: 'frame',
+        memberIds: ['page-1', 'page-2']
+      }
+    } satisfies CanvasNode
+
+    const pageOne = createNode('page-1', { x: 120, y: 110, zIndex: 3 })
+    const pageTwo = createNode('page-2', { x: 280, y: 180, zIndex: 4 })
+    const nodesById = new Map([frame, pageOne, pageTwo].map((node) => [node.id, node] as const))
+
+    expect(
+      expandContainerPositionUpdates(nodesById, [
+        {
+          id: 'frame-1',
+          position: {
+            x: 140,
+            y: 100,
+            zIndex: 5
+          }
+        }
+      ])
+    ).toEqual([
+      {
+        id: 'frame-1',
+        position: {
+          x: 140,
+          y: 100,
+          zIndex: 5
+        }
+      },
+      {
+        id: 'page-1',
+        position: {
+          x: 180,
+          y: 150,
+          zIndex: 6
+        }
+      },
+      {
+        id: 'page-2',
+        position: {
+          x: 340,
+          y: 220,
+          zIndex: 7
+        }
+      }
     ])
   })
 })

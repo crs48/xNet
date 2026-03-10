@@ -138,7 +138,7 @@ pnpm --filter @xnetjs/canvas test
 ## Step Checklist
 
 - [x] Convert connectors to durable binding records with stable anchors.
-- [ ] Promote shape/frame/group tools into the Canvas V2 object model.
+- [x] Promote shape/frame/group tools into the Canvas V2 object model.
 - [x] Add lock/unlock behavior for dense-board safety.
 - [x] Add align/distribute/tidy-up operations for multi-object selections.
 - [ ] Add alias and backlink support for source-backed objects.

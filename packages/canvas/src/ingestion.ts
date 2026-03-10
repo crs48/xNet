@@ -5,7 +5,7 @@
  * canvas object creation inputs.
  */
 
-import type { CanvasNode, CanvasObjectKind, Point, Rect } from './types'
+import type { ShapeType, CanvasNode, CanvasObjectKind, Point, Rect } from './types'
 import { DatabaseSchema, ExternalReferenceSchema, MediaAssetSchema, PageSchema } from '@xnetjs/data'
 import { createNode } from './store'
 
@@ -14,6 +14,8 @@ const CANVAS_STACK_OFFSET = 28
 const DEFAULT_MEDIA_RECT = { width: 320, height: 240 }
 const MAX_MEDIA_PREVIEW_WIDTH = 420
 const MAX_MEDIA_PREVIEW_HEIGHT = 320
+const DEFAULT_SHAPE_RECT = { width: 240, height: 160 }
+const DEFAULT_FRAME_RECT = { width: 640, height: 420 }
 
 export type CanvasViewportSnapshot = {
   x: number
@@ -77,6 +79,18 @@ export type CanvasSourceBackedNodeInput = {
   viewport: CanvasViewportSnapshot
   sourceNodeId?: string
   sourceSchemaId?: string
+  title?: string
+  canvasPoint?: Point | null
+  spreadIndex?: number
+  rect?: Partial<Rect>
+  properties?: Record<string, unknown>
+}
+
+export type CanvasPrimitiveObjectKind = Extract<CanvasObjectKind, 'shape' | 'group'>
+
+export type CanvasPrimitiveNodeInput = {
+  objectKind: CanvasPrimitiveObjectKind
+  viewport: CanvasViewportSnapshot
   title?: string
   canvasPoint?: Point | null
   spreadIndex?: number
@@ -499,6 +513,38 @@ export function resolveCanvasPlacementRect(input: {
   }
 }
 
+function getPrimitiveRectDefaults(input: CanvasPrimitiveNodeInput): Partial<Rect> {
+  if (input.objectKind === 'group') {
+    return DEFAULT_FRAME_RECT
+  }
+
+  return {
+    ...DEFAULT_SHAPE_RECT,
+    ...(input.properties?.shapeType === 'arrow' ? { width: 280, height: 120 } : {})
+  }
+}
+
+export function resolveCanvasPrimitivePlacementRect(input: CanvasPrimitiveNodeInput): Rect {
+  const spreadIndex = input.spreadIndex ?? 0
+  const offset = spreadIndex * CANVAS_STACK_OFFSET
+  const baseRect = {
+    ...getPrimitiveRectDefaults(input),
+    ...(input.rect ?? {})
+  }
+  const baseNode = createNode(input.objectKind, baseRect)
+  const width = input.rect?.width ?? baseNode.position.width
+  const height = input.rect?.height ?? baseNode.position.height
+  const centerX = input.canvasPoint?.x ?? input.viewport.x
+  const centerY = input.canvasPoint?.y ?? input.viewport.y
+
+  return {
+    x: Math.round(centerX - width / 2 + offset),
+    y: Math.round(centerY - height / 2 + offset),
+    width,
+    height
+  }
+}
+
 export function createSourceBackedCanvasNode(input: CanvasSourceBackedNodeInput): CanvasNode {
   const rect = resolveCanvasPlacementRect({
     objectKind: input.objectKind,
@@ -522,6 +568,32 @@ export function createSourceBackedCanvasNode(input: CanvasSourceBackedNodeInput)
   }
 
   return node
+}
+
+function getPrimitiveDefaultProperties(input: CanvasPrimitiveNodeInput): Record<string, unknown> {
+  if (input.objectKind === 'group') {
+    return {
+      title: input.title ?? 'Frame',
+      containerRole: 'frame',
+      memberIds: [],
+      memberCount: 0
+    }
+  }
+
+  return {
+    title: input.title ?? 'Rectangle',
+    shapeType: (input.properties?.shapeType as ShapeType | undefined) ?? 'rectangle',
+    label: input.title ?? 'Rectangle'
+  }
+}
+
+export function createCanvasPrimitiveNode(input: CanvasPrimitiveNodeInput): CanvasNode {
+  const rect = resolveCanvasPrimitivePlacementRect(input)
+
+  return createNode(input.objectKind, rect, {
+    ...getPrimitiveDefaultProperties(input),
+    ...(input.properties ?? {})
+  })
 }
 
 function getUriListCandidate(dataTransfer: DataTransfer): string | null {

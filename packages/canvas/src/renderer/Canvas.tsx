@@ -33,12 +33,15 @@ import { useCanvas } from '../hooks/useCanvas'
 import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
+import { CanvasPrimitiveNodeContent } from '../nodes/CanvasPrimitiveNodeContent'
 import {
   createAlignmentUpdates,
   createDistributionUpdates,
+  createFrameSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
   createTidySelectionUpdates,
+  expandContainerPositionUpdates,
   getSelectionBounds,
   getSelectionLockState,
   getUnlockedSelection
@@ -94,6 +97,8 @@ export interface CanvasHandle {
   tidySelection: () => boolean
   /** Move the current selection through z-order */
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
+  /** Wrap the current selection in a frame container */
+  wrapSelectionInFrame: () => boolean
   /** Convert a client-space point to canvas coordinates */
   screenToCanvas: (clientX: number, clientY: number) => Point
 }
@@ -124,7 +129,7 @@ export interface CanvasProps {
   /** Callback when the canvas selection changes */
   onSelectionChange?: (selection: CanvasSelectionSnapshot) => void
   /** Callback when the user triggers a canvas creation shortcut */
-  onCreateObject?: (kind: 'page' | 'database' | 'note') => void
+  onCreateObject?: (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => void
   /** Callback when the user triggers a selection open/peek shortcut */
   onOpenSelection?: (mode: 'peek' | 'focus' | 'split') => void
   /** Callback when the user toggles canvas shortcut help */
@@ -359,7 +364,6 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     selectNode,
     clearSelection,
     updateNodes,
-    updateNodePosition,
     setViewportSize,
     pan,
     zoomAt
@@ -388,11 +392,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
   const applySelectionPositionUpdates = useCallback(
     (updates: Array<{ id: string; position: Partial<CanvasNode['position']> }>): boolean => {
-      if (updates.length === 0) {
+      const expandedUpdates = expandContainerPositionUpdates(canvas.store.getNodesMap(), updates)
+      if (expandedUpdates.length === 0) {
         return false
       }
 
-      canvas.updateNodePositions(updates)
+      canvas.updateNodePositions(expandedUpdates)
       return true
     },
     [canvas]
@@ -439,6 +444,17 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [applySelectionPositionUpdates, getSelectedNodes]
   )
 
+  const handleWrapSelectionInFrame = useCallback((): boolean => {
+    const frameNode = createFrameSelectionNode(getSelectedNodes())
+    if (!frameNode) {
+      return false
+    }
+
+    canvas.addNode(frameNode)
+    selectNode(frameNode.id)
+    return true
+  }, [canvas, getSelectedNodes, selectNode])
+
   // Expose imperative methods via ref
   useImperativeHandle(
     ref,
@@ -456,6 +472,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       tidySelection: () => handleTidySelection(),
       shiftSelectionLayer: (direction: CanvasLayerDirection) =>
         handleShiftSelectionLayer(direction),
+      wrapSelectionInFrame: () => handleWrapSelectionInFrame(),
       screenToCanvas: (clientX: number, clientY: number) => clientToCanvas(clientX, clientY)
     }),
     [
@@ -466,7 +483,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       handleDistributeSelection,
       handleShiftSelectionLayer,
       handleTidySelection,
-      handleToggleSelectionLock
+      handleToggleSelectionLock,
+      handleWrapSelectionInFrame
     ]
   )
 
@@ -720,13 +738,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
           }
         }))
 
-      if (updates.length === 0) {
-        return
-      }
-
-      canvas.updateNodePositions(updates)
+      applySelectionPositionUpdates(updates)
     },
-    [canvas, selectedNodeIds]
+    [applySelectionPositionUpdates, canvas.store, selectedNodeIds]
   )
 
   // Handle keyboard shortcuts
@@ -818,14 +832,19 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         y: dragCumulativeOffset.current.y + delta.y / viewport.zoom
       }
 
-      dragInitialPositions.current.forEach((initialPos, nodeId) => {
-        updateNodePosition(nodeId, {
-          x: initialPos.x + dragCumulativeOffset.current.x,
-          y: initialPos.y + dragCumulativeOffset.current.y
+      const updates = Array.from(dragInitialPositions.current.entries()).map(
+        ([nodeId, initialPos]) => ({
+          id: nodeId,
+          position: {
+            x: initialPos.x + dragCumulativeOffset.current.x,
+            y: initialPos.y + dragCumulativeOffset.current.y
+          }
         })
-      })
+      )
+
+      applySelectionPositionUpdates(updates)
     },
-    [updateNodePosition, viewport.zoom]
+    [applySelectionPositionUpdates, viewport.zoom]
   )
 
   const handleNodeDragEnd = useCallback((_id: string) => {
@@ -911,6 +930,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onToggleSelectionLock: handleToggleSelectionLock,
     onAlignSelection: handleAlignSelection,
     onShiftSelectionLayer: handleShiftSelectionLayer,
+    onWrapSelectionInFrame: handleWrapSelectionInFrame,
     onCreateObject,
     onOpenSelection,
     onToggleShortcutHelp,
@@ -1036,7 +1056,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
               onDoubleClick={handleNodeDoubleClick}
             >
               {/* Only render custom content at full LOD for performance */}
-              {lod === 'full' ? renderNode?.(node, renderContext) : undefined}
+              {lod === 'full'
+                ? (renderNode?.(node, renderContext) ??
+                  (node.type === 'shape' || node.type === 'group' || node.type === 'frame' ? (
+                    <CanvasPrimitiveNodeContent node={node} />
+                  ) : undefined))
+                : undefined}
             </CanvasNodeComponent>
           )
         })}

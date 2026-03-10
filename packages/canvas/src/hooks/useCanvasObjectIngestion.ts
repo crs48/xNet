@@ -5,6 +5,7 @@
 import type {
   CanvasExternalReferenceDescriptor,
   CanvasIngressPayload,
+  CanvasPrimitiveObjectKind,
   CanvasViewportSnapshot
 } from '../ingestion'
 import type { CanvasNode, Point } from '../types'
@@ -14,6 +15,7 @@ import { ExternalReferenceSchema, MediaAssetSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useCallback, useMemo } from 'react'
 import {
+  createCanvasPrimitiveNode,
   createSourceBackedCanvasNode,
   describeExternalReference,
   extractCanvasIngressPayloads,
@@ -35,6 +37,15 @@ export interface PlaceCanvasSourceObjectInput {
   sourceNodeId: string
   sourceSchemaId: string
   title: string
+  canvasPoint?: Point | null
+  spreadIndex?: number
+  rect?: Partial<{ width: number; height: number }>
+  properties?: Record<string, unknown>
+}
+
+export interface PlaceCanvasPrimitiveObjectInput {
+  objectKind: CanvasPrimitiveObjectKind
+  title?: string
   canvasPoint?: Point | null
   spreadIndex?: number
   rect?: Partial<{ width: number; height: number }>
@@ -183,6 +194,34 @@ export function useCanvasObjectIngestion({
       return {
         canvasNodeId: node.id,
         sourceNodeId: input.sourceNodeId
+      }
+    },
+    [doc, getViewportSnapshot]
+  )
+
+  const placePrimitiveObject = useCallback(
+    (input: PlaceCanvasPrimitiveObjectInput): CanvasIngestionResult | null => {
+      const nodes = getNodesMap(doc)
+      if (!doc || !nodes) {
+        return null
+      }
+
+      const node = createCanvasPrimitiveNode({
+        objectKind: input.objectKind,
+        viewport: getViewportSnapshot(),
+        title: input.title,
+        canvasPoint: input.canvasPoint,
+        spreadIndex: input.spreadIndex,
+        rect: input.rect,
+        properties: input.properties
+      })
+
+      doc.transact(() => {
+        nodes.set(node.id, node)
+      })
+
+      return {
+        canvasNodeId: node.id
       }
     },
     [doc, getViewportSnapshot]
@@ -420,6 +459,7 @@ export function useCanvasObjectIngestion({
 
   return {
     placeSourceObject,
+    placePrimitiveObject,
     ingestPayload,
     ingestDataTransfer,
     ingestText

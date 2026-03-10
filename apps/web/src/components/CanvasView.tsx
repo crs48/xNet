@@ -2,7 +2,7 @@
  * Canvas View - Web canvas surface with source-backed drops.
  */
 
-import type { CanvasHandle, CanvasNode } from '@xnetjs/canvas'
+import type { CanvasHandle, CanvasNode, ShapeType } from '@xnetjs/canvas'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
@@ -20,6 +20,32 @@ import { ShareButton } from './ShareButton'
 
 interface CanvasViewProps {
   docId: string
+}
+
+function getShapeLabel(shapeType: ShapeType): string {
+  switch (shapeType) {
+    case 'ellipse':
+      return 'Ellipse'
+    case 'diamond':
+      return 'Diamond'
+    case 'triangle':
+      return 'Triangle'
+    case 'hexagon':
+      return 'Hexagon'
+    case 'star':
+      return 'Star'
+    case 'arrow':
+      return 'Arrow'
+    case 'cylinder':
+      return 'Cylinder'
+    case 'cloud':
+      return 'Cloud'
+    case 'rounded-rectangle':
+      return 'Rounded Rectangle'
+    case 'rectangle':
+    default:
+      return 'Rectangle'
+  }
 }
 
 function getNodeCard(node: CanvasNode, themeMode: 'light' | 'dark'): JSX.Element {
@@ -148,7 +174,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   const canvasRef = useRef<CanvasHandle>(null)
   const [canvasReady, setCanvasReady] = useState(false)
   const [hasNodes, setHasNodes] = useState(false)
-  const { placeSourceObject, ingestDataTransfer } = useCanvasObjectIngestion({
+  const { placeSourceObject, placePrimitiveObject, ingestDataTransfer } = useCanvasObjectIngestion({
     doc,
     blobService,
     getViewportSnapshot: () => canvasRef.current?.getViewportSnapshot() ?? { x: 0, y: 0, zoom: 1 }
@@ -206,6 +232,101 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     })
   }, [create, placeSourceObject])
 
+  const handleCreatePage = useCallback(async () => {
+    const pageNode = await create(PageSchema, { title: 'Untitled Page' })
+    if (!pageNode) {
+      return
+    }
+
+    placeSourceObject({
+      objectKind: 'page',
+      sourceNodeId: pageNode.id,
+      sourceSchemaId: PageSchema._schemaId,
+      title: pageNode.title || 'Untitled Page',
+      properties: {
+        title: pageNode.title || 'Untitled Page'
+      }
+    })
+  }, [create, placeSourceObject])
+
+  const handleCreateDatabase = useCallback(async () => {
+    const databaseNode = await create(DatabaseSchema, { title: 'Untitled Database' })
+    if (!databaseNode) {
+      return
+    }
+
+    placeSourceObject({
+      objectKind: 'database',
+      sourceNodeId: databaseNode.id,
+      sourceSchemaId: DatabaseSchema._schemaId,
+      title: databaseNode.title || 'Untitled Database',
+      properties: {
+        title: databaseNode.title || 'Untitled Database'
+      }
+    })
+  }, [create, placeSourceObject])
+
+  const handleCreateShape = useCallback(
+    (shapeType: ShapeType = 'rectangle'): void => {
+      placePrimitiveObject({
+        objectKind: 'shape',
+        title: getShapeLabel(shapeType),
+        properties: {
+          title: getShapeLabel(shapeType),
+          label: getShapeLabel(shapeType),
+          shapeType
+        }
+      })
+    },
+    [placePrimitiveObject]
+  )
+
+  const handleCreateFrame = useCallback((): void => {
+    placePrimitiveObject({
+      objectKind: 'group',
+      title: 'Frame',
+      rect: {
+        width: 640,
+        height: 420
+      },
+      properties: {
+        title: 'Frame',
+        containerRole: 'frame',
+        memberIds: [],
+        memberCount: 0
+      }
+    })
+  }, [placePrimitiveObject])
+
+  const handleCreateObject = useCallback(
+    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => {
+      if (kind === 'page') {
+        void handleCreatePage()
+        return
+      }
+
+      if (kind === 'database') {
+        void handleCreateDatabase()
+        return
+      }
+
+      if (kind === 'shape') {
+        handleCreateShape()
+        return
+      }
+
+      if (kind === 'frame') {
+        handleCreateFrame()
+        return
+      }
+
+      if (kind === 'note') {
+        void handleCreateNote()
+      }
+    },
+    [handleCreateDatabase, handleCreateFrame, handleCreateNote, handleCreatePage, handleCreateShape]
+  )
+
   const handleSurfaceDrop = useCallback(
     (
       event: React.DragEvent<HTMLDivElement>,
@@ -260,8 +381,8 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   const canvasHint = useMemo(
     () =>
       hasNodes
-        ? 'Drag pages, databases, links, or files directly onto the board.'
-        : 'Drop links, files, pages, or databases anywhere on the board.',
+        ? 'Drag pages, databases, links, files, or frame a cluster directly on the board.'
+        : 'Drop links, files, pages, or databases anywhere on the board. Press R for a rectangle or F for a frame.',
     [hasNodes]
   )
 
@@ -339,8 +460,8 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
             >
               <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Drop a URL for a link card, drag in a page or database from the sidebar, or create a
-                note directly on the board.
+                Drop a URL for a link card, drag in a page or database from the sidebar, or press
+                `R`, `F`, or `N` to build directly on the board.
               </p>
             </div>
           </div>
@@ -360,6 +481,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           showNavigationTools
           navigationToolsPosition="bottom-right"
           navigationToolsShowZoomLabel={false}
+          onCreateObject={handleCreateObject}
           onSurfaceDrop={handleSurfaceDrop}
           onSurfacePaste={handleSurfacePaste}
           renderNode={(node) => {

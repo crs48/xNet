@@ -11,6 +11,7 @@ import type {
   CanvasNode,
   CanvasNodePosition
 } from '../types'
+import { createNode } from '../store'
 
 export type CanvasPositionUpdate = {
   id: string
@@ -20,6 +21,20 @@ export type CanvasPositionUpdate = {
 export type CanvasLockUpdate = {
   id: string
   locked: boolean
+}
+
+export type CanvasContainerRole = 'frame' | 'group'
+
+export interface CreateFrameSelectionNodeOptions {
+  title?: string
+  padding?: number
+}
+
+const DEFAULT_FRAME_PADDING = 48
+const DEFAULT_FRAME_TITLE = 'Frame'
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
 }
 
 function roundPosition(value: number): number {
@@ -67,6 +82,30 @@ export function getSelectionBounds(nodes: CanvasNode[]): CanvasNodePosition | nu
 
 export function getUnlockedSelection(nodes: CanvasNode[]): CanvasNode[] {
   return nodes.filter((node) => !node.locked)
+}
+
+export function getCanvasContainerRole(node: CanvasNode): CanvasContainerRole | null {
+  if (node.type === 'frame') {
+    return 'frame'
+  }
+
+  if (node.type !== 'group') {
+    return null
+  }
+
+  return node.properties.containerRole === 'group' ? 'group' : 'frame'
+}
+
+export function isCanvasContainerNode(node: CanvasNode): boolean {
+  return getCanvasContainerRole(node) !== null
+}
+
+export function getCanvasContainerMemberIds(node: CanvasNode): string[] {
+  if (!isCanvasContainerNode(node)) {
+    return []
+  }
+
+  return isStringArray(node.properties.memberIds) ? node.properties.memberIds : []
 }
 
 export function getSelectionLockState(nodes: CanvasNode[]): {
@@ -258,6 +297,118 @@ export function createLayerShiftUpdates(
       }
     }
   })
+}
+
+export function expandContainerPositionUpdates(
+  nodesById: Map<string, CanvasNode>,
+  updates: CanvasPositionUpdate[]
+): CanvasPositionUpdate[] {
+  if (updates.length === 0) {
+    return []
+  }
+
+  const resolved = new Map<string, CanvasPositionUpdate>(
+    updates.map((update) => [update.id, update] as const)
+  )
+  const queue = [...updates]
+
+  while (queue.length > 0) {
+    const update = queue.shift()
+    if (!update) {
+      continue
+    }
+
+    const containerNode = nodesById.get(update.id)
+    if (!containerNode) {
+      continue
+    }
+
+    const memberIds = getCanvasContainerMemberIds(containerNode)
+    if (memberIds.length === 0) {
+      continue
+    }
+
+    const currentZIndex = containerNode.position.zIndex ?? 0
+    const deltaX =
+      update.position.x !== undefined ? update.position.x - containerNode.position.x : 0
+    const deltaY =
+      update.position.y !== undefined ? update.position.y - containerNode.position.y : 0
+    const deltaZ = update.position.zIndex !== undefined ? update.position.zIndex - currentZIndex : 0
+
+    if (deltaX === 0 && deltaY === 0 && deltaZ === 0) {
+      continue
+    }
+
+    for (const memberId of memberIds) {
+      if (resolved.has(memberId)) {
+        continue
+      }
+
+      const memberNode = nodesById.get(memberId)
+      if (!memberNode) {
+        continue
+      }
+
+      const position: Partial<CanvasNodePosition> = {}
+
+      if (update.position.x !== undefined) {
+        position.x = roundPosition(memberNode.position.x + deltaX)
+      }
+
+      if (update.position.y !== undefined) {
+        position.y = roundPosition(memberNode.position.y + deltaY)
+      }
+
+      if (update.position.zIndex !== undefined) {
+        position.zIndex = Math.max(0, (memberNode.position.zIndex ?? 0) + deltaZ)
+      }
+
+      const memberUpdate = {
+        id: memberId,
+        position
+      }
+
+      resolved.set(memberId, memberUpdate)
+
+      if (isCanvasContainerNode(memberNode)) {
+        queue.push(memberUpdate)
+      }
+    }
+  }
+
+  return Array.from(resolved.values())
+}
+
+export function createFrameSelectionNode(
+  nodes: CanvasNode[],
+  options: CreateFrameSelectionNodeOptions = {}
+): CanvasNode | null {
+  const bounds = getSelectionBounds(nodes)
+  if (!bounds) {
+    return null
+  }
+
+  const padding = options.padding ?? DEFAULT_FRAME_PADDING
+  const memberIds = Array.from(new Set(nodes.map((node) => node.id)))
+  const minZIndex = Math.min(...nodes.map((node) => node.position.zIndex ?? 0))
+  const title = options.title?.trim() || DEFAULT_FRAME_TITLE
+
+  return createNode(
+    'group',
+    {
+      x: roundPosition(bounds.x - padding),
+      y: roundPosition(bounds.y - padding),
+      width: roundPosition(bounds.width + padding * 2),
+      height: roundPosition(bounds.height + padding * 2),
+      zIndex: Math.max(0, minZIndex - 1)
+    },
+    {
+      title,
+      containerRole: 'frame',
+      memberIds,
+      memberCount: memberIds.length
+    }
+  )
 }
 
 export function createAnchorSummary(nodes: CanvasNode[]): {

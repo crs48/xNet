@@ -8,8 +8,9 @@
  * - Ctrl/Cmd + 1: Fit to content
  * - Arrow keys: Pan viewport or nudge selection
  * - Tab / Shift+Tab: Step selection
- * - P / D / N: Create page, database, note
+ * - P / D / N / R / F: Create page, database, note, rectangle, frame
  * - Enter / Alt+Enter / Ctrl+Enter: Peek, split, or open selection
+ * - Ctrl/Cmd + Shift + F: Wrap the selection in a frame
  * - ?: Toggle shortcut help
  */
 
@@ -21,7 +22,7 @@ import { Viewport } from '../spatial/index'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type CanvasCreationShortcut = 'page' | 'database' | 'note'
+export type CanvasCreationShortcut = 'page' | 'database' | 'note' | 'shape' | 'frame'
 
 export type CanvasOpenShortcutMode = 'peek' | 'focus' | 'split'
 
@@ -52,6 +53,8 @@ export interface UseCanvasKeyboardOptions {
   ) => void
   /** Callback for layer ordering on the current selection */
   onShiftSelectionLayer?: (direction: CanvasLayerDirection) => void
+  /** Callback for wrapping the current selection in a frame container */
+  onWrapSelectionInFrame?: () => void
   /** Callback for single-key object creation */
   onCreateObject?: (kind: CanvasCreationShortcut) => void
   /** Callback for peek/open actions on the current selection */
@@ -89,6 +92,7 @@ export function useCanvasKeyboard({
   onToggleSelectionLock,
   onAlignSelection,
   onShiftSelectionLayer,
+  onWrapSelectionInFrame,
   onCreateObject,
   onOpenSelection,
   onToggleShortcutHelp,
@@ -188,6 +192,12 @@ export function useCanvasKeyboard({
           return
         }
 
+        if (normalizedKey === 'f') {
+          e.preventDefault()
+          onWrapSelectionInFrame?.()
+          return
+        }
+
         if (e.key === 'ArrowLeft') {
           e.preventDefault()
           onAlignSelection?.('left')
@@ -229,6 +239,18 @@ export function useCanvasKeyboard({
         if (normalizedKey === 'n') {
           e.preventDefault()
           onCreateObject?.('note')
+          return
+        }
+
+        if (normalizedKey === 'r') {
+          e.preventDefault()
+          onCreateObject?.('shape')
+          return
+        }
+
+        if (normalizedKey === 'f') {
+          e.preventDefault()
+          onCreateObject?.('frame')
           return
         }
       }
@@ -330,6 +352,7 @@ export function useCanvasKeyboard({
       onStepSelection,
       onToggleSelectionLock,
       onToggleShortcutHelp,
+      onWrapSelectionInFrame,
       onViewportChange,
       panAmount,
       selectedNodeCount,

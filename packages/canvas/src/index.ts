@@ -54,14 +54,24 @@ export { DEFAULT_CANVAS_CONFIG } from './types'
 export {
   createAlignmentUpdates,
   createDistributionUpdates,
+  createFrameSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
   createTidySelectionUpdates,
+  expandContainerPositionUpdates,
+  getCanvasContainerMemberIds,
+  getCanvasContainerRole,
   getSelectionBounds,
   getSelectionLockState,
+  isCanvasContainerNode,
   getUnlockedSelection
 } from './selection/scene-operations'
-export type { CanvasLockUpdate, CanvasPositionUpdate } from './selection/scene-operations'
+export type {
+  CanvasContainerRole,
+  CanvasLockUpdate,
+  CanvasPositionUpdate,
+  CreateFrameSelectionNodeOptions
+} from './selection/scene-operations'
 
 export {
   CANVAS_INTERNAL_NODE_MIME,
@@ -74,6 +84,8 @@ export {
   readImageDimensions,
   getCanvasObjectKindFromSchema,
   resolveCanvasPlacementRect,
+  resolveCanvasPrimitivePlacementRect,
+  createCanvasPrimitiveNode,
   createSourceBackedCanvasNode,
   extractCanvasIngressPayloads
 } from './ingestion'
@@ -85,7 +97,9 @@ export type {
   CanvasExternalReferenceKind,
   CanvasExternalReferenceDescriptor,
   CanvasMediaKind,
-  CanvasSourceBackedNodeInput
+  CanvasSourceBackedNodeInput,
+  CanvasPrimitiveObjectKind,
+  CanvasPrimitiveNodeInput
 } from './ingestion'
 
 // Rendering layers
@@ -271,6 +285,7 @@ export type { UseCanvasKeyboardOptions } from './hooks/useCanvasKeyboard'
 export { useCanvasObjectIngestion } from './hooks/useCanvasObjectIngestion'
 export type {
   UseCanvasObjectIngestionOptions,
+  PlaceCanvasPrimitiveObjectInput,
   PlaceCanvasSourceObjectInput,
   CanvasIngestionResult
 } from './hooks/useCanvasObjectIngestion'

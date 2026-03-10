@@ -140,7 +140,8 @@ function createCanvasMockBase() {
     store: {
       getBounds: vi.fn(() => ({ x: 50, y: 20, width: 200, height: 120 })),
       getVisibleNodes: vi.fn(() => []),
-      getNode: vi.fn()
+      getNode: vi.fn(),
+      getNodesMap: vi.fn(() => new Map())
     }
   }
 }
@@ -261,6 +262,41 @@ describe('Canvas navigation shell', () => {
         viewportZoom: 1.25
       })
     )
+  })
+
+  it('renders built-in primitive content for shape and frame nodes', () => {
+    const nodes = [
+      {
+        id: 'shape-1',
+        type: 'shape',
+        position: { x: 20, y: 40, width: 240, height: 160 },
+        properties: { title: 'Rectangle', label: 'Rectangle', shapeType: 'rectangle' }
+      },
+      {
+        id: 'frame-1',
+        type: 'group',
+        position: { x: 320, y: 80, width: 420, height: 280 },
+        properties: { title: 'Frame', containerRole: 'frame', memberIds: ['shape-1'] }
+      }
+    ]
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = nodes
+    canvasMock.store.getVisibleNodes = vi.fn(() => nodes)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    expect(
+      document.querySelector(
+        '[data-canvas-primitive-node="true"][data-canvas-primitive-kind="shape"]'
+      )
+    ).toBeTruthy()
+    expect(
+      document.querySelector(
+        '[data-canvas-primitive-node="true"][data-canvas-container-role="frame"]'
+      )
+    ).toBeTruthy()
   })
 
   it('keeps dense scenes bounded to visible nodes while retaining minimap diagnostics', () => {
@@ -387,12 +423,16 @@ describe('Canvas navigation shell', () => {
 
     fireEvent.keyDown(window, { key: 'Tab' })
     fireEvent.keyDown(window, { key: 'P' })
+    fireEvent.keyDown(window, { key: 'R' })
+    fireEvent.keyDown(window, { key: 'F' })
     fireEvent.keyDown(window, { key: '/', shiftKey: true })
     fireEvent.keyDown(window, { key: 'Enter', altKey: true })
     fireEvent.keyDown(window, { key: 'Enter', metaKey: true })
 
     expect(canvasMock.selectNode).toHaveBeenCalledWith('page-2')
     expect(onCreateObject).toHaveBeenCalledWith('page')
+    expect(onCreateObject).toHaveBeenCalledWith('shape')
+    expect(onCreateObject).toHaveBeenCalledWith('frame')
     expect(onToggleShortcutHelp).toHaveBeenCalledOnce()
     expect(onOpenSelection).toHaveBeenNthCalledWith(1, 'split')
     expect(onOpenSelection).toHaveBeenNthCalledWith(2, 'focus')
@@ -451,6 +491,54 @@ describe('Canvas navigation shell', () => {
       { id: 'page-1', position: { zIndex: 2 } },
       { id: 'page-2', position: { zIndex: 4 } }
     ])
+  })
+
+  it('wraps the current selection in a frame with the keyboard shortcut', () => {
+    const leftNode = {
+      id: 'page-1',
+      type: 'page',
+      position: { x: 20, y: 40, width: 120, height: 80, zIndex: 1 },
+      properties: { title: 'Canvas Page' }
+    }
+    const rightNode = {
+      id: 'page-2',
+      type: 'page',
+      position: { x: 220, y: 140, width: 160, height: 120, zIndex: 3 },
+      properties: { title: 'Canvas Page 2' }
+    }
+    const nodesById = new Map([
+      [leftNode.id, leftNode],
+      [rightNode.id, rightNode]
+    ])
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = [leftNode, rightNode]
+    canvasMock.selectedNodeIds = new Set(['page-1', 'page-2'])
+    canvasMock.store.getVisibleNodes = vi.fn(() => [leftNode, rightNode])
+    canvasMock.store.getNode = vi.fn((nodeId: string) => nodesById.get(nodeId))
+    canvasMock.store.getNodesMap = vi.fn(() => nodesById)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    surface?.focus()
+
+    fireEvent.keyDown(window, { key: 'F', metaKey: true, shiftKey: true })
+
+    expect(canvasMock.addNode).toHaveBeenCalledTimes(1)
+    const [frameNode] = canvasMock.addNode.mock.calls[0] as [
+      {
+        id: string
+        type: string
+        properties: { containerRole?: string; memberIds?: string[] }
+      }
+    ]
+
+    expect(frameNode.type).toBe('group')
+    expect(frameNode.properties.containerRole).toBe('frame')
+    expect(frameNode.properties.memberIds).toEqual(['page-1', 'page-2'])
+    expect(canvasMock.selectNode).toHaveBeenCalledWith(frameNode.id)
   })
 
   it('nudges the current selection instead of panning when arrow shortcuts are used', () => {

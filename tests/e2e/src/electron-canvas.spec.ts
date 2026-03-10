@@ -623,25 +623,34 @@ async function measureCanvasFrameBudget(
   }, stepCount)
 }
 
-async function selectCanvasNode(page: Page, selector: string, index = 0): Promise<void> {
+async function selectCanvasNode(
+  page: Page,
+  selector: string,
+  index = 0,
+  additive = false
+): Promise<void> {
   const locator = page.locator(selector).nth(index)
   await expect(locator).toBeVisible({ timeout: 30_000 })
-  await locator.evaluate((element: HTMLElement) => {
-    const rect = element.getBoundingClientRect()
-    const clientX = rect.left + Math.min(40, rect.width / 2)
-    const clientY = rect.top + Math.min(80, rect.height / 2)
-    const eventInit = {
-      bubbles: true,
-      cancelable: true,
-      button: 0,
-      clientX,
-      clientY
-    }
+  await locator.evaluate(
+    (element: HTMLElement, eventOptions: { additive: boolean }) => {
+      const rect = element.getBoundingClientRect()
+      const clientX = rect.left + Math.min(40, rect.width / 2)
+      const clientY = rect.top + Math.min(80, rect.height / 2)
+      const eventInit = {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX,
+        clientY,
+        shiftKey: eventOptions.additive
+      }
 
-    element.dispatchEvent(new MouseEvent('mousedown', eventInit))
-    element.dispatchEvent(new MouseEvent('mouseup', eventInit))
-    element.dispatchEvent(new MouseEvent('click', eventInit))
-  })
+      element.dispatchEvent(new MouseEvent('mousedown', eventInit))
+      element.dispatchEvent(new MouseEvent('mouseup', eventInit))
+      element.dispatchEvent(new MouseEvent('click', eventInit))
+    },
+    { additive }
+  )
 }
 
 async function getCanvasNodeCount(page: Page, type: string): Promise<number> {
@@ -847,6 +856,59 @@ test.describe('Electron canvas shell', () => {
 
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-shell.png`,
+      fullPage: true
+    })
+  })
+
+  test('creates native shapes and frames and can frame selections in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+    await surface.click({
+      position: { x: 180, y: 220 },
+      force: true
+    })
+
+    const shapeCountBefore = await getCanvasNodeCount(page, 'shape')
+    await page.keyboard.press('R')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'shape'))
+      .toBe(shapeCountBefore + 1)
+    await expect(
+      page.locator('[data-canvas-primitive-node="true"][data-canvas-primitive-kind="shape"]')
+    ).toHaveCount(shapeCountBefore + 1)
+
+    await page.keyboard.press('R')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'shape'))
+      .toBe(shapeCountBefore + 2)
+
+    const frameCountBefore = await getCanvasNodeCount(page, 'group')
+    await page.keyboard.press('F')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'group'))
+      .toBe(frameCountBefore + 1)
+
+    await page.keyboard.press(COMMAND_PALETTE_SHORTCUT)
+    const commandInput = page.getByPlaceholder('Type a command or search...')
+    await expect(commandInput).toBeVisible({ timeout: 10_000 })
+    await commandInput.fill('Create Frame')
+    await page.keyboard.press('Enter')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'group'))
+      .toBe(frameCountBefore + 2)
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="shape"]', shapeCountBefore)
+    await selectCanvasNode(page, '.canvas-node[data-node-type="shape"]', shapeCountBefore + 1, true)
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+Shift+F' : 'Control+Shift+F')
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'group'))
+      .toBe(frameCountBefore + 3)
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-primitives.png`,
       fullPage: true
     })
   })

@@ -2,6 +2,7 @@ import { DatabaseSchema, PageSchema } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import {
   CANVAS_INTERNAL_NODE_MIME,
+  createCanvasPrimitiveNode,
   createSourceBackedCanvasNode,
   describeExternalReference,
   extractCanvasIngressPayloads,
@@ -83,6 +84,46 @@ describe('canvas ingestion utilities', () => {
     expect(node.position.height).toBe(220)
     expect(node.position.x).toBe(220)
     expect(node.position.y).toBe(190)
+  })
+
+  it('creates primitive canvas nodes with shape and frame defaults', () => {
+    const shapeNode = createCanvasPrimitiveNode({
+      objectKind: 'shape',
+      viewport: { x: 400, y: 300, zoom: 1 },
+      title: 'Rectangle'
+    })
+    const frameNode = createCanvasPrimitiveNode({
+      objectKind: 'group',
+      viewport: { x: 400, y: 300, zoom: 1 },
+      title: 'Frame'
+    })
+
+    expect(shapeNode.type).toBe('shape')
+    expect(shapeNode.position).toMatchObject({
+      width: 240,
+      height: 160,
+      x: 280,
+      y: 220
+    })
+    expect(shapeNode.properties).toMatchObject({
+      title: 'Rectangle',
+      label: 'Rectangle',
+      shapeType: 'rectangle'
+    })
+
+    expect(frameNode.type).toBe('group')
+    expect(frameNode.position).toMatchObject({
+      width: 640,
+      height: 420,
+      x: 80,
+      y: 90
+    })
+    expect(frameNode.properties).toMatchObject({
+      title: 'Frame',
+      containerRole: 'frame',
+      memberIds: [],
+      memberCount: 0
+    })
   })
 
   it('maps schemas and media sizing to canvas primitives', () => {

@@ -410,6 +410,45 @@ export function App(): React.ReactElement {
         execute: () => handleCreateCanvasNote()
       },
       {
+        id: 'create-rectangle',
+        name: 'Create Rectangle',
+        description: 'Create a canvas-native rectangle on the current board',
+        icon: 'square',
+        shortcut: 'R',
+        group: 'Canvas',
+        keywords: ['shape', 'rectangle', 'canvas', 'create'],
+        when: () => isCanvasInteractiveShell,
+        execute: () => {
+          canvasViewRef.current?.createShape('rectangle')
+        }
+      },
+      {
+        id: 'create-frame',
+        name: 'Create Frame',
+        description: 'Create an empty frame container on the current board',
+        icon: 'layout',
+        shortcut: 'F',
+        group: 'Canvas',
+        keywords: ['frame', 'group', 'canvas', 'create'],
+        when: () => isCanvasInteractiveShell,
+        execute: () => {
+          canvasViewRef.current?.createFrame()
+        }
+      },
+      {
+        id: 'frame-selection',
+        name: 'Frame Selection',
+        description: 'Wrap the selected canvas objects in a frame container',
+        icon: 'layout',
+        shortcut: 'Mod+Shift+F',
+        group: 'Canvas',
+        keywords: ['frame', 'group', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
+        execute: () => {
+          canvasViewRef.current?.wrapSelectionInFrame()
+        }
+      },
+      {
         id: 'canvas-peek-selection',
         name: 'Peek Selected Object',
         description:

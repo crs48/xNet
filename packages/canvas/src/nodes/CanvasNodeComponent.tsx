@@ -7,6 +7,7 @@
 
 import type { CanvasNode, ResizeHandle, Point } from '../types'
 import React, { useCallback, useRef, useEffect, memo } from 'react'
+import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
 /**
  * Level of Detail for node rendering
@@ -247,6 +248,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   const isDragging = useRef(false)
   const dragStart = useRef<Point>({ x: 0, y: 0 })
   const mountedRef = useRef(true)
+  const theme = useCanvasThemeTokens()
 
   // Track mounted state for cleanup of window listeners
   useEffect(() => {
@@ -261,6 +263,14 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   // Determine border color based on presence
   const hasRemotePresence = remoteUsers && remoteUsers.length > 0
   const presenceColor = hasRemotePresence ? remoteUsers[0].color : undefined
+  const isPrimitiveShell = node.type === 'shape' || node.type === 'group' || node.type === 'frame'
+  const defaultBorder = `1px solid ${theme.panelBorder}`
+  const selectionBorder = '2px solid #3b82f6'
+  const remoteBorder = hasRemotePresence ? `2px solid ${presenceColor}` : defaultBorder
+  const neutralBorder = isPrimitiveShell ? '1px solid transparent' : defaultBorder
+  const activeBorder = selected ? selectionBorder : remoteBorder
+  const inactiveBorder = hasRemotePresence ? remoteBorder : neutralBorder
+  const panelShadow = theme.panelShadow
 
   // Handle click for selection (used by all LOD levels)
   const handleClick = useCallback(
@@ -386,12 +396,8 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           borderRadius: 4,
           pointerEvents: 'auto',
           cursor: 'pointer',
-          border: selected
-            ? '2px solid #0066ff'
-            : hasRemotePresence
-              ? `2px solid ${presenceColor}`
-              : '1px solid #e0e0e0',
-          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined
+          border: selected ? selectionBorder : hasRemotePresence ? remoteBorder : defaultBorder,
+          boxShadow: selected ? '0 0 0 2px rgba(59,130,246,0.2)' : undefined
         }}
         onClick={handleClick}
         data-node-id={node.id}
@@ -413,18 +419,15 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           top: position.y,
           width: position.width,
           height: position.height,
-          backgroundColor: '#fff',
-          border: selected
-            ? '2px solid #0066ff'
-            : hasRemotePresence
-              ? `2px solid ${presenceColor}`
-              : '1px solid #e0e0e0',
+          backgroundColor: theme.panelBackground,
+          color: theme.panelText,
+          border: selected ? selectionBorder : hasRemotePresence ? remoteBorder : defaultBorder,
           borderRadius: 4,
           padding: 4,
           overflow: 'hidden',
           pointerEvents: 'auto',
           cursor: 'pointer',
-          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined
+          boxShadow: selected ? '0 0 0 2px rgba(59,130,246,0.2)' : panelShadow
         }}
         onClick={handleClick}
         data-node-id={node.id}
@@ -458,18 +461,15 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           top: position.y,
           width: position.width,
           height: position.height,
-          backgroundColor: '#fff',
-          border: selected
-            ? '2px solid #0066ff'
-            : hasRemotePresence
-              ? `2px solid ${presenceColor}`
-              : '1px solid #e0e0e0',
+          backgroundColor: theme.panelBackground,
+          color: theme.panelText,
+          border: selected ? selectionBorder : hasRemotePresence ? remoteBorder : defaultBorder,
           borderRadius: 6,
           padding: 8,
           overflow: 'hidden',
           pointerEvents: 'auto',
           cursor: 'pointer',
-          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined,
+          boxShadow: selected ? '0 0 0 2px rgba(59,130,246,0.2)' : panelShadow,
           display: 'flex',
           alignItems: 'center',
           gap: 6
@@ -506,18 +506,17 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
     height: position.height,
     transform: position.rotation ? `rotate(${position.rotation}deg)` : undefined,
     zIndex: position.zIndex ?? 0,
-    backgroundColor: '#fff',
-    border: selected
-      ? '2px solid #0066ff'
-      : hasRemotePresence
-        ? `2px solid ${presenceColor}`
-        : '1px solid #e0e0e0',
+    backgroundColor: isPrimitiveShell ? 'transparent' : theme.panelBackground,
+    color: theme.panelText,
+    border: selected ? activeBorder : inactiveBorder,
     borderRadius: 8,
     boxShadow: selected
-      ? '0 0 0 2px rgba(0,102,255,0.2)'
+      ? '0 0 0 2px rgba(59,130,246,0.2)'
       : hasRemotePresence
         ? `0 0 0 2px ${presenceColor}33`
-        : '0 1px 3px rgba(0,0,0,0.1)',
+        : isPrimitiveShell
+          ? 'none'
+          : panelShadow,
     cursor: node.locked ? 'default' : 'move',
     userSelect: 'none',
     overflow: 'visible',

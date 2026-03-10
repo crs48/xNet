@@ -10,7 +10,8 @@ import type {
   CanvasNode,
   CanvasNodeRenderContext,
   CanvasSelectionSnapshot,
-  Rect
+  Rect,
+  ShapeType
 } from '@xnetjs/canvas'
 import {
   Canvas,
@@ -79,7 +80,14 @@ export type CanvasViewCommandState = {
   selectedNodeId: string | null
   selectedSourceId: string | null
   selectedSourceType: Exclude<LinkedDocType, 'canvas'> | null
-  selectedDisplayType: LinkedDocType | 'note' | 'external-reference' | 'media' | null
+  selectedDisplayType:
+    | LinkedDocType
+    | 'note'
+    | 'external-reference'
+    | 'media'
+    | 'shape'
+    | 'frame'
+    | null
   selectedTitle: string | null
   selectionAllLocked: boolean
   selectionAnyLocked: boolean
@@ -99,6 +107,9 @@ export type CanvasViewHandle = {
   distributeSelection: (axis: CanvasDistributionAxis) => boolean
   tidySelection: () => boolean
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
+  createShape: (shapeType?: ShapeType) => boolean
+  createFrame: () => boolean
+  wrapSelectionInFrame: () => boolean
   toggleShortcutHelp: (open?: boolean) => void
 }
 
@@ -114,7 +125,15 @@ function getNodeRect(node: CanvasNode): Rect {
 function getCanvasViewDisplayType(
   node: CanvasNode,
   document?: LinkedDocumentItem
-): LinkedDocType | 'note' | 'external-reference' | 'media' {
+): LinkedDocType | 'note' | 'external-reference' | 'media' | 'shape' | 'frame' {
+  if (node.type === 'shape') {
+    return 'shape'
+  }
+
+  if (node.type === 'group' || node.type === 'frame') {
+    return 'frame'
+  }
+
   if (node.type === 'external-reference' || node.type === 'media') {
     return node.type
   }
@@ -122,8 +141,34 @@ function getCanvasViewDisplayType(
   return getCanvasShellDisplayType(node, document)
 }
 
+function getShapeLabel(shapeType: ShapeType): string {
+  switch (shapeType) {
+    case 'ellipse':
+      return 'Ellipse'
+    case 'diamond':
+      return 'Diamond'
+    case 'triangle':
+      return 'Triangle'
+    case 'hexagon':
+      return 'Hexagon'
+    case 'star':
+      return 'Star'
+    case 'arrow':
+      return 'Arrow'
+    case 'cylinder':
+      return 'Cylinder'
+    case 'cloud':
+      return 'Cloud'
+    case 'rounded-rectangle':
+      return 'Rounded Rectangle'
+    case 'rectangle':
+    default:
+      return 'Rectangle'
+  }
+}
+
 function isPeekableCanvasDisplayType(
-  displayType: LinkedDocType | 'note' | 'external-reference' | 'media'
+  displayType: LinkedDocType | 'note' | 'external-reference' | 'media' | 'shape' | 'frame'
 ): displayType is PeekableCanvasDisplayType {
   return displayType === 'page' || displayType === 'database' || displayType === 'note'
 }
@@ -305,7 +350,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     () => new Map(documents.map((entry) => [entry.id, entry])),
     [documents]
   )
-  const { placeSourceObject, ingestDataTransfer } = useCanvasObjectIngestion({
+  const { placeSourceObject, placePrimitiveObject, ingestDataTransfer } = useCanvasObjectIngestion({
     doc,
     blobService,
     getViewportSnapshot: () =>
@@ -688,8 +733,48 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return true
   }, [closePeekSurface, peekedCanvasObject, shortcutHelpOpen])
 
+  const createShape = useCallback(
+    (shapeType: ShapeType = 'rectangle'): boolean => {
+      return Boolean(
+        placePrimitiveObject({
+          objectKind: 'shape',
+          title: getShapeLabel(shapeType),
+          properties: {
+            title: getShapeLabel(shapeType),
+            label: getShapeLabel(shapeType),
+            shapeType
+          }
+        })
+      )
+    },
+    [placePrimitiveObject]
+  )
+
+  const createFrame = useCallback((): boolean => {
+    return Boolean(
+      placePrimitiveObject({
+        objectKind: 'group',
+        title: 'Frame',
+        rect: {
+          width: 640,
+          height: 420
+        },
+        properties: {
+          title: 'Frame',
+          containerRole: 'frame',
+          memberIds: [],
+          memberCount: 0
+        }
+      })
+    )
+  }, [placePrimitiveObject])
+
+  const wrapSelectionInFrame = useCallback((): boolean => {
+    return canvasRef.current?.wrapSelectionInFrame() ?? false
+  }, [])
+
   const handleCreateObject = useCallback(
-    (kind: 'page' | 'database' | 'note') => {
+    (kind: 'page' | 'database' | 'note' | 'shape' | 'frame') => {
       if (kind === 'page') {
         onCreatePage?.()
         return
@@ -700,9 +785,19 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         return
       }
 
+      if (kind === 'shape') {
+        createShape()
+        return
+      }
+
+      if (kind === 'frame') {
+        createFrame()
+        return
+      }
+
       onCreateNote?.()
     },
-    [onCreateDatabase, onCreateNote, onCreatePage]
+    [createFrame, createShape, onCreateDatabase, onCreateNote, onCreatePage]
   )
 
   useEffect(() => {
@@ -739,11 +834,16 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       distributeSelection,
       tidySelection,
       shiftSelectionLayer,
+      createShape,
+      createFrame,
+      wrapSelectionInFrame,
       toggleShortcutHelp
     }),
     [
       alignSelection,
       clearCanvasSelection,
+      createFrame,
+      createShape,
       distributeSelection,
       fitSelection,
       focusLinkedDocument,
@@ -752,7 +852,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       shiftSelectionLayer,
       tidySelection,
       toggleSelectionLock,
-      toggleShortcutHelp
+      toggleShortcutHelp,
+      wrapSelectionInFrame
     ]
   )
 
@@ -803,7 +904,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                           ? 'Link'
                           : selectedCanvasObject.displayType === 'media'
                             ? 'Media'
-                            : 'Page'
+                            : selectedCanvasObject.displayType === 'shape'
+                              ? 'Shape'
+                              : selectedCanvasObject.displayType === 'frame'
+                                ? 'Frame'
+                                : 'Page'
                   } · ${selectedCanvasObject.title}`
                 : `${selection.nodeIds.length} selected`}
             </span>
@@ -819,12 +924,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                   data-canvas-selection-action="peek"
                 >
                   <Eye size={12} />
-                  {selectedCanvasObject.displayType === 'database'
+                  {selectedCanvasObject.displayType === 'page' ||
+                  selectedCanvasObject.displayType === 'database' ||
+                  selectedCanvasObject.displayType === 'note'
                     ? 'Peek'
-                    : selectedCanvasObject.displayType === 'external-reference' ||
-                        selectedCanvasObject.displayType === 'media'
-                      ? 'Center'
-                      : 'Peek'}
+                    : 'Center'}
                   <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
                     Enter
                   </span>
@@ -995,12 +1099,14 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             <div className="mt-4 grid gap-2 text-sm text-foreground">
               {[
                 ['P / D / N', 'Create page, database, or note'],
+                ['R / F', 'Create a rectangle or an empty frame'],
                 ['Tab', 'Step through canvas objects'],
                 ['Arrow keys', 'Pan the board or nudge the selection'],
                 ['Enter', 'Peek or edit the selected object'],
                 ['Alt+Enter', 'Open the selected database beside the canvas'],
                 ['Mod+Enter', 'Open the focused page or database view'],
                 ['Mod+Shift+L', 'Lock or unlock the current selection'],
+                ['Mod+Shift+F', 'Wrap the selection in a frame'],
                 ['Mod+Shift+Arrow', 'Align the selection to one edge'],
                 ['[ / ]', 'Send the selection backward or forward'],
                 ['Mod+Shift+P', 'Open the command palette'],
@@ -1100,8 +1206,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           >
             <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create from the bottom dock, double-click any linked card to open it, and use the
-              Canvas action to zoom back out.
+              Create from the dock or keyboard, frame a cluster with `Mod+Shift+F`, and double-click
+              linked content to open it.
             </p>
           </div>
         </div>

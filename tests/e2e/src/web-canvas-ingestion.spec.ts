@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test'
 import { setupTestAuth } from '../helpers/test-auth'
 
+const FRAME_SELECTION_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+F' : 'Control+Shift+F'
+
 async function advanceOnboarding(page: import('@playwright/test').Page): Promise<void> {
   for (let index = 0; index < 4; index += 1) {
     const start = page.getByRole('button', { name: /get started with/i })
@@ -194,6 +196,36 @@ async function getCanvasThemeDiagnostics(page: import('@playwright/test').Page):
   })
 }
 
+async function selectCanvasNode(
+  page: import('@playwright/test').Page,
+  selector: string,
+  index = 0,
+  additive = false
+): Promise<void> {
+  const locator = page.locator(selector).nth(index)
+  await expect(locator).toBeVisible({ timeout: 30_000 })
+  await locator.evaluate(
+    (element: HTMLElement, eventOptions: { additive: boolean }) => {
+      const rect = element.getBoundingClientRect()
+      const clientX = rect.left + Math.min(40, rect.width / 2)
+      const clientY = rect.top + Math.min(80, rect.height / 2)
+      const eventInit = {
+        bubbles: true,
+        cancelable: true,
+        button: 0,
+        clientX,
+        clientY,
+        shiftKey: eventOptions.additive
+      }
+
+      element.dispatchEvent(new MouseEvent('mousedown', eventInit))
+      element.dispatchEvent(new MouseEvent('mouseup', eventInit))
+      element.dispatchEvent(new MouseEvent('click', eventInit))
+    },
+    { additive }
+  )
+}
+
 test.describe('Web canvas ingestion', () => {
   test('adapts canvas chrome across light and dark themes on the web', async ({ page }) => {
     await page.addInitScript(() => {
@@ -311,6 +343,55 @@ test.describe('Web canvas ingestion', () => {
 
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-ingestion.png',
+      fullPage: true
+    })
+  })
+
+  test('creates native rectangle and frame objects from canvas shortcuts on the web', async ({
+    page
+  }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    await surface.click({
+      position: { x: 180, y: 220 },
+      force: true
+    })
+
+    await page.keyboard.press('R')
+    await expect(page.locator('.canvas-node[data-node-type="shape"]')).toHaveCount(1, {
+      timeout: 30_000
+    })
+    await expect(
+      page.locator('[data-canvas-primitive-node="true"][data-canvas-primitive-kind="shape"]')
+    ).toHaveCount(1)
+
+    await page.keyboard.press('F')
+    await expect(page.locator('.canvas-node[data-node-type="group"]')).toHaveCount(1, {
+      timeout: 30_000
+    })
+    await expect(
+      page.locator('[data-canvas-primitive-node="true"][data-canvas-container-role="frame"]')
+    ).toHaveCount(1)
+
+    await page.keyboard.press('R')
+    await expect(page.locator('.canvas-node[data-node-type="shape"]')).toHaveCount(2, {
+      timeout: 30_000
+    })
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="shape"]', 0)
+    await selectCanvasNode(page, '.canvas-node[data-node-type="shape"]', 1, true)
+    await page.keyboard.press(FRAME_SELECTION_SHORTCUT)
+    await expect(page.locator('.canvas-node[data-node-type="group"]')).toHaveCount(2, {
+      timeout: 30_000
+    })
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-primitives.png',
       fullPage: true
     })
   })

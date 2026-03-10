@@ -76,7 +76,17 @@ export type CanvasLayerDirection = 'forward' | 'backward'
 /**
  * Shape types for shape nodes
  */
-export type ShapeType = 'rectangle' | 'ellipse' | 'diamond' | 'triangle' | 'line' | 'arrow'
+export type ShapeType =
+  | 'rectangle'
+  | 'rounded-rectangle'
+  | 'ellipse'
+  | 'diamond'
+  | 'triangle'
+  | 'hexagon'
+  | 'star'
+  | 'arrow'
+  | 'cylinder'
+  | 'cloud'
 
 /**
  * Canvas node as stored in Yjs
