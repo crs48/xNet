@@ -957,6 +957,18 @@ export function App(): React.ReactElement {
           onCreateNote={handleCreateCanvasNote}
           onOpenSearch={showPalette}
           onReturnHome={handleReturnHome}
+          onZoomOut={() => {
+            canvasViewRef.current?.zoomOut()
+          }}
+          onZoomIn={() => {
+            canvasViewRef.current?.zoomIn()
+          }}
+          onFitToContent={() => {
+            canvasViewRef.current?.fitCanvasContent()
+          }}
+          onResetView={() => {
+            canvasViewRef.current?.resetCanvasView()
+          }}
         />
       </main>
 

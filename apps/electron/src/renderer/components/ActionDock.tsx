@@ -2,7 +2,18 @@
  * ActionDock - Bottom-centered action dock for the minimal shell.
  */
 
-import { ArrowLeft, Database, FileText, Search, Sparkles } from 'lucide-react'
+import { useCanvasThemeTokens } from '@xnetjs/canvas'
+import {
+  ArrowLeft,
+  Database,
+  FileText,
+  Minus,
+  Plus,
+  RotateCcw,
+  Search,
+  Sparkles,
+  Target
+} from 'lucide-react'
 import React from 'react'
 
 export type DockMode = 'canvas-home' | 'focused'
@@ -14,6 +25,10 @@ interface ActionDockProps {
   onCreateNote: () => void
   onOpenSearch: () => void
   onReturnHome: () => void
+  onZoomOut?: () => void
+  onZoomIn?: () => void
+  onFitToContent?: () => void
+  onResetView?: () => void
 }
 
 function DockButton({
@@ -41,7 +56,7 @@ function DockButton({
       title={tooltip}
       aria-label={tooltip}
       className={[
-        'inline-flex h-10 w-10 items-center justify-center rounded-xl',
+        'inline-flex h-9 w-9 items-center justify-center rounded-xl',
         'transition-colors duration-150',
         highlight
           ? 'bg-foreground text-background shadow-lg shadow-foreground/15'
@@ -60,14 +75,35 @@ export function ActionDock({
   onCreateDatabase,
   onCreateNote,
   onOpenSearch,
-  onReturnHome
+  onReturnHome,
+  onZoomOut,
+  onZoomIn,
+  onFitToContent,
+  onResetView
 }: ActionDockProps): React.ReactElement {
+  const theme = useCanvasThemeTokens()
+  const showNavigationCluster =
+    mode === 'canvas-home' &&
+    typeof onZoomOut === 'function' &&
+    typeof onZoomIn === 'function' &&
+    typeof onFitToContent === 'function' &&
+    typeof onResetView === 'function'
+
   return (
     <div
       className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-5"
       data-action-dock={mode}
     >
-      <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border/70 bg-background/82 px-2 py-2 shadow-2xl shadow-black/10 backdrop-blur-xl">
+      <div
+        className="pointer-events-auto flex items-center gap-1 rounded-full border border-border/70 bg-background/82 px-2 py-1.5 shadow-2xl shadow-black/10 backdrop-blur-xl"
+        data-action-dock-nav={showNavigationCluster ? 'true' : 'false'}
+        data-canvas-theme={theme.mode}
+        style={{
+          backgroundColor: theme.panelBackground,
+          borderColor: theme.panelBorder,
+          boxShadow: theme.panelShadow
+        }}
+      >
         {mode === 'focused' ? (
           <DockButton
             id="canvas"
@@ -102,7 +138,7 @@ export function ActionDock({
           </>
         )}
 
-        <div className="mx-1 h-6 w-px bg-border/70" />
+        <div className="mx-1 h-5 w-px bg-border/70" />
 
         <DockButton
           id="command"
@@ -111,6 +147,40 @@ export function ActionDock({
           shortcut="Mod+Shift+P"
           onClick={onOpenSearch}
         />
+
+        {showNavigationCluster ? (
+          <>
+            <div className="mx-1 h-5 w-px bg-border/70" />
+            <DockButton
+              id="zoom-out"
+              icon={<Minus size={16} />}
+              label="Zoom out"
+              shortcut="Ctrl/Cmd -"
+              onClick={onZoomOut}
+            />
+            <DockButton
+              id="zoom-in"
+              icon={<Plus size={16} />}
+              label="Zoom in"
+              shortcut="Ctrl/Cmd +"
+              onClick={onZoomIn}
+            />
+            <DockButton
+              id="fit"
+              icon={<Target size={16} />}
+              label="Fit to content"
+              shortcut="Ctrl/Cmd 1"
+              onClick={onFitToContent}
+            />
+            <DockButton
+              id="reset"
+              icon={<RotateCcw size={16} />}
+              label="Reset view"
+              shortcut="Ctrl/Cmd 0"
+              onClick={onResetView}
+            />
+          </>
+        ) : null}
       </div>
     </div>
   )

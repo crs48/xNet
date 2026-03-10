@@ -535,7 +535,9 @@ async function getCanvasThemeDiagnostics(page: Page): Promise<{
 }> {
   return page.evaluate(() => {
     const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
-    const navigationTools = document.querySelector<HTMLElement>('.navigation-tools')
+    const navigationTools = document.querySelector<HTMLElement>(
+      '[data-action-dock-nav="true"], .navigation-tools'
+    )
     const minimap = document.querySelector<HTMLElement>('[data-canvas-minimap="true"]')
     const minimapDismissButton = document.querySelector<HTMLElement>(
       '[data-canvas-minimap-toggle="hide"]'
@@ -1185,7 +1187,10 @@ test.describe('Electron canvas shell', () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
 
-    await expect(page.locator('.navigation-tools')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-action-dock-nav="true"]')).toBeVisible({ timeout: 30_000 })
+    await expect(
+      page.locator('[data-action-dock="canvas-home"] [data-action-dock-button="zoom-in"]')
+    ).toHaveAttribute('title', /Zoom in/)
     await expect(page.locator('[data-canvas-minimap="true"]')).toBeVisible({ timeout: 30_000 })
 
     const darkDiagnostics = await getCanvasThemeDiagnostics(page)

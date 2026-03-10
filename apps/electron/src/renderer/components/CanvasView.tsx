@@ -144,6 +144,10 @@ export type CanvasViewCommandState = {
 export type CanvasViewHandle = {
   focusLinkedDocument: (docId: string) => ViewportSnapshot | null
   restoreViewport: (snapshot: ViewportSnapshot) => void
+  zoomOut: () => boolean
+  zoomIn: () => boolean
+  fitCanvasContent: () => boolean
+  resetCanvasView: () => boolean
   clearSelection: () => void
   fitSelection: () => boolean
   openSelection: (mode?: 'peek' | 'focus' | 'split') => boolean
@@ -890,6 +894,52 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     canvasRef.current?.clearSelection()
   }, [closePeekSurface, closeSelectionPanel])
 
+  const zoomCanvas = useCallback((direction: 'out' | 'in'): boolean => {
+    const handle = canvasRef.current
+    if (!handle) {
+      return false
+    }
+
+    const snapshot = handle.getViewportSnapshot()
+    const nextZoom =
+      direction === 'in' ? Math.min(snapshot.zoom * 1.5, 4) : Math.max(snapshot.zoom / 1.5, 0.1)
+
+    if (nextZoom === snapshot.zoom) {
+      return false
+    }
+
+    const nextSnapshot = {
+      ...snapshot,
+      zoom: nextZoom
+    }
+
+    lastViewportSnapshotRef.current = nextSnapshot
+    handle.setViewportSnapshot(nextSnapshot)
+    return true
+  }, [])
+
+  const fitCanvasContent = useCallback((): boolean => {
+    const handle = canvasRef.current
+    if (!handle) {
+      return false
+    }
+
+    handle.fitToContent(50)
+    lastViewportSnapshotRef.current = handle.getViewportSnapshot()
+    return true
+  }, [])
+
+  const resetCanvasView = useCallback((): boolean => {
+    const handle = canvasRef.current
+    if (!handle) {
+      return false
+    }
+
+    handle.resetView()
+    lastViewportSnapshotRef.current = handle.getViewportSnapshot()
+    return true
+  }, [])
+
   const fitSelection = useCallback((): boolean => {
     if (selectedNodes.length === 0) {
       return false
@@ -1468,6 +1518,10 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     () => ({
       focusLinkedDocument,
       restoreViewport,
+      zoomOut: () => zoomCanvas('out'),
+      zoomIn: () => zoomCanvas('in'),
+      fitCanvasContent,
+      resetCanvasView,
       clearSelection: clearCanvasSelection,
       fitSelection,
       openSelection,
@@ -1492,18 +1546,21 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       createShape,
       clearSelectionAlias,
       distributeSelection,
+      fitCanvasContent,
       fitSelection,
       focusLinkedDocument,
       openAliasEditor,
       openCommentComposer,
       openSelection,
+      resetCanvasView,
       restoreViewport,
       shiftSelectionLayer,
       tidySelection,
       toggleSourceReferences,
       toggleSelectionLock,
       toggleShortcutHelp,
-      wrapSelectionInFrame
+      wrapSelectionInFrame,
+      zoomCanvas
     ]
   )
 
@@ -2153,9 +2210,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             maxZoom: 4
           }}
           showMinimap
-          showNavigationTools
-          navigationToolsPosition="bottom-right"
-          navigationToolsShowZoomLabel={false}
+          showNavigationTools={false}
           onSelectionChange={setSelection}
           onCreateObject={handleCreateObject}
           onOpenSelection={openSelection}
@@ -2171,12 +2226,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           onSurfacePaste={handleSurfacePaste}
           canvasNodeId={docId}
           canvasSchema={CanvasSchema._schemaId}
-          navigationToolsStyle={{
-            bottom: 24,
-            right: 24,
-            borderRadius: 24,
-            backdropFilter: 'blur(16px)'
-          }}
           renderNode={(node, context) => {
             const sourceNodeId = getCanvasShellSourceId(node)
             const linkedDocument = sourceNodeId ? documentMap.get(sourceNodeId) : undefined

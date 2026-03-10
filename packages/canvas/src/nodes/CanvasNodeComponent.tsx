@@ -754,43 +754,63 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
       {selected && !node.locked && onConnectStart && onConnectDrag && onConnectEnd ? (
         <div
-          role="button"
-          aria-label={`Connect ${getNodeTitle(node)}`}
-          title={`Drag to connect ${getNodeTitle(node)}`}
           style={{
             position: 'absolute',
             top: '50%',
-            right: -10,
-            width: 20,
-            height: 20,
-            borderRadius: '50%',
-            border: `1px solid ${connectHandleColors.border}`,
-            background: connectHandleColors.background,
-            color: connectHandleColors.color,
-            boxShadow:
-              theme.mode === 'dark'
-                ? '0 6px 18px rgba(2, 6, 23, 0.42)'
-                : '0 8px 18px rgba(15, 23, 42, 0.18)',
+            right: -30,
             transform: 'translateY(-50%)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'crosshair'
+            gap: 6,
+            pointerEvents: 'none'
           }}
-          onMouseDown={handleConnectMouseDown}
-          data-canvas-interactive="true"
-          data-canvas-connect-handle="true"
-          data-canvas-connect-placement="right"
         >
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-            <path
-              d="M2.5 5h5M6 3.5L7.5 5 6 6.5"
-              stroke="currentColor"
-              strokeWidth="1.25"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <div
+            aria-hidden="true"
+            style={{
+              width: 12,
+              height: 2,
+              borderRadius: 999,
+              background: connectHandleColors.border,
+              opacity: 0.7
+            }}
+          />
+          <div
+            role="button"
+            aria-label={`Connect ${getNodeTitle(node)}`}
+            title={`Drag to connect ${getNodeTitle(node)}`}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              border: `1px solid ${connectHandleColors.border}`,
+              background: connectHandleColors.background,
+              color: connectHandleColors.color,
+              boxShadow:
+                theme.mode === 'dark'
+                  ? '0 6px 18px rgba(2, 6, 23, 0.42)'
+                  : '0 8px 18px rgba(15, 23, 42, 0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'crosshair',
+              pointerEvents: 'auto'
+            }}
+            onMouseDown={handleConnectMouseDown}
+            data-canvas-interactive="true"
+            data-canvas-connect-handle="true"
+            data-canvas-connect-placement="right"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path
+                d="M3 6h6M7 4l2 2-2 2"
+                stroke="currentColor"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
         </div>
       ) : null}
     </div>
