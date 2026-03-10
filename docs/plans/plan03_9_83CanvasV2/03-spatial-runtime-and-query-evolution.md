@@ -147,8 +147,10 @@ type SpatialQueryDescriptor = QueryDescriptor & {
 Suggested commands:
 
 ```bash
-pnpm --filter @xnetjs/canvas test
-pnpm --filter @xnetjs/react test
+pnpm --filter @xnetjs/canvas exec vitest run src/__tests__/display-list.test.ts src/__tests__/canvas-navigation-shell.test.tsx src/__tests__/minimap.test.ts
+pnpm --filter xnet-desktop build
+pnpm --filter @xnetjs/e2e-tests exec playwright test src/electron-canvas.spec.ts --project=chromium
+PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/web-canvas-ingestion.spec.ts --project=chromium
 ```
 
 ## Risks and Edge Cases
@@ -160,9 +162,9 @@ pnpm --filter @xnetjs/react test
 ## Step Checklist
 
 - [ ] Promote chunk loading/eviction into the primary Canvas V2 runtime.
-- [ ] Route visible-object selection through the existing R-tree search path.
-- [ ] Build overview and interactive display lists from a shared visibility pipeline.
-- [ ] Gate DOM mounts behind visibility, zoom, and interaction state.
+- [x] Route visible-object selection through the existing R-tree search path.
+- [x] Build overview and interactive display lists from a shared visibility pipeline.
+- [x] Gate DOM mounts behind visibility, zoom, and interaction state.
 - [ ] Extend `useQuery`/`QueryDescriptor` only where Canvas V2 genuinely benefits.
 - [ ] Add viewport-window and future geospatial query coverage around `useQuery`.
 - [ ] Add telemetry and benchmark coverage for display-list and query behavior.

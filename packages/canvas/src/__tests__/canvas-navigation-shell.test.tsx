@@ -53,11 +53,16 @@ beforeAll(() => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
     configurable: true,
     value: vi.fn(() => ({
+      setTransform: vi.fn(),
+      clearRect: vi.fn(),
       scale: vi.fn(),
       fillRect: vi.fn(),
       beginPath: vi.fn(),
       moveTo: vi.fn(),
       lineTo: vi.fn(),
+      quadraticCurveTo: vi.fn(),
+      closePath: vi.fn(),
+      fill: vi.fn(),
       stroke: vi.fn(),
       strokeRect: vi.fn()
     }))
@@ -253,7 +258,7 @@ describe('Canvas navigation shell', () => {
       clusterColumns: 6,
       clusterRows: 4
     })
-    const visibleNodes = scene.nodes.slice(0, 28)
+    const visibleNodes = scene.nodes.slice(0, 84)
     const canvasMock = createCanvasMock()
     canvasMock.nodes = scene.nodes
     canvasMock.edges = scene.edges
@@ -270,11 +275,52 @@ describe('Canvas navigation shell', () => {
 
     expect(surface?.dataset.nodeCount).toBe(String(scene.nodeCount))
     expect(surface?.dataset.visibleNodeCount).toBe(String(visibleNodes.length))
+    expect(surface?.dataset.canvasRenderMode).toBe('hybrid')
+    expect(surface?.dataset.domNodeCount).toBe('48')
+    expect(surface?.dataset.overviewNodeCount).toBe(String(visibleNodes.length - 48))
     expect(Number(surface?.dataset.visibleEdgeCount ?? 0)).toBeLessThanOrEqual(scene.edgeCount)
-    expect(document.querySelectorAll('.canvas-node')).toHaveLength(visibleNodes.length)
-    expect(renderNode).toHaveBeenCalledTimes(visibleNodes.length)
+    expect(document.querySelectorAll('.canvas-node')).toHaveLength(48)
+    expect(renderNode).toHaveBeenCalledTimes(48)
     expect(minimap?.dataset.canvasMinimapNodeCount).toBe(String(scene.nodeCount))
     expect(minimap?.dataset.canvasMinimapEdgeCount).toBe(String(scene.edgeCount))
+  })
+
+  it('selects far-field overview nodes via hit testing before mounting a DOM island', () => {
+    const farFieldNode = {
+      id: 'page-1',
+      type: 'page',
+      position: { x: 60, y: 80, width: 320, height: 220 },
+      properties: { title: 'Canvas Page' }
+    }
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = Array.from({ length: 96 }, (_, index) => ({
+      id: `node-${index}`,
+      type: 'page',
+      position: {
+        x: index * 40,
+        y: index * 30,
+        width: 220,
+        height: 160
+      },
+      properties: { title: `Node ${index}` }
+    }))
+    canvasMock.store.getVisibleNodes = vi.fn(() => canvasMock.nodes)
+    canvasMock.findNodeAt = vi.fn(() => farFieldNode)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    expect(surface).toBeTruthy()
+
+    fireEvent.mouseDown(surface as HTMLElement, {
+      clientX: 320,
+      clientY: 240,
+      button: 0
+    })
+
+    expect(canvasMock.selectNode).toHaveBeenCalledWith('page-1', false)
   })
 
   it('dispatches canvas creation, help, and selection-open shortcuts when focused', () => {

@@ -38,6 +38,8 @@ test.describe('Web canvas ingestion', () => {
 
     const surface = page.locator('[data-canvas-surface="true"]')
     await expect(surface).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-canvas-overview-layer="true"]')).toHaveCount(1)
+    await expect(page.locator('[data-canvas-minimap="true"]')).toHaveCount(1)
 
     const urlTransfer = await page.evaluateHandle(() => {
       const dataTransfer = new DataTransfer()
@@ -78,6 +80,11 @@ test.describe('Web canvas ingestion', () => {
     const mediaNode = page.locator('.canvas-node[data-node-type="media"]')
     await expect(mediaNode).toHaveCount(1, { timeout: 30_000 })
     await expect(mediaNode.first()).toContainText('canvas-drop.svg', { timeout: 30_000 })
+    await expect(surface).toHaveAttribute('data-canvas-render-mode', 'dom')
+    await expect(page.locator('[data-canvas-minimap="true"]')).toHaveAttribute(
+      'data-canvas-minimap-render-mode',
+      'full'
+    )
 
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-ingestion.png',

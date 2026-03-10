@@ -431,6 +431,9 @@ async function getActiveCanvasNodeId(page: Page): Promise<string | null> {
 async function getCanvasShellMetrics(page: Page): Promise<{
   nodeCount: number
   visibleNodeCount: number
+  domNodeCount: number
+  overviewNodeCount: number
+  renderMode: string
   edgeCount: number
   visibleEdgeCount: number
   viewportX: number
@@ -441,6 +444,8 @@ async function getCanvasShellMetrics(page: Page): Promise<{
   contentEditableElements: number
   tableElements: number
   minimapVisible: boolean
+  minimapRenderedNodeCount: number
+  minimapRenderMode: string
 }> {
   return page.evaluate(() => {
     const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
@@ -451,6 +456,9 @@ async function getCanvasShellMetrics(page: Page): Promise<{
     return {
       nodeCount: Number(surface.dataset.nodeCount ?? 0),
       visibleNodeCount: Number(surface.dataset.visibleNodeCount ?? 0),
+      domNodeCount: Number(surface.dataset.domNodeCount ?? 0),
+      overviewNodeCount: Number(surface.dataset.overviewNodeCount ?? 0),
+      renderMode: surface.dataset.canvasRenderMode ?? 'dom',
       edgeCount: Number(surface.dataset.edgeCount ?? 0),
       visibleEdgeCount: Number(surface.dataset.visibleEdgeCount ?? 0),
       viewportX: Number(surface.dataset.viewportX ?? 0),
@@ -460,7 +468,14 @@ async function getCanvasShellMetrics(page: Page): Promise<{
       canvasElements: document.querySelectorAll('canvas').length,
       contentEditableElements: document.querySelectorAll('[contenteditable="true"]').length,
       tableElements: document.querySelectorAll('table').length,
-      minimapVisible: document.querySelector('[data-canvas-minimap="true"]') !== null
+      minimapVisible: document.querySelector('[data-canvas-minimap="true"]') !== null,
+      minimapRenderedNodeCount: Number(
+        document.querySelector<HTMLElement>('[data-canvas-minimap="true"]')?.dataset
+          .canvasMinimapRenderedNodeCount ?? 0
+      ),
+      minimapRenderMode:
+        document.querySelector<HTMLElement>('[data-canvas-minimap="true"]')?.dataset
+          .canvasMinimapRenderMode ?? 'full'
     }
   })
 }
@@ -904,14 +919,25 @@ test.describe('Electron canvas shell', () => {
 
     expect(initialMetrics.visibleNodeCount).toBeGreaterThan(0)
     expect(initialMetrics.visibleNodeCount).toBeLessThan(getPerformanceBudget(120, 180))
-    expect(initialMetrics.canvasNodeElements).toBe(initialMetrics.visibleNodeCount)
+    expect(['dom', 'hybrid']).toContain(initialMetrics.renderMode)
+    expect(initialMetrics.domNodeCount).toBeLessThanOrEqual(initialMetrics.visibleNodeCount)
+    expect(initialMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(initialMetrics.canvasNodeElements).toBe(initialMetrics.domNodeCount)
     expect(initialMetrics.edgeCount).toBe(seededScene.edgeCount)
     expect(initialMetrics.visibleEdgeCount).toBeLessThanOrEqual(initialMetrics.edgeCount)
     expect(initialMetrics.canvasElements).toBeGreaterThanOrEqual(2)
     expect(initialMetrics.contentEditableElements).toBe(0)
     expect(initialMetrics.tableElements).toBe(0)
     expect(initialMetrics.minimapVisible).toBe(true)
+    expect(initialMetrics.minimapRenderMode).toBe('aggregated')
+    expect(initialMetrics.minimapRenderedNodeCount).toBeLessThan(initialMetrics.nodeCount)
     expect(initialQueries.length).toBeLessThanOrEqual(5)
+    if (initialMetrics.renderMode === 'hybrid') {
+      expect(initialMetrics.overviewNodeCount).toBeGreaterThan(0)
+    } else {
+      expect(initialMetrics.overviewNodeCount).toBe(0)
+      expect(initialMetrics.domNodeCount).toBe(initialMetrics.visibleNodeCount)
+    }
 
     const initialQueryIds = [...initialQueries].map((query) => query.id).sort()
     const initialViewport = {
@@ -948,7 +974,17 @@ test.describe('Electron canvas shell', () => {
       .sort()
 
     expect(postMinimapMetrics.visibleNodeCount).toBeLessThan(getPerformanceBudget(120, 180))
-    expect(postMinimapMetrics.canvasNodeElements).toBe(postMinimapMetrics.visibleNodeCount)
+    expect(['dom', 'hybrid']).toContain(postMinimapMetrics.renderMode)
+    expect(postMinimapMetrics.domNodeCount).toBeLessThanOrEqual(postMinimapMetrics.visibleNodeCount)
+    expect(postMinimapMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(postMinimapMetrics.canvasNodeElements).toBe(postMinimapMetrics.domNodeCount)
+    expect(postMinimapMetrics.minimapRenderedNodeCount).toBeLessThan(postMinimapMetrics.nodeCount)
+    if (postMinimapMetrics.renderMode === 'hybrid') {
+      expect(postMinimapMetrics.overviewNodeCount).toBeGreaterThan(0)
+    } else {
+      expect(postMinimapMetrics.overviewNodeCount).toBe(0)
+      expect(postMinimapMetrics.domNodeCount).toBe(postMinimapMetrics.visibleNodeCount)
+    }
     expect(postMinimapQueryIds).toEqual(initialQueryIds)
 
     const frameBudget = await measureCanvasFrameBudget(page, 18)

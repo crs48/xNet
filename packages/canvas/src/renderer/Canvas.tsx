@@ -23,7 +23,9 @@ import { useCanvas } from '../hooks/useCanvas'
 import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
+import { createCanvasDisplayList } from './display-list'
 import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
+import { OverviewCanvasLayer } from './OverviewCanvasLayer'
 
 /** Minimal Awareness interface (avoids y-protocols dependency) */
 interface AwarenessLike {
@@ -442,13 +444,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     return () => container.removeEventListener('wheel', handleWheel)
   }, [pan, zoomAt])
 
-  // Handle background mouse down for pan
+  // Handle background mouse down for pan and far-field hit testing
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button !== 0) return
       if (e.target !== containerRef.current) return
 
       containerRef.current?.focus()
+
+      const canvasPoint = clientToCanvas(e.clientX, e.clientY)
+      const hitNode = canvas.findNodeAt(canvasPoint.x, canvasPoint.y)
+
+      if (hitNode) {
+        selectNode(hitNode.id, e.shiftKey || e.metaKey)
+        return
+      }
 
       // Clicked on background
       clearSelection()
@@ -474,7 +484,22 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       window.addEventListener('mousemove', handleMouseMove)
       window.addEventListener('mouseup', handleMouseUp)
     },
-    [clearSelection, onBackgroundClick, pan]
+    [canvas, clearSelection, clientToCanvas, onBackgroundClick, pan, selectNode]
+  )
+
+  const handleBackgroundDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (e.target !== containerRef.current) {
+        return
+      }
+
+      const canvasPoint = clientToCanvas(e.clientX, e.clientY)
+      const hitNode = canvas.findNodeAt(canvasPoint.x, canvasPoint.y)
+      if (hitNode) {
+        onNodeDoubleClick?.(hitNode.id)
+      }
+    },
+    [canvas, clientToCanvas, onNodeDoubleClick]
   )
 
   const handleSurfaceDragOver = useCallback(
@@ -682,39 +707,22 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [onNodeDoubleClick]
   )
 
-  // Build node map for edge rendering (memoized to avoid recreating on every render)
-  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes])
-
-  // PERF-01: Viewport culling - only render nodes visible in the viewport
-  // Add a buffer (200px in canvas coordinates) to avoid nodes popping in/out at edges
-  const visibleNodes = useMemo(() => {
-    const visibleRect = viewport.getVisibleRect()
-    // Expand rect by buffer to include nodes just outside viewport
-    const buffer = 200 / viewport.zoom // Buffer in canvas coordinates
-    const expandedRect = {
-      x: visibleRect.x - buffer,
-      y: visibleRect.y - buffer,
-      width: visibleRect.width + buffer * 2,
-      height: visibleRect.height + buffer * 2
-    }
-    return canvas.store.getVisibleNodes(expandedRect)
-  }, [canvas.store, nodes, viewport])
-
-  // PERF-01: Set of visible node IDs for fast edge culling lookup
-  const visibleNodeIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes])
-
   // PERF-02: Calculate LOD (Level of Detail) based on zoom level
   // This reduces DOM complexity at low zoom levels for better performance
   const lod = useMemo(() => calculateLOD(viewport.zoom), [viewport.zoom])
 
-  // PERF-01: Filter edges to only those with at least one visible endpoint
-  const visibleEdges = useMemo(
+  const displayList = useMemo(
     () =>
-      edges.filter(
-        (edge) => visibleNodeIds.has(edge.sourceId) || visibleNodeIds.has(edge.targetId)
-      ),
-    [edges, visibleNodeIds]
+      createCanvasDisplayList({
+        viewport,
+        nodes,
+        edges,
+        store: canvas.store,
+        selectedNodeIds
+      }),
+    [canvas.store, edges, nodes, selectedNodeIds, viewport]
   )
+  const { nodeMap, visibleNodes, visibleEdges, domNodes, overviewNodes } = displayList
 
   // Build comment objects map (memoized for CommentOverlay)
   // Note: Uses all nodes for comments, not just visible ones
@@ -794,6 +802,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-canvas-surface="true"
       data-node-count={nodes.length}
       data-visible-node-count={visibleNodes.length}
+      data-dom-node-count={domNodes.length}
+      data-overview-node-count={overviewNodes.length}
+      data-canvas-render-mode={overviewNodes.length > 0 ? 'hybrid' : 'dom'}
       data-edge-count={edges.length}
       data-visible-edge-count={visibleEdges.length}
       data-viewport-x={viewport.x}
@@ -802,6 +813,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-viewport-width={viewport.width}
       data-viewport-height={viewport.height}
       onMouseDown={handleMouseDown}
+      onDoubleClick={handleBackgroundDoubleClick}
       onDragOver={handleSurfaceDragOver}
       onDrop={handleSurfaceDrop}
       onPaste={handleSurfacePaste}
@@ -841,10 +853,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
         </g>
       </svg>
 
-      {/* Nodes layer - PERF-01: Only render nodes visible in viewport */}
+      <OverviewCanvasLayer nodes={overviewNodes} viewport={viewport} />
+
+      {/* Nodes layer - PERF-01: Only render DOM islands for the interactive subset */}
       {/* PERF-02: LOD reduces detail at low zoom levels */}
       <div style={canvasLayerStyle}>
-        {visibleNodes.map((node) => {
+        {domNodes.map((node) => {
           const selected = selectedNodeIds.has(node.id)
           const renderContext: CanvasNodeRenderContext = {
             selected,

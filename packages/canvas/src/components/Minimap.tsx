@@ -11,6 +11,21 @@ import { Viewport } from '../spatial/index'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+const MAX_DIRECT_MINIMAP_NODES = 1200
+const MINIMAP_BUCKET_SIZE_PX = 6
+
+type MinimapRenderNode = {
+  id: string
+  type: CanvasNode['type']
+  position: {
+    x: number
+    y: number
+    width: number
+    height: number
+    zIndex?: number
+  }
+}
+
 export interface MinimapProps {
   /** All canvas nodes */
   nodes: CanvasNode[]
@@ -34,7 +49,7 @@ export interface MinimapProps {
 
 // ─── Color Helpers ────────────────────────────────────────────────────────────
 
-function getNodeMinimapColor(node: CanvasNode): string {
+function getNodeMinimapColor(node: Pick<CanvasNode, 'type'>): string {
   switch (node.type) {
     case 'page':
       return 'rgba(59, 130, 246, 0.7)'
@@ -125,6 +140,78 @@ export function Minimap({
     }
   }, [canvasBounds, scale, width, height])
 
+  const { renderNodes, renderMode } = useMemo(() => {
+    if (nodes.length <= MAX_DIRECT_MINIMAP_NODES) {
+      return {
+        renderNodes: nodes as MinimapRenderNode[],
+        renderMode: 'full' as const
+      }
+    }
+
+    const buckets = new Map<
+      string,
+      {
+        id: string
+        minX: number
+        minY: number
+        maxX: number
+        maxY: number
+        typeCounts: Map<CanvasNode['type'], number>
+      }
+    >()
+
+    for (const node of nodes) {
+      const centerX = (node.position.x + node.position.width / 2) * scale + offset.x
+      const centerY = (node.position.y + node.position.height / 2) * scale + offset.y
+      const bucketX = Math.floor(centerX / MINIMAP_BUCKET_SIZE_PX)
+      const bucketY = Math.floor(centerY / MINIMAP_BUCKET_SIZE_PX)
+      const bucketKey = `${bucketX}:${bucketY}`
+      const bucket = buckets.get(bucketKey)
+
+      if (bucket) {
+        bucket.minX = Math.min(bucket.minX, node.position.x)
+        bucket.minY = Math.min(bucket.minY, node.position.y)
+        bucket.maxX = Math.max(bucket.maxX, node.position.x + node.position.width)
+        bucket.maxY = Math.max(bucket.maxY, node.position.y + node.position.height)
+        bucket.typeCounts.set(node.type, (bucket.typeCounts.get(node.type) ?? 0) + 1)
+      } else {
+        buckets.set(bucketKey, {
+          id: `bucket:${bucketKey}`,
+          minX: node.position.x,
+          minY: node.position.y,
+          maxX: node.position.x + node.position.width,
+          maxY: node.position.y + node.position.height,
+          typeCounts: new Map([[node.type, 1]])
+        })
+      }
+    }
+
+    const aggregatedNodes = Array.from(buckets.values()).map((bucket) => {
+      const dominantType =
+        Array.from(bucket.typeCounts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ??
+        'group'
+
+      return {
+        id: bucket.id,
+        type: dominantType,
+        position: {
+          x: bucket.minX,
+          y: bucket.minY,
+          width: Math.max(bucket.maxX - bucket.minX, 40),
+          height: Math.max(bucket.maxY - bucket.minY, 30),
+          zIndex: 0
+        }
+      } satisfies MinimapRenderNode
+    })
+
+    return {
+      renderNodes: aggregatedNodes,
+      renderMode: 'aggregated' as const
+    }
+  }, [nodes, offset.x, offset.y, scale])
+
+  const shouldRenderEdges = showEdges && renderMode === 'full'
+
   // Render minimap
   useEffect(() => {
     const canvas = canvasRef.current
@@ -147,7 +234,7 @@ export function Minimap({
     ctx.fillRect(0, 0, width, height)
 
     // Draw edges
-    if (showEdges && edges.length > 0) {
+    if (shouldRenderEdges && edges.length > 0) {
       ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)'
       ctx.lineWidth = 1
       ctx.beginPath()
@@ -172,7 +259,7 @@ export function Minimap({
     }
 
     // Draw nodes (frames/groups first, then regular nodes on top)
-    const sortedNodes = [...nodes].sort((a, b) => {
+    const sortedNodes = [...renderNodes].sort((a, b) => {
       const aIsContainer = a.type === 'frame' || a.type === 'group'
       const bIsContainer = b.type === 'frame' || b.type === 'group'
       if (aIsContainer && !bIsContainer) return -1
@@ -219,16 +306,16 @@ export function Minimap({
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
   }, [
-    nodes,
     edges,
     viewport,
     canvasBounds,
     scale,
     offset,
+    renderNodes,
     width,
     height,
     backgroundColor,
-    showEdges
+    shouldRenderEdges
   ])
 
   // Convert minimap coordinates to canvas coordinates
@@ -306,8 +393,11 @@ export function Minimap({
       }}
       data-canvas-minimap="true"
       data-canvas-minimap-node-count={nodes.length}
+      data-canvas-minimap-rendered-node-count={renderNodes.length}
       data-canvas-minimap-edge-count={edges.length}
       data-canvas-minimap-show-edges={showEdges ? 'true' : 'false'}
+      data-canvas-minimap-render-mode={renderMode}
+      data-canvas-minimap-edge-mode={shouldRenderEdges ? 'full' : 'hidden'}
     >
       <canvas
         ref={canvasRef}

@@ -144,8 +144,10 @@ function CanvasRuntime(props: CanvasRuntimeProps): React.ReactElement {
 Suggested commands:
 
 ```bash
-pnpm --filter @xnetjs/canvas test
-pnpm dev:stories
+pnpm --filter @xnetjs/canvas exec vitest run src/__tests__/display-list.test.ts src/__tests__/canvas-navigation-shell.test.tsx src/__tests__/minimap.test.ts
+pnpm --filter xnet-desktop build
+pnpm --filter @xnetjs/e2e-tests exec playwright test src/electron-canvas.spec.ts --project=chromium
+PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests exec playwright test src/web-canvas-ingestion.spec.ts --project=chromium
 ```
 
 ## Risks and Edge Cases
@@ -158,7 +160,7 @@ pnpm dev:stories
 
 - [ ] Introduce the Canvas V2 runtime host and make it the primary render entry.
 - [x] Move the grid and minimap into the default shell path.
-- [ ] Define explicit responsibilities for background, overview, DOM, and overlay layers.
+- [x] Define explicit responsibilities for background, overview, DOM, and overlay layers.
 - [x] Replace the current custom linked-card shell rendering with runtime-fed object rendering.
 - [ ] Keep persistent shell chrome minimal and contextual.
 - [ ] Centralize frame scheduling and redraw ownership.
