@@ -227,7 +227,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }
 
   return (
-    <div className="relative flex-1 overflow-hidden">
+    <div className="relative h-full overflow-hidden">
       <div className="pointer-events-none absolute left-6 top-6 z-20 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl">
         {canvas?.title || 'Workspace Canvas'}
       </div>
