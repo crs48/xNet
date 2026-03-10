@@ -3,6 +3,7 @@
  */
 
 import type { JSX } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { EMBED_PROVIDERS, parseEmbedUrl, type EmbedProvider } from '../extensions/embed'
 import { cn } from '../utils'
 
@@ -33,6 +34,81 @@ function normalizeValue(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null
 }
 
+type ExternalReferenceMetadata = {
+  title: string
+  subtitle: string | null
+}
+
+type OEmbedResponse = {
+  title?: string
+  author_name?: string
+  provider_name?: string
+}
+
+const EXTERNAL_REFERENCE_METADATA_CACHE = new Map<string, ExternalReferenceMetadata | null>()
+
+function getOEmbedEndpoint(url: string, providerId: string): string | null {
+  const encodedUrl = encodeURIComponent(url)
+
+  switch (providerId) {
+    case 'youtube':
+      return `https://www.youtube.com/oembed?url=${encodedUrl}&format=json`
+    case 'twitter':
+      return `https://publish.twitter.com/oembed?url=${encodedUrl}&omit_script=true`
+    default:
+      return null
+  }
+}
+
+function toAuthorHandle(value: string | null | undefined): string | null {
+  const normalized = normalizeValue(value)
+  if (!normalized) {
+    return null
+  }
+
+  return normalized.startsWith('@') ? normalized : `@${normalized}`
+}
+
+function toAuthorName(value: string | null | undefined): string | null {
+  return normalizeValue(value)
+}
+
+function resolveExternalReferenceMetadata(
+  providerId: string,
+  payload: OEmbedResponse,
+  fallbackTitle: string,
+  fallbackSubtitle: string | null
+): ExternalReferenceMetadata | null {
+  const providerName = normalizeValue(payload.provider_name)
+  const title = normalizeValue(payload.title)
+  const authorHandle = toAuthorHandle(payload.author_name)
+  const authorName = toAuthorName(payload.author_name)
+
+  if (providerId === 'youtube') {
+    if (!title && !authorName) {
+      return null
+    }
+
+    return {
+      title: title ?? fallbackTitle,
+      subtitle: authorName ?? providerName ?? fallbackSubtitle
+    }
+  }
+
+  if (providerId === 'twitter') {
+    if (!title && !authorHandle) {
+      return null
+    }
+
+    return {
+      title: title ?? (authorHandle ? `Post from ${authorHandle}` : fallbackTitle),
+      subtitle: authorHandle ?? providerName ?? fallbackSubtitle
+    }
+  }
+
+  return null
+}
+
 export function CanvasExternalReferenceCard({
   title,
   url,
@@ -47,10 +123,72 @@ export function CanvasExternalReferenceCard({
   const resolvedEmbedUrl = normalizeValue(embedUrl) ?? parsedEmbed?.embedUrl ?? null
   const providerLabel = resolvedProvider?.displayName ?? 'Link preview'
   const providerId = resolvedProvider?.name ?? normalizeValue(provider) ?? 'generic'
+  const fallbackSubtitle = normalizeValue(subtitle)
+  const [resolvedMetadata, setResolvedMetadata] = useState<ExternalReferenceMetadata | null>(null)
+
+  useEffect(() => {
+    const cacheKey = `${providerId}:${url}`
+    if (EXTERNAL_REFERENCE_METADATA_CACHE.has(cacheKey)) {
+      setResolvedMetadata(EXTERNAL_REFERENCE_METADATA_CACHE.get(cacheKey) ?? null)
+      return
+    }
+
+    const endpoint = getOEmbedEndpoint(url, providerId)
+    if (!endpoint) {
+      EXTERNAL_REFERENCE_METADATA_CACHE.set(cacheKey, null)
+      setResolvedMetadata(null)
+      return
+    }
+
+    const controller = new AbortController()
+
+    void fetch(endpoint, {
+      headers: {
+        Accept: 'application/json'
+      },
+      signal: controller.signal
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`External reference metadata request failed (${response.status})`)
+        }
+
+        return (await response.json()) as OEmbedResponse
+      })
+      .then((payload) => {
+        const metadata = resolveExternalReferenceMetadata(
+          providerId,
+          payload,
+          title,
+          fallbackSubtitle
+        )
+        EXTERNAL_REFERENCE_METADATA_CACHE.set(cacheKey, metadata)
+        setResolvedMetadata(metadata)
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          return
+        }
+
+        EXTERNAL_REFERENCE_METADATA_CACHE.set(cacheKey, null)
+        setResolvedMetadata(null)
+      })
+
+    return () => {
+      controller.abort()
+    }
+  }, [fallbackSubtitle, providerId, title, url])
+
+  const resolvedTitle = resolvedMetadata?.title ?? title
+  const resolvedSubtitle = resolvedMetadata?.subtitle ?? fallbackSubtitle
+  const embedFrameTitle = useMemo(
+    () => `${providerLabel} embed for ${resolvedTitle}`,
+    [providerLabel, resolvedTitle]
+  )
 
   return (
     <div
-      className="flex h-full flex-col rounded-[22px] border border-border/70 bg-background/95 p-3 shadow-lg shadow-black/5"
+      className="flex h-full flex-col rounded-[22px] border border-border/70 bg-background p-3 shadow-lg shadow-black/5"
       data-canvas-node-card="true"
       data-canvas-card-kind="external-reference"
       data-canvas-theme={themeMode}
@@ -70,12 +208,18 @@ export function CanvasExternalReferenceCard({
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3">
         <div className="space-y-1">
-          <div className="line-clamp-2 text-base font-semibold leading-tight text-foreground">
-            {title}
+          <div
+            className="line-clamp-2 text-base font-semibold leading-tight text-foreground"
+            data-canvas-embed-title="true"
+          >
+            {resolvedTitle}
           </div>
-          {subtitle ? (
-            <p className="truncate text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {subtitle}
+          {resolvedSubtitle ? (
+            <p
+              className="truncate text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+              data-canvas-embed-subtitle="true"
+            >
+              {resolvedSubtitle}
             </p>
           ) : null}
         </div>
@@ -91,7 +235,7 @@ export function CanvasExternalReferenceCard({
             data-canvas-embed-theme={themeMode}
           >
             <iframe
-              title={`${providerLabel} embed for ${title}`}
+              title={embedFrameTitle}
               src={resolvedEmbedUrl}
               loading="lazy"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

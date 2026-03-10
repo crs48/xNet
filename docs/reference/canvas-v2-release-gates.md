@@ -114,7 +114,7 @@ active dark-mode workspace.
 
 - The Electron collaboration gate now includes a remote-peer Yjs regression that moves a canvas
   object while a local inline page edit stays active.
-- The current large-scene gate now seeds a `3,969`-node wide scene and explicitly validates
+- The current large-scene gate now seeds a `3,969`-node-wide scene and explicitly validates
   long-span pan plus zoom passes on both Electron and web before treating Canvas V2 as green.
 - The current gate is automated first, with the artifact review above acting as the current manual
   sign-off for editing, navigation, collaboration, and shortcut feel.

@@ -92,6 +92,7 @@ That keeps xNet’s primitive set smaller and stronger.
 function resolvePageRenderMode(input: {
   zoom: number
   selected: boolean
+  nearField: boolean
   editing: boolean
   peeking: boolean
 }): 'far' | 'compact' | 'preview' | 'editing' | 'peek' {
@@ -99,7 +100,7 @@ function resolvePageRenderMode(input: {
   if (input.peeking) return 'peek'
   if (input.zoom < 0.2) return 'far'
   if (input.zoom < 0.55) return 'compact'
-  return input.selected ? 'preview' : 'compact'
+  return input.selected || input.nearField ? 'preview' : 'compact'
 }
 ```
 

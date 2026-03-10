@@ -75,7 +75,9 @@ export function StorageWarningBanner({
   if (dismissed) return null
 
   return (
-    <div className={`fixed top-0 left-0 right-0 z-50 border-b ${toneClasses.container}`}>
+    <div
+      className={`pointer-events-none fixed top-0 left-0 right-0 z-50 border-b ${toneClasses.container}`}
+    >
       <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex items-start flex-1 min-w-0">
@@ -97,7 +99,7 @@ export function StorageWarningBanner({
           </div>
           <button
             onClick={() => setDismissed(true)}
-            className={`flex-shrink-0 inline-flex focus:outline-none ${toneClasses.button}`}
+            className={`pointer-events-auto flex-shrink-0 inline-flex focus:outline-none ${toneClasses.button}`}
             aria-label="Dismiss"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -78,7 +78,7 @@ function getNodeCard(node: CanvasNode, themeMode: 'light' | 'dark'): JSX.Element
   if (node.type === 'media') {
     return (
       <div
-        className="flex h-full flex-col justify-between rounded-[22px] border border-border/70 bg-background/95 p-4 shadow-lg shadow-black/5"
+        className="flex h-full flex-col justify-between rounded-[22px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
         data-canvas-node-card="true"
         data-canvas-card-kind="media"
         data-canvas-theme={themeMode}
@@ -111,7 +111,7 @@ function getNodeCard(node: CanvasNode, themeMode: 'light' | 'dark'): JSX.Element
 
   return (
     <div
-      className="flex h-full flex-col justify-between rounded-[22px] border border-border/70 bg-background/95 p-4 shadow-lg shadow-black/5"
+      className="flex h-full flex-col justify-between rounded-[22px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
       data-canvas-node-card="true"
       data-canvas-card-kind={displayType}
       data-canvas-theme={themeMode}

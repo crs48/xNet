@@ -137,6 +137,30 @@ function logStep(message: string): void {
   process.stderr.write(`[electron:e2e] ${message}\n`)
 }
 
+async function mockCanvasExternalReferenceMetadata(page: Page): Promise<void> {
+  await page.route(/^https:\/\/www\.youtube\.com\/oembed\?.*/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        title: 'Never Gonna Give You Up',
+        author_name: 'Rick Astley'
+      })
+    })
+  })
+
+  await page.route(/^https:\/\/publish\.twitter\.com\/oembed\?.*/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        title: 'Storybook 8 Canvas Preview',
+        author_name: 'storybookjs'
+      })
+    })
+  })
+}
+
 function ensureElectronRuntimeDeps(): void {
   if (process.env.SKIP_ELECTRON_DEPS_REBUILD === 'true') {
     return
@@ -1384,6 +1408,7 @@ test.describe('Electron canvas shell', () => {
   test('renders embeddable external references directly on the Electron canvas', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
+    await mockCanvasExternalReferenceMetadata(page)
 
     const surface = page.locator('[data-canvas-surface="true"]')
     await expect(surface).toBeVisible({ timeout: 30_000 })
@@ -1460,6 +1485,19 @@ test.describe('Electron canvas shell', () => {
         drop.frameSrc,
         { timeout: 30_000 }
       )
+
+      const card = embed.locator('xpath=ancestor::*[@data-canvas-node-card="true"][1]')
+      const title = card.locator('[data-canvas-embed-title="true"]')
+      const subtitle = card.locator('[data-canvas-embed-subtitle="true"]')
+      if (drop.provider === 'youtube') {
+        await expect(title).toHaveText('Never Gonna Give You Up', { timeout: 30_000 })
+        await expect(subtitle).toHaveText('Rick Astley')
+      }
+
+      if (drop.provider === 'twitter') {
+        await expect(title).toHaveText('Storybook 8 Canvas Preview', { timeout: 30_000 })
+        await expect(subtitle).toHaveText('@storybookjs')
+      }
 
       const bounds = await getCanvasEmbedBounds(page, drop.provider)
       expect(bounds.width).toBeGreaterThanOrEqual(drop.minWidth)

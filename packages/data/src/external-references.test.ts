@@ -87,6 +87,7 @@ describe('external reference parsing', () => {
     expect(parseExternalReferenceUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toMatchObject({
       provider: 'youtube',
       kind: 'video',
+      title: 'YouTube video',
       embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
     })
 
@@ -95,6 +96,7 @@ describe('external reference parsing', () => {
     ).toMatchObject({
       provider: 'twitter',
       kind: 'social',
+      title: 'Post from @storybookjs',
       embedUrl: 'https://platform.twitter.com/embed/Tweet.html?id=1606321052308658177'
     })
 
@@ -103,6 +105,7 @@ describe('external reference parsing', () => {
     ).toMatchObject({
       provider: 'figma',
       kind: 'design',
+      title: 'Storybook Rich Editor Spec',
       embedUrl:
         'https://www.figma.com/embed?embed_host=xnet&url=https://www.figma.com/file/abc123def'
     })
@@ -110,6 +113,7 @@ describe('external reference parsing', () => {
     expect(parseExternalReferenceUrl('https://www.instagram.com/p/C-qi579y7M9/')).toMatchObject({
       provider: 'instagram',
       kind: 'social',
+      title: 'Instagram post',
       embedUrl: 'https://www.instagram.com/p/C-qi579y7M9/embed/captioned'
     })
 
@@ -118,6 +122,7 @@ describe('external reference parsing', () => {
     ).toMatchObject({
       provider: 'tiktok',
       kind: 'social',
+      title: 'TikTok video from @scout2015',
       embedUrl: 'https://www.tiktok.com/player/v1/6718335390845095173'
     })
   })

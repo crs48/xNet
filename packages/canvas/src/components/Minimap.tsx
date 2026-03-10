@@ -53,7 +53,7 @@ export interface MinimapProps {
 
 // ─── Color Helpers ────────────────────────────────────────────────────────────
 
-function getNodeMinimapColor(
+export function getNodeMinimapColor(
   node: Pick<CanvasNode, 'type'> & { properties?: Record<string, unknown> }
 ): string {
   switch (getCanvasResolvedNodeKind(node)) {

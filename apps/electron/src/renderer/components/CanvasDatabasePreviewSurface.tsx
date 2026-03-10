@@ -331,7 +331,7 @@ export function CanvasDatabasePreviewSurface({
 
   return (
     <div
-      className={`flex h-full flex-col overflow-hidden border border-border/60 bg-background/95 shadow-lg shadow-black/5 ${
+      className={`flex h-full flex-col overflow-hidden border border-border/60 bg-background shadow-lg shadow-black/5 ${
         mode === 'peek' ? 'rounded-[28px] shadow-2xl shadow-black/10' : 'rounded-[22px]'
       }`}
       data-canvas-database-surface="true"
@@ -423,7 +423,7 @@ export function CanvasDatabasePreviewSurface({
         ) : (
           <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-muted/20">
             <div
-              className="grid border-b border-border/50 bg-background/70 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
+              className="grid border-b border-border/50 bg-background px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground"
               style={{ gridTemplateColumns: `repeat(${previewColumns.length}, minmax(0, 1fr))` }}
             >
               {previewColumns.map((column) => (

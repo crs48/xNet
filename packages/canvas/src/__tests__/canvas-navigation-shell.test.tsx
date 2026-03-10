@@ -253,7 +253,9 @@ function createMockAwareness() {
       } else {
         states.delete(1)
       }
-      listeners.forEach((listener) => listener())
+      listeners.forEach((listener) => {
+        listener()
+      })
     },
     setLocalStateField: (field: string, value: unknown) => {
       const nextState = {
@@ -262,7 +264,9 @@ function createMockAwareness() {
       }
       localState = nextState
       states.set(1, nextState)
-      listeners.forEach((listener) => listener())
+      listeners.forEach((listener) => {
+        listener()
+      })
     },
     getStates: () => states,
     on: (_event: string, handler: () => void) => {
@@ -273,7 +277,9 @@ function createMockAwareness() {
     },
     setRemoteState: (clientId: number, state: Record<string, unknown>) => {
       states.set(clientId, state)
-      listeners.forEach((listener) => listener())
+      listeners.forEach((listener) => {
+        listener()
+      })
     }
   }
 }

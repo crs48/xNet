@@ -232,25 +232,51 @@ function inferReferenceKind(provider: EmbedProvider): ExternalReferenceKind {
   }
 }
 
+function humanizeSlug(value: string | null | undefined): string | null {
+  if (!value) {
+    return null
+  }
+
+  const decoded = decodeURIComponent(value)
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!decoded) {
+    return null
+  }
+
+  return decoded.replace(/\b[a-z]/g, (character) => character.toUpperCase())
+}
+
+function getUrlSegments(normalizedUrl: string): string[] {
+  return new URL(normalizedUrl).pathname.split('/').filter(Boolean)
+}
+
 function describeEmbedReference(
   normalizedUrl: string,
   parsed: { provider: EmbedProvider; id: string; embedUrl: string }
 ): ExternalReferenceDescriptor {
+  const urlSegments = getUrlSegments(normalizedUrl)
+
   switch (parsed.provider.name) {
     case 'figma': {
       const [entity, fileId] = parsed.id.split('/')
+      const slugTitle = humanizeSlug(urlSegments[2])
       return {
         normalizedUrl,
         provider: parsed.provider.name,
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
-        title: `Figma ${entity}`,
-        subtitle: fileId,
+        title: slugTitle ?? `Figma ${entity}`,
+        subtitle: parsed.provider.displayName,
         icon: 'FG',
         embedUrl: parsed.embedUrl,
         metadata: {
           entity,
-          fileId
+          fileId,
+          ...(slugTitle ? { slugTitle } : {})
         }
       }
     }
@@ -260,7 +286,7 @@ function describeEmbedReference(
         provider: parsed.provider.name,
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
-        title: `YouTube ${parsed.id}`,
+        title: 'YouTube video',
         subtitle: parsed.provider.displayName,
         icon: 'YT',
         embedUrl: parsed.embedUrl,
@@ -274,7 +300,7 @@ function describeEmbedReference(
         provider: parsed.provider.name,
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
-        title: `Vimeo ${parsed.id}`,
+        title: 'Vimeo video',
         subtitle: parsed.provider.displayName,
         icon: 'VI',
         embedUrl: parsed.embedUrl,
@@ -288,7 +314,7 @@ function describeEmbedReference(
         provider: parsed.provider.name,
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
-        title: `Loom ${parsed.id.slice(0, 8)}`,
+        title: 'Loom recording',
         subtitle: parsed.provider.displayName,
         icon: 'LO',
         embedUrl: parsed.embedUrl,
@@ -296,20 +322,23 @@ function describeEmbedReference(
           loomId: parsed.id
         }
       }
-    case 'codesandbox':
+    case 'codesandbox': {
+      const slugTitle = humanizeSlug(urlSegments[1])
       return {
         normalizedUrl,
         provider: parsed.provider.name,
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
-        title: `Sandbox ${parsed.id}`,
+        title: slugTitle ?? 'CodeSandbox project',
         subtitle: parsed.provider.displayName,
         icon: 'CS',
         embedUrl: parsed.embedUrl,
         metadata: {
-          sandboxId: parsed.id
+          sandboxId: parsed.id,
+          ...(slugTitle ? { slugTitle } : {})
         }
       }
+    }
     case 'spotify': {
       const [entity = '', mediaId = ''] = parsed.id.split('/')
       return {
@@ -318,7 +347,7 @@ function describeEmbedReference(
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
         title: `Spotify ${entity}`,
-        subtitle: mediaId || undefined,
+        subtitle: parsed.provider.displayName,
         icon: 'SP',
         embedUrl: parsed.embedUrl,
         metadata: {
@@ -327,20 +356,25 @@ function describeEmbedReference(
         }
       }
     }
-    case 'twitter':
+    case 'twitter': {
+      const author = urlSegments[0]
+      const authorLabel =
+        typeof author === 'string' && author.length > 0 ? `@${author.replace(/^@/, '')}` : 'X'
       return {
         normalizedUrl,
         provider: parsed.provider.name,
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
-        title: `Post ${parsed.id}`,
+        title: `Post from ${authorLabel}`,
         subtitle: 'X',
         icon: 'X',
         embedUrl: parsed.embedUrl,
         metadata: {
-          postId: parsed.id
+          postId: parsed.id,
+          ...(author ? { author } : {})
         }
       }
+    }
     case 'instagram': {
       const [entity = 'p', mediaId = parsed.id] = parsed.id.split('/')
       const entityLabel = entity === 'reel' ? 'reel' : entity === 'tv' ? 'video' : 'post'
@@ -350,7 +384,7 @@ function describeEmbedReference(
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
         title: `Instagram ${entityLabel}`,
-        subtitle: mediaId,
+        subtitle: parsed.provider.displayName,
         icon: 'IG',
         embedUrl: parsed.embedUrl,
         metadata: {
@@ -361,14 +395,15 @@ function describeEmbedReference(
     }
     case 'tiktok': {
       const [author = 'video', videoId = parsed.id] = parsed.id.split('/')
-      const authorLabel = author === 'video' ? 'TikTok' : author
+      const authorLabel =
+        author === 'video' ? null : author.startsWith('@') ? author : `@${author.replace(/^@/, '')}`
       return {
         normalizedUrl,
         provider: parsed.provider.name,
         kind: inferReferenceKind(parsed.provider),
         refId: parsed.id,
-        title: `${authorLabel} video`,
-        subtitle: videoId,
+        title: authorLabel ? `TikTok video from ${authorLabel}` : 'TikTok video',
+        subtitle: parsed.provider.displayName,
         icon: 'TT',
         embedUrl: parsed.embedUrl,
         metadata: {

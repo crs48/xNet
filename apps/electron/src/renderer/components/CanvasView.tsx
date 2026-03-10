@@ -312,7 +312,7 @@ function renderNodeCard(
 
   return (
     <div
-      className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background/95 p-4 shadow-lg shadow-black/5"
+      className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
       data-canvas-node-card="true"
       data-canvas-card-kind={displayType}
       data-canvas-theme={themeMode}

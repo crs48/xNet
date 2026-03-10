@@ -29,6 +29,7 @@ vi.mock('@xnetjs/react', () => ({
 beforeAll(() => {
   class ResizeObserverMock {
     observe() {}
+    unobserve() {}
     disconnect() {}
   }
 

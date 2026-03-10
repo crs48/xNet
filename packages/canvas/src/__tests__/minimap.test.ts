@@ -6,6 +6,7 @@
 
 import type { CanvasNode, CanvasEdge } from '../types'
 import { describe, it, expect } from 'vitest'
+import { getNodeMinimapColor } from '../components/Minimap'
 import { Viewport } from '../spatial/index'
 
 function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
@@ -45,30 +46,29 @@ describe('Minimap', () => {
   describe('node color mapping', () => {
     it('returns correct color for page nodes', () => {
       const node = createTestNode('n1', 0, 0, 100, 50, 'page')
-      // Color is determined by node type in the component
-      expect(node.type).toBe('page')
+      expect(getNodeMinimapColor(node)).toBe('rgba(59, 130, 246, 0.7)')
     })
 
     it('returns correct color for shape nodes', () => {
       const node = createTestNode('n1', 0, 0, 100, 50, 'shape')
-      expect(node.type).toBe('shape')
+      expect(getNodeMinimapColor(node)).toBe('rgba(245, 158, 11, 0.7)')
     })
 
     it('returns correct color for media nodes', () => {
       const node = createTestNode('n1', 0, 0, 100, 50, 'media')
-      expect(node.type).toBe('media')
+      expect(getNodeMinimapColor(node)).toBe('rgba(139, 92, 246, 0.7)')
     })
 
     it('returns correct color for frame groups', () => {
       const node = createTestNode('n1', 0, 0, 100, 50, 'group', {
         containerRole: 'frame'
       })
-      expect(node.properties.containerRole).toBe('frame')
+      expect(getNodeMinimapColor(node)).toBe('rgba(16, 185, 129, 0.5)')
     })
 
     it('returns correct color for group nodes', () => {
       const node = createTestNode('n1', 0, 0, 100, 50, 'group')
-      expect(node.type).toBe('group')
+      expect(getNodeMinimapColor(node)).toBe('rgba(107, 114, 128, 0.3)')
     })
   })
 
@@ -245,8 +245,8 @@ describe('Minimap', () => {
       ]
 
       const sortedNodes = [...nodes].sort((a, b) => {
-        const aIsContainer = a.type === 'group'
-        const bIsContainer = b.type === 'group'
+        const aIsContainer = a.type === 'group' || a.properties?.containerRole === 'frame'
+        const bIsContainer = b.type === 'group' || b.properties?.containerRole === 'frame'
         if (aIsContainer && !bIsContainer) return -1
         if (!aIsContainer && bIsContainer) return 1
         return 0

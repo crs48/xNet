@@ -137,7 +137,7 @@ export function CanvasInlinePageSurface({
 
   return (
     <div
-      className={`flex h-full flex-col border border-border/60 bg-background/95 shadow-lg shadow-black/5 ${
+      className={`flex h-full flex-col border border-border/60 bg-background shadow-lg shadow-black/5 ${
         mode === 'peek' ? 'rounded-[28px] shadow-2xl shadow-black/10' : 'rounded-[22px]'
       }`}
       data-canvas-page-surface="true"
