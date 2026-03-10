@@ -492,9 +492,21 @@ async function getCanvasThemeDiagnostics(page: Page): Promise<{
   surfaceTheme: string | null
   navigationTheme: string | null
   minimapTheme: string | null
+  homeBadgeTheme: string | null
+  selectionHudTheme: string | null
+  inlinePageTheme: string | null
+  databaseTheme: string | null
+  peekTheme: string | null
+  peekBackdropTheme: string | null
   surfaceBackground: string
   navigationBackground: string
   minimapDismissBackground: string
+  homeBadgeBackground: string | null
+  selectionHudBackground: string | null
+  inlinePageBackground: string | null
+  databaseBackground: string | null
+  peekBackground: string | null
+  peekBackdropBackground: string | null
 }> {
   return page.evaluate(() => {
     const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
@@ -508,13 +520,32 @@ async function getCanvasThemeDiagnostics(page: Page): Promise<{
       throw new Error('Canvas theme diagnostics are not ready')
     }
 
+    const getTheme = (selector: string): string | null =>
+      document.querySelector<HTMLElement>(selector)?.dataset.canvasTheme ?? null
+    const getBackground = (selector: string): string | null => {
+      const element = document.querySelector<HTMLElement>(selector)
+      return element ? window.getComputedStyle(element).backgroundColor : null
+    }
+
     return {
       surfaceTheme: surface.dataset.canvasTheme ?? null,
       navigationTheme: navigationTools.dataset.canvasTheme ?? null,
       minimapTheme: minimap.dataset.canvasTheme ?? null,
+      homeBadgeTheme: getTheme('[data-canvas-home-badge="true"]'),
+      selectionHudTheme: getTheme('[data-canvas-selection-hud="true"]'),
+      inlinePageTheme: getTheme('[data-canvas-page-surface="true"]'),
+      databaseTheme: getTheme('[data-canvas-database-surface="true"]'),
+      peekTheme: getTheme('[data-canvas-peek-surface="true"]'),
+      peekBackdropTheme: getTheme('[data-canvas-peek-backdrop="true"]'),
       surfaceBackground: window.getComputedStyle(surface).backgroundColor,
       navigationBackground: window.getComputedStyle(navigationTools).backgroundColor,
-      minimapDismissBackground: window.getComputedStyle(minimapDismissButton).backgroundColor
+      minimapDismissBackground: window.getComputedStyle(minimapDismissButton).backgroundColor,
+      homeBadgeBackground: getBackground('[data-canvas-home-badge="true"]'),
+      selectionHudBackground: getBackground('[data-canvas-selection-hud="true"]'),
+      inlinePageBackground: getBackground('[data-canvas-page-surface="true"]'),
+      databaseBackground: getBackground('[data-canvas-database-surface="true"]'),
+      peekBackground: getBackground('[data-canvas-peek-surface="true"]'),
+      peekBackdropBackground: getBackground('[data-canvas-peek-backdrop="true"]')
     }
   })
 }
@@ -683,27 +714,91 @@ test.describe('Electron canvas shell', () => {
     expect(darkDiagnostics.surfaceTheme).toBe('dark')
     expect(darkDiagnostics.navigationTheme).toBe('dark')
     expect(darkDiagnostics.minimapTheme).toBe('dark')
+    expect(darkDiagnostics.homeBadgeTheme).toBe('dark')
+
+    const pageCountBefore = await getCanvasNodeCount(page, 'page')
+    await page.getByRole('button', { name: 'Page' }).click({ force: true })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'page')).toBe(pageCountBefore + 1)
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', pageCountBefore)
+    await expect(page.locator('[data-canvas-page-surface="true"]').first()).toBeVisible({
+      timeout: 30_000
+    })
+    await expect(page.locator('[data-canvas-selection-hud="true"]')).toBeVisible({
+      timeout: 30_000
+    })
+    await page.locator('[data-canvas-selection-action="peek"]').first().click()
+    await expect(page.locator('[data-canvas-peek-surface="true"]')).toBeVisible({
+      timeout: 30_000
+    })
+
+    const darkContentDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(darkContentDiagnostics.inlinePageTheme).toBe('dark')
+    expect(darkContentDiagnostics.selectionHudTheme).toBe('dark')
+    expect(darkContentDiagnostics.peekTheme).toBe('dark')
+    expect(darkContentDiagnostics.peekBackdropTheme).toBe('dark')
 
     await setElectronTheme(page, 'light')
 
     await expect
       .poll(async () => (await getCanvasThemeDiagnostics(page)).surfaceTheme, { timeout: 30_000 })
       .toBe('light')
+    await expect
+      .poll(async () => (await getCanvasThemeDiagnostics(page)).peekTheme, { timeout: 30_000 })
+      .toBe('light')
 
     const lightDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(lightDiagnostics.homeBadgeTheme).toBe('light')
     expect(lightDiagnostics.navigationTheme).toBe('light')
     expect(lightDiagnostics.minimapTheme).toBe('light')
+    expect(lightDiagnostics.inlinePageTheme).toBe('light')
+    expect(lightDiagnostics.selectionHudTheme).toBe('light')
+    expect(lightDiagnostics.peekTheme).toBe('light')
+    expect(lightDiagnostics.peekBackdropTheme).toBe('light')
     expect(lightDiagnostics.surfaceBackground).not.toBe(darkDiagnostics.surfaceBackground)
     expect(lightDiagnostics.navigationBackground).not.toBe(darkDiagnostics.navigationBackground)
     expect(lightDiagnostics.minimapDismissBackground).not.toBe(
       darkDiagnostics.minimapDismissBackground
     )
+    expect(lightDiagnostics.homeBadgeBackground).not.toBe(darkDiagnostics.homeBadgeBackground)
+    expect(lightDiagnostics.inlinePageBackground).not.toBe(
+      darkContentDiagnostics.inlinePageBackground
+    )
+
+    await page.locator('[data-canvas-peek-close="true"]').first().click()
+    await expect(page.locator('[data-canvas-peek-surface="true"]')).toHaveCount(0, {
+      timeout: 30_000
+    })
+    const databaseCountBefore = await getCanvasNodeCount(page, 'database')
+    await page.getByRole('button', { name: 'Database' }).click({ force: true })
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'database'))
+      .toBe(databaseCountBefore + 1)
+    await selectCanvasNode(page, '.canvas-node[data-node-type="database"]', databaseCountBefore)
+    await expect(page.locator('[data-canvas-database-surface="true"]').first()).toBeVisible({
+      timeout: 30_000
+    })
+    const lightDatabaseDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(lightDatabaseDiagnostics.databaseTheme).toBe('light')
 
     await setElectronTheme(page, 'dark')
 
     await expect
       .poll(async () => (await getCanvasThemeDiagnostics(page)).surfaceTheme, { timeout: 30_000 })
       .toBe('dark')
+    await expect
+      .poll(async () => (await getCanvasThemeDiagnostics(page)).databaseTheme, { timeout: 30_000 })
+      .toBe('dark')
+
+    const restoredDarkDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(restoredDarkDiagnostics.databaseTheme).toBe('dark')
+    expect(restoredDarkDiagnostics.databaseBackground).not.toBe(
+      lightDatabaseDiagnostics.databaseBackground
+    )
+
+    await page.screenshot({
+      path: 'tmp/playwright/electron-canvas-themes.png',
+      fullPage: true
+    })
   })
 
   test('creates page, database, and note objects while keeping the home shell lightweight', async () => {

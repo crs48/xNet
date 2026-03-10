@@ -181,6 +181,12 @@ export type {
   CanvasRemoteUser,
   CanvasNodeRenderContext
 } from './renderer/Canvas'
+export {
+  useCanvasThemeTokens,
+  resolveCanvasThemeMode,
+  resolveCanvasThemeTokens
+} from './theme/canvas-theme'
+export type { CanvasThemeMode, CanvasThemeTokens } from './theme/canvas-theme'
 
 export { CanvasNodeComponent, calculateLOD } from './nodes/CanvasNodeComponent'
 export type { CanvasNodeProps, NodeRemoteUser, LODLevel } from './nodes/CanvasNodeComponent'

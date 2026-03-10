@@ -148,9 +148,15 @@ async function getCanvasThemeDiagnostics(page: import('@playwright/test').Page):
   surfaceTheme: string | null
   navigationTheme: string | null
   minimapTheme: string | null
+  hintTheme: string | null
+  emptyStateTheme: string | null
+  firstCardTheme: string | null
   surfaceBackground: string
   navigationBackground: string
   minimapDismissBackground: string
+  hintBackground: string | null
+  emptyStateBackground: string | null
+  firstCardBackground: string | null
 }> {
   return page.evaluate(() => {
     const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
@@ -164,13 +170,26 @@ async function getCanvasThemeDiagnostics(page: import('@playwright/test').Page):
       throw new Error('Canvas theme diagnostics are not ready')
     }
 
+    const getTheme = (selector: string): string | null =>
+      document.querySelector<HTMLElement>(selector)?.dataset.canvasTheme ?? null
+    const getBackground = (selector: string): string | null => {
+      const element = document.querySelector<HTMLElement>(selector)
+      return element ? window.getComputedStyle(element).backgroundColor : null
+    }
+
     return {
       surfaceTheme: surface.dataset.canvasTheme ?? null,
       navigationTheme: navigationTools.dataset.canvasTheme ?? null,
       minimapTheme: minimap.dataset.canvasTheme ?? null,
+      hintTheme: getTheme('[data-web-canvas-hint="true"]'),
+      emptyStateTheme: getTheme('[data-web-canvas-empty-state="true"]'),
+      firstCardTheme: getTheme('[data-canvas-node-card="true"]'),
       surfaceBackground: window.getComputedStyle(surface).backgroundColor,
       navigationBackground: window.getComputedStyle(navigationTools).backgroundColor,
-      minimapDismissBackground: window.getComputedStyle(minimapDismissButton).backgroundColor
+      minimapDismissBackground: window.getComputedStyle(minimapDismissButton).backgroundColor,
+      hintBackground: getBackground('[data-web-canvas-hint="true"]'),
+      emptyStateBackground: getBackground('[data-web-canvas-empty-state="true"]'),
+      firstCardBackground: getBackground('[data-canvas-node-card="true"]')
     }
   })
 }
@@ -189,11 +208,23 @@ test.describe('Web canvas ingestion', () => {
     await expect(surface).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('.navigation-tools')).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('[data-canvas-minimap="true"]')).toBeVisible({ timeout: 30_000 })
+    await expect(page.locator('[data-web-canvas-empty-state="true"]')).toBeVisible({
+      timeout: 30_000
+    })
 
     const lightDiagnostics = await getCanvasThemeDiagnostics(page)
     expect(lightDiagnostics.surfaceTheme).toBe('light')
     expect(lightDiagnostics.navigationTheme).toBe('light')
     expect(lightDiagnostics.minimapTheme).toBe('light')
+    expect(lightDiagnostics.hintTheme).toBe('light')
+    expect(lightDiagnostics.emptyStateTheme).toBe('light')
+
+    await page.getByRole('button', { name: 'Note' }).click()
+    await expect(page.locator('[data-canvas-node-card="true"]').first()).toBeVisible({
+      timeout: 30_000
+    })
+    const lightCardDiagnostics = await getCanvasThemeDiagnostics(page)
+    expect(lightCardDiagnostics.firstCardTheme).toBe('light')
 
     await page.evaluate(() => {
       localStorage.setItem('xnet-web-theme', 'dark')
@@ -208,11 +239,14 @@ test.describe('Web canvas ingestion', () => {
     const darkDiagnostics = await getCanvasThemeDiagnostics(page)
     expect(darkDiagnostics.navigationTheme).toBe('dark')
     expect(darkDiagnostics.minimapTheme).toBe('dark')
+    expect(darkDiagnostics.hintTheme).toBe('dark')
+    expect(darkDiagnostics.firstCardTheme).toBe('dark')
     expect(darkDiagnostics.surfaceBackground).not.toBe(lightDiagnostics.surfaceBackground)
     expect(darkDiagnostics.navigationBackground).not.toBe(lightDiagnostics.navigationBackground)
     expect(darkDiagnostics.minimapDismissBackground).not.toBe(
       lightDiagnostics.minimapDismissBackground
     )
+    expect(darkDiagnostics.firstCardBackground).not.toBe(lightCardDiagnostics.firstCardBackground)
 
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-themes.png',

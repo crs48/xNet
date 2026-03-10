@@ -16,6 +16,7 @@ import {
   Canvas,
   extractCanvasIngressPayloads,
   getSelectionBounds,
+  useCanvasThemeTokens,
   useCanvasObjectIngestion
 } from '@xnetjs/canvas'
 import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
@@ -127,7 +128,11 @@ function isPeekableCanvasDisplayType(
   return displayType === 'page' || displayType === 'database' || displayType === 'note'
 }
 
-function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.ReactElement {
+function renderNodeCard(
+  node: CanvasNode,
+  document: LinkedDocumentItem | undefined,
+  themeMode: 'light' | 'dark'
+): React.ReactElement {
   const displayType = getCanvasViewDisplayType(node, document)
   const sourceId = getCanvasShellSourceId(node)
   const linkedTitle =
@@ -173,7 +178,12 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
               : 'Dropped media or file'
 
   return (
-    <div className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background/95 p-4 shadow-lg shadow-black/5">
+    <div
+      className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background/95 p-4 shadow-lg shadow-black/5"
+      data-canvas-node-card="true"
+      data-canvas-card-kind={displayType}
+      data-canvas-theme={themeMode}
+    >
       <div className="flex items-start justify-between gap-3">
         <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
           <Icon size={12} />
@@ -274,6 +284,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     createIfMissing: { title: 'Untitled Canvas' },
     did: did ?? undefined
   })
+  const theme = useCanvasThemeTokens()
 
   const canvasRef = useRef<CanvasHandle>(null)
   const handledInsertIdsRef = useRef<Set<string>>(new Set())
@@ -762,8 +773,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }
 
   return (
-    <div className="relative h-full flex-1 overflow-hidden">
-      <div className="pointer-events-none absolute left-6 top-6 z-20 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl">
+    <div className="relative h-full flex-1 overflow-hidden" data-canvas-theme={theme.mode}>
+      <div
+        className="pointer-events-none absolute left-6 top-6 z-20 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl"
+        data-canvas-home-badge="true"
+        data-canvas-theme={theme.mode}
+      >
         {canvas?.title || 'Workspace Canvas'}
       </div>
 
@@ -775,6 +790,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             data-canvas-selection-count={selection.nodeIds.length}
             data-canvas-selection-type={selectedCanvasObject?.displayType ?? 'mixed'}
             data-canvas-selection-all-locked={selectionAllLocked ? 'true' : 'false'}
+            data-canvas-theme={theme.mode}
           >
             <span className="truncate px-2 text-sm text-foreground">
               {selectedCanvasObject
@@ -956,6 +972,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           <div
             className="pointer-events-auto rounded-[28px] border border-border/60 bg-background/90 p-5 shadow-2xl shadow-black/10 backdrop-blur-xl"
             data-canvas-shortcut-help="true"
+            data-canvas-theme={theme.mode}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1009,10 +1026,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-6">
           <button
             type="button"
-            className="pointer-events-auto absolute inset-0 bg-slate-950/18 backdrop-blur-[2px]"
+            className="pointer-events-auto absolute inset-0 bg-black/12 backdrop-blur-[2px] dark:bg-black/38"
             onClick={closePeekSurface}
             aria-label="Close canvas peek"
             data-canvas-peek-backdrop="true"
+            data-canvas-theme={theme.mode}
           />
 
           <div
@@ -1021,6 +1039,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             data-canvas-peek-kind={peekedCanvasObject.displayType}
             data-canvas-peek-node-id={peekedCanvasObject.node.id}
             data-canvas-peek-source-id={peekedCanvasObject.sourceId}
+            data-canvas-theme={theme.mode}
           >
             <div className="mb-3 flex items-center justify-between gap-3 px-2 pt-1">
               <div className="flex items-center gap-2">
@@ -1074,7 +1093,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
       {!hasNodes ? (
         <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 w-full max-w-xl -translate-x-1/2 px-6">
-          <div className="mx-auto rounded-[28px] border border-border/60 bg-background/70 px-5 py-4 text-center shadow-2xl shadow-black/5 backdrop-blur-xl">
+          <div
+            className="mx-auto rounded-[28px] border border-border/60 bg-background/70 px-5 py-4 text-center shadow-2xl shadow-black/5 backdrop-blur-xl"
+            data-canvas-empty-state="true"
+            data-canvas-theme={theme.mode}
+          >
             <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Create from the bottom dock, double-click any linked card to open it, and use the
@@ -1153,7 +1176,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
               node.type === 'media' ||
               shouldRenderCanvasShellCard(node, linkedDocument)
             ) {
-              return renderNodeCard(node, linkedDocument)
+              return renderNodeCard(node, linkedDocument, theme.mode)
             }
             return undefined
           }}

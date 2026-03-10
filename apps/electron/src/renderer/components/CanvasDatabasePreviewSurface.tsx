@@ -1,5 +1,6 @@
 import type { CanvasNode } from '@xnetjs/canvas'
 import type { CellValue, ColumnDefinition } from '@xnetjs/data'
+import { useCanvasThemeTokens } from '@xnetjs/canvas'
 import { DatabaseSchema } from '@xnetjs/data'
 import { useDatabase, useDatabaseDoc, useIdentity, useNode } from '@xnetjs/react'
 import { Database, LayoutGrid, Plus, Rows3 } from 'lucide-react'
@@ -120,6 +121,7 @@ export function CanvasDatabasePreviewSurface({
   onOpenDocument,
   onSplitDocument
 }: CanvasDatabasePreviewSurfaceProps): React.ReactElement {
+  const theme = useCanvasThemeTokens()
   const { did } = useIdentity()
   const {
     data: database,
@@ -314,6 +316,7 @@ export function CanvasDatabasePreviewSurface({
       data-canvas-database-surface-mode={mode}
       data-canvas-database-empty={isEmpty ? 'true' : 'false'}
       data-canvas-source-id={docId}
+      data-canvas-theme={theme.mode}
     >
       <div className="flex items-start justify-between gap-3 border-b border-border/50 px-4 py-3">
         <div className="min-w-0 flex-1 space-y-3">

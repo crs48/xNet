@@ -1,5 +1,6 @@
 import type { CanvasNode } from '@xnetjs/canvas'
 import type { TaskMentionSuggestion } from '@xnetjs/editor/react'
+import { useCanvasThemeTokens } from '@xnetjs/canvas'
 import { PageSchema } from '@xnetjs/data'
 import {
   RichTextEditor,
@@ -71,6 +72,7 @@ export function CanvasInlinePageSurface({
   mode = 'inline',
   onOpenDocument
 }: CanvasInlinePageSurfaceProps): React.ReactElement {
+  const theme = useCanvasThemeTokens()
   const { did } = useIdentity()
   const onImageUpload = useImageUpload()
   const onFileUpload = useFileUpload()
@@ -126,6 +128,7 @@ export function CanvasInlinePageSurface({
       data-canvas-page-surface-mode={mode}
       data-canvas-page-variant={variant}
       data-canvas-source-id={docId}
+      data-canvas-theme={theme.mode}
     >
       <div className="flex items-center justify-between gap-3 border-b border-border/50 px-4 py-3">
         <div className="min-w-0 flex-1">
