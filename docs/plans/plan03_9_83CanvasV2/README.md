@@ -232,6 +232,7 @@ flowchart LR
   - no unexpected editor/table mounts on the home canvas
   - frame/query telemetry capture
   - chunk load/evict timing and minimap responsiveness
+  - long-span pan and zoom sweeps across a shared `72 x 54` seeded fixture (`3,969` nodes)
 - Keep performance gates tied to reproducible synthetic scenes and explicit thresholds recorded in PR notes.
 
 ## Step Index
@@ -284,12 +285,12 @@ flowchart LR
 - [x] Dropping a URL creates or reuses an `ExternalReference` node and renders the correct fallback chain.
 - [x] Dropping an image or file creates a reusable media node and preserves it after reload.
 - [x] Web Playwright smoke coverage verifies URL and image drops create source-backed canvas objects.
-- [x] Pan/zoom remains smooth on large scenes with chunk load/evict active.
+- [x] Pan/zoom remains smooth on large scenes with chunk load/evict active, including wide camera sweeps and zoom passes across the shared `3,969`-node fixture.
 - [x] The background grid and minimap remain outside the main DOM path.
 - [x] Far-field objects do not mount rich editors or oversized DOM subtrees.
 - [x] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.
 - [x] Electron and web e2e coverage verify direct drag-to-connect object creation.
-- [x] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
+- [x] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, query churn, and wide-span pan/zoom behavior.
 - [x] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.
 - [x] Undo/redo behaves correctly across canvas-object moves and inline content edits.
 - [x] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.

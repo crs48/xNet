@@ -88,13 +88,17 @@ Track:
 
 Current seeded-scene gate for Electron CDP:
 
-- shared dense scene fixture with `48 x 36` content objects plus cluster groups (`1,800` total nodes),
+- shared wide-scene fixture with `72 x 54` content objects plus cluster groups (`3,969` total nodes)
+  spanning more than `70,000 x 40,000` canvas units,
 - visible home-surface DOM nodes stay under `120` locally and under `180` in CI,
 - active query count stays at or below `5`,
 - no `contenteditable` or `table` mounts appear on the home canvas,
 - minimap hide/show and minimap click navigation both remain responsive,
-- requestAnimationFrame pan samples stay under `24ms` average / `50ms` max locally and
-  `40ms` average / `80ms` max in CI.
+- web wide-sweep pan/zoom samples stay under `24ms` average / `55ms` max locally and
+  `40ms` average / `90ms` max in CI,
+- Electron wide-sweep pan samples stay under `24ms` average locally with a capped worst frame under
+  `100ms` locally / `140ms` in CI, while dropped-frame percentage stays under `45%` locally /
+  `65%` in CI.
 
 The release process should include both:
 
@@ -186,12 +190,14 @@ Automated validation should include:
   - URL drops creating source-backed `ExternalReference` cards
   - image/file drops creating source-backed `MediaAsset` cards
   - pointer-driven resize flows that keep canvas activity diagnostics and persisted geometry in sync
+  - very large seeded scenes with explicit far-camera pan and zoom sweeps while DOM stays bounded
 - Electron CDP performance coverage for:
-  - dense seeded scenes
+  - very large seeded scenes
   - bounded DOM node counts
   - no editor/table mounts on the home surface
   - minimap interaction under load
   - query/frame telemetry capture
+  - explicit wide-span pan and zoom sweep budgets
 - Shared shell regression coverage for:
   - keyboard focus return after dismissing transient UI
   - Home/End and Tab object traversal on the canvas surface

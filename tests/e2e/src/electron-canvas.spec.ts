@@ -29,6 +29,38 @@ const MAX_LOG_LINES = 200
 const electronStdoutLines: string[] = []
 const electronStderrLines: string[] = []
 
+type CanvasPerformanceSceneInput = {
+  canvasId?: string
+  title?: string
+  columns?: number
+  rows?: number
+  startX?: number
+  startY?: number
+  horizontalGap?: number
+  verticalGap?: number
+  clusterColumns?: number
+  clusterRows?: number
+  clusterGapX?: number
+  clusterGapY?: number
+}
+
+type CanvasFrameBudgetInput = {
+  canvasId?: string
+  steps?: number
+  deltaX?: number
+  deltaY?: number
+  mode?: 'pan' | 'zoom' | 'mixed'
+  zoomDeltaY?: number
+  zoomEvery?: number
+}
+
+type CanvasViewportInput = {
+  canvasId?: string
+  x: number
+  y: number
+  zoom?: number
+}
+
 test.skip(
   ({ browserName }) => browserName !== 'chromium',
   'Electron CDP validation only runs on Chromium'
@@ -344,14 +376,7 @@ async function getContentEditableCount(page: Page): Promise<number> {
 
 async function seedPerformanceScene(
   page: Page,
-  input: {
-    canvasId?: string
-    title?: string
-    columns?: number
-    rows?: number
-    clusterColumns?: number
-    clusterRows?: number
-  } = {}
+  input: CanvasPerformanceSceneInput = {}
 ): Promise<{
   canvasId: string
   title: string
@@ -612,12 +637,7 @@ async function setElectronTheme(page: Page, theme: 'light' | 'dark' | 'system'):
 
 async function measureCanvasFrameBudget(
   page: Page,
-  input: {
-    canvasId?: string
-    steps?: number
-    deltaX?: number
-    deltaY?: number
-  } = {}
+  input: CanvasFrameBudgetInput = {}
 ): Promise<{
   frameCount: number
   averageFrameTime: number
@@ -759,15 +779,7 @@ async function getCanvasNodeCount(page: Page, type: string): Promise<number> {
   return page.locator(`.canvas-node[data-node-type="${type}"]`).count()
 }
 
-async function setCanvasViewport(
-  page: Page,
-  input: {
-    canvasId?: string
-    x: number
-    y: number
-    zoom?: number
-  }
-): Promise<void> {
+async function setCanvasViewport(page: Page, input: CanvasViewportInput): Promise<void> {
   await page.evaluate(async (viewportInput) => {
     const harness = (
       window as Window & {
@@ -2227,7 +2239,7 @@ test.describe('Electron canvas shell', () => {
     })
   })
 
-  test('keeps dense seeded scenes virtualized while minimap and query metrics stay stable', async () => {
+  test('keeps very large seeded scenes virtualized while minimap, query, and pan/zoom budgets stay stable', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!
     await expect
@@ -2239,18 +2251,51 @@ test.describe('Electron canvas shell', () => {
 
     const seededScene = await seedPerformanceScene(page, {
       canvasId: activeCanvasId ?? undefined,
-      title: 'Canvas Performance Validation',
-      columns: 48,
-      rows: 36,
-      clusterColumns: 6,
-      clusterRows: 4
+      title: 'Canvas Large-Scene Performance Validation',
+      columns: 72,
+      rows: 54,
+      startX: -72_000,
+      startY: -48_000,
+      horizontalGap: 960,
+      verticalGap: 720,
+      clusterColumns: 8,
+      clusterRows: 6,
+      clusterGapX: 760,
+      clusterGapY: 640
     })
+    expect(seededScene.nodeCount).toBeGreaterThan(3_900)
+    expect(seededScene.bounds.width).toBeGreaterThan(70_000)
+    expect(seededScene.bounds.height).toBeGreaterThan(40_000)
 
     await expect
       .poll(async () => (await getCanvasShellMetrics(page)).nodeCount, {
         timeout: 30_000
       })
       .toBe(seededScene.nodeCount)
+
+    const sweepStartViewport = {
+      canvasId: activeCanvasId ?? undefined,
+      x: seededScene.bounds.x + 1_600,
+      y: seededScene.bounds.y + 1_100,
+      zoom: 0.86
+    }
+    await setCanvasViewport(page, sweepStartViewport)
+
+    await expect
+      .poll(async () => {
+        const metrics = await getCanvasShellMetrics(page)
+        return (
+          Math.abs(metrics.viewportX - sweepStartViewport.x) < 1 &&
+          Math.abs(metrics.viewportY - sweepStartViewport.y) < 1 &&
+          Math.abs(metrics.viewportZoom - (sweepStartViewport.zoom ?? 1)) < 0.01
+        )
+      })
+      .toBe(true)
+    await expect
+      .poll(async () => (await getCanvasShellMetrics(page)).canvasNodeElements, {
+        timeout: 30_000
+      })
+      .toBeGreaterThan(0)
 
     await logShellDebugState(page, 'after-seed-performance-scene')
 
@@ -2356,18 +2401,122 @@ test.describe('Electron canvas shell', () => {
     }
     expect(postMinimapQueryIds).toEqual(initialQueryIds)
 
-    const frameBudget = await measureCanvasFrameBudget(page, {
+    await setCanvasViewport(page, sweepStartViewport)
+
+    await expect
+      .poll(async () => {
+        const metrics = await getCanvasShellMetrics(page)
+        return (
+          Math.abs(metrics.viewportX - sweepStartViewport.x) < 1 &&
+          Math.abs(metrics.viewportY - sweepStartViewport.y) < 1 &&
+          Math.abs(metrics.viewportZoom - (sweepStartViewport.zoom ?? 1)) < 0.01
+        )
+      })
+      .toBe(true)
+
+    await measureCanvasFrameBudget(page, {
       canvasId: activeCanvasId ?? undefined,
-      steps: 18
+      steps: 4,
+      deltaX: 280,
+      deltaY: 220,
+      mode: 'pan'
+    })
+    await setCanvasViewport(page, sweepStartViewport)
+    await expect
+      .poll(async () => {
+        const metrics = await getCanvasShellMetrics(page)
+        return (
+          Math.abs(metrics.viewportX - sweepStartViewport.x) < 1 &&
+          Math.abs(metrics.viewportY - sweepStartViewport.y) < 1 &&
+          Math.abs(metrics.viewportZoom - (sweepStartViewport.zoom ?? 1)) < 0.01
+        )
+      })
+      .toBe(true)
+
+    const prePanMetrics = await getCanvasShellMetrics(page)
+    const panBudget = await measureCanvasFrameBudget(page, {
+      canvasId: activeCanvasId ?? undefined,
+      steps: 28,
+      deltaX: 640,
+      deltaY: 480,
+      mode: 'pan'
     })
 
-    expect(frameBudget.frameCount).toBeGreaterThan(0)
-    expect(frameBudget.averageFrameTime).toBeLessThan(getPerformanceBudget(24, 40))
-    expect(frameBudget.maxFrameTime).toBeLessThan(getPerformanceBudget(50, 80))
-    expect(frameBudget.droppedFramePercent).toBeLessThan(getPerformanceBudget(45, 65))
+    expect(panBudget.frameCount).toBeGreaterThan(0)
+    expect(panBudget.averageFrameTime).toBeLessThan(getPerformanceBudget(24, 40))
+    expect(panBudget.maxFrameTime).toBeLessThan(getPerformanceBudget(100, 140))
+    expect(panBudget.droppedFramePercent).toBeLessThan(getPerformanceBudget(45, 65))
+
+    const postPanMetrics = await getCanvasShellMetrics(page)
+    const postPanQueryIds = [...(await getActiveQueryDiagnostics(page))]
+      .map((query) => query.id)
+      .sort()
+    expect(Math.abs(postPanMetrics.viewportX - prePanMetrics.viewportX)).toBeGreaterThan(12_000)
+    expect(Math.abs(postPanMetrics.viewportY - prePanMetrics.viewportY)).toBeGreaterThan(9_000)
+    expect(postPanMetrics.visibleNodeCount).toBeLessThan(getPerformanceBudget(120, 180))
+    expect(postPanMetrics.domNodeCount).toBeLessThanOrEqual(postPanMetrics.visibleNodeCount)
+    expect(postPanMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(postPanMetrics.canvasNodeElements).toBe(postPanMetrics.domNodeCount)
+    expect(postPanMetrics.contentEditableElements).toBe(0)
+    expect(postPanMetrics.tableElements).toBe(0)
+    expect(postPanMetrics.minimapRenderMode).toBe('aggregated')
+    expect(postPanMetrics.performanceEnabled).toBe(true)
+    expect(postPanQueryIds).toEqual(initialQueryIds)
+
+    const sweepEndViewport = {
+      canvasId: activeCanvasId ?? undefined,
+      x: seededScene.bounds.x + seededScene.bounds.width - 1_600,
+      y: seededScene.bounds.y + seededScene.bounds.height - 1_100,
+      zoom: 0.72
+    }
+    await setCanvasViewport(page, sweepEndViewport)
+
+    await expect
+      .poll(async () => {
+        const metrics = await getCanvasShellMetrics(page)
+        return (
+          Math.abs(metrics.viewportX - sweepEndViewport.x) < 1 &&
+          Math.abs(metrics.viewportY - sweepEndViewport.y) < 1 &&
+          Math.abs(metrics.viewportZoom - (sweepEndViewport.zoom ?? 1)) < 0.01
+        )
+      })
+      .toBe(true)
+    await expect
+      .poll(async () => (await getCanvasShellMetrics(page)).visibleNodeCount, {
+        timeout: 30_000
+      })
+      .toBeGreaterThan(0)
+
+    const preZoomMetrics = await getCanvasShellMetrics(page)
+    const zoomBudget = await measureCanvasFrameBudget(page, {
+      canvasId: activeCanvasId ?? undefined,
+      steps: 16,
+      mode: 'zoom',
+      zoomDeltaY: -8
+    })
+
+    expect(zoomBudget.frameCount).toBeGreaterThan(0)
+    expect(zoomBudget.averageFrameTime).toBeLessThan(getPerformanceBudget(24, 40))
+    expect(zoomBudget.maxFrameTime).toBeLessThan(getPerformanceBudget(50, 80))
+    expect(zoomBudget.droppedFramePercent).toBeLessThan(getPerformanceBudget(45, 65))
+
+    const postZoomMetrics = await getCanvasShellMetrics(page)
+    const postZoomQueryIds = [...(await getActiveQueryDiagnostics(page))]
+      .map((query) => query.id)
+      .sort()
+    expect(postZoomMetrics.viewportZoom).toBeGreaterThan(preZoomMetrics.viewportZoom + 0.2)
+    expect(postZoomMetrics.visibleNodeCount).toBeLessThan(getPerformanceBudget(120, 180))
+    expect(postZoomMetrics.domNodeCount).toBeLessThanOrEqual(postZoomMetrics.visibleNodeCount)
+    expect(postZoomMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(postZoomMetrics.canvasNodeElements).toBe(postZoomMetrics.domNodeCount)
+    expect(postZoomMetrics.contentEditableElements).toBe(0)
+    expect(postZoomMetrics.tableElements).toBe(0)
+    expect(postZoomMetrics.minimapRenderMode).toBe('aggregated')
+    expect(postZoomMetrics.performanceEnabled).toBe(true)
+    expect(postZoomQueryIds).toEqual(initialQueryIds)
 
     await page.screenshot({
-      path: `${ROOT}/tmp/playwright/electron-canvas-performance-scene.png`,
+      path: `${ROOT}/tmp/playwright/electron-canvas-large-scene-performance.png`,
       fullPage: true
     })
   })

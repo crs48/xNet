@@ -13,7 +13,7 @@ Canvas V2 is green on the current automated Electron-first gate.
 - the Electron shell is already running Canvas V2 as the active canvas-home path,
 - the focused renderer tests, Storybook workbench build, Electron build, and web build all clear,
 - the Electron canvas suite and shared web canvas suite both clear on the current object model,
-- dense-scene frame, DOM, minimap, and query assertions stay inside the current thresholds.
+- large-scene frame, DOM, minimap, query, and zoom assertions stay inside the current thresholds.
 
 ```mermaid
 flowchart LR
@@ -54,14 +54,15 @@ and is responsible for:
 
 The automated gate currently treats these as the non-negotiable runtime checks:
 
-| Area                   | Threshold                                                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Dense home-surface DOM | under `120` locally and under `180` in CI                                                                                        |
-| Active query count     | at or below `5` on the dense scene gate                                                                                          |
-| Home-surface editors   | no `contenteditable` or table mounts on the seeded home canvas                                                                   |
-| Frame pacing           | average and max requestAnimationFrame samples remain within the Canvas V2 performance budgets recorded in the Electron perf test |
-| Minimap responsiveness | minimap hide/show and click navigation stay responsive under the dense-scene harness                                             |
-| Theme integrity        | shared canvas chrome remains correct in both light and dark themes                                                               |
+| Area                   | Threshold                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Dense home-surface DOM | under `120` locally and under `180` in CI                                                                                             |
+| Active query count     | at or below `5` on the dense scene gate                                                                                               |
+| Home-surface editors   | no `contenteditable` or table mounts on the seeded home canvas                                                                        |
+| Large-scene fixture    | shared `72 x 54` seeded fixture with cluster groups (`3,969` total nodes) spanning more than `70,000 x 40,000` canvas units           |
+| Frame pacing           | web sweeps stay under `24/55ms` average/max locally (`40/90ms` CI); Electron large pan stays under `24/100ms` locally (`40/140ms` CI) |
+| Minimap responsiveness | minimap hide/show and click navigation stay responsive under the dense-scene harness                                                  |
+| Theme integrity        | shared canvas chrome remains correct in both light and dark themes                                                                    |
 
 ## Validation Runs
 
@@ -84,7 +85,7 @@ The automated gate currently treats these as the non-negotiable runtime checks:
 | Content editing          | inline page editing, peek, database preview/open flows        | Pass   |
 | Collaboration boundaries | Electron remote-peer move regression plus undo-boundary suite | Pass   |
 | Shared chrome parity     | Electron and web light/dark regressions                       | Pass   |
-| Dense-scene performance  | Electron dense-scene minimap/frame/query gate                 | Pass   |
+| Large-scene performance  | Electron and web wide-scene minimap/frame/query/zoom gates    | Pass   |
 | Web smoke parity         | shared web canvas ingestion suite                             | Pass   |
 
 ## Manual Visual Review
@@ -101,7 +102,9 @@ the passing gate runs. The review focused on:
   and
   [`docs/pr-artifacts/canvas-v2/2026-03-10-electron-canvas-comments.png`](../pr-artifacts/canvas-v2/2026-03-10-electron-canvas-comments.png),
 - dense-scene navigation, minimap, and quiet chrome in
-  [`docs/pr-artifacts/canvas-v2/2026-03-10-electron-canvas-performance-scene.png`](../pr-artifacts/canvas-v2/2026-03-10-electron-canvas-performance-scene.png).
+  [`docs/pr-artifacts/canvas-v2/2026-03-10-electron-canvas-performance-scene.png`](../pr-artifacts/canvas-v2/2026-03-10-electron-canvas-performance-scene.png)
+  and
+  [`tmp/playwright/electron-canvas-large-scene-performance.png`](../../tmp/playwright/electron-canvas-large-scene-performance.png).
 
 That review confirmed the current shell stays visually minimal, keeps the grid/minimap on the
 canvas path, and preserves readable selection, collaboration, and editing affordances in the
@@ -111,6 +114,8 @@ active dark-mode workspace.
 
 - The Electron collaboration gate now includes a remote-peer Yjs regression that moves a canvas
   object while a local inline page edit stays active.
+- The current large-scene gate now seeds a `3,969`-node wide scene and explicitly validates
+  long-span pan plus zoom passes on both Electron and web before treating Canvas V2 as green.
 - The current gate is automated first, with the artifact review above acting as the current manual
   sign-off for editing, navigation, collaboration, and shortcut feel.
 - Future parity work should keep using this Electron-first gate as the stability bar rather than

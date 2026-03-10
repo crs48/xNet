@@ -7,6 +7,38 @@ const COMMENT_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+C' : 'Contr
 const CONNECT_SELECTION_SHORTCUT =
   process.platform === 'darwin' ? 'Meta+Shift+K' : 'Control+Shift+K'
 
+type CanvasPerformanceSceneInput = {
+  canvasId: string
+  title?: string
+  columns?: number
+  rows?: number
+  startX?: number
+  startY?: number
+  horizontalGap?: number
+  verticalGap?: number
+  clusterColumns?: number
+  clusterRows?: number
+  clusterGapX?: number
+  clusterGapY?: number
+}
+
+type CanvasFrameBudgetInput = {
+  canvasId?: string
+  steps?: number
+  deltaX?: number
+  deltaY?: number
+  mode?: 'pan' | 'zoom' | 'mixed'
+  zoomDeltaY?: number
+  zoomEvery?: number
+}
+
+type CanvasViewportInput = {
+  canvasId?: string
+  x: number
+  y: number
+  zoom?: number
+}
+
 function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
   return process.env.CI ? ciBudgetMs : localBudgetMs
 }
@@ -94,14 +126,7 @@ async function createCanvasNote(page: import('@playwright/test').Page): Promise<
 
 async function seedPerformanceScene(
   page: import('@playwright/test').Page,
-  input: {
-    canvasId: string
-    title?: string
-    columns?: number
-    rows?: number
-    clusterColumns?: number
-    clusterRows?: number
-  }
+  input: CanvasPerformanceSceneInput
 ): Promise<{
   canvasId: string
   title: string
@@ -136,12 +161,7 @@ async function seedPerformanceScene(
 
 async function measureCanvasFrameBudget(
   page: import('@playwright/test').Page,
-  input: {
-    canvasId?: string
-    steps?: number
-    deltaX?: number
-    deltaY?: number
-  } = {}
+  input: CanvasFrameBudgetInput = {}
 ): Promise<{
   frameCount: number
   averageFrameTime: number
@@ -173,6 +193,27 @@ async function measureCanvasFrameBudget(
     }
 
     return harness.measureCanvasFrameBudget(budgetInput)
+  }, input)
+}
+
+async function setCanvasViewport(
+  page: import('@playwright/test').Page,
+  input: CanvasViewportInput
+): Promise<void> {
+  await page.evaluate(async (viewportInput) => {
+    const harness = (
+      window as Window & {
+        __xnetCanvasTestHarness?: {
+          setCanvasViewport: (input: typeof viewportInput) => Promise<void>
+        }
+      }
+    ).__xnetCanvasTestHarness
+
+    if (!harness) {
+      throw new Error('Canvas test harness not available')
+    }
+
+    await harness.setCanvasViewport(viewportInput)
   }, input)
 }
 
@@ -329,6 +370,7 @@ async function getCanvasMetrics(page: import('@playwright/test').Page): Promise<
   edgeSvgCount: number
   viewportX: number
   viewportY: number
+  viewportZoom: number
   canvasNodeElements: number
   contentEditableElements: number
   tableElements: number
@@ -362,6 +404,7 @@ async function getCanvasMetrics(page: import('@playwright/test').Page): Promise<
       edgeSvgCount: Number(surface.dataset.canvasEdgeSvgCount ?? 0),
       viewportX: Number(surface.dataset.viewportX ?? 0),
       viewportY: Number(surface.dataset.viewportY ?? 0),
+      viewportZoom: Number(surface.dataset.viewportZoom ?? 1),
       canvasNodeElements: document.querySelectorAll('.canvas-node').length,
       contentEditableElements: document.querySelectorAll('[contenteditable="true"]').length,
       tableElements: document.querySelectorAll('table').length,
@@ -1205,7 +1248,9 @@ test.describe('Web canvas ingestion', () => {
     })
   })
 
-  test('keeps dense seeded scenes chunked and bounded on the web canvas', async ({ page }) => {
+  test('keeps very large seeded scenes chunked and smooth through long pan/zoom sweeps on the web canvas', async ({
+    page
+  }) => {
     await setupTestAuth(page)
     await advanceOnboarding(page)
 
@@ -1216,16 +1261,44 @@ test.describe('Web canvas ingestion', () => {
 
     const seededScene = await seedPerformanceScene(page, {
       canvasId,
-      title: 'Web Canvas Performance Validation',
-      columns: 48,
-      rows: 36,
-      clusterColumns: 6,
-      clusterRows: 4
+      title: 'Web Canvas Large-Scene Performance Validation',
+      columns: 72,
+      rows: 54,
+      startX: -72_000,
+      startY: -48_000,
+      horizontalGap: 960,
+      verticalGap: 720,
+      clusterColumns: 8,
+      clusterRows: 6,
+      clusterGapX: 760,
+      clusterGapY: 640
     })
+    expect(seededScene.nodeCount).toBeGreaterThan(3_900)
+    expect(seededScene.bounds.width).toBeGreaterThan(70_000)
+    expect(seededScene.bounds.height).toBeGreaterThan(40_000)
 
     await expect
       .poll(async () => (await getCanvasMetrics(page)).nodeCount, { timeout: 30_000 })
       .toBe(seededScene.nodeCount)
+
+    const sweepStartViewport = {
+      canvasId,
+      x: seededScene.bounds.x + 1_600,
+      y: seededScene.bounds.y + 1_100,
+      zoom: 0.88
+    }
+    await setCanvasViewport(page, sweepStartViewport)
+
+    await expect
+      .poll(async () => {
+        const metrics = await getCanvasMetrics(page)
+        return (
+          Math.abs(metrics.viewportX - sweepStartViewport.x) < 1 &&
+          Math.abs(metrics.viewportY - sweepStartViewport.y) < 1 &&
+          Math.abs(metrics.viewportZoom - (sweepStartViewport.zoom ?? 1)) < 0.01
+        )
+      })
+      .toBe(true)
     await expect
       .poll(async () => (await getCanvasMetrics(page)).canvasNodeElements, { timeout: 30_000 })
       .toBeGreaterThan(0)
@@ -1250,30 +1323,22 @@ test.describe('Web canvas ingestion', () => {
       expect(initialMetrics.overviewNodeCount).toBeGreaterThan(0)
     }
 
-    const initialViewport = {
-      x: initialMetrics.viewportX,
-      y: initialMetrics.viewportY
-    }
-
-    await surface.evaluate((element: HTMLElement) => {
-      element.dispatchEvent(
-        new WheelEvent('wheel', {
-          bubbles: true,
-          cancelable: true,
-          deltaX: 420,
-          deltaY: 260
-        })
-      )
+    const prePanMetrics = await getCanvasMetrics(page)
+    const panBudget = await measureCanvasFrameBudget(page, {
+      canvasId,
+      steps: 28,
+      deltaX: 760,
+      deltaY: 560,
+      mode: 'pan'
     })
-
-    await expect
-      .poll(async () => {
-        const metrics = await getCanvasMetrics(page)
-        return `${metrics.viewportX}:${metrics.viewportY}`
-      })
-      .not.toBe(`${initialViewport.x}:${initialViewport.y}`)
+    expect(panBudget.frameCount).toBeGreaterThan(0)
+    expect(panBudget.averageFrameTime).toBeLessThan(getPerformanceBudget(24, 40))
+    expect(panBudget.maxFrameTime).toBeLessThan(getPerformanceBudget(55, 90))
+    expect(panBudget.droppedFramePercent).toBeLessThan(getPerformanceBudget(45, 65))
 
     const postPanMetrics = await getCanvasMetrics(page)
+    expect(Math.abs(postPanMetrics.viewportX - prePanMetrics.viewportX)).toBeGreaterThan(12_000)
+    expect(Math.abs(postPanMetrics.viewportY - prePanMetrics.viewportY)).toBeGreaterThan(9_000)
     expect(postPanMetrics.domNodeCount).toBe(postPanMetrics.canvasNodeElements)
     expect(postPanMetrics.domNodeCount).toBeLessThanOrEqual(48)
     expect(['canvas', 'hybrid']).toContain(postPanMetrics.edgeRenderMode)
@@ -1288,18 +1353,53 @@ test.describe('Web canvas ingestion', () => {
     expect(postPanMetrics.minimapRenderMode).toBe('aggregated')
     expect(postPanMetrics.performanceEnabled).toBe(true)
 
-    const frameBudget = await measureCanvasFrameBudget(page, {
+    const sweepEndViewport = {
       canvasId,
-      steps: 18
+      x: seededScene.bounds.x + seededScene.bounds.width - 1_600,
+      y: seededScene.bounds.y + seededScene.bounds.height - 1_100,
+      zoom: 0.72
+    }
+    await setCanvasViewport(page, sweepEndViewport)
+
+    await expect
+      .poll(async () => {
+        const metrics = await getCanvasMetrics(page)
+        return (
+          Math.abs(metrics.viewportX - sweepEndViewport.x) < 1 &&
+          Math.abs(metrics.viewportY - sweepEndViewport.y) < 1 &&
+          Math.abs(metrics.viewportZoom - (sweepEndViewport.zoom ?? 1)) < 0.01
+        )
+      })
+      .toBe(true)
+    await expect
+      .poll(async () => (await getCanvasMetrics(page)).visibleNodeCount, {
+        timeout: 30_000
+      })
+      .toBeGreaterThan(0)
+
+    const preZoomMetrics = await getCanvasMetrics(page)
+    const zoomBudget = await measureCanvasFrameBudget(page, {
+      canvasId,
+      steps: 16,
+      mode: 'zoom',
+      zoomDeltaY: -8
     })
 
-    expect(frameBudget.frameCount).toBeGreaterThan(0)
-    expect(frameBudget.averageFrameTime).toBeLessThan(getPerformanceBudget(24, 40))
-    expect(frameBudget.maxFrameTime).toBeLessThan(getPerformanceBudget(55, 90))
-    expect(frameBudget.droppedFramePercent).toBeLessThan(getPerformanceBudget(45, 65))
+    expect(zoomBudget.frameCount).toBeGreaterThan(0)
+    expect(zoomBudget.averageFrameTime).toBeLessThan(getPerformanceBudget(24, 40))
+    expect(zoomBudget.maxFrameTime).toBeLessThan(getPerformanceBudget(55, 90))
+    expect(zoomBudget.droppedFramePercent).toBeLessThan(getPerformanceBudget(45, 65))
+
+    const postZoomMetrics = await getCanvasMetrics(page)
+    expect(postZoomMetrics.viewportZoom).toBeGreaterThan(preZoomMetrics.viewportZoom + 0.2)
+    expect(postZoomMetrics.domNodeCount).toBe(postZoomMetrics.canvasNodeElements)
+    expect(postZoomMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(postZoomMetrics.contentEditableElements).toBe(0)
+    expect(postZoomMetrics.tableElements).toBe(0)
+    expect(postZoomMetrics.minimapRenderMode).toBe('aggregated')
 
     await page.screenshot({
-      path: 'tmp/playwright/web-canvas-performance.png',
+      path: 'tmp/playwright/web-canvas-large-scene-performance.png',
       fullPage: true
     })
   })

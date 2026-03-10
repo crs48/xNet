@@ -21,10 +21,41 @@ type WebCanvasNodeRecord = {
   updatedAt: number
 }
 
+type CanvasPerformanceSceneInput = {
+  canvasId?: string
+  title?: string
+  columns?: number
+  rows?: number
+  startX?: number
+  startY?: number
+  horizontalGap?: number
+  verticalGap?: number
+  clusterColumns?: number
+  clusterRows?: number
+  clusterGapX?: number
+  clusterGapY?: number
+}
+
+type CanvasFrameBudgetInput = {
+  canvasId?: string
+  steps?: number
+  deltaX?: number
+  deltaY?: number
+  mode?: 'pan' | 'zoom' | 'mixed'
+  zoomDeltaY?: number
+  zoomEvery?: number
+}
+
 type WebCanvasTestHarness = {
   registerCanvasDoc: (canvasId: string, doc: Y.Doc | null) => void
   registerCanvasAwareness: (canvasId: string, awareness: Awareness | null) => void
   registerCanvasHandle: (canvasId: string, handle: CanvasHandle | null) => void
+  setCanvasViewport: (input: {
+    canvasId?: string
+    x: number
+    y: number
+    zoom?: number
+  }) => Promise<void>
   moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
   getCanvasNodeRect: (input: { nodeId: string }) => Promise<{
     canvasId: string
@@ -39,14 +70,7 @@ type WebCanvasTestHarness = {
     key: string
     state: Record<string, unknown> | null
   }) => Promise<{ canvasId: string; clientId: number }>
-  seedPerformanceScene: (input?: {
-    canvasId?: string
-    title?: string
-    columns?: number
-    rows?: number
-    clusterColumns?: number
-    clusterRows?: number
-  }) => Promise<{
+  seedPerformanceScene: (input?: CanvasPerformanceSceneInput) => Promise<{
     canvasId: string
     title: string
     nodeCount: number
@@ -54,12 +78,7 @@ type WebCanvasTestHarness = {
     bounds: { x: number; y: number; width: number; height: number }
     kindCounts: Record<string, number>
   }>
-  measureCanvasFrameBudget: (input?: {
-    canvasId?: string
-    steps?: number
-    deltaX?: number
-    deltaY?: number
-  }) => Promise<FrameStats>
+  measureCanvasFrameBudget: (input?: CanvasFrameBudgetInput) => Promise<FrameStats>
 }
 
 type WindowNodeStore = {
@@ -137,6 +156,21 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
       }
 
       liveHandles.delete(canvasId)
+    },
+
+    async setCanvasViewport(input) {
+      const canvasId = resolveCanvasId(input.canvasId)
+      const handle = liveHandles.get(canvasId)
+      if (!handle) {
+        throw new Error(`No canvas handle registered for canvas ${canvasId}`)
+      }
+
+      const snapshot = handle.getViewportSnapshot()
+      handle.setViewportSnapshot({
+        x: input.x,
+        y: input.y,
+        zoom: input.zoom ?? snapshot.zoom
+      })
     },
 
     async moveCanvasNode(input) {
@@ -292,8 +326,14 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
       const summary = seedCanvasPerformanceScene(doc, {
         columns: input.columns,
         rows: input.rows,
+        startX: input.startX,
+        startY: input.startY,
+        horizontalGap: input.horizontalGap,
+        verticalGap: input.verticalGap,
         clusterColumns: input.clusterColumns,
-        clusterRows: input.clusterRows
+        clusterRows: input.clusterRows,
+        clusterGapX: input.clusterGapX,
+        clusterGapY: input.clusterGapY
       })
       const title = input.title ?? `Web Canvas Performance Scene (${summary.nodeCount} nodes)`
 
@@ -328,19 +368,30 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
       const steps = Math.max(1, input.steps ?? 18)
       const deltaX = input.deltaX ?? 140
       const deltaY = input.deltaY ?? 90
+      const mode = input.mode ?? 'pan'
+      const zoomDeltaY = input.zoomDeltaY ?? -7
+      const zoomEvery = Math.max(1, input.zoomEvery ?? 3)
       const nextFrame = async (): Promise<void> =>
         await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+      const rect = surface.getBoundingClientRect()
+      const clientX = rect.left + rect.width / 2
+      const clientY = rect.top + rect.height / 2
 
       handle.resetPerformanceStats()
       await nextFrame()
 
       for (let index = 0; index < steps; index += 1) {
+        const shouldZoom = mode === 'zoom' || (mode === 'mixed' && index % zoomEvery === 0)
+
         surface.dispatchEvent(
           new WheelEvent('wheel', {
             bubbles: true,
             cancelable: true,
-            deltaX: index % 2 === 0 ? deltaX : -Math.round(deltaX * 0.85),
-            deltaY: index % 3 === 0 ? deltaY : -Math.round(deltaY * 0.78)
+            ctrlKey: shouldZoom,
+            clientX,
+            clientY,
+            deltaX: shouldZoom ? 0 : index % 2 === 0 ? deltaX : Math.round(deltaX * 0.82),
+            deltaY: shouldZoom ? zoomDeltaY : index % 3 === 0 ? deltaY : Math.round(deltaY * 0.74)
           })
         )
 
