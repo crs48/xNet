@@ -60,9 +60,12 @@ COPY --from=builder /build/patches/ patches/
 
 RUN apk add --no-cache --virtual .build-deps python3 make g++ \
   && corepack enable \
-  && pnpm install --frozen-lockfile --prod --ignore-scripts --filter @xnetjs/hub... \
-  && pnpm --filter @xnetjs/hub exec npm rebuild better-sqlite3 \
-  && apk del .build-deps
+  # Keep the runtime image on patched Hono releases without auto-installing optional peer stacks like expo-sqlite.
+  && corepack pnpm add @hono/node-server@1.19.10 hono@4.12.4 --prod --ignore-scripts --config.auto-install-peers=false --filter @xnetjs/hub \
+  && corepack pnpm --filter @xnetjs/hub exec npm rebuild better-sqlite3 \
+  && apk del .build-deps \
+  && rm -rf /root/.cache/node/corepack /usr/local/lib/node_modules/corepack /usr/local/lib/node_modules/npm \
+  && rm -f /usr/local/bin/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/pnpm /usr/local/bin/pnpx
 
 # Copy built artifacts
 COPY --from=builder /build/packages/hub/dist packages/hub/dist/
