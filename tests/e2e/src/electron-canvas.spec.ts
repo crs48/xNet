@@ -12,6 +12,7 @@ const RENDERER_PORT = 5178
 const ELECTRON_CDP_URL = `http://127.0.0.1:${ELECTRON_CDP_PORT}`
 const RENDERER_URLS = [`http://localhost:${RENDERER_PORT}`, `http://127.0.0.1:${RENDERER_PORT}`]
 const COMMAND_PALETTE_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+P' : 'Control+Shift+P'
+const FOCUSED_OPEN_SHORTCUT = process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter'
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 const ELECTRON_PROFILE_PATH = join(
   homedir(),
@@ -524,6 +525,10 @@ async function selectCanvasNode(page: Page, selector: string, index = 0): Promis
   })
 }
 
+async function getCanvasNodeCount(page: Page, type: string): Promise<number> {
+  return page.locator(`.canvas-node[data-node-type="${type}"]`).count()
+}
+
 test.describe('Electron canvas shell', () => {
   test.describe.configure({ mode: 'serial' })
   test.setTimeout(240_000)
@@ -673,6 +678,91 @@ test.describe('Electron canvas shell', () => {
       path: `${ROOT}/tmp/playwright/electron-canvas-inline-page.png`,
       fullPage: true
     })
+  })
+
+  test('supports canvas-scoped hotkeys, command commands, and typing guards', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    await page.locator('[data-canvas-surface="true"]').click({
+      position: { x: 28, y: 260 },
+      force: true
+    })
+
+    await page.keyboard.press('Shift+/')
+    await expect(page.locator('[data-canvas-shortcut-help="true"]')).toBeVisible({
+      timeout: 15_000
+    })
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-canvas-shortcut-help="true"]')).toHaveCount(0)
+
+    await page.keyboard.press('Tab')
+    await expect(page.locator('[data-canvas-selection-hud="true"]')).toBeVisible({
+      timeout: 15_000
+    })
+
+    await page.keyboard.press(COMMAND_PALETTE_SHORTCUT)
+    const commandInput = page.getByPlaceholder('Type a command or search...')
+    await expect(commandInput).toBeVisible({ timeout: 10_000 })
+    await commandInput.fill('Show Canvas Shortcuts')
+    await page.keyboard.press('Enter')
+    await expect(page.locator('[data-canvas-shortcut-help="true"]')).toBeVisible({
+      timeout: 15_000
+    })
+    await page.keyboard.press('Escape')
+    await expect(page.locator('[data-canvas-shortcut-help="true"]')).toHaveCount(0)
+
+    const pageCountBefore = await getCanvasNodeCount(page, 'page')
+    const databaseCountBefore = await getCanvasNodeCount(page, 'database')
+    const noteCountBefore = await getCanvasNodeCount(page, 'note')
+
+    await page.locator('[data-canvas-surface="true"]').click({
+      position: { x: 36, y: 320 },
+      force: true
+    })
+    await page.keyboard.press('P')
+    await page.keyboard.press('D')
+    await page.keyboard.press('N')
+
+    await expect
+      .poll(async () => ({
+        page: await getCanvasNodeCount(page, 'page'),
+        database: await getCanvasNodeCount(page, 'database'),
+        note: await getCanvasNodeCount(page, 'note')
+      }))
+      .toEqual({
+        page: pageCountBefore + 1,
+        database: databaseCountBefore + 1,
+        note: noteCountBefore + 1
+      })
+
+    const newestPageIndex = (await getCanvasNodeCount(page, 'page')) - 1
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', newestPageIndex)
+    await expect(page.locator('[data-canvas-page-surface="true"]').first()).toBeVisible({
+      timeout: 30_000
+    })
+
+    await page.keyboard.press(FOCUSED_OPEN_SHORTCUT)
+    await expect(
+      page.locator('[data-page-view="true"][data-page-view-chrome="minimal"]')
+    ).toBeVisible({
+      timeout: 30_000
+    })
+    await page.getByRole('button', { name: 'Canvas' }).click({ force: true })
+    await expect(
+      page.locator('[data-page-view="true"][data-page-view-chrome="minimal"]')
+    ).toHaveCount(0, {
+      timeout: 30_000
+    })
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="page"]', newestPageIndex)
+    const titleInput = page.locator('[data-canvas-page-title="true"]').first()
+    await titleInput.focus()
+    await page.keyboard.type('p')
+    await page.keyboard.press('Shift+/')
+
+    await expect.poll(async () => await getCanvasNodeCount(page, 'page')).toBe(pageCountBefore + 1)
+    await expect(page.locator('[data-canvas-shortcut-help="true"]')).toHaveCount(0)
   })
 
   test('keeps database preview bounded and supports open-return workflows', async () => {

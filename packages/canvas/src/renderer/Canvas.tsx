@@ -20,6 +20,7 @@ import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
+import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
 import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
@@ -58,6 +59,13 @@ export interface CanvasHandle {
   getViewportSnapshot: () => { x: number; y: number; zoom: number }
   /** Restore a previous viewport state */
   setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) => void
+  /** Clear the current selection */
+  clearSelection: () => void
+}
+
+export interface CanvasSelectionSnapshot {
+  nodeIds: string[]
+  edgeIds: string[]
 }
 
 export interface CanvasProps {
@@ -73,6 +81,16 @@ export interface CanvasProps {
   onNodeDoubleClick?: (id: string) => void
   /** Callback when canvas background is clicked */
   onBackgroundClick?: () => void
+  /** Callback when the canvas selection changes */
+  onSelectionChange?: (selection: CanvasSelectionSnapshot) => void
+  /** Callback when the user triggers a canvas creation shortcut */
+  onCreateObject?: (kind: 'page' | 'database' | 'note') => void
+  /** Callback when the user triggers a selection open/peek shortcut */
+  onOpenSelection?: (mode: 'peek' | 'focus') => void
+  /** Callback when the user toggles canvas shortcut help */
+  onToggleShortcutHelp?: () => void
+  /** Callback when transient canvas UI should be dismissed before clearing selection */
+  onDismissTransientUi?: () => boolean | void
   /** Yjs Awareness instance for presence (optional) */
   awareness?: AwarenessLike | null
   /** CSS class name */
@@ -196,6 +214,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     renderNode,
     onNodeDoubleClick,
     onBackgroundClick,
+    onSelectionChange,
+    onCreateObject,
+    onOpenSelection,
+    onToggleShortcutHelp,
+    onDismissTransientUi,
     awareness,
     className,
     style,
@@ -246,19 +269,6 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     zoom: canvas.viewport.zoom
   })
 
-  // Expose imperative methods via ref
-  useImperativeHandle(
-    ref,
-    () => ({
-      fitToContent: (padding?: number) => canvas.fitToContent(padding),
-      fitToRect: (rect: Rect, padding?: number) => canvas.fitToRect(rect, padding),
-      resetView: () => canvas.resetView(),
-      getViewportSnapshot: () => canvas.getViewportSnapshot(),
-      setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) =>
-        canvas.setViewportSnapshot(snapshot)
-    }),
-    [canvas]
-  )
   const {
     nodes,
     edges,
@@ -272,6 +282,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     zoomAt
   } = canvas
 
+  // Expose imperative methods via ref
+  useImperativeHandle(
+    ref,
+    () => ({
+      fitToContent: (padding?: number) => canvas.fitToContent(padding),
+      fitToRect: (rect: Rect, padding?: number) => canvas.fitToRect(rect, padding),
+      resetView: () => canvas.resetView(),
+      getViewportSnapshot: () => canvas.getViewportSnapshot(),
+      setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) =>
+        canvas.setViewportSnapshot(snapshot),
+      clearSelection: () => clearSelection()
+    }),
+    [canvas, clearSelection]
+  )
+
   // === Presence: track remote users' selected nodes ===
   const [nodePresence, setNodePresence] = useState<Map<string, CanvasRemoteUser[]>>(new Map())
 
@@ -280,6 +305,13 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     if (!awareness) return
     awareness.setLocalStateField('canvasSelection', Array.from(selectedNodeIds))
   }, [awareness, selectedNodeIds])
+
+  useEffect(() => {
+    onSelectionChange?.({
+      nodeIds: Array.from(selectedNodeIds),
+      edgeIds: Array.from(selectedEdgeIds)
+    })
+  }, [onSelectionChange, selectedEdgeIds, selectedNodeIds])
 
   // Listen for remote awareness changes
   useEffect(() => {
@@ -372,6 +404,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       if (e.button !== 0) return
       if (e.target !== containerRef.current) return
 
+      containerRef.current?.focus()
+
       // Clicked on background
       clearSelection()
       onBackgroundClick?.()
@@ -397,6 +431,63 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       window.addEventListener('mouseup', handleMouseUp)
     },
     [clearSelection, onBackgroundClick, pan]
+  )
+
+  const handleStepSelection = useCallback(
+    (direction: -1 | 1) => {
+      if (nodes.length === 0) {
+        return
+      }
+
+      const orderedNodes = [...nodes].sort((left, right) => {
+        const leftZ = left.position.zIndex ?? 0
+        const rightZ = right.position.zIndex ?? 0
+        if (leftZ !== rightZ) {
+          return leftZ - rightZ
+        }
+
+        if (left.position.y !== right.position.y) {
+          return left.position.y - right.position.y
+        }
+
+        return left.position.x - right.position.x
+      })
+
+      if (selectedNodeIds.size !== 1) {
+        const fallbackNode = direction > 0 ? orderedNodes[0] : orderedNodes[orderedNodes.length - 1]
+        selectNode(fallbackNode.id)
+        return
+      }
+
+      const [currentId] = Array.from(selectedNodeIds)
+      const currentIndex = orderedNodes.findIndex((node) => node.id === currentId)
+      const resolvedIndex = currentIndex >= 0 ? currentIndex : 0
+      const nextIndex = (resolvedIndex + direction + orderedNodes.length) % orderedNodes.length
+      selectNode(orderedNodes[nextIndex].id)
+    },
+    [nodes, selectNode, selectedNodeIds]
+  )
+
+  const handleNudgeSelection = useCallback(
+    (delta: Point) => {
+      const updates = Array.from(selectedNodeIds)
+        .map((nodeId) => canvas.store.getNode(nodeId))
+        .filter((node): node is CanvasNode => node !== undefined && !node.locked)
+        .map((node) => ({
+          id: node.id,
+          position: {
+            x: node.position.x + delta.x,
+            y: node.position.y + delta.y
+          }
+        }))
+
+      if (updates.length === 0) {
+        return
+      }
+
+      canvas.updateNodePositions(updates)
+    },
+    [canvas, selectedNodeIds]
   )
 
   // Handle keyboard shortcuts
@@ -439,49 +530,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       }
 
       // Delete selected - only if canvas has focus or no input focused
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (isInputFocused) return // Don't intercept if typing in an input
-        if (selectedNodeIds.size > 0 && container.contains(activeElement)) {
-          e.preventDefault()
-          canvas.deleteSelected()
-        }
-      }
-
-      // Select all - only if canvas has focus
-      if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
-        if (container.contains(activeElement) && !isInputFocused) {
-          e.preventDefault()
-          canvas.selectAll()
-        }
-      }
-
-      // Escape to clear selection - safe to handle globally within canvas
-      if (e.key === 'Escape') {
-        if (container.contains(activeElement)) {
-          clearSelection()
-        }
-      }
-
-      // Fit to content - only if canvas has focus
-      if (e.key === '1' && (e.metaKey || e.ctrlKey)) {
-        if (container.contains(activeElement)) {
-          e.preventDefault()
-          canvas.fitToContent()
-        }
-      }
-
-      // Reset view - only if canvas has focus
-      if (e.key === '0' && (e.metaKey || e.ctrlKey)) {
-        if (container.contains(activeElement)) {
-          e.preventDefault()
-          canvas.resetView()
-        }
+      if (!container.contains(activeElement) || isInputFocused) {
+        return
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [canvas, selectedNodeIds, clearSelection])
+  }, [canvas])
 
   // Node event handlers
   const handleNodeSelect = useCallback(
@@ -603,7 +659,6 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const canvasBounds = useMemo(() => canvas.store.getBounds(), [canvas.store, nodes])
   const navigationToolsInsetRight =
     showMinimap && navigationToolsPosition === 'bottom-right' ? minimapWidth + 40 : 16
-
   const handleNavigationViewportChange = useCallback(
     (changes: { x?: number; y?: number; zoom?: number }) => {
       const snapshot = canvas.getViewportSnapshot()
@@ -616,6 +671,23 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     },
     [canvas]
   )
+
+  useCanvasKeyboard({
+    containerRef,
+    viewport,
+    canvasBounds,
+    selectedNodeCount: selectedNodeIds.size,
+    onViewportChange: handleNavigationViewportChange,
+    onDeleteSelection: () => canvas.deleteSelected(),
+    onSelectAll: () => canvas.selectAll(),
+    onClearSelection: clearSelection,
+    onStepSelection: handleStepSelection,
+    onNudgeSelection: handleNudgeSelection,
+    onCreateObject,
+    onOpenSelection,
+    onToggleShortcutHelp,
+    onDismissTransientUi
+  })
 
   // Container styles
   const containerStyle: React.CSSProperties = {

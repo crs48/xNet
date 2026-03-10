@@ -164,6 +164,10 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
   )
 }
 
+function focusCanvasSurface(nodeElement: HTMLDivElement | null): void {
+  nodeElement?.closest<HTMLElement>('[data-canvas-surface="true"]')?.focus()
+}
+
 /**
  * Node icon based on type (for compact LOD)
  */
@@ -262,6 +266,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      focusCanvasSurface(nodeRef.current)
       onSelect(node.id, e.shiftKey || e.metaKey)
     },
     [node.id, onSelect]
@@ -277,6 +282,12 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       onSelect(node.id, e.shiftKey || e.metaKey)
 
       if (isInteractiveTarget(e.target)) {
+        return
+      }
+
+      focusCanvasSurface(nodeRef.current)
+
+      if (node.locked) {
         return
       }
 
@@ -504,7 +515,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       : hasRemotePresence
         ? `0 0 0 2px ${presenceColor}33`
         : '0 1px 3px rgba(0,0,0,0.1)',
-    cursor: 'move',
+    cursor: node.locked ? 'default' : 'move',
     userSelect: 'none',
     overflow: 'visible'
   }

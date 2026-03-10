@@ -12,7 +12,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActionDock } from './components/ActionDock'
 import { AddSharedDialog, type AddSharedInput } from './components/AddSharedDialog'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
-import { CanvasView, type CanvasViewHandle } from './components/CanvasView'
+import {
+  CanvasView,
+  type CanvasViewCommandState,
+  type CanvasViewHandle
+} from './components/CanvasView'
 import { DatabaseView } from './components/DatabaseView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
@@ -44,6 +48,16 @@ type DocumentItem = {
 
 const OVERLAY_OPEN_DELAY_MS = 180
 const STORIES_ENABLED = import.meta.env.DEV
+const MOD_ENTER_SHORTCUT = navigator.platform.includes('Mac') ? '⌘↩' : 'Ctrl+Enter'
+const EMPTY_CANVAS_COMMAND_STATE: CanvasViewCommandState = {
+  selectionCount: 0,
+  selectedNodeId: null,
+  selectedSourceId: null,
+  selectedSourceType: null,
+  selectedDisplayType: null,
+  selectedTitle: null,
+  shortcutHelpOpen: false
+}
 
 function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error))
@@ -57,6 +71,9 @@ export function App(): React.ReactElement {
     requestId: string
     document: LinkedDocumentItem
   } | null>(null)
+  const [canvasCommandState, setCanvasCommandState] = useState<CanvasViewCommandState>(
+    EMPTY_CANVAS_COMMAND_STATE
+  )
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [prefilledShareValue, setPrefilledShareValue] = useState('')
   const { setActiveNodeId } = useDevTools()
@@ -353,6 +370,9 @@ export function App(): React.ReactElement {
         name: 'Create Page',
         description: 'Create a new page and place it on the canvas',
         icon: 'file-text',
+        shortcut: 'P',
+        group: 'Canvas',
+        keywords: ['page', 'canvas', 'create'],
         execute: () => void handleCreateLinkedDocument('page')
       },
       {
@@ -360,6 +380,9 @@ export function App(): React.ReactElement {
         name: 'Create Database',
         description: 'Create a new database and place it on the canvas',
         icon: 'database',
+        shortcut: 'D',
+        group: 'Canvas',
+        keywords: ['database', 'canvas', 'create'],
         execute: () => void handleCreateLinkedDocument('database')
       },
       {
@@ -367,7 +390,85 @@ export function App(): React.ReactElement {
         name: 'Create Canvas Note',
         description: 'Create a page-backed note and place it on the canvas',
         icon: 'sparkles',
+        shortcut: 'N',
+        group: 'Canvas',
+        keywords: ['note', 'canvas', 'create'],
         execute: () => handleCreateCanvasNote()
+      },
+      {
+        id: 'canvas-peek-selection',
+        name: 'Peek Selected Object',
+        description:
+          canvasCommandState.selectedTitle && canvasCommandState.selectionCount === 1
+            ? `Center and activate ${canvasCommandState.selectedTitle}`
+            : 'Center and activate the current canvas selection',
+        icon: 'eye',
+        shortcut: 'Enter',
+        group: 'Canvas',
+        keywords: ['peek', 'edit', 'selection', 'canvas'],
+        when: () => shellState.kind === 'canvas-home' && canvasCommandState.selectionCount === 1,
+        execute: () => {
+          canvasViewRef.current?.openSelection('peek')
+        }
+      },
+      {
+        id: 'canvas-open-selection',
+        name: 'Open Selected Object',
+        description:
+          canvasCommandState.selectedTitle && canvasCommandState.selectionCount === 1
+            ? `Open ${canvasCommandState.selectedTitle} in a focused surface`
+            : 'Open the current canvas selection in a focused surface',
+        icon: 'external-link',
+        shortcut: MOD_ENTER_SHORTCUT,
+        group: 'Canvas',
+        keywords: ['open', 'focus', 'selection', 'canvas'],
+        when: () =>
+          shellState.kind === 'canvas-home' &&
+          canvasCommandState.selectionCount === 1 &&
+          Boolean(canvasCommandState.selectedSourceId && canvasCommandState.selectedSourceType),
+        execute: () => {
+          canvasViewRef.current?.openSelection('focus')
+        }
+      },
+      {
+        id: 'canvas-fit-selection',
+        name: 'Fit Selected Object',
+        description: 'Center the current canvas selection in view',
+        icon: 'layout',
+        group: 'Canvas',
+        keywords: ['fit', 'selection', 'zoom', 'canvas'],
+        when: () => shellState.kind === 'canvas-home' && canvasCommandState.selectionCount > 0,
+        execute: () => {
+          canvasViewRef.current?.fitSelection()
+        }
+      },
+      {
+        id: 'canvas-clear-selection',
+        name: 'Clear Selection',
+        description: 'Clear the current canvas selection',
+        icon: 'x',
+        shortcut: 'Esc',
+        group: 'Canvas',
+        keywords: ['clear', 'selection', 'canvas'],
+        when: () => shellState.kind === 'canvas-home' && canvasCommandState.selectionCount > 0,
+        execute: () => {
+          canvasViewRef.current?.clearSelection()
+        }
+      },
+      {
+        id: 'canvas-shortcut-help',
+        name: canvasCommandState.shortcutHelpOpen
+          ? 'Hide Canvas Shortcuts'
+          : 'Show Canvas Shortcuts',
+        description: 'Toggle the canvas shortcut help overlay',
+        icon: 'help-circle',
+        shortcut: '?',
+        group: 'Canvas',
+        keywords: ['help', 'shortcuts', 'canvas', 'hotkeys'],
+        when: () => shellState.kind === 'canvas-home',
+        execute: () => {
+          canvasViewRef.current?.toggleShortcutHelp()
+        }
       },
       {
         id: 'open-settings',
@@ -408,6 +509,7 @@ export function App(): React.ReactElement {
       handleOpenDocument,
       handleOpenSettings,
       handleOpenStories,
+      canvasCommandState,
       recentDocuments
     ]
   )
@@ -529,6 +631,10 @@ export function App(): React.ReactElement {
             docId={homeCanvasId}
             documents={documents}
             pendingInsert={pendingCanvasInsert}
+            onCreatePage={() => void handleCreateLinkedDocument('page')}
+            onCreateDatabase={() => void handleCreateLinkedDocument('database')}
+            onCreateNote={handleCreateCanvasNote}
+            onCommandStateChange={setCanvasCommandState}
             onPendingInsertConsumed={(requestId) => {
               setPendingCanvasInsert((current) =>
                 current?.requestId === requestId ? null : current

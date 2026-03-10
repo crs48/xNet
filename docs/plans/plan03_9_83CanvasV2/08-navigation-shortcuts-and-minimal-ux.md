@@ -161,10 +161,10 @@ pnpm --filter @xnetjs/ui test
 
 ## Step Checklist
 
-- [ ] Keep persistent canvas chrome minimal and contextual.
-- [ ] Integrate a canvas-scoped command registry into the existing command palette.
-- [ ] Expand `useCanvasKeyboard` into a full Canvas V2 shortcut layer.
-- [ ] Add a discoverable shortcut help overlay.
-- [ ] Implement the selection HUD with only context-relevant actions.
-- [ ] Ensure keyboard-first creation/edit/navigation flows work without interfering with editor typing.
-- [ ] Back the shortcut layer with Electron CDP e2e coverage for hotkeys and typing guards.
+- [x] Keep persistent canvas chrome minimal and contextual.
+- [x] Integrate a canvas-scoped command registry into the existing command palette.
+- [x] Expand `useCanvasKeyboard` into a full Canvas V2 shortcut layer.
+- [x] Add a discoverable shortcut help overlay.
+- [x] Implement the selection HUD with only context-relevant actions.
+- [x] Ensure keyboard-first creation/edit/navigation flows work without interfering with editor typing.
+- [x] Back the shortcut layer with Electron CDP e2e coverage for hotkeys and typing guards.

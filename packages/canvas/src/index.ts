@@ -133,6 +133,7 @@ export { Canvas } from './renderer/Canvas'
 export type {
   CanvasProps,
   CanvasHandle,
+  CanvasSelectionSnapshot,
   CanvasRemoteUser,
   CanvasNodeRenderContext
 } from './renderer/Canvas'

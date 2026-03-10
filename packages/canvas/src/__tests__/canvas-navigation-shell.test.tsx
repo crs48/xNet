@@ -249,4 +249,140 @@ describe('Canvas navigation shell', () => {
     expect(minimap?.dataset.canvasMinimapNodeCount).toBe(String(scene.nodeCount))
     expect(minimap?.dataset.canvasMinimapEdgeCount).toBe(String(scene.edgeCount))
   })
+
+  it('dispatches canvas creation, help, and selection-open shortcuts when focused', () => {
+    const nodes = [
+      {
+        id: 'page-1',
+        type: 'page',
+        position: { x: 20, y: 40, width: 320, height: 200 },
+        properties: { title: 'Canvas Page' }
+      },
+      {
+        id: 'page-2',
+        type: 'page',
+        position: { x: 420, y: 40, width: 320, height: 200 },
+        properties: { title: 'Canvas Page 2' }
+      }
+    ]
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = nodes
+    canvasMock.selectedNodeIds = new Set(['page-1'])
+    canvasMock.store.getVisibleNodes = vi.fn(() => nodes)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    const onCreateObject = vi.fn()
+    const onOpenSelection = vi.fn()
+    const onToggleShortcutHelp = vi.fn()
+
+    render(
+      <Canvas
+        doc={new Y.Doc()}
+        onCreateObject={onCreateObject}
+        onOpenSelection={onOpenSelection}
+        onToggleShortcutHelp={onToggleShortcutHelp}
+      />
+    )
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    surface?.focus()
+
+    fireEvent.keyDown(window, { key: 'Tab' })
+    fireEvent.keyDown(window, { key: 'P' })
+    fireEvent.keyDown(window, { key: '/', shiftKey: true })
+    fireEvent.keyDown(window, { key: 'Enter', metaKey: true })
+
+    expect(canvasMock.selectNode).toHaveBeenCalledWith('page-2')
+    expect(onCreateObject).toHaveBeenCalledWith('page')
+    expect(onToggleShortcutHelp).toHaveBeenCalledOnce()
+    expect(onOpenSelection).toHaveBeenCalledWith('focus')
+  })
+
+  it('nudges the current selection instead of panning when arrow shortcuts are used', () => {
+    const selectedNode = {
+      id: 'page-1',
+      type: 'page',
+      position: { x: 20, y: 40, width: 320, height: 200 },
+      properties: { title: 'Canvas Page' }
+    }
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = [selectedNode]
+    canvasMock.selectedNodeIds = new Set(['page-1'])
+    canvasMock.store.getVisibleNodes = vi.fn(() => [selectedNode])
+    canvasMock.store.getNode = vi.fn(() => selectedNode)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    surface?.focus()
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyDown(window, { key: 'ArrowDown', shiftKey: true })
+
+    expect(canvasMock.updateNodePositions).toHaveBeenNthCalledWith(1, [
+      {
+        id: 'page-1',
+        position: {
+          x: 36,
+          y: 40
+        }
+      }
+    ])
+    expect(canvasMock.updateNodePositions).toHaveBeenNthCalledWith(2, [
+      {
+        id: 'page-1',
+        position: {
+          x: 20,
+          y: 72
+        }
+      }
+    ])
+    expect(canvasMock.pan).not.toHaveBeenCalled()
+  })
+
+  it('keeps single-key shortcuts disabled while typing inside an inline surface', () => {
+    const selectedNode = {
+      id: 'page-1',
+      type: 'page',
+      position: { x: 20, y: 40, width: 320, height: 200 },
+      properties: { title: 'Canvas Page' }
+    }
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = [selectedNode]
+    canvasMock.selectedNodeIds = new Set(['page-1'])
+    canvasMock.store.getVisibleNodes = vi.fn(() => [selectedNode])
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    const onCreateObject = vi.fn()
+    const onToggleShortcutHelp = vi.fn()
+
+    render(
+      <Canvas
+        doc={new Y.Doc()}
+        onCreateObject={onCreateObject}
+        onToggleShortcutHelp={onToggleShortcutHelp}
+        renderNode={() => (
+          <input
+            type="text"
+            defaultValue="Canvas title"
+            data-canvas-interactive="true"
+            aria-label="Canvas title"
+          />
+        )}
+      />
+    )
+
+    const input = screen.getByRole('textbox', { name: 'Canvas title' })
+    input.focus()
+
+    fireEvent.keyDown(window, { key: 'P' })
+    fireEvent.keyDown(window, { key: '/', shiftKey: true })
+
+    expect(onCreateObject).not.toHaveBeenCalled()
+    expect(onToggleShortcutHelp).not.toHaveBeenCalled()
+  })
 })
