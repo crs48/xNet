@@ -5,6 +5,10 @@ const FRAME_SELECTION_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+F' 
 const ALIAS_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+A' : 'Control+Shift+A'
 const COMMENT_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+C' : 'Control+Shift+C'
 
+function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
+  return process.env.CI ? ciBudgetMs : localBudgetMs
+}
+
 async function advanceOnboarding(page: import('@playwright/test').Page): Promise<void> {
   for (let index = 0; index < 4; index += 1) {
     const start = page.getByRole('button', { name: /get started with/i })
@@ -125,6 +129,48 @@ async function seedPerformanceScene(
     }
 
     return harness.seedPerformanceScene(sceneInput)
+  }, input)
+}
+
+async function measureCanvasFrameBudget(
+  page: import('@playwright/test').Page,
+  input: {
+    canvasId?: string
+    steps?: number
+    deltaX?: number
+    deltaY?: number
+  } = {}
+): Promise<{
+  frameCount: number
+  averageFrameTime: number
+  maxFrameTime: number
+  minFrameTime: number
+  droppedFrames: number
+  droppedFramePercent: number
+  fps: number
+}> {
+  return page.evaluate(async (budgetInput) => {
+    const harness = (
+      window as Window & {
+        __xnetCanvasTestHarness?: {
+          measureCanvasFrameBudget: (input?: typeof budgetInput) => Promise<{
+            frameCount: number
+            averageFrameTime: number
+            maxFrameTime: number
+            minFrameTime: number
+            droppedFrames: number
+            droppedFramePercent: number
+            fps: number
+          }>
+        }
+      }
+    ).__xnetCanvasTestHarness
+
+    if (!harness) {
+      throw new Error('Canvas test harness not available')
+    }
+
+    return harness.measureCanvasFrameBudget(budgetInput)
   }, input)
 }
 
@@ -278,8 +324,17 @@ async function getCanvasMetrics(page: import('@playwright/test').Page): Promise<
   viewportX: number
   viewportY: number
   canvasNodeElements: number
+  contentEditableElements: number
+  tableElements: number
   minimapRenderedNodeCount: number
   minimapRenderMode: string
+  performanceEnabled: boolean
+  frameCount: number
+  frameAverageMs: number
+  frameMaxMs: number
+  frameDroppedFrames: number
+  frameDroppedPercent: number
+  frameFps: number
 }> {
   return page.evaluate(() => {
     const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
@@ -298,8 +353,17 @@ async function getCanvasMetrics(page: import('@playwright/test').Page): Promise<
       viewportX: Number(surface.dataset.viewportX ?? 0),
       viewportY: Number(surface.dataset.viewportY ?? 0),
       canvasNodeElements: document.querySelectorAll('.canvas-node').length,
+      contentEditableElements: document.querySelectorAll('[contenteditable="true"]').length,
+      tableElements: document.querySelectorAll('table').length,
       minimapRenderedNodeCount: Number(minimap?.dataset.canvasMinimapRenderedNodeCount ?? 0),
-      minimapRenderMode: minimap?.dataset.canvasMinimapRenderMode ?? 'full'
+      minimapRenderMode: minimap?.dataset.canvasMinimapRenderMode ?? 'full',
+      performanceEnabled: (surface.dataset.canvasPerformanceEnabled ?? 'false') === 'true',
+      frameCount: Number(surface.dataset.canvasFrameCount ?? 0),
+      frameAverageMs: Number(surface.dataset.canvasFrameAverageMs ?? 0),
+      frameMaxMs: Number(surface.dataset.canvasFrameMaxMs ?? 0),
+      frameDroppedFrames: Number(surface.dataset.canvasFrameDropped ?? 0),
+      frameDroppedPercent: Number(surface.dataset.canvasFrameDroppedPercent ?? 0),
+      frameFps: Number(surface.dataset.canvasFrameFps ?? 0)
     }
   })
 }
@@ -902,8 +966,11 @@ test.describe('Web canvas ingestion', () => {
     expect(initialMetrics.visibleNodeCount).toBeGreaterThan(0)
     expect(initialMetrics.domNodeCount).toBe(initialMetrics.canvasNodeElements)
     expect(initialMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(initialMetrics.contentEditableElements).toBe(0)
+    expect(initialMetrics.tableElements).toBe(0)
     expect(initialMetrics.minimapRenderMode).toBe('aggregated')
     expect(initialMetrics.minimapRenderedNodeCount).toBeLessThan(initialMetrics.nodeCount)
+    expect(initialMetrics.performanceEnabled).toBe(true)
     if (initialMetrics.renderMode === 'hybrid') {
       expect(initialMetrics.overviewNodeCount).toBeGreaterThan(0)
     }
@@ -934,7 +1001,20 @@ test.describe('Web canvas ingestion', () => {
     const postPanMetrics = await getCanvasMetrics(page)
     expect(postPanMetrics.domNodeCount).toBe(postPanMetrics.canvasNodeElements)
     expect(postPanMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(postPanMetrics.contentEditableElements).toBe(0)
+    expect(postPanMetrics.tableElements).toBe(0)
     expect(postPanMetrics.minimapRenderMode).toBe('aggregated')
+    expect(postPanMetrics.performanceEnabled).toBe(true)
+
+    const frameBudget = await measureCanvasFrameBudget(page, {
+      canvasId,
+      steps: 18
+    })
+
+    expect(frameBudget.frameCount).toBeGreaterThan(0)
+    expect(frameBudget.averageFrameTime).toBeLessThan(getPerformanceBudget(24, 40))
+    expect(frameBudget.maxFrameTime).toBeLessThan(getPerformanceBudget(55, 90))
+    expect(frameBudget.droppedFramePercent).toBeLessThan(getPerformanceBudget(45, 65))
 
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-performance.png',

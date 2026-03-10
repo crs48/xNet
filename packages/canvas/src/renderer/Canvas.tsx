@@ -43,6 +43,7 @@ import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
 import { CanvasPrimitiveNodeContent } from '../nodes/CanvasPrimitiveNodeContent'
+import { createFrameMonitor, type FrameStats } from '../performance'
 import {
   createCanvasPresenceManager,
   type AwarenessLike as CanvasPresenceAwarenessLike,
@@ -70,6 +71,15 @@ import { OverviewCanvasLayer } from './OverviewCanvasLayer'
 
 const MIN_RESIZE_WIDTH = 96
 const MIN_RESIZE_HEIGHT = 72
+const EMPTY_FRAME_STATS: FrameStats = {
+  frameCount: 0,
+  averageFrameTime: 0,
+  maxFrameTime: 0,
+  minFrameTime: 0,
+  droppedFrames: 0,
+  droppedFramePercent: 0,
+  fps: 0
+}
 const SCREEN_READER_ONLY_STYLE: React.CSSProperties = {
   position: 'absolute',
   width: 1,
@@ -151,6 +161,10 @@ export interface CanvasHandle {
   redo: () => boolean
   /** Convert a client-space point to canvas coordinates */
   screenToCanvas: (clientX: number, clientY: number) => Point
+  /** Read the current frame timing diagnostics collected by the canvas runtime */
+  getPerformanceStats: () => FrameStats
+  /** Reset the current frame timing diagnostics */
+  resetPerformanceStats: () => void
 }
 
 export interface CanvasSelectionSnapshot {
@@ -222,6 +236,8 @@ export interface CanvasProps {
   showNavigationTools?: boolean
   /** Render the built-in canvas minimap */
   showMinimap?: boolean
+  /** Collect frame timing diagnostics on the live canvas surface */
+  collectPerformanceMetrics?: boolean
   /** Whether the minimap starts expanded */
   minimapDefaultExpanded?: boolean
   /** Minimap width in pixels */
@@ -401,6 +417,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     canvasSchema,
     showNavigationTools = false,
     showMinimap = false,
+    collectPerformanceMetrics = false,
     minimapDefaultExpanded = true,
     minimapWidth = 200,
     minimapHeight = 150,
@@ -418,6 +435,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const presenceManagerRef = useRef<ReturnType<typeof createCanvasPresenceManager> | null>(null)
   const announcerRef = useRef<ReturnType<typeof createAnnouncer> | null>(null)
   const keyboardNavigatorRef = useRef<KeyboardNavigator | null>(null)
+  const frameMonitorRef = useRef<ReturnType<typeof createFrameMonitor> | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [pointerActivity, setPointerActivity] = useState<CanvasActivity>('idle')
   const [focusedEditingNodeId, setFocusedEditingNodeId] = useState<string | null>(null)
@@ -426,6 +444,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const [remoteUsers, setRemoteUsers] = useState<CanvasRemoteUser[]>([])
   const [sceneUndoDepth, setSceneUndoDepth] = useState(0)
   const [sceneRedoDepth, setSceneRedoDepth] = useState(0)
+  const [performanceStats, setPerformanceStats] = useState<FrameStats>(EMPTY_FRAME_STATS)
   const lastMousePos = useRef<Point>({ x: 0, y: 0 })
   const selectionAnnouncementReadyRef = useRef(false)
   const selectionActivityTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -458,6 +477,32 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (!collectPerformanceMetrics) {
+      frameMonitorRef.current?.stop()
+      frameMonitorRef.current = null
+      setPerformanceStats(EMPTY_FRAME_STATS)
+      return
+    }
+
+    const frameMonitor = createFrameMonitor()
+    frameMonitorRef.current = frameMonitor
+    frameMonitor.start()
+    setPerformanceStats(EMPTY_FRAME_STATS)
+
+    const intervalId = window.setInterval(() => {
+      setPerformanceStats(frameMonitor.getStats())
+    }, 250)
+
+    return () => {
+      window.clearInterval(intervalId)
+      frameMonitor.stop()
+      if (frameMonitorRef.current === frameMonitor) {
+        frameMonitorRef.current = null
+      }
+    }
+  }, [collectPerformanceMetrics])
 
   // Track initial positions when drag starts to prevent drift during fast drags
   // Key: nodeId, Value: { x, y } at drag start
@@ -687,7 +732,12 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       wrapSelectionInFrame: () => handleWrapSelectionInFrame(),
       undo: () => runSceneUndo('undo'),
       redo: () => runSceneUndo('redo'),
-      screenToCanvas: (clientX: number, clientY: number) => clientToCanvas(clientX, clientY)
+      screenToCanvas: (clientX: number, clientY: number) => clientToCanvas(clientX, clientY),
+      getPerformanceStats: () => frameMonitorRef.current?.getStats() ?? EMPTY_FRAME_STATS,
+      resetPerformanceStats: () => {
+        frameMonitorRef.current?.reset()
+        setPerformanceStats(frameMonitorRef.current?.getStats() ?? EMPTY_FRAME_STATS)
+      }
     }),
     [
       canvas,
@@ -1722,6 +1772,14 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-canvas-scene-undo-depth={sceneUndoDepth}
       data-canvas-scene-redo-depth={sceneRedoDepth}
       data-canvas-remote-cursor-count={remoteCursorIndicators.length}
+      data-canvas-performance-enabled={collectPerformanceMetrics ? 'true' : 'false'}
+      data-canvas-frame-count={performanceStats.frameCount}
+      data-canvas-frame-average-ms={performanceStats.averageFrameTime}
+      data-canvas-frame-max-ms={performanceStats.maxFrameTime}
+      data-canvas-frame-min-ms={performanceStats.minFrameTime}
+      data-canvas-frame-dropped={performanceStats.droppedFrames}
+      data-canvas-frame-dropped-percent={performanceStats.droppedFramePercent}
+      data-canvas-frame-fps={performanceStats.fps}
       data-selection-bounds-width={selectionBounds?.width ?? 0}
       data-selection-bounds-height={selectionBounds?.height ?? 0}
       role="region"

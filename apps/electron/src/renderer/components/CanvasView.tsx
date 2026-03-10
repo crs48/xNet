@@ -403,7 +403,21 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   })
   const theme = useCanvasThemeTokens()
 
-  const canvasRef = useRef<CanvasHandle>(null)
+  const canvasRef = useRef<CanvasHandle | null>(null)
+  const setCanvasHandle = useCallback(
+    (handle: CanvasHandle | null) => {
+      canvasRef.current = handle
+
+      const testHarness = window as Window & {
+        __xnetCanvasTestHarness?: {
+          registerCanvasHandle?: (canvasId: string, handle: CanvasHandle | null) => void
+        } | null
+      }
+
+      testHarness.__xnetCanvasTestHarness?.registerCanvasHandle?.(docId, handle)
+    },
+    [docId]
+  )
   const handledInsertIdsRef = useRef<Set<string>>(new Set())
   const lastViewportSnapshotRef = useRef<ViewportSnapshot>({
     x: 0,
@@ -2126,8 +2140,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
       <div className="h-full">
         <Canvas
-          ref={canvasRef}
+          ref={setCanvasHandle}
           doc={doc}
+          collectPerformanceMetrics={import.meta.env.DEV}
           awareness={awareness}
           presenceIntent={canvasPresenceIntent}
           config={{

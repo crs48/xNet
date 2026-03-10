@@ -1,7 +1,12 @@
 /**
  * Renderer entry point
  */
-import { getCanvasObjectsMap, seedCanvasPerformanceScene } from '@xnetjs/canvas'
+import {
+  getCanvasObjectsMap,
+  seedCanvasPerformanceScene,
+  type CanvasHandle,
+  type FrameStats
+} from '@xnetjs/canvas'
 import { BlobService, CanvasSchema } from '@xnetjs/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
@@ -54,6 +59,7 @@ type LocalAPIStore = {
 type CanvasTestHarness = {
   registerCanvasDoc: (canvasId: string, doc: Y.Doc | null) => void
   registerCanvasAwareness: (canvasId: string, awareness: Awareness | null) => void
+  registerCanvasHandle: (canvasId: string, handle: CanvasHandle | null) => void
   moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
   getCanvasNodeRect: (input: { nodeId: string }) => Promise<{
     canvasId: string
@@ -83,6 +89,12 @@ type CanvasTestHarness = {
     bounds: { x: number; y: number; width: number; height: number }
     kindCounts: Record<string, number>
   }>
+  measureCanvasFrameBudget: (input?: {
+    canvasId?: string
+    steps?: number
+    deltaX?: number
+    deltaY?: number
+  }) => Promise<FrameStats>
   duplicateCanvasNodeReference: (input: { nodeId: string; alias?: string }) => Promise<string>
 }
 
@@ -131,6 +143,7 @@ window.__xnetIpcSyncManager = ipcSyncManager
 function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness {
   const liveDocs = new Map<string, Y.Doc>()
   const liveAwareness = new Map<string, Awareness>()
+  const liveHandles = new Map<string, CanvasHandle>()
   const remotePeers = new Map<string, Map<string, Awareness>>()
 
   const resolveCanvasId = (canvasId?: string): string => {
@@ -169,6 +182,15 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
 
       liveAwareness.delete(canvasId)
       remotePeers.delete(canvasId)
+    },
+
+    registerCanvasHandle(canvasId, handle) {
+      if (handle) {
+        liveHandles.set(canvasId, handle)
+        return
+      }
+
+      liveHandles.delete(canvasId)
     },
 
     async moveCanvasNode(input) {
@@ -343,6 +365,44 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
           Object.entries(summary.kindCounts).map(([key, value]) => [key, value ?? 0])
         )
       }
+    },
+
+    async measureCanvasFrameBudget(input = {}) {
+      const canvasId = resolveCanvasId(input.canvasId)
+      const handle = liveHandles.get(canvasId)
+      if (!handle) {
+        throw new Error(`No canvas handle registered for canvas ${canvasId}`)
+      }
+
+      const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+      if (!surface) {
+        throw new Error('Canvas surface not found')
+      }
+
+      const steps = Math.max(1, input.steps ?? 18)
+      const deltaX = input.deltaX ?? 140
+      const deltaY = input.deltaY ?? 90
+      const nextFrame = async (): Promise<void> =>
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+
+      handle.resetPerformanceStats()
+      await nextFrame()
+
+      for (let index = 0; index < steps; index += 1) {
+        surface.dispatchEvent(
+          new WheelEvent('wheel', {
+            bubbles: true,
+            cancelable: true,
+            deltaX: index % 2 === 0 ? deltaX : -Math.round(deltaX * 0.85),
+            deltaY: index % 3 === 0 ? deltaY : -Math.round(deltaY * 0.78)
+          })
+        )
+
+        await nextFrame()
+      }
+
+      await nextFrame()
+      return handle.getPerformanceStats()
     },
 
     async duplicateCanvasNodeReference(input) {

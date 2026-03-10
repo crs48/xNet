@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import React from 'react'
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as Y from 'yjs'
@@ -431,6 +431,28 @@ describe('Canvas navigation shell', () => {
 
     expect(onUndoRedoShortcut).toHaveBeenNthCalledWith(1, 'undo')
     expect(onUndoRedoShortcut).toHaveBeenNthCalledWith(2, 'redo')
+  })
+
+  it('collects frame diagnostics when performance monitoring is enabled', async () => {
+    mockUseCanvas.mockReturnValue(createCanvasMock())
+    const canvasRef = React.createRef<import('../renderer/Canvas').CanvasHandle>()
+
+    render(<Canvas ref={canvasRef} doc={new Y.Doc()} collectPerformanceMetrics />)
+
+    await act(async () => {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    })
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    expect(surface?.dataset.canvasPerformanceEnabled).toBe('true')
+    expect(canvasRef.current?.getPerformanceStats().frameCount ?? 0).toBeGreaterThan(0)
+
+    act(() => {
+      canvasRef.current?.resetPerformanceStats()
+    })
+
+    expect(Number(surface?.dataset.canvasFrameCount ?? 0)).toBeLessThanOrEqual(1)
   })
 
   it('supports spatial keyboard focus with live announcements', async () => {

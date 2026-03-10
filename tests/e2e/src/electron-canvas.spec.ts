@@ -455,6 +455,13 @@ async function getCanvasShellMetrics(page: Page): Promise<{
   minimapVisible: boolean
   minimapRenderedNodeCount: number
   minimapRenderMode: string
+  performanceEnabled: boolean
+  frameCount: number
+  frameAverageMs: number
+  frameMaxMs: number
+  frameDroppedFrames: number
+  frameDroppedPercent: number
+  frameFps: number
 }> {
   return page.evaluate(() => {
     const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
@@ -488,7 +495,14 @@ async function getCanvasShellMetrics(page: Page): Promise<{
       ),
       minimapRenderMode:
         document.querySelector<HTMLElement>('[data-canvas-minimap="true"]')?.dataset
-          .canvasMinimapRenderMode ?? 'full'
+          .canvasMinimapRenderMode ?? 'full',
+      performanceEnabled: (surface.dataset.canvasPerformanceEnabled ?? 'false') === 'true',
+      frameCount: Number(surface.dataset.canvasFrameCount ?? 0),
+      frameAverageMs: Number(surface.dataset.canvasFrameAverageMs ?? 0),
+      frameMaxMs: Number(surface.dataset.canvasFrameMaxMs ?? 0),
+      frameDroppedFrames: Number(surface.dataset.canvasFrameDropped ?? 0),
+      frameDroppedPercent: Number(surface.dataset.canvasFrameDroppedPercent ?? 0),
+      frameFps: Number(surface.dataset.canvasFrameFps ?? 0)
     }
   })
 }
@@ -590,42 +604,44 @@ async function setElectronTheme(page: Page, theme: 'light' | 'dark' | 'system'):
 
 async function measureCanvasFrameBudget(
   page: Page,
-  stepCount = 18
-): Promise<{ samples: number; averageMs: number; maxMs: number }> {
-  return page.evaluate(async (steps) => {
-    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
-    if (!surface) {
-      throw new Error('Canvas surface not found')
+  input: {
+    canvasId?: string
+    steps?: number
+    deltaX?: number
+    deltaY?: number
+  } = {}
+): Promise<{
+  frameCount: number
+  averageFrameTime: number
+  maxFrameTime: number
+  minFrameTime: number
+  droppedFrames: number
+  droppedFramePercent: number
+  fps: number
+}> {
+  return page.evaluate(async (budgetInput) => {
+    const harness = (
+      window as Window & {
+        __xnetCanvasTestHarness?: {
+          measureCanvasFrameBudget: (input?: typeof budgetInput) => Promise<{
+            frameCount: number
+            averageFrameTime: number
+            maxFrameTime: number
+            minFrameTime: number
+            droppedFrames: number
+            droppedFramePercent: number
+            fps: number
+          }>
+        } | null
+      }
+    ).__xnetCanvasTestHarness
+
+    if (!harness) {
+      throw new Error('Canvas test harness not available')
     }
 
-    const nextFrame = async (): Promise<number> =>
-      await new Promise((resolve) => requestAnimationFrame((timestamp) => resolve(timestamp)))
-
-    const samples: number[] = []
-    let previous = await nextFrame()
-
-    for (let index = 0; index < steps; index += 1) {
-      surface.dispatchEvent(
-        new WheelEvent('wheel', {
-          bubbles: true,
-          cancelable: true,
-          deltaX: index % 2 === 0 ? 140 : -120,
-          deltaY: index % 3 === 0 ? 90 : -70
-        })
-      )
-
-      const current = await nextFrame()
-      samples.push(current - previous)
-      previous = current
-    }
-
-    const total = samples.reduce((sum, value) => sum + value, 0)
-    return {
-      samples: samples.length,
-      averageMs: samples.length > 0 ? total / samples.length : 0,
-      maxMs: samples.reduce((max, value) => Math.max(max, value), 0)
-    }
-  }, stepCount)
+    return harness.measureCanvasFrameBudget(budgetInput)
+  }, input)
 }
 
 async function selectCanvasNode(
@@ -1849,6 +1865,7 @@ test.describe('Electron canvas shell', () => {
     expect(initialMetrics.minimapVisible).toBe(true)
     expect(initialMetrics.minimapRenderMode).toBe('aggregated')
     expect(initialMetrics.minimapRenderedNodeCount).toBeLessThan(initialMetrics.nodeCount)
+    expect(initialMetrics.performanceEnabled).toBe(true)
     expect(initialQueries.length).toBeLessThanOrEqual(5)
     if (initialMetrics.renderMode === 'hybrid') {
       expect(initialMetrics.overviewNodeCount).toBeGreaterThan(0)
@@ -1897,6 +1914,9 @@ test.describe('Electron canvas shell', () => {
     expect(postMinimapMetrics.domNodeCount).toBeLessThanOrEqual(48)
     expect(postMinimapMetrics.canvasNodeElements).toBe(postMinimapMetrics.domNodeCount)
     expect(postMinimapMetrics.minimapRenderedNodeCount).toBeLessThan(postMinimapMetrics.nodeCount)
+    expect(postMinimapMetrics.contentEditableElements).toBe(0)
+    expect(postMinimapMetrics.tableElements).toBe(0)
+    expect(postMinimapMetrics.performanceEnabled).toBe(true)
     if (postMinimapMetrics.renderMode === 'hybrid') {
       expect(postMinimapMetrics.overviewNodeCount).toBeGreaterThan(0)
     } else {
@@ -1905,11 +1925,15 @@ test.describe('Electron canvas shell', () => {
     }
     expect(postMinimapQueryIds).toEqual(initialQueryIds)
 
-    const frameBudget = await measureCanvasFrameBudget(page, 18)
+    const frameBudget = await measureCanvasFrameBudget(page, {
+      canvasId: activeCanvasId ?? undefined,
+      steps: 18
+    })
 
-    expect(frameBudget.samples).toBe(18)
-    expect(frameBudget.averageMs).toBeLessThan(getPerformanceBudget(24, 40))
-    expect(frameBudget.maxMs).toBeLessThan(getPerformanceBudget(50, 80))
+    expect(frameBudget.frameCount).toBeGreaterThan(0)
+    expect(frameBudget.averageFrameTime).toBeLessThan(getPerformanceBudget(24, 40))
+    expect(frameBudget.maxFrameTime).toBeLessThan(getPerformanceBudget(50, 80))
+    expect(frameBudget.droppedFramePercent).toBeLessThan(getPerformanceBudget(45, 65))
 
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-performance-scene.png`,

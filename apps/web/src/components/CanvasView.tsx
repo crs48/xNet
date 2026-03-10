@@ -189,7 +189,21 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     did: did ?? undefined
   })
 
-  const canvasRef = useRef<CanvasHandle>(null)
+  const canvasRef = useRef<CanvasHandle | null>(null)
+  const setCanvasHandle = useCallback(
+    (handle: CanvasHandle | null) => {
+      canvasRef.current = handle
+
+      const testHarness = window as Window & {
+        __xnetCanvasTestHarness?: {
+          registerCanvasHandle?: (canvasId: string, handle: CanvasHandle | null) => void
+        } | null
+      }
+
+      testHarness.__xnetCanvasTestHarness?.registerCanvasHandle?.(docId, handle)
+    },
+    [docId]
+  )
   const aliasInputRef = useRef<HTMLInputElement | null>(null)
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null)
   const [canvasReady, setCanvasReady] = useState(false)
@@ -879,8 +893,9 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         ) : null}
 
         <Canvas
-          ref={canvasRef}
+          ref={setCanvasHandle}
           doc={doc}
+          collectPerformanceMetrics={import.meta.env.DEV}
           awareness={awareness}
           presenceIntent={canvasPresenceIntent}
           config={{

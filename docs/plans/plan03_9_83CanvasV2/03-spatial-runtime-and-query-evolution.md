@@ -138,6 +138,7 @@ type SpatialQueryDescriptor = QueryDescriptor & {
   - no unexpected `contenteditable` or table mounts on the home surface
   - stable minimap interaction while panning
   - no query explosion during viewport movement
+- Keep the dense-scene gates wired to shared canvas frame diagnostics so Electron and web both assert against the same runtime-facing frame metrics.
 - Add benchmark fixtures for:
   - 1,000 objects
   - 5,000 objects
@@ -167,4 +168,4 @@ PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests e
 - [x] Gate DOM mounts behind visibility, zoom, and interaction state.
 - [ ] Extend `useQuery`/`QueryDescriptor` only where Canvas V2 genuinely benefits.
 - [ ] Add viewport-window and future geospatial query coverage around `useQuery`.
-- [ ] Add telemetry and benchmark coverage for display-list and query behavior.
+- [x] Add telemetry and benchmark coverage for display-list and query behavior.
