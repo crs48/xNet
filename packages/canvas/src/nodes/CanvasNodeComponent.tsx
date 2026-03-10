@@ -396,6 +396,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         onClick={handleClick}
         data-node-id={node.id}
         data-selected={selected ? 'true' : 'false'}
+        data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="placeholder"
       />
     )
@@ -428,6 +429,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         onClick={handleClick}
         data-node-id={node.id}
         data-selected={selected ? 'true' : 'false'}
+        data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="minimal"
       >
         <span
@@ -475,6 +477,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         onClick={handleClick}
         data-node-id={node.id}
         data-selected={selected ? 'true' : 'false'}
+        data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="compact"
       >
         <NodeIcon type={node.type} />
@@ -517,7 +520,8 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         : '0 1px 3px rgba(0,0,0,0.1)',
     cursor: node.locked ? 'default' : 'move',
     userSelect: 'none',
-    overflow: 'visible'
+    overflow: 'visible',
+    opacity: node.locked ? 0.92 : 1
   }
 
   return (
@@ -530,6 +534,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       data-node-id={node.id}
       data-node-type={node.type}
       data-selected={selected ? 'true' : 'false'}
+      data-node-locked={node.locked ? 'true' : 'false'}
       data-lod="full"
     >
       {/* Content wrapper (clips overflow) */}

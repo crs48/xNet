@@ -42,6 +42,7 @@ export interface UseCanvasReturn {
 
   // Node operations
   addNode: (node: CanvasNode) => void
+  updateNodes: (updates: Array<{ id: string; changes: Partial<Omit<CanvasNode, 'id'>> }>) => void
   updateNodePosition: (id: string, position: Partial<CanvasNodePosition>) => void
   updateNodePositions: (
     updates: Array<{ id: string; position: Partial<CanvasNodePosition> }>
@@ -205,6 +206,21 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
       })
       syncSceneState()
       syncRenderState()
+    },
+    [chunkManager, store, syncRenderState, syncSceneState]
+  )
+
+  const updateNodes = useCallback(
+    (updates: Array<{ id: string; changes: Partial<Omit<CanvasNode, 'id'>> }>) => {
+      if (updates.length === 0) {
+        return
+      }
+
+      store.updateNodes(updates)
+      syncSceneState()
+      void chunkManager.refreshLoadedChunks().then(() => {
+        syncRenderState()
+      })
     },
     [chunkManager, store, syncRenderState, syncSceneState]
   )
@@ -502,6 +518,7 @@ export function useCanvas(options: UseCanvasOptions): UseCanvasReturn {
 
     // Node operations
     addNode,
+    updateNodes,
     updateNodePosition,
     updateNodePositions,
     removeNode,

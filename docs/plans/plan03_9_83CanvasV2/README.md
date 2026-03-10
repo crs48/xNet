@@ -268,7 +268,8 @@ flowchart LR
 - [x] Add universal drop ingestion for internal drags, URLs, text, images, and files.
 - [x] Ship live page cards with inline editing and peek behavior.
 - [x] Ship database preview cards with focus/open and split workflows.
-- [ ] Add connector bindings, shapes, groups, locks, align/tidy operations, and aliases/backlinks.
+- [ ] Add connector bindings, shapes, groups, and aliases/backlinks.
+- [x] Add lock/unlock plus align/distribute/tidy operations for dense-board management.
 - [ ] Define and implement the full shortcut/command surface for Canvas V2.
 - [ ] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
 - [ ] Build Storybook and manual validation scenes that reflect the real Canvas V2 object model.

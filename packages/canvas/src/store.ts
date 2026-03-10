@@ -9,6 +9,17 @@ import type { CanvasNode, CanvasEdge, CanvasNodePosition, CanvasNodeType } from 
 import * as Y from 'yjs'
 import { SpatialIndex, createSpatialIndex } from './spatial/index'
 
+type CanvasNodeChanges = Partial<Omit<CanvasNode, 'id'>>
+
+function mergeNodeChanges(node: CanvasNode, changes: CanvasNodeChanges): CanvasNode {
+  return {
+    ...node,
+    ...changes,
+    ...(changes.position ? { position: { ...node.position, ...changes.position } } : {}),
+    ...(changes.properties ? { properties: { ...node.properties, ...changes.properties } } : {})
+  }
+}
+
 /**
  * Y.Doc structure for canvas:
  * - metadata: Y.Map (title, created, etc.)
@@ -153,11 +164,35 @@ export class CanvasStore {
     if (!node) return
 
     this.ydoc.transact(() => {
-      const updated: CanvasNode = {
-        ...node,
-        properties: { ...node.properties, ...properties }
+      this.nodesMap.set(id, mergeNodeChanges(node, { properties }))
+    })
+  }
+
+  /**
+   * Update a node with partial changes.
+   */
+  updateNode(id: string, changes: CanvasNodeChanges): void {
+    const node = this.getNode(id)
+    if (!node) return
+
+    this.ydoc.transact(() => {
+      this.nodesMap.set(id, mergeNodeChanges(node, changes))
+    })
+  }
+
+  /**
+   * Update multiple nodes with partial changes.
+   */
+  updateNodes(updates: Array<{ id: string; changes: CanvasNodeChanges }>): void {
+    this.ydoc.transact(() => {
+      for (const update of updates) {
+        const node = this.getNode(update.id)
+        if (!node) {
+          continue
+        }
+
+        this.nodesMap.set(update.id, mergeNodeChanges(node, update.changes))
       }
-      this.nodesMap.set(id, updated)
     })
   }
 

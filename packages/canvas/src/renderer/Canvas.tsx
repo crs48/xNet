@@ -4,7 +4,16 @@
  * Main infinite canvas component with pan, zoom, and node rendering.
  */
 
-import type { CanvasConfig, CanvasNode, GridType, Point, Rect } from '../types'
+import type {
+  CanvasAlignment,
+  CanvasConfig,
+  CanvasDistributionAxis,
+  CanvasLayerDirection,
+  CanvasNode,
+  GridType,
+  Point,
+  Rect
+} from '../types'
 import React, {
   useRef,
   useCallback,
@@ -23,6 +32,16 @@ import { useCanvas } from '../hooks/useCanvas'
 import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
 import { createGridLayer, type GridLayer } from '../layers'
 import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
+import {
+  createAlignmentUpdates,
+  createDistributionUpdates,
+  createLayerShiftUpdates,
+  createLockUpdates,
+  createTidySelectionUpdates,
+  getSelectionBounds,
+  getSelectionLockState,
+  getUnlockedSelection
+} from '../selection/scene-operations'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 import { createCanvasDisplayList } from './display-list'
 import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
@@ -64,6 +83,16 @@ export interface CanvasHandle {
   setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) => void
   /** Clear the current selection */
   clearSelection: () => void
+  /** Lock or unlock the current selection */
+  toggleSelectionLock: () => boolean
+  /** Align the current selection */
+  alignSelection: (alignment: CanvasAlignment) => boolean
+  /** Distribute the current selection */
+  distributeSelection: (axis: CanvasDistributionAxis) => boolean
+  /** Tidy the current selection into a compact grid */
+  tidySelection: () => boolean
+  /** Move the current selection through z-order */
+  shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
   /** Convert a client-space point to canvas coordinates */
   screenToCanvas: (clientX: number, clientY: number) => Point
 }
@@ -328,6 +357,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     viewport,
     selectNode,
     clearSelection,
+    updateNodes,
     updateNodePosition,
     setViewportSize,
     pan,
@@ -347,6 +377,67 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [viewport]
   )
 
+  const getSelectedNodes = useCallback(
+    () =>
+      Array.from(selectedNodeIds)
+        .map((nodeId) => canvas.store.getNode(nodeId))
+        .filter((node): node is CanvasNode => node !== undefined),
+    [canvas.store, selectedNodeIds]
+  )
+
+  const applySelectionPositionUpdates = useCallback(
+    (updates: Array<{ id: string; position: Partial<CanvasNode['position']> }>): boolean => {
+      if (updates.length === 0) {
+        return false
+      }
+
+      canvas.updateNodePositions(updates)
+      return true
+    },
+    [canvas]
+  )
+
+  const handleToggleSelectionLock = useCallback((): boolean => {
+    const selectedNodes = getSelectedNodes()
+    const updates = createLockUpdates(selectedNodes)
+
+    if (updates.length === 0) {
+      return false
+    }
+
+    updateNodes(updates.map((update) => ({ id: update.id, changes: { locked: update.locked } })))
+    return true
+  }, [getSelectedNodes, updateNodes])
+
+  const handleAlignSelection = useCallback(
+    (alignment: CanvasAlignment): boolean => {
+      const selectedNodes = getUnlockedSelection(getSelectedNodes())
+      return applySelectionPositionUpdates(createAlignmentUpdates(selectedNodes, alignment))
+    },
+    [applySelectionPositionUpdates, getSelectedNodes]
+  )
+
+  const handleDistributeSelection = useCallback(
+    (axis: CanvasDistributionAxis): boolean => {
+      const selectedNodes = getUnlockedSelection(getSelectedNodes())
+      return applySelectionPositionUpdates(createDistributionUpdates(selectedNodes, axis))
+    },
+    [applySelectionPositionUpdates, getSelectedNodes]
+  )
+
+  const handleTidySelection = useCallback((): boolean => {
+    const selectedNodes = getUnlockedSelection(getSelectedNodes())
+    return applySelectionPositionUpdates(createTidySelectionUpdates(selectedNodes))
+  }, [applySelectionPositionUpdates, getSelectedNodes])
+
+  const handleShiftSelectionLayer = useCallback(
+    (direction: CanvasLayerDirection): boolean => {
+      const selectedNodes = getUnlockedSelection(getSelectedNodes())
+      return applySelectionPositionUpdates(createLayerShiftUpdates(selectedNodes, direction))
+    },
+    [applySelectionPositionUpdates, getSelectedNodes]
+  )
+
   // Expose imperative methods via ref
   useImperativeHandle(
     ref,
@@ -358,9 +449,24 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       setViewportSnapshot: (snapshot: { x: number; y: number; zoom: number }) =>
         canvas.setViewportSnapshot(snapshot),
       clearSelection: () => clearSelection(),
+      toggleSelectionLock: () => handleToggleSelectionLock(),
+      alignSelection: (alignment: CanvasAlignment) => handleAlignSelection(alignment),
+      distributeSelection: (axis: CanvasDistributionAxis) => handleDistributeSelection(axis),
+      tidySelection: () => handleTidySelection(),
+      shiftSelectionLayer: (direction: CanvasLayerDirection) =>
+        handleShiftSelectionLayer(direction),
       screenToCanvas: (clientX: number, clientY: number) => clientToCanvas(clientX, clientY)
     }),
-    [canvas, clearSelection, clientToCanvas]
+    [
+      canvas,
+      clearSelection,
+      clientToCanvas,
+      handleAlignSelection,
+      handleDistributeSelection,
+      handleShiftSelectionLayer,
+      handleTidySelection,
+      handleToggleSelectionLock
+    ]
   )
 
   const createSurfaceEventContext = useCallback(
@@ -770,6 +876,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       ),
     [nodes]
   )
+  const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes])
+  const selectionBounds = useMemo(() => getSelectionBounds(selectedNodes), [selectedNodes])
+  const selectionLockState = useMemo(() => getSelectionLockState(selectedNodes), [selectedNodes])
 
   const canvasBounds = useMemo(() => canvas.store.getBounds(), [canvas.store, nodes])
   const navigationToolsInsetRight =
@@ -798,6 +907,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onClearSelection: clearSelection,
     onStepSelection: handleStepSelection,
     onNudgeSelection: handleNudgeSelection,
+    onToggleSelectionLock: handleToggleSelectionLock,
+    onAlignSelection: handleAlignSelection,
+    onShiftSelectionLayer: handleShiftSelectionLayer,
     onCreateObject,
     onOpenSelection,
     onToggleShortcutHelp,
@@ -847,6 +959,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-viewport-zoom={viewport.zoom}
       data-viewport-width={viewport.width}
       data-viewport-height={viewport.height}
+      data-selection-count={selectedNodes.length}
+      data-selection-all-locked={selectionLockState.allLocked ? 'true' : 'false'}
+      data-selection-any-locked={selectionLockState.anyLocked ? 'true' : 'false'}
+      data-selection-bounds-width={selectionBounds?.width ?? 0}
+      data-selection-bounds-height={selectionBounds?.height ?? 0}
       onMouseDown={handleMouseDown}
       onDoubleClick={handleBackgroundDoubleClick}
       onDragOver={handleSurfaceDragOver}

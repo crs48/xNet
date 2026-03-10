@@ -32,6 +32,9 @@ export type {
   CanvasObjectKind,
   LegacyCanvasNodeType,
   CanvasNodeType,
+  CanvasAlignment,
+  CanvasDistributionAxis,
+  CanvasLayerDirection,
   CanvasNode,
   EdgeAnchor,
   CanvasEdge,
@@ -45,6 +48,18 @@ export type {
 } from './types'
 
 export { DEFAULT_CANVAS_CONFIG } from './types'
+
+export {
+  createAlignmentUpdates,
+  createDistributionUpdates,
+  createLayerShiftUpdates,
+  createLockUpdates,
+  createTidySelectionUpdates,
+  getSelectionBounds,
+  getSelectionLockState,
+  getUnlockedSelection
+} from './selection/scene-operations'
+export type { CanvasLockUpdate, CanvasPositionUpdate } from './selection/scene-operations'
 
 export {
   CANVAS_INTERNAL_NODE_MIME,

@@ -905,12 +905,16 @@ test.describe('Electron canvas shell', () => {
     const databaseCountBefore = await getCanvasNodeCount(page, 'database')
     const noteCountBefore = await getCanvasNodeCount(page, 'note')
 
-    await page.locator('[data-canvas-surface="true"]').click({
+    const canvasSurface = page.locator('[data-canvas-surface="true"]')
+
+    await canvasSurface.click({
       position: { x: 36, y: 320 },
       force: true
     })
     await page.keyboard.press('P')
+    await canvasSurface.focus()
     await page.keyboard.press('D')
+    await canvasSurface.focus()
     await page.keyboard.press('N')
 
     await expect

@@ -3,13 +3,21 @@
  */
 
 import type {
+  CanvasAlignment,
+  CanvasDistributionAxis,
   CanvasHandle,
+  CanvasLayerDirection,
   CanvasNode,
   CanvasNodeRenderContext,
   CanvasSelectionSnapshot,
   Rect
 } from '@xnetjs/canvas'
-import { Canvas, extractCanvasIngressPayloads, useCanvasObjectIngestion } from '@xnetjs/canvas'
+import {
+  Canvas,
+  extractCanvasIngressPayloads,
+  getSelectionBounds,
+  useCanvasObjectIngestion
+} from '@xnetjs/canvas'
 import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
 import { useBlobService } from '@xnetjs/editor/react'
 import { useNode, useIdentity } from '@xnetjs/react'
@@ -72,6 +80,8 @@ export type CanvasViewCommandState = {
   selectedSourceType: Exclude<LinkedDocType, 'canvas'> | null
   selectedDisplayType: LinkedDocType | 'note' | 'external-reference' | 'media' | null
   selectedTitle: string | null
+  selectionAllLocked: boolean
+  selectionAnyLocked: boolean
   shortcutHelpOpen: boolean
 }
 
@@ -81,6 +91,13 @@ export type CanvasViewHandle = {
   clearSelection: () => void
   fitSelection: () => boolean
   openSelection: (mode?: 'peek' | 'focus' | 'split') => boolean
+  toggleSelectionLock: () => boolean
+  alignSelection: (
+    alignment: Extract<CanvasAlignment, 'left' | 'right' | 'top' | 'bottom'>
+  ) => boolean
+  distributeSelection: (axis: CanvasDistributionAxis) => boolean
+  tidySelection: () => boolean
+  shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
   toggleShortcutHelp: (open?: boolean) => void
 }
 
@@ -310,6 +327,20 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     }
   }, [doc, documentMap, selection.nodeIds])
 
+  const selectedNodes = useMemo(() => {
+    if (!doc || selection.nodeIds.length === 0) {
+      return []
+    }
+
+    const nodes = doc.getMap<CanvasNode>('nodes')
+    return selection.nodeIds
+      .map((nodeId) => nodes.get(nodeId))
+      .filter((node): node is CanvasNode => node !== undefined)
+  }, [doc, selection.nodeIds])
+
+  const selectionAllLocked = selectedNodes.length > 0 && selectedNodes.every((node) => node.locked)
+  const selectionAnyLocked = selectedNodes.some((node) => node.locked)
+
   const peekedCanvasObject = useMemo(() => {
     if (!peekState || !selectedCanvasObject) {
       return null
@@ -440,13 +471,46 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }, [closePeekSurface])
 
   const fitSelection = useCallback((): boolean => {
-    if (!selectedCanvasObject) {
+    if (selectedNodes.length === 0) {
       return false
     }
 
-    canvasRef.current?.fitToRect(getNodeRect(selectedCanvasObject.node), 140)
+    if (selectedNodes.length === 1) {
+      canvasRef.current?.fitToRect(getNodeRect(selectedNodes[0]), 140)
+      return true
+    }
+
+    const selectionBounds = getSelectionBounds(selectedNodes)
+    if (!selectionBounds) {
+      return false
+    }
+
+    canvasRef.current?.fitToRect(selectionBounds, 140)
     return true
-  }, [selectedCanvasObject])
+  }, [selectedNodes])
+
+  const toggleSelectionLock = useCallback((): boolean => {
+    return canvasRef.current?.toggleSelectionLock() ?? false
+  }, [])
+
+  const alignSelection = useCallback(
+    (alignment: Extract<CanvasAlignment, 'left' | 'right' | 'top' | 'bottom'>): boolean => {
+      return canvasRef.current?.alignSelection(alignment) ?? false
+    },
+    []
+  )
+
+  const distributeSelection = useCallback((axis: CanvasDistributionAxis): boolean => {
+    return canvasRef.current?.distributeSelection(axis) ?? false
+  }, [])
+
+  const tidySelection = useCallback((): boolean => {
+    return canvasRef.current?.tidySelection() ?? false
+  }, [])
+
+  const shiftSelectionLayer = useCallback((direction: CanvasLayerDirection): boolean => {
+    return canvasRef.current?.shiftSelectionLayer(direction) ?? false
+  }, [])
 
   const focusSelectionSurface = useCallback(
     (
@@ -638,9 +702,18 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       selectedSourceType: selectedCanvasObject?.sourceType ?? null,
       selectedDisplayType: selectedCanvasObject?.displayType ?? null,
       selectedTitle: selectedCanvasObject?.title ?? null,
+      selectionAllLocked,
+      selectionAnyLocked,
       shortcutHelpOpen
     })
-  }, [onCommandStateChange, selectedCanvasObject, selection.nodeIds.length, shortcutHelpOpen])
+  }, [
+    onCommandStateChange,
+    selectedCanvasObject,
+    selection.nodeIds.length,
+    selectionAllLocked,
+    selectionAnyLocked,
+    shortcutHelpOpen
+  ])
 
   useImperativeHandle(
     ref,
@@ -650,14 +723,24 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       clearSelection: clearCanvasSelection,
       fitSelection,
       openSelection,
+      toggleSelectionLock,
+      alignSelection,
+      distributeSelection,
+      tidySelection,
+      shiftSelectionLayer,
       toggleShortcutHelp
     }),
     [
+      alignSelection,
       clearCanvasSelection,
+      distributeSelection,
       fitSelection,
       focusLinkedDocument,
       openSelection,
       restoreViewport,
+      shiftSelectionLayer,
+      tidySelection,
+      toggleSelectionLock,
       toggleShortcutHelp
     ]
   )
@@ -691,6 +774,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             data-canvas-selection-hud="true"
             data-canvas-selection-count={selection.nodeIds.length}
             data-canvas-selection-type={selectedCanvasObject?.displayType ?? 'mixed'}
+            data-canvas-selection-all-locked={selectionAllLocked ? 'true' : 'false'}
           >
             <span className="truncate px-2 text-sm text-foreground">
               {selectedCanvasObject
@@ -768,6 +852,92 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             <button
               type="button"
               className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              onClick={() => {
+                toggleSelectionLock()
+              }}
+              data-canvas-selection-action="lock"
+            >
+              {selectionAllLocked ? 'Unlock' : 'Lock'}
+              <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                Mod+Shift+L
+              </span>
+            </button>
+
+            {selection.nodeIds.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => {
+                    alignSelection('left')
+                  }}
+                  data-canvas-selection-action="align-left"
+                >
+                  Align left
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    Mod+Shift+←
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => {
+                    distributeSelection('horizontal')
+                  }}
+                  data-canvas-selection-action="distribute"
+                >
+                  Distribute
+                </button>
+
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => {
+                    tidySelection()
+                  }}
+                  data-canvas-selection-action="tidy"
+                >
+                  Tidy
+                </button>
+              </>
+            ) : null}
+
+            {selection.nodeIds.length > 0 ? (
+              <>
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => {
+                    shiftSelectionLayer('backward')
+                  }}
+                  data-canvas-selection-action="send-backward"
+                >
+                  Back
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    [
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => {
+                    shiftSelectionLayer('forward')
+                  }}
+                  data-canvas-selection-action="bring-forward"
+                >
+                  Forward
+                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    ]
+                  </span>
+                </button>
+              </>
+            ) : null}
+
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
               onClick={clearCanvasSelection}
               data-canvas-selection-action="clear"
             >
@@ -813,6 +983,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                 ['Enter', 'Peek or edit the selected object'],
                 ['Alt+Enter', 'Open the selected database beside the canvas'],
                 ['Mod+Enter', 'Open the focused page or database view'],
+                ['Mod+Shift+L', 'Lock or unlock the current selection'],
+                ['Mod+Shift+Arrow', 'Align the selection to one edge'],
+                ['[ / ]', 'Send the selection backward or forward'],
                 ['Mod+Shift+P', 'Open the command palette'],
                 ['Mod+1 / Mod+0', 'Fit content or reset the camera'],
                 ['Esc', 'Dismiss help or clear the selection']

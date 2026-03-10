@@ -13,7 +13,7 @@
  * - ?: Toggle shortcut help
  */
 
-import type { Point, Rect } from '../types'
+import type { CanvasAlignment, CanvasLayerDirection, Point, Rect } from '../types'
 import type { RefObject } from 'react'
 import { useCallback, useEffect } from 'react'
 import { isTextInputLikeElement } from '../renderer/keyboard-shortcuts'
@@ -44,6 +44,14 @@ export interface UseCanvasKeyboardOptions {
   onClearSelection?: () => void
   /** Callback for keyboard-only selection stepping */
   onStepSelection?: (direction: -1 | 1) => void
+  /** Callback for locking or unlocking the current selection */
+  onToggleSelectionLock?: () => void
+  /** Callback for alignment operations on the current selection */
+  onAlignSelection?: (
+    alignment: Extract<CanvasAlignment, 'left' | 'right' | 'top' | 'bottom'>
+  ) => void
+  /** Callback for layer ordering on the current selection */
+  onShiftSelectionLayer?: (direction: CanvasLayerDirection) => void
   /** Callback for single-key object creation */
   onCreateObject?: (kind: CanvasCreationShortcut) => void
   /** Callback for peek/open actions on the current selection */
@@ -78,6 +86,9 @@ export function useCanvasKeyboard({
   onSelectAll,
   onClearSelection,
   onStepSelection,
+  onToggleSelectionLock,
+  onAlignSelection,
+  onShiftSelectionLayer,
   onCreateObject,
   onOpenSelection,
   onToggleShortcutHelp,
@@ -170,6 +181,38 @@ export function useCanvasKeyboard({
         return
       }
 
+      if (isMod && e.shiftKey && selectedNodeCount > 0) {
+        if (normalizedKey === 'l') {
+          e.preventDefault()
+          onToggleSelectionLock?.()
+          return
+        }
+
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          onAlignSelection?.('left')
+          return
+        }
+
+        if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          onAlignSelection?.('right')
+          return
+        }
+
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          onAlignSelection?.('top')
+          return
+        }
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          onAlignSelection?.('bottom')
+          return
+        }
+      }
+
       if (!isMod && !e.altKey && !e.shiftKey) {
         if (normalizedKey === 'p') {
           e.preventDefault()
@@ -194,6 +237,20 @@ export function useCanvasKeyboard({
         e.preventDefault()
         onToggleShortcutHelp?.()
         return
+      }
+
+      if (!isMod && !e.altKey && selectedNodeCount > 0) {
+        if (e.key === '[') {
+          e.preventDefault()
+          onShiftSelectionLayer?.('backward')
+          return
+        }
+
+        if (e.key === ']') {
+          e.preventDefault()
+          onShiftSelectionLayer?.('forward')
+          return
+        }
       }
 
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeCount > 0) {
@@ -262,13 +319,16 @@ export function useCanvasKeyboard({
       minZoom,
       nudgeAmount,
       onClearSelection,
+      onAlignSelection,
       onCreateObject,
       onDeleteSelection,
       onDismissTransientUi,
       onNudgeSelection,
       onOpenSelection,
       onSelectAll,
+      onShiftSelectionLayer,
       onStepSelection,
+      onToggleSelectionLock,
       onToggleShortcutHelp,
       onViewportChange,
       panAmount,

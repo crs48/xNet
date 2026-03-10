@@ -59,6 +59,21 @@ export type CanvasObjectKind =
 export type CanvasNodeType = CanvasObjectKind | LegacyCanvasNodeType
 
 /**
+ * Selection alignment operations.
+ */
+export type CanvasAlignment = 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom'
+
+/**
+ * Selection distribution axis.
+ */
+export type CanvasDistributionAxis = 'horizontal' | 'vertical'
+
+/**
+ * Selection layer movement direction.
+ */
+export type CanvasLayerDirection = 'forward' | 'backward'
+
+/**
  * Shape types for shape nodes
  */
 export type ShapeType = 'rectangle' | 'ellipse' | 'diamond' | 'triangle' | 'line' | 'arrow'

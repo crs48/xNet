@@ -111,6 +111,7 @@ function createCanvasMockBase() {
     selectedEdgeIds: new Set<string>(),
     viewport,
     addNode: vi.fn(),
+    updateNodes: vi.fn(),
     updateNodePosition: vi.fn(),
     updateNodePositions: vi.fn(),
     removeNode: vi.fn(),
@@ -395,6 +396,61 @@ describe('Canvas navigation shell', () => {
     expect(onToggleShortcutHelp).toHaveBeenCalledOnce()
     expect(onOpenSelection).toHaveBeenNthCalledWith(1, 'split')
     expect(onOpenSelection).toHaveBeenNthCalledWith(2, 'focus')
+  })
+
+  it('dispatches lock, align, and layer shortcuts against the current selection', () => {
+    const leftNode = {
+      id: 'page-1',
+      type: 'page',
+      locked: false,
+      position: { x: 20, y: 40, width: 120, height: 80, zIndex: 1 },
+      properties: { title: 'Canvas Page' }
+    }
+    const rightNode = {
+      id: 'page-2',
+      type: 'page',
+      locked: false,
+      position: { x: 220, y: 140, width: 160, height: 120, zIndex: 3 },
+      properties: { title: 'Canvas Page 2' }
+    }
+    const nodesById = new Map([
+      [leftNode.id, leftNode],
+      [rightNode.id, rightNode]
+    ])
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = [leftNode, rightNode]
+    canvasMock.selectedNodeIds = new Set(['page-1', 'page-2'])
+    canvasMock.store.getVisibleNodes = vi.fn(() => [leftNode, rightNode])
+    canvasMock.store.getNode = vi.fn((nodeId: string) => nodesById.get(nodeId))
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    surface?.focus()
+
+    fireEvent.keyDown(window, { key: 'L', metaKey: true, shiftKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowLeft', metaKey: true, shiftKey: true })
+    fireEvent.keyDown(window, { key: '[' })
+    fireEvent.keyDown(window, { key: ']' })
+
+    expect(canvasMock.updateNodes).toHaveBeenCalledWith([
+      { id: 'page-1', changes: { locked: true } },
+      { id: 'page-2', changes: { locked: true } }
+    ])
+    expect(canvasMock.updateNodePositions).toHaveBeenNthCalledWith(1, [
+      { id: 'page-1', position: { x: 20 } },
+      { id: 'page-2', position: { x: 20 } }
+    ])
+    expect(canvasMock.updateNodePositions).toHaveBeenNthCalledWith(2, [
+      { id: 'page-1', position: { zIndex: 0 } },
+      { id: 'page-2', position: { zIndex: 2 } }
+    ])
+    expect(canvasMock.updateNodePositions).toHaveBeenNthCalledWith(3, [
+      { id: 'page-1', position: { zIndex: 2 } },
+      { id: 'page-2', position: { zIndex: 4 } }
+    ])
   })
 
   it('nudges the current selection instead of panning when arrow shortcuts are used', () => {

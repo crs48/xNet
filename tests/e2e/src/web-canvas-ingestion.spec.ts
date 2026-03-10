@@ -82,6 +82,33 @@ async function seedPerformanceScene(
   }, input)
 }
 
+async function waitForCanvasDocument(
+  page: import('@playwright/test').Page,
+  canvasId: string
+): Promise<void> {
+  await expect
+    .poll(
+      async () =>
+        await page.evaluate(async (targetCanvasId) => {
+          const store = (
+            window as Window & {
+              __xnetNodeStore?: {
+                get: (id: string) => Promise<unknown>
+              }
+            }
+          ).__xnetNodeStore
+
+          if (!store) {
+            return false
+          }
+
+          return (await store.get(targetCanvasId)) !== null
+        }, canvasId),
+      { timeout: 30_000 }
+    )
+    .toBe(true)
+}
+
 async function getCanvasMetrics(page: import('@playwright/test').Page): Promise<{
   nodeCount: number
   visibleNodeCount: number
@@ -261,6 +288,7 @@ test.describe('Web canvas ingestion', () => {
     const canvasId = await createCanvas(page)
     const surface = page.locator('[data-canvas-surface="true"]')
     await expect(surface).toBeVisible({ timeout: 30_000 })
+    await waitForCanvasDocument(page, canvasId)
 
     const seededScene = await seedPerformanceScene(page, {
       canvasId,

@@ -57,6 +57,8 @@ const EMPTY_CANVAS_COMMAND_STATE: CanvasViewCommandState = {
   selectedSourceType: null,
   selectedDisplayType: null,
   selectedTitle: null,
+  selectionAllLocked: false,
+  selectionAnyLocked: false,
   shortcutHelpOpen: false
 }
 
@@ -472,6 +474,135 @@ export function App(): React.ReactElement {
         when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
         execute: () => {
           canvasViewRef.current?.fitSelection()
+        }
+      },
+      {
+        id: 'canvas-toggle-lock',
+        name: canvasCommandState.selectionAllLocked ? 'Unlock Selection' : 'Lock Selection',
+        description: canvasCommandState.selectionAllLocked
+          ? 'Allow the current selection to move and resize again'
+          : 'Protect the current selection from accidental moves and nudges',
+        icon: 'lock',
+        shortcut: 'Mod+Shift+L',
+        group: 'Canvas',
+        keywords: ['lock', 'unlock', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
+        execute: () => {
+          canvasViewRef.current?.toggleSelectionLock()
+        }
+      },
+      {
+        id: 'canvas-align-left',
+        name: 'Align Selection Left',
+        description: 'Snap the selected objects to a shared left edge',
+        icon: 'align-start-horizontal',
+        shortcut: 'Mod+Shift+Left',
+        group: 'Canvas',
+        keywords: ['align', 'left', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.alignSelection('left')
+        }
+      },
+      {
+        id: 'canvas-align-right',
+        name: 'Align Selection Right',
+        description: 'Snap the selected objects to a shared right edge',
+        icon: 'align-end-horizontal',
+        shortcut: 'Mod+Shift+Right',
+        group: 'Canvas',
+        keywords: ['align', 'right', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.alignSelection('right')
+        }
+      },
+      {
+        id: 'canvas-align-top',
+        name: 'Align Selection Top',
+        description: 'Snap the selected objects to a shared top edge',
+        icon: 'align-start-vertical',
+        shortcut: 'Mod+Shift+Up',
+        group: 'Canvas',
+        keywords: ['align', 'top', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.alignSelection('top')
+        }
+      },
+      {
+        id: 'canvas-align-bottom',
+        name: 'Align Selection Bottom',
+        description: 'Snap the selected objects to a shared bottom edge',
+        icon: 'align-end-vertical',
+        shortcut: 'Mod+Shift+Down',
+        group: 'Canvas',
+        keywords: ['align', 'bottom', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.alignSelection('bottom')
+        }
+      },
+      {
+        id: 'canvas-distribute-horizontal',
+        name: 'Distribute Selection Horizontally',
+        description: 'Even out the horizontal spacing between selected objects',
+        icon: 'columns',
+        group: 'Canvas',
+        keywords: ['distribute', 'horizontal', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 2,
+        execute: () => {
+          canvasViewRef.current?.distributeSelection('horizontal')
+        }
+      },
+      {
+        id: 'canvas-distribute-vertical',
+        name: 'Distribute Selection Vertically',
+        description: 'Even out the vertical spacing between selected objects',
+        icon: 'rows',
+        group: 'Canvas',
+        keywords: ['distribute', 'vertical', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 2,
+        execute: () => {
+          canvasViewRef.current?.distributeSelection('vertical')
+        }
+      },
+      {
+        id: 'canvas-tidy-selection',
+        name: 'Tidy Selection',
+        description: 'Pack the selected objects into a clean reading grid',
+        icon: 'sparkles',
+        group: 'Canvas',
+        keywords: ['tidy', 'arrange', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 1,
+        execute: () => {
+          canvasViewRef.current?.tidySelection()
+        }
+      },
+      {
+        id: 'canvas-send-backward',
+        name: 'Send Selection Backward',
+        description: 'Move the selected objects back one layer',
+        icon: 'minus',
+        shortcut: '[',
+        group: 'Canvas',
+        keywords: ['backward', 'z-index', 'layer', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
+        execute: () => {
+          canvasViewRef.current?.shiftSelectionLayer('backward')
+        }
+      },
+      {
+        id: 'canvas-bring-forward',
+        name: 'Bring Selection Forward',
+        description: 'Move the selected objects forward one layer',
+        icon: 'plus',
+        shortcut: ']',
+        group: 'Canvas',
+        keywords: ['forward', 'z-index', 'layer', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
+        execute: () => {
+          canvasViewRef.current?.shiftSelectionLayer('forward')
         }
       },
       {
