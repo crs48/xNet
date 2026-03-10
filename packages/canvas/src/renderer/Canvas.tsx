@@ -93,7 +93,7 @@ export interface CanvasProps {
   /** Callback when the user triggers a canvas creation shortcut */
   onCreateObject?: (kind: 'page' | 'database' | 'note') => void
   /** Callback when the user triggers a selection open/peek shortcut */
-  onOpenSelection?: (mode: 'peek' | 'focus') => void
+  onOpenSelection?: (mode: 'peek' | 'focus' | 'split') => void
   /** Callback when the user toggles canvas shortcut help */
   onToggleShortcutHelp?: () => void
   /** Callback when transient canvas UI should be dismissed before clearing selection */

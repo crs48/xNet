@@ -140,10 +140,10 @@ Suggested commands:
 
 ```bash
 pnpm --filter @xnetjs/canvas test
-pnpm --filter @xnetjs/react test
-pnpm --filter @xnetjs/data test
+pnpm --filter xnet-desktop exec vitest run src/renderer/components/CanvasDatabasePreviewSurface.test.tsx
+pnpm --filter xnet-desktop build
 pnpm --filter @xnetjs/e2e-tests exec playwright test src/web-canvas-ingestion.spec.ts --project=chromium
-cd tests/e2e && pnpm exec playwright test src/electron-canvas.spec.ts --project=chromium
+pnpm --filter @xnetjs/e2e-tests exec playwright test src/electron-canvas.spec.ts --project=chromium
 pnpm dev:stories
 cd apps/electron && pnpm dev
 cd apps/electron && pnpm dev:both
@@ -162,12 +162,16 @@ Manual validation should include:
 
 Automated validation should include:
 
+- Electron component coverage for:
+  - bounded database preview virtualization
+  - split/open actions on the canvas database surface
 - Electron CDP smoke coverage for:
   - shell boot
   - dock creation
   - command-palette creation
   - minimap toggle
   - page/database focus-return flows
+  - database split-view open/close flows
 - Web Playwright smoke coverage for:
   - URL drops creating source-backed `ExternalReference` cards
   - image/file drops creating source-backed `MediaAsset` cards

@@ -50,6 +50,7 @@ type CanvasViewProps = {
   } | null
   onPendingInsertConsumed?: (requestId: string) => void
   onOpenDocument?: (docId: string, docType: Exclude<LinkedDocType, 'canvas'>) => void
+  onOpenDatabaseSplit?: (docId: string) => void
   onCreatePage?: () => void
   onCreateDatabase?: () => void
   onCreateNote?: () => void
@@ -71,7 +72,7 @@ export type CanvasViewHandle = {
   restoreViewport: (snapshot: ViewportSnapshot) => void
   clearSelection: () => void
   fitSelection: () => boolean
-  openSelection: (mode?: 'peek' | 'focus') => boolean
+  openSelection: (mode?: 'peek' | 'focus' | 'split') => boolean
   toggleShortcutHelp: (open?: boolean) => void
 }
 
@@ -222,6 +223,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     pendingInsert,
     onPendingInsertConsumed,
     onOpenDocument,
+    onOpenDatabaseSplit,
     onCreatePage,
     onCreateDatabase,
     onCreateNote,
@@ -417,7 +419,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   )
 
   const openSelection = useCallback(
-    (mode: 'peek' | 'focus' = 'focus'): boolean => {
+    (mode: 'peek' | 'focus' | 'split' = 'focus'): boolean => {
       if (!selectedCanvasObject) {
         return false
       }
@@ -437,6 +439,19 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         return didFit
       }
 
+      if (
+        mode === 'split' &&
+        selectedCanvasObject.displayType === 'database' &&
+        selectedCanvasObject.sourceId
+      ) {
+        if (!onOpenDatabaseSplit) {
+          return false
+        }
+
+        onOpenDatabaseSplit?.(selectedCanvasObject.sourceId)
+        return true
+      }
+
       if (!selectedCanvasObject.sourceId || !selectedCanvasObject.sourceType) {
         return false
       }
@@ -444,7 +459,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       onOpenDocument?.(selectedCanvasObject.sourceId, selectedCanvasObject.sourceType)
       return true
     },
-    [fitSelection, focusSelectionSurface, onOpenDocument, selectedCanvasObject]
+    [fitSelection, focusSelectionSurface, onOpenDatabaseSplit, onOpenDocument, selectedCanvasObject]
   )
 
   const handleSurfaceDrop = useCallback(
@@ -625,6 +640,23 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                     </span>
                   </button>
                 ) : null}
+                {selectedCanvasObject.displayType === 'database' &&
+                selectedCanvasObject.sourceId ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    onClick={() => {
+                      void openSelection('split')
+                    }}
+                    data-canvas-selection-action="split"
+                  >
+                    <Database size={12} />
+                    Split
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Alt+Enter
+                    </span>
+                  </button>
+                ) : null}
               </>
             ) : null}
 
@@ -674,6 +706,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                 ['Tab', 'Step through canvas objects'],
                 ['Arrow keys', 'Pan the board or nudge the selection'],
                 ['Enter', 'Peek or edit the selected object'],
+                ['Alt+Enter', 'Open the selected database beside the canvas'],
                 ['Mod+Enter', 'Open the focused page or database view'],
                 ['Mod+Shift+P', 'Open the command palette'],
                 ['Mod+1 / Mod+0', 'Fit content or reset the camera'],
@@ -762,6 +795,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                   node={node}
                   docId={sourceNodeId}
                   onOpenDocument={(targetDocId) => onOpenDocument?.(targetDocId, 'database')}
+                  onSplitDocument={onOpenDatabaseSplit}
                 />
               )
             }

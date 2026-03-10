@@ -318,12 +318,14 @@ describe('Canvas navigation shell', () => {
     fireEvent.keyDown(window, { key: 'Tab' })
     fireEvent.keyDown(window, { key: 'P' })
     fireEvent.keyDown(window, { key: '/', shiftKey: true })
+    fireEvent.keyDown(window, { key: 'Enter', altKey: true })
     fireEvent.keyDown(window, { key: 'Enter', metaKey: true })
 
     expect(canvasMock.selectNode).toHaveBeenCalledWith('page-2')
     expect(onCreateObject).toHaveBeenCalledWith('page')
     expect(onToggleShortcutHelp).toHaveBeenCalledOnce()
-    expect(onOpenSelection).toHaveBeenCalledWith('focus')
+    expect(onOpenSelection).toHaveBeenNthCalledWith(1, 'split')
+    expect(onOpenSelection).toHaveBeenNthCalledWith(2, 'focus')
   })
 
   it('nudges the current selection instead of panning when arrow shortcuts are used', () => {

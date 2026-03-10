@@ -267,12 +267,12 @@ flowchart LR
 - [ ] Route the main runtime through chunking, culling, and explicit layer display lists.
 - [x] Add universal drop ingestion for internal drags, URLs, text, images, and files.
 - [ ] Ship live page cards with inline editing and peek behavior.
-- [ ] Ship database preview cards with focus/open and split workflows.
+- [x] Ship database preview cards with focus/open and split workflows.
 - [ ] Add connector bindings, shapes, groups, locks, align/tidy operations, and aliases/backlinks.
 - [ ] Define and implement the full shortcut/command surface for Canvas V2.
 - [ ] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
 - [ ] Build Storybook and manual validation scenes that reflect the real Canvas V2 object model.
-- [ ] Add Electron CDP e2e coverage for canvas creation, minimap, command palette, drag/drop, and focused-surface transitions.
+- [x] Add Electron CDP e2e coverage for canvas creation, minimap, command palette, drag/drop, and focused-surface transitions.
 - [x] Add large-scene performance harnesses with DOM-count, query-churn, and frame-budget assertions.
 - [ ] Validate Electron-first performance and interaction budgets before web rollout.
 
@@ -280,8 +280,8 @@ flowchart LR
 
 - [x] Creating a page on the canvas immediately creates a real `Page` node and supports inline editing.
 - [x] Creating a database on the canvas immediately creates a real `Database` node and shows a bounded live preview.
-- [ ] Dropping a URL creates or reuses an `ExternalReference` node and renders the correct fallback chain.
-- [ ] Dropping an image or file creates a reusable media node and preserves it after reload.
+- [x] Dropping a URL creates or reuses an `ExternalReference` node and renders the correct fallback chain.
+- [x] Dropping an image or file creates a reusable media node and preserves it after reload.
 - [x] Web Playwright smoke coverage verifies URL and image drops create source-backed canvas objects.
 - [ ] Pan/zoom remains smooth on large scenes with chunk load/evict active.
 - [x] The background grid and minimap remain outside the main DOM path.

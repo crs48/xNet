@@ -9,7 +9,14 @@ type CanvasDatabasePreviewSurfaceProps = {
   node: CanvasNode
   docId: string
   onOpenDocument?: (docId: string) => void
+  onSplitDocument?: (docId: string) => void
 }
+
+const PREVIEW_INITIAL_ROWS = 12
+const PREVIEW_MAX_ROWS = 24
+const PREVIEW_ROW_HEIGHT = 44
+const PREVIEW_OVERSCAN = 3
+const PREVIEW_DEFAULT_VIEWPORT_HEIGHT = PREVIEW_ROW_HEIGHT * 5
 
 function useStableTitle(initialTitle: string, onCommit: (title: string) => Promise<void>) {
   const [localTitle, setLocalTitle] = useState(initialTitle)
@@ -108,7 +115,8 @@ function formatCellValue(value: CellValue, column: ColumnDefinition): string {
 export function CanvasDatabasePreviewSurface({
   node,
   docId,
-  onOpenDocument
+  onOpenDocument,
+  onSplitDocument
 }: CanvasDatabasePreviewSurfaceProps): React.ReactElement {
   const { did } = useIdentity()
   const {
@@ -127,10 +135,16 @@ export function CanvasDatabasePreviewSurface({
   const {
     rows,
     loading: rowsLoading,
+    loadingMore,
+    hasMore,
+    loadMore,
     activeView
   } = useDatabase(docId, {
-    pageSize: 8
+    pageSize: PREVIEW_INITIAL_ROWS
   })
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  const [scrollTop, setScrollTop] = useState(0)
+  const [viewportHeight, setViewportHeight] = useState(PREVIEW_DEFAULT_VIEWPORT_HEIGHT)
 
   const orderedColumns = useMemo(
     () => [
@@ -140,11 +154,12 @@ export function CanvasDatabasePreviewSurface({
     [columns]
   )
   const previewColumns = useMemo(() => orderedColumns.slice(0, 3), [orderedColumns])
-  const previewRows = useMemo(() => rows.slice(0, 5), [rows])
+  const previewRows = useMemo(() => rows.slice(0, PREVIEW_MAX_ROWS), [rows])
   const rowCount = Math.max(
     typeof database?.rowCount === 'number' ? database.rowCount : 0,
     rows.length
   )
+  const previewCap = Math.min(rowCount, PREVIEW_MAX_ROWS)
   const title =
     database?.title ?? node.alias ?? (node.properties.title as string) ?? 'Untitled Database'
   const commitTitle = useCallback(
@@ -159,6 +174,14 @@ export function CanvasDatabasePreviewSurface({
       onOpenDocument?.(docId)
     },
     [docId, onOpenDocument]
+  )
+
+  const handleSplitDocument = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation()
+      onSplitDocument?.(docId)
+    },
+    [docId, onSplitDocument]
   )
 
   const handleStartTable = useCallback(
@@ -209,6 +232,76 @@ export function CanvasDatabasePreviewSurface({
   const activeViewType = activeView?.type ?? database?.defaultView ?? 'table'
   const isEmpty = columns.length === 0
   const isLoading = nodeLoading || (!isEmpty && (docLoading || rowsLoading))
+  const canLoadMorePreviewRows = hasMore && previewRows.length < PREVIEW_MAX_ROWS
+
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current
+    if (!scrollContainer) {
+      return
+    }
+
+    const updateViewportHeight = () => {
+      setViewportHeight(
+        Math.max(
+          scrollContainer.clientHeight || PREVIEW_DEFAULT_VIEWPORT_HEIGHT,
+          PREVIEW_ROW_HEIGHT
+        )
+      )
+    }
+
+    updateViewportHeight()
+
+    const resizeObserver = new ResizeObserver(updateViewportHeight)
+    resizeObserver.observe(scrollContainer)
+
+    return () => {
+      resizeObserver.disconnect()
+    }
+  }, [previewRows.length])
+
+  const virtualWindow = useMemo(() => {
+    const totalRows = previewRows.length
+    if (totalRows === 0) {
+      return {
+        startIndex: 0,
+        endIndex: 0,
+        items: [] as typeof previewRows,
+        paddingTop: 0,
+        paddingBottom: 0
+      }
+    }
+
+    const boundedViewportHeight = Math.max(viewportHeight, PREVIEW_ROW_HEIGHT)
+    const startIndex = Math.max(0, Math.floor(scrollTop / PREVIEW_ROW_HEIGHT) - PREVIEW_OVERSCAN)
+    const endIndex = Math.min(
+      totalRows,
+      Math.ceil((scrollTop + boundedViewportHeight) / PREVIEW_ROW_HEIGHT) + PREVIEW_OVERSCAN
+    )
+
+    return {
+      startIndex,
+      endIndex,
+      items: previewRows.slice(startIndex, endIndex),
+      paddingTop: startIndex * PREVIEW_ROW_HEIGHT,
+      paddingBottom: Math.max(0, (totalRows - endIndex) * PREVIEW_ROW_HEIGHT)
+    }
+  }, [previewRows, scrollTop, viewportHeight])
+
+  const handleRowsScroll = useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      const nextScrollTop = event.currentTarget.scrollTop
+      setScrollTop(nextScrollTop)
+
+      const nearBottom =
+        nextScrollTop + event.currentTarget.clientHeight >=
+        event.currentTarget.scrollHeight - PREVIEW_ROW_HEIGHT * 2
+
+      if (nearBottom && canLoadMorePreviewRows && !loadingMore) {
+        void loadMore()
+      }
+    },
+    [canLoadMorePreviewRows, loadMore, loadingMore]
+  )
 
   return (
     <div
@@ -249,6 +342,15 @@ export function CanvasDatabasePreviewSurface({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
+            onClick={handleSplitDocument}
+            data-canvas-database-split="true"
+            data-canvas-interactive="true"
+          >
+            Split
+          </button>
           <button
             type="button"
             className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground transition-colors hover:text-foreground"
@@ -299,24 +401,40 @@ export function CanvasDatabasePreviewSurface({
               ))}
             </div>
 
-            <div className="flex-1 overflow-auto" data-canvas-database-rows="true">
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-auto"
+              onScroll={handleRowsScroll}
+              data-canvas-database-rows="true"
+              data-canvas-database-rendered-rows={String(virtualWindow.items.length)}
+              data-canvas-database-preview-total={String(previewRows.length)}
+              data-canvas-database-preview-cap={String(previewCap)}
+            >
               {previewRows.length > 0 ? (
-                previewRows.map((row) => (
-                  <div
-                    key={row.id}
-                    className="grid border-b border-border/40 px-3 py-2 text-sm last:border-b-0"
-                    style={{
-                      gridTemplateColumns: `repeat(${previewColumns.length}, minmax(0, 1fr))`
-                    }}
-                    data-canvas-database-row="true"
-                  >
-                    {previewColumns.map((column) => (
-                      <div key={column.id} className="truncate pr-3 text-foreground/90">
-                        {formatCellValue(row.cells[column.id] ?? null, column)}
-                      </div>
-                    ))}
-                  </div>
-                ))
+                <div
+                  style={{
+                    paddingTop: virtualWindow.paddingTop,
+                    paddingBottom: virtualWindow.paddingBottom
+                  }}
+                >
+                  {virtualWindow.items.map((row) => (
+                    <div
+                      key={row.id}
+                      className="grid border-b border-border/40 px-3 py-2 text-sm last:border-b-0"
+                      style={{
+                        gridTemplateColumns: `repeat(${previewColumns.length}, minmax(0, 1fr))`,
+                        minHeight: `${PREVIEW_ROW_HEIGHT}px`
+                      }}
+                      data-canvas-database-row="true"
+                    >
+                      {previewColumns.map((column) => (
+                        <div key={column.id} className="truncate pr-3 text-foreground/90">
+                          {formatCellValue(row.cells[column.id] ?? null, column)}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="flex min-h-[132px] items-center justify-center px-4 text-sm text-muted-foreground">
                   No rows yet. Add a row here or open the full database to keep shaping it.

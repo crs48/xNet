@@ -9,7 +9,7 @@
  * - Arrow keys: Pan viewport or nudge selection
  * - Tab / Shift+Tab: Step selection
  * - P / D / N: Create page, database, note
- * - Enter / Ctrl+Enter: Peek or open selection
+ * - Enter / Alt+Enter / Ctrl+Enter: Peek, split, or open selection
  * - ?: Toggle shortcut help
  */
 
@@ -23,7 +23,7 @@ import { Viewport } from '../spatial/index'
 
 export type CanvasCreationShortcut = 'page' | 'database' | 'note'
 
-export type CanvasOpenShortcutMode = 'peek' | 'focus'
+export type CanvasOpenShortcutMode = 'peek' | 'focus' | 'split'
 
 export interface UseCanvasKeyboardOptions {
   /** Canvas surface element used to scope shortcuts */
@@ -210,7 +210,7 @@ export function useCanvasKeyboard({
 
       if (e.key === 'Enter' && selectedNodeCount > 0) {
         e.preventDefault()
-        onOpenSelection?.(isMod ? 'focus' : 'peek')
+        onOpenSelection?.(isMod ? 'focus' : e.altKey ? 'split' : 'peek')
         return
       }
 

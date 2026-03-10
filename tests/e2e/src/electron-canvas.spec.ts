@@ -13,6 +13,7 @@ const ELECTRON_CDP_URL = `http://127.0.0.1:${ELECTRON_CDP_PORT}`
 const RENDERER_URLS = [`http://localhost:${RENDERER_PORT}`, `http://127.0.0.1:${RENDERER_PORT}`]
 const COMMAND_PALETTE_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+P' : 'Control+Shift+P'
 const FOCUSED_OPEN_SHORTCUT = process.platform === 'darwin' ? 'Meta+Enter' : 'Control+Enter'
+const SPLIT_OPEN_SHORTCUT = 'Alt+Enter'
 const PNPM_BIN = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
 const ELECTRON_PROFILE_PATH = join(
   homedir(),
@@ -813,6 +814,29 @@ test.describe('Electron canvas shell', () => {
         timeout: 30_000
       })
     }
+
+    const splitButton = page.locator('[data-canvas-database-split="true"]').first()
+    await expect(splitButton).toBeVisible({ timeout: 30_000 })
+    await splitButton.evaluate((button: HTMLButtonElement) => button.click())
+    await expect(page.locator('[data-database-split-panel="true"]')).toBeVisible({
+      timeout: 30_000
+    })
+    await expect(page.locator('[data-canvas-surface="true"]')).toBeVisible({ timeout: 30_000 })
+    await page.getByRole('button', { name: 'Close split' }).click({ force: true })
+    await expect(page.locator('[data-database-split-panel="true"]')).toHaveCount(0, {
+      timeout: 30_000
+    })
+    await expect(databaseSurface).toBeVisible({ timeout: 30_000 })
+
+    await page.locator('[data-canvas-surface="true"]').focus()
+    await page.keyboard.press(SPLIT_OPEN_SHORTCUT)
+    await expect(page.locator('[data-database-split-panel="true"]')).toBeVisible({
+      timeout: 30_000
+    })
+    await page.getByRole('button', { name: 'Close split' }).click({ force: true })
+    await expect(page.locator('[data-database-split-panel="true"]')).toHaveCount(0, {
+      timeout: 30_000
+    })
 
     await page
       .locator('[data-canvas-database-open="true"]')

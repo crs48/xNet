@@ -104,8 +104,9 @@ const rows = preview.rows.slice(0, 8)
 Suggested commands:
 
 ```bash
-pnpm --filter @xnetjs/react test
-pnpm --filter @xnetjs/views test
+pnpm --filter xnet-desktop exec vitest run src/renderer/components/CanvasDatabasePreviewSurface.test.tsx
+pnpm --filter xnet-desktop build
+pnpm --filter @xnetjs/e2e-tests exec playwright test src/electron-canvas.spec.ts --project=chromium
 ```
 
 ## Risks and Edge Cases
@@ -118,7 +119,7 @@ pnpm --filter @xnetjs/views test
 
 - [x] Add database object creation and placement using real `Database` nodes.
 - [x] Render bounded live preview cards backed by `useDatabase` and `useDatabaseDoc`.
-- [ ] Limit preview density and virtualize heavy preview surfaces when needed.
+- [x] Limit preview density and virtualize heavy preview surfaces when needed.
 - [x] Preserve focused full-database workflows.
-- [ ] Add optional split canvas + database workflows after focus/open is stable.
+- [x] Add optional split canvas + database workflows after focus/open is stable.
 - [ ] Add alias/backlink support once preview/focus behavior is solid.

@@ -35,6 +35,7 @@ type ShellState =
   | { kind: 'canvas-home' }
   | { kind: 'page-focus'; docId: string; returnViewport: ViewportSnapshot | null }
   | { kind: 'database-focus'; docId: string; returnViewport: ViewportSnapshot | null }
+  | { kind: 'database-split'; docId: string }
   | { kind: 'settings' }
   | { kind: 'stories' }
 
@@ -350,6 +351,17 @@ export function App(): React.ReactElement {
     if (shellState.kind === 'stories') return 'Stories'
     return null
   }, [shellState.kind])
+  const isCanvasInteractiveShell =
+    shellState.kind === 'canvas-home' || shellState.kind === 'database-split'
+
+  const openDatabaseSplit = useCallback(
+    (docId: string) => {
+      clearTransitionTimer()
+      setShellState({ kind: 'database-split', docId })
+      setActiveNodeId(docId)
+    },
+    [clearTransitionTimer, setActiveNodeId]
+  )
 
   const handleOpenSettings = useCallback(() => {
     clearTransitionTimer()
@@ -423,11 +435,31 @@ export function App(): React.ReactElement {
         group: 'Canvas',
         keywords: ['open', 'focus', 'selection', 'canvas'],
         when: () =>
-          shellState.kind === 'canvas-home' &&
+          isCanvasInteractiveShell &&
           canvasCommandState.selectionCount === 1 &&
           Boolean(canvasCommandState.selectedSourceId && canvasCommandState.selectedSourceType),
         execute: () => {
           canvasViewRef.current?.openSelection('focus')
+        }
+      },
+      {
+        id: 'canvas-open-database-split',
+        name: 'Open Database in Split View',
+        description:
+          canvasCommandState.selectedTitle && canvasCommandState.selectionCount === 1
+            ? `Keep ${canvasCommandState.selectedTitle} open beside the canvas`
+            : 'Open the selected database in a split view beside the canvas',
+        icon: 'columns',
+        shortcut: 'Alt+Enter',
+        group: 'Canvas',
+        keywords: ['split', 'database', 'canvas', 'preview'],
+        when: () =>
+          isCanvasInteractiveShell &&
+          canvasCommandState.selectionCount === 1 &&
+          canvasCommandState.selectedDisplayType === 'database' &&
+          Boolean(canvasCommandState.selectedSourceId),
+        execute: () => {
+          canvasViewRef.current?.openSelection('split')
         }
       },
       {
@@ -437,7 +469,7 @@ export function App(): React.ReactElement {
         icon: 'layout',
         group: 'Canvas',
         keywords: ['fit', 'selection', 'zoom', 'canvas'],
-        when: () => shellState.kind === 'canvas-home' && canvasCommandState.selectionCount > 0,
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
         execute: () => {
           canvasViewRef.current?.fitSelection()
         }
@@ -450,7 +482,7 @@ export function App(): React.ReactElement {
         shortcut: 'Esc',
         group: 'Canvas',
         keywords: ['clear', 'selection', 'canvas'],
-        when: () => shellState.kind === 'canvas-home' && canvasCommandState.selectionCount > 0,
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount > 0,
         execute: () => {
           canvasViewRef.current?.clearSelection()
         }
@@ -465,7 +497,7 @@ export function App(): React.ReactElement {
         shortcut: '?',
         group: 'Canvas',
         keywords: ['help', 'shortcuts', 'canvas', 'hotkeys'],
-        when: () => shellState.kind === 'canvas-home',
+        when: () => isCanvasInteractiveShell,
         execute: () => {
           canvasViewRef.current?.toggleShortcutHelp()
         }
@@ -510,6 +542,7 @@ export function App(): React.ReactElement {
       handleOpenSettings,
       handleOpenStories,
       canvasCommandState,
+      isCanvasInteractiveShell,
       recentDocuments
     ]
   )
@@ -539,6 +572,41 @@ export function App(): React.ReactElement {
         <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
           <div className={overlaySurfaceClassName}>
             <StorybookView />
+          </div>
+        </div>
+      )
+    }
+
+    if (shellState.kind === 'database-split') {
+      return (
+        <div className="pointer-events-none absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className="flex h-full justify-end">
+            <div className="pointer-events-auto flex h-full w-[min(48vw,780px)] min-w-[420px] flex-col gap-4">
+              <div className="flex justify-end">
+                <div
+                  className="flex items-center gap-3 rounded-full border border-border/70 bg-background/82 px-4 py-2 shadow-lg backdrop-blur-xl"
+                  data-database-split-view="true"
+                >
+                  <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
+                    Canvas + Database
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleReturnHome}
+                    className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  >
+                    Close split
+                  </button>
+                </div>
+              </div>
+
+              <div
+                className={['min-h-0 flex-1', overlaySurfaceClassName].join(' ')}
+                data-database-split-panel="true"
+              >
+                <DatabaseView docId={shellState.docId} minimalChrome />
+              </div>
+            </div>
           </div>
         </div>
       )
@@ -619,7 +687,7 @@ export function App(): React.ReactElement {
           className={[
             'absolute inset-0',
             prefersReducedMotion ? '' : 'transition-all duration-200',
-            shellState.kind === 'canvas-home'
+            isCanvasInteractiveShell
               ? 'opacity-100'
               : prefersReducedMotion
                 ? 'pointer-events-none opacity-70'
@@ -641,13 +709,14 @@ export function App(): React.ReactElement {
               )
             }}
             onOpenDocument={(docId, docType) => focusDocument(docId, docType, true)}
+            onOpenDatabaseSplit={openDatabaseSplit}
           />
         </div>
 
         {renderOverlay()}
 
         <ActionDock
-          mode={shellState.kind === 'canvas-home' ? 'canvas-home' : 'focused'}
+          mode={isCanvasInteractiveShell ? 'canvas-home' : 'focused'}
           onCreatePage={() => void handleCreateLinkedDocument('page')}
           onCreateDatabase={() => void handleCreateLinkedDocument('database')}
           onCreateNote={handleCreateCanvasNote}
