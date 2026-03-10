@@ -601,12 +601,57 @@ describe('Canvas navigation shell', () => {
     expect(surface?.dataset.canvasRenderMode).toBe('hybrid')
     expect(surface?.dataset.domNodeCount).toBe('48')
     expect(surface?.dataset.overviewNodeCount).toBe(String(visibleNodes.length - 48))
+    expect(surface?.dataset.canvasEdgeRenderMode).toBe('canvas')
+    expect(surface?.dataset.canvasEdgeCanvasCount).toBe(surface?.dataset.visibleEdgeCount)
+    expect(surface?.dataset.canvasEdgeSvgCount).toBe('0')
     expect(surface?.dataset.loadedChunkCount).toBe('6')
     expect(Number(surface?.dataset.visibleEdgeCount ?? 0)).toBeLessThanOrEqual(scene.edgeCount)
     expect(document.querySelectorAll('.canvas-node')).toHaveLength(48)
     expect(renderNode).toHaveBeenCalledTimes(48)
     expect(minimap?.dataset.canvasMinimapNodeCount).toBe(String(scene.nodeCount))
     expect(minimap?.dataset.canvasMinimapEdgeCount).toBe(String(scene.edgeCount))
+  })
+
+  it('keeps low-density connectors on the svg interaction layer', () => {
+    const nodes = [
+      {
+        id: 'page-1',
+        type: 'page',
+        position: { x: 20, y: 40, width: 320, height: 220 },
+        properties: { title: 'Canvas Page' }
+      },
+      {
+        id: 'page-2',
+        type: 'page',
+        position: { x: 420, y: 160, width: 320, height: 220 },
+        properties: { title: 'Canvas Page 2' }
+      }
+    ]
+    const edges = [
+      {
+        id: 'edge-1',
+        sourceId: 'page-1',
+        targetId: 'page-2',
+        source: { objectId: 'page-1', placement: 'right' },
+        target: { objectId: 'page-2', placement: 'left' },
+        style: { markerEnd: 'arrow' }
+      }
+    ]
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = nodes
+    canvasMock.edges = edges
+    canvasMock.renderNodes = nodes
+    canvasMock.renderEdges = edges
+    canvasMock.store.getVisibleNodes = vi.fn(() => nodes)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    expect(surface?.dataset.canvasEdgeRenderMode).toBe('svg')
+    expect(surface?.dataset.canvasEdgeCanvasCount).toBe('0')
+    expect(surface?.dataset.canvasEdgeSvgCount).toBe('1')
   })
 
   it('selects far-field overview nodes via hit testing before mounting a DOM island', () => {
@@ -645,6 +690,59 @@ describe('Canvas navigation shell', () => {
     })
 
     expect(canvasMock.selectNode).toHaveBeenCalledWith('page-1', false)
+  })
+
+  it('marquee-selects intersecting nodes when shift-dragging on the background', () => {
+    const intersectingNodes = [
+      {
+        id: 'note-1',
+        type: 'note',
+        position: { x: 120, y: 90, width: 180, height: 120 },
+        properties: { title: 'Note 1' }
+      },
+      {
+        id: 'note-2',
+        type: 'note',
+        position: { x: 340, y: 160, width: 180, height: 120 },
+        properties: { title: 'Note 2' }
+      }
+    ]
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = intersectingNodes
+    canvasMock.renderNodes = intersectingNodes
+    canvasMock.selectedNodeIds = new Set(['pinned-node'])
+    canvasMock.findNodeAt = vi.fn(() => undefined)
+    canvasMock.findNodesInRect = vi.fn(() => intersectingNodes)
+    canvasMock.store.getVisibleNodes = vi.fn(() => intersectingNodes)
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    expect(surface).toBeTruthy()
+
+    fireEvent.mouseDown(surface as HTMLElement, {
+      clientX: 180,
+      clientY: 180,
+      button: 0,
+      shiftKey: true
+    })
+    fireEvent.mouseMove(window, {
+      clientX: 420,
+      clientY: 320
+    })
+
+    expect(surface?.dataset.canvasMarqueeActive).toBe('true')
+    expect(canvasMock.pan).not.toHaveBeenCalled()
+    expect(canvasMock.selectNodes).toHaveBeenLastCalledWith(['pinned-node', 'note-1', 'note-2'])
+
+    fireEvent.mouseUp(window, {
+      clientX: 420,
+      clientY: 320
+    })
+
+    expect(surface?.dataset.canvasMarqueeActive).toBe('false')
   })
 
   it('dispatches canvas creation, help, and selection-open shortcuts when focused', () => {

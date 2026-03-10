@@ -318,9 +318,13 @@ async function waitForCanvasDocument(
 async function getCanvasMetrics(page: import('@playwright/test').Page): Promise<{
   nodeCount: number
   visibleNodeCount: number
+  visibleEdgeCount: number
   domNodeCount: number
   overviewNodeCount: number
   renderMode: string
+  edgeRenderMode: string
+  edgeCanvasCount: number
+  edgeSvgCount: number
   viewportX: number
   viewportY: number
   canvasNodeElements: number
@@ -347,9 +351,13 @@ async function getCanvasMetrics(page: import('@playwright/test').Page): Promise<
     return {
       nodeCount: Number(surface.dataset.nodeCount ?? 0),
       visibleNodeCount: Number(surface.dataset.visibleNodeCount ?? 0),
+      visibleEdgeCount: Number(surface.dataset.visibleEdgeCount ?? 0),
       domNodeCount: Number(surface.dataset.domNodeCount ?? 0),
       overviewNodeCount: Number(surface.dataset.overviewNodeCount ?? 0),
       renderMode: surface.dataset.canvasRenderMode ?? 'dom',
+      edgeRenderMode: surface.dataset.canvasEdgeRenderMode ?? 'svg',
+      edgeCanvasCount: Number(surface.dataset.canvasEdgeCanvasCount ?? 0),
+      edgeSvgCount: Number(surface.dataset.canvasEdgeSvgCount ?? 0),
       viewportX: Number(surface.dataset.viewportX ?? 0),
       viewportY: Number(surface.dataset.viewportY ?? 0),
       canvasNodeElements: document.querySelectorAll('.canvas-node').length,
@@ -483,6 +491,70 @@ async function dragCanvasResizeHandle(
 
 async function releaseCanvasPointer(page: import('@playwright/test').Page): Promise<void> {
   await page.mouse.up()
+}
+
+async function dragCanvasNode(
+  page: import('@playwright/test').Page,
+  selector: string,
+  index: number,
+  dx: number,
+  dy: number
+): Promise<void> {
+  const locator = page.locator(selector).nth(index)
+  await expect(locator).toBeVisible({ timeout: 30_000 })
+
+  const box = await locator.boundingBox()
+  if (!box) {
+    throw new Error('Canvas node bounding box is unavailable')
+  }
+
+  const startX = box.x + 12
+  const startY = box.y + 12
+
+  await page.mouse.move(startX, startY)
+  await page.mouse.down()
+  await page.mouse.move(startX + dx, startY + dy)
+  await page.mouse.up()
+}
+
+async function marqueeSelectCanvasNodes(
+  page: import('@playwright/test').Page,
+  selector: string,
+  indices: number[]
+): Promise<void> {
+  const boxes = await Promise.all(
+    indices.map(async (index) => {
+      const locator = page.locator(selector).nth(index)
+      await expect(locator).toBeVisible({ timeout: 30_000 })
+      return locator.boundingBox()
+    })
+  )
+  const resolvedBoxes = boxes.filter((box): box is NonNullable<typeof box> => box !== null)
+  if (resolvedBoxes.length !== indices.length) {
+    throw new Error('Unable to resolve marquee selection bounds')
+  }
+
+  const bounds = resolvedBoxes.reduce(
+    (accumulator, box) => ({
+      left: Math.min(accumulator.left, box.x),
+      top: Math.min(accumulator.top, box.y),
+      right: Math.max(accumulator.right, box.x + box.width),
+      bottom: Math.max(accumulator.bottom, box.y + box.height)
+    }),
+    {
+      left: Number.POSITIVE_INFINITY,
+      top: Number.POSITIVE_INFINITY,
+      right: Number.NEGATIVE_INFINITY,
+      bottom: Number.NEGATIVE_INFINITY
+    }
+  )
+
+  await page.keyboard.down('Shift')
+  await page.mouse.move(Math.max(12, bounds.left - 18), Math.max(12, bounds.top - 18))
+  await page.mouse.down()
+  await page.mouse.move(bounds.right + 18, bounds.bottom + 18, { steps: 8 })
+  await page.mouse.up()
+  await page.keyboard.up('Shift')
 }
 
 test.describe('Web canvas ingestion', () => {
@@ -686,8 +758,11 @@ test.describe('Web canvas ingestion', () => {
     const firstFocusedNodeId = await surface.getAttribute('data-canvas-focused-node-id')
     expect(firstFocusedNodeId).toBeTruthy()
 
-    const firstAnnouncement = await surface.getAttribute('data-canvas-last-announcement')
-    expect(firstAnnouncement).toContain('Shape: Rectangle')
+    await expect
+      .poll(async () => await surface.getAttribute('data-canvas-last-announcement'), {
+        timeout: 30_000
+      })
+      .toContain('Shape: Rectangle')
 
     await page.keyboard.press('End')
 
@@ -707,6 +782,44 @@ test.describe('Web canvas ingestion', () => {
 
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-keyboard-focus.png',
+      fullPage: true
+    })
+  })
+
+  test('supports marquee multi-selection on the web canvas', async ({ page }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    await surface.click({
+      position: { x: 180, y: 220 },
+      force: true
+    })
+
+    await page.keyboard.press('R')
+    await page.keyboard.press('R')
+    await page.keyboard.press('R')
+
+    const shapes = page.locator('.canvas-node[data-node-type="shape"]')
+    await expect(shapes).toHaveCount(3, { timeout: 30_000 })
+
+    await dragCanvasNode(page, '.canvas-node[data-node-type="shape"]', 2, 320, 180)
+    await surface.click({
+      position: { x: 40, y: 40 },
+      force: true
+    })
+    await expect(surface).toHaveAttribute('data-selection-count', '0')
+
+    await marqueeSelectCanvasNodes(page, '.canvas-node[data-node-type="shape"]', [0, 1])
+
+    await expect(surface).toHaveAttribute('data-selection-count', '2')
+    await expect(surface).toHaveAttribute('data-canvas-marquee-active', 'false')
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-marquee-selection.png',
       fullPage: true
     })
   })
@@ -966,6 +1079,13 @@ test.describe('Web canvas ingestion', () => {
     expect(initialMetrics.visibleNodeCount).toBeGreaterThan(0)
     expect(initialMetrics.domNodeCount).toBe(initialMetrics.canvasNodeElements)
     expect(initialMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(['canvas', 'hybrid']).toContain(initialMetrics.edgeRenderMode)
+    expect(initialMetrics.edgeCanvasCount + initialMetrics.edgeSvgCount).toBe(
+      initialMetrics.visibleEdgeCount
+    )
+    if (initialMetrics.visibleEdgeCount > 0) {
+      expect(initialMetrics.edgeCanvasCount).toBeGreaterThan(0)
+    }
     expect(initialMetrics.contentEditableElements).toBe(0)
     expect(initialMetrics.tableElements).toBe(0)
     expect(initialMetrics.minimapRenderMode).toBe('aggregated')
@@ -1001,6 +1121,13 @@ test.describe('Web canvas ingestion', () => {
     const postPanMetrics = await getCanvasMetrics(page)
     expect(postPanMetrics.domNodeCount).toBe(postPanMetrics.canvasNodeElements)
     expect(postPanMetrics.domNodeCount).toBeLessThanOrEqual(48)
+    expect(['canvas', 'hybrid']).toContain(postPanMetrics.edgeRenderMode)
+    expect(postPanMetrics.edgeCanvasCount + postPanMetrics.edgeSvgCount).toBe(
+      postPanMetrics.visibleEdgeCount
+    )
+    if (postPanMetrics.visibleEdgeCount > 0) {
+      expect(postPanMetrics.edgeCanvasCount).toBeGreaterThan(0)
+    }
     expect(postPanMetrics.contentEditableElements).toBe(0)
     expect(postPanMetrics.tableElements).toBe(0)
     expect(postPanMetrics.minimapRenderMode).toBe('aggregated')

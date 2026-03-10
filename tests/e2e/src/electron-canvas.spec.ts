@@ -443,6 +443,9 @@ async function getCanvasShellMetrics(page: Page): Promise<{
   edgeCount: number
   loadedEdgeCount: number
   visibleEdgeCount: number
+  edgeRenderMode: string
+  edgeCanvasCount: number
+  edgeSvgCount: number
   loadedChunkCount: number
   queuedChunkCount: number
   viewportX: number
@@ -479,6 +482,9 @@ async function getCanvasShellMetrics(page: Page): Promise<{
       edgeCount: Number(surface.dataset.edgeCount ?? 0),
       loadedEdgeCount: Number(surface.dataset.loadedEdgeCount ?? 0),
       visibleEdgeCount: Number(surface.dataset.visibleEdgeCount ?? 0),
+      edgeRenderMode: surface.dataset.canvasEdgeRenderMode ?? 'svg',
+      edgeCanvasCount: Number(surface.dataset.canvasEdgeCanvasCount ?? 0),
+      edgeSvgCount: Number(surface.dataset.canvasEdgeSvgCount ?? 0),
       loadedChunkCount: Number(surface.dataset.loadedChunkCount ?? 0),
       queuedChunkCount: Number(surface.dataset.queuedChunkCount ?? 0),
       viewportX: Number(surface.dataset.viewportX ?? 0),
@@ -711,8 +717,70 @@ async function releaseCanvasPointer(page: Page): Promise<void> {
   await page.mouse.up()
 }
 
+async function marqueeSelectCanvasSelectors(page: Page, selectors: string[]): Promise<void> {
+  const boxes = await Promise.all(
+    selectors.map(async (selector) => {
+      const locator = page.locator(selector)
+      await expect(locator).toBeVisible({ timeout: 30_000 })
+      return locator.boundingBox()
+    })
+  )
+  const resolvedBoxes = boxes.filter((box): box is NonNullable<typeof box> => box !== null)
+  if (resolvedBoxes.length !== selectors.length) {
+    throw new Error('Unable to resolve marquee selection bounds')
+  }
+
+  const bounds = resolvedBoxes.reduce(
+    (accumulator, box) => ({
+      left: Math.min(accumulator.left, box.x),
+      top: Math.min(accumulator.top, box.y),
+      right: Math.max(accumulator.right, box.x + box.width),
+      bottom: Math.max(accumulator.bottom, box.y + box.height)
+    }),
+    {
+      left: Number.POSITIVE_INFINITY,
+      top: Number.POSITIVE_INFINITY,
+      right: Number.NEGATIVE_INFINITY,
+      bottom: Number.NEGATIVE_INFINITY
+    }
+  )
+
+  await page.keyboard.down('Shift')
+  await page.mouse.move(Math.max(12, bounds.left - 18), Math.max(12, bounds.top - 18))
+  await page.mouse.down()
+  await page.mouse.move(bounds.right + 18, bounds.bottom + 18, { steps: 8 })
+  await page.mouse.up()
+  await page.keyboard.up('Shift')
+}
+
 async function getCanvasNodeCount(page: Page, type: string): Promise<number> {
   return page.locator(`.canvas-node[data-node-type="${type}"]`).count()
+}
+
+async function setCanvasViewport(
+  page: Page,
+  input: {
+    canvasId?: string
+    x: number
+    y: number
+    zoom?: number
+  }
+): Promise<void> {
+  await page.evaluate(async (viewportInput) => {
+    const harness = (
+      window as Window & {
+        __xnetCanvasTestHarness?: {
+          setCanvasViewport: (input: typeof viewportInput) => Promise<void>
+        }
+      }
+    ).__xnetCanvasTestHarness
+
+    if (!harness) {
+      throw new Error('Canvas test harness not available')
+    }
+
+    await harness.setCanvasViewport(viewportInput)
+  }, input)
 }
 
 async function createCanvasObjectFromDock(
@@ -889,6 +957,41 @@ async function dragCanvasNode(
   await page.mouse.down()
   await page.mouse.move(startX + dx, startY + dy)
   await page.mouse.up()
+}
+
+async function getCanvasNodeIds(page: Page, selector: string): Promise<string[]> {
+  return page
+    .locator(selector)
+    .evaluateAll((elements) =>
+      elements
+        .map((element) => (element as HTMLElement).dataset.nodeId ?? '')
+        .filter((value): value is string => value.length > 0)
+    )
+}
+
+async function waitForNewCanvasNodeId(
+  page: Page,
+  selector: string,
+  knownIds: string[]
+): Promise<string> {
+  const handle = await page.waitForFunction(
+    (input: { selector: string; knownIds: string[] }) => {
+      const nextId = Array.from(document.querySelectorAll<HTMLElement>(input.selector))
+        .map((element) => element.dataset.nodeId ?? '')
+        .find((nodeId) => nodeId.length > 0 && !input.knownIds.includes(nodeId))
+
+      return nextId ?? null
+    },
+    { selector, knownIds },
+    { timeout: 30_000 }
+  )
+
+  const nodeId = await handle.jsonValue()
+  if (typeof nodeId !== 'string' || nodeId.length === 0) {
+    throw new Error('Unable to resolve newly created canvas node id')
+  }
+
+  return nodeId
 }
 
 async function getCanvasNodeRect(
@@ -1172,6 +1275,7 @@ test.describe('Electron canvas shell', () => {
 
     const surface = page.locator('[data-canvas-surface="true"]')
     await expect(surface).toBeVisible({ timeout: 30_000 })
+    await setCanvasViewport(page, { x: 20000, y: 12000, zoom: 1 })
     await surface.click({
       position: { x: 180, y: 220 },
       force: true
@@ -1215,6 +1319,63 @@ test.describe('Electron canvas shell', () => {
 
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-primitives.png`,
+      fullPage: true
+    })
+  })
+
+  test('supports marquee multi-selection in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+    await surface.click({
+      position: { x: 180, y: 220 },
+      force: true
+    })
+
+    const shapeSelector = '.canvas-node[data-node-type="shape"]'
+    const shapeCountBefore = await getCanvasNodeCount(page, 'shape')
+    const knownShapeIds = new Set(await getCanvasNodeIds(page, shapeSelector))
+    const createdShapeIds: string[] = []
+    for (let index = 0; index < 3; index += 1) {
+      await page.keyboard.press('R')
+      const nodeId = await waitForNewCanvasNodeId(page, shapeSelector, Array.from(knownShapeIds))
+      knownShapeIds.add(nodeId)
+      createdShapeIds.push(nodeId)
+    }
+    await expect
+      .poll(async () => await getCanvasNodeCount(page, 'shape'))
+      .toBe(shapeCountBefore + 3)
+
+    const targetPositions = [
+      { x: 500_000, y: 500_000 },
+      { x: 500_320, y: 500_020 },
+      { x: 500_760, y: 500_200 }
+    ]
+
+    for (const [index, nodeId] of createdShapeIds.entries()) {
+      const currentRect = await getCanvasNodeRect(page, nodeId)
+      const target = targetPositions[index]
+      await moveCanvasNode(page, nodeId, target.x - currentRect.x, target.y - currentRect.y)
+    }
+
+    await setCanvasViewport(page, { x: 500_360, y: 500_160, zoom: 1 })
+    await surface.focus()
+    await page.keyboard.press('Escape')
+    await expect(surface).toHaveAttribute('data-selection-count', '0')
+
+    await marqueeSelectCanvasSelectors(page, [
+      `.canvas-node[data-node-id="${createdShapeIds[0]}"]`,
+      `.canvas-node[data-node-id="${createdShapeIds[1]}"]`
+    ])
+
+    await expect(surface).toHaveAttribute('data-selection-count', '2')
+    await expect(surface).toHaveAttribute('data-canvas-marquee-active', 'false')
+    await expect(page.locator('[data-canvas-selection-hud="true"]')).toContainText('2 selected')
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-marquee-selection.png`,
       fullPage: true
     })
   })
@@ -2005,6 +2166,13 @@ test.describe('Electron canvas shell', () => {
     expect(initialMetrics.canvasNodeElements).toBe(initialMetrics.domNodeCount)
     expect(initialMetrics.edgeCount).toBe(seededScene.edgeCount)
     expect(initialMetrics.visibleEdgeCount).toBeLessThanOrEqual(initialMetrics.edgeCount)
+    expect(['canvas', 'hybrid']).toContain(initialMetrics.edgeRenderMode)
+    expect(initialMetrics.edgeCanvasCount + initialMetrics.edgeSvgCount).toBe(
+      initialMetrics.visibleEdgeCount
+    )
+    if (initialMetrics.visibleEdgeCount > 0) {
+      expect(initialMetrics.edgeCanvasCount).toBeGreaterThan(0)
+    }
     expect(initialMetrics.canvasElements).toBeGreaterThanOrEqual(2)
     expect(initialMetrics.contentEditableElements).toBe(0)
     expect(initialMetrics.tableElements).toBe(0)
@@ -2059,6 +2227,13 @@ test.describe('Electron canvas shell', () => {
     expect(postMinimapMetrics.domNodeCount).toBeLessThanOrEqual(postMinimapMetrics.visibleNodeCount)
     expect(postMinimapMetrics.domNodeCount).toBeLessThanOrEqual(48)
     expect(postMinimapMetrics.canvasNodeElements).toBe(postMinimapMetrics.domNodeCount)
+    expect(['canvas', 'hybrid']).toContain(postMinimapMetrics.edgeRenderMode)
+    expect(postMinimapMetrics.edgeCanvasCount + postMinimapMetrics.edgeSvgCount).toBe(
+      postMinimapMetrics.visibleEdgeCount
+    )
+    if (postMinimapMetrics.visibleEdgeCount > 0) {
+      expect(postMinimapMetrics.edgeCanvasCount).toBeGreaterThan(0)
+    }
     expect(postMinimapMetrics.minimapRenderedNodeCount).toBeLessThan(postMinimapMetrics.nodeCount)
     expect(postMinimapMetrics.contentEditableElements).toBe(0)
     expect(postMinimapMetrics.tableElements).toBe(0)

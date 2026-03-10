@@ -65,12 +65,15 @@ import {
   getUnlockedSelection
 } from '../selection/scene-operations'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
+import { CanvasEdgeCanvasLayer } from './CanvasEdgeCanvasLayer'
 import { createCanvasDisplayList } from './display-list'
 import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
 import { OverviewCanvasLayer } from './OverviewCanvasLayer'
 
 const MIN_RESIZE_WIDTH = 96
 const MIN_RESIZE_HEIGHT = 72
+const CANVAS_EDGE_LAYER_THRESHOLD = 24
+const MARQUEE_DRAG_THRESHOLD = 4
 const EMPTY_FRAME_STATS: FrameStats = {
   frameCount: 0,
   averageFrameTime: 0,
@@ -90,6 +93,24 @@ const SCREEN_READER_ONLY_STYLE: React.CSSProperties = {
   clip: 'rect(0, 0, 0, 0)',
   whiteSpace: 'nowrap',
   border: 0
+}
+
+function createNormalizedRect(start: Point, end: Point): Rect {
+  const x = Math.min(start.x, end.x)
+  const y = Math.min(start.y, end.y)
+  const width = Math.abs(end.x - start.x)
+  const height = Math.abs(end.y - start.y)
+
+  return {
+    x,
+    y,
+    width,
+    height
+  }
+}
+
+function createSelectionKey(ids: string[]): string {
+  return ids.join('|')
 }
 
 /** Minimal Awareness interface (avoids a direct y-protocols dependency). */
@@ -438,6 +459,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const frameMonitorRef = useRef<ReturnType<typeof createFrameMonitor> | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [pointerActivity, setPointerActivity] = useState<CanvasActivity>('idle')
+  const [marqueeRect, setMarqueeRect] = useState<Rect | null>(null)
   const [focusedEditingNodeId, setFocusedEditingNodeId] = useState<string | null>(null)
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
   const [lastAnnouncement, setLastAnnouncement] = useState('')
@@ -1102,6 +1124,57 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
       // Clicked on background
       setFocusedNodeId(null)
+
+      if (e.shiftKey || e.metaKey) {
+        const initialSelectionIds = Array.from(selectedNodeIds)
+        let didMarqueeSelect = false
+        let lastSelectionKey = createSelectionKey(initialSelectionIds)
+
+        const applyMarqueeSelection = (clientX: number, clientY: number) => {
+          const deltaX = clientX - e.clientX
+          const deltaY = clientY - e.clientY
+          if (!didMarqueeSelect && Math.hypot(deltaX, deltaY) < MARQUEE_DRAG_THRESHOLD) {
+            return
+          }
+
+          didMarqueeSelect = true
+          const currentPoint = clientToCanvas(clientX, clientY)
+          const nextRect = createNormalizedRect(canvasPoint, currentPoint)
+          setMarqueeRect(nextRect)
+          setPointerActivity('selecting')
+
+          const nextIds = Array.from(
+            new Set([
+              ...initialSelectionIds,
+              ...canvas.findNodesInRect(nextRect).map((node) => node.id)
+            ])
+          )
+          const nextSelectionKey = createSelectionKey(nextIds)
+          if (nextSelectionKey === lastSelectionKey) {
+            return
+          }
+
+          lastSelectionKey = nextSelectionKey
+          canvas.selectNodes(nextIds)
+        }
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+          applyMarqueeSelection(moveEvent.clientX, moveEvent.clientY)
+        }
+
+        const handleMouseUp = (upEvent: MouseEvent) => {
+          applyMarqueeSelection(upEvent.clientX, upEvent.clientY)
+          setMarqueeRect(null)
+          setPointerActivity('idle')
+          window.removeEventListener('mousemove', handleMouseMove)
+          window.removeEventListener('mouseup', handleMouseUp)
+        }
+
+        window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mouseup', handleMouseUp)
+        return
+      }
+
       clearSelection()
       onBackgroundClick?.()
 
@@ -1134,6 +1207,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       onBackgroundClick,
       pan,
       scheduleTransientActivity,
+      selectedNodeIds,
       selectNode
     ]
   )
@@ -1476,6 +1550,40 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [canvas.store, renderEdges, renderNodes, selectedNodeIds, viewport]
   )
   const { nodeMap, visibleNodes, visibleEdges, domNodes, overviewNodes } = displayList
+  const shouldUseCanvasEdgeLayer =
+    overviewNodes.length > 0 || edges.length > CANVAS_EDGE_LAYER_THRESHOLD
+  const canvasEdges = useMemo(
+    () =>
+      shouldUseCanvasEdgeLayer ? visibleEdges.filter((edge) => !selectedEdgeIds.has(edge.id)) : [],
+    [selectedEdgeIds, shouldUseCanvasEdgeLayer, visibleEdges]
+  )
+  const svgEdges = useMemo(
+    () =>
+      shouldUseCanvasEdgeLayer
+        ? visibleEdges.filter((edge) => selectedEdgeIds.has(edge.id))
+        : visibleEdges,
+    [selectedEdgeIds, shouldUseCanvasEdgeLayer, visibleEdges]
+  )
+  const edgeNodeRects = useMemo(
+    () =>
+      new Map(
+        visibleNodes.map((node) => [
+          node.id,
+          {
+            x: node.position.x,
+            y: node.position.y,
+            width: node.position.width,
+            height: node.position.height
+          }
+        ])
+      ),
+    [visibleNodes]
+  )
+  const edgeRenderMode = shouldUseCanvasEdgeLayer
+    ? svgEdges.length > 0
+      ? 'hybrid'
+      : 'canvas'
+    : 'svg'
   const navigableNodes = useMemo<NavigableNode[]>(() => {
     const sourceNodes =
       visibleNodes.length > 0 ? visibleNodes : renderNodes.length > 0 ? renderNodes : nodes
@@ -1546,6 +1654,34 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const selectedNodes = useMemo(() => getSelectedNodes(), [getSelectedNodes])
   const selectionBounds = useMemo(() => getSelectionBounds(selectedNodes), [selectedNodes])
   const selectionLockState = useMemo(() => getSelectionLockState(selectedNodes), [selectedNodes])
+  const marqueeRectStyle = useMemo<React.CSSProperties | null>(() => {
+    if (!marqueeRect) {
+      return null
+    }
+
+    const topLeft = viewport.canvasToScreen(marqueeRect.x, marqueeRect.y)
+    const bottomRight = viewport.canvasToScreen(
+      marqueeRect.x + marqueeRect.width,
+      marqueeRect.y + marqueeRect.height
+    )
+
+    return {
+      position: 'absolute',
+      left: Math.min(topLeft.x, bottomRight.x),
+      top: Math.min(topLeft.y, bottomRight.y),
+      width: Math.abs(bottomRight.x - topLeft.x),
+      height: Math.abs(bottomRight.y - topLeft.y),
+      borderRadius: 12,
+      border: `1px solid ${theme.minimapViewportStroke}`,
+      background: theme.minimapViewportFill,
+      boxShadow:
+        theme.mode === 'dark'
+          ? '0 0 0 1px rgba(15, 23, 42, 0.28)'
+          : '0 0 0 1px rgba(255, 255, 255, 0.7)',
+      pointerEvents: 'none',
+      zIndex: 12
+    }
+  }, [marqueeRect, theme.minimapViewportFill, theme.minimapViewportStroke, theme.mode, viewport])
 
   useEffect(() => {
     if (!focusedNodeId) {
@@ -1752,6 +1888,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-edge-count={edges.length}
       data-loaded-edge-count={renderEdges.length}
       data-visible-edge-count={visibleEdges.length}
+      data-canvas-edge-render-mode={edgeRenderMode}
+      data-canvas-edge-canvas-count={canvasEdges.length}
+      data-canvas-edge-svg-count={svgEdges.length}
       data-loaded-chunk-count={chunkStats.loadedCount}
       data-loading-chunk-count={chunkStats.loadingCount}
       data-queued-chunk-count={chunkStats.queuedCount}
@@ -1782,6 +1921,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       data-canvas-frame-fps={performanceStats.fps}
       data-selection-bounds-width={selectionBounds?.width ?? 0}
       data-selection-bounds-height={selectionBounds?.height ?? 0}
+      data-canvas-marquee-active={marqueeRect ? 'true' : 'false'}
+      data-canvas-marquee-width={marqueeRect?.width ?? 0}
+      data-canvas-marquee-height={marqueeRect?.height ?? 0}
       role="region"
       aria-label="Canvas workspace"
       aria-roledescription="infinite canvas"
@@ -1795,44 +1937,52 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     >
       <div id={instructionsId} style={SCREEN_READER_ONLY_STYLE}>
         Use Tab to step through nearby objects, Alt plus arrow keys for spatial focus, Enter to peek
-        the selection, Alt plus Enter to open split view, and question mark for shortcuts.
+        the selection, Alt plus Enter to open split view, Shift plus drag to marquee select, and
+        question mark for shortcuts.
       </div>
 
       {/* Grid background is rendered via WebGL/CSS layer (useWebGLGrid hook) */}
 
-      {/* Edges layer (SVG) - PERF-01: Only render edges with visible endpoints */}
-      <svg
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
-          overflow: 'visible'
-        }}
-      >
-        <g style={{ transform: viewport.getTransform() }}>
-          {visibleEdges.map((edge) => {
-            const sourceId = getCanvasEdgeSourceObjectId(edge)
-            const targetId = getCanvasEdgeTargetObjectId(edge)
-            const sourceNode = sourceId ? nodeMap.get(sourceId) : undefined
-            const targetNode = targetId ? nodeMap.get(targetId) : undefined
-            if (!sourceNode || !targetNode) return null
+      {canvasEdges.length > 0 ? (
+        <CanvasEdgeCanvasLayer edges={canvasEdges} nodeRects={edgeNodeRects} viewport={viewport} />
+      ) : null}
 
-            return (
-              <CanvasEdgeComponent
-                key={edge.id}
-                edge={edge}
-                sourceNode={sourceNode}
-                targetNode={targetNode}
-                selected={selectedEdgeIds.has(edge.id)}
-                onSelect={(id) => canvas.selectEdge(id)}
-              />
-            )
-          })}
-        </g>
-      </svg>
+      {/* Edges layer (SVG) - PERF-01: Only render edges with visible endpoints */}
+      {svgEdges.length > 0 ? (
+        <svg
+          data-canvas-edge-svg-layer="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            overflow: 'visible'
+          }}
+        >
+          <g style={{ transform: viewport.getTransform() }}>
+            {svgEdges.map((edge) => {
+              const sourceId = getCanvasEdgeSourceObjectId(edge)
+              const targetId = getCanvasEdgeTargetObjectId(edge)
+              const sourceNode = sourceId ? nodeMap.get(sourceId) : undefined
+              const targetNode = targetId ? nodeMap.get(targetId) : undefined
+              if (!sourceNode || !targetNode) return null
+
+              return (
+                <CanvasEdgeComponent
+                  key={edge.id}
+                  edge={edge}
+                  sourceNode={sourceNode}
+                  targetNode={targetNode}
+                  selected={selectedEdgeIds.has(edge.id)}
+                  onSelect={(id) => canvas.selectEdge(id)}
+                />
+              )
+            })}
+          </g>
+        </svg>
+      ) : null}
 
       <OverviewCanvasLayer nodes={overviewNodes} viewport={viewport} />
 
@@ -1942,6 +2092,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
           )
         })}
       </div>
+
+      {marqueeRectStyle ? (
+        <div data-canvas-marquee="true" aria-hidden="true" style={marqueeRectStyle} />
+      ) : null}
 
       {/* Comment overlay (optional - only when canvasNodeId provided) */}
       {canvasNodeId && (

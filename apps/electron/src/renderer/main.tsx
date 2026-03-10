@@ -60,6 +60,12 @@ type CanvasTestHarness = {
   registerCanvasDoc: (canvasId: string, doc: Y.Doc | null) => void
   registerCanvasAwareness: (canvasId: string, awareness: Awareness | null) => void
   registerCanvasHandle: (canvasId: string, handle: CanvasHandle | null) => void
+  setCanvasViewport: (input: {
+    canvasId?: string
+    x: number
+    y: number
+    zoom?: number
+  }) => Promise<void>
   moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
   moveCanvasNodeAsRemote: (input: {
     canvasId?: string
@@ -208,6 +214,21 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
       }
 
       liveHandles.delete(canvasId)
+    },
+
+    async setCanvasViewport(input) {
+      const canvasId = resolveCanvasId(input.canvasId)
+      const handle = liveHandles.get(canvasId)
+      if (!handle) {
+        throw new Error(`Canvas handle ${canvasId} not found`)
+      }
+
+      const currentSnapshot = handle.getViewportSnapshot()
+      handle.setViewportSnapshot({
+        x: input.x,
+        y: input.y,
+        zoom: input.zoom ?? currentSnapshot.zoom
+      })
     },
 
     async moveCanvasNode(input) {
