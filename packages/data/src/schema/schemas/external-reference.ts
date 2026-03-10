@@ -29,6 +29,8 @@ export const ExternalReferenceSchema = defineSchema({
         { id: 'codesandbox', name: 'CodeSandbox' },
         { id: 'spotify', name: 'Spotify' },
         { id: 'twitter', name: 'Twitter' },
+        { id: 'instagram', name: 'Instagram' },
+        { id: 'tiktok', name: 'TikTok' },
         { id: 'generic', name: 'Generic Link' }
       ] as const,
       default: 'generic'

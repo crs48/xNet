@@ -7,6 +7,7 @@
 import type { Rect } from '../types'
 import { useCallback } from 'react'
 import { Viewport } from '../spatial/index'
+import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,8 @@ export interface NavigationToolsProps {
   className?: string
   /** Optional style overrides for the toolbar container */
   style?: React.CSSProperties
+  /** Right inset used for bottom-right positioning */
+  insetRight?: number
 }
 
 // ─── Navigation Tools Component ───────────────────────────────────────────────
@@ -36,8 +39,11 @@ export function NavigationTools({
   position = 'bottom-left',
   showZoomLabel = true,
   className,
-  style
+  style,
+  insetRight = 16
 }: NavigationToolsProps) {
+  const theme = useCanvasThemeTokens()
+
   const zoomIn = useCallback(() => {
     const newZoom = Math.min(viewport.zoom * 1.5, 4)
     onViewportChange({ zoom: newZoom })
@@ -47,14 +53,6 @@ export function NavigationTools({
     const newZoom = Math.max(viewport.zoom / 1.5, 0.1)
     onViewportChange({ zoom: newZoom })
   }, [viewport.zoom, onViewportChange])
-
-  const zoomTo = useCallback(
-    (zoom: number) => {
-      const clampedZoom = Math.max(0.1, Math.min(4, zoom))
-      onViewportChange({ zoom: clampedZoom })
-    },
-    [onViewportChange]
-  )
 
   const fitToContent = useCallback(() => {
     if (!canvasBounds || !canvasBounds.width || !canvasBounds.height) return
@@ -78,66 +76,83 @@ export function NavigationTools({
   const zoomPercent = Math.round(viewport.zoom * 100)
 
   const positionStyles = {
-    ...getPositionStyles(position),
+    ...getPositionStyles(position, insetRight, theme),
     ...style
   }
 
+  const getButtonStyle = (disabled: boolean): React.CSSProperties => ({
+    ...styles.button,
+    color: disabled ? theme.panelButtonDisabled : theme.panelIconColor,
+    background: 'transparent',
+    cursor: disabled ? 'not-allowed' : 'pointer'
+  })
+
+  const dividerStyle: React.CSSProperties = {
+    ...styles.divider,
+    background: theme.panelDivider
+  }
+
+  const zoomLabelStyle: React.CSSProperties = {
+    ...styles.zoomLabel,
+    color: theme.panelMutedText
+  }
+
   return (
-    <div className={`navigation-tools ${className ?? ''}`} style={positionStyles}>
+    <div
+      className={`navigation-tools ${className ?? ''}`}
+      style={positionStyles}
+      data-canvas-theme={theme.mode}
+    >
       <div style={styles.toolGroup}>
         <button
-          style={styles.button}
-          onClick={zoomIn}
-          title="Zoom In (Ctrl/Cmd +)"
-          disabled={viewport.zoom >= 4}
-          aria-label="Zoom in"
-        >
-          <PlusIcon />
-        </button>
-
-        <div style={styles.sliderContainer}>
-          <input
-            type="range"
-            min="10"
-            max="400"
-            value={zoomPercent}
-            onChange={(e) => zoomTo(Number(e.target.value) / 100)}
-            style={styles.slider}
-            title={`${zoomPercent}%`}
-            aria-label="Zoom level"
-          />
-          {showZoomLabel && <span style={styles.zoomLabel}>{zoomPercent}%</span>}
-        </div>
-
-        <button
-          style={styles.button}
+          style={getButtonStyle(viewport.zoom <= 0.1)}
           onClick={zoomOut}
-          title="Zoom Out (Ctrl/Cmd -)"
+          title="Zoom out (Ctrl/Cmd -)"
           disabled={viewport.zoom <= 0.1}
           aria-label="Zoom out"
+          data-navigation-tool="zoom-out"
         >
           <MinusIcon />
         </button>
+
+        {showZoomLabel ? (
+          <span style={zoomLabelStyle} title={`Current zoom: ${zoomPercent}%`} aria-live="polite">
+            {zoomPercent}%
+          </span>
+        ) : null}
+
+        <button
+          style={getButtonStyle(viewport.zoom >= 4)}
+          onClick={zoomIn}
+          title="Zoom in (Ctrl/Cmd +)"
+          disabled={viewport.zoom >= 4}
+          aria-label="Zoom in"
+          data-navigation-tool="zoom-in"
+        >
+          <PlusIcon />
+        </button>
       </div>
 
-      <div style={styles.divider} />
+      <div style={dividerStyle} />
 
       <div style={styles.toolGroup}>
         <button
-          style={styles.button}
+          style={getButtonStyle(!canvasBounds)}
           onClick={fitToContent}
-          title="Fit to Content (Ctrl/Cmd 1)"
+          title="Fit to content (Ctrl/Cmd 1)"
           disabled={!canvasBounds}
           aria-label="Fit to content"
+          data-navigation-tool="fit"
         >
           <FitIcon />
         </button>
 
         <button
-          style={styles.button}
+          style={getButtonStyle(false)}
           onClick={resetView}
-          title="Reset View (Ctrl/Cmd 0)"
+          title="Reset view (Ctrl/Cmd 0)"
           aria-label="Reset view"
+          data-navigation-tool="reset"
         >
           <ResetIcon />
         </button>
@@ -148,17 +163,22 @@ export function NavigationTools({
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-function getPositionStyles(position: string): React.CSSProperties {
+function getPositionStyles(
+  position: string,
+  insetRight: number,
+  theme: ReturnType<typeof useCanvasThemeTokens>
+): React.CSSProperties {
   const base: React.CSSProperties = {
     position: 'absolute',
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    padding: '8px 12px',
-    background: 'white',
-    borderRadius: 8,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-    border: '1px solid #e5e7eb',
+    gap: 0,
+    padding: 4,
+    background: theme.panelBackground,
+    borderRadius: 999,
+    boxShadow: theme.panelShadow,
+    border: `1px solid ${theme.panelBorder}`,
+    overflow: 'hidden',
     zIndex: 10
   }
 
@@ -166,7 +186,7 @@ function getPositionStyles(position: string): React.CSSProperties {
     case 'bottom-left':
       return { ...base, bottom: 16, left: 16 }
     case 'bottom-right':
-      return { ...base, bottom: 16, right: 240 } // Offset for minimap
+      return { ...base, bottom: 16, right: insetRight }
     case 'top-left':
       return { ...base, top: 16, left: 16 }
     case 'top-right':
@@ -180,40 +200,29 @@ const styles: Record<string, React.CSSProperties> = {
   toolGroup: {
     display: 'flex',
     alignItems: 'center',
-    gap: 4
+    gap: 1
   },
   button: {
     width: 28,
     height: 28,
     border: 'none',
-    background: 'transparent',
-    borderRadius: 4,
-    cursor: 'pointer',
+    borderRadius: 10,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#374151'
-  },
-  sliderContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 4
-  },
-  slider: {
-    width: 80,
-    height: 4,
-    cursor: 'pointer'
+    transition: 'background-color 120ms ease'
   },
   zoomLabel: {
-    fontSize: 11,
-    color: '#6b7280',
-    minWidth: 32,
-    textAlign: 'right' as const
+    fontSize: 10,
+    minWidth: 36,
+    padding: '0 4px',
+    textAlign: 'center' as const,
+    fontVariantNumeric: 'tabular-nums',
+    userSelect: 'none'
   },
   divider: {
     width: 1,
-    height: 20,
-    background: '#e5e7eb',
+    height: 16,
     margin: '0 4px'
   }
 }

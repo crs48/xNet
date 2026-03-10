@@ -1,62 +1,159 @@
 /**
  * Canvas Keyboard Hook
  *
- * Keyboard shortcuts for canvas navigation:
+ * Keyboard shortcuts for canvas navigation and Canvas V2 object flows:
  * - Ctrl/Cmd + Plus: Zoom in
  * - Ctrl/Cmd + Minus: Zoom out
  * - Ctrl/Cmd + 0: Reset view
  * - Ctrl/Cmd + 1: Fit to content
- * - Arrow keys: Pan viewport
+ * - Arrow keys: Pan viewport or nudge selection
+ * - Tab / Shift+Tab: Step selection
+ * - P / D / N / R / F: Create page, database, note, rectangle, frame
+ * - Enter / Alt+Enter / Ctrl+Enter: Peek, split, or open selection
+ * - Ctrl/Cmd + Shift + F: Wrap the selection in a frame
+ * - Ctrl/Cmd + Shift + A: Edit the selection alias
+ * - Ctrl/Cmd + Shift + C: Comment on the selection
+ * - Ctrl/Cmd + Shift + K: Connect a two-node selection
+ * - ?: Toggle shortcut help
  */
 
-import type { Rect } from '../types'
-import { useEffect, useCallback } from 'react'
+import type { CanvasAlignment, CanvasLayerDirection, Point, Rect } from '../types'
+import type { RefObject } from 'react'
+import { useCallback, useEffect } from 'react'
+import { isTextInputLikeElement } from '../renderer/keyboard-shortcuts'
 import { Viewport } from '../spatial/index'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+export type CanvasCreationShortcut = 'page' | 'database' | 'note' | 'shape' | 'frame'
+
+export type CanvasOpenShortcutMode = 'peek' | 'focus' | 'split'
+
 export interface UseCanvasKeyboardOptions {
+  /** Canvas surface element used to scope shortcuts */
+  containerRef: RefObject<HTMLElement | null>
   /** Current viewport state */
   viewport: Viewport
   /** Bounds of all canvas content (for fit-to-content) */
   canvasBounds: Rect | null
   /** Callback when viewport should change */
   onViewportChange: (changes: { x?: number; y?: number; zoom?: number }) => void
+  /** Callback when the current selection should be nudged */
+  onNudgeSelection?: (delta: Point) => void
+  /** Callback when the current selection should be deleted */
+  onDeleteSelection?: () => void
+  /** Callback when all canvas objects should be selected */
+  onSelectAll?: () => void
+  /** Callback when the current selection should be cleared */
+  onClearSelection?: () => void
+  /** Callback for keyboard-only selection stepping */
+  onStepSelection?: (direction: -1 | 1) => void
+  /** Callback for locking or unlocking the current selection */
+  onToggleSelectionLock?: () => void
+  /** Callback for alignment operations on the current selection */
+  onAlignSelection?: (
+    alignment: Extract<CanvasAlignment, 'left' | 'right' | 'top' | 'bottom'>
+  ) => void
+  /** Callback for layer ordering on the current selection */
+  onShiftSelectionLayer?: (direction: CanvasLayerDirection) => void
+  /** Callback for wrapping the current selection in a frame container */
+  onWrapSelectionInFrame?: () => void
+  /** Callback for editing a canvas-local alias for the current selection */
+  onEditSelectionAlias?: () => void
+  /** Callback for creating a comment anchored to the current selection */
+  onCreateSelectionComment?: () => void
+  /** Callback for connecting the current two-node selection */
+  onConnectSelection?: () => void
+  /** Callback for single-key object creation */
+  onCreateObject?: (kind: CanvasCreationShortcut) => void
+  /** Callback for peek/open actions on the current selection */
+  onOpenSelection?: (mode: CanvasOpenShortcutMode) => void
+  /** Callback for toggling the shortcut help overlay */
+  onToggleShortcutHelp?: () => void
+  /** Callback for dismissing transient canvas UI such as help overlays */
+  onDismissTransientUi?: () => boolean | void
   /** Whether keyboard shortcuts are enabled */
   enabled?: boolean
+  /** Number of selected nodes on the canvas */
+  selectedNodeCount?: number
   /** Pan amount per arrow key press (in screen pixels at zoom 1) */
   panAmount?: number
+  /** Nudge amount per arrow key press in canvas coordinates */
+  nudgeAmount?: number
+  /** Maximum zoom level */
+  maxZoom?: number
+  /** Minimum zoom level */
+  minZoom?: number
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useCanvasKeyboard({
+  containerRef,
   viewport,
   canvasBounds,
   onViewportChange,
+  onNudgeSelection,
+  onDeleteSelection,
+  onSelectAll,
+  onClearSelection,
+  onStepSelection,
+  onToggleSelectionLock,
+  onAlignSelection,
+  onShiftSelectionLayer,
+  onWrapSelectionInFrame,
+  onEditSelectionAlias,
+  onCreateSelectionComment,
+  onConnectSelection,
+  onCreateObject,
+  onOpenSelection,
+  onToggleShortcutHelp,
+  onDismissTransientUi,
   enabled = true,
-  panAmount = 50
-}: UseCanvasKeyboardOptions) {
+  selectedNodeCount = 0,
+  panAmount = 50,
+  nudgeAmount = 16,
+  maxZoom = 4,
+  minZoom = 0.1
+}: UseCanvasKeyboardOptions): void {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!enabled) return
 
-      // Don't activate if user is typing in an input
-      const target = e.target as HTMLElement
-      if (
-        target instanceof HTMLInputElement ||
-        target instanceof HTMLTextAreaElement ||
-        target.isContentEditable
-      ) {
+      const container = containerRef.current
+      if (!container) return
+
+      const activeElement = document.activeElement
+      if (!container.contains(activeElement)) {
         return
       }
 
+      const isTyping = isTextInputLikeElement(activeElement)
       const isMod = e.metaKey || e.ctrlKey
+      const normalizedKey = e.key.toLowerCase()
+
+      if (e.key === 'Escape') {
+        const dismissed = onDismissTransientUi?.()
+        if (dismissed) {
+          e.preventDefault()
+          return
+        }
+
+        if (selectedNodeCount > 0) {
+          e.preventDefault()
+          onClearSelection?.()
+        }
+        return
+      }
+
+      if (isTyping) {
+        return
+      }
 
       // Zoom in: Ctrl/Cmd + Plus or Ctrl/Cmd + =
       if (isMod && (e.key === '+' || e.key === '=' || e.code === 'Equal')) {
         e.preventDefault()
-        const newZoom = Math.min(viewport.zoom * 1.5, 4)
+        const newZoom = Math.min(viewport.zoom * 1.5, maxZoom)
         onViewportChange({ zoom: newZoom })
         return
       }
@@ -64,7 +161,7 @@ export function useCanvasKeyboard({
       // Zoom out: Ctrl/Cmd + Minus
       if (isMod && (e.key === '-' || e.code === 'Minus')) {
         e.preventDefault()
-        const newZoom = Math.max(viewport.zoom / 1.5, 0.1)
+        const newZoom = Math.max(viewport.zoom / 1.5, minZoom)
         onViewportChange({ zoom: newZoom })
         return
       }
@@ -94,31 +191,204 @@ export function useCanvasKeyboard({
         return
       }
 
-      // Arrow key panning (when no modifier)
-      if (!isMod && !e.shiftKey && !e.altKey) {
-        const scaledPanAmount = panAmount / viewport.zoom
+      if (!isMod && !e.altKey && normalizedKey === 'tab' && onStepSelection) {
+        e.preventDefault()
+        onStepSelection(e.shiftKey ? -1 : 1)
+        return
+      }
+
+      if (isMod && e.shiftKey && selectedNodeCount > 0) {
+        if (normalizedKey === 'l') {
+          e.preventDefault()
+          onToggleSelectionLock?.()
+          return
+        }
+
+        if (normalizedKey === 'f') {
+          e.preventDefault()
+          onWrapSelectionInFrame?.()
+          return
+        }
+
+        if (normalizedKey === 'a') {
+          e.preventDefault()
+          onEditSelectionAlias?.()
+          return
+        }
+
+        if (normalizedKey === 'c') {
+          e.preventDefault()
+          onCreateSelectionComment?.()
+          return
+        }
+
+        if (normalizedKey === 'k' && selectedNodeCount === 2) {
+          e.preventDefault()
+          onConnectSelection?.()
+          return
+        }
+
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault()
+          onAlignSelection?.('left')
+          return
+        }
+
+        if (e.key === 'ArrowRight') {
+          e.preventDefault()
+          onAlignSelection?.('right')
+          return
+        }
+
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          onAlignSelection?.('top')
+          return
+        }
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          onAlignSelection?.('bottom')
+          return
+        }
+      }
+
+      if (!isMod && !e.altKey && !e.shiftKey) {
+        if (normalizedKey === 'p') {
+          e.preventDefault()
+          onCreateObject?.('page')
+          return
+        }
+
+        if (normalizedKey === 'd') {
+          e.preventDefault()
+          onCreateObject?.('database')
+          return
+        }
+
+        if (normalizedKey === 'n') {
+          e.preventDefault()
+          onCreateObject?.('note')
+          return
+        }
+
+        if (normalizedKey === 'r') {
+          e.preventDefault()
+          onCreateObject?.('shape')
+          return
+        }
+
+        if (normalizedKey === 'f') {
+          e.preventDefault()
+          onCreateObject?.('frame')
+          return
+        }
+      }
+
+      if (!isMod && ((e.shiftKey && e.key === '?') || (e.shiftKey && e.key === '/'))) {
+        e.preventDefault()
+        onToggleShortcutHelp?.()
+        return
+      }
+
+      if (!isMod && !e.altKey && selectedNodeCount > 0) {
+        if (e.key === '[') {
+          e.preventDefault()
+          onShiftSelectionLayer?.('backward')
+          return
+        }
+
+        if (e.key === ']') {
+          e.preventDefault()
+          onShiftSelectionLayer?.('forward')
+          return
+        }
+      }
+
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedNodeCount > 0) {
+        e.preventDefault()
+        onDeleteSelection?.()
+        return
+      }
+
+      if (isMod && normalizedKey === 'a') {
+        e.preventDefault()
+        onSelectAll?.()
+        return
+      }
+
+      if (e.key === 'Enter' && selectedNodeCount > 0) {
+        e.preventDefault()
+        onOpenSelection?.(isMod ? 'focus' : e.altKey ? 'split' : 'peek')
+        return
+      }
+
+      if (!isMod && !e.altKey) {
+        const baseAmount = e.shiftKey ? nudgeAmount * 2 : nudgeAmount
+        const scaledPanAmount = (e.shiftKey ? panAmount * 2 : panAmount) / viewport.zoom
 
         switch (e.key) {
           case 'ArrowUp':
             e.preventDefault()
-            onViewportChange({ y: viewport.y - scaledPanAmount })
-            break
+            if (selectedNodeCount > 0 && onNudgeSelection) {
+              onNudgeSelection({ x: 0, y: -baseAmount })
+            } else {
+              onViewportChange({ y: viewport.y - scaledPanAmount })
+            }
+            return
           case 'ArrowDown':
             e.preventDefault()
-            onViewportChange({ y: viewport.y + scaledPanAmount })
-            break
+            if (selectedNodeCount > 0 && onNudgeSelection) {
+              onNudgeSelection({ x: 0, y: baseAmount })
+            } else {
+              onViewportChange({ y: viewport.y + scaledPanAmount })
+            }
+            return
           case 'ArrowLeft':
             e.preventDefault()
-            onViewportChange({ x: viewport.x - scaledPanAmount })
-            break
+            if (selectedNodeCount > 0 && onNudgeSelection) {
+              onNudgeSelection({ x: -baseAmount, y: 0 })
+            } else {
+              onViewportChange({ x: viewport.x - scaledPanAmount })
+            }
+            return
           case 'ArrowRight':
             e.preventDefault()
-            onViewportChange({ x: viewport.x + scaledPanAmount })
-            break
+            if (selectedNodeCount > 0 && onNudgeSelection) {
+              onNudgeSelection({ x: baseAmount, y: 0 })
+            } else {
+              onViewportChange({ x: viewport.x + scaledPanAmount })
+            }
+            return
         }
       }
     },
-    [enabled, viewport, canvasBounds, onViewportChange, panAmount]
+    [
+      canvasBounds,
+      containerRef,
+      enabled,
+      maxZoom,
+      minZoom,
+      nudgeAmount,
+      onClearSelection,
+      onAlignSelection,
+      onCreateObject,
+      onConnectSelection,
+      onDeleteSelection,
+      onDismissTransientUi,
+      onNudgeSelection,
+      onOpenSelection,
+      onSelectAll,
+      onShiftSelectionLayer,
+      onStepSelection,
+      onToggleSelectionLock,
+      onToggleShortcutHelp,
+      onWrapSelectionInFrame,
+      onViewportChange,
+      panAmount,
+      selectedNodeCount,
+      viewport
+    ]
   )
 
   useEffect(() => {

@@ -107,6 +107,7 @@ export { DatabaseSchema, type Database } from './schemas'
 export { DatabaseRowSchema, type DatabaseRow } from './schemas'
 export { TaskSchema, type Task } from './schemas'
 export { ExternalReferenceSchema, type ExternalReference } from './schemas'
+export { MediaAssetSchema, type MediaAsset } from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export { CommentSchema, type Comment } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
@@ -120,6 +121,7 @@ export {
   type RowAnchor,
   type ColumnAnchor,
   type CanvasPositionAnchor,
+  type CanvasObjectAnchorPlacement,
   type CanvasObjectAnchor,
   type NodeAnchor,
   type AnchorData,

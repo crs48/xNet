@@ -28,8 +28,8 @@ function MyCanvas() {
   const { addNode, updateNodePosition, addEdge, pan, zoomAt } = useCanvas({ doc })
 
   // Example operations
-  const nodeA = createNode('card', { x: 100, y: 120 })
-  const nodeB = createNode('card', { x: 320, y: 200 })
+  const nodeA = createNode('page', { x: 100, y: 120 })
+  const nodeB = createNode('database', { x: 320, y: 200 })
   addNode(nodeA)
   addNode(nodeB)
   updateNodePosition(nodeA.id, { x: 140, y: 150 })
@@ -68,12 +68,15 @@ const layout = await engine.layout(nodes, edges, {
 ### Canvas Store (Yjs)
 
 ```typescript
-import { CanvasStore } from '@xnetjs/canvas'
+import { CanvasStore, createEdge, createNode } from '@xnetjs/canvas'
 
 // Yjs-backed canvas state
 const store = new CanvasStore(ydoc)
-store.addNode({ id: '1', type: 'document', x: 100, y: 200 })
-store.addEdge({ source: '1', target: '2' })
+const note = createNode('note', { x: 100, y: 200 })
+const page = createNode('page', { x: 360, y: 240 })
+store.addNode(note)
+store.addNode(page)
+store.addEdge(createEdge(note.id, page.id))
 ```
 
 ### Canvas Comments

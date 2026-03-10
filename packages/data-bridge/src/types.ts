@@ -29,6 +29,42 @@ export type SortDirection = 'asc' | 'desc'
  */
 export type SystemOrderField = 'createdAt' | 'updatedAt'
 
+export type QuerySpatialPoint = {
+  x: number
+  y: number
+}
+
+export type QuerySpatialRect = QuerySpatialPoint & {
+  width: number
+  height: number
+}
+
+export type QuerySpatialPointFields = {
+  x: string
+  y: string
+}
+
+export type QuerySpatialRectFields = QuerySpatialPointFields & {
+  width?: string
+  height?: string
+}
+
+export type QuerySpatialWindow = {
+  kind: 'window'
+  rect: QuerySpatialRect
+  fields: QuerySpatialRectFields
+  overscan?: number
+}
+
+export type QuerySpatialRadius = {
+  kind: 'radius'
+  center: QuerySpatialPoint
+  radius: number
+  fields: QuerySpatialPointFields
+}
+
+export type QuerySpatialFilter = QuerySpatialWindow | QuerySpatialRadius
+
 /**
  * Options for querying nodes via the DataBridge.
  * Maps to the filter options used by useQuery.
@@ -48,6 +84,8 @@ export interface QueryOptions<
   limit?: number
   /** Offset for pagination */
   offset?: number
+  /** Spatial filtering for viewport windows, canvases, or geo-style proximity queries */
+  spatial?: QuerySpatialFilter
 }
 
 /**
@@ -69,6 +107,8 @@ export interface QueryDescriptor {
   limit?: number
   /** Offset applied after filtering and sorting */
   offset?: number
+  /** Optional spatial filter metadata used by canvas-style queries */
+  spatial?: QuerySpatialFilter
 }
 
 /**

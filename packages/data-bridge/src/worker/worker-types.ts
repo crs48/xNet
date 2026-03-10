@@ -61,6 +61,7 @@ export interface SerializedQueryOptions {
   orderBy?: Record<string, 'asc' | 'desc'>
   limit?: number
   offset?: number
+  spatial?: QueryDescriptor['spatial']
 }
 
 /**

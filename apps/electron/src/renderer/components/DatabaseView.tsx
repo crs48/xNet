@@ -31,6 +31,7 @@ import {
   useMutate,
   useQuery
 } from '@xnetjs/react'
+import { useUndoScope } from '@xnetjs/react/internal'
 import {
   CommentPopover,
   CommentsSidebar,
@@ -40,7 +41,6 @@ import {
   MenuSeparator,
   type CommentThreadData
 } from '@xnetjs/ui'
-import { useUndoScope } from '@xnetjs/react/internal'
 import {
   TableView,
   BoardView,
@@ -1598,7 +1598,11 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
   if (nodeLoading || databaseDocLoading || rowsLoading || !databaseDoc) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div
+        className="flex h-full items-center justify-center"
+        data-database-view="true"
+        data-database-view-chrome={minimalChrome ? 'minimal' : 'full'}
+      >
         <p className="text-muted-foreground">Loading database...</p>
       </div>
     )
@@ -1607,7 +1611,12 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
   // Empty state when no columns
   if (columns.length === 0) {
     return (
-      <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
+      <div
+        ref={containerRef}
+        className="flex-1 flex flex-col overflow-hidden"
+        data-database-view="true"
+        data-database-view-chrome={minimalChrome ? 'minimal' : 'full'}
+      >
         {/* Toolbar */}
         <div
           className={[
@@ -1684,7 +1693,12 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
   }
 
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col overflow-hidden">
+    <div
+      ref={containerRef}
+      className="flex-1 flex flex-col overflow-hidden"
+      data-database-view="true"
+      data-database-view-chrome={minimalChrome ? 'minimal' : 'full'}
+    >
       {/* Toolbar */}
       <div
         className={[

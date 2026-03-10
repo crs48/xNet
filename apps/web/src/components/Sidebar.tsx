@@ -2,6 +2,7 @@
  * Sidebar component with collapsible sections for all document types
  */
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
+import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import {
@@ -47,6 +48,11 @@ const typeConfig = {
     route: '/canvas/$canvasId' as const,
     paramKey: 'canvasId'
   }
+} as const
+
+const schemaByType = {
+  page: PageSchema._schemaId,
+  database: DatabaseSchema._schemaId
 } as const
 
 export function Sidebar() {
@@ -121,9 +127,24 @@ export function Sidebar() {
         <Link
           to="/doc/$docId"
           params={{ docId: doc.id }}
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = 'copy'
+            event.dataTransfer.setData(
+              CANVAS_INTERNAL_NODE_MIME,
+              serializeCanvasInternalNodeDragData({
+                nodeId: doc.id,
+                schemaId: schemaByType.page,
+                title: doc.title || 'Untitled'
+              })
+            )
+            event.dataTransfer.setData('text/plain', doc.title || 'Untitled')
+          }}
           className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer mb-0.5 group transition-colors no-underline hover:no-underline ${
             isActive ? 'bg-accent' : 'hover:bg-accent/50'
           }`}
+          data-sidebar-document-id={doc.id}
+          data-sidebar-document-type="page"
         >
           <Icon size={14} className="text-muted-foreground flex-shrink-0" />
           <span className="text-sm truncate flex-1 text-foreground">{doc.title || 'Untitled'}</span>
@@ -146,9 +167,24 @@ export function Sidebar() {
         <Link
           to="/db/$dbId"
           params={{ dbId: doc.id }}
+          draggable
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = 'copy'
+            event.dataTransfer.setData(
+              CANVAS_INTERNAL_NODE_MIME,
+              serializeCanvasInternalNodeDragData({
+                nodeId: doc.id,
+                schemaId: schemaByType.database,
+                title: doc.title || 'Untitled'
+              })
+            )
+            event.dataTransfer.setData('text/plain', doc.title || 'Untitled')
+          }}
           className={`flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer mb-0.5 group transition-colors no-underline hover:no-underline ${
             isActive ? 'bg-accent' : 'hover:bg-accent/50'
           }`}
+          data-sidebar-document-id={doc.id}
+          data-sidebar-document-type="database"
         >
           <Icon size={14} className="text-muted-foreground flex-shrink-0" />
           <span className="text-sm truncate flex-1 text-foreground">{doc.title || 'Untitled'}</span>

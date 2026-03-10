@@ -1,7 +1,13 @@
 /**
  * Renderer entry point
  */
-import { BlobService } from '@xnetjs/data'
+import {
+  getCanvasObjectsMap,
+  seedCanvasPerformanceScene,
+  type CanvasHandle,
+  type FrameStats
+} from '@xnetjs/canvas'
+import { BlobService, CanvasSchema } from '@xnetjs/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
@@ -11,6 +17,8 @@ import { ConsentManager, TelemetryCollector, TelemetryProvider } from '@xnetjs/t
 import { ThemeProvider } from '@xnetjs/ui'
 import React, { useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
+import * as Y from 'yjs'
 import { App } from './App'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
@@ -44,6 +52,84 @@ type LocalAPIStore = {
     }
   ): Promise<LocalAPIStoreNode>
   delete(id: string): Promise<void>
+  getDocumentContent(nodeId: string): Promise<Uint8Array | null>
+  setDocumentContent(nodeId: string, content: Uint8Array): Promise<void>
+}
+
+type CanvasPerformanceSceneInput = {
+  canvasId?: string
+  title?: string
+  columns?: number
+  rows?: number
+  startX?: number
+  startY?: number
+  horizontalGap?: number
+  verticalGap?: number
+  clusterColumns?: number
+  clusterRows?: number
+  clusterGapX?: number
+  clusterGapY?: number
+}
+
+type CanvasFrameBudgetInput = {
+  canvasId?: string
+  steps?: number
+  deltaX?: number
+  deltaY?: number
+  mode?: 'pan' | 'zoom' | 'mixed'
+  zoomDeltaY?: number
+  zoomEvery?: number
+}
+
+type CanvasTestHarness = {
+  registerCanvasDoc: (canvasId: string, doc: Y.Doc | null) => void
+  registerCanvasAwareness: (canvasId: string, awareness: Awareness | null) => void
+  registerCanvasHandle: (canvasId: string, handle: CanvasHandle | null) => void
+  setCanvasViewport: (input: {
+    canvasId?: string
+    x: number
+    y: number
+    zoom?: number
+  }) => Promise<void>
+  moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
+  moveCanvasNodeAsRemote: (input: {
+    canvasId?: string
+    key: string
+    nodeId: string
+    dx: number
+    dy: number
+    state?: Record<string, unknown> | null
+  }) => Promise<{
+    canvasId: string
+    clientId: number | null
+    x: number
+    y: number
+    width: number
+    height: number
+  }>
+  getCanvasNodeRect: (input: { nodeId: string }) => Promise<{
+    canvasId: string
+    x: number
+    y: number
+    width: number
+    height: number
+  }>
+  removeCanvasNode: (input: { nodeId: string }) => Promise<void>
+  setCanvasRemotePresence: (input: {
+    canvasId?: string
+    key: string
+    state: Record<string, unknown> | null
+  }) => Promise<{ canvasId: string; clientId: number }>
+  seedPerformanceScene: (input?: CanvasPerformanceSceneInput) => Promise<{
+    canvasId: string
+    title: string
+    nodeCount: number
+    edgeCount: number
+    bounds: { x: number; y: number; width: number; height: number }
+    kindCounts: Record<string, number>
+  }>
+  measureCanvasFrameBudget: (input?: CanvasFrameBudgetInput) => Promise<FrameStats>
+  duplicateCanvasNodeReference: (input: { nodeId: string; alias?: string }) => Promise<string>
 }
 
 // TODO: In production, load identity from secure storage via IPC
@@ -80,12 +166,451 @@ const ipcSyncManager = createIPCSyncManager()
 declare global {
   interface Window {
     __xnetIpcSyncManager?: IPCSyncManager
+    __xnetCanvasTestHarness?: CanvasTestHarness | null
     __xnetRoot?: Root
     __xnetDevToolsToggleCleanup?: (() => void) | null
   }
 }
 
 window.__xnetIpcSyncManager = ipcSyncManager
+
+function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness {
+  const liveDocs = new Map<string, Y.Doc>()
+  const liveAwareness = new Map<string, Awareness>()
+  const liveHandles = new Map<string, CanvasHandle>()
+  const remotePeers = new Map<string, Map<string, Awareness>>()
+  const remotePeerDocs = new Map<string, Map<string, Y.Doc>>()
+
+  const resolveCanvasId = (canvasId?: string): string => {
+    if (canvasId) {
+      return canvasId
+    }
+
+    const lastAwarenessCanvasId = [...liveAwareness.keys()].at(-1)
+    if (lastAwarenessCanvasId) {
+      return lastAwarenessCanvasId
+    }
+
+    const lastDocCanvasId = [...liveDocs.keys()].at(-1)
+    if (lastDocCanvasId) {
+      return lastDocCanvasId
+    }
+
+    throw new Error('No live canvas registered')
+  }
+
+  return {
+    registerCanvasDoc(canvasId, doc) {
+      if (doc) {
+        liveDocs.set(canvasId, doc)
+        return
+      }
+
+      liveDocs.delete(canvasId)
+      remotePeerDocs.delete(canvasId)
+    },
+
+    registerCanvasAwareness(canvasId, awareness) {
+      if (awareness) {
+        liveAwareness.set(canvasId, awareness)
+        return
+      }
+
+      liveAwareness.delete(canvasId)
+      remotePeers.delete(canvasId)
+    },
+
+    registerCanvasHandle(canvasId, handle) {
+      if (handle) {
+        liveHandles.set(canvasId, handle)
+        return
+      }
+
+      liveHandles.delete(canvasId)
+    },
+
+    async setCanvasViewport(input) {
+      const canvasId = resolveCanvasId(input.canvasId)
+      const handle = liveHandles.get(canvasId)
+      if (!handle) {
+        throw new Error(`Canvas handle ${canvasId} not found`)
+      }
+
+      const currentSnapshot = handle.getViewportSnapshot()
+      handle.setViewportSnapshot({
+        x: input.x,
+        y: input.y,
+        zoom: input.zoom ?? currentSnapshot.zoom
+      })
+    },
+
+    async moveCanvasNode(input) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = getCanvasObjectsMap<{
+          id: string
+          position: {
+            x: number
+            y: number
+            width: number
+            height: number
+          }
+        }>(doc)
+        const node = nodesMap.get(input.nodeId)
+        if (!node) {
+          continue
+        }
+
+        doc.transact(() => {
+          nodesMap.set(input.nodeId, {
+            ...node,
+            position: {
+              ...node.position,
+              x: node.position.x + input.dx,
+              y: node.position.y + input.dy
+            }
+          })
+        })
+
+        await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
+        return
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
+    },
+
+    async moveCanvasNodeAsRemote(input) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      const canvasId = resolveCanvasId(input.canvasId)
+      const liveDoc = liveDocs.get(canvasId)
+      if (!liveDoc) {
+        throw new Error(`No live canvas doc registered for ${canvasId}`)
+      }
+
+      const peersForCanvas = remotePeerDocs.get(canvasId) ?? new Map<string, Y.Doc>()
+      remotePeerDocs.set(canvasId, peersForCanvas)
+
+      let remoteDoc = peersForCanvas.get(input.key)
+      if (!remoteDoc) {
+        remoteDoc = new Y.Doc()
+        peersForCanvas.set(input.key, remoteDoc)
+      }
+
+      const syncUpdate = Y.encodeStateAsUpdate(liveDoc, Y.encodeStateVector(remoteDoc))
+      if (syncUpdate.byteLength > 0) {
+        Y.applyUpdate(remoteDoc, syncUpdate, 'sync')
+      }
+
+      const nodesMap = getCanvasObjectsMap<{
+        id: string
+        position: {
+          x: number
+          y: number
+          width: number
+          height: number
+        }
+      }>(remoteDoc)
+      const node = nodesMap.get(input.nodeId)
+      if (!node) {
+        throw new Error(`Node ${input.nodeId} not found in canvas ${canvasId}`)
+      }
+
+      const liveStateVector = Y.encodeStateVector(liveDoc)
+
+      remoteDoc.transact(() => {
+        nodesMap.set(input.nodeId, {
+          ...node,
+          position: {
+            ...node.position,
+            x: node.position.x + input.dx,
+            y: node.position.y + input.dy
+          }
+        })
+      }, `remote:${input.key}`)
+
+      const remoteUpdate = Y.encodeStateAsUpdate(remoteDoc, liveStateVector)
+      if (remoteUpdate.byteLength > 0) {
+        Y.applyUpdate(liveDoc, remoteUpdate, `remote:${input.key}`)
+      }
+
+      let clientId: number | null = null
+      if (input.state !== undefined) {
+        const result = await this.setCanvasRemotePresence({
+          canvasId,
+          key: input.key,
+          state: input.state
+        })
+        clientId = result.clientId
+      }
+
+      await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(liveDoc))
+
+      const updatedNode = getCanvasObjectsMap<{
+        position: {
+          x: number
+          y: number
+          width: number
+          height: number
+        }
+      }>(liveDoc).get(input.nodeId)
+
+      if (!updatedNode) {
+        throw new Error(`Node ${input.nodeId} disappeared after remote move`)
+      }
+
+      return {
+        canvasId,
+        clientId,
+        x: updatedNode.position.x,
+        y: updatedNode.position.y,
+        width: updatedNode.position.width,
+        height: updatedNode.position.height
+      }
+    },
+
+    async getCanvasNodeRect(input) {
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = getCanvasObjectsMap<{
+          position: {
+            x: number
+            y: number
+            width: number
+            height: number
+          }
+        }>(doc)
+        const node = nodesMap.get(input.nodeId)
+        if (!node) {
+          continue
+        }
+
+        return {
+          canvasId,
+          x: node.position.x,
+          y: node.position.y,
+          width: node.position.width,
+          height: node.position.height
+        }
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
+    },
+
+    async removeCanvasNode(input) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = getCanvasObjectsMap(doc)
+        if (!nodesMap.has(input.nodeId)) {
+          continue
+        }
+
+        doc.transact(() => {
+          nodesMap.delete(input.nodeId)
+        })
+
+        await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
+        return
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
+    },
+
+    async setCanvasRemotePresence(input) {
+      const canvasId = resolveCanvasId(input.canvasId)
+      const targetAwareness = liveAwareness.get(canvasId) ?? syncManager.getAwareness(canvasId)
+      if (!targetAwareness) {
+        throw new Error(`No awareness registered for canvas ${canvasId}`)
+      }
+
+      const peersForCanvas = remotePeers.get(canvasId) ?? new Map<string, Awareness>()
+      remotePeers.set(canvasId, peersForCanvas)
+
+      let peerAwareness = peersForCanvas.get(input.key)
+      if (!peerAwareness) {
+        peerAwareness = new Awareness(new Y.Doc())
+        peersForCanvas.set(input.key, peerAwareness)
+      }
+
+      peerAwareness.setLocalState(input.state)
+      const update = encodeAwarenessUpdate(peerAwareness, [peerAwareness.clientID])
+      applyAwarenessUpdate(targetAwareness, update, 'remote')
+
+      if (input.state === null) {
+        peersForCanvas.delete(input.key)
+        if (peersForCanvas.size === 0) {
+          remotePeers.delete(canvasId)
+        }
+      }
+
+      return {
+        canvasId,
+        clientId: peerAwareness.clientID
+      }
+    },
+
+    async seedPerformanceScene(input = {}) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      const canvases = await store.list({
+        schemaId: CanvasSchema._schemaId,
+        limit: 50,
+        offset: 0
+      })
+      const targetCanvas =
+        (input.canvasId ? await store.get(input.canvasId) : null) ??
+        [...canvases].sort((left, right) => right.updatedAt - left.updatedAt)[0]
+
+      if (!targetCanvas) {
+        throw new Error('No canvas available to seed')
+      }
+
+      const liveDoc = liveDocs.get(targetCanvas.id)
+      if (!liveDoc) {
+        syncManager.track(targetCanvas.id, CanvasSchema._schemaId)
+      }
+      const doc = liveDoc ?? (await syncManager.acquire(targetCanvas.id))
+      const summary = seedCanvasPerformanceScene(doc, {
+        columns: input.columns,
+        rows: input.rows,
+        startX: input.startX,
+        startY: input.startY,
+        horizontalGap: input.horizontalGap,
+        verticalGap: input.verticalGap,
+        clusterColumns: input.clusterColumns,
+        clusterRows: input.clusterRows,
+        clusterGapX: input.clusterGapX,
+        clusterGapY: input.clusterGapY
+      })
+      const title = input.title ?? `Canvas Performance Scene (${summary.nodeCount} nodes)`
+
+      await store.update(targetCanvas.id, {
+        properties: {
+          ...targetCanvas.properties,
+          title
+        }
+      })
+      await store.setDocumentContent(targetCanvas.id, Y.encodeStateAsUpdate(doc))
+
+      return {
+        canvasId: targetCanvas.id,
+        title,
+        nodeCount: summary.nodeCount,
+        edgeCount: summary.edgeCount,
+        bounds: summary.bounds,
+        kindCounts: Object.fromEntries(
+          Object.entries(summary.kindCounts).map(([key, value]) => [key, value ?? 0])
+        )
+      }
+    },
+
+    async measureCanvasFrameBudget(input = {}) {
+      const canvasId = resolveCanvasId(input.canvasId)
+      const handle = liveHandles.get(canvasId)
+      if (!handle) {
+        throw new Error(`No canvas handle registered for canvas ${canvasId}`)
+      }
+
+      const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+      if (!surface) {
+        throw new Error('Canvas surface not found')
+      }
+
+      const steps = Math.max(1, input.steps ?? 18)
+      const deltaX = input.deltaX ?? 140
+      const deltaY = input.deltaY ?? 90
+      const mode = input.mode ?? 'pan'
+      const zoomDeltaY = input.zoomDeltaY ?? -7
+      const zoomEvery = Math.max(1, input.zoomEvery ?? 3)
+      const nextFrame = async (): Promise<void> =>
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+      const rect = surface.getBoundingClientRect()
+      const clientX = rect.left + rect.width / 2
+      const clientY = rect.top + rect.height / 2
+
+      handle.resetPerformanceStats()
+      await nextFrame()
+
+      for (let index = 0; index < steps; index += 1) {
+        const shouldZoom = mode === 'zoom' || (mode === 'mixed' && index % zoomEvery === 0)
+
+        surface.dispatchEvent(
+          new WheelEvent('wheel', {
+            bubbles: true,
+            cancelable: true,
+            ctrlKey: shouldZoom,
+            clientX,
+            clientY,
+            deltaX: shouldZoom ? 0 : index % 2 === 0 ? deltaX : Math.round(deltaX * 0.82),
+            deltaY: shouldZoom ? zoomDeltaY : index % 3 === 0 ? deltaY : Math.round(deltaY * 0.74)
+          })
+        )
+
+        await nextFrame()
+      }
+
+      await nextFrame()
+      return handle.getPerformanceStats()
+    },
+
+    async duplicateCanvasNodeReference(input) {
+      const store = (window as Window & { __xnetNodeStore?: LocalAPIStore }).__xnetNodeStore
+      if (!store) {
+        throw new Error('NodeStore not available')
+      }
+
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = getCanvasObjectsMap<{
+          id: string
+          alias?: string
+          position: {
+            x: number
+            y: number
+            width: number
+            height: number
+          }
+          properties: Record<string, unknown>
+        }>(doc)
+        const sourceNode = nodesMap.get(input.nodeId)
+        if (!sourceNode) {
+          continue
+        }
+
+        const duplicateId = `node_${crypto.randomUUID()}`
+        doc.transact(() => {
+          nodesMap.set(duplicateId, {
+            ...sourceNode,
+            id: duplicateId,
+            alias: input.alias,
+            position: {
+              ...sourceNode.position,
+              x: sourceNode.position.x + 420,
+              y: sourceNode.position.y + 60
+            }
+          })
+        })
+
+        await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
+        return duplicateId
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
+    }
+  }
+}
 
 /**
  * Component that instruments the sync manager with devtools.
@@ -231,6 +756,7 @@ async function init() {
   window.__xnetDevToolsToggleCleanup = window.xnet.onDevToolsToggle(() => {
     window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
   })
+  window.__xnetCanvasTestHarness = createCanvasTestHarness(ipcSyncManager)
 
   const container = document.getElementById('root')
   if (!container) {
@@ -262,6 +788,7 @@ async function init() {
               <XNetDevToolsProvider
                 telemetryCollector={telemetryCollector}
                 consentManager={consentManager}
+                fabInitialOffset={{ x: 16, y: 220 }}
               >
                 <SyncInstrumentation syncManager={ipcSyncManager} />
                 <LocalAPIStoreHandler />
@@ -285,6 +812,7 @@ init()
 
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
+    window.__xnetCanvasTestHarness = null
     window.__xnetDevToolsToggleCleanup?.()
     window.__xnetDevToolsToggleCleanup = null
   })

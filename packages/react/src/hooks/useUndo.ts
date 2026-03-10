@@ -24,7 +24,7 @@ import { useNodeStore } from './useNodeStore'
 
 export interface UseUndoOptions {
   /** The local user's DID (required for undo to work) */
-  localDID: DID
+  localDID: DID | null
   /** UndoManager configuration overrides */
   options?: Partial<UndoManagerOptions>
 }
@@ -54,23 +54,32 @@ export function useUndo(nodeId: NodeId | null, opts: UseUndoOptions): UseUndoRes
   const { store } = useNodeStore()
   const [undoCount, setUndoCount] = useState(0)
   const [redoCount, setRedoCount] = useState(0)
+  const hasOptions = opts.options !== undefined
+  const optionLocalOnly = opts.options?.localOnly
+  const optionMaxStackSize = opts.options?.maxStackSize
+  const optionMergeInterval = opts.options?.mergeInterval
 
   const managerRef = useRef<UndoManager | null>(null)
   const normalizedOptions = useMemo(
     () =>
-      opts.options
+      hasOptions
         ? {
-            localOnly: opts.options.localOnly,
-            maxStackSize: opts.options.maxStackSize,
-            mergeInterval: opts.options.mergeInterval
+            localOnly: optionLocalOnly,
+            maxStackSize: optionMaxStackSize,
+            mergeInterval: optionMergeInterval
           }
         : undefined,
-    [opts.options?.localOnly, opts.options?.maxStackSize, opts.options?.mergeInterval]
+    [hasOptions, optionLocalOnly, optionMaxStackSize, optionMergeInterval]
   )
 
   // Create and start UndoManager
   useEffect(() => {
-    if (!store) return
+    if (!store || !opts.localDID) {
+      managerRef.current = null
+      setUndoCount(0)
+      setRedoCount(0)
+      return
+    }
 
     const manager = new UndoManager(store, opts.localDID, normalizedOptions)
     manager.start()

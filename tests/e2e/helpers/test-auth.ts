@@ -5,6 +5,10 @@
  */
 import type { Page } from '@playwright/test'
 
+function isNavigationAbortError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes('ERR_ABORTED')
+}
+
 /**
  * Enable test bypass mode for a Playwright page.
  * Must be called before navigating to the app.
@@ -52,6 +56,14 @@ export async function setupTestAuth(
   url = process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173'
 ): Promise<void> {
   await enableTestBypass(page)
-  await page.goto(url)
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded' })
+  } catch (error) {
+    if (!isNavigationAbortError(error)) {
+      throw error
+    }
+
+    await page.waitForLoadState('domcontentloaded', { timeout: 15000 })
+  }
   await waitForAuthenticated(page)
 }

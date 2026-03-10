@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { EMBED_PROVIDERS, detectProvider, parseEmbedUrl } from './providers'
 
 describe('EMBED_PROVIDERS', () => {
-  it('should have 7 providers', () => {
-    expect(EMBED_PROVIDERS).toHaveLength(7)
+  it('should have 9 providers', () => {
+    expect(EMBED_PROVIDERS).toHaveLength(9)
   })
 
   it('each provider should have required fields', () => {
@@ -72,6 +72,16 @@ describe('detectProvider', () => {
   it('should detect X.com URL', () => {
     const provider = detectProvider('https://x.com/user/status/1234567890')
     expect(provider?.name).toBe('twitter')
+  })
+
+  it('should detect Instagram reel URL', () => {
+    const provider = detectProvider('https://www.instagram.com/reel/C-qi579y7M9/')
+    expect(provider?.name).toBe('instagram')
+  })
+
+  it('should detect TikTok video URL', () => {
+    const provider = detectProvider('https://www.tiktok.com/@scout2015/video/6718335390845095173')
+    expect(provider?.name).toBe('tiktok')
   })
 
   it('should detect Figma file URL', () => {
@@ -167,6 +177,23 @@ describe('parseEmbedUrl', () => {
     it('should handle x.com URLs', () => {
       const result = parseEmbedUrl('https://x.com/someone/status/9876543210')
       expect(result?.id).toBe('9876543210')
+    })
+  })
+
+  describe('Instagram', () => {
+    it('should extract media ID', () => {
+      const result = parseEmbedUrl('https://www.instagram.com/p/C-qi579y7M9/')
+      expect(result?.id).toBe('p/C-qi579y7M9')
+      expect(result?.embedUrl).toBe('https://www.instagram.com/p/C-qi579y7M9/embed/captioned')
+    })
+  })
+
+  describe('TikTok', () => {
+    it('should extract video ID from public video URLs', () => {
+      const result = parseEmbedUrl('https://www.tiktok.com/@scout2015/video/6718335390845095173')
+      expect(result?.id).toBe('@scout2015/6718335390845095173')
+      expect(result?.embedUrl).toBe('https://www.tiktok.com/player/v1/6718335390845095173')
+      expect(result?.provider.name).toBe('tiktok')
     })
   })
 

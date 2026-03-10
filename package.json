@@ -15,6 +15,7 @@
     "test:stories": "storybook test --url http://127.0.0.1:6006",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "validate:canvas-v2": "bash scripts/validate-canvas-v2-release-gate.sh",
     "lint": "eslint packages apps --ext .ts,.tsx",
     "format:check": "prettier --check \"packages/**/*.{ts,tsx}\" \"apps/**/*.{ts,tsx}\"",
     "typecheck": "turbo run typecheck",

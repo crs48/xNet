@@ -5,7 +5,7 @@
  */
 
 import type { CanvasNode, CanvasEdge } from '../types'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   ChunkedCanvasStore,
   createChunkedCanvasStore,
@@ -29,7 +29,7 @@ import { Viewport } from '../spatial/index'
 function createTestNode(id: string, x: number, y: number, width = 100, height = 50): CanvasNode {
   return {
     id,
-    type: 'card',
+    type: 'shape',
     position: { x, y, width, height },
     properties: {}
   }
@@ -392,6 +392,46 @@ describe('ChunkManager', () => {
       // Original chunk should eventually be evicted
       await waitFor(() => evictedChunks.includes('0,0'), 2000)
     })
+
+    it('ignores late chunk loads after disposal', async () => {
+      let resolveLoad: ((value: { nodes: CanvasNode[]; edges: CanvasEdge[] }) => void) | null = null
+      const loadChunk = vi.fn(
+        () =>
+          new Promise<{ nodes: CanvasNode[]; edges: CanvasEdge[] }>((resolve) => {
+            resolveLoad = resolve
+          })
+      )
+      const loadCrossChunkEdgesFor = vi.fn(async () => [])
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const fallbackManager = createChunkManager({
+        loadChunk,
+        loadCrossChunkEdgesFor,
+        addNode: vi.fn(),
+        getNodeChunk: vi.fn(() => null),
+        updateNodePosition: vi.fn(),
+        moveNodeToChunk: vi.fn(),
+        removeNode: vi.fn(),
+        getNode: vi.fn(() => null),
+        addEdge: vi.fn(),
+        removeEdge: vi.fn(),
+        updateEdgeChunkAssignment: vi.fn()
+      })
+
+      try {
+        fallbackManager.updateViewport(createViewport(1, 0, 0))
+        await waitFor(() => loadChunk.mock.calls.length > 0)
+
+        fallbackManager.dispose()
+        resolveLoad?.({ nodes: [], edges: [] })
+
+        await sleep(0)
+        expect(loadCrossChunkEdgesFor).not.toHaveBeenCalled()
+        expect(consoleError).not.toHaveBeenCalled()
+      } finally {
+        fallbackManager.dispose()
+        consoleError.mockRestore()
+      }
+    })
   })
 
   describe('node operations', () => {
@@ -427,6 +467,40 @@ describe('ChunkManager', () => {
       })
 
       expect(store.getNodeChunk('n1')).toBe('1,0')
+    })
+
+    it('falls back to the node position when the chunk index is cold', () => {
+      const updateNodePosition = vi.fn()
+      const fallbackStore = {
+        loadChunk: vi.fn(async () => ({ nodes: [], edges: [] })),
+        loadCrossChunkEdgesFor: vi.fn(async () => []),
+        addNode: vi.fn(),
+        getNodeChunk: vi.fn(() => null),
+        updateNodePosition,
+        moveNodeToChunk: vi.fn(),
+        removeNode: vi.fn(),
+        getNode: vi.fn(() => createTestNode('n1', 100, 100, 100, 50)),
+        addEdge: vi.fn(),
+        removeEdge: vi.fn(),
+        updateEdgeChunkAssignment: vi.fn()
+      }
+      const fallbackManager = createChunkManager(fallbackStore)
+
+      fallbackManager.moveNode('n1', {
+        x: 180,
+        y: 160,
+        width: 140,
+        height: 80
+      })
+
+      expect(updateNodePosition).toHaveBeenCalledWith('n1', {
+        x: 180,
+        y: 160,
+        width: 140,
+        height: 80
+      })
+
+      fallbackManager.dispose()
     })
 
     it('removes node and connected edges', async () => {

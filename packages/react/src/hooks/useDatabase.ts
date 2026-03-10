@@ -155,7 +155,13 @@ export function useDatabase(
   options: UseDatabaseOptions = {}
 ): UseDatabaseResult {
   const { store, isReady } = useNodeStore()
-  const { columns, views, doc, storageMode } = useDatabaseDoc(databaseId)
+  const {
+    columns,
+    views,
+    doc,
+    storageMode,
+    loading: databaseDocLoading
+  } = useDatabaseDoc(databaseId)
 
   const [rows, setRows] = useState<DatabaseRow[]>([])
   const [total, setTotal] = useState(0)
@@ -274,19 +280,32 @@ export function useDatabase(
 
   // Initial fetch when columns are loaded
   useEffect(() => {
-    if (columns.length > 0) {
-      fetchRows(true)
+    if (databaseDocLoading) {
+      return
     }
+
+    if (columns.length > 0) {
+      void fetchRows(true)
+      return
+    }
+
+    setRows([])
+    setTotal(0)
+    setCursor(undefined)
+    setHasMore(false)
+    setError(null)
+    setLoading(false)
+    setLoadingMore(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [databaseId, columns.length, doc, storageMode])
+  }, [databaseId, columns.length, databaseDocLoading, doc, storageMode])
 
   // Refetch when filters/sorts change
   useEffect(() => {
-    if (columns.length > 0) {
-      fetchRows(true)
+    if (!databaseDocLoading && columns.length > 0) {
+      void fetchRows(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveFilters, effectiveSorts, search, doc, storageMode])
+  }, [databaseDocLoading, effectiveFilters, effectiveSorts, search, doc, storageMode])
 
   // Subscribe to row changes
   useEffect(() => {

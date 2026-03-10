@@ -103,4 +103,52 @@ describe('useUndo', () => {
       expect(currentNode?.properties.title).toBe('Beta')
     })
   })
+
+  it('stays disabled when the local DID is unavailable', async () => {
+    const bootstrapStore = new NodeStore({
+      storage,
+      authorDID: did,
+      signingKey: identityResult.privateKey
+    })
+    await bootstrapStore.initialize()
+
+    const node = await bootstrapStore.create({
+      schemaId: DatabaseSchema.schema['@id'],
+      properties: { title: 'Alpha' }
+    })
+
+    const wrapper = createWrapper()
+    const { result } = renderHook(
+      ({ localDID }: { localDID: DID | null }) => {
+        const nodeStore = useNodeStore()
+        const undo = useUndo(node.id, { localDID, options: { mergeInterval: 1_000 } })
+
+        return { nodeStore, undo }
+      },
+      {
+        wrapper,
+        initialProps: {
+          localDID: null
+        }
+      }
+    )
+
+    await waitFor(() => {
+      expect(result.current.nodeStore.isReady).toBe(true)
+    })
+
+    await act(async () => {
+      await result.current.nodeStore.store?.update(node.id, {
+        properties: { title: 'Beta' }
+      })
+    })
+
+    await waitFor(() => {
+      expect(result.current.undo.canUndo).toBe(false)
+      expect(result.current.undo.undoCount).toBe(0)
+    })
+
+    expect(result.current.undo.canRedo).toBe(false)
+    expect(result.current.undo.redoCount).toBe(0)
+  })
 })

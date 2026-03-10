@@ -17,7 +17,7 @@ export {
   type WebGLGridConfig
 } from './webgl-grid'
 
-export { CSSGridFallback } from './css-grid-fallback'
+export { CSSGridFallback, getViewportOriginOffset, normalizeGridOffset } from './css-grid-fallback'
 
 export { EdgeRenderer, createEdgeRenderer, type EdgeRendererViewport } from './edge-renderer'
 

@@ -26,6 +26,19 @@ const config: StorybookConfig = {
   ],
   viteFinal: async (viteConfig) => ({
     ...viteConfig,
+    build: {
+      ...viteConfig.build,
+      rollupOptions: {
+        ...viteConfig.build?.rollupOptions,
+        external: [
+          ...((Array.isArray(viteConfig.build?.rollupOptions?.external)
+            ? viteConfig.build?.rollupOptions?.external
+            : []) as string[]),
+          'mermaid',
+          'web-worker'
+        ]
+      }
+    },
     css: {
       ...viteConfig.css,
       postcss: {
@@ -43,6 +56,14 @@ const config: StorybookConfig = {
         ...workspaceAliases,
         ...viteConfig.resolve?.alias
       }
+    },
+    optimizeDeps: {
+      ...viteConfig.optimizeDeps,
+      exclude: [...(viteConfig.optimizeDeps?.exclude ?? []), 'elkjs', 'mermaid']
+    },
+    worker: {
+      ...viteConfig.worker,
+      format: 'es'
     }
   })
 }

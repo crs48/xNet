@@ -5,16 +5,21 @@
  * Handles the lifecycle of chunks as the user pans and zooms.
  */
 
-import type { ChunkedCanvasStore } from './chunked-canvas-store'
 import type {
   Chunk,
   CrossChunkEdge,
   ChunkStats,
   ChunkEvent,
   ChunkEventListener,
-  ChunkManagerOptions
+  ChunkManagerOptions,
+  ChunkStoreAdapter
 } from './types'
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, Rect } from '../types'
+import {
+  getCanvasEdgeSourceObjectId,
+  getCanvasEdgeTargetObjectId,
+  normalizeCanvasEdgeBindings
+} from '../edges/bindings'
 import { Viewport } from '../spatial/index'
 import {
   CHUNK_SIZE,
@@ -53,7 +58,7 @@ export class ChunkManager {
   private readonly maxLoadedChunks: number
 
   constructor(
-    private store: ChunkedCanvasStore,
+    private store: ChunkStoreAdapter,
     options: ChunkManagerOptions = {}
   ) {
     this.chunkSize = options.chunkSize ?? CHUNK_SIZE
@@ -102,6 +107,14 @@ export class ChunkManager {
     const missingChunks = visibleChunks.filter(
       (key) => !this.chunks.has(key) || !this.chunks.get(key)!.loaded
     )
+
+    const now = Date.now()
+    for (const key of visibleChunks) {
+      const chunk = this.chunks.get(key)
+      if (chunk?.loaded) {
+        chunk.lastAccessed = now
+      }
+    }
 
     // Sort by distance from viewport center
     const sorted = missingChunks.sort((a, b) => {
@@ -208,6 +221,40 @@ export class ChunkManager {
     }
   }
 
+  getLoadedChunkKeys(): ChunkKey[] {
+    return Array.from(this.chunks.entries())
+      .filter(([, chunk]) => chunk.loaded)
+      .map(([key]) => key)
+  }
+
+  async refreshLoadedChunks(): Promise<void> {
+    if (this.disposed) {
+      return
+    }
+
+    const loadedKeys = this.getLoadedChunkKeys()
+    const crossEdges = new Map<string, CrossChunkEdge>()
+
+    for (const key of loadedKeys) {
+      const chunk = this.chunks.get(key)
+      if (!chunk?.loaded) {
+        continue
+      }
+
+      const data = await this.store.loadChunk(key)
+      chunk.nodes = data.nodes
+      chunk.edges = data.edges
+      chunk.lastAccessed = Date.now()
+
+      const chunkCrossEdges = await this.store.loadCrossChunkEdgesFor(key)
+      for (const edge of chunkCrossEdges) {
+        crossEdges.set(edge.id, edge)
+      }
+    }
+
+    this.crossChunkEdges = Array.from(crossEdges.values())
+  }
+
   // ─── Node Operations ────────────────────────────────────────────────────────
 
   /**
@@ -261,13 +308,19 @@ export class ChunkManager {
     if (chunk?.loaded) {
       chunk.nodes = chunk.nodes.filter((n) => n.id !== nodeId)
       // Remove edges connected to this node
-      chunk.edges = chunk.edges.filter((e) => e.sourceId !== nodeId && e.targetId !== nodeId)
+      chunk.edges = chunk.edges.filter((edge) => {
+        const sourceId = getCanvasEdgeSourceObjectId(edge)
+        const targetId = getCanvasEdgeTargetObjectId(edge)
+        return sourceId !== nodeId && targetId !== nodeId
+      })
     }
 
     // Remove cross-chunk edges
-    this.crossChunkEdges = this.crossChunkEdges.filter(
-      (e) => e.sourceId !== nodeId && e.targetId !== nodeId
-    )
+    this.crossChunkEdges = this.crossChunkEdges.filter((edge) => {
+      const sourceId = getCanvasEdgeSourceObjectId(edge)
+      const targetId = getCanvasEdgeTargetObjectId(edge)
+      return sourceId !== nodeId && targetId !== nodeId
+    })
 
     // Remove from store
     this.store.removeNode(nodeId)
@@ -279,25 +332,33 @@ export class ChunkManager {
    * Add an edge between nodes.
    */
   addEdge(edge: CanvasEdge): void {
-    const sourceChunk = this.findNodeChunk(edge.sourceId)
-    const targetChunk = this.findNodeChunk(edge.targetId)
+    const existingSourceId = getCanvasEdgeSourceObjectId(edge)
+    const existingTargetId = getCanvasEdgeTargetObjectId(edge)
+    const normalizedEdge = normalizeCanvasEdgeBindings(edge, {
+      sourceNode: existingSourceId ? this.store.getNode(existingSourceId) : null,
+      targetNode: existingTargetId ? this.store.getNode(existingTargetId) : null
+    })
+    const sourceId = getCanvasEdgeSourceObjectId(normalizedEdge)
+    const targetId = getCanvasEdgeTargetObjectId(normalizedEdge)
+    const sourceChunk = sourceId ? this.findNodeChunk(sourceId) : null
+    const targetChunk = targetId ? this.findNodeChunk(targetId) : null
 
     if (!sourceChunk || !targetChunk) {
       console.warn('Cannot add edge: one or both nodes not found')
       return
     }
 
-    this.store.addEdge(edge, sourceChunk, targetChunk)
+    this.store.addEdge(normalizedEdge, sourceChunk, targetChunk)
 
     // Update local cache
     if (sourceChunk === targetChunk) {
       const chunk = this.chunks.get(sourceChunk)
       if (chunk?.loaded) {
-        chunk.edges.push(edge)
+        chunk.edges.push(normalizedEdge)
       }
     } else {
       this.crossChunkEdges.push({
-        ...edge,
+        ...normalizedEdge,
         sourceChunk,
         targetChunk
       })
@@ -399,7 +460,28 @@ export class ChunkManager {
 
     try {
       const data = await this.store.loadChunk(key)
-      const chunk = this.chunks.get(key)!
+      if (this.disposed) {
+        return
+      }
+
+      const chunk =
+        this.chunks.get(key) ??
+        (() => {
+          const { chunkX, chunkY } = parseChunkKey(key)
+          const restoredChunk: Chunk = {
+            key,
+            x: chunkX,
+            y: chunkY,
+            nodes: [],
+            edges: [],
+            loaded: false,
+            loading: false,
+            lastAccessed: Date.now()
+          }
+          this.chunks.set(key, restoredChunk)
+          return restoredChunk
+        })()
+
       chunk.nodes = data.nodes
       chunk.edges = data.edges
       chunk.loaded = true
@@ -408,6 +490,9 @@ export class ChunkManager {
 
       // Load cross-chunk edges that reference nodes in this chunk
       const newCrossEdges = await this.store.loadCrossChunkEdgesFor(key)
+      if (this.disposed) {
+        return
+      }
 
       // Only add edges we don't already have
       for (const edge of newCrossEdges) {
@@ -454,12 +539,12 @@ export class ChunkManager {
   }
 
   private enforceMemoryLimit(): void {
-    if (this.chunks.size <= this.maxLoadedChunks) return
-
     // Sort by last accessed time (oldest first)
     const loadedChunks = Array.from(this.chunks.entries())
       .filter(([, chunk]) => chunk.loaded)
       .sort(([, a], [, b]) => a.lastAccessed - b.lastAccessed)
+
+    if (loadedChunks.length <= this.maxLoadedChunks) return
 
     // Evict oldest chunks until under limit
     const toEvict = loadedChunks.length - this.maxLoadedChunks
@@ -474,6 +559,11 @@ export class ChunkManager {
     // First check the store's index
     const storeChunk = this.store.getNodeChunk(nodeId)
     if (storeChunk) return storeChunk
+
+    const storeNode = this.store.getNode(nodeId)
+    if (storeNode) {
+      return this.getChunkForNode(storeNode)
+    }
 
     // Fallback: search loaded chunks
     for (const [key, chunk] of this.chunks) {
@@ -527,11 +617,19 @@ export class ChunkManager {
     // Check in-chunk edges in old chunk
     const chunk = this.chunks.get(oldChunk)
     if (chunk?.loaded) {
-      const edgesToMove = chunk.edges.filter((e) => e.sourceId === nodeId || e.targetId === nodeId)
+      const edgesToMove = chunk.edges.filter((edge) => {
+        const sourceId = getCanvasEdgeSourceObjectId(edge)
+        const targetId = getCanvasEdgeTargetObjectId(edge)
+        return sourceId === nodeId || targetId === nodeId
+      })
 
       for (const edge of edgesToMove) {
-        const sourceChunk = edge.sourceId === nodeId ? newChunk : this.findNodeChunk(edge.sourceId)
-        const targetChunk = edge.targetId === nodeId ? newChunk : this.findNodeChunk(edge.targetId)
+        const sourceId = getCanvasEdgeSourceObjectId(edge)
+        const targetId = getCanvasEdgeTargetObjectId(edge)
+        const sourceChunk =
+          sourceId === nodeId ? newChunk : sourceId ? this.findNodeChunk(sourceId) : null
+        const targetChunk =
+          targetId === nodeId ? newChunk : targetId ? this.findNodeChunk(targetId) : null
 
         if (sourceChunk && targetChunk && sourceChunk !== targetChunk) {
           // Now a cross-chunk edge
@@ -550,9 +648,13 @@ export class ChunkManager {
 
     // Check cross-chunk edges that might now be same-chunk
     this.crossChunkEdges = this.crossChunkEdges.filter((edge) => {
-      if (edge.sourceId === nodeId || edge.targetId === nodeId) {
-        const sourceChunk = edge.sourceId === nodeId ? newChunk : this.findNodeChunk(edge.sourceId)
-        const targetChunk = edge.targetId === nodeId ? newChunk : this.findNodeChunk(edge.targetId)
+      const sourceId = getCanvasEdgeSourceObjectId(edge)
+      const targetId = getCanvasEdgeTargetObjectId(edge)
+      if (sourceId === nodeId || targetId === nodeId) {
+        const sourceChunk =
+          sourceId === nodeId ? newChunk : sourceId ? this.findNodeChunk(sourceId) : null
+        const targetChunk =
+          targetId === nodeId ? newChunk : targetId ? this.findNodeChunk(targetId) : null
 
         if (sourceChunk === targetChunk && sourceChunk) {
           // Move back to chunk
@@ -594,7 +696,7 @@ export class ChunkManager {
  * Create a new chunk manager.
  */
 export function createChunkManager(
-  store: ChunkedCanvasStore,
+  store: ChunkStoreAdapter,
   options?: ChunkManagerOptions
 ): ChunkManager {
   return new ChunkManager(store, options)

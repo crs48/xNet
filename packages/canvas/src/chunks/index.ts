@@ -42,6 +42,7 @@ export type {
   Chunk,
   CrossChunkEdge,
   ChunkData,
+  ChunkStoreAdapter,
   ChunkLoadStatus,
   ChunkStats,
   ChunkLoadedEvent,
@@ -61,3 +62,5 @@ export {
   createChunkedCanvasStore,
   createChunkedCanvasStoreFromDoc
 } from './chunked-canvas-store'
+
+export { FlatCanvasChunkStore, createFlatCanvasChunkStore } from './flat-canvas-store'

@@ -6,6 +6,7 @@
 
 import type { CanvasNode, CanvasEdge } from '../types'
 import { describe, it, expect } from 'vitest'
+import { getNodeMinimapColor } from '../components/Minimap'
 import { Viewport } from '../spatial/index'
 
 function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
@@ -20,13 +21,14 @@ function createTestNode(
   y: number,
   width = 100,
   height = 50,
-  type: CanvasNode['type'] = 'card'
+  type: CanvasNode['type'] = 'shape',
+  properties: Record<string, unknown> = {}
 ): CanvasNode {
   return {
     id,
     type,
     position: { x, y, width, height },
-    properties: {}
+    properties
   }
 }
 
@@ -42,35 +44,31 @@ function createViewport(zoom: number, x: number, y: number): Viewport {
 
 describe('Minimap', () => {
   describe('node color mapping', () => {
-    it('returns correct color for card nodes', () => {
-      const node = createTestNode('n1', 0, 0, 100, 50, 'card')
-      // Color is determined by node type in the component
-      expect(node.type).toBe('card')
+    it('returns correct color for page nodes', () => {
+      const node = createTestNode('n1', 0, 0, 100, 50, 'page')
+      expect(getNodeMinimapColor(node)).toBe('rgba(59, 130, 246, 0.7)')
     })
 
     it('returns correct color for shape nodes', () => {
       const node = createTestNode('n1', 0, 0, 100, 50, 'shape')
-      expect(node.type).toBe('shape')
+      expect(getNodeMinimapColor(node)).toBe('rgba(245, 158, 11, 0.7)')
     })
 
-    it('returns correct color for embed nodes', () => {
-      const node = createTestNode('n1', 0, 0, 100, 50, 'embed')
-      expect(node.type).toBe('embed')
+    it('returns correct color for media nodes', () => {
+      const node = createTestNode('n1', 0, 0, 100, 50, 'media')
+      expect(getNodeMinimapColor(node)).toBe('rgba(139, 92, 246, 0.7)')
     })
 
-    it('returns correct color for frame nodes', () => {
-      const node = createTestNode('n1', 0, 0, 100, 50, 'frame')
-      expect(node.type).toBe('frame')
-    })
-
-    it('returns correct color for image nodes', () => {
-      const node = createTestNode('n1', 0, 0, 100, 50, 'image')
-      expect(node.type).toBe('image')
+    it('returns correct color for frame groups', () => {
+      const node = createTestNode('n1', 0, 0, 100, 50, 'group', {
+        containerRole: 'frame'
+      })
+      expect(getNodeMinimapColor(node)).toBe('rgba(16, 185, 129, 0.5)')
     })
 
     it('returns correct color for group nodes', () => {
       const node = createTestNode('n1', 0, 0, 100, 50, 'group')
-      expect(node.type).toBe('group')
+      expect(getNodeMinimapColor(node)).toBe('rgba(107, 114, 128, 0.3)')
     })
   })
 
@@ -240,24 +238,24 @@ describe('Minimap', () => {
   describe('node sorting', () => {
     it('sorts frames and groups before regular nodes', () => {
       const nodes = [
-        createTestNode('n1', 0, 0, 100, 50, 'card'),
-        createTestNode('n2', 0, 0, 200, 200, 'frame'),
+        createTestNode('n1', 0, 0, 100, 50, 'page'),
+        createTestNode('n2', 0, 0, 200, 200, 'group', { containerRole: 'frame' }),
         createTestNode('n3', 0, 0, 100, 50, 'shape'),
         createTestNode('n4', 0, 0, 300, 300, 'group')
       ]
 
       const sortedNodes = [...nodes].sort((a, b) => {
-        const aIsContainer = a.type === 'frame' || a.type === 'group'
-        const bIsContainer = b.type === 'frame' || b.type === 'group'
+        const aIsContainer = a.type === 'group' || a.properties?.containerRole === 'frame'
+        const bIsContainer = b.type === 'group' || b.properties?.containerRole === 'frame'
         if (aIsContainer && !bIsContainer) return -1
         if (!aIsContainer && bIsContainer) return 1
         return 0
       })
 
       // Containers should come first
-      expect(sortedNodes[0].type).toBe('frame')
+      expect(sortedNodes[0].properties.containerRole).toBe('frame')
       expect(sortedNodes[1].type).toBe('group')
-      expect(sortedNodes[2].type).toBe('card')
+      expect(sortedNodes[2].type).toBe('page')
       expect(sortedNodes[3].type).toBe('shape')
     })
   })
@@ -320,7 +318,7 @@ describe('Minimap', () => {
     it('handles 10k nodes for bounds calculation', () => {
       const nodes: CanvasNode[] = Array.from({ length: 10000 }, (_, i) => ({
         id: `n${i}`,
-        type: 'card' as const,
+        type: 'page' as const,
         position: {
           x: (i % 100) * 150,
           y: Math.floor(i / 100) * 100,
@@ -355,7 +353,7 @@ describe('Minimap', () => {
     it('handles edge lookup for many edges', () => {
       const nodes: CanvasNode[] = Array.from({ length: 1000 }, (_, i) => ({
         id: `n${i}`,
-        type: 'card' as const,
+        type: 'page' as const,
         position: {
           x: (i % 50) * 150,
           y: Math.floor(i / 50) * 100,

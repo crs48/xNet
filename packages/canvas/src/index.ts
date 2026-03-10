@@ -29,10 +29,41 @@ export type {
   Point,
   Rect,
   CanvasNodePosition,
+  CanvasSceneNodeKind,
+  CanvasObjectKind,
+  CanvasSourceBackedNodeKind,
+  LegacyCanvasNodeType,
   CanvasNodeType,
+  CanvasDisplayDensity,
+  CanvasDisplayState,
+  CanvasNodeProperties,
+  CanvasTitledNodeProperties,
+  CanvasExternalReferenceNodeProperties,
+  CanvasMediaNodeProperties,
+  CanvasShapeNodeProperties,
+  CanvasGroupNodeProperties,
+  CanvasAlignment,
+  CanvasDistributionAxis,
+  CanvasLayerDirection,
+  CanvasNodeBase,
+  CanvasPageNode,
+  CanvasDatabaseNode,
+  CanvasExternalReferenceNode,
+  CanvasMediaNode,
+  CanvasNoteNode,
+  CanvasShapeNode,
+  CanvasGroupNode,
+  CanvasFrameNode,
+  CanvasSceneNode,
+  CanvasSceneObject,
+  CanvasLegacyNode,
   CanvasNode,
   EdgeAnchor,
+  CanvasObjectAnchorPlacement,
+  CanvasEdgeEndpoint,
+  CanvasConnectorEndpoint,
   CanvasEdge,
+  CanvasConnector,
   EdgeStyle,
   ViewportState,
   SelectionState,
@@ -43,6 +74,78 @@ export type {
 } from './types'
 
 export { DEFAULT_CANVAS_CONFIG } from './types'
+export {
+  CANVAS_OBJECTS_MAP_KEY,
+  CANVAS_CONNECTORS_MAP_KEY,
+  CANVAS_GROUPS_MAP_KEY,
+  CANVAS_METADATA_MAP_KEY,
+  ensureCanvasDocMaps,
+  getCanvasObjectsMap,
+  getCanvasConnectorsMap,
+  getCanvasGroupsMap,
+  getCanvasMetadataMap
+} from './scene/doc-layout'
+export type { CanvasDocMaps } from './scene/doc-layout'
+
+export {
+  CANVAS_SCENE_NODE_KINDS,
+  getCanvasResolvedNodeKind,
+  isCanvasObjectKind,
+  isFrameLikeCanvasNode
+} from './scene/node-kind'
+export type { CanvasResolvedNodeKind } from './scene/node-kind'
+
+export {
+  createAlignmentUpdates,
+  createDistributionUpdates,
+  createFrameSelectionNode,
+  createLayerShiftUpdates,
+  createLockUpdates,
+  createTidySelectionUpdates,
+  expandContainerPositionUpdates,
+  getCanvasContainerMemberIds,
+  getCanvasContainerRole,
+  getSelectionBounds,
+  getSelectionLockState,
+  isCanvasContainerNode,
+  getUnlockedSelection
+} from './selection/scene-operations'
+export type {
+  CanvasContainerRole,
+  CanvasLockUpdate,
+  CanvasPositionUpdate,
+  CreateFrameSelectionNodeOptions
+} from './selection/scene-operations'
+
+export {
+  CANVAS_INTERNAL_NODE_MIME,
+  serializeCanvasInternalNodeDragData,
+  parseCanvasInternalNodeDragData,
+  normalizeExternalReferenceUrl,
+  describeExternalReference,
+  getExternalReferenceRect,
+  inferMediaKind,
+  getMediaRect,
+  readImageDimensions,
+  getCanvasObjectKindFromSchema,
+  resolveCanvasPlacementRect,
+  resolveCanvasPrimitivePlacementRect,
+  createCanvasPrimitiveNode,
+  createSourceBackedCanvasNode,
+  extractCanvasIngressPayloads
+} from './ingestion'
+export type {
+  CanvasViewportSnapshot,
+  CanvasInternalNodeDragData,
+  CanvasIngressPayload,
+  CanvasExternalReferenceProvider,
+  CanvasExternalReferenceKind,
+  CanvasExternalReferenceDescriptor,
+  CanvasMediaKind,
+  CanvasSourceBackedNodeInput,
+  CanvasPrimitiveObjectKind,
+  CanvasPrimitiveNodeInput
+} from './ingestion'
 
 // Rendering layers
 export {
@@ -79,10 +182,20 @@ export {
   generateNodeId,
   generateEdgeId,
   createNode,
+  createLegacyNode,
   createEdge,
   type CanvasStoreEvent,
   type CanvasStoreListener
 } from './store'
+
+export {
+  createCanvasPerformanceSceneDoc,
+  buildCanvasPerformanceScene,
+  seedCanvasPerformanceScene,
+  type CanvasPerformanceSceneOptions,
+  type CanvasPerformanceSceneSummary,
+  type CanvasPerformanceSceneSeedResult
+} from './fixtures/performance-scene'
 
 // Chunked storage (for infinite canvases)
 export {
@@ -104,6 +217,7 @@ export {
   type Chunk,
   type CrossChunkEdge,
   type ChunkData,
+  type ChunkStoreAdapter,
   type ChunkLoadStatus,
   type ChunkStats,
   type ChunkEvent,
@@ -113,13 +227,28 @@ export {
   ChunkManager,
   createChunkManager,
   ChunkedCanvasStore,
+  FlatCanvasChunkStore,
   createChunkedCanvasStore,
-  createChunkedCanvasStoreFromDoc
+  createChunkedCanvasStoreFromDoc,
+  createFlatCanvasChunkStore
 } from './chunks/index'
 
 // React components
 export { Canvas } from './renderer/Canvas'
-export type { CanvasProps, CanvasHandle, CanvasRemoteUser } from './renderer/Canvas'
+export type {
+  CanvasProps,
+  CanvasHandle,
+  CanvasSelectionSnapshot,
+  CanvasSurfaceEventContext,
+  CanvasRemoteUser,
+  CanvasNodeRenderContext
+} from './renderer/Canvas'
+export {
+  useCanvasThemeTokens,
+  resolveCanvasThemeMode,
+  resolveCanvasThemeTokens
+} from './theme/canvas-theme'
+export type { CanvasThemeMode, CanvasThemeTokens } from './theme/canvas-theme'
 
 export { CanvasNodeComponent, calculateLOD } from './nodes/CanvasNodeComponent'
 export type { CanvasNodeProps, NodeRemoteUser, LODLevel } from './nodes/CanvasNodeComponent'
@@ -143,6 +272,17 @@ export type {
 
 export { CanvasEdgeComponent } from './edges/CanvasEdgeComponent'
 export type { CanvasEdgeProps } from './edges/CanvasEdgeComponent'
+export {
+  createCanvasObjectAnchorId,
+  createCanvasEdgeEndpoint,
+  getCanvasEdgeNodeIds,
+  getCanvasEdgeSourceObjectId,
+  getCanvasEdgeTargetObjectId,
+  normalizeCanvasEdgeBindings,
+  resolveAutoCanvasAnchorPlacement,
+  resolveCanvasAnchorPoint,
+  toLegacyEdgeAnchor
+} from './edges/bindings'
 
 // Minimap, navigation, and presence components
 export {
@@ -174,6 +314,7 @@ export {
   createSelectionLockManager,
   USER_COLORS,
   getUserColor,
+  type CanvasActivity,
   type CanvasPresence,
   type AwarenessLike,
   type PresenceChangeCallback,
@@ -187,6 +328,14 @@ export type { UseCursorTrackingOptions } from './hooks/useCursorTracking'
 // Navigation hooks
 export { useCanvasKeyboard } from './hooks/useCanvasKeyboard'
 export type { UseCanvasKeyboardOptions } from './hooks/useCanvasKeyboard'
+
+export { useCanvasObjectIngestion } from './hooks/useCanvasObjectIngestion'
+export type {
+  UseCanvasObjectIngestionOptions,
+  PlaceCanvasPrimitiveObjectInput,
+  PlaceCanvasSourceObjectInput,
+  CanvasIngestionResult
+} from './hooks/useCanvasObjectIngestion'
 
 export { useSpacePan } from './hooks/useSpacePan'
 export type { UseSpacePanOptions } from './hooks/useSpacePan'
@@ -210,6 +359,7 @@ export {
   isCanvasAnchorOrphaned,
   type CanvasTransform,
   type CanvasObject,
+  type CanvasObjectCommentOptions,
   type UseCanvasCommentsOptions,
   type UseCanvasCommentsResult,
   type ResolvedPin

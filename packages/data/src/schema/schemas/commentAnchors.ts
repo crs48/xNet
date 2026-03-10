@@ -69,12 +69,33 @@ export interface CanvasPositionAnchor {
 /**
  * Canvas object attachment (follows object movement).
  */
+export type CanvasObjectAnchorPlacement =
+  | 'top'
+  | 'right'
+  | 'bottom'
+  | 'left'
+  | 'center'
+  | 'auto'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+
 export interface CanvasObjectAnchor {
   /** ID of the canvas object */
   objectId: string
+  /** Stable reusable anchor identity */
+  anchorId?: string
+  /** Logical attachment placement on the object */
+  placement?: CanvasObjectAnchorPlacement
+  /** Optional custom normalized anchor ratios (0..1) */
+  xRatio?: number
+  yRatio?: number
   /** Optional offset from object origin */
   offsetX?: number
   offsetY?: number
+  /** Future block/deep-link target within the source content */
+  blockAnchorId?: string
 }
 
 // ─── Node Anchor ───────────────────────────────────────────────────────────────

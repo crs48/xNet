@@ -4,7 +4,14 @@
 
 import type { DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
-import { MemoryNodeStorageAdapter, NodeStore, defineSchema, text, checkbox } from '@xnetjs/data'
+import {
+  MemoryNodeStorageAdapter,
+  NodeStore,
+  defineSchema,
+  text,
+  checkbox,
+  number
+} from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MainThreadBridge, createMainThreadBridge } from '../main-thread-bridge'
@@ -18,6 +25,19 @@ const TestTaskSchema = defineSchema({
   properties: {
     title: text({ required: true }),
     done: checkbox()
+  }
+})
+
+const TestSpatialCardSchema = defineSchema({
+  name: 'SpatialCard',
+  namespace: 'xnet://test.local/',
+  version: '1.0.0',
+  properties: {
+    title: text({ required: true }),
+    x: number({ required: true }),
+    y: number({ required: true }),
+    width: number({}),
+    height: number({})
   }
 })
 
@@ -181,6 +201,93 @@ describe('MainThreadBridge', () => {
       expect(snapshot![0].properties.title).toBe('A Task')
       expect(snapshot![1].properties.title).toBe('B Task')
       expect(snapshot![2].properties.title).toBe('C Task')
+    })
+
+    it('should filter nodes with spatial window queries', async () => {
+      await bridge.create(TestSpatialCardSchema, {
+        title: 'Visible',
+        x: 24,
+        y: 36,
+        width: 96,
+        height: 48
+      })
+      await bridge.create(TestSpatialCardSchema, {
+        title: 'Offscreen',
+        x: 520,
+        y: 540,
+        width: 96,
+        height: 48
+      })
+
+      const subscription = bridge.query(TestSpatialCardSchema, {
+        spatial: {
+          kind: 'window',
+          rect: { x: 0, y: 0, width: 240, height: 220 },
+          fields: { x: 'x', y: 'y', width: 'width', height: 'height' }
+        }
+      })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Visible'
+        ])
+      })
+    })
+
+    it('should update spatial queries when nodes move into the active window', async () => {
+      const visible = await bridge.create(TestSpatialCardSchema, {
+        title: 'Visible',
+        x: 24,
+        y: 36,
+        width: 96,
+        height: 48
+      })
+      const offscreen = await bridge.create(TestSpatialCardSchema, {
+        title: 'Offscreen',
+        x: 520,
+        y: 540,
+        width: 96,
+        height: 48
+      })
+
+      const subscription = bridge.query(TestSpatialCardSchema, {
+        spatial: {
+          kind: 'window',
+          rect: { x: 0, y: 0, width: 240, height: 220 },
+          fields: { x: 'x', y: 'y', width: 'width', height: 'height' }
+        },
+        orderBy: { title: 'asc' }
+      })
+      const callback = vi.fn()
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Visible'
+        ])
+      })
+
+      const unsubscribe = subscription.subscribe(callback)
+
+      await bridge.update(offscreen.id, { x: 72, y: 84 })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Offscreen',
+          'Visible'
+        ])
+      })
+
+      expect(callback).toHaveBeenCalled()
+
+      await bridge.update(visible.id, { x: 520, y: 540 })
+
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()?.map((node) => node.properties.title)).toEqual([
+          'Offscreen'
+        ])
+      })
+
+      unsubscribe()
     })
 
     it('should reload bounded query windows when ordering changes membership', async () => {

@@ -2,8 +2,10 @@
  * Tests for canvas store
  */
 
+import type { CanvasEdge } from '../types'
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
+import { ensureCanvasDocMaps } from '../scene/doc-layout'
 import {
   CanvasStore,
   createCanvasStore,
@@ -26,15 +28,15 @@ describe('CanvasStore', () => {
 
   describe('node operations', () => {
     it('should add a node', () => {
-      const node = createNode('card', { x: 100, y: 100 }, { title: 'Test' })
+      const node = createNode('shape', { x: 100, y: 100 }, { title: 'Test' })
       store.addNode(node)
       expect(store.nodeCount()).toBe(1)
       expect(store.getNode(node.id)).toEqual(node)
     })
 
     it('should get all nodes', () => {
-      const node1 = createNode('card', { x: 0, y: 0 })
-      const node2 = createNode('card', { x: 100, y: 100 })
+      const node1 = createNode('shape', { x: 0, y: 0 })
+      const node2 = createNode('shape', { x: 100, y: 100 })
       store.addNode(node1)
       store.addNode(node2)
 
@@ -43,7 +45,7 @@ describe('CanvasStore', () => {
     })
 
     it('should update node position', () => {
-      const node = createNode('card', { x: 0, y: 0 })
+      const node = createNode('shape', { x: 0, y: 0 })
       store.addNode(node)
 
       store.updateNodePosition(node.id, { x: 100, y: 50 })
@@ -54,8 +56,8 @@ describe('CanvasStore', () => {
     })
 
     it('should update multiple node positions', () => {
-      const node1 = createNode('card', { x: 0, y: 0 })
-      const node2 = createNode('card', { x: 100, y: 100 })
+      const node1 = createNode('shape', { x: 0, y: 0 })
+      const node2 = createNode('shape', { x: 100, y: 100 })
       store.addNode(node1)
       store.addNode(node2)
 
@@ -69,7 +71,7 @@ describe('CanvasStore', () => {
     })
 
     it('should remove a node', () => {
-      const node = createNode('card')
+      const node = createNode('shape')
       store.addNode(node)
       expect(store.removeNode(node.id)).toBe(true)
       expect(store.nodeCount()).toBe(0)
@@ -80,8 +82,8 @@ describe('CanvasStore', () => {
     })
 
     it('should remove connected edges when removing a node', () => {
-      const node1 = createNode('card')
-      const node2 = createNode('card')
+      const node1 = createNode('shape')
+      const node2 = createNode('shape')
       const edge = createEdge(node1.id, node2.id)
 
       store.addNode(node1)
@@ -95,8 +97,8 @@ describe('CanvasStore', () => {
 
   describe('edge operations', () => {
     it('should add an edge', () => {
-      const node1 = createNode('card')
-      const node2 = createNode('card')
+      const node1 = createNode('shape')
+      const node2 = createNode('shape')
       const edge = createEdge(node1.id, node2.id)
 
       store.addNode(node1)
@@ -104,13 +106,43 @@ describe('CanvasStore', () => {
       store.addEdge(edge)
 
       expect(store.edgeCount()).toBe(1)
-      expect(store.getEdge(edge.id)).toEqual(edge)
+      expect(store.getEdge(edge.id)).toEqual(
+        expect.objectContaining({
+          id: edge.id,
+          sourceId: node1.id,
+          targetId: node2.id,
+          source: expect.objectContaining({ objectId: node1.id }),
+          target: expect.objectContaining({ objectId: node2.id })
+        })
+      )
+    })
+
+    it('normalizes endpoint-only edges into durable bindings', () => {
+      const node1 = createNode('shape', { x: 0, y: 0, width: 120, height: 80 })
+      const node2 = createNode('shape', { x: 240, y: 0, width: 120, height: 80 })
+      const edge = {
+        id: generateEdgeId(),
+        sourceId: '' as unknown as string,
+        targetId: '' as unknown as string,
+        source: { objectId: node1.id },
+        target: { objectId: node2.id }
+      } as CanvasEdge
+
+      store.addNode(node1)
+      store.addNode(node2)
+      store.addEdge(edge)
+
+      const storedEdge = store.getEdge(edge.id)
+      expect(storedEdge?.sourceId).toBe(node1.id)
+      expect(storedEdge?.targetId).toBe(node2.id)
+      expect(storedEdge?.source?.placement).toBe('right')
+      expect(storedEdge?.target?.placement).toBe('left')
     })
 
     it('should get all edges', () => {
-      const node1 = createNode('card')
-      const node2 = createNode('card')
-      const node3 = createNode('card')
+      const node1 = createNode('shape')
+      const node2 = createNode('shape')
+      const node3 = createNode('shape')
 
       store.addNode(node1)
       store.addNode(node2)
@@ -122,9 +154,9 @@ describe('CanvasStore', () => {
     })
 
     it('should get edges for a node', () => {
-      const node1 = createNode('card')
-      const node2 = createNode('card')
-      const node3 = createNode('card')
+      const node1 = createNode('shape')
+      const node2 = createNode('shape')
+      const node3 = createNode('shape')
 
       store.addNode(node1)
       store.addNode(node2)
@@ -146,8 +178,8 @@ describe('CanvasStore', () => {
 
   describe('spatial queries', () => {
     it('should find visible nodes', () => {
-      const node1 = createNode('card', { x: 0, y: 0, width: 100, height: 50 })
-      const node2 = createNode('card', { x: 500, y: 500, width: 100, height: 50 })
+      const node1 = createNode('shape', { x: 0, y: 0, width: 100, height: 50 })
+      const node2 = createNode('shape', { x: 500, y: 500, width: 100, height: 50 })
 
       store.addNode(node1)
       store.addNode(node2)
@@ -158,7 +190,7 @@ describe('CanvasStore', () => {
     })
 
     it('should find node at point', () => {
-      const node = createNode('card', { x: 0, y: 0, width: 100, height: 50 })
+      const node = createNode('shape', { x: 0, y: 0, width: 100, height: 50 })
       store.addNode(node)
 
       const found = store.findNodeAt(50, 25)
@@ -166,7 +198,7 @@ describe('CanvasStore', () => {
     })
 
     it('should return undefined for empty area', () => {
-      const node = createNode('card', { x: 0, y: 0, width: 100, height: 50 })
+      const node = createNode('shape', { x: 0, y: 0, width: 100, height: 50 })
       store.addNode(node)
 
       const found = store.findNodeAt(500, 500)
@@ -174,8 +206,8 @@ describe('CanvasStore', () => {
     })
 
     it('should get bounds of all nodes', () => {
-      const node1 = createNode('card', { x: 0, y: 0, width: 100, height: 50 })
-      const node2 = createNode('card', { x: 200, y: 100, width: 50, height: 50 })
+      const node1 = createNode('shape', { x: 0, y: 0, width: 100, height: 50 })
+      const node2 = createNode('shape', { x: 200, y: 100, width: 50, height: 50 })
 
       store.addNode(node1)
       store.addNode(node2)
@@ -203,7 +235,7 @@ describe('CanvasStore', () => {
         events.push(event.type)
       })
 
-      const node = createNode('card')
+      const node = createNode('shape')
       store.addNode(node)
 
       // Store triggers update event via Y.Map observer
@@ -213,8 +245,8 @@ describe('CanvasStore', () => {
 
   describe('clear', () => {
     it('should remove all nodes and edges', () => {
-      const node1 = createNode('card')
-      const node2 = createNode('card')
+      const node1 = createNode('shape')
+      const node2 = createNode('shape')
       store.addNode(node1)
       store.addNode(node2)
       store.addEdge(createEdge(node1.id, node2.id))
@@ -253,9 +285,9 @@ describe('helper functions', () => {
 
   describe('createNode', () => {
     it('should create node with defaults', () => {
-      const node = createNode('card')
+      const node = createNode('shape')
       expect(node.id).toBeDefined()
-      expect(node.type).toBe('card')
+      expect(node.type).toBe('shape')
       expect(node.position.x).toBe(0)
       expect(node.position.y).toBe(0)
       expect(node.position.width).toBe(200)
@@ -263,15 +295,15 @@ describe('helper functions', () => {
     })
 
     it('should accept custom position', () => {
-      const node = createNode('card', { x: 100, y: 50, width: 300 })
+      const node = createNode('shape', { x: 100, y: 50, width: 300 })
       expect(node.position.x).toBe(100)
       expect(node.position.y).toBe(50)
       expect(node.position.width).toBe(300)
     })
 
     it('should accept properties', () => {
-      const node = createNode('card', {}, { title: 'My Card' })
-      expect(node.properties.title).toBe('My Card')
+      const node = createNode('shape', {}, { title: 'My Shape' })
+      expect(node.properties.title).toBe('My Shape')
     })
   })
 
@@ -281,6 +313,10 @@ describe('helper functions', () => {
       expect(edge.id).toBeDefined()
       expect(edge.sourceId).toBe('source')
       expect(edge.targetId).toBe('target')
+      expect(edge.source?.objectId).toBe('source')
+      expect(edge.target?.objectId).toBe('target')
+      expect(edge.source?.anchorId).toBe('source#placement:auto')
+      expect(edge.target?.anchorId).toBe('target#placement:auto')
     })
 
     it('should accept optional properties', () => {
@@ -294,13 +330,16 @@ describe('helper functions', () => {
   })
 
   describe('createCanvasDoc', () => {
-    it('should create a Y.Doc with metadata', () => {
+    it('should create a Y.Doc with Canvas V2 scene maps', () => {
       const doc = createCanvasDoc('canvas-1', 'My Canvas')
       expect(doc.guid).toBe('canvas-1')
 
-      const meta = doc.getMap('metadata')
-      expect(meta.get('title')).toBe('My Canvas')
-      expect(meta.get('created')).toBeDefined()
+      const maps = ensureCanvasDocMaps(doc)
+      expect(maps.metadata.get('title')).toBe('My Canvas')
+      expect(maps.metadata.get('created')).toBeDefined()
+      expect(maps.objects.size).toBe(0)
+      expect(maps.connectors.size).toBe(0)
+      expect(maps.groups.size).toBe(0)
     })
   })
 })

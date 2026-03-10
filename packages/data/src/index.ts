@@ -85,6 +85,8 @@ export {
   type Task,
   ExternalReferenceSchema,
   type ExternalReference,
+  MediaAssetSchema,
+  type MediaAsset,
   CanvasSchema,
   type Canvas,
   CommentSchema,
@@ -101,6 +103,7 @@ export {
   type RowAnchor,
   type ColumnAnchor,
   type CanvasPositionAnchor,
+  type CanvasObjectAnchorPlacement,
   type CanvasObjectAnchor,
   type NodeAnchor,
   type AnchorData,
@@ -146,6 +149,19 @@ export {
   createOperations,
   identity
 } from './schema'
+
+// External reference and embed parsing
+export {
+  EMBED_PROVIDERS,
+  type EmbedProvider,
+  type ExternalReferenceDescriptor,
+  type ExternalReferenceKind,
+  type ExternalReferenceProvider,
+  detectEmbedProvider,
+  normalizeExternalReferenceUrl,
+  parseEmbedUrl,
+  parseExternalReferenceUrl
+} from './external-references'
 
 // Update handling
 export {

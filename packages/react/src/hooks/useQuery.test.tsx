@@ -8,6 +8,7 @@ import {
   defineSchema,
   text,
   select,
+  number,
   MemoryNodeStorageAdapter,
   type DefinedSchema,
   type NodeState,
@@ -34,6 +35,18 @@ const TaskSchema = defineSchema({
         { id: 'done', name: 'Done' }
       ] as const
     })
+  }
+})
+
+const SpatialCardSchema = defineSchema({
+  name: 'SpatialCard',
+  namespace: 'xnet://test/',
+  properties: {
+    title: text({ required: true }),
+    x: number({ required: true }),
+    y: number({ required: true }),
+    width: number({}),
+    height: number({})
   }
 })
 
@@ -291,6 +304,97 @@ describe('useQuery', () => {
 
       expect(queryResult.current.data).not.toBeNull()
       expect(queryResult.current.data?.title).toBe('Test Task')
+    })
+  })
+
+  describe('spatial queries', () => {
+    it('supports viewport-window style filters for canvas-backed node props', async () => {
+      const wrapper = createWrapper()
+
+      const { result } = renderHook(
+        () => ({
+          query: useQuery(SpatialCardSchema, {
+            spatial: {
+              kind: 'window',
+              rect: { x: 0, y: 0, width: 220, height: 220 },
+              fields: { x: 'x', y: 'y', width: 'width', height: 'height' }
+            },
+            orderBy: { title: 'asc' }
+          }),
+          mutate: useMutate()
+        }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.query.loading).toBe(false)
+      })
+
+      await act(async () => {
+        await result.current.mutate.create(SpatialCardSchema, {
+          title: 'Visible card',
+          x: 24,
+          y: 48,
+          width: 96,
+          height: 64
+        })
+        await result.current.mutate.create(SpatialCardSchema, {
+          title: 'Far card',
+          x: 520,
+          y: 560,
+          width: 96,
+          height: 64
+        })
+      })
+
+      await act(async () => {
+        result.current.query.reload()
+      })
+
+      expect(result.current.query.data.map((node) => node.title)).toEqual(['Visible card'])
+    })
+
+    it('supports radius filters for future geo-style queries', async () => {
+      const wrapper = createWrapper()
+
+      const { result } = renderHook(
+        () => ({
+          query: useQuery(SpatialCardSchema, {
+            spatial: {
+              kind: 'radius',
+              center: { x: 0, y: 0 },
+              radius: 150,
+              fields: { x: 'x', y: 'y' }
+            },
+            orderBy: { title: 'asc' }
+          }),
+          mutate: useMutate()
+        }),
+        { wrapper }
+      )
+
+      await waitFor(() => {
+        expect(result.current.query.loading).toBe(false)
+      })
+
+      await act(async () => {
+        await result.current.mutate.create(SpatialCardSchema, {
+          title: 'Nearby',
+          x: 90,
+          y: 90
+        })
+        await result.current.mutate.create(SpatialCardSchema, {
+          title: 'Far away',
+          x: 260,
+          y: 260
+        })
+      })
+
+      await act(async () => {
+        result.current.query.reload()
+      })
+
+      expect(result.current.query.data.map((node) => node.title)).toEqual(['Nearby'])
     })
   })
 

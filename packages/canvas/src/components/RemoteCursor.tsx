@@ -4,6 +4,7 @@
  * Renders a remote user's cursor with their name and color.
  */
 
+import type { CanvasActivity } from '../presence'
 import type { Point } from '../types'
 import { memo, useMemo } from 'react'
 
@@ -19,7 +20,7 @@ export interface RemoteCursorProps {
     avatar?: string
   }
   /** Current user activity */
-  activity?: 'idle' | 'dragging' | 'drawing' | 'editing' | 'selecting'
+  activity?: CanvasActivity
   /** Whether the cursor is stale (hasn't updated recently) */
   isStale?: boolean
   /** Whether to show the name tag */
@@ -43,6 +44,14 @@ export const RemoteCursor = memo(function RemoteCursor({
   // Get activity indicator color
   const activityColor = useMemo(() => {
     switch (activity) {
+      case 'commenting':
+        return '#ec4899' // Pink
+      case 'peeking':
+        return '#14b8a6' // Teal
+      case 'panning':
+        return '#6366f1' // Indigo
+      case 'resizing':
+        return '#f97316' // Orange
       case 'drawing':
         return '#10b981' // Green
       case 'editing':

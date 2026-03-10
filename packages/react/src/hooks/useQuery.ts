@@ -29,7 +29,7 @@
  * ```
  */
 import type { DefinedSchema, PropertyBuilder, InferCreateProps } from '@xnetjs/data'
-import type { QueryOptions } from '@xnetjs/data-bridge'
+import type { QueryOptions, QuerySpatialFilter } from '@xnetjs/data-bridge'
 import {
   createQueryDescriptor,
   queryDescriptorToOptions,
@@ -71,6 +71,8 @@ export interface QueryFilter<
   limit?: number
   /** Offset for pagination */
   offset?: number
+  /** Spatial filtering for viewport windows or radius-based 2D queries */
+  spatial?: QuerySpatialFilter
 }
 
 /**
@@ -174,6 +176,7 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   // Memoize stringified where/orderBy for stable dependency comparison
   const whereKey = useMemo(() => JSON.stringify(filter.where), [filter.where])
   const orderByKey = useMemo(() => JSON.stringify(filter.orderBy), [filter.orderBy])
+  const spatialKey = useMemo(() => JSON.stringify(filter.spatial), [filter.spatial])
 
   // Create a canonical descriptor for stable cache keys and reload semantics.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- whereKey/orderByKey are stable string representations
@@ -188,7 +191,8 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
     filter.includeDeleted,
     orderByKey,
     filter.limit,
-    filter.offset
+    filter.offset,
+    spatialKey
   ])
   const queryKey = useMemo(() => serializeQueryDescriptor(descriptor), [descriptor])
 
@@ -274,20 +278,26 @@ export function useQuery<P extends Record<string, PropertyBuilder>>(
   )
   useEffect(() => {
     if (!instrumentation?.queryTracker) return
-    const mode = isSingleQuery ? 'single' : filter.where ? 'filtered' : 'list'
+    const mode = isSingleQuery ? 'single' : filter.where || filter.spatial ? 'filtered' : 'list'
     const queryId = queryIdRef.current
     instrumentation.queryTracker.register(queryId, {
       type: 'useQuery',
       schemaId,
       mode,
-      filter: filter.where as Record<string, unknown> | undefined,
+      filter:
+        filter.where || filter.spatial
+          ? {
+              ...(filter.where ? { where: filter.where } : {}),
+              ...(filter.spatial ? { spatial: filter.spatial } : {})
+            }
+          : undefined,
       descriptorKey: queryKey,
       nodeId: nodeId || undefined
     })
     return () => {
       instrumentation.queryTracker.unregister(queryId)
     }
-  }, [instrumentation, schemaId, isSingleQuery, nodeId, filter.where])
+  }, [instrumentation, schemaId, isSingleQuery, nodeId, filter.where, filter.spatial, queryKey])
 
   // Report updates to devtools
   useEffect(() => {

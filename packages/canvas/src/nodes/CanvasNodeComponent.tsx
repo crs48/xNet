@@ -5,8 +5,10 @@
  * Supports Level of Detail (LOD) rendering for performance at different zoom levels.
  */
 
-import type { CanvasNode, ResizeHandle, Point } from '../types'
+import type { CanvasNode, EdgeAnchor, ResizeHandle, Point } from '../types'
 import React, { useCallback, useRef, useEffect, memo } from 'react'
+import { getCanvasResolvedNodeKind } from '../scene/node-kind'
+import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
 /**
  * Level of Detail for node rendering
@@ -39,6 +41,8 @@ export interface NodeRemoteUser {
 export interface CanvasNodeProps {
   node: CanvasNode
   selected: boolean
+  focused?: boolean
+  connectionTargeted?: boolean
   /** Level of detail for rendering (defaults to 'full') */
   lod?: LODLevel
   /** Remote users who have this node selected */
@@ -50,6 +54,9 @@ export interface CanvasNodeProps {
   onResizeStart?: (id: string, handle: ResizeHandle, point: Point) => void
   onResize?: (id: string, handle: ResizeHandle, delta: Point) => void
   onResizeEnd?: (id: string) => void
+  onConnectStart?: (id: string, point: Point, placement: EdgeAnchor) => void
+  onConnectDrag?: (id: string, point: Point) => void
+  onConnectEnd?: (id: string, point: Point) => void
   onDoubleClick?: (id: string) => void
   children?: React.ReactNode
 }
@@ -88,7 +95,14 @@ function getHandleCursor(handle: ResizeHandle): string {
 /**
  * Get handle position styles
  */
-function getHandleStyle(handle: ResizeHandle): React.CSSProperties {
+function getHandleStyle(
+  handle: ResizeHandle,
+  colors: {
+    background: string
+    border: string
+    shadow: string
+  }
+): React.CSSProperties {
   const size = 8
   const offset = -size / 2
 
@@ -96,10 +110,11 @@ function getHandleStyle(handle: ResizeHandle): React.CSSProperties {
     position: 'absolute',
     width: size,
     height: size,
-    backgroundColor: '#fff',
-    border: '1px solid #0066ff',
+    backgroundColor: colors.background,
+    border: `1px solid ${colors.border}`,
     borderRadius: 2,
-    cursor: getHandleCursor(handle)
+    cursor: getHandleCursor(handle),
+    boxShadow: colors.shadow
   }
 
   switch (handle) {
@@ -127,20 +142,81 @@ function getHandleStyle(handle: ResizeHandle): React.CSSProperties {
  */
 function getNodeColor(node: CanvasNode): string {
   const colors: Record<string, string> = {
-    card: '#e3f2fd',
-    embed: '#f3e5f5',
-    mermaid: '#e8f5e9',
+    page: '#e3f2fd',
+    database: '#e8f5e9',
+    'external-reference': '#fce7f3',
+    media: '#ede9fe',
+    note: '#fff7ed',
+    frame: '#ecfdf5',
+    group: '#f5f5f5',
     shape: '#fff3e0',
     default: '#f5f5f5'
   }
-  return colors[node.type] ?? colors.default
+  return colors[getCanvasResolvedNodeKind(node)] ?? colors.default
 }
 
 /**
  * Get node title for display
  */
 function getNodeTitle(node: CanvasNode): string {
-  return (node.properties.title as string) ?? node.type ?? 'Untitled'
+  return node.alias ?? (node.properties.title as string) ?? node.type ?? 'Untitled'
+}
+
+function getNodeTypeLabel(node: CanvasNode): string {
+  switch (getCanvasResolvedNodeKind(node)) {
+    case 'page':
+      return 'Page'
+    case 'database':
+      return 'Database'
+    case 'note':
+      return 'Note'
+    case 'external-reference':
+      return 'Link preview'
+    case 'media':
+      return 'Media asset'
+    case 'frame':
+      return 'Frame'
+    case 'group':
+      return 'Group'
+    case 'shape':
+      return 'Shape'
+    default:
+      return 'Canvas object'
+  }
+}
+
+function getNodeAccessibleLabel(node: CanvasNode): string {
+  const segments = [`${getNodeTypeLabel(node)}: ${getNodeTitle(node)}`]
+
+  if (node.locked) {
+    segments.push('Locked')
+  }
+
+  return segments.join('. ')
+}
+
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  if (target.closest('[data-canvas-resize-handle]')) {
+    return true
+  }
+
+  if (target.closest('[data-canvas-interactive="true"]')) {
+    return true
+  }
+
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target.isContentEditable
+  )
+}
+
+function focusCanvasSurface(nodeElement: HTMLDivElement | null): void {
+  nodeElement?.closest<HTMLElement>('[data-canvas-surface="true"]')?.focus()
 }
 
 /**
@@ -148,9 +224,13 @@ function getNodeTitle(node: CanvasNode): string {
  */
 function NodeIcon({ type }: { type: string }) {
   const icons: Record<string, string> = {
-    card: '📄',
-    embed: '🔗',
-    mermaid: '📊',
+    page: '📄',
+    database: '🗃️',
+    'external-reference': '🔗',
+    media: '🖼️',
+    note: '📝',
+    frame: '🗂️',
+    group: '🧩',
     shape: '⬡',
     default: '📌'
   }
@@ -162,6 +242,7 @@ function NodeIcon({ type }: { type: string }) {
  */
 function DefaultNodeContent({ node }: { node: CanvasNode }) {
   const title = (node.properties.title as string) ?? node.type
+  const sourceId = node.sourceNodeId ?? node.linkedNodeId
 
   return (
     <div
@@ -183,9 +264,9 @@ function DefaultNodeContent({ node }: { node: CanvasNode }) {
       >
         {title}
       </div>
-      {node.linkedNodeId && (
+      {sourceId && (
         <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-          Linked: {node.linkedNodeId.slice(0, 8)}...
+          Source: {sourceId.slice(0, 8)}...
         </div>
       )}
     </div>
@@ -201,6 +282,8 @@ function DefaultNodeContent({ node }: { node: CanvasNode }) {
 export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   node,
   selected,
+  focused = false,
+  connectionTargeted = false,
   lod = 'full',
   remoteUsers,
   onSelect,
@@ -210,6 +293,9 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   onResizeStart,
   onResize,
   onResizeEnd,
+  onConnectStart,
+  onConnectDrag,
+  onConnectEnd,
   onDoubleClick,
   children
 }: CanvasNodeProps) {
@@ -217,6 +303,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   const isDragging = useRef(false)
   const dragStart = useRef<Point>({ x: 0, y: 0 })
   const mountedRef = useRef(true)
+  const theme = useCanvasThemeTokens()
 
   // Track mounted state for cleanup of window listeners
   useEffect(() => {
@@ -231,11 +318,40 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   // Determine border color based on presence
   const hasRemotePresence = remoteUsers && remoteUsers.length > 0
   const presenceColor = hasRemotePresence ? remoteUsers[0].color : undefined
+  const resolvedKind = getCanvasResolvedNodeKind(node)
+  const isPrimitiveShell =
+    resolvedKind === 'shape' || resolvedKind === 'group' || resolvedKind === 'frame'
+  const defaultBorder = `1px solid ${theme.panelBorder}`
+  const selectionBorder = '2px solid #3b82f6'
+  const connectionTargetBorder = '2px solid #60a5fa'
+  const remoteBorder = hasRemotePresence ? `2px solid ${presenceColor}` : defaultBorder
+  const neutralBorder = isPrimitiveShell ? '1px solid transparent' : defaultBorder
+  const activeBorder = selected ? selectionBorder : remoteBorder
+  const inactiveBorder = hasRemotePresence ? remoteBorder : neutralBorder
+  const panelShadow = theme.panelShadow
+  const focusRingShadow =
+    theme.mode === 'dark'
+      ? '0 0 0 3px rgba(96, 165, 250, 0.42)'
+      : '0 0 0 3px rgba(59, 130, 246, 0.24)'
+  const resizeHandleColors = {
+    background: theme.panelBackground,
+    border: '#3b82f6',
+    shadow:
+      theme.mode === 'dark'
+        ? '0 0 0 1px rgba(10, 10, 10, 0.75)'
+        : '0 1px 2px rgba(15, 23, 42, 0.18)'
+  }
+  const connectHandleColors = {
+    background: theme.mode === 'dark' ? 'rgba(15, 23, 42, 0.94)' : 'rgba(255, 255, 255, 0.96)',
+    border: theme.mode === 'dark' ? 'rgba(96, 165, 250, 0.8)' : 'rgba(59, 130, 246, 0.78)',
+    color: theme.mode === 'dark' ? 'rgba(191, 219, 254, 0.98)' : 'rgba(29, 78, 216, 0.92)'
+  }
 
   // Handle click for selection (used by all LOD levels)
   const handleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      focusCanvasSurface(nodeRef.current)
       onSelect(node.id, e.shiftKey || e.metaKey)
     },
     [node.id, onSelect]
@@ -250,10 +366,21 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       // Select node
       onSelect(node.id, e.shiftKey || e.metaKey)
 
+      if (isInteractiveTarget(e.target)) {
+        return
+      }
+
+      focusCanvasSurface(nodeRef.current)
+
+      if (node.locked) {
+        return
+      }
+
       // Start drag tracking
       isDragging.current = true
       dragStart.current = { x: e.clientX, y: e.clientY }
       onDragStart(node.id, { x: e.clientX, y: e.clientY })
+      const ownerDocument = nodeRef.current?.ownerDocument ?? document
 
       // Track mouse movement
       const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -268,31 +395,33 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
       const handleMouseUp = () => {
         isDragging.current = false
-        window.removeEventListener('mousemove', handleMouseMove)
-        window.removeEventListener('mouseup', handleMouseUp)
+        ownerDocument.removeEventListener('mousemove', handleMouseMove)
+        ownerDocument.removeEventListener('mouseup', handleMouseUp)
         // Only call callback if still mounted
         if (mountedRef.current) {
           onDragEnd(node.id)
         }
       }
 
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
+      ownerDocument.addEventListener('mousemove', handleMouseMove)
+      ownerDocument.addEventListener('mouseup', handleMouseUp)
     },
-    [node.id, onSelect, onDragStart, onDrag, onDragEnd]
+    [node.id, node.locked, onSelect, onDragStart, onDrag, onDragEnd]
   )
 
   // Handle resize
-  const handleResizeMouseDown = useCallback(
-    (handle: ResizeHandle, e: React.MouseEvent) => {
+  const handleResizePointerDown = useCallback(
+    (handle: ResizeHandle, e: React.PointerEvent<HTMLDivElement>) => {
       if (!onResizeStart || !onResize || !onResizeEnd) return
       e.stopPropagation()
       e.preventDefault()
 
+      const handleElement = e.currentTarget
       const start = { x: e.clientX, y: e.clientY }
       onResizeStart(node.id, handle, start)
+      handleElement.setPointerCapture?.(e.pointerId)
 
-      const handleMouseMove = (moveEvent: MouseEvent) => {
+      const handlePointerMove = (moveEvent: PointerEvent) => {
         if (!mountedRef.current) return
         const delta = {
           x: moveEvent.clientX - start.x,
@@ -301,25 +430,79 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         onResize(node.id, handle, delta)
       }
 
-      const handleMouseUp = () => {
-        window.removeEventListener('mousemove', handleMouseMove)
-        window.removeEventListener('mouseup', handleMouseUp)
+      const handlePointerEnd = () => {
+        handleElement.releasePointerCapture?.(e.pointerId)
+        handleElement.removeEventListener('pointermove', handlePointerMove)
+        handleElement.removeEventListener('pointerup', handlePointerEnd)
+        handleElement.removeEventListener('pointercancel', handlePointerEnd)
         // Only call callback if still mounted
         if (mountedRef.current) {
           onResizeEnd(node.id)
         }
       }
 
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
+      handleElement.addEventListener('pointermove', handlePointerMove)
+      handleElement.addEventListener('pointerup', handlePointerEnd)
+      handleElement.addEventListener('pointercancel', handlePointerEnd)
     },
     [node.id, onResizeStart, onResize, onResizeEnd]
+  )
+
+  const handleConnectMouseDown = useCallback(
+    (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!onConnectStart || !onConnectDrag || !onConnectEnd || node.locked) {
+        return
+      }
+
+      e.stopPropagation()
+      e.preventDefault()
+
+      focusCanvasSurface(nodeRef.current)
+      onSelect(node.id, false)
+
+      const handleElement = e.currentTarget
+      const startPoint = { x: e.clientX, y: e.clientY }
+      onConnectStart(node.id, startPoint, 'right')
+      const ownerDocument = handleElement.ownerDocument ?? document
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!mountedRef.current) {
+          return
+        }
+
+        onConnectDrag(node.id, {
+          x: moveEvent.clientX,
+          y: moveEvent.clientY
+        })
+      }
+
+      const handleMouseUp = (endEvent: MouseEvent) => {
+        ownerDocument.removeEventListener('mousemove', handleMouseMove)
+        ownerDocument.removeEventListener('mouseup', handleMouseUp)
+
+        if (mountedRef.current) {
+          onConnectEnd(node.id, {
+            x: endEvent.clientX,
+            y: endEvent.clientY
+          })
+        }
+      }
+
+      ownerDocument.addEventListener('mousemove', handleMouseMove)
+      ownerDocument.addEventListener('mouseup', handleMouseUp)
+    },
+    [node.id, node.locked, onConnectDrag, onConnectEnd, onConnectStart, onSelect]
   )
 
   // Handle double click
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+
+      if (isInteractiveTarget(e.target)) {
+        return
+      }
+
       onDoubleClick?.(node.id)
     },
     [node.id, onDoubleClick]
@@ -340,16 +523,20 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           borderRadius: 4,
           pointerEvents: 'auto',
           cursor: 'pointer',
-          border: selected
-            ? '2px solid #0066ff'
-            : hasRemotePresence
-              ? `2px solid ${presenceColor}`
-              : '1px solid #e0e0e0',
-          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined
+          border: selected ? selectionBorder : hasRemotePresence ? remoteBorder : defaultBorder,
+          boxShadow: selected
+            ? '0 0 0 2px rgba(59,130,246,0.2)'
+            : focused
+              ? focusRingShadow
+              : undefined
         }}
         onClick={handleClick}
         data-node-id={node.id}
+        data-selected={selected ? 'true' : 'false'}
+        data-focused={focused ? 'true' : 'false'}
+        data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="placeholder"
+        data-canvas-node-label={getNodeAccessibleLabel(node)}
       />
     )
   }
@@ -365,22 +552,27 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           top: position.y,
           width: position.width,
           height: position.height,
-          backgroundColor: '#fff',
-          border: selected
-            ? '2px solid #0066ff'
-            : hasRemotePresence
-              ? `2px solid ${presenceColor}`
-              : '1px solid #e0e0e0',
+          backgroundColor: theme.panelBackground,
+          color: theme.panelText,
+          border: selected ? selectionBorder : hasRemotePresence ? remoteBorder : defaultBorder,
           borderRadius: 4,
           padding: 4,
           overflow: 'hidden',
           pointerEvents: 'auto',
           cursor: 'pointer',
-          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined
+          boxShadow: selected
+            ? '0 0 0 2px rgba(59,130,246,0.2)'
+            : focused
+              ? `${focusRingShadow}, ${panelShadow}`
+              : panelShadow
         }}
         onClick={handleClick}
         data-node-id={node.id}
+        data-selected={selected ? 'true' : 'false'}
+        data-focused={focused ? 'true' : 'false'}
+        data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="minimal"
+        data-canvas-node-label={getNodeAccessibleLabel(node)}
       >
         <span
           style={{
@@ -408,27 +600,32 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
           top: position.y,
           width: position.width,
           height: position.height,
-          backgroundColor: '#fff',
-          border: selected
-            ? '2px solid #0066ff'
-            : hasRemotePresence
-              ? `2px solid ${presenceColor}`
-              : '1px solid #e0e0e0',
+          backgroundColor: theme.panelBackground,
+          color: theme.panelText,
+          border: selected ? selectionBorder : hasRemotePresence ? remoteBorder : defaultBorder,
           borderRadius: 6,
           padding: 8,
           overflow: 'hidden',
           pointerEvents: 'auto',
           cursor: 'pointer',
-          boxShadow: selected ? '0 0 0 2px rgba(0,102,255,0.2)' : undefined,
+          boxShadow: selected
+            ? '0 0 0 2px rgba(59,130,246,0.2)'
+            : focused
+              ? `${focusRingShadow}, ${panelShadow}`
+              : panelShadow,
           display: 'flex',
           alignItems: 'center',
           gap: 6
         }}
         onClick={handleClick}
         data-node-id={node.id}
+        data-selected={selected ? 'true' : 'false'}
+        data-focused={focused ? 'true' : 'false'}
+        data-node-locked={node.locked ? 'true' : 'false'}
         data-lod="compact"
+        data-canvas-node-label={getNodeAccessibleLabel(node)}
       >
-        <NodeIcon type={node.type} />
+        <NodeIcon type={resolvedKind} />
         <span
           style={{
             fontWeight: 500,
@@ -454,21 +651,27 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
     height: position.height,
     transform: position.rotation ? `rotate(${position.rotation}deg)` : undefined,
     zIndex: position.zIndex ?? 0,
-    backgroundColor: '#fff',
-    border: selected
-      ? '2px solid #0066ff'
-      : hasRemotePresence
-        ? `2px solid ${presenceColor}`
-        : '1px solid #e0e0e0',
+    backgroundColor: isPrimitiveShell ? 'transparent' : theme.panelBackground,
+    color: theme.panelText,
+    border: selected ? activeBorder : connectionTargeted ? connectionTargetBorder : inactiveBorder,
     borderRadius: 8,
     boxShadow: selected
-      ? '0 0 0 2px rgba(0,102,255,0.2)'
-      : hasRemotePresence
-        ? `0 0 0 2px ${presenceColor}33`
-        : '0 1px 3px rgba(0,0,0,0.1)',
-    cursor: 'move',
+      ? '0 0 0 2px rgba(59,130,246,0.2)'
+      : connectionTargeted
+        ? theme.mode === 'dark'
+          ? '0 0 0 3px rgba(96,165,250,0.24)'
+          : '0 0 0 3px rgba(59,130,246,0.18)'
+        : focused
+          ? `${focusRingShadow}, ${hasRemotePresence ? `0 0 0 2px ${presenceColor}33` : isPrimitiveShell ? 'none' : panelShadow}`
+          : hasRemotePresence
+            ? `0 0 0 2px ${presenceColor}33`
+            : isPrimitiveShell
+              ? 'none'
+              : panelShadow,
+    cursor: node.locked ? 'default' : 'move',
     userSelect: 'none',
-    overflow: 'visible'
+    overflow: 'visible',
+    opacity: node.locked ? 0.92 : 1
   }
 
   return (
@@ -480,7 +683,12 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       onDoubleClick={handleDoubleClick}
       data-node-id={node.id}
       data-node-type={node.type}
+      data-selected={selected ? 'true' : 'false'}
+      data-focused={focused ? 'true' : 'false'}
+      data-canvas-connect-target={connectionTargeted ? 'true' : 'false'}
+      data-node-locked={node.locked ? 'true' : 'false'}
       data-lod="full"
+      data-canvas-node-label={getNodeAccessibleLabel(node)}
     >
       {/* Content wrapper (clips overflow) */}
       <div style={{ overflow: 'hidden', width: '100%', height: '100%', borderRadius: 6 }}>
@@ -502,12 +710,17 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
             <div
               key={user.clientId}
               title={user.did.slice(0, 20) + '...'}
+              data-canvas-node-remote-user="true"
+              data-canvas-node-remote-client-id={user.clientId}
               style={{
                 width: 16,
                 height: 16,
                 borderRadius: '50%',
                 backgroundColor: user.color,
-                border: '2px solid #fff',
+                border:
+                  theme.mode === 'dark'
+                    ? '2px solid rgba(10, 10, 10, 0.92)'
+                    : '2px solid rgba(255, 255, 255, 0.96)',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                 display: 'flex',
                 alignItems: 'center',
@@ -528,11 +741,78 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         RESIZE_HANDLES.map((handle) => (
           <div
             key={handle}
-            style={getHandleStyle(handle)}
-            onMouseDown={(e) => handleResizeMouseDown(handle, e)}
+            style={getHandleStyle(handle, resizeHandleColors)}
+            onPointerDown={(e) => handleResizePointerDown(handle, e)}
+            role="button"
+            aria-label={`Resize ${getNodeTitle(node)} from ${handle}`}
+            title={`Resize ${getNodeTitle(node)} from ${handle}`}
+            data-canvas-interactive="true"
             data-handle={handle}
+            data-canvas-resize-handle={handle}
           />
         ))}
+
+      {selected && !node.locked && onConnectStart && onConnectDrag && onConnectEnd ? (
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            right: -30,
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            pointerEvents: 'none'
+          }}
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              width: 12,
+              height: 2,
+              borderRadius: 999,
+              background: connectHandleColors.border,
+              opacity: 0.7
+            }}
+          />
+          <div
+            role="button"
+            aria-label={`Connect ${getNodeTitle(node)}`}
+            title={`Drag to connect ${getNodeTitle(node)}`}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              border: `1px solid ${connectHandleColors.border}`,
+              background: connectHandleColors.background,
+              color: connectHandleColors.color,
+              boxShadow:
+                theme.mode === 'dark'
+                  ? '0 6px 18px rgba(2, 6, 23, 0.42)'
+                  : '0 8px 18px rgba(15, 23, 42, 0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'crosshair',
+              pointerEvents: 'auto'
+            }}
+            onMouseDown={handleConnectMouseDown}
+            data-canvas-interactive="true"
+            data-canvas-connect-handle="true"
+            data-canvas-connect-placement="right"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path
+                d="M3 6h6M7 4l2 2-2 2"
+                stroke="currentColor"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 })

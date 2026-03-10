@@ -10,6 +10,7 @@ export { DatabaseSchema, type Database } from './database'
 export { DatabaseRowSchema, type DatabaseRow } from './database-row'
 export { TaskSchema, type Task } from './task'
 export { ExternalReferenceSchema, type ExternalReference } from './external-reference'
+export { MediaAssetSchema, type MediaAsset } from './media-asset'
 export { CanvasSchema, type Canvas } from './canvas'
 export { CommentSchema, type Comment } from './comment'
 export { GrantSchema, type Grant } from './grant'
@@ -22,6 +23,7 @@ export {
   type RowAnchor,
   type ColumnAnchor,
   type CanvasPositionAnchor,
+  type CanvasObjectAnchorPlacement,
   type CanvasObjectAnchor,
   type NodeAnchor,
   type AnchorData,
@@ -77,6 +79,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task@1.0.0': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/ExternalReference@1.0.0': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
+  'xnet://xnet.fyi/MediaAsset@1.0.0': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
@@ -88,6 +91,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Task': () => import('./task').then((m) => m.TaskSchema),
   'xnet://xnet.fyi/ExternalReference': () =>
     import('./external-reference').then((m) => m.ExternalReferenceSchema),
+  'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema)

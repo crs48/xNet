@@ -235,7 +235,8 @@ export class WorkerBridge implements DataBridge {
       includeDeleted: options.includeDeleted,
       orderBy: options.orderBy as Record<string, 'asc' | 'desc'> | undefined,
       limit: options.limit,
-      offset: options.offset
+      offset: options.offset,
+      spatial: options.spatial
     }
   }
 

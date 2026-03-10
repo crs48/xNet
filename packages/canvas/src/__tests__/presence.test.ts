@@ -89,6 +89,25 @@ describe('CanvasPresenceManager', () => {
       expect(mgr.getLocalState()).toBeDefined()
       mgr.dispose()
     })
+
+    it('preserves existing awareness state when constructed without a new user', async () => {
+      awareness.setLocalState({
+        user: { name: 'Existing', color: '#10b981' },
+        selection: ['node-existing']
+      })
+
+      const mgr = createCanvasPresenceManager(awareness)
+      mgr.updateCursor({ x: 80, y: 120 })
+      await sleep(50)
+
+      expect(awareness.getLocalState()).toMatchObject({
+        user: { name: 'Existing', color: '#10b981' },
+        selection: ['node-existing'],
+        cursor: { x: 80, y: 120 }
+      })
+
+      mgr.dispose()
+    })
   })
 
   describe('cursor updates', () => {
@@ -159,9 +178,13 @@ describe('CanvasPresenceManager', () => {
     it('supports all activity types', async () => {
       const activities: CanvasPresence['activity'][] = [
         'idle',
+        'panning',
         'dragging',
+        'resizing',
         'drawing',
         'editing',
+        'commenting',
+        'peeking',
         'selecting'
       ]
 
@@ -170,6 +193,19 @@ describe('CanvasPresenceManager', () => {
         await sleep(50)
         expect(awareness.getLocalState()?.activity).toBe(activity)
       }
+    })
+  })
+
+  describe('editing node updates', () => {
+    it('tracks the object currently being edited', () => {
+      manager.updateEditingNodeId('node-7')
+      expect(awareness.getLocalState()?.editingNodeId).toBe('node-7')
+    })
+
+    it('clears the editing node when null is passed', () => {
+      manager.updateEditingNodeId('node-7')
+      manager.updateEditingNodeId(null)
+      expect(awareness.getLocalState()?.editingNodeId).toBeUndefined()
     })
   })
 

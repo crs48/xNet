@@ -235,9 +235,18 @@ describe('Announcer', () => {
   describe('announceNodeFocus', () => {
     it('announces node focus', () => {
       const announcer = new Announcer()
-      expect(() => {
-        announcer.announceNodeFocus({ type: 'card', properties: { title: 'My Card' } })
-      }).not.toThrow()
+      const requestAnimationFrameMock = vi
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation((callback: FrameRequestCallback): number => {
+          callback(0)
+          return 1
+        })
+
+      announcer.announceNodeFocus({ type: 'page', properties: { title: 'My Page' } })
+
+      expect(document.querySelector('[aria-live="polite"]')?.textContent).toBe('Page: My Page')
+
+      requestAnimationFrameMock.mockRestore()
       announcer.destroy()
     })
   })

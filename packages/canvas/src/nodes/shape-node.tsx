@@ -37,6 +37,7 @@ export interface ShapeNodeData {
     strokeWidth: number
     cornerRadius?: number
     label?: string
+    labelColor?: string
   }
 }
 
@@ -188,7 +189,7 @@ export const ShapeNodeComponent = memo(function ShapeNodeComponent({
   node,
   onUpdate: _onUpdate
 }: ShapeNodeProps) {
-  const { shapeType, fill, stroke, strokeWidth, cornerRadius, label } = node.properties
+  const { shapeType, fill, stroke, strokeWidth, cornerRadius, label, labelColor } = node.properties
   const { width, height } = node.position
 
   const shapePath = useMemo(() => {
@@ -202,7 +203,13 @@ export const ShapeNodeComponent = memo(function ShapeNodeComponent({
       </svg>
 
       {label && (
-        <div className="shape-label" style={styles.label}>
+        <div
+          className="shape-label"
+          style={{
+            ...styles.label,
+            color: labelColor ?? styles.label.color
+          }}
+        >
           <span>{label}</span>
         </div>
       )}

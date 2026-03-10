@@ -99,7 +99,7 @@ describe('SpatialIndex', () => {
           'node1',
           {
             id: 'node1',
-            type: 'card',
+            type: 'shape',
             position: { x: 0, y: 0, width: 100, height: 50, zIndex: 1 },
             properties: {}
           }
@@ -108,7 +108,7 @@ describe('SpatialIndex', () => {
           'node2',
           {
             id: 'node2',
-            type: 'card',
+            type: 'shape',
             position: { x: 50, y: 25, width: 100, height: 50, zIndex: 2 },
             properties: {}
           }

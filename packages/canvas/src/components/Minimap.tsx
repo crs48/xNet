@@ -7,9 +7,28 @@
 
 import type { CanvasNode, CanvasEdge } from '../types'
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
+import { getCanvasEdgeSourceObjectId, getCanvasEdgeTargetObjectId } from '../edges/bindings'
+import { getCanvasResolvedNodeKind, isFrameLikeCanvasNode } from '../scene/node-kind'
 import { Viewport } from '../spatial/index'
+import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+const MAX_DIRECT_MINIMAP_NODES = 1200
+const MINIMAP_BUCKET_SIZE_PX = 6
+
+type MinimapRenderNode = {
+  id: string
+  type: CanvasNode['type']
+  properties?: CanvasNode['properties']
+  position: {
+    x: number
+    y: number
+    width: number
+    height: number
+    zIndex?: number
+  }
+}
 
 export interface MinimapProps {
   /** All canvas nodes */
@@ -34,18 +53,24 @@ export interface MinimapProps {
 
 // ─── Color Helpers ────────────────────────────────────────────────────────────
 
-function getNodeMinimapColor(node: CanvasNode): string {
-  switch (node.type) {
-    case 'card':
-      return 'rgba(59, 130, 246, 0.7)' // Blue
+export function getNodeMinimapColor(
+  node: Pick<CanvasNode, 'type'> & { properties?: Record<string, unknown> }
+): string {
+  switch (getCanvasResolvedNodeKind(node)) {
+    case 'page':
+      return 'rgba(59, 130, 246, 0.7)'
+    case 'database':
+      return 'rgba(16, 185, 129, 0.7)'
+    case 'external-reference':
+      return 'rgba(236, 72, 153, 0.7)'
+    case 'media':
+      return 'rgba(139, 92, 246, 0.7)'
+    case 'note':
+      return 'rgba(245, 158, 11, 0.7)'
     case 'frame':
       return 'rgba(16, 185, 129, 0.5)' // Green (lighter for frames)
     case 'shape':
       return 'rgba(245, 158, 11, 0.7)' // Amber
-    case 'image':
-      return 'rgba(139, 92, 246, 0.7)' // Purple
-    case 'embed':
-      return 'rgba(236, 72, 153, 0.7)' // Pink
     case 'group':
       return 'rgba(107, 114, 128, 0.3)' // Gray (lighter for groups)
     default:
@@ -63,12 +88,14 @@ export function Minimap({
   height = 150,
   onViewportChange,
   className,
-  backgroundColor = 'rgba(249, 250, 251, 0.95)',
+  backgroundColor,
   showEdges = true
 }: MinimapProps) {
+  const theme = useCanvasThemeTokens()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDraggingRef = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const resolvedBackgroundColor = backgroundColor ?? theme.minimapBackground
 
   // Calculate bounds of all content
   const canvasBounds = useMemo(() => {
@@ -115,6 +142,78 @@ export function Minimap({
     }
   }, [canvasBounds, scale, width, height])
 
+  const { renderNodes, renderMode } = useMemo(() => {
+    if (nodes.length <= MAX_DIRECT_MINIMAP_NODES) {
+      return {
+        renderNodes: nodes as MinimapRenderNode[],
+        renderMode: 'full' as const
+      }
+    }
+
+    const buckets = new Map<
+      string,
+      {
+        id: string
+        minX: number
+        minY: number
+        maxX: number
+        maxY: number
+        typeCounts: Map<CanvasNode['type'], number>
+      }
+    >()
+
+    for (const node of nodes) {
+      const centerX = (node.position.x + node.position.width / 2) * scale + offset.x
+      const centerY = (node.position.y + node.position.height / 2) * scale + offset.y
+      const bucketX = Math.floor(centerX / MINIMAP_BUCKET_SIZE_PX)
+      const bucketY = Math.floor(centerY / MINIMAP_BUCKET_SIZE_PX)
+      const bucketKey = `${bucketX}:${bucketY}`
+      const bucket = buckets.get(bucketKey)
+
+      if (bucket) {
+        bucket.minX = Math.min(bucket.minX, node.position.x)
+        bucket.minY = Math.min(bucket.minY, node.position.y)
+        bucket.maxX = Math.max(bucket.maxX, node.position.x + node.position.width)
+        bucket.maxY = Math.max(bucket.maxY, node.position.y + node.position.height)
+        bucket.typeCounts.set(node.type, (bucket.typeCounts.get(node.type) ?? 0) + 1)
+      } else {
+        buckets.set(bucketKey, {
+          id: `bucket:${bucketKey}`,
+          minX: node.position.x,
+          minY: node.position.y,
+          maxX: node.position.x + node.position.width,
+          maxY: node.position.y + node.position.height,
+          typeCounts: new Map([[node.type, 1]])
+        })
+      }
+    }
+
+    const aggregatedNodes = Array.from(buckets.values()).map((bucket) => {
+      const dominantType =
+        Array.from(bucket.typeCounts.entries()).sort((left, right) => right[1] - left[1])[0]?.[0] ??
+        'group'
+
+      return {
+        id: bucket.id,
+        type: dominantType,
+        position: {
+          x: bucket.minX,
+          y: bucket.minY,
+          width: Math.max(bucket.maxX - bucket.minX, 40),
+          height: Math.max(bucket.maxY - bucket.minY, 30),
+          zIndex: 0
+        }
+      } satisfies MinimapRenderNode
+    })
+
+    return {
+      renderNodes: aggregatedNodes,
+      renderMode: 'aggregated' as const
+    }
+  }, [nodes, offset.x, offset.y, scale])
+
+  const shouldRenderEdges = showEdges && renderMode === 'full'
+
   // Render minimap
   useEffect(() => {
     const canvas = canvasRef.current
@@ -133,12 +232,12 @@ export function Minimap({
     ctx.scale(dpr, dpr)
 
     // Clear background
-    ctx.fillStyle = backgroundColor
+    ctx.fillStyle = resolvedBackgroundColor
     ctx.fillRect(0, 0, width, height)
 
     // Draw edges
-    if (showEdges && edges.length > 0) {
-      ctx.strokeStyle = 'rgba(156, 163, 175, 0.4)'
+    if (shouldRenderEdges && edges.length > 0) {
+      ctx.strokeStyle = theme.minimapEdge
       ctx.lineWidth = 1
       ctx.beginPath()
 
@@ -146,8 +245,10 @@ export function Minimap({
       const nodeMap = new Map(nodes.map((n) => [n.id, n]))
 
       for (const edge of edges) {
-        const source = nodeMap.get(edge.sourceId)
-        const target = nodeMap.get(edge.targetId)
+        const sourceId = getCanvasEdgeSourceObjectId(edge)
+        const targetId = getCanvasEdgeTargetObjectId(edge)
+        const source = sourceId ? nodeMap.get(sourceId) : undefined
+        const target = targetId ? nodeMap.get(targetId) : undefined
         if (!source || !target) continue
 
         const sx = (source.position.x + source.position.width / 2) * scale + offset.x
@@ -162,9 +263,11 @@ export function Minimap({
     }
 
     // Draw nodes (frames/groups first, then regular nodes on top)
-    const sortedNodes = [...nodes].sort((a, b) => {
-      const aIsContainer = a.type === 'frame' || a.type === 'group'
-      const bIsContainer = b.type === 'frame' || b.type === 'group'
+    const sortedNodes = [...renderNodes].sort((a, b) => {
+      const aKind = getCanvasResolvedNodeKind(a)
+      const bKind = getCanvasResolvedNodeKind(b)
+      const aIsContainer = aKind === 'frame' || aKind === 'group'
+      const bIsContainer = bKind === 'frame' || bKind === 'group'
       if (aIsContainer && !bIsContainer) return -1
       if (!aIsContainer && bIsContainer) return 1
       return (a.position.zIndex ?? 0) - (b.position.zIndex ?? 0)
@@ -179,7 +282,7 @@ export function Minimap({
       ctx.fillStyle = getNodeMinimapColor(node)
 
       // Frames get a border instead of fill
-      if (node.type === 'frame') {
+      if (isFrameLikeCanvasNode(node)) {
         ctx.strokeStyle = getNodeMinimapColor(node)
         ctx.lineWidth = 1
         ctx.strokeRect(x, y, w, h)
@@ -196,29 +299,34 @@ export function Minimap({
     const vh = visibleRect.height * scale
 
     // Viewport fill
-    ctx.fillStyle = 'rgba(59, 130, 246, 0.1)'
+    ctx.fillStyle = theme.minimapViewportFill
     ctx.fillRect(vx, vy, vw, vh)
 
     // Viewport border
-    ctx.strokeStyle = 'rgba(59, 130, 246, 0.8)'
+    ctx.strokeStyle = theme.minimapViewportStroke
     ctx.lineWidth = 2
     ctx.strokeRect(vx, vy, vw, vh)
 
     // Minimap border
-    ctx.strokeStyle = 'rgba(209, 213, 219, 1)'
+    ctx.strokeStyle = theme.minimapBorder
     ctx.lineWidth = 1
     ctx.strokeRect(0.5, 0.5, width - 1, height - 1)
   }, [
-    nodes,
     edges,
+    nodes,
     viewport,
     canvasBounds,
     scale,
     offset,
+    renderNodes,
     width,
     height,
-    backgroundColor,
-    showEdges
+    resolvedBackgroundColor,
+    theme.minimapBorder,
+    theme.minimapEdge,
+    theme.minimapViewportFill,
+    theme.minimapViewportStroke,
+    shouldRenderEdges
   ])
 
   // Convert minimap coordinates to canvas coordinates
@@ -290,10 +398,18 @@ export function Minimap({
         right: 16,
         borderRadius: 8,
         overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+        boxShadow: theme.panelShadow,
         cursor: 'crosshair',
         userSelect: 'none'
       }}
+      data-canvas-minimap="true"
+      data-canvas-theme={theme.mode}
+      data-canvas-minimap-node-count={nodes.length}
+      data-canvas-minimap-rendered-node-count={renderNodes.length}
+      data-canvas-minimap-edge-count={edges.length}
+      data-canvas-minimap-show-edges={showEdges ? 'true' : 'false'}
+      data-canvas-minimap-render-mode={renderMode}
+      data-canvas-minimap-edge-mode={shouldRenderEdges ? 'full' : 'hidden'}
     >
       <canvas
         ref={canvasRef}
@@ -303,6 +419,7 @@ export function Minimap({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        data-canvas-minimap-canvas="true"
       />
     </div>
   )
@@ -312,10 +429,10 @@ export function Minimap({
 
 function MapIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="2" width="12" height="12" rx="1" stroke="#6b7280" strokeWidth="1.5" />
-      <rect x="4" y="4" width="4" height="3" fill="#3b82f6" />
-      <rect x="9" y="8" width="3" height="2" fill="#3b82f6" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="4" y="4" width="4" height="3" fill="currentColor" opacity="0.6" />
+      <rect x="9" y="8" width="3" height="2" fill="currentColor" opacity="0.6" />
     </svg>
   )
 }
@@ -328,6 +445,7 @@ export interface CollapsibleMinimapProps extends MinimapProps {
 }
 
 export function CollapsibleMinimap({ defaultExpanded = true, ...props }: CollapsibleMinimapProps) {
+  const theme = useCanvasThemeTokens()
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
   return (
@@ -338,6 +456,8 @@ export function CollapsibleMinimap({ defaultExpanded = true, ...props }: Collaps
         bottom: 16,
         right: 16
       }}
+      data-canvas-minimap-shell="true"
+      data-canvas-minimap-expanded={isExpanded ? 'true' : 'false'}
     >
       {isExpanded ? (
         <div style={{ position: 'relative' }}>
@@ -355,18 +475,19 @@ export function CollapsibleMinimap({ defaultExpanded = true, ...props }: Collaps
               width: 20,
               height: 20,
               border: 'none',
-              background: 'rgba(255,255,255,0.9)',
+              background: theme.minimapOverlayBackground,
               borderRadius: 4,
               cursor: 'pointer',
               fontSize: 14,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#6b7280',
+              color: theme.panelMutedText,
               zIndex: 1
             }}
             title="Hide minimap"
             aria-label="Hide minimap"
+            data-canvas-minimap-toggle="hide"
           >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
               <path d="M2 5.5h8v1H2z" />
@@ -379,17 +500,20 @@ export function CollapsibleMinimap({ defaultExpanded = true, ...props }: Collaps
           style={{
             width: 32,
             height: 32,
-            border: '1px solid #e5e7eb',
-            background: 'white',
+            border: `1px solid ${theme.panelBorder}`,
+            background: theme.panelBackground,
             borderRadius: 8,
             cursor: 'pointer',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            boxShadow: theme.panelShadow,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            color: theme.panelMutedText,
+            backdropFilter: 'blur(16px)'
           }}
           title="Show minimap"
           aria-label="Show minimap"
+          data-canvas-minimap-toggle="show"
         >
           <MapIcon />
         </button>

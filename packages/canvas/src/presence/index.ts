@@ -9,6 +9,7 @@ export {
   createCanvasPresenceManager,
   USER_COLORS,
   getUserColor,
+  type CanvasActivity,
   type CanvasPresence,
   type AwarenessLike,
   type PresenceChangeCallback

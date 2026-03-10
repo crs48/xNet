@@ -10,6 +10,17 @@
 /**
  * User presence state for canvas collaboration.
  */
+export type CanvasActivity =
+  | 'idle'
+  | 'panning'
+  | 'dragging'
+  | 'resizing'
+  | 'drawing'
+  | 'editing'
+  | 'commenting'
+  | 'peeking'
+  | 'selecting'
+
 export interface CanvasPresence {
   /** Cursor position in canvas coordinates (null if outside canvas) */
   cursor?: { x: number; y: number }
@@ -18,7 +29,7 @@ export interface CanvasPresence {
   /** Current viewport state */
   viewport?: { x: number; y: number; zoom: number }
   /** User's current activity */
-  activity?: 'idle' | 'dragging' | 'drawing' | 'editing' | 'selecting'
+  activity?: CanvasActivity
   /** User information */
   user?: {
     name: string
@@ -79,17 +90,22 @@ function throttle<T extends (...args: unknown[]) => void>(fn: T, delay: number):
  */
 export class CanvasPresenceManager {
   private awareness: AwarenessLike
-  private localState: CanvasPresence = {}
+  private localState: CanvasPresence
   private pendingState: Partial<CanvasPresence> = {}
   private throttledBroadcast: () => void
   private disposed = false
 
   constructor(awareness: AwarenessLike, user?: CanvasPresence['user']) {
     this.awareness = awareness
+    this.localState = { ...(awareness.getLocalState() ?? {}) }
 
     // Set initial user info
     if (user) {
-      this.localState = { user, lastUpdated: Date.now() }
+      this.localState = {
+        ...this.localState,
+        user,
+        lastUpdated: Date.now()
+      }
       this.awareness.setLocalState(this.localState)
     }
 
@@ -137,6 +153,19 @@ export class CanvasPresenceManager {
     if (this.disposed) return
     this.pendingState.activity = activity
     this.throttledBroadcast()
+  }
+
+  /**
+   * Update the object currently being edited on the canvas.
+   */
+  updateEditingNodeId(nodeId: string | null): void {
+    if (this.disposed) return
+    this.localState = {
+      ...this.localState,
+      editingNodeId: nodeId ?? undefined,
+      lastUpdated: Date.now()
+    }
+    this.awareness.setLocalState(this.localState)
   }
 
   /**

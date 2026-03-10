@@ -89,8 +89,16 @@ function createYDocRegistry(
  * Floating Action Button for toggling DevTools.
  * Draggable to reposition anywhere on screen.
  */
-function DevToolsFab({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) {
-  const [pos, setPos] = useState({ x: 16, y: 16 }) // bottom-right offset
+function DevToolsFab({
+  isOpen,
+  onToggle,
+  initialOffset = { x: 16, y: 16 }
+}: {
+  isOpen: boolean
+  onToggle: () => void
+  initialOffset?: { x: number; y: number }
+}) {
+  const [pos, setPos] = useState(initialOffset) // bottom-right offset
   const dragging = useRef(false)
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 })
   const didDrag = useRef(false)
@@ -197,6 +205,26 @@ export interface XNetDevToolsProviderProps {
   consentManager?: any
   /** Optional storage durability status supplied by the host app */
   storageDurability?: StorageDurabilityInfo | null
+  /** Floating action button offset from the bottom-right corner */
+  fabInitialOffset?: { x: number; y: number }
+}
+
+declare global {
+  interface Window {
+    __xnetDevToolsDiagnostics?: {
+      getActiveNodeId: () => string | null
+      getActiveQueries: () => Array<{
+        id: string
+        type: string
+        schemaId: string
+        mode: string
+        descriptorKey?: string
+        nodeId?: string
+        updateCount: number
+        resultCount: number
+      }>
+    } | null
+  }
 }
 
 const STORAGE_KEY_OPEN = 'xnet:devtools:open'
@@ -252,7 +280,8 @@ export function XNetDevToolsProvider({
   maxEvents = DEFAULTS.MAX_EVENTS,
   telemetryCollector,
   consentManager,
-  storageDurability = null
+  storageDurability = null,
+  fabInitialOffset = { x: 16, y: 16 }
 }: XNetDevToolsProviderProps) {
   const { runtimeStatus, syncManager } = useXNet()
   const [isOpen, setIsOpenState] = useState(() => loadStoredOpen(defaultOpen))
@@ -369,6 +398,30 @@ export function XNetDevToolsProvider({
     }
   }, [])
 
+  useEffect(() => {
+    const diagnostics = {
+      getActiveNodeId: () => activeNodeId,
+      getActiveQueries: () =>
+        queryTrackerRef.current.getActive().map((query) => ({
+          id: query.id,
+          type: query.type,
+          schemaId: query.schemaId,
+          mode: query.mode,
+          descriptorKey: query.descriptorKey,
+          nodeId: query.nodeId,
+          updateCount: query.updateCount,
+          resultCount: query.resultCount
+        }))
+    }
+
+    window.__xnetDevToolsDiagnostics = diagnostics
+    return () => {
+      if (window.__xnetDevToolsDiagnostics === diagnostics) {
+        window.__xnetDevToolsDiagnostics = null
+      }
+    }
+  }, [activeNodeId])
+
   // Keyboard shortcut: Ctrl/Cmd + Shift + D
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -465,7 +518,7 @@ export function XNetDevToolsProvider({
             {children}
           </div>
           {isOpen && <DevToolsPanel />}
-          <DevToolsFab isOpen={isOpen} onToggle={toggle} />
+          <DevToolsFab isOpen={isOpen} onToggle={toggle} initialOffset={fabInitialOffset} />
         </div>
       </InstrumentationContext.Provider>
     </DevToolsContext.Provider>

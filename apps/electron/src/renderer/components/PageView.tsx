@@ -716,7 +716,11 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div
+      className="flex-1 flex flex-col overflow-hidden"
+      data-page-view="true"
+      data-page-view-chrome={minimalChrome ? 'minimal' : 'default'}
+    >
       <DocumentHeader
         docId={docId}
         docType="page"

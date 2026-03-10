@@ -4,8 +4,9 @@
  * Renders connections between nodes as SVG paths.
  */
 
-import type { CanvasEdge, CanvasNode, Point, EdgeAnchor } from '../types'
+import type { CanvasEdge, CanvasNode, Point } from '../types'
 import React, { memo, useMemo } from 'react'
+import { resolveCanvasAnchorPoint } from './bindings'
 
 export interface CanvasEdgeProps {
   edge: CanvasEdge
@@ -14,44 +15,6 @@ export interface CanvasEdgeProps {
   selected: boolean
   onSelect?: (id: string) => void
   onClick?: (id: string) => void
-}
-
-/**
- * Get anchor point on a node
- */
-function getAnchorPoint(node: CanvasNode, anchor: EdgeAnchor, targetPoint?: Point): Point {
-  const { x, y, width, height } = node.position
-  const cx = x + width / 2
-  const cy = y + height / 2
-
-  switch (anchor) {
-    case 'top':
-      return { x: cx, y }
-    case 'right':
-      return { x: x + width, y: cy }
-    case 'bottom':
-      return { x: cx, y: y + height }
-    case 'left':
-      return { x, y: cy }
-    case 'center':
-      return { x: cx, y: cy }
-    case 'auto':
-    default: {
-      // Find the best anchor based on target position
-      if (!targetPoint) return { x: cx, y: cy }
-
-      const dx = targetPoint.x - cx
-      const dy = targetPoint.y - cy
-
-      if (Math.abs(dx) > Math.abs(dy)) {
-        // Horizontal connection
-        return dx > 0 ? { x: x + width, y: cy } : { x, y: cy }
-      } else {
-        // Vertical connection
-        return dy > 0 ? { x: cx, y: y + height } : { x: cx, y }
-      }
-    }
-  }
 }
 
 /**
@@ -142,14 +105,22 @@ export const CanvasEdgeComponent = memo(function CanvasEdgeComponent({
       y: sourceNode.position.y + sourceNode.position.height / 2
     }
 
-    const start = getAnchorPoint(sourceNode, edge.sourceAnchor ?? 'auto', targetCenter)
-    const end = getAnchorPoint(targetNode, edge.targetAnchor ?? 'auto', sourceCenter)
+    const start = resolveCanvasAnchorPoint(
+      sourceNode.position,
+      edge.source ?? { placement: edge.sourceAnchor },
+      targetCenter
+    )
+    const end = resolveCanvasAnchorPoint(
+      targetNode.position,
+      edge.target ?? { placement: edge.targetAnchor },
+      sourceCenter
+    )
 
     const curved = edge.style?.curved !== false
     const pathD = curved ? generatePath(start, end, true) : generateOrthogonalPath(start, end)
 
     return { startPoint: start, endPoint: end, path: pathD }
-  }, [sourceNode, targetNode, edge.sourceAnchor, edge.targetAnchor, edge.style?.curved])
+  }, [sourceNode, targetNode, edge.source, edge.target, edge.style?.curved])
 
   // Style
   const strokeColor = selected ? '#0066ff' : (edge.style?.stroke ?? '#999')

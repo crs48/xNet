@@ -145,6 +145,33 @@ describe('EdgeRenderer', () => {
 
       renderer.destroy()
     })
+
+    it('renders bound endpoints even when legacy mirror ids are absent', () => {
+      if (!isCanvas2DAvailable()) return
+
+      const renderer = new EdgeRenderer(container)
+      renderer.resize()
+
+      const edges: CanvasEdge[] = [
+        {
+          id: 'e1',
+          sourceId: '' as unknown as string,
+          targetId: '' as unknown as string,
+          source: { objectId: 'n1', placement: 'bottom' },
+          target: { objectId: 'n2', placement: 'top' }
+        }
+      ]
+
+      const positions = new Map<string, Rect>([
+        ['n1', { x: 0, y: 0, width: 100, height: 50 }],
+        ['n2', { x: 200, y: 120, width: 100, height: 50 }]
+      ])
+
+      expect(() => renderer.render(edges, positions, createTestViewport())).not.toThrow()
+      expect(renderer.getCacheSize()).toBe(1)
+
+      renderer.destroy()
+    })
   })
 
   describe('caching', () => {
