@@ -20,17 +20,9 @@ import {
   encodeAnchor,
   type CanvasObjectAnchor
 } from '@xnetjs/data'
-import { useBlobService } from '@xnetjs/editor/react'
+import { CanvasExternalReferenceCard, useBlobService } from '@xnetjs/editor/react'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
-import {
-  FileImage,
-  FileText,
-  Link2,
-  Maximize2,
-  MessageSquare,
-  StickyNote,
-  Table2
-} from 'lucide-react'
+import { FileImage, FileText, Maximize2, MessageSquare, StickyNote, Table2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -71,30 +63,15 @@ function getNodeCard(node: CanvasNode, themeMode: 'light' | 'dark'): JSX.Element
 
   if (node.type === 'external-reference') {
     return (
-      <div
-        className="flex h-full flex-col justify-between rounded-[22px] border border-border/70 bg-background/95 p-4 shadow-lg shadow-black/5"
-        data-canvas-node-card="true"
-        data-canvas-card-kind="external-reference"
-        data-canvas-theme={themeMode}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <Link2 size={12} />
-            Link preview
-          </span>
-          {status ? (
-            <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-              {status}
-            </span>
-          ) : null}
-        </div>
-        <div className="space-y-2">
-          <div className="text-lg font-semibold leading-tight text-foreground">{title}</div>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {typeof node.properties.url === 'string' ? node.properties.url : 'Dropped URL'}
-          </p>
-        </div>
-      </div>
+      <CanvasExternalReferenceCard
+        title={title}
+        url={typeof node.properties.url === 'string' ? node.properties.url : 'Dropped URL'}
+        provider={typeof node.properties.provider === 'string' ? node.properties.provider : null}
+        embedUrl={typeof node.properties.embedUrl === 'string' ? node.properties.embedUrl : null}
+        subtitle={typeof node.properties.subtitle === 'string' ? node.properties.subtitle : null}
+        status={status}
+        themeMode={themeMode}
+      />
     )
   }
 

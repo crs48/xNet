@@ -1361,6 +1361,62 @@ test.describe('Electron canvas shell', () => {
     })
   })
 
+  test('renders embeddable external references directly on the Electron canvas', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    const embeddableDrops = [
+      {
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        provider: 'youtube',
+        frameSrc: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        clientX: 320,
+        clientY: 220
+      },
+      {
+        url: 'https://www.figma.com/file/abc123def/storybook-rich-editor-spec',
+        provider: 'figma',
+        frameSrc:
+          'https://www.figma.com/embed?embed_host=xnet&url=https://www.figma.com/file/abc123def',
+        clientX: 620,
+        clientY: 320
+      }
+    ] as const
+
+    for (const drop of embeddableDrops) {
+      const urlTransfer = await page.evaluateHandle((value: string) => {
+        const dataTransfer = new DataTransfer()
+        dataTransfer.setData('text/plain', value)
+        dataTransfer.setData('text/uri-list', value)
+        return dataTransfer
+      }, drop.url)
+
+      await surface.dispatchEvent('drop', {
+        dataTransfer: urlTransfer,
+        clientX: drop.clientX,
+        clientY: drop.clientY
+      })
+
+      const embed = page.locator(
+        `[data-canvas-embed-node="true"][data-canvas-embed-provider="${drop.provider}"]`
+      )
+      await expect(embed).toHaveCount(1, { timeout: 30_000 })
+      await expect(embed.locator('iframe[data-canvas-embed-iframe="true"]')).toHaveAttribute(
+        'src',
+        drop.frameSrc,
+        { timeout: 30_000 }
+      )
+    }
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-embeds.png`,
+      fullPage: true
+    })
+  })
+
   test('creates native shapes and frames and can frame selections in Electron', async () => {
     test.skip(!electronPage, 'Electron page did not initialize')
     const page = electronPage!

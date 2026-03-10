@@ -817,6 +817,74 @@ test.describe('Web canvas ingestion', () => {
     })
   })
 
+  test('renders embeddable external references directly on the web canvas', async ({ page }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    const embeddableDrops = [
+      {
+        url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        provider: 'youtube',
+        frameSrc: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+        clientX: 280,
+        clientY: 220
+      },
+      {
+        url: 'https://x.com/storybookjs/status/1606321052308658177',
+        provider: 'twitter',
+        frameSrc: 'https://platform.twitter.com/embed/Tweet.html?id=1606321052308658177',
+        clientX: 520,
+        clientY: 300
+      },
+      {
+        url: 'https://www.figma.com/file/abc123def/storybook-rich-editor-spec',
+        provider: 'figma',
+        frameSrc:
+          'https://www.figma.com/embed?embed_host=xnet&url=https://www.figma.com/file/abc123def',
+        clientX: 760,
+        clientY: 380
+      }
+    ] as const
+
+    for (const drop of embeddableDrops) {
+      const urlTransfer = await page.evaluateHandle((value: string) => {
+        const dataTransfer = new DataTransfer()
+        dataTransfer.setData('text/plain', value)
+        dataTransfer.setData('text/uri-list', value)
+        return dataTransfer
+      }, drop.url)
+
+      await surface.dispatchEvent('drop', {
+        dataTransfer: urlTransfer,
+        clientX: drop.clientX,
+        clientY: drop.clientY
+      })
+
+      const embed = page.locator(
+        `[data-canvas-embed-node="true"][data-canvas-embed-provider="${drop.provider}"]`
+      )
+      await expect(embed).toHaveCount(1, { timeout: 30_000 })
+      await expect(embed.locator('iframe[data-canvas-embed-iframe="true"]')).toHaveAttribute(
+        'src',
+        drop.frameSrc,
+        { timeout: 30_000 }
+      )
+    }
+
+    await expect(page.locator('.canvas-node[data-node-type="external-reference"]')).toHaveCount(3, {
+      timeout: 30_000
+    })
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-embeds.png',
+      fullPage: true
+    })
+  })
+
   test('creates native rectangle and frame objects from canvas shortcuts on the web', async ({
     page
   }) => {

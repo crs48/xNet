@@ -20,6 +20,10 @@
  */
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
 export {
+  CanvasExternalReferenceCard,
+  type CanvasExternalReferenceCardProps
+} from './components/CanvasExternalReferenceCard'
+export {
   FloatingToolbar,
   type FloatingToolbarProps,
   type ToolbarMode,

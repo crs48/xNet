@@ -9,7 +9,7 @@ import type {
   CanvasViewportSnapshot
 } from '../ingestion'
 import type { CanvasNode, Point } from '../types'
-import type { BlobService } from '@xnetjs/data'
+import type { BlobService, ExternalReference } from '@xnetjs/data'
 import type * as Y from 'yjs'
 import { ExternalReferenceSchema, MediaAssetSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
@@ -121,6 +121,28 @@ function toExternalReferenceCreateInput(descriptor: CanvasExternalReferenceDescr
   }
 }
 
+function toStoredExternalReferenceProperties(
+  reference: ExternalReference
+): Record<string, unknown> {
+  const normalizedUrl = typeof reference.url === 'string' ? reference.url : ''
+  const described = normalizedUrl ? describeExternalReference(normalizedUrl) : null
+
+  return {
+    title: reference.title,
+    url: normalizedUrl,
+    provider: reference.provider || described?.provider || 'generic',
+    kind: reference.kind || described?.kind || 'link',
+    subtitle: typeof reference.subtitle === 'string' ? reference.subtitle : described?.subtitle,
+    icon: typeof reference.icon === 'string' ? reference.icon : described?.icon,
+    embedUrl: typeof reference.embedUrl === 'string' ? reference.embedUrl : described?.embedUrl,
+    metadata:
+      typeof reference.metadata === 'string'
+        ? reference.metadata
+        : JSON.stringify(described?.metadata ?? {}),
+    status: 'ready'
+  }
+}
+
 function updateCanvasNode(
   doc: Y.Doc | null,
   nodeId: string,
@@ -167,6 +189,10 @@ export function useCanvasObjectIngestion({
       )
 
     return new Map(entries)
+  }, [externalReferences])
+
+  const externalReferenceById = useMemo(() => {
+    return new Map(externalReferences.map((reference) => [reference.id, reference] as const))
   }, [externalReferences])
 
   const placeSourceObject = useCallback(
@@ -402,7 +428,16 @@ export function useCanvasObjectIngestion({
           sourceSchemaId: payload.data.schemaId,
           title: payload.data.title,
           canvasPoint: options.canvasPoint,
-          spreadIndex
+          spreadIndex,
+          properties:
+            objectKind === 'external-reference'
+              ? (() => {
+                  const externalReference = externalReferenceById.get(payload.data.nodeId)
+                  return externalReference
+                    ? toStoredExternalReferenceProperties(externalReference)
+                    : undefined
+                })()
+              : undefined
         })
       }
 
@@ -421,7 +456,7 @@ export function useCanvasObjectIngestion({
 
       return await ingestUrlPayload(descriptor.normalizedUrl, options.canvasPoint, spreadIndex)
     },
-    [ingestFilePayload, ingestUrlPayload, placeSourceObject]
+    [externalReferenceById, ingestFilePayload, ingestUrlPayload, placeSourceObject]
   )
 
   const ingestDataTransfer = useCallback(

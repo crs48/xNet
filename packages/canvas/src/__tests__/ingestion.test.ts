@@ -28,6 +28,29 @@ describe('canvas ingestion utilities', () => {
       title: 'openai#123'
     })
 
+    expect(describeExternalReference('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toMatchObject({
+      provider: 'youtube',
+      kind: 'video',
+      embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+    })
+
+    expect(
+      describeExternalReference('https://x.com/storybookjs/status/1606321052308658177')
+    ).toMatchObject({
+      provider: 'twitter',
+      kind: 'social',
+      embedUrl: 'https://platform.twitter.com/embed/Tweet.html?id=1606321052308658177'
+    })
+
+    expect(
+      describeExternalReference('https://www.figma.com/file/abc123def/storybook-rich-editor-spec')
+    ).toMatchObject({
+      provider: 'figma',
+      kind: 'design',
+      embedUrl:
+        'https://www.figma.com/embed?embed_host=xnet&url=https://www.figma.com/file/abc123def'
+    })
+
     expect(describeExternalReference('https://www.example.com/some/path')).toMatchObject({
       provider: 'generic',
       kind: 'link',

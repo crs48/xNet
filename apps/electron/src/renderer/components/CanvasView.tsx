@@ -30,7 +30,7 @@ import {
   encodeAnchor,
   type CanvasObjectAnchor
 } from '@xnetjs/data'
-import { useBlobService } from '@xnetjs/editor/react'
+import { CanvasExternalReferenceCard, useBlobService } from '@xnetjs/editor/react'
 import { useComments, useDatabaseDoc, useIdentity, useNode, useUndo } from '@xnetjs/react'
 import { useUndoScope } from '@xnetjs/react/internal'
 import {
@@ -284,6 +284,21 @@ function renderNodeCard(
     sourceId && (displayType === 'page' || displayType === 'database' || displayType === 'note')
   )
   const status = typeof node.properties.status === 'string' ? node.properties.status : null
+
+  if (displayType === 'external-reference') {
+    return (
+      <CanvasExternalReferenceCard
+        title={linkedTitle}
+        url={typeof node.properties.url === 'string' ? node.properties.url : 'Dropped URL'}
+        provider={typeof node.properties.provider === 'string' ? node.properties.provider : null}
+        embedUrl={typeof node.properties.embedUrl === 'string' ? node.properties.embedUrl : null}
+        subtitle={typeof node.properties.subtitle === 'string' ? node.properties.subtitle : null}
+        status={status}
+        themeMode={themeMode}
+      />
+    )
+  }
+
   const summary =
     displayType === 'database'
       ? 'Open a focused database surface from the canvas.'
@@ -291,13 +306,9 @@ function renderNodeCard(
         ? 'Open a focused writing surface from the canvas.'
         : displayType === 'note'
           ? 'A lightweight note pinned directly to the workspace.'
-          : displayType === 'external-reference'
-            ? typeof node.properties.url === 'string'
-              ? node.properties.url
-              : 'Dropped link preview'
-            : typeof node.properties.mimeType === 'string'
-              ? `${String(node.properties.kind ?? 'file')} · ${node.properties.mimeType}`
-              : 'Dropped media or file'
+          : typeof node.properties.mimeType === 'string'
+            ? `${String(node.properties.kind ?? 'file')} · ${node.properties.mimeType}`
+            : 'Dropped media or file'
 
   return (
     <div
@@ -325,11 +336,6 @@ function renderNodeCard(
       <div className="space-y-2">
         <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
         <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
-        {displayType === 'external-reference' && typeof node.properties.subtitle === 'string' ? (
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-            {node.properties.subtitle}
-          </p>
-        ) : null}
       </div>
     </div>
   )
