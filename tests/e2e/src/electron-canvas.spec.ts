@@ -327,6 +327,10 @@ async function logShellDebugState(page: Page, label: string): Promise<void> {
   logStep(`${label}: ${JSON.stringify(state)}`)
 }
 
+async function getContentEditableCount(page: Page): Promise<number> {
+  return page.evaluate(() => document.querySelectorAll('[contenteditable="true"]').length)
+}
+
 test.describe('Electron canvas shell', () => {
   test.describe.configure({ mode: 'serial' })
   test.setTimeout(240_000)
@@ -428,6 +432,64 @@ test.describe('Electron canvas shell', () => {
 
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-shell.png`,
+      fullPage: true
+    })
+  })
+
+  test('mounts a single inline page editor only for the active canvas object', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const firstPageNode = page.locator('.canvas-node[data-node-type="page"]').first()
+    await expect(firstPageNode).toBeVisible({ timeout: 30_000 })
+
+    await firstPageNode.click({
+      force: true,
+      position: { x: 40, y: 80 }
+    })
+    const pageSurface = page.locator('[data-canvas-page-surface="true"]').first()
+    await expect(pageSurface).toBeVisible({ timeout: 30_000 })
+    await expect
+      .poll(async () => getContentEditableCount(page), {
+        timeout: 15_000
+      })
+      .toBe(1)
+
+    const titleInput = page.locator('[data-canvas-page-title="true"]').first()
+    await titleInput.fill('Canvas draft')
+
+    const editor = page.locator('[data-canvas-page-editor="true"] [contenteditable="true"]')
+    await editor.click()
+    await page.keyboard.type('Canvas body text')
+    await expect(pageSurface).toContainText('Canvas body text')
+
+    await page.locator('[data-canvas-surface="true"]').click({
+      position: { x: 24, y: 240 },
+      force: true
+    })
+    await expect
+      .poll(async () => getContentEditableCount(page), {
+        timeout: 15_000
+      })
+      .toBe(0)
+    await expect(page.getByText('Canvas draft')).toBeVisible({ timeout: 30_000 })
+
+    await page
+      .locator('.canvas-node[data-node-type="page"]')
+      .first()
+      .click({
+        force: true,
+        position: { x: 40, y: 80 }
+      })
+    await expect(pageSurface).toContainText('Canvas body text', { timeout: 30_000 })
+    await expect
+      .poll(async () => getContentEditableCount(page), {
+        timeout: 15_000
+      })
+      .toBe(1)
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-inline-page.png`,
       fullPage: true
     })
   })

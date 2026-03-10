@@ -121,7 +121,12 @@ export {
 
 // React components
 export { Canvas } from './renderer/Canvas'
-export type { CanvasProps, CanvasHandle, CanvasRemoteUser } from './renderer/Canvas'
+export type {
+  CanvasProps,
+  CanvasHandle,
+  CanvasRemoteUser,
+  CanvasNodeRenderContext
+} from './renderer/Canvas'
 
 export { CanvasNodeComponent, calculateLOD } from './nodes/CanvasNodeComponent'
 export type { CanvasNodeProps, NodeRemoteUser, LODLevel } from './nodes/CanvasNodeComponent'

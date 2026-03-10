@@ -21,7 +21,7 @@ import { NavigationTools } from '../components/NavigationTools'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
 import { createGridLayer, type GridLayer } from '../layers'
-import { CanvasNodeComponent, calculateLOD } from '../nodes/CanvasNodeComponent'
+import { CanvasNodeComponent, calculateLOD, type LODLevel } from '../nodes/CanvasNodeComponent'
 import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
 
 /** Minimal Awareness interface (avoids y-protocols dependency) */
@@ -68,7 +68,7 @@ export interface CanvasProps {
   /** Initial viewport state */
   initialViewport?: { x?: number; y?: number; zoom?: number }
   /** Custom node renderer */
-  renderNode?: (node: CanvasNode) => React.ReactNode
+  renderNode?: (node: CanvasNode, context: CanvasNodeRenderContext) => React.ReactNode
   /** Callback when node is double-clicked */
   onNodeDoubleClick?: (id: string) => void
   /** Callback when canvas background is clicked */
@@ -105,6 +105,13 @@ export interface CanvasProps {
   navigationToolsClassName?: string
   /** Optional style overrides for the built-in navigation tools */
   navigationToolsStyle?: React.CSSProperties
+}
+
+export interface CanvasNodeRenderContext {
+  selected: boolean
+  lod: LODLevel
+  selectionSize: number
+  viewportZoom: number
 }
 
 /**
@@ -683,23 +690,33 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       {/* Nodes layer - PERF-01: Only render nodes visible in viewport */}
       {/* PERF-02: LOD reduces detail at low zoom levels */}
       <div style={canvasLayerStyle}>
-        {visibleNodes.map((node) => (
-          <CanvasNodeComponent
-            key={node.id}
-            node={node}
-            selected={selectedNodeIds.has(node.id)}
-            lod={lod}
-            remoteUsers={nodePresence.get(node.id)}
-            onSelect={handleNodeSelect}
-            onDragStart={handleNodeDragStart}
-            onDrag={handleNodeDrag}
-            onDragEnd={handleNodeDragEnd}
-            onDoubleClick={handleNodeDoubleClick}
-          >
-            {/* Only render custom content at full LOD for performance */}
-            {lod === 'full' ? renderNode?.(node) : undefined}
-          </CanvasNodeComponent>
-        ))}
+        {visibleNodes.map((node) => {
+          const selected = selectedNodeIds.has(node.id)
+          const renderContext: CanvasNodeRenderContext = {
+            selected,
+            lod,
+            selectionSize: selectedNodeIds.size,
+            viewportZoom: viewport.zoom
+          }
+
+          return (
+            <CanvasNodeComponent
+              key={node.id}
+              node={node}
+              selected={selected}
+              lod={lod}
+              remoteUsers={nodePresence.get(node.id)}
+              onSelect={handleNodeSelect}
+              onDragStart={handleNodeDragStart}
+              onDrag={handleNodeDrag}
+              onDragEnd={handleNodeDragEnd}
+              onDoubleClick={handleNodeDoubleClick}
+            >
+              {/* Only render custom content at full LOD for performance */}
+              {lod === 'full' ? renderNode?.(node, renderContext) : undefined}
+            </CanvasNodeComponent>
+          )
+        })}
       </div>
 
       {/* Comment overlay (optional - only when canvasNodeId provided) */}

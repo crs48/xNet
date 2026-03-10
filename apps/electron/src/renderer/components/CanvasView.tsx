@@ -2,7 +2,7 @@
  * Canvas View - Infinite canvas for spatial visualization
  */
 
-import type { CanvasHandle, CanvasNode, Rect } from '@xnetjs/canvas'
+import type { CanvasHandle, CanvasNode, CanvasNodeRenderContext, Rect } from '@xnetjs/canvas'
 import { Canvas, createNode } from '@xnetjs/canvas'
 import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
 import { useNode, useIdentity } from '@xnetjs/react'
@@ -27,6 +27,7 @@ import {
   type LinkedDocType,
   type LinkedDocumentItem
 } from '../lib/canvas-shell'
+import { CanvasInlinePageSurface } from './CanvasInlinePageSurface'
 
 type ViewportSnapshot = {
   x: number
@@ -104,6 +105,30 @@ function renderNodeCard(node: CanvasNode, document?: LinkedDocumentItem): React.
         </p>
       </div>
     </div>
+  )
+}
+
+function shouldActivateInlinePageSurface(
+  node: CanvasNode,
+  context: CanvasNodeRenderContext,
+  linkedDocument?: LinkedDocumentItem
+): boolean {
+  const displayType = getCanvasShellDisplayType(node, linkedDocument)
+  const sourceId = getCanvasShellSourceId(node)
+
+  if (!sourceId) {
+    return false
+  }
+
+  if (displayType !== 'page' && displayType !== 'note') {
+    return false
+  }
+
+  return (
+    context.selected &&
+    context.selectionSize === 1 &&
+    context.lod === 'full' &&
+    context.viewportZoom >= 0.9
   )
 }
 
@@ -315,9 +340,22 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             boxShadow: '0 18px 38px rgba(15, 23, 42, 0.12)',
             border: '1px solid rgba(148, 163, 184, 0.28)'
           }}
-          renderNode={(node) => {
+          renderNode={(node, context) => {
             const sourceNodeId = getCanvasShellSourceId(node)
             const linkedDocument = sourceNodeId ? documentMap.get(sourceNodeId) : undefined
+            const displayType = getCanvasShellDisplayType(node, linkedDocument)
+
+            if (sourceNodeId && shouldActivateInlinePageSurface(node, context, linkedDocument)) {
+              return (
+                <CanvasInlinePageSurface
+                  node={node}
+                  docId={sourceNodeId}
+                  variant={displayType === 'note' ? 'note' : 'page'}
+                  onOpenDocument={(targetDocId) => onOpenDocument?.(targetDocId, 'page')}
+                />
+              )
+            }
+
             if (shouldRenderCanvasShellCard(node, linkedDocument)) {
               return renderNodeCard(node, linkedDocument)
             }

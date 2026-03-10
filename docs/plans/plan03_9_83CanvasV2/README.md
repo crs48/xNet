@@ -278,13 +278,13 @@ flowchart LR
 
 ## Validation Checklist
 
-- [ ] Creating a page on the canvas immediately creates a real `Page` node and supports inline editing.
+- [x] Creating a page on the canvas immediately creates a real `Page` node and supports inline editing.
 - [ ] Creating a database on the canvas immediately creates a real `Database` node and shows a bounded live preview.
 - [ ] Dropping a URL creates or reuses an `ExternalReference` node and renders the correct fallback chain.
 - [ ] Dropping an image or file creates a reusable media node and preserves it after reload.
 - [ ] Pan/zoom remains smooth on large scenes with chunk load/evict active.
 - [x] The background grid and minimap remain outside the main DOM path.
-- [ ] Far-field objects do not mount rich editors or oversized DOM subtrees.
+- [x] Far-field objects do not mount rich editors or oversized DOM subtrees.
 - [ ] Electron CDP tests cover dock creation, command-palette creation, minimap toggling, and focused-surface transitions.
 - [ ] Large-scene performance runs capture bounded DOM count, frame timing, minimap responsiveness, and query churn.
 - [ ] Shortcut-driven flows let a keyboard user create, select, group, lock, align, peek, edit, and open objects without excessive pointer travel.

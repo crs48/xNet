@@ -65,7 +65,15 @@ beforeAll(() => {
   })
 })
 
-function createCanvasMock() {
+function createCanvasMock(overrides: Partial<ReturnType<typeof createCanvasMockBase>> = {}) {
+  const base = createCanvasMockBase()
+  return {
+    ...base,
+    ...overrides
+  }
+}
+
+function createCanvasMockBase() {
   const viewport = createViewport({ x: 100, y: 80, zoom: 1 })
   viewport.width = 800
   viewport.height = 600
@@ -168,5 +176,35 @@ describe('Canvas navigation shell', () => {
       y: 0,
       zoom: 1
     })
+  })
+
+  it('passes render context to full-detail node renderers', () => {
+    const node = {
+      id: 'page-1',
+      type: 'page',
+      position: { x: 20, y: 40, width: 320, height: 200 },
+      properties: { title: 'Canvas Page' }
+    }
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = [node]
+    canvasMock.selectedNodeIds = new Set(['page-1'])
+    canvasMock.viewport.zoom = 1.25
+    canvasMock.store.getVisibleNodes = vi.fn(() => [node])
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    const renderNode = vi.fn(() => <div>inline</div>)
+
+    render(<Canvas doc={new Y.Doc()} renderNode={renderNode} />)
+
+    expect(renderNode).toHaveBeenCalledWith(
+      node,
+      expect.objectContaining({
+        selected: true,
+        lod: 'full',
+        selectionSize: 1,
+        viewportZoom: 1.25
+      })
+    )
   })
 })

@@ -148,6 +148,22 @@ function getNodeTitle(node: CanvasNode): string {
   return node.alias ?? (node.properties.title as string) ?? node.type ?? 'Untitled'
 }
 
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  if (target.closest('[data-canvas-interactive="true"]')) {
+    return true
+  }
+
+  return (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement ||
+    target.isContentEditable
+  )
+}
+
 /**
  * Node icon based on type (for compact LOD)
  */
@@ -260,6 +276,10 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       // Select node
       onSelect(node.id, e.shiftKey || e.metaKey)
 
+      if (isInteractiveTarget(e.target)) {
+        return
+      }
+
       // Start drag tracking
       isDragging.current = true
       dragStart.current = { x: e.clientX, y: e.clientY }
@@ -330,6 +350,11 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+
+      if (isInteractiveTarget(e.target)) {
+        return
+      }
+
       onDoubleClick?.(node.id)
     },
     [node.id, onDoubleClick]
@@ -359,6 +384,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         }}
         onClick={handleClick}
         data-node-id={node.id}
+        data-selected={selected ? 'true' : 'false'}
         data-lod="placeholder"
       />
     )
@@ -390,6 +416,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         }}
         onClick={handleClick}
         data-node-id={node.id}
+        data-selected={selected ? 'true' : 'false'}
         data-lod="minimal"
       >
         <span
@@ -436,6 +463,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         }}
         onClick={handleClick}
         data-node-id={node.id}
+        data-selected={selected ? 'true' : 'false'}
         data-lod="compact"
       >
         <NodeIcon type={node.type} />
@@ -490,6 +518,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       onDoubleClick={handleDoubleClick}
       data-node-id={node.id}
       data-node-type={node.type}
+      data-selected={selected ? 'true' : 'false'}
       data-lod="full"
     >
       {/* Content wrapper (clips overflow) */}
