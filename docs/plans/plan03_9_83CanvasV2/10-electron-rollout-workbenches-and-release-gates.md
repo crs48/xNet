@@ -21,6 +21,8 @@ This step covers:
 - [`apps/electron/src/renderer/App.tsx`](../../../apps/electron/src/renderer/App.tsx)
 - [`apps/electron/src/renderer/components/CanvasView.tsx`](../../../apps/electron/src/renderer/components/CanvasView.tsx)
 - [`.storybook/main.ts`](../../../.storybook/main.ts)
+- [`scripts/validate-canvas-v2-release-gate.sh`](../../../scripts/validate-canvas-v2-release-gate.sh)
+- [`docs/reference/canvas-v2-release-gates.md`](../../reference/canvas-v2-release-gates.md)
 - [`packages/devtools/src/panels/QueryDebugger/QueryDebugger.tsx`](../../../packages/devtools/src/panels/QueryDebugger/QueryDebugger.tsx)
 - [`packages/canvas/src/performance/frame-monitor.ts`](../../../packages/canvas/src/performance/frame-monitor.ts)
 - [`packages/canvas/src/performance/memory-profile.ts`](../../../packages/canvas/src/performance/memory-profile.ts)
@@ -139,6 +141,7 @@ Only after Electron passes the gates should the team adapt the new shell/runtime
 Suggested commands:
 
 ```bash
+pnpm validate:canvas-v2
 pnpm --filter @xnetjs/canvas test
 pnpm build:stories
 pnpm --filter xnet-desktop exec vitest run src/renderer/components/CanvasDatabasePreviewSurface.test.tsx
@@ -200,7 +203,7 @@ Automated validation should include:
 
 ## Step Checklist
 
-- [ ] Replace the active Electron canvas path with Canvas V2.
+- [x] Replace the active Electron canvas path with Canvas V2.
 - [x] Build realistic Storybook/workbench scenes for every major object family and density class.
 - [x] Add repeatable performance scenes and capture frame/DOM/query metrics.
 - [x] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
@@ -209,6 +212,6 @@ Automated validation should include:
 - [x] Add Electron and web keyboard-focus regression coverage for shared canvas traversal.
 - [x] Add Electron and web end-to-end coverage for undo-boundary ordering on canvas-backed content.
 - [x] Add Electron CDP large-scene performance coverage and record thresholds.
-- [ ] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
-- [ ] Document and enforce release gates before web rollout.
-- [ ] Start web adaptation only after Electron passes the full gate set.
+- [x] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
+- [x] Document and enforce release gates before web rollout.
+- [x] Gate further web rollout on the Electron release set.

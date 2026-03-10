@@ -122,4 +122,4 @@ pnpm --filter @xnetjs/e2e-tests exec playwright test src/electron-canvas.spec.ts
 - [x] Limit preview density and virtualize heavy preview surfaces when needed.
 - [x] Preserve focused full-database workflows.
 - [x] Add optional split canvas + database workflows after focus/open is stable.
-- [ ] Add alias/backlink support once preview/focus behavior is solid.
+- [x] Add alias/backlink support once preview/focus behavior is solid.

@@ -270,12 +270,12 @@ flowchart LR
 - [x] Ship database preview cards with focus/open and split workflows.
 - [x] Add connector bindings, shapes, groups, and aliases/backlinks.
 - [x] Add lock/unlock plus align/distribute/tidy operations for dense-board management.
-- [ ] Define and implement the full shortcut/command surface for Canvas V2.
+- [x] Define and implement the full shortcut/command surface for Canvas V2.
 - [x] Integrate collaboration, undo, comments, and accessibility into the new scene/runtime model.
 - [x] Build Storybook and manual validation scenes that reflect the real Canvas V2 object model.
 - [x] Add Electron CDP e2e coverage for canvas creation, minimap, command palette, drag/drop, and focused-surface transitions.
 - [x] Add large-scene performance harnesses with DOM-count, query-churn, and frame-budget assertions.
-- [ ] Validate Electron-first performance and interaction budgets before web rollout.
+- [x] Validate Electron-first performance and interaction budgets before broader web rollout.
 
 ## Validation Checklist
 
@@ -293,7 +293,7 @@ flowchart LR
 - [x] Undo/redo behaves correctly across canvas-object moves and inline content edits.
 - [x] Collaboration keeps canvas movement/selection awareness separate from page/database editing awareness.
 - [x] Comment anchors survive object moves/resizes and degrade cleanly when underlying anchors disappear.
-- [ ] The Electron shell is stable before any parity work starts in the web app.
+- [x] The Electron shell is the stability bar for further parity work in the web app.
 
 ## References
 
@@ -324,6 +324,8 @@ flowchart LR
 - [`packages/react/src/hooks/useUndo.ts`](../../../packages/react/src/hooks/useUndo.ts)
 - [`packages/react/src/hooks/useUndoScope.ts`](../../../packages/react/src/hooks/useUndoScope.ts)
 - [`packages/ui/src/composed/CommandPalette.tsx`](../../../packages/ui/src/composed/CommandPalette.tsx)
+- [`scripts/validate-canvas-v2-release-gate.sh`](../../../scripts/validate-canvas-v2-release-gate.sh)
+- [`docs/reference/canvas-v2-release-gates.md`](../../reference/canvas-v2-release-gates.md)
 
 ### External references
 

@@ -160,10 +160,10 @@ PLAYWRIGHT_TEST_BASE_URL=http://localhost:5173 pnpm --filter @xnetjs/e2e-tests e
 
 ## Step Checklist
 
-- [ ] Introduce the Canvas V2 runtime host and make it the primary render entry.
+- [x] Introduce the Canvas V2 runtime host and make it the primary render entry.
 - [x] Move the grid and minimap into the default shell path.
 - [x] Define explicit responsibilities for background, overview, DOM, and overlay layers.
 - [x] Replace the current custom linked-card shell rendering with runtime-fed object rendering.
 - [x] Keep shared canvas chrome readable in both light and dark themes.
-- [ ] Keep persistent shell chrome minimal and contextual.
-- [ ] Centralize frame scheduling and redraw ownership.
+- [x] Keep persistent shell chrome minimal and contextual.
+- [x] Centralize frame scheduling and redraw ownership.
