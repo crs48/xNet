@@ -13,6 +13,7 @@
  * - Ctrl/Cmd + Shift + F: Wrap the selection in a frame
  * - Ctrl/Cmd + Shift + A: Edit the selection alias
  * - Ctrl/Cmd + Shift + C: Comment on the selection
+ * - Ctrl/Cmd + Shift + K: Connect a two-node selection
  * - ?: Toggle shortcut help
  */
 
@@ -61,6 +62,8 @@ export interface UseCanvasKeyboardOptions {
   onEditSelectionAlias?: () => void
   /** Callback for creating a comment anchored to the current selection */
   onCreateSelectionComment?: () => void
+  /** Callback for connecting the current two-node selection */
+  onConnectSelection?: () => void
   /** Callback for single-key object creation */
   onCreateObject?: (kind: CanvasCreationShortcut) => void
   /** Callback for peek/open actions on the current selection */
@@ -101,6 +104,7 @@ export function useCanvasKeyboard({
   onWrapSelectionInFrame,
   onEditSelectionAlias,
   onCreateSelectionComment,
+  onConnectSelection,
   onCreateObject,
   onOpenSelection,
   onToggleShortcutHelp,
@@ -215,6 +219,12 @@ export function useCanvasKeyboard({
         if (normalizedKey === 'c') {
           e.preventDefault()
           onCreateSelectionComment?.()
+          return
+        }
+
+        if (normalizedKey === 'k' && selectedNodeCount === 2) {
+          e.preventDefault()
+          onConnectSelection?.()
           return
         }
 
@@ -363,6 +373,7 @@ export function useCanvasKeyboard({
       onClearSelection,
       onAlignSelection,
       onCreateObject,
+      onConnectSelection,
       onDeleteSelection,
       onDismissTransientUi,
       onNudgeSelection,

@@ -158,6 +158,7 @@ export type CanvasViewHandle = {
   distributeSelection: (axis: CanvasDistributionAxis) => boolean
   tidySelection: () => boolean
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
+  connectSelection: () => boolean
   createShape: (shapeType?: ShapeType) => boolean
   createFrame: () => boolean
   wrapSelectionInFrame: () => boolean
@@ -982,6 +983,10 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return canvasRef.current?.shiftSelectionLayer(direction) ?? false
   }, [])
 
+  const connectSelection = useCallback((): boolean => {
+    return canvasRef.current?.connectSelection() ?? false
+  }, [])
+
   const focusSelectionSurface = useCallback(
     (
       sourceId: string,
@@ -1530,6 +1535,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       distributeSelection,
       tidySelection,
       shiftSelectionLayer,
+      connectSelection,
       createShape,
       createFrame,
       wrapSelectionInFrame,
@@ -1544,6 +1550,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       clearCanvasSelection,
       createFrame,
       createShape,
+      connectSelection,
       clearSelectionAlias,
       distributeSelection,
       fitCanvasContent,
@@ -1738,6 +1745,23 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
             {selection.nodeIds.length > 1 ? (
               <>
+                {selection.nodeIds.length === 2 ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    onClick={() => {
+                      connectSelection()
+                    }}
+                    data-canvas-selection-action="connect"
+                  >
+                    <Link2 size={12} />
+                    Connect
+                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                      Mod+Shift+K
+                    </span>
+                  </button>
+                ) : null}
+
                 <button
                   type="button"
                   className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
@@ -2079,6 +2103,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
                 ['Mod+Enter', 'Open the focused page or database view'],
                 ['Mod+Shift+A', 'Edit the selection alias'],
                 ['Mod+Shift+C', 'Comment on the selected object'],
+                ['Mod+Shift+K', 'Connect the current two-object selection'],
                 ['Mod+Shift+L', 'Lock or unlock the current selection'],
                 ['Mod+Shift+F', 'Wrap the selection in a frame'],
                 ['Mod+Shift+Arrow', 'Align the selection to one edge'],

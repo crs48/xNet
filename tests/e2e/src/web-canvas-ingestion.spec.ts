@@ -4,6 +4,8 @@ import { setupTestAuth } from '../helpers/test-auth'
 const FRAME_SELECTION_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+F' : 'Control+Shift+F'
 const ALIAS_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+A' : 'Control+Shift+A'
 const COMMENT_SHORTCUT = process.platform === 'darwin' ? 'Meta+Shift+C' : 'Control+Shift+C'
+const CONNECT_SELECTION_SHORTCUT =
+  process.platform === 'darwin' ? 'Meta+Shift+K' : 'Control+Shift+K'
 
 function getPerformanceBudget(localBudgetMs: number, ciBudgetMs: number): number {
   return process.env.CI ? ciBudgetMs : localBudgetMs
@@ -950,6 +952,31 @@ test.describe('Web canvas ingestion', () => {
       path: 'tmp/playwright/web-canvas-connectors.png',
       fullPage: true
     })
+  })
+
+  test('connects a two-node selection from the keyboard on the web', async ({ page }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    await createCanvasNote(page)
+    await createCanvasNote(page)
+
+    const notes = page.locator('.canvas-node[data-node-type="note"]')
+    await expect(notes).toHaveCount(2, { timeout: 30_000 })
+    await dragCanvasNode(page, '.canvas-node[data-node-type="note"]', 1, 280, 160)
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', 0)
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', 1, true)
+
+    await expect(surface).toHaveAttribute('data-selection-count', '2')
+    await surface.focus()
+    await page.keyboard.press(CONNECT_SELECTION_SHORTCUT)
+
+    await expect(surface).toHaveAttribute('data-edge-count', '1')
   })
 
   test('renames a source-backed object with a canvas-local alias on the web', async ({ page }) => {

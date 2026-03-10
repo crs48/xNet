@@ -914,6 +914,43 @@ describe('Canvas navigation shell', () => {
     expect(onOpenSelection).toHaveBeenNthCalledWith(2, 'focus')
   })
 
+  it('connects a two-node selection from the keyboard', () => {
+    const nodes = [
+      {
+        id: 'page-1',
+        type: 'page',
+        position: { x: 40, y: 40, width: 320, height: 200 },
+        properties: { title: 'Canvas Page' }
+      },
+      {
+        id: 'page-2',
+        type: 'page',
+        position: { x: 460, y: 180, width: 320, height: 200 },
+        properties: { title: 'Canvas Page 2' }
+      }
+    ]
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = nodes
+    canvasMock.selectedNodeIds = new Set(['page-1', 'page-2'])
+    canvasMock.store.getVisibleNodes = vi.fn(() => nodes)
+    canvasMock.store.getNode = vi.fn((nodeId: string) => nodes.find((node) => node.id === nodeId))
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    surface?.focus()
+
+    fireEvent.keyDown(window, { key: 'K', metaKey: true, shiftKey: true })
+
+    expect(canvasMock.addEdge).toHaveBeenCalledTimes(1)
+    const createdEdge = canvasMock.addEdge.mock.calls[0]?.[0]
+    expect(createdEdge?.sourceId).toBe('page-1')
+    expect(createdEdge?.targetId).toBe('page-2')
+    expect(canvasMock.selectEdge).toHaveBeenCalledWith(createdEdge?.id)
+  })
+
   it('dispatches lock, align, and layer shortcuts against the current selection', () => {
     const leftNode = {
       id: 'page-1',

@@ -40,6 +40,7 @@ import { NavigationTools } from '../components/NavigationTools'
 import {
   getCanvasEdgeSourceObjectId,
   getCanvasEdgeTargetObjectId,
+  resolveAutoCanvasAnchorPlacement,
   resolveCanvasAnchorPoint
 } from '../edges/bindings'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
@@ -182,6 +183,8 @@ export interface CanvasHandle {
   shiftSelectionLayer: (direction: CanvasLayerDirection) => boolean
   /** Wrap the current selection in a frame container */
   wrapSelectionInFrame: () => boolean
+  /** Connect the current two-node selection */
+  connectSelection: () => boolean
   /** Undo the latest canvas-scene operation */
   undo: () => boolean
   /** Redo the latest canvas-scene operation */
@@ -772,6 +775,29 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [canvas, edges, onSceneMutation, separateSceneUndoBoundary]
   )
 
+  const handleConnectSelection = useCallback((): boolean => {
+    const selectedNodes = [...getSelectedNodes()].sort((left, right) => {
+      const deltaX = left.position.x - right.position.x
+      if (Math.abs(deltaX) > 24) {
+        return deltaX
+      }
+
+      return left.position.y - right.position.y
+    })
+
+    if (selectedNodes.length !== 2) {
+      return false
+    }
+
+    const [sourceNode, targetNode] = selectedNodes
+    const sourcePlacement = resolveAutoCanvasAnchorPlacement(sourceNode.position, {
+      x: targetNode.position.x + targetNode.position.width / 2,
+      y: targetNode.position.y + targetNode.position.height / 2
+    })
+
+    return connectCanvasNodes(sourceNode.id, targetNode.id, sourcePlacement)
+  }, [connectCanvasNodes, getSelectedNodes])
+
   const runSceneUndo = useCallback((direction: 'undo' | 'redo'): boolean => {
     const manager = undoManagerRef.current
     if (!manager) {
@@ -816,6 +842,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       shiftSelectionLayer: (direction: CanvasLayerDirection) =>
         handleShiftSelectionLayer(direction),
       wrapSelectionInFrame: () => handleWrapSelectionInFrame(),
+      connectSelection: () => handleConnectSelection(),
       undo: () => runSceneUndo('undo'),
       redo: () => runSceneUndo('redo'),
       screenToCanvas: (clientX: number, clientY: number) => clientToCanvas(clientX, clientY),
@@ -831,6 +858,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       clientToCanvas,
       handleAlignSelection,
       handleDistributeSelection,
+      handleConnectSelection,
       handleShiftSelectionLayer,
       handleTidySelection,
       handleToggleSelectionLock,
@@ -1999,6 +2027,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     onWrapSelectionInFrame: handleWrapSelectionInFrame,
     onEditSelectionAlias,
     onCreateSelectionComment,
+    onConnectSelection: handleConnectSelection,
     onCreateObject,
     onOpenSelection,
     onToggleShortcutHelp,

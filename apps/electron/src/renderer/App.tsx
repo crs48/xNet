@@ -449,6 +449,19 @@ export function App(): React.ReactElement {
         }
       },
       {
+        id: 'canvas-connect-selection',
+        name: 'Connect Selection',
+        description: 'Create a connector between the two selected canvas objects',
+        icon: 'link',
+        shortcut: 'Mod+Shift+K',
+        group: 'Canvas',
+        keywords: ['connect', 'connector', 'edge', 'selection', 'canvas'],
+        when: () => isCanvasInteractiveShell && canvasCommandState.selectionCount === 2,
+        execute: () => {
+          canvasViewRef.current?.connectSelection()
+        }
+      },
+      {
         id: 'canvas-rename-alias',
         name: 'Rename Canvas Alias',
         description:
