@@ -9,7 +9,8 @@ import type {
   CanvasDistributionAxis,
   CanvasLayerDirection,
   CanvasNode,
-  CanvasNodePosition
+  CanvasNodePosition,
+  ResizeHandle
 } from '../types'
 import { createNode } from '../store'
 
@@ -32,6 +33,8 @@ export interface CreateFrameSelectionNodeOptions {
 
 const DEFAULT_FRAME_PADDING = 48
 const DEFAULT_FRAME_TITLE = 'Frame'
+const DEFAULT_MIN_NODE_WIDTH = 96
+const DEFAULT_MIN_NODE_HEIGHT = 72
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((entry) => typeof entry === 'string')
@@ -297,6 +300,54 @@ export function createLayerShiftUpdates(
       }
     }
   })
+}
+
+export function createResizeUpdate(
+  node: CanvasNode,
+  handle: ResizeHandle,
+  delta: { x: number; y: number },
+  options: {
+    minWidth?: number
+    minHeight?: number
+  } = {}
+): CanvasPositionUpdate {
+  const minWidth = options.minWidth ?? DEFAULT_MIN_NODE_WIDTH
+  const minHeight = options.minHeight ?? DEFAULT_MIN_NODE_HEIGHT
+  const initial = node.position
+
+  let nextX = initial.x
+  let nextY = initial.y
+  let nextWidth = initial.width
+  let nextHeight = initial.height
+
+  const touchesLeft = handle === 'left' || handle === 'top-left' || handle === 'bottom-left'
+  const touchesRight = handle === 'right' || handle === 'top-right' || handle === 'bottom-right'
+  const touchesTop = handle === 'top' || handle === 'top-left' || handle === 'top-right'
+  const touchesBottom = handle === 'bottom' || handle === 'bottom-left' || handle === 'bottom-right'
+
+  if (touchesLeft) {
+    nextWidth = Math.max(minWidth, initial.width - delta.x)
+    nextX = roundPosition(initial.x + (initial.width - nextWidth))
+  } else if (touchesRight) {
+    nextWidth = Math.max(minWidth, initial.width + delta.x)
+  }
+
+  if (touchesTop) {
+    nextHeight = Math.max(minHeight, initial.height - delta.y)
+    nextY = roundPosition(initial.y + (initial.height - nextHeight))
+  } else if (touchesBottom) {
+    nextHeight = Math.max(minHeight, initial.height + delta.y)
+  }
+
+  return {
+    id: node.id,
+    position: {
+      x: nextX,
+      y: nextY,
+      width: roundPosition(nextWidth),
+      height: roundPosition(nextHeight)
+    }
+  }
 }
 
 export function expandContainerPositionUpdates(

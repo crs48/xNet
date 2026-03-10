@@ -31,13 +31,50 @@ vi.mock('../edges/CanvasEdgeComponent', () => ({
 vi.mock('../nodes/CanvasNodeComponent', () => ({
   CanvasNodeComponent: ({
     node,
-    children
+    children,
+    selected,
+    onResizeStart,
+    onResize,
+    onResizeEnd
   }: {
     node: { id: string; type: string }
+    selected?: boolean
+    onResizeStart?: (id: string, handle: string, point: { x: number; y: number }) => void
+    onResize?: (id: string, handle: string, delta: { x: number; y: number }) => void
+    onResizeEnd?: (id: string) => void
     children?: React.ReactNode
   }) => (
     <div className="canvas-node" data-node-id={node.id} data-node-type={node.type}>
       {children}
+      {selected && onResizeStart && onResize && onResizeEnd ? (
+        <button
+          type="button"
+          data-canvas-resize-handle="bottom-right"
+          onMouseDown={(event) => {
+            const start = { x: event.clientX, y: event.clientY }
+            onResizeStart(node.id, 'bottom-right', start)
+            const ownerDocument = document
+
+            const handleMouseMove = (moveEvent: MouseEvent) => {
+              onResize(node.id, 'bottom-right', {
+                x: moveEvent.clientX - start.x,
+                y: moveEvent.clientY - start.y
+              })
+            }
+
+            const handleMouseUp = () => {
+              ownerDocument.removeEventListener('mousemove', handleMouseMove)
+              ownerDocument.removeEventListener('mouseup', handleMouseUp)
+              onResizeEnd(node.id)
+            }
+
+            ownerDocument.addEventListener('mousemove', handleMouseMove)
+            ownerDocument.addEventListener('mouseup', handleMouseUp)
+          }}
+        >
+          Resize
+        </button>
+      ) : null}
     </div>
   ),
   calculateLOD: () => 'full'
@@ -317,6 +354,57 @@ describe('Canvas navigation shell', () => {
     expect(surface?.dataset.canvasRemoteUserCount).toBe('1')
     expect(document.querySelector('[data-canvas-remote-cursor="true"]')).toBeTruthy()
     expect(document.querySelector('[data-canvas-remote-activity="editing"]')).toBeTruthy()
+  })
+
+  it('resizes selected nodes and surfaces resizing activity diagnostics', () => {
+    const node = {
+      id: 'page-1',
+      type: 'page',
+      position: { x: 20, y: 40, width: 320, height: 200 },
+      properties: { title: 'Canvas Page' }
+    }
+    const canvasMock = createCanvasMock()
+    canvasMock.nodes = [node]
+    canvasMock.renderNodes = [node]
+    canvasMock.selectedNodeIds = new Set(['page-1'])
+    canvasMock.store.getVisibleNodes = vi.fn(() => [node])
+    canvasMock.store.getNode = vi.fn((nodeId: string) => (nodeId === 'page-1' ? node : undefined))
+
+    mockUseCanvas.mockReturnValue(canvasMock)
+
+    render(<Canvas doc={new Y.Doc()} />)
+
+    const surface = document.querySelector<HTMLElement>('[data-canvas-surface="true"]')
+    const resizeHandle = screen.getByRole('button', { name: 'Resize' })
+
+    fireEvent.mouseDown(resizeHandle, {
+      button: 0,
+      clientX: 200,
+      clientY: 160
+    })
+
+    expect(surface?.dataset.canvasLocalActivity).toBe('resizing')
+
+    fireEvent.mouseMove(document, {
+      clientX: 248,
+      clientY: 196
+    })
+
+    expect(canvasMock.updateNodePositions).toHaveBeenCalledWith([
+      {
+        id: 'page-1',
+        position: {
+          x: 20,
+          y: 40,
+          width: 368,
+          height: 236
+        }
+      }
+    ])
+
+    fireEvent.mouseUp(document)
+
+    expect(surface?.dataset.canvasLocalActivity).toBe('idle')
   })
 
   it('passes render context to full-detail node renderers', () => {

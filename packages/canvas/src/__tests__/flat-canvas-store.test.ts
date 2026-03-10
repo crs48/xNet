@@ -1,7 +1,8 @@
 import type { CanvasEdge, CanvasNode } from '../types'
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
-import { createFlatCanvasChunkStore } from '../chunks'
+import { createChunkManager, createFlatCanvasChunkStore } from '../chunks'
+import { Viewport } from '../spatial'
 
 function createNode(id: string, x: number, y: number, width = 120, height = 80): CanvasNode {
   return {
@@ -82,6 +83,35 @@ describe('FlatCanvasChunkStore', () => {
     expect(localChunk.edges.map((edge) => edge.id)).toEqual(['edge-cross'])
     expect(await store.loadCrossChunkEdgesFor('0,0')).toHaveLength(0)
 
+    store.dispose()
+  })
+
+  it('persists width and height updates for nodes inserted directly into the doc', async () => {
+    const doc = new Y.Doc()
+    const nodes = doc.getMap<CanvasNode>('nodes')
+    const store = createFlatCanvasChunkStore(doc)
+    const manager = createChunkManager(store)
+    const node = createNode('resizable', 120, 120, 320, 180)
+
+    manager.updateViewport(new Viewport({ x: 0, y: 0, zoom: 1, width: 1280, height: 720 }))
+
+    nodes.set(node.id, node)
+    await manager.refreshLoadedChunks()
+
+    manager.moveNode(node.id, {
+      ...node.position,
+      width: 416,
+      height: 252
+    })
+
+    expect(nodes.get(node.id)?.position).toEqual({
+      x: 120,
+      y: 120,
+      width: 416,
+      height: 252
+    })
+
+    manager.dispose()
     store.dispose()
   })
 })

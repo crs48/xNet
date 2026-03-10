@@ -655,6 +655,43 @@ async function selectCanvasNode(
   )
 }
 
+async function dragCanvasResizeHandle(
+  page: Page,
+  selector: string,
+  index: number,
+  input: {
+    handle:
+      | 'bottom-right'
+      | 'bottom'
+      | 'right'
+      | 'left'
+      | 'top'
+      | 'top-left'
+      | 'top-right'
+      | 'bottom-left'
+    dx: number
+    dy: number
+  }
+): Promise<void> {
+  const locator = page
+    .locator(selector)
+    .nth(index)
+    .locator(`[data-canvas-resize-handle="${input.handle}"]`)
+  await expect(locator).toBeVisible({ timeout: 30_000 })
+  const box = await locator.boundingBox()
+  if (!box) {
+    throw new Error('Resize handle bounding box is unavailable')
+  }
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + input.dx, box.y + box.height / 2 + input.dy)
+}
+
+async function releaseCanvasPointer(page: Page): Promise<void> {
+  await page.mouse.up()
+}
+
 async function getCanvasNodeCount(page: Page, type: string): Promise<number> {
   return page.locator(`.canvas-node[data-node-type="${type}"]`).count()
 }
@@ -705,6 +742,42 @@ async function moveCanvasNode(page: Page, nodeId: string, dx: number, dy: number
       await harness.moveCanvasNode(input)
     },
     { nodeId, dx, dy }
+  )
+}
+
+async function getCanvasNodeRect(
+  page: Page,
+  nodeId: string
+): Promise<{
+  canvasId: string
+  x: number
+  y: number
+  width: number
+  height: number
+}> {
+  return page.evaluate(
+    async (input) => {
+      const harness = (
+        window as Window & {
+          __xnetCanvasTestHarness?: {
+            getCanvasNodeRect: (input: typeof input) => Promise<{
+              canvasId: string
+              x: number
+              y: number
+              width: number
+              height: number
+            }>
+          }
+        }
+      ).__xnetCanvasTestHarness
+
+      if (!harness) {
+        throw new Error('Canvas test harness not available')
+      }
+
+      return harness.getCanvasNodeRect(input)
+    },
+    { nodeId }
   )
 }
 
@@ -1142,6 +1215,52 @@ test.describe('Electron canvas shell', () => {
 
     await page.screenshot({
       path: `${ROOT}/tmp/playwright/electron-canvas-presence.png`,
+      fullPage: true
+    })
+  })
+
+  test('resizes selected canvas nodes and reports resize activity in Electron', async () => {
+    test.skip(!electronPage, 'Electron page did not initialize')
+    const page = electronPage!
+
+    const noteCountBefore = await getCanvasNodeCount(page, 'note')
+    await page.getByRole('button', { name: 'Note' }).click({ force: true })
+    await expect.poll(async () => await getCanvasNodeCount(page, 'note')).toBe(noteCountBefore + 1)
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
+    const noteNodeId = await noteNode.getAttribute('data-node-id')
+    if (!noteNodeId) {
+      throw new Error('Unable to resolve the note node id')
+    }
+
+    const initialRect = await getCanvasNodeRect(page, noteNodeId)
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await dragCanvasResizeHandle(page, '.canvas-node[data-node-type="note"]', noteCountBefore, {
+      handle: 'bottom-right',
+      dx: 96,
+      dy: 72
+    })
+
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'resizing', {
+      timeout: 30_000
+    })
+
+    await releaseCanvasPointer(page)
+
+    await expect
+      .poll(async () => (await getCanvasNodeRect(page, noteNodeId)).width, { timeout: 30_000 })
+      .toBeGreaterThan(initialRect.width + 60)
+    await expect
+      .poll(async () => (await getCanvasNodeRect(page, noteNodeId)).height, { timeout: 30_000 })
+      .toBeGreaterThan(initialRect.height + 40)
+
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'idle', {
+      timeout: 30_000
+    })
+
+    await page.screenshot({
+      path: `${ROOT}/tmp/playwright/electron-canvas-resize.png`,
       fullPage: true
     })
   })

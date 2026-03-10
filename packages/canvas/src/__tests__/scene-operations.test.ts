@@ -6,6 +6,7 @@ import {
   createDistributionUpdates,
   createLayerShiftUpdates,
   createLockUpdates,
+  createResizeUpdate,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
   getCanvasContainerMemberIds,
@@ -129,6 +130,54 @@ describe('scene operations', () => {
       { id: 'a', position: { zIndex: 1 } },
       { id: 'b', position: { zIndex: 0 } }
     ])
+  })
+
+  it('creates resize updates for edge and corner handles', () => {
+    const node = createNode('page-1', { x: 80, y: 60, width: 240, height: 180 })
+
+    expect(createResizeUpdate(node, 'bottom-right', { x: 48, y: 32 })).toEqual({
+      id: 'page-1',
+      position: {
+        x: 80,
+        y: 60,
+        width: 288,
+        height: 212
+      }
+    })
+
+    expect(createResizeUpdate(node, 'top-left', { x: 40, y: 20 })).toEqual({
+      id: 'page-1',
+      position: {
+        x: 120,
+        y: 80,
+        width: 200,
+        height: 160
+      }
+    })
+  })
+
+  it('clamps resize updates to the minimum dimensions', () => {
+    const node = createNode('page-1', { x: 80, y: 60, width: 140, height: 110 })
+
+    expect(createResizeUpdate(node, 'left', { x: 120, y: 0 })).toEqual({
+      id: 'page-1',
+      position: {
+        x: 124,
+        y: 60,
+        width: 96,
+        height: 110
+      }
+    })
+
+    expect(createResizeUpdate(node, 'top', { x: 0, y: 120 })).toEqual({
+      id: 'page-1',
+      position: {
+        x: 80,
+        y: 98,
+        width: 140,
+        height: 72
+      }
+    })
   })
 
   it('creates a frame container around the current selection', () => {

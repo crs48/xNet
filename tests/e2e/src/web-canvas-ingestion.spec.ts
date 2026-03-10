@@ -112,6 +112,42 @@ async function moveCanvasNode(
   )
 }
 
+async function getCanvasNodeRect(
+  page: import('@playwright/test').Page,
+  nodeId: string
+): Promise<{
+  canvasId: string
+  x: number
+  y: number
+  width: number
+  height: number
+}> {
+  return page.evaluate(
+    async (input) => {
+      const harness = (
+        window as Window & {
+          __xnetCanvasTestHarness?: {
+            getCanvasNodeRect: (input: typeof input) => Promise<{
+              canvasId: string
+              x: number
+              y: number
+              width: number
+              height: number
+            }>
+          }
+        }
+      ).__xnetCanvasTestHarness
+
+      if (!harness) {
+        throw new Error('Canvas test harness not available')
+      }
+
+      return harness.getCanvasNodeRect(input)
+    },
+    { nodeId }
+  )
+}
+
 async function removeCanvasNode(
   page: import('@playwright/test').Page,
   nodeId: string
@@ -304,6 +340,43 @@ async function selectCanvasNode(
     },
     { additive }
   )
+}
+
+async function dragCanvasResizeHandle(
+  page: import('@playwright/test').Page,
+  selector: string,
+  index: number,
+  input: {
+    handle:
+      | 'bottom-right'
+      | 'bottom'
+      | 'right'
+      | 'left'
+      | 'top'
+      | 'top-left'
+      | 'top-right'
+      | 'bottom-left'
+    dx: number
+    dy: number
+  }
+): Promise<void> {
+  const locator = page
+    .locator(selector)
+    .nth(index)
+    .locator(`[data-canvas-resize-handle="${input.handle}"]`)
+  await expect(locator).toBeVisible({ timeout: 30_000 })
+  const box = await locator.boundingBox()
+  if (!box) {
+    throw new Error('Resize handle bounding box is unavailable')
+  }
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(box.x + box.width / 2 + input.dx, box.y + box.height / 2 + input.dy)
+}
+
+async function releaseCanvasPointer(page: import('@playwright/test').Page): Promise<void> {
+  await page.mouse.up()
 }
 
 test.describe('Web canvas ingestion', () => {
@@ -596,6 +669,60 @@ test.describe('Web canvas ingestion', () => {
 
     await page.screenshot({
       path: 'tmp/playwright/web-canvas-comments.png',
+      fullPage: true
+    })
+  })
+
+  test('resizes selected canvas nodes and reports resize activity on the web', async ({ page }) => {
+    await setupTestAuth(page)
+    await advanceOnboarding(page)
+    await createCanvas(page)
+
+    const surface = page.locator('[data-canvas-surface="true"]')
+    await expect(surface).toBeVisible({ timeout: 30_000 })
+
+    const noteCountBefore = await page.locator('.canvas-node[data-node-type="note"]').count()
+    await page.getByRole('button', { name: 'Note' }).click()
+    await expect(page.locator('.canvas-node[data-node-type="note"]')).toHaveCount(
+      noteCountBefore + 1,
+      {
+        timeout: 30_000
+      }
+    )
+
+    await selectCanvasNode(page, '.canvas-node[data-node-type="note"]', noteCountBefore)
+    const noteNode = page.locator('.canvas-node[data-node-type="note"]').nth(noteCountBefore)
+    const noteNodeId = await noteNode.getAttribute('data-node-id')
+    if (!noteNodeId) {
+      throw new Error('Unable to resolve the note node id')
+    }
+
+    const initialRect = await getCanvasNodeRect(page, noteNodeId)
+    await dragCanvasResizeHandle(page, '.canvas-node[data-node-type="note"]', noteCountBefore, {
+      handle: 'bottom-right',
+      dx: 96,
+      dy: 72
+    })
+
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'resizing', {
+      timeout: 30_000
+    })
+
+    await releaseCanvasPointer(page)
+
+    await expect
+      .poll(async () => (await getCanvasNodeRect(page, noteNodeId)).width, { timeout: 30_000 })
+      .toBeGreaterThan(initialRect.width + 60)
+    await expect
+      .poll(async () => (await getCanvasNodeRect(page, noteNodeId)).height, { timeout: 30_000 })
+      .toBeGreaterThan(initialRect.height + 40)
+
+    await expect(surface).toHaveAttribute('data-canvas-local-activity', 'idle', {
+      timeout: 30_000
+    })
+
+    await page.screenshot({
+      path: 'tmp/playwright/web-canvas-resize.png',
       fullPage: true
     })
   })

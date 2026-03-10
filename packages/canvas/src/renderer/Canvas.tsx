@@ -12,7 +12,8 @@ import type {
   CanvasNode,
   GridType,
   Point,
-  Rect
+  Rect,
+  ResizeHandle
 } from '../types'
 import React, {
   useRef,
@@ -45,6 +46,7 @@ import {
   createFrameSelectionNode,
   createLayerShiftUpdates,
   createLockUpdates,
+  createResizeUpdate,
   createTidySelectionUpdates,
   expandContainerPositionUpdates,
   getSelectionBounds,
@@ -55,6 +57,9 @@ import { useCanvasThemeTokens } from '../theme/canvas-theme'
 import { createCanvasDisplayList } from './display-list'
 import { handleUndoRedoShortcut, isTextInputLikeElement } from './keyboard-shortcuts'
 import { OverviewCanvasLayer } from './OverviewCanvasLayer'
+
+const MIN_RESIZE_WIDTH = 96
+const MIN_RESIZE_HEIGHT = 72
 
 /** Minimal Awareness interface (avoids a direct y-protocols dependency). */
 interface AwarenessLike extends CanvasPresenceAwarenessLike {
@@ -356,6 +361,11 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
   const dragInitialPositions = useRef<Map<string, Point>>(new Map())
   // Track cumulative drag offset since drag started
   const dragCumulativeOffset = useRef<Point>({ x: 0, y: 0 })
+  const resizeSessionRef = useRef<{
+    nodeId: string
+    handle: ResizeHandle
+    initialPosition: CanvasNode['position']
+  } | null>(null)
 
   // Use canvas hook
   const canvas = useCanvas({ doc, config, initialViewport })
@@ -438,57 +448,90 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [canvas]
   )
 
+  const separateSceneUndoBoundary = useCallback(() => {
+    undoManagerRef.current?.stopCapturing()
+  }, [])
+
+  const runSceneOperation = useCallback(
+    (operation: () => boolean): boolean => {
+      separateSceneUndoBoundary()
+      const didApply = operation()
+      separateSceneUndoBoundary()
+      return didApply
+    },
+    [separateSceneUndoBoundary]
+  )
+
   const handleToggleSelectionLock = useCallback((): boolean => {
-    const selectedNodes = getSelectedNodes()
-    const updates = createLockUpdates(selectedNodes)
+    return runSceneOperation(() => {
+      const selectedNodes = getSelectedNodes()
+      const updates = createLockUpdates(selectedNodes)
 
-    if (updates.length === 0) {
-      return false
-    }
+      if (updates.length === 0) {
+        return false
+      }
 
-    updateNodes(updates.map((update) => ({ id: update.id, changes: { locked: update.locked } })))
-    return true
-  }, [getSelectedNodes, updateNodes])
+      updateNodes(updates.map((update) => ({ id: update.id, changes: { locked: update.locked } })))
+      return true
+    })
+  }, [getSelectedNodes, runSceneOperation, updateNodes])
 
   const handleAlignSelection = useCallback(
     (alignment: CanvasAlignment): boolean => {
-      const selectedNodes = getUnlockedSelection(getSelectedNodes())
-      return applySelectionPositionUpdates(createAlignmentUpdates(selectedNodes, alignment))
+      return runSceneOperation(() => {
+        const selectedNodes = getUnlockedSelection(getSelectedNodes())
+        return applySelectionPositionUpdates(createAlignmentUpdates(selectedNodes, alignment))
+      })
     },
-    [applySelectionPositionUpdates, getSelectedNodes]
+    [applySelectionPositionUpdates, getSelectedNodes, runSceneOperation]
   )
 
   const handleDistributeSelection = useCallback(
     (axis: CanvasDistributionAxis): boolean => {
-      const selectedNodes = getUnlockedSelection(getSelectedNodes())
-      return applySelectionPositionUpdates(createDistributionUpdates(selectedNodes, axis))
+      return runSceneOperation(() => {
+        const selectedNodes = getUnlockedSelection(getSelectedNodes())
+        return applySelectionPositionUpdates(createDistributionUpdates(selectedNodes, axis))
+      })
     },
-    [applySelectionPositionUpdates, getSelectedNodes]
+    [applySelectionPositionUpdates, getSelectedNodes, runSceneOperation]
   )
 
   const handleTidySelection = useCallback((): boolean => {
-    const selectedNodes = getUnlockedSelection(getSelectedNodes())
-    return applySelectionPositionUpdates(createTidySelectionUpdates(selectedNodes))
-  }, [applySelectionPositionUpdates, getSelectedNodes])
+    return runSceneOperation(() => {
+      const selectedNodes = getUnlockedSelection(getSelectedNodes())
+      return applySelectionPositionUpdates(createTidySelectionUpdates(selectedNodes))
+    })
+  }, [applySelectionPositionUpdates, getSelectedNodes, runSceneOperation])
 
   const handleShiftSelectionLayer = useCallback(
     (direction: CanvasLayerDirection): boolean => {
-      const selectedNodes = getUnlockedSelection(getSelectedNodes())
-      return applySelectionPositionUpdates(createLayerShiftUpdates(selectedNodes, direction))
+      return runSceneOperation(() => {
+        const selectedNodes = getUnlockedSelection(getSelectedNodes())
+        return applySelectionPositionUpdates(createLayerShiftUpdates(selectedNodes, direction))
+      })
     },
-    [applySelectionPositionUpdates, getSelectedNodes]
+    [applySelectionPositionUpdates, getSelectedNodes, runSceneOperation]
   )
 
   const handleWrapSelectionInFrame = useCallback((): boolean => {
-    const frameNode = createFrameSelectionNode(getSelectedNodes())
-    if (!frameNode) {
-      return false
-    }
+    return runSceneOperation(() => {
+      const frameNode = createFrameSelectionNode(getSelectedNodes())
+      if (!frameNode) {
+        return false
+      }
 
-    canvas.addNode(frameNode)
-    selectNode(frameNode.id)
-    return true
-  }, [canvas, getSelectedNodes, selectNode])
+      canvas.addNode(frameNode)
+      selectNode(frameNode.id)
+      return true
+    })
+  }, [canvas, getSelectedNodes, runSceneOperation, selectNode])
+
+  const handleDeleteSelection = useCallback(() => {
+    runSceneOperation(() => {
+      canvas.deleteSelected()
+      return true
+    })
+  }, [canvas, runSceneOperation])
 
   // Expose imperative methods via ref
   useImperativeHandle(
@@ -552,11 +595,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       return presenceIntent.activity
     }
 
+    if (pointerActivity !== 'idle') {
+      return pointerActivity
+    }
+
     if (focusedEditingNodeId) {
       return 'editing'
     }
 
-    return pointerActivity
+    return 'idle'
   }, [focusedEditingNodeId, pointerActivity, presenceIntent?.activity])
 
   const resolvedEditingNodeId = presenceIntent?.editingNodeId ?? focusedEditingNodeId
@@ -975,6 +1022,63 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [applySelectionPositionUpdates, canvas.store, selectedNodeIds]
   )
 
+  const handleNodeResizeStart = useCallback(
+    (id: string, handle: ResizeHandle) => {
+      const node = canvas.store.getNode(id)
+      if (!node || node.locked) {
+        return
+      }
+
+      separateSceneUndoBoundary()
+      resizeSessionRef.current = {
+        nodeId: id,
+        handle,
+        initialPosition: { ...node.position }
+      }
+      setPointerActivity('resizing')
+    },
+    [canvas.store, separateSceneUndoBoundary]
+  )
+
+  const handleNodeResize = useCallback(
+    (id: string, handle: ResizeHandle, delta: Point) => {
+      const session = resizeSessionRef.current
+      if (!session || session.nodeId !== id || session.handle !== handle) {
+        return
+      }
+
+      const liveNode = canvas.store.getNode(id)
+      if (!liveNode || liveNode.locked) {
+        return
+      }
+
+      const resizeUpdate = createResizeUpdate(
+        {
+          ...liveNode,
+          position: session.initialPosition
+        },
+        handle,
+        {
+          x: delta.x / viewport.zoom,
+          y: delta.y / viewport.zoom
+        },
+        {
+          minWidth: MIN_RESIZE_WIDTH,
+          minHeight: MIN_RESIZE_HEIGHT
+        }
+      )
+
+      canvas.updateNodePositions([resizeUpdate])
+    },
+    [canvas, viewport.zoom]
+  )
+
+  const handleNodeResizeEnd = useCallback(() => {
+    resizeSessionRef.current = null
+    setPointerActivity('idle')
+    separateSceneUndoBoundary()
+  }, [separateSceneUndoBoundary])
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const manager = new Y.UndoManager(
@@ -1035,6 +1139,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
 
   const handleNodeDragStart = useCallback(
     (id: string, _point: Point) => {
+      separateSceneUndoBoundary()
       setPointerActivity('dragging')
       // Capture initial positions of all nodes being dragged
       const nodesToMove = selectedNodeIds.has(id) ? Array.from(selectedNodeIds) : [id]
@@ -1051,9 +1156,8 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
           })
         }
       })
-      // Could start undo batch here
     },
-    [selectedNodeIds, canvas.store]
+    [canvas.store, selectedNodeIds, separateSceneUndoBoundary]
   )
 
   const handleNodeDrag = useCallback(
@@ -1081,13 +1185,16 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     [applySelectionPositionUpdates, viewport.zoom]
   )
 
-  const handleNodeDragEnd = useCallback((_id: string) => {
-    // Clear drag state
-    dragInitialPositions.current.clear()
-    dragCumulativeOffset.current = { x: 0, y: 0 }
-    setPointerActivity('idle')
-    // Could end undo batch here
-  }, [])
+  const handleNodeDragEnd = useCallback(
+    (_id: string) => {
+      // Clear drag state
+      dragInitialPositions.current.clear()
+      dragCumulativeOffset.current = { x: 0, y: 0 }
+      setPointerActivity('idle')
+      separateSceneUndoBoundary()
+    },
+    [separateSceneUndoBoundary]
+  )
 
   const handleNodeDoubleClick = useCallback(
     (id: string) => {
@@ -1178,7 +1285,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
     canvasBounds,
     selectedNodeCount: selectedNodeIds.size,
     onViewportChange: handleNavigationViewportChange,
-    onDeleteSelection: () => canvas.deleteSelected(),
+    onDeleteSelection: handleDeleteSelection,
     onSelectAll: () => canvas.selectAll(),
     onClearSelection: clearSelection,
     onStepSelection: handleStepSelection,
@@ -1381,6 +1488,9 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
               onDragStart={handleNodeDragStart}
               onDrag={handleNodeDrag}
               onDragEnd={handleNodeDragEnd}
+              onResizeStart={handleNodeResizeStart}
+              onResize={handleNodeResize}
+              onResizeEnd={handleNodeResizeEnd}
               onDoubleClick={handleNodeDoubleClick}
             >
               {/* Only render custom content at full LOD for performance */}

@@ -89,7 +89,14 @@ function getHandleCursor(handle: ResizeHandle): string {
 /**
  * Get handle position styles
  */
-function getHandleStyle(handle: ResizeHandle): React.CSSProperties {
+function getHandleStyle(
+  handle: ResizeHandle,
+  colors: {
+    background: string
+    border: string
+    shadow: string
+  }
+): React.CSSProperties {
   const size = 8
   const offset = -size / 2
 
@@ -97,10 +104,11 @@ function getHandleStyle(handle: ResizeHandle): React.CSSProperties {
     position: 'absolute',
     width: size,
     height: size,
-    backgroundColor: '#fff',
-    border: '1px solid #0066ff',
+    backgroundColor: colors.background,
+    border: `1px solid ${colors.border}`,
     borderRadius: 2,
-    cursor: getHandleCursor(handle)
+    cursor: getHandleCursor(handle),
+    boxShadow: colors.shadow
   }
 
   switch (handle) {
@@ -152,6 +160,10 @@ function getNodeTitle(node: CanvasNode): string {
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false
+  }
+
+  if (target.closest('[data-canvas-resize-handle]')) {
+    return true
   }
 
   if (target.closest('[data-canvas-interactive="true"]')) {
@@ -271,6 +283,14 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
   const activeBorder = selected ? selectionBorder : remoteBorder
   const inactiveBorder = hasRemotePresence ? remoteBorder : neutralBorder
   const panelShadow = theme.panelShadow
+  const resizeHandleColors = {
+    background: theme.panelBackground,
+    border: '#3b82f6',
+    shadow:
+      theme.mode === 'dark'
+        ? '0 0 0 1px rgba(10, 10, 10, 0.75)'
+        : '0 1px 2px rgba(15, 23, 42, 0.18)'
+  }
 
   // Handle click for selection (used by all LOD levels)
   const handleClick = useCallback(
@@ -305,6 +325,7 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
       isDragging.current = true
       dragStart.current = { x: e.clientX, y: e.clientY }
       onDragStart(node.id, { x: e.clientX, y: e.clientY })
+      const ownerDocument = nodeRef.current?.ownerDocument ?? document
 
       // Track mouse movement
       const handleMouseMove = (moveEvent: MouseEvent) => {
@@ -319,31 +340,33 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
 
       const handleMouseUp = () => {
         isDragging.current = false
-        window.removeEventListener('mousemove', handleMouseMove)
-        window.removeEventListener('mouseup', handleMouseUp)
+        ownerDocument.removeEventListener('mousemove', handleMouseMove)
+        ownerDocument.removeEventListener('mouseup', handleMouseUp)
         // Only call callback if still mounted
         if (mountedRef.current) {
           onDragEnd(node.id)
         }
       }
 
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
+      ownerDocument.addEventListener('mousemove', handleMouseMove)
+      ownerDocument.addEventListener('mouseup', handleMouseUp)
     },
     [node.id, node.locked, onSelect, onDragStart, onDrag, onDragEnd]
   )
 
   // Handle resize
-  const handleResizeMouseDown = useCallback(
-    (handle: ResizeHandle, e: React.MouseEvent) => {
+  const handleResizePointerDown = useCallback(
+    (handle: ResizeHandle, e: React.PointerEvent<HTMLDivElement>) => {
       if (!onResizeStart || !onResize || !onResizeEnd) return
       e.stopPropagation()
       e.preventDefault()
 
+      const handleElement = e.currentTarget
       const start = { x: e.clientX, y: e.clientY }
       onResizeStart(node.id, handle, start)
+      handleElement.setPointerCapture?.(e.pointerId)
 
-      const handleMouseMove = (moveEvent: MouseEvent) => {
+      const handlePointerMove = (moveEvent: PointerEvent) => {
         if (!mountedRef.current) return
         const delta = {
           x: moveEvent.clientX - start.x,
@@ -352,17 +375,20 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         onResize(node.id, handle, delta)
       }
 
-      const handleMouseUp = () => {
-        window.removeEventListener('mousemove', handleMouseMove)
-        window.removeEventListener('mouseup', handleMouseUp)
+      const handlePointerEnd = () => {
+        handleElement.releasePointerCapture?.(e.pointerId)
+        handleElement.removeEventListener('pointermove', handlePointerMove)
+        handleElement.removeEventListener('pointerup', handlePointerEnd)
+        handleElement.removeEventListener('pointercancel', handlePointerEnd)
         // Only call callback if still mounted
         if (mountedRef.current) {
           onResizeEnd(node.id)
         }
       }
 
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
+      handleElement.addEventListener('pointermove', handlePointerMove)
+      handleElement.addEventListener('pointerup', handlePointerEnd)
+      handleElement.addEventListener('pointercancel', handlePointerEnd)
     },
     [node.id, onResizeStart, onResize, onResizeEnd]
   )
@@ -563,7 +589,10 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
                 height: 16,
                 borderRadius: '50%',
                 backgroundColor: user.color,
-                border: '2px solid #fff',
+                border:
+                  theme.mode === 'dark'
+                    ? '2px solid rgba(10, 10, 10, 0.92)'
+                    : '2px solid rgba(255, 255, 255, 0.96)',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                 display: 'flex',
                 alignItems: 'center',
@@ -584,9 +613,14 @@ export const CanvasNodeComponent = memo(function CanvasNodeComponent({
         RESIZE_HANDLES.map((handle) => (
           <div
             key={handle}
-            style={getHandleStyle(handle)}
-            onMouseDown={(e) => handleResizeMouseDown(handle, e)}
+            style={getHandleStyle(handle, resizeHandleColors)}
+            onPointerDown={(e) => handleResizePointerDown(handle, e)}
+            role="button"
+            aria-label={`Resize ${getNodeTitle(node)} from ${handle}`}
+            title={`Resize ${getNodeTitle(node)} from ${handle}`}
+            data-canvas-interactive="true"
             data-handle={handle}
+            data-canvas-resize-handle={handle}
           />
         ))}
     </div>

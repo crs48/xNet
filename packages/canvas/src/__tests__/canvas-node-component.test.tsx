@@ -76,4 +76,64 @@ describe('CanvasNodeComponent', () => {
 
     expect(onDoubleClick).not.toHaveBeenCalled()
   })
+
+  it('routes resize handle interactions through the resize callbacks', () => {
+    const onResizeStart = vi.fn()
+    const onResize = vi.fn()
+    const onResizeEnd = vi.fn()
+    const onDragStart = vi.fn()
+
+    render(
+      <CanvasNodeComponent
+        node={TEST_NODE}
+        selected
+        onSelect={vi.fn()}
+        onDragStart={onDragStart}
+        onDrag={vi.fn()}
+        onDragEnd={vi.fn()}
+        onResizeStart={onResizeStart}
+        onResize={onResize}
+        onResizeEnd={onResizeEnd}
+      />
+    )
+
+    const handle = screen.getByRole('button', { name: 'Resize Canvas Page from bottom-right' })
+
+    fireEvent.pointerDown(handle, {
+      button: 0,
+      buttons: 1,
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 240,
+      clientY: 220
+    })
+    fireEvent.mouseDown(handle, {
+      button: 0,
+      clientX: 240,
+      clientY: 220
+    })
+    fireEvent.pointerMove(handle, {
+      buttons: 1,
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 280,
+      clientY: 260
+    })
+    fireEvent.pointerUp(handle, {
+      button: 0,
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 280,
+      clientY: 260
+    })
+
+    expect(onResizeStart).toHaveBeenCalledWith(
+      'page-1',
+      'bottom-right',
+      expect.objectContaining({})
+    )
+    expect(onDragStart).not.toHaveBeenCalled()
+    expect(onResize).toHaveBeenCalledWith('page-1', 'bottom-right', expect.any(Object))
+    expect(onResizeEnd).toHaveBeenCalledWith('page-1')
+  })
 })

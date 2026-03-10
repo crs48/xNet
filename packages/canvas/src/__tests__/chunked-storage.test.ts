@@ -429,6 +429,40 @@ describe('ChunkManager', () => {
       expect(store.getNodeChunk('n1')).toBe('1,0')
     })
 
+    it('falls back to the node position when the chunk index is cold', () => {
+      const updateNodePosition = vi.fn()
+      const fallbackStore = {
+        loadChunk: vi.fn(async () => ({ nodes: [], edges: [] })),
+        loadCrossChunkEdgesFor: vi.fn(async () => []),
+        addNode: vi.fn(),
+        getNodeChunk: vi.fn(() => null),
+        updateNodePosition,
+        moveNodeToChunk: vi.fn(),
+        removeNode: vi.fn(),
+        getNode: vi.fn(() => createTestNode('n1', 100, 100, 100, 50)),
+        addEdge: vi.fn(),
+        removeEdge: vi.fn(),
+        updateEdgeChunkAssignment: vi.fn()
+      }
+      const fallbackManager = createChunkManager(fallbackStore)
+
+      fallbackManager.moveNode('n1', {
+        x: 180,
+        y: 160,
+        width: 140,
+        height: 80
+      })
+
+      expect(updateNodePosition).toHaveBeenCalledWith('n1', {
+        x: 180,
+        y: 160,
+        width: 140,
+        height: 80
+      })
+
+      fallbackManager.dispose()
+    })
+
     it('removes node and connected edges', async () => {
       // Setup: two nodes with edge
       const n1 = createTestNode('n1', 100, 100)

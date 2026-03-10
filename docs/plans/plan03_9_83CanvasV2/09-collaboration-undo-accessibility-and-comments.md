@@ -114,6 +114,8 @@ const contentUndo = useUndo(pageNodeId, {
 
 - Add unit coverage for keyboard navigation and anchor orphaning.
 - Validate undo boundaries manually across scene moves and inline edits.
+- Add automated regression coverage for pointer-driven move/resize activity so
+  scene-intent transitions do not silently fall back to stale editing or idle state.
 - Verify multi-user behavior with two Electron instances.
 
 Suggested commands:
@@ -133,7 +135,7 @@ cd apps/electron && pnpm dev:both
 ## Step Checklist
 
 - [x] Separate canvas presence state from source-content presence state.
-- [ ] Define explicit transitions between move/resize/peek/edit/comment intents.
+- [x] Define explicit transitions between move/resize/peek/edit/comment intents.
 - [ ] Use `useUndo` and `useUndoScope` to enforce clear undo boundaries.
 - [x] Add object-level comment anchors and graceful orphan handling.
 - [ ] Extend keyboard accessibility to the full Canvas V2 object model.

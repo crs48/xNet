@@ -55,6 +55,13 @@ type CanvasTestHarness = {
   registerCanvasDoc: (canvasId: string, doc: Y.Doc | null) => void
   registerCanvasAwareness: (canvasId: string, awareness: Awareness | null) => void
   moveCanvasNode: (input: { nodeId: string; dx: number; dy: number }) => Promise<void>
+  getCanvasNodeRect: (input: { nodeId: string }) => Promise<{
+    canvasId: string
+    x: number
+    y: number
+    width: number
+    height: number
+  }>
   removeCanvasNode: (input: { nodeId: string }) => Promise<void>
   setCanvasRemotePresence: (input: {
     canvasId?: string
@@ -198,6 +205,33 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
 
         await store.setDocumentContent(canvasId, Y.encodeStateAsUpdate(doc))
         return
+      }
+
+      throw new Error(`Node ${input.nodeId} not found`)
+    },
+
+    async getCanvasNodeRect(input) {
+      for (const [canvasId, doc] of liveDocs.entries()) {
+        const nodesMap = doc.getMap<{
+          position: {
+            x: number
+            y: number
+            width: number
+            height: number
+          }
+        }>('nodes')
+        const node = nodesMap.get(input.nodeId)
+        if (!node) {
+          continue
+        }
+
+        return {
+          canvasId,
+          x: node.position.x,
+          y: node.position.y,
+          width: node.position.width,
+          height: node.position.height
+        }
       }
 
       throw new Error(`Node ${input.nodeId} not found`)

@@ -171,12 +171,15 @@ Automated validation should include:
   - command-palette creation
   - minimap toggle
   - theme transitions across the shared canvas surface, navigation cluster, and minimap controls
+  - pointer-driven resize flows that preserve scene geometry even when chunk membership is derived
+    from the live node position rather than a warm chunk index
   - page/database focus-return flows
   - database split-view open/close flows
 - Web Playwright smoke coverage for:
   - light/dark theme transitions across the shared canvas surface, navigation cluster, and minimap controls
   - URL drops creating source-backed `ExternalReference` cards
   - image/file drops creating source-backed `MediaAsset` cards
+  - pointer-driven resize flows that keep canvas activity diagnostics and persisted geometry in sync
 - Electron CDP performance coverage for:
   - dense seeded scenes
   - bounded DOM node counts
@@ -197,6 +200,7 @@ Automated validation should include:
 - [x] Add repeatable performance scenes and capture frame/DOM/query metrics.
 - [x] Add Electron CDP e2e coverage for canvas-home workflows and shortcuts.
 - [x] Add Electron and web theme-regression coverage for shared canvas chrome.
+- [x] Add Electron and web resize-persistence regression coverage for pointer-driven transforms.
 - [x] Add Electron CDP large-scene performance coverage and record thresholds.
 - [ ] Run manual Electron validation for editing, navigation, collaboration, and shortcuts.
 - [ ] Document and enforce release gates before web rollout.

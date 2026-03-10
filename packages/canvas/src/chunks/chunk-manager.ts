@@ -536,6 +536,11 @@ export class ChunkManager {
     const storeChunk = this.store.getNodeChunk(nodeId)
     if (storeChunk) return storeChunk
 
+    const storeNode = this.store.getNode(nodeId)
+    if (storeNode) {
+      return this.getChunkForNode(storeNode)
+    }
+
     // Fallback: search loaded chunks
     for (const [key, chunk] of this.chunks) {
       if (chunk.loaded && chunk.nodes.some((n) => n.id === nodeId)) {
