@@ -23,6 +23,7 @@ export {
   type RowAnchor,
   type ColumnAnchor,
   type CanvasPositionAnchor,
+  type CanvasObjectAnchorPlacement,
   type CanvasObjectAnchor,
   type NodeAnchor,
   type AnchorData,

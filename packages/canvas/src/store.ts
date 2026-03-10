@@ -7,6 +7,7 @@
 
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, CanvasNodeType } from './types'
 import * as Y from 'yjs'
+import { normalizeCanvasEdgeBindings, getCanvasEdgeNodeIds } from './edges/bindings'
 import { SpatialIndex, createSpatialIndex } from './spatial/index'
 
 type CanvasNodeChanges = Partial<Omit<CanvasNode, 'id'>>
@@ -207,7 +208,8 @@ export class CanvasStore {
       // Also remove connected edges
       this.edgesMap.forEach((edge: unknown, edgeId: string) => {
         const e = edge as CanvasEdge
-        if (e.sourceId === id || e.targetId === id) {
+        const [sourceId, targetId] = getCanvasEdgeNodeIds(e)
+        if (sourceId === id || targetId === id) {
           this.edgesMap.delete(edgeId)
         }
       })
@@ -227,7 +229,8 @@ export class CanvasStore {
       const idSet = new Set(ids)
       this.edgesMap.forEach((edge: unknown, edgeId: string) => {
         const e = edge as CanvasEdge
-        if (idSet.has(e.sourceId) || idSet.has(e.targetId)) {
+        const [sourceId, targetId] = getCanvasEdgeNodeIds(e)
+        if ((sourceId && idSet.has(sourceId)) || (targetId && idSet.has(targetId))) {
           this.edgesMap.delete(edgeId)
         }
       })
@@ -242,8 +245,14 @@ export class CanvasStore {
    * Add an edge between nodes
    */
   addEdge(edge: CanvasEdge): void {
+    const [sourceId, targetId] = getCanvasEdgeNodeIds(edge)
+    const normalizedEdge = normalizeCanvasEdgeBindings(edge, {
+      sourceNode: sourceId ? (this.getNode(sourceId) ?? null) : null,
+      targetNode: targetId ? (this.getNode(targetId) ?? null) : null
+    })
+
     this.ydoc.transact(() => {
-      this.edgesMap.set(edge.id, edge)
+      this.edgesMap.set(normalizedEdge.id, normalizedEdge)
     })
   }
 
@@ -272,7 +281,8 @@ export class CanvasStore {
     const edges: CanvasEdge[] = []
     this.edgesMap.forEach((value: unknown) => {
       const edge = value as CanvasEdge
-      if (edge.sourceId === nodeId || edge.targetId === nodeId) {
+      const [sourceId, targetId] = getCanvasEdgeNodeIds(edge)
+      if (sourceId === nodeId || targetId === nodeId) {
         edges.push(edge)
       }
     })
@@ -572,10 +582,10 @@ export function createEdge(
   targetId: string,
   properties: Partial<Omit<CanvasEdge, 'id' | 'sourceId' | 'targetId'>> = {}
 ): CanvasEdge {
-  return {
+  return normalizeCanvasEdgeBindings({
     id: generateEdgeId(),
     sourceId,
     targetId,
     ...properties
-  }
+  })
 }

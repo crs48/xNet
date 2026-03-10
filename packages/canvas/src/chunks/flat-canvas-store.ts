@@ -10,6 +10,11 @@ import type { ChunkKey } from './config'
 import type { ChunkData, ChunkStoreAdapter, CrossChunkEdge } from './types'
 import type { CanvasEdge, CanvasNode, CanvasNodePosition } from '../types'
 import * as Y from 'yjs'
+import {
+  getCanvasEdgeSourceObjectId,
+  getCanvasEdgeTargetObjectId,
+  normalizeCanvasEdgeBindings
+} from '../edges/bindings'
 import { chunkKeyFromPosition } from './config'
 
 type EdgeLocation =
@@ -173,8 +178,15 @@ export class FlatCanvasChunkStore implements ChunkStoreAdapter {
   }
 
   addEdge(edge: CanvasEdge, _sourceChunk: ChunkKey, _targetChunk: ChunkKey): void {
+    const sourceId = getCanvasEdgeSourceObjectId(edge)
+    const targetId = getCanvasEdgeTargetObjectId(edge)
+    const normalizedEdge = normalizeCanvasEdgeBindings(edge, {
+      sourceNode: sourceId ? this.getNode(sourceId) : null,
+      targetNode: targetId ? this.getNode(targetId) : null
+    })
+
     this.ydoc.transact(() => {
-      this.edges.set(edge.id, edge)
+      this.edges.set(normalizedEdge.id, normalizedEdge)
     })
   }
 
@@ -268,17 +280,23 @@ export class FlatCanvasChunkStore implements ChunkStoreAdapter {
   }
 
   private updateEdgeEndpoints(edge: CanvasEdge): void {
+    const sourceId = getCanvasEdgeSourceObjectId(edge)
+    const targetId = getCanvasEdgeTargetObjectId(edge)
+    if (!sourceId || !targetId) {
+      return
+    }
+
     const existing = this.edgeEndpoints.get(edge.id)
     if (existing) {
       deleteFromIndexedSet(this.edgeIdsByNode, existing.sourceId, edge.id)
       deleteFromIndexedSet(this.edgeIdsByNode, existing.targetId, edge.id)
     }
 
-    getOrCreateSet(this.edgeIdsByNode, edge.sourceId).add(edge.id)
-    getOrCreateSet(this.edgeIdsByNode, edge.targetId).add(edge.id)
+    getOrCreateSet(this.edgeIdsByNode, sourceId).add(edge.id)
+    getOrCreateSet(this.edgeIdsByNode, targetId).add(edge.id)
     this.edgeEndpoints.set(edge.id, {
-      sourceId: edge.sourceId,
-      targetId: edge.targetId
+      sourceId,
+      targetId
     })
   }
 
@@ -308,8 +326,14 @@ export class FlatCanvasChunkStore implements ChunkStoreAdapter {
     this.removeEdgeIndex(edge.id)
     this.updateEdgeEndpoints(edge)
 
-    const sourceChunk = this.nodeChunks.get(edge.sourceId)
-    const targetChunk = this.nodeChunks.get(edge.targetId)
+    const sourceId = getCanvasEdgeSourceObjectId(edge)
+    const targetId = getCanvasEdgeTargetObjectId(edge)
+    if (!sourceId || !targetId) {
+      return
+    }
+
+    const sourceChunk = this.nodeChunks.get(sourceId)
+    const targetChunk = this.nodeChunks.get(targetId)
     if (!sourceChunk || !targetChunk) {
       return
     }

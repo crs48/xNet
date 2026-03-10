@@ -106,14 +106,52 @@ export interface CanvasNode {
 export type EdgeAnchor = 'top' | 'right' | 'bottom' | 'left' | 'center' | 'auto'
 
 /**
+ * Stable anchor placements for object-bound connectors and comments.
+ */
+export type CanvasObjectAnchorPlacement =
+  | EdgeAnchor
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right'
+
+/**
+ * Durable connector endpoint bound to a canvas object.
+ */
+export interface CanvasEdgeEndpoint {
+  /** Stable canvas object reference */
+  objectId: string
+  /** Stable anchor ID for comment/deep-link reuse */
+  anchorId?: string
+  /** Logical attachment placement on the object */
+  placement?: CanvasObjectAnchorPlacement
+  /** Optional custom normalized anchor ratios (0..1) */
+  xRatio?: number
+  yRatio?: number
+  /** Optional pixel offset from the resolved anchor point */
+  offsetX?: number
+  offsetY?: number
+  /** Future block/deep-link target within the source content */
+  blockAnchorId?: string
+}
+
+/**
  * Edge/connection between canvas nodes
  */
 export interface CanvasEdge {
   id: string
+  /** Legacy mirror of source.objectId for existing runtime paths */
   sourceId: string
+  /** Legacy mirror of target.objectId for existing runtime paths */
   targetId: string
+  /** Legacy mirror of source.placement */
   sourceAnchor?: EdgeAnchor
+  /** Legacy mirror of target.placement */
   targetAnchor?: EdgeAnchor
+  /** Durable source endpoint binding */
+  source?: CanvasEdgeEndpoint
+  /** Durable target endpoint binding */
+  target?: CanvasEdgeEndpoint
   label?: string
   style?: EdgeStyle
 }

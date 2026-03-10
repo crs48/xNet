@@ -7,6 +7,7 @@
 
 import type { CanvasNode, CanvasEdge } from '../types'
 import { useRef, useEffect, useCallback, useMemo, useState } from 'react'
+import { getCanvasEdgeSourceObjectId, getCanvasEdgeTargetObjectId } from '../edges/bindings'
 import { Viewport } from '../spatial/index'
 import { useCanvasThemeTokens } from '../theme/canvas-theme'
 
@@ -246,8 +247,10 @@ export function Minimap({
       const nodeMap = new Map(nodes.map((n) => [n.id, n]))
 
       for (const edge of edges) {
-        const source = nodeMap.get(edge.sourceId)
-        const target = nodeMap.get(edge.targetId)
+        const sourceId = getCanvasEdgeSourceObjectId(edge)
+        const targetId = getCanvasEdgeTargetObjectId(edge)
+        const source = sourceId ? nodeMap.get(sourceId) : undefined
+        const target = targetId ? nodeMap.get(targetId) : undefined
         if (!source || !target) continue
 
         const sx = (source.position.x + source.position.width / 2) * scale + offset.x

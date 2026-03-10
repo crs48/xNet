@@ -10,7 +10,12 @@
  * 4. Level-of-detail - Skip labels and simplify curves at low zoom
  */
 
-import type { CanvasEdge, EdgeStyle, EdgeAnchor, Rect, Point, ViewportState } from '../types'
+import type { CanvasEdge, EdgeStyle, Rect, Point, ViewportState } from '../types'
+import {
+  getCanvasEdgeSourceObjectId,
+  getCanvasEdgeTargetObjectId,
+  resolveCanvasAnchorPoint
+} from '../edges/bindings'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -151,8 +156,10 @@ export class EdgeRenderer {
     for (const edge of edges) {
       seen.add(edge.id)
 
-      const sourceRect = nodePositions.get(edge.sourceId)
-      const targetRect = nodePositions.get(edge.targetId)
+      const sourceId = getCanvasEdgeSourceObjectId(edge)
+      const targetId = getCanvasEdgeTargetObjectId(edge)
+      const sourceRect = sourceId ? nodePositions.get(sourceId) : undefined
+      const targetRect = targetId ? nodePositions.get(targetId) : undefined
       if (!sourceRect || !targetRect) continue
 
       const version = this.computeVersion(edge, sourceRect, targetRect)
@@ -268,8 +275,16 @@ export class EdgeRenderer {
     const targetCenter = { x: target.x + target.width / 2, y: target.y + target.height / 2 }
     const sourceCenter = { x: source.x + source.width / 2, y: source.y + source.height / 2 }
 
-    const sourceAnchor = this.computeAnchor(source, edge.sourceAnchor ?? 'auto', targetCenter)
-    const targetAnchor = this.computeAnchor(target, edge.targetAnchor ?? 'auto', sourceCenter)
+    const sourceAnchor = resolveCanvasAnchorPoint(
+      source,
+      edge.source ?? { placement: edge.sourceAnchor },
+      targetCenter
+    )
+    const targetAnchor = resolveCanvasAnchorPoint(
+      target,
+      edge.target ?? { placement: edge.targetAnchor },
+      sourceCenter
+    )
 
     let endDirection: Point
 
@@ -304,42 +319,6 @@ export class EdgeRenderer {
     }
 
     return { path, endPoint: targetAnchor, endDirection }
-  }
-
-  private computeAnchor(rect: Rect, anchor: EdgeAnchor, other: Point): Point {
-    const cx = rect.x + rect.width / 2
-    const cy = rect.y + rect.height / 2
-
-    if (anchor === 'auto') {
-      // Find closest edge
-      const dx = other.x - cx
-      const dy = other.y - cy
-
-      if (Math.abs(dx) > Math.abs(dy)) {
-        return dx > 0
-          ? { x: rect.x + rect.width, y: cy } // Right
-          : { x: rect.x, y: cy } // Left
-      } else {
-        return dy > 0
-          ? { x: cx, y: rect.y + rect.height } // Bottom
-          : { x: cx, y: rect.y } // Top
-      }
-    }
-
-    // Explicit anchor positions
-    switch (anchor) {
-      case 'top':
-        return { x: cx, y: rect.y }
-      case 'bottom':
-        return { x: cx, y: rect.y + rect.height }
-      case 'left':
-        return { x: rect.x, y: cy }
-      case 'right':
-        return { x: rect.x + rect.width, y: cy }
-      case 'center':
-      default:
-        return { x: cx, y: cy }
-    }
   }
 
   private drawArrowHead(ctx: CanvasRenderingContext2D, cached: CachedEdge, _zoom: number): void {
@@ -382,7 +361,9 @@ export class EdgeRenderer {
   private computeVersion(edge: CanvasEdge, source: Rect, target: Rect): number {
     // Simple hash of relevant properties
     return hashCode(
-      `${edge.id}:${edge.sourceAnchor ?? 'auto'}:${edge.targetAnchor ?? 'auto'}:` +
+      `${edge.id}:${JSON.stringify(edge.source ?? edge.sourceAnchor ?? 'auto')}:${JSON.stringify(
+        edge.target ?? edge.targetAnchor ?? 'auto'
+      )}:` +
         `${source.x},${source.y},${source.width},${source.height}:` +
         `${target.x},${target.y},${target.width},${target.height}:` +
         `${JSON.stringify(edge.style ?? {})}`
@@ -443,8 +424,10 @@ export class EdgeRenderer {
     for (const edge of edges) {
       if (!edge.label) continue
 
-      const source = nodePositions.get(edge.sourceId)
-      const target = nodePositions.get(edge.targetId)
+      const sourceId = getCanvasEdgeSourceObjectId(edge)
+      const targetId = getCanvasEdgeTargetObjectId(edge)
+      const source = sourceId ? nodePositions.get(sourceId) : undefined
+      const target = targetId ? nodePositions.get(targetId) : undefined
       if (!source || !target) continue
 
       // Label at midpoint

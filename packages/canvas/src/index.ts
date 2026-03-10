@@ -37,6 +37,8 @@ export type {
   CanvasLayerDirection,
   CanvasNode,
   EdgeAnchor,
+  CanvasObjectAnchorPlacement,
+  CanvasEdgeEndpoint,
   CanvasEdge,
   EdgeStyle,
   ViewportState,
@@ -210,6 +212,17 @@ export type {
 
 export { CanvasEdgeComponent } from './edges/CanvasEdgeComponent'
 export type { CanvasEdgeProps } from './edges/CanvasEdgeComponent'
+export {
+  createCanvasObjectAnchorId,
+  createCanvasEdgeEndpoint,
+  getCanvasEdgeNodeIds,
+  getCanvasEdgeSourceObjectId,
+  getCanvasEdgeTargetObjectId,
+  normalizeCanvasEdgeBindings,
+  resolveAutoCanvasAnchorPlacement,
+  resolveCanvasAnchorPoint,
+  toLegacyEdgeAnchor
+} from './edges/bindings'
 
 // Minimap, navigation, and presence components
 export {
@@ -284,6 +297,7 @@ export {
   isCanvasAnchorOrphaned,
   type CanvasTransform,
   type CanvasObject,
+  type CanvasObjectCommentOptions,
   type UseCanvasCommentsOptions,
   type UseCanvasCommentsResult,
   type ResolvedPin

@@ -14,6 +14,7 @@ import {
   type RowAnchor,
   type ColumnAnchor,
   type CanvasPositionAnchor,
+  type CanvasObjectAnchorPlacement,
   type CanvasObjectAnchor,
   type NodeAnchor,
   type AnchorData
@@ -46,8 +47,12 @@ describe('Comment Anchors', () => {
     y: 200.75
   }
 
+  const canvasObjectPlacement: CanvasObjectAnchorPlacement = 'bottom-right'
+
   const canvasObjectAnchor: CanvasObjectAnchor = {
     objectId: 'shape-xyz',
+    anchorId: 'shape-xyz#placement:bottom-right',
+    placement: canvasObjectPlacement,
     offsetX: 10,
     offsetY: 20
   }
@@ -96,6 +101,8 @@ describe('Comment Anchors', () => {
       const withOffset = JSON.stringify(canvasObjectAnchor)
       const decoded = decodeAnchor<CanvasObjectAnchor>(withOffset)
       expect(decoded.objectId).toBe('shape-xyz')
+      expect(decoded.anchorId).toBe('shape-xyz#placement:bottom-right')
+      expect(decoded.placement).toBe('bottom-right')
       expect(decoded.offsetX).toBe(10)
       expect(decoded.offsetY).toBe(20)
     })
@@ -105,6 +112,8 @@ describe('Comment Anchors', () => {
       const encoded = JSON.stringify(minimal)
       const decoded = decodeAnchor<CanvasObjectAnchor>(encoded)
       expect(decoded.objectId).toBe('shape-123')
+      expect(decoded.anchorId).toBeUndefined()
+      expect(decoded.placement).toBeUndefined()
       expect(decoded.offsetX).toBeUndefined()
       expect(decoded.offsetY).toBeUndefined()
     })

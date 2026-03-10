@@ -17,6 +17,7 @@ import {
 } from '@xnetjs/data'
 import { useComments, type CommentThread } from '@xnetjs/react'
 import { useMemo, useCallback } from 'react'
+import { createCanvasObjectAnchorId, resolveCanvasAnchorPoint } from '../edges/bindings'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -94,8 +95,7 @@ export interface UseCanvasCommentsResult {
   commentOnObject: (
     objectId: string,
     content: string,
-    offsetX?: number,
-    offsetY?: number
+    options?: CanvasObjectCommentOptions
   ) => Promise<string | null>
 
   // ─── Thread Actions (from base hook) ────────────────────────────────────────
@@ -113,6 +113,16 @@ export interface UseCanvasCommentsResult {
   editComment: (commentId: string, content: string) => Promise<void>
   /** Reload comments */
   reload: () => Promise<void>
+}
+
+export interface CanvasObjectCommentOptions {
+  placement?: NonNullable<CanvasObjectAnchor['placement']>
+  anchorId?: string
+  xRatio?: number
+  yRatio?: number
+  offsetX?: number
+  offsetY?: number
+  blockAnchorId?: string
 }
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
@@ -204,7 +214,7 @@ export function useCanvasComments({
 
           if (anchorType === 'canvas-object') {
             const anchor = decodeAnchor<CanvasObjectAnchor>(thread.root.properties.anchorData)
-            const { objectId, offsetX = 0, offsetY = 0 } = anchor
+            const { objectId } = anchor
 
             const obj = objects.get(objectId)
             if (!obj) {
@@ -218,9 +228,21 @@ export function useCanvasComments({
               }
             }
 
-            // Position pin at object's right edge with offset
-            const x = obj.x + obj.width + offsetX
-            const y = obj.y + offsetY
+            const { x, y } = resolveCanvasAnchorPoint(
+              {
+                x: obj.x,
+                y: obj.y,
+                width: obj.width,
+                height: obj.height
+              },
+              {
+                placement: anchor.placement ?? 'right',
+                xRatio: anchor.xRatio,
+                yRatio: anchor.yRatio,
+                offsetX: anchor.offsetX,
+                offsetY: anchor.offsetY
+              }
+            )
 
             // Transform to viewport coords
             const viewportX = (x - transform.panX) * transform.zoom
@@ -278,13 +300,25 @@ export function useCanvasComments({
 
   /** Create a comment attached to an object */
   const commentOnObject = useCallback(
-    async (
-      objectId: string,
-      content: string,
-      offsetX?: number,
-      offsetY?: number
-    ): Promise<string | null> => {
-      const anchor: CanvasObjectAnchor = { objectId, offsetX, offsetY }
+    async (objectId: string, content: string, options: CanvasObjectCommentOptions = {}) => {
+      const anchor: CanvasObjectAnchor = {
+        objectId,
+        anchorId:
+          options.anchorId ??
+          createCanvasObjectAnchorId({
+            objectId,
+            placement: options.placement ?? 'right',
+            xRatio: options.xRatio,
+            yRatio: options.yRatio,
+            blockAnchorId: options.blockAnchorId
+          }),
+        placement: options.placement ?? 'right',
+        xRatio: options.xRatio,
+        yRatio: options.yRatio,
+        offsetX: options.offsetX,
+        offsetY: options.offsetY,
+        blockAnchorId: options.blockAnchorId
+      }
       return addComment({
         content,
         anchorType: 'canvas-object',

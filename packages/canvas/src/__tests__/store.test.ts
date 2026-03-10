@@ -2,6 +2,7 @@
  * Tests for canvas store
  */
 
+import type { CanvasEdge } from '../types'
 import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import {
@@ -104,7 +105,37 @@ describe('CanvasStore', () => {
       store.addEdge(edge)
 
       expect(store.edgeCount()).toBe(1)
-      expect(store.getEdge(edge.id)).toEqual(edge)
+      expect(store.getEdge(edge.id)).toEqual(
+        expect.objectContaining({
+          id: edge.id,
+          sourceId: node1.id,
+          targetId: node2.id,
+          source: expect.objectContaining({ objectId: node1.id }),
+          target: expect.objectContaining({ objectId: node2.id })
+        })
+      )
+    })
+
+    it('normalizes endpoint-only edges into durable bindings', () => {
+      const node1 = createNode('card', { x: 0, y: 0, width: 120, height: 80 })
+      const node2 = createNode('card', { x: 240, y: 0, width: 120, height: 80 })
+      const edge = {
+        id: generateEdgeId(),
+        sourceId: '' as unknown as string,
+        targetId: '' as unknown as string,
+        source: { objectId: node1.id },
+        target: { objectId: node2.id }
+      } as CanvasEdge
+
+      store.addNode(node1)
+      store.addNode(node2)
+      store.addEdge(edge)
+
+      const storedEdge = store.getEdge(edge.id)
+      expect(storedEdge?.sourceId).toBe(node1.id)
+      expect(storedEdge?.targetId).toBe(node2.id)
+      expect(storedEdge?.source?.placement).toBe('right')
+      expect(storedEdge?.target?.placement).toBe('left')
     })
 
     it('should get all edges', () => {
@@ -281,6 +312,10 @@ describe('helper functions', () => {
       expect(edge.id).toBeDefined()
       expect(edge.sourceId).toBe('source')
       expect(edge.targetId).toBe('target')
+      expect(edge.source?.objectId).toBe('source')
+      expect(edge.target?.objectId).toBe('target')
+      expect(edge.source?.anchorId).toBe('source#placement:auto')
+      expect(edge.target?.anchorId).toBe('target#placement:auto')
     })
 
     it('should accept optional properties', () => {

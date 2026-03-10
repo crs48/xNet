@@ -10,6 +10,7 @@
 import type { Viewport } from '../spatial'
 import type { CanvasStore } from '../store'
 import type { CanvasEdge, CanvasNode, Rect } from '../types'
+import { getCanvasEdgeSourceObjectId, getCanvasEdgeTargetObjectId } from '../edges/bindings'
 
 export const DEFAULT_VISIBLE_BUFFER_PX = 200
 export const DEFAULT_DOM_NODE_LIMIT = 48
@@ -118,9 +119,14 @@ export function createCanvasDisplayList({
   const visibleNodes = store.getVisibleNodes(expandedRect).sort(compareVisibleNodeOrder)
   const visibleNodeIds = new Set(visibleNodes.map((node) => node.id))
   const nodeMap = new Map(nodes.map((node) => [node.id, node]))
-  const visibleEdges = edges.filter(
-    (edge) => visibleNodeIds.has(edge.sourceId) || visibleNodeIds.has(edge.targetId)
-  )
+  const visibleEdges = edges.filter((edge) => {
+    const sourceId = getCanvasEdgeSourceObjectId(edge)
+    const targetId = getCanvasEdgeTargetObjectId(edge)
+    return (
+      (sourceId !== null && visibleNodeIds.has(sourceId)) ||
+      (targetId !== null && visibleNodeIds.has(targetId))
+    )
+  })
   const domNodes = pickDomNodes(visibleNodes, selectedNodeIds, viewport, domNodeLimit)
   const domNodeIds = new Set(domNodes.map((node) => node.id))
   const overviewNodes = visibleNodes.filter((node) => !domNodeIds.has(node.id))

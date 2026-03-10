@@ -15,6 +15,11 @@ import type {
   ChunkStoreAdapter
 } from './types'
 import type { CanvasNode, CanvasEdge, CanvasNodePosition, Rect } from '../types'
+import {
+  getCanvasEdgeSourceObjectId,
+  getCanvasEdgeTargetObjectId,
+  normalizeCanvasEdgeBindings
+} from '../edges/bindings'
 import { Viewport } from '../spatial/index'
 import {
   CHUNK_SIZE,
@@ -303,13 +308,19 @@ export class ChunkManager {
     if (chunk?.loaded) {
       chunk.nodes = chunk.nodes.filter((n) => n.id !== nodeId)
       // Remove edges connected to this node
-      chunk.edges = chunk.edges.filter((e) => e.sourceId !== nodeId && e.targetId !== nodeId)
+      chunk.edges = chunk.edges.filter((edge) => {
+        const sourceId = getCanvasEdgeSourceObjectId(edge)
+        const targetId = getCanvasEdgeTargetObjectId(edge)
+        return sourceId !== nodeId && targetId !== nodeId
+      })
     }
 
     // Remove cross-chunk edges
-    this.crossChunkEdges = this.crossChunkEdges.filter(
-      (e) => e.sourceId !== nodeId && e.targetId !== nodeId
-    )
+    this.crossChunkEdges = this.crossChunkEdges.filter((edge) => {
+      const sourceId = getCanvasEdgeSourceObjectId(edge)
+      const targetId = getCanvasEdgeTargetObjectId(edge)
+      return sourceId !== nodeId && targetId !== nodeId
+    })
 
     // Remove from store
     this.store.removeNode(nodeId)
@@ -321,25 +332,33 @@ export class ChunkManager {
    * Add an edge between nodes.
    */
   addEdge(edge: CanvasEdge): void {
-    const sourceChunk = this.findNodeChunk(edge.sourceId)
-    const targetChunk = this.findNodeChunk(edge.targetId)
+    const existingSourceId = getCanvasEdgeSourceObjectId(edge)
+    const existingTargetId = getCanvasEdgeTargetObjectId(edge)
+    const normalizedEdge = normalizeCanvasEdgeBindings(edge, {
+      sourceNode: existingSourceId ? this.store.getNode(existingSourceId) : null,
+      targetNode: existingTargetId ? this.store.getNode(existingTargetId) : null
+    })
+    const sourceId = getCanvasEdgeSourceObjectId(normalizedEdge)
+    const targetId = getCanvasEdgeTargetObjectId(normalizedEdge)
+    const sourceChunk = sourceId ? this.findNodeChunk(sourceId) : null
+    const targetChunk = targetId ? this.findNodeChunk(targetId) : null
 
     if (!sourceChunk || !targetChunk) {
       console.warn('Cannot add edge: one or both nodes not found')
       return
     }
 
-    this.store.addEdge(edge, sourceChunk, targetChunk)
+    this.store.addEdge(normalizedEdge, sourceChunk, targetChunk)
 
     // Update local cache
     if (sourceChunk === targetChunk) {
       const chunk = this.chunks.get(sourceChunk)
       if (chunk?.loaded) {
-        chunk.edges.push(edge)
+        chunk.edges.push(normalizedEdge)
       }
     } else {
       this.crossChunkEdges.push({
-        ...edge,
+        ...normalizedEdge,
         sourceChunk,
         targetChunk
       })
@@ -569,11 +588,19 @@ export class ChunkManager {
     // Check in-chunk edges in old chunk
     const chunk = this.chunks.get(oldChunk)
     if (chunk?.loaded) {
-      const edgesToMove = chunk.edges.filter((e) => e.sourceId === nodeId || e.targetId === nodeId)
+      const edgesToMove = chunk.edges.filter((edge) => {
+        const sourceId = getCanvasEdgeSourceObjectId(edge)
+        const targetId = getCanvasEdgeTargetObjectId(edge)
+        return sourceId === nodeId || targetId === nodeId
+      })
 
       for (const edge of edgesToMove) {
-        const sourceChunk = edge.sourceId === nodeId ? newChunk : this.findNodeChunk(edge.sourceId)
-        const targetChunk = edge.targetId === nodeId ? newChunk : this.findNodeChunk(edge.targetId)
+        const sourceId = getCanvasEdgeSourceObjectId(edge)
+        const targetId = getCanvasEdgeTargetObjectId(edge)
+        const sourceChunk =
+          sourceId === nodeId ? newChunk : sourceId ? this.findNodeChunk(sourceId) : null
+        const targetChunk =
+          targetId === nodeId ? newChunk : targetId ? this.findNodeChunk(targetId) : null
 
         if (sourceChunk && targetChunk && sourceChunk !== targetChunk) {
           // Now a cross-chunk edge
@@ -592,9 +619,13 @@ export class ChunkManager {
 
     // Check cross-chunk edges that might now be same-chunk
     this.crossChunkEdges = this.crossChunkEdges.filter((edge) => {
-      if (edge.sourceId === nodeId || edge.targetId === nodeId) {
-        const sourceChunk = edge.sourceId === nodeId ? newChunk : this.findNodeChunk(edge.sourceId)
-        const targetChunk = edge.targetId === nodeId ? newChunk : this.findNodeChunk(edge.targetId)
+      const sourceId = getCanvasEdgeSourceObjectId(edge)
+      const targetId = getCanvasEdgeTargetObjectId(edge)
+      if (sourceId === nodeId || targetId === nodeId) {
+        const sourceChunk =
+          sourceId === nodeId ? newChunk : sourceId ? this.findNodeChunk(sourceId) : null
+        const targetChunk =
+          targetId === nodeId ? newChunk : targetId ? this.findNodeChunk(targetId) : null
 
         if (sourceChunk === targetChunk && sourceChunk) {
           // Move back to chunk

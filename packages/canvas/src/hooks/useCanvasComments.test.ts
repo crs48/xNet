@@ -131,7 +131,11 @@ describe('useCanvasComments utilities', () => {
 
     describe('object anchors', () => {
       it('returns false when object exists', () => {
-        const anchor: CanvasObjectAnchor = { objectId: 'obj-1' }
+        const anchor: CanvasObjectAnchor = {
+          objectId: 'obj-1',
+          anchorId: 'obj-1#placement:right',
+          placement: 'right'
+        }
         expect(
           isCanvasAnchorOrphaned('canvas-object', encodeAnchor(anchor), existingObjectIds)
         ).toBe(false)

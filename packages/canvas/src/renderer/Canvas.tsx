@@ -27,6 +27,7 @@ import * as Y from 'yjs'
 import { CommentOverlay } from '../comments/CommentOverlay'
 import { CollapsibleMinimap } from '../components/Minimap'
 import { NavigationTools } from '../components/NavigationTools'
+import { getCanvasEdgeSourceObjectId, getCanvasEdgeTargetObjectId } from '../edges/bindings'
 import { CanvasEdgeComponent } from '../edges/CanvasEdgeComponent'
 import { useCanvas } from '../hooks/useCanvas'
 import { useCanvasKeyboard } from '../hooks/useCanvasKeyboard'
@@ -987,8 +988,10 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function Canvas(
       >
         <g style={{ transform: viewport.getTransform() }}>
           {visibleEdges.map((edge) => {
-            const sourceNode = nodeMap.get(edge.sourceId)
-            const targetNode = nodeMap.get(edge.targetId)
+            const sourceId = getCanvasEdgeSourceObjectId(edge)
+            const targetId = getCanvasEdgeTargetObjectId(edge)
+            const sourceNode = sourceId ? nodeMap.get(sourceId) : undefined
+            const targetNode = targetId ? nodeMap.get(targetId) : undefined
             if (!sourceNode || !targetNode) return null
 
             return (
